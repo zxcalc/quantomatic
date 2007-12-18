@@ -10,3 +10,6 @@ System.use "qgraph.ML";
 System.use "test/ex_qgraph.ML";
 System.use "output.ML";
 System.use "output_dot.ML";
+System.use "expr.ML";
+System.use "coeff.ML";
+
