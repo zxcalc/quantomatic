@@ -1,0 +1,7 @@
+graph ELLIPSIS {
+	v1[label="blah"];
+	v2[label="bing"];
+
+	v1--e1--v2;
+	e1[label=".....",shape=none,fixedsize=true,width=0.2,height=0.2];
+}
