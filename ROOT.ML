@@ -1,5 +1,7 @@
 System.use "name.ML";
 System.use "nodes_and_edges.ML";
+System.use "expr.ML";
+System.use "pat_nodes_and_edges.ML";
 System.use "graph.ML";
 System.use "test/ex_graph.ML";
 System.use "patgraph.ML";

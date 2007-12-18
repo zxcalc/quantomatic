@@ -8,13 +8,17 @@ signature QGRAPH =
 sig
 structure QuNE : Q_NODES_AND_EDGES
 
-structure PatGraph : PATTERN_GRAPH where 
+structure PatGraph : PATTERN_GRAPH
+  sharing PatNE = QuNE;
+(*  where 
   type PatNE.node_pat = QuNE.node
-  and type PatNE.edge_pat = QuNE.edge;
+  and type PatNE.edge_pat = QuNE.edge; *)
 
-include BASIC_GRAPH where
+include BASIC_GRAPH sharing NE = QuNE;
+
+(* where
   type NE.node = QuNE.node
-  and type NE.edge = QuNE.edge;
+  and type NE.edge = QuNE.edge; *)
 
 val get_patgraph : T -> PatGraph.T
 val get_inputs : T -> NName.Col.T

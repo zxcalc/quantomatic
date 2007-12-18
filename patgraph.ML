@@ -9,20 +9,26 @@ sig
 
 structure PatNE : PATTERN_NODES_AND_EDGES;
 
-structure BGraph : BASIC_GRAPH where 
-   type NE.node = PatNE.node
-   and type NE.edge = PatNE.edge;
+structure BGraph : BASIC_GRAPH sharing BGraph.NE = PatNE;
 
-include BASIC_GRAPH where
+(* where 
    type NE.node = PatNE.node
    and type NE.edge = PatNE.edge;
+*)
+
+include BASIC_GRAPH sharing NE = PatNE;
+
+(* where
+   type NE.node = PatNE.node
+   and type NE.edge = PatNE.edge;
+*)
 
 val get_bgraph : T -> BGraph.T
 val get_vars : T -> NName.Col.T
 val get_datavars : T -> NName.Col.T VName.NTab.T
 val get_datavars_at_node : T -> NName.T -> NName.Col.T
 
-val instantiate : PatNE.Expr.T VName.NTab.T -> T -> T
+val instantiate : Expr.T VName.NTab.T -> T -> T
 
 (* internal tools -- dangerous to use outside! *)
 val update_bgraph  : (BGraph.T -> BGraph.T) -> T -> T
@@ -51,8 +57,6 @@ type node = NE.node;
 type edge = NE.edge;
 
 (* structure abbreviations *)
-structure Expr = PatNE.Expr;
-
 structure NnTab = NName.NTab;
 structure NnCol = NName.Col;
 structure EnTab = EName.NTab;
@@ -61,10 +65,10 @@ structure EnCol = EName.Col;
 (* a graph *)
 datatype T = PatGraph of 
          {bgraph : BGraph.T, (* the basic graph *)
-          (* variable nodes - graph level pattern vars *)
+          (* the variable nodes - graph level pattern vars *)
           vars : NName.Col.T,
-          (* variables to nodes they occur in *)
-					datavars : NName.Col.T VName.NTab.T 
+          (* map of data variables to the nodes they occur in *)
+					datavars : NName.Col.T VName.NTab.T
 				 };
 
 exception no_such_nname_exp of string * nname * T;
@@ -84,7 +88,7 @@ fun update_bgraph f (PatGraph rep) =
 fun update_vars f (PatGraph rep) = 
     PatGraph { bgraph = #bgraph rep, 
                vars = f (#vars rep),
-							 databars = #datavars rep
+							 datavars = #datavars rep
 						 };
 
 val set_bgraph = update_bgraph o K;
