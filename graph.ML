@@ -47,6 +47,9 @@ val delete_node : nname -> T -> T
 val rename_nname : nname -> nname -> T -> T 
 val rename_ename : ename -> ename -> T -> T 
 
+(* rename the 2nd graph to avoid all names in the first one *)
+val rename_apart : T -> T -> T 
+
 (* update a node's data *)
 val update_node : (node -> node) -> nname -> T -> T
 val update_edge : (edge -> edge) -> ename -> T -> T
@@ -59,6 +62,11 @@ val get_edge : T -> ename -> (edge * (nname * nname))
 val lookup_node : T -> nname -> (node * (EName.Col.T * EName.Col.T)) option
 val lookup_edge : T -> ename -> (edge * (nname * nname)) option
 
+(* working with names in the graph, no exceptions *)
+val useup_nnames : nname list -> T -> T
+val useup_enames : ename list -> T -> T
+
+(* getting graph internal representation... *)
 val get_node_list : T -> (nname * (node 
                    * (EName.Col.T (* edges coming into this node *)
                       * EName.Col.T))) (* edges leaving this node *)
@@ -167,6 +175,10 @@ val doadd_node = snd oo add_node;
 (* implicit arg: g *)
 fun new_named_node n nd =
     update_nodes (NnTab.ins (n,(nd,(EnCol.empty,EnCol.empty))));
+
+(* working with names in the graph, no exceptions *)
+val useup_nnames = update_nodes o NName.NTab.useup_names;
+val useup_enames = update_edges o EName.NTab.useup_names;
 
 (* implicit args: g n *)
 val has_nname = NnTab.contains o get_nodes;
@@ -295,6 +307,38 @@ fun rename_ename en1 en2 g =
 
       (* give back new edge name and new graph *)
     in Graph{nodes = nodes2, edges = edges2} end;
+
+
+
+(* rename the names in g2 to avoid those in g1 *)
+
+(* IMPROVE: avoid conversion to lists as uses up lots of memory: have
+a function in FNAMETAB to useup names from a name collection *)
+fun rename_apart avoidg ing = 
+		let val nnames = (get_nodes avoidg)
+				val enames = (get_edges avoidg)
+				val g2 = ing |> useup_nnames (NName.NTab.keys nnames)
+										 |> useup_enames (EName.NTab.keys enames)
+		in
+			g2 |> (NName.NTab.fold 
+							 (fn (n,_) => fn g3 =>
+									 if NName.NTab.contains nnames n then
+										 rename_nname 
+											 n (NName.NTab.N.new n (NName.NTab.get_names 
+																								(get_nodes g3)))
+											 g3
+									 else g3)
+							 (get_nodes g2))
+				 |> (EName.NTab.fold 
+							 (fn (n,_) => fn g3 =>
+									if EName.NTab.contains enames n then
+										rename_ename 
+											n (EName.NTab.N.new n (EName.NTab.get_names 
+																							 (get_edges g3)))
+											g3
+									else g3)
+							 (get_edges g2))
+		end;
 
 (* implicit arg: g *)
 fun update_node f n = 

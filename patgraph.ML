@@ -51,7 +51,8 @@ end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Quantum Graphs *)
-functor PatGraphFun(PatNE : PATTERN_NODES_AND_EDGES
+functor PatGraphFun(
+structure PatNE : PATTERN_NODES_AND_EDGES
 structure Expr : EXPR where type T = PatNE.BasicNE.node
 ) = 
 struct
@@ -101,7 +102,7 @@ fun update_vars f (PatGraph rep) =
                vars = f (#vars rep),
 							 datavars = #datavars rep
 						 };
-fun update_datavars (PatGraph rep) = 
+fun update_datavars f (PatGraph rep) = 
     PatGraph { bgraph = #bgraph rep, 
                vars = #vars rep,
 							 datavars = f (#datavars rep)
@@ -194,6 +195,14 @@ val set_node = update_bgraph oo BGraph.set_node;
 (* implicit arg: en e q *)
 val set_edge = update_bgraph oo BGraph.set_edge;
 
+(* useup names... *)
+val useup_nnames = update_bgraph o BGraph.useup_nnames;
+val useup_enames = update_bgraph o BGraph.useup_enames;
+
+(* implicit args: g1 g2: rename g2 to avoid names in g1 *)
+val rename_apart = 
+		update_bgraph o (BGraph.rename_apart o get_bgraph);
+
 datatype match = Match of 
 				 {(* instantiations for graph vars *)
 					ginsts: NName.T NName.NTab.T, 
@@ -210,7 +219,7 @@ fun get_match_dinsts (Match rep) = #dinsts rep;
 val set_match_dinsts = update_match_dinsts o K;
 
 (* raises NName.NTab...DUP exception, if n1 is already insantiated *)
-fun insnew_match_ginst n1 n2 m = 
+fun insnew_match_ginst n1 n2 = 
 		update_match_ginsts (NName.NTab.ins (n1,n2));
 
 (* you are not supposed to have vars in the target to be matched... *)
@@ -218,14 +227,13 @@ exception vars_in_match_target_exp of string;
 
 fun match_node (n1, patnd as NE.VarNode _) (n2, _) m = 
 		SOME (insnew_match_ginst n1 n2 m)
-	| match_node _ (_, NE.VarNode _) = 
+	| match_node _ (_, NE.VarNode _) m = 
 		raise vars_in_match_target_exp "match_node"
 	| match_node (n1, patnd as NE.Node nd1) (n2, NE.Node nd2) m = 
 		(case (Expr.match nd1 nd2 (get_match_dinsts m)) 
 			of NONE => NONE
 			 | SOME dinsts2 => SOME (set_match_dinsts dinsts2 m));
-
-fun match_nnames g n1 n2 =
+		
 		
 
 (* pretty printing *)
@@ -252,7 +260,9 @@ val print = Pretty.writeln o pretty;
 end;
 
 
-structure DB_PatStrGraph = PatGraphFun(PatStrNE);
+structure DB_PatStrGraph = PatGraphFun(
+  structure PatNE = PatStrNE
+  structure Expr = Expr);
 structure PatStrGraph :> PATTERN_GRAPH where 
 type PatNE.node_pat = PatStrNE.node_pat 
  and type PatNE.edge_pat = PatStrNE.edge_pat 
