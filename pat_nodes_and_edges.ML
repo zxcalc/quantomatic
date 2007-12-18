@@ -158,10 +158,27 @@ structure PatStrNE = IOPatNodesAndEdgesFun(StrNE);
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  Angle expressions stub *)
+structure AngleExpr : BASIC_EXPR 
+= struct
+  type T = string;
+  type varexpr = T;
+	val ord = String.compare;
+  fun eq x y = x = y;
+  fun get_vars e = VName.Col.empty;
+  fun subs t e = e;
+  fun match pate e tab = if pate = e then SOME tab else NONE;
+  fun pretty e = Pretty.str e;
+  val print = Pretty.writeln o pretty;
+end;
+
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Nodes and Edges for quantum graphs *)
 signature BASIC_Q_NODES_AND_EDGES
 = sig
-  type angle = Expr.T;
+  type angle = AngleExpr.T;
   val angle_ord : angle * angle -> General.order
   datatype qnd = Xnd of angle (* Red: defined using H of Z *) 
                | Znd of angle (* Green *)
@@ -170,15 +187,14 @@ signature BASIC_Q_NODES_AND_EDGES
   val Edge : edge;
 end;
 
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 structure BasicQuNE 
 : BASIC_Q_NODES_AND_EDGES
 = struct
 
-type angle = Expr.T;
+type angle = AngleExpr.T;
 
-val angle_ord = Expr.ord;
+val angle_ord = AngleExpr.ord;
 
 datatype qnd = Xnd of angle (* Red: defined using H of Z *) 
              | Znd of angle (* Green *)
@@ -217,13 +233,43 @@ val print_edge = Pretty.writeln o pretty_edge;
 end;
 
 
+
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature Q_NODES_AND_EDGES = 
-  IO_PATTERN_NODES_AND_EDGES where 
-  type BasicNE.node = BasicQuNE.node 
-  and type BasicNE.edge = BasicQuNE.edge;
+  IO_PATTERN_NODES_AND_EDGES 
+		where type BasicNE.node = BasicQuNE.node 
+      and type BasicNE.edge = BasicQuNE.edge;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 structure QuNE : Q_NODES_AND_EDGES = IOPatNodesAndEdgesFun(BasicQuNE);
 
 structure NE = QuNE;
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  matching and substitution for Basic Quantum Expressions *)
+structure BasicQuExpr 
+: BASIC_EXPR where type varexpr = AngleExpr.T
+= struct
+  type varexpr = AngleExpr.T;
+  type T = BasicQuNE.node;
+	val ord = BasicQuNE.node_ord;
+  val eq = BasicQuNE.node_eq;
+
+  fun get_vars BasicQuNE.Hnd = VName.Col.empty
+		| get_vars (BasicQuNE.Znd a) = AngleExpr.get_vars a
+		| get_vars (BasicQuNE.Xnd a) = AngleExpr.get_vars a;
+
+  fun subs t (e as BasicQuNE.Hnd) = e
+		| subs t (BasicQuNE.Znd a) = BasicQuNE.Znd (AngleExpr.subs t a)
+		| subs t (BasicQuNE.Xnd a) = BasicQuNE.Znd (AngleExpr.subs t a);
+
+  fun match (e1 as BasicQuNE.Hnd) (e2 as BasicQuNE.Hnd) t = SOME t
+		| match (BasicQuNE.Znd a1) (BasicQuNE.Znd a2) t = 
+			AngleExpr.match a1 a2 t
+		| match (BasicQuNE.Xnd a1) (BasicQuNE.Xnd a2) t = 
+			AngleExpr.match a1 a2 t
+		| match _ _ _ = NONE;
+
+  val pretty = BasicQuNE.pretty_node;
+  val print = BasicQuNE.print_node;
+end;

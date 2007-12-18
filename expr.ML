@@ -1,42 +1,41 @@
-structure VName = StrName :> NAME;
+(* Variable names in expressions *)
+structure VName = StrName :> STR_NAME;
 
-signature EXPR =
+(* Basic stuff for an expression which might have variables *)
+signature BASIC_EXPR =
 sig 
-
-  type T;  (* type of expressions *)
-  type var = VName.T; (* type of variables allowed in expressions *)
-  type table = T VName.NTab.T; (* mapping var -> T *)
-
-  exception BadExpression of string;
-
+  (* NOTE: 
+     VName.T = type of variables allowed in expressions 
+     T VName.NTab.T = mapping of vars to expressions *)
+  type T; (* expressions *)
+  type varexpr; (* type of things that instantiate vars - maybe subtype of T *)
   val ord : T * T -> General.order;
-  val equal : T -> T -> bool;
-  val reduce : T -> T;
+  val eq : T -> T -> bool;
   val get_vars : T -> VName.Col.T;
+  val subs : varexpr VName.NTab.T -> T -> T;
+  val match : T -> T -> varexpr VName.NTab.T -> varexpr VName.NTab.T option;
+
   val pretty : T -> Pretty.T;
-
-  val subs : table -> T -> T; (* The table gives the value of variables,
-				     returns new expression *)
-
-  (* arg 1 = pattern,
-	 arg 2 = "ground" term
-	 arg 3 = matches done so far
-	 return final matche, if there is one *)
-  val match : T -> T -> table -> table option; 
+	val print : T -> unit;
 end
 
-(* dummy Expr stub for typechecking to continue *)
-structure Expr : EXPR =
-struct 
-  type T = string;
-  type var = VName.T; (* type of variables allowed in expressions *)
-  type table = T VName.NTab.T; (* mapping var -> T *)
+(* extra stuff for expressions... ? *)
+signature EXPR =
+sig 
+	include BASIC_EXPR;
   exception BadExpression of string;
-	val ord = String.compare;
+end;
+
+(* dummy Expr stub strings: there are no vars, matching = eq *)
+structure StrExpr : BASIC_EXPR =
+struct 
+  type varexpr = unit;
+  type T = StrNE.node;
+	val ord = StrNE.node_ord;
   fun eq x y = x = y;
-  fun reduce e = e;
   fun get_vars e = VName.Col.empty;
-  fun pretty e = Pretty.str "unimplemented";
   fun subs t e = e;
-  fun match pate e tab = SOME tab;
+  fun match pate e tab = if pate = e then SOME tab else NONE;
+  fun pretty e = Pretty.str "unimplemented";
+  val print = Pretty.writeln o pretty;
 end

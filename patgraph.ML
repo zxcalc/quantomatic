@@ -53,7 +53,7 @@ end;
 (*  Quantum Graphs *)
 functor PatGraphFun(
 structure PatNE : PATTERN_NODES_AND_EDGES
-structure Expr : EXPR where type T = PatNE.BasicNE.node
+structure Expr : BASIC_EXPR where type T = PatNE.BasicNE.node
 ) = 
 struct
 
@@ -111,9 +111,23 @@ fun update_datavars f (PatGraph rep) =
 val set_bgraph = update_bgraph o K;
 val set_vars = update_vars o K;
 val set_datavars = update_datavars o K;
+
 val add_var = update_vars o NnCol.union1;
 val del_var = update_vars o NnCol.delete;
 val del_vars = update_vars o NnCol.minus_set;
+
+(* implicit arg: graph *)
+fun add_datavars_dep vs n = 
+		update_datavars 
+			(VName.Col.fold (fn v => fn dvars => 
+								VName.NTab.map_entry (NName.Col.union1 n) v dvars
+						) vs);
+
+fun del_datavars_dep vs n = 
+		update_datavars 
+			(VName.Col.fold (fn v => fn dvars => 
+								VName.NTab.map_entry (NName.Col.remove n) v dvars
+						) vs);
 
 fun get_bgraph (PatGraph rep) = #bgraph rep;
 fun get_vars (PatGraph rep) = #vars rep;
@@ -130,23 +144,28 @@ val get_edge = BGraph.get_edge o get_bgraph;
 val lookup_node = BGraph.lookup_node o get_bgraph;
 val lookup_edge = BGraph.lookup_edge o get_bgraph;
 
-(* adding a node gives back unique name for it and the new graph *)
+(* adding a node gives back new unique name for it and the new graph *)
 fun add_named_node n (nd as NE.VarNode in_or_out) g =
     let val (n2,g2) = BGraph.add_named_node n nd (get_bgraph g)
     in (n2, g |> add_var n
               |> set_bgraph g2)
     end
-  | add_named_node n nd g =
-    let val (n2,g2) = BGraph.add_named_node n nd (get_bgraph g)
-    in (n2, set_bgraph g2 g) end;
+  | add_named_node n (nd as NE.Node ndata) g =
+    let val (n2,bg2) = BGraph.add_named_node n nd (get_bgraph g)
+    in (n2, g |> set_bgraph bg2
+							|> add_datavars_dep (Expr.get_vars ndata) n) 
+		end;
 
+(* new can raise an exception if name is not unique, returns new graph *)
 fun new_named_node n (nd as NE.VarNode in_or_out) g =
     let val bg2 = BGraph.new_named_node n nd (get_bgraph g)
     in g |> add_var n
          |> set_bgraph bg2 end
   | new_named_node n nd g =
     let val bg2 = BGraph.new_named_node n nd (get_bgraph g)
-    in set_bgraph bg2 g end;
+    in g |> set_bgraph bg2 
+				 |> add_datavars_dep (Expr.get_vars ndata) n 
+		end;
 
 (* implicit args: nd q *)
 val add_node = add_named_node NE.default_nname;
@@ -164,11 +183,15 @@ fun new_named_edge en e n1 n2 g =
 val add_edge = add_named_edge NE.default_ename;
 val doadd_edge  = snd oooo add_edge;
 
+fun delete_node_vardeps n g = 
+		(case (get_node g n) 
+      of (NE.VarNode _,_) => del_var n g
+       | (NE.Node nd,_) => 
+				 del_datavars_dep (Expr.get_vars nd) n g)
+
 (* deleting node also removes all it's edges. *)
 fun delete_node n g = 
-    g |> (case (get_node g n) 
-           of (NE.VarNode _,_) => del_var n
-            | (NE.Node _,_) => I)
+    g |> delete_node_vardeps n
       |> update_bgraph (BGraph.delete_node n);
 
 (* implicit args: en q *)
@@ -177,12 +200,17 @@ val delete_edge = update_bgraph o BGraph.delete_edge;
 (* nname = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
    n2 must not exist already, n1 must exist *)
+(* THINK: I think there is a slightly more efficient way to treat datavars *)
 fun rename_nname n1 n2 g = 
     (case (get_node g n1)
       of (NE.VarNode _,_) => 
          g |> update_vars (NnCol.delete n1 o NnCol.union1 n2)
            |> update_bgraph (BGraph.rename_nname n1 n2)
-       | _ => g |> update_bgraph (BGraph.rename_nname n1 n2));
+       | (NE.Node nd,_) => 
+				 g |> update_bgraph (BGraph.rename_nname n1 n2)
+					 |> del_datavars_dep (Expr.get_vars nd) n
+					 |> add_datavars_dep (Expr.get_vars nd) n
+		);
 
 (* val implicit args: en1 en2 q *)
 val rename_ename = update_bgraph oo BGraph.rename_ename;
@@ -207,7 +235,7 @@ datatype match = Match of
 				 {(* instantiations for graph vars *)
 					ginsts: NName.T NName.NTab.T, 
 					(* instantiations for node data varaiables *)
-					dinsts: Expr.T VName.NTab.T
+					dinsts: Expr.varexpr VName.NTab.T
 				 };
 
 fun update_match_ginsts f (Match rep) = 
@@ -234,6 +262,10 @@ fun match_node (n1, patnd as NE.VarNode _) (n2, _) m =
 			of NONE => NONE
 			 | SOME dinsts2 => SOME (set_match_dinsts dinsts2 m));
 		
+fun instantiate_node m (nd as NE.VarNode _) = nd
+	| instantiate_node m (NE.Node nd2) = NE.Node (Expr.subs m nd2);
+
+fun instantiate m g = 
 		
 
 (* pretty printing *)
@@ -262,7 +294,7 @@ end;
 
 structure DB_PatStrGraph = PatGraphFun(
   structure PatNE = PatStrNE
-  structure Expr = Expr);
+  structure Expr = StrExpr);
 structure PatStrGraph :> PATTERN_GRAPH where 
 type PatNE.node_pat = PatStrNE.node_pat 
  and type PatNE.edge_pat = PatStrNE.edge_pat 
