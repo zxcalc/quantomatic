@@ -1,0 +1,26 @@
+Some ideas for future directions for the tool
+---
+
+* Interactive GUI.
+
+* LaTeX output.  Movies of rewrite sequences?
+
+* more graph variants:  polycats; measurement calculus; generalised
+MUB classical objects with more than 2 incompatible bases
+
+* Strategies and Tactics:  user defined rewriting strategies; perhaps
+making use of the external programs or oracles (c.f. Flow/Gflow
+algorithms)
+
+* Automatic proofs of equivalence of programs
+
+* Semantics -- compute the semantics of a diagram; integration with
+matlab?  Use an internal complex arithmetic package to compute?
+There are issues here regarding 1) scalar factors and 2) equalities
+which are correct quantum mechanically but not true at the  matrix
+level.
+
+* Meta level:  termination/confluence etc.  Make the rewrite system
+well behaved.  how good can it be?
+
+* ?extend to multiplicative-additive case?
