@@ -28,7 +28,16 @@ val get_vars : T -> NName.Col.T
 val get_datavars : T -> NName.Col.T VName.NTab.T
 val get_datavars_at_node : T -> NName.T -> NName.Col.T
 
-val instantiate : Expr.T VName.NTab.T -> T -> T
+(* a matching between var-nodes also with instantiations for data vars in nodes *)
+type match
+val match_node : node -> node -> match -> match option
+val instantiate_node : match -> node -> node
+
+(* instantiate a graph with some match *)
+val instantiate : match -> T -> T
+
+val pretty_match : match -> Pretty.T
+val print_match : match -> unit
 
 (* internal tools -- dangerous to use outside! *)
 val update_bgraph  : (BGraph.T -> BGraph.T) -> T -> T
@@ -42,7 +51,9 @@ end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Quantum Graphs *)
-functor PatGraphFun(PatNE : PATTERN_NODES_AND_EDGES) = 
+functor PatGraphFun(PatNE : PATTERN_NODES_AND_EDGES
+structure Expr : EXPR where type T = PatNE.BasicNE.node
+) = 
 struct
 
 structure PatNE = PatNE;
@@ -90,9 +101,15 @@ fun update_vars f (PatGraph rep) =
                vars = f (#vars rep),
 							 datavars = #datavars rep
 						 };
+fun update_datavars (PatGraph rep) = 
+    PatGraph { bgraph = #bgraph rep, 
+               vars = #vars rep,
+							 datavars = f (#datavars rep)
+						 };
 
 val set_bgraph = update_bgraph o K;
 val set_vars = update_vars o K;
+val set_datavars = update_datavars o K;
 val add_var = update_vars o NnCol.union1;
 val del_var = update_vars o NnCol.delete;
 val del_vars = update_vars o NnCol.minus_set;
@@ -150,7 +167,7 @@ val doadd_edge  = snd oooo add_edge;
 fun delete_node n g = 
     g |> (case (get_node g n) 
            of (NE.VarNode _,_) => del_var n
-            | _ => I)
+            | (NE.Node _,_) => I)
       |> update_bgraph (BGraph.delete_node n);
 
 (* implicit args: en q *)
@@ -177,7 +194,39 @@ val set_node = update_bgraph oo BGraph.set_node;
 (* implicit arg: en e q *)
 val set_edge = update_bgraph oo BGraph.set_edge;
 
-(* pretty printing *)
+datatype match = Match of 
+				 {(* instantiations for graph vars *)
+					ginsts: NName.T NName.NTab.T, 
+					(* instantiations for node data varaiables *)
+					dinsts: Expr.T VName.NTab.T
+				 };
+
+fun update_match_ginsts f (Match rep) = 
+		Match {ginsts = f (#ginsts rep), dinsts = #dinsts rep};
+
+fun update_match_dinsts f (Match rep) = 
+		Match {ginsts = #ginsts rep, dinsts = f (#dinsts rep)};
+fun get_match_dinsts (Match rep) = #dinsts rep;
+val set_match_dinsts = update_match_dinsts o K;
+
+(* raises NName.NTab...DUP exception, if n1 is already insantiated *)
+fun insnew_match_ginst n1 n2 m = 
+		update_match_ginsts (NName.NTab.ins (n1,n2));
+
+(* you are not supposed to have vars in the target to be matched... *)
+exception vars_in_match_target_exp of string;
+
+fun match_node (n1, patnd as NE.VarNode _) (n2, _) m = 
+		SOME (insnew_match_ginst n1 n2 m)
+	| match_node _ (_, NE.VarNode _) = 
+		raise vars_in_match_target_exp "match_node"
+	| match_node (n1, patnd as NE.Node nd1) (n2, NE.Node nd2) m = 
+		(case (Expr.match nd1 nd2 (get_match_dinsts m)) 
+			of NONE => NONE
+			 | SOME dinsts2 => SOME (set_match_dinsts dinsts2 m));
+
+fun match_nnames g n1 n2 =
+		
 
 (* pretty printing *)
 val pretty_node = NE.pretty_node;
