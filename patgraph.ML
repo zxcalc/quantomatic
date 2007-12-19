@@ -126,6 +126,8 @@ fun del_datavars_dep vs n =
 								VName.NTab.map_entry (NName.NTab.N.delete n) v dvars
 						) vs);
 
+val del_datavar = update_datavars o VName.NTab.delete;
+
 fun get_bgraph (PatGraph rep) = #bgraph rep;
 fun get_vars (PatGraph rep) = #vars rep;
 fun get_datavars (PatGraph rep) = #datavars rep;
@@ -255,8 +257,6 @@ fun insnew_match_ginst n1 nnd2 =
 (* you are not supposed to have vars in the target to be matched... *)
 exception vars_in_match_target_exp of string;
 
-(* FIXME: matching can create new names! *)
-
 fun match_node (n1, patnd as NE.VarNode _) nnd2 m = 
 		SOME (insnew_match_ginst n1 nnd2 m)
 	| match_node _ (_, NE.VarNode _) m = 
@@ -273,11 +273,24 @@ fun instantiate_node_dvars dinsts (nd as NE.VarNode _) =
 	| instantiate_node_dvars dinsts (NE.Node nd2) = 
 		NE.Node (Expr.subs dinsts nd2);
 
+fun update_node_and_adddeps f n g = 
+		let 
+			val (nd,_) = (get_node g n)
+			val nd2 = f nd;
+		in 
+			case nd2 of NE.VarNode _ => set_node nd2 n g
+							 | NE.Node ndata => 
+								 g |> set_node nd2 n
+									 |> add_datavars_dep (Expr.get_vars ndata) n
+		end;
+
+(* Note: instantiation deals with adding/removing variable
+   dependencies tracking information *)
 fun instantiate m g = 
 		let 
 			val dvars = get_datavars g
 			val dinst = get_match_dinsts m
-					(* create all node names to instantiate *)
+			(* create all node names to instantiate *)
 			val update_ns = VName.NTab.N.fold 
 											 (fn v => fn ns => 
 											  NName.NTab.N.union_merge (VName.NTab.get dvars v) ns)
@@ -286,10 +299,14 @@ fun instantiate m g =
 		in
 			g |> (NName.NTab.fold (fn (n,(n2,nd2)) => fn g => 
 																g |> rename_nname n n2
-																	|> set_node nd2 n2)
+																	|> set_node nd2 n2
+																	|> del_var n
+														)
 														(get_match_ginsts m))
-				|> (NName.NTab.N.fold (update_node (instantiate_node_dvars dinst))
-															update_ns)
+			(* 	|> (NName.NTab.N.fold (update_node_and_adddeps 
+																 (instantiate_node_dvars dinst))
+															update_ns) *)
+				|> VName.NTab.fold (del_datavar o fst) dinst
 		end;
 
 (* pretty printing *)
