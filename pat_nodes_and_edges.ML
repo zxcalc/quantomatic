@@ -159,13 +159,15 @@ structure PatStrNE = IOPatNodesAndEdgesFun(StrNE);
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Angle expressions stub *)
-structure AngleExpr : BASIC_EXPR 
+structure AngleExpr : EXPR 
 = struct
+  exception BadExpression of string;
+
   type T = string;
   type varexpr = T;
 	val ord = String.compare;
   fun eq x y = x = y;
-  fun get_vars e = VName.Col.empty;
+  fun get_vars e = VName.NTab.N.empty;
   fun subs t e = e;
   fun match pate e tab = if pate = e then SOME tab else NONE;
   fun pretty e = Pretty.str e;
@@ -248,14 +250,14 @@ structure NE = QuNE;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  matching and substitution for Basic Quantum Expressions *)
 structure BasicQuExpr 
-: BASIC_EXPR where type varexpr = AngleExpr.T
+: GDATA_EXPR where type varexpr = AngleExpr.T
 = struct
   type varexpr = AngleExpr.T;
   type T = BasicQuNE.node;
 	val ord = BasicQuNE.node_ord;
   val eq = BasicQuNE.node_eq;
 
-  fun get_vars BasicQuNE.Hnd = VName.Col.empty
+  fun get_vars BasicQuNE.Hnd = VName.NTab.N.empty
 		| get_vars (BasicQuNE.Znd a) = AngleExpr.get_vars a
 		| get_vars (BasicQuNE.Xnd a) = AngleExpr.get_vars a;
 
@@ -270,6 +272,8 @@ structure BasicQuExpr
 			AngleExpr.match a1 a2 t
 		| match _ _ _ = NONE;
 
+  val pretty_varexp = AngleExpr.pretty;
+  val print_varexp = AngleExpr.print;
   val pretty = BasicQuNE.pretty_node;
   val print = BasicQuNE.print_node;
 end;

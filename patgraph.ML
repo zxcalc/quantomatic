@@ -11,6 +11,9 @@ structure PatNE : PATTERN_NODES_AND_EDGES;
 
 structure BGraph : BASIC_GRAPH sharing BGraph.NE = PatNE;
 
+(* expression type for non-graphvar case of nodes *)
+structure Expr : GDATA_EXPR where type T = PatNE.BasicNE.node;
+
 (* where 
    type NE.node = PatNE.node
    and type NE.edge = PatNE.edge;
@@ -25,13 +28,13 @@ include BASIC_GRAPH sharing NE = PatNE;
 
 val get_bgraph : T -> BGraph.T
 val get_vars : T -> NName.Col.T
-val get_datavars : T -> NName.Col.T VName.NTab.T
-val get_datavars_at_node : T -> NName.T -> NName.Col.T
+val get_datavars : T -> NName.NTab.N.T VName.NTab.T
 
 (* a matching between var-nodes also with instantiations for data vars in nodes *)
 type match
-val match_node : node -> node -> match -> match option
-val instantiate_node : match -> node -> node
+val match_node : (NName.T * node) ->  (NName.T * node) 
+								 -> match -> match option
+val instantiate_node_dvars : Expr.varexpr VName.NTab.T -> node -> node
 
 (* instantiate a graph with some match *)
 val instantiate : match -> T -> T
@@ -53,12 +56,13 @@ end;
 (*  Quantum Graphs *)
 functor PatGraphFun(
 structure PatNE : PATTERN_NODES_AND_EDGES
-structure Expr : BASIC_EXPR where type T = PatNE.BasicNE.node
+structure Expr : GDATA_EXPR where type T = PatNE.BasicNE.node
 ) = 
 struct
 
 structure PatNE = PatNE;
 structure NE = PatNE;
+structure Expr = Expr;
 
 structure BGraph = BasicGraphFun(NE);
 
@@ -68,19 +72,13 @@ type nname = NName.T;
 type node = NE.node;
 type edge = NE.edge;
 
-(* structure abbreviations *)
-structure NnTab = NName.NTab;
-structure NnCol = NName.Col;
-structure EnTab = EName.NTab;
-structure EnCol = EName.Col;
-
 (* a graph *)
 datatype T = PatGraph of 
          {bgraph : BGraph.T, (* the basic graph *)
           (* the variable nodes - graph level pattern vars *)
           vars : NName.Col.T,
           (* map of data variables to the nodes they occur in *)
-					datavars : NName.Col.T VName.NTab.T
+					datavars : NName.NTab.N.T VName.NTab.T
 				 };
 
 exception no_such_nname_exp of string * nname * T;
@@ -112,26 +110,27 @@ val set_bgraph = update_bgraph o K;
 val set_vars = update_vars o K;
 val set_datavars = update_datavars o K;
 
-val add_var = update_vars o NnCol.union1;
-val del_var = update_vars o NnCol.delete;
-val del_vars = update_vars o NnCol.minus_set;
+val add_var = update_vars o NName.Col.union1;
+val del_var = update_vars o NName.Col.delete;
+val del_vars = update_vars o NName.Col.minus_set;
 
 (* implicit arg: graph *)
 fun add_datavars_dep vs n = 
 		update_datavars 
-			(VName.Col.fold (fn v => fn dvars => 
-								VName.NTab.map_entry (NName.Col.union1 n) v dvars
+			(VName.NTab.N.fold (fn v => fn dvars => 
+								VName.NTab.map_entry (NName.NTab.N.add n) v dvars
 						) vs);
 
 fun del_datavars_dep vs n = 
 		update_datavars 
-			(VName.Col.fold (fn v => fn dvars => 
-								VName.NTab.map_entry (NName.Col.remove n) v dvars
+			(VName.NTab.N.fold (fn v => fn dvars => 
+								VName.NTab.map_entry (NName.NTab.N.delete n) v dvars
 						) vs);
 
 fun get_bgraph (PatGraph rep) = #bgraph rep;
 fun get_vars (PatGraph rep) = #vars rep;
 fun get_datavars (PatGraph rep) = #datavars rep;
+val delete_datavar = update_datavars o VName.NTab.delete;
 
 val get_nodes = BGraph.get_nodes o get_bgraph;
 val get_edges = BGraph.get_edges o get_bgraph;
@@ -161,7 +160,7 @@ fun new_named_node n (nd as NE.VarNode in_or_out) g =
     let val bg2 = BGraph.new_named_node n nd (get_bgraph g)
     in g |> add_var n
          |> set_bgraph bg2 end
-  | new_named_node n nd g =
+  | new_named_node n (nd as NE.Node ndata) g =
     let val bg2 = BGraph.new_named_node n nd (get_bgraph g)
     in g |> set_bgraph bg2 
 				 |> add_datavars_dep (Expr.get_vars ndata) n 
@@ -204,12 +203,12 @@ val delete_edge = update_bgraph o BGraph.delete_edge;
 fun rename_nname n1 n2 g = 
     (case (get_node g n1)
       of (NE.VarNode _,_) => 
-         g |> update_vars (NnCol.delete n1 o NnCol.union1 n2)
+         g |> update_vars (NName.Col.delete n1 o NName.Col.union1 n2)
            |> update_bgraph (BGraph.rename_nname n1 n2)
        | (NE.Node nd,_) => 
 				 g |> update_bgraph (BGraph.rename_nname n1 n2)
-					 |> del_datavars_dep (Expr.get_vars nd) n
-					 |> add_datavars_dep (Expr.get_vars nd) n
+					 |> del_datavars_dep (Expr.get_vars nd) n1
+					 |> add_datavars_dep (Expr.get_vars nd) n2
 		);
 
 (* val implicit args: en1 en2 q *)
@@ -233,7 +232,7 @@ val rename_apart =
 
 datatype match = Match of 
 				 {(* instantiations for graph vars *)
-					ginsts: NName.T NName.NTab.T, 
+					ginsts: (NName.T * node) NName.NTab.T, 
 					(* instantiations for node data varaiables *)
 					dinsts: Expr.varexpr VName.NTab.T
 				 };
@@ -243,30 +242,57 @@ fun update_match_ginsts f (Match rep) =
 
 fun update_match_dinsts f (Match rep) = 
 		Match {ginsts = #ginsts rep, dinsts = f (#dinsts rep)};
+
+fun get_match_ginsts (Match rep) = #ginsts rep;
 fun get_match_dinsts (Match rep) = #dinsts rep;
 val set_match_dinsts = update_match_dinsts o K;
 
+
+
 (* raises NName.NTab...DUP exception, if n1 is already insantiated *)
-fun insnew_match_ginst n1 n2 = 
-		update_match_ginsts (NName.NTab.ins (n1,n2));
+fun insnew_match_ginst n1 nnd2 = 
+		update_match_ginsts (NName.NTab.ins (n1,nnd2));
 
 (* you are not supposed to have vars in the target to be matched... *)
 exception vars_in_match_target_exp of string;
 
-fun match_node (n1, patnd as NE.VarNode _) (n2, _) m = 
-		SOME (insnew_match_ginst n1 n2 m)
+(* FIXME: matching can create new names! *)
+
+fun match_node (n1, patnd as NE.VarNode _) nnd2 m = 
+		SOME (insnew_match_ginst n1 nnd2 m)
 	| match_node _ (_, NE.VarNode _) m = 
 		raise vars_in_match_target_exp "match_node"
 	| match_node (n1, patnd as NE.Node nd1) (n2, NE.Node nd2) m = 
 		(case (Expr.match nd1 nd2 (get_match_dinsts m)) 
 			of NONE => NONE
 			 | SOME dinsts2 => SOME (set_match_dinsts dinsts2 m));
-		
-fun instantiate_node m (nd as NE.VarNode _) = nd
-	| instantiate_node m (NE.Node nd2) = NE.Node (Expr.subs m nd2);
+
+exception var_node_exp of string;
+
+fun instantiate_node_dvars dinsts (nd as NE.VarNode _) = 
+		raise var_node_exp "instantiate_node_dvars"
+	| instantiate_node_dvars dinsts (NE.Node nd2) = 
+		NE.Node (Expr.subs dinsts nd2);
 
 fun instantiate m g = 
-		
+		let 
+			val dvars = get_datavars g
+			val dinst = get_match_dinsts m
+					(* create all node names to instantiate *)
+			val update_ns = VName.NTab.N.fold 
+											 (fn v => fn ns => 
+											  NName.NTab.N.union_merge (VName.NTab.get dvars v) ns)
+											 (VName.NTab.get_names dinst)
+											 NName.NTab.N.empty;
+		in
+			g |> (NName.NTab.fold (fn (n,(n2,nd2)) => fn g => 
+																g |> rename_nname n n2
+																	|> set_node n2 nd2
+														
+														) (get_match_ginsts m))
+				|> (NName.NTab.N.fold (update_node (instantiate_node_dvars dinst))
+															update_ns)
+		end;
 
 (* pretty printing *)
 val pretty_node = NE.pretty_node;
@@ -282,12 +308,43 @@ fun pretty g =
          Pretty.chunks 
            [Pretty.block [Pretty.str "VarNodes: ", 
                           Pretty.list "{" "}" 
-                            (map NName.pretty (NnCol.dest (get_vars g)))],
+                            (map NName.pretty (NName.Col.dest (get_vars g)))],
+						Pretty.block [Pretty.str "VarNodes: ", 
+                          Pretty.list "{" "}" 
+										      	(map NName.pretty (NName.Col.dest (get_vars g)))],
             BGraph.pretty (get_bgraph g)]],
       Pretty.str "}"
     ];
 
 val print = Pretty.writeln o pretty;
+
+
+
+fun pretty_match m = 
+Pretty.chunks 
+	([Pretty.str "Graph Var-Node instantiations:"]
+	 @ (map (fn (n,(n2,nd2)) => 
+							Pretty.block 
+								[Pretty.str "NName: ", 
+								 NName.pretty n,
+								 Pretty.str " => ",
+								 NName.pretty n,
+								 Pretty.str " : ",
+								 pretty_node nd2])
+					(NName.NTab.dest (get_match_ginsts m)))
+	 @ [Pretty.block [], (* empty line *)
+			Pretty.str "Node Data Vars instantiations:"]
+	 @ (map (fn (n,varexp) => 
+							Pretty.block 
+								[Pretty.str "VName: ", 
+								 VName.pretty n,
+								 Prett.str " => ",
+								 Expr.pretty_varexp varexp])
+					(NName.NTab.dest (get_match_ginsts m))));
+
+
+val print_match = Pretty.writeln o pretty_match;
+
 
 end;
 
