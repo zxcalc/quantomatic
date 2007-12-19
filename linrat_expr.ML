@@ -1,18 +1,33 @@
 (* linear combinations with rational coeffs (and pi *)
 structure Linrat_expr :> EXPR =
 struct 
-exception BadExpression of string;
-type var = VName.T;
 
-(*datatype basis = Pi | Var of var;*)
+exception BadExpression of string;
+
 structure coeff = Rational;
-(* the first coeff is for Pi *)
-type T = coeff.T * (coeff.T VName.NTab.T);
+type var = VName.T;
+type T = coeff.T * (coeff.T VName.NTab.T);  (* the first coeff is for Pi *)
 type table = T VName.NTab.T;
 type varexpr = T;
 
+(* =====================================================================*)
+
 fun kv_eq ((k1,v1),(k2,v2)) = 
     VName.eq k1 k2 andalso coeff.eq v1 v2
+
+fun eq (x,xT)  (y,yT) = 
+    if  coeff.eq x y then true
+    else
+      let 
+	val xs = VName.NTab.dest xT
+	val ys = VName.NTab.dest yT
+	fun test (xx,yy,b) = (kv_eq (xx,yy)) andalso b
+      in 	 
+	ListPair.foldlEq test true (xs, ys)
+	handle ListPair.UnequalLengths => false	
+      end
+
+(* =====================================================================*)
 
 fun kv_order ((k1,v1),(k2,v2)) = 
     if  VName.ord(k1,k2) = General.EQUAL
@@ -28,18 +43,6 @@ fun  kv_list_ord ([],[]) = General.EQUAL
        kv_order(x,y)
      else 
        kv_list_ord(xs,ys)
-
-fun eq (x,xT)  (y,yT) = 
-    if  coeff.eq x y then true
-    else
-      let 
-	val xs = VName.NTab.dest xT
-	val ys = VName.NTab.dest yT
-	fun test (xx,yy,b) = (kv_eq (xx,yy)) andalso b
-      in 	 
-	ListPair.foldlEq test true (xs, ys)
-	handle ListPair.UnequalLengths => false	
-      end
       
 fun ord (x,xT)  (y,yT) =
     if coeff.ord(x,y) <> General.EQUAL
@@ -51,8 +54,12 @@ fun ord (x,xT)  (y,yT) =
 	kv_list_ord(xs,ys)
       end
 
+(* =====================================================================*)
+
 fun get_vars (_,tab)  = VName.NTab.get_names tab;
 
+
+(* arithmetic addition for expressions ========================*)
 fun add_expr (pi1,tab1) (pi2,tab2) = 
     let fun f (k,v) t = 
 	    if  VName.NTab.contains t k 
@@ -67,11 +74,9 @@ fun add_expr (pi1,tab1) (pi2,tab2) =
       end
     end
 
-    
-
+(* multiplication of an expression by a scalar ===================*)    
 fun scale_expr s (e_pi, e_tab) = 
-    let 
-      val rescale = (coeff.mult s)
+    let val rescale = (coeff.mult s)
     in 
       let fun f (n,v) t = VName.NTab.update (n, (rescale v)) t 
       in 
@@ -83,25 +88,37 @@ fun scale_expr s (e_pi, e_tab) =
       end
     end
 
+(* =====================================================================*)
+(* subs
+   given LookUP of (k,v) name->expression pairs, substitute 
+   v for k whereever it occurs in expression target
+*)					
 (* BUG! 
 Need to check somewhere that in the lup forall pairs (k,v)
 no variable k occurs in any expression v
 *)
 fun subs lup target = 
-    let 
-      fun sub1 (k,v) texp =
-	  let val (p,ttab) = texp
-	  in 
-	    if  VName.NTab.contains ttab k 
-	    then 
-	      add_expr (p, VName.NTab.delete k ttab)  
-		       (scale_expr (VName.NTab.get ttab k) v)
-	    else 
-	      texp
-	  end
+    let fun sub1 (k,v) texp =
+	    let val (p,ttab) = texp
+	    in 
+	      if  VName.NTab.contains ttab k 
+	      then 
+		add_expr (p, VName.NTab.delete k ttab)  
+			 (scale_expr (VName.NTab.get ttab k) v)
+	      else 
+		texp
+	    end
     in 
       VName.NTab.fold sub1 lup target
     end
 
+(* =====================================================================*)
+(* =====================================================================*)
+
+(* TODO ---
+  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+  val pretty : T -> Pretty.T;
+  val print : T -> unit;
+*)
 
 end
