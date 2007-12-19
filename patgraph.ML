@@ -63,7 +63,6 @@ struct
 structure PatNE = PatNE;
 structure NE = PatNE;
 structure Expr = Expr;
-
 structure BGraph = BasicGraphFun(NE);
 
 type ename = EName.T;
@@ -287,9 +286,8 @@ fun instantiate m g =
 		in
 			g |> (NName.NTab.fold (fn (n,(n2,nd2)) => fn g => 
 																g |> rename_nname n n2
-																	|> set_node n2 nd2
-														
-														) (get_match_ginsts m))
+																	|> set_node nd2 n2)
+														(get_match_ginsts m))
 				|> (NName.NTab.N.fold (update_node (instantiate_node_dvars dinst))
 															update_ns)
 		end;
@@ -338,13 +336,11 @@ Pretty.chunks
 							Pretty.block 
 								[Pretty.str "VName: ", 
 								 VName.pretty n,
-								 Prett.str " => ",
+								 Pretty.str " => ",
 								 Expr.pretty_varexp varexp])
-					(NName.NTab.dest (get_match_ginsts m))));
-
+					(VName.NTab.dest (get_match_dinsts m))));
 
 val print_match = Pretty.writeln o pretty_match;
-
 
 end;
 

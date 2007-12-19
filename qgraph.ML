@@ -9,10 +9,9 @@ sig
 structure QuNE : Q_NODES_AND_EDGES
 
 structure PatGraph : PATTERN_GRAPH
-  sharing PatNE = QuNE;
-(*  where 
+where 
   type PatNE.node_pat = QuNE.node
-  and type PatNE.edge_pat = QuNE.edge; *)
+  and type PatNE.edge_pat = QuNE.edge;
 
 include BASIC_GRAPH sharing NE = QuNE;
 
@@ -34,7 +33,9 @@ functor QGraphFun(QuNE : Q_NODES_AND_EDGES)
 structure QuNE = QuNE;
 structure NE = QuNE;
 
-structure PatGraph = PatGraphFun(NE);
+structure PatGraph = PatGraphFun(
+  structure PatNE = NE
+  structure Expr = BasicQuExpr);
 
 type ename = EName.T;
 type nname = NName.T;
@@ -174,7 +175,13 @@ val set_node = update_patgraph oo PatGraph.set_node;
 (* implicit arg: en e q *)
 val set_edge = update_patgraph oo PatGraph.set_edge;
 
-(* pretty printing *)
+(* useup names... *)
+val useup_nnames = update_patgraph o PatGraph.useup_nnames;
+val useup_enames = update_patgraph o PatGraph.useup_enames;
+
+(* implicit args: g1 g2: rename g2 to avoid names in g1 *)
+val rename_apart = 
+		update_patgraph o (PatGraph.rename_apart o get_patgraph);
 
 (* pretty printing *)
 val pretty_node = NE.pretty_node;
