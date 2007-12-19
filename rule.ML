@@ -10,9 +10,6 @@ type T (* rules *)
 
 val mk : string * (PatGraph.T * PatGraph.T) -> T;
 
-type match (* matching of a rule lhs against a graph *)
-val any_match : match
-
 val get_lhs : T -> PatGraph.T
 val get_rhs : T -> PatGraph.T
 
@@ -29,27 +26,30 @@ val get_lhs_deledges : T -> EName.NTab.N
 val sym : string (* new name *)
           -> T -> T
 
+
+val empty_match : PatGraph.match
+
 (* Note: implicitly dependent types: match must be a mapping between
 names in lhs(T) and those in the given (graph or rhs(T)) *)
-
 val match1 : T  (* use this rule *)
              -> PatGraph.T  (* to match something in this graph *)
-             -> match (* starting with this initial matching *)
-             -> match (* this is the first found resulting match *)
+             -> PatGraph.match (* starting with this initial matching *)
+             -> PatGraph.match (* this is the first found resulting match *)
 
 (* find all matches, evaluated lazily *)
-val matches : T -> PatGraph.T -> match -> match Seq.seq
+val matches : T -> PatGraph.T -> PatGraph.match -> PatGraph.match Seq.seq
 
 val do_rewrite : (* rewriting pattern graph *)
-    T -> match -> PatGraph.T -> PatGraph.T
+    T -> PatGraph.match -> PatGraph.T -> PatGraph.T
 val do_rewrite_rrhs : (* rewriting a rules rhs *)
     T (* use this rule *)
-    -> match (* with this matching *)
+    -> PatGraph.match (* with this matching *)
     -> T (* to rewrite this *)
     -> T (* to this *)
 
-val rewritings : T -> (match * PatGraph.T) -> (match * PatGraph.T) Seq.seq
-val rewritings_rrhs : T -> (match * T) -> (match * T) Seq.seq
+val rewritings : T -> (PatGraph.match * PatGraph.T) 
+								 -> (PatGraph.match * PatGraph.T) Seq.seq
+val rewritings_rrhs : T -> (PatGraph.match * T) -> (PatGraph.match * T) Seq.seq
 
 end;
 
@@ -63,17 +63,12 @@ datatype T = Rule of { name : string,
                        lhs : PatGraph.T,
                        rhs : PatGraph.T };
 
-datatype match = 
-         Match of { lhs_to_g : nname NName.NTab.T,
-                    g_to_lhs : nname NName.NTab.T };
-
 fun mk (n,(lhs,rhs)) = 
     Rule { name = n, lhs = lhs, rhs = rhs };
 
 (* match anything = no set matching *)
 val any_match =
-    Match { lhs_to_g = NName.NTab.empty,
-            g_to_lhs = NName.NTab.empty };
+    
 
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;

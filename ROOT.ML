@@ -1,5 +1,6 @@
 System.use "name.ML";
 System.use "nodes_and_edges.ML";
+System.use "coeff.ML";
 System.use "expr.ML";
 System.use "pat_nodes_and_edges.ML";
 System.use "graph.ML";
@@ -10,6 +11,3 @@ System.use "qgraph.ML";
 System.use "test/ex_qgraph.ML";
 System.use "output.ML";
 System.use "output_dot.ML";
-System.use "expr.ML";
-System.use "coeff.ML";
-

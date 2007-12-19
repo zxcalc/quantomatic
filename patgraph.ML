@@ -32,6 +32,7 @@ val get_datavars : T -> NName.NTab.N.T VName.NTab.T
 
 (* a matching between var-nodes also with instantiations for data vars in nodes *)
 type match
+val empty_match : match
 val match_node : (NName.T * node) ->  (NName.T * node) 
 								 -> match -> match option
 val instantiate_node_dvars : Expr.varexpr VName.NTab.T -> node -> node
@@ -237,6 +238,10 @@ datatype match = Match of
 					(* instantiations for node data varaiables *)
 					dinsts: Expr.varexpr VName.NTab.T
 				 };
+
+val empty_match = Match {ginsts = NName.NTab.empty,
+												 dinsts = VName.NTab.empty
+												};
 
 fun update_match_ginsts f (Match rep) = 
 		Match {ginsts = f (#ginsts rep), dinsts = #dinsts rep};
