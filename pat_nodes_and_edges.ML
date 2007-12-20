@@ -7,9 +7,12 @@ type nvdata (* node variable data *)
 
 structure BasicNE : NODES_AND_EDGES
 
+(* Nodes and edges in pattern graphs (graphs with dangling edges) *)
 datatype node_pat = 
+         (* node with some node data *)
          Node of BasicNE.node
-       | VarNode of nvdata;
+         (* represents a half edge - should only connect to one edge *)
+       | VarNode of nvdata; 
 datatype edge_pat = 
          OneEdge of BasicNE.edge
        | Edges of BasicNE.edge;

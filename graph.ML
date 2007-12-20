@@ -57,10 +57,12 @@ val set_node : node -> nname -> T -> T
 val set_edge : edge -> ename -> T -> T
 
 (* getting stuff from graphs *)
-val get_node : T -> nname -> (node * (EName.Col.T * EName.Col.T))
+val get_node : T -> nname -> (node * (EName.NTab.N.T * EName.NTab.N.T))
 val get_edge : T -> ename -> (edge * (nname * nname))
-val lookup_node : T -> nname -> (node * (EName.Col.T * EName.Col.T)) option
-val lookup_edge : T -> ename -> (edge * (nname * nname)) option
+val lookup_node : T -> nname 
+									-> (node * (EName.NTab.N.T * EName.NTab.N.T)) option
+val lookup_edge : T -> ename 
+									-> (edge * (nname * nname)) option
 
 (* working with names in the graph, no exceptions *)
 val useup_nnames : nname list -> T -> T
@@ -68,8 +70,8 @@ val useup_enames : ename list -> T -> T
 
 (* getting graph internal representation... *)
 val get_node_list : T -> (nname * (node 
-                   * (EName.Col.T (* edges coming into this node *)
-                      * EName.Col.T))) (* edges leaving this node *)
+                   * (EName.NTab.N.T (* edges coming into this node *)
+                      * EName.NTab.N.T))) (* edges leaving this node *)
                     list;
 val get_edge_list : T -> (ename * (edge 
                    * (nname (* from this node *)
@@ -78,8 +80,8 @@ val get_edge_list : T -> (ename * (edge
 
 val get_nodes : T 
                 -> (node 
-                    * (EName.Col.T (* edges coming into this node *)
-                       * EName.Col.T)) (* edges leaving this node *)
+                    * (EName.NTab.N.T (* edges coming into this node *)
+                       * EName.NTab.N.T)) (* edges leaving this node *)
                    NName.NTab.T;
 val get_edges : T 
                 -> (edge 
@@ -123,8 +125,8 @@ structure EnCol = EName.Col;
 datatype T = Graph of 
          {
           nodes : (node 
-                   * (EnCol.T (* edges coming into this node *)
-                      * EnCol.T)) (* edges leaving this node *)
+                   * (EName.NTab.N.T (* edges coming into this node *)
+                      * EName.NTab.N.T)) (* edges leaving this node *)
                     NnTab.T,
           edges : (edge 
                    * (nname (* from this node *)
@@ -167,14 +169,14 @@ fun get_edge g en =
 
 (* adding a node gives back unique name for it and the new graph *)
 fun add_named_node n nd g =
-    let val (n2,nodes2) = NnTab.add (n,(nd,(EnCol.empty,EnCol.empty))) (get_nodes g)
+    let val (n2,nodes2) = NnTab.add (n,(nd,(EName.NTab.N.empty,EName.NTab.N.empty))) (get_nodes g)
     in (n2, set_nodes nodes2 g) end;
 (* implicit args: nd g *)
 val add_node = add_named_node NE.default_nname;
 val doadd_node = snd oo add_node;
 (* implicit arg: g *)
 fun new_named_node n nd =
-    update_nodes (NnTab.ins (n,(nd,(EnCol.empty,EnCol.empty))));
+    update_nodes (NnTab.ins (n,(nd,(EName.NTab.N.empty,EName.NTab.N.empty))));
 
 (* working with names in the graph, no exceptions *)
 val useup_nnames = update_nodes o NName.NTab.useup_names;
@@ -198,8 +200,10 @@ fun add_named_edge en e n1 n2 g =
       (* update the nodes: add edge name as appropriate to ins and outs *)
       val nodes2 = 
           (get_nodes g)
-            |> NnTab.map_entry (fn (n,(ins,outs)) => (n,(ins,EnCol.addnew en2 outs))) n1
-            |> NnTab.map_entry (fn (n,(ins,outs)) => (n,(EnCol.addnew en2 ins,outs))) n2
+            |> NnTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(ins,EName.NTab.N.ins_fresh en2 outs))) n1
+            |> NnTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(EName.NTab.N.ins_fresh en2 ins,outs))) n2
       (* give back new edge name and new graph *)
     in (en2, Graph{nodes = nodes2, edges = edges2}) end;
 
@@ -220,8 +224,10 @@ fun new_named_edge en e n1 n2 g =
       (* update the nodes: add edge name as appropriate to ins and outs *)
       val nodes2 = 
           (get_nodes g)
-            |> NnTab.map_entry (fn (n,(ins,outs)) => (n,(ins,EnCol.addnew en outs))) n1
-            |> NnTab.map_entry (fn (n,(ins,outs)) => (n,(EnCol.addnew en ins,outs))) n2
+            |> NnTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(ins,EName.NTab.N.ins_fresh en outs))) n1
+            |> NnTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(EName.NTab.N.ins_fresh en ins,outs))) n2
       (* give back new edge name and new graph *)
     in Graph{nodes = nodes2, edges = edges2} end;
 
@@ -239,8 +245,8 @@ fun delete_node n g =
       (* delete all edges going into or out of this node. *)
       val edges2 = 
           (get_edges g)
-            |> EnCol.fold EnTab.delete ins
-            |> EnCol.fold EnTab.delete outs
+            |> EName.NTab.N.fold EnTab.delete ins
+            |> EName.NTab.N.fold EnTab.delete outs
 
       (* give back new edge name and new graph *)
     in Graph{nodes = nodes2, edges = edges2} end;
@@ -271,8 +277,8 @@ fun rename_nname n1 n2 g =
       (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
       val edges2 = 
           (get_edges g)
-            |> EnCol.fold (EnTab.map_entry (fn (e,(from,_)) => (e,(from,n2)))) ins
-            |> EnCol.fold (EnTab.map_entry (fn (e,(_,tos)) => (e,(n2,tos)))) outs;
+            |> EName.NTab.N.fold (EnTab.map_entry (fn (e,(from,_)) => (e,(from,n2)))) ins
+            |> EName.NTab.N.fold (EnTab.map_entry (fn (e,(_,tos)) => (e,(n2,tos)))) outs;
 
       (* give back new edge name and new graph *)
     in Graph{nodes = nodes2, edges = edges2} end;
@@ -297,12 +303,12 @@ fun rename_ename en1 en2 g =
       val nodes2 = 
           (get_nodes g)
             |> NnTab.map_entry (fn (n,(ins,outs)) => 
-                                   let val outs2 = outs |> EnCol.delete en1
-                                                        |> EnCol.addnew en2
+                                   let val outs2 = outs |> EName.NTab.N.delete en1
+                                                        |> EName.NTab.N.ins_fresh en2
                                    in (n,(ins,outs2)) end) from_n
             |> NnTab.map_entry (fn (n,(ins,outs)) =>
-                                   let val ins2 = ins |> EnCol.delete en1
-                                                      |> EnCol.addnew en2
+                                   let val ins2 = ins |> EName.NTab.N.delete en1
+                                                      |> EName.NTab.N.ins_fresh en2
                                    in (n,(ins2,outs)) end) to_n;
 
       (* give back new edge name and new graph *)
@@ -373,8 +379,8 @@ fun pretty g =
                        Pretty.block 
                          [pretty_nname n,
                           Pretty.str "; ",
-                          Pretty.list "i{" "}" (map pretty_ename (EnCol.dest ins)),
-                          Pretty.list "; o{" "}" (map pretty_ename (EnCol.dest outs)),
+                          Pretty.list "i{" "}" (map pretty_ename (EName.NTab.N.dest ins)),
+                          Pretty.list "; o{" "}" (map pretty_ename (EName.NTab.N.dest outs)),
                           Pretty.str "; ",
                           pretty_node nd
                    ])

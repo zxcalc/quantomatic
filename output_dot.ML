@@ -9,7 +9,7 @@ sig
 (* -- combinators for generating functions from OUTPUT -- *)       
   val mk_dot_node : outtype -> outtype -> outtype -> outtype ;
 
-  val mk_output_nodes : ((nname * (node * (EName.Col.T * EName.Col.T))) -> outtype) 
+  val mk_output_nodes : ((nname * (node * (EName.NTab.N.T * EName.NTab.N.T))) -> outtype) 
 			-> 
 			(graph ->   outtype);
 			

@@ -232,51 +232,217 @@ val useup_enames = update_bgraph o BGraph.useup_enames;
 val rename_apart = 
 		update_bgraph o (BGraph.rename_apart o get_bgraph);
 
+(* Edge matching not Needed: one step later we check nodes and that
+   enforced edge injection conditions needed for var-nodes/half-edges*)
+(* instantiations *)
 datatype match = Match of 
-				 {(* instantiations for graph vars *)
-					ginsts: (NName.T * node) NName.NTab.T, 
+				 {ninsts: (NName.T * node) NName.NTab.T, (* pat to tgt *)
+					invninsts : NName.T NName.NTab.T, (* tgt to pat *)
 					(* instantiations for node data varaiables *)
-					dinsts: Expr.varexpr VName.NTab.T
+					ndinsts: Expr.varexpr VName.NTab.T
 				 };
 
-val empty_match = Match {ginsts = NName.NTab.empty,
-												 dinsts = VName.NTab.empty
+val empty_match = Match {ninsts = NName.NTab.empty,
+												 invninsts = NName.NTab.empty,
+												 ndinsts = VName.NTab.empty
 												};
 
-fun update_match_ginsts f (Match rep) = 
-		Match {ginsts = f (#ginsts rep), dinsts = #dinsts rep};
+fun update_match_ninsts f (Match rep) = 
+		Match {ninsts = f (#ninsts rep), 
+					 invninsts = #invninsts rep,
+					 ndinsts = #ndinsts rep};
+fun update_match_invninsts f (Match rep) = 
+		Match {ninsts = #ninsts rep, 
+					 invninsts = f (#invninsts rep),
+					 ndinsts = #ndinsts rep};
+fun update_match_ndinsts f (Match rep) = 
+		Match {ninsts = #ninsts rep, 
+					 invninsts = #invninsts rep,
+					 ndinsts = f (#ndinsts rep)};
 
-fun update_match_dinsts f (Match rep) = 
-		Match {ginsts = #ginsts rep, dinsts = f (#dinsts rep)};
-
-fun get_match_ginsts (Match rep) = #ginsts rep;
-fun get_match_dinsts (Match rep) = #dinsts rep;
-val set_match_dinsts = update_match_dinsts o K;
+fun get_match_ninsts (Match rep) = #ninsts rep;
+fun get_match_invninsts (Match rep) = #invninsts rep;
+fun get_match_ndinsts (Match rep) = #ndinsts rep;
+val set_match_ndinsts = update_match_ndinsts o K;
 
 
-
+(* assumes patnd are uninstantiated *)
 (* raises NName.NTab...DUP exception, if n1 is already insantiated *)
-fun insnew_match_ginst n1 nnd2 = 
-		update_match_ginsts (NName.NTab.ins (n1,nnd2));
+fun match_node (n1, patnd as NE.VarNode _) (nnd2 as (n2, NE.Node _)) m = 
+		SOME (m |> update_match_ninsts (NName.NTab.ins (n1,nnd2)))
+	| match_node (n1, patnd as NE.VarNode _) (nnd2 as (n2,NE.VarNode _)) m = 
+		(case (NName.NTab.lookup (get_match_invninsts m) n2) of
+			 NONE => SOME (m |> update_match_ninsts (NName.NTab.ins (n1,nnd2))
+											 |> update_match_invninsts (NName.NTab.ins (n2,n1)))
+		 | SOME _ => NONE) (* something else is matched to tgt nd already *)
+	| match_node (n1, patnd as NE.Node nd1) (nnd2 as (n2, NE.Node nd2)) m = 
+		(case (NName.NTab.lookup (get_match_invninsts m) n2) of
+			 NONE => (* nothing is matched to target nd already *)
+			 (case (Expr.match nd1 nd2 (get_match_ndinsts m)) 
+				 of NONE => NONE (* nodes don't match *)
+					| SOME ndinsts2 => 
+						SOME (m |> set_match_ndinsts ndinsts2
+										|> update_match_ninsts (NName.NTab.ins (n1,nnd2))
+										|> update_match_invninsts (NName.NTab.ins (n2,n1))))
+		 | SOME _ => NONE) (* something is matched to target nd already *)
+	| match_node (_, NE.Node _) (_,NE.VarNode _) m = 
+		NONE; (* instantiated node cannot match a varnode (half-edge) *)
 
-(* you are not supposed to have vars in the target to be matched... *)
-exception vars_in_match_target_exp of string;
+(* FIXME: use an edge expression language and actually check edge
+   data. At the moment we assume all edges are the same *) 
+(* NOTE: matching ingores Edge direction, could easily be changed. *)
+fun match_edgedata (e1, ed1) (e2,ed2) m = SOME m;
 
-fun match_node (n1, patnd as NE.VarNode _) nnd2 m = 
-		SOME (insnew_match_ginst n1 nnd2 m)
-	| match_node _ (_, NE.VarNode _) m = 
-		raise vars_in_match_target_exp "match_node"
-	| match_node (n1, patnd as NE.Node nd1) (n2, NE.Node nd2) m = 
-		(case (Expr.match nd1 nd2 (get_match_dinsts m)) 
-			of NONE => NONE
-			 | SOME dinsts2 => SOME (set_match_dinsts dinsts2 m));
+exception badly_formed_pattern_exp of string * T;
+
+
+(* nds = future node-matching agenda, 
+ (int,outt) = edges still left to be matched to, 
+ m = match info so far *)
+fun match_tgt_edge pat tgt ((e,ed),n') (nds,(int,outt),m) = 
+		Seq.append 
+			(Seq.maps (* or choices over tgt in-edges to match to *)
+				 (fn te =>
+						 let val (ted,(tn',_)) = get_edge tgt te in
+							 case match_edgedata (e,ed) (te,ted) m
+								of NONE => Seq.empty
+								 | SOME m2 => 
+									 Seq.single 
+										 ((n',tn')::nds,
+											(EName.NTab.N.delete te int, outt), 
+											m2)
+						 end)
+				 (Seq.of_list (EName.NTab.N.dest int)))
+			(Seq.maps (* or choices over tgt out-edges to match to *)
+				 (fn te =>
+						 let val (ted,(_,tn')) = get_edge tgt te 
+						 in
+							 case match_edgedata (e,ed) (te,ted) m
+								of NONE => Seq.empty
+								 | SOME m2 => 
+									 Seq.single 
+										 ((n',tn')::nds,
+											(int, EName.NTab.N.delete te outt), 
+											m2)
+						 end)
+				 (Seq.of_list (EName.NTab.N.dest outt)));
+
+
+(* match against a variable node - var nodes can have extra edges to
+   them in the tgt; *)
+(* Match against non-half-edge node (varnode) - no extra edges into the tgt *)
+fun match_varnode_edge pat tgt (n,(inn,outn)) (tn,(int,outt)) m =
+		if EName.NTab.N.is_empty inn then 
+			case EName.NTab.N.tryget_singleton outn of 
+				NONE => raise badly_formed_pattern_exp ("match_varnode_edge:1",pat)
+			| SOME e =>
+				let val (ed,(_,n')) = get_edge pat e in
+					match_tgt_edge pat tgt ((e,ed),n') ([],(int,outt),m)
+				end
+		else
+			case EName.NTab.N.tryget_singleton inn of 
+				NONE => raise badly_formed_pattern_exp ("match_varnode_edge:2",pat)
+			| SOME e =>
+				let val (ed,(n',_)) = get_edge pat e in
+					match_tgt_edge pat tgt ((e,ed),n') ([],(int,outt),m)
+				end;
+
+(* matching edges of "n" to those of "tn" *)
+fun match_edges_from_node pat tgt (n,(inn,outn)) (tn,(int,outt)) m =
+		(Seq.single ([],(int,outt),m))
+			|> (EName.NTab.N.fold (* for each edge going into n in pattern *)
+						(fn e => (* match the from node to some target node *)
+								let val (ed,(n',_)) = get_edge pat e in
+									Seq.maps (match_tgt_edge pat tgt ((e,ed),n'))
+								end)
+						inn)
+			|> (EName.NTab.N.fold (* for each edge going out of n in pattern *)
+						(fn e => (* match the to  node to some target node *)
+								let val (ed,(_,n')) = get_edge pat e in
+									Seq.maps (match_tgt_edge pat tgt ((e,ed),n'))
+								end)
+						outn)
+			|> (Seq.filter (* filter out case with extra edges in target *)
+						(fn (nds,(ints,outts),m) => 
+								EName.NTab.N.is_empty ints 
+								andalso EName.NTab.N.is_empty outts));
+
+(* assumes: pat_ns are all uninstantiated *)
+fun match_tgt_node pat tgt (n,(nd,nedges)) ((pat_ns,tgt_ns),m) tn =
+		let val (tnd,tedges) = get_node tgt tn in
+			case match_node (n,nd) (tn,tnd) m of 
+				NONE => Seq.empty (* node does not match *)
+			| SOME m2 => (* continue matching *)
+				(case nd 
+					of (NE.VarNode _) => (* allow extra edges in tgt *)
+						 (Seq.map 
+								(fn m => 
+										((NName.NTab.N.delete n pat_ns,
+											case tnd 
+											 of NE.VarNode _ => NName.NTab.N.delete tn tgt_ns
+												| NE.Node _ => tgt_ns),m))
+								(match_varnode_edge
+									 pat tgt (n,nedges) (tn,tedges) m))
+					 | (NE.Node _) => (* disallow extra edges in tgt *)
+						 (Seq.map 
+								(fn m => ((NName.NTab.N.delete n pat_ns,
+													 NName.NTab.N.delete tn tgt_ns),m))
+								(match_edges_from_node 
+									 pat tgt (n,nedges) (tn,tedges) m)))
+		end;
+
+(* match from a list of node-pairs; nds = node pairs in agenda which
+must be matched; pat_ns is the pattern node names still left to be
+matched to something; tgt_ns are the target names left, to which some
+node in the pattern might match; m is the match so far; *)
+fun match' pat tgt [] ((pat_ns,tgt_ns),m) = 
+		(* if no node pairs left, search over possibilities  *)
+		(case (NName.NTab.N.bot_of pat_ns) of (* empty! *)
+			 NONE => Seq.single ((pat_ns,tgt_ns),m) (* finished matching! *)
+		 | SOME n => 
+			(* pick a next pat node to match up against some tgt node *)
+			 let val (nd,nedges) = get_node pat n
+			 in
+				 (Seq.of_list (NName.NTab.N.dest tgt_ns))
+					 |> (Seq.maps (* try each tgt node: or-choices *)
+								 (match_tgt_node pat tgt (n,(nd,nedges)) ((pat_ns,tgt_ns),m)))
+					 |> (Seq.maps (* now match nodes we get two from an edge  *)
+								 (fn ((pat_ns2,tgt_ns2),(nds,_,m2)) => 
+										 (match' pat tgt nds ((pat_ns2,tgt_ns2),m2))))
+			 end)
+	| match' pat tgt ((n,tn)::nds) ((pat_ns,tgt_ns),m) = 
+		(case (NName.NTab.lookup (get_match_ninsts m) n) of 
+			 NONE => (* pattern is not yet matches to a tgt node *)
+			 let val (pnd,pedges) = get_node pat n 
+			 in 
+				 (match_tgt_node pat tgt (n,(pnd,pedges)) ((pat_ns,tgt_ns),m) tn)
+					 |> (Seq.maps (* now match nodes we get two from an edge  *)
+								 (fn ((pat_ns2,tgt_ns2),(nds2,_,m2)) => 
+										 (* continue breadth first: old nodes before new ones *)
+										 (match' pat tgt nds ((pat_ns2,tgt_ns2),m2))
+											 |> Seq.maps (match' pat tgt nds2)))
+			 end
+		 | SOME (n2,_) => (* pat node is already matched *)
+			 if NName.eq n2 tn then 
+				 (* already match to tn, so just continue*)
+				 match' pat tgt nds ((pat_ns,tgt_ns),m)
+			 else Seq.empty (* matched to something else, so fail *)
+		); 
+
+fun match pat tgt nds m = 
+		let 
+			val pat_ns = NName.NTab.get_names (get_nodes pat)
+			val tgt_ns = NName.NTab.get_names (get_nodes tgt)
+		in
+			match' pat tgt nds ((pat_ns,tgt_ns),m)
+		end;
 
 exception var_node_exp of string;
 
-fun instantiate_node_dvars dinsts (nd as NE.VarNode _) = 
+fun instantiate_node_dvars ndinsts (nd as NE.VarNode _) = 
 		raise var_node_exp "instantiate_node_dvars"
-	| instantiate_node_dvars dinsts (NE.Node nd2) = 
-		NE.Node (Expr.subs dinsts nd2);
+	| instantiate_node_dvars ndinsts (NE.Node nd2) = 
+		NE.Node (Expr.subs ndinsts nd2);
 
 fun update_node_and_adddeps f n g = 
 		let 
@@ -294,7 +460,7 @@ fun update_node_and_adddeps f n g =
 fun instantiate m g = 
 		let 
 			val dvars = get_datavars g
-			val dinst = get_match_dinsts m
+			val dinst = get_match_ndinsts m
 			(* create all node names to instantiate *)
 			val update_ns = VName.NTab.N.fold 
 											 (fn v => fn ns => 
@@ -307,7 +473,7 @@ fun instantiate m g =
 																	|> set_node nd2 n2
 																	|> del_var n
 														)
-														(get_match_ginsts m))
+														(get_match_ninsts m))
 			(* 	|> (NName.NTab.N.fold (update_node_and_adddeps 
 																 (instantiate_node_dvars dinst))
 															update_ns) *)
@@ -351,7 +517,7 @@ Pretty.chunks
 								 NName.pretty n,
 								 Pretty.str " : ",
 								 pretty_node nd2])
-					(NName.NTab.dest (get_match_ginsts m)))
+					(NName.NTab.dest (get_match_ninsts m)))
 	 @ [Pretty.block [], (* empty line *)
 			Pretty.str "Node Data Vars instantiations:"]
 	 @ (map (fn (n,varexp) => 
@@ -360,7 +526,7 @@ Pretty.chunks
 								 VName.pretty n,
 								 Pretty.str " => ",
 								 Expr.pretty_varexp varexp])
-					(VName.NTab.dest (get_match_dinsts m))));
+					(VName.NTab.dest (get_match_ndinsts m))));
 
 val print_match = Pretty.writeln o pretty_match;
 
