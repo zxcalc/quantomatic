@@ -238,3 +238,7 @@ val tab2ca = var.NTab.update (a_v, zero) tab2c;
 
 end;
 
+(* testing match:
+  val SOME x = exp.match a zero var.NTab.empty;
+  (VName.NTab.print exp.pretty) x;
+*)
