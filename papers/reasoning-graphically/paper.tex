@@ -91,17 +91,18 @@ University of Oxford
   Systems of quantum computation are typically represented by large
   matrix compositions. However, recent graph-based formalisms offer an
   approach which exposes the structure of these systems in a clearer
-  and more accessible way. Although these provide significantly
+  and more accessible way. Although these provide a significantly
   simpler way of reading and presenting quantum computations, manual
-  manipulation of such graphs is slow, arduous, and error prone. We
+  manipulation of such graphs is slow and error prone. We
   present a formalism that supports a mechanised reasoning about such
   graphs. This involves a compositional account of graph rewriting
-  that meets the underlying categorical semantics for the model of
-  quantum computation. In particular, we present system, which has
-  been implemented, with a fixed logical kernel and which gives a
-  declarative account and supports derived rules. Soundness of the
-  system is proved with respect to the underlying model of quantum
-  computation and completeness is an open problem.
+  that preserves the underlying categorical semantics. We present a
+  system, which has been implemented, with a fixed logical kernel and
+  support for derived rules, which allows the model of quantum
+  computation  to be specified declarativley.
+  Soundness of the 
+  system is proved with respect to the underlying model and
+  completeness is an open problem.
 
   \keywords{graph rewriting, quantum computing, categorical
     logic, interactive theorem proving, graphical calculi}
@@ -109,10 +110,34 @@ University of Oxford
 
 
 \section{Introduction}
+\label{sec:introduction}
 
-blah blah
+
+
+\section{Compact Categories and Graphs}
+\label{sec:mono-categ-graphs}
+
+\section{Representation and Compositionality}
+\label{sec:repr-comp}
+
+\section{Graph Patterns and Matching}
+\label{sec:graph-patt-match}
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+Ideas for further work
+\begin{itemize}
+\item simplification ordering
+\item confluence arguments for graphs
+\item formalise algorithms in a thm prover
+\item richer graph structures - quantification over edges
+\item richer expression language in vertices
+\item completeness of rewrite rules with respect to wpHilb
+\end{itemize}
 
 \bibliographystyle{plain}
+\bibliography{all}
 \bibliography{bibfile}
 
 \end{document}
