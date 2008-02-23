@@ -1,0 +1,121 @@
+%%%%%%%%%%%%%%%%%%%%%%% file typeinst.tex %%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This is the LaTeX source for the instructions to authors using
+% the LaTeX document class 'llncs.cls' for contributions to
+% the Lecture Notes in Computer Sciences series.
+% http://www.springer.com/lncs       Springer Heidelberg 2006/05/04
+%
+% It may be used as a template for your own input - copy it
+% to a new file with a new name and use it as the basis
+% for your article.
+%
+% NB: the document class 'llncs' has its own and detailed documentation, see
+% ftp://ftp.springer.de/data/pubftp/pub/tex/latex/llncs/latex2e/llncsdoc.pdf
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[runningheads]{llncs}
+%\usepackage[dvips]{color}
+%\usepackage{graphics}
+%\usepackage{multicol}
+%\usepackage{tabls}
+%\usepackage{ttbox}
+\usepackage{allmtt}
+%\usepackage{amsmath}
+%\usepackage{amssymb}
+%\usepackage{pstricks,pst-node,pst-tree} % PS Tricks for diagrams
+%\usepackage{proof2}
+
+\usepackage{amssymb}
+\setcounter{tocdepth}{3}
+\usepackage{graphicx}
+
+\usepackage{url}
+\urldef{\mailsa}\path|{alfred.hofmann,ursula.barth,ingrid.beyer,natalie.brecht,|
+\urldef{\mailsb}\path|christine.guenther,frank.holzwarth,piamaria.karbach,|
+\urldef{\mailsc}\path|anna.kramer,erika.siebert-cole,lncs}@springer.com|
+\newcommand{\keywords}[1]{\par\addvspace\baselineskip
+\noindent\keywordname\enspace\ignorespaces#1}
+
+% -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+%   Random maybe useful things...
+% -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newcommand{\cmnt}[1]{\textcolor[rgb]{ 0.8,      0,    0  }{#1}}
+%\newcommand{\intabp}[2]{\parbox[t]{#1}{\raggedright{#2}\vspace{0.2cm}}}
+%\newcommand{\vsmall}[1]{\footnotesize{#1}}
+\newcommand{\ors}{\oplus}
+\newcommand{\tensor}{\otimes}
+
+\begin{document}
+
+\mainmatter  % start of an individual contribution
+
+% first the title is needed
+\title{Reasoning Graphically about Quantum Computation}
+
+% a short form should be given in case it is too long for the running head
+%\titlerunning{Reasoning Graphically about Quantum Computation}
+
+% the name(s) of the author(s) follow(s) next
+%
+% NB: Chinese authors should write their first names(s) in front of
+% their surnames. This ensures that the names appear correctly in
+% the running heads and the author index.
+%
+\author{Lucas Dixon\inst{1} \and Ross Duncan\inst{2}~\thanks{EPSRC Grants...}%
+}
+%
+%\authorrunning{Lecture Notes in Computer Science: Authors' Instructions}
+% (feature abused for this document to repeat the title also on left hand pages)
+
+% the affiliations are given next; don't give your e-mail address
+% unless you accept that it will be published
+\institute{University of Edinburgh \and
+University of Oxford
+%\mailsa\\
+%\mailsb\\
+%\mailsc
+}
+
+%
+% NB: a more complex sample for affiliations and the mapping to the
+% corresponding authors can be found in the file "llncs.dem"
+% (search for the string "\mainmatter" where a contribution starts).
+% "llncs.dem" accompanies the document class "llncs.cls".
+%
+%\toctitle{Lecture Notes in Computer Science}
+%\tocauthor{Authors' Instructions}
+\maketitle
+
+
+\begin{abstract}
+  Systems of quantum computation are typically represented by large
+  matrix compositions. However, recent graph-based formalisms offer an
+  approach which exposes the structure of these systems in a clearer
+  and more accessible way. Although these provide significantly
+  simpler way of reading and presenting quantum computations, manual
+  manipulation of such graphs is slow, arduous, and error prone. We
+  present a formalism that supports a mechanised reasoning about such
+  graphs. This involves a compositional account of graph rewriting
+  that meets the underlying categorical semantics for the model of
+  quantum computation. In particular, we present system, which has
+  been implemented, with a fixed logical kernel and which gives a
+  declarative account and supports derived rules. Soundness of the
+  system is proved with respect to the underlying model of quantum
+  computation and completeness is an open problem.
+
+  \keywords{graph rewriting, quantum computing, categorical
+    logic, interactive theorem proving, graphical calculi}
+\end{abstract}
+
+
+\section{Introduction}
+
+blah blah
+
+\bibliographystyle{plain}
+\bibliography{bibfile}
+
+\end{document}
+
+
+

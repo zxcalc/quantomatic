@@ -4,7 +4,7 @@
 (* *)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-signature PATTERN_GRAPH = 
+signature TENSOR_PATTERN_GRAPH = 
 sig
 
 structure PatNE : PATTERN_NODES_AND_EDGES;

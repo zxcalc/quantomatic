@@ -1,0 +1,30 @@
+%
+%I attach ttbox.sty, which declares environments alltt* and ttbox.  They are 
+%better than alltt for displaying Isabelle output.  
+%For one thing, they make \{ and \} use the \tt font.  
+%Also, they reduce the point size, and ttbox prevents page breaks.  Larry 
+%
+
+%  $Id: ttbox.sty,v 1.4 1997/06/25 08:29:27 lcp Exp lcp $
+\ProvidesPackage{ttbox}[1997/06/25]
+\RequirePackage{alltt}
+
+%%%Boxed terminal sessions
+
+%Redefines \{ and \} to be in \tt font and \| to make a BACKSLASH
+\def\ttbraces{\chardef\{=`\{\chardef\}=`\}\chardef\|=`\\}
+
+%Restores % as the comment character (especially, to suppress line breaks)
+\newcommand\comments{\catcode`\%=14\relax}
+
+%alltt* environment: like alltt but smaller, and with \{ \} and \| as in ttbox
+\newenvironment{alltt*}{\begin{alltt}\footnotesize\ttbraces}{\end{alltt}}
+
+%Indented alltt* environment with small point size
+%NO LINE BREAKS are allowed unless \pagebreak appears at START of a line
+\newenvironment{ttbox}{\begin{quote}\samepage\begin{alltt*}}%
+                      {\end{alltt*}\end{quote}}
+
+\endinput
+
+

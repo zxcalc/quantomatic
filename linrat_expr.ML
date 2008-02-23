@@ -17,12 +17,12 @@ fun eq (x,xT)  (y,yT) =
     if  Coeff.eq x y then true
     else
       let 
-	val xs = VName.NTab.dest xT
-	val ys = VName.NTab.dest yT
-	fun test (xx,yy,b) = (kv_eq (xx,yy)) andalso b
+	      val xs = VName.NTab.dest xT
+	      val ys = VName.NTab.dest yT
+	      fun test (xx,yy,b) = (kv_eq (xx,yy)) andalso b
       in 	 
-	ListPair.foldlEq test true (xs, ys)
-	handle ListPair.UnequalLengths => false	
+	      ListPair.foldlEq test true (xs, ys)
+	      handle ListPair.UnequalLengths => false	
       end
 
 (* =====================================================================*)
@@ -41,15 +41,15 @@ fun  kv_list_ord ([],[]) = General.EQUAL
        kv_order(x,y)
      else 
        kv_list_ord(xs,ys)
-      
+       
 fun ord ((x,xT),  (y,yT)) =
     if Coeff.ord(x,y) <> General.EQUAL
     then Coeff.ord(x,y)
     else let 
-	val xs = VName.NTab.dest xT
-	val ys = VName.NTab.dest yT
+	      val xs = VName.NTab.dest xT
+	      val ys = VName.NTab.dest yT
       in 
-	kv_list_ord(xs,ys)
+	      kv_list_ord(xs,ys)
       end
 
 (* =====================================================================*)
@@ -72,9 +72,9 @@ fun mk const kv_list =
 (* reduce exprs to a normal by removing variables whose Coeff = 0 ======*)
 fun reduce_expr (p, t) = 
     let fun red (k,v) tab = 
-	    if  Coeff.is_zero v		
-	    then VName.NTab.delete k t 
-	    else t
+	          if  Coeff.is_zero v		
+	          then VName.NTab.delete k t 
+	          else t
     in 
       (p, VName.NTab.fold red t t)
     end
@@ -85,26 +85,26 @@ fun scale_expr s (e_pi, e_tab) =
     in 
       let fun f (n,v) t = VName.NTab.update (n, (rescale v)) t 
       in 
-	let val newtab = 
-		VName.NTab.fold f e_tab VName.NTab.empty  
-	in 
-	  reduce_expr ((rescale e_pi), newtab) 
-	end	  
+	      let val newtab = 
+		            VName.NTab.fold f e_tab VName.NTab.empty  
+	      in 
+	        reduce_expr ((rescale e_pi), newtab) 
+	      end	  
       end
     end
 
 (* arithmetic addition for expressions ========================*)
 fun add_expr (pi1,tab1) (pi2,tab2) = 
     let fun f (k,v) t = 
-	    if  VName.NTab.contains t k 
-	    then 
-	      VName.NTab.update (k, Coeff.add v (VName.NTab.get t k)) t
-	    else 
-	      VName.NTab.update (k, v) t
+	          if  VName.NTab.contains t k 
+	          then 
+	            VName.NTab.update (k, Coeff.add v (VName.NTab.get t k)) t
+	          else 
+	            VName.NTab.update (k, v) t
     in 
       let val newtab = VName.NTab.fold f tab2 tab1
       in 
-	reduce_expr (Coeff.add pi1 pi2, newtab)
+	      reduce_expr (Coeff.add pi1 pi2, newtab)
       end
     end
 
@@ -116,22 +116,22 @@ fun subtr_expr e1 e2 =
 (* subs
    given LookUP of (k,v) name->expression pairs, substitute 
    v for k whereever it occurs in expression target
-*)					
+ *)					
 (* BUG! 
-Need to check somewhere that in the lup forall pairs (k,v)
-no variable k occurs in any expression v
-*)
+  Need to check somewhere that in the lup forall pairs (k,v)
+  no variable k occurs in any expression v
+ *)
 fun subs lup target = 
     let fun sub1 (k,v) texp =
-	    let val (p,ttab) = texp
-	    in 
-	      if  VName.NTab.contains ttab k 
-	      then 
-		add_expr (p, VName.NTab.delete k ttab)  
-			 (scale_expr (VName.NTab.get ttab k) v)
-	      else 
-		texp
-	    end
+	          let val (p,ttab) = texp
+	          in 
+	            if  VName.NTab.contains ttab k 
+	            then 
+		            add_expr (p, VName.NTab.delete k ttab)  
+			                   (scale_expr (VName.NTab.get ttab k) v)
+	            else 
+		            texp
+	          end
     in 
       VName.NTab.fold sub1 lup target
     end
@@ -140,14 +140,14 @@ fun subs lup target =
 
 fun pretty (pi, tab) =
     let val ppi  = if (Coeff.is_zero pi) then []
-		   else [Pretty.block [Coeff.pretty pi,Pretty.str "*Pi"]]
-	fun pretty1 (k,v) [] =
-	    [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])]
-	  | pretty1 (k,v) pl =
-	    (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])::
-	    ((Pretty.str "  +  ")::pl)
+		               else [Pretty.block [Coeff.pretty pi,Pretty.str "*Pi"]]
+	      fun pretty1 (k,v) [] =
+	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])]
+	        | pretty1 (k,v) pl =
+	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])::
+	          ((Pretty.str "  +  ")::pl)
     in 
-          Pretty.block (VName.NTab.fold pretty1 tab ppi)
+      Pretty.block (VName.NTab.fold pretty1 tab ppi)
     end
 
 val print = Pretty.writeln o pretty
@@ -155,23 +155,23 @@ val print = Pretty.writeln o pretty
 
 (* =====================================================================*)
 (* 
-  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
-*)
+ val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+ *)
 fun match pat target already_matched =
     let val pat2 = subs already_matched pat
-	fun first_good [] = NONE
-	  | first_good (h::t) = if not (VName.NTab.contains (snd target) h) 
-			      then (SOME h) else first_good t
-	fun f NONE = NONE
-	  | f (SOME match_var) = 
-	    let val c = Coeff.div (Coeff.mk 1 1) (VName.NTab.get (snd pat) match_var)
-		(* 1/Coeff of match var *)
-		val rhs = add_expr 
-			    (scale_expr c (subtr_expr target pat2)) 
-			    (mk_var match_var) 
-	    in
-	      SOME (VName.NTab.update (match_var, rhs) already_matched)
-	    end
+	      fun first_good [] = NONE
+	        | first_good (h::t) = if not (VName.NTab.contains (snd target) h) 
+			                          then (SOME h) else first_good t
+	      fun f NONE = NONE
+	        | f (SOME match_var) = 
+	          let val c = Coeff.div (Coeff.mk 1 1) (VName.NTab.get (snd pat) match_var)
+		            (* 1/Coeff of match var *)
+		            val rhs = add_expr 
+			                      (scale_expr c (subtr_expr target pat2)) 
+			                      (mk_var match_var) 
+	          in
+	            SOME (VName.NTab.update (match_var, rhs) already_matched)
+	          end
     in
       f (first_good (VName.NTab.keys (snd pat2)))
     end;
@@ -193,7 +193,7 @@ end;
 
 structure Linrat_expr :> HACK_EXPR = Linrat_expr_debug;
 
-install_pp (make_pp ["Linrat_expr", "T"] (Pretty.pprint o Linrat_expr.pretty));
+          install_pp (make_pp ["Linrat_expr", "T"] (Pretty.pprint o Linrat_expr.pretty));
 
 structure linrat_expr_test_vals = 
 struct
@@ -238,7 +238,7 @@ val tab2ca = var.NTab.update (a_v, zero) tab2c;
 
 end;
 
-(* testing match:
-  val SOME x = exp.match a zero var.NTab.empty;
-  (VName.NTab.print exp.pretty) x;
-*)
+          (* testing match:
+           val SOME x = exp.match a zero var.NTab.empty;
+               (VName.NTab.print exp.pretty) x;
+           *)

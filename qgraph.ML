@@ -47,6 +47,7 @@ structure NnCol = NName.Col;
 structure EnTab = EName.NTab;
 structure EnCol = EName.Col;
 
+(* invarient: inputs and outputs should all be var-nodes *)
 datatype T = QGraph of 
      { graph : PatGraph.T,
        inputs : NnCol.T,
