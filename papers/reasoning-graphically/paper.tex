@@ -271,12 +271,60 @@ The $H$ arrow is denoted by \inlinegraphic{1.5em}{H}.  The free
 compact closed category  is then given by all graphs formed by
 composing and tensoring these basic graphs.
 
-To model the behaviour of quantum systems these generators must
-satisfy certain equations.  
+To model the behaviour of quantum systems certain additional equations
+must be satisfied.  Each family $(\delta, \epsilon)$ must form a
+\emph{classical structure}
+\cite{Coecke2006Quantum-Measure,Coecke2006POVMs-and-Naima}:  the pair
+$(\delta, \epsilon)$  should form a cocommuative comonoid, the pair
+$(\delta^\dag,\epsilon^\dag)$ must form a commutative monoid, and
+together they must satisfy the isometry and frobenius equations. In
+addition the family $\alpha$ must form an abelian group with $\alpha^\dag
+= -\alpha$.  These equations are presented graphically below for the
+green family;  the red vertices obey all the same equations
+\begin{description}
+\item[Comonoid Laws] 
+\[
+\begin{array}{ccccccccccccccc}
+  \inlinegraphic{3.5em}{comonoid-assoc1}  &=\;&
+  \inlinegraphic{3.5em}{comonoid-assoc2}
+  &\qquad\qquad&
+  \inlinegraphic{3.7em}{comonoid-unit1}  &=\;&
+  \inlinegraphic{3.7em}{comonoid-unit2}  &=\;&
+  \inlinegraphic{3.7em}{comonoid-unit3} 
+  &\qquad\qquad&
+  \inlinegraphic{3.5em}{comonoid-comm1}  &=\;&
+  \inlinegraphic{3.5em}{comonoid-comm2}
+\end{array}
+\]
+\item[Monoid Laws] 
+\[
+\begin{array}{ccccccccccccccc}
+  \inlinegraphic{3.5em}{monoid-assoc1}  &=\;&
+  \inlinegraphic{3.5em}{monoid-assoc2}
+  &\qquad\qquad&
+  \inlinegraphic{3.7em}{monoid-unit1}  &=\;&
+  \inlinegraphic{3.7em}{monoid-unit2}  &=\;&
+  \inlinegraphic{3.7em}{monoid-unit3} 
+  &\qquad\qquad&
+  \inlinegraphic{3.5em}{monoid-comm1}  &=\;&
+  \inlinegraphic{3.5em}{monoid-comm2}
+\end{array}
+\]
+\item[Isometry] 
+\item[Frobenius]
+  \[
+  \begin{array}{ccccc}
+    \inlinegraphic{3.5em}{frobenius1}  &=\;&
+    \inlinegraphic{3.5em}{frobenius2} &=\;&
+    \inlinegraphic{3.5em}{frobenius3}
+  \end{array}
+  \]
+  \item[Abelian Unitary Group]
+\end{description}
 
 Each family $(\delta, \epsilon, \alpha)$ is governed by a set of
 equations defining a forms a \emph{classical structure}
-\cite{Coecke2006Quantum-Measure,Coecke2006POVMs-and-Naima} with a
+ with a
 \emph{phase group}.  The requisite equations state that $(\delta,
 \epsilon )$ form a cocommutative comonoid:
 \begin{gather}
