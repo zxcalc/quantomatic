@@ -15,19 +15,21 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[runningheads]{llncs}
 %\usepackage[dvips]{color}
-%\usepackage{graphics}
 %\usepackage{multicol}
 %\usepackage{tabls}
 %\usepackage{ttbox}
 \usepackage{allmtt}
-%\usepackage{amsmath}
-%\usepackage{amssymb}
 %\usepackage{pstricks,pst-node,pst-tree} % PS Tricks for diagrams
 %\usepackage{proof2}
-
-\usepackage{amssymb}
 \setcounter{tocdepth}{3}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{stmaryrd}
+%\usepackage{mbboard}
+\usepackage{xspace}
+%\usepackage{diagrams}
 
 \usepackage{url}
 \urldef{\mailsa}\path|l.dixon@ed.ac.uk|
@@ -43,6 +45,101 @@
 %\newcommand{\vsmall}[1]{\footnotesize{#1}}
 \newcommand{\ors}{\oplus}
 \newcommand{\tensor}{\otimes}
+
+%%-----------------------------------------------------------------
+%%%% Ross's handy macros %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%-----------------------------------------------------------------
+
+\newcommand{\figureline}{\rule{\textwidth}{0.5pt}}
+\newcommand{\figureend}{\rule{\textwidth}{0.5pt}}
+
+\newcommand{\dimm}{\mathrm{dim}}
+
+% aliases
+\newcommand{\infinity}{\infty}
+\newcommand{\iso}{\cong}
+\newcommand{\isomorphism}{\cong}
+
+% ``semantic'' brakets
+\newcommand{\denote}[1]{% ---------
+\llbracket #1 \rrbracket} 
+% name / coname 
+\newcommand{\name}[1]{%--------
+\ulcorner #1 \urcorner}
+\newcommand{\coname}[1]{%
+\llcorner #1 \lrcorner}
+
+\newcommand{\sizeof}[1]{% \sizeof{x} == |x|
+  \left|#1\right|}
+
+
+%-------------------------------------------------------
+%  Useful macros for all things categorical
+%-------------------------------------------------------
+
+\newcommand{\dom}{\operatorname{dom}}
+\newcommand{\cod}{\operatorname{cod}}
+\newcommand{\Tr}{\operatorname{Tr}}
+
+% Objects of ???
+\newcommand{\OBJ}[1]{\ensuremath{\mathrm{Obj}_{#1}}}
+%
+% Objects of {\cal ??}
+\newcommand{\OBJC}[1]{\ensuremath{\mathrm{Obj}_{{\cal #1}}}}
+
+%
+% Arrows of ???
+\newcommand{\ARR}[1]{\ensuremath{\mathrm{Arr}_{#1}}}
+%
+% Arrows of {\cal ??}
+\newcommand{\ARRC}[1]{\ensuremath{\mathrm{Arr}_{{\cal #1}}}}
+
+
+% Caligraphic category names
+\newcommand{\catA}{\ensuremath{{\cal A}}\xspace}
+\newcommand{\catB}{\ensuremath{{\cal B}}\xspace}
+\newcommand{\catC}{\ensuremath{{\cal C}}\xspace}
+\newcommand{\catD}{\ensuremath{{\cal D}}\xspace}
+\newcommand{\catE}{\ensuremath{{\cal E}}\xspace}
+\newcommand{\catF}{\ensuremath{{\cal F}}\xspace}
+\newcommand{\catG}{\ensuremath{{\cal G}}\xspace}
+\newcommand{\catH}{\ensuremath{{\cal H}}\xspace}
+\newcommand{\catP}{\ensuremath{{\cal P}}\xspace}
+\newcommand{\catQ}{\ensuremath{{\cal Q}}\xspace}
+
+%sub scripted identity morphisms
+\newcommand{\id}[1]{\ensuremath{\mathrm{id}_{#1}}}
+
+% Boldified names of useful categories
+%
+\newcommand{\vectfd}[1]{% category of finite dimensional vector spaces over some field
+\ensuremath{\textbf{Vect}^{\mathrm{fd}}_{#1}}\xspace}
+\newcommand{\vectfdc}{% category of finite dimensional vector spaces over complexes
+\vectfd{\mathbb{C}}}
+\newcommand{\catRel}{% the category of sets and relations
+\ensuremath{\textbf{Rel}}\xspace}
+\newcommand{\catSet}{% the category of sets and functions
+\ensuremath{\textbf{Set}}\xspace}
+\newcommand{\catCat}{% the category of (small) categories
+\ensuremath{\textbf{Cat}}\xspace}
+\newcommand{\catInvCat}{% the category of involutive categories
+\ensuremath{\textbf{InvCat}}\xspace}
+\newcommand{\catComCl}{% the category of compact closed  categories
+\ensuremath{\textbf{ComCl}}\xspace}
+\newcommand{\catSComCl}{% the category of strongly compact closed  categories
+\ensuremath{\textbf{SComCl}}\xspace}
+\newcommand{\catGrph}{% the category of graphs
+\ensuremath{\textbf{Grph}}\xspace}
+\newcommand{\qubit}{% the category of qubits
+\ensuremath{\textbf{Qubit}}\xspace}
+\newcommand{\fdhilb}{% the category of finite dimensional hilbert space
+\ensuremath{\textbf{FDHilb}}\xspace}
+\newcommand{\catInvCom}{% the category of involutive categories
+\ensuremath{\textbf{InvCom}}\xspace}
+\newcommand{\catCom}{% the category of compact closed  categories
+\ensuremath{\textbf{Com}}\xspace}
+%%%% End of Ross's lovely categorcal macros--------
+%%--------------------------------------------
 
 \begin{document}
 
@@ -114,6 +211,49 @@
 \section{Compact Closed Categories and Graphs}
 \label{sec:mono-categ-graphs}
 
+representation of freely generated compact closed  categories  as
+graphs;
+
+theorem: two arrows in a a freely generated compact closed  category
+are equal iff and only if their graphs are equal.
+
+Note that the notion of vertex and graph have the same external
+structure so it is possible to view a subgraph as a vertex and vice versa.
+
+\section{Quotients and Rewriting}
+\label{sec:quotients-rewriting}
+
+Unfortunately. or fortunately, few examples of interesting
+compact closed categories are freely generated.  In practice we work
+with cateories presented as generators and \emph{equations}.  For
+representing quantum computations, Coecke and Duncan
+\cite{Coecke:2008jo} propose the following collection of generators:
+\begin{description}
+\item[Objects] the self dual object $Q$;
+\item[Arrows] $\epsilon_Z : Q \to I$, $\delta_Z : Q \to Q \otimes Q$,
+  $\alpha_Z : Q \to Q$, $\epsilon_X : Q \to I$, $\delta_X : Q \to Q \otimes Q$,
+  $\alpha_X : Q \to Q$ and $H:Q\to Q$.
+\end{description}
+subject to  the following equations:
+\begin{gather}
+  (\delta \otimes \id{Q}) \circ \delta 
+   =   ( \id{Q} \otimes \delta) \circ \delta  
+  \tag{A}\label{comonoid-assoc}
+  \\
+  (\epsilon \otimes \id{Q}) \circ \delta 
+  = (\id{Q} \otimes \epsilon)\circ \delta 
+  = \id{Q} \tag{U} \label{comonoid-unit}
+  \\
+  \delta = \sigma \circ \delta \tag{C}\label{comonoid-comm}
+  \\
+  \delta^\dag \circ \delta = \id{Q} \tag{I}\label{isometry}
+  \\
+  (\delta^\dag \otimes \id{Q}) \circ (\id{Q}\otimes \delta)
+  = \delta \circ \delta^\dag \tag{F}\label{frobenius}
+\end{gather}
+
+its denotation is the
+  2-dimensional Hilbert space $\mathbb{C}^2$
 
 \section{Graph Patterns}
 \label{sec:patterns}
