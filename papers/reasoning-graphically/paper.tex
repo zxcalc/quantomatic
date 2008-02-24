@@ -373,7 +373,7 @@ about quantum computation. In particular, pictures such as the
 following are frequently needed:
 
 \begin{center}
-  \scalebox{1.0}{\includegraphics{images/spider_lhs.eps}}
+  \scalebox{1.0}{\includegraphics{images/spider_lhs}}
 \end{center}
 
 \noindent Such pictures represent an infinite family of concrete
@@ -396,39 +396,69 @@ represent some, as yet unkown, node in a graph.
 \subsection{Variable Nodes}
 
 In graph patterns, variable nodes generalise the concept of a
-half-edge. A graph with variable nodes is given the following
-interpretation in the underyling semantics of our concrete graphs:
+half-edge. Variable nodes, unlike boundary-nodes in the concrete
+graph, are not classified into domain and co-domain. The intuition of
+a variable node is that it can be replaced by any concrete node. Thus,
+unlike nodes in conrete a graph, variable node's do not define an
+ordering on the edges that are incident. Instead, the edges that touch
+a variable node are simply a set.
 
-Definition: super-type: given a node with type T
+The type of a variable nodes is thus defined as a multiset rather than
+a tensor. Any tensor type can be lifted into a multiset type in the
+obvious manner, which we denote by the operation {\tt
+  mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor b
+  \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type, $T$,
+is an instance of a multiset type, $M$, when it's lifting into a
+multiset is a super-set of $M$: $ M \subseteq
+\mathtt{mset\_of\_tensor}(T) \Longrightarrow T \in M$. The intuition
+here is that an instance of variable node is allowed to have as many
+extra edges as it likes as long as it at least has the ones mentioned
+in the original graph. A variable node, $a$ is be said to an instance
+of another variable node $b$ when the multiset represnting the type of
+$a$ is a superset of the multiset for the type of $b$. Thus, with
+regard to the underlying semantics, $a$ being a subtype of $b$ means
+that the set of instances of $a$ are a subset of the instances of $b$.
 
-instantiation of a variable node: 
+\begin{figure}[t]
+%  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
+*** Add figure *** 
+\label{node-variable-instances-fig}\caption{The concrete graphs $a$,
+  $b$, and $c$ are instances of $x$, a graph with variables nodes.}
+\end{figure}
 
-\begin{itemize}
-\item let the set of node kinds be denoted $K$
-\item given a graph $G$, containing a variable node $x$, where for a
-  given non-vaiable node $n$ it's type is written $T_n$, the concrete
-  graph is:
-
-$$
-\{G[x/]  | x \in V \}
-$$
-
-\item 
-
-\end{itemize}
+A graph with variable nodes is given a formal semantics by being
+interpretated as a set of concrete graphs. We refer members of
+interpretation set as instances. Formally, an instance of a graph with
+variable-nodes is the graph where every variable node has been
+replaced by some instance of it. For example, in
+Figure~\ref{node-variable-instances-fig}, the graphs $a$, $b$ and $c$
+are instances of the graph $x$. Observe that when a variable-node has
+degree one, then it can be instantiated as a boundary edge of either
+the domain or co-domain. 
 
 \subsection{Compositonality}
 
-By enriching graphs with variable-nodes and banged-boxes, to form
-graph-patterns, we have lost the compositionality principle from the
-underlying concrete graphs. However, this can be restored and shown to
-correspond to the underyling compositionality principle. 
+In this section, we define a compositonality principle for graphs
+patterns, that is graphs with variable-nodes and !-boxes. This is
+related to compositionality of the underlying concrete graphs by the
+following instantiation homomorphism:
 
-Type Expressions: We introduce a new form of type for a pattern
-graph. In particular, 
+
+
+By enriching graphs with to form
+graph-patterns, we need to define compositionality principle from the
+underlying concrete graphs. In this section, we restore
+compositionality and show its correspondence to the underyling
+principle in concrete graphs.
+
+Definition: super-type: given a node with type T
+
+Type Expressions: we introduce a new form of type for a pattern
+graph. In particular, a variable node with 
 
 
 \subsection{Instantiation}
+
 
 
 \section{Graph Pattern Rewriting}

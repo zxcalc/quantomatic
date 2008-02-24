@@ -19,17 +19,35 @@ default: view			# alternatives = view, preview, ps, pdf, dvi
 STY_FILES = $(shell ls tex/*.sty)
 CLS_FILES = $(shell ls tex/*.cls)
 EPS_FILES = $(shell ls images/*.eps)
+#EPS_FILES != `ls images/*.eps`
+#PDF_OF_EPS_FILES := ${EPS_FILES:s/.eps/.pdf/}
+PDF_OF_EPS_FILES = $(shell ls images/*.eps | sed s/eps$$/pdf/)
 
-SRC=Makefile $(BASENAME).tex $(BIBFILE) $(EPS_FILES) $(STY_FILES) $(CLS_FILES)
+BASIC_SRC=Makefile $(BASENAME).tex $(BIBFILE) $(STY_FILES) $(CLS_FILES)
+PS_SRC=$(BASIC_SRC) $(EPS_FILES)
+PDF_SRC=$(BASIC_SRC) $(PDF_OF_EPS_FILES)
 
+# if mac (has osascript command) then preview pdf,
+# if Linux and has gv then preview ps.gz
+PREVIEW_KIND_DEP := $(shell if test -x /usr/bin/osascript; then echo "$(BASENAME).pdf"; elif test -x /usr/bin/gv; then echo "$(BASENAME).ps.gz"; else echo ""; fi)
 
 ################
 gvify = if test -e .gvlock; \
 	then\
 		echo "gv is running, it should now update itself. If not, remove .gvlock";\
 	else\
-		echo "gv locked" > .gvlock; gv $(BASENAME).ps.gz ; rm .gvlock;\
-	fi &
+		echo "gv locked, created a .gvlock file." > .gvlock; gv $(BASENAME).ps.gz ; rm .gvlock;\
+	fi;
+openify = open $(BASENAME).pdf;
+# if mac (has osascript command) then preview pdf,
+# if Linux and has gv then preview ps.gz
+dopreview = if test -x /usr/bin/osascript; \
+	then $(openify)\
+  elif test -x /usr/bin/gv; \
+	then $(gvify)\
+	else \
+	  echo "Don't know how to preview the document: install gv or use a mac.";\
+	fi&
 
 ################
 
@@ -37,18 +55,26 @@ dvi : $(BASENAME).dvi
 pdf : $(BASENAME).pdf
 ps : $(BASENAME).ps.gz
 
+foo:
+	@echo "EPS_FILES: $(EPS_FILES)"
+	@echo "Foo: \"PDF_OF_EPS_FILES: $(PDF_OF_EPS_FILES)\""
+	@echo "Foo: \"PREVIEW_KIND_DEP: $(PREVIEW_KIND_DEP)\""
+
+images/%.pdf : images/%.eps 
+	@epstopdf $<
+
 preview: $(BASENAME).dvi
 	@echo "Previewing  with xdvi..."
 	@xdvi -hush -nopost -s 10 $(BASENAME) 2> /dev/null &
 
-view: $(BASENAME).ps.gz
-	@echo "Viewing with ghostview..."
-	@$(gvify)
+view: $(PREVIEW_KIND_DEP)
+	@echo "Trying to viewing with gv or mac open..."
+	@$(dopreview)
 
-all : $(BASENAME).ps
-	@echo "making ps.gz and pdf"
-	@ps2pdf $(BASENAME).ps $(BASENAME).pdf
-	@gzip -f $(BASENAME).ps
+all : $(BASENAME).ps $(BASENAME).pdf
+	@echo "made ps.gz and pdf"
+#	@ps2pdf $(BASENAME).ps $(BASENAME).pdf
+#	@gzip -f $(BASENAME).ps
 
 ################
 
@@ -56,7 +82,7 @@ $(BASENAME).ps: $(BASENAME).dvi
 	@echo "Generating PostScript..."
 	@dvips -P pdf -o $(BASENAME).ps $(BASENAME).dvi
 
-$(BASENAME).aux: $(SRC)
+$(BASENAME).aux: $(PS_SRC)
 	@echo "Compiling LaTeX source to get aux file..."
 	@export TEXINPUTS=$(TEXINPUTS):./:./tex && latex $(BASENAME)  
 
@@ -64,14 +90,20 @@ $(BASENAME).bbl: $(BASENAME).aux $(BIBFILE)
 	@echo "Compiling bibtex to get bbl file..."
 	@-bibtex $(BASENAME) # "-" is to not fail make on errros. 
 
-$(BASENAME).dvi: $(SRC) $(BASENAME).bbl
-	@echo "Compiling LaTeX source with bbl to make final DVI..."
+$(BASENAME).dvi: $(PS_SRC) $(BASENAME).bbl
+	@echo "Compiling LaTeX source using bbl to make final DVI..."
 	@export TEXINPUTS=$(TEXINPUTS):./:./tex && latex $(BASENAME)
 	@export TEXINPUTS=$(TEXINPUTS):./:./tex && latex $(BASENAME)
 
-$(BASENAME).pdf : $(BASENAME).ps
-	@ps2pdf $(BASENAME).ps $(BASENAME).pdf
-	@rm $(BASENAME).ps
+$(BASENAME).pdf : $(PDF_SRC) $(BASENAME).bbl
+	@echo "Compiling PDF LaTeX source using bbl to make final DVI..."
+	@export TEXINPUTS=$(TEXINPUTS):./:./tex && pdflatex $(BASENAME)
+	@export TEXINPUTS=$(TEXINPUTS):./:./tex && pdflatex $(BASENAME)
+
+# old version, made from ps
+#$(BASENAME).pdf : $(BASENAME).ps
+#	@ps2pdf $(BASENAME).ps $(BASENAME).pdf
+#	@rm $(BASENAME).ps
 
 $(BASENAME).ps.gz: $(BASENAME).ps
 	@echo "gzipping..."
