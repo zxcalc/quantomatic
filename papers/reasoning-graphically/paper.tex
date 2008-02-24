@@ -139,6 +139,20 @@
 \newcommand{\catCom}{% the category of compact closed  categories
 \ensuremath{\textbf{Com}}\xspace}
 %%%% End of Ross's lovely categorcal macros--------
+
+%%%%  use this to include graphics in the right place.
+\newcommand{\inlinegraphic}[2]{
+  %% todo -- make this thing calculate the height 
+  %% itself based on a global scaling factor
+  \dimendef\grafheight=255\dimendef\grafvshift=254
+  \grafheight=#1
+  \grafvshift=-0.5\grafheight
+  \advance\grafvshift by 0.5ex
+  \raisebox{\grafvshift}{\includegraphics[height=\grafheight]{#2}\xspace}
+}
+
+
+
 %%--------------------------------------------
 
 \begin{document}
@@ -223,18 +237,42 @@ structure so it is possible to view a subgraph as a vertex and vice versa.
 \section{Quotients and Rewriting}
 \label{sec:quotients-rewriting}
 
-Unfortunately. or fortunately, few examples of interesting
-compact closed categories are freely generated.  In practice we work
-with cateories presented as generators and \emph{equations}.  For
+Few examples of interesting compact closed categories are freely
+generated.  In practice we work with categories presented as
+generators and \emph{equations}.  For 
 representing quantum computations, Coecke and Duncan
 \cite{Coecke:2008jo} propose the following collection of generators:
 \begin{description}
 \item[Objects] the self dual object $Q$;
-\item[Arrows] $\epsilon_Z : Q \to I$, $\delta_Z : Q \to Q \otimes Q$,
-  $\alpha_Z : Q \to Q$, $\epsilon_X : Q \to I$, $\delta_X : Q \to Q \otimes Q$,
-  $\alpha_X : Q \to Q$ and $H:Q\to Q$.
+\item[Arrows] Two families of arrows:
+  \begin{align}
+  &\epsilon_Z : Q \to I, &\qquad&  \epsilon_X : Q \to I,\\
+  &\delta_Z : Q \to Q \otimes Q, && \delta_X : Q \to Q \otimes Q, \\
+  &\alpha_Z : Q \to Q &&  \alpha_X : Q \to Q   
+  \end{align}
+  where $\alpha \in [0,2\pi)$, and in addition $H:Q\to Q$.
 \end{description}
-subject to  the following equations:
+We represent these two families, and their adjoints, by colours in our
+graphical notation:
+\begin{gather*}
+  \epsilon_Z = \inlinegraphic{1.5em}{epsilon} \qquad
+  \delta_Z = \inlinegraphic{1.5em}{delta} \qquad
+  \epsilon_Z^\dag = \inlinegraphic{1.5em}{epsilondag} \qquad
+  \delta_Z^\dag = \inlinegraphic{1.5em}{deltadag} \qquad
+  \alpha_Z = \inlinegraphic{1.5em}{alpha} \qquad
+\\  
+  \epsilon_X = \inlinegraphic{1.5em}{redepsilon} \qquad
+  \delta_X = \inlinegraphic{1.5em}{reddelta} \qquad
+%  \epsilon_X^\dag = \inlinegraphic{1.5em}{redepsilondag} \qquad
+%  \delta_X^\dag = \inlinegraphic{1.5em}{reddeltadag} \qquad
+  \alpha_X = \inlinegraphic{1.5em}{redalpha} \qquad
+\end{gather*}
+The $H$ arrow is denoted by \inline
+Each family $(\delta, \epsilon, \alpha)$ is governed by a set of
+equations defining a forms a \emph{classical structure}
+\cite{Coecke2006Quantum-Measure,Coecke2006POVMs-and-Naima} with a
+\emph{phase group}.  The requisite equations state that $(\delta,
+\epsilon )$ form a cocommutative comonoid:
 \begin{gather}
   (\delta \otimes \id{Q}) \circ \delta 
    =   ( \id{Q} \otimes \delta) \circ \delta  
@@ -244,13 +282,31 @@ subject to  the following equations:
   = (\id{Q} \otimes \epsilon)\circ \delta 
   = \id{Q} \tag{U} \label{comonoid-unit}
   \\
-  \delta = \sigma \circ \delta \tag{C}\label{comonoid-comm}
+  \delta = \sigma \circ \delta. \tag{C}\label{comonoid-comm}
+\end{gather}
+Their adjoints $(\delta^\dag,\epsilon^\dag)$ form a commutative
+monoid':
+\begin{gather}
+  \delta^\dag \circ (\delta^\dag \otimes \id{Q})
+  =    \delta^\dag   \circ ( \id{Q} \otimes \delta^\dag) 
+  \tag{A}\label{monoid-assoc}
   \\
+  \delta^\dag  \circ (\epsilon^\dag \otimes \id{Q}) 
+  = \delta^\dag \circ (\id{Q} \otimes \epsilon^\dag)
+  = \id{Q} \tag{U} \label{monoid-unit}
+  \\
+  \delta^\dag = \delta^\dag \circ
+  \sigma. \tag{C}\label{monoid-comm}.
+\end{gather}
+Futher, these jointly satisfy the \emph{isometry} and \emph{frobenius} laws:
+\begin{gather}
   \delta^\dag \circ \delta = \id{Q} \tag{I}\label{isometry}
   \\
   (\delta^\dag \otimes \id{Q}) \circ (\id{Q}\otimes \delta)
-  = \delta \circ \delta^\dag \tag{F}\label{frobenius}
+  = \delta \circ \delta^\dag. \tag{F}\label{frobenius}
 \end{gather}
+
+
 
 its denotation is the
   2-dimensional Hilbert space $\mathbb{C}^2$

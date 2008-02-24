@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Quick and Dirty bash script for generating makefiles which 
+# generate pdfs out of all eps files in the working directory
+# Designed to invoked form another Makefile
+#
+# Note!  We are generating a makefile file so there is an actual tab 
+# in that HEREDOC.  Make sure it stays there or the resulting makefile
+# won't work.
+#
+
+echo -n 'default: '
+for file in `ls *.eps | sed s/.eps$/.pdf/` 
+do
+    echo -n "$file "
+done
+echo 
+cat <<HEREDOC
+
+%.pdf: %.eps
+	epstopdf $<
+
+HEREDOC
