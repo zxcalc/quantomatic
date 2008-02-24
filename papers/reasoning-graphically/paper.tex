@@ -30,9 +30,8 @@
 \usepackage{graphicx}
 
 \usepackage{url}
-\urldef{\mailsa}\path|{alfred.hofmann,ursula.barth,ingrid.beyer,natalie.brecht,|
-\urldef{\mailsb}\path|christine.guenther,frank.holzwarth,piamaria.karbach,|
-\urldef{\mailsc}\path|anna.kramer,erika.siebert-cole,lncs}@springer.com|
+\urldef{\mailsa}\path|l.dixon@ed.ac.uk|
+\urldef{\mailsb}\path|ross.duncan@comlab.ox.ac.uk|
 \newcommand{\keywords}[1]{\par\addvspace\baselineskip
 \noindent\keywordname\enspace\ignorespaces#1}
 
@@ -69,8 +68,8 @@
 
 % the affiliations are given next; don't give your e-mail address
 % unless you accept that it will be published
-\institute{University of Edinburgh \and
-University of Oxford
+\institute{\mailsa, University of Edinburgh
+\and \mailsb, University of Oxford
 %\mailsa\\
 %\mailsb\\
 %\mailsc
@@ -136,28 +135,67 @@ represent laws about quantum computation, such as
 Spider-Law~\ref{spider-law-fig}. Furthermore, this representation is
 still compositional in the sense that we can compose graphs. The
 extension, which we call \ref{graph patterns}, adds two extra kinds of
-nodes to the graph: {\em banged nodes} which informally represent an
-arbitrary number of copies of that node, and {\em variable nodes}
-which informally represent some as yet unkown node in a graph. 
+nodes to the graph. Namely, {\em banged boxes} which informally
+represent an arbitrary number of copies of a node (where the node is
+defined as some graph), and {\em variable nodes} which informally
+represent some, as yet unkown, node in a graph.
 
-\subsection{Banged Nodes}
+\subsection{Bang-Boxes}
+
+Bang-Boxes 
 
 \subsection{Variable Nodes}
 
+In graph patterns, variable nodes generalise the concept of a
+half-edge. A graph with variable nodes is given the following
+interpretation in the underyling semantics of our concrete graphs:
+
+Definition: super-type: given a node with type T
+
+\begin{itemize}
+\item let the node kinds be denoted by the set $K$
+\item given a graph $G$ containing a set of variable nodes $V$ 
+  a given node $n$, it's type is written $T_n$,
+\end{itemize}
+
 \subsection{Compositonality}
 
-\section{Graph Rewriting}
+\subsection{Instantiation}
+
+
+\section{Graph Pattern Rewriting}
 \label{sec:rewriting}
 
 \subsection{Rules}
-\subsection{Matching}
+\subsection{Unification}
 \subsection{Substitution}
+
+
+\section{Node Expressions}
+\label{sec:node-expressions}
 
 
 \section{Related Work}
 \label{sec:relatedwork}
 
+Initially one might be tempted to think that the usual notion of
+subgraph might surfice for expressing matching, however it allows
+additional edges on nodes where, because of the tensorial semantics of
+our graphs, we do not. Our work provides a restriction of the usual
+subgraph definition that is sound for Compact Closed Categories.
 
+Link Graphs and their extention to BiGraphs also encapsualte a very
+different kind of semantics where they allow edges to go to multiple
+nodes. An interesting area of further work would be to consider our
+graph patterns for these, and other, graph based formalisms.
+
+Graph Grammars...
+
+Other graph rewriting... 
+
+Matrix Based Graph Tansformation...
+
+Other Graph Transformation...
 
 \section{Conclusions}
 \label{sec:conclusions}
