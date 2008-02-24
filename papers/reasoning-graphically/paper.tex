@@ -148,7 +148,7 @@
   \grafheight=#1
   \grafvshift=-0.5\grafheight
   \advance\grafvshift by 0.5ex
-  \raisebox{\grafvshift}{\includegraphics[height=\grafheight]{#2}\xspace}
+  \raisebox{\grafvshift}{\includegraphics[height=\grafheight]{images/#2}\xspace}
 }
 
 
@@ -259,15 +259,21 @@ graphical notation:
   \delta_Z = \inlinegraphic{1.5em}{delta} \qquad
   \epsilon_Z^\dag = \inlinegraphic{1.5em}{epsilondag} \qquad
   \delta_Z^\dag = \inlinegraphic{1.5em}{deltadag} \qquad
-  \alpha_Z = \inlinegraphic{1.5em}{alpha} \qquad
+  \alpha_Z = \inlinegraphic{1.5em}{greenalpha} \qquad
 \\  
   \epsilon_X = \inlinegraphic{1.5em}{redepsilon} \qquad
   \delta_X = \inlinegraphic{1.5em}{reddelta} \qquad
-%  \epsilon_X^\dag = \inlinegraphic{1.5em}{redepsilondag} \qquad
-%  \delta_X^\dag = \inlinegraphic{1.5em}{reddeltadag} \qquad
+  \epsilon_X^\dag = \inlinegraphic{1.5em}{redepsilondag} \qquad
+  \delta_X^\dag = \inlinegraphic{1.5em}{reddeltadag} \qquad
   \alpha_X = \inlinegraphic{1.5em}{redalpha} \qquad
 \end{gather*}
-The $H$ arrow is denoted by \inline
+The $H$ arrow is denoted by \inlinegraphic{1.5em}{H}.  The free
+compact closed category  is then given by all graphs formed by
+composing and tensoring these basic graphs.
+
+To model the behaviour of quantum systems these generators must
+satisfy certain equations.  
+
 Each family $(\delta, \epsilon, \alpha)$ is governed by a set of
 equations defining a forms a \emph{classical structure}
 \cite{Coecke2006Quantum-Measure,Coecke2006POVMs-and-Naima} with a
@@ -307,9 +313,8 @@ Futher, these jointly satisfy the \emph{isometry} and \emph{frobenius} laws:
 \end{gather}
 
 
-
-its denotation is the
-  2-dimensional Hilbert space $\mathbb{C}^2$
+The need to formalise these equations leads naturally to a rewriting
+theory 
 
 \section{Graph Patterns}
 \label{sec:patterns}
