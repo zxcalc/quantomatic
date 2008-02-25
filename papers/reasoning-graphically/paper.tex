@@ -230,10 +230,15 @@
 \section{Compact Closed Categories and Graphs}
 \label{sec:mono-categ-graphs}
 
+\begin{definition}
+  A \emph{directed graph} consists of a 4-tuple $(N,E,s,t)$ where $V$
+  and $E$ are sets, respectively of \emph{nodes} and \emph{edges}, 
+\end{definition}
+
 representation of freely generated compact closed  categories  as
 graphs;
 
-need to define embedding vs strict embedding.
+need to define embedding and subgraph
 
 theorem: two arrows in a a freely generated compact closed  category
 are equal iff and only if their graphs are equal.
@@ -332,6 +337,16 @@ green family;  the red vertices obey all the same equations
     \inlinegraphic{3em}{frobenius3}
   \end{array}
   \]
+\item[Compact Structure] 
+  \[
+  \begin{array}{ccccccc}
+    \inlinegraphic{2.5em}{compact1}  &=\;&
+    \inlinegraphic{1.3em}{compact2}  
+    &\qquad\qquad&
+    \inlinegraphic{2.5em}{compact3}  &=\;&
+    \inlinegraphic{1.3em}{compact4}  
+  \end{array}
+  \]
   \item[Abelian Unitary Group]
     \[
     \begin{array}{ccccccccccccccc}
@@ -347,8 +362,45 @@ green family;  the red vertices obey all the same equations
       \inlinegraphic{3.5em}{group8} 
     \end{array}
     \]
+  \item[Bilinearity] 
+    \[
+    \begin{array}{cccccccccccc}
+      \inlinegraphic{3.5em}{alpha-commute1}  &=\;&
+      \inlinegraphic{3.5em}{alpha-commute2}  &=\;&
+      \inlinegraphic{3.5em}{alpha-commute3} 
+      &\qquad\qquad&
+      \inlinegraphic{3.5em}{alpha-commute4}  &=\;&
+      \inlinegraphic{3.5em}{alpha-commute5}  &=\;&
+      \inlinegraphic{3.5em}{alpha-commute6} 
+    \end{array}
+    \]
 \end{description}
-
+Additionally, the two families satisfy equations which make them a
+\emph{scaled bialgebra}.
+\begin{description}
+\item[Bialgebra Laws] Let  $\inlinegraphic{1em}{bialgebra1} := 
+      \inlinegraphic{1.5em}{bialgebra2}$;  then:
+  \[
+  \begin{array}{ccccccccccccccc}
+      \inlinegraphic{3.5em}{bialgebra3}  &=\;&
+      \inlinegraphic{3em}{bialgebra4}
+      \qquad\qquad
+      \inlinegraphic{2.5em}{bialgebra5}  &=\;&
+      \inlinegraphic{1.5em}{bialgebra6}
+      \qquad\qquad
+      \inlinegraphic{2.5em}{bialgebra7}  &=\;&
+      \inlinegraphic{1.5em}{bialgebra8} \\ \\
+      \inlinegraphic{3.5em}{bialgebra9}  &=\;&
+      \inlinegraphic{3em}{bialgebra10}
+      \qquad\qquad
+      \inlinegraphic{2.5em}{bialgebra11}  &=\;&
+      \inlinegraphic{1.5em}{bialgebra12}
+      \qquad\qquad
+      \inlinegraphic{2.5em}{bialgebra13}  &=\;&
+      \inlinegraphic{1.5em}{bialgebra14} 
+  \end{array}
+  \]
+\end{description}
 
 
 The need to formalise these equations leads naturally to a rewriting
@@ -533,6 +585,8 @@ Other graph rewriting...
 Matrix Based Graph Tansformation...
 
 Other Graph Transformation...
+
+Interaction nets and interaction combinators (Lafont and others)
 
 \section{Conclusions}
 \label{sec:conclusions}
