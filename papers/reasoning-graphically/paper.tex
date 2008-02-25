@@ -405,7 +405,7 @@ In graph patterns, variable nodes generalise the concept of a
 half-edge. Variable nodes, unlike boundary-nodes in the concrete
 graph, are not classified into domain and co-domain. The intuition of
 a variable node is that it can be replaced by any concrete node. Thus,
-unlike nodes in conrete a graph, variable node's do not define an
+unlike nodes in conrete a graph, variable nodes do not define an
 ordering on the edges that are incident. Instead, the edges that touch
 a variable node are simply a set.
 
@@ -417,10 +417,10 @@ obvious manner, which we denote by the operation {\tt
 is an instance of a multiset type, $M$, when it's lifting into a
 multiset is a super-set of $M$: $ M \subseteq
 \mathtt{mset\_of\_tensor}(T) \Longrightarrow T \in M$. The intuition
-here is that an instance of variable node is allowed to have as many
+here is that an instance of a variable node is allowed to have as many
 extra edges as it likes as long as it at least has the ones mentioned
 in the original graph. A variable node, $a$ is be said to an instance
-of another variable node $b$ when the multiset represnting the type of
+of another variable node $b$ when the multiset representing the type of
 $a$ is a superset of the multiset for the type of $b$. Thus, with
 regard to the underlying semantics, $a$ being a subtype of $b$ means
 that the set of instances of $a$ are a subset of the instances of $b$.
@@ -445,10 +445,11 @@ the domain or co-domain.
 \subsection{Compositonality}
 
 In this section, we define a compositonality principle for graphs
-patterns, that is graphs with variable-nodes and !-boxes. This is
+patterns, that is for graphs with variable-nodes and !-boxes. This is
 related to compositionality of the underlying concrete graphs by the
 following instantiation homomorphism:
 
+$\llbracket G \cric H \rrbracket = \llbracket G \rrbracket \cric \llbracket H \rrbracket$
 
 
 By enriching graphs with to form
