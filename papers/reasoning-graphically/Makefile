@@ -55,11 +55,13 @@ dvi : $(BASENAME).dvi
 pdf : $(BASENAME).pdf
 ps : $(BASENAME).ps.gz
 
-foo:
+# debugging, echo some macro vars
+echopaths:
+	@echo "PREVIEW_KIND_DEP: $(PREVIEW_KIND_DEP)"
 	@echo "EPS_FILES: $(EPS_FILES)"
-	@echo "Foo: \"PDF_OF_EPS_FILES: $(PDF_OF_EPS_FILES)\""
-	@echo "Foo: \"PREVIEW_KIND_DEP: $(PREVIEW_KIND_DEP)\""
+	@echo "PDF_OF_EPS_FILES: $(PDF_OF_EPS_FILES)"
 
+# make pdf images from eps ones
 images/%.pdf : images/%.eps 
 	@epstopdf $<
 
@@ -113,12 +115,14 @@ $(BASENAME).ps.gz: $(BASENAME).ps
 clean:
 	@echo "Removing DVI, and temporary files..."
 	@rm -f $(BASENAME).aux $(BASENAME).log $(BASENAME)*~ 
+	@rm -f $(PDF_OF_EPS_FILES)
 	@rm -f $(BASENAME).bbl $(BASENAME).blg
 	@rm -f .gvlock
 
 veryclean: clean
 	@echo "Removing ps, ps.gz, pdf files..."
 	@rm -f $(BASENAME).dvi $(BASENAME).ps $(BASENAME).ps.gz $(BASENAME).pdf
+	@rm -f ./*~
 
 
 # EOF: Makefile
