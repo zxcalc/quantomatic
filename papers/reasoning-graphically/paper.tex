@@ -46,6 +46,11 @@
 \newcommand{\ors}{\oplus}
 \newcommand{\tensor}{\otimes}
 
+\newcommand{\vinterp}[1]{\lfloor\hspace{-0.27em}|\, #1\, |\hspace{-0.27em}\rfloor}
+\newcommand{\binterp}[1]{\lceil\hspace{-0.27em}|\, #1\, |\hspace{-0.27em}\rceil}
+\newcommand{\minterp}[1]{\llbracket #1 \rrbracket}
+\newcommand{\sinterp}[1]{| #1 |}
+
 %%-----------------------------------------------------------------
 %%%% Ross's handy macros %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%-----------------------------------------------------------------
@@ -374,14 +379,11 @@ represent an arbitrary number of copies of a node (where the node is
 defined as some graph), and {\em variable nodes} which informally
 represent some, as yet unkown, node in a graph.
 
-\subsection{!-Boxes}
-
-!-Boxes 
 
 \subsection{Variable Nodes}
 
 In graph patterns, variable nodes generalise the concept of a
-half-edge. Variable nodes, unlike boundary-nodes in the concrete
+boundary node. Variable nodes, unlike boundary-nodes in the concrete
 graph, are not classified into domain and co-domain. The intuition of
 a variable node is that it can be replaced by any concrete node. Thus,
 unlike nodes in conrete a graph, variable nodes do not define an
@@ -389,7 +391,7 @@ ordering on the edges that are incident. Instead, the edges that touch
 a variable node are simply a set.
 
 The type of a variable nodes is thus defined as a multiset rather than
-a tensor. Any tensor type can be lifted into a multiset type in the
+a tensor. Any tensor type can be lifted to a multiset type in the
 obvious manner, which we denote by the operation {\tt
   mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor b
   \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type, $T$,
@@ -408,27 +410,59 @@ that the set of instances of $a$ are a subset of the instances of $b$.
 %  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
 *** Add figure *** 
 \label{node-variable-instances-fig}\caption{The concrete graphs $a$,
-  $b$, and $c$ are instances of $x$, a graph with variables nodes.}
+  $b$, and $c$ are instances of $x$, a graph with variable nodes.}
 \end{figure}
 
-A graph with variable nodes is given a formal semantics by being
-interpretated as a set of concrete graphs. We refer members of
-interpretation set as instances. Formally, an instance of a graph with
-variable-nodes is the graph where every variable node has been
-replaced by some instance of it. For example, in
-Figure~\ref{node-variable-instances-fig}, the graphs $a$, $b$ and $c$
-are instances of the graph $x$. Observe that when a variable-node has
-degree one, then it can be instantiated as a boundary edge of either
-the domain or co-domain. 
+A graph with variable nodes, $G$, can be given a formal semantics by
+being interpretated as a set of concrete graphs which is denoted by
+$\vinterp{G}$. We refer to members of this set as
+instances. Formally, an instance of a graph with variable nodes is the
+graph where every variable node has been replaced by some instance of
+it. For example, in Figure~\ref{node-variable-instances-fig}, the
+graphs $a$, $b$ and $c$ are instances of the graph $x$. Observe that
+when a variable node has degree one, then it can be instantiated as a
+boundary node in either the domain or co-domain.
 
-\subsection{Compositonality}
+\subsection{Plugging}
+
+
+
+\subsection{!-Boxes}
+
+The set of concrete graphs for a graph $G$ with !-boxes, is denoted by
+$\binterp{G}$.
+
+\subsection{Matching}
+
+The purpose of our graph patterns is to express and formalise, in a
+declarative manner, the intuitive idea of graph matching for graphs
+that represent Compact Closed Categories. In the previous sections we
+defined ways to extend the concrete graph representation with variable
+nodes and !-boxes. In this section we combine these to first define
+the matching relation between graph patterns and concrete graphs and
+then introduce a matching relation between graph patterns.
+
+\subsubsection{Concrete Matches}
+
+We give a semantics to these in terms of a set of concrete graphs,
+denoted by $\minterp{G}$, and say that a member of this set is
+\emph{matched} by the graph pattern $G$. Formally, the set of matches
+are defined as follows:
+
+$\minterp{G} = \sinterp{\vinterp{\binterp{G}}}$
+
+where $\sinterp{G}$ represents the set of graphs that strictly contain
+the graph $G$.
+
+\subsubsection{Pattern Matches}
+
 
 In this section, we define a compositonality principle for graphs
-patterns, that is for graphs with variable-nodes and !-boxes. This is
+patterns, that is for graphs with variable nodes and !-boxes. This is
 related to compositionality of the underlying concrete graphs by the
 following instantiation homomorphism:
 
-$\llbracket G \cric H \rrbracket = \llbracket G \rrbracket \cric \llbracket H \rrbracket$
+$\llbracket G \circ H \rrbracket = \llbracket G \rrbracket \circ \llbracket H \rrbracket$
 
 
 By enriching graphs with to form
