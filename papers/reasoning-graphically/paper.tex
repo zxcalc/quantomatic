@@ -411,25 +411,25 @@ theory
 
 The representation of Compact Closed Categories as Graphs, discuseed
 in the previous section, is too restrictive for automated reasoning
-about quantum computation. In particular, pictures such as the
-following are frequently needed:
+about quantum computation. In particular, pictures such the Spider
+Law, in Figure~\ref{spider-law-fig} are frequently needed. Such
+pictures represent an infinite family of concrete graphs. In this
+section we describe an extension of the representation for Compact
+Closed Categories that allows a graph-based representation that
+captures an infinite family of graphs. Notably, this allows us to
+represent laws about quantum computation, such as the Spider
+Law. Furthermore, this representation is still compositional in the
+sense that we can plug graphs together. The extension, which we call
+\ref{graph patterns}, adds two extra kinds of nodes to the
+graph. Namely, {\em banged boxes} which informally represent an
+arbitrary number of copies of a node (where the node itself can
+contain a graph of the appropriate type), and {\em variable nodes}
+which informally represent some, as yet unkown, node in a graph.
 
-\begin{center}
-  \scalebox{1.0}{\includegraphics{images/spider_lhs}}
-\end{center}
+%\begin{center}
+%  \scalebox{1.0}{\includegraphics{images/spider_lhs}}
+%\end{center}
 
-\noindent Such pictures represent an infinite family of concrete
-graphs. In this section we describe an extension of the representation
-for Compact Closed Categories that allows a graph-based representation
-that captures an infinite family of graphs. Notably, this allows us to
-represent laws about quantum computation, such as
-Spider-Law~\ref{spider-law-fig}. Furthermore, this representation is
-still compositional in the sense that we can compose graphs. The
-extension, which we call \ref{graph patterns}, adds two extra kinds of
-nodes to the graph. Namely, {\em banged boxes} which informally
-represent an arbitrary number of copies of a node (where the node is
-defined as some graph), and {\em variable nodes} which informally
-represent some, as yet unkown, node in a graph.
 
 
 \subsection{Variable Nodes}
@@ -495,37 +495,78 @@ somewhat wilder joining operation which we call \emph{plugging}.
 
 \subsection{!-Boxes}
 
-The set of concrete graphs for a graph $G$ with !-boxes, is denoted by
-$\binterp{G}$.
+The key feature of rules like the Spider Law is that an arbirary
+number of nodes can be matched. To support this we introduce an
+operation, !-boxing, on graph representations. We draw !-boxes around
+a set of chosen nodes and intuitively think of the resulting !-boxed
+graph as representing a set of graphs with an arbirary number of
+copies of the !-boxed nodes, where any connections to nodes outside
+the !-box are also copied. The !-boxes can also be instantiated with
+zero copies errasing all edges from the !-box. See
+Figure~\ref{bang-box-ex1-fig} for a simple example. 
 
-\subsubsection{Making !-Box Graphs}
+A graph with !-boxes is simply a graph paired with a set of !-box node
+sets, which define the !-boxes. The !-box node sets must either be
+disjoint or strict subsets of each other. This is needed to avoid
+confusion with overlaping boxes. 
+
+\subsubsection{Semantics.}
+
+We give a formal semantics to !-boxing a representation of graphs by
+defining the a !-box graph in terms of a set of graphs in the
+underlying representation. We denote this interpretation of a graph
+$G$ by $\binterp{G}$ and say that mebemrs of $\binterp{G}$ are
+instances of $G$. The definition of $\binterp{G}$ involves the
+following three operations\footnote{These correspond closely to the
+  linear logic rules for weakening, contraction and deriliction.} on a
+!-box and a graph that contains it:
+
+\begin{definition}
+  \emph{copy} copies a box in a graph to produce a new graph with two
+  copies of the boxed subgraph, with a second box around the newly
+  copied nodes. Any edges incident on both a node in the !-box and
+  outside it get copied so that there the old edge remains and the new
+  edge goes from the outer node to the new copy of the internal node.
+\end{definition}
+
+\begin{definition}
+  \emph{drop} simply removes the box, but leaves its contents in the
+  graph.
+\end{definition}
+
+\begin{definition}
+  \emph{kill} removes from the graph all nodes in the !-box set as
+  well as any incident edges to nodes in the box.
+\end{definition}
+
+\noindent The semantics of a !-boxed graph is then defined as the
+members without any !-boxes of the set closed by these operation.  For
+the purposes of this paper, the underlying graph representation of
+!-boxed graphs is variable-node graphs. The set of variable-node
+graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$.
+
+\subsubsection{}
 
 \subsection{Matching}
 
-The purpose of our graph patterns is to express and formalise, in a
-declarative manner, the intuitive idea of graph matching for graphs
-that represent Compact Closed Categories. In this section we combine
-the two extensions to the concrete graph representation, namely
-variable nodes and !-boxes, to provide a matching relation between
-graph patterns and concrete graphs. We then introduce a matching
-relation directly between graph patterns. The former relation gives a
-semantics for our system and ensures soundness, while the latter
-supports deirved equations and thus provides the theoretical basis for
-our formulation of rewriting.
+The purpose of graph patterns is to formally express, in a declarative
+manner, the intuitive idea of graph matching commonly used in for
+Quantum computation. To do this, we combine the two extensions to the
+concrete graph representation, namely variable nodes and !-boxes. This
+provides a matching relation between graph patterns and concrete
+graphs as well as directly between graph patterns. The former relation
+gives a semantics for our system and ensures soundness, while the
+latter supports deirved equations and thus provides the theoretical
+basis for our formulation of rewriting.
 
 \subsubsection{Concrete Matches.}
 
-We give a semantics for a pattern graph $G$ in terms of a set of
-concrete graphs, denoted by $\minterp{G}$, and say that members of
-this set are \emph{matched} by $G$. Formally, the set of matches are
-defined as follows:
+The semantics for a graph pattern $G$ in terms of a set of concrete
+graphs, is denoted by $\minterp{G}$. We say that members of this set
+are \emph{matched} by $G$. Formally, the set of matches are defined as
+follows:
 
-$\minterp{G} = \sinterp{\vinterp{\binterp{G}}}$
-
-\noindent where $\sinterp{G}$ represents the set of graphs that
-strictly contain the graph $G$. Thus, a concrete graph $g$ is matched
-by a graph pattern $G$, written $g \in G$, when an instance of the
-pattern is a strict subgraph of the matched graph. 
+$\minterp{G} = (\vinterp{G'} | G' \in \binterp{G})$
 
 Graph patterns are complete in the sense that for every concrete graph
 there is a pattern that matches it. This is a trivial consequence of
@@ -537,11 +578,12 @@ unaffected by allowing !-boxes.
 The definition of one pattern matching another one is simply that it
 is more general. Formally, a graph pattern, $G$, matches another graph
 pattern, $H$, when $\minterp{G} \supseteq \minterp{H}$. This provides
-the specification for a matching algorithm which we provide an
-implementation of in~\S\ref{sec:rewriting}.
+the specification for a matching algorithm which we implement of
+in~\S\ref{sec:rewriting}. To make such a proof easier, we extend
+embedding and plugging of variable-node graphs to graph patterns. 
 
 Our representation has been carefully designed so that this concept
-corresponds to what we call a \emph{respectful embedding} of $G$ into
+corresponds to what we call a \emph{open embedding} of $G$ into
 $H$. 
 
 *** 
