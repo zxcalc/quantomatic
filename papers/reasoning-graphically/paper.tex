@@ -29,7 +29,7 @@
 \usepackage{stmaryrd}
 %\usepackage{mbboard}
 \usepackage{xspace}
-%\usepackage{diagrams}
+\usepackage{diagrams}
 
 \usepackage{url}
 \urldef{\mailsa}\path|l.dixon@ed.ac.uk|
@@ -156,8 +156,11 @@
   \raisebox{\grafvshift}{\includegraphics[height=\grafheight]{images/#2}\xspace}
 }
 
-
-
+%%%% More handy things for me - rwd
+\newcommand{\TODO}[1]{%
+\typeout{WARNING!!! there is still a TODO left}
+\marginpar{\textbf{!TODO: }\emph{#1}}
+}
 %%--------------------------------------------
 
 \begin{document}
@@ -227,13 +230,85 @@
 \section{Introduction}
 \label{sec:introduction}
 
+Want to do reasoning about quantum computation by manipulating graphs
+
+CAn formalise quantum mechanics in an abstract setting using compact
+or $\dag$-compact categories.
+
+We will give a description of graphs in general;  a specialisation of
+this gives the structure required for compact closed  categories.  The
+graph structure suffices to give a tight representation.
+
+We then introduce a concrete set of generators and equations for use
+in quantum computation.  We need rewrites to capture the non-logical
+axioms of this structure.   It turns out that we can most easily express
+these equations using an infinite family of ``spider rules'';  this
+motivates the  more general notion of pattern graphs.
+
+next section introduces the  notion of pattern graph, which is
+essentially a graph structured 
+
 \section{Compact Closed Categories and Graphs}
 \label{sec:mono-categ-graphs}
 
-\begin{definition}
-  A \emph{directed graph} consists of a 4-tuple $(N,E,s,t)$ where $V$
-  and $E$ are sets, respectively of \emph{nodes} and \emph{edges}, 
-\end{definition}
+\subsection{Graphs}
+\label{sec:graphs}
+
+A \emph{directed graph}\footnote{
+Equivalently:  a directed graph is a functor $G$ from  $\bullet
+\pile{\rTo\\\rTo} \bullet$ to \catSet;  a graph morphism is then a natural
+transformation  $f: G \Rightarrow H$.
+} consists of a 4-tuple $(V,E,s,t)$ where $V$
+and $E$ are sets, respectively of \emph{vertices}\footnote{We will use
+  the words ``vertex'' and ``node'' interchangeably.} and \emph{edges},
+and $s$ and $t$ are maps 
+\begin{diagram}
+  E & \pile{\rTo^{\qquad s\qquad}\\\rTo_t} & V
+\end{diagram}
+which we call \emph{source} and \emph{target}.  The \emph{in-degree}
+of a vertex $v$ is the cardinality of $t^{-1}(v)$; its out-degree is
+the cardinality of $s^{-1}(v)$.  The \emph{degree} of a vertex is
+the sum of its in- and out-degrees. 
+
+Given graphs $G$ and $H$, a \emph{graph morphism} $f : G\to H$ consists of
+functions $f_E : E_G \to E_H$ and $f_V:V_G\to V_H$ such that:
+\begin{gather*}
+  s_H\circ f_E = f_V \circ s_G,\\
+  t_H\circ f_E = f_V \circ t_G.
+\end{gather*}
+\TODO{different kinds of morphism?}
+
+Augmented by some additional structure, graphs form a compact closed
+category.  We present an overview of this structure:  the details
+omitted here can be found in \cite{Duncan:thesis:2006}.  
+
+A \emph{concrete graph} $\Gamma$ is 5-tuple $(G, \dom\Gamma, \cod\Gamma,
+<_{\text{in}(\cdot)}, <_{\text{out}(\cdot)})$ where:
+\begin{itemize}
+\item $G = (V,E,C,s,t)$ is a graph;
+\item $\dom\Gamma$ and $\cod\Gamma$ are totally ordered disjoint of
+  degree one vertices of $G$.
+\item $<_{\text{in}(\cdot)}$ is a family of maps, indexed by $V$ such
+  that $<_{\text{in}(v)} : \text{in}(v) \rTo^\isomorphism
+  \mathbb{N}_k$ where $k = \sizeof{\text{in}(v)}$.
+\item $<_{\text{out}(\cdot)}$ is a family of maps, indexed by $V$ such
+  that $<_{\text{out}(v)} : \text{out}(v) \rTo^\isomorphism
+  \mathbb{N}_{k'}$ where $k' = \sizeof{\text{out}(v)}$.
+\end{itemize}
+
+Since the sets $\dom\Gamma$ and $\cod\Gamma$ consist of vertices of degree
+one, we can assign a polarity to each one:  $v \mapsto +$ if the edge
+incident at $v$ is an incoming edge; $v \mapsto -$ otherwise.  Hence
+$\cod \Gamma$ and $\dom \Gamma$ are \emph{signed sets}.  Concrete
+graphs form a category whose objects are 
+
+
+can be seen as giving a signing to each element of the ordinal
+one, we can view these sets as maps from the ordinal
+
+can be viewed as a maps from an
+
+
 
 representation of freely generated compact closed  categories  as
 graphs;
