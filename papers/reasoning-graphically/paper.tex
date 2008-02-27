@@ -232,6 +232,8 @@
 
 Want to do reasoning about quantum computation by manipulating graphs
 
+History of diagrammatic representation going back to ???  
+
 CAn formalise quantum mechanics in an abstract setting using compact
 or $\dag$-compact categories.
 
@@ -248,7 +250,7 @@ motivates the  more general notion of pattern graphs.
 next section introduces the  notion of pattern graph, which is
 essentially a graph structured 
 
-\section{Compact Closed Categories and Graphs}
+\section{Graphs and Compact Closed  Categories  }
 \label{sec:mono-categ-graphs}
 
 \subsection{Graphs}
@@ -265,10 +267,11 @@ and $s$ and $t$ are maps
 \begin{diagram}
   E & \pile{\rTo^{\qquad s\qquad}\\\rTo_t} & V
 \end{diagram}
-which we call \emph{source} and \emph{target}.  The \emph{in-degree}
-of a vertex $v$ is the cardinality of $t^{-1}(v)$; its out-degree is
-the cardinality of $s^{-1}(v)$.  The \emph{degree} of a vertex is
-the sum of its in- and out-degrees. 
+which we call \emph{source} and \emph{target}.  Define sets
+$\text{in}(v) = t^{-1}(v)$ and $\text{out}(v) = s^{-1}(v)$ of \emph{incoming}
+and \emph{outgoing} edges at a vertex $v$.  
+The \emph{degree} of a vertex $v$ is $\sizeof{\text{in}(v)} +
+\sizeof{\text{out}(v)}$. 
 
 Given graphs $G$ and $H$, a \emph{graph morphism} $f : G\to H$ consists of
 functions $f_E : E_G \to E_H$ and $f_V:V_G\to V_H$ such that:
@@ -279,14 +282,27 @@ functions $f_E : E_G \to E_H$ and $f_V:V_G\to V_H$ such that:
 \TODO{different kinds of morphism?}
 
 Augmented by some additional structure, graphs form a compact closed
-category.  We present an overview of this structure:  the details
-omitted here can be found in \cite{Duncan:thesis:2006}.  
+category.  In section \ref{sec:graph-repr-comp} we will describe this
+structure, but first we review the concept of compact closed  category.
+
+\subsection{Compact Closed Categories}
+\label{sec:comp-clos-categ}
+
+
+
+\subsection{Graph Representations for Compact Closed Categories}
+\label{sec:graph-repr-comp}
+
+Graphs with certain additional structure give a
+representation for compact closed  categories; we now give an overview
+of this construction.  The details omitted here can be found in
+\cite{Duncan:thesis:2006}. 
 
 A \emph{concrete graph} $\Gamma$ is 5-tuple $(G, \dom\Gamma, \cod\Gamma,
 <_{\text{in}(\cdot)}, <_{\text{out}(\cdot)})$ where:
 \begin{itemize}
-\item $G = (V,E,C,s,t)$ is a graph;
-\item $\dom\Gamma$ and $\cod\Gamma$ are totally ordered disjoint of
+\item $G = (V,E,s,t)$ is a graph;
+\item $\dom\Gamma$ and $\cod\Gamma$ are totally ordered disjoint sets of
   degree one vertices of $G$.
 \item $<_{\text{in}(\cdot)}$ is a family of maps, indexed by $V$ such
   that $<_{\text{in}(v)} : \text{in}(v) \rTo^\isomorphism
@@ -299,27 +315,76 @@ A \emph{concrete graph} $\Gamma$ is 5-tuple $(G, \dom\Gamma, \cod\Gamma,
 Since the sets $\dom\Gamma$ and $\cod\Gamma$ consist of vertices of degree
 one, we can assign a polarity to each one:  $v \mapsto +$ if the edge
 incident at $v$ is an incoming edge; $v \mapsto -$ otherwise.  Hence
-$\cod \Gamma$ and $\dom \Gamma$ are \emph{signed sets}.  Concrete
-graphs form a category whose objects are 
+$\cod \Gamma$ and $\dom \Gamma$ are \emph{ordered signed sets}.  Given any
+ordered signed set $S$ we write $S^*$ for the same ordered set, but
+the opposite signing.   Given two such sets we can define their disjoint
+union $R+S$ as the disjoint union of the underlying sets, inheriting
+the signing and the order from $R$ and $S$, with the convention that
+$r < s$ for all $r\in R, s\in S$.
 
+\begin{proposition}
+Concrete graphs form a compact closed category whose objects are
+ordered signed sets and whose arrows $f:A\to B$ are concrete graphs with
+$\cod f = B$  and $\dom f = A^*$.
+\end{proposition}
+For each ordered signed set $A$, the identity map for $A$ has
+$\dom \id{A} = A^*$ and $\cod \id{A} = A$; its underlying
+graph has $E = A$ and $V = A^* + A$ with $t(a) = a$ and $s(a) =
+a^*$.  Given a pair of concrete graphs $f:A\to B$ and $g:B\to C$ their
+composition $g\circ f:A\to C$ is constructed by merging the two
+graphs, erasing the vertices of $\cod f$ and $\dom g$, and identifying
+the edges previously incident at the deleted vertices.  (Due to the
+opposite polarity of the domain and codomain the edges have compatible
+direction.)  The tensor product on objects $A,B$ is simply $A+B$;
+given $f:A\to B$, $g: C\to D$, the graph of $f \otimes g$ is the
+disjoint union of the graphs of $f$ and $g$.  The unit for the tensor
+is the empty set.  The morphisms $d : I \to A \otimes A^*$,
+$e: A^* \otimes A \to I$ have the same underlying graph, but $\dom d =
+\emptyset$, $\cod d = A+A^*$, $\dom e = A^*+A$ and $\cod e = \emptyset$.
 
-can be seen as giving a signing to each element of the ordinal
-one, we can view these sets as maps from the ordinal
+This category captures exactly the axioms for compact closed
+structure, in the sense that any freely generated compact closed
+category can be represented by concrete graphs.  We will consider
+a collection of basic terms\footnote{See \cite{Duncan:thesis:2006} for
+  a more thorough description of the nature of the terms here} $F$
+whose types are vectors of some set of basic types $T$.  Then:
 
-can be viewed as a maps from an
+\begin{definition}
+  A \emph{$T,F$-labelling} $\theta$ for a concrete graph $\Gamma$ is a pair of
+  maps  $\theta_T : E \to T$ and $\theta_F : (V - \cod\Gamma -
+  \dom\Gamma) \to F$  such that for each vertex  $v$, if
+  $\text{in}(v) = \langle a_1, \ldots, a_n\rangle$ and $\text{out}(v)
+  = \langle b_1, \ldots, b_m\rangle$ then 
+  \[
+  \theta v : \langle \theta a_1, \ldots, \theta a_n \rangle
+  \to 
+  \langle \theta b_1, \ldots, \theta b_m \rangle
+  \]
+  Call a concrete graph $\Gamma$ \emph{$T,F$-labellable} if there exists an 
+  $T,F$-labelling for it; if $\theta$ is a labelling for $\Gamma$, then
+ the pair $(\Gamma,\theta)$ is an \emph{$T,F$-labelled graph}.
+\end{definition}
 
+The $T,F$-labelled graphs form a compact closed category in the same
+way as the the concrete graphs, subject to the further restriction
+that arrows are composable only when their labellings agree.  
 
+\begin{theorem}[\cite{Duncan:thesis:2006}]
+  Let \catC be a compact closed category  freely generated by some set
+  of arrows $F$ and ground types $T$;  then \catC is equivalent to the
+  category  of $T,F$-labelled graphs.
+\end{theorem}
 
-representation of freely generated compact closed  categories  as
-graphs;
+Given a compact closed  category  \catC generated by some basic set of
+operations,  the arrows of \catC have a canonical representation as
+labelled graphs.  A consequence of the theorem is then that two arrows
+are equal by the equations of the compact closed  structure if and
+only if their graph representations are equal.
 
-need to define embedding and subgraph
-
-theorem: two arrows in a a freely generated compact closed  category
-are equal iff and only if their graphs are equal.
-
-Note that the notion of vertex and graph have the same external
-structure so it is possible to view a subgraph as a vertex and vice versa.
+As a final remark before moving on, note that the external structre of vertex
+in a concrete graph is esentially the same as that of a complete
+graph;  hence one can consistently view subgraphs as vertices, and
+abstract over the their internal structure.
 
 \section{Quotients and Rewriting}
 \label{sec:quotients-rewriting}
@@ -476,7 +541,9 @@ Additionally, the two families satisfy equations which make them a
   \end{array}
   \]
 \end{description}
+Last group of equations
 
+Statement and Discussion of spider law.
 
 The need to formalise these equations leads naturally to a rewriting
 theory 
