@@ -560,19 +560,11 @@ simply a set. The type of a variable nodes is thus defined as a
 multiset rather than a tensor. Any tensor type can be lifted to a
 multiset type in the obvious manner, which we denote by the operation
 {\tt mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor
-  b \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type, $T$,
-is an instance of a multiset type, $M$, when it's lifting into a
-multiset is a super-set of $M$: $ M \subseteq
-\mathtt{mset\_of\_tensor}(T) \Longrightarrow T \in M$. The intuition
-here is that an instance of a variable node is allowed to have as many
-extra edges as it likes as long as it at least has the ones mentioned
-in the original graph.
-
-A variable node, $a$ is be said to an instance of another variable
-node $b$ when the multiset representing the type of $a$ is a superset
-of the multiset for the type of $b$. Thus, with regard to the
-underlying semantics, $a$ being a subtype of $b$ means that the set of
-instances of $a$ are a subset of the instances of $b$.
+  b \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type $T$
+is an instance of a multiset type $M$, written $T \in M$, when $M
+\subseteq \mathtt{mset\_of\_tensor}(T)$. The intuition here is that
+when a variable node is instantiated to some other node, it's type
+will have at least the currently attached edges.
 
 \begin{figure}[t]
 %  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
@@ -595,6 +587,13 @@ graphs are complete in the sense that for every concrete graph there
 is a variable node graph that can be instantiated to it: $\forall
 g.\,\exists G.\,g \in \vinterp{G}$. The witness for this proof is made
 by simply replacing all bounary nodes with variable nodes.
+
+%% not needed for this story...
+%A variable node, $a$ is be said to an instance of another variable
+%node $b$ when the multiset representing the type of $a$ is a superset
+%of the multiset for the type of $b$. Thus, with regard to the
+%underlying semantics, $a$ being a subtype of $b$ means that the set of
+%instances of $a$ are a subset of the instances of $b$.
 
 Below, we give a more formal and constuctive account the semnatics by
 introducing a notion of an \emph{open embedding} and note that this
@@ -759,20 +758,21 @@ natural numbers, where $k$ is the number of !-boxes.
 \section{Graph Patterns}
 \label{sec:patterns}
 
-The representation of Compact Closed Categories as Graphs, discuseed
-in the previous section~\S\ref{graph-repr-comp}, is too restrictive
-for reasoning about quantum computation. In particular, pictures such
-the Spider Law, in Figure~\ref{spider-law-fig} are frequently
-needed. Such pictures apply to an infinite family of concrete
-graphs. In this section we combine {\em !-boxes} with {\em variable
-  nodes} to form a representation of graphs that allows us to finitely
-express certain infinite families of concrete graphs. We call this
-extension \ref{graph patterns}. Using this representation Spider Law
-can now be represented by the equation on graph paterns shown in
-Figure~\ref{graph-pattern-spider-law-fig}. Graph matching for pattens
-graphs is defined as is a suitable extension to plugging. This
-provides the foundational machinery for a rewriting system, based on
-pattern graphs, for reasoning about quantum computation. 
+The representation of Compact Closed Categories as Graphs, discussed
+in~\S\ref{graph-repr-comp}, is too restrictive for reasoning about
+quantum computation. In particular, pictures such the Spider Law, in
+Figure~\ref{spider-law-fig} are frequently needed, but not
+expressible. Such pictures are used to denote an infinite family of
+concrete graphs that can be rewritten. In this section we combine the
+{\em !-boxes} with {\em variable nodes} graph extensions to form a
+representation that allows us to finitely express these infinite
+families of concrete graphs. We call this extension \ref{graph
+  patterns}. The Spider Law can now be represented by the equation in
+Figure~\ref{graph-pattern-spider-law-fig}. We also extend the notion
+of matching for graph pattens as well as present a corresponding
+notion of plugging. This provides the foundations for the rewriting
+machinery in~\S\ref{rewriting} which can then be used to reasoning
+about quantum computation.
 
 \subsection{Matching}
 
