@@ -489,17 +489,21 @@ in the previous section, is too restrictive for automated reasoning
 about quantum computation. In particular, pictures such the Spider
 Law, in Figure~\ref{spider-law-fig} are frequently needed. Such
 pictures represent an infinite family of concrete graphs. In this
-section we describe an extension of the representation for Compact
-Closed Categories that allows a graph-based representation that
-captures an infinite family of graphs. Notably, this allows us to
-represent laws about quantum computation, such as the Spider
-Law. Furthermore, this representation is still compositional in the
-sense that we can plug graphs together. The extension, which we call
-\ref{graph patterns}, adds two extra kinds of nodes to the
-graph. Namely, {\em banged boxes} which informally represent an
+section we describe an extension to the representation that captures
+an infinite family of graphs as a single finite graph. The extension,
+which we call \ref{graph patterns}, adds two extra kinds of nodes to
+the graph. Namely, {\em banged boxes} which informally represent an
 arbitrary number of copies of a node (where the node itself can
 contain a graph of the appropriate type), and {\em variable nodes}
-which informally represent some, as yet unkown, node in a graph.
+which informally represent some, as yet unkown, node in a graph. We
+also introduce a notion to replace graph composition, called graph
+plugging that allows graph patterns to put together to form larger
+graph patterns. 
+
+%Notably, this
+%allows us to represent laws about quantum computation, such as the
+%Spider Law. Furthermore, this representation is still compositional in
+%the sense that we can plug graphs together.
 
 %\begin{center}
 %  \scalebox{1.0}{\includegraphics{images/spider_lhs}}
@@ -512,16 +516,16 @@ which informally represent some, as yet unkown, node in a graph.
 In graph patterns, variable nodes generalise the concept of a boundary
 node. Variable nodes, unlike boundary-nodes in the concrete graph, are
 not classified into domain and co-domain. The intuition of a variable
-node is that it can be replaced by any concrete node. Thus, unlike
-nodes in conrete a graph, variable nodes do not define an ordering on
-the edges that are incident. Instead, the edges that touch a variable
-node are simply a set. The type of a variable nodes is thus defined as
-a multiset rather than a tensor. Any tensor type can be lifted to a
-multiset type in the obvious manner, which we denote by the operation
-{\tt mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor
-  b \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type, $T$,
-is an instance of a multiset type, $M$, when it's lifting into a
-multiset is a super-set of $M$: $ M \subseteq
+node is that it can be replaced by any subgraph of the right
+type. Thus, unlike nodes in conrete a graph, variable nodes do not
+define an ordering on the edges that are incident. Instead, the edges
+that touch a variable node are simply a set. The type of a variable
+nodes is thus defined as a multiset rather than a tensor. Any tensor
+type can be lifted to a multiset type in the obvious manner, which we
+denote by the operation {\tt mset\_of\_tensor}. For example, {\tt
+  mset\_of\_tensor($a \tensor b \tensor a$) = $\{(a,2), (b,1)\}$}. We
+say that a tensor-type, $T$, is an instance of a multiset type, $M$,
+when it's lifting into a multiset is a super-set of $M$: $ M \subseteq
 \mathtt{mset\_of\_tensor}(T) \Longrightarrow T \in M$. The intuition
 here is that an instance of a variable node is allowed to have as many
 extra edges as it likes as long as it at least has the ones mentioned
@@ -542,50 +546,122 @@ instances of $a$ are a subset of the instances of $b$.
 
 A graph with variable nodes, $G$, can be given a formal semantics by
 being interpretated as a set of concrete graphs which is denoted by
-$\vinterp{G}$. We refer to members of this set as
-instances. Formally, an instance of a graph with variable nodes is the
-graph where every variable node has been replaced by some instance of
-it. For example, in Figure~\ref{node-variable-instances-fig}, the
-graphs $a$, $b$ and $c$ are instances of the graph $x$. Observe that
-when a variable node has degree one, then it can be instantiated as a
-boundary node in either the domain or co-domain.
+$\vinterp{G}$. We refer to members of this set as instances. An
+instance of a graph with variable nodes is the graph with every
+variable node replaced by a subgraph of the right type. When a graph
+has several varibale-nodes, the replacement subgraphs may be
+intersecting. For example, in
+Figure~\ref{node-variable-instances-fig}, the graphs $a$, $b$ and $c$
+are instances of the graph $x$. A graph with variable nodes, and
+without boundary nodes, is called a \emph{variable-node graph}. Such
+graphs are complete in the sense that for every concrete graph there
+is a variable node graph that can be instantiated to it: $\forall
+g.\,\exists G.\,g \in \vinterp{G}$. The witness for this proof is made
+by simply replacing all bounary nodes with variable nodes.
 
-A graph without boundary nodes but which may have variable nodes is
-called a \emph{variable-node graph}. Such graphs are complete in the
-sense that for every concrete graph there is a variable node graph
-that can be instantiated to it: $\forall g.\,\exists G.\,g \in
-\vinterp{G}$. The witness for this proof is made by simply replacing
-all bounary nodes with variable nodes.
+Below, we give a more formal and constuctive account the semnatics by
+introducing a notion of an \emph{open embedding} and note that this
+corresponds to the intuitive idea of graph-matching. We then go on and
+introduce a way to join graphs with variable-nodes and note it's
+relationship to composition on the underlying concrete graphs. 
+
+\subsection{Matching and Open Embedding}
+
+\begin{definition}
+  An \emph{open embedding} from $G$ to $H$ a strict embedding from the
+  non-variable subgraph of $G$ into the non-variable subgraph of $H$
+  and a mapping from the variable nodes in $G$ ...
+\end{definition}
 
 
-\subsection{Open Embedding}
-
-
-
-\subsection{Plugging}
+\subsection{Variable-node Plugging}
 
 While concrete graphs can be composed sequentially as well as tensored
 in an adjacent manner, variable-node graphs enjoy a single but
 somewhat wilder joining operation which we call \emph{plugging}. 
 
+\begin{definition}
+  A \emph{plugging}, written $\pi_{p}(G,H)$, is a pair, $p$, of
+  strict partial homomorpihc mappings, $f_G : G \Longrightarrow H$ and
+  $f_H : H \Longrightarrow G$ such that $f_G$ and $f_H$ do not map
+  concrete nodes and for the nodes that are mapped \emph{agree}
+  following the definition given below.
+\end{definition}
+
+\begin{definition}
+  Two mappings $f_G$ and $f_H$ \emph{agree} when $\forall v \in
+  f_G(G).\, f_H(v) \in f^{-1}_G(v)$ and $\forall v \in f_H(H).\,
+  f_G(v) \in f^{-1}_H(v)$. Intuitively this captures the idea a node
+  is one function is always mapped to one the nodes that maps to it in
+  the other function.
+\end{definition}
+
+We let $\pi(G,H)$ abbreviate $\exists p.\,\pi_p(G,H)$. We also
+overload the notation $\pi_p(G,H)$ to let it denote the graph that
+results from the plugging. This is defined to be the union of the
+nodes and edges from $G$ and $H$ where the nodes and edges mapped by
+the pair of plugging function are identified. Identification of nodes
+instantiates variable nodes: when a variable node is mapped to a
+concrete one, the result is a concrete node.
+
+While this is simply the intuitive way to combine graphs with variable
+nodes, the definition takes some care. In particular, it is important
+that plugging preserves the types of concrete nodes and results in
+subtypes in variable nodes. Figure~\ref{plugging-examples-fig}
+presents some examples to help the reader get the intuition as well as
+understand some of the more subtlte cases.
+
+\begin{theorem}
+  \emph{Plugging is symmetric}: $\forall p.\, \exists q.\, \pi_p(G,H)
+  = \pi_q(H,G)$. Proof follows simply: given $p = (f_G,f_H)$, $q =
+  (f_H,f_G)$. As a corrolary, we get $\pi(G,H) \Leftrightarrow
+  \pi(H,G)$.
+\end{theorem}
+
+\begin{theorem}
+  \emph{Match after plugging}: $G \leq \pi_f(G,H)$. And as a corrolary
+  we get $H \leq \pi_f(G,H)$ by symmetry of plugging. 
+\end{theorem}
+
+\begin{theorem}
+  \emph{Plugging preserves matching}: $V \leq G \Rightarrow V \leq
+  \pi_f(G,H)$. As corrolaries we get $V \leq H \Rightarrow V \leq
+  \pi_f(G,H)$ from symmetry of plugging and $\vinterp{G} \cap
+  \vinterp{H} \subseteq \bigcup_f \vinterp{\pi_f(G,H)}$ from the
+  definition of interpretation. 
+\end{theorem}
+
+
 \subsection{!-Boxes}
 
-The key feature of rules like the Spider Law is that an arbirary
-number of nodes can be matched. To support this we introduce an
-operation, !-boxing, on graph representations. We draw !-boxes around
-a set of chosen nodes and intuitively think of the resulting !-boxed
-graph as representing a set of graphs with an arbirary number of
-copies of the !-boxed nodes, where any connections to nodes outside
-the !-box are also copied. The !-boxes can also be instantiated with
-zero copies errasing all edges from the !-box. See
-Figure~\ref{bang-box-ex1-fig} for a simple example. 
+A crucial feature of rules like the Spider Law is that an arbirary
+number of repetitions of a subgraph to be matched. To support this we
+introduce an operation, !-boxing, on graph representations. Given a
+graph representation, this introduces a new notation by outlining
+(called !-boxing) a set of chosen nodes. Intuitively, the resulting
+!-boxed graph can be thought of as representing a set of graphs with
+an arbirary number of copies of the !-boxed nodes, where every copy
+has the connects to the same nodes outside the !-box. The !-boxes can
+also be instantiated with zero copies which is erases all edges from
+the !-box. See Figure~\ref{bang-box-ex1-fig} for a simple example.
 
-A graph with !-boxes is simply a graph paired with a set of !-box node
-sets, which define the !-boxes. The !-box node sets must either be
-disjoint or strict subsets of each other. This is needed to avoid
-confusion with overlaping boxes. 
+More formaly, a graph with !-boxes is simply a graph paired with a set
+!-boxes. Each !-box is just the set of nodes inside it and each !-box
+must be disjoint from the others.\footnote{The disjointness condition
+  avoids a slightly more complex, although also more expressive,
+  semantics for overlaping node sets in the !-boxes. While such
+  expressivity is interesting from a representational point of view,
+  it is not needed to express the currently known rules of quantum
+  computation.}
 
-\subsubsection{Semantics.}
+For the purposes of this paper, the underlying graph representation of
+!-boxed graphs is variable-node graphs. The set of variable-node
+graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$. We
+now define the semantics for !-boxed graphs, then show how to extend
+an the embedding function which corresponds to matching as well as the
+plugging operation for !-boxes.
+
+\subsubsection{!-Box Semantics.}
 
 We give a formal semantics to !-boxing a representation of graphs by
 defining the a !-box graph in terms of a set of graphs in the
@@ -614,16 +690,26 @@ following three operations\footnote{These correspond closely to the
   well as any incident edges to nodes in the box.
 \end{definition}
 
-\noindent The semantics of a !-boxed graph is then defined as the
-members without any !-boxes of the set closed by these operation.  For
-the purposes of this paper, the underlying graph representation of
-!-boxed graphs is variable-node graphs. The set of variable-node
-graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$.
+\noindent The semantics of a !-boxed graph is then defined as those
+members of the set closed by these operation that do have any
+!-boxes. Observe that an instance of a !-box graph is defined by
+pairing each !-box with the natural number that defines how many
+copies are made of it. Thus the $\binterp{G}$ is isomorphic to the set
+of $k$-tuples of natural numbers, where $k$ is the number of !-boxes.
 
-\subsubsection{Matching}
+\subsubsection{!-Box Matching.}
+
+Matching for !-box graphs is defined in terms of an underlying
+matching operation. A !-box graph $G$ matches another one, $H$, iff
+$\binterp{G} \supseteq \binterp{H}$. Matching can be given a more
+constructive flavour by extending the open-embeddings of variable-node
+graphs to !-boxes. 
+
+There is a !-open embedding of $G$ into $H$ if  
 
 
-\subsubsection{Plugging}
+\subsubsection{!-Box Plugging.}
+
 
 
 \subsection{Matching}
