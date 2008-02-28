@@ -559,6 +559,8 @@ Statement and Discussion of spider law.
 The need to formalise these equations leads naturally to a rewriting
 theory 
 
+
+
 \section{Graphs with Variable Nodes}
 
 Variable nodes generalise the concept of a boundary nodes. Unlike
@@ -638,9 +640,9 @@ somewhat wilder joining operation which we call \emph{plugging}.
 \begin{definition}
   Two mappings $f_G$ and $f_H$ \emph{agree} when $\forall v \in
   f_G(G).\, f_H(v) \in f^{-1}_G(v)$ and $\forall v \in f_H(H).\,
-  f_G(v) \in f^{-1}_H(v)$. Intuitively this captures the idea a node
-  is one function is always mapped to one the nodes that maps to it in
-  the other function.
+  f_G(v) \in f^{-1}_H(v)$. This states when a set of nodes in one
+  graph all map to a common node $n$ in the other graph, $n$ maps back
+  to one of the nodes that maps to it. 
 \end{definition}
 
 We let $\pi(G,H)$ abbreviate $\exists p.\,\pi_p(G,H)$. We also
@@ -789,8 +791,8 @@ about quantum computation.
 
 The purpose of graph patterns is to formally express, in a declarative
 manner, the intuitive idea of graph matching commonly used in for
-Quantum computation. To do this, we combine the two extensions to the
-concrete graph representation, namely variable nodes and !-boxes. This
+Quantum Computation. To do this, we combine the two extensions to the
+concrete graph representation, namely variable nodes and !-boxes, to
 provides a matching relation between graph patterns and concrete
 graphs as well as directly between graph patterns. The former relation
 gives a semantics for our system and ensures soundness, while the
@@ -799,12 +801,11 @@ basis for our formulation of rewriting.
 
 \subsubsection{Concrete Matches.}
 
-The semantics for a graph pattern $G$ in terms of a set of concrete
-graphs, is denoted by $\minterp{G}$. We say that members of this set
-are \emph{matched} by $G$. Formally, the set of matches are defined as
-follows:
+The semantics for a graph pattern $G$ is a set of concrete graphs
+denoted by $\minterp{G}$. We say that members of this set are
+\emph{matched} by $G$. Formally, the set of matches are defined as:
 
-$\minterp{G} = (\vinterp{G'} | G' \in \binterp{G})$
+$$\minterp{G} = (\vinterp{G'}\;|\; G' \in \binterp{G})$$
 
 Graph patterns are complete in the sense that for every concrete graph
 there is a pattern that matches it. This is a trivial consequence of
@@ -813,44 +814,97 @@ unaffected by allowing !-boxes.
 
 \subsubsection{Graph Pattern Matches.}
 
-The definition of one pattern matching another one is simply that it
-is more general. Formally, a graph pattern, $G$, matches another graph
-pattern, $H$, when $\minterp{G} \supseteq \minterp{H}$. This provides
+The specification for one pattern matching another one is simply that
+it is more general. Formally, a graph pattern, $G$, matches another
+graph pattern, $H$, when $\minterp{G} \supseteq \minterp{H}$. This is
 the specification for a matching algorithm which we implement of
-in~\S\ref{sec:rewriting}. To make such a proof easier, we extend
-embedding and plugging of variable-node graphs to graph patterns. 
+in~\S\ref{sec:rewriting}. We can use the definition of open embedding
+from variable-node graphs as an intermediate mechanism and show that a
+suitable definition of graph pattern matching is simply the !-Box
+matching followed by variable-node matching:
 
-Our representation has been carefully designed so that this concept
-corresponds to what we call a \emph{open embedding} of $G$ into
-$H$. 
+\begin{definition}
+  $G \leq H \Leftrightarrow \forall H' \in \binterp{H}.\,\exists G' \in \binterp{G}.\, G' \leq_v H'$
+\end{definition}
 
+Because viable-node matching preserves the semantics, it is trivial to
+prove that this definition meets the specification. This gives us
+matching between pattern-nodes.
 
-We then extend the plugging
-operation on variable-node graphs to graphs with !-boxes.
+\subsubsection{Graph Pattern Equality.}
+
+Equality of graph patterns can simply be defined as mutual matching: 
+
+\begin{definition}
+  $G = H \Leftrightarrow G \leq H \land H \leq G$
+\end{definition}
 
 
 \subsection{Plugging}
 
+We then extend the plugging
+operation on variable-node graphs to graphs with !-boxes.
 
-
-*** 
-
-This is the basis for our implementation and is thus also the basis
-for its correctness argument. 
-
+\subsection{Adequacy}
 
 
 
-\section{Graph Pattern Rewriting}
+\section{Reasoning with Graph Patterns}
 \label{sec:rewriting}
 
+The formalism we have presented for graph patterns provides a
+\emph{meta-level} framework for reasoning in some model of concrete
+graphs. The chosen model provides the \emph{object-level} graph
+formalism. This includes a particular representation for data at the
+nodes and edges as well as node-matching and edge-matching
+algorithms. The object-level definition also defines a set of
+axiomatic equational rules. These are derived 
+
+\subsubsection{Soundness.} An object-level graph system is sound if
+their is some equation which can not be derived. 
+
+ The soundness
+of a set of axioms in our framework
+
+ framework
+requres the model is an instance of a compact closed category, and
+that the
+
+For the model we use of qantum computation, this is finite
+dimensional hilbert spaces. Because the basic equational rules come
+from a model and have been proved for that model, the resulting
+preserve the soundness of our graphical system.
+
+
+
+ and the families of them represneted by graph
+patterns.
+
+An object graph formalsism uses the
+
+
+By defining graph patterns as a conservative extension of concrete
+graphs we get the relative soundness for them.
+
+Such a theorem prover starts with a system of equations between
+graphs. These are not true of the graphs abstractly, but are proved of
+the particular model of concrete graphs being considered.
+
+
+
 \subsection{Rules}
+
+
+
 \subsection{Unification}
 \subsection{Substitution}
 
 
-\section{Node Expressions}
-\label{sec:node-expressions}
+
+\subsection{Node in Quantum Computations}
+\label{ssec:node-expressions}
+
+ Expressions
 
 
 \section{Related Work}
