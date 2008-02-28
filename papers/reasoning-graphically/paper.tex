@@ -288,8 +288,19 @@ structure, but first we review the concept of compact closed  category.
 \subsection{Compact Closed Categories}
 \label{sec:comp-clos-categ}
 
-
-
+A strict symmetric monoidal  category
+\cite{MacLane:CatsWM:1971,AspLon:CatTypStruct:1991} is called compact
+closed \cite{KelLap:comcl:1980} when each object $A$ has a chosen dual
+object $A^*$, and morphisms
+\begin{gather*}
+  d_A : I \to A^* \otimes A\\
+  e_A : A \otimes A^* \to A
+\end{gather*}
+such that 
+\begin{align*}
+  A \iso A \otimes I \rTo^{\id{A} \otimes d_A} A \otimes A^* \otimes A 
+  \rTo^{e_A \otimes \id{A}} I \otimes A \iso A
+\end{align*}
 \subsection{Graph Representations for Compact Closed Categories}
 \label{sec:graph-repr-comp}
 
