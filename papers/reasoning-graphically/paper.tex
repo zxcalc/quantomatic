@@ -30,6 +30,7 @@
 %\usepackage{mbboard}
 \usepackage{xspace}
 \usepackage{diagrams}
+\usepackage{proof2}
 
 \usepackage{url}
 \urldef{\mailsa}\path|l.dixon@ed.ac.uk|
@@ -903,7 +904,7 @@ The semantics for a graph pattern $G$ is a set of concrete graphs
 denoted by $\minterp{G}$. We say that members of this set are
 \emph{matched} by $G$. Formally, the set of matches are defined as:
 
-$$\minterp{G} = (\vinterp{G'}\;|\; G' \in \binterp{G})$$
+$$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
 
 Graph patterns are complete in the sense that for every concrete graph
 there is a pattern that matches it. This is a trivial consequence of
@@ -943,12 +944,6 @@ Equality of graph patterns can simply be defined as mutual matching:
 We then extend the plugging
 operation on variable-node graphs to graphs with !-boxes.
 
-\subsection{Adequacy}
-
-Rules that have been proved for concrete graphs, such as the
-Frombenius Law, are in fact a family of proofs that correspond to
-replacing the boundary edges with variable nodes. This is beacuse of
-the symmetry of rules in a compact closed categories:
 
 By defining graph patterns as a conservative extension of concrete
 graphs we get the relative soundness for them.
@@ -958,56 +953,129 @@ graphs we get the relative soundness for them.
 \section{Reasoning with Graph Patterns}
 \label{sec:rewriting}
 
-In this section we show how the formalism we have presented for graph
-patterns can be used to provide a \emph{meta-level} framework for
-reasoning about a given model of a compact closed
+In this section we outline how the formalism we have presented for
+graph patterns can be used to provide a \emph{meta-level} framework
+for reasoning about a given model of a compact closed
 categories. Following the terminology of logical frameworks such as
 Isabelle~\cite{isabelle}, we call the specification provided by the
 underlying model an \emph{object-level} graph formalism. Each
 object-level formalism defines a set of rules which are treated as the
 axioms for the system. The object-level implementation also defines
 the data at the nodes and edges as well as corresponding data-matching
-behaviour.
-
-These are not true of the graphs abstractly, but are proved of the
-particular model of concrete graphs being considered.
+behaviour. 
 
 \subsection{Substitution with Equational Rules}
 
-A rule in our framework is a pair of pattern graph that represent the
-left and right hand sides of an equation. Substituon with a rule then
-involves replacing a subgraph that matches the left hand side with the
-right hand side. To do this there has to be a isomorphism between
-variable nodes in the left and right hand subgraphs. More concretely,
-there must be a unique naming of the variable nodes in the left hand
-side such that each name occurs in a unique variable node on the right
-hand side. Given a matching on the left hand side, the target subgraph
-can be replaced with right hand side connected by the corresponding
-variable nodes. This provides rewriting for pattern graphs. 
+A rule in our framework declarative in the sense that it is a pair of
+pattern graph that represent the left and right hand sides of an
+equation. Substituon with a rule then involves replacing a subgraph
+that matches the left hand side with the right hand side. To do this
+there has to be a isomorphism between variable nodes in the left and
+right hand subgraphs. More concretely, there must be a unique naming
+of the variable nodes in the left hand side such that each name occurs
+in a unique variable node on the right hand side. Given a matching on
+the left hand side, the target subgraph can be replaced with right
+hand side connected by the corresponding variable nodes. This provides
+rewriting for pattern graphs.
+
+\subsection{Meta-Level Logic and Derived Rules}
+
+The meta-logical rules of the framework are quite simple as they only
+involve dealing with object-level equations:
+
+\begin{center}
+\prooftree
+A = B \in \Gamma
+\justifies
+\Gamma \vdash A = B
+\using\mbox{trivial}
+\endprooftree
+\quad\quad
+\prooftree
+\justifies
+\Gamma \vdash A = A
+\using\mbox{reflexivity}
+\endprooftree
+\end{center}
+
+\begin{center}
+\prooftree
+\Gamma \vdash A = B
+\justifies
+\Gamma \vdash B = A
+\using\mbox{symmetry}
+\endprooftree
+\quad\quad
+\prooftree
+\Gamma \vdash A = B
+\Gamma \vdash C = D
+\justifies
+\Gamma \vdash (C = D[A/B])
+\using\mbox{substitution}
+\endprooftree
+\end{center}
+
+\noindent where $\Gamma$ is the set of object-level axioms. For the
+reflexivity rule, $A$ must be a well-formed pattern graph. 
+
+This system allows derived rules which allow a combination of steps to
+be abbreviated by representing them as a single new rule. 
+
+\subsection{Soundness and Completeness} 
+
+The soundness of a system that uses our meta-level rests on two
+arguments: 
+
+\begin{itemize}
+\item Representation of the underying model as a compact closed
+  category with a defined set of equations.
+
+\item The soundness and adequacy of the axioms when expressed within
+  the compact closed category. Adquency ensures that the encoding as a
+  graph pattern represents only the intended rules.  The soundness of
+  the rules is obviously needed and requires proving the rule in terms
+  of the underlying semantics.
+\end{itemize}
+
+The completeness of the resulting system, with respect to the intended
+semantics, depends on the completeness of the set of given rules. The
+completeness of 
 
 
-\subsubsection{Soundness.} An object-level graph system is sound if
-their is some pair of graphs which can not be derived as an equation.
 
-To ensure soundness, it is sufficient to show that the object-level
-model is a compact-closed category and that the basic equational rules
-of the object-level can be proved in the underlying model.
+\subsection{Derived Rules}
 
 
-
-\subsubsection{Completeness.} A formalism for graphs can be shown to
-be complete with respect to the underlying semantics if the equational
-rules have been shown to be complete. 
-
-\subsection{Implications}
+\subsection{Simplification}
 
 
+\subsection{Adequacy}
+
+
+
+
+
+% An object-level graph system is sound if their is some pair of graphs
+% which can not be derived as an equation.
+
+% To ensure soundness, it is sufficient to show that the object-level
+% model is a compact-closed category and that the basic equational rules
+% of the object-level can be proved in the underlying model.
+
+% The axioms should be proved of the particular model of concrete graphs
+% being considered.
+
+% \subsubsection{Completeness.} A formalism for graphs can be shown to
+% be complete with respect to the underlying semantics if the equational
+% rules have been shown to be complete. 
+
+% \subsection{Implications}
 
 
 \section{A Case Study in Quantum Computation}
 
-The model we are interested in is finite dimensional hilbert spaces as
-an account of qantum computation. 
+The model of qantum computation in which we are interested is finite
+dimensional hilbert spaces. 
 
 \subsection{Node Expressions}
 \label{ssec:node-expressions}
