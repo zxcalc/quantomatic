@@ -211,16 +211,15 @@
   approach which exposes the structure of these systems in a clearer
   and more accessible way. Although these provide a significantly
   simpler way of reading and presenting quantum computations, manual
-  manipulation of such graphs is slow and error prone. We
-  present a formalism that supports a mechanised reasoning about such
+  manipulation of such graphs is slow and error prone. We present a
+  formalism that supports a mechanised reasoning about such
   graphs. This involves a compositional account of graph rewriting
   that preserves the underlying categorical semantics. We present a
   system, which has been implemented, with a fixed logical kernel and
   support for derived rules, which allows the model of quantum
-  computation  to be specified declarativley.
-  Soundness of the 
-  system is proved with respect to the underlying model and
-  completeness is an open problem.
+  computation to be specified declarativley.  Soundness of the system
+  is proved with respect to the underlying model and completeness is
+  an open problem.
 
   \keywords{graph rewriting, quantum computing, categorical
     logic, interactive theorem proving, graphical calculi}
@@ -634,18 +633,44 @@ theory
 
 \section{Graphs with Variable Nodes}
 
-Variable nodes generalise the concept of a boundary nodes. Unlike
-boundary-nodes in the concrete graph, they are not classified into
-domain and co-domain. The intuition of a variable node is that it can
-be replaced by any subgraph of the right type. Thus, unlike nodes in
-conrete a graph, variable nodes do not define an ordering on the edges
-that are incident. Instead, the edges that touch a variable node are
-simply a set. The type of a variable nodes is thus defined as a
-multiset rather than a tensor. Any tensor type can be lifted to a
-multiset type in the obvious manner, which we denote by the operation
-{\tt mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor
-  b \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type $T$
-is an instance of a multiset type $M$, written $T \in M$, when $M
+In the concrete representation, the following graphs represent
+different computations:
+
+\begin{center}
+\inlinegraphic{2.5em}{compact1} \quad\quad
+\inlinegraphic{2.5em}{compact3} \quad\quad
+\inlinegraphic{2.5em}{compact5}
+\end{center}
+
+\noindent However, composition with semicircle line(s) on the domain
+or co-domain allows a proof involving one of the above to easily
+derive a corresponding one for the other two. Proving any of the
+following allows a trivial derivation of the others:
+
+\begin{center}
+\inlinegraphic{2.5em}{compact1} $=$
+\inlinegraphic{1.3em}{compact2} $\Leftrightarrow$
+\inlinegraphic{2.5em}{compact3} $=$ \inlinegraphic{1.3em}{compact4}
+$\Leftrightarrow$ \inlinegraphic{2.5em}{compact5} $=$
+\inlinegraphic{2.5em}{comonoid-unit4}
+\end{center}
+
+\noindent This motivates a representation that has only one
+representative for such equations. Such a representation abstracts
+over the boundary nodes membership in the domain and co-domain. In
+this section we formalise such a notion and refer to the generalised
+boundary nodes as variable-nodes.
+
+The intuition of a variable node is that it can be replaced by any
+subgraph of the right type. Thus, unlike nodes in conrete a graph,
+variable nodes do not define an ordering on the edges that are
+incident. Instead, the edges that touch a variable node are simply a
+set. The type of a variable nodes is thus defined as a multiset rather
+than a tensor. Any tensor type can be lifted to a multiset type in the
+obvious manner, which we denote by the operation {\tt
+  mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor b
+  \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type $T$ is
+an instance of a multiset type $M$, written $T \in M$, when $M
 \subseteq \mathtt{mset\_of\_tensor}(T)$. The intuition here is that
 when a variable node is instantiated to some other node, it's type
 will have at least the currently attached edges.
@@ -685,13 +710,16 @@ corresponds to the intuitive idea of graph-matching. We then go on and
 introduce a way to join graphs with variable-nodes and note it's
 relationship to composition on the underlying concrete graphs. 
 
-\subsection{Matching and Open Embedding}
+\subsection{Matching as an Open Embedding}
+
+To formalise the semantics of variable-node graphs, we define
+matching, which captures the intuitive idea with
 
 \begin{definition}
-  An \emph{open embedding} from $G$ to $H$ a strict embedding from the
-  non-variable subgraph of $G$ into the non-variable subgraph of $H$
-  and a mapping from the variable nodes in $G$ ...
+  Matching is charcterised by an \emph{open embedding} which is strict
+  for the non-variable nodes.
 \end{definition}
+
 
 
 \subsection{Variable-node Plugging}
@@ -930,21 +958,33 @@ graphs we get the relative soundness for them.
 \section{Reasoning with Graph Patterns}
 \label{sec:rewriting}
 
-The formalism we have presented for graph patterns provides a
-\emph{meta-level} framework for reasoning in some model of concrete
-graphs. 
+In this section we show how the formalism we have presented for graph
+patterns can be used to provide a \emph{meta-level} framework for
+reasoning about a given model of a compact closed
+categories. Following the terminology of logical frameworks such as
+Isabelle~\cite{isabelle}, we call the specification provided by the
+underlying model an \emph{object-level} graph formalism. Each
+object-level formalism defines a set of rules which are treated as the
+axioms for the system. The object-level implementation also defines
+the data at the nodes and edges as well as corresponding data-matching
+behaviour.
 
-An \emph{object-level} graph formalism is defined by some
-model of a compact closed category. 
+These are not true of the graphs abstractly, but are proved of the
+particular model of concrete graphs being considered.
 
-This includes a particular
-representation for data at the nodes and edges as well as
-node-matching and edge-matching algorithms. The object-level
-definition also defines a set of axiomatic equational rules.
+\subsection{Substitution with Equational Rules}
 
-Such a theorem prover starts with a system of equations between
-graphs. These are not true of the graphs abstractly, but are proved of
-the particular model of concrete graphs being considered.
+A rule in our framework is a pair of pattern graph that represent the
+left and right hand sides of an equation. Substituon with a rule then
+involves replacing a subgraph that matches the left hand side with the
+right hand side. To do this there has to be a isomorphism between
+variable nodes in the left and right hand subgraphs. More concretely,
+there must be a unique naming of the variable nodes in the left hand
+side such that each name occurs in a unique variable node on the right
+hand side. Given a matching on the left hand side, the target subgraph
+can be replaced with right hand side connected by the corresponding
+variable nodes. This provides rewriting for pattern graphs. 
+
 
 \subsubsection{Soundness.} An object-level graph system is sound if
 their is some pair of graphs which can not be derived as an equation.
@@ -959,7 +999,8 @@ of the object-level can be proved in the underlying model.
 be complete with respect to the underlying semantics if the equational
 rules have been shown to be complete. 
 
-\subsection{Rules}
+\subsection{Implications}
+
 
 
 
