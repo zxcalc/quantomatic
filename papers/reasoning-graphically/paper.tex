@@ -275,46 +275,95 @@ The \emph{degree} of a vertex $v$ is $\sizeof{\text{in}(v)} +
 
 Given graphs $G$ and $H$, a \emph{graph morphism} $f : G\to H$ consists of
 functions $f_E : E_G \to E_H$ and $f_V:V_G\to V_H$ such that:
-\begin{gather*}
-  s_H\circ f_E = f_V \circ s_G,\\
-  t_H\circ f_E = f_V \circ t_G.
-\end{gather*}
-\TODO{different kinds of morphism?}
+\begin{gather}
+  s_H\circ f_E = f_V \circ s_G,\label{eq:graph-hom1}\\
+  t_H\circ f_E = f_V \circ t_G\label{eq:graph-hom2}.
+\end{gather}
 
-Augmented by some additional structure, graphs form a compact closed
-category.  In section \ref{sec:graph-repr-comp} we will describe this
-structure, but first we review the concept of compact closed  category.
+Let $f: G \to H$ be  graph morphism and  let $V' \subseteq V_G$. We say
+that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if $s_H(e)
+\in f_V(V')$ or $t_H(e) \in f_V(V')$ then $\exists e' \in E_G$ such
+that $f_E(e') = e$.  We call $f$ an \emph{open embedding} for $V'$ if:
+\begin{enumerate}
+\item $f_E$ is injective;
+\item $f_V$ restricted to $V'$ is injective; and,
+\item $f$ is strict for $V'$.
+\end{enumerate}
+The intuition behind this definition is that the subgraph of $G$
+determined by $V'$ should be preserved exactly by $f$, whereas the
+other vertices may be identified.
+
+Given two graphs $G,H$, a pair of partial maps $r_V: V_G
+\rightharpoonup V_H$, $r_E: E_G \rightharpoonup E_H$ is called a
+partial graph morphism if whenever $r(e)$ is defined then $r(s_G(e))$
+and $r(t_G(e))$ are defined, and the restriction of $r_E$ to its
+preimage satifies equations \eqref{eq:graph-hom1} and
+\eqref{eq:graph-hom2} above.
+
+Augmented by some additional structure, graphs form a \emph{compact closed
+category}.  In section \ref{sec:graph-repr-comp} we will describe this
+structure, but first we review the basic properties of compact closed
+categories.
 
 \subsection{Compact Closed Categories}
 \label{sec:comp-clos-categ}
 
+\begin{definition}
 A strict symmetric monoidal  category
-\cite{MacLane:CatsWM:1971,AspLon:CatTypStruct:1991} is called compact
+\cite{MacLane:CatsWM:1971,AspLon:CatTypStruct:1991} is called compact 
 closed \cite{KelLap:comcl:1980} when each object $A$ has a chosen dual
 object $A^*$, and morphisms
 \begin{gather*}
   d_A : I \to A^* \otimes A\\
   e_A : A \otimes A^* \to A
 \end{gather*}
-such that 
-\begin{align*}
-  A \iso A \otimes I \rTo^{\id{A} \otimes d_A} A \otimes A^* \otimes A 
-  \rTo^{e_A \otimes \id{A}} I \otimes A \iso A
-\end{align*}
+such that
+\begin{align}
+  A \iso A \otimes I \rTo^{\id{A} \otimes d_A} A \otimes A^* \otimes A
+  \rTo^{e_A \otimes \id{A}} I \otimes A \iso A & = \id{A} \label{eq:comcl1}\\
+  A^* \iso I \otimes A^* \rTo^{ d_A \otimes \id{A^*}} A^* \otimes A
+  \otimes A^* \rTo^{\id{A^*} \otimes e_A} A^* \otimes I \iso A^* & =
+  \id{A^*} \label{eq:comcl2}
+\end{align}
+\end{definition}
+
+For any arrow $f:A\to B$ in a compact closed category \catC 
+its \emph{name} and \emph{coname}:
+\[
+\name{f} : I \to A^* \otimes B, \qquad \coname{f} : A \otimes  B^* \to I,
+\]
+and constructed as $\name{f} = (\id{A^*}\otimes f) \circ d_A$ and
+$\coname{f} = e_A \circ (f \otimes \id{B^*})$.  Hence there are natural
+isomorphisms $\catC(A,B) \iso \catC(I,A^*\otimes B) \iso
+\catC(A\otimes B^*,I)$ making the \catC monoidally closed\footnote{In
+  general compact closed categories  are models of multiplicative
+  linear logic where $A \multimap B$ is defined as $A^\bot \otimes B$.}.
+Further,  $f$ has a dual, $f^* : B^* \to A^*$, defined by 
+\[
+f^* = (\id{A^*} \otimes e_B) \circ (\id{A^*}\otimes f \otimes
+\id{B^*}) \circ (d_A \otimes \id{B^*})
+\]
+By virtue of equations \eqref{eq:comcl1} and \eqref{eq:comcl2}, $f^{**} =
+f$.  Thus $(\cdot)^*$ lifts to an involutive functor
+$\catC^{\text{op}} \to \catC$,  making $\catC$ equivalent to its
+opposite.
+
 \subsection{Graph Representations for Compact Closed Categories}
 \label{sec:graph-repr-comp}
 
 Graphs with certain additional structure give a
 representation for compact closed  categories; we now give an overview
 of this construction.  The details omitted here can be found in
-\cite{Duncan:thesis:2006}. 
+\cite{Duncan:thesis:2006}.   Pictorial representations are in
+Fig.~\ref{fig:comcl-graphs}.
 
 A \emph{concrete graph} $\Gamma$ is 5-tuple $(G, \dom\Gamma, \cod\Gamma,
 <_{\text{in}(\cdot)}, <_{\text{out}(\cdot)})$ where:
 \begin{itemize}
 \item $G = (V,E,s,t)$ is a graph;
 \item $\dom\Gamma$ and $\cod\Gamma$ are totally ordered disjoint sets of
-  degree one vertices of $G$.
+  degree one vertices of $G$.  The union of these sets is the
+  \emph{boundary} of $\Gamma$.
 \item $<_{\text{in}(\cdot)}$ is a family of maps, indexed by $V$ such
   that $<_{\text{in}(v)} : \text{in}(v) \rTo^\isomorphism
   \mathbb{N}_k$ where $k = \sizeof{\text{in}(v)}$.
@@ -349,15 +398,37 @@ opposite polarity of the domain and codomain the edges have compatible
 direction.)  The tensor product on objects $A,B$ is simply $A+B$;
 given $f:A\to B$, $g: C\to D$, the graph of $f \otimes g$ is the
 disjoint union of the graphs of $f$ and $g$.  The unit for the tensor
-is the empty set.  The morphisms $d : I \to A \otimes A^*$,
-$e: A^* \otimes A \to I$ have the same underlying graph, but $\dom d =
-\emptyset$, $\cod d = A+A^*$, $\dom e = A^*+A$ and $\cod e = \emptyset$.
+is the empty set.  The morphisms $d_A : I \to A^* \otimes A$,
+$e_: A \otimes A^* \to I$ have the same underlying graph, but $\dom d =
+\emptyset$, $\cod d = A^*+A$, $\dom e = A+A^*$ and $\cod e = \emptyset$.
+
+\begin{figure}{t}
+  We make the convention that domain of an arrow is at the top of the
+  picture, and its codomain is at the bottom.
+  \centering
+  \[
+  \begin{array}{lllll}
+      \id{A} \otimes \id{B^*} = \id{A \otimes B^*} = PIC 
+      &\qquad&
+      d_A = PIC  
+      &\qquad& 
+      f = PIC \\\\
+      \name{f} = PIC 
+      & \qquad &
+      \coname{f} = PIC 
+      &\qquad &
+      f^* = PIC
+  \end{array}
+  \]
+  \caption{Compact Closed Structure as Graphs}
+  \label{fig:comcl-graphs}
+\end{figure}
 
 This category captures exactly the axioms for compact closed
 structure, in the sense that any freely generated compact closed
 category can be represented by concrete graphs.  We will consider
 a collection of basic terms\footnote{See \cite{Duncan:thesis:2006} for
-  a more thorough description of the nature of the terms here} $F$
+  a more thorough description of the nature of the terms.} $F$
 whose types are vectors of some set of basic types $T$.  Then:
 
 \begin{definition}
@@ -380,7 +451,7 @@ The $T,F$-labelled graphs form a compact closed category in the same
 way as the the concrete graphs, subject to the further restriction
 that arrows are composable only when their labellings agree.  
 
-\begin{theorem}[\cite{Duncan:thesis:2006}]
+\begin{theorem}
   Let \catC be a compact closed category  freely generated by some set
   of arrows $F$ and ground types $T$;  then \catC is equivalent to the
   category  of $T,F$-labelled graphs.
@@ -944,8 +1015,7 @@ Ideas for further work
 \end{itemize}
 
 \bibliographystyle{plain}
-\bibliography{all}
-\bibliography{bibfile}
+\bibliography{all,bibfile}
 
 \end{document}
 
