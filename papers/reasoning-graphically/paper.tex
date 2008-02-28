@@ -739,8 +739,7 @@ closed by the following operations:
   larger !-box $B_1 \cup B_2$.
 \end{definition}
 
-Like the notation for variable-node graphs, we use $G \leq H$ to
-denote that $G$ matches $H$. 
+\noindent We use $G \leq_! H$ to denote that $G$ matches $H$.
 
 \subsection{!-Box Semantics.} 
 
@@ -761,7 +760,7 @@ it. Thus the $\binterp{G}$ is isomorphic to the set of $k$-tuples of
 natural numbers, where $k$ is the number of !-boxes.
 
 \begin{theorem}
-  \emph{!-Matching respects !-box semantics}: $G \leq H
+  \emph{!-Matching respects !-box semantics}: $G \leq_! H
   \Leftrightarrow \binterp{G} \supseteq \binterp{H}$. The proof is a
   simple consequence from the defintion of $\binterp{G}$ being a
   subset of the graphs that match $G$.
@@ -847,6 +846,14 @@ operation on variable-node graphs to graphs with !-boxes.
 
 \subsection{Adequacy}
 
+Rules that have been proved for concrete graphs, such as the
+Frombenius Law, are in fact a family of proofs that correspond to
+replacing the boundary edges with variable nodes. This is beacuse of
+the symmetry of rules in a compact closed categories:
+
+By defining graph patterns as a conservative extension of concrete
+graphs we get the relative soundness for them.
+
 
 
 \section{Reasoning with Graph Patterns}
@@ -854,57 +861,49 @@ operation on variable-node graphs to graphs with !-boxes.
 
 The formalism we have presented for graph patterns provides a
 \emph{meta-level} framework for reasoning in some model of concrete
-graphs. The chosen model provides the \emph{object-level} graph
-formalism. This includes a particular representation for data at the
-nodes and edges as well as node-matching and edge-matching
-algorithms. The object-level definition also defines a set of
-axiomatic equational rules. These are derived 
+graphs. 
 
-\subsubsection{Soundness.} An object-level graph system is sound if
-their is some equation which can not be derived. 
+An \emph{object-level} graph formalism is defined by some
+model of a compact closed category. 
 
- The soundness
-of a set of axioms in our framework
-
- framework
-requres the model is an instance of a compact closed category, and
-that the
-
-For the model we use of qantum computation, this is finite
-dimensional hilbert spaces. Because the basic equational rules come
-from a model and have been proved for that model, the resulting
-preserve the soundness of our graphical system.
-
-
-
- and the families of them represneted by graph
-patterns.
-
-An object graph formalsism uses the
-
-
-By defining graph patterns as a conservative extension of concrete
-graphs we get the relative soundness for them.
+This includes a particular
+representation for data at the nodes and edges as well as
+node-matching and edge-matching algorithms. The object-level
+definition also defines a set of axiomatic equational rules.
 
 Such a theorem prover starts with a system of equations between
 graphs. These are not true of the graphs abstractly, but are proved of
 the particular model of concrete graphs being considered.
 
+\subsubsection{Soundness.} An object-level graph system is sound if
+their is some pair of graphs which can not be derived as an equation.
 
+To ensure soundness, it is sufficient to show that the object-level
+model is a compact-closed category and that the basic equational rules
+of the object-level can be proved in the underlying model.
+
+
+
+\subsubsection{Completeness.} A formalism for graphs can be shown to
+be complete with respect to the underlying semantics if the equational
+rules have been shown to be complete. 
 
 \subsection{Rules}
 
 
 
-\subsection{Unification}
-\subsection{Substitution}
+\section{A Case Study in Quantum Computation}
 
+The model we are interested in is finite dimensional hilbert spaces as
+an account of qantum computation. 
 
-
-\subsection{Node in Quantum Computations}
+\subsection{Node Expressions}
 \label{ssec:node-expressions}
 
- Expressions
+
+Completeness is a challenging and still open problem for graph based
+models of quantum computation. However, even without completeness
+interesting quantum computations can be expressed.
 
 
 \section{Related Work}
