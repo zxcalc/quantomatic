@@ -468,26 +468,33 @@ in a concrete graph is esentially the same as that of a complete
 graph;  hence one can consistently view subgraphs as vertices, and
 abstract over the their internal structure.
 
-\section{Quotients and Rewriting}
+\section{Graphs as Quantum Computations}
 \label{sec:quotients-rewriting}
 
-Few examples of interesting compact closed categories are freely
-generated.  In practice we work with categories presented as
-generators and \emph{equations}.  For 
-representing quantum computations, Coecke and Duncan
-\cite{Coecke:2008jo} propose the following collection of generators:
+While compact closed categories provide a suitable setting for
+reasoning about quantum computation \cite{AbrCoe:CatSemQuant:2004},
+freely generated structure will not suffice:  we need additional
+equations.  These equations will be expressed as rewrites rules for
+graphs.  In this section we will describe the generators and equations
+used to reason about quantum computation, and show how some of its formal
+properties lead to particular issues in for the rewriting machinery.
+
+Coecke and Duncan \cite{Coecke:2008jo} propose a formal algebraic
+system for quantum computation built from the following collection of
+generators:  
 \begin{description}
 \item[Objects] the self dual object $Q$;
 \item[Arrows] Two families of arrows:
-  \begin{align}
+  \begin{align*}
   &\epsilon_Z : Q \to I, &\qquad&  \epsilon_X : Q \to I,\\
   &\delta_Z : Q \to Q \otimes Q, && \delta_X : Q \to Q \otimes Q, \\
   &\alpha_Z : Q \to Q &&  \alpha_X : Q \to Q   
-  \end{align}
+  \end{align*}
   where $\alpha \in [0,2\pi)$, and in addition $H:Q\to Q$.
 \end{description}
-We represent these two families, and their adjoints, by colours in our
-graphical notation:
+To each each arrow $f : A\to B$ we assign a formal adjoint $f^\dag : b
+\to A$.  Each arrow is represented as a small graph; its adjoint is
+the same graph written upside down.  We use colours to denote two families:
 \begin{gather*}
   \epsilon_Z = \inlinegraphic{1.5em}{epsilon} \qquad
   \delta_Z = \inlinegraphic{1.5em}{delta} \qquad
@@ -501,74 +508,52 @@ graphical notation:
   \delta_X^\dag = \inlinegraphic{1.5em}{reddeltadag} \qquad
   \alpha_X = \inlinegraphic{1.5em}{redalpha} \qquad
 \end{gather*}
-The $H$ arrow is denoted by \inlinegraphic{1.5em}{H}.  The free
-compact closed category  is then given by all graphs formed by
+The $H$ arrow is denoted by \inlinegraphic{1.5em}{H}.  (The adjoints
+for $H$, $\alpha_X$ and $\alpha_Z$ will be defined equationally.)  The
+free compact closed category  is then given by all graphs formed by
 composing and tensoring these basic graphs.
 
 To model the behaviour of quantum systems certain additional equations
-must be satisfied.  Each family $(\delta, \epsilon)$ must form a
-\emph{classical structure}
-\cite{Coecke2006Quantum-Measure,Coecke2006POVMs-and-Naima}:  the pair
-$(\delta, \epsilon)$  should form a cocommuative comonoid, the pair
-$(\delta^\dag,\epsilon^\dag)$ must form a commutative monoid, and
-together they must satisfy the isometry and frobenius equations. In
-addition the family $\alpha$ must form an abelian group with $\alpha^\dag
-= -\alpha$.  These equations are presented graphically below for the
-green family;  the red vertices obey all the same equations
-\begin{description}
-\item[Comonoid Laws] 
-\[
-\begin{array}{ccccccccccccccc}
-  \inlinegraphic{3em}{comonoid-assoc1}  &=\;&
-  \inlinegraphic{3em}{comonoid-assoc2}
-  &\qquad\qquad&
-  \inlinegraphic{3em}{comonoid-unit1}  &=\;&
-  \inlinegraphic{3em}{comonoid-unit2}  &=\;&
-  \inlinegraphic{3em}{comonoid-unit3} 
-  &\qquad\qquad&
-  \inlinegraphic{3em}{comonoid-comm1}  &=\;&
-  \inlinegraphic{3em}{comonoid-comm2}
-\end{array}
-\]
-\item[Monoid Laws] 
-\[
-\begin{array}{ccccccccccccccc}
-  \inlinegraphic{3em}{monoid-assoc1}  &=\;&
-  \inlinegraphic{3em}{monoid-assoc2}
-  &\qquad\qquad&
-  \inlinegraphic{3em}{monoid-unit1}  &=\;&
-  \inlinegraphic{3em}{monoid-unit2}  &=\;&
-  \inlinegraphic{3em}{monoid-unit3} 
-  &\qquad\qquad&
-  \inlinegraphic{3em}{monoid-comm1}  &=\;&
-  \inlinegraphic{3em}{monoid-comm2}
-\end{array}
-\]
-\item[Isometry]
-\[
-\begin{array}{ccc}
-  \inlinegraphic{3.5em}{isometry1}  &=\;&
-  \inlinegraphic{3.5em}{isometry2}  
-\end{array}
-\]
-\item[Frobenius]
-  \[
-  \begin{array}{ccccc}
-    \inlinegraphic{3em}{frobenius1}  &=\;&
-    \inlinegraphic{3em}{frobenius2} &=\;&
-    \inlinegraphic{3em}{frobenius3}
-  \end{array}
-  \]
-\item[Compact Structure] 
-  \[
-  \begin{array}{ccccccc}
-    \inlinegraphic{2.5em}{compact1}  &=\;&
-    \inlinegraphic{1.3em}{compact2}  
-    &\qquad\qquad&
-    \inlinegraphic{2.5em}{compact3}  &=\;&
-    \inlinegraphic{1.3em}{compact4}  
-  \end{array}
-  \]
+must be satisfied.  These are discussed in detail in
+\cite{Coecke:2008jo};  we present them in graphical form in
+Figure~\ref{fig:graph-quant-eqns}.
+
+\begin{figure}
+  \figureline
+
+  The $(\cdot)^\dag$ functor gives a vertical symmetry to the
+  category, hence for every equation we have a second equation
+  obtained by flipping the diagram upside down.  In additon, we have a
+  ``colour symmetry'' so for each equation shown here gives rise to
+  second obtained by exchanging the two colours.
+  \begin{description}
+  \item[Comonoid Laws] 
+    \[
+    \begin{array}{ccccccccccccccc}
+      \inlinegraphic{3em}{comonoid-assoc1}  &=\;&
+      \inlinegraphic{3em}{comonoid-assoc2}
+      &\qquad\qquad&
+      \inlinegraphic{3em}{comonoid-unit1}  &=\;&
+      \inlinegraphic{3em}{comonoid-unit2}  &=\;&
+      \inlinegraphic{3em}{comonoid-unit3} 
+      &\qquad\qquad&
+      \inlinegraphic{3em}{comonoid-comm1}  &=\;&
+      \inlinegraphic{3em}{comonoid-comm2}
+    \end{array}
+    \]
+  \item[Isometry, Frobenius, and  Compact Structure]
+    \[
+    \begin{array}{cccccccccccccccc}
+      \inlinegraphic{3.5em}{isometry1}  &=\;&
+      \inlinegraphic{3.5em}{isometry2}  
+      &\qquad\qquad &
+      \inlinegraphic{3em}{frobenius1}  &=\;&
+      \inlinegraphic{3em}{frobenius2}  
+      &\qquad\qquad&
+      \inlinegraphic{2.5em}{compact1}  &=\;&
+      \inlinegraphic{1.3em}{compact2}  
+    \end{array}
+    \]
   \item[Abelian Unitary Group]
     \[
     \begin{array}{ccccccccccccccc}
@@ -590,20 +575,12 @@ green family;  the red vertices obey all the same equations
       \inlinegraphic{3.5em}{alpha-commute1}  &=\;&
       \inlinegraphic{3.5em}{alpha-commute2}  &=\;&
       \inlinegraphic{3.5em}{alpha-commute3} 
-      &\qquad\qquad&
-      \inlinegraphic{3.5em}{alpha-commute4}  &=\;&
-      \inlinegraphic{3.5em}{alpha-commute5}  &=\;&
-      \inlinegraphic{3.5em}{alpha-commute6} 
     \end{array}
     \]
-\end{description}
-Additionally, the two families satisfy equations which make them a
-\emph{scaled bialgebra}.
-\begin{description}
-\item[Bialgebra Laws] Let  $\inlinegraphic{1em}{bialgebra1} := 
-      \inlinegraphic{1.5em}{bialgebra2}$;  then:
-  \[
-  \begin{array}{ccccccccccccccc}
+  \item[Bialgebra Laws] Let  $\inlinegraphic{1em}{bialgebra1} := 
+    \inlinegraphic{1.5em}{bialgebra2}$;  then:
+    \[
+    \begin{array}{ccccccccccccccc}
       \inlinegraphic{3.5em}{bialgebra3}  &=\;&
       \inlinegraphic{3em}{bialgebra4}
       \qquad\qquad
@@ -611,24 +588,57 @@ Additionally, the two families satisfy equations which make them a
       \inlinegraphic{1.5em}{bialgebra6}
       \qquad\qquad
       \inlinegraphic{2.5em}{bialgebra7}  &=\;&
-      \inlinegraphic{1.5em}{bialgebra8} \\ \\
-      \inlinegraphic{3.5em}{bialgebra9}  &=\;&
-      \inlinegraphic{3em}{bialgebra10}
-      \qquad\qquad
-      \inlinegraphic{2.5em}{bialgebra11}  &=\;&
-      \inlinegraphic{1.5em}{bialgebra12}
-      \qquad\qquad
-      \inlinegraphic{2.5em}{bialgebra13}  &=\;&
-      \inlinegraphic{1.5em}{bialgebra14} 
+      \inlinegraphic{1.5em}{bialgebra8} 
   \end{array}
   \]
-\end{description}
-Last group of equations
+\item[Group Actions]
+  \[
+  \begin{array}{cccccccccccccccccccccc}
+    \inlinegraphic{2.5em}{group-int1} &=\;&
+    \inlinegraphic{2.5em}{group-int2} 
+    &\qquad\qquad&
+    \inlinegraphic{2.5em}{group-int3} &=\;&
+    \inlinegraphic{2em}{group-int4} 
+    &\qquad\qquad&
+    \inlinegraphic{2.5em}{group-int5} &=\;&
+    \inlinegraphic{1.5em}{group-int6} 
+    &\qquad\qquad&
+    \inlinegraphic{2.5em}{group-int7} &=\;&
+    \inlinegraphic{1.5em}{group-int8} 
+  \end{array}
+  \]
+    \item[$H$ Properties]
+    \[
+    \begin{array}{cccccccccccccccccccc}
+      \left(\inlinegraphic{1.5em}{H}\right)^\dag &=\;&
+      \inlinegraphic{1.5em}{H} 
+      &\qquad\qquad&
+      \inlinegraphic{2.5em}{Heq1} &=\;&
+      \inlinegraphic{2.5em}{Heq2}
+    \end{array}
+    \]
+  \item[Colour Duality]
+        \[
+    \begin{array}{cccccccccccccccccccc}
+      \inlinegraphic{2.5em}{Heq-delta} &=\;&
+      \inlinegraphic{1.5em}{reddelta}
+      &\qquad\qquad&
+      \inlinegraphic{2em}{Heq-epsilon} &=\;&
+      \inlinegraphic{1.5em}{redepsilon}
+      &\qquad\qquad&
+      \inlinegraphic{2.5em}{Heq-alpha} &=\;&
+      \inlinegraphic{1.5em}{redalpha}
+    \end{array}
+    \]
 
-Statement and Discussion of spider law.
+  \end{description}
 
-The need to formalise these equations leads naturally to a rewriting
-theory 
+  
+  \caption{Graphical Equations for Quantum Systems}
+  \label{fig:graph-quant-eqns}
+  \figureend
+\end{figure}
+
 
 
 
