@@ -715,60 +715,25 @@ $\Leftrightarrow$ \inlinegraphic{2.5em}{compact5} $=$
 \inlinegraphic{2.5em}{comonoid-unit4}
 \end{center}
 
-\noindent This motivates a representation that has only one
-representative for such equations. Such a representation abstracts
-over the boundary nodes membership in the domain and co-domain. In
-this section we formalise such a notion and refer to the generalised
-boundary nodes as variable-nodes.
+\noindent This motivates a characterisation that has only one
+representative for such a set of equations. More presicely, we need a
+representation that abstracts over the boundary nodes membership in
+the domain or co-domain. In this section we formalise such a notion
+and refer to the generalised boundary nodes as \emph{variable
+  nodes}. This gives rise to a \emph{variable-node graphs}, which are
+graphs with variable nodes instead of boundary edges.  
 
-The intuition of a variable node is that it can be replaced by any
-subgraph of the right type. Thus, unlike nodes in conrete a graph,
-variable nodes do not define an ordering on the edges that are
-incident. Instead, the edges that touch a variable node are simply a
-set. The type of a variable nodes is thus defined as a multiset rather
-than a tensor. Any tensor type can be lifted to a multiset type in the
-obvious manner, which we denote by the operation {\tt
-  mset\_of\_tensor}. For example, {\tt mset\_of\_tensor($a \tensor b
-  \tensor a$) = $\{(a,2), (b,1)\}$}. We say that a tensor-type $T$ is
-an instance of a multiset type $M$, written $T \in M$, when $M
-\subseteq \mathtt{mset\_of\_tensor}(T)$. The intuition here is that
-when a variable node is instantiated to some other node, it's type
-will have at least the currently attached edges.
 
-\begin{figure}[t]
-%  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
-*** Add figure *** 
-\label{node-variable-instances-fig}\caption{The concrete graphs $a$,
-  $b$, and $c$ are instances of $x$, a graph with variable nodes.}
-\end{figure}
-
-A graph with variable nodes, $G$, can be given a formal semantics by
-being interpretated as a set of concrete graphs which is denoted by
-$\vinterp{G}$. We refer to members of this set as instances. An
-instance of a graph with variable nodes is the graph with every
-variable node replaced by a subgraph of the right type. When a graph
-has several varibale-nodes, the replacement subgraphs may be
-intersecting. For example, in
-Figure~\ref{node-variable-instances-fig}, the graphs $a$, $b$ and $c$
-are instances of the graph $x$. A graph with variable nodes, and
-without boundary nodes, is called a \emph{variable-node graph}. Such
-graphs are complete in the sense that for every concrete graph there
-is a variable node graph that can be instantiated to it: $\forall
-g.\,\exists G.\,g \in \vinterp{G}$. The witness for this proof is made
-by simply replacing all bounary nodes with variable nodes.
-
-%% not needed for this story...
-%A variable node, $a$ is be said to an instance of another variable
-%node $b$ when the multiset representing the type of $a$ is a superset
-%of the multiset for the type of $b$. Thus, with regard to the
-%underlying semantics, $a$ being a subtype of $b$ means that the set of
-%instances of $a$ are a subset of the instances of $b$.
 
 Below, we give a more formal and constuctive account the semnatics by
 introducing a notion of an \emph{open embedding} and note that this
 corresponds to the intuitive idea of graph-matching. We then go on and
 introduce a way to join graphs with variable-nodes and note it's
 relationship to composition on the underlying concrete graphs. 
+
+\subsection{Semantics}
+
+
 
 \subsection{Matching as an Open Embedding}
 
@@ -779,6 +744,62 @@ matching, which captures the intuitive idea with
   Matching is charcterised by an \emph{open embedding} which is strict
   for the non-variable nodes.
 \end{definition}
+
+
+The intuition of variable nodes is that they can replaced by any be
+nodes of the right type that are themseleves within any graph.  A
+graph with variable nodes, $G$, can be given a formal semantics by
+being interpretated as a set of concrete graphs, denoted by
+$\vinterp{G}$.
+
+
+% Thus, unlike nodes in conrete a graph, variable nodes do not define an
+% ordering on the edges that are incident. Instead, the edges that touch
+% a variable node are simply a set. The type of a variable nodes is thus
+% defined as a multiset rather than a tensor. Any tensor type can be
+% lifted to a multiset type in the obvious manner, which we denote by
+% the operation {\tt mset\_of\_tensor}. For example, {\tt
+%   mset\_of\_tensor($a \tensor b \tensor a$) = $\{(a,2), (b,1)\}$}. We
+% say that a tensor-type $T$ is an instance of a multiset type $M$,
+% written $T \in M$, when $M \subseteq
+% \mathtt{mset\_of\_tensor}(T)$. The intuition here is that when a
+% variable node is instantiated to some other node, it's type will have
+% at least the currently attached edges.
+
+% An instance of a graph with variable nodes is the graph with every
+% variable node replaced by a subgraph of the right type. When a graph
+% has several varibale-nodes, the replacement subgraphs may be
+% intersecting.
+
+\begin{figure}[t]
+%  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
+*** Add figure *** 
+\label{node-variable-instances-fig}\caption{The concrete graphs $a$,
+  $b$, and $c$ are instances of $x$, a graph with variable nodes.}
+\end{figure}
+
+We refer to members of this set as instances. 
+
+For example, in Figure~\ref{node-variable-instances-fig}, the graphs
+$a$, $b$ and $c$ are instances of the graph $x$. A graph with variable
+nodes, and without boundary nodes, is called a \emph{variable-node
+  graph}.
+
+
+\subsubsection{Completness and Adequacy.}
+
+Variable-node graphs are complete in the sense that for every concrete
+graph there is a variable node graph that can be instantiated to it:
+$\forall g.\,\exists G.\,g \in \vinterp{G}$. The witness for this
+proof is made by simply replacing all bounary nodes with variable
+nodes. 
+
+%% not needed for this story...
+%A variable node, $a$ is be said to an instance of another variable
+%node $b$ when the multiset representing the type of $a$ is a superset
+%of the multiset for the type of $b$. Thus, with regard to the
+%underlying semantics, $a$ being a subtype of $b$ means that the set of
+%instances of $a$ are a subset of the instances of $b$.
 
 
 
@@ -841,56 +862,61 @@ understand some of the more subtlte cases.
 
 
 
-
 \section{!-Boxes}
 
 A crucial feature of rules like the Spider Law is that an arbirary
-number of repetitions of a subgraph to be matched. To support this we
-introduce an operation, !-boxing, on graph representations. Given a
-graph representation, this introduces a new notation by outlining
-(called !-boxing) a set of chosen nodes. Intuitively, the resulting
-!-boxed graph can be thought of as representing a set of graphs with
-an arbirary number of copies of the !-boxed nodes, where every copy
-has the connects to the same nodes outside the !-box. The !-boxes can
-also be instantiated with zero copies which is erases all edges from
-the !-box. See Figure~\ref{bang-box-ex1-fig} for a simple example.
+number of repetitions of a subgraph need to be matched. To support
+this we introduce an operation, !-boxing, on graph
+representations. Given a graph representation, this introduces a new
+notation by outlining (called !-boxing) a set of chosen
+nodes. Intuitively, the resulting !-boxed graph can be thought of as
+representing a set of graphs with an arbirary number of copies of the
+!-boxed nodes, where every copy connects, in the same way, to the
+nodes outside the !-box. The !-boxes can also be instantiated with
+zero copies, which erases all edges to and from the !-box. See
+Figure~\ref{spider-bang-rule} .
 
-More formaly, a graph with !-boxes is simply a graph paired with a set
-!-boxes. Each !-box is just the set of nodes inside it and each !-box
-must be disjoint from the others.\footnote{The disjointness condition
-  avoids a slightly more complex, although also more expressive,
-  semantics for overlaping node sets in the !-boxes. While such
-  expressivity is interesting from a representational point of view,
-  it is not needed to express the currently known rules of quantum
-  computation.}
+More formaly, a graph with !-boxes is a graph paired with a set
+!-boxes. Each of these !-boxes is the set of nodes inside it and each
+!-box must be disjoint from the others.\footnote{The disjointness
+  condition avoids a slightly more complex, although also more
+  expressive, semantics for overlaping node sets in the !-boxes. While
+  such expressivity is interesting from a representational point of
+  view, it is not needed to express the currently known rules of
+  quantum computation.} 
 
 For the purposes of this paper, the underlying graph representation of
 !-boxed graphs is variable-node graphs. The set of variable-node
 graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$. We
 now define the concept of !-box matching which we use to provide a
-semantics for the !-boxed graphs. 
+semantics for the !-boxed graphs.
 
 \subsection{!-Matching.}
 
-The set of !-box graphs matched by a !-box graph is defined as the set
-closed by the following operations:
+To formalise the intuitive notion that a !-box represents arbitrary
+number of copies of the subgraph made from it's nodes, we introduce
+\emph{!-box matching}. This is a binary relation on graphs, written
+infix as $G \leq_! H$ when $G$ matches $H$. The set of !-box graphs
+matched by a !-box graph is defined as the set closed by the following
+operations on the !-boxes in a graph:
 
 \begin{definition}
-  \emph{copy} copies a !-box in a graph to produce a new graph with
-  two copies of the boxed subgraph, with a second box around the newly
-  copied nodes. Any edges between a node inside the !-box, $n$ and one
-  outside it $m$ get copied so that there is a new edge from $m$ to
-  the new copy of $n$.
+  \emph{copy}: copies a !-box, $b$ in a graph to produce a new graph
+  with two copies of the !-boxed subgraph, $b$ is the old one and $b'$
+  is the new one. The set of !-boxes in the copied graph now also
+  contains the new !-box $b'$. Any edges between a node, $n$, inside
+  the !-box $b$, and a node, $m$, outside it, get copied so that there
+  is a new edge from $m$ to the new copy of $n$ in $b'$.
 \end{definition}
 
 \begin{definition}
-  \emph{drop} simply removes the box, but leaves its contents in the
+  \emph{drop} simply removes the !-box, but leaves its contents in the
   graph.
 \end{definition}
 
 \begin{definition}
-  \emph{kill} removes from the graph all nodes in the !-box set as
-  well as any incident edges to those nodes.
+  \emph{kill} removes from the graph all nodes in the !-box as well as
+  any incident edges.
 \end{definition}
 
 \begin{definition}
@@ -898,15 +924,12 @@ closed by the following operations:
   larger !-box $B_1 \cup B_2$.
 \end{definition}
 
-\noindent We use $G \leq_! H$ to denote that $G$ matches $H$.
-
 \subsection{!-Box Semantics.} 
 
-We give a formal semantics to !-boxing a representation of graphs by
-defining the !-box graph in terms of a set of graphs in the
-underlying representation. We denote the interpretation of a graph $G$
-by $\binterp{G}$ and say that mebemrs of $\binterp{G}$ are instances
-of $G$. 
+We give a formal semantics to a !-box graphs by defining the !-box
+graph in terms of a set of graphs in the underlying representation. We
+denote the interpretation of a !-box graph $G$ by $\binterp{G}$ and
+say that members of $\binterp{G}$ are instances of $G$.
 
 \begin{definition}
   \emph{Interpretation of !-box Graphs}: $\binterp{G}$ is the subset
@@ -948,8 +971,8 @@ about quantum computation.
 \subsection{Matching}
 
 The purpose of graph patterns is to formally express, in a declarative
-manner, the intuitive idea of graph matching commonly used in for
-Quantum Computation. To do this, we combine the two extensions to the
+manner, the intuitive idea of graph matching which commonly used in
+quantum computation. To do this, we combine the two extensions to the
 concrete graph representation, namely variable nodes and !-boxes, to
 provides a matching relation between graph patterns and concrete
 graphs as well as directly between graph patterns. The former relation
@@ -957,18 +980,22 @@ gives a semantics for our system and ensures soundness, while the
 latter supports deirved equations and thus provides the theoretical
 basis for our formulation of rewriting.
 
-\subsubsection{Concrete Matches.}
-
-The semantics for a graph pattern $G$ is a set of concrete graphs
-denoted by $\minterp{G}$. We say that members of this set are
-\emph{matched} by $G$. Formally, the set of matches are defined as:
-
-$$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
+\subsubsection{Completeness.}
 
 Graph patterns are complete in the sense that for every concrete graph
 there is a pattern that matches it. This is a trivial consequence of
 the completeness of variable-node extension to graphs, which is
 unaffected by allowing !-boxes.
+
+
+\subsubsection{Concrete Matches.}
+
+The semantics for a graph pattern $G$ is a set of concrete graphs
+denoted by $\minterp{G}$. We say that members of this set are
+\emph{matched} by $G$. Formally, the concrete set of matches are
+defined as:
+
+$$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
 
 \subsubsection{Graph Pattern Matches.}
 
@@ -1014,28 +1041,43 @@ graphs we get the relative soundness for them.
 
 In this section we outline how the formalism we have presented for
 graph patterns can be used to provide a \emph{meta-level} framework
-for reasoning about a given model of a compact closed
-categories. Following the terminology of logical frameworks such as
-Isabelle~\cite{isabelle}, we call the specification provided by the
-underlying model an \emph{object-level} graph formalism. Each
-object-level formalism defines a set of rules which are treated as the
-axioms for the system. The object-level implementation also defines
-the data at the nodes and edges as well as corresponding data-matching
-behaviour. 
+for reasoning about models of compact closed categories. Following the
+terminology of logical frameworks such as Isabelle~\cite{isabelle}, we
+call the specification provided by the underlying model an
+\emph{object-level} graph formalism.
 
-\subsection{Substitution with Equational Rules}
+An object-level formalisation defines a set of rules which are treated
+as the axioms for the system. The object-level implementation also
+defines the data at the nodes and edges as well as corresponding
+data-matching behaviour. The meta-level provides machinery to
+manipulate graphs and derive new equations. In this section we
+describe the meta-level framework and prove its adequacy for
+rewriting.
 
-A rule in our framework declarative in the sense that it is a pair of
-pattern graph that represent the left and right hand sides of an
-equation. Substituon with a rule then involves replacing a subgraph
-that matches the left hand side with the right hand side. To do this
-there has to be a isomorphism between variable nodes in the left and
-right hand subgraphs. More concretely, there must be a unique naming
-of the variable nodes in the left hand side such that each name occurs
-in a unique variable node on the right hand side. Given a matching on
-the left hand side, the target subgraph can be replaced with right
-hand side connected by the corresponding variable nodes. This provides
+\subsection{Equational Rules}
+
+Axioms defined by an object-level model, as well as derived rules in
+our framework, are declarative in the sense that they are pairs of
+pattern graph. This pair represents the left and right hand sides of
+an equation. 
+
+Substituon with a rule then involves replacing a subgraph that matches
+the left hand side with the right hand side. To do this there has to
+be a isomorphism between variable nodes in the left and right hand
+subgraphs. More concretely, there must be a unique naming of the
+variable nodes in the left hand side such that each name occurs in a
+unique variable node on the right hand side. Given a matching on the
+left hand side, the target subgraph can be replaced with right hand
+side connected by the corresponding variable nodes. This provides
 rewriting for pattern graphs.
+
+\subsubsection{Adequacy}
+
+A an equation that involves a graph pattern on one side 
+
+\emph{Adequacy} says that if one by doing so within an
+equation, we are not
+
 
 \subsection{Meta-Level Logic and Derived Rules}
 
@@ -1091,16 +1133,16 @@ arguments:
 
 \item The soundness and adequacy of the axioms when expressed within
   the compact closed category. Adquency ensures that the encoding as a
-  graph pattern represents only the intended rules.  The soundness of
-  the rules is obviously needed and requires proving the rule in terms
-  of the underlying semantics.
+  graph pattern represents only the intended concrete rules. The
+  soundness of the rules is obviously needed and requires proving the
+  rule in terms of the underlying semantics.
 \end{itemize}
 
+The proof of adequancy ...
+
 The completeness of the resulting system, with respect to the intended
-semantics, depends on the completeness of the set of given rules. The
-completeness of 
-
-
+underlying semantics, depends on the completeness of the set of given
+rules.
 
 \subsection{Derived Rules}
 
