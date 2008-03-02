@@ -86,7 +86,7 @@ $(BASENAME).ps: $(BASENAME).dvi
 
 $(BASENAME).aux: $(PS_SRC)
 	@echo "Compiling LaTeX source to get aux file..."
-	@export TEXINPUTS=$(TEXINPUTS):./:./tex && latex $(BASENAME)  
+	@export TEXINPUTS=./:./tex:$(TEXINPUTS) && latex $(BASENAME)  
 
 $(BASENAME).bbl: $(BASENAME).aux $(BIBFILE)
 	@echo "Compiling bibtex to get bbl file..."
@@ -94,13 +94,13 @@ $(BASENAME).bbl: $(BASENAME).aux $(BIBFILE)
 
 $(BASENAME).dvi: $(PS_SRC) $(BASENAME).bbl
 	@echo "Compiling LaTeX source using bbl to make final DVI..."
-	@export TEXINPUTS=$(TEXINPUTS):./:./tex && latex $(BASENAME)
-	@export TEXINPUTS=$(TEXINPUTS):./:./tex && latex $(BASENAME)
+	@export TEXINPUTS=./:./tex:$(TEXINPUTS) && latex $(BASENAME)
+	@export TEXINPUTS=./:./tex:$(TEXINPUTS) && latex $(BASENAME)
 
 $(BASENAME).pdf : $(PDF_SRC) $(BASENAME).bbl
 	@echo "Compiling PDF LaTeX source using bbl to make final DVI..."
-	@export TEXINPUTS=$(TEXINPUTS):./:./tex && pdflatex $(BASENAME)
-	@export TEXINPUTS=$(TEXINPUTS):./:./tex && pdflatex $(BASENAME)
+	@export TEXINPUTS=./:./tex:$(TEXINPUTS) && pdflatex $(BASENAME)
+	@export TEXINPUTS=./:./tex:$(TEXINPUTS) && pdflatex $(BASENAME)
 
 # old version, made from ps
 #$(BASENAME).pdf : $(BASENAME).ps

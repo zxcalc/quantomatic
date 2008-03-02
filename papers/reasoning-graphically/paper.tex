@@ -20,7 +20,6 @@
 %\usepackage{ttbox}
 \usepackage{allmtt}
 %\usepackage{pstricks,pst-node,pst-tree} % PS Tricks for diagrams
-%\usepackage{proof2}
 \setcounter{tocdepth}{3}
 \usepackage{graphicx}
 \usepackage{amsmath}
@@ -31,8 +30,9 @@
 \usepackage{xspace}
 \usepackage{diagrams}
 \usepackage{proof2}
-
 \usepackage{url}
+
+
 \urldef{\mailsa}\path|l.dixon@ed.ac.uk|
 \urldef{\mailsb}\path|ross.duncan@comlab.ox.ac.uk|
 \newcommand{\keywords}[1]{\par\addvspace\baselineskip
@@ -207,20 +207,17 @@
 
 
 \begin{abstract}
-  Systems of quantum computation are typically represented by large
-  matrix compositions. However, recent graph-based formalisms offer an
-  approach which exposes the structure of these systems in a clearer
-  and more accessible way. Although these provide a significantly
-  simpler way of reading and presenting quantum computations, manual
-  manipulation of such graphs is slow and error prone. We present a
-  formalism that supports a mechanised reasoning about such
-  graphs. This involves a compositional account of graph rewriting
-  that preserves the underlying categorical semantics. We present a
-  system, which has been implemented, with a fixed logical kernel and
-  support for derived rules, which allows the model of quantum
-  computation to be specified declarativley.  Soundness of the system
-  is proved with respect to the underlying model and completeness is
-  an open problem.
+  Recent graph-based formalisms of quantum computation provide an
+  abstract and symbolic way to represent and simulate the
+  computations. However, manual manipulation of such graphs is slow
+  and error prone. We present a formalism that supports mechanised
+  reasoning about such graphs. This involves a compositional account
+  of graph rewriting that preserves the underlying categorical
+  semantics. We present a generic system with a fixed logical kernel
+  for representing compact closed categories. This provides a
+  declarative account which supports derived rules. We illustrate the
+  framework by instantiating it for the graphical language of quantum
+  computation. 
 
   \keywords{graph rewriting, quantum computing, categorical
     logic, interactive theorem proving, graphical calculi}
@@ -237,9 +234,9 @@ the convential matrix-based approach to quantum mechanics, but in
 particular the graph can directly represent the structure of quantum
 states explicitly, including the  
 
-History of diagrammatic representation going back to ???  
+%History of diagrammatic representation going back to ???  
 
-CAn formalise quantum mechanics in an abstract setting using compact
+Can formalise quantum mechanics in an abstract setting using compact
 or $\dag$-compact categories.
 
 We will give a description of graphs in general;  a specialisation of
@@ -250,10 +247,10 @@ We then introduce a concrete set of generators and equations for use
 in quantum computation.  We need rewrites to capture the non-logical
 axioms of this structure.   It turns out that we can most easily express
 these equations using an infinite family of ``spider rules'';  this
-motivates the  more general notion of pattern graphs.
+motivates the  more general notion of graph patterns.
 
-next section introduces the  notion of pattern graph, which is
-essentially a graph structured 
+%next section introduces the  notion of pattern graph, which is
+%essentially a graph structured 
 
 \section{Graphs and Compact Closed  Categories  }
 \label{sec:mono-categ-graphs}
@@ -261,48 +258,58 @@ essentially a graph structured
 \subsection{Graphs}
 \label{sec:graphs}
 
-A \emph{directed graph}\footnote{
-Equivalently:  a directed graph is a functor $G$ from  $\bullet
-\pile{\rTo\\\rTo} \bullet$ to \catSet;  a graph morphism is then a natural
-transformation  $f: G \Rightarrow H$.
-} consists of a 4-tuple $(V,E,s,t)$ where $V$
-and $E$ are sets, respectively of \emph{vertices}\footnote{We will use
-  the words ``vertex'' and ``node'' interchangeably.} and \emph{edges},
-and $s$ and $t$ are maps 
+A \emph{directed graph}\footnote{ Equivalently: a directed
+  graph is a functor $G$ from $\bullet \pile{\rTo\\\rTo} \bullet$ to
+  \catSet; a graph morphism is then a natural transformation $f: G
+  \Rightarrow H$.  } consists of a 4-tuple $(V,E,s,t)$ where $V$ and
+$E$ are sets, respectively of \emph{vertices}\footnote{We will
+  use the words ``vertex'' and ``node'' interchangeably.} and
+\emph{edges}, and $s$ and $t$ are maps
 \begin{diagram}
   E & \pile{\rTo^{\qquad s\qquad}\\\rTo_t} & V
 \end{diagram}
-which we call \emph{source} and \emph{target}.  Define sets
-$\text{in}(v) = t^{-1}(v)$ and $\text{out}(v) = s^{-1}(v)$ of \emph{incoming}
-and \emph{outgoing} edges at a vertex $v$.  
-The \emph{degree} of a vertex $v$ is $\sizeof{\text{in}(v)} +
-\sizeof{\text{out}(v)}$. 
+which we call \emph{source} and \emph{target}.  The definitions
+$\text{in}(v) = t^{-1}(v)$ and $\text{out}(v) = s^{-1}(v)$ express the
+\emph{incoming} and \emph{outgoing} edges at a vertex $v$.  The
+\emph{degree} of a vertex $v$ is $\sizeof{\text{in}(v)} +
+\sizeof{\text{out}(v)}$.
 
-Given graphs $G$ and $H$, a \emph{graph morphism} $f : G\to H$ consists of
-functions $f_E : E_G \to E_H$ and $f_V:V_G\to V_H$ such that:
+To distinguish between elements of different graphs, we will use the
+subscript notation $G = (V_G,E_G,s_G,t_G)$. Given graphs $G$ and $H$,
+a \emph{graph morphism} $f : G\to H$ consists of functions $f_E : E_G
+\to E_H$ and $f_V:V_G\to V_H$ such that:
+
 \begin{gather}
   s_H\circ f_E = f_V \circ s_G,\label{eq:graph-hom1}\\
   t_H\circ f_E = f_V \circ t_G\label{eq:graph-hom2}.
 \end{gather}
 
-Let $f: G \to H$ be  graph morphism and  let $V' \subseteq V_G$. We say
+Let $f: G \to H$ be graph morphism and  let $V' \subseteq V_G$. We say
 that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if $s_H(e)
 \in f_V(V')$ or $t_H(e) \in f_V(V')$ then $\exists e' \in E_G$ such
-that $f_E(e') = e$.  We call $f$ an \emph{open embedding} for $V'$ if:
+that $f_E(e') = e$. 
+
+\begin{definition}
+\label{open-embedding-def}
+We call $f$ an \emph{open embedding} for $V'$ if:
 \begin{enumerate}
 \item $f_E$ is injective;
 \item $f_V$ restricted to $V'$ is injective; and,
 \item $f$ is strict for $V'$.
 \end{enumerate}
-The intuition behind this definition is that the subgraph of $G$
-determined by $V'$ should be preserved exactly by $f$, whereas the
-other vertices may be identified.
+\end{definition}
 
-Given two graphs $G,H$, a pair of partial maps $r_V: V_G
-\rightharpoonup V_H$, $r_E: E_G \rightharpoonup E_H$ is called a
-partial graph morphism if whenever $r(e)$ is defined then $r(s_G(e))$
-and $r(t_G(e))$ are defined, and the restriction of $r_E$ to its
-preimage satifies equations \eqref{eq:graph-hom1} and
+The intuition behind this definition is that the subgraph of $G$
+determined by $V'$ should be preserved exactly by $f$; it should
+contain $G$ without any extra incident egdes into the verticies $V'$
+whereas other vertices may be identified and may contain additional
+verticies.
+
+Given two graphs, $G$ and $H$, a pair of partial maps, $r_V: V_G
+\rightharpoonup V_H$ and $r_E: E_G \rightharpoonup E_H$, is called a
+partial graph morphism if whenever $r_E(e)$ is defined then
+$r_V(s_G(e))$ and $r_V(t_G(e))$ are defined, and the restriction of
+$r_E$ to its preimage satifies equations \eqref{eq:graph-hom1} and
 \eqref{eq:graph-hom2} above.
 
 Augmented by some additional structure, graphs form a \emph{compact closed
@@ -314,6 +321,7 @@ categories.
 \label{sec:comp-clos-categ}
 
 \begin{definition}
+\label{compactcat-def}
 A strict symmetric monoidal  category
 \cite{MacLane:CatsWM:1971,AspLon:CatTypStruct:1991} is called compact 
 closed \cite{KelLap:comcl:1980} when each object $A$ has a chosen dual
@@ -534,15 +542,9 @@ must be satisfied.  These are discussed in detail in
 \cite{Coecke:2008jo};  we present them in graphical form in
 Figure~\ref{fig:graph-quant-eqns}.
 
-\begin{figure}
-  \figureline
 
-  The $(\cdot)^\dag$ functor gives a vertical symmetry to the
-  category, hence for every equation we have a second equation
-  obtained by flipping the diagram upside down.  In additon, we have a
-  ``colour duality'': each equation shown here gives rise to
-  second, which is obtained by exchanging the two colours.  (In fact
-  this duality is derivable from the equations for involving $H$.)
+\begin{figure}[p]
+  \figureline
   \begin{description}
   \item[Comonoid Laws] 
     \[
@@ -651,7 +653,13 @@ Figure~\ref{fig:graph-quant-eqns}.
   \end{description}
 
   
-  \caption{Graphical Equations for Quantum Systems}
+  \caption{Graphical Equations for Quantum Systems. The $(\cdot)^\dag$
+    functor gives a vertical symmetry to the category, hence for every
+    equation we have a second equation obtained by flipping the
+    diagram upside down.  In additon, we have a ``colour duality'':
+    each equation shown here gives rise to second, which is obtained
+    by exchanging the two colours. The colour duality is derivable
+    from the equations for involving $H$.}
   \label{fig:graph-quant-eqns}
   \figureend
 \end{figure}
@@ -702,10 +710,11 @@ different computations:
 \inlinegraphic{2.5em}{compact5}
 \end{center}
 
-\noindent However, composition with semicircle line(s) on the domain
-or co-domain allows a proof involving one of the above to easily
-derive a corresponding one for the other two. Proving any of the
-following allows a trivial derivation of the others:
+\noindent However, composition with semi-circles ($d$ and $e$ from
+Definition~\ref{compactcat-def}) on the co-domain or domain allows an
+equation involving one of the above to easily lead to a derivation
+corresponding either of the other two. For instance, proving any of
+the following allows a trivial derivation of the others:
 
 \begin{center}
 \inlinegraphic{2.5em}{compact1} $=$
@@ -716,43 +725,58 @@ $\Leftrightarrow$ \inlinegraphic{2.5em}{compact5} $=$
 \end{center}
 
 \noindent This motivates a characterisation that has only one
-representative for such a set of equations. More presicely, we need a
-representation that abstracts over the boundary nodes membership in
-the domain or co-domain. In this section we formalise such a notion
-and refer to the generalised boundary nodes as \emph{variable
-  nodes}. This gives rise to a \emph{variable-node graphs}, which are
-graphs with variable nodes instead of boundary edges.  
+representative for such a set of equations. More presicely, we
+formalise a representation that abstracts over the boundary nodes
+membership in the domain or co-domain. This gives rise to a
+\emph{variable-node graphs}, in which boundary nodes have been
+generalised to \emph{variable nodes}. The intuition of variable nodes
+is that they can replaced by concrete nodes in some graph. We now
+define the semantics for variable-node graphs and then go on and
+introduce a way to join them. 
+
+% relationship to composition on the underlying concrete graphs.
 
 
+\subsection{Semantics by Matching as an Open Embedding}
 
-Below, we give a more formal and constuctive account the semnatics by
-introducing a notion of an \emph{open embedding} and note that this
-corresponds to the intuitive idea of graph-matching. We then go on and
-introduce a way to join graphs with variable-nodes and note it's
-relationship to composition on the underlying concrete graphs. 
-
-\subsection{Semantics}
-
-
-
-\subsection{Matching as an Open Embedding}
 
 To formalise the semantics of variable-node graphs, we define
-matching, which captures the intuitive idea with
+matching, which captures the intuitive idea of graph with variable
+nodes occuring within another graph. 
 
 \begin{definition}
-  Matching is charcterised by an \emph{open embedding} which is strict
-  for the non-variable nodes.
+  \emph{Matching} is an open embedding
+  (Definition~\ref{open-embedding-def}) which is strict for the
+  non-variable nodes.
 \end{definition}
 
-
-The intuition of variable nodes is that they can replaced by any be
-nodes of the right type that are themseleves within any graph.  A
-graph with variable nodes, $G$, can be given a formal semantics by
+A graph with variable nodes, $G$, can be given a formal semantics by
 being interpretated as a set of concrete graphs, denoted by
-$\vinterp{G}$.
+$\vinterp{G}$. The interpretation is simply the ways a graph with
+variable nodes can be matched to a concrete graph. We refer to members
+of this set as instances. Matching is also well-defined between
+variable-node graphs, in which case we denote that $G$ macthes $H$ by
+$G \leq_v H$.
+
+\begin{theorem}
+  $G \leq_v H \Leftrightarrow \vinterp{G} \superseteq \vinterp{H}$. 
+\end{theorem}
 
 
+
+% \begin{figure}[t]
+% %  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
+% *** Add figure *** 
+% \label{node-variable-instances-fig}\caption{The concrete graphs $a$,
+%   $b$, and $c$ are instances of $x$, a graph with variable nodes.}
+% \end{figure}
+
+% For example, in Figure~\ref{node-variable-instances-fig}, the graphs
+% $a$, $b$ and $c$ are instances of the graph $x$. A graph with variable
+% nodes, and without boundary nodes, is called a \emph{variable-node
+%   graph}.
+
+%% TYPES 
 % Thus, unlike nodes in conrete a graph, variable nodes do not define an
 % ordering on the edges that are incident. Instead, the edges that touch
 % a variable node are simply a set. The type of a variable nodes is thus
@@ -771,28 +795,14 @@ $\vinterp{G}$.
 % has several varibale-nodes, the replacement subgraphs may be
 % intersecting.
 
-\begin{figure}[t]
-%  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
-*** Add figure *** 
-\label{node-variable-instances-fig}\caption{The concrete graphs $a$,
-  $b$, and $c$ are instances of $x$, a graph with variable nodes.}
-\end{figure}
+% \subsubsection{Completness and Adequacy.}
 
-We refer to members of this set as instances. 
+% Variable-node graphs are complete in the sense that for every concrete
+% graph there is a variable node graph that can be instantiated to it:
+% $\forall g.\,\exists G.\,g \in \vinterp{G}$. The witness for this
+% proof is made by simply replacing all bounary nodes with variable
+% nodes. 
 
-For example, in Figure~\ref{node-variable-instances-fig}, the graphs
-$a$, $b$ and $c$ are instances of the graph $x$. A graph with variable
-nodes, and without boundary nodes, is called a \emph{variable-node
-  graph}.
-
-
-\subsubsection{Completness and Adequacy.}
-
-Variable-node graphs are complete in the sense that for every concrete
-graph there is a variable node graph that can be instantiated to it:
-$\forall g.\,\exists G.\,g \in \vinterp{G}$. The witness for this
-proof is made by simply replacing all bounary nodes with variable
-nodes. 
 
 %% not needed for this story...
 %A variable node, $a$ is be said to an instance of another variable
@@ -1039,41 +1049,60 @@ graphs we get the relative soundness for them.
 \section{Reasoning with Graph Patterns}
 \label{sec:rewriting}
 
-In this section we outline how the formalism we have presented for
-graph patterns can be used to provide a \emph{meta-level} framework
-for reasoning about models of compact closed categories. Following the
-terminology of logical frameworks such as Isabelle~\cite{isabelle}, we
-call the specification provided by the underlying model an
-\emph{object-level} graph formalism.
-
-An object-level formalisation defines a set of rules which are treated
-as the axioms for the system. The object-level implementation also
+In this section we describe how the garph pattern formalism can
+provide a \emph{meta-level} framework for reasoning about models of
+compact closed categories. Following the terminology of logical
+frameworks such as Isabelle~\cite{isabelle}, we call the specification
+provided by the underlying model an \emph{object-level} graph
+formalism. In particular, an object-level formalisation defines a set
+of rules which are treated as the axioms for the system. It also
 defines the data at the nodes and edges as well as corresponding
-data-matching behaviour. The meta-level provides machinery to
-manipulate graphs and derive new equations. In this section we
-describe the meta-level framework and prove its adequacy for
+data-matching behaviour. For it's part, the meta-level provides
+machinery to manipulate graphs and derive new rules. In this section
+we describe the meta-level framework and prove its adequacy for
 rewriting.
 
 \subsection{Equational Rules}
 
 Axioms defined by an object-level model, as well as derived rules in
-our framework, are declarative in the sense that they are pairs of
-pattern graph. This pair represents the left and right hand sides of
-an equation. 
+our framework, are pairs of pattern graph. The pair represents the
+left and right hand sides of an equation. Rules are declarative in
+that they denote set of concrete equational rules. 
 
-Substituon with a rule then involves replacing a subgraph that matches
-the left hand side with the right hand side. To do this there has to
-be a isomorphism between variable nodes in the left and right hand
+Substituon with a rule involves replacing a subgraph that matches the
+left hand side with the right hand side. To do this there has to be a
+isomorphism between variable nodes in the left and right hand
 subgraphs. More concretely, there must be a unique naming of the
 variable nodes in the left hand side such that each name occurs in a
 unique variable node on the right hand side. Given a matching on the
-left hand side, the target subgraph can be replaced with right hand
-side connected by the corresponding variable nodes. This provides
-rewriting for pattern graphs.
+left hand side, the target subgraph is replaced with the right hand
+side while keeping the same instantiations for the isomorphic variable
+nodes. 
 
-\subsubsection{Adequacy}
+Rules also contain a partial 1-1 mapping between !-boxes on the left
+and right hand sides. The intuition for this mapping is that the
+unfolding used when matching, for a !-box on the left, is applied to
+the mapped !-box on the right before replacement. 
 
-A an equation that involves a graph pattern on one side 
+Notationally, and implementationally, we annotate !-boxes and variable
+nodes in a graphs with unique names. For example,
+Figure~\ref{spider-law2-fig} illustrates the Spider Law as a rule in
+the general framework. The partial 1-1 mapping for !-boxes is
+represented by !-boxes having the same name on the left and right of a
+rule. Similarly, the isomorphism between variable nodes is captured by
+the set of variable node names on the left and right hand side being
+equal. There is an additional restriction that comes from the
+interplay between !-boxes and variable nodes. When a variable node
+appears within a !-box on one side of a rule it must appear under
+mapped !-box on the other side. This enforces that rules cannot change
+the type of a graph pattern.
+
+\subsection{Adequacy}
+
+This
+provides rewriting for pattern graphs.
+
+A an equation on a graph pattern is 
 
 \emph{Adequacy} says that if one by doing so within an
 equation, we are not
