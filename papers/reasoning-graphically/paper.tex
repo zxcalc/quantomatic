@@ -229,25 +229,65 @@
 
 Recent work in quantum computation has emphasised the use of graphical
 languages motivated by the underlying logical structure of quantum
-mechanics itself.  These techniques have a number of advantages over
-the convential matrix-based approach to quantum mechanics, but in
-particular the graph can directly represent the structure of quantum
-states explicitly, including the  
+mechanics
+itself~\cite{AbrCoe:CatSemQuant:2004,Selinger:dagger:2005,Coecke2005Kindergarten-Qu,Coecke2006POVMs-and-Naima,Coecke2006Quantum-Measure}.
+These techniques have a number of advantages over the convential
+matrix-based approach to quantum mechanics:
+
+\begin{itemize}
+\item The visual representation abstracts over the values in the
+  matricies. This removes detail that requires a lot of work for a
+  human to interpret. 
+
+\item Many properties have a natural graphical representation. For
+  example, non entanglement is can be infered from disjoint subgraphs.
+
+\item The graphical calculus generalises to domains other than just
+  vector spaces. In particular, it provides a representation for
+  compact closed cartegories. 
+
+\end{itemize}
+
+The major problem with these graphical representations is the lack of
+machinery for automating the manipulation of graphs.  Existing
+approaches to graph transformation have a different underlying
+semantics corresponding to graphs in general rather than those which
+describe compact closed categories. The result is that they provide an
+unsound concept of rewriting for the kind of graphs we are interested
+in.
+
+This paper reviews a formalism for graphical representations of
+compact closed categories. We also revisit a model of quantum
+computation based on this calculus. We then extend the graphical
+calculus in two significant ways driven by the need to express rules
+that could not be accounted for in the initial formalism. We provide a
+semantics for these in terms of the initial representation. By
+suitably combining these extensions to graphs, we provide a
+representation that captures an interesting and useful set of graph
+patterns. We use this as the foundation for a simple logical framework
+for manipulating compact closed categories as graphs. This has a
+suitable rewriting mechanism where the axioms of the underlying
+object-formalism are expressed as equations between graphs. We then
+present a short case study that illustrates the framework by
+instantiating it for the introduced model of quantum computation.
+This shows how the framework can be used to symbolically perform
+simplifications to quantum programs as well as simulate quantum
+computations.
 
 %History of diagrammatic representation going back to ???  
 
-Can formalise quantum mechanics in an abstract setting using compact
-or $\dag$-compact categories.
+%Can formalise quantum mechanics in an abstract setting using compact
+%or $\dag$-compact categories.
 
-We will give a description of graphs in general;  a specialisation of
-this gives the structure required for compact closed  categories.  The
-graph structure suffices to give a tight representation.
+%We will give a description of graphs in general;  a specialisation of
+%this gives the structure required for compact closed  categories.  The
+%graph structure suffices to give a tight representation.
 
-We then introduce a concrete set of generators and equations for use
-in quantum computation.  We need rewrites to capture the non-logical
-axioms of this structure.   It turns out that we can most easily express
-these equations using an infinite family of ``spider rules'';  this
-motivates the  more general notion of graph patterns.
+%We then introduce a concrete set of generators and equations for use
+%in quantum computation.  We need rewrites to capture the non-logical
+%axioms of this structure.   It turns out that we can most easily express
+%these equations using an infinite family of ``spider rules'';  this
+%motivates the  more general notion of graph patterns.
 
 %next section introduces the  notion of pattern graph, which is
 %essentially a graph structured 
@@ -299,8 +339,8 @@ We call $f$ an \emph{open embedding} for $V'$ if:
 \end{enumerate}
 \end{definition}
 
-The intuition behind this definition is that the subgraph of $G$
-determined by $V'$ should be preserved exactly by $f$; it should
+\noindent The intuition behind this definition is that the subgraph of
+$G$ determined by $V'$ should be preserved exactly by $f$; it should
 contain $G$ without any extra incident egdes into the verticies $V'$
 whereas other vertices may be identified and may contain additional
 verticies.
@@ -759,7 +799,7 @@ variable-node graphs, in which case we denote that $G$ macthes $H$ by
 $G \leq_v H$.
 
 \begin{theorem}
-  $G \leq_v H \Leftrightarrow \vinterp{G} \superseteq \vinterp{H}$. 
+  $G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. 
 \end{theorem}
 
 
