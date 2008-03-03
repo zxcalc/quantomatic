@@ -799,9 +799,14 @@ variable-node graphs, in which case we denote that $G$ macthes $H$ by
 $G \leq_v H$.
 
 \begin{theorem}
-  $G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. 
+\label{match-interp-thm}
+  $G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. Proof... 
 \end{theorem}
 
+\begin{theorem}
+\label{reflexive-match-thm}
+  \emph{Matching is reflexive}: $G \leq_v G$ is a trivial consequence from open-embedding. 
+\end{theorem}
 
 
 % \begin{figure}[t]
@@ -870,9 +875,9 @@ somewhat wilder joining operation which we call \emph{plugging}.
 \begin{definition}
   Two mappings $f_G$ and $f_H$ \emph{agree} when $\forall v \in
   f_G(G).\, f_H(v) \in f^{-1}_G(v)$ and $\forall v \in f_H(H).\,
-  f_G(v) \in f^{-1}_H(v)$. This states when a set of nodes in one
-  graph all map to a common node $n$ in the other graph, $n$ maps back
-  to one of the nodes that maps to it. 
+  f_G(v) \in f^{-1}_H(v)$. This states that if a set of nodes in one
+  graph all map to a common node, $n$, in the other graph, then $n$
+  maps back to one of the nodes that maps to it.
 \end{definition}
 
 We let $\pi(G,H)$ abbreviate $\exists p.\,\pi_p(G,H)$. We also
@@ -881,7 +886,7 @@ results from the plugging. This is defined to be the union of the
 nodes and edges from $G$ and $H$ where the nodes and edges mapped by
 the pair of plugging function are identified. Identification of nodes
 instantiates variable nodes: when a variable node is mapped to a
-concrete one, the result is a concrete node.
+concrete one, identification results in the concrete node.
 
 While this is simply the intuitive way to combine graphs with variable
 nodes, the definition takes some care. In particular, it is important
@@ -898,19 +903,13 @@ understand some of the more subtlte cases.
 \end{theorem}
 
 \begin{theorem}
-  \emph{Match after plugging}: $G \leq \pi_f(G,H)$. And as a corrolary
-  we get $H \leq \pi_f(G,H)$ by symmetry of plugging. 
+  \emph{Plugging preserves matching}: $V \leq_v G \Rightarrow V \leq_v
+  \pi_f(G,H)$. As corrolaries we get $V \leq_v H \Rightarrow V \leq_v
+  \pi_f(G,H)$ from symmetry of plugging, $\vinterp{G} \cap \vinterp{H}
+  \subseteq \bigcup_f \vinterp{\pi_f(G,H)}$ from the definition of
+  interpretation, $G \leq_v \pi_f(G,H)$ from reflexivity of matching
+  and consequently $H \leq_v \pi_f(G,H)$ by symmetry of plugging.
 \end{theorem}
-
-\begin{theorem}
-  \emph{Plugging preserves matching}: $V \leq G \Rightarrow V \leq
-  \pi_f(G,H)$. As corrolaries we get $V \leq H \Rightarrow V \leq
-  \pi_f(G,H)$ from symmetry of plugging and $\vinterp{G} \cap
-  \vinterp{H} \subseteq \bigcup_f \vinterp{\pi_f(G,H)}$ from the
-  definition of interpretation. 
-\end{theorem}
-
-
 
 \section{!-Boxes}
 
