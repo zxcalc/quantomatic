@@ -411,15 +411,14 @@ opposite.
 \subsection{Graph Representations for Compact Closed Categories}
 \label{sec:graph-repr-comp}
 
-Graphs with certain additional structure give a
-representation for compact closed  categories; we now give an overview
-of this construction.  The details omitted here can be found in
-\cite{Duncan:thesis:2006}.   Pictorial representations are in
-Fig.~\ref{fig:comcl-graphs}.
+Graphs with certain additional structure give a representation for
+compact closed categories; we now give an overview of this
+construction.  The details omitted here can be found in
+\cite{Duncan:thesis:2006}.  Pictorial representations are in
+Fig.~\ref{fig:comcl-graphs}. We make the convention that domain of an
+arrow is at the top of the picture, and its codomain is at the bottom.
 
-\begin{figure}
-  We make the convention that domain of an arrow is at the top of the
-  picture, and its codomain is at the bottom.
+\begin{figure}[t]
   \centering
   \[
   \begin{array}{lllll}
@@ -436,7 +435,7 @@ Fig.~\ref{fig:comcl-graphs}.
       f^* =  \inlinegraphic{3em}{comcl-dual-f}
   \end{array}
   \]
-  \caption{Compact Closed Structure as Graphs}
+  \caption{Compact Closed Structure as Graphs. }
   \label{fig:comcl-graphs}
 \end{figure}
 
@@ -723,30 +722,32 @@ first noted in \cite{Coecke2006Quantum-Measure}, to be proved:
   it.
 \end{theorem}
 
-Hence any connected subgraph
-involving nodes of only one colour, wherever it occurs in a graph, may
-be collapsed to a single vertex labelled by a single value $\alpha$,
-giving a ``spider'' as depicted below:
-\[
-\inlinegraphic{3em}{gen-spider}
-\]
-Conversely, a spider may be arbitrarily divided into subspiders,
-provided the total in- and out-degree is preserved, along with and the
-sum of the $\alpha $s.  Further, one can derive from the spider
-theorem $n$-fold versions of many of the other rewrites in the system.
-Informally, this can be expressed as the graph equation in
-Figure~\ref{informal-spider-law-fig}.
+\begin{figure}[t]
+\includegraphics{images/gen-spider} = \includegraphics{images/gen-spider}
+\label{fig:informal-spider-law}\caption{An informal equation on graphs
+  that expresses the Spider Theorem. }
+\end{figure}
 
-Spiders offer a very intuitive way to manipulate graphs,
-and are far more compact and convenient in calculations than the
-graphs built up naively 
-from the generators.  However, formalising spiders requires moving from
-finite graphs, where each vertex has bounded degree, and which are
-subject to a finite number of rewrite rules, to a system where nodes
-may have arbitrarily many edges, and there are infinitely many rewrite
-rules.  The desire to retain these intuitive reasoning methods
-motivates the extension from concrete graphs to \emph{graph patterns}.
-These will comprise the main subject of this paper.
+Hence any connected subgraph involving nodes of only one colour,
+wherever it occurs in a graph, may be collapsed to a single vertex
+labelled by a single value $\alpha$, giving a ``spider''. Informally,
+this can be depicted graphically as the equation in
+Figure~\ref{fig:informal-spider-law}. Conversely, a spider may be
+arbitrarily divided into subspiders, provided the total in- and
+out-degree is preserved, along with and the sum of the $\alpha $s.
+Further, one can derive, from the spider theorem, $n$-fold versions of
+many of the other equations.
+
+Spiders offer a very intuitive way to manipulate graphs, and are far
+more compact and convenient in calculations than the graphs built up
+naively from the generators.  However, formalising spiders requires
+moving from finite graphs, where each vertex has bounded degree, and
+which are subject to a finite number of rewrite rules, to a system
+where nodes may have arbitrarily many edges, and there are infinitely
+many concrete rewrite rules. The desire to retain these intuitive
+reasoning methods motivates the extension from concrete graphs to
+\emph{graph patterns}. These will comprise the main subject of this
+paper.
 
 \section{Graphs with Variable Nodes}
 
@@ -1030,6 +1031,8 @@ of matching for graph pattens as well as present a corresponding
 notion of plugging. This provides the foundations for the rewriting
 machinery in~\S\ref{rewriting} which can then be used to reasoning
 about quantum computation.
+
+graph-pattern-spider-law-fig
 
 \subsection{Matching}
 
