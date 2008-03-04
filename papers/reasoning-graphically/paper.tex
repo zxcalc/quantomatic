@@ -219,8 +219,10 @@
   framework by instantiating it for the graphical language of quantum
   computation. 
 
-  \keywords{graph rewriting, quantum computing, categorical
-    logic, interactive theorem proving, graphical calculi}
+  \keywords{graph rewriting, quantum computing, categorical logic,
+    interactive theorem proving, graphical calculi; concerning:
+    symbolic computation, automated reasoning, formal mathematics,
+    logic}
 \end{abstract}
 
 
@@ -312,26 +314,31 @@ which we call \emph{source} and \emph{target}.  The definitions
 $\text{in}(v) = t^{-1}(v)$ and $\text{out}(v) = s^{-1}(v)$ express the
 \emph{incoming} and \emph{outgoing} edges at a vertex $v$.  The
 \emph{degree} of a vertex $v$ is $\sizeof{\text{in}(v)} +
-\sizeof{\text{out}(v)}$.
+\sizeof{\text{out}(v)}$. To distinguish between elements of different
+graphs, we will use the subscript notation $G = (V_G,E_G,s_G,t_G)$.
 
-To distinguish between elements of different graphs, we will use the
-subscript notation $G = (V_G,E_G,s_G,t_G)$. Given graphs $G$ and $H$,
-a \emph{graph morphism} $f : G\to H$ consists of functions $f_E : E_G
-\to E_H$ and $f_V:V_G\to V_H$ such that:
+Given graphs $G$ and $H$, a \emph{graph morphism} $f : G\to H$
+consists of functions $f_E : E_G \to E_H$ and $f_V:V_G\to V_H$ such
+that:
 
 \begin{gather}
   s_H\circ f_E = f_V \circ s_G,\label{eq:graph-hom1}\\
   t_H\circ f_E = f_V \circ t_G\label{eq:graph-hom2}.
 \end{gather}
 
-Let $f: G \to H$ be graph morphism and  let $V' \subseteq V_G$. We say
+\noindent These ensure that the structure of the graph is preserved by
+the morphism: an edge connected to a node gets mapped to a new edge
+that must connected in the same way to the mapped node.
+
+Let $f: G \to H$ be graph morphism and let $V' \subseteq V_G$. We say
 that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if $s_H(e)
 \in f_V(V')$ or $t_H(e) \in f_V(V')$ then $\exists e' \in E_G$ such
-that $f_E(e') = e$. 
+that $f_E(e') = e$. Strictness ensures that there are no additional
+edges in $H$.
 
 \begin{definition}
 \label{open-embedding-def}
-We call $f$ an \emph{open embedding} for $V'$ if:
+We call a graph morphism $f$ an \emph{open embedding} for $V'$ if:
 \begin{enumerate}
 \item $f_E$ is injective;
 \item $f_V$ restricted to $V'$ is injective; and,
@@ -385,7 +392,7 @@ has a \emph{name} and \emph{coname}:
 \[
 \name{f} : I \to A^* \otimes B, \qquad \coname{f} : A \otimes  B^* \to I,
 \]
-are constructed as $\name{f} = (\id{A^*}\otimes f) \circ d_A$ and
+which are constructed as $\name{f} = (\id{A^*}\otimes f) \circ d_A$ and
 $\coname{f} = e_A \circ (f \otimes \id{B^*})$.  Hence there are natural
 isomorphisms $\catC(A,B) \iso \catC(I,A^*\otimes B) \iso
 \catC(A\otimes B^*,I)$ making \catC monoidally closed\footnote{In
@@ -531,7 +538,7 @@ in a concrete graph is esentially the same as that of a complete
 graph;  hence one can consistently view subgraphs as vertices, and
 abstract over the their internal structure.
 
-\section{Graphs as Quantum Computations}
+\section{Quantum Computations as Graphs}
 \label{sec:quotients-rewriting}
 
 While compact closed categories provide a suitable setting for
@@ -709,10 +716,11 @@ involve only one colour:  these allow the remarkable \emph{spider theorem},
 first noted in \cite{Coecke2006Quantum-Measure}, to be proved:
 
 \begin{theorem}
-  Let $G$ be a connected graph generated from $\delta_Z$, $\epsilon_Z$,
-  $\alpha_Z$ and their adjoints;  then $G$ is totally determined by
-  the number of inputs, the number of outputs, and the sum modulo
-  $2\pi$ of the $\alpha$s which occur in it.
+  The \emph{Spider Theorem}: let $G$ be a connected graph generated
+  from $\delta_Z$, $\epsilon_Z$, $\alpha_Z$ and their adjoints; then
+  $G$ is totally determined by the number of inputs, the number of
+  outputs, and the sum modulo $2\pi$ of the $\alpha$s which occur in
+  it.
 \end{theorem}
 
 Hence any connected subgraph
@@ -724,9 +732,10 @@ giving a ``spider'' as depicted below:
 \]
 Conversely, a spider may be arbitrarily divided into subspiders,
 provided the total in- and out-degree is preserved, along with and the
-sum of the $\alpha $s.  Further,
-one can derive from the  spider theorem $n$-fold versions of many of
-the other rewrites in the system.
+sum of the $\alpha $s.  Further, one can derive from the spider
+theorem $n$-fold versions of many of the other rewrites in the system.
+Informally, this can be expressed as the graph equation in
+Figure~\ref{informal-spider-law-fig}.
 
 Spiders offer a very intuitive way to manipulate graphs,
 and are far more compact and convenient in calculations than the
@@ -751,9 +760,9 @@ different computations:
 \end{center}
 
 \noindent However, composition with semi-circles ($d$ and $e$ from
-Definition~\ref{compactcat-def}) on the co-domain or domain allows an
-equation involving one of the above to easily lead to a derivation
-corresponding either of the other two. For instance, proving any of
+Definition~\ref{compactcat-def}), on the co-domain or domain, allows
+an equation involving one of the above to easily lead to a derivation
+corresponding to either of the other two. For instance, proving any of
 the following allows a trivial derivation of the others:
 
 \begin{center}
@@ -770,19 +779,18 @@ formalise a representation that abstracts over the boundary nodes
 membership in the domain or co-domain. This gives rise to a
 \emph{variable-node graphs}, in which boundary nodes have been
 generalised to \emph{variable nodes}. The intuition of variable nodes
-is that they can replaced by concrete nodes in some graph. We now
-define the semantics for variable-node graphs and then go on and
-introduce a way to join them. 
+is that they can replaced by concrete nodes in some graph. This is a
+process analgous to composition. We now define the semantics for
+variable-node graphs and then go on and introduce a way to join them.
 
 % relationship to composition on the underlying concrete graphs.
 
 
 \subsection{Semantics by Matching as an Open Embedding}
 
-
 To formalise the semantics of variable-node graphs, we define
-matching, which captures the intuitive idea of graph with variable
-nodes occuring within another graph. 
+matching, which captures the intuitive idea of a graph with variable
+nodes occuring within another graph.
 
 \begin{definition}
   \emph{Matching} is an open embedding
@@ -792,20 +800,27 @@ nodes occuring within another graph.
 
 A graph with variable nodes, $G$, can be given a formal semantics by
 being interpretated as a set of concrete graphs, denoted by
-$\vinterp{G}$. The interpretation is simply the ways a graph with
-variable nodes can be matched to a concrete graph. We refer to members
-of this set as instances. Matching is also well-defined between
-variable-node graphs, in which case we denote that $G$ macthes $H$ by
-$G \leq_v H$.
+$\vinterp{G}$. The interpretation is simply the set of concrete graphs
+which the variable node graph matches. We refer to members of this set
+as instances. Matching is also well-defined between two variable-node
+graphs, in which case we denote that $G$ macthes $H$ by $G \leq_v H$.
 
 \begin{theorem}
 \label{match-interp-thm}
-  $G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. Proof... 
+$G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. The
+proof from left to right is a consequence of the trivial lemma that a
+compositon of open embeddings is an open embedding. This makes the
+embedding of $G$ into $H$ composed with $H$ into $\vinterp{H}$ an open
+embedding of $G$ into $\vinterp{H}$. From right to left, we compose
+the open embedding $\vinterp{G}$, restricted to it's subset
+$\vinterp{H}$, with the inverse of $\vinterp{H}$ to get $G \leq_v H$.
 \end{theorem}
 
 \begin{theorem}
 \label{reflexive-match-thm}
-  \emph{Matching is reflexive}: $G \leq_v G$ is a trivial consequence from open-embedding. 
+\emph{Matching is reflexive}: $G \leq_v G$ is a trivial instance of
+the same theorem for open-embeddings, where the embedding is the
+identity map.
 \end{theorem}
 
 
@@ -865,11 +880,11 @@ in an adjacent manner, variable-node graphs enjoy a single but
 somewhat wilder joining operation which we call \emph{plugging}. 
 
 \begin{definition}
-  A \emph{plugging}, written $\pi_{p}(G,H)$, is a pair, $p$, of
-  strict partial homomorpihc mappings, $f_G : G \Longrightarrow H$ and
-  $f_H : H \Longrightarrow G$ such that $f_G$ and $f_H$ do not map
-  concrete nodes and for the nodes that are mapped \emph{agree}
-  following the definition given below.
+  A \emph{plugging}, written $\pi_{p}(G,H)$, is a pair, $p$, of strict
+  partial graph morphisms, $f_G : G \rightarrow H$ and $f_H : H
+  \rightarrow G$ such that $f_G$ and $f_H$ \emph{agree}, following
+  the definition given below, on node mappings and do not map concrete
+  nodes.
 \end{definition}
 
 \begin{definition}
@@ -881,25 +896,24 @@ somewhat wilder joining operation which we call \emph{plugging}.
 \end{definition}
 
 We let $\pi(G,H)$ abbreviate $\exists p.\,\pi_p(G,H)$. We also
-overload the notation $\pi_p(G,H)$ to let it denote the graph that
-results from the plugging. This is defined to be the union of the
-nodes and edges from $G$ and $H$ where the nodes and edges mapped by
-the pair of plugging function are identified. Identification of nodes
-instantiates variable nodes: when a variable node is mapped to a
-concrete one, identification results in the concrete node.
+overload the notation $\pi_p(G,H)$ to denote the graph that results
+from the plugging. This is defined to be the union of the nodes and
+edges from $G$ and $H$ where the nodes and edges mapped by the pair of
+plugging function are identified. Identification of nodes instantiates
+variable nodes: when a variable node is mapped to a concrete one,
+identification results in the concrete node.
 
 While this is simply the intuitive way to combine graphs with variable
 nodes, the definition takes some care. In particular, it is important
-that plugging preserves the types of concrete nodes and results in
-subtypes in variable nodes. Figure~\ref{plugging-examples-fig}
-presents some examples to help the reader get the intuition as well as
-understand some of the more subtlte cases.
+that plugging preserves incident edges of concrete nodes.
+Figure~\ref{plugging-examples-fig} presents some examples to help the
+reader get the intuition as well as understand some of the more
+subtlte cases.
 
 \begin{theorem}
   \emph{Plugging is symmetric}: $\forall p.\, \exists q.\, \pi_p(G,H)
-  = \pi_q(H,G)$. Proof follows simply: given $p = (f_G,f_H)$, $q =
-  (f_H,f_G)$. As a corrolary, we get $\pi(G,H) \Leftrightarrow
-  \pi(H,G)$.
+  = \pi_q(H,G)$. Proof, given $p = (f_G,f_H)$ then $q = (f_H,f_G)$. As
+  a corollary, we get $\pi(G,H) \Leftrightarrow \pi(H,G)$.
 \end{theorem}
 
 \begin{theorem}
@@ -913,7 +927,7 @@ understand some of the more subtlte cases.
 
 \section{!-Boxes}
 
-A crucial feature of rules like the Spider Law is that an arbirary
+A crucial feature of rules like the Spider Theorem is that an arbirary
 number of repetitions of a subgraph need to be matched. To support
 this we introduce an operation, !-boxing, on graph
 representations. Given a graph representation, this introduces a new
@@ -1003,7 +1017,7 @@ natural numbers, where $k$ is the number of !-boxes.
 
 The representation of Compact Closed Categories as Graphs, discussed
 in~\S\ref{graph-repr-comp}, is too restrictive for reasoning about
-quantum computation. In particular, pictures such the Spider Law, in
+quantum computation. In particular, pictures such the Spider Theorem, in
 Figure~\ref{spider-law-fig} are frequently needed, but not
 expressible. Such pictures are used to denote an infinite family of
 concrete graphs that can be rewritten. In this section we combine the
