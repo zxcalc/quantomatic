@@ -782,14 +782,15 @@ formalise a representation that abstracts over the boundary nodes
 membership in the domain or co-domain. This gives rise to a
 \emph{variable-node graphs}, in which boundary nodes have been
 generalised to \emph{variable nodes}. The intuition of variable nodes
-is that they can replaced by concrete nodes in some graph. This is a
-process analgous to composition. We now define the semantics for
-variable-node graphs and then go on and introduce a way to join them.
+is that they can replaced by concrete nodes in some graph in a process
+analgous to composition. 
 
+% We now define the semantics for variable-node
+% graphs and then go on and introduce a way to join them.
 % relationship to composition on the underlying concrete graphs.
 
 
-\subsection{Semantics by Matching as an Open Embedding}
+% \subsection{Semantics by Matching as an Open Embedding}
 
 To formalise the semantics of variable-node graphs, we define
 matching, which captures the intuitive idea of a graph with variable
@@ -874,97 +875,101 @@ identity map.
 %underlying semantics, $a$ being a subtype of $b$ means that the set of
 %instances of $a$ are a subset of the instances of $b$.
 
+% \subsection{Variable-node Plugging}
 
+% While concrete graphs can be composed sequentially as well as tensored
+% in an adjacent manner, variable-node graphs enjoy a single but
+% somewhat wilder joining operation which we call \emph{plugging}. 
 
-\subsection{Variable-node Plugging}
+% \begin{definition}
+%   A \emph{plugging}, written $\pi_{p}(G,H)$, is a pair, $p$, of strict
+%   partial graph morphisms, $f_G : G \rightarrow H$ and $f_H : H
+%   \rightarrow G$ such that $f_G$ and $f_H$ \emph{agree}, following
+%   the definition given below, on node mappings and do not map concrete
+%   nodes.
+% \end{definition}
 
-While concrete graphs can be composed sequentially as well as tensored
-in an adjacent manner, variable-node graphs enjoy a single but
-somewhat wilder joining operation which we call \emph{plugging}. 
+% \begin{definition}
+%   Two mappings $f_G$ and $f_H$ \emph{agree} when $\forall v \in
+%   f_G(G).\, f_H(v) \in f^{-1}_G(v)$ and $\forall v \in f_H(H).\,
+%   f_G(v) \in f^{-1}_H(v)$. This states that if a set of nodes in one
+%   graph all map to a common node, $n$, in the other graph, then $n$
+%   maps back to one of the nodes that maps to it.
+% \end{definition}
 
-\begin{definition}
-  A \emph{plugging}, written $\pi_{p}(G,H)$, is a pair, $p$, of strict
-  partial graph morphisms, $f_G : G \rightarrow H$ and $f_H : H
-  \rightarrow G$ such that $f_G$ and $f_H$ \emph{agree}, following
-  the definition given below, on node mappings and do not map concrete
-  nodes.
-\end{definition}
+% We let $\pi(G,H)$ abbreviate $\exists p.\,\pi_p(G,H)$. We also
+% overload the notation $\pi_p(G,H)$ to denote the graph that results
+% from the plugging. This is defined to be the union of the nodes and
+% edges from $G$ and $H$ where the nodes and edges mapped by the pair of
+% plugging function are identified. Identification of nodes instantiates
+% variable nodes: when a variable node is mapped to a concrete one,
+% identification results in the concrete node.
 
-\begin{definition}
-  Two mappings $f_G$ and $f_H$ \emph{agree} when $\forall v \in
-  f_G(G).\, f_H(v) \in f^{-1}_G(v)$ and $\forall v \in f_H(H).\,
-  f_G(v) \in f^{-1}_H(v)$. This states that if a set of nodes in one
-  graph all map to a common node, $n$, in the other graph, then $n$
-  maps back to one of the nodes that maps to it.
-\end{definition}
+% While this is simply the intuitive way to combine graphs with variable
+% nodes, the definition takes some care. In particular, it is important
+% that plugging preserves incident edges of concrete nodes.
+% Figure~\ref{plugging-examples-fig} presents some examples to help the
+% reader get the intuition as well as understand some of the more
+% subtlte cases.
 
-We let $\pi(G,H)$ abbreviate $\exists p.\,\pi_p(G,H)$. We also
-overload the notation $\pi_p(G,H)$ to denote the graph that results
-from the plugging. This is defined to be the union of the nodes and
-edges from $G$ and $H$ where the nodes and edges mapped by the pair of
-plugging function are identified. Identification of nodes instantiates
-variable nodes: when a variable node is mapped to a concrete one,
-identification results in the concrete node.
+% \begin{theorem}
+%   \emph{Plugging is symmetric}: $\forall p.\, \exists q.\, \pi_p(G,H)
+%   = \pi_q(H,G)$. Proof, given $p = (f_G,f_H)$ then $q = (f_H,f_G)$. As
+%   a corollary, we get $\pi(G,H) \Leftrightarrow \pi(H,G)$.
+% \end{theorem}
 
-While this is simply the intuitive way to combine graphs with variable
-nodes, the definition takes some care. In particular, it is important
-that plugging preserves incident edges of concrete nodes.
-Figure~\ref{plugging-examples-fig} presents some examples to help the
-reader get the intuition as well as understand some of the more
-subtlte cases.
-
-\begin{theorem}
-  \emph{Plugging is symmetric}: $\forall p.\, \exists q.\, \pi_p(G,H)
-  = \pi_q(H,G)$. Proof, given $p = (f_G,f_H)$ then $q = (f_H,f_G)$. As
-  a corollary, we get $\pi(G,H) \Leftrightarrow \pi(H,G)$.
-\end{theorem}
-
-\begin{theorem}
-  \emph{Plugging preserves matching}: $V \leq_v G \Rightarrow V \leq_v
-  \pi_f(G,H)$. As corrolaries we get $V \leq_v H \Rightarrow V \leq_v
-  \pi_f(G,H)$ from symmetry of plugging, $\vinterp{G} \cap \vinterp{H}
-  \subseteq \bigcup_f \vinterp{\pi_f(G,H)}$ from the definition of
-  interpretation, $G \leq_v \pi_f(G,H)$ from reflexivity of matching
-  and consequently $H \leq_v \pi_f(G,H)$ by symmetry of plugging.
-\end{theorem}
+% \begin{theorem}
+%   \emph{Plugging preserves matching}: $V \leq_v G \Rightarrow V \leq_v
+%   \pi_f(G,H)$. As corrolaries we get $V \leq_v H \Rightarrow V \leq_v
+%   \pi_f(G,H)$ from symmetry of plugging, $\vinterp{G} \cap \vinterp{H}
+%   \subseteq \bigcup_f \vinterp{\pi_f(G,H)}$ from the definition of
+%   interpretation, $G \leq_v \pi_f(G,H)$ from reflexivity of matching
+%   and consequently $H \leq_v \pi_f(G,H)$ by symmetry of plugging.
+% \end{theorem}
 
 \section{!-Boxes}
 
 A crucial feature of rules like the Spider Theorem is that an arbirary
 number of repetitions of a subgraph need to be matched. To support
-this we introduce an operation, !-boxing, on graph
-representations. Given a graph representation, this introduces a new
-notation by outlining (called !-boxing) a set of chosen
-nodes. Intuitively, the resulting !-boxed graph can be thought of as
-representing a set of graphs with an arbirary number of copies of the
-!-boxed nodes, where every copy connects, in the same way, to the
+this we introduce an operation, !-boxing (pronounced band-boxing), on
+graph representations. Given a graph representation, this introduces a
+new notation by outlining a set of nodes. These nodes are said to be
+in a !-box. Intuitively, the resulting !-boxed graph can be thought of
+as representing a set of graphs with an arbirary number of copies of
+the !-boxed nodes, where every copy connects, in the same way, to the
 nodes outside the !-box. The !-boxes can also be instantiated with
-zero copies, which erases all edges to and from the !-box. See
-Figure~\ref{spider-bang-rule} .
+zero copies. This erases all edges to and from the !-box.
 
-More formaly, a graph with !-boxes is a graph paired with a set
-!-boxes. Each of these !-boxes is the set of nodes inside it and each
-!-box must be disjoint from the others.\footnote{The disjointness
-  condition avoids a slightly more complex, although also more
-  expressive, semantics for overlaping node sets in the !-boxes. While
-  such expressivity is interesting from a representational point of
-  view, it is not needed to express the currently known rules of
-  quantum computation.} 
+%Figure~\ref{fig:spider-bang-lhs-example} shows an how the left hand side of
+%the spider theorem can be represented with bang boxes and illustrates
+%some instances of it.
 
-For the purposes of this paper, the underlying graph representation of
-!-boxed graphs is variable-node graphs. The set of variable-node
-graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$. We
-now define the concept of !-box matching which we use to provide a
-semantics for the !-boxed graphs.
+%\begin{figure}[t]
+%$$\begin{array}{ccc}
+%\inlinegraphic{6em}{spider_lhs_patt} & = & \inlinegraphic{6em}{spider_rhs_ex1} & , & \inlinegraphic{6em}{spider_rhs_ex2} & , & \inlinegraphic{6em}{spider_rhs_ex3} & \dots
+%\end{array}$$
+%\label{fig:spider-bang-lhs-example}\caption{An informal equation on graphs
+%  that expresses the Spider Theorem. }
+%\end{figure}
+
+More formaly, a !-box graph is a graph paired with a set !-boxes. Each
+of these !-boxes is the set of nodes inside it and each !-box must be
+disjoint from the others.\footnote{The disjointness condition avoids a
+  slightly more complex, although also more expressive, semantics for
+  overlaping node sets in the !-boxes. While such expressivity is
+  interesting from a representational point of view, it is not needed
+  to express the currently known rules for quantum computation.}  We
+now define the concept of !-box matching which we then use to provide
+a formal semantics for the !-boxed graphs.
 
 \subsection{!-Matching.}
 
 To formalise the intuitive notion that a !-box represents arbitrary
 number of copies of the subgraph made from it's nodes, we introduce
 \emph{!-box matching}. This is a binary relation on graphs, written
-infix as $G \leq_! H$ when $G$ matches $H$. The set of !-box graphs
-matched by a !-box graph is defined as the set closed by the following
-operations on the !-boxes in a graph:
+infix as $G \leq_! H$ when $G$ matches $H$. The set matching !-box
+graphs is defined as the set closed by the following operations on the
+!-boxes in a graph:
 
 \begin{definition}
   \emph{copy}: copies a !-box, $b$ in a graph to produce a new graph
@@ -1008,33 +1013,52 @@ it. Thus the $\binterp{G}$ is isomorphic to the set of $k$-tuples of
 natural numbers, where $k$ is the number of !-boxes.
 
 \begin{theorem}
-  \emph{!-Matching respects !-box semantics}: $G \leq_! H
-  \Leftrightarrow \binterp{G} \supseteq \binterp{H}$. The proof is a
-  simple consequence from the defintion of $\binterp{G}$ being a
-  subset of the graphs that match $G$.
+\label{thm:bang-box-respect}
+\emph{!-Matching respects !-box semantics}: $G \leq_! H
+\Leftrightarrow \binterp{G} \supseteq \binterp{H}$. The proof is a
+simple consequence from the defintion of $\binterp{G}$ being a subset
+of the graphs that match $G$.
 \end{theorem}
 
+For the purposes of this paper, the underlying graph representation of
+!-boxed graphs is variable-node graphs. This gives rise to graph
+patterns which we now discuss in more detail.
+% The set of variable-node
+% graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$. 
 
 \section{Graph Patterns}
 \label{sec:patterns}
 
 The representation of Compact Closed Categories as Graphs, discussed
-in~\S\ref{graph-repr-comp}, is too restrictive for reasoning about
-quantum computation. In particular, pictures such the Spider Theorem, in
-Figure~\ref{spider-law-fig} are frequently needed, but not
-expressible. Such pictures are used to denote an infinite family of
-concrete graphs that can be rewritten. In this section we combine the
-{\em !-boxes} with {\em variable nodes} graph extensions to form a
-representation that allows us to finitely express these infinite
-families of concrete graphs. We call this extension \ref{graph
-  patterns}. The Spider Law can now be represented by the equation in
-Figure~\ref{graph-pattern-spider-law-fig}. We also extend the notion
-of matching for graph pattens as well as present a corresponding
-notion of plugging. This provides the foundations for the rewriting
-machinery in~\S\ref{rewriting} which can then be used to reasoning
-about quantum computation.
+in~\S\ref{sec:graph-repr-comp}, is too restrictive for reasoning about
+quantum computation. In particular, graphical rules such the Spider
+Theorem, from Figure~\ref{fig:informal-spider-law}, are frequently
+needed, but not expressible. In this section we combine the {\em
+  !-boxes} and {\em variable-node} extensions to graphs. We call this
+representation \emph{graph patterns}. This forms a representation that
+allows us to express, in a finite way, the infinite family of concrete
+graphs equations. In particular, the Spider Theroem can now be
+represented by the equation shown in Figure~\ref{fig:spider-thm-patt}.
+We also extend the notion of matching for graph pattens.
+%as well as present a corresponding notion of plugging. 
+This provides the foundations for the rewriting machinery
+in~\S\ref{sec:rewriting} which can then be used to reasoning about
+quantum computation.
 
-graph-pattern-spider-law-fig
+\begin{figure}[t]
+$$\begin{array}{ccc}
+\inlinegraphic{8em}{spider_lhs_patt} & \;=\; & \inlinegraphic{6em}{spider_rhs_patt}
+\end{array}$$
+\label{fig:spider-thm-patt}\caption{The Spider Theorem expressed using graph patterns.}
+\end{figure}
+
+% \subsubsection{Completeness.}
+
+% Graph patterns are complete in the sense that for every concrete graph
+% there is a pattern that matches it. This is a trivial consequence of
+% the completeness of variable-node extension to graphs, which is
+% unaffected by allowing !-boxes.
+
 
 \subsection{Matching}
 
@@ -1047,14 +1071,6 @@ graphs as well as directly between graph patterns. The former relation
 gives a semantics for our system and ensures soundness, while the
 latter supports deirved equations and thus provides the theoretical
 basis for our formulation of rewriting.
-
-\subsubsection{Completeness.}
-
-Graph patterns are complete in the sense that for every concrete graph
-there is a pattern that matches it. This is a trivial consequence of
-the completeness of variable-node extension to graphs, which is
-unaffected by allowing !-boxes.
-
 
 \subsubsection{Concrete Matches.}
 
@@ -1080,29 +1096,29 @@ matching followed by variable-node matching:
   $G \leq H \Leftrightarrow \forall H' \in \binterp{H}.\,\exists G' \in \binterp{G}.\, G' \leq_v H'$
 \end{definition}
 
-Because viable-node matching preserves the semantics, it is trivial to
-prove that this definition meets the specification. This gives us
-matching between pattern-nodes.
+Because variable-node matching preserves the semantics, it is trivial to
+prove that this definition meets the specification.
 
-\subsubsection{Graph Pattern Equality.}
+% \subsubsection{Graph Pattern Equality.}
 
-Equality of graph patterns can simply be defined as mutual matching: 
+% Equality of graph patterns can simply be defined as mutual matching: 
 
-\begin{definition}
-  $G = H \Leftrightarrow G \leq H \land H \leq G$
-\end{definition}
+% \begin{definition}
+%   $G = H \Leftrightarrow G \leq H \land H \leq G$
+% \end{definition}
 
+% \subsection{Plugging}
 
-\subsection{Plugging}
+% We then extend the plugging
+% operation on variable-node graphs to graphs with !-boxes.
 
-We then extend the plugging
-operation on variable-node graphs to graphs with !-boxes.
+% By defining graph patterns as a conservative extension of concrete
+% graphs we get the relative soundness for them.
 
-
-By defining graph patterns as a conservative extension of concrete
-graphs we get the relative soundness for them.
-
-
+% We note that using concrete graphs as the underlying representation
+% results in composition of !-box graphs to disrespect the !-box
+% semantics: Theorem \ref{thm:bang-box-respects-plugging} fails to hold
+% for composision.
 
 \section{Reasoning with Graph Patterns}
 \label{sec:rewriting}
@@ -1125,51 +1141,63 @@ rewriting.
 Axioms defined by an object-level model, as well as derived rules in
 our framework, are pairs of pattern graph. The pair represents the
 left and right hand sides of an equation. Rules are declarative in
-that they denote set of concrete equational rules. 
+that they denote a set of concrete equational rules. 
 
-Substituon with a rule involves replacing a subgraph that matches the
-left hand side with the right hand side. To do this there has to be a
-isomorphism between variable nodes in the left and right hand
-subgraphs. More concretely, there must be a unique naming of the
-variable nodes in the left hand side such that each name occurs in a
-unique variable node on the right hand side. Given a matching on the
-left hand side, the target subgraph is replaced with the right hand
-side while keeping the same instantiations for the isomorphic variable
-nodes. 
+The intuitive idea of substituon with a rule is to replace a subgraph
+that matches the left hand side with the right hand side. However, not
+all pairs of rules are make sense with respect to the underlying
+semantics. For an equation to be well defined with respect to the
+compact closed structure it must not be possible to changes the type
+of a concrete graph by rewriting. Mapping this restriction back to
+pairs of graph patterns results in the following conditions on rules:
 
-Rules also contain a partial 1-1 mapping between !-boxes on the left
-and right hand sides. The intuition for this mapping is that the
-unfolding used when matching, for a !-box on the left, is applied to
-the mapped !-box on the right before replacement. 
+\begin{itemize}
+
+\item There has to be a isomorphism between variable nodes in the left
+  and right hand subgraphs. More concretely, there must be a unique
+  naming of the variable nodes in the left hand side such that each
+  name occurs in a unique variable node on the right hand side. Given
+  a matching on the left hand side, the target subgraph is replaced
+  with the right hand side while keeping the same instantiations for
+  the isomorphic variable nodes.
+
+\item Rules must also define a partial 1-1 mapping between !-boxes on
+  the left and right hand sides. The intuition for this mapping is
+  that the unfolding used when matching a !-box on the left, is
+  applied to the mapped !-box on the right before replacement.
+
+\item The interplay between !-boxes and variable nodes means that when
+  a variable node appears within a !-box on one side of a rule it must
+  also appear under a mapped !-box on the other side.
+
+\end{itemize}
 
 Notationally, and implementationally, we annotate !-boxes and variable
-nodes in a graphs with unique names. For example,
-Figure~\ref{spider-law2-fig} illustrates the Spider Law as a rule in
-the general framework. The partial 1-1 mapping for !-boxes is
-represented by !-boxes having the same name on the left and right of a
-rule. Similarly, the isomorphism between variable nodes is captured by
-the set of variable node names on the left and right hand side being
-equal. There is an additional restriction that comes from the
-interplay between !-boxes and variable nodes. When a variable node
-appears within a !-box on one side of a rule it must appear under
-mapped !-box on the other side. This enforces that rules cannot change
-the type of a graph pattern.
+nodes in a graphs with unique names. For example, see
+Figure~\ref{fig:spider-thm-patt} which illustrates the Spider Theorem
+as a rule between graph patterns. In this figure, the partial 1-1
+mapping for !-boxes is represented by !-boxes having the same name on
+the left and right of a rule.  Similarly, the isomorphism between
+variable nodes is captured by the set of variable node names on the
+left and right hand side being equal.
 
-\subsection{Adequacy}
-
-This
-provides rewriting for pattern graphs.
-
-A an equation on a graph pattern is 
-
-\emph{Adequacy} says that if one by doing so within an
-equation, we are not
-
+\subsubsection{Adequacy.} An equation on graph patterns corresponds to
+a possibly infinite set of equations betweens concrete graphs. We
+might expect that such equations express too much: they may allow
+rewrites which are not intended. We prove \emph{adequacy}, which
+states that this is not the case. In particular, given an equation
+between concrete graphs, $G = H$, the equations between the lifting of
+these to variable node graphs by replacing boundary nodes with
+variable nodes is a conservative extension. The proof follows directly
+from the obervation that every instance of the lifted variable node
+equation corresponds to compsition of $G$ and $H$ with some other
+graph (the non-embedded part).
 
 \subsection{Meta-Level Logic and Derived Rules}
 
-The meta-logical rules of the framework are quite simple as they only
-involve dealing with object-level equations:
+Having defined what make a valid rule, we now present the meta-logic
+of the framework. This is quite simple as they only involve dealing
+with object-level equations:
 
 \begin{center}
 \prooftree
@@ -1195,7 +1223,7 @@ A = B \in \Gamma
 \endprooftree
 \quad\quad
 \prooftree
-\Gamma \vdash A = B
+\Gamma \vdash A = B \quad\quad
 \Gamma \vdash C = D
 \justifies
 \Gamma \vdash (C = D[A/B])
@@ -1205,6 +1233,8 @@ A = B \in \Gamma
 
 \noindent where $\Gamma$ is the set of object-level axioms. For the
 reflexivity rule, $A$ must be a well-formed pattern graph. 
+
+
 
 This system allows derived rules which allow a combination of steps to
 be abbreviated by representing them as a single new rule. 
@@ -1225,23 +1255,21 @@ arguments:
   rule in terms of the underlying semantics.
 \end{itemize}
 
-The proof of adequancy ...
-
 The completeness of the resulting system, with respect to the intended
 underlying semantics, depends on the completeness of the set of given
-rules.
+rules. Completeness is a challenging and still open problem for graph
+based models of quantum computation. Even without completeness, we
+obersve in \S\ref{sec:case-study} that interesting and useful quantum
+computations can be expressed.
 
-\subsection{Derived Rules}
-
-
-\subsection{Simplification}
-
-
-\subsection{Adequacy}
+\section{Implementation}
+\label{ssec:implementation}
 
 
 
+% \subsection{Simplification}
 
+% One of the main applications of 
 
 % An object-level graph system is sound if their is some pair of graphs
 % which can not be derived as an equation.
@@ -1261,18 +1289,16 @@ rules.
 
 
 \section{A Case Study in Quantum Computation}
-
-The model of qantum computation in which we are interested is finite
-dimensional hilbert spaces. 
+\label{sec:case-study}
+%The model of qantum computation in which we are interested is finite
+%dimensional hilbert spaces. 
 
 \subsection{Node Expressions}
 \label{ssec:node-expressions}
 
 
-Completeness is a challenging and still open problem for graph based
-models of quantum computation. However, even without completeness
-interesting quantum computations can be expressed.
-
+\subsection{}
+\label{ssec:node-expressions}
 
 \section{Related Work}
 \label{sec:relatedwork}
