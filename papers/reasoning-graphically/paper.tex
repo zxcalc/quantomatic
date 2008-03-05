@@ -208,21 +208,22 @@
 
 \begin{abstract}
   Recent graph-based formalisms of quantum computation provide an
-  abstract and symbolic way to represent and simulate the
+  abstract and symbolic way to represent and simulate
   computations. However, manual manipulation of such graphs is slow
-  and error prone. We present a formalism that supports mechanised
-  reasoning about such graphs. This involves a compositional account
-  of graph rewriting that preserves the underlying categorical
-  semantics. We present a generic system with a fixed logical kernel
-  for representing compact closed categories. This provides a
-  declarative account which supports derived rules. We illustrate the
-  framework by instantiating it for the graphical language of quantum
-  computation. 
+  and error prone. We present a formalism, based on compact closed
+  categories, that supports mechanised reasoning about such
+  graphs. This gives a compositional account of graph rewriting that
+  preserves the underlying categorical semantics. Using this
+  representation, we describe a generic system with a fixed logical
+  kernel that supports reasoning about models of compact closed
+  category. A salient feature of the system is that it provides a
+  declarative account of derived results. We illustrate the framework
+  by instantiating it for a graphical language of quantum computation
+  and show how this can be used to perform symbolic computation.
 
   \keywords{graph rewriting, quantum computing, categorical logic,
     interactive theorem proving, graphical calculi; concerning:
-    symbolic computation, automated reasoning, formal mathematics,
-    logic}
+    symbolic computation, automated reasoning, formal mathematics}
 \end{abstract}
 
 
@@ -251,29 +252,33 @@ matrix-based approach to quantum mechanics:
 \end{itemize}
 
 The major problem with these graphical representations is the lack of
-machinery for automating the manipulation of graphs.  Existing
-approaches to graph transformation have a different underlying
-semantics corresponding to graphs in general rather than those which
-describe compact closed categories. The result is that they provide an
-unsound concept of rewriting for the kind of graphs we are interested
-in.
+machinery for automating their manipulation. Existing approaches to
+graph transformation have a different underlying semantics
+corresponding to graphs in general rather than those which describe
+compact closed categories. The result is that they provide an unsound
+concept of rewriting for the kind of graphs we are interested in.
 
-This paper reviews a formalism for graphical representations of
+The main contribution of this paper is a graph-vased formalism that is
+suitable for representing and evaluating quantum computations. We
+start by reviewing a formalism for graphical representations of
 compact closed categories. We also revisit a model of quantum
 computation based on this calculus. We then extend the graphical
 calculus in two significant ways driven by the need to express rules
-that could not be accounted for in the initial formalism. We provide a
-semantics for these in terms of the initial representation. By
-suitably combining these extensions to graphs, we provide a
-representation that captures an interesting and useful set of graph
-patterns. We use this as the foundation for a simple logical framework
-for manipulating compact closed categories as graphs. This has a
-suitable rewriting mechanism where the axioms of the underlying
-object-formalism are expressed as equations between graphs. We then
-present a short case study that illustrates the framework by
-instantiating it for the introduced model of quantum computation.
-This shows how the framework can be used to symbolically perform
-simplifications to quantum programs as well as simulate quantum
+that could not be accounted for in the initial formalism. By combining
+these extensions, we provide a representation that captures an
+interesting and useful set of graph patterns. Notably, it can express
+the Spider Theorem, which is normally written using informal elipses
+notation. We provide a semantics for our graph-based formalism in
+terms of the initial representation of compact closed categories.
+
+Using our graph-based formalism as the representational foundation, we
+develop a simple logical framework for manipulating models of compact
+closed categories. This has a suitable rewriting mechanism where the
+axioms of the underlying object-formalism are expressed as equations
+between graphs. We then present a short case study that illustrates
+the framework by instantiating it for the introduced model of quantum
+computation.  This shows how the framework can be used to symbolically
+perform simplifications of quantum programs as well as simulate
 computations.
 
 %History of diagrammatic representation going back to ???  
@@ -328,7 +333,7 @@ that:
 
 \noindent These ensure that the structure of the graph is preserved by
 the morphism: an edge connected to a node gets mapped to a new edge
-that must connected in the same way to the mapped node.
+that must be connected, in the same way, to the mapped node.
 
 Let $f: G \to H$ be graph morphism and let $V' \subseteq V_G$. We say
 that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if $s_H(e)
@@ -552,8 +557,8 @@ Coecke and Duncan \cite{Coecke:2008jo} propose a formal algebraic
 system for quantum computation built from the following collection of
 generators:  
 \begin{description}
-\item[Objects] the self dual object $Q$;
-\item[Arrows] Two families of arrows:
+\item[Objects:] the self dual object $Q$;
+\item[Arrows:] two families of arrows $X$ and $Z$:
   \begin{align*}
   &\epsilon_Z : Q \to I, &\qquad&  \epsilon_X : Q \to I,\\
   &\delta_Z : Q \to Q \otimes Q, && \delta_X : Q \to Q \otimes Q, \\
@@ -931,14 +936,16 @@ identity map.
 
 A crucial feature of rules like the Spider Theorem is that an arbirary
 number of repetitions of a subgraph need to be matched. To support
-this we introduce an operation, !-boxing (pronounced band-boxing), on
+this we introduce an operation, !-boxing (pronounced bang-boxing), on
 graph representations. Given a graph representation, this introduces a
 new notation by outlining a set of nodes. These nodes are said to be
 in a !-box. Intuitively, the resulting !-boxed graph can be thought of
 as representing a set of graphs with an arbirary number of copies of
 the !-boxed nodes, where every copy connects, in the same way, to the
 nodes outside the !-box. The !-boxes can also be instantiated with
-zero copies. This erases all edges to and from the !-box.
+zero copies. This erases all edges to and from the !-box.  The Spider
+Theorem in Figure~\ref{fig:informal-spider-law} for instance is
+represented with !-boxes in Figure~\ref{fig:spider-thm-patt}.
 
 %Figure~\ref{fig:spider-bang-lhs-example} shows an how the left hand side of
 %the spider theorem can be represented with bang boxes and illustrates
@@ -962,7 +969,7 @@ disjoint from the others.\footnote{The disjointness condition avoids a
 now define the concept of !-box matching which we then use to provide
 a formal semantics for the !-boxed graphs.
 
-\subsection{!-Matching.}
+\subsubsection{Matching.}
 
 To formalise the intuitive notion that a !-box represents arbitrary
 number of copies of the subgraph made from it's nodes, we introduce
@@ -995,7 +1002,7 @@ graphs is defined as the set closed by the following operations on the
   larger !-box $B_1 \cup B_2$.
 \end{definition}
 
-\subsection{!-Box Semantics.} 
+\subsubsection{Semantics.} 
 
 We give a formal semantics to a !-box graphs by defining the !-box
 graph in terms of a set of graphs in the underlying representation. We
@@ -1059,45 +1066,52 @@ $$\begin{array}{ccc}
 % the completeness of variable-node extension to graphs, which is
 % unaffected by allowing !-boxes.
 
+% \subsubsection{Matching.}
 
-\subsection{Matching}
+% The purpose of graph patterns is to formally express, in a declarative
+% manner, the intuitive idea of graph matching which commonly used in
+% quantum computation. To do this, we combine the two extensions to the
+% concrete graph representation, namely variable nodes and !-boxes, to
+% provides a matching relation between graph patterns and concrete
+% graphs as well as directly between graph patterns. The former relation
+% gives a semantics for our system and ensures soundness, while the
+% latter supports deirved equations and thus provides the theoretical
+% basis for our formulation of rewriting.
 
-The purpose of graph patterns is to formally express, in a declarative
-manner, the intuitive idea of graph matching which commonly used in
-quantum computation. To do this, we combine the two extensions to the
-concrete graph representation, namely variable nodes and !-boxes, to
-provides a matching relation between graph patterns and concrete
-graphs as well as directly between graph patterns. The former relation
-gives a semantics for our system and ensures soundness, while the
-latter supports deirved equations and thus provides the theoretical
-basis for our formulation of rewriting.
-
-\subsubsection{Concrete Matches.}
+\subsubsection{Semantics as Concrete Matches.}
 
 The semantics for a graph pattern $G$ is a set of concrete graphs
-denoted by $\minterp{G}$. We say that members of this set are
-\emph{matched} by $G$. Formally, the concrete set of matches are
-defined as:
+denoted by $\minterp{G}$ and define it as:
 
 $$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
 
+\noindent this simply considers every interpretation of the !-boxes to
+give variable-node graphs for which we then appeal to their own
+semantics. 
+
 \subsubsection{Graph Pattern Matches.}
 
-The specification for one pattern matching another one is simply that
-it is more general. Formally, a graph pattern, $G$, matches another
-graph pattern, $H$, when $\minterp{G} \supseteq \minterp{H}$. This is
-the specification for a matching algorithm which we implement of
-in~\S\ref{sec:rewriting}. We can use the definition of open embedding
-from variable-node graphs as an intermediate mechanism and show that a
-suitable definition of graph pattern matching is simply the !-Box
-matching followed by variable-node matching:
 
-\begin{definition}
-  $G \leq H \Leftrightarrow \forall H' \in \binterp{H}.\,\exists G' \in \binterp{G}.\, G' \leq_v H'$
-\end{definition}
+The specification for one pattern, $G$, to match another one, $H$ is
+that it is more general with respect to the interpretation:
+$\minterp{G} \supseteq \minterp{H}$. However, graph patterns can
+correspond to a countably infinite number of concrete graphs. Thus
+matching between graph pattern cannot be implemented by simply
+unfolding them to their interpretated concrete graphs and checking the
+membership relation. 
 
-Because variable-node matching preserves the semantics, it is trivial to
-prove that this definition meets the specification.
+*** add matching algo outline ***
+
+%We can use the definition of open embedding from variable-node graphs
+%as an intermediate mechanism and show that a suitable definition of
+%graph pattern matching is simply the !-Box matching followed by
+%variable-node matching:
+%
+%\begin{definition}
+%  $G \leq H \Leftrightarrow \forall H' \in \binterp{H}.\,\exists G' \in \binterp{G}.\, G' \leq_v H'$
+%\end{definition}
+%Because variable-node matching preserves the semantics, it is trivial to
+%prove that this definition meets the specification.
 
 % \subsubsection{Graph Pattern Equality.}
 
@@ -1126,15 +1140,15 @@ prove that this definition meets the specification.
 In this section we describe how the garph pattern formalism can
 provide a \emph{meta-level} framework for reasoning about models of
 compact closed categories. Following the terminology of logical
-frameworks such as Isabelle~\cite{isabelle}, we call the specification
-provided by the underlying model an \emph{object-level} graph
-formalism. In particular, an object-level formalisation defines a set
-of rules which are treated as the axioms for the system. It also
-defines the data at the nodes and edges as well as corresponding
-data-matching behaviour. For it's part, the meta-level provides
-machinery to manipulate graphs and derive new rules. In this section
-we describe the meta-level framework and prove its adequacy for
-rewriting.
+frameworks such as Isabelle~\cite{isabelle}, we call the
+specification, provided by the underlying model, an
+\emph{object-level} graph formalism. An object-level formalisation
+defines a set of rules which are treated as the axioms for the
+system. It also defines the data at the nodes and edges as well as
+corresponding data-matching behaviour. For it's part, the meta-level
+provides generic machinery to manipulate graphs and derive new
+rules. In this section we describe the meta-level framework and prove
+its adequacy for rewriting.
 
 \subsection{Equational Rules}
 
@@ -1181,7 +1195,13 @@ the left and right of a rule.  Similarly, the isomorphism between
 variable nodes is captured by the set of variable node names on the
 left and right hand side being equal.
 
-\subsubsection{Adequacy.} An equation on graph patterns corresponds to
+\subsection{Lifting} 
+
+*** lifting concrete laws to graph-pattern laws ***
+
+\subsection{Adequacy} 
+
+An equation on graph patterns corresponds to
 a possibly infinite set of equations betweens concrete graphs. We
 might expect that such equations express too much: they may allow
 rewrites which are not intended. We prove \emph{adequacy}, which
@@ -1193,6 +1213,7 @@ from the obervation that every instance of the lifted variable node
 equation corresponds to compsition of $G$ and $H$ with some other
 graph (the non-embedded part).
 
+
 \subsection{Meta-Level Logic and Derived Rules}
 
 Having defined what make a valid rule, we now present the meta-logic
@@ -1200,26 +1221,25 @@ of the framework. This is quite simple as they only involve dealing
 with object-level equations:
 
 \begin{center}
-\prooftree
-A = B \in \Gamma
-\justifies
-\Gamma \vdash A = B
-\using\mbox{trivial}
-\endprooftree
-\quad\quad
+%% not needed, can be derived by refl + subst
+%\prooftree
+%A = B \in \Gamma
+%\justifies
+%\Gamma \vdash A = B
+%\using\mbox{trivial}
+%\endprooftree
+%\quad\quad
 \prooftree
 \justifies
 \Gamma \vdash A = A
-\using\mbox{reflexivity}
-\endprooftree
-\end{center}
-
-\begin{center}
+\using\mbox{refl}
+\endprooftree 
+\quad\quad
 \prooftree
 \Gamma \vdash A = B
 \justifies
 \Gamma \vdash B = A
-\using\mbox{symmetry}
+\using\mbox{sym}
 \endprooftree
 \quad\quad
 \prooftree
@@ -1227,17 +1247,19 @@ A = B \in \Gamma
 \Gamma \vdash C = D
 \justifies
 \Gamma \vdash (C = D[A/B])
-\using\mbox{substitution}
+\using\mbox{subst}
 \endprooftree
 \end{center}
 
 \noindent where $\Gamma$ is the set of object-level axioms. For the
 reflexivity rule, $A$ must be a well-formed pattern graph. 
 
-
-
-This system allows derived rules which allow a combination of steps to
-be abbreviated by representing them as a single new rule. 
+A new graph can be introduced using the reflexivity law. This can be
+the left hand side of a conjecture, or a graph that needs to be
+computed. By applying the \emph{subst} rule, intermediate results are
+derived which can themselves be used to rewrite other rules and
+conjetcures. In this way, the system allows derived rules to provide
+an abbreviation for a combination of steps. 
 
 \subsection{Soundness and Completeness} 
 
@@ -1262,10 +1284,8 @@ based models of quantum computation. Even without completeness, we
 obersve in \S\ref{sec:case-study} that interesting and useful quantum
 computations can be expressed.
 
-\section{Implementation}
-\label{ssec:implementation}
-
-
+%\subsection{Implementation}
+%\label{ssec:implementation}
 
 % \subsection{Simplification}
 
@@ -1296,9 +1316,6 @@ computations can be expressed.
 \subsection{Node Expressions}
 \label{ssec:node-expressions}
 
-
-\subsection{}
-\label{ssec:node-expressions}
 
 \section{Related Work}
 \label{sec:relatedwork}
