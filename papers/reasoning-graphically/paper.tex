@@ -557,8 +557,8 @@ Coecke and Duncan \cite{Coecke:2008jo} propose a formal algebraic
 system for quantum computation built from the following collection of
 generators:  
 \begin{description}
-\item[Objects:] the self dual object $Q$;
-\item[Arrows:] two families of arrows $X$ and $Z$:
+\item[Objects:] are written $Q$ and are self dual;
+\item[Arrows:] there are families of arrows $X$ and $Z$:
   \begin{align*}
   &\epsilon_Z : Q \to I, &\qquad&  \epsilon_X : Q \to I,\\
   &\delta_Z : Q \to Q \otimes Q, && \delta_X : Q \to Q \otimes Q, \\
@@ -1054,9 +1054,12 @@ quantum computation.
 
 \begin{figure}[t]
 $$\begin{array}{ccc}
-\inlinegraphic{8em}{spider_lhs_patt} & \;=\; & \inlinegraphic{6em}{spider_rhs_patt}
+\inlinegraphic{12em}{spider_lhs_patt} & \;=\; & \inlinegraphic{9em}{spider_rhs_patt}
 \end{array}$$
-\label{fig:spider-thm-patt}\caption{The Spider Theorem expressed using graph patterns.}
+\label{fig:spider-thm-patt}\caption{The Spider Theorem expressed using
+  graph patterns. The !-boxes are named $i$ and $j$. The variable
+  nodes are white and named $a$ and $b$. The internal node's data,
+  which is an angle, is written inside the node.}
 \end{figure}
 
 % \subsubsection{Completeness.}
@@ -1100,7 +1103,21 @@ matching between graph pattern cannot be implemented by simply
 unfolding them to their interpretated concrete graphs and checking the
 membership relation. 
 
-*** add matching algo outline ***
+Fortunately, it is quite easy to provide a decidable matching. This is
+because the size of the unfolding that needs to be considered can be
+bounded. The key observation is that a graph $G_1$ will never match a
+graph with less non-variable nodes. Thus unfolding of $G_1$ can be
+bounded by the number of non-variable nodes in $G_2$. While this gives
+a generate and test style algorithm, it is not efficient. The
+intuition for an efficient algorithm is to search through one graph
+incrementally increasing the matched part and avoids symmetries in
+matching. The development of an efficient algotihm is ongoing work.
+
+%non-variable nodes than another graph $G_2$
+%
+%can algorithm as
+%
+%*** add matching algo outline ***
 
 %We can use the definition of open embedding from variable-node graphs
 %as an intermediate mechanism and show that a suitable definition of
@@ -1195,24 +1212,29 @@ the left and right of a rule.  Similarly, the isomorphism between
 variable nodes is captured by the set of variable node names on the
 left and right hand side being equal.
 
-\subsection{Lifting} 
+\subsection{Lifting Axioms and Adequacy} 
 
-*** lifting concrete laws to graph-pattern laws ***
+The axioms of an object system typically come from the semantics of
+the unerlying system. For instance, the equations given in
+Figure~\ref{fig:graph-quant-eqns} provide a system of reasoning about
+quantum computation. In some cases, such equations can be provdied by
+the underltying semantics. When such rules are expressed as graph
+patterns, we replace the concrete representations boundary nodes with
+variable nodes. This operation is called \emph{lifting}. An equation
+on graph patterns corresponds to a possibly infinite set of equations
+betweens concrete graphs. Thus we might worry that the lifted
+equations express too much: they may allow rewrites which are not
+intended. 
 
-\subsection{Adequacy} 
-
-An equation on graph patterns corresponds to
-a possibly infinite set of equations betweens concrete graphs. We
-might expect that such equations express too much: they may allow
-rewrites which are not intended. We prove \emph{adequacy}, which
-states that this is not the case. In particular, given an equation
-between concrete graphs, $G = H$, the equations between the lifting of
-these to variable node graphs by replacing boundary nodes with
-variable nodes is a conservative extension. The proof follows directly
-from the obervation that every instance of the lifted variable node
-equation corresponds to compsition of $G$ and $H$ with some other
-graph (the non-embedded part).
-
+We call the property that the lifted representation is a conservative
+extension of the initial theory \emph{adequacy}. For models of compact
+closed categories, the proof of adequacy is quite simple: given an
+equation between concrete graphs, $G = H$, we observe that every
+instance of the lifted equation corresponds to the original equations
+composed with some graph. The graph is given by the unmapped subgraph
+using the open embedding from the lifted equations onto their
+instance. Thus if $G = H$ is true, then so is every instance of it's
+lifting, and thus the lifting produces an adequate representation.
 
 \subsection{Meta-Level Logic and Derived Rules}
 
@@ -1230,6 +1252,7 @@ with object-level equations:
 %\endprooftree
 %\quad\quad
 \prooftree
+%\mathit{valid}(A)
 \justifies
 \Gamma \vdash A = A
 \using\mbox{refl}
@@ -1251,15 +1274,19 @@ with object-level equations:
 \endprooftree
 \end{center}
 
-\noindent where $\Gamma$ is the set of object-level axioms. For the
-reflexivity rule, $A$ must be a well-formed pattern graph. 
+\noindent where $\Gamma$ is the set of object-level axioms and for the
+reflexivity rule, $A$ must be a well-formed pattern graph. We assume
+that axioms in $\Gamma$ meet the validity conditions described
+earlier. These rules all preserve the validity conditions on equations
+and thus the system as a whole ensures only valid rules are derived.
 
-A new graph can be introduced using the reflexivity law. This can be
-the left hand side of a conjecture, or a graph that needs to be
-computed. By applying the \emph{subst} rule, intermediate results are
-derived which can themselves be used to rewrite other rules and
-conjetcures. In this way, the system allows derived rules to provide
-an abbreviation for a combination of steps. 
+A new graph can be introduced using the reflexivity law (\emph{refl}).
+By applying the \emph{subst} rule, intermediate results are derived
+which can themselves be used to rewrite other rules and conjetcures.
+In this way, the system allows derived rules to provide an
+abbreviation for a combination of steps. Sets of rules can be applied
+automatically to simulate computation in an the object domain. In
+\S\ref{sec:case-study} we illustrate this for quantum computation.
 
 \subsection{Soundness and Completeness} 
 
@@ -1289,8 +1316,6 @@ computations can be expressed.
 
 % \subsection{Simplification}
 
-% One of the main applications of 
-
 % An object-level graph system is sound if their is some pair of graphs
 % which can not be derived as an equation.
 
@@ -1310,11 +1335,63 @@ computations can be expressed.
 
 \section{A Case Study in Quantum Computation}
 \label{sec:case-study}
+
+The model of quantum computation introduced in
+\S\ref{sec:quotients-rewriting} provides an object formalism for
+logical system. The equations from Figure~\ref{fig:graph-quant-eqns}
+are lifted to graph patterns and the spider rule is encoded as shown
+in Figure~\ref{fig:spider-thm-patt}. Although a complete graph-based
+account of the underlying quantum model is ongoing work, these rules
+provide an effective and useful initial set. 
+
+As well as these equations, recall that the object level formalism
+must define the data held at the nodes and edges as well as provide a
+suitable macthing algorithm for these. Our model of quantum
+computation provides no data for the edges. The nodes, on the other
+hand, are either a $H$ with no additional data (a Hadamard gate), or
+have an \emph{angle} and are either the $X$ or $Z$ transforms. For
+their part, angles are expressed as rational numbers which correspond
+to the coefficient of $\pi$ in the corresponding matrix.
+
+The result is that we give the $X$ and $Z$ nodes an \emph{angle
+  expression}. When a node is within a !-box, this is a variable which
+gets instantiated to a new variable in each of the unfoldings of the
+!-box. When a node is not within a !-box, angle-expressions are a
+mapping from a set of angle-variables to the corresponding rational
+cooefficient. When an angle-expression contains a variable within a
+!-box, this is interpreted as a sum of the variables that result from
+it's unfolding. This rather simple expression language has a simple
+normal form by lexographically ordering the angle-variable. Matching
+then results in variables being instantiated and all affected nodes
+normalising the result of the instantiation. The substitution rule
+also has to make sure that a angle-variables in the rule being applied
+are distinct from those in the expression being rewritten. 
+
+
 %The model of qantum computation in which we are interested is finite
 %dimensional hilbert spaces. 
 
-\subsection{Node Expressions}
-\label{ssec:node-expressions}
+%\subsection{Node Expressions}
+%\label{ssec:cs:node-expressions}
+
+
+\subsection{Computing the Quantum Fourier Transform}
+\label{ssec:cs:quantum-transform}
+
+The quantum fourier transform is among the most important quantum
+algorithms, forming an essential part of Shor's
+algorithm~\cite{Shor:PolyTimeFact:1997}. 
+
+\begin{figure}[t]
+$$\begin{array}{cccc}
+  & \inlinegraphic{2cm}{qft2} & = & \inlinegraphic{2cm}{qft3} \\ 
+ & & & \\
+= & \inlinegraphic{2cm}{qft6} & = & \inlinegraphic{2cm}{qft10}
+\end{array}$$
+\label{fig:quantum-transform}\caption{An example computation of the
+  Quantum Fourier Transform, performed symbollically by rewriting.}
+\end{figure}
+
 
 
 \section{Related Work}
