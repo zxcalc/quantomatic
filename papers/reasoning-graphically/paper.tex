@@ -983,7 +983,8 @@ disjoint from the others.\footnote{The disjointness condition avoids a
 now define the concept of !-box matching which we then use to provide
 a formal semantics for the !-boxed graphs.
 
-\textbf{Matching.} To formalise the intuitive notion that a !-box
+%\textbf{Matching.} 
+To formalise the intuitive notion that a !-box
 represents arbitrary number of copies of the subgraph made from it's
 nodes, we introduce \emph{!-box matching}. This is a binary relation
 on graphs, written infix as $G \leq_! H$ when $G$ matches $H$. The set
@@ -1008,7 +1009,8 @@ operations on the !-boxes in a graph:
   larger !-box $B_1 \cup B_2$.
 \end{description}
 
-\textbf{Semantics.} We give a formal semantics to a !-box graphs by
+%\textbf{Semantics.} 
+We give a formal semantics to a !-box graphs by
 defining the !-box graph in terms of a set of graphs in the underlying
 representation. We denote the interpretation of a !-box graph $G$ by
 $\binterp{G}$ and say that members of $\binterp{G}$ are instances of
@@ -1076,7 +1078,8 @@ quantum computation.
 % latter supports deirved equations and thus provides the theoretical
 % basis for our formulation of rewriting.
 
-\textbf{Semantics as Concrete Matches.} The semantics for a graph
+%\textbf{Semantics as Concrete Matches.} 
+The semantics for a graph
 pattern $G$ is a set of concrete graphs denoted by $\minterp{G}$ and
 define it as:
 
@@ -1086,7 +1089,8 @@ $$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
 give variable-node graphs for which we then appeal to their own
 semantics. 
 
-\textbf{Graph Pattern Matches.} The specification for one pattern,
+%\textbf{Graph Pattern Matches.} 
+The specification for one pattern,
 $G$, to match another one, $H$ is that it is more general with respect
 to the interpretation: $\minterp{G} \supseteq \minterp{H}$. However,
 graph patterns can correspond to a countably infinite number of
@@ -1369,11 +1373,11 @@ distinct from those in the expression being rewritten.
 %\subsection{Node Expressions}
 %\label{ssec:cs:node-expressions}
 
-\textbf{Computing the Quantum Fourier Transform.} The quantum Fourier
-transform is among the most important quantum algorithms, forming an
-essential part of Shor's algorithm~\cite{Shor:PolyTimeFact:1997},
-famous for providing a polynomial time algorithm for factoring. In our
-graph patten calculus this circuit becomes the top-left graph in
+The quantum Fourier transform is among the most important quantum
+algorithms, forming an essential part of Shor's
+algorithm~\cite{Shor:PolyTimeFact:1997}, famous for providing a
+polynomial time algorithm for factoring. In our graph patten calculus
+this circuit becomes the top-left graph in
 Figure~\ref{fig:quantum-transform}. This figure shows how computation
 can be symbolically performed by rewriting with the lifted equations
 from Figure~\ref{fig:graph-quant-eqns} and the graph pattern version
