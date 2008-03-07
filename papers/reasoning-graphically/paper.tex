@@ -47,8 +47,10 @@
 \newcommand{\ors}{\oplus}
 \newcommand{\tensor}{\otimes}
 
-\newcommand{\vinterp}[1]{\lfloor\hspace{-0.27em}|\, #1\, |\hspace{-0.27em}\rfloor}
-\newcommand{\binterp}[1]{\lceil\hspace{-0.27em}|\, #1\, |\hspace{-0.27em}\rceil}
+%\newcommand{\vinterp}[1]{\lfloor\hspace{-0.27em}|\, #1\, |\hspace{-0.27em}\rfloor}
+%\newcommand{\binterp}[1]{\lceil\hspace{-0.27em}|\, #1\, |\hspace{-0.27em}\rceil}
+\newcommand{\vinterp}[1]{\llbracket #1 \rrbracket_v}
+\newcommand{\binterp}[1]{\llbracket #1 \rrbracket_!}
 \newcommand{\minterp}[1]{\llbracket #1 \rrbracket}
 \newcommand{\sinterp}[1]{| #1 |}
 
@@ -208,18 +210,19 @@
 
 \begin{abstract}
   Recent graph-based formalisms of quantum computation provide an
-  abstract and symbolic way to represent and simulate
-  computations. However, manual manipulation of such graphs is slow
-  and error prone. We present a formalism, based on compact closed
-  categories, that supports mechanised reasoning about such
-  graphs. This gives a compositional account of graph rewriting that
-  preserves the underlying categorical semantics. Using this
-  representation, we describe a generic system with a fixed logical
-  kernel that supports reasoning about models of compact closed
-  category. A salient feature of the system is that it provides a
-  declarative account of derived results. We illustrate the framework
-  by instantiating it for a graphical language of quantum computation
-  and show how this can be used to perform symbolic computation.
+  abstract and symbolic way to represent and simulate computations.
+  However, manual manipulation of such graphs is slow and error prone.
+  We present a formalism, based on compact closed categories, that
+  supports mechanised reasoning about such graphs. This gives a
+  compositional account of graph rewriting that preserves the
+  underlying categorical semantics. Using this representation, we
+  describe a generic system with a fixed logical kernel that supports
+  reasoning about models of compact closed category. A salient feature
+  of the system is that it provides a formal and declarative account
+  of derived results that can include `ellipses'-style notation. We
+  illustrate the framework by instantiating it for a graphical
+  language of quantum computation and show how this can be used to
+  perform symbolic computation.
 
   \keywords{graph rewriting, quantum computing, categorical logic,
     interactive theorem proving, graphical calculi; concerning:
@@ -234,20 +237,20 @@ Recent work in quantum computation has emphasised the use of graphical
 languages motivated by the underlying logical structure of quantum
 mechanics
 itself~\cite{AbrCoe:CatSemQuant:2004,Selinger:dagger:2005,Coecke2005Kindergarten-Qu,Coecke2006POVMs-and-Naima,Coecke2006Quantum-Measure}.
-These techniques have a number of advantages over the convential
+These techniques have a number of advantages over the conventional
 matrix-based approach to quantum mechanics:
 
 \begin{itemize}
 \item The visual representation abstracts over the values in the
-  matricies. This removes detail that requires a lot of work for a
+  matrices. This removes detail that requires a lot of work for a
   human to interpret. 
 
 \item Many properties have a natural graphical representation. For
-  example, non entanglement is can be infered from disjoint subgraphs.
+  example, non entanglement is can be inferred from disjoint subgraphs.
 
 \item The graphical calculus generalises to domains other than just
   vector spaces. In particular, it provides a representation for
-  compact closed cartegories. 
+  compact closed categories. 
 
 \end{itemize}
 
@@ -258,7 +261,7 @@ corresponding to graphs in general rather than those which describe
 compact closed categories. The result is that they provide an unsound
 concept of rewriting for the kind of graphs we are interested in.
 
-The main contribution of this paper is a graph-vased formalism that is
+The main contribution of this paper is a graph-based formalism that is
 suitable for representing and evaluating quantum computations. We
 start by reviewing a formalism for graphical representations of
 compact closed categories. We also revisit a model of quantum
@@ -267,9 +270,10 @@ calculus in two significant ways driven by the need to express rules
 that could not be accounted for in the initial formalism. By combining
 these extensions, we provide a representation that captures an
 interesting and useful set of graph patterns. Notably, it can express
-the Spider Theorem, which is normally written using informal elipses
-notation. We provide a semantics for our graph-based formalism in
-terms of the initial representation of compact closed categories.
+the Spider Theorem which is normally written using informal ellipses
+notation (see Figure~\ref{fig:spider}). We provide a semantics for our
+graph-based formalism in terms of the initial representation of
+compact closed categories.
 
 Using our graph-based formalism as the representational foundation, we
 develop a simple logical framework for manipulating models of compact
@@ -353,15 +357,15 @@ We call a graph morphism $f$ an \emph{open embedding} for $V'$ if:
 
 \noindent The intuition behind this definition is that the subgraph of
 $G$ determined by $V'$ should be preserved exactly by $f$; it should
-contain $G$ without any extra incident egdes into the verticies $V'$
+contain $G$ without any extra incident edges into the vertices $V'$
 whereas other vertices may be identified and may contain additional
-verticies.
+vertices.
 
 Given two graphs, $G$ and $H$, a pair of partial maps, $r_V: V_G
 \rightharpoonup V_H$ and $r_E: E_G \rightharpoonup E_H$, is called a
 partial graph morphism if whenever $r_E(e)$ is defined then
 $r_V(s_G(e))$ and $r_V(t_G(e))$ are defined, and the restriction of
-$r_E$ to its preimage satifies equations \eqref{eq:graph-hom1} and
+$r_E$ to its preimage satisfies equations \eqref{eq:graph-hom1} and
 \eqref{eq:graph-hom2} above.
 
 Augmented by some additional structure, graphs form a \emph{compact closed
@@ -379,8 +383,7 @@ A strict symmetric monoidal  category
 closed \cite{KelLap:comcl:1980} when each object $A$ has a chosen dual
 object $A^*$, and morphisms
 \begin{gather*}
-  d_A : I \to A^* \otimes A\\
-  e_A : A \otimes A^* \to A
+  d_A : I \to A^* \otimes A \quad\quad\quad e_A : A \otimes A^* \to A
 \end{gather*}
 such that
 \begin{align}
@@ -474,20 +477,21 @@ Concrete graphs form a compact closed category whose objects are
 ordered signed sets and whose arrows $f:A\to B$ are concrete graphs with
 $\cod f = B$  and $\dom f = A^*$.
 \end{proposition}
-For each ordered signed set $A$, the identity map for $A$ has
-$\dom \id{A} = A^*$ and $\cod \id{A} = A$; its underlying
-graph has $E = A$ and $V = A^* + A$ with $t(a) = a$ and $s(a) =
-a^*$.  Given a pair of concrete graphs $f:A\to B$ and $g:B\to C$ their
-composition $g\circ f:A\to C$ is constructed by merging the two
-graphs, erasing the vertices of $\cod f$ and $\dom g$, and identifying
-the edges previously incident at the deleted vertices.  (Due to the
-opposite polarity of the domain and codomain the edges have compatible
-direction.)  The tensor product on objects $A,B$ is simply $A+B$;
-given $f:A\to B$, $g: C\to D$, the graph of $f \otimes g$ is the
-disjoint union of the graphs of $f$ and $g$.  The unit for the tensor
-is the empty set.  The morphisms $d_A : I \to A^* \otimes A$,
-$e_: A \otimes A^* \to I$ have the same underlying graph, but $\dom d =
-\emptyset$, $\cod d = A^*+A$, $\dom e = A+A^*$ and $\cod e = \emptyset$.
+For each ordered signed set $A$, the identity map for $A$ has $\dom
+\id{A} = A^*$ and $\cod \id{A} = A$; its underlying graph has $E = A$
+and $V = A^* + A$ with $t(a) = a$ and $s(a) = a^*$.  Given a pair of
+concrete graphs $f:A\to B$ and $g:B\to C$ their composition $g\circ
+f:A\to C$ is constructed by merging the two graphs, erasing the
+vertices of $\cod f$ and $\dom g$ (called the \emph{boundary
+  vertices}), and identifying the edges previously incident at the
+deleted vertices.  (Due to the opposite polarity of the domain and
+codomain the edges have compatible direction.)  The tensor product on
+objects $A,B$ is simply $A+B$; given $f:A\to B$, $g: C\to D$, the
+graph of $f \otimes g$ is the disjoint union of the graphs of $f$ and
+$g$.  The unit for the tensor is the empty set.  The morphisms $d_A :
+I \to A^* \otimes A$, $e_: A \otimes A^* \to I$ have the same
+underlying graph, but $\dom d = \emptyset$, $\cod d = A^*+A$, $\dom e
+= A+A^*$ and $\cod e = \emptyset$.
 
 \begin{remark}
   Given concrete graphs $f : A\to B$ and $g:B\to C$ there exists
@@ -537,10 +541,10 @@ labelled graphs.  A consequence of the theorem is then that two arrows
 are equal by the equations of the compact closed  structure if and
 only if their graph representations are equal.
 
-As a final remark before moving on, note that the external structre of vertex
-in a concrete graph is esentially the same as that of a complete
-graph;  hence one can consistently view subgraphs as vertices, and
-abstract over the their internal structure.
+As a final remark before moving on, note that the external structure
+of a vertex in a concrete graph is essentially the same as that of a
+complete graph; hence one can consistently view subgraphs as vertices,
+and abstract over the their internal structure.
 
 \section{Quantum Computations as Graphs}
 \label{sec:quotients-rewriting}
@@ -707,7 +711,7 @@ Figure~\ref{fig:graph-quant-eqns}.
   \caption{Graphical Equations for Quantum Systems. The $(\cdot)^\dag$
     functor gives a vertical symmetry to the category, hence for every
     equation we have a second equation obtained by flipping the
-    diagram upside down.  In additon, we have a ``colour duality'':
+    diagram upside down.  In addition, we have a ``colour duality'':
     each equation shown here gives rise to second, which is obtained
     by exchanging the two colours. The colour duality is derivable
     from the equations for involving $H$.}
@@ -730,10 +734,16 @@ first noted in \cite{Coecke2006Quantum-Measure}, to be proved:
 \begin{figure}[t]
 $$\begin{array}{ccc}
 \inlinegraphic{6em}{spider_lhs} & = & \inlinegraphic{6em}{spider_rhs}
+\end{array}\qquad
+\begin{array}{ccc}
+\inlinegraphic{12em}{spider_lhs_patt} & \;=\; & \inlinegraphic{9em}{spider_rhs_patt}
 \end{array}$$
+\label{fig:spider}\caption{ [Left] An informal equation on graphs that
+  expresses the Spider Theorem.  [Right] The Spider Theorem expressed
+  formally using graph patterns.  The !-boxes are named $i$ and $j$.
+  The variable nodes are white and named $a$ and $b$. The non-variable
+  node data (the angle) is written inside the node.}
 
-\label{fig:spider}\caption{An informal equation on graphs
-  that expresses the Spider Theorem. }
 \end{figure}
 
 Hence any connected subgraph involving nodes of only one colour,
@@ -741,7 +751,7 @@ wherever it occurs in a graph, may be collapsed to a single vertex
 labelled by a single value $\alpha$, giving a ``spider''. Informally,
 this can be depicted graphically as the equation in
 Figure~\ref{fig:spider}. Conversely, a spider may be
-arbitrarily divided into subspiders, provided the total in- and
+arbitrarily divided into sub-spiders, provided the total in- and
 out-degree is preserved, along with and the sum of the $\alpha $s.
 Further, one can derive, from the spider theorem, $n$-fold versions of
 many of the other equations.
@@ -763,33 +773,31 @@ In the concrete representation, the following graphs represent
 different computations:
 
 \begin{center}
-\inlinegraphic{2.5em}{compact1} \quad\quad
-\inlinegraphic{2.5em}{compact3} \quad\quad
-\inlinegraphic{2.5em}{compact5}
+\inlinegraphic{2.5em}{compact1} $=$
+\inlinegraphic{1.3em}{compact2} $\qquad\quad$
+\inlinegraphic{2.5em}{compact3} $=$ \inlinegraphic{1.3em}{compact4}
+$\qquad\quad$ \inlinegraphic{2.5em}{compact5} $=$
+\inlinegraphic{2.5em}{comonoid-unit4}
 \end{center}
+
+%\begin{center}
+%\inlinegraphic{2.5em}{compact1} \quad\quad
+%\inlinegraphic{2.5em}{compact3} \quad\quad
+%\inlinegraphic{2.5em}{compact5}
+%\end{center}
 
 \noindent However, composition with semi-circles ($d$ and $e$ from
 Definition~\ref{compactcat-def}), on the co-domain or domain, allows
 an equation involving one of the above to easily lead to a derivation
-corresponding to either of the other two. For instance, proving any of
-the following allows a trivial derivation of the others:
+corresponding to either of the other two: proving any of the above
+allows a trivial derivation of the others.
 
-\begin{center}
-\inlinegraphic{2.5em}{compact1} $=$
-\inlinegraphic{1.3em}{compact2} $\Leftrightarrow$
-\inlinegraphic{2.5em}{compact3} $=$ \inlinegraphic{1.3em}{compact4}
-$\Leftrightarrow$ \inlinegraphic{2.5em}{compact5} $=$
-\inlinegraphic{2.5em}{comonoid-unit4}
-\end{center}
-
-\noindent This motivates a characterisation that has only one
-representative for such a set of equations. More presicely, we
-formalise a representation that abstracts over the boundary nodes
-membership in the domain or co-domain. This gives rise to a
-\emph{variable-node graphs}, in which boundary nodes have been
+To address this, we formalise a representation that abstracts over the
+boundary nodes membership in the domain or co-domain. This gives rise
+to a \emph{variable-node graphs}, in which boundary nodes have been
 generalised to \emph{variable nodes}. The intuition of variable nodes
 is that they can replaced by concrete nodes in some graph in a process
-analgous to composition. 
+analogous to composition.
 
 % We now define the semantics for variable-node
 % graphs and then go on and introduce a way to join them.
@@ -800,7 +808,7 @@ analgous to composition.
 
 To formalise the semantics of variable-node graphs, we define
 matching, which captures the intuitive idea of a graph with variable
-nodes occuring within another graph.
+nodes occurring within another graph:
 
 \begin{definition}
   \emph{Matching} is an open embedding
@@ -809,21 +817,22 @@ nodes occuring within another graph.
 \end{definition}
 
 A graph with variable nodes, $G$, can be given a formal semantics by
-being interpretated as a set of concrete graphs, denoted by
+being interpreted as a set of concrete graphs, denoted by
 $\vinterp{G}$. The interpretation is simply the set of concrete graphs
-which the variable node graph matches. We refer to members of this set
-as instances. Matching is also well-defined between two variable-node
-graphs, in which case we denote that $G$ macthes $H$ by $G \leq_v H$.
+which the variable node graph matches. The above definition of
+matching also applies between two variable-node graphs, in which case
+we denote that $G$ matches $H$ by $G \leq_v H$.
 
 \begin{theorem}
 \label{match-interp-thm}
 $G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. The
-proof from left to right is a consequence of the trivial lemma that a
-compositon of open embeddings is an open embedding. This makes the
-embedding of $G$ into $H$ composed with $H$ into $\vinterp{H}$ an open
-embedding of $G$ into $\vinterp{H}$. From right to left, we compose
-the open embedding $\vinterp{G}$, restricted to it's subset
-$\vinterp{H}$, with the inverse of $\vinterp{H}$ to get $G \leq_v H$.
+proof from left to right is a consequence of the lemma that a
+composition of open embeddings is an open embedding. From left to
+right, the embedding of $G \leq_v H$ composed with $\vinterp{H}$ is
+thus an open embedding of $G$ into $\vinterp{H}$. Hence $\vinterp{G}
+\supseteq \vinterp{H}$. From right to left, we compose the open
+embedding $\vinterp{G}$, restricted to it's subset $\vinterp{H}$, with
+the inverse of $\vinterp{H}$ to get $G \leq_v H$.
 \end{theorem}
 
 \begin{theorem}
@@ -833,6 +842,8 @@ the same theorem for open-embeddings, where the embedding is the
 identity map.
 \end{theorem}
 
+These theorems ensure that macthing is what we expect it to be and
+also give us the usual properties such as associativity.
 
 % \begin{figure}[t]
 % %  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
@@ -935,18 +946,20 @@ identity map.
 
 \section{!-Boxes}
 
-A crucial feature of rules like the Spider Theorem is that an arbirary
+A crucial feature of rules like the Spider Theorem is that an arbitrary
 number of repetitions of a subgraph need to be matched. To support
 this we introduce an operation, !-boxing (pronounced bang-boxing), on
 graph representations. Given a graph representation, this introduces a
 new notation by outlining a set of nodes. These nodes are said to be
 in a !-box. Intuitively, the resulting !-boxed graph can be thought of
-as representing a set of graphs with an arbirary number of copies of
+as representing a set of graphs with an arbitrary number of copies of
 the !-boxed nodes, where every copy connects, in the same way, to the
 nodes outside the !-box. The !-boxes can also be instantiated with
-zero copies. This erases all edges to and from the !-box.  The Spider
-Theorem in Figure~\ref{fig:spider} for instance is
-represented with !-boxes in Figure~\ref{fig:spider-thm-patt}.
+zero copies. This erases all edges to and from the !-box. 
+
+% The Spider
+%Theorem in Figure~\ref{fig:spider} for instance is
+%represented with !-boxes in Figure~\ref{fig:spider-thm-patt}.
 
 %Figure~\ref{fig:spider-bang-lhs-example} shows an how the left hand side of
 %the spider theorem can be represented with bang boxes and illustrates
@@ -960,24 +973,22 @@ represented with !-boxes in Figure~\ref{fig:spider-thm-patt}.
 %  that expresses the Spider Theorem. }
 %\end{figure}
 
-More formaly, a !-box graph is a graph paired with a set !-boxes. Each
+More formally, a !-box graph is a graph paired with a set !-boxes. Each
 of these !-boxes is the set of nodes inside it and each !-box must be
 disjoint from the others.\footnote{The disjointness condition avoids a
   slightly more complex, although also more expressive, semantics for
-  overlaping node sets in the !-boxes. While such expressivity is
+  overlapping node sets in the !-boxes. While such expressivity is
   interesting from a representational point of view, it is not needed
   to express the currently known rules for quantum computation.}  We
 now define the concept of !-box matching which we then use to provide
 a formal semantics for the !-boxed graphs.
 
-\subsubsection{Matching.}
-
-To formalise the intuitive notion that a !-box represents arbitrary
-number of copies of the subgraph made from it's nodes, we introduce
-\emph{!-box matching}. This is a binary relation on graphs, written
-infix as $G \leq_! H$ when $G$ matches $H$. The set matching !-box
-graphs is defined as the set closed by the following operations on the
-!-boxes in a graph:
+\textbf{Matching.} To formalise the intuitive notion that a !-box
+represents arbitrary number of copies of the subgraph made from it's
+nodes, we introduce \emph{!-box matching}. This is a binary relation
+on graphs, written infix as $G \leq_! H$ when $G$ matches $H$. The set
+matching !-box graphs is defined as the set closed by the following
+operations on the !-boxes in a graph:
 
 \begin{description}
   \item[copy]: copies a !-box, $b$ in a graph to produce a new graph
@@ -997,12 +1008,11 @@ graphs is defined as the set closed by the following operations on the
   larger !-box $B_1 \cup B_2$.
 \end{description}
 
-\subsubsection{Semantics.} 
-
-We give a formal semantics to a !-box graphs by defining the !-box
-graph in terms of a set of graphs in the underlying representation. We
-denote the interpretation of a !-box graph $G$ by $\binterp{G}$ and
-say that members of $\binterp{G}$ are instances of $G$.
+\textbf{Semantics.} We give a formal semantics to a !-box graphs by
+defining the !-box graph in terms of a set of graphs in the underlying
+representation. We denote the interpretation of a !-box graph $G$ by
+$\binterp{G}$ and say that members of $\binterp{G}$ are instances of
+$G$.
 
 \begin{definition}
   \emph{Interpretation of !-box Graphs}: $\binterp{G}$ is the subset
@@ -1018,7 +1028,7 @@ natural numbers, where $k$ is the number of !-boxes.
 \label{thm:bang-box-respect}
 \emph{!-Matching respects !-box semantics}: $G \leq_! H
 \Leftrightarrow \binterp{G} \supseteq \binterp{H}$. The proof is a
-simple consequence from the defintion of $\binterp{G}$ being a subset
+simple consequence from the definition of $\binterp{G}$ being a subset
 of the graphs that match $G$.
 \end{theorem}
 
@@ -1034,28 +1044,18 @@ patterns which we now discuss in more detail.
 The representation of Compact Closed Categories as Graphs, discussed
 in~\S\ref{sec:graph-repr-comp}, is too restrictive for reasoning about
 quantum computation. In particular, graphical rules such the Spider
-Theorem, from Figure~\ref{fig:informal-spider-law}, are frequently
-needed, but not expressible. In this section we combine the {\em
-  !-boxes} and {\em variable-node} extensions to graphs. We call this
-representation \emph{graph patterns}. This forms a representation that
-allows us to express, in a finite way, the infinite family of concrete
-graphs equations. In particular, the Spider Theroem can now be
-represented by the equation shown in Figure~\ref{fig:spider-thm-patt}.
-We also extend the notion of matching for graph pattens.
+Theorem, from Figure~\ref{fig:spider}-left, are frequently needed, but
+not expressible. In this section we combine the {\em !-boxes} and {\em
+  variable-node} extensions to graphs. We call this representation
+\emph{graph patterns}. This forms a representation that allows us to
+express, in a finite way, the infinite family of concrete graphs
+equations. In particular, the Spider Theorem can now be represented as
+shown in Figure~\ref{fig:spider}-right. We also extend the notion of
+matching for graph pattens.
 %as well as present a corresponding notion of plugging. 
 This provides the foundations for the rewriting machinery
 in~\S\ref{sec:rewriting} which can then be used to reasoning about
 quantum computation.
-
-\begin{figure}[t]
-$$\begin{array}{ccc}
-\inlinegraphic{12em}{spider_lhs_patt} & \;=\; & \inlinegraphic{9em}{spider_rhs_patt}
-\end{array}$$
-\label{fig:spider-thm-patt}\caption{The Spider Theorem expressed using
-  graph patterns. The !-boxes are named $i$ and $j$. The variable
-  nodes are white and named $a$ and $b$. The internal node's data,
-  which is an angle, is written inside the node.}
-\end{figure}
 
 % \subsubsection{Completeness.}
 
@@ -1076,10 +1076,9 @@ $$\begin{array}{ccc}
 % latter supports deirved equations and thus provides the theoretical
 % basis for our formulation of rewriting.
 
-\subsubsection{Semantics as Concrete Matches.}
-
-The semantics for a graph pattern $G$ is a set of concrete graphs
-denoted by $\minterp{G}$ and define it as:
+\textbf{Semantics as Concrete Matches.} The semantics for a graph
+pattern $G$ is a set of concrete graphs denoted by $\minterp{G}$ and
+define it as:
 
 $$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
 
@@ -1087,26 +1086,23 @@ $$\minterp{G} = \{\vinterp{G'}\;.\; G' \in \binterp{G}\}$$
 give variable-node graphs for which we then appeal to their own
 semantics. 
 
-\subsubsection{Graph Pattern Matches.}
+\textbf{Graph Pattern Matches.} The specification for one pattern,
+$G$, to match another one, $H$ is that it is more general with respect
+to the interpretation: $\minterp{G} \supseteq \minterp{H}$. However,
+graph patterns can correspond to a countably infinite number of
+concrete graphs. Thus matching between graph pattern cannot be
+implemented by simply unfolding all interpretions as concrete graphs
+and checking the membership relation.
 
-
-The specification for one pattern, $G$, to match another one, $H$ is
-that it is more general with respect to the interpretation:
-$\minterp{G} \supseteq \minterp{H}$. However, graph patterns can
-correspond to a countably infinite number of concrete graphs. Thus
-matching between graph pattern cannot be implemented by simply
-unfolding them to their interpretated concrete graphs and checking the
-membership relation. 
-
-Fortunately, it is quite easy to provide a decidable matching. This is
-because the size of the unfolding that needs to be considered can be
-bounded. The key observation is that a graph $G_1$ will never match a
-graph with less non-variable nodes. Thus unfolding of $G_1$ can be
-bounded by the number of non-variable nodes in $G_2$. While this gives
-a generate and test style algorithm, it is not efficient. The
-intuition for an efficient algorithm is to search through one graph
-incrementally increasing the matched part and avoids symmetries in
-matching. The development of an efficient algotihm is ongoing work.
+Fortunately, it is quite easy to provide decidable matching: the size
+of the unfolding that needs to be considered can be bounded. The key
+observation is that a graph $G_1$ will never match a graph with less
+non-variable nodes. Thus unfolding of $G_1$ can be bounded by the
+number of non-variable nodes in $G_2$. While this gives a generate and
+test style algorithm, it is not efficient. The intuition for an
+efficient algorithm is to search through one graph incrementally
+increasing the matched part and avoids symmetries in matching.  
+%The development of an efficient algorithm is ongoing work.
 
 %non-variable nodes than another graph $G_2$
 %
@@ -1149,18 +1145,18 @@ matching. The development of an efficient algotihm is ongoing work.
 \section{Reasoning with Graph Patterns}
 \label{sec:rewriting}
 
-In this section we describe how the garph pattern formalism can
+In this section we describe how the graph pattern formalism can
 provide a \emph{meta-level} framework for reasoning about models of
 compact closed categories. Following the terminology of logical
-frameworks such as Isabelle~\cite{isabelle}, we call the
-specification, provided by the underlying model, an
-\emph{object-level} graph formalism. An object-level formalisation
-defines a set of rules which are treated as the axioms for the
-system. It also defines the data at the nodes and edges as well as
-corresponding data-matching behaviour. For it's part, the meta-level
-provides generic machinery to manipulate graphs and derive new
-rules. In this section we describe the meta-level framework and prove
-its adequacy for rewriting.
+frameworks such as Isabelle~\cite{isabelle}, we call the specification
+provided by the underlying model an \emph{object-level} graph
+formalism. An object-level formalisation defines a set of rules which
+are treated as the axioms for the system. It also defines the data at
+the nodes and edges as well as corresponding data-matching behaviour.
+For it's part, the meta-level provides generic machinery to manipulate
+graphs and derive new rules. We now describe the meta-level framework,
+noting the conditions for a rule to be valid, and prove the systems
+adequacy for rewriting.
 
 \subsection{Equational Rules}
 
@@ -1169,57 +1165,54 @@ our framework, are pairs of pattern graph. The pair represents the
 left and right hand sides of an equation. Rules are declarative in
 that they denote a set of concrete equational rules. 
 
-The intuitive idea of substituon with a rule is to replace a subgraph
-that matches the left hand side with the right hand side. However, not
-all pairs of rules are make sense with respect to the underlying
-semantics. For an equation to be well defined with respect to the
-compact closed structure it must not be possible to changes the type
-of a concrete graph by rewriting. Mapping this restriction back to
-pairs of graph patterns results in the following conditions on rules:
+The intuitive idea of substitution with a rule is to replace a
+subgraph that matches the left hand side with the right hand side.
+However, not all pairs of rules are make sense with respect to the
+underlying semantics. For an equation to be well defined with respect
+to the compact closed structure it must not be possible to changes the
+type (the boundary nodes in the domain and co-domain) of a concrete
+graph by rewriting.  Mapping this restriction back to pairs of graph
+patterns results in the following conditions on rules:
 
 \begin{itemize}
 
 \item There has to be a isomorphism between variable nodes in the left
-  and right hand subgraphs. More concretely, there must be a unique
-  naming of the variable nodes in the left hand side such that each
-  name occurs in a unique variable node on the right hand side. Given
-  a matching on the left hand side, the target subgraph is replaced
-  with the right hand side while keeping the same instantiations for
-  the isomorphic variable nodes.
+  and right hand subgraphs. Given a matching on the left hand side,
+  the target subgraph is replaced with the right hand side while
+  keeping the same instantiations for the isomorphic variable nodes.
 
-\item Rules must also define a partial 1-1 mapping between !-boxes on
-  the left and right hand sides. The intuition for this mapping is
-  that the unfolding used when matching a !-box on the left, is
-  applied to the mapped !-box on the right before replacement.
+\item Rules must also define a partial bijective mapping between
+  !-boxes on the left and right hand sides. The intuition for this
+  mapping is that the unfolding used when matching a !-box on the
+  left, is applied to the mapped !-box on the right before
+  replacement.
 
 \item The interplay between !-boxes and variable nodes means that when
-  a variable node appears within a !-box on one side of a rule it must
+  a variable node appears within a !-box on one side of a rule, it must
   also appear under a mapped !-box on the other side.
 
 \end{itemize}
 
 Notationally, and implementationally, we annotate !-boxes and variable
-nodes in a graphs with unique names. For example, see
-Figure~\ref{fig:spider-thm-patt} which illustrates the Spider Theorem
-as a rule between graph patterns. In this figure, the partial 1-1
-mapping for !-boxes is represented by !-boxes having the same name on
-the left and right of a rule.  Similarly, the isomorphism between
-variable nodes is captured by the set of variable node names on the
-left and right hand side being equal.
+nodes in a graphs with unique names. For example,
+Figure~\ref{fig:spider-thm-patt} shows the Spider Theorem. In this
+figure, the mapping between !-boxes is represented by !-boxes having
+the same name on the left and right of a rule.  Similarly, the
+isomorphism between variable nodes is captured by the set of variable
+node names on the left and right hand side being equal.
 
 \subsection{Lifting Axioms and Adequacy} 
 
-The axioms of an object system typically come from the semantics of
-the unerlying system. For instance, the equations given in
-Figure~\ref{fig:graph-quant-eqns} provide a system of reasoning about
-quantum computation. In some cases, such equations can be provdied by
-the underltying semantics. When such rules are expressed as graph
-patterns, we replace the concrete representations boundary nodes with
-variable nodes. This operation is called \emph{lifting}. An equation
-on graph patterns corresponds to a possibly infinite set of equations
-betweens concrete graphs. Thus we might worry that the lifted
-equations express too much: they may allow rewrites which are not
-intended. 
+The axioms of an object formalism come from the semantics of the
+underlying system. For instance, the equations given in
+Figure~\ref{fig:graph-quant-eqns} can be proved by matrix
+calucluations oi the underlying model. When such rules are expressed
+as graph patterns, we replace the concrete representation's boundary
+nodes with variable nodes. This operation is called \emph{lifting}. An
+equation on graph patterns corresponds to a infinite (when their are
+variable nodes) set of equations between concrete graphs. Thus we
+might worry that the lifted equations express too much: they may allow
+rewrites which are not true.
 
 We call the property that the lifted representation is a conservative
 extension of the initial theory \emph{adequacy}. For models of compact
@@ -1227,14 +1220,14 @@ closed categories, the proof of adequacy is quite simple: given an
 equation between concrete graphs, $G = H$, we observe that every
 instance of the lifted equation corresponds to the original equations
 composed with some graph. The graph is given by the unmapped subgraph
-using the open embedding from the lifted equations onto their
+using the open embedding from the lifted equations onto the considered
 instance. Thus if $G = H$ is true, then so is every instance of it's
-lifting, and thus the lifting produces an adequate representation.
+lifting, and thus lifting produces an adequate representation.
 
 \subsection{Meta-Level Logic and Derived Rules}
 
 Having defined what make a valid rule, we now present the meta-logic
-of the framework. This is quite simple as they only involve dealing
+of the framework. This is quite simple as it only involves dealing
 with object-level equations:
 
 \begin{center}
@@ -1269,42 +1262,48 @@ with object-level equations:
 \endprooftree
 \end{center}
 
-\noindent where $\Gamma$ is the set of object-level axioms and for the
-reflexivity rule, $A$ must be a well-formed pattern graph. We assume
+\noindent $\Gamma$ is the set of object-level axioms. 
+
+We assume
 that axioms in $\Gamma$ meet the validity conditions described
 earlier. These rules all preserve the validity conditions on equations
 and thus the system as a whole ensures only valid rules are derived.
 
-A new graph can be introduced using the reflexivity law (\emph{refl}).
-By applying the \emph{subst} rule, intermediate results are derived
-which can themselves be used to rewrite other rules and conjetcures.
-In this way, the system allows derived rules to provide an
-abbreviation for a combination of steps. Sets of rules can be applied
-automatically to simulate computation in an the object domain. In
-\S\ref{sec:case-study} we illustrate this for quantum computation.
+The reflexivity rule (\emph{refl}) assumes that $A$ is a well-formed
+pattern graph. This rule allows a new graph can be introduced. By then
+applying the \emph{subst} rule, intermediate results are derived which
+can themselves be used to rewrite other rules and conjectures.  In
+this way, the system allows derived rules to provide an abbreviation
+for a combination of steps.
 
-\subsection{Soundness and Completeness} 
+A sets of rules can be applied automatically to simplify a graph or
+simulate computation in an the object domain. For this to terminate, a
+suitable left-to-right ordering on rules can be observed such as the
+size of the subgraph must decrease. In \S\ref{sec:case-study} we
+illustrate simulating a quantum computation.
 
-The soundness of a system that uses our meta-level rests on two
-arguments: 
+% \subsection{Soundness and Completeness} 
 
-\begin{itemize}
-\item Representation of the underying model as a compact closed
-  category with a defined set of equations.
+% The soundness of a system that uses our meta-level rests on two
+% arguments: 
 
-\item The soundness and adequacy of the axioms when expressed within
-  the compact closed category. Adquency ensures that the encoding as a
-  graph pattern represents only the intended concrete rules. The
-  soundness of the rules is obviously needed and requires proving the
-  rule in terms of the underlying semantics.
-\end{itemize}
+% \begin{itemize}
+% \item Representation of the underlying model as a compact closed
+%   category with a defined set of equations.
 
-The completeness of the resulting system, with respect to the intended
-underlying semantics, depends on the completeness of the set of given
-rules. Completeness is a challenging and still open problem for graph
-based models of quantum computation. Even without completeness, we
-obersve in \S\ref{sec:case-study} that interesting and useful quantum
-computations can be expressed.
+% \item The soundness and adequacy of the axioms when expressed within
+%   the compact closed category. Adequacy ensures that the encoding as a
+%   graph pattern represents only the intended concrete rules. The
+%   soundness of the rules is obviously needed and requires proving the
+%   rule in terms of the underlying semantics.
+% \end{itemize}
+
+% The completeness of the resulting system, with respect to the intended
+% underlying semantics, depends on the completeness of the set of given
+% rules. Completeness is a challenging and still open problem for graph
+% based models of quantum computation. Even without completeness, we
+% observe in \S\ref{sec:case-study} that interesting and useful quantum
+% computations can be expressed.
 
 %\subsection{Implementation}
 %\label{ssec:implementation}
@@ -1332,34 +1331,36 @@ computations can be expressed.
 \label{sec:case-study}
 
 The model of quantum computation introduced in
-\S\ref{sec:quotients-rewriting} provides an object formalism for
-logical system. The equations from Figure~\ref{fig:graph-quant-eqns}
-are lifted to graph patterns and the spider rule is encoded as shown
-in Figure~\ref{fig:spider-thm-patt}. Although a complete graph-based
-account of the underlying quantum model is ongoing work, these rules
-provide an effective and useful initial set. 
+\S\ref{sec:quotients-rewriting} provides an object formalism for our
+meta-level framework. The equations from
+Figure~\ref{fig:graph-quant-eqns} are lifted to graph patterns and the
+spider rule is encoded as shown in Figure~\ref{fig:spider-thm-patt}.
+
+%Although a complete graph-based account of the underlying quantum
+%model is ongoing work, these rules provide an effective and useful
+%initial set.
 
 Our model of quantum computation requires no data for the edges. The
-nodes, on the other hand, are either a $H$ with no additional data (a
+nodes, on the other hand, are either $H$, with no additional data (a
 Hadamard gate), or have an \emph{angle} and are either the $X$ or $Z$
 transforms. For their part, angles are expressed as rational numbers
-which correspond to the coefficient of $\pi$ in the corresponding
-matrix.
+which correspond to the coefficient of $\pi$ in the underlying matrix.
 
-The result is that we give the $X$ and $Z$ nodes an \emph{angle
-  expression}. When a node is within a !-box, this is a variable which
-gets instantiated to a new variable in each of the unfoldings of the
-!-box. When a node is not within a !-box, angle-expressions are a
-mapping from a set of angle-variables to the corresponding rational
-cooefficient. When an angle-expression contains a variable within a
-!-box, this is interpreted as a sum of the variables that result from
-it's unfolding. This rather simple expression language has a simple
-normal form by lexographically ordering the angle-variable. Matching
-then results in variables being instantiated and the values of all
-affected nodes are then normalised. An additional implementation
-detail must also be observed for the substitution rule: it must ensure
-that angle-variables in the rule being applied are distinct from those
-in the expression being rewritten.
+To allow composition of rules to compute the resulting angles we give
+the $X$ and $Z$ nodes an \emph{angle expression}. When a node is
+within a !-box, the expression is a single \emph{angle-variable} which
+gets instantiated to a new angle-variable in each of the unfoldings of
+the !-box.  When a node is not within a !-box, the angle-expression is
+a mapping from a set of angle-variables to the corresponding rational
+coefficient. When an angle-expression contains a angle-variable within
+a !-box, this is interpreted as a sum of the variables that result
+from its unfolding.  This rather simple expression language has a
+normal form by ordering the angle-variable by name.  Matching then
+results in angle-variables being instantiated and the expressions in
+all affected nodes are then re-normalised. An additional
+implementation detail must also be observed for the substitution rule:
+it must ensure that angle-variables in the rule being applied are
+distinct from those in the expression being rewritten.
 
 
 %The model of qantum computation in which we are interested is finite
@@ -1368,34 +1369,26 @@ in the expression being rewritten.
 %\subsection{Node Expressions}
 %\label{ssec:cs:node-expressions}
 
-\subsubsection{Computing the Quantum Fourier Transform.}
-\label{ssec:cs:quantum-transform}
-
-The quantum fourier transform is among the most important quantum
-algorithms, forming an essential part of Shor's
-algorithm~\cite{Shor:PolyTimeFact:1997}, famous for providing a
-polynomial time algorithm for factoring. In our graph patten calculus
-this ciruit becomes the top-left graph in
+\textbf{Computing the Quantum Fourier Transform.} The quantum Fourier
+transform is among the most important quantum algorithms, forming an
+essential part of Shor's algorithm~\cite{Shor:PolyTimeFact:1997},
+famous for providing a polynomial time algorithm for factoring. In our
+graph patten calculus this circuit becomes the top-left graph in
 Figure~\ref{fig:quantum-transform}. This figure shows how computation
 can be symbolically performed by rewriting with the lifted equations
-from Figure~\ref{fig:graph-quant-eqns} with the graph pattern version
-of the Spider Theorem. 
+from Figure~\ref{fig:graph-quant-eqns} and the graph pattern version
+of the Spider Theorem.
 
 \begin{figure}[t]
 \begin{tabular}{cccc}
-\hline
- & & & \\
   & \inlinegraphic{2cm}{qft2} & = & \inlinegraphic{2cm}{qft3} \\ 
  & & & \\
-\hline
  & & & \\
 = & \inlinegraphic{2cm}{qft6} & = & \inlinegraphic{2cm}{qft10} \\
- & & & \\
-\hline
 \end{tabular}
 \label{fig:quantum-transform}\caption{An example computation of the
   Quantum Fourier Transform with inputs 1 and 0, performed
-  symbollically by rewriting. }
+  symbolically by rewriting. }
 \end{figure}
 
 
@@ -1408,22 +1401,20 @@ including algebraic approaches~\cite{corradini97algebraic}, node-label
 controlled~\cite{Graphgrammars83}, matrix
 based~\cite{DBLP:conf/gg/VelascoL06}, and programmed graph
 replacement~\cite{progress97}. These provide general ways of
-interpretation graph transformations which can then be implemented to
+understanding graph transformations which can then be implemented to
 provide machinery for a specific application.  However, systems based
 on these theories do not provide machinery for the semantics of
 compact closed categories. Thus their notion of matching and
 replacement do not guarantee well-typed results. Furthermore, they do
-not provide machinery to for rewriting of graphs with ellipses
-notation. 
+not provide machinery for rewriting of graphs with ellipses notation
+which is needed to represent the Spider Theorem.
 
 The distinctive feature of our form of graph rewriting is that the
-graphs capture the structural properties of compact closed categories.
-In this respect, our graphs capture the structural properties of
-compact closed categories and rewriting is compositional: it preserves
-the type of the rewritten subgraph. However, the various components of
-our system can be seen as instantiations for in a general graph
-rewriting system: our matching provides the embedding information and
-the node-data matching of the object formalism provides application
+graphs capture the structural properties of compact closed categories
+and rewriting is compositional: it preserves the type of the rewritten
+subgraph. However, our system can also be seen as an instantiation of
+a general graph rewriting system: matching provides the embedding
+information and the object-level node matching defines the application
 conditions and the attribute transfer function.
 
 % Graph Grammars...
@@ -1436,21 +1427,21 @@ conditions and the attribute transfer function.
 \label{sec:conclusions}
 
 We have introduced a representation for graphs which can formally
-characterise the ellipses notation used informally to represent certain
-infinite families of graph rewrites, such as the Spider Theorem. This
-representation provides the foundation for a simple meta-logic for
-reasoning about models of compact closed categories. We illustrated
-this by providing an account of quantum computation and showing how
-computation can be performed. Having developed the basic
+characterise the ellipses notation used informally to represent
+certain infinite families of graph rewrites, such as the Spider
+Theorem.  This representation provides the foundation for a simple
+meta-logic for reasoning about models of compact closed categories. We
+illustrated this by providing an account of quantum computation and
+showing how computation can be performed. Having developed the basic
 representational machinery and shown matching to be decidable, we are
-left with several exciting avenues for further research. The most
-immediate is to provide a full implementation - a partial one is
-already
+left with several exciting avenues for further research.  The most
+immediate direction we are pursuing is to provide a full
+implementation - only a partial one is currently
 available~\footnote{\url{http://dream.inf.ed.ac.uk/projects/quantomatic}}.
 Other areas of further work include considering confluence results for
-sets of rewrite rules, even richer representations for graph-patterns
-and completeness of the set of the rewrite rules for quantum
-computation.
+sets of rewrite rules, increasing the expressiveness of the
+representation for graph-patterns, and finding a complete set of
+rewrite rules for the considered model of quantum computation.
 
 % simplification ordering
 % \item confluence arguments for graphs
