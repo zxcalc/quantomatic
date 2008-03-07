@@ -209,7 +209,7 @@
 
 
 \begin{abstract}
-  Recent graph-based formalisms of quantum computation provide an
+  Graph-based formalisms of quantum computation provide an
   abstract and symbolic way to represent and simulate computations.
   However, manual manipulation of such graphs is slow and error prone.
   We present a formalism, based on compact closed categories, that
@@ -246,20 +246,20 @@ matrix-based approach to quantum mechanics:
   human to interpret. 
 
 \item Many properties have a natural graphical representation. For
-  example, non entanglement is can be inferred from disjoint subgraphs.
+  example, separability of quantum states can be inferred from disjoint subgraphs.
 
-\item The graphical calculus generalises to domains other than just
+\item The of algebra of graphs generalises to domains other than
   vector spaces. In particular, it provides a representation for
   compact closed categories. 
 
 \end{itemize}
 
 The major problem with these graphical representations is the lack of
-machinery for automating their manipulation. Existing approaches to
-graph transformation have a different underlying semantics
-corresponding to graphs in general rather than those which describe
-compact closed categories. The result is that they provide an unsound
-concept of rewriting for the kind of graphs we are interested in.
+machinery for automating their manipulation. Unlike existing approaches to
+graph transformation, the graphs described here provide a 
+representation of compact closed categories; hence we require a new
+approach to rewriting, which is sound with respect to the underlying
+semantics.
 
 The main contribution of this paper is a graph-based formalism that is
 suitable for representing and evaluating quantum computations. We
@@ -319,8 +319,8 @@ $E$ are sets, respectively of \emph{vertices}\footnote{We will
 \begin{diagram}
   E & \pile{\rTo^{\qquad s\qquad}\\\rTo_t} & V
 \end{diagram}
-which we call \emph{source} and \emph{target}.  The definitions
-$\text{in}(v) = t^{-1}(v)$ and $\text{out}(v) = s^{-1}(v)$ express the
+which we call \emph{source} and \emph{target}.  Let
+$\text{in}(v) := t^{-1}(v)$ and $\text{out}(v) := s^{-1}(v)$ denote the
 \emph{incoming} and \emph{outgoing} edges at a vertex $v$.  The
 \emph{degree} of a vertex $v$ is $\sizeof{\text{in}(v)} +
 \sizeof{\text{out}(v)}$. To distinguish between elements of different
@@ -343,7 +343,7 @@ Let $f: G \to H$ be graph morphism and let $V' \subseteq V_G$. We say
 that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if $s_H(e)
 \in f_V(V')$ or $t_H(e) \in f_V(V')$ then $\exists e' \in E_G$ such
 that $f_E(e') = e$. Strictness ensures that there are no additional
-edges in $H$.
+edges connected to vertices in the image of $V'$.
 
 \begin{definition}
 \label{open-embedding-def}
@@ -356,14 +356,13 @@ We call a graph morphism $f$ an \emph{open embedding} for $V'$ if:
 \end{definition}
 
 \noindent The intuition behind this definition is that the subgraph of
-$G$ determined by $V'$ should be preserved exactly by $f$; it should
-contain $G$ without any extra incident edges into the vertices $V'$
+$G$ determined by $V'$ should be preserved exactly by $f$; 
 whereas other vertices may be identified and may contain additional
 vertices.
 
 Given two graphs, $G$ and $H$, a pair of partial maps, $r_V: V_G
 \rightharpoonup V_H$ and $r_E: E_G \rightharpoonup E_H$, is called a
-partial graph morphism if whenever $r_E(e)$ is defined then
+\emph{partial graph morphism} if whenever $r_E(e)$ is defined then
 $r_V(s_G(e))$ and $r_V(t_G(e))$ are defined, and the restriction of
 $r_E$ to its preimage satisfies equations \eqref{eq:graph-hom1} and
 \eqref{eq:graph-hom2} above.
@@ -383,7 +382,7 @@ A strict symmetric monoidal  category
 closed \cite{KelLap:comcl:1980} when each object $A$ has a chosen dual
 object $A^*$, and morphisms
 \begin{gather*}
-  d_A : I \to A^* \otimes A \quad\quad\quad e_A : A \otimes A^* \to A
+  d_A : I \to A^* \otimes A \quad\quad\quad e_A : A \otimes A^* \to I
 \end{gather*}
 such that
 \begin{align}
@@ -466,7 +465,7 @@ Since the sets $\dom\Gamma$ and $\cod\Gamma$ consist of vertices of degree
 one, we can assign a polarity to each one:  $v \mapsto +$ if the edge
 incident at $v$ is an incoming edge; $v \mapsto -$ otherwise.  Hence
 $\cod \Gamma$ and $\dom \Gamma$ are \emph{ordered signed sets}.  Given any
-ordered signed set $S$ we write $S^*$ for the same ordered set, but
+ordered signed set $S$ we write $S^*$ for the same ordered set with
 the opposite signing.   Given two such sets we can define their disjoint
 union $R+S$ as the disjoint union of the underlying sets, inheriting
 the signing and the order from $R$ and $S$, with the convention that
@@ -477,7 +476,7 @@ Concrete graphs form a compact closed category whose objects are
 ordered signed sets and whose arrows $f:A\to B$ are concrete graphs with
 $\cod f = B$  and $\dom f = A^*$.
 \end{proposition}
-For each ordered signed set $A$, the identity map for $A$ has $\dom
+For each ordered signed set $A$, the identity map $\id{A}$ has $\dom
 \id{A} = A^*$ and $\cod \id{A} = A$; its underlying graph has $E = A$
 and $V = A^* + A$ with $t(a) = a$ and $s(a) = a^*$.  Given a pair of
 concrete graphs $f:A\to B$ and $g:B\to C$ their composition $g\circ
@@ -490,7 +489,7 @@ objects $A,B$ is simply $A+B$; given $f:A\to B$, $g: C\to D$, the
 graph of $f \otimes g$ is the disjoint union of the graphs of $f$ and
 $g$.  The unit for the tensor is the empty set.  The morphisms $d_A :
 I \to A^* \otimes A$, $e_: A \otimes A^* \to I$ have the same
-underlying graph, but $\dom d = \emptyset$, $\cod d = A^*+A$, $\dom e
+underlying graph as $\id{A}$, but $\dom d = \emptyset$, $\cod d = A^*+A$, $\dom e
 = A+A^*$ and $\cod e = \emptyset$.
 
 \begin{remark}
@@ -561,7 +560,7 @@ Coecke and Duncan \cite{Coecke:2008jo} propose a formal algebraic
 system for quantum computation built from the following collection of
 generators:  
 \begin{description}
-\item[Objects:] are written $Q$ and are self dual;
+\item[Objects:] a single object, written $Q$.
 \item[Arrows:] there are families of arrows $X$ and $Z$:
   \begin{align*}
   &\epsilon_Z : Q \to I, &\qquad&  \epsilon_X : Q \to I,\\
@@ -589,11 +588,12 @@ the same graph written upside down.  We use colours to denote two families:
 The $H$ arrow is denoted by \inlinegraphic{1.5em}{H}.  (The adjoints
 for $H$, $\alpha_X$ and $\alpha_Z$ will be defined equationally.)  The
 free compact closed category is then given by all graphs formed by
-composing and tensoring these basic graphs.  Note  that since $Q$ is
-self dual, that is $Q = Q^*$, we use \emph{undirected} graphs.
+composing and tensoring these basic graphs.  
 
 To model the behaviour of quantum systems certain additional equations
-must be satisfied.  These are discussed in detail in
+must be satisfied.  At the  level of obejects, we ask that  $Q$ is
+self dual, i.e. that is $Q = Q^*$.  Hence we use \emph{undirected}
+graphs.  The equations between arrows are discussed in detail in
 \cite{Coecke:2008jo};  we present them in graphical form in
 Figure~\ref{fig:graph-quant-eqns}.
 
@@ -723,8 +723,8 @@ Consider the equations shown in Figure \ref{fig:graph-quant-eqns} which
 involve only one colour:  these allow the remarkable \emph{spider theorem},
 first noted in \cite{Coecke2006Quantum-Measure}, to be proved:
 
-\begin{theorem}
-  The \emph{Spider Theorem}: let $G$ be a connected graph generated
+\begin{theorem}[Spider Theorem]
+  Let $G$ be a connected graph generated
   from $\delta_Z$, $\epsilon_Z$, $\alpha_Z$ and their adjoints; then
   $G$ is totally determined by the number of inputs, the number of
   outputs, and the sum modulo $2\pi$ of the $\alpha$s which occur in
@@ -786,7 +786,7 @@ $\qquad\quad$ \inlinegraphic{2.5em}{compact5} $=$
 %\inlinegraphic{2.5em}{compact5}
 %\end{center}
 
-\noindent However, composition with semi-circles ($d$ and $e$ from
+\noindent However, composition with semi-circles ($d_Q$ and $e_Q$ from
 Definition~\ref{compactcat-def}), on the co-domain or domain, allows
 an equation involving one of the above to easily lead to a derivation
 corresponding to either of the other two: proving any of the above
@@ -811,39 +811,36 @@ matching, which captures the intuitive idea of a graph with variable
 nodes occurring within another graph:
 
 \begin{definition}
-  \emph{Matching} is an open embedding
-  (Definition~\ref{open-embedding-def}) which is strict for the
-  non-variable nodes.
+  A variable-node (resp., concrete) graph $G$ \emph{matches} another graph
+  $H$ if there exists an open embedding $G\to H$ which is strict on
+  the non-variable (resp., non-boundary) nodes.  This open embedding
+  is called a \emph{matching}.
 \end{definition}
+
+If $G$ and $H$ are variable-node graphs such that  $G$ matches $H$
+then we write $G \leq_v H$.
 
 A graph with variable nodes, $G$, can be given a formal semantics by
 being interpreted as a set of concrete graphs, denoted by
 $\vinterp{G}$. The interpretation is simply the set of concrete graphs
-which the variable node graph matches. The above definition of
-matching also applies between two variable-node graphs, in which case
-we denote that $G$ matches $H$ by $G \leq_v H$.
+which the variable node graph matches. 
 
-\begin{theorem}
+\begin{proposition}
 \label{match-interp-thm}
-$G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$. The
-proof from left to right is a consequence of the lemma that a
-composition of open embeddings is an open embedding. From left to
-right, the embedding of $G \leq_v H$ composed with $\vinterp{H}$ is
-thus an open embedding of $G$ into $\vinterp{H}$. Hence $\vinterp{G}
-\supseteq \vinterp{H}$. From right to left, we compose the open
-embedding $\vinterp{G}$, restricted to it's subset $\vinterp{H}$, with
-the inverse of $\vinterp{H}$ to get $G \leq_v H$.
-\end{theorem}
+$G \leq_v H \Leftrightarrow \vinterp{G} \supseteq \vinterp{H}$.
+\end{proposition}
+\begin{proof}
+  The proof from left to right is a consequence of the fact that a
+  composition of open embeddings is an open embedding. From left to
+  right, the embedding of $G \leq_v H$ composed with $\vinterp{H}$ is
+  thus an open embedding of $G$ into $\vinterp{H}$. Hence $\vinterp{G}
+  \supseteq \vinterp{H}$. From right to left, we compose the open
+  embedding $\vinterp{G}$, restricted to it's subset $\vinterp{H}$,
+  with the inverse of $\vinterp{H}$ to get $G \leq_v H$.
+\end{proof}
 
-\begin{theorem}
-\label{reflexive-match-thm}
-\emph{Matching is reflexive}: $G \leq_v G$ is a trivial instance of
-the same theorem for open-embeddings, where the embedding is the
-identity map.
-\end{theorem}
-
-These theorems ensure that matching is what we expect it to be and
-also give us the usual properties such as associativity.
+It's easy to verify that $\leq_v$ is a preorder: i.e. that
+matching is transitive and reflexive.
 
 % \begin{figure}[t]
 % %  \scalebox{1.0}{\includegraphics{images/node-var-instance.eps}}
@@ -946,7 +943,7 @@ also give us the usual properties such as associativity.
 
 \section{!-Boxes}
 
-A crucial feature of rules like the Spider Theorem is that an arbitrary
+If we wish formalise reasoning via spiders then an arbitrary
 number of repetitions of a subgraph need to be matched. To support
 this we introduce an operation, !-boxing (pronounced bang-boxing), on
 graph representations. Given a graph representation, this introduces a
