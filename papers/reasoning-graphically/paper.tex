@@ -978,29 +978,23 @@ infix as $G \leq_! H$ when $G$ matches $H$. The set matching !-box
 graphs is defined as the set closed by the following operations on the
 !-boxes in a graph:
 
-\begin{definition}
-  \emph{copy}: copies a !-box, $b$ in a graph to produce a new graph
+\begin{description}
+  \item[copy]: copies a !-box, $b$ in a graph to produce a new graph
   with two copies of the !-boxed subgraph, $b$ is the old one and $b'$
   is the new one. The set of !-boxes in the copied graph now also
   contains the new !-box $b'$. Any edges between a node, $n$, inside
   the !-box $b$, and a node, $m$, outside it, get copied so that there
   is a new edge from $m$ to the new copy of $n$ in $b'$.
-\end{definition}
 
-\begin{definition}
-  \emph{drop} simply removes the !-box, but leaves its contents in the
+\item[drop]: simply removes the !-box, but leaves its contents in the
   graph.
-\end{definition}
 
-\begin{definition}
-  \emph{kill} removes from the graph all nodes in the !-box as well as
+\item[kill]: removes from the graph all nodes in the !-box as well as
   any incident edges.
-\end{definition}
 
-\begin{definition}
-  \emph{merge} combines two !-boxes, $B_1$ and $B_2$ into a single
+\item[merge]: combines two !-boxes, $B_1$ and $B_2$ into a single
   larger !-box $B_1 \cup B_2$.
-\end{definition}
+\end{description}
 
 \subsubsection{Semantics.} 
 
@@ -1344,14 +1338,12 @@ in Figure~\ref{fig:spider-thm-patt}. Although a complete graph-based
 account of the underlying quantum model is ongoing work, these rules
 provide an effective and useful initial set. 
 
-As well as these equations, recall that the object level formalism
-must define the data held at the nodes and edges as well as provide a
-suitable macthing algorithm for these. Our model of quantum
-computation provides no data for the edges. The nodes, on the other
-hand, are either a $H$ with no additional data (a Hadamard gate), or
-have an \emph{angle} and are either the $X$ or $Z$ transforms. For
-their part, angles are expressed as rational numbers which correspond
-to the coefficient of $\pi$ in the corresponding matrix.
+Our model of quantum computation requires no data for the edges. The
+nodes, on the other hand, are either a $H$ with no additional data (a
+Hadamard gate), or have an \emph{angle} and are either the $X$ or $Z$
+transforms. For their part, angles are expressed as rational numbers
+which correspond to the coefficient of $\pi$ in the corresponding
+matrix.
 
 The result is that we give the $X$ and $Z$ nodes an \emph{angle
   expression}. When a node is within a !-box, this is a variable which
@@ -1362,10 +1354,11 @@ cooefficient. When an angle-expression contains a variable within a
 !-box, this is interpreted as a sum of the variables that result from
 it's unfolding. This rather simple expression language has a simple
 normal form by lexographically ordering the angle-variable. Matching
-then results in variables being instantiated and all affected nodes
-normalising the result of the instantiation. The substitution rule
-also has to make sure that a angle-variables in the rule being applied
-are distinct from those in the expression being rewritten. 
+then results in variables being instantiated and the values of all
+affected nodes are then normalised. An additional implementation
+detail must also be observed for the substitution rule: it must ensure
+that angle-variables in the rule being applied are distinct from those
+in the expression being rewritten.
 
 
 %The model of qantum computation in which we are interested is finite
@@ -1374,22 +1367,34 @@ are distinct from those in the expression being rewritten.
 %\subsection{Node Expressions}
 %\label{ssec:cs:node-expressions}
 
-
-\subsection{Computing the Quantum Fourier Transform}
+\subsubsection{Computing the Quantum Fourier Transform.}
 \label{ssec:cs:quantum-transform}
 
 The quantum fourier transform is among the most important quantum
 algorithms, forming an essential part of Shor's
-algorithm~\cite{Shor:PolyTimeFact:1997}. 
+algorithm~\cite{Shor:PolyTimeFact:1997}, famous for providing a
+polynomial time algorithm for factoring. In our graph patten calculus
+this ciruit becomes the top-left graph in
+Figure~\ref{fig:quantum-transform}. This figure shows how computation
+can be symbolically performed by rewriting with the lifted equations
+from Figure~\ref{fig:graph-quant-eqns} with the graph pattern version
+of the Spider Theorem. 
 
 \begin{figure}[t]
-$$\begin{array}{cccc}
+\begin{tabular}{cccc}
+\hline
+ & & & \\
   & \inlinegraphic{2cm}{qft2} & = & \inlinegraphic{2cm}{qft3} \\ 
  & & & \\
-= & \inlinegraphic{2cm}{qft6} & = & \inlinegraphic{2cm}{qft10}
-\end{array}$$
+\hline
+ & & & \\
+= & \inlinegraphic{2cm}{qft6} & = & \inlinegraphic{2cm}{qft10} \\
+ & & & \\
+\hline
+\end{tabular}
 \label{fig:quantum-transform}\caption{An example computation of the
-  Quantum Fourier Transform, performed symbollically by rewriting.}
+  Quantum Fourier Transform with inputs 1 and 0, performed
+  symbollically by rewriting. }
 \end{figure}
 
 
