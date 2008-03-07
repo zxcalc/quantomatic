@@ -1404,21 +1404,21 @@ of the Spider Theorem.
 \label{sec:relatedwork}
 
 There are several foundational approaches to graph transformation,
-including algebraic appoaches~\cite{corradini97algebraic}, node-label
+including algebraic approaches~\cite{corradini97algebraic}, node-label
 controlled~\cite{Graphgrammars83}, matrix
 based~\cite{DBLP:conf/gg/VelascoL06}, and programmed graph
 replacement~\cite{progress97}. These provide general ways of
-interpretating graph transformations which can then be implemented to
+interpretation graph transformations which can then be implemented to
 provide machinery for a specific application.  However, systems based
 on these theories do not provide machinery for the semantics of
 compact closed categories. Thus their notion of matching and
-replacement do not guarentee well-typed results. Furthermore, they do
-not provide machinery to for rewriting of graphs with elipses
+replacement do not guarantee well-typed results. Furthermore, they do
+not provide machinery to for rewriting of graphs with ellipses
 notation. 
 
 The distinctive feature of our form of graph rewriting is that the
 graphs capture the structural properties of compact closed categories.
-In this respect, our graphs caputure the structural properties of
+In this respect, our graphs capture the structural properties of
 compact closed categories and rewriting is compositional: it preserves
 the type of the rewritten subgraph. However, the various components of
 our system can be seen as instantiations for in a general graph
@@ -1432,18 +1432,33 @@ conditions and the attribute transfer function.
 % Other Graph Transformation...
 % Interaction nets and interaction combinators (Lafont and others)
 
-\section{Conclusions}
+\section{Conclusions and Further Work}
 \label{sec:conclusions}
 
-Ideas for further work
-\begin{itemize}
-\item simplification ordering
-\item confluence arguments for graphs
-\item formalise algorithms in a thm prover
-\item richer graph structures - quantification over edges
-\item richer expression language in vertices
-\item completeness of rewrite rules with respect to wpHilb
-\end{itemize}
+We have introduced a representation for graphs which can formally
+characterise the ellipses notation used informally to represent certain
+infinite families of graph rewrites, such as the Spider Theorem. This
+representation provides the foundation for a simple meta-logic for
+reasoning about models of compact closed categories. We illustrated
+this by providing an account of quantum computation and showing how
+computation can be performed. Having developed the basic
+representational machinery and shown matching to be decidable, we are
+left with several exciting avenues for further research. The most
+immediate is to provide a full implementation - a partial one is
+already
+available~\footnote{\url{http://dream.inf.ed.ac.uk/projects/quantomatic}}.
+Other areas of further work include considering confluence results for
+sets of rewrite rules, even richer representations for graph-patterns
+and completeness of the set of the rewrite rules for quantum
+computation.
+
+% simplification ordering
+% \item confluence arguments for graphs
+% \item formalise algorithms in a thm prover
+% \item richer graph structures - quantification over edges
+% \item richer expression language in vertices
+% \item completeness of rewrite rules with respect to wpHilb
+% \end{itemize}
 
 \bibliographystyle{plain}
 \bibliography{all,bibfile}
