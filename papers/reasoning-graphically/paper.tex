@@ -731,7 +731,8 @@ first noted in \cite{Coecke2006Quantum-Measure}, to be proved:
 $$\begin{array}{ccc}
 \inlinegraphic{6em}{spider_lhs} & = & \inlinegraphic{6em}{spider_rhs}
 \end{array}$$
-\label{fig:informal-spider-law}\caption{An informal equation on graphs
+
+\label{fig:spider}\caption{An informal equation on graphs
   that expresses the Spider Theorem. }
 \end{figure}
 
@@ -739,7 +740,7 @@ Hence any connected subgraph involving nodes of only one colour,
 wherever it occurs in a graph, may be collapsed to a single vertex
 labelled by a single value $\alpha$, giving a ``spider''. Informally,
 this can be depicted graphically as the equation in
-Figure~\ref{fig:informal-spider-law}. Conversely, a spider may be
+Figure~\ref{fig:spider}. Conversely, a spider may be
 arbitrarily divided into subspiders, provided the total in- and
 out-degree is preserved, along with and the sum of the $\alpha $s.
 Further, one can derive, from the spider theorem, $n$-fold versions of
@@ -944,7 +945,7 @@ as representing a set of graphs with an arbirary number of copies of
 the !-boxed nodes, where every copy connects, in the same way, to the
 nodes outside the !-box. The !-boxes can also be instantiated with
 zero copies. This erases all edges to and from the !-box.  The Spider
-Theorem in Figure~\ref{fig:informal-spider-law} for instance is
+Theorem in Figure~\ref{fig:spider} for instance is
 represented with !-boxes in Figure~\ref{fig:spider-thm-patt}.
 
 %Figure~\ref{fig:spider-bang-lhs-example} shows an how the left hand side of
@@ -1402,26 +1403,34 @@ of the Spider Theorem.
 \section{Related Work}
 \label{sec:relatedwork}
 
-Initially one might be tempted to think that the usual notion of
-subgraph might surfice for expressing matching, however it allows
-additional edges on nodes where, because of the tensorial semantics of
-our graphs, we do not. Our work provides a restriction of the usual
-subgraph definition that is sound for Compact Closed Categories.
+There are several foundational approaches to graph transformation,
+including algebraic appoaches~\cite{corradini97algebraic}, node-label
+controlled~\cite{Graphgrammars83}, matrix
+based~\cite{DBLP:conf/gg/VelascoL06}, and programmed graph
+replacement~\cite{progress97}. These provide general ways of
+interpretating graph transformations which can then be implemented to
+provide machinery for a specific application.  However, systems based
+on these theories do not provide machinery for the semantics of
+compact closed categories. Thus their notion of matching and
+replacement do not guarentee well-typed results. Furthermore, they do
+not provide machinery to for rewriting of graphs with elipses
+notation. 
 
-Link Graphs and their extention to BiGraphs also encapsualte a very
-different kind of semantics where they allow edges to go to multiple
-nodes. An interesting area of further work would be to consider our
-graph patterns for these, and other, graph based formalisms.
+The distinctive feature of our form of graph rewriting is that the
+graphs capture the structural properties of compact closed categories.
+In this respect, our graphs caputure the structural properties of
+compact closed categories and rewriting is compositional: it preserves
+the type of the rewritten subgraph. However, the various components of
+our system can be seen as instantiations for in a general graph
+rewriting system: our matching provides the embedding information and
+the node-data matching of the object formalism provides application
+conditions and the attribute transfer function.
 
-Graph Grammars...
-
-Other graph rewriting... 
-
-Matrix Based Graph Tansformation...
-
-Other Graph Transformation...
-
-Interaction nets and interaction combinators (Lafont and others)
+% Graph Grammars...
+% Other graph rewriting... 
+% Matrix Based Graph Tansformation...
+% Other Graph Transformation...
+% Interaction nets and interaction combinators (Lafont and others)
 
 \section{Conclusions}
 \label{sec:conclusions}
