@@ -42,8 +42,7 @@ fun compare_pos ([], []) = EQUAL
   | compare_pos (false::_, true::_) = LESS
   | compare_pos (_, _) = raise incomparible_poses_exp "compare_pos";
 
-(* invarient: ptab should be balanced and names relate to names in the
-TNSet *)
+(* invarient: ptab should be balanced and I am thinking that data is the user-level name *)
 datatype 'a ptab = Lf of 'a
                  | Br of int * 'a ptab * 'a ptab; (* depth, left, right *)
 
@@ -51,7 +50,7 @@ type 'a T = 'a ptab option;
 
 val empty = (NONE : 'a T);
 
-fun depth_of_ptab (Lf _) = 0
+fun depth_of_ptab (Lf _) = 1
   | depth_of_ptab (Br (d,l,r)) = d;
 
 fun depth NONE = 0
@@ -79,7 +78,7 @@ fun fold_ptab_lfs f (Lf x) a = (f x a)
 fun fold_lfs f NONE a = a
   | fold_lfs f (SOME ptab) a = fold_ptab_lfs f ptab a;
 
-(* lazy sequence construction *)
+(* lazy sequence construction for leaf nodes data ordered left then right *)
 fun lfseq_of_ptab (Lf x) () = SOME (x, Seq.empty)
   | lfseq_of_ptab (Br (i,l,r)) () = 
     (case lfseq_of_ptab l ()
@@ -92,7 +91,7 @@ exception bad_ptab_exp of string;
 exception bad_seq_exp of string;
 
 
-(* given a sequence, use it to replace named in the ptab *)
+(* given a sequence, use it to replace leaf data (names) in the ptab *)
 fun replace_ptab_lfs seq (Lf n) = 
     (case Seq.pull seq of 
        NONE => raise bad_seq_exp "replace_names: run out of elements"
