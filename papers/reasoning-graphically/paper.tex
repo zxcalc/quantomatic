@@ -550,8 +550,18 @@ and abstract over the their internal structure.
 \section{Quantum Computations as Graphs}
 \label{sec:quotients-rewriting}
 
+A substantial strand of work in quantum computation is
+the development of high-level models of quantum processes based on
+compact closed  categories.  In this formalism, initiated in
+\cite{AbrCoe:CatSemQuant:2004}, quantum processes---such as quantum
+logic gates, or the measurement of a qubit---correspond to arrows
+in a category, while the different quantum data types, usually just
+arrays of qubits, are the objects.  The graphical presentation
+described in the the preceding section thus provides a very expressive
+notation for representing quantum processes.
+
 While compact closed categories provide a suitable setting for
-reasoning about quantum computation \cite{AbrCoe:CatSemQuant:2004},
+reasoning about quantum computation,
 freely generated structure will not suffice:  we need additional
 equations.  These equations will be expressed as rewrites rules for
 graphs.  In this section we will describe a set of generators and equations
@@ -592,6 +602,46 @@ Hadamard gate. (The adjoints for $H$, $\alpha_X$ and
 $\alpha_Z$ will be defined equationally.)  The free compact closed
 category is then given by all graphs formed by composing and tensoring
 these basic graphs.
+
+Space does not permit a full exposition of this system, however we
+can outline the basic intuitions behind these generators.  Each edge
+in the picture represents a qubit, although several edges may
+represent the same physical qubit at different times.  An edge may
+even represent a ``virtual'' qubit which stands for a correlation
+between different parts of the  system.  The maps
+$\delta_Z$ and $\epsilon_Z$ represent quantum operations which
+respectively copy and delete the eigenstates
+of the  Pauli $Z$ operator.\footnote{Uniform copying operations are
+  forbidden by the no-cloning theorem \cite{no-cloning}, but such
+  operations are possible if we demand only the eigenstates of some
+  self-adjoint operator to be copied. Other states will not not
+  copied.  The same remarks hold true for erasing.}  
+Notice that $\delta_Z$ has one edge
+in its domain representing the qubit to copied, and two edges in its
+codomain for the two copies it produces.  Similarly, $\epsilon_Z$ has
+one qubit as input and no outputs.
+The adjoints $\delta^\dag_Z$ and  $\epsilon^\dag_Z$ correspond to an
+operation known as \emph{fusion}, and to the operation of preparing a
+fresh qubit in a certain state. The $\alpha_Z$ corresponds to phase
+shift of angle $\alpha$ in the $Z$ direction.  The family of maps
+indexed by $X$ are defined in exactly the same way, but relative to
+the Pauli $X$ rather than the $Z$.  All quantum operations may be
+defined by combining these simple operations---which are essentially
+classical---on two complementary observables. 
+
+\begin{remark}
+  We emphasise that this is a mathematical notation is for
+  representing quantum processes, unlike the so-called graph states
+  used in measurement based quantum computation \cite{Briegel etc}
+  which is based on certain quantum states.  Their graphical notation
+  is dual to ours, with the vertices representing qubits and the edges
+  representing entanglement between the individual quibits.  Within
+  the formalism of this paper, a state is simply a process with no
+  inputs; that  is, a concrete graph with empty domain.  An important
+  application is to show that states or computations implmented
+  differently are equivalent:  this includes graph states, and
+  measurement based computations more generally. 
+\end{remark} 
 
 To model the behaviour of quantum systems certain additional equations
 must be satisfied.  At the  level of objects, we ask that  $Q$ is
