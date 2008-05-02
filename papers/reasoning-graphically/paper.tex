@@ -1055,16 +1055,21 @@ operations on $G$:
   any incident edges.
 
 \item[merge]: combines two !-boxes, $B_1$ and $B_2$ into a single
-  larger !-box $B_1 \cup B_2$.
+  larger !-box $B_1 \cup B_2$. To ensure that copying after merging
+  commutes with copying before, merging is restricted to !-boxes which
+  do not have an edge between their nodes.
 \end{description}
 
 \begin{figure}[t]
 $$\begin{array}{ccccccc}
-\inlinegraphic{3.8em}{bbox-ex1} & 
-\frac{\leq}{copy} & \inlinegraphic{3.8em}{bbox-ex2}  & 
-\frac{\leq}{merge} & \inlinegraphic{3.8em}{bbox-ex3}  & 
-\frac{\leq}{drop} & \inlinegraphic{3.8em}{bbox-ex4}
-\end{array}$$
+\inlinegraphic{4em}{bbox-ex1} &  
+\stackrel{\leq}{\stackrel{\ }{\small{copy}}} 
+& \inlinegraphic{4em}{bbox-ex2}  & 
+\stackrel{\leq}{\stackrel{\ }{\small{merge}}} 
+& \inlinegraphic{4em}{bbox-ex3}  & 
+\stackrel{\leq}{\stackrel{\ }{\small{drop}}} 
+& \inlinegraphic{4em}{bbox-ex4}
+\end{array}$$ 
 \label{fig:bang-box-example}\caption{An illustration of !-box graph
   matching using the !-box operations. This involves first copying
   !-box $i_0$ twice, then merging $i_0$ and $i_1$ and finally dropping
@@ -1078,17 +1083,17 @@ Figure~\ref{fig:bang-box-example}.
 We give a formal semantics to !-box graphs by defining them in terms
 of a set of graphs in the underlying representation. We denote the
 interpretation of a !-box graph $G$ by $\binterp{G}$ and say that
-members of $\binterp{G}$ are instances of $G$.
+members of $\binterp{G}$ are instances of $G$. 
 
 \begin{definition}
   \emph{Interpretation of !-box Graphs}: $\binterp{G}$ is the subset
   of graphs matched by the !-box graph that have no !-boxes.
 \end{definition}
 
-Observe that an instance of a !-box graph is defined by pairing each
-!-box with the natural number that defines how many copies are made of
-it. Thus $\binterp{G}$ is isomorphic to the set of $k$-tuples of
-natural numbers, where $k$ is the number of !-boxes.
+Observe that every concrete instance of a !-box graph can be defined
+by pairing each !-box with the natural number that defines how many
+copies are made of it. Thus $\binterp{G}$ is isomorphic to the set of
+$k$-tuples of natural numbers, where $k$ is the number of !-boxes. 
 
 \begin{theorem}
 \label{thm:bang-box-respect}
@@ -1098,9 +1103,13 @@ simple consequence from the definition of $\binterp{G}$ being a subset
 of the graphs that match $G$.
 \end{theorem}
 
+The need for the !-box matching operation, rather than using a direct
+$k$-tuple interpretation, is to allow matching between !-box graphs,
+and thus to provide a mechanism for derived rules.
+
 For the purposes of this paper, the underlying graph representation of
 !-boxed graphs is variable-node graphs. This gives rise to graph
-patterns which we now discuss in more detail.
+patterns which we now discuss in more detail. 
 % The set of variable-node
 % graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$. 
 
