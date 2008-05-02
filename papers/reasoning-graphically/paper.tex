@@ -550,15 +550,15 @@ and abstract over the their internal structure.
 \section{Quantum Computations as Graphs}
 \label{sec:quotients-rewriting}
 
-A substantial strand of work in quantum computation is
-the development of high-level models of quantum processes based on
-compact closed  categories.  In this formalism, initiated in
+A substantial strand of work in quantum computation has involved the
+development of high-level models of quantum processes based on compact
+closed categories.  In these formalisms, initiated in
 \cite{AbrCoe:CatSemQuant:2004}, quantum processes---such as quantum
-logic gates, or the measurement of a qubit---correspond to arrows
-in a category, while the different quantum data types, usually just
-arrays of qubits, are the objects.  The graphical presentation
-described in the the preceding section thus provides a very expressive
-notation for representing quantum processes.
+logic gates, or the measurement of a qubit---correspond to arrows in a
+category, while the different quantum data types, usually just arrays
+of qubits, are the objects.  The graphical representation described in
+the preceding section thus provides a very expressive notation quantum
+processes.
 
 While compact closed categories provide a suitable setting for
 reasoning about quantum computation,
@@ -583,7 +583,8 @@ generators:
 \end{description}
 To each each arrow $f : A\to B$ we assign a formal adjoint $f^\dag : B
 \to A$.  Each arrow is represented as a small graph; its adjoint is
-the same graph written upside down.  We use colours to denote two families:
+the same graph written upside down by reflection in the x-axis.  We
+use colours to denote two families:
 \begin{gather*}
   \epsilon_Z = \inlinegraphic{1.5em}{epsilon} \qquad
   \delta_Z = \inlinegraphic{1.5em}{delta} \qquad
@@ -598,49 +599,45 @@ the same graph written upside down.  We use colours to denote two families:
   \alpha_X = \inlinegraphic{1.5em}{redalpha} \qquad
 \end{gather*}
 The $H$ arrow is denoted by \inlinegraphic{1.5em}{H} and represents a
-Hadamard gate. (The adjoints for $H$, $\alpha_X$ and
-$\alpha_Z$ will be defined equationally.)  The free compact closed
+Hadamard gate. The adjoints for $H$, $\alpha_X$ and
+$\alpha_Z$ will be defined equationally.  The free compact closed
 category is then given by all graphs formed by composing and tensoring
 these basic graphs.
 
-Space does not permit a full exposition of this system, however we
-can outline the basic intuitions behind these generators.  Each edge
-in the picture represents a qubit, although several edges may
-represent the same physical qubit at different times.  An edge may
-even represent a ``virtual'' qubit which stands for a correlation
-between different parts of the  system.  The maps
-$\delta_Z$ and $\epsilon_Z$ represent quantum operations which
-respectively copy and delete the eigenstates
-of the  Pauli $Z$ operator.\footnote{Uniform copying operations are
-  forbidden by the no-cloning theorem \cite{no-cloning}, but such
-  operations are possible if we demand only the eigenstates of some
-  self-adjoint operator to be copied. Other states will not not
-  copied.  The same remarks hold true for erasing.}  
-Notice that $\delta_Z$ has one edge
-in its domain representing the qubit to copied, and two edges in its
-codomain for the two copies it produces.  Similarly, $\epsilon_Z$ has
-one qubit as input and no outputs.
-The adjoints $\delta^\dag_Z$ and  $\epsilon^\dag_Z$ correspond to an
-operation known as \emph{fusion}, and to the operation of preparing a
-fresh qubit in a certain state. The $\alpha_Z$ corresponds to phase
-shift of angle $\alpha$ in the $Z$ direction.  The family of maps
-indexed by $X$ are defined in exactly the same way, but relative to
-the Pauli $X$ rather than the $Z$.  All quantum operations may be
-defined by combining these simple operations---which are essentially
-classical---on two complementary observables. 
+In terms of quantum processes, each edge in a graph represents a
+qubit, although several edges may represent the same physical qubit at
+different times.  An edge may even represent a ``virtual'' qubit which
+stands for a correlation between different parts of the system.  The
+maps $\delta_Z$ and $\epsilon_Z$ represent quantum operations which
+respectively copy and delete the eigenstates of the Pauli $Z$
+operator.\footnote{Uniform copying operations are forbidden by the
+  no-cloning theorem \cite{no-cloning}, but such operations are
+  possible if we demand only the eigenstates of some self-adjoint
+  operator to be copied.  Other states will not not copied.  The same
+  remarks hold true for erasing.}  Notice that $\delta_Z$ has one edge
+in its domain representing the qubit to be copied, and two edges in
+its codomain for the two copies it produces.  Similarly, $\epsilon_Z$
+has one qubit as input and no outputs.  The adjoints $\delta^\dag_Z$
+and $\epsilon^\dag_Z$ correspond to an operation known as
+\emph{fusion}, and to the operation of preparing a fresh qubit in a
+certain state.  The $\alpha_Z$ corresponds to phase shift of angle
+$\alpha$ in the $Z$ direction.  The family of maps indexed by $X$ are
+defined in exactly the same way, but relative to the Pauli $X$
+operator rather than the $Z$.  All quantum operations may be defined
+by combining these simple operations---which are essentially
+classical---on two complementary observables.
 
 \begin{remark}
   We emphasise that this is a mathematical notation is for
   representing quantum processes, unlike the so-called graph states
-  used in measurement based quantum computation \cite{Briegel etc}
-  which is based on certain quantum states.  Their graphical notation
-  is dual to ours, with the vertices representing qubits and the edges
-  representing entanglement between the individual quibits.  Within
-  the formalism of this paper, a state is simply a process with no
-  inputs; that  is, a concrete graph with empty domain.  An important
-  application is to show that states or computations implmented
-  differently are equivalent:  this includes graph states, and
-  measurement based computations more generally. 
+  used in measurement based quantum computation \cite{Briegel etc}.
+  Their graphical notation is dual to ours, with the vertices
+  representing qubits and the edges representing entanglement between
+  the individual quibits.  Within the formalism of this paper, a state
+  is simply a process with no inputs; that is, a concrete graph with
+  empty domain.  An important application is to show that states or
+  computations implemented differently are equivalent: this includes
+  graph states, and measurement based computations more generally.
 \end{remark} 
 
 To model the behaviour of quantum systems certain additional equations
@@ -772,9 +769,10 @@ Figure~\ref{fig:graph-quant-eqns}.
   \figureend
 \end{figure}
 
-Consider the equations shown in Figure \ref{fig:graph-quant-eqns} which
-involve only one colour:  these allow the remarkable \emph{spider theorem},
-first noted in \cite{Coecke2006Quantum-Measure}, to be proved:
+Consider the equations from Figure \ref{fig:graph-quant-eqns} which
+involve only one colour: these allow the remarkable \emph{spider
+  theorem}, first noted in \cite{Coecke2006Quantum-Measure}, to be
+proved:
 
 \begin{theorem}[Spider Theorem]
   Let $G$ be a connected graph generated
@@ -799,14 +797,13 @@ $$\begin{array}{ccc}
 
 \end{figure}
 
-Hence any connected subgraph involving nodes of only one colour,
-wherever it occurs in a graph, may be collapsed to a single vertex
-labelled by a single value $\alpha$, giving a ``spider''. Informally,
-this can be depicted graphically as the equation in
-Figure~\ref{fig:spider}-left. Conversely, a spider may be
+Hence any connected subgraph involving nodes of only one colour may be
+collapsed to a single vertex, with a single value $\alpha$, giving a
+``spider''. Informally, this can be depicted graphically as the
+equation in Figure~\ref{fig:spider}-left. Conversely, a spider may be
 arbitrarily divided into sub-spiders, provided the total in- and
 out-degree is preserved, along with the sum of the $\alpha$s.
-Further, one can derive, from the spider theorem, $n$-fold versions of
+Furthermore, one can derive, from the spider theorem, $n$-fold versions of
 many of the other equations.
 
 Spiders offer a very intuitive way to manipulate graphs, and are far
