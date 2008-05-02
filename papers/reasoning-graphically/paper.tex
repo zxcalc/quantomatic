@@ -1033,20 +1033,20 @@ now define the concept of !-box matching which we then use to provide
 a formal semantics for the !-boxed graphs.
 
 %\textbf{Matching.} 
-To formalise the intuitive notion that a !-box
-represents arbitrary number of copies of the subgraph made from its
-nodes, we introduce \emph{!-box matching}. This is a binary relation
-on graphs, written infix as $G \leq_! H$ when $G$ matches $H$. The set
-matching !-box graphs is defined as the set closed by the following
-operations on the !-boxes in a graph:
+To formalise the intuitive notion that a !-box represents arbitrary
+number of copies of the subgraph made from its nodes, we introduce
+\emph{!-box matching}. This is a binary relation on graphs, written
+infix as $G \leq_! H$ when $G$ matches $H$. The set of !-box graphs
+matching $G$ is defined as the set of graphs closed by the following
+operations on $G$:
 
 \begin{description}
-  \item[copy]: copies a !-box, $b$ in a graph to produce a new graph
+\item[copy]: copies a !-box, $b$ in a graph to produce a new graph
   with two copies of the !-boxed subgraph, $b$ is the old one and $b'$
   is the new one. The set of !-boxes in the copied graph now also
   contains the new !-box $b'$. Any edges between a node, $n$, inside
   the !-box $b$, and a node, $m$, outside it, get copied so that there
-  is a new edge from $m$ to the new copy of $n$ in $b'$.
+  is a new edge from $m$ to the new copy of $n$ in $b'$. 
 
 \item[drop]: simply removes the !-box, but leaves its contents in the
   graph.
@@ -1058,7 +1058,23 @@ operations on the !-boxes in a graph:
   larger !-box $B_1 \cup B_2$.
 \end{description}
 
+\begin{figure}[t]
+$$\begin{array}{ccccccc}
+\inlinegraphic{3.8em}{bbox-ex1} & 
+\frac{\leq}{copy} & \inlinegraphic{3.8em}{bbox-ex2}  & 
+\frac{\leq}{merge} & \inlinegraphic{3.8em}{bbox-ex3}  & 
+\frac{\leq}{drop} & \inlinegraphic{3.8em}{bbox-ex4}
+\end{array}$$
+\label{fig:bang-box-example}\caption{An illustration of !-box graph
+  matching using the !-box operations. This involves first copying
+  !-box $i_0$ twice, then merging $i_0$ and $i_1$ and finally dropping
+  $i_3$.}
+\end{figure}
+ 
 %\textbf{Semantics.} 
+An example of matching with these operations is illustrated in
+Figure~\ref{fig:bang-box-example}.
+
 We give a formal semantics to !-box graphs by defining them in terms
 of a set of graphs in the underlying representation. We denote the
 interpretation of a !-box graph $G$ by $\binterp{G}$ and say that
