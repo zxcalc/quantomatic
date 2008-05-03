@@ -369,7 +369,7 @@ $r_E$ to its preimage satisfies equations \eqref{eq:graph-hom1} and
 \eqref{eq:graph-hom2} above.
 
 Augmented by some additional structure, graphs form a \emph{compact closed
-category}.  In section \ref{sec:graph-repr-comp} we will describe this
+category}.  In section~\ref{sec:graph-repr-comp} we will describe this
 structure, but first we review the basic properties of compact closed
 categories.
 
@@ -378,10 +378,9 @@ categories.
 
 \begin{definition}
 \label{compactcat-def}
-A strict symmetric monoidal  category
-\cite{MacLane:CatsWM:1971,AspLon:CatTypStruct:1991} is called compact 
-closed \cite{KelLap:comcl:1980} when each object $A$ has a chosen dual
-object $A^*$, and morphisms
+A strict symmetric monoidal category~\cite{AspLon:CatTypStruct:1991}
+is called compact closed~\cite{KelLap:comcl:1980} when each object $A$
+has a chosen dual object $A^*$, and morphisms
 \begin{gather*}
   d_A : I \to A^* \otimes A \quad\quad\quad e_A : A \otimes A^* \to I
 \end{gather*}
@@ -750,7 +749,7 @@ Figure~\ref{fig:graph-quant-eqns}.
       \inlinegraphic{2em}{Heq-epsilon} &=\;&
       \inlinegraphic{1.5em}{redepsilon}
       &\qquad\qquad&
-      \inlinegraphic{2.5em}{Heq-alpha} &=\;&
+      \inlinegraphic{3.3em}{Heq-alpha} &=\;&
       \inlinegraphic{1.5em}{redalpha}
     \end{array}
     \]
@@ -825,16 +824,11 @@ different computations:
 \begin{center}
 \inlinegraphic{2.5em}{compact1} $=$
 \inlinegraphic{1.3em}{compact2} $\qquad\quad$
-\inlinegraphic{2.5em}{compact3} $=$ \inlinegraphic{1.3em}{compact4}
-$\qquad\quad$ \inlinegraphic{2.5em}{compact5} $=$
-\inlinegraphic{2.5em}{comonoid-unit4}
+\inlinegraphic{2.5em}{compact3} $=$ 
+\inlinegraphic{1.3em}{compact4} $\qquad\quad$ 
+\inlinegraphic{2.5em}{compact5} $=$
+\inlinegraphic{2.5em}{compact6}
 \end{center}
-
-%\begin{center}
-%\inlinegraphic{2.5em}{compact1} \quad\quad
-%\inlinegraphic{2.5em}{compact3} \quad\quad
-%\inlinegraphic{2.5em}{compact5}
-%\end{center}
 
 \noindent However, composition with semi-circles ($d_Q$ and $e_Q$ from
 Definition~\ref{compactcat-def}), on the co-domain or domain, allows
@@ -1226,12 +1220,15 @@ compact closed categories. Following the terminology of logical
 frameworks such as Isabelle~\cite{isabelle}, we call the specification
 provided by the underlying model an \emph{object-level} graph
 formalism. An object-level formalisation defines a set of rules which
-are treated as the axioms for the system. It also defines the data at
-the nodes and edges as well as corresponding data-matching behaviour.
-For its part, the meta-level provides generic machinery to manipulate
-graphs and derive new rules. We now describe the meta-level framework,
-noting the conditions for a rule to be valid, and prove the systems
-adequacy for rewriting.
+are treated as the axioms for the system; for instance, the equation
+from Figure~\ref{}. It also defines the data at the nodes and edges as
+well as corresponding data-matching behaviour.  For its part, the
+meta-level provides generic machinery to manipulate graphs and derive
+new rules.  We now describe the meta-level framework, noting the
+conditions for a rule to be valid, and prove the systems adequacy for
+rewriting. The resulting system forms the basis for an interactive
+proof assistant that supports reasoning about compact closed
+categories.
 
 \subsection{Equational Rules}
 
@@ -1407,17 +1404,18 @@ illustrate simulating a quantum computation.
 
 The model of quantum computation introduced in
 \S\ref{sec:quotients-rewriting} provides an object formalism for our
-meta-level framework. The equations from
-Figure~\ref{fig:graph-quant-eqns} are lifted to graph patterns and the
-spider rule is encoded as shown in Figure~\ref{fig:spider}.
+meta-level framework. In particular, the object level axioms come from
+the lifting the equations in Figure~\ref{fig:graph-quant-eqns} and the
+from the encoding of the spider law as shown in
+Figure~\ref{fig:spider}.
 
 %Although a complete graph-based account of the underlying quantum
 %model is ongoing work, these rules provide an effective and useful
 %initial set.
 
 Our model of quantum computation requires no data for the edges. The
-nodes, on the other hand, are either $H$, with no additional data (a
-Hadamard gate), or have an \emph{angle} and are either the $X$ or $Z$
+nodes on the other hand are either $H$ (a Hadamard gate), with no
+additional data, or have an \emph{angle} and are either the $X$ or $Z$
 transforms. For their part, angles are expressed as rational numbers
 which correspond to the coefficient of $\pi$ in the underlying matrix.
 
