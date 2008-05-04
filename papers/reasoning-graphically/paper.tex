@@ -341,10 +341,23 @@ that:
 the morphism: an edge connected to a node gets mapped to a new edge
 that must be connected, in the same way, to the mapped node.
 
-Let $f: G \to H$ be a graph morphism and let $V' \subseteq V_G$. We say
-that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if $s_H(e)
-\in f_V(V')$ or $t_H(e) \in f_V(V')$ then $\exists e' \in E_G$ such
-that $f_E(e') = e$. Strictness ensures that there are no additional
+%%% TODO removed this because we don't need partial maps
+%%% unless we are talking about plugging.
+%%%
+% Given two graphs, $G$ and $H$, a pair of partial maps, $r_V: V_G
+% \rightharpoonup V_H$ and $r_E: E_G \rightharpoonup E_H$, is called a
+% \emph{partial graph morphism} if whenever $r_E(e)$ is defined then
+% $r_V(s_G(e))$ and $r_V(t_G(e))$ are defined, and the restriction of
+% $r_E$ to its preimage satisfies equations \eqref{eq:graph-hom1} and
+% \eqref{eq:graph-hom2} above.
+
+\begin{definition}
+  Let $f: G \to H$ be a graph morphism and let $V' \subseteq V_G$. We
+  say that $f$ is \emph{strict for $V'$} if $\forall e \in E_H$, if
+  $s_H(e) \in f_V(V')$ or $t_H(e) \in f_V(V')$ then $\exists e' \in
+  E_G$ such that $f_E(e') = e$.
+\end{definition}
+\noindent Strictness ensures that there are no additional
 edges connected to vertices in the image of $V'$.
 
 \begin{definition}
@@ -361,13 +374,6 @@ We call a graph morphism $f$ an \emph{open embedding which is stirct for} $V'$ i
 $G$ determined by $V'$ should be preserved exactly by $f$; 
 whereas other vertices may be identified and may contain additional
 vertices.
-
-Given two graphs, $G$ and $H$, a pair of partial maps, $r_V: V_G
-\rightharpoonup V_H$ and $r_E: E_G \rightharpoonup E_H$, is called a
-\emph{partial graph morphism} if whenever $r_E(e)$ is defined then
-$r_V(s_G(e))$ and $r_V(t_G(e))$ are defined, and the restriction of
-$r_E$ to its preimage satisfies equations \eqref{eq:graph-hom1} and
-\eqref{eq:graph-hom2} above.
 
 Augmented by some additional structure, graphs form a \emph{compact closed
 category}.  In section~\ref{sec:graph-repr-comp} we will describe this
@@ -557,7 +563,7 @@ closed categories.  In these formalisms, initiated in
 logic gates, or the measurement of a qubit---correspond to arrows in a
 category, while the different quantum data types, usually just arrays
 of qubits, are the objects.  The graphical representation described in
-the preceding section thus provides a very expressive notation quantum
+the preceding section thus provides a very expressive notation for quantum
 processes.
 
 While compact closed categories provide a suitable setting for
@@ -611,10 +617,10 @@ stands for a correlation between different parts of the system.  The
 maps $\delta_Z$ and $\epsilon_Z$ represent quantum operations which
 respectively copy and delete the eigenstates of the Pauli $Z$
 operator.\footnote{Uniform copying operations are forbidden by the
-  no-cloning theorem \cite{no-cloning}, but such operations are
+  no-cloning theorem \cite{Wootters1982A-single-quantu}, but such operations are
   possible if we demand only the eigenstates of some self-adjoint
   operator to be copied.  Other states will not not copied.  The same
-  remarks hold true for erasing.}  Notice that $\delta_Z$ has one edge
+  remarks hold true for erasing \cite{Pati2000Impossibility-o}.}  Notice that $\delta_Z$ has one edge
 in its domain representing the qubit to be copied, and two edges in
 its codomain for the two copies it produces.  Similarly, $\epsilon_Z$
 has one qubit as input and no outputs.  The adjoints $\delta^\dag_Z$
@@ -627,18 +633,16 @@ operator rather than the $Z$.  All quantum operations may be defined
 by combining these simple operations---which are essentially
 classical---on two complementary observables.
 
-\begin{remark}
-  We emphasise that this is a mathematical notation is for
-  representing quantum processes, unlike the so-called graph states
-  used in measurement based quantum computation \cite{Briegel etc}.
-  Their graphical notation is dual to ours, with the vertices
-  representing qubits and the edges representing entanglement between
-  the individual quibits.  Within the formalism of this paper, a state
-  is simply a process with no inputs; that is, a concrete graph with
-  empty domain.  An important application is to show that states or
-  computations implemented differently are equivalent: this includes
-  graph states, and measurement based computations more generally.
-\end{remark} 
+We emphasise that this is a notation is for representing quantum
+processes, rather than quantum states.  In this setting a state is
+simply a process with no inputs; that is, a concrete graph with
+empty domain.
+  Since our formalism is based on the
+underlying mathematical structure rather than any particular model of
+quantum computation, it is capable of representing  quantum circuits,
+and measurement-based quantum computations, among other models.
+Indeed, an important application is to show that states or 
+computations implemented differently are equivalent.
 
 To model the behaviour of quantum systems certain additional equations
 must be satisfied.  At the  level of objects, we ask that  $Q$ is
@@ -1014,24 +1018,25 @@ zero copies. This erases all edges to and from the !-box.
 %  that expresses the Spider Theorem. }
 %\end{figure}
 
-More formally, a !-box graph is a graph paired with a set !-boxes. Each
-of these !-boxes is the set of nodes inside it and each !-box must be
-disjoint from the others.\footnote{The disjointness condition avoids a
-  slightly more complex, although also more expressive, semantics for
-  overlapping node sets in the !-boxes. While such expressivity is
-  interesting from a representational point of view, it is not needed
-  to express the currently known rules for quantum computation.}  We
-now define the concept of !-box matching which we then use to provide
-a formal semantics for the !-boxed graphs.
-
-%\textbf{Matching.} 
+More formally, a \emph{!-box graph} is a pair $(G, {\cal B})$ where $G$ is a
+graph and $\cal B$ is a set of subsets of $V$ such that  whenever
+$b_1, b_2 \in {\cal B}$ then $b_1 \cap b_2 =\emptyset$,\footnote{One
+  could consider more expressive notions of nested, or overlapping,
+  node sets in the !-boxes. While such expressivity is 
+  interesting,  it is not required for the system we formalise here.}  and
+subject to the further restriction that no edge may connect vertices
+in distinct !-boxes, i.e. if $v_1 \in b_1$, $v_2 \in b_2$ and $s(e) =
+t(e)$ then $b_1 = b_2$.  
 To formalise the intuitive notion that a !-box represents arbitrary
 number of copies of the subgraph made from its nodes, we introduce
-\emph{!-box matching}. This is a binary relation on graphs, written
-infix as $G \leq_! H$ when $G$ matches $H$. The set of !-box graphs
-matching $G$ is defined as the set of graphs closed by the following
-operations on $G$:
+\emph{!-box matching}.   This binary relation, written infix as
+$\leq_!$, is defined such that 
+$(G,{\cal B}) \leq_! (H, {\cal C})$ whenever $(H, {\cal C})$ can be
+obtained from $(G,{\cal B})$ be a sequence the following operations:
 
+%
+% TODO there ought to be formal definitions of these but not enough
+% space in this version
 \begin{description}
 \item[copy]: copies a !-box, $b$ in a graph to produce a new graph
   with two copies of the !-boxed subgraph, $b$ is the old one and $b'$
@@ -1074,12 +1079,17 @@ Figure~\ref{fig:bang-box-example}.
 
 We give a formal semantics to !-box graphs by defining them in terms
 of a set of graphs in the underlying representation. We denote the
-interpretation of a !-box graph $G$ by $\binterp{G}$ and say that
-members of $\binterp{G}$ are instances of $G$. 
+interpretation of a !-box graph $(G,{\cal B}$ by $\binterp{(G,{\cal
+    B})}$ and say that members of $\binterp{G}$ are instances of $G$. 
 
 \begin{definition}
-  \emph{Interpretation of !-box Graphs}: $\binterp{G}$ is the subset
-  of graphs matched by the !-box graph that have no !-boxes.
+  The \emph{interpretation} $\binterp{(G,{\cal B})}$ is a
+  set of concrete graphs defined 
+  \[
+  \binterp{(G,{\cal B})} = \{ H \;\;|\;\; (G,{\cal B}) \leq_! (H,\emptyset) \}
+  \]
+  i.e. the those graphs matched by the !-box graph that have no
+  !-boxes.
 \end{definition}
 
 Observe that every concrete instance of a !-box graph can be defined
@@ -1087,21 +1097,21 @@ by pairing each !-box with the natural number that defines how many
 copies are made of it. Thus $\binterp{G}$ is isomorphic to the set of
 $k$-tuples of natural numbers, where $k$ is the number of !-boxes. 
 
-\begin{theorem}
+\begin{proposition}
 \label{thm:bang-box-respect}
 \emph{!-Matching respects !-box semantics}: $G \leq_! H
 \Leftrightarrow \binterp{G} \supseteq \binterp{H}$. The proof is a
 simple consequence from the definition of $\binterp{G}$ being a subset
 of the graphs that match $G$.
-\end{theorem}
+\end{proposition}
 
 The need for the !-box matching operation, rather than using a direct
 $k$-tuple interpretation, is to allow matching between !-box graphs,
 and thus to provide a mechanism for derived rules.
 
 For the purposes of this paper, the underlying graph representation of
-!-boxed graphs is variable-node graphs. This gives rise to graph
-patterns which we now discuss in more detail. 
+!-boxed graphs is variable-node graphs. This gives rise to \emph{graph
+patterns} which we now discuss in more detail. 
 % The set of variable-node
 % graphs for a graph $G$ with !-boxes, is denoted by $\binterp{G}$. 
 
@@ -1416,8 +1426,9 @@ Figure~\ref{fig:spider}.
 
 Our model of quantum computation requires no data for the edges. The
 nodes on the other hand are either $H$ (a Hadamard gate), with no
-additional data, or have an \emph{angle} and are either the $X$ or $Z$
-transforms. For their part, angles are expressed as rational numbers
+additional data, or have an \emph{angle} and a \emph{colour}, expressing that
+they are defined in the $X$ or $Z$ basis. For their part, angles are
+expressed as rational numbers 
 which correspond to the coefficient of $\pi$ in the underlying matrix.
 
 To allow composition of rules to compute the resulting angles we give
@@ -1490,6 +1501,13 @@ subgraph. However, our system can also be seen as an instantiation of
 a general graph rewriting system: matching provides the embedding
 information and the object-level node matching defines the application
 conditions and the attribute transfer function.
+
+We note that our graphical notation has little connection
+to \emph{graph states} as used in various approaches to
+measurement-based quantum computation \cite{Raussendorf-2001}.  In
+that approach the graph structure is used to provide a description of
+the entanglement in a state:  it does not provide a complete
+description of a computation.
 
 % Graph Grammars...
 % Other graph rewriting... 
