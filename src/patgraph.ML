@@ -397,7 +397,7 @@ matched to something; tgt_ns are the target names left, to which some
 node in the pattern might match; m is the match so far; *)
 fun match' pat tgt [] ((pat_ns,tgt_ns),m) = 
 		(* if no node pairs left, search over possibilities  *)
-		(case (NName.NTab.N.bot_of pat_ns) of (* case empty then *)
+		(case (NName.NTab.N.local_bot_of pat_ns) of (* case empty then *)
 			 NONE => Seq.single ((pat_ns,tgt_ns),m) (* finished matching! *)
 		 | SOME n => (* case non empty *)
 			(* pick a next pat node to match up against some tgt node *)
