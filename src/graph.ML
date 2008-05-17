@@ -42,6 +42,11 @@ val delete_vertex : Vertex.name -> T -> T
 val rename_vname : Vertex.name -> Vertex.name -> T -> T 
 val rename_ename : Edge.name -> Edge.name -> T -> T 
 
+(* *)
+val has_vname : T -> Vertex.name -> bool;
+val has_ename : T -> Edge.name -> bool;
+
+
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> T 
 
