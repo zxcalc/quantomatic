@@ -86,8 +86,8 @@ fun is_correct bg =
 
 val get_vertices = Graph.get_vertices o get_graph;
 val get_edges = Graph.get_edges o get_graph;
-val get_vertex_list = NnTab.dest o get_vertices;
-val get_edge_list = EnTab.dest o get_edges;
+val get_vertex_list = V.NTab.dest o get_vertices;
+val get_edge_list = E.NTab.dest o get_edges;
 
 (* implicit args: bg n *)
 val get_vertex = Graph.get_vertex o get_graph;
