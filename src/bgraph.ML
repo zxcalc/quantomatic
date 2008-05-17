@@ -70,7 +70,7 @@ fun is_boundary (BGraph rep) n =
 fun is_vertex_correct bg n = 
     if is_boundary bg n then
       let val (_,ins,outs) = (get_vertex bg n) in
-	(.is_empty ins andalso E.NSet.is_singleton outs) 
+	(E.NSet.is_empty ins andalso E.NSet.is_singleton outs) 
 	orelse
 	(E.NSet.is_empty outs andalso E.NSet.is_singleton ins) 
       end
