@@ -20,17 +20,11 @@ exception ename_already_exists_exp of Edge.name * T;
 (* Making Graphs *)
 val empty : T
 (* adding a vertex gives back unique name for it and the new graph *)
-val add_vertex : Vertex.data -> T -> Vertex.name * T 
-val doadd_vertex : Vertex.data -> T -> T
 (* Vertex.name = suggested name *)
 val add_named_vertex : Vertex.name -> Vertex.data -> T -> Vertex.name * T 
-val new_named_vertex : Vertex.name -> Vertex.data -> T -> T  (* can raise *)
 
 (* Vertex.names must already exist, else raises: no_such_vname_exp *)
-val add_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T
-val doadd_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> T
 val add_named_edge : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T 
-val new_named_edge : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
 
 (* delete raises an exception if there is no such edge/vertex *)
 val delete_edge : Edge.name -> T -> T
@@ -42,23 +36,11 @@ val delete_vertex : Vertex.name -> T -> T
 val rename_vname : Vertex.name -> Vertex.name -> T -> T 
 val rename_ename : Edge.name -> Edge.name -> T -> T 
 
-(* *)
-val has_vname : T -> Vertex.name -> bool;
-val has_ename : T -> Edge.name -> bool;
-
-
-(* rename the 2nd graph to avoid all names in the first one *)
-val rename_apart : T -> T -> T 
-
 (* update a vertexe's data *)
 val update_vertex : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
 val update_edge : (Edge.data -> Edge.data) -> Edge.name -> T -> T
-val set_vertex : Vertex.data -> Vertex.name -> T -> T
-val set_edge : Edge.data -> Edge.name -> T -> T
 
 (* getting stuff from graphs *)
-val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
-val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
 val lookup_vertex : T -> Vertex.name 
 									-> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) option
 val lookup_edge : T -> Edge.name 
@@ -69,15 +51,6 @@ val useup_vnames : Vertex.NSet.T -> T -> T
 val useup_enames : Edge.NSet.T -> T -> T
 
 (* getting graph internal representation... *)
-val get_vertex_list : T -> (Vertex.name * (Vertex.data 
-                   * (Edge.NSet.T (* edges coming into this vertex *)
-                      * Edge.NSet.T))) (* edges leaving this vertex *)
-                    list;
-val get_edge_list : T -> (ename * (Edge.data
-                   * (Vertex.name (* from this vertex *)
-                      * Vertex.name))) (* to this vertex *)
-                    list
-
 val get_vertices : T 
                 -> (Vertex.data 
                     * (Edge.NSet.T (* edges coming into this vertex *)
@@ -341,37 +314,7 @@ fun rename_ename en1 en2 g =
       (* give back new edge name and new graph *)
     in Graph{vertices = vertices2, edges = edges2} end;
 
-
-
 (* rename the names in g2 to avoid those in g1 *)
-
-(* IMPROVE: avoid conversion to lists as uses up lots of memory: have
-a function in FNAMETAB to useup names from a name collection *)
-fun rename_apart avoidg ing = 
-		let val vnames = Vertex.NTab.get_names (get_vertices avoidg)
-				val enames = Edge.NTab.get_names (get_edges avoidg)
-				val g2 = ing |> useup_vnames vnames |> useup_enames enames
-		in
-			g2 |> (Vertex.NTab.fold 
-							 (fn (n,_) => fn g3 =>
-									 if Vertex.NSet.contains vnames n then
-										 rename_vname 
-											 n (Vertex.NSet.new n (Vertex.NTab.get_names 
-																							 (get_vertices g3)))
-											 g3
-									 else g3)
-							 (get_vertices g2))
-				 |> (Edge.NTab.fold 
-							 (fn (n,_) => fn g3 =>
-									if Edge.NSet.contains enames n then
-										rename_ename 
-											n (Edge.NSet.new n (Edge.NTab.get_names 
-																							 (get_edges g3)))
-											g3
-									else g3)
-							 (get_edges g2))
-		end;
-
 
 (* pretty printing *)
 fun pretty g = 

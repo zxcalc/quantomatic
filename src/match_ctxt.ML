@@ -4,18 +4,19 @@ signature MATCH_CTXT
 structure Vertex : NAME_AND_DATA
 structure Edge : NAME_AND_DATA
 
-type ctxt (* global context *)
-type T (* matching so far *)
+type T (* global context *)
+type match (* matching so far *)
 
-val get_ctxt : T -> ctxt
+val empty : T
+val get_ctxt : match -> T
 
-val init : ctxt -> T
+val init_match : T -> match
 
-val vertex_match : Vertex.data -> Vertex.data -> T -> T option
-val edge_match : Edge.data -> Edge.data -> T -> T option
+val vertex_match : Vertex.data -> Vertex.data -> match -> match option
+val edge_match : Edge.data -> Edge.data -> match -> match option
 
-val subst_in_vertex : T -> Vertex.data -> Vertex.data
-val subst_in_edge : T -> Edge.data -> Edge.data
+val subst_in_vertex : match -> Vertex.data -> Vertex.data
+val subst_in_edge : match -> Edge.data -> Edge.data
 end;
 
 
@@ -30,21 +31,22 @@ functor EqMatchNoCtxtFun(
 structure Vertex = Vertex;
 structure Edge = Edge;
 
-type ctxt = unit;
 type T = unit;
+type match = unit;
 
-fun get_ctxt (m : T) = (() : ctxt);
+fun get_ctxt (m : match) = (() : T);
 
-fun init (c : ctxt) = (() : T);
+val empty = ();
+fun init_match (c : T) = (() : match);
 
-fun vertex_match (n1 : Vertex.data) (n2 : Vertex.data) (m : T) =
+fun vertex_match (n1 : Vertex.data) (n2 : Vertex.data) (m : match) =
     if Vertex.data_eq (n1, n2) then SOME m else NONE;
     
-fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : T) =
+fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : match) =
     if Edge.data_eq (e1, e2) then SOME m else NONE;
 
-fun subst_in_vertex (m : T) (n : Vertex.data) = n; 
-fun subst_in_edge (m : T) (e : Edge.data) = e;
+fun subst_in_vertex (m : match) (n : Vertex.data) = n; 
+fun subst_in_edge (m : match) (e : Edge.data) = e;
 
 end;
 
@@ -59,6 +61,6 @@ structure RG_NE : RG_NODES_AND_EDGES
 
 include NE_MATCH sharing NE = RG_NE;
 
-val vars_of_ctxt : ctxt -> VName.N.T
+val vars_of_ctxt : T -> VName.N.T
 end;
 *)
