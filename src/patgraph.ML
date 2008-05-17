@@ -8,27 +8,14 @@ signature PATTERN_GRAPH =
 sig
 
 structure PatNE : PATTERN_NODES_AND_EDGES;
-
-structure BGraph : BASIC_GRAPH sharing BGraph.NE = PatNE;
-
-(* expression type for non-graphvar case of nodes *)
-structure Expr : GDATA_EXPR where type T = PatNE.BasicNE.node;
-
-(* where 
-   type NE.node = PatNE.node
-   and type NE.edge = PatNE.edge;
-*)
+structure BGraph : BGRAPH sharing BGraph.NE = PatNE;
+structure Match : MATCH sharing Match.NE = PatNE;
 
 include BASIC_GRAPH sharing NE = PatNE;
 
-(* where
-   type NE.node = PatNE.node
-   and type NE.edge = PatNE.edge;
-*)
-
 val get_bgraph : T -> BGraph.T
 val get_vars : T -> NName.Col.T
-val get_datavars : T -> NName.NTab.N.T VName.NTab.T
+val get_ctxt : T -> Match.ctxt (* global context, e.g. node data metavars *)
 
 (* a matching between var-nodes also with instantiations for data vars in nodes *)
 type match
@@ -57,9 +44,9 @@ end;
 (*  Quantum Graphs *)
 functor PatGraphFun(
 structure PatNE : PATTERN_NODES_AND_EDGES
-structure Expr : GDATA_EXPR where type T = PatNE.BasicNE.node
-) = 
-struct
+structure Expr : GDATA_EXPR where type T = PatNE.BasicNE.node)
+(* : PATTERN_GRAPH *)
+= struct
 
 structure PatNE = PatNE;
 structure NE = PatNE;

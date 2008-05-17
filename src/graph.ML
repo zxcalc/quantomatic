@@ -1,318 +1,340 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Representation for Graphs with named nodes and edges. *)
+(*  Representation for Graphs with named vertices and edges. *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (* *)
 
 signature BASIC_GRAPH = 
 sig
 
-structure NE : NODES_AND_EDGES;
-
-(* node names and nodes, edge names and edges *)
-type nname = NName.T
-type node = NE.node
-type ename = EName.T
-type edge = NE.edge;
+structure Vertex : NAME_AND_DATA
+structure Edge : NAME_AND_DATA
 
 type T; (* a graph *)
 
-exception no_such_nname_exp of string * nname * T;
-exception nname_already_exists_exp of nname * T;
+exception no_such_vname_exp of string * Vertex.name * T;
+exception vname_already_exists_exp of Vertex.name * T;
 
-exception no_such_ename_exp of string * ename * T;
-exception ename_already_exists_exp of ename * T;
+exception no_such_ename_exp of string * Edge.name * T;
+exception ename_already_exists_exp of Edge.name * T;
 
 (* Making Graphs *)
 val empty : T
-(* adding a node gives back unique name for it and the new graph *)
-val add_node : node -> T -> nname * T 
-val doadd_node : node -> T -> T
-(* nname = suggested name *)
-val add_named_node : nname -> node -> T -> nname * T 
-val new_named_node : nname -> node -> T -> T  (* can raise *)
+(* adding a vertex gives back unique name for it and the new graph *)
+val add_vertex : Vertex.data -> T -> Vertex.name * T 
+val doadd_vertex : Vertex.data -> T -> T
+(* Vertex.name = suggested name *)
+val add_named_vertex : Vertex.name -> Vertex.data -> T -> Vertex.name * T 
+val new_named_vertex : Vertex.name -> Vertex.data -> T -> T  (* can raise *)
 
-(* nnames must already exist, else raises: no_such_nname_exp *)
-val add_edge : edge -> nname -> nname -> T -> ename * T
-val doadd_edge : edge -> nname -> nname -> T -> T
-val add_named_edge : ename -> edge -> nname -> nname -> T -> ename * T 
-val new_named_edge : ename -> edge -> nname -> nname -> T -> T (* can raise *)
+(* Vertex.names must already exist, else raises: no_such_vname_exp *)
+val add_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T
+val doadd_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> T
+val add_named_edge : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T 
+val new_named_edge : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
 
-(* delete raises an exception if there is no such edge/node *)
-val delete_edge : ename -> T -> T
-val delete_node : nname -> T -> T
+(* delete raises an exception if there is no such edge/vertex *)
+val delete_edge : Edge.name -> T -> T
+val delete_vertex : Vertex.name -> T -> T
 
 (* replace all occurances of old name (1st arg) with new name (2nd arg) *)
 (*  2nd name must not already exist and 1st must already exist, 
     else an exception is raised *)
-val rename_nname : nname -> nname -> T -> T 
-val rename_ename : ename -> ename -> T -> T 
+val rename_vname : Vertex.name -> Vertex.name -> T -> T 
+val rename_ename : Edge.name -> Edge.name -> T -> T 
 
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> T 
 
-(* update a node's data *)
-val update_node : (node -> node) -> nname -> T -> T
-val update_edge : (edge -> edge) -> ename -> T -> T
-val set_node : node -> nname -> T -> T
-val set_edge : edge -> ename -> T -> T
+(* update a vertexe's data *)
+val update_vertex : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
+val update_edge : (Edge.data -> Edge.data) -> Edge.name -> T -> T
+val set_vertex : Vertex.data -> Vertex.name -> T -> T
+val set_edge : Edge.data -> Edge.name -> T -> T
 
 (* getting stuff from graphs *)
-val get_node : T -> nname -> (node * (EName.NTab.N.T * EName.NTab.N.T))
-val get_edge : T -> ename -> (edge * (nname * nname))
-val lookup_node : T -> nname 
-									-> (node * (EName.NTab.N.T * EName.NTab.N.T)) option
-val lookup_edge : T -> ename 
-									-> (edge * (nname * nname)) option
+val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
+val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
+val lookup_vertex : T -> Vertex.name 
+									-> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) option
+val lookup_edge : T -> Edge.name 
+									-> (Edge.data * (Vertex.name * Vertex.name)) option
 
 (* working with names in the graph, no exceptions *)
-val useup_nnames : nname list -> T -> T
-val useup_enames : ename list -> T -> T
+val useup_vnames : Vertex.NSet.T -> T -> T
+val useup_enames : Edge.NSet.T -> T -> T
 
 (* getting graph internal representation... *)
-val get_node_list : T -> (nname * (node 
-                   * (EName.NTab.N.T (* edges coming into this node *)
-                      * EName.NTab.N.T))) (* edges leaving this node *)
+val get_vertex_list : T -> (Vertex.name * (Vertex.data 
+                   * (Edge.NSet.T (* edges coming into this vertex *)
+                      * Edge.NSet.T))) (* edges leaving this vertex *)
                     list;
-val get_edge_list : T -> (ename * (edge 
-                   * (nname (* from this node *)
-                      * nname))) (* to this node *)
+val get_edge_list : T -> (ename * (Edge.data
+                   * (Vertex.name (* from this vertex *)
+                      * Vertex.name))) (* to this vertex *)
                     list
 
-val get_nodes : T 
-                -> (node 
-                    * (EName.NTab.N.T (* edges coming into this node *)
-                       * EName.NTab.N.T)) (* edges leaving this node *)
-                   NName.NTab.T;
+val get_vertices : T 
+                -> (Vertex.data 
+                    * (Edge.NSet.T (* edges coming into this vertex *)
+                       * Edge.NSet.T)) (* edges leaving this vertex *)
+                   Vertex.NTab.T;
 val get_edges : T 
-                -> (edge 
-                    * (nname (* from this node *)
-                       * nname)) (* to this node *)
-                   EName.NTab.T
+                -> (Edge.data
+                    * (Vertex.name (* from this vertex *)
+                       * Vertex.name)) (* to this vertex *)
+                   Edge.NTab.T
 
 (* pretty printing *)
 val pretty : T -> Pretty.T
-val pretty_node : node -> Pretty.T
-val pretty_edge : edge -> Pretty.T
-
 val print : T -> unit
-val print_node : node -> unit
-val print_edge : edge -> unit
 
 end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Graphs with strings at edges and nodes *)
-functor BasicGraphFun(NE : NODES_AND_EDGES) 
-(* : BASIC_GRAPH where type NE.node = NE.node and type NE.edge = NE.edge *)
+(*  Graphs with strings at edges and vertices *)
+functor BasicGraphFun(structure Vertex : NAME_AND_DATA 
+                            and Edge : NAME_AND_DATA) 
 = struct
 
-structure NE = NE;
-
-(* node names and nodes *)
-type nname = NName.T;
-type node = NE.node;
-structure NnTab = NName.NTab;
-structure NnCol = NName.Col;
-
-(* edge names and edges *)
-type ename = EName.T;
-type edge = NE.edge;
-structure EnTab = EName.NTab;
-structure EnCol = EName.Col;
+structure Vertex = Vertex;
+structure Edge = Edge;
 
 (* a graph *)
 datatype T = Graph of 
          {
-          nodes : (node 
-                   * (EName.NTab.N.T (* edges coming into this node *)
-                      * EName.NTab.N.T)) (* edges leaving this node *)
-                    NnTab.T,
-          edges : (edge 
-                   * (nname (* from this node *)
-                      * nname)) (* to this node *)
-                    EnTab.T
+          vertices : (Vertex.data 
+                   * (Edge.NSet.T (* edges coming into this vertex *)
+                      * Edge.NSet.T)) (* edges leaving this vertex *)
+                    Vertex.NTab.T,
+          edges : (Edge.data
+                   * (Vertex.name (* from this vertex *)
+                      * Vertex.name)) (* to this vertex *)
+                    Edge.NTab.T
          };
 
-val empty = Graph { nodes = NnTab.empty, edges = EnTab.empty };
-fun update_nodes f (Graph rep) = 
-    Graph { nodes = f (#nodes rep), edges = #edges rep };
+val empty = Graph { vertices = Vertex.NTab.empty, edges = Edge.NTab.empty };
+fun update_vertices f (Graph rep) = 
+    Graph { vertices = f (#vertices rep), edges = #edges rep };
 fun update_edges f (Graph rep) = 
-    Graph { nodes = #nodes rep, edges = f (#edges rep)};
-val set_nodes = update_nodes o K;
+    Graph { vertices = #vertices rep, edges = f (#edges rep)};
+val set_vertices = update_vertices o K;
 val set_edges = update_edges o K;
-fun get_nodes (Graph rep) = #nodes rep;
+fun get_vertices (Graph rep) = #vertices rep;
 fun get_edges (Graph rep) = #edges rep;
-val get_node_list = NnTab.dest o get_nodes;
-val get_edge_list = EnTab.dest o get_edges;
+val get_vertex_list = Vertex.NTab.dest o get_vertices;
+val get_edge_list = Edge.NTab.dest o get_edges;
+val get_vertex_nset = Vertex.NTab.get_names o get_vertices;
+val get_edge_nset = Edge.NTab.get_names o get_edges;
 
-fun lookup_node g n = 
-    case NnTab.lookup (get_nodes g) n 
+
+fun lookup_vertex g n = 
+    case Vertex.NTab.lookup (get_vertices g) n 
      of NONE => NONE | SOME x => SOME x;
 fun lookup_edge g en = 
-    case EnTab.lookup (get_edges g) en 
+    case Edge.NTab.lookup (get_edges g) en 
      of NONE => NONE | SOME x => SOME x;
 
-exception no_such_nname_exp of string * nname * T;
-exception nname_already_exists_exp of nname * T;
-exception no_such_ename_exp of string * ename * T;
-exception ename_already_exists_exp of ename * T;
+exception no_such_vname_exp of string * Vertex.name * T;
+exception vname_already_exists_exp of Vertex.name * T;
+exception no_such_ename_exp of string * Edge.name * T;
+exception ename_already_exists_exp of Edge.name * T;
 
-fun get_node g n = 
-    case lookup_node g n 
-     of NONE => raise no_such_nname_exp ("get_node", n, g)
+fun get_vertex g n = 
+    case lookup_vertex g n 
+     of NONE => raise no_such_vname_exp ("get_vertex", n, g)
       | SOME x => x;
 fun get_edge g en = 
     case lookup_edge g en 
      of NONE => raise no_such_ename_exp ("get_edge", en, g)
       | SOME x => x;
 
-(* adding a node gives back unique name for it and the new graph *)
-fun add_named_node n nd g =
-    let val (n2,nodes2) = NnTab.add (n,(nd,(EName.NTab.N.empty,EName.NTab.N.empty))) (get_nodes g)
-    in (n2, set_nodes nodes2 g) end;
-(* implicit args: nd g *)
-val add_node = add_named_node NE.default_nname;
-val doadd_node = snd oo add_node;
 (* implicit arg: g *)
-fun new_named_node n nd =
-    update_nodes (NnTab.ins (n,(nd,(EName.NTab.N.empty,EName.NTab.N.empty))));
+fun update_vertex f n = 
+    update_vertices (Vertex.NTab.map_entry (fn (nd,ios) => (f nd,ios)) n);
+fun update_vertex_ins f n = 
+    update_vertices (Vertex.NTab.map_entry 
+                       (fn (nd,(ins,outs)) => (nd,(f ins, outs))) n);
+fun update_vertex_outs f n = 
+    update_vertices (Vertex.NTab.map_entry 
+                       (fn (nd,(ins,outs)) => (nd,(ins, f outs))) n);
+fun update_edge f en = 
+    update_edges (Edge.NTab.map_entry (fn (e,fromto) => (f e,fromto)) en);
+val set_vertex = update_vertex o K;
+val set_edge = update_edge o K;
+
+
+(* adding a vertex gives back unique name for it and the new graph *)
+fun add_named_vertex n nd g =
+    let val (n2,vertices2) = 
+            Vertex.NTab.add (n,(nd,(Edge.NSet.empty,Edge.NSet.empty))) 
+                            (get_vertices g)
+    in (n2, set_vertices vertices2 g) end;
+(* implicit args: nd g *)
+val add_vertex = add_named_vertex Vertex.default_name;
+val doadd_vertex = snd oo add_vertex;
+(* implicit arg: g *)
+fun new_named_vertex n nd =
+    update_vertices 
+      (Vertex.NTab.ins (n,(nd,(Edge.NSet.empty,Edge.NSet.empty))));
 
 (* working with names in the graph, no exceptions *)
-val useup_nnames = update_nodes o NName.NTab.useup_names;
-val useup_enames = update_edges o EName.NTab.useup_names;
+val useup_vnames = update_vertices o Vertex.NTab.useup_names;
+val useup_enames = update_edges o Edge.NTab.useup_names;
 
 (* implicit args: g n *)
-val has_nname = NnTab.contains o get_nodes;
-val has_ename = EnTab.contains o get_edges;
-
+val has_vname = Vertex.NTab.contains_name o get_vertices;
+val has_ename = Edge.NTab.contains_name o get_edges;
 
 fun add_named_edge en e n1 n2 g = 
     let 
-      (* make sure the nodes exist *) 
-      val _ = if has_nname g n1 then
-                if has_nname g n2 then () 
-                else raise no_such_nname_exp ("add_named_edge", n2, g)
-              else raise no_such_nname_exp ("add_named_edge", n1, g);
+      (* make sure the vertices exist *) 
+      val _ = if has_vname g n1 then
+                if has_vname g n2 then () 
+                else raise no_such_vname_exp ("add_named_edge", n2, g)
+              else raise no_such_vname_exp ("add_named_edge", n1, g);
       (* add the new egde *)
-      val (en2,edges2) = EnTab.add (en,(e,(n1,n2))) (get_edges g)
+      val (en2,edges2) = Edge.NTab.add (en,(e,(n1,n2))) (get_edges g)
 
-      (* update the nodes: add edge name as appropriate to ins and outs *)
-      val nodes2 = 
-          (get_nodes g)
-            |> NnTab.map_entry 
-						(fn (n,(ins,outs)) => (n,(ins,EName.NTab.N.ins_fresh en2 outs))) n1
-            |> NnTab.map_entry 
-						(fn (n,(ins,outs)) => (n,(EName.NTab.N.ins_fresh en2 ins,outs))) n2
+      (* update the vertices: add edge name as appropriate to ins and outs *)
+      val vertices2 = 
+          (get_vertices g)
+            |> Vertex.NTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(ins,Edge.NSet.ins_fresh en2 outs))) n1
+            |> Vertex.NTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(Edge.NSet.ins_fresh en2 ins,outs))) n2
       (* give back new edge name and new graph *)
-    in (en2, Graph{nodes = nodes2, edges = edges2}) end;
+    in (en2, Graph{vertices = vertices2, edges = edges2}) end;
 
 (* implicit args: e n1 n2 g *)
-val add_edge = add_named_edge NE.default_ename;
+val add_edge = add_named_edge Edge.default_name;
 val doadd_edge = snd oooo add_edge;
 
 fun new_named_edge en e n1 n2 g =
     let 
-      (* make sure the nodes exist *) 
-      val _ = if has_nname g n1 then
-                if has_nname g n2 then () 
-                else raise no_such_nname_exp ("add_named_edge", n2, g)
-              else raise no_such_nname_exp ("add_named_edge", n1, g);
+      (* make sure the vertices exist *) 
+      val _ = if has_vname g n1 then
+                if has_vname g n2 then () 
+                else raise no_such_vname_exp ("add_named_edge", n2, g)
+              else raise no_such_vname_exp ("add_named_edge", n1, g);
       (* add the new egde *)
-      val edges2 = EnTab.ins (en,(e,(n1,n2))) (get_edges g)
+      val edges2 = Edge.NTab.ins (en,(e,(n1,n2))) (get_edges g)
 
-      (* update the nodes: add edge name as appropriate to ins and outs *)
-      val nodes2 = 
-          (get_nodes g)
-            |> NnTab.map_entry 
-						(fn (n,(ins,outs)) => (n,(ins,EName.NTab.N.ins_fresh en outs))) n1
-            |> NnTab.map_entry 
-						(fn (n,(ins,outs)) => (n,(EName.NTab.N.ins_fresh en ins,outs))) n2
+      (* update the vertices: add edge name as appropriate to ins and outs *)
+      val vertices2 = 
+          (get_vertices g)
+            |> Vertex.NTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(ins,Edge.NSet.ins_fresh en outs))) n1
+            |> Vertex.NTab.map_entry 
+						(fn (n,(ins,outs)) => (n,(Edge.NSet.ins_fresh en ins,outs))) n2
       (* give back new edge name and new graph *)
-    in Graph{nodes = nodes2, edges = edges2} end;
+    in Graph{vertices = vertices2, edges = edges2} end;
 
-(* deleting node also removes all it's edges. *)
-fun delete_node n g = 
+(* deleting vertex also removes all it's edges. *)
+fun delete_vertex n g = 
     let 
-      val nodes = get_nodes g
+      val vertices = get_vertices g
       val (nd,(ins,outs)) =
-          case NnTab.lookup nodes n of 
-            NONE => raise no_such_nname_exp ("delete_node", n, g)
+          case Vertex.NTab.lookup vertices n of 
+            NONE => raise no_such_vname_exp ("delete_vertex", n, g)
           | SOME x => x;
 
-      val nodes2 = nodes |> NnTab.delete n
+      val vertices2 = vertices |> Vertex.NTab.delete n
 
-      (* delete all edges going into or out of this node. *)
+      (* delete all edges going into or out of this vertex. *)
       val edges2 = 
           (get_edges g)
-            |> EName.NTab.N.fold EnTab.delete ins
-            |> EName.NTab.N.fold EnTab.delete outs
+            |> Edge.NSet.fold Edge.NTab.delete ins
+            |> Edge.NSet.fold Edge.NTab.delete outs
 
       (* give back new edge name and new graph *)
-    in Graph{nodes = nodes2, edges = edges2} end;
+    in Graph{vertices = vertices2, edges = edges2} end;
+
+
 
 (* implicit args: en g *)
-val delete_edge = 
-    update_edges o EnTab.delete;
+(* *)
+fun delete_edge en g = 
+    let 
+      val edges = get_edges g
+      val (ed,(fromvn,tovn)) =
+          case Edge.NTab.lookup edges en of 
+            NONE => raise no_such_ename_exp ("delete_edge", en, g)
+          | SOME x => x;
+
+      val edges2 = edges |> Edge.NTab.delete en
+
+      (* delete all edges going into or out of this vertex. *)
+      val vertices2 = 
+          (get_vertices g)
+            |> Vertex.NTab.map_entry (fn (d,(ins,outs)) => 
+                                         (d,(ins,Edge.NSet.delete en outs))) fromvn
+            |> Vertex.NTab.map_entry (fn (d,(ins,outs)) => 
+                                         (d,(Edge.NSet.delete en ins,outs))) tovn;
+
+      (* give back new edge name and new graph *)
+    in Graph{vertices = vertices2, edges = edges2} end;
 
 
-(* nname = suggested name *)
+(* Vertex.name = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
    n2 must not exist already, n1 must exist *)
-fun rename_nname n1 n2 g = 
+fun rename_vname n1 n2 g = 
     let 
-      val nodes = (get_nodes g)
-      (* gets node for n1, makes ure it exists *)
-      val (nd,(ins,outs)) = case NnTab.lookup nodes n1 
-                             of NONE => raise no_such_nname_exp ("rename_nname", n1, g)
+      val vertices = (get_vertices g)
+      (* gets vertex for n1, makes ure it exists *)
+      val (nd,(ins,outs)) = case Vertex.NTab.lookup vertices n1 
+                             of NONE => raise no_such_vname_exp ("rename_vname", n1, g)
                               | SOME x => x;
 
-      (* update the node entry for n1, we make sure that n2 doesn't already exist *)
-      val nodes2 = 
-          case (nodes |> NnTab.delete n1
-                      |> NnTab.try_ins (n2,(nd,(ins,outs))))
-           of NONE => raise nname_already_exists_exp (n2,g)
-            | SOME nodes2 => nodes2;
+      (* update the vertex entry for n1, we make sure that n2 doesn't already exist *)
+      val vertices2 = 
+          case (vertices |> Vertex.NTab.delete n1
+                      |> Vertex.NTab.try_ins (n2,(nd,(ins,outs))))
+           of NONE => raise vname_already_exists_exp (n2,g)
+            | SOME vertices2 => vertices2;
 
       (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
       val edges2 = 
           (get_edges g)
-            |> EName.NTab.N.fold (EnTab.map_entry (fn (e,(from,_)) => (e,(from,n2)))) ins
-            |> EName.NTab.N.fold (EnTab.map_entry (fn (e,(_,tos)) => (e,(n2,tos)))) outs;
+            |> Edge.NSet.fold (Edge.NTab.map_entry (fn (e,(from,_)) => 
+                                                       (e,(from,n2)))) ins
+            |> Edge.NSet.fold (Edge.NTab.map_entry (fn (e,(_,tos)) => 
+                                                       (e,(n2,tos)))) outs;
 
       (* give back new edge name and new graph *)
-    in Graph{nodes = nodes2, edges = edges2} end;
+    in Graph{vertices = vertices2, edges = edges2} end;
 
 
 fun rename_ename en1 en2 g = 
     let 
       val edges = (get_edges g)
-      (* gets node for n1, makes ure it exists *)
-      val (e,(from_n,to_n)) = case EnTab.lookup edges en1
-                           of NONE => raise no_such_ename_exp ("rename_nname", en1, g)
+      (* gets edge for n1, makes ure it exists *)
+      val (e,(from_n,to_n)) = case Edge.NTab.lookup edges en1
+                           of NONE => raise no_such_ename_exp ("rename_vname", en1, g)
                             | SOME x => x;
 
-      (* update the node entry for n1, we make sure that n2 doesn't already exist *)
+      (* update the edge entry for n1, we make sure that n2 doesn't already exist *)
       val edges2 = 
-          case (edges |> EnTab.delete en1
-                      |> EnTab.try_ins (en2,(e,(from_n,to_n))))
+          case (edges |> Edge.NTab.delete en1
+                      |> Edge.NTab.try_ins (en2,(e,(from_n,to_n))))
            of NONE => raise ename_already_exists_exp (en2,g)
             | SOME edges2 => edges2;
 
       (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
-      val nodes2 = 
-          (get_nodes g)
-            |> NnTab.map_entry (fn (n,(ins,outs)) => 
-                                   let val outs2 = outs |> EName.NTab.N.delete en1
-                                                        |> EName.NTab.N.ins_fresh en2
+      val vertices2 = 
+          (get_vertices g)
+            |> Vertex.NTab.map_entry (fn (n,(ins,outs)) => 
+                                   let val outs2 = outs |> Edge.NSet.delete en1
+                                                        |> Edge.NSet.ins_fresh en2
                                    in (n,(ins,outs2)) end) from_n
-            |> NnTab.map_entry (fn (n,(ins,outs)) =>
-                                   let val ins2 = ins |> EName.NTab.N.delete en1
-                                                      |> EName.NTab.N.ins_fresh en2
+            |> Vertex.NTab.map_entry (fn (n,(ins,outs)) =>
+                                   let val ins2 = ins |> Edge.NSet.delete en1
+                                                      |> Edge.NSet.ins_fresh en2
                                    in (n,(ins2,outs)) end) to_n;
 
       (* give back new edge name and new graph *)
-    in Graph{nodes = nodes2, edges = edges2} end;
+    in Graph{vertices = vertices2, edges = edges2} end;
 
 
 
@@ -321,50 +343,32 @@ fun rename_ename en1 en2 g =
 (* IMPROVE: avoid conversion to lists as uses up lots of memory: have
 a function in FNAMETAB to useup names from a name collection *)
 fun rename_apart avoidg ing = 
-		let val nnames = (get_nodes avoidg)
-				val enames = (get_edges avoidg)
-				val g2 = ing |> useup_nnames (NName.NTab.keys nnames)
-										 |> useup_enames (EName.NTab.keys enames)
+		let val vnames = Vertex.NTab.get_names (get_vertices avoidg)
+				val enames = Edge.NTab.get_names (get_edges avoidg)
+				val g2 = ing |> useup_vnames vnames |> useup_enames enames
 		in
-			g2 |> (NName.NTab.fold 
+			g2 |> (Vertex.NTab.fold 
 							 (fn (n,_) => fn g3 =>
-									 if NName.NTab.contains nnames n then
-										 rename_nname 
-											 n (NName.NTab.N.new n (NName.NTab.get_names 
-																								(get_nodes g3)))
+									 if Vertex.NSet.contains vnames n then
+										 rename_vname 
+											 n (Vertex.NSet.new n (Vertex.NTab.get_names 
+																							 (get_vertices g3)))
 											 g3
 									 else g3)
-							 (get_nodes g2))
-				 |> (EName.NTab.fold 
+							 (get_vertices g2))
+				 |> (Edge.NTab.fold 
 							 (fn (n,_) => fn g3 =>
-									if EName.NTab.contains enames n then
+									if Edge.NSet.contains enames n then
 										rename_ename 
-											n (EName.NTab.N.new n (EName.NTab.get_names 
+											n (Edge.NSet.new n (Edge.NTab.get_names 
 																							 (get_edges g3)))
 											g3
 									else g3)
 							 (get_edges g2))
 		end;
 
-(* implicit arg: g *)
-fun update_node f n = 
-    update_nodes (NnTab.map_entry (fn (nd,ios) => (f nd,ios)) n);
-fun update_edge f en = 
-    update_edges (EnTab.map_entry (fn (e,fromto) => (f e,fromto)) en);
-val set_node = update_node o K;
-val set_edge = update_edge o K;
 
 (* pretty printing *)
-val pretty_nname = NName.pretty;
-val pretty_ename = EName.pretty;
-val pretty_node = NE.pretty_node;
-val pretty_edge = NE.pretty_edge;
-
-val print_nname = Pretty.writeln o pretty_nname;
-val print_ename = Pretty.writeln o pretty_ename;
-val print_node = Pretty.writeln o pretty_node;
-val print_edge = Pretty.writeln o pretty_edge;
-
 fun pretty g = 
     Pretty.chunks 
       [Pretty.str "Graph{",
@@ -372,32 +376,34 @@ fun pretty g =
          [Pretty.str "  ", (* indent *)
           Pretty.chunks 
           [Pretty.block 
-             [Pretty.str "Nodes: ",
+             [Pretty.str "Vertices: ",
               Pretty.chunks 
                 (map 
                    (fn (n, (nd,(ins,outs))) => 
                        Pretty.block 
-                         [pretty_nname n,
+                         [Vertex.pretty_name n,
                           Pretty.str "; ",
-                          Pretty.list "i{" "}" (map pretty_ename (EName.NTab.N.dest ins)),
-                          Pretty.list "; o{" "}" (map pretty_ename (EName.NTab.N.dest outs)),
+                          Pretty.list "i{" "}" (map Edge.pretty_name (Edge.NSet.dest ins)),
+                          Pretty.list "; o{" "}" (map Edge.pretty_name (Edge.NSet.dest outs)),
                           Pretty.str "; ",
-                          pretty_node nd
+                          Vertex.pretty_data nd
                    ])
-                   (NnTab.dest (get_nodes g)))],
+                   (Vertex.NTab.dest (get_vertices g)))],
            Pretty.block
              [Pretty.str "Edges: ",
               Pretty.chunks 
                 (map 
                    (fn (en, (e, (n1, n2))) => 
                        Pretty.block 
-                         [pretty_ename en,
+                         [Edge.pretty_name en,
                           Pretty.str ": ",
-                          pretty_nname n1,
+                          Vertex.pretty_name n1,
                           Pretty.str " - ",
-                          pretty_nname n2
+                          Vertex.pretty_name n2,
+                          Pretty.str "; ",
+                          Edge.pretty_data e
                    ])
-                   (EnTab.dest (get_edges g)))]]],
+                   (Edge.NTab.dest (get_edges g)))]]],
        Pretty.str "}"
       ];
      
@@ -406,9 +412,25 @@ val print = Pretty.writeln o pretty;
 end;
 
 
-(* An instance of Basic Graph: strings at nodes and edges *)
-structure DB_StrGraph = BasicGraphFun(StrNE);
-structure StrGraph :> BASIC_GRAPH where 
-type NE.node = StrNE.node 
- and type NE.edge = StrNE.edge 
-= DB_StrGraph;
+(* An instance of Basic Graph: strings at vertices and edges *)
+structure DB_StrGraph = 
+BasicGraphFun(
+  structure Vertex = StrVertex
+  and Edge = StrEdge);
+
+structure StrGraph : BASIC_GRAPH = DB_StrGraph;
+
+install_pp (make_pp ["StrGraph", "T"] 
+                    (Pretty.pprint o StrGraph.pretty));
+
+
+(* another basic kind of graph with unit for edge data *)
+structure DB_StrUnitGraph = 
+BasicGraphFun(
+  structure Vertex = StrVertex
+  and Edge = UnitEdge);
+
+structure StrUnitGraph : BASIC_GRAPH = DB_StrUnitGraph;
+
+install_pp (make_pp ["StrUnitGraph", "T"] 
+                    (Pretty.pprint o StrUnitGraph.pretty));
