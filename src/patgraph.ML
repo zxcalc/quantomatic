@@ -50,8 +50,6 @@ structure MCtxt = MCtxt;
 (* a graph *)
 datatype T = PatGraph of 
          {bgraph : BGraph.T, (* the basic graph *)
-          (* the variable nodes - graph level pattern vars *)
-          vars : Vertex.NSet.T,
           (* map of data variables to the nodes they occur in *)
 					mctxt : MCtxt.T
 				 };
@@ -62,32 +60,24 @@ exception vname_already_exists_exp of Vertex.name * T;
 exception no_such_edname_exp of string * Edge.name * T;
 exception edname_already_exists_exp of Edge.name * T;
 
-val empty = PatGraph {bgraph = BGraph.empty, vars = Vertex.NSet.empty,
+val empty = PatGraph {bgraph = BGraph.empty,
 											mctxt = MCtxt.empty };
 
 fun update_bgraph f (PatGraph rep) = 
     PatGraph { bgraph = f (#bgraph rep), 
-               vars = #vars rep,
 							 mctxt = #mctxt rep
 						 }; 
 fun update_vars f (PatGraph rep) = 
     PatGraph { bgraph = #bgraph rep, 
-               vars = f (#vars rep),
 							 mctxt = #mctxt rep
 						 };
 fun update_mctxt f (PatGraph rep) = 
     PatGraph { bgraph = #bgraph rep, 
-               vars = #vars rep,
 							 mctxt = f (#mctxt rep)
 						 };
 
 val set_bgraph = update_bgraph o K;
-val set_vars = update_vars o K;
 val set_mctxt = update_mctxt o K;
-
-val add_var = update_vars o Vertex.NSet.union1;
-val del_var = update_vars o Vertex.NSet.delete;
-val del_vars = update_vars o Vertex.NSet.minus_set;
 
 (* implicit arg: graph *)
 fun add_mctxt_dep vs n = 
@@ -105,18 +95,10 @@ fun del_mctxt_dep vs n =
 val del_datavar = update_mctxt o VName.NTab.delete;
 
 fun get_bgraph (PatGraph rep) = #bgraph rep;
-fun get_vars (PatGraph rep) = #vars rep;
 fun get_mctxt (PatGraph rep) = #mctxt rep;
 val delete_datavar = update_mctxt o VName.NTab.delete;
 
-val get_nodes = BGraph.get_nodes o get_bgraph;
-val get_edges = BGraph.get_edges o get_bgraph;
-val get_node_list = Vertex.NTab.dest o get_nodes;
-val get_edge_list = Edge.NTab.dest o get_edges;
-
 (* implicit args: q n *)
-val get_node = BGraph.get_node o get_bgraph;
-val get_edge = BGraph.get_edge o get_bgraph;
 val lookup_node = BGraph.lookup_node o get_bgraph;
 val lookup_edge = BGraph.lookup_edge o get_bgraph;
 

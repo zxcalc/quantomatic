@@ -3,11 +3,15 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (* *)
 
+signature VERTEX = NAME_AND_DATA;
+signature EDGE = NAME_AND_DATA;
+
+(* Basic (Minimal) interface for Graphs *)
 signature BASIC_GRAPH = 
 sig
 
-structure Vertex : NAME_AND_DATA
-structure Edge : NAME_AND_DATA
+structure Vertex : VERTEX
+structure Edge : EDGE
 
 type T; (* a graph *)
 
@@ -40,12 +44,6 @@ val rename_ename : Edge.name -> Edge.name -> T -> T
 val update_vertex : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
 val update_edge : (Edge.data -> Edge.data) -> Edge.name -> T -> T
 
-(* getting stuff from graphs *)
-val lookup_vertex : T -> Vertex.name 
-									-> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) option
-val lookup_edge : T -> Edge.name 
-									-> (Edge.data * (Vertex.name * Vertex.name)) option
-
 (* working with names in the graph, no exceptions *)
 val useup_vnames : Vertex.NSet.T -> T -> T
 val useup_enames : Edge.NSet.T -> T -> T
@@ -73,6 +71,14 @@ signature GRAPH =
 sig
 
 include BASIC_GRAPH
+(* getting stuff from graphs (gets raise exceptions if no entry) *)
+val lookup_vertex : T -> Vertex.name 
+									-> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) option
+val lookup_edge : T -> Edge.name 
+									-> (Edge.data * (Vertex.name * Vertex.name)) option
+(* getting stuff from graphs (exception if not there) *)
+val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
+val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
 
 (* adding a vertex gives back unique name for it and the new graph *)
 val add_vertex : Vertex.data -> T -> Vertex.name * T 
@@ -94,10 +100,6 @@ val rename_apart : T -> T -> T
 (* update a vertexe's data *)
 val set_vertex : Vertex.data -> Vertex.name -> T -> T
 val set_edge : Edge.data -> Edge.name -> T -> T
-
-(* getting stuff from graphs (gets raise exceptions if no entry) *)
-val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
-val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
 
 (* getting graph internal representation... *)
 val get_vertex_list : T -> (Vertex.name * (Vertex.data 
@@ -149,13 +151,9 @@ val get_edge_list = Edge.NTab.dest o get_edges;
 val get_vertex_nset = Vertex.NTab.get_names o get_vertices;
 val get_edge_nset = Edge.NTab.get_names o get_edges;
 
-
-fun lookup_vertex g n = 
-    case Vertex.NTab.lookup (get_vertices g) n 
-     of NONE => NONE | SOME x => SOME x;
-fun lookup_edge g en = 
-    case Edge.NTab.lookup (get_edges g) en 
-     of NONE => NONE | SOME x => SOME x;
+(* implicit: g n *)
+val lookup_vertex = Vertex.NTab.lookup o get_vertices
+val lookup_edge = Edge.NTab.lookup o get_edges
 
 exception no_such_vname_exp of string * Vertex.name * T;
 exception vname_already_exists_exp of Vertex.name * T;
@@ -420,6 +418,11 @@ val get_edge_list = Edge.NTab.dest o get_edges;
 val get_vertex_nset = Vertex.NTab.get_names o get_vertices;
 val get_edge_nset = Edge.NTab.get_names o get_edges;
 
+(* implicit: g n *)
+val lookup_vertex = Vertex.NTab.lookup o get_vertices
+val lookup_edge = Edge.NTab.lookup o get_edges
+
+(* *)
 fun get_vertex g n = 
     case lookup_vertex g n 
      of NONE => raise no_such_vname_exp ("get_vertex", n, g)
