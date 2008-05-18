@@ -116,7 +116,7 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Graphs with strings at edges and vertices *)
+(*  Basic Graphs with strings at edges and vertices *)
 functor BasicGraphFun(structure Vertex : NAME_AND_DATA 
                             and Edge : NAME_AND_DATA) 
 = struct
@@ -180,8 +180,6 @@ fun update_vertex_outs f n =
                        (fn (nd,(ins,outs)) => (nd,(ins, f outs))) n);
 fun update_edge f en = 
     update_edges (Edge.NTab.map_entry (fn (e,fromto) => (f e,fromto)) en);
-val set_vertex = update_vertex o K;
-val set_edge = update_edge o K;
 
 
 (* adding a vertex gives back unique name for it and the new graph *)
@@ -431,6 +429,9 @@ fun get_edge g en =
     case lookup_edge g en 
      of NONE => raise no_such_ename_exp ("get_edge", en, g)
       | SOME x => x;
+
+val set_vertex = update_vertex o K;
+val set_edge = update_edge o K;
 
 (* implicit args: nd g *)
 val add_vertex = add_named_vertex Vertex.default_name;
