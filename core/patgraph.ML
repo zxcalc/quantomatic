@@ -7,27 +7,15 @@
 signature PATGRAPH = 
 sig
 
-structure BGraph : BGRAPH;
+include BGRAPH
 structure MCtxt : MATCH_CTXT 
-sharing Match.Vertex = BGraph.Vertex
-sharing Match.Edge = BGraph.Edge
+sharing MCtxt.Vertex = Vertex
+sharing MCtxt.Edge = Edge
 
-include BASIC_GRAPH
-sharing Vertex = BGraph.Vertex
-sharing Edge = BGraph.Edge
+type match;
 
-val get_bgraph : T -> BGraph.T
-val get_ctxt : T -> MCtxt.ctxt (* global context, e.g. node data metavars *)
-
-(* instantiate a graph with some match *)
-val instantiate : MCtxt.match -> T -> T
-
-(* internal tools -- dangerous to use outside! *)
-val update_bgraph  : (BGraph.T -> BGraph.T) -> T -> T
-val update_ctxt  : (MCtxt.T -> MCtxt.T) -> T -> T
-
-val set_bgraph : BGraph.T -> T -> T
-val set_ctxt : MCtxt.T -> T -> T
+val match : T -> T -> match -> match Seq.seq
+val instantiate : match -> T -> T
 
 end;
 
@@ -39,26 +27,18 @@ structure BGraph : BGRAPH
 structure MCtxt : MATCH_CTXT
 sharing Match.Vertex = BGraph.Vertex
 sharing Match.Edge = BGraph.Edge)
-(* : PATGRAPH *)
+: PATGRAPH
 = struct
 
-structure BGraph = BGraph;
-structure Vertex = BGraph.Vertex
-structure Edge = BGraph.Edge
+open BGraph;
 structure MCtxt = MCtxt;
 
 (* a graph *)
 datatype T = PatGraph of 
          {bgraph : BGraph.T, (* the basic graph *)
           (* map of data variables to the nodes they occur in *)
-					mctxt : MCtxt.T
+					mctxt : Vertex.
 				 };
-
-exception no_such_vname_exp of string * Vertex.name * T;
-exception vname_already_exists_exp of Vertex.name * T;
-
-exception no_such_edname_exp of string * Edge.name * T;
-exception edname_already_exists_exp of Edge.name * T;
 
 val empty = PatGraph {bgraph = BGraph.empty,
 											mctxt = MCtxt.empty };
