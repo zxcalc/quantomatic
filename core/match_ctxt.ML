@@ -4,19 +4,17 @@ signature MATCH_CTXT
 structure Vertex : NAME_AND_DATA
 structure Edge : NAME_AND_DATA
 
-type T (* global context *)
-type match (* matching so far *)
-
+type T (* global context holds vertex and edge global match info *)
 val empty : T
-val get_ctxt : match -> T
 
-val init_match : T -> match
+val vertex_match : Vertex.data -> Vertex.data -> T -> T option
+val edge_match : Edge.data -> Edge.data -> T -> T option
 
-val vertex_match : Vertex.data -> Vertex.data -> match -> match option
-val edge_match : Edge.data -> Edge.data -> match -> match option
+val subst_in_vertex : T -> Vertex.data -> Vertex.data
+val subst_in_edge : T -> Edge.data -> Edge.data
 
-val subst_in_vertex : match -> Vertex.data -> Vertex.data
-val subst_in_edge : match -> Edge.data -> Edge.data
+val pretty : T -> Pretty.T
+val print : T -> unit
 end;
 
 
@@ -32,21 +30,20 @@ structure Vertex = Vertex;
 structure Edge = Edge;
 
 type T = unit;
-type match = unit;
-
-fun get_ctxt (m : match) = (() : T);
 
 val empty = ();
-fun init_match (c : T) = (() : match);
 
-fun vertex_match (n1 : Vertex.data) (n2 : Vertex.data) (m : match) =
+fun vertex_match (n1 : Vertex.data) (n2 : Vertex.data) (m : T) =
     if Vertex.data_eq (n1, n2) then SOME m else NONE;
     
-fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : match) =
+fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : T) =
     if Edge.data_eq (e1, e2) then SOME m else NONE;
 
-fun subst_in_vertex (m : match) (n : Vertex.data) = n; 
-fun subst_in_edge (m : match) (e : Edge.data) = e;
+fun subst_in_vertex (m : T) (n : Vertex.data) = n; 
+fun subst_in_edge (m : T) (e : Edge.data) = e;
+
+fun pretty (m : T) = Pretty.str "";
+val print = Pretty.writeln o pretty;
 
 end;
 

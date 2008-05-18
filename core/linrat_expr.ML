@@ -1,9 +1,20 @@
 (* linear combinations with rational coeffs (and pi *)
-structure Linrat_expr_debug   =
+signature LINRAT_EXPR
+= sig 
+include EXPR
+structure Coeff : RATIONAL
+val zero : T
+val pi : T
+val mk_var : VName.T -> T
+val mk : Coeff.T -> (VName.T * Coeff.T) list -> T
+val subtr_expr : T -> T -> T
+val add_expr : T -> T -> T
+val scale_expr : Coeff.T -> T -> T
+end;
+
+structure DB_LinratExpr   =
 struct 
-
 exception BadExpression of string;
-
 structure Coeff = Rational;
 type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 type table = T VName.NTab.T;
@@ -177,36 +188,25 @@ fun match pat target already_matched =
     end;
 end;
 
-signature HACK_EXPR =
-sig 
-  include EXPR
-structure Coeff : RATIONAL
-val zero : T
-val pi : T
-val mk_var : VName.T -> T
-val mk : Coeff.T -> (VName.T * Coeff.T) list -> T
-val subtr_expr : T -> T -> T
-val add_expr : T -> T -> T
-val scale_expr : Coeff.T -> T -> T
 
-end;
+structure LinratExpr :> LINRAT_EXPR = DB_LinratExpr;
 
-structure Linrat_expr :> HACK_EXPR = Linrat_expr_debug;
+install_pp (make_pp ["LinratExpr", "T"] (Pretty.pprint o LinratExpr.pretty));
 
-          install_pp (make_pp ["Linrat_expr", "T"] (Pretty.pprint o Linrat_expr.pretty));
+structure AngleExpr = LinratExpr;
 
 structure linrat_expr_test_vals = 
 struct
-structure exp = Linrat_expr;
+structure exp = LinratExpr;
 structure var = VName;
 structure n = exp.Coeff;
 
 val zero = exp.zero;
 val pi = exp.pi;
 
-val a_v = var.mk "a";
-val b_v = var.mk "b";
-val c_v = var.mk "c";
+val a_v = "a";
+val b_v = "b";
+val c_v = "c";
 
 val a = exp.mk_var a_v;
 val b = exp.mk_var b_v;
@@ -218,9 +218,9 @@ val x = n.mk ~2 3;
 val y = n.mk 7 8;
 val z = n.mk 0 1;
 
-fun +(x,y) = exp.add_expr x y;
-fun -(x,y) = exp.subtr_expr x y;
-fun *(k,x) = exp.scale_expr k x;
+fun op +(x,y) = exp.add_expr x y;
+fun op -(x,y) = exp.subtr_expr x y;
+fun op *(k,x) = exp.scale_expr k x;
 
 val tab1a = var.NTab.update (a_v, pi) var.NTab.empty;
 val tab1b = var.NTab.update (b_v, x*pi) var.NTab.empty;

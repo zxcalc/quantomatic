@@ -193,7 +193,7 @@ val rename_apart =
    enforced edge injection conditions needed for var-nodes/half-edges*)
 (* instantiations *)
 datatype match = Match of 
-				 {ninsts: (Vertex.name * node) Vertex.NTab.T, (* pat to tgt *)
+				 {ninsts: (Vertex.name * Vertex.data) Vertex.NTab.T, (* pat to tgt *)
 					invninsts : Vertex.name Vertex.NTab.T, (* tgt to pat *)
 					(* instantiations for node data varaiables *)
 					ndinsts: Expr.varexpr VName.NTab.T

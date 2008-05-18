@@ -1,31 +1,46 @@
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  matching and substitution for Basic Quantum Expressions *)
-structure RGMatchCtxt 
-: GDATA_EXPR where type varexpr = AngleExpr.T
+structure AngleMatchCtxt 
+: MATCH_CTXT
 = struct
-  type varexpr = AngleExpr.T;
-  type T = RG_NE.node;
-	val ord = RG_NE.node_ord;
-  val eq = RG_NE.node_eq;
+structure Vertex = RGVertex; 
+structure Edge = UnitEdge; 
+  
+(* instantiations *)
+					(* instantiations for vertex data varaiables *)
+type T = AngleExpr.T VName.NTab.T
+val empty = VName.NTab.empty;
 
-  fun get_vars RG_NE.Hnd = VName.NTab.N.empty
-		| get_vars (RG_NE.Znd a) = AngleExpr.get_vars a
-		| get_vars (RG_NE.Xnd a) = AngleExpr.get_vars a;
+(* info *)
+fun get_vdata_vars Vertex.Hnd = VName.NSet.empty
+	| get_vdata_vars (Vertex.Znd a) = AngleExpr.get_vars a
+	| get_vdata_vars (Vertex.Xnd a) = AngleExpr.get_vars a;
 
-  fun subs t (e as RG_NE.Hnd) = e
-		| subs t (RG_NE.Znd a) = RG_NE.Znd (AngleExpr.subs t a)
-		| subs t (RG_NE.Xnd a) = RG_NE.Znd (AngleExpr.subs t a);
+(* vertex match if angle-expresions match *)
+fun vertex_match (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
+	| vertex_match (Vertex.Znd a1) (Vertex.Znd a2) m = 
+		AngleExpr.match a1 a2 m
+	| vertex_match (Vertex.Xnd a1) (Vertex.Xnd a2) m = 
+		AngleExpr.match a1 a2 m
+	| vertex_match _ _ _ = NONE;
 
-  fun match (e1 as RG_NE.Hnd) (e2 as RG_NE.Hnd) t = SOME t
-		| match (RG_NE.Znd a1) (RG_NE.Znd a2) t = 
-			AngleExpr.match a1 a2 t
-		| match (RG_NE.Xnd a1) (RG_NE.Xnd a2) t = 
-			AngleExpr.match a1 a2 t
-		| match _ _ _ = NONE;
+(* edges allways match - they have no data *)
+fun edge_match ed1 ed2 m = SOME m; 
 
-  val pretty_varexp = AngleExpr.pretty;
-  val print_varexp = AngleExpr.print;
-  val pretty = RG_NE.pretty_node;
-  val print = RG_NE.print_node;
+(* subst in vertex uses angle var instantiations *)
+(* implicit: m a *)
+val subst_in_angle = AngleExpr.subs;
+fun subst_in_vertex m (d as Vertex.Hnd) = d
+	| subst_in_vertex m (Vertex.Znd a) = Vertex.Znd (subst_in_angle m a)
+	| subst_in_vertex m (Vertex.Xnd a) = Vertex.Znd (subst_in_angle m a);
+val subst_in_edge = (K I : T -> Edge.data -> Edge.data);
+
+fun pretty m = 
+    Pretty.list 
+      "[" "]"
+      (map (fn (n,i) => 
+               Pretty.block [VName.pretty n, Pretty.str "=", 
+                             AngleExpr.pretty i])
+           (VName.NTab.dest m));
+val print = Pretty.writeln o pretty;
 end;

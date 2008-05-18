@@ -6,6 +6,8 @@
 signature BGRAPH = 
 sig
 include GRAPH;
+structure BVertex : BVERTEX
+sharing type BVertex.bdata = Vertex.data
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 end;
@@ -23,6 +25,7 @@ functor BGraphFun(
   structure V = BVertexFun(
     structure BasicVert = Vertex and Boundary = Boundary
   );
+  structure BVertex = V;
   structure E = Edge;
 
 structure BasicBGraph =
