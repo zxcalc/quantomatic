@@ -14,10 +14,7 @@ end;
 (* graphs with nice API and tools *)
 signature GRAPH 
 = sig
-type nd
-type T
-val empty : T
-val add_nd : nd -> T -> T
+include BASIC_GRAPH
 val addnd_list : nd list -> T -> T
 end;
 
@@ -26,7 +23,7 @@ end;
    changing the data being used. *)
 signature GRAPH_TOOLS
 = sig
-structure G : BASIC_GRAPH
+structure G : BASIC_GRAPH (* Graph datatypes are hidden in this substructure; thus sharable and we can use open to express structure intersection *)
 val addnd_list : G.nd list -> G.T -> G.T
 end;
 
@@ -51,10 +48,10 @@ functor PatFun(Graph : GRAPH)
   (* write Basic Graph stuff in separate defined signature *)
   structure BasicPatGraph = 
   struct (* extend data for pat graphs and provide internal tools as needed *)
-    datatype T = PatGraph of Graph.T
-    datatype nd = PatNd of Graph.nd
-    val empty = PatGraph Graph.empty;
-    fun add_nd (PatNd n) (PatGraph g) = PatGraph (Graph.add_nd n g);
+    datatype T = PGraph of Graph.T
+    datatype nd = PNd of Graph.nd
+    val empty = PGraph Graph.empty;
+    fun add_nd (PNd n) (PGraph g) = PGraph (Graph.add_nd n g);
   end;
   (* create standard graph tools *)
   structure PatGraph = GraphToolsFun(BasicPatGraph);

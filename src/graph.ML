@@ -36,7 +36,7 @@ val delete_vertex : Vertex.name -> T -> T
 val rename_vname : Vertex.name -> Vertex.name -> T -> T 
 val rename_ename : Edge.name -> Edge.name -> T -> T 
 
-(* update a vertexe's data *)
+(* update a data of a vertex or edge *)
 val update_vertex : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
 val update_edge : (Edge.data -> Edge.data) -> Edge.name -> T -> T
 
@@ -67,6 +67,50 @@ val pretty : T -> Pretty.T
 val print : T -> unit
 
 end;
+
+(*  GRAPH is BASIC_GRAPH + useful utilities/API *)
+signature GRAPH = 
+sig
+
+include BASIC_GRAPH
+
+(* adding a vertex gives back unique name for it and the new graph *)
+val add_vertex : Vertex.data -> T -> Vertex.name * T 
+val doadd_vertex : Vertex.data -> T -> T
+val new_named_vertex : Vertex.name -> Vertex.data -> T -> T  (* can raise *)
+
+(* Vertex.names must already exist, else raises: no_such_vname_exp *)
+val add_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T
+val doadd_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> T
+val new_named_edge : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
+
+(* *)
+val has_vname : T -> Vertex.name -> bool;
+val has_ename : T -> Edge.name -> bool;
+
+(* rename the 2nd graph to avoid all names in the first one *)
+val rename_apart : T -> T -> T 
+
+(* update a vertexe's data *)
+val set_vertex : Vertex.data -> Vertex.name -> T -> T
+val set_edge : Edge.data -> Edge.name -> T -> T
+
+(* getting stuff from graphs (gets raise exceptions if no entry) *)
+val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
+val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
+
+(* getting graph internal representation... *)
+val get_vertex_list : T -> (Vertex.name * (Vertex.data 
+                   * (Edge.NSet.T (* edges coming into this vertex *)
+                      * Edge.NSet.T))) (* edges leaving this vertex *)
+                    list;
+val get_edge_list : T -> (ename * (Edge.data
+                   * (Vertex.name (* from this vertex *)
+                      * Vertex.name))) (* to this vertex *)
+                    list
+end;
+
+
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
@@ -360,13 +404,99 @@ val print = Pretty.writeln o pretty;
 end;
 
 
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  extra functions for Basic Graphs: provides rest of the GRAPH signature *)
+functor GraphToolsFun(BasicGraph : BASIC_GRAPH) 
+= struct
+
+local 
+open BasicGraph;
+in
+
+val get_vertex_list = Vertex.NTab.dest o get_vertices;
+val get_edge_list = Edge.NTab.dest o get_edges;
+val get_vertex_nset = Vertex.NTab.get_names o get_vertices;
+val get_edge_nset = Edge.NTab.get_names o get_edges;
+
+fun get_vertex g n = 
+    case lookup_vertex g n 
+     of NONE => raise no_such_vname_exp ("get_vertex", n, g)
+      | SOME x => x;
+fun get_edge g en = 
+    case lookup_edge g en 
+     of NONE => raise no_such_ename_exp ("get_edge", en, g)
+      | SOME x => x;
+
+(* implicit args: nd g *)
+val add_vertex = add_named_vertex Vertex.default_name;
+val doadd_vertex = snd oo add_vertex;
+fun new_named_vertex n nd g =
+    let val (n2,g2) = add_named_vertex n nd g in
+      if Vertex.name_eq (n2, n) then g2 else 
+      raise vname_already_exists_exp (n, g)
+    end;
+
+(* implicit args: g n *)
+val has_vname = Vertex.NTab.contains_name o get_vertices;
+val has_ename = Edge.NTab.contains_name o get_edges;
+
+(* implicit args: e n1 n2 g *)
+val add_edge = add_named_edge Edge.default_name;
+val doadd_edge = snd oooo add_edge;
+fun new_named_edge en e n1 n2 g =
+    let val (en2,g2) = add_named_edge en e n1 n2 g in
+      if Edge.name_eq (en2, en) then g2 else 
+      raise ename_already_exists_exp (en,g)
+    end;
+
+(* rename the names in g2 to avoid those in g1 *)
+
+(* IMPROVE: avoid conversion to lists as uses up lots of memory: have
+a function in FNAMETAB to useup names from a name collection *)
+fun rename_apart avoidg ing = 
+		let val vnames = Vertex.NTab.get_names (get_vertices avoidg)
+				val enames = Edge.NTab.get_names (get_edges avoidg)
+				val g2 = ing |> useup_vnames vnames |> useup_enames enames
+		in
+			g2 |> (Vertex.NTab.fold 
+							 (fn (n,_) => fn g3 =>
+									 if Vertex.NSet.contains vnames n then
+										 rename_vname 
+											 n (Vertex.NSet.new n (Vertex.NTab.get_names 
+																							 (get_vertices g3)))
+											 g3
+									 else g3)
+							 (get_vertices g2))
+				 |> (Edge.NTab.fold 
+							 (fn (n,_) => fn g3 =>
+									if Edge.NSet.contains enames n then
+										rename_ename 
+											n (Edge.NSet.new n (Edge.NTab.get_names 
+																							 (get_edges g3)))
+											g3
+									else g3)
+							 (get_edges g2))
+		end;
+
+end; (* local -- hides opened Graph data types *)
+end;
+
+
 (* An instance of Basic Graph: strings at vertices and edges *)
 structure DB_StrGraph = 
-BasicGraphFun(
-  structure Vertex = StrVertex
-  and Edge = StrEdge);
+struct 
+  structure BasicStrGraph = 
+    BasicGraphFun(
+      structure Vertex = StrVertex
+      and Edge = StrEdge);
+  structure GraphTools = GraphToolsFun(BasicStrGraph);
+  open BasicStrGraph 
+  open GraphTools
+end;
 
-structure StrGraph : BASIC_GRAPH = DB_StrGraph;
+structure StrGraph : GRAPH = DB_StrGraph;
 
 install_pp (make_pp ["StrGraph", "T"] 
                     (Pretty.pprint o StrGraph.pretty));
@@ -374,11 +504,19 @@ install_pp (make_pp ["StrGraph", "T"]
 
 (* another basic kind of graph with unit for edge data *)
 structure DB_StrUnitGraph = 
-BasicGraphFun(
-  structure Vertex = StrVertex
-  and Edge = UnitEdge);
+struct 
+  structure BasicStrUnitGraph = 
+    BasicGraphFun(
+      structure Vertex = StrVertex
+            and Edge = UnitEdge);
+  structure GraphTools = GraphToolsFun(BasicStrUnitGraph);
+  open BasicStrUnitGraph 
+  open GraphTools
+end;
 
-structure StrUnitGraph : BASIC_GRAPH = DB_StrUnitGraph;
+structure StrUnitGraph : GRAPH = DB_StrUnitGraph;
 
 install_pp (make_pp ["StrUnitGraph", "T"] 
                     (Pretty.pprint o StrUnitGraph.pretty));
+
+
