@@ -10,25 +10,25 @@ include GRAPH;
 
 val get_graph : T -> Graph.T
 val get_boundary : T -> Vertex.NSet.T
-val boundary_add : T -> Vertex.name -> Vertex.NSet.T
-val boundary_remove : T -> Vertex.name -> Vertex.NSet.T
-val boundary_add_many : T -> Vertex.NSet.T -> Vertex.NSet.T
-val boundary_remove_many : T -> Vertex.NSet.T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
+val vtx_to_boundary : T -> Vertex.name -> 
 end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
 functor Basic_BGraphFun(
-	structure V : VERTEX
-		      structure
+        structure V : VERTEX
+        structure E : EDGE
+	type bdry_data
+        val pretty_bdry_data : bdry_data -> Pretty.T
+        val bdry_ord : bdry_data * bdry_data -> General.order
 )
 = struct
 
-structure V = G.Vertex;
-structure E = G.Edge;
-structure Graph = G;
+structure V = BVertexFun(V, bdry_data, pretty_bdry_data, bdry_ord);
+structure E = E;
+structure Graph = BasicGraphFun(V,E);
 
 exception no_such_vname_exp of string * V.name * T;
 exception vname_already_exists_exp of V.name * T;
