@@ -1,0 +1,20 @@
+Place this folder in your Processing sketches folder.
+
+Dependencies:
+  * have "dot" in your path
+  * controlP5, Processing library: 
+      http://www.sojamo.de/libraries/controlP5/
+
+
+Controls:
+  'o' Open file
+  'm' Move nodes
+  's' Select nodes
+  'e' Add edges
+  'g' New green node
+  'r' New red node
+  'l' Force layout
+  TAB Next node
+
+
+
