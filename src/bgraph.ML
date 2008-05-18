@@ -6,19 +6,23 @@
 signature BGRAPH = 
 sig
 
-structure Graph : BASIC_GRAPH
-
-include BASIC_GRAPH;
+include GRAPH;
 
 val get_graph : T -> Graph.T
 val get_boundary : T -> Vertex.NSet.T
+val boundary_add : T -> Vertex.name -> Vertex.NSet.T
+val boundary_remove : T -> Vertex.name -> Vertex.NSet.T
+val boundary_add_many : T -> Vertex.NSet.T -> Vertex.NSet.T
+val boundary_remove_many : T -> Vertex.NSet.T -> Vertex.NSet.T
+val is_boundary : T -> Vertex.name -> bool
 end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
-functor BGraphFun(
-	structure G : BASIC_GRAPH
+functor Basic_BGraphFun(
+	structure V : VERTEX
+		      structure
 )
 = struct
 
@@ -26,18 +30,19 @@ structure V = G.Vertex;
 structure E = G.Edge;
 structure Graph = G;
 
+exception no_such_vname_exp of string * V.name * T;
+exception vname_already_exists_exp of V.name * T;
+
+exception no_such_ename_exp of string * E.name * T;
+exception ename_already_exists_exp of E.name * T;
+
+
 (* Property to be checked -- all boundary vertices have degree one *)
 (* This is not maintained but can be checked with the is_correct function*) 
 datatype T = BGraph of 
      { graph : Graph.T,
        boundary : V.NSet.T
      };
-
-exception no_such_vname_exp of string * V.name * T;
-exception vname_already_exists_exp of V.name * T;
-
-exception no_such_ename_exp of string * E.name * T;
-exception ename_already_exists_exp of E.name * T;
 
 val empty = BGraph { graph = Graph.empty, 
                      boundary = V.NSet.empty };
@@ -52,26 +57,13 @@ fun update_boundary f (BGraph rep) =
 
 val set_graph = update_graph o K;
 val set_boundary = update_boundary o K;
-val add_boundary_vertex = update_boundary o V.NSet.add;
-val add_boundaries_vertices = update_boundary o V.NSet.union_merge;
-val del_boundary_vertex = update_boundary o V.NSet.delete;
-val del_boundary_vertices = update_boundary o V.NSet.subtract;
+val boundary_add = update_boundary o V.NSet.add;
+val boundary_add_many = update_boundary o V.NSet.union_merge;
+val boundary_remove = update_boundary o V.NSet.delete;
+val boundary_remove_many = update_boundary o V.NSet.subtract;
 
 fun get_graph (BGraph rep) = #graph rep;
 fun get_boundary (BGraph rep) = #boundary rep;
-
-val get_vertices = Graph.get_vertices o get_graph;
-val get_edges = Graph.get_edges o get_graph;
-val get_vertex_list = V.NTab.dest o get_vertices;
-val get_edge_list = E.NTab.dest o get_edges;
-
-(* implicit args: bg n *)
-val get_vertex = Graph.get_vertex o get_graph;
-val get_edge = Graph.get_edge o get_graph;
-val lookup_vertex = Graph.lookup_vertex o get_graph;
-val lookup_edge = Graph.lookup_edge o get_graph;
-
-
 
 fun is_boundary (BGraph rep) n = 
     V.NSet.contains (#boundary rep) n
@@ -99,19 +91,12 @@ fun add_named_vertex n v isBoundary bg =
 	   |> set_graph g2) 
     end;
 
-fun new_named_vertex n v isBoundary bg =
-    let val g2 = Graph.new_named_vertex n v (get_graph bg)
-    in 	bg |> (if isBoundary then add_boundary_vertex n else I)
-	   |> set_graph g2
-    end;
     
 (* implicit args: en e n1 n2 bg *)
 fun add_named_edge en e n1 n2 bg = 
     let val (en2,g2) = Graph.add_named_edge en e n1 n2 (get_graph bg) 
     in (en2, set_graph g2 bg) end;
 (* implicit: bg *)
-fun new_named_edge en e n1 n2 =
-    update_graph (Graph.new_named_edge en e n1 n2);
 
 (* deleting vertex also removes all it's edges. *)
 fun delete_vertex n bg = 
@@ -151,9 +136,8 @@ val rename_apart =
 		update_graph o (Graph.rename_apart o get_graph);
 
 
-(*-------------------------------------------------------*)
-(* prettifying *)
-(*-------------------------------------------------------*)
+(* prettifying *-------------------------------------------------*)
+
 
 fun pretty bg = 
     Pretty.chunks 
@@ -174,12 +158,22 @@ val print = Pretty.writeln o pretty;
 end;
 (*======================= E N D =============================*)
 
+(*======= BGraphFun makes BGraphs with extra tools ===== *)
+
+functor BGraphFun(Graph : GRAPH) : BGRAPH
+=
+struct 
+structure basic = Basic_BGraphFun(Graph);
+structure tools = GraphToolsFun(basic);
+open basic;
+open tools;
+end;
 
 
 (* ------------------------------------------------------- *)
 (* define some concrete structures ----- *)
 (*-------------------------------------------------------*)
-
+(*
 structure DB_BGraph = BGraphFun(V,E);
 structure BGraph : BGRAPH = DB_Graph;
-
+*)
