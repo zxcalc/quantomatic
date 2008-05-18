@@ -4,8 +4,8 @@ System.use "test/ex_graph.ML";
 
 System.use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 
-System.use "pat_vertex.ML";
-
+System.use "bvertex.ML";
+System.use "bgraph.ML";
 
 System.use "patgraph.ML";
 System.use "test/ex_patgraph.ML";
