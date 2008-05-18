@@ -26,54 +26,47 @@ signature RG_VERTEX
                | Znd of angle (* Green *)
                | Hnd; (* Hadamard vertex *)
   include NAME_AND_DATA sharing type data = qnd;
-  val Edge : edge;
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-structure RG_NE
+structure RGVertex
 : RG_VERTEX
 = struct
 
-structure NName = NName;
-structure EName = EName;
+  type name = NName.T
+  structure NSet = NName.NSet;
+  structure NTab = NName.NTab;
+  val default_name = "v_a";
+  val pretty_name = NName.pretty;
+  val print_name = NName.print;
+  val name_eq = uncurry NName.eq;
+  val name_ord = NName.ord;
 
-type angle = AngleExpr.T;
+  type angle = AngleExpr.T;
+  val angle_ord = AngleExpr.ord;
+  datatype qnd = Xnd of angle (* Red: defined using H of Z *) 
+               | Znd of angle (* Green *)
+               | Hnd; (* Hadamard node *)
+  type data = qnd;
 
-val angle_ord = AngleExpr.ord;
+  fun data_ord (Hnd, Hnd) = EQUAL
+    | data_ord (Hnd, _) = LESS
+    | data_ord (_, Hnd) = GREATER
+    | data_ord (Znd a, Znd b) = angle_ord (a,b)
+    | data_ord (Znd _, _) = LESS
+    | data_ord (_, Znd _) = GREATER
+    | data_ord (Xnd a, Xnd b) = angle_ord (a,b);
+  fun data_eq (n1, n2) = case node_ord (n1, n2) of EQUAL => true | _ => false;
 
-datatype qnd = Xnd of angle (* Red: defined using H of Z *) 
-             | Znd of angle (* Green *)
-             | Hnd; (* Hadamard node *)
-type node = qnd;
-datatype edge = Edge;
-
-val default_nname = NName.mk "n_a";
-val default_ename = EName.mk "e_a";
-
-fun node_ord (Hnd, Hnd) = EQUAL
-  | node_ord (Hnd, _) = LESS
-  | node_ord (_, Hnd) = GREATER
-  | node_ord (Znd a, Znd b) = angle_ord (a,b)
-  | node_ord (Znd _, _) = LESS
-  | node_ord (_, Znd _) = GREATER
-  | node_ord (Xnd a, Xnd b) = angle_ord (a,b);
-fun node_eq n1 n2 = case node_ord (n1, n2) of EQUAL => true | _ => false;
-
-fun edge_ord (Edge,Edge) = EQUAL;
-fun edge_eq e1 e2 = case edge_ord (e1, e2) of EQUAL => true | _ => false;
-
-fun pretty_angle a = Pretty.str a;
-val print_angle = Pretty.writeln o pretty_angle;
-    
-fun pretty_node (Xnd a) = 
-    Pretty.block [Pretty.str "X(", pretty_angle a, Pretty.str ")"]  
-  | pretty_node (Znd a) = 
-    Pretty.block [Pretty.str "Z(", pretty_angle a, Pretty.str ")"]
-  | pretty_node Hnd = Pretty.str "H";
-val print_node = Pretty.writeln o pretty_node;
-
-fun pretty_edge Edge = Pretty.str "<edge>"
-val print_edge = Pretty.writeln o pretty_edge;
+  fun pretty_angle a = Pretty.str a;
+  val print_angle = Pretty.writeln o pretty_angle;
+      
+  fun pretty_data (Xnd a) = 
+      Pretty.block [Pretty.str "X(", pretty_angle a, Pretty.str ")"]  
+    | pretty_data (Znd a) = 
+      Pretty.block [Pretty.str "Z(", pretty_angle a, Pretty.str ")"]
+    | pretty_data Hnd = Pretty.str "H";
+  val print_node = Pretty.writeln o pretty_node;
 
 end;
 
@@ -82,7 +75,7 @@ structure NE = RG_NE;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  matching and substitution for Basic Quantum Expressions *)
-structure BasicQuExpr 
+structure RGMatchCtxt 
 : GDATA_EXPR where type varexpr = AngleExpr.T
 = struct
   type varexpr = AngleExpr.T;
