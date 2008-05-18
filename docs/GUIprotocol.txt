@@ -1,0 +1,25 @@
+GUI protocol
+============
+
+How does the front end of the the tool communicate with the back end?
+
+SML has a completely impoverished provision GUI and graphical
+toolkits, so the front end is going to be implemented as a separate
+program, communicating with the back end via a pipe.  Therefore a
+protocol for this communication must be specified.
+
+DRAWING GRAPHS
+------
+
+The front-end will need to display the graphs.  Therefore it must
+receive serialisations of the graph data structures from the back
+end.  Since the backend does not know which features of the graph are
+relevant for the  front end the entire data structure must be sent.
+
+Further, since the 
+
+User Operations
+---------------
+1. Construct Graphs
+2. Manipulate graphs
+3. Output graphs and sequences
