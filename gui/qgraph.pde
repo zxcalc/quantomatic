@@ -2,8 +2,6 @@ import controlP5.*;
 import javax.swing.*;
 
 ControlP5 gui;
-Textlabel selectLabel;
-Textlabel moveLabel;
 
 Node selectedNode=null;
 int selectedIndex=-1;
