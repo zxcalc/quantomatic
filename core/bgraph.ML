@@ -7,7 +7,10 @@ signature BGRAPH =
 sig
 include GRAPH;
 structure BVertex : BVERTEX
-sharing type BVertex.data = Vertex.data
+(*sharing type BVertex.data = Vertex.data
+sharing type BVertex.name = Vertex.name		
+*)
+sharing BVertex  = Vertex
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 end;

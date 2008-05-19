@@ -106,7 +106,7 @@ val get_vertex_list : T -> (Vertex.name * (Vertex.data
                    * (Edge.NSet.T (* edges coming into this vertex *)
                       * Edge.NSet.T))) (* edges leaving this vertex *)
                     list;
-val get_edge_list : T -> (ename * (Edge.data
+val get_edge_list : T -> (Edge.name * (Edge.data
                    * (Vertex.name (* from this vertex *)
                       * Vertex.name))) (* to this vertex *)
                     list

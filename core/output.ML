@@ -1,10 +1,11 @@
 signature OUTPUT =
 sig
-  type graph (* a graph *)
-  type node
-  type edge
-  type ename
-  type nname
+  structure Graph : GRAPH
+  type graph = Graph.T(* a graph *)
+  type vertex = Graph.Vertex.data
+  type edge = Graph.Edge.data
+  type ename = Graph.Edge.name
+  type vname = Graph.Vertex.name
 
   val output : graph -> unit
 
@@ -12,9 +13,9 @@ sig
 
   val output_graph : graph -> outtype
   val output_edges : graph ->   outtype	      
-  val output_nodes : graph ->   outtype	      
-  val output_edge  : (ename * (edge * (nname * nname))) -> outtype
-  val output_node  : (nname * (node * (EName.Col.T * EName.Col.T))) -> outtype
+  val output_vertices : graph ->   outtype	      
+  val output_edge  : (ename * (edge * (vname * vname))) -> outtype
+  val output_vertex  : (vname * (vertex * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) -> outtype 
 
   val to_string : outtype -> string
 
@@ -33,12 +34,12 @@ end
 functor BasicWriter (Out : OUTPUT) : OUTPUT_WRITER
 = 
 struct 
-
+structure Graph = Out.Graph
 type graph = Out.graph;
-type node = Out.node;
+type vertex = Out.vertex;
 type edge = Out.edge;
 type ename = Out.ename ;
-type nname = Out.nname ;
+type vname = Out.vname ;
 type outtype = Out.outtype;
 
   val default_file = "dotfiles/output.dot";
@@ -59,8 +60,8 @@ type outtype = Out.outtype;
   val output_graph = Out.output_graph;
   val output_edges = Out.output_edges;
   val output_edge = Out.output_edge;
-  val output_nodes = Out.output_nodes;
-  val output_node = Out.output_node;
+  val output_vertices = Out.output_vertices;
+  val output_vertex = Out.output_vertex;
   val to_string = Out.to_string
 
 end
