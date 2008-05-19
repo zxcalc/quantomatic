@@ -10,7 +10,7 @@ datatype bdata =
          IVert of BasicVert.data (* inner node with basic vertex data *)
        | BVert of Boundary.data; (* boundary vertex with boundary data *)
 
-include NAME_AND_DATA 
+include VERTEX 
 sharing BasicVert.NSet = NSet
 sharing BasicVert.NTab = NTab
 sharing type name = BasicVert.name
