@@ -19,9 +19,8 @@ System.use "rg_vertex.ML";
 System.use "rg_graph.ML";
 System.use "test/ex_rg_graph.ML";
 
-System.use "rg_match_ctxt.ML";
-System.use "rg_patgraph.ML";
-
-
 System.use "output.ML";
 System.use "output_dot.ML";
+
+System.use "rg_match_ctxt.ML";
+System.use "rg_patgraph.ML";
