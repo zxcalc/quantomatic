@@ -20,7 +20,7 @@ sig
   val mk : int -> int -> T
 end
 
-structure Rational :> RATIONAL = 
+structure Rational : RATIONAL = 
 struct
 type T = int * int;
 exception BadExpression of string;
