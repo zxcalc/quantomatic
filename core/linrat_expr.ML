@@ -200,7 +200,9 @@ end;
 
 structure LinratExpr : LINRAT_EXPR = DB_LinratExpr;
 
-(* install_pp (make_pp ["LinratExpr", "T"] (Pretty.pprint o LinratExpr.pretty)); *)
+(*
+install_pp (make_pp ["LinratExpr", "T"] (Pretty.pprint o LinratExpr.pretty));
+*)
 
 structure AngleExpr = LinratExpr;
 
