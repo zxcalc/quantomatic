@@ -5,18 +5,49 @@
 structure Controller =
 struct
 
-structure Graph = RGGraph
-structure V = RGGraph.Vertex
-structure E = RGGraph.Edge
+structure G = RGGraph
+structure V = G.Vertex
+structure BV = G.BVertex
+structure RGV = G.RGVertex
+structure E = G.Edge
 
 exception NOT_IMPLEMENTED of string
 exception ILLEGAL_COMMAND of string
 
 val blank = Pretty.str "";
 
+val fresh_red = BV.IVert (RGV.Xnd AngleExpr.zero);
+val fresh_green = BV.IVert (RGV.Znd AngleExpr.zero);
+val fresh_h = BV.IVert RGV.Hnd ;
+val fresh_bnd = BV.BVert ()
+
+val is_out_pipe = ref true;
+
+val log = ref TextIO.stdErr;
+
+fun write_log s = (TextIO.output ((!log) , s); TextIO.flushOut (!log)) ;
+
+fun out_toplevel out = Pretty.writeln out
+			
+fun out_pipe out = 
+    (
+     Pretty.writeln out;
+     Pretty.writeln (Pretty.str "stop")
+    )
+
+val do_output = ref out_pipe;
+				  
+fun switch_mode () = 
+    if !is_out_pipe 
+    then (do_output := out_toplevel ; is_out_pipe := false)
+    else (do_output := out_pipe ; is_out_pipe := true)
+
 (* many more to be added *)
 datatype commands = NOOP
 	    | Quit 
+	    | HELO
+	    | MODE
+	    | DUMP
 	    | New
 	    | Open of string
 	    | Save of string
@@ -30,44 +61,108 @@ datatype commands = NOOP
 	    | ShowRewrites of V.NSet.T
 
 fun parse_command s = 
+    let val _ = write_log s
+    in
     case s of "" => Quit
 	    | "q\n" => Quit 
 	    | " \n" => NOOP
 	    | "\n" => NOOP
-	    | "n\n" => New
+	    | "M\n" => MODE (* switch between output modes *)
+	    | "s\n" => HELO (* s is for 'status' *)
+	    | "D\n" => DUMP
+	    | "n\n" => New (* new graph *)
 	    | "u\n" => Undo
+	    | "r\n" => Red 
+	    | "g\n" => Green
+	    | "h\n" => H
+	    | "b\n" => Boundary
 	    |_ => raise ILLEGAL_COMMAND s
+    end;
 
 fun do_command g hist c = 
     case c of
-      NOOP => (g, hist, blank)
-    | Quit => OS.Process.exit OS.Process.success
-    | New => (Graph.empty, g::hist, blank)
+      NOOP => (g, 
+	       hist, 
+	       blank, 
+	       true)	      
+    | DUMP => (g, 
+	       hist, 
+	       RGGraphDot.output_graph g, 
+	       true)	      
+    | MODE => (switch_mode () ;
+	       (g, 
+		hist, 
+		Pretty.str "Changed output mode.", 
+		true))
+    | Quit => (g, 
+	       hist, 
+	       Pretty.str "Quitting.....\n", 
+	       false)
+    | HELO => (g, 
+	       hist, 
+	       Pretty.str "Hello from QUANTOMATIC\nLet's have some fun!",
+	       true)
+    | New => (G.empty, 
+	      g::hist, 
+	      Pretty.str "New Graph.",
+	      true)
     | Undo => (case hist of 
-		[] => (g, hist, blank)
-	      | h::t => (h, t, Pretty.str "Undo!")
+		[] => (g, hist, blank,true)
+	      | h::t => (h, t, Pretty.str "Undo!",true)
 	      )
+    | Red => 
+      let val (_,g') = G.add_vertex fresh_red g
+      in 
+	(g', g::hist, Pretty.str "Red added.",true)
+      end
+    | Green => 
+      let val (_,g') = G.add_vertex fresh_green g
+      in 
+	(g', g::hist, Pretty.str "Green added.",true)
+      end
+    | H => 
+      let val (_,g') = G.add_vertex fresh_h g
+      in 
+	(g', g::hist, Pretty.str "H added.",true)
+      end
+    | Boundary => 
+      let val (_,g') = G.add_vertex fresh_bnd g
+      in 
+	(g', g::hist, Pretty.str "Boundary added.",true)
+      end
     | _ => raise NOT_IMPLEMENTED "nothing useful implemented"
 
 
 
 fun run_loop g hist = 
 	  let 
-            val _ = TextIO.print "Quanto> "
+            val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
 	    val sopt = TextIO.inputLine(TextIO.stdIn) 
             val s = (case sopt of NONE => "" | SOME s => s)
-	    val (g', hist', output) = ((do_command g hist) o parse_command) s
+	    val (g', hist', output, continue) = ((do_command g hist) o parse_command) s
 		handle NOT_IMPLEMENTED s => 
-		       (g, hist, Pretty.str ("Not Implemented:" ^ s))
+		       (g, hist, Pretty.str ("Not Implemented:" ^ s), true)
 		     | ILLEGAL_COMMAND s => 
-		       (g, hist, Pretty.str ("Illegal command:" ^ s))
+		       (g, hist, Pretty.str ("Illegal command:" ^ s), true)
 	  in
 	    (
-	     if output <> blank then Pretty.writeln output else () ; 
-	     run_loop g' hist'
+	     if output <> blank then ((!do_output) output) else () ;
+	     if continue then 
+	       run_loop g' hist'
+	     else 
+	       (
+		write_log "Exiting run loop";
+		TextIO.closeOut (!log); 
+		g'
+		)
 	    )
 	  end
 	  
-fun init () = run_loop Graph.empty [];
+fun init () = (
+    log := (TextIO.openAppend "/Users/rwd/Desktop/quantolog") ;
+    write_log "Starting up...\n" ; 
+    run_loop G.empty []
+);
+
 
 end; 
