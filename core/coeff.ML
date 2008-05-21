@@ -96,4 +96,4 @@ val mult = rat_mult;
 val div = rat_div;
 end;
 
-install_pp (make_pp ["Rational", "T"] (Pretty.pprint o Rational.pretty));
+(* install_pp (make_pp ["Rational", "T"] (Pretty.pprint o Rational.pretty)); *)

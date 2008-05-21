@@ -4,6 +4,7 @@ signature LINRAT_EXPR
 include EXPR
 structure Coeff : RATIONAL
 val zero : T
+val is_zero : T -> bool
 val pi : T
 val mk_var : VName.T -> T
 val mk : Coeff.T -> (VName.T * Coeff.T) list -> T
@@ -17,9 +18,9 @@ struct
 exception BadExpression of string;
 structure Coeff = Rational;
 type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
-type table = T VName.NTab.T;
 
 (* =====================================================================*)
+
 
 fun kv_eq ((k1,v1),(k2,v2)) = 
     VName.eq k1 k2 andalso Coeff.eq v1 v2
@@ -72,6 +73,9 @@ fun get_vars (_,tab)  = VName.NTab.get_names tab;
 val empty = VName.NTab.empty : Coeff.T VName.NTab.T;
 
 val zero = (Coeff.mk 0 1, empty);
+fun is_zero (cpi,vars) = (Coeff.is_zero cpi 
+                          andalso VName.NTab.is_name_empty vars);
+
 val pi = (Coeff.mk 1 1, empty);
 
 fun mk_var nm = 
@@ -170,28 +174,33 @@ val print = Pretty.writeln o pretty
  *)
 fun match pat target already_matched =
     let val pat2 = subs already_matched pat
-	      fun first_good [] = NONE
-	        | first_good (h::t) = if not (VName.NTab.contains (snd target) h) 
-			                          then (SOME h) else first_good t
-	      fun f NONE = NONE
-	        | f (SOME match_var) = 
-	          let val c = Coeff.div (Coeff.mk 1 1) (VName.NTab.get (snd pat) match_var)
-		            (* 1/Coeff of match var *)
-		            val rhs = add_expr 
-			                      (scale_expr c (subtr_expr target pat2)) 
-			                      (mk_var match_var) 
-	          in
-	            SOME (VName.NTab.update (match_var, rhs) already_matched)
-	          end
     in
-      f (first_good (VName.NTab.keys (snd pat2)))
+      (* find an uninstantiated variable in pattern that we can push
+         the difference between the expressions into *)
+      case VName.NSet.get_local_bot 
+             (VName.NSet.subtract (get_vars pat2) (get_vars target))
+       (* if all pat vars are in target, check for direct equality *)
+       of NONE => 
+          if eq pat target then SOME already_matched else NONE
+       (* there is a pat var not in target, show difference between 
+          expressions into an instantiation of that var. *)
+        | SOME match_var => 
+          let val c = Coeff.div (Coeff.mk 1 1) 
+                                (VName.NTab.get (snd pat) match_var)
+		          (* 1/Coeff of match var *)
+		          val rhs = add_expr 
+			                    (scale_expr c (subtr_expr target pat2)) 
+			                    (mk_var match_var) 
+	        in
+	          SOME (VName.NTab.update (match_var, rhs) already_matched)
+	        end
     end;
 end;
 
 
-structure LinratExpr :> LINRAT_EXPR = DB_LinratExpr;
+structure LinratExpr : LINRAT_EXPR = DB_LinratExpr;
 
-install_pp (make_pp ["LinratExpr", "T"] (Pretty.pprint o LinratExpr.pretty));
+(* install_pp (make_pp ["LinratExpr", "T"] (Pretty.pprint o LinratExpr.pretty)); *)
 
 structure AngleExpr = LinratExpr;
 
