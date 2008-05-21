@@ -1,7 +1,12 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Representation for Graphs with named vertices and edges. *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(* *)
+(* 
+IMPROVE: 
+make undirected and add direction, when you want it, as data. Make
+data for vertex and edges a separate table from edge/vertex
+connectedness.
+*)
 
 signature VERTEX = NAME_AND_DATA;
 signature EDGE = NAME_AND_DATA;
@@ -110,6 +115,11 @@ val get_edge_list : T -> (Edge.name * (Edge.data
                    * (Vertex.name (* from this vertex *)
                       * Vertex.name))) (* to this vertex *)
                     list
+
+(* get adj vertices (from edge info) and from vertex name *)
+val adj_vertices' : T -> (Edge.NSet.T * Edge.NSet.T)
+                    -> (Edge.data Edge.NTab.T) Vertex.NTab.T
+val adj_vertices : T -> Vertex.name -> (Edge.data Edge.NTab.T) Vertex.NTab.T
 end;
 
 
@@ -483,6 +493,36 @@ fun rename_apart avoidg ing =
 									else g3)
 							 (get_edges g2))
 		end;
+
+
+(* make a table: (Edge.data Edge.NTab.T) Vertex.NTab.T
+holding every edge's data that is connects n and to the key Vertex.NTab, 
+the Vertex.NTab has every vertex adjacent to n. (Note: ignores direction) *)
+fun adj_vertices' g (ins,outs) = 
+    Vertex.NTab.empty
+      |> (Edge.NSet.fold 
+            (fn e => fn ntab => 
+             let val (d,(from,to)) = get_edge g e
+             in if (Vertex.NTab.contains ntab from) then 
+                  Vertex.NTab.map_entry 
+                    (Edge.NTab.ins (e,d)) (* no dup exp for well-formed graphs *)
+                    from ntab
+                else Vertex.NTab.ins (from,Edge.NTab.ins (e,d) Edge.NTab.empty) ntab
+             end)
+            ins)
+      |> (Edge.NSet.fold 
+            (fn e => fn ntab => 
+             let val (d,(from,to)) = get_edge g e
+             in if (Vertex.NTab.contains ntab to) then 
+                  Vertex.NTab.map_entry 
+                    (Edge.NTab.ins (e,d)) (* no dup exp for well-formed graphs *)
+                    to ntab
+                else Vertex.NTab.ins (to,Edge.NTab.ins (e,d) Edge.NTab.empty) ntab
+             end)
+            outs);
+
+fun adj_vertices g n = adj_vertices' g (snd (get_vertex g n));
+
 
 end; (* local -- hides opened Graph data types *)
 end;

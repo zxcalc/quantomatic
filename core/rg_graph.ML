@@ -16,3 +16,6 @@ open BGraph;
 end;
 
 structure RGGraph : RG_GRAPH = DB_RGGraph;
+
+structure Vertex = RGGraph.Vertex;
+structure Edge = RGGraph.Edge;

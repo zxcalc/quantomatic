@@ -27,6 +27,13 @@ fun vertex_match (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
 (* edges allways match - they have no data *)
 fun edge_match ed1 ed2 m = SOME m; 
 
+(* for multiple edge matching, when edges have no data, count the
+   number of edges. *)
+fun strict_multi_edge_match etab1 etab2 m = 
+    if (Edge.NTab.fold (fn _ => fn i => i + 1) etab1 0) = 
+       (Edge.NTab.fold (fn _ => fn i => i + 1) etab2 0) 
+    then Seq.single m else Seq.empty;
+
 (* subst in vertex uses angle var instantiations *)
 (* implicit: m a *)
 val subst_in_angle = AngleExpr.subs;

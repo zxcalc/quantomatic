@@ -1,7 +1,9 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Representation for Pattern Graphs (allows var_nodes and elipses edges) *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(* *)
+(* Matching treats graphs as undirected: IMPROVE: chnage graph rep to
+be undirected and have direction as edge data, w.r.t. order of names
+of unordered pair of vertices being connected. *)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature PATGRAPH = 
@@ -15,13 +17,13 @@ sharing MCtxt.Edge = Edge
 type match;
 
 val match : T -> T -> match -> match Seq.seq
-val instantiate : match -> T -> T
+(* val instantiate : match -> T -> T *)
 
 end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Quantum Graphs *)
+(* 
 functor PatGraphFun(
 structure BGraph : BGRAPH
 structure MCtxt : MATCH_CTXT
@@ -32,441 +34,335 @@ sharing Match.Edge = BGraph.Edge)
 
 open BGraph;
 structure MCtxt = MCtxt;
+*)
 
-(* a graph *)
-datatype T = PatGraph of 
-         {bgraph : BGraph.T, (* the basic graph *)
-          (* map of data variables to the nodes they occur in *)
-					mctxt : Vertex.
-				 };
+structure Graph = RGGraph;
+structure Vertex = RGGraph.Vertex;
 
-val empty = PatGraph {bgraph = BGraph.empty,
-											mctxt = MCtxt.empty };
+(* BVertex = Vertex, but has boundary consturctors declared *)
+structure BVertex = RGGraph.BVertex;
 
-fun update_bgraph f (PatGraph rep) = 
-    PatGraph { bgraph = f (#bgraph rep), 
-							 mctxt = #mctxt rep
-						 }; 
-fun update_vars f (PatGraph rep) = 
-    PatGraph { bgraph = #bgraph rep, 
-							 mctxt = #mctxt rep
-						 };
-fun update_mctxt f (PatGraph rep) = 
-    PatGraph { bgraph = #bgraph rep, 
-							 mctxt = f (#mctxt rep)
-						 };
+(* RGVertex = BVertex.BasicVert, but has RG consturctors *)
+structure RGVertex = RGGraph.RGVertex; 
+structure Edge = RGGraph.Edge;
+structure MCtxt = AngleMatchCtxt;
 
-val set_bgraph = update_bgraph o K;
-val set_mctxt = update_mctxt o K;
-
-(* implicit arg: graph *)
-fun add_mctxt_dep vs n = 
-		update_mctxt 
-			(VName.NTab.N.fold (fn v => fn dvars => 
-								VName.NTab.map_entry (Vertex.NSet.add n) v dvars
-						) vs);
-
-fun del_mctxt_dep vs n = 
-		update_mctxt 
-			(VName.NTab.N.fold (fn v => fn dvars => 
-								VName.NTab.map_entry (Vertex.NSet.delete n) v dvars
-						) vs);
-
-val del_datavar = update_mctxt o VName.NTab.delete;
-
-fun get_bgraph (PatGraph rep) = #bgraph rep;
-fun get_mctxt (PatGraph rep) = #mctxt rep;
-val delete_datavar = update_mctxt o VName.NTab.delete;
-
-(* implicit args: q n *)
-val lookup_node = BGraph.lookup_node o get_bgraph;
-val lookup_edge = BGraph.lookup_edge o get_bgraph;
-
-(* adding a node gives back new unique name for it and the new graph *)
-fun add_named_node n (nd as NE.VarNode in_or_out) g =
-    let val (n2,g2) = BGraph.add_named_node n nd (get_bgraph g)
-    in (n2, g |> add_var n
-              |> set_bgraph g2)
-    end
-  | add_named_node n (nd as NE.Node ndata) g =
-    let val (n2,bg2) = BGraph.add_named_node n nd (get_bgraph g)
-    in (n2, g |> set_bgraph bg2
-							|> add_mctxt_dep (Expr.get_vars ndata) n) 
-		end;
-
-(* new can raise an exception if name is not unique, returns new graph *)
-fun new_named_node n (nd as NE.VarNode in_or_out) g =
-    let val bg2 = BGraph.new_named_node n nd (get_bgraph g)
-    in g |> add_var n
-         |> set_bgraph bg2 end
-  | new_named_node n (nd as NE.Node ndata) g =
-    let val bg2 = BGraph.new_named_node n nd (get_bgraph g)
-    in g |> set_bgraph bg2 
-				 |> add_mctxt_dep (Expr.get_vars ndata) n 
-		end;
-
-(* implicit args: nd q *)
-val add_node = add_named_node NE.default_vname;
-val doadd_node = snd oo add_node;
-
-(* implicit args: en e n1 n2 q *)
-fun add_named_edge en e n1 n2 g = 
-    let val (en2,bg2) = BGraph.add_named_edge en e n1 n2 (get_bgraph g) 
-    in (en2, set_bgraph bg2 g) end;
-fun new_named_edge en e n1 n2 g = 
-    let val bg2 = BGraph.new_named_edge en e n1 n2 (get_bgraph g) 
-    in set_bgraph bg2 g end;
-
-(* implicit args: e n1 n2 q *)
-val add_edge = add_named_edge NE.default_edname;
-val doadd_edge  = snd oooo add_edge;
-
-fun delete_node_vardeps n g = 
-		(case (get_node g n) 
-      of (NE.VarNode _,_) => del_var n g
-       | (NE.Node nd,_) => 
-				 del_mctxt_dep (Expr.get_vars nd) n g)
-
-(* deleting node also removes all it's edges. *)
-fun delete_node n g = 
-    g |> delete_node_vardeps n
-      |> update_bgraph (BGraph.delete_node n);
-
-(* implicit args: en q *)
-val delete_edge = update_bgraph o BGraph.delete_edge;
-
-(* Vertex.name = suggested name *)
-(* rename all occurances of old name (1st arg) with new name (2nd arg) 
-   n2 must not exist already, n1 must exist *)
-(* THINK: I think there is a slightly more efficient way to treat mctxt *)
-fun rename_vname n1 n2 g = 
-    (case (get_node g n1)
-      of (NE.VarNode _,_) => 
-         g |> update_vars (Vertex.NSet.delete n1 o Vertex.NSet.union1 n2)
-           |> update_bgraph (BGraph.rename_vname n1 n2)
-       | (NE.Node nd,_) => 
-				 g |> update_bgraph (BGraph.rename_vname n1 n2)
-					 |> del_mctxt_dep (Expr.get_vars nd) n1
-					 |> add_mctxt_dep (Expr.get_vars nd) n2
-		);
-
-(* val implicit args: en1 en2 q *)
-val rename_edname = update_bgraph oo BGraph.rename_edname;
-(* implicit arg: f n q *)
-val update_node = update_bgraph oo BGraph.update_node;
-(* implicit arg: f en q *)
-val update_edge = update_bgraph oo BGraph.update_edge;
-(* implicit arg: nd n q *)
-val set_node = update_bgraph oo BGraph.set_node;
-(* implicit arg: en e q *)
-val set_edge = update_bgraph oo BGraph.set_edge;
-
-(* useup names... *)
-val useup_vnames = update_bgraph o BGraph.useup_vnames;
-val useup_ednames = update_bgraph o BGraph.useup_ednames;
-
-(* implicit args: g1 g2: rename g2 to avoid names in g1 *)
-val rename_apart = 
-		update_bgraph o (BGraph.rename_apart o get_bgraph);
-
+structure Match = 
+struct
 (* Edge matching not Needed: one step later we check nodes and that
    enforced edge injection conditions needed for var-nodes/half-edges*)
 (* instantiations *)
-datatype match = Match of 
-				 {ninsts: (Vertex.name * Vertex.data) Vertex.NTab.T, (* pat to tgt *)
-					invninsts : Vertex.name Vertex.NTab.T, (* tgt to pat *)
-					(* instantiations for node data varaiables *)
-					ndinsts: Expr.varexpr VName.NTab.T
-				 };
+datatype T = Match of 
+         {(* pat to tgt - why do ne need the data? *)
+          vmap: Vertex.name Vertex.NTab.T, 
+          (* tgt to pat for internal (1-1 matching) vertices *)
+          (* [many pat boundary vertices can go to 1 tgt vertex] *)
+          ivinvmap : Vertex.name Vertex.NTab.T,
+          (* instantiations for vertex/edge data varaiables *)
+          mctxt: MCtxt.T 
+         };
 
-val empty_match = Match {ninsts = Vertex.NTab.empty,
-												 invninsts = Vertex.NTab.empty,
-												 ndinsts = VName.NTab.empty
-												};
+val empty = Match {vmap = Vertex.NTab.empty,
+                   ivinvmap = Vertex.NTab.empty,
+                   mctxt = MCtxt.empty
+                  };
 
-fun update_match_ninsts f (Match rep) = 
-		Match {ninsts = f (#ninsts rep), 
-					 invninsts = #invninsts rep,
-					 ndinsts = #ndinsts rep};
-fun update_match_invninsts f (Match rep) = 
-		Match {ninsts = #ninsts rep, 
-					 invninsts = f (#invninsts rep),
-					 ndinsts = #ndinsts rep};
-fun update_match_ndinsts f (Match rep) = 
-		Match {ninsts = #ninsts rep, 
-					 invninsts = #invninsts rep,
-					 ndinsts = f (#ndinsts rep)};
+fun update_vmap f (Match rep) = 
+    Match {vmap = f (#vmap rep), 
+           ivinvmap = #ivinvmap rep,
+           mctxt = #mctxt rep};
+fun update_ivinvmap f (Match rep) = 
+    Match {vmap = #vmap rep, 
+           ivinvmap = f (#ivinvmap rep),
+           mctxt = #mctxt rep};
+fun update_mctxt f (Match rep) = 
+    Match {vmap = #vmap rep, 
+           ivinvmap = #ivinvmap rep,
+           mctxt = f (#mctxt rep)};
 
-fun get_match_ninsts (Match rep) = #ninsts rep;
-fun get_match_invninsts (Match rep) = #invninsts rep;
-fun get_match_ndinsts (Match rep) = #ndinsts rep;
-val set_match_ndinsts = update_match_ndinsts o K;
+fun get_vmap (Match rep) = #vmap rep;
+fun get_ivinvmap (Match rep) = #ivinvmap rep;
+fun get_mctxt (Match rep) = #mctxt rep;
+val set_mctxt = update_mctxt o K;
+
+fun pretty_match m = 
+    Pretty.chunks 
+      ([Pretty.str "Graph Vertex Matchings:"]
+       @ (map (fn (pn,tn) => 
+                  Pretty.block 
+                    [Vertex.pretty_name pn,
+                     Pretty.str " => ",
+                     Vertex.pretty_name tn])
+              (Vertex.NTab.dest (get_vmap m)))
+       @ [Pretty.block [], (* empty line *)
+          Pretty.str "MCtxt:"]
+       @ [MCtxt.pretty (get_mctxt m)]);
+    
+val print_match = Pretty.writeln o pretty_match;
+
+end; (* Match structure *)
 
 
-(* assumes patnd are uninstantiated *)
+structure MatchState 
+= struct
+
+datatype T = 
+         MState of 
+         {(* agenda = (tgt,patt) list = vertices commited to matching each other *) 
+          agenda : (Vertex.name * Vertex.name) list, (* and-agenda: do all these *)
+          match : Match.T, (* global vertex and edge matching info *)
+          unm_pat_vs : Vertex.NSet.T, (* unmatched pat vertices *)
+          unm_tgt_vs : Vertex.NSet.T, (* unmatched tgt vertices *)
+          unm_tgt_es : Edge.NSet.T (* unmatched tgt edges *)
+         };
+
+fun get_agenda (MState rep) = #agenda rep;
+fun get_match (MState rep) = #match rep;
+fun get_unm_pat_vs (MState rep) = #unm_pat_vs rep;
+fun get_unm_tgt_vs (MState rep) = #unm_tgt_vs rep;
+fun get_unm_tgt_es (MState rep) = #unm_tgt_es rep;
+
+fun init match pat tgt agenda =
+    MState { agenda = agenda, match = match,
+             unm_pat_vs = (Vertex.NTab.get_names (Graph.get_vertices pat)),
+             unm_tgt_vs = (Vertex.NTab.get_names (Graph.get_vertices tgt)),
+             unm_tgt_es = (Edge.NTab.get_names (Graph.get_edges tgt))
+           };
+
+fun update_agenda f (MState rep) = 
+    MState { agenda = f (#agenda rep), match = #match rep,
+             unm_pat_vs = #unm_pat_vs rep,
+             unm_tgt_vs = #unm_tgt_vs rep,
+             unm_tgt_es = #unm_tgt_es rep
+           };
+fun update_match f (MState rep) = 
+    MState { agenda = #agenda rep, match = f (#match rep),
+             unm_pat_vs = #unm_pat_vs rep,
+             unm_tgt_vs = #unm_tgt_vs rep,
+             unm_tgt_es = #unm_tgt_es rep
+           };
+fun update_unm_pat_vs f (MState rep) = 
+    MState { agenda = #agenda rep, match = #match rep,
+             unm_pat_vs = f (#unm_pat_vs rep),
+             unm_tgt_vs = #unm_tgt_vs rep,
+             unm_tgt_es = #unm_tgt_es rep
+           };
+fun update_unm_tgt_vs f (MState rep) = 
+    MState { agenda = #agenda rep, match = #match rep,
+             unm_pat_vs = #unm_pat_vs rep,
+             unm_tgt_vs = f(#unm_tgt_vs rep),
+             unm_tgt_es = #unm_tgt_es rep
+           };
+fun update_unm_tgt_es f (MState rep) = 
+    MState { agenda = #agenda rep, match = #match rep,
+             unm_pat_vs = #unm_pat_vs rep,
+             unm_tgt_vs = #unm_tgt_vs rep,
+             unm_tgt_es = f(#unm_tgt_es rep)
+           };
+
+val set_agenda = update_agenda o K;
+val set_match = update_match o K;
+
+val get_match_vmap = Match.get_vmap o get_match;
+val get_match_ivinvmap = Match.get_ivinvmap o get_match;
+val get_match_mctxt = Match.get_mctxt o get_match;
+val set_match_mctxt = update_match o Match.set_mctxt;
+
+fun tgt_edges_are_unmatched st edges = 
+    Edge.NSet.sub_set edges (get_unm_tgt_es st);
+
+(* implicit: st n *)
+val tgt_vertex_is_unmatched = 
+    Vertex.NSet.contains o get_unm_tgt_vs;
+
+(* implicit: tgt_edges st *)
+val useup_tgt_edges = 
+    update_unm_tgt_es o (fn subtractthese => fn from_tgt_es => 
+                         Edge.NSet.subtract from_tgt_es subtractthese);
+(* implicit: v st *)
+val useup1_tgt_vertex = update_unm_tgt_es o Edge.NSet.delete;
+val useup1_pat_vertex = update_unm_tgt_es o Edge.NSet.delete;
+(* implicit: (patv*tgtv) st *)
+val add1_to_agenda = update_agenda o (fn a1 => fn agenda => a1 :: agenda);
+(* implicit: (patv*tgtv) st *)
+val add1_match = update_match o Match.update_vmap o Vertex.NTab.ins;
+
+fun pop_agenda st = 
+    case get_agenda st 
+     of [] => NONE 
+      | (h::t) => SOME (h,set_agenda t st);
+
+(* try match two internal verteices data, using internal data matching
+   function from MCxtx *)
+fun try_add_matched_ivdata (n1,nd1) (n2,nd2) st = 
+    (case MCtxt.vertex_match nd1 nd2 (get_match_mctxt st)
+      of NONE => NONE (* vertices don't match *)
+       | SOME mctxt2 => 
+         SOME (st |> update_match (Match.set_mctxt mctxt2
+                                   o Match.update_vmap (Vertex.NTab.ins (n1,n2))
+                                   o Match.update_ivinvmap (Vertex.NTab.ins (n2,n1)))
+                  |> useup1_tgt_vertex n2));
+
+(* assumes patv are uninstantiated *)
 (* raises Vertex.NTab...DUP exception, if n1 is already insantiated *)
-fun match_node (n1, patnd as NE.VarNode _) (nnd2 as (n2, NE.Node _)) m = 
-		SOME (m |> update_match_ninsts (Vertex.NTab.ins (n1,nnd2)))
-	| match_node (n1, patnd as NE.VarNode _) (nnd2 as (n2,NE.VarNode _)) m = 
-		(case (Vertex.NTab.lookup (get_match_invninsts m) n2) of
-			 NONE => SOME (m |> update_match_ninsts (Vertex.NTab.ins (n1,nnd2))
-											 |> update_match_invninsts (Vertex.NTab.ins (n2,n1)))
-		 | SOME _ => NONE) (* something else is matched to tgt nd already *)
-	| match_node (n1, patnd as NE.Node nd1) (nnd2 as (n2, NE.Node nd2)) m = 
-		(case (Vertex.NTab.lookup (get_match_invninsts m) n2) of
-			 NONE => (* nothing is matched to target nd already *)
-			 (case (Expr.match nd1 nd2 (get_match_ndinsts m)) 
-				 of NONE => NONE (* nodes don't match *)
-					| SOME ndinsts2 => 
-						SOME (m |> set_match_ndinsts ndinsts2
-										|> update_match_ninsts (Vertex.NTab.ins (n1,nnd2))
-										|> update_match_invninsts (Vertex.NTab.ins (n2,n1))))
-		 | SOME _ => NONE) (* something is matched to target nd already *)
-	| match_node (_, NE.Node _) (_,NE.VarNode _) m = 
-		NONE; (* instantiated node cannot match a varnode (half-edge) *)
+(* Assumes each patvertex is only examined once; therefore assume not in vmap *)
+fun match_vertex (n1, patv as BVertex.BVert _) (nnd2 as (n2, destv)) st = 
+    SOME (add1_match (n1,n2) st)
+  | match_vertex (n1, patv as BVertex.IVert nd1) (nnd2 as (n2, BVertex.IVert nd2)) st = 
+    if tgt_vertex_is_unmatched st n2 then 
+      try_add_matched_ivdata (n1,nd1) (n2,nd2) st
+    else NONE (* some internal vertex is already matched to the target *)
+  | match_vertex (_, BVertex.IVert _) (_,BVertex.BVert _) m = 
+    NONE; (* instantiated vertex cannot match a bvertex (half-edge) *)
 
-(* FIXME: use an edge expression language and actually check edge
-   data. At the moment we assume all edges are the same *) 
-(* NOTE: matching ingores Edge direction, could easily be changed. *)
-fun match_edgedata (e1, ed1) (e2,ed2) m = SOME m;
+(* [a,b,c,d] => [(a, [b,c,d]), (b, [a,c,d]), (c,[a,b,d]), ... ] *)
+fun pull_each [] = []
+  | pull_each (h::t) = 
+    (h,t)::(map (fn (h2,t2) => (h2,h::t2)) (pull_each t));
+
+(* st = matching state; moretgtvns = more tgt vertices to be matched;
+(ntgt,estgt) = target vertex and edges being considerd; (npat,espat) =
+pattern vertex and edges being considered. *)
+fun locally_match_2vs st ((npat,espat),((ntgt,estgt),moretgtvns))  = 
+    let val these_tgt_edges = (Edge.NTab.get_names estgt) 
+    in (* note: edge matching is alwasy strict, edges can never be matched many times *)
+      if tgt_edges_are_unmatched st these_tgt_edges then 
+        let 
+          val st2 = st |> add1_to_agenda (npat,ntgt)
+                       |> useup_tgt_edges these_tgt_edges
+        in
+          Seq.map (fn m2 => (moretgtvns, set_match_mctxt m2 st2))
+                  (MCtxt.strict_multi_edge_match espat estgt (get_match_mctxt st2))
+        end
+      else Seq.empty
+    end;
+
+(* Find some way to match up the adjacent vertices which is strict on
+edges, that is that for any given pair of vertices in the pattern every
+edge between them is mapped to an edge between the corresponding ones
+in the tgt.
+
+assumes a given proposed vertex matching (proposed pat matches
+proposed tgt), we consider vertices adjacent to proposed-tgt and those
+adjacent to proposed-pat - these must match each other, but for
+non-strict matching, there may be extra vertices (and thus edges) in
+the tgt.
+
+   1. patvns = list adjacent pattern vertices with connecting edges, 
+      Vertex.name * (Edge.data Edge.NTab.T) list
+   2. tgtvns (so far unmatch-edges) 
+      = list adjacent target vertices with connecting edges
+      Vertex.name * (Edge.data Edge.NTab.T) list
+   3. and-agenda holding a matching up of patterns and adjacent vertices 
+      (Vertex.name * Vertex.name) list
+   4. match state so far for any match context vars
+*)
+(* nonstrict: extra adjacent vertices in tgt allows *)
+fun locally_match_verticies [] (unmatchedges,st) = Seq.single st
+  | locally_match_verticies (h::t) ([],st) = Seq.empty
+  | locally_match_verticies (hpat::patvns) (tgtvns,st) = 
+    (Seq.of_list (map (pair hpat) (pull_each tgtvns)))
+      |> Seq.maps (locally_match_2vs st) (* or-choices for extending state *)
+      |> Seq.maps (locally_match_verticies patvns); (* extend match for each *)
+
+(* no extra adjacent vertices in tgt allowed *)
+fun strict_locally_match_verticies [] ([],st) = Seq.single st
+  | strict_locally_match_verticies [] ((h::t),st) = Seq.empty
+  | strict_locally_match_verticies (h::t) ([],st) = Seq.empty
+  | strict_locally_match_verticies (hpat::patvns) (tgtvns,st) = 
+    (Seq.of_list (map (pair hpat) (pull_each tgtvns)))
+      |> Seq.maps (locally_match_2vs st) (* or-choices for extending state *)
+      |> Seq.maps (strict_locally_match_verticies patvns); (* extend match for each *)
+
+
+(* assumes: pat_ns are all uninstantiated *)
+fun match_2vertices_with_edges 
+      pat tgt 
+      n (* pattern vertex name *)
+      st (* match state so far *)
+      tn = (* target vertex name *)
+    let 
+      val (d,edgens) = Graph.get_vertex pat n
+      val (td,tedgens) = Graph.get_vertex tgt tn 
+    in
+      case match_vertex (n,d) (tn,td) st of 
+        NONE => Seq.empty (* vertex does not match *)
+      | SOME st2 => (* continue matching *)
+        (case d 
+          of (BVertex.BVert _) => (* allow extra edges in tgt *)
+             locally_match_verticies
+               (Vertex.NTab.dest (Graph.adj_vertices' pat edgens))
+               ((Vertex.NTab.dest (Graph.adj_vertices' tgt tedgens)),
+                useup1_pat_vertex n st)
+           | (BVertex.IVert _) => (* disallow extra edges in tgt *)
+             strict_locally_match_verticies
+               (Vertex.NTab.dest (Graph.adj_vertices' pat edgens))
+               ((Vertex.NTab.dest (Graph.adj_vertices' tgt tedgens)),
+                useup1_pat_vertex n st2))
+    end;
+
 
 exception badly_formed_pattern_exp of string * T;
 
+datatype matchstep =
+         FoundMatch of T
+       | Progress of T list
 
-(* nds = future node-matching agenda, 
- (int,outt) = edges still left to be matched to, 
- m = match info so far *)
-fun match_tgt_edge pat tgt ((e,ed),n') (nds,(int,outt),m) = 
-		Seq.append 
-			(Seq.maps (* or choices over tgt in-edges to match to *)
-				 (fn te =>
-						 let val (ted,(tn',_)) = get_edge tgt te in
-							 case match_edgedata (e,ed) (te,ted) m
-								of NONE => Seq.empty
-								 | SOME m2 => 
-									 Seq.single 
-										 ((n',tn')::nds,
-											(Edge.NSet.delete te int, outt), 
-											m2)
-						 end)
-				 (Seq.of_list (Edge.NSet.dest int)))
-			(Seq.maps (* or choices over tgt out-edges to match to *)
-				 (fn te =>
-						 let val (ted,(_,tn')) = get_edge tgt te 
-						 in
-							 case match_edgedata (e,ed) (te,ted) m
-								of NONE => Seq.empty
-								 | SOME m2 => 
-									 Seq.single 
-										 ((n',tn')::nds,
-											(int, Edge.NSet.delete te outt), 
-											m2)
-						 end)
-				 (Seq.of_list (Edge.NSet.dest outt)));
+fun do_next_match_choices pat tgt st = 
+    (case pop_agenda st 
+      of NONE => 
+         (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
+            NONE => FoundMatch st
+          | SOME pvn => 
+            Progress
+              (Seq.list_of 
+                 (Seq.maps
+                    (match_2vertices_with_edges pat tgt pvn st)
+                    (Seq.of_list (Vertex.NSet.dest (get_unm_tgt_vs st))))))
+       | SOME ((patn,tgtn),st2) => 
+         Progress 
+           (Seq.list_of (match_2vertices_with_edges pat tgt patn st tgtn)));
 
+fun match_search pat tgt [] () = NONE
+fun match_search pat tgt (st::sts) () = 
+    (case do_next_match_choices pat tgt st of 
+       FoundMatch st2 => 
+       SOME (get_match st2, Seq.make (match_search pat tgt sts))
+     | Progress morests => 
+       match_search pat tgt (morests@sts) ());
 
-(* match against a variable node - var nodes can have extra edges to
-   them in the tgt; *)
-(* Match against non-half-edge node (varnode) - no extra edges into the tgt *)
-fun match_varnode_edge pat tgt (n,(inn,outn)) (tn,(int,outt)) m =
-		if Edge.NSet.is_empty inn then 
-			case Edge.NSet.tryget_singleton outn of 
-				NONE => raise badly_formed_pattern_exp ("match_varnode_edge:1",pat)
-			| SOME e =>
-				let val (ed,(_,n')) = get_edge pat e in
-					match_tgt_edge pat tgt ((e,ed),n') ([],(int,outt),m)
-				end
-		else
-			case Edge.NSet.tryget_singleton inn of 
-				NONE => raise badly_formed_pattern_exp ("match_varnode_edge:2",pat)
-			| SOME e =>
-				let val (ed,(n',_)) = get_edge pat e in
-					match_tgt_edge pat tgt ((e,ed),n') ([],(int,outt),m)
-				end;
+fun match' initmatching pat tgt initagenda = 
+    let val init_st = (init initmatching pat tgt initagenda)
+    in Seq.make (match_search pat tgt [init_st]) end;
 
-(* matching edges of "n" to those of "tn" *)
-fun match_edges_from_node pat tgt (n,(inn,outn)) (tn,(int,outt)) m =
-		(Seq.single ([],(int,outt),m))
-			|> (Edge.NSet.fold (* for each edge going into n in pattern *)
-						(fn e => (* match the pattern from-node to some target node *)
-								let val (ed,(n',_)) = get_edge pat e in
-									Seq.maps (match_tgt_edge pat tgt ((e,ed),n'))
-								end)
-						inn)
-			|> (Edge.NSet.fold (* for each edge going out of n in pattern *)
-						(fn e => (* match the node to some target node *)
-								let val (ed,(_,n')) = get_edge pat e in
-									Seq.maps (match_tgt_edge pat tgt ((e,ed),n'))
-								end)
-						outn)
-			|> (Seq.filter (* filter out case with extra edges in target *)
-						(fn (nds,(ints,outts),m) => 
-								Edge.NSet.is_empty ints 
-								andalso Edge.NSet.is_empty outts));
+val match = match' Match.empty;
 
-(* assumes: pat_ns are all uninstantiated *)
-fun match_tgt_node pat tgt (n,(nd,nedges)) ((pat_ns,tgt_ns),m) tn =
-		let val (tnd,tedges) = get_node tgt tn in
-			case match_node (n,nd) (tn,tnd) m of 
-				NONE => Seq.empty (* node does not match *)
-			| SOME m2 => (* continue matching *)
-				(case nd 
-					of (NE.VarNode _) => (* allow extra edges in tgt *)
-						 (Seq.map 
-								(fn m => 
-										((Vertex.NSet.delete n pat_ns,
-											case tnd 
-											 of NE.VarNode _ => Vertex.NSet.delete tn tgt_ns
-												| NE.Node _ => tgt_ns),m))
-								(match_varnode_edge
-									 pat tgt (n,nedges) (tn,tedges) m))
-					 | (NE.Node _) => (* disallow extra edges in tgt *)
-						 (Seq.map 
-								(fn m => ((Vertex.NSet.delete n pat_ns,
-													 Vertex.NSet.delete tn tgt_ns),m))
-								(match_edges_from_node 
-									 pat tgt (n,nedges) (tn,tedges) m)))
-		end;
+fun pretty_match_pair (a,b) = 
+    Pretty.block [Pretty.str "(",
+                  Vertex.pretty_name a,
+                  Pretty.str "->",
+                  Vertex.pretty_name b,
+                  Pretty.str ")"];
 
-(* match from a list of node-pairs; nds = node pairs in agenda which
-must be matched; pat_ns is the pattern node names still left to be
-matched to something; tgt_ns are the target names left, to which some
-node in the pattern might match; m is the match so far; *)
-fun match' pat tgt [] ((pat_ns,tgt_ns),m) = 
-		(* if no node pairs left, search over possibilities  *)
-		(case (Vertex.NSet.local_bot_of pat_ns) of (* case empty then *)
-			 NONE => Seq.single ((pat_ns,tgt_ns),m) (* finished matching! *)
-		 | SOME n => (* case non empty *)
-			(* pick a next pat node to match up against some tgt node *)
-			 let val (nd,nedges) = get_node pat n
-			 in
-				 (Seq.of_list (Vertex.NSet.dest tgt_ns))
-					 |> (Seq.maps (* try each tgt node: or-choices *)
-								 (match_tgt_node pat tgt (n,(nd,nedges)) ((pat_ns,tgt_ns),m)))
-					 |> (Seq.maps (* now match nodes we get two from an edge  *)
-								 (fn ((pat_ns2,tgt_ns2),(nds,_,m2)) => 
-										 (match' pat tgt nds ((pat_ns2,tgt_ns2),m2))))
-			 end)
-	| match' pat tgt ((n,tn)::nds) ((pat_ns,tgt_ns),m) = 
-		(case (Vertex.NTab.lookup (get_match_ninsts m) n) of 
-			 NONE => (* pattern is not yet matches to a tgt node *)
-			 let val (pnd,pedges) = get_node pat n 
-			 in 
-				 (match_tgt_node pat tgt (n,(pnd,pedges)) ((pat_ns,tgt_ns),m) tn)
-					 |> (Seq.maps (* now match nodes we get two from an edge  *)
-								 (fn ((pat_ns2,tgt_ns2),(nds2,_,m2)) => 
-										 (* continue breadth first: old nodes before new ones *)
-										 (match' pat tgt nds ((pat_ns2,tgt_ns2),m2))
-											 |> Seq.maps (match' pat tgt nds2)))
-			 end
-		 | SOME (n2,_) => (* pat node is already matched *)
-			 if Vertex.name_eq (n2, tn) then 
-				 (* already match to tn, so just continue*)
-				 match' pat tgt nds ((pat_ns,tgt_ns),m)
-			 else Seq.empty (* matched to something else, so fail *)
-		); 
+fun pretty (MState rep) = 
+    Pretty.block 
+      [Pretty.str "MatchState {",
+       Pretty.chunks 
+         [Pretty.block [Pretty.str "Agenda: ",
+                        Pretty.list 
+                          "[" "]" (map pretty_match_pair (#agenda rep))],
+          Match.pretty_match (#match rep),
+          Pretty.block [Pretty.str "unmatched pat vs: ",
+                        Vertex.NSet.pretty (#unm_pat_vs rep)],
+          Pretty.block [Pretty.str "unmatched tgt vs: ",
+                        Vertex.NSet.pretty (#unm_tgt_vs rep)],
+          Pretty.block [Pretty.str "unmatched tgt edges: ",
+                        Edge.NSet.pretty (#unm_tgt_es rep)]],
+       Pretty.str "}"];
 
-fun match pat tgt nds m = 
-		let 
-			val pat_ns = Vertex.NTab.get_names (get_nodes pat)
-			val tgt_ns = Vertex.NTab.get_names (get_nodes tgt)
-		in
-			match' pat tgt nds ((pat_ns,tgt_ns),m)
-		end;
+end; (* MatchState structure *)
 
-exception var_node_exp of string;
-
-fun instantiate_node_dvars ndinsts (nd as NE.VarNode _) = 
-		raise var_node_exp "instantiate_node_dvars"
-	| instantiate_node_dvars ndinsts (NE.Node nd2) = 
-		NE.Node (Expr.subs ndinsts nd2);
-
-fun update_node_and_adddeps f n g = 
-		let 
-			val (nd,_) = (get_node g n)
-			val nd2 = f nd;
-		in 
-			case nd2 of NE.VarNode _ => set_node nd2 n g
-							 | NE.Node ndata => 
-								 g |> set_node nd2 n
-									 |> add_mctxt_dep (Expr.get_vars ndata) n
-		end;
-
-(* Note: instantiation deals with adding/removing variable
-   dependencies tracking information *)
-fun instantiate m g = 
-		let 
-			val dvars = get_mctxt g
-			val dinst = get_match_ndinsts m
-			(* create all node names to instantiate *)
-			val update_ns = VName.NTab.N.fold 
-											 (fn v => fn ns => 
-											  Vertex.NSet.union_merge (VName.NTab.get dvars v) ns)
-											 (VName.NTab.get_names dinst)
-											 Vertex.NSet.empty;
-		in
-			g |> (Vertex.NTab.fold (fn (n,(n2,nd2)) => fn g => 
-																g |> rename_vname n n2
-																	|> set_node nd2 n2
-																	|> del_var n
-														)
-														(get_match_ninsts m))
-			(* 	|> (Vertex.NSet.fold (update_node_and_adddeps 
-																 (instantiate_node_dvars dinst))
-															update_ns) *)
-				|> VName.NTab.fold (del_datavar o fst) dinst
-		end;
-
-(* pretty printing *)
-val pretty_node = NE.pretty_node;
-val pretty_edge = NE.pretty_edge;
-val print_node = Pretty.writeln o pretty_node;
-val print_edge = Pretty.writeln o pretty_edge;
-
-fun pretty g = 
-    Pretty.chunks 
-    [ Pretty.str "PatGraph{",
-      Pretty.block 
-        [Pretty.str "  ", (* indent *)
-         Pretty.chunks 
-           [Pretty.block [Pretty.str "VarNodes: ", 
-                          Pretty.list "{" "}" 
-                            (map Vertex.pretty_name (Vertex.NSet.dest (get_vars g)))],
-						Pretty.block [Pretty.str "VarNodes: ", 
-                          Pretty.list "{" "}" 
-										      	(map Vertex.pretty_name (Vertex.NSet.dest (get_vars g)))],
-            BGraph.pretty (get_bgraph g)]],
-      Pretty.str "}"
-    ];
-
-val print = Pretty.writeln o pretty;
-
-
-
-fun pretty_match m = 
-Pretty.chunks 
-	([Pretty.str "Graph Var-Node instantiations:"]
-	 @ (map (fn (n,(n2,nd2)) => 
-							Pretty.block 
-								[Pretty.str "vname: ", 
-								 Vertex.pretty_name n,
-								 Pretty.str " => ",
-								 Vertex.pretty_name n,
-								 Pretty.str " : ",
-								 pretty_node nd2])
-					(Vertex.NTab.dest (get_match_ninsts m)))
-	 @ [Pretty.block [], (* empty line *)
-			Pretty.str "Node Data Vars instantiations:"]
-	 @ (map (fn (n,varexp) => 
-							Pretty.block 
-								[Pretty.str "VName: ", 
-								 VName.pretty n,
-								 Pretty.str " => ",
-								 Expr.pretty_varexp varexp])
-					(VName.NTab.dest (get_match_ndinsts m))));
-
-val print_match = Pretty.writeln o pretty_match;
-
+(* 
 end;
 
 
@@ -477,3 +373,4 @@ structure PatStrGraph :> PATTERN_GRAPH where
 type PatNE.node_pat = PatStrNE.node_pat 
  and type PatNE.edge_pat = PatStrNE.edge_pat 
 = DB_PatStrGraph;
+*)

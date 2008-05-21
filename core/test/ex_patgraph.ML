@@ -1,19 +1,21 @@
-(* a simple kind of graph, and some basic manipulations *)
+structure V = RGGraph.BVertex;
+val bvert = V.BVert ();
+val zero_angle = AngleExpr.zero;
+val pi_angle = AngleExpr.pi;
+fun mkZ a = V.IVert (RGVertex.Znd a);
+fun mkX a = V.IVert (RGVertex.Xnd a);
+val mkH = V.IVert RGVertex.Hnd;
+val edge = ();
+structure E = RGGraph.Edge;
 
-val g = PatStrGraph.empty;
-val (n_a, g) = g |> (PatStrGraph.add_node (PatStrNE.Node (StrNE.Nd "a")));
-val (n_b, g) = g |> (PatStrGraph.add_node (PatStrNE.Node (StrNE.Nd "b")));
-val (e0, g) = g |> (PatStrGraph.add_edge (PatStrNE.OneEdge (StrNE.Ed "e0")) 
-                                      n_a n_b);
-val (e1, g) = g |> (PatStrGraph.add_edge (PatStrNE.OneEdge (StrNE.Ed "e1")) 
-                                      n_a n_b);
-val n_c = NName.mk "n_c";
-val g = g |> (PatStrGraph.rename_nname n_a n_c);
-val e3 = EName.mk "e_c";
-val g = g |> (PatStrGraph.rename_ename e0 e3);
-
-PatStrGraph.print g;
-
+(* Pattern: (B - G - B) *)
+val g = RGGraph.empty;
+val (b1, g) = g |> RGGraph.add_vertex bvert;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (b2, g) = g |> RGGraph.add_vertex bvert;
+val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+val (e1, g) = g |> RGGraph.add_edge edge n1 b2;
+RGGraph.print g;
 
 (* For debugging...
 
