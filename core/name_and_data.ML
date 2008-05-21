@@ -51,7 +51,7 @@ structure StrVertex : NAME_AND_DATA
 type name = NName.T
 structure NSet = NName.NSet;
 structure NTab = NName.NTab;
-val default_name = "v_a";
+val default_name = "Va";
 val pretty_name = NName.pretty;
 val print_name = NName.print;
 val name_eq = uncurry NName.eq;
@@ -64,7 +64,7 @@ structure UnitEdge : NAME_AND_DATA
 type name = EName.T
 structure NSet = EName.NSet;
 structure NTab = EName.NTab;
-val default_name = "e_a";
+val default_name = "Ea";
 val pretty_name = EName.pretty;
 val print_name = EName.print;
 val name_eq = uncurry EName.eq;
@@ -78,7 +78,7 @@ type name = EName.T
 type data = string
 structure NSet = EName.NSet;
 structure NTab = EName.NTab;
-val default_name = "v_a";
+val default_name = "Ea";
 val pretty_name = EName.pretty;
 val print_name = EName.print;
 val name_eq = uncurry EName.eq;

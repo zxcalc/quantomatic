@@ -19,6 +19,9 @@ RGGraph.print g;
 
 (* For debugging...
 
+RGGraphDotWriter.output_to_file "foo.dot" g;
+
+
 PolyML.exception_trace (fn () => 
   
 );
