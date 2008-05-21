@@ -18,6 +18,7 @@ System.use "rg_match_ctxt.ML";
 
 System.use "output.ML";
 System.use "output_dot.ML";
+System.use "output_XML.ML";
 
 System.use "controller.ML";
 
