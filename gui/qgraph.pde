@@ -9,6 +9,8 @@ char tool;
 JFileChooser fileChooser;
 Graph graph;
 
+QuantoBack backend;
+
 void setup() {
   size(800,600, JAVA2D);
   smooth();
@@ -30,6 +32,8 @@ void setup() {
   
   graph = new Graph();
   tool = 's';
+
+  backend = new QuantoBack(); 
 }
 
 void mousePressed() {
@@ -51,7 +55,8 @@ void mousePressed() {
     case 'm':
       if (selectedNode != null) selectedNode.setDest(mouseX, mouseY);
       break;
-    case 'e':
+      /* back end can;'t do edges yet....
+      /*case 'e':
       it = graph.nodes.values().iterator();
       while (it.hasNext()) {
         n = (Node)it.next();
@@ -59,6 +64,7 @@ void mousePressed() {
       }
       graph.layoutGraph();
       break;
+      */
   }
 }
 
@@ -73,12 +79,36 @@ void keyPressed() {
       for (int j=0;j<contents.length;++j) accum.append(contents[j]);
       layout(accum.toString(), graph);
     }
-  } else if (key == 'r' || key == 'g') {
+  } else if (key == 'r' 
+	     || key == 'g'
+	     || key == 'h'
+	     || key == 'b'
+	     || key == 'n'
+	     || key == 'u'
+	     ) {
+      /* all the commands the back end knows how to do we just pass on */
+      backend.send(String.valueOf(key) + "\n");
+      println(backend.receive());
+      // here send D to backend and dump the graph
+      // then rebuild it via the DOT parser.
+      backend.send("D\n");
+      graph = new Graph();
+      layout(backend.receive(), graph);
+      
+      /*
     Node n = graph.newNode();
     if (key=='r') n.setColor("red");
     else n.setColor("green");
     if (selectedNode != null) graph.edges.add(new Edge(selectedNode, n));
     graph.layoutGraph();    
+      */
+  } else if (key == 'q') {
+      println("Shutting down quantoML");
+      backend.send("q\n");
+      println(backend.receive());
+      backend.send("quit () ; \n");
+      println("Quitting....");
+      exit();
   } else if (key==TAB) {
     if (graph.nodeList.size()>0) {
       selectedIndex = (selectedIndex+1)%graph.nodeList.size();
