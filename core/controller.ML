@@ -25,8 +25,8 @@ val log = ref TextIO.stdErr;
 
 (* what language are we outputting our graphs --------------------------------- *)
 datatype language = DOT | XML;
-val dump_lang = ref DOT;
-val dumper = ref RGGraphDot.output_graph
+val dump_lang = ref XML;
+val dumper = ref RGGraphXML.output_graph
 fun switch_dump_lang () = 
     case !dump_lang of DOT => (dump_lang := XML ; dumper := RGGraphXML.output_graph)
 		     | XML => (dump_lang := DOT ; dumper := RGGraphDot.output_graph)
@@ -69,23 +69,29 @@ datatype commands = NOOP
 	    | Angle of V.name * AngleExpr.T
 	    | ShowRewrites of V.NSet.T
 
+val kill_newlines  = 
+    String.translate (fn #"\n" => "" | c => (str c)) 
+
 fun parse_command s = 
     let val _ = write_log s
+	val toks = String.tokens (fn #" " => true | _ => false) (kill_newlines s)
     in
-    case s of "" => Quit
-	    | "q\n" => Quit 
-	    | " \n" => NOOP
-	    | "\n" => NOOP
-	    | "M\n" => MODE (* switch between output modes *)
-	    | "s\n" => HELO (* s is for 'status' *)
-	    | "D\n" => DUMP
-	    | "n\n" => New (* new graph *)
-	    | "u\n" => Undo
-	    | "r\n" => Red 
-	    | "g\n" => Green
-	    | "h\n" => H
-	    | "b\n" => Boundary
-	    |_ => raise ILLEGAL_COMMAND s
+      if s = "" 
+      then Quit
+      else case toks of [] => NOOP
+		      | cmd::args => 
+			case cmd  of  "Q" => Quit 
+				    | "M" => MODE (* switch between output modes *)
+				    | "H" => HELO (*print staus *)
+				    | "D" => DUMP
+				    | "u" => Undo
+				    | "n" => New (* new graph *)
+				    | "r" => Red 
+				    | "g" => Green
+				    | "h" => H
+				    | "b" => Boundary
+				    | "e" => Edge ((hd args),(( hd o tl) args))
+				    |_ => raise ILLEGAL_COMMAND s
     end;
 
 fun do_command g hist c = 
@@ -139,6 +145,11 @@ fun do_command g hist c =
       in 
 	(g', g::hist, Pretty.str "Boundary added.",true)
       end
+    | Edge (v1, v2) =>
+      let val (_,g') = G.add_edge () v1 v2 g
+      in
+	(g', g::hist, Pretty.str "Edge added.",true)
+      end 
     | _ => raise NOT_IMPLEMENTED "nothing useful implemented"
 
 
