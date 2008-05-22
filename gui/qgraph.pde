@@ -12,6 +12,7 @@ JFileChooser fileChooser;
 Graph graph;
 
 QuantoBack backend;
+XMLReader xml;
 
 void setup() {
   size(800,600, JAVA2D);
@@ -57,7 +58,8 @@ void setup() {
   green.setAngle("x");
   graph.addVertex(green);
 
-  backend = new QuantoBack(); 
+  backend = new QuantoBack();
+  xml = new XMLReader();
 }
 
 void mousePressed() {
@@ -79,16 +81,21 @@ void mousePressed() {
     case 'm':
       if (selectedVertex != null) selectedVertex.setDest(mouseX, mouseY);
       break;
-      /* back end can;'t do edges yet....
-      /*case 'e':
+      case 'e':
       it = graph.vertices.values().iterator();
       while (it.hasNext()) {
         n = (Vertex)it.next();
-        if (n.at(mouseX, mouseY)) graph.newEdge(selectedVertex, n);
+        if (n.at(mouseX, mouseY)) {
+	    backend.send("e "+selectedVertex.id+" "+n.id+"\n");
+	    println(backend.receive());
+	    // here send D to backend and dump the graph
+	    // then rebuild it via the XML parser.
+	    backend.send("D\n");
+	    graph = xml.parseGraph(backend.receive());
+	}
       }
       graph.layoutGraph();
       break;
-      */
   }
 }
 
@@ -114,10 +121,11 @@ void keyPressed() {
       backend.send(String.valueOf(key) + "\n");
       println(backend.receive());
       // here send D to backend and dump the graph
-      // then rebuild it via the DOT parser.
+      // then rebuild it via the XML parser.
       backend.send("D\n");
-      graph = new Graph();
-      layout(backend.receive(), graph);
+      graph = xml.parseGraph(backend.receive());
+      graph.layoutGraph();
+
       
       /*
     Vertex n = graph.newVertex();
@@ -128,7 +136,7 @@ void keyPressed() {
       */
   } else if (key == 'q') {
       println("Shutting down quantoML");
-      backend.send("q\n");
+      backend.send("Q\n");
       println(backend.receive());
       backend.send("quit () ; \n");
       println("Quitting....");
@@ -163,8 +171,8 @@ void draw() {
   }
   
   Edge e;
-  for (int i=0; i<graph.edges.size(); ++i) {
-    e = (Edge)graph.edges.get(i);
+  for (int i=0; i<graph.edgeList.size(); ++i) {
+    e = (Edge)graph.edgeList.get(i);
     e.display();
   }
   

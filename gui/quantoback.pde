@@ -26,7 +26,7 @@ public class QuantoBack {
 		         backEnd.getOutputStream()
 			 ));	
 	    println("Initialising QuantoML...");	   
-	    send("s\n");  // ask for back end status
+	    send("H\n");  // ask for back end status
 	    println(receive());  //  print it out
 	}
 	catch (IOException e) {

@@ -18,7 +18,7 @@ String makeDot(Graph graph) {
     g.append("\"];}\n");
   }
   
-  i = graph.edges.iterator();
+  i = graph.edgeList.iterator();
   Edge e;
   while (i.hasNext()) {
     e = (Edge)i.next();
@@ -52,14 +52,17 @@ void layout(String viz, Graph graph) {
 		
   dotOut.write(viz);
   dotOut.close();
-		
+  
+  println("NOW READING DOT");
   String ln = dotIn.readLine();
   StringTokenizer tk;
   String cmd, name;
   int x, y;
   Vertex n, n1, n2;
   graph.edges.clear();
+  graph.edgeList.clear();
   while (!ln.equals("stop")) {
+      println(ln);
     tk = new StringTokenizer(ln);
     cmd = tk.nextToken();
     if (cmd.equals("node")) {
@@ -90,4 +93,5 @@ void layout(String viz, Graph graph) {
   } catch (IOException e) {
     e.printStackTrace();
   }
+  println("----NO MORE READING DOT----");
 }
