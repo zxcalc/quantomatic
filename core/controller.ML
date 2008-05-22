@@ -21,27 +21,36 @@ val fresh_green = BV.IVert (RGV.Znd AngleExpr.zero);
 val fresh_h = BV.IVert RGV.Hnd ;
 val fresh_bnd = BV.BVert ()
 
-val is_out_pipe = ref true;
-
 val log = ref TextIO.stdErr;
+
+(* what language are we outputting our graphs --------------------------------- *)
+datatype language = DOT | XML;
+val dump_lang = ref DOT;
+val dumper = ref RGGraphDot.output_graph
+fun switch_dump_lang () = 
+    case !dump_lang of DOT => (dump_lang := XML ; dumper := RGGraphXML.output_graph)
+		     | XML => (dump_lang := DOT ; dumper := RGGraphDot.output_graph)
 
 fun write_log s = (TextIO.output ((!log) , s); TextIO.flushOut (!log)) ;
 
-fun out_toplevel out = Pretty.writeln out
-			
+
+(* are we talking to a toplevel or a pipe? ---------------------------------*)
+val is_out_pipe = ref true;
+fun out_toplevel out = Pretty.writeln out			
 fun out_pipe out = 
     (
      Pretty.writeln out;
      Pretty.writeln (Pretty.str "stop")
     )
-
-val do_output = ref out_pipe;
-				  
+val do_output = ref out_pipe;			  
 fun switch_mode () = 
     if !is_out_pipe 
     then (do_output := out_toplevel ; is_out_pipe := false)
     else (do_output := out_pipe ; is_out_pipe := true)
 
+
+
+(* Working with user commands --------------------------------- *)
 (* many more to be added *)
 datatype commands = NOOP
 	    | Quit 
@@ -87,7 +96,7 @@ fun do_command g hist c =
 	       true)	      
     | DUMP => (g, 
 	       hist, 
-	       RGGraphDot.output_graph g, 
+	       (!dumper) g, 
 	       true)	      
     | MODE => (switch_mode () ;
 	       (g, 
@@ -133,7 +142,7 @@ fun do_command g hist c =
     | _ => raise NOT_IMPLEMENTED "nothing useful implemented"
 
 
-
+(*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
 fun run_loop g hist = 
 	  let 
             val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
