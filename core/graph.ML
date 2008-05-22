@@ -298,12 +298,9 @@ fun delete_vertex n g =
       (* delete all edges going into or out of this vertex. *)
       val g2 = 
           g |> Edge.NSet.fold delete_edge ins
-            |> Edge.NSet.fold delete_edge outs
+            |> Edge.NSet.fold delete_edge (Edge.NSet.subtract outs ins)
 
-      val vertices2 = vertices |> Vertex.NTab.delete n
-
-      (* give back new edge name and new graph *)
-    in g2 |> set_vertices vertices2 end;
+    in g2 |> update_vertices (Vertex.NTab.delete n) end;
 
 
 
