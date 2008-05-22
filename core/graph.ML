@@ -119,7 +119,9 @@ val get_edge_list : T -> (Edge.name * (Edge.data
 (* get adj vertices (from edge info) and from vertex name *)
 val adj_vertices' : T -> (Edge.NSet.T * Edge.NSet.T)
                     -> (Edge.data Edge.NTab.T) Vertex.NTab.T
-val adj_vertices : T -> Vertex.name -> (Edge.data Edge.NTab.T) Vertex.NTab.T
+val adj_vertices : T -> Vertex.name 
+                   -> (Edge.data Edge.NTab.T) Vertex.NTab.T
+
 end;
 
 
@@ -258,27 +260,6 @@ fun new_named_edge en e n1 n2 g =
       (* give back new edge name and new graph *)
     in Graph{vertices = vertices2, edges = edges2} end;
 
-(* deleting vertex also removes all it's edges. *)
-fun delete_vertex n g = 
-    let 
-      val vertices = get_vertices g
-      val (nd,(ins,outs)) =
-          case Vertex.NTab.lookup vertices n of 
-            NONE => raise no_such_vname_exp ("delete_vertex", n, g)
-          | SOME x => x;
-
-      val vertices2 = vertices |> Vertex.NTab.delete n
-
-      (* delete all edges going into or out of this vertex. *)
-      val edges2 = 
-          (get_edges g)
-            |> Edge.NSet.fold Edge.NTab.delete ins
-            |> Edge.NSet.fold Edge.NTab.delete outs
-
-      (* give back new edge name and new graph *)
-    in Graph{vertices = vertices2, edges = edges2} end;
-
-
 
 (* implicit args: en g *)
 (* *)
@@ -302,6 +283,29 @@ fun delete_edge en g =
 
       (* give back new edge name and new graph *)
     in Graph{vertices = vertices2, edges = edges2} end;
+
+
+
+(* deleting vertex also removes all it's edges. *)
+fun delete_vertex n g = 
+    let 
+      val vertices = get_vertices g
+      val (nd,(ins,outs)) =
+          case Vertex.NTab.lookup vertices n of 
+            NONE => raise no_such_vname_exp ("delete_vertex", n, g)
+          | SOME x => x;
+
+      (* delete all edges going into or out of this vertex. *)
+      val g2 = 
+          g |> Edge.NSet.fold delete_edge ins
+            |> Edge.NSet.fold delete_edge outs
+
+      val vertices2 = vertices |> Vertex.NTab.delete n
+
+      (* give back new edge name and new graph *)
+    in g2 |> set_vertices vertices2 end;
+
+
 
 
 (* Vertex.name = suggested name *)
