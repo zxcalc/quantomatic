@@ -2,6 +2,8 @@ import controlP5.*;
 import javax.swing.*;
 
 ControlP5 gui;
+PFont helvetica;
+PFont times;
 
 Node selectedNode=null;
 int selectedIndex=-1;
@@ -30,8 +32,30 @@ void setup() {
   }
   fileChooser = new JFileChooser();
   
+  helvetica = loadFont("HelveticaNeue-14.vlw");
+  times = loadFont("Times-Italic-14.vlw");
+
   graph = new Graph();
   tool = 's';
+
+  // just some testing code here
+  Node H = new Node("testH", 100,100);
+  H.setColor("H");
+  graph.addNode(H);
+
+  Node bnd = new Node("boundary", 100,200);
+  bnd.setColor("boundary");
+  graph.addNode(bnd);
+
+  Node red = new Node("testR", 200,100);
+  red.setColor("red");
+  red.setAngle("\u03B1 + \u03B2");
+  graph.addNode(red);
+
+  Node green = new Node("testG", 200,200);
+  green.setColor("green");
+  green.setAngle("x");
+  graph.addNode(green);
 
   backend = new QuantoBack(); 
 }
