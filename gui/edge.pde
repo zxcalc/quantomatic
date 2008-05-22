@@ -1,6 +1,6 @@
 class Edge {
-  Node source, dest;
-  public Edge(Node source, Node dest) {
+  Vertex source, dest;
+  public Edge(Vertex source, Vertex dest) {
     this.source = source;
     this.dest = dest;
   }

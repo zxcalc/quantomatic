@@ -5,7 +5,7 @@ ControlP5 gui;
 PFont helvetica;
 PFont times;
 
-Node selectedNode=null;
+Vertex selectedVertex=null;
 int selectedIndex=-1;
 char tool;
 JFileChooser fileChooser;
@@ -39,52 +39,52 @@ void setup() {
   tool = 's';
 
   // just some testing code here
-  Node H = new Node("testH", 100,100);
+  Vertex H = new Vertex("testH", 100,100);
   H.setColor("H");
-  graph.addNode(H);
+  graph.addVertex(H);
 
-  Node bnd = new Node("boundary", 100,200);
+  Vertex bnd = new Vertex("boundary", 100,200);
   bnd.setColor("boundary");
-  graph.addNode(bnd);
+  graph.addVertex(bnd);
 
-  Node red = new Node("testR", 200,100);
+  Vertex red = new Vertex("testR", 200,100);
   red.setColor("red");
   red.setAngle("\u03B1 + \u03B2");
-  graph.addNode(red);
+  graph.addVertex(red);
 
-  Node green = new Node("testG", 200,200);
+  Vertex green = new Vertex("testG", 200,200);
   green.setColor("green");
   green.setAngle("x");
-  graph.addNode(green);
+  graph.addVertex(green);
 
   backend = new QuantoBack(); 
 }
 
 void mousePressed() {
-  Node n;
+  Vertex n;
   Iterator it;
   switch (tool) {
     case 's':
-      selectedNode = null;
-      for (int i=0; i<graph.nodeList.size();++i) {
-        n = (Node)graph.nodeList.get(i);
+      selectedVertex = null;
+      for (int i=0; i<graph.vertexList.size();++i) {
+        n = (Vertex)graph.vertexList.get(i);
         n.selected = false;
         if (n.at(mouseX, mouseY)) {
-          selectedNode = n;
+          selectedVertex = n;
           selectedIndex = i;
         }
       }
-      if (selectedNode!=null) selectedNode.selected = true;
+      if (selectedVertex!=null) selectedVertex.selected = true;
       break;
     case 'm':
-      if (selectedNode != null) selectedNode.setDest(mouseX, mouseY);
+      if (selectedVertex != null) selectedVertex.setDest(mouseX, mouseY);
       break;
       /* back end can;'t do edges yet....
       /*case 'e':
-      it = graph.nodes.values().iterator();
+      it = graph.vertices.values().iterator();
       while (it.hasNext()) {
-        n = (Node)it.next();
-        if (n.at(mouseX, mouseY)) graph.newEdge(selectedNode, n);
+        n = (Vertex)it.next();
+        if (n.at(mouseX, mouseY)) graph.newEdge(selectedVertex, n);
       }
       graph.layoutGraph();
       break;
@@ -120,10 +120,10 @@ void keyPressed() {
       layout(backend.receive(), graph);
       
       /*
-    Node n = graph.newNode();
+    Vertex n = graph.newVertex();
     if (key=='r') n.setColor("red");
     else n.setColor("green");
-    if (selectedNode != null) graph.edges.add(new Edge(selectedNode, n));
+    if (selectedVertex != null) graph.edges.add(new Edge(selectedVertex, n));
     graph.layoutGraph();    
       */
   } else if (key == 'q') {
@@ -134,11 +134,11 @@ void keyPressed() {
       println("Quitting....");
       exit();
   } else if (key==TAB) {
-    if (graph.nodeList.size()>0) {
-      selectedIndex = (selectedIndex+1)%graph.nodeList.size();
-      if (selectedNode!=null) selectedNode.selected = false;
-      selectedNode = (Node)graph.nodeList.get(selectedIndex);
-      selectedNode.selected = true;
+    if (graph.vertexList.size()>0) {
+      selectedIndex = (selectedIndex+1)%graph.vertexList.size();
+      if (selectedVertex!=null) selectedVertex.selected = false;
+      selectedVertex = (Vertex)graph.vertexList.get(selectedIndex);
+      selectedVertex.selected = true;
     }
   } else tool = key;
 }
@@ -168,10 +168,10 @@ void draw() {
     e.display();
   }
   
-  Node n;
-  Iterator i = graph.nodes.values().iterator();
+  Vertex n;
+  Iterator i = graph.vertices.values().iterator();
   while (i.hasNext()) {
-    n = (Node)i.next();
+    n = (Vertex)i.next();
     n.tick();
     n.display();
   }

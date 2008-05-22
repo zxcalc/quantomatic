@@ -1,4 +1,4 @@
-class Node {
+class Vertex {
     public float destX, destY, x, y;
     public float speed;
     public boolean selected;
@@ -6,7 +6,7 @@ class Node {
     public String id;
     public String col;
     public String angleexpr;
-    public Node(String id, int x, int y) {
+    public Vertex(String id, int x, int y) {
 	this.id = id;
 	this.x = x;
 	this.y = y;

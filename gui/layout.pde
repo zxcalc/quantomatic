@@ -7,10 +7,10 @@ String makeDot(Graph graph) {
   StringBuffer g = new StringBuffer();
   g.append("digraph {\n\n");
   
-  Iterator i = graph.nodes.values().iterator();
-  Node n;
+  Iterator i = graph.vertices.values().iterator();
+  Vertex n;
   while (i.hasNext()) {
-    n = (Node)i.next();
+    n = (Vertex)i.next();
     g.append("{rank=same; ");
     g.append(n.id);
     g.append(" [color=\"");
@@ -57,17 +57,17 @@ void layout(String viz, Graph graph) {
   StringTokenizer tk;
   String cmd, name;
   int x, y;
-  Node n, n1, n2;
+  Vertex n, n1, n2;
   graph.edges.clear();
   while (!ln.equals("stop")) {
     tk = new StringTokenizer(ln);
     cmd = tk.nextToken();
     if (cmd.equals("node")) {
       name = tk.nextToken();
-      n = (Node)graph.nodes.get(name);
+      n = (Vertex)graph.vertices.get(name);
       if (n == null) {
-        n = new Node(name, 50, 50);
-        graph.addNode(n);
+        n = new Vertex(name, 50, 50);
+        graph.addVertex(n);
       }
       x = (int)(Float.parseFloat(tk.nextToken())*50.0)+20;
       y = (int)(Float.parseFloat(tk.nextToken())*50.0)+20;
@@ -77,10 +77,10 @@ void layout(String viz, Graph graph) {
       n.setColor(tk.nextToken());
       n.setDest(x,y);
     } else if (cmd.equals("edge")) {
-      n1 = (Node)graph.nodes.get(tk.nextToken());
-      n2 = (Node)graph.nodes.get(tk.nextToken());
+      n1 = (Vertex)graph.vertices.get(tk.nextToken());
+      n2 = (Vertex)graph.vertices.get(tk.nextToken());
       if (n1==null || n2==null) {
-        println("Edge spec given before nodes defined.");
+        println("Edge spec given before vertices defined.");
       } else {
         graph.newEdge(n1, n2);
       }
