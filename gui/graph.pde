@@ -55,8 +55,23 @@ class Graph {
 	return e;
     }
 
-
     public void layoutGraph() {
 	layout(this);
     }
+    
+    /* this copies the x and y from the old graph to this one. */
+    public Graph reconcileVertexCoords(Graph old) {
+	Iterator i = vertexList.iterator();
+	Vertex v = null, w = null;
+	while(i.hasNext()) {
+	    v = (Vertex)i.next();
+	    w = (Vertex)old.vertices.get(v.id);
+	    if(w != null) {
+		v.x = w.x;
+		v.y = w.y;
+	    }
+	}
+	return this;
+    }
+
 }

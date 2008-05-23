@@ -86,15 +86,9 @@ void mousePressed() {
       while (it.hasNext()) {
         n = (Vertex)it.next();
         if (n.at(mouseX, mouseY)) {
-	    backend.send("e "+selectedVertex.id+" "+n.id+"\n");
-	    println(backend.receive());
-	    // here send D to backend and dump the graph
-	    // then rebuild it via the XML parser.
-	    backend.send("D\n");
-	    graph = xml.parseGraph(backend.receive());
+	    modifyGraph("e "+selectedVertex.id+" "+n.id+"\n");
 	}
       }
-      graph.layoutGraph();
       break;
   }
 }
@@ -110,30 +104,18 @@ void keyPressed() {
       for (int j=0;j<contents.length;++j) accum.append(contents[j]);
       layout(accum.toString(), graph);
     }
-  } else if (key == 'r' 
-	     || key == 'g'
-	     || key == 'h'
-	     || key == 'b'
-	     || key == 'n'
-	     || key == 'u'
+  } else if (key == 'r' // red 
+	     || key == 'g' // green
+	     || key == 'h' // hadamard
+	     || key == 'b' // boundary
+	     || key == 'n' // new graph
+	     || key == 'u' // undo 
 	     ) {
       /* all the commands the back end knows how to do we just pass on */
-      backend.send(String.valueOf(key) + "\n");
-      println(backend.receive());
-      // here send D to backend and dump the graph
-      // then rebuild it via the XML parser.
-      backend.send("D\n");
-      graph = xml.parseGraph(backend.receive());
-      graph.layoutGraph();
+      modifyGraph(key + "");
 
-      
-      /*
-    Vertex n = graph.newVertex();
-    if (key=='r') n.setColor("red");
-    else n.setColor("green");
-    if (selectedVertex != null) graph.edges.add(new Edge(selectedVertex, n));
-    graph.layoutGraph();    
-      */
+  } else if (key == 'd') { // delete node
+      if (selectedVertex!=null) modifyGraph("d "+selectedVertex.id);      
   } else if (key == 'q') {
       println("Shutting down quantoML");
       backend.send("Q\n");
@@ -150,6 +132,18 @@ void keyPressed() {
     }
   } else tool = key;
 }
+
+void modifyGraph(String cmd) {
+      backend.send(cmd + "\n");
+      println(backend.receive());
+      // here send D to backend and dump the graph
+      // then rebuild it via the XML parser.
+      backend.send("D\n");
+      Graph updated = xml.parseGraph(backend.receive());
+      updated.reconcileVertexCoords(graph);
+      this.graph = updated;
+      graph.layoutGraph();
+}    
 
 void draw() {
   background(255);
