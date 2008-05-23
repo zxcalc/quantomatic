@@ -8,7 +8,10 @@ import java.io.*;
 public class QuantoBack {
 
     final static String ml_command = 
-	"/usr/local/bin/isabelle -e Controller.init(); quanto";
+	    "isabelle -e Controller.init(); ";
+
+    final static String local_quanto_heap = 
+    	"/.quantomatic/quanto";
 
     Process backEnd;
     BufferedReader from_backEnd;
@@ -16,7 +19,9 @@ public class QuantoBack {
 
     public QuantoBack() {
 	try {
-	    backEnd = Runtime.getRuntime().exec(ml_command);
+      String homedir = System.getenv("HOME");
+
+	    backEnd = Runtime.getRuntime().exec(ml_command + homedir + local_quanto_heap);
 	    from_backEnd =  new BufferedReader(
 			    new InputStreamReader(
 			    backEnd.getInputStream()
