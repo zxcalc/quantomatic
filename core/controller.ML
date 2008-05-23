@@ -229,14 +229,18 @@ fun die msg =
     )
     handle _ => OS.Process.exit (OS.Process.failure)
 
-fun init () = (
-    log := (TextIO.openAppend "/Users/rwd/Desktop/quantolog") ;
-    write_log "Starting up...\n" ; 
-    run_loop G.empty []
-)
-    handle _ => (
+fun init () = 
+    let val quanto_dir = case OS.Process.getEnv "HOME" 
+                          of NONE => ".quantomatic"
+                           | SOME s => s ^ "/.quantomatic"
+    in
+      log := (TextIO.openAppend (quanto_dir ^ "quantolog.txt"));
+      write_log "Starting up...\n" ; 
+      run_loop G.empty []
+    end
+     handle _ => (
 	   die "ML threw an Exception... better RESTART.";
 	   G.empty (* just to keep the compiler happy *)
-	   )
+	   ) 
 
 end; 
