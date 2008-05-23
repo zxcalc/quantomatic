@@ -22,9 +22,8 @@ System.use "output_XML.ML";
 
 System.use "controller.ML";
 
-System.use "patgraph.ML";
-
 (* 
+System.use "patgraph.ML";
 System.use "test/ex_patgraph.ML";
 System.use "rg_patgraph.ML";
 *)

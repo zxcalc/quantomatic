@@ -2,8 +2,20 @@
 (*  Representation for Pattern Graphs (allows var_nodes and elipses edges) *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (* Matching treats graphs as undirected: IMPROVE: chnage graph rep to
-be undirected and have direction as edge data, w.r.t. order of names
-of unordered pair of vertices being connected. *)
+   be undirected and have direction as edge data, w.r.t. order of
+   names of unordered pair of vertices being connected.
+
+CHECK: is this a correct algorithm??? Simple cases: those where number
+of vertices between edges are matched exactly and no chasing of
+boundary vertices is needed.  
+
+Complex case needs B-Vertex chasing: 
+Ba -1- Bb -1- Bc -1- Bd = Na -3- Nb
+
+Simple case: 
+Ba -3- Xb = Na -3- Nb
+
+*)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature PATGRAPH = 
@@ -53,8 +65,9 @@ struct
    enforced edge injection conditions needed for var-nodes/half-edges*)
 (* instantiations *)
 datatype T = Match of 
-         {(* pat to tgt - why do ne need the data? *)
+         {(* pat to tgt - do we need the data? *)
           vmap: Vertex.name Vertex.NTab.T, 
+          emap: Edge.name Edge.NTab.T, 
           (* tgt to pat for internal (1-1 matching) vertices *)
           (* [many pat boundary vertices can go to 1 tgt vertex] *)
           ivinvmap : Vertex.name Vertex.NTab.T,
@@ -63,27 +76,48 @@ datatype T = Match of
          };
 
 val empty = Match {vmap = Vertex.NTab.empty,
+                   emap = Edge.NTab.empty,
                    ivinvmap = Vertex.NTab.empty,
                    mctxt = MCtxt.empty
                   };
 
 fun update_vmap f (Match rep) = 
     Match {vmap = f (#vmap rep), 
+           emap = #emap rep,
            ivinvmap = #ivinvmap rep,
            mctxt = #mctxt rep};
 fun update_ivinvmap f (Match rep) = 
     Match {vmap = #vmap rep, 
+           emap = #emap rep,
            ivinvmap = f (#ivinvmap rep),
            mctxt = #mctxt rep};
 fun update_mctxt f (Match rep) = 
     Match {vmap = #vmap rep, 
+           emap = #emap rep,
            ivinvmap = #ivinvmap rep,
            mctxt = f (#mctxt rep)};
 
 fun get_vmap (Match rep) = #vmap rep;
+fun get_emap (Match rep) = #emap rep;
 fun get_ivinvmap (Match rep) = #ivinvmap rep;
 fun get_mctxt (Match rep) = #mctxt rep;
 val set_mctxt = update_mctxt o K;
+
+(* implicit: m n *)
+val tgt_vertex_is_unmatched = not oo Vertex.NTab.contains o get_ivinvmap;
+
+(* try match two internal verteices data, using internal data matching
+   function from MCxtx *)
+fun match_vertex_idata (n,d) (tn,td) m = 
+    (case MCtxt.vertex_match d td (get_mctxt m)
+      of NONE => NONE (* vertices don't match *)
+       | SOME mctxt2 => 
+         SOME (m |> set_mctxt mctxt2
+                 |> update_vmap (Vertex.NTab.ins (n,tn))
+                 |> update_ivinvmap (Vertex.NTab.ins (tn,n))));
+
+fun match_bvertex n1 n2 m = 
+    update_vmap (Vertex.NTab.ins (n1,n2)) m;
 
 fun pretty m = 
     Pretty.chunks 
@@ -98,6 +132,16 @@ fun pretty m =
                                    Vertex.pretty_name tn, 
                                    Pretty.str ")"])
                             (Vertex.NTab.dest (get_vmap m)))]]
+       @ [Pretty.str "EMatchings: ",
+          Pretty.list "{" "}" 
+                       (map (fn (pn,tn) => 
+                                Pretty.block 
+                                  [Pretty.str "(",
+                                   Edge.pretty_name pn,
+                                   Pretty.str "->",
+                                   Edge.pretty_name tn, 
+                                   Pretty.str ")"])
+                            (Edge.NTab.dest (get_emap m)))]
        @ [Pretty.block [Pretty.str "MCtxt: ", MCtxt.pretty (get_mctxt m)]]);
     
 val print = Pretty.writeln o pretty;
@@ -110,56 +154,59 @@ structure MatchState
 
 datatype T = 
          MState of 
-         {(* agenda = (tgt,patt) list = vertices commited to matching each other *) 
-          agenda : (Vertex.name * Vertex.name) list, (* and-agenda: do all these *)
+         {(* agenda = (tgt -> patt) = vert commited to matching each other *) 
+          agenda : Vertex.name Vertex.NTab.T, (* and-agenda: pat -> tgt *)
           match : Match.T, (* global vertex and edge matching info *)
-          unm_pat_vs : Vertex.NSet.T, (* unmatched pat vertices *)
-          unm_tgt_vs : Vertex.NSet.T, (* unmatched tgt vertices *)
-          unm_tgt_es : Edge.NSet.T (* unmatched tgt edges *)
+          needed_tgt_es : Edge.NSet.T,
+          unm_pat : Graph.T, (* unmatched part of the pat graph *)
+          unm_tgt : Graph.T (* tgt with matched edges removed *)
          };
 
 fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
-fun get_unm_pat_vs (MState rep) = #unm_pat_vs rep;
-fun get_unm_tgt_vs (MState rep) = #unm_tgt_vs rep;
-fun get_unm_tgt_es (MState rep) = #unm_tgt_es rep;
+fun get_umn_pat (MState rep) = #umn_pat rep;
+val get_unm_pat_vs = Vertex.NTab.get_names o Graph.get_vertices o get_umn_pat;
+fun get_umn_tgt (MState rep) = #umn_tgt rep;
+fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
+    Vertex.NTab.get_names o Graph.get_vertices o get_umn_tgt;
+fun get_unm_tgt_es (MState rep) =
+    Edge.NTab.get_names o Graph.get_edges o get_umn_tgt;
+fun get_needed_tgt_es (MState rep) = #needed_tgt_es rep;
 
 fun init match pat tgt agenda =
     MState { agenda = agenda, match = match,
-             unm_pat_vs = (Vertex.NTab.get_names (Graph.get_vertices pat)),
-             unm_tgt_vs = (Vertex.NTab.get_names (Graph.get_vertices tgt)),
-             unm_tgt_es = (Edge.NTab.get_names (Graph.get_edges tgt))
-           };
+             needed_tgt_es = Edge.NSet.empty,
+             umn_pat = pat, unm_tgt = tgt };
 
 fun update_agenda f (MState rep) = 
     MState { agenda = f (#agenda rep), match = #match rep,
-             unm_pat_vs = #unm_pat_vs rep,
-             unm_tgt_vs = #unm_tgt_vs rep,
-             unm_tgt_es = #unm_tgt_es rep
+             needed_tgt_es = #needed_tgt_es rep,
+             umn_pat = #umn_pat rep,
+             unm_tgt = #unm_tgt rep
            };
 fun update_match f (MState rep) = 
     MState { agenda = #agenda rep, match = f (#match rep),
-             unm_pat_vs = #unm_pat_vs rep,
-             unm_tgt_vs = #unm_tgt_vs rep,
-             unm_tgt_es = #unm_tgt_es rep
+             needed_tgt_es = #needed_tgt_es rep,
+             umn_pat = #umn_pat rep,
+             unm_tgt = #unm_tgt rep
            };
-fun update_unm_pat_vs f (MState rep) = 
+fun update_umn_pat f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             unm_pat_vs = f (#unm_pat_vs rep),
-             unm_tgt_vs = #unm_tgt_vs rep,
-             unm_tgt_es = #unm_tgt_es rep
+             needed_tgt_es = #needed_tgt_es rep,
+             umn_pat = f (#umn_pat rep),
+             unm_tgt = #unm_tgt rep
            };
-fun update_unm_tgt_vs f (MState rep) = 
+fun update_unm_tgt f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             unm_pat_vs = #unm_pat_vs rep,
-             unm_tgt_vs = f(#unm_tgt_vs rep),
-             unm_tgt_es = #unm_tgt_es rep
+             needed_tgt_es = #needed_tgt_es rep,
+             umn_pat = #umn_pat rep,
+             unm_tgt = f(#unm_tgt rep)
            };
-fun update_unm_tgt_es f (MState rep) = 
+fun update_needes_tgt_es f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             unm_pat_vs = #unm_pat_vs rep,
-             unm_tgt_vs = #unm_tgt_vs rep,
-             unm_tgt_es = f(#unm_tgt_es rep)
+             needed_tgt_es = f (#needed_tgt_es rep),
+             umn_pat = #umn_pat rep,
+             unm_tgt = #unm_tgt rep
            };
 
 val set_agenda = update_agenda o K;
@@ -170,49 +217,65 @@ val get_match_ivinvmap = Match.get_ivinvmap o get_match;
 val get_match_mctxt = Match.get_mctxt o get_match;
 val set_match_mctxt = update_match o Match.set_mctxt;
 
-fun tgt_edges_are_unmatched st edges = 
-    Edge.NSet.sub_set edges (get_unm_tgt_es st);
+val no_extra_tgt_edges = Edge.NSet.is_empty o get_needes_tgt_es;
 
 (* implicit: st n *)
 val tgt_vertex_is_unmatched = 
-    Vertex.NSet.contains o get_unm_tgt_vs;
+    not oo Match.tgt_vertex_is_unmatched o get_match;
 
 (* implicit: tgt_edges st *)
-val useup_tgt_edges = 
-    update_unm_tgt_es o (fn subtractthese => fn from_tgt_es => 
-                         Edge.NSet.subtract from_tgt_es subtractthese);
+val useup1_tgt_edge = update_unm_tgt o Edge.NSet.fold Graph.delete_edge;
+
 (* implicit: v st *)
-val useup1_tgt_vertex = update_unm_tgt_vs o Vertex.NSet.delete;
-val useup1_pat_vertex = update_unm_pat_vs o Vertex.NSet.delete;
+val useup1_pat_vertex = update_unm_pat o Graph.delete_vertex;
 (* implicit: (patv*tgtv) st *)
-val add1_to_agenda = update_agenda o (fn a1 => fn agenda => a1 :: agenda);
+fun add1_to_agenda (pat_n, tgt_n) st = 
+    update_agenda (Vertex.NTab.ins (pat_n,tgt_n)) st;
 (* implicit: (patv*tgtv) st *)
-val add1_match = update_match o Match.update_vmap o Vertex.NTab.ins;
 
+val add_edge_matching = Edge.NSet.is_empty o get_needes_tgt_es;
+
+
+(* pop first vertex pair from agenda *)
 fun pop_agenda st = 
-    case get_agenda st 
-     of [] => NONE 
-      | (h::t) => SOME (h,set_agenda t st);
+    (case Vertex.NTab.pull_elem (get_agenda st)
+      of NONE => NONE 
+       | SOME (h,agenda2) => SOME (h,set_agenda agenda2 st));
 
-(* try match two internal verteices data, using internal data matching
-   function from MCxtx *)
-fun try_add_matched_ivdata (n,d) (tn,td) st = 
-    (case MCtxt.vertex_match d td (get_match_mctxt st)
-      of NONE => NONE (* vertices don't match *)
-       | SOME mctxt2 => 
-         SOME (st |> update_match (Match.set_mctxt mctxt2
-                                   o Match.update_vmap (Vertex.NTab.ins (n,tn))
-                                   o Match.update_ivinvmap (Vertex.NTab.ins (tn,n)))
-                  |> useup1_tgt_vertex tn));
+(* st = matching state; moretgtvns = more tgt vertices to be matched;
+(ntgt,estgt) = target vertex and edges being considerd; (npat,espat) =
+pattern vertex and edges being considered. *)
+fun locally_match_2vs st (from_pn, to_pn) from_tn to_tn = 
+    let 
+      val st2 = st |> add1_to_agenda (npat,ntgt)
+                   |> useup_tgt_edges these_tgt_edges
+    in
+      Seq.map (fn m2 => (moretgtvns, set_match_mctxt m2 st2))
+                  (MCtxt.strict_multi_edge_match espat estgt (get_match_mctxt st2))
+        end
+      else Seq.empty
+    end;
+
+(* pick first pattern pattern node and then try to match it against
+   every possible target node. *)
+fun locally_match_verticies ((from_n,from_d),pns) ((from_tn,from_td),tns) st = 
+    (case Vertex.NSet.pull_local_bot pns
+      of NONE => if Vertex.NSet.is_empty tns then Seq.single st
+                 else Seq.empty
+       | SOME (to_pn,pns2) => 
+         (Seq.list_of (Vertex.NSet.dest tns))
+           |> Seq.maps (locally_match_2vs st (from_n,to_pn) from_tn))
 
 (* assumes patv are uninstantiated *)
 (* raises Vertex.NTab...DUP exception, if n1 is already insantiated *)
 (* Assumes each patvertex is only examined once; therefore assume not in vmap *)
 fun match_vertex (n, BVertex.BVert _) (tn, _) st = 
-    SOME (add1_match (n,tn) st)
+    SOME (update_match (Match.match_bvertex n tn) st)
   | match_vertex (n, BVertex.IVert d) (tn, BVertex.IVert td) st = 
     if tgt_vertex_is_unmatched st tn then 
-      try_add_matched_ivdata (n,d) (tn,td) st
+      case Match.match_vertex_idata (n,d) (tn,td) (get_match st)
+       of NONE => NONE
+        | SOME m2 => set_match m2 st
     else NONE (* some internal vertex is already matched to the target *)
   | match_vertex (_, BVertex.IVert _) (_,BVertex.BVert _) m = 
     NONE; (* instantiated vertex cannot match a bvertex (half-edge) *)
@@ -222,85 +285,27 @@ fun pull_each [] = []
   | pull_each (h::t) = 
     (h,t)::(map (fn (h2,t2) => (h2,h::t2)) (pull_each t));
 
-(* st = matching state; moretgtvns = more tgt vertices to be matched;
-(ntgt,estgt) = target vertex and edges being considerd; (npat,espat) =
-pattern vertex and edges being considered. *)
-fun locally_match_2vs st ((npat,espat),((ntgt,estgt),moretgtvns))  = 
-    let val these_tgt_edges = (Edge.NTab.get_names estgt) 
-    in (* note: edge matching is alwasy strict, edges can never be matched many times *)
-      if tgt_edges_are_unmatched st these_tgt_edges then 
-        let 
-          val st2 = st |> add1_to_agenda (npat,ntgt)
-                       |> useup_tgt_edges these_tgt_edges
-        in
-          Seq.map (fn m2 => (moretgtvns, set_match_mctxt m2 st2))
-                  (MCtxt.strict_multi_edge_match espat estgt (get_match_mctxt st2))
-        end
-      else Seq.empty
-    end;
-
-(* Find some way to match up the adjacent vertices which is strict on
-edges, that is that for any given pair of vertices in the pattern every
-edge between them is mapped to an edge between the corresponding ones
-in the tgt.
-
-assumes a given proposed vertex matching (proposed pat matches
-proposed tgt), we consider vertices adjacent to proposed-tgt and those
-adjacent to proposed-pat - these must match each other, but for
-non-strict matching, there may be extra vertices (and thus edges) in
-the tgt.
-
-   1. patvns = list adjacent pattern vertices with connecting edges, 
-      Vertex.name * (Edge.data Edge.NTab.T) list
-   2. tgtvns (so far unmatch-edges) 
-      = list adjacent target vertices with connecting edges
-      Vertex.name * (Edge.data Edge.NTab.T) list
-   3. and-agenda holding a matching up of patterns and adjacent vertices 
-      (Vertex.name * Vertex.name) list
-   4. match state so far for any match context vars
-*)
-(* nonstrict: extra adjacent vertices in tgt allows *)
-fun locally_match_verticies [] (unmatchedges,st) = Seq.single st
-  | locally_match_verticies (h::t) ([],st) = Seq.empty
-  | locally_match_verticies (hpat::patvns) (tgtvns,st) = 
-    (Seq.of_list (map (pair hpat) (pull_each tgtvns)))
-      |> Seq.maps (locally_match_2vs st) (* or-choices for extending state *)
-      |> Seq.maps (locally_match_verticies patvns); (* extend match for each *)
-
-(* no extra adjacent vertices in tgt allowed *)
-fun strict_locally_match_verticies [] ([],st) = Seq.single st
-  | strict_locally_match_verticies [] ((h::t),st) = Seq.empty
-  | strict_locally_match_verticies (h::t) ([],st) = Seq.empty
-  | strict_locally_match_verticies (hpat::patvns) (tgtvns,st) = 
-    (Seq.of_list (map (pair hpat) (pull_each tgtvns)))
-      |> Seq.maps (locally_match_2vs st) (* or-choices for extending state *)
-      |> Seq.maps (strict_locally_match_verticies patvns); (* extend match for each *)
-
+fun get_adj_pat_vertices st edgens =
+      Graph.adj_vertex_enames' (get_unm_pat_graph st) edgens;
+fun get_adj_tgt_vertices st edgens =
+      Graph.adj_vertex_enames' (get_unm_tgt_graph st) edgens;
 
 (* assumes: pat_ns are all uninstantiated *)
+(* IMPROVE: add quick check of num of edges to avoid complex search
+   over all permutations matchings that do not add up *)
 fun match_2vertices_with_edges 
-      pat tgt 
       n (* pattern vertex name *)
       st (* match state so far *)
       tn = (* target vertex name *)
-    let 
-      val (d,edgens) = Graph.get_vertex pat n;
-      val (td,tedgens) = Graph.get_vertex tgt tn;
-    in
-      case match_vertex (n,d) (tn,td) st of 
-        NONE => Seq.empty (* vertex does not match *)
-      | SOME st2 => (* continue matching *)
-        (case d 
-          of (BVertex.BVert _) => (* allow extra edges in tgt *)
-             locally_match_verticies
-               (Vertex.NTab.dest (Graph.adj_vertices' pat edgens))
-               ((Vertex.NTab.dest (Graph.adj_vertices' tgt tedgens)),
-                useup1_pat_vertex n st2)
-           | (BVertex.IVert _) => (* disallow extra edges in tgt *)
-             strict_locally_match_verticies
-               (Vertex.NTab.dest (Graph.adj_vertices' pat edgens))
-               ((Vertex.NTab.dest (Graph.adj_vertices' tgt tedgens)),
-                useup1_pat_vertex n st2))
+    let val (d,edgens) = Graph.get_vertex pat n;
+        val (td,tedgens) = Graph.get_vertex tgt tn;
+    in case match_vertex (n,d) (tn,td) st of 
+         NONE => Seq.empty (* vertex does not match *)
+       | SOME st2 => (* continue matching *)
+         locally_match_verticies 
+           ((n,d), get_adj_pat_vertices st2 )
+           ((tn,td), get_adj_tgt_vertices st2)
+           st2
     end;
 
 

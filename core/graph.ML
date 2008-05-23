@@ -116,11 +116,22 @@ val get_edge_list : T -> (Edge.name * (Edge.data
                       * Vertex.name))) (* to this vertex *)
                     list
 
+val enames_between : T -> Vertex.name -> Vertex.name -> Edge.NSet.T
+val edges_between : T -> Vertex.name -> Vertex.name -> Edge.data Edge.NTab.T
+
+val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) -> Vertex.NSet.T
+val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
+
 (* get adj vertices (from edge info) and from vertex name *)
-val adj_vertices' : T -> (Edge.NSet.T * Edge.NSet.T)
+val adj_vertices_with_edges' : T -> (Edge.NSet.T * Edge.NSet.T)
                     -> (Edge.data Edge.NTab.T) Vertex.NTab.T
-val adj_vertices : T -> Vertex.name 
+val adj_vertices_with_edges : T -> Vertex.name 
                    -> (Edge.data Edge.NTab.T) Vertex.NTab.T
+
+val adj_vertices_with_enames' : T -> (Edge.NSet.T * Edge.NSet.T)
+                                -> Edge.NSet.T Vertex.NTab.T
+val adj_vertices_with_enames : T -> Vertex.name 
+                               -> Edge.NSet.T Vertex.NTab.T
 
 end;
 
@@ -499,7 +510,7 @@ fun rename_apart avoidg ing =
 (* make a table: (Edge.data Edge.NTab.T) Vertex.NTab.T
 holding every edge's data that is connects n and to the key Vertex.NTab, 
 the Vertex.NTab has every vertex adjacent to n. (Note: ignores direction) *)
-fun adj_vertices' g (ins,outs) = 
+fun adj_vertices_with_edges' g (ins,outs) = 
     Vertex.NTab.empty
       |> (Edge.NSet.fold 
             (fn e => fn ntab => 
@@ -522,8 +533,68 @@ fun adj_vertices' g (ins,outs) =
              end)
             outs);
 
-fun adj_vertices g n = adj_vertices' g (snd (get_vertex g n));
+fun adj_vertices_with_edges g n = 
+    adj_vertices_with_edges' g (snd (get_vertex g n));
 
+fun adj_vertices_with_enames' g (ins,outs) = 
+    Vertex.NTab.empty
+      |> (Edge.NSet.fold 
+            (fn e => fn ntab => 
+             let val (_,(from,to)) = get_edge g e
+             in if (Vertex.NTab.contains ntab from) then 
+                  Vertex.NTab.map_entry 
+                    (Edge.NSet.add e) (* no dup exp for well-formed graphs *)
+                    from ntab
+                else 
+                  Vertex.NTab.ins (from,Edge.NSet.add e Edge.NSet.empty) ntab
+             end)
+            ins)
+      |> (Edge.NSet.fold 
+            (fn e => fn ntab => 
+             let val (d,(from,to)) = get_edge g e
+             in if (Vertex.NTab.contains ntab to) then 
+                  Vertex.NTab.map_entry 
+                    (Edge.NSet.add e) (* no dup exp for well-formed graphs *)
+                    to ntab
+                else 
+                  Vertex.NTab.ins (to,Edge.NSet.add e Edge.NSet.empty) ntab
+             end)
+            outs);
+
+fun adj_vertices_with_enames g n = 
+    adj_vertices_with_enames' g (snd (get_vertex g n));
+
+fun adj_vnames' g (ins,outs) = 
+    Vertex.NSet.empty
+      |> (Edge.NSet.fold 
+            (fn e => 
+                let val (_,(from,to)) = get_edge g e
+                in Vertex.NSet.add from end)
+            ins)
+      |> (Edge.NSet.fold 
+            (fn e => 
+                let val (_,(from,to)) = get_edge g e
+                in Vertex.NSet.add to end)
+            outs);
+
+fun adj_vnames g n = 
+    adj_vnames' g (snd (get_vertex g n));
+
+fun enames_between g n1 n2 = 
+    let 
+      val (_,(ins1,outs1)) = get_vertex g n1
+      val (_,(ins2,outs2)) = get_vertex g n2
+    in
+      Edge.NSet.union_merge
+        (Edge.NSet.intersect ins1 outs2)
+        (Edge.NSet.intersect ins2 outs1)
+    end;    
+
+fun edges_between g n1 n2 = 
+    Edge.NSet.fold 
+      (fn e => Edge.NTab.ins (e, fst (get_edge g e)))
+      (enames_between g n1 n2)
+      Edge.NTab.empty;
 
 end; (* local -- hides opened Graph data types *)
 end;

@@ -27,12 +27,34 @@ fun vertex_match (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
 (* edges allways match - they have no data *)
 fun edge_match ed1 ed2 m = SOME m; 
 
-(* for multiple edge matching, when edges have no data, count the
-   number of edges. *)
-fun strict_multi_edge_match etab1 etab2 m = 
-    if (Edge.NTab.fold (fn _ => fn i => i + 1) etab1 0) = 
-       (Edge.NTab.fold (fn _ => fn i => i + 1) etab2 0) 
-    then Seq.single m else Seq.empty;
+
+exception too_many_pat_edges_exp of string;
+fun matchup_pat_edges pes tes = 
+    let fun match_more (e1,ed) (ems,tens2) = 
+            (case Edge.NSet.pull_local_bot tens2 of
+               NONE => raise too_many_pat_edges_exp "strict_multi_edge_match"
+             | SOME (tn,tens3) => 
+               (Edge.NTab.ins (e1, tn) ems, tens3))
+    in
+      Edge.NTab.fold match_more pes (Edge.NTab.empty, Edge.NTab.get_names tes)
+    end;
+
+(* given a set of edges between two internal(strict) vertices in the pat, 
+   match the set of edges between two internal vertices in the tgt *) 
+fun strict_multi_edge_match pes tes m = 
+    let val (matched_ens,tns) = matchup_pat_edges pes tes
+    in if (Edge.NSet.is_empty tns) then Seq.single (matched_ens,m)
+       else Seq.empty
+    end handle too_many_pat_edges_exp _ => Seq.empty;
+
+(* given edges between a var-vertex in the pat, match them
+   non-strictly with those incident to a matching source in the
+   corresponding target vertex *)
+(* given a set of edges between two internal(strict) vertices in the pat, 
+   match the set of edges between two internal vertices in the tgt *) 
+fun multi_edge_match pes tes m = 
+    let val (matched_ens,tns) = matchup_pat_edges pes tes
+    in Seq.single (matched_ens,m) end handle too_many_pat_edges_exp _ => Seq.empty;
 
 (* subst in vertex uses angle var instantiations *)
 (* implicit: m a *)

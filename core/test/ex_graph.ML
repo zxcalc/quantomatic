@@ -12,6 +12,16 @@ val g = g |> (StrUnitGraph.rename_ename e0 e3);
 StrUnitGraph.print g;
 
 
+val g = StrUnitGraph.empty;
+val (n_a, g) = g |> (StrUnitGraph.add_vertex "a");
+val (n_b, g) = g |> (StrUnitGraph.add_vertex "b");
+val (e0, g) = g |> (StrUnitGraph.add_edge () n_a n_b);
+val g = g |> (StrUnitGraph.delete_vertex n_a);
+val g = g |> (StrUnitGraph.delete_vertex n_b);
+
+StrUnitGraph.print g;
+
+
 (* For debugging...
 
 PolyML.exception_trace (fn () => 
