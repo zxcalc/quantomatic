@@ -128,9 +128,8 @@ functor RGGraphOutputDot (Graph : RG_GRAPH) : OUTPUT
 struct 
 
 structure Graph = Graph;
-structure V = Graph.BVertex
+structure V = Graph.RGVertex
 structure E = Graph.Edge
-structure In  = Graph.RGVertex
 type graph = Graph.T;
 
 type vertex = V.data;
@@ -161,9 +160,9 @@ fun output_vertex (name,(vdata, _))
     let val (style,label)  = 
 	    case vdata of V.BVert _ => (boundary_dot_style, Pretty.str str_name)
 			| V.IVert stuff =>
-			  case stuff of In.Xnd a => (default_Xdot_style, AngleExpr.pretty a)
-				      | In.Znd a => (default_Zdot_style, AngleExpr.pretty a)
-				      | In.Hnd => (default_Hdot_style, Pretty.str "H")
+			  case stuff of V.Xnd a => (default_Xdot_style, AngleExpr.pretty a)
+				      | V.Znd a => (default_Zdot_style, AngleExpr.pretty a)
+				      | V.Hnd => (default_Hdot_style, Pretty.str "H")
     in 
       guts.mk_dot_vertex (Pretty.str style)  (label) (V.pretty_name name)
     end

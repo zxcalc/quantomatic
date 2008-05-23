@@ -1,10 +1,10 @@
-structure V = RGGraph.BVertex;
+structure V = RGGraph.RGVertex;
 val bvert = V.BVert ();
 val zero_angle = AngleExpr.zero;
 val pi_angle = AngleExpr.pi;
-fun mkZ a = V.IVert (RGVertex.Znd a);
-fun mkX a = V.IVert (RGVertex.Xnd a);
-val mkH = V.IVert RGVertex.Hnd;
+fun mkZ a = V.IVert (V.Znd a);
+fun mkX a = V.IVert (V.Xnd a);
+val mkH = V.IVert V.Hnd;
 val edge = ();
 structure E = RGGraph.Edge;
 

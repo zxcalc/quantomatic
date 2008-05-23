@@ -7,10 +7,10 @@ signature BGRAPH =
 sig
 include GRAPH;
 structure BVertex : BVERTEX
-(*sharing type BVertex.data = Vertex.data
-sharing type BVertex.name = Vertex.name		
-*)
-sharing BVertex  = Vertex
+sharing Vertex = BVertex
+structure IVertex : VERTEX
+sharing IVertex = BVertex.IVertex
+
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 
@@ -20,17 +20,15 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
 functor BGraphFun(
-        structure Vertex : VERTEX
+        structure BVertex : BVERTEX
         structure Edge : EDGE
-	      structure Boundary : ORD_DATA (* boundary data *)
-)
+) : BGRAPH
 = struct
 
-  structure V = BVertexFun(
-    structure BasicVert = Vertex and Boundary = Boundary
-  );
-  structure BVertex = V;
-  structure E = Edge;
+structure IVertex = BVertex.IVertex;
+structure BVertex = BVertex;
+structure V = BVertex;
+structure E = Edge;
 
 structure BasicBGraph =
 struct
@@ -151,7 +149,7 @@ end;
 (* define some concrete structures ----- *)
 
 structure DB_StrBGraph = BGraphFun(
-  structure Vertex = StrVertex 
-  and Edge = StrEdge 
-  and Boundary = StrData);
+  structure BVertex = StrBVertex 
+  and Edge = StrEdge);
+
 structure StrBGraph : BGRAPH = DB_StrBGraph;

@@ -146,9 +146,8 @@ functor RGGraphOutputXML (Graph : RG_GRAPH) : OUTPUT
 struct 
 
 structure Graph = Graph;
-structure V = Graph.BVertex
+structure V = Graph.RGVertex
 structure E = Graph.Edge
-structure In  = Graph.RGVertex
 type graph = Graph.T;
 
 type vertex = V.data;
@@ -233,9 +232,9 @@ fun pretty (pi, tab) =
     end
 
 *)
-fun render_xml_rgdata (In.Xnd a) = colourRed::(render_xml_angleexpr a)
-  | render_xml_rgdata (In.Znd a) = colourGreen::(render_xml_angleexpr a)
-  | render_xml_rgdata (In.Hnd) = colourH::[]
+fun render_xml_rgdata (V.Xnd a) = colourRed::(render_xml_angleexpr a)
+  | render_xml_rgdata (V.Znd a) = colourGreen::(render_xml_angleexpr a)
+  | render_xml_rgdata (V.Hnd) = colourH::[]
 
 fun render_xml_bdata (V.BVert _) = boundary
   | render_xml_bdata (V.IVert rg) = Pretty.chunks (nonboundary::(render_xml_rgdata rg))

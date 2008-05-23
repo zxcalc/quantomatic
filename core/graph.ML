@@ -8,9 +8,6 @@ data for vertex and edges a separate table from edge/vertex
 connectedness.
 *)
 
-signature VERTEX = NAME_AND_DATA;
-signature EDGE = NAME_AND_DATA;
-
 (* Basic (Minimal) interface for Graphs *)
 signature BASIC_GRAPH = 
 sig

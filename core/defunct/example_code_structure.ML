@@ -6,6 +6,7 @@ signature inclusion. *)
 signature BASIC_GRAPH 
 = sig
 type nd
+type e
 type T
 val empty : T
 val add_nd : nd -> T -> T
@@ -49,6 +50,7 @@ functor PatFun(Graph : GRAPH)
   structure BasicPatGraph = 
   struct (* extend data for pat graphs and provide internal tools as needed *)
     datatype T = PGraph of Graph.T
+    datatype e = unit
     datatype nd = PNd of Graph.nd
     val empty = PGraph Graph.empty;
     fun add_nd (PNd n) (PGraph g) = PGraph (Graph.add_nd n g);

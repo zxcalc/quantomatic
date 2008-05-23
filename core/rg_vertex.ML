@@ -5,13 +5,22 @@ signature RG_VERTEX
   datatype qnd = Xnd of AngleExpr.T (* Red: defined using H of Z *) 
                | Znd of AngleExpr.T (* Green *)
                | Hnd; (* Hadamard vertex *)
-  include NAME_AND_DATA sharing type data = qnd;
+  include BVERTEX where type Boundary.data = unit
+  sharing type IVertex.data = qnd;
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 structure RGVertex
-: RG_VERTEX
+:> RG_VERTEX where type name = string
 = struct
+
+  datatype qnd = Xnd of AngleExpr.T (* Red: defined using H of Z *) 
+               | Znd of AngleExpr.T (* Green *)
+               | Hnd; (* Hadamard node *)
+
+structure V = BVertexFun(structure Boundary = UnitData and 
+  IVertex = 
+  struct
 
   type name = NName.T
   structure NSet = NName.NSet;
@@ -22,9 +31,6 @@ structure RGVertex
   val name_eq = uncurry NName.eq;
   val name_ord = NName.ord;
 
-  datatype qnd = Xnd of AngleExpr.T (* Red: defined using H of Z *) 
-               | Znd of AngleExpr.T (* Green *)
-               | Hnd; (* Hadamard node *)
   type data = qnd;
 
   fun data_ord (Hnd, Hnd) = EQUAL
@@ -43,5 +49,9 @@ structure RGVertex
       Pretty.block [Pretty.str "Z(", AngleExpr.pretty a, Pretty.str ")"]
     | pretty_data Hnd = Pretty.str "H";
   val print_data = Pretty.writeln o pretty_data;
+
+end); (* internal BVertex structure *)
+
+open V;
 
 end;

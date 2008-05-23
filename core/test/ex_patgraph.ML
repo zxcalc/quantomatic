@@ -30,6 +30,9 @@ val g2 = RGGraph.rename_apart g1 g;
 RGGraph.print g2;
 RGGraph.print g1;
 
+val l = Seq.list_of (MatchState.match g1 g2 Vertex.NTab.empty);
+
+raise ERROR "stop";
 
 
 open MatchState;
@@ -37,7 +40,7 @@ open MatchState;
 val initmatching = Match.empty;
 val pat = g1;
 val tgt = g2;
-val initagenda = [];
+val initagenda = Vertex.NTab.empty;
 val init_st = (init initmatching pat tgt initagenda);
 val st = init_st;
 

@@ -6,9 +6,7 @@ structure Controller =
 struct
 
 structure G = RGGraph
-structure V = G.Vertex
-structure BV = G.BVertex
-structure RGV = G.RGVertex
+structure V = G.RGVertex
 structure E = G.Edge
 
 exception NOT_IMPLEMENTED of string
@@ -16,10 +14,10 @@ exception ILLEGAL_COMMAND of string
 
 val blank = Pretty.str "";
 
-val fresh_red = BV.IVert (RGV.Xnd AngleExpr.zero);
-val fresh_green = BV.IVert (RGV.Znd AngleExpr.zero);
-val fresh_h = BV.IVert RGV.Hnd ;
-val fresh_bnd = BV.BVert ()
+val fresh_red = V.IVert (V.Xnd AngleExpr.zero);
+val fresh_green = V.IVert (V.Znd AngleExpr.zero);
+val fresh_h = V.IVert V.Hnd ;
+val fresh_bnd = V.BVert ()
 
 val log = ref TextIO.stdErr;
 

@@ -25,8 +25,11 @@ include ORD_NAMES
 include ORD_DATA
 end;
 
+signature VERTEX = NAME_AND_DATA;
+signature EDGE = NAME_AND_DATA;
 
-structure StrData : ORD_DATA 
+
+structure StrData : ORD_DATA where type data = string 
 = struct 
 type data = string
 val pretty_data = Pretty.str;
@@ -36,7 +39,7 @@ fun data_eq (a,b) = (a = (b : string));
 end;
 
 
-structure UnitData : ORD_DATA 
+structure UnitData : ORD_DATA where type data = unit 
 = struct 
 type data = unit
 val pretty_data = K (Pretty.str "");
