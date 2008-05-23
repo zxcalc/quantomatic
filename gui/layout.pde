@@ -38,7 +38,7 @@ void layout(Graph graph) {
 
 void layout(String viz, Graph graph) {
   try {
-  Process dot = Runtime.getRuntime().exec("/usr/local/bin/dot -Tplain");
+  Process dot = Runtime.getRuntime().exec("dot -Tplain");
   BufferedReader dotIn =
     new BufferedReader(
     new InputStreamReader(
