@@ -27,9 +27,15 @@ val log = ref TextIO.stdErr;
 datatype language = DOT | XML;
 val dump_lang = ref XML;
 val dumper = ref RGGraphXML.output_graph
+val write_to_file = ref RGGraphXMLWriter.output_to_file
 fun switch_dump_lang () = 
-    case !dump_lang of DOT => (dump_lang := XML ; dumper := RGGraphXML.output_graph)
-		     | XML => (dump_lang := DOT ; dumper := RGGraphDot.output_graph)
+    case !dump_lang of DOT => (dump_lang := XML ; 
+			       dumper := RGGraphXML.output_graph ;
+			       write_to_file := RGGraphXMLWriter.output_to_file
+			      )
+		     | XML => (dump_lang := DOT ; 
+			       dumper := RGGraphDot.output_graph ;
+			       write_to_file := RGGraphDotWriter.output_to_file)
 
 fun write_log s = (TextIO.output ((!log) , s); TextIO.flushOut (!log)) ;
 
@@ -68,9 +74,26 @@ datatype commands = NOOP
 	    | Edge of V.name * V.name
 	    | Angle of V.name * AngleExpr.T
 	    | ShowRewrites of V.NSet.T
+	    | DelVertex of V.name
+	    | UpVertex of V.name * V.data
+	    | DelEdge of E.name
 
 val kill_newlines  = 
     String.translate (fn #"\n" => "" | c => (str c)) 
+
+(* does not parse angleexpr yet *)
+fun parse_node_data [] = raise (ILLEGAL_COMMAND "up ")
+  | parse_node_data (bnd::t) = 
+    if bnd = "true" then fresh_bnd
+    else if bnd = "false" then 
+      case t of [] =>  raise ILLEGAL_COMMAND ("up "^bnd)
+	      | col::_ => 
+		case col of "red" => fresh_red
+			  | "green" => fresh_green
+			  | "h" => fresh_h
+			  | _ => raise ILLEGAL_COMMAND ("up false "^col)
+    else raise ILLEGAL_COMMAND ("up "^bnd)
+
 
 fun parse_command s = 
     let val _ = write_log s
@@ -83,7 +106,9 @@ fun parse_command s =
 			case cmd  of  "Q" => Quit 
 				    | "M" => MODE (* switch between output modes *)
 				    | "H" => HELO (*print staus *)
-				    | "D" => DUMP
+				    | "D" => DUMP (* output the current graph *)
+				    | "S" => Save (hd args)
+				    | "O" => Open (hd args)
 				    | "u" => Undo
 				    | "n" => New (* new graph *)
 				    | "r" => Red 
@@ -91,32 +116,32 @@ fun parse_command s =
 				    | "h" => H
 				    | "b" => Boundary
 				    | "e" => Edge ((hd args),(( hd o tl) args))
+				    | "d" => DelVertex (hd args)		
+				    | "de" => DelEdge (hd args)
+				    | "up" => UpVertex (hd args ,
+							parse_node_data (tl args))
 				    |_ => raise ILLEGAL_COMMAND s
     end;
 
+    
 fun do_command g hist c = 
     case c of
-      NOOP => (g, 
-	       hist, 
-	       blank, 
-	       true)	      
-    | DUMP => (g, 
-	       hist, 
-	       (!dumper) g, 
-	       true)	      
+      NOOP => (g, hist, blank, true)	      
+    | DUMP => (g, hist, (!dumper) g, true)	      
+    | Save filename => ( 
+      (!write_to_file) filename g ;
+      (g, hist, Pretty.str ("Wrote graph to file "^filename), true)	      
+      )
+    | Open _ => raise NOT_IMPLEMENTED "Open"
     | MODE => (switch_mode () ;
-	       (g, 
-		hist, 
-		Pretty.str "Changed output mode.", 
-		true))
-    | Quit => (g, 
-	       hist, 
-	       Pretty.str "Quitting.....\n", 
-	       false)
-    | HELO => (g, 
-	       hist, 
-	       Pretty.str "Hello from QUANTOMATIC\nLet's have some fun!",
-	       true)
+	       (g, hist, Pretty.str "Changed output mode.", true)
+	      )
+    | Quit => (g, hist, Pretty.str "Quitting.....\n",  false)
+    | HELO => let val msg  = Pretty.chunks [Pretty.str"Hello from QUANTOMATIC",
+					    Pretty.str "Let's have some fun!"]
+	      in 
+		(g, hist, msg, true)
+	      end
     | New => (G.empty, 
 	      g::hist, 
 	      Pretty.str "New Graph.",
@@ -150,6 +175,22 @@ fun do_command g hist c =
       in
 	(g', g::hist, Pretty.str "Edge added.",true)
       end 
+    | DelVertex v => 
+      let val g' = G.delete_vertex v g
+      in 
+	(g', g::hist, Pretty.str "Vertex Deleted.",true)
+      end
+    | DelEdge e => 
+      let val g' = G.delete_edge e g
+      in 
+	(g', g::hist, Pretty.str "Edge Deleted.",true)
+      end
+    | UpVertex (v,d) => 
+      let val g' = G.set_vertex d v g
+      in 
+	(g', g::hist, Pretty.str "Vertex Updated.",true)
+      end
+      
     | _ => raise NOT_IMPLEMENTED "nothing useful implemented"
 
 
@@ -178,11 +219,26 @@ fun run_loop g hist =
 	    )
 	  end
 	  
+fun die msg = 
+    (
+     write_log ("Crash --> "^msg^"\n") ;
+     TextIO.closeOut (!log) ; 
+     (!do_output) (Pretty.str ("<message><crash>\n"^msg^"\n</crash></message>")) ;
+     if !is_out_pipe then 
+       OS.Process.exit (OS.Process.failure)
+     else
+       ()       
+    )
+    handle _ => OS.Process.exit (OS.Process.failure)
+
 fun init () = (
     log := (TextIO.openAppend "/Users/rwd/Desktop/quantolog") ;
     write_log "Starting up...\n" ; 
     run_loop G.empty []
-);
-
+)
+    handle _ => (
+	   die "ML threw an Exception... better RESTART.";
+	   G.empty (* just to keep the compiler happy *)
+	   )
 
 end; 
