@@ -68,6 +68,8 @@ void mousePressed() {
   switch (tool) {
     case 's':
       selectedVertex = null;
+      // IMPROVE: use tree of locations for sub-object matching: 
+      // get log-time search for finding object from coordinates instead of linear time. 
       for (int i=0; i<graph.vertexList.size();++i) {
         n = (Vertex)graph.vertexList.get(i);
         n.selected = false;
@@ -81,13 +83,15 @@ void mousePressed() {
     case 'm':
       if (selectedVertex != null) selectedVertex.setDest(mouseX, mouseY);
       break;
-      case 'e':
-      it = graph.vertices.values().iterator();
-      while (it.hasNext()) {
-        n = (Vertex)it.next();
-        if (n.at(mouseX, mouseY)) {
-	    modifyGraph("e "+selectedVertex.id+" "+n.id+"\n");
-	}
+    case 'e':
+      if (selectedVertex != null) {
+        it = graph.vertices.values().iterator();
+        while (it.hasNext()) {
+          n = (Vertex)it.next();
+          if (n.at(mouseX, mouseY)) {
+	      modifyGraph("e "+selectedVertex.id+" "+n.id+"\n");
+	  }
+        }
       }
       break;
   }

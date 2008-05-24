@@ -63,7 +63,7 @@ open BGraph;
 structure MCtxt = MCtxt;
 *)
 
-structure Graph = RGPatGraph : RG_PATGRAPH;
+structure Graph : RG_PATGRAPH = RGPatGraph;
 structure Vertex = Graph.RGVertex;
 structure Edge = Graph.Edge;
 structure MCtxt = Graph.MCtxt;
