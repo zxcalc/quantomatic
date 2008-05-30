@@ -21,15 +21,9 @@ structure RGVertex
 structure V = BVertexFun(structure Boundary = UnitData and 
   IVertex = 
   struct
-
-  type name = NName.T
-  structure NSet = NName.NSet;
-  structure NTab = NName.NTab;
-  val default_name = "Va";
-  val pretty_name = NName.pretty;
-  val print_name = NName.print
-  val name_eq = uncurry NName.eq;
-  val name_ord = NName.ord;
+  
+  (* use String names *)
+  open StrName;
 
   type data = qnd;
 

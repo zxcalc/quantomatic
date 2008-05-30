@@ -74,7 +74,7 @@ fun pretty m =
     Pretty.list 
       "[" "]"
       (map (fn (n,i) => 
-               Pretty.block [VName.pretty n, Pretty.str "=", 
+               Pretty.block [VName.pretty_name n, Pretty.str "=", 
                              AngleExpr.pretty i])
            (VName.NTab.dest m));
 val print = Pretty.writeln o pretty;

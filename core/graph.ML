@@ -327,7 +327,8 @@ fun rename_vname n1 n2 g =
       (* update the vertex entry for n1, we make sure that n2 doesn't already exist *)
       val vertices2 = 
           case (vertices |> Vertex.NTab.delete n1
-                      |> Vertex.NTab.try_ins (n2,(nd,(ins,outs))))
+                         (* raises exception if n2 already exsists *)
+                         |> Vertex.NTab.try_ins (n2,(nd,(ins,outs))))
            of NONE => raise vname_already_exists_exp (n2,g)
             | SOME vertices2 => vertices2;
 

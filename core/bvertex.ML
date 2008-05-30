@@ -31,14 +31,9 @@ functor BVertexFun(
 structure IVertex = IVertex;
 structure Boundary = Boundary;
 
-type name = IVertex.name;
-structure NSet = IVertex.NSet;
-structure NTab = IVertex.NTab;
-val default_name = IVertex.default_name;
-val pretty_name = IVertex.pretty_name;
-val print_name = IVertex.print_name;
-val name_eq = IVertex.name_eq;
-val name_ord = IVertex.name_ord;
+(* open the Names Part of IVertex *)
+structure INames : NAMES = IVertex
+open INames; 
 
 datatype data2 = 
          IVert of IVertex.data (* vertex with data *)

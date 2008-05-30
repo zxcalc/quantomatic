@@ -1,6 +1,6 @@
 (* Variable names in expressions *)
-structure VName :> STR_NAME = StrName;
-install_pp (make_pp ["VName", "T"] (Pretty.pprint o VName.pretty));
+structure VName :> NAMES where type name = string = StrName;
+install_pp (make_pp ["VName", "T"] (Pretty.pprint o VName.pretty_name));
 
 (* Basic stuff for an expression which might have variables *)
 signature EXPR =

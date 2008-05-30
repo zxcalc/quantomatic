@@ -185,7 +185,7 @@ fun render_xml_coeff_var (var, coeff) =
     Pretty.chunks [Pretty.str "<variable>",
 		   Pretty.block [Pretty.str "  ",
 				 Pretty.chunks [Pretty.str "<name>",
-						VName.pretty var,
+						VName.pretty_name var,
 						Pretty.str "</name>",
 						Pretty.str "<coefficient>",
 						Pretty.block [
@@ -223,9 +223,9 @@ fun pretty (pi, tab) =
     let val ppi  = if (Coeff.is_zero pi) then []
 		               else [Pretty.block [Coeff.pretty pi,Pretty.str "*Pi"]]
 	      fun pretty1 (k,v) [] =
-	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])]
+	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])]
 	        | pretty1 (k,v) pl =
-	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])::
+	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])::
 	          ((Pretty.str "  +  ")::pl)
     in 
       Pretty.block (VName.NTab.fold pretty1 tab ppi)

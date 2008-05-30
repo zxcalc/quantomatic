@@ -154,16 +154,28 @@ fun pretty m =
                                    Vertex.pretty_name tn, 
                                    Pretty.str ")"])
                             (Vertex.NTab.dest (get_vmap m)))]]
-       @ [Pretty.str "EMatchings: ",
-          Pretty.list "{" "}" 
-                       (map (fn (pn,tn) => 
-                                Pretty.block 
-                                  [Pretty.str "(",
-                                   Edge.pretty_name pn,
-                                   Pretty.str "->",
-                                   Edge.pretty_name tn, 
-                                   Pretty.str ")"])
-                            (Edge.NTab.dest (get_emap m)))]
+       @ [Pretty.block 
+            [Pretty.str "InInvVMap: ",
+             Pretty.list "{" "}" 
+                         (map (fn (tn,pn) => 
+                                  Pretty.block 
+                                    [Pretty.str "(",
+                                     Vertex.pretty_name pn,
+                                     Pretty.str "<-",
+                                     Vertex.pretty_name tn, 
+                                     Pretty.str ")"])
+                              (Vertex.NTab.dest (get_ivinvmap m)))]]
+       @ [Pretty.block 
+            [Pretty.str "EMatchings: ",
+             Pretty.list "{" "}" 
+                         (map (fn (pn,tn) => 
+                                  Pretty.block 
+                                    [Pretty.str "(",
+                                     Edge.pretty_name pn,
+                                     Pretty.str "->",
+                                     Edge.pretty_name tn, 
+                                     Pretty.str ")"])
+                              (Edge.NTab.dest (get_emap m)))]]
        @ [Pretty.block [Pretty.str "MCtxt: ", MCtxt.pretty (get_mctxt m)]]);
     
 val print = Pretty.writeln o pretty;
@@ -244,7 +256,6 @@ val set_agenda = update_agenda o K;
 val set_match = update_match o K;
 
 val get_match_vmap = Match.get_vmap o get_match;
-val get_match_ivinvmap = Match.get_ivinvmap o get_match;
 val get_match_mctxt = Match.get_mctxt o get_match;
 val set_match_mctxt = update_match o Match.set_mctxt;
 
@@ -261,7 +272,7 @@ fun get_adj_tgt_vertices st edgens =
 
 (* implicit: st n *)
 val tgt_vertex_is_unmatched = 
-    not oo Match.tgt_vertex_is_unmatched o get_match;
+    Match.tgt_vertex_is_unmatched o get_match;
 
 (* implicit: tgt_edges st *)
 val useup_tgt_edges = update_unm_tgt o Edge.NSet.fold Graph.delete_edge;
@@ -442,12 +453,14 @@ fun pretty_next_pat_vertex st =
 
 fun pretty_agenda st = 
     (case Vertex.NTab.pull_elem (get_agenda st) of 
-       NONE => Pretty.str "Agenda is empty."
-     | SOME ((nextn,_),rest) => 
+       NONE => Pretty.str "Agenda: []"
+     | SOME ((nextfrom,nextto),rest) => 
        Pretty.block 
-         [Pretty.str "Agenda: ",
-          Vertex.pretty_name nextn,
-          Pretty.list " then [" "]" 
+         [Pretty.str "Agenda: (",
+          Vertex.pretty_name nextfrom,
+          Pretty.str "->",
+          Vertex.pretty_name nextto,
+          Pretty.list ") then [" "]" 
                       (map pretty_match_pair (Vertex.NTab.dest rest)),
           Pretty.block [Pretty.str ";  needed tgt edges: ",
                         Edge.NSet.pretty (get_needed_tgt_es  st)]
@@ -457,12 +470,13 @@ fun pretty (st as MState rep) =
     Pretty.block 
       [Pretty.str "MatchState {",
        Pretty.chunks 
-         [pretty_agenda st,
-          Match.pretty (#match rep),
-          Pretty.block [Pretty.str "Unmatched pat: ",
-                        Graph.pretty (#unm_pat rep)],
-          Pretty.block [Pretty.str "Unmatched tgt: ",
-                        Graph.pretty (#unm_tgt rep)]],
+         [Match.pretty (#match rep),
+          pretty_agenda st,
+          Pretty.block [Pretty.str "Unmatched pat: "],
+          Graph.pretty (#unm_pat rep),
+          Pretty.block [Pretty.str "Unmatched tgt: "],
+          Graph.pretty (#unm_tgt rep)
+         ],
        Pretty.str "}"];
 
 val print = Pretty.writeln o pretty;

@@ -6,8 +6,8 @@ structure Coeff : RATIONAL
 val zero : T
 val is_zero : T -> bool
 val pi : T
-val mk_var : VName.T -> T
-val mk : Coeff.T -> (VName.T * Coeff.T) list -> T
+val mk_var : VName.name -> T
+val mk : Coeff.T -> (VName.name * Coeff.T) list -> T
 val subtr_expr : T -> T -> T
 val add_expr : T -> T -> T
 val scale_expr : Coeff.T -> T -> T
@@ -23,7 +23,7 @@ type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 
 
 fun kv_eq ((k1,v1),(k2,v2)) = 
-    VName.eq k1 k2 andalso Coeff.eq v1 v2
+    VName.name_eq (k1, k2) andalso Coeff.eq v1 v2
 
 fun eq (x,xT)  (y,yT) = 
     if  Coeff.eq x y then true
@@ -40,10 +40,10 @@ fun eq (x,xT)  (y,yT) =
 (* =====================================================================*)
 
 fun kv_order ((k1,v1),(k2,v2)) = 
-    if  VName.ord(k1,k2) = General.EQUAL
+    if  VName.name_ord(k1,k2) = General.EQUAL
     then 
       Coeff.ord(v1,v2)
-    else VName.ord(k1,k2);
+    else VName.name_ord(k1,k2);
 
 fun  kv_list_ord ([],[]) = General.EQUAL
    | kv_list_ord ([],_) = General.LESS
@@ -157,9 +157,9 @@ fun pretty (pi, tab) =
     let val ppi  = if (Coeff.is_zero pi) then []
 		               else [Pretty.block [Coeff.pretty pi,Pretty.str "*Pi"]]
 	      fun pretty1 (k,v) [] =
-	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])]
+	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])]
 	        | pretty1 (k,v) pl =
-	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty k])::
+	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])::
 	          ((Pretty.str "  +  ")::pl)
     in 
       Pretty.block (VName.NTab.fold pretty1 tab ppi)

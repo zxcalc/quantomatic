@@ -1,4 +1,3 @@
-System.use "name_and_data.ML";
 System.use "graph.ML";
 System.use "test/ex_graph.ML";
 
