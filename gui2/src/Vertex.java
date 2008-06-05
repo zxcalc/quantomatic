@@ -4,7 +4,7 @@ class Vertex extends PLib  {
 	public float destX, destY, x, y;
 	public float speed;
 	public boolean selected;
-	private float lastTick;
+	private int lastTick;
 	public String id;
 	public String col;
 	public String angleexpr;
@@ -16,14 +16,15 @@ class Vertex extends PLib  {
 		this.y = y;
 		destX = x;
 		destY = y;
-		speed = 0.5f;
+		speed = 0.0005f;
 		col = "red";
-		lastTick = (float) millis();
+		lastTick = -1;
 	}
 
 	public void setDest(int x, int y) {
 		destX = x;
 		destY = y;
+		lastTick = -1;
 	}
 
 	public void setColor(String col) {
@@ -34,17 +35,23 @@ class Vertex extends PLib  {
 		this.angleexpr = expr;
 	}
 
-	public void tick() {
-		//QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+	public boolean tick() {
+		if (lastTick == -1) {
+			lastTick = millis();
+			return true;
+		}
+		int thisTick = millis();
+		float rate = (float)(thisTick - lastTick) * speed;
+		if (rate>1) rate = 1;
+		float dx = destX - x;
+		float dy = destY - y;
+		x += dx * rate;
+		y += dy * rate;
 
-		float thisTick = (float) millis();
-		float rate = 100f / (thisTick - lastTick);
-		float dx = speed * (destX - x);
-		float dy = speed * (destY - y);
-		x += (dx) / rate;
-		y += (dy) / rate;
-
-		lastTick = (float) millis();
+		if (dx==0 && dy==0) {
+			lastTick = -1;
+			return false;
+		} else return true;
 	}
 
 	private void displayRed() {
