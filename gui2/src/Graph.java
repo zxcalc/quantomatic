@@ -1,25 +1,25 @@
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 public class Graph extends PLib {
-	public Map vertices;
-	public ArrayList vertexList;
-	public Map edges;
-	public ArrayList edgeList;
+	public Map<String,Vertex> vertices;
+	public ArrayList<Vertex> vertexList;
+	public Map<String,Edge> edges;
+	public ArrayList<Edge> edgeList;
 	private java.util.Random rando = new java.util.Random();
 
 	public Graph() {
-		vertices = new HashMap();
-		vertexList = new ArrayList();
-		edges = new HashMap();
-		edgeList = new ArrayList();
+		vertices = new HashMap<String,Vertex>();
+		vertexList = new ArrayList<Vertex>();
+		edges = new HashMap<String,Edge>();
+		edgeList = new ArrayList<Edge>();
 	}
 
+	
 	// DEPRECATED
 	// terrible fresh key generator -- not to be used
-	private String freshKey(Map m) {
+	private String freshKey(Map<String,?> m) {
 		String fresh = String.valueOf(rando.nextInt());
 		while (m.containsKey(fresh)) {
 			fresh = String.valueOf(rando.nextInt());
@@ -28,7 +28,7 @@ public class Graph extends PLib {
 	}
 
 	// DEPRECATED -- don't call this
-	// only the backend is allowed to generate names
+	// only the back-end is allowed to generate names
 	public Vertex newVertex() {
 		System.out.println("Warning: deprecated method newVertex called");
 		Vertex n = new Vertex(freshKey(vertices), 50, 50);
@@ -43,7 +43,7 @@ public class Graph extends PLib {
 	}
 
 	// DEPRECATED -- don't call this
-	// only the backend is allowed to generate names
+	// only the back-end is allowed to generate names
 	public Edge newEdge(Vertex source, Vertex dest) {
 		System.out.println("Warning: deprecated method newEdge called");
 		Edge e = new Edge(freshKey(edges), source, dest);
@@ -65,10 +65,8 @@ public class Graph extends PLib {
 
 	/* this copies the x and y from the old graph to this one. */
 	public Graph reconcileVertexCoords(Graph old) {
-		Iterator i = vertexList.iterator();
-		Vertex v = null, w = null;
-		while (i.hasNext()) {
-			v = (Vertex) i.next();
+		Vertex w = null;
+		for (Vertex v : vertexList) {
 			w = (Vertex) old.vertices.get(v.id);
 			if (w != null) {
 				v.x = w.x;

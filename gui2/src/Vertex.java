@@ -35,7 +35,7 @@ class Vertex extends PLib  {
 	}
 
 	public void tick() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		//QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		float thisTick = (float) millis();
 		float rate = 100f / (thisTick - lastTick);
@@ -51,11 +51,11 @@ class Vertex extends PLib  {
 		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(255, 0, 0);
-		p.fill(255, 0, 0, 100);
+		p.fill(255, 100, 100);
 		p.ellipse(x, y, 15, 15);
 		if (angleexpr != null) {
 			p.textFont(p.times);
-			p.fill(100, 0, 0, 255);
+			p.fill(100, 0, 0);
 			p.text(angleexpr, x + 21, y + 6, 30, 10);
 		}
 	}
@@ -64,7 +64,7 @@ class Vertex extends PLib  {
 		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(0, 255, 0);
-		p.fill(0, 255, 0, 100);
+		p.fill(100, 255, 100);
 		p.ellipse(x, y, 15, 15);
 		if (angleexpr != null) {
 			p.textFont(p.times);

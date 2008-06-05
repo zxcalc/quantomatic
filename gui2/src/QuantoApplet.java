@@ -3,22 +3,20 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
 
 import processing.core.*;
-import processing.xml.*;
 import controlP5.ControlP5;
 
 public class QuantoApplet extends PApplet {
 
 	private static final long serialVersionUID = 1L;
+	public static final int WIDTH = 800;
+	public static final int HEIGHT = 600;
 
 	ControlP5 gui;
 	PFont helvetica;
@@ -35,7 +33,7 @@ public class QuantoApplet extends PApplet {
 	static QuantoApplet p; // the top level applet 
 
 	public void setup() {
-		size(800, 600, JAVA2D);
+		size(WIDTH, HEIGHT, JAVA2D);
 		smooth();
 		frameRate(30);
 		gui = new ControlP5(this);
@@ -83,7 +81,7 @@ public class QuantoApplet extends PApplet {
 
 	public void mousePressed() {
 		Vertex n;
-		Iterator it;
+		Iterator<Vertex> it;
 		switch (tool) {
 		case 's':
 			selectedVertex = null;
@@ -197,18 +195,12 @@ public class QuantoApplet extends PApplet {
 			break;
 		}
 
-		Edge e;
-		for (int i = 0; i < graph.edgeList.size(); ++i) {
-			e = (Edge) graph.edgeList.get(i);
-			e.display();
-		}
+		
+		for (Edge e : graph.edgeList) e.display();
 
-		Vertex n;
-		Iterator i = graph.vertices.values().iterator();
-		while (i.hasNext()) {
-			n = (Vertex) i.next();
-			n.tick();
-			n.display();
+		for (Vertex v : graph.vertexList) {
+			v.tick();
+			v.display();
 		}
 
 	}
@@ -218,21 +210,16 @@ public class QuantoApplet extends PApplet {
 		StringBuffer g = new StringBuffer();
 		g.append("digraph {\n\n");
 
-		Iterator i = graph.vertices.values().iterator();
-		Vertex n;
-		while (i.hasNext()) {
-			n = (Vertex) i.next();
+		
+		for (Vertex v : graph.vertexList) {
 			g.append("{rank=same; ");
-			g.append(n.id);
+			g.append(v.id);
 			g.append(" [color=\"");
-			g.append(n.col);
+			g.append(v.col);
 			g.append("\"];}\n");
 		}
 
-		i = graph.edgeList.iterator();
-		Edge e;
-		while (i.hasNext()) {
-			e = (Edge) i.next();
+		for (Edge e : graph.edgeList) {
 			g.append(e.source.id);
 			g.append("->");
 			g.append(e.dest.id);
@@ -286,7 +273,6 @@ public class QuantoApplet extends PApplet {
 					tk.nextToken();
 					tk.nextToken();
 					tk.nextToken();
-					// println(tk.nextToken());
 					n.setColor(tk.nextToken());
 					n.setDest(x, y);
 				} else if (cmd.equals("edge")) {
