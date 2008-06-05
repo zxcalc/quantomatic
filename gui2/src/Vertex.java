@@ -19,12 +19,14 @@ class Vertex extends PLib  {
 		speed = 0.0005f;
 		col = "red";
 		lastTick = -1;
+		QuantoApplet.p.play();
 	}
 
 	public void setDest(int x, int y) {
 		destX = x;
 		destY = y;
 		lastTick = -1;
+		QuantoApplet.p.play();
 	}
 
 	public void setColor(String col) {
@@ -36,10 +38,8 @@ class Vertex extends PLib  {
 	}
 
 	public boolean tick() {
-		if (lastTick == -1) {
-			lastTick = millis();
-			return true;
-		}
+		if (lastTick == -1) lastTick = millis();
+		
 		int thisTick = millis();
 		float rate = (float)(thisTick - lastTick) * speed;
 		if (rate>1) rate = 1;
@@ -48,10 +48,12 @@ class Vertex extends PLib  {
 		x += dx * rate;
 		y += dy * rate;
 
-		if (dx==0 && dy==0) {
+		if (floor(dx)==0 && floor(dy)==0) {
 			lastTick = -1;
 			return false;
-		} else return true;
+		} else {
+			return true;
+		}
 	}
 
 	private void displayRed() {

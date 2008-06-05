@@ -27,15 +27,19 @@ public class QuantoApplet extends PApplet {
 	char tool;
 	JFileChooser fileChooser;
 	Graph graph;
+	boolean paused;
 
 	QuantoBack backend;
 	XMLReader xml;
 	static QuantoApplet p; // the top level applet 
 
 	public void setup() {
+		p = this;
+		paused = false;
 		size(WIDTH, HEIGHT, JAVA2D);
 		smooth();
 		frameRate(30);
+		
 		gui = new ControlP5(this);
 		gui.addTextlabel("sel", "SELECT", 10, 10).setColorValue(0xffff0000);
 		gui.addTextlabel("mv", "MOVE", 10, 10).setColorValue(0xffff0000);
@@ -76,7 +80,20 @@ public class QuantoApplet extends PApplet {
 		backend = new QuantoBack();
 		xml = new XMLReader();
 		
-		p = this;
+	}
+	
+	public void pause() {
+		if (!paused) {
+			noLoop();
+			paused = true;
+		} 
+	}
+	
+	public void play() {
+		if (paused) {
+			loop();
+			paused = false;
+		}
 	}
 
 	public void mousePressed() {
@@ -116,6 +133,8 @@ public class QuantoApplet extends PApplet {
 			}
 			break;
 		}
+		
+		play();
 	}
 
 	public void keyPressed() {
@@ -162,6 +181,8 @@ public class QuantoApplet extends PApplet {
 			}
 		} else
 			tool = key;
+		
+		play();
 	}
 
 	void modifyGraph(String cmd) {
@@ -174,6 +195,8 @@ public class QuantoApplet extends PApplet {
 		updated.reconcileVertexCoords(graph);
 		this.graph = updated;
 		graph.layoutGraph();
+		
+		play();
 	}
 
 	public void draw() {
@@ -197,12 +220,16 @@ public class QuantoApplet extends PApplet {
 
 		
 		for (Edge e : graph.edgeList) e.display();
-
+		
+		boolean moved = false;
 		for (Vertex v : graph.vertexList) {
+			moved = moved || v.tick();
 			v.tick();
 			v.display();
 		}
-
+		if (!moved) {
+			pause();
+		}
 	}
 
 
