@@ -1,27 +1,27 @@
-System.use "graph.ML";
-System.use "test/ex_graph.ML";
+use "graph.ML";
+use "test/ex_graph.ML";
 
-System.use "match_ctxt.ML"; (* vertex and edge matching and global context *)
+use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 
-System.use "bvertex.ML";
-System.use "bgraph.ML";
+use "bvertex.ML";
+use "bgraph.ML";
 
-System.use "coeff.ML";
-System.use "expr.ML"; 
-System.use "linrat_expr.ML"; 
-System.use "rg_vertex.ML";
-System.use "rg_graph.ML";
-System.use "test/ex_rg_graph.ML";
+use "coeff.ML";
+use "expr.ML"; 
+use "linrat_expr.ML"; 
+use "rg_vertex.ML";
+use "rg_graph.ML";
+use "test/ex_rg_graph.ML";
 
-System.use "rg_match_ctxt.ML";
+use "rg_match_ctxt.ML";
 
-System.use "output.ML";
-System.use "output_dot.ML";
-System.use "output_XML.ML";
+use "output.ML";
+use "output_dot.ML";
+use "output_XML.ML";
 
-System.use "controller.ML";
+use "controller.ML";
 
-System.use "patgraph.ML";
+use "patgraph.ML";
 
 
 (* 
