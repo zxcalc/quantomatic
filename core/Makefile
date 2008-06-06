@@ -40,7 +40,7 @@ bin: bin/$(QUANTO_BIN)
 # startup an ML shell using the quanto heap
 quanto-ml-shell: $(QUANTO_HEAP)
 	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)";' > bin/loadstate.ML
-	cat loadstate.ML - | poly
+	cat bin/loadstate.ML - | poly
 
 #clean_heap_%: 
 #	@if test -e %; then echo "rm -f %"; echo "Removed heap: %"; else echo "No heap % to be remove, already clean."; fi
