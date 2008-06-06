@@ -8,6 +8,8 @@ public class XMLReader {
 	private Graph g = null;
 
 	class XMLReaderException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
 		XMLReaderException(String m) {
 			super(m);
 		}
@@ -101,6 +103,7 @@ public class XMLReader {
 		return getChildContents(xml, child, def_val, false);
 	}
 
+	@SuppressWarnings("unused")
 	private String getChildContents(XMLElement xml, String child) {
 		return getChildContents(xml, child, "", false);
 	}
