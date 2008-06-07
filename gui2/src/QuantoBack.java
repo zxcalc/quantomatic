@@ -1,10 +1,10 @@
 import java.io.*;
-import java.util.Map;
+//import java.util.Map;
 
 public class QuantoBack {
 
-	final static String ml_command = "isabelle";
-	final static String local_quanto_heap = "/.quantomatic/quanto";
+	//final static String ml_command = "isabelle";
+	//final static String local_quanto_heap = "/.quantomatic/quanto";
 
 	Process backEnd;
 	BufferedReader from_backEnd;
@@ -13,11 +13,12 @@ public class QuantoBack {
 
 	public QuantoBack() {
 		try {
-			String homedir = System.getProperty("user.home");
-			String heap = homedir + local_quanto_heap;
-			ProcessBuilder pb = new ProcessBuilder(ml_command, "-e", "Controller.init();", heap);
-			Map<String,String> env = pb.environment();
-			env.put("PATH", env.get("PATH") + ":/usr/local/bin");
+			//String homedir = System.getProperty("user.home");
+			//String heap = homedir + local_quanto_heap;
+			ProcessBuilder pb = new ProcessBuilder("quantomatic");
+			
+			//Map<String,String> env = pb.environment();
+			//env.put("PATH", env.get("PATH") + ":/usr/local/bin");
 			backEnd = pb.start();
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
@@ -27,6 +28,7 @@ public class QuantoBack {
 					.getOutputStream()));
 			
 			System.out.println("Initialising QuantoML...");
+			System.out.println(receive());
 			
 			send("H\n"); // ask for back end status
 			/*String ln = from_backEndError.readLine();
@@ -35,8 +37,15 @@ public class QuantoBack {
 				ln = from_backEndError.readLine();
 			}*/
 			
+			// Make sure we eat up any garbage output before the status.
+			String rcv = receive();
+			while (!rcv.contains("Hello from QUANTOMATIC")) {
+				System.out.println(rcv);
+				rcv = receive();
+			}
+			
 			System.out.println("status:");
-			System.out.println(receive()); //  print it out
+			System.out.println(rcv); //  print it out
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -57,8 +66,8 @@ public class QuantoBack {
 		try {
 			String ln = from_backEnd.readLine();
 			while (!ln.equals("stop")) {
-				System.out.println(ln);
 				message.append(ln);
+				message.append('\n');
 				ln = from_backEnd.readLine();
 			}
 		} catch (IOException e) {

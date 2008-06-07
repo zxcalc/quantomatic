@@ -1,4 +1,5 @@
 import java.lang.Math;
+import java.util.ArrayList;
 
 class Vertex extends PLib  {
 	public float destX, destY, x, y;
@@ -8,6 +9,7 @@ class Vertex extends PLib  {
 	public String id;
 	public String col;
 	public String angleexpr;
+	private ArrayList<Edge> edges;
 	QuantoApplet p; // instance of PApplet which has processing tools
 
 	public Vertex(String id, int x, int y) {
@@ -20,6 +22,15 @@ class Vertex extends PLib  {
 		col = "red";
 		lastTick = -1;
 		QuantoApplet.p.play();
+		edges = new ArrayList<Edge>();
+	}
+	
+	public void addEdge(Edge e) {
+		edges.add(e);
+	}
+	
+	public void clearEdgeControlPoints() {
+		for (Edge e : edges) e.clearControlPoints();
 	}
 
 	public void setDest(int x, int y) {

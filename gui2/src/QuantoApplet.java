@@ -1,5 +1,5 @@
 import java.io.BufferedReader;
-import java.io.File;
+//import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -28,6 +28,7 @@ public class QuantoApplet extends PApplet {
 	JFileChooser fileChooser;
 	Graph graph;
 	boolean paused;
+	boolean doSplines=true;
 
 	QuantoBack backend;
 	XMLReader xml;
@@ -59,7 +60,7 @@ public class QuantoApplet extends PApplet {
 		tool = 's';
 
 		// just some testing code here
-		Vertex H = new Vertex("testH", 100, 100);
+		/*Vertex H = new Vertex("testH", 100, 100);
 		H.setColor("H");
 		graph.addVertex(H);
 
@@ -75,7 +76,7 @@ public class QuantoApplet extends PApplet {
 		Vertex green = new Vertex("testG", 200, 200);
 		green.setColor("green");
 		green.setAngle("x");
-		graph.addVertex(green);
+		graph.addVertex(green);*/
 
 		backend = new QuantoBack();
 		xml = new XMLReader();
@@ -119,6 +120,7 @@ public class QuantoApplet extends PApplet {
 		case 'm':
 			if (selectedVertex != null)
 				selectedVertex.setDest(mouseX, mouseY);
+				selectedVertex.clearEdgeControlPoints();
 			break;
 		case 'e':
 			if (selectedVertex != null) {
@@ -138,11 +140,11 @@ public class QuantoApplet extends PApplet {
 	}
 
 	public void keyPressed() {
-		if (tool == key)
+		if (tool == key) {
 			tool = 's';
-		else if (key == 'l')
+		} else if (key == 'l') {
 			layout(graph);
-		else if (key == 'o') {
+		/*} else if (key == 'o') {
 			if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
 				File f = fileChooser.getSelectedFile();
 				String[] contents = loadStrings(f);
@@ -151,6 +153,7 @@ public class QuantoApplet extends PApplet {
 					accum.append(contents[j]);
 				layout(accum.toString(), graph);
 			}
+		*/
 		} else if (key == 'r' // red
 				|| key == 'g' // green
 				|| key == 'h' // hadamard
@@ -171,6 +174,8 @@ public class QuantoApplet extends PApplet {
 			backend.send("quit () ; \n");
 			println("Quitting....");
 			exit();
+		} else if (key=='p') {
+			doSplines = !doSplines;
 		} else if (key == TAB) {
 			if (graph.vertexList.size() > 0) {
 				selectedIndex = (selectedIndex + 1) % graph.vertexList.size();
@@ -179,8 +184,9 @@ public class QuantoApplet extends PApplet {
 				selectedVertex = (Vertex) graph.vertexList.get(selectedIndex);
 				selectedVertex.selected = true;
 			}
-		} else
+		} else {
 			tool = key;
+		}
 		
 		play();
 	}
@@ -219,23 +225,24 @@ public class QuantoApplet extends PApplet {
 		}
 
 		
-		for (Edge e : graph.edgeList) e.display();
-		
 		boolean moved = false;
 		for (Vertex v : graph.vertexList) {
 			moved = moved || v.tick();
 			v.tick();
 			v.display();
 		}
-		if (!moved) {
-			pause();
+		if (moved) {
+			for (Edge e : graph.edgeList) e.display(true);
+		} else {
+			for (Edge e : graph.edgeList) e.display(false);
 		}
 	}
 
 
 	String makeDot(Graph graph) {
 		StringBuffer g = new StringBuffer();
-		g.append("digraph {\n\n");
+		g.append("digraph {\n");
+		
 
 		
 		for (Vertex v : graph.vertexList) {
@@ -250,7 +257,8 @@ public class QuantoApplet extends PApplet {
 			g.append(e.source.id);
 			g.append("->");
 			g.append(e.dest.id);
-			g.append(";\n");
+			//g.append(" [arrowhead=none,headclip=false,tailclip=false];\n");
+			g.append(" [arrowhead=none];\n");
 		}
 
 		g.append("\n}\n");
@@ -305,10 +313,19 @@ public class QuantoApplet extends PApplet {
 				} else if (cmd.equals("edge")) {
 					n1 = (Vertex) graph.vertices.get(tk.nextToken());
 					n2 = (Vertex) graph.vertices.get(tk.nextToken());
+					
 					if (n1 == null || n2 == null) {
 						println("Edge spec given before vertices defined.");
 					} else {
-						graph.newEdge(n1, n2);
+						Edge e = graph.newEdge(n1, n2);
+						int controlCount = Integer.parseInt(tk.nextToken());
+						
+						for (int i=0;i<controlCount;++i) {
+							x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
+							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
+							e.addControlPoint(x,y);
+						}
+						//e.clipControlPoints();
 					}
 				}
 				ln = dotIn.readLine();
