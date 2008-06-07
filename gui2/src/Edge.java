@@ -10,7 +10,7 @@ class Edge extends PLib {
 		this.source = source;
 		this.dest = dest;
 		source.addEdge(this);
-		source.addEdge(this);
+		dest.addEdge(this);
 		this.id = name;
 		controlPoints = new ArrayList<Point>();
 	}
@@ -63,12 +63,11 @@ class Edge extends PLib {
 		cy[size] = cy[size-1] = dest.y - offY;
 		
 		
+		
+		
 		float tx2, tx1, tx0, ty2, ty1, ty0;
 		float x, y, lastX=cx[0], lastY=cy[0];
 		for (int i=1; i<cx.length-2; ++i) {
-			/*p.fill(200);
-			p.stroke(200);
-			p.ellipse(cx[i], cy[i], 3, 3);*/
 			p.fill(0);
 			p.stroke(0);
 			tx2 = 0.5f * cx[i-1] - cx[i] + 0.5f * cx[i+1];
@@ -78,8 +77,12 @@ class Edge extends PLib {
 			ty2 = 0.5f * cy[i-1] - cy[i] + 0.5f * cy[i+1];
 			ty1 = -cy[i-1] + cy[i];
 			ty0 = 0.5f * cy[i-1] + 0.5f * cy[i];
-		  
-			for (float t=0.0f; t<1.0f; t+=0.2f) {
+			
+			/*float divisor = 0.1f * abs(tx2)+abs(ty2);
+			if (divisor<5.0f) divisor = 5.0f;
+			if (divisor>100.0f) divisor = 100.0f;
+			float interval = 1.0f / divisor;*/
+			for (float t=0.0f; t<0.8f; t+=0.15) {
 				x = tx2 * t * t + tx1 * t + tx0;
 				y = ty2 * t * t + ty1 * t + ty0;
 				
@@ -89,6 +92,7 @@ class Edge extends PLib {
 				lastY = y;
 			}
 		}
+		
 	}
 
 	public void display(boolean inMotion) {

@@ -8,12 +8,14 @@ public class Graph extends PLib {
 	public Map<String,Edge> edges;
 	public ArrayList<Edge> edgeList;
 	private java.util.Random rando = new java.util.Random();
+	public Vertex newestVertex;
 
 	public Graph() {
 		vertices = new HashMap<String,Vertex>();
 		vertexList = new ArrayList<Vertex>();
 		edges = new HashMap<String,Edge>();
 		edgeList = new ArrayList<Edge>();
+		newestVertex = null;
 	}
 
 	
@@ -63,14 +65,17 @@ public class Graph extends PLib {
 		p.layout(this);
 	}
 
-	/* this copies the x and y from the old graph to this one. */
-	public Graph reconcileVertexCoords(Graph old) {
+	/* this copies coords and selection info from the old graph to this one. */
+	public Graph reconcileVertices(Graph old) {
 		Vertex w = null;
 		for (Vertex v : vertexList) {
-			w = (Vertex) old.vertices.get(v.id);
+			w = old.vertices.get(v.id);
 			if (w != null) {
 				v.x = w.x;
 				v.y = w.y;
+				v.selected = w.selected;
+			} else {
+				newestVertex = v;
 			}
 		}
 		return this;

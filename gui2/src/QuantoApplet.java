@@ -1,16 +1,12 @@
 import java.io.BufferedReader;
-//import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.util.Iterator;
 import java.util.StringTokenizer;
-
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
-
 import processing.core.*;
-import controlP5.ControlP5;
+
 
 public class QuantoApplet extends PApplet {
 
@@ -18,7 +14,6 @@ public class QuantoApplet extends PApplet {
 	public static final int WIDTH = 800;
 	public static final int HEIGHT = 600;
 
-	ControlP5 gui;
 	PFont helvetica;
 	PFont times;
 
@@ -29,6 +24,8 @@ public class QuantoApplet extends PApplet {
 	Graph graph;
 	boolean paused;
 	boolean doSplines=true;
+	int rectX=-1, rectY=-1;
+	boolean shift=false;
 
 	QuantoBack backend;
 	XMLReader xml;
@@ -40,12 +37,6 @@ public class QuantoApplet extends PApplet {
 		size(WIDTH, HEIGHT, JAVA2D);
 		smooth();
 		frameRate(30);
-		
-		gui = new ControlP5(this);
-		gui.addTextlabel("sel", "SELECT", 10, 10).setColorValue(0xffff0000);
-		gui.addTextlabel("mv", "MOVE", 10, 10).setColorValue(0xffff0000);
-		gui.addTextlabel("ed", "EDGE", 10, 10).setColorValue(0xffff0000);
-
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {
@@ -96,40 +87,63 @@ public class QuantoApplet extends PApplet {
 			paused = false;
 		}
 	}
+	
+	public void mouseReleased() {
+		if (tool=='s' && (mouseX!=rectX || mouseY!=rectY)) {
+			for (Vertex v : graph.vertexList) {
+				v.selected = v.inRect(rectX, rectY, mouseX, mouseY);
+			}
+		}
+		rectX = -1;
+		rectY = -1;
+		play();
+	}
 
 	public void mousePressed() {
 		Vertex n;
-		Iterator<Vertex> it;
 		switch (tool) {
 		case 's':
+			rectX = mouseX;
+			rectY = mouseY;
 			selectedVertex = null;
 			// IMPROVE: use tree of locations for sub-object matching:
 			// get log-time search for finding object from coordinates instead
 			// of linear time.
 			for (int i = 0; i < graph.vertexList.size(); ++i) {
 				n = (Vertex) graph.vertexList.get(i);
-				n.selected = false;
+				if (!shift) n.selected = false;
 				if (n.at(mouseX, mouseY)) {
-					selectedVertex = n;
-					selectedIndex = i;
+					n.selected = !n.selected;
 				}
 			}
-			if (selectedVertex != null)
-				selectedVertex.selected = true;
 			break;
 		case 'm':
-			if (selectedVertex != null)
-				selectedVertex.setDest(mouseX, mouseY);
-				selectedVertex.clearEdgeControlPoints();
+			float xAccum=0, yAccum=0;
+			int vCount=0;
+			for (Vertex v : graph.vertexList) {
+				if (v.selected) {
+					vCount++;
+					xAccum += v.x;
+					yAccum += v.y;
+				}
+			}
+			if (vCount > 0) {
+				xAccum /= (float)vCount;
+				yAccum /= (float)vCount;
+				for (Vertex v : graph.vertexList) {
+					if (v.selected) {
+						v.clearEdgeControlPoints();
+						v.setDest((int)(v.x+mouseX-xAccum), (int)(v.y+mouseY-yAccum));
+					}
+				}
+			}
 			break;
 		case 'e':
-			if (selectedVertex != null) {
-				it = graph.vertices.values().iterator();
-				while (it.hasNext()) {
-					n = (Vertex) it.next();
-					if (n.at(mouseX, mouseY)) {
-						modifyGraph("e " + selectedVertex.id + " " + n.id
-								+ "\n");
+			for (Vertex v : graph.vertexList) {
+				if (v.at(mouseX, mouseY)) {
+					for (Vertex w : graph.vertexList) {
+						if (w.selected)
+							modifyGraph("e " + w.id + " " + v.id + "\n");
 					}
 				}
 			}
@@ -140,55 +154,63 @@ public class QuantoApplet extends PApplet {
 	}
 
 	public void keyPressed() {
-		if (tool == key) {
+		if (key == tool) {
 			tool = 's';
-		} else if (key == 'l') {
+			play();
+			return;
+		}
+		
+		switch (key) {
+		case 'l':
 			layout(graph);
-		/*} else if (key == 'o') {
-			if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-				File f = fileChooser.getSelectedFile();
-				String[] contents = loadStrings(f);
-				StringBuffer accum = new StringBuffer();
-				for (int j = 0; j < contents.length; ++j)
-					accum.append(contents[j]);
-				layout(accum.toString(), graph);
-			}
-		*/
-		} else if (key == 'r' // red
-				|| key == 'g' // green
-				|| key == 'h' // hadamard
-				|| key == 'b' // boundary
-				|| key == 'n' // new graph
-				|| key == 'u' // undo
-		) {
-			/* all the commands the back end knows how to do we just pass on */
+			break;
+		case 'r':
+		case 'g':
+		case 'h':
+		case 'b': /* add new nodes */
 			modifyGraph(key + "");
-
-		} else if (key == 'd') { // delete node
-			if (selectedVertex != null)
-				modifyGraph("d " + selectedVertex.id);
-		} else if (key == 'q') {
+			if (graph.newestVertex!=null) {
+				Vertex w = graph.newestVertex;
+				for (Vertex v : graph.vertexList) {
+					if (v.selected) modifyGraph("e " + v.id + " " + w.id + "\n");
+				}
+			}
+			break;
+		case 'n':
+		case 'u': /* other back-end commands, just pass them on */
+			modifyGraph(key + "");
+			break;
+		case 'd':
+			for (Vertex v : graph.vertexList) {
+				if (v.selected) modifyGraph("d " + selectedVertex.id);
+			}
+			break;
+		case 'q':
 			println("Shutting down quantoML");
 			backend.send("Q\n");
 			println(backend.receive());
 			backend.send("quit () ; \n");
 			println("Quitting....");
 			exit();
-		} else if (key=='p') {
+			break;
+		case 'p':
 			doSplines = !doSplines;
-		} else if (key == TAB) {
-			if (graph.vertexList.size() > 0) {
-				selectedIndex = (selectedIndex + 1) % graph.vertexList.size();
-				if (selectedVertex != null)
-					selectedVertex.selected = false;
-				selectedVertex = (Vertex) graph.vertexList.get(selectedIndex);
-				selectedVertex.selected = true;
-			}
-		} else {
+			break;
+		case CODED:
+			if (keyCode == SHIFT) shift = true;
+			break;
+		case 's':
+		case 'm':
+		case 'e': /* these are tools that require mouse input too */
 			tool = key;
+			break;
 		}
 		
 		play();
+	}
+	
+	public void keyReleased() {
+		shift = false;
 	}
 
 	void modifyGraph(String cmd) {
@@ -198,7 +220,7 @@ public class QuantoApplet extends PApplet {
 		// then rebuild it via the XML parser.
 		backend.send("D\n");
 		Graph updated = xml.parseGraph(backend.receive());
-		updated.reconcileVertexCoords(graph);
+		updated.reconcileVertices(graph);
 		this.graph = updated;
 		graph.layoutGraph();
 		
@@ -207,20 +229,17 @@ public class QuantoApplet extends PApplet {
 
 	public void draw() {
 		background(255);
-
-		gui.controller("mv").hide();
-		gui.controller("sel").hide();
-		gui.controller("ed").hide();
-
+		textFont(helvetica);
+		fill(255, 0, 0);
 		switch (tool) {
 		case 's':
-			gui.controller("sel").show();
+			text("SELECT", 10, 20);
 			break;
 		case 'm':
-			gui.controller("mv").show();
+			text("MOVE", 10, 20);
 			break;
 		case 'e':
-			gui.controller("ed").show();
+			text("EDGE", 10, 20);
 			break;
 		}
 
@@ -231,11 +250,21 @@ public class QuantoApplet extends PApplet {
 			v.tick();
 			v.display();
 		}
+		
 		if (moved) {
 			for (Edge e : graph.edgeList) e.display(true);
 		} else {
 			for (Edge e : graph.edgeList) e.display(false);
 		}
+		
+		if (rectX!=-1) {
+			moved = true;
+			fill(100,100,255,30);
+			stroke(100,100,255);
+			rect(rectX, rectY, mouseX-rectX, mouseY-rectY);
+		}
+		
+		if (!moved) pause();
 	}
 
 
@@ -325,7 +354,6 @@ public class QuantoApplet extends PApplet {
 							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
 							e.addControlPoint(x,y);
 						}
-						//e.clipControlPoints();
 					}
 				}
 				ln = dotIn.readLine();

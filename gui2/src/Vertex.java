@@ -88,7 +88,7 @@ class Vertex extends PLib  {
 		p.ellipse(x, y, 15, 15);
 		if (angleexpr != null) {
 			p.textFont(p.times);
-			p.fill(0, 100, 0, 255);
+			p.fill(0, 100, 0);
 			p.text(angleexpr, x + 21, y + 6, 30, 10);
 		}
 	}
@@ -111,6 +111,12 @@ class Vertex extends PLib  {
 		p.textFont(p.helvetica);
 		p.fill(0, 0, 0, 255);
 		p.text("H", x - 5, y + 5);
+	}
+	
+	public boolean inRect(float x1, float y1, float x2, float y2) {
+		boolean inX = (x1<=x && x2>=x) || (x1>=x && x2<=x);
+		boolean inY = (y1<=y && y2>=y) || (y1>=y && y2<=y);
+		return inX && inY;
 	}
 
 	public void display() {
