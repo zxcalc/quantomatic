@@ -6,7 +6,7 @@ QUANTO_DIR=$(HOME)/.quantomatic
 QUANTO_BIN=quantomatic
 POLYML=poly
 # POLYML_LIB=/home/ldixon/local/polyml-5.2.0/lib
-ISAPLIB_HEAP=./isaplib/heaps/isalib.polyml-heap
+ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
 QUANTO_HEAP=$(QUANTO_DIR)/quanto.polyml-heap
 
 default: bin
@@ -14,7 +14,7 @@ default: bin
 ################
 
 $(ISAPLIB_HEAP):
-	@cd ./isaplib; make polyml
+	@cd ./isaplib; make
 
 # make polyml heap
 $(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
