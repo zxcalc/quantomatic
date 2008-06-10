@@ -24,8 +24,8 @@ $(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 
 heap: $(QUANTO_HEAP)
 
-bin/$(QUANTO_BIN): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "ROOT.ML"; PolyML.export ("bin/quantomatic", (fn () => (Controller.init(); ()))); quit();' | $(POLYML)
+bin/$(QUANTO_BIN): $(QUANTO_HEAP)
+	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)"; PolyML.export ("bin/quantomatic", (fn () => (Controller.init(); ()))); quit();' | $(POLYML)
 #	cc -o bin/$(QUANTO_BIN) bin/$(QUANTO_BIN).o -lpolymain -lpolyml
 	cc -o bin/$(QUANTO_BIN) bin/$(QUANTO_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "made quanto binary: $(QUANTO_BIN)"
@@ -41,6 +41,8 @@ bin: bin/$(QUANTO_BIN)
 quanto-ml-shell: $(QUANTO_HEAP)
 	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)";' > bin/loadstate.ML
 	cat bin/loadstate.ML - | poly
+
+run: quanto-ml-shell
 
 #clean_heap_%: 
 #	@if test -e %; then echo "rm -f %"; echo "Removed heap: %"; else echo "No heap % to be remove, already clean."; fi
