@@ -2,12 +2,11 @@
 
 ML_SRC_FILES = $(shell ls *.ML)
 
-QUANTO_DIR=$(HOME)/.quantomatic
-QUANTO_BIN=quantomatic
+THE_BIN=quantomatic
 POLYML=poly
 # POLYML_LIB=/home/ldixon/local/polyml-5.2.0/lib
 ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
-QUANTO_HEAP=$(QUANTO_DIR)/quanto.polyml-heap
+THE_POLY_HEAP=quanto.polyml-heap
 
 default: bin
 
@@ -17,38 +16,29 @@ $(ISAPLIB_HEAP):
 	@cd ./isaplib; make
 
 # make polyml heap
-$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	@if test -e $(QUANTO_DIR); then echo "Quantomatic dir: $(QUANTO_DIR) exists"; else mkdir $(QUANTO_DIR); echo "Quantomatic dir made: $(QUANTO_DIR)"; fi
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "ROOT.ML"; PolyML.SaveState.saveState "$(QUANTO_HEAP)"; quit();' | $(POLYML)
-	@echo "Built polyml heap: $(QUANTO_HEAP)"
+heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "ROOT.ML"; PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"; quit();' | $(POLYML)
+	@echo "Built polyml heap: heaps/$(THE_POLY_HEAP)"
 
-heap: $(QUANTO_HEAP)
+heap: heaps/$(THE_POLY_HEAP)
 
-bin/$(QUANTO_BIN): $(QUANTO_HEAP)
-	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)"; PolyML.export ("bin/quantomatic", (fn () => (Controller.init(); ()))); quit();' | $(POLYML)
-#	cc -o bin/$(QUANTO_BIN) bin/$(QUANTO_BIN).o -lpolymain -lpolyml
-	cc -o bin/$(QUANTO_BIN) bin/$(QUANTO_BIN).o -L${POLYLIB} -lpolymain -lpolyml
-	@echo "made quanto binary: $(QUANTO_BIN)"
+bin/$(THE_BIN): heaps/$(THE_POLY_HEAP)
+	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; PolyML.export ("bin/$(THE_BIN)", (fn () => (Controller.init(); ()))); quit();' | $(POLYML)
+	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
+	@echo "Success! made binary: $(THE_BIN)"
 
-bin: bin/$(QUANTO_BIN)
-
-#install: polyml-bin
-#	@if test -e $(QUANTO_DIR); then echo "Quantomatic dir: $(QUANTO_DIR) exists"; else mkdir $(QUANTO_DIR); echo "Quantomatic dir made: $(QUANTO_DIR)"; fi
-#	cp bin/$(QUANTO_BIN) $(QUANTO_DIR)/
-#	cp bin/run-$(QUANTO_BIN) $(QUANTO_DIR)/
+bin: bin/$(THE_BIN)
 
 # startup an ML shell using the quanto heap
-quanto-ml-shell: $(QUANTO_HEAP)
-	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)";' > bin/loadstate.ML
-	cat bin/loadstate.ML - | poly
+ml-shell: heaps/$(THE_POLY_HEAP)
+	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)";' > heaps/run-$(THE_POLY_HEAP).ML
+	cat heaps/run-$(THE_POLY_HEAP).ML - | poly
 
-run: quanto-ml-shell
+run: ml-shell
 
-#clean_heap_%: 
-#	@if test -e %; then echo "rm -f %"; echo "Removed heap: %"; else echo "No heap % to be remove, already clean."; fi
-
-# clean: clean_heap_$(QUANTO_HEAP) clean_heap_$(ISAPLIB_HEAP)
+# 
 clean:
+	rm -f heaps/*.ML heaps/*.polyml-heap
 	rm -f bin/*.o
-	rm -f bin/quantomatic
+	rm -f bin/$(THE_BIN)
 	cd isaplib; make clean
