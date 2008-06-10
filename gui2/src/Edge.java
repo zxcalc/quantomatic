@@ -20,9 +20,9 @@ class Edge extends PLib {
 	}
 	
 	public void addControlPoint(int x, int y) {
-		Point pt = new Point(x, y);
-		if (controlPoints.size()==0 || !pt.equals(controlPoints.get(controlPoints.size()-1)))
-			controlPoints.add(new Point(x,y));
+		//Point pt = new Point(x, y);
+		//if (controlPoints.size()==0 || !pt.equals(controlPoints.get(controlPoints.size()-1)))
+		controlPoints.add(new Point(x,y));
 	}
 	
 	public void clearControlPoints() {
@@ -33,9 +33,42 @@ class Edge extends PLib {
 		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 		
 		int size = controlPoints.size();
-		float[] cx = new float[size+2];
-		float[] cy = new float[size+2];
-		float dx, dy, len, offX, offY;
+		float[] cx = new float[size];
+		float[] cy = new float[size];
+		
+		for (int i=0;i<size;++i) {
+			cx[i] = controlPoints.get(i).x;
+			cy[i] = controlPoints.get(i).y;
+		}
+		
+		p.noFill();
+		p.beginShape();
+		p.vertex(cx[0],cy[0]);
+		float x, y, c1x, c1y, c2x, c2y, tight=0.8f;
+		for (int i=0;i<size-1;++i) {
+			x = 0.5f*(cx[i]+cx[i+1]);
+			y = 0.5f*(cy[i]+cy[i+1]);
+			
+			if (abs(cx[i]-cx[i+1])<5.0f && abs(cy[i]-cy[i+1])<5.0f) {
+				p.vertex(x, y);
+			} else {
+				c1x = x + tight*(cx[i]-x);
+				c1y = y + tight*(cy[i]-y);
+				c2x = x + tight*(cx[i+1]-x);
+				c2y = y + tight*(cy[i+1]-y);
+				/*p.stroke(0,0,255);
+				p.ellipse(c1x,c1y, 2, 2);
+				p.ellipse(c2x,c2y, 2, 2);
+				p.stroke(255,0,0);
+				p.ellipse(0.5f*(cx[i]+cx[i+1]), 0.5f*(cy[i]+cy[i+1]), 3, 3);*/
+				p.bezierVertex(c1x,c1y,c2x,c2y,x,y);
+			}
+		}
+		p.vertex(cx[size-1], cy[size-1]);
+		p.stroke(0);
+		p.endShape();
+		p.fill(0);
+		/*float dx, dy, len, offX, offY;
 		Point second = controlPoints.get(1);
 		Point secondToLast = controlPoints.get(controlPoints.size()-2);
 		
@@ -50,8 +83,11 @@ class Edge extends PLib {
 		offX = 8.0f * (dx / len);
 		offY = 8.0f * (dy / len);
 		
-		cx[0] = cx[1] = source.x + offX;
-		cy[0] = cy[1] = source.y + offY;
+		// duplicate the first point
+		cx[0] = source.x + offX;
+		cx[1] = cx[0];
+		cy[0] = source.y + offY;
+		cy[1] = cy[0];
 		
 		dx = dest.x - (float)secondToLast.x;
 		dy = dest.y - (float)secondToLast.y;
@@ -59,12 +95,47 @@ class Edge extends PLib {
 		offX = 8.0f * (dx / len);
 		offY = 8.0f * (dy / len);
 		
-		cx[size] = cx[size-1] = dest.x - offX;
-		cy[size] = cy[size-1] = dest.y - offY;
+		// duplicate the last point
+		cx[size+1] = dest.x - offX;
+		cx[size] = cx[size+1];
+		cx[size-1] = cx[size];
+		cy[size+1] = dest.y - offY;
+		cy[size] = cy[size+1];
+		cy[size-1] = cy[size+1];
+		*/
 		
 		
+		// CUBIC B-SPLINE
+		/*
+		float tx3, tx2, tx1, tx0, ty3, ty2, ty1, ty0;
+		float x, y, lastX=cx[0], lastY=cy[0];
+		for (int i=1; i<cx.length-2; ++i) {
+		  p.ellipse(cx[i], cy[i], 3, 3);
+		  tx3 = 0.1666666667f * (-cx[i-1] + 3f * cx[i] - 3f * cx[i+1] + cx[i+2]);
+		  tx2 = 0.1666666667f * (3f * cx[i-1] - 6f * cx[i] + 3f * cx[i+1]);
+		  tx1 = 0.1666666667f * (-3f * cx[i-1] + 3f * cx[i+1]);
+		  tx0 = 0.1666666667f * (cx[i-1] + 4f * cx[i] + cx[i+1]);
+		  
+		  
+		  ty3 = 0.1666666667f * (-cy[i-1] + 3f * cy[i] - 3f * cy[i+1] +  cy[i+2]);
+		  ty2 = 0.1666666667f * (3f * cy[i-1] - 6f * cy[i] + 3f * cy[i+1]);
+		  ty1 = 0.1666666667f * (-3f * cy[i-1] + 3f * cy[i+1]);
+		  ty0 = 0.1666666667f * (cy[i-1] + 4f * cy[i] + cy[i+1]);
+		  
+		  for (float t=0.0f; t<=1.0f; t+=0.05f) {
+		    x = tx3 * t * t * t + tx2 * t * t + tx1 * t + tx0;
+		    y = ty3 * t * t * t + ty2 * t * t + ty1 * t + ty0;
+		    
+		    p.line(lastX, lastY, x, y);
+		    
+		    lastX = x;
+		    lastY = y;
+		  }
+		}
+		*/
 		
-		
+		// QUADRATIC B-SPLINE
+		/*
 		float tx2, tx1, tx0, ty2, ty1, ty0;
 		float x, y, lastX=cx[0], lastY=cy[0];
 		for (int i=1; i<cx.length-2; ++i) {
@@ -78,20 +149,17 @@ class Edge extends PLib {
 			ty1 = -cy[i-1] + cy[i];
 			ty0 = 0.5f * cy[i-1] + 0.5f * cy[i];
 			
-			/*float divisor = 0.1f * abs(tx2)+abs(ty2);
-			if (divisor<5.0f) divisor = 5.0f;
-			if (divisor>100.0f) divisor = 100.0f;
-			float interval = 1.0f / divisor;*/
-			for (float t=0.0f; t<0.8f; t+=0.15) {
+			for (float t=0.0f; t<1.0f; t+=0.1) {
 				x = tx2 * t * t + tx1 * t + tx0;
 				y = ty2 * t * t + ty1 * t + ty0;
 				
-				p.line(lastX, lastY, x, y);
+				p.line(floor(lastX), floor(lastY), floor(x), floor(y));
 		    
 				lastX = x;
 				lastY = y;
 			}
-		}
+		}*/
+		
 		
 	}
 

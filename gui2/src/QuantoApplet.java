@@ -251,10 +251,12 @@ public class QuantoApplet extends PApplet {
 			v.display();
 		}
 		
-		if (moved) {
-			for (Edge e : graph.edgeList) e.display(true);
-		} else {
-			for (Edge e : graph.edgeList) e.display(false);
+		synchronized(graph.edgeList) {
+			if (moved) {
+				for (Edge e : graph.edgeList) e.display(true);
+			} else {
+				for (Edge e : graph.edgeList) e.display(false);
+			}
 		}
 		
 		if (rectX!=-1) {
@@ -275,11 +277,10 @@ public class QuantoApplet extends PApplet {
 
 		
 		for (Vertex v : graph.vertexList) {
-			g.append("{rank=same; ");
 			g.append(v.id);
 			g.append(" [color=\"");
 			g.append(v.col);
-			g.append("\"];}\n");
+			g.append("\",label=\"\",width=0.35,height=0.35,shape=circle];\n");
 		}
 
 		for (Edge e : graph.edgeList) {

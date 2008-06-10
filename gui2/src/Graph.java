@@ -1,12 +1,10 @@
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Graph extends PLib {
 	public Map<String,Vertex> vertices;
 	public ArrayList<Vertex> vertexList;
 	public Map<String,Edge> edges;
-	public ArrayList<Edge> edgeList;
+	public List<Edge> edgeList;
 	private java.util.Random rando = new java.util.Random();
 	public Vertex newestVertex;
 
@@ -14,7 +12,7 @@ public class Graph extends PLib {
 		vertices = new HashMap<String,Vertex>();
 		vertexList = new ArrayList<Vertex>();
 		edges = new HashMap<String,Edge>();
-		edgeList = new ArrayList<Edge>();
+		edgeList = Collections.synchronizedList(new ArrayList<Edge>());
 		newestVertex = null;
 	}
 
