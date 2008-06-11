@@ -37,7 +37,7 @@ run: ml-shell
 
 # 
 clean:
-	rm -f heaps/*.ML heaps/*.polyml-heap
+	rm -f heaps/*.polyml-heap
 	rm -f bin/*.o
 	rm -f bin/$(THE_BIN)
 	cd isaplib; make clean
