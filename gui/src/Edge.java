@@ -44,25 +44,13 @@ class Edge extends PLib {
 		p.noFill();
 		p.beginShape();
 		p.vertex(cx[0],cy[0]);
-		float x, y, c1x, c1y, c2x, c2y, tight=0.8f;
+		int x, y, c1x, c1y, c2x, c2y;
+		float tight=1.0f;
 		for (int i=0;i<size-1;++i) {
-			x = 0.5f*(cx[i]+cx[i+1]);
-			y = 0.5f*(cy[i]+cy[i+1]);
+			x = floor(0.5f*(cx[i]+cx[i+1]));
+			y = floor(0.5f*(cy[i]+cy[i+1]));
 			
-			if (abs(cx[i]-cx[i+1])<5.0f && abs(cy[i]-cy[i+1])<5.0f) {
-				p.vertex(x, y);
-			} else {
-				c1x = x + tight*(cx[i]-x);
-				c1y = y + tight*(cy[i]-y);
-				c2x = x + tight*(cx[i+1]-x);
-				c2y = y + tight*(cy[i+1]-y);
-				/*p.stroke(0,0,255);
-				p.ellipse(c1x,c1y, 2, 2);
-				p.ellipse(c2x,c2y, 2, 2);
-				p.stroke(255,0,0);
-				p.ellipse(0.5f*(cx[i]+cx[i+1]), 0.5f*(cy[i]+cy[i+1]), 3, 3);*/
-				p.bezierVertex(c1x,c1y,c2x,c2y,x,y);
-			}
+			p.curveVertex(x, y);
 		}
 		p.vertex(cx[size-1], cy[size-1]);
 		p.stroke(0);
