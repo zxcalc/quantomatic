@@ -31,8 +31,7 @@ bin: bin/$(THE_BIN)
 
 # startup an ML shell using the quanto heap
 ml-shell: heaps/$(THE_POLY_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)";' > heaps/run-$(THE_POLY_HEAP).ML
-	cat heaps/run-$(THE_POLY_HEAP).ML - | poly
+	./bin/polyml-quanto
 
 run: ml-shell
 
