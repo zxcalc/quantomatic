@@ -7,6 +7,7 @@ import javax.swing.JFileChooser;
 import javax.swing.UIManager;
 import processing.core.*;
 import processing.pdf.*;
+import processing.video.*;
 
 
 public class QuantoApplet extends PApplet {
@@ -27,16 +28,18 @@ public class QuantoApplet extends PApplet {
 	int rectX=-1, rectY=-1;
 	boolean shift=false;
 
-	boolean saveNextFrame = false;
+	String outDirName = "";
+	JFileChooser fileChooser;	
+	
+	String nextPDFFileName = "";
 	int nextPDFFile = 1;
-	String pdfDirName = "";
-	JFileChooser fileChooser;
+	boolean saveNextFrame = false;
+	
+	String nextQTFileName = "";
+	int nextQTFile = 1;
+	boolean recordingVideo = false;
+	MovieMaker mm;  // to be initialised when recording starts
 
-	String getNextPDFFileName() { 
-		return pdfDirName + "/quanto-frame-" + (nextPDFFile++) + ".pdf";		
-	}
-	
-	
 	QuantoBack backend;
 	XMLReader xml;
 	static QuantoApplet p; // the top level applet 
@@ -206,15 +209,12 @@ public class QuantoApplet extends PApplet {
 		case 'p':
 			doSplines = !doSplines;
 			break;
-		case 'f':  // we're going to dump the screen to PDF
-			fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-			fileChooser.setDialogTitle("Choose the dump directory");
-			fileChooser.setMultiSelectionEnabled(false);
-			int retVal = fileChooser.showOpenDialog(this);
-			if(retVal == JFileChooser.APPROVE_OPTION){
-				saveNextFrame = true;
-				pdfDirName = fileChooser.getSelectedFile().getAbsolutePath();
-			}
+		case 'c':  // "capture" the screen to PDF
+			startSaveNextFrame();
+			break;		
+		case 'v': // v is for video
+			if (recordingVideo) stopRecordVideo();
+			else startRecordVideo();
 			break;
 		case CODED:
 			if (keyCode == SHIFT) shift = true;
@@ -224,6 +224,7 @@ public class QuantoApplet extends PApplet {
 		case 'e': /* these are tools that require mouse input too */
 			tool = key;
 			break;
+
 		}
 		
 		play();
@@ -248,6 +249,7 @@ public class QuantoApplet extends PApplet {
 	}
 
 	public void draw() {
+		
 		background(255);
 		textFont(helvetica);
 		fill(255, 0, 0);
@@ -265,8 +267,8 @@ public class QuantoApplet extends PApplet {
 
 		//	if we are going to save this frame start recording after the 
 		// interface fluff has been drawn
-		if ( saveNextFrame ) {
-			p.beginRecord(p.PDF, getNextPDFFileName());
+		if (saveNextFrame) {
+			doSaveNextFrame();
 		}
 		
 		boolean moved = false;
@@ -293,11 +295,11 @@ public class QuantoApplet extends PApplet {
 
 		// stop recording the frame now
 		if(saveNextFrame) {
-			p.endRecord();
-			saveNextFrame = false;
+			stopSaveNextFrame();
 		}
 		
 		if (!moved) pause();
+		if(recordingVideo) doRecordVideo();
 		
 	}
 
@@ -396,5 +398,55 @@ public class QuantoApplet extends PApplet {
 		}
 		println("----NO MORE READING DOT----");
 	}
+	
+	/* functions for doing PDF and QuickTime output */
+	
+	boolean chooseOutputDir() { 
+		fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		fileChooser.setDialogTitle("Choose the output directory");
+		fileChooser.setMultiSelectionEnabled(false);
+		int retVal = fileChooser.showOpenDialog(this);
+		if(retVal == JFileChooser.APPROVE_OPTION){
+			outDirName = fileChooser.getSelectedFile().getAbsolutePath();
+			return true;
+		}
+		else return false;
+		
+	}
+		
+	void startSaveNextFrame() {
+		if(outDirName != "" || chooseOutputDir() ) {
+			nextPDFFileName = outDirName + "/quanto-frame-" + (nextPDFFile++) + ".pdf";
+			saveNextFrame = true;
+		}
+	}
+	
+	void doSaveNextFrame() {
+		p.beginRecord(p.PDF, nextPDFFileName);
+	}
+	
+	void stopSaveNextFrame() {
+		p.endRecord();
+		saveNextFrame = false;	
+	}
+
+	void startRecordVideo() {
+		if(outDirName != "" || chooseOutputDir() ) {
+			nextQTFileName = outDirName + "/quanto-vid-" + (nextQTFile++) + ".mov";
+			recordingVideo = true;
+			mm = new MovieMaker(this, width,height,nextQTFileName);
+		}
+	}
+	
+	void doRecordVideo() {
+		mm.addFrame();
+	}
+
+	void stopRecordVideo() {
+		recordingVideo = false;
+		mm.finish();
+		mm = null;
+	}
+	
 
 }
