@@ -6,6 +6,7 @@ import java.util.StringTokenizer;
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
 import processing.core.*;
+import processing.pdf.*;
 
 
 public class QuantoApplet extends PApplet {
@@ -20,13 +21,22 @@ public class QuantoApplet extends PApplet {
 	Vertex selectedVertex = null;
 	int selectedIndex = -1;
 	char tool;
-	JFileChooser fileChooser;
 	Graph graph;
 	boolean paused;
 	boolean doSplines=true;
 	int rectX=-1, rectY=-1;
 	boolean shift=false;
 
+	boolean saveNextFrame = false;
+	int nextPDFFile = 1;
+	String pdfDirName = "";
+	JFileChooser fileChooser;
+
+	String getNextPDFFileName() { 
+		return pdfDirName + "/quanto-frame-" + (nextPDFFile++) + ".pdf";		
+	}
+	
+	
 	QuantoBack backend;
 	XMLReader xml;
 	static QuantoApplet p; // the top level applet 
@@ -196,6 +206,16 @@ public class QuantoApplet extends PApplet {
 		case 'p':
 			doSplines = !doSplines;
 			break;
+		case 'f':  // we're going to dump the screen to PDF
+			fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			fileChooser.setDialogTitle("Choose the dump directory");
+			fileChooser.setMultiSelectionEnabled(false);
+			int retVal = fileChooser.showOpenDialog(this);
+			if(retVal == JFileChooser.APPROVE_OPTION){
+				saveNextFrame = true;
+				pdfDirName = fileChooser.getSelectedFile().getAbsolutePath();
+			}
+			break;
 		case CODED:
 			if (keyCode == SHIFT) shift = true;
 			break;
@@ -243,6 +263,11 @@ public class QuantoApplet extends PApplet {
 			break;
 		}
 
+		//	if we are going to save this frame start recording after the 
+		// interface fluff has been drawn
+		if ( saveNextFrame ) {
+			p.beginRecord(p.PDF, getNextPDFFileName());
+		}
 		
 		boolean moved = false;
 		for (Vertex v : graph.vertexList) {
@@ -265,8 +290,15 @@ public class QuantoApplet extends PApplet {
 			stroke(100,100,255);
 			rect(rectX, rectY, mouseX-rectX, mouseY-rectY);
 		}
+
+		// stop recording the frame now
+		if(saveNextFrame) {
+			p.endRecord();
+			saveNextFrame = false;
+		}
 		
 		if (!moved) pause();
+		
 	}
 
 
