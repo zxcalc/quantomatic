@@ -40,4 +40,6 @@ clean:
 	rm -f heaps/*.polyml-heap
 	rm -f bin/*.o
 	rm -f bin/$(THE_BIN)
+
+veryclean: clean
 	cd isaplib; make clean
