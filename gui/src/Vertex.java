@@ -1,7 +1,7 @@
 import java.lang.Math;
 import java.util.ArrayList;
 
-class Vertex extends PLib  {
+class Vertex extends PLib implements Comparable<Vertex>  {
 	public float destX, destY, x, y;
 	public float speed;
 	public boolean selected;
@@ -159,5 +159,12 @@ class Vertex extends PLib  {
 			return true;
 		else
 			return false;
+	}
+	
+	// a lexicographic order on y, x (with a minor fudge factor)
+	public int compareTo(Vertex v) {
+		if (v.x==x && v.y==y) return 0;
+		else if (abs(v.y-y)<4) return (v.x<x) ? 1 : -1;
+		else return (v.y<y) ? -1 : 1;
 	}
 }

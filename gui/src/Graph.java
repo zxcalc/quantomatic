@@ -2,7 +2,7 @@ import java.util.*;
 
 public class Graph extends PLib {
 	public Map<String,Vertex> vertices;
-	public ArrayList<Vertex> vertexList;
+	public List<Vertex> vertexList;
 	public Map<String,Edge> edges;
 	public List<Edge> edgeList;
 	private java.util.Random rando = new java.util.Random();
@@ -10,7 +10,7 @@ public class Graph extends PLib {
 
 	public Graph() {
 		vertices = new HashMap<String,Vertex>();
-		vertexList = new ArrayList<Vertex>();
+		vertexList = Collections.synchronizedList(new ArrayList<Vertex>());
 		edges = new HashMap<String,Edge>();
 		edgeList = Collections.synchronizedList(new ArrayList<Edge>());
 		newestVertex = null;
@@ -77,6 +77,10 @@ public class Graph extends PLib {
 			}
 		}
 		return this;
+	}
+	
+	public void sortVertices() {
+		Collections.sort(vertexList);
 	}
 
 }

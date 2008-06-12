@@ -33,24 +33,28 @@ class Edge extends PLib {
 		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 		
 		int size = controlPoints.size();
-		float[] cx = new float[size];
-		float[] cy = new float[size];
+		float[] cx = new float[size+2];
+		float[] cy = new float[size+2];
 		
 		for (int i=0;i<size;++i) {
 			cx[i] = controlPoints.get(i).x;
 			cy[i] = controlPoints.get(i).y;
 		}
+		cx[size] = controlPoints.get(size-1).x;
+		cy[size] = controlPoints.get(size-1).y;
+		cx[size+1] = cx[size];
+		cy[size+1] = cy[size];
 		
-		p.noFill();
+		/*p.noFill();
 		p.beginShape();
 		p.vertex(cx[0],cy[0]);
-		int x, y, c1x, c1y, c2x, c2y;
-		float tight=1.0f;
+		int x, y; //, c1x, c1y, c2x, c2y;
+		//float tight=1.0f;
 		for (int i=0;i<size-1;++i) {
 			x = floor(0.5f*(cx[i]+cx[i+1]));
 			y = floor(0.5f*(cy[i]+cy[i+1]));
-			
-			p.curveVertex(x, y);
+			p.vertex(x,y);
+			//p.curveVertex(x, y);
 		}
 		p.vertex(cx[size-1], cy[size-1]);
 		p.stroke(0);
@@ -94,11 +98,10 @@ class Edge extends PLib {
 		
 		
 		// CUBIC B-SPLINE
-		/*
 		float tx3, tx2, tx1, tx0, ty3, ty2, ty1, ty0;
 		float x, y, lastX=cx[0], lastY=cy[0];
 		for (int i=1; i<cx.length-2; ++i) {
-		  p.ellipse(cx[i], cy[i], 3, 3);
+		  //p.ellipse(cx[i], cy[i], 3, 3);
 		  tx3 = 0.1666666667f * (-cx[i-1] + 3f * cx[i] - 3f * cx[i+1] + cx[i+2]);
 		  tx2 = 0.1666666667f * (3f * cx[i-1] - 6f * cx[i] + 3f * cx[i+1]);
 		  tx1 = 0.1666666667f * (-3f * cx[i-1] + 3f * cx[i+1]);
@@ -120,7 +123,7 @@ class Edge extends PLib {
 		    lastY = y;
 		  }
 		}
-		*/
+		
 		
 		// QUADRATIC B-SPLINE
 		/*

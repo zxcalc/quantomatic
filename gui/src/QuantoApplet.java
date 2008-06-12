@@ -48,6 +48,7 @@ public class QuantoApplet extends PApplet {
 		p = this;
 		paused = false;
 		size(WIDTH, HEIGHT, JAVA2D);
+		
 		smooth();
 		frameRate(30);
 		try {
@@ -219,6 +220,26 @@ public class QuantoApplet extends PApplet {
 		case CODED:
 			if (keyCode == SHIFT) shift = true;
 			break;
+		case TAB:
+			synchronized(graph.vertexList) {
+				if (graph.vertexList.size()>0) {
+					graph.sortVertices();
+					Vertex sel = null;
+					boolean pickNext = false;
+					for (Vertex v : graph.vertexList) {
+						if (v.selected) {
+							pickNext = true;
+						} else if (pickNext) {
+							sel = v;
+							pickNext = false;
+						}
+						v.selected = false;
+					}
+					if (sel==null) sel = graph.vertexList.get(0);
+					sel.selected = true;
+				}
+			}
+			break;
 		case 's':
 		case 'm':
 		case 'e': /* these are tools that require mouse input too */
@@ -272,10 +293,13 @@ public class QuantoApplet extends PApplet {
 		}
 		
 		boolean moved = false;
-		for (Vertex v : graph.vertexList) {
-			moved = moved || v.tick();
-			v.tick();
-			v.display();
+		
+		synchronized(graph.vertexList) {
+			for (Vertex v : graph.vertexList) {
+				moved = moved || v.tick();
+				v.tick();
+				v.display();
+			}
 		}
 		
 		synchronized(graph.edgeList) {
@@ -364,8 +388,8 @@ public class QuantoApplet extends PApplet {
 						n = new Vertex(name, 50, 50);
 						graph.addVertex(n);
 					}
-					x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
-					y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
+					x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
+					y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
 
 					tk.nextToken();
 					tk.nextToken();
@@ -385,8 +409,8 @@ public class QuantoApplet extends PApplet {
 						int controlCount = Integer.parseInt(tk.nextToken());
 						
 						for (int i=0;i<controlCount;++i) {
-							x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
-							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 20;
+							x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
+							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
 							e.addControlPoint(x,y);
 						}
 					}
@@ -434,7 +458,15 @@ public class QuantoApplet extends PApplet {
 		if(outDirName != "" || chooseOutputDir() ) {
 			nextQTFileName = outDirName + "/quanto-vid-" + (nextQTFile++) + ".mov";
 			recordingVideo = true;
-			mm = new MovieMaker(this, width,height,nextQTFileName);
+			mm = new MovieMaker(
+					this,
+					width,
+					height,
+					nextQTFileName,
+					30,
+					MovieMaker.MOTION_JPEG_A,
+					MovieMaker.MEDIUM
+				);
 		}
 	}
 	
