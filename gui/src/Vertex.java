@@ -67,13 +67,15 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		if (rate>1) rate = 1;
 		float dx = destX - x;
 		float dy = destY - y;
-		x += dx * rate;
-		y += dy * rate;
 
 		if (floor(dx)==0 && floor(dy)==0) {
 			lastTick = -1;
+			x = destX;
+			y = destY;
 			return false;
 		} else {
+			x += dx * rate;
+			y += dy * rate;
 			return true;
 		}
 	}

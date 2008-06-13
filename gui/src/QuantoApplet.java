@@ -1,3 +1,6 @@
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -179,6 +182,8 @@ public class QuantoApplet extends PApplet {
 			return;
 		}
 		
+		Clipboard cb;
+		StringSelection data;
 		switch (key) {
 		case 'l':
 			layout(graph);
@@ -250,12 +255,21 @@ public class QuantoApplet extends PApplet {
 			if (snapToGrid) graph.enableSnap();
 			else graph.disableSnap();
 			break;
+		case 'x':
+			cb = Toolkit.getDefaultToolkit().getSystemClipboard();
+		    data = new StringSelection(graph.toLatex());
+		    cb.setContents(data, data);
+			break;
+		case 't':
+			cb = Toolkit.getDefaultToolkit().getSystemClipboard();
+		    data = new StringSelection(graph.toDot());
+		    cb.setContents(data, data);
+			break;
 		case 's':
 		case 'm':
 		case 'e': /* these are tools that require mouse input too */
 			tool = key;
 			break;
-
 		}
 		
 		play();
@@ -348,33 +362,8 @@ public class QuantoApplet extends PApplet {
 	}
 
 
-	String makeDot(Graph graph) {
-		StringBuffer g = new StringBuffer();
-		g.append("digraph { nodesep=0.65; ranksep=0.65;\n");
-		
-
-		
-		for (Vertex v : graph.vertexList) {
-			g.append(v.id);
-			g.append(" [color=\"");
-			g.append(v.col);
-			g.append("\",label=\"\",width=0.35,height=0.35,shape=circle];\n");
-		}
-
-		for (Edge e : graph.edgeList) {
-			g.append(e.source.id);
-			g.append("->");
-			g.append(e.dest.id);
-			//g.append(" [arrowhead=none,headclip=false,tailclip=false];\n");
-			g.append(" [arrowhead=none];\n");
-		}
-
-		g.append("\n}\n");
-		return g.toString();
-	}
-
 	void layout(Graph graph) {
-		layout(makeDot(graph), graph);
+		layout(graph.toDot(), graph);
 	}
 
 	void layout(String viz, Graph graph) {

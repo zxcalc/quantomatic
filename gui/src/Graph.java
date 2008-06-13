@@ -97,7 +97,81 @@ public class Graph extends PLib {
 	}
 	
 	public void sortVertices() {
-		Collections.sort(vertexList);
+		synchronized(vertexList) {
+			Collections.sort(vertexList);
+		}
+	}
+	
+	String toDot() {
+		StringBuffer g = new StringBuffer();
+		g.append("digraph { nodesep=0.65; ranksep=0.65;\n");
+
+		for (Vertex v : vertexList) {
+			g.append(v.id);
+			g.append(" [color=\"");
+			g.append(v.col);
+			g.append("\",label=\"\",width=0.35,height=0.35,shape=circle];\n");
+		}
+
+		for (Edge e : edgeList) {
+			g.append(e.source.id);
+			g.append("->");
+			g.append(e.dest.id);
+			//g.append(" [arrowhead=none,headclip=false,tailclip=false];\n");
+			g.append(" [arrowhead=none];\n");
+		}
+
+		g.append("\n}\n");
+		return g.toString();
+	}
+	
+	String toLatex() {
+		if (vertexList.size()==0) return "\\begin{tikzpicture}\n\\end{tikzpicture}\n";
+		StringBuffer g = new StringBuffer();
+		g.append("\\begin{tikzpicture}\n");
+		sortVertices();
+		float xOrigin = vertexList.get(0).x;
+		float yOrigin = vertexList.get(0).y;
+		synchronized(vertexList) {
+			for (Vertex v : vertexList) {
+				g.append("    \\node ");
+				if (v.col.equals("red")) {
+					g.append("[rn] ");
+				} else if (v.col.equals("green")) {
+					g.append("[gn] ");
+				} else if (v.col.equals("boundary")) {
+					g.append("[dom] ");
+				}
+				g.append("(");
+				g.append(v.id);
+				g.append(") at (");
+				g.append(Float.toString((v.x-xOrigin) / (float)GRID_X).replaceFirst(".0$", ""));
+				g.append(", ");
+				g.append(Float.toString((yOrigin-v.y) / (float)GRID_Y).replaceFirst(".0$", ""));
+				g.append(") {};\n");
+			}
+		}
+		
+		g.append("\n    \\draw");
+		int counter = 0;
+		
+		synchronized (edgeList) {
+			for (Edge e : edgeList) {
+				if (counter==4) {
+					counter = 0;
+					g.append("\n        ");
+				}
+				g.append(" (");
+				g.append(e.source.id);
+				g.append(")--(");
+				g.append(e.dest.id);
+				g.append(")");
+				++counter;
+			}
+		}
+		g.append(";");
+		g.append("\n\\end{tikzpicture}\n");
+		return g.toString();
 	}
 
 }

@@ -33,20 +33,23 @@ public class QuantoFrame extends Frame implements PConstants {
         		"New graph (n)",
         		"Undo (u)",
         		"Layout (l)",
-        		"add Red (r)",
-        		"add Green (g)",
-        		"add Hadamard (h)",
-        		"add Boundary (b)",
+        		"Add red (r)",
+        		"Add green (g)",
+        		"Add hadamard (h)",
+        		"Add boundary (b)",
         		"Delete vertex (d)",
-        		"toggle sPlines (p)",
+        		"Toggle splines (p)",
         		"Capture to pdf (c)",
-        		"start/stop Video (v)",
-        		"toggle snap to Grid (G)",
-        		"quit (q)"
+        		"Start/stop Video (v)",
+        		"Toggle snap to Grid (G)",
+        		"Latex to clipboard (x)",
+        		"Dot to clipboard (t)",
+        		"Quit (q)"
         	};
         final char[] actionKeys = {
-        		'n', 'u', 'l', 'r', 'g', 'h', 'b',
-        		'd', 'p', 'c', 'v', 'G', 'q'
+        		'n', 'u', 'l', 'r', 'g', 'h',
+        		'b', 'd', 'p', 'c', 'v', 'G',
+        		'x', 't', 'q'
         	};
         
         MenuItem mi;
