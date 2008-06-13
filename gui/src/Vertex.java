@@ -10,6 +10,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public String col;
 	public String angleexpr;
 	private ArrayList<Edge> edges;
+	public boolean snap;
 	QuantoApplet p; // instance of PApplet which has processing tools
 
 	public Vertex(String id, int x, int y) {
@@ -23,6 +24,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		lastTick = -1;
 		QuantoApplet.p.play();
 		edges = new ArrayList<Edge>();
+		snap = false;
 	}
 	
 	public void addEdge(Edge e) {
@@ -32,10 +34,19 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public void clearEdgeControlPoints() {
 		for (Edge e : edges) e.clearControlPoints();
 	}
-
+	
 	public void setDest(int x, int y) {
-		destX = x;
-		destY = y;
+		setDest((float)x,(float)y);
+	}
+	
+	public void setDest(float x, float y) {
+		if (snap) {
+			destX = (Graph.GRID_X * round(x/(float)Graph.GRID_X));
+			destY = (Graph.GRID_Y * round(y/(float)Graph.GRID_Y));
+		} else {
+			destX = x;
+			destY = y;
+		}
 		lastTick = -1;
 		QuantoApplet.p.play();
 	}

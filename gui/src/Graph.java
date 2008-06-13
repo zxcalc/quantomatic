@@ -7,6 +7,8 @@ public class Graph extends PLib {
 	public List<Edge> edgeList;
 	private java.util.Random rando = new java.util.Random();
 	public Vertex newestVertex;
+	public static final int GRID_X = 25;
+	public static final int GRID_Y = 25;
 
 	public Graph() {
 		vertices = new HashMap<String,Vertex>();
@@ -63,7 +65,7 @@ public class Graph extends PLib {
 		p.layout(this);
 	}
 
-	/* this copies coords and selection info from the old graph to this one. */
+	/* this copies coordinates and selection info from the old graph to this one. */
 	public Graph reconcileVertices(Graph old) {
 		Vertex w = null;
 		for (Vertex v : vertexList) {
@@ -77,6 +79,21 @@ public class Graph extends PLib {
 			}
 		}
 		return this;
+	}
+	
+	public void enableSnap() {
+		synchronized(vertexList) {
+			for (Vertex v : vertexList) {
+				v.snap=true;
+				v.setDest(v.x, v.y); // force the vertex to move to the snapped position
+			}
+		}
+	}
+	
+	public void disableSnap() {
+		synchronized(vertexList) {
+			for (Vertex v : vertexList) v.snap=false;
+		}
 	}
 	
 	public void sortVertices() {

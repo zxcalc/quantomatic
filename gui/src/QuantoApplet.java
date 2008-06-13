@@ -27,6 +27,7 @@ public class QuantoApplet extends PApplet {
 	boolean doSplines=true;
 	int rectX=-1, rectY=-1;
 	boolean shift=false;
+	boolean snapToGrid=false;
 
 	String outDirName = "";
 	JFileChooser fileChooser;	
@@ -114,20 +115,24 @@ public class QuantoApplet extends PApplet {
 	}
 
 	public void mousePressed() {
-		Vertex n;
 		switch (tool) {
 		case 's':
 			rectX = mouseX;
 			rectY = mouseY;
 			selectedVertex = null;
-			// IMPROVE: use tree of locations for sub-object matching:
-			// get log-time search for finding object from coordinates instead
-			// of linear time.
-			for (int i = 0; i < graph.vertexList.size(); ++i) {
-				n = (Vertex) graph.vertexList.get(i);
-				if (!shift) n.selected = false;
-				if (n.at(mouseX, mouseY)) {
-					n.selected = !n.selected;
+			/*
+			 * we wish to only toggle the selection of one node, so toggle
+			 * actionPerformed when that is done.
+			 */
+			boolean actionPerformed = false;
+			synchronized(graph.vertexList) {
+				for (Vertex v : graph.vertexList) {
+					if (!actionPerformed && v.at(mouseX, mouseY)) {
+						actionPerformed = true;
+						v.selected = !v.selected;
+					} else if (!shift) {
+						v.selected = false;
+					}
 				}
 			}
 			break;
@@ -240,6 +245,11 @@ public class QuantoApplet extends PApplet {
 				}
 			}
 			break;
+		case 'G':
+			snapToGrid = !snapToGrid;
+			if (snapToGrid) graph.enableSnap();
+			else graph.disableSnap();
+			break;
 		case 's':
 		case 'm':
 		case 'e': /* these are tools that require mouse input too */
@@ -258,12 +268,13 @@ public class QuantoApplet extends PApplet {
 	void modifyGraph(String cmd) {
 		backend.send(cmd + "\n");
 		println(backend.receive());
-		// here send D to backend and dump the graph
+		// here send D to back-end and dump the graph
 		// then rebuild it via the XML parser.
 		backend.send("D\n");
 		Graph updated = xml.parseGraph(backend.receive());
 		updated.reconcileVertices(graph);
 		this.graph = updated;
+		if (snapToGrid) graph.enableSnap();
 		graph.layoutGraph();
 		
 		play();
@@ -274,6 +285,15 @@ public class QuantoApplet extends PApplet {
 		background(255);
 		textFont(helvetica);
 		fill(255, 0, 0);
+		
+		stroke(240);
+		for (int i=0;i<WIDTH;i+=Graph.GRID_X) line(i,0,i,HEIGHT);
+		for (int i=0;i<HEIGHT;i+=Graph.GRID_Y) line(0,i,WIDTH,i);
+		
+		stroke(220);
+		for (int i=0;i<WIDTH;i+=Graph.GRID_X*2) line(i,0,i,HEIGHT);
+		for (int i=0;i<HEIGHT;i+=Graph.GRID_Y*2) line(0,i,WIDTH,i);
+		
 		switch (tool) {
 		case 's':
 			text("SELECT", 10, 20);
@@ -330,7 +350,7 @@ public class QuantoApplet extends PApplet {
 
 	String makeDot(Graph graph) {
 		StringBuffer g = new StringBuffer();
-		g.append("digraph {\n");
+		g.append("digraph { nodesep=0.65; ranksep=0.65;\n");
 		
 
 		
@@ -385,11 +405,11 @@ public class QuantoApplet extends PApplet {
 					name = tk.nextToken();
 					n = (Vertex) graph.vertices.get(name);
 					if (n == null) {
-						n = new Vertex(name, 50, 50);
+						n = new Vertex(name, 0, 0);
 						graph.addVertex(n);
 					}
-					x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
-					y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
+					x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
+					y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
 
 					tk.nextToken();
 					tk.nextToken();
@@ -409,8 +429,8 @@ public class QuantoApplet extends PApplet {
 						int controlCount = Integer.parseInt(tk.nextToken());
 						
 						for (int i=0;i<controlCount;++i) {
-							x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
-							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 40;
+							x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
+							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
 							e.addControlPoint(x,y);
 						}
 					}
@@ -446,7 +466,7 @@ public class QuantoApplet extends PApplet {
 	}
 	
 	void doSaveNextFrame() {
-		p.beginRecord(p.PDF, nextPDFFileName);
+		p.beginRecord(PConstants.PDF, nextPDFFileName);
 	}
 	
 	void stopSaveNextFrame() {
