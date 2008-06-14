@@ -159,7 +159,7 @@ public class Graph extends PLib {
 			for (Edge e : edgeList) {
 				if (counter==4) {
 					counter = 0;
-					g.append("\n        ");
+					g.append("\n         ");
 				}
 				g.append(" (");
 				g.append(e.source.id);
