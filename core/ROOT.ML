@@ -15,16 +15,18 @@ use "test/ex_rg_graph.ML";
 
 use "rg_match_ctxt.ML";
 
+use "match.ML";
+use "matchstate.ML";
+
+use "test/matching.ML";
+
 use "output.ML";
 use "output_dot.ML";
 use "output_XML.ML";
 
 use "controller.ML";
 
-use "patgraph.ML";
 
 
 (* 
-System.use "test/ex_patgraph.ML";
-System.use "rg_patgraph.ML";
 *)

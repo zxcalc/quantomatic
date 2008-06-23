@@ -4,14 +4,14 @@
 signature RULE 
 = sig
 
-structure PatGraph : PATTERN_GRAPH
+structure RGGraph : RG_PATGRAPH
 
 type T (* rules *)
 
-val mk : string * (PatGraph.T * PatGraph.T) -> T;
+val mk : string * (RGGraph.T * RGGraph.T) -> T;
 
-val get_lhs : T -> PatGraph.T
-val get_rhs : T -> PatGraph.T
+val get_lhs : T -> RGGraph.T
+val get_rhs : T -> RGGraph.T
 
 val get_name : T -> string;
 val set_name : string -> T -> T;
@@ -27,48 +27,47 @@ val sym : string (* new name *)
           -> T -> T
 
 
-val empty_match : PatGraph.match
+val empty_match : RGGraph.match
 
 (* Note: implicitly dependent types: match must be a mapping between
 names in lhs(T) and those in the given (graph or rhs(T)) *)
 val match1 : T  (* use this rule *)
-             -> PatGraph.T  (* to match something in this graph *)
-             -> PatGraph.match (* starting with this initial matching *)
-             -> PatGraph.match (* this is the first found resulting match *)
+             -> RGGraph.T  (* to match something in this graph *)
+             -> RGGraph.match (* starting with this initial matching *)
+             -> RGGraph.match (* this is the first found resulting match *)
 
 (* find all matches, evaluated lazily *)
-val matches : T -> PatGraph.T -> PatGraph.match -> PatGraph.match Seq.seq
+val matches : T -> RGGraph.T -> RGGraph.match -> RGGraph.match Seq.seq
 
 val do_rewrite : (* rewriting pattern graph *)
-    T -> PatGraph.match -> PatGraph.T -> PatGraph.T
+    T -> RGGraph.match -> RGGraph.T -> RGGraph.T
 val do_rewrite_rrhs : (* rewriting a rules rhs *)
     T (* use this rule *)
-    -> PatGraph.match (* with this matching *)
+    -> RGGraph.match (* with this matching *)
     -> T (* to rewrite this *)
     -> T (* to this *)
 
-val rewritings : T -> (PatGraph.match * PatGraph.T) 
-								 -> (PatGraph.match * PatGraph.T) Seq.seq
-val rewritings_rrhs : T -> (PatGraph.match * T) -> (PatGraph.match * T) Seq.seq
+val rewritings : T -> (RGGraph.match * RGGraph.T) 
+								 -> (RGGraph.match * RGGraph.T) Seq.seq
+val rewritings_rrhs : T -> (RGGraph.match * T) -> (RGGraph.match * T) Seq.seq
 
 end;
 
 
-functor Rule(PatGraph : PATTERN_GRAPH)
+functor Rule(RGGraph : RG_PATGRAPH)
 = struct
 
-structure PatGraph = PatGraph;
+structure RGGraph = RGGraph;
 
 datatype T = Rule of { name : string,
-                       lhs : PatGraph.T,
-                       rhs : PatGraph.T };
+                       lhs : RGGraph.T,
+                       rhs : RGGraph.T };
 
 fun mk (n,(lhs,rhs)) = 
     Rule { name = n, lhs = lhs, rhs = rhs };
 
 (* match anything = no set matching *)
-val any_match =
-    
+val any_match = Match.empty;
 
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
@@ -87,18 +86,18 @@ val set_name = update_name o K;
 
 fun get_nnames r = 
     ((get_lhs r) 
-      |> PatGraph.get_nodes 
+      |> RGGraph.get_nodes 
       |> NName.NTab.get_names,
      (get_rhs r) 
-       |> PatGraph.get_nodes 
+       |> RGGraph.get_nodes 
        |> NName.NTab.get_names);
 
 fun get_enames r =
    ((get_lhs r) 
-      |> PatGraph.get_edges 
+      |> RGGraph.get_edges 
       |> EName.NTab.get_names,
     (get_rhs r) 
-      |> PatGraph.get_edges 
+      |> RGGraph.get_edges 
       |> eName.NTab.get_names);
 
 (* THINK: cache this info? *)
@@ -120,24 +119,24 @@ fun sym n r = mk (n,(get_rhs r, get_lhs r));
 
 
 val do_rewrite : (* rewriting pattern graph *)
-    T -> match -> PatGraph.T -> PatGraph.T
+    T -> match -> RGGraph.T -> RGGraph.T
 val do_rewrite_rrhs : (* rewriting a rules rhs *)
     T (* use this rule *)
     -> match (* with this matching *)
     -> T (* to rewrite this *)
     -> T (* to this *)
 
-val rewritings : T -> (match * PatGraph.T) -> (match * PatGraph.T) Seq.seq
+val rewritings : T -> (match * RGGraph.T) -> (match * RGGraph.T) Seq.seq
 val rewritings_rrhs : T -> (match * T) -> (match * T) Seq.seq
 
 
 
 (* find all matches, evaluated lazily *)
-val matches : T -> PatGraph.T -> match -> match Seq.seq
+val matches : T -> RGGraph.T -> match -> match Seq.seq
 
 
 val match1 : T  (* use this rule *)
-             -> PatGraph.T  (* to match something in this graph *)
+             -> RGGraph.T  (* to match something in this graph *)
              -> match (* starting with this initial matching *)
              -> match (* this is the first found resulting match *)
 

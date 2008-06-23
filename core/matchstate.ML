@@ -1,5 +1,5 @@
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Representation for Pattern Graphs (allows var_nodes and elipses edges) *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+(*  MatchState and Matching Algorithm *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (* Matching treats graphs as undirected: IMPROVE: chnage graph rep to
    be undirected and have direction as edge data, w.r.t. order of
@@ -29,162 +29,118 @@ folded back. This gives efficient failure.
 
 *)
 
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-signature RG_PATGRAPH = 
-sig
-include RG_GRAPH
-structure MCtxt : MATCH_CTXT 
-sharing MCtxt.Vertex = IVertex
-sharing MCtxt.Edge = Edge
-(*
-type match;
-val match : T -> T -> match -> match Seq.seq
- val instantiate : match -> T -> T 
-*)
+
+signature MATCH_STATE
+= sig
+  structure Match : MATCH
+  structure Graph : RG_GRAPH
+  structure Edge : EDGE
+  structure Vertex : RG_VERTEX
+
+  sharing Vertex.IVertex = Graph.IVertex
+  sharing Vertex.IVertex = Match.MCtxt.IVertex
+  sharing Edge = Match.MCtxt.Edge
+  sharing Edge = Graph.Edge
+
+  type T
+  datatype matchstep =
+           FoundMatch of T
+         | Progress of T Seq.seq
+
+  val init : Match.T -> Graph.T -> Graph.T -> Vertex.name Vertex.NTab.T -> T
+
+  (* some info about a match state *)
+  val no_extra_tgt_edges : T -> bool
+  val tgt_vertex_is_unmatched : T -> Vertex.name -> bool
+
+  (* match two graphs *)
+  val match : Graph.T -> Graph.T -> Vertex.name Vertex.NTab.T -> Match.T Seq.seq
+  val match' : Match.T -> Graph.T -> Graph.T ->
+               Vertex.name Vertex.NTab.T -> Match.T Seq.seq
+
+  (* parts of the matching algorithm *)
+  val do_next_match_choices : T -> matchstep
+
+  val locally_match_2vs : Vertex.name * Vertex.name -> Vertex.name ->
+                          Vertex.name -> T -> T Seq.seq
+  val locally_match_verticies 
+      : Vertex.name * 'a -> Vertex.name * 'b ->
+        Vertex.NSet.T -> Vertex.NSet.T ->
+        T -> T Seq.seq
+
+  val match_2vertices_with_edges : Vertex.name -> T -> Vertex.name -> T Seq.seq
+
+  val match_vertex : Vertex.name * Vertex.data2 -> 
+                     Vertex.name * Vertex.data2 ->
+                     T -> T option
+
+  val match_search : T Seq.seq -> unit -> (Match.T * Match.T Seq.seq) option
+
+
+  (* modifying match state *)
+  val pop_agenda : T -> ((Vertex.name * Vertex.name) * T) option
+
+  val add1_to_agenda : Vertex.name * Vertex.name -> T -> T
+  val add_needed_edges : Edge.NSet.T * Edge.NSet.T -> T -> T
+  val add_needed_edges' : Edge.NSet.T -> T -> T
+
+  val useup1_pat_vertex : Vertex.name -> T -> T
+  val useup_needed_edges : Edge.NSet.T -> T -> T
+  val useup_pat_edges : Edge.NSet.T -> T -> T
+  val useup_tgt_edges : Edge.NSet.T -> T -> T
+
+  (* internal get, update and set *)
+  val get_adj_pat_vertices : T -> Edge.NSet.T * Edge.NSet.T -> Vertex.NSet.T
+  val get_adj_tgt_vertices : T -> Edge.NSet.T * Edge.NSet.T -> Vertex.NSet.T
+  val get_agenda : T -> Vertex.name Vertex.NTab.T
+  val get_match : T -> Match.T
+  val get_match_mctxt : T -> Match.MCtxt.T
+  val get_match_vmap : T -> Vertex.name Vertex.NTab.T
+  val get_needed_tgt_es : T -> Edge.NSet.T
+  val get_tgt_vnseq : T -> Vertex.name Seq.seq
+  val get_tgt_vs : T -> T -> Vertex.NSet.T
+  val get_unm_pat : T -> Graph.T
+  val get_unm_pat_vs : T -> Vertex.NSet.T
+  val get_unm_tgt : T -> Graph.T
+  val get_unm_tgt_es : T -> Edge.NSet.T
+
+  val update_agenda : (Vertex.name Vertex.NTab.T ->
+                       Vertex.name Vertex.NTab.T) ->
+                      T -> T
+  val update_match : (Match.T -> Match.T) -> T -> T
+  val update_needed_tgt_es : (Edge.NSet.T -> Edge.NSet.T) -> T -> T
+  val update_unm_pat : (Graph.T -> Graph.T) -> T -> T
+  val update_unm_tgt : (Graph.T -> Graph.T) -> T -> T
+
+  val set_agenda : Vertex.name Vertex.NTab.T -> T -> T
+  val set_match : Match.T -> T -> T
+  val set_match_mctxt : Match.MCtxt.T -> T -> T
+
+  (* pretty printing *)
+  val pretty : T -> Pretty.T
+  val pretty_agenda : T -> Pretty.T
+  val pretty_match_pair : Vertex.name * Vertex.name -> Pretty.T
+  val pretty_next_pat_vertex : T -> Pretty.T
+  val print : T -> unit
+
 end;
 
-structure RGPatGraph : RG_PATGRAPH
-= struct 
-open RGGraph;
-structure MCtxt = AngleMatchCtxt;
-end;
+
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(* 
-functor PatGraphFun(
-structure BGraph : BGRAPH
-structure MCtxt : MATCH_CTXT
-sharing Match.Vertex = BGraph.Vertex
-sharing Match.Edge = BGraph.Edge)
-: PATGRAPH
+functor MatchStateFun(structure Graph : RG_GRAPH 
+                   structure Match : MATCH
+                   sharing Graph.IVertex = Match.IVertex
+                   sharing Graph.Edge = Match.Edge
+) : MATCH_STATE
 = struct
 
-open BGraph;
-structure MCtxt = MCtxt;
-*)
-
-structure Graph : RG_PATGRAPH = RGPatGraph;
+structure Graph = Graph;
 structure Vertex = Graph.RGVertex;
 structure Edge = Graph.Edge;
-structure MCtxt = Graph.MCtxt;
 
-structure Match = 
-struct
-(* Edge matching not Needed: one step later we check nodes and that
-   enforced edge injection conditions needed for var-nodes/half-edges*)
-(* instantiations *)
-datatype T = Match of 
-         {(* pat to tgt - do we need the data? *)
-          vmap: Vertex.name Vertex.NTab.T, 
-          emap: Edge.name Edge.NTab.T, 
-          (* tgt to pat for internal (1-1 matching) vertices *)
-          (* [many pat boundary vertices can go to 1 tgt vertex] *)
-          ivinvmap : Vertex.name Vertex.NTab.T,
-          (* instantiations for vertex/edge data varaiables *)
-          mctxt: MCtxt.T 
-         };
-
-val empty = Match {vmap = Vertex.NTab.empty,
-                   emap = Edge.NTab.empty,
-                   ivinvmap = Vertex.NTab.empty,
-                   mctxt = MCtxt.empty
-                  };
-
-fun update_vmap f (Match rep) = 
-    Match {vmap = f (#vmap rep), 
-           emap = #emap rep,
-           ivinvmap = #ivinvmap rep,
-           mctxt = #mctxt rep};
-fun update_emap f (Match rep) = 
-    Match {vmap = #vmap rep, 
-           emap = f (#emap rep),
-           ivinvmap = #ivinvmap rep,
-           mctxt = #mctxt rep};
-fun update_ivinvmap f (Match rep) = 
-    Match {vmap = #vmap rep, 
-           emap = #emap rep,
-           ivinvmap = f (#ivinvmap rep),
-           mctxt = #mctxt rep};
-fun update_mctxt f (Match rep) = 
-    Match {vmap = #vmap rep, 
-           emap = #emap rep,
-           ivinvmap = #ivinvmap rep,
-           mctxt = f (#mctxt rep)};
-
-fun get_vmap (Match rep) = #vmap rep;
-fun get_emap (Match rep) = #emap rep;
-fun get_ivinvmap (Match rep) = #ivinvmap rep;
-fun get_mctxt (Match rep) = #mctxt rep;
-val set_mctxt = update_mctxt o K;
-
-(* implicit: m n *)
-val tgt_vertex_is_unmatched = not oo Vertex.NTab.contains o get_ivinvmap;
-
-(* try match two internal verteices data, using internal data matching
-   function from MCxtx *)
-fun match_vertex_idata (n,d) (tn,td) m = 
-    (case MCtxt.vertex_match d td (get_mctxt m)
-      of NONE => NONE (* vertices don't match *)
-       | SOME mctxt2 => 
-         SOME (m |> set_mctxt mctxt2
-                 |> update_vmap (Vertex.NTab.ins (n,tn))
-                 |> update_ivinvmap (Vertex.NTab.ins (tn,n))));
-
-fun match_bvertex n1 n2 m = 
-    update_vmap (Vertex.NTab.ins (n1,n2)) m;
-
-fun match_edges pat_edges tgt_edges m = 
-    Seq.map
-      (fn ((_,ematch),mctxt2) => 
-          (ematch, 
-           m |> update_emap (Edge.NTab.merge_disjoint ematch)
-             |> set_mctxt mctxt2))
-      (MCtxt.multi_edge_match pat_edges tgt_edges (get_mctxt m));
-
-fun pretty m = 
-    Pretty.chunks 
-      ([Pretty.block 
-          [Pretty.str "VMatchings: ",
-           Pretty.list "{" "}" 
-                       (map (fn (pn,tn) => 
-                                Pretty.block 
-                                  [Pretty.str "(",
-                                   Vertex.pretty_name pn,
-                                   Pretty.str "->",
-                                   Vertex.pretty_name tn, 
-                                   Pretty.str ")"])
-                            (Vertex.NTab.dest (get_vmap m)))]]
-       @ [Pretty.block 
-            [Pretty.str "InInvVMap: ",
-             Pretty.list "{" "}" 
-                         (map (fn (tn,pn) => 
-                                  Pretty.block 
-                                    [Pretty.str "(",
-                                     Vertex.pretty_name pn,
-                                     Pretty.str "<-",
-                                     Vertex.pretty_name tn, 
-                                     Pretty.str ")"])
-                              (Vertex.NTab.dest (get_ivinvmap m)))]]
-       @ [Pretty.block 
-            [Pretty.str "EMatchings: ",
-             Pretty.list "{" "}" 
-                         (map (fn (pn,tn) => 
-                                  Pretty.block 
-                                    [Pretty.str "(",
-                                     Edge.pretty_name pn,
-                                     Pretty.str "->",
-                                     Edge.pretty_name tn, 
-                                     Pretty.str ")"])
-                              (Edge.NTab.dest (get_emap m)))]]
-       @ [Pretty.block [Pretty.str "MCtxt: ", MCtxt.pretty (get_mctxt m)]]);
-    
-val print = Pretty.writeln o pretty;
-
-end; (* Match structure *)
-
-
-structure MatchState 
-= struct
+structure Match = Match;
+structure MCtxt = Match.MCtxt;
 
 datatype T = 
          MState of 
@@ -319,11 +275,8 @@ fun locally_match_2vs (from_pn, to_pn) from_tn to_tn st =
                  |> useup_pat_edges matched_pat_edges
                  |> useup_tgt_edges matched_tgt_edges
                  |> set_match m2
-                 (* edges were added as needed, we can remove the ones 
-                    now matched; they are no longer needed. *)
-                 |> (if Graph.is_boundary g from_pn 
-                     then useup_needed_edges matched_tgt_edges
-                     else I)
+                 (* we can remove the now matched edges from the needed set *)
+                 |> useup_needed_edges matched_tgt_edges
             end)
     end;
 
@@ -379,7 +332,7 @@ fun match_2vertices_with_edges
     in case match_vertex (n,d) (tn,td) st of 
          NONE => Seq.empty (* vertex does not match *)
        | SOME st2 => (* continue matching *)
-         (if Graph.is_boundary pat n then (* then strict matching *)
+         (if not (Graph.is_boundary pat n) then (* then strict matching *)
             add_needed_edges tedgens st2
          else st2) 
            |> (locally_match_verticies (n,d) (tn,td) 
@@ -452,19 +405,18 @@ fun pretty_next_pat_vertex st =
                                Pretty.str ")"]);
 
 fun pretty_agenda st = 
-    (case Vertex.NTab.pull_elem (get_agenda st) of 
-       NONE => Pretty.str "Agenda: []"
-     | SOME ((nextfrom,nextto),rest) => 
-       Pretty.block 
-         [Pretty.str "Agenda: (",
-          Vertex.pretty_name nextfrom,
-          Pretty.str "->",
-          Vertex.pretty_name nextto,
-          Pretty.list ") then [" "]" 
-                      (map pretty_match_pair (Vertex.NTab.dest rest)),
-          Pretty.block [Pretty.str ";  needed tgt edges: ",
-                        Edge.NSet.pretty (get_needed_tgt_es  st)]
-         ]);
+    Pretty.block 
+      ((case Vertex.NTab.pull_elem (get_agenda st) of 
+          NONE => [Pretty.str "Agenda: []"]
+        | SOME ((nextfrom,nextto),rest) => 
+          [Pretty.str "Agenda: (",
+           Vertex.pretty_name nextfrom,
+           Pretty.str "->",
+           Vertex.pretty_name nextto,
+           Pretty.list ") then [" "]" 
+                       (map pretty_match_pair (Vertex.NTab.dest rest))])
+       @ [Pretty.str ";  needed tgt edges: ",
+          Edge.NSet.pretty (get_needed_tgt_es  st)]);
 
 fun pretty (st as MState rep) = 
     Pretty.block 
@@ -483,15 +435,6 @@ val print = Pretty.writeln o pretty;
 
 end; (* MatchState structure *)
 
-(* 
-end;
 
-
-structure DB_PatStrGraph = PatGraphFun(
-  structure PatNE = PatStrNE
-  structure Expr = StrExpr);
-structure PatStrGraph :> PATTERN_GRAPH where 
-type PatNE.node_pat = PatStrNE.node_pat 
- and type PatNE.edge_pat = PatStrNE.edge_pat 
-= DB_PatStrGraph;
-*)
+structure MatchState = MatchStateFun(structure Graph = RGGraph 
+                                           and Match = Match);

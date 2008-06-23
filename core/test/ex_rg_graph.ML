@@ -103,6 +103,7 @@ val (e0, g4) = g4 |> RGGraph.add_edge edge H3 green9;
 val (e0, g4) = g4 |> RGGraph.add_edge edge green9 green10;
 val (e0, g4) = g4 |> RGGraph.add_edge edge green9 out2;
 
+RGGraph.print g4;
 
 (* For debugging...
 

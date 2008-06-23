@@ -2,9 +2,9 @@
 (*  matching and substitution for Basic Quantum Expressions *)
 structure AngleMatchCtxt 
 : MATCH_CTXT
-where type Vertex.data = RGGraph.IVertex.data
+where type IVertex.data = RGGraph.IVertex.data
 = struct
-structure Vertex = RGGraph.IVertex;
+structure IVertex = RGGraph.IVertex;
 structure Edge = UnitEdge; 
 structure V = RGGraph.RGVertex; 
 

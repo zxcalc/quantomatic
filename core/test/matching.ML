@@ -30,7 +30,7 @@ val g2 = RGGraph.rename_apart g1 g;
 RGGraph.print g1;
 RGGraph.print g2;
 
-val [m1,m2] = Seq.list_of (MatchState.match g1 g2 Vertex.NTab.empty);
+val [m1,m2] = Seq.list_of (MatchState.match g1 g2 RGVertex.NTab.empty);
 map Match.print [m1,m2];
 
 
@@ -59,10 +59,8 @@ RGGraph.print tgt;
 val initagenda = Vertex.NTab.empty;
 val init_st = (init initmatching pat tgt initagenda);
 val st = init_st;
-print st;
+print init_st;
 
-
-(* ERROR: only gives two results, should be three! *)
 val Progress sq = do_next_match_choices st;
 val l = Seq.list_of sq;
 map print l;
