@@ -115,8 +115,6 @@ struct
 
   val update_vertex = update_graph oo Graph.update_vertex;
   val update_edge = update_graph oo Graph.update_edge;
-  val useup_vnames = update_graph o Graph.useup_vnames;
-  val useup_enames = update_graph o Graph.useup_enames;
 
   val get_vertices = Graph.get_vertices o get_graph;
   val get_edges = Graph.get_edges o get_graph;

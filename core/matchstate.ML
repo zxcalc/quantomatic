@@ -47,7 +47,11 @@ signature MATCH_STATE
            FoundMatch of T
          | Progress of T Seq.seq
 
-  val init : Match.T -> Graph.T -> Graph.T -> Vertex.name Vertex.NTab.T -> T
+  val init : Match.T 
+             -> Graph.T (* pat *)
+             -> Graph.T (* tgt *)
+             -> Vertex.name Vertex.NTab.T (* initial agenda *)
+             -> T (* initial match state *)
 
   (* some info about a match state *)
   val no_extra_tgt_edges : T -> bool

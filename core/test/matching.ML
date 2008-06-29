@@ -25,7 +25,7 @@ val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
 val (b2, g) = g |> RGGraph.add_vertex bvert;
 val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
 val (e1, g) = g |> RGGraph.add_edge edge n1 b2;
-val g2 = RGGraph.rename_apart g1 g;
+val (_,g2) = RGGraph.rename_apart g1 g;
 
 RGGraph.print g1;
 RGGraph.print g2;
