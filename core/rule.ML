@@ -128,6 +128,15 @@ fun get_lhs_deledges r =
 fun mk_symmetric n r = mk (n,(get_rhs r, get_lhs r));
 
 
+fun rename_rule_apart g rule = 
+    let 
+      val (rn,lhs2) = RGGraph.rename_apart g (get_lhs rule)
+      val (rn2, rhs2) = RGGraph.rename (rn, get_rhs rule)
+    in 
+      (rn2, rule |> set_lhs lhs2
+                 |> set_rhs rhs2)
+    end;
+
 (* find all matches, evaluated lazily *)
 fun matches rule tgt = 
     MatchState.match pat tgt MatchState.Vertex.NTab.empty;
@@ -154,8 +163,10 @@ fun matches rule tgt =
  *)
 
 
-(* rename rule w.r.t. matching of tgt - assumes rule was named distinct from tgt *)
-fun matchify_rule tgt match rule = 
+
+(* rename rule w.r.t. matching of tgt - assumes rule was named distinct 
+   from tgt *)
+fun matchify_rule match rule = 
     let 
       val vmap = Match.get_vmap match
       val emap = Match.get_emap match
@@ -168,16 +179,25 @@ fun matchify_rule tgt match rule =
                         (fn (n1,n2) => RGGraph.rename_ename n1 n2)
                         emap)
 
-      val rhs = get_rhs rule
-      val tgt_internals = Vertex.NSet.subtract (RGGraph.get_vnames tgt) (RGGraph.get_boundary tgt)
+      val rhs = (get_rhs rule)
+                  |> (Vertex.NTab.fold 
+                        (fn (n1,n2) => RGGraph.rename_vname n1 n2)
+                        vmap)
+                  |> (Edge.NTab.fold 
+                        (fn (n1,n2) => RGGraph.rename_ename n1 n2)
+                        emap)
     in
-      
+      rule |> set_lhs lhs
+           |> set_rhs rhs
     end;
 
 (* assume rule has been renamed (by matchify) to correspond to tgt graph,
    now add the rhs and delete the lhs *)
-val add_rhs : T -> RGGraph.T -> RGGraph.T
-val del_lhs : T -> RGGraph.T -> RGGraph.T
+fun add_rhs rule tgt = 
+    
+
+fun del_lhs rule tgt = 
+    
 
 (* rewriting pattern graph *)
 (* assumes rule has been renamed (by matchify) to correspond to tgt
