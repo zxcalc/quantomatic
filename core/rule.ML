@@ -5,10 +5,11 @@ signature RULE
 = sig
 
 structure MatchState : MATCH_STATE
-structure RGGraph : RG_PATGRAPH
+(* these are really in MatchState - this is just a local abbreviation *)
+structure RGGraph : RG_GRAPH
 structure Match : MATCH
-
-sharing RGGraph = MatchState.Graph;
+sharing RGGraph.IVertex = MatchState.RGGraph.IVertex;
+sharing RGGraph.Edge = MatchState.RGGraph.Edge;
 sharing Match = MatchState.Match;
 
 type T (* rules *)
@@ -21,18 +22,14 @@ val get_rhs : T -> RGGraph.T
 val get_name : T -> string;
 val set_name : string -> T -> T;
 
-val get_rhs_newnodes : T -> NName.NTab.N 
-val get_lhs_delnodes : T -> NName.NTab.N
-
-val get_rhs_newedges : T -> EName.NTab.N
-val get_lhs_deledges : T -> EName.NTab.N
-
 (* swaps lhs and rhs *)
 val mk_symmetric : string (* new name *)
           -> T -> T
 
 (* find all matches, evaluated lazily *)
-val matches : T -> RGGraph.T -> RGGraph.match Seq.seq
+val matches : T -> RGGraph.T -> Match.T Seq.seq
+(* gives back renamed rules *)
+val rule_matches : T -> RGGraph.T -> T Seq.seq
 
 (* rename rule w.r.t. matching of tgt *)
 val matchify_rule : RGGraph.T -> Match.T -> T -> T
@@ -43,12 +40,12 @@ val add_rhs : T -> RGGraph.T -> RGGraph.T
 val del_lhs : T -> RGGraph.T -> RGGraph.T
 
 (* rewriting pattern graph *)
-(* assumes rule has been renamed (by matchify) to correspond to tgt
-graph; given matchified rule, target graph, produces rewritten graph *)
-val do_rewrite : T -> RGGraph.T -> RGGraph.T
-
-
 val rewrites : T -> RGGraph.T -> RGGraph.T Seq.seq
+
+exception not_applicable_exp of string * T * RGGraph.T;
+val fst_rewrite : T -> RGGraph.T -> RGGraph.T
+
+
 
 (* 
 val do_rewrite_rrhs : (* rewriting a rules rhs *)
@@ -64,10 +61,16 @@ val rewritings_rrhs : T -> (MatchState.T * T) -> (MatchState.T * T) Seq.seq
 end;
 
 
-functor Rule(RGGraph : RG_PATGRAPH)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+functor RuleFun( MatchState : MATCH_STATE )
 = struct
 
-structure RGGraph = RGGraph;
+structure MatchState = MatchState;
+(* local stuff for abbreviations *)
+structure RGGraph = MatchState.RGGraph;
+structure Match = MatchState.Match;
+structure Vertex = MatchState.Vertex;
+structure Edge = MatchState.Edge;
 
 datatype T = Rule of { name : string,
                        lhs : RGGraph.T,
@@ -94,52 +97,39 @@ val set_lhs = update_lhs o K;
 val set_rhs = update_rhs o K;
 val set_name = update_name o K;
 
-fun get_nnames r = 
-    ((get_lhs r) 
-      |> RGGraph.get_nodes 
-      |> NName.NTab.get_names,
-     (get_rhs r) 
-       |> RGGraph.get_nodes 
-       |> NName.NTab.get_names);
-
-fun get_enames r =
-   ((get_lhs r) 
-      |> RGGraph.get_edges 
-      |> EName.NTab.get_names,
-    (get_rhs r) 
-      |> RGGraph.get_edges 
-      |> eName.NTab.get_names);
 
 (* THINK: cache this info? *)
+(* 
 fun get_rhs_newnodes r = 
-    let val (lhsns,rhsns) = get_nnames r
-    in NName.NTab.N.subtract rhsns lhsns end;
+    let val (lhsns,rhsns) = RGGraph.get_vnames (get_rhs r)
+    in Vertex.NSet.subtract rhsns lhsns end;
 fun get_lhs_delnodes r =
-    let val (lhsns,rhsns) = get_nnames r
-    in NName.NTab.N.subtract lhsns rhsns  end;
+    let val (lhsns,rhsns) = RGGraph.get_vnames (get_lhs r)
+    in Vertex.NSet.subtract lhsns rhsns  end;
 fun get_rhs_newedges r =
-    let val (lhsns,rhsns) = get_enames r
-    in EName.NTab.N.subtract rhsns lhsns end;
+    let val (lhsns,rhsns) = RGGraph.get_enames (get_rhs r)
+    in Edge.NSet.subtract rhsns lhsns end;
 fun get_lhs_deledges r =
-    let val (lhsns,rhsns) = get_enames r
-    in EName.NTab.N.subtract lhsns rhsns  end;
+    let val (lhsns,rhsns) = RGGraph.get_enames (get_lhs r)
+    in Edge.NSet.subtract lhsns rhsns  end;
+*)
 
-
+(* swap lhs and rhs of a rule *)
 fun mk_symmetric n r = mk (n,(get_rhs r, get_lhs r));
 
-
+(* rename a rule to avoid all names in a graph *)
 fun rename_rule_apart g rule = 
     let 
       val (rn,lhs2) = RGGraph.rename_apart g (get_lhs rule)
-      val (rn2, rhs2) = RGGraph.rename (rn, get_rhs rule)
+      val (rn2, rhs2) = RGGraph.rename rn (get_rhs rule)
     in 
       (rn2, rule |> set_lhs lhs2
                  |> set_rhs rhs2)
     end;
 
-(* find all matches, evaluated lazily *)
+(* find all matches between a rule's lhs and a tgt, evaluated lazily *)
 fun matches rule tgt = 
-    MatchState.match pat tgt MatchState.Vertex.NTab.empty;
+    MatchState.match (get_lhs rule) tgt MatchState.Vertex.NTab.empty;
 
 
 (* clever efficient renaming of lhs to tgt *)
@@ -166,7 +156,7 @@ fun matches rule tgt =
 
 (* rename rule w.r.t. matching of tgt - assumes rule was named distinct 
    from tgt *)
-fun matchify_rule match rule = 
+fun inst_rule rule match = 
     let 
       val vmap = Match.get_vmap match
       val emap = Match.get_emap match
@@ -191,23 +181,37 @@ fun matchify_rule match rule =
            |> set_rhs rhs
     end;
 
+(* renamings of rule so that it macthes tgt *)
+fun rule_matches rule tgt = 
+    let val (rn, rule') = (rename_rule_apart tgt rule)
+    in Seq.map (inst_rule rule')
+               (matches rule' tgt)
+    end;
+
+
 (* assume rule has been renamed (by matchify) to correspond to tgt graph,
    now add the rhs and delete the lhs *)
-fun add_rhs rule tgt = 
-    
-
+fun add_rhs rule tgt = RGGraph.merge_by_vertices (get_rhs rule) tgt;
 fun del_lhs rule tgt = 
-    
+    let val lhs = (get_lhs rule) 
+    in RGGraph.delete_subgraph lhs tgt end;
 
 (* rewriting pattern graph *)
-(* assumes rule has been renamed (by matchify) to correspond to tgt
-graph; given matchified rule, target graph, produces rewritten graph *)
-val do_rewrite : T -> RGGraph.T -> RGGraph.T
 
+(* all rewrites of g using rule *)
+fun rewrites rule g = 
+    Seq.map 
+      (fn matched_rule => 
+          g |> (add_rhs matched_rule)
+            |> (del_lhs matched_rule)) 
+      (rule_matches rule g);
 
-val rewrites : T -> RGGraph.T -> RGGraph.T Seq.seq
+exception not_applicable_exp of string * T * RGGraph.T;
 
-
+fun fst_rewrite rule g = 
+    (case Seq.pull (rewrites rule g) of 
+       NONE => raise not_applicable_exp ("find_and_apply_rewrite",rule,g)
+     | SOME (g2,g2s) => g2);
 
 (* 
 val do_rewrite_rrhs : (* rewriting a rules rhs *)

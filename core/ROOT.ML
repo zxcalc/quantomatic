@@ -17,8 +17,9 @@ use "rg_match_ctxt.ML";
 
 use "match.ML";
 use "matchstate.ML";
-
 use "test/matching.ML";
+
+use "rule.ML";
 
 use "output.ML";
 use "output_dot.ML";

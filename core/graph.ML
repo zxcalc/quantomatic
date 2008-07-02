@@ -100,6 +100,13 @@ val rename : (Vertex.renaming * Edge.renaming) -> T -> (Vertex.renaming * Edge.r
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (Vertex.renaming * Edge.renaming) * T 
 
+(* merge two graphs - vertices with same name are kept only once, edges
+   must be distinct. *)
+val merge_by_vertices : T -> T -> T
+
+(* remove the first graph from the second, assumes first is a subgraph *)
+val delete_subgraph : T -> T -> T
+
 (* update a vertexe's data *)
 val set_vertex : Vertex.data -> Vertex.name -> T -> T
 val set_edge : Edge.data -> Edge.name -> T -> T
@@ -119,7 +126,7 @@ val enames_between : T -> Vertex.name -> Vertex.name -> Edge.NSet.T
 val edges_between : T -> Vertex.name -> Vertex.name -> Edge.data Edge.NTab.T
 
 
-(* get adjacent verticies to some vertex *)
+(* get adjacent vertices to some vertex *)
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
 val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) -> Vertex.NSet.T
 
@@ -312,8 +319,6 @@ fun delete_vertex n g =
     in g2 |> update_vertices (Vertex.NTab.delete n) end;
 
 
-
-
 (* Vertex.name = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
    n2 must not exist already, n1 must exist *)
@@ -476,6 +481,32 @@ fun new_named_edge en e n1 n2 g =
       if Edge.name_eq (en2, en) then g2 else 
       raise ename_already_exists_exp (en,g)
     end;
+
+
+(* merge graphs, assumes disjoint edge names adds new vertices, keeps
+   existing ones. *)
+fun merge_by_vertices g1 g2 = 
+    g2 |> (Vertex.NTab.fold 
+             (fn (vn,(d,_)) => fn g3 => 
+                 if has_vname g3 vn then g3 else new_named_vertex vn d g3)
+             (get_vertices g1))
+       |> (Edge.NTab.fold 
+             (fn (en,(d,(vn1,vn2))) => fn g3 => 
+                 if has_ename g3 en then 
+                   raise ename_already_exists_exp (en, g3)
+                 else new_named_edge en d vn1 vn2 g3)
+             (get_edges g1));
+
+(* delete subg from fromg; assumes edge and vetrex names of subg are a
+   subset of fromg; else delete will raise exception *)
+fun delete_subgraph subg fromg = 
+    fromg |> (Edge.NSet.fold 
+                delete_edge 
+                (get_enames subg))
+          |> (Vertex.NSet.fold 
+                delete_vertex
+                (get_vnames subg));
+
 
 
 (* given: vertex renaming, edge renaming, rename g *)

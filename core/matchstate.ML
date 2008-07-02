@@ -33,14 +33,14 @@ folded back. This gives efficient failure.
 signature MATCH_STATE
 = sig
   structure Match : MATCH
-  structure Graph : RG_GRAPH
+  structure RGGraph : RG_GRAPH
   structure Edge : EDGE
   structure Vertex : RG_VERTEX
 
-  sharing Vertex.IVertex = Graph.IVertex
+  sharing Vertex.IVertex = RGGraph.IVertex
   sharing Vertex.IVertex = Match.MCtxt.IVertex
   sharing Edge = Match.MCtxt.Edge
-  sharing Edge = Graph.Edge
+  sharing Edge = RGGraph.Edge
 
   type T
   datatype matchstep =
@@ -48,8 +48,8 @@ signature MATCH_STATE
          | Progress of T Seq.seq
 
   val init : Match.T 
-             -> Graph.T (* pat *)
-             -> Graph.T (* tgt *)
+             -> RGGraph.T (* pat *)
+             -> RGGraph.T (* tgt *)
              -> Vertex.name Vertex.NTab.T (* initial agenda *)
              -> T (* initial match state *)
 
@@ -58,8 +58,8 @@ signature MATCH_STATE
   val tgt_vertex_is_unmatched : T -> Vertex.name -> bool
 
   (* match two graphs *)
-  val match : Graph.T -> Graph.T -> Vertex.name Vertex.NTab.T -> Match.T Seq.seq
-  val match' : Match.T -> Graph.T -> Graph.T ->
+  val match : RGGraph.T -> RGGraph.T -> Vertex.name Vertex.NTab.T -> Match.T Seq.seq
+  val match' : Match.T -> RGGraph.T -> RGGraph.T ->
                Vertex.name Vertex.NTab.T -> Match.T Seq.seq
 
   (* parts of the matching algorithm *)
@@ -103,9 +103,9 @@ signature MATCH_STATE
   val get_needed_tgt_es : T -> Edge.NSet.T
   val get_tgt_vnseq : T -> Vertex.name Seq.seq
   val get_tgt_vs : T -> T -> Vertex.NSet.T
-  val get_unm_pat : T -> Graph.T
+  val get_unm_pat : T -> RGGraph.T
   val get_unm_pat_vs : T -> Vertex.NSet.T
-  val get_unm_tgt : T -> Graph.T
+  val get_unm_tgt : T -> RGGraph.T
   val get_unm_tgt_es : T -> Edge.NSet.T
 
   val update_agenda : (Vertex.name Vertex.NTab.T ->
@@ -113,8 +113,8 @@ signature MATCH_STATE
                       T -> T
   val update_match : (Match.T -> Match.T) -> T -> T
   val update_needed_tgt_es : (Edge.NSet.T -> Edge.NSet.T) -> T -> T
-  val update_unm_pat : (Graph.T -> Graph.T) -> T -> T
-  val update_unm_tgt : (Graph.T -> Graph.T) -> T -> T
+  val update_unm_pat : (RGGraph.T -> RGGraph.T) -> T -> T
+  val update_unm_tgt : (RGGraph.T -> RGGraph.T) -> T -> T
 
   val set_agenda : Vertex.name Vertex.NTab.T -> T -> T
   val set_match : Match.T -> T -> T
@@ -132,16 +132,16 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchStateFun(structure Graph : RG_GRAPH 
+functor MatchStateFun(structure RGGraph : RG_GRAPH 
                    structure Match : MATCH
-                   sharing Graph.IVertex = Match.IVertex
-                   sharing Graph.Edge = Match.Edge
+                   sharing RGGraph.IVertex = Match.IVertex
+                   sharing RGGraph.Edge = Match.Edge
 ) : MATCH_STATE
 = struct
 
-structure Graph = Graph;
-structure Vertex = Graph.RGVertex;
-structure Edge = Graph.Edge;
+structure RGGraph = RGGraph;
+structure Vertex = RGGraph.RGVertex;
+structure Edge = RGGraph.Edge;
 
 structure Match = Match;
 structure MCtxt = Match.MCtxt;
@@ -155,9 +155,9 @@ datatype T =
           (* edges in tgt that still need to be matched *)
           needed_tgt_es : Edge.NSet.T,
           (* the pat graph with vertices removed as we match them *)
-          unm_pat : Graph.T, 
+          unm_pat : RGGraph.T, 
           (* tgt with matched edges removed as we match them *)
-          unm_tgt : Graph.T 
+          unm_tgt : RGGraph.T 
          };
 
 (* initial matching state *)
@@ -171,12 +171,12 @@ fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
 fun get_unm_pat (MState rep) = #unm_pat rep;
 val get_unm_pat_vs = 
-    Vertex.NTab.get_names o Graph.get_vertices o get_unm_pat;
+    Vertex.NTab.get_names o RGGraph.get_vertices o get_unm_pat;
 fun get_unm_tgt (MState rep) = #unm_tgt rep;
 fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
-    Vertex.NTab.get_names o Graph.get_vertices o get_unm_tgt;
+    Vertex.NTab.get_names o RGGraph.get_vertices o get_unm_tgt;
 val get_unm_tgt_es =
-    Edge.NTab.get_names o Graph.get_edges o get_unm_tgt;
+    Edge.NTab.get_names o RGGraph.get_edges o get_unm_tgt;
 fun get_needed_tgt_es (MState rep) = #needed_tgt_es rep;
 
 
@@ -226,17 +226,17 @@ val no_extra_tgt_edges = Edge.NSet.is_empty o get_needed_tgt_es;
 
 (* *)
 fun get_adj_pat_vertices st edgens =
-    Graph.adj_vnames' (get_unm_pat st) edgens;
+    RGGraph.adj_vnames' (get_unm_pat st) edgens;
 fun get_adj_tgt_vertices st edgens =
-    Graph.adj_vnames' (get_unm_tgt st) edgens;
+    RGGraph.adj_vnames' (get_unm_tgt st) edgens;
 
 (* implicit: st n *)
 val tgt_vertex_is_unmatched = 
     Match.tgt_vertex_is_unmatched o get_match;
 
 (* implicit: tgt_edges st *)
-val useup_tgt_edges = update_unm_tgt o Edge.NSet.fold Graph.delete_edge;
-val useup_pat_edges = update_unm_pat o Edge.NSet.fold Graph.delete_edge;
+val useup_tgt_edges = update_unm_tgt o Edge.NSet.fold RGGraph.delete_edge;
+val useup_pat_edges = update_unm_pat o Edge.NSet.fold RGGraph.delete_edge;
 
 (* unmatched but needed edges in the pattern *)
 (* : Edge.NSet.T -> T -> T *)
@@ -247,7 +247,7 @@ fun add_needed_edges (ins,outs) =
 val useup_needed_edges = update_needed_tgt_es o Edge.NSet.remove_set;
 
 (* implicit: v st *)
-val useup1_pat_vertex = update_unm_pat o Graph.delete_vertex;
+val useup1_pat_vertex = update_unm_pat o RGGraph.delete_vertex;
 (* implicit: (patv*tgtv) st *)
 fun add1_to_agenda (pat_n, tgt_n) st = 
     update_agenda (Vertex.NTab.ins (pat_n,tgt_n)) st;
@@ -263,8 +263,8 @@ fun pop_agenda st =
 pattern vertex and edges being considered. *)
 fun locally_match_2vs (from_pn, to_pn) from_tn to_tn st = 
     let 
-      val pat_edges = Graph.edges_between (get_unm_pat st) from_pn to_pn
-      val tgt_edges = Graph.edges_between (get_unm_tgt st) from_tn to_tn
+      val pat_edges = RGGraph.edges_between (get_unm_pat st) from_pn to_pn
+      val tgt_edges = RGGraph.edges_between (get_unm_tgt st) from_tn to_tn
     in
       (Match.match_edges pat_edges tgt_edges (get_match st))
         |> Seq.map 
@@ -331,12 +331,12 @@ fun match_2vertices_with_edges
       (tn : Vertex.name) = (* target vertex name *)
     let 
       val pat = get_unm_pat st
-      val (d,edgens) = Graph.get_vertex pat n;
-      val (td,tedgens) = Graph.get_vertex (get_unm_tgt st) tn;
+      val (d,edgens) = RGGraph.get_vertex pat n;
+      val (td,tedgens) = RGGraph.get_vertex (get_unm_tgt st) tn;
     in case match_vertex (n,d) (tn,td) st of 
          NONE => Seq.empty (* vertex does not match *)
        | SOME st2 => (* continue matching *)
-         (if not (Graph.is_boundary pat n) then (* then strict matching *)
+         (if not (RGGraph.is_boundary pat n) then (* then strict matching *)
             add_needed_edges tedgens st2
          else st2) 
            |> (locally_match_verticies (n,d) (tn,td) 
@@ -353,7 +353,7 @@ datatype matchstep =
 val get_tgt_vnseq = 
     Seq.of_list o Vertex.NSet.dest 
     o Vertex.NTab.get_names 
-    o Graph.get_vertices o get_unm_tgt;
+    o RGGraph.get_vertices o get_unm_tgt;
 
 (* consider the next and-point in the agenda *)
 fun do_next_match_choices st = 
@@ -429,9 +429,9 @@ fun pretty (st as MState rep) =
          [Match.pretty (#match rep),
           pretty_agenda st,
           Pretty.block [Pretty.str "Unmatched pat: "],
-          Graph.pretty (#unm_pat rep),
+          RGGraph.pretty (#unm_pat rep),
           Pretty.block [Pretty.str "Unmatched tgt: "],
-          Graph.pretty (#unm_tgt rep)
+          RGGraph.pretty (#unm_tgt rep)
          ],
        Pretty.str "}"];
 
@@ -440,5 +440,7 @@ val print = Pretty.writeln o pretty;
 end; (* MatchState structure *)
 
 
-structure MatchState = MatchStateFun(structure Graph = RGGraph 
+structure DB_MatchState = MatchStateFun(structure RGGraph = RGGraph 
                                            and Match = Match);
+
+structure MatchState : MATCH_STATE = DB_MatchState;
