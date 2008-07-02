@@ -1,5 +1,5 @@
 use "graph.ML";
-use "test/ex_graph.ML";
+use "test/graph.ML";
 
 use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 
@@ -11,7 +11,7 @@ use "expr.ML";
 use "linrat_expr.ML"; 
 use "rg_vertex.ML";
 use "rg_graph.ML";
-use "test/ex_rg_graph.ML";
+use "test/rg_graph.ML";
 
 use "rg_match_ctxt.ML";
 
@@ -20,6 +20,7 @@ use "matchstate.ML";
 use "test/matching.ML";
 
 use "rule.ML";
+use "test/rule.ML";
 
 use "output.ML";
 use "output_dot.ML";

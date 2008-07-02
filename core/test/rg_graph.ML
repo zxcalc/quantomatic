@@ -1,3 +1,4 @@
+local 
 structure V = RGGraph.RGVertex;
 val bvert = V.BVert ();
 val zero_angle = AngleExpr.zero;
@@ -20,7 +21,7 @@ val e3 = "e_c";
 val g = g |> RGGraph.rename_ename e0 e3;
 
 
-RGGraph.print g;
+val _ = RGGraph.print g;
 
 (* 3 CNOTs = swap example *)
 val g2 = RGGraph.empty;
@@ -103,7 +104,11 @@ val (e0, g4) = g4 |> RGGraph.add_edge edge H3 green9;
 val (e0, g4) = g4 |> RGGraph.add_edge edge green9 green10;
 val (e0, g4) = g4 |> RGGraph.add_edge edge green9 out2;
 
-RGGraph.print g4;
+val _ = RGGraph.print g4;
+
+in 
+val _ = Pretty.writeln (Pretty.str "Tests passed: red-green graphs.");
+end;
 
 (* For debugging...
 
