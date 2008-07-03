@@ -507,8 +507,6 @@ fun delete_subgraph subg fromg =
                 delete_vertex
                 (get_vnames subg));
 
-
-
 (* given: vertex renaming, edge renaming, rename g *)
 fun rename (vrn,ern) g = 
 		let val (vrn2,g2) = 

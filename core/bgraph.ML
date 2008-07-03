@@ -119,6 +119,7 @@ struct
   val get_vertices = Graph.get_vertices o get_graph;
   val get_edges = Graph.get_edges o get_graph;
 
+
   (* prettifying *-------------------------------------------------*)
   fun pretty bg = 
       Pretty.chunks 

@@ -6,7 +6,11 @@ sharing Vertex = BVertex
 sharing Vertex = RGVertex 
 sharing RGVertex.IVertex = IVertex
 sharing BVertex.IVertex = IVertex 
-sharing BVertex.IVertex = RGVertex.IVertex
+
+(* Given selection set of vertices, make subgraph: 
+   vertices with edges outside selection become boundary *)
+val subgraph_of_selection : Vertex.NSet.T -> T -> T
+
 end
 
 structure DB_RGGraph
@@ -15,6 +19,24 @@ structure DB_RGGraph
   structure BGraph = BGraphFun(structure BVertex = RGVertex  
                                and Edge = UnitEdge)
   open BGraph;
+
+(* IMPROVE: I think it can probably be made much more efficient *)
+(* make a subgraph from a node selection: any vertices with edges
+   outside selection become boundary, and all non-selected vertices are 
+   deleted. *)
+fun subgraph_of_selection vns g = 
+    g |> (RGVertex.NSet.fold
+            (fn n => fn g => 
+                        if RGVertex.NSet.is_empty 
+                             (RGVertex.NSet.subtract (adj_vnames g n) vns)
+                        then g
+                        else set_vertex (RGVertex.BVert ()) n g)
+            vns)
+      |> (RGVertex.NSet.fold 
+            (fn n => fn g => 
+                        if RGVertex.NSet.contains vns n then g 
+                        else delete_vertex n g)
+            (get_vnames g));
 end;
 
 structure RGGraph : RG_GRAPH = DB_RGGraph;

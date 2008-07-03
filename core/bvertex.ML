@@ -13,7 +13,7 @@ datatype data2 =
 include VERTEX 
 sharing IVertex.NSet = NSet
 sharing IVertex.NTab = NTab
-sharing type name = IVertex.name
+(* sharing type name = IVertex.name implicit from NSet *)
 sharing type data = data2
 
 end;

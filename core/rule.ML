@@ -14,25 +14,23 @@ sharing Match = MatchState.Match;
 
 type T (* rules *)
 
-val mk : string * (RGGraph.T * RGGraph.T) -> T;
+exception bad_rule_exp of string * RGGraph.T * RGGraph.T;
+val mk : (RGGraph.T * RGGraph.T) -> T;
 
 val get_lhs : T -> RGGraph.T
 val get_rhs : T -> RGGraph.T
 
-val get_name : T -> string;
-val set_name : string -> T -> T;
-
 (* swaps lhs and rhs *)
-val mk_symmetric : string (* new name *)
-          -> T -> T
+val symmetric : T -> T
 
 (* find all matches, evaluated lazily *)
 val matches : T -> RGGraph.T -> Match.T Seq.seq
 (* gives back renamed rules *)
 val rule_matches : T -> RGGraph.T -> T Seq.seq
+val rule_matches_within : T -> RGGraph.Vertex.NSet.T -> RGGraph.T -> T Seq.seq
 
 (* rename rule w.r.t. matching of tgt *)
-val matchify_rule : RGGraph.T -> Match.T -> T -> T
+val inst_rule : T -> Match.T -> T
 
 (* assume rule has been renamed (by matchify) to correspond to tgt graph,
    now add the rhs and delete the lhs *)
@@ -41,9 +39,11 @@ val del_lhs : T -> RGGraph.T -> RGGraph.T
 
 (* rewriting pattern graph *)
 val rewrites : T -> RGGraph.T -> RGGraph.T Seq.seq
+val rewrites_within : T -> RGGraph.Vertex.NSet.T -> RGGraph.T -> RGGraph.T Seq.seq
 
 exception not_applicable_exp of string * T * RGGraph.T;
 val fst_rewrite : T -> RGGraph.T -> RGGraph.T
+val fst_rewrite_within : T -> RGGraph.Vertex.NSet.T -> RGGraph.T -> RGGraph.T
 
 
 
@@ -57,6 +57,10 @@ val do_rewrite_rrhs : (* rewriting a rules rhs *)
 val rewritings : T -> (MatchState.T * RGGraph.T) -> (MatchState.T * RGGraph.T) Seq.seq
 val rewritings_rrhs : T -> (MatchState.T * T) -> (MatchState.T * T) Seq.seq
 *)
+
+val pretty : T -> Pretty.T
+val print : T -> unit
+
 
 end;
 
@@ -72,31 +76,32 @@ structure Match = MatchState.Match;
 structure Vertex = MatchState.Vertex;
 structure Edge = MatchState.Edge;
 
-datatype T = Rule of { name : string,
-                       lhs : RGGraph.T,
+datatype T = Rule of { lhs : RGGraph.T,
                        rhs : RGGraph.T };
 
-fun mk (n,(lhs,rhs)) = 
-    Rule { name = n, lhs = lhs, rhs = rhs };
+
+(* FIXME: check that rule is well-formed! *)
+exception bad_rule_exp of string * RGGraph.T * RGGraph.T;
+fun mk (lhs,rhs) = 
+    if Vertex.NSet.eq (RGGraph.get_boundary lhs)
+                      (RGGraph.get_boundary rhs) then 
+      Rule { lhs = lhs, rhs = rhs }
+    else
+      raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs);
 
 (* match anything = no set matching *)
 val any_match = Match.empty;
 
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
-fun get_name (Rule rep) = #name rep;
 
 fun update_lhs f (Rule rep) = 
-    Rule { name = #name rep, lhs = f (#lhs rep), rhs = #rhs rep };
+    Rule { lhs = f (#lhs rep), rhs = #rhs rep };
 fun update_rhs f (Rule rep) = 
-    Rule { name = #name rep, lhs = #lhs rep, rhs = f (#rhs rep) };
-fun update_name f (Rule rep) = 
-    Rule { name = f (#name rep), lhs = #lhs rep, rhs = #rhs rep };
+    Rule { lhs = #lhs rep, rhs = f (#rhs rep) };
 
 val set_lhs = update_lhs o K;
 val set_rhs = update_rhs o K;
-val set_name = update_name o K;
-
 
 (* THINK: cache this info? *)
 (* 
@@ -115,7 +120,7 @@ fun get_lhs_deledges r =
 *)
 
 (* swap lhs and rhs of a rule *)
-fun mk_symmetric n r = mk (n,(get_rhs r, get_lhs r));
+fun symmetric r = mk (get_rhs r, get_lhs r);
 
 (* rename a rule to avoid all names in a graph *)
 fun rename_rule_apart g rule = 
@@ -189,6 +194,13 @@ fun rule_matches rule tgt =
     end;
 
 
+fun rule_matches_within rule vns tgt = 
+    let val (rn, rule') = (rename_rule_apart tgt rule)
+    in Seq.map (inst_rule rule')
+               (matches rule' (RGGraph.subgraph_of_selection vns tgt))
+    end;
+
+
 (* assume rule has been renamed (by matchify) to correspond to tgt graph,
    now add the rhs and delete the lhs *)
 fun add_rhs rule tgt = RGGraph.merge_by_vertices (get_rhs rule) tgt;
@@ -206,12 +218,26 @@ fun rewrites rule g =
             |> (del_lhs matched_rule)) 
       (rule_matches rule g);
 
+fun rewrites_within rule vns g = 
+    Seq.map 
+      (fn matched_rule => 
+          g |> (add_rhs matched_rule)
+            |> (del_lhs matched_rule))
+      (rule_matches_within rule vns g);
+
 exception not_applicable_exp of string * T * RGGraph.T;
 
 fun fst_rewrite rule g = 
     (case Seq.pull (rewrites rule g) of 
        NONE => raise not_applicable_exp ("find_and_apply_rewrite",rule,g)
      | SOME (g2,g2s) => g2);
+
+fun fst_rewrite_within rule vns g = 
+    (case Seq.pull (rewrites_within rule vns g) of 
+       NONE => raise not_applicable_exp ("find_and_apply_rewrite_within",rule,
+                                         RGGraph.subgraph_of_selection vns g)
+     | SOME (g2,g2s) => g2);
+
 
 (* 
 val do_rewrite_rrhs : (* rewriting a rules rhs *)
@@ -220,4 +246,17 @@ val rewritings : T -> (match * RGGraph.T) -> (match * RGGraph.T) Seq.seq
 val rewritings_rrhs : T -> (match * T) -> (match * T) Seq.seq
 *)
 
+
+fun pretty (Rule rep) = 
+    Pretty.chunks 
+    [Pretty.block [Pretty.str "Rule: "],
+     Pretty.block [Pretty.str "LHS: ", RGGraph.pretty (#lhs rep)],
+     Pretty.block [Pretty.str "RHS: ", RGGraph.pretty (#rhs rep)]];
+
+val print = Pretty.writeln o pretty;
+
 end;
+
+
+structure DB_Rule = RuleFun(MatchState);
+structure Rule : RULE = DB_Rule;
