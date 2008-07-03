@@ -174,13 +174,12 @@ fun inst_rule rule match =
                         (fn (n1,n2) => RGGraph.rename_ename n1 n2)
                         emap)
 
-      val rhs = (get_rhs rule)
-                  |> (Vertex.NTab.fold 
-                        (fn (n1,n2) => RGGraph.rename_vname n1 n2)
-                        vmap)
-                  |> (Edge.NTab.fold 
-                        (fn (n1,n2) => RGGraph.rename_ename n1 n2)
-                        emap)
+      (* only boundary nodes are mapped/renamed on rhs *)
+      val oldrhs = get_rhs rule;
+      val rhs = oldrhs
+                  |> (Vertex.NSet.fold 
+                        (fn n1 => RGGraph.rename_vname n1 (Vertex.NTab.get vmap n1))
+                        (RGGraph.get_boundary oldrhs))
     in
       rule |> set_lhs lhs
            |> set_rhs rhs
@@ -206,7 +205,9 @@ fun rule_matches_within rule vns tgt =
 fun add_rhs rule tgt = RGGraph.merge_by_vertices (get_rhs rule) tgt;
 fun del_lhs rule tgt = 
     let val lhs = (get_lhs rule) 
-    in RGGraph.delete_subgraph lhs tgt end;
+        val internal_lhs_vns = 
+            Vertex.NSet.subtract (RGGraph.get_vnames lhs) (RGGraph.get_boundary lhs) 
+    in Vertex.NSet.fold RGGraph.delete_vertex internal_lhs_vns tgt end;
 
 (* rewriting pattern graph *)
 

@@ -268,12 +268,32 @@ val _ =
      handle (Rule.bad_rule_exp _) => 
             Pretty.writeln (Pretty.str "Bad rule was correctly judged to be bad."));
 
+
+(* test rewriting isometry lhs with isometry rule *)
+val g = RGGraph.empty;
+val (b1, g) = g |> RGGraph.add_vertex bvert;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (b2, g) = g |> RGGraph.add_vertex bvert;
+val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
+val _ = RGGraph.print g;
+
+
+val [m1,m2] = Seq.list_of (Rule.matches isometry_rule g);
+val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches isometry_rule g));
+val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites isometry_rule g));
+
 in
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
 end;
+
 
 (* For debugging... *)
 (*
     RGGraphDotWriter.output_to_file "foo.dot" g;
     PolyML.exception_trace (fn () =>     );
 *)
+
