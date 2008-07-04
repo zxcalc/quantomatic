@@ -7,6 +7,10 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.StringTokenizer;
 import javax.swing.JFileChooser;
+import javax.swing.JPopupMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.ButtonGroup;
 import javax.swing.UIManager;
 import processing.core.*;
 import processing.pdf.*;
@@ -22,18 +26,23 @@ public class QuantoApplet extends PApplet {
 	PFont helvetica;
 	PFont times;
 
-	Vertex selectedVertex = null;
 	int selectedIndex = -1;
 	char tool;
 	Graph graph;
 	boolean paused;
 	boolean doSplines=true;
 	int rectX=-1, rectY=-1;
+	boolean dragging = false; // are we moving a vertex by dragging with mouse
+	int oldmouseX = 0, oldmouseY = 0; // where the mouse was at the last drag message
 	boolean shift=false;
 	boolean snapToGrid=false;
 
 	String outDirName = "";
-	JFileChooser fileChooser;	
+	JFileChooser fileChooser;
+	JPopupMenu vertexPopUp;
+	//JMenuItem menuItem;
+	ButtonGroup colourButtons;
+	JRadioButtonMenuItem vRedMenuItem, vGreenMenuItem, vHMenuItem, vBndMenuItem;
 	
 	String nextPDFFileName = "";
 	int nextPDFFile = 1;
@@ -61,6 +70,14 @@ public class QuantoApplet extends PApplet {
 			e.printStackTrace();
 		}
 		fileChooser = new JFileChooser();
+		vertexPopUp = new JPopupMenu();
+		vRedMenuItem = new JRadioButtonMenuItem("Red");
+		vGreenMenuItem = new JRadioButtonMenuItem("Green");
+		colourButtons = new ButtonGroup();
+		colourButtons.add(vRedMenuItem);
+		colourButtons.add(vGreenMenuItem);
+		vertexPopUp.add(vRedMenuItem);
+		vertexPopUp.add(vGreenMenuItem);
 
 		helvetica = loadFont("HelveticaNeue-14.vlw");
 		times = loadFont("Times-Italic-14.vlw");
@@ -68,28 +85,8 @@ public class QuantoApplet extends PApplet {
 		graph = new Graph();
 		tool = 's';
 
-		// just some testing code here
-		/*Vertex H = new Vertex("testH", 100, 100);
-		H.setColor("H");
-		graph.addVertex(H);
-
-		Vertex bnd = new Vertex("boundary", 100, 200);
-		bnd.setColor("boundary");
-		graph.addVertex(bnd);
-
-		Vertex red = new Vertex("testR", 200, 100);
-		red.setColor("red");
-		red.setAngle("\u03B1 + \u03B2");
-		graph.addVertex(red);
-
-		Vertex green = new Vertex("testG", 200, 200);
-		green.setColor("green");
-		green.setAngle("x");
-		graph.addVertex(green);*/
-
 		backend = new QuantoBack();
-		xml = new XMLReader();
-		
+		xml = new XMLReader();	
 	}
 	
 	public void pause() {
@@ -107,72 +104,128 @@ public class QuantoApplet extends PApplet {
 	}
 	
 	public void mouseReleased() {
-		if (tool=='s' && (mouseX!=rectX || mouseY!=rectY)) {
-			for (Vertex v : graph.vertexList) {
-				v.selected = v.inRect(rectX, rectY, mouseX, mouseY);
+		if (mouseButton == LEFT) {
+			if (tool == 's') {
+				// if we are not holding shift deselect all vertices
+				if (!shift && !dragging) {
+					for (Vertex v : graph.vertexList)
+						v.selected = false;
+				}
+				if (!dragging && (mouseX != rectX || mouseY != rectY)) {
+					for (Vertex v : graph.vertexList) {
+						if (shift) {
+							v.selected = v.selected	| v.inRect(rectX, rectY, mouseX, mouseY);
+						} else {
+							v.selected = v.inRect(rectX, rectY, mouseX, mouseY);
+						}
+					}
+				} else if (dragging
+						&& (oldmouseX == mouseX && oldmouseY == mouseY)) {
+					Vertex current = null; // this is vertex the mouse is over
+					for (Vertex v : graph.vertexList) {
+						if (v.at(mouseX, mouseY))
+							current = v;
+					}
+					// reselect the clicked one
+					current.selected = true; // since dragging is true this
+					// cannot be null
+				}
 			}
+			rectX = -1;
+			rectY = -1;
+			dragging = false;
+			play();
 		}
-		rectX = -1;
-		rectY = -1;
-		play();
+		else if (mouseButton == RIGHT) {
+			println("Right up");
+			vertexPopUp.setVisible(false);                    
+		}
+		else {
+			println("other mouse button up");
+		}
 	}
 
-	public void mousePressed() {
-		switch (tool) {
-		case 's':
-			rectX = mouseX;
-			rectY = mouseY;
-			selectedVertex = null;
-			/*
-			 * we wish to only toggle the selection of one node, so toggle
-			 * actionPerformed when that is done.
-			 */
-			boolean actionPerformed = false;
-			synchronized(graph.vertexList) {
-				for (Vertex v : graph.vertexList) {
-					if (!actionPerformed && v.at(mouseX, mouseY)) {
-						actionPerformed = true;
-						v.selected = !v.selected;
-					} else if (!shift) {
-						v.selected = false;
-					}
-				}
-			}
-			break;
-		case 'm':
-			float xAccum=0, yAccum=0;
-			int vCount=0;
+	public void mouseDragged() {
+		int dx = mouseX - oldmouseX;
+		int dy = mouseY - oldmouseY;
+		if(dragging){
 			for (Vertex v : graph.vertexList) {
 				if (v.selected) {
-					vCount++;
-					xAccum += v.x;
-					yAccum += v.y;
+					v.x += dx;
+					v.y += dy;
+					v.setDest(v.x,v.y); // prevent points from snapping back
 				}
 			}
-			if (vCount > 0) {
-				xAccum /= (float)vCount;
-				yAccum /= (float)vCount;
+		}
+		oldmouseX = mouseX;
+		oldmouseY = mouseY;
+	}
+	
+	public void mousePressed() {
+		
+		if(mouseButton == LEFT) {
+			oldmouseX = mouseX;
+			oldmouseY = mouseY;
+
+			switch (tool) {
+			case 's':
+				Vertex current = null; // this is vertex the mouse is over
+				for(Vertex v: graph.vertexList){
+					if(v.at(mouseX, mouseY)) current = v; // weirdness possible if vertices overlap
+				}
+				if(current==null) { 
+					rectX = mouseX;
+					rectY = mouseY;
+				}
+				else {
+					dragging = true;
+					current.selected = true;
+				}
+				break;
+			case 'm':
+				float xAccum=0, yAccum=0;
+				int vCount=0;
 				for (Vertex v : graph.vertexList) {
 					if (v.selected) {
-						v.clearEdgeControlPoints();
-						v.setDest((int)(v.x+mouseX-xAccum), (int)(v.y+mouseY-yAccum));
+						vCount++;
+						xAccum += v.x;
+						yAccum += v.y;
 					}
 				}
-			}
-			break;
-		case 'e':
-			for (Vertex v : graph.vertexList) {
-				if (v.at(mouseX, mouseY)) {
-					for (Vertex w : graph.vertexList) {
-						if (w.selected)
-							modifyGraph("e " + w.id + " " + v.id + "\n");
+				if (vCount > 0) {
+					xAccum /= (float)vCount;
+					yAccum /= (float)vCount;
+					for (Vertex v : graph.vertexList) {
+						if (v.selected) {
+							v.clearEdgeControlPoints();
+							v.setDest((int)(v.x+mouseX-xAccum), (int)(v.y+mouseY-yAccum));
+						}
 					}
 				}
+				break;
+			case 'e':
+				for (Vertex v : graph.vertexList) {
+					if (v.at(mouseX, mouseY)) {
+						for (Vertex w : graph.vertexList) {
+							if (w.selected)
+								modifyGraph("e " + w.id + " " + v.id + "\n");
+						}
+					}
+				}
+				break;
 			}
-			break;
+			
+			play();
+		}
+		else if (mouseButton == RIGHT){
+			println("RIGHT down");
+			vertexPopUp.setLocation(mouseX, mouseY);
+			vertexPopUp.setVisible(true);                    
+		}
+		else {
+			println("How many buttons does this mouse have?");
 		}
 		
-		play();
 	}
 
 	public void keyPressed() {
@@ -206,7 +259,7 @@ public class QuantoApplet extends PApplet {
 			break;
 		case 'd':
 			for (Vertex v : graph.vertexList) {
-				if (v.selected) modifyGraph("d " + selectedVertex.id);
+				if (v.selected) modifyGraph("d " + v.id);
 			}
 			break;
 		case 'q':
