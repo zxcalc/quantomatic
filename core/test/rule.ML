@@ -240,7 +240,7 @@ val _ = RGGraph.print rhs;
 val bialgebra3_rule = Rule.mk (lhs,rhs);
 val _ = Rule.print bialgebra3_rule;
 
-
+(* Example of a rule that is not valid *)
 val g = RGGraph.empty;
 val (b1, g) = g |> RGGraph.add_vertex bvert;
 val (b2, g) = g |> RGGraph.add_vertex bvert;
@@ -269,6 +269,17 @@ val _ =
             Pretty.writeln (Pretty.str "Bad rule was correctly judged to be bad."));
 
 
+(* Example of applications of rule that does not match *)
+val g = RGGraph.empty;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (e0, g) = g |> RGGraph.add_edge edge n1 n3;
+val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
+val _ = RGGraph.print g;
+val [] = map Rule.print (Seq.list_of (Rule.rule_matches isometry_rule g));
+
+
 (* test rewriting isometry lhs with isometry rule *)
 val g = RGGraph.empty;
 val (b1, g) = g |> RGGraph.add_vertex bvert;
@@ -285,6 +296,10 @@ val _ = RGGraph.print g;
 val [m1,m2] = Seq.list_of (Rule.matches isometry_rule g);
 val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches isometry_rule g));
 val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites isometry_rule g));
+
+
+
+
 
 in
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
@@ -303,8 +318,6 @@ val rule_list_hack = [("isometry",isometry_rule),
 
 end;
 
-
-(* For debugging... *)
 (*
     RGGraphDotWriter.output_to_file "foo.dot" g;
     PolyML.exception_trace (fn () =>     );

@@ -40,6 +40,8 @@ fun subgraph_of_selection vns g =
 end;
 
 structure RGGraph : RG_GRAPH = DB_RGGraph;
+structure Vertex = RGGraph.RGVertex;
+structure Edge = RGGraph.Edge;
 
 (* incomplete and needs lots more stuff... eg. table
 

@@ -386,6 +386,11 @@ fun match_search or_agenda () =
           SOME (get_match st2, Seq.make (match_search more_or_choices))
         | Progress new_or_choices => 
           match_search (Seq.append new_or_choices more_or_choices) ()));
+
+(* 
+exception match_bug_exp of Match.T * RGGraph.T * RGGraph.T ->
+               Vertex.name Vertex.NTab.T -> Match.T Seq.seq
+*)
 (* *)
 fun match' initmatching pat tgt initagenda = 
     let val init_st = (init initmatching pat tgt initagenda)

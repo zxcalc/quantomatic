@@ -508,23 +508,25 @@ fun delete_subgraph subg fromg =
                 (get_vnames subg));
 
 (* given: vertex renaming, edge renaming, rename g *)
+(* Warning: will raise exception if names in g are 
+   not in avoids of renamings *)
 fun rename (vrn,ern) g = 
 		let val (vrn2,g2) = 
             Vertex.NTab.fold 
-						  (fn (n,_) => fn (renaming,g') =>
-                  case Vertex.rename1 n renaming of
-                    (NONE, renaming') => (renaming', g')
-                  | (SOME n', renaming') => 
-                    (renaming', rename_vname n n' g'))
+						  (fn (n,_) => fn (vrn2,g') =>
+                  case Vertex.rename1 n vrn2 of
+                    (NONE, vrn') => (vrn', g')
+                  | (SOME n', vrn') => 
+                    (vrn', rename_vname n n' g'))
 							(get_vertices g)
               (vrn, g);
         val (ern2,g3) = 
             Edge.NTab.fold 
-						 	(fn (e,_) => fn (renaming,g') =>
-                  case Edge.rename1 e renaming of
-                    (NONE, renaming') => (renaming', g')
-                  | (SOME e', renaming') => 
-                    (renaming', rename_ename e e' g'))
+						 	(fn (e,_) => fn (ern2,g') =>
+                  case Edge.rename1 e ern2 of
+                    (NONE, ern') => (ern', g')
+                  | (SOME e', ern') => 
+                    (ern', rename_ename e e' g'))
 							(get_edges g2)
               (ern, g2);
     in
@@ -535,10 +537,21 @@ fun rename (vrn,ern) g =
 (* IMPROVE: avoid conversion to lists as uses up lots of memory: have
 a function in FNAMETAB to useup names from a name collection *)
 fun rename_apart avoidg ing = 
-		let val avoid_vnames = Vertex.NTab.get_names (get_vertices avoidg)
-				val avoid_enames = Edge.NTab.get_names (get_edges avoidg)
+		let val avoid_vnames = get_vnames avoidg
+				val avoid_enames = get_enames avoidg
+        (* ignore renamings of stuff that is not in avoidg *)
+        val ignore_vnames = Vertex.NSet.subtract (get_vnames ing) avoid_vnames
+        val ignore_enames = Edge.NSet.subtract (get_enames ing) avoid_enames
     in
-      rename (Vertex.init_renaming avoid_vnames, Edge.init_renaming avoid_enames) ing
+      rename (Vertex.mk_renaming ignore_vnames 
+                                 (Vertex.NSet.union_merge ignore_vnames 
+                                                          avoid_vnames)
+                                 Vertex.NTab.empty, 
+              Edge.mk_renaming ignore_enames 
+                               (Edge.NSet.union_merge ignore_enames
+                                                      avoid_enames)
+                               Edge.NTab.empty) 
+             ing
     end;
 
 

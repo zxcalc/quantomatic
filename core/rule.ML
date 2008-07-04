@@ -1,6 +1,20 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* rules for rewriting graphs *)
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+(* 
+
+ IDEA: use matching to find symmetries in lhs and rhs: find how many
+ways a rule can rewrite a graph in the same way. Do this by matching a
+graph with itself, with the extra initial matching agenda of boundary
+nodes must match boundary nodes. Results in symmetric rewrites. 
+
+QUESTION: are any axioms non-symmetric in application? Do all rewrites
+necessarily rewrite symmetrically? or can you have lhs symmetries
+without the rhs ones? (yes in general, but what about quantum
+computation?)
+
+*)
+ 
 signature RULE 
 = sig
 
@@ -22,6 +36,9 @@ val get_rhs : T -> RGGraph.T
 
 (* swaps lhs and rhs *)
 val symmetric : T -> T
+
+(* rule is a trivial identity : lhs matches rhs *)
+val is_trivial : T -> bool
 
 (* find all matches, evaluated lazily *)
 val matches : T -> RGGraph.T -> Match.T Seq.seq
@@ -136,6 +153,20 @@ fun rename_rule_apart g rule =
 fun matches rule tgt = 
     MatchState.match (get_lhs rule) tgt MatchState.Vertex.NTab.empty;
 
+(* a rule is trivially true if the left and right hand sides match.
+   Proof is by observing that bounary nodes can only be matched by
+   boundary nodes and the types of the lhs and rhs must be equal to be
+   a rule. *)
+fun is_trivial rule = true
+(* 
+    let val init_renaming = 
+        val rhs' = RGGraph.rename_apart
+    in
+    (case Seq.pull (MatchState.match (get_lhs rule) (get_rhs rule) 
+                                     MatchState.Vertex.NTab.empty)
+      of NONE => false
+       | _ => true);
+*)
 
 (* clever efficient renaming of lhs to tgt *)
 (* 
