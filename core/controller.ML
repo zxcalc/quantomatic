@@ -178,14 +178,15 @@ fun interactive_rw_loop g [] [] = (Pretty.writeln (Pretty.str "No applicable rew
 fun interactive_rewrite g hist vset = 
     (
      Pretty.writeln  (Pretty.str "start rw loop") ;
-     let fun f0 (x,t) = f1 x t
-	 fun f1 x [] = [] | f1 x (h::t) = (x,h)::(f1 x t)
+     let fun f1 x [] = [] | f1 x (h::t) = (x,h)::(f1 x t)
+	 fun f0 (x,t) = f1 x t
 	 fun f2 f [] = [] | f2 f ((x,y)::t) = (x,f y)::(f2 f t)
 	 val rules = rule_list_hack;  (* temporary *)
 	 val mtchr = fn x => Seq.list_of (Rule.rule_matches x g)
 	 val rws = Library.flat (List.map f0 (f2 mtchr rules) )
      in
-       (interactive_rw_loop g rws [], g::hist, Pretty.str("rewrite - mabe null!"))
+       (* small bug here - updates history even if the rewrite was aborted *)
+       (interactive_rw_loop g rws [], g::hist, Pretty.str("rewrite done."))
      end
 )
 
