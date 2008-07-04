@@ -139,8 +139,8 @@ val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
 val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
 val rhs = g;
 val _ = RGGraph.print rhs;
-val abelian2_rule = Rule.mk (lhs,rhs);
-val _ = Rule.print abelian2_rule;
+val abelian3_rule = Rule.mk (lhs,rhs);
+val _ = Rule.print abelian3_rule;
 
 (* Bialgebra 1 *)
 (* lhs *)
@@ -288,6 +288,19 @@ val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites isometry_rule g));
 
 in
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
+val rule_list_hack = [("isometry",isometry_rule),
+                      ("frobenius",frobenius_rule),
+                      ("compact",compact_rule),
+                
+                      ("abelian1",abelian1_rule),
+                      (* no abelian2 rule: not needed for our rep *)
+                      ("abelian3",abelian3_rule),
+
+                      ("bialgebra1",bialgebra1_rule),
+                      ("bialgebra2",bialgebra2_rule),
+                      ("bialgebra3",bialgebra3_rule)
+                     ];
+
 end;
 
 
