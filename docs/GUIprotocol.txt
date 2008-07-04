@@ -21,5 +21,100 @@ Further, since the
 User Operations
 ---------------
 1. Construct Graphs
+ - new vertex 
+ -- vertex data?
+ -- boundary/ domain codomain
+- new edge    
+  - edge data
+
 2. Manipulate graphs
+   - modify data in vertex
+   - add or delete nodes and edges
+   - query for rewrites
+    -- send a list of vertices to 
+    -- receive a list of rewrites
+   - do rewrites
+    -- send a rewrite
+    -- receive new graph
+  - activate automated strategies?
+  - undo previous transform(s)?
+
 3. Output graphs and sequences
+  - Dump PDFs of graph;
+  - dump graph rep to file
+  - make movies of sequences
+  - save sequence as XML for later use
+    -- derived rule?
+
+First Attempt
+-----
+
+Use a bidirectional pipe, sending XML messages in both directions.
+XML format will be used as a persistent file format too.
+    - Needs XML parsers in both halves
+    - question of dividing labour
+    - not all messages will be applicable in all circumstances?
+
+Will only define XML for the red-green graphs
+
+<graph>
+<vertex> 
+       <name>unique</name> 
+       <boundary>boolean</boundary>
+<!-- if boundary is omitted false is inferred -->
+<!-- if boundary is true, the colour and angle 
+     elements are ignored -->
+
+     <colour>red/green/H"</colour>
+     <!-- if colour is H angle is ignored -->
+     <angleexpr> <!-- interpret as the SUM of the below -->
+     		 <variable>
+		 	<name>unique name></name>
+			<coefficient>
+				<num>int</num>
+				<denom>int</denom>
+			</coefficent>
+		</variable>
+		<constant>
+			<num>int</num>
+			<denom>int</denom>
+		</constant>
+      </angleexpr>
+      <!-- if angle omitted, zero is inferred -->
+</vertex>
+
+<edge>
+	<name>unique name</name>
+	<source>node name</source>
+	<target>node name</target>
+</edge>
+</graph>
+
+----------------
+Send Rewrites from the core as:
+
+<rewrite>
+	<rulename>descrptive name</rulename>
+	<graph>
+		<!-- see above -->
+		<!-- a 'fused' graph containing both the lhs and rhs
+		     of the rewrite rule
+		-->
+	</graph>
+	<!-- subgraph which is lhs of rewrite -->
+	<lhs>
+		<graph><!-- see above--></graph>
+	</lhs>
+	<!-- subgraph which is rhs of rewrite -->
+	<rhs>
+		<graph><!-- see above--></graph>
+	</rhs>
+	<!-- how many rewrites in the current list -->
+	<total>
+		int
+	</total>
+	<!-- which element is this is the current list -->
+	<num>
+		int
+	</num> 
+</rewrite>
