@@ -54,7 +54,19 @@ fun switch_mode () =
     then (do_output := out_toplevel ; is_out_pipe := false)
     else (do_output := out_pipe ; is_out_pipe := true)
 
-(* maintaining rewrite list state across iterations of the loop *)
+(* -- this doesn't belong here but it'll do for now -- *)
+(* args =  rule_name fused lhs rhs new_vnames n howmany  *)
+fun send_rewrite rule_name fused lhs rhs howmany n  =  (
+    (!do_output) (Pretty.str ("<rewrite>\n<rulename>\n"^"\n</rulename>\n"));
+    (!dumper) fused ;
+    (!do_output) (Pretty.str ("<lhs>\n")) ;
+    (!dumper) lhs ;
+    (!do_output) (Pretty.str ("</lhs>\n<rhs>")) ;
+    (!dumper) rhs ;
+    (!do_output) (Pretty.str ("</rhs>\n<total>"^ (Int.toString howmany) ^ "</total>\n" ^
+			      "<total>"^ (Int.toString n) ^ "</total>\n" ^
+			      "</rewrite>"))
+)
 
 
 (* Working with user commands --------------------------------- *)
@@ -139,37 +151,43 @@ fun parse_command s =
 (* ------- a mini run loop / dispatcher for choosing rewrites ---*)
 
 fun interactive_rw_loop g [] [] = (Pretty.writeln (Pretty.str "No applicable rewrites"); g)
-  | interactive_rw_loop g [] rwlist_bwd = interactive_rw_loop g (List.rev rwlist_bwd) [] 
-  | interactive_rw_loop g (rw::rwlist_fwd) rwlist_bwd = 
+  | interactive_rw_loop g [] rwlist_bkd = interactive_rw_loop g (List.rev rwlist_bkd) [] 
+  | interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd = 
     (
-     Pretty.writeln (Pretty.str "Rendering rw") ; 
-     (* extract rhs from rw *)
-     (* add_rhs to g *)
-     (* send message to front end *)
-     let val sopt = TextIO.inputLine(TextIO.stdIn) 
+     Pretty.writeln (Pretty.str "Rendering rw") ;
+     let val (rule_name, rule) = rw
+	 val fused_g = Rule.add_rhs rule g 			   
+	 val n = (List.length rwlist_bkd) + 1
+	 val howmany = n + (List.length rwlist_fwd) -1
+	 val _ = send_rewrite rule_name fused_g 
+			      (Rule.get_lhs rule) 
+			      (Rule.get_rhs rule) 
+			      howmany n
+	 val sopt = TextIO.inputLine(TextIO.stdIn) 
 	 val s = (case sopt of NONE => "" | SOME s => s) 
 	 val c = parse_command s 
      in 
        case c of 
-	 NOOP => interactive_rw_loop g rwlist_fwd rwlist_bwd 
+	 NOOP => interactive_rw_loop g rwlist_fwd rwlist_bkd 
        | Quit => raise QUIT g
        | AbortRewrites => (Pretty.writeln (Pretty.str "abort rewrite") ;g )
        | NextRewrite => (
 	 Pretty.writeln (Pretty.str "next rewrite") ; 
-	 interactive_rw_loop g rwlist_fwd (rw::rwlist_bwd)
+	 interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd)
 	 )
        | PrevRewrite => 
 	 (Pretty.writeln (Pretty.str "PREV rewrite") ; 
-	  case rwlist_bwd of 
+	  case rwlist_bkd of 
 	    [] => let val rwl = List.rev rwlist_fwd  in
 		    interactive_rw_loop g [hd rwl] (tl rwl)
 		  end
 	  | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
 	 )
-       | DoRewrite => (Pretty.writeln (Pretty.str "Doing rewrite") ;
-		       (* extract lhs from rw *)
-		       (* remove lhs fraom g  *)
-		       g
+       | DoRewrite => (Pretty.writeln (Pretty.str ("Doing rewrite"^rule_name)) ;
+		       let val g' = Rule.del_lhs rule fused_g
+		       in 
+			 ((!dumper) g'; g')
+		       end
 		      )
        | _ => raise COMMAND_NOT_APPLICABLE_NOW "finish rewriting first"
      end
