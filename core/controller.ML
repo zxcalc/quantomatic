@@ -11,6 +11,8 @@ structure E = G.Edge
 
 exception NOT_IMPLEMENTED of string
 exception ILLEGAL_COMMAND of string
+exception COMMAND_NOT_APPLICABLE_NOW of string
+exception QUIT of G.T
 
 val blank = Pretty.str "";
 
@@ -52,6 +54,7 @@ fun switch_mode () =
     then (do_output := out_toplevel ; is_out_pipe := false)
     else (do_output := out_pipe ; is_out_pipe := true)
 
+(* maintaining rewrite list state across iterations of the loop *)
 
 
 (* Working with user commands --------------------------------- *)
@@ -72,12 +75,19 @@ datatype commands = NOOP
 	    | Edge of V.name * V.name
 	    | Angle of V.name * AngleExpr.T
 	    | ShowRewrites of V.NSet.T
+	    | AbortRewrites (* these require some state*)
+	    | DoRewrite     (* which only exists after ShowRewrites *)
+	    | NextRewrite   (* has been called *)
+	    | PrevRewrite   
 	    | DelVertex of V.name
 	    | UpVertex of V.name * V.data
 	    | DelEdge of E.name
 
 val kill_newlines  = 
     String.translate (fn #"\n" => "" | c => (str c)) 
+
+fun parse_node_list [] = V.NSet.empty
+  | parse_node_list (h::t) = V.NSet.ins_fresh h (parse_node_list t)
 
 (* does not parse angleexpr yet *)
 fun parse_node_data [] = raise (ILLEGAL_COMMAND "up ")
@@ -118,78 +128,142 @@ fun parse_command s =
 				    | "de" => DelEdge (hd args)
 				    | "up" => UpVertex (hd args ,
 							parse_node_data (tl args))
+				    | "RWshow" => ShowRewrites (parse_node_list args)
+				    | "RWyes" => DoRewrite
+				    | "RWnext" => NextRewrite
+				    | "RWprev" => PrevRewrite
+				    | "RWabort" => AbortRewrites
 				    |_ => raise ILLEGAL_COMMAND s
     end;
 
-    
+(* ------- a mini run loop / dispatcher for choosing rewrites ---*)
+
+fun interactive_rw_loop g [] [] = (Pretty.writeln (Pretty.str "No applicable rewrites"); g)
+  | interactive_rw_loop g [] rwlist_bwd = interactive_rw_loop g (List.rev rwlist_bwd) [] 
+  | interactive_rw_loop g (rw::rwlist_fwd) rwlist_bwd = 
+    (
+     Pretty.writeln (Pretty.str "Rendering rw") ; 
+     (* extract rhs from rw *)
+     (* add_rhs to g *)
+     (* send message to front end *)
+     let val sopt = TextIO.inputLine(TextIO.stdIn) 
+	 val s = (case sopt of NONE => "" | SOME s => s) 
+	 val c = parse_command s 
+     in 
+       case c of 
+	 NOOP => interactive_rw_loop g rwlist_fwd rwlist_bwd 
+       | Quit => raise QUIT g
+       | AbortRewrites => (Pretty.writeln (Pretty.str "abort rewrite") ;g )
+       | NextRewrite => (
+	 Pretty.writeln (Pretty.str "next rewrite") ; 
+	 interactive_rw_loop g rwlist_fwd (rw::rwlist_bwd)
+	 )
+       | PrevRewrite => 
+	 (Pretty.writeln (Pretty.str "PREV rewrite") ; 
+	  case rwlist_bwd of 
+	    [] => let val rwl = List.rev rwlist_fwd  in
+		    interactive_rw_loop g [hd rwl] (tl rwl)
+		  end
+	  | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
+	 )
+       | DoRewrite => (Pretty.writeln (Pretty.str "Doing rewrite") ;
+		       (* extract lhs from rw *)
+		       (* remove lhs fraom g  *)
+		       g
+		      )
+       | _ => raise COMMAND_NOT_APPLICABLE_NOW "finish rewriting first"
+     end
+    )
+
+fun interactive_rewrite g hist vset = 
+    (
+     Pretty.writeln  (Pretty.str "start rw loop") ;
+     let fun f0 (x,t) = f1 x t
+	 fun f1 x [] = [] | f1 x (h::t) = (x,h)::(f1 x t)
+	 fun f2 f [] = [] | f2 f ((x,y)::t) = (x,f y)::(f2 f t)
+	 val rules = rule_list_hack;  (* temporary *)
+	 val mtchr = fn x => Seq.list_of (Rule.rule_matches x g)
+	 val rws = Library.flat (List.map f0 (f2 mtchr rules) )
+     in
+       (interactive_rw_loop g rws [], g::hist, Pretty.str("rewrite - mabe null!"))
+     end
+)
+
+
+(* =======================================================*)
+(* this is the command dispatcher for the top level run loop *)
 fun do_command g hist c = 
     case c of
-      NOOP => (g, hist, blank, true)	      
-    | DUMP => (g, hist, (!dumper) g, true)	      
+      NOOP => (g, hist, blank)	      
+    | DUMP => (g, hist, (!dumper) g)
     | Save filename => ( 
       (!write_to_file) filename g ;
-      (g, hist, Pretty.str ("Wrote graph to file "^filename), true)	      
+      (g, hist, Pretty.str ("Wrote graph to file "^filename))
       )
     | Open _ => raise NOT_IMPLEMENTED "Open"
     | MODE => (switch_mode () ;
-	       (g, hist, Pretty.str "Changed output mode.", true)
+	       (g, hist, Pretty.str "Changed output mode.")
 	      )
-    | Quit => (g, hist, Pretty.str "Quitting.....\n",  false)
+    | Quit => raise QUIT g
     | HELO => let val msg  = Pretty.chunks [Pretty.str"Hello from QUANTOMATIC",
 					    Pretty.str "Let's have some fun!"]
 	      in 
-		(g, hist, msg, true)
+		(g, hist, msg)
 	      end
     | New => (G.empty, 
 	      g::hist, 
-	      Pretty.str "New Graph.",
-	      true)
+	      Pretty.str "New Graph.")
     | Undo => (case hist of 
-		[] => (g, hist, blank,true)
-	      | h::t => (h, t, Pretty.str "Undo!",true)
+		[] => (g, hist, blank)
+	      | h::t => (h, t, Pretty.str "Undo!")
 	      )
     | Red => 
       let val (_,g') = G.add_vertex fresh_red g
       in 
-	(g', g::hist, Pretty.str "Red added.",true)
+	(g', g::hist, Pretty.str "Red added.")
       end
     | Green => 
       let val (_,g') = G.add_vertex fresh_green g
       in 
-	(g', g::hist, Pretty.str "Green added.",true)
+	(g', g::hist, Pretty.str "Green added.")
       end
     | H => 
       let val (_,g') = G.add_vertex fresh_h g
       in 
-	(g', g::hist, Pretty.str "H added.",true)
+	(g', g::hist, Pretty.str "H added.")
       end
     | Boundary => 
       let val (_,g') = G.add_vertex fresh_bnd g
       in 
-	(g', g::hist, Pretty.str "Boundary added.",true)
+	(g', g::hist, Pretty.str "Boundary added.")
       end
     | Edge (v1, v2) =>
       let val (_,g') = G.add_edge () v1 v2 g
       in
-	(g', g::hist, Pretty.str "Edge added.",true)
+	(g', g::hist, Pretty.str "Edge added.")
       end 
     | DelVertex v => 
       let val g' = G.delete_vertex v g
       in 
-	(g', g::hist, Pretty.str "Vertex Deleted.",true)
+	(g', g::hist, Pretty.str "Vertex Deleted.")
       end
     | DelEdge e => 
       let val g' = G.delete_edge e g
       in 
-	(g', g::hist, Pretty.str "Edge Deleted.",true)
+	(g', g::hist, Pretty.str "Edge Deleted.")
       end
     | UpVertex (v,d) => 
       let val g' = G.set_vertex d v g
       in 
-	(g', g::hist, Pretty.str "Vertex Updated.",true)
+	(g', g::hist, Pretty.str "Vertex Updated.")
       end
-      
+    | ShowRewrites vset => interactive_rewrite g hist vset
+    | AbortRewrites => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
+    | DoRewrite => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
+    | NextRewrite => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
+    | PrevRewrite => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
     | _ => raise NOT_IMPLEMENTED "nothing useful implemented"
+
 
 
 (*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
@@ -198,25 +272,19 @@ fun run_loop g hist =
             val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
 	    val sopt = TextIO.inputLine(TextIO.stdIn) 
             val s = (case sopt of NONE => "" | SOME s => s)
-	    val (g', hist', output, continue) = ((do_command g hist) o parse_command) s
+	    val (g', hist', output) = ((do_command g hist) o parse_command) s
 		handle NOT_IMPLEMENTED s => 
-		       (g, hist, Pretty.str ("Not Implemented:" ^ s), true)
+		       (g, hist, Pretty.str ("Not Implemented:" ^ s))
 		     | ILLEGAL_COMMAND s => 
-		       (g, hist, Pretty.str ("Illegal command:" ^ s), true)
+		       (g, hist, Pretty.str ("Illegal command:" ^ s))
 	  in
 	    (
 	     if output <> blank then ((!do_output) output) else () ;
-	     if continue then 
-	       run_loop g' hist'
-	     else 
-	       (
-		write_log "Exiting run loop";
-		TextIO.closeOut (!log); 
-		g'
-		)
+	     run_loop g' hist'
 	    )
 	  end
-	  
+
+      
 fun die msg = 
     (
      write_log ("Crash --> "^msg^"\n") ;
@@ -238,9 +306,15 @@ fun init () =
       write_log "Starting up...\n" ; 
       run_loop G.empty []
     end
-     handle _ => (
+    handle QUIT g => (
+	   Pretty.writeln (Pretty.str "Quitting...");
+	   write_log "Exiting run loop";
+	   TextIO.closeOut (!log);		   
+	   g
+	   )
+    handle _ => (
 	   die "ML threw an Exception... better RESTART.";
 	   G.empty (* just to keep the compiler happy *)
-	   ) 
+	   )
 
 end; 
