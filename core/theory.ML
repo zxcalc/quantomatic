@@ -59,6 +59,10 @@ fun get_assms (Theory rep) = #assms rep;
 fun update_assms (Theory rep) = Theory {assms = f (#assms rep)};
 val set_assms = update_assms o K;
 
+fun get_topns (Theory rep) = #topns rep;
+fun update_topns (Theory rep) = Theory {topns = f (#topns rep)};
+val set_topns = update_topns o K;
+
 fun get_rs (Theory rep) = #rs rep;
 fun update_rs (Theory rep) = Theory {rs = f (#rs rep)};
 val set_rs = update_rs o K;
@@ -72,19 +76,38 @@ val get_assm = RnTab.get o get_assms;
 val get_assms_list = RnTab.dest o get_assms;
 
 (* new empty theory *)
-val empty = Theory { assms = Rn.NTab.empty,
+val empty = Theory { assms = Rn.NSet.empty,
+                     topns = Rn.NSet.empty,
                      rs = Rn.NTab.empty,
                      deps = Rn.NTab.empty
                    };
 
+fun add_trynamed_r nr thry = 
+    let val (n2,rs2) = Rn.NTab.add nr (get_rs thry)
+    in (n2, set_rs rs2 thry) end;
+
 (* assume a new result *)
 (* implicit theory *)
-fun add_assm n r = update_assms (Rn.NTab.ins (n,r));
+fun add_assm n r = 
+    update_assms (Rn.NSet.ins_fresh n)
+    o update_rs (Rn.NTab.ins (n,r));
 
+fun rename_in_proof (from_n,to_n) (Proof (used_n,m,optto_n)) =
+    Proof (if Rn.name_eq (from_n,used_n) 
+           then to_n else used_n, m, 
+           case optto_n 
+            of NONE => NONE
+             | SOME n => if Rn.name_eq (n,optto_n) 
+                         then to_n else optto_n);
+
+fun rename_in_result (Result (r,p)) = Result (r, rename_in_proof p);
+
+fun rename n1 n2 thry = 
+    get_deps_for n1 thry 
 
 (* Make a new trivial result from a graph. *)
 (* : Rn.name -> Rule.RGGraph.T -> T -> (Rn.name * T) *)
-fun trivial n g thry = 
+fun trivial n g thry = add_trynamed_r (r,Rule.mk (g,g)) thry;
 
 val save_as : Rn.name -> T -> T
 val delete : Rn.name -> T -> T

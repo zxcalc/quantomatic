@@ -107,11 +107,11 @@ fun parse_node_data [] = raise (ILLEGAL_COMMAND "up ")
     if bnd = "true" then fresh_bnd
     else if bnd = "false" then 
       case t of [] =>  raise ILLEGAL_COMMAND ("up "^bnd)
-	      | col::_ => 
-		case col of "red" => fresh_red
-			  | "green" => fresh_green
-			  | "h" => fresh_h
-			  | _ => raise ILLEGAL_COMMAND ("up false "^col)
+	            | col::_ => 
+		            (case col of "red" => fresh_red
+			                     | "green" => fresh_green
+			                     | "h" => fresh_h
+			                     | _ => raise ILLEGAL_COMMAND ("up false "^col))
     else raise ILLEGAL_COMMAND ("up "^bnd)
 
 
@@ -152,61 +152,73 @@ fun parse_command s =
 
 fun interactive_rw_loop g [] [] = (Pretty.writeln (Pretty.str "No applicable rewrites"); g)
   | interactive_rw_loop g [] rwlist_bkd = interactive_rw_loop g (List.rev rwlist_bkd) [] 
-  | interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd = 
+  | interactive_rw_loop g ((rw as (rule_name, rule, fused_g))::rwlist_fwd) rwlist_bkd = 
     (
      Pretty.writeln (Pretty.str "Rendering rw") ;
-     let val (rule_name, rule) = rw
-	 val fused_g = Rule.add_rhs rule g 			   
-	 val n = (List.length rwlist_bkd) + 1
-	 val howmany = n + (List.length rwlist_fwd) -1
-	 val _ = send_rewrite rule_name fused_g 
-			      (Rule.get_lhs rule) 
-			      (Rule.get_rhs rule) 
-			      howmany n
-	 val sopt = TextIO.inputLine(TextIO.stdIn) 
-	 val s = (case sopt of NONE => "" | SOME s => s) 
-	 val c = parse_command s 
+     let 
+	       val n = (List.length rwlist_bkd) + 1
+	       val howmany = n + (List.length rwlist_fwd) -1
+	       val _ = send_rewrite rule_name fused_g 
+			                        (Rule.get_lhs rule) 
+			                        (Rule.get_rhs rule) 
+			                        howmany n
+	       val sopt = TextIO.inputLine(TextIO.stdIn) 
+	       val s = (case sopt of NONE => "" | SOME s => s) 
+	       val c = parse_command s 
      in 
        case c of 
-	 NOOP => interactive_rw_loop g rwlist_fwd rwlist_bkd 
+	       NOOP => interactive_rw_loop g rwlist_fwd rwlist_bkd 
        | Quit => raise QUIT g
        | AbortRewrites => (Pretty.writeln (Pretty.str "abort rewrite") ;g )
        | NextRewrite => (
-	 Pretty.writeln (Pretty.str "next rewrite") ; 
-	 interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd)
-	 )
+	       Pretty.writeln (Pretty.str "next rewrite") ; 
+	       interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd)
+	       )
        | PrevRewrite => 
-	 (Pretty.writeln (Pretty.str "PREV rewrite") ; 
-	  case rwlist_bkd of 
-	    [] => let val rwl = List.rev rwlist_fwd  in
-		    interactive_rw_loop g [hd rwl] (tl rwl)
-		  end
-	  | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
-	 )
+	       (Pretty.writeln (Pretty.str "prev rewrite") ; 
+	        case rwlist_bkd of 
+	          [] => let val rwl = List.rev rwlist_fwd  in
+		                interactive_rw_loop g [hd rwl] (tl rwl)
+		              end
+	        | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
+	       )
        | DoRewrite => (Pretty.writeln (Pretty.str ("Doing rewrite"^rule_name)) ;
-		       let val g' = Rule.del_lhs rule fused_g
-		       in 
-			 ((!dumper) g'; g')
-		       end
-		      )
+		                   let val g' = Rule.del_lhs rule fused_g
+		                   in 
+			                   ((!dumper) g'; g')
+		                   end
+		                  )
        | _ => raise COMMAND_NOT_APPLICABLE_NOW "finish rewriting first"
      end
     )
 
+(* FIXME: use vset as selected vertices for rewriting *)
 fun interactive_rewrite g hist vset = 
     (
      Pretty.writeln  (Pretty.str "start rw loop") ;
-     let fun f1 x [] = [] | f1 x (h::t) = (x,h)::(f1 x t)
-	 fun f0 (x,t) = f1 x t
-	 fun f2 f [] = [] | f2 f ((x,y)::t) = (x,f y)::(f2 f t)
-	 val rules = rule_list_hack;  (* temporary *)
-	 val mtchr = fn x => Seq.list_of (Rule.rule_matches x g)
-	 val rws = Library.flat (List.map f0 (f2 mtchr rules) )
+     let 
+	       val rws = 
+               maps
+                  (fn (rulename,rule) => 
+                      map  
+                        (fn rule' => (rulename, rule', Rule.add_rhs rule' g))
+                        (Seq.list_of (Rule.rule_matches rule g)
+                         handle G.vname_already_exists_exp _ => 
+                                (Pretty.writeln  (Pretty.block 
+                                                    [Pretty.str "Error: vname_already_exists_exp for rule: ",
+                                                     Pretty.str rulename]); [])
+                         handle G.ename_already_exists_exp _ => 
+                                (Pretty.writeln  (Pretty.block 
+                                                    [Pretty.str "Error: ename_already_exists_exp for rule: ",
+                                                     Pretty.str rulename]); [])
+                        )
+                  )
+                  rule_list_hack
      in
        (* small bug here - updates history even if the rewrite was aborted *)
        (interactive_rw_loop g rws [], g::hist, Pretty.str("rewrite done."))
      end
-)
+    );
 
 
 (* =======================================================*)

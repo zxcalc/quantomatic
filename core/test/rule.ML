@@ -1,4 +1,4 @@
-local
+(* local *)
 
 structure V = RGGraph.BVertex;
 structure E = RGGraph.Edge;
@@ -301,7 +301,29 @@ val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites isometry_rule g));
 
 
 
-in
+(* Example of applications of rule that does not match *)
+val g = RGGraph.empty;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (n5, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e3, g) = g |> RGGraph.add_edge edge n1 n3;
+val (e4, g) = g |> RGGraph.add_edge edge n2 n4;
+val _ = RGGraph.print g;
+
+raise ERROR "stop";
+
+val [] = map Rule.print (Seq.list_of (Rule.rule_matches isometry_rule g));
+
+
+
+
+
+
+(* in *)
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
 val rule_list_hack = [("isometry",isometry_rule),
                       ("frobenius",frobenius_rule),
@@ -316,7 +338,11 @@ val rule_list_hack = [("isometry",isometry_rule),
                       ("bialgebra3",bialgebra3_rule)
                      ];
 
-end;
+(* end; *)
+
+
+
+
 
 (*
     RGGraphDotWriter.output_to_file "foo.dot" g;
