@@ -11,6 +11,7 @@ datatype data2 =
        | BVert of Boundary.data; (* boundary vertex with boundary data *)
 
 include VERTEX 
+sharing IVertex.Rnm = Rnm
 sharing IVertex.NSet = NSet
 sharing IVertex.NTab = NTab
 (* sharing type name = IVertex.name implicit from NSet *)

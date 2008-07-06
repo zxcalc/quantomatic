@@ -297,11 +297,7 @@ val [m1,m2] = Seq.list_of (Rule.matches isometry_rule g);
 val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches isometry_rule g));
 val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites isometry_rule g));
 
-
-
-
-
-(* Example of applications of rule that does not match *)
+(* Example of applications of isometry rule *)
 val g = RGGraph.empty;
 val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
 val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
@@ -314,13 +310,14 @@ val (e3, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e4, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
 
-raise ERROR "stop";
+val [r1,r2] = Seq.list_of (Rule.rule_matches isometry_rule g);
+val _ = map Rule.print [r1,r2];
+val fused_g1 = Rule.add_rhs r1 g;
+val fused_g2 = Rule.add_rhs r2 g;
+val _ = RGGraph.print fused_g1;
+val _ = RGGraph.print fused_g2;
 
-val [] = map Rule.print (Seq.list_of (Rule.rule_matches isometry_rule g));
-
-
-
-
+(* raise ERROR "stop"; *)
 
 
 (* in *)

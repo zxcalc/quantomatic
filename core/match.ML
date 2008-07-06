@@ -9,6 +9,10 @@ signature MATCH
 
   type T
   val empty : T
+  val mk_id : IVertex.NSet.T (* boundary *)
+              -> IVertex.NSet.T (* all vnames *)
+              -> Edge.NSet.T (* all enames *)
+              -> T 
   val get_emap : T -> Edge.name Edge.NTab.T
   val get_ivinvmap : T -> IVertex.name IVertex.NTab.T
   val get_mctxt : T -> MCtxt.T
@@ -62,6 +66,25 @@ val empty = Match {vmap = IVertex.NTab.empty,
                    mctxt = MCtxt.empty
                   };
 
+(* make identity match from boundary names, vnames, enames *)
+fun mk_id bvnames vnames enames = 
+    let 
+      val vmap = 
+          IVertex.NSet.fold 
+            (fn n => IVertex.NTab.ins (n,n))
+            vnames IVertex.NTab.empty;
+      val emap = 
+          Edge.NSet.fold 
+            (fn n => Edge.NTab.ins (n,n))
+            enames Edge.NTab.empty;
+      val ivinvmap = 
+          IVertex.NSet.fold 
+            IVertex.NTab.delete bvnames vmap;
+    in Match {vmap = vmap, emap = emap, 
+              ivinvmap = ivinvmap, mctxt = MCtxt.empty}
+    end;
+
+(* updates *)
 fun update_vmap f (Match rep) = 
     Match {vmap = f (#vmap rep), 
            emap = #emap rep,

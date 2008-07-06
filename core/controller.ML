@@ -194,26 +194,23 @@ fun interactive_rw_loop g [] [] = (Pretty.writeln (Pretty.str "No applicable rew
 
 (* FIXME: use vset as selected vertices for rewriting *)
 fun interactive_rewrite g hist vset = 
-    (
-     Pretty.writeln  (Pretty.str "start rw loop") ;
+    (Pretty.writeln  (Pretty.str "start rw loop") ;
      let 
-	       val rws = 
-               maps
-                  (fn (rulename,rule) => 
-                      map  
-                        (fn rule' => (rulename, rule', Rule.add_rhs rule' g))
-                        (Seq.list_of (Rule.rule_matches rule g)
-                         handle G.vname_already_exists_exp _ => 
-                                (Pretty.writeln  (Pretty.block 
-                                                    [Pretty.str "Error: vname_already_exists_exp for rule: ",
-                                                     Pretty.str rulename]); [])
-                         handle G.ename_already_exists_exp _ => 
-                                (Pretty.writeln  (Pretty.block 
-                                                    [Pretty.str "Error: ename_already_exists_exp for rule: ",
-                                                     Pretty.str rulename]); [])
-                        )
-                  )
-                  rule_list_hack
+	     val rws = 
+           maps
+             (fn (rulename,rule) => 
+                 map  
+                   (fn rule' => (rulename, rule', Rule.add_rhs rule' g))
+                   (Seq.list_of (Rule.rule_matches rule g)
+                    handle G.vname_already_exists_exp _ => 
+                           (((Pretty.writeln o Pretty.block) 
+                               [Pretty.str "Bug: vname_already_exists_exp for rule: ",
+                                Pretty.str rulename]); [])
+                    handle G.ename_already_exists_exp _ => 
+                           ((Pretty.writeln o Pretty.block)
+                              [Pretty.str "Bug: ename_already_exists_exp for rule: ",
+                               Pretty.str rulename]; []))
+             ) rule_list_hack
      in
        (* small bug here - updates history even if the rewrite was aborted *)
        (interactive_rw_loop g rws [], g::hist, Pretty.str("rewrite done."))

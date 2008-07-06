@@ -96,15 +96,22 @@ structure Edge = MatchState.Edge;
 datatype T = Rule of { lhs : RGGraph.T,
                        rhs : RGGraph.T };
 
-
-(* FIXME: check that rule is well-formed! *)
 exception bad_rule_exp of string * RGGraph.T * RGGraph.T;
 fun mk (lhs,rhs) = 
-    if Vertex.NSet.eq (RGGraph.get_boundary lhs)
-                      (RGGraph.get_boundary rhs) then 
-      Rule { lhs = lhs, rhs = rhs }
+    let val lhsbndry = RGGraph.get_boundary lhs in
+    (* check that rule is well-formed! *)
+    if Vertex.NSet.eq lhsbndry (RGGraph.get_boundary rhs) then 
+      let (* rename rhs; shared bvertex names, all else is distinct. *)
+        val vrn = Vertex.mk_renaming lhsbndry (RGGraph.get_vnames lhs) 
+                                     Vertex.NTab.empty
+        val ern = Edge.mk_renaming Edge.NSet.empty 
+                                   (RGGraph.get_enames lhs) 
+                                   Edge.NTab.empty
+        val (rn, rhs') = RGGraph.rename (vrn,ern) rhs
+      in Rule { lhs = lhs, rhs = rhs' } end
     else
-      raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs);
+      raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
+    end;
 
 (* match anything = no set matching *)
 val any_match = Match.empty;
