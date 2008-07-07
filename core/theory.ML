@@ -77,8 +77,19 @@ val set_deps = update_deps o K;
 (* implicit: thry n *)
 val get_r_deps = Rn.NTab.get o get_deps;
 
+fun add_r_deps n s thry = 
+    update_deps (fn deps => 
+                    case Rn.NTab.lookup deps n of 
+                      NONE => Rn.NTab.ins (n,s) deps
+                    | SOME s1 => Rn.NTab.update (n, Rn.NSet.union_merge s s1) deps
+                ) thry;
+
+fun add_r_dep n dn thry = 
+    add_r_deps n (Rn.NSet.add dn Rn.NSet.empty) thry;
+
 (* implicit: n f *)
-val update_result = update_rs oo Rn.NTab.update;
+val update_result = update_rs oo Rn.NTab.map_entry;
+val set_result = update_result o K;
 
 (* getting all assumptions *)
 val get_assm = RnTab.get o get_assms;
@@ -144,22 +155,38 @@ fun delete n thry =
          |> NSet.fold openify_result (get_r_deps thry n)
          |> update_deps (NTab.del n)
 
+
 (* converts between "A = B" and "B = A" *)
 fun symmetric n thry = 
     let val Result (r,p) = get_result thry n
+        val rhs = Rule.get_rhs r
+        val m = Match.mk_id (get_boundary rhs) 
+                            (RGGraph.get_vnames rhs)
+                            (RGGraph.get_enames rhs);
     in case p of 
-         NONE => let val n2 = conjecture n (Rule.symmetric r);
-                 in Result (r, SOME (n2,NONE,true,))end
-                 
+         NONE => let val (n2,thry2) = conjecture n (Rule.symmetric r) thry;
+                     val res = Result (r, SOME (n2,NONE,true,m))
+                 in (n2, thry2 |> add_r_dep n n2 
+                               |> set_result n res)
+                 end;
+       | SOME prf =>
+         let val (n2,thry2) = 
+                 add_named_r n (Result (Rule.symmetric r, SOME (n,NONE,true,m))) thry
+         in thry |> add_r_dep n2 n end
     end;
+
 
 exception no_such_result_exp of Rn.name * T;
 
-(* backward reasoning *)
-val subst_rhs_lr : Rn.name -> Rn.name -> T -> (Rn.name * T) Seq.seq
-(* forward reasoning *)
-val subst_rhs_rl : Rn.name -> Rn.name -> T -> (Rn.name * T) Seq.seq
-
+(* Subst using first name, from left to right, in rhs of second name *)
+(* val subst : Rn.name -> Rn.name -> T -> (Rn.name * T) Seq.seq *)
+fun subst rulen n thry = 
+    let 
+      val Result (rule,_) = get_result thry rulen
+      val Result (r,prf) = get_result thry n
+      val rhs = Rule.get_rhs 
+    in 
+      case 
 
 end;
 
