@@ -1,3 +1,4 @@
+
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -14,7 +15,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.UIManager;
 import processing.core.*;
 import processing.pdf.*;
-import processing.video.*;
+import processing.video.MovieMaker;
 
 
 public class QuantoApplet extends PApplet {

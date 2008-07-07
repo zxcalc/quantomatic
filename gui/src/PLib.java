@@ -4,7 +4,6 @@
  * expect from processing. 
  * 
  * @author ldixon
- *
  */
 
 import java.awt.FileDialog;
