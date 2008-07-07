@@ -12,7 +12,7 @@ default: bin
 
 ################
 
-$(ISAPLIB_HEAP):
+$(ISAPLIB_HEAP): 
 	@cd ./isaplib; make
 
 # make polyml heap
@@ -23,7 +23,7 @@ heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 heap: heaps/$(THE_POLY_HEAP)
 
 bin/$(THE_BIN): heaps/$(THE_POLY_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; PolyML.export ("bin/$(THE_BIN)", (fn () => (Controller.init(); ()))); quit();' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; PolyML.export ("bin/$(THE_BIN)", (fn () => (Controller.init(); ()))); ' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: $(THE_BIN)"
 

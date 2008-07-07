@@ -74,6 +74,5 @@ public class QuantoBack {
 			e.printStackTrace();
 		}
 		return message.toString();
-
 	}
 }
