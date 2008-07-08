@@ -31,7 +31,7 @@ public class QuantoApplet extends PApplet {
 	char tool;
 	Graph graph;
 	boolean paused;
-	boolean doSplines=true;
+	boolean doSplines=false;
 	int rectX=-1, rectY=-1;
 	boolean dragging = false; // are we moving a vertex by dragging with mouse
 	int oldmouseX = 0, oldmouseY = 0; // where the mouse was at the last drag message
@@ -61,7 +61,7 @@ public class QuantoApplet extends PApplet {
 	public void setup() {
 		p = this;
 		paused = false;
-		size(WIDTH, HEIGHT, JAVA2D);
+		size(WIDTH, HEIGHT);
 		
 		smooth();
 		frameRate(30);
@@ -83,7 +83,7 @@ public class QuantoApplet extends PApplet {
 		helvetica = loadFont("HelveticaNeue-14.vlw");
 		times = loadFont("Times-Italic-14.vlw");
 
-		graph = new Graph();
+		graph = new Graph(new DotLayout());
 		tool = 's';
 
 		backend = new QuantoBack();
@@ -172,15 +172,19 @@ public class QuantoApplet extends PApplet {
 			case 's':
 				Vertex current = null; // this is vertex the mouse is over
 				for(Vertex v: graph.vertexList){
-					if(v.at(mouseX, mouseY)) current = v; // weirdness possible if vertices overlap
+					// The expected behavior when clicking is to pick a single vertex
+					// if many overlap. To get all of them, one drags a box around them.
+					if(v.at(mouseX, mouseY)) current = v;
 				}
 				if(current==null) { 
 					rectX = mouseX;
 					rectY = mouseY;
-				}
-				else {
-					dragging = true;
+				} else {
+					if (!current.selected && !shift) {
+						for (Vertex v : graph.vertexList) v.selected = false;
+					}
 					current.selected = true;
+					dragging = true;
 				}
 				break;
 			case 'm':
@@ -240,13 +244,13 @@ public class QuantoApplet extends PApplet {
 		StringSelection data;
 		switch (key) {
 		case 'l':
-			layout(graph);
+			graph.layoutGraph();
 			break;
 		case 'r':
 		case 'g':
 		case 'h':
 		case 'b': /* add new nodes */
-			modifyGraph(key + "");
+			modifyGraph(Character.toString(key));
 			if (graph.newestVertex!=null) {
 				Vertex w = graph.newestVertex;
 				for (Vertex v : graph.vertexList) {
@@ -341,6 +345,7 @@ public class QuantoApplet extends PApplet {
 		backend.send("D\n");
 		Graph updated = xml.parseGraph(backend.receive());
 		updated.reconcileVertices(graph);
+		updated.setLayoutEngine(graph.getLayoutEngine());
 		this.graph = updated;
 		if (snapToGrid) graph.enableSnap();
 		graph.layoutGraph();
@@ -416,75 +421,7 @@ public class QuantoApplet extends PApplet {
 	}
 
 
-	void layout(Graph graph) {
-		layout(graph.toDot(), graph);
-	}
-
-	void layout(String viz, Graph graph) {
-		try {
-			Process dot = Runtime.getRuntime().exec("dot -Tplain");
-			BufferedReader dotIn = new BufferedReader(new InputStreamReader(dot
-					.getInputStream()));
-
-			OutputStreamWriter dotOut = new OutputStreamWriter(dot
-					.getOutputStream());
-
-			dotOut.write(viz);
-			dotOut.close();
-
-			println("NOW READING DOT");
-			String ln = dotIn.readLine();
-			StringTokenizer tk;
-			String cmd, name;
-			int x, y;
-			Vertex n, n1, n2;
-			graph.edges.clear();
-			graph.edgeList.clear();
-			while (!ln.equals("stop")) {
-				println(ln);
-				tk = new StringTokenizer(ln);
-				cmd = tk.nextToken();
-				if (cmd.equals("node")) {
-					name = tk.nextToken();
-					n = (Vertex) graph.vertices.get(name);
-					if (n == null) {
-						n = new Vertex(name, 0, 0);
-						graph.addVertex(n);
-					}
-					x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
-					y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
-
-					tk.nextToken();
-					tk.nextToken();
-					tk.nextToken();
-					tk.nextToken();
-					tk.nextToken();
-					n.setColor(tk.nextToken());
-					n.setDest(x, y);
-				} else if (cmd.equals("edge")) {
-					n1 = (Vertex) graph.vertices.get(tk.nextToken());
-					n2 = (Vertex) graph.vertices.get(tk.nextToken());
-					
-					if (n1 == null || n2 == null) {
-						println("Edge spec given before vertices defined.");
-					} else {
-						Edge e = graph.newEdge(n1, n2);
-						int controlCount = Integer.parseInt(tk.nextToken());
-						
-						for (int i=0;i<controlCount;++i) {
-							x = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
-							y = (int) (Float.parseFloat(tk.nextToken()) * 50.0) + 43;
-							e.addControlPoint(x,y);
-						}
-					}
-				}
-				ln = dotIn.readLine();
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		println("----NO MORE READING DOT----");
-	}
+	
 	
 	/* functions for doing PDF and QuickTime output */
 	

@@ -9,13 +9,19 @@ public class Graph extends PLib {
 	public Vertex newestVertex;
 	public static final int GRID_X = 25;
 	public static final int GRID_Y = 25;
+	protected GraphLayout layoutEngine;
 
-	public Graph() {
+	public Graph(GraphLayout layoutEngine) {
+		this.layoutEngine = layoutEngine;
 		vertices = new HashMap<String,Vertex>();
 		vertexList = Collections.synchronizedList(new ArrayList<Vertex>());
 		edges = new HashMap<String,Edge>();
 		edgeList = Collections.synchronizedList(new ArrayList<Edge>());
 		newestVertex = null;
+	}
+	
+	public Graph() {
+		this(new DotLayout());
 	}
 
 	
@@ -60,9 +66,7 @@ public class Graph extends PLib {
 	}
 
 	public void layoutGraph() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
-		
-		p.layout(this);
+		layoutEngine.layout(this);
 	}
 
 	/* this copies coordinates and selection info from the old graph to this one. */
@@ -172,6 +176,14 @@ public class Graph extends PLib {
 		g.append(";");
 		g.append("\n\\end{tikzpicture}\n");
 		return g.toString();
+	}
+
+	public GraphLayout getLayoutEngine() {
+		return layoutEngine;
+	}
+
+	public void setLayoutEngine(GraphLayout layoutEngine) {
+		this.layoutEngine = layoutEngine;
 	}
 
 }

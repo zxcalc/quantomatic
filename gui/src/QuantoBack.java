@@ -28,7 +28,7 @@ public class QuantoBack {
 					.getOutputStream()));
 			
 			System.out.println("Initialising QuantoML...");
-			System.out.println(receive());
+			//System.out.println(receive());
 			
 			send("H\n"); // ask for back end status
 			/*String ln = from_backEndError.readLine();
