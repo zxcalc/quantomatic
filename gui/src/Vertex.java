@@ -9,7 +9,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public String id;
 	public String col;
 	public String angleexpr;
-	private ArrayList<Edge> edges;
+	public ArrayList<Edge> edges;
 	public boolean snap;
 	QuantoApplet p; // instance of PApplet which has processing tools
 

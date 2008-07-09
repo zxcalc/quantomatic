@@ -40,16 +40,17 @@ public class QuantoFrame extends Frame implements PConstants {
         		"Delete vertex (d)",
         		"Toggle splines (p)",
         		"Capture to pdf (c)",
-        		"Start/stop Video (v)",
-        		"Toggle snap to Grid (G)",
+        		"Start/stop video (v)",
+        		"Toggle snap to grid (G)",
         		"Latex to clipboard (x)",
         		"Dot to clipboard (t)",
+        		"Next layout engine (y)",
         		"Quit (q)"
         	};
         final char[] actionKeys = {
         		'n', 'u', 'l', 'r', 'g', 'h',
         		'b', 'd', 'p', 'c', 'v', 'G',
-        		'x', 't', 'q'
+        		'x', 't', 'y', 'q'
         	};
         
         MenuItem mi;

@@ -36,7 +36,8 @@ public class QuantoApplet extends PApplet {
 	boolean dragging = false; // are we moving a vertex by dragging with mouse
 	int oldmouseX = 0, oldmouseY = 0; // where the mouse was at the last drag message
 	boolean shift=false;
-	boolean snapToGrid=false;
+	boolean snapToGrid = false;
+	int layoutMode = 0;
 
 	String outDirName = "";
 	JFileChooser fileChooser;
@@ -270,8 +271,8 @@ public class QuantoApplet extends PApplet {
 		case 'q':
 			println("Shutting down quantoML");
 			backend.send("Q\n");
-			println(backend.receive());
-			backend.send("quit () ; \n");
+			//println(backend.receive());
+			//backend.send("quit () ; \n");
 			println("Quitting....");
 			exit();
 			break;
@@ -284,6 +285,18 @@ public class QuantoApplet extends PApplet {
 		case 'v': // v is for video
 			if (recordingVideo) stopRecordVideo();
 			else startRecordVideo();
+			break;
+		case 'y':
+			layoutMode = (layoutMode+1)%2;
+			switch (layoutMode) {
+			case 0:
+				graph.setLayoutEngine(new DotLayout());
+				break;
+			case 1:
+				graph.setLayoutEngine(new FDLayout());
+				break;
+			}
+			graph.layoutGraph();
 			break;
 		case CODED:
 			if (keyCode == SHIFT) shift = true;
@@ -356,8 +369,6 @@ public class QuantoApplet extends PApplet {
 	public void draw() {
 		
 		background(255);
-		textFont(helvetica);
-		fill(255, 0, 0);
 		
 		stroke(240);
 		for (int i=0;i<WIDTH;i+=Graph.GRID_X) line(i,0,i,HEIGHT);
@@ -367,6 +378,8 @@ public class QuantoApplet extends PApplet {
 		for (int i=0;i<WIDTH;i+=Graph.GRID_X*2) line(i,0,i,HEIGHT);
 		for (int i=0;i<HEIGHT;i+=Graph.GRID_Y*2) line(0,i,WIDTH,i);
 		
+		textFont(helvetica);
+		fill(255, 0, 0);
 		switch (tool) {
 		case 's':
 			text("SELECT", 10, 20);
@@ -376,6 +389,16 @@ public class QuantoApplet extends PApplet {
 			break;
 		case 'e':
 			text("EDGE", 10, 20);
+			break;
+		}
+		
+		fill(0, 0, 255);
+		switch (layoutMode) {
+		case 0:
+			text("DOT",80,20);
+			break;
+		case 1:
+			text("FD",80,20);
 			break;
 		}
 

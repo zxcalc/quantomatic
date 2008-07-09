@@ -74,12 +74,26 @@ public class Graph extends PLib {
 		Vertex w = null;
 		for (Vertex v : vertexList) {
 			w = old.vertices.get(v.id);
-			if (w != null) {
-				v.x = w.x;
-				v.y = w.y;
-				v.selected = w.selected;
-			} else {
+			if (w == null) {
 				newestVertex = v;
+				v.x = v.destX = QuantoApplet.WIDTH / 2 + (float)Math.random()*5.0f;
+				v.y = v.destY = QuantoApplet.HEIGHT / 2 + (float)Math.random()*5.0f;
+			} else {
+				v.x = v.destX = w.x;
+				v.y = v.destY = w.y;
+				v.selected = w.selected;
+				
+				// if we previously put this in a default position, adjust it
+				/*if (v.x == QuantoApplet.WIDTH /2 &&
+					v.y == QuantoApplet.HEIGHT/2 &&
+					v.edges.size()!=0)
+				{
+					w = (v.edges.get(0).source==v) ? v.edges.get(0).dest : v.edges.get(0).source;
+					// give a bit of a guess where the new node should be...
+					v.x = v.destX = w.x + ((float)Math.random()*5.0f);
+					v.y = v.destY = w.y + ((float)Math.random()*5.0f);
+					System.out.println("found an edge\n");
+				}*/
 			}
 		}
 		return this;
