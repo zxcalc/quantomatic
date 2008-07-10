@@ -130,8 +130,7 @@ public class QuantoApplet extends PApplet {
 							current = v;
 					}
 					// reselect the clicked one
-					current.selected = true; // since dragging is true this
-					// cannot be null
+					if (current!=null) current.selected = true; // this can be null in certain cases
 				}
 			}
 			rectX = -1;
@@ -288,13 +287,16 @@ public class QuantoApplet extends PApplet {
 			else startRecordVideo();
 			break;
 		case 'y':
-			layoutMode = (layoutMode+1)%2;
+			layoutMode = (layoutMode+1)%3;
 			switch (layoutMode) {
 			case 0:
 				graph.setLayoutEngine(new DotLayout());
 				break;
 			case 1:
 				graph.setLayoutEngine(new FDLayout());
+				break;
+			case 2:
+				graph.setLayoutEngine(new JiggleLayout());
 				break;
 			}
 			graph.layoutGraph();
@@ -401,7 +403,12 @@ public class QuantoApplet extends PApplet {
 		case 1:
 			text("FD",80,20);
 			break;
+		case 2:
+			text("JIGGLE",80,20);
+			break;
 		}
+		
+		smooth();
 
 		//	if we are going to save this frame start recording after the 
 		// interface fluff has been drawn

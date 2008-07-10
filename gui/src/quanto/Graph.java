@@ -13,16 +13,16 @@ public class Graph extends PLib {
 	protected GraphLayout layoutEngine;
 
 	public Graph(GraphLayout layoutEngine) {
+		this();
 		this.layoutEngine = layoutEngine;
+	}
+	
+	public Graph() {
 		vertices = new HashMap<String,Vertex>();
 		vertexList = Collections.synchronizedList(new ArrayList<Vertex>());
 		edges = new HashMap<String,Edge>();
 		edgeList = Collections.synchronizedList(new ArrayList<Edge>());
 		newestVertex = null;
-	}
-	
-	public Graph() {
-		this(new DotLayout());
 	}
 
 	
@@ -77,8 +77,8 @@ public class Graph extends PLib {
 			w = old.vertices.get(v.id);
 			if (w == null) {
 				newestVertex = v;
-				v.x = v.destX = QuantoApplet.WIDTH / 2 + (float)Math.random()*5.0f;
-				v.y = v.destY = QuantoApplet.HEIGHT / 2 + (float)Math.random()*5.0f;
+				v.x = v.destX = QuantoApplet.WIDTH / 2 + (float)Math.random()*50.0f - 25.0f;
+				v.y = v.destY = QuantoApplet.HEIGHT / 2 + (float)Math.random()*50.0f - 25.0f;
 			} else {
 				v.x = v.destX = w.x;
 				v.y = v.destY = w.y;

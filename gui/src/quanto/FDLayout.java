@@ -16,12 +16,12 @@ public class FDLayout implements GraphLayout {
 						if (dist == 0) {
 							dist = 1;
 						}
-						dist = (dist*dist);
-						fx -= (dx*10000.0f) / dist;
-						fy -= (dy*10000.0f) / dist;
+						//dist = (dist*dist);
+						fx -= (dx*100.0f) / dist;
+						fy -= (dy*100.0f) / dist;
 					}
 					
-					float weight = (v1.edges.size()+1)*50.0f;
+					float weight = (v1.edges.size()+1)*10.0f;
 					for (Edge e : v1.edges) {
 						if (e.source == v1) {
 							dx = e.dest.destX - v1.destX;
