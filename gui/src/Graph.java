@@ -1,3 +1,4 @@
+package quanto;
 import java.util.*;
 
 public class Graph extends PLib {
