@@ -18,13 +18,12 @@ import processing.core.*;
 import processing.pdf.*;
 import processing.video.MovieMaker;
 
-
 public class QuantoApplet extends PApplet {
 
 	private static final long serialVersionUID = 1L;
 	public static final int WIDTH = 800;
 	public static final int HEIGHT = 600;
-
+ 
 	PFont helvetica;
 	PFont times;
 

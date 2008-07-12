@@ -4,9 +4,6 @@ import java.io.*;
 
 public class QuantoBack {
 
-	//final static String ml_command = "isabelle";
-	//final static String local_quanto_heap = "/.quantomatic/quanto";
-
 	Process backEnd;
 	BufferedReader from_backEnd;
 	BufferedReader from_backEndError;
@@ -16,11 +13,15 @@ public class QuantoBack {
 		try {
 			//String homedir = System.getProperty("user.home");
 			//String heap = homedir + local_quanto_heap;
-			ProcessBuilder pb = new ProcessBuilder("quantomatic");
 			
 			//Map<String,String> env = pb.environment();
 			//env.put("PATH", env.get("PATH") + ":/usr/local/bin");
+			
+			ProcessBuilder pb = new ProcessBuilder("quantomatic");
+			
+			System.out.println("Initialising QuantoML...");
 			backEnd = pb.start();
+			System.out.println("Connecting pipes...");
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
 			from_backEndError = new BufferedReader(new InputStreamReader(backEnd
@@ -28,26 +29,21 @@ public class QuantoBack {
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
 			
-			System.out.println("Initialising QuantoML...");
-			//System.out.println(receive());
-			
+			System.out.println("Sending hello...");
 			send("H\n"); // ask for back end status
-			/*String ln = from_backEndError.readLine();
-			while (ln != null) {
-				System.out.println("ERROR: "+ln);
-				ln = from_backEndError.readLine();
-			}*/
 			
-			// Make sure we eat up any garbage output before the status.
+			System.out.println("Getting hello...");
+			// Make sure we eat up any output before the status.
 			String rcv = receive();
-			while (!rcv.contains("Hello from QUANTOMATIC")) {
-				System.out.println(rcv);
+			while (rcv != null && !rcv.contains("Hello from QUANTOMATIC")) {
+				System.out.println("QuantoCore Sent: " + rcv);
 				rcv = receive();
 			}
 			
-			System.out.println("status:");
+			System.out.println("Status:");
 			System.out.println(rcv); //  print it out
 		} catch (IOException e) {
+			System.out.println("Exit value from backend: " + backEnd.exitValue());
 			e.printStackTrace();
 		}
 	}
@@ -58,6 +54,7 @@ public class QuantoBack {
 			to_backEnd.newLine();
 			to_backEnd.flush();
 		} catch (IOException e) {
+			System.out.println("Exit value from backend: " + backEnd.exitValue());
 			e.printStackTrace();
 		}
 	}
@@ -72,7 +69,13 @@ public class QuantoBack {
 				ln = from_backEnd.readLine();
 			}
 		} catch (IOException e) {
+			System.out.println("Exit value from backend: " + backEnd.exitValue());
 			e.printStackTrace();
+		}
+		catch (java.lang.NullPointerException e) {
+			System.out.println("Exit value from backend: " + backEnd.exitValue());
+			e.printStackTrace();
+			return null;
 		}
 		return message.toString();
 	}
