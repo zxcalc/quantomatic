@@ -2,7 +2,7 @@
 
 ML_SRC_FILES = $(shell ls *.ML)
 
-THE_BIN=quantomatic
+THE_BIN=quanto-core
 POLYML=poly
 # POLYML_LIB=/home/ldixon/local/polyml-5.2.0/lib
 ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
