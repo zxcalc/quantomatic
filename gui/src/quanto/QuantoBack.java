@@ -3,7 +3,7 @@ import java.io.*;
 //import java.util.Map;
 
 public class QuantoBack {
-
+ 
 	Process backEnd;
 	BufferedReader from_backEnd;
 	BufferedReader from_backEndError;
@@ -17,10 +17,11 @@ public class QuantoBack {
 			//Map<String,String> env = pb.environment();
 			//env.put("PATH", env.get("PATH") + ":/usr/local/bin");
 			
-			ProcessBuilder pb = new ProcessBuilder("quantomatic");
+			ProcessBuilder pb = new ProcessBuilder("quanto-core");
 			
 			System.out.println("Initialising QuantoML...");
 			backEnd = pb.start();
+			
 			System.out.println("Connecting pipes...");
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
@@ -43,19 +44,23 @@ public class QuantoBack {
 			System.out.println("Status:");
 			System.out.println(rcv); //  print it out
 		} catch (IOException e) {
-			System.out.println("Exit value from backend: " + backEnd.exitValue());
 			e.printStackTrace();
+			if(backEnd == null) { System.out.println("ERROR: Cannot execute: quanto-core, check it is in the path."); }
+			else {System.out.println("Exit value from backend: " + backEnd.exitValue()); }
 		}
 	}
 
 	public void send(String command) {
-		try {
-			to_backEnd.write(command);
-			to_backEnd.newLine();
-			to_backEnd.flush();
-		} catch (IOException e) {
-			System.out.println("Exit value from backend: " + backEnd.exitValue());
-			e.printStackTrace();
+		if(to_backEnd != null){
+			try {
+				to_backEnd.write(command);
+				to_backEnd.newLine();
+				to_backEnd.flush();
+			} catch (IOException e) {
+				System.out.println("Exit value from backend: "
+						+ backEnd.exitValue());
+				e.printStackTrace();
+			}
 		}
 	}
 

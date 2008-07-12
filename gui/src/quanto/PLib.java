@@ -6,7 +6,7 @@ package quanto;
  * 
  * @author ldixon
  */
-
+ 
 import java.awt.FileDialog;
 import java.awt.Frame;
 import java.awt.Toolkit;

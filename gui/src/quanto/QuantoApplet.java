@@ -17,7 +17,7 @@ import javax.swing.UIManager;
 import processing.core.*;
 import processing.pdf.*;
 import processing.video.MovieMaker;
-
+ 
 public class QuantoApplet extends PApplet {
 
 	private static final long serialVersionUID = 1L;
@@ -54,7 +54,7 @@ public class QuantoApplet extends PApplet {
 	int nextQTFile = 1;
 	boolean recordingVideo = false;
 	MovieMaker mm;  // to be initialised when recording starts
-
+ 
 	QuantoBack backend;
 	XMLReader xml;
 	static QuantoApplet p; // the top level applet 
@@ -269,7 +269,9 @@ public class QuantoApplet extends PApplet {
 			break;
 		case 'q':
 			println("Shutting down quantoML");
-			backend.send("Q\n");
+			if(backend != null) {
+				backend.send("Q\n");
+			}
 			//println(backend.receive());
 			//backend.send("quit () ; \n");
 			println("Quitting....");
