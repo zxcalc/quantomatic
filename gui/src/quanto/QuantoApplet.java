@@ -1,5 +1,9 @@
 package quanto;
 
+import java.awt.Menu;
+import java.awt.MenuBar;
+import java.awt.MenuItem;
+import java.awt.MenuShortcut;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -9,6 +13,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.StringTokenizer;
 import javax.swing.JFileChooser;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
@@ -55,8 +61,7 @@ public class QuantoApplet extends PApplet {
 	boolean recordingVideo = false;
 	MovieMaker mm;  // to be initialised when recording starts
  
-	QuantoBack backend;
-	XMLReader xml;
+	QuantoCore qcore;
 	static QuantoApplet p; // the top level applet 
 
 	public void setup() {
@@ -71,6 +76,7 @@ public class QuantoApplet extends PApplet {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 		fileChooser = new JFileChooser();
 		vertexPopUp = new JPopupMenu();
 		vRedMenuItem = new JRadioButtonMenuItem("Red");
@@ -86,9 +92,8 @@ public class QuantoApplet extends PApplet {
 
 		graph = new Graph(new DotLayout());
 		tool = 's';
-
-		backend = new QuantoBack();
-		xml = new XMLReader();	
+ 
+		qcore = new QuantoCore(graph);
 	}
 	
 	public void pause() {
@@ -108,28 +113,36 @@ public class QuantoApplet extends PApplet {
 	public void mouseReleased() {
 		if (mouseButton == LEFT) {
 			if (tool == 's') {
-				// if we are not holding shift deselect all vertices
-				if (!shift && !dragging) {
-					for (Vertex v : graph.vertexList)
-						v.selected = false;
-				}
-				if (!dragging && (mouseX != rectX || mouseY != rectY)) {
-					for (Vertex v : graph.vertexList) {
-						if (shift) {
-							v.selected = v.selected	| v.inRect(rectX, rectY, mouseX, mouseY);
-						} else {
-							v.selected = v.inRect(rectX, rectY, mouseX, mouseY);
+				synchronized (graph) {
+					// if we are not holding shift deselect all vertices
+					if (!shift && !dragging) {
+						for (Vertex v : graph.getVertices().values())
+							v.selected = false;
+					}
+					if (!dragging && (mouseX != rectX || mouseY != rectY)) {
+						for (Vertex v : graph.getVertices().values()) {
+							if (shift) {
+								v.selected = v.selected
+										| v
+												.inRect(rectX, rectY, mouseX,
+														mouseY);
+							} else {
+								v.selected = v.inRect(rectX, rectY, mouseX,
+										mouseY);
+							}
 						}
+					} else if (dragging
+							&& (oldmouseX == mouseX && oldmouseY == mouseY)) {
+						Vertex current = null; // this is vertex the mouse is
+												// over
+						for (Vertex v : graph.getVertices().values()) {
+							if (v.at(mouseX, mouseY))
+								current = v;
+						}
+						// reselect the clicked one
+						if (current != null)
+							current.selected = true; // this can be null in certain cases
 					}
-				} else if (dragging
-						&& (oldmouseX == mouseX && oldmouseY == mouseY)) {
-					Vertex current = null; // this is vertex the mouse is over
-					for (Vertex v : graph.vertexList) {
-						if (v.at(mouseX, mouseY))
-							current = v;
-					}
-					// reselect the clicked one
-					if (current!=null) current.selected = true; // this can be null in certain cases
 				}
 			}
 			rectX = -1;
@@ -150,11 +163,14 @@ public class QuantoApplet extends PApplet {
 		int dx = mouseX - oldmouseX;
 		int dy = mouseY - oldmouseY;
 		if(dragging){
-			for (Vertex v : graph.vertexList) {
-				if (v.selected) {
-					v.x += dx;
-					v.y += dy;
-					v.setDest(v.x,v.y); // prevent points from snapping back
+			synchronized (graph) {
+				for (Vertex v : graph.getVertices().values()) {
+					if (v.selected) {
+						v.x += dx;
+						v.y += dy;
+						v.setDest(v.x, v.y); // prevent points from snapping
+												// back
+					}
 				}
 			}
 		}
@@ -171,7 +187,7 @@ public class QuantoApplet extends PApplet {
 			switch (tool) {
 			case 's':
 				Vertex current = null; // this is vertex the mouse is over
-				for(Vertex v: graph.vertexList){
+				for(Vertex v: graph.getVertices().values()){
 					// The expected behavior when clicking is to pick a single vertex
 					// if many overlap. To get all of them, one drags a box around them.
 					if(v.at(mouseX, mouseY)) current = v;
@@ -181,7 +197,7 @@ public class QuantoApplet extends PApplet {
 					rectY = mouseY;
 				} else {
 					if (!current.selected && !shift) {
-						for (Vertex v : graph.vertexList) v.selected = false;
+						for (Vertex v : graph.getVertices().values()) v.selected = false;
 					}
 					current.selected = true;
 					dragging = true;
@@ -190,7 +206,7 @@ public class QuantoApplet extends PApplet {
 			case 'm':
 				float xAccum=0, yAccum=0;
 				int vCount=0;
-				for (Vertex v : graph.vertexList) {
+				for (Vertex v : graph.getVertices().values()) {
 					if (v.selected) {
 						vCount++;
 						xAccum += v.x;
@@ -200,7 +216,7 @@ public class QuantoApplet extends PApplet {
 				if (vCount > 0) {
 					xAccum /= (float)vCount;
 					yAccum /= (float)vCount;
-					for (Vertex v : graph.vertexList) {
+					for (Vertex v : graph.getVertices().values()) {
 						if (v.selected) {
 							v.clearEdgeControlPoints();
 							v.setDest((int)(v.x+mouseX-xAccum), (int)(v.y+mouseY-yAccum));
@@ -209,11 +225,10 @@ public class QuantoApplet extends PApplet {
 				}
 				break;
 			case 'e':
-				for (Vertex v : graph.vertexList) {
+				for (Vertex v : graph.getVertices().values()) {
 					if (v.at(mouseX, mouseY)) {
-						for (Vertex w : graph.vertexList) {
-							if (w.selected)
-								modifyGraph("e " + w.id + " " + v.id + "\n");
+						for (Vertex w : graph.getVertices().values()) {
+							if (w.selected){ qcore.addEdge(w,v); }
 						}
 					}
 				}
@@ -234,56 +249,23 @@ public class QuantoApplet extends PApplet {
 	}
 
 	public void keyPressed() {
-		if (key == tool) {
-			tool = 's';
-			play();
-			return;
-		}
-		
 		Clipboard cb;
 		StringSelection data;
 		switch (key) {
-		case 'l':
-			graph.layoutGraph();
-			break;
-		case 'r':
-		case 'g':
-		case 'h':
-		case 'b': /* add new nodes */
-			modifyGraph(Character.toString(key));
-			if (graph.newestVertex!=null) {
-				Vertex w = graph.newestVertex;
-				for (Vertex v : graph.vertexList) {
-					if (v.selected) modifyGraph("e " + v.id + " " + w.id + "\n");
-				}
-			}
-			break;
-		case 'n':
-		case 'u': /* other back-end commands, just pass them on */
-			modifyGraph(key + "");
-			break;
-		case 'd':
-			for (Vertex v : graph.vertexList) {
-				if (v.selected) modifyGraph("d " + v.id);
-			}
-			break;
-		case 'q':
-			println("Shutting down quantoML");
-			if(backend != null) {
-				backend.send("Q\n");
-			}
-			//println(backend.receive());
-			//backend.send("quit () ; \n");
-			println("Quitting....");
-			exit();
-			break;
-		case 'p':
-			doSplines = !doSplines;
-			break;
-		case 'c':  // "capture" the screen to PDF
-			startSaveNextFrame();
-			break;		
-		case 'v': // v is for video
+		case 'l': graph.layoutGraph(); break;
+		case 'r': qcore.addVertex(QuantoCore.VERTEX_RED); break;
+		case 'g': qcore.addVertex(QuantoCore.VERTEX_GREEN); break;
+		case 'h': qcore.addVertex(QuantoCore.VERTEX_HADAMARD); break;
+		case 'b': qcore.addVertex(QuantoCore.VERTEX_BOUNDARY); break;
+		case 'n': qcore.newGraph(); break;
+		case 'u': qcore.previousGraphState(); break;
+		case 'd': qcore.deleteAllSelected(); break;
+		case 'q': quit(); break;
+		case 'p': doSplines = !doSplines; break;
+		// "capture" the screen to PDF
+		case 'c': startSaveNextFrame(); break;
+		// v is for video
+		case 'v': 
 			if (recordingVideo) stopRecordVideo();
 			else startRecordVideo();
 			break;
@@ -306,12 +288,11 @@ public class QuantoApplet extends PApplet {
 			if (keyCode == SHIFT) shift = true;
 			break;
 		case TAB:
-			synchronized(graph.vertexList) {
-				if (graph.vertexList.size()>0) {
-					graph.sortVertices();
+			synchronized(graph) {
+				if (graph.getVertices().size()>0) {
 					Vertex sel = null;
 					boolean pickNext = false;
-					for (Vertex v : graph.vertexList) {
+					for (Vertex v : graph.getVertices().values()) {
 						if (v.selected) {
 							pickNext = true;
 						} else if (pickNext) {
@@ -320,7 +301,7 @@ public class QuantoApplet extends PApplet {
 						}
 						v.selected = false;
 					}
-					if (sel==null) sel = graph.vertexList.get(0);
+					if (sel==null) sel = graph.getVertices().values().iterator().next();
 					sel.selected = true;
 				}
 			}
@@ -346,28 +327,13 @@ public class QuantoApplet extends PApplet {
 			tool = key;
 			break;
 		}
-		
+
+		graph.layoutGraph();
 		play();
 	}
 	
 	public void keyReleased() {
 		shift = false;
-	}
-
-	void modifyGraph(String cmd) {
-		backend.send(cmd + "\n");
-		println(backend.receive());
-		// here send D to back-end and dump the graph
-		// then rebuild it via the XML parser.
-		backend.send("D\n");
-		Graph updated = xml.parseGraph(backend.receive());
-		updated.reconcileVertices(graph);
-		updated.setLayoutEngine(graph.getLayoutEngine());
-		this.graph = updated;
-		if (snapToGrid) graph.enableSnap();
-		graph.layoutGraph();
-		
-		play();
 	}
 
 	public void draw() {
@@ -419,19 +385,19 @@ public class QuantoApplet extends PApplet {
 		
 		boolean moved = false;
 		
-		synchronized(graph.vertexList) {
-			for (Vertex v : graph.vertexList) {
+		synchronized(graph) {
+			for (Vertex v : graph.getVertices().values()) {
 				moved = moved || v.tick();
 				v.tick();
 				v.display();
 			}
 		}
 		
-		synchronized(graph.edgeList) {
+		synchronized(graph) {
 			if (moved) {
-				for (Edge e : graph.edgeList) e.display(true);
+				for (Edge e : graph.getEdges().values()) e.display(true);
 			} else {
-				for (Edge e : graph.edgeList) e.display(false);
+				for (Edge e : graph.getEdges().values()) e.display(false);
 			}
 		}
 		
@@ -512,5 +478,32 @@ public class QuantoApplet extends PApplet {
 		mm = null;
 	}
 	
+	public void quit(){
+		if(qcore != null) {
+			qcore.closeQuantoBackEnd();
+		}
+		exit();
+	}
 
+/*
+	void modifyGraph(String cmd) {
+		qcore.send(cmd + "\n");
+		println(qcore.receive());
+		// here send D to back-end and dump the graph
+		// then rebuild it via the XML parser.
+		qcore.send("D\n");
+		
+		Graph updated = xml.parseGraph(qcore.receive());
+		graph.updateTo(updated);
+		graph.layoutGraph();
+		
+		play();
+	}
+	
+	public void newGraph() {
+		qcore.newGraph();
+		graph.layoutGraph();
+		play();
+	}
+*/
 }

@@ -5,11 +5,11 @@ public class FDLayout implements GraphLayout {
 	public void layout(Graph g) {
 		float dx, dy, fx, fy, dist, accum_fx, accum_fy;
 		for (int i=0;i<200;++i) {
-			synchronized(g.vertexList) {
+			synchronized(g) {
 				accum_fx = accum_fy = 0.0f;
-				for (Vertex v1 : g.vertexList) {
+				for (Vertex v1 : g.getVertices().values()) {
 					fx = 0f; fy = 0f;
-					for (Vertex v2 : g.vertexList) {
+					for (Vertex v2 : g.getVertices().values()) {
 						dx = v2.destX - v1.destX;
 						dy = v2.destY - v1.destY;
 						dist = dx*dx + dy*dy;
@@ -40,10 +40,10 @@ public class FDLayout implements GraphLayout {
 					accum_fy += fy;
 				}
 				
-				if (g.vertexList.size()!=0) {
-					accum_fx /= (float)g.vertexList.size();
-					accum_fy /= (float)g.vertexList.size();
-					for (Vertex v : g.vertexList) {
+				if (g.getVertices().size()!=0) {
+					accum_fx /= (float)g.getVertices().size();
+					accum_fy /= (float)g.getVertices().size();
+					for (Vertex v : g.getVertices().values()) {
 						v.destX -= accum_fx;
 						v.destY -= accum_fy;
 					}

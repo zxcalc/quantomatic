@@ -14,9 +14,9 @@ public class JiggleLayout implements GraphLayout {
 			// keep an inverse mapping from quanto.Vertex's to jiggle.Vertex's.
 			Map<quanto.Vertex, jiggle.Vertex> inverseVertexMap =
 				new HashMap<quanto.Vertex, jiggle.Vertex>();
-			synchronized (g.vertexList) {
+			synchronized (g) {
 				jiggle.Vertex jv;
-				for (quanto.Vertex v : g.vertexList) {
+				for (quanto.Vertex v : g.getVertices().values()) {
 					jv = insertVertex();
 					jv.setCoords(new double[]{(double)v.x, (double)v.y});
 					inverseVertexMap.put(v, jv);
@@ -24,8 +24,8 @@ public class JiggleLayout implements GraphLayout {
 				}
 			}
 			
-			synchronized(g.edgeList) {
-				for (quanto.Edge e : g.edgeList) {
+			synchronized(g) {
+				for (quanto.Edge e : g.getEdges().values()) {
 					insertEdge(inverseVertexMap.get(e.source),inverseVertexMap.get(e.dest), true);
 				}
 			}

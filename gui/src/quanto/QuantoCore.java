@@ -2,14 +2,23 @@ package quanto;
 import java.io.*;
 //import java.util.Map;
 
-public class QuantoBack {
+public class QuantoCore {
  
+	public static final int VERTEX_RED = 1;
+	public static final int VERTEX_GREEN = 2;
+	public static final int VERTEX_HADAMARD = 3;
+	public static final int VERTEX_BOUNDARY = 4;
+	
 	Process backEnd;
 	BufferedReader from_backEnd;
 	BufferedReader from_backEndError;
 	BufferedWriter to_backEnd;
+	Graph graph;
+	XMLReader xml;
 
-	public QuantoBack() {
+	public QuantoCore(Graph g) {
+		graph = g;
+		xml = new XMLReader();
 		try {
 			//String homedir = System.getProperty("user.home");
 			//String heap = homedir + local_quanto_heap;
@@ -72,7 +81,7 @@ public class QuantoBack {
 				message.append(ln);
 				message.append('\n');
 				ln = from_backEnd.readLine();
-			}
+			} 
 		} catch (IOException e) {
 			System.out.println("Exit value from backend: " + backEnd.exitValue());
 			e.printStackTrace();
@@ -83,5 +92,50 @@ public class QuantoBack {
 			return null;
 		}
 		return message.toString();
+	}
+	
+	public void closeQuantoBackEnd(){
+		System.out.println("Shutting down quantoML");
+		send("Q\n");
+	}
+	
+	
+	void modifyCmd(String s){
+		send(s + "\n");
+		System.out.println(receive());
+		// here send D to back-end and dump the graph
+		// then rebuild it via the XML parser.
+		send("D\n");
+		Graph updated = xml.parseGraph(receive());
+		graph.updateTo(updated);
+	}
+	
+	public void newGraph() {
+		modifyCmd("n");
+	}
+
+	public void previousGraphState() {
+		modifyCmd("u");
+	}
+
+	public void deleteAllSelected() {
+		for (Vertex v : graph.getVertices().values()) {
+			if (v.selected){ send("d " + v.id + "\n"); }
+		}
+		Graph updated = xml.parseGraph(receive());
+		graph.updateTo(updated);
+	}
+
+	public void addEdge(Vertex w, Vertex v) {
+		modifyCmd("e " + w.id + " " + v.id);
+	}
+
+	public void addVertex(int v) {
+		switch(v){
+			case VERTEX_RED: modifyCmd("r"); break;
+			case VERTEX_GREEN: modifyCmd("g"); break;
+			case VERTEX_HADAMARD: modifyCmd("h"); break;
+			case VERTEX_BOUNDARY: modifyCmd("b"); break;
+		}
 	}
 }
