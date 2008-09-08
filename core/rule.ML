@@ -42,7 +42,7 @@ val is_trivial : T -> bool
 
 (* find all matches, evaluated lazily *)
 val matches : T -> RGGraph.T -> Match.T Seq.seq
-(* gives back renamed rules *)
+(* gives back renamed (renamed to match graph) rules *)
 val rule_matches : T -> RGGraph.T -> T Seq.seq
 val rule_matches_within : T -> RGGraph.Vertex.NSet.T -> RGGraph.T -> T Seq.seq
 

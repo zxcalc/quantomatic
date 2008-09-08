@@ -210,7 +210,7 @@ fun interactive_rewrite g hist vset =
                            ((Pretty.writeln o Pretty.block)
                               [Pretty.str "Bug: ename_already_exists_exp for rule: ",
                                Pretty.str rulename]; []))
-             ) rule_list_hack
+             ) TheoryHack.rules
      in
        (* small bug here - updates history even if the rewrite was aborted *)
        (interactive_rw_loop g rws [], g::hist, Pretty.str("rewrite done."))
