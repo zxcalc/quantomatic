@@ -13,10 +13,10 @@ exception quit_exp of G.T
 
 structure MkV 
 = struct
-val red = V.IVert (V.Xnd AngleExpr.zero);
-val green = V.IVert (V.Znd AngleExpr.zero);
-val h = V.IVert V.Hnd;
-val bnd = V.BVert ()
+  val red = V.IVert (V.Xnd AngleExpr.zero);
+  val green = V.IVert (V.Znd AngleExpr.zero);
+  val h = V.IVert V.Hnd;
+  val bnd = V.BVert ()
 end;
 
 val log = ref TextIO.stdErr;
@@ -24,13 +24,13 @@ val log_stderr = ref true;
 fun close_log () = (if !log_stderr then () else TextIO.closeOut (!log));
 fun write_log s = (TextIO.output ((!log), s); TextIO.flushOut (!log)) ;
 
-(* what language are we outputting our graphs --------------------------------- *)
+(* what language are we outputting our graphs ----------------------------- *)
 datatype language = DOT | XML;
 val dump_lang = ref XML;
 val pretty_graph = ref RGGraphXML.output_graph
 val write_graph_to_file = ref RGGraphXMLWriter.output_to_file
 
-(* are we talking to a toplevel or a pipe? ---------------------------------*)
+(* are we talking to a toplevel or a pipe? -------------------------------- *)
 val is_out_pipe = ref true;
 fun out_toplevel out = Pretty.writeln out     
 fun out_pipe out = 
@@ -42,7 +42,7 @@ val do_output = ref out_pipe;
 fun switch_mode () = 
     if !is_out_pipe 
     then (do_output := out_toplevel ; is_out_pipe := false)
-    else (do_output := out_pipe ; is_out_pipe := true)
+    else (do_output := out_pipe ; is_out_pipe := true);
 
 
 
@@ -186,9 +186,9 @@ fun interactive_rw_loop g [] [] =
      NONE)
   | interactive_rw_loop g [] rwlist_bkd = 
     interactive_rw_loop g (List.rev rwlist_bkd) [] 
-  | interactive_rw_loop g ((rw as (rule_name, rule, fused_g))::rwlist_fwd) rwlist_bkd = 
-    (write_log "Rendering rw";
-     let 
+  | interactive_rw_loop g ((rw as (rule_name, rule, fused_g))::rwlist_fwd) 
+                        rwlist_bkd = 
+    let 
          val n = (List.length rwlist_bkd) + 1
          val howmany = n + (List.length rwlist_fwd) -1
          val p = pretty_rewrite rule_name fused_g 
@@ -218,10 +218,10 @@ fun interactive_rw_loop g [] [] =
                        let val g' = Rule.del_lhs rule fused_g
                        in SOME g' end)
        | _ => 
-         (write_log ("COMMAND_NOT_APPLICABLE_NOW: " ^ (Pretty.string_of (pretty_command c))); 
+         (write_log ("COMMAND_NOT_APPLICABLE_NOW: " ^ 
+                     (Pretty.string_of (pretty_command c))); 
           interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
-     end
-    )
+     end;
 
 (* FIXME: use vset as selected vertices for rewriting  *)
 fun interactive_rewrite vset (st as (g, hist)) = 
@@ -232,56 +232,52 @@ fun interactive_rewrite vset (st as (g, hist)) =
                         (Seq.list_of (Rule.rule_matches rule g))))
                TheoryHack.rules
     in case interactive_rw_loop g rws [] of 
-         NONE => (st, Pretty.str("not rewritten."))
-       | SOME g' => ((g', g::hist), Pretty.str("rewriten!"))
+         NONE => st
+       | SOME g' => (g', g::hist)
     end;
 
 (* =======================================================*)
 (* this is the command dispatcher for the top level run loop *)
 fun do_command (st as (g, hist)) c = 
-    case c of
-      NOOP => (st, Pretty.str "NOOP")        
-    | DUMP => (st, (!pretty_graph) g)
-    | Save filename => ( 
-      (!write_graph_to_file) filename g; (st, (Pretty.str ("Wrote graph to file "^filename))))
-    | Open _ => (st, Pretty.str "ERROR: Open not implemented, ignored.")
-    | MODE => (switch_mode (); (st, Pretty.str "Changed output mode."))
-    | Quit => raise quit_exp g
-    | HELO => let val msg  = Pretty.chunks [Pretty.str"Hello from QUANTOMATIC",
-                                            Pretty.str "Let's have some fun!"]
-              in (st, msg) end
-    | New => ((G.empty, g::hist), Pretty.str "New Graph.")
-    | Undo => (case hist of 
-                 [] => (st, Pretty.str "Already at start of history. ")
-               | h::t => ((h, t), Pretty.str "Undo!"))
-    | Red => 
-      let val (_,g') = G.add_vertex MkV.red g
-      in ((g', g::hist), Pretty.str "Red added.") end
-    | Green => 
-      let val (_,g') = G.add_vertex MkV.green g
-      in ((g', g::hist), Pretty.str "Green added.") end
-    | Hadamard => 
-      let val (_,g') = G.add_vertex MkV.h g
-      in ((g', g::hist), Pretty.str "H added.") end
-    | Boundary => 
-      let val (_,g') = G.add_vertex MkV.bnd g
-      in ((g', g::hist), Pretty.str "Boundary added.") end
-    | Edge (v1, v2) =>
-      let val (_,g') = G.add_edge () v1 v2 g
-      in ((g', g::hist), Pretty.str "Edge added.") end 
-    | DelVertex v => 
-      let val g' = G.delete_vertex v g
-      in ((g', g::hist), Pretty.str "Vertex Deleted.") end
-    | DelEdge e => 
-      let val g' = G.delete_edge e g
-      in ((g', g::hist), Pretty.str "Edge Deleted.") end
-    | UpVertex (v,d) => 
-      let val g' = G.set_vertex d v g
-      in ((g', g::hist), Pretty.str "Vertex Updated.") end
-    | ShowRewrites vset => interactive_rewrite vset st
-    | _ => (st, Pretty.block [Pretty.str "ERROR: Not Implemented! ignoring command: ", 
-                              pretty_command c]);
-
+    (write_log (Pretty.string_of (pretty_command c));
+     case c of
+       NOOP => st
+     | DUMP => ((!do_output) ((!pretty_graph) g); st)
+     | Save filename => ((!write_graph_to_file) filename g;st)
+     | MODE => (switch_mode (); st)
+     | Quit => raise quit_exp g
+     | HELO => ((!do_output) (Pretty.str "Hello from QUANTOMATIC\nLet's have some fun!"); st)
+     | New => ((G.empty, g::hist))
+     | Undo => (case hist of 
+                  [] => (write_log "Already at start of history. "; st)
+                | h::t => (h, t))
+     | Red => 
+       let val (_,g') = G.add_vertex MkV.red g
+       in (g', g::hist) end
+     | Green => 
+       let val (_,g') = G.add_vertex MkV.green g
+       in (g', g::hist) end
+     | Hadamard => 
+       let val (_,g') = G.add_vertex MkV.h g
+       in (g', g::hist) end
+     | Boundary => 
+       let val (_,g') = G.add_vertex MkV.bnd g
+       in (g', g::hist) end
+     | Edge (v1, v2) =>
+       let val (_,g') = G.add_edge () v1 v2 g
+       in (g', g::hist) end 
+     | DelVertex v => 
+       let val g' = G.delete_vertex v g
+       in (g', g::hist) end
+     | DelEdge e => 
+       let val g' = G.delete_edge e g
+       in (g', g::hist) end
+     | UpVertex (v,d) => 
+       let val g' = G.set_vertex d v g
+       in (g', g::hist) end
+     | ShowRewrites vset => interactive_rewrite vset st
+     | _ => (write_log ("ERROR: Not Implemented! ignoring command: " ^
+                        (Pretty.string_of (pretty_command c))); st));
 
 
 (*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
@@ -290,20 +286,22 @@ fun run_loop st =
       val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
       val sopt = TextIO.inputLine(TextIO.stdIn) 
       val s = (case sopt of NONE => "" | SOME s => s)
-      val ((g', hist'), output) = do_command st (parse_command s)
-    in ((!do_output) output; run_loop (g', hist')) end;
+    in run_loop (do_command st (parse_command s)) end;
 
+(* start quantomatic! *)
 fun init () = 
     let val quanto_dir = case OS.Process.getEnv "HOME" 
                           of NONE => ".quantomatic"
                            | SOME s => s ^ "/.quantomatic"
         val _ = 
-            (if (OS.FileSys.isDir quanto_dir) then () else OS.FileSys.mkDir quanto_dir; 
+            (if (OS.FileSys.isDir quanto_dir) then () 
+             else OS.FileSys.mkDir quanto_dir; 
              log := (TextIO.openAppend (quanto_dir ^ "/quantolog.txt")))
             handle OS.SysErr (s,erropt) => 
                    (log := TextIO.stdErr;
                     write_log ("Cannot create log dir and logfile: " ^ 
-                               quanto_dir ^ "/quantolog.txt" ^ "\n Error: " ^ s ^ "\n"))
+                               quanto_dir ^ "/quantolog.txt" ^ "\n Error: " ^ 
+                               s ^ "\n"))
         val _ = write_log "Starting up...\n" ; 
         val outg = run_loop (G.empty, []);
         val _ = write_log "Closing down...\n" ; 
@@ -316,7 +314,9 @@ fun init () =
     handle e => 
            (write_log ("Crash --> exception thrown: " ^ (PolyML.makestring e));
             TextIO.closeOut (!log) ; 
-            (!do_output) (Pretty.str ("<message><crash>\nException thrown: "^(PolyML.makestring e)^"\n</crash></message>")) ;
+            (!do_output) (Pretty.str ("<message><crash>\nException thrown: "^
+                                      (PolyML.makestring e)^
+                                      "\n</crash></message>")) ;
             G.empty);
 
 
