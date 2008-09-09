@@ -9,9 +9,6 @@ structure G = RGGraph
 structure V = G.RGVertex
 structure E = G.Edge
 
-exception NOT_IMPLEMENTED of string
-exception ILLEGAL_COMMAND of string
-exception COMMAND_NOT_APPLICABLE_NOW of string
 exception QUIT of G.T
 
 val blank = Pretty.str "";
@@ -94,6 +91,7 @@ datatype commands = NOOP
       | DelVertex of V.name
       | UpVertex of V.name * V.data
       | DelEdge of E.name
+      | BadCommand
 
 val kill_newlines  = 
     String.translate (fn #"\n" => "" | c => (str c)) 
@@ -101,18 +99,20 @@ val kill_newlines  =
 fun parse_node_list [] = V.NSet.empty
   | parse_node_list (h::t) = V.NSet.ins_fresh h (parse_node_list t)
 
+exception bad_formed_node_data_exp of string; 
+
 (* does not parse angleexpr yet *)
-fun parse_node_data [] = raise (ILLEGAL_COMMAND "up ")
+fun parse_node_data [] = raise (bad_formed_node_data_exp "up ")
   | parse_node_data (bnd::t) = 
     if bnd = "true" then fresh_bnd
     else if bnd = "false" then 
-      case t of [] =>  raise ILLEGAL_COMMAND ("up "^bnd)
+      case t of [] =>  raise bad_formed_node_data_exp ("up "^bnd)
               | col::_ => 
                 (case col of "red" => fresh_red
                            | "green" => fresh_green
                            | "h" => fresh_h
-                           | _ => raise ILLEGAL_COMMAND ("up false "^col))
-    else raise ILLEGAL_COMMAND ("up "^bnd)
+                           | _ => raise bad_formed_node_data_exp ("up false "^col))
+    else raise bad_formed_node_data_exp ("up "^bnd)
 
 
 fun parse_command s = 
@@ -144,7 +144,7 @@ fun parse_command s =
             | "RWnext" => NextRewrite
             | "RWprev" => PrevRewrite
             | "RWabort" => AbortRewrites
-            |_ => raise ILLEGAL_COMMAND s)
+            | _ => BadCommand)
     end;
 
 (* ------- a mini run loop / dispatcher for choosing rewrites ---*)
@@ -168,7 +168,7 @@ fun interactive_rw_loop g [] [] =
          val c = parse_command s 
      in 
        case c of 
-         NOOP => interactive_rw_loop g rwlist_fwd rwlist_bkd 
+         NOOP => interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd 
        | Quit => raise (QUIT g)
        | AbortRewrites => (Pretty.writeln (Pretty.str "abort rewrite") ; NONE )
        | NextRewrite => (
@@ -189,19 +189,38 @@ fun interactive_rw_loop g [] [] =
                          ((!dumper) g'; SOME g')
                        end
                       )
-       | _ => raise COMMAND_NOT_APPLICABLE_NOW "finish rewriting first"
+       | _ => 
+         (Pretty.writeln (Pretty.str "COMMAND_NOT_APPLICABLE_NOW") ; 
+          interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
      end
     )
 
-(* FIXME: use vset as selected vertices for rewriting *)
+(* FIXME: use vset as selected vertices for rewriting  *)
 fun interactive_rewrite g hist vset = 
     (Pretty.writeln  (Pretty.str "start rw loop") ;
      let 
+       val _ = Pretty.writeln  (Pretty.str "start rw loop 2")
        val rws = 
            maps
              (fn (rulename,rule) => 
+                 (((Pretty.writeln o Pretty.chunks) 
+                    [Pretty.str "trying: ",
+                     Pretty.str rulename,
+                     Pretty.str "rule: ",
+                     Rule.pretty rule,
+                     Pretty.str "on graph: ",
+                     G.pretty g
+                 ]);
                  map  
-                   (fn rule' => (rulename, rule', Rule.add_rhs rule' g))
+                   (fn rule' => (((Pretty.writeln o Pretty.block) 
+                                    [Pretty.str "matching rule found: ",
+                                     Pretty.str rulename]); 
+                                 (rulename, rule', Rule.add_rhs rule' g ))
+                       handle e => 
+                              (((Pretty.writeln o Pretty.block) 
+                               [Pretty.str "Bug: Rule.add_rhs failed in rule: ",
+                                Pretty.str rulename]); raise e)
+                   )
                    (Seq.list_of (Rule.rule_matches rule g)
                     handle G.vname_already_exists_exp _ => 
                            (((Pretty.writeln o Pretty.block) 
@@ -211,7 +230,8 @@ fun interactive_rewrite g hist vset =
                            ((Pretty.writeln o Pretty.block)
                               [Pretty.str "Bug: ename_already_exists_exp for rule: ",
                                Pretty.str rulename]; []))
-             ) TheoryHack.rules
+             )) TheoryHack.rules
+       val _ = Pretty.writeln  (Pretty.str "start rw loop 3")
      in
        (* small bug here - updates history even if the rewrite was aborted *)
        case interactive_rw_loop g rws [] of 
@@ -219,7 +239,6 @@ fun interactive_rewrite g hist vset =
        | SOME g' => (g', g::hist, Pretty.str("rewrite done."))
      end
     );
-
 
 (* =======================================================*)
 (* this is the command dispatcher for the top level run loop *)
@@ -231,83 +250,75 @@ fun do_command g hist c =
       (!write_to_file) filename g ;
       (g, hist, Pretty.str ("Wrote graph to file "^filename))
       )
-    | Open _ => raise NOT_IMPLEMENTED "Open"
+    | Open _ => (g, hist, Pretty.str "ERROR: Open not implemented, ignored.")
     | MODE => (switch_mode () ;
-         (g, hist, Pretty.str "Changed output mode.")
-        )
+               (g, hist, Pretty.str "Changed output mode.")
+              )
     | Quit => raise QUIT g
     | HELO => let val msg  = Pretty.chunks [Pretty.str"Hello from QUANTOMATIC",
-              Pretty.str "Let's have some fun!"]
-        in 
-    (g, hist, msg)
-        end
+                                            Pretty.str "Let's have some fun!"]
+              in 
+                (g, hist, msg)
+              end
     | New => (G.empty, 
-        g::hist, 
-        Pretty.str "New Graph.")
+              g::hist, 
+              Pretty.str "New Graph.")
     | Undo => (case hist of 
-    [] => (g, hist, blank)
-        | h::t => (h, t, Pretty.str "Undo!")
-        )
+                 [] => (g, hist, blank)
+               | h::t => (h, t, Pretty.str "Undo!")
+              )
     | Red => 
       let val (_,g') = G.add_vertex fresh_red g
       in 
-  (g', g::hist, Pretty.str "Red added.")
+        (g', g::hist, Pretty.str "Red added.")
       end
     | Green => 
       let val (_,g') = G.add_vertex fresh_green g
       in 
-  (g', g::hist, Pretty.str "Green added.")
+        (g', g::hist, Pretty.str "Green added.")
       end
     | H => 
       let val (_,g') = G.add_vertex fresh_h g
       in 
-  (g', g::hist, Pretty.str "H added.")
+        (g', g::hist, Pretty.str "H added.")
       end
     | Boundary => 
       let val (_,g') = G.add_vertex fresh_bnd g
       in 
-  (g', g::hist, Pretty.str "Boundary added.")
+        (g', g::hist, Pretty.str "Boundary added.")
       end
     | Edge (v1, v2) =>
       let val (_,g') = G.add_edge () v1 v2 g
       in
-  (g', g::hist, Pretty.str "Edge added.")
+        (g', g::hist, Pretty.str "Edge added.")
       end 
     | DelVertex v => 
       let val g' = G.delete_vertex v g
       in 
-  (g', g::hist, Pretty.str "Vertex Deleted.")
+        (g', g::hist, Pretty.str "Vertex Deleted.")
       end
     | DelEdge e => 
       let val g' = G.delete_edge e g
       in 
-  (g', g::hist, Pretty.str "Edge Deleted.")
+        (g', g::hist, Pretty.str "Edge Deleted.")
       end
     | UpVertex (v,d) => 
       let val g' = G.set_vertex d v g
       in 
-  (g', g::hist, Pretty.str "Vertex Updated.")
+        (g', g::hist, Pretty.str "Vertex Updated.")
       end
     | ShowRewrites vset => interactive_rewrite g hist vset
-    | AbortRewrites => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
-    | DoRewrite => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
-    | NextRewrite => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
-    | PrevRewrite => raise COMMAND_NOT_APPLICABLE_NOW "do show rewrites first"
-    | _ => raise NOT_IMPLEMENTED "nothing useful implemented"
+    | _ => (g, hist, Pretty.str "ERROR: Not Implemented! ignoring.");
 
 
 
 (*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
 fun run_loop g hist = 
     let 
-            val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
+      val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
       val sopt = TextIO.inputLine(TextIO.stdIn) 
-            val s = (case sopt of NONE => "" | SOME s => s)
+      val s = (case sopt of NONE => "" | SOME s => s)
       val (g', hist', output) = ((do_command g hist) o parse_command) s
-    handle NOT_IMPLEMENTED s => 
-           (g, hist, Pretty.str ("Not Implemented:" ^ s))
-         | ILLEGAL_COMMAND s => 
-           (g, hist, Pretty.str ("Illegal command:" ^ s))
     in
       (
        if output <> blank then ((!do_output) output) else () ;
@@ -317,16 +328,19 @@ fun run_loop g hist =
 
       
 fun die msg = 
-    (
-     write_log ("Crash --> "^msg^"\n") ;
+    (write_log ("Crash --> "^msg^"\n") ;
      TextIO.closeOut (!log) ; 
      (!do_output) (Pretty.str ("<message><crash>\n"^msg^"\n</crash></message>")) ;
      if !is_out_pipe then 
-       OS.Process.exit (OS.Process.failure)
+       (Pretty.writeln (Pretty.str "die1: is out pipe.");
+        OS.Process.exit (OS.Process.failure))
      else
-       ()       
+       (Pretty.writeln (Pretty.str "die2: not is out pipe.");
+        OS.Process.exit (OS.Process.failure))
     )
-    handle _ => OS.Process.exit (OS.Process.failure)
+    handle _ => 
+           (Pretty.writeln (Pretty.str "pooo! even quiting raises an exception!!");
+            OS.Process.exit (OS.Process.failure))
 
 fun init () = 
     let val quanto_dir = case OS.Process.getEnv "HOME" 
@@ -344,6 +358,7 @@ fun init () =
      g
      )
     handle _ => (
+     Pretty.writeln (Pretty.str "Quitting because...");
      die "ML threw an Exception... better RESTART.";
      G.empty (* just to keep the compiler happy *)
      )

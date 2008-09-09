@@ -20,9 +20,11 @@ use "matchstate.ML";
 use "test/matching.ML";
 
 use "rule.ML";
-use "test/rule.ML";
 
 use "theory_hack.ML";
+
+use "test/rule.ML";
+
 
 use "output.ML";
 use "output_dot.ML";

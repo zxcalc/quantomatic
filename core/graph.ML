@@ -100,6 +100,9 @@ val rename : (Vertex.renaming * Edge.renaming) -> T -> (Vertex.renaming * Edge.r
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (Vertex.renaming * Edge.renaming) * T 
 
+val rename_vnames : Vertex.NSet.T -> Vertex.renaming * T -> Vertex.renaming * T
+val rename_enames : Edge.NSet.T -> Edge.renaming * T -> Edge.renaming * T
+
 (* merge two graphs - vertices with same name are kept only once, edges
    must be distinct. *)
 val merge_by_vertices : T -> T -> T
@@ -507,30 +510,57 @@ fun delete_subgraph subg fromg =
                 delete_vertex
                 (get_vnames subg));
 
-(* given: vertex renaming, edge renaming, rename g *)
-(* Warning: will raise exception if names in g are 
-   not in avoids of renamings *)
-fun rename (vrn,ern) g = 
-		let val (vrn2,g2) = 
-            Vertex.NTab.fold 
-						  (fn (n,_) => fn (vrn2,g') =>
+
+(* rename a set of vnames in a graph *)
+fun rename_vnames vnames (vrn,g) = 
+    Vertex.NSet.fold 
+			(fn n => fn (vrn2,g') =>
                   case Vertex.rename1 n vrn2 of
-                    (NONE, vrn') => (vrn', g')
-                  | (SOME n', vrn') => 
+                    (NONE, vrn') => (vrn', g') (* not renamed *)
+                  | (SOME n', vrn') => (* rename to n' *)
                     (vrn', rename_vname n n' g'))
-							(get_vertices g)
-              (vrn, g);
-        val (ern2,g3) = 
-            Edge.NTab.fold 
-						 	(fn (e,_) => fn (ern2,g') =>
+			vnames
+      (vrn, g);
+
+(* rename a set of enames in a graph *)
+fun rename_enames enames (ern,g) =
+    Edge.NSet.fold 
+			(fn e => fn (ern2,g') =>
                   case Edge.rename1 e ern2 of
                     (NONE, ern') => (ern', g')
                   | (SOME e', ern') => 
                     (ern', rename_ename e e' g'))
-							(get_edges g2)
-              (ern, g2);
+      enames
+      (ern, g);
+
+(* given: vertex renaming, edge renaming, and then given additional
+stuff that was actually in the initial renamed graph, call this graph
+g, rename g consistently. *)
+fun rename (vrn,ern) g = 
+		let 
+      (* order possible clashes with new names to be renamed first *)
+      val vnames = (get_vnames g)
+      val fst_vnames = Vertex.NSet.intersect vnames (Vertex.newnames_of_renaming vrn)
+      val snd_vnames = Vertex.NSet.subtract vnames fst_vnames
+      val enames = (get_enames g)
+      val fst_enames = Edge.NSet.intersect enames (Edge.newnames_of_renaming ern)
+      val snd_enames = Edge.NSet.subtract enames fst_enames
+
+      (* avoid renaming things that are already fresh *)
+      val more_ignore_vnames = 
+          Vertex.NSet.subtract (get_vnames g) (Vertex.avoids_of_renaming vrn)
+      val more_ignore_enames = 
+          Edge.NSet.subtract (get_enames g) (Edge.avoids_of_renaming ern)
+      val vrn2 = Vertex.union_ignores_to_renaming more_ignore_vnames vrn
+      val ern2 = Edge.union_ignores_to_renaming more_ignore_enames ern
+
+      (* peform the additional renaming *)
+      val (vrn3,g2) = rename_vnames fst_vnames (vrn2, g);
+      val (vrn4,g3) = rename_vnames snd_vnames (vrn3, g2);
+      val (ern3,g4) = rename_enames fst_enames (ern2, g3);
+      val (ern4,g5) = rename_enames snd_enames (ern3, g4);
     in
-      ((vrn2,ern2),g3)
+      ((vrn4,ern4),g5)
     end;
 
 (* rename ing to be different from avoidg *)
