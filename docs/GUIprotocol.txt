@@ -59,34 +59,33 @@ Will only define XML for the red-green graphs
 
 <graph>
 <vertex> 
-       <name>unique</name> 
-       <boundary>boolean</boundary>
-<!-- if boundary is omitted false is inferred -->
-<!-- if boundary is true, the colour and angle 
-     elements are ignored -->
-
-     <colour>red/green/H"</colour>
-     <!-- if colour is H angle is ignored -->
-     <angleexpr> <!-- interpret as the SUM of the below -->
-     		 <variable>
-		 	<name>unique name></name>
-			<coefficient>
-				<num>int</num>
-				<denom>int</denom>
-			</coefficent>
-		</variable>
-		<constant>
-			<num>int</num>
-			<denom>int</denom>
-		</constant>
-      </angleexpr>
-      <!-- if angle omitted, zero is inferred -->
+  <name>unique</name> 
+  <boundary>boolean</boundary>
+  <!-- if boundary is omitted false is inferred -->
+  <!-- if boundary is true, the colour and angle 
+       elements are ignored -->
+  <colour>red/green/H"</colour>
+  <!-- if colour is H angle is ignored -->
+  <angleexpr> <!-- interpret as the SUM of the below -->
+    <variable>
+      <name>unique name</name>
+      <coefficient>
+        <num>int</num>
+        <denom>int</denom>
+      </coefficent>
+    </variable>
+    <constant>
+      <num>int</num>
+      <denom>int</denom>
+    </constant>
+  </angleexpr>
+  <!-- if angle omitted, zero is inferred -->
 </vertex>
 
 <edge>
-	<name>unique name</name>
-	<source>node name</source>
-	<target>node name</target>
+  <name>unique name</name>
+  <source>node name</source>
+  <target>node name</target>
 </edge>
 </graph>
 
@@ -94,27 +93,27 @@ Will only define XML for the red-green graphs
 Send Rewrites from the core as:
 
 <rewrite>
-	<rulename>descrptive name</rulename>
-	<graph>
-		<!-- see above -->
-		<!-- a 'fused' graph containing both the lhs and rhs
-		     of the rewrite rule
-		-->
-	</graph>
-	<!-- subgraph which is lhs of rewrite -->
-	<lhs>
-		<graph><!-- see above--></graph>
-	</lhs>
-	<!-- subgraph which is rhs of rewrite -->
-	<rhs>
-		<graph><!-- see above--></graph>
-	</rhs>
-	<!-- how many rewrites in the current list -->
-	<total>
-		int
-	</total>
-	<!-- which element is this is the current list -->
-	<num>
-		int
-	</num> 
+  <rulename>descrptive name</rulename>
+  <graph>
+    <!-- see above -->
+    <!-- a 'fused' graph containing both the lhs and rhs
+         of the rewrite rule
+    -->
+  </graph>
+  <!-- subgraph which is lhs of rewrite -->
+  <lhs>
+    <graph><!-- see above--></graph>
+  </lhs>
+  <!-- subgraph which is rhs of rewrite -->
+  <rhs>
+    <graph><!-- see above--></graph>
+  </rhs>
+  <!-- how many rewrites in the current list -->
+  <total>
+    int
+  </total>
+  <!-- which element is this is the current list -->
+  <num>
+    int
+  </num> 
 </rewrite>
