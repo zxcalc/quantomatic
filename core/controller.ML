@@ -280,6 +280,23 @@ fun do_command (st as (g, hist)) c =
                         (Pretty.string_of (pretty_command c))); st));
 
 
+(* *)
+fun start_logfile () = 
+    let 
+      val quanto_dir = case OS.Process.getEnv "HOME" 
+                        of NONE => ".quantomatic"
+                         | SOME s => s ^ "/.quantomatic"
+    in
+      (if ((OS.FileSys.isDir quanto_dir) handle OS.SysErr _ => false) 
+       then () else OS.FileSys.mkDir quanto_dir; 
+       log := (TextIO.openAppend (quanto_dir ^ "/quantolog.txt")))
+      handle OS.SysErr (s,erropt) => 
+             (log := TextIO.stdErr;
+              write_log ("Cannot create log dir and logfile: " ^ 
+                         quanto_dir ^ "/quantolog.txt" ^ "\n Error: " ^ 
+                         s ^ "\n"))
+    end;
+
 (*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
 fun run_loop st = 
     let 
@@ -290,22 +307,12 @@ fun run_loop st =
 
 (* start quantomatic! *)
 fun init () = 
-    let val quanto_dir = case OS.Process.getEnv "HOME" 
-                          of NONE => ".quantomatic"
-                           | SOME s => s ^ "/.quantomatic"
-        val _ = 
-            (if (OS.FileSys.isDir quanto_dir) then () 
-             else OS.FileSys.mkDir quanto_dir; 
-             log := (TextIO.openAppend (quanto_dir ^ "/quantolog.txt")))
-            handle OS.SysErr (s,erropt) => 
-                   (log := TextIO.stdErr;
-                    write_log ("Cannot create log dir and logfile: " ^ 
-                               quanto_dir ^ "/quantolog.txt" ^ "\n Error: " ^ 
-                               s ^ "\n"))
-        val _ = write_log "Starting up...\n" ; 
-        val outg = run_loop (G.empty, []);
-        val _ = write_log "Closing down...\n" ; 
-        val _ = close_log ();
+    let 
+      val _ = log := TextIO.stdErr
+      val _ = write_log "Starting up...\n" ; 
+      val outg = run_loop (G.empty, []);
+      val _ = write_log "Closing down...\n" ; 
+      val _ = close_log ();
     in outg end
     handle quit_exp g => 
            (write_log "Quit command received...";
