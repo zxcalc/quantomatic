@@ -3,6 +3,9 @@ import java.lang.Math;
 import java.util.ArrayList;
 
 class Vertex extends PLib implements Comparable<Vertex>  {
+	
+	public static float radius = 15f;
+	
 	public float destX, destY, x, y;
 	public float speed;
 	public boolean selected;
@@ -97,7 +100,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(255, 0, 0);
 		p.fill(255, 100, 100);
-		p.ellipse(x, y, 15, 15);
+		p.ellipse(x, y, radius, radius);
 		if (angleexpr != null) {
 			p.textFont(p.times);
 			p.fill(100, 0, 0);
@@ -110,7 +113,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(0, 255, 0);
 		p.fill(100, 255, 100);
-		p.ellipse(x, y, 15, 15);
+		p.ellipse(x, y, radius, radius);
 		if (angleexpr != null) {
 			p.textFont(p.times);
 			p.fill(0, 100, 0);
@@ -132,7 +135,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		p.stroke(0, 0, 0);
 		p.fill(255, 255, 0, 100);
 		p.rectMode(CENTER);
-		p.rect(x, y, 16, 16);
+		p.rect(x, y, 1.1f*radius, 1.1f*radius);
 		p.textFont(p.helvetica);
 		p.fill(0, 0, 0, 255);
 		p.text("H", x - 5, y + 5);
@@ -150,7 +153,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		if(extra_highlight) {
 			p.noStroke();
 			p.fill(255, 100 + 10*((flash_seq++)%15), 0, 150);
-			p.ellipse(x, y, 25, 25);
+			p.ellipse(x, y, 1.67f*radius, 1.67f*radius);
 		}
 		
 		if (col.equals("red")) {
@@ -164,12 +167,12 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		} else {
 			p.stroke(0);
 			p.fill(50, 50, 50, 150);
-			p.ellipse(x, y, 15, 15);
+			p.ellipse(x, y, radius, radius);
 		}
 		if (selected) {
 			p.stroke(0, 0, 255);
 			p.noFill();
-			p.ellipse(x, y, 20, 20);
+			p.ellipse(x, y, 1.33f*radius, 1.33f*radius);
 		}
 	}
 
@@ -178,7 +181,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(0, 255, 0);
 		p.noFill();
-		p.ellipse(x, y, 25, 25);
+		p.ellipse(x, y, 1.67f*radius, 1.67f*radius);
 	}
 
 	public void registerClick(int x, int y) {

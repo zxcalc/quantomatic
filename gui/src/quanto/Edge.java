@@ -207,6 +207,6 @@ class Edge extends PLib {
 		float p2x = dest.x - offX + 5.0f * cos(theta - 1.2f * PI);
 		float p2y = dest.y - offY + 5.0f * sin(theta - 1.2f * PI);
 		
-		p.triangle(dest.x - offX, dest.y - offY, p1x, p1y, p2x, p2y);
+		//p.triangle(dest.x - offX, dest.y - offY, p1x, p1y, p2x, p2y);
 	}
 }
