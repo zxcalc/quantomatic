@@ -137,8 +137,7 @@ public class XMLReader {
 	}
 
 	private XMLElement mkXMLFromString(String s) {
-		XMLElement x = new XMLElement();
-		x.parseString(s);
+		XMLElement x = new XMLElement(s);
 		return x;
 	}
 
