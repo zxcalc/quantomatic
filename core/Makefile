@@ -1,6 +1,8 @@
 # Targets: 
 
 ML_SRC_FILES = $(shell ls *.ML)
+ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*/*.ML)
+
 
 THE_BIN=quanto-core
 POLYML=poly
@@ -12,7 +14,7 @@ default: bin
 
 ################
 
-$(ISAPLIB_HEAP): 
+$(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
 	@cd ./isaplib; make
 
 # make polyml heap

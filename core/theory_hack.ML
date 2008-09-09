@@ -174,9 +174,11 @@ local
   val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
   val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
   val (e7, g) = g |> RGGraph.add_edge edge n2 n4;
-  val (n5, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+(* no scalars in theory hack - they are not really important *)
+(*   val (n5, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
   val (n6, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
   val (e8, g) = g |> RGGraph.add_edge edge n5 n6; (* scalar XZ *)
+*)
   val lhs = g;
   val _ = RGGraph.print lhs;
   (* rhs *)
@@ -209,9 +211,10 @@ local
   val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
   val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
   val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
-  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
   val lhs = g;
   val _ = RGGraph.print lhs;
   (* rhs *)
@@ -240,9 +243,10 @@ local
   val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
   val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
   val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
-  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
   val lhs = g;
   val _ = RGGraph.print lhs;
   (* rhs *)
