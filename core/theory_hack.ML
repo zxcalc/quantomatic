@@ -238,8 +238,8 @@ local
   val g = RGGraph.empty;
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (b2, g) = g |> RGGraph.add_vertex bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
   val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
   val (e2, g) = g |> RGGraph.add_edge edge b2 n2;

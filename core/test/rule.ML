@@ -108,12 +108,32 @@ val _ = RGGraph.print g;
 val [] = Seq.list_of (Rule.rule_matches TheoryHack.frobenius_rule g);
 val [] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
 
-val L = TheoryHack.apply_all_rules g;
+(* bialgebra3 *)
+val [r1,r2] = TheoryHack.apply_all_rules g;
+
+
+(* Example of not applicable rules... *)
+val g = RGGraph.empty;
+val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n3, g) = g |> RGGraph.add_vertex bvert;
+val (n4, g) = g |> RGGraph.add_vertex bvert;
+val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
+val (e2, g) = g |> RGGraph.add_edge edge n2 n4;
+val _ = RGGraph.print g;
+
+(* bialgebra2 *)
+val [r1,r2] = TheoryHack.apply_all_rules g;
 
 end;
 
 (*
 val L2 = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
+
+    RGGraphDotWriter.output_to_file "foo1.dot" g;
+    RGGraphDotWriter.output_to_file "foo2.dot" g;
+
 
     RGGraphDotWriter.output_to_file "foo.dot" g;
     PolyML.exception_trace (fn () =>     );
