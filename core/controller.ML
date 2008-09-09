@@ -48,7 +48,7 @@ fun switch_mode () =
 (* args =  rule_name fused lhs rhs new_vnames n howmany  *)
 fun pretty_rewrite rule_name fused lhs rhs howmany n  = 
     Pretty.block 
-      [(Pretty.str ("<rewrite>\n<rulename>\n"^rule_name^"\n</rulename>\n")),
+      [(Pretty.str ("<rewrite>\n<rulename>"^rule_name^"</rulename>\n")),
        (!pretty_graph) fused,
        (Pretty.str ("<lhs>\n")), 
        (!pretty_graph) lhs, 
@@ -192,7 +192,7 @@ fun interactive_rw_loop g [] [] =
                         rwlist_bkd = 
     let 
          val n = (List.length rwlist_bkd) + 1
-         val howmany = n + (List.length rwlist_fwd) -1
+         val howmany = n + (List.length rwlist_fwd)
          val p = pretty_rewrite rule_name fused_g 
                                 (Rule.get_lhs rule) 
                                 (Rule.get_rhs rule) 
@@ -225,13 +225,12 @@ fun interactive_rw_loop g [] [] =
           interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
      end;
 
-(* FIXME: use vset as selected vertices for rewriting  *)
 fun interactive_rewrite vset (st as (g, hist)) = 
     let 
       val rws = 
           maps (fn (rulename,rule) => 
                    (map (fn rule' => (rulename, rule', Rule.add_rhs rule' g))
-                        (Seq.list_of (Rule.rule_matches rule g))))
+                        (Seq.list_of (Rule.rule_matches_within rule vset g))))
                TheoryHack.rules
     in case interactive_rw_loop g rws [] of 
          NONE => st
