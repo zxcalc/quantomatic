@@ -22,7 +22,7 @@ end;
 val log = ref TextIO.stdErr;
 val log_stderr = ref true;
 fun close_log () = (if !log_stderr then () else TextIO.closeOut (!log));
-fun write_log s = (TextIO.output ((!log), s); TextIO.flushOut (!log)) ;
+fun write_log s = (TextIO.output ((!log), "<!-- Log: " ^ s ^ " -->\n"); TextIO.flushOut (!log)) ;
 
 (* what language are we outputting our graphs ----------------------------- *)
 datatype language = DOT | XML;
@@ -34,10 +34,8 @@ val write_graph_to_file = ref RGGraphXMLWriter.output_to_file
 val is_out_pipe = ref true;
 fun out_toplevel out = Pretty.writeln out     
 fun out_pipe out = 
-    (
-     Pretty.writeln out;
-     Pretty.writeln (Pretty.str "stop")
-    )
+    (Pretty.writeln out;
+     Pretty.writeln (Pretty.str "stop"))
 val do_output = ref out_pipe;       
 fun switch_mode () = 
     if !is_out_pipe 
@@ -50,7 +48,7 @@ fun switch_mode () =
 (* args =  rule_name fused lhs rhs new_vnames n howmany  *)
 fun pretty_rewrite rule_name fused lhs rhs howmany n  = 
     Pretty.block 
-      [(Pretty.str ("<rewrite>\n<rulename>\n"^"\n</rulename>\n")),
+      [(Pretty.str ("<rewrite>\n<rulename>\n"^rule_name^"\n</rulename>\n")),
        (!pretty_graph) fused,
        (Pretty.str ("<lhs>\n")), 
        (!pretty_graph) lhs, 
@@ -133,7 +131,8 @@ fun parse_vertex_data ["true"] = SOME MkV.bnd
   | parse_vertex_data ["false", "h"] = SOME MkV.h
   | parse_vertex_data _ = NONE;
 
-val tokenise = 
+(* convert a command to a token list *)
+val tokenise_command = 
     String.tokens (fn #" " => true 
                     | #"\t" => true 
                     | #"\r" => true 
@@ -141,8 +140,11 @@ val tokenise =
                     | _ => false);
 
 fun parse_command s = 
-    let val _ = write_log s;
-        val toks = tokenise s
+    let 
+      (* change returns to spaces makes everything cleaner to debug *)
+      val s = String.translate (fn #"\n" => " " | c => Char.toString c) s;
+      val _ = write_log ("Command-string: " ^ s);
+      val toks = tokenise_command s
     in
       if s = "" then Quit else
       case toks 
@@ -239,7 +241,7 @@ fun interactive_rewrite vset (st as (g, hist)) =
 (* =======================================================*)
 (* this is the command dispatcher for the top level run loop *)
 fun do_command (st as (g, hist)) c = 
-    (write_log (Pretty.string_of (pretty_command c));
+    (write_log ("doing command: " ^ (Pretty.string_of (pretty_command c)));
      case c of
        NOOP => st
      | DUMP => ((!do_output) ((!pretty_graph) g); st)
@@ -294,7 +296,7 @@ fun start_logfile () =
              (log := TextIO.stdErr;
               write_log ("Cannot create log dir and logfile: " ^ 
                          quanto_dir ^ "/quantolog.txt" ^ "\n Error: " ^ 
-                         s ^ "\n"))
+                         s))
     end;
 
 (*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
@@ -309,18 +311,18 @@ fun run_loop st =
 fun init () = 
     let 
       val _ = log := TextIO.stdErr
-      val _ = write_log "Starting up...\n" ; 
+      val _ = write_log "Starting up..." ; 
       val outg = run_loop (G.empty, []);
-      val _ = write_log "Closing down...\n" ; 
+      val _ = write_log "Closing down..." ; 
       val _ = close_log ();
     in outg end
     handle quit_exp g => 
            (write_log "Quit command received...";
             write_log "Exited run loop";
-            TextIO.closeOut (!log); g)
+            close_log (); g)
     handle e => 
            (write_log ("Crash --> exception thrown: " ^ (PolyML.makestring e));
-            TextIO.closeOut (!log) ; 
+            close_log (); 
             (!do_output) (Pretty.str ("<message><crash>\nException thrown: "^
                                       (PolyML.makestring e)^
                                       "\n</crash></message>")) ;
