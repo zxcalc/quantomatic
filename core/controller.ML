@@ -61,7 +61,7 @@ fun send_rewrite rule_name fused lhs rhs howmany n  =  (
     (!do_output) (Pretty.str ("</lhs>\n<rhs>")) ;
     (!dumper) rhs ;
     (!do_output) (Pretty.str ("</rhs>\n<total>"^ (Int.toString howmany) ^ "</total>\n" ^
-            "<total>"^ (Int.toString n) ^ "</total>\n" ^
+            "<index>"^ (Int.toString n) ^ "</index>\n" ^
             "</rewrite>"))
 )
 
