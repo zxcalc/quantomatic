@@ -12,6 +12,9 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public String angleexpr;
 	public ArrayList<Edge> edges;
 	public boolean snap;
+	public boolean extra_highlight = false;
+	public int flash_seq = 0;
+	
 	QuantoApplet p; // instance of PApplet which has processing tools
 
 	public Vertex(String id, int x, int y) {
@@ -50,6 +53,14 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		}
 		lastTick = -1;
 		QuantoApplet.p.play();
+	}
+	
+	public void shift(int dx, int dy) {
+		shift((float)dx, (float)dy);
+	}
+	
+	public void shift(float dx, float dy) {
+		setDest(destX + dx, destY + dy);
 	}
 
 	public void setColor(String col) {
@@ -136,6 +147,12 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public void display() {
 		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
+		if(extra_highlight) {
+			p.noStroke();
+			p.fill(255, 100 + 10*((flash_seq++)%15), 0, 150);
+			p.ellipse(x, y, 25, 25);
+		}
+		
 		if (col.equals("red")) {
 			displayRed();
 		} else if (col.equals("green")) {

@@ -21,7 +21,7 @@ public class Graph extends PLib {
 		edges = new HashMap<String,Edge>();
 		newestVertex = null;
 	}
-
+	
 	public Map<String,Vertex> getVertices() {return vertices;} 
 	public Map<String,Edge> getEdges() {return edges;};
 	
@@ -92,6 +92,38 @@ public class Graph extends PLib {
 		synchronized(vertices) {
 			for (Vertex v : vertices.values()) v.snap=false;
 		}
+	}
+	
+	public void shift(float dx, float dy) {
+		for(Vertex v : vertices.values()){
+			v.shift(dx,dy);
+		}
+	}
+	
+	public void shift(int dx, int dy) {
+		shift((float)dx, (float)dy);
+	}
+	
+	/** this won't work with curved edges as it only computes
+	 * based on the vertices
+	 * @return
+	 */
+	public BoundingBox getBoundingBox() {
+		float maxX=0, maxY=0, minX=0, minY=0;
+		if(!getVertices().isEmpty()) {
+			// initialise accumulators
+			Vertex first = getVertices().values().iterator().next();
+			minX = maxX = first.x;
+			minY = maxY = first.y;
+			for(Vertex v : getVertices().values()) {
+				maxX = maxX < v.x ? v.x : maxX;
+				minX = minX > v.x ? v.x : minX;
+				maxY = maxY < v.y ? v.y : maxY;
+				minY = minY > v.y ? v.y : minY;
+			}
+		}
+		return new BoundingBox(minX,minY,maxX,maxY);	
+		
 	}
 	
 	public String toDot() {

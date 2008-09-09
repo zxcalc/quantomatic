@@ -16,6 +16,28 @@ public class XMLReader {
 		}
 	}
 
+	public RewriteInstance parseRewrite(String s) {
+		return parseRewrite(mkXMLFromString(s));
+	}
+	
+	public RewriteInstance parseRewrite(XMLElement xml) {
+		assertElement(xml, "rewrite");
+		RewriteInstance rw = new RewriteInstance();
+		
+		rw.total = Integer.parseInt(getChildContents(xml, "total"));
+		// if there are no matching rewrites the other elements are not required
+		if(rw.total != 0) {
+			rw.ruleName = getChildContents(xml, "rulename");
+			rw.index = Integer.parseInt(getChildContents(xml, "index"));
+			rw.fusedGraph = parseGraph(xml.getChild("graph"));
+			rw.lhs = parseGraph(xml.getChild("lhs"));
+			rw.rhs = parseGraph(xml.getChild("rhs"));
+		}
+		return rw;
+	}
+
+
+	
 	public Graph parseGraph(String s) {
 		return parseGraph(mkXMLFromString(s));
 	}

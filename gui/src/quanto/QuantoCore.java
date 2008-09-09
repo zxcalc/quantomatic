@@ -26,8 +26,8 @@ public class QuantoCore {
 			//Map<String,String> env = pb.environment();
 			//env.put("PATH", env.get("PATH") + ":/usr/local/bin");
 			
-			ProcessBuilder pb = new ProcessBuilder("quanto-core");
 			
+			ProcessBuilder pb = new ProcessBuilder("quanto-core");	
 			System.out.println("Initialising QuantoML...");
 			backEnd = pb.start();
 			
@@ -99,7 +99,6 @@ public class QuantoCore {
 		send("Q\n");
 	}
 	
-	
 	void modifyCmd(String s){
 		send(s + "\n");
 		System.out.println(receive());
@@ -108,6 +107,41 @@ public class QuantoCore {
 		send("D\n");
 		Graph updated = xml.parseGraph(receive());
 		graph.updateTo(updated);
+	}
+	
+	public RewriteInstance getRewritesForSelection() {
+		
+		String s = " ";
+		for (Vertex v : graph.getVertices().values()) {
+			s = s + v.id + " ";
+		}
+		send("RWshow" + s + "\n");
+		return xml.parseRewrite(receive());
+		
+		/* this is just for testing!  real code is above.
+		RewriteInstance rw = new RewriteInstance();
+		rw.total = 0;
+		return rw;
+		*/
+	}
+	
+	public RewriteInstance nextRewriteForSelection() {
+		send("RWnext\n");
+		return xml.parseRewrite(receive());
+	}
+	
+	public RewriteInstance prevRewriteForSelection() {
+		send("RWprev\n");
+		return xml.parseRewrite(receive());
+	}
+	
+	public void abortRewrite() {
+		send("RWabort\n");
+		System.out.println(receive());
+	}
+
+	public void acceptRewriteForSelection() {
+		modifyCmd("RWYes");
 	}
 	
 	public void newGraph() {
