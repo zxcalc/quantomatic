@@ -1,3 +1,37 @@
+(* An instance of Basic Graph: strings at vertices and edges *)
+structure DB_StrGraph = 
+struct 
+  structure BasicStrGraph = 
+    BasicGraphFun(
+      structure Vertex = StrVertex
+      and Edge = StrEdge);
+  structure GraphTools = GraphToolsFun(BasicStrGraph);
+  open BasicStrGraph 
+  open GraphTools
+end;
+
+structure StrGraph : GRAPH = DB_StrGraph;
+
+install_pp (make_pp ["StrGraph", "T"] 
+                    (Pretty.pprint o StrGraph.pretty));
+
+(* another basic kind of graph with unit for edge data *)
+structure DB_StrUnitGraph = 
+struct 
+  structure BasicStrUnitGraph = 
+    BasicGraphFun(
+      structure Vertex = StrVertex
+            and Edge = UnitEdge);
+  structure GraphTools = GraphToolsFun(BasicStrUnitGraph);
+  open BasicStrUnitGraph 
+  open GraphTools
+end;
+
+structure StrUnitGraph : GRAPH = DB_StrUnitGraph;
+
+install_pp (make_pp ["StrUnitGraph", "T"] 
+                    (Pretty.pprint o StrUnitGraph.pretty));
+
 local 
 
 (* a simple kind of graph, and some basic manipulations *)

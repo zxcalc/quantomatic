@@ -40,6 +40,8 @@ in
   val _ = Rule.print isometry_rule;
 end;      
 
+(* frobenious is an identity in graphs with variable-nodes, 
+   not added as a rewrite, here for testing only *)
 (* Frobenius *)
 local 
 (* lhs *)
@@ -76,6 +78,7 @@ in
   val frobenius_rule = Rule.mk (lhs,rhs);
   val _ = Rule.print frobenius_rule;
 end;      
+
 
 (* Compact Structure *)
 local 
@@ -268,11 +271,11 @@ end;
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
 
 val rules = [("isometry",isometry_rule),
-             ("frobenius",frobenius_rule),
+             (* no frobenius: it's an id in our rep *)
              ("compact",compact_rule),
              
              ("abelian1",abelian1_rule),
-             (* no abelian2 rule: not needed for our rep *)
+             (* no abelian2: not needed for our rep *)
              ("abelian3",abelian3_rule),
              
              ("bialgebra1",bialgebra1_rule),
@@ -283,6 +286,38 @@ val rules = [("isometry",isometry_rule),
 fun apply_all_rules g = 
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
+      rules;
+
+fun apply_all_rules_in vset g = 
+    maps
+      (fn (n,r) => map (fn r2 => (n,r2)) 
+                       (Seq.list_of (Rule.rule_matches_within r vset g)))
+      rules;
+
+
+(* assumes distinct_rules are all results of applying the same rule;
+   i.e. have same lhs and same naming. *)
+fun filter_symmetric_results (rule, distinct_rules) = 
+    if List.exists (fn prevrule => 
+                       RGGraph.exact_eq (Rule.get_rhs prevrule)
+                                        (Rule.get_rhs rule)) 
+                   distinct_rules
+    then distinct_rules else rule::distinct_rules;
+
+fun apply_distinctly_all_rules g = 
+    maps
+      (fn (n,r) => 
+          (Seq.list_of (Rule.rule_matches r g))
+            |> List.foldl filter_symmetric_results []
+            |> map (fn r2 => (n,r2)))
+      rules;
+
+fun apply_distinctly_all_rules_in vset g = 
+    maps
+      (fn (n,r) => 
+          (Seq.list_of (Rule.rule_matches_within r vset g))
+            |> List.foldl filter_symmetric_results []
+            |> map (fn r2 => (n,r2)))
       rules;
 
 end;

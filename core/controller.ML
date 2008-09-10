@@ -238,13 +238,12 @@ fun interactive_rw_loop g [] [] =
       miniread_loop()
     end;
 
+
+(* find all rewrites *)
 fun interactive_rewrite vset (st as (g, hist)) = 
     let 
-      val rws = 
-          maps (fn (rulename,rule) => 
-                   (map (fn rule' => (rulename, rule', Rule.add_rhs rule' g))
-                        (Seq.list_of (Rule.rule_matches_within rule vset g))))
-               TheoryHack.rules
+      val rws = (TheoryHack.apply_all_rules_in vset g)
+                  |> map (fn (n,r) => (n, r, Rule.add_rhs r g))
     in case interactive_rw_loop g rws [] of 
          NONE => st
        | SOME g' => (g', g::hist)

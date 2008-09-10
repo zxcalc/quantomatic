@@ -78,6 +78,9 @@ val lookup_edge : T -> Edge.name
 val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
 val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
 
+(* check if two graphs are exactly the same (names, data, and structure) *)
+val exact_eq : T -> T -> bool
+
 (* adding a vertex gives back unique name for it and the new graph *)
 val add_vertex : Vertex.data -> T -> Vertex.name * T 
 val doadd_vertex : Vertex.data -> T -> T
@@ -674,43 +677,39 @@ fun edges_between g n1 n2 =
       (enames_between g n1 n2)
       Edge.NTab.empty;
 
+(* two graphs are exactly the same, including data, edge direction and
+   names of vertices and edges. *) 
+fun exact_eq g1 g2 =
+    let 
+      val e1s = get_edges g1
+      val e2s = get_edges g2
+      val v1s = get_vertices g1
+      val v2s = get_vertices g2
+    in
+      (* check same vertex names *)
+      (Vertex.NSet.eq (Vertex.NTab.get_names v1s)
+                      (Vertex.NTab.get_names v2s)) andalso 
+      (* check same data, and same incident edges structure *)
+      (Vertex.NTab.forall 
+         (fn (n,(d,(fromes,toes))) => 
+             case Vertex.NTab.lookup v2s n of 
+               NONE => false
+             | SOME (d2,(fromes2,toes2)) => 
+               (Vertex.data_eq (d,d2)) andalso 
+               (* now check structure *)
+               (Edge.NSet.eq fromes fromes2) andalso
+               (Edge.NSet.eq toes toes2) )
+         v1s) andalso 
+      (* now check same edge data *)
+      (Edge.NTab.forall (* note that we dont re-check structure *)
+         (fn (e,(ed,_)) => 
+             (* from above, we know we have same edge names: could use get *)
+             case Edge.NTab.lookup e2s e of 
+               NONE => false
+             (* now check have same edge data *)
+             | SOME (ed2,_) => Edge.data_eq (ed,ed2))
+         e1s)
+    end;
+
 end; (* local -- hides opened Graph data types *)
 end;
-
-
-(* An instance of Basic Graph: strings at vertices and edges *)
-structure DB_StrGraph = 
-struct 
-  structure BasicStrGraph = 
-    BasicGraphFun(
-      structure Vertex = StrVertex
-      and Edge = StrEdge);
-  structure GraphTools = GraphToolsFun(BasicStrGraph);
-  open BasicStrGraph 
-  open GraphTools
-end;
-
-structure StrGraph : GRAPH = DB_StrGraph;
-
-install_pp (make_pp ["StrGraph", "T"] 
-                    (Pretty.pprint o StrGraph.pretty));
-
-
-(* another basic kind of graph with unit for edge data *)
-structure DB_StrUnitGraph = 
-struct 
-  structure BasicStrUnitGraph = 
-    BasicGraphFun(
-      structure Vertex = StrVertex
-            and Edge = UnitEdge);
-  structure GraphTools = GraphToolsFun(BasicStrUnitGraph);
-  open BasicStrUnitGraph 
-  open GraphTools
-end;
-
-structure StrUnitGraph : GRAPH = DB_StrUnitGraph;
-
-install_pp (make_pp ["StrUnitGraph", "T"] 
-                    (Pretty.pprint o StrUnitGraph.pretty));
-
-

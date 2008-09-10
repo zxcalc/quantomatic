@@ -47,6 +47,10 @@ signature MATCH_STATE
            FoundMatch of T
          | Progress of T Seq.seq
 
+  exception locally_match_2vs_exp of (Vertex.name * Vertex.name) 
+                                     * Vertex.name * Vertex.name
+                                     * T; 
+
   val init : Match.T 
              -> RGGraph.T (* pat *)
              -> RGGraph.T (* tgt *)
@@ -68,7 +72,7 @@ signature MATCH_STATE
   val locally_match_2vs : Vertex.name * Vertex.name -> Vertex.name ->
                           Vertex.name -> T -> T Seq.seq
   val locally_match_verticies 
-      : Vertex.name * 'a -> Vertex.name * 'b ->
+      : Vertex.name * Vertex.data2 -> Vertex.name * Vertex.data2 ->
         Vertex.NSet.T -> Vertex.NSet.T ->
         T -> T Seq.seq
 
@@ -159,6 +163,10 @@ datatype T =
           (* tgt with matched edges removed as we match them *)
           unm_tgt : RGGraph.T 
          };
+
+  exception locally_match_2vs_exp of (Vertex.name * Vertex.name) 
+                                     * Vertex.name * Vertex.name
+                                     * T; 
 
 (* initial matching state *)
 fun init match pat tgt agenda =
@@ -251,6 +259,16 @@ val useup1_pat_vertex = update_unm_pat o RGGraph.delete_vertex;
 (* implicit: (patv*tgtv) st *)
 fun add1_to_agenda (pat_n, tgt_n) st = 
     update_agenda (Vertex.NTab.ins (pat_n,tgt_n)) st;
+(* add vertex-matching to agenda if consistent. *)
+fun try_add1_to_agenda (pat_n,tgt_n) st = 
+    let val agenda = get_agenda st
+    in case Vertex.NTab.lookup agenda pat_n of 
+        NONE => SOME (set_agenda (Vertex.NTab.ins (pat_n,tgt_n) agenda) st)
+      | SOME tgt_n2 => 
+        (if Vertex.name_eq (tgt_n,tgt_n2) 
+         then SOME st (* already in agenda *)
+         else NONE (* pat-vertex can only be mapped one tgt-vertex. *))
+    end;
 
 (* pop first vertex pair from agenda *)
 fun pop_agenda st = 
@@ -263,11 +281,11 @@ fun pop_agenda st =
 pattern vertex and edges being considered. *)
 fun locally_match_2vs (from_pn, to_pn) from_tn to_tn st = 
     let 
-      val pat_edges = RGGraph.edges_between (get_unm_pat st) from_pn to_pn
-      val tgt_edges = RGGraph.edges_between (get_unm_tgt st) from_tn to_tn
+      val pat_edges = RGGraph.edges_between (get_unm_pat st) from_pn to_pn;
+      val tgt_edges = RGGraph.edges_between (get_unm_tgt st) from_tn to_tn;
     in
       (Match.match_edges pat_edges tgt_edges (get_match st))
-        |> Seq.map 
+        |> Seq.map
         (fn (ematches,m2) => 
             let 
               val matched_tgt_edges = 
@@ -275,14 +293,23 @@ fun locally_match_2vs (from_pn, to_pn) from_tn to_tn st =
               val matched_pat_edges = 
                   Edge.NTab.get_names ematches
             in
-              st |> add1_to_agenda (to_pn,to_tn)
-                 |> useup_pat_edges matched_pat_edges
+              st |> useup_pat_edges matched_pat_edges
                  |> useup_tgt_edges matched_tgt_edges
                  |> set_match m2
                  (* we can remove the now matched edges from the needed set *)
                  |> useup_needed_edges matched_tgt_edges
+                 (* try to add this, must be consistent with other  
+                    required matchings of to_pn in agenda *)
+                 |> try_add1_to_agenda (to_pn,to_tn)
             end)
-    end;
+        |> Seq.map_filter I
+        |> (Seq.of_list o Seq.list_of) (* force eval here and now *)
+    end
+    handle e => 
+           (writeln ("exception! : " ^ PolyML.makestring e);
+           raise locally_match_2vs_exp ((from_pn,to_pn),from_tn,to_tn,st)
+           );
+    
 
 
 (* pick first pattern pattern node and then try to match it against

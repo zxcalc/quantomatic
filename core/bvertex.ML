@@ -59,7 +59,3 @@ fun pretty_data (BVert b) =
 val print_data = Pretty.writeln o pretty_data;
 
 end;
-
-
-structure StrBVertex : BVERTEX = 
-BVertexFun(structure IVertex = StrVertex and Boundary = StrData);
