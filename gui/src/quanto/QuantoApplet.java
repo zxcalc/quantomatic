@@ -40,7 +40,7 @@ public class QuantoApplet extends PApplet {
 	// global application modes
 	public final GuiMode NORMAL = new NormalMode();
 	public final GuiMode REWRITE_SELECT = new RewriteSelectMode();
-	public final GuiMode REWRITE_HIGHLIGHT_LHS = new WaitMode(DEFAULT_HIGHLIGHT_TIME, new FadeUpToMode(REWRITE_SELECT));
+	public final GuiMode REWRITE_HIGHLIGHT_LHS = new WaitMode(DEFAULT_HIGHLIGHT_TIME, new FadeUpToMode(REWRITE_SELECT), true);
 	public final GuiMode REWRITE_HIGHLIGHT_RHS = new RewriteHighlightRhsMode();
 	public final GuiMode NO_REWRITES_FOUND = new FadeUpToMode(new DisplayMessageMode("No Matching Rewrites Found", new FadeDownToMode()));
 	
@@ -55,7 +55,7 @@ public class QuantoApplet extends PApplet {
 	RewriteInstance currentRewrite;
 
 	boolean paused;
-	boolean draw_grid = true;
+	boolean draw_grid = false;
 	boolean doSplines=false;
 	int rectX=-1, rectY=-1;
 	boolean dragging = false; // are we moving a vertex by dragging with mouse
@@ -140,7 +140,7 @@ public class QuantoApplet extends PApplet {
 	
 	private void nextRewrite() {
 		currentRewrite.unhighlightTargetVertices(graph);
-		qcore.nextRewriteForSelection();
+		currentRewrite = qcore.nextRewriteForSelection();
 		// the constant is the width of the arrow
 		currentRewrite.layoutShiftedLhs(WIDTH/2 - 50, HEIGHT/2);
 		currentRewrite.layoutShiftedRhs(WIDTH/2 + 50, HEIGHT/2);
@@ -150,7 +150,7 @@ public class QuantoApplet extends PApplet {
 	
 	private void prevRewrite() {
 		currentRewrite.unhighlightTargetVertices(graph);
-		qcore.prevRewriteForSelection();
+		currentRewrite = qcore.prevRewriteForSelection();
 		// the constant is the width of the arrow
 		currentRewrite.layoutShiftedLhs(WIDTH/2 - 50, HEIGHT/2);
 		currentRewrite.layoutShiftedRhs(WIDTH/2 + 50, HEIGHT/2);
@@ -259,12 +259,20 @@ public class QuantoApplet extends PApplet {
 			} else {
 				for (Edge e : g.getEdges().values()) e.display(false);
 			}
+			// debug
+			BoundingBox bb = g.getBoundingBox();
+			rectMode(CORNER);
+			noFill();
+			stroke(200,0,255);
+			rect(bb.ax,bb.ay, bb.getWidth(), bb.getHeight());
 		}
+		
 		return moved;
 	}
 
 	private void drawGUI() {
 		textFont(helvetica);
+		textAlign(LEFT);
 		fill(255, 0, 0);
 		switch (tool) {
 		case 's':
@@ -307,8 +315,9 @@ public class QuantoApplet extends PApplet {
 	private void drawArrow(int x, int y, int width, int height) {
 		noStroke();
 		fill(255,220,0);
-		rect(x,y+15,width - 25, height -30);
-		triangle(x+width-30, y, x+width-30, y+height, x+width,y+height/2);
+		rectMode(CORNER);
+		rect(x, y+15, width-25, height-30);
+		triangle(x+width-25, y, x+width-25, y+height, x+width,y+height/2);
 	}
 	
 	/* functions for doing PDF and QuickTime output */
@@ -652,15 +661,14 @@ public class QuantoApplet extends PApplet {
 			switch (key) {
 			case ENTER:
 			case RETURN:
-				acceptRewrite();
-				break;
+				acceptRewrite(); play(); break;
 			case 'k': 
-				abortRewrite();
+				abortRewrite(); play(); break;
 			case CODED:
 				switch(keyCode) {
-				case LEFT:  prevRewrite(); break;
-				case RIGHT: nextRewrite(); break;
-				case SHIFT: shift = false; break;
+				case LEFT:  prevRewrite(); play(); break;
+				case RIGHT: nextRewrite(); play(); break;
+				case SHIFT: shift = false; play(); break;
 				default: 
 					// huh?
 					break;
@@ -751,7 +759,7 @@ public class QuantoApplet extends PApplet {
 			super(next, time, startAlpha, DEFAULT_SHADE_ALPHA);
 		}
 		public FadeUpToMode(GuiMode next, int time) {
-			this(next, time, 255);
+			this(next, time, 0);
 		}
 		public FadeUpToMode(GuiMode next) {
 			this(next, DEFAULT_TRANSITION_TIME);
@@ -763,7 +771,7 @@ public class QuantoApplet extends PApplet {
 	private class FadeDownToMode extends Fade_ToMode {
 
 		public FadeDownToMode(GuiMode next, int time, int startAlpha) {
-			super(next, time, startAlpha, 255);
+			super(next, time, startAlpha, 0);
 		}
 		public FadeDownToMode(GuiMode next, int time) {
 			this(next, time, DEFAULT_SHADE_ALPHA);
@@ -803,6 +811,7 @@ public class QuantoApplet extends PApplet {
 		
 		public void keyPressed() {
 			mode = next;
+			play();
 			super.keyPressed();
 		}
 	}
@@ -816,11 +825,16 @@ public class QuantoApplet extends PApplet {
 		private int ticks;
 		public int wait;
 		public GuiMode next;
+		public boolean force_play;
 		
-		public WaitMode(int wait, GuiMode next) {
+		public WaitMode(int wait, GuiMode next, boolean force_play) {
 			this.ticks = 0;
 			this.wait = wait;
 			this.next = next;
+			this.force_play = force_play;
+		}
+		public WaitMode(int wait, GuiMode next) {
+			this(wait, next, false);
 		}
 		public WaitMode(int wait) {
 			this(wait, NORMAL);
@@ -842,8 +856,9 @@ public class QuantoApplet extends PApplet {
 			if(ticks > wait) {
 				onExit();
 				mode = next;
+				play();
 			}
-			return moved;
+			return moved || force_play;
 		}
 		
 	}

@@ -20,7 +20,7 @@ public class DotLayout implements GraphLayout {
 			dotOut.write(viz);
 			dotOut.close();
 
-			System.out.println("NOW READING DOT");
+			//System.out.println("NOW READING DOT");
 			String ln = dotIn.readLine();
 			StringTokenizer tk;
 			String cmd, name;
@@ -29,7 +29,7 @@ public class DotLayout implements GraphLayout {
 			synchronized (graph) {
 				graph.edges.clear();
 				while (!ln.equals("stop")) {
-					System.out.println(ln);
+					//System.out.println(ln);
 					tk = new StringTokenizer(ln);
 					cmd = tk.nextToken();
 					if (cmd.equals("node")) {
@@ -54,8 +54,7 @@ public class DotLayout implements GraphLayout {
 						n2 = (Vertex) graph.vertices.get(tk.nextToken());
 
 						if (n1 == null || n2 == null) {
-							System.out
-									.println("Edge spec given before vertices defined.");
+							//System.out.println("Edge spec given before vertices defined.");
 						} else {
 							Edge e = graph.newEdge(n1, n2);
 							int controlCount = Integer.parseInt(tk.nextToken());
@@ -73,6 +72,6 @@ public class DotLayout implements GraphLayout {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("----NO MORE READING DOT----");
+		//System.out.println("----NO MORE READING DOT----");
 	}
 }

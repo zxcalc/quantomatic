@@ -30,8 +30,8 @@ public class XMLReader {
 			rw.ruleName = getChildContents(xml, "rulename");
 			rw.index = Integer.parseInt(getChildContents(xml, "index"));
 			rw.fusedGraph = parseGraph(xml.getChild("graph"));
-			rw.lhs = parseGraph(xml.getChild("lhs"));
-			rw.rhs = parseGraph(xml.getChild("rhs"));
+			rw.lhs = parseGraph(xml.getChild("lhs").getChild("graph"));
+			rw.rhs = parseGraph(xml.getChild("rhs").getChild("graph"));
 		}
 		return rw;
 	}
@@ -114,7 +114,7 @@ public class XMLReader {
 		return parseAngleExpr(mkXMLFromString(s));
 	}
 
-	// angle expressiomns are not parsed at the moment.
+	// angle expressions are not parsed at the moment.
 	public String parseAngleExpr(XMLElement xml) {
 		return "";
 	}

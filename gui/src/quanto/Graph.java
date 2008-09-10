@@ -12,14 +12,14 @@ public class Graph extends PLib {
 	protected GraphLayout layoutEngine;
 
 	public Graph(GraphLayout layoutEngine) {
-		this();
+		vertices = new HashMap<String,Vertex>();
+		edges = new HashMap<String,Edge>();
+		newestVertex = null;
 		this.layoutEngine = layoutEngine;
 	}
 	
 	public Graph() {
-		vertices = new HashMap<String,Vertex>();
-		edges = new HashMap<String,Edge>();
-		newestVertex = null;
+		this(new DotLayout());
 	}
 	
 	public Map<String,Vertex> getVertices() {return vertices;} 
@@ -121,6 +121,10 @@ public class Graph extends PLib {
 				maxY = maxY < v.y ? v.y : maxY;
 				minY = minY > v.y ? v.y : minY;
 			}
+			maxX += Vertex.radius + 1;
+			maxY += Vertex.radius +1 ;
+			minX -= Vertex.radius + 1;
+			minY -= Vertex.radius +1 ;
 		}
 		return new BoundingBox(minX,minY,maxX,maxY);	
 		

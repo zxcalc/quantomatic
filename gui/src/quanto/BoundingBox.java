@@ -28,7 +28,7 @@ public class BoundingBox {
 		return bx - ax;
 	}
 	public float getHeight() {
-		return ay - by;
+		return by - ay;
 	}
 	public float getCenterX() {
 		return (ax+bx)/2;
