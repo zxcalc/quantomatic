@@ -36,7 +36,7 @@ public class BoundingBox {
 	public float getCenterY() {
 		return (ay+by)/2;
 	}
-	public boolean containsPofloat(float x, float y) {
+	public boolean containsPoint(float x, float y) {
 		return (ax <= x) && (x <= bx) && (ay <= y) && (y <= by);
 	}	
 	public boolean collidesWith(BoundingBox that) {

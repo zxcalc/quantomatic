@@ -46,13 +46,13 @@ public class RewriteInstance {
 	
 	public void layoutShiftedLhs(float x, float y) {
 		lhs.layoutGraph();	
-		BoundingBox bb = lhs.getBoundingBox();
+		BoundingBox bb = lhs.getBoundingBoxAtDest();
 		lhs.shift(x - bb.getCenterX() - bb.getWidth()/2, y - bb.getCenterY());
 		
 	}
 	public void layoutShiftedRhs(float x, float y) {
 		rhs.layoutGraph();
-		BoundingBox bb = rhs.getBoundingBox();
+		BoundingBox bb = rhs.getBoundingBoxAtDest();
 		rhs.shift(x - bb.getCenterX() + bb.getWidth()/2, y - bb.getCenterY());
 		
 	}

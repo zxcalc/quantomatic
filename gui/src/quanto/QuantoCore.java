@@ -105,11 +105,9 @@ public class QuantoCore {
 		graph.updateTo(updated);
 	}
 	
-	void modifyCmd(String s){
-		
+	void modifyCmd(String s){	
 		send(s + "\n");
 		updateGraph();
-
 	}
 	
 	public RewriteInstance getRewritesForSelection() {
@@ -139,9 +137,7 @@ public class QuantoCore {
 	}
 
 	public void acceptRewriteForSelection() {
-		modifyCmd("RWYes");
-		updateGraph();
-
+		modifyCmd("RWyes");
 	}
 	
 	public void newGraph() {

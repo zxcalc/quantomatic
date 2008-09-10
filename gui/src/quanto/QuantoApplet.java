@@ -35,7 +35,7 @@ public class QuantoApplet extends PApplet {
 	
 	public static final int DEFAULT_SHADE_ALPHA = 100;
 	public static final int DEFAULT_TRANSITION_TIME = 20;
-	public static final int DEFAULT_HIGHLIGHT_TIME = 60;
+	public static final int DEFAULT_HIGHLIGHT_TIME = 30;
 	
 	// global application modes
 	public final GuiMode NORMAL = new NormalMode();
@@ -123,10 +123,7 @@ public class QuantoApplet extends PApplet {
 			mode = NO_REWRITES_FOUND;
 		}
 		else {
-			// the constant is the width of the arrow
-			currentRewrite.layoutShiftedLhs(WIDTH/2 - 50, HEIGHT/2);
-			currentRewrite.layoutShiftedRhs(WIDTH/2 + 50, HEIGHT/2);
-			currentRewrite.highlightTargetVertices(graph);
+			prepRewriteForDrawing();
 			mode = REWRITE_HIGHLIGHT_LHS;
 		}
 	}
@@ -141,21 +138,23 @@ public class QuantoApplet extends PApplet {
 	private void nextRewrite() {
 		currentRewrite.unhighlightTargetVertices(graph);
 		currentRewrite = qcore.nextRewriteForSelection();
-		// the constant is the width of the arrow
-		currentRewrite.layoutShiftedLhs(WIDTH/2 - 50, HEIGHT/2);
-		currentRewrite.layoutShiftedRhs(WIDTH/2 + 50, HEIGHT/2);
-		currentRewrite.highlightTargetVertices(graph);
+		prepRewriteForDrawing();
 		mode = REWRITE_HIGHLIGHT_LHS;	
 	}
 	
 	private void prevRewrite() {
 		currentRewrite.unhighlightTargetVertices(graph);
 		currentRewrite = qcore.prevRewriteForSelection();
-		// the constant is the width of the arrow
-		currentRewrite.layoutShiftedLhs(WIDTH/2 - 50, HEIGHT/2);
-		currentRewrite.layoutShiftedRhs(WIDTH/2 + 50, HEIGHT/2);
-		currentRewrite.highlightTargetVertices(graph);
+		prepRewriteForDrawing();
 		mode = REWRITE_HIGHLIGHT_LHS;	
+	}
+
+
+	private void prepRewriteForDrawing() {
+		// the constant is the width of the arrow
+		currentRewrite.layoutShiftedLhs(WIDTH/2-60 , HEIGHT/2);
+		currentRewrite.layoutShiftedRhs(WIDTH/2+60, HEIGHT/2);
+		currentRewrite.highlightTargetVertices(graph);
 	}
 	
 	private void abortRewrite() {
@@ -163,6 +162,8 @@ public class QuantoApplet extends PApplet {
 		qcore.abortRewrite();
 		mode = new FadeDownToMode();
 	}
+	
+
 	
 	public void quit(){
 		if(qcore != null) {
@@ -864,6 +865,16 @@ public class QuantoApplet extends PApplet {
 	}
 	
 	private class RewriteHighlightRhsMode extends WaitMode {
+
+		public RewriteHighlightRhsMode(int wait, GuiMode next) {
+			super(wait, next, true);
+		}
+		public RewriteHighlightRhsMode(int wait) {
+			this(wait, NORMAL);
+		}
+		public RewriteHighlightRhsMode() {
+			this(DEFAULT_HIGHLIGHT_TIME);
+		}
 		protected void onExit() {
 			currentRewrite.unhighlightResultVertices(graph);
 		}

@@ -130,6 +130,27 @@ public class Graph extends PLib {
 		
 	}
 	
+	public BoundingBox getBoundingBoxAtDest() {
+		float maxX=0, maxY=0, minX=0, minY=0;
+		if(!getVertices().isEmpty()) {
+			// initialise accumulators
+			Vertex first = getVertices().values().iterator().next();
+			minX = maxX = first.destX;
+			minY = maxY = first.destY;
+			for(Vertex v : getVertices().values()) {
+				maxX = maxX < v.destX ? v.destX : maxX;
+				minX = minX > v.destX ? v.destX : minX;
+				maxY = maxY < v.destY ? v.destY : maxY;
+				minY = minY > v.destY ? v.destY : minY;
+			}
+			maxX += Vertex.radius + 1;
+			maxY += Vertex.radius +1 ;
+			minX -= Vertex.radius + 1;
+			minY -= Vertex.radius +1 ;
+		}
+		return new BoundingBox(minX,minY,maxX,maxY);			
+	}
+	
 	public String toDot() {
 		StringBuffer g = new StringBuffer();
 		g.append("digraph { nodesep=0.65; ranksep=0.65;\n");
