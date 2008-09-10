@@ -277,8 +277,9 @@ fun do_command (st as (g, hist)) c =
        let val g' = G.set_vertex d v g
        in (g', g::hist) end
      | ShowRewrites vset => interactive_rewrite vset st
-     | _ => (write_log ("ERROR: Not Implemented! ignoring command: " ^
-                        (Pretty.string_of (pretty_command c))); st));
+     | _ => (write_log ("ERROR: Not Implemented for main do command loop: " ^
+                        (Pretty.string_of (pretty_command c))); 
+             st));
 
 
 (* *)
