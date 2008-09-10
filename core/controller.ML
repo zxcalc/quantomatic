@@ -310,7 +310,8 @@ fun run_loop st =
 (* start quantomatic! *)
 fun init () = 
     let 
-      val _ = log := TextIO.stdErr
+      val _ = start_logfile ()
+      (* val _ = log := TextIO.stdErr *)
       val _ = write_log "Starting up..." ; 
       val outg = run_loop (G.empty, []);
       val _ = write_log "Closing down..." ; 
