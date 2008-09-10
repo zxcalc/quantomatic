@@ -198,32 +198,41 @@ fun interactive_rw_loop g [] [] =
                                 (Rule.get_rhs rule) 
                                 howmany n
          val _ = (!do_output) p
-         val sopt = TextIO.inputLine(TextIO.stdIn) 
-         val s = (case sopt of NONE => "" | SOME s => s) 
-         val c = parse_command s 
-     in 
-       case c of 
-         NOOP => interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd 
-       | Quit => raise quit_exp g
-       | AbortRewrites => (write_log "aborted rewrite"; NONE)
-       | NextRewrite => 
-         (write_log "next rewrite"; 
-          interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd))
-       | PrevRewrite => 
-         (write_log "prev rewrite"; 
-          case rwlist_bkd of 
-            [] => let val rwl = List.rev rwlist_fwd 
-                  in interactive_rw_loop g [hd rwl] (tl rwl) end
-          | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
-         )
-       | DoRewrite => (write_log ("Doing rewrite"^rule_name);
-                       let val g' = Rule.del_lhs rule fused_g
-                       in SOME g' end)
-       | _ => 
-         (write_log ("COMMAND_NOT_APPLICABLE_NOW: " ^ 
-                     (Pretty.string_of (pretty_command c))); 
-          interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
-     end;
+
+         fun miniread_loop () = 
+             let 
+               val sopt = TextIO.inputLine(TextIO.stdIn) 
+               val s = (case sopt of NONE => "" | SOME s => s) 
+               val c = parse_command s;
+               val _ = write_log ("doing rw_loop command: " ^ 
+                                  (Pretty.string_of (pretty_command c)));
+                                  
+             in 
+               case c of 
+                 NOOP => miniread_loop () 
+               | Quit => raise quit_exp g
+               | AbortRewrites => (write_log "aborted rewrite"; NONE)
+               | NextRewrite => 
+                 (write_log "next rewrite"; 
+                  interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd))
+               | PrevRewrite => 
+                 (write_log "prev rewrite"; 
+                  case rwlist_bkd of 
+                    [] => let val rwl = List.rev rwlist_fwd 
+                          in interactive_rw_loop g [hd rwl] (tl rwl) end
+                  | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
+                 )
+               | DoRewrite => (write_log ("Doing rewrite"^rule_name);
+                               let val g' = Rule.del_lhs rule fused_g
+                               in SOME g' end)
+               | _ => 
+                 (write_log ("COMMAND_NOT_APPLICABLE_NOW: " ^ 
+                             (Pretty.string_of (pretty_command c))); 
+                  interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
+             end
+    in
+      miniread_loop()
+    end;
 
 fun interactive_rewrite vset (st as (g, hist)) = 
     let 
