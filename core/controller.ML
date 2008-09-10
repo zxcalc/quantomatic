@@ -181,6 +181,10 @@ fun parse_command s =
     
 (* ------- a mini run loop / dispatcher for choosing rewrites ---*)
 
+(* IMPROVE! This is not the right way to handle a separate
+subloop. Thing of generalisation of control loop, with entrace/exit
+state, prompt, etc. 
+*)
 fun interactive_rw_loop g [] [] = 
     (write_log "No applicable rewrites"; 
      (!do_output)
