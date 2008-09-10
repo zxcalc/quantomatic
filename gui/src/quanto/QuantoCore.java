@@ -99,14 +99,17 @@ public class QuantoCore {
 		send("Q\n");
 	}
 	
-	void modifyCmd(String s){
-		
-		send(s + "\n");
-		// here send D to back-end and dump the graph
-		// then rebuild it via the XML parser.
+	void updateGraph() {
 		send("D\n");
 		Graph updated = xml.parseGraph(receive());
 		graph.updateTo(updated);
+	}
+	
+	void modifyCmd(String s){
+		
+		send(s + "\n");
+		updateGraph();
+
 	}
 	
 	public RewriteInstance getRewritesForSelection() {
@@ -137,9 +140,8 @@ public class QuantoCore {
 
 	public void acceptRewriteForSelection() {
 		modifyCmd("RWYes");
-		send("D\n");
-		Graph updated = xml.parseGraph(receive());
-		graph.updateTo(updated);	
+		updateGraph();
+
 	}
 	
 	public void newGraph() {
@@ -154,9 +156,7 @@ public class QuantoCore {
 		for (Vertex v : graph.getVertices().values()) {
 			if (v.selected){ send("d " + v.id + "\n"); }
 		}
-		send("D\n");
-		Graph updated = xml.parseGraph(receive());
-		graph.updateTo(updated);
+		updateGraph();
 	}
 
 	public void addEdge(Vertex w, Vertex v) {
