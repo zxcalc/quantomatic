@@ -58,6 +58,15 @@ val get_edges : T
                        * Vertex.name)) (* to this vertex *)
                    Edge.NTab.T
 
+(* updating graph internal representation... *)
+val update_vertices : ((Vertex.data * (Edge.NSet.T * Edge.NSet.T)) 
+                         Vertex.NTab.T 
+                         -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) 
+                              Vertex.NTab.T) -> T -> T
+val update_edges : ((Edge.data * (Vertex.name * Vertex.name)) Edge.NTab.T
+                    -> (Edge.data * (Vertex.name * Vertex.name)) Edge.NTab.T)
+                   -> T -> T
+
 (* pretty printing *)
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -89,7 +98,15 @@ val new_named_vertex : Vertex.name -> Vertex.data -> T -> T  (* can raise *)
 (* Vertex.names must already exist, else raises: no_such_vname_exp *)
 val add_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T
 val doadd_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> T
-val new_named_edge : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
+val new_named_edge 
+    : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
+
+(* low level restructuring of graph *)
+val update_vertex_enames : ((Edge.NSet.T * Edge.NSet.T) -> (Edge.NSet.T * Edge.NSet.T))
+                          -> Vertex.name -> T -> T 
+val update_edge_vnames : ((Vertex.name * Vertex.name) -> (Vertex.name * Vertex.name))
+                       -> Edge.name -> T -> T 
+
 (* get vertex and edge names *)
 val get_vnames : T -> Vertex.NSet.T
 val get_enames : T -> Edge.NSet.T
@@ -106,8 +123,9 @@ val rename_apart : T -> T -> (Vertex.renaming * Edge.renaming) * T
 val rename_vnames : Vertex.NSet.T -> Vertex.renaming * T -> Vertex.renaming * T
 val rename_enames : Edge.NSet.T -> Edge.renaming * T -> Edge.renaming * T
 
-(* merge two graphs - vertices with same name are kept only once, edges
-   must be distinct. *)
+(* merge two graphs which have distinct egdes by shared vertices:
+   vertices with same name are kept only once, edges must be
+   distinct. *)
 val merge_by_vertices : T -> T -> T
 
 (* remove the first graph from the second, assumes first is a subgraph *)
@@ -147,6 +165,7 @@ val adj_vertices_with_enames : T -> Vertex.name
                                -> Edge.NSet.T Vertex.NTab.T
 val adj_vertices_with_enames' : T -> (Edge.NSet.T * Edge.NSet.T)
                                 -> Edge.NSet.T Vertex.NTab.T
+
 
 end;
 
@@ -218,7 +237,6 @@ fun update_vertex_outs f n =
                        (fn (nd,(ins,outs)) => (nd,(ins, f outs))) n);
 fun update_edge f en = 
     update_edges (Edge.NTab.map_entry (fn (e,fromto) => (f e,fromto)) en);
-
 
 (* adding a vertex gives back unique name for it and the new graph *)
 fun add_named_vertex n nd g =
@@ -386,7 +404,6 @@ fun rename_ename en1 en2 g =
       (* give back new edge name and new graph *)
     in Graph{vertices = vertices2, edges = edges2} end;
 
-(* rename the names in g2 to avoid those in g1 *)
 
 (* pretty printing *)
 fun pretty g = 
@@ -437,9 +454,10 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  extra functions for Basic Graphs: provides rest of the GRAPH signature *)
 functor GraphToolsFun(BasicGraph : BASIC_GRAPH) 
+(* : GRAPH *)
 = struct
 
-local 
+local
 open BasicGraph;
 in
 
@@ -465,6 +483,14 @@ fun get_edge g en =
 
 val set_vertex = update_vertex o K;
 val set_edge = update_edge o K;
+
+
+(* change structure of graph *)
+fun update_vertex_enames f n g = 
+    update_vertices (Vertex.NTab.map_entry (fn (nd,ios) => (nd,f ios)) n) g;
+fun update_edge_vnames f en g = 
+    update_edges (Edge.NTab.map_entry (fn (e,fromto) => (e,f fromto)) en) g;
+
 
 (* implicit args: nd g *)
 val add_vertex = add_named_vertex Vertex.default_name;

@@ -52,7 +52,7 @@ val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
 val (e0, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
 val _ = RGGraph.print g;
-val [] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
+val [] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
 
 
 (* test rewriting isometry lhs with isometry rule *)
@@ -68,9 +68,9 @@ val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
 val _ = RGGraph.print g;
 
 
-val [m1,m2] = Seq.list_of (Rule.matches TheoryHack.isometry_rule g);
-val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
-val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites TheoryHack.isometry_rule g));
+val [m1,m2] = Seq.list_of (Rule.matches TheoryHack.x_isometry_rule g);
+val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
+val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites TheoryHack.x_isometry_rule g));
 
 (* Example of applications of isometry rule *)
 val g = RGGraph.empty;
@@ -85,7 +85,7 @@ val (e3, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e4, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
 
-val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
+val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g);
 val _ = map Rule.print [r1,r2];
 val fused_g1 = Rule.add_rhs r1 g;
 val fused_g2 = Rule.add_rhs r2 g;
@@ -105,7 +105,7 @@ val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
 val (e2, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
 
-val [] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
+val [] = Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g);
 
 (* bialgebra3 *)
 val [r1,r2] = TheoryHack.apply_all_rules g;
@@ -147,61 +147,100 @@ val (e7, g) = g |> RGGraph.add_edge edge n2 n4;
 
 val L = TheoryHack.apply_all_rules g;
 val [r1,r2,r3,r4] = map snd L;
-
-val L = TheoryHack.apply_distinctly_all_rules g
-
-end;
+val _ = writeln "big bialgebra1 rule matches it's own lhs in 4 ways";
 
 
+(* X isometry + stuff should still be matched by isometry  *)
+val g = RGGraph.empty;
+val (b1, g) = g |> RGGraph.add_vertex bvert;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e3, g) = g |> RGGraph.add_edge edge n2 n3;
+val (e4, g) = g |> RGGraph.add_edge edge n3 n4;
+val _ = RGGraph.print g;
+
+(* isometry and abelian both apply. *)
+val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g
+val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
-local open RGGraph in 
+(* X isometry + matches x_isometry with instantiated boundary node  *)
+val g = RGGraph.empty;
+val (b1, g) = g |> RGGraph.add_vertex bvert;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e3, g) = g |> RGGraph.add_edge edge n2 n3;
+val _ = RGGraph.print g;
 
-(* two graphs are exactly the same, including data, edge direction and
-   names of vertices and edges. *) 
-fun exact_eq g1 g2 =
-    let 
-      val e1s = get_edges g1
-      val e2s = get_edges g2
-      val v1s = get_vertices g1
-      val v2s = get_vertices g2
-    in
-      (* check same vertex names *)
-      (Vertex.NSet.eq (Vertex.NTab.get_names v1s)
-                      (Vertex.NTab.get_names v2s)) andalso 
-      (* check same data, and same incident edges structure *)
-      (Vertex.NTab.forall 
-         (fn (n,(d,(fromes,toes))) => 
-             (case Vertex.NTab.lookup v2s n of 
-                NONE => false orelse (writeln "Missing in snd"; false)
-              | SOME (d2,(fromes2,toes2)) => 
-                ((Vertex.data_eq (d,d2))
-                 orelse (writeln "Different data"; false)) andalso 
-                (* now check structure *)
-                (Edge.NSet.eq fromes fromes2
-                 orelse (writeln "Different fromes"; false)
-                ) andalso
-                (Edge.NSet.eq toes toes2)
-                orelse (writeln "Different toes"; false)) 
-             orelse (writeln ("; different for Vertex: " ^ n); false))
-         v1s) andalso 
-      (* now check same edge data *)
-      (Edge.NTab.forall (* note that we dont re-check structure *)
-         (fn (e,(ed,_)) => 
-             (* from above, we know we have same edge names: could use get *)
-             (case Edge.NTab.lookup e2s e of 
-                NONE => false
-              (* now check have same edge data *)
-              | SOME (ed2,_) => Edge.data_eq (ed,ed2))
-             orelse (writeln ("missing or different data; for Edge: " ^ e);
-                     false))
-         e1s)
-    end;
+(* isometry and abelian both apply. *)
+val [m1,m2,m3] = TheoryHack.apply_all_rules g;
+
+
 
 end;
+
+
+
+(* 
+
+PolyML.exception_trace (fn () => TheoryHack.apply_all_rules DB_Test_Rule.g);
+
+val rule = TheoryHack.x_isometry_rule;
+
+val tgt = DB_Test_Rule.g;
+val (rn,rule') = (Rule.rename_rule_apart tgt rule);
+val ms = (Rule.matches rule' tgt);
+
+fun match_all_rules g = 
+    maps
+      (fn (n,r) => let val (rmn, r2) = (Rule.rename_rule_apart g r)
+                   in map (fn m => ((n,r2),m))
+                          (Seq.list_of (Rule.matches r2 g))
+                   end)
+      TheoryHack.rules;
+
+val L = match_all_rules tgt;
+val [_,_,((rn,r),m3)] = L;
+
+Rule.print r;
+RGGraph.print tgt;
+Match.print m3;
+
+val [m1,m2] = Seq.list_of ms;
+
+MatchState.print_match
+Rule.print rule';
+Rule.inst_rule rule' m3;
+
+Rule.inst_rule rule' m1;
+*)
+
 
 
 (*
+TheoryHack.apply_all_rules (DB_Test_Rule.g);
+
+Rule.print TheoryHack.z_bialgebra2_rule;
+
+val tgt = DB_Test_Rule.g;
+val rule = TheoryHack.x_isometry_rule;
+val (rn,rule) = (DB_Rule.rename_rule_apart tgt rule);
+
+Rule.print rule;
+RGGraph.print tgt;
+
+Seq.list_of (MatchState.match (Rule.get_lhs rule) tgt MatchState.Vertex.NTab.empty);
+
+
 val rhs1 = (Rule.get_rhs (snd DB_Test_Rule.m1))
 val rhs2 = (Rule.get_rhs (snd DB_Test_Rule.m2))
 RGGraph.print rhs1;

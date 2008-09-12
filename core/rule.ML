@@ -34,6 +34,9 @@ val mk : (RGGraph.T * RGGraph.T) -> T;
 val get_lhs : T -> RGGraph.T
 val get_rhs : T -> RGGraph.T
 
+(* rename lhs and rhs of rule to be distinct from graph *)
+val rename_rule_apart : RGGraph.T -> T -> (Vertex.renaming * Edge.renaming) * T
+
 (* swaps lhs and rhs *)
 val symmetric : T -> T
 
@@ -197,16 +200,16 @@ fun is_trivial rule = true
 
 
 
-(* rename rule w.r.t. matching of tgt - assumes rule was named distinct 
-   from tgt *)
+(* rename rule w.r.t. matching of tgt - assumes valid rule and rule is
+   named distinct from tgt. *)
 fun inst_rule rule match = 
     let 
       val vmap = Match.get_vmap match
       val emap = Match.get_emap match
 
       val lhs = (get_lhs rule)
-                  |> (Vertex.NTab.fold 
-                        (fn (n1,n2) => RGGraph.rename_vname n1 n2)
+                  |> (Vertex.NTab.fold (* rename (and merge for unified boundary vertices) *)
+                        (fn (n1,n2) => RGGraph.rename_or_merge_vname n1 n2)
                         vmap)
                   |> (Edge.NTab.fold 
                         (fn (n1,n2) => RGGraph.rename_ename n1 n2)
@@ -215,8 +218,8 @@ fun inst_rule rule match =
       (* only boundary nodes are mapped/renamed on rhs *)
       val oldrhs = get_rhs rule;
       val rhs = oldrhs
-                  |> (Vertex.NSet.fold 
-                        (fn n1 => RGGraph.rename_vname n1 (Vertex.NTab.get vmap n1))
+                  |> (Vertex.NSet.fold (* rename (and merge for unified boundary vertices) *)
+                        (fn n1 => RGGraph.rename_or_merge_vname n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary oldrhs))
     in
       rule |> set_lhs lhs

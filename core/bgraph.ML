@@ -14,6 +14,8 @@ sharing IVertex = BVertex.IVertex
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 
+val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
+
 end;
 
 
@@ -119,6 +121,8 @@ struct
   val get_vertices = Graph.get_vertices o get_graph;
   val get_edges = Graph.get_edges o get_graph;
 
+  val update_vertices = update_graph o Graph.update_vertices;
+  val update_edges = update_graph o Graph.update_edges;
 
   (* prettifying *-------------------------------------------------*)
   fun pretty bg = 
@@ -142,5 +146,28 @@ end; (* Basic BGraph*)
 structure BGraphTools = GraphToolsFun(BasicBGraph);
 open BasicBGraph;
 open BGraphTools;
+
+
+  (* if n1 is boundary and something else is already called n2, then
+merge n1 and the vertex called n2: used for non-strict matching where
+boundary vertices can become unified to the same tgt vertex. *)
+  fun rename_or_merge_vname n1 n2 bg =
+      if (is_boundary bg n1) then 
+        case lookup_vertex bg n2 
+         of NONE => (* no clash, so rename n1 to n2 in boundary and graph *)
+            bg |> update_boundary (V.NSet.delete n1 o V.NSet.add n2)
+               |> BasicBGraph.update_graph (BasicBGraph.Graph.rename_vname n1 n2)
+          | SOME (d2,(ins2,outs2)) => (* clash, so merge egdes to n1 into n2 *)
+            let val (d1,(ins1,outs1)) = get_vertex bg n1
+            in
+              bg |> update_boundary (V.NSet.delete n1)
+                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (from,n2))) ins1 
+                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (n2,to))) outs1 
+                 |> update_vertex_enames (K (Edge.NSet.union_merge ins1 ins2,
+                                             Edge.NSet.union_merge outs1 outs2)) n2
+                 |> update_vertices (Vertex.NTab.delete n1)
+            end
+      else (* not boundary then rename as normal *)
+        bg |> BasicBGraph.update_graph (BasicBGraph.Graph.rename_vname n1 n2);
 
 end;

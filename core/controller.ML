@@ -31,16 +31,16 @@ val pretty_graph = ref RGGraphXML.output_graph
 val write_graph_to_file = ref RGGraphXMLWriter.output_to_file
 
 (* are we talking to a toplevel or a pipe? -------------------------------- *)
-val is_out_pipe = ref true;
+val hide_promp = ref true;
 fun out_toplevel out = Pretty.writeln out     
 fun out_pipe out = 
     (Pretty.writeln out;
      Pretty.writeln (Pretty.str "stop"))
 val do_output = ref out_pipe;       
 fun switch_mode () = 
-    if !is_out_pipe 
-    then (do_output := out_toplevel ; is_out_pipe := false)
-    else (do_output := out_pipe ; is_out_pipe := true);
+    if !hide_promp 
+    then (do_output := out_toplevel ; hide_promp := false)
+    else (do_output := out_pipe ; hide_promp := true);
 
 
 
@@ -143,7 +143,7 @@ fun parse_command s =
     let 
       (* change returns to spaces makes everything cleaner to debug *)
       val s = String.translate (fn #"\n" => " " | c => Char.toString c) s;
-      val _ = write_log ("Command-string: " ^ s);
+      val _ = write_log ("Recieved command-string: '" ^ s ^ "'");
       val toks = tokenise_command s
     in
       if s = "" then Quit else
@@ -179,6 +179,22 @@ fun parse_command s =
            | _ => BadCommand s)
     end;
     
+
+(* Get the next command *)
+fun receive_command g () = 
+    let 
+      val _ = if (!hide_promp) then () else TextIO.print "quanto:> "
+      val sopt = TextIO.inputLine(TextIO.stdIn)
+      val s = (case sopt of NONE => "" | SOME s => s)
+      val c = (parse_command s)
+      val _ = write_log ("recieved command: " ^ 
+                         (Pretty.string_of (pretty_command c)));
+    in
+      case c of NOOP => receive_command g ()
+              | Quit => raise quit_exp g
+              | x => x
+    end;
+
 (* ------- a mini run loop / dispatcher for choosing rewrites ---*)
 
 (* IMPROVE! This is not the right way to handle a separate
@@ -186,7 +202,7 @@ subloop. Thing of generalisation of control loop, with entrace/exit
 state, prompt, etc. 
 *)
 fun interactive_rw_loop g [] [] = 
-    (write_log "No applicable rewrites"; 
+    (write_log "interactive_rw_loop: no applicable rewrites"; 
      (!do_output)
        (Pretty.str ("<rewrite><total>"^ (Int.toString 0) ^ "</total></rewrite>"));
      NONE)
@@ -195,47 +211,32 @@ fun interactive_rw_loop g [] [] =
   | interactive_rw_loop g ((rw as (rule_name, rule, fused_g))::rwlist_fwd) 
                         rwlist_bkd = 
     let 
-         val n = (List.length rwlist_bkd) + 1
-         val howmany = n + (List.length rwlist_fwd)
+         val n = (List.length rwlist_bkd) + 1;
+         val howmany = n + (List.length rwlist_fwd);
          val p = pretty_rewrite rule_name fused_g 
                                 (Rule.get_lhs rule) 
                                 (Rule.get_rhs rule) 
-                                howmany n
-         val _ = (!do_output) p
-
-         fun miniread_loop () = 
-             let 
-               val sopt = TextIO.inputLine(TextIO.stdIn) 
-               val s = (case sopt of NONE => "" | SOME s => s) 
-               val c = parse_command s;
-               val _ = write_log ("doing rw_loop command: " ^ 
-                                  (Pretty.string_of (pretty_command c)));
-                                  
-             in 
-               case c of 
-                 NOOP => miniread_loop () 
-               | Quit => raise quit_exp g
-               | AbortRewrites => (write_log "aborted rewrite"; NONE)
-               | NextRewrite => 
-                 (write_log "next rewrite"; 
-                  interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd))
-               | PrevRewrite => 
-                 (write_log "prev rewrite"; 
-                  case rwlist_bkd of 
-                    [] => let val rwl = List.rev rwlist_fwd 
-                          in interactive_rw_loop g [hd rwl] (tl rwl) end
-                  | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
-                 )
-               | DoRewrite => (write_log ("Doing rewrite"^rule_name);
-                               let val g' = Rule.del_lhs rule fused_g
-                               in SOME g' end)
-               | _ => 
-                 (write_log ("COMMAND_NOT_APPLICABLE_NOW: " ^ 
-                             (Pretty.string_of (pretty_command c))); 
-                  interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
-             end
+                                howmany n;
+         val _ = (!do_output) p;
+         val c = receive_command g ();
+         val _ = write_log "at interactive_rw_loop.";
     in
-      miniread_loop()
+      case c 
+       of AbortRewrites => (write_log "aborted rewrite"; NONE)
+        | NextRewrite => 
+          (interactive_rw_loop g rwlist_fwd (rw::rwlist_bkd))
+        | PrevRewrite => 
+          (case rwlist_bkd of 
+             [] => let val rwl = List.rev rwlist_fwd 
+                   in interactive_rw_loop g [hd rwl] (tl rwl) end
+           | h::t => interactive_rw_loop g (h::rw::rwlist_fwd) t 
+          )
+        | DoRewrite => (write_log ("apply rewrite:"^rule_name);
+                        let val g' = Rule.del_lhs rule fused_g
+                        in SOME g' end)
+        | _ => 
+          (write_log ("COMMAND_NOT_APPLICABLE_NOW."); 
+           interactive_rw_loop g (rw::rwlist_fwd) rwlist_bkd)
     end;
 
 
@@ -251,18 +252,17 @@ fun interactive_rewrite vset (st as (g, hist)) =
 
 (* =======================================================*)
 (* this is the command dispatcher for the top level run loop *)
-fun do_command (st as (g, hist)) c = 
-    (write_log ("doing command: " ^ (Pretty.string_of (pretty_command c)));
+fun top_level_do_command (st as (g, hist)) c = 
+    (write_log ("at top_level_do_command. ");
      case c of
-       NOOP => st
-     | DUMP => ((!do_output) ((!pretty_graph) g); st)
+       DUMP => ((!do_output) ((!pretty_graph) g); st)
      | Save filename => ((!write_graph_to_file) filename g;st)
      | MODE => (switch_mode (); st)
      | Quit => raise quit_exp g
      | HELO => ((!do_output) (Pretty.str "Hello from QUANTOMATIC\nLet's have some fun!"); st)
      | New => ((G.empty, g::hist))
      | Undo => (case hist of 
-                  [] => (write_log "Already at start of history. "; st)
+                  [] => (write_log "Undo: already at start of history. "; st)
                 | h::t => (h, t))
      | Red => 
        let val (_,g') = G.add_vertex MkV.red g
@@ -289,9 +289,7 @@ fun do_command (st as (g, hist)) c =
        let val g' = G.set_vertex d v g
        in (g', g::hist) end
      | ShowRewrites vset => interactive_rewrite vset st
-     | _ => (write_log ("ERROR: Not Implemented for main do command loop: " ^
-                        (Pretty.string_of (pretty_command c))); 
-             st));
+     | _ => (write_log ("COMMAND_NOT_APPLICABLE_NOW."); st));
 
 
 (* *)
@@ -311,13 +309,9 @@ fun start_logfile () =
                          s))
     end;
 
+
 (*----------------------- MAIN RUN LOOP  ----------------------------------------- *)
-fun run_loop st = 
-    let 
-      val _ = if not (!is_out_pipe) then TextIO.print "quanto:> " else ()
-      val sopt = TextIO.inputLine(TextIO.stdIn) 
-      val s = (case sopt of NONE => "" | SOME s => s)
-    in run_loop (do_command st (parse_command s)) end;
+fun run_loop (st as (g, history)) = run_loop (top_level_do_command st (receive_command g ()));
 
 (* start quantomatic! *)
 fun init () = 
@@ -343,7 +337,7 @@ fun init () =
 
 
 (* function to change to using DOT output for graphs *)
-fun switch_pretty_lang () = 
+fun switch_pretty_graph_lang () = 
     case !dump_lang of DOT => (dump_lang := XML ; 
              pretty_graph := RGGraphXML.output_graph ;
              write_graph_to_file := RGGraphXMLWriter.output_to_file

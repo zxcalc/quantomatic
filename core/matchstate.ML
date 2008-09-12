@@ -58,7 +58,7 @@ signature MATCH_STATE
              -> T (* initial match state *)
 
   (* some info about a match state *)
-  val no_extra_tgt_edges : T -> bool
+  val no_extra_needed_tgt_edges : T -> bool
   val tgt_vertex_is_unmatched : T -> Vertex.name -> bool
 
   (* match two graphs *)
@@ -230,7 +230,7 @@ val set_match_mctxt = update_match o Match.set_mctxt;
 (* true at end of successful matching: this ensures the strictness
    condition for edge matching (only refers to strictly needed
    edges). *)
-val no_extra_tgt_edges = Edge.NSet.is_empty o get_needed_tgt_es;
+val no_extra_needed_tgt_edges = Edge.NSet.is_empty o get_needed_tgt_es;
 
 (* *)
 fun get_adj_pat_vertices st edgens =
@@ -312,15 +312,18 @@ fun locally_match_2vs (from_pn, to_pn) from_tn to_tn st =
     
 
 
-(* pick first pattern pattern node and then try to match it against
+(* pick first pattern node and then try to match it against
    every possible target node. *)
 fun locally_match_verticies (from_n,from_d) (from_tn,from_td) pns tns st = 
     let 
       fun match1 pns (tns, st) = 
           (case Vertex.NSet.pull_local_bot pns
             of NONE => 
-               if Vertex.NSet.is_empty tns then Seq.single st
-               else Seq.empty
+               (case from_d (* allow extra targets only if from_d is pat vertex *)
+                 of Vertex.BVert _ => Seq.single st
+                  | Vertex.IVert _ => 
+                    if Vertex.NSet.is_empty tns 
+                    then Seq.single st else Seq.empty)
              | SOME (to_pn,pns2) => 
                (Seq.of_list (Vertex.NSet.pull_each tns))
                  |> Seq.maps (fn (to_tn, tns2) => 
@@ -328,14 +331,14 @@ fun locally_match_verticies (from_n,from_d) (from_tn,from_td) pns tns st =
                                     (pair tns2)
                                     (locally_match_2vs 
                                        (from_n,to_pn) from_tn to_tn st)))
-                 |> Seq.maps (match1 pns2))
+                 |> Seq.maps (match1 pns2)) (* recurse to match more pattern vertices *)
     in (match1 pns (tns, st)) 
          |> Seq.map (useup1_pat_vertex from_n)
     end;
 
 (* assumes patv are uninstantiated *)
 (* raises Vertex.NTab...DUP exception, if n1 is already insantiated *)
-(* Assumes each patvertex is only examined once; therefore assume not in vmap *)
+(* Assumes each pat-vertex is only examined once; therefore assume not in vmap *)
 fun match_vertex (n, Vertex.BVert _) (tn, _) st = 
     SOME (update_match (Match.match_bvertex n tn) st)
   | match_vertex (n, Vertex.IVert d) (tn, Vertex.IVert td) st = 
@@ -363,9 +366,9 @@ fun match_2vertices_with_edges
     in case match_vertex (n,d) (tn,td) st of 
          NONE => Seq.empty (* vertex does not match *)
        | SOME st2 => (* continue matching *)
-         (if not (RGGraph.is_boundary pat n) then (* then strict matching *)
-            add_needed_edges tedgens st2
-         else st2) 
+         (if RGGraph.is_boundary pat n then 
+            st2 (* non-strict matching *)
+          else add_needed_edges tedgens st2 (* else strict matching *) ) 
            |> (locally_match_verticies (n,d) (tn,td) 
                                        (get_adj_pat_vertices st2 edgens)
                                        (get_adj_tgt_vertices st2 tedgens))
@@ -388,7 +391,7 @@ fun do_next_match_choices st =
       of NONE => (* nothing on the prescribed agenda *)
          (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
             NONE => (* no pattern vertices left! *)
-            if no_extra_tgt_edges st then 
+            if no_extra_needed_tgt_edges st then 
               FoundMatch st (* because we finished! *)
             else (* matching failed with extra left over target edges *)
               Progress Seq.empty

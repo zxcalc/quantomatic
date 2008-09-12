@@ -14,7 +14,7 @@ structure TheoryHack
   val mkH = V.IVert RGVertex.Hnd;
   val edge : UnitEdge.data = ();
 
-(* Isometry *)
+(* X Isometry *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -36,9 +36,36 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in 
-  val isometry_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print isometry_rule;
+  val x_isometry_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_isometry_rule;
 end;      
+
+(* Z Isometry *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in 
+  val z_isometry_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print z_isometry_rule;
+end;      
+
 
 (* frobenious is an identity in graphs with variable-nodes, 
    not added as a rewrite, here for testing only *)
@@ -75,12 +102,12 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in 
-  val frobenius_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print frobenius_rule;
+  val x_frobenius_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_frobenius_rule;
 end;      
 
 
-(* Compact Structure *)
+(* X Compact Structure *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -101,12 +128,40 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in 
-  val compact_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print compact_rule;
+  val x_compact_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_compact_rule;
 end;      
 
 
-(* Abelian Unit 1 *)
+
+(* Z Compact Structure *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 b1;
+  val (e2, g) = g |> RGGraph.add_edge edge n2 n1;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in 
+  val z_compact_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print z_compact_rule;
+end;      
+
+
+
+(* X Abelian Unit 1 *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -125,12 +180,37 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in 
-  val abelian1_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print abelian1_rule;
-end      
+  val x_abelian1_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_abelian1_rule;
+end;
+
+
+(* Z Abelian Unit 1 *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 b2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in 
+  val z_abelian1_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print z_abelian1_rule;
+end;
+
   (* Abelian Unit 2: is a meta-operation and is not lifted to graph patterns *)
 
-(* Abelian Unit 3 *)
+(* X Abelian Unit 3 *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -153,11 +233,44 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in
-  val abelian3_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print abelian3_rule;
+  val x_abelian3_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_abelian3_rule;
 end;
 
-(* Bialgebra 1 *)
+
+
+(* Z Abelian Unit 3 *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "b"));
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge n2 n1;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ (add_angles (var_angle "a") (var_angle "b")));
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val z_abelian3_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print z_abelian3_rule;
+end;
+
+
+
+
+
+(* (X and Z symmetric) Bialgebra 1 *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -200,10 +313,46 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in
-  val bialgebra1_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print bialgebra1_rule;
+  val xz_bialgebra1_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print xz_bialgebra1_rule;
 end;
-(* Bialgebra 2 *)
+
+
+
+(* X - Bialgebra 2 *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val x_bialgebra2_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_bialgebra2_rule;
+end;
+
+
+(* Z - Bialgebra 2 *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -231,57 +380,43 @@ local
   val rhs = g;
   val _ = RGGraph.print rhs;
 in
-  val bialgebra2_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print bialgebra2_rule;
+  val z_bialgebra2_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print z_bialgebra2_rule;
 end;
-
-(* Bialgebra 3 *)
-local 
-  (* lhs *)
-  val g = RGGraph.empty;
-  val (b1, g) = g |> RGGraph.add_vertex bvert;
-  val (b2, g) = g |> RGGraph.add_vertex bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
-  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
-  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
-(* no scalars in theory hack - they are not really important *)
-(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
-  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
-  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
-  val lhs = g;
-  val _ = RGGraph.print lhs;
-  (* rhs *)
-  val g = RGGraph.empty;
-  val g = g |> RGGraph.new_named_vertex b1 bvert;
-  val g = g |> RGGraph.new_named_vertex b2 bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
-  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
-  val rhs = g;
-  val _ = RGGraph.print rhs;
-in
-  val bialgebra3_rule = Rule.mk (lhs,rhs);
-  val _ = Rule.print bialgebra3_rule;
-end;    
+ 
 
 (* in *)
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
 
-val rules = [("isometry",isometry_rule),
+val rules = [("x_isometry",x_isometry_rule),
+             ("z_isometry",z_isometry_rule),
+             
              (* no frobenius: it's an id in our rep *)
-             ("compact",compact_rule),
              
-             ("abelian1",abelian1_rule),
+             ("x_compact",x_compact_rule),
+             ("z_compact",z_compact_rule),
+
+             ("x_abelian1",x_abelian1_rule),
              (* no abelian2: not needed for our rep *)
-             ("abelian3",abelian3_rule),
+             ("z_abelian3",z_abelian3_rule),
+                   
+             ("z_abelian1",z_abelian1_rule),
+             (* no abelian2: not needed for our rep *)
+             ("z_abelian3",z_abelian3_rule),
              
-             ("bialgebra1",bialgebra1_rule),
-             ("bialgebra2",bialgebra2_rule),
-             ("bialgebra3",bialgebra3_rule)
+             ("xz_bialgebra1",xz_bialgebra1_rule),
+             ("x_bialgebra2",x_bialgebra2_rule),
+             ("z_bialgebra2",z_bialgebra2_rule)
             ];
+
+
+fun match_all_rules g = 
+    maps
+      (fn (n,r) => let val (rmn, r2) = (Rule.rename_rule_apart g r)
+                   in map (fn m => ((n,r2),m))
+                          (Seq.list_of (Rule.matches r2 g))
+                   end)
+      rules;
 
 fun apply_all_rules g = 
     maps
@@ -294,6 +429,11 @@ fun apply_all_rules_in vset g =
                        (Seq.list_of (Rule.rule_matches_within r vset g)))
       rules;
 
+
+(* Unused: matching only produces symmetries w.r.t. different namings
+- our distinctness check never sees this, so sees them as really
+distinct. Need a richer distinctness test, or symmetry reduction in
+matching. 
 
 (* assumes distinct_rules are all results of applying the same rule;
    i.e. have same lhs and same naming. *)
@@ -319,5 +459,6 @@ fun apply_distinctly_all_rules_in vset g =
             |> List.foldl filter_symmetric_results []
             |> map (fn r2 => (n,r2)))
       rules;
+*)
 
 end;
