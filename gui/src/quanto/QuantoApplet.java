@@ -29,13 +29,14 @@ public class QuantoApplet extends PApplet {
 	private static final long serialVersionUID = 1L;
 	public static final int WIDTH = 800;
 	public static final int HEIGHT = 600;
- 
-	PFont helvetica;
-	PFont times;
 	
 	public static final int DEFAULT_SHADE_ALPHA = 100;
-	public static final int DEFAULT_TRANSITION_TIME = 20;
+	public static final int DEFAULT_TRANSITION_TIME = 15;
 	public static final int DEFAULT_HIGHLIGHT_TIME = 30;
+	public static final char SELECT_TOOL = 's';
+	public static final char SHIFT_SELECT_TOOL = 'S';
+	public static final char EDGE_TOOL = 'e';
+	
 	
 	// global application modes
 	public final GuiMode NORMAL = new NormalMode();
@@ -44,32 +45,34 @@ public class QuantoApplet extends PApplet {
 	public final GuiMode REWRITE_HIGHLIGHT_RHS = new RewriteHighlightRhsMode();
 	public final GuiMode NO_REWRITES_FOUND = new FadeUpToMode(new DisplayMessageMode("No Matching Rewrites Found", new FadeDownToMode()));
 	
-	public GuiMode mode = NORMAL;
+	public GuiMode mode = NORMAL; 
 	
-	// how long should the app stay in the mode; numbers are number of 
-	// iterations of the draw loop 
-	
-	int selectedIndex = -1;
-	char tool;
+	QuantoCore qcore;
+	static QuantoApplet p; // the top level applet 
 	Graph graph;
 	RewriteInstance currentRewrite;
 
+	// these variables affect the drawing behaviour
 	boolean paused;
 	boolean draw_grid = false;
-	boolean doSplines=false;
-	int rectX=-1, rectY=-1;
-	boolean dragging = false; // are we moving a vertex by dragging with mouse
-	int oldmouseX = 0, oldmouseY = 0; // where the mouse was at the last drag message
-	boolean shift=false;
 	boolean snapToGrid = false;
 	int layoutMode = 0;
+	
+	// variables affecting the controls
+	int rectX=-1, rectY=-1;
+	boolean draggingVertices = false; // are we moving a vertex by dragging with mouse
+	int oldmouseX = 0, oldmouseY = 0; // where the mouse was at the last drag message
+	boolean shift=false;
+	boolean alt=false;
+	boolean ctrl=false;
+	int selectedIndex = -1;
+	char tool;
+	
+	PFont helvetica;
+	PFont times;
 
 	String outDirName = "";
 	JFileChooser fileChooser;
-	JPopupMenu vertexPopUp;
-	//JMenuItem menuItem;
-	ButtonGroup colourButtons;
-	JRadioButtonMenuItem vRedMenuItem, vGreenMenuItem, vHMenuItem, vBndMenuItem;
 	
 	String nextPDFFileName = "";
 	int nextPDFFile = 1;
@@ -79,10 +82,8 @@ public class QuantoApplet extends PApplet {
 	int nextQTFile = 1;
 	boolean recordingVideo = false;
 	MovieMaker mm;  // to be initialised when recording starts
- 
-	QuantoCore qcore;
-	static QuantoApplet p; // the top level applet 
 
+	
 	public void setup() {
 		p = this;
 		paused = false;
@@ -97,15 +98,7 @@ public class QuantoApplet extends PApplet {
 		}
 		
 		fileChooser = new JFileChooser();
-		vertexPopUp = new JPopupMenu();
-		vRedMenuItem = new JRadioButtonMenuItem("Red");
-		vGreenMenuItem = new JRadioButtonMenuItem("Green");
-		colourButtons = new ButtonGroup();
-		colourButtons.add(vRedMenuItem);
-		colourButtons.add(vGreenMenuItem);
-		vertexPopUp.add(vRedMenuItem);
-		vertexPopUp.add(vGreenMenuItem);
-
+		
 		helvetica = loadFont("HelveticaNeue-14.vlw");
 		times = loadFont("Times-Italic-14.vlw");
 
@@ -152,8 +145,8 @@ public class QuantoApplet extends PApplet {
 
 	private void prepRewriteForDrawing() {
 		// the constant is the width of the arrow
-		currentRewrite.layoutShiftedLhs(WIDTH/2-60 , HEIGHT/2);
-		currentRewrite.layoutShiftedRhs(WIDTH/2+60, HEIGHT/2);
+		currentRewrite.layoutShiftedLhs(WIDTH/2-60 , 2*HEIGHT/3);
+		currentRewrite.layoutShiftedRhs(WIDTH/2+60, 2*HEIGHT/3);
 		currentRewrite.highlightTargetVertices(graph);
 	}
 	
@@ -208,6 +201,30 @@ public class QuantoApplet extends PApplet {
 		mode.keyReleased();
 	}
 	
+	 void updateModifierKey(boolean keyDown) {
+		switch (keyCode) {
+		case SHIFT: shift = keyDown; break;
+		case ALT: alt = keyDown; break;
+		case CONTROL: ctrl = keyDown; break;
+		default:  // not a modifier
+			break;
+		}
+		updateTool();
+	}
+	 
+	 private void updateTool() {
+		 if(alt) {
+			 tool = EDGE_TOOL;
+		 }
+		 else if (shift) {
+			 tool = SHIFT_SELECT_TOOL;
+		 }
+		 else {
+			 tool = SELECT_TOOL;
+		 }
+		 play();
+	 }
+	
 	public void draw() {
 		
 		background(255);
@@ -248,13 +265,6 @@ public class QuantoApplet extends PApplet {
 	public boolean drawGraph(Graph g) {
 		boolean moved = false;
 		synchronized(g) {
-			for (Vertex v : g.getVertices().values()) {
-				moved = moved || v.tick();
-				v.tick();
-				v.display();
-			}
-		}	
-		synchronized(g) {
 			if (moved) {
 				for (Edge e : g.getEdges().values()) e.display(true);
 			} else {
@@ -267,7 +277,13 @@ public class QuantoApplet extends PApplet {
 			stroke(200,0,255);
 			rect(bb.ax,bb.ay, bb.getWidth(), bb.getHeight());
 		}
-		
+		synchronized(g) {
+			for (Vertex v : g.getVertices().values()) {
+				moved = moved || v.tick();
+				v.tick();
+				v.display();
+			}
+		}
 		return moved;
 	}
 
@@ -276,13 +292,13 @@ public class QuantoApplet extends PApplet {
 		textAlign(LEFT);
 		fill(255, 0, 0);
 		switch (tool) {
-		case 's':
+		case SELECT_TOOL:
 			text("SELECT", 10, 20);
 			break;
-		case 'm':
-			text("MOVE", 10, 20);
+		case SHIFT_SELECT_TOOL:
+			text("SELECT+", 10, 20);
 			break;
-		case 'e':
+		case EDGE_TOOL:
 			text("EDGE", 10, 20);
 			break;
 		}
@@ -408,12 +424,20 @@ public class QuantoApplet extends PApplet {
 				else startRecordVideo();
 				break;
 			case CODED: 
-				if (keyCode == SHIFT) { shift = true; }
-				// else do nothing
+				updateModifierKey(true);
 				break;
 			default:
 				// do nothing
 			}		
+		}
+		public void keyReleased() {
+			switch (key) {
+			case CODED:
+				updateModifierKey(false);
+				break;
+			default:
+				break;
+			}
 		}
 		public void mousePressed() {
 			// ignore mouse
@@ -423,19 +447,6 @@ public class QuantoApplet extends PApplet {
 		}
 		public void mouseDragged() {
 			// ignore mouse
-		}
-		public void keyReleased() {
-			switch (key) {
-			case CODED:
-				switch (keyCode) {
-				case SHIFT: shift = false;
-					break;
-				default: 
-					break;
-				}
-			default:
-				break;
-			}
 		}
 	}
 	
@@ -448,14 +459,15 @@ public class QuantoApplet extends PApplet {
 
 		public void mouseReleased() {
 			if (mouseButton == LEFT) {
-				if (tool == 's') {
-					synchronized (graph) {
-						// if we are not holding shift deselect all vertices
-						if (!shift && !dragging) {
+				synchronized (graph) {
+					switch (tool) {
+					case SELECT_TOOL:
+						// deselect all vertices
+						if (!draggingVertices) {
 							for (Vertex v : graph.getVertices().values())
 								v.selected = false;
 						}
-						if (!dragging && (mouseX != rectX || mouseY != rectY)) {
+						if (!draggingVertices && (mouseX != rectX || mouseY != rectY)) {
 							for (Vertex v : graph.getVertices().values()) {
 								if (shift) {
 									v.selected = v.selected
@@ -467,7 +479,7 @@ public class QuantoApplet extends PApplet {
 											mouseY);
 								}
 							}
-						} else if (dragging
+						} else if (draggingVertices
 								&& (oldmouseX == mouseX && oldmouseY == mouseY)) {
 							Vertex current = null; // this is vertex the mouse is
 							// over
@@ -483,23 +495,16 @@ public class QuantoApplet extends PApplet {
 				}
 				rectX = -1;
 				rectY = -1;
-				dragging = false;
+				draggingVertices = false;
 				play();
 			}
-			else if (mouseButton == RIGHT) {
-				println("Right up");
-				vertexPopUp.setVisible(false);                    
-			}
-			else {
-				println("other mouse button up");
-			}
-
+			// ignore non-left mousebuttons	
 		}
 
 		public void mouseDragged() {
 			int dx = mouseX - oldmouseX;
 			int dy = mouseY - oldmouseY;
-			if(dragging){
+			if(draggingVertices){
 				synchronized (graph) {
 					for (Vertex v : graph.getVertices().values()) {
 						if (v.selected) {
@@ -522,26 +527,22 @@ public class QuantoApplet extends PApplet {
 				oldmouseY = mouseY;
 
 				switch (tool) {
-				case 's':
-					Vertex current = null; // this is vertex the mouse is over
-					for(Vertex v: graph.getVertices().values()){
-						// The expected behavior when clicking is to pick a single vertex
-						// if many overlap. To get all of them, one drags a box around them.
-						if(v.at(mouseX, mouseY)) current = v;
-					}
-					if(current==null) { 
+				case SELECT_TOOL:
+				case SHIFT_SELECT_TOOL:
+					Vertex current = graph.getVertexAtPoint(mouseX, mouseY);
+					if(current==null) { // no vertex at mouse
 						rectX = mouseX;
 						rectY = mouseY;
 					} else {
-						if (!current.selected && !shift) {
-							for (Vertex v : graph.getVertices().values()) v.selected = false;
+						if (!current.selected && (tool==SELECT_TOOL)) {
+							graph.deselectAllVertices();
 						}
 						current.selected = true;
-						dragging = true;
+						draggingVertices = true;
 					}
 					break;
 
-				case 'e':
+				case EDGE_TOOL:
 					for (Vertex v : graph.getVertices().values()) {
 						if (v.at(mouseX, mouseY)) {
 							for (Vertex w : graph.getVertices().values()) {
@@ -553,14 +554,7 @@ public class QuantoApplet extends PApplet {
 				}
 				play();
 			}
-			else if (mouseButton == RIGHT){
-				println("RIGHT down");
-				vertexPopUp.setLocation(mouseX, mouseY);
-				vertexPopUp.setVisible(true);                    
-			}
-			else {
-				println("How many buttons does this mouse have?");
-			}
+			// don't do anything with the right (or additional) MB 
 		}
 
 		public void keyPressed() {
@@ -577,7 +571,6 @@ public class QuantoApplet extends PApplet {
 			case 'u': qcore.previousGraphState(); break;
 			case 'd': qcore.deleteAllSelected(); break;
 			case 'R': startRewriteSelection(); break;
-			case 'p': doSplines = !doSplines; break;
 			case 'y':
 				layoutMode = (layoutMode+1)%3;
 				switch (layoutMode) {
@@ -627,14 +620,10 @@ public class QuantoApplet extends PApplet {
 				data = new StringSelection(graph.toDot());
 				cb.setContents(data, data);
 				break;
-			case 's':
-			case 'e': /* these are tools that require mouse input too */
-				tool = key;
+			default: 
+				super.keyPressed();
 				break;
-			default: super.keyPressed();
-			break;
 			}
-			graph.layoutGraph();
 			play();
 		}
 
@@ -657,6 +646,8 @@ public class QuantoApplet extends PApplet {
 	 *
 	 */
 	private class RewriteSelectMode extends GuiMode {
+
+		public static final int DEFAULT_HIGHLIGHT_TIME = 25;
 
 		public void keyPressed() {
 			switch (key) {
@@ -682,7 +673,7 @@ public class QuantoApplet extends PApplet {
 			
 			boolean moved = drawGraph(graph);
 			shadeScreen();
-			drawArrow(WIDTH/2 -50, HEIGHT/2 -25, 100,50);	
+			drawArrow(WIDTH/2 -50, 2*HEIGHT/3 -25, 100,50);	
 			moved = drawGraph(currentRewrite.lhs) || moved;
 			moved = drawGraph(currentRewrite.rhs) || moved;
 			
@@ -695,7 +686,7 @@ public class QuantoApplet extends PApplet {
 			textFont(helvetica);
 			fill(255, 0, 0);
 			textAlign(CENTER);
-			text(msg,WIDTH/2,HEIGHT/2+150);
+			text(msg,WIDTH/2,HEIGHT/2+155);
 			return moved;
 		}
 	}
@@ -814,6 +805,9 @@ public class QuantoApplet extends PApplet {
 			mode = next;
 			play();
 			super.keyPressed();
+		}
+		public void mousePressed() {
+			keyPressed();
 		}
 	}
 	

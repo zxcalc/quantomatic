@@ -5,7 +5,6 @@ public class Graph extends PLib {
 	Map<String,Vertex> vertices;
 	Map<String,Edge> edges;
 	
-	private java.util.Random rando = new java.util.Random();
 	public Vertex newestVertex;
 	public static final int GRID_X = 25;
 	public static final int GRID_Y = 25;
@@ -25,26 +24,26 @@ public class Graph extends PLib {
 	public Map<String,Vertex> getVertices() {return vertices;} 
 	public Map<String,Edge> getEdges() {return edges;};
 	
-	// DEPRECATED -- don't call this
-	// only the back-end is allowed to generate names
-	public Vertex newVertex() {
-		System.out.println("Warning: deprecated method newVertex called");
-		Vertex n = new Vertex(GlobalNameSpace.newName().toString(), 50, 50);
-		addVertex(n);
-		return n;
-	}
+//	// DEPRECATED -- don't call this
+//	// only the back-end is allowed to generate names
+//	public Vertex newVertex() {
+//		System.out.println("Warning: deprecated method newVertex called");
+//		Vertex n = new Vertex(GlobalNameSpace.newName().toString(), 50, 50);
+//		addVertex(n);
+//		return n;
+//	}
 	public void addVertex(Vertex n) {
 		vertices.put(n.id, n);
 	}
 
-	// DEPRECATED -- don't call this
-	// only the back-end is allowed to generate names
-	public Edge newEdge(Vertex source, Vertex dest) {
-		System.out.println("Warning: deprecated method newEdge called");
-		Edge e = new Edge(GlobalNameSpace.newName().toString(), source, dest);
-		addEdge(e);
-		return e;
-	}
+//	// DEPRECATED -- don't call this
+//	// only the back-end is allowed to generate names
+//	public Edge newEdge(Vertex source, Vertex dest) {
+//		System.out.println("Warning: deprecated method newEdge called");
+//		Edge e = new Edge(GlobalNameSpace.newName().toString(), source, dest);
+//		addEdge(e);
+//		return e;
+//	}
 
 	public void addEdge(Edge e) {
 		edges.put(e.id, e);
@@ -52,6 +51,7 @@ public class Graph extends PLib {
 
 	public void layoutGraph() {
 		layoutEngine.layout(this);
+		recomputeEdgeOffsets();
 	}
 
 	/* copies vertices and edges from newg over the existing vertices and edges */
@@ -78,6 +78,10 @@ public class Graph extends PLib {
 			}
 		}
 	}
+	
+	public void deselectAllVertices() {
+		for (Vertex v : getVertices().values()) v.selected = false;
+	}
 
 	public void enableSnap() {
 		synchronized(vertices) {
@@ -99,11 +103,61 @@ public class Graph extends PLib {
 			v.shift(dx,dy);
 		}
 	}
-	
-	public void shift(int dx, int dy) {
-		shift((float)dx, (float)dy);
+
+	public List<Edge> getParallelEdges(Vertex v, Vertex w) {
+		ArrayList<Edge> bag = new ArrayList<Edge>();
+		for(Edge e : v.edges) {
+			if(e.source == w || e.dest == w) bag.add(e);
+		}
+		return bag;
 	}
 	
+	private void updateEdgeOffsets(Vertex v, Vertex w) {
+		updateEdgeOffsets(getParallelEdges(v,w));
+	}
+	
+	private void updateEdgeOffsets(Edge edge) {
+		updateEdgeOffsets(edge.dest, edge.source);
+	}
+	
+	private void updateEdgeOffsets(List<Edge> parallel) {
+
+		if(parallel.size() > 0) {
+			Vertex v = parallel.get(0).source;
+
+			if(parallel.size() %2 == 1){ // odd number
+				parallel.remove(0).setOffset(0);
+			}
+			int count = 0;
+			for(Edge e : parallel) {
+				// if edges are anti-parallel the offset is reversed
+				int dir = (e.source == v) ? 1 : -1;
+				if(count%2 == 0) {
+					e.setOffset(dir*(count/2 + 1));
+				}
+				else {
+					e.setOffset(-(dir*(count+1)/2));
+				}
+				count++;
+			}
+		}
+	}
+
+	private void recomputeEdgeOffsets(Collection<Vertex> vcol) {
+		if(!vcol.isEmpty()) {
+			List<Vertex> vlist = new ArrayList<Vertex>(vcol);
+			Vertex v = vlist.remove(0);
+			for(Vertex w : vlist) {
+				updateEdgeOffsets(v,w);
+			}
+			recomputeEdgeOffsets(vlist);
+		}
+	}
+	
+	private void recomputeEdgeOffsets() {
+		recomputeEdgeOffsets(vertices.values());
+	}
+
 	/** this won't work with curved edges as it only computes
 	 * based on the vertices
 	 * @return
@@ -151,6 +205,20 @@ public class Graph extends PLib {
 		return new BoundingBox(minX,minY,maxX,maxY);			
 	}
 	
+	/** returns a vertex overlapping with the point (x,y).  If there are several overlapping points it choose one 
+	 * aribtrarily; if there are none, it returns null;
+	 * @param x
+	 * @param y
+	 * @return
+	 */
+	public Vertex getVertexAtPoint(float x, float y) {
+		for(Vertex v: getVertices().values()){
+			if(v.at(x, y)) return v;
+		}
+		return null;
+	}
+
+	
 	public String toDot() {
 		StringBuffer g = new StringBuffer();
 		g.append("digraph { nodesep=0.65; ranksep=0.65;\n");
@@ -169,7 +237,6 @@ public class Graph extends PLib {
 			//g.append(" [arrowhead=none,headclip=false,tailclip=false];\n");
 			g.append(" [arrowhead=none];\n");
 		}
-
 		g.append("\n}\n");
 		return g.toString();
 	}

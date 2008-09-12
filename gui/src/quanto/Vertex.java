@@ -37,14 +37,8 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public void addEdge(Edge e) {
 		edges.add(e);
 	}
+
 	
-	public void clearEdgeControlPoints() {
-		for (Edge e : edges) e.clearControlPoints();
-	}
-	
-	public void setDest(int x, int y) {
-		setDest((float)x,(float)y);
-	}
 	
 	public void setDest(float x, float y) {
 		if (snap) {
@@ -56,10 +50,6 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		}
 		lastTick = -1;
 		QuantoApplet.p.play();
-	}
-	
-	public void shift(int dx, int dy) {
-		shift((float)dx, (float)dy);
 	}
 	
 	public void shift(float dx, float dy) {
@@ -187,8 +177,8 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public void registerClick(int x, int y) {
 		selected = at(x, y);
 	}
-
-	public boolean at(int x, int y) {
+	
+	public boolean at(float x, float y) {
 		if (Math.abs(x - this.x) < 8 && Math.abs(y - this.y) < 8)
 			return true;
 		else

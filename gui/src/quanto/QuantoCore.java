@@ -103,6 +103,7 @@ public class QuantoCore {
 		send("D\n");
 		Graph updated = xml.parseGraph(receive());
 		graph.updateTo(updated);
+		graph.layoutGraph();
 	}
 	
 	void modifyCmd(String s){	
