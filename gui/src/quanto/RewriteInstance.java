@@ -38,10 +38,29 @@ public class RewriteInstance {
 		}
 	}
 	
+	/** throws NullPointerException if g does not contain rhs */
+	public void prepareResultVertices(Graph g) {
+		for(Vertex v : rhs.getVertices().values()) {
+			Vertex res = g.getVertices().get(v.id);
+			res.x = res.destX;
+			res.y = res.destY;
+			res.selected = true;
+		}
+	}
+	
 	public void unhighlightResultVertices(Graph g) {
 		for(Vertex v : rhs.getVertices().values()) {
 			g.getVertices().get(v.id).extra_highlight = false;
 		}
+	}
+	
+	public void layoutShiftedLhs(float x, float y, Graph g){
+		for(Vertex v : lhs.getVertices().values()){
+			v.destX = g.vertices.get(v.id).destX;
+			v.destY = g.vertices.get(v.id).destY;
+		}
+		BoundingBox bb = lhs.getBoundingBoxAtDest();
+		lhs.shift(x - bb.getCenterX() - bb.getWidth()/2, y - bb.getCenterY());	
 	}
 	
 	public void layoutShiftedLhs(float x, float y) {

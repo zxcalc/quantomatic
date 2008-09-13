@@ -32,6 +32,7 @@ public class Graph extends PLib {
 //		addVertex(n);
 //		return n;
 //	}
+	
 	public void addVertex(Vertex n) {
 		vertices.put(n.id, n);
 	}
@@ -107,7 +108,7 @@ public class Graph extends PLib {
 	public List<Edge> getParallelEdges(Vertex v, Vertex w) {
 		ArrayList<Edge> bag = new ArrayList<Edge>();
 		for(Edge e : v.edges) {
-			if(e.source == w || e.dest == w) bag.add(e);
+			if((e.source == w && e.dest == v)||(e.source == v && e.dest == w)) bag.add(e);
 		}
 		return bag;
 	}
@@ -147,6 +148,7 @@ public class Graph extends PLib {
 		if(!vcol.isEmpty()) {
 			List<Vertex> vlist = new ArrayList<Vertex>(vcol);
 			Vertex v = vlist.remove(0);
+			updateSelfLoopOffsets(v);
 			for(Vertex w : vlist) {
 				updateEdgeOffsets(v,w);
 			}
@@ -156,6 +158,15 @@ public class Graph extends PLib {
 	
 	private void recomputeEdgeOffsets() {
 		recomputeEdgeOffsets(vertices.values());
+	}
+	
+	private void updateSelfLoopOffsets(Vertex v) {
+		List<Edge> elist = getParallelEdges(v,v);
+		int count = 0;
+		for(Edge e : elist) {
+			count++;
+			e.setOffset(count);
+		}
 	}
 
 	/** this won't work with curved edges as it only computes

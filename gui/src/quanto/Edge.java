@@ -25,7 +25,11 @@ class Edge extends PLib {
 		this.midPointOffset = offset*OFFSET_SIZE;
 	}
 	
-
+	public void reverse() {
+		Vertex temp = source;
+		source = dest;
+		dest = temp;
+	}
 
 	
 	public void display() {
@@ -35,15 +39,12 @@ class Edge extends PLib {
 	public void display(boolean inMotion) {
 		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
-
-
 		if (inMotion) {
 			p.stroke(120,120,200);
-			p.fill(120,120,200);
 		} else {
 			p.stroke(0);
-			p.fill(0);
 		}
+		p.noFill();
 
 //      float  dx, dy, len, offX, offY;
 //		dx = dest.x - source.x;
@@ -54,19 +55,26 @@ class Edge extends PLib {
 //p.line(source.x + offX, source.y + offY, dest.x - offX, dest.y - offY);
 		
 		Coord start, end, cp1, cp2;
-		start = new Coord(source.x, source.y);
-		end = new Coord(dest.x, dest.y);
-		if(source == dest){
-			cp1 = start.plus(new Coord(0,midPointOffset));
-			cp2 = start.plus(new Coord(0,-midPointOffset));
+		if(source == dest){			
+			start = new Coord(source.x, source.y);
+			end = new Coord(source.x + 0.4f*midPointOffset+OFFSET_SIZE, source.y);
+			
+			cp1 = start.plus(new Coord(0,0.4f*midPointOffset));
+			cp2 = end.plus(new Coord(0,0.4f*midPointOffset));
+			p.bezier(start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);
+			
+			cp1 = end.plus(new Coord(0,-0.4f*midPointOffset));
+			cp2 = start.plus(new Coord(0,-0.4f*midPointOffset));
+			p.bezier(end.x,end.y, cp1.x,cp1.y, cp2.x,cp2.y,start.x,start.y);
 		}
 		else {
+			start = new Coord(source.x, source.y);
+			end = new Coord(dest.x, dest.y);
 			Coord dir = end.minus(start);
 			cp1 = start.plus(dir.getPerpUnit().rescale(this.midPointOffset));
 			cp2 = end.plus(dir.getPerpUnit().rescale(this.midPointOffset));
+			p.bezier(start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);			
 		}
-		p.noFill();
-		p.bezier(start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);			
 	}
 
 
