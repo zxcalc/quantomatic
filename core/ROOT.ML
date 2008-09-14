@@ -26,10 +26,12 @@ use "matchstate.ML";
 use "test/matching.ML";
 
 use "rule.ML";
+use "spider.ML";
 
 use "theory_hack.ML";
 
 use "test/rule.ML";
+use "test/spider.ML";
 
 use "output.ML";
 use "output_dot.ML";

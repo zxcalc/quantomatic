@@ -42,6 +42,7 @@ val _ =
       raise ERROR "This rule is bad, it should raise an exception, but did not! :( ")
      handle (Rule.bad_rule_exp _) => 
             Pretty.writeln (Pretty.str "Bad rule was correctly judged to be bad."));
+val _ = writeln "Ex1";
 
 
 (* Example of applications of rule that does not match *)
@@ -53,6 +54,7 @@ val (e0, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
 val _ = RGGraph.print g;
 val [] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
+val _ = writeln "Ex2";
 
 
 (* test rewriting isometry lhs with isometry rule *)
@@ -66,11 +68,14 @@ val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
 val _ = RGGraph.print g;
+val _ = writeln "Ex3";
 
 
 val [m1,m2] = Seq.list_of (Rule.matches TheoryHack.x_isometry_rule g);
 val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
 val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites TheoryHack.x_isometry_rule g));
+val _ = writeln "Ex4";
+
 
 (* Example of applications of isometry rule *)
 val g = RGGraph.empty;
@@ -84,6 +89,7 @@ val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e3, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e4, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
+val _ = writeln "Ex5";
 
 val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g);
 val _ = map Rule.print [r1,r2];
@@ -104,6 +110,7 @@ val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
 val (e2, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
+val _ = writeln "Ex6";
 
 val [] = Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g);
 
@@ -121,6 +128,7 @@ val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
 val (e2, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
+val _ = writeln "Ex7";
 
 (* bialgebra2 *)
 val [r1,r2] = TheoryHack.apply_all_rules g;
@@ -144,6 +152,7 @@ val (e4, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
 val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
 val (e7, g) = g |> RGGraph.add_edge edge n2 n4;
+val _ = writeln "Ex8";
 
 val L = TheoryHack.apply_all_rules g;
 val [r1,r2,r3,r4] = map snd L;
@@ -163,9 +172,10 @@ val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e3, g) = g |> RGGraph.add_edge edge n2 n3;
 val (e4, g) = g |> RGGraph.add_edge edge n3 n4;
 val _ = RGGraph.print g;
+val _ = writeln "Ex9";
 
 (* isometry and abelian both apply. *)
-val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g
+val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g
 val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
@@ -180,9 +190,10 @@ val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
 val (e3, g) = g |> RGGraph.add_edge edge n2 n3;
 val _ = RGGraph.print g;
+val _ = writeln "Ex10";
 
 (* isometry and abelian both apply. *)
-val [m1,m2,m3] = TheoryHack.apply_all_rules g;
+val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g;
 
 
 

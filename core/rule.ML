@@ -61,11 +61,12 @@ val del_lhs : T -> RGGraph.T -> RGGraph.T
 val rewrites : T -> RGGraph.T -> RGGraph.T Seq.seq
 val rewrites_within : T -> RGGraph.Vertex.NSet.T -> RGGraph.T -> RGGraph.T Seq.seq
 
+(* apply rule which has been instantiated to this graph *)
+val do_rewrite : RGGraph.T -> T -> RGGraph.T
+
 exception not_applicable_exp of string * T * RGGraph.T;
 val fst_rewrite : T -> RGGraph.T -> RGGraph.T
 val fst_rewrite_within : T -> RGGraph.Vertex.NSet.T -> RGGraph.T -> RGGraph.T
-
-
 
 (* 
 val do_rewrite_rrhs : (* rewriting a rules rhs *)
@@ -251,20 +252,17 @@ fun del_lhs rule tgt =
     in Vertex.NSet.fold RGGraph.delete_vertex internal_lhs_vns tgt end;
 
 (* rewriting pattern graph *)
+fun do_rewrite g matched_rule =
+    g |> (add_rhs matched_rule)
+      |> (del_lhs matched_rule);
 
 (* all rewrites of g using rule *)
 fun rewrites rule g = 
-    Seq.map 
-      (fn matched_rule => 
-          g |> (add_rhs matched_rule)
-            |> (del_lhs matched_rule)) 
-      (rule_matches rule g);
+    Seq.map (do_rewrite g)
+            (rule_matches rule g);
 
 fun rewrites_within rule vns g = 
-    Seq.map 
-      (fn matched_rule => 
-          g |> (add_rhs matched_rule)
-            |> (del_lhs matched_rule))
+    Seq.map (do_rewrite g)
       (rule_matches_within rule vns g);
 
 exception not_applicable_exp of string * T * RGGraph.T;
@@ -279,6 +277,7 @@ fun fst_rewrite_within rule vns g =
        NONE => raise not_applicable_exp ("find_and_apply_rewrite_within",rule,
                                          RGGraph.subgraph_of_selection vns g)
      | SOME (g2,g2s) => g2);
+
 
 
 (* 

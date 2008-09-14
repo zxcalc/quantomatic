@@ -419,11 +419,17 @@ fun match_all_rules g =
       rules;
 
 fun apply_all_rules g = 
+     map (fn r => ("spider", r)) 
+        (Seq.list_of (Spider.mk_max_spider_rule g))
+    @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
       rules;
 
 fun apply_all_rules_in vset g = 
+    map (fn r => ("spider", r)) 
+        (Seq.list_of (Spider.mk_max_spider_rule_within vset g))
+    @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) 
                        (Seq.list_of (Rule.rule_matches_within r vset g)))

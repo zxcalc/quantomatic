@@ -78,6 +78,10 @@ signature GRAPH =
 sig
 
 include BASIC_GRAPH
+
+(* graph has not vertices (and thus no edges) *)
+val is_empty : T -> bool 
+
 (* getting stuff from graphs (gets raise exceptions if no entry) *)
 val lookup_vertex : T -> Vertex.name 
 									-> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) option
@@ -460,6 +464,8 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 local
 open BasicGraph;
 in
+
+val is_empty = Vertex.NTab.is_element_empty o get_vertices;
 
 val get_vertex_list = Vertex.NTab.dest o get_vertices;
 val get_edge_list = Edge.NTab.dest o get_edges;
