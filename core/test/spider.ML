@@ -11,8 +11,7 @@ val L = Seq.list_of (Spider.mk_max_spider_rule g);
 
 end;
 
-
-(* 
+ 
 (* local *)
   structure V = RGGraph.BVertex;
   structure E = RGGraph.Edge;
@@ -41,8 +40,13 @@ end;
 
 val L = Seq.list_of (Spider.mk_max_spider_rule g);
 
+(* open Spider;
+
+val SOME st0 = start_spider_match (RGGraph.get_vnames g, g);
+val st = st0;
+val (sol,SOME st) = expand_spider st;
+*)
 
 (*
      PolyML.exception_trace (fn () =>     );
-*)
 *)

@@ -17,24 +17,29 @@ datatype T = Spider of (RGGraph.T * RGGraph.RGVertex.qnd)
 (* part of agenda when extrending a spider *)
 datatype todo = 
          ToDo of { from_n : Vertex.name, 
-                   to_n : Vertex.name,
+(*                    to_n : Vertex.name, *)
                    eset : (Edge.name * 
                            (Edge.data * (Vertex.name * Vertex.name)))
                             list};
 
 (* make an agenda (todo list) *)
-fun mk_adj_agenda g n = 
-    map (fn (n2,adj_enames) => 
-            ToDo {from_n = n,
-                  to_n = n2,
-                  eset = map (fn en => (en,RGGraph.get_edge g en))
-                             (Edge.NSet.dest adj_enames)})
-        (Vertex.NTab.dest (RGGraph.adj_vertices_with_enames g n));
+fun add_to_adj_agenda g n agenda = 
+    Vertex.NTab.fold 
+      (fn (n2,adj_enames) => fn ntab => 
+         case Vertex.NTab.lookup ntab n2 
+          of NONE => 
+             Vertex.NTab.ins 
+               (n2,ToDo {from_n = n,
+                         eset = map (fn en => (en,RGGraph.get_edge g en))
+                                    (Edge.NSet.dest adj_enames)}) ntab
+           | SOME _ => ntab) (* don't add duplicates *)
+      (RGGraph.adj_vertices_with_enames g n)
+      agenda;
 
 (* state of searching for a maximal spider *)
 datatype searchstate = 
          SearchState of {cur_spider : T,
-                         cur_agenda : todo list,
+                         cur_agenda : todo Vertex.NTab.T,
                          leftoverg : RGGraph.T,
                          uncheckedvs : Vertex.NSet.T
                         };
@@ -80,7 +85,7 @@ fun start_spider_match (vs, g) =
                     {cur_spider = 
                      Spider (RGGraph.new_named_vertex n d RGGraph.empty,
                              RGGraph.RGVertex.Xnd a),
-                     cur_agenda = mk_adj_agenda g n, 
+                     cur_agenda = add_to_adj_agenda g n Vertex.NTab.empty, 
                      uncheckedvs = vs2,
                      leftoverg = RGGraph.delete_vertex n g})
           | (d as (RGGraph.BVertex.IVert (RGGraph.RGVertex.Znd a))) => 
@@ -88,7 +93,7 @@ fun start_spider_match (vs, g) =
                     {cur_spider = 
                      Spider (RGGraph.new_named_vertex n d RGGraph.empty,
                              RGGraph.RGVertex.Znd a),
-                     cur_agenda = mk_adj_agenda g n, 
+                     cur_agenda = add_to_adj_agenda g n Vertex.NTab.empty,
                      uncheckedvs = vs2,
                      leftoverg = RGGraph.delete_vertex n g})
           | _ => start_spider_match (vs2,g)))
@@ -127,11 +132,11 @@ fun expand_spider (SearchState rep) =
         val leftover_g = #leftoverg rep;
         val unchecked_vs = #uncheckedvs rep;
     in 
-      case (#cur_agenda rep)
-       of [] => (if is_singleton_spider cur_spider 
+      case Vertex.NTab.pull_elem (#cur_agenda rep)
+       of NONE => (if is_singleton_spider cur_spider 
                  then NONE else SOME cur_spider, 
                  start_spider_match (unchecked_vs, leftover_g))
-        | (ToDo {from_n, to_n, eset})::agenda =>
+        | SOME ((to_n,ToDo {from_n, eset}), agenda) =>
           (NONE, SOME
            let val (d : RGGraph.BVertex.data,_) = 
                    RGGraph.get_vertex leftover_g to_n 
@@ -151,7 +156,7 @@ fun expand_spider (SearchState rep) =
                     {cur_spider = add_vertex_to_spider 
                                     to_n d eset spider_d2
                                     cur_spider,
-                     cur_agenda = (mk_adj_agenda leftover_g to_n) @ agenda, 
+                     cur_agenda = add_to_adj_agenda leftover_g to_n agenda, 
                      uncheckedvs = Vertex.NSet.delete to_n unchecked_vs,
                      leftoverg = RGGraph.delete_vertex to_n leftover_g}
            end)

@@ -116,7 +116,7 @@ local
   val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (b2, g) = g |> RGGraph.add_vertex bvert;
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (e1, g) = g |> RGGraph.add_edge edge b2 b1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
   val (e2, g) = g |> RGGraph.add_edge edge n2 n1;
   val lhs = g;
   val _ = RGGraph.print lhs;
@@ -143,7 +143,7 @@ local
   val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
   val (b2, g) = g |> RGGraph.add_vertex bvert;
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (e1, g) = g |> RGGraph.add_edge edge b2 b1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
   val (e2, g) = g |> RGGraph.add_edge edge n2 n1;
   val lhs = g;
   val _ = RGGraph.print lhs;
