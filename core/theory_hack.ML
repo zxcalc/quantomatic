@@ -847,7 +847,7 @@ end;
 (* in *)
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");
 
-val rules = [("x_isometry",x_isometry_rule),
+val rules = [(* ("x_isometry",x_isometry_rule),
              ("z_isometry",z_isometry_rule),
              
              (* no frobenius: it's an id in our rep *)
@@ -862,7 +862,7 @@ val rules = [("x_isometry",x_isometry_rule),
              ("z_abelian1",z_abelian1_rule),
              (* no abelian2: not needed for our rep *)
              ("z_abelian3",z_abelian3_rule),
-             
+             *)
              (* basic-bialgebra laws *)
              ("xz_bialgebra1",xz_bialgebra1_rule),
              ("x_bialgebra2",x_bialgebra2_rule),
@@ -897,17 +897,17 @@ fun match_all_rules g =
       rules;
 
 fun apply_all_rules g = 
-    (* map (fn r => ("spider", r)) 
+    map (fn r => ("spider", r)) 
         (Seq.list_of (Spider.mk_max_spider_rule g))
-    @ *)
+    @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
       rules;
 
 fun apply_all_rules_in vset g = 
-    (* map (fn r => ("spider", r)) 
+    map (fn r => ("spider", r)) 
         (Seq.list_of (Spider.mk_max_spider_rule_within vset g))
-    @ *)
+    @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) 
                        (Seq.list_of (Rule.rule_matches_within r vset g)))
