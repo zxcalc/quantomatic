@@ -319,6 +319,111 @@ end;
 
 
 
+
+(* (X and Z symmetric) Bialgebra 1 : spider_extension(+1,0) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (b3, g) = g |> RGGraph.add_vertex bvert;
+  val (b4, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b3 n3;
+  val (e3, g) = g |> RGGraph.add_edge edge b4 n4;
+  val (e4, g) = g |> RGGraph.add_edge edge n1 n3;
+  val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
+  val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
+  val (e7, g) = g |> RGGraph.add_edge edge n2 n4;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n5, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n6, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e8, g) = g |> RGGraph.add_edge edge n5 n6; (* scalar XZ *)
+*)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val g = g |> RGGraph.new_named_vertex b3 bvert;
+  val g = g |> RGGraph.new_named_vertex b4 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e3, g) = g |> RGGraph.add_edge edge n2 b3;
+  val (e4, g) = g |> RGGraph.add_edge edge n2 b4;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val xz_bialgebra1_s1_0_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+(* (X and Z symmetric) Bialgebra 1 : spider_extension(+2,+0) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (b3, g) = g |> RGGraph.add_vertex bvert;
+  val (b4, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b3 n3;
+  val (e3, g) = g |> RGGraph.add_edge edge b4 n4;
+  val (e4, g) = g |> RGGraph.add_edge edge n1 n3;
+  val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
+  val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
+  val (e7, g) = g |> RGGraph.add_edge edge n2 n4;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n5, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n6, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e8, g) = g |> RGGraph.add_edge edge n5 n6; (* scalar XZ *)
+*)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val g = g |> RGGraph.new_named_vertex b3 bvert;
+  val g = g |> RGGraph.new_named_vertex b4 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e3, g) = g |> RGGraph.add_edge edge n2 b3;
+  val (e4, g) = g |> RGGraph.add_edge edge n2 b4;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val xz_bialgebra1_s2_0_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+
+
 (* X - Bialgebra 2 *)
 local 
   (* lhs *)
@@ -383,10 +488,364 @@ in
   val z_bialgebra2_rule = Rule.mk (lhs,rhs);
   val _ = Rule.print z_bialgebra2_rule;
 end;
+
+
+(* Z - Bialgebra 2 : spider_extension(+1,0) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val z_bialgebra2_s1_0_rule = Rule.mk (lhs,rhs);
+end;
+
+(* Z - Bialgebra 2 : spider_extension(+1,+1) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e21, g) = g |> RGGraph.add_edge edge b2 n2;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e12, g) = g |> RGGraph.add_edge edge b2 n2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val z_bialgebra2_s1_1_rule = Rule.mk (lhs,rhs);
+end;
+
+
+(* X - Bialgebra 2 : spider_extension(+1,0) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val x_bialgebra2_s1_0_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+(* X - Bialgebra 2 : spider_extension(+1,+1) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e21, g) = g |> RGGraph.add_edge edge b2 n2;
+(* no scalars in theory hack - they are not really important *)
+(*   val (n3, g) = g |> RGGraph.add_vertex (mkX zero_angle); (* scalar X *)
+  val (n4, g) = g |> RGGraph.add_vertex (mkZ zero_angle); (* scalar Z *)
+  val (e5, g) = g |> RGGraph.add_edge edge n3 n4; (* scalar XZ *) *)
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e11, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e12, g) = g |> RGGraph.add_edge edge b2 n2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val x_bialgebra2_s1_1_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+
+
+(* adj-Hadamards *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n2, g) = g |> RGGraph.add_vertex (mkH);
+  val (n3, g) = g |> RGGraph.add_vertex (mkH);
+  val (b4, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
+  val (e2, g) = g |> RGGraph.add_edge edge n3 b4;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val (n2, g) = g |> RGGraph.add_vertex (mkH);
+  val g = g |> RGGraph.new_named_vertex b4 bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge n2 b4;
+  val rhs = g;
+in
+  val hh_to_h_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+(* HHHX to Z - Colour duality *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (b3, g) = g |> RGGraph.add_vertex bvert;
+  val (h1, g) = g |> RGGraph.add_vertex (mkH);
+  val (h2, g) = g |> RGGraph.add_vertex (mkH);
+  val (h3, g) = g |> RGGraph.add_vertex (mkH);
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 h1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 h2;
+  val (e2, g) = g |> RGGraph.add_edge edge h3 b3;
+  val (e0, g) = g |> RGGraph.add_edge edge h1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge h2 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 h3;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val g = g |> RGGraph.new_named_vertex b3 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 b3;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hhhx_to_z_rule = Rule.mk (lhs,rhs);
+end;
+
+
+(* HHHZ to X - Colour duality *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (b3, g) = g |> RGGraph.add_vertex bvert;
+  val (h1, g) = g |> RGGraph.add_vertex (mkH);
+  val (h2, g) = g |> RGGraph.add_vertex (mkH);
+  val (h3, g) = g |> RGGraph.add_vertex (mkH);
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 h1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 h2;
+  val (e2, g) = g |> RGGraph.add_edge edge h3 b3;
+  val (e0, g) = g |> RGGraph.add_edge edge h1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge h2 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 h3;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val g = g |> RGGraph.new_named_vertex b3 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 b3;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hhhz_to_x_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+
+(* HXH to Z - Colour duality *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (h1, g) = g |> RGGraph.add_vertex (mkH);
+  val (h2, g) = g |> RGGraph.add_vertex (mkH);
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 h1;
+  val (e1, g) = g |> RGGraph.add_edge edge h1 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 h2;
+  val (e0, g) = g |> RGGraph.add_edge edge h2 b2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hxh_to_z_rule = Rule.mk (lhs,rhs);
+end;
+
+(* HZH to X - Colour duality *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (h1, g) = g |> RGGraph.add_vertex (mkH);
+  val (h2, g) = g |> RGGraph.add_vertex (mkH);
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 h1;
+  val (e1, g) = g |> RGGraph.add_edge edge h1 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 h2;
+  val (e0, g) = g |> RGGraph.add_edge edge h2 b2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hzh_to_x_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+
+(* HZ to X - Colour duality *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (h1, g) = g |> RGGraph.add_vertex (mkH);
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 h1;
+  val (e1, g) = g |> RGGraph.add_edge edge h1 n1;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hz_to_x_rule = Rule.mk (lhs,rhs);
+end;
+
+
+(* HX to Z - Colour duality *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (h1, g) = g |> RGGraph.add_vertex (mkH);
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 h1;
+  val (e1, g) = g |> RGGraph.add_edge edge h1 n1;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hx_to_z_rule = Rule.mk (lhs,rhs);
+end;
+
+
+
+
+
+
+
  
 
 (* in *)
-val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.")
+val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");
 
 val rules = [("x_isometry",x_isometry_rule),
              ("z_isometry",z_isometry_rule),
@@ -404,9 +863,28 @@ val rules = [("x_isometry",x_isometry_rule),
              (* no abelian2: not needed for our rep *)
              ("z_abelian3",z_abelian3_rule),
              
+             (* basic-bialgebra laws *)
              ("xz_bialgebra1",xz_bialgebra1_rule),
              ("x_bialgebra2",x_bialgebra2_rule),
-             ("z_bialgebra2",z_bialgebra2_rule)
+             ("z_bialgebra2",z_bialgebra2_rule),
+
+             (* hadamard rules *)
+             ("hh_to_h",hxh_to_z_rule),
+
+             ("hx_to_z",hx_to_z_rule),
+             ("hz_to_x",hz_to_x_rule),
+
+             ("hxh_to_z",hxh_to_z_rule),
+             ("hzh_to_x",hzh_to_x_rule),
+
+             ("hhhx_to_z",hhhx_to_z_rule),
+             ("hhhz_to_x",hhhz_to_x_rule)
+
+             (* bialgebra-spiders *)
+(*              ("x_bialgebra2_s1_0",x_bialgebra2_s1_0_rule),
+             ("x_bialgebra2_s1_1",x_bialgebra2_s1_1_rule),
+             ("z_bialgebra2_s1_0",z_bialgebra2_s1_0_rule),
+             ("z_bialgebra2_s1_1",z_bialgebra2_s1_1_rule) *)
             ];
 
 
@@ -419,17 +897,17 @@ fun match_all_rules g =
       rules;
 
 fun apply_all_rules g = 
-     map (fn r => ("spider", r)) 
+    (* map (fn r => ("spider", r)) 
         (Seq.list_of (Spider.mk_max_spider_rule g))
-    @
+    @ *)
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
       rules;
 
 fun apply_all_rules_in vset g = 
-    map (fn r => ("spider", r)) 
+    (* map (fn r => ("spider", r)) 
         (Seq.list_of (Spider.mk_max_spider_rule_within vset g))
-    @
+    @ *)
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) 
                        (Seq.list_of (Rule.rule_matches_within r vset g)))

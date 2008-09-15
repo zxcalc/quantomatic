@@ -4,8 +4,45 @@ struct
 val g = Rule.get_lhs (TheoryHack.x_isometry_rule);
 val L = Seq.list_of (Spider.mk_max_spider_rule g);
 
+
+
+
+
+
 end;
+
+
+(* 
+(* local *)
+  structure V = RGGraph.BVertex;
+  structure E = RGGraph.Edge;
+  val bvert = V.BVert ();
+  val zero_angle = AngleExpr.zero;
+  val var_angle = AngleExpr.mk_var;
+  val add_angles = AngleExpr.add_expr;
+  val pi_angle = AngleExpr.pi;
+  fun mkZ a = V.IVert (RGVertex.Znd a);
+  fun mkX a = V.IVert (RGVertex.Xnd a);
+  val mkH = V.IVert RGVertex.Hnd;
+  val edge : UnitEdge.data = ();
+
+
+
+(* X - Bialgebra 2 : spider_extension(+1,+1) *)
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 n3;
+
+
+val L = Seq.list_of (Spider.mk_max_spider_rule g);
+
 
 (*
      PolyML.exception_trace (fn () =>     );
+*)
 *)

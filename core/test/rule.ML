@@ -175,7 +175,8 @@ val _ = RGGraph.print g;
 val _ = writeln "Ex9";
 
 (* isometry and abelian both apply. *)
-val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g
+val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g
+(* val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g *)
 val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
@@ -193,7 +194,8 @@ val _ = RGGraph.print g;
 val _ = writeln "Ex10";
 
 (* isometry and abelian both apply. *)
-val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g;
+val [m1,m2,m3] = TheoryHack.apply_all_rules g;
+(* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 
 
 
