@@ -1,6 +1,5 @@
-structure DB_Test_Rule 
-= struct
-
+structure MkG =
+struct
 
 structure V = RGGraph.BVertex;
 structure E = RGGraph.Edge;
@@ -14,6 +13,13 @@ fun mkZ a = V.IVert (RGVertex.Znd a);
 fun mkX a = V.IVert (RGVertex.Xnd a);
 val mkH = V.IVert RGVertex.Hnd;
 val edge = ();
+
+end;
+
+structure DB_Test_Rule 
+= struct
+
+open MkG;
 
 (* Example of a rule that is not valid *)
 val g = RGGraph.empty;
@@ -201,11 +207,31 @@ val [s1,m1] = TheoryHack.apply_all_rules g;
 
 
 
+(* hx_to_x with instantiated boundary node  *)
+val g = RGGraph.empty;
+val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+val (n2, g) = g |> RGGraph.add_vertex (mkH);
+val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+val (e2, g) = g |> RGGraph.add_edge edge n2 n3;
+val _ = RGGraph.print g;
+val _ = writeln "Ex11";
+
+(* isometry and abelian both apply. *)
+(* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
+(* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
+val L = Seq.list_of (Rule.rule_matches TheoryHack.hx_to_z_rule g);
+
+
+
+
 end;
 
 
 
 (* 
+
+open MkG;
 
 PolyML.exception_trace (fn () => TheoryHack.apply_all_rules DB_Test_Rule.g);
 

@@ -869,7 +869,7 @@ val rules = [(* ("x_isometry",x_isometry_rule),
              ("z_bialgebra2",z_bialgebra2_rule),
 
              (* hadamard rules *)
-             ("hh_to_h",hxh_to_z_rule),
+             ("hh_to_h",hh_to_h_rule),
 
              ("hx_to_z",hx_to_z_rule),
              ("hz_to_x",hz_to_x_rule),
