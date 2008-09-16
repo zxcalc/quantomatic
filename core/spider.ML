@@ -87,7 +87,7 @@ fun pretty_st (SearchState rep) =
 
 val print_st = Pretty.writeln o pretty_st;
 
-fun rule_of_spider (Spider (spider_lhs,spider_d)) =
+fun rule_of_spider_for_g g (Spider (spider_lhs,spider_d)) =
     let 
       val boundary = (RGGraph.get_boundary spider_lhs)
       (* ensure rhs center name is distinct from lhs boundary *)
@@ -114,7 +114,12 @@ fun rule_of_spider (Spider (spider_lhs,spider_d)) =
                               to_es)
                    end)
                   boundary)
-    in  Rule.mk (spider_lhs, rhs) end;
+      val vrn = Vertex.mk_renaming (* rename central vertex *)
+                  boundary (RGGraph.get_vnames g) Vertex.NTab.empty;
+      val ern = Edge.mk_renaming (* avoid edge names in g *)
+                  Edge.NSet.empty (RGGraph.get_enames g) Edge.NTab.empty;
+      val (rn,rhs2) = RGGraph.rename (vrn,ern) rhs;
+    in Rule.mk (spider_lhs, rhs2) end;
 
 
 (* *)
@@ -227,10 +232,10 @@ fun mk_max_spider g =
 fun mk_max_spider_within vns tgt = 
     mk_max_spider (RGGraph.subgraph_of_selection vns tgt);
 
-val mk_max_spider_rule = 
-    Seq.map rule_of_spider o mk_max_spider;
+fun mk_max_spider_rule g = 
+    Seq.map (rule_of_spider_for_g g) (mk_max_spider g);
 
-val mk_max_spider_rule_within = 
-    Seq.map rule_of_spider oo mk_max_spider_within;
+fun mk_max_spider_rule_within vset g = 
+    Seq.map (rule_of_spider_for_g g) (mk_max_spider_within vset g);
 
 end;
