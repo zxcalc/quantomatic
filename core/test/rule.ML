@@ -160,6 +160,15 @@ val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
 val (e7, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = writeln "Ex8";
 
+val [] = Seq.list_of (Rule.rewrites TheoryHack.hopf_1_1_rule g);
+val L = Seq.list_of (Rule.rewrites TheoryHack.hopf_1_2_rule g);
+
+val _ = PolyML.exception_trace (fn () =>  Seq.list_of (Rule.rewrites TheoryHack.hopf_1_2_rule g)   );
+
+val L = Seq.list_of (Rule.rewrites TheoryHack.hopf_2_1_rule g);
+val L = Seq.list_of (Rule.rewrites TheoryHack.hopf_2_2_rule g);
+
+
 val L = TheoryHack.apply_all_rules g;
 val [r1,r2,r3,r4] = map snd L;
 val _ = writeln "big bialgebra1 rule matches it's own lhs in 4 ways";

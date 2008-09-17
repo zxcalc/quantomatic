@@ -424,6 +424,136 @@ end;
 
 
 
+(* Hopf-law 1_1 (derivable from bi-algebra, but needed for rewrite system) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hopf_1_1_rule = Rule.mk (lhs,rhs);
+end;
+
+(* Hopf-law 1_2 (derivable from bi-algebra, but needed for rewrite system) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (b22, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b22 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b22 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b22;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hopf_1_2_rule = Rule.mk (lhs,rhs);
+end;
+
+
+(* Hopf-law 2_1 (derivable from bi-algebra, but needed for rewrite system) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b11, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b11 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b11 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b11 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hopf_2_1_rule = Rule.mk (lhs,rhs);
+end;
+
+(* Hopf-law 2_2 (derivable from bi-algebra, but needed for rewrite system) *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b11, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (b22, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b11 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val g = g |> RGGraph.new_named_vertex b22 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge b11 n1;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 b22;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val hopf_2_2_rule = Rule.mk (lhs,rhs);
+end;
+
+
 (* X - Bialgebra 2 *)
 local 
   (* lhs *)
@@ -867,6 +997,12 @@ val rules = [(* ("x_isometry",x_isometry_rule),
              ("xz_bialgebra1",xz_bialgebra1_rule),
              ("x_bialgebra2",x_bialgebra2_rule),
              ("z_bialgebra2",z_bialgebra2_rule),
+
+             (* hopf laws *)
+             ("hopf_1_1",hopf_1_1_rule),
+             ("hopf_1_2",hopf_1_2_rule),
+             ("hopf_2_1",hopf_2_1_rule),
+             ("hopf_2_2",hopf_2_2_rule),
 
              (* hadamard rules *)
              ("hh_to_h",hh_to_h_rule),

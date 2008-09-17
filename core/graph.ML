@@ -171,6 +171,9 @@ val adj_vertices_with_enames' : T -> (Edge.NSet.T * Edge.NSet.T)
                                 -> Edge.NSet.T Vertex.NTab.T
 
 
+val get_self_loops : T -> Vertex.name -> Edge.data Edge.NTab.T
+
+
 end;
 
 
@@ -645,6 +648,20 @@ fun adj_vertices_with_edges' g (ins,outs) =
                 else Vertex.NTab.ins (to,Edge.NTab.ins (e,d) Edge.NTab.empty) ntab
              end)
             outs);
+
+
+fun get_self_loops' g n ins = 
+    Edge.NTab.empty
+      |> (Edge.NSet.fold 
+            (fn e => fn etab => 
+             let val (d,(from,to)) = get_edge g e
+             in if Vertex.name_eq (n,from) 
+                then Edge.NTab.ins (e,d) etab else etab
+             end)
+            ins)
+
+fun get_self_loops g n = 
+    get_self_loops' g n (fst (snd (get_vertex g n)));
 
 fun adj_vertices_with_edges g n = 
     adj_vertices_with_edges' g (snd (get_vertex g n));
