@@ -192,7 +192,7 @@ val _ = writeln "Ex9";
 (* isometry and abelian both apply. *)
 (* val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g *)
 (* val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g; *)
-val [s1] = TheoryHack.apply_all_rules g;
+val [s1,m1,m2] = TheoryHack.apply_all_rules g;
 val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
