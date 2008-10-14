@@ -1,27 +1,15 @@
 package quanto;
 
-import java.awt.Menu;
-import java.awt.MenuBar;
-import java.awt.MenuItem;
-import java.awt.MenuShortcut;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.util.StringTokenizer;
+
 import javax.swing.JFileChooser;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JPopupMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.ButtonGroup;
 import javax.swing.UIManager;
-import processing.core.*;
-import processing.pdf.*;
+
+import processing.core.PApplet;
+import processing.core.PConstants;
+import processing.core.PFont;
 import processing.video.MovieMaker;
  
 public class QuantoApplet extends PApplet {
@@ -204,6 +192,20 @@ public class QuantoApplet extends PApplet {
 		mode.keyReleased();
 	}
 	
+
+	/**
+	 * Try to add an edge from all selected nodes to the node at (x,y)
+	 **/
+	public void tryAddEdgeAt(int x,int y) {
+		for (Vertex v : graph.getVertices().values()) {
+			if (v.at(x, y)) {
+				for (Vertex w : graph.getVertices().values()) {
+					if (w.selected){ qcore.addEdge(w,v); }
+				}
+			}
+		}
+	}
+	
 	 void updateModifierKey(boolean keyDown) {
 		switch (keyCode) {
 		case SHIFT: shift = keyDown; break;
@@ -214,7 +216,7 @@ public class QuantoApplet extends PApplet {
 		}
 		updateTool();
 	}
-	 
+	
 	 private void updateTool() {
 		 if(alt) {
 			 tool = EDGE_TOOL;
@@ -440,6 +442,9 @@ public class QuantoApplet extends PApplet {
 			case 'Q': quit(); break;
 			// "capture" the screen to PDF
 			case 'c': startSaveNextFrame(); break;
+			case 'e': 
+				
+				break;
 			// v is for video
 			case 'v': 
 				if (recordingVideo) stopRecordVideo();
@@ -610,13 +615,7 @@ public class QuantoApplet extends PApplet {
 					break;
 
 				case EDGE_TOOL:
-					for (Vertex v : graph.getVertices().values()) {
-						if (v.at(mouseX, mouseY)) {
-							for (Vertex w : graph.getVertices().values()) {
-								if (w.selected){ qcore.addEdge(w,v); }
-							}
-						}
-					}
+					tryAddEdgeAt(mouseX,mouseY);
 					break;
 				}
 				play();
@@ -629,6 +628,7 @@ public class QuantoApplet extends PApplet {
 			StringSelection data;
 
 			switch (key) {
+			case 'e': tryAddEdgeAt(mouseX,mouseY); break;
 			case 'l': graph.layoutGraph(); break;
 			case 'r': qcore.addVertex(QuantoCore.VERTEX_RED); break;
 			case 'g': qcore.addVertex(QuantoCore.VERTEX_GREEN); break;
