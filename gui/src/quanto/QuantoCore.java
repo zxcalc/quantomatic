@@ -2,6 +2,9 @@ package quanto;
 import java.io.*;
 //import java.util.Map;
 
+import processing.xml.XMLElement;
+
+
 public class QuantoCore {
  
 	public static final int VERTEX_RED = 1;
@@ -101,7 +104,12 @@ public class QuantoCore {
 	
 	void updateGraph() {
 		send("D\n");
-		Graph updated = xml.parseGraph(receive());
+		System.out.println("RECEIVED:");
+		String r = receive();
+		//r = "<graph><vertex><name>a</name><boundary>false</boundary><colour>red</colour></vertex></graph>";
+		//XMLElement x = new XMLElement(r);
+		//System.out.println(r);
+		Graph updated = xml.parseGraph(r);
 		graph.updateTo(updated);
 		graph.layoutGraph();
 	}

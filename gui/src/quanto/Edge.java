@@ -37,7 +37,7 @@ class Edge extends PLib {
 	}
 
 	public void display(boolean inMotion) {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		if (inMotion) {
 			p.stroke(120,120,200);

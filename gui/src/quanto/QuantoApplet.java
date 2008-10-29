@@ -12,7 +12,7 @@ import processing.core.PConstants;
 import processing.core.PFont;
 import processing.video.MovieMaker;
  
-public class QuantoApplet extends PApplet {
+public class QuantoApplet extends PApplet implements IQuantoView {
 
 	private static final long serialVersionUID = 1L;
 	public static final int WIDTH = 800;
@@ -37,7 +37,7 @@ public class QuantoApplet extends PApplet {
 	public GuiMode mode = NORMAL; 
 	
 	QuantoCore qcore;
-	static QuantoApplet p; // the top level applet 
+	static IQuantoView p; // the top level applet 
 	Graph graph;
 	RewriteInstance currentRewrite;
 
@@ -73,6 +73,13 @@ public class QuantoApplet extends PApplet {
 	boolean recordingVideo = false;
 	MovieMaker mm;  // to be initialised when recording starts
 
+	public void helveticaFont() {
+		this.textFont(times);
+	}
+	
+	public void timesFont() {
+		this.textFont(helvetica);
+	}
 	
 	public void setup() {
 		p = this;
@@ -384,11 +391,11 @@ public class QuantoApplet extends PApplet {
 	}
 	
 	void doSaveNextFrame() {
-		p.beginRecord(PConstants.PDF, nextPDFFileName);
+		this.beginRecord(PConstants.PDF, nextPDFFileName);
 	}
 	
 	void stopSaveNextFrame() {
-		p.endRecord();
+		this.endRecord();
 		saveNextFrame = false;	
 	}
 

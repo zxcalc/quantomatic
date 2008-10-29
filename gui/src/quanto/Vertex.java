@@ -18,7 +18,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public boolean extra_highlight = false;
 	public int flash_seq = 0;
 	
-	QuantoApplet p; // instance of PApplet which has processing tools
+	IQuantoView p; // instance of PApplet which has processing tools
 
 	public Vertex(String id, int x, int y) {
 		this.id = id;
@@ -86,33 +86,33 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	}
 
 	private void displayRed() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(255, 0, 0);
 		p.fill(255, 100, 100);
 		p.ellipse(x, y, radius, radius);
 		if (angleexpr != null) {
-			p.textFont(p.times);
+			p.timesFont();
 			p.fill(100, 0, 0);
 			p.text(angleexpr, x + 21, y + 6, 30, 10);
 		}
 	}
 
 	private void displayGreen() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(0, 255, 0);
 		p.fill(100, 255, 100);
 		p.ellipse(x, y, radius, radius);
 		if (angleexpr != null) {
-			p.textFont(p.times);
+			p.timesFont();
 			p.fill(0, 100, 0);
 			p.text(angleexpr, x + 21, y + 6, 30, 10);
 		}
 	}
 
 	private void displayBoundary() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(0, 0, 0);
 		p.fill(0, 0, 0, 255);
@@ -120,13 +120,13 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	}
 
 	private void displayH() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(0, 0, 0);
 		p.fill(255, 255, 0, 100);
 		p.rectMode(CENTER);
 		p.rect(x, y, 1.1f*radius, 1.1f*radius);
-		p.textFont(p.helvetica);
+		p.timesFont();
 		p.fill(0, 0, 0, 255);
 		p.text("H", x - 5, y + 5);
 	}
@@ -138,7 +138,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	}
 
 	public void display() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		if(extra_highlight) {
 			p.noStroke();
@@ -167,7 +167,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	}
 
 	public void highlight() {
-		QuantoApplet p = QuantoApplet.p; // instance of PApplet which has all processing tools
+		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
 		p.stroke(0, 255, 0);
 		p.noFill();
