@@ -19,7 +19,6 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public boolean extra_highlight = false;
 	public int flash_seq = 0;
 	
-	IQuantoView p; // instance of PApplet which has processing tools
 
 	public Vertex(String id, int x, int y) {
 		this.id = id;
@@ -67,6 +66,10 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public void setAngle(String expr) {
 		this.angleexpr = expr;
 	}
+	
+	public String getAngle() {
+		return this.angleexpr;
+	}
 
 	public boolean tick() {
 		if (lastTick == -1) lastTick = millis();
@@ -88,30 +91,34 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 			return true;
 		}
 	}
+	
+	private void displayAngle() {
+		QuantoApplet.p.text(graph.coordinateSystem, angleexpr, x + 10, y + 10);
+	}
 
 	private void displayRed() {
 		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
-		p.stroke(255, 0, 0);
+		p.stroke(0);
 		p.fill(255, 100, 100);
 		p.ellipse(graph.coordinateSystem, x, y, radius, radius);
 		if (angleexpr != null) {
 			p.timesFont();
 			p.fill(100, 0, 0);
-			p.text(graph.coordinateSystem, angleexpr, x + 21, y + 6, 30, 10);
+			displayAngle();
 		}
 	}
 
 	private void displayGreen() {
 		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
 
-		p.stroke(0, 255, 0);
+		p.stroke(0);
 		p.fill(100, 255, 100);
 		p.ellipse(graph.coordinateSystem, x, y, radius, radius);
 		if (angleexpr != null) {
 			p.timesFont();
 			p.fill(0, 100, 0);
-			p.text(graph.coordinateSystem, angleexpr, x + 21, y + 6, 30, 10);
+			displayAngle();
 		}
 	}
 
@@ -195,11 +202,9 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		if (coordType == Coord.MOUSE) {
 			Coord c = graph.coordinateSystem.toGlobal(x, y);
 			x = c.x; y = c.y;
-			vertexSize = graph.coordinateSystem
-				.lengthToGlobal(vertexSize.x, vertexSize.y);
 		}
-		if (Math.abs(x - this.x) < vertexSize.x &&
-			Math.abs(y - this.y) < vertexSize.y)
+		if (Math.abs(x - this.x) < 8 &&
+			Math.abs(y - this.y) < 8)
 			return true;
 		else
 			return false;

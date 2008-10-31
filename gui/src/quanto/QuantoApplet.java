@@ -29,6 +29,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	
 	// global application modes
 	public final GuiMode NORMAL = new NormalMode();
+	public final GuiMode ANGLE_ENTRY = new AngleEntryMode();
 	public final GuiMode REWRITE_SELECT = new RewriteSelectMode();
 	public final GuiMode REWRITE_HIGHLIGHT_LHS = new WaitMode(DEFAULT_HIGHLIGHT_TIME, new FadeUpToMode(REWRITE_SELECT), true);
 	public final GuiMode REWRITE_HIGHLIGHT_RHS = new RewriteHighlightRhsMode();
@@ -48,6 +49,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	boolean snapToGrid = false;
 	int layoutMode = 0;
 	Coord grabPos = new Coord(0,0);
+	Vertex angleVertex = null;
 	
 	// variables affecting the controls
 	int rectX=-1, rectY=-1;
@@ -58,6 +60,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	boolean ctrl=false;
 	int selectedIndex = -1;
 	char tool;
+	boolean flat=false;
 	
 	PFont helvetica;
 	PFont times;
@@ -90,9 +93,18 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	}
 	
 	public void rect(CoordinateSystem cs, float x, float y, float wx, float wy) {
-		Coord c = cs.fromGlobal(x,y);
-		Coord w = cs.lengthFromGlobal(wx, wy);
-		super.rect(c.x, c.y, w.x, w.y);
+		// draw as a shape, because rectangles may not be rectangles
+		//  after a transformation.
+		Coord v1 = cs.fromGlobal(x,y);
+		Coord v2 = cs.fromGlobal(x+wx,y);
+		Coord v3 = cs.fromGlobal(x+wx,y+wy);
+		Coord v4 = cs.fromGlobal(x,y+wy);
+		super.beginShape();
+		super.vertex(v1.x, v1.y);
+		super.vertex(v2.x, v2.y);
+		super.vertex(v3.x, v3.y);
+		super.vertex(v4.x, v4.y);
+		super.endShape(CLOSE);
 	}
 	
 	public void bezier(CoordinateSystem cs, float x1, float y1, float cx1, float cy1, float x2, float y2, float cx2, float cy2) {
@@ -136,6 +148,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 		times = loadFont("Times-Italic-14.vlw");
 
 		graph = new Graph(new DotLayout(), main_cs);
+		graph.coordinateSystem.shift(0.4f*WIDTH, 0.4f*HEIGHT);
 		tool = 's';
  
 		qcore = new QuantoCore(graph);
@@ -316,17 +329,16 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	public boolean drawGraph(Graph g) {
 		boolean moved = false;
 		synchronized(g) {
+			BoundingBox bb = g.getBoundingBox();
+			rectMode(CORNER);
+			fill(240);
+			stroke(0,0,100);
+			rect(g.coordinateSystem, bb.ax,bb.ay, bb.getWidth(), bb.getHeight());
 			if (moved) {
 				for (Edge e : g.getEdges().values()) e.display(true);
 			} else {
 				for (Edge e : g.getEdges().values()) e.display(false);
 			}
-			// debug
-			BoundingBox bb = g.getBoundingBox();
-			rectMode(CORNER);
-			noFill();
-			stroke(200,0,255);
-			rect(g.coordinateSystem, bb.ax,bb.ay, bb.getWidth(), bb.getHeight());
 		}
 		synchronized(g) {
 			moved = g.tick();
@@ -633,6 +645,21 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 		public void mousePressed() {
 
 			if(mouseButton == LEFT) {
+				if (mouseEvent.getClickCount() == 2) {
+					/*float dx = (0.5f*WIDTH) - mouseX;
+					float dy = (0.5f*HEIGHT) - mouseY;
+					graph.coordinateSystem.interpolateTo(
+						new CoordinateSystem(graph.coordinateSystem)
+						.shift(dx, dy)
+					);*/
+					angleVertex = graph.getVertexAtPoint(mouseX, mouseY, Coord.MOUSE);
+					if (angleVertex != null) {
+						angleVertex.extra_highlight = true;
+						mode = ANGLE_ENTRY;
+						play();
+					}
+					return;
+				}
 				oldmouseX = mouseX;
 				oldmouseY = mouseY;
 
@@ -666,6 +693,26 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 			StringSelection data;
 
 			switch (key) {
+			case 'F': 
+				CoordinateSystem flatten = new CoordinateSystem(graph.coordinateSystem);
+				
+				if (!flat) {
+					flatten
+						.shear(0.2f,0.f)
+						.shift(-0.5f*WIDTH, -0.5f*HEIGHT)
+						.scale(1.0f, 0.3f)
+						.shift(0.5f*WIDTH, 0.5f*HEIGHT);
+				} else {
+					flatten
+						.shift(-0.5f*WIDTH, -0.5f*HEIGHT)
+						.scale(1.0f, 1.0f/0.3f)
+						.shift(0.5f*WIDTH, 0.5f*HEIGHT)
+						.shear(-0.2f,0.f);
+				}
+				flat = !flat;
+				graph.coordinateSystem.interpolateTo(flatten);
+				
+				break;
 			case 'e': tryAddEdgeAt(mouseX,mouseY); break;
 			case 'l': graph.layoutGraph(); break;
 			case 'r': qcore.addVertex(QuantoCore.VERTEX_RED); break;
@@ -677,8 +724,22 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 			case 'd': qcore.deleteAllSelected(); break;
 			case 'R': startRewriteSelection(); break;
 			case '=':
-			case '+': graph.coordinateSystem.scale(1.5f, 1.5f); break;
-			case '-': graph.coordinateSystem.scale(0.66f, 0.66f); break;
+			case '+':
+				graph.coordinateSystem.interpolateTo(
+						new CoordinateSystem(graph.coordinateSystem)
+							.shift(-0.5f*WIDTH, -0.5f*HEIGHT)
+							.scale(1.5f, 1.5f)
+							.shift(0.5f*WIDTH, 0.5f*HEIGHT)
+						);
+				break;
+			case '-':
+				graph.coordinateSystem.interpolateTo(
+						new CoordinateSystem(graph.coordinateSystem)
+							.shift(-0.5f*WIDTH, -0.5f*HEIGHT)
+							.scale(0.6667f, 0.6667f)
+							.shift(0.5f*WIDTH, 0.5f*HEIGHT)
+						);
+				break;
 			case 'y':
 				layoutMode = (layoutMode+1)%3;
 				switch (layoutMode) {
@@ -745,6 +806,44 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 				rect(rectX, rectY, mouseX-rectX, mouseY-rectY);
 			}
 			return moved;
+		}
+	}
+	
+	/**
+	 * Mode for entering angles
+	 * @author aleks
+	 *
+	 */
+	private class AngleEntryMode extends GuiMode {
+		public void keyPressed() {
+			assert angleVertex != null;
+			switch (key) {
+			case ENTER:
+				angleVertex.extra_highlight = false;
+				angleVertex = null;
+				mode = NORMAL;
+				break;
+			default:
+				if (key >= 33 && key <= 128) {
+					angleVertex.setAngle(angleVertex.getAngle().concat(
+							String.valueOf(key)));
+					System.out.println(angleVertex.getAngle());
+				}
+				play();
+				break;
+			}
+		}
+		
+		public boolean draw() {
+			boolean moved = drawGraph(graph);
+			if (rectX!=-1) {
+				moved = true;
+				fill(100,100,255,30);
+				stroke(100,100,255);
+				rectMode(CORNER);
+				rect(rectX, rectY, mouseX-rectX, mouseY-rectY);
+			}
+			return true;
 		}
 	}
 	

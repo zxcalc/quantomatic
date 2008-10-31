@@ -81,6 +81,7 @@ public class Graph {
 					v.x = v.destX = w.x;
 					v.y = v.destY = w.y;
 					v.selected = w.selected;
+					v.setAngle(w.getAngle());
 				}
 			}
 		}
@@ -323,6 +324,7 @@ public class Graph {
 
 	public boolean tick() {
 		boolean moved = false;
+		moved = moved || coordinateSystem.tick();
 		for (Vertex v : vertices.values()) {
 			moved = moved || v.tick();
 			v.tick();
