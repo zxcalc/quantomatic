@@ -42,6 +42,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	RewriteInstance currentRewrite;
 
 	// these variables affect the drawing behaviour
+	public CoordinateSystem main_cs;
 	boolean paused;
 	boolean draw_grid = false;
 	boolean snapToGrid = false;
@@ -81,8 +82,43 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 		this.textFont(helvetica);
 	}
 	
+	// Wrappers that map to a coordinate system
+	public void ellipse(CoordinateSystem cs, float x, float y, float wx, float wy) {
+		Coord c = cs.fromGlobal(x,y);
+		Coord w = cs.lengthFromGlobal(wx, wy);
+		super.ellipse(c.x, c.y, w.x, w.y);
+	}
+	
+	public void rect(CoordinateSystem cs, float x, float y, float wx, float wy) {
+		Coord c = cs.fromGlobal(x,y);
+		Coord w = cs.lengthFromGlobal(wx, wy);
+		super.rect(c.x, c.y, w.x, w.y);
+	}
+	
+	public void bezier(CoordinateSystem cs, float x1, float y1, float cx1, float cy1, float x2, float y2, float cx2, float cy2) {
+		Coord c1 = cs.fromGlobal(x1,y1);
+		Coord ctl1 = cs.fromGlobal(cx1, cy1);
+		Coord c2 = cs.fromGlobal(x2,y2);
+		Coord ctl2 = cs.fromGlobal(cx2, cy2);
+		super.bezier(c1.x, c1.y, ctl1.x, ctl1.y,
+		             c2.x, c2.y, ctl2.x, ctl2.y);
+	}
+	
+	public void text(CoordinateSystem cs, String text, float x, float y, float wx, float wy) {
+		Coord c = cs.fromGlobal(x,y);
+		Coord w = cs.fromGlobal(wx, wy);
+		super.text(text, c.x, c.y, w.x, w.y);
+	}
+	
+	public void text(CoordinateSystem cs, String text, float x, float y) {
+		Coord c = cs.fromGlobal(x,y);
+		super.text(text, c.x, c.y);
+	}
+	
+	
 	public void setup() {
 		p = this;
+		main_cs = new CoordinateSystem();
 		paused = false;
 		size(WIDTH, HEIGHT);
 		
@@ -99,7 +135,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 		helvetica = loadFont("HelveticaNeue-14.vlw");
 		times = loadFont("Times-Italic-14.vlw");
 
-		graph = new Graph(new DotLayout());
+		graph = new Graph(new DotLayout(), main_cs);
 		tool = 's';
  
 		qcore = new QuantoCore(graph);
@@ -205,7 +241,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 	 **/
 	public void tryAddEdgeAt(int x,int y) {
 		for (Vertex v : graph.getVertices().values()) {
-			if (v.at(x, y)) {
+			if (v.at(x, y, Coord.MOUSE)) {
 				for (Vertex w : graph.getVertices().values()) {
 					if (w.selected){ qcore.addEdge(w,v); }
 				}
@@ -290,14 +326,10 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 			rectMode(CORNER);
 			noFill();
 			stroke(200,0,255);
-			rect(bb.ax,bb.ay, bb.getWidth(), bb.getHeight());
+			rect(g.coordinateSystem, bb.ax,bb.ay, bb.getWidth(), bb.getHeight());
 		}
 		synchronized(g) {
-			for (Vertex v : g.getVertices().values()) {
-				moved = moved || v.tick();
-				v.tick();
-				v.display();
-			}
+			moved = g.tick();
 		}
 		return moved;
 	}
@@ -318,8 +350,6 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 			break;
 		case GRAB_TOOL:
 			text("GRAB", 10, 20);
-			fill(0,255,0);
-			text(grabPos.x + " " + grabPos.y, 120,20);
 			break;
 		}
 		
@@ -496,7 +526,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 				if(draggingVertices) {
 					// some weird case where you might get unwanted deselection.  I think.
 					if(oldmouseX == mouseX && oldmouseY == mouseY) {
-						Vertex v = graph.getVertexAtPoint(mouseX, mouseY);
+						Vertex v = graph.getVertexAtPoint(mouseX, mouseY, Coord.MOUSE);
 						if(v != null) v.selected = true;
 					}
 				}
@@ -508,13 +538,13 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 					case SHIFT_SELECT_TOOL:
 						if(mouseX != rectX || mouseY != rectY){ // dragging a rectangle
 							for (Vertex v : graph.getVertices().values()) {
-								if (v.inRect(rectX, rectY, mouseX, mouseY)) {
+								if (v.inRect(rectX, rectY, mouseX, mouseY, Coord.MOUSE)) {
 									v.selected = true;
 								}
 							}
 						}
 						else { // single click
-							Vertex v = graph.getVertexAtPoint(mouseX, mouseY);
+							Vertex v = graph.getVertexAtPoint(mouseX, mouseY, Coord.MOUSE);
 							if(v != null) v.selected = true;
 						}
 						break;
@@ -548,16 +578,16 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 						if (!draggingVertices && (mouseX != rectX || mouseY != rectY)) {
 							for (Vertex v : graph.getVertices().values()) {
 								if (shift) {
-									v.selected = v.selected | v.inRect(rectX, rectY, mouseX, mouseY);
+									v.selected = v.selected | v.inRect(rectX, rectY, mouseX, mouseY, Coord.MOUSE);
 								} else {
-									v.selected = v.inRect(rectX, rectY, mouseX,	mouseY);
+									v.selected = v.inRect(rectX, rectY, mouseX,	mouseY, Coord.MOUSE);
 								}
 							}
 						} else if (draggingVertices	&& (oldmouseX == mouseX && oldmouseY == mouseY)) {
 							Vertex current = null; // this is vertex the mouse is
 							// over
 							for (Vertex v : graph.getVertices().values()) {
-								if (v.at(mouseX, mouseY))
+								if (v.at(mouseX, mouseY, Coord.MOUSE))
 									current = v;
 							}
 							// reselect the clicked one
@@ -578,15 +608,16 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 			int dx = mouseX - oldmouseX;
 			int dy = mouseY - oldmouseY;
 			if(tool == GRAB_TOOL){
-				grabPos = grabPos.plus(new Coord(dx,dy));
+				graph.coordinateSystem.shift(dx, dy);
 			}
 			else {
 				if(draggingVertices){
 					synchronized (graph) {
+						Coord dc = graph.coordinateSystem.lengthToGlobal(dx, dy);
 						for (Vertex v : graph.getVertices().values()) {
 							if (v.selected) {
-								v.x += dx;
-								v.y += dy;
+								v.x += dc.x;
+								v.y += dc.y;
 								v.setDest(v.x, v.y); // prevent points from snapping
 								// back
 							}
@@ -608,7 +639,7 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 				switch (tool) {
 				case SELECT_TOOL:
 				case SHIFT_SELECT_TOOL:
-					Vertex current = graph.getVertexAtPoint(mouseX, mouseY);
+					Vertex current = graph.getVertexAtPoint(mouseX, mouseY, Coord.MOUSE);
 					if(current==null) { // no vertex at mouse
 						rectX = mouseX;
 						rectY = mouseY;
@@ -645,6 +676,9 @@ public class QuantoApplet extends PApplet implements IQuantoView {
 			case 'u': qcore.previousGraphState(); break;
 			case 'd': qcore.deleteAllSelected(); break;
 			case 'R': startRewriteSelection(); break;
+			case '=':
+			case '+': graph.coordinateSystem.scale(1.5f, 1.5f); break;
+			case '-': graph.coordinateSystem.scale(0.66f, 0.66f); break;
 			case 'y':
 				layoutMode = (layoutMode+1)%3;
 				switch (layoutMode) {

@@ -1,7 +1,7 @@
 package quanto;
 import java.util.*;
 
-public class Graph extends PLib {
+public class Graph {
 	Map<String,Vertex> vertices;
 	Map<String,Edge> edges;
 	
@@ -9,16 +9,18 @@ public class Graph extends PLib {
 	public static final int GRID_X = 25;
 	public static final int GRID_Y = 25;
 	protected GraphLayout layoutEngine;
+	public CoordinateSystem coordinateSystem;
 
-	public Graph(GraphLayout layoutEngine) {
+	public Graph(GraphLayout layoutEngine, CoordinateSystem cs) {
 		vertices = new HashMap<String,Vertex>();
 		edges = new HashMap<String,Edge>();
 		newestVertex = null;
 		this.layoutEngine = layoutEngine;
+		this.coordinateSystem = cs;
 	}
 	
 	public Graph() {
-		this(new DotLayout());
+		this(new DotLayout(), CoordinateSystem.IDENTITY);
 	}
 	
 	public Map<String,Vertex> getVertices() {return vertices;} 
@@ -34,6 +36,7 @@ public class Graph extends PLib {
 //	}
 	
 	public void addVertex(Vertex n) {
+		n.setGraph(this);
 		vertices.put(n.id, n);
 	}
 
@@ -47,6 +50,7 @@ public class Graph extends PLib {
 //	}
 
 	public void addEdge(Edge e) {
+		e.setGraph(this);
 		edges.put(e.id, e);
 	}
 
@@ -57,13 +61,15 @@ public class Graph extends PLib {
 
 	/* copies vertices and edges from newg over the existing vertices and edges */
 	public void updateTo(Graph newg) {
+		//this.coordinateSystem.print();
 		synchronized(vertices) {
 			Map<String,Vertex> oldvertices = vertices;
-		vertices = newg.getVertices();
+			vertices = newg.getVertices();
 			edges = newg.getEdges();
 
 			Vertex w = null;
 			for (Vertex v : vertices.values()) {
+				v.setGraph(this);
 				w = oldvertices.get(v.id);
 				if (w == null) {
 					newestVertex = v;
@@ -76,6 +82,11 @@ public class Graph extends PLib {
 					v.y = v.destY = w.y;
 					v.selected = w.selected;
 				}
+			}
+		}
+		synchronized(edges) {
+			for (Edge e : edges.values()) {
+				e.setGraph(this);
 			}
 		}
 	}
@@ -222,9 +233,9 @@ public class Graph extends PLib {
 	 * @param y
 	 * @return
 	 */
-	public Vertex getVertexAtPoint(float x, float y) {
+	public Vertex getVertexAtPoint(float x, float y, int coordType) {
 		for(Vertex v: getVertices().values()){
-			if(v.at(x, y)) return v;
+			if(v.at(x, y, coordType)) return v;
 		}
 		return null;
 	}
@@ -308,6 +319,16 @@ public class Graph extends PLib {
 
 	public void setLayoutEngine(GraphLayout layoutEngine) {
 		this.layoutEngine = layoutEngine;
+	}
+
+	public boolean tick() {
+		boolean moved = false;
+		for (Vertex v : vertices.values()) {
+			moved = moved || v.tick();
+			v.tick();
+			v.display();
+		}
+		return moved;
 	}
 
 }

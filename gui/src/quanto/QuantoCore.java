@@ -2,7 +2,7 @@ package quanto;
 import java.io.*;
 //import java.util.Map;
 
-import processing.xml.XMLElement;
+
 
 
 public class QuantoCore {
@@ -104,12 +104,13 @@ public class QuantoCore {
 	
 	void updateGraph() {
 		send("D\n");
-		System.out.println("RECEIVED:");
+		//System.out.println("RECEIVED:");
 		String r = receive();
 		//r = "<graph><vertex><name>a</name><boundary>false</boundary><colour>red</colour></vertex></graph>";
 		//XMLElement x = new XMLElement(r);
 		//System.out.println(r);
 		Graph updated = xml.parseGraph(r);
+		updated.coordinateSystem = null;
 		graph.updateTo(updated);
 		graph.layoutGraph();
 	}

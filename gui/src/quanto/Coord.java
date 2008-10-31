@@ -1,7 +1,8 @@
 package quanto;
 
 public class Coord implements Comparable<Coord>{
-
+	public static final int GLOBAL=0;
+	public static final int MOUSE=1;
 	public float x;
 	public float y;
 	
@@ -9,6 +10,7 @@ public class Coord implements Comparable<Coord>{
 		this.x = x;
 		this.y = y;
 	}
+	
 	public Coord plus(Coord that) {
 		return new Coord (this.x + that.x, this.y + that.y);
 	}

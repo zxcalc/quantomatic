@@ -10,6 +10,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 	public float speed;
 	public boolean selected;
 	private int lastTick;
+	private Graph graph;
 	public String id;
 	public String col;
 	public String angleexpr;
@@ -24,6 +25,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		this.id = id;
 		this.x = x;
 		this.y = y;
+		graph = null;
 		destX = x;
 		destY = y;
 		speed = 0.0005f;
@@ -38,7 +40,9 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		edges.add(e);
 	}
 
-	
+	public void setGraph(Graph g) {
+		this.graph = g;
+	}
 	
 	public void setDest(float x, float y) {
 		if (snap) {
@@ -90,11 +94,11 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(255, 0, 0);
 		p.fill(255, 100, 100);
-		p.ellipse(x, y, radius, radius);
+		p.ellipse(graph.coordinateSystem, x, y, radius, radius);
 		if (angleexpr != null) {
 			p.timesFont();
 			p.fill(100, 0, 0);
-			p.text(angleexpr, x + 21, y + 6, 30, 10);
+			p.text(graph.coordinateSystem, angleexpr, x + 21, y + 6, 30, 10);
 		}
 	}
 
@@ -103,11 +107,11 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(0, 255, 0);
 		p.fill(100, 255, 100);
-		p.ellipse(x, y, radius, radius);
+		p.ellipse(graph.coordinateSystem, x, y, radius, radius);
 		if (angleexpr != null) {
 			p.timesFont();
 			p.fill(0, 100, 0);
-			p.text(angleexpr, x + 21, y + 6, 30, 10);
+			p.text(graph.coordinateSystem, angleexpr, x + 21, y + 6, 30, 10);
 		}
 	}
 
@@ -116,7 +120,7 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(0, 0, 0);
 		p.fill(0, 0, 0, 255);
-		p.ellipse(x, y, 3, 3);
+		p.ellipse(graph.coordinateSystem, x, y, 3, 3);
 	}
 
 	private void displayH() {
@@ -125,13 +129,19 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		p.stroke(0, 0, 0);
 		p.fill(255, 255, 0, 100);
 		p.rectMode(CENTER);
-		p.rect(x, y, 1.1f*radius, 1.1f*radius);
+		p.rect(graph.coordinateSystem, x, y, 1.1f*radius, 1.1f*radius);
 		p.timesFont();
 		p.fill(0, 0, 0, 255);
-		p.text("H", x - 5, y + 5);
+		p.text(graph.coordinateSystem, "H", x - 5, y + 5);
 	}
 	
-	public boolean inRect(float x1, float y1, float x2, float y2) {
+	public boolean inRect(float x1, float y1, float x2, float y2, int coordType) {
+		if (coordType==Coord.MOUSE) {
+			Coord c1 = graph.coordinateSystem.toGlobal(x1, y1);
+			Coord c2 = graph.coordinateSystem.toGlobal(x2, y2);
+			x1 = c1.x; y1 = c1.y;
+			x2 = c2.x; y2 = c2.y;
+		}
 		boolean inX = (x1<=x && x2>=x) || (x1>=x && x2<=x);
 		boolean inY = (y1<=y && y2>=y) || (y1>=y && y2<=y);
 		return inX && inY;
@@ -139,11 +149,13 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 	public void display() {
 		IQuantoView p = QuantoApplet.p; // instance of PApplet which has all processing tools
-
+		//CoordinateSystem cs = g
+		
+		
 		if(extra_highlight) {
 			p.noStroke();
 			p.fill(255, 100 + 10*((flash_seq++)%15), 0, 150);
-			p.ellipse(x, y, 1.67f*radius, 1.67f*radius);
+			p.ellipse(graph.coordinateSystem, x, y, 1.67f*radius, 1.67f*radius);
 		}
 		
 		if (col.equals("red")) {
@@ -157,12 +169,12 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 		} else {
 			p.stroke(0);
 			p.fill(50, 50, 50, 150);
-			p.ellipse(x, y, radius, radius);
+			p.ellipse(graph.coordinateSystem, x, y, radius, radius);
 		}
 		if (selected) {
 			p.stroke(0, 0, 255);
 			p.noFill();
-			p.ellipse(x, y, 1.33f*radius, 1.33f*radius);
+			p.ellipse(graph.coordinateSystem, x, y, 1.33f*radius, 1.33f*radius);
 		}
 	}
 
@@ -171,15 +183,23 @@ class Vertex extends PLib implements Comparable<Vertex>  {
 
 		p.stroke(0, 255, 0);
 		p.noFill();
-		p.ellipse(x, y, 1.67f*radius, 1.67f*radius);
+		p.ellipse(graph.coordinateSystem, x, y, 1.67f*radius, 1.67f*radius);
 	}
 
 	public void registerClick(int x, int y) {
-		selected = at(x, y);
+		selected = at(x, y, Coord.MOUSE);
 	}
 	
-	public boolean at(float x, float y) {
-		if (Math.abs(x - this.x) < 8 && Math.abs(y - this.y) < 8)
+	public boolean at(float x, float y, int coordType) {
+		Coord vertexSize = new Coord(8,8);
+		if (coordType == Coord.MOUSE) {
+			Coord c = graph.coordinateSystem.toGlobal(x, y);
+			x = c.x; y = c.y;
+			vertexSize = graph.coordinateSystem
+				.lengthToGlobal(vertexSize.x, vertexSize.y);
+		}
+		if (Math.abs(x - this.x) < vertexSize.x &&
+			Math.abs(y - this.y) < vertexSize.y)
 			return true;
 		else
 			return false;

@@ -9,6 +9,7 @@ class Edge extends PLib {
 	String id;
 	ArrayList<Point> controlPoints;
 	
+	private Graph graph;
 	private float midPointOffset;
 
 	public Edge(String name, Vertex source, Vertex dest) {
@@ -19,6 +20,11 @@ class Edge extends PLib {
 		dest.addEdge(this);
 		this.id = name;
 		controlPoints = new ArrayList<Point>();
+		graph = null;
+	}
+	
+	public void setGraph(Graph g) {
+		graph = g;
 	}
 	
 	public void setOffset(int offset) {
@@ -61,11 +67,11 @@ class Edge extends PLib {
 			
 			cp1 = start.plus(new Coord(0,0.4f*midPointOffset));
 			cp2 = end.plus(new Coord(0,0.4f*midPointOffset));
-			p.bezier(start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);
+			p.bezier(graph.coordinateSystem, start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);
 			
 			cp1 = end.plus(new Coord(0,-0.4f*midPointOffset));
 			cp2 = start.plus(new Coord(0,-0.4f*midPointOffset));
-			p.bezier(end.x,end.y, cp1.x,cp1.y, cp2.x,cp2.y,start.x,start.y);
+			p.bezier(graph.coordinateSystem, end.x,end.y, cp1.x,cp1.y, cp2.x,cp2.y,start.x,start.y);
 		}
 		else {
 			start = new Coord(source.x, source.y);
@@ -73,7 +79,7 @@ class Edge extends PLib {
 			Coord dir = end.minus(start);
 			cp1 = start.plus(dir.getPerpUnit().rescale(this.midPointOffset));
 			cp2 = end.plus(dir.getPerpUnit().rescale(this.midPointOffset));
-			p.bezier(start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);			
+			p.bezier(graph.coordinateSystem, start.x,start.y, cp1.x,cp1.y, cp2.x,cp2.y,end.x,end.y);			
 		}
 	}
 
