@@ -1,7 +1,17 @@
-Some ideas for future directions for the tool
+Some imidiate priorities 
 ---
 
-* Interactive GUI.
+1. getting the node expressions working in GUI -- it's possible here
+we could use some of the new stuff that Aleks has added with maxima.
+
+2. !-box graphs and graph matching. 
+
+3. Reading XML at the ML level. 
+
+
+
+Some ideas for future directions for the tool
+---
 
 * LaTeX output.  Movies of rewrite sequences?
 
