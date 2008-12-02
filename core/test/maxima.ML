@@ -30,7 +30,7 @@ in
     (TextIO.output (ostr, "print (\"FLUSH"^random_str^"\");\n");chomp();pr)
 end
 
-fun new () = flush (Unix.execute ("/usr/bin/maxima",[]))
+fun new () = flush (Unix.execute ("/usr/local/bin/maxima",[]))
 fun kill pr = Unix.kill(pr,9)
 
 fun read_grind [] str = raise Maxima str
@@ -49,8 +49,8 @@ end
 
 end
 
-(* leave this here to debug, so we don't get a million procs 
-val _ = MaximaProcess.kill MaximaExpression.root_proc *)
+(* leave this here to debug, so we don't get a million procs *)
+val _ = MaximaProcess.kill MaximaExpression.root_proc
 
 
 (* Note MaximaExpression respects the signatures RING and FIELD *)
@@ -89,7 +89,7 @@ end
 (*
 use "alebra.ML" for this stuff
 ==================================================
-
+*)
 structure ME = MaximaExpression;
 structure Matr = MatrixFun(structure UField = ME);
 
@@ -108,4 +108,4 @@ val ident = Matr.map (ME.fromString)
 val phase = Matr.mult
 		(Matr.transpose deltaZ)
 		(Matr.kronecker_product ident angle)
-*)
+

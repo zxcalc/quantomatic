@@ -251,10 +251,24 @@ end*)
 end;
 
 (* TODO put this somewhere else *)
-structure SimpleLexer =
+
+signature LEXER =
+sig
+    type elem
+    datatype token = INT of int | ID of string | SYM of string | NOOP
+    val ident : elem list -> token * elem list
+    val noop : elem list -> token * elem list
+    val num : elem list -> token * elem list
+    val space : elem list -> token * elem list
+    val sym : elem -> elem list -> token * elem list
+end
+
+structure SimpleLexer : LEXER =
 struct
 
+type elem = Symbol.symbol
 datatype token = INT of int | ID of string | SYM of string | NOOP
+val wordchar = fn c => (Symbol.is_quasi_letter c) orelse (Symbol.is_digit c)
 
 (* terminal definitions *)
 val space = Scan.many Symbol.is_blank >> (fn _ => NOOP)
@@ -263,14 +277,14 @@ val num = wrap_term (Scan.many1
 			 Symbol.is_digit
 			 >> implode
 			 >> (the o Int.fromString)
-			 >> (fn x => INT x))
+			 >> INT)
 
-val ident = wrap_term (Scan.many1
-			   Symbol.is_quasi_letter
+val ident = wrap_term ((Scan.one Symbol.is_letter ::: Scan.many wordchar)
 			   >> implode
-			   >> (fn x => ID x))
+			   >> ID)
 val sym = fn str => (wrap_term (Scan.this_string str >> (fn _ => SYM str)))
 val noop = fn toks => (NOOP, toks)
+
 end
 
 
@@ -278,26 +292,24 @@ end
 structure LinratParser =
 struct
 
+exception Parse
 structure L = SimpleLexer
 datatype expr = EXP of DB_LinratExpr.T
 	      | RAT of Rational.T
 	      | TOK of L.token
 
-fun unit x = TOK x
-val num = L.num >> unit
-val ident = L.ident >> unit
-val sym = fn s => (L.sym s) >> unit
-val noop = L.noop >> unit
-
+(* wrap all the terminals in a TOK *)
+val num = L.num >> TOK
+val ident = L.ident >> TOK
+val sym = fn s => (L.sym s) >> TOK
+val noop = L.noop >> TOK
 
 (* semantic ops *)
-val one = Rational.mk 1 1
-val zero = Rational.mk 0 1
-
 fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Rational.mk n d)
 fun whole_num n = rat (n,TOK(L.INT 1))
-fun rat_term (RAT r, TOK(L.ID id)) = EXP (DB_LinratExpr.mk zero [(id,r)])
+fun rat_term (RAT r, TOK(L.ID id)) = EXP (DB_LinratExpr.mk (Rational.mk 0 1) [(id,r)])
 fun const_term (RAT r) = EXP (DB_LinratExpr.mk r [])
+val one_pi = const_term (RAT (Rational.mk 1 1))
 fun var_term (TOK(L.ID id)) = EXP (DB_LinratExpr.mk_var id)
 fun plus (EXP a, EXP c) = EXP (DB_LinratExpr.add_expr a c)
 
@@ -309,6 +321,7 @@ fun coeff x = x|>(
 		  || num >> whole_num)
 fun term x = x|>(
 	     ((coeff --| (sym "*" || noop) --| sym "Pi") >> const_term)
+		 || (sym "Pi" >> (fn _ => one_pi))
 		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
 		 || (ident >> var_term))
 fun terms x = x|>(
@@ -316,7 +329,8 @@ fun terms x = x|>(
 		  || (sym "(" |-- terms --| sym ")")
 		  || term)
 
-fun parse str = let val (EXP e,_) = terms ((Symbol.explode str)@[Symbol.eof]) in e
+fun parse str = let val (EXP e,ts) = terms ((Symbol.explode str)@[Symbol.eof])
+		in if ts = [Symbol.eof] then e else raise Parse
 		end
 
 
