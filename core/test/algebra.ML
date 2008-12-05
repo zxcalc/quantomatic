@@ -56,6 +56,22 @@ fun pretty i = Pretty.str (toString i)
 val print = Pretty.writeln o pretty
 end
 
+
+structure RationalField : FIELD  =
+struct
+open Rational
+val op+ = uncurry add
+val op* = uncurry mult
+val one = (1,1)
+val zero = (0,1)
+val op~ = subtr zero
+val conj = fn x => x
+val compare = ord
+val op/ = uncurry (Rational.div)
+fun invert x = one / x
+val toString = Pretty.string_of o pretty
+end
+
 structure RealField : FIELD =
 struct
 open Real
@@ -207,3 +223,43 @@ open MF
 fun adjoint m = map (UField.conj) (transpose m)
 
 end
+
+(*
+structure PolyRingInt = PolyRingFun(structure URing = IntRing
+      and IndetNamer = struct
+      fun indet_name i = case i
+			  of 0=>"I"| 1=>"(pi)"
+			   | 2=>"A"| 3=>"B" | 4=>"C" | 5 => "D"
+			   | _=>"X["^(Int.toString i)^"]"
+      end)
+		
+structure ExpRingInt = PolyRingFun(structure URing = PolyRingInt
+      and IndetNamer = struct
+      fun indet_name i = case i
+			  of 0=>"e"
+			   | _=>"X["^(Int.toString i)^"]"
+      end)
+
+
+structure PRI = PolyRingInt;
+structure ERI = ExpRingInt;
+
+val p1 = PRI.+(PRI.mono(2,0,2),PRI.mono(3,0,3))
+val p2 = PRI.+(PRI.mono(3,1,4),PRI.mono(5,1,2))
+
+fun angle exp =
+    ERI.mono(PRI.one, 0,
+	     PRI.*([(IntRing.one,[1])],exp))
+
+
+val e1 = ERI.mono(PRI.const 1,0,p1)
+val e2 = ERI.mono(PRI.const 4,0,p2)
+
+structure IMatrix = ModuleFun(structure URing = IntRing)
+structure PMatrix = ModuleFun(structure URing = PRI)
+val ident = [[1,0],[0,1]]
+val matr = [[2,3],[4,5]]
+val matr2 = [[6,7],[8,9]]
+
+val pmat = [[p1,p2],[PRI.const 1,PRI.const 5]]
+*)

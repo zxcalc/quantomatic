@@ -1,10 +1,11 @@
 package quanto;
 import java.awt.*;
 import java.awt.event.*;
+
 import processing.core.PConstants;
 import javax.swing.*;
 
-public class QuantoFrame extends JFrame implements PConstants {
+public class QuantoFrame extends Frame implements PConstants {
 	private static final long serialVersionUID = 1L;
 
 	static QuantoApplet applet;
@@ -17,12 +18,35 @@ public class QuantoFrame extends JFrame implements PConstants {
         
         applet = new QuantoApplet();
         add(applet, BorderLayout.CENTER);
+        
+        JTextField prompt = new JTextField();
+        add(prompt, BorderLayout.SOUTH);
+        
+        prompt.addKeyListener(new KeyListener () {
+        	public void keyPressed(KeyEvent e) {}
+        	public void keyTyped(KeyEvent e) {}
+        	
+			public void keyReleased(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					JTextField tf = (JTextField)e.getSource();
+					if (tf.getText().equals("D")) {
+						applet.qcore.send("D\n");
+						System.out.println(applet.qcore.receive());
+					} else {
+						applet.qcore.modifyCmd(tf.getText());
+						applet.play();
+					}
+					tf.setText("");
+				}
+			}        	
+        });
 
         // important to call this whenever embedding a PApplet.
         // It ensures that the animation thread is started and
         // that other internal variables are properly set.
         applet.init();
         
+        //makeSwingMenu();
         makeAWTMenu();
 	}
 	
@@ -71,14 +95,15 @@ public class QuantoFrame extends JFrame implements PConstants {
 		
 	}
 	
+	/*
 	public void makeSwingMenu() {
-        /* add menus */
+        // add menus
         JMenuBar mb = new JMenuBar();
         
         JMenuItem m;
         JMenu menu;
         
-        /* File Menu */
+        // File Menu 
         menu = new JMenu("File"); mb.add(menu);
    
         m = new JMenuItem("New"); m.setMnemonic('n'); menu.add(m);
@@ -95,7 +120,7 @@ public class QuantoFrame extends JFrame implements PConstants {
         menu.addSeparator();
         m = new JMenuItem("Quit"); m.setMnemonic('q'); menu.add(m);
         
-		/* Edit Menu */
+		// Edit Menu 
         menu = new JMenu("Edit"); mb.add(menu);
         m = new JMenuItem("Select Mode"); m.setMnemonic('s'); menu.add(m);
         m = new JMenuItem("Move Mode"); m.setMnemonic('m'); menu.add(m);
@@ -110,7 +135,7 @@ public class QuantoFrame extends JFrame implements PConstants {
         menu.addSeparator();
         m = new JMenuItem("Undo"); m.setMnemonic('u'); menu.add(m);
         
-        /* Layout Menu */
+        // Layout Menu
         menu = new JMenu("Layout"); mb.add(menu);
         m = new JMenuItem("Layout"); m.setMnemonic('l'); menu.add(m);
         m = new JMenuItem("Toggle splines for dot"); m.setMnemonic('p'); menu.add(m);
@@ -118,5 +143,6 @@ public class QuantoFrame extends JFrame implements PConstants {
         m = new JMenuItem("Next layout engine"); m.setMnemonic('y'); menu.add(m);
         
         setJMenuBar(mb);
-	}
+	}*/
+	
 }

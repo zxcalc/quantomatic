@@ -38,22 +38,33 @@ fun read_grind [] str = raise Maxima str
 			  of #"$" => []
 			   | _ => c::(read_grind cs str)
 fun eval pr str = let
-    val _ = flush pr
     val (istr,ostr) = Unix.streamsOf pr
-    val _ = TextIO.output (ostr, "grind("^str^");\n")
+    val _ = TextIO.output (ostr, "v:("^str^");\n");
+    val _ = flush pr
+    val _ = TextIO.output (ostr, "grind(v);\n")
     val _ = TextIO.inputLine istr
     val ln = the (TextIO.inputLine istr)
 in String.implode (read_grind (String.explode ln) ln)
 end
 
 
+
 end
 
+
 (* leave this here to debug, so we don't get a million procs *)
-val _ = MaximaProcess.kill MaximaExpression.root_proc
+val _ = MaximaProcess.kill MaximaExpression.root_proc 
 
 
-(* Note MaximaExpression respects the signatures RING and FIELD *)
+
+(*
+structure MaximaExpression
+================================================================================
+Evaluate maxima expressions with a single underlying process in a
+thread-safe manner.
+
+Note MaximaExpression respects the signatures RING and FIELD
+*)
 
 structure MaximaExpression =
 struct
@@ -65,8 +76,23 @@ val root_proc_m = Mutex.mutex ();
 fun eval str = (Mutex.lock root_proc_m;
 		(MaximaProcess.eval root_proc str)
 		before Mutex.unlock root_proc_m)
+handle MaximaProcess.Maxima str =>
+       (Mutex.unlock root_proc_m; "MAXIMA_ERROR:"^str)
+
+
+val _ = eval ("match(pat,tgt) := (vs:listofvars(pat),"^
+	      "  if vs=[] then (if pat=tgt then [] else NO_MATCH) "^
+	      "  else"^
+	      "    first(solve(map(lambda([v],first(solve(pat=tgt,v))),vs),vs))"^
+	      ")")
+
+fun match pat tgt = case eval ("match("^pat^","^tgt^")")
+		     of "NO_MATCH" => NONE
+		      | str => SOME str
+fun do_subs subs expr = eval("ev("^expr^","^subs^")")
 
 fun fromString str = eval str
+val fromInt = fromString o Int.toString
 fun (op+) (s1,s2) = eval ("("^s1^")+("^s2^")")
 fun (op*) (s1,s2) = eval ("("^s1^")*("^s2^")")
 fun (op/) (s1,s2) = eval ("("^s1^")/("^s2^")")
@@ -84,7 +110,7 @@ val pretty = Pretty.str o toString
 val print = Pretty.writeln o pretty
 end
 
-
+structure ME = MaximaExpression
 
 (*
 use "alebra.ML" for this stuff

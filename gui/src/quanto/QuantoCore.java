@@ -1,6 +1,12 @@
 package quanto;
+
 import java.io.*;
 //import java.util.Map;
+
+import quanto.Graph;
+import quanto.RewriteInstance;
+import quanto.Vertex;
+import quanto.XMLReader;
 
 
 

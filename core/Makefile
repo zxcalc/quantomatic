@@ -6,6 +6,8 @@ ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*
 
 THE_BIN=quanto-core
 POLYML=poly
+POLYML_LIB=/users/alek/src/others/polyml.5.2.1
+POLYLIB=/users/alek/lib
 # POLYML_LIB=/home/ldixon/local/polyml-5.2.0/lib
 ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
 THE_POLY_HEAP=quanto.polyml-heap

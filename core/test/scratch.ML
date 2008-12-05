@@ -1,4 +1,4 @@
-datatype 'a tree = Nd of 'a * 'a tree list;
+(*datatype 'a tree = Nd of 'a * 'a tree list;
 
 structure G = RGGraph;
 structure NS = RGVertex.NSet;
@@ -6,7 +6,7 @@ val bv = Vertex.BVert ();
 
 fun split set =
     let
-	val (SOME fst) = set|>NS.get_first
+	val fst = the (set|>NS.get_first)
 	val rest = set|>NS.delete fst
     in (fst, rest)
     end
@@ -121,244 +121,175 @@ fun term [] = ""
   | term (s::t::ts) = "(" ^ (term [s]) ^ " X " ^ (term [t]) ^ ")"
   | term [Nd(r,[])] = r
   | term [Nd(r,ts)] = "(" ^ r ^ " o " ^ (term ts) ^ ")"
+*)
 
 
 
-
-fun list_of 0 x = []
-  | list_of n x = x::(list_of (n-1) x)
-
-
-signature RING =
-sig
-    type ring
-    val zero : ring
-    val one : ring
-    val is_zero : ring -> bool
-    val is_one : ring -> bool
-    val + : (ring * ring) -> ring
-    val * : (ring * ring) -> ring
-    val ~ : ring -> ring
-    val compare : ring * ring -> General.order
-    val toString : ring -> string
-    val pretty : ring -> Pretty.T
-    val print : ring -> unit
-end
-
-signature FIELD =
-sig
-    include RING
-    type field = ring
-    val invert : field -> field
-    val / : (field*field) -> field
-end
-
-signature ACF =
-sig
-    include FIELD
-    val conj : field -> field
-end
-
-signature POLY_RING =
-sig
-    include RING;
-    structure URing : RING;
-    val mono : URing.ring * int * URing.ring -> ring;
-    val const : URing.ring -> ring;
-    val reduce : ring -> ring;
-end
-
-signature INDET_NAMER =
-sig
-    val indet_name : int -> string
-end
-
-structure IntRing : RING =
-struct
-open Int
-
-type ring = int
-val zero = 0
-val one = 1
-fun is_zero 0 = true | is_zero _ = false
-fun is_one 1 = true | is_one _ = false
-fun pretty i = Pretty.str (toString i)
-val print = Pretty.writeln o pretty
-end
+(*
+fun tokenise' _ [] toks = toks
+  | tokenise' is_wc (c::cs) toks =
+    let
+	fun id [] buf = (rev buf, [])
+	  | id (c::cs) buf = if is_wc c then id cs (c::buf) else (rev buf, c::cs)
+    tokenise' is_wc cs
+	      (if Char.isSpace c then toks else
+	       (if is_wc c then
+		    (fn (buf,cs) => tokenise' is_wc cs ((ID str)::toks))
+			(id (c::cs) [])
+		else ((SYM c)::toks)))
+*)
 
 
-functor PolyRingFun (
-	structure URing : RING
-	      and IndetNamer : INDET_NAMER
-	) : POLY_RING =
+(*structure SimpleRDP =
 struct
 
-structure URing = URing;
-type ring = (URing.ring * URing.ring list) list
+exception Parse
+datatype token = ID of string | SYM of char | INT of int | NOOP
+val id_char = fn c => (Char.isAlphaNum c) orelse c = #"_"
 
-fun indet_name i = "X[" ^ (Int.toString i) ^ "]"
-
-
-fun add_powers [] [] = []
-  | add_powers [] x = add_powers x []
-  | add_powers (p::ps) [] = p::add_powers ps []
-  | add_powers (p::ps) (q::qs) = (URing.+(p,q))::add_powers ps qs
-fun compare_powers (ps,qs) = List.collate (URing.compare) (ps, qs)
-fun compare_monos ((k,ps),(l,qs)) =
-    case compare_powers (ps,qs)
-     of EQUAL => URing.compare(k,l)
-      | ord => ord
-			    
-fun reduce_powers' [] = []
-  | reduce_powers' (p::ps) = if (URing.is_zero p) then reduce_powers' ps
-			     else p::ps
-fun reduce_powers l = rev(reduce_powers'(rev l))
-		      
-fun reduce' ((k,ps')::(l,qs')::poly) =
-    if URing.is_zero k then reduce' ((l,qs')::poly)
-    else
-	let
-	    val ps = reduce_powers ps'
-	    val qs = reduce_powers qs'
-	in
-	    if compare_powers (ps, qs) = EQUAL then reduce' ((URing.+(k,l),ps)::poly)
-	    else (k,ps)::reduce' ((l,qs)::poly)
-	end
-  | reduce' [(k,ps)] = if URing.is_zero k then [(URing.zero,[])] else [(k,ps)]
-  | reduce' poly = poly
-fun multiply_monos (k,ps) (l,qs) = (URing.*(k,l), add_powers ps qs)
-				   
-fun power_string [] _ = ""
-  | power_string (p::ps) x =
-    (if (URing.is_zero p) then ""
-     else
-	 (IndetNamer.indet_name x)^
-	 (if URing.is_one p then "" else "^"^(URing.toString p))^
-	 (case ps of [] => "" | _ => "*"))
-    ^(power_string ps (x+1))
-
-fun mono_toString (k,p) = if (URing.is_one k) then power_string p 0
-			  else (URing.toString k)^"*"^(power_string p 0)
-			  
-val minus_one = [(URing.~(URing.one),[])]
-
-fun mono (k,x,p) =
-    [if URing.is_zero p then (k,[])
-    else (k, (list_of x URing.zero) @ [p])]
-
-fun sort_terms poly = sort compare_monos poly
-val reduce = reduce' o sort_terms
-fun const i = [(i,[]:URing.ring list)]
-
-(* RING functions *)
-val zero = [(URing.zero,[])]
-val one = [(URing.one,[])]
-fun (op+) (p1,p2) = reduce (p1 @ p2)
-fun (op*) (p1,p2) = reduce (flat (map (fn x => map (multiply_monos x) p2) p1))
-fun (op~) poly = poly * minus_one
-fun compare (p1, p2) = List.collate (compare_monos) (p1,p2)
-fun is_zero poly = compare (poly, zero) = EQUAL
-fun is_one poly = compare (poly, one) = EQUAL
-
-
-fun toString' [] = ""
-  | toString' [m] = mono_toString m
-  | toString' (m::ms) = mono_toString m ^ " + " ^ (toString' ms)
-fun toString p = "(" ^ (toString' p) ^ ")"
-fun pretty poly = Pretty.str (toString poly)
-val print = Pretty.writeln o pretty
-end
-
-
-functor ModuleFun (structure URing : RING) =
-struct
-
-structure URing = URing
-
-fun dot_product v1 v2 = fold2 (fn x => fn y => fn sum => (URing.+(URing.*(x,y),sum))) v1 v2 URing.zero
-    
-local
-    fun split_col [] h t = (rev h,rev t)
-      | split_col ([]::rows) _ _ = ([],[])
-      | split_col ((e::cols)::rows) h t = split_col rows (e::h) (cols::t)
-					  
-    fun mult' [] _ = []
-      | mult' (r::rs) cs = let
-	    val mrow = foldr (fn (c,row) => (dot_product r c)::row) [] cs
-	in (mrow)::(mult' rs cs)
-	end
+fun tokenise is_wc str = let
+    fun fl [] toks = toks
+      | fl buf toks = let val s = (String.implode o rev) buf in
+			  (case Int.fromString s
+			    of SOME i => (INT i)
+			     | NONE => (ID s))::toks
+		      end
+    fun tz [] buf toks = fl buf toks
+      | tz (c::cs) buf toks =
+	if Char.isSpace c then tz cs [] (fl buf toks)
+	else (if is_wc c then tz cs (c::buf) toks
+	      else tz cs [] ((SYM c)::(fl buf toks)))
 in
-fun transpose m = case (split_col m [] [])
-		   of ([],[]) => []
-		    | (col,rest) => col::(transpose rest)
-				    
-fun mult m1 m2 = mult' m1 (transpose m2)
-end (* local *)
-fun map f m = List.map (fn row => List.map f row) m
-fun scalar_mult k m = map (fn e => URing.*(k,e)) m
-fun fold cmb_x base_x cmb_y base_y m =
-    Basics.fold cmb_y (List.map (fn row => Basics.fold cmb_x row base_x) m) base_y
-fun merge_y m1 m2 = m1 @ m2
-fun merge_x m1 m2 = transpose ((transpose m1) @ (transpose m2))
-fun flatten m = fold merge_x [] merge_y [] m
-fun sum_of_squares m = fold (fn x => fn s => URing.+(URing.*(x,x),s)) URing.zero (curry URing.+) URing.zero m
-fun kronecker_product m1 m2 = flatten (map (fn a => scalar_mult a m2) m1)
+    rev (tz (String.explode str) [] [])
+end
 
-fun pretty m = Pretty.chunks (List.map (Pretty.list "[" "]") (map (URing.pretty) m));
-val print = Pretty.writeln o pretty
+fun parse parser str = let val (tr,rest) = Scan.catch parser (tokenise id_char str)
+		       in case rest of [] => tr | _ => raise Parse
+		       end
 
-end (* structure Matrix *)
+fun num ((tok as INT _)::toks) = (tok, toks)
+  | num _ = Scan.fail_with (fn () => "expected: integer") ()
+fun ident ((tok as ID _)::toks) = (tok, toks)
+  | ident _ = Scan.fail_with (fn () => "expected: identifier") ()
+fun keyword s ((tok as ID t)::toks) = if (s=t) then (tok,toks)
+				      else Scan.fail_with
+					       (fn()=>"expected:"^s) ()
+  | keyword s _ = Scan.fail_with (fn () => "expected:identifier") ()
+fun sym s ((tok as SYM t)::toks) = if (s=t) then (tok, toks)
+			    else Scan.fail_with
+				     (fn()=>"expected:"^(Char.toString s)) ()
+  | sym _ _ = Scan.fail_with (fn () => "expected: symbol") ()
 
-
-functor MatrixFun (structure UField : ACF) =
-struct
-
-structure UField = UField
-structure URing = UField
-structure MF = ModuleFun(structure URing = URing)
-open MF
+fun noop toks = (NOOP,toks)
 
 end
 
+structure ASTParser =
+struct
 
-structure PolyRingInt = PolyRingFun(structure URing = IntRing
-      and IndetNamer = struct
-      fun indet_name i = case i
-			  of 0=>"I"| 1=>"(pi)"
-			   | 2=>"A"| 3=>"B" | 4=>"C" | 5 => "D"
-			   | _=>"X["^(Int.toString i)^"]"
-      end)
-		
-structure ExpRingInt = PolyRingFun(structure URing = PolyRingInt
-      and IndetNamer = struct
-      fun indet_name i = case i
-			  of 0=>"e"
-			   | _=>"X["^(Int.toString i)^"]"
-      end)
+structure P = SimpleRDP
+type token = P.token
+datatype 'a ast = OP of token * token ast list | TERM of token
 
 
-structure PRI = PolyRingInt;
-structure ERI = ExpRingInt;
-
-val p1 = PRI.+(PRI.mono(2,0,2),PRI.mono(3,0,3))
-val p2 = PRI.+(PRI.mono(3,1,4),PRI.mono(5,1,2))
-
-fun angle exp =
-    ERI.mono(PRI.one, 0,
-	     PRI.*([(IntRing.one,[1])],exp))
+fun unit x = TERM x
+val num = P.num >> unit
+val ident = P.ident >> unit
+val sym = fn s => (P.sym s) >> unit
 
 
-val e1 = ERI.mono(PRI.const 1,0,p1)
-val e2 = ERI.mono(PRI.const 4,0,p2)
+(* a few simple semantic ops *)
+fun strip ((_,b),_) = b
+fun infx ((a,TERM b),c) = OP(b,[a,c])
+fun mult (a,b) = infx ((a,TERM (P.SYM #"*")),b)
 
-structure IMatrix = ModuleFun(structure URing = IntRing)
-structure PMatrix = ModuleFun(structure URing = PRI)
-val ident = [[1,0],[0,1]]
-val matr = [[2,3],[4,5]]
-val matr2 = [[6,7],[8,9]]
+(* the grammar, decorated with semantic operators *)
+fun coeff x = x|>(
+	      ((num -- sym #"/" -- num) >> infx)
+		  || ((sym #"(" -- coeff -- sym #")") >> strip)
+		  || num)
+fun term x = x|>(
+	     ((coeff -- sym #"*" -- ident) >> infx)
+		 || ((coeff -- ident) >> mult)
+		 || coeff || ident)
+fun terms x = x|>(
+	      ((term -- sym #"+" -- terms) >> infx)
+		  || ((sym #"(" -- terms -- sym #")") >> strip)
+		  || term)
 
-val pmat = [[p1,p2],[PRI.const 1,PRI.const 5]]
+val parse = P.parse terms
+
+end*)
+
+structure SimpleLexer =
+struct
+
+datatype token = INT of int | ID of string | SYM of string | NOOP
+
+(* terminal definitions *)
+val space = Scan.many Symbol.is_blank >> (fn _ => NOOP)
+fun wrap_term t = space |-- t --| space
+val num = wrap_term (Scan.many1
+			 Symbol.is_digit
+			 >> implode
+			 >> (the o Int.fromString)
+			 >> (fn x => INT x))
+
+val ident = wrap_term (Scan.many1
+			   Symbol.is_quasi_letter
+			   >> implode
+			   >> (fn x => ID x))
+val sym = fn str => (wrap_term (Scan.this_string str >> (fn _ => SYM str)))
+val noop = fn toks => (NOOP, toks)
+end
 
 
 
+structure LinratParser =
+struct
+
+structure L = SimpleLexer
+datatype expr = EXP of DB_LinratExpr.T
+	      | RAT of Rational.T
+	      | TOK of L.token
+
+fun unit x = TOK x
+val num = L.num >> unit
+val ident = L.ident >> unit
+val sym = fn s => (L.sym s) >> unit
+val noop = L.noop >> unit
+
+
+(* semantic ops *)
+val one = Rational.mk 1 1
+val zero = Rational.mk 0 1
+
+fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Rational.mk n d)
+fun whole_num n = rat (n,TOK(L.INT 1))
+fun rat_term (RAT r, TOK(L.ID id)) = EXP (DB_LinratExpr.mk zero [(id,r)])
+fun const_term (RAT r) = EXP (DB_LinratExpr.mk r [])
+fun var_term (TOK(L.ID id)) = EXP (DB_LinratExpr.mk_var id)
+fun plus (EXP a, EXP c) = EXP (DB_LinratExpr.add_expr a c)
+
+
+(* the grammar, decorated with semantic operators *)
+fun coeff x = x|>(
+	      ((num --| sym "/" -- num) >> rat)
+		  || (sym "(" |-- coeff --| sym ")")
+		  || num >> whole_num)
+fun term x = x|>(
+	     ((coeff --| (sym "*" || noop) --| sym "Pi") >> const_term)
+		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
+		 || (ident >> var_term))
+fun terms x = x|>(
+	      ((term --| sym "+" -- terms) >> plus)
+		  || (sym "(" |-- terms --| sym ")")
+		  || term)
+
+fun parse str = let val (EXP e,_) = terms ((Symbol.explode str)@[Symbol.eof]) in e
+		end
+
+
+
+end
 
