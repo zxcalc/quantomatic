@@ -6,7 +6,9 @@ import java.awt.event.KeyListener;
 import java.io.*;
 import javax.swing.*;
 
+import edu.uci.ics.jung.algorithms.layout.FRLayout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
+
 
 class JTextAreaOutputStream extends OutputStream {
 	JTextArea textArea;
@@ -25,7 +27,7 @@ public class QuantoConsole extends JPanel {
 	private static final long serialVersionUID = -5833674157230451213L;
 	public PrintStream out;
 	public QuantoCore qcore;
-	private GraphContext boundContext;
+	private QuantoVisualizer boundContext;
 	JTextField input;
 	JTextArea output;
 	public QuantoConsole() {
@@ -65,20 +67,19 @@ public class QuantoConsole extends JPanel {
 		if (boundContext == null) {
 			out.println("ERROR: No graph bound to this console.");
 		} else {
-			Relaxer relaxer = boundContext.vis.getModel().getRelaxer();
-			relaxer.pause();
-			boundContext.graph.fromXml(qcore.receive());
-			boundContext.layout.initialize();
-			relaxer.resume();
+			
+			boundContext.getGraph().fromXml(qcore.receive());
+			//boundContext.animateToNewLayout();
+			boundContext.getModel().getRelaxer().resume();
 			out.println("OK");
 		}
 	}
 
-	public GraphContext getBoundContext() {
+	public QuantoVisualizer getBoundContext() {
 		return boundContext;
 	}
 
-	public void bindContext(GraphContext boundContext) {
+	public void bindContext(QuantoVisualizer boundContext) {
 		this.boundContext = boundContext;
 	}
 
