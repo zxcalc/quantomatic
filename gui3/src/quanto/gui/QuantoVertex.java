@@ -2,19 +2,17 @@ package quanto.gui;
 
 import java.awt.Color;
 
-public class QuantoVertex {
+public class QuantoVertex implements NamedVertex {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
 	private String name;
 	public boolean old;
 
 	public QuantoVertex() {
-		this.vertexType = null;
-		this.old = false;
+		this(null);
 	}
 	
 	public QuantoVertex(Type vertexType) {
-		super();
 		this.vertexType = vertexType;
 		this.old = false;
 	}

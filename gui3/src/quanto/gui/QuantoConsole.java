@@ -6,7 +6,6 @@ import java.awt.event.KeyListener;
 import java.io.*;
 import javax.swing.*;
 
-import edu.uci.ics.jung.algorithms.layout.FRLayout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 
 
@@ -52,7 +51,7 @@ public class QuantoConsole extends JPanel {
 					write(text);
 					tf.setText("");
 				}
-			}        	
+			}
         });
 		
 		
@@ -69,8 +68,9 @@ public class QuantoConsole extends JPanel {
 		} else {
 			
 			boundContext.getGraph().fromXml(qcore.receive());
-			//boundContext.animateToNewLayout();
-			boundContext.getModel().getRelaxer().resume();
+			boundContext.getGraphLayout().initialize();
+			//Relaxer r = boundContext.getModel().getRelaxer();
+			//if (r!=null) r.resume();
 			out.println("OK");
 		}
 	}
