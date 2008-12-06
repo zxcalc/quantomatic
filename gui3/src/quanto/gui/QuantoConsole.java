@@ -1,12 +1,12 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
 import java.io.*;
 import javax.swing.*;
-
-import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 
 
 class JTextAreaOutputStream extends OutputStream {
@@ -32,18 +32,12 @@ public class QuantoConsole extends JPanel {
 	public QuantoConsole() {
         this.setLayout(new BorderLayout());
         input = new JTextField();
-        
-        
         output = new JTextArea(10,0);
         output.setFocusable(false);
         out = new PrintStream(new JTextAreaOutputStream(output));
 		qcore = new QuantoCore(out);
 		
-		
-		input.addKeyListener(new KeyListener () {
-        	public void keyPressed(KeyEvent e) {}
-        	public void keyTyped(KeyEvent e) {}
-        	
+		input.addKeyListener(new KeyAdapter () {
 			public void keyReleased(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 					JTextField tf = (JTextField)e.getSource();
@@ -53,7 +47,7 @@ public class QuantoConsole extends JPanel {
 				}
 			}
         });
-		
+
 		
         this.add(new JScrollPane(output),BorderLayout.CENTER);
         this.add(input,BorderLayout.SOUTH);
@@ -66,11 +60,8 @@ public class QuantoConsole extends JPanel {
 		if (boundContext == null) {
 			out.println("ERROR: No graph bound to this console.");
 		} else {
-			
 			boundContext.getGraph().fromXml(qcore.receive());
 			boundContext.getGraphLayout().initialize();
-			//Relaxer r = boundContext.getModel().getRelaxer();
-			//if (r!=null) r.resume();
 			out.println("OK");
 		}
 	}

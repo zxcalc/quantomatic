@@ -33,6 +33,10 @@ public class QuantoVertex implements NamedVertex {
 		this.name = name;
 	}
 	
+	public String toString() {
+		return getName();
+	}
+	
 	public Color getColor() {
 		if (vertexType==Type.RED) return Color.red;
 		if (vertexType==Type.GREEN) return Color.green;

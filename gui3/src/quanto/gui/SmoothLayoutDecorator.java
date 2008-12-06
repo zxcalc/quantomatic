@@ -1,17 +1,11 @@
 package quanto.gui;
 
 import java.awt.geom.Point2D;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.commons.collections15.Factory;
-import org.apache.commons.collections15.map.LazyMap;
 
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
 import edu.uci.ics.jung.algorithms.util.IterativeContext;
-import edu.uci.ics.jung.graph.Graph;
 
 
 public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
@@ -33,6 +27,8 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 			Relaxer relaxer = new VisRunner((IterativeContext)getDelegate());
 			relaxer.prerelax();
 		}
+		
+		done = false;
 	}
 	
 	public Point2D transform(V v) {
@@ -43,12 +39,12 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	public void step() {
 		synchronized (getGraph()) {
 			boolean moved = false;
-			for (V v : getGraph().getVertices()) moved = moved || tick(v);
+			for (V v : getGraph().getVertices()) moved = tick(v) || moved;
 		}
 	}
 	
 	public boolean done() {
-		return false;
+		return done;
 	}
 	
 	private double millis() {
