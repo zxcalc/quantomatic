@@ -250,42 +250,7 @@ end*)
 
 end;
 
-(* TODO put this somewhere else *)
 
-signature LEXER =
-sig
-    type elem
-    datatype token = INT of int | ID of string | SYM of string | NOOP
-    val ident : elem list -> token * elem list
-    val noop : elem list -> token * elem list
-    val num : elem list -> token * elem list
-    val space : elem list -> token * elem list
-    val sym : elem -> elem list -> token * elem list
-end
-
-structure SimpleLexer : LEXER =
-struct
-
-type elem = Symbol.symbol
-datatype token = INT of int | ID of string | SYM of string | NOOP
-val wordchar = fn c => (Symbol.is_quasi_letter c) orelse (Symbol.is_digit c)
-
-(* terminal definitions *)
-val space = Scan.many Symbol.is_blank >> (fn _ => NOOP)
-fun wrap_term t = space |-- t --| space
-val num = wrap_term (Scan.many1
-			 Symbol.is_digit
-			 >> implode
-			 >> (the o Int.fromString)
-			 >> INT)
-
-val ident = wrap_term ((Scan.one Symbol.is_letter ::: Scan.many wordchar)
-			   >> implode
-			   >> ID)
-val sym = fn str => (wrap_term (Scan.this_string str >> (fn _ => SYM str)))
-val noop = fn toks => (NOOP, toks)
-
-end
 
 
 (* functionality to parse expressions *)
