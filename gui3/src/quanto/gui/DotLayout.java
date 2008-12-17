@@ -7,7 +7,7 @@ import java.util.*;
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.graph.Graph;
 
-public class DotLayout<V extends NamedVertex,E> extends AbstractLayout<V,E> {
+public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 	public static class DotException extends RuntimeException {
 		private static final long serialVersionUID = 8173148319748759814L;
 
@@ -23,6 +23,7 @@ public class DotLayout<V extends NamedVertex,E> extends AbstractLayout<V,E> {
 	public void initialize() {
 		try {
 			synchronized (getGraph()) {
+				if (getGraph().getVertexCount() == 0) return;
 				Map<String,V> verts = new HashMap<String,V>();
 				for (V v : getGraph().getVertices()) verts.put(v.getName(),v);
 				

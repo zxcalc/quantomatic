@@ -2,17 +2,17 @@ package quanto.gui;
 
 import java.awt.Color;
 
-public class QuantoVertex implements NamedVertex {
+public class QVertex implements HasName {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
 	private String name;
 	public boolean old;
 
-	public QuantoVertex() {
+	public QVertex() {
 		this(null);
 	}
 	
-	public QuantoVertex(Type vertexType) {
+	public QVertex(Type vertexType) {
 		this.vertexType = vertexType;
 		this.old = false;
 	}
@@ -44,7 +44,7 @@ public class QuantoVertex implements NamedVertex {
 		return Color.black;
 	}
 	
-	public void updateTo(QuantoVertex v) {
+	public void updateTo(QVertex v) {
 		old = false;
 		name = v.getName();
 		vertexType = v.getVertexType();

@@ -11,13 +11,14 @@ import org.xml.sax.InputSource;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 
-public class QuantoGraph extends SparseGraph<QuantoVertex, String> {
+public class QuantoGraph extends SparseGraph<QVertex, String>
+implements HasName {
 	private static final long serialVersionUID = -1519901566511300787L;
-
-	public Map<String,QuantoVertex> getVertexMap() {
-		Map<String, QuantoVertex> verts =
-			new HashMap<String, QuantoVertex>();
-		for (QuantoVertex v : getVertices()) {
+	protected String name = "NO_NAME";
+	public Map<String,QVertex> getVertexMap() {
+		Map<String, QVertex> verts =
+			new HashMap<String, QVertex>();
+		for (QVertex v : getVertices()) {
 			v.old = true;
 			verts.put(v.getName(), v);
 		}
@@ -32,10 +33,10 @@ public class QuantoGraph extends SparseGraph<QuantoVertex, String> {
 				Document doc = db.parse(new InputSource(new StringReader(xml)));
 				NodeList vs = doc.getElementsByTagName("vertex");
 
-				Map<String, QuantoVertex> verts = getVertexMap();
+				Map<String, QVertex> verts = getVertexMap();
 
 				for (int i = 0; i < vs.getLength(); ++i) {
-					QuantoVertex v = new QuantoVertex();
+					QVertex v = new QVertex();
 					NodeList children = vs.item(i).getChildNodes();
 					String name, val;
 					
@@ -44,23 +45,25 @@ public class QuantoGraph extends SparseGraph<QuantoVertex, String> {
 						name = children.item(j).getNodeName();
 						val = children.item(j).getTextContent();
 						if (name == "colour"
-								&& v.getVertexType() != QuantoVertex.Type.BOUNDARY) {
+								&& v.getVertexType() != QVertex.Type.BOUNDARY) {
 							if (val.equals("red"))
-								v.setVertexType(QuantoVertex.Type.RED);
+								v.setVertexType(QVertex.Type.RED);
 							else if (val.equals("green"))
-								v.setVertexType(QuantoVertex.Type.GREEN);
+								v.setVertexType(QVertex.Type.GREEN);
+							else if (val.equals("H"))
+								v.setVertexType(QVertex.Type.HADAMARD);
 							else
 								throw new Exception(
 										"Invalid colour on vertex: \"".concat(
 												val).concat("\""));
 						} else if (name.equals("boundary")) {
 							if (val.equals("true"))
-								v.setVertexType(QuantoVertex.Type.BOUNDARY);
+								v.setVertexType(QVertex.Type.BOUNDARY);
 						} else if (name.equals("name")) {
 							v.setName(children.item(j).getTextContent());
 						}
 					}
-					QuantoVertex old_v = verts.get(v.getName());
+					QVertex old_v = verts.get(v.getName());
 					if (old_v == null) {
 						verts.put(v.getName(), v);
 						this.addVertex(v);
@@ -74,7 +77,7 @@ public class QuantoGraph extends SparseGraph<QuantoVertex, String> {
 				for (int i = 0; i < es.getLength(); ++i) {
 					NodeList children = es.item(i).getChildNodes();
 
-					QuantoVertex source = null, target = null;
+					QVertex source = null, target = null;
 					String name = null, val, ename=null;
 					for (int j = 0; j < children.getLength(); ++j) {
 						name = children.item(j).getNodeName();
@@ -96,7 +99,7 @@ public class QuantoGraph extends SparseGraph<QuantoVertex, String> {
 				}
 				
 				// Prune removed vertices
-				for (QuantoVertex v : verts.values()) {
+				for (QVertex v : verts.values()) {
 					if (v.old) removeVertex(v);
 				}
 
@@ -106,5 +109,13 @@ public class QuantoGraph extends SparseGraph<QuantoVertex, String> {
 			}
 		}
 
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 }

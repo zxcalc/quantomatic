@@ -2,6 +2,14 @@ package quanto.gui;
 
 import java.io.*;
 
+/**
+ * Regulate communications with the back-end. Primarily accessed via wrappers
+ * to the "command" method, which throw QuantoCore.ConsoleError.
+ * 
+ * In this version, the core contains no GUI code.
+ * @author aleks kissinger
+ *
+ */
 public class QuantoCore {
  
 	public static final int VERTEX_RED = 1;
@@ -14,6 +22,13 @@ public class QuantoCore {
 	BufferedReader from_backEndError;
 	BufferedWriter to_backEnd;
 	PrintStream output;
+	
+	public static class ConsoleError extends Exception {
+		private static final long serialVersionUID = 1053659906558198953L;
+		public ConsoleError(String msg) {
+			super(msg);
+		}
+	}
 
 	public QuantoCore(PrintStream output) {
 		this.output = output;
@@ -30,19 +45,10 @@ public class QuantoCore {
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
 			
-			output.println("Sending hello...");
-			send("H\n"); // ask for back end status
+			// sync the console
+			send("HELO;");
+			while (!receive().contains("HELO"));
 			
-			output.println("Getting hello...");
-			// Make sure we eat up any output before the status.
-			String rcv = receive();
-			while (rcv != null && !rcv.contains("Hello from QUANTOMATIC")) {
-				System.out.println("QuantoCore Sent: " + rcv);
-				rcv = receive();
-			}
-			
-			output.println("Status:");
-			output.println(rcv); //  print it out
 		} catch (IOException e) {
 			e.printStackTrace();
 			if(backEnd == null) { output.println("ERROR: Cannot execute: quanto-core, check it is in the path."); }
@@ -67,12 +73,16 @@ public class QuantoCore {
 	public String receive() {
 		StringBuffer message = new StringBuffer();
 		try {
-			String ln = from_backEnd.readLine();
-			while (!ln.equals("stop")) {
-				message.append(ln);
-				message.append('\n');
-				ln = from_backEnd.readLine();
-			} 
+			// end of text is marked by " "+BACKSPACE (ASCII 8)
+			
+			int c = from_backEnd.read();
+			while (c != 8) {
+				message.append((char)c);
+				c = from_backEnd.read();
+			}
+			
+			// delete the trailing space
+			message.deleteCharAt(message.length()-1);
 		} catch (IOException e) {
 			output.println("Exit value from backend: " + backEnd.exitValue());
 			e.printStackTrace();
@@ -82,87 +92,76 @@ public class QuantoCore {
 			e.printStackTrace();
 			return null;
 		}
+		
 		return message.toString();
+	}
+	
+	public String receiveOrFail() throws ConsoleError {
+		String rcv = receive();
+		
+		if (rcv.startsWith("!!!")) {
+			throw new ConsoleError(rcv.substring(4));
+		}
+		return rcv;
 	}
 	
 	public void closeQuantoBackEnd(){
 		output.println("Shutting down quantoML");
-		send("Q\n");
+		send("quit");
 	}
 	
-	/*void updateGraph() {
-		send("D\n");
-		//output.println("RECEIVED:");
-		String r = receive();
-		//r = "<graph><vertex><name>a</name><boundary>false</boundary><colour>red</colour></vertex></graph>";
-		//XMLElement x = new XMLElement(r);
-		//output.println(r);
-		Graph updated = xml.parseGraph(r);
-		updated.coordinateSystem = null;
-		graph.updateTo(updated);
-		graph.layoutGraph();
-	}
 	
-	void modifyCmd(String s){	
-		send(s + "\n");
-		updateGraph();
-	}
+	/*
+	 * Some helpers for the methods below
+	 */
 	
-	public RewriteInstance getRewritesForSelection() {
+	/**
+	 * Send a command with the given arguments. All of the args should be of types
+	 * with a well-behaved toString() method.
+	 */
+	protected String command(String name, Object ... args) throws ConsoleError {
+		StringBuffer cmd = new StringBuffer(name);
+		for (Object arg : args) {
+			cmd.append(' ');
+			cmd.append(arg.toString());
+		}
+		cmd.append(';');
 		
-		String s = " ";
-		for (Vertex v : graph.getVertices().values()) {
-			if(v.selected) {
-				s = s + v.id + " ";
-			}
+		String ret;
+		synchronized (this) {
+			send(cmd.toString());
+			ret = receiveOrFail();
+			receive(); // eat the prompt
 		}
-		send("RWshow" + s + "\n");
-		return xml.parseRewrite(receive());
+		
+		return ret;
 	}
 	
-	public RewriteInstance nextRewriteForSelection() {
-		send("RWnext\n");
-		return xml.parseRewrite(receive());
+	/**
+	 * Remove all line breaks.
+	 */
+	protected String chomp(String str) {
+		return str.replace("\n", "");
 	}
 	
-	public RewriteInstance prevRewriteForSelection() {
-		send("RWprev\n");
-		return xml.parseRewrite(receive());
+	/*
+	 * Below here are all the functions implemented by the quanto core
+	 */
+	
+	
+	public String graph_xml(String graphName) throws ConsoleError {
+		return command("graph_xml", graphName);
 	}
 	
-	public void abortRewrite() {
-		send("RWabort\n");
-	}
-
-	public void acceptRewriteForSelection() {
-		modifyCmd("RWyes");
+	public String new_graph() throws ConsoleError {
+		return chomp(command("new_graph"));
 	}
 	
-	public void newGraph() {
-		modifyCmd("n");
+	public void add_vertex(String graphName, QVertex.Type type) throws ConsoleError {
+		command("add_vertex", graphName, type.toString().toLowerCase());
 	}
-
-	public void previousGraphState() {
-		modifyCmd("u");
+	
+	public void add_edge(String graphName, String s, String t) throws ConsoleError {
+		command("add_edge", graphName, s, t);
 	}
-
-	public void deleteAllSelected() {
-		for (Vertex v : graph.getVertices().values()) {
-			if (v.selected){ send("d " + v.id + "\n"); }
-		}
-		updateGraph();
-	}
-
-	public void addEdge(Vertex w, Vertex v) {
-		modifyCmd("e " + w.id + " " + v.id);
-	}
-
-	public void addVertex(int v) {
-		switch(v){
-			case VERTEX_RED: modifyCmd("r"); break;
-			case VERTEX_GREEN: modifyCmd("g"); break;
-			case VERTEX_HADAMARD: modifyCmd("h"); break;
-			case VERTEX_BOUNDARY: modifyCmd("b"); break;
-		}
-	}*/
 }

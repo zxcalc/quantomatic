@@ -5,11 +5,11 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 
 public class GraphContext {
 	public QuantoGraph graph;
-	public VisualizationViewer<QuantoVertex,String> vis;
-	public Layout<QuantoVertex,String> layout;
+	public VisualizationViewer<QVertex,String> vis;
+	public Layout<QVertex,String> layout;
 	public GraphContext(QuantoGraph graph,
-			VisualizationViewer<QuantoVertex, String> vis,
-			Layout<QuantoVertex, String> layout) {
+			VisualizationViewer<QVertex, String> vis,
+			Layout<QVertex, String> layout) {
 		this.graph = graph;
 		this.vis = vis;
 		this.layout = layout;
