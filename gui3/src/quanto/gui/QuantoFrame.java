@@ -14,6 +14,7 @@ public class QuantoFrame extends JFrame {
 	private static final long serialVersionUID = 3656684775223085393L;
 	protected QuantoCore core;
 	protected QuantoConsole console;
+	protected Map<String,InteractiveQuantoVisualizer> views;
 	boolean consoleVisible;
 	final JTabbedPane tabs;
 	
@@ -67,7 +68,7 @@ public class QuantoFrame extends JFrame {
 		item.addActionListener(new QuantoFrameListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraphName(), QVertex.Type.RED);
+				getCore().add_vertex(getCurrentGraph(), QVertex.Type.RED);
 				updateCurrentGraph();
 			}
 		});
@@ -78,7 +79,7 @@ public class QuantoFrame extends JFrame {
 		item.addActionListener(new QuantoFrameListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraphName(), QVertex.Type.GREEN);
+				getCore().add_vertex(getCurrentGraph(), QVertex.Type.GREEN);
 				updateCurrentGraph();
 			}
 		});
@@ -89,7 +90,7 @@ public class QuantoFrame extends JFrame {
 		item.addActionListener(new QuantoFrameListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraphName(), QVertex.Type.BOUNDARY);
+				getCore().add_vertex(getCurrentGraph(), QVertex.Type.BOUNDARY);
 				updateCurrentGraph();
 			}
 		});
@@ -100,7 +101,7 @@ public class QuantoFrame extends JFrame {
 		item.addActionListener(new QuantoFrameListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraphName(), QVertex.Type.HADAMARD);
+				getCore().add_vertex(getCurrentGraph(), QVertex.Type.HADAMARD);
 				updateCurrentGraph();
 			}
 		});
@@ -133,7 +134,7 @@ public class QuantoFrame extends JFrame {
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(tabs, BorderLayout.CENTER);
 		
-		Map<String,QuantoVisualizer> views = new HashMap<String, QuantoVisualizer>();
+		views = new HashMap<String, InteractiveQuantoVisualizer>();
         
         console = new QuantoConsole(tabs, views);
         core = console.qcore;
@@ -150,17 +151,34 @@ public class QuantoFrame extends JFrame {
         showHideConsole();
 	}
 	
+	/**
+	 * Create a new graph, read the name, and send to a fresh
+	 * InteractiveQuantoVisualizer. This method and
+	 * QuantoConsole.updateGraphFromOutput() are the only methods
+	 * that generate interactive (named) graphs.
+	 * 
+	 * @throws QuantoCore.ConsoleError
+	 */
 	public void newGraph() throws QuantoCore.ConsoleError {
-		String g = core.new_graph();
-		console.updateGraph(g);
+		QuantoGraph newGraph = core.new_graph();
+		InteractiveQuantoVisualizer vis =
+			new InteractiveQuantoVisualizer(core, newGraph);
+		vis.updateGraph();
+		views.put(newGraph.getName(), vis);
+		tabs.add(newGraph.getName(), vis);
+		tabs.setSelectedIndex(tabs.indexOfComponent(vis));
 	}
 	
-	public String getCurrentGraphName() {
-		return tabs.getTitleAt(tabs.getSelectedIndex());
+	public QuantoGraph getCurrentGraph() {
+		Component comp = tabs.getComponentAt(tabs.getSelectedIndex());
+		if (comp instanceof InteractiveQuantoVisualizer)
+			return ((InteractiveQuantoVisualizer)comp).getGraph();
+		else return null;
 	}
 	
 	public void updateCurrentGraph() throws QuantoCore.ConsoleError {
-		console.updateGraph(getCurrentGraphName());
+		InteractiveQuantoVisualizer vis = views.get(getCurrentGraph().getName());
+		if (vis != null) vis.updateGraph();
 	}
 	
 	public void errorDialog(String message) {

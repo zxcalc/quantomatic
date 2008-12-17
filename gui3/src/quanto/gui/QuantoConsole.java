@@ -18,7 +18,7 @@ public class QuantoConsole extends JPanel {
 	public QuantoCore qcore;
 	JTextField input;
 	JTextArea output;
-	Map<String,QuantoVisualizer> views;
+	Map<String,InteractiveQuantoVisualizer> views;
 	JTabbedPane tabs;
 	final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
 	
@@ -35,7 +35,7 @@ public class QuantoConsole extends JPanel {
 		
 	}
 	
-	public QuantoConsole(JTabbedPane tabs, Map<String, QuantoVisualizer> views) {
+	public QuantoConsole(JTabbedPane tabs, Map<String, InteractiveQuantoVisualizer> views) {
         this.setLayout(new BorderLayout());
         this.views = views;
         this.tabs = tabs;
@@ -65,37 +65,32 @@ public class QuantoConsole extends JPanel {
         this.add(input,BorderLayout.SOUTH);
 	}
 	
+	/**
+	 * Read rcv. If it starts with GRAPH_XML, parse the rest and
+	 * display the graph. This method and QuantoFrame.newGraph() should
+	 * be the only source of interactive graphs.
+	 * 
+	 * @param rcv
+	 */
 	private void updateGraphFromOutput(String rcv) {
 		if (rcv.startsWith("GRAPH_XML")) {
 			Matcher m = graph_xml.matcher(rcv);
 			
 			if (m.find()) {
 				String name = m.group(1);
-				//out.printf("GRAPH_XML(%s)\n", name);
-				
-				QuantoVisualizer viz = views.get(name);
-				if (viz == null) {
-					QuantoGraph g = new QuantoGraph();
-					g.setName(name);
-					viz = new QuantoVisualizer(this, g);
-					views.put(name, viz);
-					tabs.add(name, viz);
-				}
-				
-				tabs.setSelectedIndex(tabs.indexOfComponent(viz));
-				
 				String xml = m.replaceFirst("");
-				viz.graph.fromXml(xml);
-				viz.getGraphLayout().initialize();
+				InteractiveQuantoVisualizer vis = views.get(name);
+				if (vis == null) {
+					vis = new InteractiveQuantoVisualizer(
+							qcore, new QuantoGraph(name));
+					views.put(name, vis);
+				}
+				vis.updateGraphFromXml(xml);
 			} else {
-				out.println("!! Bad graph name.");
+				throw new RuntimeException(
+						"Bad output from core:\n".concat(rcv));
 			}
 		}
-	}
-	
-	public void updateGraph(String name) throws QuantoCore.ConsoleError {
-		String out = qcore.graph_xml(name);
-		updateGraphFromOutput(out);
 	}
 	
 	public void write(String text) {
@@ -117,15 +112,6 @@ public class QuantoConsole extends JPanel {
 	
 	public void grabFocus() {
 		input.grabFocus();
-	}
-	
-	public void addEdge(QuantoGraph g, QVertex s, QVertex t) {
-		try {
-			qcore.add_edge(g.getName(), s.getName(), t.getName());
-			updateGraph(g.getName());
-		} catch (QuantoCore.ConsoleError e) {
-			out.print("ERROR: ".concat(e.getMessage()));
-		}	
 	}
 
 }

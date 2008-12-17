@@ -119,11 +119,14 @@ public class QuantoCore {
 	 * Send a command with the given arguments. All of the args should be of types
 	 * with a well-behaved toString() method.
 	 */
-	protected String command(String name, Object ... args) throws ConsoleError {
+	protected String command(String name, HasName ... args) throws ConsoleError {
 		StringBuffer cmd = new StringBuffer(name);
-		for (Object arg : args) {
+		for (HasName arg : args) {
+			if (arg.getName() == null)
+				throw new ConsoleError(
+						"Attempted to pass unnamed object to core.");
 			cmd.append(' ');
-			cmd.append(arg.toString());
+			cmd.append(arg.getName());
 		}
 		cmd.append(';');
 		
@@ -149,19 +152,22 @@ public class QuantoCore {
 	 */
 	
 	
-	public String graph_xml(String graphName) throws ConsoleError {
-		return command("graph_xml", graphName);
+	public String graph_xml(QuantoGraph graph) throws ConsoleError {
+		return command("graph_xml", graph);
 	}
 	
-	public String new_graph() throws ConsoleError {
-		return chomp(command("new_graph"));
+	public QuantoGraph new_graph() throws ConsoleError {
+		return new QuantoGraph(chomp(command("new_graph")));
 	}
 	
-	public void add_vertex(String graphName, QVertex.Type type) throws ConsoleError {
-		command("add_vertex", graphName, type.toString().toLowerCase());
+	public void add_vertex(QuantoGraph graph, QVertex.Type type)
+	throws ConsoleError {
+		command("add_vertex", graph, 
+				new HasName.Basic(type.toString().toLowerCase()));
 	}
 	
-	public void add_edge(String graphName, String s, String t) throws ConsoleError {
-		command("add_edge", graphName, s, t);
+	public void add_edge(QuantoGraph graph, QVertex s, QVertex t)
+	throws ConsoleError {
+		command("add_edge", graph, s, t);
 	}
 }

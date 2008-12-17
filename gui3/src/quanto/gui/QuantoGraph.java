@@ -11,10 +11,23 @@ import org.xml.sax.InputSource;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 
-public class QuantoGraph extends SparseGraph<QVertex, String>
+public class QuantoGraph extends SparseGraph<QVertex, QEdge>
 implements HasName {
 	private static final long serialVersionUID = -1519901566511300787L;
-	protected String name = "NO_NAME";
+	protected String name;
+	
+	public QuantoGraph(String name) {
+		this.name = name;
+	}
+	
+	/**
+	 * Use this constructor for unnamed graphs. The idea is you
+	 * should do null checks before sending the name to the core.
+	 */
+	public QuantoGraph() {
+		this.name = null;
+	}
+	
 	public Map<String,QVertex> getVertexMap() {
 		Map<String, QVertex> verts =
 			new HashMap<String, QVertex>();
@@ -95,7 +108,8 @@ implements HasName {
 						throw new Exception(
 								"Edge declared before its vertices.");
 					
-					this.addEdge(ename, source, target, EdgeType.DIRECTED);
+					this.addEdge(new QEdge(ename),
+							source, target, EdgeType.DIRECTED);
 				}
 				
 				// Prune removed vertices
