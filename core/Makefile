@@ -1,21 +1,31 @@
-################
+################################
 # dynamic variables checked on call to make. 
-
+################################
 ML_SRC_FILES = $(shell ls *.ML)
 ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*/*.ML)
 
-################
+################################
+# variables you might want to set in your own profile setup...
+################################
+### your local install of PolyML
+# POLYML=/home/ldixon/local/polyml-cvs-version
+# PATH=$POLYML/bin:$PATH
+### add polyml lib to LD_LIBRARY_PATH
+# POLYLIB=$POLYML/lib
+# LD_LIBRARY_PATH=$POLYLIB:$LD_LIBRARY_PATH
+# DYLD_LIBRARY_PATH=$POLYLIB:$DYLD_LIBRARY_PATH
+
+################################
 # general variables
+################################
+THE_BIN=quanto-core # binary file to produce
+POLYML=poly # polyml executable
+ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap # isaplanner heap file
+THE_POLY_HEAP=quanto.polyml-heap # quanto heap file
 
-THE_BIN=quanto-core
-POLYML=poly
-# POLYML_LIB=/home/ldixon/local/polyml-5.2.0/lib
-ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
-THE_POLY_HEAP=quanto.polyml-heap
-
-################
+################################
 # Targets: 
-
+################################
 default: bin
 
 $(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
