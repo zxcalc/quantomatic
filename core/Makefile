@@ -19,13 +19,13 @@ ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*
 # general variables
 ################################
 # binary file to produce
-THE_BIN=quanto-core
+THE_BIN='quanto-core'
 # polyml executable
-POLYML=poly
-# isaplanner heap file
-ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
+POLYML='poly'
+ # isaplanner heap file
+ISAPLIB_HEAP='./isaplib/heaps/isaplib.polyml-heap'
 # quanto heap file
-THE_POLY_HEAP=quanto.polyml-heap
+THE_POLY_HEAP='quanto.polyml-heap'
 
 ################################
 # Targets: 
@@ -37,7 +37,7 @@ $(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
 
 # make polyml heap
 heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "ROOT.ML"; PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"; quit();' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; PolyML.use "ROOT.ML"; PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"; quit();' | $(POLYML)
 	@echo "Built polyml heap: heaps/$(THE_POLY_HEAP)"
 
 heap: heaps/$(THE_POLY_HEAP)
@@ -63,3 +63,5 @@ clean:
 
 veryclean: clean
 	cd isaplib; make clean
+
+vclean: veryclean
