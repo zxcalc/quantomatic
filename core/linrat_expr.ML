@@ -161,7 +161,7 @@ fun pretty (pi, tab) =
 	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])]
 	        | pretty1 (k,v) pl =
 	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])::
-	          ((Pretty.str "  +  ")::pl)
+	          ((Pretty.str " + ")::pl)
     in 
       Pretty.block (VName.NTab.fold pretty1 tab ppi)
     end
@@ -196,56 +196,6 @@ fun match pat target already_matched =
 	          SOME (VName.NTab.update (match_var, rhs) already_matched)
 	        end
     end;
-
-
-(* DEPR: parse a linear rational expression. the constant must be first *)
-(* datatype rtok = PLUS | MINUS | MULT | DIV | ID of string | NUM of int
-exception InvalidChar
-exception RationalParse
-
-local
-    fun rat_lex [] toks = toks
-      | rat_lex (c::cs) toks =
-	let
-	    val is_ident = fn c => (Char.isAlpha c) orelse (c = #"_")
-	    fun id_lex [] buf toks = (ID (String.implode (rev buf)))::toks
-	      | id_lex (c::cs) buf toks =
-		if is_ident c then id_lex cs (c::buf) toks
-		else rat_lex (c::cs) ((ID (String.implode (rev buf)))::toks)
-	in case (Int.fromString o Char.toString) c
-	    of SOME d =>
-	       (case toks of ((NUM n)::toks') => rat_lex cs ((NUM (n*10+d))::toks')
-			   | _ => rat_lex cs ((NUM d)::toks))
-	     | NONE =>
-	       (case c of #"*" => rat_lex cs (MULT::toks)
-			| #"/" => rat_lex cs (DIV::toks)
-			| #"+" => rat_lex cs (PLUS::toks)
-			| #"-" => rat_lex cs (MINUS::toks)
-			| _ => if Char.isSpace c then rat_lex cs toks
-			       else (if is_ident c then id_lex (c::cs) [] toks
-				     else raise InvalidChar))
-	end
-	
-    fun rat_lex' str = rev (rat_lex (String.explode str) [])
-
-    fun rat_exp' ((NUM n)::DIV::(NUM d)::TIMES::(ID id)::[]) =
-	[(id, Rational.mk n d)]
-      | rat_exp' ((NUM n)::TIMES::(ID id)::[]) = [(id, Rational.mk n 1)]
-      | rat_exp' ((NUM n)::DIV::(NUM d)::TIMES::(ID id)::PLUS::toks) =
-	(id,Rational.mk n d)::(rat_exp' toks)
-      | rat_exp' ((NUM n)::TIMES::(ID id)::PLUS::toks) = 
-	(id,Rational.mk n 1)::(rat_exp' toks)
-      | rat_exp' ((ID id)::PLUS::toks) = 
-	(id,Rational.mk 1 1)::(rat_exp' toks)
-      | rat_exp' _ = raise RationalParse
-    fun rat_exp ((NUM n)::DIV::(NUM d)::[]) = (Rational.mk n d, [])
-      | rat_exp ((NUM n)::[]) = (Rational.mk n 1, [])
-      | rat_exp ((NUM n)::DIV::(NUM d)::PLUS::toks) =
-	(Rational.mk n d, rat_exp' (toks))
-      | rat_exp ((NUM n)::PLUS::toks) = (Rational.mk n 1, rat_exp' (toks))
-      | rat_exp toks = (Rational.mk 0 1, rat_exp' toks)
-in val parse = (uncurry mk) o rat_exp o rat_lex'
-end*)
 
 
 end;

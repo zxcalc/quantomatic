@@ -1,6 +1,6 @@
 signature CONTROLLER =
 sig
-    val init : unit -> int
+    val init : unit -> unit
 end
 
 structure NewController (*: CONTROLLER *) =
@@ -244,7 +244,15 @@ local
 	end
 	handle Subscript => ("!!! Requested rewrite not attached.\n", graph, [])
 	     | Option => ("!!! Rewrite selection must be an integer.\n", graph, [])
-	
+
+    fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
+      | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
+      | vdata a _ = raise Match
+
+    fun set_angle ([_,v,a], graph) =
+	("ok\n", graph |> G.update_vertex (vdata a) v)
+	handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
+	     | LinratParser.Parse => ("!!! Cannot parse angle expression.\n", graph)
 
 in
 
@@ -321,8 +329,14 @@ val () = (
     register_cmd
 	"apply_rewrite"
 	("apply_rewrite GRAPH N\n\n"^
-	 "  apply the Nth rewrite attached to GRAPH\n")
+	 "    apply the Nth rewrite attached to GRAPH\n")
 	(lift_graph_mutator_with_rewrites apply_rewrite);
+
+    register_cmd
+	"set_angle"
+	("set_angle GRAPH V ANGLE\n\n"^
+	 "    set the angle of vertex V to ANGLE\n")
+	(lift_graph_mutator set_angle);
 ())
 end
 
@@ -337,10 +351,10 @@ fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
     (case Symtab.lookup (!cmds) cname
       of SOME (_,f) => (fn (a,b)=>(a, NORMAL b)) (f (args, state))
        | NONE => ("!!! Unknown command: "^
-		  (QuantoCommand.toString cmd)^"\n", SKIP))
+		  (QuantoCommand.toString cmd)^"\n", NORMAL state))
     handle Match =>
 	   ("!!! Wrong number of args in " ^
-	    (QuantoCommand.toString cmd)^".\n", SKIP)
+	    (QuantoCommand.toString cmd)^".\n", NORMAL state)
 
 fun eval command state =
     let

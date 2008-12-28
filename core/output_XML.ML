@@ -211,6 +211,9 @@ fun render_xml_angleexpr (pi,tab) =
     [Pretty.str "<angleexpr>",
      Pretty.block [Pretty.str "  ",
 		   Pretty.chunks [
+		   Pretty.block [Pretty.str "<as_string>",
+				 AngleExpr.pretty (pi,tab),
+				 Pretty.str "</as_string>"],
 		   render_xml_constant_part pi,
 		   render_xml_variable_part tab]
 		  ],
