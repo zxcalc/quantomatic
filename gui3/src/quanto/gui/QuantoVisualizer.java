@@ -40,14 +40,18 @@ public class QuantoVisualizer extends VisualizationViewer<QVertex,QEdge> {
         getRenderContext().setEdgeShapeTransformer(
         		new EdgeShape.Line<QVertex,QEdge>());
         
-        /*getRenderContext().setVertexLabelTransformer(
-        		new ToStringLabeller<QuantoVertex>());*/
+        getRenderContext().setVertexLabelTransformer(
+        		new Transformer<QVertex, String>() {
+					public String transform(QVertex v) {
+						return v.getAngle();
+					}
+        		});
         
         getRenderContext().setVertexShapeTransformer(
         		new Transformer<QVertex, Shape>() {
         			public Shape transform(QVertex v) {
         				if (v.getVertexType()==QVertex.Type.BOUNDARY)
-        					return new Ellipse2D.Double(-2,-2,4,4);
+        					return new Ellipse2D.Double(-4,-4,8,8);
         				else if (v.getVertexType()==QVertex.Type.HADAMARD)
         					return new Rectangle2D.Double(-7,-7,14,14);
         				else

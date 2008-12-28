@@ -5,7 +5,7 @@ import java.awt.Color;
 public class QVertex implements HasName {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
-	private String name;
+	private String name, angle;
 	public boolean old;
 
 	public QVertex() {
@@ -59,5 +59,14 @@ public class QVertex implements HasName {
 		old = false;
 		name = v.getName();
 		vertexType = v.getVertexType();
+		angle = v.getAngle();
+	}
+
+	public String getAngle() {
+		return angle;
+	}
+
+	public void setAngle(String angle) {
+		this.angle = angle;
 	}
 }

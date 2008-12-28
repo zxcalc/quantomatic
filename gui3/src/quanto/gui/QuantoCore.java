@@ -30,6 +30,17 @@ public class QuantoCore {
 			super(msg);
 		}
 	}
+	
+	public static class FatalError extends RuntimeException {
+		private static final long serialVersionUID = -3757849807264018024L;
+		public FatalError(String msg) {
+			super(msg);
+		}
+		
+		public FatalError(Exception e) {
+			super(e);
+		}
+	}
 
 	public QuantoCore(PrintStream output) {
 		this.output = output;
@@ -183,5 +194,9 @@ public class QuantoCore {
 	
 	public void apply_rewrite(QuantoGraph graph, int i) throws ConsoleError {
 		command("apply_rewrite", graph, new HasName.IntName(i));
+	}
+	
+	public void set_angle(QuantoGraph graph, QVertex v, String angle) throws ConsoleError {
+		command("set_angle", graph, v, new HasName.StringName(angle));
 	}
 }

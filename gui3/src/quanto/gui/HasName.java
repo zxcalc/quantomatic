@@ -22,12 +22,16 @@ public interface HasName {
 	public static class StringName implements HasName {
 		public String name;
 		
+		
 		public StringName(String name) {
 			this.name = name;
 		}
 		
+		// TODO: make sure escaping works properly
 		public String getName() {
-			return name;
+			return "\"" +
+				name.replace("\\", "\\\\").replace("\"", "\\\"") +
+				"\"";
 		}
 
 		public void setName(String name) {

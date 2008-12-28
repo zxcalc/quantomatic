@@ -183,6 +183,32 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, modifierKey));
 		graphMenu.add(item);
 		
+		item = new JMenuItem("Set Angle", KeyEvent.VK_A);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				String def = "";
+				if (getPickedVertexState().getPicked().size()>0) {
+					QVertex fst = getPickedVertexState()
+						.getPicked().iterator().next();
+					def = fst.getAngle();
+				}
+				
+				String angle = 
+					JOptionPane.showInputDialog("Input a new angle:",def);
+				
+				if (angle != null) {
+					for (QVertex v : getPickedVertexState().getPicked()) {
+						if (v.getVertexType() != QVertex.Type.BOUNDARY)
+							core.set_angle(getGraph(), v, angle);
+					}
+					updateGraph();
+				}
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, modifierKey));
+		graphMenu.add(item);
+		
 		menus.add(graphMenu);
 	}
 

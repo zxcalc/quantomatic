@@ -36,6 +36,12 @@ implements HasName {
 		return verts;
 	}
 
+	/**
+	 * Parse XML from a string. If the core gives mal-formed XML,
+	 * the front-end SHOULD crash, so throw QuantoCore.FatalError.
+	 * @param xml
+	 * @return
+	 */
 	public QuantoGraph fromXml(String xml) {
 		try {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
@@ -43,17 +49,24 @@ implements HasName {
 			IXMLElement root = (IXMLElement)parser.parse();
 			fromXml(root);
 		} catch (XMLException e) {
-			System.out.println("Error parsing XML.");
+			throw new QuantoCore.FatalError("Error parsing XML.");
 		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
+			throw new QuantoCore.FatalError(e);
 		} catch (InstantiationException e) {
-			throw new RuntimeException(e);
+			throw new QuantoCore.FatalError(e);
 		} catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
+			throw new QuantoCore.FatalError(e);
 		}
 		return this;
 	}
 
+	/**
+	 * Populate this graph using a given DOM node. This is in
+	 * a separate method so graph defs can be nested inside of
+	 * bigger XML blocks, e.g. rewrites.
+	 * @param graphNode
+	 * @return
+	 */
 	public QuantoGraph fromXml(IXMLElement graphNode) {
 		synchronized (this) {
 			Map<String, QVertex> verts = getVertexMap();
@@ -62,16 +75,37 @@ implements HasName {
 				IXMLElement vertexNode = (IXMLElement)obj;
 				QVertex v = new QVertex();
 				
-				IXMLElement ch;
-				
-				ch = vertexNode.getFirstChildNamed("colour");
-				if (ch!=null) v.setVertexType(ch.getContent());
-				ch = vertexNode.getFirstChildNamed("name");
-				if (ch!=null) v.setName(ch.getContent());
-				ch = vertexNode.getFirstChildNamed("boundary");
-				if (ch!=null && ch.getContent().equals("true"))
-					v.setVertexType(QVertex.Type.BOUNDARY);
-				
+				try {
+					v.setVertexType(
+							vertexNode
+							.getFirstChildNamed("colour")
+							.getContent());
+					v.setName(vertexNode
+							.getFirstChildNamed("name")
+							.getContent());
+					if (vertexNode
+							.getFirstChildNamed("boundary")
+							.getContent().equals("true"))
+						v.setVertexType(QVertex.Type.BOUNDARY);
+					
+					IXMLElement expr = vertexNode
+						.getFirstChildNamed("angleexpr");
+					if (expr == null) {
+						v.setAngle("0");
+					} else {
+						v.setAngle(expr
+								.getFirstChildNamed("as_string")
+								.getContent());
+					}
+				} catch (NullPointerException e) {
+					/* if NullPointerException is thrown, the
+					 * core has most likely neglected to include
+					 * a required field, so the GUI should crash.
+					 */
+					e.printStackTrace();
+					throw new QuantoCore.FatalError(
+							"Error reading graph XML.");
+				}
 				
 				QVertex old_v = verts.get(v.getName());
 				if (old_v == null) {
@@ -102,13 +136,13 @@ implements HasName {
 				ch = edgeNode.getFirstChildNamed("name");
 				if (ch!=null) ename = ch.getContent();
 
-				if (source != null || target != null) {
-					this.addEdge(new QEdge(ename),
-						source, target, EdgeType.DIRECTED);
-				} else {
-					throw new RuntimeException(
-							"Edge ".concat(ename).concat(" has an undefined endpoint."));
-				}
+				if (source == null || target == null || ename == null)
+					throw new QuantoCore.FatalError(
+							"Bad edge definition in XML.");
+				
+				this.addEdge(new QEdge(ename),
+					source, target, EdgeType.DIRECTED);
+				
 			} // foreach edge
 		} // synchronised(this)
 		return this;
