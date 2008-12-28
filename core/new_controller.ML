@@ -1,5 +1,9 @@
+signature CONTROLLER =
+sig
+    val init : unit -> int
+end
 
-structure NewController =
+structure NewController (*: CONTROLLER *) =
 struct
 
 structure QuantoCommand =
@@ -12,24 +16,36 @@ open SimpleLexer
 fun const v = fn _ => v
 fun unwrap (LIT s) = s
   | unwrap (ID s) = s
+  | unwrap (INT n) = Int.toString n
+  | unwrap _ = raise Match
 
-(* a term grammar with no nesting *)
-fun arg x = x|>((literal || ident)>>unwrap)
+(*
+a term grammar with no nesting
+
+arg   ::= LITERAL | ID
+args  ::= arg args | E
+expr  ::= ID args
+exprs ::= expr ; exprs | E
+*)
+
+
+fun arg x = x|>((literal || ident || num)>>unwrap)
 fun args x = x|>(((arg -- args) >> op::)
-		     || (noop >> const []));
-fun expr x = x|>(
-	     ((ident >> unwrap) -- args)
-		 || (noop >> const ("NOOP",[]))
-	     )
-fun parse str = parse_with expr str
-    handle _ => raise Parse
+		     || (noop >> const []))
+fun expr x = x|>((ident >> unwrap) -- args)
+fun exprs x = x|>(
+	      ((expr --| sym ";" -- exprs) >> op::)
+		   || (noop >> const []))
+
+fun parse str = parse_with exprs str
+(*    handle _ => raise Parse*)
 fun pretty (f,args) = Pretty.block[Pretty.str f,
 				   Pretty.str_list "(" ")" args]
 val print = Pretty.writeln o pretty
 val toString = Pretty.string_of o pretty
 end;
 
-structure GraphName = 
+structure GraphName :> STR_NAMES = 
 struct
 open StrName
 val default_name = "Ga"
@@ -39,9 +55,15 @@ structure G = RGGraph
 structure V = G.RGVertex
 structure E = G.Edge
 
-type graphstate = (RGGraph.T list) GraphName.NTab.T
+(* (name, rule, fused) *)
+type rewrite = string * Rule.T * RGGraph.T
+type graphstate = {
+     hist : (RGGraph.T list * RGGraph.T list),
+     rws: rewrite list} GraphName.NTab.T
 datatype consolestate = NORMAL of graphstate | SKIP | QUIT
 
+
+val newState : graphstate = GraphName.NTab.empty
 
 (*
 A dictionary of commands of the format:
@@ -72,69 +94,163 @@ local
 		val (name,table') =
 		    graph_table |> GraphName.NTab.add
 			        (GraphName.default_name,
-				 [gr])
+				 {hist = ([gr],[]), rws = []})
 	    in
 		((Pretty.str_of (GraphName.pretty_name name)) ^ "\n",
 		 table')
 	    end
 	  | NONE => ("!!! Cannot create graph\n", graph_table)
 
-    (* wrap commands of the form [args] * graph -> out *)
-    fun lift_graph_viewer cmd ((graph_name::args), graph_table) =
+    (* cmd: [args] * graphstate -> out * graphstate *)
+    fun lift_graph_state_mutator cmd (args as (graph_name::_), graph_table) =
 	(case GraphName.NTab.lookup graph_table graph_name
-	  of SOME (g::gs) => (cmd (args,g), graph_table)
-	   | NONE => ("!!! Cannot lookup graph\n", graph_table))
-      | lift_graph_viewer _ (_,state) =
+	  of SOME state => let val (out,state') = cmd (args,state)
+			       in (out,
+				   graph_table |> GraphName.NTab.update
+				               (graph_name, state'))
+			       end
+	   | _ => ("!!! Cannot lookup graph\n", graph_table))
+      | lift_graph_state_mutator _ (_, state) =
 	("!!! Graph command needs at least one argument\n", state)
 
-    (* wrap commands of the form ([args] * graph) -> (out * graph) *)
-    fun lift_graph_mutator cmd ((graph_name::args), graph_table) =
-	(case GraphName.NTab.lookup graph_table graph_name
-	  of SOME (g::gs) => let val (out,g') = cmd (args,g)
-			     in (out,
-				 graph_table |> GraphName.NTab.update
-				                  (graph_name, g'::g::gs))
-			     end
-	   | _ => ("!!! Cannot lookup graph\n", graph_table))
-      | lift_graph_mutator _ (_, state) =
-	("!!! Graph command needs at least one argument\n", state)
-	
-    (* wrap commands of the form [args] -> out *)
+    (* cmd: ([args] * ([graph] * [graph])) -> (out * ([graph] * [graph])) *)
+    fun lift_graph_stack_mutator cmd = let
+	fun apply_stacks cmd (args,{hist=h,rws=r}) =
+	    let val (out,h') = cmd (args,h)
+	    in (out,{hist=h',rws=r})
+	    end
+    in lift_graph_state_mutator (apply_stacks cmd)
+    end
+
+    (* cmd: ([args] * graph * [rewrites]) -> (out * graph * [rewrites]) *)
+    fun lift_graph_mutator_with_rewrites cmd = let
+	fun push_mod cmd (args, {hist=((g::gs),hs),rws=r}) =
+	    let val (out,g',r') = cmd (args,g,r)
+	    in (out, {hist=(g'::g::gs, []), rws=r'})
+	    end
+	  | push_mod cmd (args, state) =
+	    ("!!! Graph stack is empty\n",state)
+    in lift_graph_state_mutator (push_mod cmd)
+    end
+
+    (* cmd: ([args] * graph * [rewrites]) -> (out * [rewrites]) *)
+    fun lift_graph_viewer_with_rewrites cmd = let
+	fun peek_top cmd (args, {hist=(h as ((g::_),_)),rws=r}) =
+	    let val (out, r') = cmd (args,g,r)
+	    in (out, {hist=h, rws=r'})
+	    end
+	  | peek_top cmd (args, state) =
+	    ("!!! Graph stack is empty\n",state)
+    in lift_graph_state_mutator (peek_top cmd)
+    end
+
+    (* cmd: ([args] * graph) -> (out * graph) *)
+    fun lift_graph_mutator cmd =
+	let val flat = fn ((a,b),c) => (a,b,c)
+	in lift_graph_mutator_with_rewrites (fn (a,g,_) => flat (cmd (a,g),[]))
+	end
+
+    (* cmd: [args] * graph -> out *)
+    fun lift_graph_viewer cmd =
+	lift_graph_viewer_with_rewrites (fn (a,g,r) => (cmd (a,g),r))
+
+    (* cmd: [args] -> out *)
     fun lift_stateless cmd (args, state) = (cmd args, state)
 
     (* ============================================== *)
 
     (* helper functions for commands registered below *)
     fun help [] = "Type \"help CMD\" to get help on a command.\n"^
-		  "Available commands:\n"^
+		  "Available commands:\n  quit\n"^
 		  (foldr (fn (a,b)=>"  "^a^"\n"^b) "\n" (Symtab.keys (!cmds)))
-      | help [cmd] = case Symtab.lookup (!cmds) cmd
-		      of SOME (h,_) => "\n"^h^"\n"
-		       | NONE => "!!! Can't find command.\n"
+      | help [cmd] = (case Symtab.lookup (!cmds) cmd
+		       of SOME (h,_) => "\n"^h^"\n"
+			| NONE => "!!! Can't find command.\n")
 
-
-    fun duplicate_graph ([gr], tab) = case GraphName.NTab.lookup tab gr
-				       of SOME (g::gs) => SOME g
-					| _ => NONE
-
+    fun duplicate_graph ([gr], tab) =
+	(case GraphName.NTab.lookup tab gr
+	  of SOME {hist=(g::gs,_),...} => SOME g
+	   | _ => NONE)
 
     fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
       | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
       | vertex_type "hadamard" = V.IVert V.Hnd
       | vertex_type "boundary" = V.BVert ()
 
-    fun add_vertex ([vt], graph) =
-	("ok\n", #2(graph |> G.add_vertex (vertex_type vt)))
+    fun add_vertex ([_,vt], graph) =
+	let val (n,g) = graph |> G.add_vertex (vertex_type vt)
+	in ("added vertex \"" ^ n ^ "\"\n", g)
+	end
 	handle Match => ("!!! Bad vertex type.\n", graph)
 
-    (* FIX: as far as I can tell, there's no good way to get a hold
+    (* TODO: as far as I can tell, there's no good way to get a hold
      * of the correct "version" of no_such_vname_exp. *)
-    fun add_edge ([v1,v2], graph) =
-	("ok\n", #2(graph |> G.add_edge () v1 v2))
+    fun add_edge ([_,v1,v2], graph) =
+	let val (n,g) = graph |> G.add_edge () v1 v2
+	in ("added edge \"" ^ n ^ "\"\n", g)
+	end
 	handle _ => ("!!! Error adding edge, probably a bad vertex name.\n",
 		     graph)
+
+    fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
+			  Pretty.string_of  o
+			  RGGraphXML.output_graph
+
+    fun undo ([_], (g1::g2::gs, hs)) = ("ok\n", (g2::gs,g1::hs))
+      | undo ([_], (gs, hs)) = ("!!! Can't undo.\n", (gs,hs))
+
+    fun redo ([_],(gs, h::hs)) = ("ok\n", (h::gs, hs))
+      | redo ([_], (gs, [])) = ("!!! Can't redo.\n", (gs, []))
+
+    (* TODO: fix exception name, see above *)
+    fun attach_rewrites ((_::args), graph, _) = let
+	val vset = fold V.NSet.ins_fresh args V.NSet.empty
+    in
+	("ok\n",
+	 (TheoryHack.apply_all_rules_in vset graph)
+             |> map (fn (n,r) => (n, r, Rule.add_rhs r graph)))
+    end
+	handle _ => ("!!! Bad or duplicate vertex name.\n", [])
+
+    
+    (* -- this doesn't belong here but it'll do for now -- *)
+    fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
+    fun pretty_rewrite (rule_name, rule, fused)  = 
+	Pretty.chunks
+	    [Pretty.str "<rewrite>",
+	     indent_chunks [
+	     Pretty.str ("<rulename>"^rule_name^"</rulename>"),
+	     RGGraphXML.output_graph fused,
+	     Pretty.str "<lhs>",
+	     indent_chunks [RGGraphXML.output_graph (Rule.get_lhs rule)],
+	     Pretty.str "</lhs>",
+	     Pretty.str "<rhs>", 
+	     indent_chunks [RGGraphXML.output_graph (Rule.get_rhs rule)],
+	     Pretty.str "</rhs>"],
+	     Pretty.str "</rewrite>",
+	     Pretty.str ""]
+
+    fun show_rewrites ([_], graph, rewrites) = (
+	Pretty.string_of (Pretty.chunks
+			      [Pretty.str "<rewrites>", 
+			       indent_chunks (map pretty_rewrite rewrites),
+			       Pretty.str "</rewrites>",
+			       Pretty.str ""]),
+	rewrites)
+
+    fun apply_rewrite ([_, n], graph, rewrites) =
+	let val (name,rule,fused) = nth rewrites (the (Int.fromString n))
+	in ("applied "^name^"\n", Rule.del_lhs rule fused, [])
+	end
+	handle Subscript => ("!!! Requested rewrite not attached.\n", graph, [])
+	     | Option => ("!!! Rewrite selection must be an integer.\n", graph, [])
+	
+
 in
-val _ = (
+
+(* Register commands available from the console and associate docs *)
+
+val () = (
     register_cmd
 	"help"
 	("help CMD\n\n"^
@@ -142,10 +258,10 @@ val _ = (
 	(lift_stateless help);
 
     register_cmd
-	"test"
-	("test\n\n"^
-	 "    a test command\n")
-	(lift_stateless (fn [] => "Test command\n"));
+	"HELO"
+	("HELO\n\n"^
+	 "    sync the console, print \"HELO\"\n")
+	(lift_stateless (fn [] => "HELO\n"));
 
     register_cmd
 	"new_graph"
@@ -171,11 +287,51 @@ val _ = (
 	 "    add an edge in GRAPH from V1 to V2\n")
 	(lift_graph_mutator add_edge);
 
+    register_cmd
+	"graph_xml"
+	("graph_xml GRAPH\n\n"^
+	 "    dump GRAPH as XML\n")
+	(lift_graph_viewer (uncurry graph_xml));
+
+    register_cmd
+	"undo"
+	("undo GRAPH\n\n"^
+	 "    undo last change to GRAPH\n")
+	(lift_graph_stack_mutator undo);
+
+    register_cmd
+	"redo"
+	("redo GRAPH\n\n"^
+	 "    redo change on GRAPH\n")
+	(lift_graph_stack_mutator redo);
+
+    register_cmd
+	"attach_rewrites"
+	("attach_rewrites GRAPH V1 .. VN\n\n"^
+	 "    calculate rewrites involving V1..VN in GRAPH and\n"^
+	 "    attach to the graph state\n")
+	(lift_graph_viewer_with_rewrites attach_rewrites);
+
+    register_cmd
+	"show_rewrites"
+	("show_rewrites GRAPH\n\n"^
+	 "    show rewrites attached to GRAPH\n")
+	(lift_graph_viewer_with_rewrites show_rewrites);
+
+    register_cmd
+	"apply_rewrite"
+	("apply_rewrite GRAPH N\n\n"^
+	 "  apply the Nth rewrite attached to GRAPH\n")
+	(lift_graph_mutator_with_rewrites apply_rewrite);
 ())
 end
 
+(* Uniquely mark end of text as SPACE + BACKSPACE. This is well-behaved as
+ * long as commands never send raw binary. *)
+val EOT = " "^(chr 8)
 
 fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
+  | do_cmd ("exit",_) _ = ("Exiting...\n", QUIT)
   | do_cmd ("NOOP",_) _ = ("", SKIP)
   | do_cmd (cmd as (cname,args)) state =
     (case Symtab.lookup (!cmds) cname
@@ -186,20 +342,33 @@ fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
 	   ("!!! Wrong number of args in " ^
 	    (QuantoCommand.toString cmd)^".\n", SKIP)
 
+fun eval command state =
+    let
+	val cmds = QuantoCommand.parse command
+	fun eval_list [] state = ([], NORMAL state)
+	  | eval_list (c::cs) state =
+	    case do_cmd c state
+	     of (_, SKIP) => eval_list cs state
+	      | (out, QUIT) => ([out], QUIT)
+	      | (out, NORMAL state') =>
+		let val (lst, st) = eval_list cs state'
+		in (out::lst, st)
+		end
+    in eval_list cmds state
+    end
+    handle Parse => (["!!! Parse error in command: "^command^"\n"], SKIP)
+
 fun repl state = let
-    val _ = TextIO.print "quanto:> "
+    val _ = TextIO.print ("quanto:> "^EOT)
     val cmd_str = unsuffix "\n" (the (TextIO.inputLine TextIO.stdIn))
-    val cmd = QuantoCommand.parse cmd_str
-	handle Parse => (TextIO.print ("!!! Parse error in command: \""^cmd_str^"\"\n");
-			 ("NOOP",[]))
-    val (outpt,st) = do_cmd cmd state
-in (TextIO.print outpt;
-    case st
+    val (output, st) = eval cmd_str state
+in TextIO.print (implode output); TextIO.print EOT;
+   (case st
      of NORMAL state' => repl state'
       | SKIP => repl state
-      | QUIT => 0)
+      | QUIT => (TextIO.print EOT; ()))
 end
 
-fun init () = repl GraphName.NTab.empty;
+fun init () = repl newState;
 
 end (* structure NewController *)

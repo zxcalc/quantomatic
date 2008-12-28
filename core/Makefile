@@ -18,10 +18,14 @@ ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*
 ################################
 # general variables
 ################################
-THE_BIN=quanto-core # binary file to produce
-POLYML=poly # polyml executable
-ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap # isaplanner heap file
-THE_POLY_HEAP=quanto.polyml-heap # quanto heap file
+# binary file to produce
+THE_BIN=quanto-core
+# polyml executable
+POLYML=poly
+# isaplanner heap file
+ISAPLIB_HEAP=./isaplib/heaps/isaplib.polyml-heap
+# quanto heap file
+THE_POLY_HEAP=quanto.polyml-heap
 
 ################################
 # Targets: 
@@ -39,7 +43,7 @@ heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 heap: heaps/$(THE_POLY_HEAP)
 
 bin/$(THE_BIN): heaps/$(THE_POLY_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; PolyML.export ("bin/$(THE_BIN)", (fn () => (Controller.init(); ()))); quit();' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; PolyML.export ("bin/$(THE_BIN)", (fn () => (NewController.init())));' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 

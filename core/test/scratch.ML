@@ -221,6 +221,7 @@ val parse = P.parse terms
 
 end*)
 
+(*
 structure SimpleLexer =
 struct
 
@@ -292,4 +293,4 @@ fun parse str = let val (EXP e,_) = terms ((Symbol.explode str)@[Symbol.eof]) in
 
 
 end
-
+*)

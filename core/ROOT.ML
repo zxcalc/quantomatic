@@ -1,3 +1,5 @@
+use "lex.ML";
+
 use "graph.ML";
 use "test/graph.ML";
 
@@ -33,10 +35,9 @@ use "theory_hack.ML";
 use "test/rule.ML";
 use "test/spider.ML";
 
-use "test/scratch.ML";
 
 use "output.ML";
 use "output_dot.ML";
 use "output_XML.ML";
 
-use "controller.ML";
+use "new_controller.ML";

@@ -1,9 +1,9 @@
 
 signature SIMPLE_LEXER =
 sig
-    exception MoreTokens
     type elem
     datatype token = INT of int | ID of string | LIT of string | SYM of string | NOOP
+    exception MoreTokens of elem list
     val ident : elem list -> token * elem list
     val noop : elem list -> token * elem list
     val num : elem list -> token * elem list
@@ -15,9 +15,9 @@ end
 
 structure SimpleLexer : SIMPLE_LEXER =
 struct
-exception MoreTokens
 type elem = Symbol.symbol
 datatype token = INT of int | ID of string | LIT of string | SYM of string | NOOP
+exception MoreTokens of elem list
 val wordchar = fn c => (Symbol.is_quasi_letter c) orelse (Symbol.is_digit c)
 
 (* terminal definitions *)
@@ -53,16 +53,17 @@ local
     val scan_gaps = Scan.repeat scan_gap >> implode;*)
 	
 in
-val literal = (($$ "\"") |-- 
-	      (Scan.repeat scan_str >> implode) --|
-	      ($$ "\"")) >> LIT;
+val literal = wrap_term ((
+	      ($$ "\"")
+		  |-- (Scan.repeat scan_str >> implode)
+		  --| ($$ "\"")) >> LIT);
     
 end;
 
 fun parse_with p str = let
     val (thing, toks) = p ((Symbol.explode str)@[Symbol.eof])
 in if toks = [Symbol.eof] then thing else
- raise MoreTokens
+   raise MoreTokens toks
 end
 
 end
