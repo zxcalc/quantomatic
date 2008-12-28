@@ -18,7 +18,7 @@ public class QuantoConsole extends JPanel {
 	public QuantoCore qcore;
 	JTextField input;
 	JTextArea output;
-	Map<String,InteractiveQuantoVisualizer> views;
+	Map<String,InteractiveView> views;
 	JTabbedPane tabs;
 	final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
 	
@@ -35,7 +35,7 @@ public class QuantoConsole extends JPanel {
 		
 	}
 	
-	public QuantoConsole(JTabbedPane tabs, Map<String, InteractiveQuantoVisualizer> views) {
+	public QuantoConsole(JTabbedPane tabs, Map<String, InteractiveView> views) {
         this.setLayout(new BorderLayout());
         this.views = views;
         this.tabs = tabs;
@@ -79,13 +79,20 @@ public class QuantoConsole extends JPanel {
 			if (m.find()) {
 				String name = m.group(1);
 				String xml = m.replaceFirst("");
-				InteractiveQuantoVisualizer vis = views.get(name);
+				InteractiveView vis = views.get(name);
 				if (vis == null) {
 					vis = new InteractiveQuantoVisualizer(
 							qcore, new QuantoGraph(name));
 					views.put(name, vis);
 				}
-				vis.updateGraphFromXml(xml);
+				
+				if (vis instanceof InteractiveQuantoVisualizer) {
+					((InteractiveQuantoVisualizer)vis)
+						.updateGraphFromXml(xml);
+				} else {
+					throw new RuntimeException("Attempted to overwrite a non-graph view.");
+				}
+				
 			} else {
 				throw new RuntimeException(
 						"Bad output from core:\n".concat(rcv));

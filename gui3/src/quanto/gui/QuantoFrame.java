@@ -7,125 +7,74 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
-import quanto.gui.QuantoCore.ConsoleError;
 
 public class QuantoFrame extends JFrame {
 	private static final long serialVersionUID = 3656684775223085393L;
 	protected QuantoCore core;
 	protected QuantoConsole console;
-	protected Map<String,InteractiveQuantoVisualizer> views;
+	protected Map<String,InteractiveView> views;
+	protected InteractiveView focusedView;
 	boolean consoleVisible;
 	final JTabbedPane tabs;
 	
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	
-	/**
-	 * Generic action listener that reports errors to a dialog box and gives
-	 * actions access to the frame, console, and core.
-	 */
-	protected abstract class QuantoFrameListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			try {
-				wrappedAction(e);
-			} catch (QuantoCore.ConsoleError err) {
-				errorDialog(err.getMessage());
-			}
-		}
-		
-		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
-	}
 	
 	public QuantoFrame() {
 		tabs = new JTabbedPane();
 		consoleVisible = true;
+		focusedView = null;
 		
-		JMenuBar mb = new JMenuBar();
-		JMenu graphMenu = new JMenu("Graph");
-		JMenu viewMenu = new JMenu("View");
-		
-		graphMenu.setMnemonic(KeyEvent.VK_G);
-		viewMenu.setMnemonic(KeyEvent.VK_V);
+		tabs.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				if (tabs.getSelectedComponent() instanceof
+						InteractiveQuantoVisualizer) {
+					setFocusedView(
+							(InteractiveQuantoVisualizer)
+							tabs.getSelectedComponent());
+				}
+			}
+		});
 		
 		int modifierKey;
-	    if (isMac) modifierKey = Event.META_MASK;
+	    if (QuantoFrame.isMac) modifierKey = Event.META_MASK;
 	    else modifierKey = Event.CTRL_MASK;
 		
+		JMenuBar mb = new JMenuBar();
+		JMenu fileMenu = new JMenu("File");
+		JMenu viewMenu = new JMenu("View");
+		
+		fileMenu.setMnemonic(KeyEvent.VK_F);
+		viewMenu.setMnemonic(KeyEvent.VK_V);
 		
 		JMenuItem item = new JMenuItem("New Graph", KeyEvent.VK_N);
-		item.addActionListener(new QuantoFrameListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				newGraph();
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, modifierKey));
-		graphMenu.add(item);
-		
-		JMenu graphAddMenu = new JMenu("Add");
-		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
-		item.addActionListener(new QuantoFrameListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraph(), QVertex.Type.RED);
-				updateCurrentGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, modifierKey));
-		graphAddMenu.add(item);
-		
-		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
-		item.addActionListener(new QuantoFrameListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraph(), QVertex.Type.GREEN);
-				updateCurrentGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, modifierKey));
-		graphAddMenu.add(item);
-		
-		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
-		item.addActionListener(new QuantoFrameListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraph(), QVertex.Type.BOUNDARY);
-				updateCurrentGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, modifierKey));
-		graphAddMenu.add(item);
-		
-		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_M);
-		item.addActionListener(new QuantoFrameListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getCurrentGraph(), QVertex.Type.HADAMARD);
-				updateCurrentGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, modifierKey));
-		graphAddMenu.add(item);
-		
-		graphMenu.add(graphAddMenu);
+		fileMenu.add(item);
 		
 		if (!isMac) {
 			item = new JMenuItem("Quit", KeyEvent.VK_Q);
 			// TODO: make it work
-			graphMenu.add(item);
+			fileMenu.add(item);
 		}
 		
 		item = new JMenuItem("Show/Hide Console", KeyEvent.VK_C);
-		item.addActionListener(new QuantoFrameListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				showHideConsole();
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, modifierKey));
 		viewMenu.add(item);
-		mb.add(graphMenu);
+		mb.add(fileMenu);
 		mb.add(viewMenu);
 		
 		
@@ -134,21 +83,23 @@ public class QuantoFrame extends JFrame {
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(tabs, BorderLayout.CENTER);
 		
-		views = new HashMap<String, InteractiveQuantoVisualizer>();
+		views = new HashMap<String, InteractiveView>();
         
         console = new QuantoConsole(tabs, views);
         core = console.qcore;
         getContentPane().add(console, BorderLayout.NORTH);
-        
-        try {
-        	newGraph();
-        } catch (QuantoCore.ConsoleError e) {
-			errorDialog(e.getMessage());
-		}
-        
+        newGraph();
         this.pack();
-        
         showHideConsole();
+	}
+	
+	public void setFocusedView (InteractiveQuantoVisualizer v) {
+		JMenuBar mb = getJMenuBar();
+		if (focusedView != null) {
+			for (JMenu m : focusedView.getMenus()) mb.remove(m);
+		}
+		focusedView = v;
+		for (JMenu m : focusedView.getMenus()) mb.add(m);
 	}
 	
 	/**
@@ -157,28 +108,35 @@ public class QuantoFrame extends JFrame {
 	 * QuantoConsole.updateGraphFromOutput() are the only methods
 	 * that generate interactive (named) graphs.
 	 * 
-	 * @throws QuantoCore.ConsoleError
 	 */
-	public void newGraph() throws QuantoCore.ConsoleError {
-		QuantoGraph newGraph = core.new_graph();
-		InteractiveQuantoVisualizer vis =
-			new InteractiveQuantoVisualizer(core, newGraph);
-		vis.updateGraph();
-		views.put(newGraph.getName(), vis);
-		tabs.add(newGraph.getName(), vis);
-		tabs.setSelectedIndex(tabs.indexOfComponent(vis));
+	public void newGraph() {
+		try {
+			QuantoGraph newGraph = core.new_graph();
+			InteractiveQuantoVisualizer vis =
+				new InteractiveQuantoVisualizer(core, newGraph, new Dimension(800,600));
+			//vis.updateGraph();
+			views.put(newGraph.getName(), vis);
+			tabs.add(newGraph.getName(), vis);
+			tabs.setSelectedIndex(tabs.indexOfComponent(vis));
+		} catch (QuantoCore.ConsoleError e) {
+			errorDialog(e.getMessage());
+		}
 	}
 	
 	public QuantoGraph getCurrentGraph() {
-		Component comp = tabs.getComponentAt(tabs.getSelectedIndex());
-		if (comp instanceof InteractiveQuantoVisualizer)
-			return ((InteractiveQuantoVisualizer)comp).getGraph();
-		else return null;
+		if (focusedView != null &&
+				focusedView instanceof InteractiveQuantoVisualizer) {
+			return ((InteractiveQuantoVisualizer)focusedView).getGraph();
+		} else {
+			return null;
+		}
 	}
 	
 	public void updateCurrentGraph() throws QuantoCore.ConsoleError {
-		InteractiveQuantoVisualizer vis = views.get(getCurrentGraph().getName());
-		if (vis != null) vis.updateGraph();
+		if (focusedView != null &&
+				focusedView instanceof InteractiveQuantoVisualizer) {
+			((InteractiveQuantoVisualizer)focusedView).updateGraph();
+		}
 	}
 	
 	public void errorDialog(String message) {

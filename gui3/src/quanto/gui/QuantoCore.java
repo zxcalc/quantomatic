@@ -1,6 +1,7 @@
 package quanto.gui;
 
 import java.io.*;
+import java.util.Set;
 
 /**
  * Regulate communications with the back-end. Primarily accessed via wrappers
@@ -163,11 +164,24 @@ public class QuantoCore {
 	public void add_vertex(QuantoGraph graph, QVertex.Type type)
 	throws ConsoleError {
 		command("add_vertex", graph, 
-				new HasName.Basic(type.toString().toLowerCase()));
+				new HasName.StringName(type.toString().toLowerCase()));
 	}
 	
 	public void add_edge(QuantoGraph graph, QVertex s, QVertex t)
 	throws ConsoleError {
 		command("add_edge", graph, s, t);
+	}
+	
+	public void attach_rewrites(QuantoGraph graph, Set<QVertex> vs)
+	throws ConsoleError {
+		command("attach_rewrites", graph, new HasName.SetName(vs));
+	}
+	
+	public String show_rewrites(QuantoGraph graph) throws ConsoleError {
+		return command("show_rewrites", graph);
+	}
+	
+	public void apply_rewrite(QuantoGraph graph, int i) throws ConsoleError {
+		command("apply_rewrite", graph, new HasName.IntName(i));
 	}
 }

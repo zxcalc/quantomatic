@@ -1,8 +1,11 @@
-package quanto.gui;
+package edu.uci.ics.jung.contrib;
 
+import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.io.*;
 import java.util.*;
+
+import quanto.gui.HasName;
 
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.graph.Graph;
@@ -14,6 +17,10 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		public DotException(String s) {
 			super(s);
 		}
+	}
+	
+	public DotLayout(Graph<V,E> graph, Dimension size) {
+		super(graph,size);
 	}
 	
 	public DotLayout(Graph<V,E> graph) {
@@ -40,20 +47,32 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 	
 				String ln = dotIn.readLine();
 				
+				// compute bounds as we go
+				double bottom=0, right=0;
 				while (!ln.equals("stop")) {
 					StringTokenizer tk = new StringTokenizer(ln);
 					String cmd = tk.nextToken();
 					if (cmd.equals("node")) {
 						String name = tk.nextToken();
 						Point2D loc = new Point2D.Double(
-								(Double.parseDouble(tk.nextToken()) * 50.0) + 43,
-								(Double.parseDouble(tk.nextToken()) * 50.0) + 43
+								(Double.parseDouble(tk.nextToken()) * 50.0),
+								(Double.parseDouble(tk.nextToken()) * 50.0)
 							);
+						if (loc.getX()>right) right = loc.getX();
+						if (loc.getY()>bottom) bottom = loc.getY();
+						//System.out.println(loc);
 						setLocation(verts.get(name), loc);
 					}
 					ln = dotIn.readLine();
 				}
-			}	
+				
+				// center to graph in the provided space
+				double shiftX = (getSize().getWidth() - right) / 2.0;
+				double shiftY = (getSize().getHeight() - bottom) / 2.0;
+				for (V v : getGraph().getVertices()) {
+					offsetVertex(v, shiftX, shiftY);
+				}
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

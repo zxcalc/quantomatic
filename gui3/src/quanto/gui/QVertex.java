@@ -25,6 +25,16 @@ public class QVertex implements HasName {
 		this.vertexType = vertexType;
 	}
 	
+	public void setVertexType(String vertexType) {
+		vertexType = vertexType.toLowerCase();
+		if (vertexType.equals("red"))
+			setVertexType(QVertex.Type.RED);
+		else if (vertexType.equals("green"))
+			setVertexType(QVertex.Type.GREEN);
+		else if (vertexType.equals("h"))
+			setVertexType(QVertex.Type.HADAMARD);
+	}
+	
 	public String getName() {
 		return name;
 	}
@@ -34,7 +44,8 @@ public class QVertex implements HasName {
 	}
 	
 	public String toString() {
-		return getName();
+		return String.format("QVertex { name = \"%s\", type = \"%s\"}",
+				getName(), getVertexType().toString());
 	}
 	
 	public Color getColor() {
