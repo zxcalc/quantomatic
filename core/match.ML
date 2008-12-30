@@ -150,7 +150,7 @@ fun pretty m =
                                     Pretty.str "->",
                                     IVertex.pretty_name tn, 
                                     Pretty.str ")"])
-                             (IVertex.NTab.dest (get_vmap m)))]]
+                             (IVertex.NTab.list_of (get_vmap m)))]]
       @ [Pretty.block 
            [Pretty.str "InInvVMap: ",
             Pretty.list "{" "}" 
@@ -161,7 +161,7 @@ fun pretty m =
                                      Pretty.str "<-",
                                     IVertex.pretty_name tn, 
                                     Pretty.str ")"])
-                             (IVertex.NTab.dest (get_ivinvmap m)))]]
+                             (IVertex.NTab.list_of (get_ivinvmap m)))]]
       @ [Pretty.block 
            [Pretty.str "EMatchings: ",
             Pretty.list "{" "}" 
@@ -172,7 +172,7 @@ fun pretty m =
                                     Pretty.str "->",
                                     Edge.pretty_name tn, 
                                     Pretty.str ")"])
-                             (Edge.NTab.dest (get_emap m)))]]
+                             (Edge.NTab.list_of (get_emap m)))]]
       @ [Pretty.block [Pretty.str "MCtxt: ", MCtxt.pretty (get_mctxt m)]])
     ]);
 

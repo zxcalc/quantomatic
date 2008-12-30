@@ -14,6 +14,7 @@ use "test/bgraph.ML";
 
 use "coeff.ML";
 use "expr.ML"; 
+use "lex.ML";
 use "linrat_expr.ML"; 
 use "test/linrat_expr.ML";
 

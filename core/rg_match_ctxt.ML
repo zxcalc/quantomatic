@@ -41,7 +41,7 @@ fun matchup_pat_edges pes tes =
              | SOME (tn,tens3) => 
                (Edge.NTab.ins (e1, tn) ematches, tens3))
     in
-      Edge.NTab.fold match_more pes (Edge.NTab.empty, Edge.NTab.get_names tes)
+      Edge.NTab.fold match_more pes (Edge.NTab.empty, Edge.NTab.get_nameset tes)
     end;
 
 (* given a set of edges between two internal(strict) vertices in the pat, 
@@ -76,6 +76,6 @@ fun pretty m =
       (map (fn (n,i) => 
                Pretty.block [VName.pretty_name n, Pretty.str "=", 
                              AngleExpr.pretty i])
-           (VName.NTab.dest m));
+           (VName.NTab.list_of m));
 val print = Pretty.writeln o pretty;
 end;

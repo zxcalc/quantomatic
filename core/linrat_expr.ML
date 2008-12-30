@@ -30,8 +30,8 @@ fun eq (x,xT)  (y,yT) =
     if  Coeff.eq x y then true
     else
       let 
-	      val xs = VName.NTab.dest xT
-	      val ys = VName.NTab.dest yT
+	      val xs = VName.NTab.list_of xT
+	      val ys = VName.NTab.list_of yT
 	      fun test (xx,yy,b) = (kv_eq (xx,yy)) andalso b
       in 	 
 	      ListPair.foldlEq test true (xs, ys)
@@ -59,15 +59,15 @@ fun ord ((x,xT),  (y,yT)) =
     if Coeff.ord(x,y) <> General.EQUAL
     then Coeff.ord(x,y)
     else let 
-	      val xs = VName.NTab.dest xT
-	      val ys = VName.NTab.dest yT
+	      val xs = VName.NTab.list_of xT
+	      val ys = VName.NTab.list_of yT
       in 
 	      kv_list_ord(xs,ys)
       end
 
 (* =====================================================================*)
 
-fun get_vars (_,tab)  = VName.NTab.get_names tab;
+fun get_vars (_,tab)  = VName.NTab.get_nameset tab;
 
 (* various mk functions ============================================ *)
 

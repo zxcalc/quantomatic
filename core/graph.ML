@@ -210,10 +210,10 @@ val set_vertices = update_vertices o K;
 val set_edges = update_edges o K;
 fun get_vertices (Graph rep) = #vertices rep;
 fun get_edges (Graph rep) = #edges rep;
-val get_vertex_list = Vertex.NTab.dest o get_vertices;
-val get_edge_list = Edge.NTab.dest o get_edges;
-val get_vertex_nset = Vertex.NTab.get_names o get_vertices;
-val get_edge_nset = Edge.NTab.get_names o get_edges;
+val get_vertex_list = Vertex.NTab.list_of o get_vertices;
+val get_edge_list = Edge.NTab.list_of o get_edges;
+val get_vertex_nset = Vertex.NTab.get_nameset o get_vertices;
+val get_edge_nset = Edge.NTab.get_nameset o get_edges;
 
 (* implicit: g n *)
 val lookup_vertex = Vertex.NTab.lookup o get_vertices
@@ -427,12 +427,12 @@ fun pretty g =
                        Pretty.block 
                          [Vertex.pretty_name n,
                           Pretty.str "; ",
-                          Pretty.list "i{" "}" (map Edge.pretty_name (Edge.NSet.dest ins)),
-                          Pretty.list "; o{" "}" (map Edge.pretty_name (Edge.NSet.dest outs)),
+                          Pretty.list "i{" "}" (map Edge.pretty_name (Edge.NSet.list_of ins)),
+                          Pretty.list "; o{" "}" (map Edge.pretty_name (Edge.NSet.list_of outs)),
                           Pretty.str "; ",
                           Vertex.pretty_data nd
                    ])
-                   (Vertex.NTab.dest (get_vertices g)))],
+                   (Vertex.NTab.list_of (get_vertices g)))],
            Pretty.block
              [Pretty.str "Edges: ",
               Pretty.chunks 
@@ -447,7 +447,7 @@ fun pretty g =
                           Pretty.str "; ",
                           Edge.pretty_data e
                    ])
-                   (Edge.NTab.dest (get_edges g)))]]],
+                   (Edge.NTab.list_of (get_edges g)))]]],
        Pretty.str "}"
       ];
      
@@ -470,11 +470,11 @@ in
 
 val is_empty = Vertex.NTab.is_element_empty o get_vertices;
 
-val get_vertex_list = Vertex.NTab.dest o get_vertices;
-val get_edge_list = Edge.NTab.dest o get_edges;
+val get_vertex_list = Vertex.NTab.list_of o get_vertices;
+val get_edge_list = Edge.NTab.list_of o get_edges;
 
-val get_vnames = Vertex.NTab.get_names o get_vertices;
-val get_enames = Edge.NTab.get_names o get_edges;
+val get_vnames = Vertex.NTab.get_nameset o get_vertices;
+val get_enames = Edge.NTab.get_nameset o get_edges;
 
 (* implicit: g n *)
 val lookup_vertex = Vertex.NTab.lookup o get_vertices
@@ -736,8 +736,8 @@ fun exact_eq g1 g2 =
       val v2s = get_vertices g2
     in
       (* check same vertex names *)
-      (Vertex.NSet.eq (Vertex.NTab.get_names v1s)
-                      (Vertex.NTab.get_names v2s)) andalso 
+      (Vertex.NSet.eq (Vertex.NTab.get_nameset v1s)
+                      (Vertex.NTab.get_nameset v2s)) andalso 
       (* check same data, and same incident edges structure *)
       (Vertex.NTab.forall 
          (fn (n,(d,(fromes,toes))) => 

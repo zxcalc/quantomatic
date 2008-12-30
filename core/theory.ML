@@ -93,7 +93,7 @@ val set_result = update_result o K;
 
 (* getting all assumptions *)
 val get_assm = RnTab.get o get_assms;
-val get_assms_list = RnTab.dest o get_assms;
+val get_assms_list = RnTab.list_of o get_assms;
 
 (* new empty theory *)
 val empty = Theory { assms = Rn.NSet.empty,

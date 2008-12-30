@@ -134,7 +134,7 @@ struct
                [Pretty.block 
                   [Pretty.str "Boundary Vertices: ",
                    Pretty.list "{" "}" 
-                               (map V.pretty_name (V.NSet.dest (get_boundary bg)))],
+                               (map V.pretty_name (V.NSet.list_of (get_boundary bg)))],
                 Graph.pretty (get_graph bg)]],
           Pretty.str "}"
         ];

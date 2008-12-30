@@ -179,12 +179,12 @@ fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
 fun get_unm_pat (MState rep) = #unm_pat rep;
 val get_unm_pat_vs = 
-    Vertex.NTab.get_names o RGGraph.get_vertices o get_unm_pat;
+    Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_pat;
 fun get_unm_tgt (MState rep) = #unm_tgt rep;
 fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
-    Vertex.NTab.get_names o RGGraph.get_vertices o get_unm_tgt;
+    Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_tgt;
 val get_unm_tgt_es =
-    Edge.NTab.get_names o RGGraph.get_edges o get_unm_tgt;
+    Edge.NTab.get_nameset o RGGraph.get_edges o get_unm_tgt;
 fun get_needed_tgt_es (MState rep) = #needed_tgt_es rep;
 
 
@@ -285,7 +285,7 @@ fun apply_edge_matching st (ematches,m2) =
       val matched_tgt_edges = 
           Edge.NTab.fold (Edge.NSet.add o snd) ematches Edge.NSet.empty
       val matched_pat_edges = 
-          Edge.NTab.get_names ematches
+          Edge.NTab.get_nameset ematches
     in
       st |> useup_pat_edges matched_pat_edges
          |> useup_tgt_edges matched_tgt_edges
@@ -407,8 +407,8 @@ datatype matchstep =
 
 (* get tgt vertex names as a seq *)
 val get_tgt_vnseq = 
-    Seq.of_list o Vertex.NSet.dest 
-    o Vertex.NTab.get_names 
+    Seq.of_list o Vertex.NSet.list_of 
+    o Vertex.NTab.get_nameset 
     o RGGraph.get_vertices o get_unm_tgt;
 
 (* consider the next and-point in the agenda *)
@@ -479,7 +479,7 @@ fun pretty_agenda st =
            Pretty.str "->",
            Vertex.pretty_name nextto,
            Pretty.list ") then [" "]" 
-                       (map pretty_match_pair (Vertex.NTab.dest rest))])
+                       (map pretty_match_pair (Vertex.NTab.list_of rest))])
        @ [Pretty.str ";  needed tgt edges: ",
           Edge.NSet.pretty (get_needed_tgt_es  st)]);
 

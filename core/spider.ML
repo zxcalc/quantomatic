@@ -55,7 +55,7 @@ fun add_to_adj_agenda g n agenda =
          (ToDo {to_n = n2,
                 from_n = n,
                 eset = map (fn en => (en,RGGraph.get_edge g en))
-                           (Edge.NSet.dest adj_enames)})
+                           (Edge.NSet.list_of adj_enames)})
          :: agenda)
 (* 
          case Vertex.NTab.lookup ntab n2 
@@ -63,7 +63,7 @@ fun add_to_adj_agenda g n agenda =
              Vertex.NTab.ins 
                (n2,ToDo {from_n = n,
                          eset = map (fn en => (en,RGGraph.get_edge g en))
-                                    (Edge.NSet.dest adj_enames)}) ntab
+                                    (Edge.NSet.list_of adj_enames)}) ntab
            | SOME _ => ntab *) (* don't add duplicates *)
       (RGGraph.adj_vertices_with_enames g n)
       agenda;
@@ -158,7 +158,7 @@ fun try_merge_data (RGGraph.BVertex.IVert (RGGraph.RGVertex.Xnd a2))
 fun is_singleton_spider (Spider (g,d)) = 
     Vertex.NSet.is_singleton
       (Vertex.NSet.subtract
-         (Vertex.NTab.get_names (RGGraph.get_vertices g))
+         (Vertex.NTab.get_nameset (RGGraph.get_vertices g))
          (RGGraph.get_boundary g));
 
 fun add_edgeset eset g = 

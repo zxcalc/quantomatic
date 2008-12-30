@@ -12,7 +12,7 @@ sig
   type T; (* expressions *)
   val ord : T * T -> General.order;
   val eq : T -> T -> bool;
-  val get_vars : T -> VName.NTab.N.T;
+  val get_vars : T -> VName.NSet.T;
   val subs : T VName.NTab.T -> T -> T;
   val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
   val pretty : T -> Pretty.T;
