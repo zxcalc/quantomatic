@@ -383,6 +383,10 @@ in TextIO.print (implode output); TextIO.print EOT;
       | QUIT => (TextIO.print EOT; ()))
 end
 
-fun init () = repl newState;
+fun flushIn () = case TextIO.canInput (TextIO.stdIn, 10)
+		  of SOME n => (TextIO.inputN (TextIO.stdIn, n); flushIn())
+		   | NONE => ()
+
+fun init () = (flushIn(); repl newState);
 
 end (* structure NewController *)
