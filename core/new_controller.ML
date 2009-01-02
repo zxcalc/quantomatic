@@ -88,72 +88,72 @@ local
 
     (* wrap commands of the form ([args] * graph_table) -> graph option *)
     fun lift_graph_creator cmd (args, graph_table) =
-	case cmd (args, graph_table)
-	 of SOME gr =>
-	    let
-		val (name,table') =
-		    graph_table |> GraphName.NTab.add
-			        (GraphName.default_name,
-				 {hist = ([gr],[]), rws = []})
-	    in
-		((Pretty.str_of (GraphName.pretty_name name)) ^ "\n",
-		 table')
-	    end
-	  | NONE => ("!!! Cannot create graph\n", graph_table)
-
+	      case cmd (args, graph_table)
+	       of SOME gr =>
+	          let
+		          val (name,table') =
+		              graph_table |> GraphName.NTab.add
+			                        (GraphName.default_name,
+				                       {hist = ([gr],[]), rws = []})
+	          in
+		          ((Pretty.str_of (GraphName.pretty_name name)) ^ "\n",
+		           table')
+	          end
+	        | NONE => ("!!! Cannot create graph\n", graph_table)
+                    
     (* cmd: [args] * graphstate -> out * graphstate *)
     fun lift_graph_state_mutator cmd (args as (graph_name::_), graph_table) =
-	(case GraphName.NTab.lookup graph_table graph_name
-	  of SOME state => let val (out,state') = cmd (args,state)
-			       in (out,
-				   graph_table |> GraphName.NTab.update
-				               (graph_name, state'))
-			       end
-	   | _ => ("!!! Cannot lookup graph\n", graph_table))
+	      (case GraphName.NTab.lookup graph_table graph_name
+	        of SOME state => let val (out,state') = cmd (args,state)
+			                     in (out,
+				                       graph_table |> GraphName.NTab.update
+				                                   (graph_name, state'))
+			                     end
+	         | _ => ("!!! Cannot lookup graph\n", graph_table))
       | lift_graph_state_mutator _ (_, state) =
-	("!!! Graph command needs at least one argument\n", state)
+	      ("!!! Graph command needs at least one argument\n", state)
 
     (* cmd: ([args] * ([graph] * [graph])) -> (out * ([graph] * [graph])) *)
     fun lift_graph_stack_mutator cmd = let
-	fun apply_stacks cmd (args,{hist=h,rws=r}) =
-	    let val (out,h') = cmd (args,h)
-	    in (out,{hist=h',rws=r})
-	    end
+	    fun apply_stacks cmd (args,{hist=h,rws=r}) =
+	        let val (out,h') = cmd (args,h)
+	        in (out,{hist=h',rws=r})
+	        end
     in lift_graph_state_mutator (apply_stacks cmd)
     end
-
+                                       
     (* cmd: ([args] * graph * [rewrites]) -> (out * graph * [rewrites]) *)
     fun lift_graph_mutator_with_rewrites cmd = let
-	fun push_mod cmd (args, {hist=((g::gs),hs),rws=r}) =
-	    let val (out,g',r') = cmd (args,g,r)
-	    in (out, {hist=(g'::g::gs, []), rws=r'})
-	    end
-	  | push_mod cmd (args, state) =
-	    ("!!! Graph stack is empty\n",state)
+	    fun push_mod cmd (args, {hist=((g::gs),hs),rws=r}) =
+	        let val (out,g',r') = cmd (args,g,r)
+	        in (out, {hist=(g'::g::gs, []), rws=r'})
+	        end
+	      | push_mod cmd (args, state) =
+	        ("!!! Graph stack is empty\n",state)
     in lift_graph_state_mutator (push_mod cmd)
     end
-
+                                               
     (* cmd: ([args] * graph * [rewrites]) -> (out * [rewrites]) *)
     fun lift_graph_viewer_with_rewrites cmd = let
-	fun peek_top cmd (args, {hist=(h as ((g::_),_)),rws=r}) =
-	    let val (out, r') = cmd (args,g,r)
-	    in (out, {hist=h, rws=r'})
-	    end
-	  | peek_top cmd (args, state) =
-	    ("!!! Graph stack is empty\n",state)
+	    fun peek_top cmd (args, {hist=(h as ((g::_),_)),rws=r}) =
+	        let val (out, r') = cmd (args,g,r)
+	        in (out, {hist=h, rws=r'})
+	        end
+	      | peek_top cmd (args, state) =
+	        ("!!! Graph stack is empty\n",state)
     in lift_graph_state_mutator (peek_top cmd)
     end
-
+                                              
     (* cmd: ([args] * graph) -> (out * graph) *)
     fun lift_graph_mutator cmd =
-	let val flat = fn ((a,b),c) => (a,b,c)
-	in lift_graph_mutator_with_rewrites (fn (a,g,_) => flat (cmd (a,g),[]))
-	end
-
+	      let val flat = fn ((a,b),c) => (a,b,c)
+	      in lift_graph_mutator_with_rewrites (fn (a,g,_) => flat (cmd (a,g),[]))
+	      end
+        
     (* cmd: [args] * graph -> out *)
     fun lift_graph_viewer cmd =
-	lift_graph_viewer_with_rewrites (fn (a,g,r) => (cmd (a,g),r))
-
+	      lift_graph_viewer_with_rewrites (fn (a,g,r) => (cmd (a,g),r))
+        
     (* cmd: [args] -> out *)
     fun lift_stateless cmd (args, state) = (cmd args, state)
 
@@ -161,16 +161,16 @@ local
 
     (* helper functions for commands registered below *)
     fun help [] = "Type \"help CMD\" to get help on a command.\n"^
-		  "Available commands:\n  quit\n"^
-		  (foldr (fn (a,b)=>"  "^a^"\n"^b) "\n" (Symtab.keys (!cmds)))
+		              "Available commands:\n  quit\n"^
+		              (foldr (fn (a,b)=>"  "^a^"\n"^b) "\n" (Symtab.keys (!cmds)))
       | help [cmd] = (case Symtab.lookup (!cmds) cmd
-		       of SOME (h,_) => "\n"^h^"\n"
-			| NONE => "!!! Can't find command.\n")
-
+		                   of SOME (h,_) => "\n"^h^"\n"
+			                  | NONE => "!!! Can't find command.\n")
+                     
     fun duplicate_graph ([gr], tab) =
-	(case GraphName.NTab.lookup tab gr
-	  of SOME {hist=(g::gs,_),...} => SOME g
-	   | _ => NONE)
+	      (case GraphName.NTab.lookup tab gr
+	        of SOME {hist=(g::gs,_),...} => SOME g
+	         | _ => NONE)
 
     fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
       | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
@@ -178,19 +178,19 @@ local
       | vertex_type "boundary" = V.BVert ()
 
     fun add_vertex ([_,vt], graph) =
-	let val (n,g) = graph |> G.add_vertex (vertex_type vt)
-	in ("added vertex \"" ^ n ^ "\"\n", g)
-	end
-	handle Match => ("!!! Bad vertex type.\n", graph)
+	      let val (n,g) = graph |> G.add_vertex (vertex_type vt)
+	      in ("added vertex \"" ^ n ^ "\"\n", g)
+	      end
+	      handle Match => ("!!! Bad vertex type.\n", graph)
 
     (* TODO: as far as I can tell, there's no good way to get a hold
      * of the correct "version" of no_such_vname_exp. *)
     fun add_edge ([_,v1,v2], graph) =
-	let val (n,g) = graph |> G.add_edge () v1 v2
-	in ("added edge \"" ^ n ^ "\"\n", g)
-	end
-	handle _ => ("!!! Error adding edge, probably a bad vertex name.\n",
-		     graph)
+	      let val (n,g) = graph |> G.add_edge () v1 v2
+	      in ("added edge \"" ^ n ^ "\"\n", g)
+	      end
+	      handle _ => ("!!! Error adding edge, probably a bad vertex name.\n",
+		                 graph)
 
     fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
 			  Pretty.string_of  o
@@ -204,140 +204,140 @@ local
 
     (* TODO: fix exception name, see above *)
     fun attach_rewrites ((_::args), graph, _) = let
-	val vset = fold V.NSet.ins_fresh args V.NSet.empty
+	    val vset = fold V.NSet.ins_fresh args V.NSet.empty
     in
-	("ok\n",
-	 (TheoryHack.apply_all_rules_in vset graph)
-             |> map (fn (n,r) => (n, r, Rule.add_rhs r graph)))
+	    ("ok\n",
+	     (TheoryHack.apply_all_rules_in vset graph)
+         |> map (fn (n,r) => (n, r, Rule.add_rhs r graph)))
     end
-	handle _ => ("!!! Bad or duplicate vertex name.\n", [])
-
+	      handle _ => ("!!! Bad or duplicate vertex name.\n", [])
+                    
     
     (* -- this doesn't belong here but it'll do for now -- *)
     fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
     fun pretty_rewrite (rule_name, rule, fused)  = 
-	Pretty.chunks
-	    [Pretty.str "<rewrite>",
-	     indent_chunks [
-	     Pretty.str ("<rulename>"^rule_name^"</rulename>"),
-	     RGGraphXML.output_graph fused,
-	     Pretty.str "<lhs>",
-	     indent_chunks [RGGraphXML.output_graph (Rule.get_lhs rule)],
-	     Pretty.str "</lhs>",
-	     Pretty.str "<rhs>", 
-	     indent_chunks [RGGraphXML.output_graph (Rule.get_rhs rule)],
-	     Pretty.str "</rhs>"],
-	     Pretty.str "</rewrite>",
-	     Pretty.str ""]
+	      Pretty.chunks
+	        [Pretty.str "<rewrite>",
+	         indent_chunks [
+	         Pretty.str ("<rulename>"^rule_name^"</rulename>"),
+	         RGGraphXML.output_graph fused,
+	         Pretty.str "<lhs>",
+	         indent_chunks [RGGraphXML.output_graph (Rule.get_lhs rule)],
+	         Pretty.str "</lhs>",
+	         Pretty.str "<rhs>", 
+	         indent_chunks [RGGraphXML.output_graph (Rule.get_rhs rule)],
+	         Pretty.str "</rhs>"],
+	         Pretty.str "</rewrite>",
+	         Pretty.str ""]
 
     fun show_rewrites ([_], graph, rewrites) = (
-	Pretty.string_of (Pretty.chunks
-			      [Pretty.str "<rewrites>", 
-			       indent_chunks (map pretty_rewrite rewrites),
-			       Pretty.str "</rewrites>",
-			       Pretty.str ""]),
-	rewrites)
-
+	      Pretty.string_of (Pretty.chunks
+			                      [Pretty.str "<rewrites>", 
+			                       indent_chunks (map pretty_rewrite rewrites),
+			                       Pretty.str "</rewrites>",
+			                       Pretty.str ""]),
+	      rewrites)
+                                               
     fun apply_rewrite ([_, n], graph, rewrites) =
-	let val (name,rule,fused) = nth rewrites (the (Int.fromString n))
-	in ("applied "^name^"\n", Rule.del_lhs rule fused, [])
-	end
-	handle Subscript => ("!!! Requested rewrite not attached.\n", graph, [])
-	     | Option => ("!!! Rewrite selection must be an integer.\n", graph, [])
-
+	      let val (name,rule,fused) = nth rewrites (the (Int.fromString n))
+	      in ("applied "^name^"\n", Rule.del_lhs rule fused, [])
+	      end
+	      handle Subscript => ("!!! Requested rewrite not attached.\n", graph, [])
+	           | Option => ("!!! Rewrite selection must be an integer.\n", graph, [])
+                         
     fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
       | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
       | vdata a _ = raise Match
 
     fun set_angle ([_,v,a], graph) =
-	("ok\n", graph |> G.update_vertex (vdata a) v)
-	handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
+	      ("ok\n", graph |> G.update_vertex (vdata a) v)
+	      handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
 	     | LinratParser.Parse => ("!!! Cannot parse angle expression.\n", graph)
-
+                               
 in
 
 (* Register commands available from the console and associate docs *)
 
 val () = (
     register_cmd
-	"help"
-	("help CMD\n\n"^
-	 "    get help on CMD\n")
-	(lift_stateless help);
-
+	    "help"
+	    ("help CMD\n\n"^
+	     "    get help on CMD\n")
+	    (lift_stateless help);
+    
     register_cmd
-	"HELO"
-	("HELO\n\n"^
-	 "    sync the console, print \"HELO\"\n")
-	(lift_stateless (fn [] => "HELO\n"));
-
+	    "HELO"
+	    ("HELO\n\n"^
+	     "    sync the console, print \"HELO\"\n")
+	    (lift_stateless (fn [] => "HELO\n"));
+    
     register_cmd
-	"new_graph"
-	("new_graph\n\n" ^
-	 "    create a new graph and return its name\n")
-	(lift_graph_creator (fn ([],_) => SOME RGGraph.empty));
-
+	    "new_graph"
+	    ("new_graph\n\n" ^
+	     "    create a new graph and return its name\n")
+	    (lift_graph_creator (fn ([],_) => SOME RGGraph.empty));
+    
     register_cmd
-	"duplicate_graph"
-	("duplicate_graph GRAPH\n\n"^
-	 "    duplicate GRAPH and return the name of the new graph\n")
-	(lift_graph_creator duplicate_graph);
-
+	    "duplicate_graph"
+	    ("duplicate_graph GRAPH\n\n"^
+	     "    duplicate GRAPH and return the name of the new graph\n")
+	    (lift_graph_creator duplicate_graph);
+    
     register_cmd
-	"add_vertex"
-	("add_vertex GRAPH TYPE\n\n"^
-	 "    add a TYPE vertex to GRAPH\n")
-	(lift_graph_mutator add_vertex);
-
+	    "add_vertex"
+	    ("add_vertex GRAPH TYPE\n\n"^
+	     "    add a TYPE vertex to GRAPH\n")
+	    (lift_graph_mutator add_vertex);
+    
     register_cmd
-	"add_edge"
-	("add_edge GRAPH V1 V2\n\n"^
-	 "    add an edge in GRAPH from V1 to V2\n")
-	(lift_graph_mutator add_edge);
-
+	    "add_edge"
+	    ("add_edge GRAPH V1 V2\n\n"^
+	     "    add an edge in GRAPH from V1 to V2\n")
+	    (lift_graph_mutator add_edge);
+    
     register_cmd
-	"graph_xml"
-	("graph_xml GRAPH\n\n"^
-	 "    dump GRAPH as XML\n")
-	(lift_graph_viewer (uncurry graph_xml));
-
+	    "graph_xml"
+	    ("graph_xml GRAPH\n\n"^
+	     "    dump GRAPH as XML\n")
+	    (lift_graph_viewer (uncurry graph_xml));
+    
     register_cmd
-	"undo"
-	("undo GRAPH\n\n"^
-	 "    undo last change to GRAPH\n")
-	(lift_graph_stack_mutator undo);
-
+	    "undo"
+	    ("undo GRAPH\n\n"^
+	     "    undo last change to GRAPH\n")
+	    (lift_graph_stack_mutator undo);
+    
     register_cmd
-	"redo"
-	("redo GRAPH\n\n"^
-	 "    redo change on GRAPH\n")
-	(lift_graph_stack_mutator redo);
-
+	    "redo"
+	    ("redo GRAPH\n\n"^
+	     "    redo change on GRAPH\n")
+	    (lift_graph_stack_mutator redo);
+    
     register_cmd
-	"attach_rewrites"
-	("attach_rewrites GRAPH V1 .. VN\n\n"^
-	 "    calculate rewrites involving V1..VN in GRAPH and\n"^
-	 "    attach to the graph state\n")
-	(lift_graph_viewer_with_rewrites attach_rewrites);
-
+	    "attach_rewrites"
+	    ("attach_rewrites GRAPH V1 .. VN\n\n"^
+	     "    calculate rewrites involving V1..VN in GRAPH and\n"^
+	     "    attach to the graph state\n")
+	    (lift_graph_viewer_with_rewrites attach_rewrites);
+    
     register_cmd
-	"show_rewrites"
-	("show_rewrites GRAPH\n\n"^
-	 "    show rewrites attached to GRAPH\n")
-	(lift_graph_viewer_with_rewrites show_rewrites);
-
+	    "show_rewrites"
+	    ("show_rewrites GRAPH\n\n"^
+	     "    show rewrites attached to GRAPH\n")
+	    (lift_graph_viewer_with_rewrites show_rewrites);
+    
     register_cmd
-	"apply_rewrite"
-	("apply_rewrite GRAPH N\n\n"^
-	 "    apply the Nth rewrite attached to GRAPH\n")
-	(lift_graph_mutator_with_rewrites apply_rewrite);
-
+	    "apply_rewrite"
+	    ("apply_rewrite GRAPH N\n\n"^
+	     "    apply the Nth rewrite attached to GRAPH\n")
+	    (lift_graph_mutator_with_rewrites apply_rewrite);
+    
     register_cmd
-	"set_angle"
-	("set_angle GRAPH V ANGLE\n\n"^
-	 "    set the angle of vertex V to ANGLE\n")
-	(lift_graph_mutator set_angle);
-())
+	    "set_angle"
+	    ("set_angle GRAPH V ANGLE\n\n"^
+	     "    set the angle of vertex V to ANGLE\n")
+	    (lift_graph_mutator set_angle);
+    ())
 end
 
 (* Uniquely mark end of text as SPACE + BACKSPACE. This is well-behaved as
@@ -358,24 +358,24 @@ fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
 
 fun eval command state =
     let
-	val cmds = QuantoCommand.parse command
-	fun eval_list [] state = ([], NORMAL state)
-	  | eval_list (c::cs) state =
-	    case do_cmd c state
-	     of (_, SKIP) => eval_list cs state
-	      | (out, QUIT) => ([out], QUIT)
-	      | (out, NORMAL state') =>
-		let val (lst, st) = eval_list cs state'
-		in (out::lst, st)
-		end
+	    val cmds = QuantoCommand.parse command
+	    fun eval_list [] state = ([], NORMAL state)
+	      | eval_list (c::cs) state =
+	        case do_cmd c state
+	         of (_, SKIP) => eval_list cs state
+	          | (out, QUIT) => ([out], QUIT)
+	          | (out, NORMAL state') =>
+		          let val (lst, st) = eval_list cs state'
+		          in (out::lst, st)
+		          end
     in eval_list cmds state
     end
     handle Parse => (["!!! Parse error in command: "^command^"\n"], SKIP)
 
 fun repl state = let
-    val _ = TextIO.print ("quanto:> "^EOT)
-    val cmd_str = unsuffix "\n" (the (TextIO.inputLine TextIO.stdIn))
-    val (output, st) = eval cmd_str state
+  val _ = TextIO.print ("quanto:> "^EOT)
+  val cmd_str = unsuffix "\n" (the (TextIO.inputLine TextIO.stdIn))
+  val (output, st) = eval cmd_str state
 in TextIO.print (implode output); TextIO.print EOT;
    (case st
      of NORMAL state' => repl state'
@@ -384,8 +384,8 @@ in TextIO.print (implode output); TextIO.print EOT;
 end
 
 fun flushIn () = case TextIO.canInput (TextIO.stdIn, 10)
-		  of SOME n => (TextIO.inputN (TextIO.stdIn, n); flushIn())
-		   | NONE => ()
+		              of SOME n => (TextIO.inputN (TextIO.stdIn, n); flushIn())
+		               | NONE => ()
 
 fun init () = (flushIn(); repl newState);
 
