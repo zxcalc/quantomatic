@@ -37,13 +37,13 @@ $(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
 
 # make polyml heap
 heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; PolyML.use "ROOT.ML"; PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"; quit();' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"));' | $(POLYML)
 	@echo "Built polyml heap: heaps/$(THE_POLY_HEAP)"
 
 heap: heaps/$(THE_POLY_HEAP)
 
 bin/$(THE_BIN): heaps/$(THE_POLY_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; PolyML.export ("bin/$(THE_BIN)", (fn () => (NewController.init())));' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; do_and_exit_or_die (fn () => (PolyML.export ("bin/$(THE_BIN)", (fn () => (NewController.init())))));' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
