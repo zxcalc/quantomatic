@@ -5,8 +5,6 @@ import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
-import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.*;
@@ -18,8 +16,6 @@ public class QuantoConsole extends JPanel {
 	public QuantoCore qcore;
 	JTextField input;
 	JTextArea output;
-	Map<String,InteractiveView> views;
-	JTabbedPane tabs;
 	final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
 	
 	class QuantoConsoleOutputStream extends OutputStream {
@@ -35,10 +31,8 @@ public class QuantoConsole extends JPanel {
 		
 	}
 	
-	public QuantoConsole(JTabbedPane tabs, Map<String, InteractiveView> views) {
+	public QuantoConsole() {
         this.setLayout(new BorderLayout());
-        this.views = views;
-        this.tabs = tabs;
         input = new JTextField();
         output = new JTextArea();
         output.setFocusable(false);
@@ -65,48 +59,12 @@ public class QuantoConsole extends JPanel {
         this.add(input,BorderLayout.SOUTH);
 	}
 	
-	/**
-	 * Read rcv. If it starts with GRAPH_XML, parse the rest and
-	 * display the graph. This method and QuantoFrame.newGraph() should
-	 * be the only source of interactive graphs.
-	 * 
-	 * @param rcv
-	 */
-	private void updateGraphFromOutput(String rcv) {
-		if (rcv.startsWith("GRAPH_XML")) {
-			Matcher m = graph_xml.matcher(rcv);
-			
-			if (m.find()) {
-				String name = m.group(1);
-				String xml = m.replaceFirst("");
-				InteractiveView vis = views.get(name);
-				if (vis == null) {
-					vis = new InteractiveQuantoVisualizer(
-							qcore, new QuantoGraph(name));
-					views.put(name, vis);
-				}
-				
-				if (vis instanceof InteractiveQuantoVisualizer) {
-					((InteractiveQuantoVisualizer)vis)
-						.updateGraphFromXml(xml);
-				} else {
-					throw new RuntimeException("Attempted to overwrite a non-graph view.");
-				}
-				
-			} else {
-				throw new RuntimeException(
-						"Bad output from core:\n".concat(rcv));
-			}
-		}
-	}
-	
 	public void write(String text) {
 		synchronized (qcore) {
 			try {
 				out.println(text);
 				qcore.send(text);
 				String rcv = qcore.receiveOrFail();
-				updateGraphFromOutput(rcv);
 				out.print(rcv);
 			} catch (QuantoCore.ConsoleError e) {
 				out.print("ERROR: ".concat(e.getMessage()));

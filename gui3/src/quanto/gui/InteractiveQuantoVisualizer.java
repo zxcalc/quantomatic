@@ -37,6 +37,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private static final long serialVersionUID = 7196565776978339937L;
 	private QuantoCore core;
 	protected List<JMenu> menus;
+	private InteractiveView.Holder viewHolder;
 	
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
@@ -58,6 +59,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
 	}
 	
+	/**
+	 * A graph mouse for doing most interactive graph operations.
+	 *
+	 */
 	private class RWMouse extends PluggableGraphMouse {
 		public RWMouse() {
 			int mask = InputEvent.CTRL_MASK;
@@ -80,6 +85,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public InteractiveQuantoVisualizer(QuantoCore core, QuantoGraph g, Dimension size) {
 		super(g, size);
 		this.core = core;
+		this.viewHolder = null;
 		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(
 				new DotLayout<QVertex,QEdge>(g,size)));
 		Relaxer r = getModel().getRelaxer();
@@ -114,10 +120,18 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				JOptionPane.ERROR_MESSAGE);
 	}
 	
+	public static String titleOfGraph(String name) {
+		return "graph (" + name + ")";
+	}
+	
+	public String getTitle() {
+		return InteractiveQuantoVisualizer.titleOfGraph(getGraph().getName());
+	}
+	
 	private void buildMenus() {
-		int modifierKey;
-	    if (QuantoFrame.isMac) modifierKey = Event.META_MASK;
-	    else modifierKey = Event.CTRL_MASK;
+		int commandMask;
+	    if (QuantoFrame.isMac) commandMask = Event.META_MASK;
+	    else commandMask = Event.CTRL_MASK;
 		
 	    JMenu graphMenu = new JMenu("Graph");
 		graphMenu.setMnemonic(KeyEvent.VK_G);
@@ -133,7 +147,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, modifierKey));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
@@ -144,7 +158,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, modifierKey));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, commandMask));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
@@ -155,7 +169,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, modifierKey));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, commandMask));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_M);
@@ -166,7 +180,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, modifierKey));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, commandMask));
 		graphAddMenu.add(item);
 		
 		graphMenu.add(graphAddMenu);
@@ -180,7 +194,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				rewrites.setVisible(true);
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, modifierKey));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, commandMask | Event.ALT_MASK));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Set Angle", KeyEvent.VK_A);
@@ -206,10 +220,24 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				}
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, modifierKey));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask | Event.ALT_MASK));
 		graphMenu.add(item);
 		
 		menus.add(graphMenu);
+		
+		JMenu hilbMenu = new JMenu("Hilbert Space");
+		hilbMenu.setMnemonic(KeyEvent.VK_B);
+		
+		item = new JMenuItem("Dump term as text");
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				outputToTextView(core.hilb(getGraph(), "text"));
+			}
+		});
+		hilbMenu.add(item);
+		
+		menus.add(hilbMenu);
 	}
 
 	public void addEdge(QVertex s, QVertex t) {
@@ -235,6 +263,19 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		// ignore the first line
 		out = out.replaceFirst("^.*", "");
 		updateGraphFromXml(out);
+	}
+	
+	public void outputToTextView(String text) {
+		TextView tview = new TextView(text);
+		if (viewHolder != null) {
+			viewHolder.addView(tview);
+		} else {
+			JFrame out = new JFrame();
+			out.setTitle(tview.getTitle());
+			out.getContentPane().add(tview);
+			out.pack();
+			out.setVisible(true);
+		}
 	}
 	
 	/**
@@ -292,6 +333,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 
 	public QuantoCore getCore() {
 		return core;
+	}
+
+	public void setViewHolder(InteractiveView.Holder viewHolder) {
+		this.viewHolder = viewHolder;
 	}
 
 }

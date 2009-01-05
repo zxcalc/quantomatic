@@ -11,7 +11,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 
-public class QuantoFrame extends JFrame {
+public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	private static final long serialVersionUID = 3656684775223085393L;
 	protected QuantoCore core;
 	protected QuantoConsole console;
@@ -31,12 +31,7 @@ public class QuantoFrame extends JFrame {
 		
 		tabs.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				if (tabs.getSelectedComponent() instanceof
-						InteractiveQuantoVisualizer) {
-					setFocusedView(
-							(InteractiveQuantoVisualizer)
-							tabs.getSelectedComponent());
-				}
+				setFocusedView((InteractiveView)tabs.getSelectedComponent());
 			}
 		});
 		
@@ -74,6 +69,26 @@ public class QuantoFrame extends JFrame {
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, modifierKey));
 		viewMenu.add(item);
+		
+		item = new JMenuItem("Refresh All Graphs", KeyEvent.VK_R);
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				synchronized (views) {
+					for (InteractiveView v : views.values()) {
+						if (v instanceof InteractiveQuantoVisualizer) {
+							try {
+								((InteractiveQuantoVisualizer)v).updateGraph();
+							} catch (QuantoCore.ConsoleError err) {
+								errorDialog(err.getMessage());
+							}
+						}
+					}
+				}
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, modifierKey | Event.ALT_MASK));
+		viewMenu.add(item);
+		
 		mb.add(fileMenu);
 		mb.add(viewMenu);
 		
@@ -85,7 +100,7 @@ public class QuantoFrame extends JFrame {
 		
 		views = new HashMap<String, InteractiveView>();
         
-        console = new QuantoConsole(tabs, views);
+        console = new QuantoConsole();
         core = console.qcore;
         getContentPane().add(console, BorderLayout.NORTH);
         newGraph();
@@ -93,13 +108,20 @@ public class QuantoFrame extends JFrame {
         showHideConsole();
 	}
 	
-	public void setFocusedView (InteractiveQuantoVisualizer v) {
+	public void setFocusedView (InteractiveView v) {
 		JMenuBar mb = getJMenuBar();
 		if (focusedView != null) {
 			for (JMenu m : focusedView.getMenus()) mb.remove(m);
 		}
 		focusedView = v;
 		for (JMenu m : focusedView.getMenus()) mb.add(m);
+	}
+	
+	public void addView(InteractiveView iv) {
+		iv.setViewHolder(this);
+		views.put(iv.getTitle(), iv);
+		tabs.add(iv.getTitle(), (Component)iv);
+		tabs.setSelectedComponent((Component)iv);
 	}
 	
 	/**
@@ -114,10 +136,7 @@ public class QuantoFrame extends JFrame {
 			QuantoGraph newGraph = core.new_graph();
 			InteractiveQuantoVisualizer vis =
 				new InteractiveQuantoVisualizer(core, newGraph, new Dimension(800,600));
-			//vis.updateGraph();
-			views.put(newGraph.getName(), vis);
-			tabs.add(newGraph.getName(), vis);
-			tabs.setSelectedIndex(tabs.indexOfComponent(vis));
+			addView(vis);
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
 		}

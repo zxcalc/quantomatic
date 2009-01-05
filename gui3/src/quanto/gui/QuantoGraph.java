@@ -76,26 +76,21 @@ implements HasName {
 				QVertex v = new QVertex();
 				
 				try {
-					v.setVertexType(
-							vertexNode
-							.getFirstChildNamed("colour")
-							.getContent());
-					v.setName(vertexNode
-							.getFirstChildNamed("name")
-							.getContent());
-					if (vertexNode
-							.getFirstChildNamed("boundary")
+					v.setName(vertexNode.getFirstChildNamed("name").getContent());
+					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
+					{
 						v.setVertexType(QVertex.Type.BOUNDARY);
+					} else {
+						v.setVertexType(vertexNode.getFirstChildNamed("colour").getContent());
+					}
 					
 					IXMLElement expr = vertexNode
 						.getFirstChildNamed("angleexpr");
 					if (expr == null) {
 						v.setAngle("0");
 					} else {
-						v.setAngle(expr
-								.getFirstChildNamed("as_string")
-								.getContent());
+						v.setAngle(expr.getFirstChildNamed("as_string").getContent());
 					}
 				} catch (NullPointerException e) {
 					/* if NullPointerException is thrown, the

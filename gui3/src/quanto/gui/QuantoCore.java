@@ -46,7 +46,7 @@ public class QuantoCore {
 		this.output = output;
 		try {
 			ProcessBuilder pb = new ProcessBuilder("quanto-core");	
-			output.println("Initialising QuantoML...");
+			System.out.println("Initialising QuantoML...");
 			backEnd = pb.start();
 			
 			System.out.println("Connecting pipes...");
@@ -57,10 +57,11 @@ public class QuantoCore {
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
 			
+			System.out.println("Synchonising console...");
 			// sync the console
 			send("HELO;");
 			while (!receive().contains("HELO"));
-			
+			System.out.println("done.");
 		} catch (IOException e) {
 			e.printStackTrace();
 			if(backEnd == null) { output.println("ERROR: Cannot execute: quanto-core, check it is in the path."); }
@@ -198,5 +199,9 @@ public class QuantoCore {
 	
 	public void set_angle(QuantoGraph graph, QVertex v, String angle) throws ConsoleError {
 		command("set_angle", graph, v, new HasName.StringName(angle));
+	}
+	
+	public String hilb(QuantoGraph graph, String format) throws ConsoleError {
+		return command("hilb", graph, new HasName.StringName(format));
 	}
 }

@@ -60,7 +60,6 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 							);
 						if (loc.getX()>right) right = loc.getX();
 						if (loc.getY()>bottom) bottom = loc.getY();
-						//System.out.println(loc);
 						setLocation(verts.get(name), loc);
 					}
 					ln = dotIn.readLine();

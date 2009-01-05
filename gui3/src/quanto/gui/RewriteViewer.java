@@ -1,6 +1,7 @@
 package quanto.gui;
 
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -40,6 +41,7 @@ public class RewriteViewer extends JFrame {
 			rwPanel.add(rhs);
 			rwPanel.setBorder(new LineBorder(Color.black, 1));
 			panel.add(rwPanel);
+			lhs.zoomToFit(); rhs.zoomToFit();
 			
 			final int thisIndex = index;
 			
@@ -53,8 +55,17 @@ public class RewriteViewer extends JFrame {
 		}
 		
 		JScrollPane scroll = new JScrollPane(panel);
-		//scroll.setPreferredSize(new Dimension(600, 600));
-		getContentPane().add(scroll);
+		getContentPane().setLayout(new BorderLayout());
+		getContentPane().add(scroll, BorderLayout.CENTER);
+		JButton cancel = new JButton("Cancel");
+		cancel.addMouseListener(new MouseInputAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				RewriteViewer.this.dispose();
+			}
+		});
+		
+		getContentPane().add(cancel, BorderLayout.SOUTH);
+		
 		pack();
 	}
 }
