@@ -97,18 +97,19 @@ fun list_of_successors graph v = let
 in map targ out_edges
 end
 
-fun locate_bv trset (Comp lst) = locate_bv trset (List.last lst)
-  | locate_bv trset (Tens lst) = fold (curry op@) (map (locate_bv trset) lst) []
-  | locate_bv trset (V _) = []
-  | locate_bv trset (BV a) = [a]
+fun locate_bv (Comp lst) = locate_bv (List.last lst)
+  | locate_bv (Tens lst) = fold (curry op@) (map locate_bv lst) []
+  | locate_bv (V _) = []
+  | locate_bv (BV a) = [a]
+
 
 fun get_output_perm trlist term =
     let
-	fun zip_n _ [] = [] | zip_n n (x::xs) = (n,x)::(zip_n (n+1) xs)
-	val pi1 = map (fn (a,_)=>a)
-	val current = zip_n 0 (trlist @
-			       (locate_bv (Graph.Vertex.NSet.of_list trlist) term))
-    in pi1 (sort (prod_ord (fn _ => EQUAL) Vertex.NSet.N.ord) current)
+	val bvs = locate_bv term
+	val trset = Graph.Vertex.NSet.of_list trlist
+	val real_bvs = filter_out (Graph.Vertex.NSet.contains trset) bvs
+	val bvs' = trlist @ (sort Graph.Vertex.name_ord real_bvs)
+    in Permutation.get_perm Graph.Vertex.name_ord bvs bvs'
     end
 
 (* forest MUST be acyclic, or this will not terminate *)

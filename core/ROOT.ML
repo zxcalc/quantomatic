@@ -1,4 +1,5 @@
 use "lex.ML";
+use "alg.ML";
 
 use "graph.ML";
 use "test/graph.ML";
