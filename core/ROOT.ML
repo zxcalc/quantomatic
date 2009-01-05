@@ -41,4 +41,6 @@ use "output.ML";
 use "output_dot.ML";
 use "output_XML.ML";
 
+use "hilb.ML";
+
 use "new_controller.ML";

@@ -254,6 +254,16 @@ local
 	      handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
 	     | LinratParser.Parse => ("!!! Cannot parse angle expression.\n", graph)
                                
+    fun hilb ([_, format], graph) =
+	let
+	    fun fmt "text" = RGHilbTerm.pretty_text
+	      | fmt "mathematica" = RGHilbTerm.pretty_mathematica
+	      | fmt _ = fn _ => Pretty.str "!!! Bad formatter."
+	in
+	    (Pretty.string_of (
+	     fmt format (RGHilbTerm.from_graph graph)))^"\n"
+	end
+
 in
 
 (* Register commands available from the console and associate docs *)
@@ -333,10 +343,17 @@ val () = (
 	    (lift_graph_mutator_with_rewrites apply_rewrite);
     
     register_cmd
-	    "set_angle"
-	    ("set_angle GRAPH V ANGLE\n\n"^
-	     "    set the angle of vertex V to ANGLE\n")
-	    (lift_graph_mutator set_angle);
+	"hilb"
+	("hilb GRAPH FORMAT\n\n"^
+	 "    display the hilbert space term of GRAPH where\n"^
+	 "    FORMAT is one of {text, mathematica}.\n")
+	(lift_graph_viewer hilb);
+    
+    register_cmd
+	"set_angle"
+	("set_angle GRAPH V ANGLE\n\n"^
+	 "    set the angle of vertex V to ANGLE\n")
+	(lift_graph_mutator set_angle);
     ())
 end
 
@@ -372,6 +389,7 @@ fun eval command state =
     end
     handle Parse => (["!!! Parse error in command: "^command^"\n"], SKIP)
 
+(* main read-exec-print-loop *)
 fun repl state = let
   val _ = TextIO.print ("quanto:> "^EOT)
   val cmd_str = unsuffix "\n" (the (TextIO.inputLine TextIO.stdIn))
@@ -383,8 +401,8 @@ in TextIO.print (implode output); TextIO.print EOT;
       | QUIT => (TextIO.print EOT; ()))
 end
 
-fun flushIn () = case TextIO.canInput (TextIO.stdIn, 10)
-		              of SOME n => (TextIO.inputN (TextIO.stdIn, n); flushIn())
+fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
+		              of SOME n => (TextIO.input1 TextIO.stdIn;())
 		               | NONE => ()
 
 fun init () = (flushIn(); repl newState);

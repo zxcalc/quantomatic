@@ -67,6 +67,7 @@ val update_edges : ((Edge.data * (Vertex.name * Vertex.name)) Edge.NTab.T
                     -> (Edge.data * (Vertex.name * Vertex.name)) Edge.NTab.T)
                    -> T -> T
 
+
 (* pretty printing *)
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -173,7 +174,9 @@ val adj_vertices_with_enames' : T -> (Edge.NSet.T * Edge.NSet.T)
 
 val get_self_loops : T -> Vertex.name -> Edge.data Edge.NTab.T
 
-
+(* depth-first traversal *)
+val dft : (Edge.name -> 'a -> 'a) -> T -> 'a -> 'a
+val dft_with_roots : (Edge.name -> 'a -> 'a) -> T -> 'a -> ('a * Vertex.NSet.T)
 end;
 
 
@@ -759,6 +762,35 @@ fun exact_eq g1 g2 =
              | SOME (ed2,_) => Edge.data_eq (ed,ed2))
          e1s)
     end;
+
+(* Traverse the graph depth-first, folding on fld. The output is the
+ * new structure and a set of all the chosen root vertices. *)
+fun dft_with_roots fld graph base = let
+    val out_edges = fn v => Edge.NSet.list_of (#2(#2(get_vertex graph v)));
+    fun tree [] base rem = (base, rem) (* leaf *)
+      | tree (e::es) base rem =
+	let val targ = #2(#2(get_edge graph e))
+	in if Vertex.NSet.contains rem targ then
+	       let
+		   (* recurse on children *)
+		   val (base', rem') = tree (out_edges targ) (fld e base)
+					    (rem|>Vertex.NSet.delete targ)
+	       in tree es base' rem' (* recurse on siblings *)
+	       end
+	   else (base, rem)  (* cycle *)
+	end
+    fun forest base rem roots =
+	if Vertex.NSet.is_empty rem then (base, roots)
+	else let val fst = the (rem |> Vertex.NSet.get_first)
+		 val (base', rem') = tree (out_edges fst) base
+					  (rem|>Vertex.NSet.delete fst)
+	     in forest base' rem' (roots|>Vertex.NSet.add fst)
+	     end
+in forest base (get_vnames graph) Vertex.NSet.empty
+end
+
+(* DFT without roots *)
+fun dft fld graph base = #1 (dft_with_roots fld graph base)
 
 end; (* local -- hides opened Graph data types *)
 end;
