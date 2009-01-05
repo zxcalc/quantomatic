@@ -1,9 +1,22 @@
 structure Permutation =
 struct
+type T = int list
+(* recover the permutation from two lists of ordered elements *)
 fun get_perm ord lst1 lst2 =
     map (fn a => find_index 
-		     (fn b => (ord (a, b)) = EQUAL) lst2)
-	lst1
+		     (fn b => (ord (a, b)) = EQUAL) lst1)
+	lst2
+
+(* invert the given permutation *)
+fun invert_perm perm = get_perm Int.compare perm (0 upto ((length perm)-1)) 
+
+(* apply a permutation to a list *)
+fun apply_perm perm lst = map (nth lst) perm
+
+(* The above functions have the property:
+ *   apply_perm (get_perm ord lst1 lst2) lst1 = lst2 *)
+
+
 end
 
 
