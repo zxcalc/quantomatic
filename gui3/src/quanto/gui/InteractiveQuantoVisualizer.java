@@ -237,6 +237,15 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		});
 		hilbMenu.add(item);
 		
+		item = new JMenuItem("Dump term as Mathematica");
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				outputToTextView(core.hilb(getGraph(), "mathematica"));
+			}
+		});
+		hilbMenu.add(item);
+		
 		menus.add(hilbMenu);
 	}
 
