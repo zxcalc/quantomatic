@@ -32,7 +32,7 @@ import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.util.Pair;
 import edu.uci.ics.jung.visualization.control.*;
 
-public class InteractiveQuantoVisualizer extends QuantoVisualizer
+public class InteractiveGraphView extends GraphView
 implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private static final long serialVersionUID = 7196565776978339937L;
 	private QuantoCore core;
@@ -49,7 +49,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				wrappedAction(e);
 			} catch (QuantoCore.ConsoleError err) {
 				JOptionPane.showMessageDialog(
-						InteractiveQuantoVisualizer.this,
+						InteractiveGraphView.this,
 						err.getMessage(),
 						"Console Error",
 						JOptionPane.ERROR_MESSAGE);
@@ -72,17 +72,17 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			add(new TranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
 			add(new PickingGraphMousePlugin<QVertex,QEdge>());
 			add(new AddEdgeGraphMousePlugin<QVertex,QEdge>(
-					InteractiveQuantoVisualizer.this,
-					InteractiveQuantoVisualizer.this,
+					InteractiveGraphView.this,
+					InteractiveGraphView.this,
 					InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
 		}
 	}
 	
-	public InteractiveQuantoVisualizer(QuantoCore core, QuantoGraph g) {
+	public InteractiveGraphView(QuantoCore core, QuantoGraph g) {
 		this(core, g, new Dimension(800,600));
 	}
 	
-	public InteractiveQuantoVisualizer(QuantoCore core, QuantoGraph g, Dimension size) {
+	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size) {
 		super(g, size);
 		this.core = core;
 		this.viewHolder = null;
@@ -125,7 +125,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public String getTitle() {
-		return InteractiveQuantoVisualizer.titleOfGraph(getGraph().getName());
+		return InteractiveGraphView.titleOfGraph(getGraph().getName());
 	}
 	
 	private void buildMenus() {
@@ -190,7 +190,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				core.attach_rewrites(getGraph(), getPickedVertexState().getPicked());
-				JFrame rewrites = new RewriteViewer(InteractiveQuantoVisualizer.this);
+				JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 				rewrites.setVisible(true);
 			}
 		});

@@ -81,9 +81,9 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			public void actionPerformed(ActionEvent e) {
 				synchronized (views) {
 					for (InteractiveView v : views.values()) {
-						if (v instanceof InteractiveQuantoVisualizer) {
+						if (v instanceof InteractiveGraphView) {
 							try {
-								((InteractiveQuantoVisualizer)v).updateGraph();
+								((InteractiveGraphView)v).updateGraph();
 							} catch (QuantoCore.ConsoleError err) {
 								errorDialog(err.getMessage());
 							}
@@ -141,8 +141,8 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	public void newGraph() {
 		try {
 			QuantoGraph newGraph = core.new_graph();
-			InteractiveQuantoVisualizer vis =
-				new InteractiveQuantoVisualizer(core, newGraph, new Dimension(800,600));
+			InteractiveGraphView vis =
+				new InteractiveGraphView(core, newGraph, new Dimension(800,600));
 			addView(vis);
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
@@ -151,8 +151,8 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	
 	public QuantoGraph getCurrentGraph() {
 		if (focusedView != null &&
-				focusedView instanceof InteractiveQuantoVisualizer) {
-			return ((InteractiveQuantoVisualizer)focusedView).getGraph();
+				focusedView instanceof InteractiveGraphView) {
+			return ((InteractiveGraphView)focusedView).getGraph();
 		} else {
 			return null;
 		}
@@ -160,8 +160,8 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	
 	public void updateCurrentGraph() throws QuantoCore.ConsoleError {
 		if (focusedView != null &&
-				focusedView instanceof InteractiveQuantoVisualizer) {
-			((InteractiveQuantoVisualizer)focusedView).updateGraph();
+				focusedView instanceof InteractiveGraphView) {
+			((InteractiveGraphView)focusedView).updateGraph();
 		}
 	}
 	

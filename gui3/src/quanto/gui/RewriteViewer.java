@@ -20,10 +20,10 @@ import edu.uci.ics.jung.graph.util.Pair;
 
 public class RewriteViewer extends JFrame {
 	private static final long serialVersionUID = 3627522980375030017L;
-	private final InteractiveQuantoVisualizer vis;
+	private final InteractiveGraphView vis;
 	protected List<Pair<QuantoGraph>> rewrites;
 	
-	public RewriteViewer(InteractiveQuantoVisualizer vis) {
+	public RewriteViewer(InteractiveGraphView vis) {
 		this.vis = vis;
 		rewrites = vis.getRewrites();
 		
@@ -33,8 +33,8 @@ public class RewriteViewer extends JFrame {
 		for (Pair<QuantoGraph> rw : rewrites) {
 			JPanel rwPanel = new JPanel();
 			rwPanel.setLayout(new FlowLayout());
-			QuantoVisualizer lhs = new QuantoVisualizer(rw.getFirst(), new Dimension(100,100));
-			QuantoVisualizer rhs = new QuantoVisualizer(rw.getSecond(), new Dimension(100,100));
+			GraphView lhs = new GraphView(rw.getFirst(), new Dimension(100,100));
+			GraphView rhs = new GraphView(rw.getSecond(), new Dimension(100,100));
 			JButton apply = new JButton("=>");
 			rwPanel.add(lhs);
 			rwPanel.add(apply);

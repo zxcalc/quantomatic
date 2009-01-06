@@ -20,16 +20,16 @@ import edu.uci.ics.jung.visualization.control.CrossoverScalingControl;
 import edu.uci.ics.jung.visualization.control.ScalingControl;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 
-public class QuantoVisualizer extends VisualizationViewer<QVertex,QEdge> {
+public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	private static final long serialVersionUID = -1915610684250038897L;
 	public QuantoGraph graph;
 	private VisualizationServer.Paintable boundsPaint;
 	
-	public QuantoVisualizer(QuantoGraph g) {
+	public GraphView(QuantoGraph g) {
 		this(g, new Dimension(800, 600));
 	}
 	
-	public QuantoVisualizer(QuantoGraph g, Dimension size) {
+	public GraphView(QuantoGraph g, Dimension size) {
 		super(new DotLayout<QVertex,QEdge>(g, size));
 		setPreferredSize(size);
 		getGraphLayout().initialize();
