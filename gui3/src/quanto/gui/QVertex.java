@@ -2,6 +2,8 @@ package quanto.gui;
 
 import java.awt.Color;
 
+import edu.uci.ics.jung.contrib.HasName;
+
 public class QVertex implements HasName {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;

@@ -1,5 +1,7 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.contrib.HasName;
+
 public class QEdge implements HasName {
 	private String name;
 	public Integer index;

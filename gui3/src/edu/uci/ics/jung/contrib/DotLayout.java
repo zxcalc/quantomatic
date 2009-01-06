@@ -5,7 +5,6 @@ import java.awt.geom.Point2D;
 import java.io.*;
 import java.util.*;
 
-import quanto.gui.HasName;
 
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.graph.Graph;

@@ -1,5 +1,6 @@
-package quanto.gui;
+package edu.uci.ics.jung.contrib;
 
+import java.util.Comparator;
 import java.util.Set;
 
 
@@ -86,6 +87,15 @@ public interface HasName {
 			throw new ReadOnlyNameException();
 		}
 		
+	}
+	
+	/**
+	 * Comparator for instances of HasName
+	 */
+	public static class NameComparator implements Comparator<HasName> {
+		public int compare(HasName o1, HasName o2) {
+			return o1.getName().compareTo(o2.getName());
+		}
 	}
 
 }

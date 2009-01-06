@@ -2,9 +2,13 @@ package quanto.gui;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
 import net.n3.nanoxml.*;
+import edu.uci.ics.jung.contrib.HasName;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 
@@ -12,6 +16,7 @@ public class QuantoGraph extends SparseMultigraph<QVertex, QEdge>
 implements HasName {
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
+	protected List<QVertex> boundaryVertices;
 
 	public QuantoGraph(String name) {
 		this.name = name;
@@ -67,7 +72,11 @@ implements HasName {
 	 * @return
 	 */
 	public QuantoGraph fromXml(IXMLElement graphNode) {
+		if (graphNode == null)
+			throw new QuantoCore.FatalError("Attempting to parse null graph.");
+		
 		synchronized (this) {
+			boundaryVertices = new ArrayList<QVertex>(); 
 			for (QEdge e : new ArrayList<QEdge>(getEdges()))
 				removeEdge(e);
 			
@@ -110,8 +119,15 @@ implements HasName {
 					this.addVertex(v);
 				} else {
 					old_v.updateTo(v);
+					v = old_v;
+				}
+				
+				if (v.getVertexType()==QVertex.Type.BOUNDARY) {
+					boundaryVertices.add(v);
 				}
 			} // foreach vertex
+			
+			Collections.sort(boundaryVertices, new HasName.NameComparator());
 			
 			// Prune removed vertices
 			for (QVertex v : verts.values()) {
@@ -151,5 +167,9 @@ implements HasName {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+	
+	public int getBoundaryIndex(QVertex bv) {
+		return boundaryVertices.indexOf(bv);
 	}
 }

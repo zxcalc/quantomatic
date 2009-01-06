@@ -103,7 +103,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						for (QEdge edge : getPickedEdgeState().getPicked())
 							getCore().delete_edge(getGraph(), edge);
 						for (QVertex vert : getPickedVertexState().getPicked())
-								getCore().delete_vertex(getGraph(), vert);
+							getCore().delete_vertex(getGraph(), vert);
 						updateGraph();
 					
 					} catch (QuantoCore.ConsoleError err) {

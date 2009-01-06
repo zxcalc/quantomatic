@@ -53,7 +53,10 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         getRenderContext().setVertexLabelTransformer(
         		new Transformer<QVertex, String>() {
 					public String transform(QVertex v) {
-						return v.getAngle();
+						if (v.getVertexType()==QVertex.Type.BOUNDARY)
+							return String.format("(%d)",
+									getGraph().getBoundaryIndex(v));
+						else return v.getAngle();
 					}
         		});
         

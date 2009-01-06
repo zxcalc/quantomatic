@@ -3,6 +3,8 @@ package quanto.gui;
 import java.io.*;
 import java.util.Set;
 
+import edu.uci.ics.jung.contrib.HasName;
+
 /**
  * Regulate communications with the back-end. Primarily accessed via wrappers
  * to the "command" method, which throw QuantoCore.ConsoleError.
@@ -147,8 +149,11 @@ public class QuantoCore {
 		String ret;
 		synchronized (this) {
 			send(cmd.toString());
-			ret = receiveOrFail();
-			receive(); // eat the prompt
+			try {
+				ret = receiveOrFail();
+			} finally {
+				receive(); // eat the prompt
+			}
 		}
 		
 		return ret;
