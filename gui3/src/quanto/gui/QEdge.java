@@ -1,10 +1,12 @@
 package quanto.gui;
 
 public class QEdge implements HasName {
-	protected String name;
+	private String name;
+	public Integer index;
 	
 	public QEdge(String name) {
 		this.name = name;
+		this.index = null;
 	}
 
 	public String getName() {

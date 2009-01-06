@@ -205,4 +205,12 @@ public class QuantoCore {
 	public String hilb(QuantoGraph graph, String format) throws ConsoleError {
 		return command("hilb", graph, new HasName.StringName(format));
 	}
+	
+	public void delete_vertex(QuantoGraph graph, QVertex v) throws ConsoleError {
+		command("delete_vertex", graph, v);
+	}
+	
+	public void delete_edge(QuantoGraph graph, QEdge e) throws ConsoleError {
+		command("delete_edge", graph, e);
+	}
 }

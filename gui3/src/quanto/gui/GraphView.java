@@ -13,6 +13,7 @@ import java.awt.geom.Rectangle2D;
 import org.apache.commons.collections15.Transformer;
 
 import edu.uci.ics.jung.algorithms.layout.*;
+import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.DotLayout;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
@@ -42,8 +43,12 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 					}
         		});
         
+        
+        getRenderContext().setParallelEdgeIndexFunction(
+        		BalancedEdgeIndexFunction.<QVertex,QEdge>getInstance());
+        
         getRenderContext().setEdgeShapeTransformer(
-        		new EdgeShape.Line<QVertex,QEdge>());
+        		new EdgeShape.QuadCurve<QVertex,QEdge>());
         
         getRenderContext().setVertexLabelTransformer(
         		new Transformer<QVertex, String>() {

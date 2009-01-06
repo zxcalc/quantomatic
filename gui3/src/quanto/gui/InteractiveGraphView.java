@@ -9,6 +9,7 @@ import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +95,28 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		setGraphMouse(new RWMouse());
 		menus = new ArrayList<JMenu>();
 		buildMenus();
+		
+		addKeyListener(new KeyAdapter() {
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+					try {
+						for (QEdge edge : getPickedEdgeState().getPicked())
+							getCore().delete_edge(getGraph(), edge);
+						for (QVertex vert : getPickedVertexState().getPicked())
+								getCore().delete_vertex(getGraph(), vert);
+						updateGraph();
+					
+					} catch (QuantoCore.ConsoleError err) {
+						errorDialog(err.getMessage());
+					} finally {
+						// if null things are in the picked state, weird stuff
+						// could happen.
+						getPickedEdgeState().clear();
+						getPickedVertexState().clear();
+					}
+				}
+			}
+		});
 		 
         getRenderContext().setVertexStrokeTransformer(
         		new Transformer<QVertex,Stroke>() {
@@ -143,7 +166,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				core.add_vertex(getGraph(), QVertex.Type.RED);
+				getCore().add_vertex(getGraph(), QVertex.Type.RED);
 				updateGraph();
 			}
 		});
@@ -154,7 +177,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				core.add_vertex(getGraph(), QVertex.Type.GREEN);
+				getCore().add_vertex(getGraph(), QVertex.Type.GREEN);
 				updateGraph();
 			}
 		});
@@ -165,7 +188,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				core.add_vertex(getGraph(), QVertex.Type.BOUNDARY);
+				getCore().add_vertex(getGraph(), QVertex.Type.BOUNDARY);
 				updateGraph();
 			}
 		});
@@ -176,7 +199,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				core.add_vertex(getGraph(), QVertex.Type.HADAMARD);
+				getCore().add_vertex(getGraph(), QVertex.Type.HADAMARD);
 				updateGraph();
 			}
 		});
@@ -185,16 +208,16 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		graphMenu.add(graphAddMenu);
 		
-		item = new JMenuItem("Show Rewrites", KeyEvent.VK_W);
+		item = new JMenuItem("Show Rewrites", KeyEvent.VK_R);
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				core.attach_rewrites(getGraph(), getPickedVertexState().getPicked());
+				getCore().attach_rewrites(getGraph(), getPickedVertexState().getPicked());
 				JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 				rewrites.setVisible(true);
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, commandMask | Event.ALT_MASK));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.ALT_MASK));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Set Angle", KeyEvent.VK_A);
@@ -214,7 +237,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				if (angle != null) {
 					for (QVertex v : getPickedVertexState().getPicked()) {
 						if (v.getVertexType() != QVertex.Type.BOUNDARY)
-							core.set_angle(getGraph(), v, angle);
+							getCore().set_angle(getGraph(), v, angle);
 					}
 					updateGraph();
 				}
@@ -232,7 +255,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				outputToTextView(core.hilb(getGraph(), "text"));
+				outputToTextView(getCore().hilb(getGraph(), "text"));
 			}
 		});
 		hilbMenu.add(item);
@@ -241,7 +264,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				outputToTextView(core.hilb(getGraph(), "mathematica"));
+				outputToTextView(getCore().hilb(getGraph(), "mathematica"));
 			}
 		});
 		hilbMenu.add(item);
@@ -251,7 +274,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 
 	public void addEdge(QVertex s, QVertex t) {
 		try {
-			core.add_edge(getGraph(), s, t);
+			getCore().add_edge(getGraph(), s, t);
 			updateGraph();
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
@@ -268,7 +291,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public void updateGraph() throws QuantoCore.ConsoleError {
-		String out = core.graph_xml(getGraph());
+		String out = getCore().graph_xml(getGraph());
 		// ignore the first line
 		out = out.replaceFirst("^.*", "");
 		updateGraphFromXml(out);
@@ -295,7 +318,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public List<Pair<QuantoGraph>> getRewrites() {
 		List<Pair<QuantoGraph>> rewrites = new ArrayList<Pair<QuantoGraph>>();
 		try {
-			String xml = core.show_rewrites(getGraph());
+			String xml = getCore().show_rewrites(getGraph());
 			try {
 				IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
 				parser.setReader(StdXMLReader.stringReader(xml));
@@ -332,7 +355,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	public void applyRewrite(int index) {
 		try {
-			core.apply_rewrite(getGraph(), index);
+			getCore().apply_rewrite(getGraph(), index);
 			updateGraph();
 		} catch (ConsoleError e) {
 			errorDialog("Error in rewrite. The graph probably changed "+
@@ -340,7 +363,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 	}
 
-	public QuantoCore getCore() {
+	private QuantoCore getCore() {
 		return core;
 	}
 

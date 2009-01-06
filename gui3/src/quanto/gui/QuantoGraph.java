@@ -1,15 +1,14 @@
 package quanto.gui;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
 import net.n3.nanoxml.*;
-
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 
-public class QuantoGraph extends SparseGraph<QVertex, QEdge>
+public class QuantoGraph extends SparseMultigraph<QVertex, QEdge>
 implements HasName {
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
@@ -69,6 +68,9 @@ implements HasName {
 	 */
 	public QuantoGraph fromXml(IXMLElement graphNode) {
 		synchronized (this) {
+			for (QEdge e : new ArrayList<QEdge>(getEdges()))
+				removeEdge(e);
+			
 			Map<String, QVertex> verts = getVertexMap();
 
 			for (Object obj : graphNode.getChildrenNamed("vertex")) {

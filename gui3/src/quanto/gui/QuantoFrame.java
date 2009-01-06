@@ -3,8 +3,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -13,10 +11,12 @@ import javax.swing.event.ChangeListener;
 
 public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	private static final long serialVersionUID = 3656684775223085393L;
-	protected QuantoCore core;
-	protected QuantoConsole console;
-	protected Map<String,InteractiveView> views;
-	protected InteractiveView focusedView;
+	private QuantoCore core;
+	private QuantoConsole console;
+	private InteractiveView focusedView;
+	private JMenuItem closeViewMenuItem;
+	private Object viewLock = new Object();
+	
 	boolean consoleVisible;
 	final JTabbedPane tabs;
 	
@@ -32,6 +32,10 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		tabs.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				setFocusedView((InteractiveView)tabs.getSelectedComponent());
+				
+				// if there are no views left to close, ghost the command
+				if (focusedView == null) closeViewMenuItem.setEnabled(false);
+				else closeViewMenuItem.setEnabled(true);
 			}
 		});
 		
@@ -79,8 +83,9 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		item = new JMenuItem("Refresh All Graphs", KeyEvent.VK_R);
 		item.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				synchronized (views) {
-					for (InteractiveView v : views.values()) {
+				synchronized (viewLock) {
+					for (Component cmp : tabs.getComponents()) {
+						InteractiveView v = (InteractiveView)cmp;
 						if (v instanceof InteractiveGraphView) {
 							try {
 								((InteractiveGraphView)v).updateGraph();
@@ -92,8 +97,17 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 				}
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, modifierKey | Event.ALT_MASK));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, modifierKey | Event.SHIFT_MASK));
 		viewMenu.add(item);
+		
+		closeViewMenuItem = new JMenuItem("Close Current View", KeyEvent.VK_W);
+		closeViewMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeView(focusedView);
+			}
+		});
+		closeViewMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, modifierKey));
+		viewMenu.add(closeViewMenuItem);
 		
 		mb.add(fileMenu);
 		mb.add(viewMenu);
@@ -103,8 +117,6 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(tabs, BorderLayout.CENTER);
-		
-		views = new HashMap<String, InteractiveView>();
         
         console = new QuantoConsole();
         core = console.qcore;
@@ -115,20 +127,32 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	}
 	
 	public void setFocusedView (InteractiveView v) {
-		JMenuBar mb = getJMenuBar();
-		if (focusedView != null) {
-			for (JMenu m : focusedView.getMenus()) mb.remove(m);
+		synchronized (viewLock) {
+			JMenuBar mb = getJMenuBar();
+			if (focusedView != null) {
+				for (JMenu m : focusedView.getMenus()) mb.remove(m);
+			}
+			focusedView = v;
+			if (focusedView != null) {
+				for (JMenu m : focusedView.getMenus()) mb.add(m);
+			}
+			mb.repaint();
 		}
-		focusedView = v;
-		for (JMenu m : focusedView.getMenus()) mb.add(m);
-		mb.repaint();
 	}
 	
 	public void addView(InteractiveView iv) {
-		iv.setViewHolder(this);
-		views.put(iv.getTitle(), iv);
-		tabs.add(iv.getTitle(), (Component)iv);
-		tabs.setSelectedComponent((Component)iv);
+		synchronized (viewLock) {
+			iv.setViewHolder(this);
+			tabs.add(iv.getTitle(), (Component)iv);
+			tabs.setSelectedComponent((Component)iv);
+		}
+		pack();
+	}
+	
+	public void closeView(InteractiveView iv) {
+		synchronized (viewLock) {
+			tabs.remove((Component)iv);
+		}
 	}
 	
 	/**
@@ -173,11 +197,20 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		consoleVisible = !consoleVisible;
 		console.setVisible(consoleVisible);
 		if (consoleVisible) console.grabFocus();
-		this.pack();
+		pack();
 	}
 
+	public QuantoCore getCore() {
+		return core;
+	}
 
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception e) {
+			System.err.println("ERROR SETTING LOOK AND FEEL:");
+			e.printStackTrace();
+		}
 		if (QuantoFrame.isMac) {
 			System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
@@ -188,8 +221,6 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		fr.setVisible(true);
 	}
 
-	public QuantoCore getCore() {
-		return core;
-	}
+	
 
 }
