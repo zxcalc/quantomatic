@@ -57,7 +57,13 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		
 		if (!isMac) {
 			item = new JMenuItem("Quit", KeyEvent.VK_Q);
-			// TODO: make it work
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					// TODO: close better?
+					System.exit(0);
+				}
+			});
+			item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, modifierKey));
 			fileMenu.add(item);
 		}
 		
@@ -115,6 +121,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		}
 		focusedView = v;
 		for (JMenu m : focusedView.getMenus()) mb.add(m);
+		mb.repaint();
 	}
 	
 	public void addView(InteractiveView iv) {
