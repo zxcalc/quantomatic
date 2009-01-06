@@ -59,6 +59,7 @@ public class QuantoCore {
 			
 			System.out.println("Synchonising console...");
 			// sync the console
+			send("garbage_2039483945;");
 			send("HELO;");
 			while (!receive().contains("HELO"));
 			System.out.println("done.");
