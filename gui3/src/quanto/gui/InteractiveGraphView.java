@@ -98,7 +98,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		addKeyListener(new KeyAdapter() {
 			public void keyPressed(KeyEvent e) {
-				if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+				int delete = (QuantoFrame.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
+				if (e.getKeyCode() == delete) {
 					try {
 						for (QEdge edge : getPickedEdgeState().getPicked())
 							getCore().delete_edge(getGraph(), edge);
