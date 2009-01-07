@@ -57,11 +57,15 @@ public class JiggleLayout implements GraphLayout {
 		
 		fm.addConstraint(new jiggle.SurfaceOfSphereConstraint(wrapper));
 		
+		/*
 		jiggle.FirstOrderOptimizationProcedure opt =
 			new jiggle.SteepestDescent (wrapper, fm, 0.0000001d);
+		*/
+		jiggle.FirstOrderOptimizationProcedure opt =
+			new jiggle.ConjugateGradients(wrapper, fm, 0.0000001d, 5);
 		
 		
-		for (int i=0;i<50;++i) opt.improveGraph();
+		for (int i=0;i<150;++i) opt.improveGraph();
 		
 		wrapper.syncVertices();
 	}
