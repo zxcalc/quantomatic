@@ -192,6 +192,15 @@ local
 	      handle _ => ("!!! Error adding edge, probably a bad vertex name.\n",
 		                 graph)
 
+
+    fun delete_vertex ([_,v], graph) =
+	("deleted vertex \""^v^"\"\n", graph|>G.delete_vertex v)
+	handle _ => ("!!! Cannot delete vertex\n", graph)
+
+    fun delete_edge ([_,e], graph) =
+	("deleted edge \""^e^"\"\n", graph|>G.delete_edge e)
+	handle _ => ("!!! Cannot delete edge\n", graph)
+
     fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
 			  Pretty.string_of  o
 			  RGGraphXML.output_graph
@@ -299,6 +308,18 @@ val () = (
 	     "    add a TYPE vertex to GRAPH\n")
 	    (lift_graph_mutator add_vertex);
     
+    register_cmd
+	    "delete_vertex"
+	    ("delete_vertex GRAPH V\n\n"^
+	     "    delete vertex V from GRAPH\n")
+	    (lift_graph_mutator delete_vertex);
+
+    register_cmd
+	    "delete_edge"
+	    ("delete_edge GRAPH E\n\n"^
+	     "    delete edge E from GRAPH\n")
+	    (lift_graph_mutator delete_edge);
+
     register_cmd
 	    "add_edge"
 	    ("add_edge GRAPH V1 V2\n\n"^

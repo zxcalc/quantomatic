@@ -36,6 +36,31 @@ sig
     val print : T -> unit
 end
 
+signature MATRIX =
+sig
+    structure URing : RING
+    type T = URing.T list list
+    val dot_product : URing.T list -> URing.T list -> URing.T
+    val flatten : T list list -> T
+    val fold :
+        (URing.T -> 'a -> 'a) -> 'a ->
+        ('a -> 'b -> 'b) -> 'b ->
+	T -> 'b
+    (*val ident : 'a -> int*)
+    val kronecker_product : T -> T -> T
+    val map : (URing.T -> 'a) -> T -> 'a list list
+    val merge_x : 'a list list -> 'a list list -> 'a list list
+    val merge_y : 'a list -> 'a list -> 'a list
+    val mult : T -> T -> T
+    val pretty : T -> Pretty.T
+    val print : T -> unit
+    val scalar_mult : URing.T -> T -> T
+    val sum_of_squares : T -> URing.T
+    val tensor : T list -> T
+    val transpose : T -> T
+    val ident : int -> T
+end
+
 structure IntRing : RING =
 struct
 open Int
@@ -49,7 +74,7 @@ fun pretty i = Pretty.str (toString i)
 val print = Pretty.writeln o pretty
 end
 
-functor ModuleFun (structure URing : RING) =
+functor MatrixFun (structure URing : RING) =
 struct
 
 structure URing = URing
@@ -79,12 +104,41 @@ fun scalar_mult k m = map (fn e => URing.*(k,e)) m
 fun fold cmb_x base_x cmb_y base_y m =
     Basics.fold cmb_y (List.map (fn row => Basics.fold cmb_x row base_x) m) base_y
 fun merge_y m1 m2 = m1 @ m2
-fun merge_x m1 m2 = transpose ((transpose m1) @ (transpose m2))
+fun merge_x m1 m2 = transpose (merge_y (transpose m1) (transpose m2))
 fun flatten m = fold merge_x [] merge_y [] m
 fun sum_of_squares m = fold (fn x => fn s => URing.+(URing.*(x,x),s)) URing.zero (curry URing.+) URing.zero m
 fun kronecker_product m1 m2 = flatten (map (fn a => scalar_mult a m2) m1)
+fun tensor lst = Basics.fold kronecker_product lst [[URing.one]]
+fun ident dim =
+    let fun row n = List.map (fn a => if a=n then URing.one else URing.zero)
+			     (0 upto (dim-1))
+    in List.map row (0 upto (dim-1))
+    end
+
+(* cartesion product of lists, pairing elems with f *)
+fun cart f lst1 lst2 = 
+    Library.flat (List.map (fn a => List.map (fn b => f a b) lst2) lst1)
+
+fun tensor_basis 0 dim = [[]]
+  | tensor_basis size dim = let
+	val smaller = tensor_basis (size-1) dim
+    in cart (curry op::) (0 upto (dim-1)) smaller
+    end
+
+fun permute_tensor perm dim =
+    let
+	val basis = ident dim
+	val tbasis = tensor_basis (length perm) dim
+	val permuted_tbasis =
+	    map ((fn x=>[x]) o nth basis)
+		(List.map (Permutation.apply_perm perm) tbasis)
+    in
+	permuted_tbasis
+    end
 
 fun pretty m = Pretty.chunks (List.map (Pretty.list "[" "]") (map (URing.pretty) m));
 val print = Pretty.writeln o pretty
 
-end (* structure ModuleFun *)
+end (* structure MatrixFun *)
+
+structure IntModule = MatrixFun(structure URing = IntRing)

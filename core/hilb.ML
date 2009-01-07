@@ -43,7 +43,7 @@ local
     val (v1, g2) = g2|>G.add_vertex (V.IVert (V.Xnd (AngleExpr.parse "1*z")))
     val (v2, g2) = g2|>G.add_vertex (V.IVert (V.Znd (AngleExpr.parse "2*y")))
 in
-val (_,g2) = g2|>G.add_edge () v1 v2
+val (_,g2) = g2|>G.add_edge () v2 v1
 end
 
 end
@@ -78,6 +78,7 @@ sig
     val id_vert : term
     val one_vert : term
     val bell_vert : term
+    val bell_dag_vert : term
     val permutation_op : int list -> term
 end
 
@@ -113,11 +114,18 @@ fun get_output_perm trlist term =
     end
 
 (* forest MUST be acyclic, or this will not terminate *)
-fun from_tree forest root =
+fun from_tree forest root = let
+    val root_v = translate_vertex forest root
+in
     case list_of_successors forest root
-     of [] => translate_vertex forest root
-      | cs => compose [translate_vertex forest root,
-		       tensor (map (from_tree forest) cs)]
+     of [] => root_v
+      | cs => case root_v
+		    of (BV _) => compose [bell_vert,
+					  tensor (root_v::
+						  (map (from_tree forest) cs))]
+		     | _ => compose [root_v,
+				     tensor (map (from_tree forest) cs)]
+end
 
 fun from_graph graph = let
     val (bad_edges,roots) =
@@ -130,7 +138,7 @@ fun from_graph graph = let
     val nid = (length perm) - (2 * nbell)
     val bell_states = if nbell = 0 then []
 		      else [Tens(
-			    (replicate nbell bell_vert)@
+			    (replicate nbell bell_dag_vert)@
 			    (replicate nid id_vert))]
 in compose (term::(permutation_op perm)::bell_states)
 end
@@ -188,6 +196,7 @@ val bv = RGVertex.BVert ();
 val id_vert = V ("id",[])
 val one_vert = V ("1",[])
 val bell_vert = V ("bell",[])
+val bell_dag_vert = V ("bell_dag",[])
 fun permutation_op perm =
     case perm
      of [] => id_vert
