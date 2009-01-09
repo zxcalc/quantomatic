@@ -1,59 +1,7 @@
-structure G = RGGraph;
-structure V = RGVertex;
-structure E = UnitEdge;
-val bv = V.BVert ();
-val rv = V.IVert (V.Xnd AngleExpr.zero)
-val gv =  V.IVert (V.Znd AngleExpr.zero)
-
-
-fun split set =
-    let
-	val fst = the (set|>V.NSet.get_first)
-	val rest = set|>V.NSet.delete fst
-    in (fst, rest)
-    end
-
-val g = G.empty
-
-local
-    val (v1, g) = g|>G.add_vertex rv
-    val (v2, g) = g|>G.add_vertex (V.IVert (V.Znd (AngleExpr.parse "4*x")))
-    val (v3, g) = g|>G.add_vertex gv
-    val (v4, g) = g|>G.add_vertex bv
-    val (v5, g) = g|>G.add_vertex gv
-    val (v6, g) = g|>G.add_vertex rv
-    val (v7, g) = g|>G.add_vertex gv
-in
-
-val (_,g) = g|>G.add_edge () v1 v2
-val (_,g) = g|>G.add_edge () v1 v3
-val (_,g) = g|>G.add_edge () v2 v5
-val (_,g) = g|>G.add_edge () v2 v5
-val (_,g) = g|>G.add_edge () v3 v4
-val (_,g) = g|>G.add_edge () v3 v1
-
-(* a disconnected component *)
-val (_,g) = g|>G.add_edge () v5 v6
-val (_,g) = g|>G.add_edge () v5 v7
-val (_,g) = g|>G.add_edge () v7 v6
-
-val g2 = G.empty
-
-local
-    val (v1, g2) = g2|>G.add_vertex (V.IVert (V.Xnd (AngleExpr.parse "1*z")))
-    val (v2, g2) = g2|>G.add_vertex (V.IVert (V.Znd (AngleExpr.parse "2*y")))
-in
-val (_,g2) = g2|>G.add_edge () v2 v1
-end
-
-end
-
-fun wipe_edges g = E.NSet.fold (G.delete_edge) (g|>G.get_enames) g
-
-
 signature GRAPH_ADAPTER =
 sig
     structure Graph : GRAPH
+    structure Matrix : MATRIX
     datatype term =
 	     V of (string * string list) |
 	     BV of Graph.Vertex.name |
@@ -62,6 +10,9 @@ sig
 
     (* translate a vertex into its representation as a term *)
     val translate_vertex : Graph.T -> Graph.Vertex.name -> term
+
+    (* define a vertex as its matrix *)
+    val define_vertex : term -> Matrix.T
 
     (* trace out the given edge from a graph and add the new bvertex names to
      * the trace list *)
@@ -143,6 +94,33 @@ fun from_graph graph = let
 in compose (term::(permutation_op perm)::bell_states)
 end
 
+(* compare vertices *)
+exception non_vertex_compared_exp
+fun vertex_ord (V (v1,arg1), V (v2,arg2)) =
+    (case String.compare (v1,v2)
+      of EQUAL => List.collate String.compare (arg1, arg2)
+       | ord => ord)
+  | vertex_ord _ = raise non_vertex_compared_exp
+structure DefTab = TableFun(type key = term val ord = vertex_ord);
+
+
+val get_defs = let
+    fun get_defs' defs (Comp (t::ts)) = get_defs' (get_defs' defs t) (Comp ts)
+      | get_defs' defs (Tens (t::ts)) = get_defs' (get_defs' defs t) (Tens ts)
+      | get_defs' defs (V v) = (case DefTab.lookup defs (V v)
+				 of NONE => defs |> DefTab.update
+						 (V v, define_vertex (V v))
+				  | _ => defs)
+      | get_defs' defs _ = defs
+
+in get_defs' DefTab.empty
+end
+
+fun pretty_defs pretty_term pretty_mat defs = let
+    fun pdef (k,v) = cons (Pretty.block
+			       [pretty_term k, Pretty.str ":=", pretty_mat v])
+in Pretty.chunks (DefTab.fold pdef defs [])
+end
 
 (* multiple output formats *)
 fun pretty_mathematica (V (f, [])) = Pretty.str f
@@ -176,6 +154,14 @@ fun pretty_text (V (f, [])) = Pretty.str f
 				  (Pretty.separate
 				       " X" (map pretty_text lst))@
 				  [Pretty.str ")"])
+open AlgFormat
+fun pretty format term = 
+    let val pt = case format
+		  of MATHEMATICA => pretty_mathematica
+		   | PLAIN => pretty_text
+		   | _ => raise not_supported_exp
+    in pt term
+    end
 
 val print = Pretty.writeln o pretty_text
 			     
@@ -185,6 +171,7 @@ structure RGHilbAdapter  : GRAPH_ADAPTER =
 struct
 
 structure Graph = RGGraph
+structure Matrix = IntMatrix
 datatype term =
 	 V of (string * string list) |
 	 BV of Graph.Vertex.name |
@@ -257,6 +244,12 @@ fun translate_vertex graph vert =
 	    attach_angle "z" e (vertex_tree "z" ic oc) ic
 	  | RGVertex.IVert (RGVertex.Hnd) => V ("H",[])
     end
+
+fun define_vertex (V ("sigma", perm)) =
+    let val iperm = map (fn a => the (Int.fromString a)) perm
+    in Matrix.permute_tensor iperm 2
+    end
+  | define_vertex _ = Matrix.singleton (Matrix.URing.zero)
 
 fun trace_out e (g,tr) = let
 	val (bv1, g') = g |> Graph.add_vertex bv
