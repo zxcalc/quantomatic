@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
+import java.util.Stack;
 import java.util.regex.Pattern;
 
 import javax.swing.*;
@@ -17,6 +18,8 @@ public class QuantoConsole extends JPanel {
 	JTextField input;
 	JTextArea output;
 	final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
+	private Stack<String> history;
+	private int hpointer;
 	
 	class QuantoConsoleOutputStream extends OutputStream {
 		JTextArea textArea;
@@ -33,9 +36,10 @@ public class QuantoConsole extends JPanel {
 	
 	public QuantoConsole() {
         this.setLayout(new BorderLayout());
+        history = new Stack<String>();
         input = new JTextField();
         output = new JTextArea();
-        output.setFocusable(false);
+        //output.setFocusable(false);
         out = new PrintStream(new QuantoConsoleOutputStream(output));
 		qcore = new QuantoCore(out);
 		
@@ -44,11 +48,26 @@ public class QuantoConsole extends JPanel {
 		
 		input.addKeyListener(new KeyAdapter () {
 			public void keyReleased(KeyEvent e) {
-				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-					JTextField tf = (JTextField)e.getSource();
-					String text = tf.getText();
+				JTextField tf = (JTextField)e.getSource();
+				String text;
+				switch (e.getKeyCode()) {
+				case KeyEvent.VK_UP:
+					if (hpointer > 0) {
+						tf.setText(history.get(--hpointer));
+					}
+					break;
+				case KeyEvent.VK_DOWN:
+					if (hpointer < history.size()-1) {
+						tf.setText(history.get(++hpointer));
+					}
+					break;
+				case KeyEvent.VK_ENTER:
+					text = tf.getText();
 					write(text);
 					tf.setText("");
+					history.push(text);
+					hpointer = history.size();
+					break;
 				}
 			}
         });

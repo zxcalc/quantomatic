@@ -9,11 +9,14 @@ import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
@@ -37,6 +40,7 @@ public class InteractiveGraphView extends GraphView
 implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private static final long serialVersionUID = 7196565776978339937L;
 	private QuantoCore core;
+	private RWMouse graphMouse;
 	protected List<JMenu> menus;
 	private InteractiveView.Holder viewHolder;
 	
@@ -65,17 +69,41 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	 *
 	 */
 	private class RWMouse extends PluggableGraphMouse {
+		private GraphMousePlugin pickingMouse, edgeMouse;
 		public RWMouse() {
 			int mask = InputEvent.CTRL_MASK;
 			if (QuantoFrame.isMac) mask = InputEvent.META_MASK;
 			
 			add(new ScalingGraphMousePlugin(new CrossoverScalingControl(), 0, 1.1f, 0.909f));
 			add(new TranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
-			add(new PickingGraphMousePlugin<QVertex,QEdge>());
-			add(new AddEdgeGraphMousePlugin<QVertex,QEdge>(
-					InteractiveGraphView.this,
-					InteractiveGraphView.this,
-					InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
+			pickingMouse = new PickingGraphMousePlugin<QVertex,QEdge>();
+			edgeMouse = new AddEdgeGraphMousePlugin<QVertex,QEdge>(
+							InteractiveGraphView.this,
+							InteractiveGraphView.this,
+							InputEvent.BUTTON1_MASK);
+			setPickingMouse();
+		}
+		
+		public void setPickingMouse() {
+			remove(edgeMouse);
+			add(pickingMouse);
+		}
+		
+		public void setEdgeMouse() {
+			remove(pickingMouse);
+			add(edgeMouse);
+		}
+		
+		public ItemListener getItemListener() {
+			return new ItemListener () {
+				public void itemStateChanged(ItemEvent e) {
+					if (e.getStateChange() == ItemEvent.SELECTED) {
+						setEdgeMouse();
+					} else {
+						setPickingMouse();
+					}
+				}
+			};
 		}
 	}
 	
@@ -92,7 +120,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		Relaxer r = getModel().getRelaxer();
 		if (r!= null) r.setSleepTime(4);
 		
-		setGraphMouse(new RWMouse());
+		graphMouse = new RWMouse();
+		setGraphMouse(graphMouse);
 		menus = new ArrayList<JMenu>();
 		buildMenus();
 		
@@ -184,6 +213,12 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.setAccelerator(KeyStroke.getKeyStroke(
 				KeyEvent.VK_Z, commandMask | KeyEvent.SHIFT_MASK));
 		graphMenu.add(item);
+		
+		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
+		cbItem.setMnemonic(KeyEvent.VK_E);
+		cbItem.addItemListener(graphMouse.getItemListener());
+		cbItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,0));
+		graphMenu.add(cbItem);
 		
 		JMenu graphAddMenu = new JMenu("Add");
 		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
