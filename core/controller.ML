@@ -3,7 +3,7 @@ sig
     val init : unit -> unit
 end
 
-structure NewController (*: CONTROLLER *) =
+structure Controller (*: CONTROLLER *) =
 struct
 
 structure QuantoCommand =
@@ -428,4 +428,4 @@ fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
 
 fun init () = (flushIn(); repl newState);
 
-end (* structure NewController *)
+end (* structure Controller *)

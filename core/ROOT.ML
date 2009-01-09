@@ -44,4 +44,4 @@ use "output_XML.ML";
 
 use "hilb.ML";
 
-use "new_controller.ML";
+use "controller.ML";
