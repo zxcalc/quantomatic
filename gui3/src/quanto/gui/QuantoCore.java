@@ -218,4 +218,12 @@ public class QuantoCore {
 	public void delete_edge(QuantoGraph graph, QEdge e) throws ConsoleError {
 		command("delete_edge", graph, e);
 	}
+	
+	public void undo(QuantoGraph graph) throws ConsoleError {
+		command("undo", graph);
+	}
+	
+	public void redo(QuantoGraph graph) throws ConsoleError {
+		command("redo", graph);
+	}
 }

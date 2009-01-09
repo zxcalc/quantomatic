@@ -162,6 +162,29 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		JMenuItem item;
 		
+		item = new JMenuItem("Undo", KeyEvent.VK_U);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().undo(getGraph());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, commandMask));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Redo", KeyEvent.VK_R);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().redo(getGraph());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(
+				KeyEvent.VK_Z, commandMask | KeyEvent.SHIFT_MASK));
+		graphMenu.add(item);
+		
 		JMenu graphAddMenu = new JMenu("Add");
 		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
 		item.addActionListener(new QVListener() {
