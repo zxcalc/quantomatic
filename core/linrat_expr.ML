@@ -157,19 +157,16 @@ fun subs lup target =
 (* =====================================================================*)
 
 fun pretty (pi, tab) =
-    let val ppi  = if (Coeff.is_zero pi) then []
-		               else [Pretty.block [Coeff.pretty pi,Pretty.str "*Pi"]]
-	      fun pretty1 (k,v) [] =
-	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])]
-	        | pretty1 (k,v) pl =
-	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])::
-	          ((Pretty.str " + ")::pl)
+    let fun pretty1 (k,v) =
+	    if (Coeff.is_one v) then Pretty.str k
+	    else Pretty.block [Coeff.pretty v, Pretty.str ("*"^k)]
+	val ppi  = if (Coeff.is_zero pi) then [] else [pretty1 ("Pi", pi)]
     in 
-      Pretty.block (VName.NTab.fold pretty1 tab ppi)
+	(Pretty.block o Pretty.separate " +" o rev)
+	    (VName.NTab.fold (cons o pretty1) tab ppi)
     end
 
 val print = Pretty.writeln o pretty
-
 
 (* =====================================================================*)
 (* 
@@ -223,9 +220,9 @@ fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Rational.mk 0 1) [(id,r)])
 fun const_term (RAT r) = EXP (mk r [])
 val one_pi = const_term (RAT (Rational.mk 1 1))
 fun var_term (TOK(L.ID id)) = EXP (mk_var id)
-fun plus (EXP a, EXP c) = EXP (add_expr a c)
-
-
+fun plus (EXP a, EXP b) = EXP (add_expr a b)
+fun minus (EXP a, EXP b) = EXP (subtr_expr a b)
+fun neg (EXP a) = EXP (subtr_expr zero a)
 
 (* the grammar, decorated with semantic operators *)
 fun pi x = x|>((sym "\\" || noop)
@@ -236,12 +233,14 @@ fun coeff x = x|>(
 		  || (sym "(" |-- coeff --| sym ")")
 		  || num >> whole_num)
 fun term x = x|>(
-	     ((coeff --| (sym "*" || noop) --| pi) >> const_term)
+	     ((sym "-" |-- term) >> neg)
+		 || ((coeff --| (sym "*" || noop) --| pi) >> const_term)
 		 || (pi >> (fn _ => one_pi))
 		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
 		 || (ident >> var_term))
 fun terms x = x|>(
 	      ((term --| sym "+" -- terms) >> plus)
+		  || ((term --| sym "-" -- terms) >> minus)
 		  || (sym "(" |-- terms --| sym ")")
 		  || term)
 
