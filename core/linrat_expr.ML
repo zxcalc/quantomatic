@@ -75,11 +75,11 @@ fun get_vars (_,tab)  = VName.NTab.get_nameset tab;
 
 val empty = VName.NTab.empty : Coeff.T VName.NTab.T;
 
-val zero = (Coeff.mk 0 1, empty);
+val zero = (Coeff.zero, empty);
 fun is_zero (cpi,vars) = (Coeff.is_zero cpi 
                           andalso VName.NTab.is_name_empty vars);
 
-val pi = (Coeff.mk 1 1, empty);
+val pi = (Coeff.one, empty);
 
 fun mk_var nm = 
     (Coeff.mk 0 1, VName.NTab.update (nm, Coeff.mk 1 1) empty)
@@ -90,9 +90,9 @@ fun mk const kv_list =
 (* reduce exprs to a normal by removing variables whose Coeff = 0 ======*)
 fun reduce_expr (p, t) = 
     let fun red (k,v) tab = 
-	          if  Coeff.is_zero v		
-	          then VName.NTab.delete k t 
-	          else t
+	          if  Coeff.is_zero v
+	          then VName.NTab.delete k tab
+	          else tab
     in 
       (p, VName.NTab.fold red t t)
     end
@@ -161,9 +161,10 @@ fun pretty (pi, tab) =
 	    if (Coeff.is_one v) then Pretty.str k
 	    else Pretty.block [Coeff.pretty v, Pretty.str ("*"^k)]
 	val ppi  = if (Coeff.is_zero pi) then [] else [pretty1 ("Pi", pi)]
+	val plist = VName.NTab.fold (cons o pretty1) tab ppi
     in 
-	(Pretty.block o Pretty.separate " +" o rev)
-	    (VName.NTab.fold (cons o pretty1) tab ppi)
+	case plist of [] => Pretty.str "0"
+		    | _ => (Pretty.block o Pretty.separate " +" o rev) plist
     end
 
 val print = Pretty.writeln o pretty

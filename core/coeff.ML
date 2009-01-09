@@ -6,6 +6,8 @@ sig
   val mult : T -> T -> T;
   val div : T -> T -> T;
   val eq : T -> T -> bool;
+  val zero : T;
+  val one : T;
   val is_zero : T -> bool;
   val is_one : T -> bool;
   val ord : (T * T) -> General.order;
@@ -24,13 +26,6 @@ structure Rational : RATIONAL =
 struct
 type T = int * int;
 exception BadExpression of string;
-fun eq x y = (x = y);
-
-fun is_zero (0,_) = true
-  | is_zero (_,_) = false
-
-fun is_one (1,1) = true
-  | is_one (_,_) = false
 
 fun ord ((d1,n1), (d2,n2)) = 
     let val (lhs,rhs) = (d1*n2,d2*n1)
@@ -39,6 +34,8 @@ fun ord ((d1,n1), (d2,n2)) =
       else if lhs = rhs then General.EQUAL
       else General.GREATER
     end
+
+fun eq x y = (ord (x, y) = EQUAL);
 
 fun gcd (m,n) =
     if m=n then m
@@ -74,6 +71,11 @@ fun rat_mult (d1,n1) (d2,n2) = rat_reduce (d1*d2, n1*n2)
 fun rat_div (d1,n1) (d2,n2) = rat_mult (d1,n1) (n2,d2)
 
 fun mk d n = rat_reduce (d,n)
+
+val zero = mk 0 1
+val one = mk 1 1
+fun is_zero r = eq r zero
+fun is_one r = eq r one
 
 fun pretty (d,n) = 
     if d=0 then Pretty.str "0"
