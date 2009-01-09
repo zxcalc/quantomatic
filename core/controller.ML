@@ -261,7 +261,7 @@ local
     fun set_angle ([_,v,a], graph) =
 	      ("ok\n", graph |> G.update_vertex (vdata a) v)
 	      handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
-	     | LinratParser.Parse => ("!!! Cannot parse angle expression.\n", graph)
+	     | AngleExpr.parse_exp => ("!!! Cannot parse angle expression.\n", graph)
                                
     fun hilb ([_, format], graph) =
 	let

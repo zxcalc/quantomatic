@@ -12,11 +12,13 @@ val subtr_expr : T -> T -> T
 val add_expr : T -> T -> T
 val scale_expr : Coeff.T -> T -> T
 val parse : string -> T
+exception parse_exp
 end;
 
 structure DB_LinratExpr   =
 struct 
 exception BadExpression of string;
+exception parse_exp;
 structure Coeff = Rational;
 type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 
@@ -198,18 +200,13 @@ fun match pat target already_matched =
     end;
 
 
-end;
-
-
-
-
 (* functionality to parse expressions *)
 structure LinratParser =
 struct
 
 exception Parse
 structure L = SimpleLexer
-datatype expr = EXP of DB_LinratExpr.T
+datatype expr = EXP of T
 	      | RAT of Rational.T
 	      | TOK of L.token
 
@@ -222,21 +219,25 @@ val noop = L.noop >> TOK
 (* semantic ops *)
 fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Rational.mk n d)
 fun whole_num n = rat (n,TOK(L.INT 1))
-fun rat_term (RAT r, TOK(L.ID id)) = EXP (DB_LinratExpr.mk (Rational.mk 0 1) [(id,r)])
-fun const_term (RAT r) = EXP (DB_LinratExpr.mk r [])
+fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Rational.mk 0 1) [(id,r)])
+fun const_term (RAT r) = EXP (mk r [])
 val one_pi = const_term (RAT (Rational.mk 1 1))
-fun var_term (TOK(L.ID id)) = EXP (DB_LinratExpr.mk_var id)
-fun plus (EXP a, EXP c) = EXP (DB_LinratExpr.add_expr a c)
+fun var_term (TOK(L.ID id)) = EXP (mk_var id)
+fun plus (EXP a, EXP c) = EXP (add_expr a c)
+
 
 
 (* the grammar, decorated with semantic operators *)
+fun pi x = x|>((sym "\\" || noop)
+		   --| (sym "p" || sym "P") --| (sym "i" || sym "I"))
+
 fun coeff x = x|>(
 	      ((num --| sym "/" -- num) >> rat)
 		  || (sym "(" |-- coeff --| sym ")")
 		  || num >> whole_num)
 fun term x = x|>(
-	     ((coeff --| (sym "*" || noop) --| sym "Pi") >> const_term)
-		 || (sym "Pi" >> (fn _ => one_pi))
+	     ((coeff --| (sym "*" || noop) --| pi) >> const_term)
+		 || (pi >> (fn _ => one_pi))
 		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
 		 || (ident >> var_term))
 fun terms x = x|>(
@@ -245,16 +246,16 @@ fun terms x = x|>(
 		  || term)
 
 fun parse str = let val (EXP e,ts) = terms ((Symbol.explode str)@[Symbol.eof])
-		in if ts = [Symbol.eof] then e else raise Parse
+		in if ts = [Symbol.eof] then e else raise parse_exp
 		end
 
 
 end
 
-
-
-structure AngleExpr : LINRAT_EXPR = 
-struct
-open DB_LinratExpr
 val parse = LinratParser.parse
+
 end
+
+structure LinratExpr = DB_LinratExpr : LINRAT_EXPR
+
+

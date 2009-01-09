@@ -1,3 +1,6 @@
+(* angle expressions *)
+structure AngleExpr = LinratExpr
+
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Vertices and Edges for quantum graphs *)
 signature RG_VERTEX
