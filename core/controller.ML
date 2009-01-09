@@ -43,7 +43,7 @@ fun pretty (f,args) = Pretty.block[Pretty.str f,
 				   Pretty.str_list "(" ")" args]
 val print = Pretty.writeln o pretty
 val toString = Pretty.string_of o pretty
-end;
+end; (* structure QuantoCommand *)
 
 structure GraphName :> STR_NAMES = 
 struct
@@ -54,6 +54,7 @@ end
 structure G = RGGraph
 structure V = G.RGVertex
 structure E = G.Edge
+structure LoadSave = RGGraphLoaderSaver
 
 (* (name, rule, fused) *)
 type rewrite = string * Rule.T * RGGraph.T
@@ -78,7 +79,8 @@ fun register_cmd name help f =
     cmds := ((!cmds) |> Symtab.update (name,(help,f)))
 
 
-local
+
+local 
     (*
      * lift_XXX are the only commands that explicitly unwrap the
      * global state. Where applicable, the first argument is
@@ -171,6 +173,13 @@ local
 	      (case GraphName.NTab.lookup tab gr
 	        of SOME {hist=(g::gs,_),...} => SOME g
 	         | _ => NONE)
+
+    fun load_graph ([fname],_) =  SOME (LoadSave.load_graph fname)
+
+    fun save_graph ([_, fname], graph) = 
+	( LoadSave.save_graph fname graph;
+	  "Saved file " ^ fname ^"\n")
+	handle _ => "!!! Could not save file "^fname^"\n"
 
     fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
       | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
@@ -273,6 +282,7 @@ local
 	     fmt format (RGHilbTerm.from_graph graph)))^"\n"
 	end
 
+
 in
 
 (* Register commands available from the console and associate docs *)
@@ -295,7 +305,19 @@ val () = (
 	    ("new_graph\n\n" ^
 	     "    create a new graph and return its name\n")
 	    (lift_graph_creator (fn ([],_) => SOME RGGraph.empty));
-    
+
+    register_cmd
+	    "load_graph"
+	    ("load_graph FILENAME\n\n" ^
+	     "    load a new graph from FILENAME return its name\n")
+	    (lift_graph_creator load_graph);
+
+    register_cmd
+	    "save_graph"
+	    ("save_graph GRAPH FILENAME\n\n" ^
+	     "    save GRAPH in FILENAME\n")
+	    (lift_graph_viewer save_graph);
+   
     register_cmd
 	    "duplicate_graph"
 	    ("duplicate_graph GRAPH\n\n"^
@@ -376,6 +398,7 @@ val () = (
 	 "    set the angle of vertex V to ANGLE\n")
 	(lift_graph_mutator set_angle);
     ())
+
 end
 
 (* Uniquely mark end of text as SPACE + BACKSPACE. This is well-behaved as
