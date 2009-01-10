@@ -43,6 +43,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private RWMouse graphMouse;
 	protected List<JMenu> menus;
 	private InteractiveView.Holder viewHolder;
+	private JMenuItem saveGraphMenuItem = null; // the view needs to manage when this menu is alive or not.
 	
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
@@ -112,6 +113,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size) {
+		this(core, g, size, null);
+	}
+	
+	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size, JMenuItem saveItem) {
 		super(g, size);
 		this.core = core;
 		this.viewHolder = null;
@@ -164,6 +169,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						else return Color.black;
 					}
         		});
+        // a bit hackish
+        this.saveGraphMenuItem = saveItem;
 	}
 	
 	private void errorDialog(String msg) {
@@ -354,6 +361,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		// ignore the first line
 		out = out.replaceFirst("^.*", "");
 		updateGraphFromXml(out);
+		
+		if(saveGraphMenuItem != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
+			saveGraphMenuItem.setEnabled(true);
 	}
 	
 	public void outputToTextView(String text) {
@@ -424,6 +434,20 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 
 	private QuantoCore getCore() {
 		return core;
+	}
+	
+	public void gainFocus() {
+		if(saveGraphMenuItem != null)
+		{ 
+			if(getGraph().getFileName() != null && !getGraph().isSaved()) 
+				saveGraphMenuItem.setEnabled(true);
+			else 
+				saveGraphMenuItem.setEnabled(false);
+		}
+	}
+	
+	public void loseFocus() {
+		
 	}
 
 	public void setViewHolder(InteractiveView.Holder viewHolder) {

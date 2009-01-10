@@ -44,7 +44,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 				else {
 					closeViewMenuItem.setEnabled(true);
 					saveGraphAsMenuItem.setEnabled(true);
-					saveGraphMenuItem.setEnabled(true);
+					focusedView.gainFocus();
 				}
 			}
 		});
@@ -209,7 +209,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		try {
 			QuantoGraph newGraph = core.new_graph();
 			InteractiveGraphView vis =
-				new InteractiveGraphView(core, newGraph, new Dimension(800,600));
+				new InteractiveGraphView(core, newGraph, new Dimension(800,600),saveGraphMenuItem);
 			addView(vis);
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
@@ -223,11 +223,13 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		int retVal = fileChooser.showDialog(this, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				String filename = fileChooser.getSelectedFile().getCanonicalPath();
-				QuantoGraph loadedGraph = core.load_graph(filename.replaceAll("\\n|\\r", ""));
+				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
+				QuantoGraph loadedGraph = core.load_graph(filename);
 				InteractiveGraphView vis =
-					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600));
+					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600),saveGraphMenuItem);
 				addView(vis);
+				vis.getGraph().setFileName(filename);
+				vis.getGraph().setSaved(true);
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
@@ -244,6 +246,8 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			try{
 				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
 				core.save_graph(getCurrentGraph(), filename);
+				getCurrentGraph().setFileName(filename);
+				getCurrentGraph().setSaved(true);
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
@@ -255,7 +259,13 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	}
 	
 	public void saveGraph() {
-		
+		try {
+			core.save_graph(getCurrentGraph(), getCurrentGraph().getFileName());
+			getCurrentGraph().setSaved(true);
+		}
+		catch (QuantoCore.ConsoleError e) {
+			errorDialog(e.getMessage());
+		}
 	}
 
 	

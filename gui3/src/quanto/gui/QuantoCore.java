@@ -164,7 +164,7 @@ public class QuantoCore {
 	 * Remove all line breaks.
 	 */
 	protected String chomp(String str) {
-		return str.replace("\\n", "");
+		return str.replace("\n", "");
 	}
 	
 	/*

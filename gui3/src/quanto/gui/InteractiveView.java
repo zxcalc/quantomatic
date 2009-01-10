@@ -20,6 +20,17 @@ public interface InteractiveView {
 	 */
 	String getTitle();
 	
+
+	/** 
+	 * Called when this view gains focus.  Used to activate and deactivate menu items for example.
+	 */
+	public void gainFocus();
+	
+	/** 
+	 * Called when this view loses focus.  Used to activate and deactivate menu items for example.
+	 */
+	public void loseFocus();
+	
 	/**
 	 * If an InteractiveView wishes to spawn other views, add them to the given view holder.
 	 * The expected behaviour if this is not called is that new views go into their own window.

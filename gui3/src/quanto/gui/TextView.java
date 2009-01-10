@@ -38,6 +38,14 @@ public class TextView extends JPanel implements InteractiveView {
 		return title;
 	}
 
+	public void gainFocus() {
+		
+	}
+	
+	public void loseFocus() {
+		
+	}
+	
 	public void setViewHolder(Holder h) {
 	}
 

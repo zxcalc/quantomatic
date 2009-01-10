@@ -17,6 +17,8 @@ implements HasName {
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
 	protected List<QVertex> boundaryVertices;
+	private String fileName = null; // defined if this graph is backed by a file
+	private boolean saved = true; // true if this graph has been modified since last saved
 
 	public QuantoGraph(String name) {
 		this.name = name;
@@ -61,6 +63,8 @@ implements HasName {
 		} catch (IllegalAccessException e) {
 			throw new QuantoCore.FatalError(e);
 		}
+		this.saved = false; // we have changed the graph so it needs to be saved
+							// note that if this needs to be TRUE it will be set elsewhere
 		return this;
 	}
 
@@ -171,5 +175,21 @@ implements HasName {
 	
 	public int getBoundaryIndex(QVertex bv) {
 		return boundaryVertices.indexOf(bv);
+	}
+
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
+	public boolean isSaved() {
+		return saved;
+	}
+
+	public void setSaved(boolean unSaved) {
+		this.saved = unSaved;
 	}
 }
