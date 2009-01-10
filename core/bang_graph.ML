@@ -43,13 +43,8 @@ functor BangGraphFun(
 structure V = BVertex;
 structure E = Edge;
 
-val foo = V.NSet.empty : V.NSet.T;
-
 structure BBox : NAMES = StrName;
 structure BBoxRel = BinRelFun(structure Dom = BBox and Cod = V);
-
-val foo : BBox.name -> V.NSet.T -> BBoxRel.T -> BBoxRel.T
-  = BBoxRel.add_to_dom;
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
 type data2 = data;

@@ -965,8 +965,7 @@ in
 end;
 
 
-
-(*  *)
+(* drop 1 self-loop *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -984,7 +983,56 @@ in
 end;
 
 
+(* spider'd anti-loop *)
+(* 
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 b1;
+  val (e2, g) = g |> RGGraph.add_edge edge b1 b2;
+  val (box1, g) = g |> RGGraph.new_box edge b1 b2;
+  val g = g |> RGGraph.add_to_box edge b1 b2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in
+  val drop_self_loop_rule = Rule.mk (lhs,rhs);
+end;
+*)
 
+
+(* Spider Isometry *)
+(* local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
+  val lhs = g;
+  val _ = RGGraph.print lhs;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (e0, g) = g |> RGGraph.add_edge edge b1 b2;
+  val rhs = g;
+  val _ = RGGraph.print rhs;
+in 
+  val x_isometry_rule = Rule.mk (lhs,rhs);
+  val _ = Rule.print x_isometry_rule;
+end;      
+*)
 
  
 
