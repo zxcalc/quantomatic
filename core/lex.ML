@@ -35,7 +35,7 @@ val ident = wrap_term ((Scan.one Symbol.is_letter ::: Scan.many wordchar)
 val sym = fn str => (wrap_term (Scan.this_string str >> (fn _ => SYM str)))
 val noop = fn toks => (NOOP, toks)
 
-(* string literal code stolen from isabella/ml_parse.ML *)
+(* string literal code stolen from isabelle/ml_parse.ML *)
 local
     val scan_escape =
 	Scan.one (member (op =) (explode "\"\\abtnvfr")) ||

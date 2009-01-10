@@ -201,8 +201,6 @@ fun match pat target already_matched =
 (* functionality to parse expressions *)
 structure LinratParser =
 struct
-
-exception Parse
 structure L = SimpleLexer
 datatype expr = EXP of T
 	      | RAT of Rational.T

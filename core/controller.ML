@@ -9,11 +9,11 @@ struct
 structure QuantoCommand =
 struct
 type T = string * string list
-exception Parse
+
 
 open SimpleLexer
 
-fun const v = fn _ => v
+
 fun unwrap (LIT s) = s
   | unwrap (ID s) = s
   | unwrap (INT n) = Int.toString n
@@ -31,14 +31,14 @@ exprs ::= expr ; exprs | E
 
 fun arg x = x|>((literal || ident || num)>>unwrap)
 fun args x = x|>(((arg -- args) >> op::)
-		     || (noop >> const []))
+		     || (noop >> K []))
 fun expr x = x|>((ident >> unwrap) -- args)
 fun exprs x = x|>(
 	      ((expr --| sym ";" -- exprs) >> op::)
-		   || (noop >> const []))
+		  || (expr >> single)
+		  || (noop >> K []))
 
 fun parse str = parse_with exprs str
-(*    handle _ => raise Parse*)
 fun pretty (f,args) = Pretty.block[Pretty.str f,
 				   Pretty.str_list "(" ")" args]
 val print = Pretty.writeln o pretty
@@ -210,6 +210,15 @@ local
 	("deleted edge \""^e^"\"\n", graph|>G.delete_edge e)
 	handle _ => ("!!! Cannot delete edge\n", graph)
 
+    fun rename_vertex ([_,old,new], graph) =
+	("renamed to \""^new^"\"\n", graph|>G.rename_vname old new)
+	handle G.vname_already_exists_exp _ =>
+	       ("!!! graph already "^
+		"contains a vertex of this name\n", graph)
+	     | G.no_such_vname_exp _ =>
+	       ("!!! no such vertex\n", graph)
+
+
     fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
 			  Pretty.string_of  o
 			  RGGraphXML.output_graph
@@ -289,101 +298,107 @@ in
 
 val () = (
     register_cmd
-	    "help"
-	    ("help CMD\n\n"^
-	     "    get help on CMD\n")
-	    (lift_stateless help);
+	"help"
+	("help CMD\n\n"^
+	 "    get help on CMD\n")
+	(lift_stateless help);
     
     register_cmd
-	    "HELO"
-	    ("HELO\n\n"^
-	     "    sync the console, print \"HELO\"\n")
-	    (lift_stateless (fn [] => "HELO\n"));
+	"HELO"
+	("HELO\n\n"^
+	 "    sync the console, print \"HELO\"\n")
+	(lift_stateless (fn [] => "HELO\n"));
     
     register_cmd
-	    "new_graph"
-	    ("new_graph\n\n" ^
-	     "    create a new graph and return its name\n")
-	    (lift_graph_creator (fn ([],_) => SOME RGGraph.empty));
+	"new_graph"
+	("new_graph\n\n" ^
+	 "    create a new graph and return its name\n")
+	(lift_graph_creator (fn ([],_) => SOME RGGraph.empty));
 
     register_cmd
-	    "load_graph"
-	    ("load_graph FILENAME\n\n" ^
-	     "    load a new graph from FILENAME return its name\n")
-	    (lift_graph_creator load_graph);
-
+	"load_graph"
+	("load_graph FILENAME\n\n" ^
+	 "    load a new graph from FILENAME return its name\n")
+	(lift_graph_creator load_graph);
+    
     register_cmd
-	    "save_graph"
-	    ("save_graph GRAPH FILENAME\n\n" ^
-	     "    save GRAPH in FILENAME\n")
-	    (lift_graph_viewer save_graph);
+	"save_graph"
+	("save_graph GRAPH FILENAME\n\n" ^
+	 "    save GRAPH in FILENAME\n")
+	(lift_graph_viewer save_graph);
    
     register_cmd
-	    "duplicate_graph"
-	    ("duplicate_graph GRAPH\n\n"^
-	     "    duplicate GRAPH and return the name of the new graph\n")
-	    (lift_graph_creator duplicate_graph);
+	"duplicate_graph"
+	("duplicate_graph GRAPH\n\n"^
+	 "    duplicate GRAPH and return the name of the new graph\n")
+	(lift_graph_creator duplicate_graph);
     
     register_cmd
-	    "add_vertex"
-	    ("add_vertex GRAPH TYPE\n\n"^
-	     "    add a TYPE vertex to GRAPH\n")
-	    (lift_graph_mutator add_vertex);
+	"add_vertex"
+	("add_vertex GRAPH TYPE\n\n"^
+	 "    add a TYPE vertex to GRAPH\n")
+	(lift_graph_mutator add_vertex);
     
     register_cmd
-	    "delete_vertex"
-	    ("delete_vertex GRAPH V\n\n"^
-	     "    delete vertex V from GRAPH\n")
-	    (lift_graph_mutator delete_vertex);
+	"delete_vertex"
+	("delete_vertex GRAPH V\n\n"^
+	 "    delete vertex V from GRAPH\n")
+	(lift_graph_mutator delete_vertex);
 
     register_cmd
-	    "delete_edge"
-	    ("delete_edge GRAPH E\n\n"^
-	     "    delete edge E from GRAPH\n")
-	    (lift_graph_mutator delete_edge);
+	"delete_edge"
+	("delete_edge GRAPH E\n\n"^
+	 "    delete edge E from GRAPH\n")
+	(lift_graph_mutator delete_edge);
 
     register_cmd
-	    "add_edge"
-	    ("add_edge GRAPH V1 V2\n\n"^
-	     "    add an edge in GRAPH from V1 to V2\n")
-	    (lift_graph_mutator add_edge);
+	"add_edge"
+	("add_edge GRAPH V1 V2\n\n"^
+	 "    add an edge in GRAPH from V1 to V2\n")
+	(lift_graph_mutator add_edge);
     
     register_cmd
-	    "graph_xml"
-	    ("graph_xml GRAPH\n\n"^
-	     "    dump GRAPH as XML\n")
-	    (lift_graph_viewer (uncurry graph_xml));
+	"rename_vertex"
+	("rename_vertex GRAPH OLD NEW\n\n"^
+	 "    rename vertex in GRAPH from OLD to NEW\n")
+	(lift_graph_mutator rename_vertex);
+
+	register_cmd
+	"graph_xml"
+	("graph_xml GRAPH\n\n"^
+	 "    dump GRAPH as XML\n")
+	(lift_graph_viewer (uncurry graph_xml));
     
     register_cmd
-	    "undo"
-	    ("undo GRAPH\n\n"^
-	     "    undo last change to GRAPH\n")
-	    (lift_graph_stack_mutator undo);
+	"undo"
+	("undo GRAPH\n\n"^
+	 "    undo last change to GRAPH\n")
+	(lift_graph_stack_mutator undo);
     
     register_cmd
-	    "redo"
-	    ("redo GRAPH\n\n"^
-	     "    redo change on GRAPH\n")
-	    (lift_graph_stack_mutator redo);
+	"redo"
+	("redo GRAPH\n\n"^
+	 "    redo change on GRAPH\n")
+	(lift_graph_stack_mutator redo);
     
     register_cmd
-	    "attach_rewrites"
-	    ("attach_rewrites GRAPH V1 .. VN\n\n"^
-	     "    calculate rewrites involving V1..VN in GRAPH and\n"^
-	     "    attach to the graph state\n")
-	    (lift_graph_viewer_with_rewrites attach_rewrites);
+	"attach_rewrites"
+	("attach_rewrites GRAPH V1 .. VN\n\n"^
+	 "    calculate rewrites involving V1..VN in GRAPH and\n"^
+	 "    attach to the graph state\n")
+	(lift_graph_viewer_with_rewrites attach_rewrites);
     
     register_cmd
-	    "show_rewrites"
-	    ("show_rewrites GRAPH\n\n"^
-	     "    show rewrites attached to GRAPH\n")
-	    (lift_graph_viewer_with_rewrites show_rewrites);
+	"show_rewrites"
+	("show_rewrites GRAPH\n\n"^
+	 "    show rewrites attached to GRAPH\n")
+	(lift_graph_viewer_with_rewrites show_rewrites);
     
     register_cmd
-	    "apply_rewrite"
-	    ("apply_rewrite GRAPH N\n\n"^
-	     "    apply the Nth rewrite attached to GRAPH\n")
-	    (lift_graph_mutator_with_rewrites apply_rewrite);
+	"apply_rewrite"
+	("apply_rewrite GRAPH N\n\n"^
+	 "    apply the Nth rewrite attached to GRAPH\n")
+	(lift_graph_mutator_with_rewrites apply_rewrite);
     
     register_cmd
 	"hilb"
@@ -419,7 +434,8 @@ fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
 
 fun eval command state =
     let
-	    val cmds = QuantoCommand.parse command
+	    val cmds = SOME (QuantoCommand.parse command)
+		handle Parse => NONE
 	    fun eval_list [] state = ([], NORMAL state)
 	      | eval_list (c::cs) state =
 	        case do_cmd c state
@@ -429,9 +445,10 @@ fun eval command state =
 		          let val (lst, st) = eval_list cs state'
 		          in (out::lst, st)
 		          end
-    in eval_list cmds state
+    in case cmds of SOME cs => eval_list cs state
+		  | NONE => (["!!! Parse error in command: "^command^"\n"], SKIP)
     end
-    handle Parse => (["!!! Parse error in command: "^command^"\n"], SKIP)
+    
 
 (* main read-exec-print-loop *)
 fun repl state = let
