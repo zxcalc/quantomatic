@@ -18,12 +18,16 @@ signature MATCH
   val get_ivinvmap : T -> BVertex.name BVertex.NTab.T
   val get_mctxt : T -> MCtxt.T
   val get_vmap : T -> BVertex.name BVertex.NTab.T
-  val match_bvertex : BVertex.name -> BVertex.name -> T -> T
   val match_edges : Edge.data Edge.NTab.T ->
                     Edge.data Edge.NTab.T ->
                     T -> (Edge.name Edge.NTab.T * T) Seq.seq
-  val match_vertex_idata : BVertex.name * BVertex.IData.data ->
-                           BVertex.name * BVertex.IData.data -> T -> T option
+  val match_bvertex : BVertex.name -> BVertex.name -> T -> T option
+  val match_ivertex : BVertex.name * BVertex.IData.data ->
+                      BVertex.name * BVertex.IData.data -> T 
+                      -> T option
+  val match_vertex : BVertex.name * BVertex.data ->
+                     BVertex.name * BVertex.data -> T 
+                     -> T option (* NONE if cannot be added as a match *)
   val pretty : T -> Pretty.T
   val print : T -> unit
   val set_mctxt : MCtxt.T -> T -> T
@@ -55,8 +59,9 @@ datatype T = Match of
           vmap: BVertex.name BVertex.NTab.T, 
           emap: Edge.name Edge.NTab.T, 
           (* tgt to pat for internal (1-1 matching) vertices *)
-          (* [many pat boundary vertices can go to 1 tgt vertex] *)
           ivinvmap : BVertex.name BVertex.NTab.T,
+          (* tgt to (many) pat boundary vertices that match it *)        
+          bvinvmap : BVertex.NSet.T BVertex.NTab.T,
           (* instantiations for vertex/edge data varaiables *)
           mctxt: MCtxt.T 
          };
@@ -64,25 +69,37 @@ datatype T = Match of
 val empty = Match {vmap = BVertex.NTab.empty,
                    emap = Edge.NTab.empty,
                    ivinvmap = BVertex.NTab.empty,
+                   bvinvmap = BVertex.NTab.empty,
                    mctxt = MCtxt.empty
                   };
 
-(* make identity match from boundary names, vnames, enames *)
+(* make identity match from boundary names, vnames, enames 
+   vnames is all vnames, bvnames are the boundary subset of them, 
+   ename is all enames. 
+*)
 fun mk_id bvnames vnames enames = 
     let 
-      val vmap = 
+      val vmap = (* mk id *)
           BVertex.NSet.fold 
             (fn n => BVertex.NTab.ins (n,n))
             vnames BVertex.NTab.empty;
-      val emap = 
+      val emap = (* mk id *)
           Edge.NSet.fold 
             (fn n => Edge.NTab.ins (n,n))
             enames Edge.NTab.empty;
       val ivinvmap = 
           BVertex.NSet.fold 
             BVertex.NTab.delete bvnames vmap;
+      val bvinvmap = (* mk id on bvnames *)
+          BVertex.NSet.fold 
+            (fn n => BVertex.NTab.ins (n,BVertex.NSet.single n))
+            bvnames
+            BVertex.NTab.empty
+
     in Match {vmap = vmap, emap = emap, 
-              ivinvmap = ivinvmap, mctxt = MCtxt.empty}
+              ivinvmap = ivinvmap, 
+              bvinvmap = bvinvmap,
+              mctxt = MCtxt.empty}
     end;
 
 (* updates *)
@@ -90,44 +107,88 @@ fun update_vmap f (Match rep) =
     Match {vmap = f (#vmap rep), 
            emap = #emap rep,
            ivinvmap = #ivinvmap rep,
+           bvinvmap = #bvinvmap rep,
            mctxt = #mctxt rep};
 fun update_emap f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = f (#emap rep),
            ivinvmap = #ivinvmap rep,
+           bvinvmap = #bvinvmap rep,
            mctxt = #mctxt rep};
 fun update_ivinvmap f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = #emap rep,
            ivinvmap = f (#ivinvmap rep),
+           bvinvmap = #bvinvmap rep,
+           mctxt = #mctxt rep};
+fun update_bvinvmap f (Match rep) = 
+    Match {vmap = #vmap rep, 
+           emap = #emap rep,
+           ivinvmap = #ivinvmap rep,
+           bvinvmap = f (#bvinvmap rep),
            mctxt = #mctxt rep};
 fun update_mctxt f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = #emap rep,
            ivinvmap = #ivinvmap rep,
+           bvinvmap = #bvinvmap rep,
            mctxt = f (#mctxt rep)};
 
 fun get_vmap (Match rep) = #vmap rep;
 fun get_emap (Match rep) = #emap rep;
 fun get_ivinvmap (Match rep) = #ivinvmap rep;
+fun get_bvinvmap (Match rep) = #bvinvmap rep;
 fun get_mctxt (Match rep) = #mctxt rep;
 val set_mctxt = update_mctxt o K;
 
 (* implicit: m n *)
-val tgt_vertex_is_unmatched = not oo BVertex.NTab.contains o get_ivinvmap;
+(* tgt is matched some internal vertex in pat *)
+val tgt_vertex_is_imatched = BVertex.NTab.contains o get_ivinvmap;
+(* tgt is matched some boundary vertex in pat *)
+val tgt_vertex_is_bmatched = BVertex.NTab.contains o get_bvinvmap;
+
+(* is boundary matchable if not matched, but is still fine if already bmatched. *)
+val tgt_vertex_is_bmatchable = not oo tgt_vertex_is_imatched;
+
+(* completely unmatched = can be matched by a new internal in pat *)
+fun tgt_vertex_is_unmatched m n = 
+    not (tgt_vertex_is_imatched m n)
+    andalso 
+    not (tgt_vertex_is_bmatched m n);
 
 (* try match two internal vertices data, using internal data matching
    function from MCxtx *)
-fun match_vertex_idata (n,d) (tn,td) m = 
-    (case MCtxt.vertex_idata_match d td (get_mctxt m)
-      of NONE => NONE (* vertices don't match *)
-       | SOME mctxt2 => 
-         SOME (m |> set_mctxt mctxt2
-                 |> update_vmap (BVertex.NTab.ins (n,tn))
-                 |> update_ivinvmap (BVertex.NTab.ins (tn,n))));
+fun match_ivertex (n,d) (tn,td) m = 
+    (* map must be injective for internal pat vertices *)
+    if tgt_vertex_is_unmatched m tn then 
+      case MCtxt.vertex_idata_match d td (get_mctxt m)
+       of NONE => NONE (* vertices don't match *)
+        | SOME mctxt2 => 
+          SOME (m |> set_mctxt mctxt2
+                  |> update_vmap (BVertex.NTab.ins (n,tn))
+                  |> update_ivinvmap (BVertex.NTab.ins (tn,n)))
+    else NONE; (* matched by some other pat vertex *)
 
-fun match_bvertex n1 n2 m = 
-    update_vmap (BVertex.NTab.ins (n1,n2)) m;
+fun match_bvertex n tn m = 
+    if tgt_vertex_is_bmatchable m tn then 
+      (* matched only by other pat bvertices *)
+      SOME 
+        (m |> update_vmap (BVertex.NTab.ins (n,tn))
+           |> update_bvinvmap 
+           (fn bvinvmap => 
+               case BVertex.NTab.lookup bvinvmap tn 
+                of NONE => BVertex.NTab.ins (tn, BVertex.NSet.single n) bvinvmap
+                 | SOME pat_bvs => 
+                   BVertex.NTab.update (tn, BVertex.NSet.add n pat_bvs) bvinvmap))
+    else NONE; (* some internal vertex is already matched to the target *)
+
+(* try to match two vertices *)
+fun match_vertex (n, BVertex.BVert) (tn, _) m = match_bvertex n tn m
+  (* internal pat vertex cannot match a bvertex (half-edge) *)
+  | match_vertex (_, BVertex.IVert _) (_,BVertex.BVert) m = NONE
+  (* internal to internal match match *)
+  | match_vertex (pn, BVertex.IVert pd) (tn, BVertex.IVert td) m = 
+    match_ivertex (pn,pd) (tn,td) m;
 
 fun match_edges pat_edges tgt_edges m = 
     Seq.map
