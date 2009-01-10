@@ -984,27 +984,23 @@ end;
 
 
 (* spider'd anti-loop *)
-(* 
 local 
   (* lhs *)
   val g = RGGraph.empty;
-  val (b1, g) = g |> RGGraph.add_vertex bvert;
-  val (b2, g) = g |> RGGraph.add_vertex bvert;
-  val (e1, g) = g |> RGGraph.add_edge edge b1 b1;
-  val (e2, g) = g |> RGGraph.add_edge edge b1 b2;
-  val (box1, g) = g |> RGGraph.new_box edge b1 b2;
-  val g = g |> RGGraph.add_to_box edge b1 b2;
+  val (v1, g) = g |> RGGraph.add_vertex bvert;
+  val (v2, g) = g |> RGGraph.add_vertex bvert;
+  val (e1, g) = g |> RGGraph.add_edge edge v1 v1;
+  val (e2, g) = g |> RGGraph.add_edge edge v1 v2;
+  val (box1, g) = g |> RGGraph.new_box "Ba";
+  val g = g |> RGGraph.add_to_box box1 (V.NSet.single v2);
   val lhs = g;
   val _ = RGGraph.print lhs;
   (* rhs *)
-  val g = RGGraph.empty;
-  val g = g |> RGGraph.new_named_vertex b1 bvert;
-  val rhs = g;
+  val rhs = g |> RGGraph.delete_edge e1;
   val _ = RGGraph.print rhs;
 in
-  val drop_self_loop_rule = Rule.mk (lhs,rhs);
+  val spider_antiloop_rule = Rule.mk (lhs,rhs);
 end;
-*)
 
 
 (* Spider Isometry *)
