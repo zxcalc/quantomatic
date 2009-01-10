@@ -1,40 +1,24 @@
 package quanto.gui;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Event;
-import java.awt.Paint;
-import java.awt.Stroke;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.InputEvent;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import javax.swing.JCheckBoxMenuItem;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.KeyStroke;
-
+import javax.swing.*;
 import net.n3.nanoxml.*;
-
 import org.apache.commons.collections15.Transformer;
-
 import quanto.gui.QuantoCore.ConsoleError;
-
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.DotLayout;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.util.Pair;
 import edu.uci.ics.jung.visualization.control.*;
+import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 
 public class InteractiveGraphView extends GraphView
 implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
@@ -63,6 +47,37 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 		
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
+	}
+	
+	private class QVertexLabeler implements VertexLabelRenderer {
+		Map<QVertex,Labeler> components;
+		
+		public QVertexLabeler () {
+			components = new HashMap<QVertex, Labeler>();
+		}
+		
+		@Override
+		public <T> Component getVertexLabelRendererComponent(JComponent vv,
+				Object value, Font font, boolean isSelected, T vertex) {
+			if (vertex instanceof QVertex) {
+				QVertex qv = (QVertex)vertex;
+				Point2D screen = getRenderContext().
+					getMultiLayerTransformer().transform(
+						getGraphLayout().transform((QVertex)vertex));
+				Labeler angleLabeler = components.get(vertex);
+				
+				if (angleLabeler == null) {
+					angleLabeler = new Labeler("");
+					components.put((QVertex)vertex,angleLabeler);
+					InteractiveGraphView.this.add(angleLabeler);
+				}
+				angleLabeler.setText(qv.getAngle());
+				angleLabeler.setVisible(true);
+				angleLabeler.setBounds(new Rectangle(angleLabeler.getPreferredSize()));
+				angleLabeler.setLocation(new Point((int)screen.getX()+10,(int)screen.getY()+10));
+			}
+			return new JLabel();
+		}	
 	}
 	
 	/**
@@ -122,6 +137,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		this.viewHolder = null;
 		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(
 				new DotLayout<QVertex,QEdge>(g,size)));
+		setLayout(null);
 		Relaxer r = getModel().getRelaxer();
 		if (r!= null) r.setSleepTime(4);
 		
@@ -152,7 +168,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				}
 			}
 		});
-		 
+		
         getRenderContext().setVertexStrokeTransformer(
         		new Transformer<QVertex,Stroke>() {
 					public Stroke transform(QVertex v) {
@@ -169,6 +185,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						else return Color.black;
 					}
         		});
+        
+        
+        getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
+        
         // a bit hackish
         this.saveGraphMenuItem = saveItem;
 	}

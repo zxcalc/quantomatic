@@ -147,7 +147,7 @@ public class QuantoCore {
 		cmd.append(';');
 		
 		String ret;
-		System.out.print(cmd);
+		//System.out.print(cmd);
 		synchronized (this) {
 			send(cmd.toString());
 			try {
