@@ -23,13 +23,13 @@ functor BVertexFun(
 : BVERTEX
 = struct
 
-(* internal data *)
 structure IData : ORD_DATA = IVertex;
 
 (* open the Names Part of IVertex *)
 structure INames : NAMES = IVertex
 open INames; 
 
+(* internal data *)
 datatype data2 = 
          IVert of IData.data (* vertex with data *)
        | BVert; (* a variable vertex *)

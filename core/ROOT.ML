@@ -14,6 +14,7 @@ use "bgraph.ML";
 use "test/bgraph.ML";
 
 use "bang_graph.ML";
+use "test/bang_graph.ML";
 
 use "coeff.ML";
 use "expr.ML"; 
