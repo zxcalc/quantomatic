@@ -3,7 +3,7 @@ local
 structure V = RGGraph.BVertex;
 structure E = RGGraph.Edge;
 
-val bvert = V.BVert ();
+val bvert = V.BVert;
 val zero_angle = AngleExpr.zero;
 val pi_angle = AngleExpr.pi;
 fun mkZ a = V.IVert (RGVertex.Znd a);

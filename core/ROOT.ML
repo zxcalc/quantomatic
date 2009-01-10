@@ -13,6 +13,8 @@ use "test/bvertex.ML";
 use "bgraph.ML";
 use "test/bgraph.ML";
 
+use "bang_graph.ML";
+
 use "coeff.ML";
 use "expr.ML"; 
 use "lex.ML";

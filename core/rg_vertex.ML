@@ -8,7 +8,7 @@ signature RG_VERTEX
   datatype qnd = Xnd of AngleExpr.T (* Red: defined using H of Z *) 
                | Znd of AngleExpr.T (* Green *)
                | Hnd; (* Hadamard vertex *)
-  include BVERTEX where type Boundary.data = unit
+  include BVERTEX
   sharing type IVertex.data = qnd;
 end;
 
@@ -21,8 +21,8 @@ structure RGVertex
                | Znd of AngleExpr.T (* Green *)
                | Hnd; (* Hadamard node *)
 
-structure V = BVertexFun(structure Boundary = UnitData and 
-  IVertex = 
+structure V = BVertexFun(
+  structure IVertex = 
   struct
   
   (* use String names *)

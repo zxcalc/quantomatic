@@ -204,7 +204,7 @@ fun expand_spider (SearchState rep) =
                   of NONE => (* add as a boundary - not part of the spider *)
                   SearchState 
                     {cur_spider = add_vertex_to_spider 
-                                    to_n (RGGraph.RGVertex.BVert ())
+                                    to_n (RGGraph.RGVertex.BVert)
                                     eset spider_d cur_spider,
                      cur_agenda = agenda, 
           (* IMPROVE: if d is boundary, then from it from unchecked_vs *)

@@ -72,6 +72,16 @@ val update_edges : ((Edge.data * (Vertex.name * Vertex.name)) Edge.NTab.T
 val pretty : T -> Pretty.T
 val print : T -> unit
 
+
+(* extra data for graphs, for extending the datatype cos ML can't do
+it properly from the outside; this is basically a form of record
+extensibility, allowing hidden types, but will doing the lazy
+extension of data -- allows OOP style extension of signature/structure
+by refining data. *)
+type data
+val get_data : T -> data;
+val update_data : (data -> data) -> T -> T
+
 end;
 
 (*  GRAPH is BASIC_GRAPH + useful utilities/API *)
@@ -159,6 +169,9 @@ val edges_between : T -> Vertex.name -> Vertex.name -> Edge.data Edge.NTab.T
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
 val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) -> Vertex.NSet.T
 
+(* the vertices connected to the given set, but outside it *) 
+val incident_vertices : T -> Vertex.NSet.T -> Vertex.NSet.T
+
 (* get adj vertices (from edge info) and from vertex name *)
 
 val adj_vertices_with_edges : T -> Vertex.name 
@@ -184,12 +197,20 @@ end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Basic Graphs with strings at edges and vertices *)
-functor BasicGraphFun(structure Vertex : NAME_AND_DATA 
-                            and Edge : NAME_AND_DATA) 
+functor BasicGraphFun(
+  structure Vertex : NAME_AND_DATA 
+  and Edge : NAME_AND_DATA
+  type data 
+  val empty_data : data) 
+: BASIC_GRAPH
 = struct
 
 structure Vertex = Vertex;
 structure Edge = Edge;
+
+(* extra data, allows extra data to be added later in decendent
+signatures/structures... *)
+type data = data;
 
 (* a graph *)
 datatype T = Graph of 
@@ -201,14 +222,26 @@ datatype T = Graph of
           edges : (Edge.data
                    * (Vertex.name (* from this vertex *)
                       * Vertex.name)) (* to this vertex *)
-                    Edge.NTab.T
+                    Edge.NTab.T,
+          data : data
          };
 
-val empty = Graph { vertices = Vertex.NTab.empty, edges = Edge.NTab.empty };
+(* internal data stuff *)
+fun get_data (Graph rep) = #data rep;
+val empty_data = empty_data;
+fun update_data f (Graph rep) = 
+    Graph { vertices = #vertices rep, edges = #edges rep,
+            data = f (#data rep)};
+
+(* basic graph stuff... *)
+val empty = Graph { vertices = Vertex.NTab.empty, edges = Edge.NTab.empty, 
+                    data = empty_data};
 fun update_vertices f (Graph rep) = 
-    Graph { vertices = f (#vertices rep), edges = #edges rep };
+    Graph { vertices = f (#vertices rep), edges = #edges rep, 
+            data = #data rep };
 fun update_edges f (Graph rep) = 
-    Graph { vertices = #vertices rep, edges = f (#edges rep)};
+    Graph { vertices = #vertices rep, edges = f (#edges rep),
+            data = #data rep};
 val set_vertices = update_vertices o K;
 val set_edges = update_edges o K;
 fun get_vertices (Graph rep) = #vertices rep;
@@ -284,7 +317,8 @@ fun add_named_edge en e n1 n2 g =
             |> Vertex.NTab.map_entry 
 						(fn (n,(ins,outs)) => (n,(Edge.NSet.ins_fresh en2 ins,outs))) n2
       (* give back new edge name and new graph *)
-    in (en2, Graph{vertices = vertices2, edges = edges2}) end;
+    in (en2, g |> set_vertices vertices2
+               |> set_edges edges2) end;
 
 (* implicit args: e n1 n2 g *)
 val add_edge = add_named_edge Edge.default_name;
@@ -308,7 +342,8 @@ fun new_named_edge en e n1 n2 g =
             |> Vertex.NTab.map_entry 
 						(fn (n,(ins,outs)) => (n,(Edge.NSet.ins_fresh en ins,outs))) n2
       (* give back new edge name and new graph *)
-    in Graph{vertices = vertices2, edges = edges2} end;
+    in g |> set_vertices vertices2
+         |> set_edges edges2 end;
 
 
 (* implicit args: en g *)
@@ -332,7 +367,8 @@ fun delete_edge en g =
                                          (d,(Edge.NSet.delete en ins,outs))) tovn;
 
       (* give back new edge name and new graph *)
-    in Graph{vertices = vertices2, edges = edges2} end;
+    in g |> set_vertices vertices2
+         |> set_edges edges2 end;
 
 
 
@@ -381,7 +417,8 @@ fun rename_vname n1 n2 g =
                                                        (e,(n2,tos)))) outs;
 
       (* give back new edge name and new graph *)
-    in Graph{vertices = vertices2, edges = edges2} end;
+    in g |> set_vertices vertices2
+         |> set_edges edges2 end;
 
 
 fun rename_ename en1 en2 g = 
@@ -412,7 +449,8 @@ fun rename_ename en1 en2 g =
                                    in (n,(ins2,outs)) end) to_n;
 
       (* give back new edge name and new graph *)
-    in Graph{vertices = vertices2, edges = edges2} end;
+    in g |> set_vertices vertices2
+         |> set_edges edges2  end;
 
 
 (* pretty printing *)
@@ -464,7 +502,7 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  extra functions for Basic Graphs: provides rest of the GRAPH signature *)
 functor GraphToolsFun(BasicGraph : BASIC_GRAPH) 
-(* : GRAPH *)
+(*  : adds stuff needed to make a GRAPH (but old graph stuff is hidden)  *)
 = struct
 
 local
@@ -528,7 +566,7 @@ fun new_named_edge en e n1 n2 g =
 
 
 (* merge graphs, assumes disjoint edge names adds new vertices, keeps
-   existing ones. *)
+   vertices with same name already in second graph. *)
 fun merge_by_vertices g1 g2 = 
     g2 |> (Vertex.NTab.fold 
              (fn (vn,(d,_)) => fn g3 => 
@@ -710,9 +748,23 @@ fun adj_vnames' g (ins,outs) =
                 in Vertex.NSet.add to end)
             outs);
 
+(* all vetrcies adjacent to vertex named n *)
 fun adj_vnames g n = 
     adj_vnames' g (snd (get_vertex g n));
 
+(* vertices incident into vns *)
+(* the vertices connected to the given set, but outside it *) 
+fun incident_vertices g vns = 
+    Vertex.NSet.fold
+      (fn n => 
+          Vertex.NSet.fold 
+            (fn n2 => 
+                if Vertex.NSet.contains vns n2 then I
+                else Vertex.NSet.add n2)
+            (adj_vnames g n))
+      vns Vertex.NSet.empty;
+
+(* edge names between two vertcies *)
 fun enames_between g n1 n2 = 
     let 
       val (_,(ins1,outs1)) = get_vertex g n1
@@ -766,31 +818,32 @@ fun exact_eq g1 g2 =
 (* Traverse the graph depth-first, folding on fld. The output is the
  * new structure and a set of all the chosen root vertices. *)
 fun dft_with_roots fld graph base = let
-    val out_edges = fn v => Edge.NSet.list_of (#2(#2(get_vertex graph v)));
-    fun tree [] base rem = (base, rem) (* leaf *)
-      | tree (e::es) base rem =
-	let val targ = #2(#2(get_edge graph e))
-	in if Vertex.NSet.contains rem targ then
-	       let
-		   (* recurse on children *)
-		   val (base', rem') = tree (out_edges targ) (fld e base)
-					    (rem|>Vertex.NSet.delete targ)
-	       in tree es base' rem' (* recurse on siblings *)
-	       end
-	   else (base, rem)  (* cycle *)
-	end
-    fun forest base rem roots =
-	if Vertex.NSet.is_empty rem then (base, roots)
-	else let val fst = the (rem |> Vertex.NSet.get_first)
-		 val (base', rem') = tree (out_edges fst) base
-					  (rem|>Vertex.NSet.delete fst)
-	     in forest base' rem' (roots|>Vertex.NSet.add fst)
-	     end
+  val out_edges = fn v => Edge.NSet.list_of (#2(#2(get_vertex graph v)));
+  fun tree [] base rem = (base, rem) (* leaf *)
+    | tree (e::es) base rem =
+	    let val targ = #2(#2(get_edge graph e))
+	    in if Vertex.NSet.contains rem targ then
+	         let
+		         (* recurse on children *)
+		         val (base', rem') = tree (out_edges targ) (fld e base)
+					                            (rem|>Vertex.NSet.delete targ)
+	         in tree es base' rem' (* recurse on siblings *)
+	         end
+	       else (base, rem)  (* cycle *)
+	    end
+  fun forest base rem roots =
+	    if Vertex.NSet.is_empty rem then (base, roots)
+	    else let val fst = the (rem |> Vertex.NSet.get_first)
+		           val (base', rem') = tree (out_edges fst) base
+					                              (rem|>Vertex.NSet.delete fst)
+	         in forest base' rem' (roots|>Vertex.NSet.add fst)
+	         end
 in forest base (get_vnames graph) Vertex.NSet.empty
 end
-
+                                    
 (* DFT without roots *)
 fun dft fld graph base = #1 (dft_with_roots fld graph base)
 
 end; (* local -- hides opened Graph data types *)
 end;
+        

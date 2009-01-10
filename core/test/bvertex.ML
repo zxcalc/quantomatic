@@ -1,2 +1,3 @@
-structure StrBVertex : BVERTEX = 
-BVertexFun(structure IVertex = StrVertex and Boundary = StrData);
+structure StrBVertex : BVERTEX = BVertexFun(structure IVertex = StrVertex);
+structure BVertex : BVERTEX = BVertexFun(structure IVertex = StrVertex);
+

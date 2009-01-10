@@ -1,6 +1,6 @@
 local 
 structure V = RGGraph.RGVertex;
-val bvert = V.BVert ();
+val bvert = V.BVert;
 val zero_angle = AngleExpr.zero;
 val pi_angle = AngleExpr.pi;
 fun mkZ a = V.IVert (V.Znd a);

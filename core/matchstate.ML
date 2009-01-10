@@ -62,9 +62,13 @@ signature MATCH_STATE
   val tgt_vertex_is_unmatched : T -> Vertex.name -> bool
 
   (* match two graphs *)
-  val match : RGGraph.T -> RGGraph.T -> Vertex.name Vertex.NTab.T -> Match.T Seq.seq
-  val match' : Match.T -> RGGraph.T -> RGGraph.T ->
-               Vertex.name Vertex.NTab.T -> Match.T Seq.seq
+  val match : RGGraph.T -> RGGraph.T (* pat, tgt *)
+              -> Vertex.name Vertex.NTab.T (* initial agenda *)
+              -> Match.T Seq.seq
+  val match' : Match.T (* initial matching *)
+               -> RGGraph.T -> RGGraph.T (* pat, tgt *)
+               -> Vertex.name Vertex.NTab.T (* agenda *)
+               -> Match.T Seq.seq
 
   (* parts of the matching algorithm *)
   val do_next_match_choices : T -> matchstep
@@ -335,7 +339,7 @@ fun locally_match_verticies (from_n,from_d) (from_tn,from_td) pns tns st =
           (case Vertex.NSet.pull_local_bot pns
             of NONE => 
                (case from_d (* allow extra targets only if from_d is pat vertex *)
-                 of Vertex.BVert _ => Seq.single st
+                 of Vertex.BVert => Seq.single st
                   | Vertex.IVert _ => 
                     if Vertex.NSet.is_empty tns 
                     then Seq.single st else Seq.empty)
@@ -365,7 +369,7 @@ fun locally_match_verticies (from_n,from_d) (from_tn,from_td) pns tns st =
 (* assumes patv are uninstantiated *)
 (* raises Vertex.NTab...DUP exception, if n1 is already insantiated *)
 (* Assumes each pat-vertex is only examined once; therefore assume not in vmap *)
-fun match_vertex (n, Vertex.BVert _) (tn, _) st = 
+fun match_vertex (n, Vertex.BVert) (tn, _) st = 
     SOME (update_match (Match.match_bvertex n tn) st)
   | match_vertex (n, Vertex.IVert d) (tn, Vertex.IVert td) st = 
     (* map must be injective for internal pat vertices *)
@@ -374,7 +378,7 @@ fun match_vertex (n, Vertex.BVert _) (tn, _) st =
        of NONE => NONE
         | SOME m2 => SOME (st |> set_match m2)
     else NONE (* some internal vertex is already matched to the target *)
-  | match_vertex (_, Vertex.IVert _) (_,Vertex.BVert _) m = 
+  | match_vertex (_, Vertex.IVert _) (_,Vertex.BVert) m = 
     NONE; (* instantiated vertex cannot match a bvertex (half-edge) *)
 
 

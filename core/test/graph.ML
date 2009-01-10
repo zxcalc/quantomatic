@@ -4,7 +4,10 @@ struct
   structure BasicStrGraph = 
     BasicGraphFun(
       structure Vertex = StrVertex
-      and Edge = StrEdge);
+      and Edge = StrEdge
+      type data = unit
+      val empty_data = ()
+    );
   structure GraphTools = GraphToolsFun(BasicStrGraph);
   open BasicStrGraph 
   open GraphTools
@@ -21,7 +24,10 @@ struct
   structure BasicStrUnitGraph = 
     BasicGraphFun(
       structure Vertex = StrVertex
-            and Edge = UnitEdge);
+      and Edge = UnitEdge
+      type data = unit
+      val empty_data = ()
+    );
   structure GraphTools = GraphToolsFun(BasicStrUnitGraph);
   open BasicStrUnitGraph 
   open GraphTools

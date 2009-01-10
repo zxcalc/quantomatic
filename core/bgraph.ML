@@ -5,127 +5,107 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature BGRAPH = 
 sig
-include GRAPH;
+include GRAPH
 structure BVertex : BVERTEX
 sharing Vertex = BVertex
-structure IVertex : VERTEX
-sharing IVertex = BVertex.IVertex
 
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 
 val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
 
+(* Given selection set of vertices, make subgraph: 
+   vertices with edges outside selection become boundary *)
+val subgraph_of_selection : Vertex.NSet.T -> T -> T
+val subgraph_of_selection' : Vertex.NSet.T -> T -> Vertex.NSet.T * T
+
 end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(* A  Graph With Boundary *)
+(*  A Graph With Boundary *)
 functor BGraphFun(
         structure BVertex : BVERTEX
         structure Edge : EDGE
-) : BGRAPH
+        type data 
+        val empty_data : data
+) 
+: BGRAPH
 = struct
 
-structure IVertex = BVertex.IVertex;
 structure BVertex = BVertex;
 structure V = BVertex;
 structure E = Edge;
 
+(* to avoid using clobbered data and empty graph from the opened Basic Graph *)
+type data2 = data;
+val empty_data2 = empty_data;
+
+(* we add boundary to Graph data, this is hidden *)
+type hdata = { boundary : V.NSet.T,
+               data : data};         
+val empty_hdata = {boundary = V.NSet.empty,
+                   data = empty_data};
+fun get_data_of_hdata hdata = #data hdata;
+fun update_data_of_hdata f hdata = 
+    {boundary = #boundary hdata, 
+     data = f (#data hdata)};
+fun get_boundary_of_hdata hdata = #boundary hdata;
+fun update_boundary_of_hdata f hdata = 
+    {boundary = f (#boundary hdata), 
+     data = #data hdata};
+
+
 structure BasicBGraph =
-struct
-  structure Vertex = V and Edge = E;
-  structure Graph = BasicGraphFun(structure Vertex = V and Edge = E);
+struct 
+  (* make basic graph with this as internal data *)
+  structure Graph = BasicGraphFun(
+    structure Vertex = V 
+    and Edge = E
+    type data = hdata
+    val empty_data = empty_hdata
+  );
+  (* inherit functions from Graph *)
+  open Graph;
 
-  datatype T = BGraph of 
-           { graph : Graph.T,
-             boundary : V.NSet.T
-           };
+  (* clobber sub-graph data *)
+  type data = data2;
+  val empty_data = empty_data2;
+  val get_data = get_data_of_hdata o Graph.get_data;
+  val update_data = Graph.update_data o update_data_of_hdata;
 
-  exception no_such_vname_exp of string * Vertex.name * T;
-  exception vname_already_exists_exp of Vertex.name * T;
-            
-  exception no_such_ename_exp of string * Edge.name * T;
-  exception ename_already_exists_exp of Edge.name * T;
-
-  val empty = BGraph { graph = Graph.empty, 
-                       boundary = V.NSet.empty };
-
-  fun get_graph (BGraph rep) = #graph rep;
-  fun get_boundary (BGraph rep) = #boundary rep;
-
-  fun update_graph f (BGraph rep) = 
-      BGraph { graph = f (#graph rep), 
-               boundary = #boundary rep }; 
-
-  fun update_boundary f (BGraph rep) = 
-      BGraph { graph = #graph rep, 
-               boundary = f(#boundary rep) };
-  val set_graph = update_graph o K;
+  (* for boundary part of added data *)
+  val get_boundary = get_boundary_of_hdata o Graph.get_data;
+  val update_boundary = Graph.update_data o update_boundary_of_hdata;
   val set_boundary = update_boundary o K;
   val add_to_boundary = update_boundary o Vertex.NSet.add;
   val del_from_boundary = update_boundary o Vertex.NSet.delete;
   val is_boundary = V.NSet.contains o get_boundary;
-  val get_vertex = Graph.get_vertex o get_graph;
 
-  (* Property to be checked -- all boundary vertices have degree one *)
-  (* This is not maintained but can be checked with the is_correct function*) 
-  fun is_vertex_correct bg n = 
-      if is_boundary bg n then
-        let val (_,(ins,outs)) = (get_vertex bg n) in
-	        (E.NSet.is_empty ins andalso E.NSet.is_singleton outs) 
-	        orelse
-	        (E.NSet.is_empty outs andalso E.NSet.is_singleton ins) 
-        end
-      else true
-  fun is_correct bg = 
-      V.NSet.fold (fn n => fn b => (is_vertex_correct bg n) andalso b)  
-	                (get_boundary bg)
-	                true;
-
-  fun add_named_vertex n v bg =
-      let val (n2,g2) = Graph.add_named_vertex n v (get_graph bg)
-      in (n2, bg |> (case v of (V.BVert _) => add_to_boundary n2 
-                             | (V.IVert _) => I)
-	               |> set_graph g2)
+  (* modified/new basic graph functions *)
+  fun add_named_vertex n v g =
+      let val (n2,g2) = Graph.add_named_vertex n v g
+      in (n2, g |> (case v of (V.BVert) => add_to_boundary n2 
+                            | (V.IVert _) => I))
       end;
 
-  fun add_named_edge en e n1 n2 bg = 
-      let val (en2,g2) = Graph.add_named_edge en e n1 n2 (get_graph bg) 
-      in (en2, set_graph g2 bg) end;
-
   (* deleting vertex also removes all it's edges. *)
-  fun delete_vertex n bg = 
-      bg |> del_from_boundary n (* if not in boundary, does nothing *)
-         |> update_graph (Graph.delete_vertex n);
+  fun delete_vertex n g = 
+      g |> del_from_boundary n (* if not in boundary, does nothing *)
+        |> Graph.delete_vertex n;
       
-  (* implicit args: en bg *)
-  val delete_edge = update_graph o Graph.delete_edge;
-
   (* vname = suggested name *)
   (* rename all occurances of old name (1st arg) with new name (2nd arg) 
      n2 must not exist already, n1 must exist *)
-  fun rename_vname n1 n2 bg = 
-      if (is_boundary bg n1) then 
-        bg |> update_boundary (V.NSet.delete n1 o V.NSet.add n2)
-           |> update_graph (Graph.rename_vname n1 n2)
+  fun rename_vname n1 n2 g = 
+      if (is_boundary g n1) then 
+        g |> update_boundary (V.NSet.delete n1 o V.NSet.add n2)
+          |> Graph.rename_vname n1 n2
       else
-        bg |> update_graph (Graph.rename_vname n1 n2);
+        g |> Graph.rename_vname n1 n2;
 
-  (* val implicit args: en1 en2 bg *)
-  val rename_ename = update_graph oo Graph.rename_ename;
-
-  val update_vertex = update_graph oo Graph.update_vertex;
-  val update_edge = update_graph oo Graph.update_edge;
-
-  val get_vertices = Graph.get_vertices o get_graph;
-  val get_edges = Graph.get_edges o get_graph;
-
-  val update_vertices = update_graph o Graph.update_vertices;
-  val update_edges = update_graph o Graph.update_edges;
-
-  (* prettifying *-------------------------------------------------*)
-  fun pretty bg = 
+  (* prettifying *)
+  fun pretty g = 
       Pretty.chunks 
         [ Pretty.str "BGraph{",
           Pretty.block 
@@ -134,29 +114,44 @@ struct
                [Pretty.block 
                   [Pretty.str "Boundary Vertices: ",
                    Pretty.list "{" "}" 
-                               (map V.pretty_name (V.NSet.list_of (get_boundary bg)))],
-                Graph.pretty (get_graph bg)]],
+                               (map V.pretty_name (V.NSet.list_of (get_boundary g)))],
+                Graph.pretty g]],
           Pretty.str "}"
         ];
       
   val print = Pretty.writeln o pretty;
-      
-end; (* Basic BGraph*)
+
+end; (* BasicBGraph *)
 
 structure BGraphTools = GraphToolsFun(BasicBGraph);
 open BasicBGraph;
 open BGraphTools;
 
+(* Property to be checked -- all boundary vertices have degree one *)
+(* This is not maintained but can be checked with the is_correct function*) 
+fun is_vertex_concrete_correct g n = 
+    if is_boundary g n then
+      let val (_,(ins,outs)) = (get_vertex g n) in
+	      (E.NSet.is_empty ins andalso E.NSet.is_singleton outs) 
+	      orelse
+	      (E.NSet.is_empty outs andalso E.NSet.is_singleton ins) 
+      end
+    else true
+fun is_concrete_correct g = 
+    V.NSet.fold (fn n => fn b => (is_vertex_concrete_correct g n) 
+                                 andalso b)  
+	              (get_boundary g)
+	              true;
 
-  (* if n1 is boundary and something else is already called n2, then
+(* if n1 is boundary and something else is already called n2, then
 merge n1 and the vertex called n2: used for non-strict matching where
 boundary vertices can become unified to the same tgt vertex. *)
-  fun rename_or_merge_vname n1 n2 bg =
+fun rename_or_merge_vname n1 n2 bg =
       if (is_boundary bg n1) then 
         case lookup_vertex bg n2 
          of NONE => (* no clash, so rename n1 to n2 in boundary and graph *)
             bg |> update_boundary (V.NSet.delete n1 o V.NSet.add n2)
-               |> BasicBGraph.update_graph (BasicBGraph.Graph.rename_vname n1 n2)
+               |> rename_vname n1 n2
           | SOME (d2,(ins2,outs2)) => (* clash, so merge egdes to n1 into n2 *)
             let val (d1,(ins1,outs1)) = get_vertex bg n1
             in
@@ -168,6 +163,25 @@ boundary vertices can become unified to the same tgt vertex. *)
                  |> update_vertices (Vertex.NTab.delete n1)
             end
       else (* not boundary then rename as normal *)
-        bg |> BasicBGraph.update_graph (BasicBGraph.Graph.rename_vname n1 n2);
+        bg |> rename_vname n1 n2;
+
+(* make a subgraph from a node selection: any vertices with edges
+   outside selection become boundary, and all non-selected vertices are 
+   deleted. *)
+fun subgraph_of_selection' vns g = 
+    let val new_boundary_vs = incident_vertices g vns;
+    in
+    (* remove al vertices outside of the selection *)
+      (new_boundary_vs, 
+       V.NSet.fold 
+        (fn n => fn g => 
+                    if V.NSet.contains vns n then g 
+                    else if V.NSet.contains new_boundary_vs n 
+                    then set_vertex V.BVert n g else delete_vertex n g)
+        (get_vnames g) g)
+    end;
+
+val subgraph_of_selection = snd oo subgraph_of_selection';
+
 
 end;
