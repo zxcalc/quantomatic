@@ -7,11 +7,11 @@ use "test/graph.ML";
 use "bvertex.ML";
 use "test/bvertex.ML";
 
-use "match_ctxt.ML"; (* vertex and edge matching and global context *)
-use "test/match_ctxt.ML";
-
 use "bgraph.ML";
 use "test/bgraph.ML";
+
+use "match_ctxt.ML"; (* vertex and edge matching and global context *)
+use "test/match_ctxt.ML";
 
 use "bang_graph.ML";
 use "test/bang_graph.ML";
@@ -28,6 +28,7 @@ use "test/rg_graph.ML";
 
 use "rg_match_ctxt.ML";
 
+use "bbox_match.ML";
 use "match.ML";
 use "matchstate.ML";
 use "test/matching.ML";

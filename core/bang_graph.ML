@@ -15,6 +15,9 @@ val get_bboxes : T -> BBoxRel.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
 val get_unboxed : T -> Vertex.NSet.T
 
+val lookup_box_of : T -> Vertex.name -> BBox.name option
+val is_boxed : T -> Vertex.name -> bool
+
 val new_box : BBox.name -> T -> BBox.name * T
 val add_to_box : BBox.name -> Vertex.NSet.T -> T -> T
 val copy1_box : BBox.name -> T -> (BBox.name (* new box name *)
@@ -25,10 +28,8 @@ val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
 end;
 
-structure BVertex : BVERTEX = BVertexFun(structure IVertex = StrVertex);
-structure Edge : EDGE = StrEdge;
-type data = unit;
-val empty_data = ();
+(* bang box names *)
+structure BBox : NAMES = StrName;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
@@ -43,7 +44,7 @@ functor BangGraphFun(
 structure V = BVertex;
 structure E = Edge;
 
-structure BBox : NAMES = StrName;
+structure BBox : NAMES = BBox;
 structure BBoxRel = BinRelFun(structure Dom = BBox and Cod = V);
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
@@ -151,6 +152,15 @@ open BasicBBGraph;
 open BBGraphTools;
 
 exception overlapping_bbox_exp of V.NSet.T * T
+
+(* lookup name of box that v is in, NONE if unboxed *)
+fun lookup_box_of g v = 
+    case BBoxRel.lookup_codf (get_bboxes g) v
+     of NONE => NONE
+      | SOME bset => (* IMPROVE: use 1-many map, avoid mesyness below *)
+        SOME (fst (the (BBox.NSet.pull_local_bot bset)))
+fun is_boxed g v = 
+    V.NSet.contains (BBoxRel.get_codset (get_bboxes g)) v;
 
 (* make a new empty !-box *)
 fun new_box bn g = 

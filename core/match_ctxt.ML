@@ -9,18 +9,14 @@ val empty : T
 val vertex_idata_match : BVertex.IData.data -> BVertex.IData.data -> T -> T option
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
 val edge_match : Edge.data -> Edge.data -> T -> T option
-(* given a set of edges between two internal(strict) vertices in the pat, 
-   match the set of edges between two internal vertices in the tgt *) 
-val strict_multi_edge_match : Edge.data Edge.NTab.T -> Edge.data Edge.NTab.T 
-                              -> T -> ((Edge.name Edge.NTab.T) * T) Seq.seq
-(* given edges between a var-vertex in the pat, match them
-   non-strictly with those incident to a matching source in the
-   corresponding target vertex *)
-val multi_edge_match : Edge.data Edge.NTab.T -> Edge.data Edge.NTab.T 
-                       -> T -> ((Edge.NSet.T * (* unmatched tgt *)
-                                 (Edge.name Edge.NTab.T)) (* matched pat -> tgt *)
-                                * T) (* edge/vertex data instantiation *)
-                                 Seq.seq
+(* given edges between two vertices in pat and tgt, match pat to tgt *)
+val multi_edge_match :
+    Edge.data Edge.NTab.T (* pat edges *)
+    -> Edge.data Edge.NTab.T (* tgt edges *)
+    -> T -> ((Edge.NSet.T * (* unmatched tgt *)
+              (Edge.name Edge.NTab.T)) (* matched: pat -> tgt *)
+             * T) (* edge/vertex data instantiation *)
+              Seq.seq
 val subst_in_vertex : T -> BVertex.IData.data -> BVertex.IData.data
 val subst_in_edge : T -> Edge.data -> Edge.data
 val pretty : T -> Pretty.T
@@ -50,38 +46,30 @@ fun vertex_idata_match (d1 : BVertex.IData.data) (d2 : BVertex.IData.data)
 (* m is ignored because there is no edge data *)
 fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : T) = SOME m;
 
-exception too_many_pat_edges_exp of string;
-
 (* tries to match new pattern edge with (first) one in the target set,
-raises exception if target set is empty - we handle this and deal with
-it when we want to. *)
+raises exception if target set is empty - we handle this give NONE *)
+exception too_many_pat_edges_exp of string;
 fun matchup_pat_edges pes tes = 
-    let fun match_more (e1,ed) (ematches,tens2) = 
+    let fun match_more (e1,ed) (tens2,ematches) = 
             (case Edge.NSet.pull_local_bot tens2 of
                NONE => raise too_many_pat_edges_exp "matchup_pat_edges"
              | SOME (tn,tens3) => 
-               (Edge.NTab.ins (e1, tn) ematches, tens3))
-    in
-      Edge.NTab.fold match_more pes (Edge.NTab.empty, Edge.NTab.get_nameset tes)
-    end;
+               (tens3, Edge.NTab.ins (e1, tn) ematches))
+    in SOME (Edge.NTab.fold 
+               match_more pes (Edge.NTab.get_nameset tes, Edge.NTab.empty))
+    end handle too_many_pat_edges_exp _ => NONE;
 
-(* given a set of edges between two internal(strict) vertices in the pat, 
-   match the set of edges between two internal vertices in the tgt *) 
-fun strict_multi_edge_match pes tes m = 
-    let val (matched_ens,tns) = matchup_pat_edges pes tes
-    in if (Edge.NSet.is_empty tns) then Seq.single (matched_ens,m)
-       else Seq.empty
-    end handle too_many_pat_edges_exp _ => Seq.empty;
-
-(* given edges between a var-vertex in the pat, match them
-   non-strictly with those incident to a matching source in the
-   corresponding target vertex *)
-(* given a set of edges between two internal(strict) vertices in the pat, 
-   match the set of edges between two internal vertices in the tgt *) 
+(* given:
+     pes: a set of edges between two vertices in the pat, 
+     tes: a set of edges between two vertices in the tgt 
+   return: 
+     seq of matches using up all edges in pes
+*) 
 fun multi_edge_match pes tes m = 
-    let val (matched_ens,leftover_tns) = matchup_pat_edges pes tes
-    in Seq.single ((leftover_tns,matched_ens),m) end 
-    handle too_many_pat_edges_exp _ => Seq.empty;
+    (case matchup_pat_edges pes tes
+      of NONE => Seq.empty
+       | SOME (leftover_tns, matched_ens) => 
+         Seq.single ((leftover_tns,matched_ens), m))
 
 (* no data, thus these are id functions. *)
 fun subst_in_vertex (m : T) (n : BVertex.IData.data) = n; 

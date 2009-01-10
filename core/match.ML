@@ -10,12 +10,15 @@ signature MATCH
 
   type T
   val empty : T
-  val mk_id : BVertex.NSet.T (* boundary *)
+  val mk_id : BBox.NSet.T (* !-box names *)
+              -> BVertex.NSet.T (* boundary *)
               -> BVertex.NSet.T (* all vnames *)
               -> Edge.NSet.T (* all enames *)
               -> T 
   val get_emap : T -> Edge.name Edge.NTab.T
   val get_ivinvmap : T -> BVertex.name BVertex.NTab.T
+  val get_bvinvmap : T -> BVertex.NSet.T BVertex.NTab.T
+  val get_bbmatch : T -> BBoxMatch.T
   val get_mctxt : T -> MCtxt.T
   val get_vmap : T -> BVertex.name BVertex.NTab.T
   val match_edges : Edge.data Edge.NTab.T ->
@@ -50,18 +53,24 @@ functor MatchFun(MCtxt : MATCH_CTXT)
 structure MCtxt = MCtxt;
 structure BVertex = MCtxt.BVertex;
 structure Edge = MCtxt.Edge;
+structure BBoxMatch = BBoxMatch;
+
 
 (* Edge matching not Needed: one step later we check nodes and that
    enforced edge injection conditions needed for var-nodes/half-edges*)
 (* instantiations *)
 datatype T = Match of 
-         {(* pat to tgt - do we need the data? *)
+         {(* pat to tgt, injective *)
           vmap: BVertex.name BVertex.NTab.T, 
+          (* 1-1 except for two edges (to boundary nodes) can go 
+             to 1 in tgt if tgt edge is a self loop *)
           emap: Edge.name Edge.NTab.T, 
-          (* tgt to pat for internal (1-1 matching) vertices *)
+          (* tgt to pat 1-1 for internal pat vertices *)
           ivinvmap : BVertex.name BVertex.NTab.T,
-          (* tgt to (many) pat boundary vertices that match it *)        
+          (* tgt to pat (1-many) for boundary pat vertices *)        
           bvinvmap : BVertex.NSet.T BVertex.NTab.T,
+          (* bang box isomorphism *)
+          bbmatch : BBoxMatch.T,
           (* instantiations for vertex/edge data varaiables *)
           mctxt: MCtxt.T 
          };
@@ -70,6 +79,7 @@ val empty = Match {vmap = BVertex.NTab.empty,
                    emap = Edge.NTab.empty,
                    ivinvmap = BVertex.NTab.empty,
                    bvinvmap = BVertex.NTab.empty,
+                   bbmatch = BBoxMatch.empty,
                    mctxt = MCtxt.empty
                   };
 
@@ -77,7 +87,7 @@ val empty = Match {vmap = BVertex.NTab.empty,
    vnames is all vnames, bvnames are the boundary subset of them, 
    ename is all enames. 
 *)
-fun mk_id bvnames vnames enames = 
+fun mk_id boxnames bvnames vnames enames = 
     let 
       val vmap = (* mk id *)
           BVertex.NSet.fold 
@@ -95,10 +105,11 @@ fun mk_id bvnames vnames enames =
             (fn n => BVertex.NTab.ins (n,BVertex.NSet.single n))
             bvnames
             BVertex.NTab.empty
-
+ 
     in Match {vmap = vmap, emap = emap, 
               ivinvmap = ivinvmap, 
               bvinvmap = bvinvmap,
+              bbmatch = BBoxMatch.mk_id boxnames,
               mctxt = MCtxt.empty}
     end;
 
@@ -108,36 +119,49 @@ fun update_vmap f (Match rep) =
            emap = #emap rep,
            ivinvmap = #ivinvmap rep,
            bvinvmap = #bvinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_emap f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = f (#emap rep),
            ivinvmap = #ivinvmap rep,
            bvinvmap = #bvinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_ivinvmap f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = #emap rep,
            ivinvmap = f (#ivinvmap rep),
            bvinvmap = #bvinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_bvinvmap f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = #emap rep,
            ivinvmap = #ivinvmap rep,
            bvinvmap = f (#bvinvmap rep),
+           bbmatch = #bbmatch rep,
+           mctxt = #mctxt rep};
+fun update_bbmatch f (Match rep) = 
+    Match {vmap = #vmap rep, 
+           emap = #emap rep,
+           ivinvmap = #ivinvmap rep,
+           bvinvmap = #bvinvmap rep,
+           bbmatch = f (#bbmatch rep),
            mctxt = #mctxt rep};
 fun update_mctxt f (Match rep) = 
     Match {vmap = #vmap rep, 
            emap = #emap rep,
            ivinvmap = #ivinvmap rep,
            bvinvmap = #bvinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = f (#mctxt rep)};
 
 fun get_vmap (Match rep) = #vmap rep;
 fun get_emap (Match rep) = #emap rep;
 fun get_ivinvmap (Match rep) = #ivinvmap rep;
 fun get_bvinvmap (Match rep) = #bvinvmap rep;
+fun get_bbmatch (Match rep) = #bbmatch rep;
 fun get_mctxt (Match rep) = #mctxt rep;
 val set_mctxt = update_mctxt o K;
 

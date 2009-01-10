@@ -26,10 +26,7 @@ where they can reach to add extra edges. This gives a local-matching
 criteria so that we can be locally strict. Local matching can then
 have some non-local effects: causes a "ver-vertex" tentacle to become
 folded back. This gives efficient failure.
-
 *)
-
-
 signature MATCH_STATE
 = sig
   structure Match : MATCH
@@ -184,6 +181,7 @@ fun get_match (MState rep) = #match rep;
 fun get_unm_pat (MState rep) = #unm_pat rep;
 val get_unm_pat_vs = 
     Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_pat;
+val get_unm_unboxed_pat_vs = RGGraph.get_unboxed o get_unm_pat;
 fun get_unm_tgt (MState rep) = #unm_tgt rep;
 fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
     Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_tgt;

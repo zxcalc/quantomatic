@@ -32,36 +32,29 @@ fun edge_match ed1 ed2 m = SOME m;
 
 
 (* tries to match new pattern edge with (first) one in the target set,
-raises exception if target set is empty - we handle this and deal with
-it when we want to. *)
+raises exception if target set is empty - we handle this give NONE *)
 exception too_many_pat_edges_exp of string;
 fun matchup_pat_edges pes tes = 
-    let fun match_more (e1,ed) (ematches,tens2) = 
+    let fun match_more (e1,ed) (tens2,ematches) = 
             (case Edge.NSet.pull_local_bot tens2 of
                NONE => raise too_many_pat_edges_exp "matchup_pat_edges"
              | SOME (tn,tens3) => 
-               (Edge.NTab.ins (e1, tn) ematches, tens3))
-    in
-      Edge.NTab.fold match_more pes (Edge.NTab.empty, Edge.NTab.get_nameset tes)
-    end;
+               (tens3, Edge.NTab.ins (e1, tn) ematches))
+    in SOME (Edge.NTab.fold 
+               match_more pes (Edge.NTab.get_nameset tes, Edge.NTab.empty))
+    end handle too_many_pat_edges_exp _ => NONE;
 
-(* given a set of edges between two internal(strict) vertices in the pat, 
-   match the set of edges between two internal vertices in the tgt *) 
-fun strict_multi_edge_match pes tes m = 
-    let val (matched_ens,tns) = matchup_pat_edges pes tes
-    in if (Edge.NSet.is_empty tns) then Seq.single (matched_ens,m)
-       else Seq.empty
-    end handle too_many_pat_edges_exp _ => Seq.empty;
-
-(* given edges between a var-vertex in the pat, match them
-   non-strictly with those incident to a matching source in the
-   corresponding target vertex *)
-(* given a set of edges between two internal(strict) vertices in the pat, 
-   match the set of edges between two internal vertices in the tgt *) 
+(* given:
+     pes: a set of edges between two vertices in the pat, 
+     tes: a set of edges between two vertices in the tgt 
+   return: 
+     seq of matches using up all edges in pes
+*) 
 fun multi_edge_match pes tes m = 
-    let val (matched_ens,leftover_tns) = matchup_pat_edges pes tes
-    in Seq.single ((leftover_tns,matched_ens),m) end 
-    handle too_many_pat_edges_exp _ => Seq.empty;
+    (case matchup_pat_edges pes tes 
+      of NONE => Seq.empty
+       | SOME (matched_ens,leftover_tns) => 
+         Seq.single ((matched_ens,leftover_tns), m))
 
 (* subst in vertex uses angle var instantiations *)
 (* implicit: m a *)
