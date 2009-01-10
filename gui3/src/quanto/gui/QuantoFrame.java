@@ -14,8 +14,10 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	private QuantoCore core;
 	private QuantoConsole console;
 	private InteractiveView focusedView;
-	private JMenuItem closeViewMenuItem;
+	private JMenuItem closeViewMenuItem, saveGraphAsMenuItem, saveGraphMenuItem;
+
 	private Object viewLock = new Object();
+	private JFileChooser fileChooser = new JFileChooser();
 	
 	boolean consoleVisible;
 	final JTabbedPane tabs;
@@ -33,9 +35,17 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			public void stateChanged(ChangeEvent e) {
 				setFocusedView((InteractiveView)tabs.getSelectedComponent());
 				
-				// if there are no views left to close, ghost the command
-				if (focusedView == null) closeViewMenuItem.setEnabled(false);
-				else closeViewMenuItem.setEnabled(true);
+				// if there are no views open, ghost commands for closing and saving
+				if (focusedView == null) {
+					closeViewMenuItem.setEnabled(false);
+					saveGraphAsMenuItem.setEnabled(false);
+					saveGraphMenuItem.setEnabled(false);
+				}
+				else {
+					closeViewMenuItem.setEnabled(true);
+					saveGraphAsMenuItem.setEnabled(true);
+					saveGraphMenuItem.setEnabled(true);
+				}
 			}
 		});
 		
@@ -50,6 +60,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		fileMenu.setMnemonic(KeyEvent.VK_F);
 		viewMenu.setMnemonic(KeyEvent.VK_V);
 		
+		// new graph
 		JMenuItem item = new JMenuItem("New Graph", KeyEvent.VK_N);
 		item.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -59,6 +70,38 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, modifierKey));
 		fileMenu.add(item);
 		
+		
+		// open graph
+		item = new JMenuItem("Open Graph...", KeyEvent.VK_O);
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, modifierKey));
+		fileMenu.add(item);
+		
+		// Save Graph
+		saveGraphMenuItem = new JMenuItem("Save Graph", KeyEvent.VK_S);
+		saveGraphMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				saveGraph();
+			}
+		});
+		saveGraphMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, modifierKey));
+		fileMenu.add(saveGraphMenuItem);
+		
+		// Save Graph As
+		saveGraphAsMenuItem = new JMenuItem("Save Graph As...", KeyEvent.VK_A);
+		saveGraphAsMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				saveGraphAs();
+			}
+		});
+		saveGraphAsMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, modifierKey | Event.SHIFT_MASK));
+		fileMenu.add(saveGraphAsMenuItem);
+		
+		// quit
 		if (!isMac) {
 			item = new JMenuItem("Quit", KeyEvent.VK_Q);
 			item.addActionListener(new ActionListener() {
@@ -157,7 +200,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	
 	/**
 	 * Create a new graph, read the name, and send to a fresh
-	 * InteractiveQuantoVisualizer. This method and
+	 * InteractiveQuantoVisualizer. This method, openGraph(), and
 	 * QuantoConsole.updateGraphFromOutput() are the only methods
 	 * that generate interactive (named) graphs.
 	 * 
@@ -172,6 +215,49 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			errorDialog(e.getMessage());
 		}
 	}
+	
+	/** 
+	 * Read a graph from a file and send it to a fresh InteractiveGraphView.
+	 */
+	public void openGraph() {
+		int retVal = fileChooser.showDialog(this, "Open");
+		if(retVal == JFileChooser.APPROVE_OPTION) {
+			try {
+				String filename = fileChooser.getSelectedFile().getCanonicalPath();
+				QuantoGraph loadedGraph = core.load_graph(filename.replaceAll("\\n|\\r", ""));
+				InteractiveGraphView vis =
+					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600));
+				addView(vis);
+			}
+			catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			}
+			catch(java.io.IOException ioe) {
+				errorDialog(ioe.getMessage());
+			}
+		}
+	}
+	
+	public void saveGraphAs() {
+		int retVal = fileChooser.showSaveDialog(this);
+		if(retVal == JFileChooser.APPROVE_OPTION) {
+			try{
+				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
+				core.save_graph(getCurrentGraph(), filename);
+			}
+			catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			}
+			catch(java.io.IOException ioe) {
+				errorDialog(ioe.getMessage());
+			}
+		}
+	}
+	
+	public void saveGraph() {
+		
+	}
+
 	
 	public QuantoGraph getCurrentGraph() {
 		if (focusedView != null &&

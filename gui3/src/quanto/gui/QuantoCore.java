@@ -147,6 +147,7 @@ public class QuantoCore {
 		cmd.append(';');
 		
 		String ret;
+		System.out.print(cmd);
 		synchronized (this) {
 			send(cmd.toString());
 			try {
@@ -163,7 +164,7 @@ public class QuantoCore {
 	 * Remove all line breaks.
 	 */
 	protected String chomp(String str) {
-		return str.replace("\n", "");
+		return str.replace("\\n", "");
 	}
 	
 	/*
@@ -226,4 +227,12 @@ public class QuantoCore {
 	public void redo(QuantoGraph graph) throws ConsoleError {
 		command("redo", graph);
 	}
+	
+	public void save_graph(QuantoGraph graph, String fileName) throws ConsoleError{
+		command("save_graph", graph, new HasName.StringName(fileName));
+	}
+	public QuantoGraph load_graph(String fileName) throws ConsoleError{
+		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
+	}
+	
 }
