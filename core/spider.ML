@@ -18,7 +18,7 @@ fun pretty (Spider (g,qnd)) =
     Pretty.chunks [Pretty.str "Spider lhs:",
                    RGGraph.pretty g,
                    Pretty.block [Pretty.str "Spider rhs angle: ", 
-                                 RGGraph.IVertex.pretty_data qnd]];
+                                 RGGraph.BVertex.IData.pretty_data qnd]];
 val print = Pretty.writeln o pretty;
 
 (* part of agenda when extrending a spider *)
@@ -91,7 +91,7 @@ fun rule_of_spider_for_g g (Spider (spider_lhs,spider_d)) =
     let 
       val boundary = (RGGraph.get_boundary spider_lhs)
       (* ensure rhs center name is distinct from lhs boundary *)
-      val fresh_vn = Vertex.NSet.new "spider" boundary
+      val fresh_vn = Vertex.NSet.new boundary "spider"
       val rhs = 
           (RGGraph.new_named_vertex 
              fresh_vn (RGGraph.BVertex.IVert spider_d) RGGraph.empty)

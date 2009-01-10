@@ -22,8 +22,7 @@ structure MatchState : MATCH_STATE
 (* these are really in MatchState - this is just a local abbreviation *)
 structure RGGraph : RG_GRAPH
 structure Match : MATCH
-sharing RGGraph.IVertex = MatchState.RGGraph.IVertex;
-sharing RGGraph.Edge = MatchState.RGGraph.Edge;
+sharing RGGraph = MatchState.RGGraph;
 sharing Match = MatchState.Match;
 
 type T (* rules *)

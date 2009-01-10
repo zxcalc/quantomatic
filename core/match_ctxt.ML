@@ -1,11 +1,12 @@
 signature MATCH_CTXT
 = sig
 
-structure IVertex : VERTEX
+structure BVertex : BVERTEX
 structure Edge : EDGE
 type T (* global context holds vertex and edge global match info *)
 val empty : T
-val vertex_match : IVertex.data -> IVertex.data -> T -> T option
+(* internal data matching *)
+val vertex_idata_match : BVertex.IData.data -> BVertex.IData.data -> T -> T option
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
 val edge_match : Edge.data -> Edge.data -> T -> T option
 (* given a set of edges between two internal(strict) vertices in the pat, 
@@ -20,7 +21,7 @@ val multi_edge_match : Edge.data Edge.NTab.T -> Edge.data Edge.NTab.T
                                  (Edge.name Edge.NTab.T)) (* matched pat -> tgt *)
                                 * T) (* edge/vertex data instantiation *)
                                  Seq.seq
-val subst_in_vertex : T -> IVertex.data -> IVertex.data
+val subst_in_vertex : T -> BVertex.IData.data -> BVertex.IData.data
 val subst_in_edge : T -> Edge.data -> Edge.data
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -30,20 +31,21 @@ end;
 (* Basic case of graphs with no vars and no global context, and just
 using data equality function for matching. *)
 functor EqMatchUnitEdgeNoCtxtFun(
-  structure IVertex : VERTEX
+  structure BVertex : BVERTEX
   and Edge : EDGE where type data = unit
 ) : MATCH_CTXT where type Edge.data = unit
 = struct
 
-structure IVertex = IVertex;
+structure BVertex = BVertex;
 structure Edge = Edge;
 
 type T = unit;
 
 val empty = ();
 
-fun vertex_match (n1 : IVertex.data) (n2 : IVertex.data) (m : T) =
-    if IVertex.data_eq (n1, n2) then SOME m else NONE;
+fun vertex_idata_match (d1 : BVertex.IData.data) (d2 : BVertex.IData.data) 
+                       (m : T) =
+    if BVertex.IData.data_eq (d1, d2) then SOME m else NONE;
 
 (* m is ignored because there is no edge data *)
 fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : T) = SOME m;
@@ -82,7 +84,7 @@ fun multi_edge_match pes tes m =
     handle too_many_pat_edges_exp _ => Seq.empty;
 
 (* no data, thus these are id functions. *)
-fun subst_in_vertex (m : T) (n : IVertex.data) = n; 
+fun subst_in_vertex (m : T) (n : BVertex.IData.data) = n; 
 fun subst_in_edge (m : T) (e : Edge.data) = e;
 
 fun pretty (m : T) = Pretty.str "";

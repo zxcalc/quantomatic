@@ -85,8 +85,8 @@ struct
   (* modified/new basic graph functions *)
   fun add_named_vertex n v g =
       let val (n2,g2) = Graph.add_named_vertex n v g
-      in (n2, g |> (case v of (V.BVert) => add_to_boundary n2 
-                            | (V.IVert _) => I))
+      in (n2, g2 |> (case v of (V.BVert) => add_to_boundary n2 
+                             | (V.IVert _) => I))
       end;
 
   (* deleting vertex also removes all it's edges. *)

@@ -1,4 +1,4 @@
-local 
+(* local  *)
 structure V = RGGraph.RGVertex;
 val bvert = V.BVert;
 val zero_angle = AngleExpr.zero;
@@ -105,11 +105,11 @@ val (e0, g4) = g4 |> RGGraph.add_edge edge green9 green10;
 val (e0, g4) = g4 |> RGGraph.add_edge edge green9 out2;
 
 val _ = RGGraph.print g4;
-
+(* 
 in 
 val _ = Pretty.writeln (Pretty.str "Tests passed: red-green graphs.");
 end;
-
+*)
 (* For debugging...
 
 PolyML.exception_trace (fn () => 

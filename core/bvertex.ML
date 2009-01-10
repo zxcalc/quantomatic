@@ -3,10 +3,10 @@
 signature BVERTEX
 = sig
 
-type internal_data
+structure IData : ORD_DATA (* internal data *)
 
 datatype data2 = 
-         IVert of internal_data (* inner node with basic vertex data *)
+         IVert of IData.data (* inner node with basic vertex data *)
        | BVert; (* boundary vertex with boundary data *)
 
 include VERTEX
@@ -23,16 +23,15 @@ functor BVertexFun(
 : BVERTEX
 = struct
 
+(* internal data *)
+structure IData : ORD_DATA = IVertex;
 
 (* open the Names Part of IVertex *)
 structure INames : NAMES = IVertex
 open INames; 
 
-(* internal data *)
-type internal_data = IVertex.data;
-
 datatype data2 = 
-         IVert of internal_data (* vertex with data *)
+         IVert of IData.data (* vertex with data *)
        | BVert; (* a variable vertex *)
 
 type data = data2;

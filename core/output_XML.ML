@@ -239,7 +239,7 @@ fun render_xml_rgdata (V.Xnd a) = colourRed::(render_xml_angleexpr a)
   | render_xml_rgdata (V.Znd a) = colourGreen::(render_xml_angleexpr a)
   | render_xml_rgdata (V.Hnd) = colourH::[]
 
-fun render_xml_bdata (V.BVert _) = boundary
+fun render_xml_bdata (V.BVert) = boundary
   | render_xml_bdata (V.IVert rg) = Pretty.chunks (nonboundary::(render_xml_rgdata rg))
 
 val output_vertex = guts.mk_output_vertex render_xml_bdata;

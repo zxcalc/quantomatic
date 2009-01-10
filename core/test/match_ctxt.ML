@@ -1,5 +1,5 @@
 structure StrUnitMatchCtxt = 
-EqMatchUnitEdgeNoCtxtFun(structure IVertex = StrVertex and Edge = UnitEdge);
+EqMatchUnitEdgeNoCtxtFun(structure BVertex = StrBVertex and Edge = UnitEdge);
 
 
 (* signature RG_MATCH

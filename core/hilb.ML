@@ -178,7 +178,7 @@ datatype term =
 	 Comp of term list |
 	 Tens of term list
 
-val bv = RGVertex.BVert ();
+val bv = RGVertex.BVert;
 
 val id_vert = V ("id",[])
 val one_vert = V ("1",[])
@@ -237,7 +237,7 @@ fun translate_vertex graph vert =
 	val (ic,oc) = (edge_count ie, edge_count oe)
     in
 	case v
-	 of RGVertex.BVert () => BV vert
+	 of RGVertex.BVert => BV vert
 	  | RGVertex.IVert (RGVertex.Xnd e) =>
 	    attach_angle "x" e (vertex_tree "x" ic oc) ic
 	  | RGVertex.IVert (RGVertex.Znd e) =>

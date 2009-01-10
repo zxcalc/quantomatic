@@ -4,16 +4,17 @@ include BANG_GRAPH
 structure RGVertex : RG_VERTEX
 sharing Vertex = BVertex
 sharing Vertex = RGVertex 
-sharing RGVertex.IVertex = IVertex
-sharing BVertex.IVertex = IVertex 
 end;
 
 structure DB_RGGraph
 = struct 
   structure RGVertex = RGVertex;
-  structure BGraph = BGraphFun(structure BVertex = RGVertex  
-                               and Edge = UnitEdge)
-  open BGraph;
+  structure BBGraph = BangGraphFun(
+    structure BVertex = RGVertex  
+    and Edge = UnitEdge
+    type data = unit
+    val empty_data = () )
+  open BBGraph;
 end;
 
 structure RGGraph : RG_GRAPH = DB_RGGraph;

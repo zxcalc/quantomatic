@@ -4,7 +4,7 @@ struct
 structure V = RGGraph.BVertex;
 structure E = RGGraph.Edge;
 
-val bvert = V.BVert ();
+val bvert = V.BVert;
 val zero_angle = AngleExpr.zero;
 val var_angle = AngleExpr.mk_var;
 val add_angles = AngleExpr.add_expr;

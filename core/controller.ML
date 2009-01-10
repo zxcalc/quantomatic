@@ -184,7 +184,7 @@ local
     fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
       | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
       | vertex_type "hadamard" = V.IVert V.Hnd
-      | vertex_type "boundary" = V.BVert ()
+      | vertex_type "boundary" = V.BVert
 
     fun add_vertex ([_,vt], graph) =
 	      let val (n,g) = graph |> G.add_vertex (vertex_type vt)

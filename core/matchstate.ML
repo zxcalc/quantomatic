@@ -37,8 +37,8 @@ signature MATCH_STATE
   structure Edge : EDGE
   structure Vertex : RG_VERTEX
 
-  sharing Vertex.IVertex = RGGraph.IVertex
-  sharing Vertex.IVertex = Match.MCtxt.IVertex
+  sharing Vertex = RGGraph.RGVertex
+  sharing Vertex = Match.MCtxt.BVertex
   sharing Edge = Match.MCtxt.Edge
   sharing Edge = RGGraph.Edge
 
@@ -140,10 +140,11 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchStateFun(structure RGGraph : RG_GRAPH 
-                   structure Match : MATCH
-                   sharing RGGraph.IVertex = Match.IVertex
-                   sharing RGGraph.Edge = Match.Edge
+functor MatchStateFun(
+  structure RGGraph : RG_GRAPH 
+  structure Match : MATCH
+  sharing Match.BVertex = RGGraph.RGVertex
+  sharing RGGraph.Edge = Match.Edge
 ) : MATCH_STATE
 = struct
 

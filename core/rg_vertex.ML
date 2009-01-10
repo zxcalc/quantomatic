@@ -9,7 +9,7 @@ signature RG_VERTEX
                | Znd of AngleExpr.T (* Green *)
                | Hnd; (* Hadamard vertex *)
   include BVERTEX
-  sharing type IVertex.data = qnd;
+  sharing type IData.data = qnd;
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
