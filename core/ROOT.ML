@@ -4,11 +4,11 @@ use "alg.ML";
 use "graph.ML";
 use "test/graph.ML";
 
-use "match_ctxt.ML"; (* vertex and edge matching and global context *)
-use "test/match_ctxt.ML";
-
 use "bvertex.ML";
 use "test/bvertex.ML";
+
+use "match_ctxt.ML"; (* vertex and edge matching and global context *)
+use "test/match_ctxt.ML";
 
 use "bgraph.ML";
 use "test/bgraph.ML";
