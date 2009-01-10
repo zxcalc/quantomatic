@@ -183,7 +183,7 @@ val bv = RGVertex.BVert ();
 val id_vert = V ("id",[])
 val one_vert = V ("1",[])
 val bell_vert = V ("bell",[])
-val bell_dag_vert = V ("bell_dag",[])
+val bell_dag_vert = V ("belldag",[])
 fun permutation_op perm =
     case perm
      of [] => id_vert
@@ -221,7 +221,7 @@ fun attach_angle b an trm inputs =
 val edge_count = fn s => UnitEdge.NSet.fold (fn _ => fn t => 1+t) s 0
 
 (* expand spiders as a tree of deltas *)
-fun vertex_tree b 0 n = compose [V ("e"^b^"_dag",[]), vertex_tree b 1 n]
+fun vertex_tree b 0 n = compose [V ("e"^b^"dag",[]), vertex_tree b 1 n]
   | vertex_tree b 1 0 = V ("e"^b,[])
   | vertex_tree b 1 1 = id_vert
   | vertex_tree b 1 2 = V ("d"^b,[])
