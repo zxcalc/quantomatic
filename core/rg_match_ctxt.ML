@@ -1,5 +1,5 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  matching and substitution for Basic Quantum Expressions *)
+(*  matching and substitution for Basic Quantum Expressions (with angles) *)
 structure AngleMatchCtxt 
 : MATCH_CTXT
 where type BVertex.IData.data = RGGraph.RGVertex.qnd (* = qnd *)
@@ -27,7 +27,7 @@ fun vertex_idata_match (e1 as V.Hnd) (e2 as V.Hnd) m = SOME m
 		AngleExpr.match a1 a2 m
 	| vertex_idata_match _ _ _ = NONE;
 
-(* edges allways match - they have no data *)
+(* edges allways match - they have no data, and we ignore direction *)
 fun edge_match ed1 ed2 m = SOME m; 
 
 

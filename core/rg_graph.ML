@@ -1,6 +1,11 @@
 signature RG_GRAPH = 
 sig
 include BANG_GRAPH 
+(* I'd like to do this but cannot, 'where' also doesn't work, causes
+   sharing to fail later. *)
+(* where type Edge.data = unit *)
+(* sharing type Edge.data = unit *)
+
 structure RGVertex : RG_VERTEX
 sharing Vertex = BVertex
 sharing Vertex = RGVertex 
@@ -12,7 +17,7 @@ structure DB_RGGraph
   structure BBGraph = BangGraphFun(
     structure BVertex = RGVertex  
     and Edge = UnitEdge
-    type data = unit
+    type data = unit (* no extra inherrited data for graphs *)
     val empty_data = () )
   open BBGraph;
 end;

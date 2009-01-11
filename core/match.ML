@@ -55,18 +55,21 @@ structure BVertex = MCtxt.BVertex;
 structure Edge = MCtxt.Edge;
 structure BBoxMatch = BBoxMatch;
 
+(* directed, half of an edge, boolean indicates directions. *)
+(* datatype dir = Target | Source;
 structure DEdge = 
   AddDataNameFun(
     structure Nm = Edge 
     type data = bool
     (* false = source, true = target *)
-    fun ord_data (true, true) = EQUAL
-      | ord_data (true, false) = GREATER
-      | ord_data (false, true) = LESS
-      | ord_data (false, false) = EQUAL
-    fun pretty (true, n) = Pretty.block [Pretty.str "->", Nm.pretty_name n]
-      | pretty (false,n) = Pretty.block [Pretty.str "<-", Nm.pretty_name n]
-    val default_name = (true,Nm.default_name));
+    fun ord_data (Target, Target) = EQUAL
+      | ord_data (Target, Source) = GREATER
+      | ord_data (Source, Target) = LESS
+      | ord_data (Source, Source) = EQUAL
+    fun pretty (Target, n) = Pretty.block [Pretty.str "->", Nm.pretty_name n]
+      | pretty (Source,n) = Pretty.block [Pretty.str "<-", Nm.pretty_name n]
+    val default_name = (Target,Nm.default_name));
+*)
 
 (* Edge matching not Needed: one step later we check nodes and that
    enforced edge injection conditions needed for var-nodes/half-edges*)
@@ -74,8 +77,7 @@ structure DEdge =
 datatype T = Match of 
          {(* pat to tgt, injective *)
           vmap: BVertex.name BVertex.NTab.T, 
-          (* 1-1 except for two edges (to boundary nodes) can go 
-             to 1 in tgt if tgt edge is a self loop *)
+          (* 1-1 mapping on directed-edges / half-edges *)
           emap: Edge.name Edge.NTab.T, 
           (* tgt to pat 1-1 for internal pat vertices *)
           ivinvmap : BVertex.name BVertex.NTab.T,

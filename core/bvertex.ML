@@ -18,15 +18,16 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Pattern Nodes construction *)
 functor BVertexFun(
-  structure IVertex : VERTEX 
+  structure IData : ORD_DATA
+  structure INames : NAMES
 )
 : BVERTEX
 = struct
 
-structure IData : ORD_DATA = IVertex;
+structure IData : ORD_DATA = IData;
 
 (* open the Names Part of IVertex *)
-structure INames : NAMES = IVertex
+structure INames : NAMES = INames;
 open INames; 
 
 (* internal data *)
@@ -39,15 +40,17 @@ type data = data2;
 fun data_ord (BVert, BVert) = EQUAL
   | data_ord (BVert, _) = LESS
   | data_ord (_, BVert) = GREATER
-  | data_ord (IVert a, IVert b) = IVertex.data_ord (a,b);
+  | data_ord (IVert a, IVert b) = IData.data_ord (a,b);
 
 fun data_eq (n1, n2) = case data_ord (n1, n2) of EQUAL => true | _ => false;
 
 fun pretty_data (BVert) = 
     Pretty.block [Pretty.str "BVert"]
   | pretty_data (IVert a) = 
-    Pretty.block [Pretty.str "IVert(", IVertex.pretty_data a, Pretty.str ")"];
+    Pretty.block [Pretty.str "IVert(", IData.pretty_data a, Pretty.str ")"];
 
 val print_data = Pretty.writeln o pretty_data;
+
+val default_data = BVert;
 
 end;

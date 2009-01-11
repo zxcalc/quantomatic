@@ -29,7 +29,7 @@ folded back. This gives efficient failure.
 *)
 signature MATCH_STATE
 = sig
-  structure Match : MATCH
+  structure Match : MATCH 
   structure RGGraph : RG_GRAPH
   structure Edge : EDGE
   structure Vertex : RG_VERTEX
@@ -41,8 +41,7 @@ signature MATCH_STATE
 
   type T
   datatype matchstep =
-           FoundMatch of T
-         | Progress of T Seq.seq
+           FoundMatch of T         | Progress of T Seq.seq
 
   exception locally_match_2vs_exp of (Vertex.name * Vertex.name) 
                                      * Vertex.name * Vertex.name
