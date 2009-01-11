@@ -33,7 +33,11 @@ val merge_boxes : BBox.name -> BBox.name -> T -> T
 end;
 
 (* bang box names *)
-structure BBox : SSTR_NAMES = SStrName;
+structure BBox : SSTR_NAMES = 
+struct 
+open SStrName;
+val default_name = mk "Ba";
+end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
