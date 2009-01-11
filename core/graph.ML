@@ -164,6 +164,8 @@ val get_edge_list : T -> (Edge.name * (Edge.data
 val enames_between : T -> Vertex.name -> Vertex.name -> Edge.NSet.T
 val edges_between : T -> Vertex.name -> Vertex.name -> Edge.data Edge.NTab.T
 
+(* val hens_between : T -> Vertex.name -> Vertex.name -> Edge.Hen.NSet.T *)
+val get_vertex_hens : T -> Vertex.name -> Edge.Hen.NSet.T
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
@@ -198,8 +200,8 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Basic Graphs with strings at edges and vertices *)
 functor BasicGraphFun(
-  structure Vertex : NAME_AND_DATA 
-  and Edge : NAME_AND_DATA
+  structure Vertex : VERTEX (* defined in pregraph.ML *) 
+  and Edge : EDGE
   type data 
   val empty_data : data) 
 : BASIC_GRAPH
@@ -207,6 +209,7 @@ functor BasicGraphFun(
 
 structure Vertex = Vertex;
 structure Edge = Edge;
+
 
 (* extra data, allows extra data to be added later in decendent
 signatures/structures... *)
@@ -508,6 +511,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 local
 open BasicGraph;
 in
+structure Hen = Edge.Hen;
 
 val is_empty = Vertex.NTab.is_element_empty o get_vertices;
 
@@ -530,6 +534,14 @@ fun get_edge g en =
     case lookup_edge g en 
      of NONE => raise no_such_ename_exp ("get_edge", en, g)
       | SOME x => x;
+
+fun get_vertex_hens g v = 
+    let val (d,(ines,outes)) = (get_vertex g v)
+    in
+      Hen.NSet.empty 
+        |> Edge.NSet.fold (Hen.NSet.add o Edge.mk_src_hen) outes 
+        |> Edge.NSet.fold (Hen.NSet.add o Edge.mk_tgt_hen) ines
+    end;
 
 val set_vertex = update_vertex o K;
 val set_edge = update_edge o K;
@@ -774,6 +786,19 @@ fun enames_between g n1 n2 =
         (Edge.NSet.intersect ins1 outs2)
         (Edge.NSet.intersect ins2 outs1)
     end;    
+
+(* 
+fun hens_between g n1 n2 = 
+    let 
+      val (_,(ins1,outs1)) = get_vertex g n1
+      val (_,(ins2,outs2)) = get_vertex g n2
+    in
+      Hen.NSet.union_merge
+        
+        (Edge.NSet.intersect ins1 outs2)
+        (Edge.NSet.intersect ins2 outs1)
+    end;
+*)
 
 fun edges_between g n1 n2 = 
     Edge.NSet.fold 

@@ -992,7 +992,7 @@ local
   val (e1, g) = g |> RGGraph.add_edge edge v1 v1;
   val (e2, g) = g |> RGGraph.add_edge edge v1 v2;
   val (box1, g) = g |> RGGraph.new_box "Ba";
-  val g = g |> RGGraph.add_to_box box1 (V.NSet.single v2);
+  val g = g |> RGGraph.move_to_box box1 (V.NSet.single v2);
   val lhs = g;
   val _ = RGGraph.print lhs;
   (* rhs *)

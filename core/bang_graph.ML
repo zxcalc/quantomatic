@@ -6,12 +6,12 @@
 signature BANG_GRAPH = 
 sig
 include BGRAPH;
-structure BBox : NAMES (* !(Bang)-Box *)
-structure BBoxRel : NAME_BREL (* !-box-name to vertices *)
-sharing BBoxRel.Dom = BBox;
-sharing BBoxRel.Cod = Vertex;
+structure BBox : SSTR_NAMES (* !(Bang)-Box *)
+structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
+sharing VtoBoxMap.Cod = BBox;
+sharing VtoBoxMap.Dom = Vertex;
 
-val get_bboxes : T -> BBoxRel.T
+val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
 val get_unboxed : T -> Vertex.NSet.T
 
@@ -19,7 +19,8 @@ val lookup_box_of : T -> Vertex.name -> BBox.name option
 val is_boxed : T -> Vertex.name -> bool
 
 val new_box : BBox.name -> T -> BBox.name * T
-val add_to_box : BBox.name -> Vertex.NSet.T -> T -> T
+val move_to_box : BBox.name -> Vertex.NSet.T -> T -> T
+val move_to_unbox : Vertex.NSet.T -> T -> T
 val copy1_box : BBox.name -> T -> (BBox.name (* new box name *)
                                    * (Vertex.renaming (* how vnames were copied *)
                                       * Edge.renaming)) (* ename copying *)
@@ -31,7 +32,7 @@ val merge_boxes : BBox.name -> BBox.name -> T -> T
 end;
 
 (* bang box names *)
-structure BBox : NAMES = StrName;
+structure BBox : SSTR_NAMES = SStrName;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
@@ -46,8 +47,8 @@ functor BangGraphFun(
 structure V = BVertex;
 structure E = Edge;
 
-structure BBox : NAMES = BBox;
-structure BBoxRel = NameBRelFun(structure Dom = BBox and Cod = V);
+structure BBox : SSTR_NAMES = BBox;
+structure VtoBoxMap = NameMapFun(structure Dom = V and Cod = BBox);
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
 type data2 = data;
@@ -56,7 +57,7 @@ val empty_data2 = empty_data;
 (* we add bbox to Graph data, this is hidden *)
 datatype hdata = 
          HData of 
-         { bboxes : BBoxRel.T,
+         { bboxes : VtoBoxMap.T,
            unboxed : V.NSet.T,
            data : data
          };
@@ -78,7 +79,7 @@ fun update_unboxed_of_hdata f (HData rep) =
             bboxes = #bboxes rep,
             unboxed = f (#unboxed rep)
           };
-val empty_hdata = HData {bboxes = BBoxRel.empty,
+val empty_hdata = HData {bboxes = VtoBoxMap.empty,
                    unboxed = V.NSet.empty,
                    data = empty_data};
 
@@ -104,14 +105,14 @@ struct
 
   (* for bbox part of added data *)
   val get_unboxed = get_unboxed_of_hdata o Graph.get_data;
-  val get_bboxes : T -> BBoxRel.T = get_bboxes_of_hdata o Graph.get_data;
+  val get_bboxes : T -> VtoBoxMap.T = get_bboxes_of_hdata o Graph.get_data;
   val update_unboxed = Graph.update_data o update_unboxed_of_hdata;
   val update_bboxes = Graph.update_data o update_bboxes_of_hdata;
   val set_unboxed = update_unboxed o K;
   val add_to_unboxed = update_unboxed o V.NSet.add;
   val del_from_unboxed = update_unboxed o V.NSet.delete;
-  val set_bboxes : BBoxRel.T -> T -> T = update_bboxes o K;
-  val get_bbox = BBox.NTab.get o BBoxRel.get_domtab o get_bboxes;
+  val set_bboxes : VtoBoxMap.T -> T -> T = update_bboxes o K;
+  val get_bbox = BBox.NTab.get o VtoBoxMap.get_codtab o get_bboxes;
 
   (* modified/new basic graph functions *)
   fun add_named_vertex n v g =
@@ -130,7 +131,7 @@ struct
    *)
   fun rename_vname n1 n2 g = 
       g |> Graph.rename_vname n1 n2
-        |> update_bboxes (the o BBoxRel.try_rename1_cod n1 n2)
+        |> update_bboxes (the o VtoBoxMap.try_rename1_dom n1 n2)
         |> update_unboxed (the o V.NSet.try_rename1 n1 n2);
 
   (* prettifying *)
@@ -141,7 +142,7 @@ struct
             [Pretty.str "  ", (* indent *)
              Pretty.chunks 
                [Pretty.block 
-                  [Pretty.str "Bang-Boxes: ", BBoxRel.pretty (get_bboxes g)],
+                  [Pretty.str "Bang-Boxes: ", VtoBoxMap.pretty (get_bboxes g)],
                 Graph.pretty g]],
           Pretty.str "}"
         ];
@@ -156,35 +157,28 @@ open BBGraphTools;
 exception overlapping_bbox_exp of V.NSet.T * T
 
 (* lookup name of box that v is in, NONE if unboxed *)
-fun lookup_box_of g v = 
-    case BBoxRel.lookup_codf (get_bboxes g) v
-     of NONE => NONE
-      | SOME bset => (* IMPROVE: use 1-many map, avoid mesyness below *)
-        SOME (fst (the (BBox.NSet.pull_local_bot bset)))
-fun is_boxed g v = 
-    V.NSet.contains (BBoxRel.get_codset (get_bboxes g)) v;
+fun lookup_box_of g v = VtoBoxMap.lookup_domf (get_bboxes g) v;
+fun is_boxed g v = V.NSet.contains (VtoBoxMap.get_domset (get_bboxes g)) v;
 
 (* make a new empty !-box *)
 fun new_box bn g = 
     let
       val bboxes = (get_bboxes g);
-      val bn2 = BBox.NSet.new (BBoxRel.get_domset bboxes) bn;
-      val bboxes2 : BBoxRel.T = 
-          BBoxRel.add_to_dom bn2 V.NSet.empty bboxes;
+      val bn2 = BBox.NSet.new (VtoBoxMap.get_codset bboxes) bn;
+      val bboxes2 : VtoBoxMap.T = 
+          VtoBoxMap.add_to_cod bn2 V.NSet.empty bboxes;
     in (bn2, g |> set_bboxes bboxes2) end;
 
 (* add to a !-box; makes new box, if name doesn't alreayd exist;
-IMPROVE: raise exception if doesn't already exist? *)
-fun add_to_box bn vs g = 
-    let val unboxed = (get_unboxed g)
-    in
-      if V.NSet.sub_set vs unboxed then 
-        let val bboxes2 = BBoxRel.add_to_dom bn vs (get_bboxes g)
-        in g |> set_bboxes bboxes2
-             |> set_unboxed (Vertex.NSet.subtract unboxed vs)
-        end
-      else raise overlapping_bbox_exp (vs,g)
-    end;
+IMPROVE: raise exception if box doesn't already exist? *)
+fun move_to_box bn vs g = 
+    g |> update_bboxes (VtoBoxMap.add_to_cod bn vs 
+                        o Vertex.NSet.fold VtoBoxMap.del_dom vs)
+      |> update_unboxed (Vertex.NSet.remove_set vs);
+
+fun move_to_unbox vs g = 
+    g |> update_bboxes (Vertex.NSet.fold VtoBoxMap.del_dom vs)
+      |> update_unboxed (Vertex.NSet.union_merge vs);
 
 (* FIXME: merge_by vertices respect !-boxes *)
 (* FIXME: subgraph_of_selection respect !-boxes *)
@@ -201,8 +195,8 @@ fun copy1_box bn g =
                    g2
         val bbox2_vs = Vertex.Rnm.get_newnames vrn;
         val bboxes = get_bboxes g
-        val bn2 = BBox.NSet.new (BBoxRel.get_domset bboxes) bn
-        val bboxes2 = BBoxRel.add_to_dom bn2 bbox2_vs bboxes;
+        val bn2 = BBox.NSet.new (VtoBoxMap.get_codset bboxes) bn
+        val bboxes2 = VtoBoxMap.add_to_cod bn2 bbox2_vs bboxes;
     in
       ((bn2, (vrn,ern)), 
        g |> merge_by_vertices g3
@@ -212,20 +206,18 @@ fun copy1_box bn g =
 fun kill_box bn g = 
     let val bbox_vs = get_bbox g bn
     in g |> Vertex.NSet.fold delete_vertex bbox_vs
-         |> update_bboxes (BBoxRel.del_dom bn)
+         |> update_bboxes (VtoBoxMap.del_cod bn)
     end;
 
 fun drop_box bn g = 
     let val bbox_vs = get_bbox g bn 
-    in g |> update_bboxes (BBoxRel.del_dom bn)
+    in g |> update_bboxes (VtoBoxMap.del_cod bn)
          |> update_unboxed (Vertex.NSet.union_merge bbox_vs)
     end;
 
 fun merge_boxes bn1 bn2 g = 
     let 
       val b1vs = get_bbox g bn1
-    in g |> drop_box bn1
-         |> add_to_box bn2 b1vs
-    end; 
+    in g |> move_to_box bn1 b1vs end; 
 
 end; (* BangGraphFun *)

@@ -42,7 +42,7 @@ structure V = BVertexFun(
       | pretty_data Hnd = Pretty.str "H";
     val print_data = Pretty.writeln o pretty_data;
   end
-  structure INames = StrName
+  structure INames = SStrName
   ); (* internal BVertex structure *)
 
 open V;

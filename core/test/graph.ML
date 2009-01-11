@@ -40,12 +40,15 @@ install_pp (make_pp ["StrUnitGraph", "T"]
 
 local 
 
+val add_v = StrUnitGraph.add_vertex o StrUnitGraph.Vertex.mk;
+val add_e = StrUnitGraph.add_edge StrUnitGraph.Edge.default_data;
+
 (* a simple kind of graph, and some basic manipulations *)
 val g = StrUnitGraph.empty;
-val (n_a, g) = g |> (StrUnitGraph.add_vertex "a");
-val (n_b, g) = g |> (StrUnitGraph.add_vertex "b");
-val (e0, g) = g |> (StrUnitGraph.add_edge () n_a n_b);
-val (e1, g) = g |> (StrUnitGraph.add_edge () n_a n_b);
+val (n_a, g) = g |> (add_v "a");
+val (n_b, g) = g |> (add_v "b");
+val (e0, g) = g |> (add_e n_a n_b);
+val (e1, g) = g |> (add_e n_a n_b);
 val n_c = "n_c";
 val g = g |> (StrUnitGraph.rename_vname n_a n_c);
 val e3 = "e_c";
@@ -55,9 +58,9 @@ val _ = StrUnitGraph.print g;
 
 
 val g = StrUnitGraph.empty;
-val (n_a, g) = g |> (StrUnitGraph.add_vertex "a");
-val (n_b, g) = g |> (StrUnitGraph.add_vertex "b");
-val (e0, g) = g |> (StrUnitGraph.add_edge () n_a n_b);
+val (n_a, g) = g |> (add_v "a");
+val (n_b, g) = g |> (add_v "b");
+val (e0, g) = g |> (add_e n_a n_b);
 val g = g |> (StrUnitGraph.delete_vertex n_a);
 val g = g |> (StrUnitGraph.delete_vertex n_b);
 

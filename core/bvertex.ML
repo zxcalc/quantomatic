@@ -19,7 +19,7 @@ end;
 (*  Pattern Nodes construction *)
 functor BVertexFun(
   structure IData : ORD_DATA
-  structure INames : NAMES
+  structure INames : SSTR_NAMES
 )
 : BVERTEX
 = struct
@@ -27,7 +27,7 @@ functor BVertexFun(
 structure IData : ORD_DATA = IData;
 
 (* open the Names Part of IVertex *)
-structure INames : NAMES = INames;
+structure INames : SSTR_NAMES = INames;
 open INames; 
 
 (* internal data *)
