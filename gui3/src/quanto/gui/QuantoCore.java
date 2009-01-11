@@ -26,6 +26,8 @@ public class QuantoCore {
 	BufferedWriter to_backEnd;
 	PrintStream output;
 	
+	Completer completer;
+	
 	public static class ConsoleError extends Exception {
 		private static final long serialVersionUID = 1053659906558198953L;
 		public ConsoleError(String msg) {
@@ -65,6 +67,22 @@ public class QuantoCore {
 			send("HELO;");
 			while (!receive().contains("HELO"));
 			System.out.println("done.");
+			
+			
+			// Construct the completion engine from the output of the help command.
+			completer = new Completer();
+			System.out.println("Retrieving commands...");
+			
+			receive(); // eat the prompt
+			send("help;");
+			BufferedReader reader = new BufferedReader(new StringReader(receive()));
+			// eat a couple of lines of description
+			reader.readLine(); reader.readLine();
+			for (String ln = reader.readLine(); ln != null; ln = reader.readLine())
+				if (! ln.equals("")) completer.addWord(ln);
+			
+			System.out.println("done.");
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 			if(backEnd == null) { output.println("ERROR: Cannot execute: quanto-core, check it is in the path."); }
@@ -233,6 +251,10 @@ public class QuantoCore {
 	}
 	public QuantoGraph load_graph(String fileName) throws ConsoleError{
 		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
+	}
+
+	public Completer getCompleter() {
+		return completer;
 	}
 	
 }

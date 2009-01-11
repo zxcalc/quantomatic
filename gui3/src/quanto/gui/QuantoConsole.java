@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
+import java.util.SortedSet;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
@@ -15,11 +16,12 @@ public class QuantoConsole extends JPanel {
 	private static final long serialVersionUID = -5833674157230451213L;
 	public PrintStream out;
 	public QuantoCore qcore;
-	JTextField input;
-	JTextArea output;
-	final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
+	private JTextField input;
+	private JTextArea output;
+	private final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
 	private Stack<String> history;
 	private int hpointer;
+	private String prompt;
 	
 	class QuantoConsoleOutputStream extends OutputStream {
 		JTextArea textArea;
@@ -38,18 +40,21 @@ public class QuantoConsole extends JPanel {
         this.setLayout(new BorderLayout());
         history = new Stack<String>();
         input = new JTextField();
+        input.setFocusTraversalKeysEnabled(false);
         output = new JTextArea();
         //output.setFocusable(false);
         out = new PrintStream(new QuantoConsoleOutputStream(output));
 		qcore = new QuantoCore(out);
 		
-		// print the prompt
-		out.print(qcore.receive());
+		// print and save the default prompt
+		prompt = qcore.receive();
+		out.print(prompt);
 		
 		input.addKeyListener(new KeyAdapter () {
 			public void keyReleased(KeyEvent e) {
 				JTextField tf = (JTextField)e.getSource();
 				String text;
+				SortedSet<String> compl;
 				switch (e.getKeyCode()) {
 				case KeyEvent.VK_UP:
 					if (hpointer > 0) {
@@ -59,6 +64,19 @@ public class QuantoConsole extends JPanel {
 				case KeyEvent.VK_DOWN:
 					if (hpointer < history.size()-1) {
 						tf.setText(history.get(++hpointer));
+					}
+					break;
+				case KeyEvent.VK_TAB:
+					compl = qcore.getCompleter().getCompletions(input.getText());
+					if (compl.size()==1) {
+						input.setText(compl.first());
+					} else if (compl.size()>1) {
+						input.setText(Completer.greatestCommonPrefix(compl));
+						out.println();
+						for (String c : compl) {
+							out.println(c);
+						}
+						out.print(prompt);
 					}
 					break;
 				case KeyEvent.VK_ENTER:
