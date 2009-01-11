@@ -43,9 +43,12 @@ use "test/spider.ML";
 
 
 use "output.ML";
-use "output_dot.ML";
+(*use "output_dot.ML";*)
 use "output_XML.ML";
 
+use "xml_utils.ML";
+
+use "input.ML";
 use "hilb.ML";
 
 use "loadsave.ML";

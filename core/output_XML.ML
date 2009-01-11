@@ -30,9 +30,14 @@ val mk_output_edge :
     ->
     ((ename * (edge * (vname * vname))) -> outtype) 
     
+val mk_output_bboxes : (graph -> bboxname -> outtype) 
+		       -> 
+		       (graph -> outtype)
     
 val mk_output_graph : (graph ->   outtype)
 		      -> 
+		      (graph ->   outtype)
+		      ->
 		      (graph ->   outtype)
 		      ->
 		      (graph ->   outtype);
@@ -44,7 +49,7 @@ end;
 (* ======================================================= *)
 
 
-functor OutputXML_guts (Graph : GRAPH)  :  OUTPUT_XML_BITS  =  
+functor OutputXML_guts (Graph : BANG_GRAPH)  :  OUTPUT_XML_BITS  =  
 struct
   structure Graph = Graph;
 
@@ -53,6 +58,8 @@ struct
   type edge = Graph.Edge.data;
   type vname = Graph.Vertex.name;
   type ename = Graph.Edge.name;
+  type bboxes = Graph.VtoBoxMap.T;
+  type bboxname = Graph.BBox.name;
 
   type outtype = Pretty.T;
        
@@ -70,12 +77,14 @@ struct
 
 
 
-  fun mk_output_graph output_vertices output_edges g = 
+  fun mk_output_graph output_vertices output_edges output_bboxes g = 
       (Pretty.chunks [Pretty.str "<graph>",
 		      Pretty.str "<!-- VERTICES -->",
 		      output_vertices g,
 		      Pretty.str "<!-- EDGES -->",
 		      output_edges g,
+		      Pretty.str "<!-- BANG BOXES  -->",
+		      output_bboxes g,
 		      Pretty.str "</graph>"]);
 
 
@@ -91,7 +100,33 @@ struct
 		     data_xml],
 		     Pretty.str "</vertex>"
 		    ];
-  
+
+  fun mk_output_bboxes output_bbox g =
+      Pretty.block [Pretty.str "  ",
+		    Pretty.chunks (map (output_bbox g)
+				       (Graph.get_bbox_list g)) 
+		   ];
+
+  fun output_bbox g box 
+      = Pretty.chunks[Pretty.str "<bangbox>",
+		      Pretty.block [
+		      Pretty.str "  ",
+		      Pretty.chunks[
+		      Pretty.block [
+		      Pretty.str "<name>",
+		      Graph.BBox.pretty_name box,
+		      Pretty.str "</name>"],
+			Pretty.chunks (map 
+				     (fn vname => Pretty.block
+					 [Pretty.str "<boxedvertex>",
+					  Graph.Vertex.pretty_name vname,
+					  Pretty.str "</boxedvertex>"])
+				     (Graph.Vertex.NSet.list_of 
+					(Graph.get_bbox g box)))]],
+		      Pretty.str "</bangbox>"
+		      ];
+				     
+
 (* rend_vdata is a function for rendering the vertex data *)
   fun mk_output_vertex rend_vdata (name,(vdata, _)) 
     = mk_xml_vertex  (rend_vdata vdata) (Graph.Vertex.pretty_name name);
@@ -123,7 +158,9 @@ struct
   val output_vertex = mk_output_vertex (fn _ => Pretty.str "");
   val output_vertices = mk_output_vertices output_vertex;
 
-  val output_graph = mk_output_graph output_vertices output_edges;
+  val output_bboxes = mk_output_bboxes output_bbox
+
+  val output_graph = mk_output_graph output_vertices output_edges output_bboxes;
 
   val output = Pretty.writeln o output_graph;
 
@@ -131,7 +168,7 @@ end;
 
 (* === Dummy implementation for BasicGraph === *)
 
-functor OutputXML (Graph : GRAPH) : OUTPUT =
+functor OutputXML (Graph : BANG_GRAPH) : OUTPUT =
 struct 
 
 structure guts = OutputXML_guts (Graph);
@@ -154,6 +191,7 @@ type vertex = V.data;
 type vname = V.name;
 type edge = E.data;
 type ename = E.name;
+type bboxname = Graph.BBox.name;
 
 type outtype = Pretty.T;
 val to_string = Pretty.string_of;
@@ -246,7 +284,10 @@ val output_vertex = guts.mk_output_vertex render_xml_bdata;
 val output_vertices = guts.mk_output_vertices output_vertex;
 val output_edge = guts.output_edge;
 val output_edges = guts.output_edges;
-val output_graph = guts.mk_output_graph output_vertices output_edges;
+val output_bboxes = guts.output_bboxes;
+val output_bbox = guts.output_bbox;
+
+val output_graph = guts.mk_output_graph output_vertices output_edges output_bboxes;
 
 val output = Pretty.writeln o output_graph;
 

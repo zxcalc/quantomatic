@@ -1076,7 +1076,8 @@ val rules = [(* ("x_isometry",x_isometry_rule),
              ("hhhx_to_z",hhhx_to_z_rule),
              ("hhhz_to_x",hhhz_to_x_rule),
 
-             ("drop_self_loop", drop_self_loop_rule)
+             ("drop_self_loop", drop_self_loop_rule),
+	     ("spider_antiloop_rule",spider_antiloop_rule)
 
              (* bialgebra-spiders *)
 (*              ("x_bialgebra2_s1_0",x_bialgebra2_s1_0_rule),

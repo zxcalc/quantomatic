@@ -1,9 +1,10 @@
 signature OUTPUT =
 sig
-  structure Graph : GRAPH
-  type graph = Graph.T(* a graph *)
+  structure Graph : BANG_GRAPH
+  type graph = Graph.T (* a graph *)
   type vertex = Graph.Vertex.data
   type edge = Graph.Edge.data
+  type bboxname = Graph.BBox.name
   type ename = Graph.Edge.name
   type vname = Graph.Vertex.name
 
@@ -13,9 +14,11 @@ sig
 
   val output_graph : graph -> outtype
   val output_edges : graph ->   outtype	      
-  val output_vertices : graph ->   outtype	      
+  val output_vertices : graph ->   outtype
+  val output_bboxes : graph -> outtype
   val output_edge  : (ename * (edge * (vname * vname))) -> outtype
   val output_vertex  : (vname * (vertex * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) -> outtype 
+  val output_bbox : graph -> bboxname -> outtype
 
   val to_string : outtype -> string
 
@@ -38,6 +41,7 @@ structure Graph = Out.Graph
 type graph = Out.graph;
 type vertex = Out.vertex;
 type edge = Out.edge;
+type bboxname = Out.bboxname;
 type ename = Out.ename ;
 type vname = Out.vname ;
 type outtype = Out.outtype;
@@ -62,6 +66,8 @@ type outtype = Out.outtype;
   val output_edge = Out.output_edge;
   val output_vertices = Out.output_vertices;
   val output_vertex = Out.output_vertex;
+  val output_bboxes = Out.output_bboxes;
+  val output_bbox = Out.output_bbox;
   val to_string = Out.to_string
 
 end
