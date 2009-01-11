@@ -115,6 +115,10 @@ local
       | lift_graph_state_mutator _ (_, state) =
 	      ("!!! Graph command needs at least one argument\n", state)
 
+    fun lift_graph_state_viewer cmd (args, graph_table) =
+	(cmd (args, graph_table), graph_table)
+
+
     (* cmd: ([args] * ([graph] * [graph])) -> (out * ([graph] * [graph])) *)
     fun lift_graph_stack_mutator cmd = let
 	    fun apply_stacks cmd (args,{hist=h,rws=r}) =
@@ -159,16 +163,28 @@ local
     (* cmd: [args] -> out *)
     fun lift_stateless cmd (args, state) = (cmd args, state)
 
+    val stub = lift_stateless (K "STUB\n")
+
     (* ============================================== *)
 
+    fun help1 cmd = case Symtab.lookup (!cmds) cmd
+		     of SOME (h,_) => "\n"^h^"\n"
+		      | NONE => "!!! Can't find command.\n"
+
     (* helper functions for commands registered below *)
-    fun help [] = "Type \"help CMD\" to get help on a command.\n"^
-		              "Available commands:\n  quit\n"^
-		              (foldr (fn (a,b)=>"  "^a^"\n"^b) "\n" (Symtab.keys (!cmds)))
-      | help [cmd] = (case Symtab.lookup (!cmds) cmd
-		                   of SOME (h,_) => "\n"^h^"\n"
-			                  | NONE => "!!! Can't find command.\n")
-                     
+    fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
+		              "Available commands:\n\nquit\n"^
+		              (fold (fn a => fn b =>a^"\n"^b)
+				    (Symtab.keys (!cmds)) "\n")
+      | help ["all"] = fold (fn a => fn b => (help1 a)^b)
+			    (Symtab.keys (!cmds)) "\n"
+      | help [cmd] = help1 cmd
+          
+    fun list_graphs ([], tab) = let
+	fun pr (n, _) lst = (lst ^ n ^ "\n")
+    in GraphName.NTab.fold pr tab ""
+    end
+           
     fun duplicate_graph ([gr], tab) =
 	      (case GraphName.NTab.lookup tab gr
 	        of SOME {hist=(g::gs,_),...} => SOME g
@@ -291,7 +307,20 @@ local
 	     fmt format (RGHilbTerm.from_graph graph)))^"\n"
 	end
 
+    fun add_bang ([_], graph) = graph |> G.new_box (G.BBox.default_name)
+				      >> (fn a => a^"\n")
 
+    fun drop_bang ([_,name], graph) =
+	("dropped !-box \""^name^"\"\n",
+	 graph |> G.drop_box name)
+
+    fun bang_vertices ((_::box::verts), graph) = 
+	("added verices to \""^box^"\"\n",
+	 graph |> G.move_to_box box (G.Vertex.NSet.of_list verts))
+
+    fun unbang_vertices ((_::verts), graph) =
+	("un-!'ed vertices\n",
+	 graph |> G.move_to_unbox (G.Vertex.NSet.of_list verts))
 in
 
 (* Register commands available from the console and associate docs *)
@@ -309,6 +338,18 @@ val () = (
 	 "    sync the console, print \"HELO\"\n")
 	(lift_stateless (fn [] => "HELO\n"));
     
+    register_cmd
+	"list_graphs"
+	("list_graphs\n\n"^
+	 "    list all active graphs")
+	(lift_graph_state_viewer list_graphs);
+
+    register_cmd
+	"ls"
+	("ls\n\n"^
+	 "    alias for \"list_graphs\"")
+	(lift_graph_state_viewer list_graphs);
+
     register_cmd
 	"new_graph"
 	("new_graph\n\n" ^
@@ -412,6 +453,32 @@ val () = (
 	("set_angle GRAPH V ANGLE\n\n"^
 	 "    set the angle of vertex V to ANGLE\n")
 	(lift_graph_mutator set_angle);
+
+    register_cmd
+	"add_bang"
+	("add_bang GRAPH\n\n"^
+	 "    add a new !-box to GRAPH and return its name\n")
+	(lift_graph_mutator add_bang);
+
+    register_cmd
+	"drop_bang"
+	("drop_bang GRAPH BANG\n\n"^
+	 "    drop !-box BANG in GRAPH. Vertices inside BANG are moved\n"^
+	 "    to the top-level graph.\n")
+	(lift_graph_mutator drop_bang);
+
+    register_cmd
+	"bang_vertices"
+	("bang_vertices GRAPH BANG V1 .. VN\n\n"^
+	 "    add vertices V1..VN in graph to !-box BANG\n")
+	(lift_graph_mutator bang_vertices);
+
+    register_cmd
+	"unbang_vertices"
+	("unbang_vertices GRAPH BANG V1 .. VN\n\n"^
+	 "    remove vertices V1..VN from !-box BANG")
+	stub;
+
     ())
 
 end
