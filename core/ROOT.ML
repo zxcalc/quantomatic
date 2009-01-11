@@ -49,6 +49,8 @@ use "output_XML.ML";
 use "xml_utils.ML";
 
 use "input.ML";
+use "input_xml.ML";
+
 use "hilb.ML";
 
 use "loadsave.ML";

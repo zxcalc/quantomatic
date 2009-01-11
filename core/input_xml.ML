@@ -212,3 +212,14 @@ fun input_edata _ = E.default_data
 
 end
 
+(* ---------------------------------------------------------- *)
+
+structure RGGraphInputXML : INPUT
+  = InputXML(
+      structure Graph = RGGraph
+      and InVData = RGVertexInputXML (RGGraph)
+      and InEData = RGEdgeInputXML (RGGraph)
+    );
+
+structure RGGraphInputXMLReader : INPUT_READER 
+  = BasicReader(RGGraphInputXML);
