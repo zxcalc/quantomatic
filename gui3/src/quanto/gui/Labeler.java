@@ -32,7 +32,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		refresh();
 	}
 	
-	@Override
+	//@Override
 	public void mouseClicked(MouseEvent e) {
 		if (e.getClickCount()==2) {
 			textField.setText(getText());
@@ -44,7 +44,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		}
 	}
 	
-	@Override
+	//@Override
 	public void keyReleased(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 			setText(textField.getText());
@@ -55,7 +55,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		refresh();
 	}
 	
-	@Override
+	//@Override
 	public void focusLost(FocusEvent e) {
 		remove(textField);
 		active = label;

@@ -56,7 +56,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			components = new HashMap<QVertex, Labeler>();
 		}
 		
-		@Override
+		//@Override
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 				Object value, Font font, boolean isSelected, T vertex) {
 			if (vertex instanceof QVertex) {

@@ -230,6 +230,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 				addView(vis);
 				vis.getGraph().setFileName(filename);
 				vis.getGraph().setSaved(true);
+				vis.updateGraph();
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
