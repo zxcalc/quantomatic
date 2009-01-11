@@ -136,7 +136,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		this.core = core;
 		this.viewHolder = null;
 		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(
-				new DotLayout<QVertex,QEdge>(g,size)));
+				new QuantoLayout(g,size)));
 		setLayout(null);
 		Relaxer r = getModel().getRelaxer();
 		if (r!= null) r.setSleepTime(4);

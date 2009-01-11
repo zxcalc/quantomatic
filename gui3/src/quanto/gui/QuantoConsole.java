@@ -7,7 +7,6 @@ import java.awt.event.KeyEvent;
 import java.io.*;
 import java.util.SortedSet;
 import java.util.Stack;
-import java.util.regex.Pattern;
 
 import javax.swing.*;
 
@@ -18,7 +17,6 @@ public class QuantoConsole extends JPanel {
 	public QuantoCore qcore;
 	private JTextField input;
 	private JTextArea output;
-	private final Pattern graph_xml = Pattern.compile("^GRAPH\\_XML (.+)");
 	private Stack<String> history;
 	private int hpointer;
 	private String prompt;

@@ -38,7 +38,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 				Map<String,Point2D> coords = getCoordMap(viz);
 				
 				for (V v : getVertices()) {
-					setLocation(v, coords.get(v.getName()));
+					setLocation(v, coords.get("layoutvert_" + v.getName()));
 				}
 			}
 		} catch (IOException e) {
@@ -95,6 +95,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		g.append("nodesep=0.65; ranksep=0.65;\n");
 
 		for (V v : getGraph().getVertices()) {
+			g.append("layoutvert_");
 			g.append(v.getName());
 			g.append(" [label=\"\",width=0.35,height=0.35,shape=circle];\n");
 		}

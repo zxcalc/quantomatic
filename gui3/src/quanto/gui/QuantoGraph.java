@@ -6,6 +6,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.Vector;
 
 import net.n3.nanoxml.*;
 import edu.uci.ics.jung.contrib.HasName;
@@ -17,6 +20,7 @@ implements HasName {
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
 	protected List<QVertex> boundaryVertices;
+	protected Map<String,Set<QVertex>> bangBoxes;
 	private String fileName = null; // defined if this graph is backed by a file
 	private boolean saved = true; // true if this graph has been modified since last saved
 
@@ -75,6 +79,7 @@ implements HasName {
 	 * @param graphNode
 	 * @return
 	 */
+	@SuppressWarnings("unchecked")
 	public QuantoGraph fromXml(IXMLElement graphNode) {
 		if (graphNode == null)
 			throw new QuantoCore.FatalError("Attempting to parse null graph.");
@@ -161,7 +166,30 @@ implements HasName {
 					source, target, EdgeType.DIRECTED);
 				
 			} // foreach edge
-		} // synchronised(this)
+			
+			bangBoxes = new HashMap<String, Set<QVertex>>();
+			
+			for (IXMLElement bangBox :
+				(Vector<IXMLElement>)graphNode.getChildrenNamed("bangbox"))
+			{
+				IXMLElement nm = bangBox.getFirstChildNamed("name");
+				if (nm == null)
+					throw new QuantoCore.FatalError("Got an unnamed bang box in XML.");
+				
+				String name = nm.getContent();
+				Set<QVertex> bbox = new TreeSet<QVertex>();
+				bangBoxes.put(name, bbox);
+				
+				for (IXMLElement boxedVert :
+					(Vector<IXMLElement>)bangBox.getChildrenNamed("boxedvertex"))
+				{
+					QVertex v = verts.get(boxedVert.getContent());
+					if (v == null)
+						throw new QuantoCore.FatalError("Unknown vertex in bang box");
+					bbox.add(v);
+				}
+			}
+		} // synchronized(this)
 		return this;
 	}
 
