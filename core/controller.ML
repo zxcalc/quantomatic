@@ -315,7 +315,7 @@ local
 	 graph |> G.drop_box name)
 
     fun bang_vertices ((_::box::verts), graph) = 
-	("added verices to \""^box^"\"\n",
+	("added vertices to \""^box^"\"\n",
 	 graph |> G.move_to_box box (G.Vertex.NSet.of_list verts))
 
     fun unbang_vertices ((_::verts), graph) =

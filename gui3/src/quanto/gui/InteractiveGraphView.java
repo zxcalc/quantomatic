@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +15,6 @@ import org.apache.commons.collections15.Transformer;
 import quanto.gui.QuantoCore.ConsoleError;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
-import edu.uci.ics.jung.contrib.DotLayout;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.util.Pair;
 import edu.uci.ics.jung.visualization.control.*;
@@ -53,10 +53,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		Map<QVertex,Labeler> components;
 		
 		public QVertexLabeler () {
-			components = new HashMap<QVertex, Labeler>();
+			components = Collections.<QVertex, Labeler>synchronizedMap(
+							new HashMap<QVertex, Labeler>());
 		}
 		
-		//@Override
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 				Object value, Font font, boolean isSelected, T vertex) {
 			if (vertex instanceof QVertex) {
@@ -64,8 +64,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				Point2D screen = getRenderContext().
 					getMultiLayerTransformer().transform(
 						getGraphLayout().transform((QVertex)vertex));
-				Labeler angleLabeler = components.get(vertex);
 				
+				// lazily create the labeler
+				Labeler angleLabeler = components.get(vertex);
 				if (angleLabeler == null) {
 					angleLabeler = new Labeler("");
 					components.put((QVertex)vertex,angleLabeler);
@@ -77,7 +78,19 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				angleLabeler.setLocation(new Point((int)screen.getX()+10,(int)screen.getY()+10));
 			}
 			return new JLabel();
-		}	
+		}
+		
+		/**
+		 * Removes orphaned labels.
+		 */
+		public void cleanup() {
+			synchronized (components) {
+				for (Labeler l : components.values())
+					InteractiveGraphView.this.remove(l);
+			}
+			components = Collections.<QVertex, Labeler>synchronizedMap(
+							new HashMap<QVertex, Labeler>());
+		}
 	}
 	
 	/**
@@ -371,16 +384,17 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		return menus;
 	}
 	
-	public void updateGraphFromXml(String xml) {
-		getGraph().fromXml(xml);
-		getGraphLayout().initialize();
-	}
 	
 	public void updateGraph() throws QuantoCore.ConsoleError {
-		String out = getCore().graph_xml(getGraph());
+		String xml = getCore().graph_xml(getGraph());
 		// ignore the first line
-		out = out.replaceFirst("^.*", "");
-		updateGraphFromXml(out);
+		xml = xml.replaceFirst("^.*", "");
+		getGraph().fromXml(xml);
+		getGraphLayout().initialize();
+		getModel().getRelaxer().relax();
+		
+		// clean up un-needed labels:
+		((QVertexLabeler)getRenderContext().getVertexLabelRenderer()).cleanup();
 		
 		if(saveGraphMenuItem != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
 			saveGraphMenuItem.setEnabled(true);

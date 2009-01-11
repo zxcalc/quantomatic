@@ -16,7 +16,9 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	public SmoothLayoutDecorator(Layout<V,E> delegate) {
 		super(delegate);
 		speed = 0.0001;
+		initialize(); // make sure delegate is initialized before we go
 		currentState = new StaticLayout<V,E>(delegate.getGraph());
+		done = false;
 	}
 	
 	public void initialize() {
@@ -40,6 +42,7 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		synchronized (getGraph()) {
 			boolean moved = false;
 			for (V v : getGraph().getVertices()) moved = tick(v) || moved;
+			done = ! moved;
 		}
 	}
 	
