@@ -7,7 +7,7 @@ signature BANG_GRAPH =
 sig
 include BGRAPH;
 structure BBox : NAMES (* !(Bang)-Box *)
-structure BBoxRel : BINREL (* !-box-name to vertices *)
+structure BBoxRel : NAME_BREL (* !-box-name to vertices *)
 sharing BBoxRel.Dom = BBox;
 sharing BBoxRel.Cod = Vertex;
 
@@ -45,7 +45,7 @@ structure V = BVertex;
 structure E = Edge;
 
 structure BBox : NAMES = BBox;
-structure BBoxRel = BinRelFun(structure Dom = BBox and Cod = V);
+structure BBoxRel = NameBRelFun(structure Dom = BBox and Cod = V);
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
 type data2 = data;
