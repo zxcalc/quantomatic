@@ -293,7 +293,7 @@ fun apply_edge_matching st (ematches,m2) =
          (* try to add this, must be consistent with other  
             required matchings of to_pn in agenda *)
     end;
-                
+
 (* st = matching state; moretgtvns = more tgt vertices to be matched;
 (ntgt,estgt) = target vertex and edges being considerd; (npat,espat) =
 pattern vertex and edges being considered. *)
@@ -409,21 +409,40 @@ val get_tgt_vnseq =
     o Vertex.NTab.get_nameset 
     o RGGraph.get_vertices o get_unm_tgt;
 
+
+datatype pulled_vertex_kind = 
+         BBoxed of Vertex.name 
+       | UnBBoxed of Vertex.name;
+fun get_next_tgt_vertex st = 
+    (case (Vertex.NSet.get_local_bot (get_unm_unboxed_pat_vs st)) of
+      SOME n => SOME (BBoxed n)
+    | NONE => 
+      (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
+         NONE => NONE
+       | SOME n => SOME (UnBBoxed n)));
+
 (* consider the next and-point in the agenda *)
 fun do_next_match_choices st = 
     (case pop_agenda st 
       of NONE => (* nothing on the prescribed agenda *)
-         (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
+         (case get_next_tgt_vertex st of 
             NONE => (* no pattern vertices left! *)
             if no_extra_needed_tgt_edges st then 
               FoundMatch st (* because we finished! *)
             else (* matching failed with extra left over target edges *)
               Progress Seq.empty
-          | SOME pvn => 
+          | SOME (UnBBoxed pvn) => 
             Progress (* choices over picking a new vertex in tgt *)
               (Seq.maps
                  (match_2vertices_with_edges pvn st)
-                 (get_tgt_vnseq st)))
+                 (get_tgt_vnseq st))
+          | SOME (BBoxed pvn) => 
+          (*  FIXME!!! respect the !-box *)
+            Progress (* choices over picking a new vertex in tgt *)
+              (Seq.maps
+                 (match_2vertices_with_edges pvn st)
+                 (get_tgt_vnseq st))
+         )
        | SOME ((n,tn),st2) => 
          Progress (* deal with first prescribed and-choice *)
            (match_2vertices_with_edges n st2 tn));

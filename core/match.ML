@@ -55,6 +55,18 @@ structure BVertex = MCtxt.BVertex;
 structure Edge = MCtxt.Edge;
 structure BBoxMatch = BBoxMatch;
 
+structure DEdge = 
+  AddDataNameFun(
+    structure Nm = Edge 
+    type data = bool
+    (* false = source, true = target *)
+    fun ord_data (true, true) = EQUAL
+      | ord_data (true, false) = GREATER
+      | ord_data (false, true) = LESS
+      | ord_data (false, false) = EQUAL
+    fun pretty (true, n) = Pretty.block [Pretty.str "->", Nm.pretty_name n]
+      | pretty (false,n) = Pretty.block [Pretty.str "<-", Nm.pretty_name n]
+    val default_name = (true,Nm.default_name));
 
 (* Edge matching not Needed: one step later we check nodes and that
    enforced edge injection conditions needed for var-nodes/half-edges*)
