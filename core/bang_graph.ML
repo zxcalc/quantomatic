@@ -26,6 +26,8 @@ val copy1_box : BBox.name -> T -> (BBox.name (* new box name *)
                                   * T (* new graph *)
 val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
+val merge_boxes : BBox.name -> BBox.name -> T -> T
+
 end;
 
 (* bang box names *)
@@ -219,5 +221,11 @@ fun drop_box bn g =
          |> update_unboxed (Vertex.NSet.union_merge bbox_vs)
     end;
 
+fun merge_boxes bn1 bn2 g = 
+    let 
+      val b1vs = get_bbox g bn1
+    in g |> drop_box bn1
+         |> add_to_box bn2 b1vs
+    end; 
 
 end; (* BangGraphFun *)
