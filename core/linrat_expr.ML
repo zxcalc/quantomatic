@@ -15,7 +15,7 @@ val parse : string -> T
 exception parse_exp
 end;
 
-structure DB_LinratExpr   =
+structure DB_LinratExpr =
 struct 
 exception BadExpression of string;
 exception parse_exp;
@@ -159,8 +159,8 @@ fun subs lup target =
 fun pretty (pi, tab) =
     let fun pretty1 (k,v) =
 	    if (Coeff.is_one v) then Pretty.str k
-	    else Pretty.block [Coeff.pretty v, Pretty.str ("*"^k)]
-	val ppi  = if (Coeff.is_zero pi) then [] else [pretty1 ("Pi", pi)]
+	    else Pretty.block [Coeff.pretty v, Pretty.str (" "^k)]
+	val ppi  = if (Coeff.is_zero pi) then [] else [pretty1 ("\\pi", pi)]
 	val plist = VName.NTab.fold (cons o pretty1) tab ppi
     in 
 	case plist of [] => Pretty.str "0"
@@ -234,7 +234,7 @@ fun coeff x = x|>(
 fun term x = x|>(
 	     ((sym "-" |-- term) >> neg)
 		 || ((coeff --| (sym "*" || noop) --| pi) >> const_term)
-		 || (pi >> (fn _ => one_pi))
+		 || (pi >> (K one_pi))
 		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
 		 || (ident >> var_term))
 fun terms x = x|>(

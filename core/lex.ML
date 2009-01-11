@@ -21,7 +21,7 @@ exception MoreTokens of elem list
 val wordchar = fn c => (Symbol.is_quasi_letter c) orelse (Symbol.is_digit c)
 
 (* terminal definitions *)
-val space = Scan.many Symbol.is_blank >> (fn _ => NOOP)
+val space = Scan.many Symbol.is_blank >> (K NOOP)
 fun wrap_term t = space |-- t --| space
 val num = wrap_term (Scan.many1
 			 Symbol.is_digit
@@ -29,10 +29,12 @@ val num = wrap_term (Scan.many1
 			 >> (the o Int.fromString)
 			 >> INT)
 
-val ident = wrap_term ((Scan.one Symbol.is_letter ::: Scan.many wordchar)
+val ident = wrap_term ((
+	    (Scan.one Symbol.is_letter || Scan.this_string "\\")
+		::: Scan.many wordchar)
 			   >> implode
 			   >> ID)
-val sym = fn str => (wrap_term (Scan.this_string str >> (fn _ => SYM str)))
+val sym = fn str => (wrap_term (Scan.this_string str >> (K (SYM str))))
 val noop = fn toks => (NOOP, toks)
 
 (* string literal code stolen from isabelle/ml_parse.ML *)
