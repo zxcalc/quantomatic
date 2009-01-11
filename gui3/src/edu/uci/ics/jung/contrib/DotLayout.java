@@ -26,49 +26,19 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		super(graph);
 	}
 
+	/**
+	 * (Re-)initialize the layout.
+	 */
 	public void initialize() {
 		try {
 			synchronized (getGraph()) {
 				if (getGraph().getVertexCount() == 0) return;
-				Map<String,V> verts = new HashMap<String,V>();
-				for (V v : getGraph().getVertices()) verts.put(v.getName(),v);
 				
-				String viz = graphToDot();
-				Process dot = Runtime.getRuntime().exec("dot -Tplain");
-				BufferedReader dotIn = new BufferedReader(new InputStreamReader(dot
-						.getInputStream()));
-	
-				OutputStreamWriter dotOut = new OutputStreamWriter(dot
-						.getOutputStream());
-	
-				dotOut.write(viz);
-				dotOut.close();
-	
-				String ln = dotIn.readLine();
+				String viz = "digraph {\n" + graphToDot() + "\n}\n\n";
+				Map<String,Point2D> coords = getCoordMap(viz);
 				
-				// compute bounds as we go
-				double bottom=0, right=0;
-				while (!ln.equals("stop")) {
-					StringTokenizer tk = new StringTokenizer(ln);
-					String cmd = tk.nextToken();
-					if (cmd.equals("node")) {
-						String name = tk.nextToken();
-						Point2D loc = new Point2D.Double(
-								(Double.parseDouble(tk.nextToken()) * 50.0),
-								(Double.parseDouble(tk.nextToken()) * 50.0)
-							);
-						if (loc.getX()>right) right = loc.getX();
-						if (loc.getY()>bottom) bottom = loc.getY();
-						setLocation(verts.get(name), loc);
-					}
-					ln = dotIn.readLine();
-				}
-				
-				// center to graph in the provided space
-				double shiftX = (getSize().getWidth() - right) / 2.0;
-				double shiftY = (getSize().getHeight() - bottom) / 2.0;
-				for (V v : getGraph().getVertices()) {
-					offsetVertex(v, shiftX, shiftY);
+				for (V v : getVertices()) {
+					setLocation(v, coords.get(v.getName()));
 				}
 			}
 		} catch (IOException e) {
@@ -76,18 +46,53 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		}
 	}
 	
+	public Map<String,Point2D> getCoordMap(String viz) throws IOException {
+		Map<String,Point2D> coords = new HashMap<String, Point2D>();
+		Process dot = Runtime.getRuntime().exec("dot -Tplain");
+		BufferedReader dotIn = new BufferedReader(new InputStreamReader(dot
+				.getInputStream()));
+
+		OutputStreamWriter dotOut = new OutputStreamWriter(dot
+				.getOutputStream());
+
+		dotOut.write(viz);
+		dotOut.close();
+
+		String ln = dotIn.readLine();
+		
+		// compute bounds as we go
+		double bottom=0, right=0;
+		while (!ln.equals("stop")) {
+			StringTokenizer tk = new StringTokenizer(ln);
+			String cmd = tk.nextToken();
+			if (cmd.equals("node")) {
+				String name = tk.nextToken();
+				Point2D loc = new Point2D.Double(
+						(Double.parseDouble(tk.nextToken()) * 50.0 + 20.0),
+						(Double.parseDouble(tk.nextToken()) * 50.0 + 20.0)
+					);
+				if (loc.getX()>right) right = loc.getX();
+				if (loc.getY()>bottom) bottom = loc.getY();
+				coords.put(name, loc);
+			}
+			ln = dotIn.readLine();
+		}
+		
+		return coords;
+	}
+	
 	public void reset() {
 		initialize();
 	}
 
 	
-	/*
+	/**
 	 * Converts a graph to a DOT string. ALWAYS run in the context
 	 * of synchronized(getGraph()) {...}.
 	 */
 	private String graphToDot() {
 		StringBuffer g = new StringBuffer();
-		g.append("digraph { nodesep=0.65; ranksep=0.65;\n");
+		g.append("nodesep=0.65; ranksep=0.65;\n");
 
 		for (V v : getGraph().getVertices()) {
 			g.append(v.getName());
@@ -100,7 +105,6 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 			g.append(getGraph().getDest(e).getName());
 			g.append(" [arrowhead=none];\n");
 		}
-		g.append("\n}\n");
 		//System.out.println(g.toString());
 		return g.toString();
 	}
