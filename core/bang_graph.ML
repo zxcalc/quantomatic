@@ -107,7 +107,7 @@ struct
   (* for bbox part of added data *)
   val get_unboxed = get_unboxed_of_hdata o Graph.get_data;
   val get_bboxes : T -> VtoBoxMap.T = get_bboxes_of_hdata o Graph.get_data;
-  val get_bbox_list = BBoxRel.get_domlist o get_bboxes;
+  val get_bbox_list = VtoBoxMap.get_codlist o get_bboxes;
   val update_unboxed = Graph.update_data o update_unboxed_of_hdata;
   val update_bboxes = Graph.update_data o update_bboxes_of_hdata;
   val set_unboxed = update_unboxed o K;
