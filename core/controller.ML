@@ -239,6 +239,8 @@ local
 			  Pretty.string_of  o
 			  RGGraphOutputXML.output
 
+    fun print_graph [_] = (suffix "\n") o Pretty.string_of o G.pretty
+
     fun undo ([_], (g1::g2::gs, hs)) = ("ok\n", (g2::gs,g1::hs))
       | undo ([_], (gs, hs)) = ("!!! Can't undo.\n", (gs,hs))
 
@@ -381,12 +383,18 @@ val () = (
 	 "    rename vertex in GRAPH from OLD to NEW\n")
 	(lift_graph_mutator rename_vertex);
 
-	register_cmd
+    register_cmd
 	"graph_xml"
 	("graph_xml GRAPH\n\n"^
 	 "    dump GRAPH as XML\n")
 	(lift_graph_viewer (uncurry graph_xml));
     
+    register_cmd
+	"print_graph"
+	("print_graph GRAPH\n\n"^
+	 "    print out GRAPH\n")
+	(lift_graph_viewer (uncurry print_graph));
+
     register_cmd
 	"undo"
 	("undo GRAPH\n\n"^
