@@ -46,15 +46,14 @@ public class QVertex implements HasName {
 	}
 	
 	public String toString() {
-		return String.format("QVertex { name = \"%s\", type = \"%s\"}",
-				getName(), getVertexType().toString());
+		return getAngle().replace('\\', 'B')+"    ";
 	}
 	
 	public Color getColor() {
 		if (vertexType==Type.RED) return Color.red;
 		if (vertexType==Type.GREEN) return Color.green;
 		if (vertexType==Type.HADAMARD) return Color.yellow;
-		return Color.black;
+		return Color.lightGray;
 	}
 	
 	public void updateTo(QVertex v) {
@@ -71,4 +70,9 @@ public class QVertex implements HasName {
 	public void setAngle(String angle) {
 		this.angle = angle;
 	}
+	
+	public boolean isAngleVertex() {
+		return (vertexType == Type.RED || vertexType == Type.GREEN);
+	}
+	
 }

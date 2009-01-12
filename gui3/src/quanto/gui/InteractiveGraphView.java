@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
 import net.n3.nanoxml.*;
 import org.apache.commons.collections15.Transformer;
 import quanto.gui.QuantoCore.ConsoleError;
@@ -59,8 +62,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 				Object value, Font font, boolean isSelected, T vertex) {
-			if (vertex instanceof QVertex) {
-				QVertex qv = (QVertex)vertex;
+			if (vertex instanceof QVertex && ((QVertex)vertex).isAngleVertex()) {
 				Point2D screen = getRenderContext().
 					getMultiLayerTransformer().transform(
 						getGraphLayout().transform((QVertex)vertex));
@@ -71,13 +73,34 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					angleLabeler = new Labeler("");
 					components.put((QVertex)vertex,angleLabeler);
 					InteractiveGraphView.this.add(angleLabeler);
+					final QVertex qv = (QVertex)vertex;
+					angleLabeler.addChangeListener(new ChangeListener() {
+						public void stateChanged(ChangeEvent e) {
+							Labeler lab = (Labeler)e.getSource();
+							if (qv != null) {
+								try {
+									getCore().set_angle(getGraph(),
+											qv, lab.getText());
+									updateGraph();
+								} catch (QuantoCore.ConsoleError err) {
+									errorDialog(err.getMessage());
+								}
+							}
+						}
+					});
 				}
-				angleLabeler.setText(qv.getAngle());
+				angleLabeler.setText(((QVertex)vertex).getAngle());
 				angleLabeler.setVisible(true);
-				angleLabeler.setBounds(new Rectangle(angleLabeler.getPreferredSize()));
-				angleLabeler.setLocation(new Point((int)screen.getX()+10,(int)screen.getY()+10));
+				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
+				angleLabeler.setBounds(rect);
+				
+				angleLabeler.setLocation(
+						new Point((int)(screen.getX()-rect.getCenterX()),
+								  (int)screen.getY()+10));
+				return new JLabel();
+			} else {
+				return new JLabel((String)value);
 			}
-			return new JLabel();
 		}
 		
 		/**
@@ -151,7 +174,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout()));
 		setLayout(null);
 		Relaxer r = getModel().getRelaxer();
-		if (r!= null) r.setSleepTime(4);
+		if (r!= null) r.setSleepTime(20);
 		
 		graphMouse = new RWMouse();
 		setGraphMouse(graphMouse);
@@ -268,7 +291,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
@@ -279,7 +302,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, commandMask));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
@@ -290,10 +313,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, commandMask));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0));
 		graphAddMenu.add(item);
 		
-		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_M);
+		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_H);
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
@@ -301,7 +324,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				updateGraph();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, commandMask));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0));
 		graphAddMenu.add(item);
 		
 		graphMenu.add(graphAddMenu);
@@ -316,32 +339,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.ALT_MASK));
-		graphMenu.add(item);
-		
-		item = new JMenuItem("Set Angle", KeyEvent.VK_A);
-		item.addActionListener(new QVListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				String def = "";
-				if (getPickedVertexState().getPicked().size()>0) {
-					QVertex fst = getPickedVertexState()
-						.getPicked().iterator().next();
-					def = fst.getAngle();
-				}
-				
-				String angle = 
-					JOptionPane.showInputDialog("Input a new angle:",def);
-				
-				if (angle != null) {
-					for (QVertex v : getPickedVertexState().getPicked()) {
-						if (v.getVertexType() != QVertex.Type.BOUNDARY)
-							getCore().set_angle(getGraph(), v, angle);
-					}
-					updateGraph();
-				}
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask | Event.ALT_MASK));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
@@ -410,6 +407,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		// clean up un-needed labels:
 		((QVertexLabeler)getRenderContext().getVertexLabelRenderer()).cleanup();
+		
+		getPickedVertexState().clear();
 		
 		if(saveGraphMenuItem != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
 			saveGraphMenuItem.setEnabled(true);

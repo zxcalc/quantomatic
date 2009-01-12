@@ -10,15 +10,18 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
+import javax.swing.JTextField;
+
 import org.apache.commons.collections15.Transformer;
 
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.CrossoverScalingControl;
-import edu.uci.ics.jung.visualization.control.ScalingControl;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
+import edu.uci.ics.jung.visualization.renderers.Renderer;
+import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 
 public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	private static final long serialVersionUID = -1915610684250038897L;
@@ -56,23 +59,33 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         		new Transformer<QVertex, String>() {
 					public String transform(QVertex v) {
 						if (v.getVertexType()==QVertex.Type.BOUNDARY)
-							return String.format("(%d)",
-									getGraph().getBoundaryIndex(v));
+							return Integer.toString(getGraph().getBoundaryIndex(v));
+						else if (v.getVertexType()==QVertex.Type.HADAMARD)
+							return "H";
 						else return v.getAngle();
 					}
         		});
         
+        getRenderer().getVertexLabelRenderer()
+        	.setPosition(Renderer.VertexLabel.Position.CNTR);
+        
         getRenderContext().setVertexShapeTransformer(
         		new Transformer<QVertex, Shape>() {
         			public Shape transform(QVertex v) {
-        				if (v.getVertexType()==QVertex.Type.BOUNDARY)
-        					return new Ellipse2D.Double(-4,-4,8,8);
-        				else if (v.getVertexType()==QVertex.Type.HADAMARD)
+        				if (v.getVertexType()==QVertex.Type.BOUNDARY) {
+        					String text = getRenderContext()
+        					.getVertexLabelTransformer().transform(v);
+        					double width = 
+        						new JTextField(text).getPreferredSize().getWidth();
+        					return new Rectangle2D.Double(-(width/2),-6,width,12);
+        				} else if (v.getVertexType()==QVertex.Type.HADAMARD) {
         					return new Rectangle2D.Double(-7,-7,14,14);
-        				else
+        				} else {
         					return new Ellipse2D.Double(-7,-7,14,14);
+        				}
         			}
         		});
+        
         
         addPreRenderPaintable(new VisualizationServer.Paintable() {
 			public void paint(Graphics g) {
@@ -128,25 +141,22 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	 * @return
 	 */
 	public Rectangle2D getGraphBounds() {
-		double top=0, left=0, right=0, bottom=0;
 		Layout<QVertex, QEdge> layout = getGraphLayout();
+		Rectangle2D bounds = null;
 		synchronized (getGraph()) {
-			if (getGraph().getVertexCount()==0) {
-				left = 0d; top = 0d; right = 20d; bottom = 20d;
-			} else {
-				boolean init = true;
-				for (QVertex v : getGraph().getVertices()) {
-					Point2D p = layout.transform(v);
-					if (init || p.getY()<top) top = p.getY();
-					if (init || p.getY()>bottom) bottom = p.getY();
-					if (init || p.getX()<left) left = p.getX();
-					if (init || p.getX()>right) right = p.getX();
-					init = false;
-				}
+			for (QVertex v : getGraph().getVertices()) {
+				Point2D p = layout.transform(v);
+				if (bounds == null)
+					bounds = new Rectangle2D.Double(p.getX(),p.getY(),0,0);
+				else bounds.add(p);
 			}
+			bounds.setRect(bounds.getX()-20, bounds.getY()-20,
+					bounds.getWidth()+40, bounds.getHeight()+40);
 		}
-		return new Rectangle2D.Double(
-				left-20d, top-20d, right-left+40d, bottom-top+40d);
+		
+		if (bounds == null)
+			return new Rectangle2D.Double(0.0d, 0.0d, 20.0d, 20.0d);
+		else return bounds;
 	}
 	
 	/**
@@ -154,13 +164,20 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	 * view port.
 	 */
 	public void zoomToFit() {
-		ScalingControl sc = new CrossoverScalingControl();
-		Dimension vb = getPreferredSize();
+		MutableTransformer mt = getRenderContext()
+			.getMultiLayerTransformer().getTransformer(Layer.VIEW);
 		Rectangle2D gb = getGraphBounds();
+		Dimension vb = getPreferredSize();
+		double centerX = vb.getWidth()/2.0;
+		double centerY = vb.getHeight()/2.0; 
+		mt.translate(
+				centerX - gb.getCenterX(),
+				centerY - gb.getCenterY());
 		float scale = Math.min(
 				(float)(vb.getWidth() / gb.getWidth()),
 				(float)(vb.getHeight() / gb.getHeight()));
-		sc.scale(this, scale, new Point2D.Double(gb.getCenterX(), gb.getCenterY()));
+		if (scale < 1)
+				mt.scale(scale, scale, new Point2D.Double(centerX,centerY));
 	}
 	
 	/**

@@ -97,7 +97,9 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		for (V v : getGraph().getVertices()) {
 			g.append("layoutvert_");
 			g.append(v.getName());
-			g.append(" [label=\"\",width=0.35,height=0.35,shape=circle];\n");
+			g.append(" [label=\"");
+			g.append(v.toString());
+			g.append("\",width=0.35,height=0.35,shape=rectangle];\n");
 		}
 
 		for (E e : getGraph().getEdges()) {

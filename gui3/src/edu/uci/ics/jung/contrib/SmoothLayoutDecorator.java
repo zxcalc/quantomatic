@@ -15,7 +15,7 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	private boolean done;
 	public SmoothLayoutDecorator(Layout<V,E> delegate) {
 		super(delegate);
-		speed = 0.00005;
+		speed = 0.0001;
 		initialize(); // make sure delegate is initialized before we go
 		currentState = new StaticLayout<V,E>(delegate.getGraph());
 		done = false;
