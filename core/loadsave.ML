@@ -20,7 +20,7 @@ type graph = Graph.T;
 
 val save_graph = RGGraphXMLWriter.output_to_file;
 
-val load_graph = RGGraphInputXMLReader.read_file;
+val load_graph = RGGraphInputXML.input o XMLReader.read_from_file;
 
 end
 

@@ -3,14 +3,14 @@
 					    rwd 11-jan-2009
 *)
 
-functor InputXML (structure Graph : BANG_GRAPH
+functor GraphInputXML (structure Graph : BANG_GRAPH
                        structure InVData : INPUT_VDATA 
 					     where type intype = XML.tree
 		       structure InEData : INPUT_EDATA 
 					     where type intype = XML.tree
 		       sharing InVData.V = Graph.BVertex
 		       sharing InEData.E = Graph.Edge
-		      )  : INPUT
+		      )  : INPUT_GRAPH
 = 
 struct
   structure G = Graph;
@@ -29,10 +29,10 @@ struct
   open XML_Utils;
 
   type intype = tree;  (* XML.tree *)
-  val from_string = parse; (* XML.parse *)
+  type outtype = graph;
 
-  val input_vdata = InVData.input_vdata
-  val input_edata = InEData.input_edata
+  val input_vdata = InVData.input
+  val input_edata = InEData.input
       
   fun input_boundary xml = 
       let val (_,_,children) = force_unpack_elem "boundary" xml
@@ -108,7 +108,7 @@ fun input_graph xml =
       foldl add_bb g' bboxes
     end
 
-val input = input_graph;
+val input = input_graph;			   
 
 end (* structure InputXML *)
 
@@ -121,7 +121,7 @@ functor RGVertexInputXML (Graph : RG_GRAPH)  : INPUT_VDATA
 struct
 
 structure V = Graph.RGVertex
-type vdata = V.IData.data;
+type outtype = V.IData.data;
      
 open XML_Utils;
 
@@ -195,6 +195,7 @@ fun input_vdata xml =
 	end
     end
     
+val input = input_vdata
 
 end (* functor RGGraphInputXML*)
 
@@ -203,23 +204,22 @@ functor RGEdgeInputXML (Graph : RG_GRAPH) :  INPUT_EDATA
 struct
 
 structure E = Graph.Edge
-type edata = E.data
+type outtype = E.data
 
 open XML_Utils;
 type intype = tree;
 
 fun input_edata _ = E.default_data
 
+val input = input_edata
+
 end
 
 (* ---------------------------------------------------------- *)
 
 structure RGGraphInputXML : INPUT
-  = InputXML(
+  = GraphInputXML(
       structure Graph = RGGraph
       and InVData = RGVertexInputXML (RGGraph)
       and InEData = RGEdgeInputXML (RGGraph)
     );
-
-structure RGGraphInputXMLReader : INPUT_READER 
-  = BasicReader(RGGraphInputXML);
