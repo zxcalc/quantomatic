@@ -49,10 +49,11 @@ use "output_XML.ML";
 use "xml_utils.ML";
 
 use "input.ML";
-use "input_xml.ML";
+use "input_graph_xml.ML";
 
 use "hilb.ML";
 
+use "reader.ML";
 use "loadsave.ML";
 
 use "controller.ML";
