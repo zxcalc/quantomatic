@@ -148,8 +148,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		super(g, size);
 		this.core = core;
 		this.viewHolder = null;
-		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(
-				new QuantoLayout(g,size)));
+		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout()));
 		setLayout(null);
 		Relaxer r = getModel().getRelaxer();
 		if (r!= null) r.setSleepTime(4);
@@ -345,6 +344,20 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask | Event.ALT_MASK));
 		graphMenu.add(item);
 		
+		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				// this is not the real bang box, but we just need the name
+				BangBox bb = new BangBox(getCore().add_bang(getGraph()));
+				getCore().bang_vertices(getGraph(), bb, 
+						getPickedVertexState().getPicked());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, commandMask));
+		graphMenu.add(item);
+		
 		menus.add(graphMenu);
 		
 		JMenu hilbMenu = new JMenu("Hilbert Space");
@@ -391,13 +404,17 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		xml = xml.replaceFirst("^.*", "");
 		getGraph().fromXml(xml);
 		getGraphLayout().initialize();
-		getModel().getRelaxer().relax();
+		
+		Relaxer relaxer = getModel().getRelaxer();
+		if (relaxer != null) relaxer.relax();
 		
 		// clean up un-needed labels:
 		((QVertexLabeler)getRenderContext().getVertexLabelRenderer()).cleanup();
 		
 		if(saveGraphMenuItem != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
 			saveGraphMenuItem.setEnabled(true);
+		
+		repaint();
 	}
 	
 	public void outputToTextView(String text) {

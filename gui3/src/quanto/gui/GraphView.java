@@ -14,7 +14,6 @@ import org.apache.commons.collections15.Transformer;
 
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
-import edu.uci.ics.jung.contrib.DotLayout;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.CrossoverScalingControl;
@@ -24,6 +23,7 @@ import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	private static final long serialVersionUID = -1915610684250038897L;
 	public QuantoGraph graph;
+	private QuantoLayout quantoLayout;
 	private VisualizationServer.Paintable boundsPaint;
 	
 	public GraphView(QuantoGraph g) {
@@ -31,7 +31,9 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	}
 	
 	public GraphView(QuantoGraph g, Dimension size) {
-		super(new DotLayout<QVertex,QEdge>(g, size));
+		super(new StaticLayout<QVertex, QEdge>(g));
+		quantoLayout = new QuantoLayout(g);
+		setGraphLayout(quantoLayout);
 		setPreferredSize(size);
 		getGraphLayout().initialize();
 		this.graph = g;
@@ -71,6 +73,32 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         					return new Ellipse2D.Double(-7,-7,14,14);
         			}
         		});
+        
+        addPreRenderPaintable(new VisualizationServer.Paintable() {
+			public void paint(Graphics g) {
+				getQuantoLayout().updateBangBoxes(getGraphLayout());
+				Color oldColor = g.getColor();
+				for (BangBox bb : getGraph().getBangBoxes()) {
+					Rectangle2D rect = 
+						getQuantoLayout().transformBangBox(bb);
+					
+					if (rect != null) {
+						Shape draw = getRenderContext()
+							.getMultiLayerTransformer().transform(rect);
+					
+						g.setColor(Color.lightGray);
+						((Graphics2D)g).fill(draw);
+						g.setColor(Color.gray);
+						((Graphics2D)g).draw(draw);
+					}
+				}
+				g.setColor(oldColor);
+			}
+
+			public boolean useTransform() {
+				return false;
+			}
+        });
 	}
 	
 	/**
@@ -149,4 +177,12 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         
         public boolean useTransform() {return false;}
     }
+
+	public QuantoLayout getQuantoLayout() {
+		return quantoLayout;
+	}
+
+	public void setQuantoLayout(QuantoLayout quantoLayout) {
+		this.quantoLayout = quantoLayout;
+	}
 }

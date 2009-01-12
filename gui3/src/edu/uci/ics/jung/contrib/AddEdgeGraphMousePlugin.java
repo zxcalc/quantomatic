@@ -59,6 +59,7 @@ implements MouseListener, MouseMotionListener {
 		}
 		down = null;
 		current = null;
+		vis.repaint();
 	}
 	public void mouseDragged(MouseEvent e) {
 		if (checkModifiers(e)) {

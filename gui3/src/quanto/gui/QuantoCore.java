@@ -144,6 +144,10 @@ public class QuantoCore {
 		send("quit");
 	}
 	
+	public Completer getCompleter() {
+		return completer;
+	}
+	
 	
 	/*
 	 * Some helpers for the methods below
@@ -249,12 +253,17 @@ public class QuantoCore {
 	public void save_graph(QuantoGraph graph, String fileName) throws ConsoleError{
 		command("save_graph", graph, new HasName.StringName(fileName));
 	}
+	
 	public QuantoGraph load_graph(String fileName) throws ConsoleError{
 		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
 	}
 
-	public Completer getCompleter() {
-		return completer;
+	public String add_bang(QuantoGraph g) throws ConsoleError {
+		return chomp(command("add_bang", g));
 	}
 	
+	public void bang_vertices (QuantoGraph g, BangBox bb, Set<QVertex> verts)
+	throws ConsoleError {
+		command("bang_vertices", g, bb, new HasName.SetName(verts));
+	}
 }

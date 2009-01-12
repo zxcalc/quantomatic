@@ -46,7 +46,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		}
 	}
 	
-	public Map<String,Point2D> getCoordMap(String viz) throws IOException {
+	protected Map<String,Point2D> getCoordMap(String viz) throws IOException {
 		Map<String,Point2D> coords = new HashMap<String, Point2D>();
 		Process dot = Runtime.getRuntime().exec("dot -Tplain");
 		BufferedReader dotIn = new BufferedReader(new InputStreamReader(dot
@@ -90,7 +90,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 	 * Converts a graph to a DOT string. ALWAYS run in the context
 	 * of synchronized(getGraph()) {...}.
 	 */
-	private String graphToDot() {
+	protected String graphToDot() {
 		StringBuffer g = new StringBuffer();
 		g.append("nodesep=0.65; ranksep=0.65;\n");
 
@@ -101,8 +101,10 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		}
 
 		for (E e : getGraph().getEdges()) {
+			g.append("layoutvert_");
 			g.append(getGraph().getSource(e).getName());
 			g.append("->");
+			g.append("layoutvert_");
 			g.append(getGraph().getDest(e).getName());
 			g.append(" [arrowhead=none];\n");
 		}
