@@ -1,0 +1,99 @@
+(* XML parser for rules *)
+
+signature INPUT_RULE =
+sig
+  structure R : RULE
+  structure IG : INPUT_GRAPH
+  sharing IG.G = R.RGGraph
+
+ include INPUT where type intype = IG.intype 
+				     where type outtype = string * R.T
+
+end;
+
+
+(* ------------------------------------------------------- *)
+
+
+functor RuleInputXML (structure Rule : RULE
+		      structure InputGraph : INPUT_GRAPH 
+					       where type intype = XML.tree
+		      sharing InputGraph.G = Rule.RGGraph
+		     ) : INPUT_RULE
+=
+struct 
+
+structure R = Rule;
+structure IG = InputGraph;
+type rule = R.T;
+
+open XML_Utils;
+
+type intype = tree;
+type outtype = string * rule;
+
+val input_graph = IG.input;
+
+fun input xml = 
+    let val _ = force_unpack_elem "rule" xml
+	val name = input_name (get_required_child "name" xml)
+	val lhs = input_graph 
+		    (get_required_child "graph" (get_required_child "lhs" xml))
+	val rhs = input_graph 
+		    (get_required_child "graph" (get_required_child "rhs" xml))
+    in
+      (name, R.mk (lhs,rhs))
+    end
+end;
+
+(* ------------------------------------------------------- *)
+
+structure RGRuleInputXML : INPUT_RULE
+  = RuleInputXML(
+      structure Rule = Rule
+      and InputGraph = RGGraphInputXML
+    );
+    
+
+(* ------------------------------------------------------- *)
+(* -------- --------- !! THEORY HACK !! -------- --------  *)
+(* ------------------------------------------------------- *)
+
+signature INPUT_THEORY_HACK =
+sig
+  structure IR : INPUT_RULE
+
+ include INPUT where type intype = IR.intype 
+				     where type outtype = IR.outtype list
+end;
+
+(* ------------------------------------------------------- *)
+
+functor TheoryHackInputXML (structure InputRule : INPUT_RULE
+				where type intype = XML.tree
+			   ) : INPUT_THEORY_HACK
+=
+struct 
+
+structure IR = InputRule;
+
+open XML_Utils
+type intype = tree;
+type outtype = IR.outtype list
+
+val input_rule = IR.input
+
+fun input xml = 
+    let val (_,_,children) = force_unpack_elem "theoryhack" xml
+    in
+      List.map input_rule (get_all_elems "rule" children)
+    end
+
+end;
+
+(* ------------------------------------------------------- *)
+
+structure RGTheoryHackInputXML : INPUT_THEORY_HACK
+  = TheoryHackInputXML(
+      structure InputRule = RGRuleInputXML
+    );
