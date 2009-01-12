@@ -2,6 +2,8 @@ package quanto.gui;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 
 import javax.swing.*;
@@ -31,6 +33,8 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		consoleVisible = true;
 		focusedView = null;
 		
+		console = new QuantoConsole();
+        core = console.getCore();
 		tabs.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				setFocusedView((InteractiveView)tabs.getSelectedComponent());
@@ -123,6 +127,8 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, modifierKey));
 		viewMenu.add(item);
 		
+		
+		
 		item = new JMenuItem("Refresh All Graphs", KeyEvent.VK_R);
 		item.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -143,6 +149,20 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, modifierKey | Event.SHIFT_MASK));
 		viewMenu.add(item);
 		
+		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Verbose console");
+		cbItem.setMnemonic(KeyEvent.VK_V);
+		cbItem.setSelected(getCore().getConsoleEcho());
+		cbItem.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (e.getStateChange() == ItemEvent.SELECTED) {
+					getCore().setConsoleEcho(true);
+				} else {
+					getCore().setConsoleEcho(false);
+				}
+			}
+		});
+		viewMenu.add(cbItem);
+		
 		closeViewMenuItem = new JMenuItem("Close Current View", KeyEvent.VK_W);
 		closeViewMenuItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -161,8 +181,6 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(tabs, BorderLayout.CENTER);
         
-        console = new QuantoConsole();
-        core = console.qcore;
         getContentPane().add(console, BorderLayout.NORTH);
         newGraph();
         this.pack();
@@ -179,6 +197,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			if (focusedView != null) {
 				for (JMenu m : focusedView.getMenus()) mb.add(m);
 			}
+			
 			mb.repaint();
 		}
 	}
@@ -190,6 +209,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			tabs.setSelectedComponent((Component)iv);
 		}
 		pack();
+		iv.gainFocus();
 	}
 	
 	public void closeView(InteractiveView iv) {
@@ -261,7 +281,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	
 	public void saveGraph() {
 		try {
-			core.save_graph(getCurrentGraph(), getCurrentGraph().getFileName());
+			getCore().save_graph(getCurrentGraph(), getCurrentGraph().getFileName());
 			getCurrentGraph().setSaved(true);
 		}
 		catch (QuantoCore.ConsoleError e) {

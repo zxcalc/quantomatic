@@ -20,13 +20,13 @@ public class QuantoCore {
 	public static final int VERTEX_HADAMARD = 3;
 	public static final int VERTEX_BOUNDARY = 4;
 	
-	Process backEnd;
-	BufferedReader from_backEnd;
-	BufferedReader from_backEndError;
-	BufferedWriter to_backEnd;
-	PrintStream output;
-	
-	Completer completer;
+	private Process backEnd;
+	private BufferedReader from_backEnd;
+	//private BufferedReader from_backEndError;
+	private BufferedWriter to_backEnd;
+	private PrintStream output;
+	private Completer completer;
+	private boolean consoleEcho;
 	
 	public static class ConsoleError extends Exception {
 		private static final long serialVersionUID = 1053659906558198953L;
@@ -47,6 +47,7 @@ public class QuantoCore {
 	}
 
 	public QuantoCore(PrintStream output) {
+		this.consoleEcho = false;
 		this.output = output;
 		try {
 			ProcessBuilder pb = new ProcessBuilder("quanto-core");	
@@ -56,8 +57,8 @@ public class QuantoCore {
 			System.out.println("Connecting pipes...");
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
-			from_backEndError = new BufferedReader(new InputStreamReader(backEnd
-					.getErrorStream()));
+			//from_backEndError = new BufferedReader(new InputStreamReader(backEnd
+			//		.getErrorStream()));
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
 			
@@ -148,6 +149,13 @@ public class QuantoCore {
 		return completer;
 	}
 	
+	public void setConsoleEcho(boolean consoleEcho) {
+		this.consoleEcho = consoleEcho;
+	}
+
+	public boolean getConsoleEcho() {
+		return consoleEcho;
+	}
 	
 	/*
 	 * Some helpers for the methods below
@@ -171,16 +179,25 @@ public class QuantoCore {
 		String ret;
 		//System.out.print(cmd);
 		synchronized (this) {
+			if (consoleEcho) output.println(cmd);
 			send(cmd.toString());
 			try {
 				ret = receiveOrFail();
+				if (consoleEcho) {
+					if (ret.startsWith("GRAPH_XML"))
+						output.println("GRAPH_XML...");
+					else output.print(ret);
+				}
 			} finally {
-				receive(); // eat the prompt
+				String pr = receive(); // eat the prompt
+				if (consoleEcho) output.print(pr);
 			}
 		}
 		
 		return ret;
 	}
+	
+	
 	
 	/**
 	 * Remove all line breaks.

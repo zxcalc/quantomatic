@@ -200,6 +200,21 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						getPickedEdgeState().clear();
 						getPickedVertexState().clear();
 					}
+				} else {
+					switch (e.getKeyCode()) {
+					case KeyEvent.VK_R:
+						addVertex(QVertex.Type.RED);
+						break;
+					case KeyEvent.VK_G:
+						addVertex(QVertex.Type.GREEN);
+						break;
+					case KeyEvent.VK_H:
+						addVertex(QVertex.Type.HADAMARD);
+						break;
+					case KeyEvent.VK_B:
+						addVertex(QVertex.Type.BOUNDARY);
+						break;
+					}
 				}
 			}
 		});
@@ -279,7 +294,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
 		cbItem.setMnemonic(KeyEvent.VK_E);
 		cbItem.addItemListener(graphMouse.getItemListener());
-		cbItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,0));
 		graphMenu.add(cbItem);
 		
 		JMenu graphAddMenu = new JMenu("Add");
@@ -287,30 +301,25 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getGraph(), QVertex.Type.RED);
-				updateGraph();
+				addVertex(QVertex.Type.RED);
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getGraph(), QVertex.Type.GREEN);
-				updateGraph();
+				addVertex(QVertex.Type.GREEN);
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, 0));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getGraph(), QVertex.Type.BOUNDARY);
-				updateGraph();
+				addVertex(QVertex.Type.BOUNDARY);
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0));
@@ -320,11 +329,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().add_vertex(getGraph(), QVertex.Type.HADAMARD);
-				updateGraph();
+				addVertex(QVertex.Type.HADAMARD);
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_H, 0));
 		graphAddMenu.add(item);
 		
 		graphMenu.add(graphAddMenu);
@@ -339,6 +346,30 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.ALT_MASK));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Select All Vertices", KeyEvent.VK_S);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				synchronized (getGraph()) {
+					for (QVertex v : getGraph().getVertices()) {
+						getPickedVertexState().pick(v, true);
+					}
+				}
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Deselect All Vertices", KeyEvent.VK_D);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getPickedVertexState().clear();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, commandMask));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
@@ -384,6 +415,15 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public void addEdge(QVertex s, QVertex t) {
 		try {
 			getCore().add_edge(getGraph(), s, t);
+			updateGraph();
+		} catch (QuantoCore.ConsoleError e) {
+			errorDialog(e.getMessage());
+		}
+	}
+	
+	public void addVertex(QVertex.Type type) {
+		try {
+			getCore().add_vertex(getGraph(), type);
 			updateGraph();
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
@@ -487,6 +527,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public void gainFocus() {
+		grabFocus();
 		if(saveGraphMenuItem != null)
 		{ 
 			if(getGraph().getFileName() != null && !getGraph().isSaved()) 

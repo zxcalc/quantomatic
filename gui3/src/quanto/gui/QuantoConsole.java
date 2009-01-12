@@ -14,7 +14,7 @@ import javax.swing.*;
 public class QuantoConsole extends JPanel {
 	private static final long serialVersionUID = -5833674157230451213L;
 	public PrintStream out;
-	public QuantoCore qcore;
+	public QuantoCore core;
 	private JTextField input;
 	private JTextArea output;
 	private Stack<String> history;
@@ -42,10 +42,10 @@ public class QuantoConsole extends JPanel {
         output = new JTextArea();
         //output.setFocusable(false);
         out = new PrintStream(new QuantoConsoleOutputStream(output));
-		qcore = new QuantoCore(out);
+		core = new QuantoCore(out);
 		
 		// print and save the default prompt
-		prompt = qcore.receive();
+		prompt = core.receive();
 		out.print(prompt);
 		
 		input.addKeyListener(new KeyAdapter () {
@@ -65,7 +65,7 @@ public class QuantoConsole extends JPanel {
 					}
 					break;
 				case KeyEvent.VK_TAB:
-					compl = qcore.getCompleter().getCompletions(input.getText());
+					compl = core.getCompleter().getCompletions(input.getText());
 					if (compl.size()==1) {
 						input.setText(compl.first());
 					} else if (compl.size()>1) {
@@ -95,23 +95,27 @@ public class QuantoConsole extends JPanel {
 	}
 	
 	public void write(String text) {
-		synchronized (qcore) {
+		synchronized (core) {
 			try {
 				out.println(text);
-				qcore.send(text);
-				String rcv = qcore.receiveOrFail();
+				core.send(text);
+				String rcv = core.receiveOrFail();
 				out.print(rcv);
 			} catch (QuantoCore.ConsoleError e) {
 				out.print("ERROR: ".concat(e.getMessage()));
 			}
 			
 			// print the prompt
-			out.print(qcore.receive());
+			out.print(core.receive());
 		}
 	}
 	
 	public void grabFocus() {
 		input.grabFocus();
+	}
+
+	public QuantoCore getCore() {
+		return core;
 	}
 
 }
