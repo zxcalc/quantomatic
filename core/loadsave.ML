@@ -18,7 +18,8 @@ struct
 structure Graph = RGGraph;
 type graph = Graph.T;
 
-val save_graph = RGGraphXMLWriter.output_to_file;
+fun save_graph file g = 
+    (PrettyWriter.write_to_file file) (RGGraphOutputXML.output g)
 
 val load_graph = RGGraphInputXML.input o XMLReader.read_from_file;
 

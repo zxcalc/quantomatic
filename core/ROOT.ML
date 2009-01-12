@@ -43,17 +43,21 @@ use "test/spider.ML";
 
 
 use "output.ML";
-(*use "output_dot.ML";*)
 use "output_XML.ML";
+use "output_rule_XML.ML";
+(*use "output_dot.ML";*)
 
 use "xml_utils.ML";
 
 use "input.ML";
 use "input_graph_xml.ML";
+use "input_rule_xml.ML";
 
 use "hilb.ML";
 
 use "reader.ML";
+use "writer.ML";
 use "loadsave.ML";
 
 use "controller.ML";
+

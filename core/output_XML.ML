@@ -1,92 +1,46 @@
+(*
 
-(* Want to parameterise the output a bit *)
-signature OUTPUT_XML_BITS = 
-sig
-  
-  include OUTPUT;
-  
-(* -- combinators for generating functions from OUTPUT -- *)       
-(* 
-val mk_xml_vertex : outtype -> outtype -> outtype ;
-   *)
- 
-val mk_output_vertices : 
-    ((vname * (vertex * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) -> outtype) 
-    -> 
-    (graph ->   outtype);			
-      
-val mk_output_vertex : 
-    (vertex -> outtype) 
-    ->
-    ((vname * (vertex * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) -> outtype) 
-    
-val mk_output_edges : 
-    ((ename * (edge * (vname * vname))) -> outtype) 
-    -> 
-    (graph ->   outtype);
-    
-val mk_output_edge :
-    (edge -> outtype)
-    ->
-    ((ename * (edge * (vname * vname))) -> outtype) 
-    
-val mk_output_bboxes : (graph -> bboxname -> outtype) 
-		       -> 
-		       (graph -> outtype)
-    
-val mk_output_graph : (graph ->   outtype)
-		      -> 
-		      (graph ->   outtype)
-		      ->
-		      (graph ->   outtype)
-		      ->
-		      (graph ->   outtype);
-        
-end;
+Outputs an XML representation of a graph using Pretty.
+TODO : recode using XML directly
 
+*)
 
-
-(* ======================================================= *)
-
-
-functor OutputXML_guts (Graph : BANG_GRAPH)  :  OUTPUT_XML_BITS  =  
+functor GraphOutputXML (structure Graph : BANG_GRAPH
+                        structure OutVData : OUTPUT_VDATA
+					       where type outtype = Pretty.T list
+                        structure OutEData : OUTPUT_EDATA
+					       where type outtype = Pretty.T
+			sharing OutVData.V = Graph.BVertex
+			sharing OutEData.E = Graph.Edge
+		       )  :  OUTPUT_GRAPH  
+=  
 struct
   structure Graph = Graph;
+  structure V = Graph.BVertex;
+  structure E = Graph.Edge
 
   type graph = Graph.T;
-  type vertex = Graph.Vertex.data;
-  type edge = Graph.Edge.data;
-  type vname = Graph.Vertex.name;
-  type ename = Graph.Edge.name;
+  type vertex = V.data;
+  type edge = E.data;
+  type vname = V.name;
+  type ename = E.name;
   type bboxes = Graph.VtoBoxMap.T;
   type bboxname = Graph.BBox.name;
 
+  type intype = graph;
   type outtype = Pretty.T;
-       
-  val to_string = Pretty.string_of;
+
+  val render_xml_rgdata = OutVData.output;  
+  val render_xml_edgedata = OutEData.output;  
       
-      (* Combinators to construct the other functions *)
-  fun mk_output_vertices output_vertex g  
-    = Pretty.block [Pretty.str "  ", Pretty.chunks (map output_vertex (Graph.get_vertex_list g))];
+  val boundary = Pretty.str "<boundary>true</boundary>";
+  val nonboundary = Pretty.str "<boundary>false</boundary>";
 
 
-  fun mk_output_edges (output_edge : (ename * (edge * (vname * vname))) -> outtype)( g : Graph.T) 
-    = Pretty.block [Pretty.str "  ", 
-		    Pretty.chunks (map output_edge (Graph.get_edge_list g)) ];
-      
-
-
-
-  fun mk_output_graph output_vertices output_edges output_bboxes g = 
-      (Pretty.chunks [Pretty.str "<graph>",
-		      Pretty.str "<!-- VERTICES -->",
-		      output_vertices g,
-		      Pretty.str "<!-- EDGES -->",
-		      output_edges g,
-		      Pretty.str "<!-- BANG BOXES  -->",
-		      output_bboxes g,
-		      Pretty.str "</graph>"]);
-
+  fun render_xml_bdata (V.BVert) = boundary
+    | render_xml_bdata (V.IVert rg) = 
+      Pretty.chunks (nonboundary::(render_xml_rgdata rg))
+				      
 
   fun mk_xml_vertex data_xml name 
     = Pretty.chunks [Pretty.str "<vertex>",
@@ -101,13 +55,39 @@ struct
 		     Pretty.str "</vertex>"
 		    ];
 
-  fun mk_output_bboxes output_bbox g =
-      Pretty.block [Pretty.str "  ",
-		    Pretty.chunks (map (output_bbox g)
-				       (Graph.get_bbox_list g)) 
+(* rend_vdata is a function for rendering the vertex data *)
+  fun output_vertex (name,(vdata, _)) 
+    = mk_xml_vertex  (render_xml_bdata vdata) (Graph.Vertex.pretty_name name);
+
+  fun output_vertices g = 
+      Pretty.block [Pretty.str "  ", 
+		    Pretty.chunks (map output_vertex (Graph.get_vertex_list g))
 		   ];
 
-  fun output_bbox g box 
+  fun output_edge (name,(edata, (src_vertex, target_vertex))) 
+    = Pretty.chunks [Pretty.str "<edge>",
+		     Pretty.block [
+		     Pretty.str "  ",
+		     Pretty.str "<name>",
+		     Graph.Edge.pretty_name name,
+		     Pretty.str "</name>",
+		     Pretty.str "<source>",
+		     Graph.Vertex.pretty_name src_vertex,
+		     Pretty.str "</source>",
+		     Pretty.str "<target>",
+		     Graph.Vertex.pretty_name target_vertex,
+		     Pretty.str "</target>",
+		     render_xml_edgedata edata
+		     ],
+		     Pretty.str "</edge>"];
+
+
+  fun output_edges g = 
+      Pretty.block [Pretty.str "  ",
+		    Pretty.chunks (map output_edge (Graph.get_edge_list g)) 
+		   ];
+      
+fun output_bbox g box 
       = Pretty.chunks[Pretty.str "<bangbox>",
 		      Pretty.block [
 		      Pretty.str "  ",
@@ -125,81 +105,36 @@ struct
 					(Graph.get_bbox g box)))]],
 		      Pretty.str "</bangbox>"
 		      ];
-				     
-
-(* rend_vdata is a function for rendering the vertex data *)
-  fun mk_output_vertex rend_vdata (name,(vdata, _)) 
-    = mk_xml_vertex  (rend_vdata vdata) (Graph.Vertex.pretty_name name);
 
 
-(* rend_edata is a function for rendering the edge data *)
-  fun mk_output_edge rend_edata (name,(edata, (src_vertex, target_vertex))) 
-    = Pretty.chunks [Pretty.str "<edge>",
-		     Pretty.block [
-		     Pretty.str "  ",
-		     Pretty.str "<name>",
-		     Graph.Edge.pretty_name name,
-		     Pretty.str "</name>",
-		     Pretty.str "<source>",
-		     Graph.Vertex.pretty_name src_vertex,
-		     Pretty.str "</source>",
-		     Pretty.str "<target>",
-		     Graph.Vertex.pretty_name target_vertex,
-		     Pretty.str "</target>",
-		     rend_edata edata
-		     ],
-		     Pretty.str "</edge>"];
+  fun output_bboxes g =
+      Pretty.block [Pretty.str "  ",
+		    Pretty.chunks (map (output_bbox g)
+				       (Graph.get_bbox_list g)) 
+		   ];
 
-(* both the edge and vertex data renderers are dummies -- to be overridden *)
+  fun output_graph  g = 
+      (Pretty.chunks [Pretty.str "<graph>",
+		      Pretty.str "<!-- VERTICES -->",
+		      output_vertices g,
+		      Pretty.str "<!-- EDGES -->",
+		      output_edges g,
+		      Pretty.str "<!-- BANG BOXES  -->",
+		      output_bboxes g,
+		      Pretty.str "</graph>"]);
 
-  val output_edge = mk_output_edge (fn _ => Pretty.str "");
-  val output_edges = mk_output_edges output_edge;
-
-  val output_vertex = mk_output_vertex (fn _ => Pretty.str "");
-  val output_vertices = mk_output_vertices output_vertex;
-
-  val output_bboxes = mk_output_bboxes output_bbox
-
-  val output_graph = mk_output_graph output_vertices output_edges output_bboxes;
-
-  val output = Pretty.writeln o output_graph;
+  val output = output_graph;
 
 end;
 
-(* === Dummy implementation for BasicGraph === *)
+(*-------------------------------------------------------*)
 
-functor OutputXML (Graph : BANG_GRAPH) : OUTPUT =
-struct 
-
-structure guts = OutputXML_guts (Graph);
-open guts;
-     
-end;
-
-(*-------Specialised from above to red green GRAPHS------------------*)
-
-functor RGGraphOutputXML (Graph : RG_GRAPH) : OUTPUT 
-  =
-struct 
-
-structure Graph = Graph;
-structure V = Graph.RGVertex
-structure E = Graph.Edge
-type graph = Graph.T;
-
-type vertex = V.data;
-type vname = V.name;
-type edge = E.data;
-type ename = E.name;
-type bboxname = Graph.BBox.name;
-
-type outtype = Pretty.T;
-val to_string = Pretty.string_of;
-
-structure guts = OutputXML_guts (Graph);     
-     
-val boundary = Pretty.str "<boundary>true</boundary>";
-val nonboundary = Pretty.str "<boundary>false</boundary>";
+functor RGVDataOutputXML (Graph : RG_GRAPH) : OUTPUT_VDATA
+=
+struct
+  structure V = Graph.RGVertex;
+  type intype = V.IData.data;
+  type outtype = Pretty.T list
 
 val colourRed = Pretty.str "<colour>red</colour>";
 val colourGreen = Pretty.str "<colour>green</colour>";
@@ -256,50 +191,34 @@ fun render_xml_angleexpr (pi,tab) =
 		   render_xml_variable_part tab]
 		  ],
      Pretty.str "</angleexpr>"]
-				
 
-
-(*
-fun pretty (pi, tab) =
-    let val ppi  = if (Coeff.is_zero pi) then []
-		               else [Pretty.block [Coeff.pretty pi,Pretty.str "*Pi"]]
-	      fun pretty1 (k,v) [] =
-	          [(Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])]
-	        | pretty1 (k,v) pl =
-	          (Pretty.block [(Coeff.pretty v), Pretty.str "*",VName.pretty_name k])::
-	          ((Pretty.str "  +  ")::pl)
-    in 
-      Pretty.block (VName.NTab.fold pretty1 tab ppi)
-    end
-
-*)
 fun render_xml_rgdata (V.Xnd a) = colourRed::(render_xml_angleexpr a)
   | render_xml_rgdata (V.Znd a) = colourGreen::(render_xml_angleexpr a)
   | render_xml_rgdata (V.Hnd) = colourH::[]
 
-fun render_xml_bdata (V.BVert) = boundary
-  | render_xml_bdata (V.IVert rg) = Pretty.chunks (nonboundary::(render_xml_rgdata rg))
-
-val output_vertex = guts.mk_output_vertex render_xml_bdata;
-val output_vertices = guts.mk_output_vertices output_vertex;
-val output_edge = guts.output_edge;
-val output_edges = guts.output_edges;
-val output_bboxes = guts.output_bboxes;
-val output_bbox = guts.output_bbox;
-
-val output_graph = guts.mk_output_graph output_vertices output_edges output_bboxes;
-
-val output = Pretty.writeln o output_graph;
-
-
-end;
+val output = render_xml_rgdata
+				
+end
 
 (*-------------------------------------------------------*)
 
-structure RGGraphXMLWriter : OUTPUT_WRITER 
-			      where type graph = RGGraph.T
- = BasicWriter (RGGraphOutputXML (RGGraph));
+functor RGEDataOutputXML (Graph : RG_GRAPH) : OUTPUT_EDATA
+=
+struct
+  structure E = Graph.Edge;
+  type intype = E.data;
+  type outtype = Pretty.T
+  fun output _ = Pretty.str ""
+end
 
-structure RGGraphXML : OUTPUT 
-			      where type graph = RGGraph.T
- = RGGraphOutputXML (RGGraph);
+(*-------------------------------------------------------*)
+
+
+
+structure RGGraphOutputXML : OUTPUT_GRAPH
+  = GraphOutputXML (
+    structure Graph = RGGraph
+    and OutVData = RGVDataOutputXML(RGGraph)
+    and OutEData = RGEDataOutputXML(RGGraph)
+    );
+

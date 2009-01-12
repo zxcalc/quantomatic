@@ -237,7 +237,7 @@ local
 
     fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
 			  Pretty.string_of  o
-			  RGGraphXML.output_graph
+			  RGGraphOutputXML.output
 
     fun undo ([_], (g1::g2::gs, hs)) = ("ok\n", (g2::gs,g1::hs))
       | undo ([_], (gs, hs)) = ("!!! Can't undo.\n", (gs,hs))
@@ -255,31 +255,8 @@ local
     end
 	      handle _ => ("!!! Bad or duplicate vertex name.\n", [])
                     
-    
-    (* -- this doesn't belong here but it'll do for now -- *)
-    fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
-    fun pretty_rewrite (rule_name, rule, fused)  = 
-	      Pretty.chunks
-	        [Pretty.str "<rewrite>",
-	         indent_chunks [
-	         Pretty.str ("<rulename>"^rule_name^"</rulename>"),
-	         RGGraphXML.output_graph fused,
-	         Pretty.str "<lhs>",
-	         indent_chunks [RGGraphXML.output_graph (Rule.get_lhs rule)],
-	         Pretty.str "</lhs>",
-	         Pretty.str "<rhs>", 
-	         indent_chunks [RGGraphXML.output_graph (Rule.get_rhs rule)],
-	         Pretty.str "</rhs>"],
-	         Pretty.str "</rewrite>",
-	         Pretty.str ""]
-
-    fun show_rewrites ([_], graph, rewrites) = (
-	      Pretty.string_of (Pretty.chunks
-			                      [Pretty.str "<rewrites>", 
-			                       indent_chunks (map pretty_rewrite rewrites),
-			                       Pretty.str "</rewrites>",
-			                       Pretty.str ""]),
-	      rewrites)
+    fun show_rewrites ([_], graph, rewrites) = 
+	(Pretty.string_of (RGRewriteListOutputXML.output rewrites), rewrites)
                                                
     fun apply_rewrite ([_, n], graph, rewrites) =
 	      let val (name,rule,fused) = nth rewrites (the (Int.fromString n))

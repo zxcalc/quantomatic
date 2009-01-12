@@ -217,7 +217,7 @@ end
 
 (* ---------------------------------------------------------- *)
 
-structure RGGraphInputXML : INPUT
+structure RGGraphInputXML : INPUT_GRAPH
   = GraphInputXML(
       structure Graph = RGGraph
       and InVData = RGVertexInputXML (RGGraph)
