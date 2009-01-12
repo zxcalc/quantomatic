@@ -30,10 +30,16 @@ end;
 structure DB_Theory
 = struct
 
-
+(* rules *)
 structure Rule : RULE = Rule
-structure Rn :> NAMES where type name = string = StrName;
 
+(* names of rules *)
+structure Rn = StrName;
+
+(* dependencies: Dom = result name used in Cod result *) 
+structure Dep = BinRelFun(structure Dom = Rn and Cod = Rn); 
+
+(* proofs for results/derived rules *)
 datatype proof = 
          Proof of (Rn.name (* applied the rule named this *)
                    * Rn.name option (* resulting in this subgoal *)
@@ -42,14 +48,16 @@ datatype proof =
                   )
        | Refl;
 
+(* a derived rusult *)
 datatype result = Result of Rule.T (* final resulting rule/conjecture *)
                             * proof option; (* proof *)
 
+(* a theory *)
 datatype T = Theory of { assms: Rn.NSet.T, (* names of axioms of the theory *)
                          topns: Rn.NSet.T, (* names of interesting results *)
-                         rs : result Rn.NTab.T,  (* results in the theory *)
-                         deps : Rn.NSet.T Rn.NTab.T (* cached dependencies: 
-                                                       rule -> rule used in proof of *)
+                         rs : result Rn.NTab.T,  (* all results in the theory *)
+                         deps : Dep.T (* cached dependencies: 
+                                         dom = result name; cod = names of things that use it *)
                        };
 
 (* basic proof functions *)
@@ -75,17 +83,11 @@ fun update_deps (Theory rep) = Theory {deps = f (#deps rep)};
 val set_deps = update_deps o K;
 
 (* implicit: thry n *)
-val get_r_deps = Rn.NTab.get o get_deps;
-
-fun add_r_deps n s thry = 
-    update_deps (fn deps => 
-                    case Rn.NTab.lookup deps n of 
-                      NONE => Rn.NTab.ins (n,s) deps
-                    | SOME s1 => Rn.NTab.update (n, Rn.NSet.union_merge s s1) deps
-                ) thry;
-
-fun add_r_dep n dn thry = 
-    add_r_deps n (Rn.NSet.add dn Rn.NSet.empty) thry;
+val get_r_deps = Dep.domf o get_deps;
+(* implicit: n nset thry *)
+val add_r_deps = update_deps oo Dep.add_to_dom;
+(* implicit: n n2 thry, where n2 is uses n1 *)
+val add_r_dep = update_deps oo Dep.add1_to_dom;
 
 (* implicit: n f *)
 val update_result = update_rs oo Rn.NTab.map_entry;
@@ -102,6 +104,7 @@ val empty = Theory { assms = Rn.NSet.empty,
                      deps = Rn.NTab.empty
                    };
 
+(* does not note the names result *)
 fun add_named_r nr thry = 
     let val (n2,rs2) = Rn.NTab.add nr (get_rs thry)
     in (n2, set_rs rs2 thry) end;
@@ -126,11 +129,14 @@ fun rename_in_proof (from_n,to_n) (Proof (used_n,optto_n,lr,m)) =
 fun rename_in_result rn (Result (r,p)) = Result (r, rename_in_proof rn p);
 
 fun rename (rn as (n1, n2)) thry = 
-    NSet.fold 
-      (update_result (rename_in_result rn))
-      (get_r_deps n1 thry)
-      thry;
+    thry |> (NSet.fold 
+               (update_result (rename_in_result rn))
+               (get_r_deps n1 thry))
+         |> update_deps (Dep.rename_dom n1 n2 o Dep.rename_cod n1 n2)
+         |> update_topns (Rn.NSet.rename n1 n2)
+         |> update_assms (Rn.NSet.rename n1 n2);
 
+(* for tagging top-level results you might want to refer to later *)
 (* implicit: n thry *)
 val note_result = update_topns o Rn.NSet.add;
 val unnote_result  = update_topns o Rn.NSet.del;
@@ -141,7 +147,7 @@ fun trivial n g thry = add_named_r (n,(Result(Rule.mk (g,g), SOME Refl))) thry;
 fun conjecture n r thry = add_named_r (r,Result(r,NONE)) thry;
 
 (* implicit n thry *)
-(* ? maybe raise exception if result is currently closed *)
+(* ? maybe we sould raise an exception if result is currently closed *)
 val openify_result = update_result (fn Result (r,p) => Result (r,NONE));
 
 (* delete result and all applications of result *)
@@ -153,7 +159,7 @@ fun delete n thry =
             depn become open subgoal again. if n is used as a rule to rewrite
             depn, then also depn becomes open. So, just openify depn. *) 
          |> NSet.fold openify_result (get_r_deps thry n)
-         |> update_deps (NTab.del n)
+         |> update_deps (Dep.del_dom n);
 
 
 (* converts between "A = B" and "B = A" *)
@@ -186,7 +192,8 @@ fun subst rulen n thry =
       val Result (r,prf) = get_result thry n
       val rhs = Rule.get_rhs 
     in 
-      case 
-
+      case Rule.rule_matches_within
+           
+    end;
 end;
 
