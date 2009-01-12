@@ -29,7 +29,7 @@ struct
 type T = Pretty.T;
 open WriteString;
 
-val write_to_string = Pretty.str_of
+val write_to_string = Pretty.string_of
 
 fun write_to_file file output = 
     write file (write_to_string output)
