@@ -45,15 +45,14 @@ struct
   fun input_vertex xml = 
       let val (_,_,children) = force_unpack_elem "vertex" xml
 	  val name = V.mk (input_name (get_required_child "name" xml))
-	  val vdata = input_vdata xml
 	  val (bnd,_) = get_elem false "boundary" children
       in
 	case bnd of 
-	  NONE => (name, V.IVert vdata)
+	  NONE => (name, V.IVert (input_vdata xml))
 	| SOME boundary => 
 	  let val b = input_boundary boundary
 	  in
-	    case b of false => (name, V.IVert vdata)
+	    case b of false => (name, V.IVert (input_vdata xml))
 		    | true => (name, V.BVert)
 	  end
       end

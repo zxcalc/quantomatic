@@ -36,12 +36,6 @@ use "test/matching.ML";
 use "rule.ML";
 use "spider.ML";
 
-use "theory_hack.ML";
-
-use "test/rule.ML";
-use "test/spider.ML";
-
-
 use "output.ML";
 use "output_XML.ML";
 use "output_rule_XML.ML";
@@ -53,11 +47,16 @@ use "input.ML";
 use "input_graph_xml.ML";
 use "input_rule_xml.ML";
 
-use "hilb.ML";
-
 use "reader.ML";
 use "writer.ML";
 use "loadsave.ML";
+
+use "theory_hack.ML";
+
+use "test/rule.ML";
+use "test/spider.ML";
+
+use "hilb.ML";
 
 use "controller.ML";
 

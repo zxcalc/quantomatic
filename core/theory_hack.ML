@@ -1035,7 +1035,7 @@ end;
 (* in *)
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");
 
-val rules = [(* ("x_isometry",x_isometry_rule),
+val default_rules = [(* ("x_isometry",x_isometry_rule),
              ("z_isometry",z_isometry_rule),
              
              (* no frobenius: it's an id in our rep *)
@@ -1086,6 +1086,14 @@ val rules = [(* ("x_isometry",x_isometry_rule),
              ("z_bialgebra2_s1_1",z_bialgebra2_s1_1_rule) *)
             ];
 
+val rules = ref default_rules;
+
+
+fun save_rules file = 
+    PrettyWriter.write_to_file file (RGTheoryHackOutputXML.output (!rules))
+
+fun load_rules file = 
+    rules := ((RGTheoryHackInputXML.input o XMLReader.read_from_file) file)
 
 fun match_all_rules g = 
     maps
@@ -1093,7 +1101,7 @@ fun match_all_rules g =
                    in map (fn m => ((n,r2),m))
                           (Seq.list_of (Rule.matches r2 g))
                    end)
-      rules;
+      (!rules);
 
 fun apply_all_rules g = 
     map (fn r => ("spider", r)) 
@@ -1101,7 +1109,7 @@ fun apply_all_rules g =
     @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
-      rules;
+      (!rules);
 
 fun apply_all_rules_in vset g = 
     map (fn r => ("spider", r)) 
@@ -1110,7 +1118,7 @@ fun apply_all_rules_in vset g =
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) 
                        (Seq.list_of (Rule.rule_matches_within r vset g)))
-      rules;
+      (!rules);
 
 
 (* Unused: matching only produces symmetries w.r.t. different namings

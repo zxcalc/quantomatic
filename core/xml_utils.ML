@@ -18,7 +18,7 @@ fun force_unpack_elem wanted xml =
       if ((tolower elem) = 
 	  (tolower wanted)) 
       then (elem, attr,children) 
-      else fail ("Expected <"^ wanted ^"> element but saw "^elem^">.")
+      else fail ("Expected <"^ wanted ^"> element but saw <"^elem^">.")
 	   
 fun test_elem wanted test = 
     let val  _ = force_unpack_elem wanted test in true end
@@ -51,7 +51,7 @@ fun get_required_child child xml =
     | Output _ => fail ("Can't get children of output") 
     | Elem (elem,_,_) =>
       case get_child false child xml of 
-	(NONE,_) => fail ("Element <"^elem^" requires child element <"
+	(NONE,_) => fail ("Element <"^elem^"> requires child element <"
 		      ^child^"> which is missing.")
       | (SOME thing,_) => thing
 	
