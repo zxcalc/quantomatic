@@ -14,10 +14,17 @@ type T = string * string list
 open SimpleLexer
 
 
-fun unwrap (LIT s) = s
-  | unwrap (ID s) = s
+fun unwrap (ID s) = s
   | unwrap (INT n) = Int.toString n
+  | unwrap (LIT s) = s
   | unwrap _ = raise Match
+
+(*fun unescape (LIT str) = str String.translate
+			   (fn c => case c of #"\\" => ""
+					    | _ => Char.toString c)
+			   str
+  | unescape _ = raise Match
+*)
 
 (*
 a term grammar with no nesting
@@ -29,7 +36,9 @@ exprs ::= expr ; exprs | E
 *)
 
 
-fun arg x = x|>((literal || ident || num)>>unwrap)
+fun arg x = x|>(
+	    (literal >> unwrap)
+		|| ((ident || num) >> unwrap))
 fun args x = x|>(((arg -- args) >> op::)
 		     || (noop >> K []))
 fun expr x = x|>((ident >> unwrap) -- args)

@@ -91,7 +91,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	
 	public void setText(String text) {
 		value = text;
-		label.setText(value);
+		label.setText(TexConstants.translate(value));
 		refresh();
 	}
 	

@@ -49,7 +49,7 @@ local
     val scan_str = Scan.one
 		       (fn s => Symbol.is_printable s andalso
 				s <> "\"" andalso s <> "\\") ||
-		       ($$ "\\") ^^ scan_escape;
+		       ($$ "\\") |-- scan_escape;
 	
     (*val scan_gap = ($$ "\\") ^^ scan_blanks1 ^^ ($$ "\\");
     val scan_gaps = Scan.repeat scan_gap >> implode;*)

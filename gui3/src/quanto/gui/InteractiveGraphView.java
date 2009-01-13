@@ -183,6 +183,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		addKeyListener(new KeyAdapter() {
 			public void keyPressed(KeyEvent e) {
+				// this listener only handles un-modified keys
+				if (e.getModifiers() != 0) return;
+				
 				int delete = (QuantoFrame.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
 				if (e.getKeyCode() == delete) {
 					try {
@@ -294,6 +297,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
 		cbItem.setMnemonic(KeyEvent.VK_E);
 		cbItem.addItemListener(graphMouse.getItemListener());
+		cbItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, commandMask));
 		graphMenu.add(cbItem);
 		
 		JMenu graphAddMenu = new JMenu("Add");
@@ -322,7 +326,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				addVertex(QVertex.Type.BOUNDARY);
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, 0));
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_H);
