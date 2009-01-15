@@ -187,7 +187,7 @@ local
 				    (Symtab.keys (!cmds)) "\n")
       | help ["all"] = fold (fn a => fn b => (help1 a)^b)
 			    (Symtab.keys (!cmds)) "\n"
-      | help [cmd] = help1 cmd
+      | help [cmd] = (help1 cmd)
           
     fun list_graphs ([], tab) = let
 	fun pr (n, _) lst = (lst ^ n ^ "\n")
@@ -469,9 +469,9 @@ val () = (
 
     register_cmd
 	"unbang_vertices"
-	("unbang_vertices GRAPH BANG V1 .. VN\n\n"^
-	 "    remove vertices V1..VN from !-box BANG")
-	stub;
+	("unbang_vertices GRAPH V1 .. VN\n\n"^
+	 "    remove vertices V1..VN from their current !-box\n")
+	(lift_graph_mutator unbang_vertices);
 
     ())
 

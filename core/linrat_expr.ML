@@ -156,6 +156,7 @@ fun subs lup target =
 
 (* =====================================================================*)
 
+(*
 fun pretty (pi, tab) =
     let fun pretty1 (k,v) =
 	    if (Coeff.is_one v) then Pretty.str k
@@ -165,6 +166,30 @@ fun pretty (pi, tab) =
     in 
 	case plist of [] => Pretty.str "0"
 		    | _ => (Pretty.block o Pretty.separate " +" o rev) plist
+    end
+*)
+
+fun pretty1 (k,v) =
+    if Coeff.is_one (Coeff.subtr Coeff.zero v)
+    then Pretty.block [Pretty.str "-", Pretty.str k]
+    else (
+	if Coeff.is_one v then Pretty.str k
+	else Pretty.block [Coeff.pretty v, Pretty.str (" "^k)])
+
+fun pretty_list [] = [Pretty.str "0"]
+  | pretty_list [x] = [pretty1 x]
+  | pretty_list (x::(xs as ((k,v)::ys))) =
+    (pretty1 x)::
+    (if Coeff.ord (v, Coeff.zero) = LESS
+     then Pretty.str " - " :: pretty_list ((k,Coeff.subtr Coeff.zero v)::ys)
+     else Pretty.str " + " :: pretty_list xs)
+
+
+fun pretty (pi, tab) =
+    let val tlist = rev (VName.NTab.list_of tab)
+    in (Pretty.block o pretty_list)
+	   (if Coeff.is_zero pi then tlist
+	    else ("\\pi", pi)::tlist)
     end
 
 val print = Pretty.writeln o pretty
