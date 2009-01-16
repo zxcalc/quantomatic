@@ -283,4 +283,9 @@ public class QuantoCore {
 	throws ConsoleError {
 		command("bang_vertices", g, bb, new HasName.SetName(verts));
 	}
+	
+	public void unbang_vertices (QuantoGraph g, Set<QVertex> verts)
+	throws ConsoleError {
+		command("unbang_vertices", g, new HasName.SetName(verts));
+	}
 }

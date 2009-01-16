@@ -5,7 +5,10 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.event.*;
+import java.awt.geom.Rectangle2D;
+
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -26,8 +29,8 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		setLayout(new BorderLayout());
 		evt = new ChangeEvent(this);
 		label = new JLabel();
-		setBackground(Color.yellow);
-		setBorder(new LineBorder(Color.yellow,1));
+		label.setOpaque(false);
+		setColor(Color.yellow);
 		textField = new JTextField();
 		setText(value);
 		
@@ -39,11 +42,16 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		refresh();
 	}
 	
+	public void setColor(Color c) {
+		setBackground(c);
+		setBorder(new LineBorder(c,1));
+	}
+	
 	public void paint(Graphics g) { 
         Graphics2D g2 = (Graphics2D) g.create(); 
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.75f)); 
+        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
         super.paint(g2); 
-        g2.dispose(); 
+        g2.dispose();
     }
 	
 	//@Override

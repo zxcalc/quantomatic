@@ -74,6 +74,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					components.put((QVertex)vertex,angleLabeler);
 					InteractiveGraphView.this.add(angleLabeler);
 					final QVertex qv = (QVertex)vertex;
+					angleLabeler.setColor(qv.getColor());
 					angleLabeler.addChangeListener(new ChangeListener() {
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler)e.getSource();
@@ -387,6 +388,19 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, commandMask));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Unbang Vertices", KeyEvent.VK_U);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().unbang_vertices(getGraph(),
+						getPickedVertexState().getPicked());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1,
+				commandMask | KeyEvent.SHIFT_MASK));
 		graphMenu.add(item);
 		
 		menus.add(graphMenu);
