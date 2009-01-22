@@ -37,7 +37,7 @@ $(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
 
 # make polyml heap
 heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"));' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC (); PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"));' | $(POLYML)
 	@echo "Built polyml heap: heaps/$(THE_POLY_HEAP)"
 
 heap: heaps/$(THE_POLY_HEAP)
