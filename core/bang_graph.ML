@@ -193,7 +193,7 @@ fun move_to_unbox vs g =
 fun copy1_box bn g = 
     let val bbox_vs = get_bbox g bn
         (* subgraph of selection gives back something without bang-boxes *)
-        val (boundary_vs, g2) = subgraph_of_selection' bbox_vs g;
+        val (boundary_vs, g2) = cut_subgraph_of_selection' bbox_vs g;
         val avoid_vs = Vertex.NSet.subtract (get_vnames g) boundary_vs;
         val ((vrn,ern),g3) = 
             rename (Vertex.Rnm.mk_from_avoidset avoid_vs,

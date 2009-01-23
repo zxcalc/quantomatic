@@ -29,6 +29,7 @@ use "test/rg_graph.ML";
 use "rg_match_ctxt.ML";
 
 use "bbox_match.ML";
+(* use "edge_match.ML"; -- not used *)
 use "match.ML";
 use "matchstate.ML";
 use "test/matching.ML";

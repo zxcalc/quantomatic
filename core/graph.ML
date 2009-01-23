@@ -164,8 +164,8 @@ val get_edge_list : T -> (Edge.name * (Edge.data
 val enames_between : T -> Vertex.name -> Vertex.name -> Edge.NSet.T
 val edges_between : T -> Vertex.name -> Vertex.name -> Edge.data Edge.NTab.T
 
-(* val hens_between : T -> Vertex.name -> Vertex.name -> Edge.Hen.NSet.T *)
-(* val get_vertex_hens : T -> Vertex.name -> Edge.Hen.NSet.T *)
+(* val hens_between : T -> Vertex.name -> Vertex.name -> Edge.Ehn.NSet.T *)
+val get_vertex_ehns : T -> Vertex.name -> Edge.Ehn.NSet.T
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
@@ -176,6 +176,15 @@ val incident_vertices : T -> Vertex.NSet.T -> Vertex.NSet.T
 
 (* get adj vertices (from edge info) and from vertex name *)
 
+(* leafs have no other incident edges - they only have the one 
+   to the given vertex *)
+val adj_leaf_vs : T -> Vertex.name 
+                        -> Edge.Ehn.name Vertex.NTab.T  (* leafs *)
+                           * Vertex.NSet.T (* other adj *)
+val adj_leaf_vs' : T -> (Edge.NSet.T * Edge.NSet.T)
+                         -> Edge.Ehn.name Vertex.NTab.T (* leafs *)
+                            * Vertex.NSet.T (* other adj *)
+
 val adj_vertices_with_edges : T -> Vertex.name 
                    -> (Edge.data Edge.NTab.T) Vertex.NTab.T
 val adj_vertices_with_edges' : T -> (Edge.NSet.T * Edge.NSet.T)
@@ -185,7 +194,6 @@ val adj_vertices_with_enames : T -> Vertex.name
                                -> Edge.NSet.T Vertex.NTab.T
 val adj_vertices_with_enames' : T -> (Edge.NSet.T * Edge.NSet.T)
                                 -> Edge.NSet.T Vertex.NTab.T
-
 
 val get_self_loops : T -> Vertex.name -> Edge.data Edge.NTab.T
 
@@ -511,7 +519,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 local
 open BasicGraph;
 in
-(* structure Hen = Edge.Hen; *)
+structure Ehn = Edge.Ehn;
 
 val is_empty = Vertex.NTab.is_element_empty o get_vertices;
 
@@ -535,15 +543,16 @@ fun get_edge g en =
      of NONE => raise no_such_ename_exp ("get_edge", en, g)
       | SOME x => x;
 
-(* 
-fun get_vertex_hens g v = 
+val get_vertex_data = fst oo get_vertex;
+val get_edge_data = fst oo get_edge;
+
+fun get_vertex_ehns g v = 
     let val (d,(ines,outes)) = (get_vertex g v)
     in
-      Hen.NSet.empty 
-        |> Edge.NSet.fold (Hen.NSet.add o Edge.mk_src_hen) outes 
-        |> Edge.NSet.fold (Hen.NSet.add o Edge.mk_tgt_hen) ines
+      Ehn.NSet.empty 
+        |> Edge.add_src_ehns outes 
+        |> Edge.add_tgt_ehns ines
     end;
-*)
 
 val set_vertex = update_vertex o K;
 val set_edge = update_edge o K;
@@ -749,6 +758,34 @@ fun adj_vertices_with_enames' g (ins,outs) =
 fun adj_vertices_with_enames g n = 
     adj_vertices_with_enames' g (snd (get_vertex g n));
 
+(* find all adjacent vertices which have no other egdes than the one
+   (from the given ins/outs) of this vertex *)
+fun adj_leaf_vs' g (ins,outs) = 
+    (Vertex.NTab.empty, Vertex.NSet.empty)
+      |> (Edge.NSet.fold 
+            (fn e => fn (adjinfo as (leaftab, notleafset)) => 
+             let val (_,(from,to)) = get_edge g e
+             in if Vertex.NSet.contains notleafset from then adjinfo
+                else if Vertex.NTab.contains leaftab from then 
+                  (Vertex.NTab.delete from leaftab, 
+                   Vertex.NSet.add from notleafset)
+                else 
+                  (Vertex.NTab.ins (from,Edge.Ehn.mk_src e) leaftab, 
+                   notleafset)
+             end)
+            ins)
+      |> (Edge.NSet.fold 
+            (fn e => fn (adjinfo as (leaftab, notleafset)) => 
+             let val (_,(from,to)) = get_edge g e
+             in if Vertex.NSet.contains notleafset to then adjinfo
+                else if Vertex.NTab.contains leaftab to then 
+                  (Vertex.NTab.delete to leaftab, Vertex.NSet.add to notleafset)
+                else 
+                  (Vertex.NTab.ins (to,Edge.Ehn.mk_tgt e) leaftab, notleafset)
+             end)
+            outs);
+fun adj_leaf_vs g n = adj_leaf_vs' g (snd (get_vertex g n));
+
 fun adj_vnames' g (ins,outs) = 
     Vertex.NSet.empty
       |> (Edge.NSet.fold 
@@ -795,8 +832,7 @@ fun hens_between g n1 n2 =
       val (_,(ins1,outs1)) = get_vertex g n1
       val (_,(ins2,outs2)) = get_vertex g n2
     in
-      Hen.NSet.union_merge
-        
+      Ehn.NSet.union_merge
         (Edge.NSet.intersect ins1 outs2)
         (Edge.NSet.intersect ins2 outs1)
     end;

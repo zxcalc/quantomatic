@@ -230,7 +230,7 @@ fun mk_max_spider g =
     in Seq.make (recf (NONE,start_spider_match (RGGraph.get_vnames g, g))) end;
 
 fun mk_max_spider_within vns tgt = 
-    mk_max_spider (RGGraph.subgraph_of_selection vns tgt);
+    mk_max_spider (RGGraph.cut_subgraph_of_selection vns tgt);
 
 fun mk_max_spider_rule g = 
     Seq.map (rule_of_spider_for_g g) (mk_max_spider g);

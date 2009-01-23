@@ -12,6 +12,8 @@ datatype data2 =
 include VERTEX
 sharing type data = data2
 
+val is_internal_data : data -> bool
+
 end;
 
 
@@ -34,6 +36,9 @@ open INames;
 datatype data2 = 
          IVert of IData.data (* vertex with data *)
        | BVert; (* a variable vertex *)
+
+fun is_internal_data (IVert _) = true
+  | is_internal_data _ = false;
 
 type data = data2;
 

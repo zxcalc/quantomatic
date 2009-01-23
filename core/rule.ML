@@ -237,7 +237,7 @@ fun rule_matches rule tgt =
 fun rule_matches_within rule vns tgt = 
     let val (rn, rule') = (rename_rule_apart tgt rule)
     in Seq.map (inst_rule rule')
-               (matches rule' (RGGraph.subgraph_of_selection vns tgt))
+               (matches rule' (RGGraph.cut_subgraph_of_selection vns tgt))
     end;
 
 
@@ -274,7 +274,7 @@ fun fst_rewrite rule g =
 fun fst_rewrite_within rule vns g = 
     (case Seq.pull (rewrites_within rule vns g) of 
        NONE => raise not_applicable_exp ("find_and_apply_rewrite_within",rule,
-                                         RGGraph.subgraph_of_selection vns g)
+                                         RGGraph.cut_subgraph_of_selection vns g)
      | SOME (g2,g2s) => g2);
 
 
