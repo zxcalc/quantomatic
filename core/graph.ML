@@ -197,6 +197,11 @@ val adj_vertices_with_enames' : T -> (Edge.NSet.T * Edge.NSet.T)
 
 val get_self_loops : T -> Vertex.name -> Edge.data Edge.NTab.T
 
+val in_enames : T -> Vertex.name -> Edge.NSet.T
+val out_enames : T -> Vertex.name -> Edge.NSet.T
+val pred_vnames : T -> Vertex.name -> Vertex.NSet.T
+val succ_vnames : T -> Vertex.name -> Vertex.NSet.T
+
 (* depth-first traversal *)
 val dft : (Edge.name -> 'a -> 'a) -> T -> 'a -> 'a
 val dft_with_roots : (Edge.name -> 'a -> 'a) -> T -> 'a -> ('a * Vertex.NSet.T)
@@ -802,6 +807,18 @@ fun adj_vnames' g (ins,outs) =
 (* all vetrcies adjacent to vertex named n *)
 fun adj_vnames g n = 
     adj_vnames' g (snd (get_vertex g n));
+
+
+(* some more convenience functions for directed graphs *)
+fun in_enames g = fst o snd o (get_vertex g);
+fun out_enames g = snd o snd o (get_vertex g);
+
+fun succ_vnames g n =
+    adj_vnames' g (in_enames g n, Edge.NSet.empty);
+
+fun pred_vnames g n =
+    adj_vnames' g (out_enames g n, Edge.NSet.empty);
+
 
 (* vertices incident into vns *)
 (* the vertices connected to the given set, but outside it *) 

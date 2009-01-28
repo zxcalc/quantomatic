@@ -59,7 +59,7 @@ struct
 
 
   fun mk_output_graph output_vertices output_edges g = 
-      (Pretty.block [Pretty.str "Graph G {",		     
+      (Pretty.block [Pretty.str "digraph G {",		     
 		     Pretty.chunks [Pretty.str "",
 				    Pretty.str "ranksep=0.25;", 
 				    Pretty.str "verticesep=0.25;",
@@ -97,7 +97,7 @@ struct
   fun output_edge (_,(edata, (src_vertex, target_vertex))) 
     = Pretty.block [Pretty.str "\"",
 		    Graph.Vertex.pretty_name src_vertex,
-		    Pretty.str "\"--\"",
+		    Pretty.str "\"->\"",
 		    Graph.Vertex.pretty_name target_vertex,
 		    Pretty.str "\"[label=\"",
 		    Graph.Edge.pretty_data edata,
@@ -172,7 +172,7 @@ fun output_vertex (name,(vdata, _))
 fun output_edge (ename,(edata, (src_vertex, target_vertex))) 
   = Pretty.block [Pretty.str "\"",
 		  V.pretty_name src_vertex,
-		  Pretty.str "\"--\"",
+		  Pretty.str "\"->\"",
 		  V.pretty_name target_vertex,
 		  Pretty.str "\";"];
 
