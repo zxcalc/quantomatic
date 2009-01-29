@@ -41,7 +41,7 @@ sig
     val + : (T * T) -> T
     val * : (T * T) -> T
     val ~ : T -> T
-    val compare : T * T -> General.order
+    val ord : T * T -> General.order
     val toString : T -> string
     val pretty : T -> Pretty.T
     val print : T -> unit
@@ -89,7 +89,55 @@ fun is_zero 0 = true | is_zero _ = false
 fun is_one 1 = true | is_one _ = false
 fun pretty i = Pretty.str (toString i)
 val print = Pretty.writeln o pretty
+val ord = compare
 end
+
+structure PolyRing =
+struct
+
+structure ExpRing = IntRing
+structure CoeffRing = IntRing
+type T = (CoeffRing.T * ExpRing.T StrName.NTab.T) list
+
+val keys = StrName.NTab.get_nameset
+
+
+
+(* compare two tables of exponents *)
+fun var_ord ((_,e1),(_,e2)) = list_ord (prod_ord StrName.name_ord ExpRing.ord)
+				       (StrName.NTab.list_of e1,
+					StrName.NTab.list_of e2)
+
+fun collapse_t (c,e) = let
+    fun fld (k,v) = if ExpRing.is_zero v
+		    then StrName.NTab.delete k
+		    else I
+in (c, StrName.NTab.fold fld e e)
+end
+
+(* merge variable tables using f *)
+fun merge_vars t1 t2 = let
+    fun merge_add NONE (SOME v) = v
+      | merge_add (SOME v) NONE = v
+      | merge_add (SOME v1) (SOME v2) = ExpRing.+(v1,v2)
+      | merge_add _ _ = raise Match
+    val allkeys = StrName.NSet.union_merge (keys t1) (keys t2)
+    fun fld k = StrName.NTab.update
+		    (k, merge_add (StrName.NTab.lookup t1 k)
+				  (StrName.NTab.lookup t2 k))
+in StrName.NSet.fold fld allkeys StrName.NTab.empty
+end
+
+val simplify = let
+    fun merge (t1::t2::ts) = if var_ord (t1,t2) = EQUAL
+			     then (CoeffRing.+(fst t1, fst t2), snd t1)::merge ts
+			     else t1::t2::merge ts
+      | merge rem = rem
+in filter_out (CoeffRing.is_zero o fst) o merge o sort var_ord
+end
+			 
+end
+
 
 functor MatrixFun (structure URing : RING) : MATRIX  =
 struct
