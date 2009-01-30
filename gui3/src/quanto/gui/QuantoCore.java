@@ -251,12 +251,12 @@ public class QuantoCore {
 		return command("hilb", graph, new HasName.StringName(format));
 	}
 	
-	public void delete_vertex(QuantoGraph graph, QVertex v) throws ConsoleError {
-		command("delete_vertex", graph, v);
+	public void delete_vertices(QuantoGraph graph, Set<QVertex> v) throws ConsoleError {
+		command("delete_vertices", graph, new HasName.SetName(v));
 	}
 	
-	public void delete_edge(QuantoGraph graph, QEdge e) throws ConsoleError {
-		command("delete_edge", graph, e);
+	public void delete_edges(QuantoGraph graph, Set<QEdge> e) throws ConsoleError {
+		command("delete_edges", graph, new HasName.SetName(e));
 	}
 	
 	public void undo(QuantoGraph graph) throws ConsoleError {
@@ -287,5 +287,21 @@ public class QuantoCore {
 	public void unbang_vertices (QuantoGraph g, Set<QVertex> verts)
 	throws ConsoleError {
 		command("unbang_vertices", g, new HasName.SetName(verts));
+	}
+	
+	// here we use a string for target, because we may not be keeping the clip-board
+	//  as a QuantoGraph in memory.
+	public void copy_subgraph (QuantoGraph source, String target, Set<QVertex> verts)
+	throws ConsoleError {
+		command("copy_subgraph", source,
+				new HasName.StringName(target),
+				new HasName.SetName(verts));
+	}
+	
+	// here we use a string for source, because we may not be keeping the clip-board
+	//  as a QuantoGraph in memory.
+	public void insert_graph (QuantoGraph target, String source)
+	throws ConsoleError {
+		command("insert_graph", target, new HasName.StringName(source));
 	}
 }

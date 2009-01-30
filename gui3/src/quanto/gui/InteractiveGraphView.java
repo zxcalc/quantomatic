@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -175,7 +176,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout()));
 		setLayout(null);
 		Relaxer r = getModel().getRelaxer();
-		if (r!= null) r.setSleepTime(20);
+		if (r!= null) r.setSleepTime(10);
 		
 		graphMouse = new RWMouse();
 		setGraphMouse(graphMouse);
@@ -190,10 +191,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				int delete = (QuantoFrame.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
 				if (e.getKeyCode() == delete) {
 					try {
-						for (QEdge edge : getPickedEdgeState().getPicked())
-							getCore().delete_edge(getGraph(), edge);
-						for (QVertex vert : getPickedVertexState().getPicked())
-							getCore().delete_vertex(getGraph(), vert);
+						getCore().delete_edges(
+								getGraph(), getPickedEdgeState().getPicked());
+						getCore().delete_vertices(
+								getGraph(), getPickedVertexState().getPicked());
 						updateGraph();
 					
 					} catch (QuantoCore.ConsoleError err) {
@@ -271,29 +272,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.setMnemonic(KeyEvent.VK_G);
 		
 		JMenuItem item;
-		
-		item = new JMenuItem("Undo", KeyEvent.VK_U);
-		item.addActionListener(new QVListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().undo(getGraph());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, commandMask));
-		graphMenu.add(item);
-		
-		item = new JMenuItem("Redo", KeyEvent.VK_R);
-		item.addActionListener(new QVListener() {
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().redo(getGraph());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(
-				KeyEvent.VK_Z, commandMask | KeyEvent.SHIFT_MASK));
-		graphMenu.add(item);
 		
 		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
 		cbItem.setMnemonic(KeyEvent.VK_E);
@@ -405,6 +383,74 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		menus.add(graphMenu);
 		
+		JMenu editMenu = new JMenu("Edit");
+		editMenu.setMnemonic(KeyEvent.VK_E);
+		item = new JMenuItem("Undo", KeyEvent.VK_U);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().undo(getGraph());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, commandMask));
+		editMenu.add(item);
+		
+		item = new JMenuItem("Redo", KeyEvent.VK_R);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().redo(getGraph());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(
+				KeyEvent.VK_Z, commandMask | KeyEvent.SHIFT_MASK));
+		editMenu.add(item);
+		
+		item = new JMenuItem("Cut", KeyEvent.VK_T);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				Set<QVertex> picked = getPickedVertexState().getPicked();
+				if (!picked.isEmpty()) {
+					getCore().copy_subgraph(getGraph(), "__clip__", picked);
+					getCore().delete_vertices(getGraph(), picked);
+					updateGraph();
+				}
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(
+				KeyEvent.VK_X, commandMask));
+		editMenu.add(item);
+		
+		item = new JMenuItem("Copy", KeyEvent.VK_C);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				Set<QVertex> picked = getPickedVertexState().getPicked();
+				if (!picked.isEmpty())
+					getCore().copy_subgraph(getGraph(), "__clip__", picked);
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(
+				KeyEvent.VK_C, commandMask));
+		editMenu.add(item);
+		
+		item = new JMenuItem("Paste", KeyEvent.VK_P);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().insert_graph(getGraph(), "__clip__");
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(
+				KeyEvent.VK_V, commandMask));
+		editMenu.add(item);
+		
+		menus.add(editMenu);
+		
 		JMenu hilbMenu = new JMenu("Hilbert Space");
 		hilbMenu.setMnemonic(KeyEvent.VK_B);
 		
@@ -459,13 +505,22 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		getGraph().fromXml(xml);
 		getGraphLayout().initialize();
 		
-		Relaxer relaxer = getModel().getRelaxer();
-		if (relaxer != null) relaxer.relax();
+		//Relaxer relaxer = getModel().getRelaxer();
+		//if (relaxer != null) relaxer.relax();
 		
 		// clean up un-needed labels:
 		((QVertexLabeler)getRenderContext().getVertexLabelRenderer()).cleanup();
 		
+		// re-validate the picked state
+		QVertex[] oldPicked = 
+			getPickedVertexState().getPicked().toArray(
+				new QVertex[getPickedVertexState().getPicked().size()]);
 		getPickedVertexState().clear();
+		Map<String,QVertex> vm = getGraph().getVertexMap();
+		for (QVertex v : oldPicked) {
+			QVertex new_v = vm.get(v.getName());
+			if (new_v != null) getPickedVertexState().pick(new_v, true);
+		}
 		
 		if(saveGraphMenuItem != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
 			saveGraphMenuItem.setEnabled(true);

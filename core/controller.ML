@@ -113,313 +113,250 @@ fun register_cmd name help f =
 
 
 
-(*local *)
-
-    (* state accessors *)
-    fun fetch_graph name state =
-	case GraphName.NTab.lookup (get_graphs state) name
-	 of SOME g => g
-	  | NONE => raise user_exp ("Cannot fetch graph '"^name^"'.")
 
 
-    (* state mutators *)
-    fun push_hist name state = let
-	val (back,_) = the_default ([],[])
-				   (GraphName.NTab.lookup (#hist state) name)
-	val hist' = (get_hist state)
-			|> GraphName.NTab.update
-			(name,((fetch_graph name state)::back, []))
-    in set_hist hist' state
-    end
+(* state accessors *)
+fun fetch_graph name state =
+    case GraphName.NTab.lookup (get_graphs state) name
+     of SOME g => g
+      | NONE => raise user_exp ("Cannot fetch graph '"^name^"'.")
 
-    (* any time the graph is changed, any attached rewrites are invalid,
-     * so should be cleared *)
-    fun set_graph_at name graph' state =
-	state |> update_graphs (GraphName.NTab.update (name,graph'))
-	      |> update_rewrites (GraphName.NTab.update (name,[]))
+
+(* state mutators *)
+fun push_hist name state = let
+    val (back,_) = the_default ([],[])
+			       (GraphName.NTab.lookup (#hist state) name)
+    val hist' = (get_hist state)
+		    |> GraphName.NTab.update
+		    (name,((fetch_graph name state)::back, []))
+in set_hist hist' state
+end
+
+(* any time the graph is changed, any attached rewrites are invalid,
+ * so should be cleared *)
+fun set_graph_at name graph' state =
+    state |> update_graphs (GraphName.NTab.update (name,graph'))
+	  |> update_rewrites (GraphName.NTab.update (name,[]))
 
     
 
-    (* convenience functions *)
+(* convenience functions *)
 
-    fun graph_arg (g::args) = g
-      | graph_arg _ = raise user_exp ("You must specify a graph name.")
+fun graph_arg (g::args) = g
+  | graph_arg _ = raise user_exp ("You must specify a graph name.")
 			
 
-    (* Graph updating commands, cmd: ([args] * graph) -> (out * graph) *)
-    fun lift_graph_mutator cmd (args, state:c_state) =
-	let
-	    val gname = graph_arg args
-	    val (out,g') = cmd (args,fetch_graph gname state)
-	in (out, state |> push_hist gname |> set_graph_at gname g')
-	end
-    
-    (* Read-only graph commands, cmd: [args] * graph -> out *)
-    fun lift_graph_viewer cmd (args, state) =
-	let
-	    val gname = graph_arg args
-	    val out = cmd (args,fetch_graph gname state)
-	in (out, state)
-	end
-    
-    (* State-agnostic commands, cmd: [args] -> out *)
-    fun lift_stateless cmd (args, state:c_state) = (cmd args, state)
-
-    (* Read-only state commands, cmd: [args] * state -> state *)
-    fun lift_state_viewer cmd (args, state:c_state) = (cmd (args,state), state)
-
-(*
-
-    (* wrap commands of the form ([args] * graph_table) -> graph option *)
-    fun lift_graph_creator cmd (args, graph_table) =
-	      case cmd (args, graph_table)
-	       of SOME gr =>
-	          let
-		          val (name,table') =
-		              graph_table |> GraphName.NTab.add
-			                        (GraphName.default_name,
-				                       {hist = ([gr],[]), rws = []})
-	          in
-		          ((Pretty.str_of (GraphName.pretty_name name)) ^ "\n",
-		           table')
-	          end
-	        | NONE => ("!!! Cannot create graph\n", graph_table)
-                    
-    (* cmd: [args] * graphstate -> out * graphstate *)
-    fun lift_graph_state_mutator cmd (args as (graph_name::_), graph_table) =
-	      (case GraphName.NTab.lookup graph_table graph_name
-	        of SOME state => let val (out,state') = cmd (args,state)
-			                     in (out,
-				                       graph_table |> GraphName.NTab.update
-				                                   (graph_name, state'))
-			                     end
-	         | _ => ("!!! Cannot lookup graph\n", graph_table))
-      | lift_graph_state_mutator _ (_, state) =
-	      ("!!! Graph command needs at least one argument\n", state)
-
-    fun lift_graph_state_viewer cmd (args, graph_table) =
-	(cmd (args, graph_table), graph_table)
-
-
-    (* cmd: ([args] * ([graph] * [graph])) -> (out * ([graph] * [graph])) *)
-    fun lift_graph_stack_mutator cmd = let
-	    fun apply_stacks cmd (args,{hist=h,rws=r}) =
-	        let val (out,h') = cmd (args,h)
-	        in (out,{hist=h',rws=r})
-	        end
-    in lift_graph_state_mutator (apply_stacks cmd)
-    end
-                                       
-    (* cmd: ([args] * graph * [rewrites]) -> (out * graph * [rewrites]) *)
-    fun lift_graph_mutator_with_rewrites cmd = let
-	    fun push_mod cmd (args, {hist=((g::gs),hs),rws=r}) =
-	        let val (out,g',r') = cmd (args,g,r)
-	        in (out, {hist=(g'::g::gs, []), rws=r'})
-	        end
-	      | push_mod cmd (args, state) =
-	        ("!!! Graph stack is empty\n",state)
-    in lift_graph_state_mutator (push_mod cmd)
-    end
-                                               
-    (* cmd: ([args] * graph * [rewrites]) -> (out * [rewrites]) *)
-    fun lift_graph_viewer_with_rewrites cmd = let
-	    fun peek_top cmd (args, {hist=(h as ((g::_),_)),rws=r}) =
-	        let val (out, r') = cmd (args,g,r)
-	        in (out, {hist=h, rws=r'})
-	        end
-	      | peek_top cmd (args, state) =
-	        ("!!! Graph stack is empty\n",state)
-    in lift_graph_state_mutator (peek_top cmd)
-    end
-                                              
-    (* cmd: ([args] * graph) -> (out * graph) *)
-    fun lift_graph_mutator cmd =
-	      let val flat = fn ((a,b),c) => (a,b,c)
-	      in lift_graph_mutator_with_rewrites (fn (a,g,_) => flat (cmd (a,g),[]))
-	      end
-        
-    (* cmd: [args] * graph -> out *)
-    fun lift_graph_viewer cmd =
-	      lift_graph_viewer_with_rewrites (fn (a,g,r) => (cmd (a,g),r))
-        
-    (* cmd: [args] -> out *)
-    fun lift_stateless cmd (args, state) = (cmd args, state)
-
-    val stub = lift_stateless (K "STUB\n")
-*)
-    (* ============================================== *)
-
-    fun help1 cmd = case Symtab.lookup (!cmds) cmd
-		     of SOME (h,_) => "\n"^h^"\n"
-		      | NONE => "!!! Can't find command.\n"
-
-    (* helper functions for commands registered below *)
-    fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
-		              "Available commands:\n\nquit\n"^
-		              (fold (fn a => fn b =>a^"\n"^b)
-				    (Symtab.keys (!cmds)) "\n")
-      | help ["all"] = fold (fn a => fn b => (help1 a)^b)
-			    (Symtab.keys (!cmds)) "\n"
-      | help [cmd] = (help1 cmd)
-         
-    fun list_graphs ([], state) = 
-	GraphName.NTab.fold (suffix o suffix "\n" o fst) (get_graphs state) ""
-
-    local
-	fun graph_maker default_name graph state = let
-	    val (nm,gs) = (get_graphs state)
-			      |> GraphName.NTab.add (default_name, graph)
-	in (nm ^ "\n", state |> set_graphs gs)
-	end
-    in
-
-    fun duplicate_graph ([name], state) = 
-	graph_maker name (fetch_graph name state) state
-    fun new_graph ([], state) =
-	graph_maker GraphName.default_name G.empty state
-    fun load_graph ([fname], state) = 
-	graph_maker GraphName.default_name (LoadSave.load_graph fname) state
-
-    end    
-          
-    fun save_graph ([_, fname], graph) = 
-	( LoadSave.save_graph fname graph;
-	  "Saved file " ^ fname ^"\n")
-	handle _ => raise user_exp ("Could not save file "^fname)
-
-    fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
-      | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
-      | vertex_type "hadamard" = V.IVert V.Hnd
-      | vertex_type "boundary" = V.BVert
-
-    fun add_vertex ([_,vt], graph) =
-	      let val (n,g) = graph |> G.add_vertex (vertex_type vt)
-	      in ("added vertex \"" ^ n ^ "\"\n", g)
-	      end
-	      handle Match => raise user_exp "Bad vertex type."
-
-    fun add_edge ([_,v1,v2], graph) =
-	      let val (n,g) = graph |> G.add_edge () v1 v2
-	      in ("added edge \"" ^ n ^ "\"\n", g)
-	      end
-	      handle G.no_such_vname_exp _ =>
-		     raise user_exp "Bad vertex name."
-
-
-    fun delete_vertex ([_,v], graph) =
-	("deleted vertex \""^v^"\"\n", graph|>G.delete_vertex v)
-	handle G.no_such_vname_exp _ => raise user_exp "No such vertex."
-
-    fun delete_edge ([_,e], graph) =
-	("deleted edge \""^e^"\"\n", graph|>G.delete_edge e)
-	handle G.no_such_ename_exp _ => raise user_exp "No such edge."
-
-    fun rename_vertex ([_,old,new], graph) =
-	("renamed to \""^new^"\"\n", graph|>G.rename_vname old new)
-	handle G.vname_already_exists_exp _ =>
-	       raise user_exp "graph already contains a vertex of this name"
-	     | G.no_such_vname_exp _ => raise user_exp "no such vertex"
-
-
-    fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
-			  Pretty.string_of  o
-			  RGGraphOutputXML.output
-
-    fun print_graph [_] = (suffix "\n") o Pretty.string_of o G.pretty
-
-    fun undo ([gname], state) = let
-	val current = fetch_graph gname state
-    in case GraphName.NTab.lookup (get_hist state) gname
-	of SOME (g::gs, hs) => ("ok\n",
-				state |> set_graph_at gname g
-				      |> update_hist
-				      (GraphName.NTab.update
-					   (gname, (gs,current::hs)))
-			       )
-	 | _ => raise user_exp "Can't undo."
-    end
-
-    fun redo ([gname], state) = let
-	val current = fetch_graph gname state
-    in case GraphName.NTab.lookup (get_hist state) gname
-	of SOME (gs, h::hs) => ("ok\n",
-				state |> set_graph_at gname h
-				      |> update_hist
-				      (GraphName.NTab.update
-					   (gname, (current::gs,hs)))
-			       )
-	 | _ => raise user_exp "Can't redo."
-    end
-
-    fun attach_rewrites (args as _::vs, state) = let
+(* Graph updating commands, cmd: ([args] * graph) -> (out * graph) *)
+fun lift_graph_mutator cmd (args, state:c_state) =
+    let
 	val gname = graph_arg args
-	val vset = fold V.NSet.ins_fresh vs V.NSet.empty
-	val graph = fetch_graph gname state
-	val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-		      (TheoryHack.apply_all_rules_in vset graph)
-    in
-	("attached "^(Int.toString (length rws))^" rewrites\n",
-	 state |> update_rewrites (GraphName.NTab.update (gname,rws)))
+	val (out,g') = cmd (args,fetch_graph gname state)
+    in (out, state |> push_hist gname |> set_graph_at gname g')
     end
-	handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
-	     | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertex."
-                    
-    fun show_rewrites (args,state) = let
+    
+(* Read-only graph commands, cmd: [args] * graph -> out *)
+fun lift_graph_viewer cmd (args, state) =
+    let
 	val gname = graph_arg args
-	val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
-			of NONE => raise user_exp "No rewrites attached."
-			 | SOME r => r
-    in Pretty.string_of (RGRewriteListOutputXML.output rewrites)
+	val out = cmd (args,fetch_graph gname state)
+    in (out, state)
     end
-                                               
-    fun apply_rewrite ([gname, n], state) =
-	let
-	    val rewrites = GraphName.NTab.get (get_rewrites state) gname
-	    val (name,rule,fused) = nth rewrites (the (Int.fromString n))
-	in ("applied "^name^"\n",
-	    state |> push_hist gname
-		  |> set_graph_at gname (Rule.del_lhs rule fused))
-	end
-	handle UNDEF => raise user_exp "No rewrites attached." 
-	     | Subscript => raise user_exp "Rewrite not attached."
-	     | Option => raise user_exp "Rewrite selection must be an integer."
-                         
-    fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
-      | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
-      | vdata a _ = raise Match
+    
+(* State-agnostic commands, cmd: [args] -> out *)
+fun lift_stateless cmd (args, state:c_state) = (cmd args, state)
 
-    fun set_angle ([_,v,a], graph) =
-	      ("ok\n", graph |> G.update_vertex (vdata a) v)
-	      handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
-	     | AngleExpr.parse_exp => ("!!! Cannot parse angle expression.\n", graph)
-                               
-    fun hilb ([_, format], graph) =
-	let
-	    fun fmt "text" = RGHilbTerm.pretty_text
-	      | fmt "mathematica" = RGHilbTerm.pretty_mathematica
-	      | fmt _ = fn _ => Pretty.str "!!! Bad formatter."
-	in
-	    (Pretty.string_of (
-	     fmt format (RGHilbTerm.from_graph graph)))^"\n"
-	end
+(* Read-only state commands, cmd: [args] * state -> out *)
+fun lift_state_viewer cmd (args, state:c_state) = (cmd (args,state), state)
 
-    fun add_bang ([_], graph) = graph |> G.new_box (G.BBox.default_name)
-				      >> (fn a => a^"\n")
+(* Most commands are already of the form
+ *    cmd: [args] * state -> out * state *)
+(* val lift_state_mutator = I *)
 
-    fun drop_bang ([_,name], graph) =
-	("dropped !-box \""^name^"\"\n",
-	 graph |> G.drop_box name)
+(* ============================================== *)
+(* these functions actually implement commmands *)
 
-    fun bang_vertices ((_::box::verts), graph) = 
-	("added vertices to \""^box^"\"\n",
-	 graph |> G.move_to_box box (G.Vertex.NSet.of_list verts))
+fun help1 cmd = case Symtab.lookup (!cmds) cmd
+		 of SOME (h,_) => "\n"^h^"\n"
+		  | NONE => "!!! Can't find command.\n"
 
-    fun unbang_vertices ((_::verts), graph) =
-	("un-!'ed vertices\n",
-	 graph |> G.move_to_unbox (G.Vertex.NSet.of_list verts))
+(* helper functions for commands registered below *)
+fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
+	      "Available commands:\n\nquit\n"^
+	      (fold (fn a => fn b =>a^"\n"^b)
+		    (Symtab.keys (!cmds)) "\n")
+  | help ["all"] = fold (fn a => fn b => (help1 a)^b)
+			(Symtab.keys (!cmds)) "\n"
+  | help [cmd] = (help1 cmd)
+		 
+fun list_graphs ([], state) = 
+    GraphName.NTab.fold (suffix o suffix "\n" o fst) (get_graphs state) ""
 
 local
+    fun graph_maker default_name graph state = let
+	val (nm,gs) = (get_graphs state)
+			  |> GraphName.NTab.add (default_name, graph)
+    in (nm ^ "\n", state |> set_graphs gs)
+    end
 in
+
+fun duplicate_graph ([name], state) = 
+    graph_maker name (fetch_graph name state) state
+fun new_graph ([], state) =
+    graph_maker GraphName.default_name G.empty state
+fun load_graph ([fname], state) = 
+    graph_maker GraphName.default_name (LoadSave.load_graph fname) state
+
+end    
+    
+fun save_graph ([_, fname], graph) = 
+    ( LoadSave.save_graph fname graph;
+      "Saved file " ^ fname ^"\n")
+    handle _ => raise user_exp ("Could not save file "^fname)
+
+fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
+  | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
+  | vertex_type "hadamard" = V.IVert V.Hnd
+  | vertex_type "boundary" = V.BVert
+
+fun add_vertex ([_,vt], graph) =
+    let val (n,g) = graph |> G.add_vertex (vertex_type vt)
+    in ("added vertex \"" ^ n ^ "\"\n", g)
+    end
+    handle Match => raise user_exp "Bad vertex type."
+
+fun add_edge ([_,v1,v2], graph) =
+    let val (n,g) = graph |> G.add_edge () v1 v2
+    in ("added edge \"" ^ n ^ "\"\n", g)
+    end
+    handle G.no_such_vname_exp _ =>
+	   raise user_exp "Bad vertex name."
+
+
+fun delete_vertices (_::vs, graph) =
+    ("ok\n", fold G.delete_vertex vs graph)
+    handle G.no_such_vname_exp _ => raise user_exp "No such vertex."
+
+fun delete_edges (_::es, graph) =
+    ("ok\n", fold G.delete_edge es graph)
+    handle G.no_such_ename_exp _ => raise user_exp "No such edge."
+
+fun rename_vertex ([_,old,new], graph) =
+    ("renamed to \""^new^"\"\n", graph|>G.rename_vname old new)
+    handle G.vname_already_exists_exp _ =>
+	   raise user_exp "graph already contains a vertex of this name"
+	 | G.no_such_vname_exp _ => raise user_exp "no such vertex"
+
+
+fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
+		      Pretty.string_of  o
+		      RGGraphOutputXML.output
+
+fun print_graph [_] = (suffix "\n") o Pretty.string_of o G.pretty
+
+fun undo ([gname], state) = let
+    val current = fetch_graph gname state
+in case GraphName.NTab.lookup (get_hist state) gname
+    of SOME (g::gs, hs) => ("ok\n",
+			    state |> set_graph_at gname g
+				  |> update_hist
+				  (GraphName.NTab.update
+				       (gname, (gs,current::hs)))
+			   )
+     | _ => raise user_exp "Can't undo."
+end
+
+fun redo ([gname], state) = let
+    val current = fetch_graph gname state
+in case GraphName.NTab.lookup (get_hist state) gname
+    of SOME (gs, h::hs) => ("ok\n",
+			    state |> set_graph_at gname h
+				  |> update_hist
+				  (GraphName.NTab.update
+				       (gname, (current::gs,hs)))
+			   )
+     | _ => raise user_exp "Can't redo."
+end
+
+fun attach_rewrites (args as _::vs, state) = let
+    val gname = graph_arg args
+    val vset = fold V.NSet.ins_fresh vs V.NSet.empty
+    val graph = fetch_graph gname state
+    val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
+		  (TheoryHack.apply_all_rules_in vset graph)
+in
+    ("attached "^(Int.toString (length rws))^" rewrites\n",
+     state |> update_rewrites (GraphName.NTab.update (gname,rws)))
+end
+    handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
+	 | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertex."
+					   
+fun show_rewrites (args,state) = let
+    val gname = graph_arg args
+    val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
+		    of NONE => raise user_exp "No rewrites attached."
+		     | SOME r => r
+in Pretty.string_of (RGRewriteListOutputXML.output rewrites)
+end
+                                 
+fun apply_rewrite ([gname, n], state) =
+    let
+	val rewrites = GraphName.NTab.get (get_rewrites state) gname
+	val (name,rule,fused) = nth rewrites (the (Int.fromString n))
+    in ("applied "^name^"\n",
+	state |> push_hist gname
+	      |> set_graph_at gname (Rule.del_lhs rule fused))
+    end
+    handle UNDEF => raise user_exp "No rewrites attached." 
+	 | Subscript => raise user_exp "Rewrite not attached."
+	 | Option => raise user_exp "Rewrite selection must be an integer."
+                           
+fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
+  | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
+  | vdata a _ = raise Match
+
+fun set_angle ([_,v,a], graph) =
+    ("ok\n", graph |> G.update_vertex (vdata a) v)
+    handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
+	 | AngleExpr.parse_exp => ("!!! Cannot parse angle expression.\n", graph)
+				  
+fun hilb ([_, format], graph) =
+    let
+	fun fmt "text" = RGHilbTerm.pretty_text
+	  | fmt "mathematica" = RGHilbTerm.pretty_mathematica
+	  | fmt _ = fn _ => Pretty.str "!!! Bad formatter."
+    in
+	(Pretty.string_of (
+	 fmt format (RGHilbTerm.from_graph graph)))^"\n"
+    end
+
+fun add_bang ([_], graph) = graph |> G.new_box (G.BBox.default_name)
+				  >> (fn a => a^"\n")
+
+fun drop_bang ([_,name], graph) =
+    ("dropped !-box \""^name^"\"\n",
+     graph |> G.drop_box name)
+
+fun bang_vertices ((_::box::verts), graph) = 
+    ("added vertices to \""^box^"\"\n",
+     graph |> G.move_to_box box (G.Vertex.NSet.of_list verts))
+
+fun unbang_vertices ((_::verts), graph) =
+    ("un-!'ed vertices\n",
+     graph |> G.move_to_unbox (G.Vertex.NSet.of_list verts))
+
+fun copy_subgraph (args as (_::target::vs), state) = let
+    val graph = fetch_graph (graph_arg args) state
+    val clip = G.pull_subgraph_within_selection (G.Vertex.NSet.of_list vs)
+						graph
+in ("ok\n", state |> set_graph_at target clip)
+end
+
+fun insert_graph ([tname,sname], state) = let
+    val targ = fetch_graph tname state
+    val (_, source) = G.rename_apart targ (fetch_graph sname state)
+in ("ok\n", state |> push_hist tname
+		  |> set_graph_at tname (G.merge_by_vertices targ source))
+end
 
 (* Register commands available from the console and associate docs *)
 
@@ -479,16 +416,16 @@ val () = (
 	(lift_graph_mutator add_vertex);
     
     register_cmd
-	"delete_vertex"
-	("delete_vertex GRAPH V\n\n"^
-	 "    delete vertex V from GRAPH\n")
-	(lift_graph_mutator delete_vertex);
+	"delete_vertices"
+	("delete_vertices GRAPH V1 .. VN\n\n"^
+	 "    delete vertices V1..VN from GRAPH\n")
+	(lift_graph_mutator delete_vertices);
 
     register_cmd
-	"delete_edge"
-	("delete_edge GRAPH E\n\n"^
-	 "    delete edge E from GRAPH\n")
-	(lift_graph_mutator delete_edge);
+	"delete_edges"
+	("delete_edges GRAPH E1 .. EN\n\n"^
+	 "    delete edges E1 .. EN from GRAPH\n")
+	(lift_graph_mutator delete_edges);
 
     register_cmd
 	"add_edge"
@@ -583,9 +520,23 @@ val () = (
 	 "    remove vertices V1..VN from their current !-box\n")
 	(lift_graph_mutator unbang_vertices);
 
+    register_cmd
+	"copy_subgraph"
+	("copy_subgraph SOURCE TARGET V1 .. VN\n\n"^
+	 "    copy the subgraph of SOURCE spanned by V1..VN to\n"^
+	 "    the graph TARGET\n")
+	(copy_subgraph);
+
+    register_cmd
+	"insert_graph"
+	("insert_graph TARGET SOURCE\n\n"^
+	 "    insert of copy of SOURCE into TARGET\n")
+	(insert_graph);
+
+
     ())
 
-end
+
 
 (* Uniquely mark end of text as SPACE + BACKSPACE. This is well-behaved as
  * long as commands never send raw binary. *)
