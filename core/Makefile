@@ -23,7 +23,7 @@ THE_BIN='quanto-core'
 # polyml executable
 POLYML='poly'
  # isaplanner heap file
-ISAPLIB_HEAP='./isaplib/heaps/isaplib.polyml-heap'
+ISAPLIB_HEAP='./isaplib/heaps/all.polyml-heap'
 # quanto heap file
 THE_POLY_HEAP='quanto.polyml-heap'
 
