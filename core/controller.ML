@@ -117,19 +117,19 @@ fun register_cmd name help f =
 
 (* state accessors *)
 fun fetch_graph name state =
-    case GraphName.NTab.lookup (get_graphs state) name
+    (case GraphName.NTab.lookup (get_graphs state) name
      of SOME g => g
-      | NONE => raise user_exp ("Cannot fetch graph '"^name^"'.")
+      | NONE => raise user_exp ("Cannot fetch graph '"^name^"'."))
 
 
 (* state mutators *)
 fun push_hist name state = let
     val (back,_) = the_default ([],[])
-			       (GraphName.NTab.lookup (#hist state) name)
+			       (GraphName.NTab.lookup (get_hist state) name)
     val hist' = (get_hist state)
 		    |> GraphName.NTab.update
 		    (name,((fetch_graph name state)::back, []))
-in set_hist hist' state
+in state |> set_hist hist'
 end
 
 (* any time the graph is changed, any attached rewrites are invalid,
@@ -353,10 +353,12 @@ end
 
 fun insert_graph ([tname,sname], state) = let
     val targ = fetch_graph tname state
+    val source = fetch_graph sname state
     val (_, source) = G.rename_apart targ (fetch_graph sname state)
 in ("ok\n", state |> push_hist tname
 		  |> set_graph_at tname (G.merge_by_vertices targ source))
 end
+
 
 (* Register commands available from the console and associate docs *)
 
@@ -589,6 +591,6 @@ fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
 		              of SOME n => (TextIO.input1 TextIO.stdIn;())
 		               | NONE => ()
 
-fun init () = (flushIn(); repl newState);
+fun init () = (flushIn(); repl newState)
 
 end (* structure Controller *)

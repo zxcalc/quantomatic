@@ -92,16 +92,21 @@ val print = Pretty.writeln o pretty
 val ord = compare
 end
 
-structure PolyRing =
+functor PolyRingFun (
+  structure ExpRing : RING
+  structure CoeffRing : RING) =
 struct
 
-structure ExpRing = IntRing
-structure CoeffRing = IntRing
+
 type T = (CoeffRing.T * ExpRing.T StrName.NTab.T) list
 
 val keys = StrName.NTab.get_nameset
 
+fun const k = [(k, StrName.NTab.empty)]
+fun monomial (v,p) =
+    [(p, StrName.NTab.empty |> StrName.NTab.update (v, ExpRing.one))]
 
+fun var v = monomial (v, CoeffRing.one)
 
 (* compare two tables of exponents *)
 fun var_ord ((_,e1),(_,e2)) = list_ord (prod_ord StrName.name_ord ExpRing.ord)
@@ -128,6 +133,7 @@ fun merge_vars t1 t2 = let
 in StrName.NSet.fold fld allkeys StrName.NTab.empty
 end
 
+
 val simplify = let
     fun merge (t1::t2::ts) = if var_ord (t1,t2) = EQUAL
 			     then (CoeffRing.+(fst t1, fst t2), snd t1)::merge ts
@@ -135,8 +141,53 @@ val simplify = let
       | merge rem = rem
 in filter_out (CoeffRing.is_zero o fst) o merge o sort var_ord
 end
-			 
+
+fun (op+) (p1, p2) = simplify (p1 @ p2)
+
+fun (op* ) (p1, p2) =
+     let fun mult_terms (c1,e1) (c2,e2) = (CoeffRing.*(c1,c2), merge_vars e1 e2)
+     in map_product mult_terms p1 p2
+     end
+
+fun pretty_term (coeff,exp) =
+    Pretty.block (CoeffRing.pretty coeff ::
+		  (StrName.NTab.fold
+		       (fn (k,v) =>
+			   append [Pretty.str "*",
+				   Pretty.str k,
+				   Pretty.str "^",
+				   ExpRing.pretty v])
+		       exp []))
+fun pretty poly = Pretty.block (Pretty.separate " +" (map pretty_term poly))
+val print = Pretty.writeln o pretty
+
 end
+
+structure IntPoly =
+struct
+structure PR = PolyRingFun(
+  structure CoeffRing = IntRing
+  structure ExpRing = IntRing)
+
+open PR
+open SimpleLexer
+
+
+fun factor x = x|>(
+	       (ident --| sym "^" -- num >> (fn (ID id, INT p) => monomial(id,p)))
+		   || (ident >> (fn (ID id) => var id))
+		   || (num >> (fn (INT n) => const n)))
+(*
+fun term x = x|>((factor --| sym "*" -- term >> op* ) || factor)
+fun expr x = x|>(
+	     (term --| sym "+" -- expr >> op+)
+		 || term)
+
+*)
+
+end
+
+
 
 
 functor MatrixFun (structure URing : RING) : MATRIX  =
