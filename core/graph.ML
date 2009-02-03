@@ -205,6 +205,12 @@ val succ_vnames : T -> Vertex.name -> Vertex.NSet.T
 (* depth-first traversal *)
 val dft : (Edge.name -> 'a -> 'a) -> T -> 'a -> 'a
 val dft_with_roots : (Edge.name -> 'a -> 'a) -> T -> 'a -> ('a * Vertex.NSet.T)
+
+(* directed acyclic graphs *)
+val convert_to_dag : T -> T
+val spanning_dag : T -> T
+val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
+val get_dag_ranks : T -> Vertex.name list list
 end;
 
 
