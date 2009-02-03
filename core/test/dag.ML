@@ -23,22 +23,26 @@ val (_,g) = g|> Graff.add_edge () v4 v5
 val (_,g) = g|> Graff.add_edge () v6 v7
 val (_,g) = g|> Graff.add_edge () v7 v8
 val (_,g) = g|> Graff.add_edge () v8 v6
+
+val (_,g) = g|> Graff.add_edge () v1 v6
 end
 
 structure Dag = 
 struct
 open Graff
 
-fun get_dag_ranker rnk ranker dag = let
-    fun test v = if Vertex.NTab.contains_name ranker v then false
-		 else (if Vertex.NSet.forall
-			      (Vertex.NTab.contains_name ranker)
-			      (succ_vnames dag v)
-		       then true
-		       else false)
-in ()
+(* will probably not terminate if dag isn't directed acyclic *)
+fun get_dag_ranks dag = let
+    val vnames = Vertex.NSet.list_of (get_vnames dag)
+    fun test seen v = not (Vertex.NSet.contains seen v)
+		      andalso Vertex.NSet.forall
+				  (Vertex.NSet.contains seen)
+				  (succ_vnames dag v)
+    fun mk seen =
+	case filter (test seen) vnames
+	 of []=>[] | lst => lst :: mk (Vertex.NSet.add_list lst seen)
+in mk Vertex.NSet.empty
 end
-
 
 
 (* find the "longest" directed acyclic graph that spans the given graph *)
@@ -83,26 +87,22 @@ fun dag_traverse back_edge fw_edge new_edge graph = let
 		val (dg',vtab') = dag 0 (out_elist v) dg vtab
 	    in dag_until_done dg' vtab'
 	    end
-    val init_dg = Edge.NSet.fold delete_edge
-				       (get_enames graph)
-				       graph
+    val init_dg = Edge.NSet.fold delete_edge (get_enames graph) graph
 in dag_until_done init_dg Vertex.NTab.empty
 end
 
 
 local
     fun ignore_edge _ _ _ _ = I
-    fun keep_edge e edata s t dag = #2(g|>add_named_edge e edata s t)
-    fun flip_edge e edata s t dag = if Vertex.name_ord (s,t) = EQUAL then g
+    fun keep_edge e edata s t g = #2(g|>add_named_edge e edata s t)
+    fun flip_edge e edata s t g = if Vertex.name_ord (s,t) = EQUAL then g
 				    else #2(g|>add_named_edge e edata t s)
-
-
 in
-(* remove self-loops and reverse back-edges *)
-val convert_to_dag = dag_traverse flip_edge keep_edge keep_edge
-(* remove self-loops and back-edges *)
-val spanning_dag = dag_traverse ignore_edge keep_edge keep_edge
-val spanning_tree = dag_traverse ignore_edge ignore_edge keep_edge
+    (* remove self-loops and reverse back-edges *)
+    val convert_to_dag = dag_traverse flip_edge keep_edge keep_edge
+    (* remove self-loops and back-edges *)
+    val spanning_dag = dag_traverse ignore_edge keep_edge keep_edge
+    val spanning_tree = dag_traverse ignore_edge ignore_edge keep_edge
 end
 
 end
