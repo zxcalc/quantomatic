@@ -42,7 +42,7 @@ end
 
 
 (* find the "longest" directed acyclic graph that spans the given graph *)
-fun spanning_dag graph = let
+fun dag_traverse back_edge fw_edge new_edge graph = let
     val out_elist = Edge.NSet.list_of o (out_enames graph)
 
     (* generate a dag from the given edge list *)
@@ -53,13 +53,12 @@ fun spanning_dag graph = let
 		(case Vertex.NTab.lookup vtab t
 		  (* if target hasn't been seen, add edge and recurse *)
 		  of NONE => dag (depth + 1) (out_elist t)
-				 (#2(dg |> add_named_edge e edata s t))
+				 (dg |> new_edge e edata s t)
 				 (vtab |> Vertex.NTab.update (t, depth + 1))
 		   (* if target has been seen, only add edge if its rank is lower *)
 		   | SOME d => if (depth < d orelse d = ~1)
-			       then (#2(dg |> add_named_edge
-					   e edata s t), vtab)
-			       else (dg, vtab))
+			       then (dg |> fw_edge e edata s t, vtab)
+			       else (dg |> back_edge e edata s t, vtab))
 	in dag depth es dg' vtab'
 	end
       | dag _ [] dg vtab = (dg, vtab)
@@ -88,6 +87,22 @@ fun spanning_dag graph = let
 				       (get_enames graph)
 				       graph
 in dag_until_done init_dg Vertex.NTab.empty
+end
+
+
+local
+    fun ignore_edge _ _ _ _ = I
+    fun keep_edge e edata s t dag = #2(g|>add_named_edge e edata s t)
+    fun flip_edge e edata s t dag = if Vertex.name_ord (s,t) = EQUAL then g
+				    else #2(g|>add_named_edge e edata t s)
+
+
+in
+(* remove self-loops and reverse back-edges *)
+val convert_to_dag = dag_traverse flip_edge keep_edge keep_edge
+(* remove self-loops and back-edges *)
+val spanning_dag = dag_traverse ignore_edge keep_edge keep_edge
+val spanning_tree = dag_traverse ignore_edge ignore_edge keep_edge
 end
 
 end

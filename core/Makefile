@@ -43,7 +43,7 @@ heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 heap: heaps/$(THE_POLY_HEAP)
 
 bin/$(THE_BIN): heaps/$(THE_POLY_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; do_and_exit_or_die (fn () => (PolyML.export ("bin/$(THE_BIN)", (fn () => (Controller.init())))));' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; do_and_exit_or_die (fn () => (PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die Controller.init))));' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
