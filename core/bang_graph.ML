@@ -137,8 +137,14 @@ struct
    *)
   fun rename_vname n1 n2 g = 
       g |> Graph.rename_vname n1 n2
-        |> update_bboxes (the o VtoBoxMap.try_rename1_dom n1 n2)
-        |> update_unboxed (the o V.NSet.try_rename1 n1 n2);
+        |> update_bboxes (fn bxs => 
+                             case VtoBoxMap.try_rename1_dom n1 n2 bxs 
+                              of NONE => bxs
+                               | SOME bxs2 => bxs2)
+        |> update_unboxed (fn unbxs => 
+                              case V.NSet.try_rename1 n1 n2 unbxs 
+                               of NONE => unbxs
+                                | SOME unbxs2 => unbxs2);
 
   (* prettifying *)
   fun pretty g = 
