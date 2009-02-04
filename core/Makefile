@@ -25,32 +25,33 @@ POLYML='poly'
  # isaplanner heap file
 ISAPLIB_HEAP='./isaplib/heaps/all.polyml-heap'
 # quanto heap file
-THE_POLY_HEAP='quanto.polyml-heap'
+QUANTO_HEAP='quanto.polyml-heap'
 
 ################################
 # Targets: 
 ################################
 default: bin
 
-$(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
-	@cd ./isaplib; make
+# always run make; it's quick and deals with its own deps
+$(ISAPLIB_HEAP):
+	cd ./isaplib; make
 
 # make polyml heap
-heaps/$(THE_POLY_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC (); PolyML.SaveState.saveState "heaps/$(THE_POLY_HEAP)"));' | $(POLYML)
-	@echo "Built polyml heap: heaps/$(THE_POLY_HEAP)"
+heaps/$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC (); PolyML.SaveState.saveState "heaps/$(QUANTO_HEAP)"));' | $(POLYML)
+	@echo "Built polyml heap: heaps/$(QUANTO_HEAP)"
 
-heap: heaps/$(THE_POLY_HEAP)
+heap: heaps/$(QUANTO_HEAP)
 
-bin/$(THE_BIN): heaps/$(THE_POLY_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(THE_POLY_HEAP)"; do_and_exit_or_die (fn () => (PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die Controller.init))));' | $(POLYML)
+bin/$(THE_BIN): heaps/$(QUANTO_HEAP)
+	echo 'PolyML.SaveState.loadState "heaps/$(QUANTO_HEAP)"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
 bin: bin/$(THE_BIN)
 
 # startup an ML shell using the quanto heap
-ml-shell: heaps/$(THE_POLY_HEAP)
+ml-shell: heaps/$(QUANTO_HEAP)
 	./bin/polyml-quanto
 
 run: ml-shell

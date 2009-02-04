@@ -61,3 +61,4 @@ use "hilb.ML";
 
 use "controller.ML";
 
+val run = Controller.init;
