@@ -113,8 +113,8 @@ structure RGHilbTerm = TensorTermFun(
 structure Graph = RGGraph
 fun pretty_vertex fmt graph vert = let
     val (v, (ie,oe)) = Graph.get_vertex graph vert
-    val (ic,oc) = (length (Graph.Edge.NSet.list_of ie),
-		   length (Graph.Edge.NSet.list_of oe))
+    val (ic,oc) = (Graph.Edge.NSet.cardinality ie,
+		   Graph.Edge.NSet.cardinality oe)
     val nums = [Pretty.str (Int.toString ic),
 		Pretty.str ", ",
 		Pretty.str (Int.toString oc)]

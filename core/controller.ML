@@ -351,6 +351,13 @@ in ("ok\n", state |> push_hist tname
 		  |> set_graph_at tname (G.merge_by_vertices targ source))
 end
 
+fun flip_vertices (_::vs, graph) = let
+    fun flip_data (V.IVert (V.Xnd e)) = V.IVert (V.Znd e)
+      | flip_data (V.IVert (V.Znd e)) = V.IVert (V.Xnd e)
+      | flip_data d = d
+in ("ok\n", fold (G.update_vertex flip_data) vs graph)
+end
+
 
 (* Register commands available from the console and associate docs *)
 
@@ -526,6 +533,14 @@ val () = (
 	("insert_graph TARGET SOURCE\n\n"^
 	 "    insert of copy of SOURCE into TARGET\n")
 	(insert_graph);
+
+    register_cmd
+	"flip_vertices"
+	("flip_vertices G V1 .. VN\n\n"^
+	 "    reverse the colour of vertices V1..VN, ingoring\n"^
+	 "    boundary vertices.")
+	(lift_graph_mutator flip_vertices);
+
 
 
     ())
