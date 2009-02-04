@@ -27,6 +27,7 @@ val (_,g) = g|> Graff.add_edge () v8 v6
 val (_,g) = g|> Graff.add_edge () v1 v6
 end
 
+(*
 structure Dag = 
 struct
 open Graff
@@ -106,3 +107,4 @@ in
 end
 
 end
+*)

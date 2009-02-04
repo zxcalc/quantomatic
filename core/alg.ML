@@ -24,6 +24,9 @@ fun invert_perm perm = get_perm Int.compare perm (0 upto ((length perm)-1))
 (* apply a permutation to a list *)
 fun apply_perm perm lst = map (nth lst) perm
 
+fun id size = (0 upto (size-1))
+fun is_id perm = perm = (id (length perm))
+
 (* The above functions have the property:
  *   apply_perm (get_perm ord lst1 lst2) lst1 = lst2 *)
 

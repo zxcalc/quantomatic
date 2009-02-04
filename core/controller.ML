@@ -111,10 +111,6 @@ val cmds :
 fun register_cmd name help f =
     cmds := ((!cmds) |> Symtab.update (name,(help,f)))
 
-
-
-
-
 (* state accessors *)
 fun fetch_graph name state =
     (case GraphName.NTab.lookup (get_graphs state) name
@@ -205,7 +201,6 @@ fun new_graph ([], state) =
     graph_maker GraphName.default_name G.empty state
 fun load_graph ([fname], state) = 
     graph_maker GraphName.default_name (LoadSave.load_graph fname) state
-
 end    
     
 fun save_graph ([_, fname], graph) = 
@@ -316,18 +311,15 @@ fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
 
 fun set_angle ([_,v,a], graph) =
     ("ok\n", graph |> G.update_vertex (vdata a) v)
-    handle Match => ("!!! Can only set angles for red and green vertices.\n",graph)
-	 | AngleExpr.parse_exp => ("!!! Cannot parse angle expression.\n", graph)
+    handle Match => raise user_exp "Can only set angles for red and green vertices."
+	 | AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression."
 				  
 fun hilb ([_, format], graph) =
-    let
-	fun fmt "text" = RGHilbTerm.pretty_text
-	  | fmt "mathematica" = RGHilbTerm.pretty_mathematica
-	  | fmt _ = fn _ => Pretty.str "!!! Bad formatter."
-    in
-	(Pretty.string_of (
-	 fmt format (RGHilbTerm.from_graph graph)))^"\n"
-    end
+    (Pretty.string_of (
+     RGHilbTerm.pretty (AlgFormat.of_string format)
+		      (RGHilbTerm.of_graph graph)))^"\n"
+    handle AlgFormat.not_supported_exp =>
+	   raise user_exp "Term format not supported."
 
 fun add_bang ([_], graph) = graph |> G.new_box (G.BBox.default_name)
 				  >> (fn a => a^"\n")

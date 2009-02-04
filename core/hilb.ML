@@ -1,268 +1,134 @@
 signature GRAPH_ADAPTER =
 sig
     structure Graph : GRAPH
-    structure Matrix : MATRIX
-    datatype term =
-	     V of (string * string list) |
-	     BV of Graph.Vertex.name |
-	     Comp of term list |
-	     Tens of term list
-
-    (* translate a vertex into its representation as a term *)
-    val translate_vertex : Graph.T -> Graph.Vertex.name -> term
-
-    (* define a vertex as its matrix *)
-    val define_vertex : term -> Matrix.T
-
-    (* trace out the given edge from a graph and add the new bvertex names to
-     * the trace list *)
-    val trace_out : Graph.Edge.name ->
-		    (Graph.T * (Graph.Vertex.name * Graph.Vertex.name) list) ->
-		    (Graph.T * (Graph.Vertex.name * Graph.Vertex.name) list)
-
-    (* compose the list of terms, given in graph order, i.e. [f,g] means g o f *)
-    val compose : term list -> term
-
-    (* tensor the given term list, where []->1, [t]->t *)
-    val tensor : term list -> term
-
-    val id_vert : term
-    val one_vert : term
-    val bell_vert : term
-    val bell_dag_vert : term
-    val permutation_op : int list -> term
+    val pretty_vertex : AlgFormat.format -> Graph.T ->
+			Graph.Vertex.name -> Pretty.T
 end
 
-(* Generate a Hilbert space term from an arbitrary directed graph *)
-functor HilbertTermFun(structure GraphAdapter : GRAPH_ADAPTER) =
+(* construct tensor term from a DAG *)
+functor TensorTermFun (
+  structure Graph : GRAPH
+  val pretty_vertex : AlgFormat.format -> Graph.T ->
+		      Graph.Vertex.name -> Pretty.T) =
 struct
 
-structure GraphAdapter = GraphAdapter
-open GraphAdapter
+datatype term =
+	 Tens of term list |
+	 Comp of term list |
+	 V of Graph.Vertex.name |
+	 Sigma of Permutation.T |
+	 Id of int
 
-structure Vertex = Graph.Vertex
-structure Edge = Graph.Edge
+(* a component holds a term and a list of inputs in order *)
+type component = Graph.Edge.name list * term * Graph.Edge.name list
 
-fun list_of_successors graph v = let
-    val out_edges = Edge.NSet.list_of (#2(#2(Graph.get_vertex graph v)))
-    val targ = fn e => #2(#2(Graph.get_edge graph e))
-in map targ out_edges
+
+fun wrap_vertex graph v = let
+    val (ie,oe) = ((apfst Graph.Edge.NSet.list_of) o
+		   (apsnd Graph.Edge.NSet.list_of) o
+		   snd) (Graph.get_vertex graph v)
+in (ie,V v,oe)
 end
 
-fun locate_bv (Comp lst) = locate_bv (List.last lst)
-  | locate_bv (Tens lst) = fold (curry op@) (map locate_bv lst) []
-  | locate_bv (V _) = []
-  | locate_bv (BV a) = [a]
+(* tensor a list of components, gathering inputs *)
+fun tensor [] = ([],Id 0,[])
+  | tensor [x] = x
+  | tensor clist = fold_rev (fn (i1,t,o1) =>
+			     fn (i1s, Tens ts, o1s) =>
+				(i1@i1s, Tens (t::ts), o1@o1s))
+			    clist ([], Tens [], [])
+val flat_compose = let
+    fun fc [] = []
+      | fc ((Comp l1)::l2) = l1 @ fc l2
+      | fc (t::ts) = t :: fc ts
+in Comp o fc
+end
 
-
-fun get_output_perm trlist term =
-    let
-	val bvs = locate_bv term
-	val trset = Graph.Vertex.NSet.of_list trlist
-	val real_bvs = filter_out (Graph.Vertex.NSet.contains trset) bvs
-	val bvs' = trlist @ (sort Graph.Vertex.name_ord real_bvs)
-    in Permutation.get_perm Graph.Vertex.name_ord bvs bvs'
-    end
-
-(* forest MUST be acyclic, or this will not terminate *)
-fun from_tree forest root = let
-    val root_v = translate_vertex forest root
+(* perform the composition t1 ; t2 *)
+fun compose (i1, t1, o1) (_, Id _, _) = (i1, t1, o1)
+  | compose (i1, t1, o1) (i2, t2, o2) = let
+    val oset = Graph.Edge.NSet.of_list o1
+    val new_ins =  filter_out (Graph.Edge.NSet.contains oset) i2
+    val full_t1 = case length new_ins
+		   of 0 => t1
+		    | n => (case t1 of Tens ts => Tens (ts@[Id n])
+				     | _ => Tens [t1, Id n])
+    val perm = Permutation.get_perm Graph.Edge.name_ord (o1 @ new_ins) i2
+    val sigma = if Permutation.is_id perm then [] else [Sigma perm]
 in
-    case list_of_successors forest root
-     of [] => root_v
-      | cs => case root_v
-		    of (BV _) => compose [bell_vert,
-					  tensor (root_v::
-						  (map (from_tree forest) cs))]
-		     | _ => compose [root_v,
-				     tensor (map (from_tree forest) cs)]
+    (i1 @ new_ins, flat_compose (full_t1 :: sigma @ [t2]), o2)
 end
 
-fun from_graph graph = let
-    val (bad_edges,roots) =
-	Graph.dft_with_roots (Edge.NSet.delete) graph (Graph.get_enames graph)
-    val (term_graph,traces) = Edge.NSet.fold trace_out bad_edges (graph, [])
-    val term = tensor (map (from_tree term_graph) (Vertex.NSet.list_of roots))
-    val trlist = foldr (fn ((a,b),lst) => a::b::lst) [] traces
-    val perm = get_output_perm trlist term
-    val nbell = length traces
-    val nid = (length perm) - (2 * nbell)
-    val bell_states = if nbell = 0 then []
-		      else [Tens(
-			    (replicate nbell bell_dag_vert)@
-			    (replicate nid id_vert))]
-in compose (term::(permutation_op perm)::bell_states)
+
+fun of_graph graph = let
+    val dag = Graph.convert_to_dag graph
+    val ranks = Graph.get_dag_ranks dag
+    val tens_rank = tensor o (map (wrap_vertex dag))
+in (graph, #2 (fold_rev compose (map tens_rank ranks) ([], Id 0, [])))
 end
 
-(* compare vertices *)
-exception non_vertex_compared_exp
-fun vertex_ord (V (v1,arg1), V (v2,arg2)) =
-    (case String.compare (v1,v2)
-      of EQUAL => List.collate String.compare (arg1, arg2)
-       | ord => ord)
-  | vertex_ord _ = raise non_vertex_compared_exp
-structure DefTab = TableFun(type key = term val ord = vertex_ord);
-
-
-val get_defs = let
-    fun get_defs' defs (Comp (t::ts)) = get_defs' (get_defs' defs t) (Comp ts)
-      | get_defs' defs (Tens (t::ts)) = get_defs' (get_defs' defs t) (Tens ts)
-      | get_defs' defs (V v) = (case DefTab.lookup defs (V v)
-				 of NONE => defs |> DefTab.update
-						 (V v, define_vertex (V v))
-				  | _ => defs)
-      | get_defs' defs _ = defs
-
-in get_defs' DefTab.empty
-end
-
-fun pretty_defs pretty_term pretty_mat defs = let
-    fun pdef (k,v) = cons (Pretty.block
-			       [pretty_term k, Pretty.str ":=", pretty_mat v])
-in Pretty.chunks (DefTab.fold pdef defs [])
-end
-
-(* multiple output formats *)
-fun pretty_mathematica (V (f, [])) = Pretty.str f
-  | pretty_mathematica (V (f, args)) = Pretty.block[Pretty.str f,
-					   Pretty.str_list "[" "]" args]
-  | pretty_mathematica (BV n) = pretty_mathematica id_vert
-  | pretty_mathematica (Comp lst) = Pretty.block
-					([Pretty.str "("]@
-					 (Pretty.separate
-					      " ."
-					      (map pretty_mathematica (rev lst)))@
-					 [Pretty.str ")"])
-  | pretty_mathematica (Tens lst) = Pretty.block[
-				    Pretty.str "T",
-				    Pretty.list
-					"[" "]" (map pretty_mathematica lst)]
-				    
-
-fun pretty_text (V (f, [])) = Pretty.str f
-  | pretty_text (V (f, args)) = Pretty.block[Pretty.str f,
-					   Pretty.str_list "[" "]" args]
-  | pretty_text (BV _) = pretty_text id_vert
-  (* Pretty.enclose "<" ">" [Vertex.pretty_name n] *)
-  | pretty_text (Comp lst) = Pretty.block
-				 ([Pretty.str "("]@
-				  (Pretty.separate
-				       " o" (map pretty_text (rev lst)))@
-				  [Pretty.str ")"])
-  | pretty_text (Tens lst) = Pretty.block
-				 ([Pretty.str "("]@
-				  (Pretty.separate
-				       " X" (map pretty_text lst))@
-				  [Pretty.str ")"])
 open AlgFormat
-fun pretty format term = 
-    let val pt = case format
-		  of MATHEMATICA => pretty_mathematica
-		   | PLAIN => pretty_text
-		   | _ => raise not_supported_exp
-    in pt term
-    end
-
-val print = Pretty.writeln o pretty_text
-			     
+fun pretty format (graph,term) = let
+    val ((topen,tclose,tsep),csep) =
+	case format
+	 of MATHEMATICA => (("T[", "]", ","), " .")
+	  | PLAIN => (("(", ")", " x"), " o")
+	  | _ => raise not_supported_exp
+    fun pr (V name) = pretty_vertex format graph name
+      | pr (Id num) = Pretty.str ("id2[" ^ (Int.toString num) ^ "]")
+      | pr (Sigma perm) = Pretty.block[Pretty.str "sig",
+				       Pretty.str_list
+					   "[" "]"
+					   (map Int.toString perm)]
+      | pr (Comp lst) = Pretty.block
+			    ([Pretty.str "("]@
+			     (Pretty.separate
+				  csep (map pr (rev lst)))@
+			     [Pretty.str ")"])
+      | pr (Tens lst) = Pretty.block
+			    ([Pretty.str topen]@
+			     (Pretty.separate
+				  tsep (map pr lst))@
+			     [Pretty.str tclose])
+in pr term
 end
 
-structure RGHilbAdapter  : GRAPH_ADAPTER =
+    
+
+val print = Pretty.writeln o (pretty PLAIN)
+fun printc (_,t,_) = print t
+end
+
+(*
+structure RGGraphAdapter : GRAPH_ADAPTER =
 struct
+structure Graph = RGGraph
+fun pretty_vertex _ _ = Graph.Vertex.pretty_name
+
+end
+*)
+
+structure RGHilbTerm = TensorTermFun(
 
 structure Graph = RGGraph
-structure Matrix = IntMatrix
-datatype term =
-	 V of (string * string list) |
-	 BV of Graph.Vertex.name |
-	 Comp of term list |
-	 Tens of term list
-
-val bv = RGVertex.BVert;
-
-val id_vert = V ("id",[])
-val one_vert = V ("1",[])
-val bell_vert = V ("bell",[])
-val bell_dag_vert = V ("belldag",[])
-fun permutation_op perm =
-    case perm
-     of [] => id_vert
-      | _ => if perm = (0 upto ((length perm)-1)) then id_vert
-	     else V ("sigma", (map Int.toString perm))
-
-
-(* drop the tensor if we don't need it, empty tensor is the unit *)
-fun tensor [] = one_vert
-  | tensor [x] = x
-  | tensor lst = Tens lst
-
-(* compose and do some easy simplification *)
-fun compose [] = id_vert
-  | compose [x] = x
-  | compose lst = let
-	val lst' = filter_out (fn v => v=id_vert) lst
-	fun flat_c [] = []
-	  | flat_c ((Comp xs)::ys) = xs @ (flat_c ys)
-	  | flat_c (y::ys) = y::(flat_c ys)
-	val lst'' = flat_c lst'
-    in if lst'' = lst then Comp lst else compose lst''
-    end
-
-exception vertex_tree_exp
-
-(* If the given angle is non-zero, add it above the vertex, unless it has no
- * inputs, then add it below. *)
-fun attach_angle b an trm inputs =
-    if AngleExpr.is_zero an then trm
-    else compose ((case inputs of 1 => I | _ => rev)
-		      [V ("a"^b, [Pretty.string_of (AngleExpr.pretty an)]),trm])
-
-(* TODO: does NSet have size? *)
-val edge_count = fn s => UnitEdge.NSet.fold (fn _ => fn t => 1+t) s 0
-
-(* expand spiders as a tree of deltas *)
-fun vertex_tree b 0 n = compose [V ("e"^b^"dag",[]), vertex_tree b 1 n]
-  | vertex_tree b 1 0 = V ("e"^b,[])
-  | vertex_tree b 1 1 = id_vert
-  | vertex_tree b 1 2 = V ("d"^b,[])
-  | vertex_tree b 1 n = compose [V ("d"^b,[]),
-				 tensor [id_vert,
-					 vertex_tree b 1 (n-1)]]
-  | vertex_tree b _ _ = raise vertex_tree_exp (* shouldn't have two inputs *)
-
-(* boundary vertices become identities, spiders become delta-trees, possibly
- * preceeded by an angle *)
-fun translate_vertex graph vert =
-    let val (v, (ie,oe)) = Graph.get_vertex graph vert
-	val (ic,oc) = (edge_count ie, edge_count oe)
-    in
-	case v
-	 of RGVertex.BVert => BV vert
-	  | RGVertex.IVert (RGVertex.Xnd e) =>
-	    attach_angle "x" e (vertex_tree "x" ic oc) ic
-	  | RGVertex.IVert (RGVertex.Znd e) =>
-	    attach_angle "z" e (vertex_tree "z" ic oc) ic
-	  | RGVertex.IVert (RGVertex.Hnd) => V ("H",[])
-    end
-
-fun define_vertex (V ("sigma", perm)) =
-    let val iperm = map (fn a => the (Int.fromString a)) perm
-    in Matrix.permute_tensor iperm 2
-    end
-  | define_vertex _ = Matrix.singleton (Matrix.URing.zero)
-
-fun trace_out e (g,tr) = let
-	val (bv1, g') = g |> Graph.add_vertex bv
-	val (bv2, g') = g' |> Graph.add_vertex bv
-	val (_, (iv1,iv2)) = Graph.get_edge g' e
-	val g' = g' |> Graph.delete_edge e
-	val (_,g') = g' |> Graph.add_edge () iv1 bv1
-	val (_,g') = g' |> Graph.add_edge () iv2 bv2
-    in (g', (bv1, bv2)::tr)
-    end
-
+fun pretty_vertex fmt graph vert = let
+    val (v, (ie,oe)) = Graph.get_vertex graph vert
+    val (ic,oc) = (length (Graph.Edge.NSet.list_of ie),
+		   length (Graph.Edge.NSet.list_of oe))
+    val nums = [Pretty.str (Int.toString ic),
+		Pretty.str ", ",
+		Pretty.str (Int.toString oc)]
+in Pretty.block	
+   (case v of RGVertex.IVert iv =>
+	     (case iv
+	       of RGVertex.Xnd e =>
+		  [Pretty.str "xsp[", AngleExpr.pretty e, Pretty.str ", "] @
+		  nums @ [Pretty.str "]"]
+		| RGVertex.Znd e =>
+		  [Pretty.str "zsp[", AngleExpr.pretty e, Pretty.str ", "] @
+		  nums @ [Pretty.str "]"])
+	   | _ => [Pretty.str "id2[1]"])
 end
 
-(* Hilbert space terms for red-green graphs *)
-structure RGHilbTerm = HilbertTermFun(structure GraphAdapter = RGHilbAdapter)
+)
 

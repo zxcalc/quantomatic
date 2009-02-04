@@ -21,6 +21,7 @@ import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.util.Pair;
+import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 
@@ -124,6 +125,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	 */
 	private class RWMouse extends PluggableGraphMouse {
 		private GraphMousePlugin pickingMouse, edgeMouse;
+		private boolean pickingMouseSelected;
 		public RWMouse() {
 			int mask = InputEvent.CTRL_MASK;
 			if (QuantoFrame.isMac) mask = InputEvent.META_MASK;
@@ -139,13 +141,23 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 		
 		public void setPickingMouse() {
+			pickingMouseSelected = true;
 			remove(edgeMouse);
 			add(pickingMouse);
 		}
 		
 		public void setEdgeMouse() {
+			pickingMouseSelected = false;
 			remove(pickingMouse);
 			add(edgeMouse);
+		}
+		
+		public boolean isPickingMouse() {
+			return pickingMouseSelected;
+		}
+		
+		public boolean isEdgeMouse() {
+			return !pickingMouseSelected;
 		}
 		
 		public ItemListener getItemListener() {
@@ -182,6 +194,18 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		setGraphMouse(graphMouse);
 		menus = new ArrayList<JMenu>();
 		buildMenus();
+		
+		addPreRenderPaintable(new VisualizationServer.Paintable() {
+			public void paint(Graphics g) {
+				Color old = g.getColor();
+				g.setColor(Color.red);
+				if (graphMouse.isEdgeMouse())
+					g.drawString("EDGE MODE", 5, 15);
+				g.setColor(old);
+			}
+
+			public boolean useTransform() {return false;}
+		});
 		
 		addKeyListener(new KeyAdapter() {
 			public void keyPressed(KeyEvent e) {
@@ -458,7 +482,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				outputToTextView(getCore().hilb(getGraph(), "text"));
+				outputToTextView(getCore().hilb(getGraph(), "plain"));
 			}
 		});
 		hilbMenu.add(item);

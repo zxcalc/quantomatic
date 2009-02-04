@@ -22,7 +22,6 @@ public class QuantoCore {
 	
 	private Process backEnd;
 	private BufferedReader from_backEnd;
-	//private BufferedReader from_backEndError;
 	private BufferedWriter to_backEnd;
 	private PrintStream output;
 	private Completer completer;
@@ -50,15 +49,14 @@ public class QuantoCore {
 		this.consoleEcho = false;
 		this.output = output;
 		try {
-			ProcessBuilder pb = new ProcessBuilder("quanto-core");	
+			ProcessBuilder pb = new ProcessBuilder("quanto-core");
+			pb.redirectErrorStream(true);
 			System.out.println("Initialising QuantoML...");
 			backEnd = pb.start();
 			
 			System.out.println("Connecting pipes...");
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
-			//from_backEndError = new BufferedReader(new InputStreamReader(backEnd
-			//		.getErrorStream()));
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
 			
@@ -106,29 +104,33 @@ public class QuantoCore {
 	}
 
 	public String receive() {
-		StringBuffer message = new StringBuffer();
-		try {
-			// end of text is marked by " "+BACKSPACE (ASCII 8)
-			
-			int c = from_backEnd.read();
-			while (c != 8) {
-				message.append((char)c);
-				c = from_backEnd.read();
+		synchronized (this) {
+			StringBuffer message = new StringBuffer();
+			try {
+				// end of text is marked by " "+BACKSPACE (ASCII 8)
+				
+				int c = from_backEnd.read();
+				while (c != 8) {
+					if (c == -1) throw new IOException();
+					message.append((char)c);
+					c = from_backEnd.read();
+				}
+				
+				// delete the trailing space
+				message.deleteCharAt(message.length()-1);
+			} catch (IOException e) {
+				System.out.println("Back-end last said: " + message.toString());
+				System.out.println("Exit value from backend: " + backEnd.exitValue());
+				throw new QuantoCore.FatalError(e);
+			}
+			catch (java.lang.NullPointerException e) {
+				output.println("Exit value from backend: " + backEnd.exitValue());
+				e.printStackTrace();
+				return null;
 			}
 			
-			// delete the trailing space
-			message.deleteCharAt(message.length()-1);
-		} catch (IOException e) {
-			output.println("Exit value from backend: " + backEnd.exitValue());
-			e.printStackTrace();
+			return message.toString();
 		}
-		catch (java.lang.NullPointerException e) {
-			output.println("Exit value from backend: " + backEnd.exitValue());
-			e.printStackTrace();
-			return null;
-		}
-		
-		return message.toString();
 	}
 	
 	public String receiveOrFail() throws ConsoleError {
@@ -162,39 +164,41 @@ public class QuantoCore {
 	 */
 	
 	/**
-	 * Send a command with the given arguments. All of the args should be of types
-	 * with a well-behaved toString() method.
+	 * Send a command with the given arguments. All of the args should be objects
+	 * which implement HasName and have non-null names
 	 */
 	protected String command(String name, HasName ... args) throws ConsoleError {
-		StringBuffer cmd = new StringBuffer(name);
-		for (HasName arg : args) {
-			if (arg.getName() == null)
-				throw new ConsoleError(
-						"Attempted to pass unnamed object to core.");
-			cmd.append(' ');
-			cmd.append(arg.getName());
-		}
-		cmd.append(';');
-		
-		String ret;
-		//System.out.print(cmd);
 		synchronized (this) {
-			if (consoleEcho) output.println(cmd);
-			send(cmd.toString());
-			try {
-				ret = receiveOrFail();
-				if (consoleEcho) {
-					if (ret.startsWith("GRAPH_XML"))
-						output.println("GRAPH_XML...");
-					else output.print(ret);
-				}
-			} finally {
-				String pr = receive(); // eat the prompt
-				if (consoleEcho) output.print(pr);
+			StringBuffer cmd = new StringBuffer(name);
+			for (HasName arg : args) {
+				if (arg.getName() == null)
+					throw new ConsoleError(
+							"Attempted to pass unnamed object to core.");
+				cmd.append(' ');
+				cmd.append(arg.getName());
 			}
+			cmd.append(';');
+			
+			String ret;
+			//System.out.println(cmd);
+			synchronized (this) {
+				if (consoleEcho) output.println(cmd);
+				send(cmd.toString());
+				try {
+					ret = receiveOrFail();
+					if (consoleEcho) {
+						if (ret.startsWith("GRAPH_XML"))
+							output.println("GRAPH_XML...");
+						else output.print(ret);
+					}
+				} finally {
+					String pr = receive(); // eat the prompt
+					if (consoleEcho) output.print(pr);
+				}
+			}
+			
+			return ret;
 		}
-		
-		return ret;
 	}
 	
 	
