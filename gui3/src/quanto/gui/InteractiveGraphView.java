@@ -76,7 +76,11 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					components.put((QVertex)vertex,angleLabeler);
 					InteractiveGraphView.this.add(angleLabeler);
 					final QVertex qv = (QVertex)vertex;
-					angleLabeler.setColor(qv.getColor());
+					if (qv.getColor().equals(Color.red)) {
+						angleLabeler.setColor(new Color(255,170,170));
+					} else {
+						angleLabeler.setColor(new Color(150,255,150));
+					}
 					angleLabeler.addChangeListener(new ChangeListener() {
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler)e.getSource();
@@ -376,6 +380,18 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, commandMask));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Flip Vertex Colour", KeyEvent.VK_F);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().flip_vertices(getGraph(),
+					getPickedVertexState().getPicked());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, commandMask));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);

@@ -9,9 +9,9 @@ compbasis = {b0, b1};
 PermutedTensor[perm_] :=
   (perm1 = Function[x, x + 1] /@ perm; 
    Function[p, Permute[p, perm1]] /@ Tuples[{1, 2}, Length[perm1]]);
-Sigma[perm__] := 
+sig[perm__] := 
   Function[t, Flatten[T @@ t]] /@ 
-   Function[b, compbasis[[b]]] /@ PermutedTensor[perm];
+  Function[b, compbasis[[b]]] /@ PermutedTensor[{perm}];
 bplus = h.b0; bminus = h.b1;
 ezdag = rootd*bplus; exdag = h.ezdag;
 ez = Dag[ezdag]; ex = ez.h;
@@ -29,6 +29,6 @@ bell = dz.ezdag; belldag = Dag[bell];
  ex.bplus == IdentityMatrix[1], ex.bplus == IdentityMatrix[1], 
  T[exdag, exdag] == rootd*dz.exdag, T[ezdag, ezdag] == rootd*dx.ezdag,
   dzdag.T[id, ezdag] == id, dxdag.T[id, exdag] == id, 
- Sigma[{0, 2, 1}].T[{{x1}, {x2}}, {{y1}, {y2}}, {{z1}, {z2}}] == 
+ sig[0, 2, 1].T[{{x1}, {x2}}, {{y1}, {y2}}, {{z1}, {z2}}] == 
   T[{{x1}, {x2}}, {{z1}, {z2}}, {{y1}, {y2}}], unbiasedz[0] == ezdag, 
  unbiasedz[\[Pi]] == rootd*bminus}

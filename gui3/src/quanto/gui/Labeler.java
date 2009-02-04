@@ -5,9 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Rectangle;
 import java.awt.event.*;
-import java.awt.geom.Rectangle2D;
 
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -48,10 +46,10 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	}
 	
 	public void paint(Graphics g) { 
-        Graphics2D g2 = (Graphics2D) g.create(); 
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
-        super.paint(g2); 
-        g2.dispose();
+        //Graphics2D g2 = (Graphics2D) g.create(); 
+        //g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+        super.paint(g); 
+        //g2.dispose();
     }
 	
 	//@Override
@@ -70,22 +68,24 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	//@Override
 	public void keyReleased(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-			String old = getText();
-			setText(textField.getText());
-			remove(textField);
-			active = label;
-			add(active, BorderLayout.CENTER);
-			if (!old.equals(getText())) fireStateChanged();
+			updateLabel();
 		}
 		refresh();
 	}
 	
 	//@Override
 	public void focusLost(FocusEvent e) {
+		updateLabel();
+		refresh();
+	}
+	
+	private void updateLabel() {
+		String old = getText();
+		setText(textField.getText());
 		remove(textField);
 		active = label;
 		add(active, BorderLayout.CENTER);
-		refresh();
+		if (!old.equals(getText())) fireStateChanged();
 	}
 	
 	private void refresh() {

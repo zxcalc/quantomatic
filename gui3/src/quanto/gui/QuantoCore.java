@@ -308,4 +308,9 @@ public class QuantoCore {
 	throws ConsoleError {
 		command("insert_graph", target, new HasName.StringName(source));
 	}
+	
+	public void flip_vertices (QuantoGraph g, Set<QVertex> vs)
+	throws ConsoleError {
+		command("flip_vertices", g, new HasName.SetName(vs));
+	}
 }

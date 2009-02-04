@@ -820,10 +820,10 @@ fun in_enames g = fst o snd o (get_vertex g);
 fun out_enames g = snd o snd o (get_vertex g);
 
 fun succ_vnames g n =
-    adj_vnames' g (in_enames g n, Edge.NSet.empty);
+    adj_vnames' g (out_enames g n, Edge.NSet.empty);
 
 fun pred_vnames g n =
-    adj_vnames' g (out_enames g n, Edge.NSet.empty);
+    adj_vnames' g (in_enames g n, Edge.NSet.empty);
 
 
 (* vertices incident into vns *)
@@ -1002,7 +1002,11 @@ end
 
 (* will probably not terminate if dag isn't directed acyclic *)
 fun get_dag_ranks dag = let
-    val vnames = Vertex.NSet.list_of (get_vnames dag)
+    val inputs = Vertex.NSet.filter
+		     (fn v => Edge.NSet.is_empty (in_enames dag v))
+		     (get_vnames dag)
+    val vnames = Vertex.NSet.list_of
+		     (Vertex.NSet.subtract (get_vnames dag) inputs)
     fun test seen v = not (Vertex.NSet.contains seen v)
 		      andalso Vertex.NSet.forall
 				  (Vertex.NSet.contains seen)
@@ -1010,7 +1014,7 @@ fun get_dag_ranks dag = let
     fun mk seen =
 	case filter (test seen) vnames
 	 of []=>[] | lst => lst :: mk (Vertex.NSet.add_list lst seen)
-in mk Vertex.NSet.empty
+in mk Vertex.NSet.empty @ [Vertex.NSet.list_of inputs]
 end
 
 
