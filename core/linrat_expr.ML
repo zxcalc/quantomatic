@@ -256,19 +256,27 @@ fun coeff x = x|>(
 	      ((num --| sym "/" -- num) >> rat)
 		  || (sym "(" |-- coeff --| sym ")")
 		  || num >> whole_num)
+(* first term *)
 fun term x = x|>(
 	     ((sym "-" |-- term) >> neg)
 		 || ((coeff --| (sym "*" || noop) --| pi) >> const_term)
 		 || (pi >> (K one_pi))
 		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
-		 || (ident >> var_term))
-fun terms x = x|>(
-	      ((term --| sym "+" -- terms) >> plus)
-		  || ((term --| sym "-" -- terms) >> minus)
-		  || (sym "(" |-- terms --| sym ")")
-		  || term)
+		 || (ident >> var_term)
+		 || (sym "(" |-- expr --| sym ")"))
 
-fun parse str = let val (EXP e,ts) = terms ((Symbol.explode str)@[Symbol.eof])
+(* successive terms *)
+and term' x = x|>(
+	      (sym "+" |-- term)
+		  || (sym "-" |-- term >> neg))
+and terms x = x|>(
+	      ((term' -- terms) >> plus)
+		  || term')
+and expr x = x|>(
+	     (term -- terms >> plus)
+		 || term)
+
+fun parse str = let val (EXP e,ts) = expr ((Symbol.explode str)@[Symbol.eof])
 		in if ts = [Symbol.eof] then e else raise parse_exp
 		end
 
