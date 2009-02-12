@@ -9,7 +9,6 @@ fun of_string "mathematica" = MATHEMATICA
   | of_string _ = raise not_supported_exp
 end
 
-
 structure Permutation =
 struct
 type T = int list
