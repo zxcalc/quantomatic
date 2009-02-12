@@ -91,7 +91,7 @@ fun rule_of_spider_for_g g (Spider (spider_lhs,spider_d)) =
     let 
       val boundary = (RGGraph.get_boundary spider_lhs)
       (* ensure rhs center name is distinct from lhs boundary *)
-      val fresh_vn = Vertex.NSet.new boundary "spider"
+      val fresh_vn = Vertex.NSet.new boundary (Vertex.mk "spider0")
       val rhs = 
           (RGGraph.new_named_vertex 
              fresh_vn (RGGraph.BVertex.IVert spider_d) RGGraph.empty)

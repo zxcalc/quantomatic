@@ -14,7 +14,7 @@ end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 structure RGVertex
-: RG_VERTEX where type name = string
+: RG_VERTEX
 = struct
 
   datatype qnd = Xnd of AngleExpr.T (* Red: defined using H of Z *) 
