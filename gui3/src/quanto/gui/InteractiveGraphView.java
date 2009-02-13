@@ -165,12 +165,14 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			pickingMouseSelected = true;
 			remove(edgeMouse);
 			add(pickingMouse);
+			InteractiveGraphView.this.repaint();
 		}
 		
 		public void setEdgeMouse() {
 			pickingMouseSelected = false;
 			remove(pickingMouse);
 			add(edgeMouse);
+			InteractiveGraphView.this.repaint();
 		}
 		
 		public boolean isPickingMouse() {
