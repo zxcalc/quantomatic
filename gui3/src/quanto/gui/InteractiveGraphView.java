@@ -24,6 +24,7 @@ import edu.uci.ics.jung.graph.util.Pair;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 
 public class InteractiveGraphView extends GraphView
 implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
@@ -81,6 +82,16 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					} else {
 						angleLabeler.setColor(new Color(150,255,150));
 					}
+					
+					String angle = ((QVertex)vertex).getAngle();
+					Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
+					Point loc = new Point((int)(screen.getX()-rect.getCenterX()),
+							  (int)screen.getY()+10);
+					rect.setLocation(loc);
+					
+					if (!angleLabeler.getText().equals(angle)) angleLabeler.setText(angle);
+					if (!angleLabeler.getBounds().equals(rect)) angleLabeler.setBounds(rect);
+					
 					angleLabeler.addChangeListener(new ChangeListener() {
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler)e.getSource();
@@ -96,14 +107,20 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						}
 					});
 				}
-				angleLabeler.setText(((QVertex)vertex).getAngle());
-				angleLabeler.setVisible(true);
-				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
-				angleLabeler.setBounds(rect);
 				
-				angleLabeler.setLocation(
-						new Point((int)(screen.getX()-rect.getCenterX()),
-								  (int)screen.getY()+10));
+				
+				
+				String angle = ((QVertex)vertex).getAngle();
+				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
+				Point loc = new Point((int)(screen.getX()-rect.getCenterX()),
+						  (int)screen.getY()+10);
+				rect.setLocation(loc);
+				
+				if (!angleLabeler.getText().equals(angle)) angleLabeler.setText(angle);
+				if (!angleLabeler.getBounds().equals(rect)) {
+					angleLabeler.setBounds(rect);
+				}
+						
 				return new JLabel();
 			} else {
 				return new JLabel((String)value);
@@ -191,6 +208,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		this.viewHolder = null;
 		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout()));
 		setLayout(null);
+		
+		//JLabel lab = new JLabel("test");
+		//add(lab);
 		Relaxer r = getModel().getRelaxer();
 		if (r!= null) r.setSleepTime(10);
 		
@@ -545,8 +565,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		getGraph().fromXml(xml);
 		getGraphLayout().initialize();
 		
-		//Relaxer relaxer = getModel().getRelaxer();
-		//if (relaxer != null) relaxer.relax();
+		((ChangeEventSupport)getGraphLayout()).fireStateChanged();
+		
+		Relaxer relaxer = getModel().getRelaxer();
+		if (relaxer != null) relaxer.relax();
 		
 		// clean up un-needed labels:
 		((QVertexLabeler)getRenderContext().getVertexLabelRenderer()).cleanup();

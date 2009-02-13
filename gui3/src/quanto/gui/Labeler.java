@@ -1,10 +1,10 @@
 package quanto.gui;
 
-import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.event.*;
 
 import javax.swing.JComponent;
@@ -22,6 +22,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	JComponent active;
 	String value;
 	ChangeEvent evt;
+	Point idealLocation;
 	
 	public Labeler(String value) {
 		setLayout(new BorderLayout());
@@ -38,6 +39,19 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		active = label;
 		add(active, BorderLayout.CENTER);
 		refresh();
+	}
+	
+	@Override
+	public void setLocation(Point p) {
+		super.setLocation(p);
+	}
+	
+	public Point getIdealLocation() {
+		return idealLocation;
+	}
+	
+	public void setIdealLocation(Point p) {
+		idealLocation = p;
 	}
 	
 	public void setColor(Color c) {
@@ -79,6 +93,10 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		refresh();
 	}
 	
+	public boolean isBeingEdited() {
+		return active == textField;
+	}
+	
 	private void updateLabel() {
 		String old = getText();
 		setText(textField.getText());
@@ -90,6 +108,8 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	
 	private void refresh() {
 		revalidate();
+		// along with keeping the bounds, this forces a redraw
+		setBounds(new Rectangle(getPreferredSize()));
 		repaint();
 	}
 	

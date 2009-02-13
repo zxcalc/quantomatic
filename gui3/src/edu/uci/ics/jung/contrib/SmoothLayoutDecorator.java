@@ -37,17 +37,30 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		return currentState.transform(v);
 	}
 	
+	@Override
+	public void setLocation(V v, Point2D location) {
+		super.setLocation(v, location);
+		currentState.setLocation(v, location);
+	}
+	
 	// check out strange condition here
 	public void step() {
 		synchronized (getGraph()) {
 			boolean moved = false;
 			for (V v : getGraph().getVertices()) moved = tick(v) || moved;
-			done = ! moved;
+			//done = ! moved;
 		}
 	}
 	
 	public boolean done() {
-		return false;
+		synchronized (getGraph()) {
+			for (V v : getGraph().getVertices()) {
+				if (! currentState.transform(v).equals(getDelegate().transform(v))) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 	
 	private double millis() {
