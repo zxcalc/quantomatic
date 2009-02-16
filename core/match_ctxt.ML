@@ -9,16 +9,11 @@ val empty : T
 val vertex_idata_match : BVertex.IData.data -> BVertex.IData.data -> T -> T option
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
 val edge_match : Edge.data -> Edge.data -> T -> T option
-(* given edges between two vertices in pat and tgt, match pat to tgt *)
-val multi_edge_match :
-    Edge.data Edge.NTab.T (* pat edges *)
-    -> Edge.data Edge.NTab.T (* tgt edges *)
-    -> T -> ((Edge.NSet.T * (* unmatched tgt *)
-              (Edge.name Edge.NTab.T)) (* matched: pat -> tgt *)
-             * T) (* edge/vertex data instantiation *)
-              Seq.seq
+
+(* *)              
 val subst_in_vertex : T -> BVertex.IData.data -> BVertex.IData.data
 val subst_in_edge : T -> Edge.data -> Edge.data
+
 val pretty : T -> Pretty.T
 val print : T -> unit
 end;

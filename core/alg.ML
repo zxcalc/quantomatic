@@ -176,10 +176,14 @@ open PR
 open SimpleLexer
 
 
-fun factor x = x|>(
-	       (ident --| sym "^" -- num >> (fn (ID id, INT p) => monomial(id,p)))
-		   || (ident >> (fn (ID id) => var id))
-		   || (num >> (fn (INT n) => const n)))
+fun factor x = 
+    x |> (
+	  (ident --| sym "^" -- num >> (fn (ID id, INT p) => monomial(id,p)
+                                   | _ => raise ERROR "alg.ML:factor:1"))
+		  || (ident >> (fn (ID id) => var id
+                     | _ => raise ERROR "alg.ML:factor:2"))
+		  || (num >> (fn (INT n) => const n
+                   | _ => raise ERROR "alg.ML:factor:3")))
 (*
 fun term x = x|>((factor --| sym "*" -- term >> op* ) || factor)
 fun expr x = x|>(
@@ -258,14 +262,16 @@ fun tensor_basis 0 dim = [[]]
  * dimension dim. *)
 fun permute_tensor perm dim =
     let
-	val basis = ident dim
-	val tbasis = tensor_basis (length perm) dim
-	val permuted_tbasis =
-	    map ((fn x=>[x]) o nth basis)
-		(List.map (Permutation.apply_perm perm) tbasis)
+	    val basis = ident dim
+	    val tbasis = tensor_basis (length perm) dim
+	    val permuted_tbasis =
+	        map ((fn x=>[x]) o nth basis)
+		          (List.map (Permutation.apply_perm perm) tbasis)
     in
-	transpose (List.map ((fn [x] => x) o tensor) permuted_tbasis)
-    end
+	    transpose (List.map ((fn [x] => x
+                             | _ => raise ERROR "alg.ML:permute_tensor:1") 
+                           o tensor) permuted_tbasis)
+    end;
 
 fun pretty m = Pretty.chunks (List.map (Pretty.list "[" "]") (map (URing.pretty) m));
 val print = Pretty.writeln o pretty

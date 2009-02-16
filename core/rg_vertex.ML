@@ -47,4 +47,6 @@ structure V = BVertexFun(
 
 open V;
 
+val default_name = mk "a";
+
 end;

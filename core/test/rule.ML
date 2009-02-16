@@ -76,8 +76,11 @@ val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
 val _ = RGGraph.print g;
 val _ = writeln "Ex3";
 
-
-val [m1,m2] = Seq.list_of (Rule.matches TheoryHack.x_isometry_rule g);
+val (rn, rule') = (Rule.rename_rule_apart g TheoryHack.x_isometry_rule);
+val _ = Rule.print rule';
+val [m1,m2] = Seq.list_of (Rule.matches rule' g);
+val _ = Match.print m1;
+val rule'' = Rule.inst_rule rule' m1;
 val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
 val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites TheoryHack.x_isometry_rule g));
 val _ = writeln "Ex4";

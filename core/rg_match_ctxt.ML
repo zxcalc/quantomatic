@@ -30,32 +30,6 @@ fun vertex_idata_match (e1 as V.Hnd) (e2 as V.Hnd) m = SOME m
 (* edges allways match - they have no data, and we ignore direction *)
 fun edge_match ed1 ed2 m = SOME m; 
 
-
-(* tries to match new pattern edge with (first) one in the target set,
-raises exception if target set is empty - we handle this give NONE *)
-exception too_many_pat_edges_exp of string;
-fun matchup_pat_edges pes tes = 
-    let fun match_more (e1,ed) (tens2,ematches) = 
-            (case Edge.NSet.pull_local_bot tens2 of
-               NONE => raise too_many_pat_edges_exp "matchup_pat_edges"
-             | SOME (tn,tens3) => 
-               (tens3, Edge.NTab.ins (e1, tn) ematches))
-    in SOME (Edge.NTab.fold 
-               match_more pes (Edge.NTab.get_nameset tes, Edge.NTab.empty))
-    end handle too_many_pat_edges_exp _ => NONE;
-
-(* given:
-     pes: a set of edges between two vertices in the pat, 
-     tes: a set of edges between two vertices in the tgt 
-   return: 
-     seq of matches using up all edges in pes
-*) 
-fun multi_edge_match pes tes m = 
-    (case matchup_pat_edges pes tes 
-      of NONE => Seq.empty
-       | SOME (matched_ens,leftover_tns) => 
-         Seq.single ((matched_ens,leftover_tns), m))
-
 (* subst in vertex uses angle var instantiations *)
 (* implicit: m a *)
 val subst_in_angle = AngleExpr.subs;
@@ -73,3 +47,6 @@ fun pretty m =
            (VName.NTab.list_of m));
 val print = Pretty.writeln o pretty;
 end;
+
+
+structure MCtxt = AngleMatchCtxt;

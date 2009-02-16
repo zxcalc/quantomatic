@@ -208,18 +208,37 @@ fun inst_rule rule match =
       val emap = Match.get_emap match
 
       val lhs = (get_lhs rule)
-                  |> (Vertex.NTab.fold (* rename (and merge for unified boundary vertices) *)
+                  |> (Vertex.NTab.fold 
+                        (* rename (merge for unified leaf/boundary vertices) *)
                         (fn (n1,n2) => RGGraph.rename_or_merge_vname n1 n2)
                         vmap)
-                  |> (Edge.NTab.fold 
-                        (fn (n1,n2) => RGGraph.rename_ename n1 n2)
-                        emap)
+                  |> (Edge.Ehn.NTab.fold (* rename/merge edges - 
+                                        note: merge only on mapping to loops *)
+                        (fn (ehn1,ehn2) => 
+                         fn lhs => 
+                            let val e1 = (RGGraph.Edge.Ehn.get_ename ehn1) in
+                              case RGGraph.lookup_edge lhs e1 
+                               (* ignore cases where edge has already
+                               been renamed; each edge has two halves,
+                               so it was just renamed earlier by its
+                               other half. *)                               
+                               of NONE => lhs 
+                                | SOME _ => 
+                                  (case RGGraph.try_rename1_ename 
+                                          e1 (RGGraph.Edge.Ehn.get_ename ehn2) lhs
+                                    of NONE => (* already renamed by other half, 
+                                                so drop the edge *)
+                                       RGGraph.delete_edge e1 lhs
+                                     | SOME lhs2 => lhs2)
+                            end)
+                        (Match.EMap.get_domtab emap))
 
       (* only boundary nodes are mapped/renamed on rhs *)
       val oldrhs = get_rhs rule;
       val rhs = oldrhs
-                  |> (Vertex.NSet.fold (* rename (and merge for unified boundary vertices) *)
-                        (fn n1 => RGGraph.rename_or_merge_vname n1 (Vertex.NTab.get vmap n1))
+                  |> (Vertex.NSet.fold (* rename/merge boundary vertices *)
+                        (fn n1 => RGGraph.rename_or_merge_vname 
+                                    n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary oldrhs))
     in
       rule |> set_lhs lhs

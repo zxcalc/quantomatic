@@ -41,6 +41,8 @@ val delete_vertex : Vertex.name -> T -> T
     else an exception is raised *)
 val rename_vname : Vertex.name -> Vertex.name -> T -> T 
 val rename_ename : Edge.name -> Edge.name -> T -> T 
+val try_rename1_ename : Edge.name -> Edge.name -> T -> T option
+val try_rename1_vname : Vertex.name -> Vertex.name -> T -> T option
 
 (* update a data of a vertex or edge *)
 val update_vertex : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
@@ -101,6 +103,9 @@ val lookup_edge : T -> Edge.name
 (* getting stuff from graphs (exception if not there) *)
 val get_vertex : T -> Vertex.name -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T))
 val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
+
+val get_vertex_data : T -> Vertex.name -> Vertex.data
+val get_edge_data : T -> Edge.name -> Edge.data
 
 (* check if two graphs are exactly the same (names, data, and structure) *)
 val exact_eq : T -> T -> bool
@@ -165,7 +170,9 @@ val enames_between : T -> Vertex.name -> Vertex.name -> Edge.NSet.T
 val edges_between : T -> Vertex.name -> Vertex.name -> Edge.data Edge.NTab.T
 
 (* val hens_between : T -> Vertex.name -> Vertex.name -> Edge.Ehn.NSet.T *)
-val get_vertex_ehns : T -> Vertex.name -> Edge.Ehn.NSet.T
+val get_vname_ehns : T -> Vertex.name -> Edge.Ehn.NSet.T
+val get_ehn_vname : T -> Edge.Ehn.name -> Vertex.name
+val get_ehn_data : T -> Edge.Ehn.name -> Edge.data
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
@@ -442,6 +449,11 @@ fun rename_vname n1 n2 g =
     in g |> set_vertices vertices2
          |> set_edges edges2 end;
 
+fun try_rename1_vname en1 en2 g = 
+    SOME (rename_vname en1 en2 g)
+    handle vname_already_exists_exp _ => NONE;
+
+
 
 fun rename_ename en1 en2 g = 
     let 
@@ -451,14 +463,16 @@ fun rename_ename en1 en2 g =
                            of NONE => raise no_such_ename_exp ("rename_vname", en1, g)
                             | SOME x => x;
 
-      (* update the edge entry for n1, we make sure that n2 doesn't already exist *)
+      (* update the edge entry for n1, we make sure that n2 doesn't 
+         already exist *)
       val edges2 = 
           case (edges |> Edge.NTab.delete en1
                       |> Edge.NTab.try_ins (en2,(e,(from_n,to_n))))
            of NONE => raise ename_already_exists_exp (en2,g)
             | SOME edges2 => edges2;
 
-      (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
+      (* update any edges to use the new name n1 instead of n1, using 
+         ins and outs lists *)
       val vertices2 = 
           (get_vertices g)
             |> Vertex.NTab.map_entry (fn (n,(ins,outs)) => 
@@ -470,9 +484,13 @@ fun rename_ename en1 en2 g =
                                                       |> Edge.NSet.ins_fresh en2
                                    in (n,(ins2,outs)) end) to_n;
 
-      (* give back new edge name and new graph *)
+    (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2  end;
+
+fun try_rename1_ename en1 en2 g = 
+    SOME (rename_ename en1 en2 g)
+    handle ename_already_exists_exp _ => NONE;
 
 
 (* pretty printing *)
@@ -554,15 +572,21 @@ fun get_edge g en =
      of NONE => raise no_such_ename_exp ("get_edge", en, g)
       | SOME x => x;
 
+fun get_ehn_vname g ehn = 
+    let val (_,(s,t)) = get_edge g (Edge.Ehn.get_ename ehn)
+    in if Edge.Ehn.is_start ehn then s else t end;
+
+fun get_ehn_data g ehn = fst (get_edge g (Edge.Ehn.get_ename ehn));
+
 val get_vertex_data = fst oo get_vertex;
 val get_edge_data = fst oo get_edge;
 
-fun get_vertex_ehns g v = 
+fun get_vname_ehns g v = 
     let val (d,(ines,outes)) = (get_vertex g v)
     in
       Ehn.NSet.empty 
-        |> Edge.add_src_ehns outes 
-        |> Edge.add_tgt_ehns ines
+        |> Edge.add_start_ehns outes 
+        |> Edge.add_end_ehns ines
     end;
 
 val set_vertex = update_vertex o K;
@@ -781,7 +805,7 @@ fun adj_leaf_vs' g (ins,outs) =
                   (Vertex.NTab.delete from leaftab, 
                    Vertex.NSet.add from notleafset)
                 else 
-                  (Vertex.NTab.ins (from,Edge.Ehn.mk_src e) leaftab, 
+                  (Vertex.NTab.ins (from,Edge.Ehn.mk_start e) leaftab, 
                    notleafset)
              end)
             ins)
@@ -792,7 +816,7 @@ fun adj_leaf_vs' g (ins,outs) =
                 else if Vertex.NTab.contains leaftab to then 
                   (Vertex.NTab.delete to leaftab, Vertex.NSet.add to notleafset)
                 else 
-                  (Vertex.NTab.ins (to,Edge.Ehn.mk_tgt e) leaftab, notleafset)
+                  (Vertex.NTab.ins (to,Edge.Ehn.mk_end e) leaftab, notleafset)
              end)
             outs);
 fun adj_leaf_vs g n = adj_leaf_vs' g (snd (get_vertex g n));

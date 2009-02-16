@@ -43,18 +43,11 @@ signature MATCH_STATE
   datatype matchstep =
            FoundMatch of T         | Progress of T Seq.seq
 
-  exception locally_match_2vs_exp of (Vertex.name * Vertex.name) 
-                                     * Vertex.name * Vertex.name
-                                     * T; 
-
   val init : Match.T 
              -> RGGraph.T (* pat *)
              -> RGGraph.T (* tgt *)
              -> Vertex.name Vertex.NTab.T (* initial agenda *)
              -> T (* initial match state *)
-
-  (* some info about a match state *)
-  val no_extra_needed_tgt_edges : T -> bool
 
   (* match two graphs *)
   val match : RGGraph.T -> RGGraph.T (* pat, tgt *)
@@ -67,13 +60,6 @@ signature MATCH_STATE
 
   (* parts of the matching algorithm *)
   val do_next_match_choices : T -> matchstep
-
-  val locally_match_2vs : Vertex.name * Vertex.name -> Vertex.name ->
-                          Vertex.name -> T -> T Seq.seq
-  val locally_match_verticies 
-      : Vertex.name * Vertex.data2 -> Vertex.name * Vertex.data2 ->
-        Vertex.NSet.T -> Vertex.NSet.T ->
-        T -> T Seq.seq
 
   val match_2vertices_with_edges : Vertex.name -> T -> Vertex.name -> T Seq.seq
 
@@ -88,22 +74,15 @@ signature MATCH_STATE
   val pop_agenda : T -> ((Vertex.name * Vertex.name) * T) option
 
   val add1_to_agenda : Vertex.name * Vertex.name -> T -> T
-  val add_needed_edges : Edge.NSet.T * Edge.NSet.T -> T -> T
-  val add_needed_edges' : Edge.NSet.T -> T -> T
 
-  val useup1_pat_vertex : Vertex.name -> T -> T
-  val useup_needed_edges : Edge.NSet.T -> T -> T
-  val useup_pat_edges : Edge.NSet.T -> T -> T
-  val useup_tgt_edges : Edge.NSet.T -> T -> T
+  val del_pat_edges : Edge.NSet.T -> T -> T
+  val del_tgt_edges : Edge.NSet.T -> T -> T
 
   (* internal get, update and set *)
-  val get_adj_pat_vertices : T -> Edge.NSet.T * Edge.NSet.T -> Vertex.NSet.T
-  val get_adj_tgt_vertices : T -> Edge.NSet.T * Edge.NSet.T -> Vertex.NSet.T
   val get_agenda : T -> Vertex.name Vertex.NTab.T
   val get_match : T -> Match.T
   val get_match_mctxt : T -> Match.MCtxt.T
   val get_match_vmap : T -> Vertex.name Vertex.NTab.T
-  val get_needed_tgt_es : T -> Edge.NSet.T
   val get_tgt_vnseq : T -> Vertex.name Seq.seq
   val get_tgt_vs : T -> T -> Vertex.NSet.T
   val get_unm_pat : T -> RGGraph.T
@@ -115,7 +94,6 @@ signature MATCH_STATE
                        Vertex.name Vertex.NTab.T) ->
                       T -> T
   val update_match : (Match.T -> Match.T) -> T -> T
-  val update_needed_tgt_es : (Edge.NSet.T -> Edge.NSet.T) -> T -> T
   val update_unm_pat : (RGGraph.T -> RGGraph.T) -> T -> T
   val update_unm_tgt : (RGGraph.T -> RGGraph.T) -> T -> T
 
@@ -133,51 +111,51 @@ signature MATCH_STATE
 end;
 
 
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor MatchStateFun(
   structure RGGraph : RG_GRAPH 
   structure Match : MATCH
   sharing Match.BVertex = RGGraph.RGVertex
   sharing RGGraph.Edge = Match.Edge
-) : MATCH_STATE
+) (* : MATCH_STATE *)
 = struct
+
+(* structure DB_MatchState = struct *)
 
 structure RGGraph = RGGraph;
 structure Vertex = RGGraph.RGVertex;
 structure Edge = RGGraph.Edge;
+structure G = RGGraph;
+structure V = Vertex;
+structure E = Edge;
 
 structure Match = Match;
 structure MCtxt = Match.MCtxt;
 
 datatype T = 
          MState of 
-         {(* agenda = (tgt -> patt) = vert commited to matching each other *) 
+         {(* and-agenda = (pat -> tgt) = we are commited to matching these *) 
           agenda : Vertex.name Vertex.NTab.T, (* and-agenda: pat -> tgt *)
           (* global vertex and edge matching info *)
           match : Match.T, 
-          (* edges in tgt that still need to be matched *)
-          needed_tgt_es : Edge.NSet.T,
           (* the pat graph with vertices removed as we match them *)
           unm_pat : RGGraph.T, 
+          pat_lfs : Vertex.NSet.T, (* unmatched leaves from init pat *)
           (* tgt with matched edges removed as we match them *)
           unm_tgt : RGGraph.T 
          };
 
-  exception locally_match_2vs_exp of (Vertex.name * Vertex.name) 
-                                     * Vertex.name * Vertex.name
-                                     * T; 
-
 (* initial matching state *)
 fun init match pat tgt agenda =
     MState { agenda = agenda, match = match,
-             needed_tgt_es = Edge.NSet.empty,
+             pat_lfs = RGGraph.get_leaf_vnames pat,
              unm_pat = pat, unm_tgt = tgt };
 
 (* tools *)
 fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
 fun get_unm_pat (MState rep) = #unm_pat rep;
+fun get_pat_lfs (MState rep) = #pat_lfs rep;
 val get_unm_pat_vs = 
     Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_pat;
 val get_unm_unboxed_pat_vs = RGGraph.get_unboxed o get_unm_pat;
@@ -186,39 +164,37 @@ fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
     Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_tgt;
 val get_unm_tgt_es =
     Edge.NTab.get_nameset o RGGraph.get_edges o get_unm_tgt;
-fun get_needed_tgt_es (MState rep) = #needed_tgt_es rep;
-
 
 (* *)
 fun update_agenda f (MState rep) = 
     MState { agenda = f (#agenda rep), match = #match rep,
-             needed_tgt_es = #needed_tgt_es rep,
              unm_pat = #unm_pat rep,
+             pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_match f (MState rep) = 
     MState { agenda = #agenda rep, match = f (#match rep),
-             needed_tgt_es = #needed_tgt_es rep,
              unm_pat = #unm_pat rep,
+             pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_pat f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             needed_tgt_es = #needed_tgt_es rep,
              unm_pat = f (#unm_pat rep),
+             pat_lfs = #pat_lfs rep,
+             unm_tgt = #unm_tgt rep
+           };
+fun update_pat_lfs f (MState rep) = 
+    MState { agenda = #agenda rep, match = #match rep,
+             unm_pat = #unm_pat rep,
+             pat_lfs = f (#pat_lfs rep),
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_tgt f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             needed_tgt_es = #needed_tgt_es rep,
              unm_pat = #unm_pat rep,
+             pat_lfs = #pat_lfs rep,
              unm_tgt = f(#unm_tgt rep)
-           };
-fun update_needed_tgt_es f (MState rep) = 
-    MState { agenda = #agenda rep, match = #match rep,
-             needed_tgt_es = f (#needed_tgt_es rep),
-             unm_pat = #unm_pat rep,
-             unm_tgt = #unm_tgt rep
            };
 
 val set_agenda = update_agenda o K;
@@ -228,31 +204,24 @@ val get_match_vmap = Match.get_vmap o get_match;
 val get_match_mctxt = Match.get_mctxt o get_match;
 val set_match_mctxt = update_match o Match.set_mctxt;
 
-(* true at end of successful matching: this ensures the strictness
-   condition for edge matching (only refers to strictly needed
-   edges). *)
-val no_extra_needed_tgt_edges = Edge.NSet.is_empty o get_needed_tgt_es;
-
 (* *)
-fun get_adj_pat_vertices st edgens =
+(* fun get_adj_pat_vertices st edgens =
     RGGraph.adj_vnames' (get_unm_pat st) edgens;
 fun get_adj_tgt_vertices st edgens =
     RGGraph.adj_vnames' (get_unm_tgt st) edgens;
-
+*)
 (* implicit: tgt_edges st *)
-val useup_tgt_edges = update_unm_tgt o Edge.NSet.fold RGGraph.delete_edge;
-val useup_pat_edges = update_unm_pat o Edge.NSet.fold RGGraph.delete_edge;
-
-(* unmatched but needed edges in the pattern *)
-(* : Edge.NSet.T -> T -> T *)
-val add_needed_edges' = update_needed_tgt_es o Edge.NSet.union_merge;
-fun add_needed_edges (ins,outs) = 
-    update_needed_tgt_es (Edge.NSet.union_merge ins 
-                          o Edge.NSet.union_merge outs);
-val useup_needed_edges = update_needed_tgt_es o Edge.NSet.remove_set;
+val del_tgt_edge = update_unm_tgt o RGGraph.delete_edge;
+val del_pat_edge = update_unm_pat o RGGraph.delete_edge;
+val del_tgt_edges = update_unm_tgt o Edge.NSet.fold RGGraph.delete_edge;
+val del_pat_edges = update_unm_pat o Edge.NSet.fold RGGraph.delete_edge;
 
 (* implicit: v st *)
-val useup1_pat_vertex = update_unm_pat o RGGraph.delete_vertex;
+val del_pat_vertex = update_unm_pat o RGGraph.delete_vertex;
+fun del_pat_lfvertex pn st = 
+    st |> del_pat_vertex pn
+       |> update_pat_lfs (Vertex.NSet.delete pn);
+
 (* implicit: (patv*tgtv) st *)
 fun add1_to_agenda (pat_n, tgt_n) st = 
     update_agenda (Vertex.NTab.ins (pat_n,tgt_n)) st;
@@ -276,94 +245,232 @@ fun pop_agenda st =
       of NONE => NONE 
        | SOME (h,agenda2) => SOME (h,set_agenda agenda2 st));
 
-(* given an edge matching, apply it to the state, removing edges *)
-fun apply_edge_matching st (ematches,m2) = 
-    let 
-      val matched_tgt_edges = 
-          Edge.NTab.fold (Edge.NSet.add o snd) ematches Edge.NSet.empty
-      val matched_pat_edges = 
-          Edge.NTab.get_nameset ematches
-    in
-      st |> useup_pat_edges matched_pat_edges
-         |> useup_tgt_edges matched_tgt_edges
-         |> set_match m2
-         (* we can remove the now matched edges from the needed set *)
-         |> useup_needed_edges matched_tgt_edges
-         (* try to add this, must be consistent with other  
-            required matchings of to_pn in agenda *)
-    end;
+(* match the edges between two pattern edges with those between two
+   target edges. If both pat edges are non-boundary, then match
+   strictly: all tgt edges must be matched, else only require all
+   pattern edges to be matched. *)
+fun multi_edge_matches from_pd to_pn pat_edges tgt_edges st = 
+    (* choose edge matching function *)
+    ((case from_pd of (* non-strict edge matching: maybe extra edges in tgt *)
+        V.BVert => Match.multi_edge_match
+      | V.IVert d => 
+        (case fst (RGGraph.get_vertex (get_unm_pat st) to_pn)
+          of V.BVert => Match.multi_edge_match
+           | V.IVert d => Match.strict_multi_edge_match))
+       pat_edges tgt_edges (get_match st))
+    (* apply edge matching: all pat egdes are always matched,
+       mtes is matched tgt edges *)
+    |> Seq.map (fn (_, (mtes, m)) => 
+                   st |> del_pat_edges (Edge.NTab.get_nameset pat_edges)
+                      |> del_tgt_edges mtes
+                      |> set_match m);
 
-(* st = matching state; moretgtvns = more tgt vertices to be matched;
-(ntgt,estgt) = target vertex and edges being considerd; (npat,espat) =
-pattern vertex and edges being considered. *)
-fun locally_match_2vs (from_pn, to_pn) from_tn to_tn st = 
+(* match edges between two vertices and add new matching to the agenda *)
+fun edgematch_adj_2vs (from_pv as (from_pn, from_pd)) to_pn
+                      (from_tn, _) to_tn st =
     let 
-      val pat_edges = RGGraph.edges_between (get_unm_pat st) from_pn to_pn;
+      val unm_pat = (get_unm_pat st);
+      val pat_edges = RGGraph.edges_between unm_pat from_pn to_pn;
       val tgt_edges = RGGraph.edges_between (get_unm_tgt st) from_tn to_tn;
     in
-      (Match.match_edges pat_edges tgt_edges (get_match st))
-        |> Seq.map (apply_edge_matching st)
-        |> Seq.map_filter I o Seq.map (try_add1_to_agenda (to_pn,to_tn))
-        |> (Seq.of_list o Seq.list_of) (* force eval here and now *)
-    end
-    handle e => 
-           (writeln ("exception! : " ^ PolyML.makestring e);
-           raise locally_match_2vs_exp ((from_pn,to_pn),from_tn,to_tn,st)
-           );
-
-
-(* IMPROVE: combine this test with the getting of adjacent vertices ? *)
-fun match_self_loops from_n from_tn st = 
-    let 
-      val pat = get_unm_pat st
-      val tgt = get_unm_tgt st
-      val pat_edges = RGGraph.get_self_loops pat from_n
-      val tgt_edges = RGGraph.get_self_loops tgt from_tn
-    in
-      (Match.match_edges pat_edges tgt_edges (get_match st))
-        |> Seq.map (apply_edge_matching st)
+      st |> multi_edge_matches from_pd to_pn pat_edges tgt_edges
+         |> Seq.map_filter (try_add1_to_agenda (to_pn,to_tn))
+         |> (Seq.of_list o Seq.list_of) : T Seq.seq (* debug: force eval here and now *)
     end;
 
-fun locally_match_verticies 
-      (from_n,from_d) (* pat non-boundary vertex *)
-      (from_tn,from_td) (* tgt vertex *)
-      pns (* adjacent to pat *)
-      tns (* adjacent to tgt *) 
+(* NOTE: we treat all self-loops as equivalent; this assumes no edge
+   data, but saves on many otherwise symmetric matches for self-loops *)
+fun edgematch_adj_leaf_to_loop (lfpvn,(lfpeh,ped)) from_tn (* tgt vertex *)
+                               (ltes, st) = 
+    (case Edge.NSet.get_local_bot (Edge.NTab.get_nameset ltes)
+      of NONE => NONE
+       | SOME lte => 
+         let 
+           val m2 = 
+               (get_match st)
+                 |> (Match.add_leaf_ehn2edge_emap 
+                       (lfpeh,ped) (lte, Edge.NTab.get ltes lte))
+                 |> Match.match_lfvertex lfpvn from_tn
+           val st2 = st |> set_match m2
+                        |> del_pat_lfvertex lfpvn
+                        |> del_pat_edge (Edge.Ehn.get_ename lfpeh)
+         in if Match.tgt_edge_is_fully_matched m2 lte then 
+              SOME (Edge.NTab.delete lte ltes, 
+                    st2 |> del_tgt_edge lte)
+            else 
+              SOME (ltes, st2)
+         end);
+
+
+(* match up an leafedge from a pv against *)
+(* NOTE: we treat all self-loops as equivalent; this assumes no edge
+   data, but saves on many otherwise symmetric matches for self-loops;
+ *)
+(* IMPROVE: respect edge data might fail - deal with options/turn into seqs *)
+fun edgematch_adj_leaf from_tn (lfpne as (lfpvn,(lfpeh,ped)))
+                       (left_over_tehs, (ltes, st)) = 
+    (case Edge.Ehn.NSet.pull_local_bot left_over_tehs 
+      of NONE => (* all extra target edges already matched, so match 
+                    the extra leaf pattern edge/vertex to self-loops *)
+         (case edgematch_adj_leaf_to_loop lfpne from_tn (ltes, st)
+           of SOME (ltes2, st2) => Seq.single (left_over_tehs, (ltes2, st2))
+            | NONE => Seq.empty (* THINK: can this actually happen? *) )
+       | SOME (teh, more_tehs) => 
+         let val tgt = get_unm_tgt st
+             val tn = RGGraph.get_ehn_vname tgt (Edge.Ehn.other teh)
+             val ted = RGGraph.get_ehn_data tgt teh
+             val m2 = (get_match st) 
+                        |> Match.match_lfvertex lfpvn tn
+                        |> (the o Match.add_full_leaf_ehn2ehn_emap 
+                                    (lfpeh,ped) (teh,ted))
+             val te = Edge.Ehn.get_ename teh
+             val pe = Edge.Ehn.get_ename lfpeh
+             val st2 = st |> set_match m2
+                          |> del_pat_lfvertex lfpvn 
+                          |> del_tgt_edge te
+         in
+           Seq.cons  (* edgematch against this teh *)
+             (more_tehs, (ltes, st2))
+             (Seq.map (* edgematch against other incident tehs *)
+                (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
+                (edgematch_adj_leaf from_tn lfpne (more_tehs, (ltes, st))))
+         end
+         handle Option.Option => 
+                (Seq.map (* edgematch against other incident tehs *)
+                   (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
+                   (edgematch_adj_leaf from_tn lfpne (more_tehs, (ltes, st))))
+    );
+
+
+(* match extra pat leaves against remaining target edges *)
+(* IMPROVE?: really match leaf to every possible location; currently
+   we just match leaves to whatever they can be matched to first. *)
+fun edgematch_extra_pat_leaves from_pd from_tn 
+      ltes (* unmatched loopy edges in tgt *)
+      plfs (* left over pattern boundary leaves *)
       st = 
     let 
-      (* pick a first pattern node and trying to match it against
-         every possible target node. *)
-      fun match1 pns (tns, st) = 
-          (case Vertex.NSet.pull_local_bot pns
-            of NONE => (* no more adj nodes from pattern *)
-               (case from_d (* allow extra tgts only if from_d is boundary *)
-                 of Vertex.BVert => Seq.single st
-                  | Vertex.IVert _ => 
-                    if Vertex.NSet.is_empty tns 
-                    then Seq.single st else Seq.empty)
-             | SOME (to_pn,pns2) => 
-               (Seq.of_list (Vertex.NSet.pull_each tns))
-                 |> Seq.maps (fn (to_tn, tns2) => 
-                                 (Seq.map 
-                                    (pair tns2)
-                                    (locally_match_2vs 
-                                       (from_n,to_pn) from_tn to_tn st)))
-                 (* recurse to match more pattern vertices *)
-                 |> Seq.maps (match1 pns2))
-    in
-      (* if pat self loop, check tgt has same self loops *)
-      if Vertex.NSet.contains pns from_n then 
-         if Vertex.NSet.contains tns from_tn then 
-           (match_self_loops from_n from_tn st)
-             |> (Seq.maps 
-                 (fn st' => (* dont follow self loops to match other stuff *)
-                     (match1 (Vertex.NSet.delete from_n pns) 
-                             (Vertex.NSet.delete from_tn tns, st'))))
-             |> Seq.map (useup1_pat_vertex from_n)
-         else Seq.empty
-       else (match1 pns (tns, st))
-              |> Seq.map (useup1_pat_vertex from_n)
+      val left_over_tehs = 
+          RGGraph.get_vname_ehns (get_unm_tgt st) from_tn
+      val leaf_match_seq =
+          Vertex.NTab.fold
+            (Seq.maps o edgematch_adj_leaf from_tn)
+            plfs
+            (Seq.single (left_over_tehs, (ltes, st)))
+    in (* allow extra tgts only if from_d is boundary *)
+      Seq.maps
+        (fn (tehs2, (ltes2, st2)) =>
+            (case from_pd 
+              of Vertex.BVert => Seq.single st2 (* nonstrict *)
+               | Vertex.IVert _ => (* strict *)
+                 if Edge.Ehn.NSet.is_empty tehs2 
+                    andalso Edge.NTab.is_name_empty ltes2
+                 then Seq.single st2 else Seq.empty))
+        leaf_match_seq
     end;
+
+(* match up all adjavent edges of chosen pattern and target, we do
+   this by going through each adjacent vertex of the pattern and
+   finding it and adjacent vertex in the target. *)
+(* IMPROVE: use incident number to quickly rule out cases where
+   pattern has more incident edges that tgt -> they will always fail?
+   (i.e. do counting in advance, avoid seraching permutations of
+   counting) *)
+fun edgematch_adj_verticies 
+      (from_pv as (from_pn,from_pd)) (* pat vertex *)
+      (from_tv as (from_tn,from_td)) (* tgt vertex *)
+      (pns, (* adjacent to pat, non-leaves *)
+       tns) (* adjacent to tgt *) 
+      (ltes, (* unmatched loopy edges in tgt *)
+       (plfs, (* left over pattern boundary leaves *)
+       st)) = (* state of matching so far *)
+    (* *)
+    (Seq.single (tns, st))
+    (* match all adj non-leaf pattern vertices *)
+    |> (Vertex.NSet.fold 
+          (Seq.maps o 
+          (fn to_pn => 
+           fn (tns,st) => 
+              (* for each tn, try to_pn against it *)
+              (Seq.maps
+                 (fn (to_tn, tns2) => 
+                     Seq.map (pair tns2)
+                             (edgematch_adj_2vs 
+                                from_pv to_pn from_tv to_tn st))
+                 (Seq.of_list (Vertex.NSet.pull_each tns)))))
+          pns)
+    (* match remaining pat leaves; note: we ignore tns as we
+       re-compute it in terms of half edges. IMPROVE: avoid this? *)
+    |> (Seq.maps (edgematch_extra_pat_leaves from_pd from_tn ltes plfs o snd));
+
+
+(* if pn is internal and tgt has loops, match tgt loops against leaf
+   boundary nodes adjacent to pn; this will remove adjacent matched
+   pattern nodes from the those needing to be matched against further
+   tgt nodes. (This is when we do edge loop cutting in tgt, from our
+   matching semantics)
+ *)
+
+(* IMPROVE: avoid exception to stop fold loop - have a try_fold *)
+(*  Match all loopy edges in tgt against 2 leaf boundary nodes in pat *)
+fun match_all_tgt_loops_by_leaves tn (ltes, (plfs,st)) = 
+    let val (plfs2, st2) = 
+      Edge.NTab.fold 
+      (fn (te as (ten,ted)) => fn (plfs,st) => 
+       let (* pull out two lef boundary nodes *)
+         val (p1 as (pn1,pe1),plfs2) = the (V.NTab.pull_elem plfs)
+         val (p2 as (pn2,pe2),plfs3) = the (V.NTab.pull_elem plfs2)
+          (* IMPROVE: to support edge data, be careful - 
+             matching may need to change another edges data *)
+         val st2 = 
+             st |> del_pat_lfvertex pn1 
+                |> del_pat_lfvertex pn2
+                |> del_tgt_edge ten
+                |> (update_match 
+                      (Match.match_lfvertex pn1 tn
+                       o Match.match_lfvertex pn2 tn
+                       o Match.add_leaf_ehn2edge_emap pe1 te
+                       o Match.add_leaf_ehn2edge_emap pe2 te))
+       in (plfs3,st2) end)
+      ltes (plfs,st)
+    in Seq.single (Edge.NTab.empty, (plfs2, st2)) end
+    (* IMPROVE: I don't like imperitive loop exit!!! *)
+    (* Option exception, indicating failure, if there is not enough pattern
+       boundary nodes to match the loops, or if matching fails for
+       some reason. *)
+    handle Option => Seq.empty; 
+
+(* match all self-loops in pattern by self-loops in tgt *)
+fun match_all_pat_self_loops lpes (ltes, st) = 
+    (Match.multi_edge_match lpes ltes (get_match st))
+      |> Seq.map (fn (ltes2,(mtes,m)) => 
+                     (ltes2, 
+                      st |> del_pat_edges (Edge.NTab.get_nameset lpes)
+                         |> del_tgt_edges mtes
+                         |> set_match m));
+
+(* 1. every loop in pat must have a loop in tgt,
+   2. if pat is internal, then all extra loops in tgt 
+   must be matched by leaf boundaries
+*)
+fun match_self_loops pd tn lpes (* loopy pat edges *)
+                     (ltes, (* loopy tgt edges *)
+                      (plfs, (* pat leaves *)
+                       st)) = 
+    let val ltes2st2seq = match_all_pat_self_loops lpes (ltes, st) in
+      case pd 
+       of V.BVert => 
+          Seq.map (fn (ltes,st) => (ltes,(plfs,st))) ltes2st2seq
+        | V.IVert _ => 
+          Seq.maps (* must have all tgt self loops matched by leaves *)
+            (fn (ltes,st) => match_all_tgt_loops_by_leaves 
+                               tn (ltes, (plfs, st)))
+            ltes2st2seq
+    end;
+          
+
+(* st pn *)
+val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_lfs;
 
 (* assumes pat vs are uninstantiated.
    Raises Vertex.NTab...DUP exception, if n1 is already instantiated.
@@ -374,27 +481,39 @@ fun match_vertex pnv tnv st =
      of NONE => NONE
       | SOME m2 => SOME (st |> set_match m2);
 
-(* assumes: pat_ns are all uninstantiated *)
+(* implicit: pnv tnv st *)
+val match_lfvertex = update_match oo Match.match_lfvertex;
+
 (* IMPROVE: add quick check of num of edges to avoid complex search
    over all permutations matchings that do not add up *)
 fun match_2vertices_with_edges 
-      (n : Vertex.name) (* pattern vertex name *)
+      (pn : Vertex.name) (* pattern vertex name *)
       (st : T) (* match state so far *)
       (tn : Vertex.name) = (* target vertex name *)
     let 
-      val pat = get_unm_pat st
-      val (d,edgens) = RGGraph.get_vertex pat n;
-      val (td,tedgens) = RGGraph.get_vertex (get_unm_tgt st) tn;
-    in case match_vertex (n,d) (tn,td) st of 
-         NONE => Seq.empty (* vertex does not match *)
-       | SOME st2 => (* continue matching *)
-         (if RGGraph.is_boundary pat n then 
-            st2 (* non-strict matching *)
-          else add_needed_edges tedgens st2) (* else strict matching *)
-           |> (locally_match_verticies (* adjacent vs *)
-                 (n,d) (tn,td) 
-                 (get_adj_pat_vertices st2 edgens)
-                 (get_adj_tgt_vertices st2 tedgens))
+      val pat = get_unm_pat st;
+      val tgt = get_unm_tgt st;
+      (* ltes = loopy tgt edge half name set, 
+         tns = other tgt nodes set *) 
+      val (td, (ltes, tns)) = RGGraph.adj_tgt_info tgt tn;
+      (* plfs = tab leaves adj to pn map to edge halfs touching pn, 
+         lpes = loopy pattern ename set
+         pns = all other adj vertices set *)
+      val (pd, (plfs, lpes, pns)) = RGGraph.adj_pat_info pat pn;
+    in 
+      if is_leaf_of_init_pat st pn then 
+        st |> match_lfvertex pn tn
+           |> (fn st2 => (ltes,(plfs,st2)))
+           |> edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns)
+           |> Seq.map (del_pat_lfvertex pn)
+      else 
+        case match_vertex (pn,pd) (tn,td) st of 
+          NONE => Seq.empty (* vertex does not match *)
+        | SOME st2 => (* continue matching *)
+          (ltes,(plfs,st2))
+            |> match_self_loops pd tn lpes 
+            |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns))
+            |> Seq.map (del_pat_vertex pn) (* finished matching pn *)
     end;
 
 (* datatype for steps of matching *)
@@ -408,43 +527,39 @@ val get_tgt_vnseq =
     o Vertex.NTab.get_nameset 
     o RGGraph.get_vertices o get_unm_tgt;
 
-
 datatype pulled_vertex_kind = 
          BBoxed of Vertex.name 
        | UnBBoxed of Vertex.name;
-fun get_next_tgt_vertex st = 
+
+fun get_next_pat_vertex st = 
     (case (Vertex.NSet.get_local_bot (get_unm_unboxed_pat_vs st)) of
-      SOME n => SOME (BBoxed n)
+      SOME n => SOME (UnBBoxed n)
     | NONE => 
       (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
          NONE => NONE
-       | SOME n => SOME (UnBBoxed n)));
+       | SOME n => SOME (BBoxed n)));
 
 (* consider the next and-point in the agenda *)
 fun do_next_match_choices st = 
     (case pop_agenda st 
       of NONE => (* nothing on the prescribed agenda *)
-         (case get_next_tgt_vertex st of 
+         (* get next pat vertex to match, non-boxed first *)
+         (case get_next_pat_vertex st of 
             NONE => (* no pattern vertices left! *)
-            if no_extra_needed_tgt_edges st then 
               FoundMatch st (* because we finished! *)
-            else (* matching failed with extra left over target edges *)
-              Progress Seq.empty
           | SOME (UnBBoxed pvn) => 
             Progress (* choices over picking a new vertex in tgt *)
               (Seq.maps
                  (match_2vertices_with_edges pvn st)
                  (get_tgt_vnseq st))
           | SOME (BBoxed pvn) => 
-          (*  FIXME!!! respect the !-box *)
-            Progress (* choices over picking a new vertex in tgt *)
-              (Seq.maps
-                 (match_2vertices_with_edges pvn st)
-                 (get_tgt_vnseq st))
-         )
-       | SOME ((n,tn),st2) => 
+            (* IMPROVE: find all box-unfoldings also as matches? *)
+            (* all other things are in boxes, 
+               so killing them all gives a valid matching... *)
+            FoundMatch st) 
+       | SOME ((pn,tn),st2) => 
          Progress (* deal with first prescribed and-choice *)
-           (match_2vertices_with_edges n st2 tn));
+           (match_2vertices_with_edges pn st2 tn));
 
 (* given an or-choice agenda of states, apply progress steps to search
 tree, until we get a match, then give that back as first elem of lazy
@@ -496,8 +611,7 @@ fun pretty_agenda st =
            Vertex.pretty_name nextto,
            Pretty.list ") then [" "]" 
                        (map pretty_match_pair (Vertex.NTab.list_of rest))])
-       @ [Pretty.str ";  needed tgt edges: ",
-          Edge.NSet.pretty (get_needed_tgt_es  st)]);
+      );
 
 fun pretty (st as MState rep) = 
     Pretty.block 

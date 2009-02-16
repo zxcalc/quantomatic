@@ -30,17 +30,27 @@ val matched_subgraph_within_selection' : Vertex.NSet.T -> T -> Vertex.NSet.T * T
    all incident edges to selection are removed. = copy for graphics program *)
 val pull_subgraph_within_selection : Vertex.NSet.T -> T -> T
 
+(* leaf vetrices are boundaries with one incident edge, 
+   such edges are called a leaf edge. *)
+val is_leaf_vertex : T -> Vertex.name -> bool
+val is_leaf_edge : T -> Edge.name -> bool
+
+val get_leaf_vnames : T -> Vertex.NSet.T
+
 (* *)
 val adj_tgt_info : 
     T -> Vertex.name 
-    -> Edge.NSet.T (* names of edges that are self-loops *)
-       * Vertex.NSet.T (* other adj vertices *)
+    -> Vertex.data 
+       * (Edge.data Edge.NTab.T (* names/data of edges that are self-loops *)
+          * Vertex.NSet.T) (* other adj vertices *)
 
 val adj_pat_info : 
     T -> Vertex.name 
-    -> Edge.name Vertex.NTab.T (* leaf vertex to edge that connects to it *)
-       * Edge.NSet.T (* names of edges that are self-loops *)
-       * Vertex.NSet.T (* other ajd vertices *)
+    -> Vertex.data 
+       * ((Edge.Ehn.name * Edge.data) 
+            Vertex.NTab.T (* leaf vertex to source's half-edge *)
+          * Edge.data Edge.NTab.T (* names of edges that are self-loops *)
+          * Vertex.NSet.T) (* other adj vertices *)
 
 end;
 
@@ -188,10 +198,29 @@ fun rename_or_merge_vname n1 n2 bg =
                  |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (n2,to))) outs1 
                  |> update_vertex_enames (K (Edge.NSet.union_merge ins1 ins2,
                                              Edge.NSet.union_merge outs1 outs2)) n2
+                 (* drop boundary node n1; keep what it was merged with *)
                  |> update_vertices (Vertex.NTab.delete n1)
             end
       else (* not boundary then rename as normal *)
-        bg |> rename_vname n1 n2;
+        case lookup_vertex bg n2 
+         of NONE => (* no clash, so rename n1 to n2 *)
+            bg |> rename_vname n1 n2
+          (* clash iff another boundary (n2) was also renamed to this *)
+          | SOME (V.BVert,(ins2,outs2)) => 
+            let val (d1,(ins1,outs1)) = get_vertex bg n1
+            in
+              bg |> update_boundary (V.NSet.delete n2)
+                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (from,n2))) ins1
+                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (n2,to))) outs1 
+                 |> (update_vertices 
+                       ((* drop n1 *)
+                        Vertex.NTab.delete n1 
+                        (* update n2 to merged data and edges *)
+                        o Vertex.NTab.update
+                            (n2,(d1,(Edge.NSet.union_merge ins1 ins2,
+                                     Edge.NSet.union_merge outs1 outs2)))))
+            end
+          | _ => raise ERROR "BGraph:rename_or_merge_vname:impossible!";
 
 (* all edges leaving the selection get cut at the next vertex,
    introducing bounary vertices. Preserves matching *)
@@ -240,59 +269,78 @@ fun pull_subgraph_within_selection vns g =
       (get_vnames g) g;
 
 
-(* IMPROVE: push the use of these back into graph *)
+(* IMPROVE: move these into graph *)
 fun pair_from_of_edge g e = 
-    let val (_,(from,to)) = get_edge g e in (e,from) end;
+    let val (ed,(from,to)) = get_edge g e in (e,ed,from) end;
 fun pair_to_of_edge g e = 
-    let val (_,(from,to)) = get_edge g e in (e,to) end;
+    let val (ed,(from,to)) = get_edge g e in (e,ed,to) end;
 
 (* find all adjacent vertices, except self, divided into: 
    boundary leafs, and others *)
-fun adj_tgt_info' g n0 (ins,outs) = 
+fun adj_tgt_info' g n0 (d,(ins,outs)) = 
     let 
-      fun consider_edge (e,n) (adjinfo as (loopes, others)) = 
-          if V.name_eq (n,n0) then (E.NSet.add e loopes, others)
+      fun consider_edge (e,ed,n) (adjinfo as (loopes, others)) = 
+          if V.name_eq (n,n0) then 
+            (E.NTab.update (e, ed) loopes, others)
           else (loopes, V.NSet.add n others);
     in 
-      (E.NSet.empty, V.NSet.empty)
-         |> (Edge.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
-         |> (Edge.NSet.fold (consider_edge o (pair_to_of_edge g)) outs)
+      (d, (E.NTab.empty, V.NSet.empty)
+            |> (Edge.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
+            |> (Edge.NSet.fold (consider_edge o (pair_to_of_edge g)) outs))
     end;
 
-fun adj_tgt_info g n = adj_tgt_info' g n (snd (get_vertex g n));
+fun adj_tgt_info g n =  adj_tgt_info' g n (get_vertex g n);
 
-(* leaves are boundary nodes with only one edge to them - they are
+(* leaves are boundary vertices with only one edge to them - they are
    special in that they can match on half of a loopy edge (the mapping
    assigns them to the loopy node - and the edge map does a half
    assignment to the edge) *)
-fun is_leaf g n = 
-    let val (d,(ins,outs)) = get_vertex g n
-    in (not (BVertex.is_internal_data d)) andalso 
-       ((Edge.NSet.is_empty outs andalso Edge.NSet.is_singleton ins)
-        orelse (Edge.NSet.is_singleton outs andalso Edge.NSet.is_empty ins))
-    end;
+fun is_leaf_vertex' (d,(ins,outs)) = 
+    (not (BVertex.is_internal_data d)) andalso 
+    ((Edge.NSet.is_empty outs andalso Edge.NSet.is_singleton ins)
+     orelse (Edge.NSet.is_singleton outs andalso Edge.NSet.is_empty ins));
 
+(* implicit: g n *)
+val is_leaf_vertex = is_leaf_vertex' oo get_vertex;
+
+fun is_leaf_edge g e = 
+    let val (d,(s,t)) = get_edge g e 
+    in is_leaf_vertex g s orelse is_leaf_vertex g t end;
+
+fun get_leaf_vnames g = 
+    Vertex.NTab.fold 
+      (fn (n,dio) => 
+          if is_leaf_vertex' dio then Vertex.NSet.add n
+          else I)
+      (get_vertices g)
+      Vertex.NSet.empty;
+    
 (* find all adjacent vertices, except self, divided into: 
    boundary leafs, and others *)
-fun adj_pat_info' g n0 (ins,outs) = 
+fun adj_pat_info' g n0 (d,(ins,outs)) = 
     let 
-      fun consider_edge (e,n) (adjinfo as (leaftab, loopes, others)) = 
+      fun consider_edge eh (adjinfo as (leaftab, loopes, others)) = 
+          let val n = get_ehn_vname g (Edge.Ehn.other eh) 
+              val en = Edge.Ehn.get_ename eh in
           if V.name_eq (n,n0) then 
-            (leaftab, E.NSet.add e loopes, others)
+            (leaftab, E.NTab.update (en,get_edge_data g en) loopes, others)
           else if V.NSet.contains others n then adjinfo
           else if V.NTab.contains leaftab n then 
             (V.NTab.delete n leaftab, loopes,
              V.NSet.add n others)
+          (* IMPROVE: avoid edge data lookup when we later throw 
+             away things from leaf set... *)
           else if is_boundary g n then 
-            (V.NTab.ins (n,e) leaftab, loopes, others)
+            (V.NTab.ins (n,(eh,get_edge_data g en)) leaftab, loopes, others)
           else 
-            (leaftab, loopes, V.NSet.add n others);
+            (leaftab, loopes, V.NSet.add n others)
+          end;
     in 
-      (V.NTab.empty, E.NSet.empty, V.NSet.empty)
-         |> (Edge.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
-         |> (Edge.NSet.fold (consider_edge o (pair_to_of_edge g)) outs)
+      (d, (V.NTab.empty, E.NTab.empty, V.NSet.empty)
+            |> (Edge.NSet.fold (consider_edge o Edge.Ehn.mk_end) ins)
+            |> (Edge.NSet.fold (consider_edge o Edge.Ehn.mk_start) outs))
     end;
 
-fun adj_pat_info g n = adj_pat_info' g n (snd (get_vertex g n));
+fun adj_pat_info g n = adj_pat_info' g n (get_vertex g n);
 
 end;
