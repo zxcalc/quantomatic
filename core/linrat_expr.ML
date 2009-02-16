@@ -257,6 +257,7 @@ fun term x = x|>(
 		 || ((coeff --| (sym "*" || noop) --| pi) >> const_term)
 		 || (pi >> (K one_pi))
 		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
+		 || (coeff >> const_term)
 		 || (ident >> var_term)
 		 || (sym "(" |-- expr --| sym ")"))
 
