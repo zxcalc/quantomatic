@@ -29,11 +29,12 @@ type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 fun kv_eq ((k1,v1),(k2,v2)) = 
     VName.name_eq (k1, k2) andalso Coeff.eq v1 v2
 
+
 fun eq (x,xT) (y,yT) = 
     if Coeff.eq x y then 
       ListPair.all kv_eq (VName.NTab.list_of xT,VName.NTab.list_of yT)
 	    handle ListPair.UnequalLengths => false
-    else false; 
+    else false;
 
 (* =====================================================================*)
 
@@ -270,9 +271,12 @@ and expr x = x|>(
 	     (term -- terms >> plus)
 		 || term)
 
-fun parse str = let val (EXP e,ts) = expr ((Symbol.explode str)@[Symbol.eof])
-		in if ts = [Symbol.eof] then e else raise parse_exp
+fun parse str = let val (EXP e) = L.parse_with expr str
+		in e
 		end
+    handle L.MoreTokens _ => raise parse_exp
+	 | FAIL => raise parse_exp
+
 
 
 end
