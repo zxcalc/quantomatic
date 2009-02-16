@@ -20,6 +20,7 @@ struct
 exception BadExpression of string;
 exception parse_exp;
 structure Coeff = Rational;
+
 type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 
 (* =====================================================================*)
@@ -28,17 +29,11 @@ type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 fun kv_eq ((k1,v1),(k2,v2)) = 
     VName.name_eq (k1, k2) andalso Coeff.eq v1 v2
 
-fun eq (x,xT)  (y,yT) = 
-    if  Coeff.eq x y then true
-    else
-      let 
-	      val xs = VName.NTab.list_of xT
-	      val ys = VName.NTab.list_of yT
-	      fun test (xx,yy,b) = (kv_eq (xx,yy)) andalso b
-      in 	 
-	      ListPair.foldlEq test true (xs, ys)
-	      handle ListPair.UnequalLengths => false	
-      end
+fun eq (x,xT) (y,yT) = 
+    if Coeff.eq x y then 
+      ListPair.all kv_eq (VName.NTab.list_of xT,VName.NTab.list_of yT)
+	    handle ListPair.UnequalLengths => false
+    else false; 
 
 (* =====================================================================*)
 
@@ -56,7 +51,7 @@ fun  kv_list_ord ([],[]) = General.EQUAL
        kv_order(x,y)
      else 
        kv_list_ord(xs,ys)
-       
+
 fun ord ((x,xT),  (y,yT)) =
     if Coeff.ord(x,y) <> General.EQUAL
     then Coeff.ord(x,y)
@@ -81,11 +76,10 @@ fun is_zero (cpi,vars) = (Coeff.is_zero cpi
 
 val pi = (Coeff.one, empty);
 
-fun mk_var nm = 
-    (Coeff.mk 0 1, VName.NTab.update (nm, Coeff.mk 1 1) empty)
-
 fun mk const kv_list =
     (const, fold VName.NTab.update kv_list empty )
+
+fun mk_var nm = mk Coeff.zero [(nm, Coeff.mk 1 1)];
 
 (* reduce exprs to a normal by removing variables whose Coeff = 0 ======*)
 fun reduce_expr (p, t) = 
@@ -208,7 +202,7 @@ fun match pat target already_matched =
        (* if all pat vars are in target, check for direct equality *)
        of NONE => 
           if eq pat target then SOME already_matched else NONE
-       (* there is a pat var not in target, show difference between 
+       (* there is a pat var not in target, put difference between 
           expressions into an instantiation of that var. *)
         | SOME match_var => 
           let val c = Coeff.div (Coeff.mk 1 1) 
