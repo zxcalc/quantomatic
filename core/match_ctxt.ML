@@ -10,9 +10,10 @@ val vertex_idata_match : BVertex.IData.data -> BVertex.IData.data -> T -> T opti
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
 val edge_match : Edge.data -> Edge.data -> T -> T option
 
-(* *)              
-val subst_in_vertex : T -> BVertex.IData.data -> BVertex.IData.data
-val subst_in_edge : T -> Edge.data -> Edge.data
+(* *)
+val subst_in_vertex_data : T -> BVertex.data -> BVertex.data
+val subst_in_vertex_idata : T -> BVertex.IData.data -> BVertex.IData.data
+val subst_in_edge_data : T -> Edge.data -> Edge.data
 
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -67,8 +68,9 @@ fun multi_edge_match pes tes m =
          Seq.single ((leftover_tns,matched_ens), m))
 
 (* no data, thus these are id functions. *)
-fun subst_in_vertex (m : T) (n : BVertex.IData.data) = n; 
-fun subst_in_edge (m : T) (e : Edge.data) = e;
+fun subst_in_vertex_idata (m : T) (n : BVertex.IData.data) = n; 
+fun subst_in_vertex_data (m : T) (n : BVertex.data) = n; 
+fun subst_in_edge_data (m : T) (e : Edge.data) = e;
 
 fun pretty (m : T) = Pretty.str "";
 val print = Pretty.writeln o pretty;

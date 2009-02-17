@@ -240,8 +240,13 @@ fun inst_rule rule match =
                         (fn n1 => RGGraph.rename_or_merge_vname 
                                     n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary oldrhs))
-                  (* apply angle instantiations *)
-(*                   |> (RGGraph.update_vertex_data  *)
+                   (* apply angle instantiations *)
+                   (* IMPROVE: use depenv to only update changes parts of graph *)
+                   |> (fn g => 
+                          Vertex.NSet.fold
+                            (RGGraph.update_vertex
+                               (Match.MCtxt.subst_in_vertex_data (Match.get_mctxt match)))
+                            (RGGraph.get_vnames g) g)
     in
       rule |> set_lhs lhs
            |> set_rhs rhs

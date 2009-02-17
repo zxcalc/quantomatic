@@ -16,6 +16,8 @@ val edge = ();
 
 end;
 
+local 
+
 structure DB_Test_Rule 
 = struct
 
@@ -196,7 +198,7 @@ val _ = writeln "Ex9";
 (* isometry and abelian both apply. *)
 (* val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g *)
 (* val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g; *)
-val [s1,m1,m2] = TheoryHack.apply_all_rules g;
+val [spider,x_ab1b,x_ab1,zgroup3] = TheoryHack.apply_all_rules g;
 val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
@@ -233,14 +235,13 @@ val _ = writeln "Ex11";
 (* isometry and abelian both apply. *)
 (* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 (* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
-val L = Seq.list_of (Rule.rule_matches TheoryHack.h_swap_rule g);
-
-
-
+val [hswapped] = Seq.list_of (Rule.rule_matches TheoryHack.h_swap_rule g);
 
 end;
 
-
+in
+val _ = writeln "Tests Completed Successfully: test/rule.ML"
+end;
 
 (* 
 
