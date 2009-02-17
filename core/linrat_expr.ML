@@ -29,10 +29,15 @@ type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 fun kv_eq ((k1,v1),(k2,v2)) = 
     VName.name_eq (k1, k2) andalso Coeff.eq v1 v2
 
+(* don't use basis library version because it doesn't raise exception 
+   on unequal length lists *)
+fun forall_pair eq ([],[]) = true
+  | forall_pair eq (h1::t1,h2::t2) = eq (h1,h2) andalso forall_pair eq (t1,t2)
+  | forall_pair eq _ = raise ListPair.UnequalLengths;
 
 fun eq (x,xT) (y,yT) = 
     if Coeff.eq x y then 
-      ListPair.all kv_eq (VName.NTab.list_of xT,VName.NTab.list_of yT)
+      forall_pair kv_eq (VName.NTab.list_of xT, VName.NTab.list_of yT)
 	    handle ListPair.UnequalLengths => false
     else false;
 

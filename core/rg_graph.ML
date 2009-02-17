@@ -31,6 +31,24 @@ structure RGGraph : RG_GRAPH = DB_RGGraph;
 structure Vertex = RGGraph.RGVertex;
 structure Edge = RGGraph.Edge;
 
+structure V = RGGraph.BVertex;
+structure E = RGGraph.Edge;
+structure G = RGGraph;
+
+structure MkG = 
+struct
+val bvert = V.BVert;
+val zero_angle = AngleExpr.zero;
+val var_angle = AngleExpr.mk_var;
+fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
+val add_angles = AngleExpr.add_expr;
+val pi_angle = AngleExpr.pi;
+fun mkZ a = V.IVert (RGVertex.Znd a);
+fun mkX a = V.IVert (RGVertex.Xnd a);
+val mkH = V.IVert RGVertex.Hnd;
+val edge = ();
+end;
+
 (* incomplete and needs lots more stuff... eg. table
 
 structure RGGraph :> RG_GRAPH 

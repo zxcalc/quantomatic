@@ -82,7 +82,7 @@ end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor MatchFun(MCtxt : MATCH_CTXT) 
- : MATCH
+(* : MATCH *)
 = struct
 
 structure MCtxt = MCtxt;
@@ -419,4 +419,5 @@ val print = Pretty.writeln o pretty;
 
 end; (* Match structure *)
 
-structure Match = MatchFun(AngleMatchCtxt);
+structure DB_Match = MatchFun(AngleMatchCtxt);
+structure Match : MATCH = DB_Match;
