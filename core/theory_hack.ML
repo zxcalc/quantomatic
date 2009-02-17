@@ -408,15 +408,15 @@ in
   val hopf_2_2_rule = Rule.mk (lhs,rhs);
 end;
 
-(* Z - Bialgebra 2 *)
+(* Copy X(0) *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (b2, g) = g |> RGGraph.add_vertex bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkX (var_angle "i"));
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
-  val (e0, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (e0, g) = g |> RGGraph.add_edge edge n2 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
   val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
   val lhs = g;
@@ -424,72 +424,39 @@ local
   val g = RGGraph.empty;
   val g = g |> RGGraph.new_named_vertex b1 bvert;
   val g = g |> RGGraph.new_named_vertex b2 bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkX (var_angle "i"));
-  val (n2, g) = g |> RGGraph.add_vertex (mkX (var_angle "i"));
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (_, g) = g |> RGGraph.add_edge edge b1 n1;
   val (_, g) = g |> RGGraph.add_edge edge b2 n2;
   val rhs = g;
 in
-  val bialgebra2_rule = Rule.mk (lhs,rhs);
+  val copy_0_rule = Rule.mk (lhs,rhs);
 end;
 
-(* Z - Bialgebra 2 : spider_boundary_extension(+1,0) *)
+(* Copy X(pi) *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (b2, g) = g |> RGGraph.add_vertex bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
-  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
-  val (_, g) = g |> RGGraph.add_edge edge n1 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX pi_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (e0, g) = g |> RGGraph.add_edge edge n2 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
   val lhs = g;
   (* rhs *)
   val g = RGGraph.empty;
   val g = g |> RGGraph.new_named_vertex b1 bvert;
   val g = g |> RGGraph.new_named_vertex b2 bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
-  val (_, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX pi_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX pi_angle);
   val (_, g) = g |> RGGraph.add_edge edge b1 n1;
   val (_, g) = g |> RGGraph.add_edge edge b2 n2;
   val rhs = g;
 in
-  val bialgebra2_s1_0_rule = Rule.mk (lhs,rhs);
+  val copy_pi_rule = Rule.mk (lhs,rhs);
 end;
-
-(* Z - Bialgebra 2 : spider_boundary_extension(+1,+1) *)
-local 
-  (* lhs *)
-  val g = RGGraph.empty;
-  val (b1, g) = g |> RGGraph.add_vertex bvert;
-  val (b2, g) = g |> RGGraph.add_vertex bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
-  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
-  val (_, g) = g |> RGGraph.add_edge edge n1 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
-  val lhs = g;
-  (* rhs *)
-  val g = RGGraph.empty;
-  val g = g |> RGGraph.new_named_vertex b1 bvert;
-  val g = g |> RGGraph.new_named_vertex b2 bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
-  val (_, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (_, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
-  val rhs = g;
-in
-  val bialgebra2_s1_1_rule = Rule.mk (lhs,rhs);
-  val _ = writeln "bialgebra2_s1_1_rule";
-end;
-
 
 (* group 1 *)
 local 
@@ -775,7 +742,8 @@ val single_colour_rules =
      ("group2", group2_rule),
      ("group3", group3_rule),
      ("group4", group4_rule),
-     ("bialgebra2", bialgebra2_rule),
+     ("copy_0", copy_0_rule),
+     ("copy_pi", copy_pi_rule),
      ("h_swap",h_swap_rule),
      ("hh_swap",hh_swap_rule),
      ("hhh_swap",hhh_swap_rule)
