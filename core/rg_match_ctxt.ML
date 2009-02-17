@@ -35,7 +35,7 @@ fun edge_match ed1 ed2 m = SOME m;
 val subst_in_angle = AngleExpr.subs;
 
 fun subst_in_vertex_idata m (V.Znd a) = V.Znd (subst_in_angle m a)
-	| subst_in_vertex_idata m (V.Xnd a) = V.Znd (subst_in_angle m a)
+	| subst_in_vertex_idata m (V.Xnd a) = V.Xnd (subst_in_angle m a)
   | subst_in_vertex_idata m d = d;
 
 fun subst_in_vertex_data m (V.IVert d) = V.IVert (subst_in_vertex_idata m d)

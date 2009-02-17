@@ -207,6 +207,13 @@ fun inst_rule rule match =
       val vmap = Match.get_vmap match
       val emap = Match.get_emap match
 
+      (* IMPROVE: use depenv to only update changes parts of graph *)
+      fun apply_vertex_data_subst g = 
+          Vertex.NSet.fold
+            (RGGraph.update_vertex
+               (Match.MCtxt.subst_in_vertex_data (Match.get_mctxt match)))
+            (RGGraph.get_vnames g) g
+
       val lhs = (get_lhs rule)
                   |> (Vertex.NTab.fold 
                         (* rename (merge for unified leaf/boundary vertices) *)
@@ -232,6 +239,7 @@ fun inst_rule rule match =
                                      | SOME lhs2 => lhs2)
                             end)
                         (Match.EMap.get_domtab emap))
+                  |> apply_vertex_data_subst
 
       (* only boundary nodes are mapped/renamed on rhs *)
       val oldrhs = get_rhs rule;
@@ -241,12 +249,7 @@ fun inst_rule rule match =
                                     n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary oldrhs))
                    (* apply angle instantiations *)
-                   (* IMPROVE: use depenv to only update changes parts of graph *)
-                   |> (fn g => 
-                          Vertex.NSet.fold
-                            (RGGraph.update_vertex
-                               (Match.MCtxt.subst_in_vertex_data (Match.get_mctxt match)))
-                            (RGGraph.get_vnames g) g)
+                  |> apply_vertex_data_subst                          
     in
       rule |> set_lhs lhs
            |> set_rhs rhs
