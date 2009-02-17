@@ -72,8 +72,8 @@ fun get_vars (_,tab)  = VName.NTab.get_nameset tab;
 val empty = VName.NTab.empty : Coeff.T VName.NTab.T;
 
 val zero = (Coeff.zero, empty);
-fun is_zero (cpi,vars) = (Coeff.is_zero cpi 
-                          andalso VName.NTab.is_name_empty vars);
+fun is_zero (cpi,vars) = 
+    (Coeff.is_zero cpi andalso VName.NTab.is_name_empty vars);
 
 val pi = (Coeff.one, empty);
 
@@ -94,32 +94,17 @@ fun reduce_expr (p, t) =
 
 (* multiplication of an expression by a scalar ===================*)    
 fun scale_expr s (e_pi, e_tab) = 
-    let val rescale = (Coeff.mult s)
-    in 
-      let fun f (n,v) t = VName.NTab.update (n, (rescale v)) t 
-      in 
-	      let val newtab = 
-		            VName.NTab.fold f e_tab VName.NTab.empty  
-	      in 
-	        reduce_expr ((rescale e_pi), newtab) 
-	      end	  
-      end
-    end
+    (Coeff.mult s e_pi, VName.NTab.map_all (Coeff.mult s) e_tab);
 
 (* arithmetic addition for expressions ========================*)
 fun add_expr (pi1,tab1) (pi2,tab2) = 
-    let fun f (k,v) t = 
-	          if  VName.NTab.contains t k 
-	          then 
-	            VName.NTab.update (k, Coeff.add v (VName.NTab.get t k)) t
-	          else 
-	            VName.NTab.update (k, v) t
-    in 
-      let val newtab = VName.NTab.fold f tab2 tab1
-      in 
-	      reduce_expr (Coeff.add pi1 pi2, newtab)
-      end
-    end
+    let 
+      fun f (k,v) t = 
+	        if VName.NTab.contains t k
+	        then VName.NTab.map_entry (Coeff.add v) k t
+	        else VName.NTab.update (k, v) t
+      val newtab = VName.NTab.fold f tab2 tab1
+    in reduce_expr (Coeff.add pi1 pi2, newtab) end
 
 (* arithmetic subtraction for expressions ========================*)
 fun subtr_expr e1 e2 = 
@@ -179,7 +164,6 @@ fun pretty_list [] = [Pretty.str "0"]
      then Pretty.str " - " :: pretty_list ((k,Coeff.subtr Coeff.zero v)::ys)
      else Pretty.str " + " :: pretty_list xs)
 
-
 fun pretty (pi, tab) =
     let val tlist = rev (VName.NTab.list_of tab)
     in (Pretty.block o pretty_list)
@@ -223,8 +207,8 @@ structure LinratParser =
 struct
 structure L = SimpleLexer
 datatype expr = EXP of T
-	      | RAT of Rational.T
-	      | TOK of L.token
+	            | RAT of Rational.T
+	            | TOK of L.token
 
 (* wrap all the terminals in a TOK *)
 val num = L.num >> TOK

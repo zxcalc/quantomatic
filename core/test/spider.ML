@@ -1,7 +1,7 @@
 structure Test_Spider = 
 struct
 
-val g = Rule.get_lhs (TheoryHack.x_isometry_rule);
+val g = Rule.get_lhs (TheoryHack.isometry_rule);
 val L = Seq.list_of (Spider.mk_max_spider_rule g);
 
 val _ = writeln "Spider tests done. ";

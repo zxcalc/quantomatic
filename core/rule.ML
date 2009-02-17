@@ -240,6 +240,8 @@ fun inst_rule rule match =
                         (fn n1 => RGGraph.rename_or_merge_vname 
                                     n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary oldrhs))
+                  (* apply angle instantiations *)
+(*                   |> (RGGraph.update_vertex_data  *)
     in
       rule |> set_lhs lhs
            |> set_rhs rhs

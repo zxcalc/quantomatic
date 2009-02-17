@@ -59,7 +59,8 @@ val (n3, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
 val (e0, g) = g |> RGGraph.add_edge edge n1 n3;
 val (e1, g) = g |> RGGraph.add_edge edge n2 n3;
 val _ = RGGraph.print g;
-val [] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
+val [] = map Rule.print (Seq.list_of (Rule.rule_matches 
+                                        TheoryHack.isometry_rule g));
 val _ = writeln "Ex2";
 
 
@@ -76,13 +77,13 @@ val (e3, g) = g |> RGGraph.add_edge edge n2 b2;
 val _ = RGGraph.print g;
 val _ = writeln "Ex3";
 
-val (rn, rule') = (Rule.rename_rule_apart g TheoryHack.x_isometry_rule);
+val (rn, rule') = (Rule.rename_rule_apart g (TheoryHack.isometry_rule));
 val _ = Rule.print rule';
 val [m1,m2] = Seq.list_of (Rule.matches rule' g);
 val _ = Match.print m1;
 val rule'' = Rule.inst_rule rule' m1;
-val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g));
-val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites TheoryHack.x_isometry_rule g));
+val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
+val [g1,g2] = map RGGraph.print (Seq.list_of (Rule.rewrites TheoryHack.isometry_rule g));
 val _ = writeln "Ex4";
 
 
@@ -100,7 +101,7 @@ val (e4, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
 val _ = writeln "Ex5";
 
-val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g);
+val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
 val _ = map Rule.print [r1,r2];
 val fused_g1 = Rule.add_rhs r1 g;
 val fused_g2 = Rule.add_rhs r2 g;
@@ -121,7 +122,7 @@ val (e2, g) = g |> RGGraph.add_edge edge n2 n4;
 val _ = RGGraph.print g;
 val _ = writeln "Ex6";
 
-val [] = Seq.list_of (Rule.rule_matches TheoryHack.x_isometry_rule g);
+val [] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
 
 (* bialgebra3 *)
 val [r1,r2] = TheoryHack.apply_all_rules g;
@@ -232,7 +233,7 @@ val _ = writeln "Ex11";
 (* isometry and abelian both apply. *)
 (* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 (* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
-val L = Seq.list_of (Rule.rule_matches TheoryHack.hx_to_z_rule g);
+val L = Seq.list_of (Rule.rule_matches TheoryHack.h_swap_rule g);
 
 
 

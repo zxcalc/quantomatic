@@ -238,7 +238,8 @@ structure Edge = Edge;
 
 
 (* extra data, allows extra data to be added later in decendent
-signatures/structures... *)
+signatures/structures; this provides a style of OOP for normal
+structured ML. *)
 type data = data;
 
 (* a graph *)
