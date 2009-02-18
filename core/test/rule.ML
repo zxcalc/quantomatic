@@ -67,6 +67,7 @@ val [m1,m2] = Seq.list_of (Rule.matches rule' g);
 val _ = Match.print m1;
 val rule'' = Rule.inst_rule rule' m1;
 val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
+
 val [g1,g2] = map G.print (Seq.list_of (Rule.rewrites TheoryHack.isometry_rule g));
 val _ = writeln "Ex4";
 
@@ -217,9 +218,7 @@ val _ = writeln "Ex11";
 val [hswapped] = Seq.list_of (Rule.rule_matches TheoryHack.h_swap_rule g);
 
 
-
-
-(* hx_to_x with instantiated boundary node  *)
+(* self-loop  *)
 val g = G.empty;
 val (n1, g) = g |> G.add_vertex (mkX zero_angle);
 val (_, g) = g |> G.add_edge edge n1 n1;
@@ -233,13 +232,7 @@ val _ = Rule.print rule;
 val [r2] = (Seq.list_of (Rule.rule_matches rule g));
 val _ = Rule.print r2;
 
-(* 
-G.is_leaf_vertex g 
-
-val [] = Seq.list_of (MatchState.match (Rule.get_lhs rule) g RGVertex.NTab.empty);
-*) 
-
-(* hx_to_x with instantiated boundary node  *)
+(* self loop on graph with 2 vertices. *)
 val g = G.empty;
 val (n1, g) = g |> G.add_vertex (mkX zero_angle);
 val (_, g) = g |> G.add_edge edge n1 n1;
@@ -248,25 +241,9 @@ val _ = G.print g;
 val _ = writeln "Ex12";
 
 val rule = TheoryHack.antiloop_rule;
-(* 
-val (rn, rule') = (Rule.rename_rule_apart g rule);
-val _ = Rule.print rule';
 
-val [] = Seq.list_of (MatchState.match (Rule.get_lhs rule') g RGVertex.NTab.empty);
-
-
-val [m1,m2] = Seq.list_of (MatchState.matches  g);
-
-val [m1,m2] = Seq.list_of (Rule.matches rule' g);
-val _ = Match.print m1;
-val rule'' = Rule.inst_rule rule' m1;
-val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
-val [g1,g2] = map G.print (Seq.list_of (Rule.rewrites TheoryHack.isometry_rule g));
-val _ = writeln "Ex4";
-
-val [r1] = Seq.list_of (Rule.rule_matches TheoryHack.antiloop_rule g);
-
-*)
+val [r2] = (Seq.list_of (Rule.rule_matches rule g));
+val _ = Rule.print r2;
 
 end;
 

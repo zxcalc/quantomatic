@@ -408,6 +408,8 @@ in
   val hopf_2_2_rule = Rule.mk (lhs,rhs);
 end;
 
+
+
 (* Copy X(0) *)
 local 
   (* lhs *)
@@ -415,7 +417,7 @@ local
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (b2, g) = g |> RGGraph.add_vertex bvert;
   val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (e0, g) = g |> RGGraph.add_edge edge n2 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
   val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
@@ -440,7 +442,7 @@ local
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (b2, g) = g |> RGGraph.add_vertex bvert;
   val (n1, g) = g |> RGGraph.add_vertex (mkX pi_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (e0, g) = g |> RGGraph.add_edge edge n2 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
   val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
@@ -458,7 +460,35 @@ in
   val copy_pi_rule = Rule.mk (lhs,rhs);
 end;
 
-(* group 1 *)
+(* group 1: 1 input *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (b1, g) = g |> RGGraph.add_vertex bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ pi_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (b2, g) = g |> RGGraph.add_vertex bvert;
+  val (_, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (_, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (_, g) = g |> RGGraph.add_edge edge n2 b2;
+  val lhs = g;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val g = g |> RGGraph.new_named_vertex b1 bvert;
+  val g = g |> RGGraph.new_named_vertex b2 bvert;
+  val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ pi_angle);
+  val (_, g) = g |> RGGraph.add_edge edge b1 n1;
+  val (_, g) = g |> RGGraph.add_edge edge n1 n2;
+  val (_, g) = g |> RGGraph.add_edge edge n2 b2;
+  val rhs = g;
+in
+  val group1_1in_rule = Rule.mk (lhs,rhs);
+  val _ = writeln "group1_1in_rule";
+end;
+
+
+(* group 1: 2 input *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -487,15 +517,15 @@ local
   val (_, g) = g |> RGGraph.add_edge edge n3 b3;
   val rhs = g;
 in
-  val group1_rule = Rule.mk (lhs,rhs);
-  val _ = writeln "group1_rule";
+  val group1_2in_rule = Rule.mk (lhs,rhs);
+  val _ = writeln "group1_2in_rule";
 end;
 
 (* group 2 *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
-  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
+  val (n1, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (n2, g) = g |> RGGraph.add_vertex (mkX pi_angle);
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (_, g) = g |> RGGraph.add_edge edge b1 n2;
@@ -504,7 +534,7 @@ local
   (* rhs *)
   val g = RGGraph.empty;
   val g = g |> RGGraph.new_named_vertex b1 bvert;
-  val (n1, g) = g |> RGGraph.add_vertex (mkX (var_iangle (~1,1) "i"));
+  val (n1, g) = g |> RGGraph.add_vertex (mkX (var_iangle (~1,1) "a"));
   val (_, g) = g |> RGGraph.add_edge edge b1 n1;
   val rhs = g;
 in
@@ -517,7 +547,7 @@ local
   (* lhs *)
   val g = RGGraph.empty;
   val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (_, g) = g |> RGGraph.add_edge edge b1 n2;
   val (_, g) = g |> RGGraph.add_edge edge n1 n2;
@@ -538,7 +568,7 @@ local
   (* lhs *)
   val g = RGGraph.empty;
   val (n1, g) = g |> RGGraph.add_vertex (mkX pi_angle);
-  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "i"));
+  val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (b1, g) = g |> RGGraph.add_vertex bvert;
   val (_, g) = g |> RGGraph.add_edge edge b1 n2;
   val (_, g) = g |> RGGraph.add_edge edge n1 n2;
@@ -754,7 +784,8 @@ val single_colour_rules =
     [
      (* abelian1 is special case outside our spider *)
      ("abelian1", abelian1_rule),
-     ("group1", group1_rule),
+     ("group1_1in", group1_1in_rule),
+     ("group1_2in", group1_2in_rule),
      ("group2", group2_rule),
      ("group3", group3_rule),
      ("group4", group4_rule),
