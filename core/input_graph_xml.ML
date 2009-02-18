@@ -167,12 +167,12 @@ fun input_angleexpr xml  =
     let val (_,_,children) = force_unpack_elem "angleexpr" xml
     in
       let val constant = case (get_elem false "constant" children) of
-			   (NONE,_) => Rational.zero
+			   (NONE,_) => AngleExpr.Coeff.zero
 			 | (SOME const,_) => input_constant const
 	  val vars = List.map input_variable 
 			      (get_all_elems "variable" children)
       in
-	AngleExpr.mk constant vars
+	      AngleExpr.mk constant vars
       end
     end
 
@@ -180,18 +180,18 @@ val input_colour = tolower o (force_get_text_from "colour")
 
 fun input_vdata xml =
     let val (_,_,children) = force_unpack_elem "vertex" xml
-	val col = input_colour (get_required_child "colour" xml)
+	      val col = input_colour (get_required_child "colour" xml)
     in 
       if (col = "h") then V.Hnd
       else
-	let val (aopt,_) = get_elem false "angleexpr" children
-	    val angle = case aopt of NONE => AngleExpr.mk Rational.zero []
-				   | SOME a => input_angleexpr a
-	in
-	  if (col = "green") then V.Znd angle
-	  else if (col = "red") then V.Xnd angle
-	  else fail ("Unknown colour : "^col^".")
-	end
+	      let val (aopt,_) = get_elem false "angleexpr" children
+	          val angle = case aopt of NONE => AngleExpr.zero
+				                           | SOME a => input_angleexpr a
+	      in
+	        if (col = "green") then V.Znd angle
+	        else if (col = "red") then V.Xnd angle
+	        else fail ("Unknown colour : "^col^".")
+	      end
     end
     
 val input = input_vdata

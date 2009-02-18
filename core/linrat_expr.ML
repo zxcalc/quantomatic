@@ -19,7 +19,7 @@ structure DB_LinratExpr =
 struct 
 exception BadExpression of string;
 exception parse_exp;
-structure Coeff = Rational;
+structure Coeff = RationalMod2;
 
 type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
 
@@ -212,7 +212,7 @@ structure LinratParser =
 struct
 structure L = SimpleLexer
 datatype expr = EXP of T
-	            | RAT of Rational.T
+	            | RAT of Coeff.T
 	            | TOK of L.token
 
 (* wrap all the terminals in a TOK *)
@@ -222,11 +222,11 @@ val sym = fn s => (L.sym s) >> TOK
 val noop = L.noop >> TOK
 
 (* semantic ops *)
-fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Rational.mk n d)
+fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Coeff.mk n d)
 fun whole_num n = rat (n,TOK(L.INT 1))
-fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Rational.mk 0 1) [(id,r)])
+fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Coeff.mk 0 1) [(id,r)])
 fun const_term (RAT r) = EXP (mk r [])
-val one_pi = const_term (RAT (Rational.mk 1 1))
+val one_pi = const_term (RAT (Coeff.mk 1 1))
 fun var_term (TOK(L.ID id)) = EXP (mk_var id)
 fun plus (EXP a, EXP b) = EXP (add_expr a b)
 fun minus (EXP a, EXP b) = EXP (subtr_expr a b)

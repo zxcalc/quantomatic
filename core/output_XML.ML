@@ -147,7 +147,7 @@ fun render_xml_rational (n,d) =
 		   Pretty.str ("<denom>"^ (string_of_int  d)^"</denom>")];
 
 fun render_xml_constant_part k =
-    if Rational.is_zero k then
+    if AngleExpr.Coeff.is_zero k then
       (Pretty.str "")
     else
       Pretty.chunks [Pretty.str "<constant>",
