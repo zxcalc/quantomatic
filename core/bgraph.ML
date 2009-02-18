@@ -12,6 +12,7 @@ sharing Vertex = BVertex
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 val change_into_boundary : Vertex.name -> T -> T
+val change_into_internal : Vertex.name -> BVertex.IData.data -> T -> T
 
 val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
 
@@ -86,7 +87,7 @@ fun update_data_of_hdata f hdata =
 fun get_boundary_of_hdata hdata = #boundary hdata;
 fun update_boundary_of_hdata f hdata = 
     {boundary = f (#boundary hdata), 
-     data = #data hdata};
+     data = #data hdata};    
 
 structure BasicBGraph =
 struct 
@@ -113,6 +114,13 @@ struct
   val add_to_boundary = update_boundary o Vertex.NSet.add;
   val del_from_boundary = update_boundary o Vertex.NSet.delete;
   val is_boundary = V.NSet.contains o get_boundary;
+      
+  (* implicit: g *)
+  fun rename1_in_boundary n1 n2 = 
+      update_boundary (fn bs => 
+                          case V.NSet.try_rename1 n1 n2 bs
+                           of NONE => bs
+                            | SOME bs2 => bs2);
 
   (* modified/new basic graph functions *)
   fun add_named_vertex n v g =
@@ -130,11 +138,8 @@ struct
   (* rename all occurances of old name (1st arg) with new name (2nd arg) 
      n2 must not exist already, n1 must exist *)
   fun rename_vname n1 n2 g = 
-      if (is_boundary g n1) then 
-        g |> update_boundary (V.NSet.delete n1 o V.NSet.add n2)
-          |> Graph.rename_vname n1 n2
-      else
-        g |> Graph.rename_vname n1 n2;
+      g |> rename1_in_boundary n1 n2
+        |> Graph.rename_vname n1 n2;
 
   (* prettifying *)
   fun pretty g = 
@@ -162,7 +167,12 @@ open BGraphTools;
 (* change n to become a boundary vertex *)
 fun change_into_boundary n g = 
     g |> add_to_boundary n
-      |> set_vertex V.BVert n;
+      |> set_vertex_data V.BVert n;
+
+(* change n to become a boundary vertex *)
+fun change_into_internal n d g = 
+    g |> del_from_boundary n
+      |> set_vertex_data (V.IVert d) n;
 
 
 (* Property to be checked -- all boundary vertices have degree one *)
@@ -184,43 +194,34 @@ fun is_concrete_correct g =
 (* if n1 is boundary and something else is already called n2, then
 merge n1 and the vertex called n2: used for non-strict matching where
 boundary vertices can become unified to the same tgt vertex. *)
+
+(* rename n1 to n2, if n2 already exists, merge names and destination
+   edges; keep non-boundary data; if several vertices have
+   non-boundary data, its assumed to be the same. *)
 fun rename_or_merge_vname n1 n2 bg =
-      if (is_boundary bg n1) then 
-        case lookup_vertex bg n2 
-         of NONE => (* no clash, so rename n1 to n2 in boundary and graph *)
-            bg |> update_boundary (V.NSet.delete n1 o V.NSet.add n2)
-               |> rename_vname n1 n2
-          | SOME (d2,(ins2,outs2)) => (* clash, so merge egdes to n1 into n2 *)
-            let val (d1,(ins1,outs1)) = get_vertex bg n1
-            in
-              bg |> update_boundary (V.NSet.delete n1)
-                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (from,n2))) ins1 
-                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (n2,to))) outs1 
-                 |> update_vertex_enames (K (Edge.NSet.union_merge ins1 ins2,
-                                             Edge.NSet.union_merge outs1 outs2)) n2
-                 (* drop boundary node n1; keep what it was merged with *)
-                 |> update_vertices (Vertex.NTab.delete n1)
-            end
-      else (* not boundary then rename as normal *)
-        case lookup_vertex bg n2 
-         of NONE => (* no clash, so rename n1 to n2 *)
-            bg |> rename_vname n1 n2
-          (* clash iff another boundary (n2) was also renamed to this *)
-          | SOME (V.BVert,(ins2,outs2)) => 
-            let val (d1,(ins1,outs1)) = get_vertex bg n1
-            in
-              bg |> update_boundary (V.NSet.delete n2)
-                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (from,n2))) ins1
-                 |> Edge.NSet.fold (update_edge_vnames (fn (from,to) => (n2,to))) outs1 
-                 |> (update_vertices 
-                       ((* drop n1 *)
-                        Vertex.NTab.delete n1 
-                        (* update n2 to merged data and edges *)
-                        o Vertex.NTab.update
-                            (n2,(d1,(Edge.NSet.union_merge ins1 ins2,
-                                     Edge.NSet.union_merge outs1 outs2)))))
-            end
-          | _ => raise ERROR "BGraph:rename_or_merge_vname:impossible!";
+    (case lookup_vertex bg n2 
+      of NONE => bg |> rename_vname n1 n2
+       | SOME (d2,(ins2,outs2)) => (* clash, so merge egdes to n1 into n2 *)
+         let val (d1,(ins1,outs1)) = get_vertex bg n1
+         in
+           bg |> (case d1 
+                   of V.BVert => update_boundary (V.NSet.delete n1)
+                    | V.IVert id2 => 
+                      (case d2 
+                        of V.BVert => (* update boundary and data *)
+                           update_boundary (V.NSet.delete n2)
+                           o set_vertex_data d1 n2
+                         | V.IVert id1 => I)) (* nothing to do *)
+              (* update edges *)
+              |> Edge.NSet.fold (update_edge_vnames 
+                                   (fn (from,to) => (from,n2))) ins1 
+              |> Edge.NSet.fold (update_edge_vnames 
+                                   (fn (from,to) => (n2,to))) outs1 
+              |> update_vertex_enames (K (Edge.NSet.union_merge ins1 ins2,
+                                          Edge.NSet.union_merge outs1 outs2)) n2
+              (* drop boundary node n1; keep what it was merged with *)
+              |> update_vertices (Vertex.NTab.delete n1)
+         end);
 
 (* all edges leaving the selection get cut at the next vertex,
    introducing bounary vertices. Preserves matching *)
@@ -233,7 +234,7 @@ fun cut_subgraph_of_selection' vns g =
         (fn n => fn g => 
                     if V.NSet.contains vns n then g 
                     else if V.NSet.contains new_boundary_vs n 
-                    then set_vertex V.BVert n g else delete_vertex n g)
+                    then set_vertex_data V.BVert n g else delete_vertex n g)
         (get_vnames g) g)
     end;
 

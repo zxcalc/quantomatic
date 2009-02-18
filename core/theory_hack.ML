@@ -21,7 +21,7 @@ structure TheoryHack
           | flip_data (V.IVert (RGVertex.Znd e)) = V.IVert (RGVertex.Xnd e)
           | flip_data d = d
       in 
-        V.NSet.fold (RGGraph.update_vertex flip_data) 
+        V.NSet.fold (RGGraph.update_vertex_data flip_data) 
                     (RGGraph.get_vnames g) g
       end;
 
@@ -674,7 +674,7 @@ in
 end;
 
 
-(* spider'd anti-loop *)
+(* !-boxed, spider'd anti-loop *)
 local 
   (* lhs *)
   val g = RGGraph.empty;
@@ -688,7 +688,23 @@ local
   (* rhs *)
   val rhs = g |> RGGraph.delete_edge e1;
 in
-  val spider_antiloop_rule = Rule.mk (lhs,rhs);
+  val spidered_antiloop_rule = Rule.mk (lhs,rhs);
+end;
+
+
+(* basic 1-anti-loop *)
+local 
+  (* lhs *)
+  val g = RGGraph.empty;
+  val (v1, g) = g |> RGGraph.add_vertex bvert;
+  val (e1, g) = g |> RGGraph.add_edge edge v1 v1;
+  val lhs = g;
+  (* rhs *)
+  val g = RGGraph.empty;
+  val (v1, g) = g |> RGGraph.add_vertex bvert;
+  val rhs = g;
+in
+  val antiloop_rule = Rule.mk (lhs,rhs);
 end;
 
 
@@ -730,7 +746,7 @@ val bi_colour_rules_rules =
      ("hopf_2_2",hopf_2_2_rule),
      ("bialgebra1",bialgebra1_rule),
      ("drop_self_loop", drop_self_loop_rule),
-	   ("spider_antiloop_rule",spider_antiloop_rule),
+	   ("antiloop_rule",antiloop_rule),
      ("hh_to_id",hh_to_id_rule)
     ];
 

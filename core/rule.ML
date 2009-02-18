@@ -210,13 +210,29 @@ fun inst_rule rule match =
       (* IMPROVE: use depenv to only update changes parts of graph *)
       fun apply_vertex_data_subst g = 
           Vertex.NSet.fold
-            (RGGraph.update_vertex
+            (RGGraph.update_vertex_data
                (Match.MCtxt.subst_in_vertex_data (Match.get_mctxt match)))
             (RGGraph.get_vnames g) g
 
+      val vinsts = 
+          (Match.get_vinsts match) : Vertex.IData.data Vertex.NTab.T
+
+
+      fun instantiate_boundary_vertices g =
+          Vertex.NTab.fold 
+            (fn (n,d : Vertex.IData.data) => fn g => 
+               (* if still boundary after rename/merge *)
+               if RGGraph.is_boundary g n then
+                 RGGraph.change_into_internal n d g
+               else g)
+            (Match.get_vinsts match) g;
+
       val lhs = (get_lhs rule)
+                  (* any boundary vertices in pat mapped to non-boundary,
+                     get instantiatied to the non-boundary *)
+                  (* |> instantiate_boundary_vertices *)
+                  (* rename (merge for unified leaf/boundary vertices) *)
                   |> (Vertex.NTab.fold 
-                        (* rename (merge for unified leaf/boundary vertices) *)
                         (fn (n1,n2) => RGGraph.rename_or_merge_vname n1 n2)
                         vmap)
                   |> (Edge.Ehn.NTab.fold (* rename/merge edges - 
@@ -228,8 +244,8 @@ fun inst_rule rule match =
                                (* ignore cases where edge has already
                                been renamed; each edge has two halves,
                                so it was just renamed earlier by its
-                               other half. *)                               
-                               of NONE => lhs 
+                               other half. *)
+                               of NONE => lhs
                                 | SOME _ => 
                                   (case RGGraph.try_rename1_ename 
                                           e1 (RGGraph.Edge.Ehn.get_ename ehn2) lhs
@@ -239,17 +255,21 @@ fun inst_rule rule match =
                                      | SOME lhs2 => lhs2)
                             end)
                         (Match.EMap.get_domtab emap))
+                  (* instantiate angle expressions *)
                   |> apply_vertex_data_subst
 
       (* only boundary nodes are mapped/renamed on rhs *)
       val oldrhs = get_rhs rule;
-      val rhs = oldrhs
-                  |> (Vertex.NSet.fold (* rename/merge boundary vertices *)
+      val rhs = oldrhs 
+                  (* instantiated boundary vertices which may make them concrete *)
+                  (* |> instantiate_boundary_vertices *)
+                  (* rename/merge boundary vertices to match in tgt graph *)
+                  |> (fn g => Vertex.NSet.fold 
                         (fn n1 => RGGraph.rename_or_merge_vname 
                                     n1 (Vertex.NTab.get vmap n1))
-                        (RGGraph.get_boundary oldrhs))
+                        (RGGraph.get_boundary g) g)
                    (* apply angle instantiations *)
-                  |> apply_vertex_data_subst                          
+                  |> apply_vertex_data_subst
     in
       rule |> set_lhs lhs
            |> set_rhs rhs
@@ -276,8 +296,13 @@ fun add_rhs rule tgt = RGGraph.merge_by_vertices (get_rhs rule) tgt;
 fun del_lhs rule tgt = 
     let val lhs = (get_lhs rule) 
         val internal_lhs_vns = 
-            Vertex.NSet.subtract (RGGraph.get_vnames lhs) (RGGraph.get_boundary lhs) 
-    in Vertex.NSet.fold RGGraph.delete_vertex internal_lhs_vns tgt end;
+            Vertex.NSet.subtract (RGGraph.get_vnames lhs) (RGGraph.get_boundary lhs)
+    in  
+      (* delete all edges - can't rely on vertex deletion alone as
+         edges between bounary nodes may be removed *)
+      tgt |> Edge.NSet.fold RGGraph.delete_edge (RGGraph.get_enames lhs)
+          |> Vertex.NSet.fold RGGraph.delete_vertex internal_lhs_vns
+    end;
 
 (* rewriting pattern graph *)
 fun do_rewrite g matched_rule =

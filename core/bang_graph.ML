@@ -153,9 +153,11 @@ struct
           Pretty.block 
             [Pretty.str "  ", (* indent *)
              Pretty.chunks 
-               [Pretty.block 
-                  [Pretty.str "Bang-Boxes: ", VtoBoxMap.pretty (get_bboxes g)],
-                Graph.pretty g]],
+               ((if VtoBoxMap.is_empty (get_bboxes g) then []
+                 else [Pretty.block 
+                         [Pretty.str "Bang-Boxes: ", 
+                          VtoBoxMap.pretty (get_bboxes g)]])
+                @ [Graph.pretty g])],
           Pretty.str "}"
         ];
 

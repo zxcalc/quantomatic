@@ -71,6 +71,23 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val [] = Seq.list_of (MatchState.match pat1 tgt RGVertex.NTab.empty);
 val [] = Seq.list_of (MatchState.match pat2 tgt RGVertex.NTab.empty);
 
+val g = G.empty;
+val (b1, g) = g |> G.add_vertex bvert;
+val (_, g) = g |> G.add_edge edge b1 b1;
+val pat = g;
+
+val g = G.empty;
+val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+val (_, g) = g |> G.add_edge edge n1 n1;
+val (_, g) = g |> G.add_edge edge n1 n1;
+val tgt = g;
+
+val (rn,pat) = (G.rename_apart tgt pat);
+val _ = G.print pat;
+val _ = G.print tgt;
+
+val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
+val _ = Match.print m;
 
 in
  Pretty.writeln (Pretty.str "Tests passed: graph matching.")

@@ -307,7 +307,7 @@ fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
   | vdata a _ = raise Match
 
 fun set_angle ([_,v,a], graph) =
-    ("ok\n", graph |> G.update_vertex (vdata a) (V.mk v))
+    ("ok\n", graph |> G.update_vertex_data (vdata a) (V.mk v))
     handle Match => raise user_exp "Can only set angles for red and green vertices."
      | AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression."
 
@@ -356,7 +356,7 @@ fun flip_vertices (_::vs, graph) = let
     fun flip_data (V.IVert (V.Xnd e)) = V.IVert (V.Znd e)
       | flip_data (V.IVert (V.Znd e)) = V.IVert (V.Xnd e)
       | flip_data d = d
-in ("ok\n", fold (G.update_vertex flip_data) (map V.mk vs) graph)
+in ("ok\n", fold (G.update_vertex_data flip_data) (map V.mk vs) graph)
 end
 
 

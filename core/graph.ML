@@ -45,8 +45,8 @@ val try_rename1_ename : Edge.name -> Edge.name -> T -> T option
 val try_rename1_vname : Vertex.name -> Vertex.name -> T -> T option
 
 (* update a data of a vertex or edge *)
-val update_vertex : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
-val update_edge : (Edge.data -> Edge.data) -> Edge.name -> T -> T
+val update_vertex_data : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
+val update_edge_data : (Edge.data -> Edge.data) -> Edge.name -> T -> T
 
 (* getting graph internal representation... *)
 val get_vertices : T 
@@ -107,6 +107,10 @@ val get_edge : T -> Edge.name -> (Edge.data * (Vertex.name * Vertex.name))
 val get_vertex_data : T -> Vertex.name -> Vertex.data
 val get_edge_data : T -> Edge.name -> Edge.data
 
+(* setting data *)
+val set_vertex_data : Vertex.data -> Vertex.name -> T -> T
+val set_edge_data : Edge.data -> Edge.name -> T -> T
+
 (* check if two graphs are exactly the same (names, data, and structure) *)
 val exact_eq : T -> T -> bool
 
@@ -150,10 +154,6 @@ val merge_by_vertices : T -> T -> T
 
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
-
-(* update a vertexe's data *)
-val set_vertex : Vertex.data -> Vertex.name -> T -> T
-val set_edge : Edge.data -> Edge.name -> T -> T
 
 (* getting graph internal representation... *)
 val get_vertex_list : T -> (Vertex.name * (Vertex.data 
@@ -300,7 +300,7 @@ fun get_edge g en =
       | SOME x => x;
 
 (* implicit arg: g *)
-fun update_vertex f n = 
+fun update_vertex_data f n = 
     update_vertices (Vertex.NTab.map_entry (fn (nd,ios) => (f nd,ios)) n);
 fun update_vertex_ins f n = 
     update_vertices (Vertex.NTab.map_entry 
@@ -308,7 +308,7 @@ fun update_vertex_ins f n =
 fun update_vertex_outs f n = 
     update_vertices (Vertex.NTab.map_entry 
                        (fn (nd,(ins,outs)) => (nd,(ins, f outs))) n);
-fun update_edge f en = 
+fun update_edge_data f en = 
     update_edges (Edge.NTab.map_entry (fn (e,fromto) => (f e,fromto)) en);
 
 (* adding a vertex gives back unique name for it and the new graph *)
@@ -590,8 +590,8 @@ fun get_vname_ehns g v =
         |> Edge.add_end_ehns ines
     end;
 
-val set_vertex = update_vertex o K;
-val set_edge = update_edge o K;
+val set_vertex_data = update_vertex_data o K;
+val set_edge_data = update_edge_data o K;
 
 
 (* change structure of graph *)

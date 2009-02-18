@@ -34,10 +34,14 @@ signature MATCH_STATE
   structure Edge : EDGE
   structure Vertex : RG_VERTEX
 
-  sharing Vertex = RGGraph.RGVertex
-  sharing Vertex = Match.MCtxt.BVertex
+  (* sharing Vertex = RGGraph.RGVertex *)
+  (* not clear why I need this this way round - but get type strange error the other way *)
+  sharing RGGraph.BVertex = Vertex; 
+  sharing Match.MCtxt.BVertex = Vertex
   sharing Edge = Match.MCtxt.Edge
   sharing Edge = RGGraph.Edge
+
+
 
   type T
   datatype matchstep =
@@ -280,7 +284,7 @@ fun edgematch_adj_2vs (from_pv as (from_pn, from_pd)) to_pn
 
 (* NOTE: we treat all self-loops as equivalent; this assumes no edge
    data, but saves on many otherwise symmetric matches for self-loops *)
-fun edgematch_adj_leaf_to_loop (lfpvn,(lfpeh,ped)) from_tn (* tgt vertex *)
+fun edgematch_adj_leaf_to_loop (lfpvn,(lfpeh,ped)) (from_tn,from_td) (* tgt vertex *)
                                (ltes, st) = 
     (case Edge.NSet.get_local_bot (Edge.NTab.get_nameset ltes)
       of NONE => NONE
@@ -290,7 +294,7 @@ fun edgematch_adj_leaf_to_loop (lfpvn,(lfpeh,ped)) from_tn (* tgt vertex *)
                (get_match st)
                  |> (Match.add_leaf_ehn2edge_emap 
                        (lfpeh,ped) (lte, Edge.NTab.get ltes lte))
-                 |> Match.match_lfvertex lfpvn from_tn
+                 |> Match.match_lfvertex lfpvn (from_tn,from_td)
            val st2 = st |> set_match m2
                         |> del_pat_lfvertex lfpvn
                         |> del_pat_edge (Edge.Ehn.get_ename lfpeh)
@@ -307,20 +311,21 @@ fun edgematch_adj_leaf_to_loop (lfpvn,(lfpeh,ped)) from_tn (* tgt vertex *)
    data, but saves on many otherwise symmetric matches for self-loops;
  *)
 (* IMPROVE: respect edge data might fail - deal with options/turn into seqs *)
-fun edgematch_adj_leaf from_tn (lfpne as (lfpvn,(lfpeh,ped)))
+fun edgematch_adj_leaf (from_tn,from_td) (lfpne as (lfpvn,(lfpeh,ped)))
                        (left_over_tehs, (ltes, st)) = 
     (case Edge.Ehn.NSet.pull_local_bot left_over_tehs 
       of NONE => (* all extra target edges already matched, so match 
                     the extra leaf pattern edge/vertex to self-loops *)
-         (case edgematch_adj_leaf_to_loop lfpne from_tn (ltes, st)
+         (case edgematch_adj_leaf_to_loop lfpne (from_tn,from_td) (ltes, st)
            of SOME (ltes2, st2) => Seq.single (left_over_tehs, (ltes2, st2))
             | NONE => Seq.empty (* THINK: can this actually happen? *) )
        | SOME (teh, more_tehs) => 
          let val tgt = get_unm_tgt st
              val tn = RGGraph.get_ehn_vname tgt (Edge.Ehn.other teh)
+             val td = RGGraph.get_vertex_data tgt tn
              val ted = RGGraph.get_ehn_data tgt teh
              val m2 = (get_match st) 
-                        |> Match.match_lfvertex lfpvn tn
+                        |> Match.match_lfvertex lfpvn (tn,td)
                         |> (the o Match.add_full_leaf_ehn2ehn_emap 
                                     (lfpeh,ped) (teh,ted))
              val te = Edge.Ehn.get_ename teh
@@ -333,19 +338,19 @@ fun edgematch_adj_leaf from_tn (lfpne as (lfpvn,(lfpeh,ped)))
              (more_tehs, (ltes, st2))
              (Seq.map (* edgematch against other incident tehs *)
                 (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
-                (edgematch_adj_leaf from_tn lfpne (more_tehs, (ltes, st))))
+                (edgematch_adj_leaf (from_tn,from_td) lfpne (more_tehs, (ltes, st))))
          end
          handle Option.Option => 
                 (Seq.map (* edgematch against other incident tehs *)
                    (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
-                   (edgematch_adj_leaf from_tn lfpne (more_tehs, (ltes, st))))
+                   (edgematch_adj_leaf (from_tn,from_td) lfpne (more_tehs, (ltes, st))))
     );
 
 
 (* match extra pat leaves against remaining target edges *)
 (* IMPROVE?: really match leaf to every possible location; currently
    we just match leaves to whatever they can be matched to first. *)
-fun edgematch_extra_pat_leaves from_pd from_tn 
+fun edgematch_extra_pat_leaves from_pd (from_tn, from_td)
       ltes (* unmatched loopy edges in tgt *)
       plfs (* left over pattern boundary leaves *)
       st = 
@@ -354,7 +359,7 @@ fun edgematch_extra_pat_leaves from_pd from_tn
           RGGraph.get_vname_ehns (get_unm_tgt st) from_tn
       val leaf_match_seq =
           Vertex.NTab.fold
-            (Seq.maps o edgematch_adj_leaf from_tn)
+            (Seq.maps o edgematch_adj_leaf (from_tn, from_td))
             plfs
             (Seq.single (left_over_tehs, (ltes, st)))
     in (* allow extra tgts only if from_d is boundary *)
@@ -401,7 +406,7 @@ fun edgematch_adj_verticies
           pns)
     (* match remaining pat leaves; note: we ignore tns as we
        re-compute it in terms of half edges. IMPROVE: avoid this? *)
-    |> (Seq.maps (edgematch_extra_pat_leaves from_pd from_tn ltes plfs o snd));
+    |> (Seq.maps (edgematch_extra_pat_leaves from_pd from_tv ltes plfs o snd));
 
 
 (* if pn is internal and tgt has loops, match tgt loops against leaf
@@ -413,7 +418,7 @@ fun edgematch_adj_verticies
 
 (* IMPROVE: avoid exception to stop fold loop - have a try_fold *)
 (*  Match all loopy edges in tgt against 2 leaf boundary nodes in pat *)
-fun match_all_tgt_loops_by_leaves tn (ltes, (plfs,st)) = 
+fun match_all_tgt_loops_by_leaves (tn,td) (ltes, (plfs,st)) = 
     let val (plfs2, st2) = 
       Edge.NTab.fold 
       (fn (te as (ten,ted)) => fn (plfs,st) => 
@@ -427,8 +432,8 @@ fun match_all_tgt_loops_by_leaves tn (ltes, (plfs,st)) =
                 |> del_pat_lfvertex pn2
                 |> del_tgt_edge ten
                 |> (update_match 
-                      (Match.match_lfvertex pn1 tn
-                       o Match.match_lfvertex pn2 tn
+                      (Match.match_lfvertex pn1 (tn,td)
+                       o Match.match_lfvertex pn2 (tn,td)
                        o Match.add_leaf_ehn2edge_emap pe1 te
                        o Match.add_leaf_ehn2edge_emap pe2 te))
        in (plfs3,st2) end)
@@ -502,7 +507,7 @@ fun match_2vertices_with_edges
       val (pd, (plfs, lpes, pns)) = RGGraph.adj_pat_info pat pn;
     in 
       if is_leaf_of_init_pat st pn then 
-        st |> match_lfvertex pn tn
+        st |> match_lfvertex pn (tn,td)
            |> (fn st2 => (ltes,(plfs,st2)))
            |> edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns)
            |> Seq.map (del_pat_lfvertex pn)
@@ -511,7 +516,7 @@ fun match_2vertices_with_edges
           NONE => Seq.empty (* vertex does not match *)
         | SOME st2 => (* continue matching *)
           (ltes,(plfs,st2))
-            |> match_self_loops pd tn lpes 
+            |> match_self_loops pd (tn,td) lpes 
             |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns))
             |> Seq.map (del_pat_vertex pn) (* finished matching pn *)
     end;

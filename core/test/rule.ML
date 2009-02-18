@@ -177,7 +177,6 @@ val (e4, g) = g |> G.add_edge edge n3 n4;
 val _ = G.print g;
 val _ = writeln "Ex9";
 
-(* isometry and abelian both apply. *)
 (* val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g *)
 (* val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g; *)
 val [spider,x_ab1b,x_ab1,zgroup3] = TheoryHack.apply_all_rules g;
@@ -197,7 +196,6 @@ val (e3, g) = g |> G.add_edge edge n2 n3;
 val _ = G.print g;
 val _ = writeln "Ex10";
 
-(* isometry and abelian both apply. *)
 (* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 (* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 val [s1,m1] = TheoryHack.apply_all_rules g;
@@ -214,10 +212,61 @@ val (e2, g) = g |> G.add_edge edge n2 n3;
 val _ = G.print g;
 val _ = writeln "Ex11";
 
-(* isometry and abelian both apply. *)
 (* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 (* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 val [hswapped] = Seq.list_of (Rule.rule_matches TheoryHack.h_swap_rule g);
+
+
+
+
+(* hx_to_x with instantiated boundary node  *)
+val g = G.empty;
+val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+val (_, g) = g |> G.add_edge edge n1 n1;
+val _ = G.print g;
+val _ = writeln "Ex12";
+
+val rule = TheoryHack.antiloop_rule;
+val (rn, rule) = (Rule.rename_rule_apart g rule);
+val _ = Rule.print rule;
+
+val [r2] = (Seq.list_of (Rule.rule_matches rule g));
+val _ = Rule.print r2;
+
+(* 
+G.is_leaf_vertex g 
+
+val [] = Seq.list_of (MatchState.match (Rule.get_lhs rule) g RGVertex.NTab.empty);
+*) 
+
+(* hx_to_x with instantiated boundary node  *)
+val g = G.empty;
+val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+val (_, g) = g |> G.add_edge edge n1 n1;
+val (_, g) = g |> G.add_edge edge n1 n1;
+val _ = G.print g;
+val _ = writeln "Ex12";
+
+val rule = TheoryHack.antiloop_rule;
+(* 
+val (rn, rule') = (Rule.rename_rule_apart g rule);
+val _ = Rule.print rule';
+
+val [] = Seq.list_of (MatchState.match (Rule.get_lhs rule') g RGVertex.NTab.empty);
+
+
+val [m1,m2] = Seq.list_of (MatchState.matches  g);
+
+val [m1,m2] = Seq.list_of (Rule.matches rule' g);
+val _ = Match.print m1;
+val rule'' = Rule.inst_rule rule' m1;
+val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
+val [g1,g2] = map G.print (Seq.list_of (Rule.rewrites TheoryHack.isometry_rule g));
+val _ = writeln "Ex4";
+
+val [r1] = Seq.list_of (Rule.rule_matches TheoryHack.antiloop_rule g);
+
+*)
 
 end;
 
