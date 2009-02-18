@@ -1,6 +1,8 @@
 package quanto.gui;
 
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -323,11 +325,24 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		JMenuItem item;
 		
+		
 		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
 		cbItem.setMnemonic(KeyEvent.VK_E);
 		cbItem.addItemListener(graphMouse.getItemListener());
 		cbItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, commandMask));
 		graphMenu.add(cbItem);
+		
+		item = new JMenuItem("Latex to clipboard", KeyEvent.VK_L);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				String tikz = TikzOutput.generate(getGraph(), getGraphLayout());
+				Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
+				StringSelection data = new StringSelection(tikz);
+				cb.setContents(data, data);
+			}
+		});
+		graphMenu.add(item);
 		
 		JMenu graphAddMenu = new JMenu("Add");
 		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
