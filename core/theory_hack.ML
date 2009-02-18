@@ -768,7 +768,7 @@ end;
 (* in *)
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");
 
-val bi_colour_rules_rules = 
+val bi_colour_rules = 
     [
      ("hopf_1_1",hopf_1_1_rule),
      ("hopf_1_2",hopf_1_2_rule),
@@ -780,7 +780,22 @@ val bi_colour_rules_rules =
      ("hh_to_id",hh_to_id_rule)
     ];
 
-val single_colour_rules = 
+val coloured_h_rules =  
+    [
+     ("h_swap",h_swap_rule),
+     ("hh_swap",hh_swap_rule),
+     ("hhh_swap",hhh_swap_rule)
+    ];
+
+
+val one_colour_rules = 
+    bi_colour_rules
+    @ (maps 
+         (fn (n,r) => [("x_" ^ n, swap_rule_colour r), 
+                       ("z_inv_" ^ n, Rule.symmetric r)])
+         coloured_h_rules);
+
+val swap_colour_rules = 
     [
      (* abelian1 is special case outside our spider *)
      ("abelian1", abelian1_rule),
@@ -790,16 +805,13 @@ val single_colour_rules =
      ("group3", group3_rule),
      ("group4", group4_rule),
      ("copy_0", copy_0_rule),
-     ("copy_pi", copy_pi_rule),
-     ("h_swap",h_swap_rule),
-     ("hh_swap",hh_swap_rule),
-     ("hhh_swap",hhh_swap_rule)
+     ("copy_pi", copy_pi_rule)
     ];
 
 val default_rules = 
-    bi_colour_rules_rules
+    one_colour_rules
     @ (maps (fn (n,r) => [("z_" ^ n, swap_rule_colour r), ("x_" ^ n, r)])
-            single_colour_rules);
+            swap_colour_rules);
 
 val ruletab = 
     fold StrName.NTab.update default_rules StrName.NTab.empty;
@@ -822,23 +834,27 @@ fun match_all_rules g =
                    end)
       (!rules);
 
-fun apply_all_rules g = 
+(* apply rules to whole graph *)
+fun apply_rules rules g = 
     map (fn r => ("spider", r)) 
         (Seq.list_of (Spider.mk_max_spider_rule g))
     @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
-      (!rules);
+      rules;
 
-fun apply_all_rules_in vset g = 
+(* apply rules to select vertices (vset) *)
+fun apply_rules_in rules vset g = 
     map (fn r => ("spider", r)) 
         (Seq.list_of (Spider.mk_max_spider_rule_within vset g))
     @
     maps
       (fn (n,r) => map (fn r2 => (n,r2)) 
                        (Seq.list_of (Rule.rule_matches_within r vset g)))
-      (!rules);
+      rules;
 
+val apply_all_rules = apply_rules (!rules);
+val apply_all_rules_in = apply_rules_in (!rules);
 
 (* Unused: matching only produces symmetries w.r.t. different namings
 - our distinctness check never sees this, so sees them as really

@@ -109,14 +109,13 @@ val _ = writeln "Ex6";
 
 val [] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
 
-(* bialgebra3 *)
-val [r1,r2] = TheoryHack.apply_all_rules g;
+val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.copy_0_rule g);
 
 
 (* Example of not applicable rules... *)
 val g = G.empty;
-val (n1, g) = g |> G.add_vertex (mkZ zero_angle);
-val (n2, g) = g |> G.add_vertex (mkX zero_angle);
+val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+val (n2, g) = g |> G.add_vertex (mkZ zero_angle);
 val (n3, g) = g |> G.add_vertex bvert;
 val (n4, g) = g |> G.add_vertex bvert;
 val (e0, g) = g |> G.add_edge edge n1 n2;
@@ -125,8 +124,7 @@ val (e2, g) = g |> G.add_edge edge n2 n4;
 val _ = G.print g;
 val _ = writeln "Ex7";
 
-(* bialgebra2 *)
-val [r1,r2] = TheoryHack.apply_all_rules g;
+val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.copy_0_rule g);
 
 
 (* big bialgebra1 rule matches it's own lhs in 4 ways *)
@@ -152,14 +150,15 @@ val _ = writeln "Ex8";
 val [] = Seq.list_of (Rule.rewrites TheoryHack.hopf_1_1_rule g);
 val L = Seq.list_of (Rule.rewrites TheoryHack.hopf_1_2_rule g);
 
-val _ = PolyML.exception_trace (fn () =>  Seq.list_of (Rule.rewrites TheoryHack.hopf_1_2_rule g)   );
+val _ = PolyML.exception_trace 
+          (fn () => Seq.list_of (Rule.rewrites TheoryHack.hopf_1_2_rule g)   );
 
 val L = Seq.list_of (Rule.rewrites TheoryHack.hopf_2_1_rule g);
 val L = Seq.list_of (Rule.rewrites TheoryHack.hopf_2_2_rule g);
 
 
-val L = TheoryHack.apply_all_rules g;
-val [r1,r2,r3,r4] = map snd L;
+val L = Seq.list_of (Rule.rewrites TheoryHack.bialgebra1_rule g);
+val [r1,r2,r3,r4] = L;
 val _ = writeln "big bialgebra1 rule matches it's own lhs in 4 ways";
 
 
@@ -180,16 +179,17 @@ val _ = writeln "Ex9";
 
 (* val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g *)
 (* val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g; *)
-val [spider,x_ab1b,x_ab1,zgroup3] = TheoryHack.apply_all_rules g;
+val [spider,x_ab1b,x_ab1] = (TheoryHack.apply_rules 
+                               [("abelian1", TheoryHack.abelian1_rule)]) g;
 val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
 (* X isometry + matches x_isometry with instantiated boundary node  *)
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
-val (n1, g) = g |> G.add_vertex (mkX zero_angle);
-val (n2, g) = g |> G.add_vertex (mkX zero_angle);
-val (n3, g) = g |> G.add_vertex (mkZ zero_angle);
+val (n1, g) = g |> G.add_vertex (mkZ zero_angle);
+val (n2, g) = g |> G.add_vertex (mkZ zero_angle);
+val (n3, g) = g |> G.add_vertex (mkX zero_angle);
 val (e0, g) = g |> G.add_edge edge b1 n1;
 val (e1, g) = g |> G.add_edge edge n1 n2;
 val (e2, g) = g |> G.add_edge edge n1 n2;
@@ -199,9 +199,9 @@ val _ = writeln "Ex10";
 
 (* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 (* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
-val [s1,m1] = TheoryHack.apply_all_rules g;
-
-
+val [m1,m2] = 
+    (TheoryHack.apply_rules 
+       [("copy", TheoryHack.copy_0_rule)]) g;
 
 (* hx_to_x with instantiated boundary node  *)
 val g = G.empty;
