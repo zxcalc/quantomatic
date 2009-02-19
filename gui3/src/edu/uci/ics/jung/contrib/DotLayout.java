@@ -61,21 +61,25 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		String ln = dotIn.readLine();
 		
 		// compute bounds as we go
-		double bottom=0, right=0;
+		double top=0;//, right=0;
 		while (!ln.equals("stop")) {
 			StringTokenizer tk = new StringTokenizer(ln);
 			String cmd = tk.nextToken();
 			if (cmd.equals("node")) {
 				String name = tk.nextToken();
 				Point2D loc = new Point2D.Double(
-						(Double.parseDouble(tk.nextToken()) * 50.0 + 20.0),
-						(Double.parseDouble(tk.nextToken()) * 50.0 + 20.0)
+						(Double.parseDouble(tk.nextToken()) * 50.0 + 30.0),
+						(Double.parseDouble(tk.nextToken()) * -50.0)
 					);
-				if (loc.getX()>right) right = loc.getX();
-				if (loc.getY()>bottom) bottom = loc.getY();
+				//if (loc.getX()>right) right = loc.getX();
+				if (loc.getY()<top) top = loc.getY();
 				coords.put(name, loc);
 			}
 			ln = dotIn.readLine();
+		}
+		
+		for (Point2D c : coords.values()) {
+			c.setLocation(c.getX(), c.getY()-top+40.0);
 		}
 		
 		return coords;
