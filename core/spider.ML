@@ -104,13 +104,13 @@ fun rule_of_spider_for_g g (Spider (spider_lhs,spider_d)) =
                               (fn e => 
                                   let val (ed,_) = RGGraph.get_edge spider_lhs e
                                   in RGGraph.new_named_edge 
-                                       e ed n fresh_vn end)
+                                       e ed fresh_vn n end)
                               from_es)
                         |> (Edge.NSet.fold 
                               (fn e => 
                                   let val (ed,_) = RGGraph.get_edge spider_lhs e
                                   in RGGraph.new_named_edge 
-                                       e ed fresh_vn n end)
+                                       e ed n fresh_vn end)
                               to_es)
                    end)
                   boundary)
