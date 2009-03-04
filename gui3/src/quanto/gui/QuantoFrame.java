@@ -29,6 +29,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	
 	
 	public QuantoFrame() {
+		setBackground(Color.white);
 		tabs = new JTabbedPane();
 		consoleVisible = true;
 		focusedView = null;

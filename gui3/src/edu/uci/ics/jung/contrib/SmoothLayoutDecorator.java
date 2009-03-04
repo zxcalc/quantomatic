@@ -12,13 +12,11 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	private double lastTick;
 	private double speed;
 	private StaticLayout<V,E> currentState;
-	private boolean done;
 	public SmoothLayoutDecorator(Layout<V,E> delegate) {
 		super(delegate);
 		speed = 0.0002;
 		initialize(); // make sure delegate is initialized before we go
 		currentState = new StaticLayout<V,E>(delegate.getGraph());
-		done = false;
 	}
 	
 	public void initialize() {
@@ -29,8 +27,6 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 			Relaxer relaxer = new VisRunner((IterativeContext)getDelegate());
 			relaxer.prerelax();
 		}
-		
-		done = false;
 	}
 	
 	public Point2D transform(V v) {

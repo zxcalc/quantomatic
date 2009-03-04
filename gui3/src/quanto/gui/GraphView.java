@@ -39,6 +39,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 		setGraphLayout(quantoLayout);
 		setPreferredSize(size);
 		getGraphLayout().initialize();
+		setBackground(new Color(0.97f,0.97f,0.97f));
 		this.graph = g;
 		
         getRenderContext().setVertexFillPaintTransformer(

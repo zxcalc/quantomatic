@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<project name="QuantoGui" default="dist" basedir=".">
+    <description>
+        Build the Quantomatic GUI as a JAR file.
+    </description>
+    
+    <!-- set global properties for this build -->
+    <property name="src" location="src"/>
+    <property name="build" location="build"/>
+    <property name="dist" location="dist"/>
+    <property name="lib" location="lib"/>
+    
+    <!-- classpath we use for building, just all the JARs in ${lib} -->
+    <path id="quanto.path">
+        <fileset dir="${lib}">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+    
+    <target name="init">
+        <!-- Create the time stamp -->
+        <tstamp/>
+        <!-- Create the build directory structure used by compile -->
+        <mkdir dir="${build}"/>
+    </target>
+    <target name="compile" depends="init" description="compile the source ">
+        <!-- Compile the java code from ${src} into ${build} -->
+        <javac srcdir="${src}" destdir="${build}">
+            <classpath refid="quanto.path" />
+        </javac>
+    </target>
+    <target name="dist" depends="compile" description="generate the distribution">
+        <!-- There's probably a better way to do this. Unjar'ing all the deps
+             onto the build tree. -->
+        <unjar src="${lib}/collections-generic-4.01.jar" dest="${build}" />
+        <unjar src="${lib}/colt-1.2.0.jar" dest="${build}" />
+        <unjar src="${lib}/concurrent-1.3.4.jar" dest="${build}" />
+        <unjar src="${lib}/jung-algorithms-2.0-beta1.jar" dest="${build}" />
+        <unjar src="${lib}/jung-api-2.0-beta1.jar" dest="${build}" />
+        <unjar src="${lib}/jung-graph-impl-2.0-beta1.jar" dest="${build}" />
+        <unjar src="${lib}/jung-visualization-2.0-beta1.jar" dest="${build}" />
+        <unjar src="${lib}/nanoxml-2.2.3.jar" dest="${build}" />
+        
+        <!-- Create the distribution directory -->
+        <mkdir dir="${dist}"/>
+        <!-- Put everything in ${build} into the QuantoGui.jar file -->
+        <jar jarfile="${dist}/QuantoGui.jar" index="yes">
+            <fileset dir="${build}" />
+            <manifest>
+                <attribute name="Main-Class" value="quanto.gui.QuantoFrame" />
+            </manifest>
+        </jar>
+    </target>
+    <target name="clean" description="clean up">
+        <!-- Delete the ${build} and ${dist} directory trees -->
+        <delete dir="${build}"/>
+        <delete dir="${dist}"/>
+    </target>
+</project>
