@@ -83,9 +83,9 @@ local
   val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 b2;
   val (e2, g) = g |> RGGraph.add_edge edge n1 n2;
-  val (e3, g) = g |> RGGraph.add_edge edge n2 b3;
+  val (e3, g) = g |> RGGraph.add_edge edge b3 n2;
   val (e4, g) = g |> RGGraph.add_edge edge n2 b4;
   val rhs = g;
 in 
@@ -102,7 +102,7 @@ local
   val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (b2, g) = g |> RGGraph.add_vertex bvert;
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (e1, g) = g |> RGGraph.add_edge edge b2 n1;
+  val (e1, g) = g |> RGGraph.add_edge edge n1 b2;
   val (e2, g) = g |> RGGraph.add_edge edge n2 n1;
   val lhs = g;
   (* rhs *)
@@ -176,8 +176,8 @@ local
   val (b4, g) = g |> RGGraph.add_vertex bvert;
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (e2, g) = g |> RGGraph.add_edge edge b3 n3;
-  val (e3, g) = g |> RGGraph.add_edge edge b4 n4;
+  val (e2, g) = g |> RGGraph.add_edge edge n3 b3;
+  val (e3, g) = g |> RGGraph.add_edge edge n4 b4;
   val (e4, g) = g |> RGGraph.add_edge edge n1 n3;
   val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
   val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
@@ -217,8 +217,8 @@ local
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (e2, g) = g |> RGGraph.add_edge edge b3 n3;
-  val (e3, g) = g |> RGGraph.add_edge edge b4 n4;
+  val (e2, g) = g |> RGGraph.add_edge edge n3 b3;
+  val (e3, g) = g |> RGGraph.add_edge edge n4 b4;
   val (e4, g) = g |> RGGraph.add_edge edge n1 n3;
   val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
   val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
@@ -259,8 +259,8 @@ local
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
   val (e1, g) = g |> RGGraph.add_edge edge b2 n2;
-  val (e2, g) = g |> RGGraph.add_edge edge b3 n3;
-  val (e3, g) = g |> RGGraph.add_edge edge b4 n4;
+  val (e2, g) = g |> RGGraph.add_edge edge n3 b3;
+  val (e3, g) = g |> RGGraph.add_edge edge n4 b4;
   val (e4, g) = g |> RGGraph.add_edge edge n1 n3;
   val (e5, g) = g |> RGGraph.add_edge edge n1 n4;
   val (e6, g) = g |> RGGraph.add_edge edge n2 n3;
@@ -336,7 +336,7 @@ local
   val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (n2, g) = g |> RGGraph.add_vertex (mkZ zero_angle);
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (e0, g) = g |> RGGraph.add_edge edge n2 b22;
+  val (e0, g) = g |> RGGraph.add_edge edge b22 n2;
   val (e0, g) = g |> RGGraph.add_edge edge n2 b2;
   val rhs = g;
 in
@@ -420,7 +420,7 @@ local
   val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (e0, g) = g |> RGGraph.add_edge edge n2 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge n2 b2;
   val lhs = g;
   (* rhs *)
   val g = RGGraph.empty;
@@ -429,7 +429,7 @@ local
   val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (_, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (_, g) = g |> RGGraph.add_edge edge n2 b2;
   val rhs = g;
 in
   val copy_0_rule = Rule.mk (lhs,rhs);
@@ -445,7 +445,7 @@ local
   val (n2, g) = g |> RGGraph.add_vertex (mkZ (var_angle "a"));
   val (e0, g) = g |> RGGraph.add_edge edge n2 n1;
   val (e1, g) = g |> RGGraph.add_edge edge b1 n2;
-  val (e2, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (e2, g) = g |> RGGraph.add_edge edge n2 b2;
   val lhs = g;
   (* rhs *)
   val g = RGGraph.empty;
@@ -454,7 +454,7 @@ local
   val (n1, g) = g |> RGGraph.add_vertex (mkX pi_angle);
   val (n2, g) = g |> RGGraph.add_vertex (mkX pi_angle);
   val (_, g) = g |> RGGraph.add_edge edge b1 n1;
-  val (_, g) = g |> RGGraph.add_edge edge b2 n2;
+  val (_, g) = g |> RGGraph.add_edge edge n2 b2;
   val rhs = g;
 in
   val copy_pi_rule = Rule.mk (lhs,rhs);
@@ -763,7 +763,7 @@ in
 end;      
 *)
 
- 
+
 
 (* in *)
 val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");

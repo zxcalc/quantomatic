@@ -124,6 +124,7 @@ val add_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T
 val doadd_edge : Edge.data -> Vertex.name -> Vertex.name -> T -> T
 val new_named_edge 
     : Edge.name -> Edge.data -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
+val swap_edge_dir : Edge.name -> T -> T
 
 (* low level restructuring of graph *)
 val update_vertex_enames : ((Edge.NSet.T * Edge.NSet.T) -> (Edge.NSet.T * Edge.NSet.T))
@@ -621,6 +622,25 @@ fun new_named_edge en e n1 n2 g =
     let val (en2,g2) = add_named_edge en e n1 n2 g in
       if Edge.name_eq (en2, en) then g2 else 
       raise ename_already_exists_exp (en,g)
+    end;
+
+
+fun update_vertex_ins_and_outs f n = 
+    update_vertices (Vertex.NTab.map_entry 
+                       (fn (nd,ins_and_outs) => (nd,f ins_and_outs)) n);
+
+(* swap direction of edge en *)
+fun swap_edge_dir en g = 
+    let 
+      val (d,(fromn, ton)) = get_edge g en
+    in
+      g |> (update_vertex_ins_and_outs 
+              (fn (eins,eouts) => (Edge.NSet.add en eins,Edge.NSet.delete en eouts)) 
+              fromn)
+        |> (update_vertex_ins_and_outs 
+              (fn (eins,eouts) => (Edge.NSet.delete en eins,Edge.NSet.add en eouts)) 
+              ton)
+        |> update_edges (Edge.NTab.map_entry (K (d,(ton, fromn))) en)
     end;
 
 

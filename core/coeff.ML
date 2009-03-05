@@ -112,8 +112,9 @@ open Rational;
 fun rat_reduce r = 
     let 
       val (n2,d2) = DB_Rational.rat_reduce r
-      val (_,n3) = Integer.div_mod n2 (2 * d2)
-    in (n3,d2) end;
+      val twod2 = (2 * d2)
+      val (m,n3) = Integer.div_mod n2 twod2
+    in ((if m < 0 then n3 - twod2 else n3),d2) end;
 
 fun rat_add (n1,d1) (n2,d2) =  rat_reduce (n1*d2 + n2*d1, d1*d2)
 fun rat_subtr (n1,d1) (n2,d2) = rat_add (n1,d1) (~n2,d2)

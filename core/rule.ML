@@ -198,7 +198,21 @@ fun is_trivial rule = true
                matchify_lhs_name waitlist vmap' (RGGraph.rename_vname n1 n2 lhs))
  *)
 
-
+(* invs are vertices that should only have edges going in, and outvs
+   are those where all edges should go out of the vertex. *)
+fun orient_edge_dirs (invs,outvs) g = 
+    g |> (Vertex.NSet.fold 
+            (fn n => 
+                let val (_,(ines,outes)) = RGGraph.get_vertex g n
+                in Edge.NSet.fold RGGraph.swap_edge_dir outes
+                end)
+          invs)
+      |> (Vertex.NSet.fold 
+            (fn n => 
+                let val (_,(ines,outes)) = RGGraph.get_vertex g n
+                in Edge.NSet.fold RGGraph.swap_edge_dir ines
+                end)
+            outvs);
 
 (* rename rule w.r.t. matching of tgt - assumes valid rule and rule is
    named distinct from tgt. *)
@@ -258,6 +272,23 @@ fun inst_rule rule match =
                   (* instantiate angle expressions *)
                   |> apply_vertex_data_subst
 
+      (* identify in and out boundary nodes (all edges come in-to or
+         out-of this node) and try to preserve them in rhs *)
+      val (inbvs,outbvs) = 
+          Vertex.NSet.fold 
+            (fn n => 
+             fn (invs,outvs) => 
+                let val (_,(ins,outs)) = RGGraph.get_vertex lhs n
+                in
+                  if Edge.NSet.is_empty ins then 
+                    (invs, Vertex.NSet.add n outvs)
+                  else if Edge.NSet.is_empty outs then 
+                    (Vertex.NSet.add n invs, outvs) else
+                  (invs,outvs)
+                end)
+            (RGGraph.get_boundary lhs)
+            (Vertex.NSet.empty, Vertex.NSet.empty)
+          
       (* only boundary nodes are mapped/renamed on rhs *)
       val oldrhs = get_rhs rule;
       val rhs = oldrhs 
@@ -269,6 +300,7 @@ fun inst_rule rule match =
                                     n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary g) g)
                    (* apply angle instantiations *)
+                  |> orient_edge_dirs (inbvs,outbvs)
                   |> apply_vertex_data_subst
     in
       rule |> set_lhs lhs
