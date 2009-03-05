@@ -41,6 +41,9 @@
         <unjar src="${lib}/jung-visualization-2.0-beta1.jar" dest="${build}" />
         <unjar src="${lib}/nanoxml-2.2.3.jar" dest="${build}" />
         
+        <!-- remove the META-INF from the other jar files. Ant will make a new one. -->
+        <delete dir="${build}/META-INF" />
+        
         <!-- Create the distribution directory -->
         <mkdir dir="${dist}"/>
         <!-- Put everything in ${build} into the QuantoGui.jar file -->
@@ -50,6 +53,9 @@
                 <attribute name="Main-Class" value="quanto.gui.QuantoFrame" />
             </manifest>
         </jar>
+    </target>
+    <target name="run" depends="dist" description="run quanto">
+        <java jar="${dist}/QuantoGui.jar" fork="true" />
     </target>
     <target name="clean" description="clean up">
         <!-- Delete the ${build} and ${dist} directory trees -->
