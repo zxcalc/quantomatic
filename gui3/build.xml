@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<project name="QuantoGui" default="dist" basedir=".">
+<project name="QuantoGui" default="jar" basedir=".">
     <description>
         Build the Quantomatic GUI as a JAR file.
     </description>
@@ -29,7 +29,7 @@
             <classpath refid="quanto.path" />
         </javac>
     </target>
-    <target name="dist" depends="compile" description="generate the distribution">
+    <target name="jar" depends="compile" description="generate the distribution">
         <!-- There's probably a better way to do this. Unjar'ing all the deps
              onto the build tree. -->
         <unjar src="${lib}/collections-generic-4.01.jar" dest="${build}" />
@@ -54,7 +54,12 @@
             </manifest>
         </jar>
     </target>
-    <target name="run" depends="dist" description="run quanto">
+    <target name="macapp" depends="jar" description="build OS X application">
+        <unzip src="app_skel.zip" dest="${dist}" />
+        <copy file="${dist}/QuantoGui.jar" todir="${dist}/Quantomatic.app/Contents/Resources/Java" />
+        <chmod file="${dist}/Quantomatic.app/Contents/MacOS/JavaApplicationStub" perm="+x" />
+    </target>
+    <target name="run" depends="jar" description="run quanto">
         <java jar="${dist}/QuantoGui.jar" fork="true" />
     </target>
     <target name="clean" description="clean up">
