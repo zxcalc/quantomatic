@@ -7,7 +7,6 @@ import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
 import edu.uci.ics.jung.algorithms.util.IterativeContext;
 
-
 public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	private double lastTick;
 	private double speed;

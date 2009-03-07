@@ -9,6 +9,8 @@
     <property name="build" location="build"/>
     <property name="dist" location="dist"/>
     <property name="lib" location="lib"/>
+    <property environment="env" />
+    
     
     <!-- classpath we use for building, just all the JARs in ${lib} -->
     <path id="quanto.path">
@@ -54,10 +56,42 @@
             </manifest>
         </jar>
     </target>
+    
+    
     <target name="macapp" depends="jar" description="build OS X application">
+        <delete dir="${dist}/Quantomatic.app" />
         <unzip src="app_skel.zip" dest="${dist}" />
+        <mkdir dir="${dist}/Quantomatic.app/Contents/Frameworks" />
         <copy file="${dist}/QuantoGui.jar" todir="${dist}/Quantomatic.app/Contents/Resources/Java" />
+        <copy file="../core/bin/quanto-core"
+            tofile="${dist}/Quantomatic.app/Contents/MacOS/quanto-core-app" />
+        
+        <!-- use otool to discover the appropriate libpolyml -->
+        <exec executable="bash" outputproperty="libpolyml" inputstring=
+            "otool -L ${dist}/Quantomatic.app/Contents/MacOS/quanto-core-app | awk '/polyml/ {print $1}'" />
+        
+        <echo message="Importing ${libpolyml}" />
+        
+        <copy file="${libpolyml}"
+            tofile="${dist}/Quantomatic.app/Contents/Frameworks/libpolyml.dylib" />
+        
+        <!-- update linked library refs -->
+        <exec executable="install_name_tool">
+            <arg value="-id" />
+            <arg value="@executable_path/../Frameworks/libpolyml.dylib" />
+            <arg value="${dist}/Quantomatic.app/Contents/Frameworks/libpolyml.dylib" />
+        </exec>
+        <exec executable="install_name_tool">
+            <arg value="-change" />
+            <arg value="${libpolyml}" />
+            <arg value="@executable_path/../Frameworks/libpolyml.dylib" />
+            <arg value="${dist}/Quantomatic.app/Contents/MacOS/quanto-core-app" />
+        </exec>
+        
+        <!-- ant does not preserve perms, boo -->
         <chmod file="${dist}/Quantomatic.app/Contents/MacOS/JavaApplicationStub" perm="+x" />
+        <chmod file="${dist}/Quantomatic.app/Contents/MacOS/quanto-core-app" perm="+x" />
+        <chmod file="${dist}/Quantomatic.app/Contents/Frameworks/libpolyml.dylib" perm="+x" />
     </target>
     <target name="run" depends="jar" description="run quanto">
         <java jar="${dist}/QuantoGui.jar" fork="true" />

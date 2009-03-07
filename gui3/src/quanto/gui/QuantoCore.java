@@ -27,6 +27,9 @@ public class QuantoCore {
 	private Completer completer;
 	private boolean consoleEcho;
 	
+	// Invoked as OS X application
+	public static boolean appMode = false;
+	
 	public static class ConsoleError extends Exception {
 		private static final long serialVersionUID = 1053659906558198953L;
 		public ConsoleError(String msg) {
@@ -49,7 +52,13 @@ public class QuantoCore {
 		this.consoleEcho = false;
 		this.output = output;
 		try {
-			ProcessBuilder pb = new ProcessBuilder("quanto-core");
+			ProcessBuilder pb;
+			if (appMode) {
+				pb = new ProcessBuilder(
+					"Quantomatic.app/Contents/MacOS/quanto-core-app");
+			} else {
+				pb = new ProcessBuilder("quanto-core");
+			}
 			pb.redirectErrorStream(true);
 			System.out.println("Initialising QuantoML...");
 			backEnd = pb.start();

@@ -29,6 +29,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	private QuantoLayout quantoLayout;
 	private VisualizationServer.Paintable boundsPaint;
 	
+	
 	public GraphView(QuantoGraph g) {
 		this(g, new Dimension(800, 600));
 	}
