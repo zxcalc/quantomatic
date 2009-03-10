@@ -122,10 +122,10 @@ in Pretty.block
    (case v of RGVertex.IVert iv =>
 	     (case iv
 	       of RGVertex.Xnd e =>
-		  [Pretty.str "xsp[", AngleExpr.pretty e, Pretty.str ", "] @
+		  [Pretty.str "xsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
 		  nums @ [Pretty.str "]"]
 		| RGVertex.Znd e =>
-		  [Pretty.str "zsp[", AngleExpr.pretty e, Pretty.str ", "] @
+		  [Pretty.str "zsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
 		  nums @ [Pretty.str "]"])
 	   | _ => [Pretty.str "id2[1]"])
 end

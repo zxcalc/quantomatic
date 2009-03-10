@@ -169,12 +169,21 @@ fun pretty_list [] = [Pretty.str "0"]
      then Pretty.str " - " :: pretty_list ((k,Coeff.subtr Coeff.zero v)::ys)
      else Pretty.str " + " :: pretty_list xs)
 
-fun pretty (pi, tab) =
+fun pretty' pistr (pi, tab) =
     let val tlist = rev (VName.NTab.list_of tab)
     in (Pretty.block o pretty_list)
 	   (if Coeff.is_zero pi then tlist
 	    else ("\\pi", pi)::tlist)
     end
+
+
+fun pretty_math fmt = case fmt
+		       of AlgFormat.MATHEMATICA => pretty' "Pi"
+			| AlgFormat.LATEX => pretty' "\\pi"
+			| AlgFormat.PLAIN => pretty' "pi"
+			| _ => raise AlgFormat.not_supported_exp
+
+val pretty = pretty_math AlgFormat.LATEX
 
 val print = Pretty.writeln o pretty
 

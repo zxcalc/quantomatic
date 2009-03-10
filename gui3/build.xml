@@ -91,6 +91,7 @@
         <!-- ant does not preserve perms, boo -->
         <chmod file="${dist}/Quantomatic.app/Contents/MacOS/JavaApplicationStub" perm="+x" />
         <chmod file="${dist}/Quantomatic.app/Contents/MacOS/quanto-core-app" perm="+x" />
+        <chmod file="${dist}/Quantomatic.app/Contents/MacOS/dot_static" perm="+x" />
         <chmod file="${dist}/Quantomatic.app/Contents/Frameworks/libpolyml.dylib" perm="+x" />
     </target>
     <target name="run" depends="jar" description="run quanto">

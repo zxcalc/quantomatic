@@ -157,16 +157,17 @@ fun render_xml_constant_part k =
 fun render_xml_coeff_var (var, coeff) = 
     Pretty.chunks [Pretty.str "<variable>",
 		   Pretty.block [Pretty.str "  ",
-				 Pretty.chunks [Pretty.str "<name>",
-						VName.pretty_name var,
-						Pretty.str "</name>",
-						Pretty.str "<coefficient>",
-						Pretty.block [
-						  Pretty.str "  ",
-						  (render_xml_rational coeff)
-						  ],
-						Pretty.str "</coefficient>"
-						]
+				 Pretty.chunks [
+				 Pretty.block [Pretty.str "<name>",
+					       VName.pretty_name var,
+					       Pretty.str "</name>"],
+				 Pretty.str "<coefficient>",
+				 Pretty.block [
+				 Pretty.str "  ",
+				 (render_xml_rational coeff)
+				 ],
+				 Pretty.str "</coefficient>"
+				 ]
 				],
 		   Pretty.str "</variable>"];
 

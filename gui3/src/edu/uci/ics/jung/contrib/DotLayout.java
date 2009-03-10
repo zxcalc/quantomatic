@@ -10,6 +10,7 @@ import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.graph.Graph;
 
 public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
+	public static String dotProgram = "dot";
 	public static class DotException extends RuntimeException {
 		private static final long serialVersionUID = 8173148319748759814L;
 
@@ -48,7 +49,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 	
 	protected Map<String,Point2D> getCoordMap(String viz) throws IOException {
 		Map<String,Point2D> coords = new HashMap<String, Point2D>();
-		Process dot = Runtime.getRuntime().exec("dot -Tplain");
+		Process dot = Runtime.getRuntime().exec(dotProgram + " -Tplain");
 		BufferedReader dotIn = new BufferedReader(new InputStreamReader(dot
 				.getInputStream()));
 

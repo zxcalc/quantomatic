@@ -26,7 +26,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
-	public static boolean appMode;
+//	public static boolean appMode;
 	
 	public QuantoFrame() {
 		setBackground(Color.white);
@@ -374,11 +374,11 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	}
 
 	public static void main(String[] args) {
-		appMode = false;
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
-				appMode = true;
 				QuantoCore.appMode = true;
+				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
+					"Quantomatic.app/Contents/MacOS/dot_static";
 				System.out.println("Invoked as OS X application.");
 				System.out.printf("Working dir is %s\n",
 						System.getProperty("user.dir"));

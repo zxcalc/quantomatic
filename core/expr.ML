@@ -16,5 +16,6 @@ sig
   val subs : T VName.NTab.T -> T -> T;
   val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
   val pretty : T -> Pretty.T;
-	val print : T -> unit;
+  val pretty_math : AlgFormat.format -> T -> Pretty.T;
+  val print : T -> unit;
 end
