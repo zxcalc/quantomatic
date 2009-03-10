@@ -178,6 +178,10 @@ fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
 fun list_graphs ([], state) = 
     GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst) (get_graphs state) ""
 
+fun load_ruleset args = (TheoryHack.load_rules (hd args); "Loaded ruleset\n")
+
+fun save_ruleset args = (TheoryHack.save_rules (hd args) ; "Saved ruleset\n")
+
 local
     fun graph_maker default_name graph state = let
     val (nm,gs) = (get_graphs state)
@@ -374,7 +378,19 @@ val () = (
     ("HELO\n\n"^
      "    sync the console, print \"HELO\"\n")
     (lift_stateless (fn[] => "HELO\n"));
-  
+
+   register_cmd
+    "load_ruleset"
+    ("load_ruleset FILENAME\n\n" ^
+     "    load a new rule set from FILENAME\n")
+    (lift_stateless load_ruleset);
+    
+    register_cmd
+    "save_ruleset"
+    ("save_ruleset FILENAME\n\n" ^
+     "    save the current rule set in FILENAME\n")
+    (lift_stateless save_ruleset);
+
     register_cmd
     "list_graphs"
     ("list_graphs\n\n"^
