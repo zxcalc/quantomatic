@@ -823,8 +823,16 @@ val rules = ref default_rules;
 fun save_rules file = 
     PrettyWriter.write_to_file file (RGTheoryHackOutputXML.output (!rules))
 
+exception fuck;
+
 fun load_rules file = 
-    rules := ((RGTheoryHackInputXML.input o XMLReader.read_from_file) file)
+    (
+     rules := ((RGTheoryHackInputXML.input o XMLReader.read_from_file) file) ;
+     TextIO.print "new rules:\n" ;
+     TextIO.print ( PrettyWriter.write_to_string (
+                                      RGTheoryHackOutputXML.output (!rules))) ;
+     TextIO.print "---end of new rules---\n" 
+    )
 
 fun match_all_rules g = 
     maps
@@ -853,8 +861,18 @@ fun apply_rules_in rules vset g =
                        (Seq.list_of (Rule.rule_matches_within r vset g)))
       rules;
 
-val apply_all_rules = apply_rules (!rules);
-val apply_all_rules_in = apply_rules_in (!rules);
+fun apply_all_rules g = 
+    let val r = !rules
+    in 
+      apply_rules r g
+    end
+
+fun apply_all_rules_in vset g = 
+    let val r = !rules
+    in 
+      apply_rules_in r vset g
+    end
+
 
 (* Unused: matching only produces symmetries w.r.t. different namings
 - our distinctness check never sees this, so sees them as really
