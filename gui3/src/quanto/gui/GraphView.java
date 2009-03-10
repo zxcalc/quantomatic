@@ -1,7 +1,9 @@
 package quanto.gui;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
@@ -9,7 +11,12 @@ import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JTextField;
 
 import org.apache.commons.collections15.Transformer;
@@ -21,6 +28,9 @@ import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
+import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
+import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel.Position;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 
 public class GraphView extends VisualizationViewer<QVertex,QEdge> {
@@ -68,8 +78,10 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 					}
         		});
         
-        getRenderer().getVertexLabelRenderer()
-        	.setPosition(Renderer.VertexLabel.Position.CNTR);
+        getRenderContext().setVertexLabelRenderer(new AngleLabeler());
+        
+        getRenderer().getVertexLabelRenderer().setPosition(
+        		VertexLabel.Position.CNTR);
         
         getRenderContext().setVertexShapeTransformer(
         		new Transformer<QVertex, Shape>() {
@@ -203,5 +215,39 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 
 	public void setQuantoLayout(QuantoLayout quantoLayout) {
 		this.quantoLayout = quantoLayout;
+	}
+	
+	private class AngleLabeler implements VertexLabelRenderer {
+		Map<QVertex,Labeler> components;
+		
+		public AngleLabeler () {
+		}
+		
+		public <T> Component getVertexLabelRendererComponent(
+				JComponent vv, Object value, Font font,
+				boolean isSelected, T vertex)
+		{
+			if (value instanceof String &&
+				vertex instanceof QVertex)
+			{
+				String val = TexConstants.translate((String)value);
+				JLabel lab = new JLabel(val);
+				Color col = null;
+				QVertex qv = (QVertex)vertex;
+				if (qv.getColor().equals(Color.red)) {
+					col = new Color(255,170,170);
+					lab.setBackground(col);
+					lab.setOpaque(true);
+				} else if (qv.getColor().equals(Color.green)) {
+					col = new Color(150,255,150);
+					lab.setBackground(col);
+					lab.setOpaque(true);
+				}
+				
+				return lab;
+			} else {
+				return new JLabel("");
+			}
+		}
 	}
 }
