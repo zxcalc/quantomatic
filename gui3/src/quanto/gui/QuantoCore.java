@@ -287,6 +287,14 @@ public class QuantoCore {
 	public QuantoGraph load_graph(String fileName) throws ConsoleError{
 		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
 	}
+	
+	public QuantoGraph load_ruleset(String fileName) throws ConsoleError{
+		return new QuantoGraph(chomp(command("load_ruleset", new HasName.StringName(fileName))));
+	}
+	
+	public QuantoGraph save_ruleset(String fileName) throws ConsoleError{
+		return new QuantoGraph(chomp(command("save_ruleset", new HasName.StringName(fileName))));
+	}
 
 	public String add_bang(QuantoGraph g) throws ConsoleError {
 		return chomp(command("add_bang", g));

@@ -106,6 +106,23 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		saveGraphAsMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, modifierKey | Event.SHIFT_MASK));
 		fileMenu.add(saveGraphAsMenuItem);
 		
+		// load and save rule sets
+		JMenuItem loadrules = new JMenuItem("Load Rule Set");
+		loadrules.addActionListener(new ActionListener() { 
+				public void actionPerformed(ActionEvent e) {
+					loadRuleSet();
+				}
+		});
+		fileMenu.add(loadrules);
+		
+		JMenuItem saverules = new JMenuItem("Save Rule Set");
+		saverules.addActionListener(new ActionListener() { 
+				public void actionPerformed(ActionEvent e) {
+					saveRuleSet();
+				}
+		});
+		fileMenu.add(saverules);
+		
 		// quit
 		if (!isMac) {
 			item = new JMenuItem("Quit", KeyEvent.VK_Q);
@@ -279,6 +296,40 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 			}
 		}
 	}
+	
+	public void loadRuleSet() {
+		int retVal = fileChooser.showDialog(this, "Open");
+		if(retVal == JFileChooser.APPROVE_OPTION) {
+			try {
+				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
+				core.load_ruleset(filename);
+			}
+			catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			}
+			catch(java.io.IOException ioe) {
+				errorDialog(ioe.getMessage());
+			}
+		}
+	}
+	
+	public void saveRuleSet() {
+		int retVal = fileChooser.showSaveDialog(this);
+		if(retVal == JFileChooser.APPROVE_OPTION) {
+			try{
+				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
+				core.save_ruleset(filename);
+			}
+			catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			}
+			catch(java.io.IOException ioe) {
+				errorDialog(ioe.getMessage());
+			}
+		}
+	}
+	
+	
 	
 	public void saveGraph() {
 		try {
