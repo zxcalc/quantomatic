@@ -71,8 +71,10 @@ fun add_to_adj_agenda g n agenda =
 (* state of searching for a maximal spider *)
 datatype searchstate = 
          SearchState of {cur_spider : T,
-                         cur_agenda : todo list,
-                         leftoverg : RGGraph.T,
+                         cur_agenda : todo list, (* nodes adj to spider *)
+                         initg : RGGraph.T, (* init graph to find spiders in *)
+                         leftoverg : RGGraph.T, (* with spider removed *)
+                         (* non-boundary vertices, not included in some previous spider *)
                          uncheckedvs : Vertex.NSet.T
                         };
 
@@ -135,6 +137,7 @@ fun start_spider_match (vs, g) =
                              RGGraph.RGVertex.Xnd a),
                      cur_agenda = add_to_adj_agenda g n [], 
                      uncheckedvs = vs2,
+                     initg = g,
                      leftoverg = RGGraph.delete_vertex n g})
           | (d as (RGGraph.BVertex.IVert (RGGraph.RGVertex.Znd a))) => 
             SOME (SearchState 
@@ -143,8 +146,9 @@ fun start_spider_match (vs, g) =
                              RGGraph.RGVertex.Znd a),
                      cur_agenda = add_to_adj_agenda g n [],
                      uncheckedvs = vs2,
+                     initg = g,
                      leftoverg = RGGraph.delete_vertex n g})
-          | _ => start_spider_match (vs2,g)))
+          | _ => start_spider_match (vs2,g))); (* skip/delete boundary vertices *)
 
 fun try_merge_data (RGGraph.BVertex.IVert (RGGraph.RGVertex.Xnd a2)) 
                    (RGGraph.RGVertex.Xnd a) = 
@@ -182,11 +186,12 @@ fun expand_spider (SearchState rep) =
     let val (cur_spider as Spider (spider_g,spider_d)) = #cur_spider rep;
         val leftover_g = #leftoverg rep;
         val unchecked_vs = #uncheckedvs rep;
+        val initg = #initg rep;
     in 
       case (#cur_agenda rep)
        of [] => (if is_singleton_spider cur_spider 
                  then NONE else SOME cur_spider, 
-                 start_spider_match (unchecked_vs, leftover_g))
+                 start_spider_match (unchecked_vs, initg))
         | (ToDo {to_n, from_n, eset}::agenda) =>
           (NONE, SOME
            (case RGGraph.lookup_vertex spider_g to_n 
@@ -195,8 +200,9 @@ fun expand_spider (SearchState rep) =
                   {cur_spider = Spider (add_edgeset eset spider_g, spider_d),
                    cur_agenda = agenda, 
                    uncheckedvs = unchecked_vs,
+                   initg = initg,
                    leftoverg = leftover_g})
-             | NONE => (* no considered already *)
+             | NONE => (* not considered already *)
                let val (d : RGGraph.BVertex.data,_) = 
                        RGGraph.get_vertex leftover_g to_n 
                in 
@@ -209,6 +215,7 @@ fun expand_spider (SearchState rep) =
                      cur_agenda = agenda, 
           (* IMPROVE: if d is boundary, then from it from unchecked_vs *)
                      uncheckedvs = unchecked_vs,
+                     initg = initg,
                      leftoverg = leftover_g}
                 | SOME spider_d2 => 
                   SearchState 
@@ -217,6 +224,7 @@ fun expand_spider (SearchState rep) =
                                     cur_spider,
                      cur_agenda = add_to_adj_agenda leftover_g to_n agenda, 
                      uncheckedvs = Vertex.NSet.delete to_n unchecked_vs,
+                     initg = initg,
                      leftoverg = RGGraph.delete_vertex to_n leftover_g}
                end))
     end;
