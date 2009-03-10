@@ -4,8 +4,10 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -280,7 +282,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
         		new Transformer<QVertex,Stroke>() {
 					public Stroke transform(QVertex v) {
 						if (getPickedVertexState().isPicked(v)) 
-							 return new BasicStroke(3);
+							 return new BasicStroke(2);
 						else return new BasicStroke(1);
 					}
         		});
@@ -618,6 +620,60 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			out.pack();
 			out.setVisible(true);
 		}
+	}
+	
+	private SubgraphHighlighter highlighter = null;
+	public void clearHighlight() {
+		if (highlighter != null)
+			removePostRenderPaintable(highlighter);
+		highlighter = null;
+		repaint();
+	}
+	
+	public void highlightSubgraph(QuantoGraph g) {
+		clearHighlight();
+		highlighter = new SubgraphHighlighter(g);
+		addPostRenderPaintable(highlighter);
+		repaint();
+	}
+	
+	private class SubgraphHighlighter
+	implements VisualizationServer.Paintable{
+		Collection<QVertex> verts;
+		
+		public SubgraphHighlighter (QuantoGraph g) {
+			verts = g.getVertices();
+		}
+		public void paint(Graphics g) {
+			Color oldColor = g.getColor();
+            g.setColor(Color.blue);
+            Graphics2D g2 = (Graphics2D) g.create();
+            float opac = 0.3f + 0.2f*(float)Math.sin(
+            		System.currentTimeMillis()/150.0);
+            g2.setComposite(AlphaComposite
+            		.getInstance(AlphaComposite.SRC_OVER, opac));
+            
+			Map<String,QVertex> vmap = getGraph().getVertexMap();
+			for (QVertex v : verts) {
+				// find the vertex corresponding to the selected
+				//  subgraph, by name
+				QVertex real_v = vmap.get(v.getName());
+				if (real_v != null) {
+					Point2D pt = getGraphLayout().transform(real_v);
+		        	((Graphics2D)g2).fill(
+		        			new Ellipse2D.Double(
+		        					pt.getX()-15,
+		        					pt.getY()-15,
+		        					30, 30));
+		        	
+				}
+			}
+			
+			g2.dispose();
+			g.setColor(oldColor);
+			repaint(10);
+		}
+		public boolean useTransform() {return false;}
 	}
 	
 	/**

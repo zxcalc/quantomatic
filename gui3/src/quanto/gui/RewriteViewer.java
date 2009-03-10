@@ -11,6 +11,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -63,10 +65,30 @@ public class RewriteViewer extends JFrame {
 			
 			apply.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
+					RewriteViewer.this.vis.clearHighlight();
 					RewriteViewer.this.vis.applyRewrite(thisIndex);
 					RewriteViewer.this.dispose();
 				}
 			});
+			
+			MouseAdapter hl = new MouseAdapter() {
+				public void mouseEntered(MouseEvent e) {
+					QuantoGraph match = 
+						RewriteViewer.this.rewrites
+							.get(thisIndex).getFirst();
+					RewriteViewer.this.vis.highlightSubgraph(match);
+				}
+				
+				public void mouseExited(MouseEvent e) {
+					RewriteViewer.this.vis.clearHighlight();
+				}
+			};
+			
+			rwPanel.addMouseListener(hl);
+			lhs.addMouseListener(hl);
+			rhs.addMouseListener(hl);
+			apply.addMouseListener(hl);
+			
 			index++;
 		}
 		
