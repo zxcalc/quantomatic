@@ -736,23 +736,24 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
             g2.setComposite(AlphaComposite
             		.getInstance(AlphaComposite.SRC_OVER, opac));
             
-			Map<String,QVertex> vmap = getGraph().getVertexMap();
-			for (QVertex v : verts) {
-				if (v.getVertexType() == QVertex.Type.BOUNDARY)
-					continue; // don't highlight boundaries
-				// find the vertex corresponding to the selected
-				//  subgraph, by name
-				QVertex real_v = vmap.get(v.getName());
-				if (real_v != null) {
-					Point2D pt = getGraphLayout().transform(real_v);
-		        	((Graphics2D)g2).fill(
-		        			new Ellipse2D.Double(
-		        					pt.getX()-15,
-		        					pt.getY()-15,
-		        					30, 30));
-		        	
+            synchronized (getGraph()) {
+				Map<String,QVertex> vmap = getGraph().getVertexMap();
+				for (QVertex v : verts) {
+					if (v.getVertexType() == QVertex.Type.BOUNDARY)
+						continue; // don't highlight boundaries
+					// find the vertex corresponding to the selected
+					//  subgraph, by name
+					QVertex real_v = vmap.get(v.getName());
+					if (real_v != null) {
+						Point2D pt = getGraphLayout().transform(real_v);
+						Ellipse2D ell = new Ellipse2D.Double(
+	        					pt.getX()-15, pt.getY()-15, 30, 30);
+						Shape draw = getRenderContext()
+							.getMultiLayerTransformer().transform(ell);
+			        	((Graphics2D)g2).fill(draw);
+					}
 				}
-			}
+            }
 			
 			g2.dispose();
 			g.setColor(oldColor);
