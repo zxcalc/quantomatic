@@ -33,10 +33,16 @@ end
 (* tensor a list of components, gathering inputs *)
 fun tensor [] = ([],Id 0,[])
   | tensor [x] = x
-  | tensor clist = fold_rev (fn (i1,t,o1) =>
-			     fn (i1s, Tens ts, o1s) =>
-				(i1@i1s, Tens (t::ts), o1@o1s))
-			    clist ([], Tens [], [])
+  | tensor clist =
+    let val (input, terms, output)
+          = fold_rev (
+            fn (i1,t,o1) =>
+			      fn (i1s, ts, o1s) =>
+				       (i1@i1s, (t::ts), o1@o1s))
+			      clist
+            ([], [], [])
+    in (input, Tens terms, output)
+    end
 val flat_compose = let
     fun fc [] = []
       | fc ((Comp l1)::l2) = l1 @ fc l2
@@ -122,12 +128,13 @@ in Pretty.block
    (case v of RGVertex.IVert iv =>
 	     (case iv
 	       of RGVertex.Xnd e =>
-		  [Pretty.str "xsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
-		  nums @ [Pretty.str "]"]
-		| RGVertex.Znd e =>
-		  [Pretty.str "zsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
-		  nums @ [Pretty.str "]"])
-	   | _ => [Pretty.str "id2[1]"])
+		        [Pretty.str "xsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
+		        nums @ [Pretty.str "]"]
+		      | RGVertex.Znd e =>
+		        [Pretty.str "zsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
+		        nums @ [Pretty.str "]"]
+          | RGVertex.Hnd => [Pretty.str "h"])
+	  | _ => [Pretty.str "id2[1]"])
 end
 
 )
