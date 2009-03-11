@@ -24,6 +24,8 @@
         <tstamp/>
         <!-- Create the build directory structure used by compile -->
         <mkdir dir="${build}"/>
+        <!-- Make sure quanto core is up to date -->
+        <exec executable="make" dir="../core" />
     </target>
     <target name="compile" depends="init" description="compile the source ">
         <!-- Compile the java code from ${src} into ${build} -->
