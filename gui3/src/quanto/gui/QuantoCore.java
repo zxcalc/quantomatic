@@ -1,6 +1,7 @@
 package quanto.gui;
 
 import java.io.*;
+import java.util.Collection;
 import java.util.Set;
 
 import edu.uci.ics.jung.contrib.HasName;
@@ -243,9 +244,9 @@ public class QuantoCore {
 		command("add_edge", graph, s, t);
 	}
 	
-	public void attach_rewrites(QuantoGraph graph, Set<QVertex> vs)
+	public void attach_rewrites(QuantoGraph graph, Collection<QVertex> vs)
 	throws ConsoleError {
-		command("attach_rewrites", graph, new HasName.SetName(vs));
+		command("attach_rewrites", graph, new HasName.CollectionName(vs));
 	}
 	
 	public String show_rewrites(QuantoGraph graph) throws ConsoleError {
@@ -265,11 +266,11 @@ public class QuantoCore {
 	}
 	
 	public void delete_vertices(QuantoGraph graph, Set<QVertex> v) throws ConsoleError {
-		command("delete_vertices", graph, new HasName.SetName(v));
+		command("delete_vertices", graph, new HasName.CollectionName(v));
 	}
 	
 	public void delete_edges(QuantoGraph graph, Set<QEdge> e) throws ConsoleError {
-		command("delete_edges", graph, new HasName.SetName(e));
+		command("delete_edges", graph, new HasName.CollectionName(e));
 	}
 	
 	public void undo(QuantoGraph graph) throws ConsoleError {
@@ -302,12 +303,12 @@ public class QuantoCore {
 	
 	public void bang_vertices (QuantoGraph g, BangBox bb, Set<QVertex> verts)
 	throws ConsoleError {
-		command("bang_vertices", g, bb, new HasName.SetName(verts));
+		command("bang_vertices", g, bb, new HasName.CollectionName(verts));
 	}
 	
 	public void unbang_vertices (QuantoGraph g, Set<QVertex> verts)
 	throws ConsoleError {
-		command("unbang_vertices", g, new HasName.SetName(verts));
+		command("unbang_vertices", g, new HasName.CollectionName(verts));
 	}
 	
 	// here we use a string for target, because we may not be keeping the clip-board
@@ -316,7 +317,7 @@ public class QuantoCore {
 	throws ConsoleError {
 		command("copy_subgraph", source,
 				new HasName.StringName(target),
-				new HasName.SetName(verts));
+				new HasName.CollectionName(verts));
 	}
 	
 	// here we use a string for source, because we may not be keeping the clip-board
@@ -328,6 +329,6 @@ public class QuantoCore {
 	
 	public void flip_vertices (QuantoGraph g, Set<QVertex> vs)
 	throws ConsoleError {
-		command("flip_vertices", g, new HasName.SetName(vs));
+		command("flip_vertices", g, new HasName.CollectionName(vs));
 	}
 }

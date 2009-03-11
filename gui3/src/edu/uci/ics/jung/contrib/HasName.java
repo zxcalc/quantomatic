@@ -1,7 +1,7 @@
 package edu.uci.ics.jung.contrib;
 
+import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
 
 
 /**
@@ -57,23 +57,23 @@ public interface HasName {
 	}
 	
 	/**
-	 * An array of named elements.
+	 * An collection of named elements.
 	 * @author aleks
 	 *
 	 * @param <T>
 	 */
-	public static class SetName implements HasName {
+	public static class CollectionName implements HasName {
 		private static final long serialVersionUID = -7602337023538613612L;
-		private Set<? extends HasName> set;
+		private Collection<? extends HasName> col;
 		
-		public SetName(Set<? extends HasName> set) {
-			this.set = set;
+		public CollectionName(Collection<? extends HasName> col) {
+			this.col = col;
 		}
 		
 		public String getName() {
 			StringBuffer sb = new StringBuffer();
 			boolean first = true;
-			for (HasName n : set) {
+			for (HasName n : col) {
 				if (first) first = false;
 				else sb.append(" ");
 				sb.append('"');

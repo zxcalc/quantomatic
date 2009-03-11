@@ -53,6 +53,7 @@ public class RewriteViewer extends JFrame {
 			GraphView lhs = new GraphView(rw.getFirst(), new Dimension(100,100));
 			GraphView rhs = new GraphView(rw.getSecond(), new Dimension(100,100));
 			JButton apply = new JButton("=>");
+			rwPanel.setBackground(lhs.getBackground());
 			rwPanel.add(lhs);
 			rwPanel.add(apply);
 			rwPanel.add(rhs);

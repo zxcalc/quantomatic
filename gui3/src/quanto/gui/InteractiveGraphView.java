@@ -38,7 +38,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	protected List<JMenu> menus;
 	private InteractiveView.Holder viewHolder;
 	private JMenuItem saveGraphMenuItem = null; // the view needs to manage when this menu is alive or not.
-	
+	private volatile Thread rewriter = null;
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
 	 * actions access to the frame, console, and core.
@@ -312,6 +312,13 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				JOptionPane.ERROR_MESSAGE);
 	}
 	
+	private void infoDialog(String msg) {
+		JOptionPane.showMessageDialog(this,
+				msg,
+				"Nota Bene",
+				JOptionPane.INFORMATION_MESSAGE);
+	}
+	
 	public static String titleOfGraph(String name) {
 		return "graph (" + name + ")";
 	}
@@ -396,6 +403,26 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.ALT_MASK));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Normalise", KeyEvent.VK_N);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				rewriteForever();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, commandMask | Event.ALT_MASK));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Abort", KeyEvent.VK_A);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				rewriter = null;
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, commandMask));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Select All Vertices", KeyEvent.VK_S);
@@ -648,6 +675,43 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		repaint();
 	}
 	
+	public void rewriteForever() {
+		rewriter = new Thread() {
+			private void attach() {
+				try {
+					getCore().attach_rewrites(
+							getGraph(),
+							getGraph().getVertices());
+				} catch (QuantoCore.ConsoleError e) {
+					errorDialog(e.getMessage());
+				}
+			}
+			
+			public void run() {
+				attach();
+				List<Pair<QuantoGraph>> rws = getRewrites();
+				int count = 0;
+				while (rws.size()>0 &&
+					   Thread.currentThread()==rewriter)
+				{
+					highlightSubgraph(rws.get(0).getFirst());
+					try { sleep(1000); }
+					catch (InterruptedException e) { break; }
+					finally { clearHighlight(); }
+					applyRewrite(0);
+					++count;
+					attach();
+					rws = getRewrites();
+				}
+				
+				infoDialog("Applied "
+						+ Integer.toString(count)
+						+ " rewrites.");
+			}
+		};
+		rewriter.start();
+	}
+	
 	private class SubgraphHighlighter
 	implements VisualizationServer.Paintable{
 		Collection<QVertex> verts;
@@ -666,6 +730,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
             
 			Map<String,QVertex> vmap = getGraph().getVertexMap();
 			for (QVertex v : verts) {
+				if (v.getVertexType() == QVertex.Type.BOUNDARY)
+					continue; // don't highlight boundaries
 				// find the vertex corresponding to the selected
 				//  subgraph, by name
 				QVertex real_v = vmap.get(v.getName());
