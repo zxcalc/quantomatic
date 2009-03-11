@@ -4,7 +4,8 @@ sig
   val add : T -> T -> T;
   val subtr : T -> T -> T;
   val mult : T -> T -> T;
-  val div : T -> T -> T;
+  (* changed from div to divide to not clobber built-in -ak *)
+  val divide : T -> T -> T;
   val eq : T -> T -> bool;
   val zero : T;
   val one : T;
@@ -97,7 +98,7 @@ val print = Pretty.writeln o pretty
 val add = rat_add;
 val subtr = rat_subtr;
 val mult = rat_mult;
-val div = rat_div;
+val divide = rat_div;
 
 end;
 

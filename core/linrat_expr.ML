@@ -204,8 +204,8 @@ fun match pat target already_matched =
        (* there is a pat var not in target, put difference between 
           expressions into an instantiation of that var. *)
         | SOME match_var => 
-          let val c = Coeff.div (Coeff.mk 1 1) 
-                                (VName.NTab.get (snd pat) match_var)
+          let val c = Coeff.divide (Coeff.mk 1 1) 
+                                   (VName.NTab.get (snd pat) match_var)
 		          (* 1/Coeff of match var *)
 		          val rhs = add_expr 
 			                    (scale_expr c (subtr_expr target pat2)) 
@@ -230,16 +230,25 @@ val ident = L.ident >> TOK
 val sym = fn s => (L.sym s) >> TOK
 val noop = L.noop >> TOK
 
+exception semantic_exp
+
 (* semantic ops *)
 fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Coeff.mk n d)
+  | rat _ = raise semantic_exp
 fun whole_num n = rat (n,TOK(L.INT 1))
 fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Coeff.mk 0 1) [(id,r)])
+  | rat_term _ = raise semantic_exp
 fun const_term (RAT r) = EXP (mk r [])
+  | const_term _ = raise semantic_exp
 val one_pi = const_term (RAT (Coeff.mk 1 1))
 fun var_term (TOK(L.ID id)) = EXP (mk_var id)
+  | var_term _ = raise semantic_exp
 fun plus (EXP a, EXP b) = EXP (add_expr a b)
+  | plus _ = raise semantic_exp
 fun minus (EXP a, EXP b) = EXP (subtr_expr a b)
+  | minus _ = raise semantic_exp
 fun neg (EXP a) = EXP (subtr_expr zero a)
+  | neg _ = raise semantic_exp
 
 (* the grammar, decorated with semantic operators *)
 fun pi x = x|>((sym "\\" || noop)
@@ -270,11 +279,13 @@ and expr x = x|>(
 	     (term -- terms >> plus)
 		 || term)
 
-fun parse str = let val (EXP e) = L.parse_with expr str
+fun parse str = let val e = case L.parse_with expr str
+                             of EXP e=>e
+                              | _ => raise semantic_exp
 		in e
 		end
     handle L.MoreTokens _ => raise parse_exp
-	 | FAIL => raise parse_exp
+	       | FAIL => raise parse_exp
 
 
 

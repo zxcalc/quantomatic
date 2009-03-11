@@ -1,0 +1,230 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[      6575,        221]
+NotebookOptionsPosition[      5647,        183]
+NotebookOutlinePosition[      6154,        205]
+CellTagsIndexPosition[      6070,        200]
+WindowFrame->Normal
+ContainsDynamic->False*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{"<<", "ClassicalStructures`"}]], "Input",
+ CellChangeTimes->{{3.444384104922471*^9, 3.444384108474558*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"?", "xsp"}]], "Input",
+ CellChangeTimes->{{3.4443842822243643`*^9, 3.444384282794858*^9}}],
+
+Cell[BoxData[
+ StyleBox["\<\"xsp[angle, in, out] gives a red spider with the given phase, \
+inputs and outputs.\"\>", "MSG"]], "Print", "PrintUsage",
+ CellChangeTimes->{3.444384283511935*^9},
+ CellTags->"Info3444384283-1641703"]
+}, Open  ]],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"lhs", "=", 
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"id2", "[", "1", "]"}], ".", 
+     RowBox[{"xsp", "[", 
+      RowBox[{"0", ",", "2", ",", "1"}], "]"}], ".", 
+     RowBox[{"T", "[", 
+      RowBox[{
+       RowBox[{"zsp", "[", 
+        RowBox[{"\[Beta]", ",", "1", ",", "1"}], "]"}], ",", 
+       RowBox[{"zsp", "[", 
+        RowBox[{"\[Alpha]", ",", "1", ",", "1"}], "]"}]}], "]"}], ".", 
+     RowBox[{"xsp", "[", 
+      RowBox[{"0", ",", "1", ",", "2"}], "]"}], ".", 
+     RowBox[{"id2", "[", "1", "]"}]}], ")"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"rhs", "=", 
+   RowBox[{"(", 
+    RowBox[{
+     RowBox[{"T", "[", 
+      RowBox[{
+       RowBox[{"id2", "[", "1", "]"}], ",", 
+       RowBox[{"xsp", "[", 
+        RowBox[{"\[Delta]", ",", "1", ",", "0"}], "]"}]}], "]"}], ".", 
+     RowBox[{"sig", "[", 
+      RowBox[{"1", ",", "0"}], "]"}], ".", 
+     RowBox[{"T", "[", 
+      RowBox[{
+       RowBox[{"id2", "[", "1", "]"}], ",", 
+       RowBox[{"xsp", "[", 
+        RowBox[{"\[Gamma]", ",", "0", ",", "1"}], "]"}]}], "]"}]}], ")"}]}], 
+  ";"}]}], "Input",
+ CellChangeTimes->{{3.4443841723311996`*^9, 3.444384185885911*^9}, {
+  3.444384264892014*^9, 3.444384268534626*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"slns", "=", 
+   RowBox[{"Simplify", "[", 
+    RowBox[{
+     RowBox[{"Reduce", "[", 
+      RowBox[{
+       RowBox[{
+        RowBox[{"lhs", "\[Equal]", 
+         RowBox[{"k", "*", "rhs"}]}], "&&", 
+        RowBox[{"k", "\[NotEqual]", " ", "0"}]}], ",", 
+       RowBox[{"{", 
+        RowBox[{
+        "\[Alpha]", ",", "\[Beta]", ",", "\[Gamma]", ",", "\[Delta]", ",", 
+         "k"}], "}"}]}], "]"}], "/.", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"C", "[", "i_", "]"}], "\[Rule]", "0"}], "}"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Length", "[", "slns", "]"}]}], "Input",
+ CellChangeTimes->{{3.444384347145422*^9, 3.444384419758716*^9}}],
+
+Cell[BoxData["2"], "Output",
+ CellChangeTimes->{{3.444384366537529*^9, 3.444384420834516*^9}}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"slns", "[", 
+  RowBox[{"[", "1", "]"}], "]"}]], "Input",
+ CellChangeTimes->{{3.444384423433442*^9, 3.444384425105644*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"k", "\[Equal]", 
+   RowBox[{
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", "\[Alpha]"}]], "+", 
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", "\[Beta]"}]]}]}], "&&", 
+  RowBox[{
+   RowBox[{"\[Alpha]", "+", "\[Beta]"}], "\[Equal]", "\[Pi]"}], "&&", 
+  RowBox[{"\[Gamma]", "\[Equal]", "\[Pi]"}], "&&", 
+  RowBox[{"\[Delta]", "\[Equal]", "\[Pi]"}], "&&", 
+  RowBox[{
+   RowBox[{
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", "\[Alpha]"}]], "+", 
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", "\[Beta]"}]]}], "\[NotEqual]", 
+   "0"}]}]], "Output",
+ CellChangeTimes->{3.444384425675757*^9},
+ FontSize->18,
+ Background->RGBColor[1., 0.9924010070954452, 0.8981002517738613]]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"slns", "[", 
+   RowBox[{"[", "2", "]"}], "]"}], "/.", 
+  RowBox[{"{", 
+   RowBox[{
+    RowBox[{
+     RowBox[{"-", "\[ImaginaryI]"}], " ", 
+     RowBox[{"Log", "[", 
+      RowBox[{"-", 
+       SuperscriptBox["\[ExponentialE]", 
+        RowBox[{"\[ImaginaryI]", " ", "\[Alpha]"}]]}], "]"}]}], "\[Rule]", 
+    " ", 
+    RowBox[{"\[Pi]", "+", "\[Alpha]"}]}], "}"}]}]], "Input",
+ CellChangeTimes->{{3.4443844265786324`*^9, 3.4443844284927893`*^9}, {
+  3.444384604782963*^9, 3.444384633284985*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{
+   RowBox[{"1", "+", 
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", 
+      RowBox[{"(", 
+       RowBox[{"\[Alpha]", "+", "\[Beta]"}], ")"}]}]]}], "\[Equal]", "k"}], "&&",
+   
+  RowBox[{"\[Gamma]", "\[Equal]", "0"}], "&&", 
+  RowBox[{"\[Delta]", "\[Equal]", "0"}], "&&", 
+  RowBox[{
+   RowBox[{"\[Pi]", "+", "\[Alpha]"}], "\[Equal]", "\[Beta]"}], "&&", 
+  RowBox[{
+   RowBox[{
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", "\[Alpha]"}]], "+", 
+    SuperscriptBox["\[ExponentialE]", 
+     RowBox[{"\[ImaginaryI]", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"2", " ", "\[Alpha]"}], "+", "\[Beta]"}], ")"}]}]]}], 
+   "\[NotEqual]", "0"}]}]], "Output",
+ CellChangeTimes->{
+  3.444384428971344*^9, {3.444384611967165*^9, 3.444384634148628*^9}},
+ FontSize->18,
+ Background->RGBColor[1., 0.9924010070954452, 0.8981002517738613]]
+}, Open  ]]
+},
+WindowSize->{700, 648},
+WindowMargins->{{30, Automatic}, {Automatic, 16}},
+ShowSelection->True,
+FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{
+ "Info3444384283-1641703"->{
+  Cell[840, 31, 228, 4, 42, "Print",
+   CellTags->"Info3444384283-1641703"]}
+ }
+*)
+(*CellTagsIndex
+CellTagsIndex->{
+ {"Info3444384283-1641703", 5969, 194}
+ }
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[568, 21, 130, 2, 27, "Input"],
+Cell[CellGroupData[{
+Cell[723, 27, 114, 2, 27, "Input"],
+Cell[840, 31, 228, 4, 42, "Print",
+ CellTags->"Info3444384283-1641703"]
+}, Open  ]],
+Cell[1083, 38, 1235, 36, 43, "Input"],
+Cell[CellGroupData[{
+Cell[2343, 78, 698, 20, 43, "Input"],
+Cell[3044, 100, 94, 1, 27, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[3175, 106, 146, 3, 27, "Input"],
+Cell[3324, 111, 814, 21, 53, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4175, 137, 527, 15, 33, "Input"],
+Cell[4705, 154, 926, 26, 53, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)

@@ -766,7 +766,7 @@ end;
 
 
 (* in *)
-val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");
+(*val _ = Pretty.writeln (Pretty.str "Tests passed: rewriting with rules.");*)
 
 val bi_colour_rules = 
     [

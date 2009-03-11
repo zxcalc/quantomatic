@@ -38,7 +38,7 @@ $(ISAPLIB_HEAP):
 
 # make polyml heap
 $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC (); PolyML.SaveState.saveState "$(QUANTO_HEAP)"));' | $(POLYML)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "make_heap.ML"; PolyML.SaveState.saveState "$(QUANTO_HEAP)";' | $(POLYML)
 	@echo "Built polyml heap: $(QUANTO_HEAP)"
 
 heap: $(QUANTO_HEAP)
