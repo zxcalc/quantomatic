@@ -3,7 +3,7 @@ sig
     val init : unit -> unit
 end
 
-structure Controller (*: CONTROLLER *) =
+structure Controller : CONTROLLER =
 struct
 
 structure QuantoCommand =
@@ -120,7 +120,8 @@ fun push_hist gname state =
       val hist' = (get_hist state)
                         |> GraphName.NTab.update
                         (gname,((fetch_graph gname state)::back, []))
-    in state |> set_hist hist' end
+    in state |> set_hist hist'
+    end
 
 (* any time the graph is changed, any attached rewrites are invalid,
  * so should be cleared *)
@@ -162,6 +163,8 @@ fun lift_state_viewer cmd (args, state:c_state) = (cmd (args,state), state)
 (* ============================================== *)
 (* these functions actually implement commmands *)
 
+exception wrong_args_exp
+
 fun help1 cmd = case Symtab.lookup (!cmds) cmd
          of SOME (h,_) => "\n"^h^"\n"
           | NONE => "!!! Can't find command.\n"
@@ -172,15 +175,20 @@ fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
           (fold (fn a => fn b =>a^"\n"^b)
             (Symtab.keys (!cmds)) "\n")
   | help ["all"] = fold (fn a => fn b => (help1 a)^b)
-            (Symtab.keys (!cmds)) "\n"
+                        (Symtab.keys (!cmds)) "\n"
   | help [cmd] = (help1 cmd)
+  | help _ = raise wrong_args_exp
          
 fun list_graphs ([], state) = 
-    GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst) (get_graphs state) ""
+    GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst)
+			(get_graphs state) ""
+  | list_graphs _ = raise wrong_args_exp
 
-fun load_ruleset args = (TheoryHack.load_rules (hd args); "Loaded ruleset\n")
+fun load_ruleset [file] = (TheoryHack.load_rules file ; "Loaded ruleset\n")
+  | load_ruleset _ = raise wrong_args_exp
 
-fun save_ruleset args = (TheoryHack.save_rules (hd args) ; "Saved ruleset\n")
+fun save_ruleset [file] = (TheoryHack.save_rules file ; "Saved ruleset\n")
+  | save_ruleset _ = raise wrong_args_exp
 
 local
     fun graph_maker default_name graph state = let
@@ -192,57 +200,69 @@ in
 
 fun duplicate_graph ([name], state) = 
     let val gname = (GraphName.mk name) 
-    in graph_maker gname (fetch_graph gname state) state end
+    in graph_maker gname (fetch_graph gname state) state
+    end
+  | duplicate_graph _ = raise wrong_args_exp
 fun new_graph ([], state) =
     graph_maker GraphName.default_name G.empty state
+  | new_graph _ = raise wrong_args_exp
 fun load_graph ([fname], state) = 
     graph_maker GraphName.default_name (LoadSave.load_graph fname) state
+  | load_graph _ = raise wrong_args_exp
+
 end
 
 fun save_graph ([_, fname], graph) = 
-    ( LoadSave.save_graph fname graph;
-      "Saved file " ^ fname ^"\n")
-    handle _ => raise user_exp ("Could not save file "^fname)
+    ((LoadSave.save_graph fname graph; "Saved file " ^ fname ^"\n")
+     handle _ => raise user_exp ("Could not save file "^fname))
+  | save_graph _ = raise wrong_args_exp
 
 fun vertex_type "red" = V.IVert (V.Xnd AngleExpr.zero)
   | vertex_type "green" =  V.IVert (V.Znd AngleExpr.zero)
   | vertex_type "hadamard" = V.IVert V.Hnd
   | vertex_type "boundary" = V.BVert
+  | vertex_type _ = raise user_exp "Bad vertex type."
 
 fun add_vertex ([_,vt], graph) =
     let val (n,g) = graph |> G.add_vertex (vertex_type vt)
     in ("added vertex \"" ^ (G.Vertex.dest n) ^ "\"\n", g)
     end
-    handle Match => raise user_exp "Bad vertex type."
+  | add_vertex _ = raise wrong_args_exp
 
 fun add_edge ([_,v1,v2], graph) =
-    let val (n,g) = graph |> G.add_edge () (V.mk v1) (V.mk v2)
-    in ("added edge \"" ^ (G.Edge.dest n) ^ "\"\n", g)
-    end
-    handle G.no_such_vname_exp _ =>
-       raise user_exp "Bad vertex name."
+    (let val (n,g) = graph |> G.add_edge () (V.mk v1) (V.mk v2)
+     in ("added edge \"" ^ (G.Edge.dest n) ^ "\"\n", g)
+     end
+     handle G.no_such_vname_exp _ =>
+            raise user_exp "Bad vertex name.")
+  | add_edge _ = raise wrong_args_exp
 
 
 fun delete_vertices (_::vs, graph) =
-    ("ok\n", fold G.delete_vertex (map V.mk vs) graph)
-    handle G.no_such_vname_exp _ => raise user_exp "No such vertex."
+    (("ok\n", fold G.delete_vertex (map V.mk vs) graph)
+     handle G.no_such_vname_exp _ => raise user_exp "No such vertex.")
+  | delete_vertices _ = raise wrong_args_exp
 
 fun delete_edges (_::es, graph) =
-    ("ok\n", fold G.delete_edge (map E.mk es) graph)
-    handle G.no_such_ename_exp _ => raise user_exp "No such edge."
+    (("ok\n", fold G.delete_edge (map E.mk es) graph)
+     handle G.no_such_ename_exp _ => raise user_exp "No such edge.")
+  | delete_edges _ = raise wrong_args_exp
 
 fun rename_vertex ([_,old,new], graph) =
-    ("renamed to \""^new^"\"\n", graph |> G.rename_vname (V.mk old) (V.mk new))
-    handle G.vname_already_exists_exp _ =>
-       raise user_exp "graph already contains a vertex of this name"
-     | G.no_such_vname_exp _ => raise user_exp "no such vertex"
+    (("renamed to \""^new^"\"\n", graph |> G.rename_vname (V.mk old) (V.mk new))
+     handle G.vname_already_exists_exp _ =>
+            raise user_exp "graph already contains a vertex of this name"
+          | G.no_such_vname_exp _ => raise user_exp "no such vertex")
+  | rename_vertex _ = raise wrong_args_exp
 
 
 fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
               Pretty.string_of  o
               RGGraphOutputXML.output
+  | graph_xml _ = raise wrong_args_exp
 
 fun print_graph [_] = (suffix "\n") o Pretty.string_of o G.pretty
+  | print_graph _ = raise wrong_args_exp
                       
 fun undo ([name], state) = 
     let
@@ -257,6 +277,7 @@ fun undo ([name], state) =
                                      )
          | _ => raise user_exp "Can't undo."
     end
+  | undo _ = raise wrong_args_exp
 
 fun redo ([name], state) = 
     let
@@ -270,29 +291,31 @@ fun redo ([name], state) =
                                                  (gname, (current::gs,hs)))
                                      )
          | _ => raise user_exp "Can't redo."
-    end;
+    end
+  | redo _ = raise wrong_args_exp
 
-
-
-fun attach_with attacher (args as _::vs, state) = let
-    val gname = GraphName.mk (graph_arg args)
-    val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
-    val graph = fetch_graph gname state
-    val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-                  (attacher vset graph)
+local
+    fun attach_with attacher (args as _::vs, state) =
+        (let val gname = GraphName.mk (graph_arg args)
+	           val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
+	           val graph = fetch_graph gname state
+	           val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
+                           (attacher vset graph)
+         in
+	           ("attached "^(Int.toString (length rws))^" rewrites\n",
+	            state |> update_rewrites (GraphName.NTab.update (gname,rws)))
+         end
+	       handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
+	            | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertx.")
+    | attach_with _ _ = raise wrong_args_exp
 in
-    ("attached "^(Int.toString (length rws))^" rewrites\n",
-     state |> update_rewrites (GraphName.NTab.update (gname,rws)))
-end
-    handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
-     | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertex."
-
 val attach_rewrites = attach_with TheoryHack.apply_all_rules_in'
 val attach_one_rewrite = attach_with
-			     (fn vset =>
-			      fn gr => case TheoryHack.apply_a_rule_in vset gr
-					of SOME a => [a]
-					 | NONE => [])
+			                       (fn vset =>
+			                        fn gr => case TheoryHack.apply_a_rule_in vset gr
+					                              of SOME a => [a]
+					                               | NONE => [])
+end
 
 fun show_rewrites (args,state) = let
     val gname = GraphName.mk (graph_arg args)
@@ -303,49 +326,54 @@ in Pretty.string_of (RGRewriteListOutputXML.output rewrites)
 end
 
 fun apply_rewrite ([name, n], state) =
-    let
-      val gname = GraphName.mk name
-        val rewrites = GraphName.NTab.get (get_rewrites state) gname
-        val (name,rule,fused) = nth rewrites (the (Int.fromString n))
-    in ("applied "^name^"\n",
-          state |> push_hist gname
-                |> set_graph_at gname (Rule.del_lhs rule fused))
-    end
-    handle UNDEF => raise user_exp "No rewrites attached." 
-           | Subscript => raise user_exp "Rewrite not attached."
-           | Option => raise user_exp "Rewrite selection must be an integer."
+    (let val gname = GraphName.mk name
+         val rewrites = GraphName.NTab.get (get_rewrites state) gname
+         val (name,rule,fused) = nth rewrites (the (Int.fromString n))
+     in ("applied "^name^"\n",
+         state |> push_hist gname
+               |> set_graph_at gname (Rule.del_lhs rule fused))
+     end
+     handle UNDEF => raise user_exp "No rewrites attached." 
+          | Subscript => raise user_exp "Rewrite not attached."
+          | Option => raise user_exp "Rewrite selection must be an integer.")
+  | apply_rewrite _ = raise wrong_args_exp
                            
 fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
   | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
-  | vdata a _ = raise Match
+  | vdata a _ = raise user_exp "Can only set angles for red and green vertices."
 
 fun set_angle ([_,v,a], graph) =
-    ("ok\n", graph |> G.update_vertex_data (vdata a) (V.mk v))
-    handle Match => raise user_exp "Can only set angles for red and green vertices."
-     | AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression."
+    (("ok\n", graph |> G.update_vertex_data (vdata a) (V.mk v))
+     handle AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
+  | set_angle _ = raise wrong_args_exp
 
 fun hilb ([_, format], graph) =
     (Pretty.string_of (
      RGHilbTerm.pretty (AlgFormat.of_string format)
-              (RGHilbTerm.of_graph graph)))^"\n"
+              (RGHilbTerm.of_graph graph)) ^ "\n"
     handle AlgFormat.not_supported_exp =>
-       raise user_exp "Term format not supported."
+       raise user_exp "Term format not supported.")
+  | hilb _ = raise wrong_args_exp
 
 fun add_bang ([_], graph) = 
     graph |> G.new_box (G.BBox.default_name)
-                  >> (fn a => (G.BBox.dest a) ^ "\n")
+          >> (fn a => (G.BBox.dest a) ^ "\n")
+  | add_bang _ = raise wrong_args_exp
 
 fun drop_bang ([_,name], graph) =
     ("dropped !-box \""^name^"\"\n",
      graph |> G.drop_box (G.BBox.mk name))
+  | drop_bang _ = raise wrong_args_exp
 
 fun bang_vertices ((_::box::verts), graph) = 
     ("added vertices to \""^box^"\"\n",
      graph |> G.move_to_box (G.BBox.mk box) (G.Vertex.NSet.of_list (map V.mk verts)))
+  | bang_vertices _ = raise wrong_args_exp
 
 fun unbang_vertices ((_::verts), graph) =
     ("un-!'ed vertices\n",
      graph |> G.move_to_unbox (G.Vertex.NSet.of_list (map V.mk verts)))
+  | unbang_vertices _ = raise wrong_args_exp
 
 fun copy_subgraph (args as (_::target::vs), state) = let
     val graph = fetch_graph (GraphName.mk (graph_arg args)) state
@@ -353,6 +381,7 @@ fun copy_subgraph (args as (_::target::vs), state) = let
                                                             graph
 in ("ok\n", state |> set_graph_at (GraphName.mk target) clip)
 end
+  | copy_subgraph _ = raise wrong_args_exp
 
 fun insert_graph ([name1,name2], state) = 
     let
@@ -364,6 +393,7 @@ fun insert_graph ([name1,name2], state) =
     in ("ok\n", state |> push_hist tname
                           |> set_graph_at tname (G.merge_by_vertices targ source))
     end
+  | insert_graph _ = raise wrong_args_exp
 
 fun flip_vertices (_::vs, graph) = let
     fun flip_data (V.IVert (V.Xnd e)) = V.IVert (V.Znd e)
@@ -371,6 +401,7 @@ fun flip_vertices (_::vs, graph) = let
       | flip_data d = d
 in ("ok\n", fold (G.update_vertex_data flip_data) (map V.mk vs) graph)
 end
+  | flip_vertices _ = raise wrong_args_exp
 
 
 (* Register commands available from the console and associate docs *)
@@ -386,7 +417,7 @@ val () = (
     "HELO"
     ("HELO\n\n"^
      "    sync the console, print \"HELO\"\n")
-    (lift_stateless (fn[] => "HELO\n"));
+    (lift_stateless (K "HELO\n"));
 
    register_cmd
     "load_ruleset"
@@ -592,7 +623,7 @@ fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
       of SOME (_,f) => (fn (a,b)=>(a, NORMAL b)) (f (args, state))
        | NONE => ("!!! Unknown command: "^
           (QuantoCommand.toString cmd)^"\n", NORMAL state))
-    handle Match =>
+    handle wrong_args_exp =>
        ("!!! Wrong number of args in " ^
         (QuantoCommand.toString cmd)^".\n", NORMAL state)
      | user_exp str => ("!!! "^str^"\n", NORMAL state)

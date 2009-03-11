@@ -19,13 +19,13 @@ ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*
 # general variables
 ################################
 # binary file to produce
-THE_BIN='quanto-core'
+THE_BIN=quanto-core
 # polyml executable
-POLYML='poly'
+POLYML=poly
  # isaplanner heap file
-ISAPLIB_HEAP='./isaplib/heaps/all.polyml-heap'
+ISAPLIB_HEAP=isaplib/heaps/all.polyml-heap
 # quanto heap file
-QUANTO_HEAP='quanto.polyml-heap'
+QUANTO_HEAP=heaps/quanto.polyml-heap
 
 ################################
 # Targets: 
@@ -37,21 +37,21 @@ $(ISAPLIB_HEAP):
 	cd ./isaplib; make
 
 # make polyml heap
-heaps/$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC (); PolyML.SaveState.saveState "heaps/$(QUANTO_HEAP)"));' | $(POLYML)
-	@echo "Built polyml heap: heaps/$(QUANTO_HEAP)"
+$(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; do_and_exit_or_die (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC (); PolyML.SaveState.saveState "$(QUANTO_HEAP)"));' | $(POLYML)
+	@echo "Built polyml heap: $(QUANTO_HEAP)"
 
-heap: heaps/$(QUANTO_HEAP)
+heap: $(QUANTO_HEAP)
 
-bin/$(THE_BIN): heaps/$(QUANTO_HEAP)
-	echo 'PolyML.SaveState.loadState "heaps/$(QUANTO_HEAP)"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
+bin/$(THE_BIN): $(QUANTO_HEAP)
+	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
 bin: bin/$(THE_BIN)
 
 # startup an ML shell using the quanto heap
-ml-shell: heaps/$(QUANTO_HEAP)
+ml-shell: $(QUANTO_HEAP)
 	./bin/polyml-quanto
 
 run: ml-shell
