@@ -271,19 +271,28 @@ fun redo ([name], state) =
                                      )
          | _ => raise user_exp "Can't redo."
     end;
-    
-fun attach_rewrites (args as _::vs, state) = let
+
+
+
+fun attach_with attacher (args as _::vs, state) = let
     val gname = GraphName.mk (graph_arg args)
     val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
     val graph = fetch_graph gname state
     val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-                      (TheoryHack.apply_all_rules_in' vset graph)
+                  (attacher vset graph)
 in
     ("attached "^(Int.toString (length rws))^" rewrites\n",
      state |> update_rewrites (GraphName.NTab.update (gname,rws)))
 end
     handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
      | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertex."
+
+val attach_rewrites = attach_with TheoryHack.apply_all_rules_in'
+val attach_one_rewrite = attach_with
+			     (fn vset =>
+			      fn gr => case TheoryHack.apply_a_rule_in vset gr
+					of SOME a => [a]
+					 | NONE => [])
 
 fun show_rewrites (args,state) = let
     val gname = GraphName.mk (graph_arg args)
@@ -487,6 +496,13 @@ val () = (
      "    calculate rewrites involving V1..VN in GRAPH and\n"^
      "    attach to the graph state\n")
     (attach_rewrites);
+
+    register_cmd
+    "attach_one_rewrite"
+    ("attach_one_rewrite GRAPH V1 .. VN\n\n"^
+     "    calculate at most one rewrite involving V1..VN in"^
+     "    GRAPH and attach to the graph state\n")
+    (attach_one_rewrite);
 
     register_cmd
     "show_rewrites"

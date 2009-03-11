@@ -680,7 +680,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		rewriter = new Thread() {
 			private void attach() {
 				try {
-					getCore().attach_rewrites(
+					getCore().attach_one_rewrite(
 							getGraph(),
 							getGraph().getVertices());
 				} catch (QuantoCore.ConsoleError e) {
@@ -714,6 +714,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						+ Integer.toString(count)
 						+ " rewrites.");
 			}
+			
+			
 		};
 		rewriter.start();
 	}

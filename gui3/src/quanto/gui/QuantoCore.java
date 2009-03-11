@@ -249,6 +249,11 @@ public class QuantoCore {
 		command("attach_rewrites", graph, new HasName.CollectionName(vs));
 	}
 	
+	public void attach_one_rewrite(QuantoGraph graph, Collection<QVertex> vs)
+	throws ConsoleError {
+		command("attach_one_rewrite", graph, new HasName.CollectionName(vs));
+	}
+	
 	public String show_rewrites(QuantoGraph graph) throws ConsoleError {
 		return command("show_rewrites", graph);
 	}
