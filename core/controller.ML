@@ -277,14 +277,14 @@ fun attach_rewrites (args as _::vs, state) = let
     val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
     val graph = fetch_graph gname state
     val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-                      (TheoryHack.apply_all_rules_in vset graph)
+                      (TheoryHack.apply_all_rules_in' vset graph)
 in
     ("attached "^(Int.toString (length rws))^" rewrites\n",
      state |> update_rewrites (GraphName.NTab.update (gname,rws)))
 end
     handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
      | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertex."
-                       
+
 fun show_rewrites (args,state) = let
     val gname = GraphName.mk (graph_arg args)
     val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname

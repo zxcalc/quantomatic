@@ -179,8 +179,10 @@ val _ = writeln "Ex9";
 
 (* val [m1,m2,m3,m4] = TheoryHack.apply_all_rules g *)
 (* val [s1,m1,m2,m3,m4] = TheoryHack.apply_all_rules g; *)
-val [spider,x_ab1b,x_ab1] = (TheoryHack.apply_rules 
-                               [("abelian1", TheoryHack.abelian1_rule)]) g;
+val [spider,x_ab1b,x_ab1] = 
+    Seq.list_of 
+      ((TheoryHack.apply_rules 
+          [("abelian1", TheoryHack.abelian1_rule)]) g);
 val _ = writeln " X isometry + stuff should still be matched by isometry";
 
 
@@ -200,8 +202,9 @@ val _ = writeln "Ex10";
 (* val [m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 (* val [s1,m1,m2,m3] = TheoryHack.apply_all_rules g; *)
 val [m1,m2] = 
-    (TheoryHack.apply_rules 
-       [("copy", TheoryHack.copy_0_rule)]) g;
+    Seq.list_of 
+    ((TheoryHack.apply_rules 
+        [("copy", TheoryHack.copy_0_rule)]) g);
 
 (* hx_to_x with instantiated boundary node  *)
 val g = G.empty;

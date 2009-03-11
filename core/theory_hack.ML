@@ -835,43 +835,53 @@ fun load_rules file =
     )
 
 fun match_all_rules g = 
-    maps
+    Seq.maps
       (fn (n,r) => let val (rmn, r2) = (Rule.rename_rule_apart g r)
-                   in map (fn m => ((n,r2),m))
-                          (Seq.list_of (Rule.matches r2 g))
+                   in Seq.map (fn m => ((n,r2),m))
+                              (Rule.matches r2 g)
                    end)
-      (!rules);
+      (Seq.of_list (!rules));
 
 (* apply rules to whole graph *)
 fun apply_rules rules g = 
-    map (fn r => ("spider", r)) 
-        (Seq.list_of (Spider.mk_max_spider_rule g))
-    @
-    maps
-      (fn (n,r) => map (fn r2 => (n,r2)) (Seq.list_of (Rule.rule_matches r g)))
-      rules;
+    Seq.append 
+      (Seq.map (fn r => ("spider", r)) 
+               (Spider.mk_max_spider_rule g))
+      (Seq.maps
+         (fn (n,r) => Seq.map (fn r2 => (n,r2)) (Rule.rule_matches r g))
+         (Seq.of_list rules));
 
 (* apply rules to select vertices (vset) *)
 fun apply_rules_in rules vset g = 
-    map (fn r => ("spider", r)) 
-        (Seq.list_of (Spider.mk_max_spider_rule_within vset g))
-    @
-    maps
-      (fn (n,r) => map (fn r2 => (n,r2)) 
-                       (Seq.list_of (Rule.rule_matches_within r vset g)))
-      rules;
+    Seq.append 
+      (Seq.map (fn r => ("spider", r)) 
+               (Spider.mk_max_spider_rule_within vset g))
+      (Seq.maps
+         (fn (n,r) => Seq.map (fn r2 => (n,r2)) 
+                              (Rule.rule_matches_within r vset g))
+         (Seq.of_list rules));
 
 fun apply_all_rules g = 
     let val r = !rules
     in 
       apply_rules r g
-    end
+    end;
 
 fun apply_all_rules_in vset g = 
     let val r = !rules
     in 
       apply_rules_in r vset g
-    end
+    end;
+
+fun apply_a_rule_in vset g = 
+    let val r = !rules
+    in 
+      case Seq.pull (apply_all_rules_in vset g) 
+       of NONE => NONE
+        | SOME (h,_) => SOME h
+    end;
+
+fun apply_all_rules_in' vset g = Seq.list_of (apply_all_rules_in vset g);
 
 
 (* Unused: matching only produces symmetries w.r.t. different namings
