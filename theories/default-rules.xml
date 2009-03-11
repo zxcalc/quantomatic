@@ -1771,7 +1771,7 @@
         <vertex>
           <name>d</name>
           <boundary>false</boundary>
-          <colour>green</colour>
+          <colour>red</colour>
           <angleexpr>
             <as_string>-a</as_string>
             
@@ -1857,7 +1857,7 @@
         <vertex>
           <name>d</name>
           <boundary>false</boundary>
-          <colour>red</colour>
+          <colour>green</colour>
           <angleexpr>
             <as_string>-a</as_string>
             
