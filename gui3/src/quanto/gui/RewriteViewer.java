@@ -18,16 +18,15 @@ import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.LineBorder;
 
-import edu.uci.ics.jung.graph.util.Pair;
-
 public class RewriteViewer extends JFrame {
 	private static final long serialVersionUID = 3627522980375030017L;
 	private final InteractiveGraphView vis;
-	protected List<Pair<QuantoGraph>> rewrites;
+	protected List<Rewrite> rewrites;
 	
 	public RewriteViewer(InteractiveGraphView vis) {
 		this.vis = vis;
@@ -47,11 +46,13 @@ public class RewriteViewer extends JFrame {
 		int index = 0;
 		JButton cancel = new JButton("Cancel");
 		JComponent focusMe = cancel;
-		for (Pair<QuantoGraph> rw : rewrites) {
+		for (Rewrite rw : rewrites) {
 			JPanel rwPanel = new JPanel();
 			rwPanel.setLayout(new FlowLayout());
-			GraphView lhs = new GraphView(rw.getFirst(), new Dimension(100,100));
-			GraphView rhs = new GraphView(rw.getSecond(), new Dimension(100,100));
+			JLabel ruleName = new JLabel(rw.getName());
+			rwPanel.add(ruleName);
+			GraphView lhs = new GraphView(rw.getLhs(), new Dimension(100,100));
+			GraphView rhs = new GraphView(rw.getRhs(), new Dimension(100,100));
 			JButton apply = new JButton("=>");
 			rwPanel.setBackground(lhs.getBackground());
 			rwPanel.add(lhs);
@@ -76,7 +77,7 @@ public class RewriteViewer extends JFrame {
 				public void mouseEntered(MouseEvent e) {
 					QuantoGraph match = 
 						RewriteViewer.this.rewrites
-							.get(thisIndex).getFirst();
+							.get(thisIndex).getLhs();
 					RewriteViewer.this.vis.highlightSubgraph(match);
 				}
 				

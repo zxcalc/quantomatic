@@ -18,13 +18,11 @@ import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import net.n3.nanoxml.*;
 import org.apache.commons.collections15.Transformer;
 import quanto.gui.QuantoCore.ConsoleError;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
-import edu.uci.ics.jung.graph.util.Pair;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
@@ -692,12 +690,12 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			
 			public void run() {
 				attach();
-				List<Pair<QuantoGraph>> rws = getRewrites();
+				List<Rewrite> rws = getRewrites();
 				int count = 0;
 				while (rws.size()>0 &&
 					   Thread.currentThread()==rewriter)
 				{
-					highlightSubgraph(rws.get(0).getFirst());
+					highlightSubgraph(rws.get(0).getLhs());
 					try {
 						sleep(1000);
 						clearHighlight();
@@ -766,42 +764,15 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	 * list on console error.
 	 * @return
 	 */
-	public List<Pair<QuantoGraph>> getRewrites() {
-		List<Pair<QuantoGraph>> rewrites = new ArrayList<Pair<QuantoGraph>>();
+	public List<Rewrite> getRewrites() {
 		try {
 			String xml = getCore().show_rewrites(getGraph());
-			try {
-				IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
-				parser.setReader(StdXMLReader.stringReader(xml));
-				IXMLElement root = (IXMLElement)parser.parse();
-				for (Object obj : root.getChildrenNamed("rewrite")) {
-					IXMLElement rw = (IXMLElement)obj;
-					IXMLElement lhs = rw.getFirstChildNamed("lhs")
-						.getFirstChildNamed("graph");
-					IXMLElement rhs = rw.getFirstChildNamed("rhs")
-						.getFirstChildNamed("graph");
-					rewrites.add(new Pair<QuantoGraph>(
-							new QuantoGraph().fromXml(lhs),
-							new QuantoGraph().fromXml(rhs)
-						));
-					
-				}
-			} catch (XMLException e) {
-				System.out.println("Error parsing XML.");
-			} catch (ClassNotFoundException e) {
-				throw new RuntimeException(e);
-			} catch (InstantiationException e) {
-				throw new RuntimeException(e);
-			} catch (IllegalAccessException e) {
-				throw new RuntimeException(e);
-			}
+			return Rewrite.parseRewrites(xml);
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
-		} catch (Exception e) {
-			throw new RuntimeException(e); // all other exceptions are serious
 		}
 		
-		return rewrites;
+		return new ArrayList<Rewrite>();
 	}
 	
 	public void applyRewrite(int index) {
