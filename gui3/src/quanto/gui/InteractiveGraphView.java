@@ -6,6 +6,7 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,6 +39,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private JMenuItem saveGraphMenuItem = null; // the view needs to manage when this menu is alive or not.
 	private volatile Thread rewriter = null;
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
+	private List<Rewrite> rewriteCache = null;
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
 	 * actions access to the frame, console, and core.
@@ -728,7 +730,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		Collection<QVertex> verts;
 		
 		public SubgraphHighlighter (QuantoGraph g) {
-			verts = g.getVertices();
+			verts = getGraph().getSubgraphVertices(g);
 		}
 		public void paint(Graphics g) {
 			Color oldColor = g.getColor();
@@ -739,24 +741,14 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
             g2.setComposite(AlphaComposite
             		.getInstance(AlphaComposite.SRC_OVER, opac));
             
-            synchronized (getGraph()) {
-				Map<String,QVertex> vmap = getGraph().getVertexMap();
-				for (QVertex v : verts) {
-					if (v.getVertexType() == QVertex.Type.BOUNDARY)
-						continue; // don't highlight boundaries
-					// find the vertex corresponding to the selected
-					//  subgraph, by name
-					QVertex real_v = vmap.get(v.getName());
-					if (real_v != null) {
-						Point2D pt = getGraphLayout().transform(real_v);
-						Ellipse2D ell = new Ellipse2D.Double(
-	        					pt.getX()-15, pt.getY()-15, 30, 30);
-						Shape draw = getRenderContext()
-							.getMultiLayerTransformer().transform(ell);
-			        	((Graphics2D)g2).fill(draw);
-					}
-				}
-            }
+			for (QVertex v : verts) {
+				Point2D pt = getGraphLayout().transform(v);
+				Ellipse2D ell = new Ellipse2D.Double(
+	        			pt.getX()-15, pt.getY()-15, 30, 30);
+				Shape draw = getRenderContext()
+					.getMultiLayerTransformer().transform(ell);
+				((Graphics2D)g2).fill(draw);
+			}
 			
 			g2.dispose();
 			g.setColor(oldColor);
@@ -773,7 +765,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public List<Rewrite> getRewrites() {
 		try {
 			String xml = getCore().show_rewrites(getGraph());
-			return Rewrite.parseRewrites(xml);
+			rewriteCache = Rewrite.parseRewrites(xml);
+			return rewriteCache;
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
 		}
@@ -783,6 +776,14 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	public void applyRewrite(int index) {
 		try {
+			if (rewriteCache != null && rewriteCache.size()>index) {
+				List<QVertex> sub = getGraph().getSubgraphVertices(
+						rewriteCache.get(index).getLhs());
+				if (sub.size()>0) {
+					Rectangle2D rect = getSubgraphBounds(sub);
+					smoothLayout.setOrigin(rect.getCenterX(), rect.getCenterY());
+				}
+			}
 			getCore().apply_rewrite(getGraph(), index);
 			updateGraph();
 		} catch (ConsoleError e) {

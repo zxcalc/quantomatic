@@ -3,7 +3,6 @@ package edu.uci.ics.jung.contrib;
 import java.awt.geom.Point2D;
 
 import org.apache.commons.collections15.Transformer;
-import org.apache.commons.collections15.functors.ConstantTransformer;
 
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
@@ -14,11 +13,13 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	private double lastTick;
 	private double speed;
 	private StaticLayout<V,E> currentState;
+	private OriginTransformer origin;
 	public SmoothLayoutDecorator(Layout<V,E> delegate) {
 		super(delegate);
 		speed = 0.0002;
 		initialize(); // make sure delegate is initialized before we go
-		currentState = new StaticLayout<V,E>(delegate.getGraph());
+		origin = new OriginTransformer();
+		currentState = new StaticLayout<V,E>(delegate.getGraph(), origin);
 	}
 	
 	public void initialize() {
@@ -31,11 +32,12 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		}
 	}
 	
+	public void setOrigin(Point2D o) {
+		origin.setOrigin(o);
+	}
 	
-	@SuppressWarnings("unchecked")
-	public void setOrigin(Point2D origin) {
-		currentState.setInitializer(
-			(Transformer<V, Point2D>)new ConstantTransformer<Point2D>(origin));
+	public void setOrigin(double x, double y) {
+		setOrigin(new Point2D.Double(x,y));
 	}
 	
 	public Point2D transform(V v) {
@@ -93,5 +95,19 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 			));
 			return true;
 		}
+	}
+	
+	private class OriginTransformer implements Transformer<V,Point2D> {
+		private Point2D origin;
+		public Point2D transform(V input) {
+			return origin;
+		}
+		public void setOrigin(Point2D origin) {
+			this.origin = origin;
+		}
+		public OriginTransformer() {
+			this.origin = new Point2D.Double(0.0,0.0);
+		}
+		
 	}
 }

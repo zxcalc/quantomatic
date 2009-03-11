@@ -18,10 +18,13 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
+import org.apache.commons.collections15.Predicate;
 import org.apache.commons.collections15.Transformer;
 
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
@@ -35,6 +38,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	public QuantoGraph graph;
 	private QuantoLayout quantoLayout;
 	private VisualizationServer.Paintable boundsPaint;
+	private boolean directed = false;
 	
 	
 	public GraphView(QuantoGraph g) {
@@ -63,6 +67,14 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         
         getRenderContext().setEdgeShapeTransformer(
         		new EdgeShape.QuadCurve<QVertex,QEdge>());
+        
+        
+        getRenderContext().setEdgeArrowPredicate(
+        		new Predicate<Context<Graph<QVertex,QEdge>,QEdge>>() {
+					public boolean evaluate
+					(Context<Graph<QVertex, QEdge>, QEdge> object)
+					{return directed;}
+        		});
         
         getRenderContext().setVertexLabelTransformer(
         		new Transformer<QVertex, String>() {
@@ -258,5 +270,13 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 				return new JLabel("");
 			}
 		}
+	}
+
+	public boolean isDirected() {
+		return directed;
+	}
+
+	public void setDirected(boolean directed) {
+		this.directed = directed;
 	}
 }

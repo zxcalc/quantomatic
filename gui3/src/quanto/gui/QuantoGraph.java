@@ -191,6 +191,22 @@ implements HasName {
 		} // synchronized(this)
 		return this;
 	}
+	
+	public List<QVertex> getSubgraphVertices(QuantoGraph graph) {
+		List<QVertex> verts = new ArrayList<QVertex>();
+		synchronized (this) {
+			Map<String,QVertex> vmap = getVertexMap();
+			for (QVertex v : graph.getVertices()) {
+				if (v.getVertexType() == QVertex.Type.BOUNDARY)
+					continue; // don't highlight boundaries
+				// find the vertex corresponding to the selected
+				//  subgraph, by name
+				QVertex real_v = vmap.get(v.getName());
+				if (real_v != null) verts.add(real_v);
+			}
+		}
+		return verts;
+	}
 
 	public String getName() {
 		return name;
