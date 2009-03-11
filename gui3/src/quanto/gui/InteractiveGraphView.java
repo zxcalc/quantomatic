@@ -419,7 +419,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.addActionListener(new QVListener() {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				rewriter = null;
+				if (rewriter != null) {
+					rewriter.interrupt();
+					rewriter = null;
+				}
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, commandMask));
@@ -695,13 +698,18 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					   Thread.currentThread()==rewriter)
 				{
 					highlightSubgraph(rws.get(0).getFirst());
-					try { sleep(1000); }
-					catch (InterruptedException e) { break; }
-					finally { clearHighlight(); }
-					applyRewrite(0);
-					++count;
-					attach();
-					rws = getRewrites();
+					try {
+						sleep(1000);
+						clearHighlight();
+						applyRewrite(0);
+						++count;
+						attach();
+						rws = getRewrites();
+					}
+					catch (InterruptedException e) {
+						clearHighlight();
+						break;
+					}
 				}
 				
 				infoDialog("Applied "
