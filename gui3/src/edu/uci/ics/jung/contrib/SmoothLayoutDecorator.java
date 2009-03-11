@@ -2,6 +2,9 @@ package edu.uci.ics.jung.contrib;
 
 import java.awt.geom.Point2D;
 
+import org.apache.commons.collections15.Transformer;
+import org.apache.commons.collections15.functors.ConstantTransformer;
+
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
@@ -26,6 +29,13 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 			Relaxer relaxer = new VisRunner((IterativeContext)getDelegate());
 			relaxer.prerelax();
 		}
+	}
+	
+	
+	@SuppressWarnings("unchecked")
+	public void setOrigin(Point2D origin) {
+		currentState.setInitializer(
+			(Transformer<V, Point2D>)new ConstantTransformer<Point2D>(origin));
 	}
 	
 	public Point2D transform(V v) {

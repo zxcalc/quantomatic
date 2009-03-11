@@ -37,6 +37,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private InteractiveView.Holder viewHolder;
 	private JMenuItem saveGraphMenuItem = null; // the view needs to manage when this menu is alive or not.
 	private volatile Thread rewriter = null;
+	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
 	 * actions access to the frame, console, and core.
@@ -210,7 +211,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		super(g, size);
 		this.core = core;
 		this.viewHolder = null;
-		setGraphLayout(new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout()));
+		smoothLayout = new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout());
+		smoothLayout.setOrigin(new Point2D.Double(0.0,0.0));
+		setGraphLayout(smoothLayout);
 		setLayout(null);
 		
 		//JLabel lab = new JLabel("test");

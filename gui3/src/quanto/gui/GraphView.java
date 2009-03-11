@@ -11,6 +11,7 @@ import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.Collection;
 import java.util.Map;
 
 import javax.swing.JComponent;
@@ -151,10 +152,22 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	 * @return
 	 */
 	public Rectangle2D getGraphBounds() {
+		Rectangle2D bounds = null;
+		synchronized (getGraph()) {
+			bounds = getSubgraphBounds(getGraph().getVertices());
+		}
+		return bounds;
+	}
+	
+	/**
+	 * Compute the bounding box of the subgraph under its current layout.
+	 * @return
+	 */
+	public Rectangle2D getSubgraphBounds(Collection<QVertex> subgraph) {
 		Layout<QVertex, QEdge> layout = getGraphLayout();
 		Rectangle2D bounds = null;
 		synchronized (getGraph()) {
-			for (QVertex v : getGraph().getVertices()) {
+			for (QVertex v : subgraph) {
 				Point2D p = layout.transform(v);
 				if (bounds == null)
 					bounds = new Rectangle2D.Double(p.getX(),p.getY(),0,0);
