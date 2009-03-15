@@ -1,0 +1,49 @@
+
+      <graph>
+      <!-- VERTICES -->
+        <vertex>
+          <name>c</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>b</name>
+          <boundary>false</boundary>
+          <colour>green</colour>
+          <angleexpr>
+            <as_string>\pi</as_string>
+            <constant>
+              <num>1</num>
+              <denom>1</denom>
+            </constant>
+            
+          </angleexpr>
+        </vertex>
+        <vertex>
+          <name>a</name>
+          <boundary>false</boundary>
+          <colour>red</colour>
+          <angleexpr>
+            <as_string>a</as_string>
+            
+            <variable>
+              <name>
+              a
+              </name>
+              <coefficient>
+                <num>1</num>
+                <denom>1</denom>
+              </coefficient>
+            </variable>
+          </angleexpr>
+        </vertex>
+      <!-- EDGES -->
+        <edge>
+          <name>Eb</name><source>b</source><target>a</target>
+        </edge>
+        <edge>
+          <name>Ea</name><source>c</source><target>b</target>
+        </edge>
+      <!-- BANG BOXES  -->
+        
+      </graph>
+    
