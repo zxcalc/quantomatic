@@ -154,7 +154,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		private boolean pickingMouseSelected;
 		public RWMouse() {
 			int mask = InputEvent.CTRL_MASK;
-			if (QuantoFrame.isMac) mask = InputEvent.META_MASK;
+			if (QuantoApp.isMac) mask = InputEvent.META_MASK;
 			
 			add(new ScalingGraphMousePlugin(new CrossoverScalingControl(), 0, 1.1f, 0.909f));
 			add(new TranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
@@ -245,7 +245,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				// this listener only handles un-modified keys
 				if (e.getModifiers() != 0) return;
 				
-				int delete = (QuantoFrame.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
+				int delete = (QuantoApp.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
 				if (e.getKeyCode() == delete) {
 					try {
 						getCore().delete_edges(
@@ -332,7 +332,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	private void buildMenus() {
 		int commandMask;
-	    if (QuantoFrame.isMac) commandMask = Event.META_MASK;
+	    if (QuantoApp.isMac) commandMask = Event.META_MASK;
 	    else commandMask = Event.CTRL_MASK;
 		
 	    JMenu graphMenu = new JMenu("Graph");
@@ -623,8 +623,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	public void updateGraph() throws QuantoCore.ConsoleError {
 		String xml = getCore().graph_xml(getGraph());
-		// ignore the first line
-		xml = xml.replaceFirst("^.*", "");
 		getGraph().fromXml(xml);
 		getGraphLayout().initialize();
 		

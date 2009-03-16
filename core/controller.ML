@@ -256,7 +256,7 @@ fun rename_vertex ([_,old,new], graph) =
   | rename_vertex _ = raise wrong_args_exp
 
 
-fun graph_xml [nme] = (enclose ("GRAPH_XML "^nme^"\n") "\n") o
+fun graph_xml [nme] = (suffix "\n") o
               Pretty.string_of  o
               RGGraphOutputXML.output
   | graph_xml _ = raise wrong_args_exp

@@ -54,7 +54,7 @@
         <jar jarfile="${dist}/QuantoGui.jar" index="yes">
             <fileset dir="${build}" />
             <manifest>
-                <attribute name="Main-Class" value="quanto.gui.QuantoFrame" />
+                <attribute name="Main-Class" value="quanto.gui.QuantoApp" />
             </manifest>
         </jar>
     </target>

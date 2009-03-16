@@ -24,8 +24,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 	boolean consoleVisible;
 	final JTabbedPane tabs;
 	
-	public static final boolean isMac =
-		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
+	
 //	public static boolean appMode;
 	
 	public QuantoFrame() {
@@ -55,7 +54,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		});
 		
 		int modifierKey;
-	    if (QuantoFrame.isMac) modifierKey = Event.META_MASK;
+	    if (QuantoApp.isMac) modifierKey = Event.META_MASK;
 	    else modifierKey = Event.CTRL_MASK;
 		
 		JMenuBar mb = new JMenuBar();
@@ -124,7 +123,7 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 		fileMenu.add(saverules);
 		
 		// quit
-		if (!isMac) {
+		if (!QuantoApp.isMac) {
 			item = new JMenuItem("Quit", KeyEvent.VK_Q);
 			item.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -371,36 +370,6 @@ public class QuantoFrame extends JFrame implements InteractiveView.Holder {
 
 	public QuantoCore getCore() {
 		return core;
-	}
-
-	public static void main(String[] args) {
-		for (String arg : args) {
-			if (arg.equals("--app-mode")) {
-				QuantoCore.appMode = true;
-				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
-					"Quantomatic.app/Contents/MacOS/dot_static";
-				System.out.println("Invoked as OS X application.");
-				System.out.printf("Working dir is %s\n",
-						System.getProperty("user.dir"));
-			}
-		}
-		
-		try {
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e) {
-			System.err.println("ERROR SETTING LOOK AND FEEL:");
-			e.printStackTrace();
-		}
-		if (QuantoFrame.isMac) {
-			System.setProperty("apple.laf.useScreenMenuBar", "true");
-			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
-		}
-		
-		QuantoFrame fr = new QuantoFrame();
-		fr.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-		fr.setVisible(true);
-	}
-
-	
+	}	
 
 }
