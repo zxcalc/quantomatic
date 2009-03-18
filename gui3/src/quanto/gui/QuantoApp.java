@@ -1,8 +1,9 @@
 package quanto.gui;
 
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
+import java.util.TreeMap;
+import java.util.Map;
 
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
@@ -16,12 +17,42 @@ public class QuantoApp {
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	private static QuantoApp theApp = null;
+	private QuantoConsole console;
+	private QuantoCore core;
 	
-	private List<InteractiveView> views;
+	
+	private final Map<String,InteractiveView> views;
+	private volatile String focusedView = null;
 	
 	private QuantoApp() {
-		views = new ArrayList<InteractiveView>();
+		views = Collections.synchronizedMap(new TreeMap<String,InteractiveView>());
+		console = new QuantoConsole();
+		core = console.getCore();
 	}
+	
+	public void addView(String name, InteractiveView v) {
+		if (views.get(name) != null)
+			throw new QuantoCore.FatalError("Attempted to add duplicate view.");
+		System.out.printf("adding %s\n", name);
+		views.put(name, v);
+	}
+	
+	public Map<String,InteractiveView> getViews() {
+		return views;
+	}
+
+	public void removeView(String name) {
+		views.remove(name);
+	}
+	
+	public void focusView(String name) {
+		if (focusedView != null) views.get(focusedView).loseFocus();
+		focusedView = name;
+		views.get(focusedView).gainFocus();
+	}
+	
+	
+	
 	
 	public static QuantoApp getInstance() {
 		if (theApp == null) theApp = new QuantoApp();
@@ -57,8 +88,12 @@ public class QuantoApp {
 		fr.setVisible(true);
 	}
 
-	public List<InteractiveView> getViews() {
-		return views;
+	public QuantoConsole getConsole() {
+		return console;
+	}
+
+	public QuantoCore getCore() {
+		return core;
 	}
 
 }

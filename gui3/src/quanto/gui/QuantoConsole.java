@@ -11,7 +11,7 @@ import java.util.Stack;
 import javax.swing.*;
 
 
-public class QuantoConsole extends JPanel {
+public class QuantoConsole extends JFrame {
 	private static final long serialVersionUID = -5833674157230451213L;
 	public PrintStream out;
 	public QuantoCore core;

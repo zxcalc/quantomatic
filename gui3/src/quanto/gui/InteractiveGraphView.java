@@ -35,7 +35,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private QuantoCore core;
 	private RWMouse graphMouse;
 	protected List<JMenu> menus;
-	private InteractiveView.Holder viewHolder;
 	private JMenuItem saveGraphMenuItem = null; // the view needs to manage when this menu is alive or not.
 	private volatile Thread rewriter = null;
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
@@ -58,6 +57,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 		
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
+	}
+	
+	public boolean hasParent() {
+		return this.getParent() == null;
 	}
 	
 	private class QVertexLabeler implements VertexLabelRenderer {
@@ -212,7 +215,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size, JMenuItem saveItem) {
 		super(g, size);
 		this.core = core;
-		this.viewHolder = null;
 		smoothLayout = new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout());
 		smoothLayout.setOrigin(new Point2D.Double(0.0,0.0));
 		setGraphLayout(smoothLayout);
@@ -653,15 +655,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	public void outputToTextView(String text) {
 		TextView tview = new TextView(text);
-		if (viewHolder != null) {
-			viewHolder.addView(tview);
-		} else {
-			JFrame out = new JFrame();
-			out.setTitle(tview.getTitle());
-			out.getContentPane().add(tview);
-			out.pack();
-			out.setVisible(true);
-		}
+		QuantoApp.getInstance().addView(tview.getName(), tview);
 	}
 	
 	private SubgraphHighlighter highlighter = null;
@@ -786,7 +780,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			updateGraph();
 		} catch (ConsoleError e) {
 			errorDialog("Error in rewrite. The graph probably changed "+
-					"after this rewrite was attached.");
+						"after this rewrite was attached.");
 		}
 	}
 
@@ -795,6 +789,14 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public void gainFocus() {
+		Component parent = getParent();
+		while (parent != null && ! (parent instanceof QuantoFrame))
+			parent = parent.getParent();
+		
+		if (parent != null) {
+			((QuantoFrame)parent).setFocusedView(this);
+		}
+		
 		grabFocus();
 		if(saveGraphMenuItem != null)
 		{ 
@@ -808,9 +810,4 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public void loseFocus() {
 		
 	}
-
-	public void setViewHolder(InteractiveView.Holder viewHolder) {
-		this.viewHolder = viewHolder;
-	}
-
 }

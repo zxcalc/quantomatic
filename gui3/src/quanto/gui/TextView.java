@@ -29,6 +29,10 @@ public class TextView extends JPanel implements InteractiveView {
 		
 		instanceCount++;
 	}
+	
+	public boolean hasParent() {
+		return this.getParent() == null;
+	}
 
 	public List<JMenu> getMenus() {
 		return new ArrayList<JMenu>();
@@ -44,9 +48,6 @@ public class TextView extends JPanel implements InteractiveView {
 	
 	public void loseFocus() {
 		
-	}
-	
-	public void setViewHolder(Holder h) {
 	}
 
 }

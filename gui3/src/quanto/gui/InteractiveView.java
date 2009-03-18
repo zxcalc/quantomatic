@@ -31,14 +31,8 @@ public interface InteractiveView {
 	 */
 	public void loseFocus();
 	
-	/**
-	 * If an InteractiveView wishes to spawn other views, add them to the given view holder.
-	 * The expected behaviour if this is not called is that new views go into their own window.
-	 * @param h
+	/** 
+	 * Determine if this view has a parent (i.e. is currently being displayed).
 	 */
-	void setViewHolder(Holder h);
-	
-	public interface Holder {
-		void addView(InteractiveView v);
-	}
+	public boolean hasParent();
 }
