@@ -1,10 +1,6 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.swing.JMenu;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -12,7 +8,7 @@ import javax.swing.JTextArea;
 public class TextView extends JPanel implements InteractiveView {
 	private static final long serialVersionUID = -9201774497137020314L;
 	private static int instanceCount=0; 
-	private String title;
+	//private String title;
 	private JTextArea textArea;
 	
 	public TextView(String text) {
@@ -20,7 +16,7 @@ public class TextView extends JPanel implements InteractiveView {
 	}
 	
 	public TextView(String title, String text) {
-		this.title = title;
+		//this.title = title;
 		textArea = new JTextArea();
 		textArea.setText(text);
 		
@@ -31,22 +27,18 @@ public class TextView extends JPanel implements InteractiveView {
 	}
 	
 	public boolean hasParent() {
-		return this.getParent() == null;
-	}
-
-	public List<JMenu> getMenus() {
-		return new ArrayList<JMenu>();
+		return this.getParent() != null;
 	}
 	
-	public String getTitle() {
-		return title;
-	}
+//	public String getTitle() {
+//		return title;
+//	}
 
-	public void gainFocus() {
+	public void gainFocus(ViewPort vp) {
 		
 	}
 	
-	public void loseFocus() {
+	public void loseFocus(ViewPort vp) {
 		
 	}
 

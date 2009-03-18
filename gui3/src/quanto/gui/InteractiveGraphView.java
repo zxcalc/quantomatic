@@ -7,6 +7,7 @@ import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,8 +35,13 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private static final long serialVersionUID = 7196565776978339937L;
 	private QuantoCore core;
 	private RWMouse graphMouse;
+	
+	// these menu items will be added when this view is focused, and removed
+	//  when it is unfocused.
 	protected List<JMenu> menus;
-	private JMenuItem saveGraphMenuItem = null; // the view needs to manage when this menu is alive or not.
+	private JMenuItem file_saveGraph = null;
+	private JMenuItem file_saveGraphAs = null;
+	
 	private volatile Thread rewriter = null;
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
 	private List<Rewrite> rewriteCache = null;
@@ -60,7 +66,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public boolean hasParent() {
-		return this.getParent() == null;
+		return this.getParent() != null;
 	}
 	
 	private class QVertexLabeler implements VertexLabelRenderer {
@@ -209,10 +215,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size) {
-		this(core, g, size, null);
-	}
-	
-	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size, JMenuItem saveItem) {
 		super(g, size);
 		this.core = core;
 		smoothLayout = new SmoothLayoutDecorator<QVertex,QEdge>(getQuantoLayout());
@@ -305,9 +307,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
         
         
         getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
-        
-        // a bit hackish
-        this.saveGraphMenuItem = saveItem;
 	}
 	
 	private void errorDialog(String msg) {
@@ -328,20 +327,37 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		return "graph (" + name + ")";
 	}
 	
-	public String getTitle() {
-		return InteractiveGraphView.titleOfGraph(getGraph().getName());
-	}
+//	public String getTitle() {
+//		return InteractiveGraphView.titleOfGraph(getGraph().getName());
+//	}
 	
 	private void buildMenus() {
 		int commandMask;
 	    if (QuantoApp.isMac) commandMask = Event.META_MASK;
 	    else commandMask = Event.CTRL_MASK;
 		
+		// Save Graph
+		file_saveGraph = new JMenuItem("Save Graph", KeyEvent.VK_S);
+		file_saveGraph.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				saveGraph();
+			}
+		});
+		file_saveGraph.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, commandMask));
+		
+		// Save Graph As
+		file_saveGraphAs = new JMenuItem("Save Graph As...", KeyEvent.VK_A);
+		file_saveGraphAs.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				saveGraphAs();
+			}
+		});
+		file_saveGraphAs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, commandMask | Event.SHIFT_MASK));
+		
 	    JMenu graphMenu = new JMenu("Graph");
 		graphMenu.setMnemonic(KeyEvent.VK_G);
 		
 		JMenuItem item;
-		
 		
 		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
 		cbItem.setMnemonic(KeyEvent.VK_E);
@@ -618,10 +634,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 	}
 	
-	public List<JMenu> getMenus() {
-		return menus;
-	}
-	
 	
 	public void updateGraph() throws QuantoCore.ConsoleError {
 		String xml = getCore().graph_xml(getGraph());
@@ -647,8 +659,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			if (new_v != null) getPickedVertexState().pick(new_v, true);
 		}
 		
-		if(saveGraphMenuItem != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
-			saveGraphMenuItem.setEnabled(true);
+		if(file_saveGraph != null && getGraph().getFileName() != null && !getGraph().isSaved()) 
+			file_saveGraph.setEnabled(true);
 		
 		repaint();
 	}
@@ -788,26 +800,48 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		return core;
 	}
 	
-	public void gainFocus() {
-		Component parent = getParent();
-		while (parent != null && ! (parent instanceof QuantoFrame))
-			parent = parent.getParent();
-		
-		if (parent != null) {
-			((QuantoFrame)parent).setFocusedView(this);
-		}
-		
-		grabFocus();
-		if(saveGraphMenuItem != null)
-		{ 
-			if(getGraph().getFileName() != null && !getGraph().isSaved()) 
-				saveGraphMenuItem.setEnabled(true);
-			else 
-				saveGraphMenuItem.setEnabled(false);
+	public void saveGraphAs() {
+		int retVal = QuantoApp.getInstance().fileChooser.showSaveDialog(this);
+		if(retVal == JFileChooser.APPROVE_OPTION) {
+			try{
+				File f = QuantoApp.getInstance().fileChooser.getSelectedFile();
+				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
+				core.save_graph(getGraph(), filename);
+				getGraph().setFileName(filename);
+				getGraph().setSaved(true);
+				QuantoApp.getInstance().renameView(this, f.getName());
+			} catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			} catch(java.io.IOException ioe) {
+				errorDialog(ioe.getMessage());
+			}
 		}
 	}
 	
-	public void loseFocus() {
-		
+	public void saveGraph() {
+		try {
+			getCore().save_graph(getGraph(), getGraph().getFileName());
+			getGraph().setSaved(true);
+		}
+		catch (QuantoCore.ConsoleError e) {
+			errorDialog(e.getMessage());
+		}
+	}
+	
+	public void gainFocus(ViewPort vp) {
+		QuantoApp.MainMenu mm = vp.getMainMenu();
+		grabFocus();
+		for (JMenu menu : menus) mm.add(menu);
+		mm.insertAfter(mm.fileMenu, mm.file_openGraph, file_saveGraph);
+		mm.insertAfter(mm.fileMenu, file_saveGraph, file_saveGraphAs);
+		mm.repaint();
+	}
+	
+	public void loseFocus(ViewPort vp) {
+		QuantoApp.MainMenu mm = vp.getMainMenu();
+		for (JMenu menu : menus) mm.remove(menu);
+		mm.fileMenu.remove(file_saveGraph);
+		mm.fileMenu.remove(file_saveGraphAs);
+		mm.repaint();
 	}
 }

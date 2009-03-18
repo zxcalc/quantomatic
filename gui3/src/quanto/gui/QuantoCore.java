@@ -233,6 +233,11 @@ public class QuantoCore {
 		return new QuantoGraph(chomp(command("new_graph")));
 	}
 	
+	public void rename_graph(String oldName, String newName) throws ConsoleError {
+		command("rename_graph", new HasName.StringName(oldName),
+								new HasName.StringName(newName));
+	}
+	
 	public void add_vertex(QuantoGraph graph, QVertex.Type type)
 	throws ConsoleError {
 		command("add_vertex", graph, 

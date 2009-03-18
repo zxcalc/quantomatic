@@ -11,7 +11,7 @@ import java.util.Stack;
 import javax.swing.*;
 
 
-public class QuantoConsole extends JFrame {
+public class ConsoleView extends JPanel implements InteractiveView {
 	private static final long serialVersionUID = -5833674157230451213L;
 	public PrintStream out;
 	public QuantoCore core;
@@ -34,7 +34,7 @@ public class QuantoConsole extends JFrame {
 		
 	}
 	
-	public QuantoConsole() {
+	public ConsoleView() {
         this.setLayout(new BorderLayout());
         history = new Stack<String>();
         input = new JTextField();
@@ -89,7 +89,7 @@ public class QuantoConsole extends JFrame {
         });
 
 		JScrollPane scroll = new JScrollPane(output);
-		scroll.setPreferredSize(new Dimension(800, 200));
+		scroll.setPreferredSize(new Dimension(800, 600));
         this.add(scroll,BorderLayout.CENTER);
         this.add(input,BorderLayout.SOUTH);
 	}
@@ -116,6 +116,19 @@ public class QuantoConsole extends JFrame {
 
 	public QuantoCore getCore() {
 		return core;
+	}
+
+	public void gainFocus(ViewPort vp) {
+		grabFocus();
+	}
+
+	public boolean hasParent() {
+		return getParent()!=null;
+	}
+
+	public void loseFocus(ViewPort vp) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

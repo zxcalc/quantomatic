@@ -2,6 +2,7 @@ package edu.uci.ics.jung.contrib;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Set;
 
 
 /**
@@ -95,6 +96,24 @@ public interface HasName {
 	public static class NameComparator implements Comparator<HasName> {
 		public int compare(HasName o1, HasName o2) {
 			return o1.getName().compareTo(o2.getName());
+		}
+	}
+	
+	/**
+	 * Simple unique namer for strings
+	 */
+	public static class StringNamer {
+		public static String getFreshName(Set<String>names, String tryName) {
+			if (!names.contains(tryName)) return tryName;
+			String newTry; int idx = 1;
+			
+			// TODO: this method for finding a fresh name can be MUCH improved, but
+			// should be fine for small numbers of duplicate names.
+			while (true) {
+				newTry = tryName + "-" + Integer.toString(idx);
+				if (!names.contains(newTry)) return newTry;
+				idx++;
+			}
 		}
 	}
 

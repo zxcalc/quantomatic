@@ -212,6 +212,20 @@ fun load_graph ([fname], state) =
 
 end
 
+fun rename_graph ([old,new], state) = let
+    fun upd graphs = let
+        val oldname = GraphName.mk old
+        val gr = GraphName.NTab.get graphs oldname
+    in graphs |> GraphName.NTab.delete oldname
+              |> GraphName.NTab.update_new (GraphName.mk new, gr)
+    end
+        handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^old)
+             | GraphName.NTab.Tab.DUP _ => raise user_exp ("graph already exists: "^new)
+in ("ok\n", update_graphs upd state)
+end
+  | rename_graph _ = raise wrong_args_exp
+
+
 fun save_graph ([_, fname], graph) = 
     ((LoadSave.save_graph fname graph; "Saved file " ^ fname ^"\n")
      handle _ => raise user_exp ("Could not save file "^fname))
@@ -466,6 +480,12 @@ val () = (
     ("duplicate_graph GRAPH\n\n"^
      "    duplicate GRAPH and return the name of the new graph\n")
     (duplicate_graph);
+
+    register_cmd
+    "rename_graph"
+    ("rename_graph OLD NEW\n\n"^
+     "    rename graph OLD to NEW\n")
+    (rename_graph);
 
     register_cmd
     "add_vertex"
