@@ -38,7 +38,6 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	public QuantoGraph graph;
 	private QuantoLayout quantoLayout;
 	private VisualizationServer.Paintable boundsPaint;
-	private boolean directed = false;
 	
 	
 	public GraphView(QuantoGraph g) {
@@ -71,9 +70,9 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         
         getRenderContext().setEdgeArrowPredicate(
         		new Predicate<Context<Graph<QVertex,QEdge>,QEdge>>() {
-					public boolean evaluate
-					(Context<Graph<QVertex, QEdge>, QEdge> object)
-					{return directed;}
+					public boolean evaluate(Context<Graph<QVertex, QEdge>, QEdge> object) {
+						return QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS);
+					}
         		});
         
         getRenderContext().setVertexLabelTransformer(
@@ -270,13 +269,5 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 				return new JLabel("");
 			}
 		}
-	}
-
-	public boolean isDirected() {
-		return directed;
-	}
-
-	public void setDirected(boolean directed) {
-		this.directed = directed;
 	}
 }

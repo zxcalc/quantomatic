@@ -16,7 +16,7 @@ public class ViewPort extends JPanel {
 	private volatile String focusedView = null;
 	private JLabel pickView = null;
 	private final String arrowDown = "\u25be";
-	private boolean hasFocus = false;
+//	private boolean hasFocus = false;
 
 	public ViewPort(QuantoApp.MainMenu mainMenu) {
 		this.mainMenu = mainMenu;
@@ -46,10 +46,11 @@ public class ViewPort extends JPanel {
 												.getValue()).getGraph().getName() + ")";
 						item = new JMenuItem(title);
 						item.setFont(item.getFont().deriveFont(12.0f));
-						item.setEnabled(! ent.getValue().hasParent());
+						item.setEnabled(! ent.getValue().viewHasParent());
 						item.addActionListener(new ActionListener() {
 							public void actionPerformed(java.awt.event.ActionEvent e) {
 								setFocusedView(ent.getKey());
+								gainFocus(); // force re-focus of new view
 							}
 						});
 						viewMenu.add(item);
@@ -65,19 +66,27 @@ public class ViewPort extends JPanel {
 		if (focusedView != null) {
 			activeView = QuantoApp.getInstance().getViews().get(focusedView);
 			if (activeView != null) { // this can happen if a view's name changes
-				activeView.loseFocus(this);
+				activeView.viewUnfocus(this);
 				if (activeView != null) remove((JComponent)activeView);
 			}
 		}
 		activeView = QuantoApp.getInstance().getViews().get(view);
-		add((JComponent)activeView, BorderLayout.CENTER);
-		String title = view;
-		if (activeView instanceof InteractiveGraphView)
-			title += " (" + ((InteractiveGraphView)activeView)
-								.getGraph().getName() + ")";
-		pickView.setText("  " + title + " " + arrowDown);
-		focusedView = view;
-		if (hasFocus) activeView.gainFocus(this);
+		if (activeView!=null) {
+			if (!(activeView instanceof JComponent))
+				throw new QuantoCore.FatalError(
+						"Attempted to focus a view that is not a JComponent!");
+			JComponent av = (JComponent)activeView;
+			
+			add(av, BorderLayout.CENTER);
+			String title = view;
+			if (activeView instanceof InteractiveGraphView)
+				title += " (" + ((InteractiveGraphView)activeView)
+									.getGraph().getName() + ")";
+			pickView.setText("  " + title + " " + arrowDown);
+			focusedView = view;
+		} else {
+			pickView.setText("  [null] " + arrowDown);
+		}
 		repaint();
 	}
 	
@@ -86,20 +95,16 @@ public class ViewPort extends JPanel {
 	}
 	
 	public void loseFocus() {
-//		System.out.println("viewport losing focus");
 		pickView.setForeground(Color.gray);
-		hasFocus = false;
 		if (focusedView != null) {
-			QuantoApp.getInstance().getViews().get(focusedView).loseFocus(this);
+			QuantoApp.getInstance().getViews().get(focusedView).viewUnfocus(this);
 		}
 	}
 	
 	public void gainFocus() {
-//		System.out.printf("viewport %d gaining focus\n", this.hashCode());
 		pickView.setForeground(Color.black);
-		hasFocus = true;
 		if (focusedView != null) {
-			QuantoApp.getInstance().getViews().get(focusedView).gainFocus(this);
+			QuantoApp.getInstance().getViews().get(focusedView).viewFocus(this);
 		}
 	}
 

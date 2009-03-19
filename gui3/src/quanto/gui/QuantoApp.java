@@ -1,6 +1,7 @@
 package quanto.gui;
 
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Event;
 import java.awt.event.ActionEvent;
@@ -10,6 +11,7 @@ import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.util.Map;
+import java.util.prefs.Preferences;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
@@ -18,6 +20,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import org.apache.commons.collections15.BidiMap;
@@ -34,16 +37,42 @@ public class QuantoApp {
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	private static QuantoApp theApp = null;
-	private ConsoleView console;
-	private QuantoCore core;
-	public JFileChooser fileChooser;
 	
 	
+	public static final class Pref<T> implements ItemListener {
+		final T def; // default value
+		final String key;
+		protected Pref(String key, T def) {
+			this.key = key; this.def = def;
+		}
+		
+		@SuppressWarnings("unchecked") // handling ClassCastException manually
+		public void itemStateChanged(ItemEvent e) {
+			try {
+				QuantoApp.getInstance().setPreference
+					((Pref<Boolean>)this, e.getStateChange()==ItemEvent.SELECTED);
+			} catch (ClassCastException exp) {
+				throw new QuantoCore.FatalError(
+					"Attempted to use non-boolean pref as item listener.");
+			}
+		}
+	}
+	
+	// Preferences
+	public static final Pref<Boolean> DRAW_ARROW_HEADS =
+		new Pref<Boolean>("draw_arrow_heads", false);
+	public static final Pref<Boolean> NEW_WINDOW_FOR_GRAPHS =
+		new Pref<Boolean>("new_window_for_graphs", false);
+	public static final Pref<Boolean> CONSOLE_ECHO =
+		new Pref<Boolean>("console_echo", false);
+	
+	
+	private final Preferences globalPrefs;
+	private final ConsoleView console;
+	private final QuantoCore core;
+	public final JFileChooser fileChooser;
 	private final BidiMap<String,InteractiveView> views;
 	private volatile ViewPort focusedViewPort = null;
-	
-	
-	
 	
 	public static QuantoApp getInstance() {
 		if (theApp == null) theApp = new QuantoApp();
@@ -75,10 +104,11 @@ public class QuantoApp {
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
 		}
 		
-		QuantoFrame fr = new QuantoFrame();
-		getInstance().newGraph();
-		fr.pack();
-		fr.setVisible(true);
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				getInstance().newGraph(true);
+			}
+		});
 	}
 	
 	
@@ -86,6 +116,7 @@ public class QuantoApp {
 	
 	
 	private QuantoApp() {
+		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 		fileChooser = new JFileChooser();
 		views = new DualHashBidiMap<String,InteractiveView>();
 		console = new ConsoleView();
@@ -139,7 +170,9 @@ public class QuantoApp {
 		private static final long serialVersionUID = 1L;
 		public final JMenu fileMenu;
 		public final JMenu viewMenu;
+		private final JCheckBoxMenuItem view_newWindowForGraphs;
 		public final JCheckBoxMenuItem view_verboseConsole;
+		public final JCheckBoxMenuItem view_drawArrowHeads;
 		public final JMenuItem view_refreshAllGraphs;
 		public final JMenuItem file_quit;
 		public final JMenuItem file_saveRules;
@@ -262,19 +295,25 @@ public class QuantoApp {
 			view_refreshAllGraphs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.SHIFT_MASK));
 			viewMenu.add(view_refreshAllGraphs);
 			
-			view_verboseConsole = new JCheckBoxMenuItem("Verbose console");
-			view_verboseConsole.setMnemonic(KeyEvent.VK_V);
-			view_verboseConsole.setSelected(QuantoApp.getInstance().getCore().getConsoleEcho());
-			view_verboseConsole.addItemListener(new ItemListener() {
-				public void itemStateChanged(ItemEvent e) {
-					if (e.getStateChange() == ItemEvent.SELECTED) {
-						QuantoApp.getInstance().getCore().setConsoleEcho(true);
-					} else {
-						QuantoApp.getInstance().getCore().setConsoleEcho(false);
-					}
-				}
-			});
+			viewMenu.addSeparator();
+			
+			view_drawArrowHeads = new JCheckBoxMenuItem("Draw Arrow Heads");
+			view_drawArrowHeads.setSelected(
+					QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS));
+			view_drawArrowHeads.addItemListener(QuantoApp.DRAW_ARROW_HEADS);
+			viewMenu.add(view_drawArrowHeads);
+			
+			view_verboseConsole = new JCheckBoxMenuItem("Verbose Console");
+			view_verboseConsole.setSelected(
+					QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO));
+			view_verboseConsole.addItemListener(QuantoApp.CONSOLE_ECHO);
 			viewMenu.add(view_verboseConsole);
+			
+			view_newWindowForGraphs = new JCheckBoxMenuItem("Open Graphs in a New Window");
+			view_newWindowForGraphs.setSelected(
+					QuantoApp.getInstance().getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS));
+			view_newWindowForGraphs.addItemListener(QuantoApp.NEW_WINDOW_FOR_GRAPHS);
+			viewMenu.add(view_newWindowForGraphs);
 			
 	//		closeViewMenuItem = new JMenuItem("Close Current View", KeyEvent.VK_W);
 	//		closeViewMenuItem.addActionListener(new ActionListener() {
@@ -319,7 +358,15 @@ public class QuantoApp {
 				vis.getGraph().setSaved(true);
 				vis.updateGraph();
 				String v = addView(f.getName(), vis);
-				if (focusedViewPort != null) focusedViewPort.setFocusedView(v);
+				if (getPreference(NEW_WINDOW_FOR_GRAPHS)) { // in a new window?
+					QuantoFrame fr = new QuantoFrame();
+					fr.getViewPort().setFocusedView(v);
+					fr.pack();
+					fr.setVisible(true);
+				} else if (focusedViewPort != null) { // otherwise force re-focus of active view with gainFocus()
+					focusedViewPort.setFocusedView(v);
+					focusedViewPort.gainFocus();
+				}
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
@@ -333,19 +380,30 @@ public class QuantoApp {
 	/**
 	 * Create a new graph, read the name, and send to a fresh
 	 * InteractiveQuantoVisualizer.
-	 * 
+	 * @param initial   a <code>boolean</code> that tells whether this is the
+	 *                  first call to newGraph().
 	 */
-	public void newGraph() {
+	public void newGraph(boolean initial) {
 		try {
 			QuantoGraph newGraph = core.new_graph();
 			InteractiveGraphView vis =
 				new InteractiveGraphView(core, newGraph, new Dimension(800,600));
 			String v = QuantoApp.getInstance().addView("new-graph",vis);
-			if (focusedViewPort != null) focusedViewPort.setFocusedView(v);
+			
+			if (initial || getPreference(NEW_WINDOW_FOR_GRAPHS)) { // are we making a new window?
+				QuantoFrame fr = new QuantoFrame();
+				fr.getViewPort().setFocusedView(v);
+				fr.pack();
+				fr.setVisible(true);
+			} else if (focusedViewPort != null) { // if not, force the active view to focus with gainFocus()
+				focusedViewPort.setFocusedView(v);
+				focusedViewPort.gainFocus();
+			}
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
 		}
 	}
+	public void newGraph() { newGraph(false); }
 	
 
 	
@@ -400,11 +458,36 @@ public class QuantoApp {
 	public String getFirstFreeView() {
 		synchronized (views) {
 			for (Map.Entry<String, InteractiveView> ent : views.entrySet()) {
-				if (! ent.getValue().hasParent()) return ent.getKey();
+				if (! ent.getValue().viewHasParent()) return ent.getKey();
 			}
 		}
 		return null;
 	}
-
+	
+	/**
+	 * Get a global preference. This method is overloaded because the preference API
+	 * doesn't support generics.
+	 */
+	public boolean getPreference(QuantoApp.Pref<Boolean> pref) {
+		return globalPrefs.getBoolean(pref.key, pref.def);
+	}
+	
+	/**
+	 * Set a global preference.
+	 */
+	public void setPreference(QuantoApp.Pref<Boolean> pref, boolean value) {
+		globalPrefs.putBoolean(pref.key, value);
+	}
+	
+	/**
+	 * Call "repaint" on all views that might be visible
+	 */
+	public void repaintViews() {
+		synchronized (views) {
+			for (InteractiveView v : views.values()) {
+				if (v instanceof Component) ((Component)v).repaint();
+			}
+		}
+	}
 
 }

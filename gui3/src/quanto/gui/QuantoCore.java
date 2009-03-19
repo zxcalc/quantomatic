@@ -15,18 +15,12 @@ import edu.uci.ics.jung.contrib.HasName;
  *
  */
 public class QuantoCore {
- 
-	public static final int VERTEX_RED = 1;
-	public static final int VERTEX_GREEN = 2;
-	public static final int VERTEX_HADAMARD = 3;
-	public static final int VERTEX_BOUNDARY = 4;
 	
 	private Process backEnd;
 	private BufferedReader from_backEnd;
 	private BufferedWriter to_backEnd;
 	private PrintStream output;
 	private Completer completer;
-	private boolean consoleEcho;
 	
 	// Invoked as OS X application
 	public static boolean appMode = false;
@@ -50,7 +44,6 @@ public class QuantoCore {
 	}
 
 	public QuantoCore(PrintStream output) {
-		this.consoleEcho = false;
 		this.output = output;
 		try {
 			ProcessBuilder pb;
@@ -61,26 +54,32 @@ public class QuantoCore {
 				pb = new ProcessBuilder("quanto-core");
 			}
 			pb.redirectErrorStream(true);
-			System.out.println("Initialising QuantoML...");
+			output.print("Intialising quanto-core...");
+			output.flush(); // make sure this is output, in case it hangs below
 			backEnd = pb.start();
+			output.println("done.");
 			
-			System.out.println("Connecting pipes...");
+			output.print("Connecting pipes...");
+			output.flush();
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
+			output.println("done.");
 			
-			System.out.println("Synchonising console...");
+			output.print("Synchonising console...");
+			output.flush();
 			// sync the console
 			send("garbage_2039483945;");
 			send("HELO;");
 			while (!receive().contains("HELO"));
-			System.out.println("done.");
+			output.println("done.");
 			
 			
 			// Construct the completion engine from the output of the help command.
 			completer = new Completer();
-			System.out.println("Retrieving commands...");
+			output.print("Retrieving commands...");
+			output.flush();
 			
 			receive(); // eat the prompt
 			send("help;");
@@ -90,7 +89,7 @@ public class QuantoCore {
 			for (String ln = reader.readLine(); ln != null; ln = reader.readLine())
 				if (! ln.equals("")) completer.addWord(ln);
 			
-			System.out.println("done.");
+			output.println("done.");
 			
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -161,14 +160,6 @@ public class QuantoCore {
 		return completer;
 	}
 	
-	public void setConsoleEcho(boolean consoleEcho) {
-		this.consoleEcho = consoleEcho;
-	}
-
-	public boolean getConsoleEcho() {
-		return consoleEcho;
-	}
-	
 	/*
 	 * Some helpers for the methods below
 	 */
@@ -191,6 +182,7 @@ public class QuantoCore {
 			
 			String ret;
 			//System.out.println(cmd);
+			boolean consoleEcho = QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO);
 			synchronized (this) {
 				if (consoleEcho) output.println(cmd);
 				send(cmd.toString());

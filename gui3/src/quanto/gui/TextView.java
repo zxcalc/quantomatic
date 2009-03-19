@@ -26,7 +26,7 @@ public class TextView extends JPanel implements InteractiveView {
 		instanceCount++;
 	}
 	
-	public boolean hasParent() {
+	public boolean viewHasParent() {
 		return this.getParent() != null;
 	}
 	
@@ -34,11 +34,16 @@ public class TextView extends JPanel implements InteractiveView {
 //		return title;
 //	}
 
-	public void gainFocus(ViewPort vp) {
+	public void viewFocus(ViewPort vp) {
 		
 	}
 	
-	public void loseFocus(ViewPort vp) {
+	public void viewUnfocus(ViewPort vp) {
+		
+	}
+
+	public void viewKill(ViewPort vp) {
+		// TODO Auto-generated method stub
 		
 	}
 

@@ -118,15 +118,20 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		return core;
 	}
 
-	public void gainFocus(ViewPort vp) {
+	public void viewFocus(ViewPort vp) {
 		grabFocus();
 	}
 
-	public boolean hasParent() {
+	public boolean viewHasParent() {
 		return getParent()!=null;
 	}
 
-	public void loseFocus(ViewPort vp) {
+	public void viewUnfocus(ViewPort vp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void viewKill(ViewPort vp) {
 		// TODO Auto-generated method stub
 		
 	}

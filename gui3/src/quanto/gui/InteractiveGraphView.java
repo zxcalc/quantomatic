@@ -65,7 +65,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
 	}
 	
-	public boolean hasParent() {
+	public boolean viewHasParent() {
 		return this.getParent() != null;
 	}
 	
@@ -828,20 +828,25 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 	}
 	
-	public void gainFocus(ViewPort vp) {
+	public void viewFocus(ViewPort vp) {
 		QuantoApp.MainMenu mm = vp.getMainMenu();
-		grabFocus();
 		for (JMenu menu : menus) mm.add(menu);
 		mm.insertAfter(mm.fileMenu, mm.file_openGraph, file_saveGraph);
 		mm.insertAfter(mm.fileMenu, file_saveGraph, file_saveGraphAs);
 		mm.repaint();
+		this.grabFocus();
 	}
 	
-	public void loseFocus(ViewPort vp) {
+	public void viewUnfocus(ViewPort vp) {
 		QuantoApp.MainMenu mm = vp.getMainMenu();
 		for (JMenu menu : menus) mm.remove(menu);
 		mm.fileMenu.remove(file_saveGraph);
 		mm.fileMenu.remove(file_saveGraphAs);
 		mm.repaint();
+	}
+
+	public void viewKill(ViewPort vp) {
+		// TODO Auto-generated method stub
+		
 	}
 }

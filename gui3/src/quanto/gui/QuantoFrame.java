@@ -1,5 +1,6 @@
 package quanto.gui;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
 
@@ -10,7 +11,7 @@ public class QuantoFrame extends JFrame {
 	private static final long serialVersionUID = 3656684775223085393L;
 	private QuantoCore core;
 	private InteractiveView focusedView;
-	private ViewPort viewPort = null;
+	private final ViewPort viewPort;
 	boolean consoleVisible;
 	
 	
@@ -24,14 +25,24 @@ public class QuantoFrame extends JFrame {
 		
 		// the view port will tell its views what menu to update when they are focused
 		viewPort = new ViewPort(mb);
-        QuantoApp.getInstance().setFocusedViewPort(viewPort);
+        //QuantoApp.getInstance().setFocusedViewPort(viewPort);
                 
         addWindowFocusListener(new WindowFocusListener() {
 			public void windowGainedFocus(WindowEvent e) {
-//				System.out.printf("frame %d gaining focus\n", this.hashCode());
 				QuantoApp.getInstance().setFocusedViewPort(viewPort);
 			}
 			public void windowLostFocus(WindowEvent e) {}
+        });
+        
+        addWindowListener(new WindowAdapter() {
+        	public void windowClosing(WindowEvent e) {
+        		// free the window when close is clicked
+        		QuantoFrame.this.dispose();
+        	}
+        	public void windowClosed(WindowEvent e) {
+        		// release the focused view
+        		viewPort.setFocusedView(null);
+        	}
         });
         
 		
@@ -59,6 +70,10 @@ public class QuantoFrame extends JFrame {
 
 	public QuantoCore getCore() {
 		return core;
+	}
+
+	public ViewPort getViewPort() {
+		return viewPort;
 	}
 	
 	

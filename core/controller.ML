@@ -212,6 +212,12 @@ fun load_graph ([fname], state) =
 
 end
 
+fun kill_graph ([name], state) =
+    (("ok\n", update_graphs
+                (fn gs => gs |> GraphName.NTab.delete (GraphName.mk name)) state)
+     handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^name))
+  | kill_graph _ = raise wrong_args_exp
+
 fun rename_graph ([old,new], state) = let
     fun upd graphs = let
         val oldname = GraphName.mk old
@@ -486,6 +492,12 @@ val () = (
     ("rename_graph OLD NEW\n\n"^
      "    rename graph OLD to NEW\n")
     (rename_graph);
+
+    register_cmd
+    "kill_graph"
+    ("kill_graph GRAPH\n\n"^
+     "    remove GRAPH from the workspace\n")
+    (kill_graph);
 
     register_cmd
     "add_vertex"
