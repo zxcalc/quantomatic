@@ -10,6 +10,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
@@ -24,7 +25,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import org.apache.commons.collections15.BidiMap;
-import org.apache.commons.collections15.bidimap.DualHashBidiMap;
+import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
+import org.apache.commons.collections15.comparators.ComparableComparator;
+import org.apache.commons.collections15.contrib.HashCodeComparator;
 
 import edu.uci.ics.jung.contrib.HasName;
 
@@ -111,14 +114,13 @@ public class QuantoApp {
 		});
 	}
 	
-	
-	
-	
-	
 	private QuantoApp() {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 		fileChooser = new JFileChooser();
-		views = new DualHashBidiMap<String,InteractiveView>();
+		//views = new DualHashBidiMap<String,InteractiveView>();
+		views = new DualTreeBidiMap<String, InteractiveView>(
+				ComparableComparator.<String>getInstance(),
+				new HashCodeComparator<InteractiveView>());
 		console = new ConsoleView();
 		core = console.getCore();
 		addView("console", console);
