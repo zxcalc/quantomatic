@@ -62,7 +62,7 @@ public class ViewPort extends JPanel {
 	}
 	
 	public void setFocusedView(String view) {
-		InteractiveView activeView;
+		InteractiveView activeView = null;
 		if (focusedView != null) {
 			activeView = QuantoApp.getInstance().getViews().get(focusedView);
 			if (activeView != null) { // this can happen if a view's name changes
@@ -70,7 +70,7 @@ public class ViewPort extends JPanel {
 				if (activeView != null) remove((JComponent)activeView);
 			}
 		}
-		activeView = QuantoApp.getInstance().getViews().get(view);
+		if (view != null) activeView = QuantoApp.getInstance().getViews().get(view);
 		if (activeView!=null) {
 			if (!(activeView instanceof JComponent))
 				throw new QuantoCore.FatalError(

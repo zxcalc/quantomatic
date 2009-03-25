@@ -10,7 +10,6 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.util.Comparator;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
@@ -42,18 +41,25 @@ public class QuantoApp {
 	private static QuantoApp theApp = null;
 	
 	
-	public static final class Pref<T> implements ItemListener {
+	private static class Pref<T> {
 		final T def; // default value
 		final String key;
 		protected Pref(String key, T def) {
 			this.key = key; this.def = def;
 		}
+	}
+	
+	public static class StringPref extends Pref<String> {
+		protected StringPref(String key, String def) {super(key,def);} 
+	}
+	
+	public static class BoolPref extends Pref<Boolean> implements ItemListener {
+		protected BoolPref(String key, Boolean def) {super(key, def);}
 		
-		@SuppressWarnings("unchecked") // handling ClassCastException manually
 		public void itemStateChanged(ItemEvent e) {
 			try {
 				QuantoApp.getInstance().setPreference
-					((Pref<Boolean>)this, e.getStateChange()==ItemEvent.SELECTED);
+					(this, e.getStateChange()==ItemEvent.SELECTED);
 			} catch (ClassCastException exp) {
 				throw new QuantoCore.FatalError(
 					"Attempted to use non-boolean pref as item listener.");
@@ -62,12 +68,14 @@ public class QuantoApp {
 	}
 	
 	// Preferences
-	public static final Pref<Boolean> DRAW_ARROW_HEADS =
-		new Pref<Boolean>("draw_arrow_heads", false);
-	public static final Pref<Boolean> NEW_WINDOW_FOR_GRAPHS =
-		new Pref<Boolean>("new_window_for_graphs", false);
-	public static final Pref<Boolean> CONSOLE_ECHO =
-		new Pref<Boolean>("console_echo", false);
+	public static final BoolPref DRAW_ARROW_HEADS =
+		new BoolPref("draw_arrow_heads", false);
+	public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
+		new BoolPref("new_window_for_graphs", false);
+	public static final BoolPref CONSOLE_ECHO =
+		new BoolPref("console_echo", false);
+	public static final StringPref LAST_OPEN_DIR =
+		new StringPref("last_open_dir", null);
 	
 	
 	private final Preferences globalPrefs;
@@ -117,7 +125,9 @@ public class QuantoApp {
 	private QuantoApp() {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 		fileChooser = new JFileChooser();
-		//views = new DualHashBidiMap<String,InteractiveView>();
+		
+		// bidirectional map implemented as dual trees. note that get(null) or
+		//  getKey(null) will raise exceptions in the Comparators.
 		views = new DualTreeBidiMap<String, InteractiveView>(
 				ComparableComparator.<String>getInstance(),
 				new HashCodeComparator<InteractiveView>());
@@ -348,10 +358,13 @@ public class QuantoApp {
 	 * Read a graph from a file and send it to a fresh InteractiveGraphView.
 	 */
 	public void openGraph() {
+		String lastDir = getPreference(LAST_OPEN_DIR);
+		if (lastDir != null) fileChooser.setCurrentDirectory(new File(lastDir));
 		int retVal = fileChooser.showDialog(null, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				File f = fileChooser.getSelectedFile();
+				if (f.getParent()!=null) setPreference(LAST_OPEN_DIR, f.getParent());
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
 				QuantoGraph loadedGraph = core.load_graph(filename);
 				InteractiveGraphView vis =
@@ -441,10 +454,18 @@ public class QuantoApp {
 		}
 	}
 
+	/**
+	 * Get the currently focused viewport.
+	 * @return
+	 */
 	public ViewPort getFocusedViewPort() {
 		return focusedViewPort;
 	}
 	
+	/**
+	 * Set the focused view port and call the relevant focus handlers.
+	 * @param vp
+	 */
 	public void setFocusedViewPort(ViewPort vp) {
 		if (vp != focusedViewPort) {
 			if (focusedViewPort!=null) focusedViewPort.loseFocus();
@@ -470,15 +491,21 @@ public class QuantoApp {
 	 * Get a global preference. This method is overloaded because the preference API
 	 * doesn't support generics.
 	 */
-	public boolean getPreference(QuantoApp.Pref<Boolean> pref) {
+	public boolean getPreference(QuantoApp.BoolPref pref) {
 		return globalPrefs.getBoolean(pref.key, pref.def);
+	}
+	public String getPreference(QuantoApp.StringPref pref) {
+		return globalPrefs.get(pref.key, pref.def);
 	}
 	
 	/**
 	 * Set a global preference.
 	 */
-	public void setPreference(QuantoApp.Pref<Boolean> pref, boolean value) {
+	public void setPreference(QuantoApp.BoolPref pref, boolean value) {
 		globalPrefs.putBoolean(pref.key, value);
+	}
+	public void setPreference(QuantoApp.StringPref pref, String value) {
+		globalPrefs.put(pref.key, value);
 	}
 	
 	/**

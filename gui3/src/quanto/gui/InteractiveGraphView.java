@@ -667,7 +667,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	public void outputToTextView(String text) {
 		TextView tview = new TextView(text);
-		QuantoApp.getInstance().addView(tview.getName(), tview);
+		QuantoApp app = QuantoApp.getInstance();
+		app.addView(app.getViewName(this) + "-output", tview);
 	}
 	
 	private SubgraphHighlighter highlighter = null;
