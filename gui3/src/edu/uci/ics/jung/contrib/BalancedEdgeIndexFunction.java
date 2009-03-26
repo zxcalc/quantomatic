@@ -11,7 +11,7 @@ import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 /**
  * EdgeIndexFunction that draws parallel edges in a balanced way. Note
  * this returns indices in [-n/2, n/2], rather that [0, n-1].
- * @author alek
+ * @author aleks
  *
  */
 public class BalancedEdgeIndexFunction<V,E> implements EdgeIndexFunction<V,E> {

@@ -44,6 +44,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	private volatile Thread rewriter = null;
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
+	
 	private List<Rewrite> rewriteCache = null;
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
@@ -291,7 +292,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
         getRenderContext().setVertexStrokeTransformer(
         		new Transformer<QVertex,Stroke>() {
 					public Stroke transform(QVertex v) {
-						if (getPickedVertexState().isPicked(v)) 
+						if (getPickedVertexState().isPicked(v) ||
+						    getQuantoLayout().isLocked(v)) 
 							 return new BasicStroke(2);
 						else return new BasicStroke(1);
 					}
@@ -301,6 +303,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					public Paint transform(QVertex v) {
 						if (getPickedVertexState().isPicked(v)) 
 							 return Color.blue;
+						else if (getQuantoLayout().isLocked(v)) return Color.gray;
 						else return Color.black;
 					}
         		});
@@ -471,6 +474,29 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, commandMask));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Lock Vertices", KeyEvent.VK_L);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getQuantoLayout().lock(getPickedVertexState().getPicked());
+				repaint();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, commandMask));
+		graphMenu.add(item);
+		
+		item = new JMenuItem("Unlock Vertices", KeyEvent.VK_N);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getQuantoLayout().unlock(getPickedVertexState().getPicked());
+				repaint();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L,
+				KeyEvent.SHIFT_MASK | commandMask));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Flip Vertex Colour", KeyEvent.VK_F);
