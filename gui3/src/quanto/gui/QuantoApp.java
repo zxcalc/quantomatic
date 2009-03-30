@@ -234,9 +234,9 @@ public class QuantoApp {
 					String v = getFirstFreeView();
 					if (v!=null) {
 						QuantoFrame fr = new QuantoFrame();
-						focusedViewPort.setFocusedView(v);
-						fr.pack();
 						fr.setVisible(true);
+						fr.getViewPort().setFocusedView(v);
+						fr.pack();
 					} else {
 						errorDialog("no more views to show");
 					}
@@ -408,6 +408,7 @@ public class QuantoApp {
 			if (initial || getPreference(NEW_WINDOW_FOR_GRAPHS)) { // are we making a new window?
 				QuantoFrame fr = new QuantoFrame();
 				fr.getViewPort().setFocusedView(v);
+				fr.getViewPort().gainFocus();
 				fr.pack();
 				fr.setVisible(true);
 			} else if (focusedViewPort != null) { // if not, force the active view to focus with gainFocus()
