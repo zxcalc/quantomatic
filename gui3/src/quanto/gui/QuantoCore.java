@@ -2,7 +2,9 @@ package quanto.gui;
 
 import java.io.*;
 import java.util.Collection;
+import java.util.Random;
 import java.util.Set;
+
 
 import edu.uci.ics.jung.contrib.HasName;
 
@@ -169,6 +171,9 @@ public class QuantoCore {
 	 * which implement HasName and have non-null names
 	 */
 	protected String command(String name, HasName ... args) throws ConsoleError {
+		return blockCommand(name, null, args);
+	}
+	protected String blockCommand(String name, String block, HasName ... args) throws ConsoleError {
 		synchronized (this) {
 			StringBuffer cmd = new StringBuffer(name);
 			for (HasName arg : args) {
@@ -180,23 +185,30 @@ public class QuantoCore {
 			}
 			cmd.append(';');
 			
+			boolean consoleEcho = QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO);
+			
+			if (consoleEcho) output.println(cmd);
+			send(cmd.toString());
+			
+			// if we are given a block string, send it to the core as block input
+			if (block != null) {
+				int r = (int) (Math.random() * Integer.MAX_VALUE);
+				send("---startblock:" + Integer.toString(r));
+				send(block);
+				send("---endblock:" + Integer.toString(r));
+			}
+			
 			String ret;
 			//System.out.println(cmd);
-			boolean consoleEcho = QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO);
-			synchronized (this) {
-				if (consoleEcho) output.println(cmd);
-				send(cmd.toString());
-				try {
-					ret = receiveOrFail();
-					if (consoleEcho) {
-						if (ret.startsWith("GRAPH_XML"))
-							output.println("GRAPH_XML...");
-						else output.print(ret);
-					}
-				} finally {
-					String pr = receive(); // eat the prompt
-					if (consoleEcho) output.print(pr);
+			
+			try {
+				ret = receiveOrFail();
+				if (consoleEcho) {
+					output.print(ret);
 				}
+			} finally {
+				String pr = receive(); // eat the prompt
+				if (consoleEcho) output.print(pr);
 			}
 			
 			return ret;
@@ -289,6 +301,10 @@ public class QuantoCore {
 	
 	public QuantoGraph load_graph(String fileName) throws ConsoleError{
 		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
+	}
+	
+	public String input_graph_xml(String xml) throws ConsoleError {
+		return chomp(blockCommand("input_graph_xml", xml));
 	}
 	
 	public QuantoGraph load_ruleset(String fileName) throws ConsoleError{

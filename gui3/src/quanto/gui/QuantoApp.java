@@ -9,7 +9,10 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.StringWriter;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
@@ -22,6 +25,9 @@ import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+
+import net.n3.nanoxml.IXMLElement;
+import net.n3.nanoxml.XMLWriter;
 
 import org.apache.commons.collections15.BidiMap;
 import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
@@ -110,7 +116,8 @@ public class QuantoApp {
 			System.err.println("ERROR SETTING LOOK AND FEEL:");
 			e.printStackTrace();
 		}
-		if (QuantoApp.isMac) {
+		
+		if (QuantoApp.isMac) {	
 			System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
 		}
@@ -360,13 +367,18 @@ public class QuantoApp {
 	public void openGraph() {
 		String lastDir = getPreference(LAST_OPEN_DIR);
 		if (lastDir != null) fileChooser.setCurrentDirectory(new File(lastDir));
+		
 		int retVal = fileChooser.showDialog(null, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				File f = fileChooser.getSelectedFile();
 				if (f.getParent()!=null) setPreference(LAST_OPEN_DIR, f.getParent());
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
-				QuantoGraph loadedGraph = core.load_graph(filename);
+				QuantoGraph loadedGraph = new QuantoGraph();
+				IXMLElement root = loadedGraph.fromXml(f);
+				StringWriter sw = new StringWriter();
+				new XMLWriter(sw).write(root, true);
+				loadedGraph.setName(core.input_graph_xml(sw.toString()));
 				InteractiveGraphView vis =
 					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600));
 				vis.getGraph().setFileName(filename);

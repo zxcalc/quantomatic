@@ -11,6 +11,8 @@ import edu.uci.ics.jung.graph.Graph;
 
 public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 	public static String dotProgram = "dot";
+	
+	
 	public static class DotException extends RuntimeException {
 		private static final long serialVersionUID = 8173148319748759814L;
 

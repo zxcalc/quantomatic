@@ -156,6 +156,23 @@ fun lift_stateless cmd (args, state:c_state) = (cmd args, state)
 (* Read-only state commands, cmd: [args] * state -> out *)
 fun lift_state_viewer cmd (args, state:c_state) = (cmd (args,state), state)
 
+
+fun read_block () = let
+    val start_parser = SimpleLexer.sym "---startblock:" |-- SimpleLexer.num
+    val line = fn () => the (TextIO.inputLine TextIO.stdIn)
+    val expected = Int.toString
+		       (case SimpleLexer.parse_with start_parser (line ())
+			 of SimpleLexer.INT n => n
+			  | _ => raise user_exp "Bad start of block")
+    fun loop () = let val ln = line ()
+		  in if ln = ("---endblock:"^expected^"\n") then ""
+		     else ln^(loop ())
+		  end
+in loop ()
+end
+    handle Parse => raise user_exp "Bad start of block"
+
+
 (* Most commands are already of the form
  *    cmd: [args] * state -> out * state *)
 (* val lift_state_mutator = I *)
@@ -164,6 +181,9 @@ fun lift_state_viewer cmd (args, state:c_state) = (cmd (args,state), state)
 (* these functions actually implement commmands *)
 
 exception wrong_args_exp
+
+fun echo_block [] = read_block ()
+  | echo_block _ = raise wrong_args_exp
 
 fun help1 cmd = case Symtab.lookup (!cmds) cmd
          of SOME (h,_) => "\n"^h^"\n"
@@ -209,8 +229,14 @@ fun new_graph ([], state) =
 fun load_graph ([fname], state) = 
     graph_maker GraphName.default_name (LoadSave.load_graph fname) state
   | load_graph _ = raise wrong_args_exp
-
+fun input_graph_xml ([], state) = let
+    val gr_block = read_block ()
+    val gr = RGGraphInputXML.input (XMLReader.read_from_string gr_block)
+in graph_maker GraphName.default_name gr state
 end
+  | input_graph_xml _ = raise wrong_args_exp
+end
+
 
 fun kill_graph ([name], state) =
     (("ok\n", update_graphs
@@ -439,6 +465,12 @@ val () = (
      "    sync the console, print \"HELO\"\n")
     (lift_stateless (K "HELO\n"));
 
+    register_cmd
+    "echo_block"
+    ("echo_block\n\n"^
+     "    debug command for testing block input\n")
+    (lift_stateless echo_block);
+
    register_cmd
     "load_ruleset"
     ("load_ruleset FILENAME\n\n" ^
@@ -474,6 +506,12 @@ val () = (
     ("load_graph FILENAME\n\n" ^
      "    load a new graph from FILENAME return its name\n")
     (load_graph);
+
+    register_cmd
+    "input_graph_xml"
+    ("input_graph_xml\n\n" ^
+     "    create a new graph from the XML data given as block input\n")
+    (input_graph_xml);
     
     register_cmd
     "save_graph"

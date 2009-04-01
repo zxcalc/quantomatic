@@ -15,14 +15,15 @@ type T = int list
 (* recover the permutation from two lists of ordered elements *)
 fun get_perm ord lst1 lst2 =
     map (fn a => find_index 
-		     (fn b => (ord (a, b)) = EQUAL) lst1)
-	lst2
+		     (fn b => (ord (a, b)) = EQUAL) lst2)
+	lst1
 
 (* invert the given permutation *)
-fun invert_perm perm = get_perm Int.compare perm (0 upto ((length perm)-1)) 
+fun invert_perm perm = get_perm Int.compare (0 upto ((length perm)-1)) perm
 
-(* apply a permutation to a list *)
-fun apply_perm perm lst = map (nth lst) perm
+(* apply a permutation to a list defined by
+ *  [0,1,2,3,...] |-> perm  *)
+fun apply_perm perm lst = map (nth lst) (invert_perm perm)
 
 fun id size = (0 upto (size-1))
 fun is_id perm = perm = (id (length perm))

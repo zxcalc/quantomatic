@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 HERE=$(dirname $0)
 THE_POLY_HEAP=${HERE}/../heaps/quanto.polyml-heap
-LEDIT=`which ledit || which cat`;
+if [ "$EMACS" != "t" ]
+then
+    LEDIT=`which ledit || which cat`;
+else
+    LEDIT=`which cat`
+fi
 echo "Using line editor: ${LEDIT}";
 (echo "PolyML.SaveState.loadState \"${THE_POLY_HEAP}\";"; ${LEDIT}) | poly "$@"

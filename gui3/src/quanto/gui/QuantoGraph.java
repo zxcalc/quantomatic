@@ -1,6 +1,8 @@
 package quanto.gui;
 
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,17 +47,25 @@ implements HasName {
 		return verts;
 	}
 
-	/**
-	 * Parse XML from a string. If the core gives mal-formed XML,
-	 * the front-end SHOULD crash, so throw QuantoCore.FatalError.
-	 * @param xml
-	 * @return
-	 */
-	public QuantoGraph fromXml(String xml) {
+	public IXMLElement fromXml(String xml) {
+		return fromXmlReader(StdXMLReader.stringReader(xml));
+	}
+	
+	public IXMLElement fromXml(File f) throws QuantoCore.ConsoleError {
+		try {
+			return fromXmlReader(StdXMLReader.fileReader(f.getAbsolutePath()));
+		} catch (IOException e) {
+			throw new QuantoCore.ConsoleError("Cannot open file: " + f.toString());
+		}
+	}
+	
+	// TODO: make this throw ConsoleError if we can't parse it, recover gracefully
+	private IXMLElement fromXmlReader(IXMLReader reader) {
+		IXMLElement root = null;
 		try {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
-			parser.setReader(StdXMLReader.stringReader(xml));
-			IXMLElement root = (IXMLElement)parser.parse();
+			parser.setReader(reader);
+			root = (IXMLElement)parser.parse();
 			fromXml(root);
 		} catch (XMLException e) {
 			throw new QuantoCore.FatalError("Error parsing XML.");
@@ -68,7 +78,7 @@ implements HasName {
 		}
 		this.saved = false; // we have changed the graph so it needs to be saved
 							// note that if this needs to be TRUE it will be set elsewhere
-		return this;
+		return root;
 	}
 
 	/**
