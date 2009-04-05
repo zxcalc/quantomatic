@@ -30,7 +30,10 @@ public class TikzOutput {
 			int idx;
 			for (QEdge e : graph.getEdges()) {
 				idx = eif.getIndex(graph, e) + 1;
-				tikz.append("\\draw [-latex");
+				if (QuantoApp.getInstance().getPreference(
+						QuantoApp.DRAW_ARROW_HEADS))
+					tikz.append("\\draw [-latex");
+				else tikz.append("\\draw [");
 				if (idx!=0) {
 					tikz.append(",bend left=" + Integer.toString(idx * 20));
 				}
