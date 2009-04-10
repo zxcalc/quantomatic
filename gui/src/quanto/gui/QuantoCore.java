@@ -2,7 +2,6 @@ package quanto.gui;
 
 import java.io.*;
 import java.util.Collection;
-import java.util.Random;
 import java.util.Set;
 
 
