@@ -49,6 +49,7 @@ noheap: $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "make_heap.ML"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
+	touch noheap # token file to indicate we are up to date
 
 bin/$(THE_BIN): $(QUANTO_HEAP)
 	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
