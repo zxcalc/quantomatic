@@ -184,7 +184,10 @@ public class QuantoCore {
 			}
 			cmd.append(';');
 			
-			boolean consoleEcho = QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO);
+			// only read preferences if there is already a QuantoApp running. Otherwise,
+			// we're probably being invoked as a library.
+			boolean consoleEcho = (QuantoApp.hasInstance() &&
+					QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO));
 			
 			if (consoleEcho) output.println(cmd);
 			send(cmd.toString());

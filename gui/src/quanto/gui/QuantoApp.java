@@ -93,6 +93,10 @@ public class QuantoApp {
 		if (theApp == null) theApp = new QuantoApp();
 		return theApp;
 	}
+	
+	public static boolean hasInstance() {
+		return !(theApp == null);
+	}
 
 	/**
 	 * main entry point for the GUI application
