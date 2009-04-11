@@ -23,6 +23,9 @@ public class QuantoCore {
 	private PrintStream output;
 	private Completer completer;
 	
+	// useful for calling as a library
+	public final HasName[] noargs = new HasName[]{};
+	
 	// Invoked as OS X application
 	public static boolean appMode = false;
 	
@@ -165,14 +168,15 @@ public class QuantoCore {
 	 * Some helpers for the methods below
 	 */
 	
+	
 	/**
 	 * Send a command with the given arguments. All of the args should be objects
 	 * which implement HasName and have non-null names
 	 */
-	protected String command(String name, HasName ... args) throws ConsoleError {
+	public String command(String name, HasName ... args) throws ConsoleError {
 		return blockCommand(name, null, args);
 	}
-	protected String blockCommand(String name, String block, HasName ... args) throws ConsoleError {
+	public String blockCommand(String name, String block, HasName ... args) throws ConsoleError {
 		synchronized (this) {
 			StringBuffer cmd = new StringBuffer(name);
 			for (HasName arg : args) {
