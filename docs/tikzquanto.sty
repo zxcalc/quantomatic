@@ -1,0 +1,92 @@
+\tikzstyle{every picture}=[baseline=(current bounding box).east,scale=0.5,node distance=5mm]
+\pgfdeclarelayer{background} 
+\pgfdeclarelayer{foreground} 
+\pgfsetlayers{background,main,foreground} 
+
+\tikzstyle{vertex}=[circle,draw=black,thick,inner sep=0.4mm,minimum size=2.5mm]
+\tikzstyle{red vertex}=[vertex,fill=red!60,draw=red!40!black]
+\tikzstyle{green vertex}=[vertex,fill=green!50,draw=green!30!black]
+\tikzstyle{boundary vertex}=[circle,fill=black,inner sep=0.3mm]
+\tikzstyle{angle}=[fill=blue!50, minimum height=5mm, right, anchor=west, rounded corners=1mm, xshift=2mm,font=\small]
+\tikzstyle{red angle}=[angle,fill=red!15]
+\tikzstyle{green angle}=[angle,fill=green!30]
+\tikzstyle{angle left}=[left,anchor=east,xshift=-4mm]
+\tikzstyle{angle below}=[below,anchor=north,xshift=-2mm,yshift=-2mm]
+\tikzstyle{angle above}=[above,anchor=south,xshift=-2mm,yshift=2mm]
+\tikzstyle{point}=[fill=gray!30,draw=black,minimum height=5mm,rounded corners=1mm]
+
+% shorthand names
+\tikzstyle{rn}=[red vertex]
+\tikzstyle{gn}=[green vertex]
+\tikzstyle{bn}=[boundary vertex]
+
+\tikzstyle{greenbox}=[rectangle,fill=green!30,draw=green!50!black]
+\tikzstyle{bluebox}=[rectangle,fill=blue!30,draw=blue]
+
+\tikzstyle{quanto}=[]
+\tikzstyle{nicebg}=[execute at end picture=% 
+{ 
+\begin{pgfonlayer}{background}
+\path (current bounding box.north west)+(-0.5,0.5) node (bg1) {};
+\path (current bounding box.south east)+(0.5,-0.5) node (bg2) {};
+\path[fill=gray!5!white,draw=gray,rounded corners] (bg1) rectangle (bg2);
+\end{pgfonlayer}
+}]
+
+\tikzstyle{bang box}=[fill=blue!20!gray!10,draw=blue!20!black]
+
+\newcommand{\spider}[4][gn]{\node [#1] (#2) at (0,0) {};
+\node [bn] (#2_d1) at (-1,1) {};
+\node [bn] (#2_d2) at (-0.5,1) {};
+\node [bn] (#2_dm) at (1,1) {};
+\node [bn] (#2_c1) at (-1,-1) {};
+\node [bn] (#2_c2) at (-0.5,-1) {};
+\node [bn] (#2_cn) at (1,-1) {};
+
+\node [anchor=west] at (#2_dm.east) {$#3$};
+\node [anchor=west] at (#2_cn.east) {$#4$};
+\node at (0.2,0.7) {\small{...}};
+\node at (0.2,-0.7) {\small{...}};
+
+\draw (#2)--(#2_d1) (#2)--(#2_d2) (#2)--(#2_dm);
+\draw (#2)--(#2_c1) (#2)--(#2_c2) (#2)--(#2_cn);}
+
+\newcommand{\downspider}[3][gn]{\node [#1] (#2) at (0,0) {};
+\node [bn] (#2_c1) at (-1,-1) {};
+\node [bn] (#2_c2) at (-0.5,-1) {};
+\node [bn] (#2_cn) at (1,-1) {};
+
+\node [anchor=west] at (#2_cn.east) {$#3$};
+\node at (0.2,-0.7) {\small{...}};
+
+\draw (#2)--(#2_c1) (#2)--(#2_c2) (#2)--(#2_cn);}
+
+\newcommand{\upspider}[3][gn]{\node [#1] (#2) at (0,0) {};
+\node [bn] (#2_d1) at (-1,1) {};
+\node [bn] (#2_d2) at (-0.5,1) {};
+\node [bn] (#2_dn) at (1,1) {};
+
+\node [anchor=west] at (#2_dn.east) {$#3$};
+\node at (0.2,0.7) {\small{...}};
+
+\draw (#2)--(#2_d1) (#2)--(#2_d2) (#2)--(#2_dn);}
+
+\newcommand{\bell}[3][\textsf{...}]{\draw (#2.#3+25) -- +(#3+25:0.5) (#2.#3-25) -- +(#3-25:0.5);
+\node [anchor=#3-180,inner sep=3mm] at (#2.#3) {\small $#1$}; }
+
+\newcommand{\zcol}{green}
+\newcommand{\xcol}{red}
+\newcommand{\Zcol}{Green}
+\newcommand{\Xcol}{Red}
+
+\newcommand{\quantoBNW}{%
+\tikzstyle{red vertex}=[vertex,fill=black!60,draw=black]
+\tikzstyle{green vertex}=[vertex,fill=white,draw=black]
+\tikzstyle{red angle}=[angle,fill=gray!15,draw=gray!60]
+\tikzstyle{green angle}=[angle,fill=gray!15,draw=gray!60]
+\tikzstyle{point}=[fill=gray!30,draw=black,minimum height=5mm,rounded corners=1mm]
+\tikzstyle{bang box}=[fill=gray!40,draw=black]
+\renewcommand{\zcol}{white}
+\renewcommand{\xcol}{black}
+\renewcommand{\Zcol}{White}
+\renewcommand{\Xcol}{Black}}
