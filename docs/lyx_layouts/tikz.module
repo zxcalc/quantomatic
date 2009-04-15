@@ -1,0 +1,55 @@
+#\DeclareLyXModule{TiKZ}
+#DescriptionBegin
+#Adds tikz support
+#DescriptionEnd
+
+Format 11
+
+AddToPreamble
+\usepackage{tikz}
+\tikzstyle{every picture}=[baseline=(current bounding box).east),auto]
+\newenvironment{tikzequation}
+{\begin{equation}\begin{tikzpicture}}
+{\end{tikzpicture}\end{equation}}
+\newenvironment{tikzequation*}
+{\begin{equation*}\begin{tikzpicture}}
+{\end{tikzpicture}\end{equation*}}
+EndPreamble
+
+InsetLayout Custom:tikzpicture
+LyXType custom
+LatexName tikzpicture
+LatexType environment
+Decoration classic
+Font
+  Size Small
+EndFont
+MultiPar true
+LabelString tikzpic
+End
+
+InsetLayout Custom:tikzequation
+LyXType custom
+LatexName tikzequation
+LatexType environment
+Decoration classic
+Font
+  Size Small
+EndFont
+MultiPar true
+LabelString tikzeqn
+End
+
+InsetLayout Custom:tikzequation*
+LyXType custom
+LatexName tikzequation*
+LatexType environment
+Decoration classic
+Font
+  Size Small
+EndFont
+MultiPar true
+LabelString tikzeqn*
+End
+
+

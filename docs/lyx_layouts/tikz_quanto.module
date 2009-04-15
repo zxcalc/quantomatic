@@ -1,0 +1,11 @@
+#\DeclareLyXModule{TiKZ Quanto}
+#DescriptionBegin
+#Adds tikz quantomatic definitions
+#DescriptionEnd
+
+Format 11
+
+AddToPreamble
+\usepackage{tikzquanto}
+EndPreamble
+
