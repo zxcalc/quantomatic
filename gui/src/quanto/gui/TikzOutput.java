@@ -8,7 +8,7 @@ import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 public class TikzOutput {
 	public static String generate(QuantoGraph graph, Layout<QVertex, QEdge> layout) {
-		StringBuffer tikz = new StringBuffer("\\begin{tikzpicture}\n");
+		StringBuffer tikz = new StringBuffer("\\begin{tikzpicture}[quanto]\n");
 		synchronized (graph) {
 			Point2D p;
 			String col;
