@@ -3,7 +3,8 @@
 signature BVERTEX
 = sig
 
-structure IData : ORD_DATA (* internal data *)
+(* internal data *)
+structure IData : ORD_DATA 
 
 datatype data2 = 
          IVert of IData.data (* inner node with basic vertex data *)

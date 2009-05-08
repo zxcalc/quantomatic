@@ -1,3 +1,6 @@
+PolyML.SaveState.loadState (OS.FileSys.getDir() ^ "/isaplib/heaps/all.polyml-heap");
+PolyML.saveDirectory := SOME (OS.FileSys.getDir() ^ "/.polysave");
+
 use "lex.ML";
 use "alg.ML";
 use "graph.ML";

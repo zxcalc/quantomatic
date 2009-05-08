@@ -1,10 +1,12 @@
-(* quietly build the quanto heap *)
-PolyML.SaveState.loadState "isaplib/heaps/all.polyml-heap";
-val pdepth__ = ! PolyML.Compiler.printDepth;
-PolyML.Compiler.printDepth := 0;
-(* do and continue or die *)
-val () = PolyML.exception_trace (fn () => (PolyML.use "ROOT.ML"; PolyML.fullGC ()))
+local 
+  val old_print_depth = ! PolyML.Compiler.printDepth;
+in
+val _ = PolyML.Compiler.printDepth := 0; (* quietly build the quanto heap *)
+val _ = PolyML.exception_trace (fn () => PolyML.use "ROOT.ML")
     handle _ => OS.Process.exit OS.Process.failure;
-PolyML.Compiler.printDepth := pdepth__;
-forget_all(); PolyML.shareCommonData run; PolyML.fullGC ();
+val _ = PolyML.Compiler.printDepth := old_print_depth;
+end;
+
+PolyML.shareCommonData run; PolyML.fullGC ();
 PolyML.SaveState.saveState "heaps/quanto.polyml-heap";
+OS.Process.exit OS.Process.success;

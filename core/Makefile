@@ -18,14 +18,19 @@ ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*
 ################################
 # general variables
 ################################
-# binary file to produce
-THE_BIN=quanto-core
+
 # polyml executable
 POLYML=poly
- # isaplanner heap file
+
+################################
+# HEAP files defined in make_heap.ML, make_bin.ML
+################################
+# isaplanner heap file
 ISAPLIB_HEAP=isaplib/heaps/all.polyml-heap
 # quanto heap file
 QUANTO_HEAP=heaps/quanto.polyml-heap
+# binary file to produce
+THE_BIN=quanto-core
 
 ################################
 # Targets: 
@@ -38,21 +43,14 @@ $(ISAPLIB_HEAP):
 
 # make polyml heap
 $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "make_heap.ML"; PolyML.SaveState.saveState "$(QUANTO_HEAP)";' | $(POLYML)
+	echo 'use "make_heap.ML";' | $(POLYML)
 	@echo "Built polyml heap: $(QUANTO_HEAP)"
 
 heap: $(QUANTO_HEAP)
 
-
 # make the core object without dumping the heap
-noheap: $(ML_SRC_FILES) $(ISAPLIB_HEAP)
-	echo 'PolyML.SaveState.loadState "$(ISAPLIB_HEAP)"; use "make_heap.ML"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
-	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
-	@echo "Success! made binary: bin/$(THE_BIN)"
-	touch noheap # token file to indicate we are up to date
-
-bin/$(THE_BIN): $(QUANTO_HEAP)
-	echo 'PolyML.SaveState.loadState "$(QUANTO_HEAP)"; do_and_exit_or_die (fn () => (forget_all(); PolyML.shareCommonData run; PolyML.fullGC (); PolyML.export ("bin/$(THE_BIN)", (fn () => do_and_exit_or_die run))));' | $(POLYML)
+bin/$(THE_BIN): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+	echo 'use "make_bin.ML";' | $(POLYML)
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 

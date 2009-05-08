@@ -28,7 +28,7 @@
         <mkdir dir="${build}"/>
         <!-- Make sure quanto core is up to date -->
         <exec executable="make" dir="../core">
-	  <arg value="noheap" />
+	      <arg value="bin" />
 	</exec>
     </target>
     <target name="compile" depends="init" description="compile the source ">
