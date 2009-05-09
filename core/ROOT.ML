@@ -1,6 +1,20 @@
-PolyML.SaveState.loadState (OS.FileSys.getDir() ^ "/isaplib/heaps/all.polyml-heap");
+
+(* basic values *)
+val rootDir = OS.FileSys.getDir();
+val heapName = (rootDir ^ "/isaplib/heaps/all.polyml-heap");
+
+(* load the background heap *)
+if ((OS.FileSys.fileId heapName; true) handle OS.SysErr e => false)
+then (PolyML.SaveState.loadState heapName)
+else 
+  (OS.FileSys.chDir (rootDir ^ "/isaplib/"); 
+   use "ROOT.ML"; 
+   OS.FileSys.chDir rootDir);
+
+(* This project has its own .polysave dir - this is the root file. *)
 PolyML.saveDirectory := SOME (OS.FileSys.getDir() ^ "/.polysave");
 
+(* load all the files. *)
 use "lex.ML";
 use "alg.ML";
 use "graph.ML";
