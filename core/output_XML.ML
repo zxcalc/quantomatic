@@ -7,14 +7,13 @@ TODO : recode using XML directly
 
 functor GraphOutputXML (structure Graph : BANG_GRAPH
                         structure OutVData : OUTPUT_VDATA
-					       where type outtype = Pretty.T list
+                        where type outtype = Pretty.T list
                         structure OutEData : OUTPUT_EDATA
-					       where type outtype = Pretty.T
-			sharing OutVData.V = Graph.BVertex
-			sharing OutEData.E = Graph.Edge
-		       )  :  OUTPUT_GRAPH  
-=  
-struct
+                        where type outtype = Pretty.T
+			sharing OutVData.V.SharingWithIData = Graph.BVertex.SharingWithIData
+			sharing OutEData.E.EdgeSharingWithData = Graph.Edge.EdgeSharingWithData
+) : OUTPUT_GRAPH 
+= struct
   structure Graph = Graph;
   structure V = Graph.BVertex;
   structure E = Graph.Edge

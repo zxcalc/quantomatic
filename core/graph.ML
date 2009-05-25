@@ -8,12 +8,22 @@ data for vertex and edges a separate table from edge/vertex
 connectedness.
 *)
 
+signature GRAPH_SHARING = 
+sig
+structure EdgeSharing : EDGE_AND_DATA_SHARING;
+structure VertexSharing : NAME_AND_DATA_SHARING;
+end;
+
 (* Basic (Minimal) interface for Graphs *)
 signature BASIC_GRAPH = 
 sig
 
 structure Vertex : VERTEX
 structure Edge : EDGE
+
+structure Sharing : GRAPH_SHARING
+sharing Sharing.EdgeSharing = Edge.EdgeSharingWithData;
+sharing Sharing.VertexSharing = Vertex.SharingWithData;
 
 type T; (* a graph *)
 
@@ -237,6 +247,10 @@ functor BasicGraphFun(
 structure Vertex = Vertex;
 structure Edge = Edge;
 
+structure Sharing = struct
+  structure VertexSharing = Vertex.SharingWithData;
+  structure EdgeSharing = Edge.EdgeSharingWithData;
+end;
 
 (* extra data, allows extra data to be added later in decendent
 signatures/structures; this provides a style of OOP for normal

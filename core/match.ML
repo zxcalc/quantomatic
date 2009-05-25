@@ -6,10 +6,15 @@ signature MATCH
   structure BVertex : BVERTEX
   structure Edge : EDGE
   structure EMap : NAME_AMORPH
-  sharing EMap.Dom = Edge.Ehn
-  sharing Edge = MCtxt.Edge
-  sharing BVertex = MCtxt.BVertex 
-
+  
+  structure Sharing : BGRAPH_SHARING
+  sharing Sharing.EdgeSharing = Edge.EdgeSharingWithData
+  sharing Sharing.BVertexSharing = BVertex.SharingWithIData
+  sharing Edge.Ehn = EMap.Dom
+  sharing Edge.Ehn = EMap.Cod
+  sharing Edge.EdgeSharingWithData = MCtxt.Edge.EdgeSharingWithData
+  sharing BVertex.SharingWithIData = MCtxt.BVertex.SharingWithIData
+  
   type T
   val empty : T
   val mk_id : BBox.NSet.T (* !-box names *)
@@ -92,6 +97,12 @@ structure MCtxt = MCtxt;
 structure BVertex = MCtxt.BVertex;
 structure Edge = MCtxt.Edge;
 structure BBoxMatch = BBoxMatch;
+
+structure Sharing = struct
+  structure VertexSharing = BVertex.SharingWithData;
+  structure EdgeSharing = Edge.EdgeSharingWithData;
+  structure BVertexSharing = BVertex.SharingWithIData;
+end;
 
 structure Ehn = Edge.Ehn;
 structure EMap = NameAmorphFun(Ehn);

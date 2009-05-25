@@ -1,17 +1,9 @@
+
 signature RG_GRAPH = 
 sig
 include BANG_GRAPH 
-(* I'd like to do this but cannot, 'where' also doesn't work, causes
-   sharing to fail later: 
-
- "where type Edge.data = unit"
- "sharing type Edge.data = unit"
-
- instead, I have to use "Edge = UnitEdge", and non-opaque sig constraints.
-*)
 structure RGVertex : RG_VERTEX
-sharing Vertex = BVertex
-sharing Vertex = RGVertex 
+sharing BVertex.SharingWithIData = RGVertex.SharingWithIData
 end;
 
 (* IMPROVE provide table holding variable info for each vertices data *)

@@ -1,5 +1,12 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  variable-verticies / boundary-verticies  *)
+
+signature BVERTEX_SHARING
+= sig
+include NAME_AND_DATA_SHARING
+type idata
+end;
+
 signature BVERTEX
 = sig
 
@@ -14,6 +21,9 @@ include VERTEX
 sharing type data = data2
 
 val is_internal_data : data -> bool
+
+structure SharingWithIData : BVERTEX_SHARING where type idata = IData.data
+sharing SharingWithData = SharingWithIData;
 
 end;
 
@@ -58,5 +68,8 @@ fun pretty_data (BVert) =
 val print_data = Pretty.writeln o pretty_data;
 
 val default_data = BVert;
+
+structure SharingWithData = struct open Sharing; type data = data; end;
+structure SharingWithIData = struct open SharingWithData; type idata = IData.data; end;
 
 end;

@@ -36,12 +36,9 @@ signature MATCH_STATE
 
   (* sharing Vertex = RGGraph.RGVertex *)
   (* not clear why I need this this way round - but get type strange error the other way *)
-  sharing RGGraph.BVertex = Vertex; 
-  sharing Match.MCtxt.BVertex = Vertex
-  sharing Edge = Match.MCtxt.Edge
-  sharing Edge = RGGraph.Edge
-
-
+  sharing RGGraph.SharingWithIData = Match.Sharing; 
+  sharing Vertex.SharingWithIData = RGGraph.BVertex.SharingWithIData;
+  sharing Edge.EdgeSharingWithData = RGGraph.Edge.EdgeSharingWithData;
 
   type T
   datatype matchstep =
@@ -119,8 +116,7 @@ end;
 functor MatchStateFun(
   structure RGGraph : RG_GRAPH 
   structure Match : MATCH
-  sharing Match.BVertex = RGGraph.RGVertex
-  sharing RGGraph.Edge = Match.Edge
+  sharing Match.Sharing = RGGraph.SharingWithIData
 ) (* : MATCH_STATE *)
 = struct
 

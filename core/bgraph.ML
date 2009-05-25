@@ -3,12 +3,22 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Graphs with Boundary *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+signature BGRAPH_SHARING = 
+sig 
+structure EdgeSharing : EDGE_AND_DATA_SHARING;
+structure VertexSharing : NAME_AND_DATA_SHARING;
+structure BVertexSharing : BVERTEX_SHARING;
+sharing VertexSharing = BVertexSharing;
+end;
+
 signature BGRAPH = 
 sig
 include GRAPH
 structure BVertex : BVERTEX
-sharing Vertex.Sharing = BVertex.Sharing
-sharing type Vertex.data = BVertex.data
+sharing Vertex.SharingWithData = BVertex.SharingWithData
+structure SharingWithIData : BGRAPH_SHARING
+sharing Sharing = SharingWithIData
+sharing SharingWithIData.BVertexSharing = BVertex.SharingWithIData
 
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
@@ -164,6 +174,12 @@ end; (* BasicBGraph *)
 structure BGraphTools = GraphToolsFun(BasicBGraph);
 open BasicBGraph;
 open BGraphTools;
+
+structure SharingWithIData = 
+struct
+open Sharing;
+structure BVertexSharing = BVertex.SharingWithIData;
+end;
 
 (* change n to become a boundary vertex *)
 fun change_into_boundary n g = 
