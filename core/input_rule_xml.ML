@@ -4,10 +4,10 @@ signature INPUT_RULE =
 sig
   structure R : RULE
   structure IG : INPUT_GRAPH
-  sharing IG.G = R.RGGraph
+  sharing IG.G.SharingWithIData = R.RGGraph.SharingWithIData
 
- include INPUT where type intype = IG.intype 
-				     where type outtype = string * R.T
+  include INPUT where type intype = IG.intype 
+				        where type outtype = string * R.T
 
 end;
 
@@ -16,12 +16,12 @@ end;
 
 
 functor RuleInputXML (structure Rule : RULE
-		      structure InputGraph : INPUT_GRAPH 
-					       where type intype = XML.tree
-		      sharing InputGraph.G = Rule.RGGraph
-		     ) : INPUT_RULE
-=
-struct 
+  structure InputGraph : INPUT_GRAPH 
+    where type intype = XML.tree
+  sharing InputGraph.G.SharingWithIData = Rule.RGGraph.SharingWithIData
+  sharing type InputGraph.outtype = Rule.RGGraph.T
+) : INPUT_RULE
+= struct 
 
 structure R = Rule;
 structure IG = InputGraph;
@@ -63,17 +63,16 @@ signature INPUT_THEORY_HACK =
 sig
   structure IR : INPUT_RULE
 
- include INPUT where type intype = IR.intype 
-				     where type outtype = IR.outtype list
+  include INPUT where type intype = IR.intype 
+				        where type outtype = IR.outtype list
 end;
 
 (* ------------------------------------------------------- *)
 
 functor TheoryHackInputXML (structure InputRule : INPUT_RULE
-				where type intype = XML.tree
-			   ) : INPUT_THEORY_HACK
-=
-struct 
+                            where type intype = XML.tree
+) : INPUT_THEORY_HACK
+= struct 
 
 structure IR = InputRule;
 

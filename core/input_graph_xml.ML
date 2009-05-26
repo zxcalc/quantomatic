@@ -5,14 +5,13 @@
 
 functor GraphInputXML (structure Graph : BANG_GRAPH
                        structure InVData : INPUT_VDATA 
-					     where type intype = XML.tree
-		       structure InEData : INPUT_EDATA 
-					     where type intype = XML.tree
-		       sharing InVData.V = Graph.BVertex
-		       sharing InEData.E = Graph.Edge
-		      )  : INPUT_GRAPH
-= 
-struct
+                       where type intype = XML.tree
+                       structure InEData : INPUT_EDATA 
+                       where type intype = XML.tree
+  sharing InVData.V.SharingWithIData = Graph.BVertex.SharingWithIData
+  sharing InEData.E.EdgeSharingWithData = Graph.Edge.EdgeSharingWithData
+)  : INPUT_GRAPH
+= struct
   structure G = Graph;
   structure V = Graph.BVertex;
   structure E = Graph.Edge;
