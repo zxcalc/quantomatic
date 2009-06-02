@@ -2,7 +2,7 @@
 # dynamic variables checked on call to make. 
 ################################
 ML_SRC_FILES = $(shell ls *.ML)
-ISAP_ML_SRC_FILES = $(shell ls ./isaplib/Makefile ./isaplib/*/*.ML ./isaplib/*/*/*.ML)
+ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../../isaplib/*/*/*.ML)
 
 ################################
 # variables you might want to set in your own profile setup...
