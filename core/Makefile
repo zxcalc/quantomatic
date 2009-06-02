@@ -26,7 +26,7 @@ POLYML=poly
 # HEAP files defined in make_heap.ML, make_bin.ML
 ################################
 # isaplanner heap file
-ISAPLIB_HEAP=isaplib/heaps/all.polyml-heap
+ISAPLIB_HEAP=../../isaplib/heaps/all.polyml-heap
 # quanto heap file
 QUANTO_HEAP=heaps/quanto.polyml-heap
 # binary file to produce
@@ -38,8 +38,8 @@ THE_BIN=quanto-core
 default: bin
 
 # always run make; it's quick and deals with its own deps
-$(ISAPLIB_HEAP):
-	cd ./isaplib; make
+$(ISAPLIB_HEAP): 
+	cd ../../isaplib; make
 
 # make polyml heap
 $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)

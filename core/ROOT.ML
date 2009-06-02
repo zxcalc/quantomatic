@@ -4,12 +4,14 @@ print rootDir;
 val heapName = (rootDir ^ "/../../isaplib/heaps/all.polyml-heap");
 
 (* load the background heap, or compile from src if no heap *)
-if ((OS.FileSys.fileId heapName; true) handle OS.SysErr e => false)
+val _ = if ((OS.FileSys.fileId heapName; true) handle OS.SysErr e => false)
 then (PolyML.SaveState.loadState heapName)
 else 
   (OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
    use "ROOT.ML"; 
    OS.FileSys.chDir rootDir);
+
+val install_pp = I;
 
 (* load all the files. *)
 use "lex.ML";
