@@ -1,6 +1,13 @@
 (* Variable names in expressions *)
 structure VName :> NAMES where type name = string = StrName;
-install_pp (make_pp ["VName", "T"] (Pretty.pprint o VName.pretty_name));
+
+(* cheeky pretty print, ignoring most of ML's arguments *)
+PolyML.install_pp
+  (fn ppargs => 
+   fn limitDepth => 
+   fn printElement => 
+   fn obj => 
+      Pretty.writeln (VName.pretty_name obj));
 
 (* Basic stuff for an expression which might have variables *)
 signature EXPR =

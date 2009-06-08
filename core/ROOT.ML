@@ -11,8 +11,6 @@ else
    use "ROOT.ML"; 
    OS.FileSys.chDir rootDir);
 
-val install_pp = I;
-
 (* load all the files. *)
 use "lex.ML";
 use "alg.ML";
