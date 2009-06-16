@@ -21,6 +21,12 @@ import javax.swing.JTextField;
 import org.apache.commons.collections15.Predicate;
 import org.apache.commons.collections15.Transformer;
 
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.pdf.ByteBuffer;
+import com.lowagie.text.pdf.PdfContentByte;
+import com.lowagie.text.pdf.PdfWriter;
+
 import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.graph.Graph;
@@ -35,6 +41,7 @@ import edu.uci.ics.jung.visualization.decorators.EdgeShape.IndexedRendering;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
+import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 
 public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	private static final long serialVersionUID = -1915610684250038897L;
@@ -269,6 +276,51 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 
 	public void setQuantoLayout(QuantoLayout quantoLayout) {
 		this.quantoLayout = quantoLayout;
+	}
+	
+	public byte[] exportPdf() {
+		// save values in case we're using this GraphView for other stuff
+		GraphicsDecorator gc = getRenderContext().getGraphicsContext();
+		JComponent vv = getRenderContext().getScreenDevice();
+		try {
+			Rectangle2D bounds = getGraphBounds();
+			final int width = (int)(bounds.getMaxX())+20;
+			final int height = (int)(bounds.getMaxY())+20;
+			
+			ByteBuffer buf = new ByteBuffer();
+			//BufferedOutputStream file = new BufferedOutputStream(buf);
+			Document doc = new Document(new com.lowagie.text.Rectangle(width,height));
+			PdfWriter writer = PdfWriter.getInstance(doc, buf);
+			doc.open();
+			
+			PdfContentByte cb = writer.getDirectContent();
+	    	Graphics2D g2 = cb.createGraphicsShapes(width, height);
+	    	
+	    	GraphicsDecorator pdfGr = new GraphicsDecorator(g2);
+			getRenderContext().setGraphicsContext(pdfGr);
+			
+			// create a virtual screen so Jung doesn't freak
+			JComponent virtual = new JComponent() {
+				private static final long serialVersionUID = 1L;
+				public Dimension getSize() {
+					// make sure nothing gets clipped
+					return new Dimension(width,height);
+				}
+			};
+			
+			getRenderContext().setScreenDevice(virtual);
+			getRenderer().render(getRenderContext(), getGraphLayout());
+	    	g2.dispose();
+	    	doc.close();
+	    	return buf.getBuffer();
+		} catch (DocumentException e) {
+			e.printStackTrace();
+		} finally {
+			if (gc!=null) getRenderContext().setGraphicsContext(gc);
+			if (vv!=null) getRenderContext().setScreenDevice(vv);
+		}
+
+		return null;
 	}
 	
 	private class AngleLabeler implements VertexLabelRenderer {

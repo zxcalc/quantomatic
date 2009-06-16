@@ -28,6 +28,7 @@ public class QuantoCore {
 	
 	// Invoked as OS X application
 	public static boolean appMode = false;
+	public static boolean mathematicaMode = false;
 	
 	public static class ConsoleError extends Exception {
 		private static final long serialVersionUID = 1053659906558198953L;

@@ -1,5 +1,4 @@
 package quanto.gui;
-
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -7,13 +6,17 @@ import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import javax.swing.*;
@@ -361,6 +364,26 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.setMnemonic(KeyEvent.VK_G);
 		
 		JMenuItem item;
+		
+		item = new JMenuItem("Export to PDF", KeyEvent.VK_P);
+		item.addActionListener(new QVListener() {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				GraphView view = new GraphView(getGraph());
+				byte[] gr = view.exportPdf();
+				
+		    	System.out.printf("Got %d bytes of data.\n", gr.length);
+		    	try {
+		    		BufferedOutputStream file = new BufferedOutputStream(
+		    			new FileOutputStream("/Users/aleks/itexttest.pdf"));
+		    		file.write(gr);
+		    		file.close();
+		    	} catch (IOException exp) {
+		    		throw new ConsoleError(exp.getMessage());
+		    	}
+			}
+		});
+		graphMenu.add(item);
 		
 		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
 		cbItem.setMnemonic(KeyEvent.VK_E);
@@ -728,14 +751,17 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				attach();
 				List<Rewrite> rws = getRewrites();
 				int count = 0;
+				Random r = new Random();
+				int rw=0;
 				while (rws.size()>0 &&
 					   Thread.currentThread()==rewriter)
 				{
-					highlightSubgraph(rws.get(0).getLhs());
+					rw = r.nextInt(rws.size());
+					highlightSubgraph(rws.get(rw).getLhs());
 					try {
 						sleep(1000);
 						clearHighlight();
-						applyRewrite(0);
+						applyRewrite(rw);
 						++count;
 						attach();
 						rws = getRewrites();
@@ -870,6 +896,13 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		mm.fileMenu.remove(file_saveGraph);
 		mm.fileMenu.remove(file_saveGraphAs);
 		mm.repaint();
+	}
+	
+	public byte[] exportPdf() {
+		System.out.println(
+				"WARNING: exportPdf() in InteractGraphView may have funky output.\n"+
+				"Use GraphView instead.");
+		return super.exportPdf();
 	}
 
 	public void viewKill(ViewPort vp) {

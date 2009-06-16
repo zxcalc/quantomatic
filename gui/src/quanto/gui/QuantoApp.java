@@ -109,6 +109,8 @@ public class QuantoApp {
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
 					"Quantomatic.app/Contents/MacOS/dot_static";
 				System.out.println("Invoked as OS X application.");
+			} else if (arg.equals("--mathematica-mode")) {
+				QuantoCore.mathematicaMode = true;
 			}
 		}
 		
@@ -119,7 +121,7 @@ public class QuantoApp {
 			e.printStackTrace();
 		}
 		
-		if (QuantoApp.isMac) {	
+		if (QuantoApp.isMac && !QuantoCore.mathematicaMode) {	
 			System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
 		}
@@ -532,6 +534,17 @@ public class QuantoApp {
 				if (v instanceof Component) ((Component)v).repaint();
 			}
 		}
+	}
+	
+	public GraphView newGraphViewFromName(String name) {
+		try {
+			QuantoGraph gr = new QuantoGraph(name);
+			gr.fromXml(getCore().graph_xml(gr));
+			return new GraphView(gr);
+		} catch (QuantoCore.ConsoleError e) {
+			System.err.print(e.getMessage());
+		}
+		return null;
 	}
 
 }

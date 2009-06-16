@@ -48,6 +48,7 @@
         <unjar src="${lib}/jung-graph-impl-2.0-beta1.jar" dest="${build}" />
         <unjar src="${lib}/jung-visualization-2.0-beta1.jar" dest="${build}" />
         <unjar src="${lib}/nanoxml-2.2.3.jar" dest="${build}" />
+        <unjar src="${lib}/itext.jar" dest="${build}" />
         
         <!-- remove the META-INF from the other jar files. Ant will make a new one. -->
         <delete dir="${build}/META-INF" />
