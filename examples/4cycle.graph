@@ -102,10 +102,10 @@
   </vertex>
 <!-- EDGES -->
   <edge>
-    <name>El</name><source>l</source><target>c</target>
+    <name>El</name><source>c</source><target>l</target>
   </edge>
   <edge>
-    <name>Ek</name><source>k</source><target>d</target>
+    <name>Ek</name><source>d</source><target>k</target>
   </edge>
   <edge>
     <name>Ej</name><source>j</source><target>a</target>

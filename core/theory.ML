@@ -5,7 +5,7 @@ signature THEORY
 = sig
 
 structure Rule : RULE
-structure Rn : NAMES where type Rn.name = string
+structure Rn : NAMES where type name = string
 
 type T
 
@@ -174,18 +174,19 @@ fun symmetric n thry =
                      val res = Result (r, SOME (n2,NONE,true,m))
                  in (n2, thry2 |> add_r_dep n n2 
                                |> set_result n res)
-                 end;
+                 end
        | SOME prf =>
          let val (n2,thry2) = 
                  add_named_r n (Result (Rule.symmetric r, SOME (n,NONE,true,m))) thry
          in thry |> add_r_dep n2 n end
-    end;
+    end
 
 
 exception no_such_result_exp of Rn.name * T;
 
 (* Subst using first name, from left to right, in rhs of second name *)
 (* val subst : Rn.name -> Rn.name -> T -> (Rn.name * T) Seq.seq *)
+(*
 fun subst rulen n thry = 
     let 
       val Result (rule,_) = get_result thry rulen
@@ -195,7 +196,7 @@ fun subst rulen n thry =
       case Rule.rule_matches_within
            
     end;
-
+*)
 
 end;
 

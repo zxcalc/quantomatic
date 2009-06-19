@@ -1,6 +1,6 @@
 (* basic values *)
 val rootDir = OS.FileSys.getDir();
-print rootDir;
+(* print rootDir; *)
 val heapName = (rootDir ^ "/../../isaplib/heaps/all.polyml-heap");
 
 (* load the background heap, or compile from src if no heap *)
@@ -44,6 +44,7 @@ use "reader.ML";
 use "writer.ML";
 use "loadsave.ML";
 use "theory_hack.ML";
+use "theory_new.ML";
 use "hilb.ML";
 use "controller.ML";
 

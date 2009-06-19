@@ -47,7 +47,14 @@ public class QuantoFrame extends JFrame {
         
 		
 		getContentPane().setLayout(new BorderLayout());
-		getContentPane().add(viewPort, BorderLayout.CENTER);
+		
+		//Add the scroll panes to a split pane.
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setLeftComponent(new TheoryTree());
+        splitPane.setRightComponent(viewPort);
+        splitPane.setDividerLocation(150);
+		
+		getContentPane().add(splitPane, BorderLayout.CENTER);
 		
         //this.pack();
 	}

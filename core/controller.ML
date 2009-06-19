@@ -10,9 +10,7 @@ structure QuantoCommand =
 struct
 type T = string * string list
 
-
 open SimpleLexer
-
 
 fun unwrap (ID s) = s
   | unwrap (INT n) = Int.toString n
@@ -57,12 +55,10 @@ end; (* structure QuantoCommand *)
 structure GraphName :> SSTR_NAMES = 
 struct
 open SStrName
-val default_name = SStrName.mk "Ga";
-end;
-
+val default_name = SStrName.mk "Ga"
+end
 
 exception user_exp of string
-
 
 structure G = RGGraph
 structure V = G.RGVertex
@@ -74,24 +70,32 @@ type rewrite = string * Rule.T * RGGraph.T
 type c_state = {
      graphs : G.T GraphName.NTab.T,
      rewrites : (rewrite list) GraphName.NTab.T,
-     hist : (G.T list * G.T list) GraphName.NTab.T
+     hist : (G.T list * G.T list) GraphName.NTab.T,
+     theories : Theory.T Theory.NTab.T
 }
 
 (* getters and setters for the state *)
-fun update_graphs f ({graphs=g,rewrites=r,hist=h}:c_state):c_state = {graphs=(f g),rewrites=r,hist=h}
-fun update_rewrites f ({graphs=g,rewrites=r,hist=h}:c_state):c_state = {graphs=g,rewrites=(f r),hist=h}
-fun update_hist f ({graphs=g,rewrites=r,hist=h}:c_state):c_state = {graphs=g,rewrites=r,hist=(f h)}
-val (set_graphs,set_rewrites,set_hist) = (update_graphs o K, update_rewrites o K, update_hist o K)
+fun update_graphs f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=(f g),rewrites=r,hist=h,theories=t}
+fun update_rewrites f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=g,rewrites=(f r),hist=h,theories=t}
+fun update_hist f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=g,rewrites=r,hist=(f h),theories=t}
+fun update_theories f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=g,rewrites=r,hist=h,theories=(f t)}
+val (set_graphs,set_rewrites,set_hist,set_theories) = (update_graphs o K, update_rewrites o K, update_hist o K, update_theories o K)
 fun get_graphs ({graphs=g,...}:c_state) = g
 fun get_rewrites ({rewrites=r,...}:c_state) = r
 fun get_hist ({hist=h,...}:c_state) = h
+fun get_theories ({theories=t,...}:c_state) = t
 
 datatype consolestate = NORMAL of c_state | SKIP | QUIT
 
+val default_theories = Theory.NTab.empty
+                           |> Theory.NTab.update (Theory.mk "default",
+                                                  (!TheoryHack.rules,true))
 
+                     
 val newState : c_state = {graphs=GraphName.NTab.empty,
-                                rewrites=GraphName.NTab.empty,
-                                hist=GraphName.NTab.empty}
+                          rewrites=GraphName.NTab.empty,
+                          hist=GraphName.NTab.empty,
+                          theories=default_theories}
 
 (*
 A dictionary of commands of the format:
@@ -203,6 +207,31 @@ fun list_graphs ([], state) =
     GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst)
 			(get_graphs state) ""
   | list_graphs _ = raise wrong_args_exp
+
+
+fun list_theories ([], state) =
+    (Pretty.string_of (Pretty.chunks
+                       (map Theory.pretty_name
+                            (Theory.get_all_theories (get_theories state))
+    ))) ^ "\n"
+  | list_theories _ = raise wrong_args_exp
+
+fun list_active_theories ([], state) =
+    (Pretty.string_of (Pretty.chunks
+                       (map Theory.pretty_name
+                            (Theory.get_active_theories (get_theories state))
+    ))) ^ "\n"
+  | list_active_theories _ = raise wrong_args_exp
+
+fun list_rules ([thy], state) =
+    ((Pretty.string_of (
+      Pretty.chunks
+          (map (Pretty.str o fst)
+               (Theory.get_rules_in_theory (get_theories state) (Theory.mk thy)))
+     )) ^ "\n"
+     handle UNDEF => raise user_exp ("No such theory '" ^ thy ^ "'"))
+  | list_rules _ = raise wrong_args_exp
+
 
 fun load_ruleset [file] = (TheoryHack.load_rules file ; "Loaded ruleset\n")
   | load_ruleset _ = raise wrong_args_exp
@@ -345,8 +374,9 @@ local
         (let val gname = GraphName.mk (graph_arg args)
 	           val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
 	           val graph = fetch_graph gname state
+             val rules = Theory.get_active_rules (get_theories state)
 	           val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-                           (attacher vset graph)
+                           (Seq.list_of (attacher rules vset graph))
          in
 	           ("attached "^(Int.toString (length rws))^" rewrites\n",
 	            state |> update_rewrites (GraphName.NTab.update (gname,rws)))
@@ -355,12 +385,9 @@ local
 	            | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertx.")
     | attach_with _ _ = raise wrong_args_exp
 in
-val attach_rewrites = attach_with TheoryHack.apply_all_rules_in'
-val attach_one_rewrite = attach_with
-			                       (fn vset =>
-			                        fn gr => case TheoryHack.apply_a_rule_in vset gr
-					                              of SOME a => [a]
-					                               | NONE => [])
+val attach_rewrites = attach_with Theory.apply_rules_in
+val attach_one_rewrite = attach_with Theory.apply_a_rule_in
+
 end
 
 fun show_rewrites (args,state) = let
@@ -494,6 +521,24 @@ val () = (
     ("ls\n\n"^
      "    alias for \"list_graphs\"")
     (lift_state_viewer list_graphs);
+
+    register_cmd
+    "list_theories"
+    ("list_theories\n\n"^
+     "    list all loaded theories")
+    (lift_state_viewer list_theories);
+
+    register_cmd
+    "list_active_theories"
+    ("list_active_theories\n\n"^
+     "    list all active theories")
+    (lift_state_viewer list_active_theories);
+
+    register_cmd
+    "list_rules"
+    ("list_rules THEORY\n\n"^
+     "    list the rules in THEORY")
+    (lift_state_viewer list_rules);
 
     register_cmd
     "new_graph"

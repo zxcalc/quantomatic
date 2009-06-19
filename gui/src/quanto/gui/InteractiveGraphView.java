@@ -226,6 +226,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		setGraphLayout(smoothLayout);
 		setLayout(null);
 		
+		
 		//JLabel lab = new JLabel("test");
 		//add(lab);
 		Relaxer r = getModel().getRelaxer();
@@ -887,7 +888,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		mm.insertAfter(mm.fileMenu, mm.file_openGraph, file_saveGraph);
 		mm.insertAfter(mm.fileMenu, file_saveGraph, file_saveGraphAs);
 		mm.repaint();
-		this.grabFocus();
+		grabFocus();
+//		setBorder(BorderFactory.createLineBorder(Color.blue, 1));
 	}
 	
 	public void viewUnfocus(ViewPort vp) {
@@ -896,6 +898,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		mm.fileMenu.remove(file_saveGraph);
 		mm.fileMenu.remove(file_saveGraphAs);
 		mm.repaint();
+//		setBorder(null);
 	}
 	
 	public byte[] exportPdf() {

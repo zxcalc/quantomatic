@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       145,          7]
-NotebookDataLength[     12024,        334]
-NotebookOptionsPosition[     11644,        317]
-NotebookOutlinePosition[     12001,        333]
-CellTagsIndexPosition[     11958,        330]
+NotebookDataLength[     18098,        487]
+NotebookOptionsPosition[     17713,        470]
+NotebookOutlinePosition[     18072,        486]
+CellTagsIndexPosition[     18029,        483]
 WindowFrame->Normal
 ContainsDynamic->False*)
 
@@ -30,15 +30,31 @@ First, make sure QuantoGui.jar is in the CLASSPATH, then run :\
 
 Cell[BoxData[{
  RowBox[{
-  RowBox[{"ReinstallJava", "[", "]"}], ";"}], "\[IndentingNewLine]", 
- RowBox[{
-  RowBox[{"LoadClass", "[", "\"\<java.lang.System\>\"", "]"}], 
+  RowBox[{
+   RowBox[{"QuantoInit", "[", "]"}], ":=", 
+   RowBox[{"Module", "[", 
+    RowBox[{
+     RowBox[{"{", "}"}], ",", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"ReinstallJava", "[", 
+       RowBox[{
+       "ClassPath", "\[Rule]", 
+        "\"\</Users/aleks/svn/isaplanner/quantomatic/gui/dist/QuantoGui.jar\>\
+\""}], "]"}], ";", "\[IndentingNewLine]", 
+      RowBox[{"LoadClass", "[", "\"\<quanto.gui.QuantoApp\>\"", "]"}], ";", 
+      "\[IndentingNewLine]", 
+      RowBox[{"quanto`gui`QuantoApp`main", "[", 
+       RowBox[{"{", "\"\<--mathematica-mode\>\"", "}"}], "]"}]}]}], "]"}]}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"quantoCore", " ", "=", 
-   RowBox[{"JavaNew", "[", 
-    RowBox[{"\"\<quanto.gui.QuantoCore\>\"", ",", "java`lang`System`out"}], 
-    "]"}]}], ";"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"QuantoKill", "[", "]"}], ":=", 
+   RowBox[{"UninstallJava", "[", "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"QuantoApp", "[", "]"}], ":=", 
+   RowBox[{"quanto`gui`QuantoApp`getInstance", "[", "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
    RowBox[{"StrName", "[", "str_", "]"}], ":=", 
@@ -47,43 +63,144 @@ Cell[BoxData[{
     "\"\<edu.uci.ics.jung.contrib.HasName$StringName\>\"", ",", "str"}], 
     "]"}]}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"quantoCore", "@", 
-   RowBox[{"receive", "[", "]"}]}], ";"}], "\[IndentingNewLine]", 
- RowBox[{
-  RowBox[{"noargs", "=", 
+  RowBox[{
+   RowBox[{"noargs", "[", "]"}], ":=", 
    RowBox[{"ReturnAsJavaObject", "[", 
-    RowBox[{"quantoCore", "@", "noargs"}], "]"}]}], 
+    RowBox[{
+     RowBox[{"QuantoApp", "[", "]"}], "@", 
+     RowBox[{
+      RowBox[{"getCore", "[", "]"}], "@", "noargs"}]}], "]"}]}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
    RowBox[{"cmd", "[", "c_", "]"}], ":=", 
-   RowBox[{"quantoCore", "@", 
-    RowBox[{"command", "[", 
-     RowBox[{"c", ",", "noargs"}], "]"}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"QuantoApp", "[", "]"}], "@", 
+    RowBox[{
+     RowBox[{"getCore", "[", "]"}], "@", 
+     RowBox[{"command", "[", 
+      RowBox[{"c", ",", 
+       RowBox[{"noargs", "[", "]"}]}], "]"}]}]}]}], 
+  ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
    RowBox[{"cmd", "[", 
     RowBox[{"c_", ",", "args_"}], "]"}], ":=", 
-   RowBox[{"quantoCore", "@", 
-    RowBox[{"command", "[", 
-     RowBox[{"c", ",", 
-      RowBox[{"StrName", "/@", "args"}]}], "]"}]}]}], 
+   RowBox[{
+    RowBox[{"QuantoApp", "[", "]"}], "@", 
+    RowBox[{
+     RowBox[{"getCore", "[", "]"}], "@", 
+     RowBox[{"command", "[", 
+      RowBox[{"c", ",", 
+       RowBox[{"StrName", "/@", "args"}]}], "]"}]}]}]}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"chomp", "[", "s_", "]"}], ":=", 
-  RowBox[{"StringReplace", "[", 
-   RowBox[{"s", ",", 
-    RowBox[{"\"\<\\n\>\"", "\[Rule]", " ", "\"\<\>\""}]}], "]"}]}]}], "Input",\
+  RowBox[{
+   RowBox[{"ListGraphs", "[", "]"}], ":=", 
+   RowBox[{"StringSplit", "[", 
+    RowBox[{"cmd", "[", "\"\<ls\>\"", "]"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"DecorateGraph", "[", 
+    RowBox[{"name_", ",", 
+     RowBox[{"Graphics", "[", 
+      RowBox[{"gr_", ",", "opts__"}], "]"}]}], "]"}], ":=", 
+   RowBox[{"Graphics", "[", "\[IndentingNewLine]", 
+    RowBox[{
+     RowBox[{"Join", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"Annotation", "[", 
+          RowBox[{
+           RowBox[{"{", "}"}], ",", 
+           RowBox[{"Gr", "[", "name", "]"}]}], "]"}], ",", "Blue", ",", 
+         RowBox[{"Text", "[", 
+          RowBox[{
+           RowBox[{"Style", "[", 
+            RowBox[{"name", ",", "12"}], "]"}], ",", 
+           RowBox[{"{", 
+            RowBox[{"10", ",", "10"}], "}"}], ",", 
+           RowBox[{"{", 
+            RowBox[{
+             RowBox[{"-", "1"}], ",", "0"}], "}"}]}], "]"}], ",", "Black"}], 
+        "}"}], ",", "gr"}], "]"}], ",", 
+     RowBox[{"ImageSize", "\[Rule]", 
+      RowBox[{"Scaled", "[", "0.2", "]"}]}], ",", "opts"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"GetGraph", "[", "name_", "]"}], ":=", 
+   RowBox[{"DecorateGraph", "[", 
+    RowBox[{"name", ",", " ", 
+     RowBox[{
+      RowBox[{"ImportString", "[", 
+       RowBox[{
+        RowBox[{"ExportString", "[", "\[IndentingNewLine]", 
+         RowBox[{
+          RowBox[{
+           RowBox[{"QuantoApp", "[", "]"}], "@", 
+           RowBox[{
+            RowBox[{"newGraphViewFromName", "[", "name", "]"}], "@", 
+            RowBox[{"exportPdf", "[", "]"}]}]}], ",", "\[IndentingNewLine]", 
+          "\"\<Integer8\>\""}], "]"}], ",", "\"\<PDF\>\""}], "]"}], "[", 
+      RowBox[{"[", "1", "]"}], "]"}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"Hilb", "[", "gr_", "]"}], ":=", 
+   RowBox[{"ToExpression", "[", 
+    RowBox[{"cmd", "[", 
+     RowBox[{"\"\<hilb\>\"", ",", " ", 
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"GraphName", "[", "gr", "]"}], ",", "\"\<mathematica\>\""}], 
+       "}"}]}], "]"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"GraphName", "[", 
+    RowBox[{"Graphics", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{
+        RowBox[{"Annotation", "[", 
+         RowBox[{
+          RowBox[{"{", "}"}], ",", 
+          RowBox[{"Gr", "[", "name_", "]"}]}], "]"}], ",", "__"}], "}"}], ",",
+       "__"}], "]"}], "]"}], ":=", "name"}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"GraphName", "[", "name_", "]"}], ":=", "name"}], ";"}]}], "Input",\
 
- CellChangeTimes->{{3.4484523180096273`*^9, 3.448452320406546*^9}, {
-  3.448452775761343*^9, 3.448452816968418*^9}, {3.4484553800050364`*^9, 
-  3.44845538854045*^9}, {3.4484554224995403`*^9, 3.4484554228781567`*^9}, {
-  3.448455846634165*^9, 3.448455847901786*^9}, {3.448456258274084*^9, 
-  3.4484562773823853`*^9}, {3.4484575858756742`*^9, 3.448457589873108*^9}, {
-  3.448472072065098*^9, 3.4484721626375647`*^9}, {3.448480308918252*^9, 
-  3.448480382920493*^9}}],
+ CellChangeTimes->{{3.454091553394251*^9, 3.454091580532803*^9}, {
+   3.454094694435107*^9, 3.4540947305407*^9}, {3.454094766154118*^9, 
+   3.454094820740568*^9}, {3.454095002197158*^9, 3.454095039802918*^9}, 
+   3.45409508197165*^9, {3.454095230154703*^9, 3.454095278771647*^9}, {
+   3.454095367808949*^9, 3.454095408921793*^9}, {3.454095485606469*^9, 
+   3.454095513790411*^9}, {3.454095617240374*^9, 3.454095648821303*^9}, {
+   3.454096090563702*^9, 3.4540960955322227`*^9}, {3.454096349992943*^9, 
+   3.454096350277471*^9}, {3.45409640557832*^9, 3.4540964478846684`*^9}, {
+   3.454099866192206*^9, 3.454099879717285*^9}, {3.454101220469482*^9, 
+   3.454101260634444*^9}, {3.454101473960339*^9, 3.4541015516344624`*^9}, {
+   3.454101594703164*^9, 3.4541016142604322`*^9}, {3.4541017176852818`*^9, 
+   3.45410171815377*^9}, {3.454101806758697*^9, 3.4541018080688887`*^9}, {
+   3.454101838247113*^9, 3.4541018554283867`*^9}, 3.454102123770876*^9, {
+   3.454102179402672*^9, 3.4541021845996933`*^9}, {3.454102269160901*^9, 
+   3.4541023024611883`*^9}, {3.454102422273901*^9, 3.454102488839355*^9}, {
+   3.4541025334408293`*^9, 3.454102604663796*^9}, {3.454102716425989*^9, 
+   3.454102743944923*^9}, {3.454102794934471*^9, 3.45410279811735*^9}, {
+   3.454147322438847*^9, 3.4541473520052757`*^9}, {3.454147577893709*^9, 
+   3.454147578573552*^9}, {3.4541476249890013`*^9, 3.4541476484982767`*^9}}],
 
 Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"chomp", "[", "s_", "]"}], ":=", 
+   RowBox[{"StringReplace", "[", 
+    RowBox[{"s", ",", 
+     RowBox[{"\"\<\\n\>\"", "\[Rule]", " ", "\"\<\>\""}]}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"Mp", "[", 
    RowBox[{"f_", ",", "lst_"}], "]"}], ":=", 
@@ -117,11 +234,17 @@ Cell[BoxData[{
    RowBox[{"(", 
     RowBox[{"name", "\[Rule]", " ", 
      RowBox[{"Vert", "[", 
-      RowBox[{"name", ",", "typ", ",", "0"}], "]"}]}], ")"}], "/.", 
+      RowBox[{"name", ",", "typ", ",", "angle"}], "]"}]}], ")"}], "/.", 
    RowBox[{"Mp", "[", 
     RowBox[{"VData", ",", "ch"}], "]"}]}]}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"Verts", "[", "_", "]"}], ":=", "Null"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"VData", "[", 
+   RowBox[{"XMLElement", "[", 
+    RowBox[{"\"\<angleexpr\>\"", ",", "_", ",", 
+     RowBox[{"{", "ch_", "}"}]}], "]"}], "]"}], ":=", 
+  RowBox[{"angle", "\[Rule]", "5"}]}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"VData", "[", 
    RowBox[{"XMLElement", "[", 
@@ -177,6 +300,15 @@ Cell[BoxData[{
  RowBox[{
   RowBox[{"EData", "[", "_", "]"}], ":=", "Null"}], "\[IndentingNewLine]", 
  RowBox[{
+  RowBox[{"AngleData", "[", 
+   RowBox[{"XMLElement", "[", 
+    RowBox[{"\"\<as_string\>\"", ",", "_", ",", 
+     RowBox[{"{", "str_", "}"}]}], "]"}], "]"}], ":=", 
+  RowBox[{"angle", "\[Rule]", "str"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"AngleData", "[", "_", "]"}], ":=", 
+  "Null"}], "\[IndentingNewLine]", 
+ RowBox[{
   RowBox[{"VRender", "[", 
    RowBox[{"pt_", ",", 
     RowBox[{"Vert", "[", 
@@ -186,7 +318,8 @@ Cell[BoxData[{
     RowBox[{"Which", "[", 
      RowBox[{
       RowBox[{"typ", "===", "Rd"}], ",", "Red", ",", 
-      RowBox[{"typ", "===", "Grn"}], ",", "Green"}], "]"}], ",", 
+      RowBox[{"typ", "===", "Grn"}], ",", "Green", ",", 
+      RowBox[{"typ", "===", "Bnd"}], ",", "Black"}], "]"}], ",", 
     RowBox[{"EdgeForm", "[", "Black", "]"}], ",", 
     RowBox[{"Disk", "[", 
      RowBox[{"pt", ",", ".15"}], "]"}], ",", "Blue", ",", 
@@ -236,11 +369,8 @@ Cell[BoxData[{
      RowBox[{"xml", "=", 
       RowBox[{"ImportString", "[", 
        RowBox[{
-        RowBox[{"cmd", "[", 
-         RowBox[{"\"\<graph_xml\>\"", ",", 
-          RowBox[{"{", 
-           RowBox[{"GraphName", "[", "gr", "]"}], "}"}]}], "]"}], ",", 
-        "\"\<XML\>\""}], "]"}]}], "}"}], ",", "\[IndentingNewLine]", 
+        RowBox[{"GraphXml", "[", "gr", "]"}], ",", "\"\<XML\>\""}], "]"}]}], 
+     "}"}], ",", "\[IndentingNewLine]", 
     RowBox[{"MakeGraph", "[", 
      RowBox[{
       RowBox[{"GraphName", "[", "gr", "]"}], ",", 
@@ -293,7 +423,21 @@ Cell[BoxData[{
   RowBox[{"cmd", "[", 
    RowBox[{"\"\<graph_xml\>\"", ",", 
     RowBox[{"{", 
-     RowBox[{"GraphName", "[", "gr", "]"}], "}"}]}], "]"}]}]}], "Input",
+     RowBox[{"GraphName", "[", "gr", "]"}], "}"}]}], 
+   "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"ListGraphs", "[", "]"}], ":=", 
+  RowBox[{"StringSplit", "[", 
+   RowBox[{"cmd", "[", "\"\<ls\>\"", "]"}], "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Hilb", "[", "gr_", "]"}], ":=", 
+  RowBox[{"ToExpression", "[", 
+   RowBox[{"cmd", "[", 
+    RowBox[{"\"\<hilb\>\"", ",", " ", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"GraphName", "[", "gr", "]"}], ",", "\"\<mathematica\>\""}], 
+      "}"}]}], "]"}], "]"}]}]}], "Input",
  CellChangeTimes->{{3.448473276951537*^9, 3.44847332640763*^9}, {
    3.448473371486766*^9, 3.44847343166768*^9}, {3.4484735138631687`*^9, 
    3.448473582294601*^9}, {3.448473859704911*^9, 3.448473931120472*^9}, {
@@ -313,12 +457,21 @@ Cell[BoxData[{
    3.448482541897752*^9, 3.448482562497472*^9}, {3.448482594005783*^9, 
    3.448482664371252*^9}, {3.448482827882992*^9, 3.448482830456421*^9}, {
    3.448482904895535*^9, 3.448482994257967*^9}, {3.448483074428534*^9, 
-   3.4484830825500517`*^9}}]
+   3.4484830825500517`*^9}, {3.45380404071493*^9, 3.4538040583489943`*^9}, {
+   3.453804385928472*^9, 3.453804398162702*^9}, {3.45380521254771*^9, 
+   3.45380524892058*^9}, {3.4538052882295322`*^9, 3.453805367698813*^9}, {
+   3.453805443297533*^9, 3.4538054445118093`*^9}, {3.453805511620878*^9, 
+   3.4538055160722237`*^9}, 3.453805621864711*^9, {3.453805667603188*^9, 
+   3.453805688601555*^9}, {3.4538059077771482`*^9, 3.453805911730328*^9}, {
+   3.4538060154891653`*^9, 3.45380602801001*^9}, {3.4538061175379963`*^9, 
+   3.453806134696581*^9}, {3.453811084683236*^9, 3.453811163342142*^9}, {
+   3.4538116611373*^9, 3.453811667295784*^9}, {3.454095515561454*^9, 
+   3.454095518635655*^9}}]
 },
-WindowSize->{850, 767},
-WindowMargins->{{Automatic, 169}, {107, Automatic}},
+WindowSize->{850, 698},
+WindowMargins->{{Automatic, 157}, {36, Automatic}},
 ShowSelection->True,
-FrontEndVersion->"6.0 for Linux x86 (64-bit) (April 20, 2007)",
+FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
 StyleDefinitions->"Default.nb"
 ]
 (* End of Notebook Content *)
@@ -332,10 +485,10 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[568, 21, 120, 2, 32, "Input"],
-Cell[691, 25, 152, 3, 31, "Text"],
-Cell[846, 30, 2013, 53, 209, "Input"],
-Cell[2862, 85, 8778, 230, 693, "Input"]
+Cell[568, 21, 120, 2, 27, "Input"],
+Cell[691, 25, 152, 3, 26, "Text"],
+Cell[846, 30, 6205, 163, 313, "Input"],
+Cell[7054, 195, 10655, 273, 568, "Input"]
 }
 ]
 *)

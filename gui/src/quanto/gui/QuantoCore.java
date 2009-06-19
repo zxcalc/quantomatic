@@ -356,4 +356,16 @@ public class QuantoCore {
 	throws ConsoleError {
 		command("flip_vertices", g, new HasName.CollectionName(vs));
 	}
+	
+	public String[] list_theories() throws ConsoleError {
+		return command("list_theories").split("\r\n|\n|\r");
+	}
+	
+	public String[] list_active_theories() throws ConsoleError {
+		return command("list_active_theories").split("\r\n|\n|\r");
+	}
+	
+	public String[] list_rules(String thy) throws ConsoleError {
+		return command("list_rules", new HasName.StringName(thy)).split("\r\n|\n|\r");
+	}
 }
