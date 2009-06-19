@@ -232,6 +232,23 @@ fun list_rules ([thy], state) =
      handle UNDEF => raise user_exp ("No such theory '" ^ thy ^ "'"))
   | list_rules _ = raise wrong_args_exp
 
+local
+    fun set_active active nm thys = let
+        val thy = Theory.mk nm
+        val (data, _) = Theory.NTab.get thys thy
+    in thys |> Theory.NTab.update (thy, (data, active))
+    end
+
+    fun activate_theory' active ([thy], state) =
+        (("ok\n",
+          update_theories (set_active active thy) state)
+         handle UNDEF => raise user_exp ("No such theory '" ^ thy ^ "'"))
+      | activate_theory' active _ = raise wrong_args_exp
+in
+val deactivate_theory  = activate_theory' false
+val activate_theory = activate_theory' true
+end  
+
 
 fun load_ruleset [file] = (TheoryHack.load_rules file ; "Loaded ruleset\n")
   | load_ruleset _ = raise wrong_args_exp
@@ -539,6 +556,18 @@ val () = (
     ("list_rules THEORY\n\n"^
      "    list the rules in THEORY")
     (lift_state_viewer list_rules);
+
+    register_cmd
+    "activate_theory"
+    ("activate_theory THEORY\n\n"^
+     "    enable the rules in THEORY for rewriting")
+    (activate_theory);
+
+    register_cmd
+    "deactivate_theory"
+    ("deactivate_theory THEORY\n\n"^
+     "    disable the rules in THEORY for rewriting")
+    (deactivate_theory);
 
     register_cmd
     "new_graph"
