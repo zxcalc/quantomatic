@@ -22,8 +22,8 @@ public class TheoryTree extends JPanel {
 		setLayout(new BorderLayout());
 		top = new DefaultMutableTreeNode("Theories");
 		tree = new JTree(top);
-		tree.setCellRenderer(new TheoryCellRenderer());
 		activeTheories = new HashSet<String>();
+		tree.setCellRenderer(new TheoryCellRenderer());
 		
 		// don't want to steal keyboard focus from the active InteractiveView
 		tree.setFocusable(false);
@@ -65,37 +65,18 @@ public class TheoryTree extends JPanel {
 		public Component getTreeCellRendererComponent(JTree tree, Object value,
 				boolean selected, boolean expanded, boolean leaf, int row,
 				boolean hasFocus) {
-			// pull a nice icon'ed component from the parent
-			Component cell = super.getTreeCellRendererComponent(
-					tree, value, selected, expanded, leaf,row,hasFocus);
-			DefaultMutableTreeNode node;
+			// let parent set the basic component properties
+			super.getTreeCellRendererComponent(tree, value, selected, expanded,
+					leaf, row, hasFocus);
 			
-			try {
-				// if this is a rule, check if theory is active, otherwise this
-				// is the theory itself.
-				if (leaf) node = (DefaultMutableTreeNode)
-							((DefaultMutableTreeNode)value).getParent();
-				else node = (DefaultMutableTreeNode)value;
-				String thy = (String)node.getUserObject();
-				
-				// ghost theories that aren't active
-				if (activeTheories.contains(thy) || thy=="Theories")
-					cell.setForeground(Color.black);
-				else
-					cell.setForeground(Color.gray);
-			} catch (ClassCastException e) {
-				// if any of the casts fail, we've messed up in building the tree
-				throw new QuantoCore.FatalError("Unexpected object in TheoryTree of type "
-						+ e.getMessage());
+			// ghost the theory if it isn't active
+			String thy = getText();
+			if (!leaf && thy!=null) {
+				if (!activeTheories.contains(thy) && thy!="Theories")
+					setForeground(Color.gray);
 			}
 			
-			return cell;
+			return this;
 		}
 	}
-	
-//	public static class RuleInfo {
-//		public RuleInfo(String name) {
-//			
-//		}
-//	}
 }
