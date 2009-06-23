@@ -80,7 +80,12 @@ public class QuantoApp {
 		new BoolPref("console_echo", false);
 	public static final StringPref LAST_OPEN_DIR =
 		new StringPref("last_open_dir", null);
-	
+	public static final StringPref LAST_THEORY_OPEN_DIR =
+		new StringPref("last_theory_open_dir", null);
+	public static final StringPref LOADED_THEORIES =
+		new StringPref("loaded_theories", "");
+	public static final StringPref ACTIVE_THEORIES =
+		new StringPref("loaded_theories", "");
 	
 	private final Preferences globalPrefs;
 	private final ConsoleView console;
@@ -129,6 +134,7 @@ public class QuantoApp {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				getInstance().newGraph(true);
+				TheoryTree.loadState();
 			}
 		});
 	}
@@ -198,8 +204,8 @@ public class QuantoApp {
 		public final JCheckBoxMenuItem view_drawArrowHeads;
 		public final JMenuItem view_refreshAllGraphs;
 		public final JMenuItem file_quit;
-		public final JMenuItem file_saveRules;
-		public final JMenuItem file_loadRules;
+		public final JMenuItem file_saveTheory;
+		public final JMenuItem file_loadTheory;
 		public final JMenuItem file_openGraph;
 		public final JMenuItem file_newGraph;
 		public final JMenuItem file_newWindow;
@@ -268,21 +274,23 @@ public class QuantoApp {
 			fileMenu.add(file_openGraph);
 			
 			
-			file_loadRules = new JMenuItem("Load Rule Set");
-			file_loadRules.addActionListener(new ActionListener() { 
+			file_loadTheory = new JMenuItem("Load Theory...");
+			file_loadTheory.addActionListener(new ActionListener() { 
 					public void actionPerformed(ActionEvent e) {
-						QuantoApp.getInstance().loadRuleSet();
+						QuantoApp.getInstance().loadTheory();
 					}
 			});
-			fileMenu.add(file_loadRules);
+			fileMenu.add(file_loadTheory);
 			
-			file_saveRules = new JMenuItem("Save Rule Set");
-			file_saveRules.addActionListener(new ActionListener() { 
+			file_saveTheory = new JMenuItem("Save Theory");
+			file_saveTheory.addActionListener(new ActionListener() { 
 					public void actionPerformed(ActionEvent e) {
-						QuantoApp.getInstance().saveRuleSet();
+						System.err.println("SAVE NOT IMPLEMENTED");
+//						QuantoApp.getInstance().saveRuleSet();
 					}
 			});
-			fileMenu.add(file_saveRules);
+			file_saveTheory.setEnabled(false);
+			fileMenu.add(file_saveTheory);
 			
 			// quit
 			if (!isMac) {
@@ -352,6 +360,32 @@ public class QuantoApp {
 		}
 	}
 	
+
+	/**
+	 * Generic action listener that reports errors to a dialog box and gives
+	 * actions access to the frame, console, and core.
+	 */
+	public static abstract class QuantoActionListener implements ActionListener {
+		private Component parent;
+	
+		public QuantoActionListener(Component parent) {
+			this.parent = parent;
+		}
+		public void actionPerformed(ActionEvent e) {
+			try {
+				wrappedAction(e);
+			} catch (QuantoCore.ConsoleError err) {
+				JOptionPane.showMessageDialog(
+						parent,
+						err.getMessage(),
+						"Console Error",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		}
+		
+		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
+	}
+
 
 	public ConsoleView getConsole() {
 		return console;
@@ -439,37 +473,45 @@ public class QuantoApp {
 	
 
 	
-	public void loadRuleSet() {
+	public void loadTheory() {
+		String lastDir = getPreference(LAST_THEORY_OPEN_DIR);
+		if (lastDir != null) fileChooser.setCurrentDirectory(new File(lastDir));
+		
 		int retVal = fileChooser.showDialog(null, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
-				core.load_ruleset(filename);
+				File file = fileChooser.getSelectedFile();
+				if (file.getParent()!=null) setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
+				String thyname = file.getName().replaceAll("\\.xml|\\n|\\r", "");
+				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
+				TheoryTree.loadTheory(thyname, filename);
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
 			}
 			catch(java.io.IOException ioe) {
 				errorDialog(ioe.getMessage());
+			} finally {
+				TheoryTree.refreshInstances();
 			}
 		}
 	}
 	
-	public void saveRuleSet() {
-		int retVal = fileChooser.showSaveDialog(null);
-		if(retVal == JFileChooser.APPROVE_OPTION) {
-			try{
-				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
-				core.save_ruleset(filename);
-			}
-			catch (QuantoCore.ConsoleError e) {
-				errorDialog(e.getMessage());
-			}
-			catch(java.io.IOException ioe) {
-				errorDialog(ioe.getMessage());
-			}
-		}
-	}
+//	public void saveRuleSet() {
+//		int retVal = fileChooser.showSaveDialog(null);
+//		if(retVal == JFileChooser.APPROVE_OPTION) {
+//			try{
+//				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
+//				core.save_ruleset(filename);
+//			}
+//			catch (QuantoCore.ConsoleError e) {
+//				errorDialog(e.getMessage());
+//			}
+//			catch(java.io.IOException ioe) {
+//				errorDialog(ioe.getMessage());
+//			}
+//		}
+//	}
 
 	/**
 	 * Get the currently focused viewport.

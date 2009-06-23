@@ -23,16 +23,28 @@ public interface HasName {
 	
 	public static class StringName implements HasName {
 		public String name;
-		
-		
 		public StringName(String name) {
 			this.name = name;
 		}
-		
-		// TODO: make sure escaping works properly
+		public String getName() {
+			return name;
+		}
+		public void setName(String name) {
+			throw new ReadOnlyNameException();
+		}
+	}
+	
+	public static class QuotedName implements HasName {
+		HasName delegate;
+		public QuotedName(HasName delegate) {
+			this.delegate = delegate;
+		}
+		public QuotedName(String name) {
+			this.delegate = new StringName(name);
+		}
 		public String getName() {
 			return "\"" +
-				name.replace("\\", "\\\\").replace("\"", "\\\"") +
+				delegate.getName().replace("\\", "\\\\").replace("\"", "\\\"") +
 				"\"";
 		}
 
@@ -63,11 +75,11 @@ public interface HasName {
 	 *
 	 * @param <T>
 	 */
-	public static class CollectionName implements HasName {
+	public static class QuotedCollectionName implements HasName {
 		private static final long serialVersionUID = -7602337023538613612L;
 		private Collection<? extends HasName> col;
 		
-		public CollectionName(Collection<? extends HasName> col) {
+		public QuotedCollectionName(Collection<? extends HasName> col) {
 			this.col = col;
 		}
 		
@@ -77,9 +89,7 @@ public interface HasName {
 			for (HasName n : col) {
 				if (first) first = false;
 				else sb.append(" ");
-				sb.append('"');
-				sb.append(n.getName());
-				sb.append('"');
+				sb.append(new QuotedName(n).getName());
 			}
 			return sb.toString();
 		}

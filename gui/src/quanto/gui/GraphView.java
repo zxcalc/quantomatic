@@ -122,7 +122,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 						if (v.getVertexType()==QVertex.Type.BOUNDARY)
 							return Integer.toString(getGraph().getBoundaryIndex(v));
 						else if (v.getVertexType()==QVertex.Type.HADAMARD)
-							return "H";
+							return "";
 						else return v.getAngle();
 					}
         		});

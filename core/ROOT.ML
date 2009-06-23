@@ -43,7 +43,7 @@ use "input_rule_xml.ML";
 use "reader.ML";
 use "writer.ML";
 use "loadsave.ML";
-use "theory_hack.ML";
+(*use "theory_hack.ML";*)
 use "theory_new.ML";
 use "hilb.ML";
 use "controller.ML";

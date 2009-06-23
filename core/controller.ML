@@ -87,15 +87,15 @@ fun get_theories ({theories=t,...}:c_state) = t
 
 datatype consolestate = NORMAL of c_state | SKIP | QUIT
 
-val default_theories = Theory.NTab.empty
+(*val default_theories = Theory.NTab.empty
                            |> Theory.NTab.update (Theory.mk "default",
                                                   (!TheoryHack.rules,true))
+*)
 
-                     
 val newState : c_state = {graphs=GraphName.NTab.empty,
                           rewrites=GraphName.NTab.empty,
                           hist=GraphName.NTab.empty,
-                          theories=default_theories}
+                          theories=Theory.NTab.empty}
 
 (*
 A dictionary of commands of the format:
@@ -249,12 +249,30 @@ val deactivate_theory  = activate_theory' false
 val activate_theory = activate_theory' true
 end  
 
+fun load_theory ([nm,file], state) =
+    (let val loader = RGTheoryHackInputXML.input o XMLReader.read_from_file
+         val thys = get_theories state
+         val (nm', thys') = thys |> Theory.NTab.add (Theory.mk nm, (loader file, true))
+     in ((Pretty.string_of (Theory.pretty_name nm')) ^ "\n", set_theories thys' state)
+     end
+     handle IO.Io _ => raise user_exp "Can't open theory.")
+  | load_theory _ = raise wrong_args_exp
 
+
+fun unload_theory ([nm], state) =
+    let fun del nm thys = thys |> Theory.NTab.delete (Theory.mk nm)
+            handle UNDEF => raise user_exp ("No such theory: " ^ nm)
+    in ("ok\n", update_theories (del nm) state)
+    end
+  | unload_theory _ = raise wrong_args_exp
+
+(*
 fun load_ruleset [file] = (TheoryHack.load_rules file ; "Loaded ruleset\n")
   | load_ruleset _ = raise wrong_args_exp
 
 fun save_ruleset [file] = (TheoryHack.save_rules file ; "Saved ruleset\n")
   | save_ruleset _ = raise wrong_args_exp
+*)
 
 local
     fun graph_maker default_name graph state = let
@@ -386,35 +404,6 @@ fun redo ([name], state) =
     end
   | redo _ = raise wrong_args_exp
 
-local
-    fun attach_with attacher (args as _::vs, state) =
-        (let val gname = GraphName.mk (graph_arg args)
-	           val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
-	           val graph = fetch_graph gname state
-             val rules = Theory.get_active_rules (get_theories state)
-	           val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-                           (Seq.list_of (attacher rules vset graph))
-         in
-	           ("attached "^(Int.toString (length rws))^" rewrites\n",
-	            state |> update_rewrites (GraphName.NTab.update (gname,rws)))
-         end
-	       handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
-	            | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertx.")
-    | attach_with _ _ = raise wrong_args_exp
-in
-val attach_rewrites = attach_with Theory.apply_rules_in
-val attach_one_rewrite = attach_with Theory.apply_a_rule_in
-
-end
-
-fun show_rewrites (args,state) = let
-    val gname = GraphName.mk (graph_arg args)
-    val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
-            of NONE => raise user_exp "No rewrites attached."
-             | SOME r => r
-in Pretty.string_of (RGRewriteListOutputXML.output rewrites)
-end
-
 fun apply_rewrite ([name, n], state) =
     (let val gname = GraphName.mk name
          val rewrites = GraphName.NTab.get (get_rewrites state) gname
@@ -427,6 +416,51 @@ fun apply_rewrite ([name, n], state) =
           | Subscript => raise user_exp "Rewrite not attached."
           | Option => raise user_exp "Rewrite selection must be an integer.")
   | apply_rewrite _ = raise wrong_args_exp
+
+local
+    fun attach_with' attacher (args as _::vs, state) =
+        (let val gname = GraphName.mk (graph_arg args)
+	           val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
+	           val graph = fetch_graph gname state
+             val rules = Theory.get_active_rules (get_theories state)
+	           val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
+                           (Seq.list_of (attacher rules vset graph))
+         in
+	           (length rws,
+	            state |> update_rewrites (GraphName.NTab.update (gname,rws)))
+         end
+	       handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
+	            | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertx.")
+    | attach_with' _ _ = raise wrong_args_exp
+
+    fun attach_with attacher args = let
+        val (n,st) = attach_with' attacher args
+    in ("attached "^(Int.toString n)^" rewrites\n",st)
+    end
+in
+val attach_rewrites = attach_with Theory.apply_rules_in
+val attach_one_rewrite = attach_with Theory.apply_a_rule_in
+
+fun apply_first_rewrite (args as [_], state) = let
+    val gname = GraphName.mk (graph_arg args)
+    val graph = fetch_graph gname state
+    val args' = (GraphName.pretty_name gname)::
+                (map V.pretty_name (V.NSet.list_of (G.get_vnames graph)))
+    val (n,state') = attach_with' Theory.apply_a_rule_in (map Pretty.string_of args', state)
+in if n = 0 then raise user_exp "No more rewrites."
+   else apply_rewrite (args @ ["0"],state')
+end
+  | apply_first_rewrite _ = raise wrong_args_exp
+
+end
+
+fun show_rewrites (args,state) = let
+    val gname = GraphName.mk (graph_arg args)
+    val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
+            of NONE => raise user_exp "No rewrites attached."
+             | SOME r => r
+in Pretty.string_of (RGRewriteListOutputXML.output rewrites)
+end
                            
 fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
   | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
@@ -516,16 +550,22 @@ val () = (
     (lift_stateless echo_block);
 
    register_cmd
-    "load_ruleset"
-    ("load_ruleset FILENAME\n\n" ^
-     "    load a new rule set from FILENAME\n")
-    (lift_stateless load_ruleset);
-    
+    "load_theory"
+    ("load_theory NAME FILE\n\n" ^
+     "    load a theory from FILE and call it NAME\n")
+    load_theory;
+
     register_cmd
+    "unload_theory"
+    ("unload_theory THEORY\n\n" ^
+     "    unload THEORY\n")
+    unload_theory;
+    
+    (*register_cmd
     "save_ruleset"
     ("save_ruleset FILENAME\n\n" ^
      "    save the current rule set in FILENAME\n")
-    (lift_stateless save_ruleset);
+    (lift_stateless save_ruleset);*)
 
     register_cmd
     "list_graphs"
@@ -690,6 +730,12 @@ val () = (
     ("apply_rewrite GRAPH N\n\n"^
      "    apply the Nth rewrite attached to GRAPH\n")
     (apply_rewrite);
+
+    register_cmd
+    "apply_first_rewrite"
+    ("apply_first_rewrite GRAPH N\n\n"^
+     "    attempt to attach one rewrite to GRAPH and apply it\n")
+    (apply_first_rewrite);
 
     register_cmd
     "hilb"

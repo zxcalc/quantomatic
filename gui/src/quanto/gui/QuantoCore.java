@@ -245,14 +245,14 @@ public class QuantoCore {
 	}
 	
 	public void rename_graph(String oldName, String newName) throws ConsoleError {
-		command("rename_graph", new HasName.StringName(oldName),
-								new HasName.StringName(newName));
+		command("rename_graph", new HasName.QuotedName(oldName),
+								new HasName.QuotedName(newName));
 	}
 	
 	public void add_vertex(QuantoGraph graph, QVertex.Type type)
 	throws ConsoleError {
 		command("add_vertex", graph, 
-				new HasName.StringName(type.toString().toLowerCase()));
+				new HasName.QuotedName(type.toString().toLowerCase()));
 	}
 	
 	public void add_edge(QuantoGraph graph, QVertex s, QVertex t)
@@ -262,12 +262,12 @@ public class QuantoCore {
 	
 	public void attach_rewrites(QuantoGraph graph, Collection<QVertex> vs)
 	throws ConsoleError {
-		command("attach_rewrites", graph, new HasName.CollectionName(vs));
+		command("attach_rewrites", graph, new HasName.QuotedCollectionName(vs));
 	}
 	
 	public void attach_one_rewrite(QuantoGraph graph, Collection<QVertex> vs)
 	throws ConsoleError {
-		command("attach_one_rewrite", graph, new HasName.CollectionName(vs));
+		command("attach_one_rewrite", graph, new HasName.QuotedCollectionName(vs));
 	}
 	
 	public String show_rewrites(QuantoGraph graph) throws ConsoleError {
@@ -279,7 +279,7 @@ public class QuantoCore {
 	}
 	
 	public void set_angle(QuantoGraph graph, QVertex v, String angle) throws ConsoleError {
-		command("set_angle", graph, v, new HasName.StringName(angle));
+		command("set_angle", graph, v, new HasName.QuotedName(angle));
 	}
 	
 	public String hilb(QuantoGraph graph, String format) throws ConsoleError {
@@ -287,11 +287,11 @@ public class QuantoCore {
 	}
 	
 	public void delete_vertices(QuantoGraph graph, Set<QVertex> v) throws ConsoleError {
-		command("delete_vertices", graph, new HasName.CollectionName(v));
+		command("delete_vertices", graph, new HasName.QuotedCollectionName(v));
 	}
 	
 	public void delete_edges(QuantoGraph graph, Set<QEdge> e) throws ConsoleError {
-		command("delete_edges", graph, new HasName.CollectionName(e));
+		command("delete_edges", graph, new HasName.QuotedCollectionName(e));
 	}
 	
 	public void undo(QuantoGraph graph) throws ConsoleError {
@@ -303,23 +303,25 @@ public class QuantoCore {
 	}
 	
 	public void save_graph(QuantoGraph graph, String fileName) throws ConsoleError{
-		command("save_graph", graph, new HasName.StringName(fileName));
+		command("save_graph", graph, new HasName.QuotedName(fileName));
 	}
 	
 	public QuantoGraph load_graph(String fileName) throws ConsoleError{
-		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
+		return new QuantoGraph(chomp(command("load_graph", new HasName.QuotedName(fileName))));
 	}
 	
 	public String input_graph_xml(String xml) throws ConsoleError {
 		return chomp(blockCommand("input_graph_xml", xml));
 	}
 	
-	public QuantoGraph load_ruleset(String fileName) throws ConsoleError{
-		return new QuantoGraph(chomp(command("load_ruleset", new HasName.StringName(fileName))));
+	public String load_theory(String theoryName, String fileName) throws ConsoleError{
+		return chomp(command("load_theory",
+				new HasName.QuotedName(theoryName), 
+				new HasName.QuotedName(fileName)));
 	}
 	
-	public QuantoGraph save_ruleset(String fileName) throws ConsoleError{
-		return new QuantoGraph(chomp(command("save_ruleset", new HasName.StringName(fileName))));
+	public void unload_theory(Theory theory) throws ConsoleError{
+		command("unload_theory", new HasName.QuotedName(theory));
 	}
 
 	public String add_bang(QuantoGraph g) throws ConsoleError {
@@ -328,12 +330,12 @@ public class QuantoCore {
 	
 	public void bang_vertices (QuantoGraph g, BangBox bb, Set<QVertex> verts)
 	throws ConsoleError {
-		command("bang_vertices", g, bb, new HasName.CollectionName(verts));
+		command("bang_vertices", g, bb, new HasName.QuotedCollectionName(verts));
 	}
 	
 	public void unbang_vertices (QuantoGraph g, Set<QVertex> verts)
 	throws ConsoleError {
-		command("unbang_vertices", g, new HasName.CollectionName(verts));
+		command("unbang_vertices", g, new HasName.QuotedCollectionName(verts));
 	}
 	
 	// here we use a string for target, because we may not be keeping the clip-board
@@ -341,20 +343,20 @@ public class QuantoCore {
 	public void copy_subgraph (QuantoGraph source, String target, Set<QVertex> verts)
 	throws ConsoleError {
 		command("copy_subgraph", source,
-				new HasName.StringName(target),
-				new HasName.CollectionName(verts));
+				new HasName.QuotedName(target),
+				new HasName.QuotedCollectionName(verts));
 	}
 	
 	// here we use a string for source, because we may not be keeping the clip-board
 	//  as a QuantoGraph in memory.
 	public void insert_graph (QuantoGraph target, String source)
 	throws ConsoleError {
-		command("insert_graph", target, new HasName.StringName(source));
+		command("insert_graph", target, new HasName.QuotedName(source));
 	}
 	
 	public void flip_vertices (QuantoGraph g, Set<QVertex> vs)
 	throws ConsoleError {
-		command("flip_vertices", g, new HasName.CollectionName(vs));
+		command("flip_vertices", g, new HasName.QuotedCollectionName(vs));
 	}
 	
 	public String[] list_theories() throws ConsoleError {
@@ -366,6 +368,38 @@ public class QuantoCore {
 	}
 	
 	public String[] list_rules(String thy) throws ConsoleError {
-		return command("list_rules", new HasName.StringName(thy)).split("\r\n|\n|\r");
+		return command("list_rules", new HasName.QuotedName(thy)).split("\r\n|\n|\r");
+	}
+	
+	public void activate_theory(Theory thy) throws ConsoleError {
+		command("activate_theory", new HasName.QuotedName(thy));
+	}
+	
+	public void deactivate_theory(Theory thy) throws ConsoleError {
+		command("deactivate_theory", new HasName.QuotedName(thy));
+	}
+	
+	public void apply_first_rewrite(String graph) throws ConsoleError {
+		command("apply_first_rewrite", new HasName.QuotedName(graph));
+	}
+	
+	public void apply_first_rewrite(QuantoGraph graph) throws ConsoleError {
+		command("apply_first_rewrite", new HasName.QuotedName(graph));
+	}
+	
+	
+	/*
+	 * Derived methods, note these are in CamelCase to emphasise that they
+	 * are not actual core commands.
+	 */
+	public void fastNormalise(String graph) throws ConsoleError {
+		try {
+			while (true) apply_first_rewrite(graph);
+		} catch (ConsoleError e) {
+			if (! chomp(e.getMessage()).equals("No more rewrites.")) throw e;
+		}
+	}
+	public void fastNormalise(QuantoGraph graph) throws ConsoleError {
+		fastNormalise(graph.getName());
 	}
 }

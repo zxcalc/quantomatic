@@ -25,6 +25,7 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
 import quanto.gui.QuantoCore.ConsoleError;
+import quanto.gui.QuantoApp.QuantoActionListener;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
@@ -49,26 +50,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
 	
 	private List<Rewrite> rewriteCache = null;
-	/**
-	 * Generic action listener that reports errors to a dialog box and gives
-	 * actions access to the frame, console, and core.
-	 */
-	public abstract class QVListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			try {
-				wrappedAction(e);
-			} catch (QuantoCore.ConsoleError err) {
-				JOptionPane.showMessageDialog(
-						InteractiveGraphView.this,
-						err.getMessage(),
-						"Console Error",
-						JOptionPane.ERROR_MESSAGE);
-			}
-		}
-		
-		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
-	}
-	
 	public boolean viewHasParent() {
 		return this.getParent() != null;
 	}
@@ -125,9 +106,6 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						}
 					});
 				}
-				
-				
-				
 				String angle = ((QVertex)vertex).getAngle();
 				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
 				Point loc = new Point((int)(screen.getX()-rect.getCenterX()),
@@ -324,10 +302,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	private void infoDialog(String msg) {
-		JOptionPane.showMessageDialog(this,
-				msg,
-				"Nota Bene",
-				JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog(this,msg);
 	}
 	
 	public static String titleOfGraph(String name) {
@@ -367,7 +342,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		JMenuItem item;
 		
 		item = new JMenuItem("Export to PDF", KeyEvent.VK_P);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				GraphView view = new GraphView(getGraph());
@@ -393,7 +368,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(cbItem);
 		
 		item = new JMenuItem("Latex to clipboard", KeyEvent.VK_L);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				String tikz = TikzOutput.generate(getGraph(), getGraphLayout());
@@ -406,7 +381,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		JMenu graphAddMenu = new JMenu("Add");
 		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.RED);
@@ -415,7 +390,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.GREEN);
@@ -424,7 +399,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.BOUNDARY);
@@ -433,7 +408,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphAddMenu.add(item);
 		
 		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_H);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.HADAMARD);
@@ -444,7 +419,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(graphAddMenu);
 		
 		item = new JMenuItem("Show Rewrites", KeyEvent.VK_R);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				showRewrites();
@@ -454,7 +429,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Normalise", KeyEvent.VK_N);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				rewriteForever();
@@ -463,8 +438,19 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, commandMask | Event.ALT_MASK));
 		graphMenu.add(item);
 		
+		item = new JMenuItem("Fast Normalise", KeyEvent.VK_F);
+		item.addActionListener(new QuantoActionListener(this) {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().fastNormalise(getGraph());
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, commandMask | Event.ALT_MASK));
+		graphMenu.add(item);
+		
 		item = new JMenuItem("Abort", KeyEvent.VK_A);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				if (rewriter != null) {
@@ -477,7 +463,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Select All Vertices", KeyEvent.VK_S);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				synchronized (getGraph()) {
@@ -491,7 +477,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Deselect All Vertices", KeyEvent.VK_D);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getPickedVertexState().clear();
@@ -501,7 +487,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Lock Vertices", KeyEvent.VK_L);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getQuantoLayout().lock(getPickedVertexState().getPicked());
@@ -512,7 +498,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Unlock Vertices", KeyEvent.VK_N);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getQuantoLayout().unlock(getPickedVertexState().getPicked());
@@ -524,7 +510,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Flip Vertex Colour", KeyEvent.VK_F);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().flip_vertices(getGraph(),
@@ -536,7 +522,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				// this is not the real bang box, but we just need the name
@@ -550,7 +536,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Unbang Vertices", KeyEvent.VK_U);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().unbang_vertices(getGraph(),
@@ -567,7 +553,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		JMenu editMenu = new JMenu("Edit");
 		editMenu.setMnemonic(KeyEvent.VK_E);
 		item = new JMenuItem("Undo", KeyEvent.VK_U);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().undo(getGraph());
@@ -578,7 +564,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		editMenu.add(item);
 		
 		item = new JMenuItem("Redo", KeyEvent.VK_R);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().redo(getGraph());
@@ -590,7 +576,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		editMenu.add(item);
 		
 		item = new JMenuItem("Cut", KeyEvent.VK_T);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				Set<QVertex> picked = getPickedVertexState().getPicked();
@@ -606,7 +592,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		editMenu.add(item);
 		
 		item = new JMenuItem("Copy", KeyEvent.VK_C);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				Set<QVertex> picked = getPickedVertexState().getPicked();
@@ -619,7 +605,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		editMenu.add(item);
 		
 		item = new JMenuItem("Paste", KeyEvent.VK_P);
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().insert_graph(getGraph(), "__clip__");
@@ -636,7 +622,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		hilbMenu.setMnemonic(KeyEvent.VK_B);
 		
 		item = new JMenuItem("Dump term as text");
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				outputToTextView(getCore().hilb(getGraph(), "plain"));
@@ -645,7 +631,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		hilbMenu.add(item);
 		
 		item = new JMenuItem("Dump term as Mathematica");
-		item.addActionListener(new QVListener() {
+		item.addActionListener(new QuantoActionListener(this) {
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				outputToTextView(getCore().hilb(getGraph(), "mathematica"));
@@ -773,9 +759,14 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					}
 				}
 				
-				infoDialog("Applied "
-						+ Integer.toString(count)
-						+ " rewrites.");
+				final int finalCount = count;
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						infoDialog("Applied "
+								+ Integer.toString(finalCount)
+								+ " rewrites.");
+					}
+				});
 			}
 			
 			
