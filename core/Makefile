@@ -48,9 +48,11 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 
 heap: $(QUANTO_HEAP)
 
-# make the core object without dumping the heap
-bin/$(THE_BIN): $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+bin/$(THE_BIN).o: $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
+
+# make the core object without dumping the heap
+bin/$(THE_BIN): bin/$(THE_BIN).o
 	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 

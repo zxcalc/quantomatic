@@ -146,9 +146,9 @@ val simplify = let
 in filter_out (CoeffRing.is_zero o fst) o merge o sort var_ord
 end
 
-fun (op+) (p1, p2) = simplify (p1 @ p2)
+fun op + (p1, p2) = simplify (p1 @ p2)
 
-fun (op* ) (p1, p2) =
+fun op * (p1, p2) =
      let fun mult_terms (c1,e1) (c2,e2) = (CoeffRing.*(c1,c2), merge_vars e1 e2)
      in map_product mult_terms p1 p2
      end
