@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       145,          7]
-NotebookDataLength[    412780,       7117]
-NotebookOptionsPosition[    411411,       7067]
-NotebookOutlinePosition[    411790,       7084]
-CellTagsIndexPosition[    411747,       7081]
+NotebookDataLength[    413619,       7153]
+NotebookOptionsPosition[    411676,       7086]
+NotebookOutlinePosition[    412215,       7107]
+CellTagsIndexPosition[    412172,       7104]
 WindowFrame->Normal
 ContainsDynamic->False*)
 
@@ -38,7 +38,11 @@ Cell["\<\
 Quanto comes up as child process. I then use the GUI to load a graph that \
 gets named \"Gb\".\
 \>", "Text",
- CellChangeTimes->{{3.455867829053261*^9, 3.45586788233101*^9}}],
+ CellChangeTimes->{{3.455867829053261*^9, 3.45586788233101*^9}, 
+   3.455871942430694*^9}],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -1065,10 +1069,13 @@ vA==
       340.7319946289062}, {111.85, 340.91999999999996`}, {111.85, 344.87}, {
       108.64, 344.87}, {108.64, 339.}, {107.39, 339.}}]}}},
   AspectRatio->Automatic,
-  ImageSize->{99.5333333333332, Automatic},
+  ImageSize->{63.783333333332806`, Automatic},
   PlotRange->{{0., 158.}, {0., 384.}}]], "Output",
  CellChangeTimes->{3.455867392258019*^9}]
 }, Open  ]],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -2092,7 +2099,7 @@ vA==
        289.}, {112.01, 289.}, {112.01, 293.44}, {107.55, 293.44}, {107.55, 
        289.}, {106.21000000000001`, 289.}}]}}},
    AspectRatio->Automatic,
-   ImageSize->{85.5333333333332, Automatic},
+   ImageSize->{34.616666666666305`, Automatic},
    PlotRange->{{0., 158.}, {0., 384.}}], "]"}]], "Input",
  CellChangeTimes->{{3.455865883934363*^9, 3.455865897408393*^9}}],
 
@@ -2429,10 +2436,13 @@ xjdYHPFv4qqut2QkEC7No/nXbzj0f83Vu/2LoGWE/bLIv0GZjvgzcD42bs0h
 vCX9f/fD/8P/BDfTWC0=
       "]]}}},
   AspectRatio->Automatic,
-  ImageSize->{92.86666666666648, Automatic},
+  ImageSize->{73.53333333333305, Automatic},
   PlotRange->{{0., 150.}, {0., 130.}}]], "Output",
  CellChangeTimes->{3.4558673969283953`*^9}]
 }, Open  ]],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -2764,7 +2774,7 @@ dNcb5YwiKu+Pg8+YUa5agvOvb5wx31+nZE5a2pZpsSiPygE8h+sMlLdnwXxc
        86.73199462890625}, {107.85, 86.92}, {107.85, 90.86999999999999}, {
        104.64, 90.86999999999999}, {104.64, 85.}, {103.39, 85.}}]}}},
    AspectRatio->Automatic,
-   ImageSize->{91.53333333333327, Automatic},
+   ImageSize->{66.2, Automatic},
    PlotRange->{{0., 146.}, {0., 130.}}], "]"}]], "Input",
  CellChangeTimes->{{3.455865898336895*^9, 3.4558659172039623`*^9}, 
    3.45586740366866*^9}],
@@ -2817,6 +2827,9 @@ Cell[BoxData[
      1, {{0, 2, 4}, {{1}, {2}, {1}, {2}}}, {1, 1, -1, -1}}]]]]], "Output",
  CellChangeTimes->{3.455867409655249*^9}]
 }, Open  ]],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -3417,7 +3430,7 @@ z2TMU+oh3KeEBIO5qXL7aBzwxh5WuHujUT9vLe5fGd9D6Wc9/OcM7Yhv08kZ
         75.09, 44.63}, {75.09, 35.94}, {76.97, 35.94}, {76.97, 35.}, {
         71.96000000000001, 35.}}]}}},
     AspectRatio->Automatic,
-    ImageSize->{86.86666666666697, Automatic},
+    ImageSize->{68.86666666666697, Automatic},
     PlotRange->{{0., 144.}, {0., 282.}}], "\[Rule]", 
    GraphicsBox[{
      TagBox[{},
@@ -3754,6 +3767,9 @@ Cell[BoxData[
  RowBox[{"{", "}"}]], "Output",
  CellChangeTimes->{3.455866146053999*^9, 3.455866237247712*^9}]
 }, Open  ]],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -4355,7 +4371,7 @@ B3G1Y6k=
         73.09, 44.63}, {73.09, 35.94}, {74.97, 35.94}, {74.97, 35.}, {
         69.96000000000001, 35.}}]}}},
     AspectRatio->Automatic,
-    ImageSize->{92.20000000000037, Automatic},
+    ImageSize->{67.20000000000037, Automatic},
     PlotRange->{{0., 142.}, {0., 282.}}], "\[Rule]", 
    GraphicsBox[{
      TagBox[{},
@@ -4663,6 +4679,9 @@ Cell[BoxData[
    RowBox[{"Quanto`Private`k", "\[Rule]", "2"}], "}"}], "}"}]], "Output",
  CellChangeTimes->{3.455865997653887*^9}]
 }, Open  ]],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -5737,7 +5756,7 @@ uuD8qJdxfk8P7I9/ycl95LSG+SV2mJPfHdwH/T0zxclz9db+yMcdQ52sV048
 9Hpt
        "]]}}},
    AspectRatio->Automatic,
-   ImageSize->{157.5333333333333, Automatic},
+   ImageSize->{126.5333333333333, Automatic},
    PlotRange->{{0., 247.}, {0., 232.}}], "]"}]], "Input",
  CellChangeTimes->{
   3.4558675371550417`*^9, {3.4558675813054333`*^9, 3.455867584700151*^9}}],
@@ -5745,6 +5764,9 @@ uuD8qJdxfk8P7I9/ycl95LSG+SV2mJPfHdwH/T0zxclz9db+yMcdQ52sV048
 Cell[BoxData["0"], "Output",
  CellChangeTimes->{3.455867587348731*^9}]
 }, Open  ]],
+
+Cell["", "PageBreak",
+ PageBreakBelow->True],
 
 Cell[CellGroupData[{
 
@@ -6755,7 +6777,7 @@ uuD8qJdxfk8P7I9/ycl95LSG+SV2mJPfHdwH/T0zxclz9db+yMcdQ52sV048
          43.849999999999994`}, {203.09, 44.63}, {203.09, 35.94}, {204.97, 
          35.94}, {204.97, 35.}, {199.96, 35.}}]}}},
      AspectRatio->Automatic,
-     ImageSize->{148.86666666666667`, Automatic},
+     ImageSize->{132.3666666666659, Automatic},
      PlotRange->{{0., 247.}, {0., 232.}}], "]"}], ",", "a"}], "]"}]], "Input",\
 
  CellChangeTimes->{{3.4558676588404503`*^9, 3.455867698071405*^9}}],
@@ -7028,6 +7050,7 @@ rfvPBw7lGazj/v/fG/wPTJ2yTw==
   AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
   Axes->True,
   AxesOrigin->{0, 0},
+  ImageSize->{204.4835953236785, Automatic},
   PlotRange->
    NCache[{{0, 2 Pi}, {0., 0.6666662427456513}}, {{0, 6.283185307179586}, {0.,
       0.6666662427456513}}],
@@ -7059,16 +7082,16 @@ rfvPBw7lGazj/v/fG/wPTJ2yTw==
        RowBox[{"2", " ", "\[Pi]"}], TraditionalForm]}}, Automatic}]], "Output",\
 
  CellChangeTimes->{{3.455867688352243*^9, 3.4558676995239553`*^9}}]
-}, Open  ]],
-
-Cell[BoxData[
- RowBox[{"QuantoKill", "[", "]"}]], "Input",
- CellChangeTimes->{{3.45586780867385*^9, 3.455867810697466*^9}}]
+}, Open  ]]
 },
 WindowSize->{792, 565},
-WindowMargins->{{Automatic, 163}, {Automatic, 39}},
+WindowMargins->{{Automatic, 224}, {Automatic, 32}},
+PrintingCopies->1,
+PrintingPageRange->{1, Automatic},
+PageHeaders->{{None, None, None}, {None, None, None}},
+PrintingOptions->{"PaperOrientation"->"Landscape"},
 ShowSelection->True,
-Magnification->1.5,
+Magnification->1.,
 FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
 StyleDefinitions->"Default.nb"
 ]
@@ -7083,42 +7106,55 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[568, 21, 412, 6, 40, "Input"],
-Cell[983, 29, 259, 5, 87, "Input"],
-Cell[1245, 36, 183, 4, 62, "Text"],
+Cell[568, 21, 412, 6, 27, "Input"],
+Cell[983, 29, 259, 5, 27, "Input"],
+Cell[1245, 36, 209, 5, 26, "Text"],
+Cell[1457, 43, 44, 1, 1, "PageBreak",
+ PageBreakBelow->True],
 Cell[CellGroupData[{
-Cell[1453, 44, 136, 2, 40, "Input"],
-Cell[1592, 48, 60460, 1021, 385, "Output"]
+Cell[1526, 48, 136, 2, 27, "Input"],
+Cell[1665, 52, 60463, 1021, 170, "Output"]
+}, Open  ]],
+Cell[62143, 1076, 44, 1, 1, "PageBreak",
+ PageBreakBelow->True],
+Cell[CellGroupData[{
+Cell[62212, 1081, 60719, 1022, 101, "Input"],
+Cell[122934, 2105, 19647, 335, 79, "Output"]
+}, Open  ]],
+Cell[142596, 2443, 44, 1, 1, "PageBreak",
+ PageBreakBelow->True],
+Cell[CellGroupData[{
+Cell[142665, 2448, 19406, 331, 76, "Input"],
+Cell[162074, 2781, 465, 14, 27, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[62089, 1074, 60716, 1022, 336, "Input"],
-Cell[122808, 2098, 19647, 335, 143, "Output"]
+Cell[162576, 2800, 125, 2, 27, "Input"],
+Cell[162704, 2804, 763, 23, 57, "Output"]
 }, Open  ]],
+Cell[163482, 2830, 44, 1, 1, "PageBreak",
+ PageBreakBelow->True],
 Cell[CellGroupData[{
-Cell[142492, 2438, 19419, 331, 146, "Input"],
-Cell[161914, 2771, 465, 14, 40, "Output"]
+Cell[163551, 2835, 54624, 928, 152, "Input"],
+Cell[218178, 3765, 109, 2, 27, "Output"]
 }, Open  ]],
+Cell[218302, 3770, 44, 1, 7, "PageBreak",
+ PageBreakBelow->True],
 Cell[CellGroupData[{
-Cell[162416, 2790, 125, 2, 40, "Input"],
-Cell[162544, 2794, 763, 23, 78, "Output"]
+Cell[218371, 3775, 52451, 898, 150, "Input"],
+Cell[270825, 4675, 160, 4, 27, "Output"]
 }, Open  ]],
+Cell[271000, 4682, 44, 1, 7, "PageBreak",
+ PageBreakBelow->True],
 Cell[CellGroupData[{
-Cell[163344, 2822, 54624, 928, 279, "Input"],
-Cell[217971, 3752, 109, 2, 40, "Output"]
+Cell[271069, 4687, 63487, 1074, 136, "Input"],
+Cell[334559, 5763, 70, 1, 27, "Output"]
 }, Open  ]],
+Cell[334644, 5767, 44, 1, 7, "PageBreak",
+ PageBreakBelow->True],
 Cell[CellGroupData[{
-Cell[218117, 3759, 52451, 898, 299, "Input"],
-Cell[270571, 4659, 160, 4, 40, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[270768, 4668, 63487, 1074, 246, "Input"],
-Cell[334258, 5744, 70, 1, 40, "Output"]
-}, Open  ]],
-Cell[CellGroupData[{
-Cell[334365, 5750, 59678, 1010, 234, "Input"],
-Cell[394046, 6762, 17223, 298, 379, "Output"]
-}, Open  ]],
-Cell[411284, 7063, 123, 2, 40, "Input"]
+Cell[334713, 5772, 59676, 1010, 141, "Input"],
+Cell[394392, 6784, 17268, 299, 157, "Output"]
+}, Open  ]]
 }
 ]
 *)
