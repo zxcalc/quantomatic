@@ -1,0 +1,60 @@
+(* Content-type: application/mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 6.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       145,          7]
+NotebookDataLength[      1468,         51]
+NotebookOptionsPosition[      1145,         35]
+NotebookOutlinePosition[      1524,         52]
+CellTagsIndexPosition[      1481,         49]
+WindowFrame->Normal
+ContainsDynamic->False*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[
+ RowBox[{"<<", "Quanto`"}]], "Input",
+ CellChangeTimes->{{3.455626048395257*^9, 3.4556260528025913`*^9}, {
+  3.45563540942804*^9, 3.455635414490718*^9}, {3.455655550790957*^9, 
+  3.455655554645726*^9}, {3.455712855566387*^9, 3.455712859538498*^9}, {
+  3.4558010440691957`*^9, 3.455801045052853*^9}, {3.455865621926506*^9, 
+  3.4558656228563766`*^9}}],
+
+Cell[BoxData[
+ RowBox[{"QuantoInit", "[", 
+  "\"\</Users/aleks/svn/isaplanner/quantomatic/gui/dist/QuantoGui.jar\>\"", 
+  "]"}]], "Input",
+ CellChangeTimes->{{3.455626054366189*^9, 3.4556260581791143`*^9}}]
+},
+WindowSize->{672, 582},
+WindowMargins->{{Automatic, 267}, {29, Automatic}},
+ShowSelection->True,
+Magnification->1.5,
+FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[568, 21, 364, 6, 40, "Input"],
+Cell[935, 29, 206, 4, 87, "Input"]
+}
+]
+*)
+
+(* End of internal cache information *)

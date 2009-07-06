@@ -1,0 +1,30 @@
+<graph>
+<!-- VERTICES -->
+  <vertex>
+    <name>d</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>c</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>b</name>
+    <boundary>true</boundary>
+  </vertex>
+  <vertex>
+    <name>a</name>
+    <boundary>true</boundary>
+  </vertex>
+<!-- EDGES -->
+  <edge>
+    <name>Eb</name><source>c</source><target>b</target>
+  </edge>
+  <edge>
+    <name>Ea</name><source>a</source><target>d</target>
+  </edge>
+<!-- BANG BOXES  -->
+  
+</graph>

@@ -53,7 +53,12 @@ public class TheoryTree extends JPanel {
 		
 		tree.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
-				if (e.getButton() == MouseEvent.BUTTON3) {
+				boolean rightClick = 
+					(e.getButton() == MouseEvent.BUTTON3) ||
+					(QuantoApp.isMac &&
+					 e.isControlDown() &&
+					 e.getButton() == MouseEvent.BUTTON1);
+				if (rightClick) {
 					TreePath p = tree.getPathForLocation(e.getX(), e.getY());
 					if (p!=null) {
 						DefaultMutableTreeNode node =
@@ -128,12 +133,70 @@ public class TheoryTree extends JPanel {
 		}
 	}
 	
-	/*
-	 * The following classes use the set activeTheories to affect their behaviour.
+	/**
+	 * Calls refresh() on all active instances of TheoryTree
 	 */
+	public static void refreshInstances() {
+		synchronized (instances) {
+			updateTheories();
+			for (TheoryTree t : instances) t.refresh();
+			saveState();
+		}
+	}
+	
+	public static void loadTheory(String name, String fileName)
+	throws QuantoCore.ConsoleError {
+		Theory thy = QuantoApp.getInstance().getCore().load_theory(name, fileName);
+		QuantoApp.getInstance().getCore().activate_theory(thy);
+		theories.put(thy.getName(), thy);
+		refreshInstances();
+	}
+	
+	public static void unloadTheory(Theory thy) throws ConsoleError {
+		QuantoApp.getInstance().getCore().unload_theory(thy);
+		theories.remove(thy.getName());
+		refreshInstances();
+		saveState();                 
+	}
+	public static void saveState() {
+		StringBuffer buf = new StringBuffer();
+		for (Theory thy : theories.values()) {
+			buf.append(thy.getName()).append("\n");
+			buf.append(thy.getPath()).append("\n");
+			buf.append(thy.isActive()).append("\n");
+		}
+		QuantoApp.getInstance().setPreference(QuantoApp.LOADED_THEORIES, buf.toString());
+	}
+	
+	public static void loadState() {
+		String[] thys = QuantoApp.getInstance()
+			.getPreference(QuantoApp.LOADED_THEORIES).split("\\n");
+		int idx = 0;
+		String nm, path;
+		boolean active;
+		QuantoCore qc = QuantoApp.getInstance().getCore();
+		while (idx < thys.length-2) {
+			nm = thys[idx];
+			path = thys[idx+1];
+			active = thys[idx+2].equals("true");
+//			System.out.println(active);
+			try {
+				Theory thy = qc.load_theory(nm, path);
+				if (active) qc.activate_theory(thy);
+				else qc.deactivate_theory(thy);
+				theories.put(thy.getName(), thy);
+			} catch (ConsoleError e) {
+				System.err.printf("%s[%s,%s]\n", e.getMessage(), nm, path);
+			}
+			
+			idx+=3;
+		}
+		refreshInstances();
+	}
+	
 	
 	@SuppressWarnings("serial")
-	private class TheoryCellRenderer extends DefaultTreeCellRenderer {
+	private static class TheoryCellRenderer extends DefaultTreeCellRenderer {
 		public Component getTreeCellRendererComponent(JTree tree, Object value,
 				boolean selected, boolean expanded, boolean leaf, int row,
 				boolean hasFocus) {
@@ -142,15 +205,24 @@ public class TheoryTree extends JPanel {
 					leaf, row, hasFocus);
 			
 			// ghost the theory if it isn't active
-			Object o = ((DefaultMutableTreeNode)value).getUserObject();
-			if (o instanceof Theory) {
-				if (! ((Theory)o).isActive()) setForeground(Color.gray);
+			DefaultMutableTreeNode nd = (DefaultMutableTreeNode)value;
+			Theory th = null;
+			if (nd.getUserObject() instanceof Theory) {
+				th = (Theory)nd.getUserObject();
+			} else { // we might be a rule under a theory
+				nd = (DefaultMutableTreeNode)nd.getParent();
+				if (nd!=null && (nd.getUserObject() instanceof Theory))
+					th = (Theory)nd.getUserObject();
 			}
+			if (th!=null && !th.isActive()) setForeground(Color.gray);
 			
 			return this;
 		}
 	}
 	
+	/*
+	 * this class uses the "tree" instance var
+	 */
 	@SuppressWarnings("serial")
 	private class TheoryMenu extends JPopupMenu {
 		public TheoryMenu(final Theory thy) {
@@ -182,63 +254,5 @@ public class TheoryTree extends JPanel {
 			});
 			add(item);
 		}
-	}
-	
-	/**
-	 * Calls refresh() on all active instances of TheoryTree
-	 */
-	public static void refreshInstances() {
-		synchronized (instances) {
-			updateTheories();
-			for (TheoryTree t : instances) t.refresh();
-			saveState();
-		}
-	}
-	
-	public static void loadTheory(String name, String fileName)
-	throws QuantoCore.ConsoleError {
-		String actualName = QuantoApp.getInstance().getCore().load_theory(name, fileName);
-		Theory thy = new Theory(actualName, fileName.replaceAll("\\n|\\r", ""));
-		theories.put(actualName, thy);
-		refreshInstances();
-	}
-	
-	public static void unloadTheory(Theory thy) throws ConsoleError {
-		QuantoApp.getInstance().getCore().unload_theory(thy);
-		theories.remove(thy.getName());
-		refreshInstances();
-		saveState();                 
-	}
-	public static void saveState() {
-		StringBuffer buf = new StringBuffer();
-		for (Theory thy : theories.values()) {
-			buf.append(thy.getName()).append("\n");
-			buf.append(thy.getPath()).append("\n");
-			buf.append(thy.isActive()).append("\n");
-		}
-		QuantoApp.getInstance().setPreference(QuantoApp.LOADED_THEORIES, buf.toString());
-	}
-	
-	public static void loadState() {
-		String[] thys = QuantoApp.getInstance()
-			.getPreference(QuantoApp.LOADED_THEORIES).split("\\n");
-		int idx = 0;
-		String nm, path;
-		boolean active;
-		while (idx < thys.length-2) {
-			nm = thys[idx];
-			path = thys[idx+1];
-			active = thys[idx+2].equals("true");
-			try {
-				String actualName = QuantoApp.getInstance().getCore().load_theory(nm, path);
-				Theory thy = new Theory(actualName, path, active);
-				theories.put(actualName, thy);
-			} catch (ConsoleError e) {
-				System.err.printf("%s[%s,%s]\n", e.getMessage(), nm, path);
-			}
-			
-			idx+=3;
-		}
-		refreshInstances();
 	}
 }

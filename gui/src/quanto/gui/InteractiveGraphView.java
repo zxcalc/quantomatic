@@ -10,6 +10,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -746,7 +747,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					rw = r.nextInt(rws.size());
 					highlightSubgraph(rws.get(rw).getLhs());
 					try {
-						sleep(1000);
+						sleep(1500);
 						clearHighlight();
 						applyRewrite(rw);
 						++count;
@@ -759,14 +760,21 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					}
 				}
 				
+				
 				final int finalCount = count;
-				SwingUtilities.invokeLater(new Runnable() {
-					public void run() {
-						infoDialog("Applied "
-								+ Integer.toString(finalCount)
-								+ " rewrites.");
-					}
-				});
+				try {
+					SwingUtilities.invokeAndWait(new Runnable() {
+						public void run() {
+							infoDialog("Applied "
+									+ finalCount
+									+ " rewrites.");
+						}
+					});
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (InvocationTargetException e) {
+					e.printStackTrace();
+				}
 			}
 			
 			
@@ -874,16 +882,19 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public void viewFocus(ViewPort vp) {
+//		System.out.printf("Adding (%d) menus (%s).\n", menus.size(), getGraph().getName());
 		QuantoApp.MainMenu mm = vp.getMainMenu();
 		for (JMenu menu : menus) mm.add(menu);
 		mm.insertAfter(mm.fileMenu, mm.file_openGraph, file_saveGraph);
 		mm.insertAfter(mm.fileMenu, file_saveGraph, file_saveGraphAs);
+		mm.revalidate();
 		mm.repaint();
 		grabFocus();
 //		setBorder(BorderFactory.createLineBorder(Color.blue, 1));
 	}
 	
 	public void viewUnfocus(ViewPort vp) {
+//		System.out.printf("Removin my stuff (%s).\n", getGraph().getName());
 		QuantoApp.MainMenu mm = vp.getMainMenu();
 		for (JMenu menu : menus) mm.remove(menu);
 		mm.fileMenu.remove(file_saveGraph);

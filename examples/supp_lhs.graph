@@ -1,0 +1,74 @@
+<graph>
+<!-- VERTICES -->
+  <vertex>
+    <name>f</name>
+    <boundary>false</boundary>
+    <colour>green</colour>
+    <angleexpr>
+      <as_string>a</as_string>
+      
+      <variable>
+        <name>a</name>
+        <coefficient>
+          <num>1</num>
+          <denom>1</denom>
+        </coefficient>
+      </variable>
+    </angleexpr>
+  </vertex>
+  <vertex>
+    <name>e</name>
+    <boundary>false</boundary>
+    <colour>green</colour>
+    <angleexpr>
+      <as_string>-a</as_string>
+      
+      <variable>
+        <name>a</name>
+        <coefficient>
+          <num>~1</num>
+          <denom>1</denom>
+        </coefficient>
+      </variable>
+    </angleexpr>
+  </vertex>
+  <vertex>
+    <name>d</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>c</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>b</name>
+    <boundary>true</boundary>
+  </vertex>
+  <vertex>
+    <name>a</name>
+    <boundary>true</boundary>
+  </vertex>
+<!-- EDGES -->
+  <edge>
+    <name>Ef</name><source>c</source><target>b</target>
+  </edge>
+  <edge>
+    <name>Ee</name><source>f</source><target>c</target>
+  </edge>
+  <edge>
+    <name>Ed</name><source>e</source><target>c</target>
+  </edge>
+  <edge>
+    <name>Ec</name><source>d</source><target>e</target>
+  </edge>
+  <edge>
+    <name>Eb</name><source>d</source><target>f</target>
+  </edge>
+  <edge>
+    <name>Ea</name><source>a</source><target>d</target>
+  </edge>
+<!-- BANG BOXES  -->
+  
+</graph>

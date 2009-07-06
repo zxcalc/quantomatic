@@ -122,7 +122,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 						if (v.getVertexType()==QVertex.Type.BOUNDARY)
 							return Integer.toString(getGraph().getBoundaryIndex(v));
 						else if (v.getVertexType()==QVertex.Type.HADAMARD)
-							return "";
+							return "H";
 						else return v.getAngle();
 					}
         		});
@@ -225,6 +225,8 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 					bounds = new Rectangle2D.Double(p.getX(),p.getY(),0,0);
 				else bounds.add(p);
 			}
+			if (bounds == null)
+				bounds = new Rectangle2D.Double(0,0,10,10);
 			bounds.setRect(bounds.getX()-20, bounds.getY()-20,
 					bounds.getWidth()+40, bounds.getHeight()+40);
 		}
@@ -278,6 +280,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 		this.quantoLayout = quantoLayout;
 	}
 	
+	
 	public byte[] exportPdf() {
 		// save values in case we're using this GraphView for other stuff
 		GraphicsDecorator gc = getRenderContext().getGraphicsContext();
@@ -290,7 +293,10 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 			ByteBuffer buf = new ByteBuffer();
 			//BufferedOutputStream file = new BufferedOutputStream(buf);
 			Document doc = new Document(new com.lowagie.text.Rectangle(width,height));
+			//FileOutputStream fw = new FileOutputStream("/Users/aleks/itexttest2.pdf");
+			
 			PdfWriter writer = PdfWriter.getInstance(doc, buf);
+			
 			doc.open();
 			
 			PdfContentByte cb = writer.getDirectContent();
@@ -308,12 +314,20 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 				}
 			};
 			
+			
 			getRenderContext().setScreenDevice(virtual);
 			getRenderer().render(getRenderContext(), getGraphLayout());
 	    	g2.dispose();
 	    	doc.close();
-	    	return buf.getBuffer();
+	    	
+	    	byte[] minbuf = new byte[buf.size()];
+	    	byte[] oldbuf = buf.getBuffer();
+	    	for (int i = 0; i<buf.size(); ++i) minbuf[i] = oldbuf[i];
+	    	
+	    	return minbuf;
 		} catch (DocumentException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			if (gc!=null) getRenderContext().setGraphicsContext(gc);
@@ -337,9 +351,12 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 				vertex instanceof QVertex)
 			{
 				String val = TexConstants.translate((String)value);
+				
 				JLabel lab = new JLabel(val);
 				Color col = null;
 				QVertex qv = (QVertex)vertex;
+				if (val.equals("0") && qv.getVertexType()!=QVertex.Type.BOUNDARY)
+					return new JLabel();
 				if (qv.getColor().equals(Color.red)) {
 					col = new Color(255,170,170);
 					lab.setBackground(col);

@@ -291,13 +291,13 @@
           <name>Ed</name><source>f</source><target>c</target>
         </edge>
         <edge>
-          <name>Ec</name><source>f</source><target>c</target>
+          <name>Ec</name><source>f</source><target>d</target>
         </edge>
         <edge>
           <name>Eb</name><source>a</source><target>e</target>
         </edge>
         <edge>
-          <name>Ea</name><source>a</source><target>e</target>
+          <name>Ea</name><source>b</source><target>e</target>
         </edge>
       <!-- BANG BOXES  -->
         

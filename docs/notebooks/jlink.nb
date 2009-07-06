@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       145,          7]
-NotebookDataLength[     18098,        487]
-NotebookOptionsPosition[     17713,        470]
-NotebookOutlinePosition[     18072,        486]
-CellTagsIndexPosition[     18029,        483]
+NotebookDataLength[     19116,        513]
+NotebookOptionsPosition[     18731,        496]
+NotebookOutlinePosition[     19090,        512]
+CellTagsIndexPosition[     19047,        509]
 WindowFrame->Normal
 ContainsDynamic->False*)
 
@@ -171,8 +171,31 @@ Cell[BoxData[{
        "__"}], "]"}], "]"}], ":=", "name"}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
-   RowBox[{"GraphName", "[", "name_", "]"}], ":=", "name"}], ";"}]}], "Input",\
-
+   RowBox[{"GraphName", "[", "name_", "]"}], ":=", "name"}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"DuplicateGraph", "[", "gr_", "]"}], ":=", 
+  RowBox[{
+   RowBox[{"StringSplit", "[", 
+    RowBox[{"cmd", "[", 
+     RowBox[{"\"\<duplicate_graph\>\"", ",", " ", 
+      RowBox[{"{", 
+       RowBox[{"GraphName", "[", "gr", "]"}], "}"}]}], "]"}], "]"}], "[", 
+   RowBox[{"[", "1", "]"}], "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Normalise", "[", "gr_", "]"}], ":=", 
+  RowBox[{"With", "[", 
+   RowBox[{
+    RowBox[{"{", 
+     RowBox[{"newg", "=", 
+      RowBox[{"DuplicateGraph", "[", "gr", "]"}]}], "}"}], ",", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"QuantoApp", "[", "]"}], "@", 
+      RowBox[{
+       RowBox[{"getCore", "[", "]"}], "@", 
+       RowBox[{"fastNormalise", "[", "newg", "]"}]}]}], ";", 
+     RowBox[{"GetGraph", "[", "newg", "]"}]}]}], "]"}]}]}], "Input",
  CellChangeTimes->{{3.454091553394251*^9, 3.454091580532803*^9}, {
    3.454094694435107*^9, 3.4540947305407*^9}, {3.454094766154118*^9, 
    3.454094820740568*^9}, {3.454095002197158*^9, 3.454095039802918*^9}, 
@@ -191,7 +214,10 @@ Cell[BoxData[{
    3.4541025334408293`*^9, 3.454102604663796*^9}, {3.454102716425989*^9, 
    3.454102743944923*^9}, {3.454102794934471*^9, 3.45410279811735*^9}, {
    3.454147322438847*^9, 3.4541473520052757`*^9}, {3.454147577893709*^9, 
-   3.454147578573552*^9}, {3.4541476249890013`*^9, 3.4541476484982767`*^9}}],
+   3.454147578573552*^9}, {3.4541476249890013`*^9, 3.4541476484982767`*^9}, {
+   3.454790941410511*^9, 3.454790987355019*^9}, {3.454791033653686*^9, 
+   3.454791044276765*^9}, {3.454791239370143*^9, 3.454791243925991*^9}, {
+   3.4548494764822073`*^9, 3.454849476981621*^9}}],
 
 Cell[BoxData[{
  RowBox[{
@@ -469,7 +495,7 @@ Cell[BoxData[{
    3.454095518635655*^9}}]
 },
 WindowSize->{850, 698},
-WindowMargins->{{Automatic, 157}, {36, Automatic}},
+WindowMargins->{{Automatic, 194}, {35, Automatic}},
 ShowSelection->True,
 FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
 StyleDefinitions->"Default.nb"
@@ -487,8 +513,8 @@ CellTagsIndex->{}
 Notebook[{
 Cell[568, 21, 120, 2, 27, "Input"],
 Cell[691, 25, 152, 3, 26, "Text"],
-Cell[846, 30, 6205, 163, 313, "Input"],
-Cell[7054, 195, 10655, 273, 568, "Input"]
+Cell[846, 30, 7223, 189, 358, "Input"],
+Cell[8072, 221, 10655, 273, 568, "Input"]
 }
 ]
 *)

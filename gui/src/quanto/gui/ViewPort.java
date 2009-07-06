@@ -62,6 +62,7 @@ public class ViewPort extends JPanel {
 	}
 	
 	public void setFocusedView(String view) {
+//		System.out.println("Setting focused view to : "+view);
 		InteractiveView activeView = null;
 		if (focusedView != null) {
 			activeView = QuantoApp.getInstance().getViews().get(focusedView);

@@ -286,6 +286,12 @@ public class QuantoCore {
 		return command("hilb", graph, new HasName.StringName(format));
 	}
 	
+	public String hilb(String graphName, String format) throws ConsoleError {
+		return command("hilb",
+					new HasName.StringName(graphName),
+					new HasName.StringName(format));
+	}
+	
 	public void delete_vertices(QuantoGraph graph, Set<QVertex> v) throws ConsoleError {
 		command("delete_vertices", graph, new HasName.QuotedCollectionName(v));
 	}
@@ -314,10 +320,13 @@ public class QuantoCore {
 		return chomp(blockCommand("input_graph_xml", xml));
 	}
 	
-	public String load_theory(String theoryName, String fileName) throws ConsoleError{
-		return chomp(command("load_theory",
-				new HasName.QuotedName(theoryName), 
-				new HasName.QuotedName(fileName)));
+	public Theory load_theory(String theoryName, String fileName) throws ConsoleError{
+		return new Theory(
+				chomp(command("load_theory",
+					new HasName.QuotedName(theoryName), 
+					new HasName.QuotedName(fileName))),
+				chomp(fileName),
+				false);
 	}
 	
 	public void unload_theory(Theory theory) throws ConsoleError{
@@ -373,10 +382,12 @@ public class QuantoCore {
 	
 	public void activate_theory(Theory thy) throws ConsoleError {
 		command("activate_theory", new HasName.QuotedName(thy));
+		thy.setActive(true);
 	}
 	
 	public void deactivate_theory(Theory thy) throws ConsoleError {
 		command("deactivate_theory", new HasName.QuotedName(thy));
+		thy.setActive(false);
 	}
 	
 	public void apply_first_rewrite(String graph) throws ConsoleError {

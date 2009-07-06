@@ -127,7 +127,7 @@ public class QuantoApp {
 		}
 		
 		if (QuantoApp.isMac && !QuantoCore.mathematicaMode) {	
-			System.setProperty("apple.laf.useScreenMenuBar", "true");
+			//System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
 		}
 		

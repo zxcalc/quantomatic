@@ -173,7 +173,7 @@ fun pretty' pistr (pi, tab) =
     let val tlist = rev (VName.NTab.list_of tab)
     in (Pretty.block o pretty_list)
 	   (if Coeff.is_zero pi then tlist
-	    else ("\\pi", pi)::tlist)
+	    else (pistr, pi)::tlist)
     end
 
 
