@@ -30,6 +30,7 @@ import quanto.gui.QuantoCore.ConsoleError;
 public class TheoryTree extends JPanel {
 	private static final long serialVersionUID = 9201368442015685164L;
 	private static final List<TheoryTree> instances = new ArrayList<TheoryTree>();
+	private final ViewPort viewPort;
 	
 	// the theory state is global
 	protected static final Map<String,Theory> theories = new HashMap<String, Theory>();
@@ -38,10 +39,11 @@ public class TheoryTree extends JPanel {
 	private JTree tree;
 	private DefaultMutableTreeNode top;
 
-	public TheoryTree () {
+	public TheoryTree (ViewPort viewPort) {
 		synchronized (instances) {
 			instances.add(this);
 		}
+		this.viewPort = viewPort;
 		setLayout(new BorderLayout());
 		top = new DefaultMutableTreeNode("Theories");
 		tree = new JTree(top);
@@ -64,7 +66,7 @@ public class TheoryTree extends JPanel {
 						DefaultMutableTreeNode node =
 							(DefaultMutableTreeNode)p.getLastPathComponent();
 						Object o = node.getUserObject();
-						if (node.isRoot()) {
+						if (node.isRoot()) { // the root
 							//System.out.println("ROOT:" + p);
 							JPopupMenu menu = new JPopupMenu();
 							JMenuItem load = new JMenuItem("Load Theory...");
@@ -75,9 +77,12 @@ public class TheoryTree extends JPanel {
 							});
 							menu.add(load);
 							menu.show(tree, e.getX(), e.getY());
-						} else if (o instanceof Theory) {
+						} else if (o instanceof Theory) { // a theory
 							//System.out.println("THEORY:" + p);
 							new TheoryMenu((Theory)o).show(tree, e.getX(), e.getY());
+						} else if (node.isLeaf()) { // a rule
+							Theory th = (Theory)((DefaultMutableTreeNode)node.getParent()).getUserObject();
+							new RuleMenu(th, (String)o).show(tree, e.getX(), e.getY());
 						}
 					}
 				}
@@ -252,6 +257,38 @@ public class TheoryTree extends JPanel {
 					TheoryTree.unloadTheory(thy);
 				}
 			});
+			add(item);
+		}
+	}
+	
+	/*
+	 * this class uses the "tree" instance var
+	 */
+	@SuppressWarnings("serial")
+	private class RuleMenu extends JPopupMenu {
+		public RuleMenu(final Theory thy, final String rule) {
+			JMenuItem item;
+			item = new JMenuItem("Open LHS");
+			
+			class RuleAL extends QuantoActionListener {
+				private boolean left;
+				public RuleAL(boolean left) { super(tree); this.left = left; }
+				
+				public void wrappedAction(ActionEvent e) throws ConsoleError {
+					QuantoCore core = QuantoApp.getInstance().getCore();
+					QuantoGraph gr = (left) ? core.open_rule_lhs(thy, rule) : core.open_rule_rhs(thy, rule);
+					InteractiveGraphView igv = new InteractiveGraphView(core, gr);
+					igv.updateGraph();
+					String v = QuantoApp.getInstance().addView(gr.getName(), igv);
+					viewPort.setFocusedView(v);
+					viewPort.gainFocus();
+				}
+			}
+			
+			item.addActionListener(new RuleAL(true));
+			add(item);
+			item = new JMenuItem("Open RHS");
+			item.addActionListener(new RuleAL(false));
 			add(item);
 		}
 	}

@@ -398,6 +398,22 @@ public class QuantoCore {
 		command("apply_first_rewrite", new HasName.QuotedName(graph));
 	}
 	
+	public QuantoGraph open_rule_lhs(Theory thy, String rule) throws ConsoleError {
+		QuantoGraph g = new QuantoGraph(
+				chomp(command("open_rule_lhs",
+				new HasName.QuotedName(thy), new HasName.StringName(rule))));
+		g.fromXml(graph_xml(g));
+		return g;
+	}
+	
+	public QuantoGraph open_rule_rhs(Theory thy, String rule) throws ConsoleError {
+		QuantoGraph g = new QuantoGraph(
+				chomp(command("open_rule_rhs",
+				new HasName.QuotedName(thy), new HasName.StringName(rule))));
+		g.fromXml(graph_xml(g));
+		return g;
+	}
+	
 	
 	/*
 	 * Derived methods, note these are in CamelCase to emphasise that they
