@@ -10,12 +10,11 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       145,          7]
-NotebookDataLength[      1468,         51]
-NotebookOptionsPosition[      1145,         35]
-NotebookOutlinePosition[      1524,         52]
-CellTagsIndexPosition[      1481,         49]
-WindowFrame->Normal
-ContainsDynamic->False*)
+NotebookDataLength[      1614,         55]
+NotebookOptionsPosition[      1250,         38]
+NotebookOutlinePosition[      1633,         55]
+CellTagsIndexPosition[      1590,         52]
+WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
@@ -31,13 +30,17 @@ Cell[BoxData[
  RowBox[{"QuantoInit", "[", 
   "\"\</Users/aleks/svn/isaplanner/quantomatic/gui/dist/QuantoGui.jar\>\"", 
   "]"}]], "Input",
- CellChangeTimes->{{3.455626054366189*^9, 3.4556260581791143`*^9}}]
+ CellChangeTimes->{{3.455626054366189*^9, 3.4556260581791143`*^9}}],
+
+Cell[BoxData[
+ RowBox[{"QuantoKill", "[", "]"}]], "Input",
+ CellChangeTimes->{{3.45837048454422*^9, 3.4583704863896847`*^9}}]
 },
 WindowSize->{672, 582},
-WindowMargins->{{Automatic, 267}, {29, Automatic}},
+WindowMargins->{{275, Automatic}, {149, Automatic}},
 ShowSelection->True,
 Magnification->1.5,
-FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
+FrontEndVersion->"7.0 for Mac OS X x86 (32-bit) (February 18, 2009)",
 StyleDefinitions->"Default.nb"
 ]
 (* End of Notebook Content *)
@@ -51,8 +54,9 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[568, 21, 364, 6, 40, "Input"],
-Cell[935, 29, 206, 4, 87, "Input"]
+Cell[545, 20, 364, 6, 40, "Input"],
+Cell[912, 28, 206, 4, 87, "Input"],
+Cell[1121, 34, 125, 2, 40, "Input"]
 }
 ]
 *)
