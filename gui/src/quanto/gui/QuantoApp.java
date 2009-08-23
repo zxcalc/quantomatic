@@ -110,10 +110,27 @@ public class QuantoApp {
 	public static void main(String[] args) {
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
-				QuantoCore.appMode = true;
+				QuantoCore.appName = "Quantomatic.app";
+				
+				// determine the app name from the classpath if I can...
+				System.out.println(System.getProperty("java.class.path"));
+		    	for (String path : System.getProperty("java.class.path")
+		    			.split(System.getProperty("path.separator"))) {
+		    		if (path.indexOf("QuantoGui.jar")!=-1) {
+		    			String[] dirs = path.split(System.getProperty("file.separator"));
+		    			if (dirs.length>=5) {
+		    				QuantoCore.appName = dirs[dirs.length-5];
+		    				System.out.println(QuantoCore.appName);
+		    			}
+		    		}
+		    	}
+				
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
-					"Quantomatic.app/Contents/MacOS/dot_static";
+					QuantoCore.appName + "/Contents/MacOS/dot_static";
 				System.out.println("Invoked as OS X application.");
+//				for (Entry<Object,Object> k : System.getProperties().entrySet()) {
+//					System.out.printf("%s -> %s\n", k.getKey(), k.getValue());
+//				}
 			} else if (arg.equals("--mathematica-mode")) {
 				QuantoCore.mathematicaMode = true;
 			}

@@ -27,7 +27,7 @@ public class QuantoCore {
 	public final HasName[] noargs = new HasName[]{};
 	
 	// Invoked as OS X application
-	public static boolean appMode = false;
+	public static String appName = null;
 	public static boolean mathematicaMode = false;
 	
 	public static class ConsoleError extends Exception {
@@ -52,9 +52,9 @@ public class QuantoCore {
 		this.output = output;
 		try {
 			ProcessBuilder pb;
-			if (appMode) {
+			if (appName != null) {
 				pb = new ProcessBuilder(
-					"Quantomatic.app/Contents/MacOS/quanto-core-app");
+					appName + "/Contents/MacOS/quanto-core-app");
 			} else {
 				pb = new ProcessBuilder("quanto-core");
 			}
