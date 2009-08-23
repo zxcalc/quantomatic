@@ -11,6 +11,8 @@ sig
                          RGGraph.T -> (string * Rule.T) Seq.seq
     val apply_a_rule_in : (string * Rule.T) list -> NSet.T ->
                           RGGraph.T -> (string * Rule.T) Seq.seq
+    (* TODO : this should be a Rule name type rather than string *)
+    val lookup_rule : T -> string -> Rule.T option
 end
 
 (* at some point, a theory should be a richer structure,
@@ -71,6 +73,9 @@ val get_all_theories = NTab.keys
 
 fun get_rules_in_theory thys thy_name = fst (NTab.get thys thy_name)
 
+fun lookup_rule thy rule_name = case List.find (fn (k,_) => (k=rule_name)) (#1 thy)
+                              of SOME (_,v) => SOME v
+                               | NONE => NONE
 
 end
 

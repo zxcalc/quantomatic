@@ -526,7 +526,24 @@ fun flip_vertices (_::vs, graph) = let
 in ("ok\n", fold (G.update_vertex_data flip_data) (map V.mk vs) graph)
 end
   | flip_vertices _ = raise wrong_args_exp
+  
 
+fun export_rule getter label ([theory,rule],state) =
+    let
+      val theories = get_theories state
+      val thy = case Theory.NTab.lookup theories (Theory.mk theory)
+                 of SOME v => v | NONE => raise user_exp "Can't find theory."
+      val rl = case Theory.lookup_rule thy rule
+                   of SOME v => v | NONE => raise user_exp "Can't find rule."
+      val (name, graphs) = GraphName.NTab.add (GraphName.mk (rule^"_"^label), getter rl) (get_graphs state)
+    in
+      (((suffix "\n") o Pretty.string_of o GraphName.pretty_name) name,
+       state |> set_graphs graphs)
+    end
+  | export_rule _ _ _ = raise wrong_args_exp
+
+val open_rule_lhs = export_rule Rule.get_lhs "lhs"
+val open_rule_rhs = export_rule Rule.get_rhs "rhs"
 
 (* Register commands available from the console and associate docs *)
 
@@ -794,6 +811,20 @@ val () = (
      "    reverse the colour of vertices V1..VN, ingoring\n"^
      "    boundary vertices.")
     (lift_graph_mutator flip_vertices);
+
+    register_cmd
+    "open_rule_lhs"
+    ("open_rule_lhs THY RULE\n\n"^
+     "    Open the LHS of the given rule and return the name of\n"^
+     "    the new graph buffer.")
+    (open_rule_lhs);
+
+    register_cmd
+    "open_rule_rhs"
+    ("open_rule_rhs THY RULE\n\n"^
+     "    Open the RHS of the given rule and return the name of\n"^
+     "    the new graph buffer.")
+    (open_rule_rhs);
 
 
 

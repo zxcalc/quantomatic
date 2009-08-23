@@ -1,15 +1,9 @@
 (* basic values *)
 val rootDir = OS.FileSys.getDir();
 (* print rootDir; *)
-val heapName = (rootDir ^ "/../../isaplib/heaps/all.polyml-heap");
-
-(* load the background heap, or compile from src if no heap *)
-val _ = if ((OS.FileSys.fileId heapName; true) handle OS.SysErr e => false)
-then (PolyML.SaveState.loadState heapName)
-else 
-  (OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
-   use "ROOT.ML"; 
-   OS.FileSys.chDir rootDir);
+(OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
+use "ROOT.ML"; 
+OS.FileSys.chDir rootDir);
 
 (* load all the files. *)
 use "lex.ML";
@@ -47,5 +41,7 @@ use "loadsave.ML";
 use "theory_new.ML";
 use "hilb.ML";
 use "controller.ML";
+
+use "test/linrat_expr.ML";
 
 val run = Controller.init;
