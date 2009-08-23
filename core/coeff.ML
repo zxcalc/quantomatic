@@ -105,7 +105,7 @@ end;
 structure Rational : RATIONAL = DB_Rational;
 
 
-structure RationalMod2 : RATIONAL = 
+structure DB_RationalMod2 = 
 struct
 
 open Rational;
@@ -117,14 +117,16 @@ fun rat_reduce r =
       val (m,n3) = Integer.div_mod n2 twod2
     in ((if m < 0 then n3 - twod2 else n3),d2) end;
 
-fun rat_add (n1,d1) (n2,d2) =  rat_reduce (n1*d2 + n2*d1, d1*d2)
-fun rat_subtr (n1,d1) (n2,d2) = rat_add (n1,d1) (~n2,d2)
-fun rat_mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
-fun rat_div (n1,d1) (n2,d2) = rat_mult (n1,d1) (d2,n2)
+fun add (n1,d1) (n2,d2) =  rat_reduce (n1*d2 + n2*d1, d1*d2)
+fun subtr (n1,d1) (n2,d2) = add (n1,d1) (~n2,d2)
+fun mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
+fun div (n1,d1) (n2,d2) = mult (n1,d1) (d2,n2)
 
 fun mk n d = rat_reduce (n,d);
 
 end;
+
+structure RationalMod2 = DB_RationalMod2 : RATIONAL;
 
 (*
 install_pp (make_pp ["Rational", "T"] (Pretty.pprint o Rational.pretty));

@@ -19,9 +19,10 @@ structure DB_LinratExpr =
 struct 
 exception BadExpression of string;
 exception parse_exp;
-structure Coeff = RationalMod2;
+structure PiCoeff = RationalMod2;
+structure Coeff = Rational;
 
-type T = Coeff.T * (Coeff.T VName.NTab.T);  (* the first Coeff is for Pi *)
+type T = PiCoeff.T * (Coeff.T VName.NTab.T);  (* the PiCoeff is for Pi *)
 
 (* =====================================================================*)
 
@@ -36,7 +37,7 @@ fun forall_pair eq ([],[]) = true
   | forall_pair eq _ = raise ListPair.UnequalLengths;
 
 fun eq (x,xT) (y,yT) = 
-    if Coeff.eq x y then 
+    if PiCoeff.eq x y then 
       forall_pair kv_eq (VName.NTab.list_of xT, VName.NTab.list_of yT)
 	    handle ListPair.UnequalLengths => false
     else false;
@@ -76,16 +77,16 @@ fun get_vars (_,tab)  = VName.NTab.get_nameset tab;
 
 val empty = VName.NTab.empty : Coeff.T VName.NTab.T;
 
-val zero = (Coeff.zero, empty);
+val zero = (PiCoeff.zero, empty);
 fun is_zero (cpi,vars) = 
-    (Coeff.is_zero cpi andalso VName.NTab.is_name_empty vars);
+    (PiCoeff.is_zero cpi andalso VName.NTab.is_name_empty vars);
 
-val pi = (Coeff.one, empty);
+val pi = (PiCoeff.one, empty);
 
 fun mk const kv_list =
     (const, fold VName.NTab.update kv_list empty )
 
-fun mk_var nm = mk Coeff.zero [(nm, Coeff.mk 1 1)];
+fun mk_var nm = mk PiCoeff.zero [(nm, Coeff.mk 1 1)];
 
 (* reduce exprs to a normal by removing variables whose Coeff = 0 ======*)
 fun reduce_expr (p, t) = 
@@ -99,7 +100,7 @@ fun reduce_expr (p, t) =
 
 (* multiplication of an expression by a scalar ===================*)    
 fun scale_expr s (e_pi, e_tab) = 
-    (Coeff.mult s e_pi, VName.NTab.map_all (Coeff.mult s) e_tab);
+    (PiCoeff.mult s e_pi, VName.NTab.map_all (Coeff.mult s) e_tab);
 
 (* arithmetic addition for expressions ========================*)
 fun add_expr (pi1,tab1) (pi2,tab2) = 
@@ -109,7 +110,7 @@ fun add_expr (pi1,tab1) (pi2,tab2) =
 	        then VName.NTab.map_entry (Coeff.add v) k t
 	        else VName.NTab.update (k, v) t
       val newtab = VName.NTab.fold f tab2 tab1
-    in reduce_expr (Coeff.add pi1 pi2, newtab) end
+    in reduce_expr (PiCoeff.add pi1 pi2, newtab) end
 
 (* arithmetic subtraction for expressions ========================*)
 fun subtr_expr e1 e2 = 
@@ -235,8 +236,10 @@ exception semantic_exp
 (* semantic ops *)
 fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Coeff.mk n d)
   | rat _ = raise semantic_exp
-fun whole_num n = rat (n,TOK(L.INT 1))
-fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (Coeff.mk 0 1) [(id,r)])
+fun pirat (TOK(L.INT n), TOK(L.INT d)) = RAT (PiCoeff.mk n d)
+  | pirat _ = raise semantic_exp
+fun whole_num mker n = rat (n,TOK(L.INT 1))
+fun rat_term (RAT r, TOK(L.ID id)) = EXP (mk (PiCoeff.mk 0 1) [(id,r)])
   | rat_term _ = raise semantic_exp
 fun const_term (RAT r) = EXP (mk r [])
   | const_term _ = raise semantic_exp
@@ -254,17 +257,19 @@ fun neg (EXP a) = EXP (subtr_expr zero a)
 fun pi x = x|>((sym "\\" || noop)
 		   --| (sym "p" || sym "P") --| (sym "i" || sym "I"))
 
-fun coeff x = x|>(
-	      ((num --| sym "/" -- num) >> rat)
-		  || (sym "(" |-- coeff --| sym ")")
-		  || num >> whole_num)
+fun coeff mker x = x|>(
+	      ((num --| sym "/" -- num) >> mker)
+		  || (sym "(" |-- (coeff mker) --| sym ")")
+		  || num >> (whole_num mker))
+
+
 (* first term *)
 fun term x = x|>(
 	     ((sym "-" |-- term) >> neg)
-		 || ((coeff --| (sym "*" || noop) --| pi) >> const_term)
+		 || (((coeff pirat) --| (sym "*" || noop) --| pi) >> const_term)
 		 || (pi >> (K one_pi))
-		 || ((coeff --| (sym "*" || noop) -- ident) >> rat_term)
-		 || (coeff >> const_term)
+		 || (((coeff rat) --| (sym "*" || noop) -- ident) >> rat_term)
+		 || ((coeff pirat) >> const_term)
 		 || (ident >> var_term)
 		 || (sym "(" |-- expr --| sym ")"))
 
