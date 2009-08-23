@@ -21,7 +21,7 @@ use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 use "bang_graph.ML";
 use "coeff.ML";
 use "expr.ML"; 
-use "lex.ML";
+(* use "lex.ML"; *)
 use "linrat_expr.ML"; 
 use "rg_vertex.ML";
 use "rg_graph.ML";
