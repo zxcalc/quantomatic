@@ -72,7 +72,7 @@ fun force_get_text_from elemkind xml =
       | (child::rest) => get_text child
     end
 
-val input_name = force_get_text_from "name"
+val input_name =  (force_get_text_from "name")
 
 fun input_boolean xml = 
     let val t = tolower (get_text xml)

@@ -18,6 +18,8 @@ computation?)
 signature RULE 
 = sig
 
+structure Name : SSTR_NAMES
+
 structure MatchState : MATCH_STATE
 (* these are really in MatchState - this is just a local abbreviation *)
 structure RGGraph : RG_GRAPH
@@ -88,6 +90,8 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor RuleFun( MatchState : MATCH_STATE )
 = struct
+
+structure Name = SStrName;
 
 structure MatchState = MatchState;
 (* local stuff for abbreviations *)

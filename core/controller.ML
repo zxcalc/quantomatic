@@ -55,7 +55,7 @@ end; (* structure QuantoCommand *)
 structure GraphName :> SSTR_NAMES = 
 struct
 open SStrName
-val default_name = SStrName.mk "Ga"
+val default_name = SStrName.mk "New Graph"
 end
 
 exception user_exp of string
@@ -66,36 +66,36 @@ structure E = G.Edge
 structure LoadSave = RGGraphLoaderSaver
 
 
-type rewrite = string * Rule.T * RGGraph.T
+type rewrite = SStrName.name * Rule.T * RGGraph.T
 type c_state = {
      graphs : G.T GraphName.NTab.T,
      rewrites : (rewrite list) GraphName.NTab.T,
      hist : (G.T list * G.T list) GraphName.NTab.T,
-     theories : Theory.T Theory.NTab.T
+     rulesets : RuleSet.T RuleSet.NTab.T
 }
 
 (* getters and setters for the state *)
-fun update_graphs f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=(f g),rewrites=r,hist=h,theories=t}
-fun update_rewrites f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=g,rewrites=(f r),hist=h,theories=t}
-fun update_hist f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=g,rewrites=r,hist=(f h),theories=t}
-fun update_theories f ({graphs=g,rewrites=r,hist=h,theories=t}:c_state):c_state = {graphs=g,rewrites=r,hist=h,theories=(f t)}
-val (set_graphs,set_rewrites,set_hist,set_theories) = (update_graphs o K, update_rewrites o K, update_hist o K, update_theories o K)
+fun update_graphs f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=(f g),rewrites=r,hist=h,rulesets=t}
+fun update_rewrites f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=g,rewrites=(f r),hist=h,rulesets=t}
+fun update_hist f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=g,rewrites=r,hist=(f h),rulesets=t}
+fun update_rulesets f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=g,rewrites=r,hist=h,rulesets=(f t)}
+val (set_graphs,set_rewrites,set_hist,set_rulesets) = (update_graphs o K, update_rewrites o K, update_hist o K, update_rulesets o K)
 fun get_graphs ({graphs=g,...}:c_state) = g
 fun get_rewrites ({rewrites=r,...}:c_state) = r
 fun get_hist ({hist=h,...}:c_state) = h
-fun get_theories ({theories=t,...}:c_state) = t
+fun get_rulesets ({rulesets=t,...}:c_state) = t
 
 datatype consolestate = NORMAL of c_state | SKIP | QUIT
 
-(*val default_theories = Theory.NTab.empty
-                           |> Theory.NTab.update (Theory.mk "default",
-                                                  (!TheoryHack.rules,true))
+(*val default_rulesets = RuleSet.NTab.empty
+                           |> RuleSet.NTab.update (RuleSet.mk "default",
+                                                  (!RuleSetHack.rules,true))
 *)
 
 val newState : c_state = {graphs=GraphName.NTab.empty,
                           rewrites=GraphName.NTab.empty,
                           hist=GraphName.NTab.empty,
-                          theories=Theory.NTab.empty}
+                          rulesets=RuleSet.NTab.empty}
 
 (*
 A dictionary of commands of the format:
@@ -209,68 +209,69 @@ fun list_graphs ([], state) =
   | list_graphs _ = raise wrong_args_exp
 
 
-fun list_theories ([], state) =
+fun list_rulesets ([], state) =
     (Pretty.string_of (Pretty.chunks
-                       (map Theory.pretty_name
-                            (Theory.get_all_theories (get_theories state))
+                       (map RuleSet.pretty_name
+                            (RuleSet.get_all_rulesets (get_rulesets state))
     ))) ^ "\n"
-  | list_theories _ = raise wrong_args_exp
+  | list_rulesets _ = raise wrong_args_exp
 
-fun list_active_theories ([], state) =
+fun list_active_rulesets ([], state) =
     (Pretty.string_of (Pretty.chunks
-                       (map Theory.pretty_name
-                            (Theory.get_active_theories (get_theories state))
+                       (map RuleSet.pretty_name
+                            (RuleSet.get_active_rulesets (get_rulesets state))
     ))) ^ "\n"
-  | list_active_theories _ = raise wrong_args_exp
+  | list_active_rulesets _ = raise wrong_args_exp
 
 fun list_rules ([thy], state) =
     ((Pretty.string_of (
       Pretty.chunks
-          (map (Pretty.str o fst)
-               (Theory.get_rules_in_theory (get_theories state) (Theory.mk thy)))
+        (map (RuleSet.pretty_name o (fn (x,_,_) => x)
+                           )
+               (RuleSet.get_rules_in_ruleset (get_rulesets state) (RuleSet.mk thy)))
      )) ^ "\n"
-     handle UNDEF => raise user_exp ("No such theory '" ^ thy ^ "'"))
+     handle UNDEF => raise user_exp ("No such ruleset '" ^ thy ^ "'"))
   | list_rules _ = raise wrong_args_exp
 
 local
     fun set_active active nm thys = let
-        val thy = Theory.mk nm
-        val (data, _) = Theory.NTab.get thys thy
-    in thys |> Theory.NTab.update (thy, (data, active))
+        val thy = RuleSet.mk nm
+        val (data, _) = RuleSet.NTab.get thys thy
+    in thys |> RuleSet.NTab.update (thy, (data, active))
     end
 
-    fun activate_theory' active ([thy], state) =
+    fun activate_ruleset' active ([thy], state) =
         (("ok\n",
-          update_theories (set_active active thy) state)
-         handle UNDEF => raise user_exp ("No such theory '" ^ thy ^ "'"))
-      | activate_theory' active _ = raise wrong_args_exp
+          update_rulesets (set_active active thy) state)
+         handle UNDEF => raise user_exp ("No such ruleset '" ^ thy ^ "'"))
+      | activate_ruleset' active _ = raise wrong_args_exp
 in
-val deactivate_theory  = activate_theory' false
-val activate_theory = activate_theory' true
+val deactivate_ruleset  = activate_ruleset' false
+val activate_ruleset = activate_ruleset' true
 end  
 
-fun load_theory ([nm,file], state) =
+fun load_ruleset ([nm,file], state) =
     (let val loader = RGTheoryHackInputXML.input o XMLReader.read_from_file
-         val thys = get_theories state
-         val (nm', thys') = thys |> Theory.NTab.add (Theory.mk nm, (loader file, true))
-     in ((Pretty.string_of (Theory.pretty_name nm')) ^ "\n", set_theories thys' state)
+         val thys = get_rulesets state
+         val (nm', thys') = thys |> RuleSet.NTab.add (RuleSet.mk nm, (loader file, true))
+     in ((Pretty.string_of (RuleSet.pretty_name nm')) ^ "\n", set_rulesets thys' state)
      end
-     handle IO.Io _ => raise user_exp "Can't open theory.")
-  | load_theory _ = raise wrong_args_exp
-
-
-fun unload_theory ([nm], state) =
-    let fun del nm thys = thys |> Theory.NTab.delete (Theory.mk nm)
-            handle UNDEF => raise user_exp ("No such theory: " ^ nm)
-    in ("ok\n", update_theories (del nm) state)
-    end
-  | unload_theory _ = raise wrong_args_exp
-
-(*
-fun load_ruleset [file] = (TheoryHack.load_rules file ; "Loaded ruleset\n")
+     handle IO.Io _ => raise user_exp "Can't open ruleset.")
   | load_ruleset _ = raise wrong_args_exp
 
-fun save_ruleset [file] = (TheoryHack.save_rules file ; "Saved ruleset\n")
+
+fun unload_ruleset ([nm], state) =
+    let fun del nm thys = thys |> RuleSet.NTab.delete (RuleSet.mk nm)
+            handle UNDEF => raise user_exp ("No such ruleset: " ^ nm)
+    in ("ok\n", update_rulesets (del nm) state)
+    end
+  | unload_ruleset _ = raise wrong_args_exp
+
+(*
+fun load_ruleset [file] = (RuleSetHack.load_rules file ; "Loaded ruleset\n")
+  | load_ruleset _ = raise wrong_args_exp
+
+fun save_ruleset [file] = (RuleSetHack.save_rules file ; "Saved ruleset\n")
   | save_ruleset _ = raise wrong_args_exp
 *)
 
@@ -408,7 +409,7 @@ fun apply_rewrite ([name, n], state) =
     (let val gname = GraphName.mk name
          val rewrites = GraphName.NTab.get (get_rewrites state) gname
          val (name,rule,fused) = nth rewrites (the (Int.fromString n))
-     in ("applied "^name^"\n",
+     in ("applied "^(SStrName.dest name)^"\n",
          state |> push_hist gname
                |> set_graph_at gname (Rule.del_lhs rule fused))
      end
@@ -422,7 +423,7 @@ local
         (let val gname = GraphName.mk (graph_arg args)
 	           val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
 	           val graph = fetch_graph gname state
-             val rules = Theory.get_active_rules (get_theories state)
+             val rules = RuleSet.get_active_rules (get_rulesets state)
 	           val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
                            (Seq.list_of (attacher rules vset graph))
          in
@@ -438,15 +439,15 @@ local
     in ("attached "^(Int.toString n)^" rewrites\n",st)
     end
 in
-val attach_rewrites = attach_with Theory.apply_rules_in
-val attach_one_rewrite = attach_with Theory.apply_a_rule_in
+val attach_rewrites = attach_with RuleSet.apply_rules_in
+val attach_one_rewrite = attach_with RuleSet.apply_a_rule_in
 
 fun apply_first_rewrite (args as [_], state) = let
     val gname = GraphName.mk (graph_arg args)
     val graph = fetch_graph gname state
     val args' = (GraphName.pretty_name gname)::
                 (map V.pretty_name (V.NSet.list_of (G.get_vnames graph)))
-    val (n,state') = attach_with' Theory.apply_a_rule_in (map Pretty.string_of args', state)
+    val (n,state') = attach_with' RuleSet.apply_a_rule_in (map Pretty.string_of args', state)
 in if n = 0 then raise user_exp "No more rewrites."
    else apply_rewrite (args @ ["0"],state')
 end
@@ -528,12 +529,12 @@ end
   | flip_vertices _ = raise wrong_args_exp
   
 
-fun export_rule getter label ([theory,rule],state) =
+fun export_rule getter label ([ruleset,rule],state) =
     let
-      val theories = get_theories state
-      val thy = case Theory.NTab.lookup theories (Theory.mk theory)
-                 of SOME v => v | NONE => raise user_exp "Can't find theory."
-      val rl = case Theory.lookup_rule thy rule
+      val rulesets = get_rulesets state
+      val thy = case RuleSet.NTab.lookup rulesets (RuleSet.mk ruleset)
+                 of SOME v => v | NONE => raise user_exp "Can't find ruleset."
+      val rl = case RuleSet.lookup_rule thy (Rule.Name.mk rule)
                    of SOME v => v | NONE => raise user_exp "Can't find rule."
       val (name, graphs) = GraphName.NTab.add (GraphName.mk (rule^"_"^label), getter rl) (get_graphs state)
     in
@@ -567,16 +568,16 @@ val () = (
     (lift_stateless echo_block);
 
    register_cmd
-    "load_theory"
-    ("load_theory NAME FILE\n\n" ^
-     "    load a theory from FILE and call it NAME\n")
-    load_theory;
+    "load_ruleset"
+    ("load_ruleset NAME FILE\n\n" ^
+     "    load a ruleset from FILE and call it NAME\n")
+    load_ruleset;
 
     register_cmd
-    "unload_theory"
-    ("unload_theory THEORY\n\n" ^
-     "    unload THEORY\n")
-    unload_theory;
+    "unload_ruleset"
+    ("unload_ruleset RULESET\n\n" ^
+     "    unload RULESET\n")
+    unload_ruleset;
     
     (*register_cmd
     "save_ruleset"
@@ -597,34 +598,34 @@ val () = (
     (lift_state_viewer list_graphs);
 
     register_cmd
-    "list_theories"
-    ("list_theories\n\n"^
-     "    list all loaded theories")
-    (lift_state_viewer list_theories);
+    "list_rulesets"
+    ("list_rulesets\n\n"^
+     "    list all loaded rulesets")
+    (lift_state_viewer list_rulesets);
 
     register_cmd
-    "list_active_theories"
-    ("list_active_theories\n\n"^
-     "    list all active theories")
-    (lift_state_viewer list_active_theories);
+    "list_active_rulesets"
+    ("list_active_rulesets\n\n"^
+     "    list all active rulesets")
+    (lift_state_viewer list_active_rulesets);
 
     register_cmd
     "list_rules"
-    ("list_rules THEORY\n\n"^
-     "    list the rules in THEORY")
+    ("list_rules RULESET\n\n"^
+     "    list the rules in RULESET")
     (lift_state_viewer list_rules);
 
     register_cmd
-    "activate_theory"
-    ("activate_theory THEORY\n\n"^
-     "    enable the rules in THEORY for rewriting")
-    (activate_theory);
+    "activate_ruleset"
+    ("activate_ruleset RULESET\n\n"^
+     "    enable the rules in RULESET for rewriting")
+    (activate_ruleset);
 
     register_cmd
-    "deactivate_theory"
-    ("deactivate_theory THEORY\n\n"^
-     "    disable the rules in THEORY for rewriting")
-    (deactivate_theory);
+    "deactivate_ruleset"
+    ("deactivate_ruleset RULESET\n\n"^
+     "    disable the rules in RULESET for rewriting")
+    (deactivate_ruleset);
 
     register_cmd
     "new_graph"

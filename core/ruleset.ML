@@ -3,12 +3,12 @@ sig
     include SSTR_NAMES
     structure Rule : RULE;
     type T
+
     val get_active_rules : T NTab.T -> ((Rule.Name.name * Rule.T) list)
     val get_active_rulesets : T NTab.T -> name list
     val get_all_rulesets : T NTab.T -> name list
     val get_rules_in_ruleset : T NTab.T -> name -> (Rule.Name.name * Rule.T * bool) list
-    val apply_rules_in : (Rule.Name.name * Rule.T) list -> BBox.NSet.T ->
-                         RGGraph.T -> (Rule.Name.name * Rule.T) Seq.seq
+    val apply_rules_in : (Rule.Name.name * Rule.T) list -> Rule.RGGraph.BBox.NSet.T -> RGGraph.T -> (Rule.Name.name * Rule.T) Seq.seq
     val apply_a_rule_in : (Rule.Name.name * Rule.T) list -> NSet.T ->
                           RGGraph.T -> (Rule.Name.name * Rule.T) Seq.seq
 
@@ -19,7 +19,6 @@ sig
     val delete_rule :   ((Rule.Name.name * Rule.T * bool) list) -> Rule.Name.name 
                          -> ((Rule.Name.name * Rule.T * bool) list)
 
-    (* TODO : this should be a Rule name type rather than string *)
     val lookup_rule : T -> Rule.Name.name -> Rule.T option
 end
 

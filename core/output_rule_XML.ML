@@ -5,7 +5,7 @@ sig
   sharing OG.Graph.SharingWithIData = R.RGGraph.SharingWithIData
 		 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = string * R.T
+		where type intype = SStrName.name * R.T
 end;
 
 (* ------------------------------------------------------- *)
@@ -20,7 +20,7 @@ functor RuleOutputXML (
 = struct
   structure R = Rule
   structure OG = OutputGraph
-  type intype = string * R.T
+  type intype = SStrName.name * R.T
   type outtype = Pretty.T
 
   val output_graph = OG.output
@@ -32,7 +32,7 @@ functor RuleOutputXML (
 	        [Pretty.str "<rule>",
 	         indent_chunks [
 		 Pretty.block [Pretty.str "<name>",
-			       Pretty.str rule_name,
+			       Pretty.str (SStrName.dest rule_name),
 			       Pretty.str "</name>"],
 	         Pretty.str "<lhs>",
 	         indent_chunks [output_graph (Rule.get_lhs rule)],
@@ -105,7 +105,7 @@ sig
   sharing OG.Graph.SharingWithIData = R.RGGraph.SharingWithIData
 		 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = string * R.T * OG.Graph.T
+		where type intype = SStrName.name * R.T * OG.Graph.T
 end
 
 (* -------------------------------------------------------- *)
@@ -122,7 +122,7 @@ functor RewriteOutputXML (
 struct
   structure R = Rule
   structure OG = OutputGraph
-  type intype = string * R.T * OG.Graph.T
+  type intype = SStrName.name * R.T * OG.Graph.T
   type outtype = Pretty.T
 
   val output_graph = OG.output
@@ -133,7 +133,7 @@ struct
 	      Pretty.chunks
 	        [Pretty.str "<rewrite>",
 	         indent_chunks [
-	         Pretty.str ("<rulename>"^rule_name^"</rulename>"),
+	         Pretty.str ("<rulename>"^(SStrName.dest rule_name)^"</rulename>"),
 	         output_graph fused,
 	         Pretty.str "<lhs>",
 	         indent_chunks [output_graph (Rule.get_lhs rule)],

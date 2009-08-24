@@ -7,7 +7,7 @@ sig
   sharing IG.G.SharingWithIData = R.RGGraph.SharingWithIData
 
   include INPUT where type intype = IG.intype 
-				        where type outtype = string * R.T
+				        where type outtype = R.Name.name * R.T * bool
 
 end;
 
@@ -30,19 +30,22 @@ type rule = R.T;
 open XML_Utils;
 
 type intype = tree;
-type outtype = string * rule;
+type outtype = Rule.Name.name * rule * bool;
 
 val input_graph = IG.input;
 
 fun input xml = 
     let val _ = force_unpack_elem "rule" xml
-	val name = input_name (get_required_child "name" xml)
+	val name = R.Name.mk (input_name (get_required_child "name" xml))
 	val lhs = input_graph 
 		    (get_required_child "graph" (get_required_child "lhs" xml))
 	val rhs = input_graph 
 		    (get_required_child "graph" (get_required_child "rhs" xml))
+  val active = case (get_child false "active" xml) of
+                 (NONE,_) => true
+               | (SOME b, _) => input_boolean b
     in
-      (name, R.mk (lhs,rhs))
+      (name, R.mk (lhs,rhs), active)
     end
 end;
 
