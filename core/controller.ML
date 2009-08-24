@@ -250,6 +250,29 @@ val deactivate_ruleset  = activate_ruleset' false
 val activate_ruleset = activate_ruleset' true
 end  
 
+local
+    fun update_rule updater rulesetname rulename rulesets = 
+        let
+          val rs = RuleSet.mk rulesetname
+          val rl = Rule.Name.mk rulename
+          val (data, b) = RuleSet.NTab.get rulesets rs
+        in 
+          rulesets |> RuleSet.NTab.update (rs, ((updater data rl), b))
+        end
+
+    fun update_rule' updater ([rule,ruleset], state) =
+        (("ok\n",
+          update_rulesets (update_rule updater ruleset rule) state)
+         handle UNDEF => raise user_exp ("No such ruleset '" ^ ruleset ^ "'"))
+      | update_rule' updater _ = raise wrong_args_exp
+in
+val deactivate_rule  = update_rule' RuleSet.deactivate_rule
+val activate_rule = update_rule' RuleSet.activate_rule
+val activate_rule = update_rule' RuleSet.delete_rule
+end  
+
+
+
 fun load_ruleset ([nm,file], state) =
     (let val loader = RGTheoryHackInputXML.input o XMLReader.read_from_file
          val thys = get_rulesets state
@@ -625,6 +648,24 @@ val () = (
     "deactivate_ruleset"
     ("deactivate_ruleset RULESET\n\n"^
      "    disable the rules in RULESET for rewriting")
+    (deactivate_ruleset);
+
+    register_cmd
+    "activate_rule"
+    ("activate_ruleset RULESET RULE\n\n"^
+     "    enable RULE in RULESET for rewriting")
+    (activate_ruleset);
+
+    register_cmd
+    "deactivate_ruleset"
+    ("deactivate_ruleset RULESET RULE\n\n"^
+     "    disable RULE in RULESET for rewriting")
+    (deactivate_ruleset);
+
+    register_cmd
+    "delete_ruleset"
+    ("delete_ruleset RULESET RULE\n\n"^
+     "    remove RULE from RULESET for rewriting")
     (deactivate_ruleset);
 
     register_cmd
