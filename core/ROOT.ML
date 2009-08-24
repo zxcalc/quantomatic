@@ -1,6 +1,5 @@
 (* basic values *)
 val rootDir = OS.FileSys.getDir();
-(* print rootDir; *)
 (OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
 use "ROOT.ML"; 
 OS.FileSys.chDir rootDir);
@@ -12,15 +11,14 @@ use "graph.ML";
 use "bvertex.ML";
 use "bgraph.ML";
 use "match_ctxt.ML"; (* vertex and edge matching and global context *)
+use "bbox_match.ML";
 use "bang_graph.ML";
 use "coeff.ML";
 use "expr.ML"; 
-(* use "lex.ML"; *)
-use "linrat_expr.ML"; 
+use "linrat_expr.ML";
 use "rg_vertex.ML";
 use "rg_graph.ML";
 use "rg_match_ctxt.ML";
-use "bbox_match.ML";
 (* use "edge_match.ML"; -- not used *)
 use "match.ML";
 use "matchstate.ML";
@@ -42,6 +40,6 @@ use "theory_new.ML";
 use "hilb.ML";
 use "controller.ML";
 
-use "test/linrat_expr.ML";
+use "tests.ML";
 
 val run = Controller.init;

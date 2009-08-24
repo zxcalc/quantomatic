@@ -121,7 +121,6 @@ functor MatchStateFun(
 = struct
 
 (* structure DB_MatchState = struct *)
-
 structure RGGraph = RGGraph;
 structure Vertex = RGGraph.RGVertex;
 structure Edge = RGGraph.Edge;
@@ -132,28 +131,38 @@ structure E = Edge;
 structure Match = Match;
 structure MCtxt = Match.MCtxt;
 
+structure BBoxMatch = RGGraph.BBoxMatch;
+(* structure BBox = RGGraph.BBoxMatch.BBox;
+structure BBMap = RGGraph.BBoxMatch.BBMap; *)
+structure BBox = RGGraph.BBox;
+structure BBMap = RGGraph.BBoxMatch.BBMap;
+
 datatype T = 
          MState of 
          {(* and-agenda = (pat -> tgt) = we are commited to matching these *) 
-          agenda : Vertex.name Vertex.NTab.T, (* and-agenda: pat -> tgt *)
+          agenda : Vertex.name Vertex.NTab.T, 
           (* global vertex and edge matching info *)
           match : Match.T, 
           (* the pat graph with vertices removed as we match them *)
           unm_pat : RGGraph.T, 
-          pat_lfs : Vertex.NSet.T, (* unmatched leaves from init pat *)
+          (* bang box expansion of pattern *)
+          bbmatch : BBoxMatch.T,
+          (* unmatched leaves from init pat *)
+          pat_lfs : Vertex.NSet.T, 
           (* tgt with matched edges removed as we match them *)
           unm_tgt : RGGraph.T 
          };
 
 (* initial matching state *)
 fun init match pat tgt agenda =
-    MState { agenda = agenda, match = match,
+    MState { agenda = agenda, match = match, bbmatch = BBoxMatch.empty,
              pat_lfs = RGGraph.get_leaf_vnames pat,
              unm_pat = pat, unm_tgt = tgt };
 
 (* tools *)
 fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
+fun get_bbmatch (MState rep) = #bbmatch rep;
 fun get_unm_pat (MState rep) = #unm_pat rep;
 fun get_pat_lfs (MState rep) = #pat_lfs rep;
 val get_unm_pat_vs = 
@@ -168,33 +177,39 @@ val get_unm_tgt_es =
 (* *)
 fun update_agenda f (MState rep) = 
     MState { agenda = f (#agenda rep), match = #match rep,
-             unm_pat = #unm_pat rep,
+             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_match f (MState rep) = 
     MState { agenda = #agenda rep, match = f (#match rep),
-             unm_pat = #unm_pat rep,
+             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_pat f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = f (#unm_pat rep),
+             unm_pat = f (#unm_pat rep), bbmatch = #bbmatch rep,
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_pat_lfs f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = #unm_pat rep,
+             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
              pat_lfs = f (#pat_lfs rep),
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_tgt f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = #unm_pat rep,
+             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
              pat_lfs = #pat_lfs rep,
              unm_tgt = f(#unm_tgt rep)
+           };
+fun update_bbmatch f (MState rep) = 
+    MState { agenda = #agenda rep, match = #match rep,
+             unm_pat = #unm_pat rep, bbmatch = f (#bbmatch rep),
+             pat_lfs = #pat_lfs rep,
+             unm_tgt = #unm_tgt rep
            };
 
 val set_agenda = update_agenda o K;
@@ -203,6 +218,10 @@ val set_match = update_match o K;
 val get_match_vmap = Match.get_vmap o get_match;
 val get_match_mctxt = Match.get_mctxt o get_match;
 val set_match_mctxt = update_match o Match.set_mctxt;
+
+(* the map part of bang box matching *)
+val update_bbmap = update_bbmatch o BBoxMatch.update_bbmap;
+val get_bbmap = BBoxMatch.get_bbmap o get_bbmatch;
 
 (* *)
 (* fun get_adj_pat_vertices st edgens =
@@ -275,13 +294,16 @@ fun edgematch_adj_2vs (from_pv as (from_pn, from_pd)) to_pn
     in
       st |> multi_edge_matches from_pd to_pn pat_edges tgt_edges
          |> Seq.map_filter (try_add1_to_agenda (to_pn,to_tn))
-         |> (Seq.of_list o Seq.list_of) : T Seq.seq (* debug: force eval here and now *)
+      (* |> (Seq.of_list o Seq.list_of) : T Seq.seq 
+            -- to debug: force eval here and now *)
     end;
 
 (* NOTE: we treat all self-loops as equivalent; this assumes no edge
    data, but saves on many otherwise symmetric matches for self-loops *)
-fun edgematch_adj_leaf_to_loop (lfpvn,(lfpeh,ped)) (from_tn,from_td) (* tgt vertex *)
-                               (ltes, st) = 
+fun edgematch_adj_leaf_to_loop 
+      (lfpvn,(lfpeh,ped)) (* *) 
+      (from_tn,from_td) (* tgt vertex *)
+      (ltes, st) = 
     (case Edge.NSet.get_local_bot (Edge.NTab.get_nameset ltes)
       of NONE => NONE
        | SOME lte => 
@@ -334,12 +356,14 @@ fun edgematch_adj_leaf (from_tn,from_td) (lfpne as (lfpvn,(lfpeh,ped)))
              (more_tehs, (ltes, st2))
              (Seq.map (* edgematch against other incident tehs *)
                 (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
-                (edgematch_adj_leaf (from_tn,from_td) lfpne (more_tehs, (ltes, st))))
+                (edgematch_adj_leaf (from_tn,from_td) lfpne 
+                                    (more_tehs, (ltes, st))))
          end
          handle Option.Option => 
                 (Seq.map (* edgematch against other incident tehs *)
                    (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
-                   (edgematch_adj_leaf (from_tn,from_td) lfpne (more_tehs, (ltes, st))))
+                   (edgematch_adj_leaf (from_tn,from_td) lfpne 
+                                       (more_tehs, (ltes, st))))
     );
 
 
@@ -385,6 +409,12 @@ fun edgematch_adj_verticies
       (ltes, (* unmatched loopy edges in tgt *)
        (plfs, (* left over pattern boundary leaves *)
        st)) = (* state of matching so far *)
+    let 
+      val pat = get_unm_pat st;
+      val tgt = get_unm_tgt st;
+      
+      val from_bbox = RGGraph.lookup_box_of pat from_pn;
+    in 
     (* *)
     (Seq.single (tns, st))
     (* match all adj non-leaf pattern vertices *)
@@ -402,8 +432,8 @@ fun edgematch_adj_verticies
           pns)
     (* match remaining pat leaves; note: we ignore tns as we
        re-compute it in terms of half edges. IMPROVE: avoid this? *)
-    |> (Seq.maps (edgematch_extra_pat_leaves from_pd from_tv ltes plfs o snd));
-
+    |> (Seq.maps (edgematch_extra_pat_leaves from_pd from_tv ltes plfs o snd))
+    end;
 
 (* if pn is internal and tgt has loops, match tgt loops against leaf
    boundary nodes adjacent to pn; this will remove adjacent matched
@@ -468,7 +498,42 @@ fun match_self_loops pd tn lpes (* loopy pat edges *)
                                tn (ltes, (plfs, st)))
             ltes2st2seq
     end;
-          
+
+
+fun copy_then_drop_bbox bbn st = st;
+fun copy_bbox bbn st = st;
+
+(* try to match the bang-box's of the given pattern and tgt node:
+   mapping must be injective, and tgt *)
+fun match_bboxes pnv tnv st = 
+    let val pat = get_unm_pat st;
+        val tgt = get_unm_tgt st;
+    in
+      (case RGGraph.lookup_box_of tgt tnv of 
+         NONE => 
+         (case RGGraph.lookup_box_of pat pnv of 
+            NONE => SOME st
+          | SOME pbbn => 
+            (case BBMap.lookup_domf (get_bbmap st) pbbn of
+               NONE => SOME (copy_then_drop_bbox pbbn st)
+             | SOME _ => NONE)) (* already mapped to tgt bang box *)
+       | SOME tbbn => 
+         (case RGGraph.lookup_box_of pat pnv of 
+            NONE => NONE
+          | SOME pbbn => 
+            (case BBMap.lookup_domf (get_bbmap st) pbbn of
+               NONE => 
+               SOME (st |> copy_bbox pbbn
+                        |> update_bbmap (BBMap.add_to_dom pbbn tbbn))
+             | SOME tbbn2 => (* already mapped to a tgt bang box *)
+               if (BBox.name_eq (tbbn,tbbn2)) then SOME st
+               else NONE)))
+    end;
+(* 
+    case match_bboxes pnv tnv st of
+      NONE => NONE
+    | SOME st' =>  
+*)
 
 (* st pn *)
 val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_lfs;
@@ -478,9 +543,9 @@ val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_lfs;
    Assumes each pat-vertex is only examined once; 
    therefore assume not in vmap *)
 fun match_vertex pnv tnv st = 
-    case Match.match_vertex pnv tnv (get_match st)
+    (case Match.match_vertex pnv tnv (get_match st)
      of NONE => NONE
-      | SOME m2 => SOME (st |> set_match m2);
+      | SOME m2 => SOME (st |> set_match m2));
 
 (* implicit: pnv tnv st *)
 val match_lfvertex = update_match oo Match.match_lfvertex;
@@ -502,6 +567,8 @@ fun match_2vertices_with_edges
          pns = all other adj vertices set *)
       val (pd, (plfs, lpes, pns)) = RGGraph.adj_pat_info pat pn;
     in 
+      (* pn is leaf only when a new vertex to start matching from, and it 
+         turns out to be a leaf; else graph traversal means this won't happen *)
       if is_leaf_of_init_pat st pn then 
         st |> match_lfvertex pn (tn,td)
            |> (fn st2 => (ltes,(plfs,st2)))
@@ -532,6 +599,8 @@ datatype pulled_vertex_kind =
          BBoxed of Vertex.name 
        | UnBBoxed of Vertex.name;
 
+(* try to get next unboxed pattern vertex, give back vertex in bbox if none 
+   outside it. *)
 fun get_next_pat_vertex st = 
     (case (Vertex.NSet.get_local_bot (get_unm_unboxed_pat_vs st)) of
       SOME n => SOME (UnBBoxed n)
@@ -543,7 +612,7 @@ fun get_next_pat_vertex st =
 (* consider the next and-point in the agenda *)
 fun do_next_match_choices st = 
     (case pop_agenda st 
-      of NONE => (* nothing on the prescribed agenda *)
+      of NONE => (* nothing connected to previously matched parts *)
          (* get next pat vertex to match, non-boxed first *)
          (case get_next_pat_vertex st of 
             NONE => (* no pattern vertices left! *)
@@ -554,17 +623,17 @@ fun do_next_match_choices st =
                  (match_2vertices_with_edges pvn st)
                  (get_tgt_vnseq st))
           | SOME (BBoxed pvn) => 
-            (* IMPROVE: find all box-unfoldings also as matches? *)
             (* all other things are in boxes, 
                so killing them all gives a valid matching... *)
+            (* FIXME: find all box-unfoldings and macthes to target !-boxes *)
             FoundMatch st) 
        | SOME ((pn,tn),st2) => 
          Progress (* deal with first prescribed and-choice *)
            (match_2vertices_with_edges pn st2 tn));
 
-(* given an or-choice agenda of states, apply progress steps to search
+(* given an or-choice agenda of states (seq), apply progress steps to search
 tree, until we get a match, then give that back as first elem of lazy
-list. We can then rest until asked for the next thing. :P *)
+list. We can then rest until asked for the next thing! *)
 fun match_search or_agenda () = 
     (case Seq.pull or_agenda of 
        NONE => NONE

@@ -3,13 +3,27 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Graphs with Boundary *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+
+signature BBOX_GRAPH_SHARING = 
+sig
+include BGRAPH_SHARING
+structure BBox : NAME_AND_DATA_SHARING
+end;
+
+(* bang-box graphs *)
 signature BANG_GRAPH = 
 sig
 include BGRAPH;
-structure BBox : SSTR_NAMES (* !(Bang)-Box *)
+
+structure BBox : SSTR_NAMES (* !(Bang)-Box names/tables/sets *)
+
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
-sharing VtoBoxMap.Cod = BBox;
-sharing VtoBoxMap.Dom = Vertex;
+sharing VtoBoxMap.Cod.Sharing = BBox.Sharing;
+sharing VtoBoxMap.Dom.Sharing = Vertex.Sharing;
+
+(* bang box matching - how to expand bang boxes to match another graph *)
+structure BBoxMatch : BBOX_MATCH;
+sharing BBoxMatch.BBox.Sharing = BBox.Sharing;
 
 val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
@@ -32,12 +46,6 @@ val merge_boxes : BBox.name -> BBox.name -> T -> T
 
 end;
 
-(* bang box names *)
-structure BBox : SSTR_NAMES = 
-struct 
-open SStrName;
-val default_name = mk "Ba";
-end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* A  Graph With Boundary *)
@@ -52,8 +60,22 @@ functor BangGraphFun(
 structure V = BVertex;
 structure E = Edge;
 
-structure BBox : SSTR_NAMES = BBox;
+(* bang-box names *)
+structure BBox : SSTR_NAMES = 
+struct 
+open SStrName;
+val default_name = mk "Ba";
+end;
+
+(* structure BBox : SSTR_NAMES = BBox; *)
 structure VtoBoxMap = NameMapFun(structure Dom = V and Cod = BBox);
+
+(* For mappings between bang boxes *)
+structure BBMap = NameMapFun(structure Dom = BBox and Cod = BBox);
+
+structure BBoxMatch = BBoxMatchFun(
+  structure BBox = BBox
+  structure BBMap = BBMap);
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
 type data2 = data;

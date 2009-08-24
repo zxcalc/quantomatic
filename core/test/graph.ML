@@ -15,8 +15,9 @@ end;
 
 structure StrGraph : GRAPH = DB_StrGraph;
 
-install_pp (make_pp ["StrGraph", "T"] 
+(* install_pp (make_pp ["StrGraph", "T"] 
                     (Pretty.pprint o StrGraph.pretty));
+*)
 
 (* another basic kind of graph with unit for edge data *)
 structure DB_StrUnitGraph = 
@@ -35,8 +36,10 @@ end;
 
 structure StrUnitGraph : GRAPH = DB_StrUnitGraph;
 
+(*
 install_pp (make_pp ["StrUnitGraph", "T"] 
                     (Pretty.pprint o StrUnitGraph.pretty));
+*)
 
 local 
 

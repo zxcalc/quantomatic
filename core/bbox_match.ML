@@ -1,80 +1,100 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Data for !-Box matching: *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+
+(* information about bang-box matching in a graph *)
 signature BBOX_MATCH 
 = sig
 
-type T
+type T (* bang box match *)
 
-val empty : T
-val mk_id : BBox.NSet.T -> T
+structure BBox : SSTR_NAMES
+structure BBMap : NAME_MAP
+sharing BBMap.Dom.Sharing = BBox.Sharing;
+sharing BBMap.Cod.Sharing = BBox.Sharing;
+
+val get_bbmap : T -> BBMap.T;
+val update_bbmap : (BBMap.T -> BBMap.T) -> T -> T;
+
+val empty : T;
+val mk_id : BBox.NSet.T -> T;
 
 end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-structure BBoxMatch 
+functor BBoxMatchFun(
+  structure BBox : SSTR_NAMES 
+  and BBMap : NAME_MAP 
+  sharing BBMap.Dom.Sharing = BBox.Sharing
+  sharing BBMap.Cod.Sharing = BBox.Sharing
+)
 : BBOX_MATCH
 = struct
 
+structure BBox = BBox;
+structure BBMap = BBMap;
+
 datatype T = BBoxMatch of
-         {(* bang box isomorphism tgt -> pat *)
-          iso : BBox.Rnm.T,
-          copies : BBox.NSet.T BBox.NTab.T,
+         {
+          bbmap : BBMap.T, (* mapping of bboxes in pat to tgt *)
+          copies : BBox.NSet.T BBox.NTab.T, (* pattern copies *)
           kill : BBox.NSet.T,
           drop : BBox.NSet.T
          };
+
 val empty = 
     BBoxMatch
-      {iso = BBox.Rnm.empty,
+      {bbmap = BBMap.empty,
        copies = BBox.NTab.empty,
        kill = BBox.NSet.empty,
        drop = BBox.NSet.empty
       };
 
-fun get_iso (BBoxMatch rep) = #iso rep;
+fun get_bbmap (BBoxMatch rep) = #bbmap rep;
 fun get_copies (BBoxMatch rep) = #copies rep;
 fun get_kill (BBoxMatch rep) = #kill rep;
 fun get_drop (BBoxMatch rep) = #drop rep;
 
-fun update_iso f (BBoxMatch rep) = 
+fun update_bbmap f (BBoxMatch rep) = 
      BBoxMatch
-      {iso = f( #iso rep),
+      {bbmap = f( #bbmap rep),
        copies = #copies rep,
        kill = #kill rep,
        drop = #drop rep
       };
 fun update_copies f (BBoxMatch rep) = 
      BBoxMatch
-      {iso = #iso rep,
+      {bbmap = #bbmap rep,
        copies = f (#copies rep),
        kill = #kill rep,
        drop = #drop rep
       };
 fun update_kill f (BBoxMatch rep) = 
      BBoxMatch
-      {iso = #iso rep,
+      {bbmap = #bbmap rep,
        copies = #copies rep,
        kill = f (#kill rep),
        drop = #drop rep
       };
 fun update_drop f (BBoxMatch rep) = 
      BBoxMatch
-      {iso = #iso rep,
+      {bbmap = #bbmap rep,
        copies = #copies rep,
        kill = #kill rep,
        drop = f (#drop rep)
       };
 
-val set_iso = update_iso o K;
+val set_bbmap = update_bbmap o K;
 val set_copies = update_copies o K;
 val set_kill = update_kill o K;
 val set_drop = update_drop o K;
 
 fun mk_id ns = 
-    empty |> set_iso 
+    empty |> set_bbmap
           (BBox.NSet.fold 
-             (fn n => fn rn => the (BBox.Rnm.try_rename1 n n rn))
-             ns BBox.Rnm.empty);
+             (fn n => fn bbm => BBMap.add_to_dom n n bbm)
+             ns BBMap.empty);
+
 end;
 

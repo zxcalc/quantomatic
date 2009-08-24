@@ -7,7 +7,7 @@ sig
     val get_active_theories : T NTab.T -> name list
     val get_all_theories : T NTab.T -> name list
     val get_rules_in_theory : T NTab.T -> name -> (string * Rule.T) list
-    val apply_rules_in : (string * Rule.T) list -> BBox.NSet.T ->
+    val apply_rules_in : (string * Rule.T) list -> Rule.RGGraph.BBox.NSet.T ->
                          RGGraph.T -> (string * Rule.T) Seq.seq
     val apply_a_rule_in : (string * Rule.T) list -> NSet.T ->
                           RGGraph.T -> (string * Rule.T) Seq.seq
