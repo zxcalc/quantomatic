@@ -157,6 +157,7 @@ public class QuantoApp {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				getInstance().newGraph(true);
+//				getInstance().addView("test-split-pane", new SplitGraphView());
 				TheoryTree.loadState();
 			}
 		});

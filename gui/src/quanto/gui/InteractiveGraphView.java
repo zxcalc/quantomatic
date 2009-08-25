@@ -163,7 +163,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 					InteractiveGraphView.this,
 					InteractiveGraphView.this,
 					InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new PickingGraphMousePlugin<QVertex,QEdge>();
+			pickingMouse = new PickingGraphMousePlugin<QVertex,QEdge>() {
+				public void mouseEntered(MouseEvent e) {}
+				public void mouseExited(MouseEvent e) {}
+			};
 			edgeMouse = new AddEdgeGraphMousePlugin<QVertex,QEdge>(
 							InteractiveGraphView.this,
 							InteractiveGraphView.this,
@@ -270,6 +273,13 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 
 			public boolean useTransform() {return false;}
+		});
+		
+		addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				InteractiveGraphView.this.grabFocus();
+				super.mousePressed(e);
+			}
 		});
 		
 		addKeyListener(new KeyAdapter() {

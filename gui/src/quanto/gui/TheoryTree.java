@@ -261,6 +261,8 @@ public class TheoryTree extends JPanel {
 		}
 	}
 	
+	
+	
 	/*
 	 * this class uses the "tree" instance var
 	 */
@@ -268,28 +270,45 @@ public class TheoryTree extends JPanel {
 	private class RuleMenu extends JPopupMenu {
 		public RuleMenu(final Ruleset rset, final String rule) {
 			JMenuItem item;
-			item = new JMenuItem("Open LHS");
 			
 			class RuleAL extends QuantoActionListener {
-				private boolean left;
-				public RuleAL(boolean left) { super(tree); this.left = left; }
+				private int side; // BOTH = 0, LEFT = 1, RIGHT = 2
+				public RuleAL(int side) { super(tree); this.side = side; }
 				
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
 					QuantoCore core = QuantoApp.getInstance().getCore();
-					QuantoGraph gr = (left) ? core.open_rule_lhs(rset, rule) : core.open_rule_rhs(rset, rule);
-					InteractiveGraphView igv = new InteractiveGraphView(core, gr);
-					igv.updateGraph();
-					String v = QuantoApp.getInstance().addView(gr.getName(), igv);
+					
+					QuantoGraph gr1 = (side == 0 || side == 1) ? 
+							core.open_rule_lhs(rset, rule) :
+							core.open_rule_rhs(rset, rule);
+					InteractiveGraphView igv1 = new InteractiveGraphView(core, gr1);
+					igv1.updateGraph();
+					
+					String v;
+					if (side == 0) { // if opening both
+						QuantoGraph gr2 = core.open_rule_rhs(rset, rule);
+						InteractiveGraphView igv2 = new InteractiveGraphView(core, gr2);
+						igv2.updateGraph();
+						v = QuantoApp.getInstance().addView(rule, 
+								new SplitGraphView(igv1, igv2));
+					} else { // otherwise
+						v = QuantoApp.getInstance().addView(gr1.getName(), igv1);
+					}
 					viewPort.setFocusedView(v);
 					viewPort.gainFocus();
 				}
 			}
 			
-			item.addActionListener(new RuleAL(true));
+			item = new JMenuItem("Open Rule");
+			item.addActionListener(new RuleAL(0));
+			add(item);
+			item = new JMenuItem("Open LHS");
+			item.addActionListener(new RuleAL(1));
 			add(item);
 			item = new JMenuItem("Open RHS");
-			item.addActionListener(new RuleAL(false));
+			item.addActionListener(new RuleAL(2));
 			add(item);
+			
 		}
 	}
 }

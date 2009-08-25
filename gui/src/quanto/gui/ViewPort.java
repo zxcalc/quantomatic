@@ -84,6 +84,8 @@ public class ViewPort extends JPanel {
 			JComponent av = (JComponent)activeView;
 			
 			add(av, BorderLayout.CENTER);
+			if (view.equals("test-split-pane"))
+				System.out.println("adding view:" + view);
 			String title = view;
 			
 			// if the view names and graph names are out of sync, show it
