@@ -1,8 +1,9 @@
 package edu.uci.ics.jung.contrib;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -34,24 +35,6 @@ public interface HasName {
 		}
 	}
 	
-	public static class QuotedName implements HasName {
-		HasName delegate;
-		public QuotedName(HasName delegate) {
-			this.delegate = delegate;
-		}
-		public QuotedName(String name) {
-			this.delegate = new StringName(name);
-		}
-		public String getName() {
-			return "\"" +
-				delegate.getName().replace("\\", "\\\\").replace("\"", "\\\"") +
-				"\"";
-		}
-
-		public void setName(String name) {
-			throw new ReadOnlyNameException();
-		}
-	}
 	
 	public static class IntName implements HasName {
 		public String name;
@@ -70,37 +53,6 @@ public interface HasName {
 	}
 	
 	/**
-	 * An collection of named elements.
-	 * @author aleks
-	 *
-	 * @param <T>
-	 */
-	public static class QuotedCollectionName implements HasName {
-		private static final long serialVersionUID = -7602337023538613612L;
-		private Collection<? extends HasName> col;
-		
-		public QuotedCollectionName(Collection<? extends HasName> col) {
-			this.col = col;
-		}
-		
-		public String getName() {
-			StringBuffer sb = new StringBuffer();
-			boolean first = true;
-			for (HasName n : col) {
-				if (first) first = false;
-				else sb.append(" ");
-				sb.append(new QuotedName(n).getName());
-			}
-			return sb.toString();
-		}
-
-		public void setName(String name) {
-			throw new ReadOnlyNameException();
-		}
-		
-	}
-	
-	/**
 	 * Comparator for instances of HasName
 	 */
 	public static class NameComparator implements Comparator<HasName> {
@@ -113,9 +65,16 @@ public interface HasName {
 	 * Simple unique namer for strings
 	 */
 	public static class StringNamer {
+		private static Pattern p = Pattern.compile("^(.+)-[0-9]+$");
+		
 		public static String getFreshName(Set<String>names, String tryName) {
 			if (!names.contains(tryName)) return tryName;
 			String newTry; int idx = 1;
+			
+			Matcher m = p.matcher(tryName);
+			if (m.matches()) {
+				tryName = m.group(1);
+			}
 			
 			// TODO: this method for finding a fresh name can be MUCH improved, but
 			// should be fine for small numbers of duplicate names.

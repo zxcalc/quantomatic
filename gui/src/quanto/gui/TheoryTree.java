@@ -33,7 +33,7 @@ public class TheoryTree extends JPanel {
 	private final ViewPort viewPort;
 	
 	// the theory state is global
-	protected static final Map<String,Theory> theories = new HashMap<String, Theory>();
+	protected static final Map<String,Ruleset> rulesets = new HashMap<String, Ruleset>();
 	
 	// the GUI components and tree model are per-instance
 	private JTree tree;
@@ -72,16 +72,16 @@ public class TheoryTree extends JPanel {
 							JMenuItem load = new JMenuItem("Load Theory...");
 							load.addActionListener(new ActionListener() {
 								public void actionPerformed(ActionEvent e) {
-									QuantoApp.getInstance().loadTheory();
+									QuantoApp.getInstance().loadRuleset();
 								}
 							});
 							menu.add(load);
 							menu.show(tree, e.getX(), e.getY());
-						} else if (o instanceof Theory) { // a theory
+						} else if (o instanceof Ruleset) { // a theory
 							//System.out.println("THEORY:" + p);
-							new TheoryMenu((Theory)o).show(tree, e.getX(), e.getY());
+							new RulesetMenu((Ruleset)o).show(tree, e.getX(), e.getY());
 						} else if (node.isLeaf()) { // a rule
-							Theory th = (Theory)((DefaultMutableTreeNode)node.getParent()).getUserObject();
+							Ruleset th = (Ruleset)((DefaultMutableTreeNode)node.getParent()).getUserObject();
 							new RuleMenu(th, (String)o).show(tree, e.getX(), e.getY());
 						}
 					}
@@ -97,10 +97,10 @@ public class TheoryTree extends JPanel {
 //		System.out.printf("refresh() on: %d\n", this.hashCode());
 		top.removeAllChildren();
 		DefaultMutableTreeNode node;
-		synchronized (theories) {
-			for (Theory thy : theories.values()) {
-				node = new DefaultMutableTreeNode(thy);
-				for (String rule : thy.getRules()) {
+		synchronized (rulesets) {
+			for (Ruleset rset : rulesets.values()) {
+				node = new DefaultMutableTreeNode(rset);
+				for (String rule : rset.getRules()) {
 					node.add(new DefaultMutableTreeNode(rule));
 				}
 				top.add(node);
@@ -112,23 +112,23 @@ public class TheoryTree extends JPanel {
 		repaint();
 	}
 	
-	private static void updateTheories() {
+	private static void updateRulesets() {
 		QuantoCore core = QuantoApp.getInstance().getCore();
 		try {
-			String[] thyNames = core.list_theories();
-			String[] active = core.list_active_theories();
+			String[] rsetNames = core.list_rulesets();
+			String[] active = core.list_active_rulesets();
 			Set<String> activeTheories = new HashSet<String>();
 			for (String a : active) activeTheories.add(a);
-			Theory thy;
-			synchronized (theories) {
-				for (String nm : thyNames) {
-					thy = theories.get(nm);
-					if (thy==null) {
-						thy = new Theory(nm);
-						theories.put(nm, thy);
+			Ruleset rset;
+			synchronized (rulesets) {
+				for (String nm : rsetNames) {
+					rset = rulesets.get(nm);
+					if (rset==null) {
+						rset = new Ruleset(nm);
+						rulesets.put(nm, rset);
 					}
-					thy.refreshRules();
-					thy.setActive(activeTheories.contains(nm));
+					rset.refreshRules();
+					rset.setActive(activeTheories.contains(nm));
 				}
 			}
 			
@@ -143,53 +143,53 @@ public class TheoryTree extends JPanel {
 	 */
 	public static void refreshInstances() {
 		synchronized (instances) {
-			updateTheories();
+			updateRulesets();
 			for (TheoryTree t : instances) t.refresh();
 			saveState();
 		}
 	}
 	
-	public static void loadTheory(String name, String fileName)
+	public static void loadRuleset(String name, String fileName)
 	throws QuantoCore.ConsoleError {
-		Theory thy = QuantoApp.getInstance().getCore().load_theory(name, fileName);
-		QuantoApp.getInstance().getCore().activate_theory(thy);
-		theories.put(thy.getName(), thy);
+		Ruleset rset = QuantoApp.getInstance().getCore().load_ruleset(name, fileName);
+		QuantoApp.getInstance().getCore().activate_ruleset(rset);
+		rulesets.put(rset.getName(), rset);
 		refreshInstances();
 	}
 	
-	public static void unloadTheory(Theory thy) throws ConsoleError {
-		QuantoApp.getInstance().getCore().unload_theory(thy);
-		theories.remove(thy.getName());
+	public static void unloadRuleset(Ruleset rset) throws ConsoleError {
+		QuantoApp.getInstance().getCore().unload_ruleset(rset);
+		rulesets.remove(rset.getName());
 		refreshInstances();
 		saveState();                 
 	}
 	public static void saveState() {
 		StringBuffer buf = new StringBuffer();
-		for (Theory thy : theories.values()) {
-			buf.append(thy.getName()).append("\n");
-			buf.append(thy.getPath()).append("\n");
-			buf.append(thy.isActive()).append("\n");
+		for (Ruleset rset : rulesets.values()) {
+			buf.append(rset.getName()).append("\n");
+			buf.append(rset.getPath()).append("\n");
+			buf.append(rset.isActive()).append("\n");
 		}
 		QuantoApp.getInstance().setPreference(QuantoApp.LOADED_THEORIES, buf.toString());
 	}
 	
 	public static void loadState() {
-		String[] thys = QuantoApp.getInstance()
+		String[] rsets = QuantoApp.getInstance()
 			.getPreference(QuantoApp.LOADED_THEORIES).split("\\n");
 		int idx = 0;
 		String nm, path;
 		boolean active;
 		QuantoCore qc = QuantoApp.getInstance().getCore();
-		while (idx < thys.length-2) {
-			nm = thys[idx];
-			path = thys[idx+1];
-			active = thys[idx+2].equals("true");
+		while (idx < rsets.length-2) {
+			nm = rsets[idx];
+			path = rsets[idx+1];
+			active = rsets[idx+2].equals("true");
 //			System.out.println(active);
 			try {
-				Theory thy = qc.load_theory(nm, path);
-				if (active) qc.activate_theory(thy);
-				else qc.deactivate_theory(thy);
-				theories.put(thy.getName(), thy);
+				Ruleset rset = qc.load_ruleset(nm, path);
+				if (active) qc.activate_ruleset(rset);
+				else qc.deactivate_ruleset(rset);
+				rulesets.put(rset.getName(), rset);
 			} catch (ConsoleError e) {
 				System.err.printf("%s[%s,%s]\n", e.getMessage(), nm, path);
 			}
@@ -211,13 +211,13 @@ public class TheoryTree extends JPanel {
 			
 			// ghost the theory if it isn't active
 			DefaultMutableTreeNode nd = (DefaultMutableTreeNode)value;
-			Theory th = null;
-			if (nd.getUserObject() instanceof Theory) {
-				th = (Theory)nd.getUserObject();
+			Ruleset th = null;
+			if (nd.getUserObject() instanceof Ruleset) {
+				th = (Ruleset)nd.getUserObject();
 			} else { // we might be a rule under a theory
 				nd = (DefaultMutableTreeNode)nd.getParent();
-				if (nd!=null && (nd.getUserObject() instanceof Theory))
-					th = (Theory)nd.getUserObject();
+				if (nd!=null && (nd.getUserObject() instanceof Ruleset))
+					th = (Ruleset)nd.getUserObject();
 			}
 			if (th!=null && !th.isActive()) setForeground(Color.gray);
 			
@@ -229,23 +229,23 @@ public class TheoryTree extends JPanel {
 	 * this class uses the "tree" instance var
 	 */
 	@SuppressWarnings("serial")
-	private class TheoryMenu extends JPopupMenu {
-		public TheoryMenu(final Theory thy) {
+	private class RulesetMenu extends JPopupMenu {
+		public RulesetMenu(final Ruleset rset) {
 			JMenuItem item;
 			item = new JMenuItem("Activate");
-			if (thy.isActive()) item.setEnabled(false);
+			if (rset.isActive()) item.setEnabled(false);
 			else item.addActionListener(new QuantoActionListener(tree) {
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					QuantoApp.getInstance().getCore().activate_theory(thy);
+					QuantoApp.getInstance().getCore().activate_ruleset(rset);
 					TheoryTree.refreshInstances();
 				}
 			});
 			add(item);
 			item = new JMenuItem("Deactivate");
-			if (!thy.isActive()) item.setEnabled(false);
+			if (!rset.isActive()) item.setEnabled(false);
 			else item.addActionListener(new QuantoActionListener(tree) {
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					QuantoApp.getInstance().getCore().deactivate_theory(thy);
+					QuantoApp.getInstance().getCore().deactivate_ruleset(rset);
 					TheoryTree.refreshInstances();
 				}
 			});
@@ -254,7 +254,7 @@ public class TheoryTree extends JPanel {
 			item = new JMenuItem("Unload");
 			item.addActionListener(new QuantoActionListener(this) {
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					TheoryTree.unloadTheory(thy);
+					TheoryTree.unloadRuleset(rset);
 				}
 			});
 			add(item);
@@ -266,7 +266,7 @@ public class TheoryTree extends JPanel {
 	 */
 	@SuppressWarnings("serial")
 	private class RuleMenu extends JPopupMenu {
-		public RuleMenu(final Theory thy, final String rule) {
+		public RuleMenu(final Ruleset rset, final String rule) {
 			JMenuItem item;
 			item = new JMenuItem("Open LHS");
 			
@@ -276,7 +276,7 @@ public class TheoryTree extends JPanel {
 				
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
 					QuantoCore core = QuantoApp.getInstance().getCore();
-					QuantoGraph gr = (left) ? core.open_rule_lhs(thy, rule) : core.open_rule_rhs(thy, rule);
+					QuantoGraph gr = (left) ? core.open_rule_lhs(rset, rule) : core.open_rule_rhs(rset, rule);
 					InteractiveGraphView igv = new InteractiveGraphView(core, gr);
 					igv.updateGraph();
 					String v = QuantoApp.getInstance().addView(gr.getName(), igv);

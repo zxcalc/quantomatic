@@ -39,9 +39,8 @@ public class TextView extends JPanel implements InteractiveView {
 		
 	}
 
-	public void viewKill(ViewPort vp) {
-		// TODO Auto-generated method stub
-		
+	public boolean viewKill(ViewPort vp) {
+		return true;
 	}
 
 }

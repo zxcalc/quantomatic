@@ -1,6 +1,5 @@
 package quanto.gui;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowFocusListener;
 
@@ -13,9 +12,11 @@ public class QuantoFrame extends JFrame {
 	private InteractiveView focusedView;
 	private final ViewPort viewPort;
 	boolean consoleVisible;
+	private volatile static int frameCount = 0;
 	
 	
 	public QuantoFrame() {
+		frameCount++;
 		core = QuantoApp.getInstance().getCore();
 		setBackground(Color.white);
 		consoleVisible = true;
@@ -23,10 +24,11 @@ public class QuantoFrame extends JFrame {
 		QuantoApp.MainMenu mb = QuantoApp.getInstance().getMainMenu();
 		setJMenuBar(mb);
 		
+		
 		// the view port will tell its views what menu to update when they are focused
 		viewPort = new ViewPort(mb);
         //QuantoApp.getInstance().setFocusedViewPort(viewPort);
-                
+		
         addWindowFocusListener(new WindowFocusListener() {
 			public void windowGainedFocus(WindowEvent e) {
 				QuantoApp.getInstance().setFocusedViewPort(viewPort);
@@ -34,16 +36,18 @@ public class QuantoFrame extends JFrame {
 			public void windowLostFocus(WindowEvent e) {}
         });
         
-        addWindowListener(new WindowAdapter() {
-        	public void windowClosing(WindowEvent e) {
-        		// free the window when close is clicked
-        		QuantoFrame.this.dispose();
-        	}
-        	public void windowClosed(WindowEvent e) {
-        		// release the focused view
-        		viewPort.setFocusedView(null);
-        	}
-        });
+//        addWindowListener(new WindowAdapter() {
+//        	public void windowClosing(WindowEvent e) {
+//        		// free the window when close is clicked
+//        		QuantoFrame.this.dispose();
+//        	}
+//        	public void windowClosed(WindowEvent e) {
+//        		// release the focused view
+//        		viewPort.setFocusedView(null);
+//        	}
+//        });
+        
+        
         
 		
 		getContentPane().setLayout(new BorderLayout());
@@ -57,6 +61,16 @@ public class QuantoFrame extends JFrame {
 		getContentPane().add(splitPane, BorderLayout.CENTER);
 		
         //this.pack();
+	}
+	
+	protected void processWindowEvent(WindowEvent e) {
+		if (e.getID()==WindowEvent.WINDOW_CLOSING) {
+			if (frameCount == 1) {
+				QuantoApp.getInstance().shutdown();
+			} else {
+				frameCount--;
+			}
+		} else super.processWindowEvent(e);
 	}
 	
 	public QuantoGraph getCurrentGraph() {

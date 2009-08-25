@@ -119,6 +119,9 @@ public class ConsoleView extends JPanel implements InteractiveView {
 	}
 
 	public void viewFocus(ViewPort vp) {
+		QuantoApp.MainMenu mm = vp.getMainMenu();
+		mm.file_closeView.setEnabled(false);
+		mm.repaint();
 		grabFocus();
 	}
 
@@ -131,9 +134,8 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		
 	}
 
-	public void viewKill(ViewPort vp) {
-		// TODO Auto-generated method stub
-		
+	public boolean viewKill(ViewPort vp) {
+		return true;
 	}
 
 }

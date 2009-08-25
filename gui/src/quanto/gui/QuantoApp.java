@@ -32,6 +32,8 @@ import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
 import org.apache.commons.collections15.comparators.ComparableComparator;
 import org.apache.commons.collections15.contrib.HashCodeComparator;
 
+import apple.dts.samplecode.osxadapter.OSXAdapter;
+
 import edu.uci.ics.jung.contrib.HasName;
 
 /**
@@ -78,6 +80,8 @@ public class QuantoApp {
 		new BoolPref("new_window_for_graphs", false);
 	public static final BoolPref CONSOLE_ECHO =
 		new BoolPref("console_echo", false);
+	public static final BoolPref SHOW_INTERNAL_NAMES =
+		new BoolPref("show_internal_names", false);
 	public static final StringPref LAST_OPEN_DIR =
 		new StringPref("last_open_dir", null);
 	public static final StringPref LAST_THEORY_OPEN_DIR =
@@ -148,6 +152,8 @@ public class QuantoApp {
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
 		}
 		
+		
+		
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				getInstance().newGraph(true);
@@ -155,7 +161,26 @@ public class QuantoApp {
 			}
 		});
 	}
-	
+
+	public boolean shutdown() {
+		System.out.println("Shutting down...");
+		if (focusedViewPort == null) {
+			System.err.println("focusedViewPort shouldn't be null here! (QuantoApp.shutdown())");
+		}
+		
+		while (focusedViewPort.focusNonConsole()) {
+			String foc = focusedViewPort.getFocusedView();
+			InteractiveView iv = views.get(foc);
+			
+			// if any of the viewKill() operations return false, abort
+			if (iv!=null && !iv.viewKill(focusedViewPort)) return false;
+			focusedViewPort.focusConsole(); // weird things happen if we kill views while they are focused
+			views.remove(foc);
+		}
+		System.exit(0);
+		return true; // never gets here.
+	}
+
 	private QuantoApp() {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 		fileChooser = new JFileChooser();
@@ -168,6 +193,16 @@ public class QuantoApp {
 		console = new ConsoleView();
 		core = console.getCore();
 		addView("console", console);
+		
+
+		try {
+			OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[])null));
+		} catch (SecurityException e) {
+			throw new QuantoCore.FatalError(e);
+		} catch (NoSuchMethodException e) {
+			throw new QuantoCore.FatalError(e);
+		}
+		
 	}
 	
 	public String addView(String name, InteractiveView v) {
@@ -220,12 +255,15 @@ public class QuantoApp {
 		public final JCheckBoxMenuItem view_verboseConsole;
 		public final JCheckBoxMenuItem view_drawArrowHeads;
 		public final JMenuItem view_refreshAllGraphs;
+		public final JCheckBoxMenuItem view_showInternalNames;
 		public final JMenuItem file_quit;
 		public final JMenuItem file_saveTheory;
 		public final JMenuItem file_loadTheory;
 		public final JMenuItem file_openGraph;
 		public final JMenuItem file_newGraph;
 		public final JMenuItem file_newWindow;
+		public final JMenuItem file_closeView;
+		
 		
 		private int getIndexOf(JMenu m, JMenuItem mi) {
 			for (int i=0; i<m.getItemCount(); i++)
@@ -290,11 +328,29 @@ public class QuantoApp {
 			file_openGraph.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, commandMask));
 			fileMenu.add(file_openGraph);
 			
+			file_closeView = new JMenuItem("Close", KeyEvent.VK_L);
+			file_closeView.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					if (focusedViewPort != null) {
+						String foc = focusedViewPort.getFocusedView();
+						InteractiveView iv = views.get(foc);
+						
+						// If the view allows itself to be killed, close the window.
+						if (iv != null && iv.viewKill(focusedViewPort)) {
+							focusedViewPort.focusConsole();
+							removeView(foc);
+							focusedViewPort.focusNonConsole();
+						}
+					}
+				}
+			});
+			file_closeView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, commandMask));
+			fileMenu.add(file_closeView);
 			
 			file_loadTheory = new JMenuItem("Load Theory...");
 			file_loadTheory.addActionListener(new ActionListener() { 
 					public void actionPerformed(ActionEvent e) {
-						QuantoApp.getInstance().loadTheory();
+						QuantoApp.getInstance().loadRuleset();
 					}
 			});
 			fileMenu.add(file_loadTheory);
@@ -315,7 +371,7 @@ public class QuantoApp {
 				file_quit.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						// TODO: close better?
-						System.exit(0);
+						QuantoApp.getInstance().shutdown();
 					}
 				});
 				file_quit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, commandMask));
@@ -356,6 +412,12 @@ public class QuantoApp {
 					QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO));
 			view_verboseConsole.addItemListener(QuantoApp.CONSOLE_ECHO);
 			viewMenu.add(view_verboseConsole);
+			
+			view_showInternalNames = new JCheckBoxMenuItem("Show Internal Graph Names");
+			view_showInternalNames.setSelected(
+					QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES));
+			view_showInternalNames.addItemListener(QuantoApp.SHOW_INTERNAL_NAMES);
+			viewMenu.add(view_showInternalNames);
 			
 			view_newWindowForGraphs = new JCheckBoxMenuItem("Open Graphs in a New Window");
 			view_newWindowForGraphs.setSelected(
@@ -437,9 +499,13 @@ public class QuantoApp {
 				InteractiveGraphView vis =
 					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600));
 				vis.getGraph().setFileName(filename);
-				vis.getGraph().setSaved(true);
-				vis.updateGraph();
+				
 				String v = addView(f.getName(), vis);
+				core.rename_graph(loadedGraph, v);
+				
+				vis.updateGraph();
+				vis.getGraph().setSaved(true);
+				
 				if (getPreference(NEW_WINDOW_FOR_GRAPHS)) { // in a new window?
 					QuantoFrame fr = new QuantoFrame();
 					fr.getViewPort().setFocusedView(v);
@@ -470,7 +536,7 @@ public class QuantoApp {
 			QuantoGraph newGraph = core.new_graph();
 			InteractiveGraphView vis =
 				new InteractiveGraphView(core, newGraph, new Dimension(800,600));
-			String v = QuantoApp.getInstance().addView("new-graph",vis);
+			String v = QuantoApp.getInstance().addView("new-graph-1",vis);
 			
 			if (initial || getPreference(NEW_WINDOW_FOR_GRAPHS)) { // are we making a new window?
 				QuantoFrame fr = new QuantoFrame();
@@ -490,7 +556,7 @@ public class QuantoApp {
 	
 
 	
-	public void loadTheory() {
+	public void loadRuleset() {
 		String lastDir = getPreference(LAST_THEORY_OPEN_DIR);
 		if (lastDir != null) fileChooser.setCurrentDirectory(new File(lastDir));
 		
@@ -501,7 +567,7 @@ public class QuantoApp {
 				if (file.getParent()!=null) setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
 				String thyname = file.getName().replaceAll("\\.xml|\\n|\\r", "");
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
-				TheoryTree.loadTheory(thyname, filename);
+				TheoryTree.loadRuleset(thyname, filename);
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());

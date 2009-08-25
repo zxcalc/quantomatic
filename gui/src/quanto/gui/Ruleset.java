@@ -7,12 +7,12 @@ import edu.uci.ics.jung.contrib.HasName;
 
 import quanto.gui.QuantoCore.ConsoleError;
 
-public class Theory implements HasName {
+public class Ruleset implements HasName {
 	private String path;
 	private String name;
 	private boolean active;
 	private Set<String> rules;
-	public Theory(String name, String path, boolean active) {
+	public Ruleset(String name, String path, boolean active) {
 		super();
 		this.name = name;
 		this.path = path;
@@ -20,11 +20,11 @@ public class Theory implements HasName {
 		this.rules = new HashSet<String>();
 	}
 	
-	public Theory(String name, String path) {
+	public Ruleset(String name, String path) {
 		this(name, path, true);
 	}
 	
-	public Theory(String name) {
+	public Ruleset(String name) {
 		this(name, "");
 	}
 	

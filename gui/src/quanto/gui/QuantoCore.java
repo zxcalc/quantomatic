@@ -6,6 +6,7 @@ import java.util.Set;
 
 
 import edu.uci.ics.jung.contrib.HasName;
+import edu.uci.ics.jung.contrib.HasQuotedName;
 
 /**
  * Regulate communications with the back-end. Primarily accessed via wrappers
@@ -184,8 +185,9 @@ public class QuantoCore {
 				if (arg.getName() == null)
 					throw new ConsoleError(
 							"Attempted to pass unnamed object to core.");
+				HasName qarg = (arg instanceof HasQuotedName) ? arg : new HasQuotedName.QuotedName(arg);
 				cmd.append(' ');
-				cmd.append(arg.getName());
+				cmd.append(qarg.getName());
 			}
 			cmd.append(';');
 			
@@ -244,15 +246,14 @@ public class QuantoCore {
 		return new QuantoGraph(chomp(command("new_graph")));
 	}
 	
-	public void rename_graph(String oldName, String newName) throws ConsoleError {
-		command("rename_graph", new HasName.QuotedName(oldName),
-								new HasName.QuotedName(newName));
+	public void rename_graph(QuantoGraph graph, String newName) throws ConsoleError {
+		graph.setName(chomp(command("rename_graph", graph, new HasName.StringName(newName))));
 	}
 	
 	public void add_vertex(QuantoGraph graph, QVertex.Type type)
 	throws ConsoleError {
 		command("add_vertex", graph, 
-				new HasName.QuotedName(type.toString().toLowerCase()));
+				new HasName.StringName(type.toString().toLowerCase()));
 	}
 	
 	public void add_edge(QuantoGraph graph, QVertex s, QVertex t)
@@ -262,12 +263,12 @@ public class QuantoCore {
 	
 	public void attach_rewrites(QuantoGraph graph, Collection<QVertex> vs)
 	throws ConsoleError {
-		command("attach_rewrites", graph, new HasName.QuotedCollectionName(vs));
+		command("attach_rewrites", graph, new HasQuotedName.QuotedCollectionName(vs));
 	}
 	
 	public void attach_one_rewrite(QuantoGraph graph, Collection<QVertex> vs)
 	throws ConsoleError {
-		command("attach_one_rewrite", graph, new HasName.QuotedCollectionName(vs));
+		command("attach_one_rewrite", graph, new HasQuotedName.QuotedCollectionName(vs));
 	}
 	
 	public String show_rewrites(QuantoGraph graph) throws ConsoleError {
@@ -279,7 +280,7 @@ public class QuantoCore {
 	}
 	
 	public void set_angle(QuantoGraph graph, QVertex v, String angle) throws ConsoleError {
-		command("set_angle", graph, v, new HasName.QuotedName(angle));
+		command("set_angle", graph, v, new HasName.StringName(angle));
 	}
 	
 	public String hilb(QuantoGraph graph, String format) throws ConsoleError {
@@ -293,11 +294,11 @@ public class QuantoCore {
 	}
 	
 	public void delete_vertices(QuantoGraph graph, Set<QVertex> v) throws ConsoleError {
-		command("delete_vertices", graph, new HasName.QuotedCollectionName(v));
+		command("delete_vertices", graph, new HasQuotedName.QuotedCollectionName(v));
 	}
 	
 	public void delete_edges(QuantoGraph graph, Set<QEdge> e) throws ConsoleError {
-		command("delete_edges", graph, new HasName.QuotedCollectionName(e));
+		command("delete_edges", graph, new HasQuotedName.QuotedCollectionName(e));
 	}
 	
 	public void undo(QuantoGraph graph) throws ConsoleError {
@@ -309,28 +310,28 @@ public class QuantoCore {
 	}
 	
 	public void save_graph(QuantoGraph graph, String fileName) throws ConsoleError{
-		command("save_graph", graph, new HasName.QuotedName(fileName));
+		command("save_graph", graph, new HasName.StringName(fileName));
 	}
 	
 	public QuantoGraph load_graph(String fileName) throws ConsoleError{
-		return new QuantoGraph(chomp(command("load_graph", new HasName.QuotedName(fileName))));
+		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
 	}
 	
 	public String input_graph_xml(String xml) throws ConsoleError {
 		return chomp(blockCommand("input_graph_xml", xml));
 	}
 	
-	public Theory load_theory(String theoryName, String fileName) throws ConsoleError{
-		return new Theory(
-				chomp(command("load_theory",
-					new HasName.QuotedName(theoryName), 
-					new HasName.QuotedName(fileName))),
+	public Ruleset load_ruleset(String rsetName, String fileName) throws ConsoleError{
+		return new Ruleset(
+				chomp(command("load_ruleset",
+					new HasName.StringName(rsetName), 
+					new HasName.StringName(fileName))),
 				chomp(fileName),
 				false);
 	}
 	
-	public void unload_theory(Theory theory) throws ConsoleError{
-		command("unload_theory", new HasName.QuotedName(theory));
+	public void unload_ruleset(Ruleset ruleset) throws ConsoleError{
+		command("unload_ruleset", ruleset);
 	}
 
 	public String add_bang(QuantoGraph g) throws ConsoleError {
@@ -339,12 +340,12 @@ public class QuantoCore {
 	
 	public void bang_vertices (QuantoGraph g, BangBox bb, Set<QVertex> verts)
 	throws ConsoleError {
-		command("bang_vertices", g, bb, new HasName.QuotedCollectionName(verts));
+		command("bang_vertices", g, bb, new HasQuotedName.QuotedCollectionName(verts));
 	}
 	
 	public void unbang_vertices (QuantoGraph g, Set<QVertex> verts)
 	throws ConsoleError {
-		command("unbang_vertices", g, new HasName.QuotedCollectionName(verts));
+		command("unbang_vertices", g, new HasQuotedName.QuotedCollectionName(verts));
 	}
 	
 	// here we use a string for target, because we may not be keeping the clip-board
@@ -352,64 +353,62 @@ public class QuantoCore {
 	public void copy_subgraph (QuantoGraph source, String target, Set<QVertex> verts)
 	throws ConsoleError {
 		command("copy_subgraph", source,
-				new HasName.QuotedName(target),
-				new HasName.QuotedCollectionName(verts));
+				new HasName.StringName(target),
+				new HasQuotedName.QuotedCollectionName(verts));
 	}
 	
 	// here we use a string for source, because we may not be keeping the clip-board
 	//  as a QuantoGraph in memory.
 	public void insert_graph (QuantoGraph target, String source)
 	throws ConsoleError {
-		command("insert_graph", target, new HasName.QuotedName(source));
+		command("insert_graph", target, new HasName.StringName(source));
 	}
 	
 	public void flip_vertices (QuantoGraph g, Set<QVertex> vs)
 	throws ConsoleError {
-		command("flip_vertices", g, new HasName.QuotedCollectionName(vs));
+		command("flip_vertices", g, new HasQuotedName.QuotedCollectionName(vs));
 	}
 	
-	public String[] list_theories() throws ConsoleError {
-		return command("list_theories").split("\r\n|\n|\r");
+	public String[] list_rulesets() throws ConsoleError {
+		return command("list_rulesets").split("\r\n|\n|\r");
 	}
 	
-	public String[] list_active_theories() throws ConsoleError {
-		return command("list_active_theories").split("\r\n|\n|\r");
+	public String[] list_active_rulesets() throws ConsoleError {
+		return command("list_active_rulesets").split("\r\n|\n|\r");
 	}
 	
-	public String[] list_rules(String thy) throws ConsoleError {
-		return command("list_rules", new HasName.QuotedName(thy)).split("\r\n|\n|\r");
+	public String[] list_rules(String rset) throws ConsoleError {
+		return command("list_rules", new HasName.StringName(rset)).split("\r\n|\n|\r");
 	}
 	
-	public void activate_theory(Theory thy) throws ConsoleError {
-		command("activate_theory", new HasName.QuotedName(thy));
-		thy.setActive(true);
+	public void activate_ruleset(Ruleset rset) throws ConsoleError {
+		command("activate_ruleset", rset);
+		rset.setActive(true);
 	}
 	
-	public void deactivate_theory(Theory thy) throws ConsoleError {
-		command("deactivate_theory", new HasName.QuotedName(thy));
-		thy.setActive(false);
+	public void deactivate_ruleset(Ruleset rset) throws ConsoleError {
+		command("deactivate_ruleset", rset);
+		rset.setActive(false);
 	}
 	
 	public void apply_first_rewrite(String graph) throws ConsoleError {
-		command("apply_first_rewrite", new HasName.QuotedName(graph));
+		command("apply_first_rewrite", new HasName.StringName(graph));
 	}
 	
 	public void apply_first_rewrite(QuantoGraph graph) throws ConsoleError {
-		command("apply_first_rewrite", new HasName.QuotedName(graph));
+		command("apply_first_rewrite", graph);
 	}
 	
-	public QuantoGraph open_rule_lhs(Theory thy, String rule) throws ConsoleError {
+	public QuantoGraph open_rule_lhs(Ruleset rset, String rule) throws ConsoleError {
 		QuantoGraph g = new QuantoGraph(
-				chomp(command("open_rule_lhs",
-				new HasName.QuotedName(thy), new HasName.StringName(rule))));
+				chomp(command("open_rule_lhs", rset, new HasName.StringName(rule))));
 		g.fromXml(graph_xml(g));
 		return g;
 	}
 	
-	public QuantoGraph open_rule_rhs(Theory thy, String rule) throws ConsoleError {
+	public QuantoGraph open_rule_rhs(Ruleset rset, String rule) throws ConsoleError {
 		QuantoGraph g = new QuantoGraph(
-				chomp(command("open_rule_rhs",
-				new HasName.QuotedName(thy), new HasName.StringName(rule))));
+				chomp(command("open_rule_rhs", rset, new HasName.StringName(rule))));
 		g.fromXml(graph_xml(g));
 		return g;
 	}

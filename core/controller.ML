@@ -55,7 +55,7 @@ end; (* structure QuantoCommand *)
 structure GraphName :> SSTR_NAMES = 
 struct
 open SStrName
-val default_name = SStrName.mk "New Graph"
+val default_name = SStrName.mk "new-graph-1"
 end
 
 exception user_exp of string
@@ -268,7 +268,7 @@ local
 in
 val deactivate_rule  = update_rule' RuleSet.deactivate_rule
 val activate_rule = update_rule' RuleSet.activate_rule
-val activate_rule = update_rule' RuleSet.delete_rule
+val delete_rule = update_rule' RuleSet.delete_rule
 end  
 
 
@@ -332,17 +332,18 @@ fun kill_graph ([name], state) =
      handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^name))
   | kill_graph _ = raise wrong_args_exp
 
-fun rename_graph ([old,new], state) = let
-    fun upd graphs = let
+fun rename_graph ([old,new], state) = (let
+        val graphs = get_graphs state
         val oldname = GraphName.mk old
         val gr = GraphName.NTab.get graphs oldname
-    in graphs |> GraphName.NTab.delete oldname
-              |> GraphName.NTab.update_new (GraphName.mk new, gr)
+        val (nm,graphs') = graphs
+                  |> GraphName.NTab.delete oldname
+                  |> GraphName.NTab.add (GraphName.mk new, gr)
+    in
+      (Pretty.string_of (GraphName.pretty_name nm) ^ "\n",
+       set_graphs graphs' state)
     end
-        handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^old)
-             | GraphName.NTab.Tab.DUP _ => raise user_exp ("graph already exists: "^new)
-in ("ok\n", update_graphs upd state)
-end
+    handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^old))
   | rename_graph _ = raise wrong_args_exp
 
 
@@ -652,21 +653,21 @@ val () = (
 
     register_cmd
     "activate_rule"
-    ("activate_ruleset RULESET RULE\n\n"^
+    ("activate_rule RULESET RULE\n\n"^
      "    enable RULE in RULESET for rewriting")
-    (activate_ruleset);
+    (activate_rule);
 
     register_cmd
-    "deactivate_ruleset"
+    "deactivate_rule"
     ("deactivate_ruleset RULESET RULE\n\n"^
      "    disable RULE in RULESET for rewriting")
-    (deactivate_ruleset);
+    (deactivate_rule);
 
     register_cmd
-    "delete_ruleset"
+    "delete_rule"
     ("delete_ruleset RULESET RULE\n\n"^
      "    remove RULE from RULESET for rewriting")
-    (deactivate_ruleset);
+    (delete_rule);
 
     register_cmd
     "new_graph"
@@ -701,7 +702,8 @@ val () = (
     register_cmd
     "rename_graph"
     ("rename_graph OLD NEW\n\n"^
-     "    rename graph OLD to NEW\n")
+     "    rename graph OLD to NEW, return the real new\n"^
+     "    name.\n")
     (rename_graph);
 
     register_cmd

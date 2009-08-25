@@ -887,6 +887,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		for (JMenu menu : menus) mm.add(menu);
 		mm.insertAfter(mm.fileMenu, mm.file_openGraph, file_saveGraph);
 		mm.insertAfter(mm.fileMenu, file_saveGraph, file_saveGraphAs);
+		mm.file_closeView.setEnabled(true);
 		mm.revalidate();
 		mm.repaint();
 		grabFocus();
@@ -910,8 +911,21 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		return super.exportPdf();
 	}
 
-	public void viewKill(ViewPort vp) {
-		// TODO Auto-generated method stub
+	public boolean viewKill(ViewPort vp) {
+		boolean kill = false;
+		if (getGraph().isSaved()) {
+			kill = true;
+		} else {
+			String msg = "Graph '" + getGraph().getName() + "' is unsaved. Close anyway?";
+			kill = (JOptionPane.showConfirmDialog(this, msg,
+					"Unsaved changes", JOptionPane.YES_NO_OPTION) == 0);
+		}
 		
+		if (kill == true) {
+			// TODO: unload graph
+		}
+		
+		
+		return kill;
 	}
 }

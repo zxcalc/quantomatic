@@ -16,9 +16,11 @@ public interface InteractiveView {
 	void viewUnfocus(ViewPort vp);
 	
 	/**
-	 * Called when view is killed to do clean-up.
+	 * Called when view is killed to do clean-up. If it returns false, it means the view can't
+	 * be closed yet. E.g. the user has unsaved changes.
+	 * @return TODO
 	 */
-	void viewKill(ViewPort vp);
+	boolean viewKill(ViewPort vp);
 	
 	/** 
 	 * Determine if this view has a parent (i.e. is currently being displayed).

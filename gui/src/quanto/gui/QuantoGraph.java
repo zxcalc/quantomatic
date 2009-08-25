@@ -242,8 +242,8 @@ implements HasName {
 		return saved;
 	}
 
-	public void setSaved(boolean unSaved) {
-		this.saved = unSaved;
+	public void setSaved(boolean saved) {
+		this.saved = saved;
 	}
 
 	public List<BangBox> getBangBoxes() {

@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
@@ -41,9 +42,13 @@ public class ViewPort extends JPanel {
 					for (final Map.Entry<String, InteractiveView> ent : views.entrySet())
 					{
 						String title = ent.getKey();
-						if (ent.getValue() instanceof InteractiveGraphView)
+						if (ent.getValue() instanceof InteractiveGraphView &&
+							QuantoApp.getInstance().getPreference(
+									QuantoApp.SHOW_INTERNAL_NAMES))
+						{
 							title += " (" + ((InteractiveGraphView)ent
 												.getValue()).getGraph().getName() + ")";
+						}
 						item = new JMenuItem(title);
 						item.setFont(item.getFont().deriveFont(12.0f));
 						item.setEnabled(! ent.getValue().viewHasParent());
@@ -80,15 +85,43 @@ public class ViewPort extends JPanel {
 			
 			add(av, BorderLayout.CENTER);
 			String title = view;
-			if (activeView instanceof InteractiveGraphView)
+			
+			// if the view names and graph names are out of sync, show it
+			if (activeView instanceof InteractiveGraphView &&
+					QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES))
+			{
 				title += " (" + ((InteractiveGraphView)activeView)
 									.getGraph().getName() + ")";
+			}
 			pickView.setText("  " + title + " " + arrowDown);
 			focusedView = view;
 		} else {
 			pickView.setText("  [null] " + arrowDown);
 		}
 		repaint();
+	}
+	
+	// focus the console
+	public void focusConsole() {
+		setFocusedView("console");
+		gainFocus();
+	}
+	
+	// focus some random non-console view. Use this for when windows are closed, etc.
+	public boolean focusNonConsole() {
+		Map<String, InteractiveView> views = QuantoApp.getInstance().getViews();
+		synchronized (views) {
+			for (Entry<String,InteractiveView> ent : views.entrySet()) {
+				if (!(ent.getValue() instanceof ConsoleView)) {
+					setFocusedView(ent.getKey());
+					gainFocus();
+					return true;
+				}
+			}
+		}
+		focusConsole();
+		gainFocus();
+		return false;
 	}
 	
 	public String getFocusedView() {
