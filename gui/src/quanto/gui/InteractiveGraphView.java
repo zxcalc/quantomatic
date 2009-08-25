@@ -32,6 +32,8 @@ import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
+import edu.uci.ics.jung.visualization.picking.MultiPickedState;
+import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 
@@ -51,6 +53,12 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
 	
 	private List<Rewrite> rewriteCache = null;
+	private JRadioButtonMenuItem rbEdgeMode;
+	private JRadioButtonMenuItem rbBangBoxMode;
+	private JRadioButtonMenuItem rbPickingMode;
+	
+	private PickedState<BangBox> pickedBangBoxState;
+	
 	public boolean viewHasParent() {
 		return this.getParent() != null;
 	}
@@ -137,56 +145,88 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 	}
 	
+	
 	/**
 	 * A graph mouse for doing most interactive graph operations.
 	 *
 	 */
 	private class RWMouse extends PluggableGraphMouse {
-		private GraphMousePlugin pickingMouse, edgeMouse;
-		private boolean pickingMouseSelected;
+		private GraphMousePlugin pickingMouse, edgeMouse, bangBoxMouse;
+		private boolean pickingMouseActive, edgeMouseActive, bangBoxMouseActive;
 		public RWMouse() {
 			int mask = InputEvent.CTRL_MASK;
 			if (QuantoApp.isMac) mask = InputEvent.META_MASK;
 			
 			add(new ScalingGraphMousePlugin(new CrossoverScalingControl(), 0, 1.1f, 0.909f));
 			add(new TranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
+			add(new AddEdgeGraphMousePlugin<QVertex,QEdge>(
+					InteractiveGraphView.this,
+					InteractiveGraphView.this,
+					InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
 			pickingMouse = new PickingGraphMousePlugin<QVertex,QEdge>();
 			edgeMouse = new AddEdgeGraphMousePlugin<QVertex,QEdge>(
 							InteractiveGraphView.this,
 							InteractiveGraphView.this,
 							InputEvent.BUTTON1_MASK);
+			bangBoxMouse = new BangBoxGraphMousePlugin(InteractiveGraphView.this);
 			setPickingMouse();
 		}
 		
-		public void setPickingMouse() {
-			pickingMouseSelected = true;
+		public void clearMouse() {
+			edgeMouseActive = false;
 			remove(edgeMouse);
+			
+			pickingMouseActive = false;
+			remove(pickingMouse);
+			
+			bangBoxMouseActive = false;
+			remove(bangBoxMouse);
+		}
+		
+		public void setPickingMouse() {
+			clearMouse();
+			pickingMouseActive = true;
 			add(pickingMouse);
 			InteractiveGraphView.this.repaint();
 		}
 		
 		public void setEdgeMouse() {
-			pickingMouseSelected = false;
-			remove(pickingMouse);
+			clearMouse();
+			edgeMouseActive = true;
 			add(edgeMouse);
 			InteractiveGraphView.this.repaint();
 		}
 		
+		public void setBangBoxMouse() {
+			clearMouse();
+			bangBoxMouseActive = true;
+			add(bangBoxMouse);
+			InteractiveGraphView.this.repaint();
+		}
+		
 		public boolean isPickingMouse() {
-			return pickingMouseSelected;
+			return pickingMouseActive;
 		}
 		
 		public boolean isEdgeMouse() {
-			return !pickingMouseSelected;
+			return edgeMouseActive;
+		}
+		
+		public boolean isBangBoxMouse() {
+			return bangBoxMouseActive;
 		}
 		
 		public ItemListener getItemListener() {
 			return new ItemListener () {
 				public void itemStateChanged(ItemEvent e) {
 					if (e.getStateChange() == ItemEvent.SELECTED) {
-						setEdgeMouse();
-					} else {
-						setPickingMouse();
+						if (e.getSource() == rbEdgeMode) {
+							setEdgeMouse();
+						} else if (e.getSource() == rbBangBoxMode) {
+							setBangBoxMouse();
+						} else {
+							setPickingMouse();
+						}
 					}
 				}
 			};
@@ -205,6 +245,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		setGraphLayout(smoothLayout);
 		setLayout(null);
 		
+		pickedBangBoxState = new MultiPickedState<BangBox>();
+		getBangBoxPainter().setPickedState(pickedBangBoxState);
 		
 		//JLabel lab = new JLabel("test");
 		//add(lab);
@@ -222,6 +264,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				g.setColor(Color.red);
 				if (graphMouse.isEdgeMouse())
 					g.drawString("EDGE MODE", 5, 15);
+				else if (graphMouse.isBangBoxMouse())
+					g.drawString("!-BOX MODE", 5, 15);
 				g.setColor(old);
 			}
 
@@ -263,6 +307,14 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 						break;
 					case KeyEvent.VK_B:
 						addVertex(QVertex.Type.BOUNDARY);
+						break;
+					case KeyEvent.VK_E:
+						if (graphMouse.isEdgeMouse()) rbPickingMode.setSelected(true);
+						else rbEdgeMode.setSelected(true);
+						break;
+					case KeyEvent.VK_N:
+						if (graphMouse.isBangBoxMouse()) rbPickingMode.setSelected(true);
+						else rbBangBoxMode.setSelected(true);
 						break;
 					case KeyEvent.VK_SPACE:
 						showRewrites();
@@ -362,11 +414,35 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		});
 		graphMenu.add(item);
 		
-		JCheckBoxMenuItem cbItem = new JCheckBoxMenuItem("Add Edge Mode");
-		cbItem.setMnemonic(KeyEvent.VK_E);
-		cbItem.addItemListener(graphMouse.getItemListener());
-		cbItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, commandMask));
-		graphMenu.add(cbItem);
+		graphMenu.addSeparator();
+		
+		ButtonGroup mouseModeGroup = new ButtonGroup();
+		rbPickingMode = new JRadioButtonMenuItem("Select Mode");
+		rbPickingMode.setMnemonic(KeyEvent.VK_T);
+		rbPickingMode.addItemListener(graphMouse.getItemListener());
+		mouseModeGroup.add(rbPickingMode);
+		graphMenu.add(rbPickingMode);
+		
+		
+		rbEdgeMode = new JRadioButtonMenuItem("Edge Mode");
+		rbEdgeMode.setMnemonic(KeyEvent.VK_E);
+		rbEdgeMode.addItemListener(graphMouse.getItemListener());
+		mouseModeGroup.add(rbEdgeMode);
+		graphMenu.add(rbEdgeMode);
+		
+		rbBangBoxMode = new JRadioButtonMenuItem("Bang Box Mode");
+		rbBangBoxMode.setMnemonic(KeyEvent.VK_B);
+		rbBangBoxMode.addItemListener(graphMouse.getItemListener());
+		mouseModeGroup.add(rbBangBoxMode);
+		graphMenu.add(rbBangBoxMode);
+		
+		graphMenu.addSeparator();
+		
+//		cbBangBoxMode = new JCheckBoxMenuItem("Add Edge Mode");
+//		cbBangBoxMode.setMnemonic(KeyEvent.VK_E);
+//		cbBangBoxMode.addItemListener(graphMouse.getItemListener());
+//		cbBangBoxMode.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, commandMask));
+//		graphMenu.add(cbBangBoxMode);
 		
 		item = new JMenuItem("Latex to clipboard", KeyEvent.VK_L);
 		item.addActionListener(new QuantoActionListener(this) {
@@ -927,5 +1003,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		
 		
 		return kill;
+	}
+
+	public PickedState<BangBox> getPickedBangBoxState() {
+		return pickedBangBoxState;
 	}
 }

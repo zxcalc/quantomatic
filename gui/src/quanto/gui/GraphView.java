@@ -1,5 +1,6 @@
 package quanto.gui;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -8,6 +9,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -38,6 +40,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.decorators.AbstractEdgeShapeTransformer;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape.IndexedRendering;
+import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
@@ -48,7 +51,7 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	public QuantoGraph graph;
 	private QuantoLayout quantoLayout;
 	private VisualizationServer.Paintable boundsPaint;
-	
+	private BangBoxPaintable bangBoxPainter;
 	
 	public GraphView(QuantoGraph g) {
 		this(g, new Dimension(800, 600));
@@ -150,31 +153,8 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         		});
         
         
-        addPreRenderPaintable(new VisualizationServer.Paintable() {
-			public void paint(Graphics g) {
-				getQuantoLayout().updateBangBoxes(getGraphLayout());
-				Color oldColor = g.getColor();
-				for (BangBox bb : getGraph().getBangBoxes()) {
-					Rectangle2D rect = 
-						getQuantoLayout().transformBangBox(bb);
-					
-					if (rect != null) {
-						Shape draw = getRenderContext()
-							.getMultiLayerTransformer().transform(rect);
-					
-						g.setColor(Color.lightGray);
-						((Graphics2D)g).fill(draw);
-						g.setColor(Color.gray);
-						((Graphics2D)g).draw(draw);
-					}
-				}
-				g.setColor(oldColor);
-			}
-
-			public boolean useTransform() {
-				return false;
-			}
-        });
+        bangBoxPainter = new BangBoxPaintable();
+        addPreRenderPaintable(bangBoxPainter);
 	}
 	
 	/**
@@ -335,6 +315,58 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 		}
 
 		return null;
+	}
+	
+	public BangBoxPaintable getBangBoxPainter() {
+		return bangBoxPainter;
+	}
+	
+	public class BangBoxPaintable implements VisualizationServer.Paintable {
+		private PickedState<BangBox> pickedState;
+		
+		public BangBoxPaintable() {
+			pickedState = null;
+		}
+		
+		public void setPickedState(PickedState<BangBox> pickedState) {
+			this.pickedState = pickedState;
+		}
+		
+		public void paint(Graphics g) {
+			getQuantoLayout().updateBangBoxes(getGraphLayout());
+			Color oldColor = g.getColor();
+			Stroke oldStroke = ((Graphics2D)g).getStroke();
+			for (BangBox bb : getGraph().getBangBoxes()) {
+				Rectangle2D rect = 
+					getQuantoLayout().transformBangBox(bb);
+				
+				if (rect != null) {
+					Shape draw = getRenderContext()
+						.getMultiLayerTransformer().transform(rect);
+				
+					
+					g.setColor(Color.lightGray);
+					
+					((Graphics2D)g).fill(draw);
+					
+					if (pickedState != null && pickedState.isPicked(bb)) {
+						((Graphics2D)g).setStroke(new BasicStroke(2));
+						g.setColor(Color.blue);
+					} else {
+						((Graphics2D)g).setStroke(new BasicStroke(1));
+						g.setColor(Color.gray);
+					}
+					
+					((Graphics2D)g).draw(draw);
+				}
+			}
+			g.setColor(oldColor);
+			((Graphics2D)g).setStroke(oldStroke);
+		}
+
+		public boolean useTransform() {
+			return false;
+		}
 	}
 	
 	private class AngleLabeler implements VertexLabelRenderer {
