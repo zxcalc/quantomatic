@@ -24,6 +24,7 @@ use "match.ML";
 use "matchstate.ML";
 use "rule.ML";
 use "spider.ML";
+use "ruleset.ML";
 use "output.ML";
 use "output_XML.ML";
 use "output_rule_XML.ML";
@@ -36,7 +37,6 @@ use "reader.ML";
 use "writer.ML";
 use "loadsave.ML";
 (*use "theory_hack.ML";*)
-use "ruleset.ML";
 use "hilb.ML";
 use "controller.ML";
 
