@@ -11,8 +11,6 @@ import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-import quanto.gui.QuantoCore.ConsoleError;
-
 @SuppressWarnings("serial")
 public class SplitGraphView extends JPanel implements InteractiveView {
 	private boolean leftFocused;
@@ -30,21 +28,6 @@ public class SplitGraphView extends JPanel implements InteractiveView {
 		lastViewPort = null;
 		this.leftView = leftView;
 		this.rightView = rightView;
-		
-		// make some graphs to test
-//		QuantoCore core = QuantoApp.getInstance().getCore();
-		
-		
-//		try {
-//			leftView = new InteractiveGraphView(core, core.new_graph(),
-//					new Dimension(400, 600));
-//			leftView.updateGraph();
-//			rightView = new InteractiveGraphView(core, core.new_graph(),
-//					new Dimension(400, 600));
-//			rightView.updateGraph();
-//		} catch (ConsoleError e) {
-//			throw new QuantoCore.FatalError(e);
-//		}
 		
 		leftView.addFocusListener(new FocusAdapter() {
 			public void focusGained(FocusEvent e) {

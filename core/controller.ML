@@ -571,9 +571,9 @@ fun export_rule getter label ([ruleset,rule],state) =
       val rulesets = get_rulesets state
       val rset = case RuleSet.NTab.lookup rulesets (RuleSet.mk ruleset)
                  of SOME v => v | NONE => raise user_exp "Can't find ruleset."
-      val rl = case Rule.Name.NTab.lookup rset (Rule.Name.mk rule)
+      val rl = case Rule.Name.NTab.lookup (fst rset) (Rule.Name.mk rule)
                    of SOME v => v | NONE => raise user_exp "Can't find rule."
-      val (name, graphs) = GraphName.NTab.add (GraphName.mk (rule^"_"^label), getter rl) (get_graphs state)
+      val (name, graphs) = GraphName.NTab.add (GraphName.mk (rule^"_"^label), getter (fst rl)) (get_graphs state)
     in
       (((suffix "\n") o Pretty.string_of o GraphName.pretty_name) name,
        state |> set_graphs graphs)
