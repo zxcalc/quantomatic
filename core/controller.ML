@@ -271,7 +271,7 @@ val activate_rule = update_rule' RuleSet.activate_rule
 val delete_rule = update_rule' RuleSet.delete_rule
 
 (*
-fun update_rule ([rset,rule,lhs,rhs], state) = let
+fun replace_rule ([rset,rule,lhs,rhs], state) = let
   val _ = (case RuleSet.lookup_rule
             (RuleSet.NTab.get (get_rulesets state) (RuleSet.mk rset))
             (Rule.Name.mk rule)
@@ -279,9 +279,9 @@ fun update_rule ([rset,rule,lhs,rhs], state) = let
     handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
   in ("ok\n", state)
 end
-  | update_rule _ = raise wrong_args_exp ()
-*)  
+  | replace_rule _ = raise wrong_args_exp ()
 
+*)
 end  
 
 
