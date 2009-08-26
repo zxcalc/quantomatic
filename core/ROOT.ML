@@ -4,6 +4,7 @@ val rootDir = OS.FileSys.getDir();
 use "ROOT.ML"; 
 OS.FileSys.chDir rootDir);
 
+
 (* load all the files. *)
 use "lex.ML";
 use "alg.ML";
