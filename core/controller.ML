@@ -293,6 +293,8 @@ fun replace_rule ([rset,rule,lhs,rhs], state) =
       handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
            | Rule.Name.Tab.UNDEF _ => raise user_exp "Can't find rule."
   in ("ok\n", state |> update_rulesets update_rsets)
+      handle Rule.bad_rule_exp _ =>
+        raise user_exp "Boundaries and !-boxes on LHS must match RHS."
 end
   | replace_rule _ = raise wrong_args_exp ()
 
