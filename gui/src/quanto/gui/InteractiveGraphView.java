@@ -608,6 +608,9 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, commandMask));
 		graphMenu.add(item);
 		
+		// define submenu for bang boxes
+		JMenu bangMenu = new JMenu("Bang boxes");
+			
 		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
 		item.addActionListener(new QuantoActionListener(this) {
 			@Override
@@ -620,7 +623,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			}
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, commandMask));
-		graphMenu.add(item);
+		bangMenu.add(item);
 		
 		item = new JMenuItem("Unbang Vertices", KeyEvent.VK_U);
 		item.addActionListener(new QuantoActionListener(this) {
@@ -633,7 +636,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1,
 				commandMask | KeyEvent.SHIFT_MASK));
-		graphMenu.add(item);
+		bangMenu.add(item);
+		graphMenu.add(bangMenu);
 		
 		menus.add(graphMenu);
 		
