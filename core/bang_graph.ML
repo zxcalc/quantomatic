@@ -44,6 +44,34 @@ val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
 val merge_boxes : BBox.name -> BBox.name -> T -> T
 
+
+(*  
+val get_adj_banged_vnames : 
+    T -> Vertex.name -> VtoBoxMap.T
+*)
+
+(* *)
+val get_adj_arities : 
+    T -> Vertex.name -> int Vertex.NTab.T * int Vertex.NTab.T BBox.NTab.T
+
+(* adjacent vertex info, w.r.t. tgt and pattern for matching *)
+val adj_tgt_info_bangs : 
+    T -> Vertex.name 
+    -> Vertex.data 
+       * (Edge.data Edge.NTab.T (* names/data of edges that are self-loops *)
+          * (VtoBoxMap.T (* bang box to contained adj vertices *)
+             * Vertex.NSet.T)) (* other adj vertices *)
+
+(* like tgt, but includes separation of leaf vertices *)
+val adj_pat_info_bangs :
+    T -> Vertex.name 
+    -> Vertex.data 
+       * ((Edge.Ehn.name * Edge.data) 
+            Vertex.NTab.T (* leaf vertex to source's half-edge *)
+          * Edge.data Edge.NTab.T (* names of edges that are self-loops *)
+          * (VtoBoxMap.T  (* bang box to contained adj vertices *)
+             * Vertex.NSet.T)) (* other adj vertices *)
+
 end;
 
 
@@ -216,7 +244,7 @@ fun move_to_unbox vs g =
     g |> update_bboxes (Vertex.NSet.fold VtoBoxMap.del_dom vs)
       |> update_unboxed (Vertex.NSet.union_merge vs);
 
-(* FIXME: merge_by vertices respect !-boxes *)
+(* FIXME: merge_by_vertices respect !-boxes *)
 (* FIXME: subgraph_of_selection respect !-boxes *)
 (* FIXME: other stuff respect !-boxes ??? *)
 
@@ -255,5 +283,95 @@ fun merge_boxes bn1 bn2 g =
     let 
       val b1vs = get_bbox g bn1
     in g |> move_to_box bn1 b1vs end; 
+
+
+(* FIXME: this code is largely duplicated in bgraph - clean up *)
+
+(* IMPROVE: move these into graph *)
+fun pair_from_of_edge g e = 
+    let val (ed,(from,to)) = get_edge g e in (e,ed,from) end;
+fun pair_to_of_edge g e = 
+    let val (ed,(from,to)) = get_edge g e in (e,ed,to) end;
+
+(* auxillary function; adding a vertex to a map of adj banged, 
+   or a set of others. *)
+fun add_to_others g n (vtobang, others) = 
+    (case lookup_box_of g n of NONE => (vtobang, V.NSet.add n others)
+     | SOME bbn => (if VtoBoxMap.dom_contains vtobang n then vtobang 
+                       else VtoBoxMap.add_to_dom n bbn vtobang, 
+                    others));
+
+(* find all adjacent vertices, except self, divided into: 
+   boundary leafs, bangbox vertices, and others *)
+fun adj_tgt_info_bangs' g n0 (d,(ins,outs)) = 
+    let 
+      fun consider_edge (e,ed,n) (loopes, others) = 
+          if V.name_eq (n,n0) then (E.NTab.update (e, ed) loopes, others)
+          else (loopes, add_to_others g n others)
+    in 
+      (d, (E.NTab.empty, (VtoBoxMap.empty, V.NSet.empty))
+            |> (Edge.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
+            |> (Edge.NSet.fold (consider_edge o (pair_to_of_edge g)) outs))
+    end;
+
+fun adj_tgt_info_bangs g n =  adj_tgt_info_bangs' g n (get_vertex g n);
+
+(* find all adjacent vertices, except self, divided into: 
+   boundary leafs, and others *)
+fun adj_pat_info_bangs' g n0 (d,(ins,outs)) = 
+    let 
+      fun consider_edge eh (leaftab, loopes, others) = 
+          let val n = get_ehn_vname g (Edge.Ehn.other eh) 
+              val en = Edge.Ehn.get_ename eh in
+          if V.name_eq (n,n0) then (* self-loop *)
+            (leaftab, E.NTab.update (en,get_edge_data g en) loopes, others)
+          else if V.NTab.contains leaftab n then 
+            (V.NTab.delete n leaftab, loopes, add_to_others g n others)
+          else if is_boundary g n then 
+            (V.NTab.ins (n,(eh,get_edge_data g en)) leaftab, loopes, others)
+          else (leaftab, loopes, add_to_others g n others)
+          end;
+    in 
+      (d, (V.NTab.empty, E.NTab.empty, (VtoBoxMap.empty, V.NSet.empty))
+            |> (Edge.NSet.fold (consider_edge o Edge.Ehn.mk_end) ins)
+            |> (Edge.NSet.fold (consider_edge o Edge.Ehn.mk_start) outs))
+    end;
+
+fun adj_pat_info_bangs g n = adj_pat_info_bangs' g n (get_vertex g n);
+
+(* get arrities of adjacent vertices, and those in bang-boxes. *)
+fun get_adj_arities g n = 
+    let 
+      val nbbox = lookup_box_of g n;
+
+      (* interesting case for auto-optimisation *)
+      fun in_a_different_bbox n2 = 
+          (case nbbox of NONE => lookup_box_of g n2
+           | SOME bbn => 
+              (case lookup_box_of g n2 of 
+                  NONE => NONE
+                | SOME bbn2 => 
+                  if (not (BBox.name_eq (bbn, bbn2))) 
+                  then SOME bbn2 else NONE));
+
+      fun add_one_arity n ntab =
+          if Vertex.NTab.contains_name ntab n then
+            Vertex.NTab.map_entry (fn i => i + 1) n ntab
+          else Vertex.NTab.update (n,1) ntab;
+
+      fun consider1 e n2 (ntab,bboxntab) = 
+          (case in_a_different_bbox n2 of 
+             NONE => (add_one_arity n2 ntab, bboxntab)
+           | SOME bbn =>  
+             (ntab,
+              if BBox.NTab.contains_name bboxntab bbn then
+                BBox.NTab.map_entry (add_one_arity n) bbn bboxntab
+              else 
+                BBox.NTab.update (bbn, Vertex.NTab.update (n,1) 
+                                       Vertex.NTab.empty) 
+                                 bboxntab))
+    in 
+      fold_adj consider1 g n (Vertex.NTab.empty, BBox.NTab.empty)
+    end;
 
 end; (* BangGraphFun *)

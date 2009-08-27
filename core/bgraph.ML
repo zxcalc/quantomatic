@@ -72,7 +72,7 @@ end;
 functor BGraphFun(
         structure BVertex : BVERTEX
         structure Edge : EDGE
-        type data 
+        type data (* graph additional extensible/hidden data *)
         val empty_data : data
 ) 
 : BGRAPH
@@ -287,28 +287,6 @@ fun pull_subgraph_within_selection vns g =
       (get_vnames g) g;
 
 
-(* IMPROVE: move these into graph *)
-fun pair_from_of_edge g e = 
-    let val (ed,(from,to)) = get_edge g e in (e,ed,from) end;
-fun pair_to_of_edge g e = 
-    let val (ed,(from,to)) = get_edge g e in (e,ed,to) end;
-
-(* find all adjacent vertices, except self, divided into: 
-   boundary leafs, and others *)
-fun adj_tgt_info' g n0 (d,(ins,outs)) = 
-    let 
-      fun consider_edge (e,ed,n) (adjinfo as (loopes, others)) = 
-          if V.name_eq (n,n0) then 
-            (E.NTab.update (e, ed) loopes, others)
-          else (loopes, V.NSet.add n others);
-    in 
-      (d, (E.NTab.empty, V.NSet.empty)
-            |> (Edge.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
-            |> (Edge.NSet.fold (consider_edge o (pair_to_of_edge g)) outs))
-    end;
-
-fun adj_tgt_info g n =  adj_tgt_info' g n (get_vertex g n);
-
 (* leaves are boundary vertices with only one edge to them - they are
    special in that they can match on half of a loopy edge (the mapping
    assigns them to the loopy node - and the edge map does a half
@@ -332,7 +310,34 @@ fun get_leaf_vnames g =
           else I)
       (get_vertices g)
       Vertex.NSet.empty;
-    
+
+(* get adjacent boundary leaf vertices *)
+fun get_adj_leaves g n = 
+    filtered_adj_vnames (is_leaf_vertex g) g n;
+
+
+(* IMPROVE: move these into graph *)
+fun pair_from_of_edge g e = 
+    let val (ed,(from,to)) = get_edge g e in (e,ed,from) end;
+fun pair_to_of_edge g e = 
+    let val (ed,(from,to)) = get_edge g e in (e,ed,to) end;
+
+(* find all adjacent vertices, except self, divided into: 
+   boundary leafs, and others *)
+fun adj_tgt_info' g n0 (d,(ins,outs)) = 
+    let 
+      fun consider_edge (e,ed,n) (loopes, others) = 
+          if V.name_eq (n,n0) then 
+            (E.NTab.update (e, ed) loopes, others)
+          else (loopes, V.NSet.add n others);
+    in 
+      (d, (E.NTab.empty, V.NSet.empty)
+            |> (Edge.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
+            |> (Edge.NSet.fold (consider_edge o (pair_to_of_edge g)) outs))
+    end;
+
+fun adj_tgt_info g n =  adj_tgt_info' g n (get_vertex g n);
+
 (* find all adjacent vertices, except self, divided into: 
    boundary leafs, and others *)
 fun adj_pat_info' g n0 (d,(ins,outs)) = 
@@ -360,5 +365,6 @@ fun adj_pat_info' g n0 (d,(ins,outs)) =
     end;
 
 fun adj_pat_info g n = adj_pat_info' g n (get_vertex g n);
+
 
 end;

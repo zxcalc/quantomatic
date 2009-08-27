@@ -187,20 +187,29 @@ val get_ehn_data : T -> Edge.Ehn.name -> Edge.data
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
-val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) -> Vertex.NSet.T
+val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) 
+    -> Vertex.NSet.T ->  Vertex.NSet.T
+
+(* fold over adjacents *)
+val fold_adj : (Edge.Ehn.name * Edge.data -> Vertex.name -> 'a -> 'a) 
+      -> T -> Vertex.name -> 'a -> 'a
+
+(* filtered set of adj vertex names *)
+val filtered_adj_vnames : (Vertex.name -> bool) 
+      -> T -> Vertex.name -> Vertex.NSet.T
 
 (* the vertices connected to the given set, but outside it *) 
 val incident_vertices : T -> Vertex.NSet.T -> Vertex.NSet.T
 
 (* get adj vertices (from edge info) and from vertex name *)
 
-(* leafs have no other incident edges - they only have the one 
+(* singletons have no other incident edges - they only have the one 
    to the given vertex *)
-val adj_leaf_vs : T -> Vertex.name 
-                        -> Edge.Ehn.name Vertex.NTab.T  (* leafs *)
+val adj_singleton_vs : T -> Vertex.name 
+                        -> Edge.Ehn.name Vertex.NTab.T  (* singletons *)
                            * Vertex.NSet.T (* other adj *)
-val adj_leaf_vs' : T -> (Edge.NSet.T * Edge.NSet.T)
-                         -> Edge.Ehn.name Vertex.NTab.T (* leafs *)
+val adj_singleton_vs' : T -> (Edge.NSet.T * Edge.NSet.T)
+                         -> Edge.Ehn.name Vertex.NTab.T (* singletons *)
                             * Vertex.NSet.T (* other adj *)
 
 val adj_vertices_with_edges : T -> Vertex.name 
@@ -757,6 +766,22 @@ fun rename_apart avoidg ing =
     end;
 
 
+
+(* fold a function over the adjacent vertex names *)
+fun fold_adj' f g (ins,outs) a = 
+    a |> (Edge.NSet.fold 
+         (fn e => let val (d,(from,to)) = get_edge g e 
+          in f (Edge.Ehn.mk_start e,d) from end) ins)
+      |> (Edge.NSet.fold 
+         (fn e => let val (d,(from,to)) = get_edge g e 
+          in f (Edge.Ehn.mk_end e,d) to end) outs);
+
+(* all vertices adjacent to vertex named n *)
+fun fold_adj f g n a = 
+    fold_adj' f g (snd (get_vertex g n)) a;
+
+
+(* IMPROVE: use fold function ! *)
 (* make a table: (Edge.data Edge.NTab.T) Vertex.NTab.T
 holding every edge's data that is connects n and to the key Vertex.NTab, 
 the Vertex.NTab has every vertex adjacent to n. (Note: ignores direction) *)
@@ -800,6 +825,7 @@ fun get_self_loops g n =
 fun adj_vertices_with_edges g n = 
     adj_vertices_with_edges' g (snd (get_vertex g n));
 
+(* IMPROVE: use fold function to simplify this *)
 fun adj_vertices_with_enames' g (ins,outs) = 
     Vertex.NTab.empty
       |> (Edge.NSet.fold 
@@ -828,64 +854,59 @@ fun adj_vertices_with_enames' g (ins,outs) =
 fun adj_vertices_with_enames g n = 
     adj_vertices_with_enames' g (snd (get_vertex g n));
 
+(* IMPROVE: use fold function to simplify this *)
 (* find all adjacent vertices which have no other egdes than the one
    (from the given ins/outs) of this vertex *)
-fun adj_leaf_vs' g (ins,outs) = 
+fun adj_singleton_vs' g (ins,outs) = 
     (Vertex.NTab.empty, Vertex.NSet.empty)
       |> (Edge.NSet.fold 
-            (fn e => fn (adjinfo as (leaftab, notleafset)) => 
+            (fn e => fn (adjinfo as (stab, notsset)) => 
              let val (_,(from,to)) = get_edge g e
-             in if Vertex.NSet.contains notleafset from then adjinfo
-                else if Vertex.NTab.contains leaftab from then 
-                  (Vertex.NTab.delete from leaftab, 
-                   Vertex.NSet.add from notleafset)
+             in if Vertex.NSet.contains notsset from then adjinfo
+                else if Vertex.NTab.contains stab from then 
+                  (Vertex.NTab.delete from stab, 
+                   Vertex.NSet.add from notsset)
                 else 
-                  (Vertex.NTab.ins (from,Edge.Ehn.mk_start e) leaftab, 
-                   notleafset)
+                  (Vertex.NTab.ins (from,Edge.Ehn.mk_start e) stab, 
+                   notsset)
              end)
             ins)
       |> (Edge.NSet.fold 
-            (fn e => fn (adjinfo as (leaftab, notleafset)) => 
+            (fn e => fn (adjinfo as (stab, notsset)) => 
              let val (_,(from,to)) = get_edge g e
-             in if Vertex.NSet.contains notleafset to then adjinfo
-                else if Vertex.NTab.contains leaftab to then 
-                  (Vertex.NTab.delete to leaftab, Vertex.NSet.add to notleafset)
+             in if Vertex.NSet.contains notsset to then adjinfo
+                else if Vertex.NTab.contains stab to then 
+                  (Vertex.NTab.delete to stab, Vertex.NSet.add to notsset)
                 else 
-                  (Vertex.NTab.ins (to,Edge.Ehn.mk_end e) leaftab, notleafset)
+                  (Vertex.NTab.ins (to,Edge.Ehn.mk_end e) stab, notsset)
              end)
             outs);
-fun adj_leaf_vs g n = adj_leaf_vs' g (snd (get_vertex g n));
+fun adj_singleton_vs g n = adj_singleton_vs' g (snd (get_vertex g n));
 
-fun adj_vnames' g (ins,outs) = 
-    Vertex.NSet.empty
-      |> (Edge.NSet.fold 
-            (fn e => 
-                let val (_,(from,to)) = get_edge g e
-                in Vertex.NSet.add from end)
-            ins)
-      |> (Edge.NSet.fold 
-            (fn e => 
-                let val (_,(from,to)) = get_edge g e
-                in Vertex.NSet.add to end)
-            outs);
 
-(* all vertices adjacent to vertex named n *)
-fun adj_vnames g n = 
-    adj_vnames' g (snd (get_vertex g n));
+(* all vertices adjacent to vertex *)
+val adj_vnames' = fold_adj' (K Vertex.NSet.add);
+fun adj_vnames g n = fold_adj (K Vertex.NSet.add) g n Vertex.NSet.empty;
+
+(* filtered set of adj vertex *)
+fun filter_adj_fn f (e : Edge.Ehn.name * Edge.data) n s = 
+    if (f n) then Vertex.NSet.add n s else s;
+val filtered_adj_vnames' = fold_adj' o filter_adj_fn;
+fun filtered_adj_vnames f g n = 
+    fold_adj (filter_adj_fn f) g n Vertex.NSet.empty;;
 
 
 (* some more convenience functions for directed graphs *)
 fun in_enames g = fst o snd o (get_vertex g);
 fun out_enames g = snd o snd o (get_vertex g);
 
-
-
+(* names of adj vertices with edges going to them *)
 fun succ_vnames g vname =
-    adj_vnames' g (Edge.NSet.empty, out_enames g vname);
+    adj_vnames' g (Edge.NSet.empty, out_enames g vname) Vertex.NSet.empty;
 
+(* names of adj vertices with edges coming in from them *)
 fun pred_vnames g n =
-    adj_vnames' g (in_enames g n, Edge.NSet.empty);
-
+    adj_vnames' g (in_enames g n, Edge.NSet.empty) Vertex.NSet.empty;
 
 (* vertices incident into vns *)
 (* the vertices connected to the given set, but outside it *) 
@@ -966,7 +987,7 @@ fun exact_eq g1 g2 =
  * new structure and a set of all the chosen root vertices. *)
 fun dft_with_roots fld graph base = let
   val out_edges = fn v => Edge.NSet.list_of (#2(#2(get_vertex graph v)));
-  fun tree [] base rem = (base, rem) (* leaf *)
+  fun tree [] base rem = (base, rem) (* leaf/singleton *)
     | tree (e::es) base rem =
 	    let val targ = #2(#2(get_edge graph e))
 	    in if Vertex.NSet.contains rem targ then
@@ -1078,8 +1099,17 @@ fun get_dag_ranks dag = let
 in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
 end
 
-
-
 end; (* local -- hides opened Graph data types *)
 end;
-        
+
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  test that GraphToolsFun does what signature says... *)
+functor GraphFun(BasicGraph : BASIC_GRAPH) 
+: GRAPH
+= struct
+open BasicGraph;
+structure foo = GraphToolsFun(BasicGraph);
+open foo;
+end;

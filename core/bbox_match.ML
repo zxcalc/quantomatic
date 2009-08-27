@@ -18,6 +18,7 @@ val update_bbmap : (BBMap.T -> BBMap.T) -> T -> T;
 
 val empty : T;
 val mk_id : BBox.NSet.T -> T;
+val add_kills : BBox.name list -> T -> T;
 
 end;
 
@@ -95,6 +96,9 @@ fun mk_id ns =
           (BBox.NSet.fold 
              (fn n => fn bbm => BBMap.add_to_dom n n bbm)
              ns BBMap.empty);
+
+(* implicit args: ns m *)
+val add_kills = update_kill o fold BBox.NSet.add;
 
 end;
 

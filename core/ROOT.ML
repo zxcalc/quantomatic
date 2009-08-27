@@ -24,7 +24,7 @@ use "rg_match_ctxt.ML";
 use "match.ML";
 use "matchstate.ML";
 
-print_depth 0;
+print_depth 0; (* hack while David fixes PolyML bug *)
 use "rule.ML";
 print_depth 100;
 

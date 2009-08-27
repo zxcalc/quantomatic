@@ -120,7 +120,7 @@ fun rat_reduce r =
 fun add (n1,d1) (n2,d2) =  rat_reduce (n1*d2 + n2*d1, d1*d2)
 fun subtr (n1,d1) (n2,d2) = add (n1,d1) (~n2,d2)
 fun mult (n1,d1) (n2,d2) = rat_reduce (n1*n2, d1*d2)
-fun div (n1,d1) (n2,d2) = mult (n1,d1) (d2,n2)
+fun op div (n1,d1) (n2,d2) = mult (n1,d1) (d2,n2)
 
 fun mk n d = rat_reduce (n,d);
 

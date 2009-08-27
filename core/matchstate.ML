@@ -84,7 +84,6 @@ signature MATCH_STATE
   val get_match : T -> Match.T
   val get_match_mctxt : T -> Match.MCtxt.T
   val get_match_vmap : T -> Vertex.name Vertex.NTab.T
-  val get_tgt_vnseq : T -> Vertex.name Seq.seq
   val get_tgt_vs : T -> T -> Vertex.NSet.T
   val get_unm_pat : T -> RGGraph.T
   val get_unm_pat_vs : T -> Vertex.NSet.T
@@ -147,7 +146,8 @@ datatype T =
           unm_pat : RGGraph.T, 
           (* bang box expansion of pattern *)
           bbmatch : BBoxMatch.T,
-          (* unmatched leaves from init pat *)
+          (* unmatched leaves from init pat = 
+             needed because they can otherwise be introduced in the pat! *)
           pat_lfs : Vertex.NSet.T, 
           (* tgt with matched edges removed as we match them *)
           unm_tgt : RGGraph.T 
@@ -165,10 +165,14 @@ fun get_match (MState rep) = #match rep;
 fun get_bbmatch (MState rep) = #bbmatch rep;
 fun get_unm_pat (MState rep) = #unm_pat rep;
 fun get_pat_lfs (MState rep) = #pat_lfs rep;
+(* implicit: st pn *)
+val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_lfs;
+
 val get_unm_pat_vs = 
     Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_pat;
 val get_unm_unboxed_pat_vs = RGGraph.get_unboxed o get_unm_pat;
 fun get_unm_tgt (MState rep) = #unm_tgt rep;
+val get_unm_unboxed_tgt_vs = RGGraph.get_unboxed o get_unm_tgt;
 fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
     Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_tgt;
 val get_unm_tgt_es =
@@ -212,6 +216,9 @@ fun update_bbmatch f (MState rep) =
              unm_tgt = #unm_tgt rep
            };
 
+
+val set_unm_pat = update_unm_pat o K;
+
 val set_agenda = update_agenda o K;
 val set_match = update_match o K;
 
@@ -234,6 +241,11 @@ val del_tgt_edge = update_unm_tgt o RGGraph.delete_edge;
 val del_pat_edge = update_unm_pat o RGGraph.delete_edge;
 val del_tgt_edges = update_unm_tgt o Edge.NSet.fold RGGraph.delete_edge;
 val del_pat_edges = update_unm_pat o Edge.NSet.fold RGGraph.delete_edge;
+
+(* implicit st *)
+fun del_tgt_n_edges n es = 
+    update_unm_tgt 
+     (fold RGGraph.delete_edge (List.take (Edge.NSet.list_of es, n)));
 
 (* implicit: v st *)
 val del_pat_vertex = update_unm_pat o RGGraph.delete_vertex;
@@ -268,240 +280,22 @@ fun pop_agenda st =
    target edges. If both pat edges are non-boundary, then match
    strictly: all tgt edges must be matched, else only require all
    pattern edges to be matched. *)
-fun multi_edge_matches from_pd to_pn pat_edges tgt_edges st = 
+fun multi_edge_matches from_pd to_pd pat_edges tgt_edges st = 
     (* choose edge matching function *)
     ((case from_pd of (* non-strict edge matching: maybe extra edges in tgt *)
         V.BVert => Match.multi_edge_match
       | V.IVert d => 
-        (case fst (RGGraph.get_vertex (get_unm_pat st) to_pn)
+        (case to_pd
           of V.BVert => Match.multi_edge_match
            | V.IVert d => Match.strict_multi_edge_match))
        pat_edges tgt_edges (get_match st))
     (* apply edge matching: all pat egdes are always matched,
        mtes is matched tgt edges *)
-    |> Seq.map (fn (_, (mtes, m)) => 
-                   st |> del_pat_edges (Edge.NTab.get_nameset pat_edges)
-                      |> del_tgt_edges mtes
-                      |> set_match m);
-
-(* match edges between two vertices and add new matching to the agenda *)
-fun edgematch_adj_2vs (from_pv as (from_pn, from_pd)) to_pn
-                      (from_tn, _) to_tn st =
-    let 
-      val unm_pat = (get_unm_pat st);
-      val pat_edges = RGGraph.edges_between unm_pat from_pn to_pn;
-      val tgt_edges = RGGraph.edges_between (get_unm_tgt st) from_tn to_tn;
-    in
-      st |> multi_edge_matches from_pd to_pn pat_edges tgt_edges
-         |> Seq.map_filter (try_add1_to_agenda (to_pn,to_tn))
-      (* |> (Seq.of_list o Seq.list_of) : T Seq.seq 
-            -- to debug: force eval here and now *)
-    end;
-
-(* NOTE: we treat all self-loops as equivalent; this assumes no edge
-   data, but saves on many otherwise symmetric matches for self-loops *)
-fun edgematch_adj_leaf_to_loop 
-      (lfpvn,(lfpeh,ped)) (* *) 
-      (from_tn,from_td) (* tgt vertex *)
-      (ltes, st) = 
-    (case Edge.NSet.get_local_bot (Edge.NTab.get_nameset ltes)
-      of NONE => NONE
-       | SOME lte => 
-         let 
-           val m2 = 
-               (get_match st)
-                 |> (Match.add_leaf_ehn2edge_emap 
-                       (lfpeh,ped) (lte, Edge.NTab.get ltes lte))
-                 |> Match.match_lfvertex lfpvn (from_tn,from_td)
-           val st2 = st |> set_match m2
-                        |> del_pat_lfvertex lfpvn
-                        |> del_pat_edge (Edge.Ehn.get_ename lfpeh)
-         in if Match.tgt_edge_is_fully_matched m2 lte then 
-              SOME (Edge.NTab.delete lte ltes, 
-                    st2 |> del_tgt_edge lte)
-            else 
-              SOME (ltes, st2)
-         end);
-
-
-(* match up an leafedge from a pv against *)
-(* NOTE: we treat all self-loops as equivalent; this assumes no edge
-   data, but saves on many otherwise symmetric matches for self-loops;
- *)
-(* IMPROVE: respect edge data might fail - deal with options/turn into seqs *)
-fun edgematch_adj_leaf (from_tn,from_td) (lfpne as (lfpvn,(lfpeh,ped)))
-                       (left_over_tehs, (ltes, st)) = 
-    (case Edge.Ehn.NSet.pull_local_bot left_over_tehs 
-      of NONE => (* all extra target edges already matched, so match 
-                    the extra leaf pattern edge/vertex to self-loops *)
-         (case edgematch_adj_leaf_to_loop lfpne (from_tn,from_td) (ltes, st)
-           of SOME (ltes2, st2) => Seq.single (left_over_tehs, (ltes2, st2))
-            | NONE => Seq.empty (* THINK: can this actually happen? *) )
-       | SOME (teh, more_tehs) => 
-         let val tgt = get_unm_tgt st
-             val tn = RGGraph.get_ehn_vname tgt (Edge.Ehn.other teh)
-             val td = RGGraph.get_vertex_data tgt tn
-             val ted = RGGraph.get_ehn_data tgt teh
-             val m2 = (get_match st) 
-                        |> Match.match_lfvertex lfpvn (tn,td)
-                        |> (the o Match.add_full_leaf_ehn2ehn_emap 
-                                    (lfpeh,ped) (teh,ted))
-             val te = Edge.Ehn.get_ename teh
-             val pe = Edge.Ehn.get_ename lfpeh
-             val st2 = st |> set_match m2
-                          |> del_pat_lfvertex lfpvn 
-                          |> del_tgt_edge te
-         in
-           Seq.cons  (* edgematch against this teh *)
-             (more_tehs, (ltes, st2))
-             (Seq.map (* edgematch against other incident tehs *)
-                (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
-                (edgematch_adj_leaf (from_tn,from_td) lfpne 
-                                    (more_tehs, (ltes, st))))
-         end
-         handle Option.Option => 
-                (Seq.map (* edgematch against other incident tehs *)
-                   (fn (tehs, x) => (Edge.Ehn.NSet.add teh tehs, x))
-                   (edgematch_adj_leaf (from_tn,from_td) lfpne 
-                                       (more_tehs, (ltes, st))))
-    );
-
-
-(* match extra pat leaves against remaining target edges *)
-(* IMPROVE?: really match leaf to every possible location; currently
-   we just match leaves to whatever they can be matched to first. *)
-fun edgematch_extra_pat_leaves from_pd (from_tn, from_td)
-      ltes (* unmatched loopy edges in tgt *)
-      plfs (* left over pattern boundary leaves *)
-      st = 
-    let 
-      val left_over_tehs = 
-          RGGraph.get_vname_ehns (get_unm_tgt st) from_tn
-      val leaf_match_seq =
-          Vertex.NTab.fold
-            (Seq.maps o edgematch_adj_leaf (from_tn, from_td))
-            plfs
-            (Seq.single (left_over_tehs, (ltes, st)))
-    in (* allow extra tgts only if from_d is boundary *)
-      Seq.maps
-        (fn (tehs2, (ltes2, st2)) =>
-            (case from_pd 
-              of Vertex.BVert => Seq.single st2 (* nonstrict *)
-               | Vertex.IVert _ => (* strict *)
-                 if Edge.Ehn.NSet.is_empty tehs2 
-                    andalso Edge.NTab.is_name_empty ltes2
-                 then Seq.single st2 else Seq.empty))
-        leaf_match_seq
-    end;
-
-(* match up all adjavent edges of chosen pattern and target, we do
-   this by going through each adjacent vertex of the pattern and
-   finding it and adjacent vertex in the target. *)
-(* IMPROVE: use incident number to quickly rule out cases where
-   pattern has more incident edges that tgt -> they will always fail?
-   (i.e. do counting in advance, avoid seraching permutations of
-   counting) *)
-fun edgematch_adj_verticies 
-      (from_pv as (from_pn,from_pd)) (* pat vertex *)
-      (from_tv as (from_tn,from_td)) (* tgt vertex *)
-      (pns, (* adjacent to pat, non-leaves *)
-       tns) (* adjacent to tgt *) 
-      (ltes, (* unmatched loopy edges in tgt *)
-       (plfs, (* left over pattern boundary leaves *)
-       st)) = (* state of matching so far *)
-    let 
-      val pat = get_unm_pat st;
-      val tgt = get_unm_tgt st;
-      
-      val from_bbox = RGGraph.lookup_box_of pat from_pn;
-    in 
-    (* *)
-    (Seq.single (tns, st))
-    (* match all adj non-leaf pattern vertices *)
-    |> (Vertex.NSet.fold 
-          (Seq.maps o 
-          (fn to_pn => 
-           fn (tns,st) => 
-              (* for each tn, try to_pn against it *)
-              (Seq.maps
-                 (fn (to_tn, tns2) => 
-                     Seq.map (pair tns2)
-                             (edgematch_adj_2vs 
-                                from_pv to_pn from_tv to_tn st))
-                 (Seq.of_list (Vertex.NSet.pull_each tns)))))
-          pns)
-    (* match remaining pat leaves; note: we ignore tns as we
-       re-compute it in terms of half edges. IMPROVE: avoid this? *)
-    |> (Seq.maps (edgematch_extra_pat_leaves from_pd from_tv ltes plfs o snd))
-    end;
-
-(* if pn is internal and tgt has loops, match tgt loops against leaf
-   boundary nodes adjacent to pn; this will remove adjacent matched
-   pattern nodes from the those needing to be matched against further
-   tgt nodes. (This is when we do edge loop cutting in tgt, from our
-   matching semantics)
- *)
-
-(* IMPROVE: avoid exception to stop fold loop - have a try_fold *)
-(*  Match all loopy edges in tgt against 2 leaf boundary nodes in pat *)
-fun match_all_tgt_loops_by_leaves (tn,td) (ltes, (plfs,st)) = 
-    let val (plfs2, st2) = 
-      Edge.NTab.fold 
-      (fn (te as (ten,ted)) => fn (plfs,st) => 
-       let (* pull out two lef boundary nodes *)
-         val (p1 as (pn1,pe1),plfs2) = the (V.NTab.pull_elem plfs)
-         val (p2 as (pn2,pe2),plfs3) = the (V.NTab.pull_elem plfs2)
-          (* IMPROVE: to support edge data, be careful - 
-             matching may need to change another edges data *)
-         val st2 = 
-             st |> del_pat_lfvertex pn1 
-                |> del_pat_lfvertex pn2
-                |> del_tgt_edge ten
-                |> (update_match 
-                      (Match.match_lfvertex pn1 (tn,td)
-                       o Match.match_lfvertex pn2 (tn,td)
-                       o Match.add_leaf_ehn2edge_emap pe1 te
-                       o Match.add_leaf_ehn2edge_emap pe2 te))
-       in (plfs3,st2) end)
-      ltes (plfs,st)
-    in Seq.single (Edge.NTab.empty, (plfs2, st2)) end
-    (* IMPROVE: I don't like imperitive loop exit!!! *)
-    (* Option exception, indicating failure, if there is not enough pattern
-       boundary nodes to match the loops, or if matching fails for
-       some reason. *)
-    handle Option => Seq.empty; 
-
-(* match all self-loops in pattern by self-loops in tgt *)
-fun match_all_pat_self_loops lpes (ltes, st) = 
-    (Match.multi_edge_match lpes ltes (get_match st))
-      |> Seq.map (fn (ltes2,(mtes,m)) => 
-                     (ltes2, 
-                      st |> del_pat_edges (Edge.NTab.get_nameset lpes)
-                         |> del_tgt_edges mtes
-                         |> set_match m));
-
-(* 1. every loop in pat must have a loop in tgt,
-   2. if pat is internal, then all extra loops in tgt 
-   must be matched by leaf boundaries
-*)
-fun match_self_loops pd tn lpes (* loopy pat edges *)
-                     (ltes, (* loopy tgt edges *)
-                      (plfs, (* pat leaves *)
-                       st)) = 
-    let val ltes2st2seq = match_all_pat_self_loops lpes (ltes, st) in
-      case pd 
-       of V.BVert => 
-          Seq.map (fn (ltes,st) => (ltes,(plfs,st))) ltes2st2seq
-        | V.IVert _ => 
-          Seq.maps (* must have all tgt self loops matched by leaves *)
-            (fn (ltes,st) => match_all_tgt_loops_by_leaves 
-                               tn (ltes, (plfs, st)))
-            ltes2st2seq
-    end;
-
-
-fun copy_then_drop_bbox bbn st = st;
-fun copy_bbox bbn st = st;
+    |> Seq.map (fn (unmatches_tes, (mtes, m)) => 
+                   (unmatches_tes, (mtes,
+                    st |> del_pat_edges (Edge.NTab.get_nameset pat_edges)
+                       |> del_tgt_edges mtes
+                       |> set_match m)));
 
 (* try to match the bang-box's of the given pattern and tgt node:
    mapping must be injective, and tgt *)
@@ -515,7 +309,7 @@ fun match_bboxes pnv tnv st =
             NONE => SOME st
           | SOME pbbn => 
             (case BBMap.lookup_domf (get_bbmap st) pbbn of
-               NONE => SOME (copy_then_drop_bbox pbbn st)
+               NONE => SOME (st |> update_unm_pat (RGGraph.drop_box pbbn))
              | SOME _ => NONE)) (* already mapped to tgt bang box *)
        | SOME tbbn => 
          (case RGGraph.lookup_box_of pat pnv of 
@@ -523,20 +317,306 @@ fun match_bboxes pnv tnv st =
           | SOME pbbn => 
             (case BBMap.lookup_domf (get_bbmap st) pbbn of
                NONE => 
-               SOME (st |> copy_bbox pbbn
-                        |> update_bbmap (BBMap.add_to_dom pbbn tbbn))
+               SOME (st |> update_bbmap (BBMap.add_to_dom pbbn tbbn))
              | SOME tbbn2 => (* already mapped to a tgt bang box *)
                if (BBox.name_eq (tbbn,tbbn2)) then SOME st
                else NONE)))
     end;
-(* 
-    case match_bboxes pnv tnv st of
-      NONE => NONE
-    | SOME st' =>  
-*)
 
-(* st pn *)
-val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_lfs;
+(* bang boxes of pnv and tnv are set to be matching *)
+fun have_matching_bboxes pnv tnv st = 
+    let val pat = get_unm_pat st;
+        val tgt = get_unm_tgt st;
+    in
+      case (RGGraph.lookup_box_of tgt tnv, RGGraph.lookup_box_of pat pnv) 
+      of (NONE, NONE) => true
+       | (SOME bb1, SOME bb2) => (BBMap.contains (get_bbmap st) (bb1,bb2))
+       | (_,_) => false
+    end;
+
+(* move to library? *)
+fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
+
+(* match edges between two vertices and add new matching to the agenda *)
+fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
+                      to_pn
+                      (t as ((from_tn, _)))
+                      to_tn st =
+    (case st |> and_try (match_bboxes to_pn to_tn)
+                        (try_add1_to_agenda (to_pn,to_tn))
+      of SOME st2 => 
+         let 
+           val pat = get_unm_pat st2
+           val to_pd = RGGraph.get_vertex_data pat to_pn
+           val pes = RGGraph.edges_between pat from_pn to_pn
+           val tes = RGGraph.edges_between (get_unm_tgt st2) from_tn to_tn
+         in multi_edge_matches from_pd to_pd pes tes st2 end
+            (* |> (Seq.of_list o Seq.list_of) : T Seq.seq 
+                  -- to debug: force eval here and now *)
+      | NONE => Seq.empty);
+
+(* IMPROVE: can do lazy enumeration of bboxes here? *)
+(* match as many pattern nodes as needed to get all the target edges. *)
+fun strict_edgematch_adj_tgt_vertex 
+      (from_pv as (from_pn,from_pd)) 
+      (from_tv as (from_tn,from_td))
+      to_tn
+      (pns, st) = 
+    let 
+      val tes = RGGraph.edges_between (get_unm_pat st) from_tn to_tn
+    in
+      if Edge.NTab.is_name_empty tes then Seq.single (pns, st)
+      else 
+        (Seq.of_list (Vertex.NSet.pull_each pns))
+        |> Seq.maps (* try each pattern node here *)
+        (fn (to_pn, pns2) => 
+            (edgematch_adj_2vs from_pv to_pn from_tv to_tn st)
+            |> Seq.map (pair pns2 o snd o snd))
+    end;
+
+(* match up all adjavent edges of chosen pattern and target, we do
+   this by going through each adjacent vertex of the pattern and
+   finding it and adjacent vertex in the target. *)
+(* IMPROVE: use incident number to quickly rule out cases where
+   pattern has more incident edges that tgt -> they will always fail?
+   (i.e. do counting in advance, avoid seraching permutations of
+   counting) *)
+(* Invarent: ignore_arity >= 0 *)
+fun edgematch_adj_verticies 
+      (from_pv as (from_pn,from_pd)) (* pat vertex *)
+      (from_tv as (from_tn,from_td)) (* tgt vertex *)
+      (ignore_arity,st) = (* state of matching so far *)
+    let 
+      val pat = get_unm_pat st;
+      val tgt = get_unm_tgt st;
+      
+      (* adjacent to tgt/pat, non-leaves *)
+      val pns = RGGraph.adj_vnames pat from_pn;
+      val tns = RGGraph.adj_vertices_with_edges tgt from_tn;
+    in 
+    (* *)
+    (Seq.single (ignore_arity,(pns,st)))
+    (* match all adj tgt vertices *)
+    |> (tns |> Vertex.NTab.fold 
+          (fn (to_tn,tes) => 
+           let val teset = Edge.NTab.get_nameset tes
+               val to_tn_nedges = Edge.NSet.cardinality teset 
+           in 
+             Seq.maps (fn (ignore_arity,(pns,st)) => 
+              Seq.append
+                (* ignore all target edges *)
+                (if (ignore_arity >= to_tn_nedges)
+                 then Seq.single 
+                        (ignore_arity - to_tn_nedges,
+                         (pns, del_tgt_edges teset st))
+                 else Seq.empty)
+                (* or-choice: ignore every number of ignoreable target edges *)
+                ((Seq.of_list (0 upto (Int.max (0, 
+                   Int.min (to_tn_nedges, ignore_arity - 1)))))
+                 |> Seq.maps 
+                    (fn ignore_now => 
+                    let val st2 = del_tgt_n_edges ignore_now teset st
+                    in (* after ignore, match strictly *)
+                      Seq.map (pair (ignore_arity - ignore_now))
+                              (strict_edgematch_adj_tgt_vertex 
+                                from_pv from_tv to_tn (pns,st2))
+                    end)))
+            end))
+    end;
+
+(* FIXME: using choose assumes no edge data *)
+
+(* choose i elements from a list of l possibilities - order independent. *)
+(* limit is about: choose 13 out of list of 26. 
+   IMPROVE: use seq to lazily generate possibilities and avoid memory death
+   (using depth first search!)
+*)
+fun list_choose i l = 
+    let val lsize = length l;
+        val skip_this_many = lsize - i;
+
+        (* assumes (skip_this_many <= lsize) & (lsize = length (h::t)) *)
+        fun choose _ _ [] = [] (* nothing to choose from *)
+          | choose 0 lsize l = [l] (* skip none *)
+          | choose skip_this_many lsize (h::t) = 
+            if skip_this_many = lsize then [[]] (* skip all the rest *)
+            else 
+              (map (fn l => h::l) (* choose h *)
+                   (choose skip_this_many (lsize - 1) t))
+              @ (* skip h *)
+              (choose (skip_this_many - 1) (lsize - 1) t);
+    in 
+      if skip_this_many < 0 orelse i < 0 then []
+      else (choose skip_this_many lsize l) 
+    end;
+
+(* all unordered-pairs of leaf vertices -- all ways to match a self-loop; only
+   unboxed leaf vertices can be used (bboxed ones must be unboxed first) *)
+fun pull_adj_pat_leaf_pairs (* from_patbbox *) pn st = 
+    let val pat = get_unm_pat st;
+
+        val leafs = 
+            RGGraph.fold_adj 
+              (fn e => fn n => fn L => 
+                if not (RGGraph.is_boxed pat n) 
+                   andalso is_leaf_of_init_pat st n
+                   andalso RGGraph.is_leaf_vertex pat n 
+                then (e,n)::L else L)
+              pat pn [];
+
+        fun all_leaf_pairs [] = []
+          | all_leaf_pairs (n::ns) = 
+            (* (if (in_fresh_bbox from_patbbox (RGGraph.lookup_box_of pat n))
+             then [(n,n)] else [])
+            @ *) 
+            (map (pair n) ns)
+            @ (all_leaf_pairs ns);
+
+    in all_leaf_pairs leafs end;
+
+
+(* if pn is internal and tgt has loops, match tgt loops against leaf
+   boundary nodes adjacent to pn; this will remove adjacent matched
+   pattern nodes from the those needing to be matched against further
+   tgt nodes. (This is when we do edge loop cutting in tgt, from our
+   matching semantics)
+ *)
+(* IMPROVE: to support edge data, be careful - 
+   matching may need to change another edges data *)
+exception bug_exp of string;
+(*  Match all loopy edges in tgt against 2 leaf boundary nodes in pat *)
+fun match_all_tgt_loops_by_leaves (pn,pd) (tn,td) (ltes,st) = 
+    let 
+      val ltes_size = Edge.NSet.cardinality (Edge.NTab.get_nameset ltes)
+      val pat_leaf_pairs = pull_adj_pat_leaf_pairs pn st
+      val leaf_pairs = Seq.of_list (list_choose ltes_size pat_leaf_pairs)
+    in 
+      Seq.map fst
+      (Edge.NTab.fold 
+      (fn (te as (ten,ted)) => Seq.map 
+       (fn (st, []) => raise bug_exp "match_all_tgt_loops_by_leaves"
+         | (st, (((pe1,pn1),(pe2,pn2))::plfps)) => 
+       (* pull out two leaf boundary nodes *)
+          (st |> del_pat_lfvertex pn1 
+              |> del_pat_lfvertex pn2
+              |> del_tgt_edge ten
+              |> (update_match 
+                    (Match.match_lfvertex pn1 (tn,td)
+                     o Match.match_lfvertex pn2 (tn,td)
+                     o Match.add_leaf_ehn2edge_emap pe1 te
+                     o Match.add_leaf_ehn2edge_emap pe2 te)), 
+           plfps)))
+       ltes (Seq.map (pair st) leaf_pairs))
+    end;
+
+(* we can match any number of extra target loops by leaves, leaving however many 
+   extra target loops behind. 
+   We are assuming all loopy edges have the same data - we cut symmetries 
+   in permutations of unmatched self-loop edges. 
+   ignore_arity = total edges that will be ignored in the target
+*)
+fun match_tgt_loops_by_leaves pnpd tntd ignore_arity (ltes,st) = 
+    let 
+      fun match_loops ltes (ignore_arity,st) = 
+          Seq.append 
+            (Seq.map (pair ignore_arity) (* ignore none *)
+                     (match_all_tgt_loops_by_leaves pnpd tntd (ltes,st)))
+            (if ignore_arity <= 0 then Seq.empty 
+             else (* ignore: 1 more edge in target *)
+             case Edge.NTab.pull_smallest ltes of NONE => Seq.empty
+             | SOME (_,ltes2) => (* ignore more edges in tgt *) 
+               match_loops ltes2 (ignore_arity - 1,st));
+    in (match_loops ltes (ignore_arity, st)) end;
+
+(* match all self-loops in pattern by self-loops in tgt *)
+fun match_all_pat_self_loops lpes ltes st = 
+    (Match.multi_edge_match lpes ltes (get_match st))
+      |> Seq.map (fn (ltes2,(mtes,m)) => 
+                     (ltes2, 
+                      st |> del_pat_edges (Edge.NTab.get_nameset lpes)
+                         |> del_tgt_edges mtes
+                         |> set_match m));
+
+(* 1. every loop in pat must have a loop in tgt,
+   2. if pat is internal, then all extra loops in tgt 
+   must be matched by leaf boundaries
+   IMPROVE: derive k dynamically. 
+   k = number of edges to ignore
+*)
+fun match_self_loops (pnpd as (pn,pd)) (tntd as (tn,td))
+       (ast as (ignore_arity,st)) = 
+    let 
+      (* loopy tgt edges *)
+      val ltes = RGGraph.get_self_loops (get_unm_tgt st) tn
+      (* loopy pat edges *)
+      val lpes = RGGraph.get_self_loops (get_unm_pat st) pn
+    in 
+        st |> match_all_pat_self_loops lpes ltes
+           |> Seq.maps (match_tgt_loops_by_leaves pnpd tntd ignore_arity)
+    end;
+
+(* second bboxopt is a fresh bbox from the first - i.e. can be copied 
+   independently *)
+fun in_fresh_bbox _ NONE = false
+  | in_fresh_bbox NONE (SOME _) = true
+  | in_fresh_bbox (SOME bbn) (SOME bbn2) = 
+    not (BBox.name_eq (bbn, bbn2));
+
+fun nfold 0 f a = a
+  | nfold n f a = nfold (n - 1) f (f a);
+
+(* !-box ops *)
+fun copy_pat_bbox bbn k st = 
+    if k = 0 then update_unm_pat (RGGraph.kill_box bbn) st
+    else if k = 1 then st
+    else if k > 0 then 
+      update_unm_pat (nfold k (snd o RGGraph.copy1_box bbn)) st
+    else raise bug_exp "copy_pat_bbox: negative copy";
+
+fun copy_then_drop_pat_bbox bbn k st = 
+    if k > 0 then 
+      update_unm_pat (RGGraph.drop_box bbn 
+                      o nfold k (snd o RGGraph.copy1_box bbn)) st
+    else raise bug_exp "copy_pat_bbox: negative copy";
+
+(* find all expansions of bang boxes so that matching might be possible *)
+(* IMPROVE: this be integrated into lookahead to do maximal early pruning? *)
+(* returns seq of possible bang-box expanded graphs paired with the target 
+   number of edges that need to be ignored. 
+
+   invarient: tarity > ignore_arity;
+   tarity is total arity of target; ignore_arity is amount that can be removed to make tarity = parity. 
+*)
+fun expand_pat_bboxes (pnpd as (pn,pd)) (tntd as (tn,td)) st = 
+    let 
+      val (pntab,pbboxntab) = RGGraph.get_adj_arities (get_unm_pat st) pn;
+      val (tntab,tbboxntab) = RGGraph.get_adj_arities (get_unm_tgt st) tn;
+
+      (* implicit: ntab k *)
+      val ntab_sum = Vertex.NTab.fold (fn (n,i) => fn j => i + j);
+      val sum_in_bboxtab = BBox.NTab.map_all (fn ntab => ntab_sum ntab 0)
+      val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => fn j => i +j);
+
+      val pbboxsums = sum_in_bboxtab pbboxntab;
+      val tbboxsums = sum_in_bboxtab tbboxntab;
+
+      val tarity = 0 |> ntab_sum tntab |> summed_bbox_sum tbboxsums;
+      val p_min_arity = 0 |> ntab_sum pntab;
+      
+      val scope_arity = tarity - p_min_arity;
+    in 
+      if scope_arity < 0 then Seq.empty (* need at least pn edges *)
+      else (* go through each bang box considering all expansions of it, 
+              upto size limit. *)
+        BBox.NTab.fold
+          (fn (bbn,i) => Seq.maps 
+              (fn (ignore_arity,st) => 
+                Seq.of_list
+                (map (fn k => (ignore_arity - (k * i), copy_pat_bbox bbn k st))
+                     (0 upto (ignore_arity div i)))))
+          pbboxsums
+          (Seq.single (scope_arity,st))
+    end;
 
 (* assumes pat vs are uninstantiated.
    Raises Vertex.NTab...DUP exception, if n1 is already instantiated.
@@ -552,6 +632,8 @@ val match_lfvertex = update_match oo Match.match_lfvertex;
 
 (* IMPROVE: add quick check of num of edges to avoid complex search
    over all permutations matchings that do not add up *)
+(* assumes called only during traversal: bang boxes of pn and tn are already 
+   matching - we only need to consider vertices adj to these and update thing corespondingly. *)
 fun match_2vertices_with_edges 
       (pn : Vertex.name) (* pattern vertex name *)
       (st : T) (* match state so far *)
@@ -559,30 +641,37 @@ fun match_2vertices_with_edges
     let 
       val pat = get_unm_pat st;
       val tgt = get_unm_tgt st;
-      (* ltes = loopy tgt edge half name set, 
-         tns = other tgt nodes set *) 
-      val (td, (ltes, tns)) = RGGraph.adj_tgt_info tgt tn;
-      (* plfs = tab leaves adj to pn map to edge halfs touching pn, 
-         lpes = loopy pattern ename set
-         pns = all other adj vertices set *)
-      val (pd, (plfs, lpes, pns)) = RGGraph.adj_pat_info pat pn;
+      val pd = RGGraph.get_vertex_data pat pn
+      val td = RGGraph.get_vertex_data tgt tn
+
+      (* the bang-boxes the given vertices are in *)
+      val tbboxopt = RGGraph.lookup_box_of tgt pn
+      val pbboxopt = RGGraph.lookup_box_of pat tn
     in 
-      (* pn is leaf only when a new vertex to start matching from, and it 
-         turns out to be a leaf; else graph traversal means this won't happen *)
-      if is_leaf_of_init_pat st pn then 
-        st |> match_lfvertex pn (tn,td)
-           |> (fn st2 => (ltes,(plfs,st2)))
-           |> edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns)
-           |> Seq.map (del_pat_lfvertex pn)
+      (* happens when when a new vertex has just been chosen to start 
+         matching from, and in traversal when there are no adj vertices *)
+      if is_leaf_of_init_pat st pn then (* CHECK: !-boxed, map to edge *)
+         (0, match_lfvertex pn (tn,td) st)
+           |> edgematch_adj_verticies (pn,pd) (tn,td)
+           |> Seq.map (del_pat_lfvertex pn o snd o snd)
       else 
         case match_vertex (pn,pd) (tn,td) st of 
           NONE => Seq.empty (* vertex does not match *)
         | SOME st2 => (* continue matching *)
-          (ltes,(plfs,st2))
-            |> match_self_loops pd (tn,td) lpes 
-            |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns))
-            |> Seq.map (del_pat_vertex pn) (* finished matching pn *)
+          st2 |> expand_pat_bboxes (pn,pd) (tn,td)
+              |> (if Vertex.is_internal_data pd then (* strict match filter *)
+                  Seq.map_filter (fn (x as (ignore_arity, st)) => 
+                    if ignore_arity = 0 then SOME x else NONE)
+                  else I)
+              |> Seq.maps (match_self_loops (pn,pd) (tn,td))
+              |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td))
+              |> Seq.map (del_pat_vertex pn o snd o snd) (* finished matching pn *)
     end;
+
+
+(* IMPROVE: currently bang box expansion and to fit tgt size and non-strict matching are separate. Combine to avoid such an inefficient generate and test approach. 
+*)
+
 
 (* datatype for steps of matching *)
 datatype matchstep =
@@ -590,10 +679,8 @@ datatype matchstep =
        | Progress of T Seq.seq (* or choices in matching *)
 
 (* get tgt vertex names as a seq *)
-val get_tgt_vnseq = 
-    Seq.of_list o Vertex.NSet.list_of 
-    o Vertex.NTab.get_nameset 
-    o RGGraph.get_vertices o get_unm_tgt;
+val get_unboxed_tgt_vnseq = 
+    Seq.of_list o Vertex.NSet.list_of o get_unm_unboxed_tgt_vs;
 
 datatype pulled_vertex_kind = 
          BBoxed of Vertex.name 
@@ -609,6 +696,15 @@ fun get_next_pat_vertex st =
          NONE => NONE
        | SOME n => SOME (BBoxed n)));
 
+(* FIXME: this is used as a hack to avoid searching expansions of bang boxes which are disjoint form the rest of the pattern graph. *)
+fun drop_all_bboxes_in_pat st = 
+    let val pat = get_unm_pat st;
+        val bboxlist = RGGraph.get_bbox_list pat;
+    in 
+      st |> update_unm_pat (fold RGGraph.kill_box bboxlist)
+         |> update_bbmatch (BBoxMatch.add_kills bboxlist)
+    end;
+
 (* consider the next and-point in the agenda *)
 fun do_next_match_choices st = 
     (case pop_agenda st 
@@ -621,12 +717,12 @@ fun do_next_match_choices st =
             Progress (* choices over picking a new vertex in tgt *)
               (Seq.maps
                  (match_2vertices_with_edges pvn st)
-                 (get_tgt_vnseq st))
+                 (get_unboxed_tgt_vnseq st))
           | SOME (BBoxed pvn) => 
             (* all other things are in boxes, 
                so killing them all gives a valid matching... *)
             (* FIXME: find all box-unfoldings and macthes to target !-boxes *)
-            FoundMatch st) 
+            FoundMatch (drop_all_bboxes_in_pat st)) 
        | SOME ((pn,tn),st2) => 
          Progress (* deal with first prescribed and-choice *)
            (match_2vertices_with_edges pn st2 tn));
