@@ -299,7 +299,7 @@ public class TheoryTree extends JPanel {
 						InteractiveGraphView igv2 = new InteractiveGraphView(core, gr2);
 						igv2.updateGraph();
 						v = QuantoApp.getInstance().addView(rule, 
-								new SplitGraphView(igv1, igv2));
+								new SplitGraphView(rset, rule, igv1, igv2));
 					} else { // otherwise
 						v = QuantoApp.getInstance().addView(gr1.getName(), igv1);
 					}

@@ -958,12 +958,16 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public void saveGraph() {
-		try {
-			getCore().save_graph(getGraph(), getGraph().getFileName());
-			getGraph().setSaved(true);
-		}
-		catch (QuantoCore.ConsoleError e) {
-			errorDialog(e.getMessage());
+		if (getGraph().getFileName() != null) {
+			try {
+				getCore().save_graph(getGraph(), getGraph().getFileName());
+				getGraph().setSaved(true);
+			}
+			catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			}
+		} else {
+			saveGraphAs();
 		}
 	}
 	

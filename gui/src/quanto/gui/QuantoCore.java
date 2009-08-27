@@ -399,20 +399,26 @@ public class QuantoCore {
 		command("apply_first_rewrite", graph);
 	}
 	
-	public QuantoGraph open_rule_lhs(Ruleset rset, String rule) throws ConsoleError {
+	public QuantoGraph open_rule_lhs(Ruleset rset, String rule)
+	throws ConsoleError {
 		QuantoGraph g = new QuantoGraph(
 				chomp(command("open_rule_lhs", rset, new HasName.StringName(rule))));
 		g.fromXml(graph_xml(g));
 		return g;
 	}
 	
-	public QuantoGraph open_rule_rhs(Ruleset rset, String rule) throws ConsoleError {
+	public QuantoGraph open_rule_rhs(Ruleset rset, String rule)
+	throws ConsoleError {
 		QuantoGraph g = new QuantoGraph(
 				chomp(command("open_rule_rhs", rset, new HasName.StringName(rule))));
 		g.fromXml(graph_xml(g));
 		return g;
 	}
 	
+	public void replace_rule(Ruleset rset, Rewrite rule)
+	throws ConsoleError {
+		command("replace_rule", rset, rule, rule.getLhs(), rule.getRhs());
+	}
 	
 	/*
 	 * Derived methods, note these are in CamelCase to emphasise that they
