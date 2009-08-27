@@ -48,7 +48,7 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
 
 heap: $(QUANTO_HEAP)
 
-bin/$(THE_BIN).o: $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
 
 # make the core object without dumping the heap

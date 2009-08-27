@@ -227,7 +227,7 @@ fun list_active_rulesets ([], state) =
 fun list_rules ([rset], state) = let
   val rs = fst (RuleSet.NTab.get (get_rulesets state) (RuleSet.mk rset))
 in
-  (prefix "\n" o Pretty.string_of)
+  (suffix "\n" o Pretty.string_of)
     (Pretty.chunks (map RuleSet.pretty_name (RuleSet.list_of_rules rs)))
   handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset '" ^ rset ^ "'")
 end
@@ -924,7 +924,13 @@ val () = (
      "    Replace the given rule with graphs LHS and RHS in the\n"^
      "    workspace.\n")
     (replace_rule);
-    
+
+
+    register_cmd
+    "new_rule"
+    ("new_rule RULESET GRAPH\n\n"^
+     "    Create a new identity rule from GRAPH.\n")
+    (new_rule);
     
     ())
 

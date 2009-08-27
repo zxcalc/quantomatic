@@ -23,7 +23,11 @@ use "rg_match_ctxt.ML";
 (* use "edge_match.ML"; -- not used *)
 use "match.ML";
 use "matchstate.ML";
+
+print_depth 0;
 use "rule.ML";
+print_depth 100;
+
 use "spider.ML";
 use "ruleset.ML";
 use "output.ML";
@@ -40,6 +44,7 @@ use "loadsave.ML";
 (*use "theory_hack.ML";*)
 use "hilb.ML";
 use "controller.ML";
+
 
 
 (*
