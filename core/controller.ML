@@ -265,23 +265,57 @@ local
           update_rulesets (update_rule updater ruleset rule) state)
          handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset '" ^ ruleset ^ "'"))
       | update_rule' updater _ = raise wrong_args_exp ()
+      
+
 in
 val deactivate_rule  = update_rule' RuleSet.deactivate_rule
 val activate_rule = update_rule' RuleSet.activate_rule
 val delete_rule = update_rule' RuleSet.delete_rule
 
-(*
-fun replace_rule ([rset,rule,lhs,rhs], state) = let
-  val _ = (case RuleSet.lookup_rule
-            (RuleSet.NTab.get (get_rulesets state) (RuleSet.mk rset))
-            (Rule.Name.mk rule)
-           of SOME _ => () | NONE => raise user_exp "Can't find rule.")
-    handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
-  in ("ok\n", state)
+fun replace_rule ([rset,rule,lhs,rhs], state) =
+  let
+    val graphs = get_graphs state
+    
+    (* build graphs for the LHS and RHS *)
+    val lgr = GraphName.NTab.get graphs (GraphName.mk lhs)
+      handle GraphName.Tab.UNDEF _ => raise user_exp "LHS doesn't exist."
+    val rgr = GraphName.NTab.get graphs (GraphName.mk rhs)
+      handle GraphName.Tab.UNDEF _ => raise user_exp "RHS doesn't exist."
+      
+    (* replace the given rule with a new one, preserving "active" *)
+    fun new_rule (_,active) = (Rule.mk (lgr, rgr), active)
+    
+    (* find ruleset/rule and apply the above fn to it *)
+    val update_rsets = RuleSet.NTab.map_entry
+          (fn (rs,act) => (Rule.Name.NTab.map_entry
+            new_rule (Rule.Name.mk rule) rs, act))
+          (RuleSet.mk rset)
+      handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
+           | Rule.Name.Tab.UNDEF _ => raise user_exp "Can't find rule."
+  in ("ok\n", state |> update_rulesets update_rsets)
 end
   | replace_rule _ = raise wrong_args_exp ()
 
-*)
+(* create a new identity rule from the current graph *)
+fun new_rule ([rset,graph], state) =
+let
+  val rset_n = RuleSet.mk rset
+  
+  (* select graph and ruleset *)
+  val (rs,active) = RuleSet.NTab.get (get_rulesets state) rset_n
+      handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
+  val graph = GraphName.NTab.get (get_graphs state) (GraphName.mk graph)
+      handle GraphName.Tab.UNDEF _ => raise user_exp "Graph doesn't exist."
+      
+  (* add a new rule and make it active *)
+  val rule = (Rule.mk (graph, graph), true)
+  val (nm, rs') = rs |> Rule.Name.NTab.add (Rule.Name.default_name, rule)
+in ((Pretty.string_of o Rule.Name.pretty_name) nm ^ "\n",
+      state |> update_rulesets (RuleSet.NTab.update (rset_n, (rs',active))))
+end
+  | new_rule _ = raise wrong_args_exp ()
+  
+  
 end  
 
 
@@ -883,13 +917,14 @@ val () = (
      "    the new graph buffer.\n")
     (open_rule_rhs);
 
-    (*
+    
     register_cmd
-    "update_rule"
-    ("update_rule RULESET RULE LHS RHS\n\n"^
-     "    Update the given rule with graphs in the workspace.\n")
-    (update_rule);
-    *)
+    "replace_rule"
+    ("replace_rule RULESET RULE LHS RHS\n\n"^
+     "    Replace the given rule with graphs LHS and RHS in the\n"^
+     "    workspace.\n")
+    (replace_rule);
+    
     
     ())
 

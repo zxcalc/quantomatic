@@ -91,7 +91,10 @@ end;
 functor RuleFun( MatchState : MATCH_STATE )
 = struct
 
-structure Name = SStrName;
+structure Name = struct
+open SStrName;
+val default_name = SStrName.mk "new-rule-1"
+end
 
 structure MatchState = MatchState;
 (* local stuff for abbreviations *)

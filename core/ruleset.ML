@@ -30,7 +30,7 @@ structure DB_RuleSet =
 struct
 
 open SStrName
-val default_name = mk "New Ruleset"
+val default_name = mk "new-ruleset-1"
 structure Rule = Rule
 
 
@@ -46,9 +46,8 @@ fun active_rule_filter rules = List.map
                                     (fn (_,(_,active)) => active) rules);
 
 
-fun onoff_rule onoff name rules = (
-  Rule.Name.NTab.get rules name; (* force an exception if rule not found *)
-  rules |> Rule.Name.NTab.map_entry (fn (r,_) => (r,onoff)) name)
+fun onoff_rule onoff name rules =
+  rules |> Rule.Name.NTab.map_entry (fn (r,_) => (r,onoff)) name
 
     
 (* these all raise UNDEF on failure *)
