@@ -996,6 +996,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				"Use GraphView instead.");
 		return super.exportPdf();
 	}
+	
+	public void viewKillNoPrompt() {
+		// TODO: unload graph
+	}
 
 	public boolean viewKill(ViewPort vp) {
 		boolean kill = false;
@@ -1008,10 +1012,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		}
 		
 		if (kill == true) {
-			// TODO: unload graph
+			viewKillNoPrompt();
 		}
-		
-		
 		return kill;
 	}
 

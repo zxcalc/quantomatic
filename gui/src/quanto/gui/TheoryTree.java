@@ -69,13 +69,22 @@ public class TheoryTree extends JPanel {
 						if (node.isRoot()) { // the root
 							//System.out.println("ROOT:" + p);
 							JPopupMenu menu = new JPopupMenu();
-							JMenuItem load = new JMenuItem("Load Theory...");
-							load.addActionListener(new ActionListener() {
+							JMenuItem item = new JMenuItem("Load ruleset...");
+							item.addActionListener(new ActionListener() {
 								public void actionPerformed(ActionEvent e) {
 									QuantoApp.getInstance().loadRuleset();
 								}
 							});
-							menu.add(load);
+							menu.add(item);
+							
+							item = new JMenuItem("Refresh rulsets");
+							item.addActionListener(new ActionListener() {
+								public void actionPerformed(ActionEvent e) {
+									TheoryTree.refreshInstances();
+								}
+							});
+							menu.add(item);
+							
 							menu.show(tree, e.getX(), e.getY());
 						} else if (o instanceof Ruleset) { // a theory
 							//System.out.println("THEORY:" + p);

@@ -89,11 +89,14 @@ public class ViewPort extends JPanel {
 			String title = view;
 			
 			// if the view names and graph names are out of sync, show it
-			if (activeView instanceof InteractiveGraphView &&
-					QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES))
-			{
-				title += " (" + ((InteractiveGraphView)activeView)
-									.getGraph().getName() + ")";
+			if (QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES)) {
+				if (activeView instanceof InteractiveGraphView) {
+					title += " ("+((InteractiveGraphView)activeView).getGraph().getName()+")";
+				} else if (activeView instanceof SplitGraphView) {
+					title += String.format(" (%s -> %s)", 
+						((SplitGraphView)activeView).getLeftView().getGraph().getName(),
+						((SplitGraphView)activeView).getRightView().getGraph().getName());
+				}
 			}
 			pickView.setText("  " + title + " " + arrowDown);
 			focusedView = view;

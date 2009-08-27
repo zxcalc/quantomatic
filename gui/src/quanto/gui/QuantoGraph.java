@@ -6,27 +6,37 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
+
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import net.n3.nanoxml.*;
 import edu.uci.ics.jung.contrib.HasName;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
+import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 
 public class QuantoGraph extends SparseMultigraph<QVertex, QEdge>
-implements HasName {
+implements HasName, ChangeEventSupport {
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
 	protected List<QVertex> boundaryVertices;
 	protected List<BangBox> bangBoxes;
+	protected Set<ChangeListener> changeListeners;
+	
 	private String fileName = null; // defined if this graph is backed by a file
 	private boolean saved = true; // true if this graph has been modified since last saved
 
 	public QuantoGraph(String name) {
 		this.name = name;
 		this.bangBoxes = new ArrayList<BangBox>();
+		this.changeListeners = Collections.synchronizedSet(
+				new HashSet<ChangeListener>());
 	}
 
 	/**
@@ -76,8 +86,9 @@ implements HasName {
 		} catch (IllegalAccessException e) {
 			throw new QuantoCore.FatalError(e);
 		}
-		this.saved = false; // we have changed the graph so it needs to be saved
-							// note that if this needs to be TRUE it will be set elsewhere
+		
+		// tell all the change listeners I have changed
+		fireStateChanged();
 		return root;
 	}
 
@@ -248,5 +259,28 @@ implements HasName {
 
 	public List<BangBox> getBangBoxes() {
 		return bangBoxes;
+	}
+
+	public void addChangeListener(ChangeListener l) {
+		changeListeners.add(l);
+	}
+
+	public void fireStateChanged() {
+		this.saved = false; // we have changed the graph so it needs to be saved
+							// note that if this needs to be TRUE it will be set elsewhere
+		synchronized (changeListeners) {
+			ChangeEvent evt = new ChangeEvent(this);
+			for (ChangeListener l : changeListeners) {
+				l.stateChanged(evt);
+			}
+		}
+	}
+
+	public ChangeListener[] getChangeListeners() {
+		return changeListeners.toArray(new ChangeListener[changeListeners.size()]);
+	}
+
+	public void removeChangeListener(ChangeListener l) {
+		changeListeners.remove(l);
 	}
 }
