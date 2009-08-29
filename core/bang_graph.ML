@@ -340,6 +340,7 @@ fun adj_pat_info_bangs' g n0 (d,(ins,outs)) =
 fun adj_pat_info_bangs g n = adj_pat_info_bangs' g n (get_vertex g n);
 
 (* get arrities of adjacent vertices, and those in bang-boxes. *)
+(*  Note: self-loops count for 2 - this really is measure of type *)
 fun get_adj_arities g n = 
     let 
       val nbbox = lookup_box_of g n;

@@ -8,6 +8,8 @@ use "test/rg_graph.ML";
 use "test/matching.ML";
 
 (* use a hacked theory loaded for test cases in ML *)
+(* 
 use "test/theory_hack.ML";
 use "test/rule.ML";
 use "test/spider.ML";
+*)

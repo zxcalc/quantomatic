@@ -4,7 +4,7 @@ val rootDir = OS.FileSys.getDir();
 use "ROOT.ML"; 
 OS.FileSys.chDir rootDir);
 
-PolyML.Compiler.debug := true;
+(* PolyML.Compiler.debug := true; *)
 
 (* load all the files. *)
 use "lex.ML";
@@ -21,7 +21,7 @@ use "linrat_expr.ML";
 use "rg_vertex.ML";
 use "rg_graph.ML";
 use "rg_match_ctxt.ML";
-(* use "edge_match.ML"; -- not used *)
+(* use "edge_match.ML"; -- not used *) 
 use "match.ML";
 use "matchstate.ML";
 
@@ -46,7 +46,10 @@ use "loadsave.ML";
 use "hilb.ML";
 use "controller.ML";
 
-(* 
-use "tests.ML";
-*)
+
+use "tests.ML"; 
+
 val run = Controller.init;
+(*
+use "test/dbg/rule_matching3-bbox-v1.ML"; 
+*)

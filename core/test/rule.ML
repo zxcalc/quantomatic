@@ -1,10 +1,10 @@
-local
-
+(* local
+*)
 open MkG;
 
-structure DB_Test_Rule 
+(* structure DB_Test_Rule 
 = struct
-
+*)
 (* Example of a rule that is not valid *)
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
@@ -247,12 +247,13 @@ val rule = TheoryHack.antiloop_rule;
 
 val [r2] = (Seq.list_of (Rule.rule_matches rule g));
 val _ = Rule.print r2;
-
+(* 
 end;
 
 in
 val _ = writeln "Tests Completed Successfully: test/rule.ML"
 end;
+*)
 
 (* 
 

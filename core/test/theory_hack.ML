@@ -819,7 +819,7 @@ val ruletab =
 val get_rule = StrName.NTab.get ruletab;
 
 val rules = ref default_rules;
-
+(*
 fun save_rules file = 
     PrettyWriter.write_to_file file (RGTheoryHackOutputXML.output (!rules))
 
@@ -833,7 +833,7 @@ fun load_rules file =
                                       RGTheoryHackOutputXML.output (!rules))) ;
      TextIO.print "---end of new rules---\n" 
     )
-
+*)
 fun match_all_rules g = 
     Seq.maps
       (fn (n,r) => let val (rmn, r2) = (Rule.rename_rule_apart g r)

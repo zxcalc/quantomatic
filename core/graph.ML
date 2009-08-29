@@ -214,7 +214,7 @@ val adj_singleton_vs' : T -> (Edge.NSet.T * Edge.NSet.T)
 
 val adj_vertices_with_edges : T -> Vertex.name 
                    -> (Edge.data Edge.NTab.T) Vertex.NTab.T
-val adj_vertices_with_edges' : T -> (Edge.NSet.T * Edge.NSet.T)
+val adj_vertices_with_edges' : T -> (Vertex.name * (Edge.NSet.T * Edge.NSet.T))
                     -> (Edge.data Edge.NTab.T) Vertex.NTab.T
 
 val adj_vertices_with_enames : T -> Vertex.name 
@@ -785,12 +785,14 @@ fun fold_adj f g n a =
 (* make a table: (Edge.data Edge.NTab.T) Vertex.NTab.T
 holding every edge's data that is connects n and to the key Vertex.NTab, 
 the Vertex.NTab has every vertex adjacent to n. (Note: ignores direction) *)
-fun adj_vertices_with_edges' g (ins,outs) = 
+fun adj_vertices_with_edges' g (n,(ins,outs)) = 
     Vertex.NTab.empty
       |> (Edge.NSet.fold 
             (fn e => fn ntab => 
              let val (d,(from,to)) = get_edge g e
-             in if (Vertex.NTab.contains ntab from) then 
+             in if Vertex.name_eq (from,n) then ntab (* no self-loops *)
+                else if Vertex.NTab.contains ntab from
+                then 
                   Vertex.NTab.map_entry 
                     (Edge.NTab.ins (e,d)) (* no dup exp for well-formed graphs *)
                     from ntab
@@ -800,14 +802,14 @@ fun adj_vertices_with_edges' g (ins,outs) =
       |> (Edge.NSet.fold 
             (fn e => fn ntab => 
              let val (d,(from,to)) = get_edge g e
-             in if (Vertex.NTab.contains ntab to) then 
+             in if Vertex.name_eq (to,n) then ntab (* no self-loops *)
+                else if (Vertex.NTab.contains ntab to) then   
                   Vertex.NTab.map_entry 
                     (Edge.NTab.ins (e,d)) (* no dup exp for well-formed graphs *)
-                    to ntab
+                  to ntab
                 else Vertex.NTab.ins (to,Edge.NTab.ins (e,d) Edge.NTab.empty) ntab
              end)
             outs);
-
 
 fun get_self_loops' g n ins = 
     Edge.NTab.empty
@@ -823,7 +825,7 @@ fun get_self_loops g n =
     get_self_loops' g n (fst (snd (get_vertex g n)));
 
 fun adj_vertices_with_edges g n = 
-    adj_vertices_with_edges' g (snd (get_vertex g n));
+    adj_vertices_with_edges' g (n,snd (get_vertex g n));
 
 (* IMPROVE: use fold function to simplify this *)
 fun adj_vertices_with_enames' g (ins,outs) = 
