@@ -4,6 +4,7 @@ val rootDir = OS.FileSys.getDir();
 use "ROOT.ML"; 
 OS.FileSys.chDir rootDir);
 
+PolyML.Compiler.debug := true;
 
 (* load all the files. *)
 use "lex.ML";
@@ -45,9 +46,7 @@ use "loadsave.ML";
 use "hilb.ML";
 use "controller.ML";
 
-
-
-(*
+(* 
 use "tests.ML";
 *)
 val run = Controller.init;
