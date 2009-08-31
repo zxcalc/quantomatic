@@ -343,9 +343,32 @@ public class QuantoCore {
 		command("bang_vertices", g, bb, new HasQuotedName.QuotedCollectionName(verts));
 	}
 	
+	
 	public void unbang_vertices (QuantoGraph g, Set<QVertex> verts)
 	throws ConsoleError {
 		command("unbang_vertices", g, new HasQuotedName.QuotedCollectionName(verts));
+	}
+	
+	public void bbox_merge(QuantoGraph g, Set<BangBox> boxes)
+	throws ConsoleError {
+		command("bbox_merge", g, new HasQuotedName.QuotedCollectionName(boxes));
+		
+	}
+	
+	public void bbox_drop(QuantoGraph g, Set<BangBox> boxes)
+	throws ConsoleError {
+		command("bbox_drop", g, new HasQuotedName.QuotedCollectionName(boxes));
+		
+	}
+
+	public void bbox_kill(QuantoGraph g, Set<BangBox> boxes)
+	throws ConsoleError {
+			command("bbox_kill", g, new HasQuotedName.QuotedCollectionName(boxes));
+	}
+	
+	public void bbox_duplicate(QuantoGraph g, Set<BangBox> boxes)
+	throws ConsoleError {
+			command("bbox_duplicate", g, new HasQuotedName.QuotedCollectionName(boxes));
 	}
 	
 	// here we use a string for target, because we may not be keeping the clip-board
@@ -434,4 +457,6 @@ public class QuantoCore {
 	public void fastNormalise(QuantoGraph graph) throws ConsoleError {
 		fastNormalise(graph.getName());
 	}
+	
+
 }

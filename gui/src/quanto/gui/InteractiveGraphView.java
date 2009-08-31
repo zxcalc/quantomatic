@@ -570,7 +570,7 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 				getPickedVertexState().clear();
 			}
 		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, commandMask));
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask | KeyEvent.SHIFT_MASK));
 		graphMenu.add(item);
 		
 		item = new JMenuItem("Lock Vertices", KeyEvent.VK_L);
@@ -636,6 +636,46 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 		});
 		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1,
 				commandMask | KeyEvent.SHIFT_MASK));
+		bangMenu.add(item);
+		graphMenu.add(bangMenu);
+		
+		
+		item = new JMenuItem("Drop Box", KeyEvent.VK_P);
+		item.addActionListener(new QuantoActionListener(this) {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().bbox_drop(getGraph(), 
+						getPickedBangBoxState().getPicked());			
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, KeyEvent.SHIFT_MASK));
+		bangMenu.add(item);
+		graphMenu.add(bangMenu);
+
+
+		item = new JMenuItem("Kill Box", KeyEvent.VK_K);
+		item.addActionListener(new QuantoActionListener(this) {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().bbox_kill(getGraph(), 
+						getPickedBangBoxState().getPicked());			
+				updateGraph();
+			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, commandMask | KeyEvent.SHIFT_MASK));
+		bangMenu.add(item);
+		graphMenu.add(bangMenu);
+		
+		item = new JMenuItem("Duplicate Box", KeyEvent.VK_D);
+		item.addActionListener(new QuantoActionListener(this) {
+			@Override
+			public void wrappedAction(ActionEvent e) throws ConsoleError {
+				getCore().bbox_duplicate(getGraph(), 
+						getPickedBangBoxState().getPicked());			
+				updateGraph();			}
+		});
+		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, commandMask));
 		bangMenu.add(item);
 		graphMenu.add(bangMenu);
 		
