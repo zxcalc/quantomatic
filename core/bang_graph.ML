@@ -42,7 +42,7 @@ val copy1_box : BBox.name -> T -> (BBox.name (* new box name *)
                                   * T (* new graph *)
 val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
-val merge_boxes : BBox.name -> BBox.name -> T -> T
+val merge_boxes : BBox.NSet.T -> T -> BBox.name * T
 
 
 (*  
@@ -279,10 +279,20 @@ fun drop_box bn g =
          |> update_unboxed (Vertex.NSet.union_merge bbox_vs)
     end;
 
-fun merge_boxes bn1 bn2 g = 
-    let 
-      val b1vs = get_bbox g bn1
-    in g |> move_to_box bn1 b1vs end; 
+
+(* *)
+exception merge_bbox_exp of string 
+
+(* returns bbox-name merged all boxes into and new merged graph *)
+fun merge_boxes bnset g = 
+    (case BBox.NSet.pull_local_top bnset of 
+       NONE => raise merge_bbox_exp "given empty bbox name set"
+     | SOME (bn,bnset2) => 
+       (bn, BBox.NSet.fold 
+            (fn bn2 => fn g2 =>
+                 g2 |> move_to_box bn (get_bbox g2 bn2)
+                    |> update_bboxes (VtoBoxMap.del_cod bn2))
+            bnset2 g));
 
 
 (* FIXME: this code is largely duplicated in bgraph - clean up *)
