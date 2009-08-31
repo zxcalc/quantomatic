@@ -5,7 +5,7 @@ sig
   sharing OG.Graph.SharingWithIData = R.RGGraph.SharingWithIData
 		 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = SStrName.name * R.T
+		where type intype = SStrName.name * R.T * bool
 end;
 
 (* ------------------------------------------------------- *)
@@ -20,20 +20,23 @@ functor RuleOutputXML (
 = struct
   structure R = Rule
   structure OG = OutputGraph
-  type intype = SStrName.name * R.T
+  type intype = SStrName.name * R.T * bool
   type outtype = Pretty.T
 
   val output_graph = OG.output
 
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
 
-  fun output (rule_name, rule)  = 
+  fun output (rule_name, rule, active)  = 
 	      Pretty.chunks
 	        [Pretty.str "<rule>",
 	         indent_chunks [
 		 Pretty.block [Pretty.str "<name>",
 			       Pretty.str (SStrName.dest rule_name),
 			       Pretty.str "</name>"],
+		Pretty.block [Pretty.str "<active>",
+			       Pretty.str (Bool.toString active),
+			       Pretty.str "</active>"],
 	         Pretty.str "<lhs>",
 	         indent_chunks [output_graph (Rule.get_lhs rule)],
 	         Pretty.str "</lhs>",
@@ -55,7 +58,7 @@ structure RGRuleOutputXML : OUTPUT_RULE
 
 (* -------------------------------------------------------- *)
 
-signature OUTPUT_THEORY_HACK =
+signature OUTPUT_RULESET =
 sig
   structure OR : OUTPUT_RULE
 		 
@@ -68,7 +71,7 @@ end
 functor TheoryHackOutputXML (
 	structure OutputRule : OUTPUT_RULE
 				  where type outtype = Pretty.T
-	) : OUTPUT_THEORY_HACK
+	) : OUTPUT_RULESET
 = 
 struct
   structure OR = OutputRule
@@ -78,9 +81,9 @@ struct
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]	    
 
   fun output rules = 
-      Pretty.chunks [ Pretty.str "<theoryhack>", 
+      Pretty.chunks [ Pretty.str "<ruleset>", 
 		      indent_chunks (map OR.output rules),
-		      Pretty.str "</theoryhack>",
+		      Pretty.str "</ruleset>",
 		      Pretty.str ""
 		    ]
 
@@ -88,7 +91,7 @@ end;
 
 (* -------------------------------------------------------- *)
 
-structure RGTheoryHackOutputXML : OUTPUT_THEORY_HACK
+structure RGTheoryHackOutputXML : OUTPUT_RULESET
  = TheoryHackOutputXML(
     structure OutputRule = RGRuleOutputXML
    );

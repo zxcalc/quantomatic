@@ -83,7 +83,7 @@ open XML_Utils
 
 fun input xml = 
     let
-      val (_,_,children) = force_unpack_elem "theoryhack" xml
+      val (_,_,children) = force_unpack_elem "ruleset" xml
       fun add_rule ch rset = let
         val (nm, rl, active) = input_rule ch
       in snd (rset |> Rule.Name.NTab.add (nm, (rl, active)))

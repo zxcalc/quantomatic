@@ -3,7 +3,7 @@ sig
     val init : unit -> unit
 end
 
-structure Controller : CONTROLLER =
+structure Controller : CONTROLLER = 
 struct
 
 structure QuantoCommand =
@@ -558,11 +558,39 @@ fun add_bang ([_], graph) =
           >> (fn a => (G.BBox.dest a) ^ "\n")
   | add_bang _ = raise wrong_args_exp ()
 
-fun drop_bang ([_,name], graph) =
-    ("dropped !-box \""^name^"\"\n",
-     graph |> G.drop_box (G.BBox.mk name))
+fun drop_bang ((_::names), graph) =
+  let  
+    val namestr = foldl (fn (x,y) => x^" "^y) "." names
+  in
+    ("dropped !-box \""^namestr^"\"\n",
+      graph |> fold G.drop_box (map G.BBox.mk names))
+  end  
   | drop_bang _ = raise wrong_args_exp ()
 
+fun kill_bang ((_::names), graph) =
+  let  
+    val namestr = foldl (fn (x,y) => x^" "^y) "." names
+  in
+    ("kill !-box \""^namestr^"\"\n",
+     graph |> fold G.kill_box (map G.BBox.mk names))
+  end
+  | kill_bang _ = raise wrong_args_exp ()
+  
+fun merge_bang ((_::names), graph) =
+  let 
+    val namesstr = foldl (fn (x,y) => x^" "^y) "." names
+    val nameset = G.BBox.NSet.of_list (map G.BBox.mk names)
+  in  
+    ("merge !-boxes \""^namesstr^"\n",
+     graph |> G.merge_boxes nameset |> snd )
+  end 
+  | merge_bang _ = raise wrong_args_exp ()
+  
+fun duplicate_bang ([_,name], graph) =
+("duplicate !-box \""^name^"\n",
+     graph |> G.copy1_box (G.BBox.mk name) |> snd )
+  | duplicate_bang _ = raise wrong_args_exp ()
+  
 fun bang_vertices ((_::box::verts), graph) = 
     ("added vertices to \""^box^"\"\n",
      graph |> G.move_to_box (G.BBox.mk box) (G.Vertex.NSet.of_list (map V.mk verts)))
@@ -867,12 +895,31 @@ val () = (
     (lift_graph_mutator add_bang);
 
     register_cmd
-    "drop_bang"
-    ("drop_bang GRAPH BANG\n\n"^
-     "    drop !-box BANG in GRAPH. Vertices inside BANG are moved\n"^
+    "bbox_drop"
+    ("bbox_drop GRAPH BANGS\n\n"^
+     "    drop !-boxes BANGS in GRAPH. Vertices inside BANGS are moved\n"^
      "    to the top-level graph.\n")
     (lift_graph_mutator drop_bang);
 
+    register_cmd
+    "bbox_kill"
+    ("bbox_kill GRAPH BANGS\n\n"^
+     "    kill !-boxes BANGS in GRAPH. Vertices inside BANGS are deleted\n"^
+     "    to the top-level graph.\n")
+    (lift_graph_mutator kill_bang);
+    
+    register_cmd
+    "bbox_merge"
+    ("bbox_kill GRAPH BANGS\n\n"^
+     "    merges !-boxes BANGS in GRAPH.\n")
+    (lift_graph_mutator merge_bang);
+    
+    register_cmd
+    "bbox_duplicate"
+    ("bbox_duplicate GRAPH BANGS\n\n"^
+     "    duplicates !-boxes BANGS in GRAPH.\n")
+    (lift_graph_mutator duplicate_bang);
+    
     register_cmd
     "bang_vertices"
     ("bang_vertices GRAPH BANG V1 .. VN\n\n"^
