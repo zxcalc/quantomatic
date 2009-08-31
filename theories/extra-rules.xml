@@ -1,4 +1,4 @@
-<theoryhack>
+<ruleset>
     
       <rule>
           <name>x_group2_1_1</name>
@@ -578,4 +578,4 @@
 				</graph>
 			</rhs>
 		</rule>
-</theoryhack>
+</ruleset>

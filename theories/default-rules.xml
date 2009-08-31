@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<theoryhack>
+<ruleset>
 	<rule>
 		<name>hopf_1_1</name>
 		<lhs>
@@ -2699,4 +2699,4 @@
 			</graph>
 		</rhs>
 	</rule>
-</theoryhack>
+</ruleset>

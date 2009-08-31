@@ -1,4 +1,4 @@
-<theoryhack>
+<ruleset>
   <rule>
     <name>hopf_1_1</name>
     <lhs>
@@ -2514,4 +2514,4 @@
     </rhs>
   </rule>
   
-</theoryhack>
+</ruleset>
