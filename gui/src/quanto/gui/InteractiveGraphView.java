@@ -1068,4 +1068,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	public PickedState<BangBox> getPickedBangBoxState() {
 		return pickedBangBoxState;
 	}
+	
+	public boolean isSaved() {
+		return getGraph().isSaved();
+	}
 }

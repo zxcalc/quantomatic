@@ -167,6 +167,7 @@ implements InteractiveView {
 
 	public void setSaved(boolean saved) {
 		this.saved = saved;
+		if (lastViewPort != null) lastViewPort.refreshLabel();
 	}
 
 }

@@ -42,6 +42,7 @@ public class ViewPort extends JPanel {
 					for (final Map.Entry<String, InteractiveView> ent : views.entrySet())
 					{
 						String title = ent.getKey();
+						if (!ent.getValue().isSaved()) title += "*";
 						if (ent.getValue() instanceof InteractiveGraphView &&
 							QuantoApp.getInstance().getPreference(
 									QuantoApp.SHOW_INTERNAL_NAMES))
@@ -86,20 +87,8 @@ public class ViewPort extends JPanel {
 			add(av, BorderLayout.CENTER);
 			if (view.equals("test-split-pane"))
 				System.out.println("adding view:" + view);
-			String title = view;
-			
-			// if the view names and graph names are out of sync, show it
-			if (QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES)) {
-				if (activeView instanceof InteractiveGraphView) {
-					title += " ("+((InteractiveGraphView)activeView).getGraph().getName()+")";
-				} else if (activeView instanceof SplitGraphView) {
-					title += String.format(" (%s -> %s)", 
-						((SplitGraphView)activeView).getLeftView().getGraph().getName(),
-						((SplitGraphView)activeView).getRightView().getGraph().getName());
-				}
-			}
-			pickView.setText("  " + title + " " + arrowDown);
 			focusedView = view;
+			refreshLabel();
 		} else {
 			pickView.setText("  [null] " + arrowDown);
 		}
@@ -149,5 +138,27 @@ public class ViewPort extends JPanel {
 
 	public QuantoApp.MainMenu getMainMenu() {
 		return mainMenu;
+	}
+
+	// TODO: make InteractiveGraphView call this.
+	public void refreshLabel() {
+		if (focusedView != null) {
+			String title = focusedView;
+			InteractiveView activeView = QuantoApp.getInstance().getViews().get(title);
+			if (activeView != null) {
+				if (!activeView.isSaved()) title += "*";
+				// if the view names and graph names are out of sync, show it
+				if (QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES)) {
+					if (activeView instanceof InteractiveGraphView) {
+						title += " ("+((InteractiveGraphView)activeView).getGraph().getName()+")";
+					} else if (activeView instanceof SplitGraphView) {
+						title += String.format(" (%s -> %s)", 
+							((SplitGraphView)activeView).getLeftView().getGraph().getName(),
+							((SplitGraphView)activeView).getRightView().getGraph().getName());
+					}
+				}
+				pickView.setText("  " + title + " " + arrowDown);
+			}
+		}
 	}
 }

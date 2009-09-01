@@ -43,4 +43,8 @@ public class TextView extends JPanel implements InteractiveView {
 		return true;
 	}
 
+	public boolean isSaved() {
+		return true;
+	}
+
 }

@@ -26,4 +26,9 @@ public interface InteractiveView {
 	 * Determine if this view has a parent (i.e. is currently being displayed).
 	 */
 	boolean viewHasParent();
+	
+	/**
+	 * Return false if there are changes that need to be saved.
+	 */
+	boolean isSaved();
 }

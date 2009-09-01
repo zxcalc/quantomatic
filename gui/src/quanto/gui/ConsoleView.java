@@ -138,4 +138,8 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		return true;
 	}
 
+	public boolean isSaved() {
+		return true;
+	}
+
 }
