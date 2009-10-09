@@ -1,15 +1,24 @@
 open MkG;
 
-(* Pattern: (B - G - B) *)
+
+(* X spider self-loop lhs deletion *)
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
-val (_, g) = g |> G.add_edge edge b1 b1;
+val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
+val (_, g) = g |> G.add_edge edge n1 n1;
+val (_, g) = g |> G.add_edge edge b1 n1;
+val (bbn, g) = g |> G.new_box (G.BBox.mk "B0");
+val g = g |> G.move_to_box bbn (V.NSet.single b1);
 val pat = g;
 
+(* *)
 val g = G.empty;
-val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+val (b1, g) = g |> G.add_vertex bvert;
+val (b2, g) = g |> G.add_vertex bvert;
+val (n1, g) = g |> G.add_vertex (mkX (var_angle "b"));
 val (_, g) = g |> G.add_edge edge n1 n1;
-val (_, g) = g |> G.add_edge edge n1 n1;
+val (_, g) = g |> G.add_edge edge b1 n1;
+val (_, g) = g |> G.add_edge edge b2 n1;
 val tgt = g;
 
 val (rn,pat) = (G.rename_apart tgt pat);
@@ -17,9 +26,8 @@ val _ = G.print pat;
 val _ = G.print tgt;
 
 val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
-val _ = G.print pat;
-val _ = G.print tgt;
 val _ = Match.print m;
+
 
 (*
 (* *)
@@ -33,7 +41,8 @@ val st = init_st;
 
 (* *)
 val SOME (UnBBoxed pn) = get_next_pat_vertex st;
-val [tn] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val tn = tn3;
 
       val pat = get_unm_pat st;
       val tgt = get_unm_tgt st;
