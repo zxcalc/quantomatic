@@ -241,7 +241,8 @@ fun rename_or_merge_vname n1 n2 bg =
          end);
 
 (* all edges leaving the selection get cut at the next vertex,
-   introducing bounary vertices. Preserves matching *)
+   introducing bounary vertices. All introduced bounary vertices only have edges 
+   into the selection (vns). Strictly increases set of matched graphs. *)
 fun cut_subgraph_of_selection' vns g = 
     let val new_boundary_vs = incident_vertices g vns;
     in
@@ -251,7 +252,15 @@ fun cut_subgraph_of_selection' vns g =
         (fn n => fn g => 
                     if V.NSet.contains vns n then g 
                     else if V.NSet.contains new_boundary_vs n 
-                    then set_vertex_data V.BVert n g else delete_vertex n g)
+                    then 
+                      g |> set_vertex_data V.BVert n
+                        (* delete any edges not incident to subgraph *)
+                        |> (Edge.NTab.fold 
+                              (fn (e,n2) => 
+                                  if V.NSet.contains vns n2 then I 
+                                  else delete_edge e)      
+                              (adj_etab_to_vnames g n Edge.NTab.empty))
+                    else delete_vertex n g)
         (get_vnames g) g)
     end;
 

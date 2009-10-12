@@ -349,8 +349,8 @@ fun adj_pat_info_bangs' g n0 (d,(ins,outs)) =
 
 fun adj_pat_info_bangs g n = adj_pat_info_bangs' g n (get_vertex g n);
 
-(* get arrities of adjacent vertices, and those in bang-boxes. *)
-(*  Note: self-loops count for 2 - this really is measure of type *)
+(* get arrities to adjacent vertices, return two tables, one for normal edges 
+   and one for those in a different bang-boxes. *)
 fun get_adj_arities g n = 
     let 
       val nbbox = lookup_box_of g n;
@@ -365,10 +365,13 @@ fun get_adj_arities g n =
                   if (not (BBox.name_eq (bbn, bbn2))) 
                   then SOME bbn2 else NONE));
 
-      fun add_one_arity n ntab =
-          if Vertex.NTab.contains_name ntab n then
-            Vertex.NTab.map_entry (fn i => i + 1) n ntab
-          else Vertex.NTab.update (n,1) ntab;
+      fun add_one_arity n2 ntab =
+          (* no self loops *)
+          (* if Vertex.name_eq (n,n2) then ntab 
+          else *)
+            if Vertex.NTab.contains_name ntab n2 then
+              Vertex.NTab.map_entry (fn i => i + 1) n2 ntab
+            else Vertex.NTab.update (n2,1) ntab;
 
       fun consider1 e n2 (ntab,bboxntab) = 
           (case in_a_different_bbox n2 of 
@@ -376,9 +379,9 @@ fun get_adj_arities g n =
            | SOME bbn =>  
              (ntab,
               if BBox.NTab.contains_name bboxntab bbn then
-                BBox.NTab.map_entry (add_one_arity n) bbn bboxntab
+                BBox.NTab.map_entry (add_one_arity n2) bbn bboxntab
               else 
-                BBox.NTab.update (bbn, Vertex.NTab.update (n,1) 
+                BBox.NTab.update (bbn, Vertex.NTab.update (n2,1) 
                                        Vertex.NTab.empty) 
                                  bboxntab))
     in 

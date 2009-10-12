@@ -611,7 +611,7 @@ fun expand_pat_bboxes (pnpd as (pn,pd)) (tntd as (tn,td)) st =
     in 
       if scope_arity < 0 then Seq.empty (* need at least pn edges *)
       else (* go through each bang box considering all expansions of it, 
-              upto size limit. *)
+              upto size limit, combined with each previous possibility *)
         BBox.NTab.fold
           (fn (bbn,i) => Seq.maps 
               (fn (ignore_arity,st) => 

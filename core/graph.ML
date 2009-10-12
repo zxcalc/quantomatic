@@ -198,6 +198,10 @@ val fold_adj : (Edge.Ehn.name * Edge.data -> Vertex.name -> 'a -> 'a)
 val filtered_adj_vnames : (Vertex.name -> bool) 
       -> T -> Vertex.name -> Vertex.NSet.T
 
+(* all incident edges and where they go to, by edge name *)
+val adj_etab_to_vnames : T -> Vertex.name 
+      -> Vertex.name Edge.NTab.T -> Vertex.name Edge.NTab.T
+
 (* the vertices connected to the given set, but outside it *) 
 val incident_vertices : T -> Vertex.NSet.T -> Vertex.NSet.T
 
@@ -765,8 +769,6 @@ fun rename_apart avoidg ing =
              ing
     end;
 
-
-
 (* fold a function over the adjacent vertex names *)
 fun fold_adj' f g (ins,outs) a = 
     a |> (Edge.NSet.fold 
@@ -776,10 +778,18 @@ fun fold_adj' f g (ins,outs) a =
          (fn e => let val (d,(from,to)) = get_edge g e 
           in f (Edge.Ehn.mk_end e,d) to end) outs);
 
-(* all vertices adjacent to vertex named n *)
+(* all vertices adjacent to vertex named n; 
+   g = graph; f = function; a = accumulator *)
 fun fold_adj f g n a = 
     fold_adj' f g (snd (get_vertex g n)) a;
 
+(* create table of edge name to adj *)
+val adj_etab_to_vnames = 
+    fold_adj (fn (eh, d) => fn n2 => fn etab => 
+                 let val e = Edge.Ehn.get_ename eh
+                 in if Edge.NTab.contains etab e then etab
+                    else Edge.NTab.update (e,n2) etab
+                 end);
 
 (* IMPROVE: use fold function ! *)
 (* make a table: (Edge.data Edge.NTab.T) Vertex.NTab.T

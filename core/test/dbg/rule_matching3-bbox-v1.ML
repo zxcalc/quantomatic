@@ -1,7 +1,7 @@
+(* Provide graph construction context *)
 open MkG;
 
-
-(* X spider self-loop lhs deletion *)
+(* X self-loop with !-boxed adj bvertex *)
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
 val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
@@ -11,7 +11,10 @@ val (bbn, g) = g |> G.new_box (G.BBox.mk "B0");
 val g = g |> G.move_to_box bbn (V.NSet.single b1);
 val pat = g;
 
-(* *)
+val (bcopy,g2) = G.copy1_box (G.BBox.mk "B0") pat;
+
+
+(* X with 2 boundaries and self-loop *)
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
 val (b2, g) = g |> G.add_vertex bvert;
@@ -25,8 +28,8 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
-val _ = Match.print m;
+val [m1,m2,m3,m4,m5,m6] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
+val _ = Match.print m1;
 
 
 (*
@@ -51,7 +54,9 @@ val tn = tn3;
 
 val SOME st2 = match_vertex (pn,pd) (tn,td) st;
 val st = st2;
-val [(ignore_arity, st)] = Seq.list_of (expand_pat_bboxes (pn,pd) (tn,td) st);
+val [_,_,(ignore_arity, st)] = Seq.list_of (expand_pat_bboxes (pn,pd) (tn,td) st);
+
+(* *)
 val [(ignore_arity, st)] = Seq.list_of (match_self_loops (pn,pd) (tn,td) (ignore_arity, st));
 val [(ltes,st)] = Seq.list_of (st |> match_all_pat_self_loops lpes ltes);
 

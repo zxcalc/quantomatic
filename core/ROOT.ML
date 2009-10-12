@@ -3,6 +3,7 @@ val rootDir = OS.FileSys.getDir();
 (OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
 use "ROOT.ML"; 
 OS.FileSys.chDir rootDir);
+print_depth 3;
 
 (* PolyML.Compiler.debug := true; *)
 
@@ -24,11 +25,7 @@ use "rg_match_ctxt.ML";
 (* use "edge_match.ML"; -- not used *) 
 use "match.ML";
 use "matchstate.ML";
-
-print_depth 0; (* hack while David fixes PolyML bug *)
 use "rule.ML";
-print_depth 100;
-
 use "spider.ML";
 use "ruleset.ML";
 use "output.ML";

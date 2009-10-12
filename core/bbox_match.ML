@@ -20,6 +20,9 @@ val empty : T;
 val mk_id : BBox.NSet.T -> T;
 val add_kills : BBox.name list -> T -> T;
 
+val pretty : T -> Pretty.T
+val print : T -> unit
+
 end;
 
 
@@ -39,7 +42,7 @@ structure BBMap = BBMap;
 datatype T = BBoxMatch of
          {
           bbmap : BBMap.T, (* mapping of bboxes in pat to tgt *)
-          copies : BBox.NSet.T BBox.NTab.T, (* pattern copies *)
+          copies : BBMap.T, (* pattern copies *)
           kill : BBox.NSet.T,
           drop : BBox.NSet.T
          };
@@ -47,7 +50,7 @@ datatype T = BBoxMatch of
 val empty = 
     BBoxMatch
       {bbmap = BBMap.empty,
-       copies = BBox.NTab.empty,
+       copies = BBMap.empty,
        kill = BBox.NSet.empty,
        drop = BBox.NSet.empty
       };
@@ -99,6 +102,19 @@ fun mk_id ns =
 
 (* implicit args: ns m *)
 val add_kills = update_kill o fold BBox.NSet.add;
+
+(* *)
+fun pretty (BBoxMatch rep) = 
+    Pretty.chunks
+    [ Pretty.str "BBoxMap: {",
+      Pretty.block [ Pretty.str "bbmap:", BBMap.pretty (#bbmap rep) ],
+      Pretty.block [ Pretty.str "copies:", BBMap.pretty (#copies rep) ],
+      Pretty.block [ Pretty.str "kill:", BBox.NSet.pretty (#kill rep) ],
+      Pretty.block [ Pretty.str "kill:", BBox.NSet.pretty (#drop rep) ],
+      Pretty.str "}"
+    ];
+
+val print = Pretty.writeln o pretty;
 
 end;
 
