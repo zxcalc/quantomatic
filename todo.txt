@@ -1,0 +1,5 @@
+update install docs: 
+
+ - clarify need for POLYLIB in env;
+ - clarify other needed tools: e.g. dot
+ - 
