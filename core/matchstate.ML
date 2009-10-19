@@ -573,25 +573,21 @@ fun nfold 0 f a = a
 fun copy_pat_bbox bbn k st = 
     if k = 0 then update_unm_pat (RGGraph.kill_box bbn) st
     else if k = 1 then st
-    else if k > 0 then 
-      update_unm_pat (nfold k (snd o RGGraph.copy1_box bbn)) st
+    else if k > 1 then 
+      update_unm_pat (nfold (k - 1) (snd o RGGraph.copy1_box bbn)) st
     else raise bug_exp "copy_pat_bbox: negative copy";
 
+(* unused? *)
 fun copy_then_drop_pat_bbox bbn k st = 
-    if k > 0 then 
+    if k = 0 then update_unm_pat (RGGraph.kill_box bbn) st
+    else if k = 1 then update_unm_pat (RGGraph.drop_box bbn) st
+    else if k > 1 then 
       update_unm_pat (RGGraph.drop_box bbn 
-                      o nfold k (snd o RGGraph.copy1_box bbn)) st
-    else raise bug_exp "copy_pat_bbox: negative copy";
+                      o nfold (k - 1) (snd o RGGraph.copy1_box bbn)) st
+    else raise bug_exp "copy_then_drop_pat_bbox: negative copy";
 
-(* find all expansions of bang boxes so that matching might be possible *)
-(* IMPROVE: this be integrated into lookahead to do maximal early pruning? *)
-(* returns seq of possible bang-box expanded graphs paired with the target 
-   number of edges that need to be ignored. 
 
-   invarient: tarity > ignore_arity;
-   tarity is total arity of target; ignore_arity is amount that can be removed to make tarity = parity. 
-*)
-fun expand_pat_bboxes (pnpd as (pn,pd)) (tntd as (tn,td)) st = 
+fun compute_scope_arities pn tn st = 
     let 
       val (pntab,pbboxntab) = RGGraph.get_adj_arities (get_unm_pat st) pn;
       val (tntab,tbboxntab) = RGGraph.get_adj_arities (get_unm_tgt st) tn;
@@ -606,8 +602,25 @@ fun expand_pat_bboxes (pnpd as (pn,pd)) (tntd as (tn,td)) st =
 
       val tarity = 0 |> ntab_sum tntab |> summed_bbox_sum tbboxsums;
       val p_min_arity = 0 |> ntab_sum pntab;
-      
-      val scope_arity = tarity - p_min_arity;
+
+      val scope_arity =  tarity - p_min_arity;
+    in
+      (scope_arity, pbboxsums)
+    end;
+
+(*  *)
+
+(* find all expansions of bang boxes so that matching might be possible *)
+(* IMPROVE: this be integrated into lookahead to do maximal early pruning? *)
+(* returns seq of possible bang-box expanded graphs paired with the target 
+   number of edges that need to be ignored. 
+
+   invarient: tarity > ignore_arity;
+   tarity is total arity of target; ignore_arity is amount that can be removed to make tarity = parity. 
+*)
+fun expand_pat_bboxes pn tn st = 
+    let 
+       val (scope_arity,pbboxsums) = compute_scope_arities pn tn st;
     in 
       if scope_arity < 0 then Seq.empty (* need at least pn edges *)
       else (* go through each bang box considering all expansions of it, 
@@ -651,14 +664,15 @@ fun match_2vertices_with_edges
       (* happens when when a new vertex has just been chosen to start 
          matching from, and in traversal when there are no adj vertices *)
       if is_leaf_of_init_pat st pn then (* CHECK: !-boxed, map to edge *)
-         (0, match_lfvertex pn (tn,td) st)
+         (fst (compute_scope_arities pn tn st), 
+          match_lfvertex pn (tn,td) st)
            |> edgematch_adj_verticies (pn,pd) (tn,td)
            |> Seq.map (del_pat_lfvertex pn o snd o snd)
       else 
         case match_vertex (pn,pd) (tn,td) st of 
           NONE => Seq.empty (* vertex does not match *)
         | SOME st2 => (* continue matching *)
-          st2 |> expand_pat_bboxes (pn,pd) (tn,td)
+          st2 |> expand_pat_bboxes pn tn
               |> (if Vertex.is_internal_data pd then (* strict match filter *)
                   Seq.map_filter (fn (x as (ignore_arity, st)) => 
                     if ignore_arity = 0 then SOME x else NONE)
@@ -785,6 +799,8 @@ fun pretty (st as MState rep) =
        Pretty.chunks 
          [Match.pretty (#match rep),
           pretty_agenda st,
+          Pretty.block [Pretty.str "BBMatch: "],
+          BBoxMatch.pretty (#bbmatch rep),
           Pretty.block [Pretty.str "Unmatched pat: "],
           RGGraph.pretty (#unm_pat rep),
           Pretty.block [Pretty.str "Unmatched tgt: "],

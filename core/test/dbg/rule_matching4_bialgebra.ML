@@ -1,28 +1,11 @@
 (* Provide graph construction context *)
 open MkG;
 
-(* X self-loop with !-boxed adj bvertex *)
-val g = G.empty;
-val (b1, g) = g |> G.add_vertex bvert;
-val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
-val (_, g) = g |> G.add_edge edge n1 n1;
-val (_, g) = g |> G.add_edge edge b1 n1;
-val (bbn, g) = g |> G.new_box (G.BBox.mk "B0");
-val g = g |> G.move_to_box bbn (V.NSet.single b1);
-val pat = g;
+(* bialg *)
+val pat = RGGraphLoaderSaver.load_graph "/Users/ldixon/Desktop/bialg.xml";
 
-val (bcopy,g2) = G.copy1_box (G.BBox.mk "B0") pat;
-
-
-(* X with 2 boundaries and self-loop *)
-val g = G.empty;
-val (b1, g) = g |> G.add_vertex bvert;
-val (b2, g) = g |> G.add_vertex bvert;
-val (n1, g) = g |> G.add_vertex (mkX (var_angle "b"));
-val (_, g) = g |> G.add_edge edge n1 n1;
-val (_, g) = g |> G.add_edge edge b1 n1;
-val (_, g) = g |> G.add_edge edge b2 n1;
-val tgt = g;
+(* ladder *)
+val tgt = RGGraphLoaderSaver.load_graph "/Users/ldixon/Desktop/g.xml";
 
 val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
@@ -43,10 +26,45 @@ open DB_MatchState;
 val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
 val st = init_st;
 
+(* toplevel *)
+val st = init_st;
+val Progress xs = (do_next_match_choices st);
+val [st1,st2,st3,st4] = Seq.list_of xs;
+print st2;
+val st = st2;
+val Progress xs = (do_next_match_choices st);
+val [st1,st2] = Seq.list_of xs;
+print st2;
+val st = st2;
+val Progress xs = (do_next_match_choices st);
+val [st1,st2] = Seq.list_of xs;
+print st1;
+val st = st1;
+val Progress xs = (do_next_match_choices st);
+val [st1] = Seq.list_of xs;
+print st1;
+val st = st1;
+val Progress xs = (do_next_match_choices st);
+val [st1] = Seq.list_of xs;
+print st1;
+val st = st1;
+(* r -> i *)
+
+
+val Progress xs = (do_next_match_choices st); (* FAILS *)
+val [st1] = Seq.list_of xs;
+print st1;
+val st = st1;
+(* n -> h *)
+val Progress xs = (do_next_match_choices st);
+val [st1] = Seq.list_of xs;
+print st1;
+val st = st1;
+
 (* *)
-val SOME (UnBBoxed pn) = get_next_pat_vertex st;
-val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
-val tn = tn3;
+val SOME ((pn,tn),st2) = pop_agenda st;
+MCtxt.BVertex.string_of_name pn; (* r *)
+MCtxt.BVertex.string_of_name tn; (* i *)
 
       val pat = get_unm_pat st;
       val tgt = get_unm_tgt st;
@@ -55,6 +73,33 @@ val tn = tn3;
 
 val SOME st2 = match_vertex (pn,pd) (tn,td) st;
 val st = st2;
+
+val (from_pv as (from_pn,from_pd)) = (pn,pd); 
+val (from_tv as (from_tn,from_td)) =  (tn,td); 
+val (ignore_arity,st) = (0, match_lfvertex pn (tn,td) st);
+
+
+
+
+(* or ...*)
+val SOME (UnBBoxed pn) = get_next_pat_vertex st;
+val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val tn = tn3;
+
+(* then ... *)
+      val pat = get_unm_pat st;
+      val tgt = get_unm_tgt st;
+      val pd = RGGraph.get_vertex_data pat pn;
+      val td = RGGraph.get_vertex_data tgt tn;
+
+val SOME st2 = match_vertex (pn,pd) (tn,td) st;
+val st = st2;
+
+(from_pv as (from_pn,from_pd)) (* pat vertex *)
+      (from_tv as (from_tn,from_td)) (* tgt vertex *)
+      (ignore_arity,st) = (* state of matching so far *)
+
+
 val [_,_,(ignore_arity, st)] = Seq.list_of (expand_pat_bboxes (pn,pd) (tn,td) st);
 
 (* *)
