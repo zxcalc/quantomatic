@@ -98,9 +98,12 @@ public class QuantoCore {
 			output.println("done.");
 			
 		} catch (IOException e) {
-			e.printStackTrace();
+			//e.printStackTrace();
 			if(backEnd == null) { output.println("ERROR: Cannot execute: quanto-core, check it is in the path."); }
-			else {output.println("Exit value from backend: " + backEnd.exitValue()); }
+			else { 
+				backEnd.destroy(); 
+				backEnd = null; 
+				output.println("Exit value from backend: " + backEnd.exitValue()); }
 		}
 	}
 
