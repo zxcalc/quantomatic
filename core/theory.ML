@@ -166,7 +166,7 @@ fun delete n thry =
 fun symmetric n thry = 
     let val Result (r,p) = get_result thry n
         val rhs = Rule.get_rhs r
-        val m = Match.mk_id (get_boundary rhs) 
+        val m = Match.mk_id (get_boundary rhs) (* FIXME: this is not leaf names *)
                             (RGGraph.get_vnames rhs)
                             (RGGraph.get_enames rhs);
     in case p of 

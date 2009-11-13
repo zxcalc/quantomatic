@@ -13,8 +13,8 @@ use "alg.ML";
 use "graph.ML";
 use "bvertex.ML";
 use "bgraph.ML";
-use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 use "bbox_match.ML";
+use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 use "bang_graph.ML";
 use "coeff.ML";
 use "expr.ML"; 
@@ -24,7 +24,7 @@ use "rg_graph.ML";
 use "rg_match_ctxt.ML";
 (* use "edge_match.ML"; -- not used *) 
 use "match.ML";
-use "matchstate.ML";
+use "matchstate.ML"; 
 use "rule.ML";
 use "spider.ML";
 use "ruleset.ML";

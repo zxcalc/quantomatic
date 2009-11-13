@@ -36,7 +36,7 @@ signature MATCH_STATE
 
   (* sharing Vertex = RGGraph.RGVertex *)
   (* not clear why I need this this way round - but get type strange error the other way *)
-  sharing RGGraph.SharingWithIData = Match.Sharing; 
+  sharing RGGraph.SharingBangGraph = Match.Sharing.G; 
   sharing Vertex.SharingWithIData = RGGraph.BVertex.SharingWithIData;
   sharing Edge.EdgeSharingWithData = RGGraph.Edge.EdgeSharingWithData;
 
@@ -115,7 +115,7 @@ end;
 functor MatchStateFun(
   structure RGGraph : RG_GRAPH 
   structure Match : MATCH
-  sharing Match.Sharing = RGGraph.SharingWithIData
+  sharing Match.Sharing.G = RGGraph.SharingBangGraph
 ) (* : MATCH_STATE *)
 = struct
 
@@ -130,39 +130,39 @@ structure E = Edge;
 structure Match = Match;
 structure MCtxt = Match.MCtxt;
 
-structure BBoxMatch = RGGraph.BBoxMatch;
-(* structure BBox = RGGraph.BBoxMatch.BBox;
-structure BBMap = RGGraph.BBoxMatch.BBMap; *)
-structure BBox = RGGraph.BBox;
-structure BBMap = RGGraph.BBoxMatch.BBMap;
+structure BBMatch = Match.BBMatch;
+structure BBox = G.BBox;
+structure BBMap = BBMatch.BBMap;
 
 datatype T = 
          MState of 
-         {(* and-agenda = (pat -> tgt) = we are commited to matching these *) 
-          agenda : Vertex.name Vertex.NTab.T, 
+         {(* names context for fresh names when copying bboxes *)
+          names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
+          (* and-agenda = (pat -> tgt) = we are commited to matching these *) 
+          agenda : V.name V.NTab.T, 
           (* global vertex and edge matching info *)
           match : Match.T, 
           (* the pat graph with vertices removed as we match them *)
-          unm_pat : RGGraph.T, 
-          (* bang box expansion of pattern *)
-          bbmatch : BBoxMatch.T,
+          unm_pat : G.T, 
           (* unmatched leaves from init pat = 
              needed because they can otherwise be introduced in the pat! *)
-          pat_lfs : Vertex.NSet.T, 
+          pat_lfs : V.NSet.T, 
           (* tgt with matched edges removed as we match them *)
-          unm_tgt : RGGraph.T 
+          unm_tgt : G.T 
          };
 
 (* initial matching state *)
 fun init match pat tgt agenda =
-    MState { agenda = agenda, match = match, bbmatch = BBoxMatch.empty,
-             pat_lfs = RGGraph.get_leaf_vnames pat,
+    MState { names = (G.get_vnames pat, G.get_enames pat, G.get_bnames pat),
+             agenda = agenda, match = match, 
+             pat_lfs = G.get_leaf_vnames pat,
              unm_pat = pat, unm_tgt = tgt };
 
 (* tools *)
+fun get_names (MState rep) = #names rep;
 fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
-fun get_bbmatch (MState rep) = #bbmatch rep;
+fun get_bbmatch (MState rep) = Match.get_bbmatch o get_match;
 fun get_unm_pat (MState rep) = #unm_pat rep;
 fun get_pat_lfs (MState rep) = #pat_lfs rep;
 (* implicit: st pn *)
@@ -180,42 +180,49 @@ val get_unm_tgt_es =
 
 (* *)
 fun update_agenda f (MState rep) = 
-    MState { agenda = f (#agenda rep), match = #match rep,
-             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
+    MState { names = #names rep,
+             agenda = f (#agenda rep), match = #match rep,
+             unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_match f (MState rep) = 
-    MState { agenda = #agenda rep, match = f (#match rep),
-             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
+    MState { names = #names rep,
+             agenda = #agenda rep, match = f (#match rep),
+             unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_pat f (MState rep) = 
-    MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = f (#unm_pat rep), bbmatch = #bbmatch rep,
+    MState { names = #names rep,
+             agenda = #agenda rep, match = #match rep,
+             unm_pat = f (#unm_pat rep), 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_pat_lfs f (MState rep) = 
-    MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
+    MState { names = #names rep,
+             agenda = #agenda rep, match = #match rep,
+             unm_pat = #unm_pat rep, 
              pat_lfs = f (#pat_lfs rep),
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_tgt f (MState rep) = 
-    MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = #unm_pat rep, bbmatch = #bbmatch rep,
+    MState { names = #names rep,
+             agenda = #agenda rep, match = #match rep,
+             unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = f(#unm_tgt rep)
            };
-fun update_bbmatch f (MState rep) = 
-    MState { agenda = #agenda rep, match = #match rep,
-             unm_pat = #unm_pat rep, bbmatch = f (#bbmatch rep),
+fun update_names f (MState rep) = 
+    MState { names = f (#names rep),
+             agenda = #agenda rep, match = #match rep,
+             unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 
+val set_names = update_names o K;
 
 val set_unm_pat = update_unm_pat o K;
 
@@ -227,8 +234,7 @@ val get_match_mctxt = Match.get_mctxt o get_match;
 val set_match_mctxt = update_match o Match.set_mctxt;
 
 (* the map part of bang box matching *)
-val update_bbmap = update_bbmatch o BBoxMatch.update_bbmap;
-val get_bbmap = BBoxMatch.get_bbmap o get_bbmatch;
+val get_bbmap =  Match.get_bbmap o get_match;
 
 (* *)
 (* fun get_adj_pat_vertices st edgens =
@@ -299,6 +305,8 @@ fun multi_edge_matches from_pd to_pd pat_edges tgt_edges st =
 
 (* try to match the bang-box's of the given pattern and tgt node:
    mapping must be injective, and tgt *)
+(* IMPROVE?: maybe can do lazy bbox unfolding, and have bbox copying happen
+   here? probbaly need generic notion of symmetry and search *)
 fun match_bboxes pnv tnv st = 
     let val pat = get_unm_pat st;
         val tgt = get_unm_tgt st;
@@ -306,21 +314,23 @@ fun match_bboxes pnv tnv st =
       (case RGGraph.lookup_box_of tgt tnv of 
          NONE => 
          (case RGGraph.lookup_box_of pat pnv of 
-            NONE => SOME st
-          | SOME pbbn => 
+            NONE => SOME st (* no bboxes; continue as normal *)
+          | SOME pbbn => (* some pat bbox, no tgt bbox *)
             (case BBMap.lookup_domf (get_bbmap st) pbbn of
-               NONE => SOME (st |> update_unm_pat (RGGraph.drop_box pbbn))
-             | SOME _ => NONE)) (* already mapped to tgt bang box *)
+               NONE => SOME (st |> update_unm_pat (RGGraph.drop_box pbbn)
+                                |> update_match (Match.add_bbox_drop pbbn))
+             | SOME _ => NONE)) (* pat bbox already mapped; can't be dropped  *)
        | SOME tbbn => 
          (case RGGraph.lookup_box_of pat pnv of 
-            NONE => NONE
-          | SOME pbbn => 
+            NONE => NONE (* target bbox, but no pat bbox => fail *)
+          | SOME pbbn => (* both in bboxes *)
             (case BBMap.lookup_domf (get_bbmap st) pbbn of
-               NONE => 
-               SOME (st |> update_bbmap (BBMap.add_to_dom pbbn tbbn))
+               NONE => (* pattern bbox not yet mapped - make new mapping *)
+               SOME (st |> update_match (Match.add_bbox_map pbbn tbbn))
              | SOME tbbn2 => (* already mapped to a tgt bang box *)
-               if (BBox.name_eq (tbbn,tbbn2)) then SOME st
-               else NONE)))
+               if (BBox.name_eq (tbbn,tbbn2)) 
+                 then SOME st (* already mapped to this bbox *)
+               else NONE))) (* already mapped elsewhere *)
     end;
 
 (* bang boxes of pnv and tnv are set to be matching *)
@@ -569,15 +579,29 @@ fun in_fresh_bbox _ NONE = false
 fun nfold 0 f a = a
   | nfold n f a = nfold (n - 1) f (f a);
 
+(* copy a single bang-box *)
+fun copy1_pat_bbox bbn st = 
+    let val names = get_names st
+        val (((bbn2,bbg),(vrn,ern,bs2)), pat2) = 
+            G.copy1_box names bbn (get_unm_pat st)
+        val names2 = (V.Rnm.get_avoids vrn, E.Rnm.get_avoids ern, bs2)
+    in
+      st |> set_unm_pat pat2
+         |> set_names names2
+         |> update_match (Match.add_bbox_copy bbn bbn2)
+    end;
+
 (* !-box ops *)
 fun copy_pat_bbox bbn k st = 
-    if k = 0 then update_unm_pat (RGGraph.kill_box bbn) st
+    if k = 0 then st |> update_unm_pat (G.kill_box bbn) 
+                     |> update_match (Match.add_bbox_kills [bbn])
     else if k = 1 then st
     else if k > 1 then 
-      update_unm_pat (nfold (k - 1) (snd o RGGraph.copy1_box bbn)) st
-    else raise bug_exp "copy_pat_bbox: negative copy";
+      nfold (k - 1) (copy1_pat_bbox bbn) st
+    else raise bug_exp "copy_pat_bbox: negative copy value";
 
 (* unused? *)
+(* 
 fun copy_then_drop_pat_bbox bbn k st = 
     if k = 0 then update_unm_pat (RGGraph.kill_box bbn) st
     else if k = 1 then update_unm_pat (RGGraph.drop_box bbn) st
@@ -585,12 +609,12 @@ fun copy_then_drop_pat_bbox bbn k st =
       update_unm_pat (RGGraph.drop_box bbn 
                       o nfold (k - 1) (snd o RGGraph.copy1_box bbn)) st
     else raise bug_exp "copy_then_drop_pat_bbox: negative copy";
-
+*)
 
 fun compute_scope_arities pn tn st = 
     let 
-      val (pntab,pbboxntab) = RGGraph.get_adj_arities (get_unm_pat st) pn;
-      val (tntab,tbboxntab) = RGGraph.get_adj_arities (get_unm_tgt st) tn;
+      val (pntab,pbboxntab) = G.get_adj_arities (get_unm_pat st) pn;
+      val (tntab,tbboxntab) = G.get_adj_arities (get_unm_tgt st) tn;
 
       (* implicit: ntab k *)
       val ntab_sum = Vertex.NTab.fold (fn (n,i) => fn j => i + j);
@@ -716,7 +740,7 @@ fun drop_all_bboxes_in_pat st =
         val bboxlist = RGGraph.get_bbox_list pat;
     in 
       st |> update_unm_pat (fold RGGraph.kill_box bboxlist)
-         |> update_bbmatch (BBoxMatch.add_kills bboxlist)
+         |> update_match (Match.add_bbox_kills bboxlist)
     end;
 
 (* consider the next and-point in the agenda *)
@@ -799,8 +823,7 @@ fun pretty (st as MState rep) =
        Pretty.chunks 
          [Match.pretty (#match rep),
           pretty_agenda st,
-          Pretty.block [Pretty.str "BBMatch: "],
-          BBoxMatch.pretty (#bbmatch rep),
+          Pretty.block [Pretty.str "names: "],
           Pretty.block [Pretty.str "Unmatched pat: "],
           RGGraph.pretty (#unm_pat rep),
           Pretty.block [Pretty.str "Unmatched tgt: "],

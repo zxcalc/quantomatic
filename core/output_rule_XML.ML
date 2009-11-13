@@ -2,7 +2,7 @@ signature OUTPUT_RULE =
 sig
   structure R : RULE
   structure OG : OUTPUT_GRAPH
-  sharing OG.Graph.SharingWithIData = R.RGGraph.SharingWithIData
+  sharing OG.Graph.SharingBangGraph = R.RGGraph.SharingBangGraph
 		 
   include OUTPUT where type outtype = OG.outtype
 		where type intype = SStrName.name * R.T * bool
@@ -14,7 +14,7 @@ functor RuleOutputXML (
 	structure Rule : RULE
 	structure OutputGraph : OUTPUT_GRAPH
   where type outtype = Pretty.T
-	sharing OutputGraph.Graph.SharingWithIData = Rule.RGGraph.SharingWithIData   
+	sharing OutputGraph.Graph.SharingBangGraph = Rule.RGGraph.SharingBangGraph   
   sharing type OutputGraph.intype = Rule.RGGraph.T
 ) : OUTPUT_RULE
 = struct
@@ -105,7 +105,7 @@ signature OUTPUT_REWRITE =
 sig
   structure R : RULE
   structure OG : OUTPUT_GRAPH
-  sharing OG.Graph.SharingWithIData = R.RGGraph.SharingWithIData
+  sharing OG.Graph.SharingBangGraph = R.RGGraph.SharingBangGraph
 		 
   include OUTPUT where type outtype = OG.outtype
 		where type intype = SStrName.name * R.T * OG.Graph.T
@@ -117,7 +117,7 @@ functor RewriteOutputXML (
 	structure Rule : RULE
 	structure OutputGraph : OUTPUT_GRAPH
 				  where type outtype = Pretty.T
-	sharing OutputGraph.Graph.SharingWithIData = Rule.RGGraph.SharingWithIData
+	sharing OutputGraph.Graph.SharingBangGraph = Rule.RGGraph.SharingBangGraph
   (* FIXME: why do I need this, I think it should be implied by the above and def of output graph... *)
   sharing type OutputGraph.intype = Rule.RGGraph.T
 	) : OUTPUT_REWRITE

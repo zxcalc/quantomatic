@@ -587,8 +587,11 @@ fun merge_bang ((_::names), graph) =
   | merge_bang _ = raise wrong_args_exp ()
   
 fun duplicate_bang ([_,name], graph) =
-("duplicate !-box \""^name^"\n",
-     graph |> G.copy1_box (G.BBox.mk name) |> snd )
+    ("duplicate !-box \""^name^"\n",
+     graph |> G.copy1_box (G.get_vnames graph, 
+                           G.get_enames graph,
+                           G.get_bnames graph) (G.BBox.mk name) 
+           |> snd)
   | duplicate_bang _ = raise wrong_args_exp ()
   
 fun bang_vertices ((_::box::verts), graph) = 

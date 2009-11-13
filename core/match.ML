@@ -1,75 +1,98 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*   Matching between two graphs without bang boxes but with boundary      *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+signature MATCH_SHARING 
+= sig
+  type T
+  structure G : BANG_GRAPH_SHARING
+  structure MCtxt : MATCH_CTXT_SHARING
+  structure EMap : NAME_ISO_SHARING
+  structure BBMatch : BBOX_MATCH_SHARING
+
+  sharing MCtxt.G = G
+  sharing EMap.Cod = G.Edge.Ehn
+  sharing EMap.Dom = G.Edge.Ehn
+  sharing BBMatch.BBox = G.BBox
+end;
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature MATCH 
 = sig
   structure MCtxt : MATCH_CTXT
-  (* sub-struct abbreviations *)
-  structure BVertex : BVERTEX
-  structure Edge : EDGE
+  structure G : BANG_GRAPH
   structure EMap : NAME_AMORPH
-  
-  structure Sharing : BGRAPH_SHARING
-  sharing Sharing.EdgeSharing = Edge.EdgeSharingWithData
-  sharing Sharing.BVertexSharing = BVertex.SharingWithIData
-  sharing Edge.Ehn = EMap.Dom
-  sharing Edge.Ehn = EMap.Cod
-  sharing Edge.EdgeSharingWithData = MCtxt.Edge.EdgeSharingWithData
-  sharing BVertex.SharingWithIData = MCtxt.BVertex.SharingWithIData
-  
-  type T
+  structure BBMatch : BBOX_MATCH
+
+  type T (* the type of matches *)
+
+  (* sharing via sharing structure *)
+  structure Sharing : MATCH_SHARING
+  sharing type Sharing.T = T
+  sharing Sharing.BBMatch = BBMatch.Sharing
+  sharing Sharing.EMap = EMap.Sharing
+  sharing Sharing.G = G.SharingBangGraph
+  sharing Sharing.MCtxt = MCtxt.Sharing
+
   val empty : T
-  val mk_id : BVertex.NSet.T (* boundary *)
-              -> BVertex.NSet.T (* all vnames *)
-              -> Edge.NSet.T (* all enames *)
-              -> T 
+  val mk_id : G.T (* given a graph *)
+              -> T (* make the id match for it *)
+
+  (* basic gets *)
   val get_emap : T -> EMap.T
-  val get_invmap : T -> BVertex.name BVertex.NTab.T
-  val get_lfinvmap : T -> BVertex.NSet.T BVertex.NTab.T
+  val get_invmap : T -> G.BVertex.name G.BVertex.NTab.T
+  val get_lfinvmap : T -> G.BVertex.NSet.T G.BVertex.NTab.T
   val get_mctxt : T -> MCtxt.T
-  val get_vmap : T -> BVertex.name BVertex.NTab.T
-  val get_vinsts : T -> BVertex.IData.data BVertex.NTab.T
+  val get_vmap : T -> G.BVertex.name G.BVertex.NTab.T
+  val get_vinsts : T -> G.BVertex.IData.data G.BVertex.NTab.T
+  val get_bbmatch : T -> BBMatch.T
+
+  (* more bbox stuff *)
+  val get_bbmap : T -> BBMatch.BBMap.T
+  val add_bbox_drop : G.BBox.name -> T -> T;
+  val add_bbox_kills : G.BBox.name list -> T -> T;
+  val add_bbox_map : G.BBox.name -> G.BBox.name -> T -> T;
+  val add_bbox_copy : G.BBox.name -> G.BBox.name -> T -> T;
 
   (* opposites *)
-  val tgt_edge_is_half_unmatched : T -> Edge.name -> bool
-  val tgt_edge_is_fully_matched : T -> Edge.name -> bool
+  val tgt_edge_is_half_unmatched : T -> G.Edge.name -> bool
+  val tgt_edge_is_fully_matched : T -> G.Edge.name -> bool
 
   (* *)
-  val tgt_vertex_is_unmatched : T -> BVertex.name -> bool
+  val tgt_vertex_is_unmatched : T -> G.BVertex.name -> bool
 
   (* match many edges *)
-  val multi_edge_match : Edge.data Edge.NTab.T 
-                         -> Edge.data Edge.NTab.T 
+  val multi_edge_match : G.Edge.data G.Edge.NTab.T 
+                         -> G.Edge.data G.Edge.NTab.T 
                          -> T 
-                         -> (Edge.data Edge.NTab.T (* left over unmatched *)
-                             * (Edge.NSet.T (* matches edges *)
+                         -> (G.Edge.data G.Edge.NTab.T (* left over unmatched *)
+                             * (G.Edge.NSet.T (* matches edges *)
                                 * T)) Seq.seq
-  val strict_multi_edge_match : Edge.data Edge.NTab.T 
-                                -> Edge.data Edge.NTab.T 
-                                -> T -> (Edge.data Edge.NTab.T (* empty *)
-                                        * (Edge.NSet.T (* matched = all tgt edges *) 
+  val strict_multi_edge_match : G.Edge.data G.Edge.NTab.T 
+                                -> G.Edge.data G.Edge.NTab.T 
+                                -> T -> (G.Edge.data G.Edge.NTab.T (* empty *)
+                                        * (G.Edge.NSet.T (* matched = all tgt edges *) 
                                            * T)) Seq.seq (* no left over in tgt *)
 
-  val match_lfvertex : BVertex.name (* leaf name *)
-                       -> BVertex.name * BVertex.data (* tgt name and data *)
+  val match_lfvertex : G.BVertex.name (* leaf name *)
+                       -> G.BVertex.name * G.BVertex.data (* tgt name and data *)
                        -> T -> T
-  val match_vertex : BVertex.name * BVertex.data
-                     -> BVertex.name * BVertex.data 
+  val match_vertex : G.BVertex.name * G.BVertex.data
+                     -> G.BVertex.name * G.BVertex.data 
                      -> T -> T option
 
   (* FIXME: change to seq/option types, respect failure! don't use exeptions *)
   (* adds given half to a free half of edge *)
-  val add_leaf_ehn2edge_emap : Edge.Ehn.name * Edge.data (* pat *)
-                               -> Edge.name * Edge.data (* tgt *)
+  val add_leaf_ehn2edge_emap : G.Edge.Ehn.name * G.Edge.data (* pat *)
+                               -> G.Edge.name * G.Edge.data (* tgt *)
                                -> T -> T
   (* only adds this half *)
-  val add_leaf_ehn2ehn_emap : Edge.Ehn.name * Edge.data 
-                              -> Edge.Ehn.name * Edge.data 
+  val add_leaf_ehn2ehn_emap : G.Edge.Ehn.name * G.Edge.data 
+                              -> G.Edge.Ehn.name * G.Edge.data 
                               -> T -> T
 
   (* adds both halfs as matching *)
-  val add_full_leaf_ehn2ehn_emap : Edge.Ehn.name * Edge.data 
-                              -> Edge.Ehn.name * Edge.data 
+  val add_full_leaf_ehn2ehn_emap : G.Edge.Ehn.name * G.Edge.data 
+                              -> G.Edge.Ehn.name * G.Edge.data 
                               -> T -> T option 
 
   val pretty : T -> Pretty.T
@@ -89,22 +112,27 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchFun(MCtxt : MATCH_CTXT) 
+functor MatchFun(
+  structure MCtxt : MATCH_CTXT
+  structure G : BANG_GRAPH
+  sharing G.SharingBGraph = MCtxt.Sharing.G
+) 
 (* : MATCH *)
 = struct
 
 structure MCtxt = MCtxt;
-structure BVertex = MCtxt.BVertex;
-structure Edge = MCtxt.Edge;
+structure BVertex = G.BVertex;
+structure Edge = G.Edge;
 
-structure Sharing = struct
-  structure VertexSharing = BVertex.SharingWithData;
-  structure EdgeSharing = Edge.EdgeSharingWithData;
-  structure BVertexSharing = BVertex.SharingWithIData;
-end;
+structure G = G;
+
+structure BBox = G.BBox;
+structure BBMatch = BBoxMatchFun(BBox);
+structure BBMap = BBMatch.BBMap;
 
 structure Ehn = Edge.Ehn;
 structure EMap = NameAmorphFun(Ehn);
+
 
 (* Matching Invarient: matching is  *)
 
@@ -131,6 +159,8 @@ datatype T = Match of
           invmap : BVertex.name BVertex.NTab.T,
           (* tgt to pat (1-many) for leaf vertices (boundaries with 1 edge) *)        
           lfinvmap : BVertex.NSet.T BVertex.NTab.T,
+          (* bang box expansion of pattern *)
+          bbmatch : BBMatch.T,
           (* instantiations for vertex/edge data varaiables *)
           mctxt: MCtxt.T 
          };
@@ -140,6 +170,7 @@ val empty = Match {vmap = BVertex.NTab.empty,
                    emap = EMap.empty,
                    invmap = BVertex.NTab.empty,
                    lfinvmap = BVertex.NTab.empty,
+                   bbmatch = BBMatch.empty,
                    mctxt = MCtxt.empty
                   };
 
@@ -147,8 +178,15 @@ val empty = Match {vmap = BVertex.NTab.empty,
    vnames is all vnames, lfvnames are the leaf subset of them, 
    enames is all enames. 
 *)
-fun mk_id lfvnames vnames enames = 
+fun mk_id g = 
     let 
+      val lfvnames = G.get_leaf_vnames g;
+      val vnames = G.get_vnames g;
+      val enames = G.get_enames g;
+  
+      val bbmatch = 
+          BBMatch.mk_id (G.VtoBoxMap.get_codset (G.get_bboxes g));
+    
       val vmap = (* mk id *)
           BVertex.NSet.fold 
             (fn n => BVertex.NTab.ins (n,n))
@@ -162,17 +200,17 @@ fun mk_id lfvnames vnames enames =
             enames EMap.empty;
       val invmap = 
           BVertex.NSet.fold 
-            BVertex.NTab.delete lfvnames vmap;
+            BVertex.NTab.delete vnames vmap;
       val lfinvmap = (* mk id on bvnames *)
           BVertex.NSet.fold 
             (fn n => BVertex.NTab.ins (n,BVertex.NSet.single n))
-            lfvnames
-            BVertex.NTab.empty
+            lfvnames BVertex.NTab.empty
     in Match {vmap = vmap, 
               vinsts = BVertex.NTab.empty,
               emap = emap, 
               invmap = invmap, 
               lfinvmap = lfinvmap,
+              bbmatch = bbmatch,
               mctxt = MCtxt.empty}
     end;
 
@@ -183,6 +221,7 @@ fun update_vmap f (Match rep) =
            emap = #emap rep,
            invmap = #invmap rep,
            lfinvmap = #lfinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_emap f (Match rep) = 
     Match {vmap = #vmap rep, 
@@ -190,6 +229,7 @@ fun update_emap f (Match rep) =
            emap = f (#emap rep),
            invmap = #invmap rep,
            lfinvmap = #lfinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_invmap f (Match rep) = 
     Match {vmap = #vmap rep, 
@@ -197,6 +237,7 @@ fun update_invmap f (Match rep) =
            emap = #emap rep,
            invmap = f (#invmap rep),
            lfinvmap = #lfinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_lfinvmap f (Match rep) = 
     Match {vmap = #vmap rep, 
@@ -204,6 +245,7 @@ fun update_lfinvmap f (Match rep) =
            emap = #emap rep,
            invmap = #invmap rep,
            lfinvmap = f (#lfinvmap rep),
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_mctxt f (Match rep) = 
     Match {vmap = #vmap rep, 
@@ -211,6 +253,7 @@ fun update_mctxt f (Match rep) =
            emap = #emap rep,
            invmap = #invmap rep,
            lfinvmap = #lfinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = f (#mctxt rep)};
 fun update_vinsts f (Match rep) = 
     Match {vmap = #vmap rep, 
@@ -218,8 +261,16 @@ fun update_vinsts f (Match rep) =
            emap = #emap rep,
            invmap = #invmap rep,
            lfinvmap = #lfinvmap rep,
+           bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
-
+fun update_bbmatch f (Match rep) = 
+    Match {vmap = #vmap rep, 
+           vinsts = #vinsts rep,
+           emap = #emap rep,
+           invmap = #invmap rep,
+           lfinvmap = #lfinvmap rep,
+           bbmatch = f (#bbmatch rep),
+           mctxt = #mctxt rep};
 
 fun get_vmap (Match rep) = #vmap rep;
 fun get_vinsts (Match rep) = #vinsts rep;
@@ -228,6 +279,15 @@ fun get_invmap (Match rep) = #invmap rep;
 fun get_lfinvmap (Match rep) = #lfinvmap rep;
 fun get_mctxt (Match rep) = #mctxt rep;
 val set_mctxt = update_mctxt o K;
+
+fun get_bbmatch (Match rep) = #bbmatch rep;
+val get_bbmap = BBMatch.get_bbmap o get_bbmatch;
+
+val add_bbox_drop = update_bbmatch o BBMatch.add_drop;
+val add_bbox_kills = update_bbmatch o BBMatch.add_kills;
+val add_bbox_map = update_bbmatch oo BBMatch.add_bbmap;
+val add_bbox_copy = update_bbmatch oo BBMatch.add_copy;
+
 
 (* implicit: m n *)
 (* tgt is matched by some non-leaf vertex in pat *)
@@ -448,7 +508,20 @@ fun pretty m =
 
 val print = Pretty.writeln o pretty;
 
+
+structure Sharing : MATCH_SHARING 
+= struct
+  structure G = G.SharingBangGraph
+  structure MCtxt = MCtxt.Sharing
+  structure BBMatch = BBMatch.Sharing
+  structure EMap = EMap.Sharing
+  type T = T;
+end;
+
 end; (* Match structure *)
 
-structure DB_Match = MatchFun(AngleMatchCtxt);
+structure DB_Match = MatchFun(
+  structure MCtxt = AngleMatchCtxt 
+  structure G = RGGraph);
+
 structure Match : MATCH = DB_Match;

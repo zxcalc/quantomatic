@@ -4,7 +4,7 @@ signature INPUT_RULE =
 sig
   structure Rule : RULE
   structure InputGraph : INPUT_GRAPH
-  sharing InputGraph.G.SharingWithIData = Rule.RGGraph.SharingWithIData
+  sharing InputGraph.G.SharingBangGraph = Rule.RGGraph.SharingBangGraph
 
   include INPUT where type intype = InputGraph.intype 
 				        where type outtype = Rule.Name.name * Rule.T * bool
@@ -18,7 +18,7 @@ end;
 functor RuleInputXML (structure Rule : RULE
   structure InputGraph : INPUT_GRAPH 
     where type intype = XML.tree
-  sharing InputGraph.G.SharingWithIData = Rule.RGGraph.SharingWithIData
+  sharing InputGraph.G.SharingBangGraph = Rule.RGGraph.SharingBangGraph
   sharing type InputGraph.outtype = Rule.RGGraph.T
 ) : INPUT_RULE
 = struct 

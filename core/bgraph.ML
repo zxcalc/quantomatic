@@ -5,10 +5,10 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature BGRAPH_SHARING = 
 sig 
-structure EdgeSharing : EDGE_AND_DATA_SHARING;
-structure VertexSharing : NAME_AND_DATA_SHARING;
-structure BVertexSharing : BVERTEX_SHARING;
-sharing VertexSharing = BVertexSharing;
+structure Edge : EDGE_AND_DATA_SHARING;
+structure Vertex : NAME_AND_DATA_SHARING;
+structure BVertex : BVERTEX_SHARING;
+sharing Vertex = BVertex;
 end;
 
 signature BGRAPH = 
@@ -16,9 +16,9 @@ sig
 include GRAPH
 structure BVertex : BVERTEX
 sharing Vertex.SharingWithData = BVertex.SharingWithData
-structure SharingWithIData : BGRAPH_SHARING
-sharing Sharing = SharingWithIData
-sharing SharingWithIData.BVertexSharing = BVertex.SharingWithIData
+structure SharingBGraph : BGRAPH_SHARING
+sharing SharingBasicGraph = SharingBGraph
+sharing SharingBGraph.BVertex = BVertex.SharingWithIData
 
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
@@ -175,10 +175,10 @@ structure BGraphTools = GraphToolsFun(BasicBGraph);
 open BasicBGraph;
 open BGraphTools;
 
-structure SharingWithIData = 
+structure SharingBGraph = 
 struct
-open Sharing;
-structure BVertexSharing = BVertex.SharingWithIData;
+open SharingBasicGraph;
+structure BVertex = BVertex.SharingWithIData;
 end;
 
 (* change n to become a boundary vertex *)

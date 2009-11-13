@@ -2,9 +2,10 @@
 (*  matching and substitution for Basic Quantum Expressions (with angles) *)
 structure AngleMatchCtxt 
 : MATCH_CTXT
-where type BVertex.IData.data = RGGraph.RGVertex.qnd (* = qnd *)
+where type G.BVertex.IData.data = RGGraph.RGVertex.qnd (* = qnd *)
 = struct
 
+structure G = RGGraph;
 structure Edge = UnitEdge; 
 structure V = RGGraph.RGVertex; 
 structure BVertex = V;
@@ -51,6 +52,14 @@ fun pretty m =
                              AngleExpr.pretty i])
            (VName.NTab.list_of m));
 val print = Pretty.writeln o pretty;
+
+
+structure Sharing 
+= struct 
+type T = T;
+structure G = G.SharingBGraph;
+end;
+
 end;
 
 

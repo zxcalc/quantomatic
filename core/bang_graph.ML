@@ -4,10 +4,13 @@
 (*  Graphs with Boundary *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 
-signature BBOX_GRAPH_SHARING = 
+signature BANG_GRAPH_SHARING = 
 sig
 include BGRAPH_SHARING
-structure BBox : NAME_AND_DATA_SHARING
+structure BBox : NAMES_SHARING
+structure VtoBoxMap : NAME_MAP_SHARING
+sharing VtoBoxMap.Cod = BBox;
+sharing VtoBoxMap.Dom = Vertex;
 end;
 
 (* bang-box graphs *)
@@ -15,20 +18,19 @@ signature BANG_GRAPH =
 sig
 include BGRAPH;
 
-structure BBox : SSTR_NAMES (* !(Bang)-Box names/tables/sets *)
-
+structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
-sharing VtoBoxMap.Cod.Sharing = BBox.Sharing;
-sharing VtoBoxMap.Dom.Sharing = Vertex.Sharing;
 
-(* bang box matching - how to expand bang boxes to match another graph *)
-structure BBoxMatch : BBOX_MATCH;
-sharing BBoxMatch.BBox.Sharing = BBox.Sharing;
+structure SharingBangGraph : BANG_GRAPH_SHARING
+sharing SharingBGraph = SharingBangGraph
+sharing SharingBangGraph.BBox = BBox.Sharing
+sharing SharingBangGraph.VtoBoxMap = VtoBoxMap.Sharing
 
 val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
 val get_bbox_list : T -> BBox.name list
 val get_unboxed : T -> Vertex.NSet.T
+val get_bnames : T -> BBox.NSet.T
 
 val lookup_box_of : T -> Vertex.name -> BBox.name option
 val is_boxed : T -> Vertex.name -> bool
@@ -36,10 +38,13 @@ val is_boxed : T -> Vertex.name -> bool
 val new_box : BBox.name -> T -> BBox.name * T
 val move_to_box : BBox.name -> Vertex.NSet.T -> T -> T
 val move_to_unbox : Vertex.NSet.T -> T -> T
-val copy1_box : BBox.name -> T -> (BBox.name (* new box name *)
-                                   * (Vertex.renaming (* how vnames were copied *)
-                                      * Edge.renaming)) (* ename copying *)
-                                  * T (* new graph *)
+val copy1_box : (Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* avoid names *) 
+      -> BBox.name -> T (* bbox to copy and graph containing it *) 
+      -> ((BBox.name * T) (* new box name and subgraph in bbox *)
+          * (Vertex.renaming (* how vnames were copied *)
+              * Edge.renaming (* ename copying *)
+              * BBox.NSet.T)) (* new bbox nameset *)
+         * T (* new graph *)
 val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
 val merge_boxes : BBox.NSet.T -> T -> BBox.name * T
@@ -97,13 +102,6 @@ end;
 
 (* structure BBox : SSTR_NAMES = BBox; *)
 structure VtoBoxMap = NameMapFun(structure Dom = V and Cod = BBox);
-
-(* For mappings between bang boxes *)
-structure BBMap = NameMapFun(structure Dom = BBox and Cod = BBox);
-
-structure BBoxMatch = BBoxMatchFun(
-  structure BBox = BBox
-  structure BBMap = BBMap);
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
 type data2 = data;
@@ -224,6 +222,9 @@ exception overlapping_bbox_exp of V.NSet.T * T
 fun lookup_box_of g v = VtoBoxMap.lookup_domf (get_bboxes g) v;
 fun is_boxed g v = V.NSet.contains (VtoBoxMap.get_domset (get_bboxes g)) v;
 
+(* all !-box names *)
+val get_bnames = VtoBoxMap.get_codset o get_bboxes;
+
 (* make a new empty !-box *)
 fun new_box bn g = 
     let
@@ -248,22 +249,24 @@ fun move_to_unbox vs g =
 (* FIXME: subgraph_of_selection respect !-boxes *)
 (* FIXME: other stuff respect !-boxes ??? *)
 
-fun copy1_box bn g = 
+(* copy bang box, making copy having names fresh w.r.t. given v set (vs) 
+   and e set (es);
+   assumes: G.get_Xnames g <= Xs; for X = {e, v, b}
+*)
+fun copy1_box (vs,es,bs) bn g = 
     let val bbox_vs = get_bbox g bn
         (* subgraph of selection gives back something without bang-boxes *)
-        val (boundary_vs, g2) = cut_subgraph_of_selection' bbox_vs g;
-        val avoid_vs = Vertex.NSet.subtract (get_vnames g) boundary_vs;
-        val ((vrn,ern),g3) = 
-            rename (Vertex.Rnm.mk_from_avoidset avoid_vs,
-                    Edge.Rnm.mk_from_avoidset (get_enames g)) 
-                   g2
+        val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
+        val ((vrn,ern),bbg2) = 
+            bbg |> rename (Vertex.Rnm.mk boundary_vs vs Vertex.NTab.empty,
+                           Edge.Rnm.mk_from_avoidset es) 
         val bbox2_vs = Vertex.Rnm.get_newnames vrn;
         val bboxes = get_bboxes g
-        val bn2 = BBox.NSet.new (VtoBoxMap.get_codset bboxes) bn
+        val (bn2, bs2) = BBox.NSet.add_new bn bs;
         val bboxes2 = VtoBoxMap.add_to_cod bn2 bbox2_vs bboxes;
     in
-      ((bn2, (vrn,ern)), 
-       g |> merge_by_vertices g3
+      (((bn2,bbg2),(vrn,ern,bs2)), 
+       g |> merge_by_vertices bbg2
          |> set_bboxes bboxes2)
     end;
 
@@ -387,5 +390,13 @@ fun get_adj_arities g n =
     in 
       fold_adj consider1 g n (Vertex.NTab.empty, BBox.NTab.empty)
     end;
+
+(* *)
+structure SharingBangGraph 
+= struct
+  open SharingBGraph;
+  structure BBox = BBox.Sharing;
+  structure VtoBoxMap = VtoBoxMap.Sharing;
+end;
 
 end; (* BangGraphFun *)

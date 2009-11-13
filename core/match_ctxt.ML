@@ -1,35 +1,50 @@
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*   Match context for additional       *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+signature MATCH_CTXT_SHARING
+= sig
+  type T
+  structure G : BGRAPH_SHARING
+end;
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature MATCH_CTXT
 = sig
 
-structure BVertex : BVERTEX
-structure Edge : EDGE
+structure G : BGRAPH
 type T (* global context holds vertex and edge global match info *)
+structure Sharing : MATCH_CTXT_SHARING
+sharing type Sharing.T = T;
+sharing Sharing.G = G.SharingBGraph;
+
 val empty : T
 (* internal data matching *)
-val vertex_idata_match : BVertex.IData.data -> BVertex.IData.data -> T -> T option
+val vertex_idata_match : G.BVertex.IData.data -> G.BVertex.IData.data -> T -> T option
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
-val edge_match : Edge.data -> Edge.data -> T -> T option
+val edge_match : G.Edge.data -> G.Edge.data -> T -> T option
 
 (* *)
-val subst_in_vertex_data : T -> BVertex.data -> BVertex.data
-val subst_in_vertex_idata : T -> BVertex.IData.data -> BVertex.IData.data
-val subst_in_edge_data : T -> Edge.data -> Edge.data
+val subst_in_vertex_data : T -> G.BVertex.data -> G.BVertex.data
+val subst_in_vertex_idata : T -> G.BVertex.IData.data -> G.BVertex.IData.data
+val subst_in_edge_data : T -> G.Edge.data -> G.Edge.data
 
 val pretty : T -> Pretty.T
 val print : T -> unit
+
 end;
+
 
 
 (* Basic case of graphs with no vars and no global context, and just
 using data equality function for matching. *)
 functor EqMatchUnitEdgeNoCtxtFun(
-  structure BVertex : BVERTEX
-  and Edge : EDGE where type data = unit
-) : MATCH_CTXT where type Edge.data = unit
+  G : BGRAPH where type Edge.data = unit
+) : MATCH_CTXT where type G.Edge.data = unit
 = struct
 
-structure BVertex = BVertex;
-structure Edge = Edge;
+structure G = G;
+structure BVertex = G.BVertex;
+structure Edge = G.Edge;
 
 type T = unit;
 
@@ -74,6 +89,13 @@ fun subst_in_edge_data (m : T) (e : Edge.data) = e;
 
 fun pretty (m : T) = Pretty.str "";
 val print = Pretty.writeln o pretty;
+
+
+structure Sharing 
+= struct 
+type T = T;
+structure G = G.SharingBGraph;
+end;
 
 end;
 

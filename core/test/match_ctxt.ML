@@ -1,5 +1,17 @@
-structure StrUnitMatchCtxt = 
-EqMatchUnitEdgeNoCtxtFun(structure BVertex = StrBVertex and Edge = UnitEdge);
+
+
+structure DB_StrUnitBGraph = BGraphFun(
+  structure BVertex = StrBVertex 
+  and Edge = UnitEdge
+  type data = unit
+  val empty_data = ()
+);
+
+structure StrUnitBGraph : BGRAPH where type Edge.data = unit 
+  = DB_StrUnitBGraph;
+
+
+structure StrUnitMatchCtxt = EqMatchUnitEdgeNoCtxtFun(StrUnitBGraph);
 
 
 (* signature RG_MATCH

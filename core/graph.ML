@@ -8,12 +8,14 @@ data for vertex and edges a separate table from edge/vertex
 connectedness.
 *)
 
-signature GRAPH_SHARING = 
+signature BASIC_GRAPH_SHARING = 
 sig
-structure EdgeSharing : EDGE_AND_DATA_SHARING;
-structure VertexSharing : NAME_AND_DATA_SHARING;
+structure Edge : EDGE_AND_DATA_SHARING;
+structure Vertex : NAME_AND_DATA_SHARING;
+type T;
 end;
 
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (* Basic (Minimal) interface for Graphs *)
 signature BASIC_GRAPH = 
 sig
@@ -21,11 +23,12 @@ sig
 structure Vertex : VERTEX
 structure Edge : EDGE
 
-structure Sharing : GRAPH_SHARING
-sharing Sharing.EdgeSharing = Edge.EdgeSharingWithData;
-sharing Sharing.VertexSharing = Vertex.SharingWithData;
-
 type T; (* a graph *)
+
+structure SharingBasicGraph : BASIC_GRAPH_SHARING
+sharing SharingBasicGraph.Edge = Edge.EdgeSharingWithData;
+sharing SharingBasicGraph.Vertex = Vertex.SharingWithData;
+sharing type SharingBasicGraph.T = T
 
 exception no_such_vname_exp of string * Vertex.name * T;
 exception vname_already_exists_exp of Vertex.name * T;
@@ -260,11 +263,6 @@ functor BasicGraphFun(
 structure Vertex = Vertex;
 structure Edge = Edge;
 
-structure Sharing = struct
-  structure VertexSharing = Vertex.SharingWithData;
-  structure EdgeSharing = Edge.EdgeSharingWithData;
-end;
-
 (* extra data, allows extra data to be added later in decendent
 signatures/structures; this provides a style of OOP for normal
 structured ML. *)
@@ -283,6 +281,13 @@ datatype T = Graph of
                     Edge.NTab.T,
           data : data
          };
+
+
+structure SharingBasicGraph = struct
+  structure Vertex = Vertex.SharingWithData;
+  structure Edge = Edge.EdgeSharingWithData;
+  type T = T;
+end;
 
 (* internal data stuff *)
 fun get_data (Graph rep) = #data rep;
