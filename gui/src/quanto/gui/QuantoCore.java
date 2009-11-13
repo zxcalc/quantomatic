@@ -49,7 +49,8 @@ public class QuantoCore {
 		}
 	}
 
-	public QuantoCore(PrintStream output) {
+	public QuantoCore(PrintStream output) throws IOException {
+		output.print("Intialising quanto-core...");
 		this.output = output;
 		try {
 			ProcessBuilder pb;
@@ -60,7 +61,7 @@ public class QuantoCore {
 				pb = new ProcessBuilder("quanto-core");
 			}
 			pb.redirectErrorStream(true);
-			output.print("Intialising quanto-core...");
+			output.print("Starting process...");
 			output.flush(); // make sure this is output, in case it hangs below
 			backEnd = pb.start();
 			output.println("done.");
@@ -99,11 +100,14 @@ public class QuantoCore {
 			
 		} catch (IOException e) {
 			//e.printStackTrace();
-			if(backEnd == null) { output.println("ERROR: Cannot execute: quanto-core, check it is in the path."); }
-			else { 
+			if(backEnd == null) { 
+				System.err.println("ERROR: Cannot execute: quanto-core, check it is in the path.");
+			} else { 
 				backEnd.destroy(); 
 				backEnd = null; 
-				output.println("Exit value from backend: " + backEnd.exitValue()); }
+				System.err.println("Exit value from backend: " + backEnd.exitValue()); 
+			}
+			throw e;
 		}
 	}
 
@@ -140,11 +144,14 @@ public class QuantoCore {
 				System.out.println("Back-end last said: " + message.toString());
 				System.out.println("Exit value from backend: " + backEnd.exitValue());
 				throw new QuantoCore.FatalError(e);
-			}
-			catch (java.lang.NullPointerException e) {
-				output.println("Exit value from backend: " + backEnd.exitValue());
-				e.printStackTrace();
-				return null;
+			} catch (java.lang.NullPointerException e) {
+				if(backEnd == null) {
+					output.println("Backend is null.");
+				} else {
+					output.println("Exit value from backend: " + backEnd.exitValue());
+				}
+				//e.printStackTrace();
+				throw new QuantoCore.FatalError(e);
 			}
 			
 			return message.toString();

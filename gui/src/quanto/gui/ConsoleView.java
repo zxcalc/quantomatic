@@ -42,11 +42,19 @@ public class ConsoleView extends JPanel implements InteractiveView {
         output = new JTextArea();
         //output.setFocusable(false);
         out = new PrintStream(new QuantoConsoleOutputStream(output));
-		core = new QuantoCore(out);
+		
+        try {
+        	core = new QuantoCore(out);
+        	prompt = core.receive();
+    		out.print(prompt);
+        } catch(IOException e) {
+        	prompt = "*** Failed to start Quanto core ***";
+        	out.print(prompt);
+        	core = null;
+        }
 		
 		// print and save the default prompt
-		prompt = core.receive();
-		out.print(prompt);
+		
 		
 		input.addKeyListener(new KeyAdapter () {
 			public void keyReleased(KeyEvent e) {
