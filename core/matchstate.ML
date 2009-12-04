@@ -136,7 +136,7 @@ structure BBMap = BBMatch.BBMap;
 
 datatype T = 
          MState of 
-         {(* names context for fresh names when copying bboxes *)
+         {(* names context for fresh names when copying bboxes in pat *)
           names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
           (* and-agenda = (pat -> tgt) = we are commited to matching these *) 
           agenda : V.name V.NTab.T, 
@@ -153,8 +153,10 @@ datatype T =
 
 (* initial matching state *)
 fun init match pat tgt agenda =
-    MState { names = (G.get_vnames pat, G.get_enames pat, G.get_bnames pat),
-             agenda = agenda, match = match, 
+    MState { (* initially used names are those of the pattern graph *)
+             names = (G.get_vnames pat, G.get_enames pat, G.get_bnames pat),
+             agenda = agenda, 
+             match = match, 
              pat_lfs = G.get_leaf_vnames pat,
              unm_pat = pat, unm_tgt = tgt };
 
@@ -588,7 +590,7 @@ fun copy1_pat_bbox bbn st =
     in
       st |> set_unm_pat pat2
          |> set_names names2
-         |> update_match (Match.add_bbox_copy bbn bbn2)
+         |> update_match (Match.add_bbox_copy (bbn,vrn,ern,bbn2))
     end;
 
 (* !-box ops *)

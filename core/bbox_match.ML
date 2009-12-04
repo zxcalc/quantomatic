@@ -4,12 +4,12 @@
 (* information about bang-box matching in a graph *)
 signature BBOX_MATCH_SHARING = 
 sig
-  structure BBox : NAMES_SHARING
+  structure G : BANG_GRAPH_SHARING
   structure BBMap : NAME_MAP_SHARING
   type T
 
-  sharing BBMap.Dom = BBox;
-  sharing BBMap.Cod = BBox;
+  sharing BBMap.Dom = G.BBox;
+  sharing BBMap.Cod = G.BBox;
 
 end;
 
@@ -19,27 +19,31 @@ signature BBOX_MATCH
 
 type T (* bang box match *)
 
-structure BBox : SSTR_NAMES
+structure G : BANG_GRAPH
 structure BBMap : NAME_MAP
-
 
 structure Sharing : BBOX_MATCH_SHARING
 sharing type T = T
 sharing Sharing.BBMap = BBMap.Sharing
-sharing Sharing.BBox = BBox.Sharing
-(* below 2 not needed; just for completeness *)
-sharing BBMap.Dom.Sharing = BBox.Sharing;
-sharing BBMap.Cod.Sharing = BBox.Sharing;
+sharing Sharing.G = G.SharingBangGraph
+(* bellow not needed; done by Sharing's sharings *)
+sharing BBMap.Dom.Sharing = G.BBox.Sharing;
+sharing BBMap.Cod.Sharing = G.BBox.Sharing;
 
 val get_bbmap : T -> BBMap.T;
 val update_bbmap : (BBMap.T -> BBMap.T) -> T -> T;
 
 val empty : T;
-val mk_id : BBox.NSet.T -> T;
-val add_kills : BBox.name list -> T -> T;
-val add_drop : BBox.name -> T -> T;
-val add_bbmap : BBox.name -> BBox.name -> T -> T;
-val add_copy : BBox.name -> BBox.name -> T -> T;
+val mk_id : G.BBox.NSet.T -> T;
+val add_kills : G.BBox.name list -> T -> T;
+val add_drop : G.BBox.name -> T -> T;
+val add_bbmap : G.BBox.name -> G.BBox.name -> T -> T;
+val add_copy : (G.BBox.name (* old bbname *)
+                 * G.BVertex.Rnm.T (* vertex copying *)
+                 * G.Edge.Rnm.T (* edge copying *)
+                 * G.BBox.name) (* new bbox name *) 
+                -> T -> T;
+val get_crnm : T -> (G.BVertex.Rnm.T * G.Edge.Rnm.T) G.BBox.NTab.T
 
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -49,11 +53,15 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor BBoxMatchFun(BBox : SSTR_NAMES)
+functor BBoxMatchFun(
+  G : BANG_GRAPH)
 : BBOX_MATCH
 = struct
 
-structure BBox = BBox;
+structure G = G;
+structure V = G.BVertex;
+structure E = G.Edge;
+structure BBox = G.BBox;
 structure BBMap = NameMapFun(structure Dom = BBox and Cod = BBox);
 
 (* Note merging of bboxes is implicit from the map. 
@@ -65,7 +73,10 @@ datatype T = BBoxMatch of
           copies : BBMap.T, (* 1. copy pattern bboxes to make extended pat *)
           kill : BBox.NSet.T, (* 2. kill boxes we don't map *)
           drop : BBox.NSet.T, (* 3. drop bboxes as needed *)
-          bbmap : BBMap.T (* 4. mapping of bboxes in extended pat to tgt *)
+          bbmap : BBMap.T, (* 4. mapping of bboxes in extended pat to tgt *)
+          (* how vertices get renamed when bboxes are copied - 
+             for consistant naming*)
+          crnm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T
          };
 
 val empty = 
@@ -73,43 +84,57 @@ val empty =
       {bbmap = BBMap.empty,
        copies = BBMap.empty,
        kill = BBox.NSet.empty,
-       drop = BBox.NSet.empty
+       drop = BBox.NSet.empty,
+       crnm = BBox.NTab.empty
       };
 
 fun get_bbmap (BBoxMatch rep) = #bbmap rep;
 fun get_copies (BBoxMatch rep) = #copies rep;
 fun get_kill (BBoxMatch rep) = #kill rep;
 fun get_drop (BBoxMatch rep) = #drop rep;
+fun get_crnm (BBoxMatch rep) = #crnm rep;
 
 fun update_bbmap f (BBoxMatch rep) = 
      BBoxMatch
       {bbmap = f( #bbmap rep),
        copies = #copies rep,
        kill = #kill rep,
-       drop = #drop rep
+       drop = #drop rep,
+       crnm = #crnm rep
       };
 fun update_copies f (BBoxMatch rep) = 
      BBoxMatch
       {bbmap = #bbmap rep,
        copies = f (#copies rep),
        kill = #kill rep,
-       drop = #drop rep
+       drop = #drop rep,
+       crnm = #crnm rep
       };
 fun update_kill f (BBoxMatch rep) = 
      BBoxMatch
       {bbmap = #bbmap rep,
        copies = #copies rep,
        kill = f (#kill rep),
-       drop = #drop rep
+       drop = #drop rep,
+       crnm = #crnm rep
       };
 fun update_drop f (BBoxMatch rep) = 
      BBoxMatch
       {bbmap = #bbmap rep,
        copies = #copies rep,
        kill = #kill rep,
-       drop = f (#drop rep)
+       drop = f (#drop rep),
+       crnm = #crnm rep
       };
-
+fun update_crnm f (BBoxMatch rep) = 
+     BBoxMatch
+      {bbmap = #bbmap rep,
+       copies = #copies rep,
+       kill = #kill rep,
+       drop = #drop rep,
+       crnm = f (#crnm rep)
+      };
+      
 val set_bbmap = update_bbmap o K;
 val set_copies = update_copies o K;
 val set_kill = update_kill o K;
@@ -123,14 +148,25 @@ fun mk_id ns =
 
 (* implicit args: ns m *)
 val add_bbmap = update_bbmap oo BBMap.add_to_dom;
-val add_copy = update_copies oo BBMap.add_to_dom;
 val add_kills = update_kill o fold BBox.NSet.add;
 val add_drop = update_drop o BBox.NSet.add;
-
+fun add_copy (bbn1,vrn,ern,bbn2) m =
+    m |> update_copies (BBMap.add_to_dom bbn2 bbn1)
+      |> update_crnm (BBox.NTab.update (bbn2,(vrn,ern)));
+      
 (* 
 val copy = update_drop o BBox.NSet.add;
 *)
 
+fun pretty_1crnm (vrn, ern) = 
+    Pretty.chunks
+    [ Pretty.block [Pretty.str "V Renaming: {", 
+                    V.Rnm.pretty vrn, Pretty.str "}"],
+      Pretty.block [Pretty.str "E Renaming: {", 
+                    E.Rnm.pretty ern, Pretty.str "}"]
+    ];
+
+      
 (* *)
 fun pretty (BBoxMatch rep) = 
     Pretty.chunks
@@ -139,6 +175,9 @@ fun pretty (BBoxMatch rep) =
       Pretty.block [ Pretty.str "2. kill:", BBox.NSet.pretty (#kill rep) ],
       Pretty.block [ Pretty.str "3. drop:", BBox.NSet.pretty (#drop rep) ],
       Pretty.block [ Pretty.str "4. bbmap:", BBMap.pretty (#bbmap rep) ],
+      Pretty.block [ Pretty.str "[crnm:", 
+                     BBox.NTab.pretty pretty_1crnm (#crnm rep), 
+                     Pretty.str "]" ],
       Pretty.str "}"
     ];
 
@@ -148,7 +187,7 @@ val print = Pretty.writeln o pretty;
 structure Sharing = 
 struct
   type T = T
-  structure BBox = BBox.Sharing
+  structure G = G.SharingBangGraph
   structure BBMap = BBMap.Sharing
 end;
 

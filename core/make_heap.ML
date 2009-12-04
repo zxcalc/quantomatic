@@ -9,4 +9,4 @@ end;
 
 PolyML.shareCommonData run; PolyML.fullGC ();
 PolyML.SaveState.saveState "heaps/quanto.polyml-heap";
-OS.Process.exit OS.Process.success;
+val _ = OS.Process.exit OS.Process.success;

@@ -10,9 +10,9 @@ signature MATCH_SHARING
   structure BBMatch : BBOX_MATCH_SHARING
 
   sharing MCtxt.G = G
+  sharing BBMatch.G = G
   sharing EMap.Cod = G.Edge.Ehn
   sharing EMap.Dom = G.Edge.Ehn
-  sharing BBMatch.BBox = G.BBox
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
@@ -51,7 +51,11 @@ signature MATCH
   val add_bbox_drop : G.BBox.name -> T -> T;
   val add_bbox_kills : G.BBox.name list -> T -> T;
   val add_bbox_map : G.BBox.name -> G.BBox.name -> T -> T;
-  val add_bbox_copy : G.BBox.name -> G.BBox.name -> T -> T;
+  val add_bbox_copy : (G.BBox.name (* old bbname *)
+                 * G.BVertex.Rnm.T (* vertex copying *)
+                 * G.Edge.Rnm.T (* edge copying *)
+                 * G.BBox.name) (* new bbox name *) 
+                -> T -> T;
 
   (* opposites *)
   val tgt_edge_is_half_unmatched : T -> G.Edge.name -> bool
@@ -127,7 +131,7 @@ structure Edge = G.Edge;
 structure G = G;
 
 structure BBox = G.BBox;
-structure BBMatch = BBoxMatchFun(BBox);
+structure BBMatch = BBoxMatchFun(G);
 structure BBMap = BBMatch.BBMap;
 
 structure Ehn = Edge.Ehn;
@@ -286,7 +290,7 @@ val get_bbmap = BBMatch.get_bbmap o get_bbmatch;
 val add_bbox_drop = update_bbmatch o BBMatch.add_drop;
 val add_bbox_kills = update_bbmatch o BBMatch.add_kills;
 val add_bbox_map = update_bbmatch oo BBMatch.add_bbmap;
-val add_bbox_copy = update_bbmatch oo BBMatch.add_copy;
+val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
 
 
 (* implicit: m n *)

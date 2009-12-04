@@ -13,9 +13,9 @@ use "alg.ML";
 use "graph.ML";
 use "bvertex.ML";
 use "bgraph.ML";
-use "bbox_match.ML";
 use "match_ctxt.ML"; (* vertex and edge matching and global context *)
 use "bang_graph.ML";
+use "bbox_match.ML";
 use "coeff.ML";
 use "expr.ML"; 
 use "linrat_expr.ML";
