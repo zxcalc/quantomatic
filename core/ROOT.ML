@@ -5,6 +5,7 @@ use "ROOT.ML";
 OS.FileSys.chDir rootDir);
 print_depth 3;
 
+(* turn on debug flag *)
 (* PolyML.Compiler.debug := true; *)
 
 (* load all the files. *)
