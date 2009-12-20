@@ -429,14 +429,14 @@ fun add_leaf_ehn2ehn_emap (peh,ped) (teh,ted) m =
 
 
 (* try to add to the direct emap: pe = te; pe is not an leaf edge  *)
-fun try_add_emap (pe,pd) (te,td) m = 
-    if tgt_edge_is_unmapped m te then
-      (case MCtxt.edge_match pd td (get_mctxt m)
+fun try_add_emap (pe1,ped) (te1,ted) m = 
+    if tgt_edge_is_unmapped m te1 then
+      (case MCtxt.edge_match ped ted (get_mctxt m)
         of NONE => NONE
          | SOME ctxt2 => 
            SOME (m |> (update_emap 
-                         (EMap.add (Ehn.mk_start pe) (Ehn.mk_start te)
-                          o EMap.add (Ehn.mk_end pe) (Ehn.mk_end te)))
+                         (EMap.add (Ehn.mk_start pe1) (Ehn.mk_start te1)
+                          o EMap.add (Ehn.mk_end pe1) (Ehn.mk_end te1)))
                    |> set_mctxt ctxt2))
     else NONE;
 
@@ -461,14 +461,14 @@ fun multi_edge_match pes tes m =
                       (mtes2, (* matched tgt edges, unmatched ones *)
                       m2)) (* match so far *)
         = let (* pull and match pat edge against next target edge  *)
-            val ((te1,ted),unmtes3) = the (Edge.NTab.pull_elem unmtes2)
+            val ((te1,ted),unmtes3) = the (Edge.NTab.pull_elem unmtes2);
             (* match edge data *)
             val mctxt2 = the (MCtxt.edge_match ped ted (get_mctxt m2))
             (* update match context, and add non-loopy edge map *)
             val m3 = m2 |> (the o try_add_emap (pe1, ped) (te1, ted))
-                        |> set_mctxt mctxt2
+                        |> set_mctxt mctxt2;
             (* te1 is now matched *)
-            val mtes3 = Edge.NSet.add te1 mtes2
+            val mtes3 = Edge.NSet.add te1 mtes2;
           in (unmtes3, (mtes3, m3)) end;
       val (tes_result, m2) = 
           Edge.NTab.fold match_more pes (tes, (Edge.NSet.empty, m))

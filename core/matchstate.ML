@@ -288,7 +288,7 @@ fun pop_agenda st =
    target edges. If both pat edges are non-boundary, then match
    strictly: all tgt edges must be matched, else only require all
    pattern edges to be matched. *)
-fun multi_edge_matches from_pd to_pd pat_edges tgt_edges st = 
+fun multi_edge_matches from_pd to_pd pes tes st = 
     (* choose edge matching function *)
     ((case from_pd of (* non-strict edge matching: maybe extra edges in tgt *)
         V.BVert => Match.multi_edge_match
@@ -296,12 +296,12 @@ fun multi_edge_matches from_pd to_pd pat_edges tgt_edges st =
         (case to_pd
           of V.BVert => Match.multi_edge_match
            | V.IVert d => Match.strict_multi_edge_match))
-       pat_edges tgt_edges (get_match st))
+       pes tes (get_match st))
     (* apply edge matching: all pat egdes are always matched,
        mtes is matched tgt edges *)
     |> Seq.map (fn (unmatches_tes, (mtes, m)) => 
                    (unmatches_tes, (mtes,
-                    st |> del_pat_edges (Edge.NTab.get_nameset pat_edges)
+                    st |> del_pat_edges (Edge.NTab.get_nameset pes)
                        |> del_tgt_edges mtes
                        |> set_match m)));
 
@@ -358,10 +358,10 @@ fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
                         (try_add1_to_agenda (to_pn,to_tn))
       of SOME st2 => 
          let 
-           val pat = get_unm_pat st2
-           val to_pd = RGGraph.get_vertex_data pat to_pn
-           val pes = RGGraph.edges_between pat from_pn to_pn
-           val tes = RGGraph.edges_between (get_unm_tgt st2) from_tn to_tn
+           val pat = get_unm_pat st2;
+           val to_pd = RGGraph.get_vertex_data pat to_pn;
+           val pes = RGGraph.edges_between pat from_pn to_pn;
+           val tes = RGGraph.edges_between (get_unm_tgt st2) from_tn to_tn;
          in multi_edge_matches from_pd to_pd pes tes st2 end
             (* |> (Seq.of_list o Seq.list_of) : T Seq.seq 
                   -- to debug: force eval here and now *)
@@ -422,7 +422,8 @@ fun edgematch_adj_verticies
                         (ignore_arity - to_tn_nedges,
                          (pns, del_tgt_edges teset st))
                  else Seq.empty)
-                (* or-choice: ignore every number of ignoreable target edges *)
+                (* or-choice: ignore every number of ignoreable target edges 
+                   includes 0; for don't ignore any *)
                 ((Seq.of_list (0 upto (Int.max (0, 
                    Int.min (to_tn_nedges, ignore_arity - 1)))))
                  |> Seq.maps 
