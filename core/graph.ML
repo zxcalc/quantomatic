@@ -154,7 +154,13 @@ val has_vname : T -> Vertex.name -> bool;
 val has_ename : T -> Edge.name -> bool;
 
 (* renaming *)
-val rename : (Vertex.renaming * Edge.renaming) -> T -> (Vertex.renaming * Edge.renaming) * T 
+structure VertexRnm : COMPOUND_RENAMING 
+where type obj = T and type renaming = Vertex.Rnm.T
+structure EdgeRnm : COMPOUND_RENAMING 
+where type obj = T and type renaming = Edge.Rnm.T
+
+val rename : (Vertex.renaming * Edge.renaming) -> T 
+    -> (Vertex.renaming * Edge.renaming) * T 
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (Vertex.renaming * Edge.renaming) * T 
 
@@ -700,6 +706,25 @@ fun delete_subgraph subg fromg =
                 delete_vertex
                 (get_vnames subg));
 
+
+structure VertexRnm = CompoundRenamingFun(
+struct 
+  structure Nm = Vertex
+  type obj = T
+  val try_rename1 = try_rename1_vname;
+  val get_nameset = get_vnames
+end);
+
+structure EdgeRnm = CompoundRenamingFun(
+struct 
+  structure Nm = Edge
+  type obj = T
+  val try_rename1 = try_rename1_ename;
+  val get_nameset = get_enames
+end);
+
+
+(* FIXME: use proper renaming code from functor above rather than the ad-hoc mess below. *)
 
 (* rename a set of vnames in a graph *)
 fun rename_vnames vnames (vrn,g) = 

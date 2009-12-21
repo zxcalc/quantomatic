@@ -38,6 +38,7 @@ val is_boxed : T -> Vertex.name -> bool
 val new_box : BBox.name -> T -> BBox.name * T
 val move_to_box : BBox.name -> Vertex.NSet.T -> T -> T
 val move_to_unbox : Vertex.NSet.T -> T -> T
+
 val copy1_box : (Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* avoid names *) 
       -> BBox.name -> T (* bbox to copy and graph containing it *) 
       -> ((BBox.name * T) (* new box name and subgraph in bbox *)
@@ -45,6 +46,19 @@ val copy1_box : (Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* avoid names *)
               * Edge.renaming (* ename copying *)
               * BBox.NSet.T)) (* new bbox nameset *)
          * T (* new graph *)
+
+val copy1_box_given_rnm : 
+         BBox.name (* bbox being copied *)
+      -> (BBox.name * (Vertex.Rnm.T * Edge.Rnm.T)) (* use these renamings *) 
+      -> T (* graph containing bbox *) 
+      -> T (* new graph *)
+
+val copy1_box_given_ext_rnm : 
+         BBox.name (* bbox being copied *)
+      -> BBox.name (* new name copied to *) 
+      -> (Vertex.Rnm.T * Edge.Rnm.T) * T (* external vs renaming,graph bbox *) 
+      -> (Vertex.Rnm.T * Edge.Rnm.T) * T (* new renaming, new graph *)
+
 val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
 val merge_boxes : BBox.NSet.T -> T -> BBox.name * T
@@ -333,6 +347,40 @@ fun copy1_box (vs,es,bs) bn g =
        g |> merge_by_vertices bbg2
          |> set_bboxes bboxes2)
     end;
+
+(* given a new bang-box name and the renamings for its vertices and edges, copy 
+   the bangbox, renamed as specified. *)
+fun copy1_box_given_rnm bn (bn2,(vrn,ern)) g = 
+    let val bbox_vs = get_bbox g bn
+        (* subgraph of selection gives back something without bang-boxes *)
+        val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
+        val bbg2 = bbg |> VertexRnm.do_renaming vrn
+                       |> EdgeRnm.do_renaming ern
+        val bbg_internal_vs = 
+            Vertex.NSet.subtract (get_vnames bbg2) boundary_vs;
+    in
+      g |> merge_by_vertices bbg2
+        |> update_bboxes 
+             (VtoBoxMap.add_to_cod bn2 bbg_internal_vs)
+    end;
+
+
+(* given a renaming of external/boundary nodes, which may for example be shared with the lhs of a rewrite rule - copy the bang box using the specified vertex renaming for external/boundary nodes within the bbox. also assumes that bn2 must be fresh from bbox names in g. *)
+fun copy1_box_given_ext_rnm bn bn2 ((vrn,ern),g) = 
+    let val bbox_vs = get_bbox g bn
+        (* subgraph of selection gives back something without bang-boxes *)
+        val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
+        val (vrn2,bbg2) = VertexRnm.rename vrn bbg;
+        val (ern2,bbg3) = EdgeRnm.rename ern bbg;
+        val bbg_internal_vs = 
+            Vertex.NSet.subtract (get_vnames bbg3) boundary_vs;
+    in
+      ((vrn2,ern2),
+       g |> merge_by_vertices bbg3
+         |> update_bboxes 
+              (VtoBoxMap.add_to_cod bn2 bbg_internal_vs))
+    end;
+
 
 fun kill_box bn g = 
     let val bbox_vs = get_bbox g bn

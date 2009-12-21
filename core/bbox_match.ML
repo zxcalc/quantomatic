@@ -30,11 +30,18 @@ sharing Sharing.G = G.SharingBangGraph
 sharing BBMap.Dom.Sharing = G.BBox.Sharing;
 sharing BBMap.Cod.Sharing = G.BBox.Sharing;
 
-val get_bbmap : T -> BBMap.T;
-val update_bbmap : (BBMap.T -> BBMap.T) -> T -> T;
-
 val empty : T;
 val mk_id : G.BBox.NSet.T -> T;
+
+val get_bbmap : T -> BBMap.T;
+val get_kill : T -> G.BBox.NSet.T
+val get_drop : T -> G.BBox.NSet.T
+val get_copies : T -> BBMap.T
+val get_crnm : T -> (G.BVertex.Rnm.T * G.Edge.Rnm.T) G.BBox.NTab.T
+
+val update_bbmap : (BBMap.T -> BBMap.T) -> T -> T;
+
+
 val add_kills : G.BBox.name list -> T -> T;
 val add_drop : G.BBox.name -> T -> T;
 val add_bbmap : G.BBox.name -> G.BBox.name -> T -> T;
@@ -43,7 +50,6 @@ val add_copy : (G.BBox.name (* old bbname *)
                  * G.Edge.Rnm.T (* edge copying *)
                  * G.BBox.name) (* new bbox name *) 
                 -> T -> T;
-val get_crnm : T -> (G.BVertex.Rnm.T * G.Edge.Rnm.T) G.BBox.NTab.T
 
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -75,8 +81,11 @@ datatype T = BBoxMatch of
           drop : BBox.NSet.T, (* 3. drop bboxes as needed *)
           bbmap : BBMap.T, (* 4. mapping of bboxes in extended pat to tgt *)
           (* how vertices get renamed when bboxes are copied - 
-             for consistant naming*)
+             for consistant naming; from new bbox names to renamings *)
           crnm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T
+          (* as above, but only contains renamings of external vertices in 
+             bang boxes *)
+          (* ernm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T *)
          };
 
 val empty = 
@@ -86,6 +95,7 @@ val empty =
        kill = BBox.NSet.empty,
        drop = BBox.NSet.empty,
        crnm = BBox.NTab.empty
+       (* ernm = BBox.NTab.empty *)
       };
 
 fun get_bbmap (BBoxMatch rep) = #bbmap rep;

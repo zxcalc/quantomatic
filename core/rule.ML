@@ -221,10 +221,49 @@ fun orient_edge_dirs (invs,outvs) g =
                 end)
             outvs);
 
+structure BBMatch = Match.BBMatch;
+structure BBox = RGGraph.BBox;
+structure BBMap = BBMatch.BBMap;
+
+(* 
+(* given a bbox matching against a graph, apply it: copy, kill and drop bboxes. 
+   When copying, use the specified names. *)
+fun inst_lhs_bbox_match bbmatch g = 
+    let 
+      val rntab = BBMatch.get_crnm bbmatch
+    in
+      g |> BBox.NTab.fold 
+            (fn (bn1,bn2) => 
+              RGGraph.copy1_box_given_rnm
+                bn1 (bn2,(BBox.NTab.get rntab bn2)))
+            (BBMap.get_domtab (BBMatch.get_copies bbmatch))
+        |> BBox.NSet.fold RGGraph.kill_box (BBMatch.get_kill bbmatch)
+        |> BBox.NSet.fold RGGraph.drop_box (BBMatch.get_drop bbmatch)
+    end;
+
+(* makes sure to copy external/boundary vertex names exactly, but other vertices 
+   are named arbitrarily, but fresh. *)
+fun inst_rhs_bbox_match bbmatch g = 
+    let 
+      val rntab = BBMatch.get_crnm bbmatch
+      fun rntab2 = 
+    in
+      g |> BBox.NTab.fold 
+            (fn (bn1,bn2) => 
+              RGGraph.copy1_box_using_rnm
+                bn1 (bn2,(BBox.NTab.get rntab bn2)))
+            (BBMap.get_domtab (BBMatch.get_copies bbmatch))
+        |> BBox.NSet.fold RGGraph.kill_box (BBMatch.get_kill bbmatch)
+        |> BBox.NSet.fold RGGraph.drop_box (BBMatch.get_drop bbmatch)
+    end;
+*)
+
+
 (* rename rule w.r.t. matching of tgt - assumes valid rule and rule is
    named distinct from tgt. *)
 fun inst_rule rule match = 
     let 
+      (* val rule = *) 
       val vmap = Match.get_vmap match
       val emap = Match.get_emap match
 
