@@ -82,10 +82,11 @@ datatype T = BBoxMatch of
           bbmap : BBMap.T, (* 4. mapping of bboxes in extended pat to tgt *)
           (* how vertices get renamed when bboxes are copied - 
              for consistant naming; from new bbox names to renamings *)
-          crnm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T
+          crnm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T,
           (* as above, but only contains renamings of external vertices in 
-             bang boxes *)
-          (* ernm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T *)
+             bang boxes; these have to be the same between lhs and rhs of a 
+             rule when bboxes are matched. *)
+          ernm : (V.Rnm.T * E.Rnm.T) BBox.NTab.T
          };
 
 val empty = 
@@ -94,8 +95,8 @@ val empty =
        copies = BBMap.empty,
        kill = BBox.NSet.empty,
        drop = BBox.NSet.empty,
-       crnm = BBox.NTab.empty
-       (* ernm = BBox.NTab.empty *)
+       crnm = BBox.NTab.empty,
+       ernm = BBox.NTab.empty
       };
 
 fun get_bbmap (BBoxMatch rep) = #bbmap rep;
@@ -103,6 +104,7 @@ fun get_copies (BBoxMatch rep) = #copies rep;
 fun get_kill (BBoxMatch rep) = #kill rep;
 fun get_drop (BBoxMatch rep) = #drop rep;
 fun get_crnm (BBoxMatch rep) = #crnm rep;
+fun get_ernm (BBoxMatch rep) = #ernm rep;
 
 fun update_bbmap f (BBoxMatch rep) = 
      BBoxMatch
@@ -110,7 +112,8 @@ fun update_bbmap f (BBoxMatch rep) =
        copies = #copies rep,
        kill = #kill rep,
        drop = #drop rep,
-       crnm = #crnm rep
+       crnm = #crnm rep,
+       ernm = #ernm rep
       };
 fun update_copies f (BBoxMatch rep) = 
      BBoxMatch
@@ -118,7 +121,8 @@ fun update_copies f (BBoxMatch rep) =
        copies = f (#copies rep),
        kill = #kill rep,
        drop = #drop rep,
-       crnm = #crnm rep
+       crnm = #crnm rep,
+       ernm = #ernm rep
       };
 fun update_kill f (BBoxMatch rep) = 
      BBoxMatch
@@ -126,7 +130,8 @@ fun update_kill f (BBoxMatch rep) =
        copies = #copies rep,
        kill = f (#kill rep),
        drop = #drop rep,
-       crnm = #crnm rep
+       crnm = #crnm rep,
+       ernm = #ernm rep
       };
 fun update_drop f (BBoxMatch rep) = 
      BBoxMatch
@@ -134,7 +139,8 @@ fun update_drop f (BBoxMatch rep) =
        copies = #copies rep,
        kill = #kill rep,
        drop = f (#drop rep),
-       crnm = #crnm rep
+       crnm = #crnm rep,
+       ernm = #ernm rep
       };
 fun update_crnm f (BBoxMatch rep) = 
      BBoxMatch
@@ -142,9 +148,19 @@ fun update_crnm f (BBoxMatch rep) =
        copies = #copies rep,
        kill = #kill rep,
        drop = #drop rep,
-       crnm = f (#crnm rep)
+       crnm = f (#crnm rep),
+       ernm = #ernm rep
+      };      
+fun update_ernm f (BBoxMatch rep) = 
+     BBoxMatch
+      {bbmap = #bbmap rep,
+       copies = #copies rep,
+       kill = #kill rep,
+       drop = #drop rep,
+       crnm = #crnm rep,
+       ernm = f (#ernm rep)
       };
-      
+
 val set_bbmap = update_bbmap o K;
 val set_copies = update_copies o K;
 val set_kill = update_kill o K;

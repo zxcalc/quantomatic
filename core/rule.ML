@@ -174,7 +174,7 @@ fun matches rule tgt =
    Proof is by observing that bounary nodes can only be matched by
    boundary nodes and the types of the lhs and rhs must be equal to be
    a rule. *)
-fun is_trivial rule = true
+fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
 (* 
     let val init_renaming = 
         val rhs' = RGGraph.rename_apart
@@ -225,7 +225,7 @@ structure BBMatch = Match.BBMatch;
 structure BBox = RGGraph.BBox;
 structure BBMap = BBMatch.BBMap;
 
-(* 
+
 (* given a bbox matching against a graph, apply it: copy, kill and drop bboxes. 
    When copying, use the specified names. *)
 fun inst_lhs_bbox_match bbmatch g = 
@@ -241,23 +241,42 @@ fun inst_lhs_bbox_match bbmatch g =
         |> BBox.NSet.fold RGGraph.drop_box (BBMatch.get_drop bbmatch)
     end;
 
+
+(*
+  val evs = G.get_vnames g
+      val erntab = 
+          BBox.NTab.fold 
+            (fn (bbn, (vrn,ern)) => bbn)
+            bbrntab            
+V.NTab.get_nameset 
+*)
+
 (* makes sure to copy external/boundary vertex names exactly, but other vertices 
    are named arbitrarily, but fresh. *)
 fun inst_rhs_bbox_match bbmatch g = 
     let 
-      val rntab = BBMatch.get_crnm bbmatch
-      fun rntab2 = 
+      val bbrntab = BBMatch.get_crnm bbmatch
     in
       g |> BBox.NTab.fold 
-            (fn (bn1,bn2) => 
-              RGGraph.copy1_box_using_rnm
-                bn1 (bn2,(BBox.NTab.get rntab bn2)))
+            (fn (bn1,bn2) => fn g' => (* "_" for ignore prev renaming *)
+              let (* this bang-boxes renaming *) 
+                val (vrn,ern) = (BBox.NTab.get bbrntab bn2)
+                val nmap = Vertex.Rnm.get_nmap vrn
+                val bvrn = (* boundary-only vertex renaming *)
+                    Vertex.NTab.fold 
+                      (fn (n1,n2) => if RGGraph.is_boundary g n1 then I 
+                       else Vertex.Rnm.update_nmap (Vertex.NTab.delete n1))
+                      (Vertex.Rnm.get_nmap vrn)
+                      vrn
+              in (* snd = ignore last renaming *)
+                snd (RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((bvrn,ern),g')) 
+              end)
             (BBMap.get_domtab (BBMatch.get_copies bbmatch))
         |> BBox.NSet.fold RGGraph.kill_box (BBMatch.get_kill bbmatch)
         |> BBox.NSet.fold RGGraph.drop_box (BBMatch.get_drop bbmatch)
     end;
-*)
 
+(* FIXME: use above functions *)
 
 (* rename rule w.r.t. matching of tgt - assumes valid rule and rule is
    named distinct from tgt. *)
