@@ -2,6 +2,7 @@ package quanto.gui;
 
 import java.io.*;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 
@@ -49,24 +50,29 @@ public class QuantoCore {
 		}
 	}
 
-	public QuantoCore(PrintStream output) throws IOException {
-		output.print("Intialising quanto-core...");
-		this.output = output;
+	public QuantoCore(PrintStream setoutput) throws IOException {
+		output = System.out;
+		output.println("Intialising quanto-core...");
+		
 		try {
 			ProcessBuilder pb;
-			if (appName != null) {
-				pb = new ProcessBuilder(
-					appName + "/Contents/MacOS/quanto-core-app");
-			} else {
-				pb = new ProcessBuilder("quanto-core");
-			}
+			pb = new ProcessBuilder("quanto-core");
+
+			//System.getProperty("user.dir");
+			//System.out.println("user.dir: " + System.getProperty("user.dir"));
+
+			// add extra macos packaged program path
+			Map<String,String> env = pb.environment();
+			String path = env.get("PATH");
+			env.put("PATH",path + File.pathSeparator + appName + "/Contents/MacOS/quanto-core-app"); 
+			
 			pb.redirectErrorStream(true);
-			output.print("Starting process...");
+			output.println("Starting process...");
 			output.flush(); // make sure this is output, in case it hangs below
 			backEnd = pb.start();
 			output.println("done.");
 			
-			output.print("Connecting pipes...");
+			output.println("Connecting pipes...");
 			output.flush();
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
@@ -74,7 +80,7 @@ public class QuantoCore {
 					.getOutputStream()));
 			output.println("done.");
 			
-			output.print("Synchonising console...");
+			output.println("Synchonising console...");
 			output.flush();
 			// sync the console
 			send("garbage_2039483945;");
@@ -97,6 +103,8 @@ public class QuantoCore {
 				if (! ln.equals("")) completer.addWord(ln);
 			
 			output.println("done.");
+			// set future output to go to specific given output stream, rather than system one.
+			output = setoutput;
 			
 		} catch (IOException e) {
 			//e.printStackTrace();

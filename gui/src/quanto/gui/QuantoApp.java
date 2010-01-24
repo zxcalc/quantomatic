@@ -566,7 +566,7 @@ public class QuantoApp {
 			try {
 				File file = fileChooser.getSelectedFile();
 				if (file.getParent()!=null) setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
-				String thyname = file.getName().replaceAll("\\.xml|\\n|\\r", "");
+				String thyname = file.getName().replaceAll("\\.theory|\\n|\\r", "");
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 				TheoryTree.loadRuleset(thyname, filename);
 			}
