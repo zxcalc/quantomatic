@@ -53,10 +53,13 @@ bin/$(THE_BIN).o: $(QUANTO_HEAP)
 
 # make the core object without dumping the heap
 bin/$(THE_BIN): bin/$(THE_BIN).o
-	cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
+	export LD_RUN_PATH="${POLYLIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
 bin: bin/$(THE_BIN)
+
+echobin:
+	@echo LD_RUN_PATH="${POLYLIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
 
 # startup an ML shell using the quanto heap
 ml-shell: $(QUANTO_HEAP)
