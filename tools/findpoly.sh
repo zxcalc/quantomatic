@@ -24,10 +24,17 @@ function choosefrom ()
   echo "$RESULT"
 }
 
+POLYML_IN_PATH="$(type -p poly)"
+if [ -n "$POLYML_IN_PATH" ]; then 
+    POLYML_IN_PATH="$(cd $(dirname $POLYML_IN_PATH); cd ..; pwd)"
+fi
+
+LOCAL_POLY_DIR="$(cd $ROOT_DIR/../polyml; pwd)"
+
 POLYML_HOME=$(choosefrom \
   "$POLYML_HOME" \
-  "$ROOT_DIR/../polyml" \
-  "$(cd $(dirname $(type -p poly)); cd ..; pwd)" \
+  "$LOCAL_POLY_DIR" \
+  "$POLYML_IN_PATH" \
   "/usr/local/polyml" \
   "/usr/share/polyml" \
   "/opt/polyml")

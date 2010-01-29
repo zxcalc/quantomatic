@@ -20,7 +20,9 @@ ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../..
 ################################
 
 # polyml executable
-POLYML=poly
+POLYML_HOME=$(shell ../tools/findpoly.sh)
+POLYML=$(POLYML_HOME)/bin/poly
+POLYML_LIB=$(POLYML_HOME)/lib
 
 ################################
 # HEAP files defined in make_heap.ML, make_bin.ML
@@ -37,9 +39,10 @@ THE_BIN=quanto-core
 ################################
 default: bin
 
+# A bit of a hack: we just add our found polyml to the path...
 # always run make; it's quick and deals with its own deps
 $(ISAPLIB_HEAP): 
-	cd ../../isaplib; make
+	export PATH="$(POLYML_HOME)/bin:$(PATH)" && cd ../../isaplib; make
 
 # make polyml heap
 $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
@@ -53,13 +56,13 @@ bin/$(THE_BIN).o: $(QUANTO_HEAP)
 
 # make the core object without dumping the heap
 bin/$(THE_BIN): bin/$(THE_BIN).o
-	export LD_RUN_PATH="${POLYLIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
+	export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
 bin: bin/$(THE_BIN)
 
 echobin:
-	@echo LD_RUN_PATH="${POLYLIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYLIB} -lpolymain -lpolyml
+	@echo export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
 
 # startup an ML shell using the quanto heap
 ml-shell: $(QUANTO_HEAP)

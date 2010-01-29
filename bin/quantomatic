@@ -14,10 +14,10 @@ function run_quanto_core ()
 
 function run_quanto_gui ()
 {
-    CMD="java -jar $ROOT_DIR/gui/dist/QuantoGui.jar $@"
+    CMD="export PATH=\"$ROOT_DIR/core/bin/:$PATH\" && java -jar $ROOT_DIR/gui/dist/QuantoGui.jar $@"
     echo "Running: $CMD"
     echo 
-    $CMD
+    bash -c "$CMD"
 }
 
 function run_quanto_ml ()
@@ -30,7 +30,7 @@ function run_quanto_ml ()
         LEDIT=`which cat`
     fi
     echo "Using line editor: ${LEDIT}";
-    CMD="( echo \"PolyML.SaveState.loadState \\\"${THE_POLY_HEAP}\\\";\"; ${LEDIT} ) | poly \"$@\""
+    CMD="( echo \"PolyML.SaveState.loadState \\\"${THE_POLY_HEAP}\\\";\"; ${LEDIT} ) | $POLYML $@"
     echo "Running: $CMD"
     echo 
     bash -c "$CMD"
@@ -77,15 +77,9 @@ function fail()
 }
 
 POLYML_OPTIONS=""
-POLYML_HOME=$(choosefrom \
-  "$POLYML_HOME" \
-  "$ROOT_DIR/tools/polyml" \
-  "/usr/local/polyml" \
-  "/usr/share/polyml" \
-  "/opt/polyml" \
-  "$(cd $(dirname $(type -p poly)); cd ..; pwd)")
-
+POLYML_HOME="$($ROOT_DIR/tools/findpoly.sh)"
 POLYML_BIN="$POLYML_HOME/bin"
+POLYML="$POLYML_BIN/poly"
 POLYML_LIB="$POLYML_HOME/lib"
 
 # setup ML env
