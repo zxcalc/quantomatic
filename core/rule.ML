@@ -285,6 +285,7 @@ fun inst_rule rule match =
       (* val rule = *) 
       val vmap = Match.get_vmap match
       val emap = Match.get_emap match
+      val bbmatch = Match.get_bbmatch match
 
       (* IMPROVE: use depenv to only update changes parts of graph *)
       fun apply_vertex_data_subst g = 
@@ -296,26 +297,15 @@ fun inst_rule rule match =
       val vinsts = 
           (Match.get_vinsts match) : Vertex.IData.data Vertex.NTab.T
 
-
-      fun instantiate_boundary_vertices g =
-          Vertex.NTab.fold 
-            (fn (n,d : Vertex.IData.data) => fn g => 
-               (* if still boundary after rename/merge *)
-               if RGGraph.is_boundary g n then
-                 RGGraph.change_into_internal n d g
-               else g)
-            (Match.get_vinsts match) g;
-
       val lhs = (get_lhs rule)
-                  (* any boundary vertices in pat mapped to non-boundary,
-                     get instantiatied to the non-boundary *)
-                  (* |> instantiate_boundary_vertices *)
-                  (* rename (merge for unified leaf/boundary vertices) *)
+                  |> inst_lhs_bbox_match bbmatch
+                  (* rename (merges unified leaf/boundary vertices) so they 
+                     have the same names as vertices in the graph they match *)
                   |> (Vertex.NTab.fold 
                         (fn (n1,n2) => RGGraph.rename_or_merge_vname n1 n2)
                         vmap)
-                  |> (Edge.Ehn.NTab.fold (* rename/merge edges - 
-                                        note: merge only on mapping to loops *)
+                  (* rename/merge edges. note: merge only on mapping to loops *)
+                  |> (Edge.Ehn.NTab.fold 
                         (fn (ehn1,ehn2) => 
                          fn lhs => 
                             let val e1 = (RGGraph.Edge.Ehn.get_ename ehn1) in
@@ -337,35 +327,18 @@ fun inst_rule rule match =
                   (* instantiate angle expressions *)
                   |> apply_vertex_data_subst
 
-      (* identify in and out boundary nodes (all edges come in-to or
-         out-of this node) and try to preserve them in rhs *)
-      val (inbvs,outbvs) = 
-          Vertex.NSet.fold 
-            (fn n => 
-             fn (invs,outvs) => 
-                let val (_,(ins,outs)) = RGGraph.get_vertex lhs n
-                in
-                  if Edge.NSet.is_empty ins then 
-                    (invs, Vertex.NSet.add n outvs)
-                  else if Edge.NSet.is_empty outs then 
-                    (Vertex.NSet.add n invs, outvs) else
-                  (invs,outvs)
-                end)
-            (RGGraph.get_boundary lhs)
-            (Vertex.NSet.empty, Vertex.NSet.empty)
-          
       (* only boundary nodes are mapped/renamed on rhs *)
-      val oldrhs = get_rhs rule;
-      val rhs = oldrhs 
-                  (* instantiated boundary vertices which may make them concrete *)
-                  (* |> instantiate_boundary_vertices *)
+      val rhs = (get_rhs rule) 
+                  |> inst_rhs_bbox_match bbmatch
                   (* rename/merge boundary vertices to match in tgt graph *)
                   |> (fn g => Vertex.NSet.fold 
                         (fn n1 => RGGraph.rename_or_merge_vname 
                                     n1 (Vertex.NTab.get vmap n1))
                         (RGGraph.get_boundary g) g)
-                   (* apply angle instantiations *)
-                  |> orient_edge_dirs (inbvs,outbvs)
+                  (* orient edges so that input/output of subgraph 
+                     is maintained *)
+                  |> orient_edge_dirs (RGGraph.get_in_and_out_vnames lhs)
+                  (* apply angle instantiations *)
                   |> apply_vertex_data_subst
     in
       rule |> set_lhs lhs

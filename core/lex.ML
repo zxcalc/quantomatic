@@ -15,32 +15,31 @@ end
 
 structure SimpleLexer : SIMPLE_LEXER =
 struct
-type elem = Symbol.symbol
-datatype token = INT of int | ID of string | LIT of string | SYM of string | NOOP
-exception MoreTokens of elem list
-val wordchar = fn c => (Symbol.is_quasi_letter c) orelse (Symbol.is_digit c)
+type elem = Symbol.symbol;
+datatype token = INT of int | ID of string | LIT of string | SYM of string | NOOP;
+exception MoreTokens of elem list;
+val wordchar = fn c => (Symbol.is_quasi_letter c) orelse (Symbol.is_digit c);
 
 (* terminal definitions *)
-val space = Scan.many Symbol.is_blank >> (K NOOP)
+val space = Scan.many Symbol.is_blank >> (K NOOP);
 fun wrap_term t = space |-- t --| space
 val num = wrap_term (Scan.many1
 			 Symbol.is_digit
 			 >> implode
 			 >> (the o Int.fromString)
-			 >> INT)
+			 >> INT);
 
 val ident = wrap_term ((
 	    (Scan.one Symbol.is_letter || Scan.this_string "\\")
-		::: Scan.many wordchar)
+       ::: Scan.many wordchar)
 			   >> implode
-			   >> ID)
-val sym = fn str => (wrap_term (Scan.this_string str >> (K (SYM str))))
-val noop = fn toks => (NOOP, toks)
+			   >> ID);
+val sym = fn str => (wrap_term (Scan.this_string str >> (K (SYM str))));
+val noop = fn toks => (NOOP, toks);
 
 (* string literal code stolen from isabelle/ml_parse.ML *)
-local
     val scan_escape =
-	Scan.one (member (op =) (explode "\"\\abtnvfr")) ||
+    Scan.one (member (op =) (explode "\"\\abtnvfr")) ||
 		 $$ "^" ^^ Scan.one (fn s => ord "@" <= ord s andalso ord s <= ord "_") ||
 		 Scan.one Symbol.is_ascii_digit ^^
 		 Scan.one Symbol.is_ascii_digit ^^
@@ -48,24 +47,21 @@ local
 	
     val scan_str = Scan.one
 		       (fn s => Symbol.is_printable s andalso
-				s <> "\"" andalso s <> "\\") ||
+            s <> "\"" andalso s <> "\\") ||
 		       ($$ "\\") |-- scan_escape;
 	
     (*val scan_gap = ($$ "\\") ^^ scan_blanks1 ^^ ($$ "\\");
     val scan_gaps = Scan.repeat scan_gap >> implode;*)
-	
-in
-val literal = wrap_term ((
-	      ($$ "\"")
-		  |-- (Scan.repeat scan_str >> implode)
-		  --| ($$ "\"")) >> LIT);
-    
-end;
 
-fun parse_with p str = let
-    val (thing, toks) = p ((Symbol.explode str)@[Symbol.eof])
-in if toks = [Symbol.eof] then thing else
-   raise MoreTokens toks
-end
+  val literal = wrap_term ((
+          ($$ "\"")
+          |-- (Scan.repeat scan_str >> implode)
+          --| ($$ "\"")) >> LIT);    
 
-end
+
+fun parse_with p str = 
+    let val (thing, toks) = p ((Symbol.explode str)@[Symbol.eof])
+    in if toks = [Symbol.eof] then thing else raise MoreTokens toks
+    end;
+
+end; (* struct: SimpleLexer *)

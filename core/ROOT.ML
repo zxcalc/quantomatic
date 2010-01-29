@@ -27,7 +27,7 @@ use "rg_match_ctxt.ML";
 use "match.ML";
 use "matchstate.ML"; 
 use "rule.ML";
-use "spider.ML";
+(* use "spider.ML"; *)
 use "ruleset.ML";
 use "output.ML";
 use "output_XML.ML";

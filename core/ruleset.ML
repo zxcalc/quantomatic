@@ -58,18 +58,18 @@ fun delete_rule name rules = rules |> Rule.Name.NTab.delete name
 
 (* apply rules to whole graph *)
 fun apply_rules rules g = 
-    Seq.append 
+(*     Seq.append 
       (Seq.map (fn r => (mk "spider", r)) 
-               (Spider.mk_max_spider_rule g))
+               (Spider.mk_max_spider_rule g)) *)
       (Seq.maps
          (fn (n,r) => Seq.map (fn r2 => (n,r2)) (Rule.rule_matches r g))
          (Seq.of_list rules));
 
 (* apply rules to select vertices (vset) *)
 fun apply_rules_in rules vset g = 
-    Seq.append 
+(*    Seq.append 
       (Seq.map (fn r => (mk "spider", r)) 
-               (Spider.mk_max_spider_rule_within vset g))
+               (Spider.mk_max_spider_rule_within vset g)) *)
       (Seq.maps
          (fn (n,r) => Seq.map (fn r2 => (n,r2)) 
                               (Rule.rule_matches_within r vset g))

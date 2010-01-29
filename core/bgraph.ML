@@ -49,6 +49,11 @@ val is_leaf_edge : T -> Edge.name -> bool
 
 val get_leaf_vnames : T -> Vertex.NSet.T
 
+(* get the subsets of boundary/exterior nodes that are input vertices and output 
+   vertices. Note: When a vertex has both edges going to it and from it, then it 
+   is treated as an input vertex. *)
+val get_in_and_out_vnames : T -> Vertex.NSet.T * Vertex.NSet.T
+
 (* *)
 val adj_tgt_info : 
     T -> Vertex.name 
@@ -319,6 +324,24 @@ fun get_leaf_vnames g =
           else I)
       (get_vertices g)
       Vertex.NSet.empty;
+
+(* identify in and out boundary nodes (all edges come in-to or
+   out-of this node) and try to preserve them in rhs *)
+fun get_in_and_out_vnames g = 
+    Vertex.NSet.fold 
+      (fn n => 
+       fn (invs,outvs) => 
+          let val (_,(ins,outs)) = get_vertex g n
+          in
+            if Edge.NSet.is_empty ins then 
+              (invs, Vertex.NSet.add n outvs)
+            else if Edge.NSet.is_empty outs then 
+              (Vertex.NSet.add n invs, outvs) 
+            else (invs,outvs)
+          end)
+      (get_boundary g)
+      (Vertex.NSet.empty, Vertex.NSet.empty);
+
 
 (* get adjacent boundary leaf vertices *)
 fun get_adj_leaves g n = 

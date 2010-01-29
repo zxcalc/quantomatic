@@ -18,6 +18,9 @@ signature BANG_GRAPH =
 sig
 include BGRAPH;
 
+exception merge_bbox_exp of string 
+exception overlapping_bbox_exp of Vertex.NSet.T * T
+
 structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
 

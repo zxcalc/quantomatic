@@ -67,7 +67,7 @@ structure LoadSave = RGGraphLoaderSaver
 
 
 type rewrite = SStrName.name * Rule.T * RGGraph.T
-type c_state = {
+datatype c_state = CState of {
      graphs : G.T GraphName.NTab.T,
      rewrites : (rewrite list) GraphName.NTab.T,
      hist : (G.T list * G.T list) GraphName.NTab.T,
@@ -75,15 +75,20 @@ type c_state = {
 }
 
 (* getters and setters for the state *)
-fun update_graphs f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=(f g),rewrites=r,hist=h,rulesets=t}
-fun update_rewrites f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=g,rewrites=(f r),hist=h,rulesets=t}
-fun update_hist f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=g,rewrites=r,hist=(f h),rulesets=t}
-fun update_rulesets f ({graphs=g,rewrites=r,hist=h,rulesets=t}:c_state):c_state = {graphs=g,rewrites=r,hist=h,rulesets=(f t)}
-val (set_graphs,set_rewrites,set_hist,set_rulesets) = (update_graphs o K, update_rewrites o K, update_hist o K, update_rulesets o K)
-fun get_graphs ({graphs=g,...}:c_state) = g
-fun get_rewrites ({rewrites=r,...}:c_state) = r
-fun get_hist ({hist=h,...}:c_state) = h
-fun get_rulesets ({rulesets=t,...}:c_state) = t
+fun update_graphs f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) = 
+  CState {graphs=(f g),rewrites=r,hist=h,rulesets=t}
+fun update_rewrites f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) =
+  CState {graphs=g,rewrites=(f r),hist=h,rulesets=t}
+fun update_hist f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) = 
+  CState {graphs=g,rewrites=r,hist=(f h),rulesets=t}
+fun update_rulesets f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) = 
+  CState {graphs=g,rewrites=r,hist=h,rulesets=(f t)}
+val (set_graphs,set_rewrites,set_hist,set_rulesets) = 
+  (update_graphs o K, update_rewrites o K, update_hist o K, update_rulesets o K)
+fun get_graphs (CState {graphs=g,...}) = g
+fun get_rewrites (CState {rewrites=r,...}) = r
+fun get_hist (CState {hist=h,...}) = h
+fun get_rulesets (CState {rulesets=t,...}) = t
 
 datatype consolestate = NORMAL of c_state | SKIP | QUIT
 
@@ -92,10 +97,10 @@ datatype consolestate = NORMAL of c_state | SKIP | QUIT
                                                   (!RuleSetHack.rules,true))
 *)
 
-val newState : c_state = {graphs=GraphName.NTab.empty,
-                          rewrites=GraphName.NTab.empty,
-                          hist=GraphName.NTab.empty,
-                          rulesets=RuleSet.NTab.empty}
+val newState = CState {graphs=GraphName.NTab.empty,
+                       rewrites=GraphName.NTab.empty,
+                       hist=GraphName.NTab.empty,
+                       rulesets=RuleSet.NTab.empty}
 
 (*
 A dictionary of commands of the format:
@@ -106,8 +111,29 @@ val cmds :
      (string list * c_state -> string * c_state))
     Symtab.table) ref = ref Symtab.empty
 
+
+fun handle_bug_in_function name f (x as (l,st)) = 
+    (f x) 
+    handle G.no_such_vname_exp (s, v, g) => 
+      ("BUG1",st)
+    | G.vname_already_exists_exp (v,g) =>
+      ("BUG2",st)
+    | G.no_such_ename_exp (s, e, g) =>
+      ("BUG3",st)
+    | G.ename_already_exists_exp (e,g) => 
+      ("BUG4",st)
+    | G.merge_bbox_exp s => 
+      ("BUG5",st)
+    | G.overlapping_bbox_exp (vs,g) =>
+      ("BUG6",st);
+
+(* add a command; wrap it's execution in a generic bug-handler to stop quanto 
+   from dieing when internal errors happen. Better to print out the error to the 
+   user. *)
 fun register_cmd name help f =
-    cmds := ((!cmds) |> Symtab.update (name,(help,f)))
+    cmds := 
+      ((!cmds) |> Symtab.update 
+       (name,(help, handle_bug_in_function name f)))
 
 (* state accessors *)
 fun fetch_graph name state =
@@ -140,7 +166,7 @@ fun graph_arg (g::args) = g
   | graph_arg _ = raise user_exp ("You must specify a graph name.")
 
 (* Graph updating commands, cmd: ([args] * graph) -> (out * graph) *)
-fun lift_graph_mutator cmd (args, state:c_state) =
+fun lift_graph_mutator cmd (args, state) =
     let
         val gname = GraphName.mk (graph_arg args)
         val (out,g') = cmd (args,fetch_graph gname state)
