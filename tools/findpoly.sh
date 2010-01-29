@@ -29,7 +29,7 @@ if [ -n "$POLYML_IN_PATH" ]; then
     POLYML_IN_PATH="$(cd $(dirname $POLYML_IN_PATH); cd ..; pwd)"
 fi
 
-LOCAL_POLY_DIR="$(cd $ROOT_DIR/../polyml; pwd)"
+[ -d "$ROOT_DIR/../polyml" ] && LOCAL_POLY_DIR="$(cd $ROOT_DIR/../polyml; pwd)"
 
 POLYML_HOME=$(choosefrom \
   "$POLYML_HOME" \
