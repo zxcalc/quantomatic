@@ -1052,14 +1052,21 @@ fun eval command state =
 (* main read-exec-print-loop *)
 fun repl state = let
   val _ = TextIO.print ("quanto:> "^EOT)
-  val cmd_str = unsuffix "\n" (the (TextIO.inputLine TextIO.stdIn))
-  val (output, st) = eval cmd_str state
-in TextIO.print (implode output); TextIO.print EOT;
-   (case st
-     of NORMAL state' => repl state'
-      | SKIP => repl state
-      | QUIT => (TextIO.print EOT; ()))
-end
+in 
+  case TextIO.inputLine TextIO.stdIn 
+   of NONE => (TextIO.print "Exiting...\n"; TextIO.print EOT; ())
+    | SOME s =>
+      let 
+        val cmd_str = unsuffix "\n" (s)
+        val (output, st) = eval cmd_str state
+      in                             
+        TextIO.print (implode output); TextIO.print EOT;
+        (case st
+          of NORMAL state' => repl state'
+           | SKIP => repl state
+           | QUIT => (TextIO.print EOT; ()))
+      end
+end;
 
 fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
                       of SOME n => (TextIO.input1 TextIO.stdIn;())
