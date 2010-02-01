@@ -18,17 +18,18 @@ fi
 POLYML_HOME="$($ROOT_DIR/tools/findpoly.sh)"
 POLYML_LIB="$POLYML_HOME/lib"
 
-ARCH="$(uname -m)"
+ARCH="$(uname -s)"
 
-if [ "$ARCH" = "i686" ] || [ "$ARCH" = "i586" ] || [ "$ARCH" = "i486" ]; then
-    # "$ARCH is a 32 bit architecture."
+if [ "$ARCH" = "Linux" ]; then
+    # "Linux; no need for segprot"
     SEGPROT=""
-elif [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "darwin_64" ]; then
-    # "$ARCH is a 64 bit architecture."
+elif [ "$ARCH" = "Darwin" ]; then
+    # "Mac; set segprot"
     SEGPROT="-segprot POLY rwx rwx"
 else
-    echo "$PRG: unkown architecture: $ARCH" >&2
-    exit 2; # fail
+    "Warning: unkown architecture: $ARCH; may need something special." >&2
+    SEGPROT=""
+    #exit 2; # fail
 fi
 
 LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
