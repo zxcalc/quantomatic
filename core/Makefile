@@ -8,12 +8,7 @@ ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../..
 # variables you might want to set in your own profile setup...
 ################################
 ### your local install of PolyML
-# POLYML=/home/ldixon/local/polyml-cvs-version
-# PATH=$POLYML/bin:$PATH
-### add polyml lib to LD_LIBRARY_PATH
-# POLYLIB=$POLYML/lib
-# LD_LIBRARY_PATH=$POLYLIB:$LD_LIBRARY_PATH
-# DYLD_LIBRARY_PATH=$POLYLIB:$DYLD_LIBRARY_PATH
+# POLYML_HOME=/home/ldixon/local/polyml-cvs-version
 
 ################################
 # general variables
@@ -56,8 +51,10 @@ bin/$(THE_BIN).o: $(QUANTO_HEAP)
 
 # make the core object without dumping the heap
 bin/$(THE_BIN): bin/$(THE_BIN).o
-	export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
+	../tools/polylinkcmd.sh bin/$(THE_BIN) bin/$(THE_BIN).o
 	@echo "Success! made binary: bin/$(THE_BIN)"
+
+#	export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
 
 bin: bin/$(THE_BIN)
 
