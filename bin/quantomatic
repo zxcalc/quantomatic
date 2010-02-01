@@ -58,14 +58,12 @@ function usage()
   echo
   echo "Usage: $PRG TOOL [ARGS ...]"
   echo
-  echo "  Start Quantomatic with ARGS; \"$PRG --help\" for help."
-  echo
-  echo "where TOOL one of"
+  echo "where TOOL is one of:"
   echo "  \"gui\" to start up using the java gui, or"
   echo "  \"core\" to start just the quanto-core process, or"
   echo "  \"ml\" to start just the PolyML shell with the quanto-heap loaded."
-  echo "  \"-?\" for help and information on settings"
-  echo "  \"--help\" for usage help (this message)"
+  echo "  \"info\" information on settings/variables"
+  echo "  \"help\" for usage help (this message)"
   echo
 }
 
@@ -94,14 +92,15 @@ if [ -z "$POLYML_HOME" ]; then
 ## if we have arguments
 elif [ "$#" -ge 1 ]; then # no errors in basic setup
   if [ "$1" = "gui" ]; then 
+      shift 
       run_quanto_gui
   elif [ "$1" = "core" ]; then
       shift 
       run_quanto_core
   elif [ "$1" = "ml" ]; then
-      run_quanto_ml
-  elif [ "$1" = "-?" ]; then
       shift 
+      run_quanto_ml
+  elif [ "$1" = "info" ]; then
       echo
       echo "Quantomatic settings are: "
       echo
@@ -112,13 +111,13 @@ elif [ "$#" -ge 1 ]; then # no errors in basic setup
       echo "    POLYML_LIB=$POLYML_LIB"
       echo "    POLYML_OPTIONS=$POLYML_OPTIONS"
       echo
-  elif [ "$1" = "--help" ]; then
+  elif [ "$1" = "--help" ] || [ "$1" = "help" ] || [ "$1" = "-help" ] || [ "$1" = "-?" ]; then
       usage
   else
       echo 
       echo "*** unkown Quantomatic tool: $1 ***"
       echo ""
-      echo "Type \"$PRG --help\" for information on using Quantomatic."
+      echo "Type \"$PRG help\" for information on using Quantomatic."
       echo ""
   fi
 else

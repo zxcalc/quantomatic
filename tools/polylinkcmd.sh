@@ -32,6 +32,9 @@ else
     #exit 2; # fail
 fi
 
-LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
+echo "Using the following commands to make an executable..."
+echo export LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
 echo cc $SEGPROT -o $BIN_FILE $OBJ_FILE -L$POLYML_LIB -lpolymain -lpolyml
+
+export LD_RUN_PATH="$POLYML_LIB:$LD_RUN_PATH"
 cc $SEGPROT -o $BIN_FILE $OBJ_FILE -L$POLYML_LIB -lpolymain -lpolyml
