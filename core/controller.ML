@@ -115,17 +115,23 @@ val cmds :
 fun handle_bug_in_function name f (x as (l,st)) = 
     (f x) 
     handle G.no_such_vname_exp (s, v, g) => 
-      ("BUG1",st)
+      raise user_exp ("BUG: G.no_such_vname_exp")
     | G.vname_already_exists_exp (v,g) =>
-      ("BUG2",st)
+      raise user_exp ("BUG: G.vname_already_exists_exp")
     | G.no_such_ename_exp (s, e, g) =>
-      ("BUG3",st)
+      raise user_exp ("BUG: G.no_such_ename_exp")
     | G.ename_already_exists_exp (e,g) => 
-      ("BUG4",st)
+      raise user_exp ("BUG: G.ename_already_exists_exp")
     | G.merge_bbox_exp s => 
-      ("BUG5",st)
+      raise user_exp ("BUG: G.merge_bbox_exp")
     | G.overlapping_bbox_exp (vs,g) =>
-      ("BUG6",st);
+      raise user_exp ("BUG: G.overlapping_bbox_exp")
+    | G.BBox.Tab.UNDEF x =>
+      raise user_exp ("BUG: G.BBox.Tab.UNDEF")
+    | G.Vertex.Tab.UNDEF x =>
+      raise user_exp ("BUG: G.Vertex.Tab.UNDEF")
+    | G.Vertex.Tab.UNDEF x =>
+      raise user_exp ("BUG: G.Edge.Tab.UNDEF");
 
 (* add a command; wrap it's execution in a generic bug-handler to stop quanto 
    from dieing when internal errors happen. Better to print out the error to the 
