@@ -1,0 +1,35 @@
+<graph>
+<!-- VERTICES -->
+  <vertex>
+    <name>g</name>
+    <boundary>false</boundary>
+    <colour>green</colour>
+  </vertex>
+  <vertex>
+    <name>e</name>
+    <boundary>false</boundary>
+    <colour>green</colour>
+  </vertex>
+  <vertex>
+    <name>c</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>b</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+<!-- EDGES -->
+  <edge>
+    <name>Ec</name><source>c</source><target>g</target>
+  </edge>
+  <edge>
+    <name>Eb</name><source>b</source><target>c</target>
+  </edge>
+  <edge>
+    <name>Ea</name><source>e</source><target>c</target>
+  </edge>
+<!-- BANG BOXES  -->
+  
+</graph>

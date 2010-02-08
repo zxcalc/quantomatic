@@ -1,0 +1,43 @@
+<graph>
+<!-- VERTICES -->
+  <vertex>
+    <name>k</name>
+    <boundary>false</boundary>
+    <colour>H</colour>
+  </vertex>
+  <vertex>
+    <name>j</name>
+    <boundary>false</boundary>
+    <colour>H</colour>
+  </vertex>
+  <vertex>
+    <name>i</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>f</name>
+    <boundary>false</boundary>
+    <colour>red</colour>
+  </vertex>
+  <vertex>
+    <name>d</name>
+    <boundary>false</boundary>
+    <colour>H</colour>
+  </vertex>
+<!-- EDGES -->
+  <edge>
+    <name>Eg</name><source>f</source><target>i</target>
+  </edge>
+  <edge>
+    <name>Ef</name><source>f</source><target>k</target>
+  </edge>
+  <edge>
+    <name>Ee</name><source>j</source><target>f</target>
+  </edge>
+  <edge>
+    <name>Ed</name><source>d</source><target>f</target>
+  </edge>
+<!-- BANG BOXES  -->
+  
+</graph>
