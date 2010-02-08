@@ -220,8 +220,12 @@ boundary vertices can become unified to the same tgt vertex. *)
 
 (* rename n1 to n2, if n2 already exists, merge names and destination
    edges; keep non-boundary data; if several vertices have
-   non-boundary data, its assumed to be the same. *)
+   non-boundary data, its assumed to be the same. 
+   Note: for general use, assumes n1s are distinct from n2s.
+*)
 fun rename_or_merge_vname n1 n2 bg =
+    if Vertex.name_eq (n1,n2) then bg (* should raise an error? *)
+    else 
     (case lookup_vertex bg n2 
       of NONE => bg |> rename_vname n1 n2
        | SOME (d2,(ins2,outs2)) => (* clash, so merge egdes to n1 into n2 *)

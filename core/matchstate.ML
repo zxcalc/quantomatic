@@ -136,9 +136,7 @@ structure BBMap = BBMatch.BBMap;
 
 datatype T = 
          MState of 
-         {(* names context for fresh names when copying bboxes in pat *)
-          names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
-          (* and-agenda = (pat -> tgt) = we are commited to matching these *) 
+         {(* and-agenda = (pat -> tgt) = we are commited to matching these *) 
           agenda : V.name V.NTab.T, 
           (* global vertex and edge matching info *)
           match : Match.T, 
@@ -154,17 +152,17 @@ datatype T =
 (* initial matching state *)
 fun init match pat tgt agenda =
     MState { (* initially used names are those of the pattern graph *)
-             names = (G.get_vnames pat, G.get_enames pat, G.get_bnames pat),
              agenda = agenda, 
              match = match, 
              pat_lfs = G.get_leaf_vnames pat,
              unm_pat = pat, unm_tgt = tgt };
 
 (* tools *)
-fun get_names (MState rep) = #names rep;
 fun get_agenda (MState rep) = #agenda rep;
 fun get_match (MState rep) = #match rep;
-fun get_bbmatch (MState rep) = Match.get_bbmatch o get_match;
+val get_bbmatch = Match.get_bbmatch o get_match;
+val get_names = Match.get_names o get_match;
+
 fun get_unm_pat (MState rep) = #unm_pat rep;
 fun get_pat_lfs (MState rep) = #pat_lfs rep;
 (* implicit: st pn *)
@@ -182,49 +180,44 @@ val get_unm_tgt_es =
 
 (* *)
 fun update_agenda f (MState rep) = 
-    MState { names = #names rep,
-             agenda = f (#agenda rep), match = #match rep,
+    MState { agenda = f (#agenda rep), match = #match rep,
              unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_match f (MState rep) = 
-    MState { names = #names rep,
-             agenda = #agenda rep, match = f (#match rep),
+    MState { agenda = #agenda rep, match = f (#match rep),
              unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_pat f (MState rep) = 
-    MState { names = #names rep,
-             agenda = #agenda rep, match = #match rep,
+    MState { agenda = #agenda rep, match = #match rep,
              unm_pat = f (#unm_pat rep), 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_pat_lfs f (MState rep) = 
-    MState { names = #names rep,
-             agenda = #agenda rep, match = #match rep,
+    MState { agenda = #agenda rep, match = #match rep,
              unm_pat = #unm_pat rep, 
              pat_lfs = f (#pat_lfs rep),
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_tgt f (MState rep) = 
-    MState { names = #names rep,
-             agenda = #agenda rep, match = #match rep,
+    MState { agenda = #agenda rep, match = #match rep,
              unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = f(#unm_tgt rep)
            };
 fun update_names f (MState rep) = 
-    MState { names = f (#names rep),
-             agenda = #agenda rep, match = #match rep,
+    MState { agenda = #agenda rep, match = #match rep,
              unm_pat = #unm_pat rep, 
              pat_lfs = #pat_lfs rep,
              unm_tgt = #unm_tgt rep
            };
 
-val set_names = update_names o K;
+val set_names = update_match o Match.set_names;
+(* val update_names = update_match oo Match.update_names; *)
 
 val set_unm_pat = update_unm_pat o K;
 
@@ -792,7 +785,7 @@ fun match' m pat tgt initagenda =
       val init_st = (init m pat tgt initagenda)
     in Seq.make (match_search (Seq.single init_st)) end;
 
-fun match pat = match' (Match.init_from_pat pat) pat;
+fun match names pat tgt = match' (Match.init names pat tgt) pat tgt;
 
 (* pretty printing *)
 fun pretty_match_pair (a,b) = 
@@ -828,7 +821,6 @@ fun pretty (st as MState rep) =
        Pretty.chunks 
          [Match.pretty (#match rep),
           pretty_agenda st,
-          Pretty.block [Pretty.str "names: "],
           Pretty.block [Pretty.str "Unmatched pat: "],
           RGGraph.pretty (#unm_pat rep),
           Pretty.block [Pretty.str "Unmatched tgt: "],
