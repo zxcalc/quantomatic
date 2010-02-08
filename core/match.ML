@@ -33,7 +33,7 @@ signature MATCH
   sharing Sharing.G = G.SharingBangGraph
   sharing Sharing.MCtxt = MCtxt.Sharing
 
-  val empty : T
+  val init_from_pat : G.T -> T (* empty, but with pat's exterior as interface *)
   val mk_id : G.T (* given a graph *)
               -> T (* make the id match for it *)
 
@@ -52,8 +52,8 @@ signature MATCH
   val add_bbox_kills : G.BBox.name list -> T -> T;
   val add_bbox_map : G.BBox.name -> G.BBox.name -> T -> T;
   val add_bbox_copy : (G.BBox.name (* old bbname *)
-                 * G.BVertex.Rnm.T (* vertex copying *)
-                 * G.Edge.Rnm.T (* edge copying *)
+                 * (G.BVertex.name G.BVertex.NTab.T (* vertex copying *)
+                      * G.Edge.name G.Edge.NTab.T) (* edge copying *)
                  * G.BBox.name) (* new bbox name *) 
                 -> T -> T;
 
@@ -169,12 +169,23 @@ datatype T = Match of
           mctxt: MCtxt.T 
          };
 
+(* 
 val empty = Match {vmap = BVertex.NTab.empty,
                    vinsts = BVertex.NTab.empty,
                    emap = EMap.empty,
                    invmap = BVertex.NTab.empty,
                    lfinvmap = BVertex.NTab.empty,
                    bbmatch = BBMatch.empty,
+                   mctxt = MCtxt.empty
+                  };
+*)
+
+fun init_from_pat pat = Match {vmap = BVertex.NTab.empty,
+                   vinsts = BVertex.NTab.empty,
+                   emap = EMap.empty,
+                   invmap = BVertex.NTab.empty,
+                   lfinvmap = BVertex.NTab.empty,
+                   bbmatch = BBMatch.init_from_pat pat,
                    mctxt = MCtxt.empty
                   };
 
@@ -189,7 +200,8 @@ fun mk_id g =
       val enames = G.get_enames g;
   
       val bbmatch = 
-          BBMatch.mk_id (G.VtoBoxMap.get_codset (G.get_bboxes g));
+          BBMatch.mk_id (G.get_boundary g)
+                        (G.VtoBoxMap.get_codset (G.get_bboxes g));
     
       val vmap = (* mk id *)
           BVertex.NSet.fold 
@@ -495,6 +507,7 @@ fun pretty m =
                                     BVertex.pretty_name tn, 
                                     Pretty.str ")"])
                              (BVertex.NTab.list_of (get_vmap m)))]]
+      @ [BBMatch.pretty (get_bbmatch m)]
       @ [Pretty.block 
            [Pretty.str "InInvVMap: ",
             Pretty.list "{" "}" 

@@ -5,8 +5,9 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature BGRAPH_SHARING = 
 sig 
-structure Edge : EDGE_AND_DATA_SHARING;
-structure Vertex : NAME_AND_DATA_SHARING;
+include BASIC_GRAPH_SHARING;
+(* structure Edge : EDGE_AND_DATA_SHARING;
+structure Vertex : NAME_AND_DATA_SHARING; *)
 structure BVertex : BVERTEX_SHARING;
 sharing Vertex = BVertex;
 end;

@@ -1,15 +1,15 @@
-use "test/graph.ML";
-use "test/bvertex.ML";
-use "test/bgraph.ML";
-use "test/bang_graph.ML";
-use "test/match_ctxt.ML";
-use "test/linrat_expr.ML";
-use "test/rg_graph.ML";
-use "test/matching.ML";
+PolyML.Project.make "test/graph.ML";
+PolyML.Project.make "test/bvertex.ML";
+PolyML.Project.make "test/bgraph.ML";
+PolyML.Project.make "test/bang_graph.ML";
+PolyML.Project.make "test/match_ctxt.ML";
+PolyML.Project.make "test/linrat_expr.ML";
+PolyML.Project.make "test/rg_graph.ML";
+PolyML.Project.make "test/matching.ML";
 
 (* use a hacked theory loaded for test cases in ML *)
 (* 
-use "test/theory_hack.ML";
-use "test/rule.ML";
-use "test/spider.ML";
+PolyML.Project.make "test/theory_hack.ML";
+PolyML.Project.make "test/rule.ML";
+PolyML.Project.make "test/spider.ML";
 *)

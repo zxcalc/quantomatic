@@ -9,45 +9,45 @@ print_depth 3;
 (* PolyML.Compiler.debug := true; *)
 
 (* load all the files. *)
-use "lex.ML";
-use "alg.ML";
-use "graph.ML";
-use "bvertex.ML";
-use "bgraph.ML";
-use "match_ctxt.ML"; (* vertex and edge matching and global context *)
-use "bang_graph.ML";
-use "bbox_match.ML";
-use "coeff.ML";
-use "expr.ML"; 
-use "linrat_expr.ML";
-use "rg_vertex.ML";
-use "rg_graph.ML";
-use "rg_match_ctxt.ML";
-(* use "edge_match.ML"; -- not used *) 
-use "match.ML";
-use "matchstate.ML"; 
-use "rule.ML";
-(* use "spider.ML"; *)
-use "ruleset.ML";
-use "output.ML";
-use "output_XML.ML";
-use "output_rule_XML.ML";
-(*use "output_dot.ML";*)
-use "xml_utils.ML";
-use "input.ML";
-use "input_graph_xml.ML";
-use "input_rule_xml.ML";
-use "reader.ML";
-use "writer.ML";
-use "loadsave.ML";
-(*use "theory_hack.ML";*)
-use "hilb.ML";
-use "controller.ML";
+PolyML.Project.make "lex.ML";
+PolyML.Project.make "alg.ML";
+PolyML.Project.make "graph.ML";
+PolyML.Project.make "bvertex.ML";
+PolyML.Project.make "bgraph.ML";
+PolyML.Project.make "match_ctxt.ML"; (* vertex and edge matching and global context *)
+PolyML.Project.make "bang_graph.ML";
+PolyML.Project.make "bbox_match.ML";
+PolyML.Project.make "coeff.ML";
+PolyML.Project.make "expr.ML"; 
+PolyML.Project.make "linrat_expr.ML";
+PolyML.Project.make "rg_vertex.ML";
+PolyML.Project.make "rg_graph.ML";
+PolyML.Project.make "rg_match_ctxt.ML";
+(* PolyML.Project.make "edge_match.ML"; -- not used *) 
+PolyML.Project.make "match.ML";
+PolyML.Project.make "matchstate.ML"; 
+PolyML.Project.make "rule.ML";
+(* PolyML.Project.make "spider.ML"; -- no longer used *)
+PolyML.Project.make "ruleset.ML";
+PolyML.Project.make "output.ML";
+PolyML.Project.make "output_XML.ML";
+PolyML.Project.make "output_rule_XML.ML";
+(*PolyML.Project.make "output_dot.ML";*)
+PolyML.Project.make "xml_utils.ML";
+PolyML.Project.make "input.ML";
+PolyML.Project.make "input_graph_xml.ML";
+PolyML.Project.make "input_rule_xml.ML";
+PolyML.Project.make "reader.ML";
+PolyML.Project.make "writer.ML";
+PolyML.Project.make "loadsave.ML";
+(*PolyML.Project.make "theory_hack.ML";*)
+PolyML.Project.make "hilb.ML";
+PolyML.Project.make "controller.ML";
 
 
-use "tests.ML"; 
+PolyML.Project.make "tests.ML"; 
 
 val run = Controller.init;
 (*
-use "test/dbg/rule_matching3-bbox-v1.ML"; 
+PolyML.Project.make "test/dbg/rule_matching3-bbox-v1.ML"; 
 *)

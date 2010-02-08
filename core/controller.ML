@@ -126,6 +126,10 @@ fun handle_bug_in_function name f (x as (l,st)) =
       raise user_exp ("BUG: G.merge_bbox_exp")
     | G.overlapping_bbox_exp (vs,g) =>
       raise user_exp ("BUG: G.overlapping_bbox_exp")
+	  | E.NSet.duplicate_exp _ => 
+      raise user_exp ("BUG: Duplicate Edge.")
+	  | V.NSet.duplicate_exp _ => 
+      raise user_exp ("BUG: Duplicate vertex.")
     | G.BBox.Tab.UNDEF x =>
       raise user_exp ("BUG: G.BBox.Tab.UNDEF")
     | G.Vertex.Tab.UNDEF x =>
@@ -534,9 +538,7 @@ local
          in
 	           (length rws,
 	            state |> update_rewrites (GraphName.NTab.update (gname,rws)))
-         end
-	       handle G.no_such_vname_exp _ => raise user_exp "Bad vertex name."
-	            | V.NSet.duplicate_exp _ => raise user_exp "Duplicate vertx.")
+         end)
     | attach_with' _ _ = raise wrong_args_exp ()
 
     fun attach_with attacher args = let

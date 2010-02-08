@@ -9,8 +9,11 @@ sig
 include BGRAPH_SHARING
 structure BBox : NAMES_SHARING
 structure VtoBoxMap : NAME_MAP_SHARING
-sharing VtoBoxMap.Cod = BBox;
-sharing VtoBoxMap.Dom = Vertex;
+  sharing VtoBoxMap.Cod = BBox;
+  sharing VtoBoxMap.Dom = Vertex;
+structure VAuto : NAME_ISO_SHARING
+  sharing VAuto.Dom = Vertex;
+  sharing VAuto.Cod = Vertex;
 end;
 
 (* bang-box graphs *)
@@ -23,11 +26,13 @@ exception overlapping_bbox_exp of Vertex.NSet.T * T
 
 structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
+structure VAuto : NAME_AMORPH (* maps between vertices *)
 
 structure SharingBangGraph : BANG_GRAPH_SHARING
 sharing SharingBGraph = SharingBangGraph
 sharing SharingBangGraph.BBox = BBox.Sharing
 sharing SharingBangGraph.VtoBoxMap = VtoBoxMap.Sharing
+sharing SharingBangGraph.VAuto = VAuto.Sharing
 
 val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
@@ -119,6 +124,7 @@ end;
 
 (* structure BBox : SSTR_NAMES = BBox; *)
 structure VtoBoxMap = NameMapFun(structure Dom = V and Cod = BBox);
+structure VAuto = NameAmorphFun(V);
 
 (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
 type data2 = data;
@@ -368,13 +374,14 @@ fun copy1_box_given_rnm bn (bn2,(vrn,ern)) g =
     end;
 
 
-(* given a renaming of external/boundary nodes, which may for example be shared with the lhs of a rewrite rule - copy the bang box using the specified vertex renaming for external/boundary nodes within the bbox. also assumes that bn2 must be fresh from bbox names in g. *)
-fun copy1_box_given_ext_rnm bn bn2 ((vrn,ern),g) = 
-    let val bbox_vs = get_bbox g bn
+(* given a renaming of external/boundary nodes, which may for example be shared with the lhs of a rewrite rule (although the ignores are not shared - these are reset each call to be the interface to the copied graph component in the !-box. Copies the bang box using the specified vertex renaming for external/boundary nodes within the bbox. also assumes that bn2 must be fresh from bbox names in g. *)
+fun copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g) = 
+    let val bbox_vs = get_bbox g bn1
         (* subgraph of selection gives back something without bang-boxes *)
         val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
-        val (vrn2,bbg2) = VertexRnm.rename vrn bbg;
-        val (ern2,bbg3) = EdgeRnm.rename ern bbg;
+        val (vrn2,bbg2) = VertexRnm.rename 
+                            (Vertex.Rnm.set_ignored boundary_vs vrn) bbg;
+        val (ern2,bbg3) = EdgeRnm.rename ern bbg2;
         val bbg_internal_vs = 
             Vertex.NSet.subtract (get_vnames bbg3) boundary_vs;
     in
@@ -512,6 +519,7 @@ structure SharingBangGraph
   open SharingBGraph;
   structure BBox = BBox.Sharing;
   structure VtoBoxMap = VtoBoxMap.Sharing;
+  structure VAuto = VAuto.Sharing
 end;
 
 end; (* BangGraphFun *)

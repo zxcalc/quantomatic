@@ -6,7 +6,7 @@ Rule.print rule;
 RGGraph.print g;
 
 open DB_Rule;
-
+                                                    
       val (rn,lhs2) = RGGraph.rename_apart g (get_lhs rule);
 
 RGGraph.print (get_lhs rule);

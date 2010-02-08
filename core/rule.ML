@@ -123,8 +123,15 @@ fun mk (lhs,rhs) =
       raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
     end;
 
+
+fun rename_interior_vs xvs avoidvs g = 
+     let (* rename rhs; shared bvertex names, all else is distinct. *)
+        val vrn = Vertex.mk_renaming xvs avoidvs Vertex.NTab.empty
+  in RGGraph.rename (vrn,Edge.Rnm.empty) g  end;
+
+
 (* match anything = no set matching *)
-val any_match = Match.empty;
+(* val any_match = Match.empty; *)
 
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
@@ -230,12 +237,15 @@ structure BBMap = BBMatch.BBMap;
    When copying, use the specified names. *)
 fun inst_lhs_bbox_match bbmatch g = 
     let 
-      val rntab = BBMatch.get_crnm bbmatch
     in
       g |> BBox.NTab.fold 
             (fn (bn1,bn2) => 
-              RGGraph.copy1_box_given_rnm
-                bn1 (bn2,(BBox.NTab.get rntab bn2)))
+              let 
+                val (vtab,etab) = 
+                  BBox.NTab.get (BBMatch.get_crnm bbmatch) bn2
+                val vrnm = Vertex.Rnm.mk_from_nmap vtab
+                val ernm = Edge.Rnm.mk_from_nmap etab
+              in RGGraph.copy1_box_given_rnm bn1 (bn2,(vrnm,ernm)) end)
             (BBMap.get_domtab (BBMatch.get_copies bbmatch))
         |> BBox.NSet.fold RGGraph.kill_box (BBMatch.get_kill bbmatch)
         |> BBox.NSet.fold RGGraph.drop_box (BBMatch.get_drop bbmatch)
@@ -255,23 +265,29 @@ V.NTab.get_nameset
    are named arbitrarily, but fresh. *)
 fun inst_rhs_bbox_match bbmatch g = 
     let 
-      val bbrntab = BBMatch.get_crnm bbmatch
+      val bb_xmaps = BBMatch.get_xmaps bbmatch;
+      val bb_xvs = BBMatch.get_xvs bbmatch; (* all exterior vs *)
+      (* IMPROVE: use merge_distinct! *)
+      val avoid_vs = (* Note: really only using avoidsets from these *)
+           (* avoid new boundary and old vs *)  
+          Vertex.NSet.union_merge bb_xvs (RGGraph.get_vnames g);
+      val avoid_es = RGGraph.get_enames g
     in
-      g |> BBox.NTab.fold 
-            (fn (bn1,bn2) => fn g' => (* "_" for ignore prev renaming *)
-              let (* this bang-boxes renaming *) 
-                val (vrn,ern) = (BBox.NTab.get bbrntab bn2)
-                val nmap = Vertex.Rnm.get_nmap vrn
-                val bvrn = (* boundary-only vertex renaming *)
-                    Vertex.NTab.fold 
-                      (fn (n1,n2) => if RGGraph.is_boundary g n1 then I 
-                       else Vertex.Rnm.update_nmap (Vertex.NTab.delete n1))
-                      (Vertex.Rnm.get_nmap vrn)
-                      vrn
-              in (* snd = ignore last renaming *)
-                snd (RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((bvrn,ern),g')) 
-              end)
+      ((avoid_vs,avoid_es),g)
+        |> BBox.NTab.fold (* copy bang-boxes, preserve interface names *)
+            (fn (bn1,bn2) => fn ((avoid_vs,avoid_es),g) =>
+             let 
+               val bb_nmap = RGGraph.VAuto.get_domtab 
+                              (BBox.NTab.get bb_xmaps bn2);
+               val vrn = Vertex.Rnm.mk Vertex.NSet.empty avoid_vs bb_nmap;
+               val ern = Edge.Rnm.mk_from_avoidset avoid_es;
+               val ((vrn,ern),g) = 
+                   RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g)
+             in 
+               ((Vertex.Rnm.get_avoids vrn, Edge.Rnm.get_avoids ern), g)
+             end)
             (BBMap.get_domtab (BBMatch.get_copies bbmatch))
+        |> snd (* ignore/throw away renaming *)
         |> BBox.NSet.fold RGGraph.kill_box (BBMatch.get_kill bbmatch)
         |> BBox.NSet.fold RGGraph.drop_box (BBMatch.get_drop bbmatch)
     end;
@@ -283,19 +299,19 @@ fun inst_rhs_bbox_match bbmatch g =
 fun inst_rule rule match = 
     let 
       (* val rule = *) 
-      val vmap = Match.get_vmap match
-      val emap = Match.get_emap match
-      val bbmatch = Match.get_bbmatch match
+      val vmap = Match.get_vmap match;
+      val emap = Match.get_emap match;
+      val bbmatch = Match.get_bbmatch match;
 
       (* IMPROVE: use depenv to only update changes parts of graph *)
       fun apply_vertex_data_subst g = 
           Vertex.NSet.fold
             (RGGraph.update_vertex_data
                (Match.MCtxt.subst_in_vertex_data (Match.get_mctxt match)))
-            (RGGraph.get_vnames g) g
+            (RGGraph.get_vnames g) g;
 
       val vinsts = 
-          (Match.get_vinsts match) : Vertex.IData.data Vertex.NTab.T
+          (Match.get_vinsts match) : Vertex.IData.data Vertex.NTab.T;
 
       val lhs = (get_lhs rule)
                   |> inst_lhs_bbox_match bbmatch
@@ -327,8 +343,12 @@ fun inst_rule rule match =
                   (* instantiate angle expressions *)
                   |> apply_vertex_data_subst
 
-      (* only boundary nodes are mapped/renamed on rhs *)
+      (*  *)
       val rhs = (get_rhs rule) 
+                  |> rename_interior_vs 
+                       (RGGraph.get_boundary (get_rhs rule)) 
+                       (BBMatch.get_xvs bbmatch)
+                  |> snd (* ignore renaming *)
                   |> inst_rhs_bbox_match bbmatch
                   (* rename/merge boundary vertices to match in tgt graph *)
                   |> (fn g => Vertex.NSet.fold 

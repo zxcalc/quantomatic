@@ -36,7 +36,7 @@ signature MATCH_STATE
 
   (* sharing Vertex = RGGraph.RGVertex *)
   (* not clear why I need this this way round - but get type strange error the other way *)
-  sharing RGGraph.SharingBangGraph = Match.Sharing.G; 
+  sharing RGGraph.SharingBangGraph = Match.Sharing.G;
   sharing Vertex.SharingWithIData = RGGraph.BVertex.SharingWithIData;
   sharing Edge.EdgeSharingWithData = RGGraph.Edge.EdgeSharingWithData;
 
@@ -591,7 +591,8 @@ fun copy1_pat_bbox bbn st =
     in
       st |> set_unm_pat pat2
          |> set_names names2
-         |> update_match (Match.add_bbox_copy (bbn,vrn,ern,bbn2))
+         |> update_match (Match.add_bbox_copy 
+              (bbn,(V.Rnm.get_nmap vrn,E.Rnm.get_nmap ern),bbn2))
     end;
 
 (* !-box ops *)
@@ -786,11 +787,12 @@ exception match_bug_exp of Match.T * RGGraph.T * RGGraph.T ->
                Vertex.name Vertex.NTab.T -> Match.T Seq.seq
 *)
 (* *)
-fun match' initmatching pat tgt initagenda = 
-    let val init_st = (init initmatching pat tgt initagenda)
+fun match' m pat tgt initagenda = 
+    let 
+      val init_st = (init m pat tgt initagenda)
     in Seq.make (match_search (Seq.single init_st)) end;
 
-val match = match' Match.empty;
+fun match pat = match' (Match.init_from_pat pat) pat;
 
 (* pretty printing *)
 fun pretty_match_pair (a,b) = 

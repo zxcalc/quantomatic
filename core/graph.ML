@@ -54,8 +54,6 @@ val delete_vertex : Vertex.name -> T -> T
     else an exception is raised *)
 val rename_vname : Vertex.name -> Vertex.name -> T -> T 
 val rename_ename : Edge.name -> Edge.name -> T -> T 
-val try_rename1_ename : Edge.name -> Edge.name -> T -> T option
-val try_rename1_vname : Vertex.name -> Vertex.name -> T -> T option
 
 (* update a data of a vertex or edge *)
 val update_vertex_data : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
@@ -154,6 +152,9 @@ val has_vname : T -> Vertex.name -> bool;
 val has_ename : T -> Edge.name -> bool;
 
 (* renaming *)
+val try_rename1_ename : Edge.name -> Edge.name -> T -> T option
+val try_rename1_vname : Vertex.name -> Vertex.name -> T -> T option
+
 structure VertexRnm : COMPOUND_RENAMING 
 where type obj = T and type renaming = Vertex.Rnm.T
 structure EdgeRnm : COMPOUND_RENAMING 
@@ -489,11 +490,6 @@ fun rename_vname n1 n2 g =
     in g |> set_vertices vertices2
          |> set_edges edges2 end;
 
-fun try_rename1_vname en1 en2 g = 
-    SOME (rename_vname en1 en2 g)
-    handle vname_already_exists_exp _ => NONE;
-
-
 
 fun rename_ename en1 en2 g = 
     let 
@@ -527,11 +523,6 @@ fun rename_ename en1 en2 g =
     (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2  end;
-
-fun try_rename1_ename en1 en2 g = 
-    SOME (rename_ename en1 en2 g)
-    handle ename_already_exists_exp _ => NONE;
-
 
 (* pretty printing *)
 fun pretty g = 
@@ -706,6 +697,15 @@ fun delete_subgraph subg fromg =
                 delete_vertex
                 (get_vnames subg));
 
+
+
+fun try_rename1_vname en1 en2 g = 
+    SOME (rename_vname en1 en2 g)
+    handle vname_already_exists_exp _ => NONE;
+
+fun try_rename1_ename en1 en2 g = 
+    SOME (rename_ename en1 en2 g)
+    handle ename_already_exists_exp _ => NONE;
 
 structure VertexRnm = CompoundRenamingFun(
 struct 
