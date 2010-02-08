@@ -239,7 +239,7 @@ fun inst_lhs_bbox_match bbmatch g =
     let 
     in
       g |> BBox.NTab.fold 
-            (fn (bn1,bn2) => 
+            (fn (bn2,bn1) => 
               let 
                 val (vtab,etab) = 
                   BBox.NTab.get (BBMatch.get_crnm bbmatch) bn2
@@ -275,7 +275,7 @@ fun inst_rhs_bbox_match bbmatch g =
     in
       ((avoid_vs,avoid_es),g)
         |> BBox.NTab.fold (* copy bang-boxes, preserve interface names *)
-            (fn (bn1,bn2) => fn ((avoid_vs,avoid_es),g) =>
+            (fn (bn2,bn1) => fn ((avoid_vs,avoid_es),g) =>
              let 
                val bb_nmap = RGGraph.VAuto.get_domtab 
                               (BBox.NTab.get bb_xmaps bn2);

@@ -206,27 +206,6 @@ fun init_from_pat g =
     empty |> set_xvs (G.get_boundary g);
 
 
-(* implicit args: ns m *)
-val add_bbmap = update_bbmap oo BBMap.add_to_dom;
-val add_kills = update_kill o fold BBox.NSet.add;
-val add_drop = update_drop o BBox.NSet.add;
-fun add_copy (bbn1,(vtab,etab),bbn2) m =
-    let val xvs = get_xvs m 
-        val xmaps = get_xmaps m
-        val xmap = (case BBox.NTab.lookup xmaps bbn2 of NONE => G.VAuto.empty
-                      | SOME xmap => xmap); 
-        val (xvs2,xmap2) = 
-              V.NTab.fold 
-                (fn (n1,n2) => fn (x as (xvs,xmap)) => 
-                 if V.NSet.contains xvs n1
-                 then (V.NSet.add n2 xvs, G.VAuto.add n1 n2 xmap) else x)
-                vtab (xvs,xmap);
-    in
-      m |> update_copies (BBMap.add_to_dom bbn1 bbn2)
-        |> update_crnm (BBox.NTab.update (bbn2,(vtab,etab)))
-        |> set_xvs xvs2 
-        |> update_xmaps (BBox.NTab.update (bbn2,xmap2))
-    end;
 
 (* 
 val copy = update_drop o BBox.NSet.add;
@@ -262,6 +241,34 @@ fun pretty (BBoxMatch rep) =
     ];
 
 val print = Pretty.writeln o pretty;
+
+
+(* implicit args: ns m *)
+val add_bbmap = update_bbmap oo BBMap.add_to_dom;
+val add_kills = update_kill o fold BBox.NSet.add;
+val add_drop = update_drop o BBox.NSet.add;
+fun add_copy (bbn1,(vtab,etab),bbn2) m =
+    let val xvs = get_xvs m 
+        val xmaps = get_xmaps m
+        val xmap = (case BBox.NTab.lookup xmaps bbn2 of NONE => G.VAuto.empty
+                      | SOME xmap => xmap); 
+        val (xvs2,xmap2) = 
+              V.NTab.fold 
+                (fn (n1,n2) => fn (x as (xvs,xmap)) => 
+                 if V.NSet.contains xvs n1
+                 then (V.NSet.add n2 xvs, G.VAuto.add n1 n2 xmap) else x)
+                vtab (xvs,xmap);
+    in
+      m |> update_copies (BBMap.add_to_dom bbn2 bbn1)
+        |> update_crnm (BBox.NTab.update (bbn2,(vtab,etab)))
+        |> set_xvs xvs2 
+        |> update_xmaps (BBox.NTab.update (bbn2,xmap2))
+    end
+    handle (ex as V.NSet.duplicate_exp (n,s)) => 
+      (writeln "BUG: V.NSet.duplicate_exp"; V.print_name n; V.NSet.print s; print m; V.NTab.print V.pretty_name vtab; 
+       E.NTab.print E.pretty_name etab;
+       BBox.print_name bbn1; BBox.print_name bbn2;        
+       raise ex);
 
 
 structure Sharing = 
