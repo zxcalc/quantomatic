@@ -34,7 +34,9 @@ signature MATCH
   sharing Sharing.MCtxt = MCtxt.Sharing
 
   (* init = empty, but with pat and tgt's exterior as interface *)
-  val init : G.T -> G.T -> T 
+  val init : (RGGraph.Vertex.NSet.T * RGGraph.Edge.NSet.T 
+               * RGGraph.BBox.NSet.T) (* other names to avoid when matching *)
+             -> G.T -> G.T -> T 
   val mk_id : G.T (* given a graph *)
               -> T (* make the id match for it *)
 
@@ -186,11 +188,14 @@ val empty = Match {vmap = V.NTab.empty,
                   };
 *)
 
-fun init pat tgt = 
+fun init (vs,es,bs) pat tgt = 
   Match {
-    names = (V.NSet.union_merge (G.get_vnames pat) (G.get_vnames tgt),  
-             E.NSet.union_merge (G.get_enames pat) (G.get_enames tgt), 
-             BBox.NSet.union_merge (G.get_bnames pat) (G.get_bnames tgt)),
+    names = (V.NSet.union_merge (G.get_vnames pat) 
+                (V.NSet.union_merge (G.get_vnames tgt) vs),  
+             E.NSet.union_merge (G.get_enames pat)
+                (E.NSet.union_merge (G.get_enames tgt) es), 
+             BBox.NSet.union_merge (G.get_bnames pat) 
+                (BBox.NSet.union_merge (G.get_bnames tgt) bs)),
     vmap = V.NTab.empty,
     vinsts = V.NTab.empty,
     emap = EMap.empty,

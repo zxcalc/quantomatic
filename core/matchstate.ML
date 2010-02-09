@@ -51,7 +51,9 @@ signature MATCH_STATE
              -> T (* initial match state *)
 
   (* match two graphs *)
-  val match : RGGraph.T -> RGGraph.T (* pat, tgt *)
+  val match : (RGGraph.Vertex.NSet.T * RGGraph.Edge.NSet.T 
+               * RGGraph.BBox.NSet.T) (* other names to avoid when matching *)
+              -> RGGraph.T -> RGGraph.T (* pat, tgt *)
               -> Vertex.name Vertex.NTab.T (* initial agenda *)
               -> Match.T Seq.seq
   val match' : Match.T (* initial matching *)

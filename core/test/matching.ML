@@ -22,7 +22,8 @@ val (e0, g) = g |> G.add_edge edge b1 n1;
 val (e1, g) = g |> G.add_edge edge n1 b2;
 val g1 = g;
 
-val ms = Seq.list_of (MatchState.match g1 g0 RGVertex.NTab.empty);
+val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+val ms = Seq.list_of (MatchState.match no_extra_names g1 g0 RGVertex.NTab.empty);
 val _ = map Match.print ms;
 val [] = ms;
 
@@ -32,7 +33,7 @@ val _ = G.print g1;
 val _ = V.NSet.print (G.get_leaf_vnames g1);
 val _ = G.print g2;
 
-val ms = Seq.list_of (MatchState.match g1 g2 RGVertex.NTab.empty);
+val ms = Seq.list_of (MatchState.match no_extra_names g1 g2 RGVertex.NTab.empty);
 val _ = map Match.print ms;
 val [m1,m2] = ms;
 
@@ -71,8 +72,8 @@ val tgt = g;
 
 val pat = pat1;
 val (rn,pat) = (G.rename_apart tgt pat);
-val [] = Seq.list_of (MatchState.match pat1 tgt RGVertex.NTab.empty);
-val [] = Seq.list_of (MatchState.match pat2 tgt RGVertex.NTab.empty);
+val [] = Seq.list_of (MatchState.match no_extra_names pat1 tgt RGVertex.NTab.empty);
+val [] = Seq.list_of (MatchState.match no_extra_names pat2 tgt RGVertex.NTab.empty);
 
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
@@ -89,7 +90,7 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
+val [m] = Seq.list_of (MatchState.match no_extra_names pat tgt RGVertex.NTab.empty);
 val _ = Match.print m;
 
 
@@ -113,7 +114,7 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
+val [m] = Seq.list_of (MatchState.match no_extra_names pat tgt RGVertex.NTab.empty);
 val _ = Match.print m;
 
 (* one unfolding of bangbox...*)
@@ -128,7 +129,7 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
+val [m] = Seq.list_of (MatchState.match no_extra_names pat tgt RGVertex.NTab.empty);
 val _ = Match.print m;
 
 

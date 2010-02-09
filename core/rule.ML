@@ -177,11 +177,11 @@ fun rename_rule_apart g rule =
 fun matches rule tgt = 
     let val rhs = (get_rhs rule);
         val vs = RGGraph.get_vnames rhs;
-        val vs = RGGraph.get_enames rhs;
+        val es = RGGraph.get_enames rhs;
         val bs = RGGraph.get_bnames rhs;
     in
       MatchState.match (vs,es,bs) (get_lhs rule) tgt 
-        MatchState.Vertex.NTab.empty;
+        MatchState.Vertex.NTab.empty
     end;
 
 (* a rule is trivially true if the left and right hand sides match.
