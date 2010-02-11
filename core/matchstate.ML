@@ -273,11 +273,24 @@ fun try_add1_to_agenda (pat_n,tgt_n) st =
          else NONE (* pat-vertex can only be mapped one tgt-vertex. *))
     end;
 
-(* pop first vertex pair from agenda *)
+(* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
+   external ones - required by edge-matching - and probably more efficient too. 
+   IMPROVE: store a maximally internal traversal of the pattern (as the
+   pre-agenda) which can then connected to the tgt vertices as the agenda. This 
+   will save repeated search for non-boundary vertices - also the basis of more 
+   efficient algorithm. (see also get_next_pat_vertex) *)
 fun pop_agenda st = 
-    (case Vertex.NTab.pull_elem (get_agenda st)
-      of NONE => NONE 
-       | SOME (h,agenda2) => SOME (h,set_agenda agenda2 st));
+    let val agenda = (get_agenda st);
+        val pat = get_unm_pat st;
+    in 
+      case Vertex.NTab.find (fn (n1,n2) => not (G.is_boundary pat n1)) agenda of
+        NONE => (* no internal vertices in the agenda *) 
+          (case Vertex.NTab.pull_elem agenda
+            of NONE => NONE 
+             | SOME (n1n2,agenda2) => SOME (n1n2,set_agenda agenda2 st))
+       | SOME (n1n2 as (n1,n2)) => 
+         SOME (n1n2,set_agenda (Vertex.NTab.delete n1 agenda) st)
+    end;
 
 (* match the edges between two pattern edges with those between two
    target edges. If both pat edges are non-boundary, then match
@@ -413,6 +426,9 @@ fun edgematch_adj_verticies
               Seq.append
                 (* ignore all target edges *)
                 (if (ignore_arity >= to_tn_nedges)
+                 (* ISSUE: deleting edges connected to internal vertices will 
+                    cause bad matchings: need to make sure all inernal vertices 
+                    have been matched first. *)
                  then Seq.single 
                         (ignore_arity - to_tn_nedges,
                          (pns, del_tgt_edges teset st))
@@ -459,7 +475,7 @@ fun list_choose i l =
     end;
 
 (* all unordered-pairs of leaf vertices -- all ways to match a self-loop; only
-   unboxed leaf vertices can be used (bboxed ones must be unboxed first) *)
+   unbboxed leaf vertices can be used (bboxed ones must be unboxed first) *)
 fun pull_adj_pat_leaf_pairs (* from_patbbox *) pn st = 
     let val pat = get_unm_pat st;
 
@@ -725,13 +741,25 @@ datatype pulled_vertex_kind =
 
 (* try to get next unboxed pattern vertex, give back vertex in bbox if none 
    outside it. *)
+(* IMPROVE: store a maximally internal traversal of the pattern (as the
+   pre-agenda) which can then connected to the tgt vertices as the agenda. This 
+   will save repeated search for non-boundary vertices - also the basis of more 
+   efficient algorithm. (see also pop_agenda) *)
 fun get_next_pat_vertex st = 
-    (case (Vertex.NSet.get_local_bot (get_unm_unboxed_pat_vs st)) of
-      SOME n => SOME (UnBBoxed n)
-    | NONE => 
-      (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
-         NONE => NONE
-       | SOME n => SOME (BBoxed n)));
+    let val unboxed_p_vs = (get_unm_unboxed_pat_vs st)
+        val pat = get_unm_pat st
+    in
+      case Vertex.NSet.get_exists 
+             (fn n => not (G.is_boundary pat n)) unboxed_p_vs 
+      of SOME n => SOME (UnBBoxed n)
+       | NONE => 
+          (case (Vertex.NSet.get_local_bot unboxed_p_vs) of
+             SOME n => SOME (UnBBoxed n)
+           | NONE => 
+              (case (Vertex.NSet.get_local_bot (get_unm_pat_vs st)) of 
+                 NONE => NONE
+               | SOME n => SOME (BBoxed n)))
+    end;
 
 (* FIXME: this is used as a hack to avoid searching expansions of bang boxes which are disjoint form the rest of the pattern graph. *)
 fun drop_all_bboxes_in_pat st = 
@@ -804,18 +832,12 @@ fun pretty_next_pat_vertex st =
                                Vertex.pretty_name n,
                                Pretty.str ")"]);
 
+fun get_agenda_list st = 
+    (case pop_agenda st of NONE => []
+       | SOME (x,st2) => x :: get_agenda_list st2);
+
 fun pretty_agenda st = 
-    Pretty.block 
-      ((case Vertex.NTab.pull_elem (get_agenda st) of 
-          NONE => [Pretty.str "Agenda: []"]
-        | SOME ((nextfrom,nextto),rest) => 
-          [Pretty.str "Agenda: (",
-           Vertex.pretty_name nextfrom,
-           Pretty.str "->",
-           Vertex.pretty_name nextto,
-           Pretty.list ") then [" "]" 
-                       (map pretty_match_pair (Vertex.NTab.list_of rest))])
-      );
+    Pretty.list "[" "]" (map pretty_match_pair (get_agenda_list st));
 
 fun pretty (st as MState rep) = 
     Pretty.block 

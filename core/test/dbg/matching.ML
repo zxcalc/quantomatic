@@ -1,7 +1,7 @@
 (* An ML file to help debug matching *)
 
 val theory_name = "../theories/default-rules.theory";
-val problem_graph_name = "test/dbg/bbox_bug4.graph";
+val problem_graph_name = "test/dbg/error_case_1.graph";
 
 (* abbreviation *)
 structure G = RGGraph;
@@ -30,27 +30,99 @@ val problem_rules =
     )
   rule_list;
 
-val first_problem_rule = 
+(* val first_problem_rule = 
   (case problem_rules of 
      [] => (writeln "No problem rules!"; raise ERROR "No problem rules!")
    | h::t => fst (Rule.Name.NTab.get ruletab h));
+*)
 
-(* 
 val first_problem_rule = fst (Rule.Name.NTab.get ruletab 
                                (Rule.Name.mk "spider.red"));
-*)
+
 
 val tgt = g;
 val (rn,rule) = Rule.rename_rule_apart tgt first_problem_rule;
 val pat = Rule.get_lhs rule;
+
+val _ = G.print pat;
+val _ = G.print tgt;
+
+
+open DB_MatchState;
+
+val rhs = (Rule.get_rhs rule);
+val vs = RGGraph.get_vnames rhs;
+val es = RGGraph.get_enames rhs;
+val bs = RGGraph.get_bnames rhs;
+val names = (vs,es,bs);
+val init_st = (init (Match.init names pat tgt) pat tgt Vertex.NTab.empty);
+val st = init_st;
+print st;
+
+(* match_search = repeat the following *)
+val (Progress s) = do_next_match_choices st;
+val l = Seq.list_of s;
+length l;
+val [st1,st2,st3,st4] = l;
+(match_search (Seq.single st1)) ();
+(match_search (Seq.single st2)) ();
+(match_search (Seq.single st3)) ();
+(match_search (Seq.single st4)) ();
+
+val st = st2;
+val (Progress s) = do_next_match_choices st;
+val l = Seq.list_of s;
+length l;
+val [st] = l;
+
+
+(* *)
+val SOME (UnBBoxed pn) = get_next_pat_vertex st;
+val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val tn = tn1;
+
+      val pat = get_unm_pat st;
+      val tgt = get_unm_tgt st;
+      val pd = RGGraph.get_vertex_data pat pn;
+      val td = RGGraph.get_vertex_data tgt tn;
+
+val SOME st2 = match_vertex (pn,pd) (tn,td) st;
+val st = st2;
+val [_,_,(ignore_arity, st)] = 
+  Seq.list_of (expand_pat_bboxes (pn,pd) (tn,td) st);
+
+(* *)
+val [(ignore_arity, st)] = Seq.list_of (match_self_loops (pn,pd) (tn,td) (ignore_arity, st));
+val [(ltes,st)] = Seq.list_of (st |> match_all_pat_self_loops lpes ltes);
+
+
+val (from_pv as (from_pn,from_pd)) = (pn,pd)
+val (from_tv as (from_tn,from_td)) = (tn,td);
+val (ignore_arity,st) = (0,st2);
+
+
+(* into graph ... *)
+
+
+
+(* *)
+val (Progress s) = do_next_match_choices st;
+val l = Seq.list_of s;
+val st = hd l;
+val (Progress s) = do_next_match_choices st;
+val l = Seq.list_of s;
+
+
+
+
+
+
 
 PolyML.exception_trace (fn () => 
   Seq.list_of (Rule.rewrites rule tgt)
 );
 
 
-val _ = G.print pat;
-val _ = G.print tgt;
 
 val ms = 
  PolyML.exception_trace (fn () => 

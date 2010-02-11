@@ -41,6 +41,23 @@ val mkH = V.IVert RGVertex.Hnd;
 val edge = ();
 end;
 
+
+(* install pretty printers *)
+local
+    fun prettyVertex _ _ x =
+      PolyML.PrettyString("\"" ^ Vertex.string_of_name x ^ "\"");
+    fun prettyEdge _ _ x =
+      PolyML.PrettyString("\"" ^ Edge.string_of_name x ^ "\"");
+    fun prettyBBox _ _ x =
+      PolyML.PrettyString("\"" ^ G.BBox.string_of_name x ^ "\"");
+in
+    val () = PolyML.addPrettyPrinter prettyVertex;
+    val () = PolyML.addPrettyPrinter prettyEdge;
+    val () = PolyML.addPrettyPrinter prettyBBox;
+end; 
+
+
+
 (* incomplete and needs lots more stuff... eg. table
 
 structure RGGraph :> RG_GRAPH 
