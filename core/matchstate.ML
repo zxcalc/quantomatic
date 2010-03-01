@@ -377,6 +377,9 @@ fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
 
 (* IMPROVE: can do lazy enumeration of bboxes here? *)
 (* match as many pattern nodes as needed to get all the target edges. *)
+(* Note optimisation: consider each pattern vertex only once, either it's used
+   or it isn't. This assumes that edges have no data/have only local data. And
+   that we arn't interested in permutations of edge-matches. *)
 fun strict_edgematch_adj_tgt_vertex 
       (from_pv as (from_pn,from_pd)) 
       (from_tv as (from_tn,from_td))
@@ -387,12 +390,31 @@ fun strict_edgematch_adj_tgt_vertex
     in
       if Edge.NTab.is_name_empty tes then Seq.single (pns, st)
       else 
+        case Vertex.NSet.pull_local_bot pns
+        of SOME (to_pn, pns2) => 
+           Seq.append 
+             (* don't use this vertex now, look for others, but note it wasn't
+                used by adding it to pns at the end. *)
+             (* IMPROVE: make tail rec? *)
+             (Seq.map (fn (pns,st) => (Vertex.NSet.add to_pn pns,st))
+               (strict_edgematch_adj_tgt_vertex from_pv from_tv to_tn 
+                  (pns2,st)))
+             (* use this vertex, and then look to see if we need more *)
+             ((edgematch_adj_2vs from_pv to_pn from_tv to_tn st)
+               |> Seq.map (pair pns2 o snd o snd)
+               |> Seq.maps (strict_edgematch_adj_tgt_vertex from_pv from_tv
+                            to_tn))
+         | NONE => Seq.empty (* not enough pattern vertices to 
+                                match extra edges *)
+    end;
+
+(* 
         (Seq.of_list (Vertex.NSet.pull_each pns))
         |> Seq.maps (* try each pattern node here *)
-        (fn (to_pn, pns2) => 
-            (edgematch_adj_2vs from_pv to_pn from_tv to_tn st)
-            |> Seq.map (pair pns2 o snd o snd))
-    end;
+          (fn (to_pn, pns2) => 
+              (edgematch_adj_2vs from_pv to_pn from_tv to_tn st)
+              |> Seq.map (pair pns2 o snd o snd))
+*)
 
 (* match up all adjavent edges of chosen pattern and target, we do
    this by going through each adjacent vertex of the pattern and
@@ -419,8 +441,8 @@ fun edgematch_adj_verticies
     (* match all adj tgt vertices *)
     |> (tns |> Vertex.NTab.fold 
           (fn (to_tn,tes) => 
-           let val teset = Edge.NTab.get_nameset tes
-               val to_tn_nedges = Edge.NSet.cardinality teset 
+           let val teset = Edge.NTab.get_nameset tes;
+               val to_tn_nedges = Edge.NSet.cardinality teset;
            in 
              Seq.maps (fn (ignore_arity,(pns,st)) => 
               Seq.append

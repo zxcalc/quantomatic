@@ -1,9 +1,6 @@
 local
 open MkG;
-in val _ = let
-
-open MkG;
-
+in val _ = let 
 
 (* Pattern: (B - G) *)
 val g = G.empty;
@@ -152,10 +149,10 @@ val _ = G.print tgt;
 val [m] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
 val _ = Match.print m;
 *)
-
 in
  Pretty.writeln (Pretty.str "Tests passed: graph matching.")
 end  (* let *)
 handle e => 
        (Pretty.writeln (Pretty.str "Test Failed: graph matching."); raise e);
 end; (* local *)
+
