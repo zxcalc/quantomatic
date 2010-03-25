@@ -16,6 +16,7 @@ public class QuantoFrame extends JFrame {
 	
 	
 	public QuantoFrame() {
+		super("Quantomatic");
 		frameCount++;
 		core = QuantoApp.getInstance().getCore();
 		setBackground(Color.white);
