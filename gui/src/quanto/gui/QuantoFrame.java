@@ -70,6 +70,7 @@ public class QuantoFrame extends JFrame {
 				QuantoApp.getInstance().shutdown();
 			} else {
 				frameCount--;
+				dispose();
 			}
 		} else super.processWindowEvent(e);
 	}
