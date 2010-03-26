@@ -1,3 +1,5 @@
+// vim:sts=8:ts=8:noet:sw=8
+
 package quanto.gui;
 
 
@@ -42,8 +44,12 @@ import edu.uci.ics.jung.contrib.HasName;
  *
  */
 public class QuantoApp {
+	// isMac is used for CTRL vs META shortcuts, etc
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
+	// MAC_OS_X is used to determine whether we use OSXAdapter to
+	// hook into the application menu
+	public static boolean MAC_OS_X = (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
 	private static QuantoApp theApp = null;
 	
 	
@@ -196,12 +202,15 @@ public class QuantoApp {
 		addView("console", console);
 		
 
-		try {
-			OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[])null));
-		} catch (SecurityException e) {
-			throw new QuantoCore.FatalError(e);
-		} catch (NoSuchMethodException e) {
-			throw new QuantoCore.FatalError(e);
+		if (MAC_OS_X)
+		{
+			try {
+				OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[])null));
+			} catch (SecurityException e) {
+				throw new QuantoCore.FatalError(e);
+			} catch (NoSuchMethodException e) {
+				throw new QuantoCore.FatalError(e);
+			}
 		}
 		
 	}
@@ -367,7 +376,7 @@ public class QuantoApp {
 			fileMenu.add(file_saveTheory);
 			
 			// quit
-			if (!isMac) {
+			if (!MAC_OS_X) {
 				file_quit = new JMenuItem("Quit", KeyEvent.VK_Q);
 				file_quit.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
