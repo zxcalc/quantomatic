@@ -729,61 +729,61 @@ val () = (
     register_cmd
     "list_graphs"
     ("list_graphs\n\n"^
-     "    list all active graphs")
+     "    list all active graphs\n")
     (lift_state_viewer list_graphs);
 
     register_cmd
     "ls"
     ("ls\n\n"^
-     "    alias for \"list_graphs\"")
+     "    alias for \"list_graphs\"\n")
     (lift_state_viewer list_graphs);
 
     register_cmd
     "list_rulesets"
     ("list_rulesets\n\n"^
-     "    list all loaded rulesets")
+     "    list all loaded rulesets\n")
     (lift_state_viewer list_rulesets);
 
     register_cmd
     "list_active_rulesets"
     ("list_active_rulesets\n\n"^
-     "    list all active rulesets")
+     "    list all active rulesets\n")
     (lift_state_viewer list_active_rulesets);
 
     register_cmd
     "list_rules"
     ("list_rules RULESET\n\n"^
-     "    list the rules in RULESET")
+     "    list the rules in RULESET\n")
     (lift_state_viewer list_rules);
 
     register_cmd
     "activate_ruleset"
     ("activate_ruleset RULESET\n\n"^
-     "    enable the rules in RULESET for rewriting")
+     "    enable the rules in RULESET for rewriting\n")
     (activate_ruleset);
 
     register_cmd
     "deactivate_ruleset"
     ("deactivate_ruleset RULESET\n\n"^
-     "    disable the rules in RULESET for rewriting")
+     "    disable the rules in RULESET for rewriting\n")
     (deactivate_ruleset);
 
     register_cmd
     "activate_rule"
     ("activate_rule RULESET RULE\n\n"^
-     "    enable RULE in RULESET for rewriting")
+     "    enable RULE in RULESET for rewriting\n")
     (activate_rule);
 
     register_cmd
     "deactivate_rule"
     ("deactivate_ruleset RULESET RULE\n\n"^
-     "    disable RULE in RULESET for rewriting")
+     "    disable RULE in RULESET for rewriting\n")
     (deactivate_rule);
 
     register_cmd
     "delete_rule"
     ("delete_ruleset RULESET RULE\n\n"^
-     "    remove RULE from RULESET for rewriting")
+     "    remove RULE from RULESET for rewriting\n")
     (delete_rule);
 
     register_cmd
