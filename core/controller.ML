@@ -226,17 +226,20 @@ exception wrong_args_exp of unit
 fun echo_block [] = read_block ()
   | echo_block _ = raise wrong_args_exp ()
 
-fun help1 cmd = case Symtab.lookup (!cmds) cmd
+fun help1 "quit" = "\nquit\n\n    Quits the quantomatic core\n\n"
+  | help1 cmd = case Symtab.lookup (!cmds) cmd
          of SOME (h,_) => "\n"^h^"\n"
           | NONE => "!!! Can't find command.\n"
 
+val sort_alpha = sort (fn x => rev_order (string_ord x))
+
 (* helper functions for commands registered below *)
 fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
-          "Available commands:\n\nquit\n"^
+          "Available commands:\n\n"^
           (fold (fn a => fn b =>a^"\n"^b)
-            (Symtab.keys (!cmds)) "\n")
+            (sort_alpha ("quit" :: (Symtab.keys (!cmds)))) "\n")
   | help ["all"] = fold (fn a => fn b => (help1 a)^b)
-                        (Symtab.keys (!cmds)) "\n"
+                        (sort_alpha ("quit" :: (Symtab.keys (!cmds)))) "\n"
   | help [cmd] = (help1 cmd)
   | help _ = raise wrong_args_exp ()
          
