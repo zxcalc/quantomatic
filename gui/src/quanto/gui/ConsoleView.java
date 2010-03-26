@@ -40,6 +40,7 @@ public class ConsoleView extends JPanel implements InteractiveView {
         input = new JTextField();
         input.setFocusTraversalKeysEnabled(false);
         output = new JTextArea();
+        output.setEditable( false );
         //output.setFocusable(false);
         out = new PrintStream(new QuantoConsoleOutputStream(output));
 		
