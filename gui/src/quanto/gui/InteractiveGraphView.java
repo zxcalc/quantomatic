@@ -804,7 +804,12 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	
 	public void updateGraph() throws QuantoCore.ConsoleError {
 		String xml = getCore().graph_xml(getGraph());
-		getGraph().fromXml(xml);
+		try
+		{
+			getGraph().fromXml(xml);
+		} catch (QuantoGraph.ParseException e) {
+			throw new ConsoleError("The core sent an invalid graph description: " + e.getMessage());
+		}
 		getGraphLayout().initialize();
 		
 		((ChangeEventSupport)getGraphLayout()).fireStateChanged();
@@ -954,6 +959,8 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 			String xml = getCore().show_rewrites(getGraph());
 			rewriteCache = Rewrite.parseRewrites(xml);
 			return rewriteCache;
+		} catch (QuantoGraph.ParseException e) {
+			errorDialog("The core sent an invalid graph description: " + e.getMessage());
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
 		}

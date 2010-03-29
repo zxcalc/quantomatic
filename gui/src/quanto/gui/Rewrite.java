@@ -23,7 +23,7 @@ public class Rewrite implements HasName {
 		this.name = name;
 	}
 	
-	public static List<Rewrite> parseRewrites(String xml) {
+	public static List<Rewrite> parseRewrites(String xml) throws QuantoGraph.ParseException {
 		List<Rewrite> rewrites = new ArrayList<Rewrite>();
 		try {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
@@ -46,7 +46,7 @@ public class Rewrite implements HasName {
 				
 			}
 		} catch (XMLException e) {
-			System.out.println("Error parsing XML: " + e.getMessage());
+			throw new QuantoGraph.ParseException(e.getMessage(), e);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (InstantiationException e) {

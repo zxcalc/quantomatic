@@ -39,6 +39,20 @@ implements HasName, ChangeEventSupport {
 				new HashSet<ChangeListener>());
 	}
 
+	public static class ParseException extends java.io.IOException {
+		private static final long serialVersionUID = 2342374892173482937L;
+		public ParseException() { }
+		public ParseException(String message) {
+			super(message);
+		}
+		public ParseException(Throwable cause) {
+			super(cause);
+		}
+		public ParseException(String message, Throwable cause) {
+			super(message, cause);
+		}
+	}
+
 	/**
 	 * Use this constructor for unnamed graphs. The idea is you
 	 * should do null checks before sending the name to the core.
@@ -57,20 +71,15 @@ implements HasName, ChangeEventSupport {
 		return verts;
 	}
 
-	public IXMLElement fromXml(String xml) {
+	public IXMLElement fromXml(String xml) throws QuantoGraph.ParseException {
 		return fromXmlReader(StdXMLReader.stringReader(xml));
 	}
 	
-	public IXMLElement fromXml(File f) throws QuantoCore.ConsoleError {
-		try {
-			return fromXmlReader(StdXMLReader.fileReader(f.getAbsolutePath()));
-		} catch (IOException e) {
-			throw new QuantoCore.ConsoleError("Cannot open file: " + f.toString());
-		}
+	public IXMLElement fromXml(File f) throws java.io.IOException, QuantoGraph.ParseException {
+		return fromXmlReader(StdXMLReader.fileReader(f.getAbsolutePath()));
 	}
 	
-	// TODO: make this throw ConsoleError if we can't parse it, recover gracefully
-	private IXMLElement fromXmlReader(IXMLReader reader) {
+	private IXMLElement fromXmlReader(IXMLReader reader) throws QuantoGraph.ParseException {
 		IXMLElement root = null;
 		try {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
@@ -78,7 +87,7 @@ implements HasName, ChangeEventSupport {
 			root = (IXMLElement)parser.parse();
 			fromXml(root);
 		} catch (XMLException e) {
-			throw new QuantoCore.FatalError("Error parsing XML.");
+			throw new QuantoGraph.ParseException("The file contains badly-formed XML: " + e.getMessage(), e);
 		} catch (ClassNotFoundException e) {
 			throw new QuantoCore.FatalError(e);
 		} catch (InstantiationException e) {
@@ -92,6 +101,17 @@ implements HasName, ChangeEventSupport {
 		return root;
 	}
 
+	private void throwParseException(IXMLElement element, String message) throws QuantoGraph.ParseException
+	{
+		String finalmsg = "Bad " + element.getName() + " definition";
+		if (element.getLineNr() != element.NO_LINE)
+			finalmsg += " at line " + element.getLineNr();
+		if (message != null)
+			finalmsg += ": " + message;
+
+		throw new QuantoGraph.ParseException(finalmsg);
+	}
+
 	/**
 	 * Populate this graph using a given DOM node. This is in
 	 * a separate method so graph defs can be nested inside of
@@ -100,9 +120,9 @@ implements HasName, ChangeEventSupport {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public QuantoGraph fromXml(IXMLElement graphNode) {
+	public QuantoGraph fromXml(IXMLElement graphNode) throws QuantoGraph.ParseException {
 		if (graphNode == null)
-			throw new QuantoCore.FatalError("Attempting to parse null graph.");
+			throw new QuantoGraph.ParseException("Graph is null");
 		
 		synchronized (this) {
 			boundaryVertices = new ArrayList<QVertex>(); 
@@ -116,13 +136,20 @@ implements HasName, ChangeEventSupport {
 				QVertex v = new QVertex();
 				
 				try {
-					v.setName(vertexNode.getFirstChildNamed("name").getContent());
+					String name = vertexNode.getFirstChildNamed("name").getContent();
+					if (name == null || name.isEmpty())
+						throwParseException(vertexNode, "no name given");
+					v.setName(name);
+
 					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
 					{
 						v.setVertexType(QVertex.Type.BOUNDARY);
-					} else {
+					} else if (vertexNode.getFirstChildNamed("boundary")
+							.getContent().equals("false")) {
 						v.setVertexType(vertexNode.getFirstChildNamed("colour").getContent());
+					} else {
+						throwParseException(vertexNode, ": invalid value for \"boundary\"");
 					}
 					
 					IXMLElement expr = vertexNode
@@ -132,14 +159,14 @@ implements HasName, ChangeEventSupport {
 					} else {
 						v.setAngle(expr.getFirstChildNamed("as_string").getContent());
 					}
+				} catch (IllegalArgumentException e) {
+					throwParseException(vertexNode, null);
 				} catch (NullPointerException e) {
 					/* if NullPointerException is thrown, the
 					 * core has most likely neglected to include
-					 * a required field, so the GUI should crash.
+					 * a required field.
 					 */
-					e.printStackTrace();
-					throw new QuantoCore.FatalError(
-							"Error reading graph XML.");
+					throwParseException(vertexNode, null);
 				}
 				
 				QVertex old_v = verts.get(v.getName());
@@ -171,17 +198,30 @@ implements HasName, ChangeEventSupport {
 				String ename = null;
 				IXMLElement ch = null;
 				
-				ch = edgeNode.getFirstChildNamed("source");
-				if (ch!=null) source = verts.get(ch.getContent());
-				ch = edgeNode.getFirstChildNamed("target");
-				if (ch!=null) target = verts.get(ch.getContent());
 				ch = edgeNode.getFirstChildNamed("name");
-				if (ch!=null) ename = ch.getContent();
+				if (ch!=null)
+					ename = ch.getContent();
+				if (ename == null || ename.isEmpty())
+					throwParseException(edgeNode, "no name given");
 
-				if (source == null || target == null || ename == null)
-					throw new QuantoCore.FatalError(
-							"Bad edge definition in XML.");
-				
+
+				ch = edgeNode.getFirstChildNamed("source");
+				if (ch!=null)
+					source = verts.get(ch.getContent());
+				else
+					throwParseException(edgeNode, "no source given");
+				if (source == null)
+					throwParseException(edgeNode, "unknown source");
+
+
+				ch = edgeNode.getFirstChildNamed("target");
+				if (ch!=null)
+					target = verts.get(ch.getContent());
+				else
+					throwParseException(edgeNode, "no target given");
+				if (target == null)
+					throwParseException(edgeNode, "unknown target");
+
 				this.addEdge(new QEdge(ename),
 					source, target, EdgeType.DIRECTED);
 				
@@ -194,18 +234,21 @@ implements HasName, ChangeEventSupport {
 			{
 				IXMLElement nm = bangBox.getFirstChildNamed("name");
 				if (nm == null)
-					throw new QuantoCore.FatalError("Got an unnamed bang box in XML.");
-				
+					throwParseException(bangBox, "no name given");
+
 				String name = nm.getContent();
+				if (name == null || name.isEmpty())
+					throwParseException(bangBox, "no name given");
+
 				BangBox bbox = new BangBox(name);
 				bangBoxes.add(bbox);
-				
+
 				for (IXMLElement boxedVert :
 					(Vector<IXMLElement>)bangBox.getChildrenNamed("boxedvertex"))
 				{
 					QVertex v = verts.get(boxedVert.getContent());
 					if (v == null)
-						throw new QuantoCore.FatalError("Unknown vertex in bang box");
+						throwParseException(boxedVert, "unknown vertex");
 					bbox.add(v);
 				}
 			}

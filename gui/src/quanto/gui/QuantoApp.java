@@ -497,8 +497,8 @@ public class QuantoApp {
 		
 		int retVal = fileChooser.showDialog(null, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
+			File f = fileChooser.getSelectedFile();
 			try {
-				File f = fileChooser.getSelectedFile();
 				if (f.getParent()!=null) setPreference(LAST_OPEN_DIR, f.getParent());
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
 				QuantoGraph loadedGraph = new QuantoGraph();
@@ -527,10 +527,13 @@ public class QuantoApp {
 				}
 			}
 			catch (QuantoCore.ConsoleError e) {
-				errorDialog(e.getMessage());
+				errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
 			}
-			catch(java.io.IOException ioe) {
-				errorDialog(ioe.getMessage());
+			catch (QuantoGraph.ParseException e) {
+				errorDialog("\"" + f.getName() + "\" is in the wrong format or corrupted: " + e.getMessage());
+			}
+			catch(java.io.IOException e) {
+				errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
 			}
 		}
 	}
@@ -676,6 +679,8 @@ public class QuantoApp {
 			QuantoGraph gr = new QuantoGraph(name);
 			gr.fromXml(getCore().graph_xml(gr));
 			return new GraphView(gr);
+		} catch (QuantoGraph.ParseException e) {
+			System.err.print("Bad graph XML from core: " + e.getMessage());
 		} catch (QuantoCore.ConsoleError e) {
 			System.err.print(e.getMessage());
 		}

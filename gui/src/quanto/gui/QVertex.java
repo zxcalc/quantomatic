@@ -35,6 +35,7 @@ public class QVertex implements HasName {
 			setVertexType(QVertex.Type.GREEN);
 		else if (vertexType.equals("h"))
 			setVertexType(QVertex.Type.HADAMARD);
+		else throw new IllegalArgumentException("vertexType");
 	}
 	
 	public String getName() {

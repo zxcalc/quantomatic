@@ -442,18 +442,26 @@ public class QuantoCore {
 	
 	public QuantoGraph open_rule_lhs(Ruleset rset, String rule)
 	throws ConsoleError {
-		QuantoGraph g = new QuantoGraph(
-				chomp(command("open_rule_lhs", rset, new HasName.StringName(rule))));
-		g.fromXml(graph_xml(g));
-		return g;
+		try {
+			QuantoGraph g = new QuantoGraph(
+					chomp(command("open_rule_lhs", rset, new HasName.StringName(rule))));
+			g.fromXml(graph_xml(g));
+			return g;
+		} catch (QuantoGraph.ParseException e) {
+			throw new ConsoleError("The core sent an invalid graph description: " + e.getMessage());
+		}
 	}
 	
 	public QuantoGraph open_rule_rhs(Ruleset rset, String rule)
 	throws ConsoleError {
-		QuantoGraph g = new QuantoGraph(
-				chomp(command("open_rule_rhs", rset, new HasName.StringName(rule))));
-		g.fromXml(graph_xml(g));
-		return g;
+		try {
+			QuantoGraph g = new QuantoGraph(
+					chomp(command("open_rule_rhs", rset, new HasName.StringName(rule))));
+			g.fromXml(graph_xml(g));
+			return g;
+		} catch (QuantoGraph.ParseException e) {
+			throw new ConsoleError("The core sent an invalid graph description: " + e.getMessage());
+		}
 	}
 	
 	public void replace_rule(Ruleset rset, Rewrite rule)
