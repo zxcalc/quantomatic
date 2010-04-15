@@ -49,7 +49,7 @@ import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	private static final long serialVersionUID = -1915610684250038897L;
 	public QuantoGraph graph;
-	private QuantoLayout quantoLayout;
+	private LockableBangBoxLayout<QVertex, QEdge> quantoLayout;
 	private VisualizationServer.Paintable boundsPaint;
 	private BangBoxPaintable bangBoxPainter;
 	
@@ -59,7 +59,13 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
 	
 	public GraphView(QuantoGraph g, Dimension size) {
 		super(new StaticLayout<QVertex, QEdge>(g));
-		quantoLayout = new QuantoLayout(g);
+		
+		if (QuantoApp.useExperimentalLayout) {
+			quantoLayout = new JavaQuantoLayout(g);
+		} else {
+			quantoLayout = new QuantoLayout(g);
+		}
+		
 		setGraphLayout(quantoLayout);
 		setPreferredSize(size);
 		getGraphLayout().initialize();
@@ -252,11 +258,11 @@ public class GraphView extends VisualizationViewer<QVertex,QEdge> {
         public boolean useTransform() {return false;}
     }
 
-	public QuantoLayout getQuantoLayout() {
+	public LockableBangBoxLayout<QVertex, QEdge> getQuantoLayout() {
 		return quantoLayout;
 	}
 
-	public void setQuantoLayout(QuantoLayout quantoLayout) {
+	public void setQuantoLayout(LockableBangBoxLayout<QVertex, QEdge> quantoLayout) {
 		this.quantoLayout = quantoLayout;
 	}
 	

@@ -7,7 +7,7 @@ import java.util.*;
 
 
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
-import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.DirectedGraph;
 
 public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 	public static String dotProgram = "dot";
@@ -21,11 +21,11 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 		}
 	}
 	
-	public DotLayout(Graph<V,E> graph, Dimension size) {
+	public DotLayout(DirectedGraph<V,E> graph, Dimension size) {
 		super(graph,size);
 	}
 	
-	public DotLayout(Graph<V,E> graph) {
+	public DotLayout(DirectedGraph<V,E> graph) {
 		super(graph);
 	}
 

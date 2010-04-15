@@ -2,7 +2,6 @@ package quanto.gui;
 
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,7 +20,7 @@ import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 
-public class QuantoGraph extends SparseMultigraph<QVertex, QEdge>
+public class QuantoGraph extends DirectedSparseMultigraph<QVertex, QEdge>
 implements HasName, ChangeEventSupport {
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
@@ -104,7 +103,7 @@ implements HasName, ChangeEventSupport {
 	private void throwParseException(IXMLElement element, String message) throws QuantoGraph.ParseException
 	{
 		String finalmsg = "Bad " + element.getName() + " definition";
-		if (element.getLineNr() != element.NO_LINE)
+		if (element.getLineNr() != IXMLElement.NO_LINE)
 			finalmsg += " at line " + element.getLineNr();
 		if (message != null)
 			finalmsg += ": " + message;

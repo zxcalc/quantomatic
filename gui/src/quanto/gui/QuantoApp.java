@@ -23,7 +23,6 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import net.n3.nanoxml.IXMLElement;
@@ -51,6 +50,7 @@ public class QuantoApp {
 	// hook into the application menu
 	public static boolean MAC_OS_X = (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
 	private static QuantoApp theApp = null;
+	public static boolean useExperimentalLayout = false;
 	
 	
 	private static class Pref<T> {
@@ -100,7 +100,7 @@ public class QuantoApp {
 	private final Preferences globalPrefs;
 	private final ConsoleView console;
 	private final QuantoCore core;
-	public final JFileChooser fileChooser;
+	public JFileChooser fileChooser;
 	private final BidiMap<String,InteractiveView> views;
 	private volatile ViewPort focusedViewPort = null;
 	
@@ -118,6 +118,7 @@ public class QuantoApp {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		System.out.println("Initialised...");
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
 				QuantoCore.appName = "Quantomatic.app";
@@ -158,15 +159,23 @@ public class QuantoApp {
 			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
 		}
 		
+		QuantoApp app = getInstance();
 		
+		app.newGraph(true);
 		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				getInstance().newGraph(true);
-//				getInstance().addView("test-split-pane", new SplitGraphView());
-				TheoryTree.loadState();
-			}
-		});
+		System.out.println("loading theory...");
+		
+		TheoryTree.loadState();
+		
+		System.out.println("done.");
+		
+//		SwingUtilities.invokeLater(new Runnable() {
+//			public void run() {
+//				getInstance().newGraph(true);
+////				getInstance().addView("test-split-pane", new SplitGraphView());
+//				TheoryTree.loadState();
+//			}
+//		});
 	}
 
 	public boolean shutdown() {
@@ -190,7 +199,7 @@ public class QuantoApp {
 
 	private QuantoApp() {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
-		fileChooser = new JFileChooser();
+		fileChooser = null;
 		
 		// bidirectional map implemented as dual trees. note that get(null) or
 		//  getKey(null) will raise exceptions in the Comparators.
@@ -213,6 +222,11 @@ public class QuantoApp {
 			}
 		}
 		
+	}
+	
+	public JFileChooser getFileChooser() {
+		if (fileChooser == null) fileChooser = new JFileChooser();
+		return fileChooser;
 	}
 	
 	public String addView(String name, InteractiveView v) {
@@ -493,11 +507,14 @@ public class QuantoApp {
 	 */
 	public void openGraph() {
 		String lastDir = getPreference(LAST_OPEN_DIR);
-		if (lastDir != null) fileChooser.setCurrentDirectory(new File(lastDir));
 		
-		int retVal = fileChooser.showDialog(null, "Open");
+		JFileChooser fc = getFileChooser();
+		
+		if (lastDir != null) fc.setCurrentDirectory(new File(lastDir));
+		
+		int retVal = getFileChooser().showDialog(null, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
-			File f = fileChooser.getSelectedFile();
+			File f = fc.getSelectedFile();
 			try {
 				if (f.getParent()!=null) setPreference(LAST_OPEN_DIR, f.getParent());
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");

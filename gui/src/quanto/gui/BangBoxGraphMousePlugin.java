@@ -19,7 +19,7 @@ implements MouseListener, MouseMotionListener {
 
 	public void mouseClicked(MouseEvent e) {
 		QuantoGraph gr = igv.getGraph();
-		QuantoLayout ql = igv.getQuantoLayout();
+		LockableBangBoxLayout<QVertex, QEdge> ql = igv.getQuantoLayout();
 		Point2D pt = igv.getRenderContext()
 			.getMultiLayerTransformer().inverseTransform(e.getPoint());
 		

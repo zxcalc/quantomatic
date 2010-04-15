@@ -12,7 +12,10 @@ import java.util.Set;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.DotLayout;
 
-public class QuantoLayout extends DotLayout<QVertex,QEdge> {
+public class QuantoLayout
+extends DotLayout<QVertex,QEdge>
+implements LockableBangBoxLayout<QVertex, QEdge>
+{
 	private Map<BangBox, Rectangle2D> bbRects;
 	private volatile Set<String> lockedNames = null;
 	public QuantoLayout(QuantoGraph graph, Dimension size) {
