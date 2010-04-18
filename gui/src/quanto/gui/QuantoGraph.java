@@ -38,7 +38,7 @@ implements HasName, ChangeEventSupport {
 				new HashSet<ChangeListener>());
 	}
 
-	public static class ParseException extends java.io.IOException {
+	public static class ParseException extends Exception {
 		private static final long serialVersionUID = 2342374892173482937L;
 		public ParseException() { }
 		public ParseException(String message) {
