@@ -109,7 +109,9 @@
     </exec>
   </target>
   <target name="run" depends="jar" description="run quanto">
-    <java jar="${dist}/QuantoGui.jar" fork="true" />
+    <exec executable="../bin/quantomatic">
+      <arg value="gui" />
+    </exec>
   </target>
   <target name="clean" description="clean up">
     <!-- Delete the ${build} and ${dist} directory trees -->
