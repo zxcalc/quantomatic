@@ -236,7 +236,7 @@ implements HasName, ChangeEventSupport {
 					throwParseException(bangBox, "no name given");
 
 				String name = nm.getContent();
-				if (name == null || name.isEmpty())
+				if (name == null || name.length() == 0)
 					throwParseException(bangBox, "no name given");
 
 				BangBox bbox = new BangBox(name);
