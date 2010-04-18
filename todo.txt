@@ -2,4 +2,22 @@ update install docs:
 
  - clarify need for POLYLIB in env;
  - clarify other needed tools: e.g. dot
- - 
+
+1. Java Layout
+2. Customisable vertex/edge data
+3. Matching respects edge direction
+4. Finish theory editor   
+   -> "proof view"
+5. Remove symmetries in matching 
+6. More general semantics (e.g. relational)
+7. Gui support for plugging
+8. Plugging lots of points (model check - eval on basis)
+9. improve mathematic support
+10. auto-confluence analysis
+11. better diagrams into TeX
+12. Tool palettes / Generic UI polish / scroll bars / refactor
+front-end
+13. Faster rendering (text controls)
+14. Rethinks views
+15. Enforce Types for vertices
+16. different graph types: planar; progressive; etc.
