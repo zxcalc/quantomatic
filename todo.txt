@@ -21,3 +21,5 @@ front-end
 14. Rethinks views
 15. Enforce Types for vertices
 16. different graph types: planar; progressive; etc.
+
+
