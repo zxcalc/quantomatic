@@ -620,7 +620,8 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 
 	private void xCoordinate() {
 		int[] xCoords = initXCoord();
-		xBestCoords = Arrays.copyOf(xCoords, xCoords.length);
+		xBestCoords = new int[xCoords.length];
+		for (int i = 0; i < xBestCoords.length; ++i) xBestCoords[i] = xCoords[i];
 		xBestLength = xLength(xBestCoords);
 		double len;
 		for (int i = 0; i < MAX_POSITION_ITERATIONS; ++i) {
