@@ -136,7 +136,7 @@ implements HasName, ChangeEventSupport {
 				
 				try {
 					String name = vertexNode.getFirstChildNamed("name").getContent();
-					if (name == null || name.isEmpty())
+					if (name == null || name.length() == 0)
 						throwParseException(vertexNode, "no name given");
 					v.setName(name);
 
@@ -200,7 +200,7 @@ implements HasName, ChangeEventSupport {
 				ch = edgeNode.getFirstChildNamed("name");
 				if (ch!=null)
 					ename = ch.getContent();
-				if (ename == null || ename.isEmpty())
+				if (ename == null || ename.length() == 0)
 					throwParseException(edgeNode, "no name given");
 
 
