@@ -13,7 +13,7 @@ update install docs:
 7. Gui support for plugging
 8. Plugging lots of points (model check - eval on basis)
 9. improve mathematic support
-10. auto-confluence analysis
+10. auto-confluence analysis (requirs graph unification)
 11. better diagrams into TeX
 12. Tool palettes / Generic UI polish / scroll bars / refactor
 front-end
@@ -21,5 +21,3 @@ front-end
 14. Rethinks views
 15. Enforce Types for vertices
 16. different graph types: planar; progressive; etc.
-
-
