@@ -3,8 +3,9 @@
   <description>
     Build the Quantomatic GUI as a JAR file.
   </description>
-  
+
   <!-- set global properties for this build -->
+  <property name="root" location="../" />
   <property name="src" location="src"/>
   <property name="build" location="build"/>
   <property name="dist" location="dist"/>
@@ -12,15 +13,22 @@
   <property name="appname" value="Quantomatic" />
   <property name="lib" location="lib"/>
   <property environment="env" />
-  
-  
+
+
   <!-- classpath we use for building, just all the JARs in ${lib} -->
-  <path id="quanto.path">
+  <path id="quanto.classpath.build">
     <fileset dir="${lib}">
       <include name="*.jar"/>
     </fileset>
   </path>
-  
+  <!-- classpath we use for running: all the JARs in ${lib} and the built files -->
+  <path id="quanto.classpath.run">
+    <fileset dir="${lib}">
+      <include name="*.jar"/>
+    </fileset>
+    <pathelement path="${build}"/>
+  </path>
+
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
@@ -28,43 +36,40 @@
     <mkdir dir="${build}"/>
     <!-- Make sure quanto core is up to date -->
     <exec executable="make" dir="../core">
-	    <arg value="bin" />
-	  </exec>
+      <arg value="bin" />
+    </exec>
   </target>
   <target name="compile" depends="init" description="compile the source ">
     <!-- Compile the java code from ${src} into ${build} -->
     <javac srcdir="${src}" destdir="${build}">
-      <classpath refid="quanto.path" />
+      <classpath refid="quanto.classpath.build" />
     </javac>
   </target>
   <target name="jar" depends="compile" description="generate the distribution">
-    <!-- There's probably a better way to do this. Unjar'ing all the deps
-         onto the build tree. -->
-    <unjar src="${lib}/collections-generic-4.01.jar" dest="${build}" />
-    <unjar src="${lib}/colt-1.2.0.jar" dest="${build}" />
-    <unjar src="${lib}/concurrent-1.3.4.jar" dest="${build}" />
-    <unjar src="${lib}/jung-algorithms-2.0-beta1.jar" dest="${build}" />
-    <unjar src="${lib}/jung-api-2.0-beta1.jar" dest="${build}" />
-    <unjar src="${lib}/jung-graph-impl-2.0-beta1.jar" dest="${build}" />
-    <unjar src="${lib}/jung-visualization-2.0-beta1.jar" dest="${build}" />
-    <unjar src="${lib}/nanoxml-2.2.3.jar" dest="${build}" />
-    <unjar src="${lib}/itext.jar" dest="${build}" />
-    
-    <!-- remove the META-INF from the other jar files. Ant will make a new one. -->
-    <delete dir="${build}/META-INF" />
-    
     <!-- Create the distribution directory -->
     <mkdir dir="${dist}"/>
     <!-- Put everything in ${build} into the QuantoGui.jar file -->
-    <jar jarfile="${dist}/QuantoGui.jar" index="yes">
+    <jar jarfile="${dist}/temp_final.jar" index="yes" filesetmanifest="skip">
       <fileset dir="${build}" />
+      <zipfileset src="${lib}/collections-generic-4.01.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/colt-1.2.0.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/concurrent-1.3.4.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-algorithms-2.0-beta1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-api-2.0-beta1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-graph-impl-2.0-beta1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-visualization-2.0-beta1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/nanoxml-2.2.3.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/itext.jar" excludes="META-INF/**" />
       <manifest>
         <attribute name="Main-Class" value="quanto.gui.QuantoApp" />
       </manifest>
     </jar>
+    <zip destfile="${dist}/QuantoGui.jar">
+      <zipfileset src="${dist}/temp_final.jar"
+                  excludes="META-INF/*.SF, META-INF/*.DSA, META-INF/*.RSA"/>
+    </zip>
+    <delete file="${dist}/temp_final.jar" />
   </target>
-  
-  
   <target name="macapp" depends="jar" description="build OS X application">
     <mkdir dir="${appdir}"/>
     <delete dir="${appdir}/${appname}.app" />
@@ -73,16 +78,16 @@
     <copy file="${dist}/QuantoGui.jar" todir="${appdir}/${appname}.app/Contents/Resources/Java" />
     <copy file="../core/bin/quanto-core"
           tofile="${appdir}/${appname}.app/Contents/MacOS/quanto-core-app" />
-    
+
     <!-- use otool to discover the appropriate libpolyml -->
     <exec executable="bash" outputproperty="libpolyml" inputstring=
           "otool -L ${appdir}/${appname}.app/Contents/MacOS/quanto-core-app | awk '/polyml/ {print $1}'" />
-    
+
     <echo message="Importing ${libpolyml}" />
-    
+
     <copy file="${libpolyml}"
           tofile="${appdir}/${appname}.app/Contents/Frameworks/libpolyml.dylib" />
-    
+
     <!-- update linked library refs -->
     <exec executable="install_name_tool">
       <arg value="-id" />
@@ -95,7 +100,7 @@
       <arg value="@executable_path/../Frameworks/libpolyml.dylib" />
       <arg value="${appdir}/${appname}.app/Contents/MacOS/quanto-core-app" />
     </exec>
-    
+
     <!-- ant does not preserve perms, boo -->
     <chmod file="${appdir}/${appname}.app/Contents/MacOS/JavaApplicationStub" perm="+x" />
     <chmod file="${appdir}/${appname}.app/Contents/MacOS/quanto-core-app" perm="+x" />
@@ -108,10 +113,10 @@
       <arg line="create -fs HFS+ -srcfolder ${appdir} -volname ${appname} ${dist}/${appname}.dmg" />
     </exec>
   </target>
-  <target name="run" depends="jar" description="run quanto">
-    <property name="root" location="../" />
+  <target name="run" depends="compile" description="run quanto">
     <property environment="env" />
-    <java jar="${dist}/QuantoGui.jar" fork="true">
+    <java classname="quanto.gui.QuantoApp" fork="true">
+      <classpath refid="quanto.classpath.run" />
       <env key="PATH" path="${root}/core/bin/:${env.PATH}" />
     </java>
   </target>
