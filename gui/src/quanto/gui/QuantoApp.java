@@ -94,8 +94,6 @@ public class QuantoApp {
 		new StringPref("last_theory_open_dir", null);
 	public static final StringPref LOADED_THEORIES =
 		new StringPref("loaded_theories", "");
-	public static final StringPref ACTIVE_THEORIES =
-		new StringPref("loaded_theories", "");
 	
 	private final Preferences globalPrefs;
 	private final ConsoleView console;
@@ -125,16 +123,16 @@ public class QuantoApp {
 				
 				// determine the app name from the classpath if I can...
 				System.out.println(System.getProperty("java.class.path"));
-		    	for (String path : System.getProperty("java.class.path")
-		    			.split(System.getProperty("path.separator"))) {
-		    		if (path.indexOf("QuantoGui.jar")!=-1) {
-		    			String[] dirs = path.split(System.getProperty("file.separator"));
-		    			if (dirs.length>=5) {
-		    				QuantoCore.appName = dirs[dirs.length-5];
-		    				System.out.println(QuantoCore.appName);
-		    			}
-		    		}
-		    	}
+				for (String path : System.getProperty("java.class.path")
+						.split(System.getProperty("path.separator"))) {
+					if (path.indexOf("QuantoGui.jar")!=-1) {
+						String[] dirs = path.split(System.getProperty("file.separator"));
+						if (dirs.length>=5) {
+							QuantoCore.appName = dirs[dirs.length-5];
+							System.out.println(QuantoCore.appName);
+						}
+					}
+				}
 				
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
 					QuantoCore.appName + "/Contents/MacOS/dot_static";
@@ -209,7 +207,6 @@ public class QuantoApp {
 		console = new ConsoleView();
 		core = console.getCore();
 		addView("console", console);
-		
 
 		if (MAC_OS_X)
 		{
@@ -221,9 +218,8 @@ public class QuantoApp {
 				throw new QuantoCore.FatalError(e);
 			}
 		}
-		
 	}
-	
+
 	public JFileChooser getFileChooser() {
 		if (fileChooser == null) fileChooser = new JFileChooser();
 		return fileChooser;
