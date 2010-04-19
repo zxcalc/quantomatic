@@ -98,7 +98,7 @@ public class QuantoApp {
 	private final Preferences globalPrefs;
 	private final ConsoleView console;
 	private final QuantoCore core;
-	public JFileChooser fileChooser;
+	private JFileChooser fileChooser;
 	private final BidiMap<String,InteractiveView> views;
 	private volatile ViewPort focusedViewPort = null;
 	
@@ -584,12 +584,12 @@ public class QuantoApp {
 	
 	public void loadRuleset() {
 		String lastDir = getPreference(LAST_THEORY_OPEN_DIR);
-		if (lastDir != null) fileChooser.setCurrentDirectory(new File(lastDir));
+		if (lastDir != null) getFileChooser().setCurrentDirectory(new File(lastDir));
 		
-		int retVal = fileChooser.showDialog(null, "Open");
+		int retVal = getFileChooser().showDialog(null, "Open");
 		if(retVal == JFileChooser.APPROVE_OPTION) {
 			try {
-				File file = fileChooser.getSelectedFile();
+				File file = getFileChooser().getSelectedFile();
 				if (file.getParent()!=null) setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
 				String thyname = file.getName().replaceAll("\\.theory|\\n|\\r", "");
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");

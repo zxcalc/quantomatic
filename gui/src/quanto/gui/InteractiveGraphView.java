@@ -991,10 +991,10 @@ implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView {
 	}
 	
 	public void saveGraphAs() {
-		int retVal = QuantoApp.getInstance().fileChooser.showSaveDialog(this);
+		int retVal = QuantoApp.getInstance().getFileChooser().showSaveDialog(this);
 		if(retVal == JFileChooser.APPROVE_OPTION) {
 			try{
-				File f = QuantoApp.getInstance().fileChooser.getSelectedFile();
+				File f = QuantoApp.getInstance().getFileChooser().getSelectedFile();
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
 				core.save_graph(getGraph(), filename);
 				getGraph().setFileName(filename);
