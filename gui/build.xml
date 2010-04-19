@@ -54,10 +54,10 @@
       <zipfileset src="${lib}/collections-generic-4.01.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/colt-1.2.0.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/concurrent-1.3.4.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-algorithms-2.0-beta1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-api-2.0-beta1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-graph-impl-2.0-beta1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-visualization-2.0-beta1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-algorithms-2.0.1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-api-2.0.1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-graph-impl-2.0.1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jung-visualization-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/nanoxml-2.2.3.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/itext.jar" excludes="META-INF/**" />
       <manifest>

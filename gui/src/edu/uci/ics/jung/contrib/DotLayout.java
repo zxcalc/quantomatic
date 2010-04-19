@@ -40,7 +40,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 				String viz = "digraph {\n" + graphToDot() + "\n}\n\n";
 				Map<String,Point2D> coords = getCoordMap(viz);
 				
-				for (V v : getVertices()) {
+				for (V v : getGraph().getVertices()) {
 					setLocation(v, coords.get("layoutvert_" + v.getName()));
 				}
 			}

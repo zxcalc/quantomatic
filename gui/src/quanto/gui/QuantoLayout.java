@@ -46,7 +46,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 					// clean up the locked set, removing old vertices
 					Set<String> newLocked = new HashSet<String>(lockedNames.size());
 					
-					for (QVertex v : getVertices()) {
+					for (QVertex v : getGraph().getVertices()) {
 						if (!lockedNames.contains(v.getName())) {
 							setLocation(v, coords.get("layoutvert_" + v.getName()));
 						} else {
