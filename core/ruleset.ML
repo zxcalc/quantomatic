@@ -19,6 +19,10 @@ sig
     val deactivate_rule : Rule.Name.name -> T -> T
     val delete_rule : Rule.Name.name -> T -> T
 
+    val add_rule : Rule.T -> T -> T
+    val add_named_rule : (Rule.Name.name * Rule.T) -> T -> (Rule.Name.name * T)
+    val update_rule : (Rule.Name.name * Rule.T) -> T -> T
+    
     val lookup_rule : T -> Rule.Name.name -> Rule.T option
     val list_of_rules : T -> Rule.Name.name list
 end
@@ -55,7 +59,21 @@ fun activate_rule name rules = onoff_rule true name rules
 fun deactivate_rule name rules = onoff_rule false name rules
 fun delete_rule name rules = rules |> Rule.Name.NTab.delete name
 
+      
+fun update_rule (name, newrule) rules = 
+  Rule.Name.NTab.update (name, (newrule,true)) rules
 
+(* add a new rule to table *) 
+fun add_named_rule (name,rule) rules = 
+  Rule.Name.NTab.add (name,(rule,true)) rules
+  
+ fun add_rule rule rules = 
+    let val (n,tab) = Rule.Name.NTab.new_name Rule.Name.default_name rules
+    in
+      update_rule (n,rule) tab
+    end
+
+  
 (* apply rules to whole graph *)
 fun apply_rules rules g = 
 (*     Seq.append 
