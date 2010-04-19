@@ -19,8 +19,7 @@ implements MouseListener, MouseMotionListener {
 
 	public void mouseClicked(MouseEvent e) {
 		QuantoGraph gr = igv.getGraph();
-		LockableBangBoxLayout<QVertex, QEdge> ql = igv.getQuantoLayout();
-		Point2D pt = igv.getRenderContext()
+		Point2D pt = igv.getVisualization().getRenderContext()
 			.getMultiLayerTransformer().inverseTransform(e.getPoint());
 		
 		
@@ -30,7 +29,7 @@ implements MouseListener, MouseMotionListener {
 		
 		synchronized (gr) {
 			for (BangBox bb : gr.getBangBoxes()) {
-				Rectangle2D rect = ql.transformBangBox(bb);
+				Rectangle2D rect = igv.getVisualization().transformBangBox(bb);
 				if (rect.contains(pt)) {
 					System.out.printf("Found !-box: %s\n", bb.getName());
 					igv.getPickedBangBoxState().pick(bb, true);

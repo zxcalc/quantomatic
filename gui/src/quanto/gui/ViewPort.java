@@ -83,7 +83,7 @@ public class ViewPort extends JPanel {
 				throw new QuantoCore.FatalError(
 						"Attempted to focus a view that is not a JComponent!");
 			JComponent av = (JComponent)activeView;
-			
+
 			add(av, BorderLayout.CENTER);
 			if (view.equals("test-split-pane"))
 				System.out.println("adding view:" + view);

@@ -58,13 +58,13 @@ public class QuantoCore {
 			ProcessBuilder pb;
 			pb = new ProcessBuilder("quanto-core");
 
-			//System.getProperty("user.dir");
-			//System.out.println("user.dir: " + System.getProperty("user.dir"));
-
-			// add extra macos packaged program path
-			Map<String,String> env = pb.environment();
-			String path = env.get("PATH");
-			env.put("PATH",path + File.pathSeparator + appName + "/Contents/MacOS/quanto-core-app"); 
+                        if (QuantoApp.isMac)
+                        {
+                            // add extra macos packaged program path
+                            Map<String,String> env = pb.environment();
+                            String path = env.get("PATH");
+                            env.put("PATH",path + File.pathSeparator + appName + "/Contents/MacOS/quanto-core-app");
+                        }
 			
 			pb.redirectErrorStream(true);
 			output.println("Starting process...");

@@ -101,6 +101,10 @@ implements InteractiveView {
 		add(splitPane, BorderLayout.CENTER);
 		setSaved(true);
 	}
+
+        public boolean hasExpandingWorkspace() {
+            return false;
+        }
 	
 	private void updateFocus() {
 		InteractiveGraphView focusMe, unfocusMe;

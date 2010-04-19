@@ -33,7 +33,7 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		}
 		
 	}
-	
+
 	public ConsoleView() {
         this.setLayout(new BorderLayout());
         history = new Stack<String>();

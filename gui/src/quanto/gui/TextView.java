@@ -11,7 +11,6 @@ public class TextView extends JPanel implements InteractiveView {
 	//private String title;
 	private JTextArea textArea;
 	
-	
 	public TextView(String text) {
 		//this.title = title;
 		textArea = new JTextArea();
