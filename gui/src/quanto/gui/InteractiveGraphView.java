@@ -789,7 +789,11 @@ public class InteractiveGraphView extends GraphView
 
 	public void showRewrites() {
 		try {
-			getCore().attach_rewrites(getGraph(), viewer.getPickedVertexState().getPicked());
+			Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
+			if (picked.isEmpty())
+				getCore().attach_rewrites(getGraph(), getGraph().getVertices());
+			else
+				getCore().attach_rewrites(getGraph(), picked);
 			JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 			rewrites.setVisible(true);
 		}
