@@ -22,6 +22,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.decorators.AbstractEdgeShapeTransformer;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape.IndexedRendering;
+import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
@@ -37,6 +38,8 @@ import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.Stroke;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -63,6 +66,13 @@ public class GraphVisualizationViewer
 	private boolean boundsPaintingEnabled = false;
 	private LockableBangBoxLayout<QVertex, QEdge> layout;
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
+	/**
+	 * Holds the state of which bang boxes of the graph are currently
+	 * "picked"
+	 */
+	protected PickedState<BangBox> pickedBangBoxState;
+	private Color pageBackground = new Color(0.99f, 0.99f, 0.99f);
+
 
 	public GraphVisualizationViewer(QuantoGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoLayout(graph) : new QuantoLayout(graph));
@@ -89,6 +99,7 @@ public class GraphVisualizationViewer
 
 		bangBoxPainter = new BangBoxPaintable();
 		addPreRenderPaintable(bangBoxPainter);
+		setPickedBangBoxState(new MultiPickedState<BangBox>());
 	}
 
 	private void setupRenderContext(RenderContext<QVertex, QEdge> context) {
@@ -253,10 +264,6 @@ public class GraphVisualizationViewer
 		this.layout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
 	}
 
-	public void setPickedBangBoxState(PickedState<BangBox> state) {
-		bangBoxPainter.setPickedState(state);
-	}
-
 	/**
 	 * Draw a bounding box around the graph.
 	 */
@@ -415,6 +422,35 @@ public class GraphVisualizationViewer
 		repaint();
 	}
 
+	public void setPickedBangBoxState(PickedState<BangBox> pickedBangBoxState) {
+		if (pickEventListener != null && this.pickedBangBoxState != null) {
+			this.pickedBangBoxState.removeItemListener(pickEventListener);
+		}
+		this.pickedBangBoxState = pickedBangBoxState;
+		if (pickEventListener == null) {
+			pickEventListener = new ItemListener() {
+				public void itemStateChanged(ItemEvent e) {
+					repaint();
+				}
+			};
+		}
+		pickedBangBoxState.addItemListener(pickEventListener);
+		bangBoxPainter.setPickedState(pickedBangBoxState);
+	}
+
+	public PickedState<BangBox> getPickedBangBoxState() {
+		return pickedBangBoxState;
+	}
+
+	public Color getPageBackground() {
+		return pageBackground;
+	}
+
+	public void setPageBackground(Color pageBackground) {
+		this.pageBackground = pageBackground;
+		repaint();
+	}
+
 	/**
 	 * A red box that surrounds the graph. NOTE: this doesn't appear correctly if the graph is
 	 * transformed.
@@ -426,7 +462,7 @@ public class GraphVisualizationViewer
 			Color oldColor = g.getColor();
 			Dimension size = layout.getSize();
 			Rectangle2D bounds = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
-			g.setColor(Color.white);
+			g.setColor(pageBackground);
 			gr.fill(bounds);
 			g.setColor(Color.black);
 			gr.draw(bounds);

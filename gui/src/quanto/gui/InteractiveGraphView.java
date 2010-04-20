@@ -1,5 +1,8 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.algorithms.layout.LayoutDecorator;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -31,9 +34,10 @@ import quanto.gui.QuantoApp.QuantoActionListener;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
+import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
+import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
-import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 
@@ -51,9 +55,7 @@ public class InteractiveGraphView extends GraphView
 	private volatile Thread rewriter = null;
 	private List<Rewrite> rewriteCache = null;
 	private JRadioButtonMenuItem rbEdgeMode;
-	private JRadioButtonMenuItem rbBangBoxMode;
 	private JRadioButtonMenuItem rbPickingMode;
-	private PickedState<BangBox> pickedBangBoxState;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -159,8 +161,8 @@ public class InteractiveGraphView extends GraphView
 	 */
 	private class RWMouse extends PluggableGraphMouse
 	{
-		private GraphMousePlugin pickingMouse, edgeMouse, bangBoxMouse;
-		private boolean pickingMouseActive, edgeMouseActive, bangBoxMouseActive;
+		private GraphMousePlugin pickingMouse, edgeMouse;
+		private boolean pickingMouseActive, edgeMouseActive;
 
 		public RWMouse() {
 			int mask = InputEvent.CTRL_MASK;
@@ -174,19 +176,11 @@ public class InteractiveGraphView extends GraphView
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new ConstrainedPickingGraphMousePlugin<QVertex, QEdge>(20, 20)
-			{
-				public void mouseEntered(MouseEvent e) {
-				}
-
-				public void mouseExited(MouseEvent e) {
-				}
-			};
+			pickingMouse = new BangBoxAwarePickerMousePlugin();
 			edgeMouse = new AddEdgeGraphMousePlugin<QVertex, QEdge>(
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK);
-			bangBoxMouse = new BangBoxGraphMousePlugin(InteractiveGraphView.this);
 			setPickingMouse();
 		}
 
@@ -196,9 +190,6 @@ public class InteractiveGraphView extends GraphView
 
 			pickingMouseActive = false;
 			remove(pickingMouse);
-
-			bangBoxMouseActive = false;
-			remove(bangBoxMouse);
 		}
 
 		public void setPickingMouse() {
@@ -215,23 +206,12 @@ public class InteractiveGraphView extends GraphView
 			InteractiveGraphView.this.repaint();
 		}
 
-		public void setBangBoxMouse() {
-			clearMouse();
-			bangBoxMouseActive = true;
-			add(bangBoxMouse);
-			InteractiveGraphView.this.repaint();
-		}
-
 		public boolean isPickingMouse() {
 			return pickingMouseActive;
 		}
 
 		public boolean isEdgeMouse() {
 			return edgeMouseActive;
-		}
-
-		public boolean isBangBoxMouse() {
-			return bangBoxMouseActive;
 		}
 
 		public ItemListener getItemListener() {
@@ -241,9 +221,6 @@ public class InteractiveGraphView extends GraphView
 					if (e.getStateChange() == ItemEvent.SELECTED) {
 						if (e.getSource() == rbEdgeMode) {
 							setEdgeMouse();
-						}
-						else if (e.getSource() == rbBangBoxMode) {
-							setBangBoxMouse();
 						}
 						else {
 							setPickingMouse();
@@ -263,11 +240,6 @@ public class InteractiveGraphView extends GraphView
 		this.core = core;
 		viewer.setLayoutSmoothingEnabled(true);
 
-		pickedBangBoxState = new MultiPickedState<BangBox>();
-		viewer.setPickedBangBoxState(pickedBangBoxState);
-
-		//JLabel lab = new JLabel("test");
-		//add(lab);
 		Relaxer r = viewer.getModel().getRelaxer();
 		if (r != null) {
 			r.setSleepTime(10);
@@ -286,9 +258,6 @@ public class InteractiveGraphView extends GraphView
 				if (graphMouse.isEdgeMouse()) {
 					g.drawString("EDGE MODE", 5, 15);
 				}
-				else if (graphMouse.isBangBoxMouse()) {
-					g.drawString("!-BOX MODE", 5, 15);
-				}
 				g.setColor(old);
 			}
 
@@ -299,6 +268,7 @@ public class InteractiveGraphView extends GraphView
 
 		viewer.addMouseListener(new MouseAdapter()
 		{
+			@Override
 			public void mousePressed(MouseEvent e) {
 				InteractiveGraphView.this.grabFocus();
 				super.mousePressed(e);
@@ -307,6 +277,7 @@ public class InteractiveGraphView extends GraphView
 
 		viewer.addKeyListener(new KeyAdapter()
 		{
+			@Override
 			public void keyPressed(KeyEvent e) {
 				// this listener only handles un-modified keys
 				if (e.getModifiers() != 0) {
@@ -353,14 +324,6 @@ public class InteractiveGraphView extends GraphView
 							}
 							else {
 								rbEdgeMode.setSelected(true);
-							}
-							break;
-						case KeyEvent.VK_N:
-							if (graphMouse.isBangBoxMouse()) {
-								rbPickingMode.setSelected(true);
-							}
-							else {
-								rbBangBoxMode.setSelected(true);
 							}
 							break;
 						case KeyEvent.VK_SPACE:
@@ -487,6 +450,7 @@ public class InteractiveGraphView extends GraphView
 		rbPickingMode.setMnemonic(KeyEvent.VK_T);
 		rbPickingMode.addItemListener(graphMouse.getItemListener());
 		mouseModeGroup.add(rbPickingMode);
+		rbPickingMode.setSelected(true);
 		graphMenu.add(rbPickingMode);
 
 
@@ -495,12 +459,6 @@ public class InteractiveGraphView extends GraphView
 		rbEdgeMode.addItemListener(graphMouse.getItemListener());
 		mouseModeGroup.add(rbEdgeMode);
 		graphMenu.add(rbEdgeMode);
-
-		rbBangBoxMode = new JRadioButtonMenuItem("Bang Box Mode");
-		rbBangBoxMode.setMnemonic(KeyEvent.VK_B);
-		rbBangBoxMode.addItemListener(graphMouse.getItemListener());
-		mouseModeGroup.add(rbBangBoxMode);
-		graphMenu.add(rbBangBoxMode);
 
 		graphMenu.addSeparator();
 
@@ -718,7 +676,7 @@ public class InteractiveGraphView extends GraphView
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().bbox_drop(getGraph(),
-						    getPickedBangBoxState().getPicked());
+						    viewer.getPickedBangBoxState().getPicked());
 				updateGraph();
 			}
 		});
@@ -733,7 +691,7 @@ public class InteractiveGraphView extends GraphView
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().bbox_kill(getGraph(),
-						    getPickedBangBoxState().getPicked());
+						    viewer.getPickedBangBoxState().getPicked());
 				updateGraph();
 			}
 		});
@@ -747,7 +705,7 @@ public class InteractiveGraphView extends GraphView
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().bbox_duplicate(getGraph(),
-							 getPickedBangBoxState().getPicked());
+							 viewer.getPickedBangBoxState().getPicked());
 				updateGraph();
 			}
 		});
@@ -1173,11 +1131,148 @@ public class InteractiveGraphView extends GraphView
 		return kill;
 	}
 
-	public PickedState<BangBox> getPickedBangBoxState() {
-		return pickedBangBoxState;
-	}
-
 	public boolean isSaved() {
 		return getGraph().isSaved();
+	}
+
+	static class BangBoxAwarePickerMousePlugin
+		extends ConstrainedPickingGraphMousePlugin<QVertex, QEdge>
+	{
+		protected BangBox bangBox;
+
+		public BangBoxAwarePickerMousePlugin() {
+			super(20, 20);
+		}
+
+		private BangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y)
+		{
+			while (layout instanceof LayoutDecorator)
+			{
+				layout = ((LayoutDecorator<QVertex, QEdge>)layout).getDelegate();
+			}
+			try
+			{
+				LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>)layout;
+				QuantoGraph graph = (QuantoGraph)realLayout.getGraph();
+				synchronized (graph) {
+					for (BangBox bb : graph.getBangBoxes()) {
+						Rectangle2D rect = realLayout.transformBangBox(bb);
+						if (rect.contains(x, y)) {
+							return bb;
+						}
+					}
+				}
+			}
+			catch (ClassCastException ex)
+			{
+				System.err.println("When finding bang box: " + ex.getMessage());
+			}
+			return null;
+		}
+
+		@Override
+		@SuppressWarnings("unchecked")
+		public void mousePressed(MouseEvent e) {
+			down = e.getPoint();
+			VisualizationViewer<QVertex, QEdge> vv = (VisualizationViewer) e.getSource();
+			GraphElementAccessor<QVertex, QEdge> pickSupport = vv.getPickSupport();
+			PickedState<QVertex> pickedVertexState = vv.getPickedVertexState();
+			PickedState<QEdge> pickedEdgeState = vv.getPickedEdgeState();
+			PickedState<BangBox> pickedBangBoxState = ((GraphVisualizationViewer)vv).getPickedBangBoxState();
+			if (pickSupport != null && pickedVertexState != null) {
+				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
+				if (e.getModifiers() == modifiers) {
+					rect.setFrameFromDiagonal(down, down);
+					// p is the screen point for the mouse event
+					Point2D ip = e.getPoint();
+
+					vertex = pickSupport.getVertex(layout, ip.getX(), ip.getY());
+					if (vertex != null) {
+						if (pickedVertexState.isPicked(vertex) == false) {
+							pickedVertexState.clear();
+							pickedEdgeState.clear();
+							pickedBangBoxState.clear();
+							pickedVertexState.pick(vertex, true);
+						}
+						// layout.getLocation applies the layout transformer so
+						// q is transformed by the layout transformer only
+						Point2D q = layout.transform(vertex);
+						// transform the mouse point to graph coordinate system
+						Point2D gp = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(Layer.LAYOUT, ip);
+
+						offsetx = (float) (gp.getX() - q.getX());
+						offsety = (float) (gp.getY() - q.getY());
+					}
+					else if ((edge = pickSupport.getEdge(layout, ip.getX(), ip.getY())) != null) {
+						pickedEdgeState.clear();
+						pickedVertexState.clear();
+						pickedBangBoxState.clear();
+						pickedEdgeState.pick(edge, true);
+					}
+					else if ((bangBox = getBangBox(layout, ip.getX(), ip.getY())) != null) {
+						pickedEdgeState.clear();
+						pickedVertexState.clear();
+						pickedBangBoxState.clear();
+						pickedBangBoxState.pick(bangBox, true);
+					}
+					else {
+						vv.addPostRenderPaintable(lensPaintable);
+						pickedEdgeState.clear();
+						pickedVertexState.clear();
+						pickedBangBoxState.clear();
+					}
+
+				}
+				else if (e.getModifiers() == addToSelectionModifiers) {
+					vv.addPostRenderPaintable(lensPaintable);
+					rect.setFrameFromDiagonal(down, down);
+					Point2D ip = e.getPoint();
+					vertex = pickSupport.getVertex(layout, ip.getX(), ip.getY());
+					if (vertex != null) {
+						boolean wasThere = pickedVertexState.pick(vertex, !pickedVertexState.isPicked(vertex));
+						if (wasThere) {
+							vertex = null;
+						}
+						else {
+
+							// layout.getLocation applies the layout transformer so
+							// q is transformed by the layout transformer only
+							Point2D q = layout.transform(vertex);
+							// translate mouse point to graph coord system
+							Point2D gp = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(Layer.LAYOUT, ip);
+
+							offsetx = (float) (gp.getX() - q.getX());
+							offsety = (float) (gp.getY() - q.getY());
+						}
+					}
+					else if ((edge = pickSupport.getEdge(layout, ip.getX(), ip.getY())) != null) {
+						pickedEdgeState.pick(edge, !pickedEdgeState.isPicked(edge));
+					}
+					else if ((bangBox = getBangBox(layout, ip.getX(), ip.getY())) != null) {
+						pickedBangBoxState.pick(bangBox, !pickedBangBoxState.isPicked(bangBox));
+					}
+				}
+			}
+			if (vertex != null) {
+				e.consume();
+			}
+
+		}
+
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			super.mouseReleased(e);
+			bangBox = null;
+		}
+
+		@Override
+		public void mouseEntered(MouseEvent e) {
+			// don't change the cursor
+		}
+
+		@Override
+		public void mouseExited(MouseEvent e) {
+			// don't change the cursor
+		}
 	}
 }
