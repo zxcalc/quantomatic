@@ -41,6 +41,7 @@ import java.awt.Stroke;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
@@ -48,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import org.apache.commons.collections15.Predicate;
 import org.apache.commons.collections15.Transformer;
@@ -628,8 +630,24 @@ public class GraphVisualizationViewer
 					lab.setBackground(col);
 					lab.setOpaque(true);
 				}
-
-				return lab;
+				
+				JPanel pan = new JPanel();
+				pan.setLayout(null);
+				pan.setOpaque(false);
+				pan.add(lab);
+				
+				Dimension sz = lab.getPreferredSize();
+				int w = sz.width;
+				int h = sz.height;
+				
+				Line2D dist = new Line2D.Double(0, 0, 0, 20);
+				dist = (Line2D)getRenderContext().getMultiLayerTransformer().transform(dist);
+				int sep = (int)(dist.getY2()-dist.getY1());
+				
+				lab.setBounds(0, 2*sep, w, h);
+				pan.setBounds(0, 0, w, 2*sep + h);
+				
+				return pan;
 			}
 			else {
 				return new JLabel("");

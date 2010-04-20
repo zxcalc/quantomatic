@@ -4,7 +4,7 @@ import java.awt.Color;
 
 import edu.uci.ics.jung.contrib.HasName;
 
-public class QVertex implements HasName {
+public class QVertex implements HasName, Comparable<QVertex> {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
 	private String name, angle;
@@ -74,6 +74,10 @@ public class QVertex implements HasName {
 	
 	public boolean isAngleVertex() {
 		return (vertexType == Type.RED || vertexType == Type.GREEN);
+	}
+
+	public int compareTo(QVertex o) {
+		return getName().compareTo(o.getName());
 	}
 	
 }

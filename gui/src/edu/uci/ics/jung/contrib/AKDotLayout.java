@@ -31,14 +31,15 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	List<Integer> edgesCopy;
 	int badness;
 	Ordering bestOrdering;
-	double xBestLength;
+	int xBestLength;
 	public int nodeSeparation;
 	public int rankSeparation;
+	private int coordPrecision;
 	public static final int MAX_RANK_ITERATIONS = 10;
 	public static final int CYCLE_SIZE = 5;
 	
-	public static final int MAX_ORDER_ITERATIONS = 10;
-	public static final int MAX_POSITION_ITERATIONS = 8;
+	public static final int MAX_ORDER_ITERATIONS = 8;
+	public static final int MAX_POSITION_ITERATIONS = 16;
 	
 	public static final int OMEGA_RR = 1;
 	public static final int OMEGA_VR = 2;
@@ -56,13 +57,13 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	public void initialize() {
 		long tm = System.currentTimeMillis();
 		
-		nodeSeparation = 50;
-		rankSeparation = 50;
+		nodeSeparation = 75;
+		rankSeparation = 60;
 		
 		DirectedGraph<V,E> graph = (DirectedGraph<V,E>)getGraph();
 		List<Set<V>> components = getComponentsForCut(graph, null);
 		
-		System.out.println("Processing " + components.size() + " component(s).");
+		//System.out.println("Processing " + components.size() + " component(s).");
 		
 		//List<AKDotLayout<V,E>> subLayouts = new ArrayList<AKDotLayout<V,E>>();
 		double minX = (double)nodeSeparation;
@@ -144,20 +145,28 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		}
 	}
 	
+	public static <Elem> Collection<Elem> trySortedSet(Collection<Elem> coll) {
+		Collection<Elem> sorted;
+		try {
+			sorted = new TreeSet<Elem>(coll);
+		} catch (ClassCastException e) {
+			sorted = coll;
+		}
+		return sorted;
+	}
 	
 	private void doLayout() {
 		Graph<V, E> graph = getGraph();
 		if (graph.getVertexCount()==0) return;
-		System.out.printf("graph (%d, %d)\n", graph.getVertexCount(), graph.getEdgeCount());
-		
+		//System.out.printf("graph (%d, %d)\n", graph.getVertexCount(), graph.getEdgeCount());
 		
 		dagify();
 		normalize(); // for debug purposes
-		System.out.println("init ranks: " + ranks);
+		//System.out.println("init ranks: " + ranks);
 		
 		rank();
-		System.out.println("final ranks: " + ranks);
-		System.out.println("max rank: " + maxRank);
+		//System.out.println("final ranks: " + ranks);
+		//System.out.println("max rank: " + maxRank);
 		
 		ordering();
 		position();
@@ -170,20 +179,23 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		inverseVertexTable = new HashMap<V, Integer>();
 		
 		edgeCounter = 0;
-		V root = getGraph().getVertices().iterator().next();
+		
+		Collection<V> srt = trySortedSet(getGraph().getVertices());
+		V root = srt.iterator().next();
+		
 		inverseVertexTable.put(root, 0);
 		vertexTable.add(root);
 		dag.addVertex(0);
 		addToDag(root, 0, 0);
 		
-		System.out.printf("dag (%d, %d)\n", dag.getVertexCount(), dag.getEdgeCount());
-		System.out.println(dag);
+		//System.out.printf("dag (%d, %d)\n", dag.getVertexCount(), dag.getEdgeCount());
+		//System.out.println(dag);
 	}
 	
 	private void addToDag(V vertex, int vertexId, int rnk) {
 		Graph<V, E> graph = getGraph();
 		ranks.put(vertexId, rnk);
-		for (E in : graph.getInEdges(vertex)) {
+		for (E in : trySortedSet(graph.getInEdges(vertex))) {
 			V src = graph.getSource(in);
 			if (inverseVertexTable.containsKey(src)) {
 				int srcId = inverseVertexTable.get(src);
@@ -207,7 +219,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			}
 		}
 		
-		for (E out : graph.getOutEdges(vertex)) {
+		for (E out : trySortedSet(graph.getOutEdges(vertex))) {
 			V dest = graph.getDest(out);
 			if (inverseVertexTable.containsKey(dest)) {
 				int destId = inverseVertexTable.get(dest);
@@ -260,7 +272,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		}
 		
 		while (updateCutValues()) {
-			System.out.println(cutValues);
+			//System.out.println(cutValues);
 			
 			// anti-cycling: once iter hits MAX_ITERATIONS, watch for CYCLE_SIZE
 			//   more iterations to find a local minimum. Try to break on that local
@@ -278,7 +290,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			
 			++iter;
 		}
-		System.out.println(cutValues);
+		//System.out.println(cutValues);
 		
 //		System.out.printf("final tree (%d, %d) (comps: %d)\n",
 //				tree.getVertexCount(), tree.getEdgeCount(),
@@ -525,6 +537,8 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		
 		ord = initOrdering(false);
 		findBestOrdering(ord);
+		
+		for(int i = 0; i < 8; ++i) bestOrdering.transpose(i);
 	}
 	
 	private void initVirtualGraph() {
@@ -568,7 +582,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	private void findBestOrdering(Ordering ord) {
 		for (int i = 0; i < MAX_ORDER_ITERATIONS; ++i) {
 			ord.wmedian(i);
-			ord.transpose();
+			ord.transpose(i);
 			ord.updateCrossings();
 			System.out.println("crossings: " + ord.crossings);
 			if (ord.crossings < bestOrdering.crossings) {
@@ -580,28 +594,41 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	
 	private Ordering initOrdering(boolean direction) {
 		Ordering ord = new Ordering(maxRank+1, virtualGraph);
-		int root = -1;
-		for (int v : tree.getVertices()) {
-			if (( direction && ranks.get(v)==0) ||
-				(!direction && ranks.get(v)==maxRank))
-			{
-				root = v;
-				break;
+		Queue<Integer> q = new LinkedList<Integer>();
+		Collection<Integer> adjacent;
+		for (Integer max : tree.getVertices()) {
+			adjacent = (direction) ? tree.getInEdges(max) : tree.getOutEdges(max);
+			if (adjacent.size() ==0) { // minimal (or maximal) vertex
+				q.add(max);
+				Integer v;
+				while ((v = q.poll()) != null) {
+					if (!ord.contains(v)) {
+						ord.add(ranks.get(v), v);
+						adjacent = (direction) ? tree.getOutEdges(v) : tree.getInEdges(v);
+						
+						for (Integer e : adjacent) {
+							Integer v1 = tree.getOpposite(v, e);
+							
+							// note this check is performed when v1 is added _and_ removed
+							if (!ord.contains(v1)) q.add(v1);
+						}
+					}
+				}
 			}
 		}
 		
-		orderTreeVertex(root, ord);
+		//orderTreeVertex(root, ord);
 		ord.updateCrossings();
 		
 		return ord;
 	}
 
-	private void orderTreeVertex(int v, Ordering ord) {
-		if (!ord.contains(v)) {
-			ord.add(ranks.get(v), v);
-			for (int v1 : tree.getNeighbors(v)) orderTreeVertex(v1, ord);
-		}
-	}
+//	private void orderTreeVertex(int v, Ordering ord) {
+//		if (!ord.contains(v)) {
+//			ord.add(ranks.get(v), v);
+//			for (int v1 : tree.getNeighbors(v)) orderTreeVertex(v1, ord);
+//		}
+//	}
 	
 	private void position() {
 		yCoordinate();
@@ -620,10 +647,17 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 
 	private void xCoordinate() {
 		int[] xCoords = initXCoord();
+		
+		coordPrecision = 4;
+		
+		for (int i = 0; i < xCoords.length; ++i) {
+			xCoords[i] <<= coordPrecision;
+		}
+		
 		xBestCoords = new int[xCoords.length];
 		for (int i = 0; i < xBestCoords.length; ++i) xBestCoords[i] = xCoords[i];
 		xBestLength = xLength(xBestCoords);
-		double len;
+		int len;
 		for (int i = 0; i < MAX_POSITION_ITERATIONS; ++i) {
 			medianPos(i, xCoords);
 			minEdge(i, xCoords);
@@ -632,13 +666,35 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			packCut(i, xCoords);
 			
 			len = xLength(xCoords);
-			if (len < xBestLength) {
+			if (len <= xBestLength) {
 				xBestLength = len;
 				for (int j = 0; j < xCoords.length; ++j) {
 					xBestCoords[j] = xCoords[j];
 				}
 			}
 		}
+		
+		for (int i = 0; i < xCoords.length; ++i) {
+			xBestCoords[i] >>= coordPrecision;
+		}
+		
+		coordPrecision = 0;
+		
+		normaliseXCoords();
+	}
+	
+	private void normaliseXCoords() {
+		int minPos = Integer.MAX_VALUE;
+		int maxPos = Integer.MIN_VALUE;
+		for (int c : xBestCoords) {
+			if (c < minPos) minPos = c;
+			if (c > maxPos) maxPos = c;
+		}
+		
+		for (int i = 0; i < xBestCoords.length; ++i) {
+			xBestCoords[i]-=minPos;
+		}
+		width = maxPos - minPos;
 	}
 	
 	private int[] initXCoord() {
@@ -649,13 +705,14 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			if (rank.size() > maxRankWidth) maxRankWidth = rank.size();
 		}
 		
-		width = (maxRankWidth-1) * nodeSeparation;
-		height = (bestOrdering.numRanks()-1) * rankSeparation;
+		width = (maxRankWidth-1) * (nodeSeparation);
+		height = (bestOrdering.numRanks()-1) * (rankSeparation);
 		
 		for (int i = 0; i < bestOrdering.numRanks(); ++i) {
 			List<Integer> rank = bestOrdering.lists[i];
+			int offset = (maxRankWidth - rank.size()) * (nodeSeparation<<coordPrecision)/2;
 			for (int j = 0; j < rank.size(); ++j) {
-				xCoords[rank.get(j)] = nodeSeparation * j;
+				xCoords[rank.get(j)] = offset + ((nodeSeparation<<coordPrecision) * j);
 			}
 		}
 		
@@ -664,44 +721,119 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	
 	private int median(List<Integer> lst) {
 		if (lst.size()%2 == 0) {
-			return lst.get(lst.size()/2-1) + lst.get(lst.size()/2);
+			return (lst.get(lst.size()/2-1) + lst.get(lst.size()/2))/2;
 		} else {
 			return lst.get(lst.size()/2);
 		}
 	}
 	
+	private int mean(List<Integer> lst) {
+		int tot = 0;
+		for (int val : lst) {
+			tot += val;
+		}
+		return tot / lst.size();
+	}
+	
 	private void medianPos(int iter, int[] coords) {
-		for (int r = bestOrdering.numRanks()-2; r >= 0; --r) {
+		int start, end, dir;
+		if (iter % 4 < 2) {
+			start = 0;
+			end = bestOrdering.numRanks()-1;
+			dir = 1;
+		} else {
+			start = bestOrdering.numRanks()-1;
+			end = 0;
+			dir = -1;
+		}
+		
+		int nudgeSize = 4;
+		
+		for (int r = start; r * dir <= end * dir; r += dir) {
 			List<Integer> rnk = bestOrdering.lists[r];
-			int totalOffset = 0;
-			int num = 0;
+//			int totalOffset = 0;
+//			int num = 0;
 			
-			for (int v : rnk) {
-				List<Integer> ch = new ArrayList<Integer>();
-				for (int n : virtualGraph.getNeighbors(v)) {
-					if (bestOrdering.ranks.get(n) == r+1) {
-						ch.add(coords[n]);
-					}
-				}
-				
-				Collections.sort(ch);
-				
-				if (!ch.isEmpty()) {
-					totalOffset = median(ch) - coords[v];
-					++num;
-				}
+			int minPos;
+			int maxPos;
+			int mid;
+			if (rnk.size() % 2 == 0) {
+				mid = rnk.size()/2 - iter%2;
+			} else {
+				mid = rnk.size()/2;
 			}
 			
-			int shift = (num==0) ? 0 : totalOffset/num;
-			for (int v : rnk) {
-				coords[v] += shift;
+			// place the center node
+			List<Integer> ch = new ArrayList<Integer>();
+			int v = rnk.get(mid);
+			for (int n : virtualGraph.getNeighbors(v))ch.add(coords[n]);
+			Collections.sort(ch);
+			
+			int newPos;
+			int nudge;
+			int goal;
+			if (!ch.isEmpty()) {
+				goal = (iter%2==0) ? median(ch) : mean(ch);
+				nudge = (goal - coords[v]) / nudgeSize;
+				coords[v] += nudge;
+			}
+			
+			
+			maxPos = coords[v] - (nodeSeparation<<coordPrecision);
+			minPos = coords[v] + (nodeSeparation<<coordPrecision);
+			
+			for (int i = 1; i < rnk.size()/2 + 1; ++i) {
+				
+				// place a node to the left of mid
+				
+				if (mid - i > 0) {
+					v = rnk.get(mid - i);
+					
+					ch = new ArrayList<Integer>();
+					for (int n : virtualGraph.getNeighbors(v))ch.add(coords[n]);
+					Collections.sort(ch);
+					
+					newPos = coords[v];
+					if (!ch.isEmpty()) {
+						goal = (iter%2==0) ? median(ch) : mean(ch);
+						nudge = (goal - coords[v]) / nudgeSize;
+						newPos += nudge;
+					}
+					
+					if (newPos > maxPos) newPos = maxPos;
+					coords[v] = newPos;
+					maxPos = newPos - (nodeSeparation<<coordPrecision);
+				}
+				
+				// place a node to the right of mid
+				
+				if (mid + i < rnk.size()) {
+					v = rnk.get(mid + i);
+					
+					ch = new ArrayList<Integer>();
+					for (int n : virtualGraph.getNeighbors(v))ch.add(coords[n]);
+					Collections.sort(ch);
+					
+					newPos = coords[v];
+					if (!ch.isEmpty()) {
+						goal = (iter%2==0) ? median(ch) : mean(ch);
+						nudge = (goal - coords[v]) / nudgeSize;
+						newPos += nudge;
+					}
+					
+					if (newPos < minPos) newPos = minPos;
+					coords[v] = newPos;
+					minPos = newPos + (nodeSeparation<<coordPrecision);
+				}
 			}
 		}
 		
 		// normalise, so no negative coords
-		int minCoord = Integer.MAX_VALUE;
-		for (int x : coords) if (x < minCoord) minCoord = x;
-		for (int i = 0; i < coords.length; ++i) coords[i] -= minCoord;
+//		int minCoord = Integer.MAX_VALUE;
+//		for (int x : coords) if (x < minCoord) minCoord = x;
+//		
+//		if (minCoord != 0)
+//			for (int i = 0; i < coords.length; ++i) coords[i] -= minCoord;
 	}
 	
 	private void minEdge(int iter, int[] coords) {
@@ -750,7 +882,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		}
 	}
 	
-	public static void main(String[] args) {
+	public static void main2(String[] args) {
 		DirectedGraph<Integer,Integer> gr =
 			new DirectedSparseMultigraph<Integer, Integer>();
 		
@@ -837,6 +969,15 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			lists[rnk].add(v);
 		}
 		
+		private void setVertex(int rnk, int pos, int v) {
+			lists[rnk].set(pos, v);
+			indices.put(v, pos);
+		}
+		
+		private int getVertex(int rank, int j) {
+			return lists[rank].get(j);
+		}
+		
 		public boolean contains(int v) {
 			return indices.keySet().contains(v);
 		}
@@ -908,7 +1049,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 				
 				Arrays.sort(medians);
 				for (int j = 0; j < rnk.size(); ++j) {
-					rnk.set(j, medians[j].vertex);
+					setVertex(r, j, medians[j].vertex);
 				}
 			}
 		}
@@ -928,7 +1069,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 				} else {
 					if (median > o.median) return 1;
 					else if (median < o.median) return -1;
-					else return ((iteration)%3)-1;
+					else return 0;
 				}
 			}
 		}
@@ -959,32 +1100,55 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			return pos;
 		}
 
-		public void transpose() {
+		public void transpose(int iter) {
 			int cross1, cross2;
 			int tmp;
 			boolean improved = true;
 			
+			int start, end, dir;
+			
+			if (iter % 4 < 2) {
+				start = 0;
+				end = numRanks()-1;
+				dir = 1;
+			} else {
+				start = numRanks()-1;
+				end = 0;
+				dir = -1;
+			}
+			
 			while (improved) {
 				improved = false;
-				for (int rank = 0; rank < lists.length-1; ++rank) {
-					cross1 = crossingsForRank(rank);
+				for (int rank = start; dir*rank <= dir*end; rank+=dir) {
+//					updateCrossings();
+//					cross1 = crossings;
+					cross1 = 0;
+					if (rank>0) cross1 += crossingsForRank(rank-1);
+					if (rank<numRanks()-1) cross1 += crossingsForRank(rank);
+					
 					for (int j = 0; j < lists[rank].size()-1; ++j) {
-						tmp = lists[rank].get(j+1);
-						lists[rank].set(j+1, lists[rank].get(j));
-						lists[rank].set(j, tmp);
-						cross2 = crossingsForRank(rank);
+						tmp = getVertex(rank, j+1);
+						setVertex(rank, j+1, getVertex(rank,j));
+						setVertex(rank, j, tmp); 
+						
+//						updateCrossings();
+//						cross2 = crossings;
+						cross2 = 0;
+						if (rank>0) cross2 += crossingsForRank(rank-1);
+						if (rank<numRanks()-1) cross2 += crossingsForRank(rank);
+						
+						
 						if (cross2 < cross1) {
 							improved = true;
 							cross1 = cross2;
 						} else {
-							tmp = lists[rank].get(j+1);
-							lists[rank].set(j+1, lists[rank].get(j));
-							lists[rank].set(j, tmp);
+							tmp = getVertex(rank, j+1);
+							setVertex(rank, j+1, getVertex(rank,j));
+							setVertex(rank, j, tmp);
 						}
 					}
 				}
 			}
 		}
 	}
-
 }

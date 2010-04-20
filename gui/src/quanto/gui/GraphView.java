@@ -1,15 +1,10 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
-import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-
 import javax.swing.JPanel;
-
-
-
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import java.awt.BorderLayout;

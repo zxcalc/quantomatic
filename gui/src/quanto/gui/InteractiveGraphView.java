@@ -1043,8 +1043,8 @@ public class InteractiveGraphView extends GraphView
 
 	public void saveGraphAs() {
 		int retVal = QuantoApp.getInstance().getFileChooser().showSaveDialog(this);
-		if (retVal == JFileChooser.APPROVE_OPTION) {
-			try {
+		if(retVal == JFileChooser.APPROVE_OPTION) {
+			try{
 				File f = QuantoApp.getInstance().getFileChooser().getSelectedFile();
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
 				core.save_graph(getGraph(), filename);
