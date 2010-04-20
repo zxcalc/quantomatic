@@ -25,6 +25,7 @@ import edu.uci.ics.jung.visualization.decorators.EdgeShape;
 import edu.uci.ics.jung.visualization.decorators.EdgeShape.IndexedRendering;
 import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
+import edu.uci.ics.jung.visualization.renderers.BasicVertexRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
@@ -139,13 +140,6 @@ public class GraphVisualizationViewer
 
 	private void setupRenderContext(RenderContext<QVertex, QEdge> context) {
 		final RenderContext<QVertex, QEdge> origContext = context;
-		context.setVertexFillPaintTransformer(
-			new Transformer<QVertex, Paint>()
-			{
-				public Paint transform(QVertex v) {
-					return v.getColor();
-				}
-			});
 
 		context.setParallelEdgeIndexFunction(
 			BalancedEdgeIndexFunction.<QVertex, QEdge>getInstance());
@@ -206,7 +200,7 @@ public class GraphVisualizationViewer
 						return Integer.toString(getGraph().getBoundaryIndex(v));
 					}
 					else if (v.getVertexType() == QVertex.Type.HADAMARD) {
-						return "H";
+						return null;
 					}
 					else {
 						return v.getAngle();
@@ -216,11 +210,16 @@ public class GraphVisualizationViewer
 
 		context.setVertexLabelRenderer(new AngleLabeler());
 
-		// FIXME: not sure what to do about this, since it isn't
-		// really part of the render context, but is linked to
-		// the previous line
 		getRenderer().getVertexLabelRenderer().setPosition(
 			VertexLabel.Position.CNTR);
+
+		context.setVertexFillPaintTransformer(
+			new Transformer<QVertex, Paint>()
+			{
+				public Paint transform(QVertex v) {
+					return v.getColor();
+				}
+			});
 
 		context.setVertexShapeTransformer(
 			new Transformer<QVertex, Shape>()
@@ -240,6 +239,27 @@ public class GraphVisualizationViewer
 					}
 				}
 			});
+
+		getRenderer().setVertexRenderer(new BasicVertexRenderer<QVertex, QEdge>() {
+			@Override
+			protected void paintShapeForVertex(
+				RenderContext<QVertex,QEdge> rc, QVertex v, Shape shape)
+			{
+				super.paintShapeForVertex(rc, v, shape);
+				if (v.getVertexType() == QVertex.Type.HADAMARD)
+				{
+					GraphicsDecorator g = rc.getGraphicsContext();
+					Paint oldPaint = g.getPaint();
+					g.setPaint(Color.BLACK);
+					Rectangle2D boxRect = shape.getBounds2D();
+					Rectangle2D textRect = g.getFontMetrics().getStringBounds("H", g.getDelegate());
+					double x = boxRect.getCenterX() - textRect.getCenterX();
+					double y = boxRect.getCenterY() - textRect.getCenterY();
+					g.drawString("H", (float)x, (float)y);
+					g.setPaint(oldPaint);
+				}
+			}
+		});
 	}
 
 	public QuantoGraph getGraph() {
