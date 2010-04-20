@@ -673,9 +673,15 @@ public class GraphVisualizationViewer
 				int w = sz.width;
 				int h = sz.height;
 				
-				Line2D dist = new Line2D.Double(0, 0, 0, 20);
-				dist = (Line2D)getRenderContext().getMultiLayerTransformer().transform(dist);
-				int sep = (int)(dist.getY2()-dist.getY1());
+				Point2D p1 = 
+					getRenderContext()
+					.getMultiLayerTransformer()
+					.transform(new Point2D.Double(0.0d,0.0d));
+				Point2D p2 =
+					getRenderContext()
+					.getMultiLayerTransformer()
+					.transform(new Point2D.Double(20.0d,0.0d));
+				int sep = (int)(p2.getX()-p1.getX());
 				
 				lab.setBounds(0, 2*sep, w, h);
 				pan.setBounds(0, 0, w, 2*sep + h);
