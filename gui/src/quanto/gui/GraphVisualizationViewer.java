@@ -16,6 +16,7 @@ import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
+import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.RenderContext;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
@@ -26,6 +27,7 @@ import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 import java.awt.BasicStroke;
@@ -102,6 +104,37 @@ public class GraphVisualizationViewer
 		bangBoxPainter = new BangBoxPaintable();
 		addPreRenderPaintable(bangBoxPainter);
 		setPickedBangBoxState(new MultiPickedState<BangBox>());
+
+		setPreferredSize(calculateGraphSize());
+	}
+
+	private Dimension calculateGraphSize()
+	{
+		Dimension size = layout.getSize();
+		Rectangle2D rect = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
+		getRenderContext().getMultiLayerTransformer().transform(rect);
+		size.setSize(rect.getWidth(), rect.getHeight());
+		return size;
+	}
+
+	/**
+	 * Compute a bounding box and scale such that the largest dimension fits within the
+	 * view port.
+	 */
+	public void zoomToFit(Dimension size) {
+		MutableTransformer mt = getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
+		Rectangle2D gb = getGraphBounds();
+		double centerX = size.getWidth() / 2.0;
+		double centerY = size.getHeight() / 2.0;
+		mt.translate(
+			centerX - gb.getCenterX(),
+			centerY - gb.getCenterY());
+		float scale = Math.min(
+			(float) (size.getWidth() / gb.getWidth()),
+			(float) (size.getHeight() / gb.getHeight()));
+		if (scale < 1) {
+			mt.scale(scale, scale, new Point2D.Double(centerX, centerY));
+		}
 	}
 
 	private void setupRenderContext(RenderContext<QVertex, QEdge> context) {
@@ -414,7 +447,7 @@ public class GraphVisualizationViewer
 			relaxer.relax();
 		}
 
-		setPreferredSize(layout.getSize());
+		setPreferredSize(calculateGraphSize());
 
 		revalidate();
 	}

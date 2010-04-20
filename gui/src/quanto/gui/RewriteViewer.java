@@ -51,8 +51,10 @@ public class RewriteViewer extends JFrame {
 			rwPanel.setLayout(new FlowLayout());
 			JLabel ruleName = new JLabel(rw.getName());
 			rwPanel.add(ruleName);
-			GraphView lhs = new GraphView(rw.getLhs(), new Dimension(100,100));
-			GraphView rhs = new GraphView(rw.getRhs(), new Dimension(100,100));
+			GraphVisualizationViewer lhs = new GraphVisualizationViewer(rw.getLhs());
+			GraphVisualizationViewer rhs = new GraphVisualizationViewer(rw.getRhs());
+			lhs.zoomToFit(new Dimension(100,100));
+			rhs.zoomToFit(new Dimension(100,100));
 			JButton apply = new JButton("=>");
 			rwPanel.setBackground(lhs.getBackground());
 			rwPanel.add(lhs);
@@ -61,7 +63,6 @@ public class RewriteViewer extends JFrame {
 			if (index == 0) focusMe = apply;
 			rwPanel.setBorder(new LineBorder(Color.black, 1));
 			panel.add(rwPanel);
-			lhs.zoomToFit(); rhs.zoomToFit();
 			
 			final int thisIndex = index;
 			

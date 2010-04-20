@@ -14,9 +14,14 @@ public class GraphView extends JPanel
 {
 	private static final long serialVersionUID = -1915610684250038897L;
 	protected GraphVisualizationViewer viewer;
+	private boolean hasScrollbars;
 
 	public GraphView(QuantoGraph g) {
 		this(g, new Dimension(800, 600));
+	}
+
+	public GraphView(QuantoGraph g, boolean scrollable) {
+		this(g, new Dimension(800, 600), scrollable);
 	}
 
 	public GraphView(QuantoGraph graph, Dimension size) {
@@ -25,6 +30,33 @@ public class GraphView extends JPanel
 
 		viewer = new GraphVisualizationViewer(graph);
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
+	}
+
+	public GraphView(QuantoGraph graph, Dimension size, boolean scrollable) {
+		super(new BorderLayout());
+		setPreferredSize(size);
+		hasScrollbars = scrollable;
+
+		viewer = new GraphVisualizationViewer(graph);
+		if (scrollable)
+			add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
+		else
+			add(viewer, BorderLayout.CENTER);
+	}
+
+	public boolean hasScrollbars() {
+		return hasScrollbars;
+	}
+
+	public void setHasScrollbars(boolean hasScrollbars) {
+		if (this.hasScrollbars != hasScrollbars)
+		{
+			if (hasScrollbars)
+				add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
+			else
+				add(viewer, BorderLayout.CENTER);
+			this.hasScrollbars = hasScrollbars;
+		}
 	}
 
 	public GraphVisualizationViewer getVisualization() {
@@ -44,19 +76,6 @@ public class GraphView extends JPanel
 	 * view port.
 	 */
 	public void zoomToFit() {
-		MutableTransformer mt = viewer.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
-		Rectangle2D gb = viewer.getGraphBounds();
-		Dimension vb = getSize();
-		double centerX = vb.getWidth() / 2.0;
-		double centerY = vb.getHeight() / 2.0;
-		mt.translate(
-			centerX - gb.getCenterX(),
-			centerY - gb.getCenterY());
-		float scale = Math.min(
-			(float) (vb.getWidth() / gb.getWidth()),
-			(float) (vb.getHeight() / gb.getHeight()));
-		if (scale < 1) {
-			mt.scale(scale, scale, new Point2D.Double(centerX, centerY));
-		}
+		viewer.zoomToFit(getSize());
 	}
 }
