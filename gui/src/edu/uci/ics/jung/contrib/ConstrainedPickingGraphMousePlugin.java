@@ -98,24 +98,25 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 	                       double dx, double dy)
 	{
 		Layout<QVertex, QEdge> layout = vv.getGraphLayout();
-		if (constrainingAction == constrainingAction.StopMovement)
+		double odx = 0.0;
+		double ody = 0.0;
+		// if the mouse has moved without taking nodes
+		// with it, because of the constraints, let it
+		// move back to its starting point (relative to
+		// the nodes) before moving again.
+		if (dx > 0 && xDragBounce < 0)
 		{
-			// if the mouse has moved without taking nodes
-			// with it, because of the constraints, let it
-			// move back to its starting point (relative to
-			// the nodes) before moving again.
-			if (dx > 0)
-			{
-				double xfer = Math.min(dx, -xDragBounce);
-				dx -= xfer;
-				xDragBounce += xfer;
-			}
-			if (dy > 0)
-			{
-				double xfer = Math.min(dy, -yDragBounce);
-				dy -= xfer;
-				yDragBounce += xfer;
-			}
+			double xfer = Math.min(dx, -xDragBounce);
+			dx -= xfer;
+			xDragBounce += xfer;
+			odx -= xfer;
+		}
+		if (dy > 0 && yDragBounce < 0)
+		{
+			double xfer = Math.min(dy, -yDragBounce);
+			dy -= xfer;
+			yDragBounce += xfer;
+			ody -= xfer;
 		}
 		PickedState<QVertex> ps = vv.getPickedVertexState();
 		Set<QVertex> picked = ps.getPicked();
@@ -129,18 +130,23 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 				farTop = Math.min(farTop, vp.getY());
 			}
 		}
-		if (constrainingAction == ConstrainingAction.StopMovement)
+		// record how far we moved without taking nodes
+		// with us, so we can bounce back later
+		if (farLeft + dx < leftConstraint) {
+			double diff = leftConstraint - (farLeft + dx);
+			xDragBounce -= diff;
+			dx += diff;
+			odx += diff;
+		}
+		if (farTop + dy < topConstraint) {
+			double diff = topConstraint - (farTop + dy);
+			yDragBounce -= diff;
+			dy += diff;
+			ody += diff;
+		}
+		if (constrainingAction == ConstrainingAction.StopMovement ||
+			(odx == 0.0 && ody == 0.0))
 		{
-			// record how far we moved without taking nodes
-			// with us, so we can bounce back later
-			if (farLeft + dx < leftConstraint) {
-				xDragBounce -= leftConstraint - (farLeft + dx);
-				dx = leftConstraint - farLeft;
-			}
-			if (farTop + dy < topConstraint) {
-				yDragBounce -= topConstraint - (farTop + dy);
-				dy = topConstraint - farTop;
-			}
 			for (QVertex v : ps.getPicked()) {
 				Point2D vp = layout.transform(v);
 				vp.setLocation(vp.getX() + dx, vp.getY() + dy);
@@ -149,34 +155,13 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 		}
 		else
 		{
-			double odx = 0.0;
-			double ody = 0.0;
-			if (farLeft + dx < leftConstraint) {
-				odx = leftConstraint - (farLeft + dx);
-				dx = leftConstraint - farLeft;
-			}
-			if (farTop + dy < topConstraint) {
-				ody = topConstraint - (farTop + dy);
-				dy = topConstraint - farTop;
-			}
-			if (odx > 0.0 || ody > 0.0)
-			{
-				for (QVertex v : vv.getGraphLayout().getGraph().getVertices()) {
-					Point2D vp = layout.transform(v);
-					if (picked.contains(v))
-						vp.setLocation(vp.getX() + dx, vp.getY() + dy);
-					else
-						vp.setLocation(vp.getX() + odx, vp.getY() + ody);
-					layout.setLocation(v, vp);
-				}
-			}
-			else
-			{
-				for (QVertex v : picked) {
-					Point2D vp = layout.transform(v);
+			for (QVertex v : vv.getGraphLayout().getGraph().getVertices()) {
+				Point2D vp = layout.transform(v);
+				if (picked.contains(v))
 					vp.setLocation(vp.getX() + dx, vp.getY() + dy);
-					layout.setLocation(v, vp);
-				}
+				else
+					vp.setLocation(vp.getX() + odx, vp.getY() + ody);
+				layout.setLocation(v, vp);
 			}
 		}
 	}
