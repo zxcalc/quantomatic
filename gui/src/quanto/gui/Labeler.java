@@ -59,13 +59,6 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		setBorder(new LineBorder(c,1));
 	}
 	
-	public void paint(Graphics g) { 
-        //Graphics2D g2 = (Graphics2D) g.create(); 
-        //g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
-        super.paint(g); 
-        //g2.dispose();
-    }
-	
 	//@Override
 	public void mouseClicked(MouseEvent e) {
 		if (e.getClickCount()==2) {
