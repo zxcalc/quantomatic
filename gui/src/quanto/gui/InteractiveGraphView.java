@@ -136,9 +136,15 @@ public class InteractiveGraphView extends GraphView
 
 				return new JLabel();
 			}
-			else {
-				return new JLabel((String) value);
+			else if (!(vertex instanceof QVertex) ||
+				((QVertex) vertex).getVertexType() != QVertex.Type.BOUNDARY)
+			{
+				JLabel label = new JLabel((String) value);
+				label.setOpaque(true);
+				label.setBackground(Color.white);
+				return label;
 			}
+			return new JLabel();
 		}
 
 		/**

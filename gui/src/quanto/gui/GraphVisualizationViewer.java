@@ -44,7 +44,6 @@ import java.awt.Stroke;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
@@ -52,7 +51,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.JTextField;
 import org.apache.commons.collections15.Predicate;
 import org.apache.commons.collections15.Transformer;
@@ -97,6 +95,9 @@ public class GraphVisualizationViewer
 		setBackground(new Color(0.97f, 0.97f, 0.97f));
 
 		setupRenderContext(getRenderContext());
+
+		getRenderer().getVertexLabelRenderer().setPosition(
+			VertexLabel.Position.S);
 
 		// For debugging: show a grid behind the graph
 		//addPreRenderPaintable(new GridPaintable(Color.gray, false));
@@ -210,9 +211,6 @@ public class GraphVisualizationViewer
 
 		context.setVertexLabelRenderer(new AngleLabeler());
 
-		getRenderer().getVertexLabelRenderer().setPosition(
-			VertexLabel.Position.CNTR);
-
 		context.setVertexFillPaintTransformer(
 			new Transformer<QVertex, Paint>()
 			{
@@ -229,7 +227,8 @@ public class GraphVisualizationViewer
 						String text = origContext.getVertexLabelTransformer().transform(v);
 						double width =
 							new JTextField(text).getPreferredSize().getWidth();
-						return new Rectangle2D.Double(-(width / 2), -6, width, 12);
+						width = Math.max(width, 14);
+						return new Rectangle2D.Double(-(width / 2), -7, width, 14);
 					}
 					else if (v.getVertexType() == QVertex.Type.HADAMARD) {
 						return new Rectangle2D.Double(-7, -7, 14, 14);
@@ -256,6 +255,19 @@ public class GraphVisualizationViewer
 					double x = boxRect.getCenterX() - textRect.getCenterX();
 					double y = boxRect.getCenterY() - textRect.getCenterY();
 					g.drawString("H", (float)x, (float)y);
+					g.setPaint(oldPaint);
+				}
+				else if (v.getVertexType() == QVertex.Type.BOUNDARY)
+				{
+					String index = rc.getVertexLabelTransformer().transform(v);
+					GraphicsDecorator g = rc.getGraphicsContext();
+					Paint oldPaint = g.getPaint();
+					g.setPaint(Color.BLACK);
+					Rectangle2D boxRect = shape.getBounds2D();
+					Rectangle2D textRect = g.getFontMetrics().getStringBounds(index, g.getDelegate());
+					double x = boxRect.getCenterX() - textRect.getCenterX();
+					double y = boxRect.getCenterY() - textRect.getCenterY();
+					g.drawString(index, (float)x, (float)y);
 					g.setPaint(oldPaint);
 				}
 			}
@@ -667,12 +679,14 @@ public class GraphVisualizationViewer
 				&& vertex instanceof QVertex) {
 				String val = TexConstants.translate((String) value);
 
-				JLabel lab = new JLabel(val);
-				Color col = null;
 				QVertex qv = (QVertex) vertex;
-				if (val.equals("0") && qv.getVertexType() != QVertex.Type.BOUNDARY) {
+				if (qv.isAngleVertex() && val.equals("0"))
+				{
 					return new JLabel();
 				}
+
+				JLabel lab = new JLabel(val);
+				Color col = null;
 				if (qv.getColor().equals(Color.red)) {
 					col = new Color(255, 170, 170);
 					lab.setBackground(col);
@@ -683,30 +697,8 @@ public class GraphVisualizationViewer
 					lab.setBackground(col);
 					lab.setOpaque(true);
 				}
-				
-				JPanel pan = new JPanel();
-				pan.setLayout(null);
-				pan.setOpaque(false);
-				pan.add(lab);
-				
-				Dimension sz = lab.getPreferredSize();
-				int w = sz.width;
-				int h = sz.height;
-				
-				Point2D p1 = 
-					getRenderContext()
-					.getMultiLayerTransformer()
-					.transform(new Point2D.Double(0.0d,0.0d));
-				Point2D p2 =
-					getRenderContext()
-					.getMultiLayerTransformer()
-					.transform(new Point2D.Double(20.0d,0.0d));
-				int sep = (int)(p2.getX()-p1.getX());
-				
-				lab.setBounds(0, 2*sep, w, h);
-				pan.setBounds(0, 0, w, 2*sep + h);
-				
-				return pan;
+
+				return lab;
 			}
 			else {
 				return new JLabel("");
