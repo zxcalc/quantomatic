@@ -1141,7 +1141,7 @@ public class InteractiveGraphView extends GraphView
 		protected BangBox bangBox;
 
 		public BangBoxAwarePickerMousePlugin() {
-			super(20, 20);
+			super(ConstrainingAction.MoveOthers, 20, 20);
 		}
 
 		private BangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y)
