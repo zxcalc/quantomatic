@@ -42,7 +42,9 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 
 public class InteractiveGraphView extends GraphView
-	implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView
+	implements 	AddEdgeGraphMousePlugin.Adder<QVertex>,
+				InteractiveView,
+				KeyListener
 {
 	private static final long serialVersionUID = 7196565776978339937L;
 	private QuantoCore core;
@@ -281,64 +283,8 @@ public class InteractiveGraphView extends GraphView
 			}
 		});
 
-		viewer.addKeyListener(new KeyAdapter()
-		{
-			@Override
-			public void keyPressed(KeyEvent e) {
-				// this listener only handles un-modified keys
-				if (e.getModifiers() != 0) {
-					return;
-				}
-
-				int delete = (QuantoApp.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
-				if (e.getKeyCode() == delete) {
-					try {
-						getCore().delete_edges(
-							getGraph(), viewer.getPickedEdgeState().getPicked());
-						getCore().delete_vertices(
-							getGraph(), viewer.getPickedVertexState().getPicked());
-						updateGraph();
-
-					}
-					catch (QuantoCore.ConsoleError err) {
-						errorDialog(err.getMessage());
-					}
-					finally {
-						// if null things are in the picked state, weird stuff
-						// could happen.
-						viewer.getPickedEdgeState().clear();
-						viewer.getPickedVertexState().clear();
-					}
-				}
-				else {
-					switch (e.getKeyCode()) {
-						case KeyEvent.VK_R:
-							addVertex(QVertex.Type.RED);
-							break;
-						case KeyEvent.VK_G:
-							addVertex(QVertex.Type.GREEN);
-							break;
-						case KeyEvent.VK_H:
-							addVertex(QVertex.Type.HADAMARD);
-							break;
-						case KeyEvent.VK_B:
-							addVertex(QVertex.Type.BOUNDARY);
-							break;
-						case KeyEvent.VK_E:
-							if (graphMouse.isEdgeMouse()) {
-								rbPickingMode.setSelected(true);
-							}
-							else {
-								rbEdgeMode.setSelected(true);
-							}
-							break;
-						case KeyEvent.VK_SPACE:
-							showRewrites();
-							break;
-					}
-				}
-			}
-		});
+		addKeyListener(this);
+		viewer.addKeyListener(this);
 
 		viewer.getRenderContext().setVertexStrokeTransformer(
 			new Transformer<QVertex, Stroke>()
@@ -1281,4 +1227,63 @@ public class InteractiveGraphView extends GraphView
 			// don't change the cursor
 		}
 	}
+
+	public void keyPressed(KeyEvent e) {
+		// this listener only handles un-modified keys
+		if (e.getModifiers() != 0) {
+			return;
+		}
+
+		int delete = (QuantoApp.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
+		if (e.getKeyCode() == delete) {
+			try {
+				getCore().delete_edges(
+					getGraph(), viewer.getPickedEdgeState().getPicked());
+				getCore().delete_vertices(
+					getGraph(), viewer.getPickedVertexState().getPicked());
+				updateGraph();
+
+			}
+			catch (QuantoCore.ConsoleError err) {
+				errorDialog(err.getMessage());
+			}
+			finally {
+				// if null things are in the picked state, weird stuff
+				// could happen.
+				viewer.getPickedEdgeState().clear();
+				viewer.getPickedVertexState().clear();
+			}
+		}
+		else {
+			switch (e.getKeyCode()) {
+				case KeyEvent.VK_R:
+					addVertex(QVertex.Type.RED);
+					break;
+				case KeyEvent.VK_G:
+					addVertex(QVertex.Type.GREEN);
+					break;
+				case KeyEvent.VK_H:
+					addVertex(QVertex.Type.HADAMARD);
+					break;
+				case KeyEvent.VK_B:
+					addVertex(QVertex.Type.BOUNDARY);
+					break;
+				case KeyEvent.VK_E:
+					if (graphMouse.isEdgeMouse()) {
+						rbPickingMode.setSelected(true);
+					}
+					else {
+						rbEdgeMode.setSelected(true);
+					}
+					break;
+				case KeyEvent.VK_SPACE:
+					showRewrites();
+					break;
+			}
+		}
+	}
+
+	public void keyReleased(KeyEvent e) {}
+
+	public void keyTyped(KeyEvent e) {}
 }
