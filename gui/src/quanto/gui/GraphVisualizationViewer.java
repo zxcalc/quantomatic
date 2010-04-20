@@ -10,6 +10,7 @@ import com.lowagie.text.pdf.ByteBuffer;
 import com.lowagie.text.pdf.PdfContentByte;
 import com.lowagie.text.pdf.PdfWriter;
 import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.Graph;
@@ -25,6 +26,7 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
+import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
@@ -51,7 +53,8 @@ import org.apache.commons.collections15.Transformer;
  *
  * @author alex
  */
-public class GraphVisualizationViewer extends VisualizationViewer<QVertex, QEdge>
+public class GraphVisualizationViewer
+       extends VisualizationViewer<QVertex, QEdge>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
 	private QuantoGraph graph;
@@ -79,6 +82,10 @@ public class GraphVisualizationViewer extends VisualizationViewer<QVertex, QEdge
 		setBackground(new Color(0.97f, 0.97f, 0.97f));
 
 		setupRenderContext(getRenderContext());
+
+		// For debugging: show a grid behind the graph
+		//addPreRenderPaintable(new GridPaintable(Color.gray, false));
+		//addPreRenderPaintable(new GridPaintable());
 
 		bangBoxPainter = new BangBoxPaintable();
 		addPreRenderPaintable(bangBoxPainter);
@@ -256,13 +263,13 @@ public class GraphVisualizationViewer extends VisualizationViewer<QVertex, QEdge
 	public void setBoundingBoxEnabled(boolean enabled) {
 		if (enabled != boundsPaintingEnabled) {
 			if (enabled) {
-				removePostRenderPaintable(boundsPaint);
-			}
-			else {
 				if (boundsPaint == null) {
 					boundsPaint = new BoundsPaintable();
 				}
-				addPostRenderPaintable(boundsPaint);
+				prependPreRenderPaintable(boundsPaint);
+			}
+			else {
+				removePreRenderPaintable(boundsPaint);
 			}
 		}
 	}
@@ -300,11 +307,12 @@ public class GraphVisualizationViewer extends VisualizationViewer<QVertex, QEdge
 					bounds.add(p);
 				}
 			}
-			if (bounds == null) {
-				bounds = new Rectangle2D.Double(0, 0, 10, 10);
+			if (bounds != null) {
+				bounds.setRect(bounds.getX() - 20,
+				               bounds.getY() - 20,
+				               bounds.getWidth() + 40,
+				               bounds.getHeight() + 40);
 			}
-			bounds.setRect(bounds.getX() - 20, bounds.getY() - 20,
-				       bounds.getWidth() + 40, bounds.getHeight() + 40);
 		}
 
 		if (bounds == null) {
@@ -382,6 +390,31 @@ public class GraphVisualizationViewer extends VisualizationViewer<QVertex, QEdge
 		return null;
 	}
 
+	/*@Override
+	public Dimension getPreferredSize() {
+		return layout.getSize();
+	}*/
+
+	public void relayout() {
+		getGraphLayout().initialize();
+
+		((ChangeEventSupport) getGraphLayout()).fireStateChanged();
+
+		Relaxer relaxer = getModel().getRelaxer();
+		if (relaxer != null) {
+			relaxer.relax();
+		}
+
+		setPreferredSize(layout.getSize());
+
+		revalidate();
+	}
+
+	public void update() {
+		revalidate();
+		repaint();
+	}
+
 	/**
 	 * A red box that surrounds the graph. NOTE: this doesn't appear correctly if the graph is
 	 * transformed.
@@ -389,14 +422,94 @@ public class GraphVisualizationViewer extends VisualizationViewer<QVertex, QEdge
 	private class BoundsPaintable implements VisualizationServer.Paintable
 	{
 		public void paint(Graphics g) {
+			Graphics2D gr = (Graphics2D)g;
 			Color oldColor = g.getColor();
-			g.setColor(Color.red);
-			((Graphics2D) g).draw(getGraphBounds());
+			Dimension size = layout.getSize();
+			Rectangle2D bounds = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
+			g.setColor(Color.white);
+			gr.fill(bounds);
+			g.setColor(Color.black);
+			gr.draw(bounds);
 			g.setColor(oldColor);
 		}
 
 		public boolean useTransform() {
-			return false;
+			return true;
+		}
+	}
+
+	/**
+	 * Shows a grid behind the graph, for debugging purposes
+	 */
+	private class GridPaintable implements VisualizationServer.Paintable
+	{
+		private static final int SPACING = 20;
+		private boolean useTransform = true;
+		private Color color = Color.green;
+
+		public GridPaintable() {
+		}
+
+		public GridPaintable(boolean useTransform) {
+			this.useTransform = useTransform;
+		}
+
+		public GridPaintable(Color color) {
+			this.color = color;
+		}
+
+		public GridPaintable(Color color, boolean useTransform) {
+			this.color = color;
+			this.useTransform = useTransform;
+		}
+
+		public void paint(Graphics g) {
+			Color oldColor = g.getColor();
+			Stroke oldStroke = ((Graphics2D) g).getStroke();
+			Font oldfont = g.getFont();
+			Rectangle2D bounds = getGraphBounds();
+			if (bounds.getHeight() > 0 && bounds.getWidth() > 0)
+			{
+				g.setFont(oldfont.deriveFont(2));
+				((Graphics2D)g).setStroke(new BasicStroke(1));
+				int left = (int)bounds.getMinX();
+				int right = (int)bounds.getMaxX() + 1;
+				int top = (int)bounds.getMinY();
+				int bottom = (int)bounds.getMaxY() + 1;
+				for (int row = top; row <= bottom; row += SPACING)
+				{
+					g.setColor(color);
+					g.drawLine(left, row, right, row);
+					g.setColor(Color.black);
+					g.drawString(String.valueOf(row), right+2, row+6);
+					g.drawString(String.valueOf(row), left-30, row+6);
+				}
+				g.setColor(color);
+				for (int col = left; col <= right; col += SPACING)
+				{
+					g.drawLine(col, top, col, bottom);
+				}
+				g.setColor(Color.black);
+				for (int col = left; col <= right; col += SPACING)
+				{
+					g.translate(col-3, bottom+5);
+					((Graphics2D)g).rotate(Math.PI/2);
+					g.drawString(String.valueOf(col), 0, 0);
+					((Graphics2D)g).rotate(-Math.PI/2);
+					g.translate(0, (top-30)-(bottom+5));
+					((Graphics2D)g).rotate(Math.PI/2);
+					g.drawString(String.valueOf(col), 0, 0);
+					((Graphics2D)g).rotate(-Math.PI/2);
+					g.translate(-(col-3), -(top-30));
+				}
+			}
+			g.setColor(oldColor);
+			((Graphics2D) g).setStroke(oldStroke);
+			g.setFont(oldfont);
+		}
+
+		public boolean useTransform() {
+			return useTransform;
 		}
 	}
 

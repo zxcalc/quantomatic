@@ -30,12 +30,12 @@ import quanto.gui.QuantoCore.ConsoleError;
 import quanto.gui.QuantoApp.QuantoActionListener;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
+import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
-import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 
 public class InteractiveGraphView extends GraphView
 	implements AddEdgeGraphMousePlugin.Adder<QVertex>, InteractiveView
@@ -168,13 +168,13 @@ public class InteractiveGraphView extends GraphView
 				mask = InputEvent.META_MASK;
 			}
 
-			add(new ScalingGraphMousePlugin(new CrossoverScalingControl(), 0, 1.1f, 0.909f));
-			add(new TranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
+			add(new ScalingGraphMousePlugin(new ViewScalingControl(), 0));
+			add(new ViewTranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
 			add(new AddEdgeGraphMousePlugin<QVertex, QEdge>(
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new PickingGraphMousePlugin<QVertex, QEdge>()
+			pickingMouse = new ConstrainedPickingGraphMousePlugin<QVertex, QEdge>(20, 20)
 			{
 				public void mouseEntered(MouseEvent e) {
 				}
@@ -402,6 +402,8 @@ public class InteractiveGraphView extends GraphView
 
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
+
+		viewer.setBoundingBoxEnabled(true);
 	}
 
 	private void errorDialog(String msg) {
@@ -894,14 +896,7 @@ public class InteractiveGraphView extends GraphView
 		catch (QuantoGraph.ParseException e) {
 			throw new ConsoleError("The core sent an invalid graph description: " + e.getMessage());
 		}
-		viewer.getGraphLayout().initialize();
-
-		((ChangeEventSupport) viewer.getGraphLayout()).fireStateChanged();
-
-		Relaxer relaxer = viewer.getModel().getRelaxer();
-		if (relaxer != null) {
-			relaxer.relax();
-		}
+		viewer.relayout();
 
 		// clean up un-needed labels:
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
@@ -923,7 +918,7 @@ public class InteractiveGraphView extends GraphView
 			file_saveGraph.setEnabled(true);
 		}
 
-		repaint();
+		viewer.update();
 	}
 
 	public void outputToTextView(String text) {
@@ -938,14 +933,14 @@ public class InteractiveGraphView extends GraphView
 			viewer.removePostRenderPaintable(highlighter);
 		}
 		highlighter = null;
-		repaint();
+		viewer.repaint();
 	}
 
 	public void highlightSubgraph(QuantoGraph g) {
 		clearHighlight();
 		highlighter = new SubgraphHighlighter(g);
 		viewer.addPostRenderPaintable(highlighter);
-		repaint();
+		viewer.update();
 	}
 
 	public void rewriteForever() {

@@ -1,5 +1,7 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
+import edu.uci.ics.jung.visualization.GraphZoomScrollPane;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -27,7 +29,7 @@ public class GraphView extends JPanel
 		setPreferredSize(size);
 
 		viewer = new GraphVisualizationViewer(graph);
-		add(viewer, BorderLayout.CENTER);
+		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 	}
 
 	public GraphVisualizationViewer getVisualization() {
@@ -49,7 +51,7 @@ public class GraphView extends JPanel
 	public void zoomToFit() {
 		MutableTransformer mt = viewer.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
 		Rectangle2D gb = viewer.getGraphBounds();
-		Dimension vb = viewer.getPreferredSize();
+		Dimension vb = getSize();
 		double centerX = vb.getWidth() / 2.0;
 		double centerY = vb.getHeight() / 2.0;
 		mt.translate(
