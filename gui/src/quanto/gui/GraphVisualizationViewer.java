@@ -369,11 +369,11 @@ public class GraphVisualizationViewer
 	 * @return
 	 */
 	public Rectangle2D getSubgraphBounds(Collection<QVertex> subgraph) {
-		Layout<QVertex, QEdge> layout = getGraphLayout();
+		Layout<QVertex, QEdge> lay = getGraphLayout();
 		Rectangle2D bounds = null;
 		synchronized (getGraph()) {
 			for (QVertex v : subgraph) {
-				Point2D p = layout.transform(v);
+				Point2D p = lay.transform(v);
 				if (bounds == null) {
 					bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
 				}
@@ -426,6 +426,7 @@ public class GraphVisualizationViewer
 			{
 				private static final long serialVersionUID = 1L;
 
+				@Override
 				public Dimension getSize() {
 					// make sure nothing gets clipped
 					return new Dimension(width, height);
@@ -680,8 +681,7 @@ public class GraphVisualizationViewer
 				String val = TexConstants.translate((String) value);
 
 				QVertex qv = (QVertex) vertex;
-				if (qv.isAngleVertex() && val.equals("0"))
-				{
+				if (qv.getVertexType() == QVertex.Type.BOUNDARY) {
 					return new JLabel();
 				}
 

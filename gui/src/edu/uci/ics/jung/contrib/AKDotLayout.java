@@ -674,7 +674,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			}
 		}
 		
-		snapToGrid();
+		//snapToGrid();
 		
 		for (int i = 0; i < xCoords.length; ++i) {
 			xBestCoords[i] >>= coordPrecision;
@@ -895,6 +895,9 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			else omega = OMEGA_VV;
 			
 			len += Math.abs(coords[d]-coords[s]) * omega;
+//			int xdist = coords[d] - coords[s];
+//			int ydist = (rankSeparation<<coordPrecision); 
+//			len += omega * Math.sqrt(xdist*xdist + ydist*ydist);
 		}
 		
 		return len;

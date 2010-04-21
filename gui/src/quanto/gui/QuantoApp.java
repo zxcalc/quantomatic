@@ -48,7 +48,8 @@ public class QuantoApp {
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	// MAC_OS_X is used to determine whether we use OSXAdapter to
 	// hook into the application menu
-	public static boolean MAC_OS_X = (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
+	public static boolean MAC_OS_X = (System.getProperty("os.name")
+                .toLowerCase().startsWith("mac os x"));
 	private static QuantoApp theApp = null;
 	public static boolean useExperimentalLayout = false;
 	
@@ -154,7 +155,9 @@ public class QuantoApp {
 		
 		if (QuantoApp.isMac && !QuantoCore.mathematicaMode) {	
 			//System.setProperty("apple.laf.useScreenMenuBar", "true");
-			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Quanto");
+			System.setProperty(
+					"com.apple.mrj.application.apple.menu.about.name",
+					"Quanto");
 		}
 		
 		QuantoApp app = getInstance();

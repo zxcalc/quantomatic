@@ -81,10 +81,12 @@ implements HasName, ChangeEventSupport {
 	private IXMLElement fromXmlReader(IXMLReader reader) throws QuantoGraph.ParseException {
 		IXMLElement root = null;
 		try {
+			long millis = System.currentTimeMillis();
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
 			parser.setReader(reader);
 			root = (IXMLElement)parser.parse();
 			fromXml(root);
+			System.out.printf("XML parse took %d millis.\n", System.currentTimeMillis()-millis);
 		} catch (XMLException e) {
 			throw new QuantoGraph.ParseException("The file contains badly-formed XML: " + e.getMessage(), e);
 		} catch (ClassNotFoundException e) {
@@ -252,6 +254,7 @@ implements HasName, ChangeEventSupport {
 				}
 			}
 		} // synchronized(this)
+		
 		return this;
 	}
 	
