@@ -18,7 +18,7 @@ extends DotLayout<QVertex,QEdge>
 implements LockableBangBoxLayout<QVertex, QEdge>
 {
 	private static final double VERTEX_PADDING = 20;
-	private static final double INIT_BOUNDS_PADDING = 20;
+	private static final double INIT_BOUNDS_PADDING = 40;
 	private Map<BangBox, Rectangle2D> bbRects;
 	private volatile Set<String> lockedNames = null;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
@@ -55,6 +55,9 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 				synchronized (getGraph()) {
 					// clean up the locked set, removing old vertices
 					Set<String> newLocked = new HashSet<String>(lockedNames.size());
+
+					//reset the bounding rect
+					boundingRect.setRect(0, 0, 0, 0);
 
 					for (QVertex v : getGraph().getVertices()) {
 						if (!lockedNames.contains(v.getName())) {
