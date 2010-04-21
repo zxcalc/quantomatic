@@ -1,9 +1,21 @@
+signature RULESET_SHARING =
+sig
+  structure Name : NAMES_SHARING
+  structure Rule : RULE_SHARING
+end
+
 signature RULESET =
 sig
     include SSTR_NAMES
-    structure Rule : RULE;
+    structure Name : SSTR_NAMES
+    structure Rule : RULE
+    
     type T = ((Rule.T * bool) Rule.Name.NTab.T)
     (* a ruleset, keeping track of what rules are active, etc. *)
+    
+    structure RulesetSharing : RULESET_SHARING
+    sharing RulesetSharing.Name = Name
+    sharing RulesetSharing.Rule = Rule
 
     (* (T * bool) is a ruleset and a flag for "active" *)
     val get_active_rules : (T * bool) NTab.T -> ((Rule.Name.name * Rule.T) list)
@@ -36,6 +48,7 @@ struct
 open SStrName
 val default_name = mk "new-ruleset-1"
 structure Rule = Rule
+structure Name = SStrName
 
 
 (* at some point, a ruleset should be a richer structure,
@@ -43,6 +56,12 @@ structure Rule = Rule
    for "active". 
    The rule list has a boolean to show if  the rule is active *)
 type T = ((Rule.T * bool) Rule.Name.NTab.T)
+
+structure RulesetSharing = struct
+  structure Name = Name.Sharing
+  structure Rule = Rule.Sharing
+end
+
 
 fun active_rule_filter rules = List.map 
                                  (fn (n,(r,_)) => (n,r))

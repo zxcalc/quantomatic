@@ -370,21 +370,23 @@ fun load_ruleset ([nm,file], state) =
      handle IO.Io _ => raise user_exp "Can't open ruleset.")
   | load_ruleset _ = raise wrong_args_exp ()
 
+fun save_ruleset ([nm,file], state) =
+    (let val save = (PrettyWriter.write_to_file file) o RGRuleSetOutputXML.output
+         val nm' = RuleSet.mk nm
+         val (rset,b) = RuleSet.NTab.get (get_rulesets state) nm'
+     in (save (nm',rset,b); "Saved ruleset in file " ^file)
+     end
+     handle RuleSet.NTab.Tab.UNDEF _ => raise user_exp ("Bad ruleset name: "^nm)
+     handle IO.Io _ => raise user_exp ("Can't write ruleset file "^file^"."))
+  | save_ruleset _ = raise wrong_args_exp ()
 
+  
 fun unload_ruleset ([nm], state) =
     let fun del nm thys = thys |> RuleSet.NTab.delete (RuleSet.mk nm)
             handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset: " ^ nm)
     in ("ok\n", update_rulesets (del nm) state)
     end
   | unload_ruleset _ = raise wrong_args_exp ()
-
-(*
-fun load_ruleset [file] = (RuleSetHack.load_rules file ; "Loaded ruleset\n")
-  | load_ruleset _ = raise wrong_args_exp ()
-
-fun save_ruleset [file] = (RuleSetHack.save_rules file ; "Saved ruleset\n")
-  | save_ruleset _ = raise wrong_args_exp ()
-*)
 
 local
     fun graph_maker default_name graph state = let
@@ -720,11 +722,11 @@ val () = (
      "    unload RULESET\n")
     unload_ruleset;
     
-    (*register_cmd
+   register_cmd
     "save_ruleset"
-    ("save_ruleset FILENAME\n\n" ^
-     "    save the current rule set in FILENAME\n")
-    (lift_stateless save_ruleset);*)
+    ("save_ruleset RULESET FILENAME\n\n" ^
+     "    save RULESET in FILENAME\n")
+    (lift_state_viewer save_ruleset);
 
     register_cmd
     "list_graphs"

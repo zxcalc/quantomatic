@@ -14,7 +14,16 @@ without the rhs ones? (yes in general, but what about quantum
 computation?)
 
 *)
+
+signature RULE_SHARING =
+sig
+  structure Name : NAMES_SHARING
+  structure RGGraph : RG_GRAPH_SHARING
+  structure Match : MATCH_SHARING
+  (*structure MatchState : MATCH_STATE_SHARING *)
+end
  
+
 signature RULE 
 = sig
 
@@ -24,6 +33,13 @@ structure MatchState : MATCH_STATE
 (* these are really in MatchState - this is just a local abbreviation *)
 structure RGGraph : RG_GRAPH
 structure Match : MATCH
+
+structure Sharing : RULE_SHARING
+sharing Sharing.Name = Name
+sharing Sharing.RGGraph = RGGraph
+sharing Sharing.Match = Match
+(* sharing Sharing.MatchState = MatchState *)
+
 sharing RGGraph.SharingBangGraph = MatchState.RGGraph.SharingBangGraph;
 sharing Match.Sharing = MatchState.Match.Sharing;
 
@@ -102,6 +118,12 @@ structure RGGraph = MatchState.RGGraph;
 structure Match = MatchState.Match;
 structure Vertex = MatchState.Vertex;
 structure Edge = MatchState.Edge;
+
+structure Sharing = struct
+  structure Name = Name.Sharing
+  structure RGGraph = RGGraph.SharingBangGraph
+  structure Match = Match.Sharing
+end
 
 datatype T = Rule of { lhs : RGGraph.T,
                        rhs : RGGraph.T };

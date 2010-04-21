@@ -3,9 +3,9 @@ sig
   structure R : RULE
   structure OG : OUTPUT_GRAPH
   sharing OG.Graph.SharingBangGraph = R.RGGraph.SharingBangGraph
-		 
+	 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = SStrName.name * R.T * bool
+		where type intype = R.Name.name * (R.T * bool)
 end;
 
 (* ------------------------------------------------------- *)
@@ -20,19 +20,19 @@ functor RuleOutputXML (
 = struct
   structure R = Rule
   structure OG = OutputGraph
-  type intype = SStrName.name * R.T * bool
+  type intype = R.Name.name * (R.T * bool)
   type outtype = Pretty.T
 
   val output_graph = OG.output
 
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
 
-  fun output (rule_name, rule, active)  = 
+  fun output (rule_name, (rule, active))  = 
 	      Pretty.chunks
 	        [Pretty.str "<rule>",
 	         indent_chunks [
 		 Pretty.block [Pretty.str "<name>",
-			       Pretty.str (SStrName.dest rule_name),
+			       R.Name.pretty_name rule_name,
 			       Pretty.str "</name>"],
 		Pretty.block [Pretty.str "<active>",
 			       Pretty.str (Bool.toString active),
@@ -60,40 +60,57 @@ structure RGRuleOutputXML : OUTPUT_RULE
 
 signature OUTPUT_RULESET =
 sig
+  structure RS : RULESET
   structure OR : OUTPUT_RULE
-		 
+	sharing RS.Rule.Sharing	 = OR.R.Sharing
+
   include OUTPUT where type outtype = OR.outtype
-		where type intype = (OR.intype) list
+		where type intype = RS.Name.name * RS.T * bool
 end
 
 (* -------------------------------------------------------- *)
 
-functor TheoryHackOutputXML (
+functor RuleSetOutputXML (
 	structure OutputRule : OUTPUT_RULE
 				  where type outtype = Pretty.T
+  structure RuleSet : RULESET
+  sharing RuleSet.Rule.Sharing = OutputRule.R.Sharing
+  sharing type RuleSet.Rule.T = OutputRule.R.T
 	) : OUTPUT_RULESET
 = 
 struct
   structure OR = OutputRule
-  type intype = OR.intype list 
+  structure RS = RuleSet
+  
+  type intype = RS.Name.name * RS.T * bool 
   type outtype = Pretty.T
 
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]	    
 
-  fun output rules = 
+  fun output (setname, rules, active) =
+      let val activestring = if (active) then "true" else "false"
+      in
       Pretty.chunks [ Pretty.str "<ruleset>", 
-		      indent_chunks (map OR.output rules),
+           Pretty.str "<name>",
+           RS.Name.pretty_name setname,
+           Pretty.str "</name>",
+           Pretty.str "<active>",
+           Pretty.str activestring,
+           Pretty.str "</active>",
+		      indent_chunks (map OR.output (RS.Rule.Name.NTab.list_of rules)),
 		      Pretty.str "</ruleset>",
 		      Pretty.str ""
 		    ]
+       end
 
 end;
 
 (* -------------------------------------------------------- *)
 
-structure RGTheoryHackOutputXML : OUTPUT_RULESET
- = TheoryHackOutputXML(
+structure RGRuleSetOutputXML : OUTPUT_RULESET
+ = RuleSetOutputXML(
     structure OutputRule = RGRuleOutputXML
+    structure RuleSet = RuleSet
    );
 
 (* -------------------------------------------------------- *)
@@ -108,7 +125,7 @@ sig
   sharing OG.Graph.SharingBangGraph = R.RGGraph.SharingBangGraph
 		 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = SStrName.name * R.T * OG.Graph.T
+		where type intype = R.Name.name * R.T * OG.Graph.T
 end
 
 (* -------------------------------------------------------- *)
@@ -125,7 +142,7 @@ functor RewriteOutputXML (
 struct
   structure R = Rule
   structure OG = OutputGraph
-  type intype = SStrName.name * R.T * OG.Graph.T
+  type intype = R.Name.name * R.T * OG.Graph.T
   type outtype = Pretty.T
 
   val output_graph = OG.output
@@ -136,7 +153,7 @@ struct
 	      Pretty.chunks
 	        [Pretty.str "<rewrite>",
 	         indent_chunks [
-	         Pretty.str ("<rulename>"^(SStrName.dest rule_name)^"</rulename>"),
+	         Pretty.str ("<rulename>"^(R.Name.string_of_name rule_name)^"</rulename>"),
 	         output_graph fused,
 	         Pretty.str "<lhs>",
 	         indent_chunks [output_graph (Rule.get_lhs rule)],

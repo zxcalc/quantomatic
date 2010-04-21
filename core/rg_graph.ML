@@ -1,3 +1,8 @@
+signature RG_GRAPH_SHARING = 
+sig
+  include BANG_GRAPH_SHARING
+end
+
 
 signature RG_GRAPH = 
 sig
