@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,7 +70,7 @@ public class InteractiveGraphView extends GraphView
 			components = new HashMap<QVertex, Labeler>();
 		}
 
-		public synchronized <T> Component getVertexLabelRendererComponent(JComponent vv,
+		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
 			if (vertex instanceof QVertex && ((QVertex) vertex).isAngleVertex()) {
 				Point2D screen = viewer.getRenderContext().
@@ -151,17 +150,12 @@ public class InteractiveGraphView extends GraphView
 		/**
 		 * Removes orphaned labels.
 		 */
-		public synchronized void cleanup() {
+		public void cleanup() {
 			final Map<QVertex, Labeler> oldComponents = components;
 			components = new HashMap<QVertex, Labeler>();
-			// do this in the context of the AWT event queue
-			EventQueue.invokeLater(new Runnable() {
-				public void run() {
-					for (Labeler l : oldComponents.values()) {
-						viewer.remove(l);
-					}
-				}
-			});
+			for (Labeler l : oldComponents.values()) {
+				viewer.remove(l);
+			}
 		}
 	}
 
@@ -860,64 +854,108 @@ public class InteractiveGraphView extends GraphView
 	}
 
 	public void rewriteForever() {
-		rewriter = new Thread()
-		{
-			private void attach() {
-				try {
-					getCore().attach_one_rewrite(
-						getGraph(),
-						getGraph().getVertices());
-				}
-				catch (QuantoCore.ConsoleError e) {
-					errorDialog(e.getMessage());
-				}
-			}
+		rewriter = new RewriterThread();
+		rewriter.start();
+	}
 
-			public void run() {
-				attach();
+	private class RewriterThread extends Thread
+	{
+		private boolean highlight = false;
+
+		private void attachNextRewrite() {
+			try {
+				getCore().attach_one_rewrite(
+					getGraph(),
+					getGraph().getVertices());
+			}
+			catch (QuantoCore.ConsoleError e) {
+				errorDialog(e.getMessage());
+			}
+		}
+
+		private void invokeHighlightSubgraphAndWait(QuantoGraph subgraph)
+			throws InterruptedException
+		{
+			highlight = true;
+			final QuantoGraph fSubGraph = subgraph;
+			invokeAndWait(new Runnable() {
+				public void run() {
+					highlightSubgraph(fSubGraph);
+				}
+			});
+		}
+
+		private void invokeApplyRewriteAndWait(int index)
+			throws InterruptedException
+		{
+			highlight = false;
+			final int fIndex = index;
+			invokeAndWait(new Runnable() {
+				public void run() {
+					clearHighlight();
+					applyRewrite(fIndex);
+				}
+			});
+		}
+
+		private void invokeClearHighlightLater()
+		{
+			highlight = false;
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					clearHighlight();
+				}
+			});
+		}
+
+		private void invokeInfoDialogAndWait(String message)
+			throws InterruptedException
+		{
+			final String fMessage = message;
+			invokeAndWait(new Runnable() {
+				public void run() {
+					infoDialog(fMessage);
+				}
+			});
+		}
+
+		private void invokeAndWait(Runnable runnable)
+			throws InterruptedException
+		{
+			try {
+				SwingUtilities.invokeAndWait(runnable);
+			}
+			catch (InvocationTargetException ex) {
+				ex.printStackTrace();
+			}
+		}
+
+		@Override
+		public void run() {
+			try {
+				attachNextRewrite();
 				List<Rewrite> rws = getRewrites();
 				int count = 0;
 				Random r = new Random();
 				int rw = 0;
 				while (rws.size() > 0
-					&& Thread.currentThread() == rewriter) {
+					&& !Thread.interrupted()) {
 					rw = r.nextInt(rws.size());
-					highlightSubgraph(rws.get(rw).getLhs());
-					try {
-						sleep(1500);
-						clearHighlight();
-						applyRewrite(rw);
-						++count;
-						attach();
-						rws = getRewrites();
-					}
-					catch (InterruptedException e) {
-						clearHighlight();
-						break;
-					}
+					invokeHighlightSubgraphAndWait(rws.get(rw).getLhs());
+					sleep(1500);
+					invokeApplyRewriteAndWait(rw);
+					++count;
+					attachNextRewrite();
+					rws = getRewrites();
 				}
 
-
-				final int finalCount = count;
-				try {
-					SwingUtilities.invokeAndWait(new Runnable()
-					{
-						public void run() {
-							infoDialog("Applied "
-								+ finalCount
-								+ " rewrites.");
-						}
-					});
-				}
-				catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				catch (InvocationTargetException e) {
-					e.printStackTrace();
-				}
+				invokeInfoDialogAndWait("Applied " + count + " rewrites");
 			}
-		};
-		rewriter.start();
+			catch (InterruptedException e) {
+				if (highlight)
+					invokeClearHighlightLater();
+			}
+		}
 	}
 
 	private class SubgraphHighlighter
@@ -1114,8 +1152,8 @@ public class InteractiveGraphView extends GraphView
 				QuantoGraph graph = (QuantoGraph)realLayout.getGraph();
 				synchronized (graph) {
 					for (BangBox bb : graph.getBangBoxes()) {
-						Rectangle2D rect = realLayout.transformBangBox(bb);
-						if (rect.contains(x, y)) {
+						Rectangle2D bbRect = realLayout.transformBangBox(bb);
+						if (bbRect.contains(x, y)) {
 							return bb;
 						}
 					}
