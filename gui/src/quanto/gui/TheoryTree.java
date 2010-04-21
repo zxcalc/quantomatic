@@ -298,10 +298,10 @@ public class TheoryTree extends JPanel {
 						QuantoGraph gr2 = core.open_rule_rhs(rset, rule);
 						InteractiveGraphView igv2 = new InteractiveGraphView(core, gr2);
 						igv2.updateGraph();
-						v = QuantoApp.getInstance().addView(rule, 
+						v = QuantoApp.getInstance().getViewManager().addView(rule,
 								new SplitGraphView(rset, rule, igv1, igv2));
 					} else { // otherwise
-						v = QuantoApp.getInstance().addView(gr1.getName(), igv1);
+						v = QuantoApp.getInstance().getViewManager().addView(gr1.getName(), igv1);
 					}
 					viewPort.setFocusedView(v);
 					viewPort.gainFocus();

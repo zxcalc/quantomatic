@@ -34,7 +34,7 @@ public class ViewPort extends JPanel {
 		pickView.addMouseListener(new MouseAdapter() {
 			public void mouseClicked(MouseEvent e) {
 				viewMenu.removeAll();
-				Map<String,InteractiveView> views = QuantoApp.getInstance().getViews();
+				Map<String,InteractiveView> views = QuantoApp.getInstance().getViewManager().getViews();
 				if (views.size() == 0) {
 					viewMenu.add(new JMenuItem("(no views)"));
 				} else {
@@ -71,13 +71,13 @@ public class ViewPort extends JPanel {
 //		System.out.println("Setting focused view to : "+view);
 		InteractiveView activeView = null;
 		if (focusedView != null) {
-			activeView = QuantoApp.getInstance().getViews().get(focusedView);
+			activeView = QuantoApp.getInstance().getViewManager().getViews().get(focusedView);
 			if (activeView != null) { // this can happen if a view's name changes
 				activeView.viewUnfocus(this);
 				if (activeView != null) remove((JComponent)activeView);
 			}
 		}
-		if (view != null) activeView = QuantoApp.getInstance().getViews().get(view);
+		if (view != null) activeView = QuantoApp.getInstance().getViewManager().getViews().get(view);
 		if (activeView!=null) {
 			if (!(activeView instanceof JComponent))
 				throw new QuantoCore.FatalError(
@@ -103,7 +103,7 @@ public class ViewPort extends JPanel {
 	
 	// focus some random non-console view. Use this for when windows are closed, etc.
 	public boolean focusNonConsole() {
-		Map<String, InteractiveView> views = QuantoApp.getInstance().getViews();
+		Map<String, InteractiveView> views = QuantoApp.getInstance().getViewManager().getViews();
 		synchronized (views) {
 			for (Entry<String,InteractiveView> ent : views.entrySet()) {
 				if (!(ent.getValue() instanceof ConsoleView)) {
@@ -125,14 +125,14 @@ public class ViewPort extends JPanel {
 	public void loseFocus() {
 		pickView.setForeground(Color.gray);
 		if (focusedView != null) {
-			QuantoApp.getInstance().getViews().get(focusedView).viewUnfocus(this);
+			QuantoApp.getInstance().getViewManager().getViews().get(focusedView).viewUnfocus(this);
 		}
 	}
 	
 	public void gainFocus() {
 		pickView.setForeground(Color.black);
 		if (focusedView != null) {
-			QuantoApp.getInstance().getViews().get(focusedView).viewFocus(this);
+			QuantoApp.getInstance().getViewManager().getViews().get(focusedView).viewFocus(this);
 		}
 	}
 
@@ -144,7 +144,7 @@ public class ViewPort extends JPanel {
 	public void refreshLabel() {
 		if (focusedView != null) {
 			String title = focusedView;
-			InteractiveView activeView = QuantoApp.getInstance().getViews().get(title);
+			InteractiveView activeView = QuantoApp.getInstance().getViewManager().getViews().get(title);
 			if (activeView != null) {
 				if (!activeView.isSaved()) title += "*";
 				// if the view names and graph names are out of sync, show it

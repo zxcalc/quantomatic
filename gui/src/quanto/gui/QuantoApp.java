@@ -97,11 +97,9 @@ public class QuantoApp {
 		new StringPref("loaded_theories", "");
 	
 	private final Preferences globalPrefs;
-	private final ConsoleView console;
 	private final QuantoCore core;
-	private JFileChooser fileChooser;
-	private final BidiMap<String,InteractiveView> views;
-	private volatile ViewPort focusedViewPort = null;
+	private JFileChooser fileChooser = null;
+	private final InteractiveViewManager viewManager;
 	
 	public static QuantoApp getInstance() {
 		if (theApp == null) theApp = new QuantoApp();
@@ -181,35 +179,16 @@ public class QuantoApp {
 
 	public boolean shutdown() {
 		System.out.println("Shutting down...");
-		if (focusedViewPort == null) {
-			System.err.println("focusedViewPort shouldn't be null here! (QuantoApp.shutdown())");
-		}
-		
-		while (focusedViewPort.focusNonConsole()) {
-			String foc = focusedViewPort.getFocusedView();
-			InteractiveView iv = views.get(foc);
-			
-			// if any of the viewKill() operations return false, abort
-			if (iv!=null && !iv.viewKill(focusedViewPort)) return false;
-			focusedViewPort.focusConsole(); // weird things happen if we kill views while they are focused
-			views.remove(foc);
-		}
-		System.exit(0);
-		return true; // never gets here.
+		if (viewManager.killAllViews())
+			System.exit(0);
+		return false;
 	}
 
 	private QuantoApp() {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
-		fileChooser = null;
 		
-		// bidirectional map implemented as dual trees. note that get(null) or
-		//  getKey(null) will raise exceptions in the Comparators.
-		views = new DualTreeBidiMap<String, InteractiveView>(
-				ComparableComparator.<String>getInstance(),
-				new HashCodeComparator<InteractiveView>());
-		console = new ConsoleView();
-		core = console.getCore();
-		addView("console", console);
+		viewManager = new InteractiveViewManager();
+		core = viewManager.getConsole().getCore();
 
 		if (MAC_OS_X)
 		{
@@ -227,43 +206,9 @@ public class QuantoApp {
 		if (fileChooser == null) fileChooser = new JFileChooser();
 		return fileChooser;
 	}
-	
-	public String addView(String name, InteractiveView v) {
-		String realName = HasName.StringNamer.getFreshName(views.keySet(), name);
-		//System.out.printf("adding %s\n", realName);
-		synchronized (views) {views.put(realName, v);}
-		return realName;
-	}
-	
-	public String getViewName(InteractiveView v) {
-		return views.getKey(v);
-	}
-	
-	public String renameView(String oldName, String newName) {
-		String realNewName;
-		synchronized (views) {
-			InteractiveView v = views.get(oldName);
-			if (v == null) throw new QuantoCore.FatalError("Attempting to rename null view.");
-			views.remove(oldName);
-			realNewName = addView(newName, v);
-			if (focusedViewPort != null) {
-				if (focusedViewPort.getFocusedView().equals(oldName))
-					focusedViewPort.setFocusedView(realNewName);
-			}
-		}
-		return realNewName;
-	}
-	
-	public String renameView(InteractiveView v, String newName) {
-		return renameView(getViewName(v), newName);
-	}
-	
-	public Map<String,InteractiveView> getViews() {
-		return views;
-	}
 
-	public void removeView(String name) {
-		synchronized (views) {views.remove(name);}
+	public InteractiveViewManager getViewManager() {
+		return viewManager;
 	}
 	
 	public MainMenu getMainMenu() {
@@ -326,7 +271,7 @@ public class QuantoApp {
 			file_newWindow = new JMenuItem("New Window", KeyEvent.VK_N);
 			file_newWindow.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					String v = getFirstFreeView();
+					String v = viewManager.getFirstFreeView();
 					if (v!=null) {
 						QuantoFrame fr = new QuantoFrame();
 						fr.setVisible(true);
@@ -354,17 +299,7 @@ public class QuantoApp {
 			file_closeView = new JMenuItem("Close", KeyEvent.VK_L);
 			file_closeView.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					if (focusedViewPort != null) {
-						String foc = focusedViewPort.getFocusedView();
-						InteractiveView iv = views.get(foc);
-						
-						// If the view allows itself to be killed, close the window.
-						if (iv != null && iv.viewKill(focusedViewPort)) {
-							focusedViewPort.focusConsole();
-							removeView(foc);
-							focusedViewPort.focusNonConsole();
-						}
-					}
+					viewManager.closeFocusedView();
 				}
 			});
 			file_closeView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, commandMask));
@@ -406,8 +341,8 @@ public class QuantoApp {
 			view_refreshAllGraphs = new JMenuItem("Refresh All Graphs", KeyEvent.VK_R);
 			view_refreshAllGraphs.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					synchronized (QuantoApp.getInstance().getViews()) {
-						for (InteractiveView v : QuantoApp.getInstance().getViews().values()) {
+					synchronized (viewManager.getViews()) {
+						for (InteractiveView v : viewManager.getViews().values()) {
 							if (v instanceof InteractiveGraphView) {
 								try {
 									((InteractiveGraphView)v).updateGraph();
@@ -488,11 +423,6 @@ public class QuantoApp {
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
 	}
 
-
-	public ConsoleView getConsole() {
-		return console;
-	}
-
 	public QuantoCore getCore() {
 		return core;
 	}
@@ -526,7 +456,7 @@ public class QuantoApp {
 					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600));
 				vis.getGraph().setFileName(filename);
 				
-				String v = addView(f.getName(), vis);
+				String v = viewManager.addView(f.getName(), vis);
 				core.rename_graph(loadedGraph, v);
 				
 				vis.updateGraph();
@@ -537,9 +467,8 @@ public class QuantoApp {
 					fr.getViewPort().setFocusedView(v);
 					fr.pack();
 					fr.setVisible(true);
-				} else if (focusedViewPort != null) { // otherwise force re-focus of active view with gainFocus()
-					focusedViewPort.setFocusedView(v);
-					focusedViewPort.gainFocus();
+				} else {
+					viewManager.forceFocus(v);
 				}
 			}
 			catch (QuantoCore.ConsoleError e) {
@@ -565,7 +494,7 @@ public class QuantoApp {
 			QuantoGraph newGraph = core.new_graph();
 			InteractiveGraphView vis =
 				new InteractiveGraphView(core, newGraph, new Dimension(800,600));
-			String v = QuantoApp.getInstance().addView("new-graph-1",vis);
+			String v = viewManager.addView("new-graph-1",vis);
 			
 			if (initial || getPreference(NEW_WINDOW_FOR_GRAPHS)) { // are we making a new window?
 				QuantoFrame fr = new QuantoFrame();
@@ -573,9 +502,8 @@ public class QuantoApp {
 				fr.getViewPort().gainFocus();
 				fr.pack();
 				fr.setVisible(true);
-			} else if (focusedViewPort != null) { // if not, force the active view to focus with gainFocus()
-				focusedViewPort.setFocusedView(v);
-				focusedViewPort.gainFocus();
+			} else {
+				viewManager.forceFocus(v);
 			}
 		} catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
@@ -626,39 +554,6 @@ public class QuantoApp {
 //	}
 
 	/**
-	 * Get the currently focused viewport.
-	 * @return
-	 */
-	public ViewPort getFocusedViewPort() {
-		return focusedViewPort;
-	}
-	
-	/**
-	 * Set the focused view port and call the relevant focus handlers.
-	 * @param vp
-	 */
-	public void setFocusedViewPort(ViewPort vp) {
-		if (vp != focusedViewPort) {
-			if (focusedViewPort!=null) focusedViewPort.loseFocus();
-			focusedViewPort = vp;
-			if (focusedViewPort!=null) focusedViewPort.gainFocus();
-		}
-	}
-	
-	/**
-	 * return the first InteractiveGraphView available, or null.
-	 * @return
-	 */
-	public String getFirstFreeView() {
-		synchronized (views) {
-			for (Map.Entry<String, InteractiveView> ent : views.entrySet()) {
-				if (! ent.getValue().viewHasParent()) return ent.getKey();
-			}
-		}
-		return null;
-	}
-	
-	/**
 	 * Get a global preference. This method is overloaded because the preference API
 	 * doesn't support generics.
 	 */
@@ -677,17 +572,6 @@ public class QuantoApp {
 	}
 	public void setPreference(QuantoApp.StringPref pref, String value) {
 		globalPrefs.put(pref.key, value);
-	}
-	
-	/**
-	 * Call "repaint" on all views that might be visible
-	 */
-	public void repaintViews() {
-		synchronized (views) {
-			for (InteractiveView v : views.values()) {
-				if (v instanceof Component) ((Component)v).repaint();
-			}
-		}
 	}
 	
 	public GraphView newGraphViewFromName(String name) {

@@ -32,7 +32,7 @@ public class QuantoFrame extends JFrame {
 		
         addWindowFocusListener(new WindowFocusListener() {
 			public void windowGainedFocus(WindowEvent e) {
-				QuantoApp.getInstance().setFocusedViewPort(viewPort);
+				QuantoApp.getInstance().getViewManager().setFocusedViewPort(viewPort);
 			}
 			public void windowLostFocus(WindowEvent e) {}
         });

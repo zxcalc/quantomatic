@@ -834,7 +834,7 @@ public class InteractiveGraphView extends GraphView
 	public void outputToTextView(String text) {
 		TextView tview = new TextView(text);
 		QuantoApp app = QuantoApp.getInstance();
-		app.addView(app.getViewName(this) + "-output", tview);
+		app. getViewManager().addView(app.getViewManager().getViewName(this) + "-output", tview);
 	}
 	private SubgraphHighlighter highlighter = null;
 
@@ -1046,7 +1046,7 @@ public class InteractiveGraphView extends GraphView
 				core.save_graph(getGraph(), filename);
 				getGraph().setFileName(filename);
 				getGraph().setSaved(true);
-				QuantoApp.getInstance().renameView(this, f.getName());
+				QuantoApp.getInstance().getViewManager().renameView(this, f.getName());
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
