@@ -1217,8 +1217,31 @@ public class InteractiveGraphView extends GraphView
 
 		@Override
 		public void mouseReleased(MouseEvent e) {
+			boolean recalcSize = false;
+			if (vertex != null)
+				recalcSize = true;
+
 			super.mouseReleased(e);
 			bangBox = null;
+
+			if (recalcSize)
+			{
+				VisualizationViewer<QVertex, QEdge> vv = (VisualizationViewer) e.getSource();
+				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
+				while (layout instanceof LayoutDecorator)
+				{
+					layout = ((LayoutDecorator<QVertex, QEdge>)layout).getDelegate();
+				}
+				try
+				{
+					LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>)layout;
+					realLayout.recalculateBounds();
+				}
+				catch (ClassCastException ex)
+				{
+					System.err.println("When mouse released: " + ex.getMessage());
+				}
+			}
 		}
 
 		@Override

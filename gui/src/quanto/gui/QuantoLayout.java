@@ -18,7 +18,7 @@ extends DotLayout<QVertex,QEdge>
 implements LockableBangBoxLayout<QVertex, QEdge>
 {
 	private static final double VERTEX_PADDING = 20;
-	private static final double INIT_BOUNDS_PADDING = 40;
+	private static final double EMPTY_BOX_SIZE = 40;
 	private Map<BangBox, Rectangle2D> bbRects;
 	private volatile Set<String> lockedNames = null;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
@@ -56,16 +56,16 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 					// clean up the locked set, removing old vertices
 					Set<String> newLocked = new HashSet<String>(lockedNames.size());
 
-					//reset the bounding rect
-					boundingRect.setRect(0, 0, 0, 0);
-
 					for (QVertex v : getGraph().getVertices()) {
+						Point2D point;
 						if (!lockedNames.contains(v.getName())) {
-							Point2D point = coords.get("layoutvert_" + v.getName());
-							setLocation(v, point);
+							point = coords.get("layoutvert_" + v.getName());
+							// use super.setLocation, as we'll recalculate
+							// the bounding box below
+							super.setLocation(v, point);
 						} else {
 							newLocked.add(v.getName());
-							boundingRect.add(transform(v));
+							point = transform(v);
 						}
 					}
 					
@@ -79,9 +79,8 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 							rect.setRect(init.getX(), init.getY(), 0, 0);
 						}
 					}
-					boundingRect.setSize(
-						(int)(boundingRect.getWidth() + INIT_BOUNDS_PADDING),
-						(int)(boundingRect.getHeight() + INIT_BOUNDS_PADDING));
+
+					recalculateBounds();
 				}
 			}
 		} catch (IOException e) {
@@ -176,5 +175,36 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 			y-VERTEX_PADDING,
 			2*VERTEX_PADDING,
 			2*VERTEX_PADDING));
+	}
+
+	public void recalculateBounds() {
+		double left = Double.MAX_VALUE;
+		double top = Double.MAX_VALUE;
+		double right = 0;
+		double bottom = 0;
+		for (QVertex v : getGraph().getVertices()) {
+			Point2D point = transform(v);
+			left = Math.min(left, point.getX());
+			top = Math.min(top, point.getY());
+			right = Math.max(right, point.getX());
+			bottom = Math.max(bottom, point.getY());
+		}
+		left -= VERTEX_PADDING;
+		top -= VERTEX_PADDING;
+		right += VERTEX_PADDING;
+		bottom += VERTEX_PADDING;
+		if (left < right && top < bottom)
+		{
+			// get the same padding right and bottom as left and top
+			boundingRect.setRect(
+				0,
+				0,
+				right + left,
+				bottom + top);
+		}
+		else
+		{
+			boundingRect.setRect(0, 0, EMPTY_BOX_SIZE, EMPTY_BOX_SIZE);
+		}
 	}
 }

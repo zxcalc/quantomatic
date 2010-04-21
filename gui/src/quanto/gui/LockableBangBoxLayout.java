@@ -11,4 +11,5 @@ public interface LockableBangBoxLayout<V,E> extends Layout<V,E> {
 	public boolean isLocked(V vert);
 	public void updateBangBoxes(Layout<V,E> layout);
 	public Rectangle2D transformBangBox(BangBox bb);
+	public void recalculateBounds();
 }
