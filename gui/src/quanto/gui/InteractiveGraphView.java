@@ -68,11 +68,10 @@ public class InteractiveGraphView extends GraphView
 		Map<QVertex, Labeler> components;
 
 		public QVertexLabeler() {
-			components = Collections.<QVertex, Labeler>synchronizedMap(
-				new HashMap<QVertex, Labeler>());
+			components = new HashMap<QVertex, Labeler>();
 		}
 
-		public <T> Component getVertexLabelRendererComponent(JComponent vv,
+		public synchronized <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
 			if (vertex instanceof QVertex && ((QVertex) vertex).isAngleVertex()) {
 				Point2D screen = viewer.getRenderContext().
@@ -152,14 +151,17 @@ public class InteractiveGraphView extends GraphView
 		/**
 		 * Removes orphaned labels.
 		 */
-		public void cleanup() {
-			synchronized (components) {
-				for (Labeler l : components.values()) {
-					viewer.remove(l);
+		public synchronized void cleanup() {
+			final Map<QVertex, Labeler> oldComponents = components;
+			components = new HashMap<QVertex, Labeler>();
+			// do this in the context of the AWT event queue
+			EventQueue.invokeLater(new Runnable() {
+				public void run() {
+					for (Labeler l : oldComponents.values()) {
+						viewer.remove(l);
+					}
 				}
-			}
-			components = Collections.<QVertex, Labeler>synchronizedMap(
-				new HashMap<QVertex, Labeler>());
+			});
 		}
 	}
 
