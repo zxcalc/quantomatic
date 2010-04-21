@@ -73,18 +73,18 @@ public class InteractiveGraphView extends GraphView
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
 			if (vertex instanceof QVertex && ((QVertex) vertex).isAngleVertex()) {
+				final QVertex qVertex = (QVertex)vertex;
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
-					viewer.getGraphLayout().transform((QVertex) vertex));
+					viewer.getGraphLayout().transform(qVertex));
 
 				// lazily create the labeler
-				Labeler angleLabeler = components.get(vertex);
+				Labeler angleLabeler = components.get(qVertex);
 				if (angleLabeler == null) {
 					angleLabeler = new Labeler("");
-					components.put((QVertex) vertex, angleLabeler);
+					components.put(qVertex, angleLabeler);
 					viewer.add(angleLabeler);
-					final QVertex qv = (QVertex) vertex;
-					if (qv.getColor().equals(Color.red)) {
+					if (qVertex.getColor().equals(Color.red)) {
 						angleLabeler.setColor(new Color(255, 170, 170));
 					}
 					else {
@@ -108,10 +108,10 @@ public class InteractiveGraphView extends GraphView
 					{
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler) e.getSource();
-							if (qv != null) {
+							if (qVertex != null) {
 								try {
 									getCore().set_angle(getGraph(),
-											    qv, lab.getText());
+											    qVertex, lab.getText());
 									updateGraph();
 								}
 								catch (QuantoCore.ConsoleError err) {
@@ -121,7 +121,7 @@ public class InteractiveGraphView extends GraphView
 						}
 					});
 				}
-				String angle = ((QVertex) vertex).getAngle();
+				String angle = qVertex.getAngle();
 				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 						      (int) screen.getY() + 10);
@@ -1256,6 +1256,7 @@ public class InteractiveGraphView extends GraphView
 		}
 
 		@Override
+		@SuppressWarnings("unchecked")
 		public void mouseReleased(MouseEvent e) {
 			boolean recalcSize = false;
 			if (vertex != null)
