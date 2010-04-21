@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.HasName;
@@ -20,10 +19,11 @@ import org.apache.commons.collections15.contrib.HashCodeComparator;
 public class InteractiveViewManager {
 	// bidirectional map implemented as dual trees. note that get(null) or
 	//  getKey(null) will raise exceptions in the Comparators.
-	private final BidiMap<String,InteractiveView> views =
+
+	private final BidiMap<String, InteractiveView> views =
 		new DualTreeBidiMap<String, InteractiveView>(
-				ComparableComparator.<String>getInstance(),
-				new HashCodeComparator<InteractiveView>());
+		ComparableComparator.<String>getInstance(),
+		new HashCodeComparator<InteractiveView>());
 	private final ConsoleView console;
 	private volatile ViewPort focusedViewPort = null;
 
@@ -80,8 +80,7 @@ public class InteractiveViewManager {
 		}
 	}
 
-	public boolean killAllViews()
-	{
+	public boolean killAllViews() {
 		if (focusedViewPort == null) {
 			System.err.println("focusedViewPort shouldn't be null here! (QuantoApp.shutdown())");
 		}
@@ -100,8 +99,7 @@ public class InteractiveViewManager {
 		return true;
 	}
 
-	public void forceFocus(String view)
-	{
+	public void forceFocus(String view) {
 		if (focusedViewPort != null) {
 			focusedViewPort.setFocusedView(view);
 			focusedViewPort.gainFocus();

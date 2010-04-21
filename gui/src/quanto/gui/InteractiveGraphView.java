@@ -41,10 +41,10 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 
 public class InteractiveGraphView extends GraphView
-	implements 	AddEdgeGraphMousePlugin.Adder<QVertex>,
-				InteractiveView,
-				KeyListener
-{
+	implements AddEdgeGraphMousePlugin.Adder<QVertex>,
+	InteractiveView,
+	KeyListener {
+
 	private static final long serialVersionUID = 7196565776978339937L;
 	private QuantoCore core;
 	private RWMouse graphMouse;
@@ -62,8 +62,8 @@ public class InteractiveGraphView extends GraphView
 		return this.getParent() != null;
 	}
 
-	private class QVertexLabeler implements VertexLabelRenderer
-	{
+	private class QVertexLabeler implements VertexLabelRenderer {
+
 		Map<QVertex, Labeler> components;
 
 		public QVertexLabeler() {
@@ -73,7 +73,7 @@ public class InteractiveGraphView extends GraphView
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
 			if (vertex instanceof QVertex && ((QVertex) vertex).isAngleVertex()) {
-				final QVertex qVertex = (QVertex)vertex;
+				final QVertex qVertex = (QVertex) vertex;
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
 					viewer.getGraphLayout().transform(qVertex));
@@ -104,8 +104,8 @@ public class InteractiveGraphView extends GraphView
 						angleLabeler.setBounds(rect);
 					}
 
-					angleLabeler.addChangeListener(new ChangeListener()
-					{
+					angleLabeler.addChangeListener(new ChangeListener() {
+
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler) e.getSource();
 							if (qVertex != null) {
@@ -136,9 +136,8 @@ public class InteractiveGraphView extends GraphView
 
 				return new JLabel();
 			}
-			else if (!(vertex instanceof QVertex) ||
-				((QVertex) vertex).getVertexType() != QVertex.Type.BOUNDARY)
-			{
+			else if (!(vertex instanceof QVertex)
+				|| ((QVertex) vertex).getVertexType() != QVertex.Type.BOUNDARY) {
 				JLabel label = new JLabel((String) value);
 				label.setOpaque(true);
 				label.setBackground(Color.white);
@@ -163,8 +162,8 @@ public class InteractiveGraphView extends GraphView
 	 * A graph mouse for doing most interactive graph operations.
 	 *
 	 */
-	private class RWMouse extends PluggableGraphMouse
-	{
+	private class RWMouse extends PluggableGraphMouse {
+
 		private GraphMousePlugin pickingMouse, edgeMouse;
 		private boolean pickingMouseActive, edgeMouseActive;
 
@@ -219,8 +218,8 @@ public class InteractiveGraphView extends GraphView
 		}
 
 		public ItemListener getItemListener() {
-			return new ItemListener()
-			{
+			return new ItemListener() {
+
 				public void itemStateChanged(ItemEvent e) {
 					if (e.getStateChange() == ItemEvent.SELECTED) {
 						if (e.getSource() == rbEdgeMode) {
@@ -254,8 +253,8 @@ public class InteractiveGraphView extends GraphView
 		menus = new ArrayList<JMenu>();
 		buildMenus();
 
-		viewer.addPreRenderPaintable(new VisualizationServer.Paintable()
-		{
+		viewer.addPreRenderPaintable(new VisualizationServer.Paintable() {
+
 			public void paint(Graphics g) {
 				Color old = g.getColor();
 				g.setColor(Color.red);
@@ -270,8 +269,8 @@ public class InteractiveGraphView extends GraphView
 			}
 		});
 
-		viewer.addMouseListener(new MouseAdapter()
-		{
+		viewer.addMouseListener(new MouseAdapter() {
+
 			@Override
 			public void mousePressed(MouseEvent e) {
 				InteractiveGraphView.this.grabFocus();
@@ -283,8 +282,8 @@ public class InteractiveGraphView extends GraphView
 		viewer.addKeyListener(this);
 
 		viewer.getRenderContext().setVertexStrokeTransformer(
-			new Transformer<QVertex, Stroke>()
-			{
+			new Transformer<QVertex, Stroke>() {
+
 				public Stroke transform(QVertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)
 						|| viewer.isLocked(v)) {
@@ -296,8 +295,8 @@ public class InteractiveGraphView extends GraphView
 				}
 			});
 		viewer.getRenderContext().setVertexDrawPaintTransformer(
-			new Transformer<QVertex, Paint>()
-			{
+			new Transformer<QVertex, Paint>() {
+
 				public Paint transform(QVertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)) {
 						return Color.blue;
@@ -346,8 +345,8 @@ public class InteractiveGraphView extends GraphView
 
 		// Save Graph
 		file_saveGraph = new JMenuItem("Save Graph", KeyEvent.VK_S);
-		file_saveGraph.addActionListener(new ActionListener()
-		{
+		file_saveGraph.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				saveGraph();
 			}
@@ -356,8 +355,8 @@ public class InteractiveGraphView extends GraphView
 
 		// Save Graph As
 		file_saveGraphAs = new JMenuItem("Save Graph As...", KeyEvent.VK_A);
-		file_saveGraphAs.addActionListener(new ActionListener()
-		{
+		file_saveGraphAs.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				saveGraphAs();
 			}
@@ -370,8 +369,8 @@ public class InteractiveGraphView extends GraphView
 		JMenuItem item;
 
 		item = new JMenuItem("Export to PDF", KeyEvent.VK_P);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				GraphVisualizationViewer view = new GraphVisualizationViewer(getGraph());
@@ -417,8 +416,8 @@ public class InteractiveGraphView extends GraphView
 //		graphMenu.add(cbBangBoxMode);
 
 		item = new JMenuItem("Latex to clipboard", KeyEvent.VK_L);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				String tikz = TikzOutput.generate(getGraph(), viewer.getGraphLayout());
@@ -431,8 +430,8 @@ public class InteractiveGraphView extends GraphView
 
 		JMenu graphAddMenu = new JMenu("Add");
 		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.RED);
@@ -441,8 +440,8 @@ public class InteractiveGraphView extends GraphView
 		graphAddMenu.add(item);
 
 		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.GREEN);
@@ -451,8 +450,8 @@ public class InteractiveGraphView extends GraphView
 		graphAddMenu.add(item);
 
 		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.BOUNDARY);
@@ -461,8 +460,8 @@ public class InteractiveGraphView extends GraphView
 		graphAddMenu.add(item);
 
 		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_H);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				addVertex(QVertex.Type.HADAMARD);
@@ -473,8 +472,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(graphAddMenu);
 
 		item = new JMenuItem("Show Rewrites", KeyEvent.VK_R);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				showRewrites();
@@ -484,8 +483,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Normalise", KeyEvent.VK_N);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				rewriteForever();
@@ -495,8 +494,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Fast Normalise", KeyEvent.VK_F);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().fastNormalise(getGraph());
@@ -507,8 +506,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Abort", KeyEvent.VK_A);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				if (rewriter != null) {
@@ -521,8 +520,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Select All Vertices", KeyEvent.VK_S);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				synchronized (getGraph()) {
@@ -536,8 +535,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Deselect All Vertices", KeyEvent.VK_D);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				viewer.getPickedVertexState().clear();
@@ -547,8 +546,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Lock Vertices", KeyEvent.VK_L);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				viewer.lock(viewer.getPickedVertexState().getPicked());
@@ -559,8 +558,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Unlock Vertices", KeyEvent.VK_N);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				viewer.unlock(viewer.getPickedVertexState().getPicked());
@@ -572,8 +571,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(item);
 
 		item = new JMenuItem("Flip Vertex Colour", KeyEvent.VK_F);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().flip_vertices(getGraph(),
@@ -588,8 +587,8 @@ public class InteractiveGraphView extends GraphView
 		JMenu bangMenu = new JMenu("Bang boxes");
 
 		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				// this is not the real bang box, but we just need the name
@@ -603,8 +602,8 @@ public class InteractiveGraphView extends GraphView
 		bangMenu.add(item);
 
 		item = new JMenuItem("Unbang Vertices", KeyEvent.VK_U);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().unbang_vertices(getGraph(),
@@ -619,8 +618,8 @@ public class InteractiveGraphView extends GraphView
 
 
 		item = new JMenuItem("Drop Box", KeyEvent.VK_P);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().bbox_drop(getGraph(),
@@ -634,8 +633,8 @@ public class InteractiveGraphView extends GraphView
 
 
 		item = new JMenuItem("Kill Box", KeyEvent.VK_K);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().bbox_kill(getGraph(),
@@ -648,8 +647,8 @@ public class InteractiveGraphView extends GraphView
 		graphMenu.add(bangMenu);
 
 		item = new JMenuItem("Duplicate Box", KeyEvent.VK_D);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().bbox_duplicate(getGraph(),
@@ -666,8 +665,8 @@ public class InteractiveGraphView extends GraphView
 		JMenu editMenu = new JMenu("Edit");
 		editMenu.setMnemonic(KeyEvent.VK_E);
 		item = new JMenuItem("Undo", KeyEvent.VK_U);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().undo(getGraph());
@@ -678,8 +677,8 @@ public class InteractiveGraphView extends GraphView
 		editMenu.add(item);
 
 		item = new JMenuItem("Redo", KeyEvent.VK_R);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().redo(getGraph());
@@ -691,8 +690,8 @@ public class InteractiveGraphView extends GraphView
 		editMenu.add(item);
 
 		item = new JMenuItem("Cut", KeyEvent.VK_T);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
@@ -708,8 +707,8 @@ public class InteractiveGraphView extends GraphView
 		editMenu.add(item);
 
 		item = new JMenuItem("Copy", KeyEvent.VK_C);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
@@ -723,8 +722,8 @@ public class InteractiveGraphView extends GraphView
 		editMenu.add(item);
 
 		item = new JMenuItem("Paste", KeyEvent.VK_P);
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				getCore().insert_graph(getGraph(), "__clip__");
@@ -741,8 +740,8 @@ public class InteractiveGraphView extends GraphView
 		hilbMenu.setMnemonic(KeyEvent.VK_B);
 
 		item = new JMenuItem("Dump term as text");
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				outputToTextView(getCore().hilb(getGraph(), "plain"));
@@ -751,8 +750,8 @@ public class InteractiveGraphView extends GraphView
 		hilbMenu.add(item);
 
 		item = new JMenuItem("Dump term as Mathematica");
-		item.addActionListener(new QuantoActionListener(this)
-		{
+		item.addActionListener(new QuantoActionListener(this) {
+
 			@Override
 			public void wrappedAction(ActionEvent e) throws ConsoleError {
 				outputToTextView(getCore().hilb(getGraph(), "mathematica"));
@@ -786,10 +785,12 @@ public class InteractiveGraphView extends GraphView
 	public void showRewrites() {
 		try {
 			Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
-			if (picked.isEmpty())
+			if (picked.isEmpty()) {
 				getCore().attach_rewrites(getGraph(), getGraph().getVertices());
-			else
+			}
+			else {
 				getCore().attach_rewrites(getGraph(), picked);
+			}
 			JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 			rewrites.setVisible(true);
 		}
@@ -834,7 +835,7 @@ public class InteractiveGraphView extends GraphView
 	public void outputToTextView(String text) {
 		TextView tview = new TextView(text);
 		QuantoApp app = QuantoApp.getInstance();
-		app. getViewManager().addView(app.getViewManager().getViewName(this) + "-output", tview);
+		app.getViewManager().addView(app.getViewManager().getViewName(this) + "-output", tview);
 	}
 	private SubgraphHighlighter highlighter = null;
 
@@ -858,8 +859,8 @@ public class InteractiveGraphView extends GraphView
 		rewriter.start();
 	}
 
-	private class RewriterThread extends Thread
-	{
+	private class RewriterThread extends Thread {
+
 		private boolean highlight = false;
 
 		private void attachNextRewrite() {
@@ -874,11 +875,11 @@ public class InteractiveGraphView extends GraphView
 		}
 
 		private void invokeHighlightSubgraphAndWait(QuantoGraph subgraph)
-			throws InterruptedException
-		{
+			throws InterruptedException {
 			highlight = true;
 			final QuantoGraph fSubGraph = subgraph;
 			invokeAndWait(new Runnable() {
+
 				public void run() {
 					highlightSubgraph(fSubGraph);
 				}
@@ -886,11 +887,11 @@ public class InteractiveGraphView extends GraphView
 		}
 
 		private void invokeApplyRewriteAndWait(int index)
-			throws InterruptedException
-		{
+			throws InterruptedException {
 			highlight = false;
 			final int fIndex = index;
 			invokeAndWait(new Runnable() {
+
 				public void run() {
 					clearHighlight();
 					applyRewrite(fIndex);
@@ -898,10 +899,10 @@ public class InteractiveGraphView extends GraphView
 			});
 		}
 
-		private void invokeClearHighlightLater()
-		{
+		private void invokeClearHighlightLater() {
 			highlight = false;
 			SwingUtilities.invokeLater(new Runnable() {
+
 				public void run() {
 					clearHighlight();
 				}
@@ -909,10 +910,10 @@ public class InteractiveGraphView extends GraphView
 		}
 
 		private void invokeInfoDialogAndWait(String message)
-			throws InterruptedException
-		{
+			throws InterruptedException {
 			final String fMessage = message;
 			invokeAndWait(new Runnable() {
+
 				public void run() {
 					infoDialog(fMessage);
 				}
@@ -920,8 +921,7 @@ public class InteractiveGraphView extends GraphView
 		}
 
 		private void invokeAndWait(Runnable runnable)
-			throws InterruptedException
-		{
+			throws InterruptedException {
 			try {
 				SwingUtilities.invokeAndWait(runnable);
 			}
@@ -952,15 +952,16 @@ public class InteractiveGraphView extends GraphView
 				invokeInfoDialogAndWait("Applied " + count + " rewrites");
 			}
 			catch (InterruptedException e) {
-				if (highlight)
+				if (highlight) {
 					invokeClearHighlightLater();
+				}
 			}
 		}
 	}
 
 	private class SubgraphHighlighter
-		implements VisualizationServer.Paintable
-	{
+		implements VisualizationServer.Paintable {
+
 		Collection<QVertex> verts;
 
 		public SubgraphHighlighter(QuantoGraph g) {
@@ -1039,8 +1040,8 @@ public class InteractiveGraphView extends GraphView
 
 	public void saveGraphAs() {
 		int retVal = QuantoApp.getInstance().getFileChooser().showSaveDialog(this);
-		if(retVal == JFileChooser.APPROVE_OPTION) {
-			try{
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			try {
 				File f = QuantoApp.getInstance().getFileChooser().getSelectedFile();
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
 				core.save_graph(getGraph(), filename);
@@ -1132,24 +1133,21 @@ public class InteractiveGraphView extends GraphView
 	}
 
 	static class BangBoxAwarePickerMousePlugin
-		extends ConstrainedPickingGraphMousePlugin<QVertex, QEdge>
-	{
+		extends ConstrainedPickingGraphMousePlugin<QVertex, QEdge> {
+
 		protected BangBox bangBox;
 
 		public BangBoxAwarePickerMousePlugin() {
 			super(ConstrainingAction.MoveOthers, 20, 20);
 		}
 
-		private BangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y)
-		{
-			while (layout instanceof LayoutDecorator)
-			{
-				layout = ((LayoutDecorator<QVertex, QEdge>)layout).getDelegate();
+		private BangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y) {
+			while (layout instanceof LayoutDecorator) {
+				layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
 			}
-			try
-			{
-				LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>)layout;
-				QuantoGraph graph = (QuantoGraph)realLayout.getGraph();
+			try {
+				LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
+				QuantoGraph graph = (QuantoGraph) realLayout.getGraph();
 				synchronized (graph) {
 					for (BangBox bb : graph.getBangBoxes()) {
 						Rectangle2D bbRect = realLayout.transformBangBox(bb);
@@ -1159,8 +1157,7 @@ public class InteractiveGraphView extends GraphView
 					}
 				}
 			}
-			catch (ClassCastException ex)
-			{
+			catch (ClassCastException ex) {
 				System.err.println("When finding bang box: " + ex.getMessage());
 			}
 			return null;
@@ -1174,7 +1171,7 @@ public class InteractiveGraphView extends GraphView
 			GraphElementAccessor<QVertex, QEdge> pickSupport = vv.getPickSupport();
 			PickedState<QVertex> pickedVertexState = vv.getPickedVertexState();
 			PickedState<QEdge> pickedEdgeState = vv.getPickedEdgeState();
-			PickedState<BangBox> pickedBangBoxState = ((GraphVisualizationViewer)vv).getPickedBangBoxState();
+			PickedState<BangBox> pickedBangBoxState = ((GraphVisualizationViewer) vv).getPickedBangBoxState();
 			if (pickSupport != null && pickedVertexState != null) {
 				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
 				if (e.getModifiers() == modifiers) {
@@ -1259,27 +1256,24 @@ public class InteractiveGraphView extends GraphView
 		@SuppressWarnings("unchecked")
 		public void mouseReleased(MouseEvent e) {
 			boolean recalcSize = false;
-			if (vertex != null)
+			if (vertex != null) {
 				recalcSize = true;
+			}
 
 			super.mouseReleased(e);
 			bangBox = null;
 
-			if (recalcSize)
-			{
+			if (recalcSize) {
 				VisualizationViewer<QVertex, QEdge> vv = (VisualizationViewer) e.getSource();
 				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
-				while (layout instanceof LayoutDecorator)
-				{
-					layout = ((LayoutDecorator<QVertex, QEdge>)layout).getDelegate();
+				while (layout instanceof LayoutDecorator) {
+					layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
 				}
-				try
-				{
-					LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>)layout;
+				try {
+					LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
 					realLayout.recalculateBounds();
 				}
-				catch (ClassCastException ex)
-				{
+				catch (ClassCastException ex) {
 					System.err.println("When mouse released: " + ex.getMessage());
 				}
 			}
@@ -1351,7 +1345,9 @@ public class InteractiveGraphView extends GraphView
 		}
 	}
 
-	public void keyReleased(KeyEvent e) {}
+	public void keyReleased(KeyEvent e) {
+	}
 
-	public void keyTyped(KeyEvent e) {}
+	public void keyTyped(KeyEvent e) {
+	}
 }

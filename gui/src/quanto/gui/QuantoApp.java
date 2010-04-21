@@ -1,7 +1,5 @@
 // vim:sts=8:ts=8:noet:sw=8
-
 package quanto.gui;
-
 
 import java.awt.Component;
 import java.awt.Dimension;
@@ -13,7 +11,6 @@ import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.StringWriter;
-import java.util.Map;
 import java.util.prefs.Preferences;
 
 import javax.swing.JCheckBoxMenuItem;
@@ -28,14 +25,9 @@ import javax.swing.UIManager;
 import net.n3.nanoxml.IXMLElement;
 import net.n3.nanoxml.XMLWriter;
 
-import org.apache.commons.collections15.BidiMap;
-import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
-import org.apache.commons.collections15.comparators.ComparableComparator;
-import org.apache.commons.collections15.contrib.HashCodeComparator;
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 
-import edu.uci.ics.jung.contrib.HasName;
 
 /**
  * Singleton class 
@@ -44,42 +36,49 @@ import edu.uci.ics.jung.contrib.HasName;
  */
 public class QuantoApp {
 	// isMac is used for CTRL vs META shortcuts, etc
+
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	// MAC_OS_X is used to determine whether we use OSXAdapter to
 	// hook into the application menu
-	public static boolean MAC_OS_X = (System.getProperty("os.name")
-                .toLowerCase().startsWith("mac os x"));
+	public static boolean MAC_OS_X = (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
 	private static QuantoApp theApp = null;
 	public static boolean useExperimentalLayout = false;
-	
-	
+
 	private static class Pref<T> {
+
 		final T def; // default value
 		final String key;
+
 		protected Pref(String key, T def) {
-			this.key = key; this.def = def;
+			this.key = key;
+			this.def = def;
 		}
 	}
-	
+
 	public static class StringPref extends Pref<String> {
-		protected StringPref(String key, String def) {super(key,def);} 
+
+		protected StringPref(String key, String def) {
+			super(key, def);
+		}
 	}
-	
+
 	public static class BoolPref extends Pref<Boolean> implements ItemListener {
-		protected BoolPref(String key, Boolean def) {super(key, def);}
-		
+
+		protected BoolPref(String key, Boolean def) {
+			super(key, def);
+		}
+
 		public void itemStateChanged(ItemEvent e) {
 			try {
-				QuantoApp.getInstance().setPreference
-					(this, e.getStateChange()==ItemEvent.SELECTED);
-			} catch (ClassCastException exp) {
+				QuantoApp.getInstance().setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
+			}
+			catch (ClassCastException exp) {
 				throw new QuantoCore.FatalError(
 					"Attempted to use non-boolean pref as item listener.");
 			}
 		}
 	}
-	
 	// Preferences
 	public static final BoolPref DRAW_ARROW_HEADS =
 		new BoolPref("draw_arrow_heads", false);
@@ -95,17 +94,18 @@ public class QuantoApp {
 		new StringPref("last_theory_open_dir", null);
 	public static final StringPref LOADED_THEORIES =
 		new StringPref("loaded_theories", "");
-	
 	private final Preferences globalPrefs;
 	private final QuantoCore core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
-	
+
 	public static QuantoApp getInstance() {
-		if (theApp == null) theApp = new QuantoApp();
+		if (theApp == null) {
+			theApp = new QuantoApp();
+		}
 		return theApp;
 	}
-	
+
 	public static boolean hasInstance() {
 		return !(theApp == null);
 	}
@@ -119,55 +119,56 @@ public class QuantoApp {
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
 				QuantoCore.appName = "Quantomatic.app";
-				
+
 				// determine the app name from the classpath if I can...
 				System.out.println(System.getProperty("java.class.path"));
-				for (String path : System.getProperty("java.class.path")
-						.split(System.getProperty("path.separator"))) {
-					if (path.indexOf("QuantoGui.jar")!=-1) {
+				for (String path : System.getProperty("java.class.path").split(System.getProperty("path.separator"))) {
+					if (path.indexOf("QuantoGui.jar") != -1) {
 						String[] dirs = path.split(System.getProperty("file.separator"));
-						if (dirs.length>=5) {
-							QuantoCore.appName = dirs[dirs.length-5];
+						if (dirs.length >= 5) {
+							QuantoCore.appName = dirs[dirs.length - 5];
 							System.out.println(QuantoCore.appName);
 						}
 					}
 				}
-				
+
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
 					QuantoCore.appName + "/Contents/MacOS/dot_static";
 				System.out.println("Invoked as OS X application.");
 //				for (Entry<Object,Object> k : System.getProperties().entrySet()) {
 //					System.out.printf("%s -> %s\n", k.getKey(), k.getValue());
 //				}
-			} else if (arg.equals("--mathematica-mode")) {
+			}
+			else if (arg.equals("--mathematica-mode")) {
 				QuantoCore.mathematicaMode = true;
 			}
 		}
-		
+
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			System.err.println("ERROR SETTING LOOK AND FEEL:");
 			e.printStackTrace();
 		}
-		
-		if (QuantoApp.isMac && !QuantoCore.mathematicaMode) {	
+
+		if (QuantoApp.isMac && !QuantoCore.mathematicaMode) {
 			//System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty(
-					"com.apple.mrj.application.apple.menu.about.name",
-					"Quanto");
+				"com.apple.mrj.application.apple.menu.about.name",
+				"Quanto");
 		}
-		
+
 		QuantoApp app = getInstance();
-		
+
 		app.newGraph(true);
-		
+
 		System.out.println("loading theory...");
-		
+
 		TheoryTree.loadState();
-		
+
 		System.out.println("done.");
-		
+
 //		SwingUtilities.invokeLater(new Runnable() {
 //			public void run() {
 //				getInstance().newGraph(true);
@@ -179,43 +180,48 @@ public class QuantoApp {
 
 	public boolean shutdown() {
 		System.out.println("Shutting down...");
-		if (viewManager.killAllViews())
+		if (viewManager.killAllViews()) {
 			System.exit(0);
+		}
 		return false;
 	}
 
 	private QuantoApp() {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
-		
+
 		viewManager = new InteractiveViewManager();
 		core = viewManager.getConsole().getCore();
 
-		if (MAC_OS_X)
-		{
+		if (MAC_OS_X) {
 			try {
-				OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[])null));
-			} catch (SecurityException e) {
+				OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));
+			}
+			catch (SecurityException e) {
 				throw new QuantoCore.FatalError(e);
-			} catch (NoSuchMethodException e) {
+			}
+			catch (NoSuchMethodException e) {
 				throw new QuantoCore.FatalError(e);
 			}
 		}
 	}
 
 	public JFileChooser getFileChooser() {
-		if (fileChooser == null) fileChooser = new JFileChooser();
+		if (fileChooser == null) {
+			fileChooser = new JFileChooser();
+		}
 		return fileChooser;
 	}
 
 	public InteractiveViewManager getViewManager() {
 		return viewManager;
 	}
-	
+
 	public MainMenu getMainMenu() {
 		return new MainMenu();
 	}
-	
+
 	public class MainMenu extends JMenuBar {
+
 		private static final long serialVersionUID = 1L;
 		public final JMenu fileMenu;
 		public final JMenu viewMenu;
@@ -231,102 +237,115 @@ public class QuantoApp {
 		public final JMenuItem file_newGraph;
 		public final JMenuItem file_newWindow;
 		public final JMenuItem file_closeView;
-		
-		
+
 		private int getIndexOf(JMenu m, JMenuItem mi) {
-			for (int i=0; i<m.getItemCount(); i++)
-				if (m.getItem(i).equals(mi)) return i;
+			for (int i = 0; i < m.getItemCount(); i++) {
+				if (m.getItem(i).equals(mi)) {
+					return i;
+				}
+			}
 			throw new QuantoCore.FatalError(
-					"Attempted getIndexOf() for non-existent menu item.");
+				"Attempted getIndexOf() for non-existent menu item.");
 		}
-		
+
 		public void insertBefore(JMenu m, JMenuItem before, JMenuItem item) {
 			m.insert(item, getIndexOf(m, before));
 		}
-		
+
 		public void insertAfter(JMenu m, JMenuItem after, JMenuItem item) {
-			m.insert(item, getIndexOf(m, after)+1);
+			m.insert(item, getIndexOf(m, after) + 1);
 		}
-		
-		
+
 		public MainMenu() {
 			int commandMask;
-		    if (QuantoApp.isMac) commandMask = Event.META_MASK;
-		    else commandMask = Event.CTRL_MASK;
-		    
+			if (QuantoApp.isMac) {
+				commandMask = Event.META_MASK;
+			}
+			else {
+				commandMask = Event.CTRL_MASK;
+			}
+
 			fileMenu = new JMenu("File");
 			viewMenu = new JMenu("View");
 			fileMenu.setMnemonic(KeyEvent.VK_F);
 			viewMenu.setMnemonic(KeyEvent.VK_V);
-			
+
 			file_newGraph = new JMenuItem("New Graph", KeyEvent.VK_G);
 			file_newGraph.addActionListener(new ActionListener() {
+
 				public void actionPerformed(ActionEvent e) {
 					QuantoApp.getInstance().newGraph();
 				}
 			});
 			file_newGraph.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, commandMask));
 			fileMenu.add(file_newGraph);
-			
+
 			file_newWindow = new JMenuItem("New Window", KeyEvent.VK_N);
 			file_newWindow.addActionListener(new ActionListener() {
+
 				public void actionPerformed(ActionEvent e) {
 					String v = viewManager.getFirstFreeView();
-					if (v!=null) {
+					if (v != null) {
 						QuantoFrame fr = new QuantoFrame();
 						fr.setVisible(true);
 						fr.getViewPort().setFocusedView(v);
 						fr.pack();
-					} else {
+					}
+					else {
 						errorDialog("no more views to show");
 					}
 				}
 			});
 			file_newWindow.setAccelerator(KeyStroke.getKeyStroke(
-					KeyEvent.VK_N, commandMask | KeyEvent.SHIFT_MASK));
+				KeyEvent.VK_N, commandMask | KeyEvent.SHIFT_MASK));
 			fileMenu.add(file_newWindow);
-			
-			
+
+
 			file_openGraph = new JMenuItem("Open Graph...", KeyEvent.VK_O);
 			file_openGraph.addActionListener(new ActionListener() {
+
 				public void actionPerformed(ActionEvent e) {
 					QuantoApp.getInstance().openGraph();
 				}
 			});
 			file_openGraph.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, commandMask));
 			fileMenu.add(file_openGraph);
-			
+
 			file_closeView = new JMenuItem("Close", KeyEvent.VK_L);
 			file_closeView.addActionListener(new ActionListener() {
+
 				public void actionPerformed(ActionEvent e) {
 					viewManager.closeFocusedView();
 				}
 			});
 			file_closeView.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, commandMask));
 			fileMenu.add(file_closeView);
-			
+
 			file_loadTheory = new JMenuItem("Load Theory...");
-			file_loadTheory.addActionListener(new ActionListener() { 
-					public void actionPerformed(ActionEvent e) {
-						QuantoApp.getInstance().loadRuleset();
-					}
+			file_loadTheory.addActionListener(new ActionListener() {
+
+				public void actionPerformed(ActionEvent e) {
+					QuantoApp.getInstance().loadRuleset();
+				}
 			});
 			fileMenu.add(file_loadTheory);
-			
+
 			file_saveTheory = new JMenuItem("Save Theory");
-			file_saveTheory.addActionListener(new ActionListener() { 
-					public void actionPerformed(ActionEvent e) {
-						System.err.println("SAVE NOT IMPLEMENTED");
+			file_saveTheory.addActionListener(new ActionListener() {
+
+				public void actionPerformed(ActionEvent e) {
+					System.err.println("SAVE NOT IMPLEMENTED");
 //						QuantoApp.getInstance().saveRuleSet();
-					}
+				}
 			});
 			file_saveTheory.setEnabled(false);
 			fileMenu.add(file_saveTheory);
-			
+
 			// quit
 			if (!MAC_OS_X) {
 				file_quit = new JMenuItem("Quit", KeyEvent.VK_Q);
 				file_quit.addActionListener(new ActionListener() {
+
 					public void actionPerformed(ActionEvent e) {
 						// TODO: close better?
 						QuantoApp.getInstance().shutdown();
@@ -334,19 +353,22 @@ public class QuantoApp {
 				});
 				file_quit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, commandMask));
 				fileMenu.add(file_quit);
-			} else {
+			}
+			else {
 				file_quit = null;
 			}
-			
+
 			view_refreshAllGraphs = new JMenuItem("Refresh All Graphs", KeyEvent.VK_R);
 			view_refreshAllGraphs.addActionListener(new ActionListener() {
+
 				public void actionPerformed(ActionEvent e) {
 					synchronized (viewManager.getViews()) {
 						for (InteractiveView v : viewManager.getViews().values()) {
 							if (v instanceof InteractiveGraphView) {
 								try {
-									((InteractiveGraphView)v).updateGraph();
-								} catch (QuantoCore.ConsoleError err) {
+									((InteractiveGraphView) v).updateGraph();
+								}
+								catch (QuantoCore.ConsoleError err) {
 									QuantoApp.getInstance().errorDialog(err.getMessage());
 								}
 							}
@@ -356,96 +378,93 @@ public class QuantoApp {
 			});
 			view_refreshAllGraphs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.SHIFT_MASK));
 			viewMenu.add(view_refreshAllGraphs);
-			
+
 			viewMenu.addSeparator();
-			
+
 			view_drawArrowHeads = new JCheckBoxMenuItem("Draw Arrow Heads");
 			view_drawArrowHeads.setSelected(
-					QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS));
+				QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS));
 			view_drawArrowHeads.addItemListener(QuantoApp.DRAW_ARROW_HEADS);
 			viewMenu.add(view_drawArrowHeads);
-			
+
 			view_verboseConsole = new JCheckBoxMenuItem("Verbose Console");
 			view_verboseConsole.setSelected(
-					QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO));
+				QuantoApp.getInstance().getPreference(QuantoApp.CONSOLE_ECHO));
 			view_verboseConsole.addItemListener(QuantoApp.CONSOLE_ECHO);
 			viewMenu.add(view_verboseConsole);
-			
+
 			view_showInternalNames = new JCheckBoxMenuItem("Show Internal Graph Names");
 			view_showInternalNames.setSelected(
-					QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES));
+				QuantoApp.getInstance().getPreference(QuantoApp.SHOW_INTERNAL_NAMES));
 			view_showInternalNames.addItemListener(QuantoApp.SHOW_INTERNAL_NAMES);
 			viewMenu.add(view_showInternalNames);
-			
+
 			view_newWindowForGraphs = new JCheckBoxMenuItem("Open Graphs in a New Window");
 			view_newWindowForGraphs.setSelected(
-					QuantoApp.getInstance().getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS));
+				QuantoApp.getInstance().getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS));
 			view_newWindowForGraphs.addItemListener(QuantoApp.NEW_WINDOW_FOR_GRAPHS);
 			viewMenu.add(view_newWindowForGraphs);
-			
-	//		closeViewMenuItem = new JMenuItem("Close Current View", KeyEvent.VK_W);
-	//		closeViewMenuItem.addActionListener(new ActionListener() {
-	//			public void actionPerformed(ActionEvent e) {
-	//				//closeView(focusedView);
-	//			}
-	//		});
-	//		closeViewMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_W, modifierKey));
-	//		viewMenu.add(closeViewMenuItem);
-			
+
 			add(fileMenu);
 			add(viewMenu);
 		}
 	}
-	
 
 	/**
 	 * Generic action listener that reports errors to a dialog box and gives
 	 * actions access to the frame, console, and core.
 	 */
 	public static abstract class QuantoActionListener implements ActionListener {
+
 		private Component parent;
-	
+
 		public QuantoActionListener(Component parent) {
 			this.parent = parent;
 		}
+
 		public void actionPerformed(ActionEvent e) {
 			try {
 				wrappedAction(e);
-			} catch (QuantoCore.ConsoleError err) {
+			}
+			catch (QuantoCore.ConsoleError err) {
 				JOptionPane.showMessageDialog(
-						parent,
-						err.getMessage(),
-						"Console Error",
-						JOptionPane.ERROR_MESSAGE);
+					parent,
+					err.getMessage(),
+					"Console Error",
+					JOptionPane.ERROR_MESSAGE);
 			}
 		}
-		
+
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
 	}
 
 	public QuantoCore getCore() {
 		return core;
 	}
-	
+
 	public void errorDialog(String message) {
 		JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
 	}
-	
+
 	/** 
 	 * Read a graph from a file and send it to a fresh InteractiveGraphView.
 	 */
 	public void openGraph() {
 		String lastDir = getPreference(LAST_OPEN_DIR);
-		
+
 		JFileChooser fc = getFileChooser();
-		
-		if (lastDir != null) fc.setCurrentDirectory(new File(lastDir));
-		
+
+		if (lastDir != null) {
+			fc.setCurrentDirectory(new File(lastDir));
+		}
+
 		int retVal = getFileChooser().showDialog(null, "Open");
-		if(retVal == JFileChooser.APPROVE_OPTION) {
+		if (retVal == JFileChooser.APPROVE_OPTION) {
 			File f = fc.getSelectedFile();
 			try {
-				if (f.getParent()!=null) setPreference(LAST_OPEN_DIR, f.getParent());
+				if (f.getParent() != null) {
+					setPreference(LAST_OPEN_DIR, f.getParent());
+				}
 				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
 				QuantoGraph loadedGraph = new QuantoGraph();
 				IXMLElement root = loadedGraph.fromXml(f);
@@ -453,21 +472,22 @@ public class QuantoApp {
 				new XMLWriter(sw).write(root, true);
 				loadedGraph.setName(core.input_graph_xml(sw.toString()));
 				InteractiveGraphView vis =
-					new InteractiveGraphView(core, loadedGraph, new Dimension(800,600));
+					new InteractiveGraphView(core, loadedGraph, new Dimension(800, 600));
 				vis.getGraph().setFileName(filename);
-				
+
 				String v = viewManager.addView(f.getName(), vis);
 				core.rename_graph(loadedGraph, v);
-				
+
 				vis.updateGraph();
 				vis.getGraph().setSaved(true);
-				
+
 				if (getPreference(NEW_WINDOW_FOR_GRAPHS)) { // in a new window?
 					QuantoFrame fr = new QuantoFrame();
 					fr.getViewPort().setFocusedView(v);
 					fr.pack();
 					fr.setVisible(true);
-				} else {
+				}
+				else {
 					viewManager.forceFocus(v);
 				}
 			}
@@ -477,12 +497,12 @@ public class QuantoApp {
 			catch (QuantoGraph.ParseException e) {
 				errorDialog("\"" + f.getName() + "\" is in the wrong format or corrupted: " + e.getMessage());
 			}
-			catch(java.io.IOException e) {
+			catch (java.io.IOException e) {
 				errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
 			}
 		}
 	}
-	
+
 	/**
 	 * Create a new graph, read the name, and send to a fresh
 	 * InteractiveQuantoVisualizer.
@@ -493,35 +513,42 @@ public class QuantoApp {
 		try {
 			QuantoGraph newGraph = core.new_graph();
 			InteractiveGraphView vis =
-				new InteractiveGraphView(core, newGraph, new Dimension(800,600));
-			String v = viewManager.addView("new-graph-1",vis);
-			
+				new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
+			String v = viewManager.addView("new-graph-1", vis);
+
 			if (initial || getPreference(NEW_WINDOW_FOR_GRAPHS)) { // are we making a new window?
 				QuantoFrame fr = new QuantoFrame();
 				fr.getViewPort().setFocusedView(v);
 				fr.getViewPort().gainFocus();
 				fr.pack();
 				fr.setVisible(true);
-			} else {
+			}
+			else {
 				viewManager.forceFocus(v);
 			}
-		} catch (QuantoCore.ConsoleError e) {
+		}
+		catch (QuantoCore.ConsoleError e) {
 			errorDialog(e.getMessage());
 		}
 	}
-	public void newGraph() { newGraph(false); }
-	
 
-	
+	public void newGraph() {
+		newGraph(false);
+	}
+
 	public void loadRuleset() {
 		String lastDir = getPreference(LAST_THEORY_OPEN_DIR);
-		if (lastDir != null) getFileChooser().setCurrentDirectory(new File(lastDir));
-		
+		if (lastDir != null) {
+			getFileChooser().setCurrentDirectory(new File(lastDir));
+		}
+
 		int retVal = getFileChooser().showDialog(null, "Open");
-		if(retVal == JFileChooser.APPROVE_OPTION) {
+		if (retVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				File file = getFileChooser().getSelectedFile();
-				if (file.getParent()!=null) setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
+				if (file.getParent() != null) {
+					setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
+				}
 				String thyname = file.getName().replaceAll("\\.theory|\\n|\\r", "");
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 				TheoryTree.loadRuleset(thyname, filename);
@@ -529,29 +556,14 @@ public class QuantoApp {
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
 			}
-			catch(java.io.IOException ioe) {
+			catch (java.io.IOException ioe) {
 				errorDialog(ioe.getMessage());
-			} finally {
+			}
+			finally {
 				TheoryTree.refreshInstances();
 			}
 		}
 	}
-	
-//	public void saveRuleSet() {
-//		int retVal = fileChooser.showSaveDialog(null);
-//		if(retVal == JFileChooser.APPROVE_OPTION) {
-//			try{
-//				String filename = fileChooser.getSelectedFile().getCanonicalPath().replaceAll("\\n|\\r", "");
-//				core.save_ruleset(filename);
-//			}
-//			catch (QuantoCore.ConsoleError e) {
-//				errorDialog(e.getMessage());
-//			}
-//			catch(java.io.IOException ioe) {
-//				errorDialog(ioe.getMessage());
-//			}
-//		}
-//	}
 
 	/**
 	 * Get a global preference. This method is overloaded because the preference API
@@ -560,31 +572,34 @@ public class QuantoApp {
 	public boolean getPreference(QuantoApp.BoolPref pref) {
 		return globalPrefs.getBoolean(pref.key, pref.def);
 	}
+
 	public String getPreference(QuantoApp.StringPref pref) {
 		return globalPrefs.get(pref.key, pref.def);
 	}
-	
+
 	/**
 	 * Set a global preference.
 	 */
 	public void setPreference(QuantoApp.BoolPref pref, boolean value) {
 		globalPrefs.putBoolean(pref.key, value);
 	}
+
 	public void setPreference(QuantoApp.StringPref pref, String value) {
 		globalPrefs.put(pref.key, value);
 	}
-	
+
 	public GraphView newGraphViewFromName(String name) {
 		try {
 			QuantoGraph gr = new QuantoGraph(name);
 			gr.fromXml(getCore().graph_xml(gr));
 			return new GraphView(gr);
-		} catch (QuantoGraph.ParseException e) {
+		}
+		catch (QuantoGraph.ParseException e) {
 			System.err.print("Bad graph XML from core: " + e.getMessage());
-		} catch (QuantoCore.ConsoleError e) {
+		}
+		catch (QuantoCore.ConsoleError e) {
 			System.err.print(e.getMessage());
 		}
 		return null;
 	}
-
 }
