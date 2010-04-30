@@ -3,17 +3,13 @@ package quanto.gui;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Event;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyEvent;
 
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
+import javax.swing.Action;
 import javax.swing.JSplitPane;
 import javax.swing.KeyStroke;
 import javax.swing.border.EmptyBorder;
@@ -24,133 +20,137 @@ import javax.swing.event.ChangeListener;
 import quanto.gui.QuantoCore.ConsoleError;
 
 @SuppressWarnings("serial")
-public class SplitGraphView extends JPanel
-implements InteractiveView {
+public class SplitGraphView extends InteractiveView {
+
+	public static final String USE_RULE_ACTION = "use-rule";
+
 	private boolean leftFocused;
 	private InteractiveGraphView leftView;
 	private InteractiveGraphView rightView;
 	private JSplitPane splitPane;
 	private ViewPort lastViewPort; // the last viewport I saw. Could often be null.
 	private volatile boolean saved;
-	private JMenu ruleMenu;
-	
 	// don't trust ruleset to have much but the correct name
 	private Ruleset ruleset;
-	
 	// rule is constructed locally
 	private Rewrite rule;
-	
-	public SplitGraphView(Ruleset ruleset, String ruleName, 
-			InteractiveGraphView leftView, InteractiveGraphView rightView) {
-		this(ruleset, ruleName, leftView, rightView, new Dimension(800,600));
+
+	public SplitGraphView(Ruleset ruleset, String ruleName,
+		InteractiveGraphView leftView, InteractiveGraphView rightView) {
+		this(ruleset, ruleName, leftView, rightView, new Dimension(800, 600));
 	}
-	
-	public SplitGraphView(Ruleset ruleset, String ruleName, 
-			InteractiveGraphView leftView, InteractiveGraphView rightView, Dimension dim) {
+
+	public SplitGraphView(Ruleset ruleset, String ruleName,
+		InteractiveGraphView leftView, InteractiveGraphView rightView, Dimension dim) {
+		super(ruleName);
 		this.leftFocused = true;
 		this.lastViewPort = null;
 		this.leftView = leftView;
 		this.rightView = rightView;
 		this.ruleset = ruleset;
 		this.rule = new Rewrite(ruleName,
-				this.leftView.getGraph(), this.rightView.getGraph());
-		
+			this.leftView.getGraph(), this.rightView.getGraph());
+
 		FocusListener fl = new FocusAdapter() {
+
+			@Override
 			public void focusGained(FocusEvent e) {
-				leftFocused = (e.getSource()==SplitGraphView.this.leftView);
+				leftFocused = (e.getSource() == SplitGraphView.this.leftView);
 				updateFocus();
 			}
 		};
-		
+
 		ChangeListener cl = new ChangeListener() {
+
 			public void stateChanged(ChangeEvent e) {
 				setSaved(false);
 			}
 		};
-		
+
 		leftView.addFocusListener(fl);
 		rightView.addFocusListener(fl);
 		leftView.addChangeListener(cl);
 		rightView.addChangeListener(cl);
-		
+
 		setLayout(new BorderLayout());
-		
+
 		splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		splitPane.setLeftComponent(leftView);
-        splitPane.setRightComponent(rightView);
-        splitPane.setDividerLocation(((int)dim.getWidth() - 140) / 2);
-        
-        int commandMask;
-	    if (QuantoApp.isMac) commandMask = Event.META_MASK;
-	    else commandMask = Event.CTRL_MASK;
-        
-        ruleMenu = new JMenu("Rule");
-        JMenuItem item = new JMenuItem("Use Rule");
-        item.addActionListener(new QuantoApp.QuantoActionListener(this) {
-        	public void wrappedAction(ActionEvent e) throws ConsoleError {
-        		QuantoApp.getInstance().getCore().replace_rule(
-        				SplitGraphView.this.ruleset,
-        				SplitGraphView.this.rule);
-        		// will throw error if unsuccessful, else:
-        		setSaved(true);
-        	}
-        });
-        item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_U, commandMask));
-        ruleMenu.add(item);
-		
+		splitPane.setRightComponent(rightView);
+		splitPane.setDividerLocation(((int) dim.getWidth() - 140) / 2);
+
 		add(splitPane, BorderLayout.CENTER);
 		setSaved(true);
 	}
 
-        public boolean hasExpandingWorkspace() {
-            return false;
-        }
-	
+	public boolean hasExpandingWorkspace() {
+		return false;
+	}
+
 	private void updateFocus() {
 		InteractiveGraphView focusMe, unfocusMe;
 		if (leftFocused) {
 			focusMe = leftView;
 			unfocusMe = rightView;
-		} else {
+		}
+		else {
 			focusMe = rightView;
 			unfocusMe = leftView;
 		}
-		
+
 		focusMe.setBorder(new LineBorder(Color.blue));
-		unfocusMe.setBorder(new EmptyBorder(1,1,1,1));
+		unfocusMe.setBorder(new EmptyBorder(1, 1, 1, 1));
 		if (lastViewPort != null) {
-			unfocusMe.viewUnfocus(lastViewPort);
-			focusMe.viewFocus(lastViewPort);
+			unfocusMe.detached(lastViewPort);
+			focusMe.attached(lastViewPort);
 		}
 	}
 
-	public void viewFocus(ViewPort vp) {
+	public static void createActions( ViewPort vp) {
+		Action useAction = vp.createCommandAction(USE_RULE_ACTION, "Use rule");
+		useAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_U, QuantoApp.COMMAND_MASK));
+	}
+
+	public void commandTriggered(ActionEvent e) {
+		if (USE_RULE_ACTION.equals(e.getActionCommand())) {
+			try {
+				QuantoApp.getInstance().getCore().replace_rule(
+					SplitGraphView.this.ruleset,
+					SplitGraphView.this.rule);
+				// will throw error if unsuccessful, else:
+				setSaved(true);
+			}
+			catch (ConsoleError err) {
+				errorDialog(err.getMessage());
+			}
+		}
+	}
+
+	public void attached(ViewPort vp) {
 		lastViewPort = vp;
-		vp.getMainMenu().add(ruleMenu);
+		vp.getCommandAction(USE_RULE_ACTION).setEnabled(true);
 		updateFocus();
 	}
 
-	public boolean viewHasParent() {
-		return (lastViewPort != null);
-	}
-
-	public boolean viewKill(ViewPort vp) {
-		boolean kill = false;
-		kill = isSaved() || (JOptionPane.showConfirmDialog(this,
-				"Rule not sent to theory. Close anyway?",
-				"Unsaved changes", JOptionPane.YES_NO_OPTION) == 0);
-		if (kill) {
-			leftView.viewKillNoPrompt();
-			rightView.viewKillNoPrompt();
-		}
-		return kill;
-	}
-
-	public void viewUnfocus(ViewPort vp) {
+	public void detached(ViewPort vp) {
 		lastViewPort = null;
-		vp.getMainMenu().remove(ruleMenu);
-		if (leftFocused) leftView.viewUnfocus(vp);
-		else rightView.viewUnfocus(vp);
+		vp.getCommandAction(USE_RULE_ACTION).setEnabled(false);
+		if (leftFocused) {
+			leftView.detached(vp);
+		}
+		else {
+			rightView.detached(vp);
+		}
+	}
+
+	public void cleanUp() {
+		leftView.cleanUp();
+		rightView.cleanUp();
+	}
+
+	@Override
+	protected String getUnsavedClosingMessage() {
+		return "Rule not sent to theory. Close anyway?";
 	}
 
 	public boolean isLeftFocused() {
@@ -170,8 +170,14 @@ implements InteractiveView {
 	}
 
 	public void setSaved(boolean saved) {
-		this.saved = saved;
-		if (lastViewPort != null) lastViewPort.refreshLabel();
+		if (this.saved != saved) {
+			this.saved = saved;
+			firePropertyChange("saved", !saved, saved);
+		}
 	}
 
+	public void refresh() {
+		leftView.refresh();
+		rightView.refresh();
+	}
 }

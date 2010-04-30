@@ -6,7 +6,12 @@ package quanto.gui;
 
 import edu.uci.ics.jung.contrib.HasName;
 import java.awt.Component;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import org.apache.commons.collections15.BidiMap;
 import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
 import org.apache.commons.collections15.comparators.ComparableComparator;
@@ -19,55 +24,75 @@ import org.apache.commons.collections15.contrib.HashCodeComparator;
 public class InteractiveViewManager {
 	// bidirectional map implemented as dual trees. note that get(null) or
 	//  getKey(null) will raise exceptions in the Comparators.
-
 	private final BidiMap<String, InteractiveView> views =
 		new DualTreeBidiMap<String, InteractiveView>(
 		ComparableComparator.<String>getInstance(),
 		new HashCodeComparator<InteractiveView>());
 	private final ConsoleView console;
-	private volatile ViewPort focusedViewPort = null;
+	private ViewRenameListener viewRenameListener = new ViewRenameListener();
+
+	private class ViewRenameListener implements PropertyChangeListener {
+		public void propertyChange(PropertyChangeEvent evt) {
+			if (!"title".equals(evt.getPropertyName()))
+				return;
+			InteractiveView view = (InteractiveView)evt.getSource();
+			synchronized (views) {
+				String oldName = views.getKey(view);
+				views.remove(oldName);
+				String newName = HasName.StringNamer.getFreshName(views.keySet(), evt.getNewValue().toString());
+				views.put(newName, view);
+			}
+		}
+	}
 
 	public InteractiveViewManager() {
 		console = new ConsoleView();
-		addView("console", console);
+		addView(console);
 	}
 
 	public ConsoleView getConsole() {
 		return console;
 	}
 
-	public String addView(String name, InteractiveView v) {
-		String realName = HasName.StringNamer.getFreshName(views.keySet(), name);
-		synchronized (views) {
-			views.put(realName, v);
+	public InteractiveView getNextFreeView() {
+		return getNextFreeView(false);
+	}
+
+	public InteractiveView getNextFreeView(boolean favourNonConsole) {
+		InteractiveView foundView = null;
+		for (InteractiveView view : views.values()) {
+			if (!view.isAttached()) {
+				foundView = view;
+				if (!favourNonConsole || view != console)
+					break;
+			}
 		}
-		return realName;
+		return foundView;
+	}
+
+	public void addView(InteractiveView view) {
+		String name = HasName.StringNamer.getFreshName(views.keySet(), view.getTitle());
+		synchronized (views) {
+			views.put(name, view);
+			view.setViewManager(this);
+			view.addPropertyChangeListener("title", viewRenameListener);
+		}
+	}
+
+	public void removeView(InteractiveView view) {
+		synchronized (views) {
+			view.removePropertyChangeListener("title", viewRenameListener);
+			view.setViewManager(null);
+			views.removeValue(view);
+		}
 	}
 
 	public String getViewName(InteractiveView v) {
 		return views.getKey(v);
 	}
 
-	public String renameView(String oldName, String newName) {
-		String realNewName;
-		synchronized (views) {
-			InteractiveView v = views.get(oldName);
-			if (v == null) {
-				throw new QuantoCore.FatalError("Attempting to rename null view.");
-			}
-			views.remove(oldName);
-			realNewName = addView(newName, v);
-			if (focusedViewPort != null) {
-				if (focusedViewPort.getFocusedView().equals(oldName)) {
-					focusedViewPort.setFocusedView(realNewName);
-				}
-			}
-		}
-		return realNewName;
-	}
-
-	public String renameView(InteractiveView v, String newName) {
-		return renameView(getViewName(v), newName);
+	public InteractiveView getView(String name) {
+		return views.get(name);
 	}
 
 	public Map<String, InteractiveView> getViews() {
@@ -75,74 +100,24 @@ public class InteractiveViewManager {
 	}
 
 	public void removeView(String name) {
-		synchronized (views) {
-			views.remove(name);
-		}
+		InteractiveView view = views.get(name);
+		if (view == null)
+			throw new IllegalArgumentException("No such view");
+		removeView(view);
 	}
 
-	public boolean killAllViews() {
-		if (focusedViewPort == null) {
-			System.err.println("focusedViewPort shouldn't be null here! (QuantoApp.shutdown())");
-		}
-
-		while (focusedViewPort.focusNonConsole()) {
-			String foc = focusedViewPort.getFocusedView();
-			InteractiveView iv = views.get(foc);
-
-			// if any of the viewKill() operations return false, abort
-			if (iv != null && !iv.viewKill(focusedViewPort)) {
+	public boolean closeAllViews() {
+		for (InteractiveView view : views.values()) {
+			if (!view.checkCanClose())
 				return false;
-			}
-			focusedViewPort.focusConsole(); // weird things happen if we kill views while they are focused
-			views.remove(foc);
+		}
+		for (InteractiveView view : views.values()) {
+			if (view.isAttached())
+				view.getViewPort().detachView();
+			view.cleanUp();
+
 		}
 		return true;
-	}
-
-	public void forceFocus(String view) {
-		if (focusedViewPort != null) {
-			focusedViewPort.setFocusedView(view);
-			focusedViewPort.gainFocus();
-		}
-	}
-
-	/**
-	 * Get the currently focused viewport.
-	 * @return
-	 */
-	public ViewPort getFocusedViewPort() {
-		return focusedViewPort;
-	}
-
-	/**
-	 * Set the focused view port and call the relevant focus handlers.
-	 * @param vp
-	 */
-	public void setFocusedViewPort(ViewPort vp) {
-		if (vp != focusedViewPort) {
-			if (focusedViewPort != null) {
-				focusedViewPort.loseFocus();
-			}
-			focusedViewPort = vp;
-			if (focusedViewPort != null) {
-				focusedViewPort.gainFocus();
-			}
-		}
-	}
-
-	/**
-	 * return the first InteractiveGraphView available, or null.
-	 * @return
-	 */
-	public String getFirstFreeView() {
-		synchronized (views) {
-			for (Map.Entry<String, InteractiveView> ent : views.entrySet()) {
-				if (!ent.getValue().viewHasParent()) {
-					return ent.getKey();
-				}
-			}
-		}
-		return null;
 	}
 
 	/**
@@ -151,23 +126,15 @@ public class InteractiveViewManager {
 	public void repaintViews() {
 		synchronized (views) {
 			for (InteractiveView v : views.values()) {
-				if (v instanceof Component) {
-					((Component) v).repaint();
-				}
+				v.repaint();
 			}
 		}
 	}
 
-	public void closeFocusedView() {
-		if (focusedViewPort != null) {
-			String foc = focusedViewPort.getFocusedView();
-			InteractiveView iv = views.get(foc);
-
-			// If the view allows itself to be killed, close the window.
-			if (iv != null && iv.viewKill(focusedViewPort)) {
-				focusedViewPort.focusConsole();
-				removeView(foc);
-				focusedViewPort.focusNonConsole();
+	public void refreshAll() {
+		synchronized (views) {
+			for (InteractiveView v : views.values()) {
+				v.refresh();
 			}
 		}
 	}

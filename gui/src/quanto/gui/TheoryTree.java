@@ -29,8 +29,10 @@ import quanto.gui.QuantoCore.ConsoleError;
 
 public class TheoryTree extends JPanel {
 	private static final long serialVersionUID = 9201368442015685164L;
+	// FIXME: this is only used for refreshInstances - see FIXME there
 	private static final List<TheoryTree> instances = new ArrayList<TheoryTree>();
 	private final ViewPort viewPort;
+	private final QuantoCore core;
 	
 	// the theory state is global
 	protected static final Map<String,Ruleset> rulesets = new HashMap<String, Ruleset>();
@@ -39,11 +41,12 @@ public class TheoryTree extends JPanel {
 	private JTree tree;
 	private DefaultMutableTreeNode top;
 
-	public TheoryTree (ViewPort viewPort) {
+	public TheoryTree (ViewPort viewPort, QuantoCore core) {
 		synchronized (instances) {
 			instances.add(this);
 		}
 		this.viewPort = viewPort;
+		this.core = core;
 		setLayout(new BorderLayout());
 		top = new DefaultMutableTreeNode("Theories");
 		tree = new JTree(top);
@@ -54,6 +57,7 @@ public class TheoryTree extends JPanel {
 		setFocusable(false);
 		
 		tree.addMouseListener(new MouseAdapter() {
+			@Override
 			public void mouseClicked(MouseEvent e) {
 				boolean rightClick = 
 					(e.getButton() == MouseEvent.BUTTON3) ||
@@ -120,9 +124,9 @@ public class TheoryTree extends JPanel {
 		tree.expandRow(0);
 		repaint();
 	}
-	
-	private static void updateRulesets() {
-		QuantoCore core = QuantoApp.getInstance().getCore();
+
+	// FIXME: this looks like it belongs in QuantoCore
+	private static void updateRulesets(QuantoCore core) {
 		try {
 			String[] rsetNames = core.list_rulesets();
 			String[] active = core.list_active_rulesets();
@@ -150,27 +154,30 @@ public class TheoryTree extends JPanel {
 	/**
 	 * Calls refresh() on all active instances of TheoryTree
 	 */
+	// FIXME: core should notify interested parties about
+	//        rulesets being updated
 	public static void refreshInstances() {
+		QuantoCore core = QuantoApp.getInstance().getCore();
 		synchronized (instances) {
-			updateRulesets();
+			updateRulesets(core);
 			for (TheoryTree t : instances) t.refresh();
 			saveState();
 		}
 	}
 	
-	public static void loadRuleset(String name, String fileName)
+	public static void loadRuleset(QuantoCore core, String name, String fileName)
 	throws QuantoCore.ConsoleError {
-		Ruleset rset = QuantoApp.getInstance().getCore().load_ruleset(name, fileName);
-		QuantoApp.getInstance().getCore().activate_ruleset(rset);
+		Ruleset rset = core.load_ruleset(name, fileName);
+		core.activate_ruleset(rset);
 		rulesets.put(rset.getName(), rset);
 		refreshInstances();
 	}
 	
-	public static void unloadRuleset(Ruleset rset) throws ConsoleError {
-		QuantoApp.getInstance().getCore().unload_ruleset(rset);
+	public static void unloadRuleset(QuantoCore core, Ruleset rset) throws ConsoleError {
+		core.unload_ruleset(rset);
 		rulesets.remove(rset.getName());
 		refreshInstances();
-		saveState();                 
+		saveState();
 	}
 	public static void saveState() {
 		StringBuffer buf = new StringBuffer();
@@ -182,13 +189,11 @@ public class TheoryTree extends JPanel {
 		QuantoApp.getInstance().setPreference(QuantoApp.LOADED_THEORIES, buf.toString());
 	}
 	
-	public static void loadState() {
-		String[] rsets = QuantoApp.getInstance()
-			.getPreference(QuantoApp.LOADED_THEORIES).split("\\n");
+	public static void loadState(QuantoCore qc, String state) {
+		String[] rsets = state.split("\\n");
 		int idx = 0;
 		String nm, path;
 		boolean active;
-		QuantoCore qc = QuantoApp.getInstance().getCore();
 		while (idx < rsets.length-2) {
 			nm = rsets[idx];
 			path = rsets[idx+1];
@@ -211,6 +216,7 @@ public class TheoryTree extends JPanel {
 	
 	@SuppressWarnings("serial")
 	private static class TheoryCellRenderer extends DefaultTreeCellRenderer {
+		@Override
 		public Component getTreeCellRendererComponent(JTree tree, Object value,
 				boolean selected, boolean expanded, boolean leaf, int row,
 				boolean hasFocus) {
@@ -245,7 +251,7 @@ public class TheoryTree extends JPanel {
 			if (rset.isActive()) item.setEnabled(false);
 			else item.addActionListener(new QuantoActionListener(tree) {
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					QuantoApp.getInstance().getCore().activate_ruleset(rset);
+					core.activate_ruleset(rset);
 					TheoryTree.refreshInstances();
 				}
 			});
@@ -254,7 +260,7 @@ public class TheoryTree extends JPanel {
 			if (!rset.isActive()) item.setEnabled(false);
 			else item.addActionListener(new QuantoActionListener(tree) {
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					QuantoApp.getInstance().getCore().deactivate_ruleset(rset);
+					core.deactivate_ruleset(rset);
 					TheoryTree.refreshInstances();
 				}
 			});
@@ -263,7 +269,7 @@ public class TheoryTree extends JPanel {
 			item = new JMenuItem("Unload");
 			item.addActionListener(new QuantoActionListener(this) {
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					TheoryTree.unloadRuleset(rset);
+					TheoryTree.unloadRuleset(core, rset);
 				}
 			});
 			add(item);
@@ -285,26 +291,26 @@ public class TheoryTree extends JPanel {
 				public RuleAL(int side) { super(tree); this.side = side; }
 				
 				public void wrappedAction(ActionEvent e) throws ConsoleError {
-					QuantoCore core = QuantoApp.getInstance().getCore();
-					
 					QuantoGraph gr1 = (side == 0 || side == 1) ? 
 							core.open_rule_lhs(rset, rule) :
 							core.open_rule_rhs(rset, rule);
 					InteractiveGraphView igv1 = new InteractiveGraphView(core, gr1);
 					igv1.updateGraph();
 					
-					String v;
+					InteractiveView view = igv1;
 					if (side == 0) { // if opening both
 						QuantoGraph gr2 = core.open_rule_rhs(rset, rule);
 						InteractiveGraphView igv2 = new InteractiveGraphView(core, gr2);
 						igv2.updateGraph();
-						v = QuantoApp.getInstance().getViewManager().addView(rule,
-								new SplitGraphView(rset, rule, igv1, igv2));
-					} else { // otherwise
-						v = QuantoApp.getInstance().getViewManager().addView(gr1.getName(), igv1);
+						view = new SplitGraphView(rset, rule, igv1, igv2);
 					}
-					viewPort.setFocusedView(v);
-					viewPort.gainFocus();
+					viewPort.getViewManager().addView(view);
+					try {
+						viewPort.attachView(view);
+					}
+					catch (ViewUnavailableException ex) {
+						throw new Error("Caught a ViewUnavailableException: this shouldn't happen");
+					}
 				}
 			}
 			

@@ -46,6 +46,7 @@ public class QVertex implements HasName, Comparable<QVertex> {
 		this.name = name;
 	}
 	
+	@Override
 	public String toString() {
 		return getAngle().replace('\\', 'B')+"    ";
 	}

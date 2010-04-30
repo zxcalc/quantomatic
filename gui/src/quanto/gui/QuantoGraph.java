@@ -137,10 +137,10 @@ implements HasName, ChangeEventSupport {
 				QVertex v = new QVertex();
 				
 				try {
-					String name = vertexNode.getFirstChildNamed("name").getContent();
-					if (name == null || name.length() == 0)
+					String vname = vertexNode.getFirstChildNamed("name").getContent();
+					if (vname == null || vname.length() == 0)
 						throwParseException(vertexNode, "no name given");
-					v.setName(name);
+					v.setName(vname);
 
 					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
@@ -237,11 +237,11 @@ implements HasName, ChangeEventSupport {
 				if (nm == null)
 					throwParseException(bangBox, "no name given");
 
-				String name = nm.getContent();
-				if (name == null || name.length() == 0)
+				String bbname = nm.getContent();
+				if (bbname == null || bbname.length() == 0)
 					throwParseException(bangBox, "no name given");
 
-				BangBox bbox = new BangBox(name);
+				BangBox bbox = new BangBox(bbname);
 				bangBoxes.add(bbox);
 
 				for (IXMLElement boxedVert :

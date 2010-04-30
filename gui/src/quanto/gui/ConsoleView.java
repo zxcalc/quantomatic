@@ -2,6 +2,9 @@ package quanto.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.*;
@@ -9,17 +12,21 @@ import java.util.SortedSet;
 import java.util.Stack;
 
 import javax.swing.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+import javax.swing.text.JTextComponent;
 
-public class ConsoleView extends JPanel implements InteractiveView {
+public class ConsoleView extends InteractiveView {
 
 	private static final long serialVersionUID = -5833674157230451213L;
-	public PrintStream out;
-	public QuantoCore core;
+	private PrintStream out;
+	private final QuantoCore core;
 	private JTextField input;
 	private JTextArea output;
 	private Stack<String> history;
 	private int hpointer;
 	private String prompt;
+	private JTextComponent lastFocusOwner = null;
 
 	class QuantoConsoleOutputStream extends OutputStream {
 
@@ -36,32 +43,91 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		}
 	}
 
+	private void updateSelectionCommands() {
+		if (isAttached()) {
+			ViewPort vp = getViewPort();
+			if (lastFocusOwner == null) {
+				vp.setCommandEnabled(ViewPort.CUT_ACTION, false);
+				vp.setCommandEnabled(ViewPort.COPY_ACTION, false);
+				vp.setCommandEnabled(ViewPort.PASTE_ACTION, false);
+				vp.setCommandEnabled(ViewPort.SELECT_ALL_ACTION, false);
+				vp.setCommandEnabled(ViewPort.DESELECT_ALL_ACTION, false);
+			}
+			else {
+				boolean hasSelection = (lastFocusOwner.getSelectionEnd() - lastFocusOwner.getSelectionStart()) != 0;
+				vp.setCommandEnabled(ViewPort.CUT_ACTION,
+					lastFocusOwner.isEditable() &&
+					hasSelection
+					);
+				vp.setCommandEnabled(ViewPort.COPY_ACTION,
+					hasSelection
+					);
+				vp.setCommandEnabled(ViewPort.PASTE_ACTION,
+					lastFocusOwner.isEditable()
+					);
+				vp.setCommandEnabled(ViewPort.SELECT_ALL_ACTION,
+					true);
+				vp.setCommandEnabled(ViewPort.DESELECT_ALL_ACTION,
+					true);
+			}
+		}
+	}
+
+	private FocusListener focusListener = new FocusListener() {
+		public void focusGained(FocusEvent e) {
+			lastFocusOwner = (JTextComponent)e.getComponent();
+			updateSelectionCommands();
+		}
+
+		public void focusLost(FocusEvent e) {
+			if (!e.isTemporary()) {
+				lastFocusOwner = null;
+				updateSelectionCommands();
+			}
+		}
+	};
+	private CaretListener caretListener = new CaretListener() {
+		public void caretUpdate(CaretEvent e) {
+			if (isAttached()) {
+				updateSelectionCommands();
+			}
+		}
+	};
+
 	public ConsoleView() {
+		super("console");
+
 		this.setLayout(new BorderLayout());
 		history = new Stack<String>();
 		input = new JTextField();
 		input.setFocusTraversalKeysEnabled(false);
+		input.addFocusListener(focusListener);
+		input.addCaretListener(caretListener);
 		output = new JTextArea();
 		output.setEditable(false);
-		//output.setFocusable(false);
+		output.addFocusListener(focusListener);
+		output.addCaretListener(caretListener);
 		out = new PrintStream(new QuantoConsoleOutputStream(output));
 
+		QuantoCore tempCore;
 		try {
-			core = new QuantoCore(out);
-			prompt = core.receive();
+			tempCore = new QuantoCore(out);
+			prompt = tempCore.receive();
 			out.print(prompt);
 		}
 		catch (IOException e) {
 			prompt = "*** Failed to start Quanto core ***";
 			out.print(prompt);
-			core = null;
+			tempCore = null;
 		}
+		core = tempCore;
 
 		// print and save the default prompt
 
 
 		input.addKeyListener(new KeyAdapter() {
 
+			@Override
 			public void keyReleased(KeyEvent e) {
 				JTextField tf = (JTextField) e.getSource();
 				String text;
@@ -125,6 +191,7 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		}
 	}
 
+	@Override
 	public void grabFocus() {
 		input.grabFocus();
 	}
@@ -133,26 +200,53 @@ public class ConsoleView extends JPanel implements InteractiveView {
 		return core;
 	}
 
-	public void viewFocus(ViewPort vp) {
-		QuantoApp.MainMenu mm = vp.getMainMenu();
-		mm.file_closeView.setEnabled(false);
-		mm.repaint();
-		grabFocus();
+	public void attached(ViewPort vp) {
+		// refuse to allow us to be closed
+		vp.preventViewClosure();
+		input.requestFocusInWindow();
 	}
 
-	public boolean viewHasParent() {
-		return getParent() != null;
+	public void detached(ViewPort vp) {
+		vp.setCommandEnabled(ViewPort.CUT_ACTION, false);
+		vp.setCommandEnabled(ViewPort.COPY_ACTION, false);
+		vp.setCommandEnabled(ViewPort.PASTE_ACTION, false);
+		vp.setCommandEnabled(ViewPort.SELECT_ALL_ACTION, false);
+		vp.setCommandEnabled(ViewPort.DESELECT_ALL_ACTION, false);
 	}
 
-	public void viewUnfocus(ViewPort vp) {
-		// TODO Auto-generated method stub
-	}
-
-	public boolean viewKill(ViewPort vp) {
-		return true;
+	public void cleanUp() {
 	}
 
 	public boolean isSaved() {
 		return true;
+	}
+
+	public static void createActions(ViewPort vp) {
+	}
+
+	public void commandTriggered(ActionEvent e) {
+		if (ViewPort.CUT_ACTION.equals(e.getActionCommand())) {
+			if (lastFocusOwner != null)
+				lastFocusOwner.cut();
+		}
+		else if (ViewPort.COPY_ACTION.equals(e.getActionCommand())) {
+			if (lastFocusOwner != null)
+				lastFocusOwner.copy();
+		}
+		else if (ViewPort.PASTE_ACTION.equals(e.getActionCommand())) {
+			if (lastFocusOwner != null)
+				lastFocusOwner.paste();
+		}
+		else if (ViewPort.SELECT_ALL_ACTION.equals(e.getActionCommand())) {
+			if (lastFocusOwner != null)
+				lastFocusOwner.selectAll();
+		}
+		else if (ViewPort.DESELECT_ALL_ACTION.equals(e.getActionCommand())) {
+			if (lastFocusOwner != null)
+				lastFocusOwner.select(0, 0);
+		}
+	}
+
+	public void refresh() {
 	}
 }

@@ -1,18 +1,17 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
-import javax.swing.JPanel;
+import java.awt.event.ActionEvent;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
-public class TextView extends JPanel implements InteractiveView {
+public class TextView extends InteractiveView {
 	private static final long serialVersionUID = -9201774497137020314L;
-	private static int instanceCount=0; 
-	//private String title;
+	private static int instanceCount=0;
 	private JTextArea textArea;
 	
-	public TextView(String text) {
-		//this.title = title;
+	public TextView(String title, String text) {
+		setTitle(title);
 		textArea = new JTextArea();
 		textArea.setText(text);
 		
@@ -21,29 +20,28 @@ public class TextView extends JPanel implements InteractiveView {
 		
 		instanceCount++;
 	}
-	
-	public boolean viewHasParent() {
-		return this.getParent() != null;
-	}
-	
-//	public String getTitle() {
-//		return title;
-//	}
 
-	public void viewFocus(ViewPort vp) {
+	public void attached(ViewPort vp) {
 		
 	}
 	
-	public void viewUnfocus(ViewPort vp) {
+	public void detached(ViewPort vp) {
 		
 	}
 
-	public boolean viewKill(ViewPort vp) {
-		return true;
+	public void cleanUp() {
 	}
 
 	public boolean isSaved() {
 		return true;
 	}
 
+	public void commandTriggered(ActionEvent e) {
+	}
+
+	public static void createActions(ViewPort vp) {
+	}
+
+	public void refresh() {
+	}
 }

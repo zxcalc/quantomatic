@@ -2,11 +2,7 @@ package quanto.gui;
 
 import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
 import java.awt.Dimension;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import javax.swing.JPanel;
-import edu.uci.ics.jung.visualization.Layer;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import java.awt.BorderLayout;
 import javax.swing.event.ChangeListener;
 
@@ -25,11 +21,7 @@ public class GraphView extends JPanel
 	}
 
 	public GraphView(QuantoGraph graph, Dimension size) {
-		super(new BorderLayout());
-		setPreferredSize(size);
-
-		viewer = new GraphVisualizationViewer(graph);
-		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
+		this(graph, size, true);
 	}
 
 	public GraphView(QuantoGraph graph, Dimension size, boolean scrollable) {
@@ -72,8 +64,8 @@ public class GraphView extends JPanel
 	}
 
 	/**
-	 * Compute a bounding box and scale such that the largest dimension fits within the
-	 * view port.
+	 * Compute a bounding box and scale such that the largest
+	 * dimension fits within the view port.
 	 */
 	public void zoomToFit() {
 		viewer.zoomToFit(getSize());

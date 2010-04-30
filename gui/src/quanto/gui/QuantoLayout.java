@@ -37,6 +37,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 		return boundingRect.getSize();
 	}
 	
+	@Override
 	public void initialize() {
 		try {
 			synchronized (getGraph()) {

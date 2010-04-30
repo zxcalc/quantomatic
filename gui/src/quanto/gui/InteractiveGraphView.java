@@ -29,34 +29,55 @@ import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
 import quanto.gui.QuantoCore.ConsoleError;
-import quanto.gui.QuantoApp.QuantoActionListener;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
+import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import quanto.gui.ViewPort.CommandAction;
 
-public class InteractiveGraphView extends GraphView
+public class InteractiveGraphView
+	extends InteractiveView
 	implements AddEdgeGraphMousePlugin.Adder<QVertex>,
-	InteractiveView,
-	KeyListener {
+	           KeyListener {
 
 	private static final long serialVersionUID = 7196565776978339937L;
+
+	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
+	public static final String SAVE_GRAPH_ACTION = "save-graph";
+	public static final String SAVE_GRAPH_AS_ACTION = "save-graph-as";
+	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf";
+	public static final String SELECT_MODE_ACTION = "select-mode";
+	public static final String EDGE_MODE_ACTION = "edge-mode";
+	public static final String LATEX_TO_CLIPBOARD_ACTION = "copy-latex";
+	public static final String ADD_RED_VERTEX_ACTION = "add-vertex-red";
+	public static final String ADD_GREEN_VERTEX_ACTION = "add-vertex-green";
+	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-vertex-boundary";
+	public static final String ADD_HADAMARD_ACTION = "add-vertex-hadamard";
+	public static final String SHOW_REWRITES_ACTION = "show-rewrites";
+	public static final String NORMALISE_ACTION = "normalise";
+	public static final String FAST_NORMALISE_ACTION = "fast-normalise";
+	public static final String LOCK_VERTICES_ACTION = "lock-vertices";
+	public static final String UNLOCK_VERTICES_ACTION = "unlock-vertices";
+	public static final String FLIP_VERTEX_COLOUR_ACTION = "flip-vertex-colour";
+	public static final String BANG_VERTICES_ACTION = "bang-vertices";
+	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices";
+	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box";
+	public static final String KILL_BANG_BOX_ACTION = "kill-bang-box";
+	public static final String DUPLICATE_BANG_BOX_ACTION = "duplicate-bang-box";
+	public static final String DUMP_HILBERT_TERM_AS_TEXT = "hilbert-dump-as-text";
+	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-dump-as-mathematica";
+
+	private GraphVisualizationViewer viewer;
 	private QuantoCore core;
 	private RWMouse graphMouse;
-	// these menu items will be added when this view is focused, and removed
-	//  when it is unfocused.
-	protected List<JMenu> menus;
-	private JMenuItem file_saveGraph = null;
-	private JMenuItem file_saveGraphAs = null;
 	private volatile Thread rewriter = null;
 	private List<Rewrite> rewriteCache = null;
-	private JRadioButtonMenuItem rbEdgeMode;
-	private JRadioButtonMenuItem rbPickingMode;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -200,6 +221,9 @@ public class InteractiveGraphView extends GraphView
 			pickingMouseActive = true;
 			add(pickingMouse);
 			InteractiveGraphView.this.repaint();
+			if (isAttached()) {
+				getViewPort().getCommandAction(SELECT_MODE_ACTION).setSelected(true);
+			}
 		}
 
 		public void setEdgeMouse() {
@@ -207,6 +231,9 @@ public class InteractiveGraphView extends GraphView
 			edgeMouseActive = true;
 			add(edgeMouse);
 			InteractiveGraphView.this.repaint();
+			if (isAttached()) {
+				getViewPort().getCommandAction(EDGE_MODE_ACTION).setSelected(true);
+			}
 		}
 
 		public boolean isPickingMouse() {
@@ -216,22 +243,6 @@ public class InteractiveGraphView extends GraphView
 		public boolean isEdgeMouse() {
 			return edgeMouseActive;
 		}
-
-		public ItemListener getItemListener() {
-			return new ItemListener() {
-
-				public void itemStateChanged(ItemEvent e) {
-					if (e.getStateChange() == ItemEvent.SELECTED) {
-						if (e.getSource() == rbEdgeMode) {
-							setEdgeMouse();
-						}
-						else {
-							setPickingMouse();
-						}
-					}
-				}
-			};
-		}
 	}
 
 	public InteractiveGraphView(QuantoCore core, QuantoGraph g) {
@@ -239,7 +250,12 @@ public class InteractiveGraphView extends GraphView
 	}
 
 	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size) {
-		super(g, size);
+		super(new BorderLayout(), g.getName());
+		setPreferredSize(size);
+
+		viewer = new GraphVisualizationViewer(g);
+		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
+
 		this.core = core;
 		viewer.setLayoutSmoothingEnabled(true);
 
@@ -250,8 +266,6 @@ public class InteractiveGraphView extends GraphView
 
 		graphMouse = new RWMouse();
 		viewer.setGraphMouse(graphMouse);
-		menus = new ArrayList<JMenu>();
-		buildMenus();
 
 		viewer.addPreRenderPaintable(new VisualizationServer.Paintable() {
 
@@ -314,452 +328,32 @@ public class InteractiveGraphView extends GraphView
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
 
 		viewer.setBoundingBoxEnabled(true);
+
+		buildActionMap();
 	}
 
-	private void errorDialog(String msg) {
-		JOptionPane.showMessageDialog(this,
-					      msg,
-					      "Console Error",
-					      JOptionPane.ERROR_MESSAGE);
+	public GraphVisualizationViewer getVisualization() {
+		return viewer;
 	}
 
-	private void infoDialog(String msg) {
-		JOptionPane.showMessageDialog(this, msg);
+	public void addChangeListener(ChangeListener listener) {
+		viewer.addChangeListener(listener);
+	}
+
+	public QuantoGraph getGraph() {
+		return viewer.getGraph();
+	}
+
+	/**
+	 * Compute a bounding box and scale such that the largest
+	 * dimension fits within the view port.
+	 */
+	public void zoomToFit() {
+		viewer.zoomToFit(getSize());
 	}
 
 	public static String titleOfGraph(String name) {
 		return "graph (" + name + ")";
-	}
-
-//	public String getTitle() {
-//		return InteractiveGraphView.titleOfGraph(getGraph().getName());
-//	}
-	private void buildMenus() {
-		int commandMask;
-		if (QuantoApp.isMac) {
-			commandMask = Event.META_MASK;
-		}
-		else {
-			commandMask = Event.CTRL_MASK;
-		}
-
-		// Save Graph
-		file_saveGraph = new JMenuItem("Save Graph", KeyEvent.VK_S);
-		file_saveGraph.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				saveGraph();
-			}
-		});
-		file_saveGraph.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, commandMask));
-
-		// Save Graph As
-		file_saveGraphAs = new JMenuItem("Save Graph As...", KeyEvent.VK_A);
-		file_saveGraphAs.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				saveGraphAs();
-			}
-		});
-		file_saveGraphAs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, commandMask | Event.SHIFT_MASK));
-
-		JMenu graphMenu = new JMenu("Graph");
-		graphMenu.setMnemonic(KeyEvent.VK_G);
-
-		JMenuItem item;
-
-		item = new JMenuItem("Export to PDF", KeyEvent.VK_P);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				GraphVisualizationViewer view = new GraphVisualizationViewer(getGraph());
-				byte[] gr = view.exportPdf();
-
-				System.out.printf("Got %d bytes of data.\n", gr.length);
-				try {
-					BufferedOutputStream file = new BufferedOutputStream(
-						new FileOutputStream("/Users/aleks/itexttest.pdf"));
-					file.write(gr);
-					file.close();
-				}
-				catch (IOException exp) {
-					throw new ConsoleError(exp.getMessage());
-				}
-			}
-		});
-		graphMenu.add(item);
-
-		graphMenu.addSeparator();
-
-		ButtonGroup mouseModeGroup = new ButtonGroup();
-		rbPickingMode = new JRadioButtonMenuItem("Select Mode");
-		rbPickingMode.setMnemonic(KeyEvent.VK_T);
-		rbPickingMode.addItemListener(graphMouse.getItemListener());
-		mouseModeGroup.add(rbPickingMode);
-		rbPickingMode.setSelected(true);
-		graphMenu.add(rbPickingMode);
-
-
-		rbEdgeMode = new JRadioButtonMenuItem("Edge Mode");
-		rbEdgeMode.setMnemonic(KeyEvent.VK_E);
-		rbEdgeMode.addItemListener(graphMouse.getItemListener());
-		mouseModeGroup.add(rbEdgeMode);
-		graphMenu.add(rbEdgeMode);
-
-		graphMenu.addSeparator();
-
-//		cbBangBoxMode = new JCheckBoxMenuItem("Add Edge Mode");
-//		cbBangBoxMode.setMnemonic(KeyEvent.VK_E);
-//		cbBangBoxMode.addItemListener(graphMouse.getItemListener());
-//		cbBangBoxMode.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, commandMask));
-//		graphMenu.add(cbBangBoxMode);
-
-		item = new JMenuItem("Latex to clipboard", KeyEvent.VK_L);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				String tikz = TikzOutput.generate(getGraph(), viewer.getGraphLayout());
-				Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
-				StringSelection data = new StringSelection(tikz);
-				cb.setContents(data, data);
-			}
-		});
-		graphMenu.add(item);
-
-		JMenu graphAddMenu = new JMenu("Add");
-		item = new JMenuItem("Red Vertex", KeyEvent.VK_R);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				addVertex(QVertex.Type.RED);
-			}
-		});
-		graphAddMenu.add(item);
-
-		item = new JMenuItem("Green Vertex", KeyEvent.VK_G);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				addVertex(QVertex.Type.GREEN);
-			}
-		});
-		graphAddMenu.add(item);
-
-		item = new JMenuItem("Boundary Vertex", KeyEvent.VK_B);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				addVertex(QVertex.Type.BOUNDARY);
-			}
-		});
-		graphAddMenu.add(item);
-
-		item = new JMenuItem("Hadamard Gate", KeyEvent.VK_H);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				addVertex(QVertex.Type.HADAMARD);
-			}
-		});
-		graphAddMenu.add(item);
-
-		graphMenu.add(graphAddMenu);
-
-		item = new JMenuItem("Show Rewrites", KeyEvent.VK_R);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				showRewrites();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, commandMask | Event.ALT_MASK));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Normalise", KeyEvent.VK_N);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				rewriteForever();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, commandMask | Event.ALT_MASK));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Fast Normalise", KeyEvent.VK_F);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().fastNormalise(getGraph());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, commandMask | Event.ALT_MASK));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Abort", KeyEvent.VK_A);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				if (rewriter != null) {
-					rewriter.interrupt();
-					rewriter = null;
-				}
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, commandMask));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Select All Vertices", KeyEvent.VK_S);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				synchronized (getGraph()) {
-					for (QVertex v : getGraph().getVertices()) {
-						viewer.getPickedVertexState().pick(v, true);
-					}
-				}
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Deselect All Vertices", KeyEvent.VK_D);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				viewer.getPickedVertexState().clear();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, commandMask | KeyEvent.SHIFT_MASK));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Lock Vertices", KeyEvent.VK_L);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				viewer.lock(viewer.getPickedVertexState().getPicked());
-				repaint();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, commandMask));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Unlock Vertices", KeyEvent.VK_N);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				viewer.unlock(viewer.getPickedVertexState().getPicked());
-				repaint();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L,
-							   KeyEvent.SHIFT_MASK | commandMask));
-		graphMenu.add(item);
-
-		item = new JMenuItem("Flip Vertex Colour", KeyEvent.VK_F);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().flip_vertices(getGraph(),
-							viewer.getPickedVertexState().getPicked());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, commandMask));
-		graphMenu.add(item);
-
-		// define submenu for bang boxes
-		JMenu bangMenu = new JMenu("Bang boxes");
-
-		item = new JMenuItem("Bang Vertices", KeyEvent.VK_B);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				// this is not the real bang box, but we just need the name
-				BangBox bb = new BangBox(getCore().add_bang(getGraph()));
-				getCore().bang_vertices(getGraph(), bb,
-							viewer.getPickedVertexState().getPicked());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1, commandMask));
-		bangMenu.add(item);
-
-		item = new JMenuItem("Unbang Vertices", KeyEvent.VK_U);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().unbang_vertices(getGraph(),
-							  viewer.getPickedVertexState().getPicked());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1,
-							   commandMask | KeyEvent.SHIFT_MASK));
-		bangMenu.add(item);
-		graphMenu.add(bangMenu);
-
-
-		item = new JMenuItem("Drop Box", KeyEvent.VK_P);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().bbox_drop(getGraph(),
-						    viewer.getPickedBangBoxState().getPicked());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, KeyEvent.SHIFT_MASK));
-		bangMenu.add(item);
-		graphMenu.add(bangMenu);
-
-
-		item = new JMenuItem("Kill Box", KeyEvent.VK_K);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().bbox_kill(getGraph(),
-						    viewer.getPickedBangBoxState().getPicked());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, commandMask | KeyEvent.SHIFT_MASK));
-		bangMenu.add(item);
-		graphMenu.add(bangMenu);
-
-		item = new JMenuItem("Duplicate Box", KeyEvent.VK_D);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().bbox_duplicate(getGraph(),
-							 viewer.getPickedBangBoxState().getPicked());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_D, commandMask));
-		bangMenu.add(item);
-		graphMenu.add(bangMenu);
-
-		menus.add(graphMenu);
-
-		JMenu editMenu = new JMenu("Edit");
-		editMenu.setMnemonic(KeyEvent.VK_E);
-		item = new JMenuItem("Undo", KeyEvent.VK_U);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().undo(getGraph());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, commandMask));
-		editMenu.add(item);
-
-		item = new JMenuItem("Redo", KeyEvent.VK_R);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().redo(getGraph());
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(
-			KeyEvent.VK_Z, commandMask | KeyEvent.SHIFT_MASK));
-		editMenu.add(item);
-
-		item = new JMenuItem("Cut", KeyEvent.VK_T);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
-				if (!picked.isEmpty()) {
-					getCore().copy_subgraph(getGraph(), "__clip__", picked);
-					getCore().delete_vertices(getGraph(), picked);
-					updateGraph();
-				}
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(
-			KeyEvent.VK_X, commandMask));
-		editMenu.add(item);
-
-		item = new JMenuItem("Copy", KeyEvent.VK_C);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
-				if (!picked.isEmpty()) {
-					getCore().copy_subgraph(getGraph(), "__clip__", picked);
-				}
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(
-			KeyEvent.VK_C, commandMask));
-		editMenu.add(item);
-
-		item = new JMenuItem("Paste", KeyEvent.VK_P);
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				getCore().insert_graph(getGraph(), "__clip__");
-				updateGraph();
-			}
-		});
-		item.setAccelerator(KeyStroke.getKeyStroke(
-			KeyEvent.VK_V, commandMask));
-		editMenu.add(item);
-
-		menus.add(editMenu);
-
-		JMenu hilbMenu = new JMenu("Hilbert Space");
-		hilbMenu.setMnemonic(KeyEvent.VK_B);
-
-		item = new JMenuItem("Dump term as text");
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				outputToTextView(getCore().hilb(getGraph(), "plain"));
-			}
-		});
-		hilbMenu.add(item);
-
-		item = new JMenuItem("Dump term as Mathematica");
-		item.addActionListener(new QuantoActionListener(this) {
-
-			@Override
-			public void wrappedAction(ActionEvent e) throws ConsoleError {
-				outputToTextView(getCore().hilb(getGraph(), "mathematica"));
-			}
-		});
-		hilbMenu.add(item);
-
-		menus.add(hilbMenu);
 	}
 
 	public void addEdge(QVertex s, QVertex t) {
@@ -825,17 +419,21 @@ public class InteractiveGraphView extends GraphView
 			}
 		}
 
-		if (file_saveGraph != null && getGraph().getFileName() != null && !getGraph().isSaved()) {
-			file_saveGraph.setEnabled(true);
+		if (isAttached()) {
+			getViewPort().getCommandAction(SAVE_GRAPH_ACTION).setEnabled(
+				getGraph().getFileName() != null && !getGraph().isSaved()
+				);
 		}
 
 		viewer.update();
 	}
 
 	public void outputToTextView(String text) {
-		TextView tview = new TextView(text);
-		QuantoApp app = QuantoApp.getInstance();
-		app.getViewManager().addView(app.getViewManager().getViewName(this) + "-output", tview);
+		TextView tview = new TextView(getTitle() + "-output", text);
+		getViewManager().addView(tview);
+
+		if (isAttached())
+			getViewPort().openView(tview);
 	}
 	private SubgraphHighlighter highlighter = null;
 
@@ -854,9 +452,35 @@ public class InteractiveGraphView extends GraphView
 		viewer.update();
 	}
 
-	public void rewriteForever() {
+	public void startRewriting() {
+		abortRewriting();
 		rewriter = new RewriterThread();
 		rewriter.start();
+		if (isAttached()) {
+			setupNormaliseAction(getViewPort());
+		}
+	}
+
+	public void abortRewriting() {
+		if (rewriter != null) {
+			rewriter.interrupt();
+			rewriter = null;
+		}
+		if (isAttached()) {
+			setupNormaliseAction(getViewPort());
+		}
+	}
+
+	private void setupNormaliseAction(ViewPort vp) {
+		Action action = vp.getCommandAction(NORMALISE_ACTION);
+		if (rewriter == null) {
+			action.putValue(Action.NAME, "Normalise");
+			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
+		}
+		else {
+			action.putValue(Action.NAME, "Abort normalisation");
+			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
+		}
 	}
 
 	private class RewriterThread extends Thread {
@@ -1038,6 +662,12 @@ public class InteractiveGraphView extends GraphView
 		return core;
 	}
 
+	public void commandTriggered(ActionEvent e) {
+		ActionListener listener = actionMap.get(e.getActionCommand());
+		if (listener != null)
+			listener.actionPerformed(e);
+	}
+
 	public void saveGraphAs() {
 		int retVal = QuantoApp.getInstance().getFileChooser().showSaveDialog(this);
 		if (retVal == JFileChooser.APPROVE_OPTION) {
@@ -1047,7 +677,7 @@ public class InteractiveGraphView extends GraphView
 				core.save_graph(getGraph(), filename);
 				getGraph().setFileName(filename);
 				getGraph().setSaved(true);
-				QuantoApp.getInstance().getViewManager().renameView(this, f.getName());
+				setTitle(f.getName());
 			}
 			catch (QuantoCore.ConsoleError e) {
 				errorDialog(e.getMessage());
@@ -1073,59 +703,460 @@ public class InteractiveGraphView extends GraphView
 		}
 	}
 
-	public void viewFocus(ViewPort vp) {
-//		System.out.printf("Adding (%d) menus (%s).\n", menus.size(), getGraph().getName());
-		QuantoApp.MainMenu mm = vp.getMainMenu();
-		for (JMenu menu : menus) {
-			mm.add(menu);
-		}
-		mm.insertAfter(mm.fileMenu, mm.file_openGraph, file_saveGraph);
-		mm.insertAfter(mm.fileMenu, file_saveGraph, file_saveGraphAs);
-		mm.file_closeView.setEnabled(true);
-		mm.revalidate();
-		mm.repaint();
-		grabFocus();
-//		setBorder(BorderFactory.createLineBorder(Color.blue, 1));
+	private void buildActionMap() {
+		actionMap.put(SAVE_GRAPH_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				saveGraph();
+			}
+		});
+		actionMap.put(SAVE_GRAPH_AS_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				saveGraphAs();
+			}
+		});
+
+		actionMap.put(ViewPort.UNDO_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().undo(getGraph());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(ViewPort.REDO_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().redo(getGraph());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(ViewPort.CUT_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
+					if (!picked.isEmpty()) {
+							getCore().copy_subgraph(getGraph(), "__clip__", picked);
+							getCore().delete_vertices(getGraph(), picked);
+							updateGraph();
+					}
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(ViewPort.COPY_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
+					if (!picked.isEmpty()) {
+							getCore().copy_subgraph(getGraph(), "__clip__", picked);
+					}
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(ViewPort.PASTE_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().insert_graph(getGraph(), "__clip__");
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(ViewPort.SELECT_ALL_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				synchronized (getGraph()) {
+					for (QVertex v : getGraph().getVertices()) {
+						viewer.getPickedVertexState().pick(v, true);
+					}
+				}
+			}
+		});
+		actionMap.put(ViewPort.DESELECT_ALL_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				viewer.getPickedVertexState().clear();
+			}
+		});
+
+		actionMap.put(EXPORT_TO_PDF_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					GraphVisualizationViewer view = new GraphVisualizationViewer(getGraph());
+					byte[] gr = view.exportPdf();
+
+					JFileChooser chooser = QuantoApp.getInstance().getFileChooser();
+					int retVal = chooser.showSaveDialog(InteractiveGraphView.this);
+					if (retVal == JFileChooser.APPROVE_OPTION) {
+						File outputFile = chooser.getSelectedFile();
+						if (outputFile.exists()) {
+							int overwriteAnswer = JOptionPane.showConfirmDialog(
+								InteractiveGraphView.this,
+								"Are you sure you want to overwrite \"" + outputFile.getName() + "\"?",
+								"Overwrite file?",
+								JOptionPane.YES_NO_OPTION);
+							if (overwriteAnswer != JOptionPane.YES_OPTION)
+								return;
+						}
+						BufferedOutputStream file = new BufferedOutputStream(
+							new FileOutputStream(outputFile));
+						file.write(gr);
+						file.close();
+					}
+				}
+				catch (IOException ex) {
+					errorDialog("Error writing file", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(SELECT_MODE_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				graphMouse.setPickingMouse();
+			}
+		});
+		actionMap.put(EDGE_MODE_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				graphMouse.setEdgeMouse();
+			}
+		});
+		actionMap.put(LATEX_TO_CLIPBOARD_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String tikz = TikzOutput.generate(getGraph(), viewer.getGraphLayout());
+				Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
+				StringSelection data = new StringSelection(tikz);
+				cb.setContents(data, data);
+			}
+		});
+		actionMap.put(ADD_RED_VERTEX_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				addVertex(QVertex.Type.RED);
+			}
+		});
+		actionMap.put(ADD_GREEN_VERTEX_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				addVertex(QVertex.Type.GREEN);
+			}
+		});
+		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				addVertex(QVertex.Type.BOUNDARY);
+			}
+		});
+		actionMap.put(ADD_HADAMARD_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				addVertex(QVertex.Type.HADAMARD);
+			}
+		});
+		actionMap.put(SHOW_REWRITES_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showRewrites();
+			}
+		});
+		actionMap.put(NORMALISE_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (rewriter == null)
+					startRewriting();
+				else
+					abortRewriting();
+			}
+		});
+		actionMap.put(FAST_NORMALISE_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().fastNormalise(getGraph());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(LOCK_VERTICES_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				viewer.lock(viewer.getPickedVertexState().getPicked());
+				repaint();
+			}
+		});
+		actionMap.put(UNLOCK_VERTICES_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				viewer.unlock(viewer.getPickedVertexState().getPicked());
+				repaint();
+			}
+		});
+		actionMap.put(FLIP_VERTEX_COLOUR_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().flip_vertices(getGraph(), viewer.getPickedVertexState().getPicked());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(BANG_VERTICES_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					// this is not the real bang box, but we just need the name
+					BangBox bb = new BangBox(getCore().add_bang(getGraph()));
+					getCore().bang_vertices(getGraph(), bb, viewer.getPickedVertexState().getPicked());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(UNBANG_VERTICES_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().unbang_vertices(getGraph(), viewer.getPickedVertexState().getPicked());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(DROP_BANG_BOX_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().bbox_drop(getGraph(), viewer.getPickedBangBoxState().getPicked());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(KILL_BANG_BOX_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().bbox_kill(getGraph(), viewer.getPickedBangBoxState().getPicked());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(DUPLICATE_BANG_BOX_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					getCore().bbox_duplicate(getGraph(), viewer.getPickedBangBoxState().getPicked());
+					updateGraph();
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+
+		actionMap.put(DUMP_HILBERT_TERM_AS_TEXT, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					outputToTextView(getCore().hilb(getGraph(), "plain"));
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
+		actionMap.put(DUMP_HILBERT_TERM_AS_MATHEMATICA, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					outputToTextView(getCore().hilb(getGraph(), "mathematica"));
+				}
+				catch (ConsoleError ex) {
+					errorDialog("Console Error", ex.getMessage());
+				}
+			}
+		});
 	}
 
-	public void viewUnfocus(ViewPort vp) {
-//		System.out.printf("Removin my stuff (%s).\n", getGraph().getName());
-		QuantoApp.MainMenu mm = vp.getMainMenu();
-		for (JMenu menu : menus) {
-			mm.remove(menu);
-		}
-		mm.fileMenu.remove(file_saveGraph);
-		mm.fileMenu.remove(file_saveGraphAs);
-		mm.repaint();
-//		setBorder(null);
+	public static void createActions(ViewPort vp) {
+		Action saveAction = vp.createCommandAction(
+			SAVE_GRAPH_ACTION,
+			"Save graph");
+		saveAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
+		saveAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_S, QuantoApp.COMMAND_MASK));
+		Action saveAsAction = vp.createCommandAction(
+			SAVE_GRAPH_AS_ACTION,
+			"Save graph as...");
+		saveAsAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
+
+
+		vp.createCommandAction(EXPORT_TO_PDF_ACTION,
+				"Export to PDF",
+				KeyEvent.VK_P);
+
+		CommandAction selectModeAction = vp.createCommandAction(
+			SELECT_MODE_ACTION,
+			"Select mode",
+			KeyEvent.VK_T);
+		selectModeAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_S,
+				QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+
+		CommandAction edgeModeAction = vp.createCommandAction(
+			EDGE_MODE_ACTION,
+			"Edge mode",
+			KeyEvent.VK_E);
+		edgeModeAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_E,
+				QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+
+		vp.createCommandAction(
+			LATEX_TO_CLIPBOARD_ACTION,
+			"Latex to clipboard",
+			KeyEvent.VK_L);
+
+		vp.createCommandAction(
+			ADD_RED_VERTEX_ACTION,
+			"Red vertex",
+			KeyEvent.VK_R);
+		vp.createCommandAction(
+			ADD_GREEN_VERTEX_ACTION,
+			"Green vertex",
+			KeyEvent.VK_G);
+		vp.createCommandAction(
+			ADD_BOUNDARY_VERTEX_ACTION,
+			"Boundary vertex",
+			KeyEvent.VK_B);
+		vp.createCommandAction(
+			ADD_HADAMARD_ACTION,
+			"Hadamard gate",
+			KeyEvent.VK_H);
+
+		vp.createCommandAction(
+			SHOW_REWRITES_ACTION,
+			"Show rewrites...",
+			KeyEvent.VK_R);
+
+		Action normaliseAction = vp.createCommandAction(
+			NORMALISE_ACTION,
+			"Normalise",
+			KeyEvent.VK_N);
+		normaliseAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, QuantoApp.COMMAND_MASK));
+
+		vp.createCommandAction(
+			FAST_NORMALISE_ACTION,
+			"Fast normalise",
+			KeyEvent.VK_F);
+
+		Action lockVertsAction = vp.createCommandAction(
+			LOCK_VERTICES_ACTION,
+			"Lock vertices",
+			KeyEvent.VK_L);
+		lockVertsAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_L, QuantoApp.COMMAND_MASK));
+
+		Action unlockVertsAction = vp.createCommandAction(
+			UNLOCK_VERTICES_ACTION,
+			"Unlock vertices",
+			KeyEvent.VK_N);
+		unlockVertsAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_L, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+
+		Action flipVertColourAction = vp.createCommandAction(
+			FLIP_VERTEX_COLOUR_ACTION,
+			"Flip vertex colour",
+			KeyEvent.VK_F);
+		flipVertColourAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_F, QuantoApp.COMMAND_MASK));
+
+		Action bangAction = vp.createCommandAction(
+			BANG_VERTICES_ACTION,
+			"Bang vertices",
+			KeyEvent.VK_B);
+		bangAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_1, QuantoApp.COMMAND_MASK));
+
+		Action unbangAction = vp.createCommandAction(
+			UNBANG_VERTICES_ACTION,
+			"Unbang vertices",
+			KeyEvent.VK_U);
+		unbangAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_1, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+
+		Action dropBBAction = vp.createCommandAction(
+			DROP_BANG_BOX_ACTION,
+			"Drop box",
+			KeyEvent.VK_D);
+		dropBBAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, KeyEvent.SHIFT_MASK));
+
+		Action killBBAction = vp.createCommandAction(
+			KILL_BANG_BOX_ACTION,
+			"Kill box",
+			KeyEvent.VK_K);
+		killBBAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+
+		Action dupBBAction = vp.createCommandAction(
+			DUPLICATE_BANG_BOX_ACTION,
+			"Duplicate box",
+			KeyEvent.VK_P);
+		dupBBAction.putValue(Action.ACCELERATOR_KEY,
+			KeyStroke.getKeyStroke(KeyEvent.VK_D, QuantoApp.COMMAND_MASK));
+
+		vp.createCommandAction(
+			DUMP_HILBERT_TERM_AS_TEXT,
+			"Dump term as text",
+			KeyEvent.VK_T);
+
+		vp.createCommandAction(
+			DUMP_HILBERT_TERM_AS_MATHEMATICA,
+			"Dump term as Mathematica",
+			KeyEvent.VK_M);
 	}
 
-	public byte[] exportPdf() {
-		System.out.println(
-			"WARNING: exportPdf() in InteractGraphView may have funky output.\n"
-			+ "Use GraphView instead.");
-		return viewer.exportPdf();
+	public void attached(ViewPort vp) {
+		for (String actionName : actionMap.keySet()) {
+			vp.setCommandEnabled(actionName, true);
+		}
+		vp.setCommandEnabled(SAVE_GRAPH_ACTION,
+			getGraph().getFileName() != null &&
+			!getGraph().isSaved()
+			);
+		if (graphMouse.isEdgeMouse())
+			vp.getCommandAction(EDGE_MODE_ACTION).setSelected(true);
+		else
+			vp.getCommandAction(SELECT_MODE_ACTION).setSelected(true);
+		setupNormaliseAction(vp);
 	}
 
-	public void viewKillNoPrompt() {
-		// TODO: unload graph
+	public void detached(ViewPort vp) {
+		vp.getCommandAction(SELECT_MODE_ACTION).setSelected(true);
+		Action normaliseAction = vp.getCommandAction(NORMALISE_ACTION);
+		normaliseAction.putValue(Action.NAME, "Normalise");
+		normaliseAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
+
+		for (String actionName : actionMap.keySet()) {
+			vp.setCommandEnabled(actionName, false);
+		}
 	}
 
-	public boolean viewKill(ViewPort vp) {
-		boolean kill = false;
-		if (getGraph().isSaved()) {
-			kill = true;
-		}
-		else {
-			String msg = "Graph '" + getGraph().getName() + "' is unsaved. Close anyway?";
-			kill = (JOptionPane.showConfirmDialog(this, msg,
-							      "Unsaved changes", JOptionPane.YES_NO_OPTION) == 0);
-		}
+	public void cleanUp() {
+	}
 
-		if (kill == true) {
-			viewKillNoPrompt();
-		}
-		return kill;
+	@Override
+	protected String getUnsavedClosingMessage() {
+		return "Graph '" + getGraph().getName() + "' is unsaved. Close anyway?";
 	}
 
 	public boolean isSaved() {
@@ -1151,7 +1182,10 @@ public class InteractiveGraphView extends GraphView
 				synchronized (graph) {
 					for (BangBox bb : graph.getBangBoxes()) {
 						Rectangle2D bbRect = realLayout.transformBangBox(bb);
-						if (bbRect.contains(x, y)) {
+						if (bbRect == null) {
+							System.err.println("Layout hasn't caught up with us yet");
+						}
+						else if (bbRect.contains(x, y)) {
 							return bb;
 						}
 					}
@@ -1332,10 +1366,10 @@ public class InteractiveGraphView extends GraphView
 					break;
 				case KeyEvent.VK_E:
 					if (graphMouse.isEdgeMouse()) {
-						rbPickingMode.setSelected(true);
+						graphMouse.setPickingMouse();
 					}
 					else {
-						rbEdgeMode.setSelected(true);
+						graphMouse.setEdgeMouse();
 					}
 					break;
 				case KeyEvent.VK_SPACE:
@@ -1349,5 +1383,14 @@ public class InteractiveGraphView extends GraphView
 	}
 
 	public void keyTyped(KeyEvent e) {
+	}
+
+	public void refresh() {
+		try {
+			updateGraph();
+		}
+		catch (ConsoleError ex) {
+			errorDialog("Console erro", ex.getMessage());
+		}
 	}
 }
