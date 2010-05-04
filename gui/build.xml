@@ -8,6 +8,7 @@
   <property name="root" location="../" />
   <property name="src" location="src"/>
   <property name="build" location="build"/>
+  <property name="build.debug" location="build-debug"/>
   <property name="dist" location="dist"/>
   <property name="appdir" location="${dist}/Quantomatic"/>
   <property name="appname" value="Quantomatic" />
@@ -28,21 +29,54 @@
     </fileset>
     <pathelement path="${build}"/>
   </path>
+  <!-- classpath we use for debugging all the JARs in ${lib} and the built files -->
+  <path id="quanto.classpath.debug">
+    <fileset dir="${lib}">
+      <include name="*.jar"/>
+    </fileset>
+    <pathelement path="${build.debug}"/>
+  </path>
 
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${build}"/>
+    <mkdir dir="${build.debug}"/>
     <!-- Make sure quanto core is up to date -->
     <exec executable="make" dir="../core">
       <arg value="bin" />
     </exec>
   </target>
-  <target name="compile" depends="init" description="compile the source ">
+  <target name="compile" depends="init" description="compile the source">
     <!-- Compile the java code from ${src} into ${build} -->
     <javac srcdir="${src}" destdir="${build}">
       <classpath refid="quanto.classpath.build" />
+    </javac>
+  </target>
+  <target name="compile.debug" depends="init" description="compile the source with debugging enabled">
+    <!-- Use this for ide integration.  eg: for a NetBeans freeform project,
+         use the following code in ide-file-targets.xml
+	 (see http://www.netbeans.org/kb/articles/freeform-config.html#debugj2se)
+
+    <import file="../build.xml"/>
+    <target name="debug-nb" depends="compile.debug">
+        <nbjpdastart addressproperty="jpda.address" name="QuantoGui" transport="dt_socket">
+            <classpath refid="quanto.classpath.debug"/>
+        </nbjpdastart>
+        <property environment="env" />
+        <java classname="quanto.gui.QuantoApp" fork="true">
+            <classpath refid="quanto.classpath.debug"/>
+            <env key="PATH" path="${root}/core/bin:${env.PATH}" />
+            <jvmarg value="-Xdebug"/>
+            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+        </java>
+    </target>
+
+    -->
+    <javac srcdir="${src}" destdir="${build.debug}" debug="true">
+      <classpath refid="quanto.classpath.build" />
+      <compilerarg value="-Xlint:unchecked" />
     </javac>
   </target>
   <target name="jar" depends="compile" description="generate the distribution">
