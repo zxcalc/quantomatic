@@ -117,6 +117,8 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 		UIFactory factory = new UIFactory(actionManager);
 		setJMenuBar(factory.createMenuBar("main-menu"));
+		if (QuantoApp.MAC_OS_X)
+			removeQuitFromFileMenu();
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
@@ -136,6 +138,25 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(splitPane, BorderLayout.CENTER);
 
 		this.pack();
+	}
+
+	private void removeQuitFromFileMenu() {
+		JMenuBar menuBar = getJMenuBar();
+		Action fileMenuAction = actionManager.getAction("file-menu");
+		Action quitCommandAction = actionManager.getAction(QUIT_COMMAND);
+		for (int i = 0; i < menuBar.getMenuCount(); ++i) {
+			JMenu menu = menuBar.getMenu(i);
+			if (menu != null && menu.getAction() == fileMenuAction) {
+				for (int j = menu.getItemCount() - 1; j >= 0 ; --j) {
+					JMenuItem item = menu.getItem(j);
+					if (item != null && item.getAction() == quitCommandAction) {
+						menu.remove(j);
+						return;
+					}
+				}
+				return;
+			}
+		}
 	}
 
 	public void openView(InteractiveView view) {
