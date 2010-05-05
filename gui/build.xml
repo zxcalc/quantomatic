@@ -13,6 +13,7 @@
   <property name="appdir" location="${dist}/Quantomatic"/>
   <property name="appname" value="Quantomatic" />
   <property name="lib" location="lib"/>
+  <property name="resources" location="resources"/>
   <property environment="env" />
 
 
@@ -28,6 +29,7 @@
       <include name="*.jar"/>
     </fileset>
     <pathelement path="${build}"/>
+    <pathelement path="${resources}"/>
   </path>
   <!-- classpath we use for debugging all the JARs in ${lib} and the built files -->
   <path id="quanto.classpath.debug">
@@ -35,6 +37,7 @@
       <include name="*.jar"/>
     </fileset>
     <pathelement path="${build.debug}"/>
+    <pathelement path="${resources}"/>
   </path>
 
   <target name="init">
@@ -94,6 +97,7 @@
       <zipfileset src="${lib}/jung-visualization-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/nanoxml-2.2.3.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/itext.jar" excludes="META-INF/**" />
+      <fileset dir="${resources}"/>
       <manifest>
         <attribute name="Main-Class" value="quanto.gui.QuantoApp" />
       </manifest>

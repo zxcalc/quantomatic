@@ -10,6 +10,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -127,35 +128,51 @@ public class ViewPort extends JPanel {
 		add(pickView, BorderLayout.NORTH);
 	}
 
+	private void setActionIcon(Action action, String icon) {
+		String smallIcon = "/images/" + icon + "16.gif";
+		URL smallIconUrl = ViewPort.class.getResource(smallIcon);
+		if (smallIconUrl == null) {
+			System.err.println("Could not find resource " + smallIcon);
+		}
+		else {
+			action.putValue(Action.SMALL_ICON, new ImageIcon(smallIconUrl));
+		}
+	}
+
 	private void createPredefinedActions() {
-		Action undoAction = createCommandAction(UNDO_ACTION, "Undo", KeyEvent.VK_U);
+		CommandAction undoAction = createCommandAction(UNDO_ACTION, "Undo", KeyEvent.VK_U);
 		undoAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_Z, QuantoApp.COMMAND_MASK));
+		setActionIcon(undoAction, "general/Undo");
 
-		Action redoAction = createCommandAction(REDO_ACTION, "Redo", KeyEvent.VK_R);
+		CommandAction redoAction = createCommandAction(REDO_ACTION, "Redo", KeyEvent.VK_R);
 		redoAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_Y, QuantoApp.COMMAND_MASK));
+		setActionIcon(redoAction, "general/Redo");
 
-		Action cutAction = createCommandAction(CUT_ACTION, "Cut", KeyEvent.VK_C);
+		CommandAction cutAction = createCommandAction(CUT_ACTION, "Cut", KeyEvent.VK_C);
 		cutAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_X, QuantoApp.COMMAND_MASK));
+		setActionIcon(cutAction, "general/Cut");
 
-		Action copyAction = createCommandAction(COPY_ACTION, "Copy", KeyEvent.VK_O);
+		CommandAction copyAction = createCommandAction(COPY_ACTION, "Copy", KeyEvent.VK_O);
 		copyAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_C, QuantoApp.COMMAND_MASK));
+		setActionIcon(copyAction, "general/Copy");
 
-		Action pasteAction = createCommandAction(PASTE_ACTION, "Paste", KeyEvent.VK_P);
+		CommandAction pasteAction = createCommandAction(PASTE_ACTION, "Paste", KeyEvent.VK_P);
 		pasteAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_V, QuantoApp.COMMAND_MASK));
+		setActionIcon(pasteAction, "general/Paste");
 
-		Action selectAllAction = createCommandAction(
+		CommandAction selectAllAction = createCommandAction(
 			SELECT_ALL_ACTION,
 			"Select all",
 			KeyEvent.VK_S);
 		selectAllAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_A, QuantoApp.COMMAND_MASK));
 
-		Action deselectAllAction = createCommandAction(
+		CommandAction deselectAllAction = createCommandAction(
 			DESELECT_ALL_ACTION,
 			"Deselect all",
 			KeyEvent.VK_D);

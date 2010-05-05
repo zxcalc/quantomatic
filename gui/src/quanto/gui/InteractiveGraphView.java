@@ -39,6 +39,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import java.net.URL;
 import quanto.gui.ViewPort.CommandAction;
 
 public class InteractiveGraphView
@@ -476,10 +477,12 @@ public class InteractiveGraphView
 		if (rewriter == null) {
 			action.putValue(Action.NAME, "Normalise");
 			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
+			action.putValue(Action.SMALL_ICON, null);
 		}
 		else {
 			action.putValue(Action.NAME, "Abort normalisation");
 			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
+			setActionIcon(action, "general/Stop");
 		}
 	}
 
@@ -986,6 +989,17 @@ public class InteractiveGraphView
 		});
 	}
 
+	private static void setActionIcon(Action action, String icon) {
+		String smallIcon = "/images/" + icon + "16.gif";
+		URL smallIconUrl = InteractiveGraphView.class.getResource(smallIcon);
+		if (smallIconUrl == null) {
+			System.err.println("Could not find resource " + smallIcon);
+		}
+		else {
+			action.putValue(Action.SMALL_ICON, new ImageIcon(smallIconUrl));
+		}
+	}
+
 	public static void createActions(ViewPort vp) {
 		Action saveAction = vp.createCommandAction(
 			SAVE_GRAPH_ACTION,
@@ -993,10 +1007,12 @@ public class InteractiveGraphView
 		saveAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
 		saveAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_S, QuantoApp.COMMAND_MASK));
+		setActionIcon(saveAction, "general/Save");
 		Action saveAsAction = vp.createCommandAction(
 			SAVE_GRAPH_AS_ACTION,
 			"Save graph as...");
 		saveAsAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
+		setActionIcon(saveAsAction, "general/SaveAs");
 
 
 		vp.createCommandAction(EXPORT_TO_PDF_ACTION,
@@ -1010,6 +1026,7 @@ public class InteractiveGraphView
 		selectModeAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_S,
 				QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+		setActionIcon(selectModeAction, "general/Select");
 
 		CommandAction edgeModeAction = vp.createCommandAction(
 			EDGE_MODE_ACTION,
@@ -1018,6 +1035,7 @@ public class InteractiveGraphView
 		edgeModeAction.putValue(Action.ACCELERATOR_KEY,
 			KeyStroke.getKeyStroke(KeyEvent.VK_E,
 				QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
+		setActionIcon(edgeModeAction, "quanto/Link");
 
 		vp.createCommandAction(
 			LATEX_TO_CLIPBOARD_ACTION,

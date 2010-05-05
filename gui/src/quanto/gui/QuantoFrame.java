@@ -7,6 +7,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 
 import java.io.File;
+import java.net.URL;
 import javax.swing.*;
 import quanto.gui.ViewPort.CommandAction;
 
@@ -23,6 +24,17 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	private Action openGraphAction;
 	private Action closeAction;
 
+	private static void setActionIcon(Action action, String icon) {
+		String smallIcon = "/images/" + icon + "16.gif";
+		URL smallIconUrl = QuantoFrame.class.getResource(smallIcon);
+		if (smallIconUrl == null) {
+			System.err.println("Could not find resource " + smallIcon);
+		}
+		else {
+			action.putValue(Action.SMALL_ICON, new ImageIcon(smallIconUrl));
+		}
+	}
+
 	public Action getNewGraphAction() {
 		if (newGraphAction == null) {
 			newGraphAction = new AbstractAction("New graph") {
@@ -37,6 +49,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 						QuantoApp.COMMAND_MASK));
 			newGraphAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_G);
 			newGraphAction.putValue(Action.SHORT_DESCRIPTION, "Create a new empty graph");
+			setActionIcon(newGraphAction, "general/New");
 		}
 		return newGraphAction;
 	}
@@ -55,6 +68,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 						QuantoApp.COMMAND_MASK));
 			openGraphAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_G);
 			openGraphAction.putValue(Action.SHORT_DESCRIPTION, "Create a new empty graph");
+			setActionIcon(openGraphAction, "general/Open");
 		}
 		return openGraphAction;
 	}
@@ -102,6 +116,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(splitPane, BorderLayout.CENTER);
 
 		initMenuBar(menuBar);
+		createToolBar();
 
 		this.pack();
 	}
@@ -117,6 +132,34 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 				"Rule",
 				KeyEvent.VK_R);
 		ruleMenu.add(viewPort.getCommandAction(SplitGraphView.USE_RULE_ACTION));
+	}
+
+	protected void createToolBar() {
+		JToolBar toolBar = new JToolBar("Main");
+		getContentPane().add(toolBar, BorderLayout.PAGE_START);
+
+		ButtonGroup mouseModeGroup = new ButtonGroup();
+		JToggleButton rbPickingMode = new JToggleButton();
+		CommandAction selectModeAction = viewPort.getCommandAction(
+			InteractiveGraphView.SELECT_MODE_ACTION);
+		rbPickingMode.setAction(selectModeAction);
+		rbPickingMode.setText(null);
+		rbPickingMode.setToolTipText(selectModeAction.getValue(Action.NAME).toString());
+		selectModeAction.associateButtonModel(rbPickingMode.getModel());
+		mouseModeGroup.add(rbPickingMode);
+		rbPickingMode.setSelected(true);
+		toolBar.add(rbPickingMode);
+
+		JToggleButton rbEdgeMode = new JToggleButton();
+		CommandAction edgeModeAction = viewPort.getCommandAction(
+			InteractiveGraphView.EDGE_MODE_ACTION);
+		rbEdgeMode.setAction(edgeModeAction);
+		rbEdgeMode.setText(null);
+		rbEdgeMode.setToolTipText(edgeModeAction.getValue(Action.NAME).toString());
+		edgeModeAction.associateButtonModel(rbEdgeMode.getModel());
+		mouseModeGroup.add(rbEdgeMode);
+		rbEdgeMode.setSelected(false);
+		toolBar.add(rbEdgeMode);
 	}
 
 	public void createFileMenu(QuantoMenuBar menu) {
