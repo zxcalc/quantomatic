@@ -56,6 +56,11 @@
     <javac srcdir="${src}" destdir="${build}">
       <classpath refid="quanto.classpath.build" />
     </javac>
+    <copy todir="${build}">
+	    <fileset dir="${src}">
+		    <include name="**/resources/*" />
+	    </fileset>
+    </copy>
   </target>
   <target name="compile.debug" depends="init" description="compile the source with debugging enabled">
     <!-- Use this for ide integration.  eg: for a NetBeans freeform project,
@@ -81,6 +86,11 @@
       <classpath refid="quanto.classpath.build" />
       <compilerarg value="-Xlint:unchecked" />
     </javac>
+    <copy todir="${build.debug}">
+	    <fileset dir="${src}">
+		    <include name="**/resources/*" />
+	    </fileset>
+    </copy>
   </target>
   <target name="jar" depends="compile" description="generate the distribution">
     <!-- Create the distribution directory -->
@@ -159,8 +169,9 @@
     </java>
   </target>
   <target name="clean" description="clean up">
-    <!-- Delete the ${build} and ${dist} directory trees -->
+    <!-- Delete the ${build}, ${build.debug} and ${dist} directory trees -->
     <delete dir="${build}"/>
+    <delete dir="${build.debug}"/>
     <delete dir="${dist}"/>
   </target>
 </project>
