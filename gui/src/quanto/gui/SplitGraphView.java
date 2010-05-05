@@ -22,7 +22,7 @@ import quanto.gui.QuantoCore.ConsoleError;
 @SuppressWarnings("serial")
 public class SplitGraphView extends InteractiveView {
 
-	public static final String USE_RULE_ACTION = "use-rule";
+	public static final String USE_RULE_ACTION = "use-rule-command";
 
 	private boolean leftFocused;
 	private InteractiveGraphView leftView;
@@ -106,13 +106,12 @@ public class SplitGraphView extends InteractiveView {
 		}
 	}
 
-	public static void createActions( ViewPort vp) {
-		Action useAction = vp.createCommandAction(USE_RULE_ACTION, "Use rule");
-		useAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_U, QuantoApp.COMMAND_MASK));
+	public static void registerKnownCommands() {
+		ViewPort.registerCommand(USE_RULE_ACTION);
 	}
 
-	public void commandTriggered(ActionEvent e) {
-		if (USE_RULE_ACTION.equals(e.getActionCommand())) {
+	public void commandTriggered(String command) {
+		if (USE_RULE_ACTION.equals(command)) {
 			try {
 				QuantoApp.getInstance().getCore().replace_rule(
 					SplitGraphView.this.ruleset,
@@ -128,13 +127,13 @@ public class SplitGraphView extends InteractiveView {
 
 	public void attached(ViewPort vp) {
 		lastViewPort = vp;
-		vp.getCommandAction(USE_RULE_ACTION).setEnabled(true);
+		vp.setCommandEnabled(USE_RULE_ACTION, true);
 		updateFocus();
 	}
 
 	public void detached(ViewPort vp) {
 		lastViewPort = null;
-		vp.getCommandAction(USE_RULE_ACTION).setEnabled(false);
+		vp.setCommandEnabled(USE_RULE_ACTION, false);
 		if (leftFocused) {
 			leftView.detached(vp);
 		}

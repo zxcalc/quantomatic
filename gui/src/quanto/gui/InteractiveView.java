@@ -116,7 +116,7 @@ public abstract class InteractiveView extends JPanel {
 	/**
 	 * Called when view is killed to do clean-up.
 	 */
-	abstract public void commandTriggered(ActionEvent e);
+	abstract public void commandTriggered(String command);
 
 	/**
 	 * Checks whether the view can be closed.

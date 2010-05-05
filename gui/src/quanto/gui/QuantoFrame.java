@@ -1,15 +1,15 @@
 package quanto.gui;
 
+import com.sun.jaf.ui.ActionManager;
+import com.sun.jaf.ui.UIFactory;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.awt.event.WindowEvent;
 
 import java.io.File;
-import java.net.URL;
+import java.io.IOException;
+import java.util.Set;
 import javax.swing.*;
-import quanto.gui.ViewPort.CommandAction;
+import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {
 
@@ -17,79 +17,42 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	private QuantoCore core;
 	private final ViewPort viewPort;
 	private volatile static int frameCount = 0;
-	private QuantoMenuBar menuBar = new QuantoMenuBar();
 	private QuantoApp app;
 	private TheoryTree theoryTree;
-	private Action newGraphAction;
-	private Action openGraphAction;
-	private Action closeAction;
+	private ActionManager actionManager = new ActionManager();
 
-	private static void setActionIcon(Action action, String icon) {
-		String smallIcon = "/images/" + icon + "16.gif";
-		URL smallIconUrl = QuantoFrame.class.getResource(smallIcon);
-		if (smallIconUrl == null) {
-			System.err.println("Could not find resource " + smallIcon);
+	// these all taken from resources/actions.xml
+	public final static String NEW_WINDOW_COMMAND = "new-win-command";
+	public final static String NEW_GRAPH_COMMAND = "new-graph-command";
+	public final static String OPEN_GRAPH_COMMAND = "open-command";
+	public final static String LOAD_THEORY_COMMAND = "load-theory-command";
+	public final static String CLOSE_COMMAND = "close-command";
+	public final static String QUIT_COMMAND = "quit-command";
+	public final static String REFRESH_ALL_COMMAND = "refresh-all-graphs-command";
+	public final static String DRAW_ARROW_HEADS_COMMAND = "draw-arrow-heads-command";
+	public final static String VERBOSE_CONSOLE_COMMAND = "verbose-console-command";
+	public final static String SHOW_INTERNAL_GRAPH_NAMES_COMMAND = "internal-graph-names-command";
+	public final static String OPEN_IN_NEW_WINDOW_COMMAND = "open-in-new-window-command";
+
+	public class Delegate {
+		public void executeCommand(String command) {
+			viewPort.executeCommand(command);
 		}
-		else {
-			action.putValue(Action.SMALL_ICON, new ImageIcon(smallIconUrl));
+		public void executeCommand(String command, boolean state) {
+			if (state)
+				viewPort.executeCommand(command);
 		}
 	}
+	public class BoolPrefDelegate {
+		private final QuantoApp.BoolPref pref;
 
-	public Action getNewGraphAction() {
-		if (newGraphAction == null) {
-			newGraphAction = new AbstractAction("New graph") {
-
-				public void actionPerformed(ActionEvent e) {
-					createNewGraph();
-				}
-			};
-			newGraphAction.putValue(Action.ACCELERATOR_KEY,
-					KeyStroke.getKeyStroke(
-						KeyEvent.VK_N,
-						QuantoApp.COMMAND_MASK));
-			newGraphAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_G);
-			newGraphAction.putValue(Action.SHORT_DESCRIPTION, "Create a new empty graph");
-			setActionIcon(newGraphAction, "general/New");
+		public BoolPrefDelegate(BoolPref pref) {
+			this.pref = pref;
 		}
-		return newGraphAction;
-	}
 
-	public Action getOpenGraphAction() {
-		if (openGraphAction == null) {
-			openGraphAction = new AbstractAction("Open graph...") {
-
-				public void actionPerformed(ActionEvent e) {
-					openGraph();
-				}
-			};
-			openGraphAction.putValue(Action.ACCELERATOR_KEY,
-					KeyStroke.getKeyStroke(
-						KeyEvent.VK_O,
-						QuantoApp.COMMAND_MASK));
-			openGraphAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_G);
-			openGraphAction.putValue(Action.SHORT_DESCRIPTION, "Create a new empty graph");
-			setActionIcon(openGraphAction, "general/Open");
+		public void setState(boolean state) {
+			app.setPreference(pref, state);
 		}
-		return openGraphAction;
-	}
-
-	public Action getCloseAction() {
-		if (closeAction == null) {
-			closeAction = new AbstractAction("Close") {
-				public void actionPerformed(ActionEvent e) {
-					ViewPort.CloseResult result = viewPort.closeCurrentView();
-					if (result == ViewPort.CloseResult.NoMoreViews)
-						dispose();
-				}
-			};
-			closeAction.putValue(Action.ACCELERATOR_KEY,
-					KeyStroke.getKeyStroke(
-						KeyEvent.VK_W,
-						QuantoApp.COMMAND_MASK));
-			closeAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
-			closeAction.putValue(Action.SHORT_DESCRIPTION, "Close the current graph");
-		}
-		return closeAction;
 	}
 
 	public QuantoFrame(QuantoApp app) {
@@ -99,13 +62,61 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		this.app = app;
 		core = app.getCore();
 		setBackground(Color.white);
+		getContentPane().setLayout(new BorderLayout());
 
-		setJMenuBar(menuBar);
+		try {
+			actionManager.loadActions(QuantoFrame.class.getResource("resources/actions.xml"));
+		}
+		catch (IOException ex) {
+			throw new Error("Could not find resource \"resources/actions.xml\": " + ex.getMessage());
+		}
+		Set<String> menuIds = actionManager.getActionListIDs();
+		for (String id : actionManager.getActionIDs()) {
+			if (!menuIds.contains(id))
+				actionManager.setEnabled(id, false);
+		}
+		actionManager.registerCallback(NEW_WINDOW_COMMAND, app, "createNewFrame");
+		actionManager.setEnabled(NEW_WINDOW_COMMAND, true);
+		actionManager.registerCallback(NEW_GRAPH_COMMAND, this, "createNewGraph");
+		actionManager.setEnabled(NEW_GRAPH_COMMAND, true);
+		actionManager.registerCallback(OPEN_GRAPH_COMMAND, this, "openGraph");
+		actionManager.setEnabled(OPEN_GRAPH_COMMAND, true);
+		actionManager.registerCallback(LOAD_THEORY_COMMAND, app, "loadRuleset");
+		actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
+		actionManager.registerCallback(CLOSE_COMMAND, this, "closeCurrentView");
+		actionManager.setEnabled(CLOSE_COMMAND, true);
+		actionManager.registerCallback(QUIT_COMMAND, app, "shutdown");
+		actionManager.setEnabled(QUIT_COMMAND, true);
+		actionManager.registerCallback(REFRESH_ALL_COMMAND, app.getViewManager(), "refreshAll");
+		actionManager.setEnabled(REFRESH_ALL_COMMAND, true);
+		actionManager.registerCallback(DRAW_ARROW_HEADS_COMMAND,
+			new BoolPrefDelegate(QuantoApp.DRAW_ARROW_HEADS),
+			"setState");
+		actionManager.setEnabled(DRAW_ARROW_HEADS_COMMAND, true);
+		actionManager.registerCallback(VERBOSE_CONSOLE_COMMAND,
+			new BoolPrefDelegate(QuantoApp.CONSOLE_ECHO),
+			"setState");
+		actionManager.setEnabled(VERBOSE_CONSOLE_COMMAND, true);
+		actionManager.registerCallback(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
+			new BoolPrefDelegate(QuantoApp.SHOW_INTERNAL_NAMES),
+			"setState");
+		actionManager.setEnabled(SHOW_INTERNAL_GRAPH_NAMES_COMMAND, true);
+		actionManager.registerCallback(OPEN_IN_NEW_WINDOW_COMMAND,
+			new BoolPrefDelegate(QuantoApp.NEW_WINDOW_FOR_GRAPHS),
+			"setState");
+		actionManager.setEnabled(OPEN_IN_NEW_WINDOW_COMMAND, true);
+
+		UIFactory factory = new UIFactory(actionManager);
+		setJMenuBar(factory.createMenuBar("main-menu"));
+		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
 		theoryTree = new TheoryTree(viewPort, core);
 
-		getContentPane().setLayout(new BorderLayout());
+		Delegate delegate = new Delegate();
+		actionManager.registerGenericCallback(
+			ViewPort.getKnownCommands(),
+			delegate, "executeCommand");
 
 		//Add the scroll panes to a split pane.
 		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -115,194 +126,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 		getContentPane().add(splitPane, BorderLayout.CENTER);
 
-		initMenuBar(menuBar);
-		createToolBar();
-
 		this.pack();
-	}
-
-	protected void initMenuBar(QuantoMenuBar menuBar) {
-		createFileMenu(menuBar);
-		createEditMenu(menuBar);
-		createViewMenu(menuBar);
-		createGraphMenu(menuBar);
-		createHilbertMenu(menuBar);
-
-		JMenu ruleMenu = menuBar.addMenu(QuantoMenuBar.RULE_MENU,
-				"Rule",
-				KeyEvent.VK_R);
-		ruleMenu.add(viewPort.getCommandAction(SplitGraphView.USE_RULE_ACTION));
-	}
-
-	protected void createToolBar() {
-		JToolBar toolBar = new JToolBar("Main");
-		getContentPane().add(toolBar, BorderLayout.PAGE_START);
-
-		ButtonGroup mouseModeGroup = new ButtonGroup();
-		JToggleButton rbPickingMode = new JToggleButton();
-		CommandAction selectModeAction = viewPort.getCommandAction(
-			InteractiveGraphView.SELECT_MODE_ACTION);
-		rbPickingMode.setAction(selectModeAction);
-		rbPickingMode.setText(null);
-		rbPickingMode.setToolTipText(selectModeAction.getValue(Action.NAME).toString());
-		selectModeAction.associateButtonModel(rbPickingMode.getModel());
-		mouseModeGroup.add(rbPickingMode);
-		rbPickingMode.setSelected(true);
-		toolBar.add(rbPickingMode);
-
-		JToggleButton rbEdgeMode = new JToggleButton();
-		CommandAction edgeModeAction = viewPort.getCommandAction(
-			InteractiveGraphView.EDGE_MODE_ACTION);
-		rbEdgeMode.setAction(edgeModeAction);
-		rbEdgeMode.setText(null);
-		rbEdgeMode.setToolTipText(edgeModeAction.getValue(Action.NAME).toString());
-		edgeModeAction.associateButtonModel(rbEdgeMode.getModel());
-		mouseModeGroup.add(rbEdgeMode);
-		rbEdgeMode.setSelected(false);
-		toolBar.add(rbEdgeMode);
-	}
-
-	public void createFileMenu(QuantoMenuBar menu) {
-		JMenu fileMenu = menuBar.addMenu(QuantoMenuBar.FILE_MENU,
-				"File",
-				KeyEvent.VK_F);
-
-		fileMenu.add(app.getNewFrameAction());
-		fileMenu.add(getNewGraphAction());
-		fileMenu.add(getOpenGraphAction());
-		fileMenu.add(viewPort.getCommandAction(InteractiveGraphView.SAVE_GRAPH_ACTION));
-		fileMenu.add(viewPort.getCommandAction(InteractiveGraphView.SAVE_GRAPH_AS_ACTION));
-
-		fileMenu.addSeparator();
-
-		fileMenu.add(app.getLoadTheoryAction());
-		fileMenu.add(app.getSaveTheoryAction());
-
-		fileMenu.addSeparator();
-
-		fileMenu.add(getCloseAction());
-
-		if (!QuantoApp.MAC_OS_X) {
-			fileMenu.add(app.getQuitAction());
-		}
-	}
-
-	public void createEditMenu(QuantoMenuBar menu) {
-		JMenu editMenu = menu.addMenu(QuantoMenuBar.EDIT_MENU,
-				"Edit",
-				KeyEvent.VK_E);
-
-		editMenu.add(viewPort.getCommandAction(ViewPort.UNDO_ACTION));
-		editMenu.add(viewPort.getCommandAction(ViewPort.REDO_ACTION));
-
-		editMenu.addSeparator();
-
-		editMenu.add(viewPort.getCommandAction(ViewPort.CUT_ACTION));
-		editMenu.add(viewPort.getCommandAction(ViewPort.COPY_ACTION));
-		editMenu.add(viewPort.getCommandAction(ViewPort.PASTE_ACTION));
-
-		editMenu.addSeparator();
-
-		editMenu.add(viewPort.getCommandAction(ViewPort.SELECT_ALL_ACTION));
-		editMenu.add(viewPort.getCommandAction(ViewPort.DESELECT_ALL_ACTION));
-	}
-
-	private JMenuItem createBoolPrefMenuItem(QuantoApp.BoolPref pref) {
-		JMenuItem item = new JCheckBoxMenuItem(pref.getFriendlyName());
-		item.setSelected(
-			app.getPreference(pref));
-		item.addItemListener(pref);
-		return item;
-	}
-
-	private void createViewMenu(QuantoMenuBar menuBar) {
-		JMenu viewMenu = menuBar.addMenu(QuantoMenuBar.VIEW_MENU,
-				"View",
-				KeyEvent.VK_V);
-
-		JMenuItem refreshAll = new JMenuItem("Refresh All Graphs", KeyEvent.VK_R);
-		refreshAll.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				app.getViewManager().refreshAll();
-			}
-		});
-		refreshAll.setAccelerator(KeyStroke.getKeyStroke(
-			KeyEvent.VK_R,
-			QuantoApp.COMMAND_MASK | Event.SHIFT_MASK));
-		viewMenu.add(refreshAll);
-
-		viewMenu.addSeparator();
-
-		viewMenu.add(createBoolPrefMenuItem(QuantoApp.DRAW_ARROW_HEADS));
-		viewMenu.add(createBoolPrefMenuItem(QuantoApp.CONSOLE_ECHO));
-		viewMenu.add(createBoolPrefMenuItem(QuantoApp.SHOW_INTERNAL_NAMES));
-		viewMenu.add(createBoolPrefMenuItem(QuantoApp.NEW_WINDOW_FOR_GRAPHS));
-	}
-
-	private void createGraphMenu(QuantoMenuBar menuBar) {
-		JMenu graphMenu = menuBar.addMenu(QuantoMenuBar.GRAPH_MENU,
-				"Graph",
-				KeyEvent.VK_G);
-
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.EXPORT_TO_PDF_ACTION));
-
-		graphMenu.addSeparator();
-
-		ButtonGroup mouseModeGroup = new ButtonGroup();
-		JRadioButtonMenuItem rbPickingMode = new JRadioButtonMenuItem();
-		CommandAction selectModeAction = viewPort.getCommandAction(
-			InteractiveGraphView.SELECT_MODE_ACTION);
-		rbPickingMode.setAction(selectModeAction);
-		selectModeAction.associateButtonModel(rbPickingMode.getModel());
-		mouseModeGroup.add(rbPickingMode);
-		rbPickingMode.setSelected(true);
-		graphMenu.add(rbPickingMode);
-
-		JRadioButtonMenuItem rbEdgeMode = new JRadioButtonMenuItem();
-		CommandAction edgeModeAction = viewPort.getCommandAction(
-			InteractiveGraphView.EDGE_MODE_ACTION);
-		rbEdgeMode.setAction(edgeModeAction);
-		edgeModeAction.associateButtonModel(rbEdgeMode.getModel());
-		mouseModeGroup.add(rbEdgeMode);
-		rbEdgeMode.setSelected(false);
-		graphMenu.add(rbEdgeMode);
-
-		graphMenu.addSeparator();
-
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.LATEX_TO_CLIPBOARD_ACTION));
-
-		JMenu graphAddMenu = new JMenu("Add");
-		graphMenu.add(graphAddMenu);
-		graphAddMenu.add(viewPort.getCommandAction(InteractiveGraphView.ADD_RED_VERTEX_ACTION));
-		graphAddMenu.add(viewPort.getCommandAction(InteractiveGraphView.ADD_GREEN_VERTEX_ACTION));
-		graphAddMenu.add(viewPort.getCommandAction(InteractiveGraphView.ADD_BOUNDARY_VERTEX_ACTION));
-		graphAddMenu.add(viewPort.getCommandAction(InteractiveGraphView.ADD_HADAMARD_ACTION));
-
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.SHOW_REWRITES_ACTION));
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.NORMALISE_ACTION));
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.FAST_NORMALISE_ACTION));
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.LOCK_VERTICES_ACTION));
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.UNLOCK_VERTICES_ACTION));
-		graphMenu.add(viewPort.getCommandAction(InteractiveGraphView.FLIP_VERTEX_COLOUR_ACTION));
-
-		// define submenu for bang boxes
-		JMenu bangMenu = new JMenu("Bang boxes");
-		graphMenu.add(bangMenu);
-
-		bangMenu.add(viewPort.getCommandAction(InteractiveGraphView.BANG_VERTICES_ACTION));
-		bangMenu.add(viewPort.getCommandAction(InteractiveGraphView.UNBANG_VERTICES_ACTION));
-		bangMenu.add(viewPort.getCommandAction(InteractiveGraphView.DROP_BANG_BOX_ACTION));
-		bangMenu.add(viewPort.getCommandAction(InteractiveGraphView.KILL_BANG_BOX_ACTION));
-		bangMenu.add(viewPort.getCommandAction(InteractiveGraphView.DUPLICATE_BANG_BOX_ACTION));
-	}
-
-	private void createHilbertMenu(QuantoMenuBar menuBar) {
-		JMenu hilbMenu = menuBar.addMenu(QuantoMenuBar.HILBERT_MENU,
-				"Hilbert space",
-				KeyEvent.VK_B);
-
-		hilbMenu.add(viewPort.getCommandAction(InteractiveGraphView.DUMP_HILBERT_TERM_AS_TEXT));
-		hilbMenu.add(viewPort.getCommandAction(InteractiveGraphView.DUMP_HILBERT_TERM_AS_MATHEMATICA));
 	}
 
 	public void openView(InteractiveView view) {
@@ -314,7 +138,13 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
-	private void createNewGraph() {
+	public void closeCurrentView() {
+		ViewPort.CloseResult result = viewPort.closeCurrentView();
+		if (result == ViewPort.CloseResult.NoMoreViews)
+			dispose();
+	}
+
+	public void createNewGraph() {
 		try {
 			openView(app.createNewGraph());
 		}
@@ -384,10 +214,26 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void setViewAllowedToClose(boolean allowed) {
-		getCloseAction().setEnabled(allowed);
+		actionManager.setEnabled(CLOSE_COMMAND, allowed);
 	}
 
 	public boolean isViewAllowedToClose() {
-		return getCloseAction().isEnabled();
+		return actionManager.isEnabled(CLOSE_COMMAND);
+	}
+
+	public void setCommandEnabled(String command, boolean enabled) {
+		actionManager.setEnabled(command, enabled);
+	}
+
+	public boolean isCommandEnabled(String command) {
+		return actionManager.isEnabled(command);
+	}
+
+	public void setCommandStateSelected(String command, boolean selected) {
+		actionManager.setSelected(command, selected);
+	}
+
+	public boolean isCommandStateSelected(String command) {
+		return actionManager.isSelected(command);
 	}
 }

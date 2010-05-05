@@ -2,27 +2,24 @@ package quanto.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 
+import java.util.Set;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 
 public class ViewPort extends JPanel {
 
 	private static final long serialVersionUID = -2789609872128334500L;
-	private HashMap<String, CommandAction> actions = new HashMap<String, CommandAction>();
+	private static Set<String> knownCommands;
+
 	private ViewPortHost host;
 	private InteractiveView attachedView = null;
 	private JLabel pickView = null;
@@ -31,13 +28,13 @@ public class ViewPort extends JPanel {
 	private boolean showInternalNames = false;
 	private ViewRenameListener viewRenameListener = new ViewRenameListener();
 
-	public static final String UNDO_ACTION = "undo";
-	public static final String REDO_ACTION = "redo";
-	public static final String CUT_ACTION = "cut";
-	public static final String COPY_ACTION = "copy";
-	public static final String PASTE_ACTION = "paste";
-	public static final String SELECT_ALL_ACTION = "select-all";
-	public static final String DESELECT_ALL_ACTION = "deselect-all";
+	public static final String UNDO_ACTION = "undo-command";
+	public static final String REDO_ACTION = "redo-command";
+	public static final String CUT_ACTION = "cut-command";
+	public static final String COPY_ACTION = "copy-command";
+	public static final String PASTE_ACTION = "paste-command";
+	public static final String SELECT_ALL_ACTION = "select-all-command";
+	public static final String DESELECT_ALL_ACTION = "deselect-all-command";
 
 	private class ViewRenameListener implements PropertyChangeListener {
 		public void propertyChange(PropertyChangeEvent evt) {
@@ -47,63 +44,27 @@ public class ViewPort extends JPanel {
 		}
 	}
 
-	public class CommandAction extends AbstractAction {
-		private List<ButtonModel> buttonModels = null;
+	public static Collection<String> getKnownCommands() {
+		if (knownCommands == null) {
+			knownCommands = new HashSet<String>();
 
-		public CommandAction(String command) {
-			putValue(ACTION_COMMAND_KEY, command);
-		}
+			knownCommands.add(UNDO_ACTION);
+			knownCommands.add(REDO_ACTION);
+			knownCommands.add(CUT_ACTION);
+			knownCommands.add(COPY_ACTION);
+			knownCommands.add(PASTE_ACTION);
+			knownCommands.add(SELECT_ALL_ACTION);
+			knownCommands.add(DESELECT_ALL_ACTION);
 
-		public CommandAction(String command, String name) {
-			super(name);
-			putValue(ACTION_COMMAND_KEY, command);
+			InteractiveGraphView.registerKnownCommands();
+			TextView.registerKnownCommands();
+			ConsoleView.registerKnownCommands();
+			SplitGraphView.registerKnownCommands();
 		}
-
-		public CommandAction(String command, String name, Icon icon) {
-			super(name, icon);
-			putValue(ACTION_COMMAND_KEY, command);
-		}
-
-		public String getCommand() {
-			return getValue(ACTION_COMMAND_KEY).toString();
-		}
-
-		public void actionPerformed(ActionEvent e) {
-			attachedView.commandTriggered(e);
-			if (buttonModels != null) {
-				for (ButtonModel model : buttonModels) {
-					model.setSelected(true);
-				}
-			}
-		}
-
-		public void setSelected(boolean selected) {
-			if (buttonModels != null) {
-				for (ButtonModel model : buttonModels) {
-					model.setSelected(selected);
-				}
-			}
-		}
-
-		public void disassociateButtonModel(ButtonModel model) {
-			if (buttonModels != null) {
-				buttonModels.remove(model);
-			}
-		}
-
-		/**
-		 * Associates a button model with this action, so that
-		 * the selected state is set when this action is
-		 * triggered.
-		 *
-		 * @param model
-		 */
-		public void associateButtonModel(ButtonModel model) {
-			if (buttonModels == null) {
-				buttonModels = new LinkedList<ButtonModel>();
-			}
-			buttonModels.add(model);
-		}
+		return knownCommands;
+	}
+	public static void registerCommand(String command) {
+		getKnownCommands().add(command);
 	}
 
 	/**
@@ -123,66 +84,8 @@ public class ViewPort extends JPanel {
 		this.viewManager = viewManager;
 		this.host = host;
 		setLayout(new BorderLayout());
-		createPredefinedActions();
 		makeViewMenu();
 		add(pickView, BorderLayout.NORTH);
-	}
-
-	private void setActionIcon(Action action, String icon) {
-		String smallIcon = "/images/" + icon + "16.gif";
-		URL smallIconUrl = ViewPort.class.getResource(smallIcon);
-		if (smallIconUrl == null) {
-			System.err.println("Could not find resource " + smallIcon);
-		}
-		else {
-			action.putValue(Action.SMALL_ICON, new ImageIcon(smallIconUrl));
-		}
-	}
-
-	private void createPredefinedActions() {
-		CommandAction undoAction = createCommandAction(UNDO_ACTION, "Undo", KeyEvent.VK_U);
-		undoAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_Z, QuantoApp.COMMAND_MASK));
-		setActionIcon(undoAction, "general/Undo");
-
-		CommandAction redoAction = createCommandAction(REDO_ACTION, "Redo", KeyEvent.VK_R);
-		redoAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_Y, QuantoApp.COMMAND_MASK));
-		setActionIcon(redoAction, "general/Redo");
-
-		CommandAction cutAction = createCommandAction(CUT_ACTION, "Cut", KeyEvent.VK_C);
-		cutAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_X, QuantoApp.COMMAND_MASK));
-		setActionIcon(cutAction, "general/Cut");
-
-		CommandAction copyAction = createCommandAction(COPY_ACTION, "Copy", KeyEvent.VK_O);
-		copyAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_C, QuantoApp.COMMAND_MASK));
-		setActionIcon(copyAction, "general/Copy");
-
-		CommandAction pasteAction = createCommandAction(PASTE_ACTION, "Paste", KeyEvent.VK_P);
-		pasteAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_V, QuantoApp.COMMAND_MASK));
-		setActionIcon(pasteAction, "general/Paste");
-
-		CommandAction selectAllAction = createCommandAction(
-			SELECT_ALL_ACTION,
-			"Select all",
-			KeyEvent.VK_S);
-		selectAllAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_A, QuantoApp.COMMAND_MASK));
-
-		CommandAction deselectAllAction = createCommandAction(
-			DESELECT_ALL_ACTION,
-			"Deselect all",
-			KeyEvent.VK_D);
-		deselectAllAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_A, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
-
-		InteractiveGraphView.createActions(this);
-		SplitGraphView.createActions(this);
-		ConsoleView.createActions(this);
-		TextView.createActions(this);
 	}
 
 	public void openView(InteractiveView view) {
@@ -270,103 +173,21 @@ public class ViewPort extends JPanel {
 	}
 
 	public void setCommandEnabled(String command, boolean enabled) {
-		CommandAction action = actions.get(command);
-		if (action != null)
-			action.setEnabled(enabled);
+		host.setCommandEnabled(command, enabled);
+	}
+	public boolean isCommandEnabled(String command) {
+		return host.isCommandEnabled(command);
+	}
+	public void setCommandStateSelected(String command, boolean selected) {
+		host.setCommandStateSelected(command, selected);
+	}
+	public boolean isCommandStateSelected(String command) {
+		return host.isCommandStateSelected(command);
 	}
 
-	/**
-	 * Gets a command action, creating it if it does not already exist
-	 *
-	 * All actions are disabled by default.
-	 *
-	 * @param command The command that will be passed to
-	 *                InteractiveView.commandTriggered
-	 * @param name The user-visible name of the action (in menus etc)
-	 * @return the action associated with @p command
-	 */
-	public CommandAction createCommandAction(String command, String name) {
-		CommandAction action = actions.get(command);
-		if (action == null) {
-			action = new CommandAction(command, name);
-			action.setEnabled(false);
-			actions.put(command, action);
-		}
-		return action;
-	}
-
-	/**
-	 * Gets a command action, creating it if it does not already exist
-	 *
-	 * All actions are disabled by default.
-	 *
-	 * @param command The command that will be passed to
-	 *                InteractiveView.commandTriggered
-	 * @param name The user-visible name of the action (in menus etc)
-	 * @param mnemonic The mnemonic for the action
-	 * @return the action associated with @p command
-	 */
-	public CommandAction createCommandAction(String command, String name, int mnemonic) {
-		CommandAction action = actions.get(command);
-		if (action == null) {
-			action = new CommandAction(command, name);
-			action.putValue(Action.MNEMONIC_KEY, mnemonic);
-			action.setEnabled(false);
-			actions.put(command, action);
-		}
-		return action;
-	}
-
-	/**
-	 * Gets a command action, creating it if it does not already exist
-	 *
-	 * All actions are disabled by default.
-	 *
-	 * @param command The command that will be passed to
-	 *                InteractiveView.commandTriggered
-	 * @param name The user-visible name of the action (in menus etc)
-	 * @param icon The icon associated with the command
-	 * @return the action associated with @p command
-	 */
-	public CommandAction createCommandAction(String command, String name, Icon icon) {
-		CommandAction action = actions.get(command);
-		if (action == null) {
-			action = new CommandAction(command, name, icon);
-			action.setEnabled(false);
-			actions.put(command, action);
-		}
-		return action;
-	}
-
-	/**
-	 * Gets a command action, creating it if it does not already exist
-	 *
-	 * All actions are disabled by default.
-	 *
-	 * @param command The command that will be passed to
-	 *                InteractiveView.commandTriggered
-	 * @param name The user-visible name of the action (in menus etc)
-	 * @param icon The icon associated with the command
-	 * @param mnemonic The mnemonic for the action
-	 * @return the action associated with @p command
-	 */
-	public CommandAction createCommandAction(String command, String name, Icon icon, int mnemonic) {
-		CommandAction action = actions.get(command);
-		if (action == null) {
-			action = new CommandAction(command, name, icon);
-			action.putValue(Action.MNEMONIC_KEY, mnemonic);
-			action.setEnabled(false);
-			actions.put(command, action);
-		}
-		return action;
-	}
-
-	public void registerCommandAction(CommandAction action) {
-		actions.put(action.getCommand(), action);
-	}
-
-	public CommandAction getCommandAction(String command) {
-		return actions.get(command);
+	public void executeCommand(String command) {
+		if (attachedView != null)
+			attachedView.commandTriggered(command);
 	}
 
 	private void makeViewMenu() {

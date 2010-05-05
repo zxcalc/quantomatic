@@ -36,10 +36,10 @@ public class TextView extends InteractiveView {
 		return true;
 	}
 
-	public void commandTriggered(ActionEvent e) {
+	public static void registerKnownCommands() {
 	}
 
-	public static void createActions(ViewPort vp) {
+	public void commandTriggered(String command) {
 	}
 
 	public void refresh() {

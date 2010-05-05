@@ -55,89 +55,6 @@ public class QuantoApp {
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
 
-	private Action quitAction = null;
-	private Action newFrameAction = null;
-	private Action loadTheoryAction;
-	private Action saveTheoryAction;
-
-	public Action getQuitAction() {
-		if (quitAction == null) {
-			quitAction = new AbstractAction("Quit") {
-
-				public void actionPerformed(ActionEvent e) {
-					shutdown();
-				}
-			};
-			quitAction.putValue(Action.ACCELERATOR_KEY,
-					    KeyStroke.getKeyStroke(KeyEvent.VK_Q,
-								   java.awt.event.InputEvent.CTRL_DOWN_MASK));
-			quitAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_Q);
-			quitAction.putValue(Action.SHORT_DESCRIPTION, "Quit Quantomatic");
-		}
-		return quitAction;
-	}
-
-	public Action getNewFrameAction() {
-		if (newFrameAction == null) {
-			newFrameAction = new AbstractAction("New Window") {
-
-				public void actionPerformed(ActionEvent e) {
-					try {
-						InteractiveView view = viewManager.getNextFreeView();
-						if (view == null)
-							view = createNewGraph();
-						openNewFrame(view);
-					}
-					catch (QuantoCore.ConsoleError ex) {
-						errorDialog("Could not create a new graph to display");
-					}
-				}
-			};
-			newFrameAction.putValue(Action.ACCELERATOR_KEY,
-					KeyStroke.getKeyStroke(
-						KeyEvent.VK_N,
-						COMMAND_MASK |
-						java.awt.event.InputEvent.SHIFT_DOWN_MASK));
-			newFrameAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
-			newFrameAction.putValue(Action.SHORT_DESCRIPTION, "Open a new window");
-		}
-		return newFrameAction;
-	}
-
-	public Action getLoadTheoryAction() {
-
-		if (loadTheoryAction == null) {
-			loadTheoryAction = new AbstractAction("Load theory...") {
-
-				public void actionPerformed(ActionEvent e) {
-					loadRuleset();
-				}
-			};
-			loadTheoryAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_L);
-			loadTheoryAction.putValue(Action.SHORT_DESCRIPTION, "Load a theory from a file");
-		}
-		return loadTheoryAction;
-	}
-
-	public Action getSaveTheoryAction() {
-		if (saveTheoryAction == null) {
-			saveTheoryAction = new AbstractAction("Save theory") {
-				public void actionPerformed(ActionEvent e) {
-					System.err.println("SAVE NOT IMPLEMENTED");
-//						QuantoApp.getInstance().saveRuleSet();
-				}
-			};
-			saveTheoryAction.putValue(Action.ACCELERATOR_KEY,
-					KeyStroke.getKeyStroke(
-						KeyEvent.VK_W,
-						QuantoApp.COMMAND_MASK));
-			saveTheoryAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_C);
-			saveTheoryAction.putValue(Action.SHORT_DESCRIPTION, "Close the current graph");
-			saveTheoryAction.setEnabled(false);
-		}
-		return saveTheoryAction;
-	}
-
 	private static class Pref<T> {
 
 		final T def; // default value
@@ -343,6 +260,18 @@ public class QuantoApp {
 
 	public void errorDialog(String message) {
 		JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	public void createNewFrame() {
+		try {
+			InteractiveView view = viewManager.getNextFreeView();
+			if (view == null)
+				view = createNewGraph();
+			openNewFrame(view);
+		}
+		catch (QuantoCore.ConsoleError ex) {
+			errorDialog("Could not create a new graph to display");
+		}
 	}
 
 	public void openNewFrame(InteractiveView view)

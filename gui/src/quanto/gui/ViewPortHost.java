@@ -29,4 +29,9 @@ public interface ViewPortHost {
 	 * @param allowed  Whether the current view can be closed.
 	 */
 	void setViewAllowedToClose(boolean allowed);
+
+	void setCommandEnabled(String command, boolean enabled);
+	boolean isCommandEnabled(String command);
+	void setCommandStateSelected(String command, boolean selected);
+	boolean isCommandStateSelected(String command);
 }

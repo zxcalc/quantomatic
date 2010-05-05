@@ -40,7 +40,6 @@ import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import java.net.URL;
-import quanto.gui.ViewPort.CommandAction;
 
 public class InteractiveGraphView
 	extends InteractiveView
@@ -50,29 +49,29 @@ public class InteractiveGraphView
 	private static final long serialVersionUID = 7196565776978339937L;
 
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
-	public static final String SAVE_GRAPH_ACTION = "save-graph";
-	public static final String SAVE_GRAPH_AS_ACTION = "save-graph-as";
-	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf";
-	public static final String SELECT_MODE_ACTION = "select-mode";
-	public static final String EDGE_MODE_ACTION = "edge-mode";
-	public static final String LATEX_TO_CLIPBOARD_ACTION = "copy-latex";
-	public static final String ADD_RED_VERTEX_ACTION = "add-vertex-red";
-	public static final String ADD_GREEN_VERTEX_ACTION = "add-vertex-green";
-	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-vertex-boundary";
-	public static final String ADD_HADAMARD_ACTION = "add-vertex-hadamard";
-	public static final String SHOW_REWRITES_ACTION = "show-rewrites";
-	public static final String NORMALISE_ACTION = "normalise";
-	public static final String FAST_NORMALISE_ACTION = "fast-normalise";
-	public static final String LOCK_VERTICES_ACTION = "lock-vertices";
-	public static final String UNLOCK_VERTICES_ACTION = "unlock-vertices";
-	public static final String FLIP_VERTEX_COLOUR_ACTION = "flip-vertex-colour";
-	public static final String BANG_VERTICES_ACTION = "bang-vertices";
-	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices";
-	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box";
-	public static final String KILL_BANG_BOX_ACTION = "kill-bang-box";
-	public static final String DUPLICATE_BANG_BOX_ACTION = "duplicate-bang-box";
-	public static final String DUMP_HILBERT_TERM_AS_TEXT = "hilbert-dump-as-text";
-	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-dump-as-mathematica";
+	public static final String SAVE_GRAPH_ACTION = "save-command";
+	public static final String SAVE_GRAPH_AS_ACTION = "save-as-command";
+	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf-command";
+	public static final String SELECT_MODE_ACTION = "select-mode-command";
+	public static final String EDGE_MODE_ACTION = "edge-mode-command";
+	public static final String LATEX_TO_CLIPBOARD_ACTION = "latex-to-clipboard-command";
+	public static final String ADD_RED_VERTEX_ACTION = "add-red-vertex-command";
+	public static final String ADD_GREEN_VERTEX_ACTION = "add-green-vertex-command";
+	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-boundary-vertex-command";
+	public static final String ADD_HADAMARD_ACTION = "add-hadamard-vertex-command";
+	public static final String SHOW_REWRITES_ACTION = "show-rewrites-command";
+	public static final String NORMALISE_ACTION = "normalise-command";
+	public static final String FAST_NORMALISE_ACTION = "fast-normalise-command";
+	public static final String LOCK_VERTICES_ACTION = "lock-vertices-command";
+	public static final String UNLOCK_VERTICES_ACTION = "unlock-vertices-command";
+	public static final String FLIP_VERTEX_COLOUR_ACTION = "flip-vertex-colour-command";
+	public static final String BANG_VERTICES_ACTION = "bang-vertices-command";
+	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices-command";
+	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box-command";
+	public static final String KILL_BANG_BOX_ACTION = "kill-bang-box-command";
+	public static final String DUPLICATE_BANG_BOX_ACTION = "duplicate-bang-box-command";
+	public static final String DUMP_HILBERT_TERM_AS_TEXT = "hilbert-as-text-command";
+	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
 	private QuantoCore core;
@@ -223,7 +222,7 @@ public class InteractiveGraphView
 			add(pickingMouse);
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
-				getViewPort().getCommandAction(SELECT_MODE_ACTION).setSelected(true);
+				getViewPort().setCommandStateSelected(SELECT_MODE_ACTION, true);
 			}
 		}
 
@@ -233,7 +232,7 @@ public class InteractiveGraphView
 			add(edgeMouse);
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
-				getViewPort().getCommandAction(EDGE_MODE_ACTION).setSelected(true);
+				getViewPort().setCommandStateSelected(EDGE_MODE_ACTION, true);
 			}
 		}
 
@@ -421,8 +420,8 @@ public class InteractiveGraphView
 		}
 
 		if (isAttached()) {
-			getViewPort().getCommandAction(SAVE_GRAPH_ACTION).setEnabled(
-				getGraph().getFileName() != null && !getGraph().isSaved()
+			getViewPort().setCommandEnabled(SAVE_GRAPH_ACTION,
+				!getGraph().isSaved()
 				);
 		}
 
@@ -473,7 +472,7 @@ public class InteractiveGraphView
 	}
 
 	private void setupNormaliseAction(ViewPort vp) {
-		Action action = vp.getCommandAction(NORMALISE_ACTION);
+		/*Action action = vp.getCommandAction(NORMALISE_ACTION);
 		if (rewriter == null) {
 			action.putValue(Action.NAME, "Normalise");
 			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
@@ -483,7 +482,7 @@ public class InteractiveGraphView
 			action.putValue(Action.NAME, "Abort normalisation");
 			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
 			setActionIcon(action, "general/Stop");
-		}
+		}*/
 	}
 
 	private class RewriterThread extends Thread {
@@ -665,10 +664,10 @@ public class InteractiveGraphView
 		return core;
 	}
 
-	public void commandTriggered(ActionEvent e) {
-		ActionListener listener = actionMap.get(e.getActionCommand());
+	public void commandTriggered(String command) {
+		ActionListener listener = actionMap.get(command);
 		if (listener != null)
-			listener.actionPerformed(e);
+			listener.actionPerformed(new ActionEvent(this, -1, command));
 	}
 
 	public void saveGraphAs() {
@@ -704,6 +703,32 @@ public class InteractiveGraphView
 		else {
 			saveGraphAs();
 		}
+	}
+
+	public static void registerKnownCommands() {
+		ViewPort.registerCommand(SAVE_GRAPH_ACTION);
+		ViewPort.registerCommand(SAVE_GRAPH_AS_ACTION);
+		ViewPort.registerCommand(EXPORT_TO_PDF_ACTION);
+		ViewPort.registerCommand(SELECT_MODE_ACTION);
+		ViewPort.registerCommand(EDGE_MODE_ACTION);
+		ViewPort.registerCommand(LATEX_TO_CLIPBOARD_ACTION);
+		ViewPort.registerCommand(ADD_RED_VERTEX_ACTION);
+		ViewPort.registerCommand(ADD_GREEN_VERTEX_ACTION);
+		ViewPort.registerCommand(ADD_BOUNDARY_VERTEX_ACTION);
+		ViewPort.registerCommand(ADD_HADAMARD_ACTION);
+		ViewPort.registerCommand(SHOW_REWRITES_ACTION);
+		ViewPort.registerCommand(NORMALISE_ACTION);
+		ViewPort.registerCommand(FAST_NORMALISE_ACTION);
+		ViewPort.registerCommand(LOCK_VERTICES_ACTION);
+		ViewPort.registerCommand(UNLOCK_VERTICES_ACTION);
+		ViewPort.registerCommand(FLIP_VERTEX_COLOUR_ACTION);
+		ViewPort.registerCommand(BANG_VERTICES_ACTION);
+		ViewPort.registerCommand(UNBANG_VERTICES_ACTION);
+		ViewPort.registerCommand(DROP_BANG_BOX_ACTION);
+		ViewPort.registerCommand(KILL_BANG_BOX_ACTION);
+		ViewPort.registerCommand(DUPLICATE_BANG_BOX_ACTION);
+		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_TEXT);
+		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_MATHEMATICA);
 	}
 
 	private void buildActionMap() {
@@ -990,7 +1015,7 @@ public class InteractiveGraphView
 	}
 
 	private static void setActionIcon(Action action, String icon) {
-		String smallIcon = "/images/" + icon + "16.gif";
+		String smallIcon = "/toolbarButtonGraphics/" + icon + "16.gif";
 		URL smallIconUrl = InteractiveGraphView.class.getResource(smallIcon);
 		if (smallIconUrl == null) {
 			System.err.println("Could not find resource " + smallIcon);
@@ -1000,169 +1025,25 @@ public class InteractiveGraphView
 		}
 	}
 
-	public static void createActions(ViewPort vp) {
-		Action saveAction = vp.createCommandAction(
-			SAVE_GRAPH_ACTION,
-			"Save graph");
-		saveAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_S);
-		saveAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_S, QuantoApp.COMMAND_MASK));
-		setActionIcon(saveAction, "general/Save");
-		Action saveAsAction = vp.createCommandAction(
-			SAVE_GRAPH_AS_ACTION,
-			"Save graph as...");
-		saveAsAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
-		setActionIcon(saveAsAction, "general/SaveAs");
-
-
-		vp.createCommandAction(EXPORT_TO_PDF_ACTION,
-				"Export to PDF",
-				KeyEvent.VK_P);
-
-		CommandAction selectModeAction = vp.createCommandAction(
-			SELECT_MODE_ACTION,
-			"Select mode",
-			KeyEvent.VK_T);
-		selectModeAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_S,
-				QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
-		setActionIcon(selectModeAction, "general/Select");
-
-		CommandAction edgeModeAction = vp.createCommandAction(
-			EDGE_MODE_ACTION,
-			"Edge mode",
-			KeyEvent.VK_E);
-		edgeModeAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_E,
-				QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
-		setActionIcon(edgeModeAction, "quanto/Link");
-
-		vp.createCommandAction(
-			LATEX_TO_CLIPBOARD_ACTION,
-			"Latex to clipboard",
-			KeyEvent.VK_L);
-
-		vp.createCommandAction(
-			ADD_RED_VERTEX_ACTION,
-			"Red vertex",
-			KeyEvent.VK_R);
-		vp.createCommandAction(
-			ADD_GREEN_VERTEX_ACTION,
-			"Green vertex",
-			KeyEvent.VK_G);
-		vp.createCommandAction(
-			ADD_BOUNDARY_VERTEX_ACTION,
-			"Boundary vertex",
-			KeyEvent.VK_B);
-		vp.createCommandAction(
-			ADD_HADAMARD_ACTION,
-			"Hadamard gate",
-			KeyEvent.VK_H);
-
-		vp.createCommandAction(
-			SHOW_REWRITES_ACTION,
-			"Show rewrites...",
-			KeyEvent.VK_R);
-
-		Action normaliseAction = vp.createCommandAction(
-			NORMALISE_ACTION,
-			"Normalise",
-			KeyEvent.VK_N);
-		normaliseAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_PERIOD, QuantoApp.COMMAND_MASK));
-
-		vp.createCommandAction(
-			FAST_NORMALISE_ACTION,
-			"Fast normalise",
-			KeyEvent.VK_F);
-
-		Action lockVertsAction = vp.createCommandAction(
-			LOCK_VERTICES_ACTION,
-			"Lock vertices",
-			KeyEvent.VK_L);
-		lockVertsAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_L, QuantoApp.COMMAND_MASK));
-
-		Action unlockVertsAction = vp.createCommandAction(
-			UNLOCK_VERTICES_ACTION,
-			"Unlock vertices",
-			KeyEvent.VK_N);
-		unlockVertsAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_L, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
-
-		Action flipVertColourAction = vp.createCommandAction(
-			FLIP_VERTEX_COLOUR_ACTION,
-			"Flip vertex colour",
-			KeyEvent.VK_F);
-		flipVertColourAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_F, QuantoApp.COMMAND_MASK));
-
-		Action bangAction = vp.createCommandAction(
-			BANG_VERTICES_ACTION,
-			"Bang vertices",
-			KeyEvent.VK_B);
-		bangAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_1, QuantoApp.COMMAND_MASK));
-
-		Action unbangAction = vp.createCommandAction(
-			UNBANG_VERTICES_ACTION,
-			"Unbang vertices",
-			KeyEvent.VK_U);
-		unbangAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_1, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
-
-		Action dropBBAction = vp.createCommandAction(
-			DROP_BANG_BOX_ACTION,
-			"Drop box",
-			KeyEvent.VK_D);
-		dropBBAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, KeyEvent.SHIFT_MASK));
-
-		Action killBBAction = vp.createCommandAction(
-			KILL_BANG_BOX_ACTION,
-			"Kill box",
-			KeyEvent.VK_K);
-		killBBAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, QuantoApp.COMMAND_MASK | KeyEvent.SHIFT_MASK));
-
-		Action dupBBAction = vp.createCommandAction(
-			DUPLICATE_BANG_BOX_ACTION,
-			"Duplicate box",
-			KeyEvent.VK_P);
-		dupBBAction.putValue(Action.ACCELERATOR_KEY,
-			KeyStroke.getKeyStroke(KeyEvent.VK_D, QuantoApp.COMMAND_MASK));
-
-		vp.createCommandAction(
-			DUMP_HILBERT_TERM_AS_TEXT,
-			"Dump term as text",
-			KeyEvent.VK_T);
-
-		vp.createCommandAction(
-			DUMP_HILBERT_TERM_AS_MATHEMATICA,
-			"Dump term as Mathematica",
-			KeyEvent.VK_M);
-	}
-
 	public void attached(ViewPort vp) {
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, true);
 		}
 		vp.setCommandEnabled(SAVE_GRAPH_ACTION,
-			getGraph().getFileName() != null &&
 			!getGraph().isSaved()
 			);
 		if (graphMouse.isEdgeMouse())
-			vp.getCommandAction(EDGE_MODE_ACTION).setSelected(true);
+			vp.setCommandStateSelected(EDGE_MODE_ACTION, true);
 		else
-			vp.getCommandAction(SELECT_MODE_ACTION).setSelected(true);
+			vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
 		setupNormaliseAction(vp);
 	}
 
 	public void detached(ViewPort vp) {
-		vp.getCommandAction(SELECT_MODE_ACTION).setSelected(true);
-		Action normaliseAction = vp.getCommandAction(NORMALISE_ACTION);
+		vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
+		/*Action normaliseAction = vp.getCommandAction(NORMALISE_ACTION);
 		normaliseAction.putValue(Action.NAME, "Normalise");
-		normaliseAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
+		normaliseAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);*/
 
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, false);

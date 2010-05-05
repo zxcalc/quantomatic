@@ -221,27 +221,27 @@ public class ConsoleView extends InteractiveView {
 		return true;
 	}
 
-	public static void createActions(ViewPort vp) {
+	public static void registerKnownCommands() {
 	}
 
-	public void commandTriggered(ActionEvent e) {
-		if (ViewPort.CUT_ACTION.equals(e.getActionCommand())) {
+	public void commandTriggered(String command) {
+		if (ViewPort.CUT_ACTION.equals(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.cut();
 		}
-		else if (ViewPort.COPY_ACTION.equals(e.getActionCommand())) {
+		else if (ViewPort.COPY_ACTION.equals(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.copy();
 		}
-		else if (ViewPort.PASTE_ACTION.equals(e.getActionCommand())) {
+		else if (ViewPort.PASTE_ACTION.equals(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.paste();
 		}
-		else if (ViewPort.SELECT_ALL_ACTION.equals(e.getActionCommand())) {
+		else if (ViewPort.SELECT_ALL_ACTION.equals(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.selectAll();
 		}
-		else if (ViewPort.DESELECT_ALL_ACTION.equals(e.getActionCommand())) {
+		else if (ViewPort.DESELECT_ALL_ACTION.equals(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.select(0, 0);
 		}

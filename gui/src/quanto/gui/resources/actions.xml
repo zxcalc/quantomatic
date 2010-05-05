@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE action-set SYSTEM "action-set.dtd">
+
+<!--
+  The actions define all the Actions in an application
+  and toolbars and menus which use the actions
+-->
+
+<action-set id="quanto-frame">
+
+
+	<!-- File menu operations -->
+
+	<action id="new-win-command"
+          name="New window"
+          mnemonic="W"
+	  accel="control shift N"
+          desc="Open a new window"/>
+
+	<action id="new-graph-command"
+          name="New graph"
+          mnemonic="N"
+          smicon="/toolbarButtonGraphics/general/New16.gif"
+          icon="/toolbarButtonGraphics/general/New24.gif"
+	  accel="control N"
+          desc="Create a new graph"/>
+
+	<action id="open-command"
+          name="Open graph..."
+          mnemonic="O"
+          smicon="/toolbarButtonGraphics/general/Open16.gif"
+          icon="/toolbarButtonGraphics/general/Open24.gif"
+	  accel="control O"
+          desc="Open an existing graph"/>
+
+	<action id="save-command"
+          name="Save"
+          mnemonic="S"
+          smicon="/toolbarButtonGraphics/general/Save16.gif"
+          icon="/toolbarButtonGraphics/general/Save24.gif"
+	  accel="control S"
+          desc="Save the current graph"/>
+
+	<action id="save-as-command"
+          name="Save as..."
+          mnemonic="a"
+          smicon="/toolbarButtonGraphics/general/SaveAs16.gif"
+          icon="/toolbarButtonGraphics/general/SaveAs24.gif"
+          desc="Save the current graph under a different name"/>
+
+	<action id="load-theory-command"
+          name="Load theory..."
+          mnemonic="l"
+          desc="Load a theory"/>
+
+	<action id="save-theory-command"
+          name="Save theory"
+          mnemonic="t"
+          desc="Save the active theory"/>
+
+	<action id="close-command"
+          name="Close"
+          mnemonic="c"
+	  accel="control W"
+          desc="Close the current graph or view"/>
+
+	<action id="quit-command"
+          name="Quit"
+          mnemonic="q"
+	  accel="control Q"
+          desc="Quits the application"/>
+
+	<!-- Edit menu commands -->
+
+	<action id="undo-command"
+          name="Undo"
+          mnemonic="U"
+          smicon="/toolbarButtonGraphics/general/Undo16.gif"
+          icon="/toolbarButtonGraphics/general/Undo24.gif"
+	  accel="control Z"
+          desc="Undo the last action"/>
+
+	<action id="redo-command"
+          name="Redo"
+          mnemonic="r"
+          smicon="/toolbarButtonGraphics/general/Redo16.gif"
+          icon="/toolbarButtonGraphics/general/Redo24.gif"
+	  accel="control Y"
+          desc="Redo the action that was last undone"/>
+
+	<action id="copy-command"
+          name="Copy"
+          mnemonic="C"
+          smicon="/toolbarButtonGraphics/general/Copy16.gif"
+          icon="/toolbarButtonGraphics/general/Copy24.gif"
+	  accel="control C"
+          desc="Copy the selected item to the clipboard"/>
+
+	<action id="cut-command"
+          name="Cut"
+          mnemonic="T"
+          smicon="/toolbarButtonGraphics/general/Cut16.gif"
+          icon="/toolbarButtonGraphics/general/Cut24.gif"
+	  accel="control X"
+          desc="Remove selected item and place it on the clipboard"/>
+
+	<action id="paste-command"
+          name="Paste"
+          mnemonic="P"
+          smicon="/toolbarButtonGraphics/general/Paste16.gif"
+          icon="/toolbarButtonGraphics/general/Paste24.gif"
+	  accel="control V"
+          desc="Inserts an object from the clipboard"/>
+
+	<action id="select-all-command"
+          name="Select all"
+          mnemonic="S"
+	  accel="control A"
+          desc="Select all visible items"/>
+
+	<action id="deselect-all-command"
+          name="Deselect all"
+          mnemonic="D"
+	  accel="control shift A"
+          desc="Unselect all selected items"/>
+
+	<!-- View menu commands -->
+
+	<action id="refresh-all-graphs-command"
+          name="Refresh all graphs"
+          mnemonic="R"
+          desc="Refresh all open graphs"/>
+
+	<action id="draw-arrow-heads-command"
+	  type="toggle"
+	  name="Draw arrow heads"
+	  mnemonic="D"
+	  desc="Draw arrow heads on edges in graphs"/>
+
+	<action id="verbose-console-command"
+	  type="toggle"
+	  name="Verbose console"
+	  mnemonic="V"
+	  desc="Display all communication with the backend in the console"/>
+
+	<action id="internal-graph-names-command"
+	  type="toggle"
+	  name="Show internal graph names"
+	  mnemonic="S"
+	  desc="Show the graph names used internally by the backend in the window list"/>
+
+	<action id="open-in-new-window-command"
+	  type="toggle"
+	  name="Open graphs in new window"
+	  mnemonic="O"
+	  desc="Use a new window when opening or creating graphs"/>
+
+	<!-- Graph menu commands -->
+
+	<action id="export-to-pdf-command"
+          name="Export to PDF"
+          mnemonic="P"
+          desc="Export the graph as a PDF file"/>
+
+	<action id="select-mode-command"
+	  type="toggle"
+          name="Select mode"
+          mnemonic="S"
+	  accel="control shift S"
+          smicon="/toolbarButtonGraphics/general/Select16.gif"
+          icon="/toolbarButtonGraphics/general/Select24.gif"
+          desc="Select, move and edit graph items"/>
+
+	<action id="edge-mode-command"
+	  type="toggle"
+          name="Edge mode"
+          mnemonic="E"
+	  accel="control shift E"
+          smicon="/toolbarButtonGraphics/quanto/Link16.gif"
+          icon="/toolbarButtonGraphics/quanto/Link24.gif"
+          desc="Add edges to the graph"/>
+
+	<action id="latex-to-clipboard-command"
+          name="Latex to clipboard"
+          mnemonic="T"
+          desc="Export the graph as a Latex document, placing it on the clipboard"/>
+
+	<action id="show-rewrites-command"
+          name="Show rewrites"
+          mnemonic="R"
+          desc="Show all the available rewrites that can be performed on the graph"/>
+
+	<action id="normalise-command"
+          name="Normalise"
+          mnemonic="N"
+	  accel="control ."
+          desc="Normalise the graph, showing each step"/>
+
+	<action id="fast-normalise-command"
+          name="Fast normalise"
+          mnemonic="F"
+          desc="Normalise the graph without showing individual steps"/>
+
+	<action id="lock-vertices-command"
+          name="Lock vertices"
+          mnemonic="L"
+	  accel="control L"
+          desc="Lock the selected vertices"/>
+
+	<action id="unlock-vertices-command"
+          name="Unlock vertices"
+          mnemonic="U"
+	  accel="control shift L"
+          desc="Unlock the selected vertices"/>
+
+	<action id="flip-vertex-colour-command"
+          name="Flip vertex colour"
+          mnemonic="C"
+	  accel="control shift C"
+          desc="Flip the colour of the selected vertices"/>
+
+	<!-- Add menu commands -->
+
+	<action id="add-red-vertex-command"
+          name="Red vertex"
+          mnemonic="R"
+          desc="Add a red vertex"/>
+
+	<action id="add-green-vertex-command"
+          name="Green vertex"
+          mnemonic="G"
+          desc="Add a green vertex"/>
+
+	<action id="add-hadamard-vertex-command"
+          name="Hadamard gate"
+          mnemonic="H"
+          desc="Add a hadamard gate"/>
+
+	<action id="add-boundary-vertex-command"
+          name="Boundary vertex"
+          mnemonic="B"
+          desc="Add a boundary vertex"/>
+
+	<!-- Bang box menu commands -->
+
+	<action id="bang-vertices-command"
+          name="Bang vertices"
+          mnemonic="B"
+	  accel="control 1"
+          desc="Create a bang box containing the selected vertices"/>
+
+	<action id="unbang-vertices-command"
+          name="Unbang vertices"
+          mnemonic="U"
+	  accel="control shift 1"
+          desc="Remove the selected vertices from their bang boxes"/>
+
+	<action id="drop-bang-box-command"
+          name="Drop bang box"
+          mnemonic="D"
+	  accel="shift backspace"
+          desc="Remove the selected bang box, leaving the contained nodes alone"/>
+
+	<action id="kill-bang-box-command"
+          name="Kill bang box"
+          mnemonic="K"
+	  accel="control shift backspace"
+          desc="Remove the selected bang box and all the nodes it contains"/>
+
+	<action id="duplicate-bang-box-command"
+          name="Duplicate bang box"
+          mnemonic="P"
+	  accel="control D"
+          desc="Duplicate the selected bang box"/>
+
+	<!-- Hilbert space menu commands -->
+
+	<action id="hilbert-as-text-command"
+          name="Hilbert space term as text"
+          mnemonic="t"
+          desc="Get the Hilbert space term for the graph in text format"/>
+
+	<action id="hilbert-as-mathematica-command"
+          name="Hilbert space term as Mathematica"
+          mnemonic="M"
+          desc="Get the Hilbert space term for the graph in Mathematica format"/>
+
+	<!-- Rule menu commands -->
+
+	<action id="use-rule-command"
+          name="Use rule"
+          mnemonic="U"
+          desc="Use the current rule"/>
+
+	<!-- Help menu commands -->
+
+	<action id="about-command"
+          name="About..."
+          mnemonic="A"
+          smicon="/toolbarButtonGraphics/general/About16.gif"
+          icon="/toolbarButtonGraphics/general/About24.gif"
+          desc="Information about the application"/>
+
+	<!-- Define the main menu -->
+
+
+	<action-list id="main-menu">
+		<action-list id="file-menu" name="File" mnemonic="F" desc="File Operations">
+			<action idref="new-win-command"/>
+			<action idref="new-graph-command"/>
+			<action idref="open-command" />
+			<action idref="save-command"/>
+			<action idref="save-as-command"/>
+			<empty/>
+			<action idref="load-theory-command"/>
+			<!-- action idref="save-theory-command"/ -->
+			<empty/>
+			<action idref="close-command"/>
+			<action idref="quit-command"/>
+		</action-list>
+
+		<action-list id="edit-menu" name="Edit" mnemonic="E" desc="Edit Operations">
+			<action idref="undo-command"/>
+			<action idref="redo-command"/>
+			<empty/>
+			<action idref="cut-command"/>
+			<action idref="copy-command"/>
+			<action idref="paste-command"/>
+			<empty/>
+			<action idref="select-all-command"/>
+			<action idref="deselect-all-command"/>
+		</action-list>
+
+		<action-list id="view-menu" name="View" mnemonic="V" desc="View Operations">
+			<action idref="refresh-all-graphs-command" />
+			<empty/>
+			<action idref="draw-arrow-heads-command" />
+			<action idref="verbose-console-command" />
+			<action idref="internal-graph-names-command" />
+			<action idref="open-in-new-window-command" />
+		</action-list>
+
+		<action-list id="graph-menu" name="Graph" mnemonic="G" desc="Graph Operations">
+			<action idref="export-to-pdf-command" />
+			<empty/>
+			<group id="mouse-mode">
+				<action idref="select-mode-command" />
+				<action idref="edge-mode-command" />
+			</group>
+			<empty/>
+			<action idref="latex-to-clipboard-command" />
+			<action-list id="add-menu" name="Add" mnemonic="A" desc="Add Vertex Operations">
+				<action idref="add-red-vertex-command" />
+				<action idref="add-green-vertex-command" />
+				<action idref="add-hadamard-vertex-command" />
+				<action idref="add-boundary-vertex-command" />
+			</action-list>
+			<action idref="show-rewrites-command" />
+			<action idref="normalise-command" />
+			<action idref="fast-normalise-command" />
+			<action idref="lock-vertices-command" />
+			<action idref="unlock-vertices-command" />
+			<action idref="flip-vertex-colour-command" />
+			<action-list id="bang-box-menu" name="Bang boxes" mnemonic="B" desc="Bang Box Operations">
+				<action idref="bang-vertices-command" />
+				<action idref="unbang-vertices-command" />
+				<action idref="drop-bang-box-command" />
+				<action idref="kill-bang-box-command" />
+				<action idref="duplicate-bang-box-command" />
+			</action-list>
+		</action-list>
+
+		<action-list id="hilbert-menu" name="Hilbert space" mnemonic="b" desc="Hilbert space Operations">
+			<action idref="hilbert-as-text-command" />
+			<action idref="hilbert-as-mathematica-command" />
+		</action-list>
+
+		<action-list id="rule-menu" name="Rule" mnemonic="R" desc="Rule Operations">
+			<action idref="use-rule-command" />
+		</action-list>
+<!--
+		<action-list id="help-menu" name="Help" mnemonic="H" desc="Help Operations">
+			<action idref="about-command"/>
+		</action-list>
+-->
+	</action-list>
+
+	<!-- Definte the main toolbar -->
+
+	<action-list id="main-toolbar">
+		<action idref="new-graph-command"/>
+		<action idref="open-command"/>
+		<action idref="save-command"/>
+		<empty/>
+		<group id="mouse-mode">
+			<action idref="select-mode-command" />
+			<action idref="edge-mode-command" />
+		</group>
+	</action-list>
+
+</action-set>
