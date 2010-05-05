@@ -34,7 +34,13 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	public final static String SHOW_INTERNAL_GRAPH_NAMES_COMMAND = "internal-graph-names-command";
 	public final static String OPEN_IN_NEW_WINDOW_COMMAND = "open-in-new-window-command";
 
+	// This type has to be public in order to be registered as a
+	// handler with ActionManager.  The constructor is private, however,
+	// to prevent abuse.
 	public class Delegate {
+		private Delegate() {
+		}
+
 		public void executeCommand(String command) {
 			viewPort.executeCommand(command);
 		}
@@ -43,10 +49,13 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 				viewPort.executeCommand(command);
 		}
 	}
+	// This type has to be public in order to be registered as a
+	// handler with ActionManager.  The constructor is private, however,
+	// to prevent abuse.
 	public class BoolPrefDelegate {
 		private final QuantoApp.BoolPref pref;
 
-		public BoolPrefDelegate(BoolPref pref) {
+		private BoolPrefDelegate(BoolPref pref) {
 			this.pref = pref;
 		}
 
