@@ -194,16 +194,19 @@
 	<action id="show-rewrites-command"
           name="Show rewrites"
           mnemonic="R"
+	  accel="control SPACE"
           desc="Show all the available rewrites that can be performed on the graph"/>
 
 	<action id="normalise-command"
           name="Normalise"
           mnemonic="N"
+	  accel="control G"
           desc="Normalise the graph, showing each step"/>
 
 	<action id="fast-normalise-command"
           name="Fast normalise"
           mnemonic="F"
+	  accel="control shift G"
           desc="Normalise the graph without showing individual steps"/>
 
 	<action id="lock-vertices-command"
