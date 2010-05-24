@@ -305,7 +305,7 @@
 
 
 	<action-list id="main-menu">
-		<action-list id="file-menu" name="File" mnemonic="F" desc="File Operations">
+		<action-list id="file-menu" name="File" mnemonic="F">
 			<action idref="new-win-command"/>
 			<action idref="new-graph-command"/>
 			<action idref="open-command" />
@@ -319,7 +319,7 @@
 			<action idref="quit-command"/>
 		</action-list>
 
-		<action-list id="edit-menu" name="Edit" mnemonic="E" desc="Edit Operations">
+		<action-list id="edit-menu" name="Edit" mnemonic="E">
 			<action idref="undo-command"/>
 			<action idref="redo-command"/>
 			<empty/>
@@ -331,7 +331,7 @@
 			<action idref="deselect-all-command"/>
 		</action-list>
 
-		<action-list id="view-menu" name="View" mnemonic="V" desc="View Operations">
+		<action-list id="view-menu" name="View" mnemonic="V">
 			<action idref="refresh-all-graphs-command" />
 			<empty/>
 			<action idref="draw-arrow-heads-command" />
@@ -340,7 +340,7 @@
 			<action idref="open-in-new-window-command" />
 		</action-list>
 
-		<action-list id="graph-menu" name="Graph" mnemonic="G" desc="Graph Operations">
+		<action-list id="graph-menu" name="Graph" mnemonic="G">
 			<action idref="export-to-pdf-command" />
 			<empty/>
 			<group id="mouse-mode">
@@ -349,7 +349,7 @@
 			</group>
 			<empty/>
 			<action idref="latex-to-clipboard-command" />
-			<action-list id="add-menu" name="Add" mnemonic="A" desc="Add Vertex Operations">
+			<action-list id="add-menu" name="Add" mnemonic="A">
 				<action idref="add-red-vertex-command" />
 				<action idref="add-green-vertex-command" />
 				<action idref="add-hadamard-vertex-command" />
@@ -361,7 +361,7 @@
 			<action idref="lock-vertices-command" />
 			<action idref="unlock-vertices-command" />
 			<action idref="flip-vertex-colour-command" />
-			<action-list id="bang-box-menu" name="Bang boxes" mnemonic="B" desc="Bang Box Operations">
+			<action-list id="bang-box-menu" name="Bang boxes" mnemonic="B">
 				<action idref="bang-vertices-command" />
 				<action idref="unbang-vertices-command" />
 				<action idref="drop-bang-box-command" />
@@ -370,16 +370,16 @@
 			</action-list>
 		</action-list>
 
-		<action-list id="hilbert-menu" name="Hilbert space" mnemonic="b" desc="Hilbert space Operations">
+		<action-list id="hilbert-menu" name="Hilbert space" mnemonic="b">
 			<action idref="hilbert-as-text-command" />
 			<action idref="hilbert-as-mathematica-command" />
 		</action-list>
 
-		<action-list id="rule-menu" name="Rule" mnemonic="R" desc="Rule Operations">
+		<action-list id="rule-menu" name="Rule" mnemonic="R">
 			<action idref="use-rule-command" />
 		</action-list>
 <!--
-		<action-list id="help-menu" name="Help" mnemonic="H" desc="Help Operations">
+		<action-list id="help-menu" name="Help" mnemonic="H">
 			<action idref="about-command"/>
 		</action-list>
 -->
