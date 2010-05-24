@@ -274,4 +274,13 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	public boolean isCommandStateSelected(String command) {
 		return actionManager.isSelected(command);
 	}
+
+	public void attachedViewChanged(InteractiveView newView) {
+		if (newView == null) {
+			setTitle("Quantomatic");
+		}
+		else {
+			setTitle("Quantomatic: " + newView.getTitle());
+		}
+	}
 }

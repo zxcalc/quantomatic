@@ -30,6 +30,8 @@ public interface ViewPortHost {
 	 */
 	void setViewAllowedToClose(boolean allowed);
 
+	void attachedViewChanged(InteractiveView newView);
+
 	void setCommandEnabled(String command, boolean enabled);
 	boolean isCommandEnabled(String command);
 	void setCommandStateSelected(String command, boolean selected);

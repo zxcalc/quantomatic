@@ -84,7 +84,7 @@ public class ViewPort extends JPanel {
 		this.viewManager = viewManager;
 		this.host = host;
 		setLayout(new BorderLayout());
-		makeViewMenu();
+		pickView = makeViewMenu();
 		add(pickView, BorderLayout.NORTH);
 	}
 
@@ -134,6 +134,7 @@ public class ViewPort extends JPanel {
 			host.setViewAllowedToClose(false);
 			setLabel(null);
 		}
+		host.attachedViewChanged(attachedView);
 		validate();
 		repaint();
 	}
@@ -147,6 +148,7 @@ public class ViewPort extends JPanel {
 			attachedView = null;
 			host.setViewAllowedToClose(false);
 			setLabel(null);
+			host.attachedViewChanged(attachedView);
 			validate();
 		}
 	}
@@ -190,12 +192,12 @@ public class ViewPort extends JPanel {
 			attachedView.commandTriggered(command);
 	}
 
-	private void makeViewMenu() {
-		pickView = new JLabel("  (no views)  " + arrowDown);
-		pickView.setForeground(Color.gray);
-		pickView.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+	private JLabel makeViewMenu() {
+		final JLabel picker = new JLabel("  (no views)  " + arrowDown);
+		picker.setForeground(Color.gray);
+		picker.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
 		final JPopupMenu viewMenu = new JPopupMenu();
-		pickView.addMouseListener(new MouseAdapter() {
+		picker.addMouseListener(new MouseAdapter() {
 
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -228,9 +230,10 @@ public class ViewPort extends JPanel {
 						viewMenu.add(item);
 					}
 				}
-				viewMenu.show(pickView, 5, 2);
+				viewMenu.show(picker, 5, 2);
 			}
 		});
+		return picker;
 	}
 
 	public InteractiveView getAttachedView() {
