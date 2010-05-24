@@ -29,9 +29,10 @@ public class RewriteViewer extends JFrame {
 	protected List<Rewrite> rewrites;
 	
 	public RewriteViewer(InteractiveGraphView vis) {
+		super("Rewrites for " + vis.getTitle());
 		this.vis = vis;
 		rewrites = vis.getRewrites();
-		
+
 		KeyListener esc = new KeyAdapter() {
 			@Override
 			public void keyReleased(KeyEvent e) {
@@ -40,7 +41,7 @@ public class RewriteViewer extends JFrame {
 				}
 			}
 		};
-		
+
 		JPanel panel = new JPanel();
 		panel.setLayout(new GridLayout(rewrites.size(),1));
 		int index = 0;
@@ -55,6 +56,8 @@ public class RewriteViewer extends JFrame {
 			GraphVisualizationViewer rhs = new GraphVisualizationViewer(rw.getRhs());
 			lhs.zoomToFit(new Dimension(100,100));
 			rhs.zoomToFit(new Dimension(100,100));
+			lhs.setBorder(new LineBorder(Color.gray, 1));
+			rhs.setBorder(new LineBorder(Color.gray, 1));
 			JButton apply = new JButton("=>");
 			rwPanel.setBackground(lhs.getBackground());
 			rwPanel.add(lhs);
@@ -75,6 +78,7 @@ public class RewriteViewer extends JFrame {
 			});
 			
 			MouseAdapter hl = new MouseAdapter() {
+				@Override
 				public void mouseEntered(MouseEvent e) {
 					QuantoGraph match = 
 						RewriteViewer.this.rewrites
@@ -82,6 +86,7 @@ public class RewriteViewer extends JFrame {
 					RewriteViewer.this.vis.highlightSubgraph(match);
 				}
 				
+				@Override
 				public void mouseExited(MouseEvent e) {
 					RewriteViewer.this.vis.clearHighlight();
 				}
@@ -96,6 +101,7 @@ public class RewriteViewer extends JFrame {
 		}
 		
 		JScrollPane scroll = new JScrollPane(panel);
+		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		getContentPane().setLayout(new BorderLayout());
 		getContentPane().add(scroll, BorderLayout.CENTER);		
 		cancel.addActionListener(new ActionListener() {
@@ -105,7 +111,7 @@ public class RewriteViewer extends JFrame {
 		});
 		
 		getContentPane().add(cancel, BorderLayout.SOUTH);
-		
+
 		pack();
 		
 		focusMe.grabFocus();
