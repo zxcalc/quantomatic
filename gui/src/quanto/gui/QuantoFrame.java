@@ -102,18 +102,26 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 			new BoolPrefDelegate(QuantoApp.DRAW_ARROW_HEADS),
 			"setState");
 		actionManager.setEnabled(DRAW_ARROW_HEADS_COMMAND, true);
+		actionManager.setSelected(DRAW_ARROW_HEADS_COMMAND,
+			app.getPreference(QuantoApp.DRAW_ARROW_HEADS));
 		actionManager.registerCallback(VERBOSE_CONSOLE_COMMAND,
 			new BoolPrefDelegate(QuantoApp.CONSOLE_ECHO),
 			"setState");
 		actionManager.setEnabled(VERBOSE_CONSOLE_COMMAND, true);
+		actionManager.setSelected(VERBOSE_CONSOLE_COMMAND,
+			app.getPreference(QuantoApp.CONSOLE_ECHO));
 		actionManager.registerCallback(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
 			new BoolPrefDelegate(QuantoApp.SHOW_INTERNAL_NAMES),
 			"setState");
 		actionManager.setEnabled(SHOW_INTERNAL_GRAPH_NAMES_COMMAND, true);
+		actionManager.setSelected(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
+			app.getPreference(QuantoApp.SHOW_INTERNAL_NAMES));
 		actionManager.registerCallback(OPEN_IN_NEW_WINDOW_COMMAND,
 			new BoolPrefDelegate(QuantoApp.NEW_WINDOW_FOR_GRAPHS),
 			"setState");
 		actionManager.setEnabled(OPEN_IN_NEW_WINDOW_COMMAND, true);
+		actionManager.setSelected(OPEN_IN_NEW_WINDOW_COMMAND,
+			app.getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS));
 
 		UIFactory factory = new UIFactory(actionManager);
 		setJMenuBar(factory.createMenuBar("main-menu"));

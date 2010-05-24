@@ -457,20 +457,12 @@ public class UIFactory {
     }
 
     /**
-     * Helper method to add a checkbox menu item
-     */
-    private JCheckBoxMenuItem createCheckBoxMenuItem(StateChangeAction a)  {
-        return createCheckBoxMenuItem(a, false);
-    }
-
-    /**
      * Helper method to add a checkbox menu item.
      */
-    private JCheckBoxMenuItem createCheckBoxMenuItem(StateChangeAction a,
-						       boolean selected)  {
+    private JCheckBoxMenuItem createCheckBoxMenuItem(StateChangeAction a)  {
         JCheckBoxMenuItem mi = new JCheckBoxMenuItem(a);
         mi.addItemListener(a);
-        mi.setSelected(selected);
+        mi.setSelected(a.isSelected());
 
         configureToggleMenuItem(mi, a);
 	return mi;
@@ -479,19 +471,11 @@ public class UIFactory {
     /**
      * Helper method to add a radio button menu item.
      */
-    private JRadioButtonMenuItem createRadioButtonMenuItem(ButtonGroup group, 
-					     StateChangeAction a)  {
-       return createRadioButtonMenuItem(group, a, false);
-    }
-
-    /**
-     * Helper method to add a radio button menu item.
-     */
     private JRadioButtonMenuItem createRadioButtonMenuItem(ButtonGroup group,
-					  StateChangeAction a, boolean selected)  {
+					  StateChangeAction a)  {
         JRadioButtonMenuItem mi = new JRadioButtonMenuItem(a);
         mi.addItemListener(a);
-        mi.setSelected(selected);
+        mi.setSelected(a.isSelected());
 	if (group != null) {
 	    group.add(mi);
 	}
