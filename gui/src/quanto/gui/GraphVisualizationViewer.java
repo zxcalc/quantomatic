@@ -114,7 +114,8 @@ public class GraphVisualizationViewer
 	{
 		Dimension size = layout.getSize();
 		Rectangle2D rect = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
-		getRenderContext().getMultiLayerTransformer().transform(rect);
+		Shape bound = getRenderContext().getMultiLayerTransformer().transform(rect);
+		rect = bound.getBounds2D();
 		size.setSize(rect.getWidth(), rect.getHeight());
 		return size;
 	}
@@ -137,6 +138,13 @@ public class GraphVisualizationViewer
 		if (scale < 1) {
 			mt.scale(scale, scale, new Point2D.Double(centerX, centerY));
 		}
+		setPreferredSize(size);
+	}
+
+	public void unzoom() {
+		MutableTransformer mt = getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
+		mt.setToIdentity();
+		setPreferredSize(calculateGraphSize());
 	}
 
 	private void setupRenderContext(RenderContext<QVertex, QEdge> context) {
