@@ -124,6 +124,12 @@
 	  accel="control shift A"
           desc="Unselect all selected items"/>
 
+	<action id="abort-command"
+          name="Abort operation"
+          mnemonic="A"
+	  accel="control PERIOD"
+          desc="Abort the current operation"/>
+
 	<!-- View menu commands -->
 
 	<action id="refresh-all-graphs-command"
@@ -193,7 +199,6 @@
 	<action id="normalise-command"
           name="Normalise"
           mnemonic="N"
-	  accel="control ."
           desc="Normalise the graph, showing each step"/>
 
 	<action id="fast-normalise-command"
@@ -329,6 +334,8 @@
 			<empty/>
 			<action idref="select-all-command"/>
 			<action idref="deselect-all-command"/>
+			<empty/>
+			<action idref="abort-command" />
 		</action-list>
 
 		<action-list id="view-menu" name="View" mnemonic="V">

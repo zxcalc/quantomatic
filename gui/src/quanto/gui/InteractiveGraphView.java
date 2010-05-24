@@ -51,6 +51,7 @@ public class InteractiveGraphView
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
 	public static final String SAVE_GRAPH_ACTION = "save-command";
 	public static final String SAVE_GRAPH_AS_ACTION = "save-as-command";
+	public static final String ABORT_ACTION = "abort-command";
 	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf-command";
 	public static final String SELECT_MODE_ACTION = "select-mode-command";
 	public static final String EDGE_MODE_ACTION = "edge-mode-command";
@@ -472,17 +473,14 @@ public class InteractiveGraphView
 	}
 
 	private void setupNormaliseAction(ViewPort vp) {
-		/*Action action = vp.getCommandAction(NORMALISE_ACTION);
 		if (rewriter == null) {
-			action.putValue(Action.NAME, "Normalise");
-			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);
-			action.putValue(Action.SMALL_ICON, null);
+			vp.setCommandEnabled(ABORT_ACTION, false);
+			vp.setCommandEnabled(NORMALISE_ACTION, true);
 		}
 		else {
-			action.putValue(Action.NAME, "Abort normalisation");
-			action.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_A);
-			setActionIcon(action, "general/Stop");
-		}*/
+			vp.setCommandEnabled(ABORT_ACTION, true);
+			vp.setCommandEnabled(NORMALISE_ACTION, false);
+		}
 	}
 
 	private class RewriterThread extends Thread {
@@ -708,6 +706,7 @@ public class InteractiveGraphView
 	public static void registerKnownCommands() {
 		ViewPort.registerCommand(SAVE_GRAPH_ACTION);
 		ViewPort.registerCommand(SAVE_GRAPH_AS_ACTION);
+		ViewPort.registerCommand(ABORT_ACTION);
 		ViewPort.registerCommand(EXPORT_TO_PDF_ACTION);
 		ViewPort.registerCommand(SELECT_MODE_ACTION);
 		ViewPort.registerCommand(EDGE_MODE_ACTION);
@@ -894,9 +893,14 @@ public class InteractiveGraphView
 		});
 		actionMap.put(NORMALISE_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (rewriter == null)
-					startRewriting();
-				else
+				if (rewriter != null)
+					abortRewriting();
+				startRewriting();
+			}
+		});
+		actionMap.put(ABORT_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (rewriter != null)
 					abortRewriting();
 			}
 		});
@@ -1014,17 +1018,6 @@ public class InteractiveGraphView
 		});
 	}
 
-	private static void setActionIcon(Action action, String icon) {
-		String smallIcon = "/toolbarButtonGraphics/" + icon + "16.gif";
-		URL smallIconUrl = InteractiveGraphView.class.getResource(smallIcon);
-		if (smallIconUrl == null) {
-			System.err.println("Could not find resource " + smallIcon);
-		}
-		else {
-			action.putValue(Action.SMALL_ICON, new ImageIcon(smallIconUrl));
-		}
-	}
-
 	public void attached(ViewPort vp) {
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, true);
@@ -1041,9 +1034,6 @@ public class InteractiveGraphView
 
 	public void detached(ViewPort vp) {
 		vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
-		/*Action normaliseAction = vp.getCommandAction(NORMALISE_ACTION);
-		normaliseAction.putValue(Action.NAME, "Normalise");
-		normaliseAction.putValue(Action.MNEMONIC_KEY, KeyEvent.VK_N);*/
 
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, false);
