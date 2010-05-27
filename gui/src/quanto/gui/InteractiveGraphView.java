@@ -32,6 +32,7 @@ import quanto.gui.QuantoCore.ConsoleError;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
+import edu.uci.ics.jung.contrib.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
@@ -39,7 +40,6 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
-import java.net.URL;
 
 public class InteractiveGraphView
 	extends InteractiveView
@@ -195,8 +195,11 @@ public class InteractiveGraphView
 				mask = InputEvent.META_MASK;
 			}
 
-			add(new ScalingGraphMousePlugin(new ViewScalingControl(), 0));
+			add(new ScalingGraphMousePlugin(new ViewScalingControl(), mask));
 			add(new ViewTranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
+			ViewScrollingGraphMousePlugin scrollerPlugin = new ViewScrollingGraphMousePlugin();
+			scrollerPlugin.setShift(10.0);
+			add(scrollerPlugin);
 			add(new AddEdgeGraphMousePlugin<QVertex, QEdge>(
 				viewer,
 				InteractiveGraphView.this,
