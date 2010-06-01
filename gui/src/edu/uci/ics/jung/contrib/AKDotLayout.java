@@ -685,29 +685,22 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		normaliseXCoords();
 	}
 	
-	private void snapToGrid() {
-		int gridsize = (nodeSeparation<<coordPrecision) / 2;
-		for (List<Integer> rank : bestOrdering.lists) {
-			int minpos = 0;
-			for (int v : rank) {
-				int pos = xBestCoords[v];
-				int gridBelow = (xBestCoords[v] / gridsize) * gridsize;
-				//int gridAbove = ((xBestCoords[v] / gridsize) + 1) * gridsize;
-				
-//				if (pos - gridBelow <= gridAbove - pos) {
-//					pos = gridBelow;
-//				} else {
-//					pos = gridAbove;
-//				}
-				
-				pos = gridBelow;
-				
-				if (pos < minpos) pos = minpos;
-				xBestCoords[v] = pos;
-				minpos = pos + (nodeSeparation<<coordPrecision);
-			}
-		}
-	}
+//	private void snapToGrid() {
+//		int gridsize = (nodeSeparation<<coordPrecision) / 2;
+//		for (List<Integer> rank : bestOrdering.lists) {
+//			int minpos = 0;
+//			for (int v : rank) {
+//				int pos = xBestCoords[v];
+//				int gridBelow = (xBestCoords[v] / gridsize) * gridsize;
+//				
+//				pos = gridBelow;
+//				
+//				if (pos < minpos) pos = minpos;
+//				xBestCoords[v] = pos;
+//				minpos = pos + (nodeSeparation<<coordPrecision);
+//			}
+//		}
+//	}
 
 	private void normaliseXCoords() {
 		int minPos = Integer.MAX_VALUE;

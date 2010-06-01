@@ -1,7 +1,6 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 

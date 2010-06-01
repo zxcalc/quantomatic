@@ -553,6 +553,7 @@ public class GraphVisualizationViewer
 	/**
 	 * Shows a grid behind the graph, for debugging purposes
 	 */
+	@SuppressWarnings("unused")
 	private class GridPaintable implements VisualizationServer.Paintable
 	{
 		private static final int SPACING = 20;

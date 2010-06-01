@@ -5,13 +5,9 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.HasName;
-import java.awt.Component;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
 import org.apache.commons.collections15.BidiMap;
 import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
 import org.apache.commons.collections15.comparators.ComparableComparator;

@@ -1,7 +1,6 @@
 package quanto.gui;
 
 import java.awt.LayoutManager;
-import java.awt.event.ActionEvent;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 

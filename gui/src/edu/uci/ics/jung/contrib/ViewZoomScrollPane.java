@@ -58,7 +58,7 @@ import edu.uci.ics.jung.visualization.transform.shape.Intersector;
  */
 @SuppressWarnings("serial")
 public class ViewZoomScrollPane extends JPanel {
-    protected VisualizationViewer vv;
+    protected VisualizationViewer<?,?> vv;
     protected JScrollBar horizontalScrollBar;
     protected JScrollBar verticalScrollBar;
     protected JComponent corner;
@@ -70,7 +70,7 @@ public class ViewZoomScrollPane extends JPanel {
      * VisualizationViewer
      * @param vv
      */
-    public ViewZoomScrollPane(VisualizationViewer vv) {
+    public ViewZoomScrollPane(VisualizationViewer<?,?> vv) {
         super(new BorderLayout());
         this.vv = vv;
         addComponentListener(new ResizeListener());
@@ -86,8 +86,8 @@ public class ViewZoomScrollPane extends JPanel {
         vv.addChangeListener(
                 new ChangeListener(){
             public void stateChanged(ChangeEvent evt) {
-                VisualizationViewer vv =
-                    (VisualizationViewer)evt.getSource();
+                VisualizationViewer<?,?> vv =
+                    (VisualizationViewer<?,?>)evt.getSource();
                 setScrollBars(vv);
             }
         });
@@ -148,7 +148,7 @@ public class ViewZoomScrollPane extends JPanel {
      * a ChangeEvent from the VisualizationViewer
      * @param xform the transform of the VisualizationViewer
      */
-    private void setScrollBars(VisualizationViewer vv) {
+    private void setScrollBars(VisualizationViewer<?,?> vv) {
         Dimension d = vv.getGraphLayout().getSize();
         Rectangle2D vvBounds = vv.getBounds();
 
