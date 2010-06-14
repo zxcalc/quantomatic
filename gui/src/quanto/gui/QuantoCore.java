@@ -56,18 +56,22 @@ public class QuantoCore {
 		
 		try {
 			ProcessBuilder pb;
-			pb = new ProcessBuilder("quanto-core");
+			
 
-                        if (QuantoApp.isMac)
-                        {
-                            // add extra macos packaged program path
-                            Map<String,String> env = pb.environment();
-                            String path = env.get("PATH");
-                            env.put("PATH",path + File.pathSeparator + appName + "/Contents/MacOS/quanto-core-app");
-                        }
+			if (QuantoCore.appName != null)
+			{
+				output.println("Setting up app process...");
+				pb = new ProcessBuilder(QuantoCore.appName + "/Contents/MacOS/quanto-core-app");
+				// add extra macos packaged program path
+				//Map<String,String> env = pb.environment();
+				//String path = env.get("PATH");
+				//env.put("PATH",path + File.pathSeparator + appName + "/Contents/MacOS/");
+			} else {
+				pb = new ProcessBuilder("quanto-core");
+			}
 			
 			pb.redirectErrorStream(true);
-			output.println("Starting process...");
+			output.println("Starting process....");
 			output.flush(); // make sure this is output, in case it hangs below
 			backEnd = pb.start();
 			output.println("done.");
