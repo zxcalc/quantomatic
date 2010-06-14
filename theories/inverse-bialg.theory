@@ -1,0 +1,124 @@
+<ruleset>
+  <rule>
+    <name>bialgebra1</name>
+    <rhs>
+      <graph>
+      <!-- VERTICES -->
+        <vertex>
+          <name>h</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>g</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>f</name>
+          <boundary>false</boundary>
+          <colour>green</colour>
+        </vertex>
+        <vertex>
+          <name>e</name>
+          <boundary>false</boundary>
+          <colour>green</colour>
+        </vertex>
+        <vertex>
+          <name>d</name>
+          <boundary>false</boundary>
+          <colour>red</colour>
+        </vertex>
+        <vertex>
+          <name>c</name>
+          <boundary>false</boundary>
+          <colour>red</colour>
+        </vertex>
+        <vertex>
+          <name>b</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>a</name>
+          <boundary>true</boundary>
+        </vertex>
+      <!-- EDGES -->
+        <edge>
+          <name>Eh</name><source>d</source><target>f</target>
+        </edge>
+        <edge>
+          <name>Eg</name><source>d</source><target>e</target>
+        </edge>
+        <edge>
+          <name>Ef</name><source>c</source><target>f</target>
+        </edge>
+        <edge>
+          <name>Ee</name><source>c</source><target>e</target>
+        </edge>
+        <edge>
+          <name>Ed</name><source>f</source><target>h</target>
+        </edge>
+        <edge>
+          <name>Ec</name><source>e</source><target>g</target>
+        </edge>
+        <edge>
+          <name>Eb</name><source>b</source><target>d</target>
+        </edge>
+        <edge>
+          <name>Ea</name><source>a</source><target>c</target>
+        </edge>
+      <!-- BANG BOXES  -->
+        
+      </graph>
+    </rhs>
+    <lhs>
+      <graph>
+      <!-- VERTICES -->
+        <vertex>
+          <name>j</name>
+          <boundary>false</boundary>
+          <colour>red</colour>
+        </vertex>
+        <vertex>
+          <name>i</name>
+          <boundary>false</boundary>
+          <colour>green</colour>
+        </vertex>
+        <vertex>
+          <name>h</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>g</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>b</name>
+          <boundary>true</boundary>
+        </vertex>
+        <vertex>
+          <name>a</name>
+          <boundary>true</boundary>
+        </vertex>
+      <!-- EDGES -->
+        <edge>
+          <name>Em</name><source>j</source><target>h</target>
+        </edge>
+        <edge>
+          <name>El</name><source>j</source><target>g</target>
+        </edge>
+        <edge>
+          <name>Ek</name><source>i</source><target>j</target>
+        </edge>
+        <edge>
+          <name>Ej</name><source>b</source><target>i</target>
+        </edge>
+        <edge>
+          <name>Ei</name><source>a</source><target>i</target>
+        </edge>
+      <!-- BANG BOXES  -->
+        
+      </graph>
+    </lhs>
+  </rule>
+  
+  
+</ruleset>
