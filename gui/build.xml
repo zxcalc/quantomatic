@@ -150,13 +150,36 @@
     </exec>
 
     <!-- ant does not preserve perms, boo -->
-    <chmod file="${appdir}/${appname}.app/Contents/MacOS/JavaApplicationStub" perm="+x" />
-    <chmod file="${appdir}/${appname}.app/Contents/MacOS/quanto-core-app" perm="+x" />
-    <chmod file="${appdir}/${appname}.app/Contents/MacOS/dot_static" perm="+x" />
-    <chmod file="${appdir}/${appname}.app/Contents/Frameworks/libpolyml.dylib" perm="+x" />
+    <chmod file="${appdir}/${appname}.app/Contents/MacOS/JavaApplicationStub" 
+	       perm="+x" />
+    <chmod file="${appdir}/${appname}.app/Contents/MacOS/quanto-core-app" 
+	       perm="+x" />
+    <chmod file="${appdir}/${appname}.app/Contents/MacOS/dot_static"
+	       perm="+x" />
+    <chmod file="${appdir}/${appname}.app/Contents/Frameworks/libpolyml.dylib" 
+	       perm="+x" />
+	
   </target>
-  <target name="dmg" depends="macapp" description="create compressed DMG for distribution">
-    <delete file="${dist}/${appname}.dmg" />
+
+  <target 	name="dmg"
+			depends="macapp"
+			description="create compressed DMG for distribution">
+    
+	<delete file="${dist}/${appname}.dmg" />
+	<mkdir dir="${appdir}/theories" />
+	<mkdir dir="${appdir}/examples" />
+	<copy todir="${appdir}/examples">
+		<fileset dir="${root}/examples">
+			<include name="*.graph" />
+		</fileset>
+	</copy>
+	
+	<copy todir="${appdir}/theories">
+		<fileset dir="${root}/theories">
+			<include name="*.theory" />
+		</fileset>
+	</copy>
+	
     <exec executable="hdiutil">
       <arg line="create -fs HFS+ -srcfolder ${appdir} -volname ${appname} ${dist}/${appname}.dmg" />
     </exec>
