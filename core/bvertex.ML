@@ -43,6 +43,11 @@ structure IData : ORD_DATA = IData;
 structure INames : SSTR_NAMES = INames;
 open INames; 
 
+
+structure Map = NameMapFun(structure Dom = INames and Cod = INames);
+structure Amorph = NameAmorphFun(INames);
+
+
 (* internal data *)
 datatype data2 = 
          IVert of IData.data (* vertex with data *)
@@ -69,7 +74,14 @@ val print_data = Pretty.writeln o pretty_data;
 
 val default_data = BVert;
 
-structure SharingWithData = struct open Sharing; type data = data; end;
-structure SharingWithIData = struct open SharingWithData; type idata = IData.data; end;
+
+structure SharingWithData = struct 
+  open Sharing; type data = data; 
+  structure Map = Map.Sharing;
+  structure Amorph = Amorph.Sharing;
+end;
+structure SharingWithIData = struct 
+  open SharingWithData; type idata = IData.data; 
+end;
 
 end;
