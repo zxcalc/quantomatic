@@ -40,25 +40,29 @@ val is_edgepoint : T -> Vertex.name -> bool
 val get_edgepoint_vnames : T -> Vertex.NSet.T
 
 (* change vertex into a point (throw away data, making this an edge-point or a boundary point) *)
-val change_into_point : Vertex.name -> T -> T
-val change_into_vertex : Vertex.name -> OVertex.IData.data -> T -> T
+val change_into_edgepoint : Vertex.name -> T -> T
+val change_into_internal : Vertex.name -> OVertex.IData.data -> T -> T
 
 val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
 
-(* Given selection set of vertices, make subgraph: 
-   incident edges outside selection become boundary, 
-   respecting vertex love *)
-val cut_subgraph_of_selection : Vertex.NSet.T -> T -> T
-val cut_subgraph_of_selection' : Vertex.NSet.T -> T -> Vertex.NSet.T * T
+(* cut all edges that go outside the selected set of vertices from the 
+   given vertex. Extends the gluing automorphism *)
+val cut_around_vertex : Vertex.NSet.T -> Vertex.name 
+    -> (Vertex.Amorph.T * T) -> (Vertex.Amorph.T * T)
+(* cut all edges that go from within the subgraph to outside it; 
+   returns the gluing automorphism *)
+val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.Amorph.T * T)
 
 (* Given selection set of vertices, make subgraph: 
    vertices with incident edges outside selection become boundary *)
+val matched_subgraph_within_selection' : Vertex.NSet.T -> T 
+    -> Vertex.Amorph.T * T (* returns gluing/cutting for new boundary, 
+                              and cut graph *)
 val matched_subgraph_within_selection : Vertex.NSet.T -> T -> T
-val matched_subgraph_within_selection' : Vertex.NSet.T -> T -> Vertex.NSet.T * T
 
 (* Given selection set of vertices, make subgraph: 
    all incident edges to selection are removed. = copy for graphics program *)
-val pull_subgraph_within_selection : Vertex.NSet.T -> T -> T
+val copy_subgraph_within_selection : Vertex.NSet.T -> T -> T
 
 (* 
 val adj_tgt_info : 
@@ -112,7 +116,8 @@ structure E = Edge;
 type data2 = data;
 val empty_data2 = empty_data;
 
-(* we add boundary to Graph data, as well as edge-points *)
+(* we add boundary to Graph data, as well as edge-points; these are 
+   disjoint sets *)
 type hdata = { boundary : V.NSet.T,
                edgepoints : V.NSet.T,
                data : data};
@@ -167,8 +172,10 @@ struct
   val del_from_boundary = update_boundary o Vertex.NSet.delete;
   val is_boundary = V.NSet.contains o get_boundary;
 
-  fun is_endpoint' (d,(ins,outs)) = 
-    (case (V.NSet.is_empty ins, V.NSet.is_empty outs) of
+  (* endpoints are edge-points with ins or outs empty. *)
+  fun is_endpoint' (V.IVert d,(ins,outs)) = false
+    | is_endpoint' (V.EVert,(ins,outs)) = 
+    (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
      (* FIXME: XOR in ML ?*)
        (true, true) => false
      | (false,true) => true
@@ -194,7 +201,6 @@ struct
 
 
   (* modified/new basic graph functions *)
-
   fun add_named_vertex n v g =
       let val (n2,g2) = Graph.add_named_vertex n v g
       in (n2, g2 |> (case v of (V.EVert) => add_to_edgepoints n2 
@@ -208,28 +214,28 @@ struct
 
   (* *)
   fun update_point_kind_from_del_edge n g = 
-      let val (d,(ins,outs)) = get_vertex g n in
+      let val (d,(ins,outs)) = Vertex.NTab.get (get_vertices g) n in
         case d of 
           V.IVert _ => g
         | V.EVert => 
-          (case (V.NSet.is_empty ins, V.NSet.is_empty outs) of
+          (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
              (true, true) => g (* maybe had many incident edges *)
            | (false,true) => g |> add_to_boundary n
            | (true,false) => g |> add_to_boundary n
-           | (false,false) => g |> del_from_boundary)
+           | (false,false) => g |> del_from_boundary n)
       end;
 
   (* *)
-  fun update_point_kind_from_add_edge g n = 
-      let val (d,(ins,outs)) = get_vertex g n in
+  fun update_point_kind_from_add_edge n g = 
+      let val (d,(ins,outs)) = V.NTab.get (get_vertices g) n in
         case d of 
           V.IVert _ => g
         | V.EVert => 
-          (case (V.NSet.is_empty ins, V.NSet.is_empty outs) of
+          (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
              (true, true) => g |> del_from_boundary n |> add_to_edgepoints n
            | (false,true) => g |> add_to_boundary n
            | (true,false) => g |> add_to_boundary n
-           | (false,false) => raise bug_exp "OGraph: update_point_kind_from_add_edge: newly connected vertex still has no incident edges")
+           | (false,false) => raise bug_exp "OGraph: update_point_kind_from_add_edge: newly connected vertex should have some incident edges")
       end;
 
   (* *)
@@ -241,13 +247,12 @@ struct
       end;
 
   fun delete_edge en g = 
-      let val (e,(fromv,tov)) = get_edge g en in
+      let val (e,(fromv,tov)) = E.NTab.get (get_edges g) en in
         g |> Graph.delete_edge en
           |> update_point_kind_from_del_edge fromv
           |> update_point_kind_from_del_edge tov
       end;
 
-      
   (* vname = suggested name *)
   (* rename all occurances of old name (1st arg) with new name (2nd arg) 
      n2 must not exist already, n1 must exist *)
@@ -286,7 +291,7 @@ structure OVertex = OVertex.SharingWithIData;
 end;
 
 (* change n to become a boundary vertex *)
-fun change_into_point n g = 
+fun change_into_edgepoint n g = 
     g |> (if is_endpoint' (get_vertex g n)
           then add_to_boundary else add_to_edgepoints) n
       |> set_vertex_data V.EVert n;
@@ -297,36 +302,48 @@ fun change_into_internal n d g =
       |> del_from_edgepoints n
       |> set_vertex_data (V.IVert d) n;
 
-(* remove a vertex, and change incident edges to into half-edges (add a 
-   boundary vertex to each one)  *)
-        (* THINK: isn't there a way to avoid this repeated very similar code? 
-           FIXME: YES! make a double fold function for incident edges, fold over ins and outs, and provides info as to what this one is, what it's opposite is. 
-        *)
-fun cutout_internal_point n g = 
-    let val (d,(ins,outs)) = get_vertex g n
-    in
-      g |> E.NSet.fold 
-          (fn e => fn g => 
-            let val (d,(fromv,tov)) = get_edge g e
-                val (newv,g') = add_vertex V.EVert g
-            in 
-              g' |> update_edges (Edge.NTab.update (e, (d,(fromv,newv))))
-                 |> add_to_boundary newv
-            end
-           end)
-          ins 
+(* THINK: isn't there a way to avoid this repeated very similar code? 
+   FIXME: YES! make a double fold function for incident edges, fold over 
+   ins and outs, and provides info as to what this one is, what it's 
+   opposite is. 
+*)
+
+(* cut edges around a vertex if they are not in the keepvset; change cut incident edges into half-edges (add a boundary vertex to each one). Preserves names of the keepset, creates new edges for the other part. Also creates V.Amorph.T which explains how to glue cut back together; automorphism is of the form: keepvset vertex => outside vertex.  *)
+fun cut_around_vertex keepvset n (vs_g as (amorph,g)) = 
+    (case get_vertex g n of (V.EVert,(ins,outs)) => vs_g
+     | (d,(ins,outs)) => 
+       vs_g
         |> E.NSet.fold 
-          (fn e => fn g => 
-            let val (d,(fromv,tov)) = get_edge g e
-                val (newv,g') = add_vertex V.EVert g
-            in 
-              g' |> update_edges (Edge.NTab.update (e, (d,(newv,tov))))
-                 |> add_to_boundary newv
-            end
-           end)
-          outs
-        |> delete_vertex n 
-    end;
+            (fn e => fn (newvs,g) => 
+              let val (d,(fromv,tov)) = get_edge g e in 
+                if V.NSet.contains keepvset fromv then (newvs, g)
+                else
+                  let val (newv1,g1) = add_vertex V.EVert g 
+                      val (newv2,g2) = add_vertex V.EVert g1
+                      val (newe,g3) = add_edge d fromv newv2 g2
+                  in
+                    (amorph |> V.Amorph.add newv1 newv2,
+                     g3 |> update_edges (Edge.NTab.update (e, (d,(newv1,n))))
+                        |> add_to_boundary newv1)
+                  end
+              end)
+            ins 
+        |> E.NSet.fold 
+            (fn e => fn (newvs,g) => 
+              let val (d,(fromv,tov)) = get_edge g e in 
+                if V.NSet.contains keepvset tov then (newvs, g)
+                else
+                  let val (newv1,g1) = add_vertex V.EVert g 
+                      val (newv2,g2) = add_vertex V.EVert g1
+                      val (newe,g3) = add_edge d newv2 tov g2
+                  in
+                    (amorph |> V.Amorph.add newv1 newv2,
+                     g3 |> update_edges (Edge.NTab.update (e, (d,(n,newv1))))
+                        |> add_to_boundary newv1)
+                  end
+              end)
+            outs);
+
 
 (* Property to be checked -- all boundary vertices have degree one *)
 (* This is not maintained but can be checked with the is_correct function*) 
@@ -382,47 +399,25 @@ fun rename_or_merge_vname n1 n2 bg =
               |> update_vertices (Vertex.NTab.delete n1)
          end);
 
-(* all edges leaving the selection get cut at the next vertex,
-   introducing bounary vertices. All introduced bounary vertices only have edges 
-   into the selection (vns). Strictly increases set of matched graphs. *)
-fun cut_subgraph_of_selection' vns g = 
-    let val new_boundary_vs = incident_vertices g vns;
-    in
-    (* cut at all vertices outside of the selection *)
-      (new_boundary_vs, 
-       V.NSet.fold 
-        (fn n => fn g => 
-                    if V.NSet.contains vns n then g 
-                    else if V.NSet.contains new_boundary_vs n 
-                    then 
-                      g |> set_vertex_data V.EVert n
-                        (* delete any edges not incident to subgraph *)
-                        |> (Edge.NTab.fold 
-                              (fn (e,n2) => 
-                                  if V.NSet.contains vns n2 then I 
-                                  else delete_edge e)      
-                              (adj_etab_to_vnames g n Edge.NTab.empty))
-                    else delete_vertex n g)
-        (get_vnames g) g)
-    end;
-
-val cut_subgraph_of_selection = snd oo cut_subgraph_of_selection';
+(* cut around subgraph identified by vns; introduces new half-edges, so that 
+   vns is disjoint from the rest of the graphs. *)
+fun cut_around_subgraph vns g = 
+    V.NSet.fold 
+      (cut_around_vertex vns)
+      vns
+      (V.Amorph.empty,g);
 
 (* make a subgraph from a node selection: any vertices with edges
    outside selection become boundary, and all non-selected vertices are 
    deleted. Perserves matching.  *)
 fun matched_subgraph_within_selection' vns g = 
-    V.NSet.fold 
-      (fn n => fn (newbs, g) => 
-                  if V.NSet.contains vns n then 
-                    if V.NSet.is_empty 
-                         (V.NSet.subtract (adj_vnames g n) vns)
-                    then (newbs, g)
-                    else (V.NSet.add n newbs,
-                          change_into_edgepoint n g)
-                  else (newbs, delete_vertex n g))
-      (get_vnames g) (V.NSet.empty, g);
-    
+    cut_around_subgraph vns g
+    |> (fn (amorph,g') => 
+        (amorph, 
+         g' |> V.NSet.fold delete_vertex (V.NSet.subtract (get_vnames g) vns)
+            |> V.NSet.fold delete_vertex (V.Amorph.get_cod_nset amorph)))
+
+(* as above, but ignores gluing automorphism *)
 val matched_subgraph_within_selection = 
     snd oo matched_subgraph_within_selection';
 
@@ -431,7 +426,7 @@ val matched_subgraph_within_selection =
    outside selection become boundary, and all non-selected vertices
    are deleted. NOTE: does not preserve type/Matching. This is the
    usual graphics package style copy. *)
-fun pull_subgraph_within_selection vns g = 
+fun copy_subgraph_within_selection vns g = 
     V.NSet.fold 
       (fn n => fn g => if V.NSet.contains vns n then g 
                        else delete_vertex n g)
@@ -440,7 +435,9 @@ fun pull_subgraph_within_selection vns g =
 
 (* boundary vertex has either empty ins or empty outs. *)
 fun is_boundary_vertex' (OVertex.EVert,(ins,outs)) = 
-    (Edge.NSet.is_empty outs orelse Edge.NSet.is_empty ins);
+    (Edge.NSet.is_empty outs orelse Edge.NSet.is_empty ins)
+  | is_boundary_vertex' (OVertex.IVert d,_) = false;
+
 (* implicit: g n *)
 val is_boundary_vertex = is_boundary_vertex' oo get_vertex;
 (* goes to or comes from bounary vertex *)
