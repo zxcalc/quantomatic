@@ -125,10 +125,10 @@
           desc="Unselect all selected items"/>
 
 	<action id="abort-command"
-          name="Abort operation"
+          name="Abort all"
           mnemonic="A"
 	  accel="control PERIOD"
-          desc="Abort the current operation"/>
+          desc="Abort all operations running on the current document"/>
 
 	<!-- View menu commands -->
 

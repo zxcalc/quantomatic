@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,6 +40,10 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import java.util.EventListener;
+import java.util.EventObject;
+import java.util.LinkedList;
+import javax.swing.event.EventListenerList;
 
 public class InteractiveGraphView
 	extends InteractiveView
@@ -78,8 +81,10 @@ public class InteractiveGraphView
 	private GraphVisualizationViewer viewer;
 	private QuantoCore core;
 	private RWMouse graphMouse;
-	private volatile Thread rewriter = null;
+	private volatile Job rewriter = null;
 	private List<Rewrite> rewriteCache = null;
+	private JPanel indicatorPanel = null;
+	private List<Job> activeJobs = null;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -348,6 +353,190 @@ public class InteractiveGraphView
 	public QuantoGraph getGraph() {
 		return viewer.getGraph();
 	}
+	
+	protected static ImageIcon createImageIcon(String path) {
+		java.net.URL imgURL = InteractiveGraphView.class.getResource(path);
+		if (imgURL != null) {
+			return new ImageIcon(imgURL);
+		}
+		else {
+			System.err.println("Couldn't find file: " + path);
+			return null;
+		}
+	}
+
+	private class JobEndEvent extends EventObject {
+		private boolean aborted = false;
+		public JobEndEvent(Object source) {
+			super(source);
+		}
+		public JobEndEvent(Object source, boolean aborted) {
+			super(source);
+			this.aborted = aborted;
+		}
+		public boolean jobWasAborted() {
+			return aborted;
+		}
+	}
+	private interface JobListener extends EventListener {
+		/**
+		 * Notifies the listener that the job has terminated.
+		 *
+		 * Guaranteed to be sent exactly once in the life of a job.
+		 * @param event
+		 */
+		void jobEnded(JobEndEvent event);
+	}
+
+	/**
+	 * A separate thread that executes some job on the graph
+	 * asynchronously.
+	 *
+	 * This mainly exists to allow the job to be displayed to the user
+	 * and aborted.
+	 *
+	 * The job must call fireJobFinished() when it has come to a natural
+	 * end.  It may also call fireJobAborted() when it is interrupted,
+	 * but should work fine even if it doesn't.
+	 */
+	private abstract class Job extends Thread {
+		private EventListenerList listenerList = new EventListenerList();
+		private JobEndEvent jobEndEvent = null;
+
+		/**
+		 * Abort the job.  The default implementation interrupts the
+		 * thread and calls fireJobAborted().
+		 */
+		public void abortJob() {
+			this.interrupt();
+			fireJobAborted();
+		}
+		/**
+		 * Add a job listener.
+		 *
+		 * All job listener methods execute in the context of the
+		 * AWT event queue.
+		 * @param l
+		 */
+		public void addJobListener(JobListener l) {
+			listenerList.add(JobListener.class, l);
+		}
+		public void removeJobListener(JobListener l) {
+			listenerList.remove(JobListener.class, l);
+		}
+		/**
+		 * Notify listeners that the job has finished successfully,
+		 * if no notification has already been sent.
+		 */
+		protected final void fireJobFinished() {
+			if (jobEndEvent == null)
+				fireJobEnded(false);
+		}
+		/**
+		 * Notify listeners that the job has been aborted, if no
+		 * notification has already been sent.
+		 */
+		protected final void fireJobAborted() {
+			if (jobEndEvent == null)
+				fireJobEnded(true);
+		}
+		private void fireJobEnded(final boolean aborted) {
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					// Guaranteed to return a non-null array
+					Object[] listeners = listenerList.getListenerList();
+					// Process the listeners last to first, notifying
+					// those that are interested in this event
+					for (int i = listeners.length-2; i>=0; i-=2) {
+					    if (listeners[i]==JobListener.class) {
+						// Lazily create the event:
+						if (jobEndEvent == null)
+						    jobEndEvent = new JobEndEvent(this, aborted);
+						((JobListener)listeners[i+1]).jobEnded(jobEndEvent);
+					    }
+					}
+				}
+			});
+		}
+	}
+
+	private class JobIndicatorPanel extends JPanel {
+		private JLabel textLabel;
+		private JButton cancelButton = null;
+
+		public JobIndicatorPanel(String description, final Job job) {
+			super(new BorderLayout());
+
+			setBorder(BorderFactory.createEmptyBorder(3,3,3,3));
+			setBackground(UIManager.getColor("textHighlight"));
+
+			textLabel = new JLabel(description);
+			add(textLabel, BorderLayout.CENTER);
+
+			cancelButton = new JButton(createImageIcon("/toolbarButtonGraphics/general/Stop16.gif"));
+			cancelButton.setToolTipText("Abort this operation");
+			cancelButton.setMargin(new Insets(0, 0, 0, 0));
+			cancelButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					job.abortJob();
+				}
+			});
+			add(cancelButton, BorderLayout.LINE_END);
+		}
+	}
+
+	/**
+	 * Registers a job, allowing it to be aborted by the "Abort all"
+	 * action.
+	 *
+	 * Does not need to be called for a job if showJobIndicator() is called
+	 * for that job.
+	 * @param job
+	 */
+	private void registerJob(final Job job) {
+		if (activeJobs == null) {
+			activeJobs = new LinkedList<Job>();
+		}
+		activeJobs.add(job);
+		if (getViewPort() != null) {
+			getViewPort().setCommandEnabled(ABORT_ACTION, true);
+		}
+		job.addJobListener(new JobListener() {
+			public void jobEnded(JobEndEvent event) {
+				activeJobs.remove(job);
+				if (activeJobs.size() == 0 && getViewPort() != null) {
+					getViewPort().setCommandEnabled(ABORT_ACTION, false);
+				}
+			}
+		});
+	}
+
+	/**
+	 * Shows an indicator at the bottom of the view with (optionally)
+	 * a button to cancel the job.
+	 *
+	 * @param jobDescription  The text on the indicator
+	 * @param cancelListener  Called when the user cancels the job
+	 *                        (if null, no cancel button is shown)
+	 */
+	private void showJobIndicator(String jobDescription, Job job) {
+		registerJob(job);
+		if (indicatorPanel == null) {
+			indicatorPanel = new JPanel();
+			indicatorPanel.setLayout(new BoxLayout(indicatorPanel, BoxLayout.PAGE_AXIS));
+			add(indicatorPanel, BorderLayout.PAGE_END);
+		}
+		final JobIndicatorPanel indicator = new JobIndicatorPanel(jobDescription, job);
+		indicatorPanel.add(indicator);
+		indicatorPanel.validate();
+		InteractiveGraphView.this.validate();
+		job.addJobListener(new JobListener() {
+			public void jobEnded(JobEndEvent event) {
+				indicatorPanel.remove(indicator);
+				InteractiveGraphView.this.validate();
+			}
+		});
+	}
 
 	/**
 	 * Compute a bounding box and scale such that the largest
@@ -459,8 +648,19 @@ public class InteractiveGraphView
 
 	public void startRewriting() {
 		abortRewriting();
-		rewriter = new RewriterThread();
+		rewriter = new RewriterJob();
+		rewriter.addJobListener(new JobListener() {
+			public void jobEnded(JobEndEvent event) {
+				if (rewriter != null) {
+					rewriter = null;
+				}
+				if (isAttached()) {
+					setupNormaliseAction(getViewPort());
+				}
+			}
+		});
 		rewriter.start();
+		showJobIndicator("Rewriting...", rewriter);
 		if (isAttached()) {
 			setupNormaliseAction(getViewPort());
 		}
@@ -468,26 +668,21 @@ public class InteractiveGraphView
 
 	public void abortRewriting() {
 		if (rewriter != null) {
-			rewriter.interrupt();
+			rewriter.abortJob();
 			rewriter = null;
-		}
-		if (isAttached()) {
-			setupNormaliseAction(getViewPort());
 		}
 	}
 
 	private void setupNormaliseAction(ViewPort vp) {
 		if (rewriter == null) {
-			vp.setCommandEnabled(ABORT_ACTION, false);
 			vp.setCommandEnabled(NORMALISE_ACTION, true);
 		}
 		else {
-			vp.setCommandEnabled(ABORT_ACTION, true);
 			vp.setCommandEnabled(NORMALISE_ACTION, false);
 		}
 	}
 
-	private class RewriterThread extends Thread {
+	private class RewriterJob extends Job {
 
 		private boolean highlight = false;
 
@@ -561,6 +756,8 @@ public class InteractiveGraphView
 		@Override
 		public void run() {
 			try {
+				// FIXME: communicating with the core: is this
+				//        really threadsafe?  Probably not.
 				attachNextRewrite();
 				List<Rewrite> rws = getRewrites();
 				int count = 0;
@@ -577,6 +774,7 @@ public class InteractiveGraphView
 					rws = getRewrites();
 				}
 
+				fireJobFinished();
 				invokeInfoDialogAndWait("Applied " + count + " rewrites");
 			}
 			catch (InterruptedException e) {
@@ -904,8 +1102,12 @@ public class InteractiveGraphView
 		});
 		actionMap.put(ABORT_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if (rewriter != null)
-					abortRewriting();
+				if (activeJobs != null && activeJobs.size() > 0) {
+					Job[] jobs = activeJobs.toArray(new Job[activeJobs.size()]);
+					for (Job job : jobs) {
+						job.abortJob();
+					}
+				}
 			}
 		});
 		actionMap.put(FAST_NORMALISE_ACTION, new ActionListener() {
@@ -1034,6 +1236,9 @@ public class InteractiveGraphView
 		else
 			vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
 		setupNormaliseAction(vp);
+		if (activeJobs == null || activeJobs.size() == 0) {
+			vp.setCommandEnabled(ABORT_ACTION, false);
+		}
 	}
 
 	public void detached(ViewPort vp) {
