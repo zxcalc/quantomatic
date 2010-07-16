@@ -17,7 +17,7 @@ import edu.uci.ics.jung.contrib.HasQuotedName;
  *
  */
 public class QuantoCore {
-	
+
 	private Process backEnd;
 	private BufferedReader from_backEnd;
 	private BufferedWriter to_backEnd;
@@ -38,7 +38,7 @@ public class QuantoCore {
 		public FatalError(String msg) {
 			super(msg);
 		}
-		
+
 		public FatalError(Exception e) {
 			super(e);
 		}

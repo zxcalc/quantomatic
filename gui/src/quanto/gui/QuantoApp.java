@@ -32,8 +32,9 @@ public class QuantoApp {
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	// MAC_OS_X is used to determine whether we use OSXAdapter to
 	// hook into the application menu
-	public static boolean MAC_OS_X = (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
-	public static int COMMAND_MASK =
+	public static final boolean MAC_OS_X =
+		(System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
+	public static final int COMMAND_MASK =
 		MAC_OS_X ? java.awt.event.InputEvent.META_DOWN_MASK
 		         : java.awt.event.InputEvent.CTRL_DOWN_MASK;
 	private static QuantoApp theApp = null;
