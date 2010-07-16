@@ -27,8 +27,7 @@ public class QuantoCore {
 	// useful for calling as a library
 	public final HasName[] noargs = new HasName[]{};
 
-	// Invoked as OS X application
-	public static String appName = null;
+	public static String quantoCoreExecutable = "quanto-core";
 
 	public static class ConsoleError extends Exception {
 		private static final long serialVersionUID = 1053659906558198953L;
@@ -54,20 +53,7 @@ public class QuantoCore {
 		output.println("Intialising quanto-core...");
 
 		try {
-			ProcessBuilder pb;
-			
-
-			if (QuantoCore.appName != null)
-			{
-				output.println("Setting up app process...");
-				pb = new ProcessBuilder(QuantoCore.appName + "/Contents/MacOS/quanto-core-app");
-				// add extra macos packaged program path
-				//Map<String,String> env = pb.environment();
-				//String path = env.get("PATH");
-				//env.put("PATH",path + File.pathSeparator + appName + "/Contents/MacOS/");
-			} else {
-				pb = new ProcessBuilder("quanto-core");
-			}
+			ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable);
 			
 			pb.redirectErrorStream(true);
 			output.println("Starting process....");
