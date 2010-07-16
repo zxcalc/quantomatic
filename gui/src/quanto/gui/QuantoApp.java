@@ -126,6 +126,7 @@ public class QuantoApp {
 	 */
 	public static void main(String[] args) {
 		System.out.println("Initialised...");
+		boolean mathematicaMode = false;
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
 				QuantoCore.appName = "Quantomatic.app";
@@ -147,7 +148,7 @@ public class QuantoApp {
 				System.out.println("Invoked as OS X application.");
 			}
 			else if (arg.equals("--mathematica-mode")) {
-				QuantoCore.mathematicaMode = true;
+				mathematicaMode = true;
 			}
 		}
 
@@ -159,7 +160,7 @@ public class QuantoApp {
 			e.printStackTrace();
 		}
 
-		if (QuantoApp.isMac && !QuantoCore.mathematicaMode) {
+		if (QuantoApp.isMac && !mathematicaMode) {
 			//System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty(
 				"com.apple.mrj.application.apple.menu.about.name",

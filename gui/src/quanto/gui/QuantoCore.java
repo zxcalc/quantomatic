@@ -2,7 +2,6 @@ package quanto.gui;
 
 import java.io.*;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Set;
 
 
@@ -24,21 +23,20 @@ public class QuantoCore {
 	private BufferedWriter to_backEnd;
 	private PrintStream output;
 	private Completer completer;
-	
+
 	// useful for calling as a library
 	public final HasName[] noargs = new HasName[]{};
-	
+
 	// Invoked as OS X application
 	public static String appName = null;
-	public static boolean mathematicaMode = false;
-	
+
 	public static class ConsoleError extends Exception {
 		private static final long serialVersionUID = 1053659906558198953L;
 		public ConsoleError(String msg) {
 			super(msg);
 		}
 	}
-	
+
 	public static class FatalError extends RuntimeException {
 		private static final long serialVersionUID = -3757849807264018024L;
 		public FatalError(String msg) {
@@ -51,9 +49,10 @@ public class QuantoCore {
 	}
 
 	public QuantoCore(PrintStream setoutput) throws IOException {
+
 		output = System.out;
 		output.println("Intialising quanto-core...");
-		
+
 		try {
 			ProcessBuilder pb;
 			
