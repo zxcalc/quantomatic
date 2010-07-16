@@ -24,9 +24,6 @@ public class QuantoCore {
 	private PrintStream output;
 	private Completer completer;
 
-	// useful for calling as a library
-	public final HasName[] noargs = new HasName[]{};
-
 	public static String quantoCoreExecutable = "quanto-core";
 
 	public static class ConsoleError extends Exception {
