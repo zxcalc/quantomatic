@@ -9,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -19,9 +18,16 @@ import edu.uci.ics.jung.contrib.HasName;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
+import java.util.Vector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QuantoGraph extends DirectedSparseMultigraph<QVertex, QEdge>
 implements HasName, ChangeEventSupport {
+
+	private final static Logger logger =
+		LoggerFactory.getLogger(TheoryTree.class);
+
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
 	protected List<QVertex> boundaryVertices;
@@ -86,7 +92,7 @@ implements HasName, ChangeEventSupport {
 			parser.setReader(reader);
 			root = (IXMLElement)parser.parse();
 			fromXml(root);
-			System.out.printf("XML parse took %d millis.\n", System.currentTimeMillis()-millis);
+			logger.debug("XML parse took {} milliseconds", System.currentTimeMillis()-millis);
 		} catch (XMLException e) {
 			throw new QuantoGraph.ParseException("The file contains badly-formed XML: " + e.getMessage(), e);
 		} catch (ClassNotFoundException e) {

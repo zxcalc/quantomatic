@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -23,11 +24,16 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import quanto.gui.QuantoApp.QuantoActionListener;
-import quanto.gui.QuantoCore.ConsoleError;
+import quanto.gui.QuantoCore.CoreException;
 
 public class TheoryTree extends JPanel {
+
+	private final static Logger logger =
+		LoggerFactory.getLogger(TheoryTree.class);
+
 	private static final long serialVersionUID = 9201368442015685164L;
 	// FIXME: this is only used for refreshInstances - see FIXME there
 	private static final List<TheoryTree> instances = new ArrayList<TheoryTree>();
@@ -40,6 +46,33 @@ public class TheoryTree extends JPanel {
 	// the GUI components and tree model are per-instance
 	private JTree tree;
 	private DefaultMutableTreeNode top;
+
+	/**
+	 * Generic action listener that reports core errors to a dialog box.
+	 */
+	public static abstract class QuantoActionListener implements ActionListener {
+
+		private Component parent;
+
+		public QuantoActionListener(Component parent) {
+			this.parent = parent;
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			try {
+				wrappedAction(e);
+			}
+			catch (QuantoCore.CoreException err) {
+				JOptionPane.showMessageDialog(
+					parent,
+					err.getMessage(),
+					"Console Error",
+					JOptionPane.ERROR_MESSAGE);
+			}
+		}
+
+		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.CoreException;
+	}
 
 	public TheoryTree (ViewPort viewPort, QuantoCore core) {
 		synchronized (instances) {
@@ -71,7 +104,6 @@ public class TheoryTree extends JPanel {
 							(DefaultMutableTreeNode)p.getLastPathComponent();
 						Object o = node.getUserObject();
 						if (node.isRoot()) { // the root
-							//System.out.println("ROOT:" + p);
 							JPopupMenu menu = new JPopupMenu();
 							JMenuItem item = new JMenuItem("Load ruleset...");
 							item.addActionListener(new ActionListener() {
@@ -91,7 +123,6 @@ public class TheoryTree extends JPanel {
 							
 							menu.show(tree, e.getX(), e.getY());
 						} else if (o instanceof Ruleset) { // a theory
-							//System.out.println("THEORY:" + p);
 							new RulesetMenu((Ruleset)o).show(tree, e.getX(), e.getY());
 						} else if (node.isLeaf()) { // a rule
 							Ruleset th = (Ruleset)((DefaultMutableTreeNode)node.getParent()).getUserObject();
@@ -107,7 +138,7 @@ public class TheoryTree extends JPanel {
 	}
 	
 	public void refresh() {
-//		System.out.printf("refresh() on: %d\n", this.hashCode());
+		logger.debug("refresh() called on {}", this);
 		top.removeAllChildren();
 		DefaultMutableTreeNode node;
 		synchronized (rulesets) {
@@ -145,7 +176,7 @@ public class TheoryTree extends JPanel {
 				}
 			}
 			
-		} catch (QuantoCore.ConsoleError err) {
+		} catch (QuantoCore.CoreException err) {
 			// should never get a console error during an update
 			throw new QuantoCore.FatalError(err.getMessage());
 		}
@@ -166,14 +197,14 @@ public class TheoryTree extends JPanel {
 	}
 	
 	public static void loadRuleset(QuantoCore core, String name, String fileName)
-	throws QuantoCore.ConsoleError {
+	throws QuantoCore.CoreException {
 		Ruleset rset = core.load_ruleset(name, fileName);
 		core.activate_ruleset(rset);
 		rulesets.put(rset.getName(), rset);
 		refreshInstances();
 	}
 	
-	public static void unloadRuleset(QuantoCore core, Ruleset rset) throws ConsoleError {
+	public static void unloadRuleset(QuantoCore core, Ruleset rset) throws CoreException {
 		core.unload_ruleset(rset);
 		rulesets.remove(rset.getName());
 		refreshInstances();
@@ -198,13 +229,12 @@ public class TheoryTree extends JPanel {
 			nm = rsets[idx];
 			path = rsets[idx+1];
 			active = rsets[idx+2].equals("true");
-//			System.out.println(active);
 			try {
 				Ruleset rset = qc.load_ruleset(nm, path);
 				if (active) qc.activate_ruleset(rset);
 				else qc.deactivate_ruleset(rset);
 				rulesets.put(rset.getName(), rset);
-			} catch (ConsoleError e) {
+			} catch (CoreException e) {
 				System.err.printf("%s[%s,%s]\n", e.getMessage(), nm, path);
 			}
 			
@@ -250,7 +280,7 @@ public class TheoryTree extends JPanel {
 			item = new JMenuItem("Activate");
 			if (rset.isActive()) item.setEnabled(false);
 			else item.addActionListener(new QuantoActionListener(tree) {
-				public void wrappedAction(ActionEvent e) throws ConsoleError {
+				public void wrappedAction(ActionEvent e) throws CoreException {
 					core.activate_ruleset(rset);
 					TheoryTree.refreshInstances();
 				}
@@ -259,7 +289,7 @@ public class TheoryTree extends JPanel {
 			item = new JMenuItem("Deactivate");
 			if (!rset.isActive()) item.setEnabled(false);
 			else item.addActionListener(new QuantoActionListener(tree) {
-				public void wrappedAction(ActionEvent e) throws ConsoleError {
+				public void wrappedAction(ActionEvent e) throws CoreException {
 					core.deactivate_ruleset(rset);
 					TheoryTree.refreshInstances();
 				}
@@ -268,7 +298,7 @@ public class TheoryTree extends JPanel {
 			
 			item = new JMenuItem("Unload");
 			item.addActionListener(new QuantoActionListener(this) {
-				public void wrappedAction(ActionEvent e) throws ConsoleError {
+				public void wrappedAction(ActionEvent e) throws CoreException {
 					TheoryTree.unloadRuleset(core, rset);
 				}
 			});
@@ -290,7 +320,7 @@ public class TheoryTree extends JPanel {
 				private int side; // BOTH = 0, LEFT = 1, RIGHT = 2
 				public RuleAL(int side) { super(tree); this.side = side; }
 				
-				public void wrappedAction(ActionEvent e) throws ConsoleError {
+				public void wrappedAction(ActionEvent e) throws CoreException {
 					QuantoGraph gr1 = (side == 0 || side == 1) ? 
 							core.open_rule_lhs(rset, rule) :
 							core.open_rule_rhs(rset, rule);

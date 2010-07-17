@@ -41,8 +41,8 @@ public class InteractiveViewManager {
 		}
 	}
 
-	public InteractiveViewManager() {
-		console = new ConsoleView();
+	public InteractiveViewManager(QuantoApp app, QuantoCore core) {
+		console = new ConsoleView(app, core);
 		addView(console);
 	}
 

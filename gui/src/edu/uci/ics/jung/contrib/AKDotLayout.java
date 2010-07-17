@@ -13,7 +13,14 @@ import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
 import edu.uci.ics.jung.graph.DirectedGraph;
 import edu.uci.ics.jung.graph.Graph;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
+
+	private final static Logger logger =
+		LoggerFactory.getLogger(AKDotLayout.class);
+
 	List<V> vertexTable;
 	Map<V,Integer> inverseVertexTable;
 	Graph<Integer,Integer> dag;
@@ -63,7 +70,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		DirectedGraph<V,E> graph = (DirectedGraph<V,E>)getGraph();
 		List<Set<V>> components = getComponentsForCut(graph, null);
 		
-		//System.out.println("Processing " + components.size() + " component(s).");
+		logger.debug("Processing {} component(s).", components.size());
 		
 		//List<AKDotLayout<V,E>> subLayouts = new ArrayList<AKDotLayout<V,E>>();
 		double minX = (double)nodeSeparation;
@@ -84,7 +91,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			minX += layout.getWidth() + (double)nodeSeparation;
 		}
 		
-		System.out.printf("done in %d millis\n",
+		logger.debug("Layout took {} milliseconds",
 				System.currentTimeMillis()-tm);
 	}
 
@@ -158,15 +165,15 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	private void doLayout() {
 		Graph<V, E> graph = getGraph();
 		if (graph.getVertexCount()==0) return;
-		//System.out.printf("graph (%d, %d)\n", graph.getVertexCount(), graph.getEdgeCount());
+		logger.debug("Laying out graph ({}, {})", graph.getVertexCount(), graph.getEdgeCount());
 		
 		dagify();
 		normalize(); // for debug purposes
-		//System.out.println("init ranks: " + ranks);
+		logger.debug("init ranks: {}", ranks);
 		
 		rank();
-		//System.out.println("final ranks: " + ranks);
-		//System.out.println("max rank: " + maxRank);
+		logger.debug("final ranks: {}", ranks);
+		logger.debug("max rank: {}", maxRank);
 		
 		ordering();
 		position();
@@ -188,8 +195,8 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		dag.addVertex(0);
 		addToDag(root, 0, 0);
 		
-		//System.out.printf("dag (%d, %d)\n", dag.getVertexCount(), dag.getEdgeCount());
-		//System.out.println(dag);
+		logger.debug("dag ({}, {})", dag.getVertexCount(), dag.getEdgeCount());
+		logger.debug("{}", dag);
 	}
 	
 	private void addToDag(V vertex, int vertexId, int rnk) {
@@ -259,9 +266,11 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	
 	private void rank() {
 		feasibleTree();
-//		System.out.printf("init tree (%d, %d) (comps: %d)\n",
-//				tree.getVertexCount(), tree.getEdgeCount(),
-//				getComponents(tree).size());
+		logger.debug("init tree ({}, {}) (comps: {})",
+			new Object[] {
+			tree.getVertexCount(),
+			tree.getEdgeCount(),
+			getComponents(tree).size() });
 		
 		int iter = 0;
 		int minBadness = Integer.MAX_VALUE;
@@ -272,7 +281,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		}
 		
 		while (updateCutValues()) {
-			//System.out.println(cutValues);
+			//logger.debug("Cut values: {}", cutValues);
 			
 			// anti-cycling: once iter hits MAX_ITERATIONS, watch for CYCLE_SIZE
 			//   more iterations to find a local minimum. Try to break on that local
@@ -290,11 +299,13 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			
 			++iter;
 		}
-		//System.out.println(cutValues);
-		
-//		System.out.printf("final tree (%d, %d) (comps: %d)\n",
-//				tree.getVertexCount(), tree.getEdgeCount(),
-//				getComponents(tree).size());
+		logger.debug("rank(): cut values: {}", cutValues);
+
+		logger.debug("final tree ({}, {}) (comps: {})",
+			new Object[] {
+			tree.getVertexCount(),
+			tree.getEdgeCount(),
+			getComponents(tree).size() });
 		
 		ranksFromFeasibleTree();
 		normalize();
@@ -339,10 +350,10 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 				ranks.put(v, ranks.get(v) + delta);
 			}
 			
-			//System.out.println(ranks);
+			//logger.debug("Ranks: {}", ranks);
 		}
 		
-		//System.out.println(tree);
+		//logger.debug("Tree: {}", tree);
 	}
 	
 	private void initRank() {
@@ -584,10 +595,10 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			ord.wmedian(i);
 			ord.transpose(i);
 			ord.updateCrossings();
-			//System.out.println("crossings: " + ord.crossings);
+			logger.debug("findBestOrdering(): crossings: {}", ord.crossings);
 			if (ord.crossings < bestOrdering.crossings) {
 				bestOrdering = new Ordering(ord);
-				System.out.println("best crossings: " + bestOrdering.crossings);
+				logger.debug("best crossings: {}", bestOrdering.crossings);
 			}
 		}
 	}

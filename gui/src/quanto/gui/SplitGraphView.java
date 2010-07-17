@@ -12,7 +12,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import quanto.gui.QuantoCore.ConsoleError;
+import quanto.gui.QuantoCore.CoreException;
 
 @SuppressWarnings("serial")
 public class SplitGraphView extends InteractiveView {
@@ -114,7 +114,7 @@ public class SplitGraphView extends InteractiveView {
 				// will throw error if unsuccessful, else:
 				setSaved(true);
 			}
-			catch (ConsoleError err) {
+			catch (CoreException err) {
 				errorDialog(err.getMessage());
 			}
 		}

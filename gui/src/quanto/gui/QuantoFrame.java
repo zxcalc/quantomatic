@@ -186,7 +186,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		try {
 			openView(app.createNewGraph());
 		}
-		catch (QuantoCore.ConsoleError ex) {
+		catch (QuantoCore.CoreException ex) {
 			app.errorDialog("Could not create new graph: " + ex.getMessage());
 		}
 	}
@@ -214,7 +214,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 				openView(view);
 			}
-			catch (QuantoCore.ConsoleError e) {
+			catch (QuantoCore.CoreException e) {
 				app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
 			}
 			catch (QuantoGraph.ParseException e) {

@@ -53,7 +53,7 @@
   </target>
   <target name="compile" depends="init" description="compile the source">
     <!-- Compile the java code from ${src} into ${build} -->
-    <javac srcdir="${src}" destdir="${build}">
+    <javac srcdir="${src}" destdir="${build}" includeantruntime="false">
       <classpath refid="quanto.classpath.build" />
     </javac>
     <copy todir="${build}">
@@ -82,7 +82,7 @@
     </target>
 
     -->
-    <javac srcdir="${src}" destdir="${build.debug}" debug="true">
+    <javac srcdir="${src}" destdir="${build.debug}" includeantruntime="false" debug="true">
       <classpath refid="quanto.classpath.build" />
       <compilerarg value="-Xlint:unchecked" />
     </javac>
@@ -107,6 +107,9 @@
       <zipfileset src="${lib}/jung-visualization-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/nanoxml-2.2.3.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/itext.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/slf4j-api-1.6.1.jar" excludes="META-INF/**" />
+      <!-- See http://www.slf4j.org for info on how to change how logging works -->
+      <zipfileset src="${lib}/slf4j-simple-1.6.1.jar" excludes="META-INF/**" />
       <fileset dir="${resources}"/>
       <manifest>
         <attribute name="Main-Class" value="quanto.gui.QuantoApp" />

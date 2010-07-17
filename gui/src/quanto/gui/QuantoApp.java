@@ -18,6 +18,9 @@ import javax.swing.UIManager;
 import net.n3.nanoxml.IXMLElement;
 import net.n3.nanoxml.XMLWriter;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 /**
@@ -26,8 +29,11 @@ import apple.dts.samplecode.osxadapter.OSXAdapter;
  *
  */
 public class QuantoApp {
-	// isMac is used for CTRL vs META shortcuts, etc
 
+	private final static Logger logger =
+		LoggerFactory.getLogger(QuantoApp.class);
+
+	// isMac is used for CTRL vs META shortcuts, etc
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
 	// MAC_OS_X is used to determine whether we use OSXAdapter to
@@ -112,7 +118,17 @@ public class QuantoApp {
 
 	public static QuantoApp getInstance() {
 		if (theApp == null) {
-			theApp = new QuantoApp();
+			try {
+				theApp = new QuantoApp();
+			} catch (QuantoCore.CoreException ex) {
+				// FATAL!!!
+				logger.error("Failed to start core: terminating", ex);
+				JOptionPane.showMessageDialog(null,
+					ex.getMessage(),
+					"Could not start core",
+					JOptionPane.ERROR_MESSAGE);
+				System.exit(1);
+			}
 		}
 		return theApp;
 	}
@@ -126,15 +142,16 @@ public class QuantoApp {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		System.out.println("Initialised...");
+		logger.info("Starting quantomatic");
 		boolean mathematicaMode = false;
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
 				String appName = "Quantomatic.app";
 
 				// determine the app name from the classpath if I can...
-				System.out.println(System.getProperty("java.class.path"));
-				for (String path : System.getProperty("java.class.path").split(System.getProperty("path.separator"))) {
+				String classpath = System.getProperty("java.class.path");
+				logger.debug("Trying to determine app name using class path ({})", classpath);
+				for (String path : classpath.split(System.getProperty("path.separator"))) {
 					if (path.indexOf("QuantoGui.jar") != -1) {
 						String[] dirs = path.split(System.getProperty("file.separator"));
 						if (dirs.length >= 5) {
@@ -143,23 +160,25 @@ public class QuantoApp {
 					}
 				}
 
+				logger.info("Invoked as OS X application ({})", appName);
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
 					appName + "/Contents/MacOS/dot_static";
 				QuantoCore.quantoCoreExecutable =
 					appName + "/Contents/MacOS/quanto-core-app";
-				System.out.println("Invoked as OS X application (" + appName + ")");
 			}
 			else if (arg.equals("--mathematica-mode")) {
 				mathematicaMode = true;
+				logger.info("Mathematica mode enabled");
 			}
 		}
+		logger.info("Using dot executable: {}", edu.uci.ics.jung.contrib.DotLayout.dotProgram);
+		logger.info("Using core executable: {}", QuantoCore.quantoCoreExecutable);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		}
 		catch (Exception e) {
-			System.err.println("ERROR SETTING LOOK AND FEEL:");
-			e.printStackTrace();
+			logger.warn("Could not set look-and-feel", e);
 		}
 
 		if (QuantoApp.isMac && !mathematicaMode) {
@@ -173,36 +192,33 @@ public class QuantoApp {
 
 		app.newGraph(true);
 
-		System.out.println("loading theory...");
+		logger.info("Loading theories");
 
 		TheoryTree.loadState(app.getCore(), app.getPreference(QuantoApp.LOADED_THEORIES));
 
-		System.out.println("done.");
+		logger.info("Finished initialisation");
 	}
 
 	public boolean shutdown() {
-		System.out.println("Shutting down...");
+		logger.info("Shutting down");
 		if (viewManager.closeAllViews()) {
 			System.exit(0);
 		}
 		return false;
 	}
 
-	private QuantoApp() {
+	private QuantoApp() throws QuantoCore.CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 
-		viewManager = new InteractiveViewManager();
-		core = viewManager.getConsole().getCore();
+		core = new QuantoCore();
+		viewManager = new InteractiveViewManager(this, core);
 
 		if (MAC_OS_X) {
 			try {
 				OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));
 			}
-			catch (SecurityException e) {
-				throw new QuantoCore.FatalError(e);
-			}
-			catch (NoSuchMethodException e) {
-				throw new QuantoCore.FatalError(e);
+			catch (Exception e) {
+				logger.error("Could not set quit handler", e);
 			}
 		}
 	}
@@ -216,34 +232,6 @@ public class QuantoApp {
 
 	public InteractiveViewManager getViewManager() {
 		return viewManager;
-	}
-
-	/**
-	 * Generic action listener that reports errors to a dialog box and gives
-	 * actions access to the frame, console, and core.
-	 */
-	public static abstract class QuantoActionListener implements ActionListener {
-
-		private Component parent;
-
-		public QuantoActionListener(Component parent) {
-			this.parent = parent;
-		}
-
-		public void actionPerformed(ActionEvent e) {
-			try {
-				wrappedAction(e);
-			}
-			catch (QuantoCore.ConsoleError err) {
-				JOptionPane.showMessageDialog(
-					parent,
-					err.getMessage(),
-					"Console Error",
-					JOptionPane.ERROR_MESSAGE);
-			}
-		}
-
-		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.ConsoleError;
 	}
 
 	public QuantoCore getCore() {
@@ -261,7 +249,8 @@ public class QuantoApp {
 				view = createNewGraph();
 			openNewFrame(view);
 		}
-		catch (QuantoCore.ConsoleError ex) {
+		catch (QuantoCore.CoreException ex) {
+			logger.error("Could not create a new graph", ex);
 			errorDialog("Could not create a new graph to display");
 		}
 	}
@@ -276,13 +265,14 @@ public class QuantoApp {
 			fr.setVisible(true);
 		}
 		catch (ViewUnavailableException ex) {
+			logger.warn("Tried to open an already-attached view in a new frame", ex);
 			fr.dispose();
 			throw ex;
 		}
 	}
 
 	public InteractiveGraphView createNewGraph()
-		throws QuantoCore.ConsoleError {
+		throws QuantoCore.CoreException {
 		QuantoGraph newGraph = core.new_graph();
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
@@ -291,7 +281,7 @@ public class QuantoApp {
 	}
 
 	public InteractiveGraphView openGraph(File file)
-		throws QuantoCore.ConsoleError,
+		throws QuantoCore.CoreException,
 		       QuantoGraph.ParseException,
 		       java.io.IOException{
 		String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
@@ -330,7 +320,8 @@ public class QuantoApp {
 				openNewFrame(vis);
 			}
 		}
-		catch (QuantoCore.ConsoleError e) {
+		catch (QuantoCore.CoreException e) {
+			logger.error("Failed to create a new graph", e);
 			errorDialog(e.getMessage());
 		}
 	}
@@ -356,10 +347,12 @@ public class QuantoApp {
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 				TheoryTree.loadRuleset(getCore(), thyname, filename);
 			}
-			catch (QuantoCore.ConsoleError e) {
+			catch (QuantoCore.CoreException e) {
+				logger.error("Failed to load the rulesets from the last instance", e);
 				errorDialog(e.getMessage());
 			}
 			catch (java.io.IOException ioe) {
+				logger.error("Failed to load the rulesets from the last instance", ioe);
 				errorDialog(ioe.getMessage());
 			}
 			finally {

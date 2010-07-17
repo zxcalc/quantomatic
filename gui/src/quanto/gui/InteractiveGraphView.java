@@ -28,7 +28,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
-import quanto.gui.QuantoCore.ConsoleError;
+import quanto.gui.QuantoCore.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
@@ -142,7 +142,7 @@ public class InteractiveGraphView
 											    qVertex, lab.getText());
 									updateGraph();
 								}
-								catch (QuantoCore.ConsoleError err) {
+								catch (QuantoCore.CoreException err) {
 									errorDialog(err.getMessage());
 								}
 							}
@@ -555,7 +555,7 @@ public class InteractiveGraphView
 			getCore().add_edge(getGraph(), s, t);
 			updateGraph();
 		}
-		catch (QuantoCore.ConsoleError e) {
+		catch (QuantoCore.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
@@ -565,7 +565,7 @@ public class InteractiveGraphView
 			getCore().add_vertex(getGraph(), type);
 			updateGraph();
 		}
-		catch (QuantoCore.ConsoleError e) {
+		catch (QuantoCore.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
@@ -582,18 +582,18 @@ public class InteractiveGraphView
 			JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 			rewrites.setVisible(true);
 		}
-		catch (QuantoCore.ConsoleError e) {
+		catch (QuantoCore.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
 
-	public void updateGraph() throws QuantoCore.ConsoleError {
+	public void updateGraph() throws QuantoCore.CoreException {
 		String xml = getCore().graph_xml(getGraph());
 		try {
 			getGraph().fromXml(xml);
 		}
 		catch (QuantoGraph.ParseException e) {
-			throw new ConsoleError("The core sent an invalid graph description: " + e.getMessage());
+			throw new CoreException("The core sent an invalid graph description: " + e.getMessage());
 		}
 		viewer.relayout();
 
@@ -692,7 +692,7 @@ public class InteractiveGraphView
 					getGraph(),
 					getGraph().getVertices());
 			}
-			catch (QuantoCore.ConsoleError e) {
+			catch (QuantoCore.CoreException e) {
 				errorDialog(e.getMessage());
 			}
 		}
@@ -834,7 +834,7 @@ public class InteractiveGraphView
 		catch (QuantoGraph.ParseException e) {
 			errorDialog("The core sent an invalid graph description: " + e.getMessage());
 		}
-		catch (QuantoCore.ConsoleError e) {
+		catch (QuantoCore.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 
@@ -854,7 +854,7 @@ public class InteractiveGraphView
 			getCore().apply_rewrite(getGraph(), index);
 			updateGraph();
 		}
-		catch (ConsoleError e) {
+		catch (CoreException e) {
 			errorDialog("Error in rewrite. The graph probably changed "
 				+ "after this rewrite was attached.");
 		}
@@ -881,7 +881,7 @@ public class InteractiveGraphView
 				getGraph().setSaved(true);
 				setTitle(f.getName());
 			}
-			catch (QuantoCore.ConsoleError e) {
+			catch (QuantoCore.CoreException e) {
 				errorDialog(e.getMessage());
 			}
 			catch (java.io.IOException ioe) {
@@ -896,7 +896,7 @@ public class InteractiveGraphView
 				getCore().save_graph(getGraph(), getGraph().getFileName());
 				getGraph().setSaved(true);
 			}
-			catch (QuantoCore.ConsoleError e) {
+			catch (QuantoCore.CoreException e) {
 				errorDialog(e.getMessage());
 			}
 		}
@@ -950,7 +950,7 @@ public class InteractiveGraphView
 					getCore().undo(getGraph());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -961,7 +961,7 @@ public class InteractiveGraphView
 					getCore().redo(getGraph());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -976,7 +976,7 @@ public class InteractiveGraphView
 							updateGraph();
 					}
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -989,7 +989,7 @@ public class InteractiveGraphView
 							getCore().copy_subgraph(getGraph(), "__clip__", picked);
 					}
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1000,7 +1000,7 @@ public class InteractiveGraphView
 					getCore().insert_graph(getGraph(), "__clip__");
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1116,7 +1116,7 @@ public class InteractiveGraphView
 					getCore().fastNormalise(getGraph());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1139,7 +1139,7 @@ public class InteractiveGraphView
 					getCore().flip_vertices(getGraph(), viewer.getPickedVertexState().getPicked());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1152,7 +1152,7 @@ public class InteractiveGraphView
 					getCore().bang_vertices(getGraph(), bb, viewer.getPickedVertexState().getPicked());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1163,7 +1163,7 @@ public class InteractiveGraphView
 					getCore().unbang_vertices(getGraph(), viewer.getPickedVertexState().getPicked());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1174,7 +1174,7 @@ public class InteractiveGraphView
 					getCore().bbox_drop(getGraph(), viewer.getPickedBangBoxState().getPicked());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1185,7 +1185,7 @@ public class InteractiveGraphView
 					getCore().bbox_kill(getGraph(), viewer.getPickedBangBoxState().getPicked());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1196,7 +1196,7 @@ public class InteractiveGraphView
 					getCore().bbox_duplicate(getGraph(), viewer.getPickedBangBoxState().getPicked());
 					updateGraph();
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1207,7 +1207,7 @@ public class InteractiveGraphView
 				try {
 					outputToTextView(getCore().hilb(getGraph(), "plain"));
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1217,7 +1217,7 @@ public class InteractiveGraphView
 				try {
 					outputToTextView(getCore().hilb(getGraph(), "mathematica"));
 				}
-				catch (ConsoleError ex) {
+				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
 			}
@@ -1438,7 +1438,7 @@ public class InteractiveGraphView
 				updateGraph();
 
 			}
-			catch (QuantoCore.ConsoleError err) {
+			catch (QuantoCore.CoreException err) {
 				errorDialog(err.getMessage());
 			}
 			finally {
@@ -1487,7 +1487,7 @@ public class InteractiveGraphView
 		try {
 			updateGraph();
 		}
-		catch (ConsoleError ex) {
+		catch (CoreException ex) {
 			errorDialog("Console erro", ex.getMessage());
 		}
 	}

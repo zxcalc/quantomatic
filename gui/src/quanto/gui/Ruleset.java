@@ -5,7 +5,7 @@ import java.util.Set;
 
 import edu.uci.ics.jung.contrib.HasName;
 
-import quanto.gui.QuantoCore.ConsoleError;
+import quanto.gui.QuantoCore.CoreException;
 
 public class Ruleset implements HasName {
 	private String path;
@@ -57,7 +57,7 @@ public class Ruleset implements HasName {
 		try {
 			String[] rls = QuantoApp.getInstance().getCore().list_rules(name);
 			for (String r : rls) rules.add(r);
-		} catch (ConsoleError e) {
+		} catch (CoreException e) {
 			System.err.println(e.getMessage());
 		}
 	}

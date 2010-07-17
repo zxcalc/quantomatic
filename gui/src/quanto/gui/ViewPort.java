@@ -104,6 +104,11 @@ public class ViewPort extends JPanel {
 		return showInternalNames;
 	}
 
+	/**
+	 * Attaches a view to this viewport, detaching any existing view.
+	 * @param view The view to attach
+	 * @throws ViewUnavailableException @p view is already attached to another viewport
+	 */
 	public void attachView(InteractiveView view)
 		throws ViewUnavailableException
 	{

@@ -9,7 +9,14 @@ import java.util.*;
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.graph.DirectedGraph;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
+
+	private final static Logger logger =
+		LoggerFactory.getLogger(DotLayout.class);
+
 	public static String dotProgram = "dot";
 	
 	
@@ -117,7 +124,7 @@ public class DotLayout<V extends HasName,E> extends AbstractLayout<V,E> {
 			g.append(getGraph().getDest(e).getName());
 			g.append(" [arrowhead=none];\n");
 		}
-		//System.out.println(g.toString());
+		logger.debug("Dot format of graph {}: {}", getGraph(), g);
 		return g.toString();
 	}
 }

@@ -327,7 +327,7 @@ public class ActionManager {
      * Note: This method removes the actions and references from 
      * the action manager. References to the 
      * action may still be held in component that were created from 
-     * actions. 
+     * actions.
      *
      * @param actionset the action-set id
      */
