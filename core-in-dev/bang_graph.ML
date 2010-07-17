@@ -13,10 +13,11 @@ structure VtoBoxMap : NAME_MAP_SHARING
   sharing VtoBoxMap.Dom = Vertex;
 end;
 
+
 (* bang-box graphs *)
-signature BANG_GRAPH = 
+signature BASIC_BANG_GRAPH = 
 sig
-include OGRAPH;
+include BASIC_OGRAPH;
 
 exception merge_bbox_exp of string 
 exception overlapping_bbox_exp of Vertex.NSet.T * T
@@ -41,6 +42,15 @@ val is_boxed : T -> Vertex.name -> bool
 val new_box : BBox.name -> T -> BBox.name * T
 val move_to_box : BBox.name -> Vertex.NSet.T -> T -> T
 val move_to_unbox : Vertex.NSet.T -> T -> T
+
+end;
+
+
+
+(* bang-box graphs *)
+signature BANG_GRAPH = 
+sig
+include OGRAPH;
 
 val copy1_box : (Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* avoid names *) 
       -> BBox.name -> T (* bbox to copy and graph containing it *) 
@@ -158,7 +168,7 @@ structure BasicBBGraph =
 struct 
 
   (* make basic graph with this as internal data *)
-  structure Graph : OGRAPH = OGraphFun(
+  structure Graph : OGRAPH = BasicOGraphFun(
     structure OVertex = V 
     and Edge = E
     type data = hdata
@@ -237,62 +247,7 @@ open BBGraphTools;
 
 
 (* FIXME!!!: should be able to do this by inherrited delete function; 
-   this is HORRIBLE: copied from bgraph *)
-
-(* all edges leaving the selection get cut at the next vertex,
-   introducing bounary vertices. All introduced bounary vertices only have edges 
-   into the selection (vns). Strictly increases set of matched graphs. *)
-fun cut_subgraph_of_selection' vns g = 
-    let val new_boundary_vs = incident_vertices g vns;
-    in
-    (* cut at all vertices outside of the selection *)
-      (new_boundary_vs, 
-       V.NSet.fold 
-        (fn n => fn g => 
-                    if V.NSet.contains vns n then g 
-                    else if V.NSet.contains new_boundary_vs n 
-                    then 
-                      g |> set_vertex_data V.EVert n
-                        (* delete any edges not incident to subgraph *)
-                        |> (Edge.NTab.fold 
-                              (fn (e,n2) => 
-                                  if V.NSet.contains vns n2 then I 
-                                  else delete_edge e)      
-                              (adj_etab_to_vnames g n Edge.NTab.empty))
-                    else delete_vertex n g)
-        (get_vnames g) g)
-    end;
-
-val cut_subgraph_of_selection = snd oo cut_subgraph_of_selection';
-
-(* make a subgraph from a node selection: any vertices with edges
-   outside selection become boundary, and all non-selected vertices are 
-   deleted. Perserves matching.  *)
-fun matched_subgraph_within_selection' vns g = 
-    V.NSet.fold 
-      (fn n => fn (newbs, g) => 
-                  if V.NSet.contains vns n then 
-                    if V.NSet.is_empty 
-                         (V.NSet.subtract (adj_vnames g n) vns)
-                    then (newbs, g)
-                    else (V.NSet.add n newbs,
-                          change_into_boundary n g) 
-                  else (newbs, delete_vertex n g))
-      (get_vnames g) (V.NSet.empty, g);
-    
-val matched_subgraph_within_selection = 
-    snd oo matched_subgraph_within_selection';
-
-
-(* make a subgraph from a node selection: any vertices with edges
-   outside selection become boundary, and all non-selected vertices
-   are deleted. NOTE: does not preserve type/Matching. This is the
-   usual graphics package style copy. *)
-fun pull_subgraph_within_selection vns g = 
-    V.NSet.fold 
-      (fn n => fn g => if V.NSet.contains vns n then g 
-                       else delete_vertex n g)
-      (get_vnames g) g;
+   this is HORRIBLE: copied from ograph *)
 
 
 

@@ -12,9 +12,9 @@ structure OVertex : OVERTEX_SHARING;
 sharing Vertex = OVertex;
 end;
 
-signature OGRAPH = 
+signature BASIC_OGRAPH = 
 sig
-include GRAPH
+include BASIC_GRAPH
 structure OVertex : OVERTEX
 sharing Vertex.SharingWithData = OVertex.SharingWithData
 structure SharingOGraph : OGRAPH_SHARING
@@ -28,21 +28,44 @@ sharing SharingOGraph.OVertex = OVertex.SharingWithIData
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
-val is_boundary_edge : T -> Edge.name -> bool
-(* get the subsets of boundary, divided into either input or output. *)
-val get_in_and_out_vnames : T -> Vertex.NSet.T (* input *) 
-                                 * Vertex.NSet.T (* output *)
 
 (* edge points; parts of an edge *)
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
+val is_endpoint' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) -> bool
+
+(* internal: don't presurve well-formedness *)
+val add_to_boundary : Vertex.name -> T -> T
+val add_to_edgepoints : Vertex.name -> T -> T
+val del_from_boundary : Vertex.name -> T -> T
+val del_from_edgepoints : Vertex.name -> T -> T
+val update_boundary : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
+val update_edgepoints : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
+
+end; (* Basic OGraph *)
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  Extra stuff for open graphs (cut out subgraph etc.) *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+signature OGRAPH = 
+sig 
+include BASIC_OGRAPH GRAPH
+
+val is_boundary_edge : T -> Edge.name -> bool
+
 (* get points living on an edge; but not boundary ones *)
 val get_edgepoint_vnames : T -> Vertex.NSet.T
+
+(* get the subsets of boundary, divided into either input or output. *)
+val get_in_and_out_vnames : T -> Vertex.NSet.T (* input *) 
+                                 * Vertex.NSet.T (* output *)
 
 (* change vertex into a point (throw away data, making this an edge-point or a boundary point) *)
 val change_into_edgepoint : Vertex.name -> T -> T
 val change_into_internal : Vertex.name -> OVertex.IData.data -> T -> T
 
+(* merge points (all adj edges) and keep vertex data (replacing edge-point), assumes they have the same internal data if they are both internal vertices *)
 val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
 
 (* cut all edges that go outside the selected set of vertices from the 
@@ -62,7 +85,7 @@ val matched_subgraph_within_selection : Vertex.NSet.T -> T -> T
 
 (* Given selection set of vertices, make subgraph: 
    all incident edges to selection are removed. = copy for graphics program *)
-val copy_subgraph_within_selection : Vertex.NSet.T -> T -> T
+val delete_subgraph_outside_selection : Vertex.NSet.T -> T -> T
 
 (* 
 val adj_tgt_info : 
@@ -98,14 +121,15 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  A Graph With Boundary *)
-functor OGraphFun(
+(*  Basic Open Graph (Graph with a boundary/edge-points) *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+functor BasicOGraphFun(
         structure OVertex : OVERTEX
         structure Edge : EDGE
         type data (* graph additional extensible/hidden data *)
         val empty_data : data
 ) 
-: OGRAPH
+: BASIC_OGRAPH
 = struct
 
 structure OVertex = OVertex;
@@ -280,15 +304,29 @@ struct
 
 end; (* BasicOGraph *)
 
-structure OGraphTools = GraphToolsFun(BasicOGraph);
 open BasicOGraph;
-open OGraphTools;
 
 structure SharingOGraph = 
+  struct
+    open SharingBasicGraph;
+    structure OVertex = OVertex.SharingWithIData;
+  end;
+
+end; (* structure BasicOGraph *)
+
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  Extra stuff for open graphs (cut out subgraph etc.) *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+functor OGraphFun(G : BASIC_OGRAPH) = 
 struct
-open SharingBasicGraph;
-structure OVertex = OVertex.SharingWithIData;
-end;
+open G;
+structure V = OVertex;
+structure E = Edge;
+
+structure OGraphTools = GraphToolsFun(G);
+open OGraphTools;
 
 (* change n to become a boundary vertex *)
 fun change_into_edgepoint n g = 
@@ -364,13 +402,12 @@ fun is_concrete_correct g =
 	              true;
 
 (* if n1 is boundary and something else is already called n2, then
-merge n1 and the vertex called n2: used for non-strict matching where
-boundary vertices can become unified to the same tgt vertex. *)
+merge n1 and the vertex called n2, used for bang-box copy *)
 
-(* rename n1 to n2, if n2 already exists, merge names and destination
-   edges; keep non-boundary data; if several vertices have
+(* rename n1 to n2, if n2 already exists, if several vertices have
    non-boundary data, its assumed to be the same. 
-   Note: for general use, assumes n1s are distinct from n2s.
+   edges; get unioned
+   Note: I've not really thought about what happens if n1 = n2, currently id. 
 *)
 fun rename_or_merge_vname n1 n2 bg =
     if Vertex.name_eq (n1,n2) then bg (* should raise an error? *)
@@ -417,16 +454,15 @@ fun matched_subgraph_within_selection' vns g =
          g' |> V.NSet.fold delete_vertex (V.NSet.subtract (get_vnames g) vns)
             |> V.NSet.fold delete_vertex (V.Amorph.get_cod_nset amorph)))
 
-(* as above, but ignores gluing automorphism *)
+(* as above, but ignores gluing automorphism (introduced boundary => old vs) *)
 val matched_subgraph_within_selection = 
     snd oo matched_subgraph_within_selection';
 
 
 (* make a subgraph from a node selection: any vertices with edges
-   outside selection become boundary, and all non-selected vertices
-   are deleted. NOTE: does not preserve type/Matching. This is the
-   usual graphics package style copy. *)
-fun copy_subgraph_within_selection vns g = 
+   outside selection are deleted. NOTE: does not preserve type/Matching. 
+   This is the usual graphics package form of "copying" a selected graph. *)
+fun delete_subgraph_outside_selection vns g = 
     V.NSet.fold 
       (fn n => fn g => if V.NSet.contains vns n then g 
                        else delete_vertex n g)
@@ -560,5 +596,4 @@ fun adj_pat_info' g n0 (d,(ins,outs)) =
 
 fun adj_pat_info g n = adj_pat_info' g n (get_vertex g n);
 
-
-end;
+end; (* OpenGraphFun *)
