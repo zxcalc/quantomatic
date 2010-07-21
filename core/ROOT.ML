@@ -45,14 +45,6 @@ PolyML.Project.make "hilb.ML";
 PolyML.Project.make "controller.ML";
 
 
-(*Files for index structures, stand-alone at present*)
-(* 
-PolyML.Project.make "indexing/Histogram.ML";
-PolyML.Project.make "indexing/htree.ML";
-PolyML.Project.make "indexing/rbuild.ML";
-PolyML.Project.make "indexing/test.ML";
-*)
-
 
 
 PolyML.Project.make "tests.ML"; 
