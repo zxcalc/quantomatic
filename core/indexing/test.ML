@@ -23,6 +23,9 @@ structure MyTester : MYTESTER
   fun load (file : string) = LS.load_graph 
 	("/home/joe/Desktop/testgraphs/histtest/" ^ file);
 	
+  fun save (name : string) graph = LS.save_graph 
+  		("/home/joe/Desktop/testgraphs/saved/" ^ name) graph
+	
   val ruleset = map load
 	["rule1.xml",
 	 "rule2.xml",
