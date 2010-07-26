@@ -170,9 +170,9 @@ val has_ename : T -> Edge.name -> bool;
 val try_rename1_ename : Edge.name -> Edge.name -> T -> T option
 val try_rename1_vname : Vertex.name -> Vertex.name -> T -> T option
 
-structure VertexRnm : COMPOUND_RENAMING 
+structure VertexCRnm : COMPOUND_RENAMING 
 where type obj = T and type renaming = Vertex.Rnm.T
-structure EdgeRnm : COMPOUND_RENAMING 
+structure EdgeCRnm : COMPOUND_RENAMING 
 where type obj = T and type renaming = Edge.Rnm.T
 
 val rename : (Vertex.renaming * Edge.renaming) -> T 
@@ -180,8 +180,10 @@ val rename : (Vertex.renaming * Edge.renaming) -> T
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (Vertex.renaming * Edge.renaming) * T 
 
+(* 
 val rename_vnames : Vertex.NSet.T -> Vertex.renaming * T -> Vertex.renaming * T
 val rename_enames : Edge.NSet.T -> Edge.renaming * T -> Edge.renaming * T
+*)
 
 (* merge two graphs which have distinct egdes by shared vertices:
    vertices with same name are kept only once, edges must be
@@ -210,6 +212,27 @@ val get_vname_ehns : T -> Vertex.name -> Edge.Ehn.NSet.T
 val get_ehn_vname : T -> Edge.Ehn.name -> Vertex.name
 val get_ehn_data : T -> Edge.Ehn.name -> Edge.data
 (* val get_ehn_dir_or_undir : T -> Edge.Ehn.name -> dir_or_undir *)
+
+(* folding over a subgraph (in no particular order, except at least one edge of 
+    a vertex before it's adjacent edges) *)
+val fold_subgraph : 
+  (* fold this over every vertex *)
+  (Vertex.name * Vertex.data -> 'a -> 'a)
+  (* fold over every internal edge *)
+  -> (Edge.Ehn.halfid * (Vertex.name * Vertex.data) (* seen this vertex *)
+      -> Vertex.name (* other vertex *)
+      -> Edge.NSet.name * (dir_or_undir * Edge.data) (* edge *) 
+      -> 'a -> 'a) (* data to update *)
+  (* fold over every edge leaving the subgraph *)
+  -> (Edge.Ehn.halfid * (Vertex.name * Vertex.data) (* seen this vertex *)
+      -> Vertex.name (* other vertex *)
+      -> Edge.NSet.name * (dir_or_undir * Edge.data) (* edge *) 
+      -> 'a -> 'a) (* data to update *)
+  (* fold over the subgraph identified by this subset of vertices *)
+  -> Vertex.NSet.T 
+  -> T (* in this graph *) 
+  -> 'a -> 'a (* to update this data *)
+
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
@@ -712,7 +735,8 @@ fun try_rename1_ename en1 en2 g =
     SOME (rename_ename en1 en2 g)
     handle ename_already_exists_exp _ => NONE;
 
-structure VertexRnm = CompoundRenamingFun(
+(* compound renamings: for renaming vertices/edges in a graph *)
+structure VertexCRnm = CompoundRenamingFun(
 struct 
   structure Nm = Vertex
   type obj = T
@@ -720,7 +744,7 @@ struct
   val get_nameset = get_vnames
 end);
 
-structure EdgeRnm = CompoundRenamingFun(
+structure EdgeCRnm = CompoundRenamingFun(
 struct 
   structure Nm = Edge
   type obj = T
@@ -729,80 +753,56 @@ struct
 end);
 
 
-(* FIXME: use proper renaming code from functor above rather than the ad-hoc mess below. *)
-
-(* rename a set of vnames in a graph *)
-fun rename_vnames vnames (vrn,g) = 
-    Vertex.NSet.fold 
-			(fn n => fn (vrn2,g') =>
-                  case Vertex.rename1 n vrn2 of
-                    (NONE, vrn') => (vrn', g') (* not renamed *)
-                  | (SOME n', vrn') => (* rename to n' *)
-                    (vrn', rename_vname n n' g'))
-			vnames
-      (vrn, g);
-
-(* rename a set of enames in a graph *)
-fun rename_enames enames (ern,g) =
-    Edge.NSet.fold 
-			(fn e => fn (ern2,g') =>
-                  case Edge.rename1 e ern2 of
-                    (NONE, ern') => (ern', g')
-                  | (SOME e', ern') => 
-                    (ern', rename_ename e e' g'))
-      enames
-      (ern, g);
-
-(* given: vertex renaming, edge renaming, and then given additional
-stuff that was actually in the initial renamed graph, call this graph
-g, rename g consistently. *)
+(*  *)
 fun rename (vrn,ern) g = 
-		let 
-      (* order possible clashes with new names to be renamed first *)
-      val vnames = (get_vnames g)
-      val fst_vnames = Vertex.NSet.intersect vnames (Vertex.newnames_of_renaming vrn)
-      val snd_vnames = Vertex.NSet.subtract vnames fst_vnames
-      val enames = (get_enames g)
-      val fst_enames = Edge.NSet.intersect enames (Edge.newnames_of_renaming ern)
-      val snd_enames = Edge.NSet.subtract enames fst_enames
+    let 
+      val (vrn2,g') = VertexCRnm.rename vrn g
+      val (ern2,g'') = EdgeCRnm.rename ern g'
+    in ((vrn2,ern2),g'') end;
 
-      (* avoid renaming things that are already fresh *)
-      val more_ignore_vnames = 
-          Vertex.NSet.subtract (get_vnames g) (Vertex.avoids_of_renaming vrn)
-      val more_ignore_enames = 
-          Edge.NSet.subtract (get_enames g) (Edge.avoids_of_renaming ern)
-      val vrn2 = Vertex.union_ignores_to_renaming more_ignore_vnames vrn
-      val ern2 = Edge.union_ignores_to_renaming more_ignore_enames ern
+(* rename g2 apart from g1 *)
+fun rename_apart g1 g2 = 
+    let 
+      val vrn = Vertex.Rnm.mk_from_avoidset (get_vnames g1)
+      val ern = Edge.Rnm.mk_from_avoidset (get_enames g1)
+    in rename (vrn,ern) g2 end;
 
-      (* peform the additional renaming *)
-      val (vrn3,g2) = rename_vnames fst_vnames (vrn2, g);
-      val (vrn4,g3) = rename_vnames snd_vnames (vrn3, g2);
-      val (ern3,g4) = rename_enames fst_enames (ern2, g3);
-      val (ern4,g5) = rename_enames snd_enames (ern3, g4);
+
+
+(* fold: pass over every vertex (fv) edge between the selected vertices (fe_in); and over every edge going out of the selected vertex set (fe_out). There is an invariant which is that edges are considered only after at last one end-point is considered. The considered end-point is passed as a parameter to the edge-fold functions. *)
+(* the (') function, starts form vertex v *) 
+fun fold_subgraph' fv fe_in fe_out vs g a = 
+    let fun edgef (x as (h_end,(v,vd))) seen_edges e a = 
+            if Edge.NSet.contains seen_edges e then a
+            else 
+              let val (ed,(fromv,tov)) = get_edge g e in
+                case h_end of 
+                  Edge.Ehn.TargetEnd => 
+                  if Vertex.NSet.contains vs fromv then fe_in x tov (e,ed) a
+                  else fe_out x tov (e,ed) a
+                | Edge.Ehn.SourceEnd => 
+                  if Vertex.NSet.contains vs fromv then fe_in x fromv (e,ed) a
+                  else fe_out x fromv (e,ed) a
+              end;
     in
-      ((vrn4,ern4),g5)
+      Vertex.NSet.fold 
+        (fn v => fn (seen_edges,a) =>
+          let val (vd,(in_es,out_es)) = get_vertex g v in 
+             (seen_edges |> Edge.NSet.union_merge out_es 
+                         |> Edge.NSet.union_merge in_es,
+              a |> fv (v,vd)
+                |> Edge.NSet.fold 
+                    (edgef (Edge.Ehn.TargetEnd,(v,vd)) seen_edges) in_es
+                |> Edge.NSet.fold 
+                    (edgef (Edge.Ehn.SourceEnd,(v,vd)) seen_edges) out_es)
+          end)
+        vs (Edge.NSet.empty,a)
     end;
 
-(* rename ing to be different from avoidg *)
-(* IMPROVE: avoid conversion to lists as uses up lots of memory: have
-a function in FNAMETAB to useup names from a name collection *)
-fun rename_apart avoidg ing = 
-		let val avoid_vnames = get_vnames avoidg
-				val avoid_enames = get_enames avoidg
-        (* ignore renamings of stuff that is not in avoidg *)
-        val ignore_vnames = Vertex.NSet.subtract (get_vnames ing) avoid_vnames
-        val ignore_enames = Edge.NSet.subtract (get_enames ing) avoid_enames
-    in
-      rename (Vertex.mk_renaming ignore_vnames 
-                                 (Vertex.NSet.union_merge ignore_vnames 
-                                                          avoid_vnames)
-                                 Vertex.NTab.empty, 
-              Edge.mk_renaming ignore_enames 
-                               (Edge.NSet.union_merge ignore_enames
-                                                      avoid_enames)
-                               Edge.NTab.empty) 
-             ing
-    end;
+(* ignore the 'seen' edges *)
+fun fold_subgraph fv fe_in fe_out vs g a = 
+    snd (fold_subgraph' fv fe_in fe_out vs g a);
+
 
 (* fold a function over the adjacent vertex names *)
 fun fold_adj' f g (ins,outs) a = 

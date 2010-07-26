@@ -1,4 +1,83 @@
 
+(* FIXME: use proper renaming code from functor above rather than the ad-hoc mess below. *)
+
+(* rename a set of vnames in a graph *)
+fun rename_vnames vnames (vrn,g) = 
+    Vertex.NSet.fold 
+			(fn n => fn (vrn2,g') =>
+                  case Vertex.rename1 n vrn2 of
+                    (NONE, vrn') => (vrn', g') (* not renamed *)
+                  | (SOME n', vrn') => (* rename to n' *)
+                    (vrn', rename_vname n n' g'))
+			vnames
+      (vrn, g);
+
+(* rename a set of enames in a graph *)
+fun rename_enames enames (ern,g) =
+    Edge.NSet.fold 
+			(fn e => fn (ern2,g') =>
+                  case Edge.rename1 e ern2 of
+                    (NONE, ern') => (ern', g')
+                  | (SOME e', ern') => 
+                    (ern', rename_ename e e' g'))
+      enames
+      (ern, g);
+
+(* given: vertex renaming, edge renaming, and then given additional
+stuff that was actually in the initial renamed graph, call this graph
+g, rename g consistently. *)
+fun rename (vrn,ern) g = 
+		let 
+      (* order possible clashes with new names to be renamed first *)
+      val vnames = (get_vnames g)
+      val fst_vnames = Vertex.NSet.intersect vnames (Vertex.newnames_of_renaming vrn)
+      val snd_vnames = Vertex.NSet.subtract vnames fst_vnames
+      val enames = (get_enames g)
+      val fst_enames = Edge.NSet.intersect enames (Edge.newnames_of_renaming ern)
+      val snd_enames = Edge.NSet.subtract enames fst_enames
+
+      (* avoid renaming things that are already fresh *)
+      val more_ignore_vnames = 
+          Vertex.NSet.subtract (get_vnames g) (Vertex.avoids_of_renaming vrn)
+      val more_ignore_enames = 
+          Edge.NSet.subtract (get_enames g) (Edge.avoids_of_renaming ern)
+      val vrn2 = Vertex.union_ignores_to_renaming more_ignore_vnames vrn
+      val ern2 = Edge.union_ignores_to_renaming more_ignore_enames ern
+
+      (* peform the additional renaming *)
+      val (vrn3,g2) = rename_vnames fst_vnames (vrn2, g);
+      val (vrn4,g3) = rename_vnames snd_vnames (vrn3, g2);
+      val (ern3,g4) = rename_enames fst_enames (ern2, g3);
+      val (ern4,g5) = rename_enames snd_enames (ern3, g4);
+    in
+      ((vrn4,ern4),g5)
+    end;
+
+(* rename ing to be different from avoidg *)
+(* IMPROVE: avoid conversion to lists as uses up lots of memory: have
+a function in FNAMETAB to useup names from a name collection *)
+fun rename_apart avoidg ing = 
+		let val avoid_vnames = get_vnames avoidg
+				val avoid_enames = get_enames avoidg
+        (* ignore renamings of stuff that is not in avoidg *)
+        val ignore_vnames = Vertex.NSet.subtract (get_vnames ing) avoid_vnames
+        val ignore_enames = Edge.NSet.subtract (get_enames ing) avoid_enames
+    in
+      rename (Vertex.mk_renaming ignore_vnames 
+                                 (Vertex.NSet.union_merge ignore_vnames 
+                                                          avoid_vnames)
+                                 Vertex.NTab.empty, 
+              Edge.mk_renaming ignore_enames 
+                               (Edge.NSet.union_merge ignore_enames
+                                                      avoid_enames)
+                               Edge.NTab.empty) 
+             ing
+    end;
+
+
+
+
+
 
 (* make an instantiated spider rule (assumes graph is connected, else
 will only find one spider - for one of the connected subgraphs) *)
