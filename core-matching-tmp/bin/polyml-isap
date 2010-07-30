@@ -1,0 +1,6 @@
+#!/bin/bash
+HERE=$(dirname $0)
+THE_ISAP_HEAP=${HERE}/../isaplib/heaps/isaplib.polyml-heap
+LEDIT=`which ledit || which cat`;
+echo "Using line editor: ${LEDIT}";
+(echo "PolyML.SaveState.loadState \"${THE_ISAP_HEAP}\";"; ${LEDIT}) | poly "$@"
