@@ -10,7 +10,6 @@ signature HISTTREE
   type Bag
 
   val make_htree : Bag -> T
-  val add_to_htree : T -> G.T -> T
   val lookup_htree : H.T -> T -> Bag
 end;
 
@@ -21,6 +20,7 @@ structure HistTree : HISTTREE
   structure G = RGGraph;
   structure ITab = NameTabFun(IntName);
   
+  type GraphWithData = G.T 
   type Bag = G.T list;
   
   datatype HTree = Br of (VKind.T * HTree ITab.T)
@@ -129,9 +129,6 @@ structure HistTree : HISTTREE
   	|> map (fn graph => (graph,H.create_hist graph))
   	|> (fold insert_into_htree)) 
   	Empty;
-
-  fun add_to_htree htree graph =
-  	insert_into_htree (graph, H.create_hist graph) htree;
   
   (*get functions should never throw exceptions, there is always a zero branch*)	
   fun lookup_htree hist Empty	 	= []

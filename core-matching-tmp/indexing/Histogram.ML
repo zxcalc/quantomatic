@@ -1,49 +1,4 @@
 
-signature VKIND
-= sig
-  structure V : RG_VERTEX
-  structure NSet : BASIC_NAME_SET
-  type T
-  
-  (*get kind of vertex passed, format (name,(data,(in,out))) comes from	*)
-  (* result of get_vertex_list						*)
-  val get_kind : (V.name * (V.data *(NSet.T * NSet.T))) 
-  					-> T option
-  (*give ordering on vertex kinds*)
-  val kind_ord : T * T -> order
-  val kind_eq : T * T -> bool
-  
-end;
-
-(* type of vertex kinds: X/Z/H and arity*)
-structure VKind : VKIND
-= struct
-  structure V = Vertex;
-  structure NSet = Edge.NTab.NSet;
-  
-  
-  type data = V.IData.data;
-  type T = data * int; 	(*quantum node type and arity*)
-  
-  
-  fun get_kind (name,(idata,(inedges,outedges))) =
-  	let 
-  	   val arity = NSet.cardinality inedges + NSet.cardinality outedges
-  	in case idata of
-  	   	 V.IVert qdata 	=> SOME (qdata,arity)
-  	   	|V.BVert	=> NONE
-  	end;
-  
-  (*arities are compared first*)
-  fun kind_ord ((kind1 as (d1,a1)),(kind2 as (d2,a2))) =
-  	case Int.compare (a1,a2) of
-    	  EQUAL => V.IData.data_ord (d1,d2) 
-    	| LESS	=> LESS
-    	| GREATER=>GREATER;
-    	
-  fun kind_eq (k1,k2) = (kind_ord (k1,k2) = EQUAL);
-
-end;
 
 signature HISTOGRAM
 = sig
@@ -64,6 +19,10 @@ structure Histogram : HISTOGRAM
   structure G = RGGraph;
   structure V = G.RGVertex;
   
+  
+  (*A histogram of a graph is a list of pairs of vertex kinds and the number of 
+    times they appear. It's ordered by vertex kinds, and all functions below
+    assume this. The boundary vertex kind is also assumed absent.*)
   type Entry = (VKind.T * int)
   type T = Entry list;
   
@@ -77,9 +36,9 @@ structure Histogram : HISTOGRAM
   fun create_hist graph =
   	(
   	G.get_vertex_list graph
-  	|> maps (fn vdata => case VKind.get_kind vdata of
-  				 SOME kind => [kind]
-  				|NONE	   => [])
+  	|> map (fn vdata => VKind.get_kind vdata)
+  	(*filter out boundaries*)
+  	|> filter (fn vkind => not (VKind.is_boundary vkind))
   	|> fold insert_into_hist
   	) [];
   

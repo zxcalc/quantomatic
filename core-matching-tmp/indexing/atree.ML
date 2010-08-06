@@ -1,0 +1,111 @@
+structure AdjacencyTree
+= struct
+
+  structure AList = AdjacencyList;
+  structure G = RGGraph;
+  structure V = G.RGVertex;
+  structure Vk = VKind;
+  structure NSet = V.NSet;
+  structure NTab = V.NTab;
+  structure R = Rule;
+  type N = V.name;
+  
+  (*graph with rule data not necessary for processing atree*)
+  type GData = N;
+  type GraphWithData = G.T * GData;
+  type Bag = GraphWithData list;
+  
+  datatype T = Br of Bag * ((AList.Entry * T) list)
+  	     | Lf of Bag
+  	     | Empty;
+  	     
+  fun prepare_rule name (graph,(startv,rule)) =
+  	(NTab.doadd (startv,name) NTab.empty, rule);
+  	     
+  
+  fun insert_into_atree (graphwd,[]) Empty = Lf [graphwd]
+    | insert_into_atree (graphwd,e::es) Empty = 
+  			Br([],
+  				[(e,insert_into_atree (graphwd,es) Empty)]
+  			   )
+    | insert_into_atree (graphwd,[]) (Lf bag) = Lf (graphwd::bag)
+    | insert_into_atree (graphwd,e::es) (Lf bag) = 
+  	     		Br (bag,
+    				[(e,insert_into_atree (graphwd,es) Empty)]
+    			   )
+    | insert_into_atree (graphwd,[]) (Br (bag,brs)) =
+    			Br ((graphwd::bag),brs)
+    | insert_into_atree (graphwd,e::es) (Br (bag,brs)) =
+    			case (filter (fn (adjentry,br) =>
+    				AList.entry_eq (e,adjentry)) brs) of
+    			  [] => Br (bag, (e,insert_into_atree (graphwd,es) Empty)::brs)
+    			| _  =>
+    				Br (bag, 
+    					map (fn (adjentry,br) =>
+    						if AList.entry_eq (e,adjentry) then
+    							(adjentry,insert_into_atree (graphwd,es) br)
+    						else (adjentry,br)) 
+    				brs);
+    				
+  fun create_atree_from_ruleset graphs_with_data =
+  	(graphs_with_data
+  	|> map (fn (graph,startv) => 
+  		((graph,startv),
+  			AList.build_adj_list graph startv))
+  	|> fold insert_into_atree) Empty;
+  (*	
+  fun create_atree_from_ruleset ruleset =
+  	let
+  	val rule_list = NTab.list_of ruleset
+  	val graphs_with_data = map (fn (rname,(rule,flag)) =>
+  		let
+  		val lhs = R.get_lhs rule
+  		in
+  		(lhs, (AList.select_biggest lhs, (rname,rule)))
+  		end) rule_list
+  	in
+  	create_atree_from_ruleset' graphs_with_data
+  	end;
+  *)	
+  fun create_atree_from_graphlist graphs =
+  	(graphs
+  	|> map (fn graph => 
+  		((graph,AList.select_biggest graph),
+  			AList.get_adjacency graph))
+  	|>fold insert_into_atree) Empty;
+    			
+  fun prune_atree tgt_graph tgt_ktable vnames Empty = Empty
+    | prune_atree tgt_graph tgt_ktable vnames (Lf bag) = Lf bag
+    | prune_atree tgt_graph tgt_ktable vnames (Br (bag,brs)) =
+    	if NSet.is_empty vnames 
+    	then Lf bag
+    	else
+    		let
+    		val tgt_entry = AList.make_entry vnames tgt_ktable
+    		val (graph2,vnames2) = AList.pull_next_layer (tgt_graph,vnames)
+    		in
+    		Br (bag,
+    			map (fn (pat_entry,br) =>
+    			    if AList.compatible tgt_entry pat_entry
+    			    then (pat_entry, prune_atree graph2 tgt_ktable vnames2 br)
+    			    else (tgt_entry,Lf [])) brs)
+    		end;
+    			  
+    					
+  fun get_graphs Empty = []
+    | get_graphs (Lf bag) = bag
+    | get_graphs (Br (bag,brs)) =
+    	bag @ maps (fn (pat_entry,br) => get_graphs br) brs;
+    	
+  fun lookup_atree graph name atree ktable =
+  	let
+  	val init_nset = NSet.single name
+  	in
+  	prune_atree graph ktable init_nset atree
+  	|> get_graphs
+  	|> map (fn (graph,startv) => (graph,NTab.doadd (startv,name) NTab.empty))
+  	end;
+  	
+  
+  
+end;
