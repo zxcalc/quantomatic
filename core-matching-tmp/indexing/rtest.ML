@@ -23,8 +23,7 @@ structure Tester
   	in
   	cput;
   	rt;
-  	(thing (), 
-  		(Int.toString m) ^ " rules, and " ^ (Int.toString n) ^ " vertices in target",
+  	(thing (), m (*number of rules*),n (*tgt size*),
   		Timer.checkCPUTimes cput ,Timer.checkRealTimer rt)
   	end;
 
@@ -37,10 +36,64 @@ structure Tester
   	
   fun matched xs = List.length (filter (fn x => case x of [] => false | _ => true) xs);
   
+  
+  fun make_time (cput as {
+                        nongc : {
+                          usr : Time.time,
+                          sys : Time.time
+                        },
+                        gc : {
+                          usr : Time.time,
+                          sys : Time.time
+                        }
+                      }) rt = 	
+  	let
+  	val tot_cput = #usr (#nongc cput) + #sys (#nongc cput) +
+  			#usr (#gc cput) + #sys (#gc cput)
+  	in 
+  	
+  	case Time.compare (tot_cput,rt) of
+  	    GREATER => tot_cput
+  	   | _      => rt
+  	end;
+  
   fun process_results xs = 
   	map 
-  		(map (fn (matches,description,cputime,rtime) => 
-  			(matched matches,description,cputime, rtime))) xs;	
+  		(map (fn (matches,nrules,tgtsize,cputime,rtime) => 
+  			(matched matches,nrules,tgtsize,
+  				make_time cputime rtime
+  				))) xs;	
+  				
+  				
+ (*output to file*)
+ local 
+ open TextIO
+ in
+ fun output results filename =
+ 	let 
+ 	val dir = "indexing/test/results/" ^ filename
+ 	val ostream = openAppend dir
+ 	val show = Int.toString
+ 	in
+ 	ostream;
+ 	map (fn (num_matched, nrules, tgtsize, time) =>
+ 		outputSubstr (ostream, Substring.full (
+ 					(show num_matched) ^ "\t" ^
+ 					(show nrules) ^ "\t" ^
+ 					(show tgtsize) ^ "\t" ^
+ 					(show (Time.toMilliseconds time)) ^ "\n")
+ 					)
+ 			     ) results;
+ 	closeOut ostream
+ 	end
+ 
+ fun test_out thing name reps = 
+ 	Seq.map (fn n => output (Lib.flat (thing ())) name) (Seq.of_list (1 upto reps))
+ 	|> pull_all [];
+ end;
+ 
+ 
+ 
 (*current Matching algorithm*)
   
   (*generates a ruleset and matches it against the given tgt graph*)
@@ -145,13 +198,26 @@ structure Tester
   	
   (*standard tests*)
   
-  fun std_match reps = match_test RG.std_rgraph (1 upto reps) (1 upto reps) 10 50;
-  fun simple_match reps = match_test RG.simple_rgraph (1 upto reps) (1 upto reps) 10 50;
+  fun std_match min max = match_test RG.std_rgraph (min upto max) (min upto max) 10 50;
+  fun simple_match min max = match_test RG.simple_rgraph (min upto max) (min upto max) 10 50;
   
-  fun std_hist reps = hist_match_test RG.std_rgraph (1 upto reps) (1 upto reps) 10 50;
-  fun simple_hist reps = hist_match_test RG.simple_rgraph (1 upto reps) (1 upto reps) 10 50;
+  fun std_hist min max = hist_match_test RG.std_rgraph (min upto max) (min upto max) 10 50;
+  fun simple_hist min max = hist_match_test RG.simple_rgraph (min upto max) (min upto max) 10 50;
   
-  fun std_adj reps = adj_match_test RG.std_rgraph (1 upto reps) (1 upto reps) 10 50;
-  fun simple_adj reps = adj_match_test RG.simple_rgraph (1 upto reps) (1 upto reps) 10 50;
+  fun std_adj min max = adj_match_test RG.std_rgraph (min upto max) (min upto max) 10 50;
+  fun simple_adj min max = adj_match_test RG.simple_rgraph (min upto max) (min upto max) 10 50;
+  
+  (*ruleset vs constant target size*)
+  
+  fun std_rule_match min max = match_test RG.std_rgraph (min upto max) (Lib.replicate 20 1) 5 500;
+  fun std_rule_adj min max = adj_match_test RG.std_rgraph (min upto max) (Lib.replicate 20 1) 5 500;
+  fun std_rule_hist min max = hist_match_test RG.std_rgraph (min upto max) (Lib.replicate 20 1) 5 500;
+  
+  (*constant ruleset vs target size*)
+  
+  fun std_tgt_match min max = match_test RG.std_rgraph (Lib.replicate 20 1) (min upto max) 100 50;
+  fun std_tgt_adj min max = adj_match_test RG.std_rgraph (Lib.replicate 20 1) (min upto max) 100 50;
+  fun std_tgt_hist min max = hist_match_test RG.std_rgraph (Lib.replicate 20 1) (min upto max) 100 50;
+  
   
 end;
