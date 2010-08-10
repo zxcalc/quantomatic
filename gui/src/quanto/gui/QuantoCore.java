@@ -542,8 +542,9 @@ public class QuantoCore {
 		return chomp(blockCommand("input_graph_xml", xml));
 	}
 	
-	public Ruleset load_ruleset(String rsetName, String fileName) throws CoreException{
-		return new Ruleset(
+	public Theory load_ruleset(String rsetName, String fileName) throws CoreException{
+		return new Theory(
+				this,
 				chomp(command("load_ruleset",
 					new HasName.StringName(rsetName), 
 					new HasName.StringName(fileName))),
@@ -551,7 +552,7 @@ public class QuantoCore {
 				false);
 	}
 	
-	public void unload_ruleset(Ruleset ruleset) throws CoreException{
+	public void unload_ruleset(Theory ruleset) throws CoreException{
 		command("unload_ruleset", ruleset);
 	}
 
@@ -625,12 +626,12 @@ public class QuantoCore {
 		return command("list_rules", new HasName.StringName(rset)).split("\r\n|\n|\r");
 	}
 	
-	public void activate_ruleset(Ruleset rset) throws CoreException {
+	public void activate_ruleset(Theory rset) throws CoreException {
 		command("activate_ruleset", rset);
 		rset.setActive(true);
 	}
 	
-	public void deactivate_ruleset(Ruleset rset) throws CoreException {
+	public void deactivate_ruleset(Theory rset) throws CoreException {
 		command("deactivate_ruleset", rset);
 		rset.setActive(false);
 	}
@@ -643,7 +644,7 @@ public class QuantoCore {
 		command("apply_first_rewrite", graph);
 	}
 	
-	public QuantoGraph open_rule_lhs(Ruleset rset, String rule)
+	public QuantoGraph open_rule_lhs(Theory rset, String rule)
 	throws CoreException {
 		try {
 			QuantoGraph g = new QuantoGraph(
@@ -655,7 +656,7 @@ public class QuantoCore {
 		}
 	}
 	
-	public QuantoGraph open_rule_rhs(Ruleset rset, String rule)
+	public QuantoGraph open_rule_rhs(Theory rset, String rule)
 	throws CoreException {
 		try {
 			QuantoGraph g = new QuantoGraph(
@@ -667,7 +668,7 @@ public class QuantoCore {
 		}
 	}
 	
-	public void replace_rule(Ruleset rset, Rewrite rule)
+	public void replace_rule(Theory rset, Rewrite rule)
 	throws CoreException {
 		command("replace_rule", rset, rule, rule.getLhs(), rule.getRhs());
 	}

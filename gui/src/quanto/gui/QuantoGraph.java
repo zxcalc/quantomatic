@@ -26,7 +26,7 @@ public class QuantoGraph extends DirectedSparseMultigraph<QVertex, QEdge>
 implements HasName, ChangeEventSupport {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(TheoryTree.class);
+		LoggerFactory.getLogger(QuantoGraph.class);
 
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;

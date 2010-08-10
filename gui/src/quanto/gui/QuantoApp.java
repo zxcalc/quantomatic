@@ -50,6 +50,7 @@ public class QuantoApp {
 	private final QuantoCore core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
+	private TheoryManager model = null;
 
 	private static class Pref<T> {
 
@@ -194,7 +195,11 @@ public class QuantoApp {
 
 		logger.info("Loading theories");
 
-		TheoryTree.loadState(app.getCore(), app.getPreference(QuantoApp.LOADED_THEORIES));
+		try {
+			app.getTheoryManager().loadState(app.getPreference(QuantoApp.LOADED_THEORIES));
+		} catch (IllegalArgumentException ex) {
+			logger.warn("Could not load theory state: invalid state");
+		}
 
 		logger.info("Finished initialisation");
 	}
@@ -240,6 +245,13 @@ public class QuantoApp {
 
 	public void errorDialog(String message) {
 		JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	public TheoryManager getTheoryManager() {
+		if (model == null) {
+			model = new TheoryManager(core);
+		}
+		return model;
 	}
 
 	public void createNewFrame() {
@@ -328,37 +340,6 @@ public class QuantoApp {
 
 	public void newGraph() {
 		newGraph(false);
-	}
-
-	public void loadRuleset() {
-		String lastDir = getPreference(LAST_THEORY_OPEN_DIR);
-		if (lastDir != null) {
-			getFileChooser().setCurrentDirectory(new File(lastDir));
-		}
-
-		int retVal = getFileChooser().showDialog(null, "Open");
-		if (retVal == JFileChooser.APPROVE_OPTION) {
-			try {
-				File file = getFileChooser().getSelectedFile();
-				if (file.getParent() != null) {
-					setPreference(LAST_THEORY_OPEN_DIR, file.getParent());
-				}
-				String thyname = file.getName().replaceAll("\\.theory|\\n|\\r", "");
-				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
-				TheoryTree.loadRuleset(getCore(), thyname, filename);
-			}
-			catch (QuantoCore.CoreException e) {
-				logger.error("Failed to load the rulesets from the last instance", e);
-				errorDialog(e.getMessage());
-			}
-			catch (java.io.IOException ioe) {
-				logger.error("Failed to load the rulesets from the last instance", ioe);
-				errorDialog(ioe.getMessage());
-			}
-			finally {
-				TheoryTree.refreshInstances();
-			}
-		}
 	}
 
 	/**

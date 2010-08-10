@@ -25,24 +25,24 @@ public class SplitGraphView extends InteractiveView {
 	private JSplitPane splitPane;
 	private ViewPort lastViewPort; // the last viewport I saw. Could often be null.
 	private volatile boolean saved;
-	// don't trust ruleset to have much but the correct name
-	private Ruleset ruleset;
+	// don't trust theory to have much but the correct name
+	private Theory theory;
 	// rule is constructed locally
 	private Rewrite rule;
 
-	public SplitGraphView(Ruleset ruleset, String ruleName,
+	public SplitGraphView(Theory theory, String ruleName,
 		InteractiveGraphView leftView, InteractiveGraphView rightView) {
-		this(ruleset, ruleName, leftView, rightView, new Dimension(800, 600));
+		this(theory, ruleName, leftView, rightView, new Dimension(800, 600));
 	}
 
-	public SplitGraphView(Ruleset ruleset, String ruleName,
+	public SplitGraphView(Theory theory, String ruleName,
 		InteractiveGraphView leftView, InteractiveGraphView rightView, Dimension dim) {
 		super(ruleName);
 		this.leftFocused = true;
 		this.lastViewPort = null;
 		this.leftView = leftView;
 		this.rightView = rightView;
-		this.ruleset = ruleset;
+		this.theory = theory;
 		this.rule = new Rewrite(ruleName,
 			this.leftView.getGraph(), this.rightView.getGraph());
 
@@ -109,7 +109,7 @@ public class SplitGraphView extends InteractiveView {
 		if (USE_RULE_ACTION.equals(command)) {
 			try {
 				QuantoApp.getInstance().getCore().replace_rule(
-					SplitGraphView.this.ruleset,
+					SplitGraphView.this.theory,
 					SplitGraphView.this.rule);
 				// will throw error if unsuccessful, else:
 				setSaved(true);

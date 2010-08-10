@@ -18,7 +18,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	private final ViewPort viewPort;
 	private volatile static int frameCount = 0;
 	private QuantoApp app;
-	private TheoryTree theoryTree;
+	private TheoryTreeView theoryTree;
 	private ActionManager actionManager = new ActionManager();
 
 	// these all taken from resources/actions.xml
@@ -90,8 +90,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		actionManager.setEnabled(NEW_GRAPH_COMMAND, true);
 		actionManager.registerCallback(OPEN_GRAPH_COMMAND, this, "openGraph");
 		actionManager.setEnabled(OPEN_GRAPH_COMMAND, true);
-		actionManager.registerCallback(LOAD_THEORY_COMMAND, app, "loadRuleset");
-		actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
 		actionManager.registerCallback(CLOSE_COMMAND, this, "closeCurrentView");
 		actionManager.setEnabled(CLOSE_COMMAND, true);
 		actionManager.registerCallback(QUIT_COMMAND, app, "shutdown");
@@ -130,7 +128,9 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
-		theoryTree = new TheoryTree(viewPort, core);
+		theoryTree = new TheoryTreeView(app.getTheoryManager(), app, viewPort);
+		actionManager.registerCallback(LOAD_THEORY_COMMAND, theoryTree, "loadTheory");
+		actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
 
 		Delegate delegate = new Delegate();
 		actionManager.registerGenericCallback(
@@ -139,7 +139,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 		//Add the scroll panes to a split pane.
 		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-		splitPane.setLeftComponent(theoryTree);
+		splitPane.setLeftComponent(new JScrollPane(theoryTree));
 		splitPane.setRightComponent(viewPort);
 		splitPane.setDividerLocation(150);
 
