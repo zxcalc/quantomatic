@@ -299,7 +299,7 @@ local
           rulesets |> RuleSet.NTab.update (rs, ((updater rl rset), active))
         end
 
-    fun update_rule' updater ([rule,ruleset], state) =
+    fun update_rule' updater ([ruleset,rule], state) =
         (("ok\n",
           update_rulesets (update_rule updater ruleset rule) state)
          handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset '" ^ ruleset ^ "'"))
@@ -784,7 +784,7 @@ val () = (
 
     register_cmd
     "delete_rule"
-    ("delete_ruleset RULESET RULE\n\n"^
+    ("delete_rule RULESET RULE\n\n"^
      "    remove RULE from RULESET for rewriting\n")
     (delete_rule);
 
