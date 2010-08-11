@@ -34,6 +34,14 @@ type outtype = Rule.Name.name * rule * bool;
 
 val input_graph = InputGraph.input;
 
+fun input_active xml = 
+    let val (_,_,children) = force_unpack_elem "active" xml
+    in
+      case children of
+        [] => false
+      | (x::xs) => input_boolean x
+    end
+
 fun input xml = 
     let val _ = force_unpack_elem "rule" xml
 	val name = Rule.Name.mk (input_name (get_required_child "name" xml))
@@ -43,7 +51,7 @@ fun input xml =
 		    (get_required_child "graph" (get_required_child "rhs" xml))
   val active = case (get_child false "active" xml) of
                  (NONE,_) => true
-               | (SOME b, _) => input_boolean b
+               | (SOME b, _) => input_active b
     in
       (name, Rule.mk (lhs,rhs), active)
     end
