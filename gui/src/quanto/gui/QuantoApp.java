@@ -205,8 +205,17 @@ public class QuantoApp {
 	}
 
 	public boolean shutdown() {
+		if (getTheoryManager().hasUnsavedTheories()) {
+			int answer = JOptionPane.showConfirmDialog(null,
+				"You appear to have unsaved changes to one or more theories.  Are you sure you want to quit?",
+				"Unsaved changes",
+				JOptionPane.YES_NO_OPTION);
+			if (answer != JOptionPane.YES_OPTION)
+				return false;
+		}
 		logger.info("Shutting down");
 		if (viewManager.closeAllViews()) {
+			logger.info("Exiting now");
 			System.exit(0);
 		}
 		return false;

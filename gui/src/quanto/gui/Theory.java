@@ -16,6 +16,7 @@ public class Theory implements HasName {
 	private Set<String> rules = new HashSet<String>();
 	private QuantoCore core;
 	private boolean rulesLoaded = false;
+	private boolean hasUnsavedChanges = false;
 	private EventListenerList listenerList = new EventListenerList();
 
 	public Theory(QuantoCore core, String name, String path, boolean active) {
@@ -32,6 +33,26 @@ public class Theory implements HasName {
 	
 	public Theory(QuantoCore core, String name) {
 		this(core, name, "");
+	}
+
+	public boolean hasUnsavedChanges() {
+		return hasUnsavedChanges;
+	}
+
+	public void markAsChanged() {
+		if (!this.hasUnsavedChanges) {
+			this.hasUnsavedChanges = true;
+			fireTheorySavedStateChanged();
+		}
+	}
+
+	public void save(String filename) throws QuantoCore.CoreException {
+		core.save_ruleset(this, filename);
+		path = filename;
+		if (this.hasUnsavedChanges) {
+			this.hasUnsavedChanges = false;
+			fireTheorySavedStateChanged();
+		}
 	}
 
 	public QuantoCore getCore() {
@@ -118,6 +139,18 @@ public class Theory implements HasName {
 	     }
 	}
 
+	private void fireTheorySavedStateChanged() {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).theorySavedStateChanged(this, hasUnsavedChanges);
+		 }
+	     }
+	}
+
 	/**
 	 * Does exactly the same as refreshRules if the rules have never been
 	 * loaded.  If they have been loaded, does nothing.
@@ -188,6 +221,7 @@ public class Theory implements HasName {
 		if (rulesLoaded)
 			rules.add(ruleName);
 		fireRuleAdded(ruleName);
+		markAsChanged();
 		return ruleName;
 	}
 
@@ -195,6 +229,7 @@ public class Theory implements HasName {
 		core.delete_rule(this, rule);
 		if (rulesLoaded)
 			rules.remove(rule);
+		markAsChanged();
 		fireRuleDeleted(rule);
 	}
 
@@ -204,6 +239,18 @@ public class Theory implements HasName {
 			rules.remove(name);
 			rules.add(newName);
 		}
+		markAsChanged();
 		fireRuleRenamed(rule, newName);
+	}
+	
+	public void updateRule(Rewrite rule) throws CoreException {
+		core.replace_rule(this, rule);
+		markAsChanged();
+	}
+
+	public void updateRule(String rule, QuantoGraph lhs, QuantoGraph rhs)
+	throws CoreException {
+		core.replace_rule(this, new Rewrite(rule, lhs, rhs));
+		markAsChanged();
 	}
 }

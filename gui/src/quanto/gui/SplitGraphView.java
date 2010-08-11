@@ -36,6 +36,7 @@ public class SplitGraphView extends InteractiveView {
 		public void ruleAdded(Theory source, String ruleName) {}
 		public void activeStateChanged(Theory source, boolean active) {}
 		public void theoryRenamed(Theory source, String oldName, String newName) {}
+		public void theorySavedStateChanged(Theory source, boolean hasUnsavedChanges) {}
 
 		public void rulesReloaded(Theory source) {
 			// Let's just check we're still there...
@@ -168,7 +169,7 @@ public class SplitGraphView extends InteractiveView {
 		if (InteractiveGraphView.SAVE_GRAPH_ACTION.equals(command)) {
 			try {
 				if (rule != null) {
-					theory.getCore().replace_rule(theory, rule);
+					theory.updateRule(rule);
 					setSaved(true);
 				}
 			}

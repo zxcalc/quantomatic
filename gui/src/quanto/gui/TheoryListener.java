@@ -18,4 +18,5 @@ public interface TheoryListener extends EventListener {
 	void rulesReloaded(Theory source);
 	void activeStateChanged(Theory source, boolean active);
 	void theoryRenamed(Theory source, String oldName, String newName);
+	void theorySavedStateChanged(Theory source, boolean hasUnsavedChanges);
 }

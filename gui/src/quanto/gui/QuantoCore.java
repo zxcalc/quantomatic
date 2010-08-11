@@ -559,6 +559,10 @@ public class QuantoCore {
 				chomp(fileName),
 				false);
 	}
+
+	public void save_ruleset(Theory ruleset, String fileName) throws CoreException{
+		command("save_ruleset", ruleset, new HasName.StringName(fileName));
+	}
 	
 	public void unload_ruleset(Theory ruleset) throws CoreException{
 		command("unload_ruleset", ruleset);

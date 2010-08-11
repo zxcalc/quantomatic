@@ -98,6 +98,13 @@ public class TheoryManager {
 				innerModel.nodeChanged(node);
 			}
 		}
+
+		public void theorySavedStateChanged(Theory source, boolean hasUnsavedChanges) {
+			TheoryTreeNode node = findNode(source).node;
+			if (node != null) {
+				innerModel.nodeChanged(node);
+			}
+		}
 	};
 
 	public class TheoryTreeModel implements TreeModel {
@@ -286,6 +293,19 @@ public class TheoryManager {
 
 	public QuantoCore getCore() {
 		return this.core;
+	}
+
+	public boolean hasUnsavedTheories() {
+		boolean hasUnsaved = false;
+		Enumeration theories = root.children();
+		while (theories.hasMoreElements()) {
+			TheoryTreeNode rnode = (TheoryTreeNode)theories.nextElement();
+			if (rnode.getTheory().hasUnsavedChanges()) {
+				hasUnsaved = true;
+				break;
+			}
+		}
+		return hasUnsaved;
 	}
 	
 	public void reloadTheoriesFromCore() throws QuantoCore.CoreException {

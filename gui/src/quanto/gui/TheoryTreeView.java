@@ -132,8 +132,15 @@ public class TheoryTreeView extends JTree {
 
 			// ghost the theory if it isn't active
 			Theory th = manager.getTreeModel().getTheory(value);
-			if (th != null && !th.isActive())
-				setForeground(Color.gray);
+			if (th != null) {
+				if (!th.isActive())
+					setForeground(Color.gray);
+
+				if (th.hasUnsavedChanges() &&
+					manager.getTreeModel().isTheoryNode(value)) {
+					setText(getText() + " [*]");
+				}
+			}
 
 			return this;
 		}
@@ -185,6 +192,34 @@ public class TheoryTreeView extends JTree {
 			});
 			add(item);
 
+			item = new JMenuItem("Save to file...");
+			item.addActionListener(new WrappedActionListener() {
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					JFileChooser fileChooser = new JFileChooser();
+					File defaultFile = new File(
+						app.getPreference(QuantoApp.LAST_THEORY_OPEN_DIR),
+						rset.getName() + ".theory");
+					fileChooser.setSelectedFile(defaultFile);
+
+					int retVal = fileChooser.showSaveDialog(TheoryTreeView.this);
+					if (retVal == JFileChooser.APPROVE_OPTION) {
+						try {
+							File file = fileChooser.getSelectedFile();
+							if (file.getParent() != null) {
+								app.setPreference(QuantoApp.LAST_THEORY_OPEN_DIR, file.getParent());
+							}
+							String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
+							rset.save(filename);
+						}
+						catch (java.io.IOException ioe) {
+							logger.error("Failed to save theory " + rset.getName(), ioe);
+							app.errorDialog(ioe.getMessage());
+						}
+					}
+				}
+			});
+			add(item);
+
 			addSeparator();
 
 			item = new JMenuItem("Refresh");
@@ -209,6 +244,14 @@ public class TheoryTreeView extends JTree {
 			item = new JMenuItem("Unload");
 			item.addActionListener(new WrappedActionListener() {
 				public void wrappedAction(ActionEvent e) throws CoreException {
+					if (rset.hasUnsavedChanges()) {
+						int answer = JOptionPane.showConfirmDialog(TheoryTreeView.this,
+							"There are unsaved changes to this theory.  Are you sure you want to discard them?",
+							"Unsaved changes",
+							JOptionPane.YES_NO_OPTION);
+						if (answer != JOptionPane.YES_OPTION)
+							return;
+					}
 					manager.unloadTheory(rset);
 				}
 			});
