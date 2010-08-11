@@ -9,8 +9,8 @@ signature HISTTREE
   type T
   type Bag
 
-  val make_htree : Bag -> T
-  val lookup_htree : H.T -> T -> Bag
+  val make_htree : G.T list -> T
+  val lookup_htree : H.T -> T -> G.T list
 end;
 
 structure HistTree : HISTTREE
@@ -21,7 +21,7 @@ structure HistTree : HISTTREE
   structure ITab = NameTabFun(IntName);
   
   type GraphWithData = G.T 
-  type Bag = G.T list;
+  type Bag = (G.T ref) list;
   
   datatype HTree = Br of (VKind.T * HTree ITab.T)
   		 | Lf of Bag
@@ -126,18 +126,18 @@ structure HistTree : HISTTREE
   
   fun make_htree bag = 
   	(bag	
-  	|> map (fn graph => (graph,H.create_hist graph))
+  	|> map (fn graph => (ref graph,H.create_hist graph))
   	|> (fold insert_into_htree)) 
   	Empty;
   
   (*get functions should never throw exceptions, there is always a zero branch*)	
-  fun lookup_htree hist Empty	 	= []
+  fun lookup_htree' hist Empty	 	= []
     (*should never happen*)
-    | lookup_htree hist (Lf bag) 	= bag
+    | lookup_htree' hist (Lf bag) 	= bag
     
-    | lookup_htree [] (Br (_,tab)) 	= lookup_htree [] (ITab.get tab 0)
+    | lookup_htree' [] (Br (_,tab)) 	= lookup_htree' [] (ITab.get tab 0)
     (*hist is empty, move to zero branch at all remaining nodes*)
-    | lookup_htree ((vkh,num)::hs) 
+    | lookup_htree' ((vkh,num)::hs) 
     		   (Br (vkt, tab)) 	=
     
     	case VKind.kind_ord (vkh,vkt) of
@@ -146,20 +146,22 @@ structure HistTree : HISTTREE
     		     NONE => let
     			     val (_,branch) = the (ITab.next_smaller tab num)
     			     in
-    			     lookup_htree hs branch
+    			     lookup_htree' hs branch
     			     end
-    		   | SOME branch => lookup_htree hs branch
+    		   | SOME branch => lookup_htree' hs branch
     		   )
     	(*follow path corresponding to num or the next smallest key*)
     		 
-    	| LESS  => lookup_htree ((vkh,num)::hs) (ITab.get tab 0)
+    	| LESS  => lookup_htree' ((vkh,num)::hs) (ITab.get tab 0)
     	(*vkt does not appear in hist, move to zero branch*)
     	
-    	|GREATER=> lookup_htree hs (Br (vkt,tab));
+    	|GREATER=> lookup_htree' hs (Br (vkt,tab));
     	(*vkh does not appear in tree, move to next hist entry*)
     			
 
-	  
+   fun lookup_htree hist htree = 
+   	lookup_htree' hist htree
+   	|> map (fn graphref => ! graphref)
   
  
   		
