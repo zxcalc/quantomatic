@@ -377,8 +377,8 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun copy1_box (vs,es,bs) bn g = 
       let val bbox_vs = get_bbox g bn
           (* subgraph of selection gives back something without bang-boxes *)
-          val (boundary_amorph, bbg) = cut_around_subgraph bbox_vs g;
-          val boundary_vs = get_ boundary_amorph 
+          val (boundary_amorph, bbg) = matched_subgraph_within_selection' bbox_vs g;
+          val boundary_vs = Vertex.Amorph.get_dom_nset boundary_amorph;
           val ((vrn,ern),bbg2) = 
               bbg |> rename (Vertex.Rnm.mk boundary_vs vs Vertex.NTab.empty,
                              Edge.Rnm.mk_from_avoidset es) 

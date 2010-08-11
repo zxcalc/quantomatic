@@ -34,6 +34,10 @@ val is_boundary : T -> Vertex.name -> bool
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
 val is_endpoint' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) -> bool
+(* returns the SOME non-empty edge set when exactly one of the inset of ourset of edges is empty, 
+   else NONE *)
+val endpoint_of_vertex' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) 
+    -> (Edge.Ehn.halfid * Edge.NSet.T) option
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : Vertex.name -> T -> T
@@ -73,9 +77,7 @@ val is_boundary : T -> Vertex.name -> bool
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
 val is_endpoint' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) -> bool
-(* returns the non-empty edge set if there is exactly one, else NONE *)
-val endpoint_of_vertex' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) 
-    -> (Edge.Ehn.halfid * Edge.NSet.T) option
+
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : Vertex.name -> T -> T
@@ -109,18 +111,18 @@ val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
 val cut_around_vertex : Vertex.NSet.T -> Vertex.name 
     -> (Vertex.Amorph.T * T) -> (Vertex.Amorph.T * T)
 (* cut all edges that go from within the subgraph to outside it; 
-   returns the gluing automorphism *)
+   returns the gluing automorphism, and a new graph which will be disjoint *)
 val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.Amorph.T * T)
 
 (* Given selection set of vertices, make subgraph: 
-   vertices with incident edges outside selection become boundary *)
+   vertices with incident edges outside selection have edges to boundary vertices *)
 val matched_subgraph_within_selection' : Vertex.NSet.T -> T 
     -> Vertex.Amorph.T * T (* returns gluing/cutting for new boundary, 
                               and cut graph *)
 val matched_subgraph_within_selection : Vertex.NSet.T -> T -> T
 
 (* Given selection set of vertices, make subgraph: 
-   all incident edges to selection are removed. = copy for graphics program *)
+   all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_selection : Vertex.NSet.T -> T -> T
 
 (* 
@@ -231,14 +233,14 @@ functor BasicOGraphFun(
   val is_boundary = V.NSet.contains o get_boundary;
 
   (* endpoints are edge-points with ins or outs empty. *)
-  fun end_point_of_vertex' (V.EVert,(ins,outs)) =
+  fun endpoint_of_vertex' (V.EVert,(ins,outs)) =
       (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
          (true, true) => NONE
        | (false,true) => SOME (Edge.Ehn.SourceEnd, outs)
        | (true,false) => SOME (Edge.Ehn.TargetEnd, ins)
        | (false,false) => NONE)
-    | end_point_of_vertex' (V.IVert d,(ins,outs)) = NONE;       
-  val is_endpoint' = is_some o end_point_of_vertex';
+    | endpoint_of_vertex' (V.IVert d,(ins,outs)) = NONE;       
+  val is_endpoint' = is_some o endpoint_of_vertex';
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o Vertex.NSet.add;
   val del_from_edgepoints = update_edgepoints o Vertex.NSet.delete;
@@ -370,31 +372,53 @@ struct
         |> del_from_edgepoints n
         |> set_vertex_data (V.IVert d) n;
   
-  (* cut and edge, adding the introduced bounary vertices to the automorphism *)
+  (* cut an edge, adding the introduced bounary vertices to the automorphism *)
   fun cut_edge' (e,(d,(fromv,tov))) g = 
       let val (newv1,g1) = add_vertex V.EVert g 
           val (newv2,g2) = add_vertex V.EVert g1
           val (newe,g3) = add_edge d fromv newv2 g2
       in
-        (((e,newv2),(newe,newv1))
-         g3 |> update_edges (Edge.NTab.update (e, (d,(newv1,n))))
-            |> add_to_boundary newv1)
+        (((e,newv2),(newe,newv1)),
+         g3 |> update_edges (Edge.NTab.update (e, (d,(newv1,tov))))
+            |> add_to_boundary newv1 
+            |> add_to_boundary newv2)
       end;
 
   fun cut_edge e g = 
       let val (d,(fromv,tov)) = get_edge g e 
       in cut_edge' (e, get_edge g e) g end;
 
-  (* plug two half-edges. This is equiavlent to graph 
-     composition with an identity. Assumes that e1 and e2 go to boundary 
-     coherent edge-point vertices (vertices representing half-edges going in 
-     opposite directions / both undirected) *)
-  fun plug_by_edges (e1,e2) g = 
-      let val (d,(fromv,tov)) = get_edge g e1
+  (* v1 and v2 are boundary coherent (half-edges of opposite direction, or both undirected): they can be plugged together; return SOME ((fromv,tov),(dir,edgedata)) where fromv is the source of connecting edge, and tov is the target. If the half-edges were directed, this respects the edge direction. 
+  Assumes edge data is the same for both edges. 
+  *)
+  fun boundary_coherence g v1 v2 = 
+      (case endpoint_of_vertex' (get_vertex g v1) of 
+         NONE => NONE
+       | SOME (halfid1,es1) => 
+         (case endpoint_of_vertex' (get_vertex g v2) of 
+            NONE => NONE
+          | SOME (halfid2,es2) => 
+            (case (Edge.NSet.tryget_singleton es1, 
+                   Edge.NSet.tryget_singleton es2) of 
+               (SOME e1,SOME e2) => 
+               let val ((dir_or_undir1,ed1),(fromv1,tov1)) = get_edge g e1
+                   val ((dir_or_undir2,ed2),(fromv2,tov2)) = get_edge g e2
+               in 
+                  if dir_or_undir1 = Directed andalso dir_or_undir2 = Directed
+                     andalso halfid1 <> halfid2 then 
+                    SOME (if halfid1 = Edge.Ehn.SourceEnd then (fromv2,tov1) else (fromv1,tov2),
+                          (dir_or_undir1, ed1))
+                  else if dir_or_undir1 = UnDirected 
+                       andalso dir_or_undir2 = UnDirected then 
+                    SOME ((if halfid1 = Edge.Ehn.SourceEnd then tov1 else fromv1, 
+                           if halfid2 = Edge.Ehn.SourceEnd then tov2 else fromv2),
+                          (dir_or_undir1, ed1))
+                  else NONE
+               end
+             | (_,_) => NONE)));
 
-
-  (* v1 and v2 are boundary coherent (half-edges of opposite direction, or both undirected): they can be plugged together *)
-  fun boundary_coherent v1 v2 g = 
+  val boundary_coherent = is_some ooo boundary_coherence;
+(* 
       (case endpoint_of_vertex' (get_vertex g v1) of 
          NONE => false
        | SOME (halfid1,es1) => 
@@ -414,24 +438,31 @@ struct
                   else false
                end)
              | (_,_) => false));
+*)
+
 
   (* plug two half-edges, represented by vertices. This is equiavlent to graph 
      composition with an identity. Assumes that e1 and e2 go to boundary 
      coherent edge-point vertices (vertices representing half-edges going in 
      opposite directions / both undirected) *)
-  fun plug_by_boundary (v1,v2) g = 
-      if is_boundary g v1 andalso is_boundary g v2 then 
-      let 
-        val (d1,(in_es1,out_es1)) = get_vertex g v1
-        val (d2,(in_es2,out_es2)) = get_vertex g v2
-      in
-        
+  (* *** needs modification for !-boxes *** *) 
+  exception not_boundary_coherent_exp of string;
+
+  fun plug_by_boundary v1 v2 g = 
+      (case boundary_coherence g v1 v2 
+        of NONE => raise not_boundary_coherent_exp "plug_by_boundary"
+         | SOME ((startv,endv), (dir, data)) => 
+           ((startv,endv),
+            g |> delete_vertex v1
+              |> delete_vertex v2
+              |> add_edge (dir, data) v1 v2));
+
 
   (* Cut edges around a vertex if they are not in the keepvset; change cut 
      incident edges into half-edges (add a boundary vertex to each one). 
      Creates V.Amorph.T which explains how to glue cut back together; 
      automorphism is of the form: keepvset vertex => outside vertex.  
-     INVARIANT: preserves names of the keepset, creates new edges for the
+     NOT** INVARIANT: preserves names of the keepset, creates new edges/boundary vs for the
      rest of the graph. 
   *)
   (* FIXME: rewrite using fold_subgraph (from graph), with cut_edge (above) *)
