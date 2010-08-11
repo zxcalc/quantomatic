@@ -19,38 +19,95 @@ public class SplitGraphView extends InteractiveView {
 
 	public static final String USE_RULE_ACTION = "use-rule-command";
 
-	private boolean leftFocused;
+	private boolean leftFocused = true;
 	private InteractiveGraphView leftView;
 	private InteractiveGraphView rightView;
 	private JSplitPane splitPane;
-	private ViewPort lastViewPort; // the last viewport I saw. Could often be null.
 	private volatile boolean saved;
-	// don't trust theory to have much but the correct name
 	private Theory theory;
-	// rule is constructed locally
+	// this may become null, if the rule is deleted
 	private Rewrite rule;
+	// we keep our own copy of this, in case someone else changes the
+	// rule name in Rewrite
+	private String ruleName;
 
-	public SplitGraphView(Theory theory, String ruleName,
-		InteractiveGraphView leftView, InteractiveGraphView rightView) {
-		this(theory, ruleName, leftView, rightView, new Dimension(800, 600));
+	private TheoryListener listener = new TheoryListener() {
+
+		public void ruleAdded(Theory source, String ruleName) {}
+		public void activeStateChanged(Theory source, boolean active) {}
+		public void theoryRenamed(Theory source, String oldName, String newName) {}
+
+		public void rulesReloaded(Theory source) {
+			// Let's just check we're still there...
+			if (!source.getRules().contains(ruleName)) {
+				ruleDeleted(source, ruleName);
+			}
+		}
+
+		public void ruleDeleted(Theory source, String ruleName) {
+			if (ruleName.equals(ruleName)) {
+				rule = null;
+				setSaved(false);
+				if (isAttached()) {
+					getViewPort().setCommandEnabled(
+						InteractiveGraphView.SAVE_GRAPH_ACTION, false);
+				}
+			}
+		}
+
+		public void ruleRenamed(Theory source, String oldName, String newName) {
+			if (rule != null && oldName.equals(ruleName)) {
+				rule.setName(newName);
+				setTitle(newName);
+				ruleName = newName;
+			}
+		}
+
+	};
+
+	public SplitGraphView(Theory theory, String rule)
+	throws QuantoCore.CoreException {
+		this(theory, theory.getRule(rule));
 	}
 
-	public SplitGraphView(Theory theory, String ruleName,
-		InteractiveGraphView leftView, InteractiveGraphView rightView, Dimension dim) {
-		super(ruleName);
-		this.leftFocused = true;
-		this.lastViewPort = null;
-		this.leftView = leftView;
-		this.rightView = rightView;
-		this.theory = theory;
-		this.rule = new Rewrite(ruleName,
-			this.leftView.getGraph(), this.rightView.getGraph());
+	public SplitGraphView(Theory theory, String rule, Dimension dim)
+	throws QuantoCore.CoreException {
+		this(theory, theory.getRule(rule), dim);
+	}
 
+	public SplitGraphView(Theory theory, Rewrite rule)
+	throws QuantoCore.CoreException {
+		this(theory, rule, new Dimension(800, 600));
+	}
+
+	public SplitGraphView(Theory theory, Rewrite rule, Dimension dim)
+	throws QuantoCore.CoreException {
+		super(rule.getName());
+		this.rule = rule;
+		this.ruleName = rule.getName();
+		this.theory = theory;
+
+		leftView = new InteractiveGraphView(theory.getCore(), rule.getLhs());
+		leftView.setSaveEnabled(false);
+		leftView.setSaveAsEnabled(false);
+		leftView.updateGraph();
+
+		rightView = new InteractiveGraphView(theory.getCore(), rule.getRhs());
+		rightView.setSaveEnabled(false);
+		rightView.setSaveAsEnabled(false);
+		rightView.updateGraph();
+
+		setupListeners();
+		setupLayout(dim);
+		setSaved(true);
+	}
+
+	private void setupListeners() {
 		FocusListener fl = new FocusAdapter() {
 
 			@Override
 			public void focusGained(FocusEvent e) {
-				leftFocused = (e.getSource() == SplitGraphView.this.leftView);
+				leftFocused = (e.getSource() == leftView);
 				updateFocus();
 			}
 		};
@@ -66,7 +123,10 @@ public class SplitGraphView extends InteractiveView {
 		rightView.addFocusListener(fl);
 		leftView.addChangeListener(cl);
 		rightView.addChangeListener(cl);
+		theory.addTheoryListener(listener);
+	}
 
+	private void setupLayout(Dimension dim) {
 		setLayout(new BorderLayout());
 
 		splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -75,7 +135,6 @@ public class SplitGraphView extends InteractiveView {
 		splitPane.setDividerLocation(((int) dim.getWidth() - 140) / 2);
 
 		add(splitPane, BorderLayout.CENTER);
-		setSaved(true);
 	}
 
 	public boolean hasExpandingWorkspace() {
@@ -95,24 +154,23 @@ public class SplitGraphView extends InteractiveView {
 
 		focusMe.setBorder(new LineBorder(Color.blue));
 		unfocusMe.setBorder(new EmptyBorder(1, 1, 1, 1));
-		if (lastViewPort != null) {
-			unfocusMe.detached(lastViewPort);
-			focusMe.attached(lastViewPort);
+		if (isAttached()) {
+			unfocusMe.detached(getViewPort());
+			focusMe.attached(getViewPort());
 		}
 	}
 
 	public static void registerKnownCommands() {
-		ViewPort.registerCommand(USE_RULE_ACTION);
+		//ViewPort.registerCommand(USE_RULE_ACTION);
 	}
 
 	public void commandTriggered(String command) {
-		if (USE_RULE_ACTION.equals(command)) {
+		if (InteractiveGraphView.SAVE_GRAPH_ACTION.equals(command)) {
 			try {
-				QuantoApp.getInstance().getCore().replace_rule(
-					SplitGraphView.this.theory,
-					SplitGraphView.this.rule);
-				// will throw error if unsuccessful, else:
-				setSaved(true);
+				if (rule != null) {
+					theory.getCore().replace_rule(theory, rule);
+					setSaved(true);
+				}
 			}
 			catch (CoreException err) {
 				errorDialog(err.getMessage());
@@ -121,14 +179,18 @@ public class SplitGraphView extends InteractiveView {
 	}
 
 	public void attached(ViewPort vp) {
-		lastViewPort = vp;
-		vp.setCommandEnabled(USE_RULE_ACTION, true);
+		//vp.setCommandEnabled(USE_RULE_ACTION, true);
+		vp.setCommandEnabled(InteractiveGraphView.SAVE_GRAPH_ACTION,
+			rule != null && !isSaved()
+			);
 		updateFocus();
 	}
 
 	public void detached(ViewPort vp) {
-		lastViewPort = null;
-		vp.setCommandEnabled(USE_RULE_ACTION, false);
+		//vp.setCommandEnabled(USE_RULE_ACTION, false);
+		vp.setCommandEnabled(InteractiveGraphView.SAVE_GRAPH_ACTION,
+			false
+			);
 		if (leftFocused) {
 			leftView.detached(vp);
 		}
@@ -140,6 +202,7 @@ public class SplitGraphView extends InteractiveView {
 	public void cleanUp() {
 		leftView.cleanUp();
 		rightView.cleanUp();
+		theory.removeTheoryListener(listener);
 	}
 
 	@Override
@@ -166,6 +229,12 @@ public class SplitGraphView extends InteractiveView {
 	public void setSaved(boolean saved) {
 		if (this.saved != saved) {
 			this.saved = saved;
+			if (rule != null && isAttached()) {
+				getViewPort().setCommandEnabled(
+					InteractiveGraphView.SAVE_GRAPH_ACTION,
+					!isSaved()
+					);
+			}
 			firePropertyChange("saved", !saved, saved);
 		}
 	}

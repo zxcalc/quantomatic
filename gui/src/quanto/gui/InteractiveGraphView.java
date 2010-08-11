@@ -85,6 +85,8 @@ public class InteractiveGraphView
 	private List<Rewrite> rewriteCache = null;
 	private JPanel indicatorPanel = null;
 	private List<Job> activeJobs = null;
+	private boolean saveEnabled = true;
+	private boolean saveAsEnabled = true;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -340,6 +342,54 @@ public class InteractiveGraphView
 		viewer.setBoundingBoxEnabled(true);
 
 		buildActionMap();
+	}
+
+	public boolean isSaveEnabled() {
+		return saveEnabled;
+	}
+
+	public void setSaveEnabled(boolean saveEnabled) {
+		if (this.saveEnabled != saveEnabled) {
+			this.saveEnabled = saveEnabled;
+			if (isAttached()) {
+				getViewPort().setCommandEnabled(
+					SAVE_GRAPH_ACTION,
+					saveEnabled && !isSaved());
+			}
+			if (saveEnabled) {
+				actionMap.put(SAVE_GRAPH_ACTION, new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						saveGraph();
+					}
+				});
+			} else {
+				actionMap.remove(SAVE_GRAPH_ACTION);
+			}
+		}
+	}
+
+	public boolean isSaveAsEnabled() {
+		return saveAsEnabled;
+	}
+
+	public void setSaveAsEnabled(boolean saveAsEnabled) {
+		if (this.saveAsEnabled != saveAsEnabled) {
+			this.saveAsEnabled = saveAsEnabled;
+			if (isAttached()) {
+				getViewPort().setCommandEnabled(
+					SAVE_GRAPH_AS_ACTION,
+					saveAsEnabled);
+			}
+			if (saveAsEnabled) {
+				actionMap.put(SAVE_GRAPH_AS_ACTION, new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						saveGraphAs();
+					}
+				});
+			} else {
+				actionMap.remove(SAVE_GRAPH_AS_ACTION);
+			}
+		}
 	}
 
 	public GraphVisualizationViewer getVisualization() {
@@ -613,7 +663,7 @@ public class InteractiveGraphView
 			}
 		}
 
-		if (isAttached()) {
+		if (saveEnabled && isAttached()) {
 			getViewPort().setCommandEnabled(SAVE_GRAPH_ACTION,
 				!getGraph().isSaved()
 				);
@@ -1228,9 +1278,11 @@ public class InteractiveGraphView
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, true);
 		}
-		vp.setCommandEnabled(SAVE_GRAPH_ACTION,
-			!getGraph().isSaved()
-			);
+		if (saveEnabled) {
+			vp.setCommandEnabled(SAVE_GRAPH_ACTION,
+				!getGraph().isSaved()
+				);
+		}
 		if (graphMouse.isEdgeMouse())
 			vp.setCommandStateSelected(EDGE_MODE_ACTION, true);
 		else

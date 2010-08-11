@@ -5,6 +5,7 @@ import java.util.Set;
 
 import edu.uci.ics.jung.contrib.HasName;
 import java.util.Arrays;
+import javax.swing.event.EventListenerList;
 
 import quanto.gui.QuantoCore.CoreException;
 
@@ -15,6 +16,7 @@ public class Theory implements HasName {
 	private Set<String> rules = new HashSet<String>();
 	private QuantoCore core;
 	private boolean rulesLoaded = false;
+	private EventListenerList listenerList = new EventListenerList();
 
 	public Theory(QuantoCore core, String name, String path, boolean active) {
 		super();
@@ -30,6 +32,90 @@ public class Theory implements HasName {
 	
 	public Theory(QuantoCore core, String name) {
 		this(core, name, "");
+	}
+
+	public QuantoCore getCore() {
+		return core;
+	}
+
+	public void addTheoryListener(TheoryListener l) {
+		listenerList.add(TheoryListener.class, l);
+	}
+
+	public void removeTheoryListener(TheoryListener l) {
+		listenerList.remove(TheoryListener.class, l);
+	}
+
+	private void fireRuleAdded(String ruleName) {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).ruleAdded(this, ruleName);
+		 }
+	     }
+	}
+
+	private void fireRuleDeleted(String ruleName) {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).ruleDeleted(this, ruleName);
+		 }
+	     }
+	}
+
+	private void fireRuleRenamed(String oldName, String newName) {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).ruleRenamed(this, oldName, newName);
+		 }
+	     }
+	}
+
+	private void fireRulesReloaded() {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).rulesReloaded(this);
+		 }
+	     }
+	}
+
+	private void fireActiveStateChanged() {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).activeStateChanged(this, active);
+		 }
+	     }
+	}
+
+	private void fireTheoryRenamed(String oldName) {
+	     // Guaranteed to return a non-null array
+	     Object[] listeners = listenerList.getListenerList();
+	     // Process the listeners last to first, notifying
+	     // those that are interested in this event
+	     for (int i = listeners.length-2; i>=0; i-=2) {
+		 if (listeners[i]==TheoryListener.class) {
+		     ((TheoryListener)listeners[i+1]).theoryRenamed(this, oldName, name);
+		 }
+	     }
 	}
 
 	/**
@@ -51,14 +137,21 @@ public class Theory implements HasName {
 	public String getName() {
 		return name;
 	}
+	// do not call this if you are not QuantoCore, otherwise
+	// you'll be out of sync with the backend
 	public void setName(String name) {
+		String oldName = name;
 		this.name = name;
+		fireTheoryRenamed(oldName);
 	}
 	public boolean isActive() {
 		return active;
 	}
 	public void setActive(boolean active) {
-		this.active = active;
+		if (active != this.active) {
+			this.active = active;
+			fireActiveStateChanged();
+		}
 	}
 	public Set<String> getRules() {
 		return rules;
@@ -73,6 +166,7 @@ public class Theory implements HasName {
 		rules.clear();
 		rules.addAll(Arrays.asList(newRules));
 		rulesLoaded = true;
+		fireRulesReloaded();
 	}
 
 	public QuantoGraph getRuleLhs(String rule) throws CoreException {
@@ -81,5 +175,35 @@ public class Theory implements HasName {
 
 	public QuantoGraph getRuleRhs(String rule) throws CoreException {
 		return core.open_rule_rhs(this, rule);
+	}
+
+	public Rewrite getRule(String rule) throws CoreException {
+		return new Rewrite(rule, getRuleLhs(rule), getRuleRhs(rule));
+	}
+
+	public String addRule() throws CoreException {
+		QuantoGraph graph = core.new_graph();
+		String ruleName = core.new_rule(this, graph);
+		core.kill_graph(graph);
+		if (rulesLoaded)
+			rules.add(ruleName);
+		fireRuleAdded(ruleName);
+		return ruleName;
+	}
+
+	public void deleteRule(String rule) throws CoreException {
+		core.delete_rule(this, rule);
+		if (rulesLoaded)
+			rules.remove(rule);
+		fireRuleDeleted(rule);
+	}
+
+	public void renameRule(String rule, String newName) throws CoreException {
+		core.rename_rule(this, rule, newName);
+		if (rulesLoaded) {
+			rules.remove(name);
+			rules.add(newName);
+		}
+		fireRuleRenamed(rule, newName);
 	}
 }

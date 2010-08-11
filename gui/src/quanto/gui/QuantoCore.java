@@ -537,6 +537,14 @@ public class QuantoCore {
 	public QuantoGraph load_graph(String fileName) throws CoreException{
 		return new QuantoGraph(chomp(command("load_graph", new HasName.StringName(fileName))));
 	}
+
+	public void kill_graph(QuantoGraph graph) throws CoreException{
+		command("kill_graph", graph);
+	}
+
+	public void kill_graph(String graph) throws CoreException{
+		command("kill_graph", new HasName.StringName(graph));
+	}
 	
 	public String input_graph_xml(String xml) throws CoreException {
 		return chomp(blockCommand("input_graph_xml", xml));
@@ -671,6 +679,27 @@ public class QuantoCore {
 	public void replace_rule(Theory rset, Rewrite rule)
 	throws CoreException {
 		command("replace_rule", rset, rule, rule.getLhs(), rule.getRhs());
+	}
+
+	public String new_rule(Theory rset, QuantoGraph graph)
+	throws CoreException {
+		return chomp(command("new_rule", rset, graph));
+	}
+
+	public void delete_rule(Theory rset, Rewrite rule)
+	throws CoreException {
+		command("delete_rule", rset, rule);
+	}
+
+	public void delete_rule(Theory rset, String rule)
+	throws CoreException {
+		command("delete_rule", rset, new HasName.StringName(rule));
+	}
+
+	public void rename_rule(Theory rset, String rule, String newName)
+	throws CoreException {
+		command("rename_rule", rset, new HasName.StringName(rule),
+			new HasName.StringName(newName));
 	}
 	
 	/*

@@ -295,10 +295,10 @@
 
 	<!-- Rule menu commands -->
 
-	<action id="use-rule-command"
+	<!--action id="use-rule-command"
           name="Use rule"
           mnemonic="U"
-          desc="Use the current rule"/>
+          desc="Use the current rule"/-->
 
 	<!-- Help menu commands -->
 
@@ -385,9 +385,9 @@
 			<action idref="hilbert-as-mathematica-command" />
 		</action-list>
 
-		<action-list id="rule-menu" name="Rule" mnemonic="R">
+		<!--action-list id="rule-menu" name="Rule" mnemonic="R">
 			<action idref="use-rule-command" />
-		</action-list>
+		</action-list-->
 <!--
 		<action-list id="help-menu" name="Help" mnemonic="H">
 			<action idref="about-command"/>

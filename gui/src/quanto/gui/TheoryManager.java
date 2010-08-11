@@ -38,6 +38,67 @@ public class TheoryManager {
 	private DefaultTreeModel innerModel;
 	private TheoryTreeModel outerModel;
 	private Map<String,Theory> theoryCache = new HashMap<String, Theory>();
+	private TheoryListener listener = new TheoryListener() {
+		public void ruleAdded(Theory source, String ruleName) {
+			TheoryTreeNode node = findNode(source).node;
+			if (node != null) {
+				node.addRule(ruleName);
+				innerModel.nodesWereInserted(node,
+					new int[] {node.getChildCount()-1});
+			}
+		}
+
+		public void ruleDeleted(Theory source, String ruleName) {
+			TheoryTreeNode node = findNode(source).node;
+			if (node != null) {
+				TreeNodeLocation<DefaultMutableTreeNode> location = node.findNode(ruleName);
+				if (location.index >= 0) {
+					node.remove(location.index);
+					innerModel.nodesWereRemoved(node,
+						new int[] {location.index},
+						new Object[] {location.node});
+				}
+			}
+		}
+
+		public void ruleRenamed(Theory source, String oldName, String newName) {
+			TheoryTreeNode node = findNode(source).node;
+			if (node != null) {
+				DefaultMutableTreeNode ruleNode = node.findNode(oldName).node;
+				if (ruleNode != null) {
+					ruleNode.setUserObject(newName);
+					innerModel.nodeChanged(ruleNode);
+				}
+			}
+		}
+
+		public void rulesReloaded(Theory source) {
+			TheoryTreeNode node = findNode(source).node;
+			if (node != null) {
+				node.removeAllChildren();
+				for (String rule : node.getTheory().getRules()) {
+					node.addRule(rule);
+				}
+				innerModel.nodeStructureChanged(node);
+			}
+		}
+
+		public void activeStateChanged(Theory source, boolean active) {
+			TheoryTreeNode node = findNode(source).node;
+			if (node != null) {
+				innerModel.nodeChanged(node);
+			}
+		}
+
+		public void theoryRenamed(Theory source, String oldName, String newName) {
+			TheoryTreeNode node = findNode(source).node;
+			theoryCache.remove(oldName);
+			theoryCache.put(source.getName(), source);
+			if (node != null) {
+				innerModel.nodeChanged(node);
+			}
+		}
+	};
 
 	public class TheoryTreeModel implements TreeModel {
 
@@ -152,24 +213,48 @@ public class TheoryManager {
 			super(theory);
 			setAllowsChildren(true);
 		}
+		private TreeNode addRule(String ruleName) {
+			DefaultMutableTreeNode ruleNode = new DefaultMutableTreeNode(ruleName);
+			ruleNode.setAllowsChildren(false);
+			add(ruleNode);
+			return ruleNode;
+		}
+		private TreeNodeLocation<DefaultMutableTreeNode> findNode(String rule) {
+			Enumeration nodes = children();
+			int index = 0;
+			DefaultMutableTreeNode node = null;
+			while (nodes.hasMoreElements() && node == null) {
+				node = (DefaultMutableTreeNode)nodes.nextElement();
+				if (!rule.equals(node.getUserObject())) {
+					++index;
+					node = null;
+				}
+			}
+			if (node == null)
+				index = -1;
+			return new TreeNodeLocation<DefaultMutableTreeNode>(node, index);
+		}
 		public Theory getTheory() {
-			return (Theory)getUserObject();
+			return (Theory)userObject;
 		}
 		public void refresh() throws QuantoCore.CoreException {
 			getTheory().refreshRules();
 			loadChildren();
-			innerModel.nodeStructureChanged(this);
+			if (getParent() != null) {
+				innerModel.nodeStructureChanged(this);
+			}
 		}
 		public void loadChildren() throws QuantoCore.CoreException {
 			removeAllChildren();
 			getTheory().loadRules();
-			logger.info("Loading {} children for the theory '{}'",
+			logger.debug("Loading {} children for the theory '{}'",
 				getTheory().getRules().size(),
 				getTheory().getName());
 			for (String rule : getTheory().getRules()) {
-				DefaultMutableTreeNode ruleNode = new DefaultMutableTreeNode(rule);
-				ruleNode.setAllowsChildren(false);
-				add(ruleNode);
+				addRule(rule);
+			}
+			if (getParent() != null) {
+				innerModel.nodeStructureChanged(this);
 			}
 		}
 	}
@@ -209,29 +294,31 @@ public class TheoryManager {
 		Set<String> activeTheories = new HashSet<String>(
 			Arrays.asList(core.list_active_rulesets())
 			);
-		logger.info("Core knows about {} theories", theoryNames.size());
+		logger.debug("Core knows about {} theories", theoryNames.size());
+		root.removeAllChildren();
 		for (String name : theoryNames) {
 			Theory theory = theoryCache.get(name);
 			if (theory == null) {
 				logger.info("Found previously unknown theory '{}'", name);
 				theory = new Theory(core, name);
+				theory.addTheoryListener(listener);
 				theoryCache.put(name, theory);
 			}
 			theory.refreshRules();
 			theory.setActive(activeTheories.contains(name));
 		}
-		root.removeAllChildren();
 		loadTheoryNodes(theoryNames);
 	}
 
 	private void loadTheoryNodes(Collection<String> theories) throws QuantoCore.CoreException {
-		logger.info("Loading theory nodes: {}", theories);
+		logger.debug("Loading theory nodes: {}", theories);
 		for (String name : theories) {
 			Theory theory = theoryCache.get(name);
 			if (theory == null) {
 				try {
 					logger.info("Found unknown theory '{}'", name);
 					theory = new Theory(core, name);
+					theory.addTheoryListener(listener);
 					theory.loadRules();
 					theoryCache.put(name, theory);
 				} catch (QuantoCore.CoreException ex) {
@@ -248,20 +335,22 @@ public class TheoryManager {
 
 	public void loadTheory(String name, String fileName)
 	throws QuantoCore.CoreException {
-		logger.info("Loading theory {} from {}", name, fileName);
-		Theory rset = core.load_ruleset(name, fileName);
-		core.activate_ruleset(rset);
-		theoryCache.put(rset.getName(), rset);
-		TheoryTreeNode node = new TheoryTreeNode(rset);
+		logger.debug("Loading theory {} from {}", name, fileName);
+		Theory theory = core.load_ruleset(name, fileName);
+		core.activate_ruleset(theory);
+		theoryCache.put(theory.getName(), theory);
+		TheoryTreeNode node = new TheoryTreeNode(theory);
 		node.loadChildren();
 		root.add(node);
+		theory.addTheoryListener(listener);
 		innerModel.nodesWereInserted(root, new int[] {root.getChildCount()-1});
 	}
 
 	public void unloadTheory(Theory rset)
 	throws CoreException {
-		logger.info("Unloading theory {}", rset.getName());
+		logger.debug("Unloading theory {}", rset.getName());
 		core.unload_ruleset(rset);
+		rset.removeTheoryListener(listener);
 		theoryCache.remove(rset.getName());
 		TreeNodeLocation<TheoryTreeNode> location = findNode(rset);
 		if (location.node != null) {
@@ -286,7 +375,7 @@ public class TheoryManager {
 	}
 
 	public void loadState(String state) {
-		logger.info("Loading saved state");
+		logger.debug("Loading saved state");
 		String[] rsets = state.split("\\n");
 		if (rsets.length % 3 != 0) {
 			throw new IllegalArgumentException("state is not valid");
@@ -297,7 +386,7 @@ public class TheoryManager {
 		LinkedList<String> theories = new LinkedList<String>();
 
 		if (root.getChildCount() > 0) {
-			logger.info("Unloading existng theories");
+			logger.debug("Unloading existng theories");
 			Enumeration oldTheories = root.children();
 			while (oldTheories.hasMoreElements()) {
 				TheoryTreeNode node = (TheoryTreeNode)oldTheories.nextElement();
@@ -312,6 +401,9 @@ public class TheoryManager {
 			nm = rsets[idx];
 			path = rsets[idx+1];
 			active = rsets[idx+2].equals("true");
+			logger.debug(active ? "Loading active theory {} from {}"
+				            : "Loading inactive theory {} from {}",
+				nm, path);
 
 			try {
 				Theory rset = core.load_ruleset(nm, path);
@@ -319,6 +411,7 @@ public class TheoryManager {
 					core.activate_ruleset(rset);
 				else
 					core.deactivate_ruleset(rset);
+				rset.addTheoryListener(listener);
 				theoryCache.put(rset.getName(), rset);
 				theories.addLast(nm);
 			} catch (CoreException ex) {
@@ -337,11 +430,11 @@ public class TheoryManager {
 	public void setTheoryActive(Theory theory, boolean active)
 	throws CoreException {
 		if (theory.isActive() != active) {
-			logger.info("Setting '{}' theory active state to {}",
+			logger.debug("Setting '{}' theory active state to {}",
 				theory.getName(), active);
 			TheoryTreeNode rnode = findNode(theory).node;
 			if (rnode != null) {
-				logger.info("Found node, changing active state");
+				logger.debug("Found node, changing active state");
 				if (active)
 					core.activate_ruleset(theory);
 				else
@@ -351,7 +444,7 @@ public class TheoryManager {
 				logger.warn("Couldn't fine the node!");
 			}
 		} else {
-			logger.info("'{}' theory active state is already {}",
+			logger.debug("'{}' theory active state is already {}",
 				theory.getName(), active);
 		}
 	}

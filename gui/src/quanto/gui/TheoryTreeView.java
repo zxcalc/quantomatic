@@ -66,7 +66,7 @@ public class TheoryTreeView extends JTree {
 							});
 							menu.add(item);
 
-							item = new JMenuItem("Refresh rulsets");
+							item = new JMenuItem("Refresh");
 							item.addActionListener(new WrappedActionListener() {
 								@Override
 								public void wrappedAction(ActionEvent e) throws CoreException {
@@ -165,27 +165,45 @@ public class TheoryTreeView extends JTree {
 	@SuppressWarnings("serial")
 	private class TheoryMenu extends JPopupMenu {
 		public TheoryMenu(final Theory rset) {
-			JMenuItem item = new JMenuItem("Activate");
-			if (rset.isActive()) {
-				item.setEnabled(false);
-			} else {
-				item.addActionListener(new WrappedActionListener() {
-					public void wrappedAction(ActionEvent e) throws CoreException {
-						manager.setTheoryActive(rset, true);
+			JMenuItem item;
+
+			item = new JMenuItem("New rule");
+			item.addActionListener(new WrappedActionListener() {
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					String rule = rset.addRule();
+					InteractiveView view = new SplitGraphView(rset, rset.getRule(rule));
+
+					viewPort.getViewManager().addView(view);
+					try {
+						viewPort.attachView(view);
 					}
-				});
-			}
+					catch (ViewUnavailableException ex) {
+						throw new Error("Caught a ViewUnavailableException: this shouldn't happen");
+					}
+
+				}
+			});
 			add(item);
-			item = new JMenuItem("Deactivate");
-			if (!rset.isActive()) {
-				item.setEnabled(false);
-			} else {
-				item.addActionListener(new WrappedActionListener() {
-					public void wrappedAction(ActionEvent e) throws CoreException {
-						manager.setTheoryActive(rset, false);
-					}
-				});
-			}
+
+			addSeparator();
+
+			item = new JMenuItem("Refresh");
+			item.addActionListener(new WrappedActionListener() {
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					rset.refreshRules();
+				}
+			});
+			add(item);
+
+			addSeparator();
+
+			final boolean active = rset.isActive();
+			item = new JMenuItem(active ? "Deactivate" : "Activate");
+			item.addActionListener(new WrappedActionListener() {
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					manager.setTheoryActive(rset, !active);
+				}
+			});
 			add(item);
 
 			item = new JMenuItem("Unload");
@@ -200,6 +218,11 @@ public class TheoryTreeView extends JTree {
 
 
 
+	private enum Side {
+		Left,
+		Right,
+		Both
+	};
 	/*
 	 * this class uses the "tree" instance var
 	 */
@@ -209,22 +232,23 @@ public class TheoryTreeView extends JTree {
 			JMenuItem item;
 
 			class RuleAL extends WrappedActionListener {
-				private int side; // BOTH = 0, LEFT = 1, RIGHT = 2
-				public RuleAL(int side) { super(); this.side = side; }
+				private Side side; // BOTH = 0, LEFT = 1, RIGHT = 2
+				public RuleAL(Side side) { super(); this.side = side; }
 
 				public void wrappedAction(ActionEvent e) throws CoreException {
-					QuantoGraph gr1 = (side == 0 || side == 1) ?
-							rset.getRuleLhs(rule) :
-							rset.getRuleRhs(rule);
-					InteractiveGraphView igv1 = new InteractiveGraphView(manager.getCore(), gr1);
-					igv1.updateGraph();
-
-					InteractiveView view = igv1;
-					if (side == 0) { // if opening both
-						QuantoGraph gr2 = rset.getRuleRhs(rule);
-						InteractiveGraphView igv2 = new InteractiveGraphView(manager.getCore(), gr2);
-						igv2.updateGraph();
-						view = new SplitGraphView(rset, rule, igv1, igv2);
+					InteractiveView view;
+					if (side == Side.Left) {
+						InteractiveGraphView igv = new InteractiveGraphView(
+							rset.getCore(), rset.getRuleLhs(rule));
+						igv.updateGraph();
+						view = igv;
+					} else if (side == Side.Right) {
+						InteractiveGraphView igv = new InteractiveGraphView(
+							rset.getCore(), rset.getRuleRhs(rule));
+						igv.updateGraph();
+						view = igv;
+					} else {
+						view = new SplitGraphView(rset, rule);
 					}
 					viewPort.getViewManager().addView(view);
 					try {
@@ -237,13 +261,48 @@ public class TheoryTreeView extends JTree {
 			}
 
 			item = new JMenuItem("Open Rule");
-			item.addActionListener(new RuleAL(0));
+			item.addActionListener(new RuleAL(Side.Both));
 			add(item);
 			item = new JMenuItem("Open LHS");
-			item.addActionListener(new RuleAL(1));
+			item.addActionListener(new RuleAL(Side.Left));
 			add(item);
 			item = new JMenuItem("Open RHS");
-			item.addActionListener(new RuleAL(2));
+			item.addActionListener(new RuleAL(Side.Right));
+			add(item);
+
+			addSeparator();
+
+			item = new JMenuItem("Rename...");
+			item.addActionListener(new WrappedActionListener() {
+				@Override
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					String newName = JOptionPane.showInputDialog(
+						TheoryTreeView.this,
+						"Please enter a new name for the rule",
+						rule);
+					if (newName != null && !newName.equals(rule)) {
+						rset.renameRule(rule, newName);
+					}
+				}
+			});
+			add(item);
+
+			addSeparator();
+
+			item = new JMenuItem("Delete");
+			item.addActionListener(new WrappedActionListener() {
+				@Override
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					int answer = JOptionPane.showConfirmDialog(
+						TheoryTreeView.this,
+						String.format("Are you sure you want to delete the rule '%1$s'?", rule),
+						"Delete rule",
+						JOptionPane.YES_NO_OPTION);
+					if (answer == JOptionPane.YES_OPTION) {
+						rset.deleteRule(rule);
+					}
+				}
+			});
 			add(item);
 
 		}

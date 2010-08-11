@@ -337,6 +337,24 @@ fun replace_rule ([rset,rule,lhs,rhs], state) =
 end
   | replace_rule _ = raise wrong_args_exp ()
 
+fun rename_rule ([ruleset,old,new], state) = (let
+        val rset_n = RuleSet.mk ruleset
+        val rulesets = get_rulesets state
+        val (rs,active) = case RuleSet.NTab.lookup rulesets rset_n
+                   of SOME v => v | NONE => raise user_exp ("No such ruleset '" ^ ruleset ^ "'")
+        val oldname = Rule.Name.mk old
+        val rule = case Rule.Name.NTab.lookup rs oldname
+                     of SOME v => v | NONE => raise user_exp ("No such rule '" ^ old ^ "'")
+        val (nm,rs') = rs
+                  |> Rule.Name.NTab.delete oldname
+                  |> Rule.Name.NTab.add (Rule.Name.mk new, rule)
+    in
+      ((Pretty.string_of o Rule.Name.pretty_name) nm ^ "\n",
+       state |> update_rulesets (RuleSet.NTab.update (rset_n, (rs',active))))
+    end
+    handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset '" ^ ruleset ^ "'"))
+  | rename_rule _ = raise wrong_args_exp ()
+
 (* create a new identity rule from the current graph *)
 fun new_rule ([rset,graph], state) =
 let
@@ -1022,6 +1040,13 @@ val () = (
     ("new_rule RULESET GRAPH\n\n"^
      "    Create a new identity rule from GRAPH.\n")
     (new_rule);
+
+
+    register_cmd
+    "rename_rule"
+    ("rename_rule RULESET OLDNAME NEWNAME\n\n"^
+     "    Rename a rule from OLDNAME to NEWNAME.\n")
+    (rename_rule);
     
     ())
 
