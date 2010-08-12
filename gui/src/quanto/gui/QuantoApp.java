@@ -213,6 +213,12 @@ public class QuantoApp {
 			if (answer != JOptionPane.YES_OPTION)
 				return false;
 		}
+		logger.info("Saving theory state");
+		try {
+			setPreference(LOADED_THEORIES, getTheoryManager().getState());
+		} catch (Exception ex) {
+			logger.warn("Could not save theory state", ex);
+		}
 		logger.info("Shutting down");
 		if (viewManager.closeAllViews()) {
 			logger.info("Exiting now");
