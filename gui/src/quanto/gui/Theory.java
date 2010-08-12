@@ -170,8 +170,9 @@ public class Theory implements HasName {
 	public String getName() {
 		return name;
 	}
-	// do not call this if you are not QuantoCore, otherwise
-	// you'll be out of sync with the backend
+	/* do not call this if you are not QuantoCore, otherwise
+	 * you'll be out of sync with the backend
+	 */
 	public void setName(String name) {
 		String oldName = name;
 		this.name = name;
@@ -252,5 +253,9 @@ public class Theory implements HasName {
 	throws CoreException {
 		core.replace_rule(this, new Rewrite(rule, lhs, rhs));
 		markAsChanged();
+	}
+
+	public void renameTheory(String newName) throws CoreException {
+		core.rename_ruleset(this, newName);
 	}
 }

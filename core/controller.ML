@@ -379,6 +379,27 @@ end
 
 
 
+fun new_ruleset ([], state) =
+    (let val rsets = get_rulesets state
+         val (nm', rsets') = rsets
+             |> RuleSet.NTab.add (RuleSet.default_name, (Rule.Name.NTab.empty, true))
+     in ((Pretty.string_of (RuleSet.pretty_name nm')) ^ "\n", set_rulesets rsets' state)
+     end)
+  | new_ruleset _ = raise wrong_args_exp ()
+
+fun rename_ruleset ([old,new], state) =
+    (let val rsets = get_rulesets state
+         val oldnm = RuleSet.Name.mk old
+         val ruleset = case RuleSet.NTab.lookup rsets oldnm
+                   of SOME v => v
+                    | NONE => raise user_exp ("No such ruleset '" ^ old ^ "'")
+         val (nm', rsets') = rsets
+             |> RuleSet.NTab.delete oldnm
+             |> RuleSet.NTab.add (RuleSet.Name.mk new, ruleset)
+     in ((Pretty.string_of (RuleSet.pretty_name nm')) ^ "\n", set_rulesets rsets' state)
+     end)
+  | rename_ruleset _ = raise wrong_args_exp ()
+
 fun load_ruleset ([nm,file], state) =
     (let val loader = RGRuleSetInputXML.input o XMLReader.read_from_file
          val rsets = get_rulesets state
@@ -728,7 +749,19 @@ val () = (
      "    debug command for testing block input\n")
     (lift_stateless echo_block);
 
-   register_cmd
+    register_cmd
+    "new_ruleset"
+    ("new_ruleset\n\n" ^
+     "    create a new empty ruleset, and return the name\n")
+    new_ruleset;
+
+    register_cmd
+    "rename_ruleset"
+    ("rename_ruleset OLD NEW\n\n" ^
+     "     rename the ruleset OLD to NEW, and return the real new name\n")
+    rename_ruleset;
+
+    register_cmd
     "load_ruleset"
     ("load_ruleset NAME FILE\n\n" ^
      "    load a ruleset from FILE and call it NAME\n")
@@ -739,7 +772,7 @@ val () = (
     ("unload_ruleset RULESET\n\n" ^
      "    unload RULESET\n")
     unload_ruleset;
-    
+
    register_cmd
     "save_ruleset"
     ("save_ruleset RULESET FILENAME\n\n" ^
@@ -1026,7 +1059,7 @@ val () = (
      "    the new graph buffer.\n")
     (open_rule_rhs);
 
-    
+
     register_cmd
     "replace_rule"
     ("replace_rule RULESET RULE LHS RHS\n\n"^
@@ -1047,7 +1080,7 @@ val () = (
     ("rename_rule RULESET OLDNAME NEWNAME\n\n"^
      "    Rename a rule from OLDNAME to NEWNAME.\n")
     (rename_rule);
-    
+
     ())
 
 

@@ -307,6 +307,21 @@ public class TheoryManager {
 		}
 		return hasUnsaved;
 	}
+
+	public Theory createNewTheory() throws QuantoCore.CoreException {
+		logger.debug("Creating new theory");
+
+		Theory theory = core.new_ruleset();
+		core.activate_ruleset(theory);
+		theoryCache.put(theory.getName(), theory);
+		TheoryTreeNode node = new TheoryTreeNode(theory);
+		node.loadChildren();
+		root.add(node);
+		theory.addTheoryListener(listener);
+		innerModel.nodesWereInserted(root, new int[] {root.getChildCount()-1});
+
+		return theory;
+	}
 	
 	public void reloadTheoriesFromCore() throws QuantoCore.CoreException {
 		logger.info("Reloading theories from the backend");
@@ -353,7 +368,7 @@ public class TheoryManager {
 		innerModel.nodeStructureChanged(root);
 	}
 
-	public void loadTheory(String name, String fileName)
+	public Theory loadTheory(String name, String fileName)
 	throws QuantoCore.CoreException {
 		logger.debug("Loading theory {} from {}", name, fileName);
 		Theory theory = core.load_ruleset(name, fileName);
@@ -364,6 +379,8 @@ public class TheoryManager {
 		root.add(node);
 		theory.addTheoryListener(listener);
 		innerModel.nodesWereInserted(root, new int[] {root.getChildCount()-1});
+
+		return theory;
 	}
 
 	public void unloadTheory(Theory rset)
@@ -386,10 +403,13 @@ public class TheoryManager {
 		Enumeration theories = root.children();
 		while (theories.hasMoreElements()) {
 			TheoryTreeNode node = (TheoryTreeNode)theories.nextElement();
-			Theory rset = node.getTheory();
-			sb.append(rset.getName()).append('\n');
-			sb.append(rset.getPath()).append('\n');
-			sb.append(rset.isActive()).append('\n');
+			Theory theory = node.getTheory();
+			// only include theories that have an associated file
+			if (theory.getPath() != null && theory.getPath().length() != 0) {
+				sb.append(theory.getName()).append('\n');
+				sb.append(theory.getPath()).append('\n');
+				sb.append(theory.isActive()).append('\n');
+			}
 		}
 		return sb.toString();
 	}

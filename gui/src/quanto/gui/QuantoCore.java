@@ -549,6 +549,10 @@ public class QuantoCore {
 	public String input_graph_xml(String xml) throws CoreException {
 		return chomp(blockCommand("input_graph_xml", xml));
 	}
+
+	public Theory new_ruleset() throws CoreException{
+		return new Theory(this, chomp(command("new_ruleset")));
+	}
 	
 	public Theory load_ruleset(String rsetName, String fileName) throws CoreException{
 		return new Theory(
@@ -558,6 +562,17 @@ public class QuantoCore {
 					new HasName.StringName(fileName))),
 				chomp(fileName),
 				false);
+	}
+
+	public void rename_ruleset(Theory ruleset, String name) throws CoreException{
+		ruleset.setName(
+			chomp(
+				command("rename_ruleset",
+					ruleset,
+					new HasName.StringName(name)
+				)
+			)
+		);
 	}
 
 	public void save_ruleset(Theory ruleset, String fileName) throws CoreException{

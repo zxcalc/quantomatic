@@ -35,6 +35,8 @@ public class TheoryTreeView extends JTree {
 	TheoryManager manager;
 	ViewPort viewPort;
 	QuantoApp app;
+	JPopupMenu rootMenu = new RootMenu();
+
 
 	public TheoryTreeView(TheoryManager manager, QuantoApp app, ViewPort viewPort) {
 		super(manager.getTreeModel());
@@ -44,42 +46,25 @@ public class TheoryTreeView extends JTree {
 
 		setCellRenderer(new TheoryCellRenderer());
 		addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				boolean rightClick =
-					(e.getButton() == MouseEvent.BUTTON3) ||
+			private boolean isRightClick(MouseEvent e) {
+				return (e.getButton() == MouseEvent.BUTTON3) ||
 					(QuantoApp.isMac &&
 					 e.isControlDown() &&
 					 e.getButton() == MouseEvent.BUTTON1);
+			}
+			@Override
+			public void mouseClicked(MouseEvent e) {
 				final TheoryManager.TheoryTreeModel tmodel = TheoryTreeView.this.manager.getTreeModel();
-				if (rightClick) {
+				if (isRightClick(e)) {
 					TreePath p = getPathForLocation(e.getX(), e.getY());
 					if (p != null) {
 						Object node = p.getLastPathComponent();
-						if (node == tmodel.getRoot()) { // the root
-							JPopupMenu menu = new JPopupMenu();
-							JMenuItem item = new JMenuItem("Load theory...");
-							item.addActionListener(new ActionListener() {
-								public void actionPerformed(ActionEvent e) {
-									loadTheory();
-								}
-							});
-							menu.add(item);
-
-							item = new JMenuItem("Refresh");
-							item.addActionListener(new WrappedActionListener() {
-								@Override
-								public void wrappedAction(ActionEvent e) throws CoreException {
-									TheoryTreeView.this.manager.reloadTheoriesFromCore();
-								}
-							});
-							menu.add(item);
-
-							menu.show(TheoryTreeView.this, e.getX(), e.getY());
-						} else if (tmodel.isTheoryNode(node)) { // a theory
+						if (node == tmodel.getRoot()) {
+							rootMenu.show(TheoryTreeView.this, e.getX(), e.getY());
+						} else if (tmodel.isTheoryNode(node)) {
 							Theory rset = tmodel.getTheory(node);
 							new TheoryMenu(rset).show(TheoryTreeView.this, e.getX(), e.getY());
-						} else if (tmodel.isRuleNode(node)) { // a rule
+						} else if (tmodel.isRuleNode(node)) {
 							Theory rset = tmodel.getTheory(node);
 							String rule = tmodel.getRuleName(node);
 							new RuleMenu(rset, rule).show(TheoryTreeView.this, e.getX(), e.getY());
@@ -166,9 +151,39 @@ public class TheoryTreeView extends JTree {
 		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.CoreException;
 	}
 
-	/*
-	 * this class uses the "tree" instance var
-	 */
+	private class RootMenu extends JPopupMenu {
+		public RootMenu() {
+			JMenuItem item;
+
+			item = new JMenuItem("New theory");
+			item.addActionListener(new WrappedActionListener() {
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					TheoryTreeView.this.manager.createNewTheory();
+				}
+			});
+			add(item);
+
+			item = new JMenuItem("Load theory...");
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					loadTheory();
+				}
+			});
+			add(item);
+
+			addSeparator();
+
+			item = new JMenuItem("Refresh");
+			item.addActionListener(new WrappedActionListener() {
+				@Override
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					TheoryTreeView.this.manager.reloadTheoriesFromCore();
+				}
+			});
+			add(item);
+		}
+	};
+
 	@SuppressWarnings("serial")
 	private class TheoryMenu extends JPopupMenu {
 		public TheoryMenu(final Theory rset) {
@@ -220,6 +235,20 @@ public class TheoryTreeView extends JTree {
 			});
 			add(item);
 
+			item = new JMenuItem("Rename...");
+			item.addActionListener(new WrappedActionListener() {
+				public void wrappedAction(ActionEvent e) throws CoreException {
+					String newName = JOptionPane.showInputDialog(
+						TheoryTreeView.this,
+						"Please enter a new name for the theory",
+						rset.getName());
+					if (newName != null && !newName.equals(rset.getName())) {
+						rset.renameTheory(newName);
+					}
+				}
+			});
+			add(item);
+
 			addSeparator();
 
 			item = new JMenuItem("Refresh");
@@ -266,9 +295,6 @@ public class TheoryTreeView extends JTree {
 		Right,
 		Both
 	};
-	/*
-	 * this class uses the "tree" instance var
-	 */
 	@SuppressWarnings("serial")
 	private class RuleMenu extends JPopupMenu {
 		public RuleMenu(final Theory rset, final String rule) {
