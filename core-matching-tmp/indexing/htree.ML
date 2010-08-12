@@ -11,6 +11,7 @@ signature HISTTREE
 
   val make_htree : Bag -> T
   val lookup_htree : H.T -> T -> Bag
+  val test_tree : T -> int * int * int * int
 end;
 
 structure HistTree : HISTTREE
@@ -159,7 +160,59 @@ structure HistTree : HISTTREE
     	(*vkh does not appear in tree, move to next hist entry*)
     			
 
-	  
+(*information about htree*)	
+
+  fun leaves Empty = 0
+    | leaves (Lf _) = 1
+    | leaves (Br (_,tab)) =
+    	(tab
+    	|> ITab.map_all' (fn _ => fn br =>
+    			leaves br)
+    	|> ITab.fold (fn (name,num1) => fn num2 =>
+    			num1 + num2)) 0;
+    			
+  fun depth Empty = 0
+    | depth (Lf _) = 0
+    | depth (Br (_,tab)) =
+    	(tab
+    	|> ITab.map_all' (fn _ => fn br =>
+    			1 + depth br)
+    	|> ITab.fold (fn (name,num1) => fn num2 =>
+    			if num1 > num2 then num1 else num2)) 0;
+    			
+  fun av_depth htree =
+  	let
+  	fun all_depths Empty = [0]
+  	  | all_depths (Lf _) = [0]
+  	  | all_depths (Br (_,tab)) =
+  	  	(tab
+  	  	|> ITab.map_all' (fn _ => fn br =>
+  	  			map (fn m => m + 1) (all_depths br))
+  	  	|> ITab.fold (fn (_,l1) => fn l2 => l1 @ l2)) []
+  	val num_of_leaves = leaves htree
+  	in
+  	(List.foldr op+ 0 (all_depths htree)) div num_of_leaves
+  	end;
+  	
+  fun graphs Empty = 0
+    | graphs (Lf bag) = List.length bag
+    | graphs (Br (_ , tab)) =
+    	(tab
+    	|> ITab.map_all' (fn _ => fn br => graphs br)
+    	|> ITab.fold (fn (_,num1) => fn num2 =>
+    			num1 + num2)) 0;
+  	
+  fun test_tree htree =
+  	(leaves htree,
+  	 depth htree,
+  	 av_depth htree,
+  	 graphs htree);
+  	 
+  	  	
+  	
+    			
+   
+    			
   
  
   		

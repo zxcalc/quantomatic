@@ -105,7 +105,55 @@ structure AdjacencyTree
   	|> get_graphs
   	|> map (fn (graph,startv) => (graph,NTab.doadd (startv,name) NTab.empty))
   	end;
-  	
   
-  
+
+(*information about tree*)	
+  fun leaves Empty = 0
+    | leaves (Lf _) = 1
+    | leaves (Br (_,brs)) = 
+    	brs
+    	|> map (fn (_,br) => leaves br)
+    	|> List.foldr op+ 0;
+    	
+   fun bags Empty = 0
+     | bags (Lf bag) = 
+     	(case bag of
+     	 [] => 0
+     	| _ => 1)
+     | bags (Br (bag,brs)) =
+     	(case bag of
+     	 [] => 0
+     	| _ => 1 ) + (brs 
+     		|> map (fn (_,br) => bags br)
+     		|> List.foldr op+ 0);
+     		
+   fun graphs Empty = 0
+     | graphs (Lf bag) = List.length bag
+     | graphs (Br (_,brs)) =
+     	brs
+    	|> map (fn (_,br) => graphs br)
+    	|> List.foldr op+ 0;
+    	
+   fun graphs' Empty = 0
+     | graphs' (Lf bag) = List.length bag
+     | graphs' (Br (bag,brs)) =
+     	(brs
+    	|> map (fn (bag,br) => graphs' br)
+    	|> List.foldr op+ 0) + List.length bag;
+     		
+   fun depth Empty = 0
+     | depth (Lf _ ) = 0
+     | depth (Br (bag,brs)) =
+     	brs
+     	|> map (fn (_,br) => 1 + depth br)
+     	|> List.foldr (fn (n, m) =>
+     			if n > m then n else m) 0;
+     			
+    fun test_tree atree =
+    	(leaves atree,
+    	 bags atree,
+    	 depth atree,
+    	 graphs atree,
+    	 graphs' atree)
+   
 end;

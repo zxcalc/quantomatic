@@ -36,6 +36,8 @@ structure Tester
   	
   fun matched xs = List.length (filter (fn x => case x of [] => false | _ => true) xs);
   
+  fun matches xs = List.foldr op+ 0 (map List.length xs);
+  
   
   fun make_time (cput as {
                         nongc : {
@@ -59,11 +61,20 @@ structure Tester
   
   fun process_results xs = 
   	map 
-  		(map (fn (matches,nrules,tgtsize,cputime,rtime) => 
-  			(matched matches,nrules,tgtsize,
+  		(map (fn (matchlist,nrules,tgtsize,cputime,rtime) => 
+  			(matched matchlist,matches matchlist,nrules,tgtsize,
   				make_time cputime rtime
   				))) xs;	
-  				
+  
+
+  (*get internal vertex names from a graph*)
+  fun get_inames graph = 
+  	let
+  	val vnames = G.get_vnames graph
+  	val bnames = G.get_boundary graph
+  	in
+  	NSet.remove_set bnames vnames
+  	end;
   				
  (*output to file*)
  local 
@@ -162,7 +173,7 @@ structure Tester
   
   fun adj_matching tgt atree =
   	let
-  	val names = (NSet.list_of o G.get_vnames) tgt
+  	val names = (NSet.list_of o get_inames) tgt
   	val ktable = AList.get_kind_table tgt
   	in
   	map (pull_all []) 
@@ -194,6 +205,56 @@ structure Tester
   			end) tgt_range
   		end) ruleset_range)
   	|> process_results;
+  	
+  (*comparing two approaches tests. random graphs are generated only once and shared between algorithms*)
+  
+  fun adj_vs_match (gg as graph_generator)
+  	(*ranges of values to try*) ruleset_range tgt_range
+  	(*scaling factors for each range*) ruleset_scale tgt_scale= 
+  	(map (fn n (*vary pattern set size*) =>
+  		let 
+  		val pats = RG.pattern_set gg (n*ruleset_scale)
+  		val atree = ATree.create_atree_from_graphlist pats
+  		in 
+  		map (fn m (*vary tgt size*) =>
+  			let
+  			val tgt = gg (m*tgt_scale) (m*(tgt_scale div 10)) 0
+  			in
+  			[time_wrapper (n*ruleset_scale) (m*tgt_scale)
+  				(fn () =>
+  					adj_matching tgt atree
+  					),
+  			 time_wrapper (n*ruleset_scale) (m*tgt_scale)
+  				(fn () =>
+  					matching pats tgt
+  					)]
+  			end) tgt_range
+  		end) ruleset_range)
+  	|> map process_results;
+  	
+  fun hist_vs_match (gg as graph_generator)
+  	(*ranges of values to try*) ruleset_range tgt_range
+  	(*scaling factors for each range*) ruleset_scale tgt_scale= 
+  	(map (fn n (*vary pattern set size*) =>
+  		let 
+  		val pats = RG.pattern_set gg (n*ruleset_scale)
+  		val htree = HTree.make_htree pats
+  		in 
+  		map (fn m (*vary tgt size*) =>
+  			let
+  			val tgt = gg (m*tgt_scale) (m*(tgt_scale div 10)) 0
+  			in
+  			[time_wrapper (n*ruleset_scale) (m*tgt_scale)
+  				(fn () =>
+  					hist_matching tgt htree
+  					),
+  			 time_wrapper (n*ruleset_scale) (m*tgt_scale)
+  				(fn () =>
+  					matching pats tgt
+  					)]
+  			end) tgt_range
+  		end) ruleset_range)
+  	|> map process_results;
   			
   	
   (*standard tests*)
@@ -218,6 +279,10 @@ structure Tester
   fun std_tgt_match min max = match_test RG.std_rgraph (Lib.replicate 20 1) (min upto max) 100 50;
   fun std_tgt_adj min max = adj_match_test RG.std_rgraph (Lib.replicate 20 1) (min upto max) 100 50;
   fun std_tgt_hist min max = hist_match_test RG.std_rgraph (Lib.replicate 20 1) (min upto max) 100 50;
+  
+  (*vs tests*)
+  
+  fun std_adj_vs_match min max = adj_vs_match RG.std_rgraph (min upto max) (min upto max) 40 200;
   
   
 end;

@@ -49,121 +49,21 @@ structure MyTester
   	  NONE   => xs
   	| SOME (x,seqn) => pull_all (x::xs) seqn;
   	
-  (*------------------------------------------------------------------------*)
-  (*testing random graph generator, trying to get a feel for how sizes affect 
-    number of matches etc.*)
-  	
-    
-  fun match1 nr nv nb ne=
-  	let
-  	val pattern_set = RG.std_pattern_set nr
-  	val tgt = RG.std_rgraph nv nb ne
+  val test_compat = (fn () =>
+  	let 
+  	val pats = map load_graph_with_name (1 upto 9)
+  	val adjs = map (fn (g,name) => (AList.get_adjacency g,name)) pats
   	in
-  	map (pull_all []) 
-  		(map (fn pat => MSt.match empty_names pat tgt NTab.empty) pattern_set)
-  	end;
-  	
-  	
-  fun match2 nr mxv mxb =
-  	(fn tgt =>
-  	let
-  	val mxv' = if mxv < 3 then 3 else mxv
-  	val mxb' = if mxb < 2 then 2 else mxb
-  	val pattern_set = RG.std_pattern_set nr
-  	in
-  	map (pull_all []) 
-  		(map (fn pat => MSt.match empty_names pat tgt NTab.empty) pattern_set)
-  	end);
-  
-  	
-  fun matched xs = List.length (filter (fn x => case x of [] => false | _ => true) xs);
-  fun matches xs = List.length (Lib.flat xs);
- 
-  fun test xs = (matched xs,matches xs);
-  
-  fun av_test xs = (fold (fn (md,ms) => fn n => md + n) (map test xs) 0) div (List.length xs) 
-  
-  
-  
-  fun test_tgt_size n rep =
-  	map (fn m => 
-  		map (fn _ => match1 30 (m*50) (m*2) 0) (1 upto rep)) 
-  			(1 upto n)
-  	|> map av_test;
-  
-  fun test_ruleset_size n rep =
-  	map (fn m => 
-  		map (fn _ => match1 (m*10) 500 10 0) (1 upto rep)) 
-  			(1 upto n)
-  	|> map av_test;
-	
-  fun test_extra_size n rep =
-  	map (fn m => 
-  		map (fn _ => match1 100 500 10 m) (1 upto rep)) 
-  			(1 upto n)
-  	|> map av_test;
-  	
-  fun test_rule_size nr mxv rep tgtsize =
-  	let
-  	val tgt = RG.std_rgraph tgtsize (tgtsize div 20) 0
-  	in
-  	map (fn m =>
-  		map (fn _ => match2 30 m (m div 10) tgt) (1 upto rep))
-  			(3 upto mxv)
-  	|> map av_test
-  	end;
-  
-  (*--------------------------------------------------------------------------*)
-  (*testing time library*)
-  
-  fun test_timer' pat tgt = 
-  	let
-  	val cput = Timer.startCPUTimer ()
-  	val rt = Timer.startRealTimer ()
-  	val answer = (fn _ => pull_all [] (MSt.match empty_names pat tgt NTab.empty))
-  	in
-  	
-  	answer ();
-  	(Timer.checkCPUTimes cput ,Timer.checkRealTimer rt)
-  	
-  	end;
-  	
-  fun time_wrapper thing =
-  	let
-  	val cput = Timer.startCPUTimer ()
-  	val rt = Timer.startRealTimer ()
-  	val answer = (fn () => thing)
-  	in
-  	(answer (),Timer.checkCPUTimes cput ,Timer.checkRealTimer rt)
-  	end;
-  	
-  fun time_wrapper2 thing =
-  	let
-  	val cput = Timer.startCPUTimer ()
-  	val rt = Timer.startRealTimer ()
-  	val answer = (fn _ => fn _ => fn _ => thing) cput rt
-  	in
-  	answer ();
-  	(Timer.checkCPUTimes cput ,Timer.checkRealTimer rt)
-  	end;
-  	
-  val test_timer = (fn () =>
-  	let
-  	val pat = RG.std_rgraph 3 1 0
-  	val tgt = RG.std_rgraph 500 20 0
-  	in
-  	test_timer' pat tgt
-  	end);
-  	
-  fun time_wrapper3 (thing : unit -> 'a) =
-  	let
-  	val cput = Timer.startCPUTimer ()
-  	val rt = Timer.startRealTimer ()
-  	in
-  	cput;
-  	rt;
-  	(thing (),Timer.checkCPUTimes cput ,Timer.checkRealTimer rt)
-  	end;
+  	map (fn (adj,name) => 
+  		(adjs
+  		|> map (fn (adj2,name2) => 
+  			(zipwith AList.compatible adj adj2,name2)))
+  		|> filter (fn (bools,name2) =>
+  			List.foldr (fn (b1,b2) => b1 andalso b2) true bools)
+  		|> map (fn (_,name2) => (name,name2))
+  	    ) adjs
+  	end
+  );
 
 end;
 
