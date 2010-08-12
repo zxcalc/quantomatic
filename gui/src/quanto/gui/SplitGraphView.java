@@ -176,6 +176,11 @@ public class SplitGraphView extends InteractiveView {
 			catch (CoreException err) {
 				errorDialog(err.getMessage());
 			}
+		} else {
+			if (leftFocused)
+				leftView.commandTriggered(command);
+			else
+				rightView.commandTriggered(command);
 		}
 	}
 
