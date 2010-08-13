@@ -141,8 +141,7 @@ structure Tester
   (*histogram*)
   fun hist_matching tgt htree =
   	let
-  	val tgt_hist = H.create_hist tgt
-  	val pats = HTree.lookup_htree tgt_hist htree
+  	val pats = HTree.lookup_htree tgt htree
   	in
   	map (pull_all []) 
   		(map (fn pat => MSt.match empty_names pat tgt NTab.empty) pats)
@@ -285,7 +284,7 @@ structure Tester
   
   fun std_adj_vs_match min max = adj_vs_match RG.std_rgraph (min upto max) (min upto max) 40 400;
   
-  fun std_hist_vs_match min max = hist_vs_match RG.std_rgraph (min upto max) (1 upto 5) 1 100;
+  fun std_hist_vs_match min max = hist_vs_match RG.std_rgraph (min upto max) (min upto max) 10 100;
   
  local 
  open TextIO

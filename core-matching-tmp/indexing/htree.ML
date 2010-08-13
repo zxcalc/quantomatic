@@ -10,7 +10,7 @@ signature HISTTREE
   type Bag
 
   val make_htree : Bag -> T
-  val lookup_htree : H.T -> T -> Bag
+  val lookup_htree : G.T -> T -> Bag
   val test_tree : T -> int * int * int * int
 end;
 
@@ -56,19 +56,17 @@ structure HistTree : HISTTREE
     		Br (vkh,
     			ITab.ins (0, Lf bag)
     			(ITab.ins (n,
-    				insert_into_htree (graph,hs) (Lf bag)) 
+    				insert_into_htree (graph,hs) (Lf [])) 
     				ITab.empty))
     (*if htree is a leaf but hist is not empty, we need to expand the htree.
       all remaining entries in the hist are not in the tree*)
       
     | insert_into_htree (graph,[]) (Br (vkt,tab)) =
-    		Br (vkt,
-    			ITab.map_all 
-    			(fn br => insert_into_htree (graph, []) br)
-    			tab
+    		Br (vkt, 
+    			ITab.map_entry (insert_into_htree (graph, [])) 0 tab
     		   )
     (*if hist is empty, the remainder of the htree cannot rule out this graph
-      in a query, so propagate it to all leaves reachable from current branch*)
+      in a query, so propagate it to the zero branch at all remaining levels*)
     				
     | insert_into_htree (graph, hist)
     			(branch as (Br (vkt, tab)))
@@ -85,16 +83,15 @@ structure HistTree : HISTTREE
     		  corresponding to this number or greater*)
     		  
     		| LESS  => Br (vkt,
-    				ITab.map_all
-    				(fn br => insert_into_htree (graph, hist) br)
-    					tab)
+    				ITab.map_entry (insert_into_htree (graph, hist)) 0 tab
+    			      )
     		(*this means that vkt is not in the current hist, and therefore
     		  provides no information about this graph for query purposes. 
-    		  We propagate graph to all branches in next layer*)
+    		  We propagate graph to the zero branch of the next layer*)
     		  
     		|GREATER=> 
     			let 
-    			val branch2 = insert_into_htree (graph, tl hist) branch
+    			val branch2 = insert_into_htree (graph, tl hist) (Lf [])
     			in
     			Br (vkh, ITab.ins (n,branch2) 
     				(ITab.ins (0, branch) ITab.empty))
@@ -104,60 +101,64 @@ structure HistTree : HISTTREE
     		end
   
   and update_table gh num tab =
-  	let
-  	val (smaller,branch) = the (ITab.next_smaller tab num)
-  	(*should never raise an exception, all things going to plan: there is 
-  	  always a zero branch in each table, and zeroes cannot appear in
-  	  histograms (or at least shouldn't)*)
-  	in
-  	(case ITab.lookup tab num of
-  	  NONE => ITab.ins (num, branch) tab
-  	  (*table has no entry with this number of the current vkind, 
-  	  copy the branch from the next smallest entry*)
-  	| SOME _ => tab) |>
-  	ITab.map_all' (fn n => fn br =>
-  		 if num <= n
-  		 then insert_into_htree gh br
-  		 else br)
-  		 (*continue to insert graph into all subtrees corresponding to 
-  		 the same or greater number of the current vkind*)
-  	end
+  	case ITab.lookup tab num of
+  	  NONE => ITab.ins (num, insert_into_htree gh (Lf []) ) tab
+  	  (*table has no entry with this number of the current vkind*)
+  	| SOME branch => ITab.update (num,insert_into_htree gh branch) tab; 
   	
-  			
-  
   fun make_htree bag = 
   	(bag	
   	|> map (fn graph => (graph,H.create_hist graph))
   	|> (fold insert_into_htree)) 
   	Empty;
   
-  (*get functions should never throw exceptions, there is always a zero branch*)	
-  fun lookup_htree hist Empty	 	= []
-    (*should never happen*)
-    | lookup_htree hist (Lf bag) 	= bag
-    
-    | lookup_htree [] (Br (_,tab)) 	= lookup_htree [] (ITab.get tab 0)
-    (*hist is empty, move to zero branch at all remaining nodes*)
-    | lookup_htree ((vkh,num)::hs) 
-    		   (Br (vkt, tab)) 	=
-    
+
+  (*Zero branch always exists, so this shouldn't throw exceptions*)	
+  fun prune_htree hist Empty = Empty
+    | prune_htree hist (Lf bag) = Lf bag
+    | prune_htree [] (Br (vkt,tab)) =
+    	Br (vkt,
+    			ITab.ins (0, prune_htree [] (ITab.get tab 0)) 
+    			ITab.empty)
+    		
+    | prune_htree hist (Br (vkt, tab)) =
+    	let
+    	val (vkh,n) = hd hist
+    	in
     	case VKind.kind_ord (vkh,vkt) of
-    	 EQUAL  => (
-    		   case ITab.lookup tab num of
-    		     NONE => let
-    			     val (_,branch) = the (ITab.next_smaller tab num)
-    			     in
-    			     lookup_htree hs branch
-    			     end
-    		   | SOME branch => lookup_htree hs branch
-    		   )
-    	(*follow path corresponding to num or the next smallest key*)
-    		 
-    	| LESS  => lookup_htree ((vkh,num)::hs) (ITab.get tab 0)
-    	(*vkt does not appear in hist, move to zero branch*)
+    	EQUAL =>
+    		Br (vkt,
+    			ITab.map_all' (fn m => fn br =>
+    				if n >= m 
+    				then prune_htree (tl hist) br
+    				else Lf []
+    				) tab
+    		)
+    	(*LESS => vkt not in hist, all graphs that require more than 0 of vkt 
+    	  will not match and so only zero branch should be kept*)
+    	|LESS =>
+    		Br (vkt,
+    			ITab.ins (0, prune_htree (tl hist) (ITab.get tab 0)) 
+    			ITab.empty)
+    	(*GREATER => vkh not in htree, it therefore provides no information about
+    	  rules, so ignore it*)
+    	|GREATER=>
+    		prune_htree (tl hist) (Br (vkt,tab))
+    			
+    	end;
+   
     	
-    	|GREATER=> lookup_htree hs (Br (vkt,tab));
-    	(*vkh does not appear in tree, move to next hist entry*)
+  fun get_graphs Empty = []
+    | get_graphs (Lf bag) = bag
+    | get_graphs (Br (_,tab)) =
+    	(tab
+    	|> ITab.fold (fn (_,br) => fn l =>
+    		 (get_graphs br) @ l)
+    	) [];
+  
+  	
+  fun lookup_htree graph htree =
+  	(get_graphs ( prune_htree (H.create_hist graph) htree))
     			
 
 (*information about htree*)	

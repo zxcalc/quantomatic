@@ -149,10 +149,15 @@ structure AdjacencyTree
      	|> List.foldr (fn (n, m) =>
      			if n > m then n else m) 0;
      			
+    fun first_width Empty = 0
+      | first_width (Lf bag) = 0
+      | first_width (Br (bag,brs)) =
+      	List.length brs
+     			
     fun test_tree atree =
     	(leaves atree,
     	 bags atree,
     	 depth atree,
-    	 graphs atree)
+    	 first_width atree)
    
 end;
