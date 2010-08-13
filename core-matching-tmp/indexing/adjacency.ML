@@ -142,8 +142,8 @@ structure AdjacencyList
     Vkinds in the corresponding "layer" of the pattern graph
     IMPORTANT! this function assumes that graphs are in minimal form, i.e ALL boundary vertices 
     have arity 1*)
-  fun compatible [] [] 	  = true
-    | compatible entry [] = false
+  fun compatible [] []    = true
+    | compatible entry [] = true
     | compatible [] entry = false
     | compatible (tgt_entry as t::ts) (pat_entry as p::ps) =
     		case VKind.kind_ord (t,p) of
@@ -163,9 +163,6 @@ structure AdjacencyList
     				else y::remove_next_boundary ys
     			in
     			compatible ts (remove_next_boundary pat_entry)
-    			end;
-
-   
-  	
+    			end;	
 
 end;

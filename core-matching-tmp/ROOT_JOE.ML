@@ -52,6 +52,7 @@ PolyML.Project.make "indexing/adjacency.ML";
 PolyML.Project.make "indexing/atree.ML";
 PolyML.Project.make "indexing/rbuild.ML";
 PolyML.Project.make "indexing/rtest.ML";
+PolyML.Project.make "indexing/test.ML";
 PolyML.Project.make "indexing/treetest.ML";
 
 
