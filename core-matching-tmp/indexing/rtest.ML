@@ -66,7 +66,7 @@ structure Tester
   				make_time cputime rtime
   				))) xs;	
   
-
+ 
   (*get internal vertex names from a graph*)
   fun get_inames graph = 
   	let
@@ -87,9 +87,10 @@ structure Tester
  	val show = Int.toString
  	in
  	ostream;
- 	map (fn (num_matched, nrules, tgtsize, time) =>
+ 	map (fn (num_matched, num_matches, nrules, tgtsize, time) =>
  		outputSubstr (ostream, Substring.full (
  					(show num_matched) ^ "\t" ^
+ 					(show num_matches) ^ "\t" ^
  					(show nrules) ^ "\t" ^
  					(show tgtsize) ^ "\t" ^
  					(show (Time.toMilliseconds time)) ^ "\n")
@@ -282,7 +283,45 @@ structure Tester
   
   (*vs tests*)
   
-  fun std_adj_vs_match min max = adj_vs_match RG.std_rgraph (min upto max) (min upto max) 40 200;
+  fun std_adj_vs_match min max = adj_vs_match RG.std_rgraph (min upto max) (min upto max) 40 400;
   
+  fun std_hist_vs_match min max = hist_vs_match RG.std_rgraph (min upto max) (1 upto 5) 1 100;
   
+ local 
+ open TextIO
+ fun output results filename =
+ 	let 
+ 	val dir = "indexing/test/results/" ^ filename
+ 	val ostream = openAppend dir
+ 	val show = Int.toString
+ 	in
+ 	ostream;
+ 	map (fn [(num_matched1, num_matches1, nrules1, tgtsize1, time1),
+ 		 (num_matched2, num_matches2, nrules2, tgtsize2, time2)]
+ 		 =>
+ 		outputSubstr (ostream, Substring.full (
+ 					(show num_matched1) ^ "\t" ^
+ 					(show num_matches1) ^ "\t" ^
+ 					(show nrules1) ^ "\t" ^
+ 					(show tgtsize1) ^ "\t" ^
+ 					(show (Time.toMilliseconds time1)) ^ "\t" ^
+ 					(show num_matched2) ^ "\t" ^
+ 					(show num_matches2) ^ "\t" ^
+ 					(show nrules2) ^ "\t" ^
+ 					(show tgtsize2) ^ "\t" ^
+ 					(show (Time.toMilliseconds time2)) ^ "\n")
+ 					)
+ 			     ) results;
+ 	closeOut ostream
+ 	end
+ in
+ 
+ fun test_out_vs thing name reps = 
+ 	Seq.map (fn n => output (Lib.flat (thing ())) name) (Seq.of_list (1 upto reps))
+ 	|> pull_all [];
+ end;
+  	
+  
+ 
+  				
 end;

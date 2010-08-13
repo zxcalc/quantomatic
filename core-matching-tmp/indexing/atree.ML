@@ -153,7 +153,6 @@ structure AdjacencyTree
     	(leaves atree,
     	 bags atree,
     	 depth atree,
-    	 graphs atree,
-    	 graphs' atree)
+    	 graphs atree)
    
 end;
