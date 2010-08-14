@@ -36,16 +36,17 @@ structure AdjacencyTree
     | insert_into_atree (graphwd,[]) (Br (bag,brs)) =
     			Br ((graphwd::bag),brs)
     | insert_into_atree (graphwd,e::es) (Br (bag,brs)) =
-    			case (filter (fn (adjentry,br) =>
-    				AList.entry_eq (e,adjentry)) brs) of
-    			  [] => Br (bag, (e,insert_into_atree (graphwd,es) Empty)::brs)
-    			| _  =>
-    				Br (bag, 
-    					map (fn (adjentry,br) =>
-    						if AList.entry_eq (e,adjentry) then
-    							(adjentry,insert_into_atree (graphwd,es) br)
-    						else (adjentry,br)) 
-    				brs);
+    			let
+    			fun insert_into_list [] = 
+    				(e, insert_into_atree (graphwd,es) Empty)::[]
+    			  | insert_into_list ((t_entry,br)::xs) =
+    			  	case AList.entry_ord (e, t_entry) of
+    			  	EQUAL => (t_entry, insert_into_atree (graphwd,es) br) :: xs
+    			  	|LESS => (t_entry, br) :: insert_into_list xs
+    			  	|GREATER => (e, insert_into_atree (graphwd,es) Empty) :: (t_entry,br)  :: xs
+    			in
+    			Br (bag,insert_into_list brs)
+    			end;
     				
   fun create_atree_from_ruleset graphs_with_data =
   	(graphs_with_data
@@ -73,12 +74,16 @@ structure AdjacencyTree
   		((graph,AList.select_biggest graph),
   			AList.get_adjacency graph))
   	|>fold insert_into_atree) Empty;
-    			
+  
+  	
+  (*Improve: target adjacencylists/contours are generated on the fly. Implement 
+    them as a lazy list? or calculate them beforehand based on the max depth of 
+    the tree?*)
   fun prune_atree tgt_graph tgt_ktable vnames Empty = Empty
     | prune_atree tgt_graph tgt_ktable vnames (Lf bag) = Lf bag
     | prune_atree tgt_graph tgt_ktable vnames (Br (bag,brs)) =
     	if NSet.is_empty vnames 
-    	then Lf bag
+    	then Br (bag,brs)
     	else
     		let
     		val tgt_entry = AList.make_entry vnames tgt_ktable

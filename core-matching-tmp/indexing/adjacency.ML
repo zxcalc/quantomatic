@@ -134,20 +134,20 @@ structure AdjacencyList
   	
   fun get_adjacency graph = build_adj_list graph (select_biggest graph);
   	
-  (*Checks compatibility of 2 Alist entries. Must be the same length, 
-    and interior kinds in tgt_entry must be matched with either an identical type in pat_entry,
+  (*Checks compatibility of 2 Alist entries. 
+    interior kinds in tgt_entry must be matched with either an identical type in pat_entry,
     or the boundary kind.
     Compatibility is used for looking up atrees. It means that the 
     Vkinds in this "layer" (i.e. entry of the Alist) of the tree can be matched to the
     Vkinds in the corresponding "layer" of the pattern graph
     IMPORTANT! this function assumes that graphs are in minimal form, i.e ALL boundary vertices 
     have arity 1*)
-  fun compatible [] []    = true
-    | compatible entry [] = true
-    | compatible [] entry = false
-    | compatible (tgt_entry as t::ts) (pat_entry as p::ps) =
+  fun compatible' [] []    = true
+    | compatible' entry [] = true
+    | compatible' [] entry = false
+    | compatible' (tgt_entry as t::ts) (pat_entry as p::ps) =
     		case VKind.kind_ord (t,p) of
-    		  EQUAL => compatible ts ps
+    		  EQUAL => compatible' ts ps
     		(*LESS => both t and p are Iverts. Since the adjlists are sorted in
     		  descending order, p cannot be matched by any remaining kind in ts
     		  therefore not compatible*)
@@ -162,7 +162,26 @@ structure AdjacencyList
     				if VKind.is_boundary y then ys 
     				else y::remove_next_boundary ys
     			in
-    			compatible ts (remove_next_boundary pat_entry)
-    			end;	
+    			compatible' ts (remove_next_boundary pat_entry)
+    			end;
+    			
+  fun compatible tgt_contour pat_contour =
+  	let 
+  	val (tgt_ivert, tgt_bvert) = Library.take_prefix 
+  			(fn vk => (not o VKind.is_boundary) vk) tgt_contour
+  	val (pat_ivert, pat_bvert) = Library.take_prefix
+  			(fn vk => (not o VKind.is_boundary) vk) pat_contour
+  	val spare_bverts_in_pat = 
+  		(List.length tgt_bvert) < (List.length pat_bvert)
+  	fun compat _ [] = true
+  	  | compat [] entry = false
+  	  | compat (t::ts) (p::ps) =
+  	  	case VKind.kind_ord (t,p) of
+  	  	EQUAL => compat ts ps
+  	  	|LESS => false
+  	  	|GREATER => compat ts (p::ps)
+  	in
+  	compat tgt_ivert pat_ivert
+  	end;
 
 end;
