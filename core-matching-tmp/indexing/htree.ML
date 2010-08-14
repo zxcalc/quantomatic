@@ -138,7 +138,7 @@ structure HistTree : HISTTREE
     	  will not match and so only zero branch should be kept*)
     	|LESS =>
     		Br (vkt,
-    			ITab.ins (0, prune_htree (tl hist) (ITab.get tab 0)) 
+    			ITab.ins (0, prune_htree hist (ITab.get tab 0)) 
     			ITab.empty)
     	(*GREATER => vkh not in htree, it therefore provides no information about
     	  rules, so ignore it*)
