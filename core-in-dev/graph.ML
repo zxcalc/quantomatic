@@ -204,8 +204,16 @@ val get_edge_list : T -> (Edge.name * ((dir_or_undir * Edge.data)
                     list
 
 (* edges between two vertices *)
+val has_edges_between : T -> Vertex.name -> Vertex.name -> bool
 val enames_between : T -> Vertex.name -> Vertex.name -> Edge.NSet.T
-val edges_between : T -> Vertex.name -> Vertex.name -> (dir_or_undir * Edge.data) Edge.NTab.T
+val edges_between : T -> Vertex.name -> Vertex.name 
+      -> ((dir_or_undir * Edge.data) * (Vertex.name * Vertex.name)) Edge.NTab.T (* in either dir *)
+val dir_enames_between : T -> Vertex.name -> Vertex.name 
+      -> Edge.NSet.T (* from fst to snd vertex *) 
+         * Edge.NSet.T (* from snd to fst vertex *) 
+val dir_edges_between : T -> Vertex.name -> Vertex.name 
+      -> ((dir_or_undir * Edge.data) * (Vertex.name * Vertex.name)) Edge.NTab.T (* from fst to snd vertex *) 
+         * ((dir_or_undir * Edge.data) * (Vertex.name * Vertex.name)) Edge.NTab.T (* from snd to fst vertex *) 
 
 (* val hens_between : T -> Vertex.name -> Vertex.name -> Edge.Ehn.NSet.T *)
 val get_vname_ehns : T -> Vertex.name -> Edge.Ehn.NSet.T
@@ -990,11 +998,57 @@ fun hens_between g n1 n2 =
     end;
 *)
 
+
+(* *)
+fun has_edges_between g n1 n2 = 
+    let 
+      val (_,(ins1,outs1)) = get_vertex g n1
+      val (_,(ins2,outs2)) = get_vertex g n2
+    in
+       (Edge.NSet.nonempty_intersect ins2 outs1 orelse 
+        Edge.NSet.nonempty_intersect ins1 outs2)
+    end;
+
+(* edge names between two vertcies *)
+fun dir_enames_between g n1 n2 = 
+    let 
+      val (_,(ins1,outs1)) = get_vertex g n1
+      val (_,(ins2,outs2)) = get_vertex g n2
+    in
+       (Edge.NSet.intersect ins2 outs1,
+        Edge.NSet.intersect ins1 outs2)
+    end;
+
+val enames_between = uncurry Edge.NSet.union_merge ooo dir_enames_between;
+
+
+(* 
+fun hens_between g n1 n2 = 
+    let 
+      val (_,(ins1,outs1)) = get_vertex g n1
+      val (_,(ins2,outs2)) = get_vertex g n2
+    in
+      Ehn.NSet.union_merge
+        (Edge.NSet.intersect ins1 outs2)
+        (Edge.NSet.intersect ins2 outs1)
+    end;
+*)
+
 fun edges_between g n1 n2 = 
     Edge.NSet.fold 
-      (fn e => Edge.NTab.ins (e, fst (get_edge g e)))
+      (fn e => Edge.NTab.ins (e, get_edge g e))
       (enames_between g n1 n2)
       Edge.NTab.empty;
+
+fun dir_edges_between g n1 n2 = 
+    let val (lr,rl) = dir_enames_between g n1 n2 in
+      (Edge.NSet.fold 
+        (fn e => Edge.NTab.ins (e, get_edge g e)) lr
+        Edge.NTab.empty,
+       Edge.NSet.fold 
+        (fn e => Edge.NTab.ins (e, get_edge g e)) rl
+        Edge.NTab.empty)
+    end;      
 
 (* two graphs are exactly the same, including data, edge direction and
    names of vertices and edges. *) 

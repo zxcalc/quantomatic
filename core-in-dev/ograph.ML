@@ -420,24 +420,29 @@ struct
   val boundary_coherent = is_some ooo boundary_coherence;
 (* 
       (case endpoint_of_vertex' (get_vertex g v1) of 
-         NONE => false
+         NONE => NONE
        | SOME (halfid1,es1) => 
          (case endpoint_of_vertex' (get_vertex g v2) of 
-            NONE => false
+            NONE => NONE
           | SOME (halfid2,es2) => 
             (case (Edge.NSet.tryget_singleton es1, 
                    Edge.NSet.tryget_singleton es2) of 
                (SOME e1,SOME e2) => 
-               let val (dir_or_undir1,(ed1,_)) = get_edge g e1
-                   val (dir_or_undir2,(ed2,_)) = get_edge g e2
+               let val (dir_or_undir1,(ed1,(fromv1,tov1))) = get_edge g e1
+                   val (dir_or_undir2,(ed2,(fromv2,tov2))) = get_edge g e2
+                   val (src, dst) = if Vertex.name_eq (fromv1, v1) 
+                                      then ((fromv2,e2), (tov1,e1)) 
+                                      else ((fromv1,e1), (tov2,e2)); 
                in 
                   if dir_or_undir1 = Directed andalso dir_or_undir2 = Directed
-                     andalso halfid1 <> halfid2 then true
+                       andalso halfid1 <> halfid2 then 
+                     SOME (Directed, (src, dst))
                   else if dir_or_undir1 = UnDirected 
-                       andalso dir_or_undir2 = UnDirected then true
-                  else false
+                       andalso dir_or_undir2 = UnDirected then 
+                     SOME (UnDirected, (src, dst))
+                  else NONE
                end)
-             | (_,_) => false));
+             | (_,_) => NONE));
 *)
 
 
