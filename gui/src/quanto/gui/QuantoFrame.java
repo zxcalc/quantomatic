@@ -128,7 +128,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
-		theoryTree = new TheoryTreeView(app.getTheoryManager(), app, viewPort);
+		theoryTree = new TheoryTreeView(app.getTheoryManager(), viewPort);
 		actionManager.registerCallback(LOAD_THEORY_COMMAND, theoryTree, "loadTheory");
 		actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
 

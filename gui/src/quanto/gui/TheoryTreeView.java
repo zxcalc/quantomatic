@@ -17,6 +17,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
+import javax.swing.filechooser.FileFilter;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreePath;
 import org.slf4j.Logger;
@@ -34,15 +35,14 @@ public class TheoryTreeView extends JTree {
 
 	TheoryManager manager;
 	ViewPort viewPort;
-	QuantoApp app;
+	JFileChooser chooser;
 	JPopupMenu rootMenu = new RootMenu();
 
 
-	public TheoryTreeView(TheoryManager manager, QuantoApp app, ViewPort viewPort) {
+	public TheoryTreeView(TheoryManager manager, ViewPort viewPort) {
 		super(manager.getTreeModel());
 		this.manager = manager;
 		this.viewPort = viewPort;
-		this.app = app;
 
 		setCellRenderer(new TheoryCellRenderer());
 		addMouseListener(new MouseAdapter() {
@@ -77,30 +77,91 @@ public class TheoryTreeView extends JTree {
 		setFocusable(false);
 	}
 
-	public void loadTheory() {
-		String lastDir = app.getPreference(QuantoApp.LAST_THEORY_OPEN_DIR);
-		if (lastDir != null) {
-			app.getFileChooser().setCurrentDirectory(new File(lastDir));
-		}
+	private JFileChooser getFileChooser()
+	{
+		if ( chooser == null )
+		{
+			chooser = new JFileChooser();
+			chooser.addChoosableFileFilter(new FileFilter() {
+				private String getExtension(File f) {
+					String ext = null;
+					String s = f.getName();
+					int i = s.lastIndexOf('.');
 
-		int retVal = app.getFileChooser().showDialog(this, "Open");
-		if (retVal == JFileChooser.APPROVE_OPTION) {
-			try {
-				File file = app.getFileChooser().getSelectedFile();
-				if (file.getParent() != null) {
-					app.setPreference(QuantoApp.LAST_THEORY_OPEN_DIR, file.getParent());
+					if (i > 0 &&  i < s.length() - 1) {
+						ext = s.substring(i+1).toLowerCase();
+					}
+					return ext;
 				}
+
+				@Override
+				public boolean accept(File f) {
+					if (f.isDirectory())
+						return true;
+					return getExtension(f).equals("theory");
+				}
+
+				@Override
+				public String getDescription() {
+					return "Theory files (*.theory)";
+				}
+			});
+		}
+		return chooser;
+	}
+
+	private File askForTheoryToOpen() {
+		JFileChooser fileChooser = getFileChooser();
+		File lastDir = manager.getLastTheoryDirectory();
+		if (lastDir != null) {
+			chooser.setCurrentDirectory(lastDir);
+		}
+		int retVal = fileChooser.showOpenDialog(this);
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			return fileChooser.getSelectedFile();
+		}
+		return null;
+	}
+
+	private File askForSaveLocation( Theory theory ) {
+		JFileChooser fileChooser = getFileChooser();
+		if (theory.getPath() != null && theory.getPath().length() != 0)
+		{
+			fileChooser.setSelectedFile(new File(theory.getPath()));
+		}
+		else if (manager.getLastTheoryDirectory() != null)
+		{
+			File file = new File(manager.getLastTheoryDirectory(),
+				theory.getName() + ".theory");
+			fileChooser.setSelectedFile(file);
+		}
+		else
+		{
+			File file = new File(theory.getName() + ".theory");
+			fileChooser.setSelectedFile(file);
+		}
+		int retVal = fileChooser.showSaveDialog(this);
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			return fileChooser.getSelectedFile();
+		}
+		return null;
+	}
+
+	public void loadTheory() {
+		File file = askForTheoryToOpen();
+		if (file != null) {
+			try {
 				String thyname = file.getName().replaceAll("\\.theory|\\n|\\r", "");
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 				manager.loadTheory(thyname, filename);
 			}
 			catch (QuantoCore.CoreException e) {
 				logger.error("Failed to load theory", e);
-				app.errorDialog(e.getMessage());
+				errorDialog(e.getMessage());
 			}
 			catch (java.io.IOException ioe) {
 				logger.error("Failed to load theory", ioe);
-				app.errorDialog(ioe.getMessage());
+				errorDialog(ioe.getMessage());
 			}
 		}
 	}
@@ -184,6 +245,14 @@ public class TheoryTreeView extends JTree {
 		}
 	};
 
+	public void errorDialog(Object message) {
+		JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	public void errorDialog(String title, Object message) {
+		JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE);
+	}
+
 	@SuppressWarnings("serial")
 	private class TheoryMenu extends JPopupMenu {
 		public TheoryMenu(final Theory rset) {
@@ -210,25 +279,15 @@ public class TheoryTreeView extends JTree {
 			item = new JMenuItem("Save to file...");
 			item.addActionListener(new WrappedActionListener() {
 				public void wrappedAction(ActionEvent e) throws CoreException {
-					JFileChooser fileChooser = new JFileChooser();
-					File defaultFile = new File(
-						app.getPreference(QuantoApp.LAST_THEORY_OPEN_DIR),
-						rset.getName() + ".theory");
-					fileChooser.setSelectedFile(defaultFile);
-
-					int retVal = fileChooser.showSaveDialog(TheoryTreeView.this);
-					if (retVal == JFileChooser.APPROVE_OPTION) {
+					File file = askForSaveLocation(rset);
+					if (file != null) {
 						try {
-							File file = fileChooser.getSelectedFile();
-							if (file.getParent() != null) {
-								app.setPreference(QuantoApp.LAST_THEORY_OPEN_DIR, file.getParent());
-							}
 							String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 							rset.save(filename);
 						}
 						catch (java.io.IOException ioe) {
 							logger.error("Failed to save theory " + rset.getName(), ioe);
-							app.errorDialog(ioe.getMessage());
+							errorDialog(ioe.getMessage());
 						}
 					}
 				}

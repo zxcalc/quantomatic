@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
+import java.io.IOException;
 /**
  * Singleton class 
  * @author aleks
@@ -50,7 +51,7 @@ public class QuantoApp {
 	private final QuantoCore core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
-	private TheoryManager model = null;
+	private TheoryManager theoryManager = null;
 
 	private static class Pref<T> {
 
@@ -263,10 +264,20 @@ public class QuantoApp {
 	}
 
 	public TheoryManager getTheoryManager() {
-		if (model == null) {
-			model = new TheoryManager(core);
+		if (theoryManager == null) {
+			theoryManager = new TheoryManager(core);
+			theoryManager.setLastTheoryDirectory(new File(getPreference(LAST_THEORY_OPEN_DIR)));
+			theoryManager.addRecentDirectoryChangeListener(new RecentDirectoryChangeListener() {
+				public void recentDirectoryChanged(Object source, File directory) {
+					try {
+						setPreference(LAST_THEORY_OPEN_DIR, directory.getCanonicalPath());
+					} catch (IOException ex) {
+						logger.warn("Could not save last theory directory", ex);
+					}
+				}
+			});
 		}
-		return model;
+		return theoryManager;
 	}
 
 	public void createNewFrame() {

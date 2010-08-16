@@ -5,6 +5,7 @@
 
 package quanto.gui;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -14,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.swing.event.EventListenerList;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -37,6 +39,8 @@ public class TheoryManager {
 	private DefaultMutableTreeNode root;
 	private DefaultTreeModel innerModel;
 	private TheoryTreeModel outerModel;
+	private File lastTheoryDirectory;
+	private EventListenerList listenerList = new EventListenerList();
 	private Map<String,Theory> theoryCache = new HashMap<String, Theory>();
 	private TheoryListener listener = new TheoryListener() {
 		public void ruleAdded(Theory source, String ruleName) {
@@ -103,6 +107,11 @@ public class TheoryManager {
 			TheoryTreeNode node = findNode(source).node;
 			if (node != null) {
 				innerModel.nodeChanged(node);
+			}
+			if (!hasUnsavedChanges && source.getPath() != null) {
+				// it was saved, record where
+				File theoryFile = new File(source.getPath());
+				setLastTheoryDirectory(theoryFile.getParentFile());
 			}
 		}
 	};
@@ -275,6 +284,34 @@ public class TheoryManager {
 		outerModel = new TheoryTreeModel();
 	}
 
+	public void addRecentDirectoryChangeListener(RecentDirectoryChangeListener l)
+	{
+		listenerList.add(RecentDirectoryChangeListener.class, l);
+	}
+
+	public void removeRecentDirectoryChangeListener(RecentDirectoryChangeListener l)
+	{
+		listenerList.remove(RecentDirectoryChangeListener.class, l);
+	}
+
+	public void setLastTheoryDirectory(File directory)
+	{
+		if (directory.isDirectory())
+		{
+			lastTheoryDirectory = directory;
+		        Object[] listeners = listenerList.getListenerList();
+		        for (int i = listeners.length-2; i>=0; i-=2) {
+				if (listeners[i]==RecentDirectoryChangeListener.class) {
+					((RecentDirectoryChangeListener)listeners[i+1]).recentDirectoryChanged(this, directory);
+				}
+		        }
+		}
+	}
+
+	public File getLastTheoryDirectory() {
+		return lastTheoryDirectory;
+	}
+
 	private TreeNodeLocation<TheoryTreeNode> findNode(Theory theory) {
 		TheoryTreeNode rnode = null;
 		int index = 0;
@@ -379,6 +416,9 @@ public class TheoryManager {
 		root.add(node);
 		theory.addTheoryListener(listener);
 		innerModel.nodesWereInserted(root, new int[] {root.getChildCount()-1});
+
+		File theoryFile = new File(fileName);
+		setLastTheoryDirectory(theoryFile.getParentFile());
 
 		return theory;
 	}
