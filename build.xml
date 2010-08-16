@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<project name="Quanto" default="all" basedir=".">
+  <description>
+    Build the Quantomatic CORE and GUI.
+  </description>
+
+  <target name="all">
+    <!-- Create the time stamp -->
+    <exec executable="make" dir="core">
+    </exec>
+    <exec executable="ant" dir="gui">
+    </exec>
+  </target>
+
+</project>
