@@ -568,6 +568,21 @@ struct
         vns
         (V.Amorph.empty,g);
   
+
+  (* remove any vertices that don't have an edge from the vset and for any vertices not in vset, but with edge(s) to vset, they get changed into edge-points. Note: this is a cheeky use of edge-points for variable-vertices. We should probably introduce a proper notion of variable vertex/uninstantiated vertex. *)
+  fun abstract_from_vset vset (pvs_g as (pvs,g)) = 
+      Edge.NSet.fold 
+        (fn ((dir_or_undir,ed),(fromv,tov)) => fn (pvs_g as (pvs,g)) =>  
+          case (Vertex.NSet.contains vset fromv, Vertex.NSet.contains vset tov) => 
+            of (true,true) => pvs_g
+             | (false,true) => (Vertex.NSet.add fromv pvs, change_into_edgepoint fromv g)
+             | (true,false) => (Vertex.NSet.add tov pvs, change_into_edgepoint fromv g)
+             | (false,false) => pvs_g
+        )
+        (get_edges g)
+        pvs_g;
+
+
   (* make a subgraph from a node selection: any vertices with edges
      outside selection become boundary, and all non-selected vertices are 
      deleted. Perserves matching.  *)
