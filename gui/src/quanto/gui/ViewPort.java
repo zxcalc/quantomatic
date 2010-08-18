@@ -2,6 +2,7 @@ package quanto.gui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.SystemColor;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -14,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 
 public class ViewPort extends JPanel {
 
@@ -199,8 +202,11 @@ public class ViewPort extends JPanel {
 
 	private JLabel makeViewMenu() {
 		final JLabel picker = new JLabel("  (no views)  " + arrowDown);
-		picker.setForeground(Color.gray);
+		picker.setOpaque(true);
 		picker.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+		java.net.URL imgURL = getClass().getResource("/toolbarButtonGraphics/navigation/Down16.gif");
+		if (imgURL != null)
+			picker.setIcon(new ImageIcon(imgURL));
 		final JPopupMenu viewMenu = new JPopupMenu();
 		picker.addMouseListener(new MouseAdapter() {
 
@@ -235,7 +241,10 @@ public class ViewPort extends JPanel {
 						viewMenu.add(item);
 					}
 				}
-				viewMenu.show(picker, 5, 2);
+				int yoffset = picker.getHeight();
+				if (picker.getBorder() != null)
+					yoffset -= picker.getBorder().getBorderInsets(picker).top;
+				viewMenu.show(picker, 0, yoffset);
 			}
 		});
 		return picker;

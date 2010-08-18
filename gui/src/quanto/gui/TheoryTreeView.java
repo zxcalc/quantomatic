@@ -5,18 +5,29 @@
 
 package quanto.gui;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.File;
+import javax.swing.BorderFactory;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JTree;
+import javax.swing.border.EtchedBorder;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreePath;
@@ -28,7 +39,7 @@ import quanto.gui.QuantoCore.CoreException;
  *
  * @author alex
  */
-public class TheoryTreeView extends JTree {
+public class TheoryTreeView extends JPanel {
 
 	private final static Logger logger =
 		LoggerFactory.getLogger(TheoryTreeView.class);
@@ -37,15 +48,18 @@ public class TheoryTreeView extends JTree {
 	ViewPort viewPort;
 	JFileChooser chooser;
 	JPopupMenu rootMenu = new RootMenu();
-
+	JTree tree;
 
 	public TheoryTreeView(TheoryManager manager, ViewPort viewPort) {
-		super(manager.getTreeModel());
+		super(new BorderLayout());
 		this.manager = manager;
 		this.viewPort = viewPort;
 
-		setCellRenderer(new TheoryCellRenderer());
-		addMouseListener(new MouseAdapter() {
+		this.tree = new JTree(manager.getTreeModel());
+		tree.setRootVisible(false);
+		tree.setShowsRootHandles(true);
+		tree.setCellRenderer(new TheoryCellRenderer());
+		tree.addMouseListener(new MouseAdapter() {
 			private boolean isRightClick(MouseEvent e) {
 				return (e.getButton() == MouseEvent.BUTTON3) ||
 					(QuantoApp.isMac &&
@@ -56,23 +70,38 @@ public class TheoryTreeView extends JTree {
 			public void mouseClicked(MouseEvent e) {
 				final TheoryManager.TheoryTreeModel tmodel = TheoryTreeView.this.manager.getTreeModel();
 				if (isRightClick(e)) {
-					TreePath p = getPathForLocation(e.getX(), e.getY());
+					TreePath p = tree.getPathForLocation(e.getX(), e.getY());
 					if (p != null) {
 						Object node = p.getLastPathComponent();
 						if (node == tmodel.getRoot()) {
-							rootMenu.show(TheoryTreeView.this, e.getX(), e.getY());
+							rootMenu.show(tree, e.getX(), e.getY());
 						} else if (tmodel.isTheoryNode(node)) {
 							Theory rset = tmodel.getTheory(node);
-							new TheoryMenu(rset).show(TheoryTreeView.this, e.getX(), e.getY());
+							new TheoryMenu(rset).show(tree, e.getX(), e.getY());
 						} else if (tmodel.isRuleNode(node)) {
 							Theory rset = tmodel.getTheory(node);
 							String rule = tmodel.getRuleName(node);
-							new RuleMenu(rset, rule).show(TheoryTreeView.this, e.getX(), e.getY());
+							new RuleMenu(rset, rule).show(tree, e.getX(), e.getY());
 						}
 					}
 				}
 			}
 		});
+		add(tree, BorderLayout.CENTER);
+
+		final JLabel titleBar = new JLabel("Theories");
+		java.net.URL imgURL = getClass().getResource("/toolbarButtonGraphics/navigation/Down16.gif");
+		if (imgURL != null)
+			titleBar.setIcon(new ImageIcon(imgURL));
+		titleBar.setBorder(BorderFactory.createEtchedBorder(EtchedBorder.LOWERED));
+		titleBar.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				rootMenu.show(titleBar, 0, titleBar.getHeight() - titleBar.getBorder().getBorderInsets(titleBar).bottom);
+			}
+		});
+		add(titleBar, BorderLayout.PAGE_START);
+
 		// don't want to steal keyboard focus from the active InteractiveView
 		setFocusable(false);
 	}
