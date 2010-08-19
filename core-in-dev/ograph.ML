@@ -116,14 +116,14 @@ val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.Amorph.T * T)
 
 (* Given selection set of vertices, make subgraph: 
    vertices with incident edges outside selection have edges to boundary vertices *)
-val matched_subgraph_within_selection' : Vertex.NSet.T -> T 
+val matched_subgraph_within_vset' : Vertex.NSet.T -> T 
     -> Vertex.Amorph.T * T (* returns gluing/cutting for new boundary, 
                               and cut graph *)
-val matched_subgraph_within_selection : Vertex.NSet.T -> T -> T
+val matched_subgraph_within_vset : Vertex.NSet.T -> T -> T
 
 (* Given selection set of vertices, make subgraph: 
    all incident edges to selection are removed; Like copy in a graphics program *)
-val delete_subgraph_outside_selection : Vertex.NSet.T -> T -> T
+val delete_subgraph_outside_vset : Vertex.NSet.T -> T -> T
 
 (* 
 val adj_tgt_info : 
@@ -570,10 +570,10 @@ struct
   
 
   (* remove any vertices that don't have an edge from the vset and for any vertices not in vset, but with edge(s) to vset, they get changed into edge-points. Note: this is a cheeky use of edge-points for variable-vertices. We should probably introduce a proper notion of variable vertex/uninstantiated vertex. *)
-  fun abstract_from_vset vset (pvs_g as (pvs,g)) = 
-      Edge.NSet.fold 
-        (fn ((dir_or_undir,ed),(fromv,tov)) => fn (pvs_g as (pvs,g)) =>  
-          case (Vertex.NSet.contains vset fromv, Vertex.NSet.contains vset tov) => 
+  fun abstract_subgraph_from_vset vset (pvs_g as (pvs,g)) = 
+      Edge.NTab.fold 
+        (fn (e,((dir_or_undir,ed),(fromv,tov))) => fn (pvs_g as (pvs,g)) =>  
+          case (Vertex.NSet.contains vset fromv, Vertex.NSet.contains vset tov) 
             of (true,true) => pvs_g
              | (false,true) => (Vertex.NSet.add fromv pvs, change_into_edgepoint fromv g)
              | (true,false) => (Vertex.NSet.add tov pvs, change_into_edgepoint fromv g)
@@ -586,7 +586,7 @@ struct
   (* make a subgraph from a node selection: any vertices with edges
      outside selection become boundary, and all non-selected vertices are 
      deleted. Perserves matching.  *)
-  fun matched_subgraph_within_selection' vns g = 
+  fun matched_subgraph_within_vset' vns g = 
       cut_around_subgraph vns g
       |> (fn (amorph,g') => 
           (amorph, 
@@ -594,14 +594,14 @@ struct
               |> V.NSet.fold delete_vertex (V.Amorph.get_cod_nset amorph)))
   
   (* as above, but ignores gluing automorphism (introduced boundary => old vs) *)
-  val matched_subgraph_within_selection = 
-      snd oo matched_subgraph_within_selection';
+  val matched_subgraph_within_vset = 
+      snd oo matched_subgraph_within_vset';
   
   
   (* make a subgraph from a node selection: any vertices with edges
      outside selection are deleted. NOTE: does not preserve type/Matching. 
      This is the usual graphics package form of "copying" a selected graph. *)
-  fun delete_subgraph_outside_selection vns g = 
+  fun delete_subgraph_outside_vset vns g = 
       V.NSet.fold 
         (fn n => fn g => if V.NSet.contains vns n then g 
                          else delete_vertex n g)

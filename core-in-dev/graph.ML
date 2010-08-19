@@ -812,7 +812,8 @@ fun fold_subgraph fv fe_in fe_out vs g a =
     snd (fold_subgraph' fv fe_in fe_out vs g a);
 
 
-(* fold a function over the adjacent vertex names *)
+(* fold a function over the adjacent vertex names. The edge-half is from the perspective of 
+   the adj vertex. *)
 fun fold_adj' f g (ins,outs) a = 
     a |> (Edge.NSet.fold 
          (fn e => let val (d,(from,to)) = get_edge g e 

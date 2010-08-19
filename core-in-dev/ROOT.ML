@@ -10,7 +10,7 @@ print_depth 3;
 
 (* load all the files. *)
 PolyML.Project.make "lex.ML";
-PolyML.Project.make "alg.ML";
+
 (* basic graphs *)
 PolyML.Project.make "graph.ML";
 (* open graphs *)
@@ -57,6 +57,8 @@ PolyML.Project.make "writer.ML";
 PolyML.Project.make "loadsave.ML";
 (*PolyML.Project.make "theory_hack.ML";*)
 
+(* general algebraic things *)
+PolyML.Project.make "alg.ML";
 (* hilbert space stuff *)
 PolyML.Project.make "hilb.ML";
 

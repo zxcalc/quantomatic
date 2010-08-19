@@ -1,18 +1,18 @@
 (* linear combinations with rational coeffs (and pi) *)
 signature LINRAT_EXPR
 = sig 
-include EXPR
-structure Coeff : RATIONAL
-val zero : T
-val is_zero : T -> bool
-val pi : T
-val mk_var : VName.name -> T
-val mk : Coeff.T -> (VName.name * Coeff.T) list -> T
-val subtr_expr : T -> T -> T
-val add_expr : T -> T -> T
-val scale_expr : Coeff.T -> T -> T
-val parse : string -> T
-exception parse_exp
+  include EXPR
+  structure Coeff : RATIONAL
+  val zero : T
+  val is_zero : T -> bool
+  val pi : T
+  val mk_var : VName.name -> T
+  val mk : Coeff.T -> (VName.name * Coeff.T) list -> T
+  val subtr_expr : T -> T -> T
+  val add_expr : T -> T -> T
+  val scale_expr : Coeff.T -> T -> T
+  val parse : string -> T
+  exception parse_exp
 end;
 
 structure DB_LinratExpr =

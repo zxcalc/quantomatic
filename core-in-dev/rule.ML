@@ -43,7 +43,7 @@ sharing Sharing.Match = Match
 sharing RGGraph.SharingBangGraph = MatchState.RGGraph.SharingBangGraph;
 sharing Match.Sharing = MatchState.Match.Sharing;
 
-type T (* rules *)
+type T (* rule *)
 
 exception bad_rule_exp of string * RGGraph.T * RGGraph.T;
 val mk : (RGGraph.T * RGGraph.T) -> T;

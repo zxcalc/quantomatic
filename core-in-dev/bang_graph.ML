@@ -374,6 +374,23 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
      and e set (es);
      assumes: get_Xnames g <= Xs; for X = {e, v, b}
   *)
+  fun copy1_vset (vs,es,bs) vset g = 
+      let val (vrn,ern) = (Vertex.Rnm.mk_from_avoidset vs, Edge.Rnm.mk_from_avoidset es);
+      in
+        Vertex.NSet.fold 
+          (fn v => (* copy each vertex *)
+              let val g' = add_vertex 
+              fold_adj (* add edges to all adjacent stuff already copied, *)
+                (fn (ehn, (dir_or_undir, ed)) => fn v2 => fn ((vrn,ern), g) => 
+                    if Vertex.NSet.contains vset v2 then 
+                      
+                    else
+                      
+                ) v g
+          ) ((vrn,ern), g)
+        end;
+
+
   fun copy1_box (vs,es,bs) bn g = 
       let val bbox_vs = get_bbox g bn
           (* subgraph of selection gives back something without bang-boxes *)
@@ -381,7 +398,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
           val boundary_vs = Vertex.Amorph.get_dom_nset boundary_amorph;
           val ((vrn,ern),bbg2) = 
               bbg |> rename (Vertex.Rnm.mk boundary_vs vs Vertex.NTab.empty,
-                             Edge.Rnm.mk_from_avoidset es) 
+                             Edge.Rnm.mk_from_avoidset es);
           val bbox2_vs = Vertex.Rnm.get_newnames vrn;
           val bboxes = get_bboxes g
           val (bn2, bs2) = BBox.NSet.add_new bn bs;
