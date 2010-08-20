@@ -379,15 +379,18 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       in
         Vertex.NSet.fold 
           (fn v => (* copy each vertex *)
-              let val g' = add_vertex 
-              fold_adj (* add edges to all adjacent stuff already copied, *)
-                (fn (ehn, (dir_or_undir, ed)) => fn v2 => fn ((vrn,ern), g) => 
-                    if Vertex.NSet.contains vset v2 then 
-                      
-                    else
-                      
-                ) v g
-          ) ((vrn,ern), g)
+              let val (v',g') = add_vertex (get_vetex_data g v) g 
+                  val vrn' = Vertex.Rnm.add v v' vrn
+              in
+                fold_adj (* add edges to all adjacent stuff already copied, *)
+                  (fn (ehn, (dir_or_undir, ed)) => fn v2 => fn ((vrn,ern), g) => 
+                      if Vertex.NSet.contains vset v2 then 
+                        Vertex.Rnm.lookup () => 
+                      else
+                        
+                  ) v g
+               end
+          ) vset ((vrn,ern), g)
         end;
 
 
