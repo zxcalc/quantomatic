@@ -1,13 +1,3 @@
-structure AlgFormat =
-struct
-exception not_supported_exp
-datatype format = MATHEMATICA | MATLAB | LATEX | PLAIN
-fun of_string "mathematica" = MATHEMATICA
-  | of_string "matlab" = MATLAB
-  | of_string "latex" = LATEX
-  | of_string "plain" = PLAIN
-  | of_string _ = raise not_supported_exp
-end
 
 structure Permutation =
 struct

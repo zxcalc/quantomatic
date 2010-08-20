@@ -10,7 +10,6 @@ print_depth 3;
 
 (* load all the files. *)
 PolyML.Project.make "lex.ML";
-PolyML.Project.make "alg.ML";
 PolyML.Project.make "graph.ML";
 PolyML.Project.make "bvertex.ML";
 PolyML.Project.make "bgraph.ML";
@@ -41,6 +40,7 @@ PolyML.Project.make "reader.ML";
 PolyML.Project.make "writer.ML";
 PolyML.Project.make "loadsave.ML";
 (*PolyML.Project.make "theory_hack.ML";*)
+PolyML.Project.make "alg.ML";
 PolyML.Project.make "hilb.ML";
 PolyML.Project.make "controller.ML";
 
