@@ -158,11 +158,26 @@ structure AdjacencyTree
       | first_width (Lf bag) = 0
       | first_width (Br (bag,brs)) =
       	List.length brs
+      	
+    fun avdepth Empty = 0.0
+      | avdepth (Lf bag) = 0.0
+      | avdepth (Br (bag,brs)) =
+      	let
+      	val length = List.length brs
+      	val sum = List.foldr op+ 0.0
+      	fun av xs = (sum xs) / (Real.fromInt length)
+      	in
+      	av (map (fn (entry,br) => 1.0 + avdepth br) brs)
+      	end;
+      	
+    fun balance atree = (Real.fromInt (depth atree)) - (avdepth atree);
+      	
      			
     fun test_tree atree =
     	(leaves atree,
-    	 bags atree,
     	 depth atree,
-    	 first_width atree)
+    	 first_width atree,
+    	 balance atree
+    	 )
    
 end;

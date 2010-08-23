@@ -232,6 +232,30 @@ structure Tester
   		end) ruleset_range)
   	|> map process_results;
   	
+  fun varied_adj_vs_match
+  	(*ranges of values to try*) ruleset_range tgt_range
+  	(*scaling factors for each range*) ruleset_scale tgt_scale= 
+  	(map (fn n (*vary pattern set size*) =>
+  		let 
+  		val pats = RG.varied_pattern_set (n*ruleset_scale)
+  		val atree = ATree.create_atree_from_graphlist pats
+  		in 
+  		map (fn m (*vary tgt size*) =>
+  			let
+  			val tgt = RG.std_rgraph (m*tgt_scale) (m*(tgt_scale div 10)) 0
+  			in
+  			[time_wrapper (n*ruleset_scale) (m*tgt_scale)
+  				(fn () =>
+  					adj_matching tgt atree
+  					),
+  			 time_wrapper (n*ruleset_scale) (m*tgt_scale)
+  				(fn () =>
+  					matching pats tgt
+  					)]
+  			end) tgt_range
+  		end) ruleset_range)
+  	|> map process_results;
+  	
   fun hist_vs_match (gg as graph_generator)
   	(*ranges of values to try*) ruleset_range tgt_range
   	(*scaling factors for each range*) ruleset_scale tgt_scale= 
@@ -293,6 +317,7 @@ structure Tester
  	val dir = "indexing/test/results/" ^ filename
  	val ostream = openAppend dir
  	val show = Int.toString
+ 	val showreal = Real.toString
  	in
  	ostream;
  	map (fn [(num_matched1, num_matches1, nrules1, tgtsize1, time1),

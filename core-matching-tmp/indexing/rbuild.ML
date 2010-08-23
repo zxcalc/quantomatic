@@ -123,10 +123,13 @@ structure RandomGraph
   		graph_generator vs bs 0
   		end) (1 upto nrules)
   	end;
+  	
+  	
   
   fun pattern_set gg nr = pattern_set' gg nr 4 3;	
   fun std_pattern_set nrules = pattern_set' (std_rgraph) nrules 4 3;
   fun simple_pattern_set nrules = pattern_set' (simple_rgraph) nrules 4 3;
+  fun varied_pattern_set nrules = pattern_set' (std_rgraph) nrules 20 5;
   		
   
 end;
