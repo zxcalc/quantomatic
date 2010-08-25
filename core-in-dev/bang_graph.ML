@@ -369,33 +369,13 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* FIXME: merge_by_vertices respect !-boxes *)
   (* FIXME: subgraph_of_selection respect !-boxes *)
   (* FIXME: other stuff respect !-boxes ??? *)
-  
-  (* copy bang box, making copy having names fresh w.r.t. given v set (vs) 
-     and e set (es);
-     assumes: get_Xnames g <= Xs; for X = {e, v, b}
-  *)
-  fun copy1_vset (vs,es,bs) vset g = 
-      let val (vrn,ern) = (Vertex.Rnm.mk_from_avoidset vs, Edge.Rnm.mk_from_avoidset es);
-      in
-        Vertex.NSet.fold 
-          (fn v => (* copy each vertex *)
-              let val (v',g') = add_vertex (get_vetex_data g v) g 
-                  val vrn' = Vertex.Rnm.add v v' vrn
-              in
-                fold_adj (* add edges to all adjacent stuff already copied, *)
-                  (fn (ehn, (dir_or_undir, ed)) => fn v2 => fn ((vrn,ern), g) => 
-                      if Vertex.NSet.contains vset v2 then 
-                        Vertex.Rnm.lookup () => 
-                      else
-                        
-                  ) v g
-               end
-          ) vset ((vrn,ern), g)
-        end;
 
-
+  (* FIXME: use Graph.copy_vset *)
   fun copy1_box (vs,es,bs) bn g = 
-      let val bbox_vs = get_bbox g bn
+      
+
+    (* 
+     let val bbox_vs = get_bbox g bn
           (* subgraph of selection gives back something without bang-boxes *)
           val (boundary_amorph, bbg) = matched_subgraph_within_selection' bbox_vs g;
           val boundary_vs = Vertex.Amorph.get_dom_nset boundary_amorph;
@@ -411,6 +391,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
          g |> merge_by_vertices bbg2
            |> set_bboxes bboxes2)
       end;
+     *)
   
   (* given a new bang-box name and the renamings for its vertices and edges, copy 
      the bangbox, renamed as specified. *)

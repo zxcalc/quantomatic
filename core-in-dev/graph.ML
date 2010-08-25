@@ -1302,7 +1302,43 @@ fun get_isomorphisms g h
 (* out: true if g~=h, false otherwise *)
 val is_isomorphic : T -> T -> bool 
   = is_some o Seq.pull oo get_isomorphisms
-  
+
+
+
+fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
+    let val (e',g') = (* add edge, orient appropriately *)
+          if Edge.Ehn.is_start ehn then add_edge dir_and_data v2 v g 
+          else add_edge dir_and_data v v2 g
+    in ((vrn,Edge.Rnm.do_compose_rename1 (Edge.Ehn.get_ename ehn) e' ern),g') end
+
+
+(* copy a set of vertices, making copy having names fresh w.r.t. given v set (vs) 
+   and e set (es); copies edges to all vertices outside the selected set. 
+   assumes: get_Xnames g <= Xs; for X = {e, v, b}
+*)
+fun copy1_vset (vs,es) vset g = 
+    let val (vrn,ern) = (Vertex.Rnm.mk_from_avoidset vs, Edge.Rnm.mk_from_avoidset es);
+    in
+      Vertex.NSet.fold 
+        (fn v => fn ((vrn,ern),g) => (* copy each vertex *)
+            let val (v',g') = add_vertex (get_vertex_data g v) g 
+                val vrn' = Vertex.Rnm.do_compose_rename1 v v' vrn
+            in
+              fold_adj (* for each connected edge *)
+                (fn (ehn, dir_and_data) => fn v2 => fn (r_g as ((vrn,ern), g)) =>
+                    (* has the other end of the edge already been added? *)
+                    if Vertex.NSet.contains vset v2 then 
+                      (case Vertex.Rnm.lookup vrn v2 of 
+                           NONE => r_g
+                         (* add edges to any other adjacent stuff that has already been copied *)
+                         | SOME v2' => copy1edge (ehn, dir_and_data) v' v2' r_g)
+                     else (* if outside of vset, copy edge to vertex outside *)
+                        copy1edge (ehn, dir_and_data) v' v2 r_g
+                ) g v ((vrn',ern),g)
+             end
+        ) vset ((vrn,ern), g)
+      end;
+
 end; (* local -- hides opened Graph data types *)
 end;
 
