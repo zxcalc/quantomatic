@@ -13,6 +13,8 @@ PolyML.Project.make "lex.ML";
 
 (* basic graphs *)
 PolyML.Project.make "graph.ML";
+(* distance matrix *)
+PolyML.Project.make "distancematrix.ML";
 (* open graphs *)
 PolyML.Project.make "overtex.ML";
 PolyML.Project.make "ograph.ML";
