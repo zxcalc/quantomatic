@@ -20,7 +20,7 @@ sig
   structure Name : NAMES_SHARING
   structure RGGraph : RG_GRAPH_SHARING
   structure Match : MATCH_SHARING
-  (*structure MatchState : MATCH_STATE_SHARING *)
+  (*structure MatchSearch : MATCH_SEARCH_SHARING *)
 end
  
 
@@ -29,8 +29,8 @@ signature RULE
 
 structure Name : SSTR_NAMES
 
-structure MatchState : MATCH_STATE
-(* these are really in MatchState - this is just a local abbreviation *)
+structure MatchSearch : MATCH_SEARCH
+(* these are really in MatchSearch - this is just a local abbreviation *)
 structure RGGraph : RG_GRAPH
 structure Match : MATCH
 
@@ -38,10 +38,10 @@ structure Sharing : RULE_SHARING
 sharing Sharing.Name = Name
 sharing Sharing.RGGraph = RGGraph
 sharing Sharing.Match = Match
-(* sharing Sharing.MatchState = MatchState *)
+(* sharing Sharing.MatchSearch = MatchSearch *)
 
-sharing RGGraph.SharingBangGraph = MatchState.RGGraph.SharingBangGraph;
-sharing Match.Sharing = MatchState.Match.Sharing;
+sharing RGGraph.SharingBangGraph = MatchSearch.RGGraph.SharingBangGraph;
+sharing Match.Sharing = MatchSearch.Match.Sharing;
 
 type T (* rule *)
 
@@ -92,8 +92,8 @@ val do_rewrite_rrhs : (* rewriting a rules rhs *)
     -> T (* to rewrite the rhs of this rule *)
     -> T (* to produce this new rule *)
 
-val rewritings : T -> (MatchState.T * RGGraph.T) -> (MatchState.T * RGGraph.T) Seq.seq
-val rewritings_rrhs : T -> (MatchState.T * T) -> (MatchState.T * T) Seq.seq
+val rewritings : T -> (MatchSearch.T * RGGraph.T) -> (MatchSearch.T * RGGraph.T) Seq.seq
+val rewritings_rrhs : T -> (MatchSearch.T * T) -> (MatchSearch.T * T) Seq.seq
 *)
 
 val pretty : T -> Pretty.T
@@ -104,7 +104,7 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor RuleFun( MatchState : MATCH_STATE )
+functor RuleFun( MatchSearch : MATCH_SEARCH )
 = struct
 
 structure Name = struct
@@ -112,12 +112,12 @@ open SStrName;
 val default_name = SStrName.mk "new-rule-1"
 end
 
-structure MatchState = MatchState;
+structure MatchSearch = MatchSearch;
 (* local stuff for abbreviations *)
-structure RGGraph = MatchState.RGGraph;
-structure Match = MatchState.Match;
-structure Vertex = MatchState.Vertex;
-structure Edge = MatchState.Edge;
+structure RGGraph = MatchSearch.RGGraph;
+structure Match = MatchSearch.Match;
+structure Vertex = MatchSearch.Vertex;
+structure Edge = MatchSearch.Edge;
 
 structure Sharing = struct
   structure Name = Name.Sharing
@@ -202,8 +202,8 @@ fun matches rule tgt =
         val es = RGGraph.get_enames rhs;
         val bs = RGGraph.get_bnames rhs;
     in
-      MatchState.match (vs,es,bs) (get_lhs rule) tgt 
-        MatchState.Vertex.NTab.empty
+      MatchSearch.match (vs,es,bs) (get_lhs rule) tgt 
+        MatchSearch.Vertex.NTab.empty
     end;
 
 (* a rule is trivially true if the left and right hand sides match.
@@ -215,8 +215,8 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
     let val init_renaming = 
         val rhs' = RGGraph.rename_apart
     in
-    (case Seq.pull (MatchState.match (get_lhs rule) (get_rhs rule) 
-                                     MatchState.Vertex.NTab.empty)
+    (case Seq.pull (MatchSearch.match (get_lhs rule) (get_rhs rule) 
+                                     MatchSearch.Vertex.NTab.empty)
       of NONE => false
        | _ => true);
 *)
@@ -477,5 +477,5 @@ val print = Pretty.writeln o pretty;
 end;
 
 
-structure DB_Rule = RuleFun(MatchState);
+structure DB_Rule = RuleFun(MatchSearch);
 structure Rule : RULE = DB_Rule;

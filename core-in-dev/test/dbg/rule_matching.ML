@@ -19,7 +19,7 @@ Rule.print rule;
 RGGraph.print g;
 RGGraph.print lhs2;
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val pat = lhs2;
 val tgt = g;
@@ -72,7 +72,7 @@ val SOME ((n,tn),st2) =
 raise ERROR "stop";
 
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val initmatching = Match.empty;
 val pat = g1;
@@ -210,7 +210,7 @@ val BVertex.IVert td = td;
 
 val SOME st2 = match_vertex (n,d) (tn,td) st;
 
-val l = Seq.list_of (MatchState.match g1 g2 []);
+val l = Seq.list_of (MatchSearch.match g1 g2 []);
 
 (Seq.list_of (match_2vertices_with_edges pat tgt n st2 tn));
 
@@ -220,5 +220,5 @@ val tn = "Vd";
 
 print st;
 
-val l = Seq.list_of (MatchState.match g1 g2 []);
+val l = Seq.list_of (MatchSearch.match g1 g2 []);
 *)

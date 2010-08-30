@@ -284,7 +284,7 @@ Match.print m3;
 
 val [m1,m2] = Seq.list_of ms;
 
-MatchState.print_match
+MatchSearch.print_match
 Rule.print rule';
 Rule.inst_rule rule' m3;
 
@@ -305,7 +305,7 @@ val (rn,rule) = (DB_Rule.rename_rule_apart tgt rule);
 Rule.print rule;
 G.print tgt;
 
-Seq.list_of (MatchState.match (Rule.get_lhs rule) tgt MatchState.Vertex.NTab.empty);
+Seq.list_of (MatchSearch.match (Rule.get_lhs rule) tgt MatchSearch.Vertex.NTab.empty);
 
 
 val rhs1 = (Rule.get_rhs (snd DB_Test_Rule.m1))

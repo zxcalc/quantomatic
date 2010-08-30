@@ -41,7 +41,7 @@ Rule.print rule;
 RGGraph.print g;
 RGGraph.print lhs2;
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val pat = lhs2;
 val tgt = g;
@@ -53,11 +53,11 @@ raise ERROR "stop";
 
 val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
 val st = init_st;
-MatchState.print st;
+MatchSearch.print st;
 (* match boundary "i" to 4 tgt bverts *)
-val (Progress s) = MatchState.do_next_match_choices st;
+val (Progress s) = MatchSearch.do_next_match_choices st;
 val (L as [st1,st2]) = Seq.list_of s;
-map MatchState.print L;
+map MatchSearch.print L;
 (* first two are ok, second two not *)
 val matches = Seq.list_of (Seq.make (match_search (Seq.of_list [st3,st4])));
 

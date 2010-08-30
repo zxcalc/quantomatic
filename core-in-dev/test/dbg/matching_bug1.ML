@@ -50,10 +50,10 @@ val bs = RGGraph.get_bnames rhs;
 val names = (vs,es,bs);
 
 val m = (Match.init names pat tgt);
-val init_st = (MatchState.init m pat tgt Vertex.NTab.empty);
+val init_st = (MatchSearch.init m pat tgt Vertex.NTab.empty);
 val st = init_st;
 
-open DB_MatchState;
+open DB_MatchSearch;
 print st;
 
 (* match_search = repeat the following *)
@@ -129,7 +129,7 @@ val _ = G.print pat;
 val _ = G.print tgt;
 
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val rhs = (Rule.get_rhs rule);
 val vs = RGGraph.get_vnames rhs;
@@ -207,7 +207,7 @@ PolyML.exception_trace (fn () =>
 
 val ms = 
  PolyML.exception_trace (fn () => 
-  Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty)
+  Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty)
 );
 val l = length ms;
 val bad_ms = 

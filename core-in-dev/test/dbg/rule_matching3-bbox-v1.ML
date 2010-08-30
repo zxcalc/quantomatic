@@ -28,7 +28,7 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val ms as [m1,m2] = Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty);
+val ms as [m1,m2] = Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty);
 val _ = Match.print m1;
 val _ = map Match.print ms;
 
@@ -38,7 +38,7 @@ val _ = map Match.print ms;
 RGGraph.print pat;
 RGGraph.print tgt;
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
 val st = init_st;

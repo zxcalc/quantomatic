@@ -1,5 +1,5 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(*  MatchState and Matching Algorithm *)
+(*  MatchSearch and Matching Algorithm *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (* Matching treats graphs as undirected: IMPROVE: chnage graph rep to
    be undirected and have direction as edge data, w.r.t. order of
@@ -27,7 +27,7 @@ criteria so that we can be locally strict. Local matching can then
 have some non-local effects: causes a "ver-vertex" tentacle to become
 folded back. This gives efficient failure.
 *)
-signature MATCH_STATE
+signature MATCH_SEARCH
 = sig
   structure Match : MATCH 
   structure RGGraph : RG_GRAPH
@@ -114,14 +114,14 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchStateFun(
+functor MatchSearchFun(
   structure RGGraph : RG_GRAPH 
   structure Match : MATCH
   sharing Match.Sharing.G = RGGraph.SharingBangGraph
-) (* : MATCH_STATE *)
+) (* : MATCH_SEARCH *)
 = struct
 
-(* structure DB_MatchState = struct *)
+(* structure DB_MatchSearch = struct *)
 structure RGGraph = RGGraph;
 structure Vertex = RGGraph.RGVertex;
 structure Edge = RGGraph.Edge;
@@ -935,7 +935,7 @@ fun pretty_agenda st =
 
 fun pretty (st as MState rep) = 
     Pretty.block 
-      [Pretty.str "MatchState {",
+      [Pretty.str "MatchSearch {",
        Pretty.chunks 
          [Match.pretty (#match rep),
           pretty_agenda st,
@@ -948,10 +948,10 @@ fun pretty (st as MState rep) =
 
 val print = Pretty.writeln o pretty;
 
-end; (* MatchState structure *)
+end; (* MatchSearch structure *)
 
 
-structure DB_MatchState = MatchStateFun(structure RGGraph = RGGraph 
+structure DB_MatchSearch = MatchSearchFun(structure RGGraph = RGGraph 
                                            and Match = Match);
 
-structure MatchState : MATCH_STATE = DB_MatchState;
+structure MatchSearch : MATCH_SEARCH = DB_MatchSearch;

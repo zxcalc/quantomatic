@@ -48,7 +48,7 @@ val _ = G.print pat;
 val _ = G.print tgt;
 
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val rhs = (Rule.get_rhs rule);
 val vs = RGGraph.get_vnames rhs;
@@ -126,7 +126,7 @@ PolyML.exception_trace (fn () =>
 
 val ms = 
  PolyML.exception_trace (fn () => 
-  Seq.list_of (MatchState.match pat tgt RGVertex.NTab.empty)
+  Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty)
 );
 val l = length ms;
 val bad_ms = 

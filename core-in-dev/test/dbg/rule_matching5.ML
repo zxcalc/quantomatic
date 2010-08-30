@@ -19,7 +19,7 @@ val (e0, g) = g |> G.add_edge edge b1 n1;
 val (e1, g) = g |> G.add_edge edge n1 b2;
 val g1 = g;
 
-val ms = Seq.list_of (MatchState.match g1 g0 RGVertex.NTab.empty);
+val ms = Seq.list_of (MatchSearch.match g1 g0 RGVertex.NTab.empty);
 val _ = map Match.print ms;
 val [] = ms;
 
@@ -29,7 +29,7 @@ val _ = G.print g1;
 val _ = V.NSet.print (G.get_leaf_vnames g1);
 val _ = G.print g2;
 
-val ms = Seq.list_of (MatchState.match g1 g2 RGVertex.NTab.empty);
+val ms = Seq.list_of (MatchSearch.match g1 g2 RGVertex.NTab.empty);
 val _ = map Match.print ms;
 val [m1,m2] = ms;
 
@@ -46,7 +46,7 @@ val tgt = g2;
 RGGraph.print pat;
 RGGraph.print tgt;
 
-open DB_MatchState;
+open DB_MatchSearch;
 
 val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
 val st = init_st;
