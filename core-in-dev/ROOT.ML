@@ -18,25 +18,26 @@ PolyML.Project.make "heuristic/distancematrix.ML";
 (* open graphs *)
 PolyML.Project.make "graph/overtex.ML";
 PolyML.Project.make "graph/ograph.ML";
-(* vertex and edge matching and global context *)
-PolyML.Project.make "matching/match_ctxt.ML";
 (* bang box graphs and bbox matching information *)
 PolyML.Project.make "graph/bang_graph.ML";
-PolyML.Project.make "graph/bbox_match.ML";
+
 (* linear arithmetic expressions *)
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expreessions/linrat_expr.ML";
 
 (* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "rg_vertex.ML";
-PolyML.Project.make "rg_graph.ML";
-PolyML.Project.make "rg_match_ctxt.ML";
+PolyML.Project.make "theories/red_green/rg_vertex.ML";
+PolyML.Project.make "theories/red_green/rg_graph.ML";
+PolyML.Project.make "theories/red_green/rg_match_ctxt.ML";
 (* PolyML.Project.make "edge_match.ML"; -- not used *) 
 
 (* generic matching and match state for bbox graphs *)
+(* vertex and edge matching and global context *)
+PolyML.Project.make "matching/match_ctxt.ML";
+PolyML.Project.make "matching/bbox_match.ML";
 PolyML.Project.make "matching/match.ML";
-PolyML.Project.make "matching/matchstate.ML"; 
+PolyML.Project.make "matching/matchsearch.ML"; 
 
 (* generic rules *)
 PolyML.Project.make "rewriting/rule.ML";
