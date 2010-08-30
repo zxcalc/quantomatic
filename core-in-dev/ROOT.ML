@@ -1,27 +1,27 @@
-(* basic values; and basic isaplanner libs *)
+
+(**** Compile isaplib libraries ****)
 val rootDir = OS.FileSys.getDir();
 (OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
 use "ROOT.ML"; 
 OS.FileSys.chDir rootDir);
 print_depth 3;
 
-(* turn on debug flag *)
+(** For debugging, turn on debug flag: **)
 (* PolyML.Compiler.debug := true; *)
 
-(* load all the files. *)
-PolyML.Project.make "expressions/lex.ML";
+(**** Compile quantomatic code ****)
 
-(* basic graphs *)
-PolyML.Project.make "graph/graph.ML";
-(* distance matrix *)
-PolyML.Project.make "heuristic/distancematrix.ML";
-(* open graphs *)
-PolyML.Project.make "graph/overtex.ML";
+(* Graphs *)
+PolyML.Project.make "graph/graph.ML"; (* basic graphs *)
+PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
 PolyML.Project.make "graph/ograph.ML";
-(* bang box graphs and bbox matching information *)
-PolyML.Project.make "graph/bang_graph.ML";
+PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 
-(* linear arithmetic expressions *)
+(* Heuristic derived data structures *)
+PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
+
+(* linear arithmetic expressions: data inside verticies *)
+PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expreessions/linrat_expr.ML";
@@ -30,18 +30,15 @@ PolyML.Project.make "expreessions/linrat_expr.ML";
 PolyML.Project.make "theories/red_green/rg_vertex.ML";
 PolyML.Project.make "theories/red_green/rg_graph.ML";
 PolyML.Project.make "theories/red_green/rg_match_ctxt.ML";
-(* PolyML.Project.make "edge_match.ML"; -- not used *) 
 
-(* generic matching and match state for bbox graphs *)
 (* vertex and edge matching and global context *)
 PolyML.Project.make "matching/match_ctxt.ML";
-PolyML.Project.make "matching/bbox_match.ML";
+PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/matchsearch.ML"; 
 
 (* generic rules *)
 PolyML.Project.make "rewriting/rule.ML";
-(* PolyML.Project.make "spider.ML"; -- no longer used *)
 
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";
@@ -58,12 +55,10 @@ PolyML.Project.make "io/input_rule_xml.ML";
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 PolyML.Project.make "io/loadsave.ML";
-(*PolyML.Project.make "theory_hack.ML";*)
 
-(* general algebraic things *)
-PolyML.Project.make "expressions/alg.ML";
-(* hilbert space stuff *)
-PolyML.Project.make "expressions/hilb.ML";
+(* more expression code; this time derived from graphs *)
+PolyML.Project.make "expressions/alg.ML"; (* general algebraic expression things *)
+PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
 
 (* interface protocol *)
 PolyML.Project.make "interface/controller.ML";
