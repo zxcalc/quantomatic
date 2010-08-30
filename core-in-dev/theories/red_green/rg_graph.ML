@@ -16,11 +16,12 @@ end;
 structure DB_RGGraph
 = struct 
   structure RGVertex = RGVertex;
-  structure BBGraph = BangGraphFun(
+  structure BasicBangGraph = BasicBangGraphFun(
     structure OVertex = RGVertex  
     and Edge = UnitEdge
     type data = unit (* no extra inherrited data for graphs *)
-    val empty_data = () )
+    val empty_data = ());
+  structure BBGraph = BangGraphTools(BasicBangGraph);
   open BBGraph;
 end;
 

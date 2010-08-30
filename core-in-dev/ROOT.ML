@@ -24,7 +24,7 @@ PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
-PolyML.Project.make "expreessions/linrat_expr.ML";
+PolyML.Project.make "expressions/linrat_expr.ML";
 
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/rg_vertex.ML";

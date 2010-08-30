@@ -33,6 +33,7 @@ val get_unboxed : T -> Vertex.NSet.T
 
 exception bname_already_exists_exp of BBox.name * T;
 val rename_bname : BBox.name -> BBox.name -> T -> T
+val try_rename_bname : BBox.name -> BBox.name -> T -> T option
 
 val update_unboxed : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
 val update_bboxes : (VtoBoxMap.T -> VtoBoxMap.T) -> T -> T
@@ -71,13 +72,15 @@ val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
 val get_bbox_list : T -> BBox.name list
 val get_unboxed : T -> Vertex.NSet.T
-val rename_bbname : BBox.name -> BBox.name -> T -> T
+(* val rename_bbname : BBox.name -> BBox.name -> T -> T *)
 
 val update_unboxed : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
 val update_bboxes : (VtoBoxMap.T -> VtoBoxMap.T) -> T -> T
 val set_unboxed : Vertex.NSet.T -> T -> T
-val add_to_unboxed : Vertex.NSet.T -> T -> T;
+
+(* val add_to_unboxed : Vertex.NSet.T -> T -> T;
 val del_from_unboxed : Vertex.NSet.T -> T -> T;
+*)
 val set_bboxes : VtoBoxMap.T -> T -> T;
 
 (* *** END OF COPIED *** *)
@@ -260,6 +263,8 @@ functor BasicBangGraphFun(
                               of NONE => raise bname_already_exists_exp (n1,g)
                                | SOME bxs2 => bxs2);
 
+  fun try_rename_bname n1 n2 g = 
+      (SOME (rename_bname n1 n2 g)) handle bname_already_exists_exp _ => NONE;
 
   (* prettifying *)
   fun pretty g = 
@@ -297,18 +302,16 @@ end (* Functor BasicBangGraphFun : ... -> BASIC_BANG_GRAPH *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* Given a BASIC_BANG_GRAPH, provide it with various tools *)
 functor BangGraphTools(G : BASIC_BANG_GRAPH)
+: BANG_GRAPH
 = struct 
 
   (* provide basic bang-graph functions and sub-structures  *)
   open G;
 
-
   (* provide open graph functions/tools *)
   structure OGraph = OGraphFun(G);
   open OGraph;
 
-
-  
   (* all !-box names *)
   val get_bnames = VtoBoxMap.get_codset o get_bboxes;
   
