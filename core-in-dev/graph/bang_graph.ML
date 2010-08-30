@@ -93,12 +93,13 @@ val move_to_unbox : Vertex.NSet.T -> T -> T
 
 val copy1_box : (Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* avoid names *) 
       -> BBox.name -> T (* bbox to copy and graph containing it *) 
-      -> ((BBox.name * T) (* new box name and subgraph in bbox *)
+      -> (BBox.name (* new box name *)
           * (Vertex.renaming (* how vnames were copied *)
-              * Edge.renaming (* ename copying *)
-              * BBox.NSet.T)) (* new bbox nameset *)
-         * T (* new graph *)
+              * Edge.renaming)) (* ename copying *)
+         * ((Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* new namesets *)
+            * T) (* new graph with bbox copied *)
 
+(*
 val copy1_box_given_rnm : 
          BBox.name (* bbox being copied *)
       -> (BBox.name * (Vertex.Rnm.T * Edge.Rnm.T)) (* use these renamings *) 
@@ -110,6 +111,7 @@ val copy1_box_given_ext_rnm :
       -> BBox.name (* new name copied to *) 
       -> (Vertex.Rnm.T * Edge.Rnm.T) * T (* external vs renaming,graph bbox *) 
       -> (Vertex.Rnm.T * Edge.Rnm.T) * T (* new renaming, new graph *)
+*)
 
 val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
@@ -372,29 +374,25 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
   (* FIXME: use Graph.copy_vset *)
   fun copy1_box (vs,es,bs) bn g = 
-      
-
-    (* 
-     let val bbox_vs = get_bbox g bn
-          (* subgraph of selection gives back something without bang-boxes *)
-          val (boundary_amorph, bbg) = matched_subgraph_within_selection' bbox_vs g;
-          val boundary_vs = Vertex.Amorph.get_dom_nset boundary_amorph;
-          val ((vrn,ern),bbg2) = 
-              bbg |> rename (Vertex.Rnm.mk boundary_vs vs Vertex.NTab.empty,
-                             Edge.Rnm.mk_from_avoidset es);
-          val bbox2_vs = Vertex.Rnm.get_newnames vrn;
-          val bboxes = get_bboxes g
-          val (bn2, bs2) = BBox.NSet.add_new bn bs;
-          val bboxes2 = VtoBoxMap.add_to_cod bn2 bbox2_vs bboxes;
+      let val bbox_vs = get_bbox g bn
+          val ((vrn,ern),g') = copy1_vset bbox_vs 
+                ((Vertex.Rnm.mk_from_avoidset vs, Edge.Rnm.mk_from_avoidset es),g);
+          val new_vs = Vertex.Rnm.get_newnames vrn;
+          val (bn',bs') = BBox.NSet.add_new bn bs;
       in
-        (((bn2,bbg2),(vrn,ern,bs2)), 
-         g |> merge_by_vertices bbg2
-           |> set_bboxes bboxes2)
+         ((bn',(vrn,ern)), (* copying information *)
+          ((Vertex.NSet.union_merge new_vs vs, (* new vertex nameset *)
+            Edge.NSet.union_merge (Edge.Rnm.get_newnames ern) es, (* new edge nameset*)
+            bs'), (* new bbox nameset *)
+          update_bboxes (VtoBoxMap.add_to_cod bn' new_vs) g' (* new graph *)
+         ))
       end;
-     *)
-  
+
+
   (* given a new bang-box name and the renamings for its vertices and edges, copy 
      the bangbox, renamed as specified. *)
+(* FIXME: check what this is used for and see what is needed in graph *)
+(* 
   fun copy1_box_given_rnm bn (bn2,(vrn,ern)) g = 
       let val bbox_vs = get_bbox g bn
           (* subgraph of selection gives back something without bang-boxes *)
@@ -408,9 +406,10 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
           |> update_bboxes 
                (VtoBoxMap.add_to_cod bn2 bbg_internal_vs)
       end;
-  
+*)
   
   (* given a renaming of external/boundary nodes, which may for example be shared with the lhs of a rewrite rule (although the ignores are not shared - these are reset each call to be the interface to the copied graph component in the !-box. Copies the bang box using the specified vertex renaming for external/boundary nodes within the bbox. also assumes that bn2 must be fresh from bbox names in g. *)
+(*
   fun copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g) = 
       let val bbox_vs = get_bbox g bn1
           (* subgraph of selection gives back something without bang-boxes *)
@@ -426,7 +425,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
            |> update_bboxes 
                 (VtoBoxMap.add_to_cod bn2 bbg_internal_vs))
       end;
-  
+*)
   
   fun kill_box bn g = 
       let val bbox_vs = get_bbox g bn

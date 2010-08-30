@@ -300,8 +300,12 @@ val spanning_dag : T -> T
 val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
 val get_dag_ranks : T -> Vertex.name list list
 
-val get_isomorphisms : T -> T -> (Vertex.Amorph.T*Edge.Amorph.T) Seq.seq 
+(* graph isomorphisms *)
+val get_isomorphisms : T -> T -> (Vertex.Amorph.T * Edge.Amorph.T) Seq.seq 
 val is_isomorphic : T -> T -> bool
+
+(* copy a set of vertices, copying all adjacent edges. *)
+val copy1_vset : Vertex.NSet.T -> (Vertex.Rnm.T * Edge.Rnm.T) * T -> (Vertex.Rnm.T * Edge.Rnm.T) * T
 
 end;
 
@@ -1316,28 +1320,25 @@ fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
    and e set (es); copies edges to all vertices outside the selected set. 
    assumes: get_Xnames g <= Xs; for X = {e, v, b}
 *)
-fun copy1_vset (vs,es) vset g = 
-    let val (vrn,ern) = (Vertex.Rnm.mk_from_avoidset vs, Edge.Rnm.mk_from_avoidset es);
-    in
-      Vertex.NSet.fold 
-        (fn v => fn ((vrn,ern),g) => (* copy each vertex *)
-            let val (v',g') = add_vertex (get_vertex_data g v) g 
-                val vrn' = Vertex.Rnm.do_compose_rename1 v v' vrn
-            in
-              fold_adj (* for each connected edge *)
-                (fn (ehn, dir_and_data) => fn v2 => fn (r_g as ((vrn,ern), g)) =>
-                    (* has the other end of the edge already been added? *)
-                    if Vertex.NSet.contains vset v2 then 
-                      (case Vertex.Rnm.lookup vrn v2 of 
-                           NONE => r_g
-                         (* add edges to any other adjacent stuff that has already been copied *)
-                         | SOME v2' => copy1edge (ehn, dir_and_data) v' v2' r_g)
-                     else (* if outside of vset, copy edge to vertex outside *)
-                        copy1edge (ehn, dir_and_data) v' v2 r_g
-                ) g v ((vrn',ern),g)
-             end
-        ) vset ((vrn,ern), g)
-      end;
+fun copy1_vset vset ((vrn,ern),g) = 
+    Vertex.NSet.fold 
+      (fn v => fn ((vrn,ern),g) => (* copy each vertex *)
+          let val (v',g') = add_vertex (get_vertex_data g v) g 
+              val vrn' = Vertex.Rnm.do_compose_rename1 v v' vrn
+          in
+            fold_adj (* for each connected edge *)
+              (fn (ehn, dir_and_data) => fn v2 => fn (r_g as ((vrn,ern), g)) =>
+                  (* has the other end of the edge already been added? *)
+                  if Vertex.NSet.contains vset v2 then 
+                    (case Vertex.Rnm.lookup vrn v2 of 
+                         NONE => r_g
+                       (* add edges to any other adjacent stuff that has already been copied *)
+                       | SOME v2' => copy1edge (ehn, dir_and_data) v' v2' r_g)
+                   else (* if outside of vset, copy edge to vertex outside *)
+                      copy1edge (ehn, dir_and_data) v' v2 r_g
+              ) g v ((vrn',ern),g)
+           end
+      ) vset ((vrn,ern), g);
 
 end; (* local -- hides opened Graph data types *)
 end;
