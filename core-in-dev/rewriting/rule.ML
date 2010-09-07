@@ -200,7 +200,7 @@ fun matches rule tgt =
     let val rhs = (get_rhs rule);
         val vs = RGGraph.get_vnames rhs;
         val es = RGGraph.get_enames rhs;
-        val bs = RGGraph.get_bnames rhs;
+        val bs = RGGraph.get_bbnames rhs;
     in
       MatchSearch.match (vs,es,bs) (get_lhs rule) tgt 
         MatchSearch.Vertex.NTab.empty

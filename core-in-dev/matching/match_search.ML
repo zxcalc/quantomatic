@@ -30,34 +30,34 @@ folded back. This gives efficient failure.
 signature MATCH_SEARCH
 = sig
   structure Match : MATCH 
-  structure RGGraph : RG_GRAPH
+  structure BangGraph : BANG_GRAPH
   structure Edge : EDGE
-  structure Vertex : RG_VERTEX
+  structure Vertex : OVERTEX
 
-  (* sharing Vertex = RGGraph.RGVertex *)
+  (* sharing Vertex = BangGraph.RGVertex *)
   (* not clear why I need this this way round - but get type strange error the other way *)
-  sharing RGGraph.SharingBangGraph = Match.Sharing.G;
-  sharing Vertex.SharingWithIData = RGGraph.BVertex.SharingWithIData;
-  sharing Edge.EdgeSharingWithData = RGGraph.Edge.EdgeSharingWithData;
+  sharing BangGraph.SharingBangGraph = Match.Sharing.G;
+  sharing Vertex.SharingWithIData = BangGraph.OVertex.SharingWithIData;
+  sharing Edge.EdgeSharingWithData = BangGraph.Edge.EdgeSharingWithData;
 
   type T
   datatype matchstep =
            FoundMatch of T         | Progress of T Seq.seq
 
   val init : Match.T 
-             -> RGGraph.T (* pat *)
-             -> RGGraph.T (* tgt *)
+             -> BangGraph.T (* pat *)
+             -> BangGraph.T (* tgt *)
              -> Vertex.name Vertex.NTab.T (* initial agenda *)
              -> T (* initial match state *)
 
   (* match two graphs *)
-  val match : (RGGraph.Vertex.NSet.T * RGGraph.Edge.NSet.T 
-               * RGGraph.BBox.NSet.T) (* other names to avoid when matching *)
-              -> RGGraph.T -> RGGraph.T (* pat, tgt *)
+  val match : (BangGraph.Vertex.NSet.T * BangGraph.Edge.NSet.T 
+               * BangGraph.BBox.NSet.T) (* other names to avoid when matching *)
+              -> BangGraph.T -> BangGraph.T (* pat, tgt *)
               -> Vertex.name Vertex.NTab.T (* initial agenda *)
               -> Match.T Seq.seq
   val match' : Match.T (* initial matching *)
-               -> RGGraph.T -> RGGraph.T (* pat, tgt *)
+               -> BangGraph.T -> BangGraph.T (* pat, tgt *)
                -> Vertex.name Vertex.NTab.T (* agenda *)
                -> Match.T Seq.seq
 
@@ -85,19 +85,19 @@ signature MATCH_SEARCH
   val get_agenda : T -> Vertex.name Vertex.NTab.T
   val get_match : T -> Match.T
   val get_match_mctxt : T -> Match.MCtxt.T
-  val get_match_vmap : T -> Vertex.name Vertex.NTab.T
+  val get_match_viso : T -> Vertex.name Vertex.NTab.T
   val get_tgt_vs : T -> T -> Vertex.NSet.T
-  val get_unm_pat : T -> RGGraph.T
+  val get_unm_pat : T -> BangGraph.T
   val get_unm_pat_vs : T -> Vertex.NSet.T
-  val get_unm_tgt : T -> RGGraph.T
+  val get_unm_tgt : T -> BangGraph.T
   val get_unm_tgt_es : T -> Edge.NSet.T
 
   val update_agenda : (Vertex.name Vertex.NTab.T ->
                        Vertex.name Vertex.NTab.T) ->
                       T -> T
   val update_match : (Match.T -> Match.T) -> T -> T
-  val update_unm_pat : (RGGraph.T -> RGGraph.T) -> T -> T
-  val update_unm_tgt : (RGGraph.T -> RGGraph.T) -> T -> T
+  val update_unm_pat : (BangGraph.T -> BangGraph.T) -> T -> T
+  val update_unm_tgt : (BangGraph.T -> BangGraph.T) -> T -> T
 
   val set_agenda : Vertex.name Vertex.NTab.T -> T -> T
   val set_match : Match.T -> T -> T
@@ -115,17 +115,17 @@ end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor MatchSearchFun(
-  structure RGGraph : RG_GRAPH 
+  structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
-  sharing Match.Sharing.G = RGGraph.SharingBangGraph
+  sharing Match.Sharing.G = BangGraph.SharingBangGraph
 ) (* : MATCH_SEARCH *)
 = struct
 
 (* structure DB_MatchSearch = struct *)
-structure RGGraph = RGGraph;
-structure Vertex = RGGraph.RGVertex;
-structure Edge = RGGraph.Edge;
-structure G = RGGraph;
+structure BangGraph = BangGraph;
+structure Vertex = BangGraph.OVertex;
+structure Edge = BangGraph.Edge;
+structure G = BangGraph;
 structure V = Vertex;
 structure E = Edge;
 
@@ -146,7 +146,7 @@ datatype T =
           unm_pat : G.T, 
           (* unmatched leaves from init pat = 
              needed because they can otherwise be introduced in the pat! *)
-          pat_lfs : V.NSet.T, 
+          pat_boundary : V.NSet.T, 
           (* tgt with matched edges removed as we match them *)
           unm_tgt : G.T 
          };
@@ -156,7 +156,7 @@ fun init match pat tgt agenda =
     MState { (* initially used names are those of the pattern graph *)
              agenda = agenda, 
              match = match, 
-             pat_lfs = G.get_leaf_vnames pat,
+             pat_boundary = G.get_boundary pat,
              unm_pat = pat, unm_tgt = tgt };
 
 (* tools *)
@@ -166,55 +166,55 @@ val get_bbmatch = Match.get_bbmatch o get_match;
 val get_names = Match.get_names o get_match;
 
 fun get_unm_pat (MState rep) = #unm_pat rep;
-fun get_pat_lfs (MState rep) = #pat_lfs rep;
+fun get_pat_boundary (MState rep) = #pat_boundary rep;
 (* implicit: st pn *)
-val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_lfs;
+val is_leaf_of_init_pat = Vertex.NSet.contains o get_pat_boundary;
 
 val get_unm_pat_vs = 
-    Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_pat;
-val get_unm_unboxed_pat_vs = RGGraph.get_unboxed o get_unm_pat;
+    Vertex.NTab.get_nameset o BangGraph.get_vertices o get_unm_pat;
+val get_unm_unboxed_pat_vs = BangGraph.get_unboxed o get_unm_pat;
 fun get_unm_tgt (MState rep) = #unm_tgt rep;
-val get_unm_unboxed_tgt_vs = RGGraph.get_unboxed o get_unm_tgt;
+val get_unm_unboxed_tgt_vs = BangGraph.get_unboxed o get_unm_tgt;
 fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
-    Vertex.NTab.get_nameset o RGGraph.get_vertices o get_unm_tgt;
+    Vertex.NTab.get_nameset o BangGraph.get_vertices o get_unm_tgt;
 val get_unm_tgt_es =
-    Edge.NTab.get_nameset o RGGraph.get_edges o get_unm_tgt;
+    Edge.NTab.get_nameset o BangGraph.get_edges o get_unm_tgt;
 
 (* *)
 fun update_agenda f (MState rep) = 
     MState { agenda = f (#agenda rep), match = #match rep,
              unm_pat = #unm_pat rep, 
-             pat_lfs = #pat_lfs rep,
+             pat_boundary = #pat_boundary rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_match f (MState rep) = 
     MState { agenda = #agenda rep, match = f (#match rep),
              unm_pat = #unm_pat rep, 
-             pat_lfs = #pat_lfs rep,
+             pat_boundary = #pat_boundary rep,
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_pat f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
              unm_pat = f (#unm_pat rep), 
-             pat_lfs = #pat_lfs rep,
+             pat_boundary = #pat_boundary rep,
              unm_tgt = #unm_tgt rep
            };
-fun update_pat_lfs f (MState rep) = 
+fun update_pat_boundary f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
              unm_pat = #unm_pat rep, 
-             pat_lfs = f (#pat_lfs rep),
+             pat_boundary = f (#pat_boundary rep),
              unm_tgt = #unm_tgt rep
            };
 fun update_unm_tgt f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
              unm_pat = #unm_pat rep, 
-             pat_lfs = #pat_lfs rep,
+             pat_boundary = #pat_boundary rep,
              unm_tgt = f(#unm_tgt rep)
            };
 fun update_names f (MState rep) = 
     MState { agenda = #agenda rep, match = #match rep,
              unm_pat = #unm_pat rep, 
-             pat_lfs = #pat_lfs rep,
+             pat_boundary = #pat_boundary rep,
              unm_tgt = #unm_tgt rep
            };
 
@@ -226,7 +226,7 @@ val set_unm_pat = update_unm_pat o K;
 val set_agenda = update_agenda o K;
 val set_match = update_match o K;
 
-val get_match_vmap = Match.get_vmap o get_match;
+val get_match_viso = Match.get_viso o get_match;
 val get_match_mctxt = Match.get_mctxt o get_match;
 val set_match_mctxt = update_match o Match.set_mctxt;
 
@@ -235,26 +235,23 @@ val get_bbmap =  Match.get_bbmap o get_match;
 
 (* *)
 (* fun get_adj_pat_vertices st edgens =
-    RGGraph.adj_vnames' (get_unm_pat st) edgens;
+    BangGraph.adj_vnames' (get_unm_pat st) edgens;
 fun get_adj_tgt_vertices st edgens =
-    RGGraph.adj_vnames' (get_unm_tgt st) edgens;
+    BangGraph.adj_vnames' (get_unm_tgt st) edgens;
 *)
 (* implicit: tgt_edges st *)
-val del_tgt_edge = update_unm_tgt o RGGraph.delete_edge;
-val del_pat_edge = update_unm_pat o RGGraph.delete_edge;
-val del_tgt_edges = update_unm_tgt o Edge.NSet.fold RGGraph.delete_edge;
-val del_pat_edges = update_unm_pat o Edge.NSet.fold RGGraph.delete_edge;
+val del_tgt_edge = update_unm_tgt o BangGraph.delete_edge;
+val del_pat_edge = update_unm_pat o BangGraph.delete_edge;
+val del_tgt_edges = update_unm_tgt o Edge.NSet.fold BangGraph.delete_edge;
+val del_pat_edges = update_unm_pat o Edge.NSet.fold BangGraph.delete_edge;
 
 (* implicit st *)
 fun del_tgt_n_edges n es = 
     update_unm_tgt 
-     (fold RGGraph.delete_edge (List.take (Edge.NSet.list_of es, n)));
+      (fold BangGraph.delete_edge (List.take (Edge.NSet.list_of es, n)));
 
 (* implicit: v st *)
-val del_pat_vertex = update_unm_pat o RGGraph.delete_vertex;
-fun del_pat_lfvertex pn st = 
-    st |> del_pat_vertex pn
-       |> update_pat_lfs (Vertex.NSet.delete pn);
+val del_pat_vertex = update_unm_pat o BangGraph.delete_vertex;
 
 (* implicit: (patv*tgtv) st *)
 fun add1_to_agenda (pat_n, tgt_n) st = 
@@ -292,18 +289,10 @@ fun pop_agenda st =
          SOME (n1n2,set_agenda (Vertex.NTab.delete n1 agenda) st)
     end;
 
-(* match the edges between two pattern edges with those between two
-   target edges. If both pat edges are non-boundary, then match
-   strictly: all tgt edges must be matched, else only require all
-   pattern edges to be matched. *)
+(* match the edges between two pattern vertives with those between two
+   target vertices. *)
 fun multi_edge_matches pes tes st = 
-    (* choose edge matching function *)
     Match.multi_edge_match pes tes (get_match st)
-      (* non-strict edge matching for pattern-ends: maybe extra edges in tgt *)
-      (* ((case from_pd of V.BVert => SOME from_pn | V.IVert d => NONE),
-       (case to_pd of V.BVert => SOME to_pn | V.IVert d => NONE)) *)
-    (* apply edge matching by removing matched edges (all pattern ones),
-       and all fully matches target ones (mtes = fully matched tgt edges) *)
       |> Seq.map (fn (unmatches_tes, (mtes, m)) => 
                      (unmatches_tes, (mtes,
                       st |> del_pat_edges (Edge.NTab.get_nameset pes)
@@ -319,8 +308,8 @@ fun half_edge_match (pn,(tn,td)) (peh,ped) tes st =
                      (unmatches_tes, (mtes,
                       st |> del_pat_edge (E.Ehn.get_ename peh)
                          |> del_tgt_edges mtes
-                         |> set_match (Match.match_lfvertex pn (tn,td) m)
-                         |> del_pat_lfvertex pn
+                         |> set_match (Match.match_boundary pn tn m)
+                         |> del_pat_vertex pn
                          ))))
     (* IMPROVE: make sensible error handling *) 
     handle Option.Option => Seq.empty; 
@@ -333,17 +322,17 @@ fun match_bboxes pnv tnv st =
     let val pat = get_unm_pat st;
         val tgt = get_unm_tgt st;
     in
-      (case RGGraph.lookup_box_of tgt tnv of 
+      (case BangGraph.lookup_box_of tgt tnv of 
          NONE => 
-         (case RGGraph.lookup_box_of pat pnv of 
+         (case BangGraph.lookup_box_of pat pnv of 
             NONE => SOME st (* no bboxes; continue as normal *)
           | SOME pbbn => (* some pat bbox, no tgt bbox *)
             (case BBMap.lookup_domf (get_bbmap st) pbbn of
-               NONE => SOME (st |> update_unm_pat (RGGraph.drop_box pbbn)
+               NONE => SOME (st |> update_unm_pat (BangGraph.drop_box pbbn)
                                 |> update_match (Match.add_bbox_drop pbbn))
              | SOME _ => NONE)) (* pat bbox already mapped; can't be dropped  *)
        | SOME tbbn => 
-         (case RGGraph.lookup_box_of pat pnv of 
+         (case BangGraph.lookup_box_of pat pnv of 
             NONE => NONE (* target bbox, but no pat bbox => fail *)
           | SOME pbbn => (* both in bboxes *)
             (case BBMap.lookup_domf (get_bbmap st) pbbn of
@@ -360,7 +349,7 @@ fun have_matching_bboxes pnv tnv st =
     let val pat = get_unm_pat st;
         val tgt = get_unm_tgt st;
     in
-      case (RGGraph.lookup_box_of tgt tnv, RGGraph.lookup_box_of pat pnv) 
+      case (BangGraph.lookup_box_of tgt tnv, BangGraph.lookup_box_of pat pnv) 
       of (NONE, NONE) => true
        | (SOME bb1, SOME bb2) => (BBMap.contains (get_bbmap st) (bb1,bb2))
        | (_,_) => false
@@ -370,18 +359,18 @@ fun have_matching_bboxes pnv tnv st =
 fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
 
 (* should be in ograph *)
-local open RGGraph in 
+local open BangGraph in 
 (* name of the half edge going to the boundary point (i.e. the name of the half 
    attached to the internal vertex) *)
 fun try_get_endpoint_ehn g v = 
     let val (vd,(ins,outs)) = get_vertex g v in
-      case vd of BVertex.BVert => 
+      case vd of OVertex.EVert => 
         (case (Edge.NSet.tryget_singleton ins,Edge.NSet.tryget_singleton outs)
          of (NONE, SOME e) => SOME (Edge.Ehn.mk_end e)
           | (SOME e, NONE) => SOME (Edge.Ehn.mk_start e)
           | (NONE, NONE) => NONE
           | (SOME _, SOME _) => NONE)
-      | BVertex.IVert _ => NONE
+      | OVertex.IVert _ => NONE
     end;
 end;
 
@@ -403,20 +392,20 @@ fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
              (case try_add1_to_agenda (to_pn,to_tn) st2 of NONE => Seq.empty
               | SOME st3 => 
                 let
-                  val tes = RGGraph.halfedges_between (get_unm_tgt st2) 
+                  val tes = BangGraph.halfedges_between (get_unm_tgt st2) 
                               from_tn to_tn;
-                  val pes = RGGraph.edges_between pat from_pn to_pn; 
+                  val pes = BangGraph.edges_between pat from_pn to_pn; 
                 in multi_edge_matches pes tes st3 end)
                   (* |> (Seq.of_list o Seq.list_of) : T Seq.seq 
                       -- to debug: force eval here and now *)
            | SOME ehn => (* pattern vertex is leaf-boundary *)
              let 
                val tgt = get_unm_tgt st2 
-               val tes = RGGraph.halfedges_between (get_unm_tgt st2) 
+               val tes = BangGraph.halfedges_between (get_unm_tgt st2) 
                               from_tn to_tn;
              in
-               half_edge_match (to_pn,(to_tn,RGGraph.get_vertex_data tgt to_tn))
-                 (ehn, RGGraph.get_edge_data pat (Edge.Ehn.get_ename ehn)) 
+               half_edge_match (to_pn,(to_tn,BangGraph.get_vertex_data tgt to_tn))
+                 (ehn, BangGraph.get_edge_data pat (Edge.Ehn.get_ename ehn)) 
                  tes st2
              end
          end
@@ -425,7 +414,7 @@ fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
 (* IMPROVE: should this be part of match? or maybe the unmatched edges should be 
    a param passed between functions, so we can use NSet.is_empty directly? *)
 fun tgt_has_unmapped_edges_between st from_tn to_tn = 
-    let val (lr,rl) = RGGraph.dir_enames_between (get_unm_tgt st) from_tn to_tn;
+    let val (lr,rl) = BangGraph.dir_enames_between (get_unm_tgt st) from_tn to_tn;
         val m = get_match st;
     in 
       E.NSet.exists   
@@ -493,8 +482,8 @@ fun edgematch_adj_verticies
       val tgt = get_unm_tgt st;
       
       (* adjacent to tgt/pat, non-leaves *)
-      val pns = RGGraph.adj_vnames pat from_pn;
-      val tns = RGGraph.adj_vertices_with_edges tgt from_tn;
+      val pns = BangGraph.adj_vnames pat from_pn;
+      val tns = BangGraph.adj_vertices_with_edges tgt from_tn;
     in 
     (* *)
     (Seq.single (ignore_arity,(pns,st)))
@@ -562,17 +551,17 @@ fun pull_adj_pat_leaf_pairs (* from_patbbox *) pn st =
     let val pat = get_unm_pat st;
 
         val leafs = 
-            RGGraph.fold_adj 
+            BangGraph.fold_adj 
               (fn e => fn n => fn L => 
-                if not (RGGraph.is_boxed pat n) 
+                if not (BangGraph.is_boxed pat n) 
                    andalso is_leaf_of_init_pat st n
-                   andalso RGGraph.is_leaf_vertex pat n 
+                   andalso BangGraph.is_leaf_vertex pat n 
                 then (e,n)::L else L)
               pat pn [];
 
         fun all_leaf_pairs [] = []
           | all_leaf_pairs (n::ns) = 
-            (* (if (in_fresh_bbox from_patbbox (RGGraph.lookup_box_of pat n))
+            (* (if (in_fresh_bbox from_patbbox (BangGraph.lookup_box_of pat n))
              then [(n,n)] else [])
             @ *) 
             (map (pair n) ns)
@@ -661,9 +650,9 @@ fun match_self_loops (pnpd as (pn,pd)) (tntd as (tn,td))
        (ast as (ignore_arity,st)) = 
     let 
       (* loopy tgt edges *)
-      val ltes = RGGraph.get_self_loop_halfedges (get_unm_tgt st) tn;
+      val ltes = BangGraph.get_self_loop_halfedges (get_unm_tgt st) tn;
       (* loopy pat edges *)
-      val lpes = RGGraph.get_self_loop_edges (get_unm_pat st) pn;
+      val lpes = BangGraph.get_self_loop_edges (get_unm_pat st) pn;
     in 
         st |> match_all_pat_self_loops lpes ltes
            |> Seq.maps (match_tgt_loops_by_leaves pnpd tntd ignore_arity)
@@ -704,11 +693,11 @@ fun copy_pat_bbox bbn k st =
 (* unused? *)
 (* 
 fun copy_then_drop_pat_bbox bbn k st = 
-    if k = 0 then update_unm_pat (RGGraph.kill_box bbn) st
-    else if k = 1 then update_unm_pat (RGGraph.drop_box bbn) st
+    if k = 0 then update_unm_pat (BangGraph.kill_box bbn) st
+    else if k = 1 then update_unm_pat (BangGraph.drop_box bbn) st
     else if k > 1 then 
-      update_unm_pat (RGGraph.drop_box bbn 
-                      o nfold (k - 1) (snd o RGGraph.copy1_box bbn)) st
+      update_unm_pat (BangGraph.drop_box bbn 
+                      o nfold (k - 1) (snd o BangGraph.copy1_box bbn)) st
     else raise bug_exp "copy_then_drop_pat_bbox: negative copy";
 *)
 
@@ -786,8 +775,8 @@ fun match_2vertices_with_edges
     let 
       val pat = get_unm_pat st;
       val tgt = get_unm_tgt st;
-      val pd = RGGraph.get_vertex_data pat pn;
-      val td = RGGraph.get_vertex_data tgt tn;
+      val pd = BangGraph.get_vertex_data pat pn;
+      val td = BangGraph.get_vertex_data tgt tn;
     in 
       (* happens when when a new vertex has just been chosen to start 
          matching from, and in traversal when there are no adj vertices *)
@@ -858,9 +847,9 @@ fun get_next_pat_vertex st =
 (* FIXME: this is used as a hack to avoid searching expansions of bang boxes which are disjoint form the rest of the pattern graph. *)
 fun drop_all_bboxes_in_pat st = 
     let val pat = get_unm_pat st;
-        val bboxlist = RGGraph.get_bbox_list pat;
+        val bboxlist = BangGraph.get_bbox_list pat;
     in 
-      st |> update_unm_pat (fold RGGraph.kill_box bboxlist)
+      st |> update_unm_pat (fold BangGraph.kill_box bboxlist)
          |> update_match (Match.add_bbox_kills bboxlist)
     end;
 
@@ -900,7 +889,7 @@ fun match_search or_agenda () =
           match_search (Seq.append new_or_choices more_or_choices) ()));
 
 (* 
-exception match_bug_exp of Match.T * RGGraph.T * RGGraph.T ->
+exception match_bug_exp of Match.T * BangGraph.T * BangGraph.T ->
                Vertex.name Vertex.NTab.T -> Match.T Seq.seq
 *)
 (* *)
@@ -940,9 +929,9 @@ fun pretty (st as MState rep) =
          [Match.pretty (#match rep),
           pretty_agenda st,
           Pretty.block [Pretty.str "Unmatched pat: "],
-          RGGraph.pretty (#unm_pat rep),
+          BangGraph.pretty (#unm_pat rep),
           Pretty.block [Pretty.str "Unmatched tgt: "],
-          RGGraph.pretty (#unm_tgt rep)
+          BangGraph.pretty (#unm_tgt rep)
          ],
        Pretty.str "}"];
 
@@ -951,7 +940,7 @@ val print = Pretty.writeln o pretty;
 end; (* MatchSearch structure *)
 
 
-structure DB_MatchSearch = MatchSearchFun(structure RGGraph = RGGraph 
+structure DB_MatchSearch = MatchSearchFun(structure BangGraph = BangGraph 
                                            and Match = Match);
 
 structure MatchSearch : MATCH_SEARCH = DB_MatchSearch;

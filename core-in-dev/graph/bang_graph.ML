@@ -85,7 +85,7 @@ val set_bboxes : VtoBoxMap.T -> T -> T;
 
 (* *** END OF COPIED *** *)
 
-val get_bnames : T -> BBox.NSet.T
+val get_bbnames : T -> BBox.NSet.T
 
 val lookup_box_of : T -> Vertex.name -> BBox.name option
 val is_boxed : T -> Vertex.name -> bool
@@ -313,7 +313,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   open OGraph;
 
   (* all !-box names *)
-  val get_bnames = VtoBoxMap.get_codset o get_bboxes;
+  val get_bbnames = VtoBoxMap.get_codset o get_bboxes;
   
   (* Bangbox renaming *)
   fun try_rename1_bname n1 n2 g = 
@@ -324,7 +324,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
     structure Nm = BBox
     type obj = T
     val try_rename1 = try_rename1_bname;
-    val get_nameset = get_bnames
+    val get_nameset = get_bbnames
   end);
 
   (*  *)
@@ -340,7 +340,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       let 
         val vrn = Vertex.Rnm.mk_from_avoidset (get_vnames g1)
         val ern = Edge.Rnm.mk_from_avoidset (get_enames g1)
-        val brn = BBox.Rnm.mk_from_avoidset (get_bnames g1)
+        val brn = BBox.Rnm.mk_from_avoidset (get_bbnames g1)
       in rename_incl_bboxes (vrn,ern,brn) g2 end;
 
 
