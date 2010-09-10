@@ -20,6 +20,10 @@ PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 (* Heuristic derived data structures *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 
+(* matching *)
+PolyML.Project.make "matching2/filter.ML";
+PolyML.Project.make "matching2/match_search.ML";
+
 (* linear arithmetic expressions: data inside verticies *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
