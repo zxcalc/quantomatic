@@ -42,6 +42,7 @@ functor MatchSearchFun(
     last : match,
     target : Graph.T,
     pattern : Graph.T,
+    pamorphs : Vertex.Amorph.T list,
     fixed : (Vertex.name*Vertex.name) list,
     filter : Filter.T,
     forbidden : Vertex.NSet.T
@@ -56,6 +57,7 @@ functor MatchSearchFun(
   fun get_match (MState s) = #last s
   fun get_target (MState s) = #target s
   fun get_pattern (MState s) = #pattern s
+  fun get_pamorphs (MState s) = #pamorphs s
   fun get_fixed (MState s) = #fixed s
   fun get_filter (MState s) = #filter s
   fun get_forbidden (MState s) = #forbidden s
@@ -65,6 +67,7 @@ functor MatchSearchFun(
   fun map_target s f = MState ({ last = get_match s,
                               target  = (get_target s) |> f,
                               pattern = get_pattern s,
+                              pamorphs = get_pamorphs s,
                               fixed   = get_fixed s,
                               filter  = get_filter s,
                               forbidden=get_forbidden s});
@@ -72,13 +75,20 @@ functor MatchSearchFun(
   fun set_match m s = MState ({ last = m,
                               target  = get_target s,
                               pattern = get_pattern s,
+                              pamorphs = get_pamorphs s,
                               fixed   = get_fixed s,
                               filter  = get_filter s,
                               forbidden=get_forbidden s});
                               
+  fun keep_if_fixed n a = if Vertex.name_eq (Vertex.Amorph.domf a n, n)
+                          then [a]
+                          else [];
+                          
   fun fix s f = MState ({ last = get_match s,
                               target  = get_target s,
                               pattern = get_pattern s,
+                              pamorphs = maps (keep_if_fixed (fst f))
+                                              (get_pamorphs s),
                               fixed   = f::(get_fixed s),
                               filter  = get_filter s,
                               forbidden=get_forbidden s});
@@ -86,6 +96,7 @@ functor MatchSearchFun(
   fun forbid s f = MState ({ last = get_match s,
                               target  = get_target s,
                               pattern = get_pattern s,
+                              pamorphs = get_pamorphs s,
                               fixed   = get_fixed s,
                               filter  = get_filter s,
                               forbidden=(get_forbidden s)
@@ -217,35 +228,41 @@ functor MatchSearchFun(
       (case Seq.pull xq of
         NONE => NONE
       | SOME (x, xq') => SOME (f p x, map2 f g (g p x) xq')));
-  fun maps2 f = Seq.flat ooo map2 f;
+  fun maps2 f = Seq.flat ooo map2 f; 
   
   fun match_select st v = let 
            fun is_allowed a b = (not (Graph.is_boundary (get_pattern st) a
                               orelse Graph.is_boundary (get_target st)  b))
                              andalso (not (is_forbidden st b))
-           fun filter_and_match w = if (is_allowed w v)
+           fun add_orbit set n = fold (fn am => fn set
+                                       => Vertex.NSet.add (Vertex.Amorph.domf am n) set)
+                                      (get_pamorphs st) set
+           fun filter_and_match reds w = 
+                                    if (is_allowed w v)
+                               andalso not (Vertex.NSet.contains reds w) 
                                andalso Filter.apply (get_filter st) 
                                                     (get_pattern st)
                                                     (get_target st)
                                                     w v
-                                    then ((Pretty.writeln (
-                                           Pretty.block [Vertex.pretty_name w,
-                                                         Vertex.pretty_name v,
-                                                         Vertex.NSet.pretty (get_forbidden st)]
-                                          ));let
-                                           val st'= fix st (w,v)
-                                           val ms = get_single_match st'
-                                         in case Seq.pull ms of
-                                            (* no match; quit branch *)
-                                            NONE       => Seq.empty 
-                                            (* got a match; party *)
-                                          | SOME (m,_) => Seq.make (fn()=> SOME
-                                                           (m,(match_next 
-                                                               (st' |> set_match m))))
-                                            end)
-                                    (* match one :: match_next below it *)
-                                    else Seq.empty
-        in Seq.maps filter_and_match
+                                  then ((Pretty.writeln (
+                                         Pretty.block [Vertex.pretty_name w,
+                                                       Vertex.pretty_name v,
+                                                       Vertex.NSet.pretty (get_forbidden st),
+                                                       Vertex.NSet.pretty reds]
+                                        ));let
+                                         val st'= fix st (w,v)
+                                         val ms = get_single_match st'
+                                       in case Seq.pull ms of
+                                          (* no match; quit branch *)
+                                          NONE       => Seq.empty 
+                                          (* got a match; party *)
+                                        | SOME (m,_) => Seq.make (fn()=> SOME
+                                                         (m,(match_next 
+                                                             (st' |> set_match m))))
+                                          end)
+                                  (* match one :: match_next below it *)
+                                  else Seq.empty
+        in maps2 filter_and_match add_orbit Vertex.NSet.empty 
                     ((Vertex.NSet.seq_of o Graph.get_vnames o get_pattern) st)
            end  
   and match_next st = let
@@ -264,6 +281,9 @@ functor MatchSearchFun(
                                              BndIso.empty),
                                   target  = t,
                                   pattern = p,
+                                  pamorphs= p |> Graph.get_isomorphisms p
+                                              |> Seq.map fst
+                                              |> Seq.list_of,
                                   fixed   = [],
                                   filter  = f,
                                   forbidden = Vertex.NSet.empty };
