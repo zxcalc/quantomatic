@@ -109,6 +109,9 @@ val update_data : (data -> data) -> T -> T
 
 end;
 
+(* graph unification morphisms; depends on BASIC_GRAPH, needed by GRAPH *)
+PolyML.Project.make "graph/graph_umorph.ML"; 
+
 (*  GRAPH is BASIC_GRAPH + useful utilities/API *)
 signature GRAPH = 
 sig
@@ -302,8 +305,16 @@ val spanning_dag : T -> T
 val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
 val get_dag_ranks : T -> Vertex.name list list
 
+(* unification morphisms *)
+structure VUmorph : GRAPH_UMORPH;
+structure EUmorph : GRAPH_UMORPH;
+sharing VUmorph.Entity.SharingWithData = Vertex.SharingWithData;
+sharing EUmorph.Entity.SharingWithData = Edge.SharingWithData;
+sharing type VUmorph.Graph.T = T;
+sharing type EUmorph.Graph.T = T;
+
 (* graph isomorphisms *)
-val get_isomorphisms : T -> T -> (Vertex.Amorph.T * Edge.Amorph.T) Seq.seq 
+val get_isomorphisms : T -> T -> (VUmorph.T * EUmorph.T) Seq.seq 
 val is_isomorphic : T -> T -> bool
 
 (* copy a set of vertices, copying all adjacent edges. *)
@@ -1211,6 +1222,15 @@ fun get_dag_ranks dag = let
 in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
 end
 
+(* vertex and edge unification morphisms *)
+structure VUmorph = GraphUmorphFun( structure Graph = BasicGraph
+  and Entity = Vertex
+  val retrieve_data = get_vertex_data );
+
+structure EUmorph = GraphUmorphFun( structure Graph = BasicGraph
+  and Entity = Edge
+  val retrieve_data = get_edge_data );
+  
 fun get_isomorphisms_unify_next_edge v e t g h gs hs otherend = let
     val n1 = Option.valOf
             (Edge.NSet.get_local_bot gs)
@@ -1222,15 +1242,15 @@ fun get_isomorphisms_unify_next_edge v e t g h gs hs otherend = let
                                     (Edge.NSet.seq_of es2)
   in Seq.maps get_isomorphisms_unify_next
     (Seq.maps (fn n2 => Seq.single
-                    (v |> Vertex.Amorph.add (otherend n1 g) (otherend n2 h),
-                     e |> Edge.Amorph.add n1 n2,
+                    (v |> VUmorph.add (otherend n1 g) (otherend n2 h),
+                     e |> EUmorph.add n1 n2,
                      Seq.append t  (* push unification of the target vertex of
                                       this edge onto the unification queue *)
                      (Seq.single (otherend n1 g,
                                   otherend n2 h)),
                      g |> delete_edge n1,
                      h |> delete_edge n2)
-                     handle Vertex.Amorph.add_exp(_,_,_) => Seq.empty)
+                     handle VUmorph.add_exp(_,_,_) => Seq.empty)
              (alleqs n1 hs)) end
 and get_isomorphisms_unify_next (v,e,t,g,h) = (case Seq.pull t of
     (* Nothing to unify; start unifying new connectivity component *)
@@ -1258,14 +1278,14 @@ and get_isomorphisms_unify_next (v,e,t,g,h) = (case Seq.pull t of
                  in f end;
        fun esnk n x = let val (_,(f,t)) = get_edge x n
                  in t end;
-    in if Vertex.data_eq (gd,hd)
+    in if true (*Vertex.data_eq (gd,hd)*)
        then case (Edge.NSet.is_empty gin,
                   Edge.NSet.is_empty hin,
                   Edge.NSet.is_empty gout,
                   Edge.NSet.is_empty hout) of
           (* no (more) edges; match up *)
           (true,true,true,true) =>
-            Seq.single (v |> Vertex.Amorph.add vng vnh,
+            Seq.single (v |> VUmorph.add2 g h vng vnh,
                       e,t',
                       g |> delete_vertex vng,
                       h |> delete_vertex vnh)
@@ -1282,7 +1302,7 @@ and get_isomorphisms_unify_next (v,e,t,g,h) = (case Seq.pull t of
                                             Vertex has already been successfully
                                             unified; skip. *)
              => get_isomorphisms_unify_next (v,e,t',g,h)
-  ) handle Vertex.Amorph.add_exp(_,_,_) => Seq.empty
+  ) handle VUmorph.add_exp(_,_,_) => Seq.empty
 
 (* v,e are working copies of the isomorphism to be constructed;
    t is the queue of vertex pairs in the source and target graph to be
@@ -1302,7 +1322,7 @@ fun get_isomorphisms_sub (v,e,t,g,h) = case (is_empty g,is_empty h) of
 (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
         isomorphisms between g and h *)
 fun get_isomorphisms g h  
-  = get_isomorphisms_sub (Vertex.Amorph.empty,Edge.Amorph.empty,Seq.empty,g,h);
+  = get_isomorphisms_sub (VUmorph.empty,EUmorph.empty,Seq.empty,g,h);
 
 (* in:  graphs g, h *)
 (* out: true if g~=h, false otherwise *)

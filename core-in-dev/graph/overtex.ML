@@ -3,7 +3,7 @@
 
 signature OVERTEX_SHARING
 = sig
-include NAME_AND_DATA_SHARING
+include NAME_AND_UNIFIABLE_DATA_SHARING
 type idata
 end;
 
@@ -11,7 +11,7 @@ signature OVERTEX
 = sig
 
 (* internal data *)
-structure IData : ORD_DATA 
+structure IData : UNIFIABLE_DATA 
 
 datatype data2 = 
          IVert of IData.data (* inner node with basic vertex data *)
@@ -31,13 +31,13 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Pattern Nodes construction *)
 functor OVertexFun(
-  structure IData : ORD_DATA
+  structure IData : UNIFIABLE_DATA
   structure INames : SSTR_NAMES
 )
 : OVERTEX
 = struct
 
-structure IData : ORD_DATA = IData;
+structure IData : UNIFIABLE_DATA = IData;
 
 (* open the Names Part of IVertex *)
 structure INames : SSTR_NAMES = INames;
@@ -73,13 +73,27 @@ val print_data = Pretty.writeln o pretty_data;
 
 val default_data = EVert;
 
+type unif = IData.unif;
+
+val unif_empty = IData.unif_empty;
+
+val unif_compose = IData.unif_compose;
+
+fun data_unify ((IVert d1),(IVert d2)) u = IData.data_unify (d1,d2) u
+  | data_unify (EVert,EVert) u = SOME u
+  | data_unify _ _ = NONE;
+
+val pretty_unif = IData.pretty_unif;
+
+val print_unif = IData.print_unif;
+
 structure SharingWithData = struct 
-  open Sharing; type data = data; 
+  open Sharing; type data = data; type unif = unif;
   structure Map = Map.Sharing;
   structure Amorph = Amorph.Sharing;
 end;
 structure SharingWithIData = struct 
-  open SharingWithData; type idata = IData.data; 
+  open SharingWithData; type idata = IData.data; type unif = unif;
 end;
 
 end;

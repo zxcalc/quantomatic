@@ -30,6 +30,10 @@ PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_expr.ML";
 
+(* red-green specific vertices, graphs and matching *)
+PolyML.Project.make "theories/red_green/rg_vertex.ML";
+PolyML.Project.make "theories/red_green/rg_graph.ML";
+
 (* vertex and edge matching and global context *)
 PolyML.Project.make "matching/match_ctxt.ML";
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)

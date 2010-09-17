@@ -188,34 +188,53 @@ val pretty = pretty_math AlgFormat.LATEX
 
 val print = Pretty.writeln o pretty
 
+fun match_sub pat2 target already_matched =
+    case VName.NSet.get_local_bot 
+           (VName.NSet.subtract (get_vars pat2) (get_vars target))
+     (* if all pat vars are in target, check for direct equality *)
+     of NONE => (* pat2, not pat. *)
+        if eq (reduce_expr pat2) target then SOME already_matched else NONE
+     (* there is a pat var not in target, put difference between 
+        expressions into an instantiation of that var. *)
+      | SOME match_var => 
+        let val c = Coeff.divide (Coeff.mk 1 1) 
+                 (* subs can have introduced previously unseen vars *)
+                                 (VName.NTab.get (snd pat2) match_var) 
+            (* 1/Coeff of match var *)
+            val rhs = add_expr 
+                        (scale_expr c (subtr_expr target pat2)) 
+                        (mk_var match_var) 
+        in
+          SOME (VName.NTab.update (match_var, rhs) already_matched)
+        end;
+
 (* =====================================================================*)
 (* 
  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+ ASSUME : pat, target have no common vars
  *)
 fun match pat target already_matched =
     let val pat2 = subs already_matched pat
-    in
-      (* find an uninstantiated variable in pattern that we can push
-         the difference between the expressions into *)
-      case VName.NSet.get_local_bot 
-             (VName.NSet.subtract (get_vars pat2) (get_vars target))
-       (* if all pat vars are in target, check for direct equality *)
-       of NONE => 
-          if eq pat target then SOME already_matched else NONE
-       (* there is a pat var not in target, put difference between 
-          expressions into an instantiation of that var. *)
-        | SOME match_var => 
-          let val c = Coeff.divide (Coeff.mk 1 1) 
-                                   (VName.NTab.get (snd pat) match_var)
-		          (* 1/Coeff of match var *)
-		          val rhs = add_expr 
-			                    (scale_expr c (subtr_expr target pat2)) 
-			                    (mk_var match_var) 
-	        in
-	          SOME (VName.NTab.update (match_var, rhs) already_matched)
-	        end
-    end;
+    in match_sub pat2 target already_matched end;
 
+(* Elimination step for pat=target. Tries to express a variable in the
+   equation in terms of the others and pushes the change into already_matched.
+   Returns NONE in case of contradiction. *)
+fun eliminate pat target already_matched =
+    let val elim_previous = reduce_expr o (subs already_matched) 
+        val pat2 = elim_previous pat
+        val target2 = elim_previous target
+        fun elim_sub ((x,l)::xs) ((y,r)::ys) ox oy =
+            if x=y then (if Coeff.eq l r 
+                         then elim_sub xs ys ox oy
+                         else elim_sub xs ys ((x,Coeff.subtr l r)::ox) oy)
+                   else elim_sub ((x,l)::xs) ys ((y,Coeff.subtr Coeff.zero r)::ox) oy
+          | elim_sub [] ((y,r)::ys) ox oy = elim_sub [] ys ((y,Coeff.subtr Coeff.zero r)::ox) oy
+          | elim_sub xs [] ox oy = (xs@ox, oy)
+        val (pat3, target3) = elim_sub (VName.NTab.list_of (snd pat2))
+                                       (VName.NTab.list_of (snd target2))
+                                       [] []
+    in match_sub (mk (fst pat) pat3) (mk (fst target) target3) already_matched end;
 
 (* functionality to parse expressions *)
 structure LinratParser =

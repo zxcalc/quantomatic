@@ -41,6 +41,24 @@ structure V = OVertexFun(
         Pretty.block [Pretty.str "Z(", AngleExpr.pretty a, Pretty.str ")"]
       | pretty_data Hnd = Pretty.str "H";
     val print_data = Pretty.writeln o pretty_data;
+    
+    type unif = AngleExpr.T VName.NTab.T
+    val unif_empty = VName.NTab.empty;
+    fun unif_compose (u1,u2) = VName.NTab.map_all (AngleExpr.subs u2) u1
+    fun data_unify ((e1 as Hnd), (e2 as Hnd)) m = SOME m
+      | data_unify ((Znd a1),(Znd a2)) m = 
+        AngleExpr.match a1 a2 m
+      | data_unify ((Xnd a1),(Xnd a2)) m = 
+        AngleExpr.match a1 a2 m
+      | data_unify _ _ = NONE;
+    fun pretty_unif u = Pretty.chunks (map (fn (n,e)
+                                            => Pretty.block [Pretty.str n,
+                                                             Pretty.str " = ",
+                                                             AngleExpr.pretty e]
+                                           )
+                                           (VName.NTab.list_of u));
+    val print_unif = Pretty.writeln o pretty_unif;
+
   end
   structure INames = SStrName
   ); (* internal OVertex structure *)
