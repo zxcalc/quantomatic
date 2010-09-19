@@ -1,5 +1,10 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*   Match context for additional       *)
+(*  Match context: generic notion of matching for data that can occur in 
+    vertices and edges. Allows global state changes to happen as part of 
+    matching. i.e. variables in pattern get instantiated by matching 
+ 
+    TODO: extend to unificiation
+*)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 signature MATCH_CTXT_SHARING
 = sig
@@ -12,7 +17,7 @@ signature MATCH_CTXT
 = sig
 
 structure G : OGRAPH
-type T (* global context holds vertex and edge global match info *)
+type T (* global context holds vertex and edge match information *)
 structure Sharing : MATCH_CTXT_SHARING
 sharing type Sharing.T = T;
 sharing Sharing.G = G.SharingOGraph;
@@ -23,11 +28,17 @@ val vertex_idata_match : G.OVertex.IData.data -> G.OVertex.IData.data -> T -> T 
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
 val edge_match : G.Edge.data -> G.Edge.data -> T -> T option
 
-(* *)
+(* Assumed Properties: 
+     (edge_match d1 d2 mctxt = SOME mctxt2) ==> 
+       (edge_match d1 d2 mctxt2 = SOME mctxt2)
+*)
+
+(* apply a matching information to other data *)
 val subst_in_vertex_data : T -> G.OVertex.data -> G.OVertex.data
 val subst_in_vertex_idata : T -> G.OVertex.IData.data -> G.OVertex.IData.data
 val subst_in_edge_data : T -> G.Edge.data -> G.Edge.data
 
+(* *)
 val pretty : T -> Pretty.T
 val print : T -> unit
 
@@ -35,8 +46,8 @@ end;
 
 
 
-(* Basic case of graphs with no vars and no global context, and just
-using data equality function for matching. *)
+(* Simple instance of graph context data: no vars, no global context, unit data
+   on edges, and using vertex data equality for verticex matching. *)
 functor EqMatchUnitEdgeNoCtxtFun(
   G : OGRAPH where type Edge.data = unit
 ) : MATCH_CTXT where type G.Edge.data = unit

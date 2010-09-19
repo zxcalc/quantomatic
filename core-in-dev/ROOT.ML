@@ -1,5 +1,8 @@
-
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(*  ROOT file to compile all libraries and quantomatic core  *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile isaplib libraries ****)
+
 val rootDir = OS.FileSys.getDir();
 (OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
 use "ROOT.ML"; 
@@ -9,10 +12,14 @@ print_depth 3;
 (** For debugging, turn on debug flag: **)
 (* PolyML.Compiler.debug := true; *)
 
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile quantomatic code ****)
 
 (* Graphs *)
-PolyML.Project.make "graph/graph.ML"; (* basic graphs *)
+PolyML.Project.make "graph/arity.ML"; (* arity of vertices *)
+PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
+PolyML.Project.make "graph/graph_umorph.ML"; (* iso-morphisms of graphs *)
+PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
 PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
 PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)

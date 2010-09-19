@@ -291,17 +291,21 @@ fun pop_agenda st =
 
 (* match the edges between two pattern vertives with those between two
    target vertices. *)
-fun multi_edge_matches pes tes st = 
-    Match.multi_edge_match pes tes (get_match st)
+fun multi_edge_matches pes tes st = Seq.empty
+(* FIXME:    
+ WAS: Match.multi_edge_match pes tes (get_match st)
       |> Seq.map (fn (unmatches_tes, (mtes, m)) => 
                      (unmatches_tes, (mtes,
                       st |> del_pat_edges (Edge.NTab.get_nameset pes)
                          |> del_tgt_edges mtes
                          |> set_match m)));
+*)
 
 (* *)
-fun half_edge_match (pn,(tn,td)) (peh,ped) tes st = 
-    (((tes,(E.NSet.empty,get_match st))
+
+fun half_edge_match (pn,(tn,td)) (peh,ped) tes st = Seq.empty
+(* FIXME:    
+ WAS:    (((tes,(E.NSet.empty,get_match st))
       |> Match.match_another_halfedge (peh,ped))
       |> Seq.single
       |> Seq.map (fn (unmatches_tes, (mtes, m)) => 
@@ -313,6 +317,8 @@ fun half_edge_match (pn,(tn,td)) (peh,ped) tes st =
                          ))))
     (* IMPROVE: make sensible error handling *) 
     handle Option.Option => Seq.empty; 
+*)
+
 
 (* try to match the bang-box's of the given pattern and tgt node:
    mapping must be injective, and tgt *)
@@ -360,8 +366,9 @@ fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
 
 (* should be in ograph *)
 local open BangGraph in 
-(* name of the half edge going to the boundary point (i.e. the name of the half 
-   attached to the internal vertex) *)
+(* try to get the name of the half-edge going to the boundary point 
+   (i.e. the name of the half-edge attached to the internal vertex) 
+*)
 fun try_get_endpoint_ehn g v = 
     let val (vd,(ins,outs)) = get_vertex g v in
       case vd of OVertex.EVert => 
@@ -392,7 +399,7 @@ fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
              (case try_add1_to_agenda (to_pn,to_tn) st2 of NONE => Seq.empty
               | SOME st3 => 
                 let
-                  val tes = BangGraph.halfedges_between (get_unm_tgt st2) 
+                  val tes = BangGraph.halfedges_between (get_unm_tgt st3) 
                               from_tn to_tn;
                   val pes = BangGraph.edges_between pat from_pn to_pn; 
                 in multi_edge_matches pes tes st3 end)
@@ -404,7 +411,8 @@ fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
                val tes = BangGraph.halfedges_between (get_unm_tgt st2) 
                               from_tn to_tn;
              in
-               half_edge_match (to_pn,(to_tn,BangGraph.get_vertex_data tgt to_tn))
+               half_edge_match 
+                 (to_pn,(to_tn,BangGraph.get_vertex_data tgt to_tn))
                  (ehn, BangGraph.get_edge_data pat (Edge.Ehn.get_ename ehn)) 
                  tes st2
              end
@@ -417,13 +425,15 @@ fun tgt_has_unmapped_edges_between st from_tn to_tn =
     let val (lr,rl) = BangGraph.dir_enames_between (get_unm_tgt st) from_tn to_tn;
         val m = get_match st;
     in 
-      E.NSet.exists   
-        (fn e => Match.tgt_edgehalf_is_unmapped m (E.Ehn.mk_start e)) 
+      (* FIXME: WAS: 
+        E.NSet.exists   
+        (fn e => Match.tgt_edgehalf_is_matched m (E.Ehn.mk_start e)) 
         lr
       orelse 
       E.NSet.exists   
-        (fn e => Match.tgt_edgehalf_is_unmapped m (E.Ehn.mk_end e)) 
-        rl
+        (fn e => Match.tgt_edgehalf_is_matched m (E.Ehn.mk_end e)) 
+        rl *) 
+     true
     end;
 
 (* IMPROVE: can do lazy enumeration of bboxes here? *)
@@ -555,7 +565,7 @@ fun pull_adj_pat_leaf_pairs (* from_patbbox *) pn st =
               (fn e => fn n => fn L => 
                 if not (BangGraph.is_boxed pat n) 
                    andalso is_leaf_of_init_pat st n
-                   andalso BangGraph.is_leaf_vertex pat n 
+                   andalso BangGraph.is_boundary pat n 
                 then (e,n)::L else L)
               pat pn [];
 
@@ -643,8 +653,6 @@ fun match_all_pat_self_loops lpes ltes st =
 (* 1. every loop in pat must have a loop in tgt,
    2. if pat is internal, then all extra loops in tgt 
    must be matched by leaf boundaries
-   IMPROVE: derive k dynamically. 
-   k = number of edges to ignore
 *)
 fun match_self_loops (pnpd as (pn,pd)) (tntd as (tn,td))
        (ast as (ignore_arity,st)) = 
@@ -671,7 +679,7 @@ fun nfold 0 f a = a
 (* copy a single bang-box *)
 fun copy1_pat_bbox bbn st = 
     let val names = get_names st
-        val (((bbn2,bbg),(vrn,ern,bs2)), pat2) = 
+        val ((bbn2,(vrn,ern)),((vs2,es2,bs2),pat2)) = 
             G.copy1_box names bbn (get_unm_pat st)
         val names2 = (V.Rnm.get_avoids vrn, E.Rnm.get_avoids ern, bs2)
     in
@@ -690,34 +698,27 @@ fun copy_pat_bbox bbn k st =
       nfold (k - 1) (copy1_pat_bbox bbn) st
     else raise bug_exp "copy_pat_bbox: negative copy value";
 
-(* unused? *)
-(* 
-fun copy_then_drop_pat_bbox bbn k st = 
-    if k = 0 then update_unm_pat (BangGraph.kill_box bbn) st
-    else if k = 1 then update_unm_pat (BangGraph.drop_box bbn) st
-    else if k > 1 then 
-      update_unm_pat (BangGraph.drop_box bbn 
-                      o nfold (k - 1) (snd o BangGraph.copy1_box bbn)) st
-    else raise bug_exp "copy_then_drop_pat_bbox: negative copy";
-*)
 
 fun compute_scope_arities pn tn st = 
     let 
-      val (pntab,pbboxntab) = G.get_adj_arities (get_unm_pat st) pn;
-      val (tntab,tbboxntab) = G.get_adj_arities (get_unm_tgt st) tn;
+      val (pntab,pbboxntab) = 
+          G.get_adj_arities_and_bang_arities (get_unm_pat st) pn;
+      val (tntab,tbboxntab) = 
+          G.get_adj_arities_and_bang_arities (get_unm_tgt st) tn;
 
       (* implicit: ntab k *)
-      val ntab_sum = Vertex.NTab.fold (fn (n,i) => fn j => i + j);
-      val sum_in_bboxtab = BBox.NTab.map_all (fn ntab => ntab_sum ntab 0)
-      val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => fn j => i +j);
+      val ntab_sum = Vertex.NTab.fold (fn (n,i) => add_arities i);
+      val sum_in_bboxtab = 
+          BBox.NTab.map_all (fn ntab => ntab_sum ntab zero_arity);
+      val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => add_arities i);
 
       val pbboxsums = sum_in_bboxtab pbboxntab;
       val tbboxsums = sum_in_bboxtab tbboxntab;
 
-      val tarity = 0 |> ntab_sum tntab |> summed_bbox_sum tbboxsums;
-      val p_min_arity = 0 |> ntab_sum pntab;
+      val tarity = zero_arity |> ntab_sum tntab |> summed_bbox_sum tbboxsums;
+      val p_min_arity = zero_arity |> ntab_sum pntab;
 
-      val scope_arity =  tarity - p_min_arity;
+      val scope_arity =  subtract_arities tarity p_min_arity;
     in
       (scope_arity, pbboxsums)
     end;
@@ -734,22 +735,25 @@ fun compute_scope_arities pn tn st =
    invarient: tarity > ignore_arity;
    tarity is total arity of target; ignore_arity is amount that can be removed to make tarity = parity. 
 *)
-fun expand_pat_bboxes pn tn st = 
+fun expand_adj_pat_bboxes pn tn st = 
     let 
        val (scope_arity,pbboxsums) = compute_scope_arities pn tn st;
     in 
-      if scope_arity < 0 then Seq.empty (* need at least pn edges *)
+      if has_some_negative_arity scope_arity 
+      then Seq.empty (* Fail: need at least pn edges *)
       else (* go through each bang box considering all expansions of it, 
               upto size limit, combined with each previous possibility *)
         BBox.NTab.fold
-          (fn (bbn,i) => Seq.maps (* i edges to this bang box *)
+          (fn (bbn,bbarity) => Seq.maps (* i edges to this bang box *)
               (fn (ignore_arity,st) => 
                 Seq.of_list
                 (map (fn k => ((* remove this number of edges *)
-                               ignore_arity - (k * i),
+                               subtract_arities ignore_arity 
+                                                (mult_arity_by_int bbarity k),
                                (* copy bang box this number of times *)
                                copy_pat_bbox bbn k st))
-                     (0 upto (ignore_arity div i)) (* # of copies *)
+                     (* # of copies *)
+                     (0 upto (max_arity (div_arities ignore_arity bbarity)))
                      )))
           pbboxsums
           (Seq.single (scope_arity,st))
@@ -766,8 +770,13 @@ fun match_vertex pnv tnv st =
 
 (* IMPROVE: add quick check of num of edges to avoid complex search
    over all permutations matchings that do not add up *)
-(* assumes called only during traversal: bang boxes of pn and tn are already 
-   matching - we only need to consider vertices adj to these and update thing corespondingly. *)
+(* assumes: 
+    - called only on internal vertices 
+    - bang boxes of pn and tn are already matching - we only need to consider vertices adj to these and update thing corespondingly. 
+   guarentees: 
+    - all adjacent bounary vertices get matched, not added to agenda
+    - removes pattern vertex
+*)
 fun match_2vertices_with_edges 
       (pn : Vertex.name) (* pattern vertex name *)
       (st : T) (* match state so far *)
@@ -777,31 +786,17 @@ fun match_2vertices_with_edges
       val tgt = get_unm_tgt st;
       val pd = BangGraph.get_vertex_data pat pn;
       val td = BangGraph.get_vertex_data tgt tn;
-    in 
-      (* happens when when a new vertex has just been chosen to start 
-         matching from, and in traversal when there are no adj vertices *)
-      if is_leaf_of_init_pat st pn then (* CHECK: !-boxed, map to edge *)
-        st |> update_match (Match.match_lfvertex pn (tn,td))
-           |> del_pat_lfvertex pn
-           |> Seq.single
-        (* This is the old version that treats lf-vertices as a real vertices, 
-           not half-edges; above treats lfvertices as half-edges.  
-         ((fst (compute_scope_arities pn tn st), 
-          match_lfvertex pn (tn,td) st)
-           |> edgematch_adj_verticies (pn,pd) (tn,td)
-           |> Seq.map (del_pat_lfvertex pn o snd o snd) *)
-      else 
-        case match_vertex (pn,pd) (tn,td) st of 
-          NONE => Seq.empty (* vertex does not match *)
-        | SOME st2 => (* continue matching *)
-          st2 |> expand_pat_bboxes pn tn
-              |> ((* if Vertex.is_internal_data pd then *) (* strict match filter *)
-                  Seq.map_filter (fn (x as (ignore_arity, st)) => 
-                    if ignore_arity = 0 then SOME x else NONE)
-                  (* else I *))
-              |> Seq.maps (match_self_loops (pn,pd) (tn,td))
-              |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td))
-              |> Seq.map (del_pat_vertex pn o snd o snd) (* finished matching pn *)
+    in (* check data matches *)
+      case match_vertex (pn,pd) (tn,td) st of 
+        NONE => Seq.empty (* data doesn't match *)
+      | SOME st2 => (* continue matching all adjacent things *)
+        st2 |> expand_adj_pat_bboxes pn tn
+            |> (Seq.map_filter (fn (x as (ignore_arity, st)) => 
+                  if ignore_arity = zero_arity then SOME x else NONE))
+            |> Seq.maps (match_self_loops (pn,pd) (tn,td))
+            |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td))
+            (* remove pattern vertex, ignore now redudnent info *)
+            |> Seq.map (del_pat_vertex pn o snd o snd) 
     end;
 
 
@@ -861,9 +856,9 @@ fun do_next_match_choices st =
          (case get_next_pat_vertex st of 
             NONE => (* no pattern vertices left! *)
               FoundMatch st (* because we finished! *)
-          | SOME (UnBBoxed pn) => 
-            Progress (* choices over picking a new vertex in tgt *)
-              (Seq.maps 
+          | SOME (UnBBoxed pn) => (* have a pat vertex outside bangboxes... *)
+            Progress 
+              (Seq.maps (* choices over picking a new vertex in tgt *)
                  (match_2vertices_with_edges pn st)
                  (get_unboxed_tgt_vnseq st))
           | SOME (BBoxed pn) => (* FIXME: add initial bbox match *)
@@ -871,7 +866,7 @@ fun do_next_match_choices st =
                so killing them all gives a valid matching... *)
             (* FIXME: find all box-unfoldings and macthes to target !-boxes *)
             FoundMatch (drop_all_bboxes_in_pat st)) 
-       | SOME ((pn,tn),st2) => 
+       | SOME ((pn,tn),st2) => (* match these things, only question is how ...*)
          Progress (* deal with first prescribed and-choice *)
            (match_2vertices_with_edges pn st2 tn));
 

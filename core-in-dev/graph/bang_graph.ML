@@ -126,8 +126,15 @@ val get_adj_banged_vnames :
 *)
 
 (* *)
-val get_adj_arities : 
-    T -> Vertex.name -> int Vertex.NTab.T * int Vertex.NTab.T BBox.NTab.T
+val get_adj_arities_and_bang_arities : 
+    T -> Vertex.name 
+    -> {no_in : int,
+        no_out : int, 
+        no_undir : int } Vertex.NTab.T 
+       * 
+       {no_in : int,
+        no_out : int, 
+        no_undir : int } Vertex.NTab.T BBox.NTab.T
 
 (* adjacent vertex info, w.r.t. tgt and pattern for matching *)
 val adj_tgt_info_bangs : 
@@ -514,7 +521,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   
   (* get arrities to adjacent vertices, return two tables, one for normal edges 
      and one for those in a different bang-boxes. *)
-  fun get_adj_arities g n = 
+  fun get_adj_arities_and_bang_arities g n = 
       let 
         val nbbox = lookup_box_of g n;
   
@@ -528,24 +535,39 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                     if (not (BBox.name_eq (bbn, bbn2))) 
                     then SOME bbn2 else NONE));
   
-        fun add_one_arity n2 ntab =
-            (* no self loops *)
-            (* if Vertex.name_eq (n,n2) then ntab 
-            else *)
-              if Vertex.NTab.contains_name ntab n2 then
-                Vertex.NTab.map_entry (fn i => i + 1) n2 ntab
-              else Vertex.NTab.update (n2,1) ntab;
+        (* *)
+        fun init_adj_info (eh,(UnDirected,ed)) = 
+            {no_in = 0, no_out = 0, no_undir = 1}
+          | init_adj_info (eh,(Directed,ed)) = 
+            if Edge.Ehn.is_start eh then {no_in = 1, no_out = 0, no_undir = 0}
+            else {no_in = 0, no_out = 1, no_undir = 0};
+        (* *)
+        fun add_one_to_adj_info (eh,(UnDirected,ed)) rep = 
+            {no_in = #no_in rep, no_out = #no_out rep, 
+             no_undir = 1 + (#no_undir rep)}
+          | add_one_to_adj_info (eh,(Directed,ed)) rep =
+            if Edge.Ehn.is_start eh then 
+              {no_in = 1 + (#no_in rep), no_out = #no_out rep, 
+               no_undir = (#no_undir rep)} 
+            else
+              {no_in = (#no_in rep), no_out = 1 + (#no_out rep), 
+               no_undir = (#no_undir rep)};
+
+        fun add_one_arity e n2 ntab =
+            if Vertex.NTab.contains_name ntab n2 then
+              Vertex.NTab.map_entry (add_one_to_adj_info e) n2 ntab
+            else Vertex.NTab.update (n2,init_adj_info e) ntab;
   
         fun consider1 e n2 (ntab,bboxntab) = 
             (case in_a_different_bbox n2 of 
-               NONE => (add_one_arity n2 ntab, bboxntab)
+               NONE => (add_one_arity e n2 ntab, bboxntab)
              | SOME bbn =>  
                (ntab,
                 if BBox.NTab.contains_name bboxntab bbn then
-                  BBox.NTab.map_entry (add_one_arity n2) bbn bboxntab
+                  BBox.NTab.map_entry (add_one_arity e n2) bbn bboxntab
                 else 
-                  BBox.NTab.update (bbn, Vertex.NTab.update (n2,1) 
-                                         Vertex.NTab.empty) 
+                  BBox.NTab.update (bbn, add_one_arity e n2
+                                           Vertex.NTab.empty) 
                                    bboxntab))
       in 
         fold_adj consider1 g n (Vertex.NTab.empty, BBox.NTab.empty)

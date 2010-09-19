@@ -1,116 +1,6 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Representation for Graphs with named vertices and edges. *)
+(*  extending Graphs have interesting/useful functions  *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(* 
-IMPROVE: 
-make undirected and add direction, when you want it, as data. Make
-data for vertex and edges a separate table from edge/vertex
-connectedness.
-*)
-
-signature BASIC_GRAPH_SHARING = 
-sig
-structure Edge : EDGE_AND_DATA_SHARING;
-structure Vertex : NAME_AND_DATA_SHARING;
-type dir_or_undir;
-type T;
-end;
-
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(* Basic (Minimal) interface for Graphs *)
-signature BASIC_GRAPH = 
-sig
-
-structure Vertex : VERTEX
-structure Edge : EDGE
-
-(* each edge is either directed, or bi-directed: this is the family of graphs
-   with these edges in both directions. *)
-datatype dir_or_undir = Directed | UnDirected;
-
-type T; (* a graph *)
-
-structure SharingBasicGraph : BASIC_GRAPH_SHARING
-sharing SharingBasicGraph.Edge = Edge.EdgeSharingWithData;
-sharing SharingBasicGraph.Vertex = Vertex.SharingWithData;
-sharing type SharingBasicGraph.T = T;
-sharing type SharingBasicGraph.dir_or_undir = dir_or_undir;
-
-exception bug_exp of string;
-
-exception no_such_vname_exp of string * Vertex.name * T;
-exception vname_already_exists_exp of Vertex.name * T;
-
-exception no_such_ename_exp of string * Edge.name * T;
-exception ename_already_exists_exp of Edge.name * T;
-
-(* Making Graphs *)
-val empty : T
-(* adding a vertex gives back unique name for it and the new graph *)
-(* Vertex.name = suggested name *)
-val add_named_vertex : Vertex.name -> Vertex.data -> T -> Vertex.name * T 
-
-(* Vertex.names must already exist, else raises: no_such_vname_exp *)
-val add_named_edge : Edge.name -> (dir_or_undir * Edge.data) 
-    -> Vertex.name -> Vertex.name -> T -> Edge.name * T 
-
-(* delete raises an exception if there is no such edge/vertex *)
-val delete_edge : Edge.name -> T -> T
-val delete_vertex : Vertex.name -> T -> T
-
-(* replace all occurances of old name (1st arg) with new name (2nd arg) *)
-(*  2nd name must not already exist and 1st must already exist, 
-    else an exception is raised *)
-val rename_vname : Vertex.name -> Vertex.name -> T -> T 
-val rename_ename : Edge.name -> Edge.name -> T -> T 
-
-(* update a data of a vertex or edge *)
-val update_vertex_data : (Vertex.data -> Vertex.data) -> Vertex.name -> T -> T
-val update_edge_data : (Edge.data -> Edge.data) -> Edge.name -> T -> T
-
-(* getting graph internal representation... *)
-val get_vertices : T 
-                -> (Vertex.data 
-                    * (Edge.NSet.T (* edges coming into this vertex *)
-                       * Edge.NSet.T (* edges leaving this vertex *)
-                       ))
-                   Vertex.NTab.T;
-val get_edges : T 
-                -> ((dir_or_undir * Edge.data) 
-                    * (Vertex.name (* from this vertex *)
-                       * Vertex.name)) (* to this vertex *)
-                   Edge.NTab.T
-
-(* updating graph internal representation... *)
-val update_vertices : ((Vertex.data * (Edge.NSet.T * Edge.NSet.T)) 
-                         Vertex.NTab.T 
-                         -> (Vertex.data * (Edge.NSet.T * Edge.NSet.T)) 
-                              Vertex.NTab.T) -> T -> T
-val update_edges : (((dir_or_undir * Edge.data) 
-                      * (Vertex.name * Vertex.name)) Edge.NTab.T
-                    -> ((dir_or_undir * Edge.data) 
-                        * (Vertex.name * Vertex.name)) Edge.NTab.T)
-                   -> T -> T
-
-
-(* pretty printing *)
-val pretty : T -> Pretty.T
-val print : T -> unit
-
-
-(* extra data for graphs, for extending the datatype cos ML can't do
-it properly from the outside; this is basically a form of record
-extensibility, allowing hidden types, but will doing the lazy
-extension of data -- allows OOP style extension of signature/structure
-by refining data. *)
-type data
-val get_data : T -> data;
-val update_data : (data -> data) -> T -> T
-
-end;
-
-(* graph unification morphisms; depends on BASIC_GRAPH, needed by GRAPH *)
-PolyML.Project.make "graph/graph_umorph.ML"; 
 
 (*  GRAPH is BASIC_GRAPH + useful utilities/API *)
 signature GRAPH = 
@@ -253,7 +143,8 @@ val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T)
     -> Vertex.NSet.T ->  Vertex.NSet.T
 
 (* fold over adjacents *)
-val fold_adj : (Edge.Ehn.name * (dir_or_undir * Edge.data) -> Vertex.name -> 'a -> 'a) 
+val fold_adj : (Edge.Ehn.name * (dir_or_undir * Edge.data) 
+      -> Vertex.name -> 'a -> 'a) 
       -> T -> Vertex.name -> 'a -> 'a
 
 (* filtered set of adj vertex names *)
@@ -295,6 +186,8 @@ val out_enames : T -> Vertex.name -> Edge.NSet.T
 val pred_vnames : T -> Vertex.name -> Vertex.NSet.T
 val succ_vnames : T -> Vertex.name -> Vertex.NSet.T
 
+val get_adj_arities : T -> Vertex.name -> Arity.T Vertex.NTab.T
+
 (* depth-first traversal *)
 val dft : (Edge.name -> 'a -> 'a) -> T -> 'a -> 'a
 val dft_with_roots : (Edge.name -> 'a -> 'a) -> T -> 'a -> ('a * Vertex.NSet.T)
@@ -318,7 +211,9 @@ val get_isomorphisms : T -> T -> (VUmorph.T * EUmorph.T) Seq.seq
 val is_isomorphic : T -> T -> bool
 
 (* copy a set of vertices, copying all adjacent edges. *)
-val copy1_vset : Vertex.NSet.T -> (Vertex.Rnm.T * Edge.Rnm.T) * T -> (Vertex.Rnm.T * Edge.Rnm.T) * T
+val copy1_vset : Vertex.NSet.T 
+    -> (Vertex.Rnm.T * Edge.Rnm.T) * T 
+    -> (Vertex.Rnm.T * Edge.Rnm.T) * T
 
 end;
 
@@ -832,15 +727,16 @@ fun fold_subgraph' fv fe_in fe_out vs g a =
 fun fold_subgraph fv fe_in fe_out vs g a = 
     snd (fold_subgraph' fv fe_in fe_out vs g a);
 
-
-(* fold a function over the adjacent vertex names. The edge-half is from the perspective of 
-   the adj vertex. *)
-fun fold_adj' f g (ins,outs) a = 
+(* fold a function over the adjacent vertex names. 
+   if "x <-e- y" then: "f (Ehn.mk_start e,...)"
+   if "x -e-> y" then: "f (Ehn.mk_end e,...)"
+   [ The edge-half the half connected to the adj vertex ] *)
+fun fold_adj' f graph (ins,outs) a = 
     a |> (Edge.NSet.fold 
-         (fn e => let val (d,(from,to)) = get_edge g e 
+         (fn e => let val (d,(from,to)) = get_edge graph e 
           in f (Edge.Ehn.mk_start e,d) from end) ins)
       |> (Edge.NSet.fold 
-         (fn e => let val (d,(from,to)) = get_edge g e 
+         (fn e => let val (d,(from,to)) = get_edge graph e 
           in f (Edge.Ehn.mk_end e,d) to end) outs);
 
 (* all vertices adjacent to vertex named n; 
@@ -1337,30 +1233,54 @@ fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
           else add_edge dir_and_data v v2 g
     in ((vrn,Edge.Rnm.do_compose_rename1 (Edge.Ehn.get_ename ehn) e' ern),g') end
 
+  
+  (* copy a set of vertices, making copy having names fresh w.r.t. given v set (vs) 
+     and e set (es); copies edges to all vertices outside the selected set. 
+     assumes: get_Xnames g <= Xs; for X = {e, v, b}
+  *)
+  fun copy1_vset vset ((vrn,ern),g) = 
+      Vertex.NSet.fold 
+        (fn v => fn ((vrn,ern),g) => (* copy each vertex *)
+            let val (v',g') = add_vertex (get_vertex_data g v) g 
+                val vrn' = Vertex.Rnm.do_compose_rename1 v v' vrn
+            in
+              fold_adj (* for each connected edge *)
+                (fn (ehn, dir_and_data) => fn v2 => fn (r_g as ((vrn,ern), g)) =>
+                    (* has the other end of the edge already been added? *)
+                    if Vertex.NSet.contains vset v2 then 
+                      (case Vertex.Rnm.lookup vrn v2 of 
+                           NONE => r_g
+                         (* add edges to any other adjacent stuff that has already been copied *)
+                         | SOME v2' => copy1edge (ehn, dir_and_data) v' v2' r_g)
+                     else (* if outside of vset, copy edge to vertex outside *)
+                        copy1edge (ehn, dir_and_data) v' v2 r_g
+                ) g v ((vrn',ern),g)
+             end
+        ) vset ((vrn,ern), g);
 
-(* copy a set of vertices, making copy having names fresh w.r.t. given v set (vs) 
-   and e set (es); copies edges to all vertices outside the selected set. 
-   assumes: get_Xnames g <= Xs; for X = {e, v, b}
-*)
-fun copy1_vset vset ((vrn,ern),g) = 
-    Vertex.NSet.fold 
-      (fn v => fn ((vrn,ern),g) => (* copy each vertex *)
-          let val (v',g') = add_vertex (get_vertex_data g v) g 
-              val vrn' = Vertex.Rnm.do_compose_rename1 v v' vrn
-          in
-            fold_adj (* for each connected edge *)
-              (fn (ehn, dir_and_data) => fn v2 => fn (r_g as ((vrn,ern), g)) =>
-                  (* has the other end of the edge already been added? *)
-                  if Vertex.NSet.contains vset v2 then 
-                    (case Vertex.Rnm.lookup vrn v2 of 
-                         NONE => r_g
-                       (* add edges to any other adjacent stuff that has already been copied *)
-                       | SOME v2' => copy1edge (ehn, dir_and_data) v' v2' r_g)
-                   else (* if outside of vset, copy edge to vertex outside *)
-                      copy1edge (ehn, dir_and_data) v' v2 r_g
-              ) g v ((vrn',ern),g)
-           end
-      ) vset ((vrn,ern), g);
+  
+  fun init_arity (eh,(UnDirected,ed)) = 
+      Arity.update_undir (fn x => x + 1) Arity.zero
+    | init_arity (eh,(Directed,ed)) = 
+      if Edge.Ehn.is_start eh then Arity.update_in (fn x => x + 1) Arity.zero
+      else Arity.update_out (fn x => x + 1) Arity.zero;
+
+  fun add_edge_to_arity (eh,(UnDirected,ed)) arity = 
+      Arity.update_undir (fn x => x + 1) arity 
+    | add_edge_to_arity (eh,(Directed,ed)) arity =
+      if Edge.Ehn.is_start eh then Arity.update_in (fn x => x + 1) arity 
+      else Arity.update_out (fn x => x + 1) arity; 
+
+  fun get_adj_arities g n = 
+      let   
+        fun add_one_arity e n2 ntab =
+            if Vertex.NTab.contains_name ntab n2 then
+              Vertex.NTab.map_entry (add_edge_to_arity e) n2 ntab
+            else Vertex.NTab.update (n2,init_arity e) ntab;
+      in 
+        fold_adj add_one_arity g n Vertex.NTab.empty
+      end;
+  
 
 end; (* local -- hides opened Graph data types *)
 end;
