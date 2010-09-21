@@ -1,6 +1,3 @@
-(* Variable names in expressions *)
-structure VName :> NAMES where type name = string = StrName;
-
 (* cheeky pretty print, ignoring most of ML's arguments *)
 (* PolyML.install_pp
   (fn ppargs => 
@@ -24,6 +21,7 @@ end
 (* Basic stuff for an expression which might have variables *)
 signature EXPR =
 sig 
+  structure VName : NAMES where type name = string;
   (* NOTE: 
      VName.T = type of variables allowed in expressions 
      T VName.NTab.T = mapping of vars to expressions *)
@@ -38,4 +36,9 @@ sig
   val pretty : T -> Pretty.T;
   val pretty_math : AlgFormat.format -> T -> Pretty.T;
   val print : T -> unit;
+
+  (* rename variables in an expression *)
+  structure RnmExpr : COMPOUND_RENAMING 
+    where type obj = T and type renaming = VName.Rnm.T
+
 end

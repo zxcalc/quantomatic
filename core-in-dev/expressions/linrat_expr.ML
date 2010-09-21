@@ -3,6 +3,8 @@ signature LINRAT_EXPR
 = sig 
   include EXPR
   structure Coeff : RATIONAL
+  exception parse_exp
+  val parse : string -> T
   val zero : T
   val is_zero : T -> bool
   val pi : T
@@ -11,12 +13,14 @@ signature LINRAT_EXPR
   val subtr_expr : T -> T -> T
   val add_expr : T -> T -> T
   val scale_expr : Coeff.T -> T -> T
-  val parse : string -> T
-  exception parse_exp
 end;
 
 structure DB_LinratExpr =
 struct 
+
+(* Variable names in expressions *)
+structure VName :> NAMES where type name = string = StrName;
+
 exception BadExpression of string;
 exception parse_exp;
 structure PiCoeff = RationalMod2;
@@ -73,9 +77,22 @@ fun ord ((x,xT),  (y,yT)) =
 
 fun get_vars (_,tab)  = VName.NTab.get_nameset tab;
 
-(* various mk functions ============================================ *)
+fun try_rename1 n1 n2 (k,tab) = 
+    (case VName.NTab.try_rename1 n1 n2 tab of 
+       NONE => NONE
+     | SOME tab2 => SOME (k,tab2));
 
+
+structure RnmExpr = CompoundRenamingFun(
+    structure Nm = VName
+    type obj = T
+    val get_nameset = get_vars
+    val try_rename1 = try_rename1);
+
+
+(* various mk functions ============================================ *)
 val empty = VName.NTab.empty : Coeff.T VName.NTab.T;
+
 
 val zero = (PiCoeff.zero, empty);
 fun is_zero (cpi,vars) = 
