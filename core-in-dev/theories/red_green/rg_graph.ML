@@ -1,3 +1,82 @@
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+structure RG_GraphNameDeps
+: GRAPH_NAME_DEPS
+= struct
+
+  structure Vertex = RGVertex;
+  structure Edge = UnitEdge;
+
+  structure INames = AngleExpr.VName;
+  
+  (* vertex, and vertex data variable dependencies *)
+  structure VDep = NameBRelFun(structure Dom = Vertex and Cod = INames);
+  
+  (* internal name data *)
+  type T = VDep.T;
+
+  fun get_inames vdep = VDep.get_codset vdep;
+  fun get_vnames vdep = VDep.get_domset vdep;
+
+  fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
+  fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
+
+  (* rename internal names in T *)
+  structure IRnm : COMPOUND_RENAMING
+  = CompoundRenamingFun(
+    struct structure Nm = INames
+           type obj = T
+           val get_nameset = get_inames
+           val try_rename1 = try_rename1_iname
+    end);
+
+  structure VRnm : COMPOUND_RENAMING
+  = CompoundRenamingFun(
+    struct structure Nm = Vertex
+           type obj = T
+           val get_nameset = get_vnames
+           val try_rename1 = try_rename1_vname
+    end);
+
+  structure ERnm : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
+
+  (* *)
+  val empty = VDep.empty;
+
+  fun rename_in_vertex rnm vd = 
+      Vertex.map_to_angle (AngleExpr.Rnm.do_renaming rnm) vd
+  fun rename_in_edge rnm ed = ed;
+
+  fun add_vertex vd vn vdep = 
+      (case Vertex.angle_of_data vd of NONE => vdep
+          | SOME angle => VDep.add_to_dom vn (AngleExpr.get_vars angle) vdep);
+  fun add_edge ed en vdep = vdep;
+
+  fun delete_vertex vn vdep = VDep.del_dom vn vdep;
+  fun delete_edge en vdep = vdep;
+
+  fun replace_vertex vd vn vdep = 
+      vdep |> delete_vertex vn
+           |> add_vertex vd vn;
+  fun replace_edge ed en vdep = vdep;
+
+  fun of_vertex vd vn = add_vertex vd vn VDep.empty;
+  fun of_edge en ed = empty;
+
+
+  structure Sharing = 
+  struct 
+    structure Vertex = Vertex.SharingWithData;
+    structure Edge = Edge.EdgeSharingWithData;
+    type T = T;
+    type inames_renaming = IRnm.renaming;
+  end;
+end;
+
+
+
+
 signature RG_GRAPH_SHARING = 
 sig
   include BANG_GRAPH_SHARING
@@ -18,7 +97,7 @@ structure DB_RGGraph
   structure RGVertex = RGVertex;
   structure BasicBangGraph = BasicBangGraphFun(
     structure OVertex = RGVertex  
-    and Edge = UnitEdge
+    structure NameDeps = RG_GraphNameDeps
     type data = unit (* no extra inherrited data for graphs *)
     val empty_data = ());
   structure BBGraph = BangGraphTools(BasicBangGraph);

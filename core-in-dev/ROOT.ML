@@ -17,6 +17,7 @@ print_depth 3;
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices *)
+PolyML.Project.make "graph/graph_name_deps.ML"; (* names in graph data *)
 PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
 PolyML.Project.make "graph/graph_umorph.ML"; (* iso-morphisms of graphs *)
 PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
@@ -48,8 +49,6 @@ PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/match_search.ML"; 
 
 (* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/rg_vertex.ML";
-PolyML.Project.make "theories/red_green/rg_graph.ML";
 PolyML.Project.make "theories/red_green/rg_match_ctxt.ML";
 
 (* generic rules *)

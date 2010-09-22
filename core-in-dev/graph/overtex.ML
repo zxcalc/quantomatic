@@ -32,7 +32,7 @@ end;
 (*  Pattern Nodes construction *)
 functor OVertexFun(
   structure IData : UNIFIABLE_DATA
-  structure INames : SSTR_NAMES
+  structure VertexNames : SSTR_NAMES
 )
 : OVERTEX
 = struct
@@ -40,11 +40,11 @@ functor OVertexFun(
 structure IData : UNIFIABLE_DATA = IData;
 
 (* open the Names Part of IVertex *)
-structure INames : SSTR_NAMES = INames;
-open INames; 
+structure VertexNames : SSTR_NAMES = VertexNames;
+open VertexNames; 
 
-structure Map = NameMapFun(structure Dom = INames and Cod = INames);
-structure Amorph = NameAmorphFun(INames);
+structure Map = NameMapFun(structure Dom = VertexNames and Cod = VertexNames);
+structure Amorph = NameAmorphFun(VertexNames);
 
 
 (* internal data *)
