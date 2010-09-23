@@ -341,7 +341,9 @@ fun rename_vname n1 n2 g =
 
       (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
-         |> set_edges edges2 end;
+         |> set_edges edges2
+         |> update_namedeps (NameDeps.rename_vname n1 n2)
+    end;
 
 
 fun rename_ename en1 en2 g = 
@@ -375,7 +377,9 @@ fun rename_ename en1 en2 g =
 
     (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
-         |> set_edges edges2  end;
+         |> set_edges edges2
+         |> update_namedeps (NameDeps.rename_ename en1 en2)
+    end;
 
 fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
   | pretty_edge_dir_or_undir UnDirected = Pretty.str "bidir";

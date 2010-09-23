@@ -8,6 +8,11 @@ sig
 
 include BASIC_GRAPH
 
+(* renaming internal names in a graph *)
+structure CRnmINames : COMPOUND_RENAMING
+  sharing type CRnmINames.obj = T
+  sharing type CRnmINames.renaming = NameDeps.CRnmINames.renaming
+
 (* graph has not vertices (and thus no edges) *)
 val is_empty : T -> bool 
 
@@ -72,6 +77,9 @@ val rename : (Vertex.renaming * Edge.renaming) -> T
     -> (Vertex.renaming * Edge.renaming) * T 
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (Vertex.renaming * Edge.renaming) * T 
+
+(* rename internal data apart *)
+val rename_graph_data_apart : T -> T -> CRnmINames.renaming * T 
 
 (* 
 val rename_vnames : Vertex.NSet.T -> Vertex.renaming * T -> Vertex.renaming * T
@@ -376,7 +384,6 @@ struct
   val get_nameset = get_enames
 end);
 
-
 (*  *)
 fun rename (vrn,ern) g = 
     let 
@@ -392,8 +399,61 @@ fun rename_apart g1 g2 =
     in rename (vrn,ern) g2 end;
 
 
+(* rename internal data apart *)
+(* IMPROVE: don't do the slow fold over everything; use dependency info in 
+   NameDeps to rename only the needed parts, etc. *)
+structure CRnmINames : COMPOUND_RENAMING
+= struct 
+  type obj = T
+  type renaming = NameDeps.CRnmINames.renaming;
+  val empty_renaming = NameDeps.CRnmINames.empty_renaming;
 
-(* fold: pass over every vertex (fv) edge between the selected vertices (fe_in); and over every edge going out of the selected vertex set (fe_out). There is an invariant which is that edges are considered only after at last one end-point is considered. The considered end-point is passed as a parameter to the edge-fold functions. *)
+  fun rename rnm g = 
+    (rnm,g)
+      |> (Vertex.NTab.fold
+           (fn (vn,(d,es)) => fn (rnm, g) => 
+               let val (rnm2,d2) = NameDeps.VDataCRnmINames.rename rnm d 
+               in (rnm2, set_vertex_data d2 vn g) end
+           ) (get_vertices g))
+      |> (Edge.NTab.fold
+           (fn (en,((dir,d),vs)) => fn (rnm,g) => 
+               let val (rnm2,d2) = NameDeps.EDataCRnmINames.rename rnm d 
+               in (rnm2,set_edge_data d2 en g) end
+           ) (get_edges g));
+
+  fun mk_renaming g rnm = 
+    rnm
+      |> (Vertex.NTab.fold
+           (fn (vn,(d,es)) => NameDeps.VDataCRnmINames.mk_renaming d)  
+           (get_vertices g))
+      |> (Edge.NTab.fold
+           (fn (en,((dir,d),vs)) => NameDeps.EDataCRnmINames.mk_renaming d)
+           (get_edges g));
+
+  fun do_renaming rnm g = 
+      g |> (Vertex.NTab.fold
+           (fn (vn,(d,es)) => 
+               update_vertex_data (NameDeps.VDataCRnmINames.do_renaming rnm) vn)
+           (get_vertices g))
+        |> (Edge.NTab.fold
+           (fn (en,((dir,d),vs)) =>  
+               update_edge_data (NameDeps.EDataCRnmINames.do_renaming rnm) en)
+           (get_edges g));
+  
+  val restrict_to_avoiding = NameDeps.CRnmINames.restrict_to_avoiding;
+end;
+
+(* *)
+fun rename_graph_data_apart g1 g2 = 
+    let val rnm = CRnmINames.restrict_to_avoiding 
+                    (CRnmINames.mk_renaming g1 CRnmINames.empty_renaming)
+    in CRnmINames.rename rnm g2 end;
+
+(* fold: pass over every vertex (fv) edge between the selected vertices 
+   (fe_in); and over every edge going out of the selected vertex set (fe_out).
+   There is an invariant which is that edges are considered only after at 
+   last one end-point is considered. The considered end-point is passed as a
+   parameter to the edge-fold functions. *)
 (* the (') function, starts form vertex v *) 
 fun fold_subgraph' fv fe_in fe_out vs g a = 
     let fun edgef (x as (h_end,(v,vd))) seen_edges e a = 

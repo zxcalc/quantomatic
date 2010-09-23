@@ -21,8 +21,13 @@ structure RG_GraphNameDeps
   fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
 
+  fun rename_vname n1 n2 vdep = the (VDep.try_rename1_dom n1 n2 vdep);
+  fun rename_ename n1 n2 vdep = vdep;
+  
+
   (* rename internal names in T *)
-  structure IRnm : COMPOUND_RENAMING
+  (* rename edges in the dependency structure *)
+  structure CRnmINames : COMPOUND_RENAMING
   = CompoundRenamingFun(
     struct structure Nm = INames
            type obj = T
@@ -30,7 +35,8 @@ structure RG_GraphNameDeps
            val try_rename1 = try_rename1_iname
     end);
 
-  structure VRnm : COMPOUND_RENAMING
+  (* rename vertices in the dependency structure *)
+  structure CRnmVNames : COMPOUND_RENAMING
   = CompoundRenamingFun(
     struct structure Nm = Vertex
            type obj = T
@@ -38,15 +44,12 @@ structure RG_GraphNameDeps
            val try_rename1 = try_rename1_vname
     end);
 
-  structure ERnm : COMPOUND_RENAMING
+  (* rename edges in the dependency structure *)
+  structure CRnmENames : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
 
-  (* *)
+  (* empty name-dependency information *)
   val empty = VDep.empty;
-
-  fun rename_in_vertex rnm vd = 
-      Vertex.map_to_angle (AngleExpr.Rnm.do_renaming rnm) vd
-  fun rename_in_edge rnm ed = ed;
 
   fun add_vertex vd vn vdep = 
       (case Vertex.angle_of_data vd of NONE => vdep
@@ -64,13 +67,42 @@ structure RG_GraphNameDeps
   fun of_vertex vd vn = add_vertex vd vn VDep.empty;
   fun of_edge en ed = empty;
 
+  (* renaming internal names within a vertex *)
+  structure VDataCRnmINames : COMPOUND_RENAMING
+  = struct 
+    type obj = Vertex.data
+    type renaming = INames.Rnm.T
+
+    val empty_renaming = CRnmINames.empty_renaming
+
+    fun rename rnm vd = 
+        (case Vertex.angle_of_data vd of NONE => (rnm,vd)
+         | SOME angle => 
+           let val (rnm',angle') = AngleExpr.CRnm.rename rnm angle
+           in (rnm', Vertex.map_to_angle (K angle') vd) end)
+
+    fun mk_renaming vd rnm = 
+        (case Vertex.angle_of_data vd of NONE => rnm
+         | SOME angle => AngleExpr.CRnm.mk_renaming angle rnm);
+
+    fun do_renaming rnm vd = 
+        (case Vertex.angle_of_data vd of NONE => vd
+         | SOME angle => 
+           Vertex.map_to_angle (AngleExpr.CRnm.do_renaming rnm) vd);
+
+    val restrict_to_avoiding = INames.Rnm.restrict_to_avoiding;
+  end;
+
+  (* rename internal names within an edge data *)
+  structure EDataCRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = INames type obj = Edge.data);
 
   structure Sharing = 
   struct 
     structure Vertex = Vertex.SharingWithData;
     structure Edge = Edge.EdgeSharingWithData;
     type T = T;
-    type inames_renaming = IRnm.renaming;
+    type inames_renaming = CRnmINames.renaming; (* = INames.Rnm.renaming *)
   end;
 end;
 

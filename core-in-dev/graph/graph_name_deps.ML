@@ -25,41 +25,50 @@ signature GRAPH_NAME_DEPS
   type T
 
   (* rename internal names in T *)
-  structure IRnm : COMPOUND_RENAMING 
-  sharing type IRnm.obj = T
-
+  structure CRnmINames : COMPOUND_RENAMING 
+    sharing type CRnmINames.obj = T
+  (* rename internal names in Vertex Data *)
+  structure VDataCRnmINames : COMPOUND_RENAMING
+    sharing type VDataCRnmINames.obj = Vertex.data
+    sharing type VDataCRnmINames.renaming = CRnmINames.renaming
+  (* rename internal names in Edge Data *)
+  structure EDataCRnmINames : COMPOUND_RENAMING
+    sharing type EDataCRnmINames.obj = Edge.data
+    sharing type EDataCRnmINames.renaming = CRnmINames.renaming
+  
   (* syntax convenience for sharing types *)
   structure Sharing : GRAPH_NAME_DEPS_SHARING
-  sharing Sharing.Vertex = Vertex.SharingWithData
-  sharing Sharing.Edge = Edge.EdgeSharingWithData
-  sharing type IRnm.renaming = Sharing.inames_renaming
-  sharing type T = Sharing.T
-  
+    sharing Sharing.Vertex = Vertex.SharingWithData
+    sharing Sharing.Edge = Edge.EdgeSharingWithData
+    sharing type CRnmINames.renaming = Sharing.inames_renaming
+    sharing type T = Sharing.T
+
   (* rename vertex and edge names in T *)
-  structure VRnm : COMPOUND_RENAMING 
-  structure ERnm : COMPOUND_RENAMING 
-  sharing type VRnm.obj = T
-  sharing type VRnm.renaming = Vertex.Rnm.T
-  sharing type ERnm.obj = T 
-  sharing type ERnm.renaming = Edge.Rnm.T
+  structure CRnmVNames : COMPOUND_RENAMING 
+  structure CRnmENames : COMPOUND_RENAMING 
+    sharing type CRnmVNames.obj = T
+    sharing type CRnmVNames.renaming = Vertex.Rnm.T
+    sharing type CRnmENames.obj = T 
+    sharing type CRnmENames.renaming = Edge.Rnm.T
 
   (* *)
   val empty : T
 
+  val add_vertex : Vertex.data -> Vertex.name -> T -> T 
+  val add_edge : Edge.data -> Edge.name -> T -> T
+
   val of_vertex : Vertex.data -> Vertex.name -> T
   val of_edge : Vertex.data -> Vertex.name -> T
 
-  val rename_in_vertex : IRnm.renaming -> Vertex.data -> Vertex.data
-  val rename_in_edge : IRnm.renaming -> Edge.data -> Edge.data
+  val delete_vertex : Vertex.name -> T -> T
+  val delete_edge : Edge.name -> T -> T
 
-  val add_vertex : Vertex.data -> Vertex.name -> T -> T 
-  val add_edge : Edge.data -> Edge.name -> T -> T
+  val rename_vname : Vertex.name -> Vertex.name -> T -> T (* raises *)
+  val rename_ename : Edge.name -> Edge.name -> T -> T (* raises *)
 
   val replace_vertex : Vertex.data -> Vertex.name -> T -> T
   val replace_edge : Edge.data -> Edge.name -> T -> T
 
-  val delete_vertex : Vertex.name -> T -> T
-  val delete_edge : Edge.name -> T -> T
 end;
 
 

@@ -38,7 +38,7 @@ sig
   val print : T -> unit;
 
   (* rename variables in an expression *)
-  structure Rnm : COMPOUND_RENAMING 
+  structure CRnm : COMPOUND_RENAMING 
     where type obj = T and type renaming = VName.Rnm.T
 
 end

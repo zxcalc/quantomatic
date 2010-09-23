@@ -83,7 +83,7 @@ fun try_rename1 n1 n2 (k,tab) =
      | SOME tab2 => SOME (k,tab2));
 
 
-structure Rnm = CompoundRenamingFun(
+structure CRnm = CompoundRenamingFun(
     structure Nm = VName
     type obj = T
     val get_nameset = get_vars
