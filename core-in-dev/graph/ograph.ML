@@ -591,7 +591,7 @@ struct
       |> (fn (amorph,g') => 
           (amorph, 
            g' |> V.NSet.fold delete_vertex (V.NSet.subtract (get_vnames g) vns)
-              |> V.NSet.fold delete_vertex (V.Amorph.get_cod_nset amorph)))
+              |> V.NSet.fold delete_vertex (V.Amorph.get_codset amorph)))
   
   (* as above, but ignores gluing automorphism (introduced boundary => old vs) *)
   val matched_subgraph_within_vset = 

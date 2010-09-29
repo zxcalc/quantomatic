@@ -1,12 +1,22 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (*  MatchSearch and Matching Algorithm *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+signature MATCH_SEARCH_SHARING
+= sig
+  structure G : OGRAPH_SHARING
+end;
+
 signature MATCH_SEARCH
 = sig
+  structure Sharing : MATCH_SEARCH_SHARING
+
   structure Graph : BANG_GRAPH
   structure Edge : EDGE
   structure Vertex : OVERTEX
   structure Filter : FILTER
+  sharing Vertex.SharingWithData = Graph.Vertex.SharingWithData
+  sharing Edge.EdgeSharingWithData = Graph.Edge.EdgeSharingWithData
+  sharing Graph.SharingOGraph = Sharing.G 
   
   type state
   type match
@@ -36,6 +46,10 @@ functor MatchSearchFun(
     (* val translate_name = Edge.mk o Vertex.dest *) );
   structure Filter = Filter;
   
+  structure Sharing = struct
+    structure G = Graph.SharingOGraph;
+  end
+  
   type match = Graph.VUmorph.T*Graph.EUmorph.T*BndMap.T;
   
   datatype state = MState of ({
@@ -43,7 +57,7 @@ functor MatchSearchFun(
     target : Graph.T,
     pattern : Graph.T,
     pamorphs : Graph.VUmorph.T list,
-    fixed : (Vertex.name*Vertex.name) list,
+    fixed : (Vertex.name*Vertex.name) Seq.seq,
     filter : Filter.T,
     forbidden : Vertex.NSet.T
   });
@@ -64,9 +78,17 @@ functor MatchSearchFun(
   
   fun is_forbidden s n = Vertex.NSet.contains (get_forbidden s) n
   
-  fun map_target s f = MState ({ last = get_match s,
+  fun map_target f s = MState ({ last = get_match s,
                               target  = (get_target s) |> f,
                               pattern = get_pattern s,
+                              pamorphs = get_pamorphs s,
+                              fixed   = get_fixed s,
+                              filter  = get_filter s,
+                              forbidden=get_forbidden s});
+                              
+  fun map_pattern f s = MState ({ last = get_match s,
+                              target  = get_target s,
+                              pattern = (get_pattern s) |> f,
                               pamorphs = get_pamorphs s,
                               fixed   = get_fixed s,
                               filter  = get_filter s,
@@ -104,7 +126,10 @@ functor MatchSearchFun(
   
             
   (* TODO: handle boundary vertices in target *)
-  fun get_single_match_unify_next_edge (v,e,b) t g h x gs hs otherend = let
+  fun get_single_match_unify_next_edge st gs hs otherend = let
+      val (v,e,b) = get_match st
+      val g = get_pattern st
+      val h = get_target st
       val n1 = Option.valOf
               (Edge.NSet.get_local_bot gs)
       fun edge_eq en1 en2 =
@@ -116,30 +141,34 @@ functor MatchSearchFun(
     in case (((Graph.is_boundary g) o (otherend n1)) g) of
        true => Seq.maps get_single_match_unify_next
                    (Seq.maps (fn n2 => Seq.single
-                      ((v,
+                      MState({match=(v,
                         e |> Graph.EUmorph.add2 g h n1 n2,
                         b |> BndMap.add_to_dom (otherend n1 g) (otherend n2 h)),
-                        t, (* no need to unify boundary vertex *)
-                        g |> Graph.delete_vertex (otherend n1 g),
-                        h |> Graph.delete_edge n2,
-                        x)
+                        fixed = get_fixed st, (* no need to unify boundary vertex *)
+                        pattern = g |> Graph.delete_vertex (otherend n1 g),
+                        target = h |> Graph.delete_edge n2,
+                        forbidden = get_forbidden st,
+                        filter = get_filter st,
+                        pamorphs = get_pamorphs st})
                        handle Graph.VUmorph.add_exp(_,_,_) => Seq.empty)
                (alleqs n1 hs)) 
      | false => Seq.maps get_single_match_unify_next
                    (Seq.maps (fn n2 => Seq.single
-                      ((v |> Graph.VUmorph.add (otherend n1 g) (otherend n2 h),
+                      Match({match=(v |> Graph.VUmorph.add (otherend n1 g) (otherend n2 h),
                         e |> Graph.EUmorph.add2 g h n1 n2,
                         b),
-                       Seq.append t  (* push unification of the target vertex of
-                                        this edge onto the unification queue *)
+                       fixed = Seq.append (get_fixed st)  (* push unification of the target vertex of
+                                                             this edge onto the unification queue *)
                        (Seq.single (otherend n1 g,
                                     otherend n2 h)),
-                       g |> Graph.delete_edge n1,
-                       h |> Graph.delete_edge n2,
-                       x)
+                       pattern = g |> Graph.delete_edge n1,
+                       target = h |> Graph.delete_edge n2,
+                       forbidden = get_forbidden st,
+                       filter = get_filter st,
+                       pamorphs = get_pamorphs st})
                        handle Graph.VUmorph.add_exp(_,_,_) => Seq.empty)
                (alleqs n1 hs)) end
-  and get_single_match_unify_next ((v,e,b),t,g,h,x) = (case Seq.pull t of
+  and get_single_match_unify_next st = (case Seq.pull t of
       (* Nothing to unify; start unifying new connectivity component *)
       NONE                => let
          val gbot = the (Vertex.NSet.get_local_bot (Graph.get_vnames g))
@@ -166,7 +195,7 @@ functor MatchSearchFun(
          fun esnk n x = let val (_,(f,t)) = Graph.get_edge x n
                    in t end;
       in if true (*Vertex.data_eq (gd,hd)*)
-         andalso (not (Vertex.NSet.contains x vnh))
+         andalso (not (is_forbidden st vnh))
          then case (Edge.NSet.is_empty gin,
                     Edge.NSet.is_empty hin,
                     Edge.NSet.is_empty gout,
@@ -219,8 +248,8 @@ functor MatchSearchFun(
   
   fun m_adj g (v,e,b) = (* Vertex.NSet.of_list ( *)
                         (*  Edge.NSet.fold
-                            (edge2vtx_outside g (Graph.VUmorph.get_cod_nset v)) 
-                            (BndIso.get_cod_nset b)
+                            (edge2vtx_outside g (Graph.VUmorph.get_codset v)) 
+                            (BndIso.get_codset b)
                             [] *)
                        (* ) *)BndMap.get_codlist b;
                        

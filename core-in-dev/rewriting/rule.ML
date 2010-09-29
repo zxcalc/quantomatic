@@ -40,8 +40,8 @@ sharing Sharing.RGGraph = RGGraph
 sharing Sharing.Match = Match
 (* sharing Sharing.MatchSearch = MatchSearch *)
 
-sharing RGGraph.SharingBangGraph = MatchSearch.RGGraph.SharingBangGraph;
-sharing Match.Sharing = MatchSearch.Match.Sharing;
+sharing RGGraph.SharingBangGraph = MatchSearch.Graph.SharingBangGraph;
+(* sharing Match.Sharing = MatchSearch.Match.Sharing; *)
 
 type T (* rule *)
 
@@ -114,23 +114,25 @@ end
 
 structure MatchSearch = MatchSearch;
 (* local stuff for abbreviations *)
-structure RGGraph = MatchSearch.RGGraph;
-structure Match = MatchSearch.Match;
+structure RGGraph = MatchSearch.Graph;
+(* structure Match = MatchSearch.Match; *) (**)
 structure Vertex = MatchSearch.Vertex;
 structure Edge = MatchSearch.Edge;
 
 structure Sharing = struct
   structure Name = Name.Sharing
   structure RGGraph = RGGraph.SharingBangGraph
-  structure Match = Match.Sharing
+  (*structure Match = Match.Sharing*) (**)
 end
 
 datatype T = Rule of { lhs : RGGraph.T,
-                       rhs : RGGraph.T };
+                       rhs : RGGraph.T,
+                       lhs_aut : (RGGraph.VUmorph.T*RGGraph.EUmorph.T) list,
+                       selfapps : RGGraph.VUmorph.T list };
 
 exception bad_rule_exp of string * RGGraph.T * RGGraph.T;
 fun mk (lhs,rhs) = 
-    let val lhsbndry = RGGraph.get_boundary lhs in
+    let val lhsbndry : Vertex.NSet.T = RGGraph.get_boundary lhs in
     (* check that rule is well-formed! *)
     if Vertex.NSet.eq lhsbndry (RGGraph.get_boundary rhs) then 
       let (* rename rhs; shared bvertex names, all else is distinct. *)
@@ -140,7 +142,22 @@ fun mk (lhs,rhs) =
                                    (RGGraph.get_enames lhs) 
                                    Edge.NTab.empty
         val (rn, rhs') = RGGraph.rename (vrn,ern) rhs
-      in Rule { lhs = lhs, rhs = rhs' } end
+        val lhsauts = (Seq.list_of oo RGGraph.get_isomorphisms) lhs lhs
+        val rhsauts = (Seq.list_of oo RGGraph.get_isomorphisms) rhs rhs
+        val lhsba = map (RGGraph.VUmorph.restrict_dom_to lhsbndry o fst) lhsauts
+        val rhsba = map (RGGraph.VUmorph.restrict_dom_to lhsbndry o fst) rhsauts
+        fun filterorbits (x::xs) os = let val orbit = map (RGGraph.VUmorph.compose x) rhsba 
+                                          fun eq a b = ((RGGraph.VUmorph.Dom.NTab.fold 
+                                                         (fn (d,c) => RGGraph.VUmorph.add d c) (RGGraph.VUmorph.get_domtab a) b;true)
+                                                       handle RGGraph.VUmorph.add_exp(_,_,_) => false)
+                                          val xs' = filter_out
+                                                      (fn a => exists (eq a) orbit)
+                                                      xs
+                                      in filterorbits xs' (x::os) end
+          | filterorbits [] os = os
+      in Rule { lhs = lhs, rhs = rhs',
+                lhs_aut = lhsauts,
+                selfapps = filterorbits lhsba [] } end
     else
       raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
     end;
@@ -159,9 +176,9 @@ fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
 
 fun update_lhs f (Rule rep) = 
-    Rule { lhs = f (#lhs rep), rhs = #rhs rep };
+    Rule { lhs = f (#lhs rep), rhs = #rhs rep, lhs_aut = #lhs_aut rep, selfapps = #selfapps rep };
 fun update_rhs f (Rule rep) = 
-    Rule { lhs = #lhs rep, rhs = f (#rhs rep) };
+    Rule { lhs = #lhs rep, rhs = f (#rhs rep), lhs_aut = #lhs_aut rep, selfapps = #selfapps rep };
 
 val set_lhs = update_lhs o K;
 val set_rhs = update_rhs o K;
