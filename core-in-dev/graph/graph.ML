@@ -208,11 +208,9 @@ val get_dag_ranks : T -> Vertex.name list list
 
 (* unification morphisms *)
 structure VUmorph : GRAPH_UMORPH;
-structure EUmorph : GRAPH_UMORPH;
 sharing VUmorph.Entity.SharingWithData = Vertex.SharingWithData;
+structure EUmorph : GRAPH_UMORPH;
 sharing EUmorph.Entity.SharingWithData = Edge.SharingWithData;
-sharing type VUmorph.Graph.T = T;
-sharing type EUmorph.Graph.T = T;
 
 (* graph isomorphisms *)
 val get_isomorphisms : T -> T -> (VUmorph.T * EUmorph.T) Seq.seq 
@@ -879,13 +877,9 @@ in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
 end
 
 (* vertex and edge unification morphisms *)
-structure VUmorph = GraphUmorphFun( structure Graph = BasicGraph
-  and Entity = Vertex
-  val retrieve_data = get_vertex_data );
+structure VUmorph = GraphUmorphFun(Vertex);
+structure EUmorph = GraphUmorphFun(Edge);
 
-structure EUmorph = GraphUmorphFun( structure Graph = BasicGraph
-  and Entity = Edge
-  val retrieve_data = get_edge_data );
   
 fun get_isomorphisms_unify_next_edge v e t g h gs hs otherend = let
     val n1 = Option.valOf
@@ -941,7 +935,8 @@ and get_isomorphisms_unify_next (v,e,t,g,h) = (case Seq.pull t of
                   Edge.NSet.is_empty hout) of
           (* no (more) edges; match up *)
           (true,true,true,true) =>
-            Seq.single (v |> VUmorph.add2 g h vng vnh,
+            Seq.single (v |> VUmorph.unify (vng, get_vertex_data g vng)
+                                           (vnh, get_vertex_data h vnh),
                       e,t',
                       g |> delete_vertex vng,
                       h |> delete_vertex vnh)

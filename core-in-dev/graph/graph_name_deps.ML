@@ -69,6 +69,8 @@ signature GRAPH_NAME_DEPS
   val replace_vertex : Vertex.data -> Vertex.name -> T -> T
   val replace_edge : Edge.data -> Edge.name -> T -> T
 
+  
+
 end;
 
 

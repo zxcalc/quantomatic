@@ -5,27 +5,35 @@
 signature GRAPH_UMORPH
 = sig
   include NAME_AMORPH
+  
+  (* Entity: internal names and their data *)
   structure Entity : NAME_AND_UNIFIABLE_DATA
-  structure Graph : BASIC_GRAPH
+  (* Note: Dom = Cod = name part of Entity (Dom and Cod have no data), 
+     typically this is the Edge or Vertex
+  *)
   sharing Dom.Sharing = Entity.Sharing 
 
+  (* get unification (vertex & edge) data associated with graph automorphism *)
   val get_unif : T -> Entity.unif
+
+  (* morphism of variables in internal data *)
   val get_amorph : T -> Entity.Amorph.T
   
   (* for alpha-equivalance/isomorphism checking *)
-  val try_change2 : Graph.T -> Graph.T (* old and new graphs *)
-                    -> Dom.name (* old name *)
-                    -> Cod.name (* new name *)
+  (* try to add mapping,  *)
+  val try_unify : Entity.name * Entity.data
+                    -> Entity.name * Entity.data
                     -> T (* renaming so far *)
                     -> T option (* new name and extended renaming *)
+
   (* as above, but raises exception *)
-  val add2 : Graph.T -> Graph.T -> Dom.name -> Cod.name -> T -> T
-  
+  val unify : Entity.name * Entity.data
+              -> Entity.name * Entity.data 
+              -> T -> T
+
 end;
 
-functor GraphUmorphFun( structure Graph : BASIC_GRAPH
-  and Entity : NAME_AND_UNIFIABLE_DATA
-  val retrieve_data : Graph.T -> Entity.name -> Entity.data ) : GRAPH_UMORPH
+functor GraphUmorphFun(Entity : NAME_AND_UNIFIABLE_DATA) : GRAPH_UMORPH
 = struct
   (* create name amorph *)
   structure Am : NAME_AMORPH =
@@ -37,7 +45,6 @@ functor GraphUmorphFun( structure Graph : BASIC_GRAPH
   open Am;
   
   structure Entity = Entity;
-  structure Graph = Graph;
   
   val get_unif = get_data;
   fun get_amorph y = let val x = destr y in 
@@ -47,10 +54,10 @@ functor GraphUmorphFun( structure Graph : BASIC_GRAPH
                                            codf = #codf x,
                                            data = Entity.Amorph.empty_data} end;
   
-  fun try_change2 g h n m cn = case try_change1 n m cn of
+  fun try_unify (n1,d1) (n2,d2) cn = case try_change1 n1 n2 cn of
       NONE    => NONE
     | SOME cn'=> case Entity.data_unify 
-                                        (retrieve_data g n,retrieve_data h m)
+                                        (d1,d2)
                                         (get_unif cn') of
                    NONE    => NONE
                  | SOME un => let val rep = destr cn' in
@@ -60,9 +67,9 @@ functor GraphUmorphFun( structure Graph : BASIC_GRAPH
                                            codf = #codf rep,
                                            data = un}) end;
 
-  fun add2 g h oldn newn cn =
-    (case try_change2 g h oldn newn cn of 
-       NONE => raise add_exp (oldn, newn, cn)
+  fun unify (nd1 as (n1,d1)) (nd2 as (n2,d2)) cn =
+    (case try_unify nd1 nd2 cn of 
+       NONE => raise add_exp (n1, n2, cn)
      | SOME cn2 => cn2);
-                                           
+                    
 end;
