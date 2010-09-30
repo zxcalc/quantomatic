@@ -149,6 +149,9 @@ val fold_subgraph :
 val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
 val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) 
     -> Vertex.NSet.T ->  Vertex.NSet.T
+    
+(* get incoming, outgoing, undirected edges around vertex *)
+val adj_edge_classes: T -> Vertex.name -> (Edge.NSet.T*Edge.NSet.T*Edge.NSet.T)
 
 (* fold over adjacents *)
 val fold_adj : (Edge.Ehn.name * (dir_or_undir * Edge.data) 
@@ -618,6 +621,17 @@ fun adj_singleton_vs g n = adj_singleton_vs' g (snd (get_vertex g n));
 (* all vertices adjacent to vertex *)
 val adj_vnames' = fold_adj' (K Vertex.NSet.add);
 fun adj_vnames g n = fold_adj (K Vertex.NSet.add) g n Vertex.NSet.empty;
+
+(* adjacent edge classes *)
+fun adj_edge_classes g n = let
+       val (_,(ins,outs)) = get_vertex g n
+       fun add_if_undir e ns = ns |> let val ((d,_),_) = get_edge g e
+                                     in if d = UnDirected then Edge.NSet.add e
+                                                          else I
+                                     end
+       val undirs = Edge.NSet.empty |> Edge.NSet.fold add_if_undir ins
+                                    |> Edge.NSet.fold add_if_undir outs
+    in (Edge.NSet.subtract ins undirs,Edge.NSet.subtract outs undirs,undirs) end;
 
 (* filtered set of adj vertex *)
 fun filter_adj_fn f (e : Edge.Ehn.name * (dir_or_undir * Edge.data)) n s = 
