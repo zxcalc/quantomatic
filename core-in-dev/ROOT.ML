@@ -28,10 +28,9 @@ PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 
 (* matching *)
-(* 
 PolyML.Project.make "matching2/filter.ML";
 PolyML.Project.make "matching2/match_search.ML";
-*)
+
 
 (* linear arithmetic expressions: data inside verticies *)
 PolyML.Project.make "expressions/lex.ML";

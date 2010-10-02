@@ -31,6 +31,10 @@ signature GRAPH_PARAM
   val compose_unif : unif -> unif -> unif
   val unif_vertex : Vertex.data -> Vertex.data -> unif -> unif option
   val unif_edge : Edge.data -> Edge.data -> unif -> unif option
+  
+  val subst_in_vertex : unif -> Vertex.data -> Vertex.data
+  val subst_in_edge : unif -> Edge.data -> Edge.data
+
   val pretty_unif : unif -> Pretty.T
   val print_unif : unif -> unit
 

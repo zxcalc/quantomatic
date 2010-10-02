@@ -97,24 +97,33 @@ structure RG_GraphParam
   = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
 
   (* Data for unification of data: we only have data on vertices *)
-  type unif = AngleExpr.T IName.NTab.T;
+  type unif = RGVertex.unif;
+    (* = AngleExpr.T IName.NTab.T; *)
 
-  val empty_unif = IName.NTab.empty;
-  fun compose_unif u1 u2 = IName.NTab.map_all (AngleExpr.subs u2) u1
+  val empty_unif = RGVertex.empty_unif; (* = IName.NTab.empty; *)
+  fun compose_unif u1 u2 = RGVertex.compose_unif (u1,u2); 
+      (* = Name.NTab.map_all (AngleExpr.subs u2) u1; *)
 
-  fun rg_unif_vertex (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
+(*   fun rg_unif_vertex (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
     | rg_unif_vertex (Vertex.Znd a1) (Vertex.Znd a2) m = 
       AngleExpr.match a1 a2 m
     | rg_unif_vertex (Vertex.Xnd a1) (Vertex.Xnd a2) m = 
       AngleExpr.match a1 a2 m
     | rg_unif_vertex _ _ _ = NONE;
 
-  fun unif_vertex (Vertex.IVert d1) (Vertex.IVert d2) u = 
+  (Vertex.IVert d1) (Vertex.IVert d2) u = 
       rg_unif_vertex d1 d2 u
     | unif_vertex Vertex.EVert Vertex.EVert u = SOME u
     | unif_vertex _ _ _ = NONE;
+*)
 
+  fun unif_vertex d1 d2 u = RGVertex.unify_data (d1,d2) u;
   fun unif_edge e1 e2 u = SOME u;
+
+  fun subst_in_vertex u vd = RGVertex.subst_in_data u vd;
+  fun subst_in_edge u ed = ed;
+
+
 
   fun pretty_unif u = 
     Pretty.chunks (map (fn (n,e) => 
