@@ -1,21 +1,21 @@
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-structure RG_GraphNameDeps
-: GRAPH_NAME_DEPS
+structure RG_GraphParam
+: GRAPH_PARAM
 = struct
 
   structure Vertex = RGVertex;
   structure Edge = UnitEdge;
 
-  structure INames = AngleExpr.VName;
+  structure IName = AngleExpr.VName;
   
   (* vertex, and vertex data variable dependencies *)
-  structure VDep = NameBRelFun(structure Dom = Vertex and Cod = INames);
+  structure VDep = NameBRelFun(structure Dom = Vertex and Cod = IName);
   
   (* internal name data *)
   type T = VDep.T;
 
-  fun get_inames vdep = VDep.get_codset vdep;
+  fun get_IName vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
   fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
@@ -24,14 +24,13 @@ structure RG_GraphNameDeps
   fun rename_vname n1 n2 vdep = the (VDep.try_rename1_dom n1 n2 vdep);
   fun rename_ename n1 n2 vdep = vdep;
   
-
   (* rename internal names in T *)
   (* rename edges in the dependency structure *)
   structure CRnmINames : COMPOUND_RENAMING
   = CompoundRenamingFun(
-    struct structure Nm = INames
+    struct structure Nm = IName
            type obj = T
-           val get_nameset = get_inames
+           val get_nameset = get_IName
            val try_rename1 = try_rename1_iname
     end);
 
@@ -71,7 +70,7 @@ structure RG_GraphNameDeps
   structure VDataCRnmINames : COMPOUND_RENAMING
   = struct 
     type obj = Vertex.data
-    type renaming = INames.Rnm.T
+    type renaming = IName.Rnm.T
 
     val empty_renaming = CRnmINames.empty_renaming
 
@@ -90,19 +89,46 @@ structure RG_GraphNameDeps
          | SOME angle => 
            Vertex.map_to_angle (AngleExpr.CRnm.do_renaming rnm) vd);
 
-    val restrict_to_avoiding = INames.Rnm.restrict_to_avoiding;
+    val restrict_to_avoiding = IName.Rnm.restrict_to_avoiding;
   end;
 
   (* rename internal names within an edge data *)
   structure EDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = INames type obj = Edge.data);
+  = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
+
+  (* Data for unification of data: we only have data on vertices *)
+  type unif = AngleExpr.T IName.NTab.T;
+
+  val empty_unif = IName.NTab.empty;
+  fun compose_unif u1 u2 = IName.NTab.map_all (AngleExpr.subs u2) u1
+
+  fun rg_unif_vertex (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
+    | rg_unif_vertex (Vertex.Znd a1) (Vertex.Znd a2) m = 
+      AngleExpr.match a1 a2 m
+    | rg_unif_vertex (Vertex.Xnd a1) (Vertex.Xnd a2) m = 
+      AngleExpr.match a1 a2 m
+    | rg_unif_vertex _ _ _ = NONE;
+
+  fun unif_vertex (Vertex.IVert d1) (Vertex.IVert d2) u = 
+      rg_unif_vertex d1 d2 u
+    | unif_vertex Vertex.EVert Vertex.EVert u = SOME u
+    | unif_vertex _ _ _ = NONE;
+
+  fun unif_edge e1 e2 u = SOME u;
+
+  fun pretty_unif u = 
+    Pretty.chunks (map (fn (n,e) => 
+        Pretty.block [Pretty.str n, Pretty.str " = ", AngleExpr.pretty e])
+      (IName.NTab.list_of u));
+  val print_unif = Pretty.writeln o pretty_unif;
 
   structure Sharing = 
   struct 
     structure Vertex = Vertex.SharingWithData;
     structure Edge = Edge.EdgeSharingWithData;
     type T = T;
-    type inames_renaming = CRnmINames.renaming; (* = INames.Rnm.renaming *)
+    type inames_renaming = CRnmINames.renaming; (* = IName.Rnm.renaming *)
+    type unif = unif;
   end;
 end;
 
@@ -129,7 +155,7 @@ structure DB_RGGraph
   structure RGVertex = RGVertex;
   structure BasicBangGraph = BasicBangGraphFun(
     structure OVertex = RGVertex  
-    structure NameDeps = RG_GraphNameDeps
+    structure Param = RG_GraphParam
     type data = unit (* no extra inherrited data for graphs *)
     val empty_data = ());
   structure BBGraph = BangGraphTools(BasicBangGraph);
