@@ -1,20 +1,22 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  The names that a graph depends on: Vertex names, Edge names, and any 
+(*  Graph Parameterisation. 
+    The names that a graph depends on: Vertex names, Edge names, and any 
     names that might occur inside the data on vertices and edges.  *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 
-signature GRAPH_NAME_DEPS_SHARING
+signature GRAPH_PARAM_SHARING
 = sig 
   structure Vertex : NAME_AND_DATA_SHARING
   structure Edge : EDGE_AND_DATA_SHARING
   type T
   type inames_renaming
+  type unif 
 end;
 
 
 (* Name dependencies for Graphs: how names in internal data and vertex 
    and edge names deepend on each other. *)
-signature GRAPH_NAME_DEPS
+signature GRAPH_PARAM
 = sig
 
   (* Names for vertices and edges *)
@@ -23,6 +25,14 @@ signature GRAPH_NAME_DEPS
 
   (* internal name data dependencies e.g. w.r.t. vertex names *)
   type T
+
+  type unif (* unification data for internal data (in edges and vertices) *)
+  val empty_unif : unif
+  val compose_unif : unif -> unif -> unif
+  val unif_vertex : Vertex.data -> Vertex.data -> unif -> unif option
+  val unif_edge : Edge.data -> Edge.data -> unif -> unif option
+  val pretty_unif : unif -> Pretty.T
+  val print_unif : unif -> unit
 
   (* rename internal names in T *)
   structure CRnmINames : COMPOUND_RENAMING 
@@ -35,13 +45,6 @@ signature GRAPH_NAME_DEPS
   structure EDataCRnmINames : COMPOUND_RENAMING
     sharing type EDataCRnmINames.obj = Edge.data
     sharing type EDataCRnmINames.renaming = CRnmINames.renaming
-  
-  (* syntax convenience for sharing types *)
-  structure Sharing : GRAPH_NAME_DEPS_SHARING
-    sharing Sharing.Vertex = Vertex.SharingWithData
-    sharing Sharing.Edge = Edge.EdgeSharingWithData
-    sharing type CRnmINames.renaming = Sharing.inames_renaming
-    sharing type T = Sharing.T
 
   (* rename vertex and edge names in T *)
   structure CRnmVNames : COMPOUND_RENAMING 
@@ -68,9 +71,15 @@ signature GRAPH_NAME_DEPS
 
   val replace_vertex : Vertex.data -> Vertex.name -> T -> T
   val replace_edge : Edge.data -> Edge.name -> T -> T
-
   
 
+  (* syntax convenience for sharing types *)
+  structure Sharing : GRAPH_PARAM_SHARING
+    sharing Sharing.Vertex = Vertex.SharingWithData
+    sharing Sharing.Edge = Edge.EdgeSharingWithData
+    sharing type CRnmINames.renaming = Sharing.inames_renaming
+    sharing type T = Sharing.T
+    sharing type unif = Sharing.unif
 end;
 
 

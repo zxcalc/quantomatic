@@ -894,7 +894,7 @@ end
 structure VUmorph = GraphUmorphFun(Vertex);
 structure EUmorph = GraphUmorphFun(Edge);
 
-  
+(* v = vertex iso, e = edge iso, t = agenda, g,h = graphs *)
 fun get_isomorphisms_unify_next_edge v e t g h gs hs otherend = let
     val n1 = Option.valOf
             (Edge.NSet.get_local_bot gs)

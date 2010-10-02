@@ -17,9 +17,8 @@ print_depth 3;
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices *)
-PolyML.Project.make "graph/graph_name_deps.ML";
+PolyML.Project.make "graph/graph_param.ML";
 PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
-PolyML.Project.make "graph/graph_umorph.ML"; (* iso-morphisms of graphs *)
 PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
 PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
 PolyML.Project.make "graph/ograph.ML";

@@ -6,9 +6,9 @@ signature BASIC_GRAPH_SHARING =
 sig
 structure Edge : EDGE_AND_DATA_SHARING;
 structure Vertex : NAME_AND_DATA_SHARING;
-structure NameDeps : GRAPH_NAME_DEPS_SHARING;
-sharing NameDeps.Vertex = Vertex
-sharing NameDeps.Edge = Edge
+structure Param : GRAPH_PARAM_SHARING;
+sharing Param.Vertex = Vertex
+sharing Param.Edge = Edge
 type dir_or_undir;
 type T;
 end;
@@ -20,7 +20,7 @@ sig
 
 structure Vertex : VERTEX
 structure Edge : EDGE
-structure NameDeps : GRAPH_NAME_DEPS
+structure Param : GRAPH_PARAM
 
 (* each edge is either directed, or bi-directed: this is the family of graphs
    with these edges in both directions. *)
@@ -33,7 +33,7 @@ type name_deps (* dependencies between vertex, edge and data names *)
 structure SharingBasicGraph : BASIC_GRAPH_SHARING
 sharing SharingBasicGraph.Edge = Edge.EdgeSharingWithData;
 sharing SharingBasicGraph.Vertex = Vertex.SharingWithData;
-sharing SharingBasicGraph.NameDeps = NameDeps.Sharing;
+sharing SharingBasicGraph.Param = Param.Sharing;
 sharing type SharingBasicGraph.T = T;
 sharing type SharingBasicGraph.dir_or_undir = dir_or_undir;
 
@@ -81,7 +81,7 @@ val get_edges : T
                     * (Vertex.name (* from this vertex *)
                        * Vertex.name)) (* to this vertex *)
                    Edge.NTab.T
-val get_namedeps : T -> name_deps
+val get_Param : T -> name_deps
 
 (* updating graph internal representation... *)
 val update_vertices : ((Vertex.data * (Edge.NSet.T * Edge.NSet.T)) 
@@ -93,7 +93,7 @@ val update_edges : (((dir_or_undir * Edge.data)
                     -> ((dir_or_undir * Edge.data) 
                         * (Vertex.name * Vertex.name)) Edge.NTab.T)
                    -> T -> T
-val update_namedeps : (name_deps -> name_deps) -> T -> T
+val update_Param : (name_deps -> name_deps) -> T -> T
 
 
 (* pretty printing *)
@@ -116,16 +116,16 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Basic Graphs with strings at edges and vertices *)
 functor BasicGraphFun(
-  structure NameDeps : GRAPH_NAME_DEPS
+  structure Param : GRAPH_PARAM
   type data (* graph additional extensible/hidden data *)
   val empty_data : data
 ) 
 : BASIC_GRAPH
 = struct
 
-structure Vertex = NameDeps.Vertex;
-structure Edge = NameDeps.Edge;
-structure NameDeps = NameDeps;
+structure Vertex = Param.Vertex;
+structure Edge = Param.Edge;
+structure Param = Param;
 
 exception bug_exp of string;
 
@@ -133,7 +133,7 @@ exception bug_exp of string;
 signatures/structures; this provides a style of OOP for normal
 structured ML. *)
 type data = data;
-type name_deps = NameDeps.T;
+type name_deps = Param.T;
 
 (* is the edge representing a singtle graph with the directed edge, or is it
  representing the family of graphs with this edge in both directions. *)
@@ -151,7 +151,7 @@ datatype T = Graph of
                       * Vertex.name)) (* to this vertex *)
                     Edge.NTab.T,  
           (* dependencies between names in data and other graph things *)
-          name_deps : NameDeps.T,
+          name_deps : Param.T,
           data : data (* global data about a graph *)
          };
 
@@ -159,7 +159,7 @@ datatype T = Graph of
 structure SharingBasicGraph = struct
   structure Vertex = Vertex.SharingWithData;
   structure Edge = Edge.EdgeSharingWithData;
-  structure NameDeps = NameDeps.Sharing;
+  structure Param = Param.Sharing;
   type T = T;
   type dir_or_undir = dir_or_undir;
 end;
@@ -174,7 +174,7 @@ fun update_data f (Graph rep) =
 (* basic graph stuff... *)
 val empty = Graph { vertices = Vertex.NTab.empty, 
                     edges = Edge.NTab.empty,
-                    name_deps = NameDeps.empty,
+                    name_deps = Param.empty,
                     data = empty_data};
 fun update_vertices f (Graph rep) = 
     Graph { vertices = f (#vertices rep), edges = #edges rep, 
@@ -182,16 +182,16 @@ fun update_vertices f (Graph rep) =
 fun update_edges f (Graph rep) = 
     Graph { vertices = #vertices rep, edges = f (#edges rep),
             name_deps = #name_deps rep, data = #data rep};
-fun update_namedeps f (Graph rep) = 
+fun update_Param f (Graph rep) = 
     Graph { vertices = #vertices rep, edges = #edges rep,
             name_deps = f(#name_deps rep), data = #data rep};
 val set_vertices = update_vertices o K;
 val set_edges = update_edges o K;
-val set_namedeps = update_namedeps o K;
+val set_Param = update_Param o K;
 
 fun get_vertices (Graph rep) = #vertices rep;
 fun get_edges (Graph rep) = #edges rep;
-fun get_namedeps (Graph rep) = #name_deps rep;
+fun get_Param (Graph rep) = #name_deps rep;
 
 val get_vertex_list = Vertex.NTab.list_of o get_vertices;
 val get_edge_list = Edge.NTab.list_of o get_edges;
@@ -342,7 +342,7 @@ fun rename_vname n1 n2 g =
       (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2
-         |> update_namedeps (NameDeps.rename_vname n1 n2)
+         |> update_Param (Param.rename_vname n1 n2)
     end;
 
 
@@ -378,7 +378,7 @@ fun rename_ename en1 en2 g =
     (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2
-         |> update_namedeps (NameDeps.rename_ename en1 en2)
+         |> update_Param (Param.rename_ename en1 en2)
     end;
 
 fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
