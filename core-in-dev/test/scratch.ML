@@ -250,7 +250,7 @@ structure LinratParser =
 struct
 
 structure L = SimpleLexer
-datatype expr = EXP of DB_LinratExpr.T
+datatype expr = EXP of LinratExpr.T
 	      | RAT of Rational.T
 	      | TOK of L.token
 
@@ -267,10 +267,10 @@ val zero = Rational.mk 0 1
 
 fun rat (TOK(L.INT n), TOK(L.INT d)) = RAT (Rational.mk n d)
 fun whole_num n = rat (n,TOK(L.INT 1))
-fun rat_term (RAT r, TOK(L.ID id)) = EXP (DB_LinratExpr.mk zero [(id,r)])
-fun const_term (RAT r) = EXP (DB_LinratExpr.mk r [])
-fun var_term (TOK(L.ID id)) = EXP (DB_LinratExpr.mk_var id)
-fun plus (EXP a, EXP c) = EXP (DB_LinratExpr.add_expr a c)
+fun rat_term (RAT r, TOK(L.ID id)) = EXP (LinratExpr.mk zero [(id,r)])
+fun const_term (RAT r) = EXP (LinratExpr.mk r [])
+fun var_term (TOK(L.ID id)) = EXP (LinratExpr.mk_var id)
+fun plus (EXP a, EXP c) = EXP (LinratExpr.add_expr a c)
 
 
 (* the grammar, decorated with semantic operators *)

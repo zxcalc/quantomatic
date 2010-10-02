@@ -135,14 +135,14 @@ fun subtr_expr e1 e2 =
 
 (* =====================================================================*)
 (* subs
-   given LookUP of (k,v) name->expression pairs, substitute 
-   v for k whereever it occurs in expression target
- *)					
-(* BUG! 
-  Need to check somewhere that in the lup forall pairs (k,v)
+   given etab of name->expression table containing (k,v), 
+   substitute v for k whereever it occurs in expression target
+*)
+(* FIXME! 
+  Need to check that in etab, forall pairs (k,v)
   no variable k occurs in any expression v
- *)
-fun subs lup target = 
+*)
+fun subs etab target = 
     let fun sub1 (k,v) texp =
 	          let val (p,ttab) = texp
 	          in 
@@ -154,7 +154,7 @@ fun subs lup target =
 		            texp
 	          end
     in 
-      VName.NTab.fold sub1 lup target
+      VName.NTab.fold sub1 etab target
     end
 
 (* =====================================================================*)
@@ -227,12 +227,72 @@ fun match_sub pat2 target already_matched =
 
 (* =====================================================================*)
 (* 
- val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
- ASSUME : pat, target have no common vars
- *)
+  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+  ASSUMES : pat, target have no common vars
+*)
 fun match pat target already_matched =
     let val pat2 = subs already_matched pat
     in match_sub pat2 target already_matched end;
+
+
+(* 
+(* =====================================================================*)
+(* 
+  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+  ASSUMES : pat, target may have common variables, but they will be 
+  kept apart in the matching representation. 
+*)
+datatype match = Match of 
+  (T * T) VName.NTab.T; (* pattern var goes to tgt - pat expresion *) 
+
+
+fun match_sub pat2 target already_matched =
+    case VName.NSet.get_local_bot 
+           (VName.NSet.subtract (get_vars pat2) (get_vars target))
+     (* if all pat vars are in target, check for direct equality *)
+     of NONE => (* pat2, not pat. *)
+        if eq (reduce_expr pat2) target then SOME already_matched else NONE
+     (* there is a pat var not in target, put difference between 
+        expressions into an instantiation of that var. *)
+      | SOME match_var => 
+        let val c = Coeff.divide (Coeff.mk 1 1) 
+                 (* subs can have introduced previously unseen vars *)
+                                 (VName.NTab.get (snd pat2) match_var) 
+            (* 1/Coeff of match var *)
+            val rhs = add_expr 
+                        (scale_expr c (subtr_expr target pat2)) 
+                        (mk_var match_var) 
+        in
+          SOME (VName.NTab.update (match_var, rhs) already_matched)
+        end;
+
+(* =====================================================================*)
+(*  Apply substitutions to pattern variables in mtab to variables 
+    in pat *)
+fun subs_of_match_disjointly (Match mtab) (pat,tgt) = 
+    let 
+      let val (pcoeff0,ptab0) = pat
+      
+      fun sub1 (pv,pvcoeff) (pt as (pat,tgt)) =
+          (case VName.NTab.lookup mtab k of NONE => pt
+           | SOME (tgt_expr,pat_expr) => 
+             let val (pcoeff0,ptab) = pat 
+                 val (tcoeff0,ttab) = tgt
+	          in
+              (add_expr (pcoeff0, VName.NTab.delete pv ptab)
+			                  (scale_expr (VName.NTab.get ttab k) 
+			                              pvcoeff)
+	            else 
+		            texp
+	          end
+    in 
+      VName.NTab.fold sub1 ptab0 (pat,tgt)
+    end
+
+fun match_disjointly pat tgt already_matched =
+    let val (pat2,tgt2) = subs_of_match_disjointly already_matched (pat,tgt) 
+    in match_disjointly_sub pat2 tgt2 already_matched end;
+*)
 
 (* Elimination step for pat=target. Tries to express a variable in the
    equation in terms of the others and pushes the change into already_matched.

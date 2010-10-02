@@ -27,11 +27,6 @@ PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 (* Heuristic derived data structures *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 
-(* matching *)
-PolyML.Project.make "matching2/filter.ML";
-PolyML.Project.make "matching2/match_search.ML";
-
-
 (* linear arithmetic expressions: data inside verticies *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
@@ -41,14 +36,13 @@ PolyML.Project.make "expressions/linrat_expr.ML";
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/rg_vertex.ML";
 PolyML.Project.make "theories/red_green/rg_graph.ML";
-                                                               
+
+
+(* matching *)
+PolyML.Project.make "matching2/filter.ML";
+(* PolyML.Project.make "matching2/match_search.ML"; *)                                                               
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching2/match.ML";
-
-(* vertex and edge matching and global context *)
-PolyML.Project.make "matching/match_ctxt.ML";
-PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
-PolyML.Project.make "matching/match.ML";
 
 PolyML.Project.make "rewriting/rule.ML";
 

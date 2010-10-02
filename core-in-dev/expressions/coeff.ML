@@ -2,6 +2,7 @@ signature COEFF =
 sig
   type T;
   val add : T -> T -> T;
+  val negate : T -> T;
   val subtr : T -> T -> T;
   val mult : T -> T -> T;
   (* changed from div to divide to not clobber built-in -ak *)
@@ -79,6 +80,7 @@ val zero = mk 0 1
 val one = mk 1 1
 fun is_zero r = eq r zero
 fun is_one r = eq r one
+fun negate (n1,d1) = (~n1,d1);
 
 fun pretty (n,d) = 
     if n=0 then Pretty.str "0"

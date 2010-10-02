@@ -1,6 +1,7 @@
 (*
 install_pp (make_pp ["LinratExpr", "T"] (Pretty.pprint o LinratExpr.pretty));
 *)
+local 
 
 structure linrat_expr_test_vals = 
 struct
@@ -43,6 +44,10 @@ val tab2ab = var.NTab.update (b_v, pi+c) tab2a;
 val tab2bc = var.NTab.update (c_v, x*pi) tab2b;
 val tab2ca = var.NTab.update (a_v, zero) tab2c;
 
+end;
+
+in
+val _ = ();
 end;
 
           (* testing match:
