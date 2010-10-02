@@ -46,9 +46,9 @@ structure RGVertex
         | pretty_data Hnd = Pretty.str "H";
       val print_data = Pretty.writeln o pretty_data;
       
-      type unif = AngleExpr.T VName.NTab.T
-      val empty_unif = VName.NTab.empty;
-      fun compose_unif (u1,u2) = VName.NTab.map_all (AngleExpr.subs u2) u1
+      type unif = AngleExpr.match;
+      val empty_unif = AngleExpr.empty_match;
+      fun compose_unif (u1,u2) = AngleExpr.compose_matches u1 u2;
       fun unify_data ((e1 as Hnd), (e2 as Hnd)) m = SOME m
         | unify_data ((Znd a1),(Znd a2)) m = 
           AngleExpr.match a1 a2 m
@@ -56,15 +56,10 @@ structure RGVertex
           AngleExpr.match a1 a2 m
         | unify_data _ _ = NONE;
       fun subst_in_data u Hnd = Hnd
-        | subst_in_data u (Xnd a) = Xnd (AngleExpr.subs u a)
-        | subst_in_data u (Znd a) = Znd (AngleExpr.subs u a);
+        | subst_in_data u (Xnd a) = Xnd (AngleExpr.subst u a)
+        | subst_in_data u (Znd a) = Znd (AngleExpr.subst u a);
         
-      fun pretty_unif u = Pretty.chunks (map (fn (n,e)
-                                              => Pretty.block [Pretty.str n,
-                                                               Pretty.str " = ",
-                                                               AngleExpr.pretty e]
-                                             )
-                                             (VName.NTab.list_of u));
+      val pretty_unif = AngleExpr.pretty_match;
       val print_unif = Pretty.writeln o pretty_unif;
   
     end

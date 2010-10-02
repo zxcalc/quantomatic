@@ -32,10 +32,26 @@ sig
   val get_vars : T -> VName.NSet.T;
   val subs : T VName.NTab.T -> T -> T;
   
-  (* *)
-  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
-  (* gaussian elim *)
+  (* matching expressions *)
+  type match (* how variables in a pattern *)
+  val empty_match : match
+  val match : T -> T -> match -> match option;
+  val subst : match -> T -> T
+
+  (* like f o g; this should just composes substitutions *)
+  val compose_matches : match -> match -> match;
+
+  val pretty_match : match -> Pretty.T;
+  val print_match : match -> unit;
+
+  (* internal stuff *)
+  val subst_of_match : match -> T VName.NTab.T; 
+  val subst_in_match_pair : match -> T * T -> T * T;
+
+
+  (* gaussian elimination *)
   val eliminate : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+
   val pretty : T -> Pretty.T;
   val pretty_math : AlgFormat.format -> T -> Pretty.T;
   val print : T -> unit;

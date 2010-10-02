@@ -135,12 +135,10 @@ fun subtr_expr e1 e2 =
 
 (* =====================================================================*)
 (* subs
-   given etab of name->expression table containing (k,v), 
-   substitute v for k whereever it occurs in expression target
-*)
-(* FIXME! 
-  Need to check that in etab, forall pairs (k,v)
-  no variable k occurs in any expression v
+   given etab of name->expression table containing (k,expr) 
+   (where expr doesn't contain k of course)
+   substitutes k for expr in target, done for each element in the etab
+   IMPROVE: travse vars of target: probably fewer of them. 
 *)
 fun subs etab target = 
     let fun sub1 (k,v) texp =
@@ -201,98 +199,136 @@ fun pretty_math fmt = case fmt
 			| AlgFormat.PLAIN => pretty' "pi"
 			| _ => raise AlgFormat.not_supported_exp
 
-val pretty = pretty_math AlgFormat.LATEX
+val pretty = pretty_math AlgFormat.LATEX;
 
 val print = Pretty.writeln o pretty
 
-fun match_sub pat2 target already_matched =
-    case VName.NSet.get_local_bot 
-           (VName.NSet.subtract (get_vars pat2) (get_vars target))
-     (* if all pat vars are in target, check for direct equality *)
-     of NONE => (* pat2, not pat. *)
-        if eq (reduce_expr pat2) target then SOME already_matched else NONE
-     (* there is a pat var not in target, put difference between 
-        expressions into an instantiation of that var. *)
-      | SOME match_var => 
-        let val c = Coeff.divide (Coeff.mk 1 1) 
-                 (* subs can have introduced previously unseen vars *)
-                                 (VName.NTab.get (snd pat2) match_var) 
-            (* 1/Coeff of match var *)
-            val rhs = add_expr 
-                        (scale_expr c (subtr_expr target pat2)) 
-                        (mk_var match_var) 
-        in
-          SOME (VName.NTab.update (match_var, rhs) already_matched)
-        end;
-
 (* =====================================================================*)
 (* 
   val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
-  ASSUMES : pat, target have no common vars
-*)
-fun match pat target already_matched =
-    let val pat2 = subs already_matched pat
-    in match_sub pat2 target already_matched end;
-
-
-(* 
-(* =====================================================================*)
-(* 
-  val match : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
-  ASSUMES : pat, target may have common variables, but they will be 
-  kept apart in the matching representation. 
+  ASSUMES : pat and tgt may have common variables, but they will be 
+  kept apart in the matching representation: we store everything in pairs: the tgt part and the expr part. Expression substitutions are thus a pair of expressions.  
 *)
 datatype match = Match of 
-  (T * T) VName.NTab.T; (* pattern var goes to tgt - pat expresion *) 
+  (T     (* holds the tgt part of the expr *) 
+  * T)   (* holds the pattern part of the expr *)
+  VName.NTab.T; (* pattern var goes to tgt - pat expresion *) 
 
+val empty_match = Match VName.NTab.empty; 
 
-fun match_sub pat2 target already_matched =
-    case VName.NSet.get_local_bot 
-           (VName.NSet.subtract (get_vars pat2) (get_vars target))
-     (* if all pat vars are in target, check for direct equality *)
-     of NONE => (* pat2, not pat. *)
-        if eq (reduce_expr pat2) target then SOME already_matched else NONE
-     (* there is a pat var not in target, put difference between 
-        expressions into an instantiation of that var. *)
-      | SOME match_var => 
-        let val c = Coeff.divide (Coeff.mk 1 1) 
-                 (* subs can have introduced previously unseen vars *)
-                                 (VName.NTab.get (snd pat2) match_var) 
-            (* 1/Coeff of match var *)
-            val rhs = add_expr 
-                        (scale_expr c (subtr_expr target pat2)) 
-                        (mk_var match_var) 
-        in
-          SOME (VName.NTab.update (match_var, rhs) already_matched)
-        end;
+fun pretty_match (Match mtab) = 
+    VName.NTab.pretty (fn (tgt_e, pat_e) => Pretty.block 
+      [Pretty.str "(", pretty tgt_e, Pretty.str ")[of tgt] - (",
+       pretty pat_e, Pretty.str ")[of pat]"])
+      mtab; 
+val print_match = Pretty.writeln o pretty_match;
+
+fun subst_of_match (Match mtab) = 
+    VName.NTab.map_all (fn (tgt_e,pat_e) => 
+      subtr_expr tgt_e pat_e 
+    ) mtab;
+
+(* aux function for matching disjointly: eliminates one pattern variable; 
+   assumes that pat2 has no variables which can be substituted by anything 
+   in match. *)
+fun match_elim1 pat2 tgt2 (match as Match mtab) =
+    let val (pcoeff0,ptab) = pat2 in 
+      case VName.NSet.get_local_bot (VName.NTab.get_nameset ptab)
+       (* if all pat vars are in target, check for direct equality *)
+       of NONE => (* pat2, not pat. *)
+          if eq pat2 tgt2 then SOME match else NONE
+       (* there is a pat var not in target, put difference between 
+          expressions into an instantiation of that var. *)
+        | SOME pv => 
+          let (* 1/Coeff of match var *)
+              val coeff_of_pv = VName.NTab.get ptab pv
+              val c = Coeff.divide (Coeff.mk 1 1) coeff_of_pv
+              val pat_subst = scale_expr c (pcoeff0, VName.NTab.delete pv ptab)
+          in
+            SOME (Match (VName.NTab.update (pv, (tgt2,pat_subst)) mtab))
+          end
+     end;
 
 (* =====================================================================*)
 (*  Apply substitutions to pattern variables in mtab to variables 
-    in pat *)
-fun subs_of_match_disjointly (Match mtab) (pat,tgt) = 
+    in pat and tgt. 
+    e.g. given pat: c0 + c1*x1 + c2*x2 + ...
+               tgt: k0 + k1*y1 + ...
+               mtab: x1 |-> (t1,p1) 
+                     note: t1 and p2 are the tgt and pat 
+                           parts of the substitution
+         then have: 
+               pat := c0 + c2*x2 + ... - (c1*p1)
+               tgt: k0 + k1*y1 + ... - (c1*t1)
+*)
+fun subst_in_match_pair (Match mtab) (pat,tgt) = 
     let 
-      let val (pcoeff0,ptab0) = pat
-      
+      val (pcoeff0,ptab0) = pat
       fun sub1 (pv,pvcoeff) (pt as (pat,tgt)) =
-          (case VName.NTab.lookup mtab k of NONE => pt
-           | SOME (tgt_expr,pat_expr) => 
+          (case VName.NTab.lookup mtab pv of NONE => pt
+           | SOME (tgt_sub_expr,pat_sub_expr) => 
              let val (pcoeff0,ptab) = pat 
-                 val (tcoeff0,ttab) = tgt
 	          in
-              (add_expr (pcoeff0, VName.NTab.delete pv ptab)
-			                  (scale_expr (VName.NTab.get ttab k) 
-			                              pvcoeff)
-	            else 
-		            texp
-	          end
+              (subtr_expr (pcoeff0, VName.NTab.delete pv ptab)
+			                    (scale_expr pvcoeff pat_sub_expr),
+			         subtr_expr tgt (scale_expr pvcoeff tgt_sub_expr))		            
+	          end)
     in 
       VName.NTab.fold sub1 ptab0 (pat,tgt)
     end
 
-fun match_disjointly pat tgt already_matched =
-    let val (pat2,tgt2) = subs_of_match_disjointly already_matched (pat,tgt) 
-    in match_disjointly_sub pat2 tgt2 already_matched end;
+fun match pat tgt match =
+    let val (pat2,tgt2) = subst_in_match_pair match (pat,tgt) 
+    in match_elim1 (reduce_expr pat2) (reduce_expr tgt2) match end;
+
+(* use a substitution to replace all variables that have been matched to 
+   expressions. 
+   ASSUMES: variables names in pat which created the match were disjoint from those in expr (pat variables will be introduced!);
 *)
+fun subst (Match mtab) expr = 
+    let 
+      val (xcoeff0,xtab0) = expr;
+      fun sub1 (v,coeff) expr =
+          (case VName.NTab.lookup mtab v of NONE => expr
+           | SOME (tgt_sub_expr,pat_sub_expr) => 
+             let val (xcoeff0,xtab) = expr
+                 val expr' = (xcoeff0,VName.NTab.delete v xtab)
+	          in
+	            subtr_expr 
+	              (add_expr expr' (scale_expr coeff tgt_sub_expr))
+                (scale_expr coeff pat_sub_expr)
+	          end)
+    in 
+      VName.NTab.fold sub1 xtab0 expr
+    end
+
+(* CHECK: do we need to subst in the target part? or just in the pat part. 
+   This needs to be clarified. *)
+fun compose_matches (Match mtab1) m2  = 
+    Match (VName.NTab.map_all (fn (tgt_expr,pat_expr) => 
+      (subst m2 tgt_expr, subst m2 pat_expr)) mtab1);
+
+(* IMPROVE: look at subst_in_match_pair above and improve this code! 
+   e.g. don't do set subtraction here - this code is called very oftem *)
+fun match_sub pat2 target already_matched =
+    case VName.NSet.get_local_bot (* only vars in pat2*)
+           (VName.NSet.subtract (get_vars pat2) (get_vars target))
+     (* if all pat vars are in target, check for direct equality *)
+     of NONE => (* pat2, not pat. *)
+        if eq (reduce_expr pat2) target then SOME already_matched else NONE
+     (* there is a pat var not in target, put difference between 
+        expressions into an instantiation of that var. *)
+      | SOME match_var => 
+        let val c = Coeff.divide (Coeff.mk 1 1) 
+                 (* subs can have introduced previously unseen vars *)
+                                 (VName.NTab.get (snd pat2) match_var) 
+            (* 1/Coeff of match var *)
+            val rhs = add_expr 
+                        (scale_expr c (subtr_expr target pat2)) 
+                        (mk_var match_var) (* IMPROVE: remove directly *)
+        in
+          SOME (VName.NTab.update (match_var, rhs) already_matched)
+        end;
 
 (* Elimination step for pat=target. Tries to express a variable in the
    equation in terms of the others and pushes the change into already_matched.

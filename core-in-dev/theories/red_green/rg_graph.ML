@@ -123,12 +123,7 @@ structure RG_GraphParam
   fun subst_in_vertex u vd = RGVertex.subst_in_data u vd;
   fun subst_in_edge u ed = ed;
 
-
-
-  fun pretty_unif u = 
-    Pretty.chunks (map (fn (n,e) => 
-        Pretty.block [Pretty.str n, Pretty.str " = ", AngleExpr.pretty e])
-      (IName.NTab.list_of u));
+  val pretty_unif = RGVertex.pretty_unif;
   val print_unif = Pretty.writeln o pretty_unif;
 
   structure Sharing = 
