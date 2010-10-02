@@ -162,15 +162,15 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor BasicBangGraphFun(
         structure OVertex : OVERTEX
-        structure NameDeps : GRAPH_NAME_DEPS
-        sharing NameDeps.Vertex.SharingWithData = OVertex.SharingWithData
+        structure Param : GRAPH_PARAM
+        sharing Param.Vertex.SharingWithData = OVertex.SharingWithData
         type data 
         val empty_data : data
 ) : BASIC_BANG_GRAPH
 = struct
   
   structure V = OVertex;
-  structure E = NameDeps.Edge;
+  structure E = Param.Edge;
   
   (* bang-box names *)
   structure BBox : SSTR_NAMES = 
@@ -218,7 +218,7 @@ functor BasicBangGraphFun(
   (* make basic graph with this as internal data *)
   structure G : BASIC_OGRAPH = BasicOGraphFun(
     structure OVertex = V 
-    structure NameDeps = NameDeps
+    structure Param = Param
     type data = hdata
     val empty_data = empty_hdata
   );

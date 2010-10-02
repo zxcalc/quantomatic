@@ -11,7 +11,7 @@ include BASIC_GRAPH
 (* renaming internal names in a graph *)
 structure CRnmINames : COMPOUND_RENAMING
   sharing type CRnmINames.obj = T
-  sharing type CRnmINames.renaming = NameDeps.CRnmINames.renaming
+  sharing type CRnmINames.renaming = Param.CRnmINames.renaming
 
 (* graph has not vertices (and thus no edges) *)
 val is_empty : T -> bool 
@@ -210,13 +210,15 @@ val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
 val get_dag_ranks : T -> Vertex.name list list
 
 (* unification morphisms *)
-structure VUmorph : GRAPH_UMORPH;
+(* structure VUmorph : GRAPH_UMORPH;
 sharing VUmorph.Entity.SharingWithData = Vertex.SharingWithData;
 structure EUmorph : GRAPH_UMORPH;
 sharing EUmorph.Entity.SharingWithData = Edge.SharingWithData;
+*)
 
 (* graph isomorphisms *)
 val get_isomorphisms : T -> T -> (Vertex.Amorph.T * Edge.Amorph.T * Param.unif) Seq.seq 
+
 val is_isomorphic : T -> T -> bool
 
 (* copy a set of vertices, copying all adjacent edges. *)
@@ -406,42 +408,42 @@ fun rename_apart g1 g2 =
 structure CRnmINames : COMPOUND_RENAMING
 = struct 
   type obj = T
-  type renaming = NameDeps.CRnmINames.renaming;
-  val empty_renaming = NameDeps.CRnmINames.empty_renaming;
+  type renaming = Param.CRnmINames.renaming;
+  val empty_renaming = Param.CRnmINames.empty_renaming;
 
   fun rename rnm g = 
     (rnm,g)
       |> (Vertex.NTab.fold
            (fn (vn,(d,es)) => fn (rnm, g) => 
-               let val (rnm2,d2) = NameDeps.VDataCRnmINames.rename rnm d 
+               let val (rnm2,d2) = Param.VDataCRnmINames.rename rnm d 
                in (rnm2, set_vertex_data d2 vn g) end
            ) (get_vertices g))
       |> (Edge.NTab.fold
            (fn (en,((dir,d),vs)) => fn (rnm,g) => 
-               let val (rnm2,d2) = NameDeps.EDataCRnmINames.rename rnm d 
+               let val (rnm2,d2) = Param.EDataCRnmINames.rename rnm d 
                in (rnm2,set_edge_data d2 en g) end
            ) (get_edges g));
 
   fun mk_renaming g rnm = 
     rnm
       |> (Vertex.NTab.fold
-           (fn (vn,(d,es)) => NameDeps.VDataCRnmINames.mk_renaming d)  
+           (fn (vn,(d,es)) => Param.VDataCRnmINames.mk_renaming d)  
            (get_vertices g))
       |> (Edge.NTab.fold
-           (fn (en,((dir,d),vs)) => NameDeps.EDataCRnmINames.mk_renaming d)
+           (fn (en,((dir,d),vs)) => Param.EDataCRnmINames.mk_renaming d)
            (get_edges g));
 
   fun do_renaming rnm g = 
       g |> (Vertex.NTab.fold
            (fn (vn,(d,es)) => 
-               update_vertex_data (NameDeps.VDataCRnmINames.do_renaming rnm) vn)
+               update_vertex_data (Param.VDataCRnmINames.do_renaming rnm) vn)
            (get_vertices g))
         |> (Edge.NTab.fold
            (fn (en,((dir,d),vs)) =>  
-               update_edge_data (NameDeps.EDataCRnmINames.do_renaming rnm) en)
+               update_edge_data (Param.EDataCRnmINames.do_renaming rnm) en)
            (get_edges g));
   
-  val restrict_to_avoiding = NameDeps.CRnmINames.restrict_to_avoiding;
+  val restrict_to_avoiding = Param.CRnmINames.restrict_to_avoiding;
 end;
 
 (* *)
@@ -891,39 +893,54 @@ in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
 end
 
 (* vertex and edge unification morphisms *)
-structure VUmorph = GraphUmorphFun(Vertex);
+(* structure VUmorph = GraphUmorphFun(Vertex);
 structure EUmorph = GraphUmorphFun(Edge);
+*)
+exception unif_failed_exp of unit;
+fun unif_edge_both_ways e1 e2 (u,u') = 
+    (case (u |> Param.unif_edge e1 e2, u'|> Param.unif_edge e2 e1) of 
+       (SOME u1, SOME u2) => (u1,u2) 
+     | (_,_) => raise unif_failed_exp ())
 
-fun unif_edge_both_ways e1 e2 (u,u') = (u |> Param.unif_edge e1 e2,
-                                        u'|> Param.unif_edge e2 e1);
+fun unif_vertex_both_ways v1 v2 (u,u') = 
+    (case (u |> Param.unif_vertex v1 v2, u'|> Param.unif_vertex v2 v1) of 
+       (SOME u1, SOME u2) => (u1,u2)
+     | (_,_) => raise unif_failed_exp ())
 
-fun unif_vertex_both_ways v1 v2 (u,u') = (u |> Param.unif_vertex v1 v2,
-                                          u'|> Param.unif_vertex v2 v1);
 
-(* v = vertex iso, e = edge iso, u = unif, t = agenda, g,h = graphs *)
+(* v = vertex iso, 
+   e = edge iso, 
+   u = unif, 
+   t = agenda, 
+   g and h = graphs, 
+*)
 fun get_isomorphisms_unify_next_edge v e u t g h gs hs otherend = let
     val n1 = Option.valOf
             (Edge.NSet.get_local_bot gs)
-    fun edge_eq en1 en2 =
-           let val ((dir1,d1),_) = get_edge g en1
-               val ((dir2,d2),_) = get_edge h en2
-           in dir1=dir2 (* andalso Edge.data_eq(d1,d2) *) end
-    fun alleqs en1 es2 = Seq.filter (edge_eq en1) 
-                                    (Edge.NSet.seq_of es2)
-  in Seq.maps get_isomorphisms_unify_next
-    (Seq.maps (fn n2 => Seq.single
-                    (v |> Vertex.Amorph.add (otherend n1 g) (otherend n2 h),
-                     e |> Edge.Amorph.add n1 n2,
-                     u |> unif_edge_both_ways d1 d2,
-                     Seq.append t  (* push unification of the target vertex of
-                                      this edge onto the unification queue *)
-                     (Seq.single (otherend n1 g,
-                                  otherend n2 h)),
-                     g |> delete_edge n1,
-                     h |> delete_edge n2)
-                     handle Vertex.Amorph.add_exp(_,_,_) => Seq.empty)
-             (alleqs n1 hs)) end
-and get_isomorphisms_unify_next (v,e,u,t,g,h) = (case Seq.pull t of
+    val ((dir1,d1),_) = get_edge g n1
+  in 
+    Seq.maps get_isomorphisms_unify_next
+    (Seq.map_filter
+      (fn n2 => 
+          let val ((dir2,d2),_) = get_edge h n2 in
+            if dir1 <> dir2 (* andalso Edge.data_eq(d1,d2) *) 
+            then NONE 
+            else SOME
+              (v |> Vertex.Amorph.add (otherend n1 g) (otherend n2 h),
+               e |> Edge.Amorph.add n1 n2,
+               u |> unif_edge_both_ways d1 d2,
+               Seq.append t  (* push unification of the target vertex of
+                                this edge onto the unification queue *)
+                 (Seq.single (otherend n1 g,
+                              otherend n2 h)),
+               g |> delete_edge n1,
+               h |> delete_edge n2)
+               handle Vertex.Amorph.add_exp(_,_,_) => NONE
+           end)
+        (Edge.NSet.seq_of hs))
+  end
+and get_isomorphisms_unify_next (v,e,u,t,g,h) = 
+  (case Seq.pull t of
     (* Nothing to unify; start unifying new connectivity component *)
     NONE                => let
        val gbot = the (Vertex.NSet.get_local_bot (get_vnames g))
@@ -974,7 +991,7 @@ and get_isomorphisms_unify_next (v,e,u,t,g,h) = (case Seq.pull t of
      end handle no_such_vname_exp(_,_,_) (* consequence of multiple edges. 
                                             Vertex has already been successfully
                                             unified; skip. *)
-             => get_isomorphisms_unify_next (v,e,t',g,h)
+             => get_isomorphisms_unify_next (v,e,u,t',g,h)
   ) handle Vertex.Amorph.add_exp(_,_,_) => Seq.empty
 
 (* v,e are working copies of the isomorphism to be constructed;

@@ -163,8 +163,8 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor BasicOGraphFun(
         structure OVertex : OVERTEX
-        structure NameDeps : GRAPH_NAME_DEPS
-        sharing NameDeps.Vertex.SharingWithData = OVertex.SharingWithData
+        structure Param : GRAPH_PARAM
+        sharing Param.Vertex.SharingWithData = OVertex.SharingWithData
         type data (* graph additional extensible/hidden data *)
         val empty_data : data
 ) 
@@ -173,7 +173,7 @@ functor BasicOGraphFun(
   
   structure OVertex = OVertex;
   structure V = OVertex;
-  structure E = NameDeps.Edge;
+  structure E = Param.Edge;
   
   (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
   type data2 = data;
@@ -205,7 +205,7 @@ functor BasicOGraphFun(
 
   (* make basic graph with this as internal data *)
   structure G = BasicGraphFun(
-    structure NameDeps = NameDeps
+    structure Param = Param
     type data = hdata
     val empty_data = empty_hdata
   );
