@@ -7,7 +7,7 @@ import edu.uci.ics.jung.contrib.HasName;
 public class QVertex implements HasName, Comparable<QVertex> {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
-	private String name, angle;
+	private String name, label;
 	public boolean old;
 
 	public QVertex() {
@@ -48,29 +48,22 @@ public class QVertex implements HasName, Comparable<QVertex> {
 	
 	@Override
 	public String toString() {
-		return getAngle().replace('\\', 'B')+"    ";
-	}
-	
-	public Color getColor() {
-		if (vertexType==Type.RED) return Color.red;
-		if (vertexType==Type.GREEN) return Color.green;
-		if (vertexType==Type.HADAMARD) return Color.yellow;
-		return Color.lightGray;
+		return getLabel().replace('\\', 'B')+"    ";
 	}
 	
 	public void updateTo(QVertex v) {
 		old = false;
 		name = v.getName();
 		vertexType = v.getVertexType();
-		angle = v.getAngle();
+		label = v.getLabel();
 	}
 
-	public String getAngle() {
-		return angle;
+	public String getLabel() {
+		return label;
 	}
 
-	public void setAngle(String angle) {
-		this.angle = angle;
+	public void setLabel(String label) {
+		this.label = label;
 	}
 	
 	public boolean isAngleVertex() {

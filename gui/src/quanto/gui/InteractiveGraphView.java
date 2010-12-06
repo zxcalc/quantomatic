@@ -1,5 +1,6 @@
 package quanto.gui;
 
+import com.itextpdf.text.DocumentException;
 import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.LayoutDecorator;
@@ -10,7 +11,6 @@ import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,6 +40,7 @@ import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import java.io.OutputStream;
 import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
@@ -114,14 +115,14 @@ public class InteractiveGraphView
 					angleLabeler = new Labeler("");
 					components.put(qVertex, angleLabeler);
 					viewer.add(angleLabeler);
-					if (qVertex.getColor().equals(Color.red)) {
+					if (qVertex.getVertexType() == QVertex.Type.RED) {
 						angleLabeler.setColor(new Color(255, 170, 170));
 					}
 					else {
 						angleLabeler.setColor(new Color(150, 255, 150));
 					}
 
-					String angle = ((QVertex) vertex).getAngle();
+					String angle = ((QVertex) vertex).getLabel();
 					Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
 					Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 							      (int) screen.getY() + 10);
@@ -151,7 +152,7 @@ public class InteractiveGraphView
 						}
 					});
 				}
-				String angle = qVertex.getAngle();
+				String angle = qVertex.getLabel();
 				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 						      (int) screen.getY() + 10);
@@ -1073,8 +1074,6 @@ public class InteractiveGraphView
 		actionMap.put(EXPORT_TO_PDF_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					GraphVisualizationViewer view = new GraphVisualizationViewer(getGraph());
-					byte[] gr = view.exportPdf();
 
 					JFileChooser chooser = QuantoApp.getInstance().getFileChooser();
 					int retVal = chooser.showSaveDialog(InteractiveGraphView.this);
@@ -1089,11 +1088,14 @@ public class InteractiveGraphView
 							if (overwriteAnswer != JOptionPane.YES_OPTION)
 								return;
 						}
-						BufferedOutputStream file = new BufferedOutputStream(
-							new FileOutputStream(outputFile));
-						file.write(gr);
+						OutputStream file = new FileOutputStream(outputFile);
+                                                PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(getGraph());
+						server.renderToPdf(file);
 						file.close();
 					}
+				}
+				catch (DocumentException ex) {
+					errorDialog("Error generating PDF", ex.getMessage());
 				}
 				catch (IOException ex) {
 					errorDialog("Error writing file", ex.getMessage());

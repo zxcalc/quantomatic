@@ -162,9 +162,9 @@ implements HasName, ChangeEventSupport {
 					IXMLElement expr = vertexNode
 						.getFirstChildNamed("angleexpr");
 					if (expr == null) {
-						v.setAngle("0");
+						v.setLabel("0");
 					} else {
-						v.setAngle(expr.getFirstChildNamed("as_string").getContent());
+						v.setLabel(expr.getFirstChildNamed("as_string").getContent());
 					}
 				} catch (IllegalArgumentException e) {
 					throwParseException(vertexNode, null);
@@ -191,6 +191,10 @@ implements HasName, ChangeEventSupport {
 			} // foreach vertex
 			
 			Collections.sort(boundaryVertices, new HasName.NameComparator());
+
+                        for (int i = 0; i < boundaryVertices.size(); ++i) {
+                                boundaryVertices.get(i).setLabel(String.valueOf(i));
+                        }
 			
 			// Prune removed vertices
 			for (QVertex v : verts.values()) {
@@ -286,10 +290,6 @@ implements HasName, ChangeEventSupport {
 
 	public void setName(String name) {
 		this.name = name;
-	}
-	
-	public int getBoundaryIndex(QVertex bv) {
-		return boundaryVertices.indexOf(bv);
 	}
 
 	public String getFileName() {

@@ -43,9 +43,9 @@ public class TikzOutput {
 			
 			for (QVertex v : graph.getVertices()) {
 				col = v.getVertexType().toString().toLowerCase();
-				if (! v.getAngle().equals("0"))
+				if (! v.getLabel().equals("0"))
 					tikz.append("\\node ["+ col + " angle] at (" + v.getName() + ") {$")
-						.append(v.getAngle()).append("$};\n");
+						.append(v.getLabel()).append("$};\n");
 			}
 		}
 		tikz.append("\\end{tikzpicture}\n");
