@@ -266,7 +266,10 @@ public class QuantoApp {
 	public TheoryManager getTheoryManager() {
 		if (theoryManager == null) {
 			theoryManager = new TheoryManager(core);
-			theoryManager.setLastTheoryDirectory(new File(getPreference(LAST_THEORY_OPEN_DIR)));
+                        if (getPreference(LAST_THEORY_OPEN_DIR) != null) {
+                            theoryManager.setLastTheoryDirectory(
+                                    new File(getPreference(LAST_THEORY_OPEN_DIR)));
+                        }
 			theoryManager.addRecentDirectoryChangeListener(new RecentDirectoryChangeListener() {
 				public void recentDirectoryChanged(Object source, File directory) {
 					try {
