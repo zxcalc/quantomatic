@@ -1,10 +1,7 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
-import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
