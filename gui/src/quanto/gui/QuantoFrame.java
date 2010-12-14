@@ -74,7 +74,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().setLayout(new BorderLayout());
 
 		try {
-			actionManager.loadActions(QuantoFrame.class.getResource("resources/actions.xml"));
+                        String actionFile = (QuantoApp.MAC_OS_X) ?
+                            "resources/mac_actions.xml" :
+                            "resources/actions.xml";
+			actionManager.loadActions(QuantoFrame.class.getResource(actionFile));
 		}
 		catch (IOException ex) {
 			throw new Error("Could not find resource \"resources/actions.xml\": " + ex.getMessage());
