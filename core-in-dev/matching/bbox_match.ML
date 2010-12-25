@@ -41,7 +41,7 @@ val get_drop : T -> G.BBox.NSet.T
 val get_copies : T -> BBMap.T (* bbox copies *)
 val get_crnm : T -> (G.Vertex.name G.Vertex.NTab.T (* copie of all vs and es*)
                      * G.Edge.name G.Edge.NTab.T) G.BBox.NTab.T
-val get_xmaps : T -> G.Vertex.Amorph.T G.BBox.NTab.T (* copies of exterior vertices *)
+val get_xmaps : T -> G.Vertex.InjEndo.T G.BBox.NTab.T (* copies of exterior vertices *)
 val get_xvs : T -> G.Vertex.NSet.T (* exterior vertices of pat *)
 
 val update_bbmap : (BBMap.T -> BBMap.T) -> T -> T;
@@ -91,7 +91,7 @@ datatype T = BBoxMatch of
           (* external vertices in bang boxes that get copied/renamed; 
              these have to be the same between lhs and rhs of a rule 
              when bboxes are matched/instantiated. subset of those in crnm. *)
-          xmaps : G.Vertex.Amorph.T BBox.NTab.T,
+          xmaps : G.Vertex.InjEndo.T BBox.NTab.T,
           xvs : V.NSet.T (* all exterior vertices of !-expanded pat *)
          };
 
@@ -232,7 +232,7 @@ fun pretty (BBoxMatch rep) =
                      V.NSet.pretty (#xvs rep), 
                      Pretty.str "]" ],
       Pretty.block [ Pretty.str "[xmap:", 
-                     BBox.NTab.pretty G.Vertex.Amorph.pretty (#xmaps rep), 
+                     BBox.NTab.pretty G.Vertex.InjEndo.pretty (#xmaps rep), 
                      Pretty.str "]" ],
       Pretty.block [ Pretty.str "[crnm:", 
                      BBox.NTab.pretty pretty_1crnm (#crnm rep), 
@@ -250,13 +250,13 @@ val add_drop = update_drop o BBox.NSet.add;
 fun add_copy (bbn1,(vtab,etab),bbn2) m =
     let val xvs = get_xvs m 
         val xmaps = get_xmaps m
-        val xmap = (case BBox.NTab.lookup xmaps bbn2 of NONE => G.Vertex.Amorph.empty
+        val xmap = (case BBox.NTab.lookup xmaps bbn2 of NONE => G.Vertex.InjEndo.empty
                       | SOME xmap => xmap); 
         val (xvs2,xmap2) = 
               V.NTab.fold 
                 (fn (n1,n2) => fn (x as (xvs,xmap)) => 
                  if V.NSet.contains xvs n1
-                 then (V.NSet.add n2 xvs, G.Vertex.Amorph.add n1 n2 xmap) else x)
+                 then (V.NSet.add n2 xvs, G.Vertex.InjEndo.add n1 n2 xmap) else x)
                 vtab (xvs,xmap);
     in
       m |> update_copies (BBMap.add_to_dom bbn2 bbn1)

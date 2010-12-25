@@ -5,7 +5,7 @@ signature MATCH_SHARING
 = sig
   type T
   structure G : BANG_GRAPH_SHARING
-  structure EMap : NAME_ISO_SHARING
+  structure EMap : NAME_INJ_SHARING
   structure BBMatch : BBOX_MATCH_SHARING
 
   sharing BBMatch.G = G
@@ -16,7 +16,7 @@ end;
 signature MATCH 
 = sig
   structure G : BANG_GRAPH
-  structure EMap : NAME_AMORPH
+  structure EMap : NAME_INJENDO
   structure BBMatch : BBOX_MATCH
 
   type T (* the type of matches *)
@@ -35,7 +35,7 @@ signature MATCH
 
   (* basic gets *)
   val get_emap : T -> EMap.T
-  val get_viso : T -> G.Vertex.Amorph.T
+  val get_viso : T -> G.Vertex.InjEndo.T
   val get_bvmap : T -> G.Vertex.Map.T
   val get_bbmatch : T -> BBMatch.T
   val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
@@ -100,14 +100,14 @@ structure BBMatch = BBoxMatchFun(G);
 structure BBMap = BBMatch.BBMap;
 
 structure Ehn = E.Ehn;
-structure EMap = NameAmorphFun(Ehn);
+structure EMap = NameInjEndoFun(Ehn);
 
 datatype T = Match of 
          {
           (* names context for fresh names when copying bboxes in pat *)
           names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
           (* Internal vertex bijection from pat to tgt *)
-          viso : V.Amorph.T,
+          viso : V.InjEndo.T,
           (* map for boundary vertices pat to tgt vertices  *)
           bvmap: V.Map.T,
           (* 1-1, inj half-edge mapping *)
@@ -127,7 +127,7 @@ fun init (vs,es,bs) pat tgt =
                 (E.NSet.union_merge (G.get_enames tgt) es), 
              BBox.NSet.union_merge (G.get_bbnames pat) 
                 (BBox.NSet.union_merge (G.get_bbnames tgt) bs)),
-    viso = V.Amorph.empty,
+    viso = V.InjEndo.empty,
     bvmap = V.Map.empty,
     emap = EMap.empty,
     bbmatch = BBMatch.init_from_pat pat,
@@ -213,9 +213,9 @@ fun match_edge rev (pe, ped) (te, ted) m = let
              end;
              
 fun match_vertex (pv,pvd) (tv,tvd) m =
-                (m |> update_viso (V.Amorph.add pv tv)
+                (m |> update_viso (V.InjEndo.add pv tv)
                    |> update_unif (the o G.Param.unif_vertex pvd tvd)
-                )handle V.Amorph.add_exp (_,_,_) => raise match_exp ()
+                )handle V.InjEndo.add_exp (_,_,_) => raise match_exp ()
                       | Option                   => raise match_exp ();
                       
 fun match_boundary pb tb m = m |> update_bvmap (V.Map.add_to_dom pb tb);
@@ -237,8 +237,8 @@ fun pretty m =
             V.Map.pretty (get_bvmap m)]]
        @ [BBMatch.pretty (get_bbmatch m)]
        @ [Pretty.block 
-           [Pretty.str "Internal Vertex Amorph: ",
-            V.Amorph.pretty (get_viso m)]]
+           [Pretty.str "Internal Vertex InjEndo: ",
+            V.InjEndo.pretty (get_viso m)]]
         @ [EMap.pretty (get_emap m)])
     ]);
 

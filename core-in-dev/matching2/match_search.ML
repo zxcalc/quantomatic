@@ -41,9 +41,7 @@ functor MatchSearchFun(
   structure Graph = Graph;
   structure Edge = Graph.Edge;
   structure Vertex = Graph.OVertex;
-  structure BndMap = NameMapFun (
-    structure Dom = Vertex and Cod = Vertex 
-    (* val translate_name = Edge.mk o Vertex.dest *) );
+  structure BndMap = Vertex.Map;
   structure Filter = Filter;
   
   structure Sharing = struct

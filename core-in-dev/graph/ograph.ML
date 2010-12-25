@@ -109,15 +109,15 @@ val rename_or_merge_vname : Vertex.name -> Vertex.name -> T -> T
 (* cut all edges that go outside the selected set of vertices from the 
    given vertex. Extends the gluing automorphism *)
 val cut_around_vertex : Vertex.NSet.T -> Vertex.name 
-    -> (Vertex.Amorph.T * T) -> (Vertex.Amorph.T * T)
+    -> (Vertex.InjEndo.T * T) -> (Vertex.InjEndo.T * T)
 (* cut all edges that go from within the subgraph to outside it; 
    returns the gluing automorphism, and a new graph which will be disjoint *)
-val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.Amorph.T * T)
+val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.InjEndo.T * T)
 
 (* Given selection set of vertices, make subgraph: 
    vertices with incident edges outside selection have edges to boundary vertices *)
 val matched_subgraph_within_vset' : Vertex.NSet.T -> T 
-    -> Vertex.Amorph.T * T (* returns gluing/cutting for new boundary, 
+    -> Vertex.InjEndo.T * T (* returns gluing/cutting for new boundary, 
                               and cut graph *)
 val matched_subgraph_within_vset : Vertex.NSet.T -> T -> T
 
@@ -465,7 +465,7 @@ struct
 
   (* Cut edges around a vertex if they are not in the keepvset; change cut 
      incident edges into half-edges (add a boundary vertex to each one). 
-     Creates V.Amorph.T which explains how to glue cut back together; 
+     Creates V.InjEndo.T which explains how to glue cut back together; 
      automorphism is of the form: keepvset vertex => outside vertex.  
      NOT** INVARIANT: preserves names of the keepset, creates new edges/boundary vs for the
      rest of the graph. 
@@ -484,7 +484,7 @@ struct
                         val (newv2,g2) = add_vertex V.EVert g1
                         val (newe,g3) = add_edge d fromv newv2 g2
                     in
-                      (amorph |> V.Amorph.add newv1 newv2,
+                      (amorph |> V.InjEndo.add newv1 newv2,
                        g3 |> update_edges (Edge.NTab.update (e, (d,(newv1,n))))
                           |> add_to_boundary newv1)
                     end
@@ -499,7 +499,7 @@ struct
                         val (newv2,g2) = add_vertex V.EVert g1
                         val (newe,g3) = add_edge d newv2 tov g2
                     in
-                      (amorph |> V.Amorph.add newv1 newv2,
+                      (amorph |> V.InjEndo.add newv1 newv2,
                        g3 |> update_edges (Edge.NTab.update (e, (d,(n,newv1))))
                           |> add_to_boundary newv1)
                     end
@@ -566,7 +566,7 @@ struct
       V.NSet.fold 
         (cut_around_vertex vns)
         vns
-        (V.Amorph.empty,g);
+        (V.InjEndo.empty,g);
   
 
   (* remove any vertices that don't have an edge from the vset and for any vertices not in vset, but with edge(s) to vset, they get changed into edge-points. Note: this is a cheeky use of edge-points for variable-vertices. We should probably introduce a proper notion of variable vertex/uninstantiated vertex. *)
@@ -591,7 +591,7 @@ struct
       |> (fn (amorph,g') => 
           (amorph, 
            g' |> V.NSet.fold delete_vertex (V.NSet.subtract (get_vnames g) vns)
-              |> V.NSet.fold delete_vertex (V.Amorph.get_codset amorph)))
+              |> V.NSet.fold delete_vertex (V.InjEndo.get_codset amorph)))
   
   (* as above, but ignores gluing automorphism (introduced boundary => old vs) *)
   val matched_subgraph_within_vset = 

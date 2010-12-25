@@ -210,14 +210,15 @@ val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
 val get_dag_ranks : T -> Vertex.name list list
 
 (* unification morphisms *)
-(* structure VUmorph : GRAPH_UMORPH;
+structure VUmorph : UMORPH;
 sharing VUmorph.Entity.SharingWithData = Vertex.SharingWithData;
-structure EUmorph : GRAPH_UMORPH;
+structure EUmorph : UMORPH;
 sharing EUmorph.Entity.SharingWithData = Edge.SharingWithData;
-*)
+
 
 (* graph isomorphisms *)
-val get_isomorphisms : T -> T -> (Vertex.Amorph.T * Edge.Amorph.T * Param.unif) Seq.seq 
+val get_isomorphisms : T -> T 
+    -> (Vertex.InjEndo.T * Edge.InjEndo.T * Param.unif) Seq.seq 
 
 val is_isomorphic : T -> T -> bool
 
@@ -893,9 +894,10 @@ in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
 end
 
 (* vertex and edge unification morphisms *)
-(* structure VUmorph = GraphUmorphFun(Vertex);
-structure EUmorph = GraphUmorphFun(Edge);
-*)
+structure VUmorph = UmorphFun(Vertex);
+structure EUmorph = UmorphFun(Edge);
+
+
 exception unif_failed_exp of unit;
 fun unif_edge_both_ways e1 e2 (u,u') = 
     (case (u |> Param.unif_edge e1 e2, u'|> Param.unif_edge e2 e1) of 
@@ -926,8 +928,8 @@ fun get_isomorphisms_unify_next_edge v e u t g h gs hs otherend = let
             if dir1 <> dir2 (* andalso Edge.data_eq(d1,d2) *) 
             then NONE 
             else SOME
-              (v |> Vertex.Amorph.add (otherend n1 g) (otherend n2 h),
-               e |> Edge.Amorph.add n1 n2,
+              (v |> Vertex.InjEndo.add (otherend n1 g) (otherend n2 h),
+               e |> Edge.InjEndo.add n1 n2,
                u |> unif_edge_both_ways d1 d2,
                Seq.append t  (* push unification of the target vertex of
                                 this edge onto the unification queue *)
@@ -935,7 +937,7 @@ fun get_isomorphisms_unify_next_edge v e u t g h gs hs otherend = let
                               otherend n2 h)),
                g |> delete_edge n1,
                h |> delete_edge n2)
-               handle Vertex.Amorph.add_exp(_,_,_) => NONE
+               handle Vertex.InjEndo.add_exp(_,_,_) => NONE
            end)
         (Edge.NSet.seq_of hs))
   end
@@ -973,7 +975,7 @@ and get_isomorphisms_unify_next (v,e,u,t,g,h) =
                   Edge.NSet.is_empty hout) of
           (* no (more) edges; match up *)
           (true,true,true,true) =>
-            Seq.single (v |> Vertex.Amorph.add vng vnh,
+            Seq.single (v |> Vertex.InjEndo.add vng vnh,
                         e,
                         u |> unif_vertex_both_ways gd hd,
                         t',
@@ -992,7 +994,7 @@ and get_isomorphisms_unify_next (v,e,u,t,g,h) =
                                             Vertex has already been successfully
                                             unified; skip. *)
              => get_isomorphisms_unify_next (v,e,u,t',g,h)
-  ) handle Vertex.Amorph.add_exp(_,_,_) => Seq.empty
+  ) handle Vertex.InjEndo.add_exp(_,_,_) => Seq.empty
 
 (* v,e are working copies of the isomorphism to be constructed;
    t is the queue of vertex pairs in the source and target graph to be
@@ -1012,7 +1014,7 @@ fun get_isomorphisms_sub (v,e,u,t,g,h) = case (is_empty g,is_empty h) of
 (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
         isomorphisms between g and h *)
 fun get_isomorphisms g h  
-  = get_isomorphisms_sub (Vertex.Amorph.empty,Edge.Amorph.empty,
+  = get_isomorphisms_sub (Vertex.InjEndo.empty,Edge.InjEndo.empty,
                           (Param.empty_unif,Param.empty_unif),Seq.empty,g,h);
 
 (* in:  graphs g, h *)

@@ -44,7 +44,7 @@ PolyML.Project.make "matching2/filter.ML";
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching2/match.ML";
 
-PolyML.Project.make "rewriting/rule.ML";
+(* PolyML.Project.make "rewriting/rule.ML"; *)
 
 (* ... *)
 PolyML.Project.make "matching/match_search.ML"; 

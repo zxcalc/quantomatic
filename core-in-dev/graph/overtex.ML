@@ -44,7 +44,7 @@ structure VertexNames : SSTR_NAMES = VertexNames;
 open VertexNames; 
 
 structure Map = NameMapFun(structure Dom = VertexNames and Cod = VertexNames);
-structure Amorph = NameAmorphFun(VertexNames);
+structure InjEndo = NameInjEndoFun(VertexNames);
 
 
 (* internal data *)
@@ -93,7 +93,7 @@ val print_unif = IData.print_unif;
 structure SharingWithData = struct 
   open Sharing; type data = data; type unif = unif;
   structure Map = Map.Sharing;
-  structure Amorph = Amorph.Sharing;
+  structure InjEndo = InjEndo.Sharing;
 end;
 structure SharingWithIData = struct 
   open SharingWithData; type idata = IData.data; type unif = unif;

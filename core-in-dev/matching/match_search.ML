@@ -84,7 +84,6 @@ signature MATCH_SEARCH
   (* internal get, update and set *)
   val get_agenda : T -> Vertex.name Vertex.NTab.T
   val get_match : T -> Match.T
-  val get_match_mctxt : T -> Match.MCtxt.T
   val get_match_viso : T -> Vertex.name Vertex.NTab.T
   val get_tgt_vs : T -> T -> Vertex.NSet.T
   val get_unm_pat : T -> BangGraph.T

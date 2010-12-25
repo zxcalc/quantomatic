@@ -93,10 +93,10 @@ fun mk (lhs,rhs) =
         val (rn, rhs') = BangGraph.rename (vrn,ern) rhs
         val lhsauts = (Seq.list_of oo BangGraph.get_isomorphisms) lhs lhs
         val rhsauts = (Seq.list_of oo BangGraph.get_isomorphisms) rhs rhs
-        val lhsba = map (BangGraph.VUmorph.restrict_dom_to lhsbndry o fst) lhsauts
-        val rhsba = map (BangGraph.VUmorph.restrict_dom_to lhsbndry o fst) rhsauts
+        val lhsba = map (Vertex.InjEndo.restrict_dom_to lhsbndry o fst) lhsauts
+        val rhsba = map (Vertex.InjEndo.restrict_dom_to lhsbndry o fst) rhsauts
         fun filterorbits (x::xs) os = let val orbit = map (BangGraph.VUmorph.compose x) rhsba 
-                                          fun eq a b = ((BangGraph.VUmorph.Dom.NTab.fold 
+                                          fun eq a b = ((Vertex.NTab.fold 
                                                          (fn (d,c) => BangGraph.VUmorph.add d c) (BangGraph.VUmorph.get_domtab a) b;true)
                                                        handle BangGraph.VUmorph.add_exp(_,_,_) => false)
                                           val xs' = filter_out

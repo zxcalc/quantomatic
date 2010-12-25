@@ -6,7 +6,7 @@ signature MATCH_SHARING
   type T
   structure G : BANG_GRAPH_SHARING
   structure MCtxt : MATCH_CTXT_SHARING
-  structure EMap : NAME_ISO_SHARING
+  structure EMap : NAME_INJ_SHARING
   structure BBMatch : BBOX_MATCH_SHARING
 
   sharing MCtxt.G = G
@@ -20,7 +20,7 @@ signature MATCH
 = sig
   structure MCtxt : MATCH_CTXT
   structure G : BANG_GRAPH
-  structure EMap : NAME_AMORPH
+  structure EMap : NAME_INJENDO
   structure BBMatch : BBOX_MATCH
 
   type T (* the type of matches *)
@@ -42,7 +42,7 @@ signature MATCH
 
   (* basic gets *)
   val get_emap : T -> EMap.T
-  val get_viso : T -> G.Vertex.Amorph.T
+  val get_viso : T -> G.Vertex.InjEndo.T
   val get_bvmap : T -> G.Vertex.Map.T
   val get_mctxt : T -> MCtxt.T
   val get_bbmatch : T -> BBMatch.T
@@ -116,7 +116,7 @@ structure BBMatch = BBoxMatchFun(G);
 structure BBMap = BBMatch.BBMap;
 
 structure Ehn = E.Ehn;
-structure EMap = NameAmorphFun(Ehn);
+structure EMap = NameInjEndoFun(Ehn);
 
 
 (* Matching Invarient: matching is  *)
@@ -137,7 +137,7 @@ datatype T = Match of
           (* names context for fresh names when copying bboxes in pat *)
           names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
           (* Internal vertex bijection from pat to tgt *)
-          viso : V.Amorph.T,
+          viso : V.InjEndo.T,
           (* map for boundary vertices pat to tgt vertices  *)
           bvmap: V.Map.T,
           (* 1-1, inj half-edge mapping *)
@@ -157,7 +157,7 @@ fun init (vs,es,bs) pat tgt =
                 (E.NSet.union_merge (G.get_enames tgt) es), 
              BBox.NSet.union_merge (G.get_bbnames pat) 
                 (BBox.NSet.union_merge (G.get_bbnames tgt) bs)),
-    viso = V.Amorph.empty,
+    viso = V.InjEndo.empty,
     bvmap = V.Map.empty,
     emap = EMap.empty,
     bbmatch = BBMatch.init_from_pat pat,
@@ -189,9 +189,9 @@ fun mk_id g =
                      o EMap.add (Ehn.mk_end n) (Ehn.mk_end n))
             enames EMap.empty;
       val viso = 
-          V.NSet.fold (fn n => V.Amorph.add n n) 
+          V.NSet.fold (fn n => V.InjEndo.add n n) 
                       (V.NSet.subtract vnames boundary_vnames) 
-                      V.Amorph.empty;
+                      V.InjEndo.empty;
     in Match {names = (vnames,enames,G.get_bbnames g),
               bvmap = bvmap, 
               viso = viso, 
@@ -263,7 +263,7 @@ val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
 
 (* implicit: m n *)
 (* tgt is matched by some non-leaf vertex in pat *)
-val tgt_vertex_is_matched = V.Amorph.dom_contains o get_viso;
+val tgt_vertex_is_matched = V.InjEndo.dom_contains o get_viso;
 
 (* given tgt edge is completely unmapped: both start and end are unmatched *)
 fun tgt_edgehalf_is_matched m eh = 
@@ -310,7 +310,7 @@ fun match_vertex (n,V.IVert _) (tn,V.EVert) m = NONE
        of NONE => NONE (* vertices don't match *)
         | SOME mctxt2 => 
           SOME (m |> set_mctxt mctxt2
-                  |> update_viso (V.Amorph.add tn n)))
+                  |> update_viso (V.InjEndo.add tn n)))
       (* matched by some other pat vertex *)
   | match_vertex (n,V.EVert) (tn,td) m = (* edge-point mapped to vertex *)
     SOME (m |> update_bvmap (V.Map.add_to_dom n tn));
@@ -337,8 +337,8 @@ fun pretty m =
             V.Map.pretty (get_bvmap m)]]
        @ [BBMatch.pretty (get_bbmatch m)]
        @ [Pretty.block 
-           [Pretty.str "Internal Vertex Amorph: ",
-            V.Amorph.pretty (get_viso m)]]
+           [Pretty.str "Internal Vertex InjEndo: ",
+            V.InjEndo.pretty (get_viso m)]]
         @ [EMap.pretty (get_emap m)]
         @ [Pretty.block [Pretty.str "MCtxt: ", MCtxt.pretty (get_mctxt m)]])
     ]);
