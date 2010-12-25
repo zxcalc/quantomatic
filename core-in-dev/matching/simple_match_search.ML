@@ -27,7 +27,7 @@ criteria so that we can be locally strict. Local matching can then
 have some non-local effects: causes a "ver-vertex" tentacle to become
 folded back. This gives efficient failure.
 *)
-signature MATCH_SEARCH
+signature SIMPLE_MATCH_SEARCH
 = sig
   structure Match : MATCH 
   structure BangGraph : BANG_GRAPH
@@ -100,7 +100,6 @@ signature MATCH_SEARCH
 
   val set_agenda : Vertex.name Vertex.NTab.T -> T -> T
   val set_match : Match.T -> T -> T
-  val set_match_mctxt : Match.MCtxt.T -> T -> T
 
   (* pretty printing *)
   val pretty : T -> Pretty.T
@@ -113,7 +112,7 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchSearchFun(
+functor SimpleMatchSearchFun(
   structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   sharing Match.Sharing.G = BangGraph.SharingBangGraph
@@ -226,8 +225,6 @@ val set_agenda = update_agenda o K;
 val set_match = update_match o K;
 
 val get_match_viso = Match.get_viso o get_match;
-val get_match_mctxt = Match.get_mctxt o get_match;
-val set_match_mctxt = update_match o Match.set_mctxt;
 
 (* the map part of bang box matching *)
 val get_bbmap =  Match.get_bbmap o get_match;
