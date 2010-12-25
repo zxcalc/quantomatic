@@ -100,7 +100,7 @@ structure BBMatch = BBoxMatchFun(G);
 structure BBMap = BBMatch.BBMap;
 
 structure Ehn = E.Ehn;
-structure EMap = NameInjEndoFun(Ehn);
+structure EMap = E.Ehn.InjEndo;
 
 datatype T = Match of 
          {

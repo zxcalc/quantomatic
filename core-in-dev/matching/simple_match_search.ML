@@ -128,7 +128,6 @@ structure V = Vertex;
 structure E = Edge;
 
 structure Match = Match;
-structure MCtxt = Match.MCtxt;
 
 structure BBMatch = Match.BBMatch;
 structure BBox = G.BBox;
