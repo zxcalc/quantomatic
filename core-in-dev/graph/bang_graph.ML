@@ -128,13 +128,8 @@ val get_adj_banged_vnames :
 (* *)
 val get_adj_arities_and_bang_arities : 
     T -> Vertex.name 
-    -> {no_in : int,
-        no_out : int, 
-        no_undir : int } Vertex.NTab.T 
-       * 
-       {no_in : int,
-        no_out : int, 
-        no_undir : int } Vertex.NTab.T BBox.NTab.T
+    -> Arity.T Vertex.NTab.T  
+       * Arity.T Vertex.NTab.T BBox.NTab.T
 
 (* adjacent vertex info, w.r.t. tgt and pattern for matching *)
 val adj_tgt_info_bangs : 
@@ -537,22 +532,16 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                     then SOME bbn2 else NONE));
   
         (* *)
-        fun init_adj_info (eh,(UnDirected,ed)) = 
-            {no_in = 0, no_out = 0, no_undir = 1}
+        fun init_adj_info (eh,(UnDirected,ed)) =  
+            Arity.add_1_undir Arity.zero
           | init_adj_info (eh,(Directed,ed)) = 
-            if Edge.Ehn.is_start eh then {no_in = 1, no_out = 0, no_undir = 0}
-            else {no_in = 0, no_out = 1, no_undir = 0};
+            if Edge.Ehn.is_start eh then Arity.add_1_in Arity.zero
+            else Arity.add_1_out Arity.zero;
         (* *)
-        fun add_one_to_adj_info (eh,(UnDirected,ed)) rep = 
-            {no_in = #no_in rep, no_out = #no_out rep, 
-             no_undir = 1 + (#no_undir rep)}
-          | add_one_to_adj_info (eh,(Directed,ed)) rep =
-            if Edge.Ehn.is_start eh then 
-              {no_in = 1 + (#no_in rep), no_out = #no_out rep, 
-               no_undir = (#no_undir rep)} 
-            else
-              {no_in = (#no_in rep), no_out = 1 + (#no_out rep), 
-               no_undir = (#no_undir rep)};
+        fun add_one_to_adj_info (eh,(UnDirected,ed)) a = Arity.add_1_undir a
+          | add_one_to_adj_info (eh,(Directed,ed)) a =
+            if Edge.Ehn.is_start eh then Arity.add_1_in a
+            else Arity.add_1_out a;
 
         fun add_one_arity e n2 ntab =
             if Vertex.NTab.contains_name ntab n2 then

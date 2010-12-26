@@ -12,14 +12,21 @@ sig
   type T
   val zero : T
   val add : T -> T -> T
+
+  val add_1_in : T -> T
+  val add_1_out : T -> T
+  val add_1_undir : T -> T
+
   val subtract : T -> T -> T
   val divide : T -> T -> T
   val mult : T -> T -> T
   val div_by_int : int -> T -> T
   val mult_by_int : int -> T -> T
-  val has_negative_incidence : T -> bool
+
   val max_incidence : T -> int
   val min_nonzero_incidence : T -> int option
+
+  val has_negative_incidence : T -> bool
 
   val get_in : T -> int
   val get_out : T -> int
@@ -48,6 +55,9 @@ struct
   (* zero is the arity of an isolated (unconnected) vertex *)
   val zero = Arity {no_in = 0, no_out = 0, no_undir = 0 };
 
+  fun is_zero (Arity rep) = 
+      (#no_in rep = 0 andalso #no_out rep = 0 andalso #no_undir rep = 0);
+
   (* *)
   fun get_in (Arity rep) = #no_in rep;
   fun get_out (Arity rep) = #no_out rep;
@@ -69,6 +79,12 @@ struct
         no_out = (#no_out rep1) + (#no_out rep2),
         no_undir = (#no_undir rep1) + (#no_undir rep2) };
   
+  (* *)  
+  val add_1_in = update_in (fn i => i + 1);
+  val add_1_out = update_out (fn i => i + 1);
+  val add_1_undir = update_undir (fn i => i + 1);
+  
+  (* *)
   fun subtract (Arity rep1) (Arity rep2) = 
       Arity { no_in = (#no_in rep1) - (#no_in rep2), 
         no_out = (#no_out rep1) - (#no_out rep2),

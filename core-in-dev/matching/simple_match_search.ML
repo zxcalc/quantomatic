@@ -693,6 +693,17 @@ fun copy_pat_bbox bbn k st =
       nfold (k - 1) (copy1_pat_bbox bbn) st
     else raise bug_exp "copy_pat_bbox: negative copy value";
 
+(* 
+structure Arity = struct
+  val zero = 0;
+  fun is_zero a = (a = 0);
+  fun is_negative a = a < 0;
+  fun add a b = a + b;
+  fun subtract_by a b = a - b;
+  fun mult_by_int a i = a * i;
+  fun divide a b = Int.div(a,b);
+end;
+*)
 
 fun compute_scope_arities pn tn st = 
     let 
@@ -702,18 +713,18 @@ fun compute_scope_arities pn tn st =
           G.get_adj_arities_and_bang_arities (get_unm_tgt st) tn;
 
       (* implicit: ntab k *)
-      val ntab_sum = Vertex.NTab.fold (fn (n,i) => add_arities i);
+      val ntab_sum = Vertex.NTab.fold (fn (n,i) => Arity.add i);
       val sum_in_bboxtab = 
-          BBox.NTab.map_all (fn ntab => ntab_sum ntab zero_arity);
-      val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => add_arities i);
+          BBox.NTab.map_all (fn ntab => ntab_sum ntab Arity.zero);
+      val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => Arity.add i);
 
       val pbboxsums = sum_in_bboxtab pbboxntab;
       val tbboxsums = sum_in_bboxtab tbboxntab;
 
-      val tarity = zero_arity |> ntab_sum tntab |> summed_bbox_sum tbboxsums;
-      val p_min_arity = zero_arity |> ntab_sum pntab;
+      val tarity = Arity.zero |> ntab_sum tntab |> summed_bbox_sum tbboxsums;
+      val p_min_arity = Arity.zero |> ntab_sum pntab;
 
-      val scope_arity =  subtract_arities tarity p_min_arity;
+      val scope_arity =  Arity.subtract tarity p_min_arity;
     in
       (scope_arity, pbboxsums)
     end;
@@ -734,7 +745,7 @@ fun expand_adj_pat_bboxes pn tn st =
     let 
        val (scope_arity,pbboxsums) = compute_scope_arities pn tn st;
     in 
-      if has_some_negative_arity scope_arity 
+      if Arity.has_negative_incidence scope_arity 
       then Seq.empty (* Fail: need at least pn edges *)
       else (* go through each bang box considering all expansions of it, 
               upto size limit, combined with each previous possibility *)
@@ -743,12 +754,12 @@ fun expand_adj_pat_bboxes pn tn st =
               (fn (ignore_arity,st) => 
                 Seq.of_list
                 (map (fn k => ((* remove this number of edges *)
-                               subtract_arities ignore_arity 
-                                                (mult_arity_by_int bbarity k),
+                               Arity.subtract ignore_arity 
+                                              (Arity.mult_by_int bbarity k),
                                (* copy bang box this number of times *)
                                copy_pat_bbox bbn k st))
                      (* # of copies *)
-                     (0 upto (max_arity (div_arities ignore_arity bbarity)))
+                     (0 upto (Arity.divide ignore_arity bbarity))
                      )))
           pbboxsums
           (Seq.single (scope_arity,st))
@@ -786,12 +797,11 @@ fun match_2vertices_with_edges
         NONE => Seq.empty (* data doesn't match *)
       | SOME st2 => (* continue matching all adjacent things *)
         st2 |> expand_adj_pat_bboxes pn tn
-            |> (Seq.map_filter (fn (x as (ignore_arity, st)) => 
-                  if ignore_arity = zero_arity then SOME x else NONE))
+            |> Seq.filter (Arity.is_zero o fst)
             |> Seq.maps (match_self_loops (pn,pd) (tn,td))
             |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td))
             (* remove pattern vertex, ignore now redudnent info *)
-            |> Seq.map (del_pat_vertex pn o snd o snd) 
+            |> Seq.map (del_pat_vertex pn o snd o snd)
     end;
 
 
