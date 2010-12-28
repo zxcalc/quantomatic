@@ -33,7 +33,7 @@ signature MATCH
                * G.BBox.NSet.T) (* other names to avoid when matching *)
              -> G.T -> G.T -> T 
 
-  (* basic gets *)
+  (* basic gets/sets/updates *)
   val get_emap : T -> EMap.T
   val get_viso : T -> G.Vertex.InjEndo.T
   val get_bvmap : T -> G.Vertex.Map.T
@@ -41,9 +41,16 @@ signature MATCH
   val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
   val get_unif : T -> G.Param.unif
   val set_names : (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T) -> T -> T 
-  
+  val update_names : (   G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T
+                      -> G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
+                     -> T -> T
+  val update_bvmap : (G.Vertex.Map.T -> G.Vertex.Map.T) -> T -> T
+  val update_emap : (EMap.T -> EMap.T) -> T -> T
+
+
+  (* exception raised when things do not match *)
   exception match_exp of unit;
-    (* basic matching functions; throw match_exp () if fail *)
+  (* basic matching functions; raise match_exp on failure *)
   val match_edgehalf : G.Edge.Ehn.name * G.Edge.data 
       -> G.Edge.Ehn.name * G.Edge.data 
       -> T -> T
@@ -61,15 +68,7 @@ signature MATCH
   (* match pattern boundary point to target vertex/edge-point *)
   val match_boundary : G.OVertex.name -> G.OVertex.name -> T -> T
 
-  
-  (* updates  *)
-  val update_names : (   G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T
-                      -> G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
-                     -> T -> T
-  val update_bvmap : (G.Vertex.Map.T -> G.Vertex.Map.T) -> T -> T
-  val update_emap : (EMap.T -> EMap.T) -> T -> T
-
-  (* more bbox stuff *)
+  (* bbox stuff *)
   val get_bbmap : T -> BBMatch.BBMap.T
   val add_bbox_drop : G.BBox.name -> T -> T;
   val add_bbox_kills : G.BBox.name list -> T -> T;
@@ -184,6 +183,7 @@ fun get_viso (Match rep) = #viso rep;
 fun get_names (Match rep) = #names rep;
 fun get_unif (Match rep) = #unif rep;
 val set_names = update_names o K;
+val set_unif = update_unif o K;
 
 fun get_bbmatch (Match rep) = #bbmatch rep;
 val get_bbmap = BBMatch.get_bbmap o get_bbmatch;
@@ -193,31 +193,32 @@ val add_bbox_kills = update_bbmatch o BBMatch.add_kills;
 val add_bbox_map = update_bbmatch oo BBMatch.add_bbmap;
 val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
 
-(* matching *)
+(* exception raised when things do not match *)
 exception match_exp of unit;
 
 fun match_edgehalf (peh, ped) (teh, ted) m =
-                (m |> update_emap (EMap.add peh teh)
-                   |> update_unif (the o G.Param.unif_edge ped ted)
-                )handle EMap.add_exp (_,_,_) => raise match_exp ()
-                      | Option               => raise match_exp ();
-                      
-fun match_edge rev (pe, ped) (te, ted) m = let 
-                val (peh1,peh2) = if rev then (Ehn.mk_end pe, Ehn.mk_start pe)
-                                  else (Ehn.mk_start pe, Ehn.mk_end pe)
-             in (m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
-                   |> update_emap (EMap.add peh1 (Ehn.mk_start te))
-                   |> update_unif (the o G.Param.unif_edge ped ted)
-                )handle EMap.add_exp (_,_,_) => raise match_exp ()
-                      | Option               => raise match_exp ()
-             end;
-             
+    (case G.Param.unif_edge ped ted (get_unif m) of NONE => raise match_exp ()
+     | SOME u => m |> update_emap (EMap.add peh teh)
+                   |> set_unif u
+    ) handle EMap.add_exp (_,_,_) => raise match_exp ();
+
+fun match_edge rev (pe, ped) (te, ted) m = 
+    (case G.Param.unif_edge ped ted (get_unif m) of NONE => raise match_exp ()
+     | SOME u => 
+       let val (peh1,peh2) = if rev then (Ehn.mk_end pe, Ehn.mk_start pe)
+                             else (Ehn.mk_start pe, Ehn.mk_end pe)
+       in m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
+            |> update_emap (EMap.add peh1 (Ehn.mk_start te))
+            |> set_unif u       
+       end handle EMap.add_exp (_,_,_) => raise match_exp ());
+           
 fun match_vertex (pv,pvd) (tv,tvd) m =
-                (m |> update_viso (V.InjEndo.add pv tv)
-                   |> update_unif (the o G.Param.unif_vertex pvd tvd)
-                )handle V.InjEndo.add_exp (_,_,_) => raise match_exp ()
-                      | Option                   => raise match_exp ();
-                      
+    (case G.Param.unif_vertex pvd tvd (get_unif m) of NONE => raise match_exp ()
+     | SOME u => 
+       m |> update_viso (V.InjEndo.add pv tv)
+         |> set_unif u
+    ) handle V.InjEndo.add_exp (_,_,_) => raise match_exp ();
+                
 fun match_boundary pb tb m = m |> update_bvmap (V.Map.add_to_dom pb tb);
 
 (* pretty printing *)
