@@ -26,11 +26,17 @@ signature GRAPH_PARAM
   (* internal name data dependencies e.g. w.r.t. vertex names *)
   type T
 
+  exception unif_exp of unit
+
   type unif (* unification data for internal data (in edges and vertices) *)
   val empty_unif : unif
   val compose_unif : unif -> unif -> unif
-  val unif_vertex : Vertex.data -> Vertex.data -> unif -> unif option
-  val unif_edge : Edge.data -> Edge.data -> unif -> unif option
+  val try_unif_vertex : Vertex.data -> Vertex.data -> unif -> unif option
+  val try_unif_edge : Edge.data -> Edge.data -> unif -> unif option
+
+  (* raises unif_exp *)
+  val unif_vertex : Vertex.data -> Vertex.data -> unif -> unif
+  val unif_edge : Edge.data -> Edge.data -> unif -> unif
   
   val subst_in_vertex : unif -> Vertex.data -> Vertex.data
   val subst_in_edge : unif -> Edge.data -> Edge.data

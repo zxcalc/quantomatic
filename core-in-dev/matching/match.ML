@@ -197,27 +197,26 @@ val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
 exception match_exp of unit;
 
 fun match_edgehalf (peh, ped) (teh, ted) m =
-    (case G.Param.unif_edge ped ted (get_unif m) of NONE => raise match_exp ()
-     | SOME u => m |> update_emap (EMap.add peh teh)
-                   |> set_unif u
-    ) handle EMap.add_exp (_,_,_) => raise match_exp ();
+    (m |> update_emap (EMap.add peh teh)
+       |> update_unif (G.Param.unif_edge ped ted)
+    ) handle EMap.add_exp (_,_,_) => raise match_exp ()
+           | G.Param.unif_exp _   => raise match_exp ();
 
 fun match_edge rev (pe, ped) (te, ted) m = 
-    (case G.Param.unif_edge ped ted (get_unif m) of NONE => raise match_exp ()
-     | SOME u => 
-       let val (peh1,peh2) = if rev then (Ehn.mk_end pe, Ehn.mk_start pe)
-                             else (Ehn.mk_start pe, Ehn.mk_end pe)
-       in m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
-            |> update_emap (EMap.add peh1 (Ehn.mk_start te))
-            |> set_unif u       
-       end handle EMap.add_exp (_,_,_) => raise match_exp ());
-           
+    let val (peh1,peh2) = if rev then (Ehn.mk_end pe, Ehn.mk_start pe)
+                                 else (Ehn.mk_start pe, Ehn.mk_end pe)
+    in m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
+         |> update_emap (EMap.add peh1 (Ehn.mk_start te))
+         |> update_unif (G.Param.unif_edge ped ted)       
+    end handle EMap.add_exp (_,_,_) => raise match_exp ()
+             | G.Param.unif_exp _   => raise match_exp ();
+
 fun match_vertex (pv,pvd) (tv,tvd) m =
-    (case G.Param.unif_vertex pvd tvd (get_unif m) of NONE => raise match_exp ()
-     | SOME u => 
-       m |> update_viso (V.InjEndo.add pv tv)
-         |> set_unif u
-    ) handle V.InjEndo.add_exp (_,_,_) => raise match_exp ();
+    (m |> update_viso (V.InjEndo.add pv tv)
+       |> update_unif (G.Param.unif_vertex pvd tvd)
+    ) handle V.InjEndo.add_exp (_,_,_) => raise match_exp ()
+           | G.Param.unif_exp _        => raise match_exp ();
+
                 
 fun match_boundary pb tb m = m |> update_bvmap (V.Map.add_to_dom pb tb);
 

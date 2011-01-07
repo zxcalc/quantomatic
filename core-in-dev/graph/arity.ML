@@ -2,10 +2,14 @@
 (*  Representation arity of edges into or out of a vertex. *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 
-(* The arity of a vertex consists of 3 incidences: edges coming in, edges 
-   going out, and undirected edges that are connected to this vertex. 
+(* The arity of a vertex consists of 3 incidences: 
+   edges coming in, 
+   edges going out, 
+   and undirected edges that are connected to this vertex. 
+   
    Note: self loops are assumed to create 2 incidences to a vertex. Only
-   isolated vertices are incidence 'zero'. *)
+   isolated vertices are incidence 'zero'. 
+*)
 
 signature ARITY = 
 sig
@@ -24,6 +28,7 @@ sig
   val mult_by_int : int -> T -> T
 
   val max_incidence : T -> int
+  val min_incidence : T -> int
   val min_nonzero_incidence : T -> int option
 
   val has_negative_incidence : T -> bool
@@ -112,6 +117,9 @@ struct
   
   fun max_incidence (Arity rep) = 
       Int.max(Int.max (#no_in rep, #no_out rep), #no_undir rep);
+
+  fun min_incidence (Arity rep) = 
+      Int.min(#no_undir rep,Int.min(#no_in rep,#no_out rep));
   
   fun min_nonzero_incidence (Arity rep) = 
       fold (fn x => (fn NONE => SOME x 
@@ -119,5 +127,6 @@ struct
                                    else SOME y)))
          [#no_in rep, #no_out rep, #no_undir rep]
          NONE;
+
 
 end; (* *)

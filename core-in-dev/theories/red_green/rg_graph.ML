@@ -117,8 +117,22 @@ structure RG_GraphParam
     | unif_vertex _ _ _ = NONE;
 *)
 
-  fun unif_vertex d1 d2 u = RGVertex.unify_data (d1,d2) u;
-  fun unif_edge e1 e2 u = SOME u;
+  fun try_unif_vertex d1 d2 u = RGVertex.unify_data (d1,d2) u;
+  fun try_unif_edge e1 e2 u = SOME u;
+
+  (* IMPROVE: what data do we want here? should it be add_exp *)
+  exception unif_exp of unit;
+
+  (* raises unify_exp *)
+  fun unif_vertex d1 d2 u = 
+      (case try_unif_vertex d1 d2 u 
+         of NONE    => raise unif_exp ()
+          | SOME u' => u'); 
+  
+  fun unif_edge d1 d2 u =
+      (case try_unif_edge d1 d2 u 
+         of NONE    => raise unif_exp ()
+          | SOME u' => u'); 
 
   fun subst_in_vertex u vd = RGVertex.subst_in_data u vd;
   fun subst_in_edge u ed = ed;

@@ -897,18 +897,11 @@ end
 structure VUmorph = UmorphFun(Vertex);
 structure EUmorph = UmorphFun(Edge);
 
-
-exception unif_failed_exp of unit;
 fun unif_edge_both_ways e1 e2 (u,u') = 
-    (case (u |> Param.unif_edge e1 e2, u'|> Param.unif_edge e2 e1) of 
-       (SOME u1, SOME u2) => (u1,u2) 
-     | (_,_) => raise unif_failed_exp ())
+    (u |> Param.unif_edge e1 e2, u'|> Param.unif_edge e2 e1);
 
 fun unif_vertex_both_ways v1 v2 (u,u') = 
-    (case (u |> Param.unif_vertex v1 v2, u'|> Param.unif_vertex v2 v1) of 
-       (SOME u1, SOME u2) => (u1,u2)
-     | (_,_) => raise unif_failed_exp ())
-
+    (u |> Param.unif_vertex v1 v2, u'|> Param.unif_vertex v2 v1);
 
 (* v = vertex iso, 
    e = edge iso, 

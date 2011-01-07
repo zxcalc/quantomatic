@@ -602,9 +602,9 @@ fun match_all_tgt_loops_by_leaves (pn,pd) (tn,td) (ltes,st) =
         Seq.map 
          (fn (st, []) => raise bug_exp "match_all_tgt_loops_by_leaves"
            | (st, (((pe1,pn1),(pe2,pn2))::plfps)) => 
-         (* pull out two leaf boundary nodes *)
-            (st |> del_pat_lfvertex pn1 
-                |> del_pat_lfvertex pn2
+            (* pull out two leaf boundary nodes *)
+            (st |> del_pat_vertex pn1 
+                |> del_pat_vertex pn2
                 |> del_tgt_edge ten
                 |> (update_match 
                       (Match.match_lfvertex pn1 (tn,td)
@@ -751,15 +751,16 @@ fun expand_adj_pat_bboxes pn tn st =
               upto size limit, combined with each previous possibility *)
         BBox.NTab.fold
           (fn (bbn,bbarity) => Seq.maps (* i edges to this bang box *)
-              (fn (ignore_arity,st) => 
+              (fn (scope_arity,st) => 
                 Seq.of_list
                 (map (fn k => ((* remove this number of edges *)
-                               Arity.subtract ignore_arity 
-                                              (Arity.mult_by_int bbarity k),
+                               Arity.subtract scope_arity 
+                                              (Arity.mult_by_int k bbarity),
                                (* copy bang box this number of times *)
                                copy_pat_bbox bbn k st))
                      (* # of copies *)
-                     (0 upto (Arity.divide ignore_arity bbarity))
+                     (0 upto 
+                      (Arity.max_incidence (Arity.divide scope_arity bbarity)))
                      )))
           pbboxsums
           (Seq.single (scope_arity,st))
