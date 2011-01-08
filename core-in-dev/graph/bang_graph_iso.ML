@@ -23,42 +23,42 @@ functor BangGraphIsoFun(
   structure BBoxInjEndo = Graph.BBoxInjEndo;
   
   type G = Graph.T;
-  type T = (Vertex.InjEndo.T * Edge.InjEndo.T * BBoxInjEndo.T * Param.unif);
+  type T = (Vertex.InjEndo.T * Edge.InjEndo.T * BBoxInjEndo.T * Param.subst);
   
   fun get_vmap (v,_,_,_) = v;
   fun get_emap (_,e,_,_) = e;
   fun get_bmap (_,_,b,_) = b;
-  fun get_unif (_,_,_,u) = u;
+  fun get_subst (_,_,_,u) = u;
   
-  fun unif_edge_both_ways e1 e2 (u,u') = 
-      (u |> Param.unif_edge e1 e2, u'|> Param.unif_edge e2 e1);
+  fun match_edge_both_ways e1 e2 (u,u') = 
+      (u |> Param.match_edge e1 e2, u'|> Param.match_edge e2 e1);
   
-  fun unif_vertex_both_ways v1 v2 (u,u') = 
-      (u |> Param.unif_vertex v1 v2, u'|> Param.unif_vertex v2 v1);
+  fun match_vertex_both_ways v1 v2 (u,u') = 
+      (u |> Param.match_vertex v1 v2, u'|> Param.match_vertex v2 v1);
       
   exception box_mismatch_exp of unit;
   fun match_boxes g h vng vnh b =
-      case (Graph.lookup_box_of g vng,Graph.lookup_box_of h vnh) of
+      (case (Graph.lookup_box_of g vng,Graph.lookup_box_of h vnh) of
            (NONE,NONE)       =>  b
-         | (SOME bg,SOME bh) => (b |> BBoxInjEndo.add bg bh)
+         | (SOME bg,SOME bh) => ((b |> BBoxInjEndo.add bg bh)
                                 handle BBoxInjEndo.add_exp _ 
-                                    => raise box_mismatch_exp()
-         | _                 => raise box_mismatch_exp ();
+                                    => raise box_mismatch_exp())
+         | _                 => raise box_mismatch_exp ());
       
     
   (* v = vertex iso, 
      e = edge iso, 
      b = bbox iso,
-     u = unif, 
+     u = matching so far (G.Param.subst = a substitution), 
      t = agenda, 
      g and h = graphs, 
   *)
-  fun get_isomorphisms_unify_next_edge v e b u t g h gs hs otherend = let
+  fun get_isomorphisms_match_next_edge v e b u t g h gs hs otherend = let
       val n1 = Option.valOf
               (Edge.NSet.get_local_bot gs)
       val ((dir1,d1),_) = Graph.get_edge g n1
     in 
-      Seq.maps get_isomorphisms_unify_next
+      Seq.maps get_isomorphisms_match_next
       (Seq.map_filter
         (fn n2 => 
             let val ((dir2,d2),_) = Graph.get_edge h n2 in
@@ -68,27 +68,27 @@ functor BangGraphIsoFun(
                 (v |> Vertex.InjEndo.add (otherend n1 g) (otherend n2 h),
                  e |> Edge.InjEndo.add n1 n2,
                  b,
-                 u |> unif_edge_both_ways d1 d2,
-                 Seq.append t  (* push unification of the target vertex of
-                                  this edge onto the unification queue *)
+                 u |> match_edge_both_ways d1 d2,
+                 Seq.append t  (* push match of the target vertex of
+                                  this edge onto the match queue *)
                    (Seq.single (otherend n1 g,
                                 otherend n2 h)),
                  g |> Graph.delete_edge n1,
                  h |> Graph.delete_edge n2)
                  handle Vertex.InjEndo.add_exp _ => NONE
-                      | Param.unif_exp _         => NONE
+                      | Param.match_exp _         => NONE
              end)
           (Edge.NSet.seq_of hs))
     end
-  and get_isomorphisms_unify_next (v,e,b,u,t,g,h) = 
+  and get_isomorphisms_match_next (v,e,b,u,t,g,h) = 
     (case Seq.pull t of
-      (* Nothing to unify; start unifying new connectivity component *)
+      (* Nothing to match; start matching new connectivity component *)
       NONE                => let
          val gbot = the (Vertex.NSet.get_local_bot (Graph.get_vnames g))
          val hmin = Vertex.NSet.get_min (Graph.get_vnames h)
          fun maketuple n = (v,e,b,u,Seq.single (gbot,n),g,h);
       in Seq.map maketuple (Vertex.NSet.seq_of (Graph.get_vnames h)) end 
-      (* Something to unify; return lazy list of all possible next steps *)
+      (* Something to match; return lazy list of all possible next steps *)
     | SOME ((vng,vnh),t') => let
          (* point undirected edges towards us *)
          fun attract e gr = let
@@ -117,39 +117,39 @@ functor BangGraphIsoFun(
               Seq.single (v |> Vertex.InjEndo.add vng vnh,
                           e,
                           b |> match_boxes g h vng vnh,
-                          u |> unif_vertex_both_ways gd hd,
+                          u |> match_vertex_both_ways gd hd,
                           t',
                           g |> Graph.delete_vertex vng,
                           h |> Graph.delete_vertex vnh)
             (* some outgoing edges remaining *)
           | (_,_,false,false) =>
-            get_isomorphisms_unify_next_edge v e b u t g h gout hout esnk
+            get_isomorphisms_match_next_edge v e b u t g h gout hout esnk
             (* some incoming edges remaining *)
           | (false,false,_,_) => 
-            get_isomorphisms_unify_next_edge v e b u t g h gin hin esrc
+            get_isomorphisms_match_next_edge v e b u t g h gin hin esrc
             (* edge mismatch *)
           | _ => Seq.empty
          else Seq.empty (* Mismatching vertex data *)
        end handle Graph.no_such_vname_exp(_,_,_)
                                          (* consequence of multiple edges. 
                                             Vertex has already been successfully
-                                            unified; skip. *)
-               => get_isomorphisms_unify_next (v,e,b,u,t',g,h)
+                                            matched; skip. *)
+               => get_isomorphisms_match_next (v,e,b,u,t',g,h)
     ) handle Vertex.InjEndo.add_exp _ => Seq.empty
-           | Param.unif_exp _         => Seq.empty
+           | Param.match_exp _         => Seq.empty
            | box_mismatch_exp _       => Seq.empty
   
   (* v,e are working copies of the isomorphism to be constructed;
      t is the queue of vertex pairs in the source and target graph to be
-     unified *)
+     matched *)
   fun get_isomorphisms_sub (v,e,b,u,t,g,h) = case (Graph.is_empty g,
                                                    Graph.is_empty h) of
       (* both graphs are empty; done *)
       (true,true) => Seq.single (v,e,b,fst u)
-      (* neither graph is empty; get possible next unification steps and
+      (* neither graph is empty; get possible next match steps and
          proceed matching *)
     | (false,false) => Seq.maps get_isomorphisms_sub
-                                        (get_isomorphisms_unify_next (v,e,b,u,t,g,h))
+                                        (get_isomorphisms_match_next (v,e,b,u,t,g,h))
       (* one graph is empty and the other is not; no iso *)
     | _ => Seq.empty 
   ;
@@ -159,7 +159,7 @@ functor BangGraphIsoFun(
           isomorphisms between g and h *)
   fun get g h  
     = get_isomorphisms_sub (Vertex.InjEndo.empty,Edge.InjEndo.empty,BBoxInjEndo.empty,
-                            (Param.empty_unif,Param.empty_unif),Seq.empty,g,h);
+                            (Param.empty_subst,Param.empty_subst),Seq.empty,g,h);
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)

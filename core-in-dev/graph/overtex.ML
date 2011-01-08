@@ -76,27 +76,31 @@ val print_data = Pretty.writeln o pretty_data;
 
 val default_data = EVert;
 
-type unif = IData.unif;
+type subst = IData.subst;
 
-val empty_unif = IData.empty_unif;
+val empty_subst = IData.empty_subst;
 
-val compose_unif = IData.compose_unif;
+val compose_subst = IData.compose_subst;
 
 fun unify_data ((IVert d1),(IVert d2)) u = IData.unify_data (d1,d2) u
   | unify_data (EVert,EVert) u = SOME u
   | unify_data _ _ = NONE;
 
-val pretty_unif = IData.pretty_unif;
+fun match_data ((IVert d1),(IVert d2)) u = IData.match_data (d1,d2) u
+  | match_data (EVert,EVert) u = SOME u
+  | match_data _ _ = NONE;
 
-val print_unif = IData.print_unif;
+val pretty_subst = IData.pretty_subst;
+
+val print_subst = IData.print_subst;
 
 structure SharingWithData = struct 
-  open Sharing; type data = data; type unif = unif;
+  open Sharing; type data = data; type subst = subst;
   structure Map = Map.Sharing;
   structure InjEndo = InjEndo.Sharing;
 end;
 structure SharingWithIData = struct 
-  open SharingWithData; type idata = IData.data; type unif = unif;
+  open SharingWithData; type idata = IData.data; type subst = subst;
 end;
 
 end;

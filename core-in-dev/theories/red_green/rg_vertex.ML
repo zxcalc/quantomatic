@@ -18,6 +18,7 @@ end;
 structure RGVertex
 : RG_VERTEX
 = struct
+  exception unimplemented_exp of string;
 
   datatype qnd = Xnd of AngleExpr.T (* Red: defined using H of Z *) 
                | Znd of AngleExpr.T (* Green *)
@@ -46,21 +47,23 @@ structure RGVertex
         | pretty_data Hnd = Pretty.str "H";
       val print_data = Pretty.writeln o pretty_data;
       
-      type unif = AngleExpr.match;
-      val empty_unif = AngleExpr.empty_match;
-      fun compose_unif (u1,u2) = AngleExpr.compose_matches u1 u2;
-      fun unify_data ((e1 as Hnd), (e2 as Hnd)) m = SOME m
-        | unify_data ((Znd a1),(Znd a2)) m = 
+      type subst = AngleExpr.match;
+      val empty_subst = AngleExpr.empty_match;
+      fun compose_subst (u1,u2) = AngleExpr.compose_matches u1 u2;
+      fun match_data ((e1 as Hnd), (e2 as Hnd)) m = SOME m
+        | match_data ((Znd a1),(Znd a2)) m = 
           AngleExpr.match a1 a2 m
-        | unify_data ((Xnd a1),(Xnd a2)) m = 
+        | match_data ((Xnd a1),(Xnd a2)) m = 
           AngleExpr.match a1 a2 m
-        | unify_data _ _ = NONE;
+        | match_data _ _ = NONE;
+      fun unify_data (x,y) m = 
+          raise unimplemented_exp "RGVertex.unify_data: has not yet been written.";
       fun subst_in_data u Hnd = Hnd
         | subst_in_data u (Xnd a) = Xnd (AngleExpr.subst u a)
         | subst_in_data u (Znd a) = Znd (AngleExpr.subst u a);
         
-      val pretty_unif = AngleExpr.pretty_match;
-      val print_unif = Pretty.writeln o pretty_unif;
+      val pretty_subst = AngleExpr.pretty_match;
+      val print_subst = Pretty.writeln o pretty_subst;
   
     end
     structure VertexNames = SStrName

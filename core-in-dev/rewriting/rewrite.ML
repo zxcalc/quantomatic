@@ -355,7 +355,7 @@ fun inst_rule rule match =
 
       val lhs = (get_lhs rule)
                   |> inst_lhs_bbox_match bbmatch
-                  (* rename (merges unified leaf/boundary vertices) so they 
+                  (* rename (merges matched leaf/boundary vertices) so they 
                      have the same names as vertices in the graph they match *)
                   (* Assumes: rule is names disjoint from tgt! *)
                   |> (Vertex.NTab.fold 

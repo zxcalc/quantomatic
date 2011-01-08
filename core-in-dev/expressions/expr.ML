@@ -33,7 +33,7 @@ sig
   val subs : T VName.NTab.T -> T -> T;
   
   (* matching expressions *)
-  type match (* how variables in a pattern *)
+  type match (* substitutions for variables in a pattern expression *)
   val empty_match : match
   val match : T -> T -> match -> match option;
   val subst : match -> T -> T

@@ -39,7 +39,7 @@ signature MATCH
   val get_bvmap : T -> G.Vertex.Map.T
   val get_bbmatch : T -> BBMatch.T
   val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
-  val get_unif : T -> G.Param.unif
+  val get_subst : T -> G.Param.subst
   val set_names : (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T) -> T -> T 
   val update_names : (   G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T
                       -> G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
@@ -60,13 +60,13 @@ signature MATCH
       -> G.Edge.name * G.Edge.data 
       -> T -> T
 
-  (*  *)
-  val match_vertex : G.OVertex.name * G.OVertex.data
-                     -> G.OVertex.name * G.OVertex.data 
+  (* match up vertices,  *)
+  val match_vertex : G.Vertex.name * G.Vertex.data
+                     -> G.Vertex.name * G.Vertex.data 
                      -> T -> T
 
   (* match pattern boundary point to target vertex/edge-point *)
-  val match_boundary : G.OVertex.name -> G.OVertex.name -> T -> T
+  val match_boundary : G.Vertex.name -> G.Vertex.name -> T -> T
 
   (* bbox stuff *)
   val get_bbmap : T -> BBMatch.BBMap.T
@@ -74,7 +74,7 @@ signature MATCH
   val add_bbox_kills : G.BBox.name list -> T -> T;
   val add_bbox_map : G.BBox.name -> G.BBox.name -> T -> T;
   val add_bbox_copy : (G.BBox.name (* old bbname *)
-                 * (G.OVertex.name G.OVertex.NTab.T (* vertex copying *)
+                 * (G.Vertex.name G.Vertex.NTab.T (* vertex copying *)
                       * G.Edge.name G.Edge.NTab.T) (* edge copying *)
                  * G.BBox.name) (* new bbox name *) 
                 -> T -> T;
@@ -113,10 +113,9 @@ datatype T = Match of
           emap: EMap.T,
           (* bang box expansion of pattern *)
           bbmatch : BBMatch.T,
-          (* data unification *)
-          unif: G.Param.unif
+          (* how variables in data are substiuted in the match *)
+          subst: G.Param.subst
          };
-
 
 fun init (vs,es,bs) pat tgt = 
   Match {
@@ -130,7 +129,7 @@ fun init (vs,es,bs) pat tgt =
     bvmap = V.Map.empty,
     emap = EMap.empty,
     bbmatch = BBMatch.init_from_pat pat,
-    unif = G.Param.empty_unif
+    subst = G.Param.empty_subst
   };
 
 (* updates *)
@@ -140,50 +139,50 @@ fun update_names f (Match rep) =
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = #bbmatch rep,
-           unif = #unif rep};
+           subst = #subst rep};
 fun update_bvmap f (Match rep) = 
     Match {names = #names rep,
            bvmap = f (#bvmap rep), 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = #bbmatch rep,
-           unif = #unif rep};
+           subst = #subst rep};
 fun update_emap f (Match rep) = 
     Match {names = #names rep,
            bvmap = #bvmap rep, 
            emap = f (#emap rep),
            viso = #viso rep,
            bbmatch = #bbmatch rep,
-           unif = #unif rep};
+           subst = #subst rep};
 fun update_viso f (Match rep) = 
     Match {names = #names rep,
            bvmap = #bvmap rep, 
            emap = #emap rep,
            viso = f (#viso rep),
            bbmatch = #bbmatch rep,
-           unif = #unif rep};
+           subst = #subst rep};
 fun update_bbmatch f (Match rep) = 
     Match {names = #names rep,
            bvmap = #bvmap rep, 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = f (#bbmatch rep),
-           unif = #unif rep};
-fun update_unif f (Match rep) = 
+           subst = #subst rep};
+fun update_subst f (Match rep) = 
     Match {names = #names rep,
            bvmap = #bvmap rep, 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = #bbmatch rep,
-           unif = f (#unif rep)};
+           subst = f (#subst rep)};
 
 fun get_bvmap (Match rep) = #bvmap rep;
 fun get_emap (Match rep) = #emap rep;
 fun get_viso (Match rep) = #viso rep;
 fun get_names (Match rep) = #names rep;
-fun get_unif (Match rep) = #unif rep;
+fun get_subst (Match rep) = #subst rep;
 val set_names = update_names o K;
-val set_unif = update_unif o K;
+val set_subst = update_subst o K;
 
 fun get_bbmatch (Match rep) = #bbmatch rep;
 val get_bbmap = BBMatch.get_bbmap o get_bbmatch;
@@ -198,26 +197,25 @@ exception match_exp of unit;
 
 fun match_edgehalf (peh, ped) (teh, ted) m =
     (m |> update_emap (EMap.add peh teh)
-       |> update_unif (G.Param.unif_edge ped ted)
+       |> update_subst (G.Param.match_edge ped ted)
     ) handle EMap.add_exp (_,_,_) => raise match_exp ()
-           | G.Param.unif_exp _   => raise match_exp ();
+           | G.Param.match_exp _   => raise match_exp ();
 
 fun match_edge rev (pe, ped) (te, ted) m = 
     let val (peh1,peh2) = if rev then (Ehn.mk_end pe, Ehn.mk_start pe)
                                  else (Ehn.mk_start pe, Ehn.mk_end pe)
     in m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
          |> update_emap (EMap.add peh1 (Ehn.mk_start te))
-         |> update_unif (G.Param.unif_edge ped ted)       
+         |> update_subst (G.Param.match_edge ped ted)       
     end handle EMap.add_exp (_,_,_) => raise match_exp ()
-             | G.Param.unif_exp _   => raise match_exp ();
+             | G.Param.match_exp _   => raise match_exp ();
 
 fun match_vertex (pv,pvd) (tv,tvd) m =
     (m |> update_viso (V.InjEndo.add pv tv)
-       |> update_unif (G.Param.unif_vertex pvd tvd)
+       |> update_subst (G.Param.match_vertex pvd tvd)
     ) handle V.InjEndo.add_exp (_,_,_) => raise match_exp ()
-           | G.Param.unif_exp _        => raise match_exp ();
+           | G.Param.match_exp _        => raise match_exp ();
 
-                
 fun match_boundary pb tb m = m |> update_bvmap (V.Map.add_to_dom pb tb);
 
 (* pretty printing *)

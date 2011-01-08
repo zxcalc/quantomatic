@@ -250,7 +250,7 @@ fun match_elim1 pat2 tgt2 (match as Match mtab) =
      end;
 
 (* =====================================================================*)
-(*  Apply substitutions to pattern variables in mtab to variables 
+(*  Apply substitution of pattern variables in mtab to variables 
     in pat and tgt. 
     e.g. given pat: c0 + c1*x1 + c2*x2 + ...
                tgt: k0 + k1*y1 + ...

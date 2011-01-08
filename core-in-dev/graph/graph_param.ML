@@ -10,7 +10,7 @@ signature GRAPH_PARAM_SHARING
   structure Edge : EDGE_AND_DATA_SHARING
   type T
   type inames_renaming
-  type unif 
+  type subst 
 end;
 
 
@@ -26,23 +26,25 @@ signature GRAPH_PARAM
   (* internal name data dependencies e.g. w.r.t. vertex names *)
   type T
 
-  exception unif_exp of unit
+  exception match_exp of unit
 
-  type unif (* unification data for internal data (in edges and vertices) *)
-  val empty_unif : unif
-  val compose_unif : unif -> unif -> unif
-  val try_unif_vertex : Vertex.data -> Vertex.data -> unif -> unif option
-  val try_unif_edge : Edge.data -> Edge.data -> unif -> unif option
+  (* substication data for internal data (in edges and vertices) *)
+  type subst 
+  val empty_subst : subst
+  val compose_subst : subst -> subst -> subst
 
-  (* raises unif_exp *)
-  val unif_vertex : Vertex.data -> Vertex.data -> unif -> unif
-  val unif_edge : Edge.data -> Edge.data -> unif -> unif
+  (* invariant: subst instantiates vars in src before those in tgt: later code
+     (isomorphism check of graphs) depends on this. *)
+  val try_match_vertex : Vertex.data -> Vertex.data -> subst -> subst option
+  val try_match_edge : Edge.data -> Edge.data -> subst -> subst option
+  val match_vertex : Vertex.data -> Vertex.data -> subst -> subst (* match_exp *)
+  val match_edge : Edge.data -> Edge.data -> subst -> subst (* match_exp *)
   
-  val subst_in_vertex : unif -> Vertex.data -> Vertex.data
-  val subst_in_edge : unif -> Edge.data -> Edge.data
+  val subst_in_vertex : subst -> Vertex.data -> Vertex.data
+  val subst_in_edge : subst -> Edge.data -> Edge.data
 
-  val pretty_unif : unif -> Pretty.T
-  val print_unif : unif -> unit
+  val pretty_subst : subst -> Pretty.T
+  val print_subst : subst -> unit
 
   (* rename internal names in T *)
   structure CRnmINames : COMPOUND_RENAMING 
@@ -89,7 +91,7 @@ signature GRAPH_PARAM
     sharing Sharing.Edge = Edge.EdgeSharingWithData
     sharing type CRnmINames.renaming = Sharing.inames_renaming
     sharing type T = Sharing.T
-    sharing type unif = Sharing.unif
+    sharing type subst = Sharing.subst
 end;
 
 

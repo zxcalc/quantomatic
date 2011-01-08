@@ -96,49 +96,36 @@ structure RG_GraphParam
   structure EDataCRnmINames : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
 
-  (* Data for unification of data: we only have data on vertices *)
-  type unif = RGVertex.unif;
-    (* = AngleExpr.T IName.NTab.T; *)
+  (* substitutions for variables in vertex/edge data 
+     (usually, we only have data on vertices) *)
+  type subst = RGVertex.subst; (* : AngleExpr.T IName.NTab.T; *)
 
-  val empty_unif = RGVertex.empty_unif; (* = IName.NTab.empty; *)
-  fun compose_unif u1 u2 = RGVertex.compose_unif (u1,u2); 
-      (* = Name.NTab.map_all (AngleExpr.subs u2) u1; *)
+  val empty_subst = RGVertex.empty_subst; (* : IName.NTab.empty; *)
+  fun compose_subst u1 u2 = RGVertex.compose_subst (u1,u2); 
+      (* : Name.NTab.map_all (AngleExpr.subs u2) u1; *)
 
-(*   fun rg_unif_vertex (e1 as Vertex.Hnd) (e2 as Vertex.Hnd) m = SOME m
-    | rg_unif_vertex (Vertex.Znd a1) (Vertex.Znd a2) m = 
-      AngleExpr.match a1 a2 m
-    | rg_unif_vertex (Vertex.Xnd a1) (Vertex.Xnd a2) m = 
-      AngleExpr.match a1 a2 m
-    | rg_unif_vertex _ _ _ = NONE;
-
-  (Vertex.IVert d1) (Vertex.IVert d2) u = 
-      rg_unif_vertex d1 d2 u
-    | unif_vertex Vertex.EVert Vertex.EVert u = SOME u
-    | unif_vertex _ _ _ = NONE;
-*)
-
-  fun try_unif_vertex d1 d2 u = RGVertex.unify_data (d1,d2) u;
-  fun try_unif_edge e1 e2 u = SOME u;
+  fun try_match_vertex d1 d2 u = RGVertex.match_data (d1,d2) u;
+  fun try_match_edge e1 e2 u = SOME u;
 
   (* IMPROVE: what data do we want here? should it be add_exp *)
-  exception unif_exp of unit;
+  exception match_exp of unit;
 
-  (* raises unify_exp *)
-  fun unif_vertex d1 d2 u = 
-      (case try_unif_vertex d1 d2 u 
-         of NONE    => raise unif_exp ()
+  (* raises match_exp *)
+  fun match_vertex d1 d2 u = 
+      (case try_match_vertex d1 d2 u 
+         of NONE    => raise match_exp ()
           | SOME u' => u'); 
   
-  fun unif_edge d1 d2 u =
-      (case try_unif_edge d1 d2 u 
-         of NONE    => raise unif_exp ()
+  fun match_edge d1 d2 u =
+      (case try_match_edge d1 d2 u 
+         of NONE    => raise match_exp ()
           | SOME u' => u'); 
 
   fun subst_in_vertex u vd = RGVertex.subst_in_data u vd;
   fun subst_in_edge u ed = ed;
 
-  val pretty_unif = RGVertex.pretty_unif;
-  val print_unif = Pretty.writeln o pretty_unif;
+  val pretty_subst = RGVertex.pretty_subst;
+  val print_subst = Pretty.writeln o pretty_subst;
 
   structure Sharing = 
   struct 
@@ -146,7 +133,7 @@ structure RG_GraphParam
     structure Edge = Edge.EdgeSharingWithData;
     type T = T;
     type inames_renaming = CRnmINames.renaming; (* = IName.Rnm.renaming *)
-    type unif = unif;
+    type subst = subst;
   end;
 end;
 
