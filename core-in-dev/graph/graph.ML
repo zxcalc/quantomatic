@@ -215,13 +215,6 @@ sharing VUmorph.Entity.SharingWithData = Vertex.SharingWithData;
 structure EUmorph : UMORPH;
 sharing EUmorph.Entity.SharingWithData = Edge.SharingWithData;
 
-
-(* graph isomorphisms *)
-val get_isomorphisms : T -> T 
-    -> (Vertex.InjEndo.T * Edge.InjEndo.T * Param.unif) Seq.seq 
-
-val is_isomorphic : T -> T -> bool
-
 (* copy a set of vertices, copying all adjacent edges. *)
 val copy1_vset : Vertex.NSet.T 
     -> (Vertex.Rnm.T * Edge.Rnm.T) * T 
@@ -351,7 +344,7 @@ fun merge_by_vertices g1 g2 =
                  else new_named_edge en d vn1 vn2 g3)
              (get_edges g1));
 
-(* delete subg from fromg; assumes edge and vetrex names of subg are a
+(* delete subg from fromg; assumes edge and vertex names of subg are a
    subset of fromg; else delete will raise exception *)
 fun delete_subgraph subg fromg = 
     fromg |> (Edge.NSet.fold 
@@ -896,125 +889,6 @@ end
 (* vertex and edge unification morphisms *)
 structure VUmorph = UmorphFun(Vertex);
 structure EUmorph = UmorphFun(Edge);
-
-fun unif_edge_both_ways e1 e2 (u,u') = 
-    (u |> Param.unif_edge e1 e2, u'|> Param.unif_edge e2 e1);
-
-fun unif_vertex_both_ways v1 v2 (u,u') = 
-    (u |> Param.unif_vertex v1 v2, u'|> Param.unif_vertex v2 v1);
-
-(* v = vertex iso, 
-   e = edge iso, 
-   u = unif, 
-   t = agenda, 
-   g and h = graphs, 
-*)
-fun get_isomorphisms_unify_next_edge v e u t g h gs hs otherend = let
-    val n1 = Option.valOf
-            (Edge.NSet.get_local_bot gs)
-    val ((dir1,d1),_) = get_edge g n1
-  in 
-    Seq.maps get_isomorphisms_unify_next
-    (Seq.map_filter
-      (fn n2 => 
-          let val ((dir2,d2),_) = get_edge h n2 in
-            if dir1 <> dir2 (* andalso Edge.data_eq(d1,d2) *) 
-            then NONE 
-            else SOME
-              (v |> Vertex.InjEndo.add (otherend n1 g) (otherend n2 h),
-               e |> Edge.InjEndo.add n1 n2,
-               u |> unif_edge_both_ways d1 d2,
-               Seq.append t  (* push unification of the target vertex of
-                                this edge onto the unification queue *)
-                 (Seq.single (otherend n1 g,
-                              otherend n2 h)),
-               g |> delete_edge n1,
-               h |> delete_edge n2)
-               handle Vertex.InjEndo.add_exp(_,_,_) => NONE
-           end)
-        (Edge.NSet.seq_of hs))
-  end
-and get_isomorphisms_unify_next (v,e,u,t,g,h) = 
-  (case Seq.pull t of
-    (* Nothing to unify; start unifying new connectivity component *)
-    NONE                => let
-       val gbot = the (Vertex.NSet.get_local_bot (get_vnames g))
-       val hmin = Vertex.NSet.get_min (get_vnames h)
-       fun maketuple n = (v,e,u,Seq.single (gbot,n),g,h);
-    in Seq.map maketuple (Vertex.NSet.seq_of (get_vnames h)) end 
-    (* Something to unify; return lazy list of all possible next steps *)
-  | SOME ((vng,vnh),t') => let
-       (* point undirected edges towards us *)
-       fun attract e gr = let
-           val ((dir,_),_) = get_edge gr e
-         in if dir=UnDirected
-            then swap_edge_dir e gr
-            else gr end
-       val (_,(_,gout)) = get_vertex g vng
-       val (_,(_,hout)) = get_vertex h vnh
-       val g = g |> Edge.NSet.fold attract gout
-       val h = h |> Edge.NSet.fold attract hout
-       (* some other helper stuff *)
-       val (gd,(gin,gout)) = get_vertex g vng
-       val (hd,(hin,hout)) = get_vertex h vnh
-       fun esrc n x = let val (_,(f,t)) = get_edge x n
-                 in f end;
-       fun esnk n x = let val (_,(f,t)) = get_edge x n
-                 in t end;
-    in if true (*Vertex.data_eq (gd,hd)*)
-       then case (Edge.NSet.is_empty gin,
-                  Edge.NSet.is_empty hin,
-                  Edge.NSet.is_empty gout,
-                  Edge.NSet.is_empty hout) of
-          (* no (more) edges; match up *)
-          (true,true,true,true) =>
-            Seq.single (v |> Vertex.InjEndo.add vng vnh,
-                        e,
-                        u |> unif_vertex_both_ways gd hd,
-                        t',
-                        g |> delete_vertex vng,
-                        h |> delete_vertex vnh)
-          (* some outgoing edges remaining *)
-        | (_,_,false,false) =>
-          get_isomorphisms_unify_next_edge v e u t g h gout hout esnk
-          (* some incoming edges remaining *)
-        | (false,false,_,_) => 
-          get_isomorphisms_unify_next_edge v e u t g h gin hin esrc
-          (* edge mismatch *)
-        | _ => Seq.empty
-       else Seq.empty (* Mismatching vertex data *)
-     end handle no_such_vname_exp(_,_,_) (* consequence of multiple edges. 
-                                            Vertex has already been successfully
-                                            unified; skip. *)
-             => get_isomorphisms_unify_next (v,e,u,t',g,h)
-  ) handle Vertex.InjEndo.add_exp(_,_,_) => Seq.empty
-
-(* v,e are working copies of the isomorphism to be constructed;
-   t is the queue of vertex pairs in the source and target graph to be
-   unified *)
-fun get_isomorphisms_sub (v,e,u,t,g,h) = case (is_empty g,is_empty h) of
-    (* both graphs are empty; done *)
-    (true,true) => Seq.single (v,e,fst u)
-    (* neither graph is empty; get possible next unification steps and
-       proceed matching *)
-  | (false,false) => Seq.maps get_isomorphisms_sub
-                                      (get_isomorphisms_unify_next (v,e,u,t,g,h))
-    (* one graph is empty and the other is not; no iso *)
-  | _ => Seq.empty 
-;
-  
-(* in:  graphs g, h *)
-(* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
-        isomorphisms between g and h *)
-fun get_isomorphisms g h  
-  = get_isomorphisms_sub (Vertex.InjEndo.empty,Edge.InjEndo.empty,
-                          (Param.empty_unif,Param.empty_unif),Seq.empty,g,h);
-
-(* in:  graphs g, h *)
-(* out: true if g~=h, false otherwise *)
-val is_isomorphic : T -> T -> bool 
-  = is_some o Seq.pull oo get_isomorphisms
-
 
 
 fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =

@@ -10,6 +10,8 @@ sig
   structure VtoBoxMap : NAME_MAP_SHARING
     sharing VtoBoxMap.Cod = BBox;
     sharing VtoBoxMap.Dom = Vertex;
+  structure BBoxInjEndo : NAME_INJENDO_SHARING
+    sharing BBoxInjEndo.Cod = BBox;
 end;
 
 
@@ -19,12 +21,14 @@ sig
 include BASIC_OGRAPH;
 
 structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
-structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
+structure VtoBoxMap : NAME_MAP; (* !-box-name to vertices *)
+structure BBoxInjEndo : NAME_INJENDO (* injendo between !-boxes *)
 
 structure SharingBangGraph : BANG_GRAPH_SHARING
 sharing SharingOGraph = SharingBangGraph
 sharing SharingBangGraph.BBox = BBox.Sharing
 sharing SharingBangGraph.VtoBoxMap = VtoBoxMap.Sharing
+sharing SharingBangGraph.BBoxInjEndo = BBoxInjEndo.Sharing
 
 val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
@@ -62,11 +66,13 @@ exception overlapping_bbox_exp of Vertex.NSet.T * T
 
 structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
+structure BBoxInjEndo : NAME_INJENDO (* injendo between !-boxes *)
 
 structure SharingBangGraph : BANG_GRAPH_SHARING
 sharing SharingOGraph = SharingBangGraph
 sharing SharingBangGraph.BBox = BBox.Sharing
 sharing SharingBangGraph.VtoBoxMap = VtoBoxMap.Sharing
+sharing SharingBangGraph.BBoxInjEndo = BBoxInjEndo.Sharing
 
 val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
@@ -176,6 +182,7 @@ functor BasicBangGraphFun(
   
   (* structure BBox : SSTR_NAMES = BBox; *)
   structure VtoBoxMap = NameMapFun(structure Dom = V and Cod = BBox);
+  structure BBoxInjEndo = NameInjEndoFun(BBox);
   
   (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
   type data2 = data;
@@ -295,6 +302,7 @@ functor BasicBangGraphFun(
     open SharingOGraph;
     structure BBox = BBox.Sharing;
     structure VtoBoxMap = VtoBoxMap.Sharing;
+    structure BBoxInjEndo = BBoxInjEndo.Sharing;
   end;
 
 end (* Functor BasicBangGraphFun : ... -> BASIC_BANG_GRAPH *)
