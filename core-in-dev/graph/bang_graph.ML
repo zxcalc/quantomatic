@@ -63,6 +63,7 @@ include OGRAPH;
 
 exception merge_bbox_exp of string 
 exception overlapping_bbox_exp of Vertex.NSet.T * T
+exception no_such_bbox_exp of unit
 
 structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
@@ -94,6 +95,8 @@ val set_bboxes : VtoBoxMap.T -> T -> T;
 val get_bbnames : T -> BBox.NSet.T
 
 val lookup_box_of : T -> Vertex.name -> BBox.name option
+val get_box_of : T -> Vertex.name -> BBox.name
+
 val is_boxed : T -> Vertex.name -> bool
 
 val new_box : BBox.name -> T -> BBox.name * T
@@ -356,10 +359,15 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
 
 
-  exception overlapping_bbox_exp of V.NSet.T * T
-  
+  exception overlapping_bbox_exp of V.NSet.T * T;
+  exception no_such_bbox_exp of unit;
+
   (* lookup name of box that v is in, NONE if unboxed *)
   fun lookup_box_of g v = VtoBoxMap.lookup_domf (get_bboxes g) v;
+  fun get_box_of g v = 
+      VtoBoxMap.domf (get_bboxes g) v 
+      handle VtoBoxMap.not_in_dom_exp _ => raise no_such_bbox_exp ();
+
   fun is_boxed g v = V.NSet.contains (VtoBoxMap.get_domset (get_bboxes g)) v;
 
   (* make a new empty !-box *)

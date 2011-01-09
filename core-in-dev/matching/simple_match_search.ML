@@ -1,31 +1,10 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(*  MatchSearch and Matching Algorithm *)
+(*  Matching Algorithm Bang open-graphs *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(* Matching treats graphs as undirected: IMPROVE: chnage graph rep to
-   be undirected and have direction as edge data, w.r.t. order of
-   names of unordered pair of vertices being connected.
+(*
+    This is a simple algorithm that traverses the pat in a fixed order, searching for locations in the target that it can match to. The algorithm tries to match up edges and vertices in all ways possible. This results in many symmertic matches. The algorithm is also rather inefficient in the way it explores expansions of bang-boxes: it tries all expansions next to the vertex being examined such that it has the right arity w.r.t. to the considered vertex in the target.
 
-Simple cases: those where number of vertices between edges are matched
-exactly and no chasing of boundary vertices is needed.
-
-Simple case: 
-Ba -3- Xb = Na -3- Nb
-
-Complex case needs B-Vertex tentacle chasing: 
-Ba -1- Bb -1- Bc -1- Bd = Na -3- Nb
-
-FIXME: Consider how a semi-local strictness condition can be
-included: this is needed to avoid large (symmetric) failure
-space. E.g. consider pattern of two disconected graphs (although the
-same issue also comes up in connected grahs) : if one fails to match,
-we will keep searching for match of the other one and only fail at the
-end when we realise we have extra unmatched target edges. This can be
-fixed by pull-back links annotated in pattern graph. The way
-pull-backs work is that you know the unmatched boundary edges and
-where they can reach to add extra edges. This gives a local-matching
-criteria so that we can be locally strict. Local matching can then
-have some non-local effects: causes a "ver-vertex" tentacle to become
-folded back. This gives efficient failure.
+    FIXME: The algorithm is complete w.r.t. bangboxes: if all vertecies in a component are in !-boxes, then the algorithm simply drop all bang-boxes.  
 *)
 signature SIMPLE_MATCH_SEARCH
 = sig
@@ -41,8 +20,6 @@ signature SIMPLE_MATCH_SEARCH
   sharing Edge.EdgeSharingWithData = BangGraph.Edge.EdgeSharingWithData;
 
   type T
-  datatype matchstep =
-           FoundMatch of T         | Progress of T Seq.seq
 
   val init : Match.T 
              -> BangGraph.T (* pat *)
@@ -62,30 +39,18 @@ signature SIMPLE_MATCH_SEARCH
                -> Match.T Seq.seq
 
   (* parts of the matching algorithm *)
+  datatype matchstep = FoundMatch of T | Progress of T Seq.seq
   val do_next_match_choices : T -> matchstep
-
-  val match_2vertices_with_edges : Vertex.name -> T -> Vertex.name -> T Seq.seq
-
-  val match_vertex : Vertex.name * Vertex.data2 -> 
-                     Vertex.name * Vertex.data2 ->
-                     T -> T option
-
-  val match_search : T Seq.seq -> unit -> (Match.T * Match.T Seq.seq) option
-
 
   (* modifying match state *)
   val pop_agenda : T -> ((Vertex.name * Vertex.name) * T) option
 
   (* raises Match.match_exp () *)
   val add1_to_agenda : Vertex.name * Vertex.name -> T -> T
-
-  val del_pat_edges : Edge.NSet.T -> T -> T
-  val del_tgt_edges : Edge.NSet.T -> T -> T
-
+  
   (* internal get, update and set *)
   val get_agenda : T -> Vertex.name Vertex.NTab.T
   val get_match : T -> Match.T
-  val get_match_viso : T -> Vertex.name Vertex.NTab.T
   val get_tgt_vs : T -> T -> Vertex.NSet.T
   val get_unm_pat : T -> BangGraph.T
   val get_unm_pat_vs : T -> Vertex.NSet.T
@@ -99,8 +64,13 @@ signature SIMPLE_MATCH_SEARCH
   val update_unm_pat : (BangGraph.T -> BangGraph.T) -> T -> T
   val update_unm_tgt : (BangGraph.T -> BangGraph.T) -> T -> T
 
+  val del_pat_edges : Edge.NSet.T -> T -> T
+
   val set_agenda : Vertex.name Vertex.NTab.T -> T -> T
   val set_match : Match.T -> T -> T
+
+  (* shouldn't happen *)
+  exception bug_exp of string; 
 
   (* pretty printing *)
   val pretty : T -> Pretty.T
@@ -117,7 +87,7 @@ functor SimpleMatchSearchFun(
   structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   sharing Match.Sharing.G = BangGraph.SharingBangGraph
-) (* : MATCH_SEARCH *)
+) : SIMPLE_MATCH_SEARCH
 = struct
 
 (* structure DB_MatchSearch = struct *)
@@ -218,10 +188,8 @@ val set_agenda = update_agenda o K;
 val set_match = update_match o K;
 
 (* implicit: e st *)
-val del_tgt_edge = update_unm_tgt o BangGraph.delete_edge;
 val del_pat_edge = update_unm_pat o BangGraph.delete_edge;
 (* implicit: es st *)
-val del_tgt_edges = update_unm_tgt o Edge.NSet.fold BangGraph.delete_edge;
 val del_pat_edges = update_unm_pat o Edge.NSet.fold BangGraph.delete_edge;
 (* implicit: v st *)
 val del_pat_vertex = update_unm_pat o BangGraph.delete_vertex;
@@ -246,52 +214,41 @@ fun add1_to_agenda (pat_n,tgt_n) st =
     (case try_add1_to_agenda (pat_n,tgt_n) st of SOME st' => st'
      | NONE => raise Match.match_exp ()); 
 
-(* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
-   external ones - required by edge-matching - and probably more efficient too. 
-   IMPROVE: store a maximally internal traversal of the pattern (as the
-   pre-agenda) which can then connected to the tgt vertices as the agenda. This 
-   will save repeated search for non-boundary vertices - also the basis of more 
-   efficient algorithm. (see also get_next_pat_vertex) *)
-fun pop_agenda st = 
-    let val agenda = (get_agenda st);
-        val pat = get_unm_pat st;
-    in 
-      case Vertex.NTab.find (fn (n1,n2) => not (G.is_boundary pat n1)) agenda of
-        NONE => (* no internal vertices in the agenda *) 
-          (case Vertex.NTab.pull_elem agenda
-            of NONE => NONE 
-             | SOME (n1n2,agenda2) => SOME (n1n2,set_agenda agenda2 st))
-       | SOME (n1n2 as (n1,n2)) => 
-         SOME (n1n2,set_agenda (Vertex.NTab.delete n1 agenda) st)
-    end;
-
 (* try to match the bang-box's of the given pattern and tgt node:
    mapping must be injective, and tgt *)
 (* IMPROVE?: maybe can do lazy bbox unfolding, and have bbox copying happen
    here? probbaly need generic notion of symmetry and search *)
-fun try_match_bboxes pnv tnv st = 
+fun try_match_bboxes (pvn1,tvn1) (pvn2,tvn2) st = 
     let val pat = get_unm_pat st;
         val tgt = get_unm_tgt st;
     in
-      (case BangGraph.lookup_box_of tgt tnv of 
+      (case BangGraph.lookup_box_of tgt tvn2 of 
          NONE => 
-         (case BangGraph.lookup_box_of pat pnv of 
+         (case BangGraph.lookup_box_of pat pvn2 of 
             NONE => SOME st (* no bboxes; continue as normal *)
-          | SOME pbbn => (* some pat bbox, no tgt bbox *)
-            (case BBMap.lookup_domf (get_bbmap st) pbbn of
-               NONE => SOME (st |> update_unm_pat (BangGraph.drop_box pbbn)
-                                |> update_match (Match.add_bbox_drop pbbn))
+          | SOME pbbn2 => (* some pat bbox, no tgt bbox *)
+            (case BBMap.lookup_domf (get_bbmap st) pbbn2 of
+               NONE => SOME (st |> update_unm_pat (BangGraph.drop_box pbbn2)
+                                |> update_match (Match.add_bbox_drop pbbn2))
              | SOME _ => NONE)) (* pat bbox already mapped; can't be dropped  *)
-       | SOME tbbn => 
-         (case BangGraph.lookup_box_of pat pnv of 
+       | SOME tbbn2 => 
+         (case BangGraph.lookup_box_of pat pvn2 of 
             NONE => NONE (* target bbox, but no pat bbox => fail *)
-          | SOME pbbn => (* both in bboxes *)
-            (case BBMap.lookup_domf (get_bbmap st) pbbn of
+          | SOME pbbn2 => (* both in bboxes *)
+            (case BBMap.lookup_domf (get_bbmap st) pbbn2 of
                NONE => (* pattern bbox not yet mapped - make new mapping *)
-               SOME (st |> update_match (Match.add_bbox_map pbbn tbbn))
-             | SOME tbbn2 => (* already mapped to a tgt bang box *)
-               if (BBox.name_eq (tbbn,tbbn2)) 
-                 then SOME st (* already mapped to this bbox *)
+               (case BangGraph.lookup_box_of tgt tvn1 of
+                  NONE => SOME (st |> update_match (Match.add_bbox_map pbbn2 tbbn2))
+                | SOME tbbn1 =>
+                  (* two adj pat !-boxes can't match single adj target one *)
+                  if (BBox.name_eq (tbbn1,tbbn2)) andalso 
+                     not (BBox.name_eq (BangGraph.get_box_of pat pvn1,pbbn2))
+                  then NONE
+                  else 
+                    SOME (st |> update_match (Match.add_bbox_map pbbn2 tbbn2)))
+             | SOME tbbn2' => (* already mapped to a tgt bang box *)
+               if (BBox.name_eq (tbbn2,tbbn2'))
+               then SOME st (* already mapped to this bbox *)
                else NONE))) (* already mapped elsewhere *)
     end;
 
@@ -300,54 +257,60 @@ fun match_bboxes pnv tnv st =
     (case try_match_bboxes pnv tnv st of NONE => raise bbox_match_exp ()
      | SOME st' => st');
 
-(* bang boxes of pnv and tnv are set to be matching *)
-fun have_matching_bboxes pnv tnv st = 
-    let val pat = get_unm_pat st;
-        val tgt = get_unm_tgt st;
-    in
-      case (BangGraph.lookup_box_of tgt tnv, BangGraph.lookup_box_of pat pnv) 
-      of (NONE, NONE) => true
-       | (SOME bb1, SOME bb2) => (BBMap.contains (get_bbmap st) (bb1,bb2))
-       | (_,_) => false
+(* raises Match.match_exp on failure *)
+fun edgematch1 (pt as (pvn1,tvn1)) (pe as (peh1,(pe_dir,pe_d))) pvn2
+                                   (te as (teh1,(te_dir,te_d))) tvn2 st =
+    let 
+      val peh2 = G.Edge.Ehn.other peh1;
+      val teh2 = G.Edge.Ehn.other teh1;
+      val pat = get_unm_pat st;
+    in  
+      st |> update_match (Match.match_edge_data pe_d te_d)
+         |> (if G.is_boundary (get_unm_pat st) pvn2
+             then (* pvn2 is a boundary vertex *)
+                update_match 
+                  ((case (pe_dir,te_dir) 
+                      of (G.Directed, G.Directed) => 
+                         (Match.dir_match_edgehalf_name' peh1 teh1)
+                       | (G.UnDirected, G.UnDirected) => 
+                         (Match.match_edgehalf_name' peh1 teh1)
+                       | _ => raise Match.match_exp ())
+                    o Match.match_boundary pvn2 tvn2)
+             else (* pvn2 is an internal vertex *)
+                update_match 
+                  ((case (pe_dir,te_dir) 
+                      of (G.Directed, G.Directed) => 
+                          (Match.dir_match_edgehalf_name' peh1 teh1
+                           o Match.dir_match_edgehalf_name' peh2 teh2)
+                       | (G.UnDirected, G.UnDirected) => 
+                         (Match.match_edgehalf_name' peh1 teh1
+                           o Match.match_edgehalf_name' peh2 teh2)
+                       | _ => raise Match.match_exp ())
+                   o Match.match_vertex_name pvn2 tvn2)
+                (* don't add to the agenda if self-loop edge *)
+                o (if Vertex.name_eq (pvn2,tvn2) then I 
+                    else add1_to_agenda (pvn2,tvn2))
+                o match_bboxes pt (pvn2,tvn2))
     end;
 
-(* *)
-fun edgematch1 (pvn1,tvn1) (peh, (pe_dir,pe_d)) (teh, (te_dir,te_d)) st =
-    let 
-      val st' = 
-        case (pe_dir,te_dir) of 
-        of (G.Directed, G.Directed) => 
-           update_match (Match.dir_match_edgehalf (peh, pe_d) (teh, te_d)) st 
-         | (G.UnDirected, G.UnDirected) => 
-           update_match (Match.match_edgehalf (peh, pe_d) (teh, te_d)) st;
-      val peh2 = G.Edge.Ehn.other_half peh;
-      val teh2 = G.Edge.Ehn.other_half teh;
-      val pvn2 = get_ehn_vname (get_unm_tgt st) peh2;
-      val tvn2 = get_ehn_vname (get_unm_pat st) teh2;
-    in 
-      (* needed? can be done when look at edges of pvn2 and tvn2... *)
-      update_match (Match.match_edgehalf (peh2) (teh2, te_d)) st;
-      SOME
-        
-    end handle Match.match_exp _ => NONE 
-
-    (case match_bboxes to_pn to_tn st 
-      of SOME st2 => 
-         
-         end
-      | NONE => Seq.empty);
+fun try_edgematch1 pt pe pvn2 te tvn2 st =
+    SOME (edgematch1 pt pe pvn2 te tvn2 st) handle Match.match_exp _ => NONE;
 
 (* all possible target edge matches, if none then fail *)
-fun edge_match_adj_to_pedge (pt as (pvn1,tvn1)) (p as (peh,(pe_dir,pe_d))) sts = 
-    (case G.fold_adj (map_filter (edgematch1 pt p)) (get_unm_tgt st) tvn1 sts
-     of [] => raise Match.match_exp () 
-      | sts => sts)
+(* raises Match.match_exp on failure *)
+fun edge_match_adj_to_pedge tgt (pt as (pvn1,tvn1)) 
+                            (pe as (peh,(pe_dir,pe_d))) pvn2 sts = 
+    (case G.fold_adj (map_filter oo (try_edgematch1 pt pe pvn2))
+                     tgt tvn1 sts
+     of [] => raise Match.match_exp ()
+      | sts => sts);
 
 (* match up all adjavent edges of chosen pattern and target vertex *)
-fun edge_match_adj (pt as (pvn1,tvn1)) st = 
-    G.fold_adj (edge_match_adj_to_pedge pt) (get_unm_pat st) pvn1 [st];
-
-
+(* raises Match.match_exp on failure *)
+fun edgematch_all_adj (pt as (pvn1,tvn1)) st = 
+    G.fold_adj (edge_match_adj_to_pedge (get_unm_tgt st) pt)
+               (get_unm_pat st) pvn1 [st]
+      |> Seq.of_list;
 
 (* copy a single bang-box *)
 fun copy1_pat_bbox bbn st = 
@@ -362,6 +325,7 @@ fun copy1_pat_bbox bbn st =
               (bbn,(V.Rnm.get_nmap vrn,E.Rnm.get_nmap ern),bbn2))
     end;
 
+exception bug_exp of string; 
 (* !-box ops *)
 fun nfold 0 f a = a
   | nfold n f a = nfold (n - 1) f (f a);
@@ -396,8 +360,6 @@ fun compute_scope_arities pn tn st =
     in
       (scope_arity, pbboxsums)
     end;
-
-(*  *)
 
 (* find all expansions of bang boxes so that matching might be possible *)
 (* IMPROVE: integrate into lookahead to do maximal early pruning? 
@@ -436,15 +398,6 @@ fun expand_adj_pat_bboxes pn tn st =
         |> Seq.map snd
     end;
 
-(* assumes pat vs are uninstantiated.
-   Raises Vertex.NTab...DUP exception, if n1 is already instantiated.
-   Assumes each pat-vertex is only examined once; 
-   therefore assume not in vmap *)
-fun match_vertex pnv tnv st = 
-    (case Match.match_vertex pnv tnv (get_match st)
-     of NONE => NONE
-      | SOME m2 => SOME (st |> set_match m2));
-
 (* IMPROVE: add quick check of num of edges to avoid complex search
    over all permutations matchings that do not add up *)
 (* assumes: 
@@ -464,18 +417,12 @@ fun match_2vertices_with_edges
       val pd = BangGraph.get_vertex_data pat pn;
       val td = BangGraph.get_vertex_data tgt tn;
     in (* check data matches *)
-      case match_vertex (pn,pd) (tn,td) st of 
-        NONE => Seq.empty (* data doesn't match *)
-      | SOME st2 => (* continue matching all adjacent things *)
-        st2 |> expand_adj_pat_bboxes pn tn
-            |> Seq.maps (edgematch_adj_verticies (pn,pd) (tn,td))
-            (* remove pattern vertex, ignore now redudnent info *)
-            |> Seq.map (del_pat_vertex pn o snd o snd)
-    end;
-
-
-(* IMPROVE: currently bang box expansion and to fit tgt size and non-strict matching are separate. Combine to avoid such an inefficient generate and test approach. 
-*)
+      st |> update_match (Match.match_vertex (pn,pd) (tn,td))
+         |> expand_adj_pat_bboxes pn tn
+         |> Seq.maps (edgematch_all_adj (pn,tn))
+         (* remove pattern vertex, ignore now redudnent info *)
+         |> Seq.map (del_pat_vertex pn)
+    end handle Match.match_exp _ => Seq.empty;
 
 
 (* datatype for steps of matching *)
@@ -522,6 +469,25 @@ fun drop_all_bboxes_in_pat st =
          |> update_match (Match.add_bbox_kills bboxlist)
     end;
 
+(* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
+   external ones - required by edge-matching - and probably more efficient too. 
+   IMPROVE: store a maximally internal traversal of the pattern (as the
+   pre-agenda) which can then connected to the tgt vertices as the agenda. This 
+   will save repeated search for non-boundary vertices - also the basis of more 
+   efficient algorithm. (see also get_next_pat_vertex) *)
+fun pop_agenda st = 
+    let val agenda = (get_agenda st);
+        val pat = get_unm_pat st;
+    in 
+      case Vertex.NTab.find (fn (n1,n2) => not (G.is_boundary pat n1)) agenda of
+        NONE => (* no internal vertices in the agenda *) 
+          (case Vertex.NTab.pull_elem agenda
+            of NONE => NONE 
+             | SOME (n1n2,agenda2) => SOME (n1n2,set_agenda agenda2 st))
+       | SOME (n1n2 as (n1,n2)) => 
+         SOME (n1n2,set_agenda (Vertex.NTab.delete n1 agenda) st)
+    end;
+
 (* consider the next and-point in the agenda *)
 fun do_next_match_choices st = 
     (case pop_agenda st 
@@ -544,26 +510,22 @@ fun do_next_match_choices st =
          Progress (* deal with first prescribed and-choice *)
            (match_2vertices_with_edges pn st2 tn));
 
-(* given an or-choice agenda of states (seq), apply progress steps to search
-tree, until we get a match, then give that back as first elem of lazy
-list. We can then rest until asked for the next thing! *)
-fun match_search or_agenda () = 
-    (case Seq.pull or_agenda of 
-       NONE => NONE
-     | SOME (st,more_or_choices) =>
-       (case do_next_match_choices st of 
-          FoundMatch st2 => 
-          SOME (get_match st2, Seq.make (match_search more_or_choices))
-        | Progress new_or_choices => 
-          match_search (Seq.append new_or_choices more_or_choices) ()));
-
-(* 
-exception match_bug_exp of Match.T * BangGraph.T * BangGraph.T ->
-               Vertex.name Vertex.NTab.T -> Match.T Seq.seq
-*)
 (* *)
 fun match' m pat tgt initagenda = 
     let 
+      (* given an or-choice agenda of states (seq), apply progress steps 
+         to search tree, until we get a match, then give that back as first 
+         elem of lazy list. We can then rest until asked for the next thing! *)
+      fun match_search or_agenda () = 
+          (case Seq.pull or_agenda of 
+             NONE => NONE
+           | SOME (st,more_or_choices) =>
+             (case do_next_match_choices st of 
+                FoundMatch st2 => 
+                SOME (get_match st2, Seq.make (match_search more_or_choices))
+              | Progress new_or_choices => 
+                match_search (Seq.append new_or_choices more_or_choices) ()));
+
       val init_st = (init m pat tgt initagenda)
     in Seq.make (match_search (Seq.single init_st)) end;
 
@@ -609,7 +571,3 @@ val print = Pretty.writeln o pretty;
 end; (* MatchSearch structure *)
 
 
-structure DB_MatchSearch = MatchSearchFun(structure BangGraph = BangGraph 
-                                           and Match = Match);
-
-structure MatchSearch : MATCH_SEARCH = DB_MatchSearch;

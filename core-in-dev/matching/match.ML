@@ -53,11 +53,17 @@ signature MATCH
 
   (* basic matching functions; raise match_exp on failure *)
 
+  (* match edge data *)
   val match_edge_data : G.Edge.data -> G.Edge.data -> T -> T
+
   (* also checks that match is consistant w.r.t. other half of pat *)
   val match_edgehalf_name : G.Edge.Ehn.name -> G.Edge.Ehn.name -> T -> T
+  val dir_match_edgehalf_name : G.Edge.Ehn.name -> G.Edge.Ehn.name -> T -> T
   (* doesn't check other half of pat is consistant *)
   val match_edgehalf_name' : G.Edge.Ehn.name -> G.Edge.Ehn.name -> T -> T
+  val dir_match_edgehalf_name' : G.Edge.Ehn.name -> G.Edge.Ehn.name -> T -> T
+
+  (* match edge name and data *)
   val match_edgehalf : G.Edge.Ehn.name * G.Edge.data 
       -> G.Edge.Ehn.name * G.Edge.data 
       -> T -> T
@@ -96,10 +102,7 @@ signature MATCH
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchFun(
-  structure G : BANG_GRAPH
-) 
- : MATCH 
+functor MatchFun(G : BANG_GRAPH) : MATCH 
 = struct
 
 structure G = G;
@@ -225,9 +228,21 @@ fun match_edgehalf_name' peh teh m =
     handle EMap.add_exp (_,_,_) => raise match_exp ();
 
 (* *)
+fun dir_match_edgehalf_name' peh teh m =  
+    if (G.Edge.Ehn.same_half peh teh) 
+    then (update_emap (EMap.add peh teh) m
+      handle EMap.add_exp (_,_,_) => raise match_exp ())
+    else raise match_exp ();
+
+(* *)
 fun match_edgehalf_name peh teh m =  
     if other_pat_half_is_consistant m peh teh 
     then match_edgehalf_name' peh teh m 
+    else raise match_exp ();
+
+fun dir_match_edgehalf_name peh teh m =
+    if (G.Edge.Ehn.same_half peh teh) 
+    then match_edgehalf_name peh teh m
     else raise match_exp ();
 
 (* match edge half name, with edge's data *)
@@ -238,9 +253,8 @@ fun match_edgehalf (peh, ped) (teh, ted) m =
 (* ensure that pat and tgt are for the same half of the edge 
    (both src or both tgt) *)
 fun dir_match_edgehalf (peh, ped) (teh, ted) m =
-    if (G.Edge.Ehn.same_half peh teh) 
-    then match_edgehalf (peh, ped) (teh, ted) m
-    else raise match_exp ();
+    m |> dir_match_edgehalf_name peh teh
+      |> match_edge_data ped ted;
 
 (* match both halfs of the edge. If rev is true, then maps them 
    in opposite direction *)

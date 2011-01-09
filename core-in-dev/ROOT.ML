@@ -43,6 +43,7 @@ PolyML.Project.make "theories/red_green/rg_graph.ML";
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
 PolyML.Project.make "matching/simple_match_search.ML"; (* naive algorithm *) 
+PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
@@ -51,11 +52,6 @@ PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; 
 (* automorphism reduced search for matches *)
 PolyML.Project.make "matching/autocut_match_search.ML"; 
-
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/rg_vertex.ML";
-PolyML.Project.make "theories/red_green/rg_graph.ML";
-PolyML.Project.make "theories/red_green/rg_match_ctxt.ML";
 
 (* generic rules *)
 PolyML.Project.make "rewriting/rewrite.ML";
