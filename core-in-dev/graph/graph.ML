@@ -150,12 +150,12 @@ val adj_vnames : T -> Vertex.name -> Vertex.NSet.T
 val adj_vnames' : T -> (Edge.NSet.T * Edge.NSet.T) 
     -> Vertex.NSet.T ->  Vertex.NSet.T
     
-(* get incoming, outgoing, undirected edges around vertex *)
+(* get incoming, outgoing, undirected edges adjacent to vertex *)
 val adj_edge_classes: T -> Vertex.name -> (Edge.NSet.T*Edge.NSet.T*Edge.NSet.T)
 
 (* fold over adjacents *)
 val fold_adj : (Edge.Ehn.name * (dir_or_undir * Edge.data) 
-      -> Vertex.name -> 'a -> 'a) 
+                -> Vertex.name -> 'a -> 'a) 
       -> T -> Vertex.name -> 'a -> 'a
 
 (* filtered set of adj vertex names *)

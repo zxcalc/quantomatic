@@ -76,6 +76,7 @@ signature SIMPLE_MATCH_SEARCH
   (* modifying match state *)
   val pop_agenda : T -> ((Vertex.name * Vertex.name) * T) option
 
+  (* raises Match.match_exp () *)
   val add1_to_agenda : Vertex.name * Vertex.name -> T -> T
 
   val del_pat_edges : Edge.NSet.T -> T -> T
@@ -209,7 +210,7 @@ fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
 val get_unm_tgt_es =
     Edge.NTab.get_nameset o BangGraph.get_edges o get_unm_tgt;
 
-val update_names = update_match oo Match.update_names;
+val update_names = update_match o Match.update_names;
 
 val set_names = update_match o Match.set_names;
 val set_unm_pat = update_unm_pat o K;
@@ -225,7 +226,7 @@ val del_pat_edges = update_unm_pat o Edge.NSet.fold BangGraph.delete_edge;
 (* implicit: v st *)
 val del_pat_vertex = update_unm_pat o BangGraph.delete_vertex;
 
-fun add1_to_agenda (pat_n, tgt_n) st = 
+fun ins1_to_agenda (pat_n, tgt_n) st = 
     update_agenda (Vertex.NTab.ins (pat_n,tgt_n)) st;
 
 (* add vertex-matching to agenda if consistent (consistent = not in
@@ -240,6 +241,10 @@ fun try_add1_to_agenda (pat_n,tgt_n) st =
          then SOME st (* already in agenda *)
          else NONE (* a pat-vertex can only be mapped one tgt-vertex. *))
     end;
+
+fun add1_to_agenda (pat_n,tgt_n) st = 
+    (case try_add1_to_agenda (pat_n,tgt_n) st of SOME st' => st'
+     | NONE => raise Match.match_exp ()); 
 
 (* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
    external ones - required by edge-matching - and probably more efficient too. 
@@ -260,12 +265,11 @@ fun pop_agenda st =
          SOME (n1n2,set_agenda (Vertex.NTab.delete n1 agenda) st)
     end;
 
-
 (* try to match the bang-box's of the given pattern and tgt node:
    mapping must be injective, and tgt *)
 (* IMPROVE?: maybe can do lazy bbox unfolding, and have bbox copying happen
    here? probbaly need generic notion of symmetry and search *)
-fun match_bboxes pnv tnv st = 
+fun try_match_bboxes pnv tnv st = 
     let val pat = get_unm_pat st;
         val tgt = get_unm_tgt st;
     in
@@ -291,6 +295,11 @@ fun match_bboxes pnv tnv st =
                else NONE))) (* already mapped elsewhere *)
     end;
 
+exception bbox_match_exp of unit;
+fun match_bboxes pnv tnv st = 
+    (case try_match_bboxes pnv tnv st of NONE => raise bbox_match_exp ()
+     | SOME st' => st');
+
 (* bang boxes of pnv and tnv are set to be matching *)
 fun have_matching_bboxes pnv tnv st = 
     let val pat = get_unm_pat st;
@@ -302,129 +311,43 @@ fun have_matching_bboxes pnv tnv st =
        | (_,_) => false
     end;
 
-(* move to library? *)
-fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
+(* *)
+fun edgematch1 (pvn1,tvn1) (peh, (pe_dir,pe_d)) (teh, (te_dir,te_d)) st =
+    let 
+      val st' = 
+        case (pe_dir,te_dir) of 
+        of (G.Directed, G.Directed) => 
+           update_match (Match.dir_match_edgehalf (peh, pe_d) (teh, te_d)) st 
+         | (G.UnDirected, G.UnDirected) => 
+           update_match (Match.match_edgehalf (peh, pe_d) (teh, te_d)) st;
+      val peh2 = G.Edge.Ehn.other_half peh;
+      val teh2 = G.Edge.Ehn.other_half teh;
+      val pvn2 = get_ehn_vname (get_unm_tgt st) peh2;
+      val tvn2 = get_ehn_vname (get_unm_pat st) teh2;
+    in 
+      (* needed? can be done when look at edges of pvn2 and tvn2... *)
+      update_match (Match.match_edgehalf (peh2) (teh2, te_d)) st;
+      SOME
+        
+    end handle Match.match_exp _ => NONE 
 
-(* should be in ograph *)
-local open BangGraph in 
-(* try to get the name of the half-edge going to the boundary point 
-   (i.e. the name of the half-edge attached to the internal vertex) 
-*)
-fun try_get_endpoint_ehn g v = 
-    let val (vd,(ins,outs)) = get_vertex g v in
-      case vd of OVertex.EVert => 
-        (case (Edge.NSet.tryget_singleton ins,Edge.NSet.tryget_singleton outs)
-         of (NONE, SOME e) => SOME (Edge.Ehn.mk_end e)
-          | (SOME e, NONE) => SOME (Edge.Ehn.mk_start e)
-          | (NONE, NONE) => NONE
-          | (SOME _, SOME _) => NONE)
-      | OVertex.IVert _ => NONE
-    end;
-end;
-
-(* match edges between two vertices and add new matching to the agenda *)
-(* match up edges between target verticess with pattern vs. 
-   Target may be matched also to other pattern vs (when the pattern is a 
-   half-edge/boundary). *)
-fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
-                      to_pn
-                      (t as ((from_tn, _)))
-                      to_tn st =
     (case match_bboxes to_pn to_tn st 
       of SOME st2 => 
-         let 
-           val pat = get_unm_pat st2;
-         in (* check if pattern vertex is endpoint/boundary *)
-           case try_get_endpoint_ehn pat to_pn 
-           of NONE =>  (* pattern vertex is internal *)
-             (case try_add1_to_agenda (to_pn,to_tn) st2 of NONE => Seq.empty
-              | SOME st3 => 
-                let
-                  val tes = BangGraph.halfedges_between (get_unm_tgt st3) 
-                              from_tn to_tn;
-                  val pes = BangGraph.edges_between pat from_pn to_pn; 
-                in multi_edge_matches pes tes st3 end)
-                  (* |> (Seq.of_list o Seq.list_of) : T Seq.seq 
-                      -- to debug: force eval here and now *)
-           | SOME ehn => (* pattern vertex is leaf-boundary *)
-             let 
-               val tgt = get_unm_tgt st2 
-               val tes = BangGraph.halfedges_between (get_unm_tgt st2) 
-                              from_tn to_tn;
-             in
-               half_edge_match 
-                 (to_pn,(to_tn,BangGraph.get_vertex_data tgt to_tn))
-                 (ehn, BangGraph.get_edge_data pat (Edge.Ehn.get_ename ehn)) 
-                 tes st2
-             end
+         
          end
       | NONE => Seq.empty);
 
+(* all possible target edge matches, if none then fail *)
+fun edge_match_adj_to_pedge (pt as (pvn1,tvn1)) (p as (peh,(pe_dir,pe_d))) sts = 
+    (case G.fold_adj (map_filter (edgematch1 pt p)) (get_unm_tgt st) tvn1 sts
+     of [] => raise Match.match_exp () 
+      | sts => sts)
 
-(* match up all adjavent edges of chosen pattern and target, we do
-   this by going through each adjacent vertex of the pattern and
-   finding it and adjacent vertex in the target. *)
-(* IMPROVE: use incident number to quickly rule out cases where
-   pattern has more incident edges that tgt -> they will always fail?
-   (i.e. do counting in advance, avoid seraching permutations of
-   counting) *)
-(* Invarent: ignore_arity >= 0 *)
-fun edgematch_adj_verticies 
-      (from_pv as (from_pn,from_pd)) (* pat vertex *)
-      (from_tv as (from_tn,from_td)) (* tgt vertex *)
-      st = (* state of matching so far *)
-    let 
-      val pat = get_unm_pat st;
-      val tgt = get_unm_tgt st;
-      
-      (* adjacent to tgt/pat, non-leaves *)
-      val pns = BangGraph.adj_vnames pat from_pn;
-      val tns = BangGraph.adj_vertices_with_edges tgt from_tn;
-    in 
-    (* *)
-    (Seq.single (ignore_arity,(pns,st)))
-    (* match all adj tgt vertices *)
-    |> (tns |> Vertex.NTab.fold 
-          (fn (to_tn,tes) => 
-           let val teset = Edge.NTab.get_nameset tes;
-               val to_tn_nedges = Edge.NSet.cardinality teset;
-           in 
-             Seq.maps (fn (ignore_arity,(pns,st)) => 
-              Seq.append
-                (* ignore all target edges *)
-                (if (ignore_arity >= to_tn_nedges) (* always false ? *)
-                 (* ISSUE? deleting edges connected to internal vertices will 
-                    cause bad matchings: need to make sure all inernal vertices 
-                    have been matched first. A: This should always be false: edge-points from_pn is never a boundary vertex*)
-                 then Seq.single 
-                        (ignore_arity - to_tn_nedges,
-                         (pns, del_tgt_edges teset st))
-                 else Seq.empty)
-                (* or-choice: ignore every number of ignoreable target edges 
-                   includes 0; for don't ignore any *)
-                ((Seq.of_list (0 upto (Int.max (0, 
-                   Int.min (to_tn_nedges, ignore_arity - 1)))))
-                 |> Seq.maps 
-                    (fn ignore_now => 
-                    let val st2 = del_tgt_n_edges ignore_now teset st
-                    in (* after ignore, match strictly *)
-                      Seq.map (pair (ignore_arity - ignore_now))
-                              (strict_edgematch_adj_tgt_vertex 
-                                from_pv from_tv to_tn (pns,st2))
-                    end)))
-            end))
-    end;
+(* match up all adjavent edges of chosen pattern and target vertex *)
+fun edge_match_adj (pt as (pvn1,tvn1)) st = 
+    G.fold_adj (edge_match_adj_to_pedge pt) (get_unm_pat st) pvn1 [st];
 
 
-(* second bboxopt is a fresh bbox from the first - i.e. can be copied 
-   independently *)
-fun in_fresh_bbox _ NONE = false
-  | in_fresh_bbox NONE (SOME _) = true
-  | in_fresh_bbox (SOME bbn) (SOME bbn2) = 
-    not (BBox.name_eq (bbn, bbn2));
-
-fun nfold 0 f a = a
-  | nfold n f a = nfold (n - 1) f (f a);
 
 (* copy a single bang-box *)
 fun copy1_pat_bbox bbn st = 
@@ -440,6 +363,8 @@ fun copy1_pat_bbox bbn st =
     end;
 
 (* !-box ops *)
+fun nfold 0 f a = a
+  | nfold n f a = nfold (n - 1) f (f a);
 fun copy_pat_bbox bbn k st = 
     if k = 0 then st |> update_unm_pat (G.kill_box bbn) 
                      |> update_match (Match.add_bbox_kills [bbn])
@@ -447,18 +372,6 @@ fun copy_pat_bbox bbn k st =
     else if k > 1 then 
       nfold (k - 1) (copy1_pat_bbox bbn) st
     else raise bug_exp "copy_pat_bbox: negative copy value";
-
-(* 
-structure Arity = struct
-  val zero = 0;
-  fun is_zero a = (a = 0);
-  fun is_negative a = a < 0;
-  fun add a b = a + b;
-  fun subtract_by a b = a - b;
-  fun mult_by_int a i = a * i;
-  fun divide a b = Int.div(a,b);
-end;
-*)
 
 fun compute_scope_arities pn tn st = 
     let 

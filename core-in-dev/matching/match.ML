@@ -50,17 +50,29 @@ signature MATCH
 
   (* exception raised when things do not match *)
   exception match_exp of unit;
+
   (* basic matching functions; raise match_exp on failure *)
+
+  val match_edge_data : G.Edge.data -> G.Edge.data -> T -> T
+  (* also checks that match is consistant w.r.t. other half of pat *)
+  val match_edgehalf_name : G.Edge.Ehn.name -> G.Edge.Ehn.name -> T -> T
+  (* doesn't check other half of pat is consistant *)
+  val match_edgehalf_name' : G.Edge.Ehn.name -> G.Edge.Ehn.name -> T -> T
   val match_edgehalf : G.Edge.Ehn.name * G.Edge.data 
       -> G.Edge.Ehn.name * G.Edge.data 
       -> T -> T
-
+  (* requires that pat and tgt Ehn are the same half, (both Src or both Tgt) *)
+  val dir_match_edgehalf : G.Edge.Ehn.name * G.Edge.data 
+      -> G.Edge.Ehn.name * G.Edge.data 
+      -> T -> T
   val match_edge : bool (* matched in reverse direction *) 
       -> G.Edge.name * G.Edge.data 
       -> G.Edge.name * G.Edge.data 
       -> T -> T
 
   (* match up vertices,  *)
+  val match_vertex_data : G.Vertex.data -> G.Vertex.data -> T -> T
+  val match_vertex_name : G.Vertex.name -> G.Vertex.name -> T -> T
   val match_vertex : G.Vertex.name * G.Vertex.data
                      -> G.Vertex.name * G.Vertex.data 
                      -> T -> T
@@ -195,26 +207,66 @@ val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
 (* exception raised when things do not match *)
 exception match_exp of unit;
 
-fun match_edgehalf (peh, ped) (teh, ted) m =
-    (m |> update_emap (EMap.add peh teh)
-       |> update_subst (G.Param.match_edge ped ted)
-    ) handle EMap.add_exp (_,_,_) => raise match_exp ()
-           | G.Param.match_exp _   => raise match_exp ();
+(* checks that other half of the same patten edge is not mapped to 
+   something else *)
+fun other_pat_half_is_consistant m peh teh = 
+    (case EMap.lookup_domf (get_emap m) (E.Ehn.other peh) of 
+       SOME teh2 => E.name_eq (E.Ehn.get_ename teh2, E.Ehn.get_ename teh)
+     | NONE => true);
 
+(* match edge data, raising match_exp is data doesn't match *)
+fun match_edge_data ped ted m = 
+    update_subst (G.Param.match_edge ped ted) m 
+    handle G.Param.match_exp _ => raise match_exp ();
+
+(* *)
+fun match_edgehalf_name' peh teh m =  
+    update_emap (EMap.add peh teh) m 
+    handle EMap.add_exp (_,_,_) => raise match_exp ();
+
+(* *)
+fun match_edgehalf_name peh teh m =  
+    if other_pat_half_is_consistant m peh teh 
+    then match_edgehalf_name' peh teh m 
+    else raise match_exp ();
+
+(* match edge half name, with edge's data *)
+fun match_edgehalf (peh, ped) (teh, ted) m =
+    m |> match_edgehalf_name peh teh
+      |> match_edge_data ped ted;
+
+(* ensure that pat and tgt are for the same half of the edge 
+   (both src or both tgt) *)
+fun dir_match_edgehalf (peh, ped) (teh, ted) m =
+    if (G.Edge.Ehn.same_half peh teh) 
+    then match_edgehalf (peh, ped) (teh, ted) m
+    else raise match_exp ();
+
+(* match both halfs of the edge. If rev is true, then maps them 
+   in opposite direction *)
 fun match_edge rev (pe, ped) (te, ted) m = 
     let val (peh1,peh2) = if rev then (Ehn.mk_end pe, Ehn.mk_start pe)
                                  else (Ehn.mk_start pe, Ehn.mk_end pe)
-    in m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
-         |> update_emap (EMap.add peh1 (Ehn.mk_start te))
-         |> update_subst (G.Param.match_edge ped ted)       
-    end handle EMap.add_exp (_,_,_) => raise match_exp ()
-             | G.Param.match_exp _   => raise match_exp ();
+    in
+      m |> match_edgehalf_name' peh2 (Ehn.mk_end te)
+        |> match_edgehalf_name' peh1 (Ehn.mk_start te)
+        |> match_edge_data ped ted
+    end;
+
+
+(* *)
+fun match_vertex_data pvd tvd m =
+    update_subst (G.Param.match_vertex pvd tvd) m 
+    handle G.Param.match_exp _ => raise match_exp ();
+
+fun match_vertex_name pv tv m =
+    update_viso (V.InjEndo.add pv tv) m
+    handle V.InjEndo.add_exp _ => raise match_exp ();
 
 fun match_vertex (pv,pvd) (tv,tvd) m =
-    (m |> update_viso (V.InjEndo.add pv tv)
-       |> update_subst (G.Param.match_vertex pvd tvd)
-    ) handle V.InjEndo.add_exp (_,_,_) => raise match_exp ()
-           | G.Param.match_exp _        => raise match_exp ();
+    m |> match_vertex_name pv tv 
+      |> match_vertex_data pvd tvd; 
+           
 
 fun match_boundary pb tb m = m |> update_bvmap (V.Map.add_to_dom pb tb);
 

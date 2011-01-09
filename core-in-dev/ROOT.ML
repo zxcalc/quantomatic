@@ -9,6 +9,9 @@ use "ROOT.ML";
 OS.FileSys.chDir rootDir);
 print_depth 3;
 
+(* move to library? is this used? *)
+fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
+
 (** For debugging, turn on debug flag: **)
 (* PolyML.Compiler.debug := true; *)
 
