@@ -39,19 +39,22 @@ PolyML.Project.make "expressions/linrat_expr.ML";
 PolyML.Project.make "theories/red_green/rg_vertex.ML";
 PolyML.Project.make "theories/red_green/rg_graph.ML";
 
+(* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
 
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
-PolyML.Project.make "matching/filter.ML"; (* filtering *)
+
+(* niave match search implementation, find symmetric cases *)
+PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
+PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
-(* abstract incremental match filter *)
-PolyML.Project.make "matching/filter.ML"; 
+(* **** *)
 (* automorphism reduced search for matches *)
 PolyML.Project.make "matching/autocut_match_search.ML"; 
 
