@@ -39,10 +39,12 @@ PolyML.Project.make "expressions/linrat_expr.ML";
 PolyML.Project.make "theories/red_green/rg_vertex.ML";
 PolyML.Project.make "theories/red_green/rg_graph.ML";
 
+PolyML.Project.make "rewriting/rule.ML";
+
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
-PolyML.Project.make "matching/simple_match_search.ML"; (* naive algorithm *) 
+PolyML.Project.make "matching/filter.ML"; (* filtering *)
 PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
 
 (* Heuristic derived data structures *)
@@ -55,7 +57,6 @@ PolyML.Project.make "matching/autocut_match_search.ML";
 
 (* generic rules *)
 PolyML.Project.make "rewriting/rewrite.ML";
-PolyML.Project.make "rewriting/rule.ML";
 
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";

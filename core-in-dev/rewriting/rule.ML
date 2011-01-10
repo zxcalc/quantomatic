@@ -18,7 +18,7 @@ computation?)
 signature RULE_SHARING =
 sig
   structure Name : NAMES_SHARING
-  structure BangGraph : BANG_GRAPH_SHARING
+  structure Graph : BANG_GRAPH_SHARING
   (*structure MatchSearch : MATCH_SEARCH_SHARING *)
 end
  
@@ -27,19 +27,20 @@ signature RULE
 = sig
 
 structure Name : SSTR_NAMES
-structure BangGraph : BANG_GRAPH
+structure Graph : BANG_GRAPH
+structure GraphIso : BANG_GRAPH_ISO
 
 structure Sharing : RULE_SHARING
 sharing Sharing.Name = Name
-sharing Sharing.BangGraph = BangGraph.SharingBangGraph
+sharing Sharing.Graph = Graph.SharingBangGraph
 
 type T (* rule *)
 
-exception bad_rule_exp of string * BangGraph.T * BangGraph.T;
-val mk : (BangGraph.T * BangGraph.T) -> T;
+exception bad_rule_exp of string * Graph.T * Graph.T;
+val mk : (Graph.T * Graph.T) -> T;
 
-val get_lhs : T -> BangGraph.T
-val get_rhs : T -> BangGraph.T
+val get_lhs : T -> Graph.T
+val get_rhs : T -> Graph.T
 
 (* swaps lhs and rhs *)
 val symmetric : T -> T
@@ -55,12 +56,13 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor RuleFun( BangGraph : BANG_GRAPH )
+functor RuleFun( Graph : BANG_GRAPH )
 = struct
 
-structure BangGraph = BangGraph;
-structure Vertex = BangGraph.Vertex;
-structure Edge = BangGraph.Edge;
+structure Graph = Graph;
+structure Vertex = Graph.Vertex;
+structure Edge = Graph.Edge;
+structure GraphIso = BangGraphIsoFun(structure Graph=Graph);
 
 (* Names of rules *)
 structure Name 
@@ -71,36 +73,41 @@ end
 
 structure Sharing = struct
   structure Name = Name.Sharing
-  structure BangGraph = BangGraph.SharingBangGraph
+  structure Graph = Graph.SharingBangGraph
 end
 
-datatype T = Rule of { lhs : BangGraph.T,
-                       rhs : BangGraph.T,
-                       lhs_aut : (BangGraph.VUmorph.T*BangGraph.EUmorph.T) list,
-                       selfapps : BangGraph.VUmorph.T list };
+(* selfapps only contains a remapping of boundary vertices and substitution
+   for data. *)
+datatype T = Rule of { lhs : Graph.T,
+                       rhs : Graph.T,
+                       lhs_aut : GraphIso.T list,
+                       selfapps : (Vertex.InjEndo.T*GraphIso.Param.subst) list };
 
-exception bad_rule_exp of string * BangGraph.T * BangGraph.T;
+exception bad_rule_exp of string * Graph.T * Graph.T;
 fun mk (lhs,rhs) = 
-    let val lhsbndry : Vertex.NSet.T = BangGraph.get_boundary lhs in
+    let val lhsbndry : Vertex.NSet.T = Graph.get_boundary lhs in
     (* check that rule is well-formed! *)
-    if Vertex.NSet.eq lhsbndry (BangGraph.get_boundary rhs) then 
+    if Vertex.NSet.eq lhsbndry (Graph.get_boundary rhs) then 
       let (* rename rhs; shared bvertex names, all else is distinct. *)
-        val vrn = Vertex.mk_renaming lhsbndry (BangGraph.get_vnames lhs) 
+        val vrn = Vertex.mk_renaming lhsbndry (Graph.get_vnames lhs) 
                                      Vertex.NTab.empty
         val ern = Edge.mk_renaming Edge.NSet.empty 
-                                   (BangGraph.get_enames lhs) 
+                                   (Graph.get_enames lhs) 
                                    Edge.NTab.empty
-        val (rn, rhs') = BangGraph.rename (vrn,ern) rhs
-        val lhsauts = (Seq.list_of oo BangGraph.get_isomorphisms) lhs lhs
-        val rhsauts = (Seq.list_of oo BangGraph.get_isomorphisms) rhs rhs
-        val lhsba = map (Vertex.InjEndo.restrict_dom_to lhsbndry o fst) lhsauts
-        val rhsba = map (Vertex.InjEndo.restrict_dom_to lhsbndry o fst) rhsauts
-        fun filterorbits (x::xs) os = let val orbit = map (BangGraph.VUmorph.compose x) rhsba 
+        val (rn, rhs') = Graph.rename (vrn,ern) rhs
+        val lhsauts = (Seq.list_of oo GraphIso.get) lhs lhs
+        val rhsauts = (Seq.list_of oo GraphIso.get) rhs rhs
+        val lhsba = map (fn x => ((Vertex.InjEndo.restrict_dom_to lhsbndry o GraphIso.get_vmap) x,GraphIso.get_subst x)) lhsauts
+        val rhsba = map (fn x => ((Vertex.InjEndo.restrict_dom_to lhsbndry o GraphIso.get_vmap) x,GraphIso.get_subst x)) rhsauts
+        (* fetches one representative from the orbit of each LHS aut|boundary
+           under Aut(rhs), using fact that l1~=l2 <-> there exists an r such
+           that r.l2 = l1 *)
+        fun filterorbits (x::xs) os = let val orbit = map ((Vertex.InjEndo.compose (fst x)) o fst) rhsba 
                                           fun eq a b = ((Vertex.NTab.fold 
-                                                         (fn (d,c) => BangGraph.VUmorph.add d c) (BangGraph.VUmorph.get_domtab a) b;true)
-                                                       handle BangGraph.VUmorph.add_exp(_,_,_) => false)
+                                                         (fn (d,c) => Vertex.InjEndo.add d c) (Vertex.InjEndo.get_domtab a) b;true)
+                                                       handle Vertex.InjEndo.add_exp _ => false)
                                           val xs' = filter_out
-                                                      (fn a => exists (eq a) orbit)
+                                                      (fn a => exists (eq (fst a)) orbit)
                                                       xs
                                       in filterorbits xs' (x::os) end
           | filterorbits [] os = os
@@ -115,7 +122,7 @@ fun mk (lhs,rhs) =
 fun rename_interior_vs xvs (avoidvs, avoides, avoidbs) g = 
      let (* rename rhs; shared bvertex names, all else is distinct. *)
         val vrn = Vertex.mk_renaming xvs avoidvs Vertex.NTab.empty
-  in BangGraph.rename (vrn,Edge.Rnm.empty) g  end;
+  in Graph.rename (vrn,Edge.Rnm.empty) g  end;
 *)
 
 (* match anything = no set matching *)
@@ -135,16 +142,16 @@ val set_rhs = update_rhs o K;
 (* THINK: cache this info? *)
 (* 
 fun get_rhs_newnodes r = 
-    let val (lhsns,rhsns) = BangGraph.get_vnames (get_rhs r)
+    let val (lhsns,rhsns) = Graph.get_vnames (get_rhs r)
     in Vertex.NSet.subtract rhsns lhsns end;
 fun get_lhs_delnodes r =
-    let val (lhsns,rhsns) = BangGraph.get_vnames (get_lhs r)
+    let val (lhsns,rhsns) = Graph.get_vnames (get_lhs r)
     in Vertex.NSet.subtract lhsns rhsns  end;
 fun get_rhs_newedges r =
-    let val (lhsns,rhsns) = BangGraph.get_enames (get_rhs r)
+    let val (lhsns,rhsns) = Graph.get_enames (get_rhs r)
     in Edge.NSet.subtract rhsns lhsns end;
 fun get_lhs_deledges r =
-    let val (lhsns,rhsns) = BangGraph.get_enames (get_lhs r)
+    let val (lhsns,rhsns) = Graph.get_enames (get_lhs r)
     in Edge.NSet.subtract lhsns rhsns  end;
 *)
 
@@ -158,7 +165,7 @@ fun symmetric r = mk (get_rhs r, get_lhs r);
 fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
 (* 
     let val init_renaming = 
-        val rhs' = BangGraph.rename_apart
+        val rhs' = Graph.rename_apart
     in
     (case Seq.pull (MatchSearch.match (get_lhs rule) (get_rhs rule) 
                                      MatchSearch.Vertex.NTab.empty)
@@ -169,8 +176,8 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
 fun pretty (Rule rep) = 
     Pretty.chunks 
     [Pretty.block [Pretty.str "Rule: "],
-     Pretty.block [Pretty.str "LHS: ", BangGraph.pretty (#lhs rep)],
-     Pretty.block [Pretty.str "RHS: ", BangGraph.pretty (#rhs rep)]];
+     Pretty.block [Pretty.str "LHS: ", Graph.pretty (#lhs rep)],
+     Pretty.block [Pretty.str "RHS: ", Graph.pretty (#rhs rep)]];
 
 val print = Pretty.writeln o pretty;
 

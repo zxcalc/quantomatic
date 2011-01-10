@@ -100,7 +100,7 @@ functor MatchSearchFun(
                               filter  = get_filter s,
                               forbidden=get_forbidden s});
                               
-  fun keep_if_fixed n a = if Vertex.name_eq (Graph.VUmorph.domf a n, n)
+  fun keep_if_fixed n a = if Vertex.name_eq ((Graph.VUmorph.Entity.InjEndo.domf o Graph.VUmorph.get_injendo) a n, n)
                           then [a]
                           else [];
                           
@@ -109,7 +109,7 @@ functor MatchSearchFun(
                               pattern = get_pattern s,
                               pamorphs = maps (keep_if_fixed (fst f))
                                               (get_pamorphs s),
-                              fixed   = f::(get_fixed s),
+                              fixed   = Seq.cons f (get_fixed s),
                               filter  = get_filter s,
                               forbidden=get_forbidden s});
                               
@@ -124,7 +124,7 @@ functor MatchSearchFun(
   
             
   (* TODO: handle boundary vertices in target *)
-  fun get_single_match_match_next_edge st gs hs otherend = let
+  fun get_single_match_unify_next_edge st gs hs otherend = let
       val (v,e,b) = get_match st
       val g = get_pattern st
       val h = get_target st
@@ -137,26 +137,26 @@ functor MatchSearchFun(
       fun alleqs en1 es2 = Seq.filter (edge_eq en1) 
                                       (Edge.NSet.seq_of es2)
     in case (((Graph.is_boundary g) o (otherend n1)) g) of
-       true => Seq.maps get_single_match_next
+       true => Seq.maps get_single_match_unify_next
                    (Seq.maps (fn n2 => Seq.single
                       MState({match=(v,
                         e |> Graph.EUmorph.add2 g h n1 n2,
                         b |> BndMap.add_to_dom (otherend n1 g) (otherend n2 h)),
-                        fixed = get_fixed st, (* no need to match boundary vertex *)
+                        fixed = get_fixed st, (* no need to unify boundary vertex *)
                         pattern = g |> Graph.delete_vertex (otherend n1 g),
                         target = h |> Graph.delete_edge n2,
                         forbidden = get_forbidden st,
                         filter = get_filter st,
                         pamorphs = get_pamorphs st})
-                       handle Graph.VUmorph.add_exp(_,_,_) => Seq.empty)
+                       handle Graph.VUmorph.add_exp _ => Seq.empty)
                (alleqs n1 hs)) 
-     | false => Seq.maps get_single_match_next
+     | false => Seq.maps get_single_match_unify_next
                    (Seq.maps (fn n2 => Seq.single
                       Match({match=(v |> Graph.VUmorph.add (otherend n1 g) (otherend n2 h),
                         e |> Graph.EUmorph.add2 g h n1 n2,
                         b),
-                       fixed = Seq.append (get_fixed st)  (* push matching of the target vertex of
-                                                             this edge onto the match queue *)
+                       fixed = Seq.append (get_fixed st)  (* push unification of the target vertex of
+                                                             this edge onto the unification queue *)
                        (Seq.single (otherend n1 g,
                                     otherend n2 h)),
                        pattern = g |> Graph.delete_edge n1,
@@ -164,17 +164,23 @@ functor MatchSearchFun(
                        forbidden = get_forbidden st,
                        filter = get_filter st,
                        pamorphs = get_pamorphs st})
-                       handle Graph.VUmorph.add_exp(_,_,_) => Seq.empty)
+                       handle Graph.VUmorph.add_exp _ => Seq.empty)
                (alleqs n1 hs)) end
-  and get_single_match_next st = (case Seq.pull t of
-      (* Nothing to match; start matching new connectivity component *)
+  and get_single_match_unify_next st = (case Seq.pull t of
+      (* Nothing to unify; start unifying new connectivity component *)
       NONE                => let
+         val (v,e,b) = get_match st
+         val g = get_pattern st
+         val h = get_target st
          val gbot = the (Vertex.NSet.get_local_bot (Graph.get_vnames g))
          val hmin = Vertex.NSet.get_min (Graph.get_vnames h)
          fun maketuple n = ((v,e,b),Seq.single (gbot,n),g,h,x);
       in Seq.map maketuple (Vertex.NSet.seq_of (Graph.get_vnames h)) end 
-      (* Something to match; return lazy list of all possible next steps *)
+      (* Something to unify; return lazy list of all possible next steps *)
     | SOME ((vng,vnh),t') => let
+         val (v,e,b) = get_match st
+         val g = get_pattern st
+         val h = get_target st
          (* point undirected edges towards us *)
          fun attract e gr = let
              val ((dir,_),_) = Graph.get_edge gr e
@@ -209,30 +215,30 @@ functor MatchSearchFun(
                         x)
             (* some outgoing edges remaining *)
           | (_,_,false,false) =>
-            get_single_match_match_next_edge (v,e,b) t g h x gout hout esnk
+            get_single_match_unify_next_edge (v,e,b) t g h x gout hout esnk
             (* some incoming edges remaining *)
           | (false,false,_,_) => 
-            get_single_match_match_next_edge (v,e,b) t g h x gin hin esrc
+            get_single_match_unify_next_edge (v,e,b) t g h x gin hin esrc
             (* edge mismatch *)
           | _ => Seq.empty
          else Seq.empty (* Mismatching vertex data or forbidden target *)
        end handle Graph.no_such_vname_exp(_,_,_) (* consequence of multiple edges. 
                                               Vertex has already been successfully
-                                              match; skip. *)
-               => get_single_match_next ((v,e,b),t',g,h,x)
+                                              unified; skip. *)
+               => get_single_match_unify_next ((v,e,b),t',g,h,x)
     ) handle Graph.VUmorph.add_exp(_,_,_) => Seq.empty
   
   (* v,e are working copies of the isomorphism to be constructed;
      t is the queue of vertex pairs in the source and target graph to be
-     matched *)
+     unified *)
   fun get_single_match_sub ((v,e,b),t,g,h,x)
   = case (Graph.is_empty g,Graph.is_empty h) of
       (* pattern graph is empty; done *)
       (true,_) => Seq.single (v,e,b)
-      (* neither graph is empty; get possible next match steps and
+      (* neither graph is empty; get possible next unification steps and
          proceed matching *)
     | (false,false) => Seq.maps get_single_match_sub
-                             (get_single_match_next ((v,e,b),t,g,h,x))
+                             (get_single_match_unify_next ((v,e,b),t,g,h,x))
       (* target graph is empty; no match *)
     | _ => Seq.empty 
   ;
