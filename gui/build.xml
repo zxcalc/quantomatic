@@ -106,7 +106,7 @@
       <zipfileset src="${lib}/jung-graph-impl-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/jung-visualization-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/nanoxml-2.2.3.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/itext.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/iText-5.0.5.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/slf4j-api-1.6.1.jar" excludes="META-INF/**" />
       <!-- See http://www.slf4j.org for info on how to change how logging works -->
       <zipfileset src="${lib}/slf4j-simple-1.6.1.jar" excludes="META-INF/**" />
