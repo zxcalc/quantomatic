@@ -209,12 +209,6 @@ val spanning_dag : T -> T
 val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
 val get_dag_ranks : T -> Vertex.name list list
 
-(* unification morphisms *)
-structure VUmorph : UMORPH;
-sharing VUmorph.Entity.SharingWithData = Vertex.SharingWithData;
-structure EUmorph : UMORPH;
-sharing EUmorph.Entity.SharingWithData = Edge.SharingWithData;
-
 (* copy a set of vertices, copying all adjacent edges. *)
 val copy1_vset : Vertex.NSet.T 
     -> (Vertex.Rnm.T * Edge.Rnm.T) * T 
@@ -885,11 +879,6 @@ fun get_dag_ranks dag = let
 	 of []=>[] | lst => lst :: mk (Vertex.NSet.add_list lst seen)
 in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
 end
-
-(* vertex and edge unification morphisms *)
-structure VUmorph = UmorphFun(Vertex);
-structure EUmorph = UmorphFun(Edge);
-
 
 fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
     let val (e',g') = (* add edge, orient appropriately *)
