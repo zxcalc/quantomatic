@@ -34,6 +34,7 @@ structure Sharing : RULE_SHARING
 sharing Sharing.Name = Name
 sharing Sharing.Graph = Graph.SharingBangGraph
 
+type order
 type T (* rule *)
 
 exception bad_rule_exp of string * Graph.T * Graph.T;
@@ -76,6 +77,51 @@ structure Sharing = struct
   structure Graph = Graph.SharingBangGraph
 end
 
+datatype 'a tree = Tree of ('a * 'a tree list);
+type order = (Vertex.name option * Vertex.name tree) list;
+
+fun keep_if_fixed n a = if Vertex.name_eq ((  Vertex.InjEndo.domf
+                                            o GraphIso.get_vmap) a n, n)
+                        then [a]
+                        else [];
+fun fix v auts = maps (keep_if_fixed v) auts;
+
+fun take_orbit auts vset =
+    let val v   = (the o Vertex.NSet.get_local_bot) vset
+        val orb = fold (fn x => Vertex.NSet.add ((  Vertex.InjEndo.domf
+                                                  o GraphIso.get_vmap) x v))
+                       auts Vertex.NSet.empty
+    in  (v, orb, Vertex.NSet.subtract vset orb) end;
+
+fun gen_order_sub g auts vset =
+    if Vertex.NSet.is_empty vset then (auts,[])
+    else let val (v,orb,rest) = take_orbit auts vset
+             val auts' = fix v auts
+             val (auts'',subtr) = gen_order_sub g auts'
+                                                (Vertex.NSet.delete v orb)
+             val (auts''',tail) = gen_order_sub g auts''
+                                                (Vertex.NSet.subtract vset orb)
+         in  (auts''', Tree (v, subtr)::tail) end;
+                           
+fun gen_order g auts done =
+    let val aset = Graph.incident_vertices g done
+        val (root,vset)=if Vertex.NSet.is_empty aset
+                      then (NONE,Vertex.NSet.subtract (Graph.get_vnames g) done)
+                      else (SOME(Vertex.NSet.intersect done
+                                     ((Graph.adj_vnames g
+                                     o the
+                                     o Vertex.NSet.get_local_bot) aset))
+                             ,aset)
+    in if Vertex.NSet.is_empty vset then []
+    else let
+        val (v,orb,rest) = take_orbit auts vset
+        val auts' = fix v auts
+        val (auts'',subtr) = gen_order_sub g auts'
+                                           (Vertex.NSet.delete v orb) 
+    in (root, Tree(v, subtr))::gen_order g auts''
+                                         (Vertex.NSet.union_merge done orb)
+    end end;
+
 (* selfapps only contains a remapping of boundary vertices and substitution
    for data. *)
 datatype T = Rule of { lhs : Graph.T,
@@ -97,19 +143,25 @@ fun mk (lhs,rhs) =
         val (rn, rhs') = Graph.rename (vrn,ern) rhs
         val lhsauts = (Seq.list_of oo GraphIso.get) lhs lhs
         val rhsauts = (Seq.list_of oo GraphIso.get) rhs rhs
-        val lhsba = map (fn x => ((Vertex.InjEndo.restrict_dom_to lhsbndry o GraphIso.get_vmap) x,GraphIso.get_subst x)) lhsauts
-        val rhsba = map (fn x => ((Vertex.InjEndo.restrict_dom_to lhsbndry o GraphIso.get_vmap) x,GraphIso.get_subst x)) rhsauts
+        val lhsba = map (fn x => ((  Vertex.InjEndo.restrict_dom_to lhsbndry
+                                   o GraphIso.get_vmap) x,GraphIso.get_subst x))
+                        lhsauts
+        val rhsba = map (fn x => ((  Vertex.InjEndo.restrict_dom_to lhsbndry
+                                   o GraphIso.get_vmap) x,GraphIso.get_subst x))
+                        rhsauts
         (* fetches one representative from the orbit of each LHS aut|boundary
            under Aut(rhs), using fact that l1~=l2 <-> there exists an r such
            that r.l2 = l1 *)
-        fun filterorbits (x::xs) os = let val orbit = map ((Vertex.InjEndo.compose (fst x)) o fst) rhsba 
-                                          fun eq a b = ((Vertex.NTab.fold 
-                                                         (fn (d,c) => Vertex.InjEndo.add d c) (Vertex.InjEndo.get_domtab a) b;true)
-                                                       handle Vertex.InjEndo.add_exp _ => false)
-                                          val xs' = filter_out
-                                                      (fn a => exists (eq (fst a)) orbit)
-                                                      xs
-                                      in filterorbits xs' (x::os) end
+        fun filterorbits (x::xs) os =
+            let val orbit = map ((Vertex.InjEndo.compose (fst x)) o fst) rhsba 
+                fun eq a b = ((Vertex.NTab.fold 
+                                      (fn (d,c) => Vertex.InjEndo.add d c)
+                                      (Vertex.InjEndo.get_domtab a) b; true)
+                             handle Vertex.InjEndo.add_exp _ => false)
+                val xs' = filter_out
+                            (fn a => exists (eq (fst a)) orbit)
+                            xs
+            in filterorbits xs' (x::os) end
           | filterorbits [] os = os
       in Rule { lhs = lhs, rhs = rhs',
                 lhs_aut = lhsauts,
