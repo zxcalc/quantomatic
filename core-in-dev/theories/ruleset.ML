@@ -23,9 +23,9 @@ sig
     val get_all_rulesets : (T * bool) NTab.T -> name list
     
     (*val get_rules_in_ruleset : T NTab.T -> name -> (Rule.Name.name * Rule.T * bool) list*)
-    val apply_rules_in : (Rule.Name.name * Rule.T) list -> Rule.RGGraph.BBox.NSet.T -> RGGraph.T -> (Rule.Name.name * Rule.T) Seq.seq
+    val apply_rules_in : (Rule.Name.name * Rule.T) list -> Rule.Graph.BBox.NSet.T -> Graph.T -> (Rule.Name.name * Rule.T) Seq.seq
     val apply_a_rule_in : (Rule.Name.name * Rule.T) list -> NSet.T ->
-                          RGGraph.T -> (Rule.Name.name * Rule.T) Seq.seq
+                          Graph.T -> (Rule.Name.name * Rule.T) Seq.seq
 
     val activate_rule : Rule.Name.name -> T -> T
     val deactivate_rule : Rule.Name.name -> T -> T

@@ -30,7 +30,7 @@ end
 
 signature INPUT_VDATA =
 sig
-  structure V : BVERTEX
+  structure V : OVERTEX
   include INPUT where type outtype = V.IData.data
 end
 

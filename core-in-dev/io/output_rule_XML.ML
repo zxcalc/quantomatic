@@ -1,8 +1,8 @@
 signature OUTPUT_RULE =
 sig
-  structure R : RULE
+  structure R : BASIC_RULE
   structure OG : OUTPUT_GRAPH
-  sharing OG.Graph.SharingBangGraph = R.RGGraph.SharingBangGraph
+  sharing OG.Graph.SharingBangGraph = R.Graph.SharingBangGraph
 	 
   include OUTPUT where type outtype = OG.outtype
 		where type intype = R.Name.name * (R.T * bool)
@@ -11,11 +11,11 @@ end;
 (* ------------------------------------------------------- *)
 
 functor RuleOutputXML (
-	structure Rule : RULE
+	structure Rule : BASIC_RULE
 	structure OutputGraph : OUTPUT_GRAPH
   where type outtype = Pretty.T
-	sharing OutputGraph.Graph.SharingBangGraph = Rule.RGGraph.SharingBangGraph   
-  sharing type OutputGraph.intype = Rule.RGGraph.T
+	sharing OutputGraph.Graph.SharingBangGraph = Rule.Graph.SharingBangGraph   
+  sharing type OutputGraph.intype = Rule.Graph.T
 ) : OUTPUT_RULE
 = struct
   structure R = Rule
@@ -57,72 +57,15 @@ structure RGRuleOutputXML : OUTPUT_RULE
    );
 
 (* -------------------------------------------------------- *)
-
-signature OUTPUT_RULESET =
-sig
-  structure RS : RULESET
-  structure OR : OUTPUT_RULE
-	sharing RS.Rule.Sharing	 = OR.R.Sharing
-
-  include OUTPUT where type outtype = OR.outtype
-		where type intype = RS.Name.name * RS.T * bool
-end
-
-(* -------------------------------------------------------- *)
-
-functor RuleSetOutputXML (
-	structure OutputRule : OUTPUT_RULE
-				  where type outtype = Pretty.T
-  structure RuleSet : RULESET
-  sharing RuleSet.Rule.Sharing = OutputRule.R.Sharing
-  sharing type RuleSet.Rule.T = OutputRule.R.T
-	) : OUTPUT_RULESET
-= 
-struct
-  structure OR = OutputRule
-  structure RS = RuleSet
-  
-  type intype = RS.Name.name * RS.T * bool 
-  type outtype = Pretty.T
-
-  fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]	    
-
-  fun output (setname, rules, active) =
-      let val activestring = if (active) then "true" else "false"
-      in
-      Pretty.chunks [ Pretty.str "<ruleset>", 
-           Pretty.str "<name>",
-           RS.Name.pretty_name setname,
-           Pretty.str "</name>",
-           Pretty.str "<active>",
-           Pretty.str activestring,
-           Pretty.str "</active>",
-		      indent_chunks (map OR.output (RS.Rule.Name.NTab.list_of rules)),
-		      Pretty.str "</ruleset>",
-		      Pretty.str ""
-		    ]
-       end
-
-end;
-
-(* -------------------------------------------------------- *)
-
-structure RGRuleSetOutputXML : OUTPUT_RULESET
- = RuleSetOutputXML(
-    structure OutputRule = RGRuleOutputXML
-    structure RuleSet = RuleSet
-   );
-
-(* -------------------------------------------------------- *)
 (* -------- REWRITES ARE MUCH LIKE RULES -------------------*)
 (* -------------------------------------------------------- *)
 
 
 signature OUTPUT_REWRITE =
 sig
-  structure R : RULE
+  structure R : BASIC_RULE
   structure OG : OUTPUT_GRAPH
-  sharing OG.Graph.SharingBangGraph = R.RGGraph.SharingBangGraph
+  sharing OG.Graph.SharingBangGraph = R.Graph.SharingBangGraph
 		 
   include OUTPUT where type outtype = OG.outtype
 		where type intype = R.Name.name * R.T * OG.Graph.T
@@ -131,12 +74,12 @@ end
 (* -------------------------------------------------------- *)
 
 functor RewriteOutputXML (
-	structure Rule : RULE
+	structure Rule : BASIC_RULE
 	structure OutputGraph : OUTPUT_GRAPH
 				  where type outtype = Pretty.T
-	sharing OutputGraph.Graph.SharingBangGraph = Rule.RGGraph.SharingBangGraph
+	sharing OutputGraph.Graph.SharingBangGraph = Rule.Graph.SharingBangGraph
   (* FIXME: why do I need this, I think it should be implied by the above and def of output graph... *)
-  sharing type OutputGraph.intype = Rule.RGGraph.T
+  sharing type OutputGraph.intype = Rule.Graph.T
 	) : OUTPUT_REWRITE
 = 
 struct

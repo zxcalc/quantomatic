@@ -39,8 +39,21 @@ PolyML.Project.make "expressions/linrat_expr.ML";
 PolyML.Project.make "theories/red_green/rg_vertex.ML";
 PolyML.Project.make "theories/red_green/rg_graph.ML";
 
+(* output/input tools *)
+PolyML.Project.make "io/input.ML";
+PolyML.Project.make "io/output.ML";
+PolyML.Project.make "io/xml_utils.ML";
+PolyML.Project.make "io/reader.ML";
+PolyML.Project.make "io/writer.ML";
+
+PolyML.Project.make "io/input_graph_xml.ML";
+PolyML.Project.make "io/output_graph_XML.ML";
+PolyML.Project.make "io/loadsave_graph.ML";
+
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
+PolyML.Project.make "io/output_rule_XML.ML";
+PolyML.Project.make "io/input_rule_xml.ML";
 
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
@@ -58,27 +71,19 @@ PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 (* automorphism reduced search for matches *)
 PolyML.Project.make "matching/autocut_match_search.ML"; 
 
+(* **** *)
 (* generic rules *)
 PolyML.Project.make "rewriting/rewrite.ML";
 
+(* **** *)
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";
+PolyML.Project.make "io/output_ruleset_XML.ML";
+PolyML.Project.make "io/input_ruleset_XML.ML";
 
-(* output/input tools *)
-PolyML.Project.make "io/output.ML";
-PolyML.Project.make "io/output_XML.ML";
-PolyML.Project.make "io/output_rule_XML.ML";
-(*PolyML.Project.make "output_dot.ML";*)
-PolyML.Project.make "io/xml_utils.ML";
-PolyML.Project.make "io/input.ML";
-PolyML.Project.make "io/input_graph_xml.ML";
-PolyML.Project.make "io/input_rule_xml.ML";
-PolyML.Project.make "io/reader.ML";
-PolyML.Project.make "io/writer.ML";
-PolyML.Project.make "io/loadsave.ML";
 
-(* more expression code; this time derived from graphs *)
-PolyML.Project.make "expressions/alg.ML"; (* general algebraic expression things *)
+(* more expression code; this time expresions derived from graphs *)
+PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
 
 (* interface protocol *)

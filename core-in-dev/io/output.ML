@@ -23,8 +23,12 @@ sig
   val output_edges : graph ->   outtype	      
   val output_vertices : graph ->   outtype
   val output_bboxes : graph -> outtype
-  val output_edge  : (ename * (edge * (vname * vname))) -> outtype
-  val output_vertex  : (vname * (vertex * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) -> outtype 
+  val output_edge  : (ename * ((Graph.dir_or_undir * edge) * (vname * vname)))
+                     -> outtype
+  val output_vertex : (vname 
+                       * (vertex 
+                       * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) 
+                    -> outtype 
   val output_bbox : graph -> bboxname -> outtype
 
 end
@@ -32,7 +36,7 @@ end
 
 signature OUTPUT_VDATA =
 sig 
-  structure V : BVERTEX
+  structure V : OVERTEX
   include OUTPUT where type intype = V.IData.data
 end
 

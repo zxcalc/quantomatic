@@ -1,8 +1,5 @@
-(*
-
-Outputs an XML representation of a graph using Pretty.
-TODO : recode using XML directly
-
+(* Outputs an XML representation of a graph using Pretty.
+   TODO : recode using XML directly
 *)
 
 functor GraphOutputXML (structure Graph : BANG_GRAPH
@@ -63,13 +60,17 @@ functor GraphOutputXML (structure Graph : BANG_GRAPH
 		    Pretty.chunks (map output_vertex (Graph.get_vertex_list g))
 		   ];
 
-  fun output_edge (name,(edata, (src_vertex, target_vertex))) 
-    = Pretty.chunks [Pretty.str "<edge>",
+  fun output_edge (name,((dir,edata), (src_vertex, target_vertex))) =
+      Pretty.chunks [Pretty.str "<edge>",
 		     Pretty.block [
 		     Pretty.str "  ",
 		     Pretty.str "<name>",
 		     Graph.Edge.pretty_name name,
 		     Pretty.str "</name>",
+		     Pretty.str "<directed>",
+		     Pretty.str (case dir of Graph.Directed => "True" 
+		                           | Graph.UnDirected => "False"),
+		     Pretty.str "</directed>",
 		     Pretty.str "<source>",
 		     Graph.Vertex.pretty_name src_vertex,
 		     Pretty.str "</source>",
@@ -134,6 +135,7 @@ struct
   structure V = Graph.RGVertex;
   type intype = V.IData.data;
   type outtype = Pretty.T list
+  structure VName = LinratExpr.VName;
 
 val colourRed = Pretty.str "<colour>red</colour>";
 val colourGreen = Pretty.str "<colour>green</colour>";
@@ -212,9 +214,6 @@ struct
 end
 
 (*-------------------------------------------------------*)
-
-
-
 structure RGGraphOutputXML : OUTPUT_GRAPH
   = GraphOutputXML (
     structure Graph = RGGraph

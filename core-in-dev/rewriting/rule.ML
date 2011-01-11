@@ -1,60 +1,49 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(* rules for rewriting graphs *)
+(*   Rules for rewriting graphs *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 (* 
-
- IDEA: use matching to find symmetries in lhs and rhs: find how many
-ways a rule can rewrite a graph in the same way. Do this by matching a
-graph with itself, with the extra initial matching agenda of boundary
-nodes must match boundary nodes. Results in symmetric rewrites. 
-
-QUESTION: are any axioms non-symmetric in application? Do all rewrites
-necessarily rewrite symmetrically? or can you have lhs symmetries
-without the rhs ones? (yes in general, but what about quantum
-computation?)
-
+    We store the lhs, rhs, lhs-automorphisms, and the computed rule-automorphisms. 
 *)
 
 signature RULE_SHARING =
 sig
-  structure Name : NAMES_SHARING
+  structure Name : NAMES_SHARING (* names of rules *)
   structure Graph : BANG_GRAPH_SHARING
-  (*structure MatchSearch : MATCH_SEARCH_SHARING *)
 end
- 
+
+signature BASIC_RULE 
+= sig
+  structure Name : SSTR_NAMES
+  structure Graph : BANG_GRAPH
+  structure GraphIso : BANG_GRAPH_ISO
+  
+  structure Sharing : RULE_SHARING
+  sharing Sharing.Name = Name
+  sharing Sharing.Graph = Graph.SharingBangGraph
+  
+  type T (* rule *)
+  
+  exception bad_rule_exp of string * Graph.T * Graph.T;
+  val mk : (Graph.T * Graph.T) -> T;
+  
+  val get_lhs : T -> Graph.T
+  val get_rhs : T -> Graph.T
+  
+  (* swaps lhs and rhs *)
+  val symmetric : T -> T
+  
+  (* rule is a trivial identity : lhs matches rhs *)
+  val is_trivial : T -> bool
+  
+  val pretty : T -> Pretty.T
+  val print : T -> unit
+end;
 
 signature RULE 
 = sig
-
-structure Name : SSTR_NAMES
-structure Graph : BANG_GRAPH
-structure GraphIso : BANG_GRAPH_ISO
-
-structure Sharing : RULE_SHARING
-sharing Sharing.Name = Name
-sharing Sharing.Graph = Graph.SharingBangGraph
-
-type order
-type T (* rule *)
-
-exception bad_rule_exp of string * Graph.T * Graph.T;
-val mk : (Graph.T * Graph.T) -> T;
-
-val get_lhs : T -> Graph.T
-val get_rhs : T -> Graph.T
-
-(* swaps lhs and rhs *)
-val symmetric : T -> T
-
-(* rule is a trivial identity : lhs matches rhs *)
-val is_trivial : T -> bool
-
-val pretty : T -> Pretty.T
-val print : T -> unit
-
-
+  include BASIC_RULE
+  (* TODO add stuff specific to automorphisms of rules *)
 end;
-
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor RuleFun( Graph : BANG_GRAPH )
