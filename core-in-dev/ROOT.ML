@@ -59,9 +59,11 @@ PolyML.Project.make "io/input_rule_xml.ML";
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
 
-(* niave match search implementation, find symmetric cases *)
+(* naive match search implementation, find symmetric cases *)
 PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
+
+PolyML.Project.make "matching/symmetry_match_search.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)

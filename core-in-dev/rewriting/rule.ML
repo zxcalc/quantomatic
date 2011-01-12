@@ -22,12 +22,14 @@ signature BASIC_RULE
   sharing Sharing.Graph = Graph.SharingBangGraph
   
   type T (* rule *)
+  datatype 'a tree = Tree of ('a * 'a tree list);
   
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
   
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
+  val get_order : T -> (Graph.Vertex.name option * Graph.Vertex.name tree) list
   
   (* swaps lhs and rhs *)
   val symmetric : T -> T
@@ -96,7 +98,9 @@ fun gen_order g auts done =
     let val aset = Graph.incident_vertices g done
         val (root,vset)=if Vertex.NSet.is_empty aset
                       then (NONE,Vertex.NSet.subtract (Graph.get_vnames g) done)
-                      else (SOME(Vertex.NSet.intersect done
+                      else (SOME((the (* must be nonempty by adjacency *)
+                                 o Vertex.NSet.get_local_bot
+                                oo Vertex.NSet.intersect) done
                                      ((Graph.adj_vnames g
                                      o the
                                      o Vertex.NSet.get_local_bot) aset))
@@ -116,7 +120,9 @@ fun gen_order g auts done =
 datatype T = Rule of { lhs : Graph.T,
                        rhs : Graph.T,
                        lhs_aut : GraphIso.T list,
-                       selfapps : (Vertex.InjEndo.T*GraphIso.Param.subst) list };
+                       selfapps : (Vertex.InjEndo.T*GraphIso.Param.subst) list,
+                       order : (Vertex.name option * Vertex.name tree) list
+                     };
 
 exception bad_rule_exp of string * Graph.T * Graph.T;
 fun mk (lhs,rhs) = 
@@ -154,7 +160,8 @@ fun mk (lhs,rhs) =
           | filterorbits [] os = os
       in Rule { lhs = lhs, rhs = rhs',
                 lhs_aut = lhsauts,
-                selfapps = filterorbits lhsba [] } end
+                selfapps = filterorbits lhsba [],
+                order = gen_order lhs lhsauts Vertex.NSet.empty } end
     else
       raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
     end;
@@ -171,11 +178,12 @@ fun rename_interior_vs xvs (avoidvs, avoides, avoidbs) g =
 
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
+fun get_order (Rule rep) = #order rep;
 
 fun update_lhs f (Rule rep) = 
-    Rule { lhs = f (#lhs rep), rhs = #rhs rep, lhs_aut = #lhs_aut rep, selfapps = #selfapps rep };
+    Rule { lhs = f (#lhs rep), rhs = #rhs rep, lhs_aut = #lhs_aut rep, selfapps = #selfapps rep, order = #order rep };
 fun update_rhs f (Rule rep) = 
-    Rule { lhs = #lhs rep, rhs = f (#rhs rep), lhs_aut = #lhs_aut rep, selfapps = #selfapps rep };
+    Rule { lhs = #lhs rep, rhs = f (#rhs rep), lhs_aut = #lhs_aut rep, selfapps = #selfapps rep, order = #order rep };
 
 val set_lhs = update_lhs o K;
 val set_rhs = update_rhs o K;
