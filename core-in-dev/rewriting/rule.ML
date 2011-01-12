@@ -23,13 +23,18 @@ signature BASIC_RULE
   
   type T (* rule *)
   datatype 'a tree = Tree of ('a * 'a tree list);
+  datatype constr   =   Constrained
+                      | Arbitrary
+  datatype 'a otype =   Initial of constr
+                      | Rooted of constr * 'a
+                      | Boundary of 'a;
   
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
   
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
-  val get_order : T -> (Graph.Vertex.name option * Graph.Vertex.name tree) list
+  val get_order : T -> (Graph.Vertex.name otype * Graph.Vertex.name tree) list
   
   (* swaps lhs and rhs *)
   val symmetric : T -> T
@@ -70,6 +75,11 @@ end
 
 datatype 'a tree = Tree of ('a * 'a tree list);
 type order = (Vertex.name option * Vertex.name tree) list;
+datatype constr   =   Constrained
+                    | Arbitrary
+datatype 'a otype =   Initial of constr
+                    | Rooted of constr * 'a
+                    | Boundary of 'a;
 
 fun keep_if_fixed n a = if Vertex.name_eq ((  Vertex.InjEndo.domf
                                             o GraphIso.get_vmap) a n, n)
@@ -94,10 +104,12 @@ fun gen_order_sub g auts vset =
                                                 (Vertex.NSet.subtract vset orb)
          in  (auts''', Tree (v, subtr)::tail) end;
                            
-fun gen_order g auts done =
+fun gen_order g auts done bound =
     let val aset = Graph.incident_vertices g done
         val (root,vset)=if Vertex.NSet.is_empty aset
-                      then (NONE,Vertex.NSet.subtract (Graph.get_vnames g) done)
+                      then (NONE,Graph.get_vnames g
+                                 |> Vertex.NSet.remove_set done
+                                 |> Vertex.NSet.remove_set (Graph.get_boundary g))
                       else (SOME((the (* must be nonempty by adjacency *)
                                  o Vertex.NSet.get_local_bot
                                 oo Vertex.NSet.intersect) done
@@ -106,14 +118,32 @@ fun gen_order g auts done =
                                      o Vertex.NSet.get_local_bot) aset))
                              ,aset)
     in if Vertex.NSet.is_empty vset then []
-    else let
-        val (v,orb,rest) = take_orbit auts vset
-        val auts' = fix v auts
-        val (auts'',subtr) = gen_order_sub g auts'
-                                           (Vertex.NSet.delete v orb) 
-    in (root, Tree(v, subtr))::gen_order g auts''
+    else case root of NONE => let val vsetb = Vertex.NSet.intersect vset bound
+                                  val (vset,typ) = if Vertex.NSet.is_empty vsetb
+                                                 then (vset,Initial Arbitrary)
+                                                 else (vsetb,Initial Constrained)
+                                  val (v,orb,_) = take_orbit auts vset
+                                  val auts' = fix v auts
+                                  val bound' = Vertex.NSet.union_merge bound orb
+                              in   (typ,Tree(v,[]))
+                                 ::gen_order g auts'
+                                             (Vertex.NSet.add v done) bound' 
+                              end
+                  | SOME x => let val (v,orb,rest) = take_orbit auts vset
+                                  val auts' = fix v auts
+                                  val (auts'',subtr)
+                                      = gen_order_sub g auts'
+                                                      (Vertex.NSet.delete v orb) 
+                              in (  if      Vertex.NSet.contains bound v
+                                  then Rooted (Constrained,x)
+                                  else   if Graph.is_boundary g v
+                                       then Boundary x
+                                       else Rooted (Arbitrary,x),
+                                  Tree(v, subtr))::gen_order g auts''
                                          (Vertex.NSet.union_merge done orb)
-    end end;
+                                         bound
+                              end
+    end;
 
 (* selfapps only contains a remapping of boundary vertices and substitution
    for data. *)
@@ -121,7 +151,7 @@ datatype T = Rule of { lhs : Graph.T,
                        rhs : Graph.T,
                        lhs_aut : GraphIso.T list,
                        selfapps : (Vertex.InjEndo.T*GraphIso.Param.subst) list,
-                       order : (Vertex.name option * Vertex.name tree) list
+                       order : (Vertex.name otype * Vertex.name tree) list
                      };
 
 exception bad_rule_exp of string * Graph.T * Graph.T;
@@ -161,7 +191,8 @@ fun mk (lhs,rhs) =
       in Rule { lhs = lhs, rhs = rhs',
                 lhs_aut = lhsauts,
                 selfapps = filterorbits lhsba [],
-                order = gen_order lhs lhsauts Vertex.NSet.empty } end
+                order = gen_order lhs lhsauts
+                                  Vertex.NSet.empty Vertex.NSet.empty } end
     else
       raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
     end;

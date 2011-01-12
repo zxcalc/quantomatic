@@ -1,4 +1,12 @@
-
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+(*  Symmetry-aware matching *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+(*
+  This matching algorithm generates only distinct (under symmetry)
+  matches of the pattern in the target graph.
+  
+  FIXME: !box support needed.
+*)
 
 signature MATCH_SEARCH
 = sig
@@ -40,58 +48,60 @@ functor MatchSearchFun(
          MState of 
          {
           match : Match.T,
-          c_verts : V.name Seq.seq,
-          r_verts : V.name Seq.seq,
+          lb : Vertex.name,
           pat : G.T,
           tgt : G.T,
-          order : (Vertex.name option * Vertex.name Rule.tree) list,
-          avail : V.NSet.T
+          order : (Vertex.name Rule.otype * Vertex.name Rule.tree) list,
+          avail : V.NSet.T,
+          constr : Rule.constr
          }
   
   fun get_match (MState rep) = #match rep;
+  fun get_lower_bound (MState rep) = #lb rep;
   fun get_pattern (MState rep) = #pat rep;
   fun get_target (MState rep) = #tgt rep;
   fun get_avail (MState rep) = #avail rep;
   fun get_order (MState rep) = #order rep;
+  fun get_constr (MState rep) = #constr rep;
          
   fun update_match f (MState rep) = MState { match = f (#match rep),
-                                             c_verts = #c_verts rep,
-                                             r_verts = #r_verts rep,
+                                             lb = #lb rep,
                                              pat = #pat rep,
                                              tgt = #tgt rep,
                                              order = #order rep,
-                                             avail = #avail rep }
+                                             avail = #avail rep,
+                                             constr = #constr rep}
   fun update_avail f (MState rep) = MState { match = #match rep,
-                                             c_verts = #c_verts rep,
-                                             r_verts = #r_verts rep,
+                                             lb = #lb rep,
                                              pat = #pat rep,
                                              tgt = #tgt rep,
                                              order = #order rep,
-                                             avail = f (#avail rep) }
+                                             avail = f (#avail rep),
+                                             constr = #constr rep }
                                              
-  fun set_c_verts e (MState rep) = MState { match = #match rep,
-                                            c_verts = e,
-                                            r_verts = #r_verts rep,
+  fun set_lower_bound e (MState rep) = MState { match = #match rep,
+                                            lb = e,
                                             pat = #pat rep,
                                             tgt = #tgt rep,
                                             order = #order rep,
-                                            avail = #avail rep }
-
-  fun set_r_verts e (MState rep) = MState { match = #match rep,
-                                            c_verts = #c_verts rep,
-                                            r_verts = e,
-                                            pat = #pat rep,
-                                            tgt = #tgt rep,
-                                            order = #order rep,
-                                            avail = #avail rep }
-                                            
+                                            avail = #avail rep,
+                                            constr = #constr rep }
+                       
   fun set_order e (MState rep) = MState { match = #match rep,
-                                          c_verts = #c_verts rep,
-                                          r_verts = #r_verts rep,
+                                          lb = #lb rep,
                                           pat = #pat rep,
                                           tgt = #tgt rep,
                                           order = e,
-                                          avail = #avail rep }
+                                          avail = #avail rep,
+                                          constr = #constr rep }
+                                          
+  fun set_constr e (MState rep) = MState { match = #match rep,
+                                          lb = #lb rep,
+                                          pat = #pat rep,
+                                          tgt = #tgt rep,
+                                          order = #order rep,
+                                          avail = #avail rep,
+                                          constr = e }
                                             
                                             
   fun map2 f g p xq =
@@ -108,12 +118,22 @@ functor MatchSearchFun(
       | SOME (x, xq') => SOME (f (x,xq'), map' f xq')));
   fun maps' f = Seq.flat o map' f;
                                             
-  fun match_vertex vp vt st =
+  fun match_vertex vp vt st = if (get_constr st)=Rule.Constrained
+                         andalso V.name_ord (vt,get_lower_bound st)=LESS
+                            then Seq.empty
+                            else
       let val dp = BangGraph.get_vertex_data (get_pattern st) vp
           val dt = BangGraph.get_vertex_data (get_target st) vt
-      in (Pretty.writeln (Pretty.block [V.pretty_name vp, Pretty.str " -> ", V.pretty_name vt]);
-          Seq.single (st |> update_match (Match.match_vertex (vp,dp) (vt,dt))
-                         |> update_avail (V.NSet.delete vt) ) )
+      in (Pretty.writeln (Pretty.block [V.pretty_name vp, Pretty.str " -> ", V.pretty_name vt,
+                                        Pretty.str (if (get_constr st)=Rule.Constrained then " C: " else " U: "),
+                                        V.pretty_name (get_lower_bound st)]);
+          (* note: without this check, we get classical subgraphs 
+             (square is subgraph of K_4 etc.) *)
+          if (G.get_arity (get_pattern st) vp)=(G.get_arity (get_target st) vt)
+          then Seq.single (st |> update_match (Match.match_vertex (vp,dp)
+                                                                  (vt,dt))
+                              |> update_avail (V.NSet.delete vt) ) 
+          else Seq.empty )
       end handle Match.match_exp _ => Seq.empty;
       
   fun match_edge ep et st =
@@ -127,12 +147,13 @@ functor MatchSearchFun(
     | zip [] [] = []
     | zip _ _ = raise zip_exp ();
       
+  (* ASSUME all edges interchangeable *)
   fun match_edgeset ps ts st =
       let val plist = E.NSet.list_of ps
           val tlist = E.NSet.list_of ts
-      in fold (fn x => Seq.maps (uncurry match_edge x)) (zip plist tlist)
+      in fold (fn x => Seq.maps (uncurry match_edge x)) (plist ~~ tlist)
                                                         (Seq.single st)
-      end handle zip_exp () => Seq.empty;
+      end handle Library.UnequalLengths => Seq.empty;
 
   fun edge_classes_between g v1 v2 =
       let val (ins1,outs1,undir1) = G.adj_edge_classes g v1
@@ -165,9 +186,30 @@ functor MatchSearchFun(
                      targets
                      (st |> match_vertex vp vt)
       end;
+      
+  fun bind bvp eht st =
+      let val ehp =(  E.Ehn.other
+                    o the o E.Ehn.NSet.get_local_bot
+                    o G.get_vname_ehns (get_pattern st)) bvp
+          val vt  =(  G.get_ehn_vname (get_target st)
+                    o E.Ehn.other) eht
+          val ((dt,Dt),(_,_)) = G.get_edge (get_target  st) (E.Ehn.get_ename eht)
+          val ((dp,Dp),(_,_)) = G.get_edge (get_pattern st) (E.Ehn.get_ename ehp)
+      in  Seq.single (
+          st |> update_match (case (dt,dp) of
+            (G.Directed,G.Directed)     => (  Match.dir_match_edgehalf (ehp,Dp)
+                                                                       (eht,Dt)
+                                            o Match.match_boundary bvp vt)
+          | (G.UnDirected,G.UnDirected) => (  Match.match_edgehalf (ehp,Dp)
+                                                                   (eht,Dt)
+                                            o Match.match_boundary bvp vt)
+          | _                           => raise Match.match_exp () ))
+          handle Match.match_exp _ => Seq.empty
+      end;
 
   (* NONE-rooted orbit. vertex -> state -> state Seq.seq *)
-  fun traverse_first v st = Seq.maps (fn x => match_vertex v x st)
+  fun traverse_first v st = Seq.maps (fn x => st |> match_vertex v x
+                                                 |> Seq.map (set_lower_bound x))
                                      (V.NSet.seq_of (get_avail st));
   
   (* need: current_eset, return_eset in state *)
@@ -184,27 +226,45 @@ functor MatchSearchFun(
                            |> G.adj_vnames (get_target st)
                            |> V.NSet.intersect (get_avail st)
                            |> V.NSet.seq_of
-      in traverse_next' tree root adjac 
-                       (st |> set_c_verts adjac
-                           |> set_r_verts adjac)
+      in traverse_next' tree root adjac st
+      end;
+      
+  (* need: current_eset, return_eset in state *)
+  (* SOME-rooted orbit. tree -> vertex -> state -> state Seq.seq *)
+  fun traverse_boundary' (Rule.Tree(r,sub)) root adj st =
+      let fun descend (t::ts) adj' st = Seq.maps (descend ts adj')
+                                                 (traverse_boundary' t root
+                                                                     adj' st)
+            | descend _ _ st = Seq.single st
+          fun select ts (x,xq) = Seq.maps (descend ts xq) (bind r x st)
+      in maps' (select sub) adj end;
+  
+  fun traverse_boundary tree root st = 
+      let val adjac = root |> V.InjEndo.domf (Match.get_viso (get_match st))
+                           |> G.get_vname_ehns (get_target st)
+                           |> E.Ehn.NSet.seq_of
+      in traverse_boundary' tree root adjac st
       end;
   
   fun match' st = if ((length o get_order) st)=0 then Seq.single (get_match st) else
       let val (root,tree as Rule.Tree(v1,_))::oes = get_order st
           val st = st |> set_order oes
-      in Seq.maps match' (case root of NONE => traverse_first v1 st
-                                     | _    => traverse_next tree (the root) st)
+      in Seq.maps match'
+                  (case root of
+                     Rule.Initial   c  => traverse_first v1 (set_constr c st)
+                   | Rule.Rooted (c,r) => traverse_next tree r (set_constr c st)
+                   | Rule.Boundary  r  => traverse_boundary tree r st)
       end; 
   
   fun match names rule g = match' (MState({match = Match.init names
                                                              (Rule.get_lhs rule)
                                                              g,
-                                         c_verts = Seq.empty,
-                                         r_verts = Seq.empty,
+                                              lb = Vertex.default_name,
                                              pat = Rule.get_lhs rule,
                                              tgt = g,
                                            order = Rule.get_order rule,
-                                           avail = G.get_vnames g }));
+                                           avail = G.get_vnames g,
+                                          constr = Rule.Arbitrary }));
   
 end;
 

@@ -199,6 +199,8 @@ val succ_vnames : T -> Vertex.name -> Vertex.NSet.T
 
 val get_adj_arities : T -> Vertex.name -> Arity.T Vertex.NTab.T
 
+val get_arity : T -> Vertex.name -> Arity.T
+
 (* depth-first traversal *)
 val dft : (Edge.name -> 'a -> 'a) -> T -> 'a -> 'a
 val dft_with_roots : (Edge.name -> 'a -> 'a) -> T -> 'a -> ('a * Vertex.NSet.T)
@@ -933,7 +935,14 @@ fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
       in 
         fold_adj add_one_arity g n Vertex.NTab.empty
       end;
-  
+      
+  fun get_arity g n =
+      let   
+        fun add_one_arity e n2 arity =
+            add_edge_to_arity e arity
+      in 
+        fold_adj add_one_arity g n Arity.zero
+      end;
 
 end; (* local -- hides opened Graph data types *)
 end;
