@@ -255,11 +255,9 @@ functor MatchSearchFun(
       end;
   
   (* Traverse the head of the order tree, then proceed to traverse its tail. *)
-  (* IMPROVE: better to use case statement case l of [] => ... | (h::t) => ...*)
-  fun match' st = if ((length o get_order) st)=0
-                then Seq.single (get_match st) else
-      let val (root,tree as Rule.Tree(v1,_))::oes = get_order st
-          val st = st |> set_order oes
+  fun match' st = case get_order st of [] => Seq.single (get_match st)
+    | (root,tree as Rule.Tree(v1,_))::oes =>
+      let val st = st |> set_order oes
       in Seq.maps match'
                   (case root of
                      Rule.Initial   c  => traverse_initial v1 (set_constr c st)
