@@ -4,7 +4,7 @@
 (*
     This is a simple algorithm that traverses the pat in a fixed order, searching for locations in the target that it can match to. The algorithm tries to match up edges and vertices in all ways possible. This results in many symmertic matches. The algorithm is also rather inefficient in the way it explores expansions of bang-boxes: it tries all expansions next to the vertex being examined such that it has the right arity w.r.t. to the considered vertex in the target.
 
-    FIXME: The algorithm is complete w.r.t. bangboxes: if all vertecies in a component are in !-boxes, then the algorithm simply drop all bang-boxes.  
+    FIXME: The algorithm is complete w.r.t. bangboxes: if all vertices in a component are in !-boxes, then the algorithm simply drop all bang-boxes.  
 *)
 signature SIMPLE_MATCH_SEARCH
 = sig

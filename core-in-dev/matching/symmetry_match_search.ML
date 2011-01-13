@@ -22,7 +22,9 @@ signature MATCH_SEARCH
   sharing Vertex.SharingWithIData = BangGraph.OVertex.SharingWithIData;
   sharing Edge.EdgeSharingWithData = BangGraph.Edge.EdgeSharingWithData;
   
-  
+  val match :    (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
+              -> Rule.T -> BangGraph.T
+              -> Match.T Seq.seq
   
 end;
 
@@ -111,13 +113,17 @@ functor MatchSearchFun(
       | SOME (x, xq') => SOME (f p x, map2 f g (g p x) xq')));
   fun maps2 f = Seq.flat ooo map2 f; 
   
+  (* Like Seq.map, except it also passes the tail of the Seq. *)
   fun map' f xq =
     Seq.make (fn () =>
       (case Seq.pull xq of
         NONE => NONE
       | SOME (x, xq') => SOME (f (x,xq'), map' f xq')));
   fun maps' f = Seq.flat o map' f;
-                                            
+   
+  (* Matches two vertices in the state. If a lower bound is set and the
+     orbit is constrained,
+     it will reject any target vertex below it. *) 
   fun match_vertex vp vt st = if (get_constr st)=Rule.Constrained
                          andalso V.name_ord (vt,get_lower_bound st)=LESS
                             then Seq.empty
@@ -127,15 +133,16 @@ functor MatchSearchFun(
       in (Pretty.writeln (Pretty.block [V.pretty_name vp, Pretty.str " -> ", V.pretty_name vt,
                                         Pretty.str (if (get_constr st)=Rule.Constrained then " C: " else " U: "),
                                         V.pretty_name (get_lower_bound st)]);
-          (* note: without this check, we get classical subgraphs 
-             (square is subgraph of K_4 etc.) *)
+          (* note: without this check, we get (almost) classical subgraphs 
+             (square is subgraph of pyramid etc. - not quite K_4 yet) *)
           if (G.get_arity (get_pattern st) vp)=(G.get_arity (get_target st) vt)
           then Seq.single (st |> update_match (Match.match_vertex (vp,dp)
                                                                   (vt,dt))
                               |> update_avail (V.NSet.delete vt) ) 
           else Seq.empty )
       end handle Match.match_exp _ => Seq.empty;
-      
+  
+  (* Matches two edges. *)
   fun match_edge ep et st =
       let val dp = BangGraph.get_edge_data (get_pattern st) ep
           val dt = BangGraph.get_edge_data (get_target st) et
@@ -148,6 +155,7 @@ functor MatchSearchFun(
     | zip _ _ = raise zip_exp ();
       
   (* ASSUME all edges interchangeable *)
+  (* Matches two sets of edges, assumed to point in the same direction. *)
   fun match_edgeset ps ts st =
       let val plist = E.NSet.list_of ps
           val tlist = E.NSet.list_of ts
@@ -163,10 +171,8 @@ functor MatchSearchFun(
           E.NSet.intersect undir1 undir2)
       end;
       
-  (* Something like vertex -> state -> state Seq.seq;
-     given a vertex to be added to a state, find all ways of matching up all
-     the edges going from that vertex back into already-matched areas,
-     possibly none. Can also perform data-matching. *)
+  (* Matches vp with vt and matches all edges between the identified
+     vertices and other already-matched vertices. *)
   fun anchor vp vt st =
       let val targets = V.NSet.intersect (G.adj_vnames (get_pattern st) vp)
                                          ((V.InjEndo.get_domset
@@ -186,7 +192,8 @@ functor MatchSearchFun(
                      targets
                      (st |> match_vertex vp vt)
       end;
-      
+  
+  (* Matches a boundary vertex bvp against a half-edge eht. *)
   fun bind bvp eht st =
       let val ehp =(  E.Ehn.other
                     o the o E.Ehn.NSet.get_local_bot
@@ -207,30 +214,31 @@ functor MatchSearchFun(
           handle Match.match_exp _ => Seq.empty
       end;
 
-  (* NONE-rooted orbit. vertex -> state -> state Seq.seq *)
-  fun traverse_first v st = Seq.maps (fn x => st |> match_vertex v x
-                                                 |> Seq.map (set_lower_bound x))
-                                     (V.NSet.seq_of (get_avail st));
+  (* Match an initial orbit = vertex, setting it as a new lower bound. *)
+  fun traverse_initial v st = Seq.maps (fn x => st |> match_vertex v x
+                                                   |> Seq.map (set_lower_bound x))
+                                       (V.NSet.seq_of (get_avail st));
   
-  (* need: current_eset, return_eset in state *)
-  (* SOME-rooted orbit. tree -> vertex -> state -> state Seq.seq *)
-  fun traverse_next' (Rule.Tree(r,sub)) root adj st =
+  (* Traverse a rooted orbit tree and match all of it against
+     target graph vertices. *)
+  fun traverse_rooted' (Rule.Tree(r,sub)) root adj st =
       let fun descend (t::ts) adj' st = Seq.maps (descend ts adj')
-                                                 (traverse_next' t root adj' st)
+                                                 (traverse_rooted' t root
+                                                                   adj' st)
             | descend _ _ st = Seq.single st
           fun select ts (x,xq) = Seq.maps (descend ts xq) (anchor r x st)
       in maps' (select sub) adj end;
   
-  fun traverse_next tree root st = 
+  fun traverse_rooted tree root st = 
       let val adjac = root |> V.InjEndo.domf (Match.get_viso (get_match st))
                            |> G.adj_vnames (get_target st)
                            |> V.NSet.intersect (get_avail st)
                            |> V.NSet.seq_of
-      in traverse_next' tree root adjac st
+      in traverse_rooted' tree root adjac st
       end;
       
-  (* need: current_eset, return_eset in state *)
-  (* SOME-rooted orbit. tree -> vertex -> state -> state Seq.seq *)
+  (* Traverse a necessarily rooted boundary tree and match all of it
+     against target graph half-edges. *)
   fun traverse_boundary' (Rule.Tree(r,sub)) root adj st =
       let fun descend (t::ts) adj' st = Seq.maps (descend ts adj')
                                                  (traverse_boundary' t root
@@ -246,16 +254,20 @@ functor MatchSearchFun(
       in traverse_boundary' tree root adjac st
       end;
   
-  fun match' st = if ((length o get_order) st)=0 then Seq.single (get_match st) else
+  (* Traverse the head of the order tree, then proceed to traverse its tail. *)
+  fun match' st = if ((length o get_order) st)=0
+                then Seq.single (get_match st) else
       let val (root,tree as Rule.Tree(v1,_))::oes = get_order st
           val st = st |> set_order oes
       in Seq.maps match'
                   (case root of
-                     Rule.Initial   c  => traverse_first v1 (set_constr c st)
-                   | Rule.Rooted (c,r) => traverse_next tree r (set_constr c st)
+                     Rule.Initial   c  => traverse_initial v1 (set_constr c st)
+                   | Rule.Rooted (c,r) => traverse_rooted tree r (set_constr c st)
                    | Rule.Boundary  r  => traverse_boundary tree r st)
       end; 
   
+  (* Obtain a lazy list of matches, given a list of names to avoid, 
+     of a rule in a target graph g. *)
   fun match names rule g = match' (MState({match = Match.init names
                                                              (Rule.get_lhs rule)
                                                              g,
