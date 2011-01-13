@@ -62,6 +62,7 @@ PolyML.Project.make "matching/match.ML"; (* a graph matching *)
 (* naive match search implementation, find symmetric cases *)
 PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
+PolyML.Project.make "matching/test/simple_match_search.ML";
 
 PolyML.Project.make "matching/symmetry_match_search.ML";
 
@@ -70,19 +71,14 @@ PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
 (* **** *)
-(* automorphism reduced search for matches *)
-PolyML.Project.make "matching/autocut_match_search.ML"; 
-
-(* **** *)
-(* generic rules *)
-PolyML.Project.make "rewriting/rewrite.ML";
-
-(* **** *)
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";
 PolyML.Project.make "io/output_ruleset_XML.ML";
 PolyML.Project.make "io/input_ruleset_XML.ML";
 
+(* **** *)
+(* generic rules *)
+PolyML.Project.make "rewriting/rewrite.ML";
 
 (* more expression code; this time expresions derived from graphs *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)

@@ -75,7 +75,7 @@ struct
       Arity { no_in = #no_in rep, no_out = f(#no_out rep), 
               no_undir = #no_undir rep };
   fun update_undir f (Arity rep) = 
-      Arity { no_in = f(#no_in rep), no_out = #no_out rep, 
+      Arity { no_in = #no_in rep, no_out = #no_out rep, 
               no_undir = f(#no_undir rep) };
 
   (* *)  

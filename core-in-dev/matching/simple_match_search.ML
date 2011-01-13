@@ -41,6 +41,11 @@ signature SIMPLE_MATCH_SEARCH
   (* parts of the matching algorithm *)
   datatype matchstep = FoundMatch of T | Progress of T Seq.seq
   val do_next_match_choices : T -> matchstep
+  val match_2vertices_with_edges : 
+      Vertex.name (* pat vertex *) 
+      -> T (* state of matching  *)
+      -> Vertex.name (* tgt vertex *)
+      -> T Seq.seq (* possible new choices of state *)
 
   (* modifying match state *)
   val pop_agenda : T -> ((Vertex.name * Vertex.name) * T) option
@@ -87,7 +92,7 @@ functor SimpleMatchSearchFun(
   structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   sharing Match.Sharing.G = BangGraph.SharingBangGraph
-) : SIMPLE_MATCH_SEARCH
+) (* : SIMPLE_MATCH_SEARCH *)
 = struct
 
 (* structure DB_MatchSearch = struct *)
@@ -171,14 +176,14 @@ val get_match_viso = Match.get_viso o get_match;
 val get_bbmap =  Match.get_bbmap o get_match;
 
 val get_unm_pat_vs = 
-    Vertex.NTab.get_nameset o BangGraph.get_vertices o get_unm_pat;
-val get_unm_unboxed_pat_vs = BangGraph.get_unboxed o get_unm_pat;
+    V.NTab.get_nameset o G.get_vertices o get_unm_pat;
+val get_unm_unboxed_pat_vs = G.get_unboxed o get_unm_pat;
 fun get_unm_tgt (MState rep) = #unm_tgt rep;
-val get_unm_unboxed_tgt_vs = BangGraph.get_unboxed o get_unm_tgt;
+val get_unm_unboxed_tgt_vs = G.get_unboxed o get_unm_tgt;
 fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
-    Vertex.NTab.get_nameset o BangGraph.get_vertices o get_unm_tgt;
+    V.NTab.get_nameset o G.get_vertices o get_unm_tgt;
 val get_unm_tgt_es =
-    Edge.NTab.get_nameset o BangGraph.get_edges o get_unm_tgt;
+    E.NTab.get_nameset o G.get_edges o get_unm_tgt;
 
 val update_names = update_match o Match.update_names;
 
@@ -188,11 +193,16 @@ val set_agenda = update_agenda o K;
 val set_match = update_match o K;
 
 (* implicit: e st *)
-val del_pat_edge = update_unm_pat o BangGraph.delete_edge;
+val del_pat_edge = update_unm_pat o G.delete_edge;
 (* implicit: es st *)
-val del_pat_edges = update_unm_pat o Edge.NSet.fold BangGraph.delete_edge;
+val del_pat_edges = update_unm_pat o E.NSet.fold G.delete_edge;
 (* implicit: v st *)
-val del_pat_vertex = update_unm_pat o BangGraph.delete_vertex;
+val del_pat_vertex = update_unm_pat o G.delete_vertex;
+
+(* deletion of tgt edges as we proceed *)
+val del_tgt_edge = update_unm_tgt o G.delete_edge;
+val del_tgt_edges = update_unm_tgt o E.NSet.fold G.delete_edge;
+
 
 fun ins1_to_agenda (pat_n, tgt_n) st = 
     update_agenda (Vertex.NTab.ins (pat_n,tgt_n)) st;
@@ -257,27 +267,34 @@ fun match_bboxes pnv tnv st =
     (case try_match_bboxes pnv tnv st of NONE => raise bbox_match_exp ()
      | SOME st' => st');
 
+
 (* raises Match.match_exp on failure *)
-fun edgematch1 (pt as (pvn1,tvn1)) (pe as (peh1,(pe_dir,pe_d))) pvn2
-                                   (te as (teh1,(te_dir,te_d))) tvn2 st =
+fun edgematch1 (pt as (pvn1,tvn1)) (pe as (peh1,(pe_dir,pe_d)),pvn2)
+                                   (te as (teh1,(te_dir,te_d)),tvn2) st =
+    (* for self-loops, which will already be fully mapped, skip (the target
+       vertex will have already been removed too) *)
+    if Match.emap_contains (get_match st) (peh1,teh1) then st 
+    else
     let 
       val peh2 = G.Edge.Ehn.other peh1;
       val teh2 = G.Edge.Ehn.other teh1;
       val pat = get_unm_pat st;
     in  
       st |> update_match (Match.match_edge_data pe_d te_d)
-         |> (if G.is_boundary (get_unm_pat st) pvn2
+         |> (if G.is_boundary pat pvn2
              then (* pvn2 is a boundary vertex *)
-                update_match 
+              del_pat_vertex pvn2
+              o update_match 
                   ((case (pe_dir,te_dir) 
                       of (G.Directed, G.Directed) => 
                          (Match.dir_match_edgehalf_name' peh1 teh1)
                        | (G.UnDirected, G.UnDirected) => 
                          (Match.match_edgehalf_name' peh1 teh1)
                        | _ => raise Match.match_exp ())
-                    o Match.match_boundary pvn2 tvn2)
+                    o Match.match_boundary pvn2 tvn2) 
              else (* pvn2 is an internal vertex *)
-                update_match 
+               del_tgt_edge (E.Ehn.get_ename teh1)
+               o update_match 
                   ((case (pe_dir,te_dir) 
                       of (G.Directed, G.Directed) => 
                           (Match.dir_match_edgehalf_name' peh1 teh1
@@ -288,29 +305,52 @@ fun edgematch1 (pt as (pvn1,tvn1)) (pe as (peh1,(pe_dir,pe_d))) pvn2
                        | _ => raise Match.match_exp ())
                    o Match.match_vertex_name pvn2 tvn2)
                 (* don't add to the agenda if self-loop edge *)
-                o (if Vertex.name_eq (pvn2,tvn2) then I 
-                    else add1_to_agenda (pvn2,tvn2))
-                o match_bboxes pt (pvn2,tvn2))
+                o (if Vertex.name_eq (pvn2,pvn1) then I 
+                    else add1_to_agenda (pvn2,tvn2)))
+         |> match_bboxes pt (pvn2,tvn2)
     end;
 
-fun try_edgematch1 pt pe pvn2 te tvn2 st =
-    SOME (edgematch1 pt pe pvn2 te tvn2 st) handle Match.match_exp _ => NONE;
+(* THINK: make a version that builds in edge data always being symmetric: 
+   we can always take the first edge that matches *)
+(* THINK: use difference pivoted lists for faster/more efficient storing of 
+   unmatched stuff? *)
+(* Treats each edge as unique, matches all permutations of matching data *)
+fun try_edgematch1 pt pe_pvn2 st te_tvn2 (unmatched_tes,matches) =
+    let 
+      (* add that this target edge can be used by all matching of 
+         further pattern edges *) 
+      val matches' = map (fn (unmatched_es,st) => 
+                         (te_tvn2 :: unmatched_tes, st)) matches
+    in
+      (te_tvn2::unmatched_tes,
+       ((unmatched_tes, edgematch1 pt pe_pvn2 te_tvn2 st) :: matches' 
+        handle Match.match_exp _ => matches'))
+    end;
 
 (* all possible target edge matches, if none then fail *)
 (* raises Match.match_exp on failure *)
-fun edge_match_adj_to_pedge tgt (pt as (pvn1,tvn1)) 
-                            (pe as (peh,(pe_dir,pe_d))) pvn2 sts = 
-    (case G.fold_adj (map_filter oo (try_edgematch1 pt pe pvn2))
-                     tgt tvn1 sts
-     of [] => raise Match.match_exp ()
-      | sts => sts);
+fun edge_match_adj_to_pedge (pt as (pvn1,tvn1))
+                            (pe as (peh,(pe_dir,pe_d))) pvn2 
+                            agenda_and_st_choices = 
+    (case maps (fn (unmatched_tes, st) => 
+                snd (fold (try_edgematch1 pt (pe,pvn2) st) 
+                          unmatched_tes 
+                          ([], [])) (* start with no matches, no unused tes *)
+               ) agenda_and_st_choices
+     of [] => raise Match.match_exp () (* no matches found for this pat e *)
+      | agenda_and_st_choices' => agenda_and_st_choices');
 
 (* match up all adjavent edges of chosen pattern and target vertex *)
 (* raises Match.match_exp on failure *)
 fun edgematch_all_adj (pt as (pvn1,tvn1)) st = 
-    G.fold_adj (edge_match_adj_to_pedge (get_unm_tgt st) pt)
-               (get_unm_pat st) pvn1 [st]
-      |> Seq.of_list;
+    let val adj_list = G.fold_adj (fn te => fn tvn2 => fn l => (te,tvn2)::l)
+                                  (get_unm_tgt st) tvn1 [];
+    in 
+      G.fold_adj (edge_match_adj_to_pedge pt)
+                 (get_unm_pat st) pvn1 [(adj_list,st)]
+        |> map snd
+        |> Seq.of_list
+    end;
 
 (* copy a single bang-box *)
 fun copy1_pat_bbox bbn st = 

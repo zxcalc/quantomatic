@@ -52,7 +52,7 @@ val empty : T
 val add_named_vertex : Vertex.name -> Vertex.data -> T -> Vertex.name * T 
 
 (* Vertex.names must already exist, else raises: no_such_vname_exp *)
-val add_named_edge : Edge.name -> (dir_or_undir * Edge.data) 
+val add_named_edge : Edge.name -> (dir_or_undir * Edge.data)
     -> Vertex.name -> Vertex.name -> T -> Edge.name * T 
 
 (* delete raises an exception if there is no such edge/vertex *)

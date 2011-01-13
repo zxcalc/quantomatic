@@ -47,6 +47,8 @@ signature MATCH
   val update_bvmap : (G.Vertex.Map.T -> G.Vertex.Map.T) -> T -> T
   val update_emap : (EMap.T -> EMap.T) -> T -> T
 
+  (* check is half edges are mapped this way already *)
+  val emap_contains : T -> G.Edge.Ehn.name * G.Edge.Ehn.name -> bool
 
   (* exception raised when things do not match *)
   exception match_exp of unit;
@@ -206,6 +208,10 @@ val add_bbox_drop = update_bbmatch o BBMatch.add_drop;
 val add_bbox_kills = update_bbmatch o BBMatch.add_kills;
 val add_bbox_map = update_bbmatch oo BBMatch.add_bbmap;
 val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
+
+(* True iff egde map already contains this mapping *)
+fun emap_contains m peh_teh = 
+    EMap.contains (get_emap m) peh_teh;
 
 (* exception raised when things do not match *)
 exception match_exp of unit;

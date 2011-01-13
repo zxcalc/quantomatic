@@ -78,8 +78,10 @@ signature GRAPH_PARAM
   val delete_vertex : Vertex.name -> T -> T
   val delete_edge : Edge.name -> T -> T
 
-  val rename_vname : Vertex.name -> Vertex.name -> T -> T (* raises *)
-  val rename_ename : Edge.name -> Edge.name -> T -> T (* raises *)
+  (* raises Vertex.Rnm. *)
+  val rename_vname : Vertex.name -> Vertex.name -> T -> T
+  (* raises Edge.Rnm. *)
+  val rename_ename : Edge.name -> Edge.name -> T -> T 
 
   val replace_vertex : Vertex.data -> Vertex.name -> T -> T
   val replace_edge : Edge.data -> Edge.name -> T -> T

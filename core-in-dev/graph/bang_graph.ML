@@ -394,7 +394,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* FIXME: subgraph_of_selection respect !-boxes *)
   (* FIXME: other stuff respect !-boxes ??? *)
 
-  (* FIXME: use Graph.copy_vset *)
   fun copy1_box (vs,es,bs) bn g = 
       let val bbox_vs = get_bbox g bn
           val ((vrn,ern),g') = copy1_vset bbox_vs 

@@ -21,7 +21,11 @@ structure RG_GraphParam
   fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
 
-  fun rename_vname n1 n2 vdep = the (VDep.try_rename1_dom n1 n2 vdep);
+  fun rename_vname n1 n2 vdep = 
+      (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
+         raise Vertex.Rnm.invalid_renaming_exp "RG_GraphParam.rename_vname"
+       | SOME x => x);
+
   fun rename_ename n1 n2 vdep = vdep;
   
   (* rename internal names in T *)
@@ -168,61 +172,38 @@ structure DB_RGGraph
 end;
 
 structure RGGraph : RG_GRAPH = DB_RGGraph;
-structure Vertex = RGGraph.RGVertex;
-structure Edge = RGGraph.Edge;
-
-structure V = RGGraph.OVertex;
-structure E = RGGraph.Edge;
-structure G = RGGraph;
-
-structure MkG = 
-struct
-val bvert = V.EVert;
-val zero_angle = AngleExpr.zero;
-val var_angle = AngleExpr.mk_var;
-fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
-val add_angles = AngleExpr.add_expr;
-val pi_angle = AngleExpr.pi;
-fun mkZ a = V.IVert (RGVertex.Znd a);
-fun mkX a = V.IVert (RGVertex.Xnd a);
-val mkH = V.IVert RGVertex.Hnd;
-val edge = ();
-end;
-
 
 (* install pretty printers *)
 local
     fun prettyVertex _ _ x =
-      PolyML.PrettyString("\"" ^ Vertex.string_of_name x ^ "\"");
+      PolyML.PrettyString("\"" ^ RGGraph.Vertex.string_of_name x ^ "\"");
     fun prettyEdge _ _ x =
-      PolyML.PrettyString("\"" ^ Edge.string_of_name x ^ "\"");
+      PolyML.PrettyString("\"" ^ RGGraph.Edge.string_of_name x ^ "\"");
     fun prettyBBox _ _ x =
-      PolyML.PrettyString("\"" ^ G.BBox.string_of_name x ^ "\"");
+      PolyML.PrettyString("\"" ^ RGGraph.BBox.string_of_name x ^ "\"");
 in
     val () = PolyML.addPrettyPrinter prettyVertex;
     val () = PolyML.addPrettyPrinter prettyEdge;
     val () = PolyML.addPrettyPrinter prettyBBox;
 end; 
 
+(* ML utility code for building RG graphs *)
+structure MkG = 
+struct
+  structure V = RGGraph.RGVertex;
+  structure E = RGGraph.Edge;
+  structure G = RGGraph;
 
-
-(* incomplete and needs lots more stuff... eg. table
-
-structure RGGraph :> RG_GRAPH 
-  where type Vertex.data = RGVertex.data
-    and type Vertex.name = RGVertex.name 
-    and type Vertex.renaming = RGVertex.renaming
-    and type Vertex.NSet.T = RGVertex.NSet.T 
-    and type 'a Vertex.NTab.T = 'a RGVertex.NTab.T 
-    and type Edge.data = UnitEdge.data
-    and type Edge.name = UnitEdge.name
-    and type Edge.renaming = UnitEdge.renaming
-    and type Edge.NSet.T = UnitEdge.NSet.T 
-    and type 'a Edge.NTab.T = 'a UnitEdge.NTab.T 
-  = DB_RGGraph;
-*)
-
-
-(* structure Vertex = RGGraph.Vertex;
-structure Edge = RGGraph.Edge;
-*)
+  val bvert = V.EVert;
+  val zero_angle = AngleExpr.zero;
+  val var_angle = AngleExpr.mk_var;
+  fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
+  val add_angles = AngleExpr.add_expr;
+  val pi_angle = AngleExpr.pi;
+  fun mkZ a = V.IVert (RGVertex.Znd a);
+  fun mkX a = V.IVert (RGVertex.Xnd a);
+  val mkH = V.IVert RGVertex.Hnd;
+  val undir_edge = (G.UnDirected,());
+  val dir_edge = (G.Directed,());
+  val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+end;

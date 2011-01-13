@@ -295,7 +295,8 @@ functor BasicOGraphFun(
              (true, true) => g |> del_from_boundary n |> add_to_edgepoints n
            | (false,true) => g |> add_to_boundary n
            | (true,false) => g |> add_to_boundary n
-           | (false,false) => raise bug_exp "OGraph: update_point_kind_from_add_edge: newly connected vertex should have some incident edges")
+           | (false,false) => g |> add_to_boundary n)
+           (* raise bug_exp "OGraph: update_point_kind_from_add_edge: newly connected vertex should have some incident edges" *)
       end;
 
   (* *)
@@ -315,7 +316,9 @@ functor BasicOGraphFun(
 
   (* vname = suggested name *)
   (* rename all occurances of old name (1st arg) with new name (2nd arg) 
-     n2 must not exist already, n1 must exist *)
+     n2 must not exist already, n1 must exist 
+     raises 
+  *)
   fun rename_vname n1 n2 g = 
       g |> rename1_in_boundary n1 n2
         |> rename1_in_edgepoints n1 n2 
