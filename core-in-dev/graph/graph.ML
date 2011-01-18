@@ -35,6 +35,8 @@ val set_vertex_data : Vertex.data -> Vertex.name -> T -> T
 val set_edge_data : Edge.data -> Edge.name -> T -> T
 (* val set_edge_dir_or_undir : dir_or_undir -> Edge.name -> T -> T *)
 
+val apply_data_subst : Param.subst -> T -> T
+
 (* check if two graphs are exactly the same (names, data, and structure) *)
 val exact_eq : T -> T -> bool
 
@@ -308,6 +310,20 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun update_vertex_ins_and_outs f n = 
       update_vertices (Vertex.NTab.map_entry 
                          (fn (nd,ins_and_outs) => (nd,f ins_and_outs)) n);
+
+  (* IMPROVE: more efficient way by more direct manipulation of 
+     underlying data; might we optimise away update_edges for cases 
+     when edges have no data? *)
+  fun apply_data_subst subst g =  
+      g |> (Vertex.NSet.fold
+               (update_vertex_data (Param.subst_in_vertex subst))
+               (get_vnames g))
+        |> (Edge.NSet.fold
+               (update_edge_data (Param.subst_in_edge subst))
+               (get_enames g));
+
+
+
   
   (* swap direction of edge en *)
   fun swap_edge_dir en g = 
@@ -324,7 +340,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       end;
   
   
-  (* merge graphs, assumes disjoint edge names adds new vertices, keeps
+  (* merge graphs, assumes disjoint edge names; adds new vertices, keeps
      vertices with same name already in second graph. *)
   fun merge_by_vertices g1 g2 = 
       g2 |> (Vertex.NTab.fold 
@@ -840,7 +856,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     case fresh_vert vtab
      of NONE => dg
       | (SOME v) => let
-      val vtab = (Vertex.NTab.map_all (K ~1) vtab)
+      val vtab = (Vertex.NTab.map_all (K (K ~1)) vtab)
                |> Vertex.NTab.update (v,0)
       val (dg',vtab') = dag 0 (out_elist v) dg vtab
         in dag_until_done dg' vtab'
@@ -881,8 +897,8 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   in mk Vertex.NSet.empty @ [Vertex.NSet.list_of outputs]
   end
 
-  (* assumes ern has all edge names of the graph, else may raise
-     no_such_ename_exp (when copying/renaming an 
+  (* assumes ern has all edge names of the graph in avoid set, 
+     else may raise no_such_ename_exp (when copying/renaming an 
      edge that is already the graph) *)
   fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
       let 

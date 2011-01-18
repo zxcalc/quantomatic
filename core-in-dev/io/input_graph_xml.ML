@@ -75,14 +75,14 @@ functor GraphInputXML (structure Graph : BANG_GRAPH
       end
   
   (* uncurry some graph methods *)
-  fun add_v ((vname,vdata),g) = 
+  fun add_v (vname,vdata) g = 
       snd (G.add_named_vertex vname vdata g)
   
   (* FIXME: load up direction information *)
-  fun add_e ((ename,edata,src,tgt),g) = 
+  fun add_e (ename,edata,src,tgt) g = 
       snd (G.add_named_edge ename (G.UnDirected,edata) src tgt g)
   
-  fun add_bb ((bname,bvlist),g) = 
+  fun add_bb (bname,bvlist) g = 
       let val (realname, g') = G.new_box bname g
     val vset  = V.NSet.of_list bvlist
       in
@@ -91,14 +91,15 @@ functor GraphInputXML (structure Graph : BANG_GRAPH
   
   fun input_graph xml =
       let val (_,_,children) = force_unpack_elem "graph" xml
-    val vertices = List.map input_vertex (get_all_elems "vertex" children)
-    val edges = List.map input_edge (get_all_elems "edge" children)
-    val bboxes = List.map input_bbox (get_all_elems "bangbox" children)
-    val g = foldl add_v G.empty vertices
-    val g'= foldl add_e g edges
+        val vertices = List.map input_vertex (get_all_elems "vertex" children)
+        val edges = List.map input_edge (get_all_elems "edge" children)
+        val bboxes = List.map input_bbox (get_all_elems "bangbox" children)
       in
-        foldl add_bb g' bboxes
-      end
+        G.empty 
+          |> fold add_v vertices 
+          |> fold add_e edges
+          |> fold add_bb  bboxes 
+      end;
   
   val input = input_graph;			   
 
@@ -124,11 +125,11 @@ fun input_rational xml  =
 	val denom = unpack_required_child "denom" xml
     in
       let val n = case num of 
-		    (_,_,[]) => fail "Element <num> may not be empty."
-		  | (_,_,(x::xs)) => input_int x
+		    (_,[]) => fail "Element <num> may not be empty."
+		  | (_,(x::xs)) => input_int x
 	  val d = case denom of 
-		    (_,_,[]) => fail "Element <denom> may not be empty."
-		  | (_,_,(x::xs)) => input_int x
+		    (_,[]) => fail "Element <denom> may not be empty."
+		  | (_,(x::xs)) => input_int x
       in
 	(n,d)
       end

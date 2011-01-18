@@ -161,7 +161,7 @@ functor MatchSearchFun(
           val tlist = E.NSet.list_of ts
       in fold (fn x => Seq.maps (uncurry match_edge x)) (plist ~~ tlist)
                                                         (Seq.single st)
-      end handle Library.UnequalLengths => Seq.empty;
+      end handle ListPair.UnequalLengths => Seq.empty;
 
   fun edge_classes_between g v1 v2 =
       let val (ins1,outs1,undir1) = G.adj_edge_classes g v1

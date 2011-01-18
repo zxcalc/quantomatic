@@ -117,7 +117,7 @@ fun reduce_expr (p, t) =
 
 (* multiplication of an expression by a scalar ===================*)    
 fun scale_expr s (e_pi, e_tab) = 
-    (PiCoeff.mult s e_pi, VName.NTab.map_all (Coeff.mult s) e_tab);
+    (PiCoeff.mult s e_pi, VName.NTab.map_all (K (Coeff.mult s)) e_tab);
 
 (* arithmetic addition for expressions ========================*)
 fun add_expr (pi1,tab1) (pi2,tab2) = 
@@ -224,7 +224,7 @@ fun pretty_match (Match mtab) =
 val print_match = Pretty.writeln o pretty_match;
 
 fun subst_of_match (Match mtab) = 
-    VName.NTab.map_all (fn (tgt_e,pat_e) => 
+    VName.NTab.map_all (fn n => fn (tgt_e,pat_e) => 
       subtr_expr tgt_e pat_e 
     ) mtab;
 
@@ -305,7 +305,7 @@ fun subst (Match mtab) expr =
 (* CHECK: do we need to subst in the target part? or just in the pat part. 
    This needs to be clarified. *)
 fun compose_matches (Match mtab1) m2  = 
-    Match (VName.NTab.map_all (fn (tgt_expr,pat_expr) => 
+    Match (VName.NTab.map_all (fn n => fn (tgt_expr,pat_expr) => 
       (subst m2 tgt_expr, subst m2 pat_expr)) mtab1);
 
 (* IMPROVE: look at subst_in_match_pair above and improve this code! 

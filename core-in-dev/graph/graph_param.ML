@@ -40,6 +40,8 @@ signature GRAPH_PARAM
   val match_vertex : Vertex.data -> Vertex.data -> subst -> subst (* match_exp *)
   val match_edge : Edge.data -> Edge.data -> subst -> subst (* match_exp *)
   
+  (* IMPROVE: should a subst know which vertex names it affects? 
+     (could add dependency info to graph...) *)
   val subst_in_vertex : subst -> Vertex.data -> Vertex.data
   val subst_in_edge : subst -> Edge.data -> Edge.data
 

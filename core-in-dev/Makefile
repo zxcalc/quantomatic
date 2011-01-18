@@ -8,7 +8,7 @@ ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../..
 # variables you might want to set in your own profile setup...
 ################################
 ### your local install of PolyML
-# POLYML_HOME=/home/ldixon/local/polyml-cvs-version
+# POLYML_HOME=/home/ldixon/local/polyml-svn-version
 
 ################################
 # general variables

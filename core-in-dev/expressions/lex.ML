@@ -39,7 +39,7 @@ val noop = fn toks => (NOOP, toks);
 
 (* string literal code stolen from isabelle/ml_parse.ML *)
     val scan_escape =
-    Scan.one (member (op =) (explode "\"\\abtnvfr")) ||
+    Scan.one (member (op =) (raw_explode "\"\\abtnvfr")) ||
 		 $$ "^" ^^ Scan.one (fn s => ord "@" <= ord s andalso ord s <= ord "_") ||
 		 Scan.one Symbol.is_ascii_digit ^^
 		 Scan.one Symbol.is_ascii_digit ^^

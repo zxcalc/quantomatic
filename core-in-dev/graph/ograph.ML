@@ -114,8 +114,7 @@ val cut_around_vertex : Vertex.NSet.T -> Vertex.name
    returns the gluing automorphism, and a new graph which will be disjoint *)
 val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.InjEndo.T * T)
 
-(* Given selection set of vertices, make subgraph: 
-   vertices with incident edges outside selection have edges to boundary vertices *)
+(* Given selection set of vertices, make subgraph with with incident edges that went to a vertex outside selection, now go to a single boundary-type vertex. Perserves matching; doesn't (necessarily produce a valid ograph) produce  *)
 val matched_subgraph_within_vset' : Vertex.NSet.T -> T 
     -> Vertex.InjEndo.T * T (* returns gluing/cutting for new boundary, 
                               and cut graph *)

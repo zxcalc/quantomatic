@@ -31,7 +31,6 @@ signature SIMPLE_MATCH_SEARCH
   val match : (BangGraph.Vertex.NSet.T * BangGraph.Edge.NSet.T 
                * BangGraph.BBox.NSet.T) (* other names to avoid when matching *)
               -> BangGraph.T -> BangGraph.T (* pat, tgt *)
-              -> Vertex.name Vertex.NTab.T (* initial agenda *)
               -> Match.T Seq.seq
   val match' : Match.T (* initial matching *)
                -> BangGraph.T -> BangGraph.T (* pat, tgt *)
@@ -354,15 +353,20 @@ fun edgematch_all_adj (pt as (pvn1,tvn1)) st =
 
 (* copy a single bang-box *)
 fun copy1_pat_bbox bbn st = 
-    let val names = get_names st
-        val ((bbn2,(vrn,ern)),((vs2,es2,bs2),pat2)) = 
-            G.copy1_box names bbn (get_unm_pat st)
-        val names2 = (V.Rnm.get_avoids vrn, E.Rnm.get_avoids ern, bs2)
+    let val (names as vs,es,bs) = get_names st
+        val (bbn2,((vrn',ern',brn'),pat2)) = 
+          G.copy1_box bbn 
+            (( G.Vertex.Rnm.mk_from_avoidset vs, 
+               G.Edge.Rnm.mk_from_avoidset es,
+               G.BBox.Rnm.mk_from_avoidset bs), 
+             get_unm_pat st);
     in
       st |> set_unm_pat pat2
-         |> set_names names2
+         |> set_names (Vertex.Rnm.get_avoids vrn', 
+                       Edge.Rnm.get_avoids ern', 
+                       BBox.Rnm.get_avoids brn')
          |> update_match (Match.add_bbox_copy 
-              (bbn,(V.Rnm.get_nmap vrn,E.Rnm.get_nmap ern),bbn2))
+              (bbn,(V.Rnm.get_nmap vrn',E.Rnm.get_nmap ern'),bbn2))
     end;
 
 exception bug_exp of string; 
@@ -387,7 +391,7 @@ fun compute_scope_arities pn tn st =
       (* implicit: ntab k *)
       val ntab_sum = Vertex.NTab.fold (fn (n,i) => Arity.add i);
       val sum_in_bboxtab = 
-          BBox.NTab.map_all (fn ntab => ntab_sum ntab Arity.zero);
+          BBox.NTab.map_all (fn n => fn ntab => ntab_sum ntab Arity.zero);
       val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => Arity.add i);
 
       val pbboxsums = sum_in_bboxtab pbboxntab;
@@ -569,7 +573,8 @@ fun match' m pat tgt initagenda =
       val init_st = (init m pat tgt initagenda)
     in Seq.make (match_search (Seq.single init_st)) end;
 
-fun match names pat tgt = match' (Match.init names pat tgt) pat tgt;
+fun match names pat tgt = 
+    match' (Match.init names pat tgt) pat tgt Vertex.NTab.empty;
 
 (* pretty printing *)
 fun pretty_match_pair (a,b) = 

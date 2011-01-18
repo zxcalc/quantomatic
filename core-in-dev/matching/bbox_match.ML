@@ -56,6 +56,12 @@ val add_copy : (G.BBox.name (* old bbname *)
                  * G.BBox.name) (* new bbox name *) 
                 -> T -> T;
 
+(* apply bbox expantion to matched graph (lhs), and some rhs of a rule 
+   graph (rhs) *)
+val inst_lhs_bbox_match : T -> G.T -> G.T
+val inst_rhs_bbox_match : (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T) 
+      -> T -> G.T -> G.T
+
 val pretty : T -> Pretty.T
 val print : T -> unit
 
@@ -81,7 +87,7 @@ structure BBMap = NameMapFun(structure Dom = BBox and Cod = BBox);
 *)
 datatype T = BBoxMatch of
          {
-          copies : BBMap.T, (* 1. copy pattern bboxes to make extended pat *)
+          copies : BBMap.T, (* 1. copy (new name => old name) *)
           kill : BBox.NSet.T, (* 2. kill boxes we don't map *)
           drop : BBox.NSet.T, (* 3. drop bboxes as needed *)
           bbmap : BBMap.T, (* 4. mapping of bboxes in extended pat to tgt *)
@@ -270,6 +276,54 @@ fun add_copy (bbn1,(vtab,etab),bbn2) m =
        BBox.print_name bbn1; BBox.print_name bbn2;        
        raise ex);
 
+
+  (* given a bbox matching against a graph, apply it: copy, kill and 
+     drop bboxes. When copying, use the specified names. *)
+  fun inst_lhs_bbox_match bbmatch g = 
+      g |> BBox.NTab.fold 
+            (fn (bn2,bn1) => fn g => 
+              let 
+                val (vtab,etab) = 
+                  BBox.NTab.get (get_crnm bbmatch) bn2
+                val vrn = V.Rnm.mk_from_nmap vtab
+                val ern = E.Rnm.mk_from_nmap etab
+                val brn = BBox.Rnm.do_compose_rename1 bn1 bn2 BBox.Rnm.empty
+                val (_,(_,g)) = G.copy1_box bn1 ((vrn,ern,brn),g)
+              in g end)
+            (BBMap.get_domtab (get_copies bbmatch))
+        |> BBox.NSet.fold G.kill_box (get_kill bbmatch)
+        |> BBox.NSet.fold G.drop_box (get_drop bbmatch);
+
+  (* makes sure to copy external/boundary vertex names exactly, 
+     but other vertices are named arbitrarily, but fresh.
+     Note: can copy exterior half-edge vertex names exactly because same 
+     names are used on lhs and rhs. But internal part of bangbox may have 
+     more vertices than lhs, so can't re-use same name-space.  
+  *)
+  fun inst_rhs_bbox_match (avoid_vs,avoid_es,bs) bbmatch g = 
+      let 
+        val bb_xmaps = get_xmaps bbmatch;
+        val bb_xvs = get_xvs bbmatch; (* all exterior vs *)
+      in
+        ((avoid_vs,avoid_es),g)
+          |> BBox.NTab.fold (* copy bang-boxes, preserve interface names *)
+              (fn (bn2,bn1) => fn ((avoid_vs,avoid_es),g) =>
+               let 
+                 val bb_nmap = V.InjEndo.get_domtab 
+                                (BBox.NTab.get bb_xmaps bn2);
+                 val vrn = V.Rnm.mk V.NSet.empty avoid_vs bb_nmap;
+                 val ern = E.Rnm.mk_from_avoidset avoid_es;
+                 val brn = BBox.Rnm.do_compose_rename1 bn1 bn2 BBox.Rnm.empty
+                 val (_,((vrn,ern,brn),g)) = 
+                     G.copy1_box bn1 ((vrn,ern,brn),g)
+               in ((V.Rnm.get_avoids vrn, E.Rnm.get_avoids ern), g) end)
+              (BBMap.get_domtab (get_copies bbmatch))
+          |> snd (* ignore/throw away new names *)
+          |> BBox.NSet.fold G.kill_box (get_kill bbmatch)
+          |> BBox.NSet.fold G.drop_box (get_drop bbmatch)
+      end;
+
+  
 
 structure Sharing = 
 struct

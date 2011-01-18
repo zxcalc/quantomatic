@@ -1,6 +1,8 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Representation Graphs with  Bang-Boxes *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+(* FIXME: make merge_by_vertices respect !-boxes. ? need general notion of 
+   data merging? *)
 
 (* structure to hold only the types - for sharing more or less BASIC_... *)
 signature BANG_GRAPH_SHARING = 
@@ -103,36 +105,22 @@ val new_box : BBox.name -> T -> BBox.name * T
 val move_to_box : BBox.name -> Vertex.NSet.T -> T -> T
 val move_to_unbox : Vertex.NSet.T -> T -> T
 
-val copy1_box : (Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* avoid names *) 
-      -> BBox.name -> T (* bbox to copy and graph containing it *) 
-      -> (BBox.name (* new box name *)
-          * (Vertex.renaming (* how vnames were copied *)
-              * Edge.renaming)) (* ename copying *)
-         * ((Vertex.NSet.T * Edge.NSet.T * BBox.NSet.T) (* new namesets *)
-            * T) (* new graph with bbox copied *)
-
-(*
-val copy1_box_given_rnm : 
-         BBox.name (* bbox being copied *)
-      -> (BBox.name * (Vertex.Rnm.T * Edge.Rnm.T)) (* use these renamings *) 
-      -> T (* graph containing bbox *) 
-      -> T (* new graph *)
-
-val copy1_box_given_ext_rnm : 
-         BBox.name (* bbox being copied *)
-      -> BBox.name (* new name copied to *) 
-      -> (Vertex.Rnm.T * Edge.Rnm.T) * T (* external vs renaming,graph bbox *) 
-      -> (Vertex.Rnm.T * Edge.Rnm.T) * T (* new renaming, new graph *)
-*)
 
 val kill_box : BBox.name -> T -> T
 val drop_box : BBox.name -> T -> T
 val merge_boxes : BBox.NSet.T -> T -> BBox.name * T
 
-(*  
-val get_adj_banged_vnames : 
-    T -> Vertex.name -> VtoBoxMap.T
-*)
+
+val copy1_box : BBox.name (* bbox to copy *) 
+      -> ((Vertex.renaming (* renaming for bbox copy/avoids *)
+           * Edge.renaming 
+           * BBox.renaming) 
+          * T) (* graph containing bbox name *) 
+      -> (BBox.name (* new box name *)
+          * ((Vertex.renaming (* how vnames were copied *)
+               * Edge.renaming (* ename copying *)
+               * BBox.renaming) (* bbname copying *)
+             * T)) (* new graph with bbox copied *)
 
 (* *)
 val get_adj_arities_and_bang_arities : 
@@ -390,63 +378,24 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       g |> update_bboxes (Vertex.NSet.fold VtoBoxMap.del_dom vs)
         |> update_unboxed (Vertex.NSet.union_merge vs);
   
-  (* FIXME: merge_by_vertices respect !-boxes *)
-  (* FIXME: subgraph_of_selection respect !-boxes *)
-  (* FIXME: other stuff respect !-boxes ??? *)
 
-  fun copy1_box (vs,es,bs) bn g = 
-      let val bbox_vs = get_bbox g bn
-          val ((vrn,ern),g') = copy1_vset bbox_vs 
-                ((Vertex.Rnm.mk_from_avoidset vs, Edge.Rnm.mk_from_avoidset es),g);
-          val new_vs = Vertex.Rnm.get_newnames vrn;
-          val (bn',bs') = BBox.NSet.add_new bn bs;
+  (* copy bang box, given renaming info, or possibly with dictated renaming. *)
+  fun copy1_box bn ((vrn,ern,brn),g) = 
+      let val bbox_vs = get_bbox g bn;
+          val old_new_vnames = V.Rnm.get_newnames vrn;
+          val vrn2 = V.Rnm.set_newnames V.NSet.empty vrn;
+          val ((vrn3,ern'),g') = copy1_vset bbox_vs ((vrn2, ern),g);
+          val (new_bn_opt,brn') = BBox.Rnm.rename1 bn brn;
+          val bn' = (case new_bn_opt of NONE => bn | SOME bn' => bn'); 
+          val new_vs = Vertex.Rnm.get_newnames vrn3;
+          val vrn' = V.Rnm.set_newnames 
+                       (Vertex.NSet.union_merge new_vs old_new_vnames) vrn3
       in
-         ((bn',(vrn,ern)), (* copying information *)
-          ((Vertex.NSet.union_merge new_vs vs, (* new vertex nameset *)
-            Edge.NSet.union_merge (Edge.Rnm.get_newnames ern) es, (* new edge nameset*)
-            bs'), (* new bbox nameset *)
-          update_bboxes (VtoBoxMap.add_to_cod bn' new_vs) g' (* new graph *)
+         (bn',
+          ((vrn',ern',brn'), (* copying information *)
+           update_bboxes (VtoBoxMap.add_to_cod bn' new_vs) g' (* new graph *)
          ))
       end;
-
-
-  (* given a new bang-box name and the renamings for its vertices and edges, copy 
-     the bangbox, renamed as specified. *)
-(* FIXME: check what this is used for and see what is needed in graph *)
-(* 
-  fun copy1_box_given_rnm bn (bn2,(vrn,ern)) g = 
-      let val bbox_vs = get_bbox g bn
-          (* subgraph of selection gives back something without bang-boxes *)
-          val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
-          val bbg2 = bbg |> VertexCRnm.do_renaming vrn
-                         |> EdgeCRnm.do_renaming ern
-          val bbg_internal_vs = 
-              Vertex.NSet.subtract (get_vnames bbg2) boundary_vs;
-      in
-        g |> merge_by_vertices bbg2
-          |> update_bboxes 
-               (VtoBoxMap.add_to_cod bn2 bbg_internal_vs)
-      end;
-*)
-  
-  (* given a renaming of external/boundary nodes, which may for example be shared with the lhs of a rewrite rule (although the ignores are not shared - these are reset each call to be the interface to the copied graph component in the !-box. Copies the bang box using the specified vertex renaming for external/boundary nodes within the bbox. also assumes that bn2 must be fresh from bbox names in g. *)
-(*
-  fun copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g) = 
-      let val bbox_vs = get_bbox g bn1
-          (* subgraph of selection gives back something without bang-boxes *)
-          val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
-          val (vrn2,bbg2) = VertexCRnm.rename 
-                              (Vertex.Rnm.set_ignored boundary_vs vrn) bbg;
-          val (ern2,bbg3) = EdgeCRnm.rename ern bbg2;
-          val bbg_internal_vs = 
-              Vertex.NSet.subtract (get_vnames bbg3) boundary_vs;
-      in
-        ((vrn2,ern2),
-         g |> merge_by_vertices bbg3
-           |> update_bboxes 
-                (VtoBoxMap.add_to_cod bn2 bbg_internal_vs))
-      end;
-*)
   
   fun kill_box bn g = 
       let val bbox_vs = get_bbox g bn
