@@ -63,6 +63,10 @@ val update_edge_vnames : ((Vertex.name * Vertex.name) -> (Vertex.name * Vertex.n
 val get_vnames : T -> Vertex.NSet.T
 val get_enames : T -> Edge.NSet.T
 
+(* add graph names to name sets *)
+val add_to_vnames : T -> Vertex.NSet.T -> Vertex.NSet.T
+val add_to_enames : T -> Edge.NSet.T -> Edge.NSet.T
+
 (* *)
 val has_vname : T -> Vertex.name -> bool;
 val has_ename : T -> Edge.name -> bool;
@@ -93,6 +97,10 @@ val rename_enames : Edge.NSet.T -> Edge.renaming * T -> Edge.renaming * T
    vertices with same name are kept only once, edges must be
    distinct. *)
 val merge_by_vertices : T -> T -> T
+
+(* merge_2vertices: all edges of first get moved to second, and first gets 
+   removed. *)
+val merge_2vertices : Vertex.name -> Vertex.name -> T -> T
 
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
@@ -241,6 +249,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   val get_vnames = Vertex.NTab.get_nameset o get_vertices;
   val get_enames = Edge.NTab.get_nameset o get_edges;
   
+  val add_to_vnames = Vertex.NSet.union_merge o get_vnames;
+  val add_to_enames = Edge.NSet.union_merge o get_enames;
+
   (* implicit: g n *)
   val lookup_vertex = Vertex.NTab.lookup o get_vertices
   val lookup_edge = Edge.NTab.lookup o get_edges
@@ -353,7 +364,23 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                      raise ename_already_exists_exp (en, g3)
                    else new_named_edge d en vn1 vn2 g3)
                (get_edges g1));
-  
+
+  (* *)
+  fun merge_2vertices v1 v2 g = 
+      let val (_,(ines,outes)) = get_vertex g v1
+      in 
+        g |> Edge.NSet.fold
+              (fn en => update_edges (Edge.NTab.map_entry 
+                (fn (e,(fromv,tov)) => (e,(fromv,v2))) en))             
+              ines
+          |> Edge.NSet.fold
+              (fn en => update_edges (Edge.NTab.map_entry 
+                (fn (e,(fromv,tov)) => (e,(v2,tov))) en))             
+              outes
+          |> delete_vertex v1
+      end;
+
+
   (* delete subg from fromg; assumes edge and vertex names of subg are a
      subset of fromg; else delete will raise exception *)
   fun delete_subgraph subg fromg = 
@@ -401,9 +428,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* rename g2 apart from g1 *)
   fun rename_apart g1 g2 = 
       let 
-        val vrn = Vertex.Rnm.mk_from_avoidset 
+        val vrn = Vertex.Rnm.mk_from_avoids 
             (Vertex.NSet.union_merge (get_vnames g1) (get_vnames g2))
-        val ern = Edge.Rnm.mk_from_avoidset 
+        val ern = Edge.Rnm.mk_from_avoids 
             (Edge.NSet.union_merge (get_enames g1) (get_enames g2))
       in rename (vrn,ern) g2 end;
   

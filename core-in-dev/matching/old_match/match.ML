@@ -43,7 +43,7 @@ signature MATCH
   (* basic gets *)
   val get_emap : T -> EMap.T
   val get_viso : T -> G.Vertex.InjEndo.T
-  val get_bvmap : T -> G.Vertex.Map.T
+  val get_evmap : T -> G.Vertex.Map.T
   val get_mctxt : T -> MCtxt.T
   val get_bbmatch : T -> BBMatch.T
   val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
@@ -90,7 +90,7 @@ signature MATCH
   val update_viso : (V.name V.NTab.T ->
                        V.name V.NTab.T) -> T -> T
   val update_mctxt : (MCtxt.T -> MCtxt.T) -> T -> T
-  val update_bvmap : (V.name V.NTab.T ->
+  val update_evmap : (V.name V.NTab.T ->
                      V.name V.NTab.T) -> T -> T
 *)
 end;
@@ -139,7 +139,7 @@ datatype T = Match of
           (* Internal vertex bijection from pat to tgt *)
           viso : V.InjEndo.T,
           (* map for boundary vertices pat to tgt vertices  *)
-          bvmap: V.Map.T,
+          evmap: V.Map.T,
           (* 1-1, inj half-edge mapping *)
           emap: EMap.T,
           (* bang box expansion of pattern *)
@@ -158,7 +158,7 @@ fun init (vs,es,bs) pat tgt =
              BBox.NSet.union_merge (G.get_bbnames pat) 
                 (BBox.NSet.union_merge (G.get_bbnames tgt) bs)),
     viso = V.InjEndo.empty,
-    bvmap = V.Map.empty,
+    evmap = V.Map.empty,
     emap = EMap.empty,
     bbmatch = BBMatch.init_from_pat pat,
     mctxt = MCtxt.empty
@@ -178,7 +178,7 @@ fun mk_id g =
       val bbmatch = 
           BBMatch.mk_id boundary_vnames
                         (G.VtoBoxMap.get_codset (G.get_bboxes g));
-      val bvmap = (* mk id *)
+      val evmap = (* mk id *)
           V.NSet.fold (fn n => V.Map.add_to_dom n n) 
                       boundary_vnames V.Map.empty;
       val emap = (* id never has leaf-edge mapped to loops, so direct map *)
@@ -193,7 +193,7 @@ fun mk_id g =
                       (V.NSet.subtract vnames boundary_vnames) 
                       V.InjEndo.empty;
     in Match {names = (vnames,enames,G.get_bbnames g),
-              bvmap = bvmap, 
+              evmap = evmap, 
               viso = viso, 
               emap = emap, 
               bbmatch = bbmatch,
@@ -203,48 +203,48 @@ fun mk_id g =
 (* updates *)
 fun update_names f (Match rep) = 
     Match {names = f (#names rep),
-           bvmap = #bvmap rep, 
+           evmap = #evmap rep, 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
-fun update_bvmap f (Match rep) = 
+fun update_evmap f (Match rep) = 
     Match {names = #names rep,
-           bvmap = f (#bvmap rep), 
+           evmap = f (#evmap rep), 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_emap f (Match rep) = 
     Match {names = #names rep,
-           bvmap = #bvmap rep, 
+           evmap = #evmap rep, 
            emap = f (#emap rep),
            viso = #viso rep,
            bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_viso f (Match rep) = 
     Match {names = #names rep,
-           bvmap = #bvmap rep, 
+           evmap = #evmap rep, 
            emap = #emap rep,
            viso = f (#viso rep),
            bbmatch = #bbmatch rep,
            mctxt = #mctxt rep};
 fun update_mctxt f (Match rep) = 
     Match {names = #names rep,
-           bvmap = #bvmap rep, 
+           evmap = #evmap rep, 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = #bbmatch rep,
            mctxt = f (#mctxt rep)};
 fun update_bbmatch f (Match rep) = 
     Match {names = #names rep,
-           bvmap = #bvmap rep, 
+           evmap = #evmap rep, 
            emap = #emap rep,
            viso = #viso rep,
            bbmatch = f (#bbmatch rep),
            mctxt = #mctxt rep};
 
-fun get_bvmap (Match rep) = #bvmap rep;
+fun get_evmap (Match rep) = #evmap rep;
 fun get_emap (Match rep) = #emap rep;
 fun get_viso (Match rep) = #viso rep;
 fun get_mctxt (Match rep) = #mctxt rep;
@@ -313,11 +313,11 @@ fun match_vertex (n,V.IVert _) (tn,V.EVert) m = NONE
                   |> update_viso (V.InjEndo.add tn n)))
       (* matched by some other pat vertex *)
   | match_vertex (n,V.EVert) (tn,td) m = (* edge-point mapped to vertex *)
-    SOME (m |> update_bvmap (V.Map.add_to_dom n tn));
+    SOME (m |> update_evmap (V.Map.add_to_dom n tn));
 
 (* pn is asumed to be a boundary point. *)
 fun match_boundary pn tn m = 
-    m |> update_bvmap (V.Map.add_to_dom pn tn);
+    m |> update_evmap (V.Map.add_to_dom pn tn);
 
 
 (* pretty printing *)
@@ -334,7 +334,7 @@ fun pretty m =
       ([pretty_names (get_names m)]
        @ [Pretty.block 
            [Pretty.str "Boundary Map: ",
-            V.Map.pretty (get_bvmap m)]]
+            V.Map.pretty (get_evmap m)]]
        @ [BBMatch.pretty (get_bbmatch m)]
        @ [Pretty.block 
            [Pretty.str "Internal Vertex InjEndo: ",

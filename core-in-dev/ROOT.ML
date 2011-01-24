@@ -50,6 +50,7 @@ PolyML.Project.make "io/input_graph_xml.ML";
 PolyML.Project.make "io/output_graph_XML.ML";
 PolyML.Project.make "io/loadsave_graph.ML";
 
+
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
 PolyML.Project.make "io/output_rule_XML.ML";
@@ -64,25 +65,26 @@ PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
 PolyML.Project.make "matching/test/simple_match_search.ML";
 
+(* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
-(* **** *)
-(* rule sets *)
-PolyML.Project.make "theories/ruleset.ML";
-PolyML.Project.make "io/output_ruleset_XML.ML";
-PolyML.Project.make "io/input_ruleset_XML.ML";
+(* substitution of a matched subgraph for another graph *)
+PolyML.Project.make "rewriting/graph_subst.ML";
 
-(* **** *)
-(* generic rules *)
-PolyML.Project.make "rewriting/rewrite.ML";
-
-(* more expression code; this time expresions derived from graphs *)
+(* more expression code; this time expresions derived from graphs, 
+   e.g. for interaction with Mathematica/Maple/etc. *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
+
+(* rule sets *)
+PolyML.Project.make "theories/ruleset.ML";
+(* **** *)
+PolyML.Project.make "io/output_ruleset_XML.ML";
+PolyML.Project.make "io/input_ruleset_XML.ML";
 
 (* interface protocol *)
 PolyML.Project.make "interface/controller.ML";

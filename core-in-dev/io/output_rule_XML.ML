@@ -1,16 +1,23 @@
 signature OUTPUT_RULE =
 sig
+  structure RuleName : SSTR_NAMES
   structure R : BASIC_RULE
   structure OG : OUTPUT_GRAPH
   sharing OG.Graph.SharingBangGraph = R.Graph.SharingBangGraph
 	 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = R.Name.name * (R.T * bool)
+		where type intype = RuleName.name * R.T * bool
 end;
 
 (* ------------------------------------------------------- *)
 
+(* FIXME: rules should *JUST* be left and right hand side, (and I think 
+   we should have 1-file per rule representation - that way rule sets can 
+   simply identify rules, and we get less problems of clashing names in
+   rulesets, and we can use filenames for rule names. *)
+
 functor RuleOutputXML (
+  structure RuleName : SSTR_NAMES
 	structure Rule : BASIC_RULE
 	structure OutputGraph : OUTPUT_GRAPH
   where type outtype = Pretty.T
@@ -18,21 +25,23 @@ functor RuleOutputXML (
   sharing type OutputGraph.intype = Rule.Graph.T
 ) : OUTPUT_RULE
 = struct
+  
+  structure RuleName = RuleName
   structure R = Rule
   structure OG = OutputGraph
-  type intype = R.Name.name * (R.T * bool)
+  type intype = RuleName.name * R.T * bool
   type outtype = Pretty.T
 
   val output_graph = OG.output
 
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
 
-  fun output (rule_name, (rule, active))  = 
+  fun output (rule_name,rule,active)  = 
 	      Pretty.chunks
 	        [Pretty.str "<rule>",
 	         indent_chunks [
 		 Pretty.block [Pretty.str "<name>",
-			       R.Name.pretty_name rule_name,
+			       RuleName.pretty_name rule_name,
 			       Pretty.str "</name>"],
 		Pretty.block [Pretty.str "<active>",
 			       Pretty.str (Bool.toString active),
@@ -48,10 +57,9 @@ functor RuleOutputXML (
 
 end;
 
-(* -------------------------------------------------------- *)
-
 structure RGRuleOutputXML : OUTPUT_RULE
  = RuleOutputXML(
+    structure RuleName = RuleName
     structure Rule = Rule
     and OutputGraph = RGGraphOutputXML
    );
@@ -68,7 +76,7 @@ sig
   sharing OG.Graph.SharingBangGraph = R.Graph.SharingBangGraph
 		 
   include OUTPUT where type outtype = OG.outtype
-		where type intype = R.Name.name * R.T * OG.Graph.T
+		where type intype = RuleName.name * R.T * OG.Graph.T
 end
 
 (* -------------------------------------------------------- *)
@@ -85,7 +93,7 @@ functor RewriteOutputXML (
 struct
   structure R = Rule
   structure OG = OutputGraph
-  type intype = R.Name.name * R.T * OG.Graph.T
+  type intype = RuleName.name * R.T * OG.Graph.T
   type outtype = Pretty.T
 
   val output_graph = OG.output
@@ -96,7 +104,7 @@ struct
 	      Pretty.chunks
 	        [Pretty.str "<rewrite>",
 	         indent_chunks [
-	         Pretty.str ("<rulename>"^(R.Name.string_of_name rule_name)^"</rulename>"),
+	         Pretty.str ("<rulename>"^(RuleName.string_of_name rule_name)^"</rulename>"),
 	         output_graph fused,
 	         Pretty.str "<lhs>",
 	         indent_chunks [output_graph (Rule.get_lhs rule)],

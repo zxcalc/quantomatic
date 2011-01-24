@@ -114,9 +114,9 @@ val cut_around_vertex : Vertex.NSet.T -> Vertex.name
    returns the gluing automorphism, and a new graph which will be disjoint *)
 val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.InjEndo.T * T)
 
-(* Given selection set of vertices, make subgraph with with incident edges that went to a vertex outside selection, now go to a single boundary-type vertex. Perserves matching; doesn't (necessarily produce a valid ograph) produce  *)
+(* Given selection set of vertices, make subgraph with with incident edges that went to a vertex outside selection, now go to a single edge-point. Perserves matching; doesn't (necessarily produce a valid ograph) produce  *)
 val matched_subgraph_within_vset' : Vertex.NSet.T -> T 
-    -> Vertex.InjEndo.T * T (* returns gluing/cutting for new boundary, 
+    -> Vertex.InjEndo.T * T (* returns gluing/cutting for new 'boundary', 
                               and cut graph *)
 val matched_subgraph_within_vset : Vertex.NSet.T -> T -> T
 
@@ -278,10 +278,10 @@ functor BasicOGraphFun(
           V.IVert _ => g
         | V.EVert => 
           (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
-             (true, true) => g (* maybe had many incident edges *)
+             (true, true) => g |> del_from_boundary n (* became isolated *)
            | (false,true) => g |> add_to_boundary n
            | (true,false) => g |> add_to_boundary n
-           | (false,false) => g |> del_from_boundary n)
+           | (false,false) => g (* had many incident edges *))
       end;
 
   (* *)
@@ -292,10 +292,7 @@ functor BasicOGraphFun(
         | V.EVert => 
           (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
              (true, true) => g |> del_from_boundary n |> add_to_edgepoints n
-           | (false,true) => g |> add_to_boundary n
-           | (true,false) => g |> add_to_boundary n
-           | (false,false) => g |> add_to_boundary n)
-           (* raise bug_exp "OGraph: update_point_kind_from_add_edge: newly connected vertex should have some incident edges" *)
+           | (_,_) => g |> add_to_boundary n)
       end;
 
   (* *)

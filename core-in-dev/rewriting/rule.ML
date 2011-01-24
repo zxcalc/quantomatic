@@ -7,34 +7,24 @@
 
 signature RULE_SHARING =
 sig
-  structure Name : NAMES_SHARING (* names of rules *)
   structure Graph : BANG_GRAPH_SHARING
 end
 
 signature BASIC_RULE 
 = sig
-  structure Name : SSTR_NAMES
   structure Graph : BANG_GRAPH
   structure GraphIso : BANG_GRAPH_ISO
   
   structure Sharing : RULE_SHARING
-  sharing Sharing.Name = Name
   sharing Sharing.Graph = Graph.SharingBangGraph
   
   type T (* rule *)
-  datatype 'a tree = Tree of ('a * 'a tree list);
-  datatype constr   =   Constrained
-                      | Arbitrary
-  datatype 'a otype =   Initial of constr
-                      | Rooted of constr * 'a
-                      | Boundary of 'a;
-  
+
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
   
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
-  val get_order : T -> (Graph.Vertex.name otype * Graph.Vertex.name tree) list
   
   (* swaps lhs and rhs *)
   val symmetric : T -> T
@@ -42,6 +32,18 @@ signature BASIC_RULE
   (* rule is a trivial identity : lhs matches rhs *)
   val is_trivial : T -> bool
   
+
+  (* extra cached meta-data *)
+  datatype 'a tree = Tree of ('a * 'a tree list);
+  datatype constr   =   Constrained
+                      | Arbitrary
+  datatype 'a otype =   Initial of constr
+                      | Rooted of constr * 'a
+                      | Boundary of 'a;
+  (* gets cached symmetry match-search order *)  
+  val get_order : T -> (Graph.Vertex.name otype * Graph.Vertex.name tree) list
+
+  (* for pretty printing *)
   val pretty : T -> Pretty.T
   val print : T -> unit
 end;
@@ -236,7 +238,7 @@ fun get_lhs_deledges r =
 *)
 
 (* swap lhs and rhs of a rule *)
-fun symmetric r = mk (get_rhs r, get_lhs r);
+fun symmetric r = mk (get_lhs r, get_rhs r);
 
 (* a rule is trivially true if the left and right hand sides match.
    Proof is by observing that bounary nodes can only be matched by
@@ -266,3 +268,8 @@ end;
 
 structure DB_Rule = RuleFun(RGGraph);
 structure Rule : RULE = DB_Rule;
+
+(* -------------------------------------------------------- *)
+structure RuleName : SSTR_NAMES = 
+  struct open SStrName; val default_name = mk "new-rule-1"; end;
+

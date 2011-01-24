@@ -206,7 +206,7 @@ local
 					  
     fun mult' [] _ = []
       | mult' (r::rs) cs = let
-	    val mrow = foldr (fn (c,row) => (dot_product r c)::row) [] cs
+	    val mrow = fold (fn c => fn row => (dot_product r c)::row) cs [] 
 	in (mrow)::(mult' rs cs)
 	end
 in

@@ -95,6 +95,7 @@ val set_bboxes : VtoBoxMap.T -> T -> T;
 (* *** END OF COPIED *** *)
 
 val get_bbnames : T -> BBox.NSet.T
+val add_to_bbnames : T -> BBox.NSet.T -> BBox.NSet.T
 
 val lookup_box_of : T -> Vertex.name -> BBox.name option
 val get_box_of : T -> Vertex.name -> BBox.name
@@ -316,6 +317,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
   (* all !-box names *)
   val get_bbnames = VtoBoxMap.get_codset o get_bboxes;
+  val add_to_bbnames = BBox.NSet.union_merge o get_bbnames;
   
   (* Bangbox renaming *)
   fun try_rename1_bname n1 n2 g = 
@@ -340,9 +342,9 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* rename g2 apart from g1 *)
   fun rename_apart_incl_bboxes g1 g2 = 
       let 
-        val vrn = Vertex.Rnm.mk_from_avoidset (get_vnames g1)
-        val ern = Edge.Rnm.mk_from_avoidset (get_enames g1)
-        val brn = BBox.Rnm.mk_from_avoidset (get_bbnames g1)
+        val vrn = Vertex.Rnm.mk_from_avoids (get_vnames g1)
+        val ern = Edge.Rnm.mk_from_avoids (get_enames g1)
+        val brn = BBox.Rnm.mk_from_avoids (get_bbnames g1)
       in rename_incl_bboxes (vrn,ern,brn) g2 end;
 
 
@@ -378,6 +380,24 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       g |> update_bboxes (Vertex.NSet.fold VtoBoxMap.del_dom vs)
         |> update_unboxed (Vertex.NSet.union_merge vs);
   
+  (* overrides previous function *)
+  (* Merge g1 into g2.
+     (Replaces basic merge_by_vertices to include bboxes) 
+     Assumes edge-names are disjoint. Assumes bbox names disjoint. 
+     Assumes all edge-points from g1 are in g2 already (and copied bboxes skip edge-points)
+     When an edge-point in g1 overlaps an internal vertex in g2, if the
+     edge-point is in a bangbox, then the bang-box doesn't extend to the
+     internal vertex. *)
+  fun merge_by_vertices g1 g2 =
+      let val g1bboxes = get_bboxes g1
+      in
+        g2 |> OGraph.merge_by_vertices g1
+           |> BBox.NTab.fold
+                (fn (bbn,vset) => 
+                  move_to_box bbn 
+                    (Vertex.NSet.subtract vset (get_edgepoints g1)))
+                (VtoBoxMap.get_codtab g1bboxes)
+       end;
 
   (* copy bang box, given renaming info, or possibly with dictated renaming. *)
   fun copy1_box bn ((vrn,ern,brn),g) = 

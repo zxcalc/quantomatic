@@ -2,12 +2,13 @@
 
 signature INPUT_RULE =
 sig
+  structure RuleName : SSTR_NAMES
   structure Rule : RULE
   structure InputGraph : INPUT_GRAPH
   sharing InputGraph.G.SharingBangGraph = Rule.Graph.SharingBangGraph
 
   include INPUT where type intype = InputGraph.intype 
-				        where type outtype = Rule.Name.name * Rule.T * bool
+				        where type outtype = RuleName.name * Rule.T * bool
 
 end;
 
@@ -16,6 +17,7 @@ end;
 
 
 functor RuleInputXML (structure Rule : RULE
+  structure RuleName : SSTR_NAMES
   structure InputGraph : INPUT_GRAPH 
     where type intype = XML.tree
   sharing InputGraph.G.SharingBangGraph = Rule.Graph.SharingBangGraph
@@ -23,6 +25,7 @@ functor RuleInputXML (structure Rule : RULE
 ) : INPUT_RULE
 = struct 
 
+structure RuleName = RuleName;
 structure Rule = Rule;
 structure InputGraph = InputGraph;
 type rule = Rule.T;
@@ -30,13 +33,13 @@ type rule = Rule.T;
 open XML_Utils;
 
 type intype = tree;
-type outtype = Rule.Name.name * rule * bool;
+type outtype = RuleName.name * rule * bool;
 
 val input_graph = InputGraph.input;
 
 fun input xml = 
     let val _ = force_unpack_elem "rule" xml
-	val name = Rule.Name.mk (input_name (get_required_child "name" xml))
+	val name = RuleName.mk (input_name (get_required_child "name" xml))
 	val lhs = input_graph 
 		    (get_required_child "graph" (get_required_child "lhs" xml))
 	val rhs = input_graph 
@@ -53,6 +56,7 @@ end;
 
 structure RGRuleInputXML : INPUT_RULE
   = RuleInputXML(
+      structure RuleName = RuleName
       structure Rule = Rule
       and InputGraph = RGGraphInputXML
     );

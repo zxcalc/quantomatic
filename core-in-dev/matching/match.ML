@@ -36,7 +36,7 @@ signature MATCH
   (* basic gets/sets/updates *)
   val get_emap : T -> EMap.T
   val get_viso : T -> G.Vertex.InjEndo.T
-  val get_bvmap : T -> G.Vertex.Map.T
+  val get_evmap : T -> G.Vertex.Map.T
   val get_bbmatch : T -> BBMatch.T
   val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
   val get_subst : T -> G.Param.subst
@@ -44,7 +44,7 @@ signature MATCH
   val update_names : (   G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T
                       -> G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
                      -> T -> T
-  val update_bvmap : (G.Vertex.Map.T -> G.Vertex.Map.T) -> T -> T
+  val update_evmap : (G.Vertex.Map.T -> G.Vertex.Map.T) -> T -> T
   val update_emap : (EMap.T -> EMap.T) -> T -> T
 
   (* check is half edges are mapped this way already *)
@@ -88,12 +88,15 @@ signature MATCH
   (* match pattern boundary point to target vertex/edge-point *)
   val match_boundary : G.Vertex.name -> G.Vertex.name -> T -> T
 
+
+  (* apply substitutions for data that may occur in vertices/edges *)
+  val datasubst : T -> G.T -> G.T 
   (* instantiate a graph using the match, produces exactly the matched lhs
      component, or equivalently *)
-  val inst_matched_graph : T -> G.T -> G.T 
+  val inst_pat_graph : T -> G.T -> G.T 
   (* instantiate a substitution graph for the match: expand !-boxes, etc,
      keeping id map on names of boundary  *)
-  val inst_subst_graph : T -> G.T -> G.T 
+  val inst_replacement_graph : T -> G.T -> G.T 
 
 
   (* bbox stuff *)
@@ -133,7 +136,7 @@ functor MatchFun(G : BANG_GRAPH) : MATCH
             (* Internal vertex bijection from pat to tgt *)
             viso : V.InjEndo.T,
             (* map for boundary vertices pat to tgt vertices  *)
-            bvmap: V.Map.T,
+            evmap: V.Map.T,
             (* 1-1, inj half-edge mapping *)
             emap: EMap.T,
             (* bang box expansion of pattern *)
@@ -151,7 +154,7 @@ functor MatchFun(G : BANG_GRAPH) : MATCH
                BBox.NSet.union_merge (G.get_bbnames pat) 
                   (BBox.NSet.union_merge (G.get_bbnames tgt) bs)),
       viso = V.InjEndo.empty,
-      bvmap = V.Map.empty,
+      evmap = V.Map.empty,
       emap = EMap.empty,
       bbmatch = BBMatch.init_from_pat pat,
       subst = G.Param.empty_subst
@@ -160,51 +163,56 @@ functor MatchFun(G : BANG_GRAPH) : MATCH
   (* updates *)
   fun update_names f (Match rep) = 
       Match {names = f (#names rep),
-             bvmap = #bvmap rep, 
+             evmap = #evmap rep, 
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = #bbmatch rep,
              subst = #subst rep};
-  fun update_bvmap f (Match rep) = 
+  fun update_evmap f (Match rep) = 
       Match {names = #names rep,
-             bvmap = f (#bvmap rep), 
+             evmap = f (#evmap rep), 
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = #bbmatch rep,
              subst = #subst rep};
   fun update_emap f (Match rep) = 
       Match {names = #names rep,
-             bvmap = #bvmap rep, 
+             evmap = #evmap rep, 
              emap = f (#emap rep),
              viso = #viso rep,
              bbmatch = #bbmatch rep,
              subst = #subst rep};
   fun update_viso f (Match rep) = 
       Match {names = #names rep,
-             bvmap = #bvmap rep, 
+             evmap = #evmap rep, 
              emap = #emap rep,
              viso = f (#viso rep),
              bbmatch = #bbmatch rep,
              subst = #subst rep};
   fun update_bbmatch f (Match rep) = 
       Match {names = #names rep,
-             bvmap = #bvmap rep, 
+             evmap = #evmap rep, 
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = f (#bbmatch rep),
              subst = #subst rep};
   fun update_subst f (Match rep) = 
       Match {names = #names rep,
-             bvmap = #bvmap rep, 
+             evmap = #evmap rep, 
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = #bbmatch rep,
              subst = f (#subst rep)};
   
-  fun get_bvmap (Match rep) = #bvmap rep;
+  fun get_evmap (Match rep) = #evmap rep;
   fun get_emap (Match rep) = #emap rep;
   fun get_viso (Match rep) = #viso rep;
   fun get_names (Match rep) = #names rep;
+  
+  val get_vnames = #1 o get_names;
+  val get_enames = #2 o get_names;
+  val get_bbnames = #3 o get_names;
+
   fun get_subst (Match rep) = #subst rep;
   val set_names = update_names o K;
   val set_subst = update_subst o K;
@@ -296,23 +304,54 @@ functor MatchFun(G : BANG_GRAPH) : MATCH
         |> match_vertex_data pvd tvd; 
              
   
-  fun match_boundary pb tb m = m |> update_bvmap (V.Map.add_to_dom pb tb);
+  fun match_boundary pb tb m = m |> update_evmap (V.Map.add_to_dom pb tb);
   
   (* apply data substs of a match to all vertices and edges in graph *)
-  fun subst m g = G.apply_data_subst (get_subst m) g;
+  fun datasubst m g = G.apply_data_subst (get_subst m) g;
+
+  (* breaks invariant of edge-points having directed arity <= 1 *)
+  fun rename_and_merge_edgepoint_vertices m g = 
+      V.NTab.fold 
+        (fn (codv,domvset) => 
+          V.NSet.fold (fn v2 => G.merge_2vertices v2 codv) domvset
+          o snd o G.add_named_vertex codv V.EVert)
+        (V.Map.get_codtab (get_evmap m))
+        g;
+
+  (*  *)      
+  fun rename_matched_internal_vs m g =
+      snd (G.VertexCRnm.rename   
+        (V.Rnm.mk_from_nmap (V.InjEndo.get_domtab (get_viso m))) g); 
 
   (* instantiate a graph using the match, produces exactly the matched lhs
      component, or equivalently *)
-  fun inst_matched_graph m g = 
-      g |> BBMatch.inst_lhs_bbox_match (get_bbmatch m)
-        |> subst m;
+  fun inst_pat_graph m g = 
+      g |> BBMatch.inst_pat_bbox_match (get_bbmatch m)
+        |> rename_matched_internal_vs m
+        |> rename_and_merge_edgepoint_vertices m
+        |> datasubst m;
 
   (* instantiate a substitution graph for the match: expand !-boxes, etc,
-     keeping id map on names of boundary  *)
-  fun inst_subst_graph m g = 
-      g |> BBMatch.inst_rhs_bbox_match (get_names m) (get_bbmatch m)
-        |> subst m;
-  
+     keeping id map on names of boundary. 
+     Note: renames graph to avoid any names in match "m", so that boundary
+     vertices can be renamed/merged without danger of clash to existing names.
+     This also ensures that if you add this graph to the matched one, then 
+     there will be no name-clash, except at the intended bits (edge-points to 
+     be merged)
+  *)
+  fun inst_replacement_graph m g = 
+      let 
+        val (vrn,g) =
+          g|> G.VertexCRnm.rename (V.Rnm.mk_from_avoids (get_vnames m));
+        val (ern,g) = 
+          g |> G.EdgeCRnm.rename (E.Rnm.mk_from_avoids (get_enames m));
+        val ((vnames,enames),g) = 
+          ((V.Rnm.get_avoids vrn,E.Rnm.get_avoids ern),g) |> 
+          BBMatch.inst_replacement_bbox_match (get_bbmatch m);
+        val m' = m |> set_names (vnames,enames,get_bbnames m); 
+      in g |> rename_and_merge_edgepoint_vertices m'
+           |> datasubst m'
+      end;
   
   (* pretty printing *)
   fun pretty_names (vs,es,bs) = 
@@ -327,8 +366,8 @@ functor MatchFun(G : BANG_GRAPH) : MATCH
         (Pretty.indent 2 o Pretty.chunks)
         ([pretty_names (get_names m)]
          @ [Pretty.block 
-             [Pretty.str "Boundary Map: ",
-              V.Map.pretty (get_bvmap m)]]
+             [Pretty.str "Edge-point vertex Map: ",
+              V.Map.pretty (get_evmap m)]]
          @ [BBMatch.pretty (get_bbmatch m)]
          @ [Pretty.block 
              [Pretty.str "Internal Vertex InjEndo: ",

@@ -356,9 +356,9 @@ fun copy1_pat_bbox bbn st =
     let val (names as vs,es,bs) = get_names st
         val (bbn2,((vrn',ern',brn'),pat2)) = 
           G.copy1_box bbn 
-            (( G.Vertex.Rnm.mk_from_avoidset vs, 
-               G.Edge.Rnm.mk_from_avoidset es,
-               G.BBox.Rnm.mk_from_avoidset bs), 
+            (( G.Vertex.Rnm.mk_from_avoids vs, 
+               G.Edge.Rnm.mk_from_avoids es,
+               G.BBox.Rnm.mk_from_avoids bs), 
              get_unm_pat st);
     in
       st |> set_unm_pat pat2

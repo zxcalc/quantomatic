@@ -58,9 +58,10 @@ val add_copy : (G.BBox.name (* old bbname *)
 
 (* apply bbox expantion to matched graph (lhs), and some rhs of a rule 
    graph (rhs) *)
-val inst_lhs_bbox_match : T -> G.T -> G.T
-val inst_rhs_bbox_match : (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T) 
-      -> T -> G.T -> G.T
+val inst_pat_bbox_match : T -> G.T -> G.T
+val inst_replacement_bbox_match : 
+      T -> (G.Vertex.NSet.T * G.Edge.NSet.T) * G.T 
+        -> (G.Vertex.NSet.T * G.Edge.NSet.T) * G.T
 
 val pretty : T -> Pretty.T
 val print : T -> unit
@@ -279,7 +280,7 @@ fun add_copy (bbn1,(vtab,etab),bbn2) m =
 
   (* given a bbox matching against a graph, apply it: copy, kill and 
      drop bboxes. When copying, use the specified names. *)
-  fun inst_lhs_bbox_match bbmatch g = 
+  fun inst_pat_bbox_match bbmatch g = 
       g |> BBox.NTab.fold 
             (fn (bn2,bn1) => fn g => 
               let 
@@ -300,7 +301,7 @@ fun add_copy (bbn1,(vtab,etab),bbn2) m =
      names are used on lhs and rhs. But internal part of bangbox may have 
      more vertices than lhs, so can't re-use same name-space.  
   *)
-  fun inst_rhs_bbox_match (avoid_vs,avoid_es,bs) bbmatch g = 
+  fun inst_replacement_bbox_match bbmatch ((avoid_vs,avoid_es), g) = 
       let 
         val bb_xmaps = get_xmaps bbmatch;
         val bb_xvs = get_xvs bbmatch; (* all exterior vs *)
@@ -312,15 +313,14 @@ fun add_copy (bbn1,(vtab,etab),bbn2) m =
                  val bb_nmap = V.InjEndo.get_domtab 
                                 (BBox.NTab.get bb_xmaps bn2);
                  val vrn = V.Rnm.mk V.NSet.empty avoid_vs bb_nmap;
-                 val ern = E.Rnm.mk_from_avoidset avoid_es;
+                 val ern = E.Rnm.mk_from_avoids avoid_es;
                  val brn = BBox.Rnm.do_compose_rename1 bn1 bn2 BBox.Rnm.empty
                  val (_,((vrn,ern,brn),g)) = 
                      G.copy1_box bn1 ((vrn,ern,brn),g)
                in ((V.Rnm.get_avoids vrn, E.Rnm.get_avoids ern), g) end)
               (BBMap.get_domtab (get_copies bbmatch))
-          |> snd (* ignore/throw away new names *)
-          |> BBox.NSet.fold G.kill_box (get_kill bbmatch)
-          |> BBox.NSet.fold G.drop_box (get_drop bbmatch)
+          ||> (BBox.NSet.fold G.kill_box (get_kill bbmatch))
+          ||> (BBox.NSet.fold G.drop_box (get_drop bbmatch))
       end;
 
   
