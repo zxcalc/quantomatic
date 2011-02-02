@@ -1,10 +1,4 @@
 ################################
-# dynamic variables checked on call to make. 
-################################
-ML_SRC_FILES = $(shell ls *.ML */*.ML theories/*/*.ML)
-ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../../isaplib/*/*/*.ML)
-
-################################
 # variables you might want to set in your own profile setup...
 ################################
 ### your local install of PolyML
@@ -13,11 +7,16 @@ ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../..
 ################################
 # general variables
 ################################
-
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
 POLYML=$(POLYML_HOME)/bin/poly
 POLYML_LIB=$(POLYML_HOME)/lib
+
+################################
+# dynamic variables checked on call to make. 
+################################
+ML_SRC_FILES = $(shell ls *.ML */*.ML theories/*/*.ML)
+ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../../isaplib/*/*/*.ML)
 
 ################################
 # HEAP files defined in make_heap.ML, make_bin.ML
