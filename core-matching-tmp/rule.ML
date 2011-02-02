@@ -304,7 +304,7 @@ fun inst_rhs_bbox_match (avoid_vs,avoid_es,bs) bbmatch g =
                val bb_nmap = RGGraph.VAuto.get_domtab 
                               (BBox.NTab.get bb_xmaps bn2);
                val vrn = Vertex.Rnm.mk Vertex.NSet.empty avoid_vs bb_nmap;
-               val ern = Edge.Rnm.mk_from_avoidset avoid_es;
+               val ern = Edge.Rnm.mk_from_avoids avoid_es;
                val ((vrn,ern),g) = 
                    RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g)
              in 

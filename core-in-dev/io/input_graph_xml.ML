@@ -1,42 +1,33 @@
 (* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
-
-functor GraphInputXML (structure Graph : BANG_GRAPH
-                       structure InVData : INPUT_VDATA 
-                       where type intype = XML.tree
-                       structure InEData : INPUT_EDATA 
-                       where type intype = XML.tree
-  sharing InVData.V.SharingWithIData = Graph.OVertex.SharingWithIData
-  sharing InEData.E.EdgeSharingWithData = Graph.Edge.EdgeSharingWithData
-)  : INPUT_GRAPH
+functor GraphInputXML (
+  structure Graph : BANG_GRAPH
+  structure InVData : XML_INPUT 
+  sharing type InVData.data = Graph.Vertex.data
+  structure InEData : XML_INPUT 
+  sharing type InEData.data = Graph.Edge.data
+)  : XML_INPUT
 = struct
+
   structure G = Graph;
   structure V = Graph.OVertex;
   structure E = Graph.Edge;
   structure B = Graph.BBox;
   structure BR = Graph.VtoBoxMap;
 
-  type graph = Graph.T;
-  type vertex = V.data;
-  type edge = E.data;
-  type vname = V.name;
-  type ename = E.name;
-  type bboxname = B.name;
+  type T = XML.tree;  (* XML.tree *)
+  type data = Graph.T;
 
   open XML_Utils;
-
-  type intype = tree;  (* XML.tree *)
-  type outtype = graph;
 
   val input_vdata = InVData.input
   val input_edata = InEData.input
       
   fun input_boundary xml = 
       let val (_,_,children) = force_unpack_elem "boundary" xml
-      in
-	case children of
-	  [] => false
-	| (x::xs) => input_boolean x
-      end
+      in case children of
+            [] => false
+          | (x::xs) => input_boolean x
+      end;
 
   fun input_vertex xml = 
       let val (_,_,children) = force_unpack_elem "vertex" xml
@@ -44,13 +35,13 @@ functor GraphInputXML (structure Graph : BANG_GRAPH
           val (bnd,_) = get_elem false "boundary" children
       in
         case bnd of 
-          NONE => (name, V.IVert (input_vdata xml))
+          NONE => (name, V.IVert (InVData.input xml))
         | SOME boundary => 
           let val b = input_boundary boundary
-          in case b of false => (name, V.IVert (input_vdata xml))
+          in case b of false => (name, V.IVert (InVData.input xml))
                      | true => (name, V.EVert)
           end
-	end;
+      end;
 
   val input_source = force_get_text_from "source"
   val input_target = force_get_text_from "target"
@@ -106,113 +97,80 @@ functor GraphInputXML (structure Graph : BANG_GRAPH
 end (* structure InputXML *)
 
 
-
 (* ------------------------------------------------------- *)
+functor RGVertexInputXML (V : RG_VERTEX)  : XML_INPUT
+= struct
+  
+  type T = XML.tree;
+  type data = V.IData.data;
+  
+  open XML_Utils;
+  
+  fun input_rational xml  = 
+      let val num = unpack_required_child "num" xml
+          val denom = unpack_required_child "denom" xml
+          val n = case num of 
+                    (_,[]) => fail "Element <num> may not be empty."
+                  | (_,(x::xs)) => input_int x
+          val d = case denom of 
+                    (_,[]) => fail "Element <denom> may not be empty."
+                  | (_,(x::xs)) => input_int x
+      in (n,d) end;
+  
+  fun input_constant xml =
+      let val _= force_unpack_elem "constant" xml
+      in input_rational xml end
+  
+  fun input_coeff xml = 
+      let val _ = force_unpack_elem "coefficient" xml
+      in input_rational xml end;
+  
+  fun input_variable xml = 
+      let val _ = force_unpack_elem "variable" xml
+          val name = get_required_child "name" xml
+          val coeff = get_required_child "coefficient" xml
+      in (input_name name, input_coeff coeff) end;
+  
+  fun input_angleexpr xml  =
+      let val (_,_,children) = force_unpack_elem "angleexpr" xml
+          val constant = case (get_elem false "constant" children) of
+                           (NONE,_) => AngleExpr.Coeff.zero
+                         | (SOME const,_) => input_constant const
+          val vars = List.map input_variable 
+                              (get_all_elems "variable" children)
+      in AngleExpr.mk constant vars end;
+  
+  val input_colour = tolower o (force_get_text_from "colour");
+  
+  fun input xml =
+      let val (_,_,children) = force_unpack_elem "vertex" xml
+          val col = input_colour (get_required_child "colour" xml)
+      in 
+        if (col = "h") then V.Hnd
+        else
+          let val (aopt,_) = get_elem false "angleexpr" children
+              val angle = case aopt of NONE => AngleExpr.zero
+                                     | SOME a => input_angleexpr a
+          in
+            if (col = "green") then V.Znd angle
+            else if (col = "red") then V.Xnd angle
+            else fail ("Unknown colour : "^col^".")
+          end
+      end;
+end; (* functor RGGraphInputXML*)
 
-functor RGVertexInputXML (Graph : RG_GRAPH)  : INPUT_VDATA 
-=
-struct
-
-structure V = Graph.RGVertex
-type outtype = V.IData.data;
-     
-open XML_Utils;
-
-type intype = tree;
-
-fun input_rational xml  = 
-    let val num = unpack_required_child "num" xml
-	val denom = unpack_required_child "denom" xml
-    in
-      let val n = case num of 
-		    (_,[]) => fail "Element <num> may not be empty."
-		  | (_,(x::xs)) => input_int x
-	  val d = case denom of 
-		    (_,[]) => fail "Element <denom> may not be empty."
-		  | (_,(x::xs)) => input_int x
-      in
-	(n,d)
-      end
-    end
-
-fun input_constant xml =
-    let val _= force_unpack_elem "constant" xml
-    in
-      input_rational xml
-    end
-
-fun input_coeff xml = 
-    let val _ = force_unpack_elem "coefficient" xml
-    in
-      input_rational xml
-    end
-
-fun input_variable xml = 
-    let val _ = force_unpack_elem "variable" xml
-    in
-      let val name = get_required_child "name" xml
-	  val coeff = get_required_child "coefficient" xml
-      in
-	(input_name name, input_coeff coeff)
-      end
-    end
-
-fun input_angleexpr xml  =
-    let val (_,_,children) = force_unpack_elem "angleexpr" xml
-    in
-      let val constant = case (get_elem false "constant" children) of
-			   (NONE,_) => AngleExpr.Coeff.zero
-			 | (SOME const,_) => input_constant const
-	  val vars = List.map input_variable 
-			      (get_all_elems "variable" children)
-      in
-	      AngleExpr.mk constant vars
-      end
-    end
-
-val input_colour = tolower o (force_get_text_from "colour")
-
-fun input_vdata xml =
-    let val (_,_,children) = force_unpack_elem "vertex" xml
-	      val col = input_colour (get_required_child "colour" xml)
-    in 
-      if (col = "h") then V.Hnd
-      else
-	      let val (aopt,_) = get_elem false "angleexpr" children
-	          val angle = case aopt of NONE => AngleExpr.zero
-				                           | SOME a => input_angleexpr a
-	      in
-	        if (col = "green") then V.Znd angle
-	        else if (col = "red") then V.Xnd angle
-	        else fail ("Unknown colour : "^col^".")
-	      end
-    end
-    
-val input = input_vdata
-
-end (* functor RGGraphInputXML*)
-
-functor RGEdgeInputXML (Graph : RG_GRAPH) :  INPUT_EDATA 
-=
-struct
-
-structure E = Graph.Edge
-type outtype = E.data
-
-open XML_Utils;
-type intype = tree;
-
-fun input_edata _ = E.default_data
-
-val input = input_edata
-
-end
+functor RGEdgeInputXML (E : RG_EDGE) :  XML_INPUT
+= struct
+  type T = XML.tree;
+  type data = E.data;
+  val input = K E.default_data;
+end;
 
 (* ---------------------------------------------------------- *)
 
-structure RGGraphInputXML : INPUT_GRAPH
+structure RGGraphInputXML : XML_INPUT
   = GraphInputXML(
       structure Graph = RGGraph
-      and InVData = RGVertexInputXML (RGGraph)
-      and InEData = RGEdgeInputXML (RGGraph)
+      and InVData = RGVertexInputXML(RGGraph.RGVertex)
+      and InEData = RGEdgeInputXML(RGGraph.Edge)
     );

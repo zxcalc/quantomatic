@@ -7,7 +7,7 @@ sig
 	sharing RS.Rule.Sharing	 = OR.R.Sharing
 
   include OUTPUT where type outtype = OR.outtype
-		where type intype = RS.Name.name * RS.T * bool
+		where type intype = RS.RuleName.name * RS.T * bool
 end
 
 (* -------------------------------------------------------- *)
@@ -24,7 +24,7 @@ struct
   structure OR = OutputRule
   structure RS = RuleSet
   
-  type intype = RS.Name.name * RS.T * bool 
+  type intype = RS.RuleName.name * RS.T * bool 
   type outtype = Pretty.T
 
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]	    
@@ -34,12 +34,14 @@ struct
       in
       Pretty.chunks [ Pretty.str "<ruleset>", 
            Pretty.str "<name>",
-           RS.Name.pretty_name setname,
+           RS.RuleName.pretty_name setname,
            Pretty.str "</name>",
            Pretty.str "<active>",
            Pretty.str activestring,
            Pretty.str "</active>",
-		      indent_chunks (map OR.output (RS.Rule.Name.NTab.list_of rules)),
+		      indent_chunks (map (OR.output 
+		                          o (fn (n,r) => (n,r,RS.is_active rules n))) 
+		                         (RuleName.NTab.list_of (RS.get_allrules rules))),
 		      Pretty.str "</ruleset>",
 		      Pretty.str ""
 		    ]

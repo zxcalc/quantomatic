@@ -29,7 +29,7 @@ sig
       sharing Sharing.InBRel = InBRel.Sharing
       sharing type Sharing.T = T 
     
-    val get_allrules : T -> Rule.T SubsetName.NTab.T 
+    val get_allrules : T -> Rule.T RuleName.NTab.T 
     val get_active : T -> RuleName.NSet.T 
     val get_brel : T -> InBRel.T
     
@@ -37,6 +37,9 @@ sig
 
     val applicable_rules : T -> Rule.Graph.T 
           -> ((RuleName.name * Rule.T) * Rule.Graph.T) Seq.seq
+
+    val is_activate : T -> RuleName.name -> bool
+    val rule_exists : T -> RuleName.name -> bool
 
     val activate_rule : RuleName.name -> T -> T
     val deactivate_rule : RuleName.name -> T -> T
@@ -119,8 +122,11 @@ structure Sharing = struct
   type T = T;
 end
 
-fun rule_exists rset rule_name = 
-    RuleName.NTab.contains (get_allrules rset) rule_name; 
+fun rule_exists rset rname = 
+    RuleName.NTab.contains (get_allrules rset) rname; 
+
+fun is_activate rset rname =  
+    RuleName.NSet.contains (get_active rset) rname; 
 
 fun lookup_rule rset rule_name = 
     RuleName.NTab.lookup (get_allrules rset) rule_name; 
@@ -156,6 +162,10 @@ fun deactivate_ruleset subsetname rset =
 fun delete_ruleset subsetname rset = 
     RuleName.NSet.fold delete_rule (get_subset rset subsetname) rset;
 
+fun add_rule (rname, rule, subsets) rset = 
+    rset |> update_active (RuleName.NSet.delete name)
+         |> update_brel (InBRel.del_dom name)
+         |> update_allrules (RuleName.NTab.delete name);
 
 fun add_rule_to_subset rname subsetname rset =
     if rule_exists rset rname then 

@@ -346,7 +346,7 @@ fun copy1_box (vs,es,bs) bn g =
         val (boundary_vs, bbg) = cut_subgraph_of_selection' bbox_vs g;
         val ((vrn,ern),bbg2) = 
             bbg |> rename (Vertex.Rnm.mk boundary_vs vs Vertex.NTab.empty,
-                           Edge.Rnm.mk_from_avoidset es) 
+                           Edge.Rnm.mk_from_avoids es) 
         val bbox2_vs = Vertex.Rnm.get_newnames vrn;
         val bboxes = get_bboxes g
         val (bn2, bs2) = BBox.NSet.add_new bn bs;

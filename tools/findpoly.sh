@@ -29,15 +29,20 @@ if [ -n "$POLYML_IN_PATH" ]; then
     POLYML_IN_PATH="$(cd $(dirname $POLYML_IN_PATH); cd ..; pwd)"
 fi
 
+# polyml from same directory as quantomatic
 [ -d "$ROOT_DIR/../polyml" ] && LOCAL_POLY_DIR="$(cd $ROOT_DIR/../polyml; pwd)"
+# polyml from contrib directory of quatomatc
+[ -d "$ROOT_DIR/contrib/polyml" ] && CONTRIB_POLY_DIR="$(cd $ROOT_DIR/contrib/polyml; pwd)"
 
 POLYML_HOME=$(choosefrom \
   "$POLYML_HOME" \
-  "$LOCAL_POLY_DIR" \
+  "$CONTRIB_POLY_DIR" \
   "$POLYML_IN_PATH" \
+  "$LOCAL_POLY_DIR" \
   "/usr/local/polyml" \
   "/usr/share/polyml" \
   "/opt/polyml" \
+  "/usr" \
   "")
 
 echo $POLYML_HOME;
