@@ -8,7 +8,7 @@ functor RuleInputXML (
 ) : XML_INPUT
 = struct
   type T = XML.tree;
-  type data = RuleName.name * rule * bool;
+  type data = RuleName.name * Rule.T;
   
   open XML_Utils;
 
@@ -19,15 +19,15 @@ functor RuleInputXML (
                 (get_required_child "graph" (get_required_child "lhs" xml))
           val rhs = InputGraph.input 
                 (get_required_child "graph" (get_required_child "rhs" xml))
-          val active = case (get_child false "active" xml) of
+          (* val active = case (get_child false "active" xml) of
                          (NONE,_) => true
-                       | (SOME b, _) => input_boolean b
-      in (name, Rule.mk (lhs,rhs), active) end;
+                       | (SOME b, _) => input_boolean b *)
+      in (name, Rule.mk (lhs,rhs)) end;
 
 end;
 
 (* ------------------------------------------------------- *)
-structure RGRuleInputXML : XML_INPUT where data = Rule.T
+structure RGRuleInputXML : XML_INPUT where type data = RuleName.name * Rule.T
   = RuleInputXML(
       structure Rule = Rule
       and RuleName = RuleName

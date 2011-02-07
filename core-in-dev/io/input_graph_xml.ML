@@ -2,7 +2,7 @@
 functor GraphInputXML (
   structure Graph : BANG_GRAPH
   structure InVData : XML_INPUT 
-  sharing type InVData.data = Graph.Vertex.data
+  sharing type InVData.data = Graph.OVertex.IData.data
   structure InEData : XML_INPUT 
   sharing type InEData.data = Graph.Edge.data
 )  : XML_INPUT
@@ -140,7 +140,7 @@ functor RGVertexInputXML (V : RG_VERTEX)  : XML_INPUT
                               (get_all_elems "variable" children)
       in AngleExpr.mk constant vars end;
   
-  val input_colour = tolower o (force_get_text_from "colour");
+  val input_colour = String.map Char.toLower o (force_get_text_from "colour");
   
   fun input xml =
       let val (_,_,children) = force_unpack_elem "vertex" xml
@@ -159,8 +159,9 @@ functor RGVertexInputXML (V : RG_VERTEX)  : XML_INPUT
       end;
 end; (* functor RGGraphInputXML*)
 
-functor RGEdgeInputXML (E : RG_EDGE) :  XML_INPUT
+functor RGEdgeInputXML (E : EDGE) :  XML_INPUT
 = struct
+  open XML_Utils;
   type T = XML.tree;
   type data = E.data;
   val input = K E.default_data;
