@@ -1,9 +1,9 @@
 (* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
 functor GraphInputXML (
   structure Graph : BANG_GRAPH
-  structure InVData : XML_INPUT 
+        and InVData : XML_INPUT 
+        and InEData : XML_INPUT 
   sharing type InVData.data = Graph.OVertex.IData.data
-  structure InEData : XML_INPUT 
   sharing type InEData.data = Graph.Edge.data
 )  : XML_INPUT
 = struct
@@ -12,15 +12,11 @@ functor GraphInputXML (
   structure V = Graph.OVertex;
   structure E = Graph.Edge;
   structure B = Graph.BBox;
-  structure BR = Graph.VtoBoxMap;
-
+  
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;
 
   open XML_Utils;
-
-  val input_vdata = InVData.input
-  val input_edata = InEData.input
       
   fun input_boundary xml = 
       let val (_,_,children) = force_unpack_elem "boundary" xml
@@ -51,7 +47,7 @@ functor GraphInputXML (
           val name = E.mk (input_name (get_required_child "name" xml))
           val source = V.mk (input_source (get_required_child "source" xml))
           val target = V.mk (input_target (get_required_child "target" xml))
-          val edata = input_edata xml
+          val edata = InEData.input xml
       in (name,edata,source,target) end;
   
   val input_boxedvertex = V.mk o (force_get_text_from "boxedvertex")

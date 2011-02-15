@@ -3,8 +3,13 @@
 *)
 
 (*-------------------------------------------------------*)
-structure OutLinratXML : OUTPUT where type data = LinratExpr.T = 
+structure OutLinratXML : PRETTY_XML_OUTPUT where type data = LinratExpr.T = 
 struct 
+  type T = Pretty.T
+  type data = LinratExpr.T
+
+  structure VName = LinratExpr.VName;
+
 (* -- this section depends strongly on the linrat_expr type ----*)
   fun render_xml_rational (n,d) = 
       Pretty.chunks [Pretty.str ("<num>"^ (string_of_int  n)^"</num>"),
@@ -43,34 +48,37 @@ struct
       end;
   
   fun output (pi,tab) = 
-      if AngleExpr.is_zero (pi,tab) then 
-        []
-      else
-      [Pretty.str "<angleexpr>",
-       Pretty.block [Pretty.str "  ",
-         Pretty.chunks [
-         Pretty.block [Pretty.str "<as_string>",
-           AngleExpr.pretty (pi,tab),
-           Pretty.str "</as_string>"],
-         render_xml_constant_part pi,
-         render_xml_variable_part tab]
-        ],
-       Pretty.str "</angleexpr>"];
+      Pretty.block
+      (if AngleExpr.is_zero (pi,tab) then 
+         []
+       else
+         [Pretty.str "<angleexpr>",
+          Pretty.block [Pretty.str "  ",
+            Pretty.chunks [
+            Pretty.block [Pretty.str "<as_string>",
+              AngleExpr.pretty (pi,tab),
+              Pretty.str "</as_string>"],
+            render_xml_constant_part pi,
+            render_xml_variable_part tab]
+           ],
+          Pretty.str "</angleexpr>"]);
 end; (* structure *)
 
 
 (*  *)
-functor OutRGVertexDataXML (V : RGVERTEX) : OUTPUT = 
+functor RGVDataOutputXML (V : RG_VERTEX) : PRETTY_XML_OUTPUT = 
 struct 
-  structure VName = LinratExpr.VName;
   
+  type T = Pretty.T;
+  type data = V.data;
+
   val colourRed = Pretty.str "<colour>red</colour>";
   val colourGreen = Pretty.str "<colour>green</colour>";
   val colourH = Pretty.str "<colour>H</colour>";
   
-  fun output_idata (V.Xnd a) = colourRed::(OutLinratXML.output a)
-    | output_idata (V.Znd a) = colourGreen::(OutLinratXML.ouput a)
-    | output_idata (V.Hnd) = colourH::[]
+  fun output_idata (V.Xnd a) = [colourRed, OutLinratXML.output a]
+    | output_idata (V.Znd a) = [colourGreen, OutLinratXML.output a]
+    | output_idata (V.Hnd) = [colourH]
 
   fun output (V.EVert) = Pretty.str "<boundary>true</boundary>"
     | output (V.IVert rg) = 
@@ -81,17 +89,19 @@ end;
 (* *)
 functor GraphOutputXML (
   structure Graph : BANG_GRAPH
-  structure OutVData : OUTPUT 
-    where type data = Graph.OVertex.T
-  structure OutEData : OUTPUT
-    where type data = Graph.Edge.T
-) : OUTPUT
+        and OutVData : PRETTY_XML_OUTPUT 
+        and OutEData : PRETTY_XML_OUTPUT 
+  sharing type OutVData.data = Graph.Vertex.data
+  sharing type OutEData.data = Graph.Edge.data
+) : PRETTY_XML_OUTPUT
 = struct
   structure V = Graph.OVertex;
   structure E = Graph.Edge
 
+  structure VName = LinratExpr.VName;
+
+  type T = Pretty.T;  
   type data = Graph.T;
-  type outtype = Pretty.T;  
 
   (* rend_vdata is a function for rendering the vertex data *)
   fun output_vertex (name,(vdata, _)) = 
@@ -99,7 +109,7 @@ functor GraphOutputXML (
 		     Pretty.block [
 		     Pretty.str "  ",
 		     Pretty.str "<name>", 
-		     name,
+		     V.pretty_name name,
 		     Pretty.str "</name>"],
 		     Pretty.block [
 		     Pretty.str "  ",
@@ -179,20 +189,19 @@ end;
 
 (*-------------------------------------------------------*)
 
-functor RGEDataOutputXML (Graph : RG_GRAPH) : OUTPUT_EDATA
+functor RGEDataOutputXML (E : EDGE) : PRETTY_XML_OUTPUT
 =
 struct
-  structure E = Graph.Edge;
-  type intype = E.data;
-  type outtype = Pretty.T
+  type data = E.data;
+  type T = Pretty.T
   fun output _ = Pretty.str ""
 end
 
 (*-------------------------------------------------------*)
-structure RGGraphOutputXML : OUTPUT_GRAPH
+structure RGGraphOutputXML : PRETTY_XML_OUTPUT
   = GraphOutputXML (
     structure Graph = RGGraph
-    and OutVData = RGVDataOutputXML(RGGraph)
-    and OutEData = RGEDataOutputXML(RGGraph)
-    );
+    and OutVData = RGVDataOutputXML(RGGraph.RGVertex)
+    and OutEData = RGEDataOutputXML(RGGraph.Edge)
+);
 

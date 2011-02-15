@@ -1,14 +1,3 @@
-signature OUTPUT_RULE =
-sig
-  structure RuleName : SSTR_NAMES
-  structure R : BASIC_RULE
-  structure OG : OUTPUT_GRAPH
-  sharing OG.Graph.SharingBangGraph = R.Graph.SharingBangGraph
-	 
-  include OUTPUT where type outtype = OG.outtype
-		where type intype = RuleName.name * R.T * bool
-end;
-
 (* ------------------------------------------------------- *)
 
 (* FIXME: rules should *JUST* be left and right hand side, (and I think 
@@ -19,18 +8,17 @@ end;
 functor RuleOutputXML (
   structure RuleName : SSTR_NAMES
 	structure Rule : BASIC_RULE
-	structure OutputGraph : OUTPUT_GRAPH
-  where type outtype = Pretty.T
+	structure OutputGraph : PRETTY_XML_OUTPUT
 	sharing OutputGraph.Graph.SharingBangGraph = Rule.Graph.SharingBangGraph   
-  sharing type OutputGraph.intype = Rule.Graph.T
+  sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_RULE
 = struct
   
   structure RuleName = RuleName
   structure R = Rule
   structure OG = OutputGraph
-  type intype = RuleName.name * R.T * bool
-  type outtype = Pretty.T
+  type data = RuleName.name * R.T
+  type T = Pretty.T
 
   val output_graph = OG.output
 
