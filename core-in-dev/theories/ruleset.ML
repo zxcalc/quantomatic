@@ -162,7 +162,7 @@ fun deactivate_ruleset subsetname rset =
 fun delete_ruleset subsetname rset = 
     RuleName.NSet.fold delete_rule (get_subset rset subsetname) rset;
 
-fun add_rule (rname, rule, subsets) rset = 
+fun add_rule (name, rule, subsets) rset = 
     rset |> update_active (RuleName.NSet.delete name)
          |> update_brel (InBRel.del_dom name)
          |> update_allrules (RuleName.NTab.delete name);

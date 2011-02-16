@@ -9,9 +9,8 @@ functor RuleOutputXML (
   structure RuleName : SSTR_NAMES
 	structure Rule : BASIC_RULE
 	structure OutputGraph : PRETTY_XML_OUTPUT
-	sharing OutputGraph.Graph.SharingBangGraph = Rule.Graph.SharingBangGraph   
-  sharing type OutputGraph.data = Rule.Graph.T
-) : OUTPUT_RULE
+	sharing type OutputGraph.data = Rule.Graph.T
+) : PRETTY_XML_OUTPUT
 = struct
   
   structure RuleName = RuleName
@@ -24,18 +23,15 @@ functor RuleOutputXML (
 
   fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
 
-  fun output (rule_name,rule,active)  = 
+  fun output (rule_name,rule)  = 
 	      Pretty.chunks
 	        [Pretty.str "<rule>",
 	         indent_chunks [
 		 Pretty.block [Pretty.str "<name>",
 			       RuleName.pretty_name rule_name,
 			       Pretty.str "</name>"],
-		Pretty.block [Pretty.str "<active>",
-			       Pretty.str (Bool.toString active),
-			       Pretty.str "</active>"],
 	         Pretty.str "<lhs>",
-	         indent_chunks [output_graph (Rule.get_lhs rule)],
+	         Pretty.indent 2 (output_graph (Rule.get_lhs rule)),
 	         Pretty.str "</lhs>",
 	         Pretty.str "<rhs>", 
 	         indent_chunks [output_graph (Rule.get_rhs rule)],
@@ -45,7 +41,7 @@ functor RuleOutputXML (
 
 end;
 
-structure RGRuleOutputXML : OUTPUT_RULE
+structure RGRuleOutputXML : PRETTY_XML_OUTPUT
  = RuleOutputXML(
     structure RuleName = RuleName
     structure Rule = Rule
@@ -56,99 +52,46 @@ structure RGRuleOutputXML : OUTPUT_RULE
 (* -------- REWRITES ARE MUCH LIKE RULES -------------------*)
 (* -------------------------------------------------------- *)
 
-
-signature OUTPUT_REWRITE =
-sig
-  structure R : BASIC_RULE
-  structure OG : OUTPUT_GRAPH
-  sharing OG.Graph.SharingBangGraph = R.Graph.SharingBangGraph
-		 
-  include OUTPUT where type outtype = OG.outtype
-		where type intype = RuleName.name * R.T * OG.Graph.T
-end
-
 (* -------------------------------------------------------- *)
 
 functor RewriteOutputXML (
 	structure Rule : BASIC_RULE
-	structure OutputGraph : OUTPUT_GRAPH
-				  where type outtype = Pretty.T
-	sharing OutputGraph.Graph.SharingBangGraph = Rule.Graph.SharingBangGraph
-  (* FIXME: why do I need this, I think it should be implied by the above and def of output graph... *)
-  sharing type OutputGraph.intype = Rule.Graph.T
-	) : OUTPUT_REWRITE
-= 
-struct
+	structure OutputGraph : PRETTY_XML_OUTPUT
+  sharing type OutputGraph.data = Rule.Graph.T
+) : PRETTY_XML_OUTPUT
+= struct
+  
   structure R = Rule
   structure OG = OutputGraph
-  type intype = RuleName.name * R.T * OG.Graph.T
-  type outtype = Pretty.T
-
-  val output_graph = OG.output
-
-  fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
+  type data = RuleName.name * R.T * Rule.Graph.T
+  type T = Pretty.T
 
   fun output (rule_name, rule, fused)  = 
 	      Pretty.chunks
 	        [Pretty.str "<rewrite>",
-	         indent_chunks [
-	         Pretty.str ("<rulename>"^(RuleName.string_of_name rule_name)^"</rulename>"),
-	         output_graph fused,
+	         Pretty.indent 2 (Pretty.str ("<rulename>"^(RuleName.string_of_name rule_name)^"</rulename>")),
+	         OG.output fused,
 	         Pretty.str "<lhs>",
-	         indent_chunks [output_graph (Rule.get_lhs rule)],
+	         Pretty.indent 2 (OG.output (Rule.get_lhs rule)),
 	         Pretty.str "</lhs>",
 	         Pretty.str "<rhs>", 
-	         indent_chunks [output_graph (Rule.get_rhs rule)],
-	         Pretty.str "</rhs>"],
+	         Pretty.indent 2 (OG.output (Rule.get_rhs rule)),
+	         Pretty.str "</rhs>",
 	         Pretty.str "</rewrite>",
 	         Pretty.str ""]
 
 end;
 
 (* -------------------------------------------------------- *)
-
-structure RGRewriteOutputXML : OUTPUT_REWRITE
+structure RGRewriteOutputXML : PRETTY_XML_OUTPUT
  = RewriteOutputXML(
     structure Rule = Rule
     and OutputGraph = RGGraphOutputXML
    );
 
 (* -------------------------------------------------------- *)
-
-signature OUTPUT_REWRITE_LIST =
-sig
-  structure ORw : OUTPUT_REWRITE
-		 
-  include OUTPUT where type outtype = ORw.outtype
-		where type intype = (ORw.intype) list
-end
-
-(* -------------------------------------------------------- *)
-
-functor RewriteOutputListXML (
-	structure OutputRewrite : OUTPUT_REWRITE
-				  where type outtype = Pretty.T
-	) : OUTPUT_REWRITE_LIST
-= 
-struct
-  structure ORw = OutputRewrite
-  type intype = ORw.intype list 
-  type outtype = Pretty.T
-
-  fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]	    
-
-  fun output rewrites = 
-      Pretty.chunks [ Pretty.str "<rewrites>", 
-		      indent_chunks (map ORw.output rewrites),
-		      Pretty.str "</rewrites>",
-		      Pretty.str ""
-		    ]
-
-end;
-
-(* -------------------------------------------------------- *)
-
-structure RGRewriteListOutputXML : OUTPUT_REWRITE_LIST
- = RewriteOutputListXML(
-    structure OutputRewrite = RGRewriteOutputXML
+structure RGRewriteListOutputXML : PRETTY_XML_OUTPUT
+ = OutputListXML(
+    val list_name = "rewrites"
+    structure Output1 = RGRewriteOutputXML
    );
