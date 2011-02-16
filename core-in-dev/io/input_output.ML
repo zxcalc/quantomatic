@@ -1,3 +1,4 @@
+(* BASIC INPUT/OUTPUT *)
 signature INPUT =
 sig
   type T
@@ -5,7 +6,6 @@ sig
   val input : T -> data
   exception bad_input_exp of string;
 end;
-
 signature XML_INPUT = INPUT where type T = XML.tree;
 
 signature OUTPUT =
@@ -14,10 +14,23 @@ sig
   type T
   val output : data -> T
 end;
-
 signature XML_OUTPUT = OUTPUT where type T = XML.tree;
-
 signature PRETTY_XML_OUTPUT = OUTPUT where type T = Pretty.T;
+
+
+(* INPUT/OUTPUT of lists *)
+functor InputListXML (
+  val list_name : string 
+  structure Input1 : XML_INPUT
+) : XML_INPUT
+= struct
+  type T = XML.tree;
+  type data = Input1.T list;
+  open XML_Utils;
+  fun input xml = 
+      let val (el,attr,children) = force_unpack_elem list_name xml
+      in map Input1.input children end;
+end;
 
 functor OutputListXML (
   val list_name : string
