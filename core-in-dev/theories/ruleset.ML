@@ -240,5 +240,5 @@ end
 
 
 
-structure RuleSet = DB_RuleSet : RULESET
+structure RGRuleSet = DB_RuleSet : RULESET
 

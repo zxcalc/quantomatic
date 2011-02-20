@@ -1,8 +1,8 @@
 (* -------------------------------------------------------- *)
-functor RGRuleSetOutputXML (
-	structure OutputRule : PRETTY_XML_OUTPUT
+functor RuleSetOutputXML (
   structure RuleSet : RULESET
-  sharing type RuleSet.Rule.T = OutputRule.data
+	structure OutputRule : PRETTY_XML_OUTPUT 
+	  where type data = RuleSet.RuleName.name * RuleSet.Rule.T
 ) : PRETTY_XML_OUTPUT 
 = struct
   structure OR = OutputRule
@@ -26,9 +26,9 @@ end;
 
 (* -------------------------------------------------------- *)
 
-structure RuleSetOutputXML : OUTPUT_RULESET
+structure RuleSetOutputXML : PRETTY_XML_OUTPUT
  = RuleSetOutputXML(
-    structure OutputRule = RuleOutputXML
-    structure RuleSet = RuleSet
+    structure RuleSet = RGRuleSet
+    structure OutputRule = RGRuleOutputXML
    );
 
