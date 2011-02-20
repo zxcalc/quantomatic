@@ -92,6 +92,6 @@ structure RGRewriteOutputXML : PRETTY_XML_OUTPUT
 (* -------------------------------------------------------- *)
 structure RGRewriteListOutputXML : PRETTY_XML_OUTPUT
  = OutputListXML(
-    val list_name = "rewrites"
+    val tagname = "rewrites"
     structure Output1 = RGRewriteOutputXML
    );

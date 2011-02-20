@@ -17,7 +17,7 @@ functor RGRuleSetOutputXML (
            RS.RuleName.pretty_name setname,
            Pretty.str "</name>",
 		       Pretty.indent 2 (Pretty.block (map OR.output 
-		                         (RS.Name.NTab.list_of (RS.get_allrules rules)))),
+		                         (RS.RuleName.NTab.list_of (RS.get_allrules rules)))),
 		       Pretty.str "</ruleset>",
 		       Pretty.str ""
 		    ];

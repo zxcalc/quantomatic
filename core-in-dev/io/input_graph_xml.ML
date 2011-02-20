@@ -7,6 +7,7 @@ functor GraphInputXML (
   sharing type InEData.data = Graph.Edge.data
 )  : XML_INPUT
 = struct
+  open XML_Parse_Utils; 
 
   structure G = Graph;
   structure V = Graph.OVertex;
@@ -16,50 +17,43 @@ functor GraphInputXML (
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;
 
-  open XML_Utils;
       
-  fun input_boundary xml = 
-      let val (_,_,children) = force_unpack_elem "boundary" xml
-      in case children of
-            [] => false
-          | (x::xs) => input_boolean x
-      end;
-
   fun input_vertex xml = 
-      let val (_,_,children) = force_unpack_elem "vertex" xml
-          val name = V.mk (input_name (get_required_child "name" xml))
-          val (bnd,_) = get_elem false "boundary" children
+      let 
+        val () = assert_tag "vertex" xml
+        val children = get_children xml
+        val name = V.mk (get_text (get_the_elem "name" children))
       in
-        case bnd of 
+        case lookup_the_elem "boundary" children of 
           NONE => (name, V.IVert (InVData.input xml))
-        | SOME boundary => 
-          let val b = input_boundary boundary
-          in case b of false => (name, V.IVert (InVData.input xml))
-                     | true => (name, V.EVert)
-          end
+        | SOME boundary_xml => 
+          if InputBoolXML.input (get_the_child boundary_xml) then (name, V.EVert)
+          else (name, V.IVert (InVData.input xml)) 
       end;
 
+(* 
   val input_source = force_get_text_from "source"
   val input_target = force_get_text_from "target"
+*)
       
   fun input_edge xml = 
-      let val _ = force_unpack_elem "edge" xml
-          val name = E.mk (input_name (get_required_child "name" xml))
-          val source = V.mk (input_source (get_required_child "source" xml))
-          val target = V.mk (input_target (get_required_child "target" xml))
-          val edata = InEData.input xml
+      let 
+        val _ = assert_tag "edge" xml
+        val children = get_children xml 
+        val name = E.mk (get_the_child_text (get_the_elem "name" children))
+        val source = V.mk (get_the_child_text (get_the_elem "source" children))
+        val target = V.mk (get_the_child_text (get_the_elem "target" children))
+        val edata = InEData.input xml
       in (name,edata,source,target) end;
   
-  val input_boxedvertex = V.mk o (force_get_text_from "boxedvertex")
-  
   fun input_bbox xml =
-      let val (_,_,children) = force_unpack_elem "bangbox" xml
-          val name = B.mk (input_name (get_required_child "name" xml))
-          val bangverts = List.map input_boxedvertex 
-                 (get_all_elems "boxedvertex" children)
-      in
-        (name,bangverts)
-      end
+      let 
+        val _ = assert_tag "bangbox" xml
+        val children = get_children xml 
+        val name = B.mk (get_the_child_text (get_the_elem "name" children))
+        val bangverts = List.map (V.mk o get_the_child_text) 
+                                 (filter_elems "boxedvertex" children)
+      in (name,bangverts) end;
   
   (* uncurry some graph methods *)
   fun add_v (vname,vdata) g = 
@@ -71,93 +65,91 @@ functor GraphInputXML (
   
   fun add_bb (bname,bvlist) g = 
       let val (realname, g') = G.new_box bname g
-    val vset  = V.NSet.of_list bvlist
+          val vset  = V.NSet.of_list bvlist
       in
         G.move_to_box realname vset g'
       end
   
   fun input_graph xml =
-      let val (_,_,children) = force_unpack_elem "graph" xml
-        val vertices = List.map input_vertex (get_all_elems "vertex" children)
-        val edges = List.map input_edge (get_all_elems "edge" children)
-        val bboxes = List.map input_bbox (get_all_elems "bangbox" children)
+      let 
+        val () = assert_tag "graph" xml
+        val children = get_children xml
+        val vertices = List.map input_vertex (filter_elems "vertex" children)
+        val edges = List.map input_edge (filter_elems "edge" children)
+        val bboxes = List.map input_bbox (filter_elems "bangbox" children)
       in
         G.empty 
           |> fold add_v vertices 
           |> fold add_e edges
-          |> fold add_bb  bboxes 
+          |> fold add_bb bboxes 
       end;
   
-  val input = input_graph;			   
-
+  val input = input_graph;
+			   
 end (* structure InputXML *)
 
 
 (* ------------------------------------------------------- *)
 functor RGVertexInputXML (V : RG_VERTEX)  : XML_INPUT
 = struct
+  open XML_Parse_Utils; 
   
   type T = XML.tree;
   type data = V.IData.data;
   
-  open XML_Utils;
-  
-  fun input_rational xml  = 
-      let val num = unpack_required_child "num" xml
-          val denom = unpack_required_child "denom" xml
-          val n = case num of 
-                    (_,[]) => fail "Element <num> may not be empty."
-                  | (_,(x::xs)) => input_int x
-          val d = case denom of 
-                    (_,[]) => fail "Element <denom> may not be empty."
-                  | (_,(x::xs)) => input_int x
-      in (n,d) end;
+  fun input_rational xml = 
+      let val children = get_children xml;
+          val num = get_the_child (get_the_elem "num" children)
+          val denom = get_the_child (get_the_elem "denom" children)
+      in (InputIntXML.input num, InputIntXML.input denom) end;
   
   fun input_constant xml =
-      let val _= force_unpack_elem "constant" xml
+      let val () = assert_tag "constant" xml
       in input_rational xml end
   
   fun input_coeff xml = 
-      let val _ = force_unpack_elem "coefficient" xml
+      let val () = assert_tag "coefficient" xml
       in input_rational xml end;
   
   fun input_variable xml = 
-      let val _ = force_unpack_elem "variable" xml
-          val name = get_required_child "name" xml
-          val coeff = get_required_child "coefficient" xml
-      in (input_name name, input_coeff coeff) end;
+      let val _ = assert_tag "variable" xml
+          val children = get_children xml
+          val name = get_the_child_text (get_the_elem "name" children)
+          val coeff = get_the_elem "coefficient" children
+      in (name, input_coeff coeff) end;
   
   fun input_angleexpr xml  =
-      let val (_,_,children) = force_unpack_elem "angleexpr" xml
-          val constant = case (get_elem false "constant" children) of
-                           (NONE,_) => AngleExpr.Coeff.zero
-                         | (SOME const,_) => input_constant const
-          val vars = List.map input_variable 
-                              (get_all_elems "variable" children)
+      let val () = assert_tag "angleexpr" xml
+          val children = get_children xml 
+          val constant = case (lookup_the_elem "constant" children) of
+                           (NONE) => AngleExpr.Coeff.zero
+                         | (SOME const) => input_constant const
+          val vars = List.map input_variable (filter_elems "variable" children)
       in AngleExpr.mk constant vars end;
-  
-  val input_colour = String.map Char.toLower o (force_get_text_from "colour");
-  
+    
   fun input xml =
-      let val (_,_,children) = force_unpack_elem "vertex" xml
-          val col = input_colour (get_required_child "colour" xml)
+      let val () = assert_tag "vertex" xml
+          val children = get_children xml
+          val col = (String.map Char.toLower o get_the_child_text 
+                     o get_the_elem "colour") children
       in 
         if (col = "h") then V.Hnd
         else
-          let val (aopt,_) = get_elem false "angleexpr" children
-              val angle = case aopt of NONE => AngleExpr.zero
-                                     | SOME a => input_angleexpr a
+          let 
+            val angle = 
+                case lookup_the_elem "angleexpr" children of NONE => AngleExpr.zero
+                   | SOME a => input_angleexpr a
           in
             if (col = "green") then V.Znd angle
             else if (col = "red") then V.Xnd angle
-            else fail ("Unknown colour : "^col^".")
+            else raise bad_input_exp ("Unknown colour : "^col^".")
           end
       end;
 end; (* functor RGGraphInputXML*)
 
 functor RGEdgeInputXML (E : EDGE) :  XML_INPUT
 = struct
-  open XML_Utils;
+  open XML_Parse_Utils;
   type T = XML.tree;
   type data = E.data;
   val input = K E.default_data;

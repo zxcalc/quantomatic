@@ -10,7 +10,7 @@ functor RuleSetInputXML(
 
   structure RuleName = RuleSet.RuleName;
   
-  open XML_Utils
+  open XML_Parse_Utils
   
   fun add_rule setname_opt ch rset = 
       let val (nm, rl) = RuleInput.input ch
@@ -19,11 +19,12 @@ functor RuleSetInputXML(
 
   fun input xml = 
       let
-        val (_,_,children) = force_unpack_elem "ruleset" xml
-        val (setname_opt,children') = get_elem false "name" children
+        val () = assert_tag "ruleset" xml
+        val children = get_children xml
+        val setname_opt = lookup_the_elem "name" children
       in
         fold (add_rule setname_opt) 
-             (get_all_elems "rule" children') 
+             (filter_elems "rule" children') 
              RuleSet.empty
       end
 end;

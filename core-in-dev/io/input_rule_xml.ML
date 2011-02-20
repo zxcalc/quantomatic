@@ -7,21 +7,19 @@ functor RuleInputXML (
   sharing type InputGraph.data = Rule.Graph.T
 ) : XML_INPUT
 = struct
+  open XML_Parse_Utils;
+
   type T = XML.tree;
   type data = RuleName.name * Rule.T;
   
-  open XML_Utils;
-
   fun input xml = 
-      let val _ = force_unpack_elem "rule" xml
-          val name = RuleName.mk (input_name (get_required_child "name" xml))
-          val lhs = InputGraph.input 
-                (get_required_child "graph" (get_required_child "lhs" xml))
-          val rhs = InputGraph.input 
-                (get_required_child "graph" (get_required_child "rhs" xml))
-          (* val active = case (get_child false "active" xml) of
-                         (NONE,_) => true
-                       | (SOME b, _) => input_boolean b *)
+      let val _ = assert_tag "rule" xml
+          val children = get_children xml
+          val name = RuleName.mk (get_the_child_text (get_the_elem "name" children))
+          val lhs = (InputGraph.input o get_the_elem "graph" 
+                     o get_children o get_the_elem "lhs") children
+          val rhs = (InputGraph.input o get_the_elem "graph" 
+                     o get_children o get_the_elem "rhs") children
       in (name, Rule.mk (lhs,rhs)) end;
 
 end;
