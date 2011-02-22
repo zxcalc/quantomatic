@@ -266,8 +266,8 @@ val print = Pretty.writeln o pretty;
 end;
 
 
-structure DB_Rule = RuleFun(RGGraph);
-structure Rule : RULE = DB_Rule;
+structure DB_RGRule = RuleFun(RGGraph);
+structure RGRule : RULE = DB_RGRule;
 
 (* -------------------------------------------------------- *)
 structure RuleName : SSTR_NAMES = 

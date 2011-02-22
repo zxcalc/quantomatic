@@ -21,7 +21,7 @@ type graph = Graph.T;
 fun save_graph file g = 
     (PrettyWriter.write_to_file file) (RGGraphOutputXML.output g)
 
-val load_graph = RGGraphInputXML.input o XMLReader.read_from_file;
+val load_graph = InputRGGraphXML.input o XMLReader.read_from_file;
 
 end
 

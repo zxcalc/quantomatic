@@ -38,6 +38,15 @@ structure InputIntXML : XML_INPUT
 end;
 
 
+functor InputSStrNameXML(N : SSTR_NAMES) : XML_INPUT 
+= struct 
+  type T = XML.tree;
+  type data = N.name;
+  exception bad_input_exp of string;
+  fun input xml = N.mk (XML_Parse_Utils.get_text xml);
+end;
+
+
 signature OUTPUT =
 sig
   type data

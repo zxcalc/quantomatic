@@ -279,4 +279,4 @@ functor MatchSearchFun(
   
 end;
 
-structure DB_SMS = MatchSearchFun(structure BangGraph = RGGraph and Match = MatchFun(RGGraph) and Rule=DB_Rule);
+structure DB_SMS = MatchSearchFun(structure BangGraph = RGGraph and Match = MatchFun(RGGraph) and Rule=RGRule);

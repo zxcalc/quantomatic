@@ -44,7 +44,7 @@ end;
 structure RGRuleOutputXML : PRETTY_XML_OUTPUT
  = RuleOutputXML(
     structure RuleName = RuleName
-    structure Rule = Rule
+    structure Rule = RGRule
     and OutputGraph = RGGraphOutputXML
    );
 
@@ -85,7 +85,7 @@ end;
 (* -------------------------------------------------------- *)
 structure RGRewriteOutputXML : PRETTY_XML_OUTPUT
  = RewriteOutputXML(
-    structure Rule = Rule
+    structure Rule = RGRule
     and OutputGraph = RGGraphOutputXML
    );
 

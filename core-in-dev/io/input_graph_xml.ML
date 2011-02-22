@@ -1,5 +1,5 @@
 (* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
-functor GraphInputXML (
+functor InputGraphXML (
   structure Graph : BANG_GRAPH
         and InVData : XML_INPUT 
         and InEData : XML_INPUT 
@@ -90,7 +90,7 @@ end (* structure InputXML *)
 
 
 (* ------------------------------------------------------- *)
-functor RGVertexInputXML (V : RG_VERTEX)  : XML_INPUT
+functor InputRGVertexXML (V : RG_VERTEX)  : XML_INPUT
 = struct
   open XML_Parse_Utils; 
   
@@ -147,7 +147,7 @@ functor RGVertexInputXML (V : RG_VERTEX)  : XML_INPUT
       end;
 end; (* functor RGGraphInputXML*)
 
-functor RGEdgeInputXML (E : EDGE) :  XML_INPUT
+functor InputRGEdgeXML (E : EDGE) :  XML_INPUT
 = struct
   open XML_Parse_Utils;
   type T = XML.tree;
@@ -157,9 +157,9 @@ end;
 
 (* ---------------------------------------------------------- *)
 
-structure RGGraphInputXML : XML_INPUT
-  = GraphInputXML(
+structure InputRGGraphXML : XML_INPUT
+  = InputGraphXML(
       structure Graph = RGGraph
-      and InVData = RGVertexInputXML(RGGraph.RGVertex)
-      and InEData = RGEdgeInputXML(RGGraph.Edge)
+      and InVData = InputRGVertexXML(RGGraph.RGVertex)
+      and InEData = InputRGEdgeXML(RGGraph.Edge)
     );

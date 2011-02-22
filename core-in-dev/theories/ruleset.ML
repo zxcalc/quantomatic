@@ -21,6 +21,8 @@ sig
 
     type T (* a set of named rules, with subsets that can be activated *)
 
+    val empty : T
+
     (* sharing structure *)
     structure Sharing : RULESET_SHARING
       sharing Sharing.SubsetName = SubsetName.Sharing
@@ -49,6 +51,7 @@ sig
     val deactivate_ruleset : SubsetName.name -> T -> T
     val delete_ruleset : SubsetName.name -> T -> T
 
+    val add_rule : RuleName.name * Rule.T -> T -> RuleName.name * T
     val add_rule_to_subset : RuleName.name -> SubsetName.name -> T -> T
     val del_rule_from_subset : RuleName.name -> SubsetName.name -> T -> T
 
@@ -62,10 +65,10 @@ end
 (* at some point, a ruleset should be a richer structure,
    but this will do for now. Its just a rule list and a flag
    for "active". *)
-structure DB_RuleSet =
+structure DB_RGRuleSet =
 struct
 
-structure Rule = Rule
+structure Rule = RGRule
 structure SubsetName : SSTR_NAMES = 
   struct open SStrName; val default_name = mk "new-ruleset-1"; end;
 structure InBRel = SStrBRel;
@@ -162,10 +165,10 @@ fun deactivate_ruleset subsetname rset =
 fun delete_ruleset subsetname rset = 
     RuleName.NSet.fold delete_rule (get_subset rset subsetname) rset;
 
-fun add_rule (name, rule, subsets) rset = 
-    rset |> update_active (RuleName.NSet.delete name)
-         |> update_brel (InBRel.del_dom name)
-         |> update_allrules (RuleName.NTab.delete name);
+fun add_rule (name, rule) rset = 
+    let val rset = delete_rule name rset (* avoid renaming, clober names *)
+        val (name',allrules') = RuleName.NTab.add (name,rule) (get_allrules rset) 
+    in (name', rset |> set_allrules allrules') end;
 
 fun add_rule_to_subset rname subsetname rset =
     if rule_exists rset rname then 
@@ -240,5 +243,5 @@ end
 
 
 
-structure RGRuleSet = DB_RuleSet : RULESET
+structure RGRuleSet = DB_RGRuleSet : RULESET
 
