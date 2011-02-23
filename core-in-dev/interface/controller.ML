@@ -250,7 +250,18 @@ struct
         (get_graphs state) ""
     | list_graphs _ = raise wrong_args_exp ()
   
-  
+  (* common things we want to assert are true *)
+  fun assert_subset_exists state subset_name = 
+      if RSet.subset_exists (get_rulesets state) subset_name then ()
+      else raise user_exp ("No such ruleset named '" 
+                           ^ (RSet.SubsetName.string_of_name subset_name) ^ "'");
+
+  fun assert_rule_exists state rule_name = 
+      if RSet.rule_exists (get_rulesets state) rule_name then ()
+      else raise user_exp ("No such rule named '" 
+                           ^ (RSet.RuleName.string_of_name rule_name) ^ "'");
+
+  (* basic stuff on rule subsets *)
   fun list_rulesets ([], state) =
       (Pretty.string_of (RSet.RuleName.NSet.pretty (RSet.RuleName.NTab.get_nameset (RSet.get_allrules (get_rulesets state)))))
       ^ "\n"
@@ -262,111 +273,64 @@ struct
     | list_active_rulesets _ = raise wrong_args_exp ()
   
   fun list_rules ([subset], state) = 
-      let
-        val rset = RSet.InBRel.codf (RSet.get_brel (get_rulesets state)) 
-                                    (RSet.SubsetName.mk subset)
-      in
-        (suffix "\n" o Pretty.string_of) (RSet.RuleName.NSet.pretty rset)
-        handle RSet.SubsetName.Tab.UNDEF _ => raise user_exp ("No such ruleset '" ^ subset ^ "'")
-      end
+      let 
+        val subset_name = RSet.SubsetName.mk subset;
+        val () = assert_subset_exists state subset_name;
+        val rule_name_set = RSet.InBRel.codf (RSet.get_brel (get_rulesets state)) subset_name
+      in (suffix "\n" o Pretty.string_of) (RSet.RuleName.NSet.pretty rule_name_set) end
     | list_rules _ = raise wrong_args_exp ();
-  
-  fun deactivate_ruleset ([subset], state) =
-      (("ok\n", update_rulesets (activate_ruleset (RSet.SubsetName.mk subset)) state)
-       handle RuleSet.SubsetName.Tab.UNDEF _ => 
-        raise user_exp ("No such ruleset '" ^ thy ^ "'"))
-    | activate_ruleset' active _ = raise wrong_args_exp ()
-
-  fun activate_ruleset ([subset], state) =
-      (("ok\n", update_rulesets (activate_ruleset (RSet.SubsetName.mk subset)) state)
-       handle RuleSet.SubsetName.Tab.UNDEF _ => 
-        raise user_exp ("No such ruleset '" ^ thy ^ "'"))
-    | activate_ruleset' active _ = raise wrong_args_exp ()
-  
-
-  local
-      fun update_rule updater rulesetname rulename rulesets = 
-          let
-            val rs = RuleSet.mk rulesetname
-            val rl = Rule.Name.mk rulename
-            val (rset, active) = RuleSet.NTab.get rulesets rs
-          in 
-            rulesets |> RuleSet.NTab.update (rs, ((updater rl rset), active))
-          end
-  
-      fun update_rule' updater ([rule,ruleset], state) =
-          (("ok\n",
-            update_rulesets (update_rule updater ruleset rule) state)
-           handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset '" ^ ruleset ^ "'"))
-        | update_rule' updater _ = raise wrong_args_exp ()
-        
-  
-  in
-  val deactivate_rule  = update_rule' RuleSet.deactivate_rule
-  val activate_rule = update_rule' RuleSet.activate_rule
-  val delete_rule = update_rule' RuleSet.delete_rule
-  
-  fun replace_rule ([rset,rule,lhs,rhs], state) =
-    let
-      val graphs = get_graphs state
       
-      (* build graphs for the LHS and RHS *)
-      val lgr = GraphName.NTab.get graphs (GraphName.mk lhs)
-        handle GraphName.Tab.UNDEF _ => raise user_exp "LHS doesn't exist."
-      val rgr = GraphName.NTab.get graphs (GraphName.mk rhs)
-        handle GraphName.Tab.UNDEF _ => raise user_exp "RHS doesn't exist."
+  fun subset_name_action f ([subset], state) =
+      let val subset_name = RSet.SubsetName.mk subset
+          val () = assert_subset_exists state subset_name
+      in ("ok\n", update_rulesets (f subset_name) state) end
+    | subset_name_action f (_, state) = raise wrong_args_exp ();
+  val deactivate_ruleset = subset_name_action RSet.deactivate_ruleset; 
+  val activate_ruleset = subset_name_action RSet.deactivate_ruleset
+  val delete_ruleset = subset_name_action RSet.delete_ruleset
+
+
+  fun rule_name_action f ([rule], state) = 
+      let val rule_name = RSet.SubsetName.mk rule
+          val () = assert_rule_exists state rule_name
+      in ("ok\n", update_rulesets (f rule_name) state) end
+    | rule_name_action f (_, state) = raise wrong_args_exp ();
+  val deactivate_rule  = rule_name_action RSet.deactivate_rule
+  val activate_rule = rule_name_action RSet.activate_rule
+  val delete_rule = rule_name_action RSet.delete_rule
+
+  (* creates/replaces rule *)
+  fun update_rule ([rule,lhs,rhs], state) =
+      let
+        val rule_name = RSet.SubsetName.mk rule
+        val () = assert_rule_exists state rule_name
+  
+        val graphs = get_graphs state
         
-      (* replace the given rule with a new one, preserving "active" *)
-      fun new_rule (_,active) = (Rule.mk (lgr, rgr), active)
-      
-      (* find ruleset/rule and apply the above fn to it *)
-      val update_rsets = RuleSet.NTab.map_entry
-            (fn (rs,act) => (Rule.Name.NTab.map_entry
-              new_rule (Rule.Name.mk rule) rs, act))
-            (RuleSet.mk rset)
-        handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
-             | Rule.Name.Tab.UNDEF _ => raise user_exp "Can't find rule."
-    in ("ok\n", state |> update_rulesets update_rsets)
-        handle Rule.bad_rule_exp _ =>
-          raise user_exp "Boundaries and !-boxes on LHS must match RHS."
-  end
-    | replace_rule _ = raise wrong_args_exp ()
+        (* build graphs for the LHS and RHS *)
+        val lgr = GraphName.NTab.get graphs (GraphName.mk lhs)
+          handle GraphName.Tab.UNDEF _ => raise user_exp ("LHS graph '" ^ lhs ^"' doesn't exist.")
+        val rgr = GraphName.NTab.get graphs (GraphName.mk rhs)
+          handle GraphName.Tab.UNDEF _ => raise user_exp ("RHS graph '" ^ rhs ^"' doesn't exist.")
+          
+      in ("ok\n", state |> update_rulesets (RSet.update_rule (rule_name, RSet.Rule.mk (lgr, rgr))))
+          handle RSet.Rule.bad_rule_exp _ =>
+            raise user_exp "Boundaries and !-boxes on LHS must match RHS."
+      end
+    | update_rule _ = raise wrong_args_exp ()
   
   (* create a new identity rule from the current graph *)
-  fun new_rule ([rset,graph], state) =
-  let
-    val rset_n = RuleSet.mk rset
-    
-    (* select graph and ruleset *)
-    val (rs,active) = RuleSet.NTab.get (get_rulesets state) rset_n
-        handle RuleSet.Tab.UNDEF _ => raise user_exp "Can't find ruleset."
-    val graph = GraphName.NTab.get (get_graphs state) (GraphName.mk graph)
-        handle GraphName.Tab.UNDEF _ => raise user_exp "Graph doesn't exist."
-        
-    (* add a new rule and make it active *)
-    val rule = (Rule.mk (graph, graph), true)
-    val (nm, rs') = rs |> Rule.Name.NTab.add (Rule.Name.default_name, rule)
-  in ((Pretty.string_of o Rule.Name.pretty_name) nm ^ "\n",
-        state |> update_rulesets (RuleSet.NTab.update (rset_n, (rs',active))))
-  end
-    | new_rule _ = raise wrong_args_exp ()
-    
-    
-  end  
-  
-  
+  fun new_rule ([rule,graph], state) = update_rule ([rule,graph,graph], state)  
+    | new_rule (_, state) = raise wrong_args_exp ();
   
   fun load_ruleset ([nm,file], state) =
-      (let val loader = RGRuleSetInputXML.input o XMLReader.read_from_file
-           val rsets = get_rulesets state
-           val (nm', rsets') = rsets |> RuleSet.NTab.add (RuleSet.mk nm, (loader file, true))
-       in ((Pretty.string_of (RuleSet.pretty_name nm')) ^ "\n", set_rulesets rsets' state)
-       end
+      (let val loader = InputRGRuleSetXML.input o XMLReader.read_from_file
+       in ("ok\n", state |> update_rulesets (RSet.merge (loader file))) end
        handle IO.Io _ => raise user_exp "Can't open ruleset.")
     | load_ruleset _ = raise wrong_args_exp ()
   
   fun save_ruleset ([nm,file], state) =
-      (let val save = (PrettyWriter.write_to_file file) o RGRuleSetOutputXML.output
+      (let val save = (PrettyWriter.write_to_file file) o OutputRGRuleSetXML.output
            val nm' = RuleSet.mk nm
            val (rset,b) = RuleSet.NTab.get (get_rulesets state) nm'
        in (save (nm',rset,b); "Saved ruleset in file " ^file)

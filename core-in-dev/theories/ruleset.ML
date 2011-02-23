@@ -30,19 +30,32 @@ sig
       sharing Sharing.Rule = Rule.Sharing
       sharing Sharing.InBRel = InBRel.Sharing
       sharing type Sharing.T = T 
-    
-    val get_allrules : T -> Rule.T RuleName.NTab.T 
-    val get_active : T -> RuleName.NSet.T 
-    val get_brel : T -> InBRel.T
-    
+(*       sharing InBRel.Dom.Sharing = RuleName.Sharing
+      sharing InBRel.Cod.Sharing = SubsetName.Sharing
+*)
+
     exception no_such_rule_exp of RuleName.name;
 
-    val applicable_rules : T -> Rule.Graph.T 
-          -> ((RuleName.name * Rule.T) * Rule.Graph.T) Seq.seq
+    (* basic getting of info about rulesets *)
+    val get_allrules : T -> Rule.T RuleName.NTab.T 
+    val get_all_rule_names_list : T -> RuleName.name list
+    val get_subset_names : T -> SubsetName.NSet.T 
+    val get_subset : T -> SubsetName.name -> RuleName.NSet.T
+    val get_active : T -> RuleName.NSet.T 
+    val get_brel : T -> InBRel.T
+    val get_rule : T -> RuleName.name -> Rule.T 
+    val lookup_rule : T -> RuleName.name -> Rule.T option
 
     val is_activate : T -> RuleName.name -> bool
     val rule_exists : T -> RuleName.name -> bool
+    val subset_exists : T -> SubsetName.name -> bool
 
+    (* manipulating the ruleset *)
+    val add_fresh_rule : RuleName.name * Rule.T -> T -> RuleName.name * T (* fresh name for rule *)
+    val update_rule : RuleName.name * Rule.T -> T -> T (* replaces/inserts *)
+    val add_rule_to_subset : RuleName.name -> SubsetName.name -> T -> T
+    val del_rule_from_subset : RuleName.name -> SubsetName.name -> T -> T
+    
     val activate_rule : RuleName.name -> T -> T
     val deactivate_rule : RuleName.name -> T -> T
     val delete_rule : RuleName.name -> T -> T
@@ -51,13 +64,9 @@ sig
     val deactivate_ruleset : SubsetName.name -> T -> T
     val delete_ruleset : SubsetName.name -> T -> T
 
-    val add_rule : RuleName.name * Rule.T -> T -> RuleName.name * T
-    val add_rule_to_subset : RuleName.name -> SubsetName.name -> T -> T
-    val del_rule_from_subset : RuleName.name -> SubsetName.name -> T -> T
-
-    val lookup_rule : T -> RuleName.name -> Rule.T option
-    val get_rule_names_list : T -> RuleName.name list
-
+    (* matching *)
+    val applicable_rules : T -> Rule.Graph.T 
+          -> ((RuleName.name * Rule.T) * Rule.Graph.T) Seq.seq
 
 end
 
@@ -137,10 +146,13 @@ fun lookup_rule rset rule_name =
 fun get_rule rset rule_name =
     RuleName.NTab.get (get_allrules rset) rule_name; 
     
-fun get_rule_names_list rset = RuleName.NTab.keys (get_allrules rset);
-fun get_subset_names_list rset = InBRel.get_codset (get_brel rset);
+fun get_all_rule_names_list rset = RuleName.NTab.keys (get_allrules rset);
+fun get_subset_names rset = InBRel.get_codset (get_brel rset);
 
 fun get_subset rset subsetname = InBRel.codf (get_brel rset) subsetname;
+
+fun subset_exists rset subsetname = 
+    SubsetName.NSet.contains (InBRel.get_codset (get_brel rset)) subsetname;
 
 (* *)
 fun set_rule_activation activate name rset =
@@ -165,10 +177,15 @@ fun deactivate_ruleset subsetname rset =
 fun delete_ruleset subsetname rset = 
     RuleName.NSet.fold delete_rule (get_subset rset subsetname) rset;
 
-fun add_rule (name, rule) rset = 
+
+fun update_rule (name, rule) rset = 
+    rset |> update_allrules (RuleName.NTab.update (name,rule));
+
+fun add_fresh_rule (name, rule) rset = 
     let val rset = delete_rule name rset (* avoid renaming, clober names *)
         val (name',allrules') = RuleName.NTab.add (name,rule) (get_allrules rset) 
     in (name', rset |> set_allrules allrules') end;
+
 
 fun add_rule_to_subset rname subsetname rset =
     if rule_exists rset rname then 

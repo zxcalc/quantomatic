@@ -1,5 +1,5 @@
 (* -------------------------------------------------------- *)
-functor RuleSetOutputXML (
+functor OutputRuleSetXML (
   structure RuleSet : RULESET
 	structure OutputRule : PRETTY_XML_OUTPUT 
 	  where type data = RuleSet.RuleName.name * RuleSet.Rule.T
@@ -26,8 +26,8 @@ end;
 
 (* -------------------------------------------------------- *)
 
-structure RuleSetOutputXML : PRETTY_XML_OUTPUT
- = RuleSetOutputXML(
+structure OutputRGRuleSetXML : PRETTY_XML_OUTPUT
+ = OutputRuleSetXML(
     structure RuleSet = RGRuleSet
     structure OutputRule = RGRuleOutputXML
    );

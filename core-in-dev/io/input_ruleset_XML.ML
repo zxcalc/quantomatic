@@ -1,5 +1,5 @@
 (* input a set of rules *)
-functor RuleSetInputXML(
+functor InputRuleSetXML(
   structure RuleSet : RULESET 
   structure InputRule : XML_INPUT
   structure InputSubsetName : XML_INPUT
@@ -24,6 +24,8 @@ functor RuleSetInputXML(
         fold (RuleSet.add_rule_to_subset nm o InputSubsetName.input) tag_xmls rset
       end;
 
+  (* replaces existing rule's graphs/data, if there is one, and unions new with 
+     any existing tags *)
   fun add_rule xml rset = 
       let val () = assert_tag "rule" xml;
         val rule = InputRule.input xml;
@@ -31,9 +33,9 @@ functor RuleSetInputXML(
         val tags_xml_opt = lookup_the_elem "tags" children;
         val name_xml = get_the_elem "name" children;
         val nm = InputRuleName.input name_xml;
-        val (nm',rset') = RuleSet.add_rule (nm,rule) rset
+        val rset' = RuleSet.update_rule (nm,rule) rset
       in rset' |> (case tags_xml_opt of NONE => I 
-                  | SOME tags_xml => add_tags nm' tags_xml)
+                   | SOME tags_xml => add_tags nm tags_xml)
       end; (* IMPROVE: wanring for renamed stuff? *)
 
   fun input xml = 
@@ -47,8 +49,8 @@ end;
 structure InputRuleNameXML = InputSStrNameXML(RGRuleSet.RuleName);
 structure InputSubsetNameXML = InputSStrNameXML(RGRuleSet.SubsetName);
 
-structure RGRuleSetInputXML : XML_INPUT where type data = RGRuleSet.T 
-  = RuleSetInputXML(
+structure InputRGRuleSetXML : XML_INPUT where type data = RGRuleSet.T 
+  = InputRuleSetXML(
       structure RuleSet = RGRuleSet
       structure InputRule = InputRGRuleXML
       structure InputRuleName = InputRuleNameXML
