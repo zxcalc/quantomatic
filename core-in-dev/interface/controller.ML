@@ -3,7 +3,7 @@ sig
     val init : unit -> unit
 end
 
-structure Controller : CONTROLLER = 
+structure DB_Controller = 
 struct
   
   structure QuantoCommand =
@@ -60,12 +60,12 @@ struct
   
   exception user_exp of string
   
-  structure RSet = RGRuleSet
-  structure R = RGRule
-  structure G = RGGraph
-  structure V = G.RGVertex
-  structure E = G.Edge
-  structure LoadSave = RGGraphLoaderSaver
+  structure RuleSet = RGRuleSet;
+  structure R = RGRule;
+  structure G = RGGraph;
+  structure V = G.RGVertex;
+  structure E = G.Edge;
+  structure LoadSave = RGGraphLoaderSaver;
 
   
   type rewrite = SStrName.name * R.T * G.T
@@ -73,7 +73,7 @@ struct
        graphs : G.T GraphName.NTab.T,
        rewrites : (rewrite list) GraphName.NTab.T,
        hist : (G.T list * G.T list) GraphName.NTab.T,
-       rulesets : RSet.T
+       rulesets : RuleSet.T
   }
   
   (* getters and setters for the state *)
@@ -102,7 +102,7 @@ struct
   val newState = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
                          hist=GraphName.NTab.empty,
-                         rulesets=RSet.empty}
+                         rulesets=RuleSet.empty}
   
   (*
   A dictionary of commands of the format:
@@ -251,58 +251,58 @@ struct
     | list_graphs _ = raise wrong_args_exp ()
   
   (* common things we want to assert are true *)
-  fun assert_subset_exists state subset_name = 
-      if RSet.subset_exists (get_rulesets state) subset_name then ()
+  fun assert_tag_exists state tag_name = 
+      if RuleSet.tag_exists (get_rulesets state) tag_name then ()
       else raise user_exp ("No such ruleset named '" 
-                           ^ (RSet.SubsetName.string_of_name subset_name) ^ "'");
+                           ^ (TagName.string_of_name tag_name) ^ "'");
 
   fun assert_rule_exists state rule_name = 
-      if RSet.rule_exists (get_rulesets state) rule_name then ()
+      if RuleSet.rule_exists (get_rulesets state) rule_name then ()
       else raise user_exp ("No such rule named '" 
-                           ^ (RSet.RuleName.string_of_name rule_name) ^ "'");
+                           ^ (RuleName.string_of_name rule_name) ^ "'");
 
-  (* basic stuff on rule subsets *)
-  fun list_rulesets ([], state) =
-      (Pretty.string_of (RSet.RuleName.NSet.pretty (RSet.RuleName.NTab.get_nameset (RSet.get_allrules (get_rulesets state)))))
+  (* basic stuff on rule tags *)
+  fun list_allrules ([], state) =
+      (Pretty.string_of (RuleName.NSet.pretty (RuleName.NTab.get_nameset (RuleSet.get_allrules (get_rulesets state)))))
       ^ "\n"
-    | list_rulesets _ = raise wrong_args_exp ()
+    | list_allrules _ = raise wrong_args_exp ()
   
-  fun list_active_rulesets ([], state) =
-      (Pretty.string_of (RSet.RuleName.NSet.pretty (RSet.get_active (get_rulesets state))))
+  fun list_active_rules ([], state) =
+      (Pretty.string_of (RuleName.NSet.pretty (RuleSet.get_active (get_rulesets state))))
       ^ "\n"
-    | list_active_rulesets _ = raise wrong_args_exp ()
+    | list_active_rules _ = raise wrong_args_exp ()
   
-  fun list_rules ([subset], state) = 
+  fun list_rules_with_tag ([tag], state) = 
       let 
-        val subset_name = RSet.SubsetName.mk subset;
-        val () = assert_subset_exists state subset_name;
-        val rule_name_set = RSet.InBRel.codf (RSet.get_brel (get_rulesets state)) subset_name
-      in (suffix "\n" o Pretty.string_of) (RSet.RuleName.NSet.pretty rule_name_set) end
-    | list_rules _ = raise wrong_args_exp ();
+        val tag_name = TagName.mk tag;
+        val () = assert_tag_exists state tag_name;
+        val rule_name_set = TagRel.codf (RuleSet.get_tagrel (get_rulesets state)) tag_name
+      in (suffix "\n" o Pretty.string_of) (RuleName.NSet.pretty rule_name_set) end
+    | list_rules_with_tag _ = raise wrong_args_exp ();
       
-  fun subset_name_action f ([subset], state) =
-      let val subset_name = RSet.SubsetName.mk subset
-          val () = assert_subset_exists state subset_name
-      in ("ok\n", update_rulesets (f subset_name) state) end
-    | subset_name_action f (_, state) = raise wrong_args_exp ();
-  val deactivate_ruleset = subset_name_action RSet.deactivate_ruleset; 
-  val activate_ruleset = subset_name_action RSet.deactivate_ruleset
-  val delete_ruleset = subset_name_action RSet.delete_ruleset
+  fun tag_name_action f ([tag], state) =
+      let val tag_name = TagName.mk tag
+          val () = assert_tag_exists state tag_name
+      in ("ok\n", update_rulesets (f tag_name) state) end
+    | tag_name_action f (_, state) = raise wrong_args_exp ();
+  val deactivate_ruleset = tag_name_action RuleSet.deactivate_tag; 
+  val activate_ruleset = tag_name_action RuleSet.deactivate_tag
+  val delete_ruleset = tag_name_action RuleSet.delete_tag
 
 
   fun rule_name_action f ([rule], state) = 
-      let val rule_name = RSet.SubsetName.mk rule
+      let val rule_name = TagName.mk rule
           val () = assert_rule_exists state rule_name
       in ("ok\n", update_rulesets (f rule_name) state) end
     | rule_name_action f (_, state) = raise wrong_args_exp ();
-  val deactivate_rule  = rule_name_action RSet.deactivate_rule
-  val activate_rule = rule_name_action RSet.activate_rule
-  val delete_rule = rule_name_action RSet.delete_rule
+  val deactivate_rule  = rule_name_action RuleSet.deactivate_rule
+  val activate_rule = rule_name_action RuleSet.activate_rule
+  val delete_rule = rule_name_action RuleSet.delete_rule
 
   (* creates/replaces rule *)
   fun update_rule ([rule,lhs,rhs], state) =
       let
-        val rule_name = RSet.SubsetName.mk rule
+        val rule_name = TagName.mk rule
         val () = assert_rule_exists state rule_name
   
         val graphs = get_graphs state
@@ -313,8 +313,8 @@ struct
         val rgr = GraphName.NTab.get graphs (GraphName.mk rhs)
           handle GraphName.Tab.UNDEF _ => raise user_exp ("RHS graph '" ^ rhs ^"' doesn't exist.")
           
-      in ("ok\n", state |> update_rulesets (RSet.update_rule (rule_name, RSet.Rule.mk (lgr, rgr))))
-          handle RSet.Rule.bad_rule_exp _ =>
+      in ("ok\n", state |> update_rulesets (RuleSet.update_rule (rule_name, RuleSet.Rule.mk (lgr, rgr))))
+          handle RuleSet.Rule.bad_rule_exp _ =>
             raise user_exp "Boundaries and !-boxes on LHS must match RHS."
       end
     | update_rule _ = raise wrong_args_exp ()
@@ -323,30 +323,35 @@ struct
   fun new_rule ([rule,graph], state) = update_rule ([rule,graph,graph], state)  
     | new_rule (_, state) = raise wrong_args_exp ();
   
-  fun load_ruleset ([nm,file], state) =
+  fun load_ruleset ([file], state) =
       (let val loader = InputRGRuleSetXML.input o XMLReader.read_from_file
-       in ("ok\n", state |> update_rulesets (RSet.merge (loader file))) end
+       in ("ok\n", state |> update_rulesets (RuleSet.merge (loader file))) end
        handle IO.Io _ => raise user_exp "Can't open ruleset.")
-    | load_ruleset _ = raise wrong_args_exp ()
+    | load_ruleset _ = raise wrong_args_exp ();
   
-  fun save_ruleset ([nm,file], state) =
+  fun save_ruleset ([file], state) =
       (let val save = (PrettyWriter.write_to_file file) o OutputRGRuleSetXML.output
-           val nm' = RuleSet.mk nm
-           val (rset,b) = RuleSet.NTab.get (get_rulesets state) nm'
-       in (save (nm',rset,b); "Saved ruleset in file " ^file)
+       in (save (get_rulesets state); "Saved ruleset in file " ^ file)
        end
-       handle RuleSet.NTab.Tab.UNDEF _ => raise user_exp ("Bad ruleset name: "^nm)
        handle IO.Io _ => raise user_exp ("Can't write ruleset file "^file^"."))
-    | save_ruleset _ = raise wrong_args_exp ()
-  
+    | save_ruleset _ = raise wrong_args_exp ();
     
-  fun unload_ruleset ([nm], state) =
-      let fun del nm thys = thys |> RuleSet.NTab.delete (RuleSet.mk nm)
-              handle RuleSet.Tab.UNDEF _ => raise user_exp ("No such ruleset: " ^ nm)
-      in ("ok\n", update_rulesets (del nm) state)
-      end
-    | unload_ruleset _ = raise wrong_args_exp ()
-  
+  fun delete_tag ([tag], state) =
+      let val () = assert_tag_exists state tag
+      in ("ok\n", update_rulesets (RuleSet.delete_tag tag) state) end
+    | delete_tag _ = raise wrong_args_exp ();
+
+  fun delete_rules_in_tag ([tag], state) =
+      let val () = assert_tag_exists state tag
+      in ("ok\n", update_rulesets (RuleSet.delete_rules_in_tag tag) state) end
+    | delete_rules_in_tag _ = raise wrong_args_exp ();
+
+  fun delete_tag_and_its_rules ([tag], state) =
+      let val () = assert_tag_exists state tag
+      in ("ok\n", update_rulesets (RuleSet.delete_tag tag 
+                                   o RuleSet.delete_rules_in_tag tag) state) end
+    | delete_tag_and_its_rules _ = raise wrong_args_exp ();
+      
   local
       fun graph_maker default_name graph state = let
       val (nm,gs) = (get_graphs state)
@@ -1047,3 +1052,6 @@ struct
   fun init () = (flushIn(); repl newState)
 
 end (* structure Controller *)
+
+(* *)
+structure Controller : CONTROLLER = DB_Controller;

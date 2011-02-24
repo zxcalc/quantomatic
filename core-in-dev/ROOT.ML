@@ -81,11 +81,12 @@ PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
 
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";
-(* **** *)
-PolyML.Project.make "io/output_ruleset_XML.ML";
 PolyML.Project.make "io/input_ruleset_XML.ML";
+PolyML.Project.make "io/output_ruleset_XML.ML";
 
+(* **** *)
 (* interface protocol *)
+PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 PolyML.Project.make "interface/controller.ML";
 
 (* unit tests *)

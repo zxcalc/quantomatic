@@ -1,51 +1,32 @@
 (* ------------------------------------------------------- *)
-
-(* FIXME: rules should *JUST* be left and right hand side, (and I think 
-   we should have 1-file per rule representation - that way rule sets can 
-   simply identify rules, and we get less problems of clashing names in
-   rulesets, and we can use filenames for rule names. *)
-
 functor RuleOutputXML (
-  structure RuleName : SSTR_NAMES
 	structure Rule : BASIC_RULE
 	structure OutputGraph : PRETTY_XML_OUTPUT
 	sharing type OutputGraph.data = Rule.Graph.T
 ) : PRETTY_XML_OUTPUT
 = struct
   
-  structure RuleName = RuleName
-  structure R = Rule
-  structure OG = OutputGraph
-  type data = RuleName.name * R.T
+  type data = Rule.T
   type T = Pretty.T
 
-  val output_graph = OG.output
-
-  fun indent_chunks cs = Pretty.block [Pretty.str "  ", Pretty.chunks cs]
-
-  fun output (rule_name,rule)  = 
+  fun output rule = 
 	      Pretty.chunks
 	        [Pretty.str "<rule>",
-	         indent_chunks [
-		 Pretty.block [Pretty.str "<name>",
-			       RuleName.pretty_name rule_name,
-			       Pretty.str "</name>"],
 	         Pretty.str "<lhs>",
-	         Pretty.indent 2 (output_graph (Rule.get_lhs rule)),
+	         Pretty.indent 2 (OutputGraph.output (Rule.get_lhs rule)),
 	         Pretty.str "</lhs>",
 	         Pretty.str "<rhs>", 
-	         indent_chunks [output_graph (Rule.get_rhs rule)],
-	         Pretty.str "</rhs>"],
+	         Pretty.indent 2 (OutputGraph.output (Rule.get_rhs rule)),
+	         Pretty.str "</rhs>",
 	         Pretty.str "</rule>",
 	         Pretty.str ""]
 
 end;
 
-structure RGRuleOutputXML : PRETTY_XML_OUTPUT
+structure OutputRGRuleXML : PRETTY_XML_OUTPUT
  = RuleOutputXML(
-    structure RuleName = RuleName
     structure Rule = RGRule
-    and OutputGraph = RGGraphOutputXML
+    and OutputGraph = OutputRGGraphXML
    );
 
 (* -------------------------------------------------------- *)
@@ -54,7 +35,7 @@ structure RGRuleOutputXML : PRETTY_XML_OUTPUT
 
 (* -------------------------------------------------------- *)
 
-functor RewriteOutputXML (
+functor OutputRewriteXML (
 	structure Rule : BASIC_RULE
 	structure OutputGraph : PRETTY_XML_OUTPUT
   sharing type OutputGraph.data = Rule.Graph.T
@@ -83,15 +64,15 @@ functor RewriteOutputXML (
 end;
 
 (* -------------------------------------------------------- *)
-structure RGRewriteOutputXML : PRETTY_XML_OUTPUT
- = RewriteOutputXML(
+structure OutputRGRewriteXML : PRETTY_XML_OUTPUT
+ = OutputRewriteXML(
     structure Rule = RGRule
-    and OutputGraph = RGGraphOutputXML
+    and OutputGraph = OutputRGGraphXML
    );
 
 (* -------------------------------------------------------- *)
-structure RGRewriteListOutputXML : PRETTY_XML_OUTPUT
+structure OutputRGRewriteListXML : PRETTY_XML_OUTPUT
  = OutputListXML(
     val tagname = "rewrites"
-    structure Output1 = RGRewriteOutputXML
+    structure Output1 = OutputRGRewriteXML
    );

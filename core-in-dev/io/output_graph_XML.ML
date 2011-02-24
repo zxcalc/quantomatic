@@ -3,7 +3,7 @@
 *)
 
 (*-------------------------------------------------------*)
-structure OutLinratXML : PRETTY_XML_OUTPUT where type data = LinratExpr.T = 
+structure OutputLinratXML : PRETTY_XML_OUTPUT where type data = LinratExpr.T = 
 struct 
   type T = Pretty.T
   type data = LinratExpr.T
@@ -66,7 +66,7 @@ end; (* structure *)
 
 
 (*  *)
-functor RGVDataOutputXML (V : RG_VERTEX) : PRETTY_XML_OUTPUT = 
+functor OutputRGVDataXML (V : RG_VERTEX) : PRETTY_XML_OUTPUT = 
 struct 
   
   type T = Pretty.T;
@@ -76,8 +76,8 @@ struct
   val colourGreen = Pretty.str "<colour>green</colour>";
   val colourH = Pretty.str "<colour>H</colour>";
   
-  fun output_idata (V.Xnd a) = [colourRed, OutLinratXML.output a]
-    | output_idata (V.Znd a) = [colourGreen, OutLinratXML.output a]
+  fun output_idata (V.Xnd a) = [colourRed, OutputLinratXML.output a]
+    | output_idata (V.Znd a) = [colourGreen, OutputLinratXML.output a]
     | output_idata (V.Hnd) = [colourH]
 
   fun output (V.EVert) = Pretty.str "<boundary>true</boundary>"
@@ -87,12 +87,12 @@ struct
 end;
 
 (* *)
-functor GraphOutputXML (
+functor OutputGraphXML (
   structure Graph : BANG_GRAPH
-        and OutVData : PRETTY_XML_OUTPUT 
-        and OutEData : PRETTY_XML_OUTPUT 
-  sharing type OutVData.data = Graph.Vertex.data
-  sharing type OutEData.data = Graph.Edge.data
+        and OutputVData : PRETTY_XML_OUTPUT 
+        and OutputEData : PRETTY_XML_OUTPUT 
+  sharing type OutputVData.data = Graph.Vertex.data
+  sharing type OutputEData.data = Graph.Edge.data
 ) : PRETTY_XML_OUTPUT
 = struct
   structure V = Graph.OVertex;
@@ -113,7 +113,7 @@ functor GraphOutputXML (
 		     Pretty.str "</name>"],
 		     Pretty.block [
 		     Pretty.str "  ",
-		     OutVData.output vdata],
+		     OutputVData.output vdata],
 		     Pretty.str "</vertex>"
 		    ];
 
@@ -139,7 +139,7 @@ functor GraphOutputXML (
 		     Pretty.str "<target>",
 		     Graph.Vertex.pretty_name target_vertex,
 		     Pretty.str "</target>",
-		     OutEData.output edata
+		     OutputEData.output edata
 		     ],
 		     Pretty.str "</edge>"];
 
@@ -189,7 +189,7 @@ end;
 
 (*-------------------------------------------------------*)
 
-functor RGEDataOutputXML (E : EDGE) : PRETTY_XML_OUTPUT
+functor OutputRGEDataXML (E : EDGE) : PRETTY_XML_OUTPUT
 =
 struct
   type data = E.data;
@@ -198,10 +198,10 @@ struct
 end
 
 (*-------------------------------------------------------*)
-structure RGGraphOutputXML : PRETTY_XML_OUTPUT
-  = GraphOutputXML (
+structure OutputRGGraphXML : PRETTY_XML_OUTPUT
+  = OutputGraphXML (
     structure Graph = RGGraph
-    and OutVData = RGVDataOutputXML(RGGraph.RGVertex)
-    and OutEData = RGEDataOutputXML(RGGraph.Edge)
+    and OutputVData = OutputRGVDataXML(RGGraph.RGVertex)
+    and OutputEData = OutputRGEDataXML(RGGraph.Edge)
 );
 

@@ -57,6 +57,14 @@ signature XML_OUTPUT = OUTPUT where type T = XML.tree;
 signature PRETTY_XML_OUTPUT = OUTPUT where type T = Pretty.T;
 
 
+functor OutputSStrNameXML(N : SSTR_NAMES) : PRETTY_XML_OUTPUT 
+= struct 
+  type T = Pretty.T;
+  type data = N.name;
+  val output = N.pretty_name;
+end;
+
+
 (* composition *)
 functor ComposeInputs (
   structure In1 : INPUT
@@ -124,10 +132,10 @@ end;
 functor InputNameBRelXML (
   val tagname : string 
   structure BRel : NAME_BINREL
-  structure InputDomXML : XML_INPUT 
-  structure InputCodXML : XML_INPUT
-  sharing type BRel.Dom.name = InputDomXML.data 
-  sharing type BRel.Cod.name = InputCodXML.data 
+  structure InputDom : XML_INPUT 
+  structure InputCod : XML_INPUT
+  sharing type BRel.Dom.name = InputDom.data 
+  sharing type BRel.Cod.name = InputCod.data 
 ) : XML_INPUT
 = struct
   type T = XML.tree;
@@ -145,9 +153,9 @@ functor InputNameBRelXML (
              val cod_els = filter_elems "cod" children;
            in
              BRel.add_many 
-              (fold (BRel.Dom.NSet.add o InputDomXML.input) 
+              (fold (BRel.Dom.NSet.add o InputDom.input) 
                     dom_els BRel.Dom.NSet.empty)
-              (fold (BRel.Cod.NSet.add o InputCodXML.input) 
+              (fold (BRel.Cod.NSet.add o InputCod.input) 
                     cod_els BRel.Cod.NSet.empty)
            end)
           rel_els
@@ -158,15 +166,17 @@ end;
 functor OutputNameBRelXML (
   val tagname : string 
   structure BRel : NAME_BINREL
-  structure OutputDomXML : PRETTY_XML_OUTPUT 
-  structure OutputCodXML : PRETTY_XML_OUTPUT
-  sharing type BRel.Dom.name = OutputDomXML.data 
-  sharing type BRel.Cod.name = OutputCodXML.data 
+  structure OutputDom : PRETTY_XML_OUTPUT 
+  structure OutputCod : PRETTY_XML_OUTPUT
+  sharing type BRel.Dom.name = OutputDom.data 
+  sharing type BRel.Cod.name = OutputCod.data 
 ) : PRETTY_XML_OUTPUT
 = struct
+  open XML_Parse_Utils;
+
   type data = BRel.T;
   type T = Pretty.T;
-  open XML_Parse_Utils;
+
   fun output brel = 
       Pretty.block 
        [Pretty.str ("<"^tagname^">"),
@@ -178,9 +188,9 @@ functor OutputNameBRelXML (
                [Pretty.str "<rel>", 
                 (Pretty.indent 2 o Pretty.block)
                   (map (fn domn => Pretty.enclose "<dom>" "</dom>" 
-                                   [OutputDomXML.output domn])
+                                   [OutputDom.output domn])
                        (BRel.Dom.NSet.list_of domnset)),
-                Pretty.enclose "<cod>" "</cod>" [OutputCodXML.output codn],
+                Pretty.enclose "<cod>" "</cod>" [OutputCod.output codn],
                 Pretty.str "</rel>"])
              (BRel.Cod.NTab.list_of (BRel.get_codtab brel)))),
         Pretty.str ("</"^tagname^">")];
@@ -192,13 +202,13 @@ end;
 functor InputNTabXML (
   val tagname : string
   structure NTab : NAME_TAB
-  structure InputNameXML : XML_INPUT 
-  structure InputValueXML : XML_INPUT
-  sharing type NTab.name = InputNameXML.data 
+  structure InputName : XML_INPUT 
+  structure InputValue : XML_INPUT
+  sharing type NTab.name = InputName.data 
 ) : XML_INPUT
 = struct
   type T = XML.tree;
-  type data = InputValueXML.data NTab.T;
+  type data = InputValue.data NTab.T;
   open XML_Parse_Utils;
   fun input xml = 
       let val () = assert_tag tagname xml
@@ -210,8 +220,8 @@ functor InputNTabXML (
              val children = get_children el
              val name_el = get_the_elem "name" children
              val val_el = get_the_elem "val" children
-           in NTab.ins (InputNameXML.input (get_the_child name_el),
-                        InputValueXML.input (get_the_child val_el)) end)
+           in NTab.ins (InputName.input (get_the_child name_el),
+                        InputValue.input (get_the_child val_el)) end)
           els
           NTab.empty 
       end;
@@ -220,12 +230,12 @@ end;
 functor OutputNTabXML (
   val tagname : string 
   structure NTab : NAME_TAB
-  structure OutputNameXML : PRETTY_XML_OUTPUT 
-  structure OutputValXML : PRETTY_XML_OUTPUT
-  sharing type NTab.name = OutputNameXML.data 
+  structure OutputName : PRETTY_XML_OUTPUT 
+  structure OutputVal : PRETTY_XML_OUTPUT
+  sharing type NTab.name = OutputName.data 
 ) : PRETTY_XML_OUTPUT
 = struct
-  type data = OutputValXML.data NTab.T;
+  type data = OutputVal.data NTab.T;
   type T = Pretty.T;
   open XML_Parse_Utils;
   fun output ntab = 
@@ -238,8 +248,8 @@ functor OutputNTabXML (
               Pretty.chunks 
                [Pretty.str "<map>", 
                 (Pretty.indent 2 o Pretty.block)
-                  [Pretty.enclose "<name>" "</name>" [OutputNameXML.output n],
-                   Pretty.enclose "<val>" "</val>" [OutputValXML.output v]],
+                  [Pretty.enclose "<name>" "</name>" [OutputName.output n],
+                   Pretty.enclose "<val>" "</val>" [OutputVal.output v]],
                 Pretty.str "</map>"])
              (NTab.list_of ntab))),
         Pretty.str ("</"^tagname^">")];

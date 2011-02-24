@@ -2,7 +2,8 @@
 
 local
   open MkG;
-  structure S = SimpleMatchSearch;
+  structure S = RGSimpleMatchSearch;
+  structure Match = RGMatch;
   fun match g1 g2 = 
       let val (rn,g2') = G.rename_apart g1 g2;
       in Seq.list_of (S.match no_extra_names g1 g2')
