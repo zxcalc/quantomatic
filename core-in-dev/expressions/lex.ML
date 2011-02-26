@@ -11,7 +11,7 @@ sig
     val literal : elem list -> token * elem list
     val sym : elem -> elem list -> token * elem list
     val parse_with : (elem list -> 'a * elem list) -> string -> 'a
-end
+end;
 
 structure SimpleLexer : SIMPLE_LEXER =
 struct

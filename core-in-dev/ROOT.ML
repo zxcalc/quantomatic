@@ -84,10 +84,14 @@ PolyML.Project.make "theories/ruleset.ML";
 PolyML.Project.make "io/input_ruleset_XML.ML";
 PolyML.Project.make "io/output_ruleset_XML.ML";
 
+PolyML.Project.make "rewriting/ruleset_rewriting.ML";
+
 (* **** *)
 (* interface protocol *)
-PolyML.Project.make "rewriting/ruleset_rewriting.ML";
-PolyML.Project.make "interface/controller.ML";
+PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
+PolyML.Project.make "interface/command_lexer.ML"; (* lexer for quanto console *)
+PolyML.Project.make "interface/interface.ML"; (* generic protocol using commands *)
 
 (* unit tests *)
 PolyML.Project.make "test/ROOT.ML"; 

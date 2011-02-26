@@ -1,62 +1,16 @@
-signature CONTROLLER =
-sig
-    val init : unit -> unit
-end
+(* controller state *)
 
-structure DB_Controller = 
+structure GraphName :> SSTR_NAMES = 
+struct open SStrName val default_name = SStrName.mk "new-graph-1" end;
+
+signature CONTROLLER_STATE =
+sig
+  type T;
+end;
+
+(* controls the state of Quantomatic *)
+structure DB_ControllerState = 
 struct
-  
-  structure QuantoCommand =
-  struct
-    type T = string * string list
-    
-    open SimpleLexer
-    
-    fun unwrap (ID s) = s
-      | unwrap (INT n) = Int.toString n
-      | unwrap (LIT s) = s
-      | unwrap _ = raise Match
-    
-    (*fun unescape (LIT str) = str String.translate
-                   (fn c => case c of #"\\" => ""
-                            | _ => Char.toString c)
-                   str
-      | unescape _ = raise Match
-    *)
-    
-    (*
-    a term grammar with no nesting
-    
-    arg   ::= LITERAL | ID
-    args  ::= arg args | E
-    expr  ::= ID args
-    exprs ::= expr ; exprs | E
-    *)
-    
-    
-    fun arg x = x|>(
-            (literal >> unwrap)
-            || ((ident || num) >> unwrap))
-    fun args x = x|>(((arg -- args) >> op::)
-                 || (noop >> K []))
-    fun expr x = x|>((ident >> unwrap) -- args)
-    fun exprs x = x|>(
-              ((expr --| sym ";" -- exprs) >> op::)
-              || (expr >> single)
-              || (noop >> K []))
-    
-    fun parse str = parse_with exprs str
-    fun pretty (f,args) = Pretty.block[Pretty.str f,
-                       Pretty.str_list "(" ")" args]
-    val print = Pretty.writeln o pretty
-    val toString = Pretty.string_of o pretty
-  end; (* structure QuantoCommand *)
-  
-  structure GraphName :> SSTR_NAMES = 
-  struct
-    open SStrName
-    val default_name = SStrName.mk "new-graph-1"
-  end
   
   exception user_exp of string
   
@@ -66,14 +20,15 @@ struct
   structure V = G.RGVertex;
   structure E = G.Edge;
   structure LoadSave = RGGraphLoaderSaver;
-
   
-  type rewrite = SStrName.name * R.T * G.T
-  datatype c_state = CState of {
-       graphs : G.T GraphName.NTab.T,
-       rewrites : (rewrite list) GraphName.NTab.T,
-       hist : (G.T list * G.T list) GraphName.NTab.T,
-       rulesets : RuleSet.T
+  type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
+
+  (* data for controller; top level data with which user interacts *)
+  datatype state = CState of {
+       graphs : G.T GraphName.NTab.T, (* the known graphs *)
+       rewrites : (rewrite list) GraphName.NTab.T, (* cached possible rewrites *)
+       hist : (G.T list * G.T list) GraphName.NTab.T, (* past and future *)
+       rulesets : RuleSet.T (* the known rules *)
   }
   
   (* getters and setters for the state *)
@@ -92,8 +47,6 @@ struct
   fun get_hist (CState {hist=h,...}) = h
   fun get_rulesets (CState {rulesets=t,...}) = t
   
-  datatype consolestate = NORMAL of c_state | SKIP | QUIT
-  
   (*val default_rulesets = RuleSet.NTab.empty
                              |> RuleSet.NTab.update (RuleSet.mk "default",
                                                     (!RuleSetHack.rules,true))
@@ -102,20 +55,9 @@ struct
   val newState = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
                          hist=GraphName.NTab.empty,
-                         rulesets=RuleSet.empty}
+                         rulesets=RuleSet.empty};
   
-  (*
-  A dictionary of commands of the format:
-    (help: string, cmd: args * state -> output * state)
-  *)
-  val cmds :
-      ((string *
-       (string list * c_state -> string * c_state))
-      Symtab.table) Unsynchronized.ref = Unsynchronized.ref Symtab.empty
-  
-  
-  fun handle_bug_in_function name f (x as (l,st)) = 
-      (f x) 
+  fun handle_bug_in_function f (x as (l,st)) = (f x) 
       handle G.no_such_vname_exp (s, v, g) => 
         raise user_exp ("BUG: G.no_such_vname_exp")
       | G.vname_already_exists_exp (v,g) =>
@@ -128,24 +70,17 @@ struct
         raise user_exp ("BUG: G.merge_bbox_exp")
       | G.overlapping_bbox_exp (vs,g) =>
         raise user_exp ("BUG: G.overlapping_bbox_exp")
+      | G.BBox.Tab.UNDEF x =>
+        raise user_exp ("BUG: G.BBox.Tab.UNDEF")
       | E.NSet.duplicate_exp _ => 
         raise user_exp ("BUG: Duplicate Edge.")
       | V.NSet.duplicate_exp _ => 
         raise user_exp ("BUG: Duplicate vertex.")
-      | G.BBox.Tab.UNDEF x =>
-        raise user_exp ("BUG: G.BBox.Tab.UNDEF")
-      | G.Vertex.Tab.UNDEF x =>
+      | V.Tab.UNDEF x =>
         raise user_exp ("BUG: G.Vertex.Tab.UNDEF")
-      | G.Vertex.Tab.UNDEF x =>
+      | E.Tab.UNDEF x =>
         raise user_exp ("BUG: G.Edge.Tab.UNDEF");
   
-  (* add a command; wrap it's execution in a generic bug-handler to stop quanto 
-     from dieing when internal errors happen. Better to print out the error to the 
-     user. *)
-  fun register_cmd name help f =
-      cmds := 
-        ((!cmds) |> Symtab.update 
-         (name,(help, handle_bug_in_function name f)))
   
   (* state accessors *)
   fun fetch_graph name state =
@@ -194,10 +129,10 @@ struct
       end
       
   (* State-agnostic commands, cmd: [args] -> out *)
-  fun lift_stateless cmd (args, state:c_state) = (cmd args, state)
+  fun lift_stateless cmd (args, state:state) = (cmd args, state)
   
   (* Read-only state commands, cmd: [args] * state -> out *)
-  fun lift_state_viewer cmd (args, state:c_state) = (cmd (args,state), state)
+  fun lift_state_viewer cmd (args, state:state) = (cmd (args,state), state)
   
   
   fun read_block () = let
@@ -211,9 +146,8 @@ struct
         in if ln = ("---endblock:"^expected^"\n") then ""
            else ln^(loop ())
         end
-  in loop ()
-  end
-  handle Parse => raise user_exp "Bad start of block"
+  in loop () end
+  handle SimpleLexer.Parse => raise user_exp "Bad start of block"
   
   
   (* Most commands are already of the form
@@ -228,23 +162,6 @@ struct
   fun echo_block [] = read_block ()
     | echo_block _ = raise wrong_args_exp ()
   
-  fun help1 "quit" = "\nquit\n\n    Quits the quantomatic core\n\n"
-    | help1 cmd = case Symtab.lookup (!cmds) cmd
-           of SOME (h,_) => "\n"^h^"\n"
-            | NONE => "!!! Can't find command.\n"
-  
-  val sort_alpha = sort (fn x => rev_order (string_ord x))
-  
-  (* helper functions for commands registered below *)
-  fun help [] = "Type \"help CMD\" to get help on a command or \"help all\".\n"^
-            "Available commands:\n\n"^
-            (fold (fn a => fn b =>a^"\n"^b)
-              (sort_alpha ("quit" :: (Symtab.keys (!cmds)))) "\n")
-    | help ["all"] = fold (fn a => fn b => (help1 a)^b)
-                          (sort_alpha ("quit" :: (Symtab.keys (!cmds)))) "\n"
-    | help [cmd] = (help1 cmd)
-    | help _ = raise wrong_args_exp ()
-           
   fun list_graphs ([], state) = 
       GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst)
         (get_graphs state) ""
@@ -353,30 +270,27 @@ struct
     | delete_tag_and_its_rules _ = raise wrong_args_exp ();
       
   local
-      fun graph_maker default_name graph state = let
-      val (nm,gs) = (get_graphs state)
-                |> GraphName.NTab.add (default_name, graph)
-      in ((GraphName.dest nm) ^ "\n", state |> set_graphs gs)
-      end
+    fun graph_maker default_name graph state = let
+        val (nm,gs) = (get_graphs state)
+                  |> GraphName.NTab.add (default_name, graph)
+        in ((GraphName.dest nm) ^ "\n", state |> set_graphs gs) end
   in
-  
-  fun duplicate_graph ([name], state) = 
-      let val gname = (GraphName.mk name) 
-      in graph_maker gname (fetch_graph gname state) state
-      end
-    | duplicate_graph _ = raise wrong_args_exp ()
-  fun new_graph ([], state) =
-      graph_maker GraphName.default_name G.empty state
-    | new_graph _ = raise wrong_args_exp ()
-  fun load_graph ([fname], state) = 
-      graph_maker GraphName.default_name (LoadSave.load_graph fname) state
-    | load_graph _ = raise wrong_args_exp ()
-  fun input_graph_xml ([], state) = let
-      val gr_block = read_block ()
-      val gr = RGGraphInputXML.input (XMLReader.read_from_string gr_block)
-  in graph_maker GraphName.default_name gr state
-  end
-    | input_graph_xml _ = raise wrong_args_exp ()
+    fun duplicate_graph ([name], state) = 
+        let val gname = (GraphName.mk name) 
+        in graph_maker gname (fetch_graph gname state) state
+        end
+      | duplicate_graph _ = raise wrong_args_exp ()
+    fun new_graph ([], state) =
+        graph_maker GraphName.default_name G.empty state
+      | new_graph _ = raise wrong_args_exp ()
+    fun load_graph ([fname], state) = 
+        graph_maker GraphName.default_name (LoadSave.load_graph fname) state
+      | load_graph _ = raise wrong_args_exp ()
+    fun input_graph_xml ([], state) = 
+        let val gr_block = read_block ()
+            val gr = InputRGGraphXML.input (XMLReader.read_from_string gr_block)
+        in graph_maker GraphName.default_name gr state end
+      | input_graph_xml _ = raise wrong_args_exp ()
   end
   
   
@@ -419,7 +333,7 @@ struct
     | add_vertex _ = raise wrong_args_exp ()
   
   fun add_edge ([_,v1,v2], graph) =
-      (let val (n,g) = graph |> G.add_edge () (V.mk v1) (V.mk v2)
+      (let val (n,g) = graph |> G.add_edge (G.UnDirected,()) (V.mk v1) (V.mk v2)
        in ("added edge \"" ^ (G.Edge.dest n) ^ "\"\n", g)
        end
        handle G.no_such_vname_exp _ =>
@@ -447,7 +361,7 @@ struct
   
   fun graph_xml [nme] = (suffix "\n") o
                 Pretty.string_of  o
-                RGGraphOutputXML.output
+                OutputRGGraphXML.output
     | graph_xml _ = raise wrong_args_exp ()
   
   fun print_graph [_] = (suffix "\n") o Pretty.string_of o G.pretty
@@ -492,8 +406,8 @@ struct
                  |> set_graph_at gname (Rule.del_lhs rule fused))
        end
        handle GraphName.Tab.UNDEF _ => raise user_exp "No rewrites attached." 
-            | Subscript => raise user_exp "Rewrite not attached."
-            | Option => raise user_exp "Rewrite selection must be an integer.")
+            | General.Subscript => raise user_exp "Rewrite not attached."
+            | Option.Option => raise user_exp "Rewrite selection must be an integer.")
     | apply_rewrite _ = raise wrong_args_exp ()
   
   local
@@ -501,7 +415,7 @@ struct
           (let val gname = GraphName.mk (graph_arg args)
                val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
                val graph = fetch_graph gname state
-               val rules = RuleSet.get_active_rules (get_rulesets state)
+               val rules = RuleSet.get_active (get_rulesets state)
                val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
                              (Seq.list_of (attacher rules vset graph))
            in
@@ -653,405 +567,7 @@ struct
   val open_rule_lhs = export_rule Rule.get_lhs "lhs"
   val open_rule_rhs = export_rule Rule.get_rhs "rhs"
   
-  (* Register commands available from the console and associate docs *)
-  
-  val () = (
-      register_cmd
-      "help"
-      ("help CMD\n\n"^
-       "    get help on CMD\n")
-      (lift_stateless help);
-      
-      register_cmd
-      "HELO"
-      ("HELO\n\n"^
-       "    sync the console, print \"HELO\"\n")
-      (lift_stateless (K "HELO\n"));
-  
-      register_cmd
-      "echo_block"
-      ("echo_block\n\n"^
-       "    debug command for testing block input\n")
-      (lift_stateless echo_block);
-  
-     register_cmd
-      "load_ruleset"
-      ("load_ruleset NAME FILE\n\n" ^
-       "    load a ruleset from FILE and call it NAME\n")
-      load_ruleset;
-  
-      register_cmd
-      "unload_ruleset"
-      ("unload_ruleset RULESET\n\n" ^
-       "    unload RULESET\n")
-      unload_ruleset;
-      
-     register_cmd
-      "save_ruleset"
-      ("save_ruleset RULESET FILENAME\n\n" ^
-       "    save RULESET in FILENAME\n")
-      (lift_state_viewer save_ruleset);
-  
-      register_cmd
-      "list_graphs"
-      ("list_graphs\n\n"^
-       "    list all active graphs\n")
-      (lift_state_viewer list_graphs);
-  
-      register_cmd
-      "ls"
-      ("ls\n\n"^
-       "    alias for \"list_graphs\"\n")
-      (lift_state_viewer list_graphs);
-  
-      register_cmd
-      "list_rulesets"
-      ("list_rulesets\n\n"^
-       "    list all loaded rulesets\n")
-      (lift_state_viewer list_rulesets);
-  
-      register_cmd
-      "list_active_rulesets"
-      ("list_active_rulesets\n\n"^
-       "    list all active rulesets\n")
-      (lift_state_viewer list_active_rulesets);
-  
-      register_cmd
-      "list_rules"
-      ("list_rules RULESET\n\n"^
-       "    list the rules in RULESET\n")
-      (lift_state_viewer list_rules);
-  
-      register_cmd
-      "activate_ruleset"
-      ("activate_ruleset RULESET\n\n"^
-       "    enable the rules in RULESET for rewriting\n")
-      (activate_ruleset);
-  
-      register_cmd
-      "deactivate_ruleset"
-      ("deactivate_ruleset RULESET\n\n"^
-       "    disable the rules in RULESET for rewriting\n")
-      (deactivate_ruleset);
-  
-      register_cmd
-      "activate_rule"
-      ("activate_rule RULESET RULE\n\n"^
-       "    enable RULE in RULESET for rewriting\n")
-      (activate_rule);
-  
-      register_cmd
-      "deactivate_rule"
-      ("deactivate_ruleset RULESET RULE\n\n"^
-       "    disable RULE in RULESET for rewriting\n")
-      (deactivate_rule);
-  
-      register_cmd
-      "delete_rule"
-      ("delete_ruleset RULESET RULE\n\n"^
-       "    remove RULE from RULESET for rewriting\n")
-      (delete_rule);
-  
-      register_cmd
-      "new_graph"
-      ("new_graph\n\n" ^
-       "    create a new graph and return its name\n")
-      (new_graph);
-  
-      register_cmd
-      "load_graph"
-      ("load_graph FILENAME\n\n" ^
-       "    load a new graph from FILENAME return its name\n")
-      (load_graph);
-  
-      register_cmd
-      "input_graph_xml"
-      ("input_graph_xml\n\n" ^
-       "    create a new graph from the XML data given as block input\n")
-      (input_graph_xml);
-      
-      register_cmd
-      "save_graph"
-      ("save_graph GRAPH FILENAME\n\n" ^
-       "    save GRAPH in FILENAME\n")
-      (lift_graph_viewer save_graph);
-   
-      register_cmd
-      "duplicate_graph"
-      ("duplicate_graph GRAPH\n\n"^
-       "    duplicate GRAPH and return the name of the new graph\n")
-      (duplicate_graph);
-  
-      register_cmd
-      "rename_graph"
-      ("rename_graph OLD NEW\n\n"^
-       "    rename graph OLD to NEW, return the real new\n"^
-       "    name.\n")
-      (rename_graph);
-  
-      register_cmd
-      "kill_graph"
-      ("kill_graph GRAPH\n\n"^
-       "    remove GRAPH from the workspace\n")
-      (kill_graph);
-  
-      register_cmd
-      "add_vertex"
-      ("add_vertex GRAPH TYPE\n\n"^
-       "    add a TYPE vertex to GRAPH\n")
-      (lift_graph_mutator add_vertex);
-      
-      register_cmd
-      "delete_vertices"
-      ("delete_vertices GRAPH V1 .. VN\n\n"^
-       "    delete vertices V1..VN from GRAPH\n")
-      (lift_graph_mutator delete_vertices);
-  
-      register_cmd
-      "delete_edges"
-      ("delete_edges GRAPH E1 .. EN\n\n"^
-       "    delete edges E1 .. EN from GRAPH\n")
-      (lift_graph_mutator delete_edges);
-  
-      register_cmd
-      "add_edge"
-      ("add_edge GRAPH V1 V2\n\n"^
-       "    add an edge in GRAPH from V1 to V2\n")
-      (lift_graph_mutator add_edge);
-    
-      register_cmd
-      "rename_vertex"
-      ("rename_vertex GRAPH OLD NEW\n\n"^
-       "    rename vertex in GRAPH from OLD to NEW\n")
-      (lift_graph_mutator rename_vertex);
-  
-      register_cmd
-      "graph_xml"
-      ("graph_xml GRAPH\n\n"^
-       "    dump GRAPH as XML\n")
-      (lift_graph_viewer (uncurry graph_xml));
-      
-      register_cmd
-      "print_graph"
-      ("print_graph GRAPH\n\n"^
-       "    print out GRAPH\n")
-      (lift_graph_viewer (uncurry print_graph));
-  
-      register_cmd
-      "undo"
-      ("undo GRAPH\n\n"^
-       "    undo last change to GRAPH\n")
-      (undo);
-      
-      register_cmd
-      "redo"
-      ("redo GRAPH\n\n"^
-       "    redo change on GRAPH\n")
-      (redo);
-      
-      register_cmd
-      "attach_rewrites"
-      ("attach_rewrites GRAPH V1 .. VN\n\n"^
-       "    calculate rewrites involving V1..VN in GRAPH and\n"^
-       "    attach to the graph state\n")
-      (attach_rewrites);
-  
-      register_cmd
-      "attach_one_rewrite"
-      ("attach_one_rewrite GRAPH V1 .. VN\n\n"^
-       "    calculate at most one rewrite involving V1..VN in"^
-       "    GRAPH and attach to the graph state\n")
-      (attach_one_rewrite);
-  
-      register_cmd
-      "show_rewrites"
-      ("show_rewrites GRAPH\n\n"^
-       "    show rewrites attached to GRAPH\n")
-      (lift_state_viewer show_rewrites);
-  
-      register_cmd
-      "apply_rewrite"
-      ("apply_rewrite GRAPH N\n\n"^
-       "    apply the Nth rewrite attached to GRAPH\n")
-      (apply_rewrite);
-  
-      register_cmd
-      "apply_first_rewrite"
-      ("apply_first_rewrite GRAPH N\n\n"^
-       "    attempt to attach one rewrite to GRAPH and apply it\n")
-      (apply_first_rewrite);
-  
-      register_cmd
-      "hilb"
-      ("hilb GRAPH FORMAT\n\n"^
-       "    display the hilbert space term of GRAPH where\n"^
-       "    FORMAT is one of {text, mathematica}.\n")
-      (lift_graph_viewer hilb);
-      
-      register_cmd
-      "set_angle"
-      ("set_angle GRAPH V ANGLE\n\n"^
-       "    set the angle of vertex V to ANGLE\n")
-      (lift_graph_mutator set_angle);
-  
-      register_cmd
-      "add_bang"
-      ("add_bang GRAPH\n\n"^
-       "    add a new !-box to GRAPH and return its name\n")
-      (lift_graph_mutator add_bang);
-  
-      register_cmd
-      "bbox_drop"
-      ("bbox_drop GRAPH BANGS\n\n"^
-       "    drop !-boxes BANGS in GRAPH. Vertices inside BANGS are moved\n"^
-       "    to the top-level graph.\n")
-      (lift_graph_mutator drop_bang);
-  
-      register_cmd
-      "bbox_kill"
-      ("bbox_kill GRAPH BANGS\n\n"^
-       "    kill !-boxes BANGS in GRAPH. Vertices inside BANGS are deleted\n"^
-       "    to the top-level graph.\n")
-      (lift_graph_mutator kill_bang);
-      
-      register_cmd
-      "bbox_merge"
-      ("bbox_kill GRAPH BANGS\n\n"^
-       "    merges !-boxes BANGS in GRAPH.\n")
-      (lift_graph_mutator merge_bang);
-      
-      register_cmd
-      "bbox_duplicate"
-      ("bbox_duplicate GRAPH BANGS\n\n"^
-       "    duplicates !-boxes BANGS in GRAPH.\n")
-      (lift_graph_mutator duplicate_bang);
-      
-      register_cmd
-      "bang_vertices"
-      ("bang_vertices GRAPH BANG V1 .. VN\n\n"^
-       "    add vertices V1..VN in graph to !-box BANG\n")
-      (lift_graph_mutator bang_vertices);
-  
-      register_cmd
-      "unbang_vertices"
-      ("unbang_vertices GRAPH V1 .. VN\n\n"^
-       "    remove vertices V1..VN from their current !-box\n")
-      (lift_graph_mutator unbang_vertices);
-  
-      register_cmd
-      "copy_subgraph"
-      ("copy_subgraph SOURCE TARGET V1 .. VN\n\n"^
-       "    copy the subgraph of SOURCE spanned by V1..VN to\n"^
-       "    the graph TARGET\n")
-      (copy_subgraph);
-  
-      register_cmd
-      "insert_graph"
-      ("insert_graph TARGET SOURCE\n\n"^
-       "    insert of copy of SOURCE into TARGET\n")
-      (insert_graph);
-  
-      register_cmd
-      "flip_vertices"
-      ("flip_vertices G V1 .. VN\n\n"^
-       "    reverse the colour of vertices V1..VN, ingoring\n"^
-       "    boundary vertices.\n")
-      (lift_graph_mutator flip_vertices);
-  
-      register_cmd
-      "open_rule_lhs"
-      ("open_rule_lhs RULESET RULE\n\n"^
-       "    Open the LHS of the given rule and return the name of\n"^
-       "    the new graph buffer.\n")
-      (open_rule_lhs);
-  
-      register_cmd
-      "open_rule_rhs"
-      ("open_rule_rhs RULESET RULE\n\n"^
-       "    Open the RHS of the given rule and return the name of\n"^
-       "    the new graph buffer.\n")
-      (open_rule_rhs);
-  
-      
-      register_cmd
-      "replace_rule"
-      ("replace_rule RULESET RULE LHS RHS\n\n"^
-       "    Replace the given rule with graphs LHS and RHS in the\n"^
-       "    workspace.\n")
-      (replace_rule);
-  
-  
-      register_cmd
-      "new_rule"
-      ("new_rule RULESET GRAPH\n\n"^
-       "    Create a new identity rule from GRAPH.\n")
-      (new_rule);
-      
-      ())
-  
-  
-  
-  (* Uniquely mark end of text as SPACE + BACKSPACE. This is well-behaved as
-   * long as commands never send a literal BACKSPACE (0x08). *)
-  val EOT = " "^(chr 8)
-  
-  fun do_cmd ("quit",_) _ = ("Exiting...\n", QUIT)
-    | do_cmd ("exit",_) _ = ("Exiting...\n", QUIT)
-    | do_cmd ("NOOP",_) _ = ("", SKIP)
-    | do_cmd (cmd as (cname,args)) state =
-      (case Symtab.lookup (!cmds) cname
-        of SOME (_,f) => (fn (a,b)=>(a, NORMAL b)) (f (args, state))
-         | NONE => ("!!! Unknown command: "^
-            (QuantoCommand.toString cmd)^"\n", NORMAL state))
-      handle wrong_args_exp () =>
-         ("!!! Wrong number of args in " ^
-          (QuantoCommand.toString cmd)^".\n", NORMAL state)
-       | user_exp str => ("!!! "^str^"\n", NORMAL state)
-  
-  fun eval command state =
-      let
-          val cmds = SOME (QuantoCommand.parse command)
-          handle Parse => NONE
-          fun eval_list [] state = ([], NORMAL state)
-            | eval_list (c::cs) state =
-              case do_cmd c state
-               of (_, SKIP) => eval_list cs state
-                | (out, QUIT) => ([out], QUIT)
-                | (out, NORMAL state') =>
-                    let val (lst, st) = eval_list cs state'
-                    in (out::lst, st)
-                    end
-      in case cmds of SOME cs => eval_list cs state
-            | NONE => (["!!! Parse error in command: "^command^"\n"], SKIP)
-      end
-      
-  
-  (* main read-exec-print-loop *)
-  fun repl state = let
-    val _ = TextIO.print ("quanto:> "^EOT)
-  in 
-    case TextIO.inputLine TextIO.stdIn 
-     of NONE => (TextIO.print "Exiting...\n"; TextIO.print EOT; ())
-      | SOME s =>
-        let 
-          val cmd_str = unsuffix "\n" (s)
-          val (output, st) = eval cmd_str state
-        in                             
-          TextIO.print (implode output); TextIO.print EOT;
-          (case st
-            of NORMAL state' => repl state'
-             | SKIP => repl state
-             | QUIT => (TextIO.print EOT; ()))
-        end
-  end;
-  
-  fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
-                        of SOME n => (TextIO.input1 TextIO.stdIn;())
-                         | NONE => ()
-  
-  fun init () = (flushIn(); repl newState)
-
-end (* structure Controller *)
+end; (* structure Controller *)
 
 (* *)
-structure Controller : CONTROLLER = DB_Controller;
+structure ControllerState : CONTROLLER = DB_Controller;
