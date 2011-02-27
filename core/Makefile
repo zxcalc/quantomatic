@@ -1,22 +1,23 @@
 ################################
+# dynamic variables checked on call to make. 
+################################
+ML_SRC_FILES = $(shell ls *.ML */*.ML */*/*.ML)
+ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../../isaplib/*/*/*.ML)
+
+################################
 # variables you might want to set in your own profile setup...
 ################################
 ### your local install of PolyML
-# POLYML_HOME=/home/ldixon/local/polyml-svn-version
+# POLYML_HOME=/home/ldixon/local/polyml-cvs-version
 
 ################################
 # general variables
 ################################
+
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
 POLYML=$(POLYML_HOME)/bin/poly
 POLYML_LIB=$(POLYML_HOME)/lib
-
-################################
-# dynamic variables checked on call to make. 
-################################
-ML_SRC_FILES = $(shell ls *.ML */*.ML theories/*/*.ML)
-ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../../isaplib/*/*/*.ML)
 
 ################################
 # HEAP files defined in make_heap.ML, make_bin.ML
@@ -35,7 +36,7 @@ default: bin
 
 # A bit of a hack: we just add our found polyml to the path...
 # always run make; it's quick and deals with its own deps
-$(ISAPLIB_HEAP): 
+$(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
 	export PATH="$(POLYML_HOME)/bin:$(PATH)" && cd ../../isaplib; make
 
 # make polyml heap
