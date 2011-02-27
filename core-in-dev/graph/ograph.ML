@@ -114,7 +114,9 @@ val cut_around_vertex : Vertex.NSet.T -> Vertex.name
    returns the gluing automorphism, and a new graph which will be disjoint *)
 val cut_around_subgraph: Vertex.NSet.T -> T -> (Vertex.InjEndo.T * T)
 
-(* Given selection set of vertices, make subgraph with with incident edges that went to a vertex outside selection, now go to a single edge-point. Perserves matching; doesn't (necessarily produce a valid ograph) produce  *)
+(* Given selection set of vertices, make subgraph with with incident edges that 
+   went to a vertex outside selection, now go to a single edge-point. Perserves 
+   matching; doesn't (necessarily) produce a valid ograph. *)
 val matched_subgraph_within_vset' : Vertex.NSet.T -> T 
     -> Vertex.InjEndo.T * T (* returns gluing/cutting for new 'boundary', 
                               and cut graph *)
@@ -599,7 +601,10 @@ struct
   
   (* make a subgraph from a node selection: any vertices with edges
      outside selection are deleted. NOTE: does not preserve type/Matching. 
-     This is the usual graphics package form of "copying" a selected graph. *)
+     This is the usual graphics package form of "copying" a selected graph.
+     (do we want this? or should we do a copy by cutting edges and throwing away 
+      stuff outside the cut selection?)
+  *)
   fun delete_subgraph_outside_vset vns g = 
       V.NSet.fold 
         (fn n => fn g => if V.NSet.contains vns n then g 

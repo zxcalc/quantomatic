@@ -1,39 +1,82 @@
 (* Commands available from the console and associate help stuff *)
+signature COMMANDS = 
+sig
+  type command = string * (* help info *)
+                    (string list * ControllerState.T (* arguments and state given to command *) 
+                     -> string * ControllerState.T (* result string and new state *)
+                    )
+
+  type T
+
+  val empty : T;
+  val all_commands : T;
+
+  val add_command : command -> T -> T;
+  val add_simple_command : command -> T -> T;
+
+  (* lift various functions *)
+  val lift_stateless : (string list -> string) -> command;
+  val lift_state_viewer : (string list * ControllerState.T -> string) -> command;
+  val lift_graph_viewer : (string list * RGGraph.T -> string) -> command;
+  val lift_graph_mutator : (string list * RGGraph.T -> string * RGGraph.T) -> command;
+end;
+
+(* *)
 structure Commands 
 = struct 
-local open Controller in
+  type command = string * (* help info *)
+                    (string list * ControllerState.T (* arguments and state given to command *) 
+                    -> string * ControllerState.T (* result string and new state *)
+                    );
 
-  type command = (string, (* help info *)
-                  string list * state (* arguments and state given to command *) 
-                  -> string * state (* result string and new state *)
-                  );
+  type T = command Symtab.table;
 
-  val cmds_tab = 
-  fold Symtab.update [
-    ("help",
-     ("help CMD\n\n"^
-        "    get help on CMD\n",
-    lift_stateless help)),
+  (* State-agnostic commands, cmd: [args] -> out *)
+  fun lift_stateless cmdf (args, state:ControllerState.T) = 
+      (cmdf args, state)
+  
+  (* Read-only state commands, cmd: [args] * state -> out *)
+  fun lift_state_viewer cmdf (args, state:ControllerState.T) = 
+      (cmdf (args,state), state)
+  
+  (* Graph updating commands, cmd: ([args] * graph) -> (out * graph) *)
+  fun lift_graph_mutator cmdf (args, state) =
+      let val gname = ControllerState.graph_arg args
+          val (out,g') = cmdf (args,ControllerState.get_graph state gname)
+      in (out, state |> ControllerState.push_hist gname 
+                     |> ControllerState.set_graph g' gname) end;
+  
+  (* Read-only graph commands, cmd: [args] * graph -> out *)
+  fun lift_graph_viewer cmdf (args, state) =
+      let val gname = ControllerState.graph_arg args
+          val out = cmdf (args, ControllerState.get_graph state gname)
+      in (out, state) end;
+  
+  (* *)
+  val add_command = Symtab.update; 
+
+  val empty = Symtab.empty;
+
+local open ControllerState in
+  val all_commands = 
+  fold add_command [
     
     ("HELO",
      ("HELO\n\n"^
         "    sync the console, print \"HELO\"\n",
      lift_stateless (K "HELO\n"))),
 
-    ("echo_block",
-     ("echo_block\n\n"^
-        "    debug command for testing block input\n",
-    lift_stateless echo_block)),
-
     ("load_ruleset",
      ("load_ruleset NAME FILE\n\n" ^
         "    load a ruleset from FILE and call it NAME\n",
     load_ruleset)),
 
+(* 
     ("unload_ruleset",
      ("unload_ruleset RULESET\n\n" ^
         "    unload RULESET\n",
     unload_ruleset)),
+*)
     
     ("save_ruleset",
      ("save_ruleset RULESET FILENAME\n\n" ^
@@ -53,17 +96,17 @@ local open Controller in
     ("list_rulesets",
      ("list_rulesets\n\n"^
         "    list all loaded rulesets\n",
-    lift_state_viewer list_rulesets)),
+    lift_state_viewer list_allrules)),
+
+    ("list_rules_with_tag",
+     ("list_rules_with_tag TAG\n\n"^
+        "    list all loaded rulesets\n",
+    lift_state_viewer list_rules_with_tag)),
 
     ("list_active_rulesets",
      ("list_active_rulesets\n\n"^
         "    list all active rulesets\n",
-    lift_state_viewer list_active_rulesets)),
-
-    ("list_rules",
-     ("list_rules RULESET\n\n"^
-        "    list the rules in RULESET\n",
-    lift_state_viewer list_rules)),
+    lift_state_viewer list_active_rules)),
 
     ("activate_ruleset",
      ("activate_ruleset RULESET\n\n"^
@@ -99,12 +142,12 @@ local open Controller in
      ("load_graph FILENAME\n\n" ^
         "    load a new graph from FILENAME return its name\n",
     load_graph)),
-
+(* 
     ("input_graph_xml",
      ("input_graph_xml\n\n" ^
         "    create a new graph from the XML data given as block input\n",
     input_graph_xml)),
-    
+   *) 
     ("save_graph",
      ("save_graph GRAPH FILENAME\n\n" ^
         "    save GRAPH in FILENAME\n",
@@ -181,7 +224,7 @@ local open Controller in
      ("attach_one_rewrite GRAPH V1 .. VN\n\n"^
         "    calculate at most one rewrite involving V1..VN in"^
         "    GRAPH and attach to the graph state\n",
-    attach_one_rewrite)),
+    attach_first_rewrite)),
 
     ("show_rewrites",
      ("show_rewrites GRAPH\n\n"^
@@ -264,29 +307,29 @@ local open Controller in
     lift_graph_mutator flip_vertices)),
 
     ("open_rule_lhs",
-     ("open_rule_lhs RULESET RULE\n\n"^
+     ("open_rule_lhs RULE\n\n"^
         "    Open the LHS of the given rule and return the name of\n"^
         "    the new graph buffer.\n",
     open_rule_lhs)),
 
     ("open_rule_rhs",
-     ("open_rule_rhs RULESET RULE\n\n"^
+     ("open_rule_rhs RULE\n\n"^
         "    Open the RHS of the given rule and return the name of\n"^
         "    the new graph buffer.\n",
     open_rule_rhs)),
 
-    ("replace_rule",
-     ("replace_rule RULESET RULE LHS RHS\n\n"^
+    ("update_rule",
+     ("update_rule RULE LHS RHS\n\n"^
         "    Replace the given rule with graphs LHS and RHS in the\n"^
         "    workspace.\n",
-    replace_rule)),
+    update_rule)),
 
     ("new_rule",
-     ("new_rule RULESET GRAPH\n\n"^
+     ("new_rule GRAPH\n\n"^
         "    Create a new identity rule from GRAPH.\n",
     new_rule))
     ]
-    Symtab.empty;
-
-end; (* local *) 
+    empty;
+end; (* local *)
+ 
 end;

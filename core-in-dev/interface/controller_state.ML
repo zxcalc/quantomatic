@@ -6,7 +6,125 @@ struct open SStrName val default_name = SStrName.mk "new-graph-1" end;
 signature CONTROLLER_STATE =
 sig
   type T;
+  type rewrite = (RuleName.name * RGRule.T) * RGGraph.T
+
+  exception wrong_args_exp of unit (* when wrong arguments are given to a command *)
+  exception user_exp of string; (* for errors sent to user console *) 
+
+  val init : T (* initial empty state, no graphs *)
+
+  (* get/set*)
+  val get_rset : T -> RGRuleSet.T
+  val get_rewrites : T -> rewrite list GraphName.NTab.T
+  val get_hist : T -> (RGGraph.T list * RGGraph.T list) GraphName.NTab.T
+  val get_graphs : T -> RGGraph.T GraphName.NTab.T
+  val get_graph : T -> GraphName.name -> RGGraph.T
+
+  val update_rule : string list * T -> string * T
+  val update_rset : (RGRuleSet.T -> RGRuleSet.T) -> T -> T
+  val update_rewrites :
+   (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
+     T -> T
+  val update_hist :
+   ((RGGraph.T list * RGGraph.T list) GraphName.NTab.T ->
+     (RGGraph.T list * RGGraph.T list) GraphName.NTab.T) -> T -> T
+  val update_graphs :
+   (RGGraph.T GraphName.NTab.T -> RGGraph.T GraphName.NTab.T) -> T -> T
+
+  val set_rset : RGRuleSet.T -> T -> T
+  val set_rewrites : rewrite list GraphName.NTab.T -> T -> T
+  val set_hist : (RGGraph.T list * RGGraph.T list) GraphName.NTab.T -> T -> T
+  val set_graphs : RGGraph.T GraphName.NTab.T -> T -> T
+  val set_graph : RGGraph.T -> GraphName.name -> T -> T
+
+
+  
+  (* history *)
+  val undo : string list * T -> string * T
+  val redo : string list * T -> string * T
+  val push_hist : GraphName.name -> T -> T
+
+  (* input/output *)
+  val save_ruleset : string list * T -> string
+  val save_graph : string list * RGGraph.T -> string
+  val load_ruleset : string list * T -> string * T
+  val load_graph : string list * T -> string * T
+
+  (* printing/showing info (for console) *)
+  val show_rewrites : string list * T -> string
+  val print_graph : 'a list -> RGGraph.T -> string
+  val list_graphs : 'a list * T -> string
+  val list_rules_with_tag : string list * T -> string
+  val list_allrules : 'a list * T -> string
+  val list_active_rules : 'a list * T -> string
+
+  (* rewriting *)
+  val attach_rewrites : string list * T -> string * T
+  val attach_first_rewrite : string list * T -> string * T
+  val apply_rewrite : string list * T -> string * T
+  val apply_first_rewrite : string list * T -> string * T
+
+  (* rules/rulsesets *)
+  val new_rule : string list * T -> string * T
+  val open_rule_rhs : string list * T -> string * T
+  val open_rule_lhs : string list * T -> string * T
+  val delete_tag_and_its_rules : TagName.name list * T -> string * T
+  val delete_tag : TagName.name list * T -> string * T
+  val delete_ruleset : string list * T -> string * T
+  val delete_rules_in_tag : TagName.name list * T -> string * T
+  val delete_rule : string list * T -> string * T
+
+  val activate_ruleset : string list * T -> string * T
+  val activate_rule : string list * T -> string * T
+  val deactivate_ruleset : string list * T -> string * T
+  val deactivate_rule : string list * T -> string * T
+
+  (* graphs and their manipulations *)
+  val new_graph : 'a list * T -> string * T
+  val kill_graph : string list * T -> string * T
+  val insert_graph : string list * T -> string * T
+  val duplicate_graph : string list * T -> string * T
+  val create_graph : GraphName.name -> RGGraph.T -> T -> string * T
+  val copy_subgraph : string list * T -> string * T
+
+  val add_vertex : string list * RGGraph.T -> string * RGGraph.T
+  val add_edge : string list * RGGraph.T -> string * RGGraph.T
+  val add_bang : 'a list * RGGraph.T -> string * RGGraph.T
+
+  val set_angle : string list * RGGraph.T -> string * RGGraph.T
+  val rename_vertex : string list * RGGraph.T -> string * RGGraph.T
+  val rename_graph : string list * T -> string * T
+  val delete_vertices : string list * RGGraph.T -> string * RGGraph.T
+  val delete_edges : string list * RGGraph.T -> string * RGGraph.T
+
+  val bang_vertices : string list * RGGraph.T -> string * RGGraph.T
+  val kill_bang : string list * RGGraph.T -> string * RGGraph.T
+  val unbang_vertices : string list * RGGraph.T -> string * RGGraph.T
+  val merge_bang : string list * RGGraph.T -> string * RGGraph.T
+  val duplicate_bang : string list * RGGraph.T -> string * RGGraph.T
+  val drop_bang : string list * RGGraph.T -> string * RGGraph.T
+
+  val flip_vertices : string list * RGGraph.T -> string * RGGraph.T
+
+  (* other *)
+  val hilb : string list * RGGraph.T -> string
+
+  (* internal *)
+  val assert_tag_exists : T -> TagName.name -> unit
+  val assert_rule_exists : T -> RuleName.name -> unit
+  val graph_xml : 'a list -> RGGraph.T -> string (* *)
+  val graph_arg : string list -> GraphName.name (* first argument as a graph name *)
+
+  val tag_name_action :
+   (TagName.name -> RGRuleSet.T -> RGRuleSet.T) -> string list * T -> string * T
+  val rule_name_action :
+   (TagName.name -> RGRuleSet.T -> RGRuleSet.T) ->
+     string list * T -> string * T
+  val graph_of_rule :
+   (RGRule.T -> RGGraph.T) -> string -> string list * T -> string * T
+
 end;
+
 
 (* controls the state of Quantomatic *)
 structure DB_ControllerState = 
@@ -21,72 +139,47 @@ struct
   structure E = G.Edge;
   structure LoadSave = RGGraphLoaderSaver;
   
-  type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
+  type rewrite = (RuleName.name * R.T) * RGGraph.T (* rule, and graph to be rewritten to *)
 
   (* data for controller; top level data with which user interacts *)
-  datatype state = CState of {
-       graphs : G.T GraphName.NTab.T, (* the known graphs *)
+  datatype T = CState of {
+       graphs : RGGraph.T GraphName.NTab.T, (* the known graphs *)
        rewrites : (rewrite list) GraphName.NTab.T, (* cached possible rewrites *)
-       hist : (G.T list * G.T list) GraphName.NTab.T, (* past and future *)
-       rulesets : RuleSet.T (* the known rules *)
+       hist : (RGGraph.T list * RGGraph.T list) GraphName.NTab.T, (* past and future *)
+       rset : RuleSet.T (* the known rules *)
   }
   
   (* getters and setters for the state *)
-  fun update_graphs f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) = 
-    CState {graphs=(f g),rewrites=r,hist=h,rulesets=t}
-  fun update_rewrites f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) =
-    CState {graphs=g,rewrites=(f r),hist=h,rulesets=t}
-  fun update_hist f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) = 
-    CState {graphs=g,rewrites=r,hist=(f h),rulesets=t}
-  fun update_rulesets f (CState {graphs=g,rewrites=r,hist=h,rulesets=t}) = 
-    CState {graphs=g,rewrites=r,hist=h,rulesets=(f t)}
-  val (set_graphs,set_rewrites,set_hist,set_rulesets) = 
-    (update_graphs o K, update_rewrites o K, update_hist o K, update_rulesets o K)
+  fun update_graphs f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
+    CState {graphs=(f g),rewrites=r,hist=h,rset=t}
+  fun update_rewrites f (CState {graphs=g,rewrites=r,hist=h,rset=t}) =
+    CState {graphs=g,rewrites=(f r),hist=h,rset=t}
+  fun update_hist f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
+    CState {graphs=g,rewrites=r,hist=(f h),rset=t}
+  fun update_rset f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
+    CState {graphs=g,rewrites=r,hist=h,rset=(f t)}
+  val (set_graphs,set_rewrites,set_hist,set_rset) = 
+    (update_graphs o K, update_rewrites o K, update_hist o K, update_rset o K)
   fun get_graphs (CState {graphs=g,...}) = g
   fun get_rewrites (CState {rewrites=r,...}) = r
   fun get_hist (CState {hist=h,...}) = h
-  fun get_rulesets (CState {rulesets=t,...}) = t
+  fun get_rset (CState {rset=t,...}) = t
   
-  (*val default_rulesets = RuleSet.NTab.empty
+  (*val default_rset = RuleSet.NTab.empty
                              |> RuleSet.NTab.update (RuleSet.mk "default",
                                                     (!RuleSetHack.rules,true))
   *)
   
-  val newState = CState {graphs=GraphName.NTab.empty,
+  val init = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
                          hist=GraphName.NTab.empty,
-                         rulesets=RuleSet.empty};
-  
-  fun handle_bug_in_function f (x as (l,st)) = (f x) 
-      handle G.no_such_vname_exp (s, v, g) => 
-        raise user_exp ("BUG: G.no_such_vname_exp")
-      | G.vname_already_exists_exp (v,g) =>
-        raise user_exp ("BUG: G.vname_already_exists_exp")
-      | G.no_such_ename_exp (s, e, g) =>
-        raise user_exp ("BUG: G.no_such_ename_exp")
-      | G.ename_already_exists_exp (e,g) => 
-        raise user_exp ("BUG: G.ename_already_exists_exp")
-      | G.merge_bbox_exp s => 
-        raise user_exp ("BUG: G.merge_bbox_exp")
-      | G.overlapping_bbox_exp (vs,g) =>
-        raise user_exp ("BUG: G.overlapping_bbox_exp")
-      | G.BBox.Tab.UNDEF x =>
-        raise user_exp ("BUG: G.BBox.Tab.UNDEF")
-      | E.NSet.duplicate_exp _ => 
-        raise user_exp ("BUG: Duplicate Edge.")
-      | V.NSet.duplicate_exp _ => 
-        raise user_exp ("BUG: Duplicate vertex.")
-      | V.Tab.UNDEF x =>
-        raise user_exp ("BUG: G.Vertex.Tab.UNDEF")
-      | E.Tab.UNDEF x =>
-        raise user_exp ("BUG: G.Edge.Tab.UNDEF");
-  
+                         rset=RuleSet.empty};
   
   (* state accessors *)
-  fun fetch_graph name state =
+  fun get_graph state name  =
       (case GraphName.NTab.lookup (get_graphs state) name
        of SOME g => g
-        | NONE => raise user_exp ("Cannot fetch graph '"^
+        | NONE => raise user_exp ("No such graph '"^
                   (GraphName.dest name)^"'."))
   
   
@@ -97,59 +190,22 @@ struct
             the_default ([],[]) (GraphName.NTab.lookup (get_hist state) gname)
         val hist' = (get_hist state)
                           |> GraphName.NTab.update
-                          (gname,((fetch_graph gname state)::back, []))
+                          (gname,((get_graph state gname)::back, []))
       in state |> set_hist hist'
       end
   
   (* any time the graph is changed, any attached rewrites are invalid,
    * so should be cleared *)
-  fun set_graph_at gname graph' state =
+  fun set_graph graph' gname state =
       state |> update_graphs (GraphName.NTab.update (gname,graph'))
               |> update_rewrites (GraphName.NTab.update (gname,[]))    
   
   (* convenience functions *)
   
-  fun graph_arg (g::args) = g
+  fun graph_arg (g::args) = (GraphName.mk g)
     | graph_arg _ = raise user_exp ("You must specify a graph name.")
   
-  (* Graph updating commands, cmd: ([args] * graph) -> (out * graph) *)
-  fun lift_graph_mutator cmd (args, state) =
-      let
-          val gname = GraphName.mk (graph_arg args)
-          val (out,g') = cmd (args,fetch_graph gname state)
-      in (out, state |> push_hist gname |> set_graph_at gname g')
-      end
-  
-  (* Read-only graph commands, cmd: [args] * graph -> out *)
-  fun lift_graph_viewer cmd (args, state) =
-      let
-          val gname = GraphName.mk (graph_arg args)
-          val out = cmd (args,fetch_graph gname state)
-      in (out, state)
-      end
-      
-  (* State-agnostic commands, cmd: [args] -> out *)
-  fun lift_stateless cmd (args, state:state) = (cmd args, state)
-  
-  (* Read-only state commands, cmd: [args] * state -> out *)
-  fun lift_state_viewer cmd (args, state:state) = (cmd (args,state), state)
-  
-  
-  fun read_block () = let
-      val start_parser = SimpleLexer.sym "---startblock:" |-- SimpleLexer.num
-      val line = fn () => the (TextIO.inputLine TextIO.stdIn)
-      val expected = Int.toString
-             (case SimpleLexer.parse_with start_parser (line ())
-         of SimpleLexer.INT n => n
-          | _ => raise user_exp "Bad start of block")
-      fun loop () = let val ln = line ()
-        in if ln = ("---endblock:"^expected^"\n") then ""
-           else ln^(loop ())
-        end
-  in loop () end
-  handle SimpleLexer.Parse => raise user_exp "Bad start of block"
-  
-  
+
   (* Most commands are already of the form
    *    cmd: [args] * state -> out * state *)
   (* val lift_state_mutator = I *)
@@ -159,9 +215,6 @@ struct
   
   exception wrong_args_exp of unit
   
-  fun echo_block [] = read_block ()
-    | echo_block _ = raise wrong_args_exp ()
-  
   fun list_graphs ([], state) = 
       GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst)
         (get_graphs state) ""
@@ -169,23 +222,23 @@ struct
   
   (* common things we want to assert are true *)
   fun assert_tag_exists state tag_name = 
-      if RuleSet.tag_exists (get_rulesets state) tag_name then ()
+      if RuleSet.tag_exists (get_rset state) tag_name then ()
       else raise user_exp ("No such ruleset named '" 
                            ^ (TagName.string_of_name tag_name) ^ "'");
 
   fun assert_rule_exists state rule_name = 
-      if RuleSet.rule_exists (get_rulesets state) rule_name then ()
+      if RuleSet.rule_exists (get_rset state) rule_name then ()
       else raise user_exp ("No such rule named '" 
                            ^ (RuleName.string_of_name rule_name) ^ "'");
 
   (* basic stuff on rule tags *)
   fun list_allrules ([], state) =
-      (Pretty.string_of (RuleName.NSet.pretty (RuleName.NTab.get_nameset (RuleSet.get_allrules (get_rulesets state)))))
+      (Pretty.string_of (RuleName.NSet.pretty (RuleName.NTab.get_nameset (RuleSet.get_allrules (get_rset state)))))
       ^ "\n"
     | list_allrules _ = raise wrong_args_exp ()
   
   fun list_active_rules ([], state) =
-      (Pretty.string_of (RuleName.NSet.pretty (RuleSet.get_active (get_rulesets state))))
+      (Pretty.string_of (RuleName.NSet.pretty (RuleSet.get_active (get_rset state))))
       ^ "\n"
     | list_active_rules _ = raise wrong_args_exp ()
   
@@ -193,14 +246,14 @@ struct
       let 
         val tag_name = TagName.mk tag;
         val () = assert_tag_exists state tag_name;
-        val rule_name_set = TagRel.codf (RuleSet.get_tagrel (get_rulesets state)) tag_name
+        val rule_name_set = TagRel.codf (RuleSet.get_tagrel (get_rset state)) tag_name
       in (suffix "\n" o Pretty.string_of) (RuleName.NSet.pretty rule_name_set) end
     | list_rules_with_tag _ = raise wrong_args_exp ();
       
   fun tag_name_action f ([tag], state) =
       let val tag_name = TagName.mk tag
           val () = assert_tag_exists state tag_name
-      in ("ok\n", update_rulesets (f tag_name) state) end
+      in ("ok\n", update_rset (f tag_name) state) end
     | tag_name_action f (_, state) = raise wrong_args_exp ();
   val deactivate_ruleset = tag_name_action RuleSet.deactivate_tag; 
   val activate_ruleset = tag_name_action RuleSet.deactivate_tag
@@ -210,7 +263,7 @@ struct
   fun rule_name_action f ([rule], state) = 
       let val rule_name = TagName.mk rule
           val () = assert_rule_exists state rule_name
-      in ("ok\n", update_rulesets (f rule_name) state) end
+      in ("ok\n", update_rset (f rule_name) state) end
     | rule_name_action f (_, state) = raise wrong_args_exp ();
   val deactivate_rule  = rule_name_action RuleSet.deactivate_rule
   val activate_rule = rule_name_action RuleSet.activate_rule
@@ -230,7 +283,7 @@ struct
         val rgr = GraphName.NTab.get graphs (GraphName.mk rhs)
           handle GraphName.Tab.UNDEF _ => raise user_exp ("RHS graph '" ^ rhs ^"' doesn't exist.")
           
-      in ("ok\n", state |> update_rulesets (RuleSet.update_rule (rule_name, RuleSet.Rule.mk (lgr, rgr))))
+      in ("ok\n", state |> update_rset (RuleSet.update_rule (rule_name, RuleSet.Rule.mk (lgr, rgr))))
           handle RuleSet.Rule.bad_rule_exp _ =>
             raise user_exp "Boundaries and !-boxes on LHS must match RHS."
       end
@@ -242,57 +295,55 @@ struct
   
   fun load_ruleset ([file], state) =
       (let val loader = InputRGRuleSetXML.input o XMLReader.read_from_file
-       in ("ok\n", state |> update_rulesets (RuleSet.merge (loader file))) end
+       in ("ok\n", state |> update_rset (RuleSet.merge (loader file))) end
        handle IO.Io _ => raise user_exp "Can't open ruleset.")
     | load_ruleset _ = raise wrong_args_exp ();
   
   fun save_ruleset ([file], state) =
       (let val save = (PrettyWriter.write_to_file file) o OutputRGRuleSetXML.output
-       in (save (get_rulesets state); "Saved ruleset in file " ^ file)
+       in (save (get_rset state); "Saved ruleset in file " ^ file)
        end
        handle IO.Io _ => raise user_exp ("Can't write ruleset file "^file^"."))
     | save_ruleset _ = raise wrong_args_exp ();
     
   fun delete_tag ([tag], state) =
       let val () = assert_tag_exists state tag
-      in ("ok\n", update_rulesets (RuleSet.delete_tag tag) state) end
+      in ("ok\n", update_rset (RuleSet.delete_tag tag) state) end
     | delete_tag _ = raise wrong_args_exp ();
 
   fun delete_rules_in_tag ([tag], state) =
       let val () = assert_tag_exists state tag
-      in ("ok\n", update_rulesets (RuleSet.delete_rules_in_tag tag) state) end
+      in ("ok\n", update_rset (RuleSet.delete_rules_in_tag tag) state) end
     | delete_rules_in_tag _ = raise wrong_args_exp ();
 
   fun delete_tag_and_its_rules ([tag], state) =
       let val () = assert_tag_exists state tag
-      in ("ok\n", update_rulesets (RuleSet.delete_tag tag 
+      in ("ok\n", update_rset (RuleSet.delete_tag tag 
                                    o RuleSet.delete_rules_in_tag tag) state) end
     | delete_tag_and_its_rules _ = raise wrong_args_exp ();
       
-  local
-    fun graph_maker default_name graph state = let
+  
+    fun create_graph default_name graph state = let
         val (nm,gs) = (get_graphs state)
                   |> GraphName.NTab.add (default_name, graph)
         in ((GraphName.dest nm) ^ "\n", state |> set_graphs gs) end
-  in
+  
     fun duplicate_graph ([name], state) = 
         let val gname = (GraphName.mk name) 
-        in graph_maker gname (fetch_graph gname state) state
+        in create_graph gname (get_graph state gname) state
         end
       | duplicate_graph _ = raise wrong_args_exp ()
     fun new_graph ([], state) =
-        graph_maker GraphName.default_name G.empty state
+        create_graph GraphName.default_name G.empty state
       | new_graph _ = raise wrong_args_exp ()
     fun load_graph ([fname], state) = 
-        graph_maker GraphName.default_name (LoadSave.load_graph fname) state
+        create_graph GraphName.default_name (LoadSave.load_graph fname) state
       | load_graph _ = raise wrong_args_exp ()
-    fun input_graph_xml ([], state) = 
+    (* fun input_graph_xml ([], state) = 
         let val gr_block = read_block ()
             val gr = InputRGGraphXML.input (XMLReader.read_from_string gr_block)
-        in graph_maker GraphName.default_name gr state end
-      | input_graph_xml _ = raise wrong_args_exp ()
-  end
-  
+        in create_graph GraphName.default_name gr state end
+      | input_graph_xml _ = raise wrong_args_exp () *)
   
   fun kill_graph ([name], state) =
       (("ok\n", update_graphs
@@ -370,40 +421,36 @@ struct
   fun undo ([name], state) = 
       let
         val gname = (GraphName.mk name) 
-        val current = fetch_graph gname state
+        val current = get_graph state gname
       in case GraphName.NTab.lookup (get_hist state) gname
           of SOME (g::gs, hs) => ("ok\n",
-                                        state |> set_graph_at gname g
-                                                |> update_hist
-                                                (GraphName.NTab.update
-                                               (gname, (gs,current::hs)))
-                                       )
-           | _ => raise user_exp "Can't undo."
+              state |> set_graph g gname
+                    |> update_hist (GraphName.NTab.update
+                                   (gname, (gs,current::hs))))
+           | _ => raise user_exp "Can't undo, no more undo history."
       end
     | undo _ = raise wrong_args_exp ()
   
   fun redo ([name], state) = 
       let
         val gname = GraphName.mk name;
-        val current = fetch_graph gname state
+        val current = get_graph state gname
       in case GraphName.NTab.lookup (get_hist state) gname
           of SOME (gs, h::hs) => ("ok\n",
-                                        state |> set_graph_at gname h
-                                                |> update_hist
-                                                (GraphName.NTab.update
-                                                   (gname, (current::gs,hs)))
-                                       )
-           | _ => raise user_exp "Can't redo."
+              state |> set_graph h gname
+                    |> update_hist (GraphName.NTab.update
+                                   (gname, (current::gs,hs))))
+           | _ => raise user_exp "Can't redo, nothing to redo."
       end
     | redo _ = raise wrong_args_exp ()
   
   fun apply_rewrite ([name, n], state) =
       (let val gname = GraphName.mk name
            val rewrites = GraphName.NTab.get (get_rewrites state) gname
-           val (name,rule,fused) = nth rewrites (the (Int.fromString n))
-       in ("applied "^(SStrName.dest name)^"\n",
+           val ((rulename,rule),rewritten_graph) = nth rewrites (the (Int.fromString n))
+       in ("applied "^(RuleName.string_of_name rulename)^"\n",
            state |> push_hist gname
-                 |> set_graph_at gname (Rule.del_lhs rule fused))
+                 |> set_graph rewritten_graph gname)
        end
        handle GraphName.Tab.UNDEF _ => raise user_exp "No rewrites attached." 
             | General.Subscript => raise user_exp "Rewrite not attached."
@@ -412,47 +459,48 @@ struct
   
   local
       fun attach_with' attacher (args as _::vs, state) =
-          (let val gname = GraphName.mk (graph_arg args)
+          (let val gname = graph_arg args
                val vset = fold V.NSet.ins_fresh (map V.mk vs) V.NSet.empty
-               val graph = fetch_graph gname state
-               val rules = RuleSet.get_active (get_rulesets state)
-               val rws = map (fn (n,r) => (n, r, Rule.add_rhs r graph))
-                             (Seq.list_of (attacher rules vset graph))
+               val graph = get_graph state gname
+               val rws = (Seq.list_of (attacher (get_rset state) graph vset))
            in
                (length rws,
                 state |> update_rewrites (GraphName.NTab.update (gname,rws)))
            end)
-      | attach_with' _ _ = raise wrong_args_exp ()
-  
-      fun attach_with attacher args = let
-          val (n,st) = attach_with' attacher args
-      in ("attached "^(Int.toString n)^" rewrites\n",st)
-      end
+      | attach_with' _ _ = raise wrong_args_exp ();
+
+      fun attach_with attacher args = 
+          let val (n,st) = attach_with' attacher args
+          in ("attached "^(Int.toString n)^" rewrites\n",st) end;
+
+      fun apply_first_in rset vs g = 
+          case RulesetRewrites.apply_first_in rset vs g of NONE => Seq.empty
+          | SOME x => Seq.single x;
   in
-  val attach_rewrites = attach_with RuleSet.apply_rules_in
-  val attach_one_rewrite = attach_with RuleSet.apply_a_rule_in
+  val attach_rewrites = attach_with RulesetRewrites.apply_in;
+  val attach_first_rewrite = attach_with apply_first_in; 
   
-  fun apply_first_rewrite (args as [_], state) = let
-      val gname = GraphName.mk (graph_arg args)
-      val graph = fetch_graph gname state
-      val args' = (GraphName.pretty_name gname)::
-                  (map V.pretty_name (V.NSet.list_of (G.get_vnames graph)))
-      val (n,state') = attach_with' RuleSet.apply_a_rule_in (map Pretty.string_of args', state)
-  in if n = 0 then raise user_exp "No more rewrites."
-     else apply_rewrite (args @ ["0"],state')
-  end
+  fun apply_first_rewrite (args as [_], state) = 
+      let
+        val gname = graph_arg args
+        val graph = get_graph state gname 
+        val args' = (GraphName.pretty_name gname)::
+                    (map V.pretty_name (V.NSet.list_of (G.get_vnames graph)))
+        val (n,state') = attach_with' apply_first_in (map Pretty.string_of args', state)
+      in if n = 0 then raise user_exp "No more rewrites."
+         else apply_rewrite (args @ ["0"],state')
+      end
     | apply_first_rewrite _ = raise wrong_args_exp ()
   
   end
   
   fun show_rewrites (args,state) = let
-      val gname = GraphName.mk (graph_arg args)
+      val gname = graph_arg args
       val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
               of NONE => raise user_exp "No rewrites attached."
-               | SOME r => r
-  in Pretty.string_of (RGRewriteListOutputXML.output rewrites)
-  end
-                             
+               | SOME rs => rs
+  in Pretty.string_of (OutputRGRewriteListXML.output rewrites) end;
+  
   fun vdata a (V.IVert (V.Xnd _)) = V.IVert (V.Xnd (AngleExpr.parse a))
     | vdata a (V.IVert (V.Znd _)) = V.IVert (V.Znd (AngleExpr.parse a))
     | vdata a _ = raise user_exp "Can only set angles for red and green vertices."
@@ -476,8 +524,7 @@ struct
     | add_bang _ = raise wrong_args_exp ()
   
   fun drop_bang ((_::names), graph) =
-    let  
-      val namestr = foldl (fn (x,y) => x^" "^y) "." names
+    let val namestr = implode ((separate " " names) @ ["."]);
     in
       ("dropped !-box \""^namestr^"\"\n",
         graph |> fold G.drop_box (map G.BBox.mk names))
@@ -485,8 +532,7 @@ struct
     | drop_bang _ = raise wrong_args_exp ()
   
   fun kill_bang ((_::names), graph) =
-    let  
-      val namestr = foldl (fn (x,y) => x^" "^y) "." names
+    let val namestr = implode ((separate " " names) @ ["."]);
     in
       ("kill !-box \""^namestr^"\"\n",
        graph |> fold G.kill_box (map G.BBox.mk names))
@@ -494,21 +540,17 @@ struct
     | kill_bang _ = raise wrong_args_exp ()
     
   fun merge_bang ((_::names), graph) =
-    let 
-      val namesstr = foldl (fn (x,y) => x^" "^y) "." names
+    let val namestr = implode ((separate " " names) @ ["."]);
       val nameset = G.BBox.NSet.of_list (map G.BBox.mk names)
     in  
-      ("merge !-boxes \""^namesstr^"\n",
+      ("merge !-boxes \""^namestr^"\n",
        graph |> G.merge_boxes nameset |> snd )
     end 
     | merge_bang _ = raise wrong_args_exp ()
     
   fun duplicate_bang ([_,name], graph) =
       ("duplicate !-box \""^name^"\n",
-       graph |> G.copy1_box (G.get_vnames graph, 
-                             G.get_enames graph,
-                             G.get_bbnames graph) (G.BBox.mk name) 
-             |> snd)
+       G.fresh_copy1_box (G.BBox.mk name) graph)
     | duplicate_bang _ = raise wrong_args_exp ()
     
   fun bang_vertices ((_::box::verts), graph) = 
@@ -522,10 +564,11 @@ struct
     | unbang_vertices _ = raise wrong_args_exp ()
   
   fun copy_subgraph (args as (_::target::vs), state) = let
-      val graph = fetch_graph (GraphName.mk (graph_arg args)) state
-      val clip = G.pull_subgraph_within_selection (G.Vertex.NSet.of_list (map V.mk vs))
-                                                              graph
-  in ("ok\n", state |> set_graph_at (GraphName.mk target) clip)
+      val graph = get_graph state (graph_arg args) 
+      val clip = G.delete_subgraph_outside_vset 
+                   (G.Vertex.NSet.of_list (map V.mk vs))
+                   graph
+  in ("ok\n", state |> set_graph clip (GraphName.mk target))
   end
     | copy_subgraph _ = raise wrong_args_exp ()
   
@@ -533,11 +576,11 @@ struct
       let
         val tname = (GraphName.mk name1)
         val sname = (GraphName.mk name2)
-        val targ = fetch_graph tname state
-        val source = fetch_graph sname state
-        val (_, source) = G.rename_apart targ (fetch_graph sname state)
+        val targ = get_graph state tname 
+        val source = get_graph state sname 
+        val (_, source) = G.rename_apart targ (get_graph state sname)
       in ("ok\n", state |> push_hist tname
-                            |> set_graph_at tname (G.merge_by_vertices targ source))
+                            |> set_graph (G.merge_by_vertices targ source) tname)
       end
     | insert_graph _ = raise wrong_args_exp ()
   
@@ -550,24 +593,22 @@ struct
     | flip_vertices _ = raise wrong_args_exp ()
     
   
-  fun export_rule getter label ([ruleset,rule],state) =
+  fun graph_of_rule getter label ([rulename],state) =
       let
-        val rulesets = get_rulesets state
-        val rset = case RuleSet.NTab.lookup rulesets (RuleSet.mk ruleset)
-                   of SOME v => v | NONE => raise user_exp "Can't find ruleset."
-        val rl = case Rule.Name.NTab.lookup (fst rset) (Rule.Name.mk rule)
+        val rset = get_rset state
+        val r = case RuleName.NTab.lookup (RuleSet.get_allrules rset) (RuleName.mk rulename)
                      of SOME v => v | NONE => raise user_exp "Can't find rule."
-        val (name, graphs) = GraphName.NTab.add (GraphName.mk (rule^"_"^label), getter (fst rl)) (get_graphs state)
+        val (name, graphs) = GraphName.NTab.add (GraphName.mk (rulename^"_"^label), getter r) (get_graphs state)
       in
         (((suffix "\n") o Pretty.string_of o GraphName.pretty_name) name,
          state |> set_graphs graphs)
       end
-    | export_rule _ _ _ = raise wrong_args_exp ()
+    | graph_of_rule _ _ _ = raise wrong_args_exp ()
   
-  val open_rule_lhs = export_rule Rule.get_lhs "lhs"
-  val open_rule_rhs = export_rule Rule.get_rhs "rhs"
+  val open_rule_lhs = graph_of_rule RGRule.get_lhs "lhs"
+  val open_rule_rhs = graph_of_rule RGRule.get_rhs "rhs"
   
 end; (* structure Controller *)
 
 (* *)
-structure ControllerState : CONTROLLER = DB_Controller;
+structure ControllerState : CONTROLLER_STATE = DB_ControllerState;

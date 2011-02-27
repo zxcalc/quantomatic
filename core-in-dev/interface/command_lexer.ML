@@ -1,3 +1,16 @@
+signature COMMAND_LEXER 
+= sig
+
+  (* a command is the command name and its arguments *)
+  type T = string * string list;
+
+  (* *)
+  val parse : string list (* token list *) 
+              -> T * string list (* command and left over unparsed stuff *)
+
+end;
+
+
 structure CommandLexer =
 struct
   local open SimpleLexer in
@@ -5,7 +18,7 @@ struct
   (* a command is the command name and its arguments *)
   type T = string * string list;
   
-  exception bug_exp of ();
+  exception bug_exp of unit;
 
   fun unwrap (ID s) = s
     | unwrap (INT n) = Int.toString n
@@ -39,7 +52,7 @@ struct
             || (expr >> single)
             || (noop >> K []))
   
-  fun parse str = parse_with exprs str
+  fun parse str = parse_with (Scan.catch exprs) str
   fun pretty (f,args) = Pretty.block[Pretty.str f,
                      Pretty.str_list "(" ")" args]
   val print = Pretty.writeln o pretty

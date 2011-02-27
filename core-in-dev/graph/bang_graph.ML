@@ -123,6 +123,11 @@ val copy1_box : BBox.name (* bbox to copy *)
                * BBox.renaming) (* bbname copying *)
              * T)) (* new graph with bbox copied *)
 
+val fresh_copy1_box : BBox.name (* bbox to copy *) 
+      -> T (* graph containing bbox name *) 
+      -> T (* new graph with bbox copied *)
+
+
 (* *)
 val get_adj_arities_and_bang_arities : 
     T -> Vertex.name 
@@ -416,6 +421,12 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
            update_bboxes (VtoBoxMap.add_to_cod bn' new_vs) g' (* new graph *)
          ))
       end;
+
+  fun fresh_copy1_box bn g = 
+      snd (snd (copy1_box bn 
+        ((V.Rnm.mk_from_avoids (get_vnames g), 
+          E.Rnm.mk_from_avoids (get_enames g),
+          BBox.Rnm.mk_from_avoids (get_bbnames g)),g))); 
   
   fun kill_box bn g = 
       let val bbox_vs = get_bbox g bn

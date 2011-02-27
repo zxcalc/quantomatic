@@ -7,17 +7,17 @@ sig
   sharing Match.Sharing.G = Rule.Sharing.Graph;
 
   (* matching *)
-  val applicable_rules : RuleSet.T -> Rule.Graph.T 
+  val apply : RuleSet.T -> Rule.Graph.T 
         -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) Seq.seq 
-  val applicable_rules_in : RuleSet.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
+  val apply_in : RuleSet.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
         -> ((RuleName.name * Rule.T) * Rule.Graph.T) Seq.seq;
 
   (* get just first rewrite *)
-  val apply_first_rule : RuleSet.T -> Rule.Graph.T 
+  val apply_first : RuleSet.T -> Rule.Graph.T 
         -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) option 
-  val apply_first_rule_in : RuleSet.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
+  val apply_first_in : RuleSet.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
         -> ((RuleName.name * Rule.T) * Rule.Graph.T) option;
 
   (* low-level *)
@@ -94,19 +94,19 @@ struct
        rnset
        Seq.empty;
   
-  fun applicable_rules rset g = applicable_rules' rset rule_matches (RuleSet.get_active rset) g;
+  fun apply rset g = applicable_rules' rset rule_matches (RuleSet.get_active rset) g;
 
-  fun applicable_rules_in rset g vset = 
+  fun apply_in rset g vset = 
       applicable_rules' rset (rule_matches_within vset) (RuleSet.get_active rset) g;
   
   (* apply just first rule that can be applied *)
-  fun apply_first_rule rset g = 
-      case Seq.pull (applicable_rules rset g) 
+  fun apply_first rset g = 
+      case Seq.pull (apply rset g) 
        of NONE => NONE
         | SOME (h,_) => SOME h;
 
-  fun apply_first_rule_in rset vset g = 
-      case Seq.pull (applicable_rules_in rset vset g) 
+  fun apply_first_in rset vset g = 
+      case Seq.pull (apply_in rset vset g) 
        of NONE => NONE
         | SOME (h,_) => SOME h;
 
