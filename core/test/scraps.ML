@@ -1,0 +1,197 @@
+
+(* FIXME: use proper renaming code from functor above rather than the ad-hoc mess below. *)
+
+(* rename a set of vnames in a graph *)
+fun rename_vnames vnames (vrn,g) = 
+    Vertex.NSet.fold 
+			(fn n => fn (vrn2,g') =>
+                  case Vertex.rename1 n vrn2 of
+                    (NONE, vrn') => (vrn', g') (* not renamed *)
+                  | (SOME n', vrn') => (* rename to n' *)
+                    (vrn', rename_vname n n' g'))
+			vnames
+      (vrn, g);
+
+(* rename a set of enames in a graph *)
+fun rename_enames enames (ern,g) =
+    Edge.NSet.fold 
+			(fn e => fn (ern2,g') =>
+                  case Edge.rename1 e ern2 of
+                    (NONE, ern') => (ern', g')
+                  | (SOME e', ern') => 
+                    (ern', rename_ename e e' g'))
+      enames
+      (ern, g);
+
+(* given: vertex renaming, edge renaming, and then given additional
+stuff that was actually in the initial renamed graph, call this graph
+g, rename g consistently. *)
+fun rename (vrn,ern) g = 
+		let 
+      (* order possible clashes with new names to be renamed first *)
+      val vnames = (get_vnames g)
+      val fst_vnames = Vertex.NSet.intersect vnames (Vertex.newnames_of_renaming vrn)
+      val snd_vnames = Vertex.NSet.subtract vnames fst_vnames
+      val enames = (get_enames g)
+      val fst_enames = Edge.NSet.intersect enames (Edge.newnames_of_renaming ern)
+      val snd_enames = Edge.NSet.subtract enames fst_enames
+
+      (* avoid renaming things that are already fresh *)
+      val more_ignore_vnames = 
+          Vertex.NSet.subtract (get_vnames g) (Vertex.avoids_of_renaming vrn)
+      val more_ignore_enames = 
+          Edge.NSet.subtract (get_enames g) (Edge.avoids_of_renaming ern)
+      val vrn2 = Vertex.union_ignores_to_renaming more_ignore_vnames vrn
+      val ern2 = Edge.union_ignores_to_renaming more_ignore_enames ern
+
+      (* peform the additional renaming *)
+      val (vrn3,g2) = rename_vnames fst_vnames (vrn2, g);
+      val (vrn4,g3) = rename_vnames snd_vnames (vrn3, g2);
+      val (ern3,g4) = rename_enames fst_enames (ern2, g3);
+      val (ern4,g5) = rename_enames snd_enames (ern3, g4);
+    in
+      ((vrn4,ern4),g5)
+    end;
+
+(* rename ing to be different from avoidg *)
+(* IMPROVE: avoid conversion to lists as uses up lots of memory: have
+a function in FNAMETAB to useup names from a name collection *)
+fun rename_apart avoidg ing = 
+		let val avoid_vnames = get_vnames avoidg
+				val avoid_enames = get_enames avoidg
+        (* ignore renamings of stuff that is not in avoidg *)
+        val ignore_vnames = Vertex.NSet.subtract (get_vnames ing) avoid_vnames
+        val ignore_enames = Edge.NSet.subtract (get_enames ing) avoid_enames
+    in
+      rename (Vertex.mk_renaming ignore_vnames 
+                                 (Vertex.NSet.union_merge ignore_vnames 
+                                                          avoid_vnames)
+                                 Vertex.NTab.empty, 
+              Edge.mk_renaming ignore_enames 
+                               (Edge.NSet.union_merge ignore_enames
+                                                      avoid_enames)
+                               Edge.NTab.empty) 
+             ing
+    end;
+
+
+
+
+
+
+(* make an instantiated spider rule (assumes graph is connected, else
+will only find one spider - for one of the connected subgraphs) *)
+fun mk_max_spider g = 
+    let 
+      (* args to recf: matched spiders, (cur spider lhs, spider rhs single 
+         dot sum), (still connected agenda, unseen vs, graph) *)  
+      
+
+      (* First case: end of spider case: no more adjacent vertcies *)
+      and recf spiders (cur_spider as (spider_lhs : RGGraph.T , _ : RGGraph.RGVertex.qnd)) ([],vs) = 
+            (* only add this as a spider application if more than 1
+               vertex is in it; it can't be empty, so just check is
+               singleton. *)
+          let 
+            val spiders2 = 
+                
+          in startf spiders2 vs end
+        | recf spiders (spider_lhs,sipder_d : RGGraph.RGVertex.qnd) ((from_n,(to_n,edatas_and_dirs))::agenda,vs) = 
+          let val (d : RGGraph.BVertex.data,_) = RGGraph.get_vertex g to_n 
+          in
+            case (try_merge_data d sipder_d) of 
+              NONE => (* add as a boundary node - not part of the spider *)
+              recf spiders (spider_lhs
+                              |> (RGGraph.new_named_vertex 
+              (* PolyML bug: RGGraph.BVertex.BVert should work here *)
+                                    to_n (RGGraph.RGVertex.BVert ()))
+                              |> (fold 
+                                    (fn (en,(ed,(from_n',to_n'))) =>
+                                        RGGraph.new_named_edge 
+                                          en ed from_n' to_n')
+                                    edatas_and_dirs),
+                            sipder_d )
+                   (agenda,vs) (* agenda tail, and same vs *)
+            | SOME spider_d2 => 
+              recf spiders (spider_lhs 
+                              |> RGGraph.new_named_vertex to_n d
+                              |> (fold 
+                                    (fn (en,(ed,(from_n',to_n'))) =>
+                                        RGGraph.new_named_edge 
+                                          en ed from_n' to_n')
+                                    edatas_and_dirs), 
+                            spider_d2) 
+                   ((get_adjs_list g to_n) @ agenda, 
+                    (* remove one from spider start set *)
+                    Vertex.NSet.delete to_n vs)
+          end
+    in 
+      Seq.map rule_of_spider 
+              (Seq.of_list 
+                 (startf [] (RGGraph.get_vnames g)))
+    end;
+
+
+
+      (* search a possible spider start *)
+      fun startf spiders vs =
+          (case (Vertex.NSet.pull_local_bot vs) of 
+             NONE => spiders
+           | SOME (n,vs2) => 
+             (case fst (RGGraph.get_vertex g n) 
+               of (d as (RGGraph.BVertex.IVert (RGGraph.RGVertex.Xnd a))) => 
+                  recf spiders (RGGraph.new_named_vertex n d RGGraph.empty, 
+                                RGGraph.RGVertex.Xnd a)
+                       (get_adjs_list g n, vs2)
+                | (d as (RGGraph.BVertex.IVert (RGGraph.RGVertex.Znd a))) => 
+                  recf spiders (RGGraph.new_named_vertex n d RGGraph.empty, 
+                                RGGraph.RGVertex.Xnd a)
+                       (get_adjs_list g n, vs2)
+                | _ => startf spiders vs2))
+
+
+
+local open RGGraph in 
+
+(* two graphs are exactly the same, including data, edge direction and
+   names of vertices and edges. *) 
+fun exact_eq g1 g2 =
+    let 
+      val e1s = get_edges g1
+      val e2s = get_edges g2
+      val v1s = get_vertices g1
+      val v2s = get_vertices g2
+    in
+      (* check same vertex names *)
+      (Vertex.NSet.eq (Vertex.NTab.get_names v1s)
+                      (Vertex.NTab.get_names v2s)) andalso 
+      (* check same data, and same incident edges structure *)
+      (Vertex.NTab.forall 
+         (fn (n,(d,(fromes,toes))) => 
+             (case Vertex.NTab.lookup v2s n of 
+                NONE => false orelse (writeln "Missing in snd"; false)
+              | SOME (d2,(fromes2,toes2)) => 
+                ((Vertex.data_eq (d,d2))
+                 orelse (writeln "Different data"; false)) andalso 
+                (* now check structure *)
+                (Edge.NSet.eq fromes fromes2
+                 orelse (writeln "Different fromes"; false)
+                ) andalso
+                (Edge.NSet.eq toes toes2)
+                orelse (writeln "Different toes"; false)) 
+             orelse (writeln ("; different for Vertex: " ^ n); false))
+         v1s) andalso 
+      (* now check same edge data *)
+      (Edge.NTab.forall (* note that we dont re-check structure *)
+         (fn (e,(ed,_)) => 
+             (* from above, we know we have same edge names: could use get *)
+             (case Edge.NTab.lookup e2s e of 
+                NONE => false
+              (* now check have same edge data *)
+              | SOME (ed2,_) => Edge.data_eq (ed,ed2))
+             orelse (writeln ("missing or different data; for Edge: " ^ e);
+                     false))
+         e1s)
+    end;
+
+end;

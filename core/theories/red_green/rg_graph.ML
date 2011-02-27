@@ -1,0 +1,209 @@
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+structure RG_GraphParam
+: GRAPH_PARAM
+= struct
+
+  structure Vertex = RGVertex;
+  structure Edge = UnitEdge;
+
+  structure IName = AngleExpr.VName;
+  
+  (* vertex, and vertex data variable dependencies *)
+  structure VDep = NameBRelFun(structure Dom = Vertex and Cod = IName);
+  
+  (* internal name data *)
+  type T = VDep.T;
+
+  fun get_IName vdep = VDep.get_codset vdep;
+  fun get_vnames vdep = VDep.get_domset vdep;
+
+  fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
+  fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
+
+  fun rename_vname n1 n2 vdep = 
+      (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
+         raise Vertex.Rnm.invalid_renaming_exp "RG_GraphParam.rename_vname"
+       | SOME x => x);
+
+  fun rename_ename n1 n2 vdep = vdep;
+  
+  (* rename internal names in T *)
+  (* rename edges in the dependency structure *)
+  structure CRnmINames : COMPOUND_RENAMING
+  = CompoundRenamingFun(
+    struct structure Nm = IName
+           type obj = T
+           val get_nameset = get_IName
+           val try_rename1 = try_rename1_iname
+    end);
+
+  (* rename vertices in the dependency structure *)
+  structure CRnmVNames : COMPOUND_RENAMING
+  = CompoundRenamingFun(
+    struct structure Nm = Vertex
+           type obj = T
+           val get_nameset = get_vnames
+           val try_rename1 = try_rename1_vname
+    end);
+
+  (* rename edges in the dependency structure *)
+  structure CRnmENames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
+
+  (* empty name-dependency information *)
+  val empty = VDep.empty;
+
+  fun add_vertex vd vn vdep = 
+      (case Vertex.angle_of_data vd of NONE => vdep
+          | SOME angle => VDep.add_to_dom vn (AngleExpr.get_vars angle) vdep);
+  fun add_edge ed en vdep = vdep;
+
+  fun delete_vertex vn vdep = VDep.del_dom vn vdep;
+  fun delete_edge en vdep = vdep;
+
+  fun replace_vertex vd vn vdep = 
+      vdep |> delete_vertex vn
+           |> add_vertex vd vn;
+  fun replace_edge ed en vdep = vdep;
+
+  fun of_vertex vd vn = add_vertex vd vn VDep.empty;
+  fun of_edge en ed = empty;
+
+  (* renaming internal names within a vertex *)
+  structure VDataCRnmINames : COMPOUND_RENAMING
+  = struct 
+    type obj = Vertex.data
+    type renaming = IName.Rnm.T
+
+    val empty_renaming = CRnmINames.empty_renaming
+
+    fun rename rnm vd = 
+        (case Vertex.angle_of_data vd of NONE => (rnm,vd)
+         | SOME angle => 
+           let val (rnm',angle') = AngleExpr.CRnm.rename rnm angle
+           in (rnm', Vertex.map_to_angle (K angle') vd) end)
+
+    fun mk_renaming vd rnm = 
+        (case Vertex.angle_of_data vd of NONE => rnm
+         | SOME angle => AngleExpr.CRnm.mk_renaming angle rnm);
+
+    fun do_renaming rnm vd = 
+        (case Vertex.angle_of_data vd of NONE => vd
+         | SOME angle => 
+           Vertex.map_to_angle (AngleExpr.CRnm.do_renaming rnm) vd);
+
+    val restrict_to_avoiding = IName.Rnm.restrict_to_avoiding;
+  end;
+
+  (* rename internal names within an edge data *)
+  structure EDataCRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
+
+  (* substitutions for variables in vertex/edge data 
+     (usually, we only have data on vertices) *)
+  type subst = RGVertex.subst; (* : AngleExpr.T IName.NTab.T; *)
+
+  val empty_subst = RGVertex.empty_subst; (* : IName.NTab.empty; *)
+  fun compose_subst u1 u2 = RGVertex.compose_subst (u1,u2); 
+      (* : Name.NTab.map_all (AngleExpr.subs u2) u1; *)
+
+  fun try_match_vertex d1 d2 u = RGVertex.match_data (d1,d2) u;
+  fun try_match_edge e1 e2 u = SOME u;
+
+  (* IMPROVE: what data do we want here? should it be add_exp *)
+  exception match_exp of unit;
+
+  (* raises match_exp *)
+  fun match_vertex d1 d2 u = 
+      (case try_match_vertex d1 d2 u 
+         of NONE    => raise match_exp ()
+          | SOME u' => u'); 
+  
+  fun match_edge d1 d2 u =
+      (case try_match_edge d1 d2 u 
+         of NONE    => raise match_exp ()
+          | SOME u' => u'); 
+
+  fun subst_in_vertex u vd = RGVertex.subst_in_data u vd;
+  fun subst_in_edge u ed = ed;
+
+  val pretty_subst = RGVertex.pretty_subst;
+  val print_subst = Pretty.writeln o pretty_subst;
+
+  structure Sharing = 
+  struct 
+    structure Vertex = Vertex.SharingWithData;
+    structure Edge = Edge.EdgeSharingWithData;
+    type T = T;
+    type inames_renaming = CRnmINames.renaming; (* = IName.Rnm.renaming *)
+    type subst = subst;
+  end;
+end;
+
+
+
+
+signature RG_GRAPH_SHARING = 
+sig
+  include BANG_GRAPH_SHARING
+end
+
+
+signature RG_GRAPH = 
+sig
+include BANG_GRAPH 
+structure RGVertex : RG_VERTEX
+sharing OVertex.SharingWithIData = RGVertex.SharingWithIData
+end;
+
+(* IMPROVE provide table holding variable info for each vertices data *)
+
+structure DB_RGGraph
+= struct 
+  structure RGVertex = RGVertex;
+  structure BasicBangGraph = BasicBangGraphFun(
+    structure OVertex = RGVertex  
+    structure Param = RG_GraphParam
+    type data = unit (* no extra inherrited data for graphs *)
+    val empty_data = ());
+  structure BBGraph = BangGraphTools(BasicBangGraph);
+  open BBGraph;
+end;
+
+structure RGGraph : RG_GRAPH = DB_RGGraph;
+
+(* install pretty printers *)
+local
+    fun prettyVertex _ _ x =
+      PolyML.PrettyString("\"" ^ RGGraph.Vertex.string_of_name x ^ "\"");
+    fun prettyEdge _ _ x =
+      PolyML.PrettyString("\"" ^ RGGraph.Edge.string_of_name x ^ "\"");
+    fun prettyBBox _ _ x =
+      PolyML.PrettyString("\"" ^ RGGraph.BBox.string_of_name x ^ "\"");
+in
+    val () = PolyML.addPrettyPrinter prettyVertex;
+    val () = PolyML.addPrettyPrinter prettyEdge;
+    val () = PolyML.addPrettyPrinter prettyBBox;
+end; 
+
+(* ML utility code for building RG graphs *)
+structure MkG = 
+struct
+  structure V = RGGraph.RGVertex;
+  structure E = RGGraph.Edge;
+  structure G = RGGraph;
+
+  val bvert = V.EVert;
+  val zero_angle = AngleExpr.zero;
+  val var_angle = AngleExpr.mk_var;
+  fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
+  val add_angles = AngleExpr.add_expr;
+  val pi_angle = AngleExpr.pi;
+  fun mkZ a = V.IVert (RGVertex.Znd a);
+  fun mkX a = V.IVert (RGVertex.Xnd a);
+  val mkH = V.IVert RGVertex.Hnd;
+  val undir_edge = (G.UnDirected,());
+  val dir_edge = (G.Directed,());
+  val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+end;

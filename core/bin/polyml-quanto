@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+HERE=$(dirname $0)
+POLYML_HOME=$(${HERE}/../../tools/findpoly.sh)
+THE_POLY_HEAP=${HERE}/../heaps/quanto.polyml-heap
+
+if [ "$POLYML_HOME" == "" ]
+then echo "Can not find PolyML ($$POLYML_HOME was empty)"; exit 0; 
+else echo "Using PolyML: $POLYML_HOME";
+fi
+
+if [ "$EMACS" != "t" ]
+then
+    LEDIT=`which ledit || which cat`;
+else
+    LEDIT=`which cat`
+fi
+
+echo "Using line editor: ${LEDIT}";
+(echo "PolyML.SaveState.loadState \"${THE_POLY_HEAP}\";"; ${LEDIT}) | ${POLYML_HOME}/bin/poly "$@"
