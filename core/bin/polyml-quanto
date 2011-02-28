@@ -12,7 +12,7 @@ fi
 echo "About to start running ML with:"
 echo "  ${ML_LOAD_HEAP_CMD}";
 
-if [ `which rlwrap` != "" ] 
+if which rlwrap > /dev/null 2>/dev/null
 then 
   echo "Using line editor: rlwrap";
 #  (echo "${ML_LOAD_HEAP_CMD}"; rlwrap) | ;
