@@ -66,21 +66,14 @@ local open ControllerState in
         "    sync the console, print \"HELO\"\n",
      lift_stateless (K "HELO\n"))),
 
-    ("load_ruleset",
-     ("load_ruleset NAME FILE\n\n" ^
-        "    load a ruleset from FILE and call it NAME\n",
+    ("load_rules",
+     ("load_rules FILE\n\n" ^
+        "    load the rules contained in FILE\n",
     load_ruleset)),
 
-(* 
-    ("unload_ruleset",
-     ("unload_ruleset RULESET\n\n" ^
-        "    unload RULESET\n",
-    unload_ruleset)),
-*)
-    
-    ("save_ruleset",
-     ("save_ruleset RULESET FILENAME\n\n" ^
-        "    save RULESET in FILENAME\n",
+    ("save_rules",
+     ("save_rules FILENAME\n\n" ^
+        "    save all loaded rules to FILENAME\n",
     lift_state_viewer save_ruleset)),
 
     ("list_graphs",
@@ -93,45 +86,70 @@ local open ControllerState in
         "    alias for \"list_graphs\"\n",
     lift_state_viewer list_graphs)),
 
-    ("list_rulesets",
-     ("list_rulesets\n\n"^
-        "    list all loaded rulesets\n",
+    ("list_rules",
+     ("list_rules\n\n"^
+        "    list all loaded rules\n",
     lift_state_viewer list_allrules)),
+
+    ("list_tags",
+     ("list_tags\n\n"^
+        "    list all known tags for rules\n",
+    lift_state_viewer list_tags)),
 
     ("list_rules_with_tag",
      ("list_rules_with_tag TAG\n\n"^
-        "    list all loaded rulesets\n",
+        "    list all loaded rules that are tagged with TAG\n",
     lift_state_viewer list_rules_with_tag)),
 
-    ("list_active_rulesets",
-     ("list_active_rulesets\n\n"^
+    ("list_active_rules",
+     ("list_active_rules\n\n"^
         "    list all active rulesets\n",
     lift_state_viewer list_active_rules)),
 
-    ("activate_ruleset",
-     ("activate_ruleset RULESET\n\n"^
-        "    enable the rules in RULESET for rewriting\n",
-    activate_ruleset)),
+    ("activate_rules_with_tag",
+     ("activate_rules_with_tag TAG\n\n"^
+        "    allow the rules tagged with TAG to be used for rewriting\n",
+    activate_rules_with_tag)),
 
-    ("deactivate_ruleset",
-     ("deactivate_ruleset RULESET\n\n"^
-        "    disable the rules in RULESET for rewriting\n",
-    deactivate_ruleset)),
+    ("deactivate_rules_with_tag",
+     ("deactivate_rules_with_tag TAG\n\n"^
+        "    prevent the rules tagged with TAG from being used for rewriting\n",
+    deactivate_rules_with_tag)),
+
+    ("delete_rules_with_tag",
+     ("delete_rules_with_tag TAG\n\n"^
+        "    delete all rules tagged with TAG\n",
+    delete_tag_and_its_rules)),
+
+    ("delete_tag",
+     ("delete_tag TAG\n\n"^
+        "    remove TAG from all rules and forget about TAG entirely\n",
+    delete_tag)),
 
     ("activate_rule",
-     ("activate_rule RULESET RULE\n\n"^
-        "    enable RULE in RULESET for rewriting\n",
+     ("activate_rule RULE\n\n"^
+        "    allow RULE to be used for rewriting\n",
     activate_rule)),
 
     ("deactivate_rule",
-     ("deactivate_ruleset RULESET RULE\n\n"^
-        "    disable RULE in RULESET for rewriting\n",
+     ("deactivate_rule RULE\n\n"^
+        "    prevent RULE from being used for rewriting\n",
     deactivate_rule)),
 
     ("delete_rule",
-     ("delete_ruleset RULESET RULE\n\n"^
-        "    remove RULE from RULESET for rewriting\n",
+     ("delete_rule RULE\n\n"^
+        "    forget about RULE entirely\n",
     delete_rule)),
+
+    ("tag_rule",
+     ("tag_rule RULE TAG\n\n"^
+        "    tag RULE with TAG\n",
+    tag_rule)),
+
+    ("untag_rule",
+     ("untag_rule RULE TAG\n\n"^
+        "    remove TAG from RULE\n",
+    untag_rule)),
 
     ("new_graph",
      ("new_graph\n\n" ^

@@ -103,7 +103,10 @@ struct
         fun eval_list [] state = ([], NORMAL state)
           | eval_list (c::cs) state =
             case do_cmd c state
-             of (_, SKIP) => eval_list cs state
+             of (out, SKIP) =>
+		  let val (lst, st) = eval_list cs state
+                  in (out::lst, st)
+                  end
               | (out, QUIT) => ([out], QUIT)
               | (out, NORMAL state') =>
                   let val (lst, st) = eval_list cs state'

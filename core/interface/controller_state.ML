@@ -56,6 +56,7 @@ sig
   val list_graphs : 'a list * T -> string
   val list_rules_with_tag : string list * T -> string
   val list_allrules : 'a list * T -> string
+  val list_tags : 'a list * T -> string
   val list_active_rules : 'a list * T -> string
 
   (* rewriting *)
@@ -68,16 +69,18 @@ sig
   val new_rule : string list * T -> string * T
   val open_rule_rhs : string list * T -> string * T
   val open_rule_lhs : string list * T -> string * T
-  val delete_tag_and_its_rules : TagName.name list * T -> string * T
-  val delete_tag : TagName.name list * T -> string * T
-  val delete_ruleset : string list * T -> string * T
-  val delete_rules_in_tag : TagName.name list * T -> string * T
+  val delete_tag_and_its_rules : string list * T -> string * T
+  val delete_tag : string list * T -> string * T
+  val delete_rules_in_tag : string list * T -> string * T
   val delete_rule : string list * T -> string * T
 
-  val activate_ruleset : string list * T -> string * T
+  val activate_rules_with_tag : string list * T -> string * T
   val activate_rule : string list * T -> string * T
-  val deactivate_ruleset : string list * T -> string * T
+  val deactivate_rules_with_tag : string list * T -> string * T
   val deactivate_rule : string list * T -> string * T
+
+  val tag_rule : string list * T -> string * T
+  val untag_rule : string list * T -> string * T
 
   (* graphs and their manipulations *)
   val new_graph : 'a list * T -> string * T
@@ -223,7 +226,7 @@ struct
   (* common things we want to assert are true *)
   fun assert_tag_exists state tag_name = 
       if RuleSet.tag_exists (get_rset state) tag_name then ()
-      else raise user_exp ("No such ruleset named '" 
+      else raise user_exp ("No such tag named '" 
                            ^ (TagName.string_of_name tag_name) ^ "'");
 
   fun assert_rule_exists state rule_name = 
@@ -242,6 +245,11 @@ struct
       ^ "\n"
     | list_active_rules _ = raise wrong_args_exp ()
   
+  fun list_tags ([], state) =
+      (Pretty.string_of (TagName.NSet.pretty (RuleSet.get_tags (get_rset state))))
+      ^ "\n"
+    | list_tags _ = raise wrong_args_exp ()
+  
   fun list_rules_with_tag ([tag], state) = 
       let 
         val tag_name = TagName.mk tag;
@@ -255,13 +263,12 @@ struct
           val () = assert_tag_exists state tag_name
       in ("ok\n", update_rset (f tag_name) state) end
     | tag_name_action f (_, state) = raise wrong_args_exp ();
-  val deactivate_ruleset = tag_name_action RuleSet.deactivate_tag; 
-  val activate_ruleset = tag_name_action RuleSet.deactivate_tag
-  val delete_ruleset = tag_name_action RuleSet.delete_tag
+  val deactivate_rules_with_tag = tag_name_action RuleSet.deactivate_tag; 
+  val activate_rules_with_tag = tag_name_action RuleSet.activate_tag
 
 
   fun rule_name_action f ([rule], state) = 
-      let val rule_name = TagName.mk rule
+      let val rule_name = RuleName.mk rule
           val () = assert_rule_exists state rule_name
       in ("ok\n", update_rset (f rule_name) state) end
     | rule_name_action f (_, state) = raise wrong_args_exp ();
@@ -272,7 +279,7 @@ struct
   (* creates/replaces rule *)
   fun update_rule ([rule,lhs,rhs], state) =
       let
-        val rule_name = TagName.mk rule
+        val rule_name = RuleName.mk rule
         val () = assert_rule_exists state rule_name
   
         val graphs = get_graphs state
@@ -307,20 +314,38 @@ struct
     | save_ruleset _ = raise wrong_args_exp ();
     
   fun delete_tag ([tag], state) =
-      let val () = assert_tag_exists state tag
-      in ("ok\n", update_rset (RuleSet.delete_tag tag) state) end
+      let val tag_name = TagName.mk tag
+          val () = assert_tag_exists state tag_name
+      in ("ok\n", update_rset (RuleSet.delete_tag tag_name) state) end
     | delete_tag _ = raise wrong_args_exp ();
 
   fun delete_rules_in_tag ([tag], state) =
-      let val () = assert_tag_exists state tag
-      in ("ok\n", update_rset (RuleSet.delete_rules_in_tag tag) state) end
+      let val tag_name = TagName.mk tag
+          val () = assert_tag_exists state tag_name
+      in ("ok\n", update_rset (RuleSet.delete_rules_in_tag tag_name) state) end
     | delete_rules_in_tag _ = raise wrong_args_exp ();
 
   fun delete_tag_and_its_rules ([tag], state) =
-      let val () = assert_tag_exists state tag
-      in ("ok\n", update_rset (RuleSet.delete_tag tag 
-                                   o RuleSet.delete_rules_in_tag tag) state) end
+      let val tag_name = TagName.mk tag
+	  val () = assert_tag_exists state tag_name
+      in ("ok\n", update_rset (RuleSet.delete_tag tag_name
+                                   o RuleSet.delete_rules_in_tag tag_name) state) end
     | delete_tag_and_its_rules _ = raise wrong_args_exp ();
+
+  fun tag_rule ([rule,tag], state) = 
+      let val rule_name = RuleName.mk rule
+          val tag_name = TagName.mk tag
+          val () = assert_rule_exists state rule_name
+      in ("ok\n", update_rset (RuleSet.tag_rule rule_name tag_name) state) end
+    | tag_rule (_, state) = raise wrong_args_exp ();
+
+  fun untag_rule ([rule,tag], state) = 
+      let val rule_name = RuleName.mk rule
+          val tag_name = TagName.mk tag
+          val () = assert_rule_exists state rule_name
+          val () = assert_tag_exists state tag_name
+      in ("ok\n", update_rset (RuleSet.untag_rule rule_name tag_name) state) end
+    | untag_rule (_, state) = raise wrong_args_exp ();
       
   
     fun create_graph default_name graph state = let
