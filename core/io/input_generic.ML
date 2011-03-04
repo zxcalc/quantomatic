@@ -6,9 +6,9 @@ sig
   val input : T -> data
   exception bad_input_exp of string;
 end;
-signature XML_INPUT = INPUT where type T = XML.tree;
+signature INPUT_XML = INPUT where type T = XML.tree;
 
-structure InputBoolXML : XML_INPUT 
+structure InputBoolXML : INPUT_XML 
 = struct 
   type T = XML.tree;
   type data = bool;
@@ -23,7 +23,7 @@ structure InputBoolXML : XML_INPUT
       end;
 end;
 
-structure InputIntXML : XML_INPUT 
+structure InputIntXML : INPUT_XML 
 = struct 
   type T = XML.tree;
   type data = int;
@@ -38,30 +38,12 @@ structure InputIntXML : XML_INPUT
 end;
 
 
-functor InputSStrNameXML(N : SSTR_NAMES) : XML_INPUT 
+functor InputSStrNameXML(N : SSTR_NAMES) : INPUT_XML 
 = struct 
   type T = XML.tree;
   type data = N.name;
   exception bad_input_exp of string;
   fun input xml = N.mk (XML_Parse_Utils.get_text xml);
-end;
-
-
-signature OUTPUT =
-sig
-  type data
-  type T
-  val output : data -> T
-end;
-signature XML_OUTPUT = OUTPUT where type T = XML.tree;
-signature PRETTY_XML_OUTPUT = OUTPUT where type T = Pretty.T;
-
-
-functor OutputSStrNameXML(N : SSTR_NAMES) : PRETTY_XML_OUTPUT 
-= struct 
-  type T = Pretty.T;
-  type data = N.name;
-  val output = N.pretty_name;
 end;
 
 
@@ -82,25 +64,11 @@ functor ComposeInputs (
       handle In2.bad_input_exp s => raise bad_input_exp s;
 end;
 
-
-(* composition *)
-functor ComposeOutputs (
-  structure Out1 : OUTPUT
-  structure Out2 : OUTPUT
-  sharing type Out2.data = Out1.T)
-: OUTPUT
-= struct
-  type T = Out2.T
-  type data = Out1.data
-  val output = Out2.output o Out1.output;
-end;
-
-
 (* INPUT/OUTPUT of lists *)
 functor InputListXML (
   val tagname : string 
-  structure Input1 : XML_INPUT
-) : XML_INPUT
+  structure Input1 : INPUT_XML
+) : INPUT_XML
 = struct
   type T = XML.tree;
   type data = Input1.data list;
@@ -110,33 +78,17 @@ functor InputListXML (
       in map Input1.input (XML_Parse_Utils.get_children xml) end;
 end;
 
-functor OutputListXML (
-  val tagname : string
-	structure Output1 : PRETTY_XML_OUTPUT
-) : PRETTY_XML_OUTPUT
-= 
-struct
-  type data = Output1.data list 
-  type T = Pretty.T
-
-  fun output rewrites = 
-      Pretty.chunks [ Pretty.str ("<"^tagname^">"), 
-		      Pretty.indent 2 (Pretty.block (map Output1.output rewrites)),
-		      Pretty.str ("</"^tagname^">"),
-		      Pretty.str ""
-		    ];
-end;
 
 
 (* INPUT/OUTPUT of Binary relations between named things *)
 functor InputNameBRelXML (
   val tagname : string 
   structure BRel : NAME_BINREL
-  structure InputDom : XML_INPUT 
-  structure InputCod : XML_INPUT
+  structure InputDom : INPUT_XML 
+  structure InputCod : INPUT_XML
   sharing type BRel.Dom.name = InputDom.data 
   sharing type BRel.Cod.name = InputCod.data 
-) : XML_INPUT
+) : INPUT_XML
 = struct
   type T = XML.tree;
   type data = BRel.T;
@@ -163,49 +115,15 @@ functor InputNameBRelXML (
       end;
 end;
 
-functor OutputNameBRelXML (
-  val tagname : string 
-  structure BRel : NAME_BINREL
-  structure OutputDom : PRETTY_XML_OUTPUT 
-  structure OutputCod : PRETTY_XML_OUTPUT
-  sharing type BRel.Dom.name = OutputDom.data 
-  sharing type BRel.Cod.name = OutputCod.data 
-) : PRETTY_XML_OUTPUT
-= struct
-  open XML_Parse_Utils;
-
-  type data = BRel.T;
-  type T = Pretty.T;
-
-  fun output brel = 
-      Pretty.block 
-       [Pretty.str ("<"^tagname^">"),
-        Pretty.indent 2 
-          (Pretty.chunks 
-            (map 
-             (fn (codn,domnset) =>
-              Pretty.chunks 
-               [Pretty.str "<rel>", 
-                (Pretty.indent 2 o Pretty.block)
-                  (map (fn domn => Pretty.enclose "<dom>" "</dom>" 
-                                   [OutputDom.output domn])
-                       (BRel.Dom.NSet.list_of domnset)),
-                Pretty.enclose "<cod>" "</cod>" [OutputCod.output codn],
-                Pretty.str "</rel>"])
-             (BRel.Cod.NTab.list_of (BRel.get_codtab brel)))),
-        Pretty.str ("</"^tagname^">")];
-end;
-
-
 
 (* INPUT/OUTPUT of Binary relations between named things *)
 functor InputNTabXML (
   val tagname : string
   structure NTab : NAME_TAB
-  structure InputName : XML_INPUT 
-  structure InputValue : XML_INPUT
+  structure InputName : INPUT_XML 
+  structure InputValue : INPUT_XML
   sharing type NTab.name = InputName.data 
-) : XML_INPUT
+) : INPUT_XML
 = struct
   type T = XML.tree;
   type data = InputValue.data NTab.T;
@@ -227,30 +145,4 @@ functor InputNTabXML (
       end;
 end;
 
-functor OutputNTabXML (
-  val tagname : string 
-  structure NTab : NAME_TAB
-  structure OutputName : PRETTY_XML_OUTPUT 
-  structure OutputVal : PRETTY_XML_OUTPUT
-  sharing type NTab.name = OutputName.data 
-) : PRETTY_XML_OUTPUT
-= struct
-  type data = OutputVal.data NTab.T;
-  type T = Pretty.T;
-  open XML_Parse_Utils;
-  fun output ntab = 
-      Pretty.block 
-       [Pretty.str ("<"^tagname^">"),
-        Pretty.indent 2 
-          (Pretty.chunks 
-            (map 
-             (fn (n,v) =>
-              Pretty.chunks 
-               [Pretty.str "<map>", 
-                (Pretty.indent 2 o Pretty.block)
-                  [Pretty.enclose "<name>" "</name>" [OutputName.output n],
-                   Pretty.enclose "<val>" "</val>" [OutputVal.output v]],
-                Pretty.str "</map>"])
-             (NTab.list_of ntab))),
-        Pretty.str ("</"^tagname^">")];
-end;
+

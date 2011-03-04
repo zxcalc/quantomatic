@@ -8,7 +8,7 @@
   FIXME: !box support needed.
 *)
 
-signature MATCH_SEARCH
+signature RULE_MATCH_SEARCH
 = sig
   structure Match : MATCH 
   structure BangGraph : BANG_GRAPH
@@ -19,16 +19,17 @@ signature MATCH_SEARCH
   (* sharing Vertex = BangGraph.RGVertex *)
   (* not clear why I need this this way round - but get type strange error the other way *)
   sharing BangGraph.SharingBangGraph = Match.Sharing.G;
+  sharing Rule.Graph.SharingBangGraph = Match.Sharing.G;
   sharing Vertex.SharingWithIData = BangGraph.OVertex.SharingWithIData;
   sharing Edge.EdgeSharingWithData = BangGraph.Edge.EdgeSharingWithData;
   
-  val match :    (BangGraph.Vertex.NSet.T * BangGraph.Edge.NSet.T * BangGraph.BBox.NSet.T)
+  val match : (BangGraph.Vertex.NSet.T * BangGraph.Edge.NSet.T * BangGraph.BBox.NSet.T)
               -> Rule.T -> BangGraph.T
               -> Match.T Seq.seq
   
 end;
 
-functor MatchSearchFun(
+functor RuleMatchSearch(
   structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   structure Rule : RULE
@@ -279,4 +280,7 @@ functor MatchSearchFun(
   
 end;
 
-structure DB_SMS = MatchSearchFun(structure BangGraph = RGGraph and Match = MatchFun(RGGraph) and Rule=RGRule);
+structure DB_SMS = RuleMatchSearch(
+  structure BangGraph = RGGraph 
+        and Match = RGMatch
+        and Rule = RGRule);

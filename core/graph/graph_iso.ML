@@ -1,21 +1,29 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  isomorphism between graphs  *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+signature GRAPH_ISO_SHARING
+= sig
+  structure Param : GRAPH_PARAM_SHARING 
+  type T
+  type graph
+end;
 
 signature GRAPH_ISO
 = sig
-  structure Vertex : VERTEX
-  structure Edge : EDGE
   structure Param : GRAPH_PARAM
-
-  type G
+  type graph
   type T
   
-  val get : G -> G -> T Seq.seq
-  val test : G -> G -> bool
+  structure Sharing : GRAPH_ISO_SHARING
+  sharing Param.Sharing = Sharing.Param
+  sharing type Sharing.T = T 
+  sharing type Sharing.graph = graph 
+
+  val get : graph -> graph -> T Seq.seq
+  val test : graph -> graph -> bool
   
-  val get_vmap : T -> Vertex.InjEndo.T
-  val get_emap : T -> Edge.InjEndo.T
+  val get_vmap : T -> Param.Vertex.InjEndo.T
+  val get_emap : T -> Param.Edge.InjEndo.T
   val get_subst : T -> Param.subst
 end;
 
@@ -28,9 +36,15 @@ functor GraphIsoFun(
   structure Edge = Graph.Edge;
   structure Param = Graph.Param;
   
-  type G = Graph.T;
+  type graph = Graph.T;
   type T = (Vertex.InjEndo.T * Edge.InjEndo.T * Param.subst);
   
+  structure Sharing = struct
+    structure Param = Param.Sharing
+    type T = T
+    type graph = graph;
+  end;
+
   fun get_vmap (v,_,_) = v;
   fun get_emap (_,e,_) = e;
   fun get_subst (_,_,u) = u;
@@ -157,7 +171,7 @@ functor GraphIsoFun(
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)
-  val test : G -> G -> bool 
+  val test : graph -> graph -> bool 
     = is_some o Seq.pull oo get
   
     

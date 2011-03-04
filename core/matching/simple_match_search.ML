@@ -9,31 +9,26 @@
 signature SIMPLE_MATCH_SEARCH
 = sig
   structure Match : MATCH 
-  structure BangGraph : BANG_GRAPH
   structure Edge : EDGE
   structure Vertex : OVERTEX
-
-  (* sharing Vertex = BangGraph.RGVertex *)
-  (* not clear why I need this this way round - but get type strange error the other way *)
-  sharing BangGraph.SharingBangGraph = Match.Sharing.G;
-  sharing Vertex.SharingWithIData = BangGraph.OVertex.SharingWithIData;
-  sharing Edge.EdgeSharingWithData = BangGraph.Edge.EdgeSharingWithData;
+  sharing Vertex.SharingWithIData = Match.G.OVertex.SharingWithIData;
+  sharing Edge.EdgeSharingWithData = Match.G.Edge.EdgeSharingWithData;
 
   type T
 
   val init : Match.T 
-             -> BangGraph.T (* pat *)
-             -> BangGraph.T (* tgt *)
+             -> Match.G.T (* pat *)
+             -> Match.G.T (* tgt *)
              -> Vertex.name Vertex.NTab.T (* initial agenda *)
              -> T (* initial match state *)
 
   (* match two graphs *)
-  val match : (BangGraph.Vertex.NSet.T * BangGraph.Edge.NSet.T 
-               * BangGraph.BBox.NSet.T) (* other names to avoid when matching *)
-              -> BangGraph.T -> BangGraph.T (* pat, tgt *)
+  val match : (Match.G.Vertex.NSet.T * Match.G.Edge.NSet.T 
+               * Match.G.BBox.NSet.T) (* other names to avoid when matching *)
+              -> Match.G.T -> Match.G.T (* pat, tgt *)
               -> Match.T Seq.seq
   val match' : Match.T (* initial matching *)
-               -> BangGraph.T -> BangGraph.T (* pat, tgt *)
+               -> Match.G.T -> Match.G.T (* pat, tgt *)
                -> Vertex.name Vertex.NTab.T (* agenda *)
                -> Match.T Seq.seq
 
@@ -56,17 +51,17 @@ signature SIMPLE_MATCH_SEARCH
   val get_agenda : T -> Vertex.name Vertex.NTab.T
   val get_match : T -> Match.T
   val get_tgt_vs : T -> T -> Vertex.NSet.T
-  val get_unm_pat : T -> BangGraph.T
+  val get_unm_pat : T -> Match.G.T
   val get_unm_pat_vs : T -> Vertex.NSet.T
-  val get_unm_tgt : T -> BangGraph.T
+  val get_unm_tgt : T -> Match.G.T
   val get_unm_tgt_es : T -> Edge.NSet.T
 
   val update_agenda : (Vertex.name Vertex.NTab.T ->
                        Vertex.name Vertex.NTab.T) ->
                       T -> T
   val update_match : (Match.T -> Match.T) -> T -> T
-  val update_unm_pat : (BangGraph.T -> BangGraph.T) -> T -> T
-  val update_unm_tgt : (BangGraph.T -> BangGraph.T) -> T -> T
+  val update_unm_pat : (Match.G.T -> Match.G.T) -> T -> T
+  val update_unm_tgt : (Match.G.T -> Match.G.T) -> T -> T
 
   val del_pat_edges : Edge.NSet.T -> T -> T
 
@@ -87,15 +82,11 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor SimpleMatchSearchFun(
-  structure BangGraph : BANG_GRAPH 
-  structure Match : MATCH
-  sharing Match.Sharing.G = BangGraph.SharingBangGraph
-) (* : SIMPLE_MATCH_SEARCH *)
+functor SimpleMatchSearch(Match : MATCH) : SIMPLE_MATCH_SEARCH
 = struct
 
 (* structure DB_MatchSearch = struct *)
-structure BangGraph = BangGraph;
+structure BangGraph = Match.G;
 structure Vertex = BangGraph.OVertex;
 structure Edge = BangGraph.Edge;
 structure G = BangGraph;

@@ -79,5 +79,3 @@ functor GraphSubstFun(Match : MATCH)
 end;
 
 
-structure DB_RGGraphSubst = GraphSubstFun(RGMatch);
-structure RGGraphSubst : GRAPH_SUBST = DB_RGGraphSubst;

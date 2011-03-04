@@ -1,27 +1,27 @@
 signature RULESET_REWRITES =
 sig
-  structure RuleSet : RULESET
+  structure Ruleset : RULESET
   structure Rule : RULE 
-  sharing RuleSet.Rule.Sharing = Rule.Sharing
+  sharing Ruleset.Rule.Sharing = Rule.Sharing
   structure Match : MATCH
   sharing Match.Sharing.G = Rule.Sharing.Graph;
 
   (* matching *)
-  val apply : RuleSet.T -> Rule.Graph.T 
+  val apply : Ruleset.T -> Rule.Graph.T 
         -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) Seq.seq 
-  val apply_in : RuleSet.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
+  val apply_in : Ruleset.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
         -> ((RuleName.name * Rule.T) * Rule.Graph.T) Seq.seq;
 
   (* get just first rewrite *)
-  val apply_first : RuleSet.T -> Rule.Graph.T 
+  val apply_first : Ruleset.T -> Rule.Graph.T 
         -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) option 
-  val apply_first_in : RuleSet.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
+  val apply_first_in : Ruleset.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
         -> ((RuleName.name * Rule.T) * Rule.Graph.T) option;
 
   (* low-level *)
-  val applicable_rules' : RuleSet.T (* background ruleset *)
+  val applicable_rules' : Ruleset.T (* background ruleset *)
       -> (Rule.T -> Rule.Graph.T -> Match.T Seq.seq) (* matcher *)
       -> RuleName.NSet.T (* subset of rules to use *) 
       -> Rule.Graph.T (* graph to look for matches of rules in *)
@@ -37,13 +37,21 @@ sig
 end;
 
 (* *)
-structure RulesetRewrites : RULESET_REWRITES =
+functor RulesetRewrites(
+  structure Ruleset : RULESET
+  structure MatchSearch : SIMPLE_MATCH_SEARCH
+  structure GraphSubst : GRAPH_SUBST
+  sharing MatchSearch.Match.Sharing.G = Ruleset.Rule.Sharing.Graph;
+  sharing type GraphSubst.graph = Ruleset.Rule.Graph.T
+  sharing type GraphSubst.match = MatchSearch.Match.T
+) : RULESET_REWRITES =
 struct
-  structure Rule = RGRule;
-  structure Match = RGMatch;
-  structure RuleSet = RGRuleSet;
-  structure MatchSearch = RGSimpleMatchSearch;
-  structure GraphSubst = RGGraphSubst;
+  structure Match = MatchSearch.Match;
+  structure Ruleset = Ruleset;
+  structure Rule = Ruleset.Rule;
+  (* *)
+  structure MatchSearch = MatchSearch;
+  structure GraphSubst = GraphSubst;
 
   structure G = Rule.Graph;
   structure V = G.Vertex;
@@ -83,7 +91,7 @@ struct
   fun applicable_rules' rset matcher rnset g = 
       RuleName.NSet.fold 
       (fn n =>
-          let val r = RuleSet.get_rule rset n
+          let val r = Ruleset.get_rule rset n
           in Seq.append 
             (Seq.map 
               (fn m => 
@@ -94,10 +102,10 @@ struct
        rnset
        Seq.empty;
   
-  fun apply rset g = applicable_rules' rset rule_matches (RuleSet.get_active rset) g;
+  fun apply rset g = applicable_rules' rset rule_matches (Ruleset.get_active rset) g;
 
   fun apply_in rset g vset = 
-      applicable_rules' rset (rule_matches_within vset) (RuleSet.get_active rset) g;
+      applicable_rules' rset (rule_matches_within vset) (Ruleset.get_active rset) g;
   
   (* apply just first rule that can be applied *)
   fun apply_first rset g = 
@@ -111,5 +119,4 @@ struct
         | SOME (h,_) => SOME h;
 
 end; (* *)
-
 

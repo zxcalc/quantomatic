@@ -1,5 +1,5 @@
 (* load a set of rules *)
-val ruleset = (RGRuleSetInputXML.input o XMLReader.read_from_file) "test/dbg/default-rules.xml";
+val ruleset = (RGRulesetInputXML.input o XMLReader.read_from_file) "test/dbg/default-rules.xml";
 val rule_list = 
   map_filter 
     (fn (n,(r,b)) => if b then SOME(n,r) else NONE) 
@@ -18,7 +18,7 @@ PolyML.Debug.clearEx
 (RGGraph.no_such_vname_exp ("",RGGraph.Vertex.default_name,g));
 
 val vns = RGVertex.NSet.empty;
-Seq.list_of (RuleSet.apply_rules_in vns g);
+Seq.list_of (Ruleset.apply_rules_in vns g);
 
 val tgt = RGGraph.cut_subgraph_of_selection vns g;
 

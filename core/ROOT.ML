@@ -41,19 +41,32 @@ PolyML.Project.make "theories/red_green/rg_graph.ML";
 
 (* output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
-PolyML.Project.make "io/input_output.ML";
+PolyML.Project.make "io/input_generic.ML";
+PolyML.Project.make "io/output_generic.ML";
+
+PolyML.Project.make "io/output_linrat.ML";
+
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 
-PolyML.Project.make "io/input_graph_xml.ML";
-PolyML.Project.make "io/output_graph_XML.ML";
-PolyML.Project.make "io/loadsave_graph.ML";
-
+PolyML.Project.make "io/input_graph.ML";
+PolyML.Project.make "io/output_graph.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
-PolyML.Project.make "io/output_rule_XML.ML";
-PolyML.Project.make "io/input_rule_xml.ML";
+PolyML.Project.make "io/output_rule.ML";
+PolyML.Project.make "io/input_rule.ML";
+
+(* rule sets *)
+PolyML.Project.make "theories/ruleset.ML";
+PolyML.Project.make "io/input_ruleset.ML";
+PolyML.Project.make "io/output_ruleset.ML";
+
+(* TESTING *)
+PolyML.Project.make "io/test/rg_io.ML";
+
+(* package all IO stuff into one place *)
+PolyML.Project.make "io/io_interface.ML";
 
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
@@ -61,7 +74,12 @@ PolyML.Project.make "matching/match.ML"; (* a graph matching *)
 
 (* naive match search implementation, find symmetric cases *)
 PolyML.Project.make "matching/simple_match_search.ML";
-PolyML.Project.make "theories/red_green/rg_simple_matchsearch.ML";
+(* substitution of a matched subgraph for another graph *)
+PolyML.Project.make "rewriting/graph_subst.ML";
+(* substitution used to provide rewriting with rulesets *)
+PolyML.Project.make "rewriting/ruleset_rewriting.ML";
+(* particular test cases *)
+PolyML.Project.make "theories/red_green/rg_ruleset_rewriting.ML";
 PolyML.Project.make "matching/test/simple_match_search.ML";
 
 (* searching for matches, but avoiding symmetric ones *)
@@ -71,20 +89,10 @@ PolyML.Project.make "matching/symmetry_match_search.ML";
 PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
-(* substitution of a matched subgraph for another graph *)
-PolyML.Project.make "rewriting/graph_subst.ML";
-
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
-
-(* rule sets *)
-PolyML.Project.make "theories/ruleset.ML";
-PolyML.Project.make "io/input_ruleset_XML.ML";
-PolyML.Project.make "io/output_ruleset_XML.ML";
-
-PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)

@@ -2,71 +2,8 @@
    TODO : recode using XML directly
 *)
 
-(*-------------------------------------------------------*)
-structure OutputLinratXML : PRETTY_XML_OUTPUT where type data = LinratExpr.T = 
-struct 
-  type T = Pretty.T
-  type data = LinratExpr.T
-
-  structure VName = LinratExpr.VName;
-
-(* -- this section depends strongly on the linrat_expr type ----*)
-  fun render_xml_rational (n,d) = 
-      Pretty.chunks [Pretty.str ("<num>"^ (string_of_int  n)^"</num>"),
-         Pretty.str ("<denom>"^ (string_of_int  d)^"</denom>")];
-  
-  fun render_xml_constant_part k =
-      if AngleExpr.Coeff.is_zero k then
-        (Pretty.str "")
-      else
-        Pretty.chunks [Pretty.str "<constant>",
-           Pretty.block [ Pretty.str "  ", (render_xml_rational k)],
-           Pretty.str "</constant>"];
-  
-  fun render_xml_coeff_var (var, coeff) = 
-      Pretty.chunks [Pretty.str "<variable>",
-         Pretty.block [Pretty.str "  ",
-           Pretty.chunks [
-           Pretty.block [Pretty.str "<name>",
-                   VName.pretty_name var,
-                   Pretty.str "</name>"],
-           Pretty.str "<coefficient>",
-           Pretty.block [
-           Pretty.str "  ",
-           (render_xml_rational coeff)
-           ],
-           Pretty.str "</coefficient>"
-           ]
-          ],
-         Pretty.str "</variable>"];
-  
-  fun render_xml_variable_part tab = 
-      let fun f kv [] = [render_xml_coeff_var kv]
-      | f kv rest = (render_xml_coeff_var kv)::rest
-      in
-        Pretty.chunks (VName.NTab.fold f tab [])
-      end;
-  
-  fun output (pi,tab) = 
-      Pretty.block
-      (if AngleExpr.is_zero (pi,tab) then 
-         []
-       else
-         [Pretty.str "<angleexpr>",
-          Pretty.block [Pretty.str "  ",
-            Pretty.chunks [
-            Pretty.block [Pretty.str "<as_string>",
-              AngleExpr.pretty (pi,tab),
-              Pretty.str "</as_string>"],
-            render_xml_constant_part pi,
-            render_xml_variable_part tab]
-           ],
-          Pretty.str "</angleexpr>"]);
-end; (* structure *)
-
-
 (*  *)
-functor OutputRGVDataXML (V : RG_VERTEX) : PRETTY_XML_OUTPUT = 
+functor OutputRGVertexDataXML (V : RG_VERTEX) : OUTPUT_PRETTY_XML = 
 struct 
   
   type T = Pretty.T;
@@ -86,14 +23,22 @@ struct
                      ::(output_idata rg))
 end;
 
+(*-------------------------------------------------------*)
+functor OutputNoEdgeDataXML (E : EDGE) : OUTPUT_PRETTY_XML
+= struct
+  type data = E.data;
+  type T = Pretty.T
+  fun output _ = Pretty.str ""
+end
+
 (* *)
 functor OutputGraphXML (
   structure Graph : BANG_GRAPH
-        and OutputVData : PRETTY_XML_OUTPUT 
-        and OutputEData : PRETTY_XML_OUTPUT 
-  sharing type OutputVData.data = Graph.Vertex.data
-  sharing type OutputEData.data = Graph.Edge.data
-) : PRETTY_XML_OUTPUT
+        and OutputVertexData : OUTPUT_PRETTY_XML 
+        and OutputEdgeData : OUTPUT_PRETTY_XML 
+  sharing type OutputVertexData.data = Graph.Vertex.data
+  sharing type OutputEdgeData.data = Graph.Edge.data
+) : OUTPUT_PRETTY_XML
 = struct
   structure V = Graph.OVertex;
   structure E = Graph.Edge
@@ -113,7 +58,7 @@ functor OutputGraphXML (
 		     Pretty.str "</name>"],
 		     Pretty.block [
 		     Pretty.str "  ",
-		     OutputVData.output vdata],
+		     OutputVertexData.output vdata],
 		     Pretty.str "</vertex>"
 		    ];
 
@@ -139,7 +84,7 @@ functor OutputGraphXML (
 		     Pretty.str "<target>",
 		     Graph.Vertex.pretty_name target_vertex,
 		     Pretty.str "</target>",
-		     OutputEData.output edata
+		     OutputEdgeData.output edata
 		     ],
 		     Pretty.str "</edge>"];
 
@@ -186,22 +131,4 @@ fun output_bbox g box
 
 end;
 
-
-(*-------------------------------------------------------*)
-
-functor OutputRGEDataXML (E : EDGE) : PRETTY_XML_OUTPUT
-=
-struct
-  type data = E.data;
-  type T = Pretty.T
-  fun output _ = Pretty.str ""
-end
-
-(*-------------------------------------------------------*)
-structure OutputRGGraphXML : PRETTY_XML_OUTPUT
-  = OutputGraphXML (
-    structure Graph = RGGraph
-    and OutputVData = OutputRGVDataXML(RGGraph.RGVertex)
-    and OutputEData = OutputRGEDataXML(RGGraph.Edge)
-);
 

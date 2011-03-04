@@ -115,7 +115,7 @@ signature MATCH
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor MatchFun(G : BANG_GRAPH) : MATCH 
+functor Match(G : BANG_GRAPH) : MATCH 
 = struct
   
   structure G = G;
@@ -386,3 +386,5 @@ functor MatchFun(G : BANG_GRAPH) : MATCH
   end;
     
 end;
+
+

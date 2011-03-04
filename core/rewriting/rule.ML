@@ -8,6 +8,11 @@
 signature RULE_SHARING =
 sig
   structure Graph : BANG_GRAPH_SHARING
+  structure GraphIso : BANG_GRAPH_ISO_SHARING 
+  sharing type GraphIso.graph = Graph.T
+  sharing GraphIso.Param = Graph.Param 
+  sharing GraphIso.BBoxInjEndo = Graph.BBoxInjEndo
+  type T
 end
 
 signature BASIC_RULE 
@@ -15,10 +20,12 @@ signature BASIC_RULE
   structure Graph : BANG_GRAPH
   structure GraphIso : BANG_GRAPH_ISO
   
+  type T (* rule *)
+
   structure Sharing : RULE_SHARING
   sharing Sharing.Graph = Graph.SharingBangGraph
-  
-  type T (* rule *)
+  sharing Sharing.GraphIso = GraphIso.SharingWithBBox
+  sharing type Sharing.T = T  
 
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
@@ -54,14 +61,15 @@ signature RULE
   (* TODO add stuff specific to automorphisms of rules *)
 end;
 
+
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor RuleFun( Graph : BANG_GRAPH )
+functor Rule(Graph : BANG_GRAPH)
 = struct
 
 structure Graph = Graph;
 structure Vertex = Graph.Vertex;
 structure Edge = Graph.Edge;
-structure GraphIso = BangGraphIsoFun(structure Graph=Graph);
+structure GraphIso = BangGraphIso(Graph);
 
 (* Names of rules *)
 structure Name 
@@ -70,10 +78,6 @@ structure Name
   val default_name = SStrName.mk "new-rule-1"
 end
 
-structure Sharing = struct
-  structure Name = Name.Sharing
-  structure Graph = Graph.SharingBangGraph
-end
 
 datatype 'a tree = Tree of ('a * 'a tree list);
 type order = (Vertex.name option * Vertex.name tree) list;
@@ -263,13 +267,19 @@ fun pretty (Rule rep) =
 
 val print = Pretty.writeln o pretty;
 
+
+structure Sharing = struct
+  structure Graph = Graph.SharingBangGraph;
+  structure GraphIso = GraphIso.SharingWithBBox;
+  type T = T;
 end;
 
-
-structure DB_RGRule = RuleFun(RGGraph);
-structure RGRule : RULE = DB_RGRule;
+end;
 
 (* -------------------------------------------------------- *)
 structure RuleName : SSTR_NAMES = 
   struct open SStrName; val default_name = mk "new-rule-1"; end;
 
+(* Text example for creating rule *)
+structure DB_RGRule = Rule(RGGraph);
+structure RGRule : RULE = DB_RGRule;

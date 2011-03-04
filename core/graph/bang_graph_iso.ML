@@ -1,20 +1,28 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  isomorphism between bang graphs  *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+signature BANG_GRAPH_ISO_SHARING
+= sig
+  include GRAPH_ISO_SHARING
+  structure BBoxInjEndo : NAME_INJENDO_SHARING
+end;
+
 
 signature BANG_GRAPH_ISO
 = sig
   include GRAPH_ISO
-  
   structure BBoxInjEndo : NAME_INJENDO;
-  
+
+  structure SharingWithBBox : BANG_GRAPH_ISO_SHARING
+  sharing Sharing = SharingWithBBox;
+  sharing BBoxInjEndo.Sharing = SharingWithBBox.BBoxInjEndo;
+
   val get_bmap : T -> BBoxInjEndo.T
 end;
 
 
-functor BangGraphIsoFun(
-        structure Graph : BANG_GRAPH
-) : BANG_GRAPH_ISO
+functor BangGraphIso(Graph : BANG_GRAPH) 
+: BANG_GRAPH_ISO
 = struct
   
   structure Vertex = Graph.Vertex;
@@ -22,9 +30,21 @@ functor BangGraphIsoFun(
   structure Param = Graph.Param;
   structure BBoxInjEndo = Graph.BBoxInjEndo;
   
-  type G = Graph.T;
-  type T = (Vertex.InjEndo.T * Edge.InjEndo.T * BBoxInjEndo.T * Param.subst);
-  
+  type graph = Graph.T;
+  type T = (Vertex.InjEndo.T * Edge.InjEndo.T * BBoxInjEndo.T * Param.subst);  
+
+  structure Sharing =
+  struct 
+    structure Param = Param.Sharing
+    type T = T
+    type graph = graph;
+  end;
+  structure SharingWithBBox = 
+  struct
+    open Sharing; 
+    structure BBoxInjEndo = BBoxInjEndo.Sharing
+  end;
+
   fun get_vmap (v,_,_,_) = v;
   fun get_emap (_,e,_,_) = e;
   fun get_bmap (_,_,b,_) = b;
@@ -163,7 +183,7 @@ functor BangGraphIsoFun(
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)
-  val test : G -> G -> bool 
+  val test : graph -> graph -> bool 
     = is_some o Seq.pull oo get
   
     

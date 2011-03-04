@@ -1,11 +1,12 @@
 (* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
+(* FIXME: structure used is a bit squanky and ineffeccient. *)
 functor InputGraphXML (
   structure Graph : BANG_GRAPH
-        and InVData : XML_INPUT 
-        and InEData : XML_INPUT 
-  sharing type InVData.data = Graph.OVertex.IData.data
-  sharing type InEData.data = Graph.Edge.data
-)  : XML_INPUT
+        and InputVertexData : INPUT_XML 
+        and InputEdgeData : INPUT_XML 
+  sharing type InputVertexData.data = Graph.Vertex.data
+  sharing type InputEdgeData.data = Graph.Edge.data
+)  : INPUT_XML
 = struct
   open XML_Parse_Utils; 
 
@@ -17,33 +18,19 @@ functor InputGraphXML (
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;
 
-      
-  fun input_vertex xml = 
-      let 
-        val () = assert_tag "vertex" xml
-        val children = get_children xml
-        val name = V.mk (get_text (get_the_elem "name" children))
-      in
-        case lookup_the_elem "boundary" children of 
-          NONE => (name, V.IVert (InVData.input xml))
-        | SOME boundary_xml => 
-          if InputBoolXML.input (get_the_child boundary_xml) then (name, V.EVert)
-          else (name, V.IVert (InVData.input xml)) 
-      end;
-
 (* 
   val input_source = force_get_text_from "source"
   val input_target = force_get_text_from "target"
 *)
       
-  fun input_edge xml = 
+  fun input_edge_rel xml = 
       let 
         val _ = assert_tag "edge" xml
         val children = get_children xml 
         val name = E.mk (get_the_child_text (get_the_elem "name" children))
         val source = V.mk (get_the_child_text (get_the_elem "source" children))
         val target = V.mk (get_the_child_text (get_the_elem "target" children))
-        val edata = InEData.input xml
+        val edata = InputEdgeData.input xml
       in (name,edata,source,target) end;
   
   fun input_bbox xml =
@@ -70,12 +57,18 @@ functor InputGraphXML (
         G.move_to_box realname vset g'
       end
   
+  fun input_vertex xml = 
+      let val () = assert_tag "vertex" xml
+          val children = get_children xml
+          val name = V.mk (get_text (get_the_elem "name" children))
+      in (name, InputVertexData.input xml) end;
+
   fun input_graph xml =
       let 
         val () = assert_tag "graph" xml
         val children = get_children xml
         val vertices = List.map input_vertex (filter_elems "vertex" children)
-        val edges = List.map input_edge (filter_elems "edge" children)
+        val edges = List.map input_edge_rel (filter_elems "edge" children)
         val bboxes = List.map input_bbox (filter_elems "bangbox" children)
       in
         G.empty 
@@ -90,12 +83,12 @@ end (* structure InputXML *)
 
 
 (* ------------------------------------------------------- *)
-functor InputRGVertexXML (V : RG_VERTEX)  : XML_INPUT
+functor InputRGVertexDataXML (V : RG_VERTEX)  : INPUT_XML
 = struct
   open XML_Parse_Utils; 
   
   type T = XML.tree;
-  type data = V.IData.data;
+  type data = V.data;
   
   fun input_rational xml = 
       let val children = get_children xml;
@@ -127,7 +120,7 @@ functor InputRGVertexXML (V : RG_VERTEX)  : XML_INPUT
           val vars = List.map input_variable (filter_elems "variable" children)
       in AngleExpr.mk constant vars end;
     
-  fun input xml =
+  fun input_vertex_idata xml =
       let val () = assert_tag "vertex" xml
           val children = get_children xml
           val col = (String.map Char.toLower o get_the_child_text 
@@ -145,9 +138,22 @@ functor InputRGVertexXML (V : RG_VERTEX)  : XML_INPUT
             else raise bad_input_exp ("Unknown colour : "^col^".")
           end
       end;
+
+  fun input xml = 
+      let 
+        val () = assert_tag "vertex" xml
+        val children = get_children xml
+      in
+        case lookup_the_elem "boundary" children of 
+          NONE => (V.IVert (input_vertex_idata xml))
+        | SOME boundary_xml => 
+          if InputBoolXML.input (get_the_child boundary_xml) then (V.EVert)
+          else (V.IVert (input_vertex_idata xml)) 
+      end;
+
 end; (* functor RGGraphInputXML*)
 
-functor InputRGEdgeXML (E : EDGE) :  XML_INPUT
+functor InputNoEdgeDataXML (E : EDGE) :  INPUT_XML
 = struct
   open XML_Parse_Utils;
   type T = XML.tree;
@@ -155,11 +161,3 @@ functor InputRGEdgeXML (E : EDGE) :  XML_INPUT
   val input = K E.default_data;
 end;
 
-(* ---------------------------------------------------------- *)
-
-structure InputRGGraphXML : XML_INPUT
-  = InputGraphXML(
-      structure Graph = RGGraph
-      and InVData = InputRGVertexXML(RGGraph.RGVertex)
-      and InEData = InputRGEdgeXML(RGGraph.Edge)
-    );

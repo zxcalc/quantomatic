@@ -1,8 +1,8 @@
-structure OutputRuleNameXML : PRETTY_XML_OUTPUT where type data = RuleName.name  
+structure OutputRuleNameXML : OUTPUT_PRETTY_XML where type data = RuleName.name  
   = OutputSStrNameXML(RuleName);
 structure OutputTagNameXML = OutputSStrNameXML(TagName);
 
-structure OutputTagRelXML : PRETTY_XML_OUTPUT = 
+structure OutputTagRelXML : OUTPUT_PRETTY_XML = 
   OutputNameBRelXML(val tagname = "tags"
     structure BRel = TagRel
     structure OutputDom = OutputRuleNameXML
@@ -10,14 +10,14 @@ structure OutputTagRelXML : PRETTY_XML_OUTPUT =
   );
 
 (* -------------------------------------------------------- *)
-functor OutputRuleSetXML (
-  structure RuleSet : RULESET
-	structure OutputRule : PRETTY_XML_OUTPUT 
-	  where type data = RuleSet.Rule.T
-) : PRETTY_XML_OUTPUT 
+functor OutputRulesetXML (
+  structure Ruleset : RULESET
+	structure OutputRule : OUTPUT_PRETTY_XML 
+	  where type data = Ruleset.Rule.T
+) : OUTPUT_PRETTY_XML 
 = struct
   structure OR = OutputRule
-  structure RS = RuleSet
+  structure RS = Ruleset
 
   structure OutputAllRules = OutputNTabXML(val tagname = "allrules"
     structure NTab = RuleName.NTab
@@ -36,17 +36,8 @@ functor OutputRuleSetXML (
       [Pretty.str ("<ruleset>"),
        Pretty.indent 2 ( 
          Pretty.chunks 
-          [OutputAllRules.output (RuleSet.get_allrules rset),
-           OutputTagRelXML.output (RuleSet.get_tagrel rset),
-           OutputRuleNameList.output (RuleName.NSet.list_of (RuleSet.get_active rset))]),
+          [OutputAllRules.output (Ruleset.get_allrules rset),
+           OutputTagRelXML.output (Ruleset.get_tagrel rset),
+           OutputRuleNameList.output (RuleName.NSet.list_of (Ruleset.get_active rset))]),
        Pretty.str ("</ruleset>")];
 end;
-
-(* -------------------------------------------------------- *)
-
-structure OutputRGRuleSetXML : PRETTY_XML_OUTPUT
- = OutputRuleSetXML(
-    structure RuleSet = RGRuleSet
-    structure OutputRule = OutputRGRuleXML
-   );
-

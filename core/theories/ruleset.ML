@@ -5,7 +5,7 @@ structure TagName : SSTR_NAMES =
 (* binary relation between tags and rule names *)
 structure TagRel : NAME_BINREL = SStrBRel;
 
-(* sharing types for RuleSets *)
+(* sharing types for Rulesets *)
 signature RULESET_SHARING =
 sig
   structure Rule : RULE_SHARING
@@ -68,13 +68,13 @@ sig
 end; (* signature *)
 
 
-(* at some point, a ruleset should be a richer structure,
-   but this will do for now. Its just a rule list and a flag
-   for "active". *)
-structure DB_RGRuleSet =
+(* a Ruleset is map from rule names to rule, 
+   a subset of active rulenames, and a binary relation between rulenames 
+   and tagnames. *)
+functor Ruleset(Rule : RULE) =
 struct
   
-  structure Rule = RGRule
+  structure Rule = Rule;
   
   structure G = Rule.Graph;
   structure BBox = G.BBox;
@@ -89,29 +89,29 @@ struct
      for "active". 
      The rule list has a boolean to show if  the rule is active *)
   datatype T = 
-    RuleSet of
+    Ruleset of
       { allrules : Rule.T RuleName.NTab.T,
         brel : TagRel.T,
         active : RuleName.NSet.T };
   
-  val empty = RuleSet {
+  val empty = Ruleset {
         allrules = RuleName.NTab.empty,
         brel = TagRel.empty,
         active = RuleName.NSet.empty
       };
   
-  fun get_allrules (RuleSet rep) = #allrules rep;
-  fun get_active (RuleSet rep) = #active rep;
-  fun get_tagrel (RuleSet rep) = #brel rep;
+  fun get_allrules (Ruleset rep) = #allrules rep;
+  fun get_active (Ruleset rep) = #active rep;
+  fun get_tagrel (Ruleset rep) = #brel rep;
   
-  fun update_allrules f (RuleSet rep) = 
-      RuleSet {allrules = f (#allrules rep), active = #active rep, 
+  fun update_allrules f (Ruleset rep) = 
+      Ruleset {allrules = f (#allrules rep), active = #active rep, 
                brel = #brel rep };
-  fun update_active f (RuleSet rep) =
-      RuleSet {allrules = #allrules rep, active = f (#active rep), 
+  fun update_active f (Ruleset rep) =
+      Ruleset {allrules = #allrules rep, active = f (#active rep), 
                brel = #brel rep };
-  fun update_brel f (RuleSet rep) = 
-      RuleSet {allrules = #allrules rep, active = #active rep, 
+  fun update_brel f (Ruleset rep) = 
+      Ruleset {allrules = #allrules rep, active = #active rep, 
                brel = f (#brel rep) };
   
   val set_allrules = update_allrules o K;
@@ -197,8 +197,10 @@ struct
   fun delete_rules_in_tag tagname rset = 
       rset |> RuleName.NSet.fold delete_rule (get_rules_in_tag rset tagname);
 
-end; (* structure DB_RGRuleSet *)
+end; (* functor Ruleset *)
 
 
-structure RGRuleSet = DB_RGRuleSet : RULESET
+structure DB_RGRuleset = Ruleset(RGRule);
+
+structure RGRuleset = DB_RGRuleset : RULESET
 

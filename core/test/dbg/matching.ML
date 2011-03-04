@@ -7,7 +7,7 @@ val problem_graph_name = "test/dbg/error_case_1.graph";
 structure G = RGGraph;
 
 (* load a set of rules *)
-val ruletab = (RGRuleSetInputXML.input o XMLReader.read_from_file) theory_name;
+val ruletab = (RGRulesetInputXML.input o XMLReader.read_from_file) theory_name;
 val rule_list = 
   map_filter 
     (fn (n,(r,b)) => if b then SOME(n,r) else NONE) 

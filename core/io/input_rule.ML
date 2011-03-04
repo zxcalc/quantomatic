@@ -2,9 +2,9 @@
 (* ------------------------------------------------------- *)
 functor InputRuleXML (
   structure Rule : RULE
-  structure InputGraph : XML_INPUT
+  structure InputGraph : INPUT_XML
   sharing type InputGraph.data = Rule.Graph.T
-) : XML_INPUT
+) : INPUT_XML
 = struct
   open XML_Parse_Utils;
 
@@ -21,10 +21,3 @@ functor InputRuleXML (
       in Rule.mk (lhs,rhs) end;
 
 end;
-
-(* ------------------------------------------------------- *)
-structure InputRGRuleXML : XML_INPUT
-  = InputRuleXML(
-      structure Rule = RGRule
-      and InputGraph = InputRGGraphXML
-);
