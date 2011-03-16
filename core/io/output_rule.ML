@@ -1,5 +1,5 @@
 (* ------------------------------------------------------- *)
-functor OutputRuleXML (
+functor OutputBareRuleXML (
 	structure Rule : BASIC_RULE
 	structure OutputGraph : OUTPUT_PRETTY_XML
 	sharing type OutputGraph.data = Rule.Graph.T
@@ -11,17 +11,28 @@ functor OutputRuleXML (
 
   fun output rule = 
 	      Pretty.chunks
-	        [Pretty.str "<rule>",
-	         Pretty.str "<lhs>",
+	        [Pretty.str "<lhs>",
 	         Pretty.indent 2 (OutputGraph.output (Rule.get_lhs rule)),
 	         Pretty.str "</lhs>",
 	         Pretty.str "<rhs>", 
 	         Pretty.indent 2 (OutputGraph.output (Rule.get_rhs rule)),
-	         Pretty.str "</rhs>",
-	         Pretty.str "</rule>",
-	         Pretty.str ""]
+	         Pretty.str "</rhs>"]
 
 end;
+
+functor OutputRuleXML (
+	structure Rule : BASIC_RULE
+	structure OutputGraph : OUTPUT_PRETTY_XML
+	sharing type OutputGraph.data = Rule.Graph.T
+) : OUTPUT_PRETTY_XML
+= OutputWrapXML (
+  val tagname = "rule"
+  val attrs = []
+  structure Output1 = OutputBareRuleXML (
+    structure Rule = Rule
+    structure OutputGraph = OutputGraph
+  )
+);
 
 
 (* -------------------------------------------------------- *)
@@ -61,3 +72,6 @@ functor OutputRewriteXML (
 	         Pretty.str ""]
 
 end;
+
+(* vim:et:sts=2:sw=2:ts=2
+*)

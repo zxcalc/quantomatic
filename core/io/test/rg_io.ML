@@ -53,6 +53,7 @@ local
   : OUTPUT_PRETTY_XML where type data = ((RuleName.name * RGRule.T) * RGGraph.T) list
    = OutputListXML(
       val tagname = "rewrites"
+      val item_tagname = "rewrite"
       structure Output1 = OutputRGRewriteXML
      );
 

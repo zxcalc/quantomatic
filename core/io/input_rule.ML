@@ -14,8 +14,7 @@ functor InputRuleXML (
   fun data_to_string _ = "[Rule]";
   
   fun input xml = 
-      (let val _ = assert_tag "rule" xml
-           val children = get_children xml
+      (let val children = get_children xml
            val lhs = (InputGraph.input o get_the_elem "graph" 
                       o get_children o get_the_elem "lhs") children
              handle bad_input_exp (s,p) => raise bad_input_exp (s,"lhs/"^p)

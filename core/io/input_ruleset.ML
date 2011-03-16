@@ -16,21 +16,31 @@ functor InputRulesetXML(
   fun data_to_string _ = "[Ruleset]";
 
   structure InputAllRules = 
-  InputNTabXML(val tagname = "allrules"
+  InputNTabXML(
+    val tagname = "allrules"
+    val entry_tagname = "rule"
+    val key_tagname = "name"
+    val value_tagname = "definition"
     structure NTab = RuleName.NTab
-    structure InputName = InputRuleNameXML
+    structure InputName = InputUseChildXML(InputRuleNameXML)
     structure InputValue = InputRule
   );
 
   structure InputBRel = 
-  InputNameBRelXML(val tagname = "tags"
+  InputNameBRelXML(
+    val tagname = "tags"
+    val rel_tagname = "tag"
+    val cod_tagname = "name"
+    val dom_tagname = "rule"
     structure BRel = TagRel
-    structure InputDom = InputRuleNameXML
-    structure InputCod = InputTagNameXML
+    structure InputDom = InputUseChildXML(InputRuleNameXML)
+    structure InputCod = InputUseChildXML(InputTagNameXML)
   );
 
-  structure InputRuleNameList = InputListXML(val tagname = "active" 
-    structure Input1 = InputRuleNameXML);
+  structure InputRuleNameList = InputListXML(
+    val tagname = "active" 
+    val item_tagname = "rule" 
+    structure Input1 = InputUseChildXML(InputRuleNameXML));
   
   fun input xml = 
       (let val () = assert_tag "ruleset" xml
@@ -48,5 +58,5 @@ functor InputRulesetXML(
 end;
 
 
-(* vim:et:sts=2:sw=2
+(* vim:et:sts=2:sw=2:ts=2
 *)

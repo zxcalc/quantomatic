@@ -28,25 +28,41 @@ functor ComposeOutputs (
 end;
 
 
+functor OutputWrapXML (
+  val tagname : string
+  val attrs : (string*string) list
+  structure Output1 : OUTPUT_PRETTY_XML
+) : OUTPUT_PRETTY_XML
+=
+struct
+  type data = Output1.data
+  type T = Pretty.T
+
+  fun output x = Pretty.chunks [Pretty.str (XML_Output_Utils.start_tag tagname attrs),
+                                Pretty.indent 2 (Output1.output x),
+                                Pretty.str (XML_Output_Utils.end_tag tagname)];
+end;
+
+
 functor OutputListXML (
   val tagname : string
-	structure Output1 : OUTPUT_PRETTY_XML
+  val item_tagname : string 
+  structure Output1 : OUTPUT_PRETTY_XML
 ) : OUTPUT_PRETTY_XML
 = 
 struct
   type data = Output1.data list 
   type T = Pretty.T
 
-  fun output rewrites = 
-      Pretty.chunks [ Pretty.str ("<"^tagname^">"), 
-		      Pretty.indent 2 (Pretty.chunks (map (fn a => Pretty.enclose "<item>" "</item>" [Output1.output a]) rewrites)),
-		      Pretty.str ("</"^tagname^">"),
-		      Pretty.str ""
-		    ];
+  val wrap_item = XML_Output_Utils.pretty_item item_tagname [];
+  fun output xs = XML_Output_Utils.pretty_list tagname [] (map (wrap_item o Output1.output) xs);
 end;
 
 functor OutputNameBRelXML (
   val tagname : string 
+  val rel_tagname : string 
+  val cod_tagname : string 
+  val dom_tagname : string 
   structure BRel : NAME_BINREL
   structure OutputDom : OUTPUT_PRETTY_XML 
   structure OutputCod : OUTPUT_PRETTY_XML
@@ -60,26 +76,24 @@ functor OutputNameBRelXML (
   type T = Pretty.T;
 
   fun output brel = 
-      Pretty.chunks
-       [Pretty.str ("<"^tagname^">"),
-        Pretty.indent 2 
-          (Pretty.chunks 
-            (map 
-             (fn (codn,domnset) =>
-              Pretty.chunks 
-               [Pretty.str "<rel>", 
-                (Pretty.indent 2 o Pretty.chunks)
-                  (map (fn domn => Pretty.enclose "<dom>" "</dom>" 
-                                   [OutputDom.output domn])
-                       (BRel.Dom.NSet.list_of domnset)),
-                Pretty.indent 2 (Pretty.enclose "<cod>" "</cod>" [OutputCod.output codn]),
-                Pretty.str "</rel>"])
-             (BRel.Cod.NTab.list_of (BRel.get_codtab brel)))),
-        Pretty.str ("</"^tagname^">")];
+      XML_Output_Utils.pretty_list tagname [] (
+        map (fn (codn,domnset) =>
+               XML_Output_Utils.pretty_list rel_tagname [] (
+                 (XML_Output_Utils.pretty_item cod_tagname [] (OutputCod.output codn))
+                 ::(map (fn domn => XML_Output_Utils.pretty_item dom_tagname [] (OutputDom.output domn))
+                        (BRel.Dom.NSet.list_of domnset)
+                   )
+               )
+            )
+            (BRel.Cod.NTab.list_of (BRel.get_codtab brel))
+      );
 end;
 
 functor OutputNTabXML (
   val tagname : string 
+  val entry_tagname : string 
+  val key_tagname : string 
+  val value_tagname : string 
   structure NTab : NAME_TAB
   structure OutputName : OUTPUT_PRETTY_XML 
   structure OutputVal : OUTPUT_PRETTY_XML
@@ -88,20 +102,18 @@ functor OutputNTabXML (
 = struct
   type data = OutputVal.data NTab.T;
   type T = Pretty.T;
-  open XML_Parse_Utils;
+  open XML_Output_Utils;
   fun output ntab = 
-      Pretty.chunks
-       [Pretty.str ("<"^tagname^">"),
-        Pretty.indent 2 
-          (Pretty.chunks 
-            (map 
-             (fn (n,v) =>
-              Pretty.chunks 
-               [Pretty.str "<map>", 
-                (Pretty.indent 2 o Pretty.chunks)
-                  [Pretty.enclose "<name>" "</name>" [OutputName.output n],
-                   Pretty.enclose "<val>" "</val>" [OutputVal.output v]],
-                Pretty.str "</map>"])
-             (NTab.list_of ntab))),
-        Pretty.str ("</"^tagname^">")];
+      pretty_list tagname [] (
+        map (fn (n,v) =>
+               pretty_list entry_tagname [] (
+                 [pretty_item key_tagname [] (OutputName.output n),
+                  pretty_item value_tagname [] (OutputVal.output v)]
+               )
+            )
+            (NTab.list_of ntab)
+      );
 end;
+
+(* vim:et:sts=2:sw=2
+*)

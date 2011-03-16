@@ -85,12 +85,16 @@ functor IO_Interface(
     : OUTPUT_PRETTY_XML where type data = Rewrite.data list
      = OutputListXML(
         val tagname = "rewrites"
+        val item_tagname = "rewrite"
         structure Output1 = Rewrite
        );
 
     structure Ruleset = OutputRulesetXML(
       structure Ruleset = Ruleset
-      structure OutputRule = Rule
+      structure OutputRule = OutputBareRuleXML(
+        structure Rule = Ruleset.Rule
+        structure OutputGraph = Graph
+      )
       structure OutputRuleName = OutputRuleNameXML
       structure OutputTagName = OutputTagNameXML);
   

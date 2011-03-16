@@ -3,7 +3,11 @@ structure OutputRuleNameXML : OUTPUT_PRETTY_XML where type data = RuleName.name
 structure OutputTagNameXML = OutputSStrNameXML(TagName);
 
 structure OutputTagRelXML : OUTPUT_PRETTY_XML = 
-  OutputNameBRelXML(val tagname = "tags"
+  OutputNameBRelXML(
+    val tagname = "tags"
+    val rel_tagname = "tag"
+    val cod_tagname = "name"
+    val dom_tagname = "rule"
     structure BRel = TagRel
     structure OutputDom = OutputRuleNameXML
     structure OutputCod = OutputTagNameXML
@@ -16,19 +20,22 @@ functor OutputRulesetXML (
 	  where type data = Ruleset.Rule.T
 ) : OUTPUT_PRETTY_XML 
 = struct
-  structure OR = OutputRule
-  structure RS = Ruleset
-
-  structure OutputAllRules = OutputNTabXML(val tagname = "allrules"
+  structure OutputAllRules = OutputNTabXML(
+    val tagname = "allrules"
+    val entry_tagname = "rule"
+    val key_tagname = "name"
+    val value_tagname = "definition"
     structure NTab = RuleName.NTab
     structure OutputName = OutputRuleNameXML
     structure OutputVal = OutputRule
   );
 
-  structure OutputRuleNameList = OutputListXML(val tagname = "active" 
+  structure OutputRuleNameList = OutputListXML(
+    val tagname = "active" 
+    val item_tagname = "rule" 
     structure Output1 = OutputRuleNameXML);
   
-  type data = RS.T
+  type data = Ruleset.T
   type T = Pretty.T
 
   fun output rset = 
@@ -41,3 +48,6 @@ functor OutputRulesetXML (
            OutputRuleNameList.output (RuleName.NSet.list_of (Ruleset.get_active rset))]),
        Pretty.str ("</ruleset>")];
 end;
+
+(* vim:et:sts=2:sw=2:ts=2
+*)

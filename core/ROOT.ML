@@ -41,6 +41,7 @@ PolyML.Project.make "theories/red_green/rg_graph.ML";
 
 (* output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
+PolyML.Project.make "io/xml_output_utils.ML";
 PolyML.Project.make "io/input_generic.ML";
 PolyML.Project.make "io/output_generic.ML";
 
