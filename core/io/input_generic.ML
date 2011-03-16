@@ -136,10 +136,12 @@ functor InputNTabXML (
           (fn el => 
            let 
              val children = get_children el
-             val name_el = get_the_elem "name" children
-             val val_el = get_the_elem "val" children
-           in NTab.ins (InputName.input (get_the_child name_el),
-                        InputValue.input (get_the_child val_el)) end)
+             val name_el = (get_the_elem "name" children) handle bad_input_exp s => raise bad_input_exp ("Error in <allrules> map: "^s)
+             val val_el = (get_the_elem "val" children) handle bad_input_exp s => raise bad_input_exp ("Error in <allrules> map: "^s)
+             val rname = ((get_the_child name_el) handle bad_input_exp s => raise bad_input_exp ("Error in <name> element of <allrules> map: "^s))
+             val rule = ((get_the_child_ignore_wsp val_el) handle bad_input_exp s => raise bad_input_exp ("Error in <val> element of rule '"^(get_text rname)^"': "^s))
+           in NTab.ins (InputName.input rname,
+                        InputValue.input rule) end)
           els
           NTab.empty 
       end;

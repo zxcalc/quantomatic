@@ -14,6 +14,7 @@ sig
   val get_elem : tree -> Markup.T * tree list (* raises if text *)
   val get_children : tree -> tree list (* raises if text *)
   val get_the_child : tree -> tree (* raises if not a unique child *)
+  val get_the_child_ignore_wsp : tree -> tree (* raises if not a unique child *)
   val get_the_child_text : tree -> string (* raises if the unique child is not text *)
   val get_attributes : tree -> Properties.T (* raises if text *)
   val get_tag : tree -> string (* raises if text *)
@@ -56,7 +57,21 @@ fun get_children (Text _) = raise bad_input_exp "Can't get children of text"
 
 fun get_the_child (Text _) = raise bad_input_exp "Can't get unique child of text"
   | get_the_child (Elem ((elem, attr),[child])) = child
-  | get_the_child (Elem ((elem, attr),_)) = raise bad_input_exp "Doesn't have unqiue child";
+  | get_the_child (Elem ((elem, attr),_)) = raise bad_input_exp "Doesn't have unique child";
+
+fun is_whitespace_char " " = true
+  | is_whitespace_char "\n" = true
+  | is_whitespace_char "\r" = true
+  | is_whitespace_char _ = false
+
+fun filter_whitespace ((Text s)::remaining) =
+	if (forall_string is_whitespace_char s) then (filter_whitespace remaining)
+        else ((Text s)::(filter_whitespace remaining))
+  | filter_whitespace (e::remaining) = (e::(filter_whitespace remaining))
+  | filter_whitespace [] = []
+
+fun get_the_child_ignore_wsp (Text _) = raise bad_input_exp "Can't get unique child of text"
+  | get_the_child_ignore_wsp (Elem ((elem, attr),children)) = get_the_child (Elem ((elem, attr),(filter_whitespace children)))
 
 val get_the_child_text = get_text o get_the_child;
 
@@ -83,7 +98,7 @@ fun lookup_the_elem tag trees =
        | _ => NONE;
 fun get_the_elem tag trees = 
     case lookup_the_elem tag trees 
-      of NONE => raise bad_input_exp ("Unqiue <"^tag^"> tag not found.")
+      of NONE => raise bad_input_exp ("Unique <"^tag^"> tag not found.")
        | SOME x => x;
 
 end
