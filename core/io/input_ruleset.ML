@@ -34,15 +34,19 @@ functor InputRulesetXML(
   
   fun input xml = 
       (let val () = assert_tag "ruleset" xml
-           val children = get_children xml;
-       in 
+           val children = get_children xml
+           val rules = (InputAllRules.input (get_the_elem "allrules" children))
+           val tags = (InputBRel.input (get_the_elem "tags" children))
+           val active_rules = (InputRuleNameList.input (get_the_elem "active" children))
+       in
          Ruleset.empty 
-           |> Ruleset.set_allrules (InputAllRules.input (get_the_elem "allrules" children))
-           |> Ruleset.set_brel (InputBRel.input (get_the_elem "tags" children))
-           |> Ruleset.set_active (RuleName.NSet.of_list 
-               (InputRuleNameList.input (get_the_elem "active" children)))
+           |> Ruleset.set_allrules rules
+           |> Ruleset.set_brel tags
+           |> Ruleset.set_active (RuleName.NSet.of_list active_rules)
        end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"ruleset/"^p);
 end;
 
 
+(* vim:et:sts=2:sw=2
+*)

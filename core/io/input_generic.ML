@@ -71,7 +71,8 @@ functor InputListXML (
   fun data_to_string xs = fold (fn item => fn str => ((Input1.data_to_string item)^str)) xs "";
   fun input xml = 
       (let val () = XML_Parse_Utils.assert_tag tagname xml
-       in map Input1.input (XML_Parse_Utils.get_children xml) end)
+           val els = filter_elems "item" (get_children xml)
+       in map (Input1.input o get_the_child) els end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,tagname^"/"^p);
 end;
 
@@ -103,9 +104,9 @@ functor InputNameBRelXML (
               val cod_els = filter_elems "cod" children;
             in
               BRel.add_many 
-               (fold (BRel.Dom.NSet.add o InputDom.input) 
+               (fold (BRel.Dom.NSet.add o InputDom.input o get_the_child) 
                      dom_els BRel.Dom.NSet.empty)
-               (fold (BRel.Cod.NSet.add o InputCod.input) 
+               (fold (BRel.Cod.NSet.add o InputCod.input o get_the_child) 
                      cod_els BRel.Cod.NSet.empty)
             end)
            rel_els

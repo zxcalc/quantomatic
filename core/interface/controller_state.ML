@@ -320,7 +320,7 @@ functor ControllerState(
   
   fun save_ruleset ([file], state) =
       (let val save = (PrettyWriter.write_to_file file) o Output.Ruleset.output
-       in (save (get_rset state); "Saved rules in file " ^ file)
+       in (save (get_rset state); "Saved rules in file " ^ file ^ "\n")
        end
        handle IO.Io _ => raise user_exp ("Can't write rules file "^file^"."))
     | save_ruleset _ = raise wrong_args_exp ();

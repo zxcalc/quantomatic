@@ -177,12 +177,13 @@ struct
       in (name', rset |> set_allrules allrules') end;
   
   (* add all rules from rset1 to rset2, replaces elements in rset2 on duplicates, 
-     unions tags contents. *)
+     unions tags contents and unions active set. *)
   fun merge rset1 rset2 = 
       rset2 
         |> update_allrules (fn rtab2 => RuleName.NTab.merge_joint 
                                           (K true) rtab2 (get_allrules rset1))
-        |> update_brel (TagRel.union_merge (get_tagrel rset1));
+        |> update_brel (TagRel.union_merge (get_tagrel rset1))
+        |> update_active (RuleName.NSet.union_merge (get_active rset1));
   
   fun tag_rule rname tagname rset =
       if rule_exists rset rname then 
