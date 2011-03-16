@@ -314,14 +314,15 @@ functor ControllerState(
   fun load_ruleset ([file], state) =
       (let val loader = Input.Ruleset.input o XMLReader.read_from_file
        in ("ok\n", state |> update_rset (Ruleset.merge (loader file))) end
-       handle IO.Io _ => raise user_exp "Can't open ruleset.")
+       handle IO.Io _ => raise user_exp "Can't open rules file."
+            | Input.Ruleset.bad_input_exp (s,p) => raise user_exp ("Malformed rules file: "^s^" at "^p))
     | load_ruleset _ = raise wrong_args_exp ();
   
   fun save_ruleset ([file], state) =
       (let val save = (PrettyWriter.write_to_file file) o Output.Ruleset.output
-       in (save (get_rset state); "Saved ruleset in file " ^ file)
+       in (save (get_rset state); "Saved rules in file " ^ file)
        end
-       handle IO.Io _ => raise user_exp ("Can't write ruleset file "^file^"."))
+       handle IO.Io _ => raise user_exp ("Can't write rules file "^file^"."))
     | save_ruleset _ = raise wrong_args_exp ();
     
   fun delete_tag ([tag], state) =

@@ -13,6 +13,8 @@ functor InputRulesetXML(
   type T = XML.tree;
   type data = Ruleset.T;
 
+  fun data_to_string _ = "[Ruleset]";
+
   structure InputAllRules = 
   InputNTabXML(val tagname = "allrules"
     structure NTab = RuleName.NTab
@@ -31,15 +33,16 @@ functor InputRulesetXML(
     structure Input1 = InputRuleNameXML);
   
   fun input xml = 
-      let val () = assert_tag "ruleset" xml
-          val children = get_children xml;
-      in 
-        Ruleset.empty 
-          |> Ruleset.set_allrules (InputAllRules.input (get_the_elem "allrules" children))
-          |> Ruleset.set_brel (InputBRel.input (get_the_elem "tags" children))
-          |> Ruleset.set_active (RuleName.NSet.of_list 
-              (InputRuleNameList.input (get_the_elem "active" children)))
-      end;
+      (let val () = assert_tag "ruleset" xml
+           val children = get_children xml;
+       in 
+         Ruleset.empty 
+           |> Ruleset.set_allrules (InputAllRules.input (get_the_elem "allrules" children))
+           |> Ruleset.set_brel (InputBRel.input (get_the_elem "tags" children))
+           |> Ruleset.set_active (RuleName.NSet.of_list 
+               (InputRuleNameList.input (get_the_elem "active" children)))
+       end)
+      handle bad_input_exp (s,p) => raise bad_input_exp (s,"ruleset/"^p);
 end;
 
 

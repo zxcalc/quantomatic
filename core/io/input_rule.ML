@@ -10,14 +10,22 @@ functor InputRuleXML (
 
   type T = XML.tree;
   type data = Rule.T;
+
+  fun data_to_string _ = "[Rule]";
   
   fun input xml = 
-      let val _ = assert_tag "rule" xml
-          val children = get_children xml
-          val lhs = (InputGraph.input o get_the_elem "graph" 
-                     o get_children o get_the_elem "lhs") children
-          val rhs = (InputGraph.input o get_the_elem "graph" 
-                     o get_children o get_the_elem "rhs") children
-      in Rule.mk (lhs,rhs) end;
+      (let val _ = assert_tag "rule" xml
+           val children = get_children xml
+           val lhs = (InputGraph.input o get_the_elem "graph" 
+                      o get_children o get_the_elem "lhs") children
+             handle bad_input_exp (s,p) => raise bad_input_exp (s,"lhs/"^p)
+           val rhs = (InputGraph.input o get_the_elem "graph" 
+                      o get_children o get_the_elem "rhs") children
+             handle bad_input_exp (s,p) => raise bad_input_exp (s,"rhs/"^p)
+       in Rule.mk (lhs,rhs) end)
+      handle bad_input_exp (s,p) => raise bad_input_exp (s,"rule/"^p);
 
 end;
+
+(* vim:et:sts=2:sw=2
+*)
