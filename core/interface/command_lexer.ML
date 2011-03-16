@@ -1,6 +1,8 @@
 signature COMMAND_LEXER 
 = sig
 
+  exception parse_exp of unit;
+
   (* a command is the command name and its arguments *)
   type T = string * string list;
 
@@ -19,6 +21,7 @@ struct
   type T = string * string list;
   
   exception bug_exp of unit;
+  exception parse_exp of unit;
 
   fun unwrap (ID s) = s
     | unwrap (INT n) = Int.toString n
@@ -53,6 +56,7 @@ struct
             || (noop >> K []))
   
   fun parse str = parse_with (Scan.catch exprs) str
+    handle MoreTokens _ => raise parse_exp ()
   fun pretty (f,args) = Pretty.block[Pretty.str f,
                      Pretty.str_list "(" ")" args]
   val print = Pretty.writeln o pretty
@@ -61,4 +65,5 @@ struct
 end; (* local Lexer *)
 end; (* structure CommandLexer *)
 
-
+(* vim:et:sts=2:ts=2:sw=2
+*)

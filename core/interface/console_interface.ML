@@ -99,7 +99,8 @@ struct
   fun eval_commands_string commands_string state =
       let
         val cmds = SOME (CommandLexer.parse commands_string)
-                   handle Fail _ => NONE;
+                   handle Fail _ => NONE
+		        | CommandLexer.parse_exp () => NONE;
         fun eval_list [] state = ([], NORMAL state)
           | eval_list (c::cs) state =
             case do_cmd c state
@@ -113,7 +114,7 @@ struct
                   in (out::lst, st)
                   end
       in case cmds of SOME cs => eval_list cs state
-            | NONE => (["!!! Parse error in command. \n"], SKIP)
+            | NONE => (["!!! Parse error in command.\n"], SKIP)
       end
       
   (* Uniquely mark end of text as SPACE + BACKSPACE. This is well-behaved as
