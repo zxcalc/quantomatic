@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ruleset>  
+  <allrules>
+    <!-- 
+    <rule>
+      <name></name>
+      <definition>
+        <lhs>
+          <graph />
+        </lhs>
+        <rhs>
+          <graph />
+        </rhs>
+      </definition>
+    </rule>
+    ...
+    -->
+  </allrules>
+  <tags>
+    <!--
+    <tag>
+      <name>tag_name</name>
+      <rule>first_rule_name</rule>
+      <rule>second_rule_name</rule>
+      ...
+    </tag>
+    ...
+    -->
+  </tags>
+  <active>
+    <!--
+    <rule>first_rule_name</rule>
+    <rule>second_rule_name</rule>
+    ...
+    -->
+  </active>
+</ruleset>
