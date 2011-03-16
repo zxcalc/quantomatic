@@ -4,12 +4,21 @@ sig
     type elem
     datatype token = INT of int | ID of string | LIT of string | SYM of string | NOOP
     exception MoreTokens of elem list
+    (* Parses out an identifier: a series of letters or quasi-letters *)
     val ident : elem list -> token * elem list
+    (* Produces a NOOP token *)
     val noop : elem list -> token * elem list
+    (* Parses out a number *)
     val num : elem list -> token * elem list
+    (* Discards any number of whitespace characters (token will be NOOP) *)
     val space : elem list -> token * elem list
+    (* Parses a literal: a string surrounded in double-quotes, which may contain
+       C-style escaped characters *)
     val literal : elem list -> token * elem list
+    (* Parses out the specified text *)
     val sym : elem -> elem list -> token * elem list
+    (* Parse a string using the specified parser; if this fails to parse the whole
+       string, MoreTokens will be thrown *)
     val parse_with : (elem list -> 'a * elem list) -> string -> 'a
 end;
 
@@ -65,3 +74,6 @@ fun parse_with p str =
     end;
 
 end; (* struct: SimpleLexer *)
+
+(* vim:et:sts=2:ts=2:sw=2
+*)
