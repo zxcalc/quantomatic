@@ -7,8 +7,19 @@ Incremental parsing of simple XML tree values.
 
 signature INCR_XML =
 sig
-  type attributes = Properties.T
-  datatype tree_zipper =
+  (* NOTE: type of attributes = Properties.T *)
+  datatype T (* partially given XML *)
+
+  val get_position : T -> Position.T (* not in the middle of something XML *)
+
+  val xml_so_far : T -> XML.tree (* partially given XML *)
+  val depth : T -> int (* number of tags above us. *)
+  val is_valid_xml : T -> bool (* not in the middle of something XML: implies depth = 0 *)
+
+  exception bad_xml_exp of Position.T * string;
+  (* think of symbol as being a single character *)
+  val add_symbol : string -> T -> T (* raises bad_xml_exp *)
+
 
   type body = tree list
   val add_content: tree -> Buffer.T -> Buffer.T
@@ -26,8 +37,19 @@ sig
   val parse: string -> tree
 end;
 
-structure XML: XML =
+structure PartialXML: INCR_XML =
 struct
+
+
+(* IDEA: functional, dependently typed, incremental parsing algorithm *)
+datatype 'sym 'a parse_chunk = 
+  Done 'a 
+| Waiting (string (* informal description of state *) 
+           * ('sym -> 'a parse_chunk))
+
+datatype 'a parse_state = 
+  ('sym1 'sym2 parse_chunk) :: ('sym2 'sym3 parse_chunk) :: ...  
+
 
 (** XML trees **)
 
@@ -40,24 +62,116 @@ datatype tree =
 *)
 
 (* IDEA: there should be an automatic transformation to go from a grammar to a lazy parser 
-   for that grammar... *)
+   for that grammar... essentially create the zipper for. This means we could also create the text editor, which *knows* the structure of text even as we are typing and editing it. With a bit of thought this could be made very very cool... *)
 
+(* type used in edit point for when we are the middle of editing a propety 
+   (which is called an attribute in XML, but I'm 
+   usiung Isabelle's terminology here to fit the type names) *)
 datatype edit_property = 
-    Edit_PropName of string
-    Edit_PropValue of string * string;
+    (* at: "...<name ... part_of_prop_name_" word-chars until we get a "=" *)
+    Edit_PropName of string             
+    (* at: "...<name ... part_of_prop_name='part of value"; until we get a ' chat *)
+  | Edit_PropValue of string * string;  
 
+(* editing something in XML *)
 datatype edit_point =
+    (* at: "...<in_this_name"; until non-word char, i.e. ">" or space *)
     Edit_ElemName of string 
+    (* at: "...<name prop='x' "; either ">" or start of new property/attribute *)
   | Edit_ElemProp of string * Properties.T * edit_property
+    (* at: "...<name>... "; until we get to a "<" or end of file. *)
   | Edit_Text of string;
 
+(* a tag we are inside of, and the list of tags above it, which are also children of 
+   the same parent node. *)
 datatype tree_ctxt = TreeCtxt of (Markup.T * tree list);
 
-datatype partial_tree = PartialTree of TreeCtxt list * edit_point
+(* partial tree, the zipper context above us, and this edit point. *)
+datatype partial_tree = 
+  PartialTree of {
+    context: TreeCtxt list, (* context of tree above us *)
+    needed : string list, (* stuff we need to get now continue *)
+    edit : edit_point, (* particular point being edited *)
+  };
+
+(* boiler plate get, update, set *)
+fun get_needed (PartialTree rep) = #needed rep;
+fun get_context (PartialTree rep) = #context rep;
+fun get_edit (PartialTree rep) = #edit rep;
+
+fun update_context f (PartialTree rep) = 
+    PartialTree {context = f(#context rep), edit = #edit rep, needed = #needed rep };
+fun update_edit f (PartialTree rep) = 
+    PartialTree {context = #context rep, edit = f (#edit rep), needed = #needed rep };
+fun update_needed f (PartialTree rep) = 
+    PartialTree {context = #context rep, edit = #edit rep, needed = f(#needed rep) };
+
+val set_context = update_context o K;
+val set_edit = update_edit o K;
+val set_needed = update_needed o K;
+
+
+fun add_next_sibling xml_tree = update_context 
+      (fn TreeCtxt (tag,above_siblings) => (TreeCtxt(tag,xml_tree :: above_siblings)));
+
+fun push_new_parent s_and_properties = update_context (fn ctxt => (s_and_properties,[])::ctxt);
+
+(* *)
+exception bad_xml_exp of (Position.T * string);
+exception internal_bad_xml_exp of string;
+
+fun is_space_sym
+
+(* NOTE: assume symbol is a single char, else maybe you get bad looking xml...
+   also assumes that position has already been incremeneted *)
+
+fun add_symbol' sym (st as PartialTree {needed = h::t, ...}) = 
+    if sym = h then st |> update_needed tl else 
+    raise internal_bad_xml_exp ("We found '"^ sym ^"' where you need to have '"^String.concat (h::t)^"' (State: needed).")
+  | add_symbol' sym (st as PartialTree {edit = Edit_Text s, ...}) = 
+    (* at: "...<name>... "; until we get to a "<" or end of file. *)
+    (case sym 
+     (* enter a new tag *)
+     of "<" => if s = "" then st |> set_edit (Edit_ElemName "")
+               else st |> add_next_sibling (XML.Text s)
+                       |> set_edit (Edit_ElemName "")
+      | ">" => raise internal_bad_xml_exp ("Bad '>' character, expected '<' or normal text (State: Edit_Text).")
+      (* add sym to a text element (unless there is no text and symbol is blank). *)
+      | _ => if s = "" andalso Symbol.is_blank sym then st else st |> set_edit (Edit_Text (s ^ sym))
+    )
+  | add_symbol sym (st as PartialTree {edit = Edit_ElemName s, ...}) = 
+    (* at: "...<in_this_name"; until non-word char, i.e. ">" or space *)
+    if Symbol.is_blank sym then st |> set_edit (Edit_ElemProp (s, [], Edit_PropName ""))
+    else if Symbol.is_quasi_letter sym orelse Symbol.is_digit sym then ;
+      st |> set_edit (Edit_ElemName (s ^ sym))
+    else if sym = ">" then 
+      if s = "" then raise internal_bad_xml_exp ("Empty-string XML tags, as in '<>', are not allowed (State: Edit_ElemName).")
+      else st |> push_new_parent (s,[])
+              |> set_edit (Edit_Text "")
+    else if sym = "/" then st |> add_next_sibling (XML.Elem((s,[]),[]))
+                              |> set_edit (Edit_Text "")
+                              |> set_needed ">"
+    else raise internal_bad_xml_exp ("Strange character in xml-tag name: '" ^ sym ^ "', this is not allowed (State: Edit_ElemName).")
+  | add_symbol sym (st as PartialTree {edit = Edit_ElemProp (tag,props,Edit_PropName s), ...}) =
+    if Symbol.is_blank sym then st
+    else if sym = "=" then st |> set_edit (Edit_PropValue (s,""))
+                              |> set_needed "\""
+
+(* at: "...<name prop='x' "; either ">" or start of new property/attribute *)
+
+
+
+
+set_edit (Edit_Text (s ^ sym)))
+     
+
+    (Text s)
+
 
 local open XML in  
-  fun parse (PartialTree (ctxt, Edit_Text s)) = 
-      (Text s)
+
+Position.start
+
 end;
 
 type body = tree list;
