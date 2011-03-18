@@ -138,7 +138,7 @@ struct
               val _ = print ("quanto:> "^EOT)
             in 
             case read_line ()
-             of NONE => (print "Exiting...\n"; print EOT; ())
+             of NONE => (print "\n"; print EOT; ())
               | SOME s =>
                 let 
                   val (output, st) = eval_commands_string (unsuffix "\n" s) (!cur_state)
