@@ -1,9 +1,10 @@
 (* Commands available from the console and associate help stuff *)
 signature COMMANDS = 
 sig
+
   type command = string * (* help info *)
                     (string list * ControllerState.T (* arguments and state given to command *) 
-                     -> string * ControllerState.T (* result string and new state *)
+                     -> ControllerState.response * ControllerState.T (* result and new state *)
                     )
 
   type T
@@ -15,10 +16,10 @@ sig
   val add_simple_command : command -> T -> T;
 
   (* lift various functions *)
-  val lift_stateless : (string list -> string) -> command;
-  val lift_state_viewer : (string list * ControllerState.T -> string) -> command;
-  val lift_graph_viewer : (string list * RGGraph.T -> string) -> command;
-  val lift_graph_mutator : (string list * RGGraph.T -> string * RGGraph.T) -> command;
+  val lift_stateless : (string list -> ControllerState.response) -> command;
+  val lift_state_viewer : (string list * ControllerState.T -> ControllerState.response) -> command;
+  val lift_graph_viewer : (string list * RGGraph.T -> ControllerState.response) -> command;
+  val lift_graph_mutator : (string list * RGGraph.T -> ControllerState.response * RGGraph.T) -> command;
 end;
 
 (* *)
@@ -26,7 +27,7 @@ structure Commands
 = struct 
   type command = string * (* help info *)
                     (string list * ControllerState.T (* arguments and state given to command *) 
-                    -> string * ControllerState.T (* result string and new state *)
+                    -> ControllerState.response * ControllerState.T (* result and new state *)
                     );
 
   type T = command Symtab.table;
@@ -64,7 +65,7 @@ local open ControllerState in
     ("HELO",
      ("HELO\n\n"^
         "    sync the console, print \"HELO\"\n",
-     lift_stateless (K "HELO\n"))),
+     lift_stateless (K (as_data "HELO")))),
 
     ("load_rules",
      ("load_rules FILE\n\n" ^
@@ -351,3 +352,6 @@ local open ControllerState in
 end; (* local *)
  
 end;
+
+(* vim:et:sts=2:sw=2
+*)

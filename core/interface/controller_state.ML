@@ -7,11 +7,15 @@ signature CONTROLLER_STATE =
 sig
   type T;
   type rewrite = (RuleName.name * RGRule.T) * RGGraph.T
+  datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
 
   exception wrong_args_exp of unit (* when wrong arguments are given to a command *)
   exception user_exp of string; (* for errors sent to user console *) 
 
   val init : T (* initial empty state, no graphs *)
+
+  val as_name : string -> response
+  val as_data : string -> response
 
   (* get/set*)
   val get_rset : T -> RGRuleset.T
@@ -20,7 +24,7 @@ sig
   val get_graphs : T -> RGGraph.T GraphName.NTab.T
   val get_graph : T -> GraphName.name -> RGGraph.T
 
-  val update_rule : string list * T -> string * T
+  val update_rule : string list * T -> response * T
   val update_rset : (RGRuleset.T -> RGRuleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
@@ -40,91 +44,91 @@ sig
 
   
   (* history *)
-  val undo : string list * T -> string * T
-  val redo : string list * T -> string * T
+  val undo : string list * T -> response * T (* response: OK (FIXME: return what changed?) *)
+  val redo : string list * T -> response * T (* response: OK (FIXME: return what changed?) *)
   val push_hist : GraphName.name -> T -> T
 
   (* input/output *)
-  val save_ruleset : string list * T -> string
-  val save_graph : string list * RGGraph.T -> string
-  val load_ruleset : string list * T -> string * T
-  val load_graph : string list * T -> string * T
+  val save_ruleset : string list * T -> response (* response: OK *)
+  val save_graph : string list * RGGraph.T -> response (* response: OK *)
+  val load_ruleset : string list * T -> response * T (* response: OK *)
+  val load_graph : string list * T -> response * T (* response: NAME graphname *)
 
   (* printing/showing info (for console) *)
-  val show_rewrites : string list * T -> string
-  val print_graph : 'a list -> RGGraph.T -> string
-  val list_graphs : 'a list * T -> string
-  val list_rules_with_tag : string list * T -> string
-  val list_allrules : 'a list * T -> string
-  val list_tags : 'a list * T -> string
-  val list_active_rules : 'a list * T -> string
+  val show_rewrites : string list * T -> response (* response: OUTPUT rewrite-list-xml *)
+  val print_graph : 'a list -> RGGraph.T -> response (* response: DATA pretty-graph-structure *)
+  val list_graphs : 'a list * T -> response (* response: NAME_LIST pretty-graph-list *)
+  val list_rules_with_tag : string list * T -> response (* response: NAME_LIST pretty-rule-list *)
+  val list_allrules : 'a list * T -> response (* response: NAME_LIST pretty-rule-list *)
+  val list_tags : 'a list * T -> response (* response: NAME_LIST pretty-tag-list *)
+  val list_active_rules : 'a list * T -> response (* response: NAME_LIST pretty-rule-list *)
 
   (* rewriting *)
-  val attach_rewrites : string list * T -> string * T
-  val attach_first_rewrite : string list * T -> string * T
-  val apply_rewrite : string list * T -> string * T
-  val apply_first_rewrite : string list * T -> string * T
+  val attach_rewrites : string list * T -> response * T (* response: COUNT num-of-rewrites *)
+  val attach_first_rewrite : string list * T -> response * T (* response: COUNT num-of-rewrites *)
+  val apply_rewrite : string list * T -> response * T (* response: OK *)
+  val apply_first_rewrite : string list * T -> response * T (* response: OK *)
 
   (* rules/rulsesets *)
-  val new_rule : string list * T -> string * T
-  val open_rule_rhs : string list * T -> string * T
-  val open_rule_lhs : string list * T -> string * T
-  val delete_tag_and_its_rules : string list * T -> string * T
-  val delete_tag : string list * T -> string * T
-  val delete_rules_in_tag : string list * T -> string * T
-  val delete_rule : string list * T -> string * T
+  val new_rule : string list * T -> response * T (* response: OK *)
+  val open_rule_rhs : string list * T -> response * T (* response: NAME graph-name *)
+  val open_rule_lhs : string list * T -> response * T (* response: NAME graph-name *)
+  val delete_tag_and_its_rules : string list * T -> response * T (* response: OK *)
+  val delete_tag : string list * T -> response * T (* response: OK *)
+  val delete_rules_in_tag : string list * T -> response * T (* response: OK *)
+  val delete_rule : string list * T -> response * T (* response: OK *)
 
-  val activate_rules_with_tag : string list * T -> string * T
-  val activate_rule : string list * T -> string * T
-  val deactivate_rules_with_tag : string list * T -> string * T
-  val deactivate_rule : string list * T -> string * T
+  val activate_rules_with_tag : string list * T -> response * T (* response: OK *)
+  val activate_rule : string list * T -> response * T (* response: OK *)
+  val deactivate_rules_with_tag : string list * T -> response * T (* response: OK *)
+  val deactivate_rule : string list * T -> response * T (* response: OK *)
 
-  val tag_rule : string list * T -> string * T
-  val untag_rule : string list * T -> string * T
+  val tag_rule : string list * T -> response * T (* response: OK *)
+  val untag_rule : string list * T -> response * T (* response: OK *)
 
   (* graphs and their manipulations *)
-  val new_graph : 'a list * T -> string * T
-  val kill_graph : string list * T -> string * T
-  val insert_graph : string list * T -> string * T
-  val duplicate_graph : string list * T -> string * T
-  val create_graph : GraphName.name -> RGGraph.T -> T -> string * T
-  val copy_subgraph : string list * T -> string * T
+  val new_graph : 'a list * T -> response * T (* response: NAME graph-name *)
+  val kill_graph : string list * T -> response * T (* response: OK *)
+  val insert_graph : string list * T -> response * T (* response: OK *)
+  val duplicate_graph : string list * T -> response * T (* response: NAME graph-name *)
+  val create_graph : GraphName.name -> RGGraph.T -> T -> response * T (* response: NAME graph-name *)
+  val copy_subgraph : string list * T -> response * T (* response: OK *)
 
-  val add_vertex : string list * RGGraph.T -> string * RGGraph.T
-  val add_edge : string list * RGGraph.T -> string * RGGraph.T
-  val add_bang : 'a list * RGGraph.T -> string * RGGraph.T
+  val add_vertex : string list * RGGraph.T -> response * RGGraph.T (* response: NAME vertex-name *)
+  val add_edge : string list * RGGraph.T -> response * RGGraph.T (* response: NAME edge-name *)
+  val add_bang : 'a list * RGGraph.T -> response * RGGraph.T (* response: NAME bb-name *)
 
-  val set_angle : string list * RGGraph.T -> string * RGGraph.T
-  val rename_vertex : string list * RGGraph.T -> string * RGGraph.T
-  val rename_graph : string list * T -> string * T
-  val delete_vertices : string list * RGGraph.T -> string * RGGraph.T
-  val delete_edges : string list * RGGraph.T -> string * RGGraph.T
+  val set_angle : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val rename_vertex : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val rename_graph : string list * T -> response * T (* response: NAME new-graph-name *)
+  val delete_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val delete_edges : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
 
-  val bang_vertices : string list * RGGraph.T -> string * RGGraph.T
-  val kill_bang : string list * RGGraph.T -> string * RGGraph.T
-  val unbang_vertices : string list * RGGraph.T -> string * RGGraph.T
-  val merge_bang : string list * RGGraph.T -> string * RGGraph.T
-  val duplicate_bang : string list * RGGraph.T -> string * RGGraph.T
-  val drop_bang : string list * RGGraph.T -> string * RGGraph.T
+  val bang_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val kill_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val unbang_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val merge_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val duplicate_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val drop_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
 
-  val flip_vertices : string list * RGGraph.T -> string * RGGraph.T
+  val flip_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
 
   (* other *)
-  val hilb : string list * RGGraph.T -> string
+  val hilb : string list * RGGraph.T -> response (* response: DATA hilb-term *)
 
   (* internal *)
   val assert_tag_exists : T -> TagName.name -> unit
   val assert_rule_exists : T -> RuleName.name -> unit
-  val graph_xml : 'a list -> RGGraph.T -> string (* *)
+  val graph_xml : 'a list -> RGGraph.T -> response (* response: DATA graph-xml *)
   val graph_arg : string list -> GraphName.name (* first argument as a graph name *)
 
   val tag_name_action :
-   (TagName.name -> RGRuleset.T -> RGRuleset.T) -> string list * T -> string * T
+   (TagName.name -> RGRuleset.T -> RGRuleset.T) -> string list * T -> response * T
   val rule_name_action :
    (TagName.name -> RGRuleset.T -> RGRuleset.T) ->
-     string list * T -> string * T
+     string list * T -> response * T
   val graph_of_rule :
-   (RGRule.T -> RGGraph.T) -> string -> string list * T -> string * T
+   (RGRule.T -> RGGraph.T) -> string -> string list * T -> response * T
 
 end;
 
@@ -154,6 +158,7 @@ functor ControllerState(
   structure E = G.Edge;
   
   type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
+  datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
 
   (* data for controller; top level data with which user interacts *)
   datatype T = CState of {
@@ -162,6 +167,9 @@ functor ControllerState(
        hist : (G.T list * G.T list) GraphName.NTab.T, (* past and future *)
        rset : Ruleset.T (* the known rules *)
   }
+  
+  fun as_name str = NAME str
+  fun as_data str = DATA str
   
   (* getters and setters for the state *)
   fun update_graphs f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
@@ -230,8 +238,7 @@ functor ControllerState(
   exception wrong_args_exp of unit
   
   fun list_graphs ([], state) = 
-      GraphName.NTab.fold (suffix o suffix "\n" o GraphName.dest o fst)
-        (get_graphs state) ""
+      NAME_LIST (map GraphName.dest (GraphName.NSet.list_of (GraphName.NTab.get_nameset (get_graphs state))))
     | list_graphs _ = raise wrong_args_exp ()
   
   (* common things we want to assert are true *)
@@ -245,20 +252,24 @@ functor ControllerState(
       else raise user_exp ("No such rule named '" 
                            ^ (RuleName.string_of_name rule_name) ^ "'");
 
+  fun assert_not_rule_exists state rule_name = 
+      if not (Ruleset.rule_exists (get_rset state) rule_name) then ()
+      else raise user_exp ("Rule '" ^ (RuleName.string_of_name rule_name)
+                                    ^ "' already exists");
+
+  fun output_rulenames nset = NAME_LIST (map RuleName.string_of_name (RuleName.NSet.list_of nset))
+
   (* basic stuff on rule tags *)
   fun list_allrules ([], state) =
-      (Pretty.string_of (RuleName.NSet.pretty (RuleName.NTab.get_nameset (Ruleset.get_allrules (get_rset state)))))
-      ^ "\n"
+      output_rulenames (RuleName.NTab.get_nameset (Ruleset.get_allrules (get_rset state)))
     | list_allrules _ = raise wrong_args_exp ()
   
   fun list_active_rules ([], state) =
-      (Pretty.string_of (RuleName.NSet.pretty (Ruleset.get_active (get_rset state))))
-      ^ "\n"
+      output_rulenames (Ruleset.get_active (get_rset state))
     | list_active_rules _ = raise wrong_args_exp ()
   
   fun list_tags ([], state) =
-      (Pretty.string_of (TagName.NSet.pretty (Ruleset.get_tags (get_rset state))))
-      ^ "\n"
+      NAME_LIST (map TagName.string_of_name (TagName.NSet.list_of (Ruleset.get_tags (get_rset state))))
     | list_tags _ = raise wrong_args_exp ()
   
   fun list_rules_with_tag ([tag], state) = 
@@ -266,13 +277,13 @@ functor ControllerState(
         val tag_name = TagName.mk tag;
         val () = assert_tag_exists state tag_name;
         val rule_name_set = TagRel.codf (Ruleset.get_tagrel (get_rset state)) tag_name
-      in (suffix "\n" o Pretty.string_of) (RuleName.NSet.pretty rule_name_set) end
+      in output_rulenames rule_name_set end
     | list_rules_with_tag _ = raise wrong_args_exp ();
       
   fun tag_name_action f ([tag], state) =
       let val tag_name = TagName.mk tag
           val () = assert_tag_exists state tag_name
-      in ("ok\n", update_rset (f tag_name) state) end
+      in (OK, update_rset (f tag_name) state) end
     | tag_name_action f (_, state) = raise wrong_args_exp ();
   val deactivate_rules_with_tag = tag_name_action Ruleset.deactivate_tag; 
   val activate_rules_with_tag = tag_name_action Ruleset.activate_tag
@@ -281,18 +292,15 @@ functor ControllerState(
   fun rule_name_action f ([rule], state) = 
       let val rule_name = RuleName.mk rule
           val () = assert_rule_exists state rule_name
-      in ("ok\n", update_rset (f rule_name) state) end
+      in (OK, update_rset (f rule_name) state) end
     | rule_name_action f (_, state) = raise wrong_args_exp ();
   val deactivate_rule  = rule_name_action Ruleset.deactivate_rule
   val activate_rule = rule_name_action Ruleset.activate_rule
   val delete_rule = rule_name_action Ruleset.delete_rule
 
   (* creates/replaces rule *)
-  fun update_rule ([rule,lhs,rhs], state) =
+  fun force_update_rule rule_name lhs rhs state =
       let
-        val rule_name = RuleName.mk rule
-        val () = assert_rule_exists state rule_name
-  
         val graphs = get_graphs state
         
         (* build graphs for the LHS and RHS *)
@@ -301,46 +309,55 @@ functor ControllerState(
         val rgr = GraphName.NTab.get graphs (GraphName.mk rhs)
           handle GraphName.Tab.UNDEF _ => raise user_exp ("RHS graph '" ^ rhs ^"' doesn't exist.")
           
-      in ("ok\n", state |> update_rset (Ruleset.update_rule (rule_name, Ruleset.Rule.mk (lgr, rgr))))
+      in (OK, state |> update_rset (Ruleset.update_rule (rule_name, Ruleset.Rule.mk (lgr, rgr))))
           handle Ruleset.Rule.bad_rule_exp _ =>
             raise user_exp "Boundaries and !-boxes on LHS must match RHS."
       end
-    | update_rule _ = raise wrong_args_exp ()
   
-  (* create a new identity rule from the current graph *)
-  fun new_rule ([rule,graph], state) = update_rule ([rule,graph,graph], state)  
+  (* updates an existing rule *)
+  fun update_rule ([rule,lhs,rhs], state) =
+      let val rule_name = RuleName.mk rule
+          val () = assert_rule_exists state rule_name
+      in force_update_rule rule_name lhs rhs state end
+    | update_rule (_, state) = raise wrong_args_exp ();
+  
+  (* create a new rule from two graphs *)
+  fun new_rule ([rule,lhs,rhs], state) =
+      let val rule_name = RuleName.mk rule
+          val () = assert_not_rule_exists state rule_name
+      in force_update_rule rule_name lhs rhs state end
     | new_rule (_, state) = raise wrong_args_exp ();
   
   fun load_ruleset ([file], state) =
       (let val loader = Input.Ruleset.input o XMLReader.read_from_file
-       in ("ok\n", state |> update_rset (Ruleset.merge (loader file))) end
+       in (OK, state |> update_rset (Ruleset.merge (loader file))) end
        handle IO.Io _ => raise user_exp "Can't open rules file."
             | Input.Ruleset.bad_input_exp (s,p) => raise user_exp ("Malformed rules file: "^s^" at "^p))
     | load_ruleset _ = raise wrong_args_exp ();
   
   fun save_ruleset ([file], state) =
       (let val save = (PrettyWriter.write_to_file file) o Output.Ruleset.output
-       in (save (get_rset state); "Saved rules in file " ^ file ^ "\n")
+       in (save (get_rset state); OK)
        end
-       handle IO.Io _ => raise user_exp ("Can't write rules file "^file^"."))
+       handle IO.Io _ => raise user_exp ("Can't write rules file \""^file^"\"."))
     | save_ruleset _ = raise wrong_args_exp ();
     
   fun delete_tag ([tag], state) =
       let val tag_name = TagName.mk tag
           val () = assert_tag_exists state tag_name
-      in ("ok\n", update_rset (Ruleset.delete_tag tag_name) state) end
+      in (OK, update_rset (Ruleset.delete_tag tag_name) state) end
     | delete_tag _ = raise wrong_args_exp ();
 
   fun delete_rules_in_tag ([tag], state) =
       let val tag_name = TagName.mk tag
           val () = assert_tag_exists state tag_name
-      in ("ok\n", update_rset (Ruleset.delete_rules_in_tag tag_name) state) end
+      in (OK, update_rset (Ruleset.delete_rules_in_tag tag_name) state) end
     | delete_rules_in_tag _ = raise wrong_args_exp ();
 
   fun delete_tag_and_its_rules ([tag], state) =
       let val tag_name = TagName.mk tag
 	  val () = assert_tag_exists state tag_name
-      in ("ok\n", update_rset (Ruleset.delete_tag tag_name
+      in (OK, update_rset (Ruleset.delete_tag tag_name
                                    o Ruleset.delete_rules_in_tag tag_name) state) end
     | delete_tag_and_its_rules _ = raise wrong_args_exp ();
 
@@ -348,7 +365,7 @@ functor ControllerState(
       let val rule_name = RuleName.mk rule
           val tag_name = TagName.mk tag
           val () = assert_rule_exists state rule_name
-      in ("ok\n", update_rset (Ruleset.tag_rule rule_name tag_name) state) end
+      in (OK, update_rset (Ruleset.tag_rule rule_name tag_name) state) end
     | tag_rule (_, state) = raise wrong_args_exp ();
 
   fun untag_rule ([rule,tag], state) = 
@@ -356,14 +373,14 @@ functor ControllerState(
           val tag_name = TagName.mk tag
           val () = assert_rule_exists state rule_name
           val () = assert_tag_exists state tag_name
-      in ("ok\n", update_rset (Ruleset.untag_rule rule_name tag_name) state) end
+      in (OK, update_rset (Ruleset.untag_rule rule_name tag_name) state) end
     | untag_rule (_, state) = raise wrong_args_exp ();
       
   
     fun create_graph default_name graph state = let
         val (nm,gs) = (get_graphs state)
                   |> GraphName.NTab.add (default_name, graph)
-        in ((GraphName.dest nm) ^ "\n", state |> set_graphs gs) end
+        in (NAME (GraphName.dest nm), state |> set_graphs gs) end
   
     fun duplicate_graph ([name], state) = 
         let val gname = (GraphName.mk name) 
@@ -384,7 +401,7 @@ functor ControllerState(
       | input_graph_xml _ = raise wrong_args_exp () *)
   
   fun kill_graph ([name], state) =
-      (("ok\n", update_graphs
+      ((OK, update_graphs
                   (fn gs => gs |> GraphName.NTab.delete (GraphName.mk name)) state)
        handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^name))
     | kill_graph _ = raise wrong_args_exp ()
@@ -397,7 +414,7 @@ functor ControllerState(
                     |> GraphName.NTab.delete oldname
                     |> GraphName.NTab.add (GraphName.mk new, gr)
       in
-        (Pretty.string_of (GraphName.pretty_name nm) ^ "\n",
+        (NAME (Pretty.string_of (GraphName.pretty_name nm)),
          set_graphs graphs' state)
       end
       handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^old))
@@ -405,7 +422,7 @@ functor ControllerState(
   
   
   fun save_graph ([_, fname], graph) = 
-      ((PrettyWriter.write_to_file fname (Output.Graph.output graph); "Saved file " ^ fname ^"\n")
+      ((PrettyWriter.write_to_file fname (Output.Graph.output graph); OK)
        handle _ => raise user_exp ("Could not save file "^fname))
     | save_graph _ = raise wrong_args_exp ()
   
@@ -418,14 +435,14 @@ functor ControllerState(
   
   fun add_vertex ([_,vt], graph) =
       let val (n,g) = graph |> G.add_vertex (vertex_type vt)
-      in ("added vertex \"" ^ (G.Vertex.dest n) ^ "\"\n", g)
+      in (NAME (G.Vertex.dest n), g)
       end
     | add_vertex _ = raise wrong_args_exp ()
   
   (* FIXME: make generic over edge data *)
   fun add_edge ([_,v1,v2], graph) =
       (let val (n,g) = graph |> G.add_edge (G.UnDirected,()) (V.mk v1) (V.mk v2)
-       in ("added edge \"" ^ (G.Edge.dest n) ^ "\"\n", g)
+       in (NAME (G.Edge.dest n), g)
        end
        handle G.no_such_vname_exp _ =>
               raise user_exp "Bad vertex name.")
@@ -433,29 +450,26 @@ functor ControllerState(
   
   
   fun delete_vertices (_::vs, graph) =
-      (("ok\n", fold G.delete_vertex (map V.mk vs) graph)
+      ((OK, fold G.delete_vertex (map V.mk vs) graph)
        handle G.no_such_vname_exp _ => raise user_exp "No such vertex.")
     | delete_vertices _ = raise wrong_args_exp ()
   
   fun delete_edges (_::es, graph) =
-      (("ok\n", fold G.delete_edge (map E.mk es) graph)
+      ((OK, fold G.delete_edge (map E.mk es) graph)
        handle G.no_such_ename_exp _ => raise user_exp "No such edge.")
     | delete_edges _ = raise wrong_args_exp ()
   
   fun rename_vertex ([_,old,new], graph) =
-      (("renamed to \""^new^"\"\n", graph |> G.rename_vname (V.mk old) (V.mk new))
+      ((OK, graph |> G.rename_vname (V.mk old) (V.mk new))
        handle G.vname_already_exists_exp _ =>
               raise user_exp "graph already contains a vertex of this name"
             | G.no_such_vname_exp _ => raise user_exp "no such vertex")
     | rename_vertex _ = raise wrong_args_exp ()
   
-  
-  fun graph_xml [nme] = (suffix "\n") o
-                Pretty.string_of  o
-                Output.Graph.output
+  fun graph_xml [nme] = as_data o Pretty.string_of o Output.Graph.output
     | graph_xml _ = raise wrong_args_exp ()
   
-  fun print_graph [_] = (suffix "\n") o Pretty.string_of o G.pretty
+  fun print_graph [_] = as_data o Pretty.string_of o G.pretty
     | print_graph _ = raise wrong_args_exp ()
                         
   fun undo ([name], state) = 
@@ -463,7 +477,7 @@ functor ControllerState(
         val gname = (GraphName.mk name) 
         val current = get_graph state gname
       in case GraphName.NTab.lookup (get_hist state) gname
-          of SOME (g::gs, hs) => ("ok\n",
+          of SOME (g::gs, hs) => (OK,
               state |> set_graph g gname
                     |> update_hist (GraphName.NTab.update
                                    (gname, (gs,current::hs))))
@@ -476,7 +490,7 @@ functor ControllerState(
         val gname = GraphName.mk name;
         val current = get_graph state gname
       in case GraphName.NTab.lookup (get_hist state) gname
-          of SOME (gs, h::hs) => ("ok\n",
+          of SOME (gs, h::hs) => (OK,
               state |> set_graph h gname
                     |> update_hist (GraphName.NTab.update
                                    (gname, (current::gs,hs))))
@@ -488,9 +502,8 @@ functor ControllerState(
       (let val gname = GraphName.mk name
            val rewrites = GraphName.NTab.get (get_rewrites state) gname
            val ((rulename,rule),rewritten_graph) = nth rewrites (the (Int.fromString n))
-       in ("applied "^(RuleName.string_of_name rulename)^"\n",
-           state |> push_hist gname
-                 |> set_graph rewritten_graph gname)
+       in (OK, state |> push_hist gname
+                     |> set_graph rewritten_graph gname)
        end
        handle GraphName.Tab.UNDEF _ => raise user_exp "No rewrites attached." 
             | General.Subscript => raise user_exp "Rewrite not attached."
@@ -511,7 +524,7 @@ functor ControllerState(
 
       fun attach_with attacher args = 
           let val (n,st) = attach_with' attacher args
-          in ("attached "^(Int.toString n)^" rewrites\n",st) end;
+          in (COUNT n,st) end;
 
       fun apply_first_in rset vs g = 
           case RulesetRewrites.apply_first_in rset vs g of NONE => Seq.empty
@@ -539,7 +552,7 @@ functor ControllerState(
       val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
               of NONE => raise user_exp "No rewrites attached."
                | SOME rs => rs
-  in Pretty.string_of (Output.RewriteList.output rewrites) end;
+  in REWRITE_LIST rewrites  end;
   
   (* FIXME: make generic, currently depends on RGVertex *)
   fun vdata a (RGVertex.IVert (RGVertex.Xnd _)) = RGVertex.IVert (RGVertex.Xnd (AngleExpr.parse a))
@@ -547,28 +560,28 @@ functor ControllerState(
     | vdata a _ = raise user_exp "Can only set angles for red and green vertices."
   
   fun set_angle ([_,v,a], graph) =
-      (("ok\n", graph |> G.update_vertex_data (vdata a) (V.mk v))
+      ((OK, graph |> G.update_vertex_data (vdata a) (V.mk v))
        handle AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
     | set_angle _ = raise wrong_args_exp ()
   
   (* FIXME: make generic => i.e. depend only on RG Hilb term *)
   fun hilb ([_, format], graph) =
-      (Pretty.string_of (
+      (DATA (Pretty.string_of (
        RGHilbTerm.pretty (AlgFormat.of_string format)
-                (RGHilbTerm.of_graph graph)) ^ "\n"
+                (RGHilbTerm.of_graph graph)))
       handle AlgFormat.not_supported_exp =>
          raise user_exp "Term format not supported.")
     | hilb _ = raise wrong_args_exp ()
   
   fun add_bang ([_], graph) = 
       graph |> G.new_box (G.BBox.default_name)
-            >> (fn a => (G.BBox.dest a) ^ "\n")
+            >> (fn a => NAME (G.BBox.dest a))
     | add_bang _ = raise wrong_args_exp ()
   
   fun drop_bang ((_::names), graph) =
     let val namestr = implode ((separate " " names) @ ["."]);
     in
-      ("dropped !-box \""^namestr^"\"\n",
+      (OK,
         graph |> fold G.drop_box (map G.BBox.mk names))
     end  
     | drop_bang _ = raise wrong_args_exp ()
@@ -576,7 +589,7 @@ functor ControllerState(
   fun kill_bang ((_::names), graph) =
     let val namestr = implode ((separate " " names) @ ["."]);
     in
-      ("kill !-box \""^namestr^"\"\n",
+      (OK,
        graph |> fold G.kill_box (map G.BBox.mk names))
     end
     | kill_bang _ = raise wrong_args_exp ()
@@ -585,23 +598,23 @@ functor ControllerState(
     let val namestr = implode ((separate " " names) @ ["."]);
       val nameset = G.BBox.NSet.of_list (map G.BBox.mk names)
     in  
-      ("merge !-boxes \""^namestr^"\n",
+      (OK,
        graph |> G.merge_boxes nameset |> snd )
     end 
     | merge_bang _ = raise wrong_args_exp ()
     
   fun duplicate_bang ([_,name], graph) =
-      ("duplicate !-box \""^name^"\n",
+      (OK,
        G.fresh_copy1_box (G.BBox.mk name) graph)
     | duplicate_bang _ = raise wrong_args_exp ()
     
   fun bang_vertices ((_::box::verts), graph) = 
-      ("added vertices to \""^box^"\"\n",
+      (OK,
        graph |> G.move_to_box (G.BBox.mk box) (G.Vertex.NSet.of_list (map V.mk verts)))
     | bang_vertices _ = raise wrong_args_exp ()
   
   fun unbang_vertices ((_::verts), graph) =
-      ("un-!'ed vertices\n",
+      (OK,
        graph |> G.move_to_unbox (G.Vertex.NSet.of_list (map V.mk verts)))
     | unbang_vertices _ = raise wrong_args_exp ()
   
@@ -610,7 +623,7 @@ functor ControllerState(
       val clip = G.delete_subgraph_outside_vset 
                    (G.Vertex.NSet.of_list (map V.mk vs))
                    graph
-  in ("ok\n", state |> set_graph clip (GraphName.mk target))
+  in (OK, state |> set_graph clip (GraphName.mk target))
   end
     | copy_subgraph _ = raise wrong_args_exp ()
   
@@ -621,7 +634,7 @@ functor ControllerState(
         val targ = get_graph state tname 
         val source = get_graph state sname 
         val (_, source) = G.rename_apart targ (get_graph state sname)
-      in ("ok\n", state |> push_hist tname
+      in (OK, state |> push_hist tname
                             |> set_graph (G.merge_by_vertices targ source) tname)
       end
     | insert_graph _ = raise wrong_args_exp ()
@@ -631,7 +644,7 @@ functor ControllerState(
       fun flip_data (RGVertex.IVert (RGVertex.Xnd e)) = RGVertex.IVert (RGVertex.Znd e)
         | flip_data (RGVertex.IVert (RGVertex.Znd e)) = RGVertex.IVert (RGVertex.Xnd e)
         | flip_data d = d
-  in ("ok\n", fold (G.update_vertex_data flip_data) (map V.mk vs) graph)
+  in (OK, fold (G.update_vertex_data flip_data) (map V.mk vs) graph)
   end
     | flip_vertices _ = raise wrong_args_exp ()
     
@@ -643,7 +656,7 @@ functor ControllerState(
                      of SOME v => v | NONE => raise user_exp "Can't find rule."
         val (name, graphs) = GraphName.NTab.add (GraphName.mk (rulename^"_"^label), getter r) (get_graphs state)
       in
-        (((suffix "\n") o Pretty.string_of o GraphName.pretty_name) name,
+        ((as_name o Pretty.string_of o GraphName.pretty_name) name,
          state |> set_graphs graphs)
       end
     | graph_of_rule _ _ _ = raise wrong_args_exp ()
@@ -659,3 +672,6 @@ structure DB_ControllerState = ControllerState(
   structure IO_Interface = IO_RG_Interface
 );
 structure ControllerState : CONTROLLER_STATE = DB_ControllerState; 
+
+(* vim:et:sts=2:sw=2
+*)

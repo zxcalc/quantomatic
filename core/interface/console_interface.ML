@@ -81,14 +81,21 @@ struct
         raise ControllerState.user_exp ("BUG: Duplicate Edge.")
       | G.Edge.Tab.UNDEF x =>
         raise ControllerState.user_exp ("BUG: G.Edge.Tab.UNDEF");
+
+  fun response_string (ControllerState.OK) = "ok\n"
+    | response_string (ControllerState.COUNT n) = (Int.toString n)^"\n"
+    | response_string (ControllerState.NAME str) = str^"\n"
+    | response_string (ControllerState.NAME_LIST xs) = (fold (suffix o (suffix "\n")) xs "")^"\n"
+    | response_string (ControllerState.REWRITE_LIST rs) = (Pretty.string_of (IO_RG_Interface.Output.RewriteList.output rs))^"\n"
+    | response_string (ControllerState.DATA str) = str^"\n"
   
-  fun do_cmd ("quit", _) _ = ("Exiting...\n", QUIT)
-    | do_cmd ("exit", _) _ = ("Exiting...\n", QUIT)
+  fun do_cmd ("quit", _) _ = ("", QUIT)
+    | do_cmd ("exit", _) _ = ("", QUIT)
     | do_cmd ("help", args) _ = (help args, SKIP)
     | do_cmd ("NOOP", _) _ = ("", SKIP)
     | do_cmd (cmd as (cname,args)) state =
       (case Symtab.lookup commands cname
-        of SOME (_,f) => (fn (a,b)=>(a, NORMAL b)) (f (args, state))
+        of SOME (_,f) => (fn (a,b)=>(response_string a, NORMAL b)) (f (args, state))
          | NONE => ("!!! Unknown command: "^
             (CommandLexer.toString cmd)^"\n", NORMAL state))
       handle ControllerState.wrong_args_exp () =>
