@@ -1,18 +1,21 @@
 <?xml version="1.0"?>
 <ruleset>
-<!-- 
-	<rule>
-		<name></name>
-		<lhs>
-		</lhs>
-		<rhs>
-		</rhs>
-	</rule>
--->
+  <allrules>
+    <!-- 
+         <rule>
+         <name></name>
+         <definition>
+           <lhs>
+           </lhs>
+           <rhs>
+           </rhs>
+         </definition>
+       </rule>
+       -->
 
 	<rule>
 		<name>hopf_banged</name>
-		<lhs>
+		<definition><lhs>
 <graph>
 <!-- VERTICES -->
   <vertex>
@@ -139,14 +142,14 @@
     <boxedvertex>a</boxedvertex>
   </bangbox>
 </graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 
 
 
 	<rule>
 		<name>spider.green</name>
-		<lhs>
+		<definition><lhs>
       <graph>
       <!-- VERTICES -->
         <vertex>
@@ -258,12 +261,12 @@
           <boxedvertex>b</boxedvertex>
         </bangbox>
       </graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 
 	<rule>
 		<name>spider.red</name>
-		<lhs>
+		<definition><lhs>
       <graph>
       <!-- VERTICES -->
         <vertex>
@@ -375,13 +378,13 @@
           <boxedvertex>b</boxedvertex>
         </bangbox>
       </graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 
 
 	<rule>
 		<name>bialgebra1</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -521,11 +524,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>red_antiloop</name>
-		<lhs>
+		<definition><lhs>
 <graph>
 <!-- VERTICES -->
   <vertex>
@@ -573,11 +576,11 @@
     <boxedvertex>b</boxedvertex>
   </bangbox>
 </graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>hh_to_id</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -636,11 +639,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_h_swap</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -711,11 +714,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_inv_h_swap</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -786,11 +789,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_hh_swap</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -889,11 +892,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_inv_hh_swap</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -992,11 +995,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_hhh_swap</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1123,11 +1126,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_inv_hhh_swap</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1254,11 +1257,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_abelian1</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1307,11 +1310,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_abelian1</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1360,11 +1363,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_group1_1in</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1457,11 +1460,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_group1_1in</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1554,11 +1557,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_group1_2in</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1686,11 +1689,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_group1_2in</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1818,11 +1821,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_group2</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1900,11 +1903,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_group2</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -1982,11 +1985,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_group3</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2047,11 +2050,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_group3</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2112,11 +2115,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_group4</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2191,11 +2194,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_group4</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2270,11 +2273,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_copy_0</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2358,11 +2361,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_copy_0</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2446,11 +2449,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>z_copy_pi</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2555,11 +2558,11 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 	<rule>
 		<name>x_copy_pi</name>
-		<lhs>
+		<definition><lhs>
 			<graph>
 <!-- VERTICES -->
 				<vertex>
@@ -2664,13 +2667,13 @@
 				</edge>
 <!-- BANG BOXES  -->
 			</graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
 
 
 	<rule>
 		<name>green_antiloop</name>
-		<lhs>
+		<definition><lhs>
 <graph>
 <!-- VERTICES -->
   <vertex>
@@ -2718,8 +2721,41 @@
     <boxedvertex>b</boxedvertex>
   </bangbox>
 </graph>
-		</rhs>
+		</rhs></definition>
 	</rule>
-
-
+</allrules>
+<tags>
+</tags>
+<active>
+<rule></rule>
+<rule>hopf_banged</rule>
+<rule>spider.green</rule>
+<rule>spider.red</rule>
+<rule>bialgebra1</rule>
+<rule>red_antiloop</rule>
+<rule>hh_to_id</rule>
+<rule>x_h_swap</rule>
+<rule>z_inv_h_swap</rule>
+<rule>x_hh_swap</rule>
+<rule>z_inv_hh_swap</rule>
+<rule>x_hhh_swap</rule>
+<rule>z_inv_hhh_swap</rule>
+<rule>z_abelian1</rule>
+<rule>x_abelian1</rule>
+<rule>z_group1_1in</rule>
+<rule>x_group1_1in</rule>
+<rule>z_group1_2in</rule>
+<rule>x_group1_2in</rule>
+<rule>z_group2</rule>
+<rule>x_group2</rule>
+<rule>z_group3</rule>
+<rule>x_group3</rule>
+<rule>z_group4</rule>
+<rule>x_group4</rule>
+<rule>z_copy_0</rule>
+<rule>x_copy_0</rule>
+<rule>z_copy_pi</rule>
+<rule>x_copy_pi</rule>
+<rule>green_antiloop</rule>
+</active>
 </ruleset>
