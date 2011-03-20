@@ -32,7 +32,7 @@ fi
 # polyml from same directory as quantomatic
 [ -d "$ROOT_DIR/../polyml" ] && LOCAL_POLY_DIR="$(cd $ROOT_DIR/../polyml; pwd)"
 # polyml from contrib directory of quatomatc
-[ -d "$ROOT_DIR/contrib/polyml" ] && CONTRIB_POLY_DIR="$(cd $ROOT_DIR/contrib/polyml; pwd)"
+[ -d "$ROOT_DIR/tools/contrib/polyml" ] && CONTRIB_POLY_DIR="$(cd $ROOT_DIR/tools/contrib/polyml; pwd)"
 
 POLYML_HOME=$(choosefrom \
   "$POLYML_HOME" \
