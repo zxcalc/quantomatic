@@ -1,0 +1,23 @@
+ABOUT: 
+
+Quantomatic is a piece of software for reasoning about monoidal theories. In particular, it was designed to reason about quantum information processing.
+
+More details are available at: 
+
+  http://dream.inf.ed.ac.uk/projects/quantomatic/
+
+
+LICENSE: 
+
+This software is under the GNU General Public License (GPL). This is described in detail at: 
+
+  http://www.gnu.org/licenses/
+
+You can also see docs/LICENSE.txt for the full details. 
+
+
+DISCLAIMER: 
+
+This software is provided "as is": you use the software at your own risk and we make no warranties of any sort. 
+
+See docs/DISCLAIMER.txt for more about how little responsibility we take.

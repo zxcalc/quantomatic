@@ -1,0 +1,3 @@
+This software is provided "as is": you use the software at your own risk. We make no warranties as to performance, merchantability, fitness for a particular purpose, or any other warranties whether expressed or implied.
+
+Under no circumstances shall the authors accept to be liable for direct, indirect, special, incidental, or consequential damages resulting from the use, misuse, or inability to use this software, even if we have been advised of the possibility of such damages.
