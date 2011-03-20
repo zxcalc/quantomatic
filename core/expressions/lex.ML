@@ -1,3 +1,4 @@
+(* *)
 
 signature SIMPLE_LEXER =
 sig
@@ -14,7 +15,8 @@ sig
     val space : elem list -> token * elem list
     (* Parses a literal: a string surrounded in double-quotes, which may contain
        C-style escaped characters *)
-    val literal : elem list -> token * elem list
+    val string_literal : elem list -> token * elem list
+
     (* Parses out the specified text *)
     val sym : elem -> elem list -> token * elem list
     (* Parse a string using the specified parser; if this fails to parse the whole
@@ -46,7 +48,7 @@ val ident = wrap_term ((
 val sym = fn str => (wrap_term (Scan.this_string str >> (K (SYM str))));
 val noop = fn toks => (NOOP, toks);
 
-(* string literal code stolen from isabelle/ml_parse.ML *)
+    (* string literal code stolen from isabelle/ml_parse.ML *)
     val scan_escape =
     Scan.one (member (op =) (raw_explode "\"\\abtnvfr")) ||
 		 $$ "^" ^^ Scan.one (fn s => ord "@" <= ord s andalso ord s <= ord "_") ||
@@ -62,7 +64,7 @@ val noop = fn toks => (NOOP, toks);
     (*val scan_gap = ($$ "\\") ^^ scan_blanks1 ^^ ($$ "\\");
     val scan_gaps = Scan.repeat scan_gap >> implode;*)
 
-  val literal = wrap_term ((
+  val string_literal = wrap_term ((
           ($$ "\"")
           |-- (Scan.repeat scan_str >> implode)
           --| ($$ "\"")) >> LIT);    

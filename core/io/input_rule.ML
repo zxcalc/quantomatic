@@ -15,11 +15,11 @@ functor InputRuleXML (
   
   fun input xml = 
       (let val children = get_children xml
-           val lhs = (InputGraph.input o get_the_elem "graph" 
-                      o get_children o get_the_elem "lhs") children
+           val lhs = (InputGraph.input o get_unique_elem "graph" 
+                      o get_children o get_unique_elem "lhs") children
              handle bad_input_exp (s,p) => raise bad_input_exp (s,"lhs/"^p)
-           val rhs = (InputGraph.input o get_the_elem "graph" 
-                      o get_children o get_the_elem "rhs") children
+           val rhs = (InputGraph.input o get_unique_elem "graph" 
+                      o get_children o get_unique_elem "rhs") children
              handle bad_input_exp (s,p) => raise bad_input_exp (s,"rhs/"^p)
        in
           Rule.mk (lhs,rhs)

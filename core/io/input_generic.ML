@@ -188,9 +188,9 @@ functor InputNTabXML (
            (fn el => 
             let 
               val children = get_children el
-              val name = (get_the_elem_processed InputName.input key_tagname children)
+              val name = (apply_to_unique_elem InputName.input key_tagname children)
                 handle bad_input_exp (s,p) => raise bad_input_exp (s,entry_tagname^"/"^p)
-              val value = (get_the_elem_processed InputValue.input value_tagname children)
+              val value = (apply_to_unique_elem InputValue.input value_tagname children)
                 handle bad_input_exp (s,p) => raise bad_input_exp (s,entry_tagname^" ("^(InputName.data_to_string name)^")/"^p)
             in NTab.ins (name, value) end)
            els

@@ -29,11 +29,11 @@ functor InputGraphXML (
       let 
         val _ = assert_tag "edge" xml
         val children = get_children xml 
-        val name = E.mk (get_the_elem_processed get_the_child_text "name" children)
+        val name = E.mk (apply_to_unique_elem get_unique_child_text "name" children)
           handle bad_input_exp (s,p) => raise bad_input_exp (s,"edge/"^p)
-        val source = V.mk (get_the_elem_processed get_the_child_text "source" children)
+        val source = V.mk (apply_to_unique_elem get_unique_child_text "source" children)
           handle bad_input_exp (s,p) => raise bad_input_exp (s,"edge("^(E.dest name)^")/"^p)
-        val target = V.mk (get_the_elem_processed get_the_child_text "target" children)
+        val target = V.mk (apply_to_unique_elem get_unique_child_text "target" children)
           handle bad_input_exp (s,p) => raise bad_input_exp (s,"edge("^(E.dest name)^")/"^p)
         val edata = InputEdgeData.input xml
           handle bad_input_exp (s,p) => raise bad_input_exp (s,"edge("^(E.dest name)^")/"^p)
@@ -43,9 +43,9 @@ functor InputGraphXML (
       let 
         val _ = assert_tag "bangbox" xml
         val children = get_children xml 
-        val name = B.mk (get_the_elem_processed get_the_child_text "name" children)
+        val name = B.mk (apply_to_unique_elem get_unique_child_text "name" children)
           handle bad_input_exp (s,p) => raise bad_input_exp (s,"bangbox/"^p)
-        val bangverts = List.map (V.mk o get_the_child_text) 
+        val bangverts = List.map (V.mk o get_unique_child_text) 
                                  (filter_elems "boxedvertex" children)
           handle bad_input_exp (s,p) => raise bad_input_exp (s,"bangbox("^(B.dest name)^")/"^p)
       in (name,bangverts) end;
@@ -68,7 +68,7 @@ functor InputGraphXML (
   fun input_vertex xml = 
       let val () = assert_tag "vertex" xml
           val children = get_children xml
-          val name = V.mk (get_the_elem_processed get_the_child_text "name" children)
+          val name = V.mk (apply_to_unique_elem get_unique_child_text "name" children)
             handle bad_input_exp (s,p) => raise bad_input_exp (s,"vertex/"^p)
       in
         (name, InputVertexData.input xml)
@@ -107,8 +107,8 @@ functor InputRGVertexDataXML (V : RG_VERTEX)  : INPUT_XML
 
   fun input_rational xml = 
       let val children = get_children xml;
-          val num = get_the_child (get_the_elem "num" children)
-          val denom = get_the_child (get_the_elem "denom" children)
+          val num = get_unique_child (get_unique_elem "num" children)
+          val denom = get_unique_child (get_unique_elem "denom" children)
       in (InputIntXML.input num, InputIntXML.input denom) end;
   
   fun input_constant xml =
@@ -124,15 +124,15 @@ functor InputRGVertexDataXML (V : RG_VERTEX)  : INPUT_XML
   fun input_variable xml = 
       (let val _ = assert_tag "variable" xml
            val children = get_children xml
-           val name = get_the_child_text (get_the_elem "name" children)
-           val coeff = get_the_elem "coefficient" children
+           val name = get_unique_child_text (get_unique_elem "name" children)
+           val coeff = get_unique_elem "coefficient" children
        in (name, input_coeff coeff) end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"variable/"^p);
   
   fun input_angleexpr xml  =
       (let val () = assert_tag "angleexpr" xml
            val children = get_children xml 
-           val constant = case (lookup_the_elem "constant" children) of
+           val constant = case (lookup_unique_elem "constant" children) of
                             (NONE) => AngleExpr.Coeff.zero
                           | (SOME const) => input_constant const
            val vars = List.map input_variable (filter_elems "variable" children)
@@ -142,14 +142,14 @@ functor InputRGVertexDataXML (V : RG_VERTEX)  : INPUT_XML
   fun input_vertex_idata xml =
       let val () = assert_tag "vertex" xml
           val children = get_children xml
-          val col = (String.map Char.toLower o get_the_child_text 
-                     o get_the_elem "colour") children
+          val col = (String.map Char.toLower o get_unique_child_text 
+                     o get_unique_elem "colour") children
       in 
         if (col = "h") then V.Hnd
         else
           let 
             val angle = 
-                case lookup_the_elem "angleexpr" children of NONE => AngleExpr.zero
+                case lookup_unique_elem "angleexpr" children of NONE => AngleExpr.zero
                    | SOME a => input_angleexpr a
           in
             if (col = "green") then V.Znd angle
@@ -163,10 +163,10 @@ functor InputRGVertexDataXML (V : RG_VERTEX)  : INPUT_XML
         val () = assert_tag "vertex" xml
         val children = get_children xml
       in
-        case lookup_the_elem "boundary" children of 
+        case lookup_unique_elem "boundary" children of 
           NONE => (V.IVert (input_vertex_idata xml))
         | SOME boundary_xml => 
-          if InputBoolXML.input (get_the_child boundary_xml) then (V.EVert)
+          if InputBoolXML.input (get_unique_child boundary_xml) then (V.EVert)
           else (V.IVert (input_vertex_idata xml)) 
       end;
 

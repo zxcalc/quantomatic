@@ -2,31 +2,44 @@ signature XML_PARSE_UTILS =
 sig 
   include XML
   exception bad_input_exp of string*string;
-  (* NOTE: Markup.T = string * Properties.T *)
+  (* NOTE:     Markup.T = string * Properties.T
+           Properties.T = XML attributes = string * string list *)
 
+  (* tree = Text ... | Elem ... , see xml.ML *)
+  val is_text : tree -> bool (* is just text *)
+  val is_elem : tree -> bool (* is a tag *)
+
+  (* if it's an elem and has the given tag... *)
   val test_tag : string -> tree -> bool (* elem has tag = string *)
   val assert_tag : string -> tree -> unit (* raises *)
 
-  val is_text : tree -> bool
-  val is_elem : tree -> bool
-
+  (* typical usage interface *)
   val get_text : tree -> string (* raises if elem *)
-  val get_boolean : tree -> bool (* raises if not "true" or "false" (case-insensitive) *)
-  val get_int : tree -> int (* raises if not text or cannot parse to integer *)
   val get_elem : tree -> Markup.T * tree list (* raises if text *)
-  val get_children : tree -> tree list (* raises if text *)
-  val get_the_child : tree -> tree (* raises if not a unique child *)
-  val get_the_child_ignore_wsp : tree -> tree (* raises if not a unique child *)
-  val get_the_child_text : tree -> string (* raises if the unique child is not text *)
-  val get_attributes : tree -> Properties.T (* raises if text *)
-  val get_tag : tree -> string (* raises if text *)
 
+  val get_tag : tree -> string (* the tagname part of the Markup.T; raises if text *)
+  val get_attributes : tree -> Properties.T (* raises if text *)
+
+  val get_children : tree -> tree list (* raises if text *)
+  val get_filtered_children : string -> tree -> tree list (* raises if text *)
+  val get_filtered_children_text : string -> tree -> string list (* raises if text *)
+
+  val get_unique_child : tree -> tree (* raises if not a unique child *)
+  val get_unique_child_text : tree -> string (* raises if the unique child is not text *)
+  val get_unique_child_ignore_wsp : tree -> tree (* raises if not a unique child *)
+
+  (* other helpful stuff *)
   val filter_elems : string -> tree list -> tree list
   val lookup_first_elem : string -> tree list -> tree option
-  val lookup_the_elem : string -> tree list -> tree option (* SOME if exactly one *)
+  val lookup_unique_elem : string -> tree list -> tree option (* SOME if exactly one *)
   val get_first_elem : string -> tree list -> tree (* raises if text or none *)
-  val get_the_elem : string -> tree list -> tree (* raises if not exactly one *)
-  val get_the_elem_processed : (tree -> 'a) -> string -> tree list -> 'a (* raises if not exactly one *)
+  val get_unique_elem : string -> tree list -> tree (* raises if not exactly one *)
+  val apply_to_unique_elem : (tree -> 'a) -> string -> tree list -> 'a  (* raises if not unique *)
+
+  (* direct conversion from XML text elements to value *)
+  val get_boolean : tree -> bool (* raises if not "true" or "false" (case-insensitive) *)
+  val get_int : tree -> int (* raises if not text or cannot parse to integer *)
+
 end;
 
 structure XML_Parse_Utils 
@@ -74,9 +87,9 @@ fun get_attributes (Text _) = raise bad_input_exp ("Can't get attribute of text"
 fun get_children (Text _) = raise bad_input_exp ("Can't get children of text","")
   | get_children (Elem ((elem, attr),children)) = children;
 
-fun get_the_child (Text _) = raise bad_input_exp ("Can't get unique child of text","")
-  | get_the_child (Elem ((elem, attr),[child])) = child
-  | get_the_child (Elem ((elem, attr),_)) = raise bad_input_exp ("<"^elem^"> does not have unique child","");
+fun get_unique_child (Text _) = raise bad_input_exp ("Can't get unique child of text","")
+  | get_unique_child (Elem ((elem, attr),[child])) = child
+  | get_unique_child (Elem ((elem, attr),_)) = raise bad_input_exp ("<"^elem^"> does not have unique child","");
 
 fun is_whitespace_char " " = true
   | is_whitespace_char "\n" = true
@@ -89,10 +102,11 @@ fun filter_whitespace ((Text s)::remaining) =
   | filter_whitespace (e::remaining) = (e::(filter_whitespace remaining))
   | filter_whitespace [] = []
 
-fun get_the_child_ignore_wsp (Text _) = raise bad_input_exp ("Can't get unique child of text","")
-  | get_the_child_ignore_wsp (Elem ((elem, attr),children)) = get_the_child (Elem ((elem, attr),(filter_whitespace children)))
+fun get_unique_child_ignore_wsp (Text _) = raise bad_input_exp ("Can't get unique child of text","")
+  | get_unique_child_ignore_wsp (Elem ((elem, attr),children)) = get_unique_child (Elem ((elem, attr),(filter_whitespace children)))
 
-val get_the_child_text = get_text o get_the_child;
+val get_unique_child_text = get_text o get_unique_child;
+
 
 fun test_tag tag xml = is_elem xml andalso (tolower tag = tolower (get_tag xml));
 
@@ -107,23 +121,30 @@ fun assert_tag tag xml =
 *)
 fun filter_elems tag trees = List.filter (test_tag tag) trees 
 
+fun get_filtered_children tag tree = 
+    filter_elems tag (get_children tree);
+
+fun get_filtered_children_text tag tree = 
+    map get_text (get_filtered_children tag tree); 
+
+
 fun lookup_first_elem tag trees = List.find (test_tag tag) trees 
 fun get_first_elem tag trees = 
     case lookup_first_elem tag trees of SOME x => x
        | NONE => raise bad_input_exp ("Element with tag <"^tag^"> not found.","");
 
-fun lookup_the_elem tag trees = 
+fun lookup_unique_elem tag trees = 
     case List.filter (test_tag tag) trees 
       of [x] => SOME x
        | _ => NONE;
-fun get_the_elem tag trees = 
-    case lookup_the_elem tag trees 
+fun get_unique_elem tag trees = 
+    case lookup_unique_elem tag trees 
       of NONE => raise bad_input_exp ("Unique <"^tag^"> tag not found.","")
        | SOME x => x;
 
-fun get_the_elem_processed f tag trees = 
+fun apply_to_unique_elem f tag trees = 
     let
-      val elem = get_the_elem tag trees
+      val elem = get_unique_elem tag trees
     in
       (f elem) handle bad_input_exp (s,p) => raise bad_input_exp (s,tag^"/"^p)
     end;

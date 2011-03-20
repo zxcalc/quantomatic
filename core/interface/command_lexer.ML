@@ -6,14 +6,16 @@ signature COMMAND_LEXER
   (* a command is the command name and its arguments *)
   type T = string * string list;
 
+  val toString : T -> string (* pretty string of command *)
+
   (* *)
-  val parse : string list (* token list *) 
-              -> T * string list (* command and left over unparsed stuff *)
+  val parse : string (* token list *) 
+              -> T list (* command and left over unparsed stuff *)
+
 
 end;
 
-
-structure CommandLexer =
+structure DB_CommandLexer =
 struct
   local open SimpleLexer in
 
@@ -28,33 +30,14 @@ struct
     | unwrap (LIT s) = s
     | unwrap _ = raise bug_exp ();
   
-  (*fun unescape (LIT str) = str String.translate
-                 (fn c => case c of #"\\" => ""
-                          | _ => Char.toString c)
-                 str
-    | unescape _ = raise Match
-  *)
-  
-  (*
-  a term grammar with no nesting
-  
-  arg   ::= LITERAL | ID
-  args  ::= arg args | E
-  expr  ::= ID args
-  exprs ::= expr ; exprs | E
-  *)
-  
-  
-  fun arg x = x |> ((literal >> unwrap)
-                    || ((ident || num) >> unwrap))
-  fun args x = x|>(((arg -- args) >> op::)
-               || (noop >> K []))
-  fun expr x = x|>((ident >> unwrap) -- args)
-  fun exprs x = x|>(
-            ((expr --| sym ";" -- exprs) >> op::)
-            || (expr >> single)
-            || (noop >> K []))
-  
+  fun arg x = x |> ((string_literal || ident || num) >> unwrap)
+  fun args x = x|> (((arg -- args) >> op::)
+                    || (noop >> K []));
+  fun expr x = x|> ((ident >> unwrap) -- args);
+  fun exprs x = x|> (((expr --| sym ";" -- exprs) >> op::)
+                     || (expr >> single)
+                     || (noop >> K []));
+            
   fun parse str = parse_with (Scan.catch exprs) str
     handle MoreTokens _ => raise parse_exp ()
   fun pretty (f,args) = Pretty.block[Pretty.str f,
@@ -64,6 +47,9 @@ struct
 
 end; (* local Lexer *)
 end; (* structure CommandLexer *)
+
+
+structure CommandLexer : COMMAND_LEXER = DB_CommandLexer;
 
 (* vim:et:sts=2:ts=2:sw=2
 *)
