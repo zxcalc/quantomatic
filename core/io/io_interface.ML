@@ -111,7 +111,7 @@ structure DB_RG_IO_Interface = IO_Interface(
   structure OutputEdgeData = OutputNoEdgeDataXML(RGGraph.Edge)
 );
 
-structure IO_RG_Interface : IO_INTERFACE = DB_RG_IO_Interface; 
+structure RG_IO_Interface : IO_INTERFACE = DB_RG_IO_Interface; 
 
 (* 
   type graph = Graph.T;

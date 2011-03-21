@@ -376,7 +376,7 @@ functor ControllerState(
       in (OK, update_rset (Ruleset.untag_rule rule_name tag_name) state) end
     | untag_rule (_, state) = raise wrong_args_exp ();
       
-  
+    
     fun create_graph default_name graph state = let
         val (nm,gs) = (get_graphs state)
                   |> GraphName.NTab.add (default_name, graph)
@@ -387,9 +387,11 @@ functor ControllerState(
         in create_graph gname (get_graph state gname) state
         end
       | duplicate_graph _ = raise wrong_args_exp ()
+
     fun new_graph ([], state) =
         create_graph GraphName.default_name G.empty state
-      | new_graph _ = raise wrong_args_exp ()
+      | new_graph _ = raise wrong_args_exp ();
+
     fun load_graph ([fname], state) = 
         create_graph GraphName.default_name 
                      (Input.Graph.input (XMLReader.read_from_file fname)) state
@@ -669,7 +671,7 @@ end; (* structure Controller *)
 (* *)
 structure DB_ControllerState = ControllerState(
   structure RulesetRewrites = RGRulesetRewrites
-  structure IO_Interface = IO_RG_Interface
+  structure IO_Interface = RG_IO_Interface
 );
 structure ControllerState : CONTROLLER_STATE = DB_ControllerState; 
 

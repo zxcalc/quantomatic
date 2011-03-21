@@ -67,13 +67,13 @@ local open ControllerState in
         "    sync the console, print \"HELO\"\n",
      lift_stateless (K (as_data "HELO")))),
 
-    ("load_rules",
-     ("load_rules FILE\n\n" ^
+    ("load_ruleset",
+     ("load_ruleset FILE\n\n" ^
         "    load the rules contained in FILE\n",
     load_ruleset)),
 
-    ("save_rules",
-     ("save_rules FILENAME\n\n" ^
+    ("save_ruleset",
+     ("save_ruleset FILENAME\n\n" ^
         "    save all loaded rules to FILENAME\n",
     lift_state_viewer save_ruleset)),
 
