@@ -44,7 +44,7 @@ struct
 type T = XML.tree;
 open WriteString;
 
-val write_to_string = XML.string_of
+val write_to_string = (prefix XML.header) o XML.string_of
 
 fun write_to_file file output = 
     write file (write_to_string output)
