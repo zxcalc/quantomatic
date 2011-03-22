@@ -29,38 +29,41 @@ in val _ = (); end;
 (*-------------------------------------------------------*)
 (* TESTING OUTPUT *)
 local 
-  structure OutputRGGraphXML : OUTPUT_PRETTY_XML
+  structure OutputRGGraphXML : OUTPUT_XML
     = OutputGraphXML (
       structure Graph = RGGraph
-      and OutputVertexData = OutputRGVertexDataXML(RGGraph.RGVertex)
-      and OutputEdgeData = OutputNoEdgeDataXML(RGGraph.Edge)
+      and OutputVertexData = OutputRGVertexDataXMLList(RGGraph.RGVertex)
+      and OutputEdgeData = OutputNoEdgeDataXMLList(RGGraph.Edge)
   );
 
-  structure OutputRGRuleXML : OUTPUT_PRETTY_XML
+  structure OutputRGRuleXML : OUTPUT_XML
    = OutputRuleXML(
       structure Rule = RGRule
       and OutputGraph = OutputRGGraphXML
      );
 
   structure OutputRGRewriteXML 
-  : OUTPUT_PRETTY_XML where type data = (RuleName.name *RGRule.T) * RGGraph.T
+  : OUTPUT_XML where type data = (RuleName.name *RGRule.T) * RGGraph.T
    = OutputRewriteXML(
       structure Rule = RGRule
       and OutputGraph = OutputRGGraphXML
      );
 
   structure OutputRGRewriteListXML 
-  : OUTPUT_PRETTY_XML where type data = ((RuleName.name * RGRule.T) * RGGraph.T) list
-   = OutputListXML(
+  : OUTPUT_XML where type data = ((RuleName.name * RGRule.T) * RGGraph.T) list
+   = OutputWrapXML(
       val tagname = "rewrites"
-      val item_tagname = "rewrite"
-      structure Output1 = OutputRGRewriteXML
+      val attrs = []
+      structure Output1 = OutputMap(OutputRGRewriteXML)
      );
 
-  structure OutputRGRulesetXML : OUTPUT_PRETTY_XML
+  structure OutputRGRulesetXML : OUTPUT_XML
    = OutputRulesetXML(
       structure Ruleset = RGRuleset
-      structure OutputRule = OutputRGRuleXML
+      structure OutputRule = OutputRulePartsXMLList(
+        structure Rule = RGRule
+        and OutputGraph = OutputRGGraphXML
+      )
      );
 
 in val _ = (); end;

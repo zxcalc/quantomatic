@@ -1,53 +1,74 @@
-structure OutputRuleNameXML : OUTPUT_PRETTY_XML where type data = RuleName.name  
-  = OutputSStrNameXML(RuleName);
-structure OutputTagNameXML = OutputSStrNameXML(TagName);
+structure OutputRuleNameXMLList : OUTPUT_XML_LIST where type data = RuleName.name  
+  = OutputListify(OutputSStrNameXML(RuleName));
+structure OutputTagNameXMLList = OutputListify(OutputSStrNameXML(TagName));
 
-structure OutputTagRelXML : OUTPUT_PRETTY_XML = 
-  OutputNameBRelXML(
-    val tagname = "tags"
+structure OutputTagRelXMLList : OUTPUT_XML_LIST = 
+  OutputNameBRelXMLList(
     val rel_tagname = "tag"
     val cod_tagname = "name"
     val dom_tagname = "rule"
     structure BRel = TagRel
-    structure OutputDom = OutputRuleNameXML
-    structure OutputCod = OutputTagNameXML
+    structure OutputDom = OutputRuleNameXMLList
+    structure OutputCod = OutputTagNameXMLList
   );
 
 (* -------------------------------------------------------- *)
-functor OutputRulesetXML (
+functor OutputRulesetDescXMLList (
   structure Ruleset : RULESET
-	structure OutputRule : OUTPUT_PRETTY_XML 
+	structure OutputRule : OUTPUT_XML_LIST
 	  where type data = Ruleset.Rule.T
-) : OUTPUT_PRETTY_XML 
+) : OUTPUT_XML_LIST
 = struct
-  structure OutputAllRules = OutputNTabXML(
+  structure OutputAllRules = OutputWrapXML(
     val tagname = "allrules"
-    val entry_tagname = "rule"
-    val key_tagname = "name"
-    val value_tagname = "definition"
-    structure NTab = RuleName.NTab
-    structure OutputName = OutputRuleNameXML
-    structure OutputVal = OutputRule
+    val attrs = []
+    structure Output1 = OutputNTabXMLList(
+      val entry_tagname = "rule"
+      val key_tagname = "name"
+      val value_tagname = "definition"
+      structure NTab = RuleName.NTab
+      structure OutputName = OutputRuleNameXMLList
+      structure OutputVal = OutputRule
+    )
   );
 
-  structure OutputRuleNameList = OutputListXML(
+  structure OutputTags = OutputWrapXML(
+    val tagname = "tags"
+    val attrs = []
+    structure Output1 = OutputTagRelXMLList
+  );
+
+  structure OutputActiveRules = OutputWrapXML(
     val tagname = "active" 
-    val item_tagname = "rule" 
-    structure Output1 = OutputRuleNameXML);
+    val attrs = []
+    structure Output1 = OutputListXMLList(
+      val item_tagname = "rule" 
+      structure Output1 = OutputRuleNameXMLList
+    )
+  );
   
   type data = Ruleset.T
-  type T = Pretty.T
+  type T = XML.tree list
 
   fun output rset = 
-      Pretty.chunks 
-      [Pretty.str ("<ruleset>"),
-       Pretty.indent 2 ( 
-         Pretty.chunks 
-          [OutputAllRules.output (Ruleset.get_allrules rset),
-           OutputTagRelXML.output (Ruleset.get_tagrel rset),
-           OutputRuleNameList.output (RuleName.NSet.list_of (Ruleset.get_active rset))]),
-       Pretty.str ("</ruleset>")];
+      [OutputAllRules.output (Ruleset.get_allrules rset),
+       OutputTags.output (Ruleset.get_tagrel rset),
+       OutputActiveRules.output (RuleName.NSet.list_of (Ruleset.get_active rset))];
 end;
+
+functor OutputRulesetXML (
+  structure Ruleset : RULESET
+	structure OutputRule : OUTPUT_XML_LIST
+	  where type data = Ruleset.Rule.T
+) : OUTPUT_XML
+= OutputWrapXML(
+    val tagname = "ruleset"
+    val attrs = []
+    structure Output1 = OutputRulesetDescXMLList(
+      structure Ruleset = Ruleset
+      structure OutputRule = OutputRule
+    )
+)
 
 (* vim:et:sts=2:sw=2:ts=2
 *)

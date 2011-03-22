@@ -86,7 +86,7 @@ struct
     | response_string (ControllerState.COUNT n) = (Int.toString n)^"\n"
     | response_string (ControllerState.NAME str) = str^"\n"
     | response_string (ControllerState.NAME_LIST xs) = (fold (suffix o (suffix "\n")) xs "")^"\n"
-    | response_string (ControllerState.REWRITE_LIST rs) = (Pretty.string_of (RG_IO_Interface.Output.RewriteList.output rs))^"\n"
+    | response_string (ControllerState.REWRITE_LIST rs) = (XML.string_of (RG_IO_Interface.Output.RewriteList.output rs))^"\n"
     | response_string (ControllerState.DATA str) = str^"\n"
   
   fun do_cmd ("quit", _) _ = ("", QUIT)

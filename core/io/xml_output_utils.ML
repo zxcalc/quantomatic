@@ -1,14 +1,12 @@
 signature XML_OUTPUT_UTILS = 
 sig 
-  include XML
   (* NOTE: Markup.T = string * Properties.T *)
 
-  val start_tag : string -> (string*string) list -> string
-  val empty_tag : string -> (string*string) list -> string
-  val end_tag : string -> string
-  val pretty_text : string -> (string*string) list -> string -> Pretty.T
-  val pretty_item : string -> (string*string) list -> Pretty.T -> Pretty.T
-  val pretty_list : string -> (string*string) list -> Pretty.T list -> Pretty.T
+  val wrap_text_simple : string -> string -> XML.tree
+  val wrap_bool_simple : string -> bool -> XML.tree
+  val wrap_int_simple : string -> int -> XML.tree
+  val wrap_el_simple : string -> XML.tree -> XML.tree
+  val wrap_els_simple : string -> XML.tree list -> XML.tree
 end;
 
 structure XML_Output_Utils 
@@ -17,24 +15,16 @@ structure XML_Output_Utils
 
 open XML;
 
-fun attr_list ((name,value)::xs) = (" "^name^"=\""^(text value)^"\"")
-  | attr_list [] = ""
+fun wrap_els_simple name elem = (Elem ((name, []), elem))
 
-fun start_tag name [] = ("<"^name^">")
-  | start_tag name attrs = ("<"^name^(attr_list attrs)^">");
+fun wrap_el_simple name elem = wrap_els_simple name [elem]
 
-fun empty_tag name [] = ("<"^name^">")
-  | empty_tag name attrs = ("<"^name^(attr_list attrs)^"/>");
+fun wrap_text_simple name text = wrap_el_simple name (Text text)
 
-fun end_tag name = ("</"^name^">");
+fun wrap_bool_simple name true = wrap_text_simple name "true"
+  | wrap_bool_simple name false = wrap_text_simple name "false"
 
-fun pretty_text name attrs text = Pretty.str ((start_tag name attrs)^text^(end_tag name));
-
-fun pretty_item name attrs item = Pretty.enclose (start_tag name attrs) (end_tag name) [item];
-
-fun pretty_list name attrs items = Pretty.chunks [Pretty.str (start_tag name attrs),
-                                                  Pretty.indent 2 (Pretty.chunks items),
-                                                  Pretty.str (end_tag name)];
+fun wrap_int_simple name i = wrap_text_simple name (Int.toString i)
 
 end
 

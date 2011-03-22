@@ -336,7 +336,7 @@ functor ControllerState(
     | load_ruleset _ = raise wrong_args_exp ();
   
   fun save_ruleset ([file], state) =
-      (let val save = (PrettyWriter.write_to_file file) o Output.Ruleset.output
+      (let val save = (XMLWriter.write_to_file file) o Output.Ruleset.output
        in (save (get_rset state); OK)
        end
        handle IO.Io _ => raise user_exp ("Can't write rules file \""^file^"\"."))
@@ -424,7 +424,7 @@ functor ControllerState(
   
   
   fun save_graph ([_, fname], graph) = 
-      ((PrettyWriter.write_to_file fname (Output.Graph.output graph); OK)
+      ((XMLWriter.write_to_file fname (Output.Graph.output graph); OK)
        handle _ => raise user_exp ("Could not save file "^fname))
     | save_graph _ = raise wrong_args_exp ()
   
@@ -468,7 +468,7 @@ functor ControllerState(
             | G.no_such_vname_exp _ => raise user_exp "no such vertex")
     | rename_vertex _ = raise wrong_args_exp ()
   
-  fun graph_xml [nme] = as_data o Pretty.string_of o Output.Graph.output
+  fun graph_xml [nme] = as_data o XML.string_of o Output.Graph.output
     | graph_xml _ = raise wrong_args_exp ()
   
   fun print_graph [_] = as_data o Pretty.string_of o G.pretty

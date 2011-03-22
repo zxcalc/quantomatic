@@ -10,11 +10,11 @@ end;
 
 signature OUTPUT_INTERFACE  
 = sig
-  structure Ruleset : OUTPUT_PRETTY_XML
-  structure Rule : OUTPUT_PRETTY_XML
-  structure Rewrite : OUTPUT_PRETTY_XML
-  structure RewriteList : OUTPUT_PRETTY_XML where type data = Rewrite.data list
-  structure Graph : OUTPUT_PRETTY_XML
+  structure Ruleset : OUTPUT_XML
+  structure Rule : OUTPUT_XML
+  structure Rewrite : OUTPUT_XML
+  structure RewriteList : OUTPUT_XML where type data = Rewrite.data list
+  structure Graph : OUTPUT_XML
 end;
 
 signature IO_INTERFACE =
@@ -37,8 +37,8 @@ functor IO_Interface(
   sharing type InputVertexData.data = Ruleset.Rule.Graph.Vertex.data
   sharing type InputEdgeData.data = Ruleset.Rule.Graph.Edge.data
 
-  structure OutputVertexData : OUTPUT_PRETTY_XML 
-        and OutputEdgeData : OUTPUT_PRETTY_XML 
+  structure OutputVertexData : OUTPUT_XML_LIST
+        and OutputEdgeData : OUTPUT_XML_LIST
   sharing type OutputVertexData.data = Ruleset.Rule.Graph.Vertex.data
   sharing type OutputEdgeData.data = Ruleset.Rule.Graph.Edge.data
 ) = struct
@@ -75,28 +75,27 @@ functor IO_Interface(
         structure OutputGraph = Graph);
 
     structure Rewrite 
-    : OUTPUT_PRETTY_XML where type data = (RuleName.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T
+    : OUTPUT_XML where type data = (RuleName.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T
      = OutputRewriteXML(
         structure Rule = Ruleset.Rule
         and OutputGraph = Graph
        );
 
     structure RewriteList 
-    : OUTPUT_PRETTY_XML where type data = Rewrite.data list
-     = OutputListXML(
+    : OUTPUT_XML where type data = Rewrite.data list
+     = OutputWrapXML(
         val tagname = "rewrites"
-        val item_tagname = "rewrite"
-        structure Output1 = Rewrite
+        val attrs = []
+        structure Output1 = OutputMap(Rewrite)
        );
 
     structure Ruleset = OutputRulesetXML(
       structure Ruleset = Ruleset
-      structure OutputRule = OutputBareRuleXML(
+      structure OutputRule = OutputRulePartsXMLList(
         structure Rule = Ruleset.Rule
         structure OutputGraph = Graph
       )
-      structure OutputRuleName = OutputRuleNameXML
-      structure OutputTagName = OutputTagNameXML);
+    );
   
   end; (* input *)
 
@@ -107,8 +106,8 @@ structure DB_RG_IO_Interface = IO_Interface(
   structure Ruleset = RGRuleset
   structure InputVertexData = InputRGVertexDataXML(RGVertex)
   structure InputEdgeData = InputNoEdgeDataXML(RGRuleset.Rule.Graph.Edge)
-  structure OutputVertexData = OutputRGVertexDataXML(RGGraph.RGVertex)
-  structure OutputEdgeData = OutputNoEdgeDataXML(RGGraph.Edge)
+  structure OutputVertexData = OutputRGVertexDataXMLList(RGGraph.RGVertex)
+  structure OutputEdgeData = OutputNoEdgeDataXMLList(RGGraph.Edge)
 );
 
 structure RG_IO_Interface : IO_INTERFACE = DB_RG_IO_Interface; 
@@ -121,4 +120,7 @@ structure RG_IO_Interface : IO_INTERFACE = DB_RG_IO_Interface;
 
 (*  -- just for debugging --
 structure rgls = RGGraphLoaderSaver;
+*)
+
+(* vim:et:sts=2:sw=2:ts=2
 *)
