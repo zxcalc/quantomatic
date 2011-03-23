@@ -1,5 +1,8 @@
 package quanto.gui;
 
+import quanto.core.TheoryListener;
+import quanto.core.Rewrite;
+import quanto.core.Theory;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -11,8 +14,9 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import quanto.core.Core;
 
-import quanto.gui.QuantoCore.CoreException;
+import quanto.core.Core.CoreException;
 
 @SuppressWarnings("serial")
 public class SplitGraphView extends InteractiveView {
@@ -67,22 +71,22 @@ public class SplitGraphView extends InteractiveView {
 	};
 
 	public SplitGraphView(Theory theory, String rule)
-	throws QuantoCore.CoreException {
+	throws Core.CoreException {
 		this(theory, theory.getRule(rule));
 	}
 
 	public SplitGraphView(Theory theory, String rule, Dimension dim)
-	throws QuantoCore.CoreException {
+	throws Core.CoreException {
 		this(theory, theory.getRule(rule), dim);
 	}
 
 	public SplitGraphView(Theory theory, Rewrite rule)
-	throws QuantoCore.CoreException {
+	throws Core.CoreException {
 		this(theory, rule, new Dimension(800, 600));
 	}
 
 	public SplitGraphView(Theory theory, Rewrite rule, Dimension dim)
-	throws QuantoCore.CoreException {
+	throws Core.CoreException {
 		super(rule.getName());
 		this.rule = rule;
 		this.ruleName = rule.getName();

@@ -143,12 +143,6 @@
 	  mnemonic="D"
 	  desc="Draw arrow heads on edges in graphs"/>
 
-	<action id="verbose-console-command"
-	  type="toggle"
-	  name="Verbose console"
-	  mnemonic="V"
-	  desc="Display all communication with the backend in the console"/>
-
 	<action id="internal-graph-names-command"
 	  type="toggle"
 	  name="Show internal graph names"
@@ -345,7 +339,6 @@
 			<action idref="refresh-all-graphs-command" />
 			<empty/>
 			<action idref="draw-arrow-heads-command" />
-			<action idref="verbose-console-command" />
 			<action idref="internal-graph-names-command" />
 			<action idref="open-in-new-window-command" />
 		</action-list>

@@ -13,7 +13,7 @@ import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import quanto.gui.Labeler;
-import quanto.gui.QVertex;
+import quanto.core.QVertex;
 import quanto.gui.TexConstants;
 
 /**

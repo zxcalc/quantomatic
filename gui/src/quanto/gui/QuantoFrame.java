@@ -1,5 +1,7 @@
 package quanto.gui;
 
+import quanto.core.QuantoGraph;
+import quanto.core.Core;
 import com.sun.jaf.ui.ActionManager;
 import com.sun.jaf.ui.UIFactory;
 import java.awt.*;
@@ -14,7 +16,7 @@ import quanto.gui.QuantoApp.BoolPref;
 public class QuantoFrame extends JFrame implements ViewPortHost {
 
 	private static final long serialVersionUID = 3656684775223085393L;
-	private QuantoCore core;
+	private Core core;
 	private final ViewPort viewPort;
 	private volatile static int frameCount = 0;
 	private QuantoApp app;
@@ -30,7 +32,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	public final static String QUIT_COMMAND = "quit-command";
 	public final static String REFRESH_ALL_COMMAND = "refresh-all-graphs-command";
 	public final static String DRAW_ARROW_HEADS_COMMAND = "draw-arrow-heads-command";
-	public final static String VERBOSE_CONSOLE_COMMAND = "verbose-console-command";
 	public final static String SHOW_INTERNAL_GRAPH_NAMES_COMMAND = "internal-graph-names-command";
 	public final static String OPEN_IN_NEW_WINDOW_COMMAND = "open-in-new-window-command";
 
@@ -191,7 +192,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		try {
 			openView(app.createNewGraph());
 		}
-		catch (QuantoCore.CoreException ex) {
+		catch (Core.CoreException ex) {
 			app.errorDialog("Could not create new graph: " + ex.getMessage());
 		}
 	}
@@ -219,7 +220,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 				openView(view);
 			}
-			catch (QuantoCore.CoreException e) {
+			catch (Core.CoreException e) {
 				app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
 			}
 			catch (QuantoGraph.ParseException e) {
@@ -248,7 +249,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
-	public QuantoCore getCore() {
+	public Core getCore() {
 		return core;
 	}
 

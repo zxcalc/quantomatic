@@ -1,6 +1,8 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
+import quanto.core.QuantoGraph;
+import quanto.core.Core;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.io.IOException;
+import quanto.core.CoreConsoleMode;
 /**
  * Singleton class 
  * @author aleks
@@ -45,7 +48,7 @@ public class QuantoApp {
 	public static boolean useExperimentalLayout = false;
 
 	private final Preferences globalPrefs;
-	private final QuantoCore core;
+	private final Core core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
 	private TheoryManager theoryManager = null;
@@ -111,7 +114,7 @@ public class QuantoApp {
 		if (theApp == null) {
 			try {
 				theApp = new QuantoApp();
-			} catch (QuantoCore.CoreException ex) {
+			} catch (Core.CoreException ex) {
 				// FATAL!!!
 				logger.error("Failed to start core: terminating", ex);
 				JOptionPane.showMessageDialog(null,
@@ -154,7 +157,7 @@ public class QuantoApp {
 				logger.info("Invoked as OS X application ({})", appName);
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
 					appName + "/Contents/MacOS/dot_static";
-				QuantoCore.quantoCoreExecutable =
+				Core.quantoCoreExecutable =
 					appName + "/Contents/MacOS/quanto-core-app";
 			}
 			else if (arg.equals("--mathematica-mode")) {
@@ -163,7 +166,7 @@ public class QuantoApp {
 			}
 		}
 		logger.info("Using dot executable: {}", edu.uci.ics.jung.contrib.DotLayout.dotProgram);
-		logger.info("Using core executable: {}", QuantoCore.quantoCoreExecutable);
+		logger.info("Using core executable: {}", Core.quantoCoreExecutable);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -217,10 +220,10 @@ public class QuantoApp {
 		return false;
 	}
 
-	private QuantoApp() throws QuantoCore.CoreException {
+	private QuantoApp() throws Core.CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 
-		core = new QuantoCore();
+		core = new CoreConsoleMode();
 		viewManager = new InteractiveViewManager(this, core);
 
 		if (MAC_OS_X) {
@@ -244,7 +247,7 @@ public class QuantoApp {
 		return viewManager;
 	}
 
-	public QuantoCore getCore() {
+	public Core getCore() {
 		return core;
 	}
 
@@ -279,7 +282,7 @@ public class QuantoApp {
 				view = createNewGraph();
 			openNewFrame(view);
 		}
-		catch (QuantoCore.CoreException ex) {
+		catch (Core.CoreException ex) {
 			logger.error("Could not create a new graph", ex);
 			errorDialog("Could not create a new graph to display");
 		}
@@ -302,7 +305,7 @@ public class QuantoApp {
 	}
 
 	public InteractiveGraphView createNewGraph()
-		throws QuantoCore.CoreException {
+		throws Core.CoreException {
 		QuantoGraph newGraph = core.new_graph();
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
@@ -311,7 +314,7 @@ public class QuantoApp {
 	}
 
 	public InteractiveGraphView openGraph(File file)
-		throws QuantoCore.CoreException,
+		throws Core.CoreException,
 		       QuantoGraph.ParseException,
 		       java.io.IOException{
 		String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
@@ -350,7 +353,7 @@ public class QuantoApp {
 				openNewFrame(vis);
 			}
 		}
-		catch (QuantoCore.CoreException e) {
+		catch (Core.CoreException e) {
 			logger.error("Failed to create a new graph", e);
 			errorDialog(e.getMessage());
 		}

@@ -8,7 +8,7 @@ package quanto.gui.graphhelpers;
 import java.awt.Color;
 import java.awt.Paint;
 import org.apache.commons.collections15.Transformer;
-import quanto.gui.QVertex;
+import quanto.core.QVertex;
 
 /**
  *

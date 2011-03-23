@@ -12,8 +12,8 @@ import java.awt.Color;
 import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
-import quanto.gui.QEdge;
-import quanto.gui.QVertex;
+import quanto.core.QEdge;
+import quanto.core.QVertex;
 
 /**
  *

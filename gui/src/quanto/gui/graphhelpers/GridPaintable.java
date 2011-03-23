@@ -14,8 +14,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
-import quanto.gui.QEdge;
-import quanto.gui.QVertex;
+import quanto.core.QEdge;
+import quanto.core.QVertex;
 
 /**
  * Shows a grid behind the graph, for debugging purposes

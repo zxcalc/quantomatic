@@ -15,11 +15,11 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
-import quanto.gui.BangBox;
+import quanto.core.BangBox;
 import quanto.gui.LockableBangBoxLayout;
-import quanto.gui.QEdge;
-import quanto.gui.QVertex;
-import quanto.gui.QuantoGraph;
+import quanto.core.QEdge;
+import quanto.core.QVertex;
+import quanto.core.QuantoGraph;
 
 /**
  *

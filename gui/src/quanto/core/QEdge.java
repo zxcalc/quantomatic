@@ -1,4 +1,4 @@
-package quanto.gui;
+package quanto.core;
 
 import edu.uci.ics.jung.contrib.HasName;
 

@@ -5,23 +5,19 @@
 
 package quanto.gui;
 
+import quanto.core.Theory;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.SystemColor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.io.File;
 import javax.swing.BorderFactory;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -33,7 +29,8 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quanto.gui.QuantoCore.CoreException;
+import quanto.core.Core;
+import quanto.core.Core.CoreException;
 
 /**
  *
@@ -184,7 +181,7 @@ public class TheoryTreeView extends JPanel {
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 				manager.loadTheory(thyname, filename);
 			}
-			catch (QuantoCore.CoreException e) {
+			catch (Core.CoreException e) {
 				logger.error("Failed to load theory", e);
 				errorDialog(e.getMessage());
 			}
@@ -229,7 +226,7 @@ public class TheoryTreeView extends JPanel {
 			try {
 				wrappedAction(e);
 			}
-			catch (QuantoCore.CoreException err) {
+			catch (Core.CoreException err) {
 				JOptionPane.showMessageDialog(
 					TheoryTreeView.this,
 					err.getMessage(),
@@ -238,7 +235,7 @@ public class TheoryTreeView extends JPanel {
 			}
 		}
 
-		public abstract void wrappedAction(ActionEvent e) throws QuantoCore.CoreException;
+		public abstract void wrappedAction(ActionEvent e) throws Core.CoreException;
 	}
 
 	private class RootMenu extends JPopupMenu {

@@ -1,5 +1,6 @@
 package quanto.gui;
 
+import quanto.core.BangBox;
 import java.awt.geom.Rectangle2D;
 import java.util.Set;
 

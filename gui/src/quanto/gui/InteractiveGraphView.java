@@ -1,5 +1,10 @@
 package quanto.gui;
 
+import quanto.core.BangBox;
+import quanto.core.QVertex;
+import quanto.core.QEdge;
+import quanto.core.QuantoGraph;
+import quanto.core.Rewrite;
 import com.itextpdf.text.DocumentException;
 import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -28,7 +33,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
-import quanto.gui.QuantoCore.CoreException;
+import quanto.core.Core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
@@ -45,6 +50,7 @@ import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
+import quanto.core.Core;
 
 public class InteractiveGraphView
 	extends InteractiveView
@@ -80,7 +86,7 @@ public class InteractiveGraphView
 	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
-	private QuantoCore core;
+	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
 	private List<Rewrite> rewriteCache = null;
@@ -145,7 +151,7 @@ public class InteractiveGraphView
 											    qVertex, lab.getText());
 									updateGraph();
 								}
-								catch (QuantoCore.CoreException err) {
+								catch (Core.CoreException err) {
 									errorDialog(err.getMessage());
 								}
 							}
@@ -258,11 +264,11 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(QuantoCore core, QuantoGraph g) {
+	public InteractiveGraphView(Core core, QuantoGraph g) {
 		this(core, g, new Dimension(800, 600));
 	}
 
-	public InteractiveGraphView(QuantoCore core, QuantoGraph g, Dimension size) {
+	public InteractiveGraphView(Core core, QuantoGraph g, Dimension size) {
 		super(new BorderLayout(), g.getName());
 		setPreferredSize(size);
 
@@ -606,7 +612,7 @@ public class InteractiveGraphView
 			getCore().add_edge(getGraph(), s, t);
 			updateGraph();
 		}
-		catch (QuantoCore.CoreException e) {
+		catch (Core.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
@@ -616,7 +622,7 @@ public class InteractiveGraphView
 			getCore().add_vertex(getGraph(), type);
 			updateGraph();
 		}
-		catch (QuantoCore.CoreException e) {
+		catch (Core.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
@@ -633,12 +639,12 @@ public class InteractiveGraphView
 			JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 			rewrites.setVisible(true);
 		}
-		catch (QuantoCore.CoreException e) {
+		catch (Core.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
 
-	public void updateGraph() throws QuantoCore.CoreException {
+	public void updateGraph() throws Core.CoreException {
 		String xml = getCore().graph_xml(getGraph());
 		try {
 			getGraph().fromXml(xml);
@@ -743,7 +749,7 @@ public class InteractiveGraphView
 					getGraph(),
 					getGraph().getVertices());
 			}
-			catch (QuantoCore.CoreException e) {
+			catch (Core.CoreException e) {
 				errorDialog(e.getMessage());
 			}
 		}
@@ -885,7 +891,7 @@ public class InteractiveGraphView
 		catch (QuantoGraph.ParseException e) {
 			errorDialog("The core sent an invalid graph description: " + e.getMessage());
 		}
-		catch (QuantoCore.CoreException e) {
+		catch (Core.CoreException e) {
 			errorDialog(e.getMessage());
 		}
 
@@ -911,7 +917,7 @@ public class InteractiveGraphView
 		}
 	}
 
-	private QuantoCore getCore() {
+	private Core getCore() {
 		return core;
 	}
 
@@ -932,7 +938,7 @@ public class InteractiveGraphView
 				getGraph().setSaved(true);
 				setTitle(f.getName());
 			}
-			catch (QuantoCore.CoreException e) {
+			catch (Core.CoreException e) {
 				errorDialog(e.getMessage());
 			}
 			catch (java.io.IOException ioe) {
@@ -947,7 +953,7 @@ public class InteractiveGraphView
 				getCore().save_graph(getGraph(), getGraph().getFileName());
 				getGraph().setSaved(true);
 			}
-			catch (QuantoCore.CoreException e) {
+			catch (Core.CoreException e) {
 				errorDialog(e.getMessage());
 			}
 		}
@@ -1114,7 +1120,11 @@ public class InteractiveGraphView
 		});
 		actionMap.put(LATEX_TO_CLIPBOARD_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String tikz = TikzOutput.generate(getGraph(), viewer.getGraphLayout());
+				String tikz = TikzOutput.generate(
+                                        getGraph(),
+                                        viewer.getGraphLayout(),
+                                        QuantoApp.getInstance().getPreference(
+						QuantoApp.DRAW_ARROW_HEADS));
 				Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
 				StringSelection data = new StringSelection(tikz);
 				cb.setContents(data, data);
@@ -1492,7 +1502,7 @@ public class InteractiveGraphView
 				updateGraph();
 
 			}
-			catch (QuantoCore.CoreException err) {
+			catch (Core.CoreException err) {
 				errorDialog(err.getMessage());
 			}
 			finally {

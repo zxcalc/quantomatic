@@ -6,7 +6,7 @@
 package quanto.gui.graphhelpers;
 
 import org.apache.commons.collections15.Transformer;
-import quanto.gui.QVertex;
+import quanto.core.QVertex;
 
 /**
  *

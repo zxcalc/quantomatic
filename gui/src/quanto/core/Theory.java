@@ -1,4 +1,4 @@
-package quanto.gui;
+package quanto.core;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -7,19 +7,19 @@ import edu.uci.ics.jung.contrib.HasName;
 import java.util.Arrays;
 import javax.swing.event.EventListenerList;
 
-import quanto.gui.QuantoCore.CoreException;
+import quanto.core.Core.CoreException;
 
 public class Theory implements HasName {
 	private String path;
 	private String name;
 	private boolean active;
 	private Set<String> rules = new HashSet<String>();
-	private QuantoCore core;
+	private Core core;
 	private boolean rulesLoaded = false;
 	private boolean hasUnsavedChanges = false;
 	private EventListenerList listenerList = new EventListenerList();
 
-	public Theory(QuantoCore core, String name, String path, boolean active) {
+	public Theory(Core core, String name, String path, boolean active) {
 		super();
 		this.core = core;
 		this.name = name;
@@ -27,11 +27,11 @@ public class Theory implements HasName {
 		this.active = active;
 	}
 	
-	public Theory(QuantoCore core, String name, String path) {
+	public Theory(Core core, String name, String path) {
 		this(core, name, path, true);
 	}
 	
-	public Theory(QuantoCore core, String name) {
+	public Theory(Core core, String name) {
 		this(core, name, "");
 	}
 
@@ -46,7 +46,7 @@ public class Theory implements HasName {
 		}
 	}
 
-	public void save(String filename) throws QuantoCore.CoreException {
+	public void save(String filename) throws Core.CoreException {
 		core.save_ruleset(this, filename);
 		path = filename;
 		if (this.hasUnsavedChanges) {
@@ -55,7 +55,7 @@ public class Theory implements HasName {
 		}
 	}
 
-	public QuantoCore getCore() {
+	public Core getCore() {
 		return core;
 	}
 

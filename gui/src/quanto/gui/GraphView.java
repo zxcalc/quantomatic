@@ -1,5 +1,6 @@
 package quanto.gui;
 
+import quanto.core.QuantoGraph;
 import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
 import java.awt.Dimension;
 import javax.swing.JPanel;

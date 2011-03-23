@@ -1,4 +1,4 @@
-package quanto.gui;
+package quanto.core;
 
 import java.io.*;
 import java.util.Collection;
@@ -7,7 +7,6 @@ import java.util.Set;
 
 import edu.uci.ics.jung.contrib.HasName;
 import edu.uci.ics.jung.contrib.HasQuotedName;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,20 +18,15 @@ import org.slf4j.LoggerFactory;
  * @author aleks kissinger
  *
  */
-public final class QuantoCore {
+public abstract class Core {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(QuantoCore.class);
+		LoggerFactory.getLogger(Core.class);
 
         // set to true to dump all communication to stdout
-        private final static boolean DEBUG = false;
+        protected final static boolean DEBUG = true;
 
 	private Process backEnd;
-	private BufferedReader from_backEnd;
-	private BufferedWriter to_backEnd;
-	private ConcurrentLinkedQueue<ConsoleOutput> consoles = new ConcurrentLinkedQueue<ConsoleOutput>();
-	private Completer completer;
-	private String prompt;
 
 	public static String quantoCoreExecutable = "quanto-core";
 
@@ -117,185 +111,116 @@ public final class QuantoCore {
 			super(msg);
 		}
 	}
+        public static class CommandException extends CoreReturnedErrorException {
+		private static final long serialVersionUID = 1232814923748927383L;
+                private String command;
+		public CommandException(String command) {
+			super("Could not run command \"" + command + "\"");
+                        this.command = command;
+		}
+		public CommandException(String message, String command) {
+			super(message);
+                        this.command = command;
+		}
+                public String getCommand() {
+                        return command;
+                }
+        }
+        public static class UnknownCommandException extends CommandException {
+		private static final long serialVersionUID = 1232814923748927383L;
+		public UnknownCommandException(String command) {
+			super("Unknown command \"" + command + "\"", command);
+		}
+		public UnknownCommandException(String message, String command) {
+			super(message, command);
+		}
+        }
+        public static class CommandArgumentsException extends CommandException {
+		private static final long serialVersionUID = 1232814923748927383L;
+		public CommandArgumentsException(String command) {
+			super("Bad arguments for command \"" + command + "\"", command);
+		}
+		public CommandArgumentsException(String message, String command) {
+			super(message, command);
+		}
+        }
+	/**
+	 * The core returned an unexpected response
+	 */
+	public static class CoreBadResponseException extends CoreException {
+		private static final long serialVersionUID = 1034523458932534589L;
+                private String response;
+		public CoreBadResponseException(String msg, String response) {
+			super(msg);
+                        this.response = response;
+		}
+		public CoreBadResponseException(String response) {
+                        this.response = response;
+		}
+                public String getResponse() {
+                        return response;
+                }
+	}
 
-	public QuantoCore() throws CoreException {
-
+	protected Core(boolean redirectErrorStream) throws CoreException {
 		try {
 			ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable);
 			
-			pb.redirectErrorStream(true);
+			pb.redirectErrorStream(redirectErrorStream);
 			logger.info("Starting {}...", quantoCoreExecutable);
 			backEnd = pb.start();
 			logger.info("{} started successfully", quantoCoreExecutable);
-
-			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
-					.getInputStream()));
-			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
-					.getOutputStream()));
-			
-			logger.info("Synchonising console...");
-			// sync the console
-			send("garbage_2039483945;");
-			send("HELO;");
-			while (!receive().contains("HELO")) {}
-			logger.info("Console synchronised successfully");
-			
-			
-			// Construct the completion engine from the output of the help command.
-			completer = new Completer();
-			logger.info("Retrieving commands...");
-			
-			receive(); // eat the prompt
-			send("help;");
-			BufferedReader reader = new BufferedReader(new StringReader(receive()));
-			// eat a couple of lines of description
-			reader.readLine(); reader.readLine();
-			for (String ln = reader.readLine(); ln != null; ln = reader.readLine())
-				if (! ln.equals("")) completer.addWord(ln);
-			
-			logger.info("Commands retrieved successfully");
-
-			prompt = receive();
 		} catch (IOException e) {
-			if (backEnd == null) {
-				logger.error("Could not execute {} (check PATH)", quantoCoreExecutable);
-				logger.error("Error was", e);
-				throw new CoreFailedToStartException(String.format("Could not execute \"%1$\"", quantoCoreExecutable), e);
-			} else { 
-				backEnd.destroy();
-				backEnd = null;
-				logger.error("Failed to set up communication with core process", e);
-				throw new CoreCommunicationException("Failed to set up communication with core process", e);
-			}
+                        logger.error("Could not execute {} (check PATH)", quantoCoreExecutable);
+                        logger.error("Error was", e);
+                        throw new CoreFailedToStartException(String.format("Could not execute \"%1$\"", quantoCoreExecutable), e);
 		}
 	}
 
-	/**
-	 * Sends a command to the core process
-	 *
-	 * @param command The command to send, with no newline
-	 * @throws quanto.gui.QuantoCore.CoreCommunicationException
-	 * @throws IllegalStateException The core has already been closed
-	 */
-	public void send(String command)
-	throws CoreCommunicationException {
-		if (backEnd == null) {
-			logger.error("Tried to receive after core had been closed");
-			throw new IllegalStateException();
-		}
-		try {
-                        if (DEBUG) {
-                                System.out.print(">>> ");
-                                System.out.println(command);
-                        }
-			to_backEnd.write(command);
-			to_backEnd.newLine();
-			to_backEnd.flush();
-		} catch (IOException e) {
-			logger.error("Failed to write to core process", e);
-			try {
-				logger.error("Tried to write to core process, but it has terminated (exit value: {})", backEnd.exitValue());
-				// Not much we can do: throw an exception
-				throw new CoreTerminatedException();
-			} catch (IllegalThreadStateException ex) {
-				logger.error("Failed to write to core process, even though it has not terminated");
-				throw new CoreCommunicationException();
-			}
-		}
-	}
+        protected final boolean isClosed() {
+		return backEnd == null;
+        }
 
-	/**
-	 * Retrieves a response from the core process
-	 *
-	 * If no command has been sent since the last receive, this may
-	 * block indefinitely.
-	 *
-	 * @return The response
-	 * @throws quanto.gui.QuantoCore.CoreCommunicationException
-	 * @throws IllegalStateException The core has already been closed
-	 */
-	public String receive()
-	throws CoreCommunicationException {
-		synchronized (this) {
-			if (backEnd == null) {
-				logger.error("Tried to receive after core had been closed");
-				throw new IllegalStateException();
-			}
-			StringBuilder message = new StringBuilder();
-			try {
-                                if (DEBUG) {
-                                        System.out.print("<<< ");
-                                }
-				// end of text is marked by " "+BACKSPACE (ASCII 8)
+        protected final InputStream getInputStream() {
+                return backEnd.getInputStream();
+        }
 
-				int c = from_backEnd.read();
-				while (c != 8) {
-					if (c == -1) throw new IOException();
-					message.append((char)c);
-                                        if (DEBUG) System.out.print(c);
-					c = from_backEnd.read();
-				}
+        protected final InputStream getErrorStream() {
+                return backEnd.getErrorStream();
+        }
 
-				// delete the trailing space
-				message.deleteCharAt(message.length()-1);
-                                if (DEBUG) System.out.println();
-			} catch (IOException e) {
-                                if (DEBUG) System.out.println();
+        protected final OutputStream getOutputStream() {
+                return backEnd.getOutputStream();
+        }
 
-				logger.error("Failed to read from core process", e);
-				if (message.length() > 0) {
-					logger.error("Received partial message before read failure: {}", message);
-				}
+        protected final void forceDestroy() {
+                backEnd.destroy();
+                backEnd = null;
+        }
 
-				try {
-					logger.error("Core process terminated with exit value {}", backEnd.exitValue());
-					throw new CoreTerminatedException(e);
-				} catch (IllegalThreadStateException ex) {
-					throw new CoreCommunicationException(e);
-				}
-			} catch (java.lang.NullPointerException e) {
-                                if (DEBUG) System.out.println();
+        protected void writeFailure(Throwable e)
+                throws CoreCommunicationException
+        {
+                try {
+                        logger.error("Tried to write to core process, but it has terminated (exit value: {})", backEnd.exitValue());
+                        // Not much we can do: throw an exception
+                        throw new CoreTerminatedException();
+                } catch (IllegalThreadStateException ex) {
+                        logger.error("Failed to write to core process, even though it has not terminated");
+                        throw new CoreCommunicationException();
+                }
+        }
 
-				logger.error("Failed to read from core process", e);
-				if (message.length() > 0) {
-					logger.error("Received partial message before read failure: {}", message);
-				}
-
-				try {
-					logger.error("Core process terminated with exit value {}", backEnd.exitValue());
-					throw new CoreTerminatedException(e);
-				} catch (IllegalThreadStateException ex) {
-					throw new CoreCommunicationException(e);
-				}
-			}
-			
-			return message.toString();
-		}
-	}
-
-	/**
-	 * Retrieves a response from the core process
-	 *
-	 * If the core process returns an error, a CoreReturnedErrorException
-	 * will be thrown.
-	 *
-	 * If no command has been sent since the last receive, this may
-	 * block indefinitely.
-	 *
-	 * @return The response
-	 * @throws quanto.gui.QuantoCore.CoreCommunicationException
-	 * @throws quanto.gui.QuantoCore.CoreReturnedErrorException
-	 * @throws IllegalStateException The core has already been closed
-	 */
-	public String receiveOrFail()
-	throws CoreCommunicationException, CoreReturnedErrorException {
-		String rcv = receive();
-
-		if (rcv.startsWith("!!!")) {
-			throw new CoreReturnedErrorException(rcv.substring(4));
-		}
-		return rcv;
-	}
+        protected void readFailure(Throwable e)
+                throws CoreCommunicationException
+        {
+                try {
+                        logger.error("Core process terminated with exit value {}", backEnd.exitValue());
+                        throw new CoreTerminatedException(e);
+                } catch (IllegalThreadStateException ex) {
+                        throw new CoreCommunicationException(e);
+                }
+        }
 
 	private static class ProcessCleanupThread extends Thread {
 		private Process process;
@@ -314,6 +239,14 @@ public final class QuantoCore {
 		}
 	}
 
+        /**
+         * Ask the core nicely to quit.  No communication should be requested
+         * after this.
+         *
+         * @throws quanto.core.Core.CoreCommunicationException
+         */
+        protected abstract void quit() throws CoreCommunicationException;
+
 	/**
 	 * Quits the core process, and releases associated resources
 	 */
@@ -321,23 +254,13 @@ public final class QuantoCore {
 		if (backEnd != null) {
 			logger.info("Shutting down the core process");
 			try {
-				send("quit");
+				quit();
 				new ProcessCleanupThread(backEnd).start();
 			} catch (CoreCommunicationException ex) {
 				logger.warn("Failed to send the quit command to the core");
 			}
 			backEnd = null;
-			to_backEnd = null;
-			from_backEnd = null;
 		}
-	}
-	
-	public Completer getCompleter() {
-		return completer;
-	}
-
-	public String getPrompt() {
-		return prompt;
 	}
 	
 
@@ -345,50 +268,11 @@ public final class QuantoCore {
 	 * Send a command with the given arguments. All of the args should be objects
 	 * which implement HasName and have non-null names
 	 */
-	public String command(String name, HasName ... args)
-	throws CoreException {
-		return blockCommand(name, null, args);
-	}
-	public String blockCommand(String name, String block, HasName ... args)
-	throws CoreException {
-		synchronized (this) {
-			logger.debug("Sending {} command to backend", name);
-			StringBuffer cmd = new StringBuffer(name);
-			for (HasName arg : args) {
-				if (arg.getName() == null) {
-					throw new IllegalArgumentException(
-							"Attempted to pass unnamed object to core.");
-				}
-				HasName qarg = (arg instanceof HasQuotedName) ? arg : new HasQuotedName.QuotedName(arg);
-				cmd.append(' ');
-				cmd.append(qarg.getName());
-				logger.debug("Passing argument {}", qarg.getName());
-			}
-			cmd.append(';');
+	public abstract String command(String name, HasName ... args)
+                throws CoreException;
+	public abstract String blockCommand(String name, String block, HasName ... args)
+                throws CoreException;
 
-			send(cmd.toString());
-			
-			// if we are given a block string, send it to the core as block input
-			if (block != null) {
-				logger.debug("Sending block input {}", block);
-				int r = (int) (Math.random() * Integer.MAX_VALUE);
-				send("---startblock:" + Integer.toString(r));
-				send(block);
-				send("---endblock:" + Integer.toString(r));
-			}
-
-			String ret;
-			try {
-				ret = receiveOrFail();
-			} finally {
-				String pr = receive(); // eat the prompt
-			}
-			return ret;
-		}
-	}
-	
-	
-	
 	/**
 	 * Remove all line breaks.
 	 */

@@ -1,5 +1,9 @@
 package quanto.gui;
 
+import quanto.core.BangBox;
+import quanto.core.QVertex;
+import quanto.core.QEdge;
+import quanto.core.QuantoGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;

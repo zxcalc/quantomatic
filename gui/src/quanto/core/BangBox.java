@@ -1,5 +1,6 @@
-package quanto.gui;
+package quanto.core;
 
+import quanto.core.QVertex;
 import java.util.TreeSet;
 
 import edu.uci.ics.jung.contrib.HasName;

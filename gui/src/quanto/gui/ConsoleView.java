@@ -1,5 +1,8 @@
 package quanto.gui;
 
+import quanto.core.ConsoleInterface;
+import quanto.core.Core;
+import quanto.core.Completer;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
@@ -19,7 +22,7 @@ import javax.swing.text.JTextComponent;
 public class ConsoleView extends InteractiveView {
 
 	private static final long serialVersionUID = -5833674157230451213L;
-	private final QuantoCore core;
+	private final ConsoleInterface coreConsole;
 	private JTextField input;
 	private JTextArea output;
 	private Stack<String> history;
@@ -69,8 +72,12 @@ public class ConsoleView extends InteractiveView {
 			}
 		}
 
-		private void showCompletions(JTextField tf) {
-			SortedSet<String> compl = core.getCompleter().getCompletions(tf.getText());
+		private void showCompletions(JTextField tf)
+                {
+                        if (coreConsole == null)
+                                return;
+
+			SortedSet<String> compl = coreConsole.getCompleter().getCompletions(tf.getText());
 			if (compl.size() == 1) {
 				tf.setText(compl.first());
 			}
@@ -80,19 +87,14 @@ public class ConsoleView extends InteractiveView {
 				for (String c : compl) {
 					println(c);
 				}
-				print(core.getPrompt());
+                                prompt();
 			}
 		}
 
 		private void submitCommand(JTextField tf)
 		{
-			String text = tf.getText();
-			write(text);
-			tf.setText("");
-			if (history.isEmpty() || !history.peek().equals(text)) {
-				history.push(text);
-			}
-			hpointer = history.size();
+                        execCommand(tf.getText());
+                        tf.setText("");
 		}
 	}
 
@@ -126,8 +128,37 @@ public class ConsoleView extends InteractiveView {
 	private void println() {
 		print("\n");
 	}
+	private void prompt() {
+		print("quanto:> ");
+	}
+        private void output(String text) {
+		println(text.trim());
+                prompt();
+        }
+        private void execCommand(String text) {
+                if (coreConsole == null)
+                        return;
 
-	public ConsoleView(final QuantoApp app, QuantoCore core) {
+                try
+                {
+                        println(text);
+                        coreConsole.inputCommandAsync(text);
+                        if (history.isEmpty() || !history.peek().equals(text)) {
+                                history.push(text);
+                        }
+                        hpointer = history.size();
+                }
+                catch (Core.CoreException ex)
+                {
+                        output("Error: " + ex.getMessage());
+                }
+                catch (ConsoleInterface.ParseException ex)
+                {
+                        output("Failed to parse command: " + ex.getMessage());
+                }
+        }
+
+	public ConsoleView(final QuantoApp app, Core core) {
 		super("console");
 
 		this.setLayout(new BorderLayout());
@@ -135,9 +166,6 @@ public class ConsoleView extends InteractiveView {
 		output.setEditable(false);
 		output.addFocusListener(focusListener);
 		output.addCaretListener(caretListener);
-
-		this.core = core;
-		print(core.getPrompt());
 
 		history = new Stack<String>();
 		input = new JTextField();
@@ -158,28 +186,15 @@ public class ConsoleView extends InteractiveView {
 		scroll.setPreferredSize(new Dimension(800, 600));
 		this.add(scroll, BorderLayout.CENTER);
 		this.add(commandPane, BorderLayout.PAGE_END);
-	}
 
-	public void write(String text) {
-		synchronized (core) {
-			try {
-				println(text);
-				core.send(text);
-				String rcv = core.receiveOrFail();
-				print(rcv);
-			}
-			catch (QuantoCore.CoreException e) {
-				print("ERROR: ".concat(e.getMessage()));
-			}
+                this.coreConsole = new ConsoleInterface(core);
+                coreConsole.setResponseListener(new ConsoleInterface.ResponseListener() {
+                        public void responseReceived(String response) {
+                                output(response);
+                        }
+                });
 
-			try {
-				// print the prompt
-				print(core.receive());
-			}
-			catch (QuantoCore.CoreException e) {
-				print("ERROR: ".concat(e.getMessage()));
-			}
-		}
+                prompt();
 	}
 
 	private void updateSelectionCommands() {
@@ -215,10 +230,6 @@ public class ConsoleView extends InteractiveView {
 	@Override
 	public void grabFocus() {
 		input.grabFocus();
-	}
-
-	public QuantoCore getCore() {
-		return core;
 	}
 
 	public void attached(ViewPort vp) {

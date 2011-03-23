@@ -5,6 +5,8 @@
 
 package quanto.gui;
 
+import quanto.core.TheoryListener;
+import quanto.core.Theory;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
@@ -24,7 +26,8 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quanto.gui.QuantoCore.CoreException;
+import quanto.core.Core;
+import quanto.core.Core.CoreException;
 
 /**
  *
@@ -35,7 +38,7 @@ public class TheoryManager {
 	private final static Logger logger =
 		LoggerFactory.getLogger(TheoryManager.class);
 
-	private QuantoCore core;
+	private Core core;
 	private DefaultMutableTreeNode root;
 	private DefaultTreeModel innerModel;
 	private TheoryTreeModel outerModel;
@@ -253,14 +256,14 @@ public class TheoryManager {
 		public Theory getTheory() {
 			return (Theory)userObject;
 		}
-		public void refresh() throws QuantoCore.CoreException {
+		public void refresh() throws Core.CoreException {
 			getTheory().refreshRules();
 			loadChildren();
 			if (getParent() != null) {
 				innerModel.nodeStructureChanged(this);
 			}
 		}
-		public void loadChildren() throws QuantoCore.CoreException {
+		public void loadChildren() throws Core.CoreException {
 			removeAllChildren();
 			getTheory().loadRules();
 			logger.debug("Loading {} children for the theory '{}'",
@@ -275,7 +278,7 @@ public class TheoryManager {
 		}
 	}
 
-	public TheoryManager(QuantoCore core) {
+	public TheoryManager(Core core) {
 		this.core = core;
 		root = new DefaultMutableTreeNode("Theories");
 		root.setAllowsChildren(true);
@@ -328,7 +331,7 @@ public class TheoryManager {
 		return new TreeNodeLocation<TheoryTreeNode>(rnode, index);
 	}
 
-	public QuantoCore getCore() {
+	public Core getCore() {
 		return this.core;
 	}
 
@@ -345,7 +348,7 @@ public class TheoryManager {
 		return hasUnsaved;
 	}
 
-	public Theory createNewTheory() throws QuantoCore.CoreException {
+	public Theory createNewTheory() throws Core.CoreException {
 		logger.debug("Creating new theory");
 
 		Theory theory = core.new_ruleset();
@@ -360,7 +363,7 @@ public class TheoryManager {
 		return theory;
 	}
 	
-	public void reloadTheoriesFromCore() throws QuantoCore.CoreException {
+	public void reloadTheoriesFromCore() throws Core.CoreException {
 		logger.info("Reloading theories from the backend");
 		List<String> theoryNames = Arrays.asList(core.list_rulesets());
 		Set<String> activeTheories = new HashSet<String>(
@@ -382,7 +385,7 @@ public class TheoryManager {
 		loadTheoryNodes(theoryNames);
 	}
 
-	private void loadTheoryNodes(Collection<String> theories) throws QuantoCore.CoreException {
+	private void loadTheoryNodes(Collection<String> theories) throws Core.CoreException {
 		logger.debug("Loading theory nodes: {}", theories);
 		for (String name : theories) {
 			Theory theory = theoryCache.get(name);
@@ -393,7 +396,7 @@ public class TheoryManager {
 					theory.addTheoryListener(listener);
 					theory.loadRules();
 					theoryCache.put(name, theory);
-				} catch (QuantoCore.CoreException ex) {
+				} catch (Core.CoreException ex) {
 					logger.warn("Failed to load rules", ex);
 					continue;
 				}
@@ -406,7 +409,7 @@ public class TheoryManager {
 	}
 
 	public Theory loadTheory(String name, String fileName)
-	throws QuantoCore.CoreException {
+	throws Core.CoreException {
 		logger.debug("Loading theory {} from {}", name, fileName);
 		Theory theory = core.load_ruleset(fileName);
 		core.activate_ruleset(theory);

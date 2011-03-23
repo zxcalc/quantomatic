@@ -1,4 +1,4 @@
-package quanto.gui;
+package quanto.core;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -29,7 +29,7 @@ public class Completer {
 	 * @return
 	 */
 	public static String greatestCommonPrefix(SortedSet<String> compl) {
-		StringBuffer buf = new StringBuffer(compl.last().length());
+		StringBuilder buf = new StringBuilder(compl.last().length());
 		char[] s1 = compl.first().toCharArray();
 		char[] s2 = compl.last().toCharArray();
 		for (int i=0; i<Math.min(s1.length, s2.length); ++i) {
