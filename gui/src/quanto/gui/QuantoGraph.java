@@ -96,11 +96,11 @@ implements HasName, ChangeEventSupport {
 		} catch (XMLException e) {
 			throw new QuantoGraph.ParseException("The file contains badly-formed XML: " + e.getMessage(), e);
 		} catch (ClassNotFoundException e) {
-			throw new QuantoCore.FatalError(e);
+			throw new Error(e);
 		} catch (InstantiationException e) {
-			throw new QuantoCore.FatalError(e);
+			throw new Error(e);
 		} catch (IllegalAccessException e) {
-			throw new QuantoCore.FatalError(e);
+			throw new Error(e);
 		}
 		
 		// tell all the change listeners I have changed

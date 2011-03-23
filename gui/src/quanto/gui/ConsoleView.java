@@ -8,7 +8,6 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.*;
 import java.util.SortedSet;
 import java.util.Stack;
 
@@ -138,21 +137,6 @@ public class ConsoleView extends InteractiveView {
 		output.addCaretListener(caretListener);
 
 		this.core = core;
-		core.attachConsole(new ConsoleOutput() {
-			public void print(Object output) {
-				if (app.getPreference(QuantoApp.CONSOLE_ECHO))
-					ConsoleView.this.print(output.toString());
-			}
-
-			public void println(Object output) {
-				if (app.getPreference(QuantoApp.CONSOLE_ECHO))
-					ConsoleView.this.println(output + "\n");
-			}
-
-			public void error(Object message) {
-				ConsoleView.this.print("\n*** ERROR: " + message + " ***\n");
-			}
-		});
 		print(core.getPrompt());
 
 		history = new Stack<String>();

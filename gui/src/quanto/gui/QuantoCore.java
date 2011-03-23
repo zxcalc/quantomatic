@@ -19,10 +19,13 @@ import org.slf4j.LoggerFactory;
  * @author aleks kissinger
  *
  */
-public class QuantoCore {
+public final class QuantoCore {
 
 	private final static Logger logger =
 		LoggerFactory.getLogger(QuantoCore.class);
+
+        // set to true to dump all communication to stdout
+        private final static boolean DEBUG = false;
 
 	private Process backEnd;
 	private BufferedReader from_backEnd;
@@ -48,21 +51,9 @@ public class QuantoCore {
 			super(msg, cause);
 		}
 	}
-	public static class CoreFailedToStartException extends CoreException {
-		private static final long serialVersionUID = 1053659906558198953L;
-		public CoreFailedToStartException() {
-			super("The core process could not be executed");
-		}
-		public CoreFailedToStartException(String msg) {
-			super(msg);
-		}
-		public CoreFailedToStartException(Throwable cause) {
-			super("The core process could not be executed", cause);
-		}
-		public CoreFailedToStartException(String msg, Throwable cause) {
-			super(msg, cause);
-		}
-	}
+	/**
+	 * Could not communicate with the backend
+	 */
 	public static class CoreCommunicationException extends CoreException {
 		private static final long serialVersionUID = 1053659906558198953L;
 		public CoreCommunicationException() {
@@ -75,6 +66,24 @@ public class QuantoCore {
 			super("Failed to communicate with the core process", cause);
 		}
 		public CoreCommunicationException(String msg, Throwable cause) {
+			super(msg, cause);
+		}
+	}
+	/**
+	 * Could not communicate with the backend, because it failed to start
+	 */
+	public static class CoreFailedToStartException extends CoreCommunicationException {
+		private static final long serialVersionUID = 1053659906558198953L;
+		public CoreFailedToStartException() {
+			super("The core process could not be executed");
+		}
+		public CoreFailedToStartException(String msg) {
+			super(msg);
+		}
+		public CoreFailedToStartException(Throwable cause) {
+			super("The core process could not be executed", cause);
+		}
+		public CoreFailedToStartException(String msg, Throwable cause) {
 			super(msg, cause);
 		}
 	}
@@ -99,39 +108,17 @@ public class QuantoCore {
 			super(msg, cause);
 		}
 	}
+	/**
+	 * The core returned an error message
+	 */
 	public static class CoreReturnedErrorException extends CoreException {
 		private static final long serialVersionUID = 1053659906558198953L;
-		public CoreReturnedErrorException() {
-			super("The core process returned an error message");
-		}
 		public CoreReturnedErrorException(String msg) {
 			super(msg);
 		}
-		public CoreReturnedErrorException(Throwable cause) {
-			super("The core process returned an error message", cause);
-		}
-		public CoreReturnedErrorException(String msg, Throwable cause) {
-			super(msg, cause);
-		}
 	}
 
-	public static class FatalError extends RuntimeException {
-		private static final long serialVersionUID = -3757849807264018024L;
-		public FatalError(String msg) {
-			super(msg);
-		}
-
-		public FatalError(Throwable cause) {
-			super(cause);
-		}
-
-		public FatalError(String msg, Throwable cause) {
-			super(msg, cause);
-		}
-	}
-
-	public QuantoCore()
-	throws CoreException {
+	public QuantoCore() throws CoreException {
 
 		try {
 			ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable);
@@ -140,19 +127,17 @@ public class QuantoCore {
 			logger.info("Starting {}...", quantoCoreExecutable);
 			backEnd = pb.start();
 			logger.info("{} started successfully", quantoCoreExecutable);
-			
-			logger.info("Connecting pipes...");
+
 			from_backEnd = new BufferedReader(new InputStreamReader(backEnd
 					.getInputStream()));
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(backEnd
 					.getOutputStream()));
-			logger.info("Pipes connected successfully");
 			
 			logger.info("Synchonising console...");
 			// sync the console
 			send("garbage_2039483945;");
 			send("HELO;");
-			while (!receive().contains("HELO"));
+			while (!receive().contains("HELO")) {}
 			logger.info("Console synchronised successfully");
 			
 			
@@ -175,60 +160,13 @@ public class QuantoCore {
 			if (backEnd == null) {
 				logger.error("Could not execute {} (check PATH)", quantoCoreExecutable);
 				logger.error("Error was", e);
-				throw new CoreFailedToStartException(e);
+				throw new CoreFailedToStartException(String.format("Could not execute \"%1$\"", quantoCoreExecutable), e);
 			} else { 
 				backEnd.destroy();
 				backEnd = null;
 				logger.error("Failed to set up communication with core process", e);
 				throw new CoreCommunicationException("Failed to set up communication with core process", e);
 			}
-		}
-	}
-
-	/**
-	 * Attach a console output
-	 *
-	 * The console output will receive copies of all commands (and their
-	 * responses, including prompts) - ie: everything sent or received
-	 * in command() or blockCommand() (including indirect uses of these
-	 * methods, like the utility methods of this class).
-	 *
-	 * @p console will @b not receive copies of communication where
-	 * send() and receive() (or receiveOrFail()) are used directly.
-	 *
-	 * @p console will also not receive any communication prior to being
-	 * attached, including the prompt.
-	 *
-	 * @param console The output to attach
-	 */
-	public void attachConsole(ConsoleOutput console) {
-		consoles.add(console);
-	}
-
-	/**
-	 * Detach an attached console output
-	 *
-	 * @param console The output to detach
-	 */
-	public void detachConsole(ConsoleOutput console) {
-		consoles.remove(console);
-	}
-
-	private void consolesPrintln(Object message) {
-		for (ConsoleOutput output : this.consoles) {
-			output.println(message);
-		}
-	}
-
-	private void consolesPrint(Object message) {
-		for (ConsoleOutput output : this.consoles) {
-			output.print(message);
-		}
-	}
-
-	private void consolesError(Object message) {
-		for (ConsoleOutput output : this.consoles) {
-			output.error(message);
 		}
 	}
 
@@ -246,6 +184,10 @@ public class QuantoCore {
 			throw new IllegalStateException();
 		}
 		try {
+                        if (DEBUG) {
+                                System.out.print(">>> ");
+                                System.out.println(command);
+                        }
 			to_backEnd.write(command);
 			to_backEnd.newLine();
 			to_backEnd.flush();
@@ -253,12 +195,10 @@ public class QuantoCore {
 			logger.error("Failed to write to core process", e);
 			try {
 				logger.error("Tried to write to core process, but it has terminated (exit value: {})", backEnd.exitValue());
-				consolesError("Core process terminated!");
 				// Not much we can do: throw an exception
 				throw new CoreTerminatedException();
 			} catch (IllegalThreadStateException ex) {
 				logger.error("Failed to write to core process, even though it has not terminated");
-				consolesError("Failed to write to core process!");
 				throw new CoreCommunicationException();
 			}
 		}
@@ -283,18 +223,25 @@ public class QuantoCore {
 			}
 			StringBuilder message = new StringBuilder();
 			try {
+                                if (DEBUG) {
+                                        System.out.print("<<< ");
+                                }
 				// end of text is marked by " "+BACKSPACE (ASCII 8)
 
 				int c = from_backEnd.read();
 				while (c != 8) {
 					if (c == -1) throw new IOException();
 					message.append((char)c);
+                                        if (DEBUG) System.out.print(c);
 					c = from_backEnd.read();
 				}
 
 				// delete the trailing space
 				message.deleteCharAt(message.length()-1);
+                                if (DEBUG) System.out.println();
 			} catch (IOException e) {
+                                if (DEBUG) System.out.println();
+
 				logger.error("Failed to read from core process", e);
 				if (message.length() > 0) {
 					logger.error("Received partial message before read failure: {}", message);
@@ -302,13 +249,13 @@ public class QuantoCore {
 
 				try {
 					logger.error("Core process terminated with exit value {}", backEnd.exitValue());
-					consolesError("Core process terminated!");
 					throw new CoreTerminatedException(e);
 				} catch (IllegalThreadStateException ex) {
-					consolesError("Failed to write to core process!");
 					throw new CoreCommunicationException(e);
 				}
 			} catch (java.lang.NullPointerException e) {
+                                if (DEBUG) System.out.println();
+
 				logger.error("Failed to read from core process", e);
 				if (message.length() > 0) {
 					logger.error("Received partial message before read failure: {}", message);
@@ -316,10 +263,8 @@ public class QuantoCore {
 
 				try {
 					logger.error("Core process terminated with exit value {}", backEnd.exitValue());
-					consolesError("Core process terminated!");
 					throw new CoreTerminatedException(e);
 				} catch (IllegalThreadStateException ex) {
-					consolesError("Failed to write to core process!");
 					throw new CoreCommunicationException(e);
 				}
 			}
@@ -421,7 +366,6 @@ public class QuantoCore {
 			}
 			cmd.append(';');
 
-			consolesPrintln(cmd);
 			send(cmd.toString());
 			
 			// if we are given a block string, send it to the core as block input
@@ -436,10 +380,8 @@ public class QuantoCore {
 			String ret;
 			try {
 				ret = receiveOrFail();
-				consolesPrint(ret);
 			} finally {
 				String pr = receive(); // eat the prompt
-				consolesPrint(pr);
 			}
 			return ret;
 		}
@@ -554,11 +496,10 @@ public class QuantoCore {
 		return new Theory(this, chomp(command("new_ruleset")));
 	}
 	
-	public Theory load_ruleset(String rsetName, String fileName) throws CoreException{
+	public Theory load_ruleset(String fileName) throws CoreException{
 		return new Theory(
 				this,
-				chomp(command("load_ruleset",
-					new HasName.StringName(rsetName), 
+				chomp(command("load_ruleset", 
 					new HasName.StringName(fileName))),
 				chomp(fileName),
 				false);

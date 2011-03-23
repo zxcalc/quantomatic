@@ -408,7 +408,7 @@ public class TheoryManager {
 	public Theory loadTheory(String name, String fileName)
 	throws QuantoCore.CoreException {
 		logger.debug("Loading theory {} from {}", name, fileName);
-		Theory theory = core.load_ruleset(name, fileName);
+		Theory theory = core.load_ruleset(fileName);
 		core.activate_ruleset(theory);
 		theoryCache.put(theory.getName(), theory);
 		TheoryTreeNode node = new TheoryTreeNode(theory);
@@ -486,7 +486,7 @@ public class TheoryManager {
 				nm, path);
 
 			try {
-				Theory rset = core.load_ruleset(nm, path);
+				Theory rset = core.load_ruleset(path);
 				if (active)
 					core.activate_ruleset(rset);
 				else

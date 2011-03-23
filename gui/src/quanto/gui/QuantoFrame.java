@@ -89,34 +89,36 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 		actionManager.registerCallback(NEW_WINDOW_COMMAND, app, "createNewFrame");
 		actionManager.setEnabled(NEW_WINDOW_COMMAND, true);
+
 		actionManager.registerCallback(NEW_GRAPH_COMMAND, this, "createNewGraph");
 		actionManager.setEnabled(NEW_GRAPH_COMMAND, true);
+
 		actionManager.registerCallback(OPEN_GRAPH_COMMAND, this, "openGraph");
 		actionManager.setEnabled(OPEN_GRAPH_COMMAND, true);
+
 		actionManager.registerCallback(CLOSE_COMMAND, this, "closeCurrentView");
 		actionManager.setEnabled(CLOSE_COMMAND, true);
+
 		actionManager.registerCallback(QUIT_COMMAND, app, "shutdown");
 		actionManager.setEnabled(QUIT_COMMAND, true);
+
 		actionManager.registerCallback(REFRESH_ALL_COMMAND, app.getViewManager(), "refreshAll");
 		actionManager.setEnabled(REFRESH_ALL_COMMAND, true);
+
 		actionManager.registerCallback(DRAW_ARROW_HEADS_COMMAND,
 			new BoolPrefDelegate(QuantoApp.DRAW_ARROW_HEADS),
 			"setState");
 		actionManager.setEnabled(DRAW_ARROW_HEADS_COMMAND, true);
 		actionManager.setSelected(DRAW_ARROW_HEADS_COMMAND,
 			app.getPreference(QuantoApp.DRAW_ARROW_HEADS));
-		actionManager.registerCallback(VERBOSE_CONSOLE_COMMAND,
-			new BoolPrefDelegate(QuantoApp.CONSOLE_ECHO),
-			"setState");
-		actionManager.setEnabled(VERBOSE_CONSOLE_COMMAND, true);
-		actionManager.setSelected(VERBOSE_CONSOLE_COMMAND,
-			app.getPreference(QuantoApp.CONSOLE_ECHO));
+
 		actionManager.registerCallback(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
 			new BoolPrefDelegate(QuantoApp.SHOW_INTERNAL_NAMES),
 			"setState");
 		actionManager.setEnabled(SHOW_INTERNAL_GRAPH_NAMES_COMMAND, true);
 		actionManager.setSelected(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
 			app.getPreference(QuantoApp.SHOW_INTERNAL_NAMES));
+
 		actionManager.registerCallback(OPEN_IN_NEW_WINDOW_COMMAND,
 			new BoolPrefDelegate(QuantoApp.NEW_WINDOW_FOR_GRAPHS),
 			"setState");

@@ -90,13 +90,7 @@ public class QuantoApp {
 		}
 
 		public void itemStateChanged(ItemEvent e) {
-			try {
-				QuantoApp.getInstance().setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
-			}
-			catch (ClassCastException exp) {
-				throw new QuantoCore.FatalError(
-					"Attempted to use non-boolean pref as item listener.");
-			}
+			QuantoApp.getInstance().setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
 		}
 	}
 	// Preferences
@@ -104,8 +98,6 @@ public class QuantoApp {
 		new BoolPref("draw_arrow_heads", false, "Draw arrow geads");
 	public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
 		new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
-	public static final BoolPref CONSOLE_ECHO =
-		new BoolPref("console_echo", false, "Verbose console");
 	public static final BoolPref SHOW_INTERNAL_NAMES =
 		new BoolPref("show_internal_names", false, "Show internal graph names");
 	public static final StringPref LAST_OPEN_DIR =
