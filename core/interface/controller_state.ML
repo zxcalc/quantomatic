@@ -119,6 +119,7 @@ sig
   (* internal *)
   val assert_tag_exists : T -> TagName.name -> unit
   val assert_rule_exists : T -> RuleName.name -> unit
+  val assert_not_rule_exists : T -> RuleName.name -> unit
   val graph_xml : 'a list -> RGGraph.T -> response (* response: DATA graph-xml *)
   val graph_arg : string list -> GraphName.name (* first argument as a graph name *)
 
@@ -256,6 +257,20 @@ functor ControllerState(
       if not (Ruleset.rule_exists (get_rset state) rule_name) then ()
       else raise user_exp ("Rule '" ^ (RuleName.string_of_name rule_name)
                                     ^ "' already exists");
+
+  fun v_mk_and_check graph v =
+      let val vname = V.mk v
+      in
+        if G.has_vname graph vname then vname
+        else raise user_exp ("No such vertex named '" ^ (V.string_of_name vname) ^ "'")
+      end;
+
+  fun e_mk_and_check graph e =
+      let val ename = E.mk e
+      in
+        if G.has_ename graph ename then ename
+        else raise user_exp ("No such edge named '" ^ (E.string_of_name ename) ^ "'")
+      end;
 
   fun output_rulenames nset = NAME_LIST (map RuleName.string_of_name (RuleName.NSet.list_of nset))
 
@@ -562,8 +577,8 @@ functor ControllerState(
     | vdata a _ = raise user_exp "Can only set angles for red and green vertices."
   
   fun set_angle ([_,v,a], graph) =
-      ((OK, graph |> G.update_vertex_data (vdata a) (V.mk v))
-       handle AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
+      ((OK, graph |> G.update_vertex_data (vdata a) (v_mk_and_check graph v))
+         handle AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
     | set_angle _ = raise wrong_args_exp ()
   
   (* FIXME: make generic => i.e. depend only on RG Hilb term *)
@@ -612,18 +627,18 @@ functor ControllerState(
     
   fun bang_vertices ((_::box::verts), graph) = 
       (OK,
-       graph |> G.move_to_box (G.BBox.mk box) (G.Vertex.NSet.of_list (map V.mk verts)))
+       graph |> G.move_to_box (G.BBox.mk box) (G.Vertex.NSet.of_list (map (v_mk_and_check graph) verts)))
     | bang_vertices _ = raise wrong_args_exp ()
   
   fun unbang_vertices ((_::verts), graph) =
       (OK,
-       graph |> G.move_to_unbox (G.Vertex.NSet.of_list (map V.mk verts)))
+       graph |> G.move_to_unbox (G.Vertex.NSet.of_list (map (v_mk_and_check graph) verts)))
     | unbang_vertices _ = raise wrong_args_exp ()
   
   fun copy_subgraph (args as (_::target::vs), state) = let
       val graph = get_graph state (graph_arg args) 
       val clip = G.delete_subgraph_outside_vset 
-                   (G.Vertex.NSet.of_list (map V.mk vs))
+                   (G.Vertex.NSet.of_list (map (v_mk_and_check graph) vs))
                    graph
   in (OK, state |> set_graph clip (GraphName.mk target))
   end
@@ -646,7 +661,7 @@ functor ControllerState(
       fun flip_data (RGVertex.IVert (RGVertex.Xnd e)) = RGVertex.IVert (RGVertex.Znd e)
         | flip_data (RGVertex.IVert (RGVertex.Znd e)) = RGVertex.IVert (RGVertex.Xnd e)
         | flip_data d = d
-  in (OK, fold (G.update_vertex_data flip_data) (map V.mk vs) graph)
+  in (OK, fold (G.update_vertex_data flip_data) (map (v_mk_and_check graph) vs) graph)
   end
     | flip_vertices _ = raise wrong_args_exp ()
     
