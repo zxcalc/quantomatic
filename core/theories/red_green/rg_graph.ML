@@ -4,8 +4,14 @@ structure RG_GraphParam
 : GRAPH_PARAM
 = struct
 
-  structure Vertex = RGVertex;
-  structure Edge = UnitEdge;
+  structure Vertex = RG_InternVertex;
+
+  (* edges have unit data, and are ignored as we use Vertex subst type *)
+  structure UnifyableEdgeData = 
+    IgnoredUnifiableData(structure D = UnitData structure S = RG_InternVertex);
+  structure EdgeStrNm = StrNmData(structure D = UnifyableEdgeData 
+                             val default_data = ());
+  structure Edge = EdgeFun(EdgeStrNm);
 
   structure IName = AngleExpr.VName;
   
@@ -28,8 +34,9 @@ structure RG_GraphParam
 
   fun rename_ename n1 n2 vdep = vdep;
   
-  (* rename internal names in T *)
-  (* rename edges in the dependency structure *)
+  (* rename names in T *)
+
+  (* rename internal names in the dependency structure *)
   structure CRnmINames : COMPOUND_RENAMING
   = CompoundRenamingFun(
     struct structure Nm = IName
@@ -55,7 +62,7 @@ structure RG_GraphParam
   val empty = VDep.empty;
 
   fun add_vertex vd vn vdep = 
-      (case Vertex.angle_of_data vd of NONE => vdep
+      (case RG_VertexData.angle_of_data vd of NONE => vdep
           | SOME angle => VDep.add_to_dom vn (AngleExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
@@ -79,19 +86,19 @@ structure RG_GraphParam
     val empty_renaming = CRnmINames.empty_renaming
 
     fun rename rnm vd = 
-        (case Vertex.angle_of_data vd of NONE => (rnm,vd)
+        (case RG_VertexData.angle_of_data vd of NONE => (rnm,vd)
          | SOME angle => 
            let val (rnm',angle') = AngleExpr.CRnm.rename rnm angle
-           in (rnm', Vertex.map_to_angle (K angle') vd) end)
+           in (rnm', RG_VertexData.map_to_angle (K angle') vd) end)
 
     fun mk_renaming vd rnm = 
-        (case Vertex.angle_of_data vd of NONE => rnm
+        (case RG_VertexData.angle_of_data vd of NONE => rnm
          | SOME angle => AngleExpr.CRnm.mk_renaming angle rnm);
 
     fun do_renaming rnm vd = 
-        (case Vertex.angle_of_data vd of NONE => vd
+        (case RG_VertexData.angle_of_data vd of NONE => vd
          | SOME angle => 
-           Vertex.map_to_angle (AngleExpr.CRnm.do_renaming rnm) vd);
+           RG_VertexData.map_to_angle (AngleExpr.CRnm.do_renaming rnm) vd);
 
     val restrict_to_avoiding = IName.Rnm.restrict_to_avoiding;
   end;
@@ -102,13 +109,13 @@ structure RG_GraphParam
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = RGVertex.subst; (* : AngleExpr.T IName.NTab.T; *)
+  type subst = Vertex.subst; (* : AngleExpr.T IName.NTab.T; *)
 
-  val empty_subst = RGVertex.empty_subst; (* : IName.NTab.empty; *)
-  fun compose_subst u1 u2 = RGVertex.compose_subst (u1,u2); 
+  val empty_subst = Vertex.empty_subst; (* : IName.NTab.empty; *)
+  fun compose_subst u1 u2 = Vertex.compose_subst (u1,u2); 
       (* : Name.NTab.map_all (AngleExpr.subs u2) u1; *)
 
-  fun try_match_vertex d1 d2 u = RGVertex.match_data (d1,d2) u;
+  fun try_match_vertex d1 d2 u = Vertex.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
 
   (* IMPROVE: what data do we want here? should it be add_exp *)
@@ -125,10 +132,10 @@ structure RG_GraphParam
          of NONE    => raise match_exp ()
           | SOME u' => u'); 
 
-  fun subst_in_vertex u vd = RGVertex.subst_in_data u vd;
+  fun subst_in_vertex u vd = Vertex.subst_in_data u vd;
   fun subst_in_edge u ed = ed;
 
-  val pretty_subst = RGVertex.pretty_subst;
+  val pretty_subst = Vertex.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
 
   structure Sharing = 
@@ -142,28 +149,11 @@ structure RG_GraphParam
 end;
 
 
-
-
-signature RG_GRAPH_SHARING = 
-sig
-  include BANG_GRAPH_SHARING
-end
-
-
-signature RG_GRAPH = 
-sig
-include BANG_GRAPH 
-structure RGVertex : RG_VERTEX
-sharing OVertex.SharingWithIData = RGVertex.SharingWithIData
-end;
-
 (* IMPROVE provide table holding variable info for each vertices data *)
 
-structure DB_RGGraph
+structure DB_RGGraph 
 = struct 
-  structure RGVertex = RGVertex;
   structure BasicBangGraph = BasicBangGraphFun(
-    structure OVertex = RGVertex  
     structure Param = RG_GraphParam
     type data = unit (* no extra inherrited data for graphs *)
     val empty_data = ());
@@ -171,7 +161,7 @@ structure DB_RGGraph
   open BBGraph;
 end;
 
-structure RGGraph : RG_GRAPH = DB_RGGraph;
+structure RGGraph : BANG_GRAPH = DB_RGGraph;
 
 (* install pretty printers *)
 local
@@ -190,7 +180,8 @@ end;
 (* ML utility code for building RG graphs *)
 structure MkG = 
 struct
-  structure V = RGGraph.RGVertex;
+  structure VD = RG_VertexData;
+  structure V = RGGraph.OVertex;
   structure E = RGGraph.Edge;
   structure G = RGGraph;
 
@@ -200,9 +191,9 @@ struct
   fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
   val add_angles = AngleExpr.add_expr;
   val pi_angle = AngleExpr.pi;
-  fun mkZ a = V.IVert (RGVertex.Znd a);
-  fun mkX a = V.IVert (RGVertex.Xnd a);
-  val mkH = V.IVert RGVertex.Hnd;
+  fun mkZ a = V.IVert (VD.Znd a);
+  fun mkX a = V.IVert (VD.Xnd a);
+  val mkH = V.IVert VD.Hnd;
   val undir_edge = (G.UnDirected,());
   val dir_edge = (G.Directed,());
   val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);

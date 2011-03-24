@@ -1,9 +1,10 @@
 (* code for testing simple match search *)
 
 local
-  open MkG;
-  structure S = RGSimpleMatchSearch;
-  structure Match = RGMatch;
+  open MkG; (* RGGraph *)
+  structure Rewriting = RG_Rewriting; 
+  structure S = Rewriting.SimpleMatchSearch;
+  structure Match = Rewriting.Match;
   fun match g1 g2 = 
       let val (rn,g2') = G.rename_apart g1 g2;
       in Seq.list_of (S.match no_extra_names g1 g2')

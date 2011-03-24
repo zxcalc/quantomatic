@@ -159,17 +159,17 @@ end;
 (* A  Graph With Boundary *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor BasicBangGraphFun(
-        structure OVertex : OVERTEX
         structure Param : GRAPH_PARAM
-        sharing Param.Vertex.SharingWithData = OVertex.SharingWithData
         type data 
         val empty_data : data
 ) : BASIC_BANG_GRAPH
 = struct
-  
-  structure V = OVertex;
-  structure E = Param.Edge;
-  
+
+  (* IDEA: would be handy to have a warning for type overloading; can be tricky to see! e.g. if OVertex = Param.Vertex ... *)
+
+  structure V : NAMES = Param.Vertex;
+  structure E : NAMES = Param.Edge;
+
   (* bang-box names *)
   structure BBox : SSTR_NAMES = 
   struct 
@@ -216,7 +216,7 @@ functor BasicBangGraphFun(
 
   (* make basic graph with this as internal data *)
   structure G : BASIC_OGRAPH = BasicOGraphFun(
-    structure OVertex = V 
+    (*  structure OVertex = V *) 
     structure Param = Param
     type data = hdata
     val empty_data = empty_hdata

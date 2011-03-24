@@ -282,5 +282,5 @@ end;
 
 structure DB_SMS = RuleMatchSearch(
   structure BangGraph = RGGraph 
-        and Match = RGMatch
-        and Rule = RGRule);
+        and Match = RG_Rewriting.Match
+        and Rule = RG_Rewriting.Rule);

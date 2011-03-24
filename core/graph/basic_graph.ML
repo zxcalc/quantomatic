@@ -4,11 +4,12 @@
 
 signature BASIC_GRAPH_SHARING = 
 sig
-structure Edge : EDGE_AND_DATA_SHARING;
-structure Vertex : NAME_AND_DATA_SHARING;
+structure Edge : EDGE_AND_UNIFIABLE_DATA_SHARING;
+structure Vertex : NAME_AND_UNIFIABLE_DATA_SHARING;
+sharing type Edge.subst = Vertex.subst; 
 structure Param : GRAPH_PARAM_SHARING;
-sharing Param.Vertex = Vertex
-sharing Param.Edge = Edge
+sharing Param.Vertex = Vertex;
+sharing Param.Edge = Edge;
 type dir_or_undir;
 type T;
 end;

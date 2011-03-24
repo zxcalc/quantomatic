@@ -201,7 +201,3 @@ struct
 end; (* functor Ruleset *)
 
 
-structure DB_RGRuleset = Ruleset(RGRule);
-
-structure RGRuleset = DB_RGRuleset : RULESET
-

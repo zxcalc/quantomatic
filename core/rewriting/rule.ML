@@ -163,16 +163,26 @@ datatype T = Rule of { lhs : Graph.T,
 exception bad_rule_exp of string * Graph.T * Graph.T;
 fun mk (lhs,rhs) = 
     let val lhsbndry : Vertex.NSet.T = Graph.get_boundary lhs 
-        val allvnames = Vertex.NSet.union_merge 
-                         (Graph.get_vnames lhs) (Graph.get_vnames rhs)
-        val allenames = Edge.NSet.union_merge 
-                         (Graph.get_enames lhs) (Graph.get_enames rhs)
     in
     (* check that rule is well-formed! *)
     if Vertex.NSet.eq lhsbndry (Graph.get_boundary rhs) then 
-      let (* rename rhs; shared bvertex names, all else is distinct. *)
-        val vrn = Vertex.mk_renaming lhsbndry allvnames Vertex.NTab.empty
-        val ern = Edge.mk_renaming Edge.NSet.empty allenames Edge.NTab.empty
+      let (* rename rhs; sharing bvertex names with lhs, 
+             all else must be distinct, but do minimal amount of renaming *)
+        val ignorevnames = (* ignore boundary and also fresh rhs vnames *)
+            Vertex.NSet.union_merge 
+              lhsbndry
+              (Vertex.NSet.subtract (Graph.get_vnames rhs)
+                                    (Graph.get_vnames lhs)); 
+        (* ignore enames that are already fresh w.r.t. lhs *)
+        val ignoreenames = Edge.NSet.subtract (Graph.get_enames rhs)
+                            (Graph.get_enames lhs);
+        val vrn = Vertex.mk_renaming ignorevnames 
+                    (Vertex.NSet.union_merge ignorevnames 
+                      (Graph.get_vnames lhs))
+                    Vertex.NTab.empty
+        val ern = Edge.mk_renaming ignoreenames 
+                    (Edge.NSet.union_merge ignoreenames (Graph.get_enames lhs))
+                    Edge.NTab.empty
         val (rn, rhs') = Graph.rename (vrn,ern) rhs
         val lhsauts = (Seq.list_of oo GraphIso.get) lhs lhs
         val rhsauts = (Seq.list_of oo GraphIso.get) rhs rhs'

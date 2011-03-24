@@ -25,6 +25,7 @@ PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
 PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
 PolyML.Project.make "graph/graph_iso.ML"; (* isomorphism between graphs *)
 PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
+PolyML.Project.make "graph/ograph_param.ML";
 PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
@@ -63,9 +64,6 @@ PolyML.Project.make "theories/ruleset.ML";
 PolyML.Project.make "io/input_ruleset.ML";
 PolyML.Project.make "io/output_ruleset.ML";
 
-(* TESTING *)
-PolyML.Project.make "io/test/rg_io.ML";
-
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
 
@@ -81,7 +79,11 @@ PolyML.Project.make "rewriting/graph_subst.ML";
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 (* particular test cases *)
 PolyML.Project.make "theories/red_green/rg_ruleset_rewriting.ML";
+PolyML.Project.make "theories/red_green/rg_io.ML";
+
+(* TESTING *)
 PolyML.Project.make "matching/test/simple_match_search.ML";
+PolyML.Project.make "io/test/rg_io.ML";
 
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
@@ -103,7 +105,7 @@ PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 
 (* unit tests *)
-(* PolyML.Project.make "test/ROOT.ML"; *) 
+(* PolyML.Project.make "test/ROOT.ML"; *)
 
 (* top level run function for controller/interface protocol *)
 val run = ConsoleInterface.run_in_stdio;

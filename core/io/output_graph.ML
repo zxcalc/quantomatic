@@ -1,8 +1,10 @@
 (* Outputs an XML representation of a graph. *)
 
 (*  *)
-functor OutputRGVertexDataXMLList (V : RG_VERTEX) : OUTPUT_XML_LIST = 
-struct 
+functor OutputRGVertexDataXMLList(
+  V : OVERTEX where type IData.data = RG_VertexData.data 
+) : OUTPUT_XML_LIST 
+= struct 
   
   type T = XML.tree list;
   type data = V.data;
@@ -13,9 +15,11 @@ struct
   val colourGreen = wrap_text_simple "colour" "green"
   val colourH = wrap_text_simple "colour" "H"
 
-  fun output_idata (V.Xnd a) = colourRed::(OutputLinratXML.output a)
-    | output_idata (V.Znd a) = colourGreen::(OutputLinratXML.output a)
-    | output_idata (V.Hnd) = [colourH]
+  fun output_idata (RG_VertexData.Xnd a) = 
+      colourRed::(OutputLinratXML.output a)
+    | output_idata (RG_VertexData.Znd a) = 
+      colourGreen::(OutputLinratXML.output a)
+    | output_idata (RG_VertexData.Hnd) = [colourH]
 
   fun output (V.EVert) = [wrap_bool_simple "boundary" true]
     | output (V.IVert rg) = 

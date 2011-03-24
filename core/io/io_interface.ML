@@ -101,16 +101,6 @@ functor IO_Interface(
 
 end; (* IO_Interface *)
 
-(* *)
-structure DB_RG_IO_Interface = IO_Interface(
-  structure Ruleset = RGRuleset
-  structure InputVertexData = InputRGVertexDataXML(RGVertex)
-  structure InputEdgeData = InputNoEdgeDataXML(RGRuleset.Rule.Graph.Edge)
-  structure OutputVertexData = OutputRGVertexDataXMLList(RGGraph.RGVertex)
-  structure OutputEdgeData = OutputNoEdgeDataXMLList(RGGraph.Edge)
-);
-
-structure RG_IO_Interface : IO_INTERFACE = DB_RG_IO_Interface; 
 
 (* 
   type graph = Graph.T;

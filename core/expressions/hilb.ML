@@ -125,15 +125,15 @@ fun pretty_vertex fmt graph vert = let
 		Pretty.str ", ",
 		Pretty.str (Int.toString oc)]
 in Pretty.block	
-   (case v of RGVertex.IVert iv =>
+   (case v of RGGraph.OVertex.IVert iv =>
 	     (case iv
-	       of RGVertex.Xnd e =>
+	       of RG_VertexData.Xnd e =>
 		        [Pretty.str "xsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
-		      | RGVertex.Znd e =>
+		      | RG_VertexData.Znd e =>
 		        [Pretty.str "zsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
-          | RGVertex.Hnd => [Pretty.str "h"])
+          | RG_VertexData.Hnd => [Pretty.str "h"])
 	  | _ => [Pretty.str "id2[1]"])
 end
 

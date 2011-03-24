@@ -6,7 +6,7 @@ struct open SStrName val default_name = SStrName.mk "new-graph-1" end;
 signature CONTROLLER_STATE =
 sig
   type T;
-  type rewrite = (RuleName.name * RGRule.T) * RGGraph.T
+  type rewrite = (RuleName.name * RG.Rule.T) * RG.Graph.T
   datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
 
   exception wrong_args_exp of unit (* when wrong arguments are given to a command *)
@@ -18,28 +18,28 @@ sig
   val as_data : string -> response
 
   (* get/set*)
-  val get_rset : T -> RGRuleset.T
+  val get_rset : T -> RG.Ruleset.T
   val get_rewrites : T -> rewrite list GraphName.NTab.T
-  val get_hist : T -> (RGGraph.T list * RGGraph.T list) GraphName.NTab.T
-  val get_graphs : T -> RGGraph.T GraphName.NTab.T
-  val get_graph : T -> GraphName.name -> RGGraph.T
+  val get_hist : T -> (RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T
+  val get_graphs : T -> RG.Graph.T GraphName.NTab.T
+  val get_graph : T -> GraphName.name -> RG.Graph.T
 
   val update_rule : string list * T -> response * T
-  val update_rset : (RGRuleset.T -> RGRuleset.T) -> T -> T
+  val update_rset : (RG.Ruleset.T -> RG.Ruleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
      T -> T
   val update_hist :
-   ((RGGraph.T list * RGGraph.T list) GraphName.NTab.T ->
-     (RGGraph.T list * RGGraph.T list) GraphName.NTab.T) -> T -> T
+   ((RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T ->
+     (RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T) -> T -> T
   val update_graphs :
-   (RGGraph.T GraphName.NTab.T -> RGGraph.T GraphName.NTab.T) -> T -> T
+   (RG.Graph.T GraphName.NTab.T -> RG.Graph.T GraphName.NTab.T) -> T -> T
 
-  val set_rset : RGRuleset.T -> T -> T
+  val set_rset : RG.Ruleset.T -> T -> T
   val set_rewrites : rewrite list GraphName.NTab.T -> T -> T
-  val set_hist : (RGGraph.T list * RGGraph.T list) GraphName.NTab.T -> T -> T
-  val set_graphs : RGGraph.T GraphName.NTab.T -> T -> T
-  val set_graph : RGGraph.T -> GraphName.name -> T -> T
+  val set_hist : (RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T -> T -> T
+  val set_graphs : RG.Graph.T GraphName.NTab.T -> T -> T
+  val set_graph : RG.Graph.T -> GraphName.name -> T -> T
 
 
   
@@ -50,13 +50,13 @@ sig
 
   (* input/output *)
   val save_ruleset : string list * T -> response (* response: OK *)
-  val save_graph : string list * RGGraph.T -> response (* response: OK *)
+  val save_graph : string list * RG.Graph.T -> response (* response: OK *)
   val load_ruleset : string list * T -> response * T (* response: OK *)
   val load_graph : string list * T -> response * T (* response: NAME graphname *)
 
   (* printing/showing info (for console) *)
   val show_rewrites : string list * T -> response (* response: OUTPUT rewrite-list-xml *)
-  val print_graph : 'a list -> RGGraph.T -> response (* response: DATA pretty-graph-structure *)
+  val print_graph : 'a list -> RG.Graph.T -> response (* response: DATA pretty-graph-structure *)
   val list_graphs : 'a list * T -> response (* response: NAME_LIST pretty-graph-list *)
   val list_rules_with_tag : string list * T -> response (* response: NAME_LIST pretty-rule-list *)
   val list_allrules : 'a list * T -> response (* response: NAME_LIST pretty-rule-list *)
@@ -91,45 +91,48 @@ sig
   val kill_graph : string list * T -> response * T (* response: OK *)
   val insert_graph : string list * T -> response * T (* response: OK *)
   val duplicate_graph : string list * T -> response * T (* response: NAME graph-name *)
-  val create_graph : GraphName.name -> RGGraph.T -> T -> response * T (* response: NAME graph-name *)
+  val create_graph : GraphName.name -> RG.Graph.T -> T -> response * T (* response: NAME graph-name *)
   val copy_subgraph : string list * T -> response * T (* response: OK *)
 
-  val add_vertex : string list * RGGraph.T -> response * RGGraph.T (* response: NAME vertex-name *)
-  val add_edge : string list * RGGraph.T -> response * RGGraph.T (* response: NAME edge-name *)
-  val add_bang : 'a list * RGGraph.T -> response * RGGraph.T (* response: NAME bb-name *)
+  val add_vertex : string list * RG.Graph.T -> response * RG.Graph.T (* response: NAME vertex-name *)
+  val add_edge : string list * RG.Graph.T -> response * RG.Graph.T (* response: NAME edge-name *)
+  val add_bang : 'a list * RG.Graph.T -> response * RG.Graph.T (* response: NAME bb-name *)
 
-  val set_angle : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val rename_vertex : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val set_angle : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val rename_vertex : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
   val rename_graph : string list * T -> response * T (* response: NAME new-graph-name *)
-  val delete_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val delete_edges : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val delete_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val delete_edges : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
 
-  val bang_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val kill_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val unbang_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val merge_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val duplicate_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
-  val drop_bang : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val bang_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val kill_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val unbang_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val merge_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val duplicate_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val drop_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
 
-  val flip_vertices : string list * RGGraph.T -> response * RGGraph.T (* response: OK *)
+  val flip_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
 
   (* other *)
-  val hilb : string list * RGGraph.T -> response (* response: DATA hilb-term *)
+  val hilb : string list * RG.Graph.T -> response (* response: DATA hilb-term *)
 
   (* internal *)
   val assert_tag_exists : T -> TagName.name -> unit
   val assert_rule_exists : T -> RuleName.name -> unit
   val assert_not_rule_exists : T -> RuleName.name -> unit
-  val graph_xml : 'a list -> RGGraph.T -> response (* response: DATA graph-xml *)
-  val graph_arg : string list -> GraphName.name (* first argument as a graph name *)
+  val graph_xml : 'a list -> RG.Graph.T 
+        -> response (* response: DATA graph-xml *)
+  val graph_arg : string list 
+        -> GraphName.name (* first argument as a graph name *)
 
   val tag_name_action :
-   (TagName.name -> RGRuleset.T -> RGRuleset.T) -> string list * T -> response * T
+   (TagName.name -> RG.Ruleset.T -> RG.Ruleset.T) -> string list * T 
+     -> response * T
   val rule_name_action :
-   (TagName.name -> RGRuleset.T -> RGRuleset.T) ->
+   (TagName.name -> RG.Ruleset.T -> RG.Ruleset.T) ->
      string list * T -> response * T
   val graph_of_rule :
-   (RGRule.T -> RGGraph.T) -> string -> string list * T -> response * T
+   (RG.Rule.T -> RG.Graph.T) -> string -> string list * T -> response * T
 
 end;
 
@@ -138,7 +141,7 @@ end;
 functor ControllerState(
   structure RulesetRewrites : RULESET_REWRITES
   (* FIXME: HACK: interface cannot be generic while we depend on RG data - need to generalise protocol and GUI for arbitrary kinds of data *)
-  where type Rule.Graph.Vertex.data = RGVertex.data
+  where type Rule.Graph.OVertex.IData.data = RG_VertexData.data
     and type Rule.Graph.Edge.data = unit 
   structure IO_Interface : IO_INTERFACE
   sharing type IO_Interface.Input.Graph.data = RulesetRewrites.Ruleset.Rule.Graph.T
@@ -155,7 +158,7 @@ functor ControllerState(
   structure Ruleset = RulesetRewrites.Ruleset;
   structure R = Ruleset.Rule;
   structure G = R.Graph;
-  structure V = G.Vertex;
+  structure V = G.OVertex;
   structure E = G.Edge;
   
   type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
@@ -413,7 +416,7 @@ functor ControllerState(
       | load_graph _ = raise wrong_args_exp ()
     (* fun input_graph_xml ([], state) = 
         let val gr_block = read_block ()
-            val gr = InputRGGraphXML.input (XMLReader.read_from_string gr_block)
+            val gr = InputRG.GraphXML.input (XMLReader.read_from_string gr_block)
         in create_graph GraphName.default_name gr state end
       | input_graph_xml _ = raise wrong_args_exp () *)
   
@@ -444,10 +447,10 @@ functor ControllerState(
     | save_graph _ = raise wrong_args_exp ()
   
   (* FIXME: make generic over vertex data *)
-  fun vertex_type "red" = RGVertex.IVert (RGVertex.Xnd AngleExpr.zero)
-    | vertex_type "green" =  RGVertex.IVert (RGVertex.Znd AngleExpr.zero)
-    | vertex_type "hadamard" = RGVertex.IVert RGVertex.Hnd
-    | vertex_type "boundary" = RGVertex.EVert
+  fun vertex_type "red" = V.IVert (RG_VertexData.Xnd AngleExpr.zero)
+    | vertex_type "green" =  V.IVert (RG_VertexData.Znd AngleExpr.zero)
+    | vertex_type "hadamard" = V.IVert RG_VertexData.Hnd
+    | vertex_type "boundary" = V.EVert
     | vertex_type _ = raise user_exp "Bad vertex type."
   
   fun add_vertex ([_,vt], graph) =
@@ -572,8 +575,10 @@ functor ControllerState(
   in REWRITE_LIST rewrites  end;
   
   (* FIXME: make generic, currently depends on RGVertex *)
-  fun vdata a (RGVertex.IVert (RGVertex.Xnd _)) = RGVertex.IVert (RGVertex.Xnd (AngleExpr.parse a))
-    | vdata a (RGVertex.IVert (RGVertex.Znd _)) = RGVertex.IVert (RGVertex.Znd (AngleExpr.parse a))
+  fun vdata a (V.IVert (RG_VertexData.Xnd _)) = 
+      V.IVert (RG_VertexData.Xnd (AngleExpr.parse a))
+    | vdata a (V.IVert (RG_VertexData.Znd _)) = 
+      V.IVert (RG_VertexData.Znd (AngleExpr.parse a))
     | vdata a _ = raise user_exp "Can only set angles for red and green vertices."
   
   fun set_angle ([_,v,a], graph) =
@@ -658,8 +663,10 @@ functor ControllerState(
   
   (* FIXME: make generic; currently depends on RGVertex *)
   fun flip_vertices (_::vs, graph) = let
-      fun flip_data (RGVertex.IVert (RGVertex.Xnd e)) = RGVertex.IVert (RGVertex.Znd e)
-        | flip_data (RGVertex.IVert (RGVertex.Znd e)) = RGVertex.IVert (RGVertex.Xnd e)
+      fun flip_data (V.IVert (RG_VertexData.Xnd e)) = 
+          V.IVert (RG_VertexData.Znd e)
+        | flip_data (V.IVert (RG_VertexData.Znd e)) = 
+          V.IVert (RG_VertexData.Xnd e)
         | flip_data d = d
   in (OK, fold (G.update_vertex_data flip_data) (map (v_mk_and_check graph) vs) graph)
   end
@@ -685,8 +692,8 @@ end; (* structure Controller *)
 
 (* *)
 structure DB_ControllerState = ControllerState(
-  structure RulesetRewrites = RGRulesetRewrites
-  structure IO_Interface = RG_IO_Interface
+  structure RulesetRewrites = RG_Rewriting.RulesetRewrites
+  structure IO_Interface = RG.IO
 );
 structure ControllerState : CONTROLLER_STATE = DB_ControllerState; 
 

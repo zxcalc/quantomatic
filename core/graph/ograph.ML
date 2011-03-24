@@ -6,8 +6,6 @@
 signature OGRAPH_SHARING = 
 sig 
 include BASIC_GRAPH_SHARING;
-(* structure Edge : EDGE_AND_DATA_SHARING;
-structure Vertex : NAME_AND_DATA_SHARING; *)
 structure OVertex : OVERTEX_SHARING;
 sharing Vertex = OVertex;
 end;
@@ -163,20 +161,23 @@ end;
 (*  Basic Open Graph (Graph with a boundary/edge-points) *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor BasicOGraphFun(
-        structure OVertex : OVERTEX
+        (* structure OVertex : OVERTEX *)
         structure Param : GRAPH_PARAM
-        sharing Param.Vertex.SharingWithData = OVertex.SharingWithData
+        (* sharing Param.Vertex.SharingWithData = OVertex.SharingWithData *)
         type data (* graph additional extensible/hidden data *)
         val empty_data : data
 ) 
 : BASIC_OGRAPH
 = struct
   
-  structure OVertex = OVertex;
+  structure OVertex = OVertex(Param.Vertex);
+  structure Param = OGraphParam(structure Param = Param and OVertex = OVertex);
+
   structure V = OVertex;
   structure E = Param.Edge;
   
-  (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
+  (* to avoid using clobbered data and empty graph from the 
+     open G (see below) *)
   type data2 = data;
   val empty_data2 = empty_data;
   
@@ -206,7 +207,7 @@ functor BasicOGraphFun(
 
   (* make basic graph with this as internal data *)
   structure G = BasicGraphFun(
-    structure Param = Param
+    structure Param = Param;
     type data = hdata
     val empty_data = empty_hdata
   );

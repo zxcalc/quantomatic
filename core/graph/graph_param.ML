@@ -6,16 +6,18 @@
 
 signature GRAPH_PARAM_SHARING
 = sig 
-  structure Vertex : NAME_AND_DATA_SHARING
-  structure Edge : EDGE_AND_DATA_SHARING
+  structure Vertex : NAME_AND_UNIFIABLE_DATA_SHARING
+  structure Edge : NAME_AND_UNIFIABLE_DATA_SHARING
   type T
   type inames_renaming
   type subst 
+  sharing type subst = Vertex.subst
+  sharing type subst = Edge.subst
 end;
 
 
 (* Name dependencies for Graphs: how names in internal data and vertex 
-   and edge names deepend on each other. *)
+   and edge names depend on each other. *)
 signature GRAPH_PARAM
 = sig
 
@@ -23,12 +25,14 @@ signature GRAPH_PARAM
   structure Vertex : VERTEX (* defined in pregraph.ML *) 
   structure Edge : EDGE (* defined in pregraph.ML *) 
 
-  (* internal name data dependencies e.g. w.r.t. vertex names *)
+  (* Dependencies between vertex/edge names and internal-names (in the 
+     vertex/edge data) e.g. relating angle variable-names to vertex names in
+     which that variable occurs.  *)
   type T
 
   exception match_exp of unit
 
-  (* substication data for internal data (in edges and vertices) *)
+  (* substitution data for internal data (in edges and vertices) *)
   type subst 
   val empty_subst : subst
   val compose_subst : subst -> subst -> subst
@@ -75,7 +79,7 @@ signature GRAPH_PARAM
   val add_edge : Edge.data -> Edge.name -> T -> T
 
   val of_vertex : Vertex.data -> Vertex.name -> T
-  val of_edge : Vertex.data -> Vertex.name -> T
+  val of_edge : Edge.data -> Edge.name -> T
 
   val delete_vertex : Vertex.name -> T -> T
   val delete_edge : Edge.name -> T -> T
