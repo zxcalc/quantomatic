@@ -2,28 +2,28 @@
 package quanto.gui;
 
 import quanto.core.QuantoGraph;
-import quanto.core.Core;
+import quanto.core.CoreTalker;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.io.StringWriter;
 import java.util.prefs.Preferences;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
-import net.n3.nanoxml.IXMLElement;
-import net.n3.nanoxml.XMLWriter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
+import java.io.FileWriter;
 import java.io.IOException;
-import quanto.core.CoreConsoleMode;
+import quanto.core.Core;
+import quanto.core.CoreConsoleTalker;
+import quanto.core.CoreException;
 /**
  * Singleton class 
  * @author aleks
@@ -51,7 +51,6 @@ public class QuantoApp {
 	private final Core core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
-	private TheoryManager theoryManager = null;
 
 	private static class Pref<T> {
 
@@ -107,14 +106,14 @@ public class QuantoApp {
 		new StringPref("last_open_dir", null);
 	public static final StringPref LAST_THEORY_OPEN_DIR =
 		new StringPref("last_theory_open_dir", null);
-	public static final StringPref LOADED_THEORIES =
-		new StringPref("loaded_theories", "");
+	public static final StringPref SAVED_RULESET =
+		new StringPref("saved_ruleset", "");
 
 	public static QuantoApp getInstance() {
 		if (theApp == null) {
 			try {
 				theApp = new QuantoApp();
-			} catch (Core.CoreException ex) {
+			} catch (CoreException ex) {
 				// FATAL!!!
 				logger.error("Failed to start core: terminating", ex);
 				JOptionPane.showMessageDialog(null,
@@ -157,7 +156,7 @@ public class QuantoApp {
 				logger.info("Invoked as OS X application ({})", appName);
 				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
 					appName + "/Contents/MacOS/dot_static";
-				Core.quantoCoreExecutable =
+				CoreTalker.quantoCoreExecutable =
 					appName + "/Contents/MacOS/quanto-core-app";
 			}
 			else if (arg.equals("--mathematica-mode")) {
@@ -166,7 +165,7 @@ public class QuantoApp {
 			}
 		}
 		logger.info("Using dot executable: {}", edu.uci.ics.jung.contrib.DotLayout.dotProgram);
-		logger.info("Using core executable: {}", Core.quantoCoreExecutable);
+		logger.info("Using core executable: {}", CoreTalker.quantoCoreExecutable);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -186,32 +185,11 @@ public class QuantoApp {
 
 		app.newGraph(true);
 
-		logger.info("Loading theories");
-
-		try {
-			app.getTheoryManager().loadState(app.getPreference(QuantoApp.LOADED_THEORIES));
-		} catch (IllegalArgumentException ex) {
-			logger.warn("Could not load theory state: invalid state");
-		}
-
 		logger.info("Finished initialisation");
 	}
 
 	public boolean shutdown() {
-		if (getTheoryManager().hasUnsavedTheories()) {
-			int answer = JOptionPane.showConfirmDialog(null,
-				"You appear to have unsaved changes to one or more theories.  Are you sure you want to quit?",
-				"Unsaved changes",
-				JOptionPane.YES_NO_OPTION);
-			if (answer != JOptionPane.YES_OPTION)
-				return false;
-		}
-		logger.info("Saving theory state");
-		try {
-			setPreference(LOADED_THEORIES, getTheoryManager().getState());
-		} catch (Exception ex) {
-			logger.warn("Could not save theory state", ex);
-		}
+		saveRulesetState();
 		logger.info("Shutting down");
 		if (viewManager.closeAllViews()) {
 			logger.info("Exiting now");
@@ -220,10 +198,35 @@ public class QuantoApp {
 		return false;
 	}
 
-	private QuantoApp() throws Core.CoreException {
+	private void loadSavedRulesetState() {
+		String ruleset = getPreference(SAVED_RULESET);
+		if (ruleset.length() > 0) {
+			logger.info("Existing theory state found: loading");
+			try {
+				core.loadRuleset(ruleset);
+				return;
+			} catch (Exception e) {
+				logger.warn("Failed to load ruleset state", e);
+			}
+		}
+		// FIXME: try loading default ruleset
+	}
+
+	private void saveRulesetState() {
+		try {
+			logger.info("Saving theory state");
+			setPreference(SAVED_RULESET, core.getRulesetEncoded());
+			return;
+		} catch (Exception e) {
+			logger.warn("Failed to save ruleset state", e);
+		}
+	}
+
+	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 
-		core = new CoreConsoleMode();
+		core = new Core();
+		loadSavedRulesetState();
 		viewManager = new InteractiveViewManager(this, core);
 
 		if (MAC_OS_X) {
@@ -255,26 +258,6 @@ public class QuantoApp {
 		JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
 	}
 
-	public TheoryManager getTheoryManager() {
-		if (theoryManager == null) {
-			theoryManager = new TheoryManager(core);
-                        if (getPreference(LAST_THEORY_OPEN_DIR) != null) {
-                            theoryManager.setLastTheoryDirectory(
-                                    new File(getPreference(LAST_THEORY_OPEN_DIR)));
-                        }
-			theoryManager.addRecentDirectoryChangeListener(new RecentDirectoryChangeListener() {
-				public void recentDirectoryChanged(Object source, File directory) {
-					try {
-						setPreference(LAST_THEORY_OPEN_DIR, directory.getCanonicalPath());
-					} catch (IOException ex) {
-						logger.warn("Could not save last theory directory", ex);
-					}
-				}
-			});
-		}
-		return theoryManager;
-	}
-
 	public void createNewFrame() {
 		try {
 			InteractiveView view = viewManager.getNextFreeView();
@@ -282,7 +265,7 @@ public class QuantoApp {
 				view = createNewGraph();
 			openNewFrame(view);
 		}
-		catch (Core.CoreException ex) {
+		catch (CoreException ex) {
 			logger.error("Could not create a new graph", ex);
 			errorDialog("Could not create a new graph to display");
 		}
@@ -305,8 +288,8 @@ public class QuantoApp {
 	}
 
 	public InteractiveGraphView createNewGraph()
-		throws Core.CoreException {
-		QuantoGraph newGraph = core.new_graph();
+		throws CoreException {
+		QuantoGraph newGraph = core.createEmptyGraph();
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
 		viewManager.addView(vis);
@@ -314,22 +297,16 @@ public class QuantoApp {
 	}
 
 	public InteractiveGraphView openGraph(File file)
-		throws Core.CoreException,
+		throws CoreException,
 		       QuantoGraph.ParseException,
-		       java.io.IOException{
-		String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
-		QuantoGraph loadedGraph = new QuantoGraph();
-		IXMLElement root = loadedGraph.fromXml(file);
-		StringWriter sw = new StringWriter();
-		new XMLWriter(sw).write(root, true);
-		loadedGraph.setName(core.input_graph_xml(sw.toString()));
+		       java.io.IOException {
+		QuantoGraph loadedGraph = core.loadGraph(file);
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, loadedGraph, new Dimension(800, 600));
-		vis.getGraph().setFileName(filename);
 		vis.setTitle(file.getName());
 
 		viewManager.addView(vis);
-		core.rename_graph(loadedGraph, viewManager.getViewName(vis));
+		core.renameGraph(loadedGraph, viewManager.getViewName(vis));
 
 		vis.updateGraph();
 		vis.getGraph().setSaved(true);
@@ -344,7 +321,7 @@ public class QuantoApp {
 	 */
 	public void newGraph(boolean initial) {
 		try {
-			QuantoGraph newGraph = core.new_graph();
+			QuantoGraph newGraph = core.createEmptyGraph();
 			InteractiveGraphView vis =
 				new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
 			viewManager.addView(vis);
@@ -353,7 +330,7 @@ public class QuantoApp {
 				openNewFrame(vis);
 			}
 		}
-		catch (Core.CoreException e) {
+		catch (CoreException e) {
 			logger.error("Failed to create a new graph", e);
 			errorDialog(e.getMessage());
 		}

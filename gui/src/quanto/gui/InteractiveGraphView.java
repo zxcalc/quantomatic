@@ -33,7 +33,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
-import quanto.core.Core.CoreException;
+import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
@@ -51,6 +51,7 @@ import java.util.EventObject;
 import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
 import quanto.core.Core;
+import quanto.core.CoreTalker;
 
 public class InteractiveGraphView
 	extends InteractiveView
@@ -147,11 +148,10 @@ public class InteractiveGraphView
 							Labeler lab = (Labeler) e.getSource();
 							if (qVertex != null) {
 								try {
-									getCore().set_angle(getGraph(),
-											    qVertex, lab.getText());
-									updateGraph();
+									core.setVertexAngle(getGraph(), qVertex, lab.getText());
+									//updateGraph();
 								}
-								catch (Core.CoreException err) {
+								catch (CoreException err) {
 									errorDialog(err.getMessage());
 								}
 							}
@@ -609,20 +609,18 @@ public class InteractiveGraphView
 
 	public void addEdge(QVertex s, QVertex t) {
 		try {
-			getCore().add_edge(getGraph(), s, t);
-			updateGraph();
+			core.addEdge(getGraph(), s, t);
 		}
-		catch (Core.CoreException e) {
+		catch (CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
 
 	public void addVertex(QVertex.Type type) {
 		try {
-			getCore().add_vertex(getGraph(), type);
-			updateGraph();
+			core.addVertex(getGraph(), type);
 		}
-		catch (Core.CoreException e) {
+		catch (CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
@@ -631,27 +629,21 @@ public class InteractiveGraphView
 		try {
 			Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
 			if (picked.isEmpty()) {
-				getCore().attach_rewrites(getGraph(), getGraph().getVertices());
+				core.attachRewrites(getGraph(), getGraph().getVertices());
 			}
 			else {
-				getCore().attach_rewrites(getGraph(), picked);
+				core.attachRewrites(getGraph(), picked);
 			}
 			JFrame rewrites = new RewriteViewer(InteractiveGraphView.this);
 			rewrites.setVisible(true);
 		}
-		catch (Core.CoreException e) {
+		catch (CoreException e) {
 			errorDialog(e.getMessage());
 		}
 	}
 
-	public void updateGraph() throws Core.CoreException {
-		String xml = getCore().graph_xml(getGraph());
-		try {
-			getGraph().fromXml(xml);
-		}
-		catch (QuantoGraph.ParseException e) {
-			throw new CoreException("The core sent an invalid graph description: " + e.getMessage());
-		}
+	public void updateGraph() throws CoreException {
+		core.updateGraph(getGraph());
 		viewer.relayout();
 
 		// clean up un-needed labels:
@@ -745,11 +737,11 @@ public class InteractiveGraphView
 
 		private void attachNextRewrite() {
 			try {
-				getCore().attach_one_rewrite(
+				core.attachOneRewrite(
 					getGraph(),
 					getGraph().getVertices());
 			}
-			catch (Core.CoreException e) {
+			catch (CoreException e) {
 				errorDialog(e.getMessage());
 			}
 		}
@@ -884,14 +876,10 @@ public class InteractiveGraphView
 	 */
 	public List<Rewrite> getRewrites() {
 		try {
-			String xml = getCore().show_rewrites(getGraph());
-			rewriteCache = Rewrite.parseRewrites(xml);
+			rewriteCache = core.getAttachedRewrites(getGraph());
 			return rewriteCache;
 		}
-		catch (QuantoGraph.ParseException e) {
-			errorDialog("The core sent an invalid graph description: " + e.getMessage());
-		}
-		catch (Core.CoreException e) {
+		catch (CoreException e) {
 			errorDialog(e.getMessage());
 		}
 
@@ -908,7 +896,7 @@ public class InteractiveGraphView
 					viewer.setSmoothingOrigin(rect.getCenterX(), rect.getCenterY());
 				}
 			}
-			getCore().apply_rewrite(getGraph(), index);
+			core.applyAttachedRewrite(getGraph(), index);
 			updateGraph();
 		}
 		catch (CoreException e) {
@@ -917,8 +905,8 @@ public class InteractiveGraphView
 		}
 	}
 
-	private Core getCore() {
-		return core;
+	private CoreTalker getCore() {
+		return core.getTalker();
 	}
 
 	public void commandTriggered(String command) {
@@ -932,17 +920,16 @@ public class InteractiveGraphView
 		if (retVal == JFileChooser.APPROVE_OPTION) {
 			try {
 				File f = QuantoApp.getInstance().getFileChooser().getSelectedFile();
-				String filename = f.getCanonicalPath().replaceAll("\\n|\\r", "");
-				core.save_graph(getGraph(), filename);
-				getGraph().setFileName(filename);
+				core.saveGraph(getGraph(), f);
+				getGraph().setFileName(f.getAbsolutePath());
 				getGraph().setSaved(true);
 				setTitle(f.getName());
 			}
-			catch (Core.CoreException e) {
+			catch (CoreException e) {
 				errorDialog(e.getMessage());
 			}
-			catch (java.io.IOException ioe) {
-				errorDialog(ioe.getMessage());
+			catch (IOException e) {
+				errorDialog(e.getMessage());
 			}
 		}
 	}
@@ -950,10 +937,13 @@ public class InteractiveGraphView
 	public void saveGraph() {
 		if (getGraph().getFileName() != null) {
 			try {
-				getCore().save_graph(getGraph(), getGraph().getFileName());
+				core.saveGraph(getGraph(), new File(getGraph().getFileName()));
 				getGraph().setSaved(true);
 			}
-			catch (Core.CoreException e) {
+			catch (CoreException e) {
+				errorDialog(e.getMessage());
+			}
+			catch (IOException e) {
 				errorDialog(e.getMessage());
 			}
 		}
@@ -1004,7 +994,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.UNDO_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().undo(getGraph());
+					core.undo(getGraph());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1015,7 +1005,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.REDO_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().redo(getGraph());
+					core.redo(getGraph());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1028,9 +1018,8 @@ public class InteractiveGraphView
 				try {
 					Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
-							getCore().copy_subgraph(getGraph(), "__clip__", picked);
-							getCore().delete_vertices(getGraph(), picked);
-							updateGraph();
+						core.cutSubgraph(getGraph(), picked);
+						updateGraph();
 					}
 				}
 				catch (CoreException ex) {
@@ -1043,7 +1032,7 @@ public class InteractiveGraphView
 				try {
 					Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
-							getCore().copy_subgraph(getGraph(), "__clip__", picked);
+						core.copySubgraph(getGraph(), picked);
 					}
 				}
 				catch (CoreException ex) {
@@ -1054,7 +1043,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.PASTE_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().insert_graph(getGraph(), "__clip__");
+					core.paste(getGraph());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1175,7 +1164,7 @@ public class InteractiveGraphView
 		actionMap.put(FAST_NORMALISE_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().fastNormalise(getGraph());
+					core.fastNormalise(getGraph());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1198,7 +1187,7 @@ public class InteractiveGraphView
 		actionMap.put(FLIP_VERTEX_COLOUR_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().flip_vertices(getGraph(), viewer.getPickedVertexState().getPicked());
+					core.flipVertices(getGraph(), viewer.getPickedVertexState().getPicked());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1209,9 +1198,7 @@ public class InteractiveGraphView
 		actionMap.put(BANG_VERTICES_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					// this is not the real bang box, but we just need the name
-					BangBox bb = new BangBox(getCore().add_bang(getGraph()));
-					getCore().bang_vertices(getGraph(), bb, viewer.getPickedVertexState().getPicked());
+					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1222,7 +1209,7 @@ public class InteractiveGraphView
 		actionMap.put(UNBANG_VERTICES_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().unbang_vertices(getGraph(), viewer.getPickedVertexState().getPicked());
+					core.removeVerticesFromBangBoxes(getGraph(), viewer.getPickedVertexState().getPicked());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1233,7 +1220,7 @@ public class InteractiveGraphView
 		actionMap.put(DROP_BANG_BOX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().bbox_drop(getGraph(), viewer.getPickedBangBoxState().getPicked());
+					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1244,7 +1231,7 @@ public class InteractiveGraphView
 		actionMap.put(KILL_BANG_BOX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().bbox_kill(getGraph(), viewer.getPickedBangBoxState().getPicked());
+					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1255,7 +1242,9 @@ public class InteractiveGraphView
 		actionMap.put(DUPLICATE_BANG_BOX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					getCore().bbox_duplicate(getGraph(), viewer.getPickedBangBoxState().getPicked());
+					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
+						core.duplicateBangBox(getGraph(), (BangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
+					}
 					updateGraph();
 				}
 				catch (CoreException ex) {
@@ -1267,7 +1256,7 @@ public class InteractiveGraphView
 		actionMap.put(DUMP_HILBERT_TERM_AS_TEXT, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					outputToTextView(getCore().hilb(getGraph(), "plain"));
+					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1277,7 +1266,7 @@ public class InteractiveGraphView
 		actionMap.put(DUMP_HILBERT_TERM_AS_MATHEMATICA, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					outputToTextView(getCore().hilb(getGraph(), "mathematica"));
+					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1495,14 +1484,14 @@ public class InteractiveGraphView
 		int delete = (QuantoApp.isMac) ? KeyEvent.VK_BACK_SPACE : KeyEvent.VK_DELETE;
 		if (e.getKeyCode() == delete) {
 			try {
-				getCore().delete_edges(
+				core.deleteEdges(
 					getGraph(), viewer.getPickedEdgeState().getPicked());
-				getCore().delete_vertices(
+				core.deleteVertices(
 					getGraph(), viewer.getPickedVertexState().getPicked());
 				updateGraph();
 
 			}
-			catch (Core.CoreException err) {
+			catch (CoreException err) {
 				errorDialog(err.getMessage());
 			}
 			finally {

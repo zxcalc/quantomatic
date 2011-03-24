@@ -16,7 +16,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import quanto.core.Core;
 
-import quanto.core.Core.CoreException;
+import quanto.core.CoreException;
 
 @SuppressWarnings("serial")
 public class SplitGraphView extends InteractiveView {
@@ -28,76 +28,29 @@ public class SplitGraphView extends InteractiveView {
 	private InteractiveGraphView rightView;
 	private JSplitPane splitPane;
 	private volatile boolean saved;
-	private Theory theory;
 	// this may become null, if the rule is deleted
 	private Rewrite rule;
 	// we keep our own copy of this, in case someone else changes the
 	// rule name in Rewrite
-	private String ruleName;
+	private Core core;
 
-	private TheoryListener listener = new TheoryListener() {
-
-		public void ruleAdded(Theory source, String ruleName) {}
-		public void activeStateChanged(Theory source, boolean active) {}
-		public void theoryRenamed(Theory source, String oldName, String newName) {}
-		public void theorySavedStateChanged(Theory source, boolean hasUnsavedChanges) {}
-
-		public void rulesReloaded(Theory source) {
-			// Let's just check we're still there...
-			if (!source.getRules().contains(ruleName)) {
-				ruleDeleted(source, ruleName);
-			}
-		}
-
-		public void ruleDeleted(Theory source, String ruleName) {
-			if (ruleName.equals(ruleName)) {
-				rule = null;
-				setSaved(false);
-				if (isAttached()) {
-					getViewPort().setCommandEnabled(
-						InteractiveGraphView.SAVE_GRAPH_ACTION, false);
-				}
-			}
-		}
-
-		public void ruleRenamed(Theory source, String oldName, String newName) {
-			if (rule != null && oldName.equals(ruleName)) {
-				rule.setName(newName);
-				setTitle(newName);
-				ruleName = newName;
-			}
-		}
-
-	};
-
-	public SplitGraphView(Theory theory, String rule)
-	throws Core.CoreException {
-		this(theory, theory.getRule(rule));
+	public SplitGraphView(Core core, Rewrite rule)
+	throws CoreException {
+		this(core, rule, new Dimension(800, 600));
 	}
 
-	public SplitGraphView(Theory theory, String rule, Dimension dim)
-	throws Core.CoreException {
-		this(theory, theory.getRule(rule), dim);
-	}
-
-	public SplitGraphView(Theory theory, Rewrite rule)
-	throws Core.CoreException {
-		this(theory, rule, new Dimension(800, 600));
-	}
-
-	public SplitGraphView(Theory theory, Rewrite rule, Dimension dim)
-	throws Core.CoreException {
+	public SplitGraphView(Core core, Rewrite rule, Dimension dim)
+	throws CoreException {
 		super(rule.getName());
 		this.rule = rule;
-		this.ruleName = rule.getName();
-		this.theory = theory;
+		this.core = core;
 
-		leftView = new InteractiveGraphView(theory.getCore(), rule.getLhs());
+		leftView = new InteractiveGraphView(core, rule.getLhs());
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
 		leftView.updateGraph();
 
-		rightView = new InteractiveGraphView(theory.getCore(), rule.getRhs());
+		rightView = new InteractiveGraphView(core, rule.getRhs());
 		rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
 		rightView.updateGraph();
@@ -128,7 +81,6 @@ public class SplitGraphView extends InteractiveView {
 		rightView.addFocusListener(fl);
 		leftView.addChangeListener(cl);
 		rightView.addChangeListener(cl);
-		theory.addTheoryListener(listener);
 	}
 
 	private void setupLayout(Dimension dim) {
@@ -173,7 +125,7 @@ public class SplitGraphView extends InteractiveView {
 		if (InteractiveGraphView.SAVE_GRAPH_ACTION.equals(command)) {
 			try {
 				if (rule != null) {
-					theory.updateRule(rule);
+					core.saveRule(rule);
 					setSaved(true);
 				}
 			}
@@ -212,7 +164,6 @@ public class SplitGraphView extends InteractiveView {
 	public void cleanUp() {
 		leftView.cleanUp();
 		rightView.cleanUp();
-		theory.removeTheoryListener(listener);
 	}
 
 	@Override

@@ -19,6 +19,12 @@ public class QVertex implements HasName, Comparable<QVertex> {
 		this.old = false;
 	}
 
+	public QVertex(String name, Type vertexType) {
+		this.vertexType = vertexType;
+		this.old = false;
+		setName(name);
+	}
+
 	public Type getVertexType() {
 		return vertexType;
 	}

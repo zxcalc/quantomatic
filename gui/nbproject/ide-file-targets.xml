@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir=".." name="QuantoGui-IDE">
+    <import file="../build.xml"/>
+    <target depends="compile.debug" name="debug-nb">
+        <nbjpdastart addressproperty="jpda.address" name="QuantoGui" transport="dt_socket">
+            <classpath refid="quanto.classpath.debug"/>
+        </nbjpdastart>
+        <property environment="env"/>
+        <java classname="quanto.gui.QuantoApp" fork="true">
+            <classpath refid="quanto.classpath.debug"/>
+            <env key="PATH" path="${root}/core/bin:${env.PATH}"/>
+            <jvmarg value="-Xdebug"/>
+            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+        </java>
+    </target>
+    <!-- TODO: edit the following target according to your needs -->
+    <!-- (more info: http://www.netbeans.org/kb/articles/freeform-config.html#compilesingle) -->
+    <target name="compile-selected-files-in-src">
+        <fail unless="files">Must set property 'files'</fail>
+        <mkdir dir="build"/>
+	<javac srcdir="${src}" includes="${files}" destdir="${build}" includeantruntime="false">
+		<classpath refid="quanto.classpath.build" />
+	</javac>
+    </target>
+</project>

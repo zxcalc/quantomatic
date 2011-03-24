@@ -1,7 +1,7 @@
 package quanto.gui;
 
 import quanto.core.ConsoleInterface;
-import quanto.core.Core;
+import quanto.core.CoreTalker;
 import quanto.core.Completer;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -18,6 +18,7 @@ import javax.swing.*;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.text.JTextComponent;
+import quanto.core.CoreException;
 
 public class ConsoleView extends InteractiveView {
 
@@ -148,7 +149,7 @@ public class ConsoleView extends InteractiveView {
                         }
                         hpointer = history.size();
                 }
-                catch (Core.CoreException ex)
+                catch (CoreException ex)
                 {
                         output("Error: " + ex.getMessage());
                 }
@@ -158,7 +159,7 @@ public class ConsoleView extends InteractiveView {
                 }
         }
 
-	public ConsoleView(final QuantoApp app, Core core) {
+	public ConsoleView(final QuantoApp app, CoreTalker core) {
 		super("console");
 
 		this.setLayout(new BorderLayout());

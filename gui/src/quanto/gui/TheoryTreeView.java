@@ -29,8 +29,8 @@ import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.TreePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quanto.core.Core;
-import quanto.core.Core.CoreException;
+import quanto.core.CoreTalker;
+import quanto.core.CoreException;
 
 /**
  *
@@ -181,7 +181,7 @@ public class TheoryTreeView extends JPanel {
 				String filename = file.getCanonicalPath().replaceAll("\\n|\\r", "");
 				manager.loadTheory(thyname, filename);
 			}
-			catch (Core.CoreException e) {
+			catch (CoreException e) {
 				logger.error("Failed to load theory", e);
 				errorDialog(e.getMessage());
 			}
@@ -226,7 +226,7 @@ public class TheoryTreeView extends JPanel {
 			try {
 				wrappedAction(e);
 			}
-			catch (Core.CoreException err) {
+			catch (CoreException err) {
 				JOptionPane.showMessageDialog(
 					TheoryTreeView.this,
 					err.getMessage(),
@@ -235,7 +235,7 @@ public class TheoryTreeView extends JPanel {
 			}
 		}
 
-		public abstract void wrappedAction(ActionEvent e) throws Core.CoreException;
+		public abstract void wrappedAction(ActionEvent e) throws CoreException;
 	}
 
 	private class RootMenu extends JPopupMenu {

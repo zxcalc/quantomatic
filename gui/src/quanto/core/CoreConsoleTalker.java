@@ -19,14 +19,14 @@ import org.slf4j.LoggerFactory;
  *
  * @author alemer
  */
-public class CoreConsoleMode extends Core {
+public class CoreConsoleTalker extends CoreTalker {
 	private final static Logger logger =
-		LoggerFactory.getLogger(CoreConsoleMode.class);
+		LoggerFactory.getLogger(CoreConsoleTalker.class);
 
 	private BufferedReader from_backEnd;
 	private BufferedWriter to_backEnd;
 
-        public CoreConsoleMode() throws CoreException {
+        public CoreConsoleTalker() throws CoreException {
                 super(true);
                 try {
 			from_backEnd = new BufferedReader(
@@ -161,7 +161,7 @@ public class CoreConsoleMode extends Core {
 	 * @throws IllegalStateException The core has already been closed
 	 */
 	private String receiveOrFail()
-	throws CoreCommunicationException, CoreReturnedErrorException {
+	throws CoreException {
 		String rcv = receive();
 
 		if (rcv.startsWith("!!!")) {
@@ -177,10 +177,20 @@ public class CoreConsoleMode extends Core {
                                         error.indexOf('('));
                                 throw new CommandArgumentsException(error, command);
                         } else {
-                                throw new CoreReturnedErrorException(error);
+                                throw new CommandException(error);
                         }
 		}
 		return rcv;
+	}
+
+	public String quote(Arg arg) {
+		String raw = arg.getStringValue();
+		if (arg.getType() == Arg.Type.Integer)
+			return raw;
+		else
+			return "\"" +
+				raw.replace("\\", "\\\\").replace("\"", "\\\"") +
+				"\"";
 	}
 
 
@@ -188,40 +198,17 @@ public class CoreConsoleMode extends Core {
 	 * Send a command with the given arguments. All of the args should be objects
 	 * which implement HasName and have non-null names
 	 */
-        @Override
-	public String command(String name, HasName ... args)
-	throws CoreException {
-		return blockCommand(name, null, args);
-	}
-
-        @Override
-	public String blockCommand(String name, String block, HasName ... args)
+	public String commandAsRaw(String name, Arg ... args)
 	throws CoreException {
 		synchronized (this) {
-			logger.debug("Sending {} command to backend", name);
 			StringBuilder cmd = new StringBuilder(name);
-			for (HasName arg : args) {
-				if (arg.getName() == null) {
-					throw new IllegalArgumentException(
-							"Attempted to pass unnamed object to core.");
-				}
-				HasName qarg = (arg instanceof HasQuotedName) ? arg : new HasQuotedName.QuotedName(arg);
+			for (Arg arg : args) {
 				cmd.append(' ');
-				cmd.append(qarg.getName());
-				logger.debug("Passing argument {}", qarg.getName());
+				cmd.append(quote(arg));
 			}
 			cmd.append(';');
 
 			send(cmd.toString());
-
-			// if we are given a block string, send it to the core as block input
-			if (block != null) {
-				logger.debug("Sending block input {}", block);
-				int r = (int) (Math.random() * Integer.MAX_VALUE);
-				send("---startblock:" + Integer.toString(r));
-				send(block);
-				send("---endblock:" + Integer.toString(r));
-			}
 
 			String ret;
 			try {
@@ -229,8 +216,26 @@ public class CoreConsoleMode extends Core {
 			} finally {
 				receive(); // eat the prompt
 			}
-			return ret;
+			return ret.trim();
 		}
+	}
+
+        @Override
+	public void command(String name, Arg ... args)
+                throws CoreException {
+		commandAsRaw(name, args);
+	}
+
+        @Override
+	public String commandAsName(String name, Arg ... args)
+                throws CoreException {
+		return commandAsRaw(name, args);
+	}
+
+        @Override
+	public String[] commandAsList(String name, Arg ... args)
+                throws CoreException {
+		return commandAsRaw(name, args).split("\r\n|\n|\r");
 	}
 
         @Override

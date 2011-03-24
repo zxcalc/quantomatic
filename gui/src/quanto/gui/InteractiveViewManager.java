@@ -4,7 +4,7 @@
  */
 package quanto.gui;
 
-import quanto.core.Core;
+import quanto.core.CoreTalker;
 import edu.uci.ics.jung.contrib.HasName;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -43,7 +43,7 @@ public class InteractiveViewManager {
 	}
 
 	public InteractiveViewManager(QuantoApp app, Core core) {
-		console = new ConsoleView(app, core);
+		console = new ConsoleView(app, core.getTalker());
 		addView(console);
 	}
 

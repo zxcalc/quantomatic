@@ -36,11 +36,11 @@ public class ConsoleInterface {
                 }
         }
 
-        private Core core;
+        private CoreTalker core;
         private ResponseListener responseListener;
 	private Completer completer;
 
-        public ConsoleInterface(Core core)
+        public ConsoleInterface(CoreTalker core)
         {
                 this.core = core;
 
@@ -50,7 +50,7 @@ public class ConsoleInterface {
 
                 try
                 {
-                        String result = core.command("help");
+                        String result = core.commandAsRaw("help");
                         BufferedReader reader = new BufferedReader(new StringReader(result));
                         // eat a couple of lines of description
                         reader.readLine(); reader.readLine();
@@ -61,7 +61,7 @@ public class ConsoleInterface {
                 catch (IOException ex) {
                         logger.error("Failed to retreive commands for completion", ex);
                 }
-                catch (Core.CoreException ex) {
+                catch (CoreException ex) {
                         logger.error("Failed to retreive commands for completion", ex);
                 }
 
@@ -90,7 +90,7 @@ public class ConsoleInterface {
          * @throws quanto.gui.QuantoCore.CoreException
          */
         public void inputCommandAsync(String input)
-                throws Core.CoreException, ParseException
+                throws CoreException, ParseException
         {
                 inputCommandSync(input, true);
         }
@@ -100,15 +100,15 @@ public class ConsoleInterface {
                         this.command = command;
                 }
                 public String command;
-                public LinkedList<HasName> args = new LinkedList<HasName>();
-                public HasName[] getArgsArray()
+                public LinkedList<CoreTalker.Arg> args = new LinkedList<CoreTalker.Arg>();
+                public CoreTalker.Arg[] getArgsArray()
                 {
-                        return args.toArray(new HasName[args.size()]);
+                        return args.toArray(new CoreTalker.Arg[args.size()]);
                 }
         }
 
         public String inputCommandSync(String input, boolean notify)
-                throws Core.CoreException, ParseException
+                throws CoreException, ParseException
         {
                 try {
                         Reader r = new StringReader(input);
@@ -141,14 +141,14 @@ public class ConsoleInterface {
                                 else if (type == StreamTokenizer.TT_WORD ||
                                          type == '\'' || type == '\"')
                                 {
-                                        current.args.addLast(new HasName.StringName(t.sval));
+                                        current.args.addLast(CoreTalker.Arg.rawArg(t.sval));
                                 }
                                 else if (type == StreamTokenizer.TT_NUMBER)
                                 {
                                         if (t.nval != (double)(int)t.nval) {
                                                 throw new ParseException("Only integers allowed");
                                         }
-                                        current.args.addLast(new HasName.IntName((int)t.nval));
+                                        current.args.addLast(CoreTalker.Arg.intArg((int)t.nval));
                                 }
                                 else if (type == ';' || type == StreamTokenizer.TT_EOL)
                                 {
@@ -168,9 +168,9 @@ public class ConsoleInterface {
                         {
                                 try
                                 {
-                                        result.append(core.command(cmd.command, cmd.getArgsArray()));
+                                        result.append(core.commandAsRaw(cmd.command, cmd.getArgsArray()));
                                 }
-                                catch (Core.CoreReturnedErrorException ex)
+                                catch (CommandException ex)
                                 {
                                         result.append("Error: ").append(ex.getMessage()).append('\n');
                                 }

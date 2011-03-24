@@ -312,6 +312,14 @@ implements HasName, ChangeEventSupport {
 		return bangBoxes;
 	}
 
+	public void addBangBox(BangBox bb) {
+		bangBoxes.add(bb);
+	}
+
+	public void removeBangBox(BangBox bb) {
+		bangBoxes.remove(bb);
+	}
+
 	public void addChangeListener(ChangeListener l) {
 		changeListeners.add(l);
 	}

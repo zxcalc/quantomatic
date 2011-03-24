@@ -1,7 +1,7 @@
 package quanto.gui;
 
 import quanto.core.QuantoGraph;
-import quanto.core.Core;
+import quanto.core.CoreTalker;
 import com.sun.jaf.ui.ActionManager;
 import com.sun.jaf.ui.UIFactory;
 import java.awt.*;
@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import javax.swing.*;
+import quanto.core.CoreException;
 import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {
@@ -134,9 +135,8 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
-		theoryTree = new TheoryTreeView(app.getTheoryManager(), viewPort);
-		actionManager.registerCallback(LOAD_THEORY_COMMAND, theoryTree, "loadTheory");
-		actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
+		//actionManager.registerCallback(LOAD_THEORY_COMMAND, theoryTree, "loadTheory");
+		//actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
 
 		Delegate delegate = new Delegate();
 		actionManager.registerGenericCallback(
@@ -192,7 +192,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		try {
 			openView(app.createNewGraph());
 		}
-		catch (Core.CoreException ex) {
+		catch (CoreException ex) {
 			app.errorDialog("Could not create new graph: " + ex.getMessage());
 		}
 	}
@@ -220,7 +220,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 				openView(view);
 			}
-			catch (Core.CoreException e) {
+			catch (CoreException e) {
 				app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
 			}
 			catch (QuantoGraph.ParseException e) {
@@ -249,7 +249,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
-	public Core getCore() {
+	public CoreTalker getCore() {
 		return core;
 	}
 

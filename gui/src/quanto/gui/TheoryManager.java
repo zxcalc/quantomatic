@@ -26,8 +26,8 @@ import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quanto.core.Core;
-import quanto.core.Core.CoreException;
+import quanto.core.CoreTalker;
+import quanto.core.CoreException;
 
 /**
  *
@@ -38,7 +38,7 @@ public class TheoryManager {
 	private final static Logger logger =
 		LoggerFactory.getLogger(TheoryManager.class);
 
-	private Core core;
+	private CoreTalker core;
 	private DefaultMutableTreeNode root;
 	private DefaultTreeModel innerModel;
 	private TheoryTreeModel outerModel;
@@ -256,14 +256,14 @@ public class TheoryManager {
 		public Theory getTheory() {
 			return (Theory)userObject;
 		}
-		public void refresh() throws Core.CoreException {
+		public void refresh() throws CoreException {
 			getTheory().refreshRules();
 			loadChildren();
 			if (getParent() != null) {
 				innerModel.nodeStructureChanged(this);
 			}
 		}
-		public void loadChildren() throws Core.CoreException {
+		public void loadChildren() throws CoreException {
 			removeAllChildren();
 			getTheory().loadRules();
 			logger.debug("Loading {} children for the theory '{}'",
@@ -278,7 +278,7 @@ public class TheoryManager {
 		}
 	}
 
-	public TheoryManager(Core core) {
+	public TheoryManager(CoreTalker core) {
 		this.core = core;
 		root = new DefaultMutableTreeNode("Theories");
 		root.setAllowsChildren(true);
@@ -331,7 +331,7 @@ public class TheoryManager {
 		return new TreeNodeLocation<TheoryTreeNode>(rnode, index);
 	}
 
-	public Core getCore() {
+	public CoreTalker getCore() {
 		return this.core;
 	}
 
@@ -348,7 +348,7 @@ public class TheoryManager {
 		return hasUnsaved;
 	}
 
-	public Theory createNewTheory() throws Core.CoreException {
+	public Theory createNewTheory() throws CoreException {
 		logger.debug("Creating new theory");
 
 		Theory theory = core.new_ruleset();
@@ -363,7 +363,7 @@ public class TheoryManager {
 		return theory;
 	}
 	
-	public void reloadTheoriesFromCore() throws Core.CoreException {
+	public void reloadTheoriesFromCore() throws CoreException {
 		logger.info("Reloading theories from the backend");
 		List<String> theoryNames = Arrays.asList(core.list_rulesets());
 		Set<String> activeTheories = new HashSet<String>(
@@ -385,7 +385,7 @@ public class TheoryManager {
 		loadTheoryNodes(theoryNames);
 	}
 
-	private void loadTheoryNodes(Collection<String> theories) throws Core.CoreException {
+	private void loadTheoryNodes(Collection<String> theories) throws CoreException {
 		logger.debug("Loading theory nodes: {}", theories);
 		for (String name : theories) {
 			Theory theory = theoryCache.get(name);
@@ -396,7 +396,7 @@ public class TheoryManager {
 					theory.addTheoryListener(listener);
 					theory.loadRules();
 					theoryCache.put(name, theory);
-				} catch (Core.CoreException ex) {
+				} catch (CoreException ex) {
 					logger.warn("Failed to load rules", ex);
 					continue;
 				}
@@ -409,7 +409,7 @@ public class TheoryManager {
 	}
 
 	public Theory loadTheory(String name, String fileName)
-	throws Core.CoreException {
+	throws CoreException {
 		logger.debug("Loading theory {} from {}", name, fileName);
 		Theory theory = core.load_ruleset(fileName);
 		core.activate_ruleset(theory);
