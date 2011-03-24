@@ -102,6 +102,8 @@ val get_box_of : T -> Vertex.name -> BBox.name
 
 val is_boxed : T -> Vertex.name -> bool
 
+val has_bname : T -> BBox.name -> bool
+
 val new_box : BBox.name -> T -> BBox.name * T
 val move_to_box : BBox.name -> Vertex.NSet.T -> T -> T
 val move_to_unbox : Vertex.NSet.T -> T -> T
@@ -125,7 +127,8 @@ val copy1_box : BBox.name (* bbox to copy *)
 
 val fresh_copy1_box : BBox.name (* bbox to copy *) 
       -> T (* graph containing bbox name *) 
-      -> T (* new graph with bbox copied *)
+      -> (BBox.name (* new box name *)
+          * T) (* new graph with bbox copied *)
 
 
 (* *)
@@ -365,6 +368,8 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
   fun is_boxed g v = V.NSet.contains (VtoBoxMap.get_domset (get_bboxes g)) v;
 
+  val has_bname = BBox.NTab.contains_name o VtoBoxMap.get_codtab o get_bboxes;
+
   (* make a new empty !-box *)
   fun new_box bn g = 
       let
@@ -423,10 +428,11 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       end;
 
   fun fresh_copy1_box bn g = 
-      snd (snd (copy1_box bn 
-        ((V.Rnm.mk_from_avoids (get_vnames g), 
-          E.Rnm.mk_from_avoids (get_enames g),
-          BBox.Rnm.mk_from_avoids (get_bbnames g)),g))); 
+      let val (bname, (_, graph)) = copy1_box bn
+                ((V.Rnm.mk_from_avoids (get_vnames g),
+                E.Rnm.mk_from_avoids (get_enames g),
+                BBox.Rnm.mk_from_avoids (get_bbnames g)),g)
+      in (bname, graph) end;
   
   fun kill_box bn g = 
       let val bbox_vs = get_bbox g bn
@@ -560,3 +566,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   
 
 end; (* BangGraphFun *)
+
+(* vim:et:sts=2:sw=2
+*)

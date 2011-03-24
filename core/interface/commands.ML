@@ -35,24 +35,24 @@ structure Commands
   (* State-agnostic commands, cmd: [args] -> out *)
   fun lift_stateless cmdf (args, state:ControllerState.T) = 
       (cmdf args, state)
-  
+
   (* Read-only state commands, cmd: [args] * state -> out *)
   fun lift_state_viewer cmdf (args, state:ControllerState.T) = 
       (cmdf (args,state), state)
-  
+
   (* Graph updating commands, cmd: ([args] * graph) -> (out * graph) *)
   fun lift_graph_mutator cmdf (args, state) =
       let val gname = ControllerState.graph_arg args
           val (out,g') = cmdf (args,ControllerState.get_graph state gname)
       in (out, state |> ControllerState.push_hist gname 
                      |> ControllerState.set_graph g' gname) end;
-  
+
   (* Read-only graph commands, cmd: [args] * graph -> out *)
   fun lift_graph_viewer cmdf (args, state) =
       let val gname = ControllerState.graph_arg args
           val out = cmdf (args, ControllerState.get_graph state gname)
       in (out, state) end;
-  
+
   (* *)
   val add_command = Symtab.update; 
 
@@ -61,7 +61,7 @@ structure Commands
 local open ControllerState in
   val all_commands = 
   fold add_command [
-    
+
     ("HELO",
      ("HELO\n\n"^
         "    sync the console, print \"HELO\"\n",
@@ -76,6 +76,32 @@ local open ControllerState in
      ("save_ruleset FILENAME\n\n" ^
         "    save all loaded rules to FILENAME\n",
     lift_state_viewer save_ruleset)),
+
+    ("new_rule",
+     ("new_rule RULE LHS RHS\n\n"^
+        "    Create a new rule from the graphs LHS and RHS (which\n"^
+        "    may be the same).  If a rule with the same name exists,\n"^
+        "    this command will fail.\n",
+    new_rule)),
+
+    ("open_rule_lhs",
+     ("open_rule_lhs RULE\n\n"^
+        "    Open the LHS of the given rule and return the name of\n"^
+        "    the new graph buffer.\n",
+    open_rule_lhs)),
+
+    ("open_rule_rhs",
+     ("open_rule_rhs RULE\n\n"^
+        "    Open the RHS of the given rule and return the name of\n"^
+        "    the new graph buffer.\n",
+    open_rule_rhs)),
+
+    ("update_rule",
+     ("update_rule RULE LHS RHS\n\n"^
+        "    Replace the given rule with graphs LHS and RHS in the\n"^
+        "    workspace.  If the rule does not exist, this command\n"^
+        "    will fail.\n",
+    update_rule)),
 
     ("list_graphs",
      ("list_graphs\n\n"^
@@ -161,17 +187,17 @@ local open ControllerState in
      ("load_graph FILENAME\n\n" ^
         "    load a new graph from FILENAME return its name\n",
     load_graph)),
-(* 
+(*
     ("input_graph_xml",
      ("input_graph_xml\n\n" ^
         "    create a new graph from the XML data given as block input\n",
     input_graph_xml)),
-   *) 
+   *)
     ("save_graph",
      ("save_graph GRAPH FILENAME\n\n" ^
         "    save GRAPH in FILENAME\n",
     lift_graph_viewer save_graph)),
- 
+
     ("duplicate_graph",
      ("duplicate_graph GRAPH\n\n"^
         "    duplicate GRAPH and return the name of the new graph\n",
@@ -188,51 +214,116 @@ local open ControllerState in
         "    remove GRAPH from the workspace\n",
     kill_graph)),
 
+    ("graph_xml",
+     ("graph_xml GRAPH\n\n"^
+        "    dump GRAPH as XML\n",
+    lift_graph_viewer (uncurry graph_xml))),
+
+    ("print_graph",
+     ("print_graph GRAPH\n\n"^
+        "    print out GRAPH\n",
+    lift_graph_viewer (uncurry print_graph))),
+
+    ("hilb",
+     ("hilb GRAPH FORMAT\n\n"^
+        "    display the hilbert space term of GRAPH where\n"^
+        "    FORMAT is one of {plain, latex, mathematica, matlab}.\n",
+    lift_graph_viewer hilb)),
+
+    ("undo",
+     ("undo GRAPH\n\n"^
+        "    undo last change to GRAPH\n",
+    undo)),
+
+    ("redo",
+     ("redo GRAPH\n\n"^
+        "    redo change on GRAPH\n",
+    redo)),
+
     ("add_vertex",
      ("add_vertex GRAPH TYPE\n\n"^
         "    add a TYPE vertex to GRAPH\n",
     lift_graph_mutator add_vertex)),
-    
+
+    ("rename_vertex",
+     ("rename_vertex GRAPH OLD NEW\n\n"^
+        "    rename vertex in GRAPH from OLD to NEW\n",
+    lift_graph_mutator rename_vertex)),
+
+    ("set_angle",
+     ("set_angle GRAPH V ANGLE\n\n"^
+        "    set the angle of vertex V to ANGLE\n",
+    lift_graph_mutator set_angle)),
+
+    ("flip_vertices",
+     ("flip_vertices G V1 .. VN\n\n"^
+        "    reverse the colour of vertices V1..VN, ingoring\n"^
+        "    boundary vertices.\n",
+    lift_graph_mutator flip_vertices)),
+
     ("delete_vertices",
      ("delete_vertices GRAPH V1 .. VN\n\n"^
         "    delete vertices V1..VN from GRAPH\n",
     lift_graph_mutator delete_vertices)),
+
+    ("add_edge",
+     ("add_edge GRAPH V1 V2\n\n"^
+        "    add an edge in GRAPH from V1 to V2\n",
+    lift_graph_mutator add_edge)),
 
     ("delete_edges",
      ("delete_edges GRAPH E1 .. EN\n\n"^
         "    delete edges E1 .. EN from GRAPH\n",
     lift_graph_mutator delete_edges)),
 
-    ("add_edge",
-     ("add_edge GRAPH V1 V2\n\n"^
-        "    add an edge in GRAPH from V1 to V2\n",
-    lift_graph_mutator add_edge)),
-  
-    ("rename_vertex",
-     ("rename_vertex GRAPH OLD NEW\n\n"^
-        "    rename vertex in GRAPH from OLD to NEW\n",
-    lift_graph_mutator rename_vertex)),
+    ("add_bang",
+     ("add_bang GRAPH\n\n"^
+        "    add a new !-box to GRAPH and return its name\n",
+    lift_graph_mutator add_bang)),
 
-    ("graph_xml",
-     ("graph_xml GRAPH\n\n"^
-        "    dump GRAPH as XML\n",
-    lift_graph_viewer (uncurry graph_xml))),
-    
-    ("print_graph",
-     ("print_graph GRAPH\n\n"^
-        "    print out GRAPH\n",
-    lift_graph_viewer (uncurry print_graph))),
+    ("bbox_drop",
+     ("bbox_drop GRAPH B1 .. BN\n\n"^
+        "    drop !-boxes B1 .. BN in GRAPH. Vertices inside the !-boxes are moved\n"^
+        "    to the top-level graph.\n",
+    lift_graph_mutator drop_bang)),
 
-    ("undo",
-     ("undo GRAPH\n\n"^
-        "    undo last change to GRAPH\n",
-    undo)),
-    
-    ("redo",
-     ("redo GRAPH\n\n"^
-        "    redo change on GRAPH\n",
-    redo)),
-    
+    ("bbox_kill",
+     ("bbox_kill GRAPH B1 .. BN\n\n"^
+        "    kill !-boxes B1 .. BN in GRAPH. Vertices inside BANGS are deleted\n"^
+        "    to the top-level graph.\n",
+    lift_graph_mutator kill_bang)),
+
+    ("bbox_merge",
+     ("bbox_kill GRAPH B1 .. BN\n\n"^
+        "    merges !-boxes B1 .. BN in GRAPH.\n",
+    lift_graph_mutator merge_bang)),
+
+    ("bbox_duplicate",
+     ("bbox_duplicate GRAPH BB\n\n"^
+        "    duplicates the !-box BB in GRAPH.\n",
+    lift_graph_mutator duplicate_bang)),
+
+    ("bang_vertices",
+     ("bang_vertices GRAPH BANG V1 .. VN\n\n"^
+        "    add vertices V1..VN in graph to !-box BANG\n",
+    lift_graph_mutator bang_vertices)),
+
+    ("unbang_vertices",
+     ("unbang_vertices GRAPH V1 .. VN\n\n"^
+        "    remove vertices V1..VN from their current !-box\n",
+    lift_graph_mutator unbang_vertices)),
+
+    ("copy_subgraph",
+     ("copy_subgraph SOURCE TARGET V1 .. VN\n\n"^
+        "    copy the subgraph of SOURCE spanned by V1..VN to\n"^
+        "    the graph TARGET\n",
+    copy_subgraph)),
+
+    ("insert_graph",
+     ("insert_graph SOURCE TARGET\n\n"^
+        "    insert of copy of SOURCE into TARGET\n",
+    insert_graph)),
+
     ("attach_rewrites",
      ("attach_rewrites GRAPH V1 .. VN\n\n"^
         "    calculate rewrites involving V1..VN in GRAPH and\n"^
@@ -256,101 +347,13 @@ local open ControllerState in
     apply_rewrite)),
 
     ("apply_first_rewrite",
-     ("apply_first_rewrite GRAPH N\n\n"^
+     ("apply_first_rewrite GRAPH\n\n"^
         "    attempt to attach one rewrite to GRAPH and apply it\n",
-    apply_first_rewrite)),
-
-    ("hilb",
-     ("hilb GRAPH FORMAT\n\n"^
-        "    display the hilbert space term of GRAPH where\n"^
-        "    FORMAT is one of {text, mathematica}.\n",
-    lift_graph_viewer hilb)),
-    
-    ("set_angle",
-     ("set_angle GRAPH V ANGLE\n\n"^
-        "    set the angle of vertex V to ANGLE\n",
-    lift_graph_mutator set_angle)),
-
-    ("add_bang",
-     ("add_bang GRAPH\n\n"^
-        "    add a new !-box to GRAPH and return its name\n",
-    lift_graph_mutator add_bang)),
-
-    ("bbox_drop",
-     ("bbox_drop GRAPH BANGS\n\n"^
-        "    drop !-boxes BANGS in GRAPH. Vertices inside BANGS are moved\n"^
-        "    to the top-level graph.\n",
-    lift_graph_mutator drop_bang)),
-
-    ("bbox_kill",
-     ("bbox_kill GRAPH BANGS\n\n"^
-        "    kill !-boxes BANGS in GRAPH. Vertices inside BANGS are deleted\n"^
-        "    to the top-level graph.\n",
-    lift_graph_mutator kill_bang)),
-    
-    ("bbox_merge",
-     ("bbox_kill GRAPH BANGS\n\n"^
-        "    merges !-boxes BANGS in GRAPH.\n",
-    lift_graph_mutator merge_bang)),
-    
-    ("bbox_duplicate",
-     ("bbox_duplicate GRAPH BANGS\n\n"^
-        "    duplicates !-boxes BANGS in GRAPH.\n",
-    lift_graph_mutator duplicate_bang)),
-    
-    ("bang_vertices",
-     ("bang_vertices GRAPH BANG V1 .. VN\n\n"^
-        "    add vertices V1..VN in graph to !-box BANG\n",
-    lift_graph_mutator bang_vertices)),
-
-    ("unbang_vertices",
-     ("unbang_vertices GRAPH V1 .. VN\n\n"^
-        "    remove vertices V1..VN from their current !-box\n",
-    lift_graph_mutator unbang_vertices)),
-
-    ("copy_subgraph",
-     ("copy_subgraph SOURCE TARGET V1 .. VN\n\n"^
-        "    copy the subgraph of SOURCE spanned by V1..VN to\n"^
-        "    the graph TARGET\n",
-    copy_subgraph)),
-
-    ("insert_graph",
-     ("insert_graph TARGET SOURCE\n\n"^
-        "    insert of copy of SOURCE into TARGET\n",
-    insert_graph)),
-
-    ("flip_vertices",
-     ("flip_vertices G V1 .. VN\n\n"^
-        "    reverse the colour of vertices V1..VN, ingoring\n"^
-        "    boundary vertices.\n",
-    lift_graph_mutator flip_vertices)),
-
-    ("open_rule_lhs",
-     ("open_rule_lhs RULE\n\n"^
-        "    Open the LHS of the given rule and return the name of\n"^
-        "    the new graph buffer.\n",
-    open_rule_lhs)),
-
-    ("open_rule_rhs",
-     ("open_rule_rhs RULE\n\n"^
-        "    Open the RHS of the given rule and return the name of\n"^
-        "    the new graph buffer.\n",
-    open_rule_rhs)),
-
-    ("update_rule",
-     ("update_rule RULE LHS RHS\n\n"^
-        "    Replace the given rule with graphs LHS and RHS in the\n"^
-        "    workspace.\n",
-    update_rule)),
-
-    ("new_rule",
-     ("new_rule GRAPH\n\n"^
-        "    Create a new identity rule from GRAPH.\n",
-    new_rule))
+    apply_first_rewrite))
     ]
     empty;
 end; (* local *)
- 
+
 end;
 
 (* vim:et:sts=2:sw=2
