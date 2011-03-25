@@ -1,8 +1,6 @@
 package quanto.gui;
 
-import quanto.core.TheoryListener;
 import quanto.core.Rewrite;
-import quanto.core.Theory;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;

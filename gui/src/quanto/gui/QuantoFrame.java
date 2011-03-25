@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import javax.swing.*;
+import quanto.core.Core;
 import quanto.core.CoreException;
 import quanto.gui.QuantoApp.BoolPref;
 
@@ -247,10 +248,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		else {
 			super.processWindowEvent(e);
 		}
-	}
-
-	public CoreTalker getCore() {
-		return core;
 	}
 
 	public ViewPort getViewPort() {

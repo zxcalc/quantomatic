@@ -4,7 +4,6 @@
  */
 package quanto.gui;
 
-import quanto.core.CoreTalker;
 import edu.uci.ics.jung.contrib.HasName;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -13,6 +12,7 @@ import org.apache.commons.collections15.BidiMap;
 import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
 import org.apache.commons.collections15.comparators.ComparableComparator;
 import org.apache.commons.collections15.contrib.HashCodeComparator;
+import quanto.core.Core;
 
 /**
  *
