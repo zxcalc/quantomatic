@@ -226,7 +226,7 @@ public class QuantoApp {
 
 	private void loadSavedRulesetState() {
 		try {
-			File rsetFile = new File(getAppSettingsDirectory(false).getAbsolutePath() + File.pathSeparator + "stored.rules");
+			File rsetFile = new File(getAppSettingsDirectory(false).getAbsolutePath() + File.separator + "stored.rules");
 			if (rsetFile.exists()) {
 				logger.info("Existing theory state found: loading");
 				try {
@@ -247,7 +247,7 @@ public class QuantoApp {
 	private void saveRulesetState() {
 		try {
 			logger.info("Saving theory state");
-			File rsetFile = new File(getAppSettingsDirectory(true).getAbsolutePath() + File.pathSeparator + "stored.rules");
+			File rsetFile = new File(getAppSettingsDirectory(true).getAbsolutePath() + File.separator + "stored.rules");
 			core.saveRuleset(rsetFile);
 			return;
 		} catch (Exception e) {
