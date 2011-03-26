@@ -916,10 +916,9 @@ public class InteractiveGraphView
 	}
 
 	public void saveGraphAs() {
-		int retVal = QuantoApp.getInstance().getFileChooser().showSaveDialog(this);
-		if (retVal == JFileChooser.APPROVE_OPTION) {
+		File f = QuantoApp.getInstance().saveFile(this);
+		if (f != null) {
 			try {
-				File f = QuantoApp.getInstance().getFileChooser().getSelectedFile();
 				core.saveGraph(getGraph(), f);
 				getGraph().setFileName(f.getAbsolutePath());
 				getGraph().setSaved(true);
@@ -1070,10 +1069,8 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 
-					JFileChooser chooser = QuantoApp.getInstance().getFileChooser();
-					int retVal = chooser.showSaveDialog(InteractiveGraphView.this);
-					if (retVal == JFileChooser.APPROVE_OPTION) {
-						File outputFile = chooser.getSelectedFile();
+					File outputFile =  QuantoApp.getInstance().saveFile(InteractiveGraphView.this);
+					if (outputFile != null) {
 						if (outputFile.exists()) {
 							int overwriteAnswer = JOptionPane.showConfirmDialog(
 								InteractiveGraphView.this,

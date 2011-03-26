@@ -48,15 +48,15 @@
           icon="/toolbarButtonGraphics/general/SaveAs24.gif"
           desc="Save the current graph under a different name"/>
 
-	<action id="load-theory-command"
-          name="Load theory..."
+	<action id="load-ruleset-command"
+          name="Import ruleset..."
           mnemonic="l"
-          desc="Load a theory"/>
+          desc="Load a ruleset"/>
 
-	<action id="save-theory-command"
-          name="Save theory"
+	<action id="save-ruleset-command"
+          name="Export ruleset..."
           mnemonic="t"
-          desc="Save the active theory"/>
+          desc="Save the loaded rule state"/>
 
 	<action id="close-command"
           name="Close"
@@ -314,8 +314,8 @@
 			<action idref="save-command"/>
 			<action idref="save-as-command"/>
 			<empty/>
-			<action idref="load-theory-command"/>
-			<!-- action idref="save-theory-command"/ -->
+			<action idref="load-ruleset-command"/>
+			<action idref="save-ruleset-command"/>
 			<empty/>
 			<action idref="close-command"/>
 			<action idref="quit-command"/>

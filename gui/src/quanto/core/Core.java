@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import quanto.Util;
 
 /**
  * Provides a nicer interface to the core
@@ -263,19 +264,7 @@ public class Core {
 		File file = File.createTempFile("quanto", "rules");
 		try {
 			talker.save_ruleset(file);
-			BufferedReader r = new BufferedReader(new FileReader(file));
-			try
-			{
-				StringBuilder result = new StringBuilder();
-				int c = 0;
-				while (c != -1) {
-					c = r.read();
-					result.append((char)c);
-				}
-				return result.toString();
-			} finally {
-				r.close();
-			}
+			return Util.slurp(file);
 		} finally {
 			file.delete();
 		}

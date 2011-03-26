@@ -19,10 +19,9 @@ import org.slf4j.LoggerFactory;
 
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
-import java.io.FileWriter;
+import java.awt.Component;
 import java.io.IOException;
 import quanto.core.Core;
-import quanto.core.CoreConsoleTalker;
 import quanto.core.CoreException;
 /**
  * Singleton class 
@@ -37,6 +36,11 @@ public class QuantoApp {
 	// isMac is used for CTRL vs META shortcuts, etc
 	public static final boolean isMac =
 		(System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
+	public static final boolean isWin =
+		(System.getProperty("os.name").toLowerCase().indexOf("win") != -1);
+	public static final boolean isUnix =
+		(System.getProperty("os.name").toLowerCase().indexOf("nix") != -1
+		 || System.getProperty("os.name").toLowerCase().indexOf("nux") != -1);
 	// MAC_OS_X is used to determine whether we use OSXAdapter to
 	// hook into the application menu
 	public static final boolean MAC_OS_X =
@@ -51,6 +55,30 @@ public class QuantoApp {
 	private final Core core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
+
+	public File getAppSettingsDirectory(boolean create) throws IOException {
+		File dir;
+		String userHome = System.getProperty("user.home");
+		if (isWin) {
+			dir = new File(userHome + File.separatorChar + "Quantomatic");
+		} else if (isUnix) {
+			dir = new File(userHome
+				+ File.separatorChar + ".config"
+				+ File.separatorChar + "Quantomatic");
+		} else {
+			dir = new File(userHome
+				+ File.separatorChar + ".quantomatic");
+		}
+		if (create && !dir.exists()) {
+			if (!dir.mkdirs()) {
+				throw new IOException("Failed to create preferences directory " + dir.getAbsolutePath());
+			}
+		}
+		if (dir.exists() && !dir.isDirectory()) {
+			throw new IOException(dir.getAbsolutePath() + " is not a directory!");
+		}
+		return dir;
+	}
 
 	private static class Pref<T> {
 
@@ -106,8 +134,6 @@ public class QuantoApp {
 		new StringPref("last_open_dir", null);
 	public static final StringPref LAST_THEORY_OPEN_DIR =
 		new StringPref("last_theory_open_dir", null);
-	public static final StringPref SAVED_RULESET =
-		new StringPref("saved_ruleset", "");
 
 	public static QuantoApp getInstance() {
 		if (theApp == null) {
@@ -199,23 +225,30 @@ public class QuantoApp {
 	}
 
 	private void loadSavedRulesetState() {
-		String ruleset = getPreference(SAVED_RULESET);
-		if (ruleset.length() > 0) {
-			logger.info("Existing theory state found: loading");
-			try {
-				core.loadRuleset(ruleset);
-				return;
-			} catch (Exception e) {
-				logger.warn("Failed to load ruleset state", e);
+		try {
+			File rsetFile = new File(getAppSettingsDirectory(false).getAbsolutePath() + File.pathSeparator + "stored.rules");
+			if (rsetFile.exists()) {
+				logger.info("Existing theory state found: loading");
+				try {
+					core.loadRuleset(rsetFile);
+					return;
+				} catch (Exception e) {
+					logger.warn("Failed to load ruleset state", e);
+				}
+			} else {
+				logger.info("No theory state found");
 			}
+			// FIXME: try loading default ruleset
+		} catch (IOException e) {
+			logger.error("Could not load ruleset state", e);
 		}
-		// FIXME: try loading default ruleset
 	}
 
 	private void saveRulesetState() {
 		try {
 			logger.info("Saving theory state");
-			setPreference(SAVED_RULESET, core.getRulesetEncoded());
+			File rsetFile = new File(getAppSettingsDirectory(true).getAbsolutePath() + File.pathSeparator + "stored.rules");
+			core.saveRuleset(rsetFile);
 			return;
 		} catch (Exception e) {
 			logger.warn("Failed to save ruleset state", e);
@@ -239,11 +272,50 @@ public class QuantoApp {
 		}
 	}
 
-	public JFileChooser getFileChooser() {
+	private void createFileChooser() {
 		if (fileChooser == null) {
 			fileChooser = new JFileChooser();
+			String lastDir = getPreference(QuantoApp.LAST_OPEN_DIR);
+			if (lastDir != null) {
+				fileChooser.setCurrentDirectory(new File(lastDir));
+			}
 		}
-		return fileChooser;
+	}
+
+	public File openFile(Component parent, String title) {
+		createFileChooser();
+		int retVal = fileChooser.showDialog(parent, title);
+		fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			File f = fileChooser.getSelectedFile();
+			if (f.getParent() != null) {
+				setPreference(QuantoApp.LAST_OPEN_DIR, f.getParent());
+			}
+			return f;
+		}
+		return null;
+	}
+
+	public File openFile(Component parent) {
+		return openFile(parent, "Open");
+	}
+
+	public File saveFile(Component parent, String title) {
+		createFileChooser();
+		int retVal = fileChooser.showDialog(parent, title);
+		fileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			File f = fileChooser.getSelectedFile();
+			if (f.getParent() != null) {
+				setPreference(QuantoApp.LAST_OPEN_DIR, f.getParent());
+			}
+			return f;
+		}
+		return null;
+	}
+
+	public File saveFile(Component parent) {
+		return saveFile(parent, "Save");
 	}
 
 	public InteractiveViewManager getViewManager() {
@@ -298,7 +370,6 @@ public class QuantoApp {
 
 	public InteractiveGraphView openGraph(File file)
 		throws CoreException,
-		       QuantoGraph.ParseException,
 		       java.io.IOException {
 		QuantoGraph loadedGraph = core.loadGraph(file);
 		InteractiveGraphView vis =

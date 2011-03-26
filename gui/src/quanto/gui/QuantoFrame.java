@@ -29,7 +29,8 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	public final static String NEW_WINDOW_COMMAND = "new-win-command";
 	public final static String NEW_GRAPH_COMMAND = "new-graph-command";
 	public final static String OPEN_GRAPH_COMMAND = "open-command";
-	public final static String LOAD_THEORY_COMMAND = "load-theory-command";
+	public final static String LOAD_RULESET_COMMAND = "load-ruleset-command";
+	public final static String SAVE_RULESET_COMMAND = "save-ruleset-command";
 	public final static String CLOSE_COMMAND = "close-command";
 	public final static String QUIT_COMMAND = "quit-command";
 	public final static String REFRESH_ALL_COMMAND = "refresh-all-graphs-command";
@@ -102,6 +103,12 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		actionManager.registerCallback(CLOSE_COMMAND, this, "closeCurrentView");
 		actionManager.setEnabled(CLOSE_COMMAND, true);
 
+		actionManager.registerCallback(LOAD_RULESET_COMMAND, this, "importRuleset");
+		actionManager.setEnabled(LOAD_RULESET_COMMAND, true);
+
+		actionManager.registerCallback(SAVE_RULESET_COMMAND, this, "exportRuleset");
+		actionManager.setEnabled(SAVE_RULESET_COMMAND, true);
+
 		actionManager.registerCallback(QUIT_COMMAND, app, "shutdown");
 		actionManager.setEnabled(QUIT_COMMAND, true);
 
@@ -136,8 +143,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
-		//actionManager.registerCallback(LOAD_THEORY_COMMAND, theoryTree, "loadTheory");
-		//actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
 
 		Delegate delegate = new Delegate();
 		actionManager.registerGenericCallback(
@@ -198,38 +203,52 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
+	public void importRuleset() {
+		File f = app.openFile(this, "Import ruleset");
+		try {
+			if (f != null) {
+				app.getCore().loadRuleset(f);
+			}
+		}
+		catch (CoreException e) {
+			app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
+		}
+		catch (java.io.IOException e) {
+			app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
+		}
+	}
+
+	public void exportRuleset() {
+		File f = app.saveFile(this, "Export ruleset");
+		try {
+			if (f != null) {
+				app.getCore().saveRuleset(f);
+			}
+		}
+		catch (CoreException e) {
+			app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
+		}
+		catch (java.io.IOException e) {
+			app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
+		}
+	}
+
 	/**
 	 * Read a graph from a file and send it to a fresh InteractiveGraphView.
 	 */
 	public void openGraph() {
-		String lastDir = app.getPreference(QuantoApp.LAST_OPEN_DIR);
-
-		JFileChooser fc = app.getFileChooser();
-
-		if (lastDir != null) {
-			fc.setCurrentDirectory(new File(lastDir));
-		}
-
-		int retVal = fc.showDialog(null, "Open");
-		if (retVal == JFileChooser.APPROVE_OPTION) {
-			File f = fc.getSelectedFile();
-			try {
-				if (f.getParent() != null) {
-					app.setPreference(QuantoApp.LAST_OPEN_DIR, f.getParent());
-				}
+		File f = app.openFile(this);
+		try {
+			if (f != null) {
 				InteractiveView view = app.openGraph(f);
-
 				openView(view);
 			}
-			catch (CoreException e) {
-				app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
-			}
-			catch (QuantoGraph.ParseException e) {
-				app.errorDialog("\"" + f.getName() + "\" is in the wrong format or corrupted: " + e.getMessage());
-			}
-			catch (java.io.IOException e) {
-				app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
-			}
+		}
+		catch (CoreException e) {
+			app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
+		}
+		catch (java.io.IOException e) {
+			app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
 		}
 	}
 

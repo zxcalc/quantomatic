@@ -236,12 +236,12 @@ public abstract class CoreTalker {
 
 	@Command
 	public void load_ruleset(File location) throws CoreException {
-		command("load_rules", Arg.pathArg(location));
+		command("load_ruleset", Arg.pathArg(location));
 	}
 
 	@Command
 	public void save_ruleset(File location) throws CoreException {
-		command("save_rules", Arg.pathArg(location));
+		command("save_ruleset", Arg.pathArg(location));
 	}
 
 	@Command
