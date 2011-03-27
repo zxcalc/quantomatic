@@ -6,10 +6,8 @@
 package quanto.core;
 
 import edu.uci.ics.jung.contrib.HasName;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collection;
@@ -51,33 +49,33 @@ public class Core {
 		return talker;
 	}
 
-	private void assertCoreGraph(QuantoGraph graph) {
+	private void assertCoreGraph(QGraph graph) {
 		if (graph.getName() == null)
 			throw new IllegalStateException("The graph does not have a name");
 	}
 
-	public QuantoGraph createEmptyGraph() throws CoreException {
-		return new QuantoGraph(talker.new_graph());
+	public QGraph createEmptyGraph() throws CoreException {
+		return new QGraph(talker.new_graph());
 	}
 
-	public QuantoGraph loadGraph(File location) throws CoreException, IOException {
-		QuantoGraph g = new QuantoGraph(talker.load_graph(location));
+	public QGraph loadGraph(File location) throws CoreException, IOException {
+		QGraph g = new QGraph(talker.load_graph(location));
 		updateGraph(g);
 		g.setFileName(location.getAbsolutePath());
 		return g;
 	}
 
-	public void saveGraph(QuantoGraph graph, File location) throws CoreException, IOException {
+	public void saveGraph(QGraph graph, File location) throws CoreException, IOException {
 		assertCoreGraph(graph);
 		talker.save_graph(graph.getName(), location);
 	}
 
-	public void updateGraph(QuantoGraph graph) throws CoreException {
+	public void updateGraph(QGraph graph) throws CoreException {
 		String xml = talker.graph_xml(graph.getName());
 		try {
 			graph.fromXml(xml);
 		}
-		catch (QuantoGraph.ParseException ex) {
+		catch (ParseException ex) {
 			throw new BadResponseException("Could not parse the graph XML from the core", xml);
 		}
 	}
@@ -89,32 +87,32 @@ public class Core {
 		Matlab
 	}
 
-	public String hilbertSpaceRepresentation(QuantoGraph graph, RepresentationType format) throws CoreException {
+	public String hilbertSpaceRepresentation(QGraph graph, RepresentationType format) throws CoreException {
 		return talker.hilb(graph.getName(), format.toString().toLowerCase());
 	}
 
-	public void renameGraph(QuantoGraph graph, String suggestedNewName) throws CoreException {
+	public void renameGraph(QGraph graph, String suggestedNewName) throws CoreException {
 		assertCoreGraph(graph);
 		graph.setName(talker.rename_graph(graph.getName(), suggestedNewName));
 	}
 
-	public void forgetGraph(QuantoGraph graph) throws CoreException {
+	public void forgetGraph(QGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.kill_graph(graph.getName());
 		graph.setName(null);
 	}
 
-	public void undo(QuantoGraph graph) throws CoreException {
+	public void undo(QGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.undo(graph.getName());
 	}
 
-	public void redo(QuantoGraph graph) throws CoreException {
+	public void redo(QGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.redo(graph.getName());
 	}
 
-	public QVertex addVertex(QuantoGraph graph, QVertex.Type type) throws CoreException {
+	public QVertex addVertex(QGraph graph, QVertex.Type type) throws CoreException {
 		assertCoreGraph(graph);
 		QVertex v = new QVertex(talker.add_vertex(graph.getName(), type), type);
 		graph.addVertex(v);
@@ -122,7 +120,7 @@ public class Core {
 		return v;
 	}
 
-	public void flipVertices(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void flipVertices(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		talker.flip_vertices(graph.getName(), names(vertices));
 		for (QVertex v : vertices) {
@@ -134,19 +132,19 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public void renameVertex(QuantoGraph graph, QVertex vertex, String suggestedNewName) throws CoreException {
+	public void renameVertex(QGraph graph, QVertex vertex, String suggestedNewName) throws CoreException {
 		assertCoreGraph(graph);
 		vertex.setName(talker.rename_vertex(graph.getName(), vertex.getName(), suggestedNewName));
 	}
 
-	public void setVertexAngle(QuantoGraph graph, QVertex v, String angle) throws CoreException {
+	public void setVertexAngle(QGraph graph, QVertex v, String angle) throws CoreException {
 		assertCoreGraph(graph);
 		talker.set_angle(graph.getName(), v.getName(), angle);
 		v.setLabel(angle);
 		graph.fireStateChanged();
 	}
 
-	public void deleteVertices(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void deleteVertices(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		talker.delete_vertices(graph.getName(), names(vertices));
 		for (QVertex v : vertices) {
@@ -155,7 +153,7 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public QEdge addEdge(QuantoGraph graph, QVertex source, QVertex target) throws CoreException {
+	public QEdge addEdge(QGraph graph, QVertex source, QVertex target) throws CoreException {
 		assertCoreGraph(graph);
 		String eName = talker.add_edge(graph.getName(), source.getName(), target.getName());
 		QEdge e = new QEdge(eName);
@@ -164,7 +162,7 @@ public class Core {
 		return e;
 	}
 
-	public void deleteEdges(QuantoGraph graph, Collection<QEdge> edges) throws CoreException {
+	public void deleteEdges(QGraph graph, Collection<QEdge> edges) throws CoreException {
 		assertCoreGraph(graph);
 		talker.delete_edges(graph.getName(), names(edges));
 		for (QEdge e : edges) {
@@ -173,7 +171,7 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public BangBox addBangBox(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public BangBox addBangBox(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		BangBox bb = new BangBox(talker.add_bang(graph.getName()));
 		if (vertices != null && vertices.size() > 0) {
@@ -187,13 +185,13 @@ public class Core {
 		return bb;
 	}
 
-	public void removeVerticesFromBangBoxes(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void removeVerticesFromBangBoxes(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		talker.unbang_vertices(graph.getName(), names(vertices));
 		updateGraph(graph);
 	}
 
-	public void dropBangBoxes(QuantoGraph graph, Collection<BangBox> bboxen) throws CoreException {
+	public void dropBangBoxes(QGraph graph, Collection<BangBox> bboxen) throws CoreException {
 		assertCoreGraph(graph);
 		talker.bbox_drop(graph.getName(), names(bboxen));
 		for (BangBox bb : bboxen) {
@@ -202,7 +200,7 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public void killBangBoxes(QuantoGraph graph, Collection<BangBox> bboxen) throws CoreException {
+	public void killBangBoxes(QGraph graph, Collection<BangBox> bboxen) throws CoreException {
 		assertCoreGraph(graph);
 		talker.bbox_kill(graph.getName(), names(bboxen));
 		for (BangBox bb : bboxen) {
@@ -214,7 +212,7 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public BangBox mergeBangBoxes(QuantoGraph graph, Collection<BangBox> bboxen) throws CoreException {
+	public BangBox mergeBangBoxes(QGraph graph, Collection<BangBox> bboxen) throws CoreException {
 		assertCoreGraph(graph);
 		BangBox newbb = new BangBox(talker.bbox_merge(graph.getName(), names(bboxen)));
 		for (BangBox bb : bboxen) {
@@ -228,7 +226,7 @@ public class Core {
 		return newbb;
 	}
 
-	public BangBox duplicateBangBox(QuantoGraph graph, BangBox bbox) throws CoreException {
+	public BangBox duplicateBangBox(QGraph graph, BangBox bbox) throws CoreException {
 		assertCoreGraph(graph);
 		String name = talker.bbox_duplicate(graph.getName(), bbox.getName());
 		updateGraph(graph);
@@ -270,7 +268,7 @@ public class Core {
 		}
 	}
 
-	public Rewrite createRule(String ruleName, QuantoGraph lhs, QuantoGraph rhs) throws CoreException {
+	public Rewrite createRule(String ruleName, QGraph lhs, QGraph rhs) throws CoreException {
 		assertCoreGraph(lhs);
 		assertCoreGraph(rhs);
 		talker.new_rule(ruleName, lhs.getName(), rhs.getName());
@@ -278,9 +276,9 @@ public class Core {
 	}
 
 	public Rewrite openRule(String ruleName) throws CoreException {
-		QuantoGraph lhs = new QuantoGraph(talker.open_rule_lhs(ruleName));
+		QGraph lhs = new QGraph(talker.open_rule_lhs(ruleName));
 		updateGraph(lhs);
-		QuantoGraph rhs = new QuantoGraph(talker.open_rule_rhs(ruleName));
+		QGraph rhs = new QGraph(talker.open_rule_rhs(ruleName));
 		updateGraph(rhs);
 		return new Rewrite(ruleName, lhs, rhs);
 	}
@@ -295,7 +293,7 @@ public class Core {
 	 * Derived methods, note these are in CamelCase to emphasise that they
 	 * are not actual core commands.
 	 */
-	public void fastNormalise(QuantoGraph graph) throws CoreException {
+	public void fastNormalise(QGraph graph) throws CoreException {
 		boolean didRewrites = false;
 		try {
 			while (true) {
@@ -309,7 +307,7 @@ public class Core {
 			updateGraph(graph);
 	}
 
-	public void cutSubgraph(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void cutSubgraph(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		String[] vnames = names(vertices);
 		talker.copy_subgraph(graph.getName(), "__clip__", vnames);
@@ -320,36 +318,36 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public void copySubgraph(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void copySubgraph(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		String[] vnames = names(vertices);
 		talker.copy_subgraph(graph.getName(), "__clip__", vnames);
 	}
 
-	public void paste(QuantoGraph target) throws CoreException {
+	public void paste(QGraph target) throws CoreException {
 		assertCoreGraph(target);
 		talker.insert_graph("__clip__", target.getName());
 		updateGraph(target);
 	}
 
-	public void attachRewrites(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void attachRewrites(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		talker.attach_rewrites(graph.getName(), names(vertices));
 	}
 
-	public void attachOneRewrite(QuantoGraph graph, Collection<QVertex> vertices) throws CoreException {
+	public void attachOneRewrite(QGraph graph, Collection<QVertex> vertices) throws CoreException {
 		talker.attach_one_rewrite(graph.getName(), names(vertices));
 	}
 
-	public List<Rewrite> getAttachedRewrites(QuantoGraph graph) throws CoreException {
+	public List<Rewrite> getAttachedRewrites(QGraph graph) throws CoreException {
 		try {
 			String xml = talker.show_rewrites(graph.getName());
 			return Rewrite.parseRewrites(xml);
-		} catch (QuantoGraph.ParseException ex) {
+		} catch (ParseException ex) {
 			throw new BadResponseException("Core gave bad rewrite XML");
 		}
 	}
 
-	public void applyAttachedRewrite(QuantoGraph graph, int i) throws CoreException {
+	public void applyAttachedRewrite(QGraph graph, int i) throws CoreException {
 		talker.apply_rewrite(graph.getName(), i);
 	}
 }

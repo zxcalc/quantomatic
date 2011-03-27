@@ -25,7 +25,7 @@ public abstract class CoreTalker {
 	public static String quantoCoreExecutable = "quanto-core";
 
         // set to true to dump all communication to stdout
-        protected final static boolean DEBUG = true;
+        protected final static boolean DEBUG = false;
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)

@@ -3,7 +3,7 @@ package quanto.gui;
 import quanto.core.BangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import quanto.core.Rewrite;
 import com.itextpdf.text.DocumentException;
 import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
@@ -264,11 +264,11 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(Core core, QuantoGraph g) {
+	public InteractiveGraphView(Core core, QGraph g) {
 		this(core, g, new Dimension(800, 600));
 	}
 
-	public InteractiveGraphView(Core core, QuantoGraph g, Dimension size) {
+	public InteractiveGraphView(Core core, QGraph g, Dimension size) {
 		super(new BorderLayout(), g.getName());
 		setPreferredSize(size);
 
@@ -407,7 +407,7 @@ public class InteractiveGraphView
 		viewer.addChangeListener(listener);
 	}
 
-	public QuantoGraph getGraph() {
+	public QGraph getGraph() {
 		return viewer.getGraph();
 	}
 	
@@ -688,7 +688,7 @@ public class InteractiveGraphView
 		viewer.repaint();
 	}
 
-	public void highlightSubgraph(QuantoGraph g) {
+	public void highlightSubgraph(QGraph g) {
 		clearHighlight();
 		highlighter = new SubgraphHighlighter(g);
 		viewer.addPostRenderPaintable(highlighter);
@@ -746,10 +746,10 @@ public class InteractiveGraphView
 			}
 		}
 
-		private void invokeHighlightSubgraphAndWait(QuantoGraph subgraph)
+		private void invokeHighlightSubgraphAndWait(QGraph subgraph)
 			throws InterruptedException {
 			highlight = true;
-			final QuantoGraph fSubGraph = subgraph;
+			final QGraph fSubGraph = subgraph;
 			invokeAndWait(new Runnable() {
 
 				public void run() {
@@ -839,7 +839,7 @@ public class InteractiveGraphView
 
 		Collection<QVertex> verts;
 
-		public SubgraphHighlighter(QuantoGraph g) {
+		public SubgraphHighlighter(QGraph g) {
 			verts = getGraph().getSubgraphVertices(g);
 		}
 
@@ -870,7 +870,7 @@ public class InteractiveGraphView
 	}
 
 	/**
-	 * Gets the attached rewrites as a list of Pair<QuantoGraph>. Returns and empty
+	 * Gets the attached rewrites as a list of Pair<QGraph>. Returns and empty
 	 * list on console error.
 	 * @return
 	 */
@@ -1326,7 +1326,7 @@ public class InteractiveGraphView
 			}
 			try {
 				LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
-				QuantoGraph graph = (QuantoGraph) realLayout.getGraph();
+				QGraph graph = (QGraph) realLayout.getGraph();
 				synchronized (graph) {
 					for (BangBox bb : graph.getBangBoxes()) {
 						Rectangle2D bbRect = realLayout.transformBangBox(bb);

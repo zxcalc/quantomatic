@@ -3,7 +3,7 @@ package quanto.gui;
 import quanto.core.BangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -24,12 +24,12 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 	private volatile Set<String> lockedNames = null;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
 
-	public JavaQuantoLayout(QuantoGraph graph, Dimension size) {
+	public JavaQuantoLayout(QGraph graph, Dimension size) {
 		super((DirectedGraph<QVertex,QEdge>)graph);
 		lockedNames = new HashSet<String>();
 	}
 
-	public JavaQuantoLayout(QuantoGraph graph) {
+	public JavaQuantoLayout(QGraph graph) {
 		this(graph, new Dimension(800,600));
 	}
 
@@ -64,7 +64,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 	
 	public void updateBangBoxes(Layout<QVertex,QEdge> layout) {
 		synchronized (getGraph()) {
-			for (BangBox bb : ((QuantoGraph)getGraph()).getBangBoxes()) {
+			for (BangBox bb : ((QGraph)getGraph()).getBangBoxes()) {
 				if (! bb.isEmpty()) {
 					Point2D p = layout.transform(bb.first());
 					Rectangle2D rect =

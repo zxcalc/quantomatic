@@ -22,11 +22,11 @@ import java.util.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QuantoGraph extends DirectedSparseMultigraph<QVertex, QEdge>
+public class QGraph extends DirectedSparseMultigraph<QVertex, QEdge>
 implements HasName, ChangeEventSupport {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(QuantoGraph.class);
+		LoggerFactory.getLogger(QGraph.class);
 
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
@@ -37,32 +37,18 @@ implements HasName, ChangeEventSupport {
 	private String fileName = null; // defined if this graph is backed by a file
 	private boolean saved = true; // true if this graph has been modified since last saved
 
-	public QuantoGraph(String name) {
+	public QGraph(String name) {
 		this.name = name;
 		this.bangBoxes = new ArrayList<BangBox>();
 		this.changeListeners = Collections.synchronizedSet(
 				new HashSet<ChangeListener>());
 	}
 
-	public static class ParseException extends Exception {
-		private static final long serialVersionUID = 2342374892173482937L;
-		public ParseException() { }
-		public ParseException(String message) {
-			super(message);
-		}
-		public ParseException(Throwable cause) {
-			super(cause);
-		}
-		public ParseException(String message, Throwable cause) {
-			super(message, cause);
-		}
-	}
-
 	/**
 	 * Use this constructor for unnamed graphs. The idea is you
 	 * should do null checks before sending the name to the core.
 	 */
-	public QuantoGraph() {
+	public QGraph() {
 		this(null);
 	}
 
@@ -76,15 +62,15 @@ implements HasName, ChangeEventSupport {
 		return verts;
 	}
 
-	public IXMLElement fromXml(String xml) throws QuantoGraph.ParseException {
+	public IXMLElement fromXml(String xml) throws ParseException {
 		return fromXmlReader(StdXMLReader.stringReader(xml));
 	}
 	
-	public IXMLElement fromXml(File f) throws java.io.IOException, QuantoGraph.ParseException {
+	public IXMLElement fromXml(File f) throws java.io.IOException, ParseException {
 		return fromXmlReader(StdXMLReader.fileReader(f.getAbsolutePath()));
 	}
 	
-	private IXMLElement fromXmlReader(IXMLReader reader) throws QuantoGraph.ParseException {
+	private IXMLElement fromXmlReader(IXMLReader reader) throws ParseException {
 		IXMLElement root = null;
 		try {
 			long millis = System.currentTimeMillis();
@@ -94,7 +80,7 @@ implements HasName, ChangeEventSupport {
 			fromXml(root);
 			logger.debug("XML parse took {} milliseconds", System.currentTimeMillis()-millis);
 		} catch (XMLException e) {
-			throw new QuantoGraph.ParseException("The file contains badly-formed XML: " + e.getMessage(), e);
+			throw new ParseException("The file contains badly-formed XML: " + e.getMessage(), e);
 		} catch (ClassNotFoundException e) {
 			throw new Error(e);
 		} catch (InstantiationException e) {
@@ -108,7 +94,7 @@ implements HasName, ChangeEventSupport {
 		return root;
 	}
 
-	private void throwParseException(IXMLElement element, String message) throws QuantoGraph.ParseException
+	private void throwParseException(IXMLElement element, String message) throws ParseException
 	{
 		String finalmsg = "Bad " + element.getName() + " definition";
 		if (element.getLineNr() != IXMLElement.NO_LINE)
@@ -116,7 +102,7 @@ implements HasName, ChangeEventSupport {
 		if (message != null)
 			finalmsg += ": " + message;
 
-		throw new QuantoGraph.ParseException(finalmsg);
+		throw new ParseException(finalmsg);
 	}
 
 	/**
@@ -127,9 +113,9 @@ implements HasName, ChangeEventSupport {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public QuantoGraph fromXml(IXMLElement graphNode) throws QuantoGraph.ParseException {
+	public QGraph fromXml(IXMLElement graphNode) throws ParseException {
 		if (graphNode == null)
-			throw new QuantoGraph.ParseException("Graph is null");
+			throw new ParseException("Graph is null");
 		
 		synchronized (this) {
 			boundaryVertices = new ArrayList<QVertex>(); 
@@ -268,7 +254,7 @@ implements HasName, ChangeEventSupport {
 		return this;
 	}
 	
-	public List<QVertex> getSubgraphVertices(QuantoGraph graph) {
+	public List<QVertex> getSubgraphVertices(QGraph graph) {
 		List<QVertex> verts = new ArrayList<QVertex>();
 		synchronized (this) {
 			Map<String,QVertex> vmap = getVertexMap();

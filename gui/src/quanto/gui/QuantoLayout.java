@@ -3,7 +3,7 @@ package quanto.gui;
 import quanto.core.BangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -27,12 +27,12 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 	private volatile Set<String> lockedNames = null;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
 
-	public QuantoLayout(QuantoGraph graph, Dimension size) {
+	public QuantoLayout(QGraph graph, Dimension size) {
 		super(graph, size);
 		lockedNames = new HashSet<String>();
 	}
 
-	public QuantoLayout(QuantoGraph graph) {
+	public QuantoLayout(QGraph graph) {
 		this(graph, new Dimension(800,600));
 	}
 
@@ -76,7 +76,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 					
 					lockedNames = newLocked;
 					
-					for (BangBox bb : ((QuantoGraph)getGraph()).getBangBoxes()) {
+					for (BangBox bb : ((QGraph)getGraph()).getBangBoxes()) {
 						Rectangle2D rect = new Rectangle2D.Double();
 						Point2D init;
 						if (bb.isEmpty()) {
@@ -111,7 +111,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 	
 	public void updateBangBoxes(Layout<QVertex,QEdge> layout) {
 		synchronized (getGraph()) {
-			for (BangBox bb : ((QuantoGraph)getGraph()).getBangBoxes()) {
+			for (BangBox bb : ((QGraph)getGraph()).getBangBoxes()) {
 				if (! bb.isEmpty()) {
 					Point2D p = layout.transform(bb.first());
 					Rectangle2D rect =
@@ -129,7 +129,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 	protected String bangBoxDot() {
 		StringBuffer buf = new StringBuffer();
 		synchronized (getGraph()) {
-			for (BangBox bb : ((QuantoGraph)getGraph()).getBangBoxes()) {
+			for (BangBox bb : ((QGraph)getGraph()).getBangBoxes()) {
 				buf.append("subgraph cluster_");
 				buf.append(bb.getName());
 				buf.append(" {\n");

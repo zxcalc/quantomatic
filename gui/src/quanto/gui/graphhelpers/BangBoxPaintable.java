@@ -19,7 +19,7 @@ import quanto.core.BangBox;
 import quanto.gui.LockableBangBoxLayout;
 import quanto.core.QEdge;
 import quanto.core.QVertex;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 
 /**
  *
@@ -29,11 +29,11 @@ public class BangBoxPaintable implements VisualizationServer.Paintable
 {
         private PickedState<BangBox> pickedState;
         private LockableBangBoxLayout<QVertex, QEdge> layout;
-        private QuantoGraph graph;
+        private QGraph graph;
         private BasicVisualizationServer<QVertex, QEdge> server;
 
         public BangBoxPaintable(LockableBangBoxLayout<QVertex, QEdge> layout,
-                                QuantoGraph graph,
+                                QGraph graph,
                                 BasicVisualizationServer<QVertex, QEdge> server) {
                 pickedState = null;
                 this.layout = layout;

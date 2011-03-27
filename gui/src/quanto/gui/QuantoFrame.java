@@ -1,7 +1,5 @@
 package quanto.gui;
 
-import quanto.core.QuantoGraph;
-import quanto.core.CoreTalker;
 import com.sun.jaf.ui.ActionManager;
 import com.sun.jaf.ui.UIFactory;
 import java.awt.*;
@@ -11,18 +9,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import javax.swing.*;
-import quanto.core.Core;
 import quanto.core.CoreException;
 import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {
 
 	private static final long serialVersionUID = 3656684775223085393L;
-	private Core core;
 	private final ViewPort viewPort;
+	private final RulesSidebar sidebar;
 	private volatile static int frameCount = 0;
 	private QuantoApp app;
-	private TheoryTreeView theoryTree;
 	private ActionManager actionManager = new ActionManager();
 
 	// these all taken from resources/actions.xml
@@ -73,7 +69,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 		frameCount++;
 		this.app = app;
-		core = app.getCore();
 		setBackground(Color.white);
 		getContentPane().setLayout(new BorderLayout());
 
@@ -143,6 +138,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
+		sidebar = new RulesSidebar(app.getCore());
 
 		Delegate delegate = new Delegate();
 		actionManager.registerGenericCallback(
@@ -151,9 +147,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 		//Add the scroll panes to a split pane.
 		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-		splitPane.setLeftComponent(new JScrollPane(theoryTree));
+		splitPane.setLeftComponent(sidebar);
 		splitPane.setRightComponent(viewPort);
 		splitPane.setDividerLocation(150);
+		splitPane.setOneTouchExpandable(true);
 
 		getContentPane().add(splitPane, BorderLayout.CENTER);
 

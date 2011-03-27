@@ -1,7 +1,7 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import quanto.core.CoreTalker;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
@@ -361,7 +361,7 @@ public class QuantoApp {
 
 	public InteractiveGraphView createNewGraph()
 		throws CoreException {
-		QuantoGraph newGraph = core.createEmptyGraph();
+		QGraph newGraph = core.createEmptyGraph();
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
 		viewManager.addView(vis);
@@ -371,7 +371,7 @@ public class QuantoApp {
 	public InteractiveGraphView openGraph(File file)
 		throws CoreException,
 		       java.io.IOException {
-		QuantoGraph loadedGraph = core.loadGraph(file);
+		QGraph loadedGraph = core.loadGraph(file);
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, loadedGraph, new Dimension(800, 600));
 		vis.setTitle(file.getName());
@@ -392,7 +392,7 @@ public class QuantoApp {
 	 */
 	public void newGraph(boolean initial) {
 		try {
-			QuantoGraph newGraph = core.createEmptyGraph();
+			QGraph newGraph = core.createEmptyGraph();
 			InteractiveGraphView vis =
 				new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
 			viewManager.addView(vis);

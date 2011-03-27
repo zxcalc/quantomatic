@@ -2,7 +2,7 @@ package quanto.gui;
 
 import quanto.core.QVertex;
 import quanto.core.QEdge;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import java.awt.geom.Point2D;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -10,7 +10,7 @@ import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 public class TikzOutput {
-	public static String generate(QuantoGraph graph, Layout<QVertex, QEdge> layout, boolean withArrowHeads) {
+	public static String generate(QGraph graph, Layout<QVertex, QEdge> layout, boolean withArrowHeads) {
 		StringBuilder tikz = new StringBuilder("\\begin{tikzpicture}[quanto]\n");
 		synchronized (graph) {
 			Point2D p;

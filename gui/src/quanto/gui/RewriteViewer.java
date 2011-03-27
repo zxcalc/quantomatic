@@ -1,7 +1,7 @@
 package quanto.gui;
 
 
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import quanto.core.Rewrite;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -82,7 +82,7 @@ public class RewriteViewer extends JFrame {
 			MouseAdapter hl = new MouseAdapter() {
 				@Override
 				public void mouseEntered(MouseEvent e) {
-					QuantoGraph match = 
+					QGraph match =
 						RewriteViewer.this.rewrites
 							.get(thisIndex).getLhs();
 					RewriteViewer.this.vis.highlightSubgraph(match);

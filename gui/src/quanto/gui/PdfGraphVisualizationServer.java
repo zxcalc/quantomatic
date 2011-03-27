@@ -7,7 +7,7 @@ package quanto.gui;
 
 import quanto.core.QVertex;
 import quanto.core.QEdge;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.ByteBuffer;
@@ -39,12 +39,12 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
 public class PdfGraphVisualizationServer
         extends BasicVisualizationServer<QVertex, QEdge>
 {
-	private final QuantoGraph graph;
+	private final QGraph graph;
 	private LockableBangBoxLayout<QVertex, QEdge> layout;
 	private BangBoxPaintable bangBoxPainter;
         private boolean arrowHeadsShown = false;
 
-	public PdfGraphVisualizationServer(QuantoGraph graph) {
+	public PdfGraphVisualizationServer(QGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoLayout(graph) : new QuantoLayout(graph));
 	}
 
@@ -53,10 +53,10 @@ public class PdfGraphVisualizationServer
 
 		this.layout = layout;
 
-		if (!(layout.getGraph() instanceof QuantoGraph)) {
+		if (!(layout.getGraph() instanceof QGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.graph = (QuantoGraph) layout.getGraph();
+		this.graph = (QGraph) layout.getGraph();
 
 		layout.initialize();
 		this.bangBoxPainter = new BangBoxPaintable(layout, graph, this);

@@ -8,10 +8,10 @@ import net.n3.nanoxml.*;
 import edu.uci.ics.jung.contrib.HasName;
 
 public class Rewrite implements HasName {
-	private QuantoGraph lhs = null;
-	private QuantoGraph rhs = null;
+	private QGraph lhs = null;
+	private QGraph rhs = null;
 	private String name;
-	public Rewrite(String name, QuantoGraph lhs, QuantoGraph rhs) {
+	public Rewrite(String name, QGraph lhs, QGraph rhs) {
 		this.name = name;
 		this.lhs = lhs;
 		this.rhs = rhs;
@@ -23,7 +23,7 @@ public class Rewrite implements HasName {
 		this.name = name;
 	}
 	
-	public static List<Rewrite> parseRewrites(String xml) throws QuantoGraph.ParseException {
+	public static List<Rewrite> parseRewrites(String xml) throws ParseException {
 		List<Rewrite> rewrites = new ArrayList<Rewrite>();
 		try {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
@@ -40,13 +40,13 @@ public class Rewrite implements HasName {
 					.getFirstChildNamed("graph");
 				rewrites.add(new Rewrite(
 						ruleName.getContent(),
-						new QuantoGraph().fromXml(lhs),
-						new QuantoGraph().fromXml(rhs)
+						new QGraph().fromXml(lhs),
+						new QGraph().fromXml(rhs)
 					));
 				
 			}
 		} catch (XMLException e) {
-			throw new QuantoGraph.ParseException(e.getMessage(), e);
+			throw new ParseException(e.getMessage(), e);
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (InstantiationException e) {
@@ -56,10 +56,10 @@ public class Rewrite implements HasName {
 		}
 		return rewrites;
 	}
-	public QuantoGraph getLhs() {
+	public QGraph getLhs() {
 		return lhs;
 	}
-	public QuantoGraph getRhs() {
+	public QGraph getRhs() {
 		return rhs;
 	}
 }

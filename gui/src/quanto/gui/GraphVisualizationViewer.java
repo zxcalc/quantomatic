@@ -7,7 +7,7 @@ package quanto.gui;
 import quanto.core.BangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
-import quanto.core.QuantoGraph;
+import quanto.core.QGraph;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.ByteBuffer;
@@ -62,7 +62,7 @@ public class GraphVisualizationViewer
        extends VisualizationViewer<QVertex, QEdge>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
-	private QuantoGraph graph;
+	private QGraph graph;
 	private BangBoxPaintable bangBoxPainter;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
@@ -75,7 +75,7 @@ public class GraphVisualizationViewer
 	protected PickedState<BangBox> pickedBangBoxState;
 
 
-	public GraphVisualizationViewer(QuantoGraph graph) {
+	public GraphVisualizationViewer(QGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoLayout(graph) : new QuantoLayout(graph));
 	}
 
@@ -84,10 +84,10 @@ public class GraphVisualizationViewer
 
 		this.layout = layout;
 
-		if (!(layout.getGraph() instanceof QuantoGraph)) {
+		if (!(layout.getGraph() instanceof QGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.graph = (QuantoGraph) layout.getGraph();
+		this.graph = (QGraph) layout.getGraph();
 
 		this.bangBoxPainter = new BangBoxPaintable(layout, graph, this);
 
@@ -169,7 +169,7 @@ public class GraphVisualizationViewer
 		setPreferredSize(calculateGraphSize());
 	}
 
-	public QuantoGraph getGraph() {
+	public QGraph getGraph() {
 		return graph;
 	}
 
