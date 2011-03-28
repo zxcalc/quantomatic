@@ -1,6 +1,7 @@
 package quanto.core;
 
 
+import edu.uci.ics.jung.contrib.DirectedSparseBangBoxMultigraph;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,24 +15,21 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import net.n3.nanoxml.*;
-import edu.uci.ics.jung.contrib.HasName;
-import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.util.EdgeType;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
+import java.util.LinkedList;
 import java.util.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QGraph extends DirectedSparseMultigraph<QVertex, QEdge>
-implements HasName, ChangeEventSupport {
+public class QGraph extends DirectedSparseBangBoxMultigraph<QVertex, QEdge, QBangBox>
+implements CoreObject, ChangeEventSupport {
 
 	private final static Logger logger =
 		LoggerFactory.getLogger(QGraph.class);
 
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
-	protected List<QVertex> boundaryVertices;
-	protected List<BangBox> bangBoxes;
 	protected Set<ChangeListener> changeListeners;
 	
 	private String fileName = null; // defined if this graph is backed by a file
@@ -39,7 +37,6 @@ implements HasName, ChangeEventSupport {
 
 	public QGraph(String name) {
 		this.name = name;
-		this.bangBoxes = new ArrayList<BangBox>();
 		this.changeListeners = Collections.synchronizedSet(
 				new HashSet<ChangeListener>());
 	}
@@ -57,7 +54,7 @@ implements HasName, ChangeEventSupport {
 			new HashMap<String, QVertex>();
 		for (QVertex v : getVertices()) {
 			v.old = true;
-			verts.put(v.getName(), v);
+			verts.put(v.getCoreName(), v);
 		}
 		return verts;
 	}
@@ -118,9 +115,11 @@ implements HasName, ChangeEventSupport {
 			throw new ParseException("Graph is null");
 		
 		synchronized (this) {
-			boundaryVertices = new ArrayList<QVertex>(); 
+			List<QVertex> boundaryVertices = new ArrayList<QVertex>();
 			for (QEdge e : new ArrayList<QEdge>(getEdges()))
 				removeEdge(e);
+			for (QBangBox e : new ArrayList<QBangBox>(getBangBoxes()))
+				removeBangBox(e);
 			
 			Map<String, QVertex> verts = getVertexMap();
 
@@ -132,7 +131,7 @@ implements HasName, ChangeEventSupport {
 					String vname = vertexNode.getFirstChildNamed("name").getContent();
 					if (vname == null || vname.length() == 0)
 						throwParseException(vertexNode, "no name given");
-					v.setName(vname);
+					v.updateCoreName(vname);
 
 					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
@@ -162,9 +161,9 @@ implements HasName, ChangeEventSupport {
 					throwParseException(vertexNode, null);
 				}
 				
-				QVertex old_v = verts.get(v.getName());
+				QVertex old_v = verts.get(v.getCoreName());
 				if (old_v == null) {
-					verts.put(v.getName(), v);
+					verts.put(v.getCoreName(), v);
 					this.addVertex(v);
 				} else {
 					old_v.updateTo(v);
@@ -176,7 +175,7 @@ implements HasName, ChangeEventSupport {
 				}
 			} // foreach vertex
 			
-			Collections.sort(boundaryVertices, new HasName.NameComparator());
+			Collections.sort(boundaryVertices, new CoreObject.NameComparator());
 
                         for (int i = 0; i < boundaryVertices.size(); ++i) {
                                 boundaryVertices.get(i).setLabel(String.valueOf(i));
@@ -224,8 +223,6 @@ implements HasName, ChangeEventSupport {
 				
 			} // foreach edge
 			
-			bangBoxes = new ArrayList<BangBox>();
-			
 			for (IXMLElement bangBox :
 				(Vector<IXMLElement>)graphNode.getChildrenNamed("bangbox"))
 			{
@@ -237,8 +234,8 @@ implements HasName, ChangeEventSupport {
 				if (bbname == null || bbname.length() == 0)
 					throwParseException(bangBox, "no name given");
 
-				BangBox bbox = new BangBox(bbname);
-				bangBoxes.add(bbox);
+				QBangBox bbox = new QBangBox(bbname);
+				List contents = new LinkedList();
 
 				for (IXMLElement boxedVert :
 					(Vector<IXMLElement>)bangBox.getChildrenNamed("boxedvertex"))
@@ -246,8 +243,9 @@ implements HasName, ChangeEventSupport {
 					QVertex v = verts.get(boxedVert.getContent());
 					if (v == null)
 						throwParseException(boxedVert, "unknown vertex");
-					bbox.add(v);
+					contents.add(v);
 				}
+				addBangBox(bbox, contents);
 			}
 		} // synchronized(this)
 		
@@ -263,18 +261,18 @@ implements HasName, ChangeEventSupport {
 					continue; // don't highlight boundaries
 				// find the vertex corresponding to the selected
 				//  subgraph, by name
-				QVertex real_v = vmap.get(v.getName());
+				QVertex real_v = vmap.get(v.getCoreName());
 				if (real_v != null) verts.add(real_v);
 			}
 		}
 		return verts;
 	}
 
-	public String getName() {
+	public String getCoreName() {
 		return name;
 	}
 
-	public void setName(String name) {
+	public void updateCoreName(String name) {
 		this.name = name;
 	}
 
@@ -292,18 +290,6 @@ implements HasName, ChangeEventSupport {
 
 	public void setSaved(boolean saved) {
 		this.saved = saved;
-	}
-
-	public List<BangBox> getBangBoxes() {
-		return bangBoxes;
-	}
-
-	public void addBangBox(BangBox bb) {
-		bangBoxes.add(bb);
-	}
-
-	public void removeBangBox(BangBox bb) {
-		bangBoxes.remove(bb);
 	}
 
 	public void addChangeListener(ChangeListener l) {

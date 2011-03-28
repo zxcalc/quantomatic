@@ -5,7 +5,6 @@
 
 package quanto.core;
 
-import edu.uci.ics.jung.contrib.HasName;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;

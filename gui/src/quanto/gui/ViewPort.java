@@ -227,7 +227,7 @@ public class ViewPort extends JPanel {
 						if (ent.getValue() instanceof InteractiveGraphView
 							&& QuantoApp.getInstance().getPreference(
 							QuantoApp.SHOW_INTERNAL_NAMES)) {
-							title += " (" + ((InteractiveGraphView) ent.getValue()).getGraph().getName() + ")";
+							title += " (" + ((InteractiveGraphView) ent.getValue()).getGraph().getCoreName() + ")";
 						}
 						item = new JMenuItem(title);
 						item.setFont(item.getFont().deriveFont(12.0f));
@@ -267,12 +267,12 @@ public class ViewPort extends JPanel {
 			// if the view names and graph names are out of sync, show it
 			if (showInternalNames) {
 				if (attachedView instanceof InteractiveGraphView) {
-					name += " (" + ((InteractiveGraphView) attachedView).getGraph().getName() + ")";
+					name += " (" + ((InteractiveGraphView) attachedView).getGraph().getCoreName() + ")";
 				}
 				else if (attachedView instanceof SplitGraphView) {
 					name += String.format(" (%s -> %s)",
-							       ((SplitGraphView) attachedView).getLeftView().getGraph().getName(),
-							       ((SplitGraphView) attachedView).getRightView().getGraph().getName());
+							       ((SplitGraphView) attachedView).getLeftView().getGraph().getCoreName(),
+							       ((SplitGraphView) attachedView).getRightView().getGraph().getCoreName());
 				}
 			}
 			setLabel(name);

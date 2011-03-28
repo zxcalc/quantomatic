@@ -1,13 +1,11 @@
 package quanto.core;
 
-import java.awt.Color;
 
-import edu.uci.ics.jung.contrib.HasName;
-
-public class QVertex implements HasName, Comparable<QVertex> {
+public class QVertex implements CoreObject, Comparable<QVertex> {
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
-	private String name, label;
+	private String name;
+	private String label = "0";
 	public boolean old;
 
 	public QVertex() {
@@ -22,7 +20,7 @@ public class QVertex implements HasName, Comparable<QVertex> {
 	public QVertex(String name, Type vertexType) {
 		this.vertexType = vertexType;
 		this.old = false;
-		setName(name);
+		updateCoreName(name);
 	}
 
 	public Type getVertexType() {
@@ -44,11 +42,11 @@ public class QVertex implements HasName, Comparable<QVertex> {
 		else throw new IllegalArgumentException("vertexType");
 	}
 	
-	public String getName() {
+	public String getCoreName() {
 		return name;
 	}
 
-	public void setName(String name) {
+	public void updateCoreName(String name) {
 		this.name = name;
 	}
 	
@@ -59,7 +57,7 @@ public class QVertex implements HasName, Comparable<QVertex> {
 	
 	public void updateTo(QVertex v) {
 		old = false;
-		name = v.getName();
+		name = v.getCoreName();
 		vertexType = v.getVertexType();
 		label = v.getLabel();
 	}
@@ -77,7 +75,7 @@ public class QVertex implements HasName, Comparable<QVertex> {
 	}
 
 	public int compareTo(QVertex o) {
-		return getName().compareTo(o.getName());
+		return getCoreName().compareTo(o.getCoreName());
 	}
 	
 }

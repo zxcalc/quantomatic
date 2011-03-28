@@ -17,19 +17,28 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	public SmoothLayoutDecorator(Layout<V,E> delegate) {
 		super(delegate);
 		speed = 0.0002;
-		initialize(); // make sure delegate is initialized before we go
 		origin = new OriginTransformer();
-		currentState = new StaticLayout<V,E>(delegate.getGraph(), origin);
 	}
 	
+	@Override
 	public void initialize() {
+		super.initialize();
+
+		if (currentState == null)
+			currentState = new StaticLayout<V,E>(delegate.getGraph(), origin);
+
 		lastTick = -1.0;
-		getDelegate().initialize();
-		
+
 		if (getDelegate() instanceof IterativeContext) {
 			Relaxer relaxer = new VisRunner((IterativeContext)getDelegate());
 			relaxer.prerelax();
 		}
+	}
+
+	@Override
+	public void reset() {
+		super.reset();
+		lastTick = -1.0;
 	}
 	
 	public void setOrigin(Point2D o) {
@@ -40,6 +49,7 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		setOrigin(new Point2D.Double(x,y));
 	}
 	
+	@Override
 	public Point2D transform(V v) {
 		return currentState.transform(v);
 	}
@@ -51,6 +61,7 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	}
 	
 	// check out strange condition here
+	@Override
 	public void step() {
 		synchronized (getGraph()) {
 			boolean moved = false;
@@ -59,6 +70,7 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		}
 	}
 	
+	@Override
 	public boolean done() {
 		synchronized (getGraph()) {
 			for (V v : getGraph().getVertices()) {
@@ -78,7 +90,7 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		Point2D source = currentState.transform(v);
 		Point2D dest = getDelegate().transform(v);
 		if (lastTick == -1.0) lastTick = millis();
-		
+
 		double thisTick = millis();
 		double rate = (thisTick - lastTick) * speed;
 		if (rate>1) rate = 1;

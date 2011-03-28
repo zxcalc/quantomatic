@@ -5,8 +5,6 @@
 
 package edu.uci.ics.jung.contrib;
 
-import edu.uci.ics.jung.graph.DirectedGraph;
-import java.awt.Dimension;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,11 +12,12 @@ import java.util.Map;
  *
  * @author alex
  */
-public class DotLayout<V,E> extends AbstractDotLayout<V, E> {
+public class DotBangBoxLayout<V,E,B> extends AbstractBangBoxDotLayout<V,E,B> {
 	private Map<V,String> vertexKeys = null;
+	private Map<B,String> bangBoxKeys = null;
 
-	public DotLayout(DirectedGraph<V,E> graph, double vertexPadding) {
-		super(graph, vertexPadding);
+	public DotBangBoxLayout(DirectedBangBoxGraph<V,E,B> graph, double vertexPadding, double bangBoxPadding) {
+		super(graph, vertexPadding, bangBoxPadding);
 	}
 
 	@Override
@@ -27,6 +26,11 @@ public class DotLayout<V,E> extends AbstractDotLayout<V, E> {
 		int i = 1;
 		for (V v : graph.getVertices()) {
 			vertexKeys.put(v, Integer.toString(i));
+			++i;
+		}
+		bangBoxKeys = new HashMap<B, String>();
+		for (B b : ((DirectedBangBoxGraph<V, E, B>)graph).getBangBoxes()) {
+			bangBoxKeys.put(b, Integer.toString(i));
 			++i;
 		}
 	}
@@ -39,5 +43,11 @@ public class DotLayout<V,E> extends AbstractDotLayout<V, E> {
 	@Override
 	protected void endLayout() {
 		vertexKeys = null;
+		bangBoxKeys = null;
+	}
+
+	@Override
+	protected String getBangBoxDotKey(B bangbox) {
+		return bangBoxKeys.get(bangbox);
 	}
 }

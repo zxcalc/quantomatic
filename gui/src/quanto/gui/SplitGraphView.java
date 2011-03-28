@@ -39,7 +39,7 @@ public class SplitGraphView extends InteractiveView {
 
 	public SplitGraphView(Core core, Rewrite rule, Dimension dim)
 	throws CoreException {
-		super(rule.getName());
+		super(rule.getCoreName());
 		this.rule = rule;
 		this.core = core;
 

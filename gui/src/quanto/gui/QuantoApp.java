@@ -180,7 +180,7 @@ public class QuantoApp {
 				}
 
 				logger.info("Invoked as OS X application ({})", appName);
-				edu.uci.ics.jung.contrib.DotLayout.dotProgram =
+				edu.uci.ics.jung.contrib.AbstractDotLayout.dotProgram =
 					appName + "/Contents/MacOS/dot_static";
 				CoreTalker.quantoCoreExecutable =
 					appName + "/Contents/MacOS/quanto-core-app";
@@ -190,7 +190,7 @@ public class QuantoApp {
 				logger.info("Mathematica mode enabled");
 			}
 		}
-		logger.info("Using dot executable: {}", edu.uci.ics.jung.contrib.DotLayout.dotProgram);
+		logger.info("Using dot executable: {}", edu.uci.ics.jung.contrib.AbstractDotLayout.dotProgram);
 		logger.info("Using core executable: {}", CoreTalker.quantoCoreExecutable);
 
 		try {

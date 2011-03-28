@@ -4,7 +4,7 @@
  */
 package quanto.gui;
 
-import edu.uci.ics.jung.contrib.HasName;
+import edu.uci.ics.jung.contrib.StringNamer;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Map;
@@ -36,7 +36,7 @@ public class InteractiveViewManager {
 			synchronized (views) {
 				String oldName = views.getKey(view);
 				views.remove(oldName);
-				String newName = HasName.StringNamer.getFreshName(views.keySet(), evt.getNewValue().toString());
+				String newName = StringNamer.getFreshName(views.keySet(), evt.getNewValue().toString());
 				views.put(newName, view);
 			}
 		}
@@ -68,7 +68,7 @@ public class InteractiveViewManager {
 	}
 
 	public void addView(InteractiveView view) {
-		String name = HasName.StringNamer.getFreshName(views.keySet(), view.getTitle());
+		String name = StringNamer.getFreshName(views.keySet(), view.getTitle());
 		synchronized (views) {
 			views.put(name, view);
 			view.setViewManager(this);

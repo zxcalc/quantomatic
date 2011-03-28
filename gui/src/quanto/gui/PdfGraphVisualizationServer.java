@@ -10,10 +10,10 @@ import quanto.core.QEdge;
 import quanto.core.QGraph;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.pdf.ByteBuffer;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfWriter;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.contrib.BangBoxLayout;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.BasicVisualizationServer;
@@ -25,6 +25,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.OutputStream;
 import javax.swing.JComponent;
 import org.apache.commons.collections15.Predicate;
+import quanto.core.QBangBox;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.BangBoxPaintable;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
@@ -40,15 +41,15 @@ public class PdfGraphVisualizationServer
         extends BasicVisualizationServer<QVertex, QEdge>
 {
 	private final QGraph graph;
-	private LockableBangBoxLayout<QVertex, QEdge> layout;
+	private BangBoxLayout<QVertex, QEdge, QBangBox> layout;
 	private BangBoxPaintable bangBoxPainter;
         private boolean arrowHeadsShown = false;
 
 	public PdfGraphVisualizationServer(QGraph graph) {
-		this(QuantoApp.useExperimentalLayout ? new JavaQuantoLayout(graph) : new QuantoLayout(graph));
+		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public PdfGraphVisualizationServer(LockableBangBoxLayout<QVertex, QEdge> layout) {
+	public PdfGraphVisualizationServer(BangBoxLayout<QVertex, QEdge, QBangBox> layout) {
 		super(layout);
 
 		this.layout = layout;

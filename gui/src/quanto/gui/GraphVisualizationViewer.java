@@ -4,48 +4,36 @@
  */
 package quanto.gui;
 
-import quanto.core.BangBox;
+import javax.swing.event.ChangeEvent;
+import quanto.core.QBangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
 import quanto.core.QGraph;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.pdf.ByteBuffer;
-import com.itextpdf.text.pdf.PdfContentByte;
-import com.itextpdf.text.pdf.PdfWriter;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.contrib.BangBoxLayout;
 import edu.uci.ics.jung.contrib.MixedShapeTransformer;
 import edu.uci.ics.jung.contrib.SmoothLayoutDecorator;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.Layer;
-import edu.uci.ics.jung.visualization.RenderContext;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.MultiPickedState;
 import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.renderers.BasicVertexRenderer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
-import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Graphics2D;
-import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.Set;
-import javax.swing.JComponent;
-import javax.swing.JTextField;
+import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Predicate;
-import org.apache.commons.collections15.Transformer;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.BackdropPaintable;
 import quanto.gui.graphhelpers.BangBoxPaintable;
@@ -66,20 +54,20 @@ public class GraphVisualizationViewer
 	private BangBoxPaintable bangBoxPainter;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
-	private LockableBangBoxLayout<QVertex, QEdge> layout;
+	private BangBoxLayout<QVertex, QEdge, QBangBox> layout;
 	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
 	/**
 	 * Holds the state of which bang boxes of the graph are currently
 	 * "picked"
 	 */
-	protected PickedState<BangBox> pickedBangBoxState;
+	protected PickedState<QBangBox> pickedBangBoxState;
 
 
 	public GraphVisualizationViewer(QGraph graph) {
-		this(QuantoApp.useExperimentalLayout ? new JavaQuantoLayout(graph) : new QuantoLayout(graph));
+		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public GraphVisualizationViewer(LockableBangBoxLayout<QVertex, QEdge> layout) {
+	public GraphVisualizationViewer(BangBoxLayout<QVertex, QEdge, QBangBox> layout) {
 		super(layout);
 
 		this.layout = layout;
@@ -96,8 +84,14 @@ public class GraphVisualizationViewer
 
 		setupRendering();
 
-		setPickedBangBoxState(new MultiPickedState<BangBox>());
+		setPickedBangBoxState(new MultiPickedState<QBangBox>());
 		setPreferredSize(calculateGraphSize());
+
+		graph.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				relayout();
+			}
+		});
 	}
 
 	private void  setupRendering() {
@@ -178,14 +172,18 @@ public class GraphVisualizationViewer
 	}
 
 	public void lock(Set<QVertex> verts) {
-		layout.lock(verts);
+		for (QVertex v : verts) {
+			layout.lock(v, true);
+		}
 	}
 
 	public void unlock(Set<QVertex> verts) {
-		layout.unlock(verts);
+		for (QVertex v : verts) {
+			layout.lock(v, false);
+		}
 	}
 
-	public Rectangle2D transformBangBox(BangBox bb) {
+	public Rectangle2D transformBangBox(QBangBox bb) {
 		return layout.transformBangBox(bb);
 	}
 
@@ -197,13 +195,12 @@ public class GraphVisualizationViewer
 		if (enable && smoothLayout == null) {
 			smoothLayout = new SmoothLayoutDecorator<QVertex,QEdge>(layout);
 			smoothLayout.setOrigin(new Point2D.Double(0.0,0.0));
+			smoothLayout.initialize();
 			super.setGraphLayout(smoothLayout);
-			setLayout(null);  // ?
 		}
 		else if (!enable && smoothLayout != null) {
 			smoothLayout = null;
 			super.setGraphLayout(layout);
-			setLayout(null);  // ?
 		}
 	}
 
@@ -219,11 +216,11 @@ public class GraphVisualizationViewer
 
 	@Override
 	public void setGraphLayout(Layout<QVertex, QEdge> layout) {
-		if (!(layout instanceof LockableBangBoxLayout)) {
-			throw new IllegalArgumentException("Layout must be a LockableBangBoxLayout");
+		if (!(layout instanceof BangBoxLayout)) {
+			throw new IllegalArgumentException("Layout must be a BangBoxLayout");
 		}
 		super.setGraphLayout(layout);
-		this.layout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
+		this.layout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
 	}
 
 	/**
@@ -306,9 +303,7 @@ public class GraphVisualizationViewer
 	}*/
 
 	public void relayout() {
-		getGraphLayout().initialize();
-
-		((ChangeEventSupport) getGraphLayout()).fireStateChanged();
+		getGraphLayout().reset();
 
 		Relaxer relaxer = getModel().getRelaxer();
 		if (relaxer != null) {
@@ -325,7 +320,7 @@ public class GraphVisualizationViewer
 		repaint();
 	}
 
-	public void setPickedBangBoxState(PickedState<BangBox> pickedBangBoxState) {
+	public void setPickedBangBoxState(PickedState<QBangBox> pickedBangBoxState) {
 		if (pickEventListener != null && this.pickedBangBoxState != null) {
 			this.pickedBangBoxState.removeItemListener(pickEventListener);
 		}
@@ -341,7 +336,7 @@ public class GraphVisualizationViewer
 		bangBoxPainter.setPickedState(pickedBangBoxState);
 	}
 
-	public PickedState<BangBox> getPickedBangBoxState() {
+	public PickedState<QBangBox> getPickedBangBoxState() {
 		return pickedBangBoxState;
 	}
 }

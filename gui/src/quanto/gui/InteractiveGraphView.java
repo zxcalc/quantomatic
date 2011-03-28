@@ -1,6 +1,6 @@
 package quanto.gui;
 
-import quanto.core.BangBox;
+import quanto.core.QBangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
 import quanto.core.QGraph;
@@ -36,7 +36,9 @@ import org.apache.commons.collections15.Transformer;
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
+import edu.uci.ics.jung.contrib.BangBoxLayout;
 import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
+import edu.uci.ics.jung.contrib.DynamicBoundsLayout;
 import edu.uci.ics.jung.contrib.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
 import edu.uci.ics.jung.visualization.Layer;
@@ -130,6 +132,9 @@ public class InteractiveGraphView
 					}
 
 					String angle = ((QVertex) vertex).getLabel();
+					if (angle == null) {
+						angle = "";
+					}
 					Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
 					Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 							      (int) screen.getY() + 10);
@@ -269,7 +274,7 @@ public class InteractiveGraphView
 	}
 
 	public InteractiveGraphView(Core core, QGraph g, Dimension size) {
-		super(new BorderLayout(), g.getName());
+		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 
 		viewer = new GraphVisualizationViewer(g);
@@ -656,7 +661,7 @@ public class InteractiveGraphView
 		viewer.getPickedVertexState().clear();
 		Map<String, QVertex> vm = getGraph().getVertexMap();
 		for (QVertex v : oldPicked) {
-			QVertex new_v = vm.get(v.getName());
+			QVertex new_v = vm.get(v.getCoreName());
 			if (new_v != null) {
 				viewer.getPickedVertexState().pick(new_v, true);
 			}
@@ -1240,7 +1245,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
-						core.duplicateBangBox(getGraph(), (BangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
+						core.duplicateBangBox(getGraph(), (QBangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
 					}
 					updateGraph();
 				}
@@ -1304,7 +1309,7 @@ public class InteractiveGraphView
 
 	@Override
 	protected String getUnsavedClosingMessage() {
-		return "Graph '" + getGraph().getName() + "' is unsaved. Close anyway?";
+		return "Graph '" + getGraph().getCoreName() + "' is unsaved. Close anyway?";
 	}
 
 	public boolean isSaved() {
@@ -1314,21 +1319,21 @@ public class InteractiveGraphView
 	static class BangBoxAwarePickerMousePlugin
 		extends ConstrainedPickingGraphMousePlugin<QVertex, QEdge> {
 
-		protected BangBox bangBox;
+		protected QBangBox bangBox;
 
 		public BangBoxAwarePickerMousePlugin() {
 			super(ConstrainingAction.MoveOthers, 20, 20);
 		}
 
-		private BangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y) {
+		private QBangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y) {
 			while (layout instanceof LayoutDecorator) {
 				layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
 			}
 			try {
-				LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
+				BangBoxLayout<QVertex, QEdge, QBangBox> realLayout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
 				QGraph graph = (QGraph) realLayout.getGraph();
 				synchronized (graph) {
-					for (BangBox bb : graph.getBangBoxes()) {
+					for (QBangBox bb : graph.getBangBoxes()) {
 						Rectangle2D bbRect = realLayout.transformBangBox(bb);
 						if (bbRect == null) {
 							System.err.println("Layout hasn't caught up with us yet");
@@ -1353,7 +1358,7 @@ public class InteractiveGraphView
 			GraphElementAccessor<QVertex, QEdge> pickSupport = vv.getPickSupport();
 			PickedState<QVertex> pickedVertexState = vv.getPickedVertexState();
 			PickedState<QEdge> pickedEdgeState = vv.getPickedEdgeState();
-			PickedState<BangBox> pickedBangBoxState = ((GraphVisualizationViewer) vv).getPickedBangBoxState();
+			PickedState<QBangBox> pickedBangBoxState = ((GraphVisualizationViewer) vv).getPickedBangBoxState();
 			if (pickSupport != null && pickedVertexState != null) {
 				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
 				if (e.getModifiers() == modifiers) {
@@ -1452,8 +1457,8 @@ public class InteractiveGraphView
 					layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
 				}
 				try {
-					LockableBangBoxLayout<QVertex, QEdge> realLayout = (LockableBangBoxLayout<QVertex, QEdge>) layout;
-					realLayout.recalculateBounds();
+					DynamicBoundsLayout realLayout = (DynamicBoundsLayout) layout;
+					realLayout.recalculateSize();
 				}
 				catch (ClassCastException ex) {
 					System.err.println("When mouse released: " + ex.getMessage());

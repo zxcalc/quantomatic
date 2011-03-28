@@ -5,8 +5,6 @@
 
 package quanto.core;
 
-import edu.uci.ics.jung.contrib.HasName;
-import edu.uci.ics.jung.contrib.HasQuotedName;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;

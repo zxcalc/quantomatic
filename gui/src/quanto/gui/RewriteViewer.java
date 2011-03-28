@@ -52,7 +52,7 @@ public class RewriteViewer extends JFrame {
 		for (Rewrite rw : rewrites) {
 			JPanel rwPanel = new JPanel();
 			rwPanel.setLayout(new FlowLayout());
-			JLabel ruleName = new JLabel(rw.getName());
+			JLabel ruleName = new JLabel(rw.getCoreName());
 			rwPanel.add(ruleName);
 			GraphVisualizationViewer lhs = new GraphVisualizationViewer(rw.getLhs());
 			GraphVisualizationViewer rhs = new GraphVisualizationViewer(rw.getRhs());

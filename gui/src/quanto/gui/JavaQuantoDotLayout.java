@@ -1,86 +1,40 @@
 package quanto.gui;
 
-import quanto.core.BangBox;
+import quanto.core.QBangBox;
 import quanto.core.QVertex;
 import quanto.core.QEdge;
 import quanto.core.QGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.*;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.contrib.AKDotLayout;
-import edu.uci.ics.jung.graph.DirectedGraph;
+import edu.uci.ics.jung.contrib.AKDotBangBoxLayout;
 import java.awt.Rectangle;
 
-public class JavaQuantoLayout
-extends AKDotLayout<QVertex,QEdge>
-implements LockableBangBoxLayout<QVertex, QEdge>
+public class JavaQuantoDotLayout
+extends AKDotBangBoxLayout<QVertex,QEdge, QBangBox>
 {
 	private static final double VERTEX_PADDING = 20;
 	private static final double EMPTY_BOX_SIZE = 40;
-	private Map<BangBox, Rectangle2D> bbRects;
-	private volatile Set<String> lockedNames = null;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
 
-	public JavaQuantoLayout(QGraph graph, Dimension size) {
-		super((DirectedGraph<QVertex,QEdge>)graph);
-		lockedNames = new HashSet<String>();
+	public JavaQuantoDotLayout(QGraph graph, Dimension size) {
+		super(graph, VERTEX_PADDING);
 	}
 
-	public JavaQuantoLayout(QGraph graph) {
+	public JavaQuantoDotLayout(QGraph graph) {
 		this(graph, new Dimension(800,600));
 	}
 
 	@Override
 	public void initialize() {
 		super.initialize();
-		recalculateBounds();
+		recalculateSize();
 	}
 
 	@Override
 	public Dimension getSize() {
 		return boundingRect.getSize();
-	}
-	
-	
-	
-	public void lock(Set<QVertex> verts) {
-		synchronized (getGraph()) {
-			for (QVertex v : verts) lockedNames.add(v.getName());
-		}
-	}
-	
-	public void unlock(Set<QVertex> verts) {
-		synchronized (getGraph()) {
-			for (QVertex v : verts) lockedNames.remove(v.getName());
-		}
-	}
-	
-	public boolean isLocked(QVertex vert) {
-		return lockedNames.contains(vert.getName());
-	}
-	
-	public void updateBangBoxes(Layout<QVertex,QEdge> layout) {
-		synchronized (getGraph()) {
-			for (BangBox bb : ((QGraph)getGraph()).getBangBoxes()) {
-				if (! bb.isEmpty()) {
-					Point2D p = layout.transform(bb.first());
-					Rectangle2D rect =
-						new Rectangle2D.Double(p.getX(),p.getY(),0,0);
-					for (QVertex v : bb) rect.add(layout.transform(v));
-					rect.setRect(rect.getX()-20, rect.getY()-20,
-						rect.getWidth()+40, rect.getHeight()+40);
-			
-					bbRects.put(bb, rect);
-				}
-			}
-		}
-	}
-	
-	public Rectangle2D transformBangBox(BangBox bb) {
-		return bbRects.get(bb);
 	}
 
 
@@ -112,7 +66,7 @@ implements LockableBangBoxLayout<QVertex, QEdge>
 			2*VERTEX_PADDING));
 	}
 
-	public void recalculateBounds() {
+	public void recalculateSize() {
 		double left = Double.MAX_VALUE;
 		double top = Double.MAX_VALUE;
 		double right = 0;

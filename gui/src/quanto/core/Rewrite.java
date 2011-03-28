@@ -5,9 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import net.n3.nanoxml.*;
 
-import edu.uci.ics.jung.contrib.HasName;
 
-public class Rewrite implements HasName {
+public class Rewrite implements CoreObject {
 	private QGraph lhs = null;
 	private QGraph rhs = null;
 	private String name;
@@ -16,10 +15,10 @@ public class Rewrite implements HasName {
 		this.lhs = lhs;
 		this.rhs = rhs;
 	}
-	public String getName() {
+	public String getCoreName() {
 		return name;
 	}
-	public void setName(String name) {
+	public void updateCoreName(String name) {
 		this.name = name;
 	}
 	

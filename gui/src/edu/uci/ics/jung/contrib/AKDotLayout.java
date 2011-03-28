@@ -21,6 +21,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	private final static Logger logger =
 		LoggerFactory.getLogger(AKDotLayout.class);
 
+	protected double vertexSpacing = 20.0;
 	List<V> vertexTable;
 	Map<V,Integer> inverseVertexTable;
 	Graph<Integer,Integer> dag;
@@ -29,7 +30,6 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	Queue<Integer> edgeQueue;
 	int edgeCounter;
 	double width, height;
-	Dimension expectedSize;
 	int[] xBestCoords, yBestCoords;
 	
 	Map<Integer,Integer> ranks;
@@ -53,12 +53,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	public static final int OMEGA_VV = 8;
 
 	public AKDotLayout(DirectedGraph<V, E> graph) {
-		super(graph);
-	}
-	
-	public AKDotLayout(DirectedGraph<V,E> graph, Dimension size) {
-		super(graph,size);
-		expectedSize = size;
+		super(graph, new Dimension(600, 600));
 	}
 
 	public void initialize() {
@@ -88,7 +83,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 				setLocation(v, p);
 			}
 			
-			minX += layout.getWidth() + (double)nodeSeparation;
+			minX += width + (double)nodeSeparation;
 		}
 		
 		logger.debug("Layout took {} milliseconds",
@@ -98,13 +93,15 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	public void reset() {
 		initialize();
 	}
-	
-	public double getWidth() {
-		return width;
+
+	@Override
+	public Dimension getSize() {
+		return new Dimension((int)Math.ceil(width), (int)Math.ceil(height));
 	}
-	
-	public double getHeight() {
-		return height;
+
+	@Override
+	public void setSize(Dimension size) {
+		throw new UnsupportedOperationException("Size of dot layout is determined by dot!");
 	}
 	
 	public static <V,E> DirectedGraph<V, E>

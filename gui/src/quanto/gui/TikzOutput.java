@@ -19,7 +19,7 @@ public class TikzOutput {
 				p = layout.transform(v);
 				col = v.getVertexType().toString().toLowerCase();
 				tikz.append("\\node [").append(col).append(" vertex] ")
-                                        .append("(").append(v.getName()).append(") ")
+                                        .append("(").append(v.getCoreName()).append(") ")
 					.append("at (")
 					.append(Double.toString(Math.floor(p.getX()) / 40.0))
 					.append(",")
@@ -41,10 +41,10 @@ public class TikzOutput {
 					tikz.append(",bend left=").append(idx * 20);
 				}
 				tikz.append("] (")
-                                        .append(graph.getSource(e).getName())
+                                        .append(graph.getSource(e).getCoreName())
                                         .append(") to ")
                                         .append("(")
-                                        .append(graph.getDest(e).getName())
+                                        .append(graph.getDest(e).getCoreName())
                                         .append(");\n");
 			}
 			
@@ -54,7 +54,7 @@ public class TikzOutput {
 					tikz.append("\\node [")
                                                 .append(col)
                                                 .append(" angle] at (")
-                                                .append(v.getName())
+                                                .append(v.getCoreName())
                                                 .append(") {$")
 						.append(v.getLabel())
                                                 .append("$};\n");

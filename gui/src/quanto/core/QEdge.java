@@ -1,8 +1,6 @@
 package quanto.core;
 
-import edu.uci.ics.jung.contrib.HasName;
-
-public class QEdge implements HasName, Comparable<QEdge> {
+public class QEdge implements CoreObject, Comparable<QEdge> {
 	private String name;
 	public Integer index;
 	
@@ -11,15 +9,15 @@ public class QEdge implements HasName, Comparable<QEdge> {
 		this.index = null;
 	}
 
-	public String getName() {
+	public String getCoreName() {
 		return name;
 	}
 
-	public void setName(String name) {
+	public void updateCoreName(String name) {
 		this.name = name;
 	}
 
 	public int compareTo(QEdge o) {
-		return getName().compareTo(o.getName());
+		return getCoreName().compareTo(o.getCoreName());
 	}
 }
