@@ -3,9 +3,8 @@
  * and open the template in the editor.
  */
 
-package quanto.gui.graphhelpers;
+package edu.uci.ics.jung.contrib.visualization.decorators;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import java.awt.BasicStroke;
 import java.awt.Color;
@@ -14,8 +13,6 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
-import quanto.core.BasicEdge;
-import quanto.core.RGVertex;
 
 /**
  * Shows a grid behind the graph, for debugging purposes
