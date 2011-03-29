@@ -77,13 +77,16 @@ PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
-(* particular test cases *)
-PolyML.Project.make "theories/red_green/rg_ruleset_rewriting.ML";
-PolyML.Project.make "theories/red_green/rg_io.ML";
-
-(* TESTING *)
+(* TESTS *)
+PolyML.Project.make "rewriting/test/rg_ruleset_rewriting.ML";
 PolyML.Project.make "matching/test/simple_match_search.ML";
 PolyML.Project.make "io/test/rg_io.ML";
+
+(* construction of everything in a graphical theory from just param *)
+PolyML.Project.make "theories/graphical_theory.ML";
+
+(* construct the red-green IO *)
+PolyML.Project.make "theories/red_green/rg_io.ML";
 
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
@@ -96,6 +99,7 @@ PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
    e.g. for interaction with Mathematica/Maple/etc. *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
+
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)

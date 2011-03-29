@@ -116,7 +116,7 @@ end
 
 structure RGHilbTerm = TensorTermFun(
 
-structure Graph = RGGraph
+structure Graph = RG_Theory.Graph
 fun pretty_vertex fmt graph vert = let
     val (v, (ie,oe)) = Graph.get_vertex graph vert
     val (ic,oc) = (Graph.Edge.NSet.cardinality ie,
@@ -125,7 +125,7 @@ fun pretty_vertex fmt graph vert = let
 		Pretty.str ", ",
 		Pretty.str (Int.toString oc)]
 in Pretty.block	
-   (case v of RGGraph.OVertex.IVert iv =>
+   (case v of Graph.OVertex.IVert iv =>
 	     (case iv
 	       of RG_VertexData.Xnd e =>
 		        [Pretty.str "xsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @

@@ -1,3 +1,10 @@
+signature RULESET_REWRITES_SHARING =
+sig
+  structure Ruleset : RULESET_SHARING
+  structure Match : MATCH_SHARING
+  sharing Match.G = Ruleset.Rule.Graph;
+end;
+
 signature RULESET_REWRITES =
 sig
   structure Ruleset : RULESET
@@ -5,6 +12,10 @@ sig
   sharing Ruleset.Rule.Sharing = Rule.Sharing
   structure Match : MATCH
   sharing Match.Sharing.G = Rule.Sharing.Graph;
+
+  structure Sharing : RULESET_REWRITES_SHARING
+  sharing Sharing.Ruleset = Ruleset.Sharing;
+  sharing Sharing.Match = Match.Sharing;
 
   (* matching *)
   val apply : Ruleset.T -> Rule.Graph.T 
@@ -118,30 +129,13 @@ struct
        of NONE => NONE
         | SOME (h,_) => SOME h;
 
+
+  structure Sharing : RULESET_REWRITES_SHARING
+  = struct
+    structure Ruleset = Ruleset.Sharing;
+    structure Match = Match.Sharing;
+  end
+
+
 end; (* *)
 
-
-functor Rewriting(Graph : BANG_GRAPH) =
-struct  
-  structure DB_Rule = Rule(Graph);
-  structure Rule : RULE = DB_Rule;
-
-  structure DB_Ruleset = Ruleset(Rule);  
-  structure Ruleset = DB_Ruleset : RULESET
-
-  structure DB_Match = Match(Graph);
-  structure Match : MATCH = DB_Match;
-
-  structure DB_GraphSubst = GraphSubstFun(Match);
-  structure GraphSubst : GRAPH_SUBST = DB_GraphSubst;
-
-  structure DB_SimpleMatchSearch = SimpleMatchSearch(Match);
-  structure SimpleMatchSearch : SIMPLE_MATCH_SEARCH = DB_SimpleMatchSearch;
-
-  structure DB_RulesetRewrites = RulesetRewrites(
-    structure Ruleset = Ruleset;
-    structure MatchSearch = SimpleMatchSearch;
-    structure GraphSubst = GraphSubst;
-  );
-  structure RulesetRewrites : RULESET_REWRITES = DB_RulesetRewrites;
-end;

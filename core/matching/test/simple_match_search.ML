@@ -1,8 +1,8 @@
 (* code for testing simple match search *)
 
 local
-  open MkG; (* RGGraph *)
-  structure Rewriting = RG_Rewriting; 
+  open Test_MkG; (* RGGraph *)
+  structure Rewriting = Test_RG_Rewriting; 
   structure S = Rewriting.SimpleMatchSearch;
   structure Match = Rewriting.Match;
   fun match g1 g2 = 

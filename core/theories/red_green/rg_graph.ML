@@ -151,7 +151,7 @@ end;
 
 (* IMPROVE provide table holding variable info for each vertices data *)
 
-structure DB_RGGraph 
+structure Test_DB_RGGraph 
 = struct 
   structure BasicBangGraph = BasicBangGraphFun(
     structure Param = RG_GraphParam
@@ -161,29 +161,16 @@ structure DB_RGGraph
   open BBGraph;
 end;
 
-structure RGGraph : BANG_GRAPH = DB_RGGraph;
+structure Test_RGGraph : BANG_GRAPH = Test_DB_RGGraph;
 
-(* install pretty printers *)
-local
-    fun prettyVertex _ _ x =
-      PolyML.PrettyString("\"" ^ RGGraph.Vertex.string_of_name x ^ "\"");
-    fun prettyEdge _ _ x =
-      PolyML.PrettyString("\"" ^ RGGraph.Edge.string_of_name x ^ "\"");
-    fun prettyBBox _ _ x =
-      PolyML.PrettyString("\"" ^ RGGraph.BBox.string_of_name x ^ "\"");
-in
-    val () = PolyML.addPrettyPrinter prettyVertex;
-    val () = PolyML.addPrettyPrinter prettyEdge;
-    val () = PolyML.addPrettyPrinter prettyBBox;
-end; 
 
 (* ML utility code for building RG graphs *)
-structure MkG = 
+structure Test_MkG = 
 struct
   structure VD = RG_VertexData;
-  structure V = RGGraph.OVertex;
-  structure E = RGGraph.Edge;
-  structure G = RGGraph;
+  structure V = Test_RGGraph.OVertex;
+  structure E = Test_RGGraph.Edge;
+  structure G = Test_RGGraph;
 
   val bvert = V.EVert;
   val zero_angle = AngleExpr.zero;

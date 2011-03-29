@@ -3,7 +3,7 @@
 (*   *)
 functor OGraphParam(
   structure Param : GRAPH_PARAM 
-  structure OVertex : OVERTEX
+  structure OVertex : OVERTEX  (* constructed separately, needed *)
     sharing Param.Vertex.SharingWithoutData = OVertex.SharingWithoutData
     sharing type Param.subst = OVertex.subst
     sharing type Param.Vertex.data = OVertex.IData.data

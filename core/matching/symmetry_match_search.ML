@@ -280,7 +280,7 @@ functor RuleMatchSearch(
   
 end;
 
-structure DB_SMS = RuleMatchSearch(
-  structure BangGraph = RGGraph 
-        and Match = RG_Rewriting.Match
-        and Rule = RG_Rewriting.Rule);
+structure Test_DB_SMS = RuleMatchSearch(
+  structure BangGraph = Test_RGGraph 
+        and Match = Test_RG_Rewriting.Match
+        and Rule = Test_RG_Rewriting.Rule);

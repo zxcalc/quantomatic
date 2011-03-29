@@ -1,5 +1,7 @@
 (* controller state *)
 
+structure RG = RG_Theory;
+
 structure GraphName :> SSTR_NAMES = 
 struct open SStrName val default_name = SStrName.mk "new-graph-1" end;
 
@@ -138,15 +140,17 @@ end;
 
 
 (* controls the state of Quantomatic *)
-functor ControllerState(
-  structure RulesetRewrites : RULESET_REWRITES
   (* FIXME: HACK: interface cannot be generic while we depend on RG data - need to generalise protocol and GUI for arbitrary kinds of data *)
-  where type Rule.Graph.OVertex.IData.data = RG_VertexData.data
-    and type Rule.Graph.Edge.data = unit 
+functor ControllerState(
+
+  structure GraphicalTheory : GRAPHICAL_THEORY
+  where type Vertex.IData.data = RG_VertexData.data
+    and type Edge.data = unit 
+
   structure IO_Interface : IO_INTERFACE
-  sharing type IO_Interface.Input.Graph.data = RulesetRewrites.Ruleset.Rule.Graph.T
-  sharing type IO_Interface.Input.Rule.data = RulesetRewrites.Ruleset.Rule.T
-  sharing type IO_Interface.Input.Ruleset.data = RulesetRewrites.Ruleset.T
+  sharing type IO_Interface.Input.Graph.data = GraphicalTheory.Graph.T
+  sharing type IO_Interface.Input.Rule.data = GraphicalTheory.Rule.T
+  sharing type IO_Interface.Input.Ruleset.data = GraphicalTheory.Ruleset.T
 ) 
 = struct
 
@@ -155,11 +159,12 @@ functor ControllerState(
 
   structure Input = IO_Interface.Input;
   structure Output = IO_Interface.Output;
-  structure Ruleset = RulesetRewrites.Ruleset;
-  structure R = Ruleset.Rule;
-  structure G = R.Graph;
-  structure V = G.OVertex;
-  structure E = G.Edge;
+  structure RulesetRewrites = GraphicalTheory.RulesetRewrites
+  structure Ruleset = GraphicalTheory.Ruleset;
+  structure R = GraphicalTheory.Rule;
+  structure G = GraphicalTheory.Graph;
+  structure V = GraphicalTheory.Vertex;
+  structure E = GraphicalTheory.Edge;
 
   type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
   datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
@@ -699,8 +704,8 @@ end; (* structure Controller *)
 
 (* *)
 structure DB_ControllerState = ControllerState(
-  structure RulesetRewrites = RG_Rewriting.RulesetRewrites
-  structure IO_Interface = RG.IO
+  structure GraphicalTheory = RG_Theory
+  structure IO_Interface = RG_IO_Interface
 );
 structure ControllerState : CONTROLLER_STATE = DB_ControllerState; 
 

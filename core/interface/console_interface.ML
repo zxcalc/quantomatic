@@ -10,7 +10,7 @@ end;
 structure ConsoleInterface : CONSOLE_INTERFACE = 
 struct 
   datatype consolestate = NORMAL of ControllerState.T | SKIP | QUIT;
-  structure G = RGGraph;
+  structure G = RG.Graph;
 (* 
   fun read_block readlinef () = 
       let

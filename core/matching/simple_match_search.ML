@@ -6,6 +6,13 @@
 
     FIXME: The algorithm is complete w.r.t. bangboxes: if all vertices in a component are in !-boxes, then the algorithm simply drop all bang-boxes.  
 *)
+signature SIMPLE_MATCH_SEARCH_SHARING
+= sig
+  structure Match : MATCH_SHARING 
+  type T
+end;
+
+
 signature SIMPLE_MATCH_SEARCH
 = sig
   structure Match : MATCH 
@@ -15,6 +22,10 @@ signature SIMPLE_MATCH_SEARCH
   sharing Edge.EdgeSharingWithData = Match.G.Edge.EdgeSharingWithData;
 
   type T
+
+  structure Sharing : SIMPLE_MATCH_SEARCH_SHARING
+  sharing type Sharing.T = T 
+  sharing Sharing.Match = Match.Sharing
 
   val init : Match.T 
              -> Match.G.T (* pat *)
@@ -77,7 +88,6 @@ signature SIMPLE_MATCH_SEARCH
   val pretty_match_pair : Vertex.name * Vertex.name -> Pretty.T
   val pretty_next_pat_vertex : T -> Pretty.T
   val print : T -> unit
-
 end;
 
 
@@ -603,6 +613,14 @@ fun pretty (st as MState rep) =
        Pretty.str "}"];
 
 val print = Pretty.writeln o pretty;
+
+
+structure Sharing : SIMPLE_MATCH_SEARCH_SHARING =
+struct
+  type T = T; 
+  structure Match = Match.Sharing;
+end;
+
 
 end; (* MatchSearch structure *)
 

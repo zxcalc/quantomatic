@@ -1,16 +1,24 @@
 
 (* *)
+
+(* The RG theory, all in once place. *)
+structure DB_RG_Theory = GraphicalTheory(structure Param = RG_GraphParam);
+structure RG_Theory : GRAPHICAL_THEORY = DB_RG_Theory;
+
+(* Input/Output *)
 structure DB_RG_IO_Interface = IO_Interface(
-  structure Ruleset = RG_Rewriting.Ruleset
-  structure InputVertexData = InputRGVertexDataXML(RGGraph.OVertex)
-  structure InputEdgeData = InputNoEdgeDataXML(RG_Rewriting.Rule.Graph.Edge)
-  structure OutputVertexData = OutputRGVertexDataXMLList(RGGraph.OVertex)
-  structure OutputEdgeData = OutputNoEdgeDataXMLList(RGGraph.Edge)
+  structure Ruleset = RG_Theory.Ruleset
+
+  structure InputVertexData = InputRGVertexDataXML(RG_Theory.Vertex)
+  structure OutputVertexData = OutputRGVertexDataXMLList(RG_Theory.Vertex)
+
+  structure InputEdgeData = InputNoEdgeDataXML(RG_Theory.Edge)
+  structure OutputEdgeData = OutputNoEdgeDataXMLList(RG_Theory.Edge)
 );
 
 structure RG_IO_Interface : IO_INTERFACE = DB_RG_IO_Interface; 
 
-(* The RG theory, all in once place. *)
+(* 
 structure RG = 
 struct 
   structure VertexData = RG_VertexData;
@@ -25,3 +33,4 @@ struct
   structure SimpleMatchSearch = RG_Rewriting.SimpleMatchSearch;
   structure RulesetRewrites = RG_Rewriting.RulesetRewrites;
 end;
+*)
