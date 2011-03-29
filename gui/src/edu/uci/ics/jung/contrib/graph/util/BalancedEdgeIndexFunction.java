@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.graph.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;

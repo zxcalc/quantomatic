@@ -8,7 +8,7 @@ import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
-import edu.uci.ics.jung.contrib.AKDotBangBoxLayout;
+import edu.uci.ics.jung.contrib.algorithms.layout.AKDotBangBoxLayout;
 import java.awt.Rectangle;
 
 public class JavaQuantoDotLayout

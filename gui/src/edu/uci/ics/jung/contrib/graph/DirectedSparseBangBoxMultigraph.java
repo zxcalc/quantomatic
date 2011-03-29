@@ -3,8 +3,9 @@
  * and open the template in the editor.
  */
 
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.graph;
 
+import edu.uci.ics.jung.contrib.graph.DirectedBangBoxGraph;
 import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
 import java.util.Collection;
 import java.util.Collections;

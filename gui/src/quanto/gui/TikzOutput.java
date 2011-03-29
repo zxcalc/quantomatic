@@ -6,7 +6,7 @@ import quanto.core.RGGraph;
 import java.awt.geom.Point2D;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 public class TikzOutput {

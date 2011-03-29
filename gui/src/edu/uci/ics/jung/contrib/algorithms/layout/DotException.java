@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.algorithms.layout;
 
 public class DotException extends RuntimeException {
 

@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.algorithms.layout;
 
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import java.awt.Dimension;

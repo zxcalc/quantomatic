@@ -1,6 +1,6 @@
 package quanto.gui;
 
-import edu.uci.ics.jung.contrib.Labeler;
+import edu.uci.ics.jung.contrib.visualization.decorators.Labeler;
 import quanto.core.BasicBangBox;
 import quanto.core.RGVertex;
 import quanto.core.BasicEdge;
@@ -35,12 +35,12 @@ import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Transformer;
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
-import edu.uci.ics.jung.contrib.AddEdgeGraphMousePlugin;
-import edu.uci.ics.jung.contrib.BangBoxLayout;
-import edu.uci.ics.jung.contrib.ConstrainedPickingGraphMousePlugin;
-import edu.uci.ics.jung.contrib.DynamicBoundsLayout;
-import edu.uci.ics.jung.contrib.ViewScrollingGraphMousePlugin;
-import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
+import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
+import edu.uci.ics.jung.contrib.algorithms.layout.BangBoxLayout;
+import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingGraphMousePlugin;
+import edu.uci.ics.jung.contrib.algorithms.layout.DynamicBoundsLayout;
+import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
+import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;

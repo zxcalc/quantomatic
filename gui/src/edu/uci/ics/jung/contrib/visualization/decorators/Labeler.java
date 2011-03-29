@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.visualization.decorators;
 
 import java.awt.BorderLayout;
 import java.awt.Color;

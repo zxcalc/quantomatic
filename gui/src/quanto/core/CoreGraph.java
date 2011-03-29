@@ -5,7 +5,7 @@
 
 package quanto.core;
 
-import edu.uci.ics.jung.contrib.DirectedBangBoxGraph;
+import edu.uci.ics.jung.contrib.graph.DirectedBangBoxGraph;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 
 /**

@@ -5,7 +5,7 @@
 
 package quanto.gui.graphhelpers;
 
-import edu.uci.ics.jung.contrib.BangBoxLayout;
+import edu.uci.ics.jung.contrib.algorithms.layout.BangBoxLayout;
 import edu.uci.ics.jung.visualization.BasicVisualizationServer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.picking.PickedState;

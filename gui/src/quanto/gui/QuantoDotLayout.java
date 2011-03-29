@@ -5,7 +5,7 @@
 
 package quanto.gui;
 
-import edu.uci.ics.jung.contrib.AbstractBangBoxDotLayout;
+import edu.uci.ics.jung.contrib.algorithms.layout.AbstractBangBoxDotLayout;
 import quanto.core.BasicBangBox;
 import quanto.core.BasicEdge;
 import quanto.core.RGGraph;

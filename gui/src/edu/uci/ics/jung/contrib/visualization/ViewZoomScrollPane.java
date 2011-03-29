@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.visualization;
 
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;

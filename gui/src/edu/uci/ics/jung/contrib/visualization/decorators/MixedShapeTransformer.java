@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.visualization.decorators;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;

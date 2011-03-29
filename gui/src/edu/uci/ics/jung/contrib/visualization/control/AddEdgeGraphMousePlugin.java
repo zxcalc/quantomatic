@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.visualization.control;
 
 import java.awt.Color;
 import java.awt.Graphics;

@@ -3,17 +3,17 @@
  * and open the template in the editor.
  */
 
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.graph;
 
-import edu.uci.ics.jung.graph.DirectedGraph;
+import edu.uci.ics.jung.graph.Graph;
 import java.util.Collection;
 
 /**
  * Interface for a graph with a collection of subgraphs, known as !-boxes.
  *
- * @author alex
+ * @author alemer
  */
-public interface DirectedBangBoxGraph<V,E,B> extends DirectedGraph<V, E> {
+public interface BangBoxGraph<V, E, B> extends Graph<V, E> {
 	/**
 	 * Adds a !-box to this graph.
 	 *

@@ -3,8 +3,9 @@
  * and open the template in the editor.
  */
 
-package edu.uci.ics.jung.contrib;
+package edu.uci.ics.jung.contrib.algorithms.layout;
 
+import edu.uci.ics.jung.contrib.graph.DirectedBangBoxGraph;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -1,7 +1,7 @@
 package quanto.core;
 
 
-import edu.uci.ics.jung.contrib.DirectedSparseBangBoxMultigraph;
+import edu.uci.ics.jung.contrib.graph.DirectedSparseBangBoxMultigraph;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;

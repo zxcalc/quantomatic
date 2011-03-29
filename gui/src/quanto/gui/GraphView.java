@@ -1,7 +1,7 @@
 package quanto.gui;
 
 import quanto.core.RGGraph;
-import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
+import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
 import java.awt.Dimension;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
