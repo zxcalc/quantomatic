@@ -21,7 +21,7 @@ import net.n3.nanoxml.XMLException;
 import net.n3.nanoxml.XMLParserFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quanto.Util;
+import quanto.util.FileUtils;
 
 /**
  * Provides a nicer interface to the core
@@ -300,7 +300,7 @@ public class Core<G extends CoreGraph<V,E,B>,
 		File file = File.createTempFile("quanto", "rules");
 		try {
 			talker.save_ruleset(file);
-			return Util.slurp(file);
+			return FileUtils.slurp(file);
 		} finally {
 			file.delete();
 		}

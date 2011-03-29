@@ -1,5 +1,6 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.contrib.Labeler;
 import quanto.core.BasicBangBox;
 import quanto.core.RGVertex;
 import quanto.core.BasicEdge;

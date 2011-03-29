@@ -26,7 +26,7 @@ public abstract class AbstractBangBoxDotLayout<V,E,B>
 
 	@Override
 	protected boolean isWorkToDo() {
-		return super.isWorkToDo() || (((DirectedBangBoxGraph<V,E,B>)getGraph()).getBangBoxCount() > 0);
+		return super.isWorkToDo() || (getGraph().getBangBoxCount() > 0);
 	}
 
 	@Override

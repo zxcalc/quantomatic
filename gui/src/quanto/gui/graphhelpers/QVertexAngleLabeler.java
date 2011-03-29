@@ -9,10 +9,8 @@ import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
-import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import quanto.gui.Labeler;
 import quanto.core.RGVertex;
 import quanto.gui.TexConstants;
 
@@ -21,8 +19,6 @@ import quanto.gui.TexConstants;
  * @author alemer
  */
 public class QVertexAngleLabeler implements VertexLabelRenderer {
-        Map<RGVertex, Labeler> components;
-
         public QVertexAngleLabeler() {
         }
 

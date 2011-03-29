@@ -31,5 +31,4 @@ public class QuantoDotLayout extends AbstractBangBoxDotLayout<RGVertex, BasicEdg
 	protected String getVertexDotKey(RGVertex vertex) {
 		return vertex.getCoreName();
 	}
-
 }

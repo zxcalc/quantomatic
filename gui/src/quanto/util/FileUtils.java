@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package quanto;
+package quanto.util;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -14,8 +14,9 @@ import java.io.IOException;
  *
  * @author alex
  */
-public final class Util {
-	private Util() {}
+public final class FileUtils {
+	private FileUtils() {}
+
 	public static String slurp(File file) throws IOException {
 		BufferedReader r = new BufferedReader(new FileReader(file));
 		try

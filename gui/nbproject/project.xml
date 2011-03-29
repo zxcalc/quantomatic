@@ -78,7 +78,7 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">src:lib/iText-5.0.6.jar:lib/collections-generic-4.01.jar:lib/colt-1.2.0.jar:lib/jung-algorithms-2.0.1.jar:lib/jung-api-2.0.1.jar:lib/jung-graph-impl-2.0.1.jar:lib/jung-visualization-2.0.1.jar:lib/nanoxml-2.2.3.jar:lib/slf4j-api-1.6.1.jar</classpath>
+                <classpath mode="compile">src:lib/iText-5.0.6.jar:lib/collections-generic-4.01.jar:lib/colt-1.2.0.jar:lib/jung-algorithms-2.0.1.jar:lib/jung-api-2.0.1.jar:lib/jung-graph-impl-2.0.1.jar:lib/jung-visualization-2.0.1.jar:lib/nanoxml-2.2.3.jar:lib/slf4j-api-1.6.1.jar:../../java-sources/jung-algorithms-2.0.1-sources.jar:../../java-sources/jung-api-2.0.1-sources.jar:../../java-sources/jung-graph-impl-2.0.1-sources.jar:../../java-sources/jung-visualization-2.0.1-sources.jar:../../java-sources/slf4j-1.6.1/slf4j-api-1.6.1-sources.jar:../../java-sources/iText/core:../../java-sources/colt/src</classpath>
                 <built-to>build</built-to>
                 <built-to>dist/QuantoGui.jar</built-to>
                 <source-level>1.5</source-level>

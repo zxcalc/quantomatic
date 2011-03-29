@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib;
+package quanto.util;
 
 import java.util.Set;
 import java.util.regex.Matcher;

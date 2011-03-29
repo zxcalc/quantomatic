@@ -4,7 +4,7 @@
  */
 package quanto.gui;
 
-import edu.uci.ics.jung.contrib.StringNamer;
+import quanto.util.StringNamer;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Map;
