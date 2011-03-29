@@ -5,10 +5,10 @@
 package quanto.gui;
 
 import javax.swing.event.ChangeEvent;
-import quanto.core.QBangBox;
-import quanto.core.QVertex;
-import quanto.core.QEdge;
-import quanto.core.QGraph;
+import quanto.core.BasicBangBox;
+import quanto.core.RGVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
@@ -47,35 +47,35 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alex
  */
 public class GraphVisualizationViewer
-       extends VisualizationViewer<QVertex, QEdge>
+       extends VisualizationViewer<RGVertex, BasicEdge>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
-	private QGraph graph;
+	private RGGraph graph;
 	private BangBoxPaintable bangBoxPainter;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
-	private BangBoxLayout<QVertex, QEdge, QBangBox> layout;
-	private SmoothLayoutDecorator<QVertex, QEdge> smoothLayout;
+	private BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout;
+	private SmoothLayoutDecorator<RGVertex, BasicEdge> smoothLayout;
 	/**
 	 * Holds the state of which bang boxes of the graph are currently
 	 * "picked"
 	 */
-	protected PickedState<QBangBox> pickedBangBoxState;
+	protected PickedState<BasicBangBox> pickedBangBoxState;
 
 
-	public GraphVisualizationViewer(QGraph graph) {
+	public GraphVisualizationViewer(RGGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public GraphVisualizationViewer(BangBoxLayout<QVertex, QEdge, QBangBox> layout) {
+	public GraphVisualizationViewer(BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout) {
 		super(layout);
 
 		this.layout = layout;
 
-		if (!(layout.getGraph() instanceof QGraph)) {
+		if (!(layout.getGraph() instanceof RGGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.graph = (QGraph) layout.getGraph();
+		this.graph = (RGGraph) layout.getGraph();
 
 		this.bangBoxPainter = new BangBoxPaintable(layout, graph, this);
 
@@ -84,7 +84,7 @@ public class GraphVisualizationViewer
 
 		setupRendering();
 
-		setPickedBangBoxState(new MultiPickedState<QBangBox>());
+		setPickedBangBoxState(new MultiPickedState<BasicBangBox>());
 		setPreferredSize(calculateGraphSize());
 
 		graph.addChangeListener(new ChangeListener() {
@@ -96,15 +96,15 @@ public class GraphVisualizationViewer
 
 	private void  setupRendering() {
 		getRenderContext().setParallelEdgeIndexFunction(
-			BalancedEdgeIndexFunction.<QVertex, QEdge>getInstance());
+			BalancedEdgeIndexFunction.<RGVertex, BasicEdge>getInstance());
 
 		getRenderContext().setEdgeShapeTransformer(
-			new MixedShapeTransformer<QVertex, QEdge>());
+			new MixedShapeTransformer<RGVertex, BasicEdge>());
 
 		getRenderContext().setEdgeArrowPredicate(
-			new Predicate<Context<Graph<QVertex, QEdge>, QEdge>>()
+			new Predicate<Context<Graph<RGVertex, BasicEdge>, BasicEdge>>()
 			{
-				public boolean evaluate(Context<Graph<QVertex, QEdge>, QEdge> object) {
+				public boolean evaluate(Context<Graph<RGVertex, BasicEdge>, BasicEdge> object) {
 					return QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS);
 				}
 			});
@@ -163,27 +163,27 @@ public class GraphVisualizationViewer
 		setPreferredSize(calculateGraphSize());
 	}
 
-	public QGraph getGraph() {
+	public RGGraph getGraph() {
 		return graph;
 	}
 
-	public boolean isLocked(QVertex v) {
+	public boolean isLocked(RGVertex v) {
 		return layout.isLocked(v);
 	}
 
-	public void lock(Set<QVertex> verts) {
-		for (QVertex v : verts) {
+	public void lock(Set<RGVertex> verts) {
+		for (RGVertex v : verts) {
 			layout.lock(v, true);
 		}
 	}
 
-	public void unlock(Set<QVertex> verts) {
-		for (QVertex v : verts) {
+	public void unlock(Set<RGVertex> verts) {
+		for (RGVertex v : verts) {
 			layout.lock(v, false);
 		}
 	}
 
-	public Rectangle2D transformBangBox(QBangBox bb) {
+	public Rectangle2D transformBangBox(BasicBangBox bb) {
 		return layout.transformBangBox(bb);
 	}
 
@@ -193,7 +193,7 @@ public class GraphVisualizationViewer
 
 	public void setLayoutSmoothingEnabled(boolean enable) {
 		if (enable && smoothLayout == null) {
-			smoothLayout = new SmoothLayoutDecorator<QVertex,QEdge>(layout);
+			smoothLayout = new SmoothLayoutDecorator<RGVertex,BasicEdge>(layout);
 			smoothLayout.setOrigin(new Point2D.Double(0.0,0.0));
 			smoothLayout.initialize();
 			super.setGraphLayout(smoothLayout);
@@ -216,10 +216,10 @@ public class GraphVisualizationViewer
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public void setGraphLayout(Layout<QVertex, QEdge> layout) {
+	public void setGraphLayout(Layout<RGVertex, BasicEdge> layout) {
 		if (layout instanceof BangBoxLayout) {
 			super.setGraphLayout(layout);
-			this.layout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
+			this.layout = (BangBoxLayout<RGVertex, BasicEdge, BasicBangBox>) layout;
 		} else {
 			throw new IllegalArgumentException("Layout must be a BangBoxLayout");
 		}
@@ -261,11 +261,11 @@ public class GraphVisualizationViewer
 
         // FIXME: this isn't really the right place
         public static Rectangle2D getSubgraphBounds(
-                Layout<QVertex, QEdge> layout,
-                Collection<QVertex> subgraph)
+                Layout<RGVertex, BasicEdge> layout,
+                Collection<RGVertex> subgraph)
         {
 		Rectangle2D bounds = null;
-                for (QVertex v : subgraph) {
+                for (RGVertex v : subgraph) {
                         Point2D p = layout.transform(v);
                         if (bounds == null) {
                                 bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
@@ -293,7 +293,7 @@ public class GraphVisualizationViewer
 	 * Compute the bounding box of the subgraph under its current layout.
 	 * @return
 	 */
-	public Rectangle2D getSubgraphBounds(Collection<QVertex> subgraph) {
+	public Rectangle2D getSubgraphBounds(Collection<RGVertex> subgraph) {
 		synchronized (getGraph()) {
                         return getSubgraphBounds(getGraphLayout(), subgraph);
                 }
@@ -322,7 +322,7 @@ public class GraphVisualizationViewer
 		repaint();
 	}
 
-	public void setPickedBangBoxState(PickedState<QBangBox> pickedBangBoxState) {
+	public void setPickedBangBoxState(PickedState<BasicBangBox> pickedBangBoxState) {
 		if (pickEventListener != null && this.pickedBangBoxState != null) {
 			this.pickedBangBoxState.removeItemListener(pickEventListener);
 		}
@@ -338,7 +338,7 @@ public class GraphVisualizationViewer
 		bangBoxPainter.setPickedState(pickedBangBoxState);
 	}
 
-	public PickedState<QBangBox> getPickedBangBoxState() {
+	public PickedState<BasicBangBox> getPickedBangBoxState() {
 		return pickedBangBoxState;
 	}
 }

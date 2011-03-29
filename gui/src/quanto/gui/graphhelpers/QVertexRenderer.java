@@ -12,21 +12,21 @@ import java.awt.Color;
 import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
-import quanto.core.QEdge;
-import quanto.core.QVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGVertex;
 
 /**
  *
  * @author alemer
  */
-public class QVertexRenderer extends BasicVertexRenderer<QVertex, QEdge>
+public class QVertexRenderer extends BasicVertexRenderer<RGVertex, BasicEdge>
 {
         @Override
         protected void paintShapeForVertex(
-                RenderContext<QVertex,QEdge> rc, QVertex v, Shape shape)
+                RenderContext<RGVertex,BasicEdge> rc, RGVertex v, Shape shape)
         {
                 super.paintShapeForVertex(rc, v, shape);
-                if (v.getVertexType() == QVertex.Type.HADAMARD)
+                if (v.getVertexType() == RGVertex.Type.HADAMARD)
                 {
                         GraphicsDecorator g = rc.getGraphicsContext();
                         Paint oldPaint = g.getPaint();
@@ -38,7 +38,7 @@ public class QVertexRenderer extends BasicVertexRenderer<QVertex, QEdge>
                         g.drawString("H", (float)x, (float)y);
                         g.setPaint(oldPaint);
                 }
-                else if (v.getVertexType() == QVertex.Type.BOUNDARY)
+                else if (v.getVertexType() == RGVertex.Type.BOUNDARY)
                 {
                         String index = rc.getVertexLabelTransformer().transform(v);
                         GraphicsDecorator g = rc.getGraphicsContext();

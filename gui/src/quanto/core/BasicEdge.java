@@ -1,12 +1,15 @@
 package quanto.core;
 
-public class QEdge implements CoreObject, Comparable<QEdge> {
+/**
+ * An edge with no data attached.
+ *
+ * @author alemer
+ */
+public class BasicEdge implements CoreObject, Comparable<BasicEdge> {
 	private String name;
-	public Integer index;
 	
-	public QEdge(String name) {
+	public BasicEdge(String name) {
 		this.name = name;
-		this.index = null;
 	}
 
 	public String getCoreName() {
@@ -17,7 +20,7 @@ public class QEdge implements CoreObject, Comparable<QEdge> {
 		this.name = name;
 	}
 
-	public int compareTo(QEdge o) {
+	public int compareTo(BasicEdge o) {
 		return getCoreName().compareTo(o.getCoreName());
 	}
 }

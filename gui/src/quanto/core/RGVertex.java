@@ -1,23 +1,24 @@
 package quanto.core;
 
 
-public class QVertex implements CoreObject, Comparable<QVertex> {
+public class RGVertex implements CoreVertex, Comparable<RGVertex> {
+
 	public enum Type { RED, GREEN, BOUNDARY, HADAMARD };
 	private Type vertexType;
 	private String name;
 	private String label = "0";
 	public boolean old;
 
-	public QVertex() {
+	public RGVertex() {
 		this(null);
 	}
 	
-	public QVertex(Type vertexType) {
+	public RGVertex(Type vertexType) {
 		this.vertexType = vertexType;
 		this.old = false;
 	}
 
-	public QVertex(String name, Type vertexType) {
+	public RGVertex(String name, Type vertexType) {
 		this.vertexType = vertexType;
 		this.old = false;
 		updateCoreName(name);
@@ -34,11 +35,11 @@ public class QVertex implements CoreObject, Comparable<QVertex> {
 	public void setVertexType(String vertexType) {
 		vertexType = vertexType.toLowerCase();
 		if (vertexType.equals("red"))
-			setVertexType(QVertex.Type.RED);
+			setVertexType(RGVertex.Type.RED);
 		else if (vertexType.equals("green"))
-			setVertexType(QVertex.Type.GREEN);
+			setVertexType(RGVertex.Type.GREEN);
 		else if (vertexType.equals("h"))
-			setVertexType(QVertex.Type.HADAMARD);
+			setVertexType(RGVertex.Type.HADAMARD);
 		else throw new IllegalArgumentException("vertexType");
 	}
 	
@@ -55,7 +56,7 @@ public class QVertex implements CoreObject, Comparable<QVertex> {
 		return getLabel().replace('\\', 'B')+"    ";
 	}
 	
-	public void updateTo(QVertex v) {
+	public void updateTo(RGVertex v) {
 		old = false;
 		name = v.getCoreName();
 		vertexType = v.getVertexType();
@@ -74,8 +75,15 @@ public class QVertex implements CoreObject, Comparable<QVertex> {
 		return (vertexType == Type.RED || vertexType == Type.GREEN);
 	}
 
-	public int compareTo(QVertex o) {
+	public int compareTo(RGVertex o) {
 		return getCoreName().compareTo(o.getCoreName());
 	}
-	
+
+	public boolean isBoundaryVertex() {
+		return this.vertexType == Type.BOUNDARY;
+	}
+
+	public String getCoreVertexType() {
+		return this.vertexType.name().toLowerCase();
+	}
 }

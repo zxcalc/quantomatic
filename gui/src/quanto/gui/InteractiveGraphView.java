@@ -1,10 +1,9 @@
 package quanto.gui;
 
-import quanto.core.QBangBox;
-import quanto.core.QVertex;
-import quanto.core.QEdge;
-import quanto.core.QGraph;
-import quanto.core.Rewrite;
+import quanto.core.BasicBangBox;
+import quanto.core.RGVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGGraph;
 import com.itextpdf.text.DocumentException;
 import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -54,12 +53,13 @@ import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import quanto.core.AttachedRewrite;
 import quanto.core.Core;
 import quanto.core.CoreTalker;
 
 public class InteractiveGraphView
 	extends InteractiveView
-	implements AddEdgeGraphMousePlugin.Adder<QVertex>,
+	implements AddEdgeGraphMousePlugin.Adder<RGVertex>,
 	           KeyListener {
 
 	private final static Logger logger =
@@ -84,7 +84,6 @@ public class InteractiveGraphView
 	public static final String FAST_NORMALISE_ACTION = "fast-normalise-command";
 	public static final String LOCK_VERTICES_ACTION = "lock-vertices-command";
 	public static final String UNLOCK_VERTICES_ACTION = "unlock-vertices-command";
-	public static final String FLIP_VERTEX_COLOUR_ACTION = "flip-vertex-colour-command";
 	public static final String BANG_VERTICES_ACTION = "bang-vertices-command";
 	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices-command";
 	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box-command";
@@ -94,10 +93,10 @@ public class InteractiveGraphView
 	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
-	private Core core;
+	private Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
-	private List<Rewrite> rewriteCache = null;
+	private List<AttachedRewrite<RGGraph>> rewriteCache = null;
 	private JPanel indicatorPanel = null;
 	private List<Job> activeJobs = null;
 	private boolean saveEnabled = true;
@@ -109,16 +108,16 @@ public class InteractiveGraphView
 
 	private class QVertexLabeler implements VertexLabelRenderer {
 
-		Map<QVertex, Labeler> components;
+		Map<RGVertex, Labeler> components;
 
 		public QVertexLabeler() {
-			components = new HashMap<QVertex, Labeler>();
+			components = new HashMap<RGVertex, Labeler>();
 		}
 
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
-			if (vertex instanceof QVertex && ((QVertex) vertex).isAngleVertex()) {
-				final QVertex qVertex = (QVertex) vertex;
+			if (vertex instanceof RGVertex && ((RGVertex) vertex).isAngleVertex()) {
+				final RGVertex qVertex = (RGVertex) vertex;
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
 					viewer.getGraphLayout().transform(qVertex));
@@ -129,14 +128,14 @@ public class InteractiveGraphView
 					angleLabeler = new Labeler("");
 					components.put(qVertex, angleLabeler);
 					viewer.add(angleLabeler);
-					if (qVertex.getVertexType() == QVertex.Type.RED) {
+					if (qVertex.getVertexType() == RGVertex.Type.RED) {
 						angleLabeler.setColor(new Color(255, 170, 170));
 					}
 					else {
 						angleLabeler.setColor(new Color(150, 255, 150));
 					}
 
-					String angle = ((QVertex) vertex).getLabel();
+					String angle = ((RGVertex) vertex).getLabel();
 					if (angle == null) {
 						angle = "";
 					}
@@ -183,8 +182,8 @@ public class InteractiveGraphView
 
 				return new JLabel();
 			}
-			else if (!(vertex instanceof QVertex)
-				|| ((QVertex) vertex).getVertexType() != QVertex.Type.BOUNDARY) {
+			else if (!(vertex instanceof RGVertex)
+				|| ((RGVertex) vertex).getVertexType() != RGVertex.Type.BOUNDARY) {
 				JLabel label = new JLabel((String) value);
 				label.setOpaque(true);
 				label.setBackground(Color.white);
@@ -197,8 +196,8 @@ public class InteractiveGraphView
 		 * Removes orphaned labels.
 		 */
 		public void cleanup() {
-			final Map<QVertex, Labeler> oldComponents = components;
-			components = new HashMap<QVertex, Labeler>();
+			final Map<RGVertex, Labeler> oldComponents = components;
+			components = new HashMap<RGVertex, Labeler>();
 			for (Labeler l : oldComponents.values()) {
 				viewer.remove(l);
 			}
@@ -225,12 +224,12 @@ public class InteractiveGraphView
 			ViewScrollingGraphMousePlugin scrollerPlugin = new ViewScrollingGraphMousePlugin();
 			scrollerPlugin.setShift(10.0);
 			add(scrollerPlugin);
-			add(new AddEdgeGraphMousePlugin<QVertex, QEdge>(
+			add(new AddEdgeGraphMousePlugin<RGVertex, BasicEdge>(
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
 			pickingMouse = new BangBoxAwarePickerMousePlugin();
-			edgeMouse = new AddEdgeGraphMousePlugin<QVertex, QEdge>(
+			edgeMouse = new AddEdgeGraphMousePlugin<RGVertex, BasicEdge>(
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK);
@@ -274,11 +273,11 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(Core core, QGraph g) {
+	public InteractiveGraphView(Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core, RGGraph g) {
 		this(core, g, new Dimension(800, 600));
 	}
 
-	public InteractiveGraphView(Core core, QGraph g, Dimension size) {
+	public InteractiveGraphView(Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core, RGGraph g, Dimension size) {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 
@@ -325,9 +324,9 @@ public class InteractiveGraphView
 		viewer.addKeyListener(this);
 
 		viewer.getRenderContext().setVertexStrokeTransformer(
-			new Transformer<QVertex, Stroke>() {
+			new Transformer<RGVertex, Stroke>() {
 
-				public Stroke transform(QVertex v) {
+				public Stroke transform(RGVertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)
 						|| viewer.isLocked(v)) {
 						return new BasicStroke(2);
@@ -338,9 +337,9 @@ public class InteractiveGraphView
 				}
 			});
 		viewer.getRenderContext().setVertexDrawPaintTransformer(
-			new Transformer<QVertex, Paint>() {
+			new Transformer<RGVertex, Paint>() {
 
-				public Paint transform(QVertex v) {
+				public Paint transform(RGVertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)) {
 						return Color.blue;
 					}
@@ -417,7 +416,7 @@ public class InteractiveGraphView
 		viewer.addChangeListener(listener);
 	}
 
-	public QGraph getGraph() {
+	public RGGraph getGraph() {
 		return viewer.getGraph();
 	}
 	
@@ -617,7 +616,7 @@ public class InteractiveGraphView
 		return "graph (" + name + ")";
 	}
 
-	public void addEdge(QVertex s, QVertex t) {
+	public void addEdge(RGVertex s, RGVertex t) {
 		try {
 			core.addEdge(getGraph(), s, t);
 		}
@@ -626,9 +625,9 @@ public class InteractiveGraphView
 		}
 	}
 
-	public void addVertex(QVertex.Type type) {
+	public void addVertex(RGVertex.Type type) {
 		try {
-			core.addVertex(getGraph(), type);
+			core.addVertex(getGraph(), type.name().toLowerCase());
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -637,7 +636,7 @@ public class InteractiveGraphView
 
 	public void showRewrites() {
 		try {
-			Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
+			Set<RGVertex> picked = viewer.getPickedVertexState().getPicked();
 			if (picked.isEmpty()) {
 				core.attachRewrites(getGraph(), getGraph().getVertices());
 			}
@@ -660,13 +659,13 @@ public class InteractiveGraphView
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
 
 		// re-validate the picked state
-		QVertex[] oldPicked =
+		RGVertex[] oldPicked =
 			viewer.getPickedVertexState().getPicked().toArray(
-			new QVertex[viewer.getPickedVertexState().getPicked().size()]);
+			new RGVertex[viewer.getPickedVertexState().getPicked().size()]);
 		viewer.getPickedVertexState().clear();
-		Map<String, QVertex> vm = getGraph().getVertexMap();
-		for (QVertex v : oldPicked) {
-			QVertex new_v = vm.get(v.getCoreName());
+		Map<String, RGVertex> vm = getGraph().getVertexMap();
+		for (RGVertex v : oldPicked) {
+			RGVertex new_v = vm.get(v.getCoreName());
 			if (new_v != null) {
 				viewer.getPickedVertexState().pick(new_v, true);
 			}
@@ -698,7 +697,7 @@ public class InteractiveGraphView
 		viewer.repaint();
 	}
 
-	public void highlightSubgraph(QGraph g) {
+	public void highlightSubgraph(RGGraph g) {
 		clearHighlight();
 		highlighter = new SubgraphHighlighter(g);
 		viewer.addPostRenderPaintable(highlighter);
@@ -756,10 +755,10 @@ public class InteractiveGraphView
 			}
 		}
 
-		private void invokeHighlightSubgraphAndWait(QGraph subgraph)
+		private void invokeHighlightSubgraphAndWait(RGGraph subgraph)
 			throws InterruptedException {
 			highlight = true;
-			final QGraph fSubGraph = subgraph;
+			final RGGraph fSubGraph = subgraph;
 			invokeAndWait(new Runnable() {
 
 				public void run() {
@@ -818,7 +817,7 @@ public class InteractiveGraphView
 				// FIXME: communicating with the core: is this
 				//        really threadsafe?  Probably not.
 				attachNextRewrite();
-				List<Rewrite> rws = getRewrites();
+				List<AttachedRewrite<RGGraph>> rws = getRewrites();
 				int count = 0;
 				Random r = new Random();
 				int rw = 0;
@@ -847,9 +846,9 @@ public class InteractiveGraphView
 	private class SubgraphHighlighter
 		implements VisualizationServer.Paintable {
 
-		Collection<QVertex> verts;
+		Collection<RGVertex> verts;
 
-		public SubgraphHighlighter(QGraph g) {
+		public SubgraphHighlighter(RGGraph g) {
 			verts = getGraph().getSubgraphVertices(g);
 		}
 
@@ -861,7 +860,7 @@ public class InteractiveGraphView
 				System.currentTimeMillis() / 150.0);
 			g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opac));
 
-			for (QVertex v : verts) {
+			for (RGVertex v : verts) {
 				Point2D pt = viewer.getGraphLayout().transform(v);
 				Ellipse2D ell = new Ellipse2D.Double(
 					pt.getX() - 15, pt.getY() - 15, 30, 30);
@@ -884,7 +883,7 @@ public class InteractiveGraphView
 	 * list on console error.
 	 * @return
 	 */
-	public List<Rewrite> getRewrites() {
+	public List<AttachedRewrite<RGGraph>> getRewrites() {
 		try {
 			rewriteCache = core.getAttachedRewrites(getGraph());
 			return rewriteCache;
@@ -893,13 +892,13 @@ public class InteractiveGraphView
 			errorDialog(e.getMessage());
 		}
 
-		return new ArrayList<Rewrite>();
+		return new ArrayList<AttachedRewrite<RGGraph>>();
 	}
 
 	public void applyRewrite(int index) {
 		try {
 			if (rewriteCache != null && rewriteCache.size() > index) {
-				List<QVertex> sub = getGraph().getSubgraphVertices(
+				List<RGVertex> sub = getGraph().getSubgraphVertices(
 					rewriteCache.get(index).getLhs());
 				if (sub.size() > 0) {
 					Rectangle2D rect = viewer.getSubgraphBounds(sub);
@@ -978,7 +977,6 @@ public class InteractiveGraphView
 		ViewPort.registerCommand(FAST_NORMALISE_ACTION);
 		ViewPort.registerCommand(LOCK_VERTICES_ACTION);
 		ViewPort.registerCommand(UNLOCK_VERTICES_ACTION);
-		ViewPort.registerCommand(FLIP_VERTEX_COLOUR_ACTION);
 		ViewPort.registerCommand(BANG_VERTICES_ACTION);
 		ViewPort.registerCommand(UNBANG_VERTICES_ACTION);
 		ViewPort.registerCommand(DROP_BANG_BOX_ACTION);
@@ -1025,7 +1023,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.CUT_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
+					Set<RGVertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.cutSubgraph(getGraph(), picked);
 						updateGraph();
@@ -1039,7 +1037,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.COPY_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					Set<QVertex> picked = viewer.getPickedVertexState().getPicked();
+					Set<RGVertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.copySubgraph(getGraph(), picked);
 					}
@@ -1063,7 +1061,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.SELECT_ALL_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				synchronized (getGraph()) {
-					for (QVertex v : getGraph().getVertices()) {
+					for (RGVertex v : getGraph().getVertices()) {
 						viewer.getPickedVertexState().pick(v, true);
 					}
 				}
@@ -1128,22 +1126,22 @@ public class InteractiveGraphView
 		});
 		actionMap.put(ADD_RED_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(QVertex.Type.RED);
+				addVertex(RGVertex.Type.RED);
 			}
 		});
 		actionMap.put(ADD_GREEN_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(QVertex.Type.GREEN);
+				addVertex(RGVertex.Type.GREEN);
 			}
 		});
 		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(QVertex.Type.BOUNDARY);
+				addVertex(RGVertex.Type.BOUNDARY);
 			}
 		});
 		actionMap.put(ADD_HADAMARD_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(QVertex.Type.HADAMARD);
+				addVertex(RGVertex.Type.HADAMARD);
 			}
 		});
 		actionMap.put(SHOW_REWRITES_ACTION, new ActionListener() {
@@ -1189,17 +1187,6 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				viewer.unlock(viewer.getPickedVertexState().getPicked());
 				repaint();
-			}
-		});
-		actionMap.put(FLIP_VERTEX_COLOUR_ACTION, new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				try {
-					core.flipVertices(getGraph(), viewer.getPickedVertexState().getPicked());
-					updateGraph();
-				}
-				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
-				}
 			}
 		});
 		actionMap.put(BANG_VERTICES_ACTION, new ActionListener() {
@@ -1250,7 +1237,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
-						core.duplicateBangBox(getGraph(), (QBangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
+						core.duplicateBangBox(getGraph(), (BasicBangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
 					}
 					updateGraph();
 				}
@@ -1322,24 +1309,24 @@ public class InteractiveGraphView
 	}
 
 	static class BangBoxAwarePickerMousePlugin
-		extends ConstrainedPickingGraphMousePlugin<QVertex, QEdge> {
+		extends ConstrainedPickingGraphMousePlugin<RGVertex, BasicEdge> {
 
-		protected QBangBox bangBox;
+		protected BasicBangBox bangBox;
 
 		public BangBoxAwarePickerMousePlugin() {
 			super(ConstrainingAction.MoveOthers, 20, 20);
 		}
 
-		private QBangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y) {
+		private BasicBangBox getBangBox(Layout<RGVertex, BasicEdge> layout, double x, double y) {
 			while ((layout instanceof LayoutDecorator) && !(layout instanceof BangBoxLayout)) {
-				layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
+				layout = ((LayoutDecorator<RGVertex, BasicEdge>) layout).getDelegate();
 			}
 			if (layout instanceof BangBoxLayout) {
 				@SuppressWarnings("unchecked")
-				BangBoxLayout<QVertex, QEdge, QBangBox> realLayout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
-				QGraph graph = (QGraph) realLayout.getGraph();
+				BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> realLayout = (BangBoxLayout<RGVertex, BasicEdge, BasicBangBox>) layout;
+				RGGraph graph = (RGGraph) realLayout.getGraph();
 				synchronized (graph) {
-					for (QBangBox bb : graph.getBangBoxes()) {
+					for (BasicBangBox bb : graph.getBangBoxes()) {
 						Rectangle2D bbRect = realLayout.transformBangBox(bb);
 						if (bbRect == null) {
 							logger.warn("Layout hasn't caught up with us yet");
@@ -1357,13 +1344,13 @@ public class InteractiveGraphView
 		@SuppressWarnings("unchecked")
 		public void mousePressed(MouseEvent e) {
 			down = e.getPoint();
-			VisualizationViewer<QVertex, QEdge> vv = (VisualizationViewer) e.getSource();
-			GraphElementAccessor<QVertex, QEdge> pickSupport = vv.getPickSupport();
-			PickedState<QVertex> pickedVertexState = vv.getPickedVertexState();
-			PickedState<QEdge> pickedEdgeState = vv.getPickedEdgeState();
-			PickedState<QBangBox> pickedBangBoxState = ((GraphVisualizationViewer) vv).getPickedBangBoxState();
+			VisualizationViewer<RGVertex, BasicEdge> vv = (VisualizationViewer) e.getSource();
+			GraphElementAccessor<RGVertex, BasicEdge> pickSupport = vv.getPickSupport();
+			PickedState<RGVertex> pickedVertexState = vv.getPickedVertexState();
+			PickedState<BasicEdge> pickedEdgeState = vv.getPickedEdgeState();
+			PickedState<BasicBangBox> pickedBangBoxState = ((GraphVisualizationViewer) vv).getPickedBangBoxState();
 			if (pickSupport != null && pickedVertexState != null) {
-				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
+				Layout<RGVertex, BasicEdge> layout = vv.getGraphLayout();
 				if (e.getModifiers() == modifiers) {
 					rect.setFrameFromDiagonal(down, down);
 					// p is the screen point for the mouse event
@@ -1454,10 +1441,10 @@ public class InteractiveGraphView
 			bangBox = null;
 
 			if (recalcSize) {
-				VisualizationViewer<QVertex, QEdge> vv = (VisualizationViewer) e.getSource();
-				Layout<QVertex, QEdge> layout = vv.getGraphLayout();
+				VisualizationViewer<RGVertex, BasicEdge> vv = (VisualizationViewer) e.getSource();
+				Layout<RGVertex, BasicEdge> layout = vv.getGraphLayout();
 				while (layout instanceof LayoutDecorator) {
-					layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
+					layout = ((LayoutDecorator<RGVertex, BasicEdge>) layout).getDelegate();
 				}
 				try {
 					DynamicBoundsLayout realLayout = (DynamicBoundsLayout) layout;
@@ -1509,16 +1496,16 @@ public class InteractiveGraphView
 		else {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_R:
-					addVertex(QVertex.Type.RED);
+					addVertex(RGVertex.Type.RED);
 					break;
 				case KeyEvent.VK_G:
-					addVertex(QVertex.Type.GREEN);
+					addVertex(RGVertex.Type.GREEN);
 					break;
 				case KeyEvent.VK_H:
-					addVertex(QVertex.Type.HADAMARD);
+					addVertex(RGVertex.Type.HADAMARD);
 					break;
 				case KeyEvent.VK_B:
-					addVertex(QVertex.Type.BOUNDARY);
+					addVertex(RGVertex.Type.BOUNDARY);
 					break;
 				case KeyEvent.VK_E:
 					if (graphMouse.isEdgeMouse()) {

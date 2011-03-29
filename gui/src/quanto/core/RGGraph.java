@@ -22,11 +22,11 @@ import java.util.Vector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class QGraph extends DirectedSparseBangBoxMultigraph<QVertex, QEdge, QBangBox>
-implements CoreObject, ChangeEventSupport {
+public class RGGraph extends DirectedSparseBangBoxMultigraph<RGVertex, BasicEdge, BasicBangBox>
+implements CoreGraph<RGVertex, BasicEdge, BasicBangBox>, ChangeEventSupport {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(QGraph.class);
+		LoggerFactory.getLogger(RGGraph.class);
 
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;
@@ -35,7 +35,7 @@ implements CoreObject, ChangeEventSupport {
 	private String fileName = null; // defined if this graph is backed by a file
 	private boolean saved = true; // true if this graph has been modified since last saved
 
-	public QGraph(String name) {
+	public RGGraph(String name) {
 		this.name = name;
 		this.changeListeners = Collections.synchronizedSet(
 				new HashSet<ChangeListener>());
@@ -45,14 +45,14 @@ implements CoreObject, ChangeEventSupport {
 	 * Use this constructor for unnamed graphs. The idea is you
 	 * should do null checks before sending the name to the core.
 	 */
-	public QGraph() {
+	public RGGraph() {
 		this(null);
 	}
 
-	public Map<String,QVertex> getVertexMap() {
-		Map<String, QVertex> verts =
-			new HashMap<String, QVertex>();
-		for (QVertex v : getVertices()) {
+	public Map<String,RGVertex> getVertexMap() {
+		Map<String, RGVertex> verts =
+			new HashMap<String, RGVertex>();
+		for (RGVertex v : getVertices()) {
 			v.old = true;
 			verts.put(v.getCoreName(), v);
 		}
@@ -110,22 +110,22 @@ implements CoreObject, ChangeEventSupport {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public QGraph fromXml(IXMLElement graphNode) throws ParseException {
+	public RGGraph fromXml(IXMLElement graphNode) throws ParseException {
 		if (graphNode == null)
 			throw new ParseException("Graph is null");
 		
 		synchronized (this) {
-			List<QVertex> boundaryVertices = new ArrayList<QVertex>();
-			for (QEdge e : new ArrayList<QEdge>(getEdges()))
+			List<RGVertex> boundaryVertices = new ArrayList<RGVertex>();
+			for (BasicEdge e : new ArrayList<BasicEdge>(getEdges()))
 				removeEdge(e);
-			for (QBangBox e : new ArrayList<QBangBox>(getBangBoxes()))
+			for (BasicBangBox e : new ArrayList<BasicBangBox>(getBangBoxes()))
 				removeBangBox(e);
 			
-			Map<String, QVertex> verts = getVertexMap();
+			Map<String, RGVertex> verts = getVertexMap();
 
 			for (Object obj : graphNode.getChildrenNamed("vertex")) {
 				IXMLElement vertexNode = (IXMLElement)obj;
-				QVertex v = new QVertex();
+				RGVertex v = new RGVertex();
 				
 				try {
 					String vname = vertexNode.getFirstChildNamed("name").getContent();
@@ -136,7 +136,7 @@ implements CoreObject, ChangeEventSupport {
 					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
 					{
-						v.setVertexType(QVertex.Type.BOUNDARY);
+						v.setVertexType(RGVertex.Type.BOUNDARY);
 					} else if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("false")) {
 						v.setVertexType(vertexNode.getFirstChildNamed("colour").getContent());
@@ -161,7 +161,7 @@ implements CoreObject, ChangeEventSupport {
 					throwParseException(vertexNode, null);
 				}
 				
-				QVertex old_v = verts.get(v.getCoreName());
+				RGVertex old_v = verts.get(v.getCoreName());
 				if (old_v == null) {
 					verts.put(v.getCoreName(), v);
 					this.addVertex(v);
@@ -170,7 +170,7 @@ implements CoreObject, ChangeEventSupport {
 					v = old_v;
 				}
 				
-				if (v.getVertexType()==QVertex.Type.BOUNDARY) {
+				if (v.getVertexType()==RGVertex.Type.BOUNDARY) {
 					boundaryVertices.add(v);
 				}
 			} // foreach vertex
@@ -182,7 +182,7 @@ implements CoreObject, ChangeEventSupport {
                         }
 			
 			// Prune removed vertices
-			for (QVertex v : verts.values()) {
+			for (RGVertex v : verts.values()) {
 				if (v.old) removeVertex(v);
 			}
 
@@ -190,7 +190,7 @@ implements CoreObject, ChangeEventSupport {
 			for (Object obj : graphNode.getChildrenNamed("edge")) {
 				IXMLElement edgeNode = (IXMLElement)obj;
 
-				QVertex source = null, target = null;
+				RGVertex source = null, target = null;
 				String ename = null;
 				IXMLElement ch = null;
 				
@@ -218,7 +218,7 @@ implements CoreObject, ChangeEventSupport {
 				if (target == null)
 					throwParseException(edgeNode, "unknown target");
 
-				this.addEdge(new QEdge(ename),
+				this.addEdge(new BasicEdge(ename),
 					source, target, EdgeType.DIRECTED);
 				
 			} // foreach edge
@@ -234,13 +234,13 @@ implements CoreObject, ChangeEventSupport {
 				if (bbname == null || bbname.length() == 0)
 					throwParseException(bangBox, "no name given");
 
-				QBangBox bbox = new QBangBox(bbname);
+				BasicBangBox bbox = new BasicBangBox(bbname);
 				List contents = new LinkedList();
 
 				for (IXMLElement boxedVert :
 					(Vector<IXMLElement>)bangBox.getChildrenNamed("boxedvertex"))
 				{
-					QVertex v = verts.get(boxedVert.getContent());
+					RGVertex v = verts.get(boxedVert.getContent());
 					if (v == null)
 						throwParseException(boxedVert, "unknown vertex");
 					contents.add(v);
@@ -252,16 +252,16 @@ implements CoreObject, ChangeEventSupport {
 		return this;
 	}
 	
-	public List<QVertex> getSubgraphVertices(QGraph graph) {
-		List<QVertex> verts = new ArrayList<QVertex>();
+	public List<RGVertex> getSubgraphVertices(RGGraph graph) {
+		List<RGVertex> verts = new ArrayList<RGVertex>();
 		synchronized (this) {
-			Map<String,QVertex> vmap = getVertexMap();
-			for (QVertex v : graph.getVertices()) {
-				if (v.getVertexType() == QVertex.Type.BOUNDARY)
+			Map<String,RGVertex> vmap = getVertexMap();
+			for (RGVertex v : graph.getVertices()) {
+				if (v.getVertexType() == RGVertex.Type.BOUNDARY)
 					continue; // don't highlight boundaries
 				// find the vertex corresponding to the selected
 				//  subgraph, by name
-				QVertex real_v = vmap.get(v.getCoreName());
+				RGVertex real_v = vmap.get(v.getCoreName());
 				if (real_v != null) verts.add(real_v);
 			}
 		}

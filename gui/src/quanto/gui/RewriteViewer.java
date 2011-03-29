@@ -1,7 +1,7 @@
 package quanto.gui;
 
 
-import quanto.core.QGraph;
+import quanto.core.RGGraph;
 import quanto.core.Rewrite;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -24,11 +24,12 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.LineBorder;
+import quanto.core.AttachedRewrite;
 
 public class RewriteViewer extends JFrame {
 	private static final long serialVersionUID = 3627522980375030017L;
 	private final InteractiveGraphView vis;
-	protected List<Rewrite> rewrites;
+	protected List<AttachedRewrite<RGGraph>> rewrites;
 	
 	public RewriteViewer(InteractiveGraphView vis) {
 		super("Rewrites for " + vis.getTitle());
@@ -49,10 +50,10 @@ public class RewriteViewer extends JFrame {
 		int index = 0;
 		JButton cancel = new JButton("Cancel");
 		JComponent focusMe = cancel;
-		for (Rewrite rw : rewrites) {
+		for (AttachedRewrite<RGGraph> rw : rewrites) {
 			JPanel rwPanel = new JPanel();
 			rwPanel.setLayout(new FlowLayout());
-			JLabel ruleName = new JLabel(rw.getCoreName());
+			JLabel ruleName = new JLabel(rw.getRuleName());
 			rwPanel.add(ruleName);
 			GraphVisualizationViewer lhs = new GraphVisualizationViewer(rw.getLhs());
 			GraphVisualizationViewer rhs = new GraphVisualizationViewer(rw.getRhs());
@@ -82,7 +83,7 @@ public class RewriteViewer extends JFrame {
 			MouseAdapter hl = new MouseAdapter() {
 				@Override
 				public void mouseEntered(MouseEvent e) {
-					QGraph match =
+					RGGraph match =
 						RewriteViewer.this.rewrites
 							.get(thisIndex).getLhs();
 					RewriteViewer.this.vis.highlightSubgraph(match);

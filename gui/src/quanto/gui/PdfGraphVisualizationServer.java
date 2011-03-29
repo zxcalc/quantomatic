@@ -5,9 +5,9 @@
 
 package quanto.gui;
 
-import quanto.core.QVertex;
-import quanto.core.QEdge;
-import quanto.core.QGraph;
+import quanto.core.RGVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGGraph;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
@@ -25,7 +25,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.OutputStream;
 import javax.swing.JComponent;
 import org.apache.commons.collections15.Predicate;
-import quanto.core.QBangBox;
+import quanto.core.BasicBangBox;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.BangBoxPaintable;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
@@ -38,26 +38,26 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alemer
  */
 public class PdfGraphVisualizationServer
-        extends BasicVisualizationServer<QVertex, QEdge>
+        extends BasicVisualizationServer<RGVertex, BasicEdge>
 {
-	private final QGraph graph;
-	private BangBoxLayout<QVertex, QEdge, QBangBox> layout;
+	private final RGGraph graph;
+	private BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout;
 	private BangBoxPaintable bangBoxPainter;
         private boolean arrowHeadsShown = false;
 
-	public PdfGraphVisualizationServer(QGraph graph) {
+	public PdfGraphVisualizationServer(RGGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public PdfGraphVisualizationServer(BangBoxLayout<QVertex, QEdge, QBangBox> layout) {
+	public PdfGraphVisualizationServer(BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout) {
 		super(layout);
 
 		this.layout = layout;
 
-		if (!(layout.getGraph() instanceof QGraph)) {
+		if (!(layout.getGraph() instanceof RGGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.graph = (QGraph) layout.getGraph();
+		this.graph = (RGGraph) layout.getGraph();
 
 		layout.initialize();
 		this.bangBoxPainter = new BangBoxPaintable(layout, graph, this);
@@ -67,12 +67,12 @@ public class PdfGraphVisualizationServer
 
 	private void  setupRendering() {
 		getRenderContext().setParallelEdgeIndexFunction(
-			BalancedEdgeIndexFunction.<QVertex, QEdge>getInstance());
+			BalancedEdgeIndexFunction.<RGVertex, BasicEdge>getInstance());
 
 		getRenderContext().setEdgeArrowPredicate(
-			new Predicate<Context<Graph<QVertex, QEdge>, QEdge>>()
+			new Predicate<Context<Graph<RGVertex, BasicEdge>, BasicEdge>>()
 			{
-				public boolean evaluate(Context<Graph<QVertex, QEdge>, QEdge> object) {
+				public boolean evaluate(Context<Graph<RGVertex, BasicEdge>, BasicEdge> object) {
 					return QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS);
 				}
 			});

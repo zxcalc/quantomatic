@@ -8,15 +8,15 @@ package quanto.gui.graphhelpers;
 import java.awt.Color;
 import java.awt.Paint;
 import org.apache.commons.collections15.Transformer;
-import quanto.core.QVertex;
+import quanto.core.RGVertex;
 
 /**
  *
  * @author alemer
  */
-public class QVertexColorTransformer implements Transformer<QVertex, Paint>
+public class QVertexColorTransformer implements Transformer<RGVertex, Paint>
 {
-        public Paint transform(QVertex v) {
+        public Paint transform(RGVertex v) {
                 switch (v.getVertexType()) {
                         case RED:
                                 return Color.red;

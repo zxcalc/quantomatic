@@ -12,8 +12,8 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
-import quanto.core.QEdge;
-import quanto.core.QVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGVertex;
 
 /**
  *
@@ -22,9 +22,9 @@ import quanto.core.QVertex;
 public class BackdropPaintable implements VisualizationServer.Paintable
 {
 	private Color pageBackground = Color.WHITE;
-        private Layout<QVertex, QEdge> layout;
+        private Layout<RGVertex, BasicEdge> layout;
 
-        public BackdropPaintable(Layout<QVertex, QEdge> layout) {
+        public BackdropPaintable(Layout<RGVertex, BasicEdge> layout) {
                 // FIXME: better to update the size when it changes?
                 this.layout = layout;
         }

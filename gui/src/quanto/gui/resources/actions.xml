@@ -215,12 +215,6 @@
 	  accel="control shift L"
           desc="Unlock the selected vertices"/>
 
-	<action id="flip-vertex-colour-command"
-          name="Flip vertex colour"
-          mnemonic="C"
-	  accel="control shift C"
-          desc="Flip the colour of the selected vertices"/>
-
 	<!-- Add menu commands -->
 
 	<action id="add-red-vertex-command"
@@ -363,7 +357,6 @@
 			<action idref="fast-normalise-command" />
 			<action idref="lock-vertices-command" />
 			<action idref="unlock-vertices-command" />
-			<action idref="flip-vertex-colour-command" />
 			<action-list id="bang-box-menu" name="Bang boxes" mnemonic="B">
 				<action idref="bang-vertices-command" />
 				<action idref="unbang-vertices-command" />

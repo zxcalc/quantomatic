@@ -1,7 +1,7 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
-import quanto.core.QGraph;
+import quanto.core.RGGraph;
 import quanto.core.CoreTalker;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
@@ -21,8 +21,12 @@ import org.slf4j.LoggerFactory;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.awt.Component;
 import java.io.IOException;
+import quanto.core.BasicBangBox;
+import quanto.core.BasicEdge;
 import quanto.core.Core;
 import quanto.core.CoreException;
+import quanto.core.RGGraphFactory;
+import quanto.core.RGVertex;
 /**
  * Singleton class 
  * @author aleks
@@ -52,7 +56,7 @@ public class QuantoApp {
 	public static boolean useExperimentalLayout = false;
 
 	private final Preferences globalPrefs;
-	private final Core core;
+	private final Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core;
 	private JFileChooser fileChooser = null;
 	private final InteractiveViewManager viewManager;
 
@@ -258,7 +262,7 @@ public class QuantoApp {
 	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 
-		core = new Core();
+		core = new Core<RGGraph,RGVertex,BasicEdge,BasicBangBox>(new RGGraphFactory());
 		loadSavedRulesetState();
 		viewManager = new InteractiveViewManager(this, core);
 
@@ -361,7 +365,7 @@ public class QuantoApp {
 
 	public InteractiveGraphView createNewGraph()
 		throws CoreException {
-		QGraph newGraph = core.createEmptyGraph();
+		RGGraph newGraph = core.createEmptyGraph();
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
 		viewManager.addView(vis);
@@ -371,7 +375,7 @@ public class QuantoApp {
 	public InteractiveGraphView openGraph(File file)
 		throws CoreException,
 		       java.io.IOException {
-		QGraph loadedGraph = core.loadGraph(file);
+		RGGraph loadedGraph = core.loadGraph(file);
 		InteractiveGraphView vis =
 			new InteractiveGraphView(core, loadedGraph, new Dimension(800, 600));
 		vis.setTitle(file.getName());
@@ -392,7 +396,7 @@ public class QuantoApp {
 	 */
 	public void newGraph(boolean initial) {
 		try {
-			QGraph newGraph = core.createEmptyGraph();
+			RGGraph newGraph = core.createEmptyGraph();
 			InteractiveGraphView vis =
 				new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
 			viewManager.addView(vis);

@@ -146,9 +146,9 @@ public abstract class CoreTalker {
 			return a;
 		}
 
-		public static Arg vertexTypeArg(QVertex.Type n) {
-			Arg a = new Arg(Type.Path);
-			a.s = n.name().toLowerCase();
+		public static Arg vertexTypeArg(String n) {
+			Arg a = new Arg(Type.VertexType);
+			a.s = n;
 			return a;
 		}
 
@@ -389,7 +389,7 @@ public abstract class CoreTalker {
 	}
 
 	@Command
-	public String add_vertex(String graphName, QVertex.Type type)
+	public String add_vertex(String graphName, String type)
 	throws CoreException {
 		return commandAsName("add_vertex", Arg.nameArg(graphName), Arg.vertexTypeArg(type));
 	}

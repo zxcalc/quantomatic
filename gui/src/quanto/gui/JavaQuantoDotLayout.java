@@ -1,9 +1,9 @@
 package quanto.gui;
 
-import quanto.core.QBangBox;
-import quanto.core.QVertex;
-import quanto.core.QEdge;
-import quanto.core.QGraph;
+import quanto.core.BasicBangBox;
+import quanto.core.RGVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -12,17 +12,17 @@ import edu.uci.ics.jung.contrib.AKDotBangBoxLayout;
 import java.awt.Rectangle;
 
 public class JavaQuantoDotLayout
-extends AKDotBangBoxLayout<QVertex,QEdge, QBangBox>
+extends AKDotBangBoxLayout<RGVertex,BasicEdge, BasicBangBox>
 {
 	private static final double VERTEX_PADDING = 20;
 	private static final double EMPTY_BOX_SIZE = 40;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
 
-	public JavaQuantoDotLayout(QGraph graph, Dimension size) {
+	public JavaQuantoDotLayout(RGGraph graph, Dimension size) {
 		super(graph, VERTEX_PADDING);
 	}
 
-	public JavaQuantoDotLayout(QGraph graph) {
+	public JavaQuantoDotLayout(RGGraph graph) {
 		this(graph, new Dimension(800,600));
 	}
 
@@ -39,7 +39,7 @@ extends AKDotBangBoxLayout<QVertex,QEdge, QBangBox>
 
 
 	@Override
-	public void setLocation(QVertex picked, Point2D p) {
+	public void setLocation(RGVertex picked, Point2D p) {
 		if (p.getX() < 20)
 			p.setLocation(20, p.getY());
 		if (p.getY() < 20)
@@ -53,7 +53,7 @@ extends AKDotBangBoxLayout<QVertex,QEdge, QBangBox>
 	}
 
 	@Override
-	public void setLocation(QVertex picked, double x, double y) {
+	public void setLocation(RGVertex picked, double x, double y) {
 		if (x < 20)
 			x = 20;
 		if (y < 20)
@@ -71,7 +71,7 @@ extends AKDotBangBoxLayout<QVertex,QEdge, QBangBox>
 		double top = Double.MAX_VALUE;
 		double right = 0;
 		double bottom = 0;
-		for (QVertex v : getGraph().getVertices()) {
+		for (RGVertex v : getGraph().getVertices()) {
 			Point2D point = transform(v);
 			left = Math.min(left, point.getX());
 			top = Math.min(top, point.getY());

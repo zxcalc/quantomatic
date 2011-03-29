@@ -1,8 +1,8 @@
 package quanto.gui;
 
-import quanto.core.QVertex;
-import quanto.core.QEdge;
-import quanto.core.QGraph;
+import quanto.core.RGVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGGraph;
 import java.awt.geom.Point2D;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -10,12 +10,12 @@ import edu.uci.ics.jung.contrib.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 public class TikzOutput {
-	public static String generate(QGraph graph, Layout<QVertex, QEdge> layout, boolean withArrowHeads) {
+	public static String generate(RGGraph graph, Layout<RGVertex, BasicEdge> layout, boolean withArrowHeads) {
 		StringBuilder tikz = new StringBuilder("\\begin{tikzpicture}[quanto]\n");
 		synchronized (graph) {
 			Point2D p;
 			String col;
-			for (QVertex v : graph.getVertices()) {
+			for (RGVertex v : graph.getVertices()) {
 				p = layout.transform(v);
 				col = v.getVertexType().toString().toLowerCase();
 				tikz.append("\\node [").append(col).append(" vertex] ")
@@ -27,11 +27,11 @@ public class TikzOutput {
 					.append(") {};\n");
 			}
 			
-			EdgeIndexFunction<QVertex, QEdge> eif =
-				BalancedEdgeIndexFunction.<QVertex, QEdge>getInstance();
+			EdgeIndexFunction<RGVertex, BasicEdge> eif =
+				BalancedEdgeIndexFunction.<RGVertex, BasicEdge>getInstance();
 			
 			int idx;
-			for (QEdge e : graph.getEdges()) {
+			for (BasicEdge e : graph.getEdges()) {
 				idx = eif.getIndex(graph, e) + 1;
                                 tikz.append("\\draw [");
 				if (withArrowHeads) {
@@ -48,7 +48,7 @@ public class TikzOutput {
                                         .append(");\n");
 			}
 			
-			for (QVertex v : graph.getVertices()) {
+			for (RGVertex v : graph.getVertices()) {
 				col = v.getVertexType().toString().toLowerCase();
 				if (! v.getLabel().equals("0"))
 					tikz.append("\\node [")

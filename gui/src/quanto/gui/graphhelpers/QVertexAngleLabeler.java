@@ -13,7 +13,7 @@ import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import quanto.gui.Labeler;
-import quanto.core.QVertex;
+import quanto.core.RGVertex;
 import quanto.gui.TexConstants;
 
 /**
@@ -21,7 +21,7 @@ import quanto.gui.TexConstants;
  * @author alemer
  */
 public class QVertexAngleLabeler implements VertexLabelRenderer {
-        Map<QVertex, Labeler> components;
+        Map<RGVertex, Labeler> components;
 
         public QVertexAngleLabeler() {
         }
@@ -30,22 +30,22 @@ public class QVertexAngleLabeler implements VertexLabelRenderer {
                 JComponent vv, Object value, Font font,
                 boolean isSelected, T vertex) {
                 if (value instanceof String
-                        && vertex instanceof QVertex) {
+                        && vertex instanceof RGVertex) {
                         String val = TexConstants.translate((String) value);
 
-                        QVertex qv = (QVertex) vertex;
-                        if (qv.getVertexType() == QVertex.Type.BOUNDARY) {
+                        RGVertex qv = (RGVertex) vertex;
+                        if (qv.getVertexType() == RGVertex.Type.BOUNDARY) {
                                 return new JLabel();
                         }
 
                         JLabel lab = new JLabel(val);
                         Color col = null;
-                        if (qv.getVertexType() == QVertex.Type.RED) {
+                        if (qv.getVertexType() == RGVertex.Type.RED) {
                                 col = new Color(255, 170, 170);
                                 lab.setBackground(col);
                                 lab.setOpaque(true);
                         }
-                        else if (qv.getVertexType() == QVertex.Type.GREEN) {
+                        else if (qv.getVertexType() == RGVertex.Type.GREEN) {
                                 col = new Color(150, 255, 150);
                                 lab.setBackground(col);
                                 lab.setOpaque(true);

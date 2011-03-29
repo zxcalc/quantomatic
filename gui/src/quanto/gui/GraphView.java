@@ -1,6 +1,6 @@
 package quanto.gui;
 
-import quanto.core.QGraph;
+import quanto.core.RGGraph;
 import edu.uci.ics.jung.contrib.ViewZoomScrollPane;
 import java.awt.Dimension;
 import javax.swing.JPanel;
@@ -13,19 +13,19 @@ public class GraphView extends JPanel
 	protected GraphVisualizationViewer viewer;
 	private boolean hasScrollbars;
 
-	public GraphView(QGraph g) {
+	public GraphView(RGGraph g) {
 		this(g, new Dimension(800, 600));
 	}
 
-	public GraphView(QGraph g, boolean scrollable) {
+	public GraphView(RGGraph g, boolean scrollable) {
 		this(g, new Dimension(800, 600), scrollable);
 	}
 
-	public GraphView(QGraph graph, Dimension size) {
+	public GraphView(RGGraph graph, Dimension size) {
 		this(graph, size, true);
 	}
 
-	public GraphView(QGraph graph, Dimension size, boolean scrollable) {
+	public GraphView(RGGraph graph, Dimension size, boolean scrollable) {
 		super(new BorderLayout());
 		setPreferredSize(size);
 		hasScrollbars = scrollable;
@@ -60,7 +60,7 @@ public class GraphView extends JPanel
 		viewer.addChangeListener(listener);
 	}
 
-	public QGraph getGraph() {
+	public RGGraph getGraph() {
 		return viewer.getGraph();
 	}
 

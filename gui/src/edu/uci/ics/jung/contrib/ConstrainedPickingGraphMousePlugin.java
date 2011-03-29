@@ -12,8 +12,8 @@ import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.Set;
-import quanto.core.QEdge;
-import quanto.core.QVertex;
+import quanto.core.BasicEdge;
+import quanto.core.RGVertex;
 
 /**
  * Constrains the left and top drag movements of the picking graph mouse
@@ -94,10 +94,10 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 		this.topConstraint = topConstraint;
 	}
 
-	private void moveNodes(VisualizationViewer<QVertex, QEdge> vv,
+	private void moveNodes(VisualizationViewer<RGVertex, BasicEdge> vv,
 	                       double dx, double dy)
 	{
-		Layout<QVertex, QEdge> layout = vv.getGraphLayout();
+		Layout<RGVertex, BasicEdge> layout = vv.getGraphLayout();
 		double odx = 0.0;
 		double ody = 0.0;
 		// if the mouse has moved without taking nodes
@@ -118,13 +118,13 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 			yDragBounce += xfer;
 			ody -= xfer;
 		}
-		PickedState<QVertex> ps = vv.getPickedVertexState();
-		Set<QVertex> picked = ps.getPicked();
+		PickedState<RGVertex> ps = vv.getPickedVertexState();
+		Set<RGVertex> picked = ps.getPicked();
 
 		double farLeft = Double.MAX_VALUE;
 		double farTop = Double.MAX_VALUE;
 		if (dx < 0 || dy < 0) {
-			for (QVertex v : picked) {
+			for (RGVertex v : picked) {
 				Point2D vp = layout.transform(v);
 				farLeft = Math.min(farLeft, vp.getX());
 				farTop = Math.min(farTop, vp.getY());
@@ -147,7 +147,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 		if (constrainingAction == ConstrainingAction.StopMovement ||
 			(odx == 0.0 && ody == 0.0))
 		{
-			for (QVertex v : ps.getPicked()) {
+			for (RGVertex v : ps.getPicked()) {
 				Point2D vp = layout.transform(v);
 				vp.setLocation(vp.getX() + dx, vp.getY() + dy);
 				layout.setLocation(v, vp);
@@ -155,7 +155,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 		}
 		else
 		{
-			for (QVertex v : vv.getGraphLayout().getGraph().getVertices()) {
+			for (RGVertex v : vv.getGraphLayout().getGraph().getVertices()) {
 				Point2D vp = layout.transform(v);
 				if (picked.contains(v))
 					vp.setLocation(vp.getX() + dx, vp.getY() + dy);
@@ -170,7 +170,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 	@SuppressWarnings("unchecked")
 	public void mouseDragged(MouseEvent e) {
 		if (locked == false) {
-			VisualizationViewer<QVertex, QEdge> vv = (VisualizationViewer) e.getSource();
+			VisualizationViewer<RGVertex, BasicEdge> vv = (VisualizationViewer) e.getSource();
 			if (vertex != null) {
 				Point p = e.getPoint();
 				Point2D graphPoint = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(p);

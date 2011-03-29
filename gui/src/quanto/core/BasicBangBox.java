@@ -1,17 +1,20 @@
 package quanto.core;
 
-import java.util.TreeSet;
 
-
+/**
+ * A bang box with no data attached
+ *
+ * @author alemer
+ */
 @SuppressWarnings("serial")
-public class QBangBox implements CoreObject {
+public class BasicBangBox implements CoreObject {
 	private String name;
 
-	public QBangBox(String name) {
+	public BasicBangBox(String name) {
 		this.name = name;
 	}
 
-	public QBangBox() {
+	public BasicBangBox() {
 		this(null);
 	}
 

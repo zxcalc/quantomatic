@@ -16,10 +16,10 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.Stroke;
 import java.awt.geom.Rectangle2D;
-import quanto.core.QBangBox;
-import quanto.core.QEdge;
-import quanto.core.QVertex;
-import quanto.core.QGraph;
+import quanto.core.BasicBangBox;
+import quanto.core.BasicEdge;
+import quanto.core.RGVertex;
+import quanto.core.RGGraph;
 
 /**
  *
@@ -27,28 +27,28 @@ import quanto.core.QGraph;
  */
 public class BangBoxPaintable implements VisualizationServer.Paintable
 {
-        private PickedState<QBangBox> pickedState;
-        private BangBoxLayout<QVertex, QEdge, QBangBox> layout;
-        private QGraph graph;
-        private BasicVisualizationServer<QVertex, QEdge> server;
+        private PickedState<BasicBangBox> pickedState;
+        private BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout;
+        private RGGraph graph;
+        private BasicVisualizationServer<RGVertex, BasicEdge> server;
 
-        public BangBoxPaintable(BangBoxLayout<QVertex, QEdge, QBangBox> layout,
-                                QGraph graph,
-                                BasicVisualizationServer<QVertex, QEdge> server) {
+        public BangBoxPaintable(BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout,
+                                RGGraph graph,
+                                BasicVisualizationServer<RGVertex, BasicEdge> server) {
                 pickedState = null;
                 this.layout = layout;
                 this.graph = graph;
                 this.server = server;
         }
 
-        public void setPickedState(PickedState<QBangBox> pickedState) {
+        public void setPickedState(PickedState<BasicBangBox> pickedState) {
                 this.pickedState = pickedState;
         }
 
         public void paint(Graphics g) {
                 Color oldColor = g.getColor();
                 Stroke oldStroke = ((Graphics2D) g).getStroke();
-                for (QBangBox bb : graph.getBangBoxes()) {
+                for (BasicBangBox bb : graph.getBangBoxes()) {
                         Rectangle2D rect =
                                 layout.transformBangBox(bb);
 
