@@ -78,7 +78,7 @@
         <java-data xmlns="http://www.netbeans.org/ns/freeform-project-java/1">
             <compilation-unit>
                 <package-root>src</package-root>
-                <classpath mode="compile">src:lib/collections-generic-4.01.jar:lib/colt-1.2.0.jar:lib/concurrent-1.3.4.jar:lib/iText-5.0.5.jar:lib/nanoxml-2.2.3.jar:lib/jung-algorithms-2.0.1.jar:lib/jung-api-2.0.1.jar:lib/jung-graph-impl-2.0.1.jar:lib/jung-visualization-2.0.1.jar:lib/slf4j-api-1.6.1.jar:/home/alex/scratch/jung/collections-generic-4.01.jar:/home/alex/scratch/jung/colt-1.2.0.jar:/home/alex/scratch/jung/concurrent-1.3.4.jar:/home/alex/scratch/jung/jung-algorithms-2.0.1.jar:/home/alex/scratch/jung/jung-api-2.0.1.jar:/home/alex/scratch/jung/jung-graph-impl-2.0.1.jar:/home/alex/scratch/jung/jung-visualization-2.0.1.jar:/home/alex/scratch/jung/source:/home/alex/src/Quanto/slf4j-1.6.1/slf4j-api-1.6.1-sources.jar</classpath>
+                <classpath mode="compile">src:lib/iText-5.0.6.jar:lib/collections-generic-4.01.jar:lib/colt-1.2.0.jar:lib/concurrent-1.3.4.jar:lib/jung-algorithms-2.0.1.jar:lib/jung-api-2.0.1.jar:lib/jung-graph-impl-2.0.1.jar:lib/jung-visualization-2.0.1.jar:lib/nanoxml-2.2.3.jar:lib/slf4j-api-1.6.1.jar</classpath>
                 <built-to>build</built-to>
                 <built-to>dist/QuantoGui.jar</built-to>
                 <source-level>1.5</source-level>
@@ -118,6 +118,7 @@
                     </node>
                 </node>
             </module>
+            <module name="org-netbeans-modules-projectimport-eclipse-core"/>
         </preferences>
     </configuration>
 </project>

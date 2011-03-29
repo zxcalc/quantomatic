@@ -215,12 +215,14 @@ public class GraphVisualizationViewer
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void setGraphLayout(Layout<QVertex, QEdge> layout) {
-		if (!(layout instanceof BangBoxLayout)) {
+		if (layout instanceof BangBoxLayout) {
+			super.setGraphLayout(layout);
+			this.layout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
+		} else {
 			throw new IllegalArgumentException("Layout must be a BangBoxLayout");
 		}
-		super.setGraphLayout(layout);
-		this.layout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
 	}
 
 	/**

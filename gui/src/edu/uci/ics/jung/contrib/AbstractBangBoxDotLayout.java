@@ -8,8 +8,6 @@ package edu.uci.ics.jung.contrib;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  *

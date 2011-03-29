@@ -52,6 +52,8 @@ import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import quanto.core.Core;
 import quanto.core.CoreTalker;
 
@@ -59,6 +61,9 @@ public class InteractiveGraphView
 	extends InteractiveView
 	implements AddEdgeGraphMousePlugin.Adder<QVertex>,
 	           KeyListener {
+
+	private final static Logger logger =
+		LoggerFactory.getLogger(InteractiveGraphView.class);
 
 	private static final long serialVersionUID = 7196565776978339937L;
 
@@ -1326,26 +1331,24 @@ public class InteractiveGraphView
 		}
 
 		private QBangBox getBangBox(Layout<QVertex, QEdge> layout, double x, double y) {
-			while (layout instanceof LayoutDecorator) {
+			while ((layout instanceof LayoutDecorator) && !(layout instanceof BangBoxLayout)) {
 				layout = ((LayoutDecorator<QVertex, QEdge>) layout).getDelegate();
 			}
-			try {
+			if (layout instanceof BangBoxLayout) {
+				@SuppressWarnings("unchecked")
 				BangBoxLayout<QVertex, QEdge, QBangBox> realLayout = (BangBoxLayout<QVertex, QEdge, QBangBox>) layout;
 				QGraph graph = (QGraph) realLayout.getGraph();
 				synchronized (graph) {
 					for (QBangBox bb : graph.getBangBoxes()) {
 						Rectangle2D bbRect = realLayout.transformBangBox(bb);
 						if (bbRect == null) {
-							System.err.println("Layout hasn't caught up with us yet");
+							logger.warn("Layout hasn't caught up with us yet");
 						}
 						else if (bbRect.contains(x, y)) {
 							return bb;
 						}
 					}
 				}
-			}
-			catch (ClassCastException ex) {
-				System.err.println("When finding bang box: " + ex.getMessage());
 			}
 			return null;
 		}

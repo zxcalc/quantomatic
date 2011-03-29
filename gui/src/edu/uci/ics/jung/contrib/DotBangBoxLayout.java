@@ -29,7 +29,7 @@ public class DotBangBoxLayout<V,E,B> extends AbstractBangBoxDotLayout<V,E,B> {
 			++i;
 		}
 		bangBoxKeys = new HashMap<B, String>();
-		for (B b : ((DirectedBangBoxGraph<V, E, B>)graph).getBangBoxes()) {
+		for (B b : getGraph().getBangBoxes()) {
 			bangBoxKeys.put(b, Integer.toString(i));
 			++i;
 		}

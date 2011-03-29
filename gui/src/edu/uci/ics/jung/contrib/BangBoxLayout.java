@@ -14,4 +14,5 @@ import java.awt.geom.Rectangle2D;
  */
 public interface BangBoxLayout<V,E,B> extends Layout<V,E> {
 	Rectangle2D transformBangBox(B bb);
+	DirectedBangBoxGraph<V, E, B> getGraph();
 }
