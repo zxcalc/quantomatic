@@ -11,14 +11,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import quanto.core.BasicBangBox;
-import quanto.core.BasicEdge;
+import quanto.core.data.BasicBangBox;
+import quanto.core.data.BasicEdge;
 import quanto.core.Core;
 
 import quanto.core.CoreException;
-import quanto.core.RGGraph;
-import quanto.core.RGVertex;
-import quanto.core.Rule;
+import quanto.core.data.RGGraph;
+import quanto.core.data.RGVertex;
+import quanto.core.data.Rule;
 
 @SuppressWarnings("serial")
 public class SplitGraphView extends InteractiveView {

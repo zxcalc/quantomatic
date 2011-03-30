@@ -12,8 +12,8 @@ import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.Set;
-import quanto.core.BasicEdge;
-import quanto.core.RGVertex;
+import quanto.core.data.BasicEdge;
+import quanto.core.data.RGVertex;
 
 /**
  * Constrains the left and top drag movements of the picking graph mouse

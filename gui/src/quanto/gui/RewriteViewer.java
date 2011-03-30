@@ -1,8 +1,8 @@
 package quanto.gui;
 
 
-import quanto.core.RGGraph;
-import quanto.core.Rewrite;
+import quanto.core.data.RGGraph;
+import quanto.core.data.Rewrite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -24,7 +24,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.LineBorder;
-import quanto.core.AttachedRewrite;
+import quanto.core.data.AttachedRewrite;
 
 public class RewriteViewer extends JFrame {
 	private static final long serialVersionUID = 3627522980375030017L;

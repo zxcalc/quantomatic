@@ -1,9 +1,9 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.algorithms.layout.AKDotLayout;
-import quanto.core.RGVertex;
-import quanto.core.BasicEdge;
-import quanto.core.RGGraph;
+import quanto.core.data.RGVertex;
+import quanto.core.data.BasicEdge;
+import quanto.core.data.RGGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;

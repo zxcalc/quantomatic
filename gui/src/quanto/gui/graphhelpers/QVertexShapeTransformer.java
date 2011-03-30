@@ -10,7 +10,7 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import javax.swing.JLabel;
 import org.apache.commons.collections15.Transformer;
-import quanto.core.RGVertex;
+import quanto.core.data.RGVertex;
 
 /**
  *

@@ -1,7 +1,7 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
-import quanto.core.RGGraph;
+import quanto.core.data.RGGraph;
 import quanto.core.CoreTalker;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
@@ -21,12 +21,12 @@ import org.slf4j.LoggerFactory;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.awt.Component;
 import java.io.IOException;
-import quanto.core.BasicBangBox;
-import quanto.core.BasicEdge;
+import quanto.core.data.BasicBangBox;
+import quanto.core.data.BasicEdge;
 import quanto.core.Core;
 import quanto.core.CoreException;
-import quanto.core.RGGraphFactory;
-import quanto.core.RGVertex;
+import quanto.core.data.RGGraphFactory;
+import quanto.core.data.RGVertex;
 /**
  * Singleton class 
  * @author aleks

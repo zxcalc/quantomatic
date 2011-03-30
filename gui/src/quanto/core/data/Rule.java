@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package quanto.core;
+package quanto.core.data;
 
 /**
  *

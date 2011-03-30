@@ -1,4 +1,4 @@
-package quanto.core;
+package quanto.core.data;
 
 /**
  * An edge with no data attached.

@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package quanto.core;
+package quanto.core.data;
 
 import edu.uci.ics.jung.contrib.graph.DirectedBangBoxGraph;
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;

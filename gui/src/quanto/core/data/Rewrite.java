@@ -1,4 +1,4 @@
-package quanto.core;
+package quanto.core.data;
 
 
 public interface Rewrite<G extends CoreGraph> {

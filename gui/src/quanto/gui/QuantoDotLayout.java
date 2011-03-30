@@ -6,10 +6,10 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotBangBoxLayout;
-import quanto.core.BasicBangBox;
-import quanto.core.BasicEdge;
-import quanto.core.RGGraph;
-import quanto.core.RGVertex;
+import quanto.core.data.BasicBangBox;
+import quanto.core.data.BasicEdge;
+import quanto.core.data.RGGraph;
+import quanto.core.data.RGVertex;
 
 /**
  *

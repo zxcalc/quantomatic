@@ -1,4 +1,4 @@
-package quanto.core;
+package quanto.core.data;
 
 
 public class RGVertex implements CoreVertex, Comparable<RGVertex> {
@@ -7,7 +7,6 @@ public class RGVertex implements CoreVertex, Comparable<RGVertex> {
 	private Type vertexType;
 	private String name;
 	private String label = "0";
-	public boolean old;
 
 	public RGVertex() {
 		this(null);
@@ -15,13 +14,11 @@ public class RGVertex implements CoreVertex, Comparable<RGVertex> {
 	
 	public RGVertex(Type vertexType) {
 		this.vertexType = vertexType;
-		this.old = false;
 	}
 
 	public RGVertex(String name, Type vertexType) {
 		this.vertexType = vertexType;
-		this.old = false;
-		updateCoreName(name);
+		this.name = name;
 	}
 
 	public Type getVertexType() {
@@ -50,21 +47,30 @@ public class RGVertex implements CoreVertex, Comparable<RGVertex> {
 	public void updateCoreName(String name) {
 		this.name = name;
 	}
-	
+
 	@Override
 	public String toString() {
 		return getLabel().replace('\\', 'B')+"    ";
 	}
-	
-	public void updateTo(RGVertex v) {
-		old = false;
+
+	public void updateTo(CoreVertex v) {
+		if (!(v instanceof RGVertex))
+			throw new IllegalArgumentException("v must be an RGVertex");
 		name = v.getCoreName();
-		vertexType = v.getVertexType();
-		label = v.getLabel();
+		vertexType = ((RGVertex)v).getVertexType();
+		label = v.getDataAsString();
 	}
 
 	public String getLabel() {
 		return label;
+	}
+
+	public String getDataAsString() {
+		return label;
+	}
+
+	public void setData(String data) {
+		this.label = data;
 	}
 
 	public void setLabel(String label) {

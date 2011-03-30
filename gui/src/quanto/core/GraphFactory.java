@@ -5,7 +5,9 @@
 
 package quanto.core;
 
-import net.n3.nanoxml.IXMLElement;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.CoreVertex;
+import quanto.core.data.CoreObject;
 
 /**
  *
@@ -18,15 +20,7 @@ public interface GraphFactory<G extends CoreGraph<V,E,B>,
 {
 	public G createGraph(String name);
 	public V createVertex(String name, String vertexType);
+	public V createBoundaryVertex(String name);
 	public E createEdge(String name);
 	public B createBangBox(String name);
-
-	public G createGraphFromXml(String name, String xml)
-		throws ParseException;
-	public G createGraphFromXml(String name, IXMLElement xml)
-		throws ParseException;
-	public void updateGraphFromXml(G graph, String xml)
-		throws ParseException;
-	public void updateGraphFromXml(G graph, IXMLElement xml)
-		throws ParseException;
 }

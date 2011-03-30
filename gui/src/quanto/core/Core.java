@@ -5,6 +5,13 @@
 
 package quanto.core;
 
+import quanto.core.data.CoreGraph;
+import quanto.core.data.CoreVertex;
+import quanto.core.data.CoreObject;
+import quanto.core.data.AttachedRewrite;
+import quanto.core.data.RGGraph;
+import quanto.core.data.Rule;
+import quanto.core.data.RGVertex;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -38,10 +45,12 @@ public class Core<G extends CoreGraph<V,E,B>,
 
 	private CoreTalker talker;
 	private GraphFactory<G,V,E,B> graphFactory;
+	private GraphBuilder<G,V,E,B> graphBuilder;
 
 	public Core(CoreTalker talker, GraphFactory<G,V,E,B> graphFactory) {
 		this.talker = talker;
 		this.graphFactory = graphFactory;
+		this.graphBuilder = new GraphBuilder<G, V, E, B>(graphFactory);
 	}
 
 	public Core(GraphFactory<G,V,E,B> graphFactory) throws CoreException {
@@ -78,8 +87,8 @@ public class Core<G extends CoreGraph<V,E,B>,
 						graph,
 						i,
 						ruleName.getContent(),
-						graphFactory.createGraphFromXml(null, lhs),
-						graphFactory.createGraphFromXml(null, rhs)
+						graphBuilder.createGraphFromXml(null, lhs),
+						graphBuilder.createGraphFromXml(null, rhs)
 					));
 				++i;
 
@@ -124,9 +133,10 @@ public class Core<G extends CoreGraph<V,E,B>,
 	public void updateGraph(G graph) throws CoreException {
 		String xml = talker.graph_xml(graph.getCoreName());
 		try {
-			graphFactory.updateGraphFromXml(graph, xml);
+			graphBuilder.updateGraphFromXml(graph, xml);
 		}
 		catch (ParseException ex) {
+			logger.error("Failed to parse from core", ex);
 			throw new BadResponseException("Could not parse the graph XML from the core", xml);
 		}
 	}
@@ -166,6 +176,14 @@ public class Core<G extends CoreGraph<V,E,B>,
 	public V addVertex(G graph, String vertexType) throws CoreException {
 		assertCoreGraph(graph);
 		V v = graphFactory.createVertex(talker.add_vertex(graph.getCoreName(), vertexType), vertexType);
+		graph.addVertex(v);
+		graph.fireStateChanged();
+		return v;
+	}
+
+	public V addBoundaryVertex(G graph) throws CoreException {
+		assertCoreGraph(graph);
+		V v = graphFactory.createBoundaryVertex(talker.add_vertex(graph.getCoreName(), "boundary"));
 		graph.addVertex(v);
 		graph.fireStateChanged();
 		return v;

@@ -5,9 +5,9 @@
 
 package quanto.gui;
 
-import quanto.core.RGVertex;
-import quanto.core.BasicEdge;
-import quanto.core.RGGraph;
+import quanto.core.data.RGVertex;
+import quanto.core.data.BasicEdge;
+import quanto.core.data.RGGraph;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
@@ -25,7 +25,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.OutputStream;
 import javax.swing.JComponent;
 import org.apache.commons.collections15.Predicate;
-import quanto.core.BasicBangBox;
+import quanto.core.data.BasicBangBox;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;

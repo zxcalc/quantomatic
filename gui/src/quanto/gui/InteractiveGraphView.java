@@ -1,10 +1,10 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.visualization.decorators.Labeler;
-import quanto.core.BasicBangBox;
-import quanto.core.RGVertex;
-import quanto.core.BasicEdge;
-import quanto.core.RGGraph;
+import quanto.core.data.BasicBangBox;
+import quanto.core.data.RGVertex;
+import quanto.core.data.BasicEdge;
+import quanto.core.data.RGGraph;
 import com.itextpdf.text.DocumentException;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -47,7 +47,7 @@ import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import quanto.core.AttachedRewrite;
+import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.core.CoreTalker;
 
@@ -645,7 +645,10 @@ public class InteractiveGraphView
 
 	public void addVertex(RGVertex.Type type) {
 		try {
-			core.addVertex(getGraph(), type.name().toLowerCase());
+			if (type == RGVertex.Type.BOUNDARY)
+				core.addBoundaryVertex(getGraph());
+			else
+				core.addVertex(getGraph(), type.name().toLowerCase());
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());

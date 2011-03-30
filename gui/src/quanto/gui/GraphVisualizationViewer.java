@@ -5,10 +5,10 @@
 package quanto.gui;
 
 import javax.swing.event.ChangeEvent;
-import quanto.core.BasicBangBox;
-import quanto.core.RGVertex;
-import quanto.core.BasicEdge;
-import quanto.core.RGGraph;
+import quanto.core.data.BasicBangBox;
+import quanto.core.data.RGVertex;
+import quanto.core.data.BasicEdge;
+import quanto.core.data.RGGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
