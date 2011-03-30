@@ -1,6 +1,6 @@
 package quanto.gui;
 
-import quanto.core.BasicBangBox;
+import edu.uci.ics.jung.contrib.algorithms.layout.AKDotLayout;
 import quanto.core.RGVertex;
 import quanto.core.BasicEdge;
 import quanto.core.RGGraph;
@@ -8,18 +8,17 @@ import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 
-import edu.uci.ics.jung.contrib.algorithms.layout.AKDotBangBoxLayout;
 import java.awt.Rectangle;
 
 public class JavaQuantoDotLayout
-extends AKDotBangBoxLayout<RGVertex,BasicEdge, BasicBangBox>
+extends AKDotLayout<RGVertex, BasicEdge>
 {
 	private static final double VERTEX_PADDING = 20;
 	private static final double EMPTY_BOX_SIZE = 40;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
 
 	public JavaQuantoDotLayout(RGGraph graph, Dimension size) {
-		super(graph, VERTEX_PADDING);
+		super(graph);
 	}
 
 	public JavaQuantoDotLayout(RGGraph graph) {

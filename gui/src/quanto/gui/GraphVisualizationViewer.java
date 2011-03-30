@@ -12,22 +12,17 @@ import quanto.core.RGGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
-import edu.uci.ics.jung.contrib.algorithms.layout.BangBoxLayout;
 import edu.uci.ics.jung.contrib.visualization.decorators.MixedShapeTransformer;
 import edu.uci.ics.jung.contrib.algorithms.layout.SmoothLayoutDecorator;
+import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.Layer;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.picking.MultiPickedState;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Shape;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
@@ -36,7 +31,6 @@ import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Predicate;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.BackdropPaintable;
-import quanto.gui.graphhelpers.BangBoxPaintable;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
 import quanto.gui.graphhelpers.QVertexRenderer;
@@ -47,44 +41,32 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alex
  */
 public class GraphVisualizationViewer
-       extends VisualizationViewer<RGVertex, BasicEdge>
+       extends BangBoxVisualizationViewer<RGVertex, BasicEdge, BasicBangBox>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
 	private RGGraph graph;
-	private BangBoxPaintable bangBoxPainter;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
-	private BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout;
 	private SmoothLayoutDecorator<RGVertex, BasicEdge> smoothLayout;
-	/**
-	 * Holds the state of which bang boxes of the graph are currently
-	 * "picked"
-	 */
-	protected PickedState<BasicBangBox> pickedBangBoxState;
 
 
 	public GraphVisualizationViewer(RGGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public GraphVisualizationViewer(BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout) {
+	public GraphVisualizationViewer(Layout<RGVertex, BasicEdge> layout) {
 		super(layout);
-
-		this.layout = layout;
 
 		if (!(layout.getGraph() instanceof RGGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
 		this.graph = (RGGraph) layout.getGraph();
 
-		this.bangBoxPainter = new BangBoxPaintable(layout, graph, this);
-
 		layout.initialize();
 		setBackground(new Color(0.97f, 0.97f, 0.97f));
 
 		setupRendering();
 
-		setPickedBangBoxState(new MultiPickedState<BasicBangBox>());
 		setPreferredSize(calculateGraphSize());
 
 		graph.addChangeListener(new ChangeListener() {
@@ -122,13 +104,11 @@ public class GraphVisualizationViewer
 		//addPreRenderPaintable(new GridPaintable(new GridPaintable.BoundsCalculator() {
                 //              public Rectangle2D getBounds() { return getGraphBounds(); }
                 //}));
-
-		addPreRenderPaintable(bangBoxPainter);
 	}
 
 	private Dimension calculateGraphSize()
 	{
-		Dimension size = layout.getSize();
+		Dimension size = getGraphLayout().getSize();
 		Rectangle2D rect = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
 		Shape bound = getRenderContext().getMultiLayerTransformer().transform(rect);
 		rect = bound.getBounds2D();
@@ -168,39 +148,18 @@ public class GraphVisualizationViewer
 	}
 
 	public boolean isLocked(RGVertex v) {
-		return layout.isLocked(v);
+		return getGraphLayout().isLocked(v);
 	}
 
 	public void lock(Set<RGVertex> verts) {
 		for (RGVertex v : verts) {
-			layout.lock(v, true);
+			getGraphLayout().lock(v, true);
 		}
 	}
 
 	public void unlock(Set<RGVertex> verts) {
 		for (RGVertex v : verts) {
-			layout.lock(v, false);
-		}
-	}
-
-	public Rectangle2D transformBangBox(BasicBangBox bb) {
-		return layout.transformBangBox(bb);
-	}
-
-	public boolean isLayoutSmoothingEnabled() {
-		return smoothLayout != null;
-	}
-
-	public void setLayoutSmoothingEnabled(boolean enable) {
-		if (enable && smoothLayout == null) {
-			smoothLayout = new SmoothLayoutDecorator<RGVertex,BasicEdge>(layout);
-			smoothLayout.setOrigin(new Point2D.Double(0.0,0.0));
-			smoothLayout.initialize();
-			super.setGraphLayout(smoothLayout);
-		}
-		else if (!enable && smoothLayout != null) {
-			smoothLayout = null;
-			super.setGraphLayout(layout);
+			getGraphLayout().lock(v, false);
 		}
 	}
 
@@ -214,17 +173,6 @@ public class GraphVisualizationViewer
 			smoothLayout.setOrigin(x, y);
 	}
 
-	@Override
-	@SuppressWarnings("unchecked")
-	public void setGraphLayout(Layout<RGVertex, BasicEdge> layout) {
-		if (layout instanceof BangBoxLayout) {
-			super.setGraphLayout(layout);
-			this.layout = (BangBoxLayout<RGVertex, BasicEdge, BasicBangBox>) layout;
-		} else {
-			throw new IllegalArgumentException("Layout must be a BangBoxLayout");
-		}
-	}
-
 	/**
 	 * Draw a bounding box around the graph.
 	 */
@@ -232,7 +180,7 @@ public class GraphVisualizationViewer
 		if (enabled != boundsPaintingEnabled) {
 			if (enabled) {
 				if (boundsPaint == null) {
-					boundsPaint = new BackdropPaintable(layout);
+					boundsPaint = new BackdropPaintable(getGraphLayout());
                                         boundsPaint.setBackgroundColor(new Color(0.99f, 0.99f, 0.99f));
 				}
 				prependPreRenderPaintable(boundsPaint);
@@ -315,30 +263,11 @@ public class GraphVisualizationViewer
 		setPreferredSize(calculateGraphSize());
 
 		revalidate();
+		repaint();
 	}
 
 	public void update() {
 		revalidate();
 		repaint();
-	}
-
-	public void setPickedBangBoxState(PickedState<BasicBangBox> pickedBangBoxState) {
-		if (pickEventListener != null && this.pickedBangBoxState != null) {
-			this.pickedBangBoxState.removeItemListener(pickEventListener);
-		}
-		this.pickedBangBoxState = pickedBangBoxState;
-		if (pickEventListener == null) {
-			pickEventListener = new ItemListener() {
-				public void itemStateChanged(ItemEvent e) {
-					repaint();
-				}
-			};
-		}
-		pickedBangBoxState.addItemListener(pickEventListener);
-		bangBoxPainter.setPickedState(pickedBangBoxState);
-	}
-
-	public PickedState<BasicBangBox> getPickedBangBoxState() {
-		return pickedBangBoxState;
 	}
 }

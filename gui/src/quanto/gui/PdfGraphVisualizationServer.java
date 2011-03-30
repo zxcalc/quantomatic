@@ -12,11 +12,11 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfWriter;
+import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
-import edu.uci.ics.jung.contrib.algorithms.layout.BangBoxLayout;
+import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
-import edu.uci.ics.jung.visualization.BasicVisualizationServer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.Dimension;
@@ -27,7 +27,6 @@ import javax.swing.JComponent;
 import org.apache.commons.collections15.Predicate;
 import quanto.core.BasicBangBox;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
-import quanto.gui.graphhelpers.BangBoxPaintable;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
 import quanto.gui.graphhelpers.QVertexRenderer;
@@ -38,21 +37,17 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alemer
  */
 public class PdfGraphVisualizationServer
-        extends BasicVisualizationServer<RGVertex, BasicEdge>
+        extends BangBoxVisualizationViewer<RGVertex, BasicEdge, BasicBangBox>
 {
 	private final RGGraph graph;
-	private BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout;
-	private BangBoxPaintable bangBoxPainter;
         private boolean arrowHeadsShown = false;
 
 	public PdfGraphVisualizationServer(RGGraph graph) {
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public PdfGraphVisualizationServer(BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> layout) {
+	public PdfGraphVisualizationServer(Layout<RGVertex, BasicEdge> layout) {
 		super(layout);
-
-		this.layout = layout;
 
 		if (!(layout.getGraph() instanceof RGGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
@@ -60,7 +55,6 @@ public class PdfGraphVisualizationServer
 		this.graph = (RGGraph) layout.getGraph();
 
 		layout.initialize();
-		this.bangBoxPainter = new BangBoxPaintable(layout, graph, this);
 
                 setupRendering();
         }
@@ -90,8 +84,6 @@ public class PdfGraphVisualizationServer
 		//addPreRenderPaintable(new GridPaintable(new GridPaintable.BoundsCalculator() {
                 //              public Rectangle2D getBounds() { return getGraphBounds(); }
                 //}));
-
-		addPreRenderPaintable(bangBoxPainter);
 	}
 
         public boolean isArrowHeadsShown() {

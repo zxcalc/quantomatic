@@ -58,8 +58,8 @@ public abstract class AbstractDotLayout<V,E> extends AbstractLayout<V, E> implem
 		double bottom = vertexSpacing;
 		for (V v : getGraph().getVertices()) {
 			Point2D point = transform(v);
-			right = Math.max(right, point.getX());
-			bottom = Math.max(bottom, point.getY());
+			right = Math.max(right, point.getX() + vertexWidth(v)/2.0);
+			bottom = Math.max(bottom, point.getY() + vertexHeight(v)/2.0);
 		}
 		right += vertexSpacing;
 		bottom += vertexSpacing;

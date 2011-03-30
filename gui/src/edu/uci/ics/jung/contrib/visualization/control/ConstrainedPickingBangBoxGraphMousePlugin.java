@@ -2,11 +2,12 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
+
 package edu.uci.ics.jung.contrib.visualization.control;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.PickingGraphMousePlugin;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
@@ -16,14 +17,11 @@ import quanto.core.BasicEdge;
 import quanto.core.RGVertex;
 
 /**
- * Constrains the left and top drag movements of the picking graph mouse
- * plugin, to prevent nodes being dragged into negative co-ordinates.
  *
- * @author Alex Merry
+ * @author alemer
  */
-public class ConstrainedPickingGraphMousePlugin<V, E>
-	extends PickingGraphMousePlugin<V, E>
-{
+public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
+	extends PickingBangBoxMousePlugin<V, E, B> {
 	protected double leftConstraint = 0.0;
 	protected double topConstraint = 0.0;
 	protected double xDragBounce = 0.0;
@@ -45,7 +43,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 		MoveOthers
 	}
 
-	public ConstrainedPickingGraphMousePlugin() {
+	public ConstrainedPickingBangBoxGraphMousePlugin() {
 	}
 
 	/**
@@ -55,7 +53,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 	 * @param constrainingAction The action to perform when movement is
 	 *                           inhibited by the constraints
 	 */
-	public ConstrainedPickingGraphMousePlugin(ConstrainingAction constrainingAction) {
+	public ConstrainedPickingBangBoxGraphMousePlugin(ConstrainingAction constrainingAction) {
 		this.constrainingAction = constrainingAction;
 	}
 
@@ -68,7 +66,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 	 * @param leftConstraint The furthest left a vertex may be dragged
 	 * @param topConstraint The highest a vertex may be dragged
 	 */
-	public ConstrainedPickingGraphMousePlugin(double leftConstraint,
+	public ConstrainedPickingBangBoxGraphMousePlugin(double leftConstraint,
 						  double topConstraint) {
 		this.leftConstraint = leftConstraint;
 		this.topConstraint = topConstraint;
@@ -84,7 +82,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 	 * @param leftConstraint The furthest left a vertex may be dragged
 	 * @param topConstraint The highest a vertex may be dragged
 	 */
-	public ConstrainedPickingGraphMousePlugin(
+	public ConstrainedPickingBangBoxGraphMousePlugin(
 		ConstrainingAction constrainingAction,
 		double leftConstraint,
 		double topConstraint)
@@ -94,7 +92,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 		this.topConstraint = topConstraint;
 	}
 
-	private void moveNodes(VisualizationViewer<V, E> vv,
+	private void moveNodes(BangBoxVisualizationViewer<V, E, B> vv,
 	                       double dx, double dy)
 	{
 		Layout<V, E> layout = vv.getGraphLayout();
@@ -170,7 +168,7 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 	@SuppressWarnings("unchecked")
 	public void mouseDragged(MouseEvent e) {
 		if (locked == false) {
-			VisualizationViewer<V, E> vv = (VisualizationViewer<V, E>) e.getSource();
+			BangBoxVisualizationViewer<V, E, B> vv = (BangBoxVisualizationViewer<V, E, B>) e.getSource();
 			if (vertex != null) {
 				Point p = e.getPoint();
 				Point2D graphPoint = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(p);
@@ -194,4 +192,5 @@ public class ConstrainedPickingGraphMousePlugin<V, E>
 			vv.repaint();
 		}
 	}
+
 }

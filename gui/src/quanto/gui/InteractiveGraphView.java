@@ -6,9 +6,6 @@ import quanto.core.RGVertex;
 import quanto.core.BasicEdge;
 import quanto.core.RGGraph;
 import com.itextpdf.text.DocumentException;
-import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.algorithms.layout.LayoutDecorator;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -35,17 +32,13 @@ import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Transformer;
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
+import edu.uci.ics.jung.contrib.algorithms.layout.SmoothLayoutDecorator;
 import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
-import edu.uci.ics.jung.contrib.algorithms.layout.BangBoxLayout;
-import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingGraphMousePlugin;
-import edu.uci.ics.jung.contrib.algorithms.layout.DynamicBoundsLayout;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
-import edu.uci.ics.jung.visualization.Layer;
+import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingBangBoxGraphMousePlugin;
 import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.*;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import java.io.OutputStream;
 import java.util.EventListener;
@@ -229,7 +222,14 @@ public class InteractiveGraphView
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new BangBoxAwarePickerMousePlugin();
+			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin() {
+				// don't change the cursor
+				@Override
+				public void mouseEntered(MouseEvent e) {}
+				@Override
+				public void mouseExited(MouseEvent e) {}
+
+			};
 			edgeMouse = new AddEdgeGraphMousePlugin<RGVertex, BasicEdge>(
 				viewer,
 				InteractiveGraphView.this,
@@ -282,11 +282,10 @@ public class InteractiveGraphView
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 
-		viewer = new GraphVisualizationViewer(g);
+		viewer = new GraphVisualizationViewer(new SmoothLayoutDecorator<RGVertex, BasicEdge>(new QuantoDotLayout(g)));
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
-		viewer.setLayoutSmoothingEnabled(true);
 
 		Relaxer r = viewer.getModel().getRelaxer();
 		if (r != null) {
@@ -1307,165 +1306,6 @@ public class InteractiveGraphView
 
 	public boolean isSaved() {
 		return getGraph().isSaved();
-	}
-
-	static class BangBoxAwarePickerMousePlugin
-		extends ConstrainedPickingGraphMousePlugin<RGVertex, BasicEdge> {
-
-		protected BasicBangBox bangBox;
-
-		public BangBoxAwarePickerMousePlugin() {
-			super(ConstrainingAction.MoveOthers, 20, 20);
-		}
-
-		private BasicBangBox getBangBox(Layout<RGVertex, BasicEdge> layout, double x, double y) {
-			while ((layout instanceof LayoutDecorator) && !(layout instanceof BangBoxLayout)) {
-				layout = ((LayoutDecorator<RGVertex, BasicEdge>) layout).getDelegate();
-			}
-			if (layout instanceof BangBoxLayout) {
-				@SuppressWarnings("unchecked")
-				BangBoxLayout<RGVertex, BasicEdge, BasicBangBox> realLayout = (BangBoxLayout<RGVertex, BasicEdge, BasicBangBox>) layout;
-				RGGraph graph = (RGGraph) realLayout.getGraph();
-				synchronized (graph) {
-					for (BasicBangBox bb : graph.getBangBoxes()) {
-						Rectangle2D bbRect = realLayout.transformBangBox(bb);
-						if (bbRect == null) {
-							logger.warn("Layout hasn't caught up with us yet");
-						}
-						else if (bbRect.contains(x, y)) {
-							return bb;
-						}
-					}
-				}
-			}
-			return null;
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public void mousePressed(MouseEvent e) {
-			down = e.getPoint();
-			VisualizationViewer<RGVertex, BasicEdge> vv = (VisualizationViewer) e.getSource();
-			GraphElementAccessor<RGVertex, BasicEdge> pickSupport = vv.getPickSupport();
-			PickedState<RGVertex> pickedVertexState = vv.getPickedVertexState();
-			PickedState<BasicEdge> pickedEdgeState = vv.getPickedEdgeState();
-			PickedState<BasicBangBox> pickedBangBoxState = ((GraphVisualizationViewer) vv).getPickedBangBoxState();
-			if (pickSupport != null && pickedVertexState != null) {
-				Layout<RGVertex, BasicEdge> layout = vv.getGraphLayout();
-				if (e.getModifiers() == modifiers) {
-					rect.setFrameFromDiagonal(down, down);
-					// p is the screen point for the mouse event
-					Point2D ip = e.getPoint();
-
-					vertex = pickSupport.getVertex(layout, ip.getX(), ip.getY());
-					if (vertex != null) {
-						if (pickedVertexState.isPicked(vertex) == false) {
-							pickedVertexState.clear();
-							pickedEdgeState.clear();
-							pickedBangBoxState.clear();
-							pickedVertexState.pick(vertex, true);
-						}
-						// layout.getLocation applies the layout transformer so
-						// q is transformed by the layout transformer only
-						Point2D q = layout.transform(vertex);
-						// transform the mouse point to graph coordinate system
-						Point2D gp = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(Layer.LAYOUT, ip);
-
-						offsetx = (float) (gp.getX() - q.getX());
-						offsety = (float) (gp.getY() - q.getY());
-					}
-					else if ((edge = pickSupport.getEdge(layout, ip.getX(), ip.getY())) != null) {
-						pickedEdgeState.clear();
-						pickedVertexState.clear();
-						pickedBangBoxState.clear();
-						pickedEdgeState.pick(edge, true);
-					}
-					else if ((bangBox = getBangBox(layout, ip.getX(), ip.getY())) != null) {
-						pickedEdgeState.clear();
-						pickedVertexState.clear();
-						pickedBangBoxState.clear();
-						pickedBangBoxState.pick(bangBox, true);
-					}
-					else {
-						vv.addPostRenderPaintable(lensPaintable);
-						pickedEdgeState.clear();
-						pickedVertexState.clear();
-						pickedBangBoxState.clear();
-					}
-
-				}
-				else if (e.getModifiers() == addToSelectionModifiers) {
-					vv.addPostRenderPaintable(lensPaintable);
-					rect.setFrameFromDiagonal(down, down);
-					Point2D ip = e.getPoint();
-					vertex = pickSupport.getVertex(layout, ip.getX(), ip.getY());
-					if (vertex != null) {
-						boolean wasThere = pickedVertexState.pick(vertex, !pickedVertexState.isPicked(vertex));
-						if (wasThere) {
-							vertex = null;
-						}
-						else {
-
-							// layout.getLocation applies the layout transformer so
-							// q is transformed by the layout transformer only
-							Point2D q = layout.transform(vertex);
-							// translate mouse point to graph coord system
-							Point2D gp = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(Layer.LAYOUT, ip);
-
-							offsetx = (float) (gp.getX() - q.getX());
-							offsety = (float) (gp.getY() - q.getY());
-						}
-					}
-					else if ((edge = pickSupport.getEdge(layout, ip.getX(), ip.getY())) != null) {
-						pickedEdgeState.pick(edge, !pickedEdgeState.isPicked(edge));
-					}
-					else if ((bangBox = getBangBox(layout, ip.getX(), ip.getY())) != null) {
-						pickedBangBoxState.pick(bangBox, !pickedBangBoxState.isPicked(bangBox));
-					}
-				}
-			}
-			if (vertex != null) {
-				e.consume();
-			}
-
-		}
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public void mouseReleased(MouseEvent e) {
-			boolean recalcSize = false;
-			if (vertex != null) {
-				recalcSize = true;
-			}
-
-			super.mouseReleased(e);
-			bangBox = null;
-
-			if (recalcSize) {
-				VisualizationViewer<RGVertex, BasicEdge> vv = (VisualizationViewer) e.getSource();
-				Layout<RGVertex, BasicEdge> layout = vv.getGraphLayout();
-				while (layout instanceof LayoutDecorator) {
-					layout = ((LayoutDecorator<RGVertex, BasicEdge>) layout).getDelegate();
-				}
-				try {
-					DynamicBoundsLayout realLayout = (DynamicBoundsLayout) layout;
-					realLayout.recalculateSize();
-				}
-				catch (ClassCastException ex) {
-					System.err.println("When mouse released: " + ex.getMessage());
-				}
-			}
-		}
-
-		@Override
-		public void mouseEntered(MouseEvent e) {
-			// don't change the cursor
-		}
-
-		@Override
-		public void mouseExited(MouseEvent e) {
-			// don't change the cursor
-		}
 	}
 
 	public void keyPressed(KeyEvent e) {
