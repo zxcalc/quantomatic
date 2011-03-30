@@ -423,8 +423,10 @@ functor ControllerState(
       | new_graph _ = raise wrong_args_exp ();
 
     fun load_graph ([fname], state) = 
-        create_graph GraphName.default_name 
-                     (Input.Graph.input (XMLReader.read_from_file fname)) state
+        ((create_graph GraphName.default_name 
+                     (Input.Graph.input (XMLReader.read_from_file fname)) state)
+         handle Input.Graph.bad_input_exp s => 
+               raise user_exp ("The file '"^fname^"' is not a well-formed xml that defines a graph (reason: "^s^")"))
       | load_graph _ = raise wrong_args_exp ()
     (* fun input_graph_xml ([], state) = 
         let val gr_block = read_block ()
