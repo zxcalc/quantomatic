@@ -13,7 +13,6 @@ import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.visualization.decorators.MixedShapeTransformer;
-import edu.uci.ics.jung.contrib.algorithms.layout.SmoothLayoutDecorator;
 import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
@@ -26,7 +25,6 @@ import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
-import java.util.Set;
 import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Predicate;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
@@ -47,7 +45,6 @@ public class GraphVisualizationViewer
 	private RGGraph graph;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
-	private SmoothLayoutDecorator<RGVertex, BasicEdge> smoothLayout;
 
 
 	public GraphVisualizationViewer(RGGraph graph) {
@@ -145,32 +142,6 @@ public class GraphVisualizationViewer
 
 	public RGGraph getGraph() {
 		return graph;
-	}
-
-	public boolean isLocked(RGVertex v) {
-		return getGraphLayout().isLocked(v);
-	}
-
-	public void lock(Set<RGVertex> verts) {
-		for (RGVertex v : verts) {
-			getGraphLayout().lock(v, true);
-		}
-	}
-
-	public void unlock(Set<RGVertex> verts) {
-		for (RGVertex v : verts) {
-			getGraphLayout().lock(v, false);
-		}
-	}
-
-	public void setSmoothingOrigin(Point2D o) {
-		if (smoothLayout != null)
-			smoothLayout.setOrigin(o);
-	}
-
-	public void setSmoothingOrigin(double x, double y) {
-		if (smoothLayout != null)
-			smoothLayout.setOrigin(x, y);
 	}
 
 	/**

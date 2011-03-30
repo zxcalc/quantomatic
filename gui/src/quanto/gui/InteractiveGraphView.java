@@ -95,6 +95,7 @@ public class InteractiveGraphView
 	private List<Job> activeJobs = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
+	private SmoothLayoutDecorator<RGVertex, BasicEdge> smoothLayout;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -282,7 +283,8 @@ public class InteractiveGraphView
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 
-		viewer = new GraphVisualizationViewer(new SmoothLayoutDecorator<RGVertex, BasicEdge>(new QuantoDotLayout(g)));
+		smoothLayout = new SmoothLayoutDecorator<RGVertex, BasicEdge>(new QuantoDotLayout(g));
+		viewer = new GraphVisualizationViewer(smoothLayout);
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -328,7 +330,7 @@ public class InteractiveGraphView
 
 				public Stroke transform(RGVertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)
-						|| viewer.isLocked(v)) {
+						|| isVertexLocked(v)) {
 						return new BasicStroke(2);
 					}
 					else {
@@ -343,7 +345,7 @@ public class InteractiveGraphView
 					if (viewer.getPickedVertexState().isPicked(v)) {
 						return Color.blue;
 					}
-					else if (viewer.isLocked(v)) {
+					else if (isVertexLocked(v)) {
 						return Color.gray;
 					}
 					else {
@@ -358,6 +360,22 @@ public class InteractiveGraphView
 		viewer.setBoundingBoxEnabled(true);
 
 		buildActionMap();
+	}
+
+	public boolean isVertexLocked(RGVertex v) {
+		return viewer.getGraphLayout().isLocked(v);
+	}
+
+	public void lockVertices(Set<RGVertex> verts) {
+		for (RGVertex v : verts) {
+			viewer.getGraphLayout().lock(v, true);
+		}
+	}
+
+	public void unlockVertices(Set<RGVertex> verts) {
+		for (RGVertex v : verts) {
+			viewer.getGraphLayout().lock(v, false);
+		}
 	}
 
 	public boolean isSaveEnabled() {
@@ -902,7 +920,7 @@ public class InteractiveGraphView
 					rewriteCache.get(index).getLhs());
 				if (sub.size() > 0) {
 					Rectangle2D rect = viewer.getSubgraphBounds(sub);
-					viewer.setSmoothingOrigin(rect.getCenterX(), rect.getCenterY());
+					smoothLayout.setOrigin(rect.getCenterX(), rect.getCenterY());
 				}
 			}
 			core.applyAttachedRewrite(getGraph(), index);
@@ -1179,13 +1197,13 @@ public class InteractiveGraphView
 		});
 		actionMap.put(LOCK_VERTICES_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				viewer.lock(viewer.getPickedVertexState().getPicked());
+				lockVertices(viewer.getPickedVertexState().getPicked());
 				repaint();
 			}
 		});
 		actionMap.put(UNLOCK_VERTICES_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				viewer.unlock(viewer.getPickedVertexState().getPicked());
+				unlockVertices(viewer.getPickedVertexState().getPicked());
 				repaint();
 			}
 		});
