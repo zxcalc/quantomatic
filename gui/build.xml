@@ -47,7 +47,7 @@
     <mkdir dir="${build}"/>
     <mkdir dir="${build.debug}"/>
     <!-- Make sure quanto core is up to date -->
-    <exec executable="make" dir="../core">
+    <exec executable="make" dir="../core" failonerror="true">
       <arg value="bin" />
     </exec>
   </target>
