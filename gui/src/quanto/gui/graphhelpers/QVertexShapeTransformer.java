@@ -10,27 +10,30 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import javax.swing.JLabel;
 import org.apache.commons.collections15.Transformer;
-import quanto.core.data.RGVertex;
+
+import quanto.core.Theory;
+import quanto.core.data.Vertex;
 
 /**
- *
+ * 
  * @author alemer
  */
-public class QVertexShapeTransformer implements Transformer<RGVertex, Shape>
-{
-        public Shape transform(RGVertex v) {
-                if (v.getVertexType() == RGVertex.Type.BOUNDARY) {
-                        String text = v.getLabel();
-                        double width =
-                                new JLabel(text).getPreferredSize().getWidth();
-                        width = Math.max(width, 14);
-                        return new Rectangle2D.Double(-(width / 2), -7, width, 14);
-                }
-                else if (v.getVertexType() == RGVertex.Type.HADAMARD) {
-                        return new Rectangle2D.Double(-7, -7, 14, 14);
-                }
-                else {
-                        return new Ellipse2D.Double(-7, -7, 14, 14);
-                }
-        }
+public class QVertexShapeTransformer implements Transformer<Vertex, Shape> {
+	private Theory theory;
+	private static final Rectangle2D vertexBounds = new Rectangle2D.Double(-7, -7, 14, 14);
+
+	public QVertexShapeTransformer(Theory theory) {
+		this.theory = theory;
+	}
+
+	public Shape transform(Vertex v) {
+		if (v.isBoundaryVertex()) {
+			String text = v.getLabel();
+			double width = new JLabel(text).getPreferredSize().getWidth();
+			width = Math.max(width, 14);
+			return new Rectangle2D.Double(-(width / 2), -7, width, 14);
+		} else {
+			return theory.getVertexVisualizationData(v.getVertexType()).getShape(vertexBounds);
+		}
+	}
 }

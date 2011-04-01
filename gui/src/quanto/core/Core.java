@@ -5,56 +5,123 @@
 
 package quanto.core;
 
-import quanto.core.data.CoreGraph;
-import quanto.core.data.CoreVertex;
-import quanto.core.data.CoreObject;
-import quanto.core.data.AttachedRewrite;
-import quanto.core.data.RGGraph;
-import quanto.core.data.Rule;
-import quanto.core.data.RGVertex;
+import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
 import net.n3.nanoxml.IXMLElement;
 import net.n3.nanoxml.IXMLParser;
 import net.n3.nanoxml.StdXMLBuilder;
 import net.n3.nanoxml.StdXMLReader;
 import net.n3.nanoxml.XMLException;
 import net.n3.nanoxml.XMLParserFactory;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import quanto.core.data.AttachedRewrite;
+import quanto.core.data.BangBox;
+import quanto.core.data.BoundaryVertex;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.CoreObject;
+import quanto.core.data.Edge;
+import quanto.core.data.GraphElementData;
+import quanto.core.data.HVertexVisualizationData;
+import quanto.core.data.RGVertexVisualizationData;
+import quanto.core.data.Rule;
+import quanto.core.data.Vertex;
+import quanto.core.data.VertexVisualizationData;
 import quanto.util.FileUtils;
 
 /**
  * Provides a nicer interface to the core
- *
+ * 
  * @author alex
  */
-public class Core<G extends CoreGraph<V,E,B>,
-	          V extends CoreVertex,
-	          E extends CoreObject,
-	          B extends CoreObject> {
+public class Core {
 
-	private final static Logger logger =
-		LoggerFactory.getLogger(Core.class);
+	private final static Logger logger = LoggerFactory.getLogger(Core.class);
 
-	private CoreTalker talker;
-	private GraphFactory<G,V,E,B> graphFactory;
-	private GraphBuilder<G,V,E,B> graphBuilder;
+	private class CoreTheory implements Theory {
+		Map<String, VertexVisualizationData> visData = new HashMap<String, VertexVisualizationData>();
+		Map<String, DataType> dataTypes = new HashMap<String, DataType>();
+		Map<String, String> defaults = new HashMap<String, String>();
 
-	public Core(CoreTalker talker, GraphFactory<G,V,E,B> graphFactory) {
-		this.talker = talker;
-		this.graphFactory = graphFactory;
-		this.graphBuilder = new GraphBuilder<G, V, E, B>(graphFactory);
+		@Override
+		public VertexVisualizationData getVertexVisualizationData(
+				String vertexType) {
+			return visData.get(vertexType);
+		}
+
+		@Override
+		public Collection<String> getVertexTypes() {
+			return visData.keySet();
+		}
+
+		void addVertexType(String typeName,
+				VertexVisualizationData visualizationData, DataType dataType) {
+			visData.put(typeName, visualizationData);
+			this.dataTypes.put(typeName, dataType);
+		}
+		
+		void setDefaultData(String typeName, String value) {
+			defaults.put(typeName, value);
+		}
+
+		@Override
+		public DataType vertexDataType(String vertexType) {
+			return this.dataTypes.get(vertexType);
+		}
+
+		@Override
+		public boolean vertexHasData(String vertexType) {
+			return this.dataTypes.get(vertexType) != DataType.None;
+		}
+
+		@Override
+		public GraphElementData createDefaultData(String vertexType) {
+			if (vertexHasData(vertexType)) {
+				GraphElementData d = new GraphElementData();
+				d.setValue(defaults.get(vertexType));
+				return d;
+			} else {
+				return null;
+			}
+		}
 	}
 
-	public Core(GraphFactory<G,V,E,B> graphFactory) throws CoreException {
-		this(new CoreConsoleTalker(), graphFactory);
+	private CoreTalker talker;
+	private GraphBuilder graphBuilder;
+	private CoreTheory activeTheory;
+
+	public Core(CoreTalker talker) {
+		this.talker = talker;
+		this.activeTheory = new CoreTheory();
+		activeTheory.addVertexType("red", new RGVertexVisualizationData(
+				Color.red), Theory.DataType.MathExpression);
+		activeTheory.setDefaultData("red", "0");
+		activeTheory.addVertexType("green", new RGVertexVisualizationData(
+				Color.green), Theory.DataType.MathExpression);
+		activeTheory.setDefaultData("green", "0");
+		activeTheory.addVertexType("hadamard", new HVertexVisualizationData(),
+				Theory.DataType.None);
+		this.graphBuilder = new GraphBuilder(activeTheory);
+	}
+
+	public Core() throws CoreException {
+		this(new CoreConsoleTalker());
+	}
+
+	public Theory getActiveTheory() {
+		return activeTheory;
 	}
 
 	private String[] names(Collection<? extends CoreObject> c) {
@@ -66,30 +133,35 @@ public class Core<G extends CoreGraph<V,E,B>,
 		}
 		return ns;
 	}
+	
+	private Vertex createVertex(String name, String vertexType) {
+		Vertex v = new Vertex(name, vertexType);
+		v.setData(activeTheory.createDefaultData(vertexType));
+		return v;
+	}
 
-	protected List<AttachedRewrite<G>> parseRewrites(G graph, String xml) throws ParseException {
-		List<AttachedRewrite<G>> rewrites = new ArrayList<AttachedRewrite<G>>();
+	protected List<AttachedRewrite<CoreGraph>> parseRewrites(CoreGraph graph,
+			String xml) throws ParseException {
+		List<AttachedRewrite<CoreGraph>> rewrites = new ArrayList<AttachedRewrite<CoreGraph>>();
 		try {
-			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
+			IXMLParser parser = XMLParserFactory
+					.createDefaultXMLParser(new StdXMLBuilder());
 			parser.setReader(StdXMLReader.stringReader(xml));
-			IXMLElement root = (IXMLElement)parser.parse();
+			IXMLElement root = (IXMLElement) parser.parse();
 			int i = 0;
 			for (Object obj : root.getChildrenNamed("rewrite")) {
-				IXMLElement rw = (IXMLElement)obj;
+				IXMLElement rw = (IXMLElement) obj;
 				IXMLElement ruleName = rw.getFirstChildNamed("rulename");
 				if (ruleName == null)
-					throw new XMLException("<rewrite> must have a <rulename> element");
+					throw new XMLException(
+							"<rewrite> must have a <rulename> element");
 				IXMLElement lhs = rw.getFirstChildNamed("lhs")
-					.getFirstChildNamed("graph");
+						.getFirstChildNamed("graph");
 				IXMLElement rhs = rw.getFirstChildNamed("rhs")
-					.getFirstChildNamed("graph");
-				rewrites.add(new AttachedRewrite<G>(
-						graph,
-						i,
-						ruleName.getContent(),
-						graphBuilder.createGraphFromXml(null, lhs),
-						graphBuilder.createGraphFromXml(null, rhs)
-					));
+						.getFirstChildNamed("graph");
+				rewrites.add(new AttachedRewrite<CoreGraph>(graph, i, ruleName
+						.getContent(), graphBuilder.createGraphFromXml(null,
+						lhs), graphBuilder.createGraphFromXml(null, rhs)));
 				++i;
 
 			}
@@ -114,152 +186,169 @@ public class Core<G extends CoreGraph<V,E,B>,
 			throw new IllegalStateException("The graph does not have a name");
 	}
 
-	public G createEmptyGraph() throws CoreException {
-		return graphFactory.createGraph(talker.new_graph());
+	public CoreGraph createEmptyGraph() throws CoreException {
+		return new CoreGraph(talker.new_graph());
 	}
 
-	public G loadGraph(File location) throws CoreException, IOException {
-		G g = graphFactory.createGraph(talker.load_graph(location));
+	public CoreGraph loadGraph(File location) throws CoreException, IOException {
+		CoreGraph g = new CoreGraph(talker.load_graph(location));
 		updateGraph(g);
 		g.setFileName(location.getAbsolutePath());
 		return g;
 	}
 
-	public void saveGraph(G graph, File location) throws CoreException, IOException {
+	public void saveGraph(CoreGraph graph, File location) throws CoreException,
+			IOException {
 		assertCoreGraph(graph);
 		talker.save_graph(graph.getCoreName(), location);
 	}
 
-	public void updateGraph(G graph) throws CoreException {
+	public void updateGraph(CoreGraph graph) throws CoreException {
 		String xml = talker.graph_xml(graph.getCoreName());
 		try {
 			graphBuilder.updateGraphFromXml(graph, xml);
-		}
-		catch (ParseException ex) {
+		} catch (ParseException ex) {
 			logger.error("Failed to parse from core", ex);
-			throw new BadResponseException("Could not parse the graph XML from the core", xml);
+			throw new BadResponseException(
+					"Could not parse the graph XML from the core", xml);
 		}
 	}
 
 	public enum RepresentationType {
-		Plain,
-		Latex,
-		Mathematica,
-		Matlab
+		Plain, Latex, Mathematica, Matlab
 	}
 
-	public String hilbertSpaceRepresentation(G graph, RepresentationType format) throws CoreException {
-		return talker.hilb(graph.getCoreName(), format.toString().toLowerCase());
+	public String hilbertSpaceRepresentation(CoreGraph graph,
+			RepresentationType format) throws CoreException {
+		return talker
+				.hilb(graph.getCoreName(), format.toString().toLowerCase());
 	}
 
-	public void renameGraph(G graph, String suggestedNewName) throws CoreException {
+	public void renameGraph(CoreGraph graph, String suggestedNewName)
+			throws CoreException {
 		assertCoreGraph(graph);
-		graph.updateCoreName(talker.rename_graph(graph.getCoreName(), suggestedNewName));
+		graph.updateCoreName(talker.rename_graph(graph.getCoreName(),
+				suggestedNewName));
 	}
 
-	public void forgetGraph(G graph) throws CoreException {
+	public void forgetGraph(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.kill_graph(graph.getCoreName());
 		graph.updateCoreName(null);
 	}
 
-	public void undo(G graph) throws CoreException {
+	public void undo(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.undo(graph.getCoreName());
 	}
 
-	public void redo(G graph) throws CoreException {
+	public void redo(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.redo(graph.getCoreName());
 	}
 
-	public V addVertex(G graph, String vertexType) throws CoreException {
+	public Vertex addVertex(CoreGraph graph, String vertexType)
+			throws CoreException {
 		assertCoreGraph(graph);
-		V v = graphFactory.createVertex(talker.add_vertex(graph.getCoreName(), vertexType), vertexType);
+		Vertex v = createVertex(
+				talker.add_vertex(graph.getCoreName(), vertexType), vertexType);
 		graph.addVertex(v);
 		graph.fireStateChanged();
 		return v;
 	}
 
-	public V addBoundaryVertex(G graph) throws CoreException {
+	public Vertex addBoundaryVertex(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
-		V v = graphFactory.createBoundaryVertex(talker.add_vertex(graph.getCoreName(), "boundary"));
+		Vertex v = new BoundaryVertex(talker.add_vertex(graph.getCoreName(),
+				"boundary"));
 		graph.addVertex(v);
 		graph.fireStateChanged();
 		return v;
 	}
 
-	public void renameVertex(G graph, V vertex, String suggestedNewName) throws CoreException {
+	public void renameVertex(CoreGraph graph, Vertex vertex,
+			String suggestedNewName) throws CoreException {
 		assertCoreGraph(graph);
-		vertex.updateCoreName(talker.rename_vertex(graph.getCoreName(), vertex.getCoreName(), suggestedNewName));
+		vertex.updateCoreName(talker.rename_vertex(graph.getCoreName(),
+				vertex.getCoreName(), suggestedNewName));
 	}
 
-	public void setVertexAngle(RGGraph graph, RGVertex v, String angle) throws CoreException {
+	public void setVertexAngle(CoreGraph graph, Vertex v, String angle)
+			throws CoreException {
 		assertCoreGraph(graph);
 		talker.set_angle(graph.getCoreName(), v.getCoreName(), angle);
-		v.setLabel(angle);
+		v.getData().setValue(angle);
 		graph.fireStateChanged();
 	}
 
-	public void deleteVertices(G graph, Collection<V> vertices) throws CoreException {
+	public void deleteVertices(CoreGraph graph, Collection<Vertex> vertices)
+			throws CoreException {
 		assertCoreGraph(graph);
 		talker.delete_vertices(graph.getCoreName(), names(vertices));
-		for (V v : vertices) {
+		for (Vertex v : vertices) {
 			graph.removeVertex(v);
 		}
 		graph.fireStateChanged();
 	}
 
-	public E addEdge(G graph, V source, V target) throws CoreException {
+	public Edge addEdge(CoreGraph graph, Vertex source, Vertex target)
+			throws CoreException {
 		assertCoreGraph(graph);
-		String eName = talker.add_edge(graph.getCoreName(), source.getCoreName(), target.getCoreName());
-		E e = graphFactory.createEdge(eName);
+		String eName = talker.add_edge(graph.getCoreName(),
+				source.getCoreName(), target.getCoreName());
+		Edge e = new Edge(eName);
 		graph.addEdge(e, source, target);
 		graph.fireStateChanged();
 		return e;
 	}
 
-	public void deleteEdges(G graph, Collection<E> edges) throws CoreException {
+	public void deleteEdges(CoreGraph graph, Collection<Edge> edges)
+			throws CoreException {
 		assertCoreGraph(graph);
 		talker.delete_edges(graph.getCoreName(), names(edges));
-		for (E e : edges) {
+		for (Edge e : edges) {
 			graph.removeEdge(e);
 		}
 		graph.fireStateChanged();
 	}
 
-	public B addBangBox(G graph, Collection<V> vertices) throws CoreException {
+	public BangBox addBangBox(CoreGraph graph, Collection<Vertex> vertices)
+			throws CoreException {
 		assertCoreGraph(graph);
-		B bb = graphFactory.createBangBox(talker.add_bang(graph.getCoreName()));
+		BangBox bb = new BangBox(talker.add_bang(graph.getCoreName()));
 		if (vertices.size() > 0) {
-			talker.bang_vertices(graph.getCoreName(), bb.getCoreName(), names(vertices));
+			talker.bang_vertices(graph.getCoreName(), bb.getCoreName(),
+					names(vertices));
 		}
 		graph.addBangBox(bb, vertices);
 		graph.fireStateChanged();
 		return bb;
 	}
 
-	public void removeVerticesFromBangBoxes(G graph, Collection<V> vertices) throws CoreException {
+	public void removeVerticesFromBangBoxes(CoreGraph graph,
+			Collection<Vertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		talker.unbang_vertices(graph.getCoreName(), names(vertices));
 		updateGraph(graph);
 	}
 
-	public void dropBangBoxes(G graph, Collection<B> bboxen) throws CoreException {
+	public void dropBangBoxes(CoreGraph graph, Collection<BangBox> bboxen)
+			throws CoreException {
 		assertCoreGraph(graph);
 		talker.bbox_drop(graph.getCoreName(), names(bboxen));
-		for (B bb : bboxen) {
+		for (BangBox bb : bboxen) {
 			graph.removeBangBox(bb);
 		}
 		graph.fireStateChanged();
 	}
 
-	public void killBangBoxes(G graph, Collection<B> bboxen) throws CoreException {
+	public void killBangBoxes(CoreGraph graph, Collection<BangBox> bboxen)
+			throws CoreException {
 		assertCoreGraph(graph);
 		talker.bbox_kill(graph.getCoreName(), names(bboxen));
 		// FIXME: this is inefficient for multiple overlapping !-boxes
-		for (B bb : bboxen) {
-			for (V v : graph.getBoxedVertices(bb)) {
+		for (BangBox bb : bboxen) {
+			for (Vertex v : graph.getBoxedVertices(bb)) {
 				graph.removeVertex(v);
 			}
 			graph.removeBangBox(bb);
@@ -267,12 +356,14 @@ public class Core<G extends CoreGraph<V,E,B>,
 		graph.fireStateChanged();
 	}
 
-	public B mergeBangBoxes(G graph, Collection<B> bboxen) throws CoreException {
+	public BangBox mergeBangBoxes(CoreGraph graph, Collection<BangBox> bboxen)
+			throws CoreException {
 		assertCoreGraph(graph);
-		B newbb = graphFactory.createBangBox(talker.bbox_merge(graph.getCoreName(), names(bboxen)));
-		List<V> contents = new LinkedList<V>();
-		for (B bb : bboxen) {
-			for (V v : graph.getBoxedVertices(bb)) {
+		BangBox newbb = new BangBox(talker.bbox_merge(graph.getCoreName(),
+				names(bboxen)));
+		List<Vertex> contents = new LinkedList<Vertex>();
+		for (BangBox bb : bboxen) {
+			for (Vertex v : graph.getBoxedVertices(bb)) {
 				contents.add(v);
 			}
 			graph.removeBangBox(bb);
@@ -282,12 +373,14 @@ public class Core<G extends CoreGraph<V,E,B>,
 		return newbb;
 	}
 
-	public B duplicateBangBox(G graph, B bbox) throws CoreException {
+	public BangBox duplicateBangBox(CoreGraph graph, BangBox bbox)
+			throws CoreException {
 		assertCoreGraph(graph);
-		String name = talker.bbox_duplicate(graph.getCoreName(), bbox.getCoreName());
+		String name = talker.bbox_duplicate(graph.getCoreName(),
+				bbox.getCoreName());
 		updateGraph(graph);
 		graph.fireStateChanged();
-		for (B bb : graph.getBangBoxes()) {
+		for (BangBox bb : graph.getBangBoxes()) {
 			if (bb.getCoreName().equals(name))
 				return bb;
 		}
@@ -324,32 +417,34 @@ public class Core<G extends CoreGraph<V,E,B>,
 		}
 	}
 
-	public Rule<G> createRule(String ruleName, G lhs, G rhs) throws CoreException {
+	public Rule<CoreGraph> createRule(String ruleName, CoreGraph lhs,
+			CoreGraph rhs) throws CoreException {
 		assertCoreGraph(lhs);
 		assertCoreGraph(rhs);
 		talker.new_rule(ruleName, lhs.getCoreName(), rhs.getCoreName());
-		return new Rule<G>(ruleName, lhs, rhs);
+		return new Rule<CoreGraph>(ruleName, lhs, rhs);
 	}
 
-	public Rule<G> openRule(String ruleName) throws CoreException {
-		G lhs = graphFactory.createGraph(talker.open_rule_lhs(ruleName));
+	public Rule<CoreGraph> openRule(String ruleName) throws CoreException {
+		CoreGraph lhs = new CoreGraph(talker.open_rule_lhs(ruleName));
 		updateGraph(lhs);
-		G rhs = graphFactory.createGraph(talker.open_rule_rhs(ruleName));
+		CoreGraph rhs = new CoreGraph(talker.open_rule_rhs(ruleName));
 		updateGraph(rhs);
-		return new Rule<G>(ruleName, lhs, rhs);
+		return new Rule<CoreGraph>(ruleName, lhs, rhs);
 	}
 
-	public void saveRule(Rule<G> rule) throws CoreException {
+	public void saveRule(Rule<CoreGraph> rule) throws CoreException {
 		if (rule.getCoreName() == null)
 			throw new IllegalArgumentException("Rule has no name");
-		talker.update_rule(rule.getCoreName(), rule.getLhs().getCoreName(), rule.getRhs().getCoreName());
+		talker.update_rule(rule.getCoreName(), rule.getLhs().getCoreName(),
+				rule.getRhs().getCoreName());
 	}
 
 	/*
-	 * Derived methods, note these are in CamelCase to emphasise that they
-	 * are not actual core commands.
+	 * Derived methods, note these are in CamelCase to emphasise that they are
+	 * not actual core commands.
 	 */
-	public void fastNormalise(G graph) throws CoreException {
+	public void fastNormalise(CoreGraph graph) throws CoreException {
 		boolean didRewrites = false;
 		try {
 			while (true) {
@@ -357,44 +452,50 @@ public class Core<G extends CoreGraph<V,E,B>,
 				didRewrites = true;
 			}
 		} catch (CoreException e) {
-			if (! e.getMessage().contains("No more rewrites.")) throw e;
+			if (!e.getMessage().contains("No more rewrites."))
+				throw e;
 		}
 		if (didRewrites)
 			updateGraph(graph);
 	}
 
-	public void cutSubgraph(G graph, Collection<V> vertices) throws CoreException {
+	public void cutSubgraph(CoreGraph graph, Collection<Vertex> vertices)
+			throws CoreException {
 		assertCoreGraph(graph);
 		String[] vnames = names(vertices);
 		talker.copy_subgraph(graph.getCoreName(), "__clip__", vnames);
 		talker.delete_vertices(graph.getCoreName(), vnames);
-		for (V v : vertices) {
+		for (Vertex v : vertices) {
 			graph.removeVertex(v);
 		}
 		graph.fireStateChanged();
 	}
 
-	public void copySubgraph(G graph, Collection<V> vertices) throws CoreException {
+	public void copySubgraph(CoreGraph graph, Collection<Vertex> vertices)
+			throws CoreException {
 		assertCoreGraph(graph);
 		String[] vnames = names(vertices);
 		talker.copy_subgraph(graph.getCoreName(), "__clip__", vnames);
 	}
 
-	public void paste(G target) throws CoreException {
+	public void paste(CoreGraph target) throws CoreException {
 		assertCoreGraph(target);
 		talker.insert_graph("__clip__", target.getCoreName());
 		updateGraph(target);
 	}
 
-	public void attachRewrites(G graph, Collection<V> vertices) throws CoreException {
+	public void attachRewrites(CoreGraph graph, Collection<Vertex> vertices)
+			throws CoreException {
 		talker.attach_rewrites(graph.getCoreName(), names(vertices));
 	}
 
-	public void attachOneRewrite(G graph, Collection<V> vertices) throws CoreException {
+	public void attachOneRewrite(CoreGraph graph, Collection<Vertex> vertices)
+			throws CoreException {
 		talker.attach_one_rewrite(graph.getCoreName(), names(vertices));
 	}
 
-	public List<AttachedRewrite<G>> getAttachedRewrites(G graph) throws CoreException {
+	public List<AttachedRewrite<CoreGraph>> getAttachedRewrites(CoreGraph graph)
+			throws CoreException {
 		try {
 			String xml = talker.show_rewrites(graph.getCoreName());
 			return parseRewrites(graph, xml);
@@ -403,7 +504,8 @@ public class Core<G extends CoreGraph<V,E,B>,
 		}
 	}
 
-	public void applyAttachedRewrite(G graph, int i) throws CoreException {
+	public void applyAttachedRewrite(CoreGraph graph, int i)
+			throws CoreException {
 		talker.apply_rewrite(graph.getCoreName(), i);
 	}
 }

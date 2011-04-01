@@ -11,13 +11,13 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import quanto.core.data.BasicBangBox;
-import quanto.core.data.BasicEdge;
+import quanto.core.data.BangBox;
+import quanto.core.data.Edge;
 import quanto.core.Core;
 
 import quanto.core.CoreException;
-import quanto.core.data.RGGraph;
-import quanto.core.data.RGVertex;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.Vertex;
 import quanto.core.data.Rule;
 
 @SuppressWarnings("serial")
@@ -31,17 +31,17 @@ public class SplitGraphView extends InteractiveView {
 	private JSplitPane splitPane;
 	private volatile boolean saved;
 	// this may become null, if the rule is deleted
-	private Rule<RGGraph> rule;
+	private Rule<CoreGraph> rule;
 	// we keep our own copy of this, in case someone else changes the
 	// rule name in Rewrite
-	private Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core;
+	private Core core;
 
-	public SplitGraphView(Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core, Rule<RGGraph> rule)
+	public SplitGraphView(Core core, Rule<CoreGraph> rule)
 	throws CoreException {
 		this(core, rule, new Dimension(800, 600));
 	}
 
-	public SplitGraphView(Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core, Rule<RGGraph> rule, Dimension dim)
+	public SplitGraphView(Core core, Rule<CoreGraph> rule, Dimension dim)
 	throws CoreException {
 		super(rule.getCoreName());
 		this.rule = rule;

@@ -5,10 +5,12 @@
 package quanto.gui;
 
 import javax.swing.event.ChangeEvent;
-import quanto.core.data.BasicBangBox;
-import quanto.core.data.RGVertex;
-import quanto.core.data.BasicEdge;
-import quanto.core.data.RGGraph;
+
+import quanto.core.Theory;
+import quanto.core.data.BangBox;
+import quanto.core.data.Vertex;
+import quanto.core.data.Edge;
+import quanto.core.data.CoreGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
@@ -39,25 +41,27 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alex
  */
 public class GraphVisualizationViewer
-       extends BangBoxVisualizationViewer<RGVertex, BasicEdge, BasicBangBox>
+       extends BangBoxVisualizationViewer<Vertex, Edge, BangBox>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
-	private RGGraph graph;
+	private Theory theory;
+	private CoreGraph graph;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
 
 
-	public GraphVisualizationViewer(RGGraph graph) {
-		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
+	public GraphVisualizationViewer(Theory theory, CoreGraph graph) {
+		this(theory, QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public GraphVisualizationViewer(Layout<RGVertex, BasicEdge> layout) {
+	public GraphVisualizationViewer(Theory theory, Layout<Vertex, Edge> layout) {
 		super(layout);
 
-		if (!(layout.getGraph() instanceof RGGraph)) {
+		if (!(layout.getGraph() instanceof CoreGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.graph = (RGGraph) layout.getGraph();
+		this.theory = theory;
+		this.graph = (CoreGraph) layout.getGraph();
 
 		layout.initialize();
 		setBackground(new Color(0.97f, 0.97f, 0.97f));
@@ -75,23 +79,23 @@ public class GraphVisualizationViewer
 
 	private void  setupRendering() {
 		getRenderContext().setParallelEdgeIndexFunction(
-			BalancedEdgeIndexFunction.<RGVertex, BasicEdge>getInstance());
+			BalancedEdgeIndexFunction.<Vertex, Edge>getInstance());
 
 		getRenderContext().setEdgeShapeTransformer(
-			new MixedShapeTransformer<RGVertex, BasicEdge>());
+			new MixedShapeTransformer<Vertex, Edge>());
 
 		getRenderContext().setEdgeArrowPredicate(
-			new Predicate<Context<Graph<RGVertex, BasicEdge>, BasicEdge>>()
+			new Predicate<Context<Graph<Vertex, Edge>, Edge>>()
 			{
-				public boolean evaluate(Context<Graph<RGVertex, BasicEdge>, BasicEdge> object) {
+				public boolean evaluate(Context<Graph<Vertex, Edge>, Edge> object) {
 					return QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS);
 				}
 			});
 
-		getRenderContext().setVertexLabelTransformer(new QVertexLabelTransformer());
-		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler());
-		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer());
-		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer());
+		getRenderContext().setVertexLabelTransformer(new QVertexLabelTransformer(theory));
+		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler(theory));
+		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer(theory));
+		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer(theory));
 
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(
@@ -140,7 +144,7 @@ public class GraphVisualizationViewer
 		setPreferredSize(calculateGraphSize());
 	}
 
-	public RGGraph getGraph() {
+	public CoreGraph getGraph() {
 		return graph;
 	}
 
@@ -180,11 +184,11 @@ public class GraphVisualizationViewer
 
         // FIXME: this isn't really the right place
         public static Rectangle2D getSubgraphBounds(
-                Layout<RGVertex, BasicEdge> layout,
-                Collection<RGVertex> subgraph)
+                Layout<Vertex, Edge> layout,
+                Collection<Vertex> subgraph)
         {
 		Rectangle2D bounds = null;
-                for (RGVertex v : subgraph) {
+                for (Vertex v : subgraph) {
                         Point2D p = layout.transform(v);
                         if (bounds == null) {
                                 bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
@@ -212,7 +216,7 @@ public class GraphVisualizationViewer
 	 * Compute the bounding box of the subgraph under its current layout.
 	 * @return
 	 */
-	public Rectangle2D getSubgraphBounds(Collection<RGVertex> subgraph) {
+	public Rectangle2D getSubgraphBounds(Collection<Vertex> subgraph) {
 		synchronized (getGraph()) {
                         return getSubgraphBounds(getGraphLayout(), subgraph);
                 }

@@ -5,9 +5,10 @@
 
 package quanto.gui;
 
-import quanto.core.data.RGVertex;
-import quanto.core.data.BasicEdge;
-import quanto.core.data.RGGraph;
+import quanto.core.Theory;
+import quanto.core.data.Vertex;
+import quanto.core.data.Edge;
+import quanto.core.data.CoreGraph;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
@@ -25,7 +26,7 @@ import java.awt.geom.Rectangle2D;
 import java.io.OutputStream;
 import javax.swing.JComponent;
 import org.apache.commons.collections15.Predicate;
-import quanto.core.data.BasicBangBox;
+import quanto.core.data.BangBox;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
@@ -33,112 +34,122 @@ import quanto.gui.graphhelpers.QVertexRenderer;
 import quanto.gui.graphhelpers.QVertexShapeTransformer;
 
 /**
- *
+ * 
  * @author alemer
  */
-public class PdfGraphVisualizationServer
-        extends BangBoxVisualizationViewer<RGVertex, BasicEdge, BasicBangBox>
-{
-	private final RGGraph graph;
-        private boolean arrowHeadsShown = false;
+public class PdfGraphVisualizationServer extends
+		BangBoxVisualizationViewer<Vertex, Edge, BangBox> {
+	private final CoreGraph graph;
+	private final Theory theory;
+	private boolean arrowHeadsShown = false;
 
-	public PdfGraphVisualizationServer(RGGraph graph) {
-		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
+	public PdfGraphVisualizationServer(Theory theory, CoreGraph graph) {
+		this(theory, QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(
+				graph) : new QuantoDotLayout(graph));
 	}
 
-	public PdfGraphVisualizationServer(Layout<RGVertex, BasicEdge> layout) {
+	public PdfGraphVisualizationServer(Theory theory,
+			Layout<Vertex, Edge> layout) {
 		super(layout);
 
-		if (!(layout.getGraph() instanceof RGGraph)) {
-			throw new IllegalArgumentException("Only QuantoGraphs are supported");
+		if (!(layout.getGraph() instanceof CoreGraph)) {
+			throw new IllegalArgumentException(
+					"Only QuantoGraphs are supported");
 		}
-		this.graph = (RGGraph) layout.getGraph();
+		this.theory = theory;
+		this.graph = (CoreGraph) layout.getGraph();
 
 		layout.initialize();
 
-                setupRendering();
-        }
+		setupRendering();
+	}
 
-	private void  setupRendering() {
+	private void setupRendering() {
 		getRenderContext().setParallelEdgeIndexFunction(
-			BalancedEdgeIndexFunction.<RGVertex, BasicEdge>getInstance());
+				BalancedEdgeIndexFunction.<Vertex, Edge> getInstance());
 
 		getRenderContext().setEdgeArrowPredicate(
-			new Predicate<Context<Graph<RGVertex, BasicEdge>, BasicEdge>>()
-			{
-				public boolean evaluate(Context<Graph<RGVertex, BasicEdge>, BasicEdge> object) {
-					return QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS);
-				}
-			});
+				new Predicate<Context<Graph<Vertex, Edge>, Edge>>() {
+					public boolean evaluate(
+							Context<Graph<Vertex, Edge>, Edge> object) {
+						return QuantoApp.getInstance().getPreference(
+								QuantoApp.DRAW_ARROW_HEADS);
+					}
+				});
 
-		getRenderContext().setVertexLabelTransformer(new QVertexLabelTransformer());
-		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler());
-		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer());
-		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer());
+		getRenderContext().setVertexLabelTransformer(
+				new QVertexLabelTransformer(theory));
+		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler(theory));
+		getRenderContext().setVertexFillPaintTransformer(
+				new QVertexColorTransformer(theory));
+		getRenderContext().setVertexShapeTransformer(
+				new QVertexShapeTransformer(theory));
 
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(
-			VertexLabel.Position.S);
+				VertexLabel.Position.S);
 
 		// For debugging: show a grid behind the graph
-		//addPreRenderPaintable(new GridPaintable(new GridPaintable.BoundsCalculator() {
-                //              public Rectangle2D getBounds() { return getGraphBounds(); }
-                //}));
+		// addPreRenderPaintable(new GridPaintable(new
+		// GridPaintable.BoundsCalculator() {
+		// public Rectangle2D getBounds() { return getGraphBounds(); }
+		// }));
 	}
 
-        public boolean isArrowHeadsShown() {
-                return arrowHeadsShown;
-        }
+	public boolean isArrowHeadsShown() {
+		return arrowHeadsShown;
+	}
 
-        public void setArrowHeadsShown(boolean arrowHeadsShown) {
-                this.arrowHeadsShown = arrowHeadsShown;
-        }
+	public void setArrowHeadsShown(boolean arrowHeadsShown) {
+		this.arrowHeadsShown = arrowHeadsShown;
+	}
 
-        public void renderToPdf(OutputStream output) throws DocumentException {
-                Rectangle2D bounds = getGraphBounds();
-                final int width = (int) (bounds.getMaxX()) + 20;
-                final int height = (int) (bounds.getMaxY()) + 20;
+	public void renderToPdf(OutputStream output) throws DocumentException {
+		Rectangle2D bounds = getGraphBounds();
+		final int width = (int) (bounds.getMaxX()) + 20;
+		final int height = (int) (bounds.getMaxY()) + 20;
 
-                Document doc = new Document(new com.itextpdf.text.Rectangle(width, height));
+		Document doc = new Document(new com.itextpdf.text.Rectangle(width,
+				height));
 
-                PdfWriter writer = PdfWriter.getInstance(doc, output);
+		PdfWriter writer = PdfWriter.getInstance(doc, output);
 
-                doc.open();
+		doc.open();
 
-                PdfContentByte cb = writer.getDirectContent();
-                Graphics2D g2 = cb.createGraphicsShapes(width, height);
+		PdfContentByte cb = writer.getDirectContent();
+		Graphics2D g2 = cb.createGraphicsShapes(width, height);
 
-                GraphicsDecorator pdfGr = new GraphicsDecorator(g2);
-                getRenderContext().setGraphicsContext(pdfGr);
+		GraphicsDecorator pdfGr = new GraphicsDecorator(g2);
+		getRenderContext().setGraphicsContext(pdfGr);
 
-                // create a virtual screen so Jung doesn't freak
-                JComponent virtual = new JComponent()
-                {
-                        private static final long serialVersionUID = 1L;
+		// create a virtual screen so Jung doesn't freak
+		JComponent virtual = new JComponent() {
+			private static final long serialVersionUID = 1L;
 
-                        @Override
-                        public Dimension getSize() {
-                                // make sure nothing gets clipped
-                                return new Dimension(width, height);
-                        }
-                };
+			@Override
+			public Dimension getSize() {
+				// make sure nothing gets clipped
+				return new Dimension(width, height);
+			}
+		};
 
+		getRenderContext().setScreenDevice(virtual);
+		getRenderer().render(getRenderContext(), getGraphLayout());
 
-                getRenderContext().setScreenDevice(virtual);
-                getRenderer().render(getRenderContext(), getGraphLayout());
-
-                g2.dispose();
-                doc.close();
-        }
+		g2.dispose();
+		doc.close();
+	}
 
 	/**
 	 * Compute the bounding box of the graph under its current layout.
+	 * 
 	 * @return
 	 */
 	public Rectangle2D getGraphBounds() {
 		Rectangle2D bounds = null;
 		synchronized (graph) {
-			bounds = GraphVisualizationViewer.getSubgraphBounds(getGraphLayout(), graph.getVertices());
+			bounds = GraphVisualizationViewer.getSubgraphBounds(
+					getGraphLayout(), graph.getVertices());
 		}
 		return bounds;
 	}

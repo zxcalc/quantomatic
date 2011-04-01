@@ -1,10 +1,9 @@
 package quanto.gui;
 
-import edu.uci.ics.jung.contrib.visualization.decorators.Labeler;
-import quanto.core.data.BasicBangBox;
-import quanto.core.data.RGVertex;
-import quanto.core.data.BasicEdge;
-import quanto.core.data.RGGraph;
+import quanto.core.data.BangBox;
+import quanto.core.data.Vertex;
+import quanto.core.data.Edge;
+import quanto.core.data.CoreGraph;
 import com.itextpdf.text.DocumentException;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -50,12 +49,14 @@ import org.slf4j.LoggerFactory;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.core.CoreTalker;
+import quanto.gui.graphhelpers.Labeler;
 
 public class InteractiveGraphView
 	extends InteractiveView
-	implements AddEdgeGraphMousePlugin.Adder<RGVertex>,
+	implements AddEdgeGraphMousePlugin.Adder<Vertex>,
 	           KeyListener {
 
+	@SuppressWarnings("unused")
 	private final static Logger logger =
 		LoggerFactory.getLogger(InteractiveGraphView.class);
 
@@ -87,15 +88,15 @@ public class InteractiveGraphView
 	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
-	private Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core;
+	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
-	private List<AttachedRewrite<RGGraph>> rewriteCache = null;
+	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
 	private JPanel indicatorPanel = null;
 	private List<Job> activeJobs = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
-	private SmoothLayoutDecorator<RGVertex, BasicEdge> smoothLayout;
+	private SmoothLayoutDecorator<Vertex, Edge> smoothLayout;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -103,57 +104,62 @@ public class InteractiveGraphView
 
 	private class QVertexLabeler implements VertexLabelRenderer {
 
-		Map<RGVertex, Labeler> components;
+		Map<Vertex, Labeler> components;
+		Map<Object, JLabel> dummyLabels;
 
 		public QVertexLabeler() {
-			components = new HashMap<RGVertex, Labeler>();
+			components = new HashMap<Vertex, Labeler>();
+			dummyLabels = new HashMap<Object, JLabel>();
+		}
+		
+		private JLabel getDummy(Object vertex) {
+				JLabel c = dummyLabels.get(vertex);
+				if (c == null) {
+					logger.info("Creating a dummy with no value");
+					c = new JLabel();
+					dummyLabels.put(vertex, c);
+				}
+				c.setText("");
+				return c;
 		}
 
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
-			if (vertex instanceof RGVertex && ((RGVertex) vertex).isAngleVertex()) {
-				final RGVertex qVertex = (RGVertex) vertex;
+			if (value == null)
+			{
+				return getDummy(vertex);
+			}
+			else if (vertex instanceof Vertex)
+			{
+				final Vertex qVertex = (Vertex) vertex;
+				if (qVertex.isBoundaryVertex() || !core.getActiveTheory().vertexHasData(qVertex.getVertexType())) {
+					return getDummy(vertex);
+				}
+
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
 					viewer.getGraphLayout().transform(qVertex));
+				
+				String label = qVertex.getData().getStringValue();
 
 				// lazily create the labeler
-				Labeler angleLabeler = components.get(qVertex);
-				if (angleLabeler == null) {
-					angleLabeler = new Labeler("");
-					components.put(qVertex, angleLabeler);
-					viewer.add(angleLabeler);
-					if (qVertex.getVertexType() == RGVertex.Type.RED) {
-						angleLabeler.setColor(new Color(255, 170, 170));
-					}
-					else {
-						angleLabeler.setColor(new Color(150, 255, 150));
-					}
-
-					String angle = ((RGVertex) vertex).getLabel();
-					if (angle == null) {
-						angle = "";
-					}
-					Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
-					Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
-							      (int) screen.getY() + 10);
-					rect.setLocation(loc);
-
-					if (!angleLabeler.getText().equals(angle)) {
-						angleLabeler.setText(angle);
-					}
-					if (!angleLabeler.getBounds().equals(rect)) {
-						angleLabeler.setBounds(rect);
+				Labeler labeler = components.get(qVertex);
+				if (labeler == null) {
+					logger.info("Creating a new component for vertex {}", qVertex.getCoreName());
+					labeler = new Labeler(core.getActiveTheory().vertexDataType(qVertex.getVertexType()), label);
+					components.put(qVertex, labeler);
+					viewer.add(labeler);
+					Color colour = core.getActiveTheory().getVertexVisualizationData(qVertex.getVertexType()).labelColour();
+					if (colour != null) {
+						labeler.setColor(colour);
 					}
 
-					angleLabeler.addChangeListener(new ChangeListener() {
-
+					labeler.addChangeListener(new ChangeListener() {
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler) e.getSource();
 							if (qVertex != null) {
 								try {
 									core.setVertexAngle(getGraph(), qVertex, lab.getText());
-									//updateGraph();
 								}
 								catch (CoreException err) {
 									errorDialog(err.getMessage());
@@ -162,37 +168,38 @@ public class InteractiveGraphView
 						}
 					});
 				}
-				String angle = qVertex.getLabel();
-				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
+				
+				if (!labeler.getText().equals(label)) {
+					labeler.setText(label);
+				}
+				
+				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 						      (int) screen.getY() + 10);
 				rect.setLocation(loc);
 
-				if (!angleLabeler.getText().equals(angle)) {
-					angleLabeler.setText(angle);
-				}
-				if (!angleLabeler.getBounds().equals(rect)) {
-					angleLabeler.setBounds(rect);
+				if (!labeler.getBounds().equals(rect)) {
+					labeler.setBounds(rect);
 				}
 
-				return new JLabel();
+				return labeler;
 			}
-			else if (!(vertex instanceof RGVertex)
-				|| ((RGVertex) vertex).getVertexType() != RGVertex.Type.BOUNDARY) {
-				JLabel label = new JLabel((String) value);
+			else
+			{
+				JLabel label = getDummy(vertex);
+				label.setText(value.toString());
 				label.setOpaque(true);
 				label.setBackground(Color.white);
 				return label;
 			}
-			return new JLabel();
 		}
 
 		/**
 		 * Removes orphaned labels.
 		 */
 		public void cleanup() {
-			final Map<RGVertex, Labeler> oldComponents = components;
-			components = new HashMap<RGVertex, Labeler>();
+			final Map<Vertex, Labeler> oldComponents = components;
+			components = new HashMap<Vertex, Labeler>();
 			for (Labeler l : oldComponents.values()) {
 				viewer.remove(l);
 			}
@@ -219,11 +226,11 @@ public class InteractiveGraphView
 			ViewScrollingGraphMousePlugin scrollerPlugin = new ViewScrollingGraphMousePlugin();
 			scrollerPlugin.setShift(10.0);
 			add(scrollerPlugin);
-			add(new AddEdgeGraphMousePlugin<RGVertex, BasicEdge>(
+			add(new AddEdgeGraphMousePlugin<Vertex, Edge>(
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin() {
+			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin<Vertex, Edge, BangBox>() {
 				// don't change the cursor
 				@Override
 				public void mouseEntered(MouseEvent e) {}
@@ -231,7 +238,7 @@ public class InteractiveGraphView
 				public void mouseExited(MouseEvent e) {}
 
 			};
-			edgeMouse = new AddEdgeGraphMousePlugin<RGVertex, BasicEdge>(
+			edgeMouse = new AddEdgeGraphMousePlugin<Vertex, Edge>(
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK);
@@ -275,16 +282,16 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core, RGGraph g) {
+	public InteractiveGraphView(Core core, CoreGraph g) {
 		this(core, g, new Dimension(800, 600));
 	}
 
-	public InteractiveGraphView(Core<RGGraph,RGVertex,BasicEdge,BasicBangBox> core, RGGraph g, Dimension size) {
+	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 
-		smoothLayout = new SmoothLayoutDecorator<RGVertex, BasicEdge>(new QuantoDotLayout(g));
-		viewer = new GraphVisualizationViewer(smoothLayout);
+		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(new QuantoDotLayout(g));
+		viewer = new GraphVisualizationViewer(core.getActiveTheory(), smoothLayout);
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -326,9 +333,9 @@ public class InteractiveGraphView
 		viewer.addKeyListener(this);
 
 		viewer.getRenderContext().setVertexStrokeTransformer(
-			new Transformer<RGVertex, Stroke>() {
+			new Transformer<Vertex, Stroke>() {
 
-				public Stroke transform(RGVertex v) {
+				public Stroke transform(Vertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)
 						|| isVertexLocked(v)) {
 						return new BasicStroke(2);
@@ -339,9 +346,9 @@ public class InteractiveGraphView
 				}
 			});
 		viewer.getRenderContext().setVertexDrawPaintTransformer(
-			new Transformer<RGVertex, Paint>() {
+			new Transformer<Vertex, Paint>() {
 
-				public Paint transform(RGVertex v) {
+				public Paint transform(Vertex v) {
 					if (viewer.getPickedVertexState().isPicked(v)) {
 						return Color.blue;
 					}
@@ -361,19 +368,19 @@ public class InteractiveGraphView
 
 		buildActionMap();
 	}
-
-	public boolean isVertexLocked(RGVertex v) {
+	
+	public boolean isVertexLocked(Vertex v) {
 		return viewer.getGraphLayout().isLocked(v);
 	}
 
-	public void lockVertices(Set<RGVertex> verts) {
-		for (RGVertex v : verts) {
+	public void lockVertices(Set<Vertex> verts) {
+		for (Vertex v : verts) {
 			viewer.getGraphLayout().lock(v, true);
 		}
 	}
 
-	public void unlockVertices(Set<RGVertex> verts) {
-		for (RGVertex v : verts) {
+	public void unlockVertices(Set<Vertex> verts) {
+		for (Vertex v : verts) {
 			viewer.getGraphLayout().lock(v, false);
 		}
 	}
@@ -434,7 +441,7 @@ public class InteractiveGraphView
 		viewer.addChangeListener(listener);
 	}
 
-	public RGGraph getGraph() {
+	public CoreGraph getGraph() {
 		return viewer.getGraph();
 	}
 	
@@ -634,7 +641,7 @@ public class InteractiveGraphView
 		return "graph (" + name + ")";
 	}
 
-	public void addEdge(RGVertex s, RGVertex t) {
+	public void addEdge(Vertex s, Vertex t) {
 		try {
 			core.addEdge(getGraph(), s, t);
 		}
@@ -643,12 +650,18 @@ public class InteractiveGraphView
 		}
 	}
 
-	public void addVertex(RGVertex.Type type) {
+	public void addBoundaryVertex() {
 		try {
-			if (type == RGVertex.Type.BOUNDARY)
-				core.addBoundaryVertex(getGraph());
-			else
-				core.addVertex(getGraph(), type.name().toLowerCase());
+			core.addBoundaryVertex(getGraph());
+		}
+		catch (CoreException e) {
+			errorDialog(e.getMessage());
+		}
+	}
+
+	public void addVertex(String type) {
+		try {
+			core.addVertex(getGraph(), type);
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -657,7 +670,7 @@ public class InteractiveGraphView
 
 	public void showRewrites() {
 		try {
-			Set<RGVertex> picked = viewer.getPickedVertexState().getPicked();
+			Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 			if (picked.isEmpty()) {
 				core.attachRewrites(getGraph(), getGraph().getVertices());
 			}
@@ -680,13 +693,13 @@ public class InteractiveGraphView
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
 
 		// re-validate the picked state
-		RGVertex[] oldPicked =
+		Vertex[] oldPicked =
 			viewer.getPickedVertexState().getPicked().toArray(
-			new RGVertex[viewer.getPickedVertexState().getPicked().size()]);
+			new Vertex[viewer.getPickedVertexState().getPicked().size()]);
 		viewer.getPickedVertexState().clear();
-		Map<String, RGVertex> vm = getGraph().getVertexMap();
-		for (RGVertex v : oldPicked) {
-			RGVertex new_v = vm.get(v.getCoreName());
+		Map<String, Vertex> vm = getGraph().getVertexMap();
+		for (Vertex v : oldPicked) {
+			Vertex new_v = vm.get(v.getCoreName());
 			if (new_v != null) {
 				viewer.getPickedVertexState().pick(new_v, true);
 			}
@@ -718,7 +731,7 @@ public class InteractiveGraphView
 		viewer.repaint();
 	}
 
-	public void highlightSubgraph(RGGraph g) {
+	public void highlightSubgraph(CoreGraph g) {
 		clearHighlight();
 		highlighter = new SubgraphHighlighter(g);
 		viewer.addPostRenderPaintable(highlighter);
@@ -776,10 +789,10 @@ public class InteractiveGraphView
 			}
 		}
 
-		private void invokeHighlightSubgraphAndWait(RGGraph subgraph)
+		private void invokeHighlightSubgraphAndWait(CoreGraph subgraph)
 			throws InterruptedException {
 			highlight = true;
-			final RGGraph fSubGraph = subgraph;
+			final CoreGraph fSubGraph = subgraph;
 			invokeAndWait(new Runnable() {
 
 				public void run() {
@@ -838,7 +851,7 @@ public class InteractiveGraphView
 				// FIXME: communicating with the core: is this
 				//        really threadsafe?  Probably not.
 				attachNextRewrite();
-				List<AttachedRewrite<RGGraph>> rws = getRewrites();
+				List<AttachedRewrite<CoreGraph>> rws = getRewrites();
 				int count = 0;
 				Random r = new Random();
 				int rw = 0;
@@ -867,9 +880,9 @@ public class InteractiveGraphView
 	private class SubgraphHighlighter
 		implements VisualizationServer.Paintable {
 
-		Collection<RGVertex> verts;
+		Collection<Vertex> verts;
 
-		public SubgraphHighlighter(RGGraph g) {
+		public SubgraphHighlighter(CoreGraph g) {
 			verts = getGraph().getSubgraphVertices(g);
 		}
 
@@ -881,7 +894,7 @@ public class InteractiveGraphView
 				System.currentTimeMillis() / 150.0);
 			g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opac));
 
-			for (RGVertex v : verts) {
+			for (Vertex v : verts) {
 				Point2D pt = viewer.getGraphLayout().transform(v);
 				Ellipse2D ell = new Ellipse2D.Double(
 					pt.getX() - 15, pt.getY() - 15, 30, 30);
@@ -904,7 +917,7 @@ public class InteractiveGraphView
 	 * list on console error.
 	 * @return
 	 */
-	public List<AttachedRewrite<RGGraph>> getRewrites() {
+	public List<AttachedRewrite<CoreGraph>> getRewrites() {
 		try {
 			rewriteCache = core.getAttachedRewrites(getGraph());
 			return rewriteCache;
@@ -913,13 +926,13 @@ public class InteractiveGraphView
 			errorDialog(e.getMessage());
 		}
 
-		return new ArrayList<AttachedRewrite<RGGraph>>();
+		return new ArrayList<AttachedRewrite<CoreGraph>>();
 	}
 
 	public void applyRewrite(int index) {
 		try {
 			if (rewriteCache != null && rewriteCache.size() > index) {
-				List<RGVertex> sub = getGraph().getSubgraphVertices(
+				List<Vertex> sub = getGraph().getSubgraphVertices(
 					rewriteCache.get(index).getLhs());
 				if (sub.size() > 0) {
 					Rectangle2D rect = viewer.getSubgraphBounds(sub);
@@ -935,8 +948,8 @@ public class InteractiveGraphView
 		}
 	}
 
-	private CoreTalker getCore() {
-		return core.getTalker();
+	public Core getCore() {
+		return core;
 	}
 
 	public void commandTriggered(String command) {
@@ -1044,7 +1057,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.CUT_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					Set<RGVertex> picked = viewer.getPickedVertexState().getPicked();
+					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.cutSubgraph(getGraph(), picked);
 						updateGraph();
@@ -1058,7 +1071,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.COPY_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					Set<RGVertex> picked = viewer.getPickedVertexState().getPicked();
+					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.copySubgraph(getGraph(), picked);
 					}
@@ -1082,7 +1095,7 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.SELECT_ALL_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				synchronized (getGraph()) {
-					for (RGVertex v : getGraph().getVertices()) {
+					for (Vertex v : getGraph().getVertices()) {
 						viewer.getPickedVertexState().pick(v, true);
 					}
 				}
@@ -1110,7 +1123,7 @@ public class InteractiveGraphView
 								return;
 						}
 						OutputStream file = new FileOutputStream(outputFile);
-                                                PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(getGraph());
+                                                PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(core.getActiveTheory(), getGraph());
 						server.renderToPdf(file);
 						file.close();
 					}
@@ -1147,22 +1160,22 @@ public class InteractiveGraphView
 		});
 		actionMap.put(ADD_RED_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(RGVertex.Type.RED);
+				addVertex("red");
 			}
 		});
 		actionMap.put(ADD_GREEN_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(RGVertex.Type.GREEN);
+				addVertex("green");
 			}
 		});
 		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(RGVertex.Type.BOUNDARY);
+				addBoundaryVertex();
 			}
 		});
 		actionMap.put(ADD_HADAMARD_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex(RGVertex.Type.HADAMARD);
+				addVertex("hadamard");
 			}
 		});
 		actionMap.put(SHOW_REWRITES_ACTION, new ActionListener() {
@@ -1258,7 +1271,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
-						core.duplicateBangBox(getGraph(), (BasicBangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
+						core.duplicateBangBox(getGraph(), (BangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
 					}
 					updateGraph();
 				}
@@ -1358,16 +1371,16 @@ public class InteractiveGraphView
 		else {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_R:
-					addVertex(RGVertex.Type.RED);
+					addVertex("red");
 					break;
 				case KeyEvent.VK_G:
-					addVertex(RGVertex.Type.GREEN);
+					addVertex("green");
 					break;
 				case KeyEvent.VK_H:
-					addVertex(RGVertex.Type.HADAMARD);
+					addVertex("hadamard");
 					break;
 				case KeyEvent.VK_B:
-					addVertex(RGVertex.Type.BOUNDARY);
+					addBoundaryVertex();
 					break;
 				case KeyEvent.VK_E:
 					if (graphMouse.isEdgeMouse()) {

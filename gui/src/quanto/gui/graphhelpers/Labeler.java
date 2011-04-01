@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib.visualization.decorators;
+package quanto.gui.graphhelpers;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -13,6 +13,8 @@ import javax.swing.JTextField;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+
+import quanto.core.Theory;
 import quanto.gui.TexConstants;
 
 @SuppressWarnings("serial")
@@ -23,9 +25,11 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	String value;
 	ChangeEvent evt;
 	Point idealLocation;
+	Theory.DataType dataType;
 	
-	public Labeler(String value) {
+	public Labeler(Theory.DataType dataType, String value) {
 		setLayout(new BorderLayout());
+		this.dataType = dataType;
 		evt = new ChangeEvent(this);
 		label = new JLabel();
 		label.setOpaque(false);
@@ -112,7 +116,8 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	
 	public void setText(String text) {
 		value = text;
-		label.setText(TexConstants.translate(value));
+		if (dataType == Theory.DataType.MathExpression)
+			label.setText(TexConstants.translate(value));
 		refresh();
 	}
 	

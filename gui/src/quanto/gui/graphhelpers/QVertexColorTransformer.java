@@ -8,24 +8,26 @@ package quanto.gui.graphhelpers;
 import java.awt.Color;
 import java.awt.Paint;
 import org.apache.commons.collections15.Transformer;
-import quanto.core.data.RGVertex;
+
+import quanto.core.Theory;
+import quanto.core.data.Vertex;
 
 /**
- *
+ * 
  * @author alemer
  */
-public class QVertexColorTransformer implements Transformer<RGVertex, Paint>
-{
-        public Paint transform(RGVertex v) {
-                switch (v.getVertexType()) {
-                        case RED:
-                                return Color.red;
-                        case GREEN:
-                                return Color.green;
-                        case HADAMARD:
-                                return Color.yellow;
-                        default:
-                                return Color.lightGray;
-                }
-        }
+public class QVertexColorTransformer implements Transformer<Vertex, Paint> {
+	private Theory theory;
+
+	public QVertexColorTransformer(Theory theory) {
+		this.theory = theory;
+	}
+
+	public Paint transform(Vertex v) {
+		if (v.isBoundaryVertex()) {
+			return Color.lightGray;
+		} else {
+			return theory.getVertexVisualizationData(v.getVertexType()).fillColour();
+		}
+	}
 }

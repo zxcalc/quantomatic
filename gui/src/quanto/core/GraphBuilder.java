@@ -27,34 +27,29 @@ import net.n3.nanoxml.XMLException;
 import net.n3.nanoxml.XMLParserFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import quanto.core.data.BangBox;
+import quanto.core.data.BoundaryVertex;
 import quanto.core.data.CoreGraph;
 import quanto.core.data.CoreObject;
-import quanto.core.data.CoreVertex;
+import quanto.core.data.Edge;
+import quanto.core.data.GraphElementData;
+import quanto.core.data.Vertex;
+import quanto.core.data.VertexVisualizationData;
 
 /**
  *
  * @author alemer
  */
-public class GraphBuilder<G extends CoreGraph<V,E,B>,
-	                  V extends CoreVertex,
-			  E extends CoreObject,
-			  B extends CoreObject> {
+public class GraphBuilder {
 
 	private final static Logger logger =
 		LoggerFactory.getLogger(GraphBuilder.class);
+	
+	private Theory theory;
 
-	private GraphFactory<G, V, E, B> factory;
-
-	public GraphBuilder(GraphFactory<G, V, E, B> factory) {
-		this.factory = factory;
-	}
-
-	public GraphFactory<G, V, E, B> getFactory() {
-		return factory;
-	}
-
-	public void setFactory(GraphFactory<G, V, E, B> factory) {
-		this.factory = factory;
+	public GraphBuilder(Theory theory) {
+		this.theory = theory;
 	}
 
 	private void throwParseException(IXMLElement element, String message) throws ParseException
@@ -68,16 +63,16 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 		throw new ParseException(finalmsg);
 	}
 
-	public Map<String, V> getVertexMap(G graph) {
-		Map<String, V> verts =
-			new HashMap<String, V>();
-		for (V v : graph.getVertices()) {
+	public Map<String, Vertex> getVertexMap(CoreGraph graph) {
+		Map<String, Vertex> verts =
+			new HashMap<String, Vertex>();
+		for (Vertex v : graph.getVertices()) {
 			verts.put(v.getCoreName(), v);
 		}
 		return verts;
 	}
 
-	private void updateGraphFromXmlReader(G graph, IXMLReader reader) throws ParseException {
+	private void updateGraphFromXmlReader(CoreGraph graph, IXMLReader reader) throws ParseException {
 		IXMLElement root = null;
 		try {
 			long millis = System.currentTimeMillis();
@@ -97,50 +92,50 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 		}
 	}
 
-	public G createGraphFromXmlFile(String name, File file) throws IOException, ParseException {
-		G graph = factory.createGraph(name);
+	public CoreGraph createGraphFromXmlFile(String name, File file) throws IOException, ParseException {
+		CoreGraph graph = new CoreGraph(name);
 		updateGraphFromXmlFile(graph, file);
 		return graph;
 	}
 
-	public G createGraphFromXml(String name, String xml) throws ParseException {
-		G graph = factory.createGraph(name);
+	public CoreGraph createGraphFromXml(String name, String xml) throws ParseException {
+		CoreGraph graph = new CoreGraph(name);
 		updateGraphFromXml(graph, xml);
 		return graph;
 	}
 
-	public G createGraphFromXml(String name, IXMLElement graphNode) throws ParseException {
-		G graph = factory.createGraph(name);
+	public CoreGraph createGraphFromXml(String name, IXMLElement graphNode) throws ParseException {
+		CoreGraph graph = new CoreGraph(name);
 		updateGraphFromXml(graph, graphNode);
 		return graph;
 	}
 
-	public void updateGraphFromXmlFile(G graph, File file) throws IOException, ParseException {
+	public void updateGraphFromXmlFile(CoreGraph graph, File file) throws IOException, ParseException {
 		updateGraphFromXmlReader(graph, StdXMLReader.fileReader(file.getAbsolutePath()));
 	}
 
-	public void updateGraphFromXml(G graph, String xml) throws ParseException {
+	public void updateGraphFromXml(CoreGraph graph, String xml) throws ParseException {
 		updateGraphFromXmlReader(graph, StdXMLReader.stringReader(xml));
 	}
 
 	@SuppressWarnings("unchecked")
-	public void updateGraphFromXml(G graph, IXMLElement graphNode) throws ParseException {
+	public void updateGraphFromXml(CoreGraph graph, IXMLElement graphNode) throws ParseException {
 		if (graphNode == null)
 			throw new ParseException("Graph is null");
 
 		synchronized (graph) {
-			List<V> boundaryVertices = new ArrayList<V>();
-			for (E e : new ArrayList<E>(graph.getEdges()))
+			List<Vertex> boundaryVertices = new ArrayList<Vertex>();
+			for (Edge e : new ArrayList<Edge>(graph.getEdges()))
 				graph.removeEdge(e);
-			for (B b : new ArrayList<B>(graph.getBangBoxes()))
+			for (BangBox b : new ArrayList<BangBox>(graph.getBangBoxes()))
 				graph.removeBangBox(b);
 
-			Map<String, V> verts = getVertexMap(graph);
-			Set<V> stale = new HashSet<V>(graph.getVertices());
+			Map<String, Vertex> verts = getVertexMap(graph);
+			Set<Vertex> stale = new HashSet<Vertex>(graph.getVertices());
 
 			for (Object obj : graphNode.getChildrenNamed("vertex")) {
 				IXMLElement vertexNode = (IXMLElement)obj;
-				V v = null;
+				Vertex v = null;
 
 				try {
 					String vname = vertexNode.getFirstChildNamed("name").getContent();
@@ -150,18 +145,27 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
 					{
-						v = factory.createBoundaryVertex(vname);
+						v = new BoundaryVertex(vname);
 					} else if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("false")) {
-						v = factory.createVertex(vname, vertexNode.getFirstChildNamed("colour").getContent());
+						String vType = vertexNode.getFirstChildNamed("colour").getContent().toLowerCase();
+						if (vType.equals("h"))
+							vType = "hadamard";
+						v = new Vertex(vname, vType);
+
+						if (theory.vertexHasData(vType)) {
+							GraphElementData data = theory.createDefaultData(vType);
+							if (theory.vertexDataType(vType) == Theory.DataType.MathExpression) {
+								IXMLElement expr = vertexNode
+									.getFirstChildNamed("angleexpr");
+								if (expr != null) {
+									data.setValue(expr.getFirstChildNamed("as_string").getContent());
+								}
+							}
+							v.setData(data);
+						}
 					} else {
 						throwParseException(vertexNode, ": invalid value for \"boundary\"");
-					}
-
-					IXMLElement expr = vertexNode
-						.getFirstChildNamed("angleexpr");
-					if (expr != null) {
-						v.setData(expr.getFirstChildNamed("as_string").getContent());
 					}
 				} catch (IllegalArgumentException e) {
 					logger.info("Got illegal arg ex", e);
@@ -175,7 +179,7 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 					throwParseException(vertexNode, null);
 				}
 
-				V old_v = verts.get(v.getCoreName());
+				Vertex old_v = verts.get(v.getCoreName());
 				if (old_v == null) {
 					verts.put(v.getCoreName(), v);
 					graph.addVertex(v);
@@ -192,21 +196,16 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 
 			Collections.sort(boundaryVertices, new CoreObject.NameComparator());
 
-                        for (int i = 0; i < boundaryVertices.size(); ++i) {
-                                boundaryVertices.get(i).setData(String.valueOf(i));
-                        }
-
 			// Prune removed vertices
-			for (V v : stale) {
+			for (Vertex v : stale) {
 				verts.remove(v.getCoreName());
 				graph.removeVertex(v);
 			}
 
-
 			for (Object obj : graphNode.getChildrenNamed("edge")) {
 				IXMLElement edgeNode = (IXMLElement)obj;
 
-				V source = null, target = null;
+				Vertex source = null, target = null;
 				String ename = null;
 				IXMLElement ch = null;
 
@@ -233,7 +232,7 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 				if (target == null)
 					throwParseException(edgeNode, "unknown target");
 
-				graph.addEdge(factory.createEdge(ename),
+				graph.addEdge(new Edge(ename),
 					source, target, EdgeType.DIRECTED);
 
 			} // foreach edge
@@ -249,13 +248,13 @@ public class GraphBuilder<G extends CoreGraph<V,E,B>,
 				if (bbname == null || bbname.length() == 0)
 					throwParseException(bangBox, "no name given");
 
-				B bbox = factory.createBangBox(bbname);
-				List contents = new LinkedList();
+				BangBox bbox = new BangBox(bbname);
+				List<Vertex> contents = new LinkedList<Vertex>();
 
 				for (IXMLElement boxedVert :
 					(Vector<IXMLElement>)bangBox.getChildrenNamed("boxedvertex"))
 				{
-					V v = verts.get(boxedVert.getContent());
+					Vertex v = verts.get(boxedVert.getContent());
 					if (v == null)
 						throwParseException(boxedVert, "unknown vertex");
 					contents.add(v);

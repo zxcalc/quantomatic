@@ -2,19 +2,18 @@ package quanto.core.data;
 
 
 /**
- * A bang box with no data attached
+ * A bang box
  *
  * @author alemer
  */
-@SuppressWarnings("serial")
-public class BasicBangBox implements CoreObject {
+public class BangBox implements CoreObject {
 	private String name;
 
-	public BasicBangBox(String name) {
+	public BangBox(String name) {
 		this.name = name;
 	}
 
-	public BasicBangBox() {
+	public BangBox() {
 		this(null);
 	}
 

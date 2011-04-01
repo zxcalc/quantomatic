@@ -13,8 +13,8 @@ import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.Set;
-import quanto.core.data.BasicEdge;
-import quanto.core.data.RGVertex;
+import quanto.core.data.Edge;
+import quanto.core.data.Vertex;
 
 /**
  *
@@ -179,7 +179,7 @@ public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
 				down = p;
 				vv.revalidate();
 			}
-			else {
+			else if (down != null) {
 				Point2D out = e.getPoint();
 				if (e.getModifiers() == this.addToSelectionModifiers
 					|| e.getModifiers() == modifiers) {

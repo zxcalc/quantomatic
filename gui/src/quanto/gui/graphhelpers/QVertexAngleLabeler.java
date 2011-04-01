@@ -11,46 +11,39 @@ import java.awt.Component;
 import java.awt.Font;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
-import quanto.core.data.RGVertex;
+
+import quanto.core.Theory;
+import quanto.core.data.Vertex;
 import quanto.gui.TexConstants;
 
 /**
- *
+ * 
  * @author alemer
  */
 public class QVertexAngleLabeler implements VertexLabelRenderer {
-        public QVertexAngleLabeler() {
-        }
+	private Theory theory;
 
-        public <T> Component getVertexLabelRendererComponent(
-                JComponent vv, Object value, Font font,
-                boolean isSelected, T vertex) {
-                if (value instanceof String
-                        && vertex instanceof RGVertex) {
-                        String val = TexConstants.translate((String) value);
+	public QVertexAngleLabeler(Theory theory) {
+		this.theory = theory;
+	}
 
-                        RGVertex qv = (RGVertex) vertex;
-                        if (qv.getVertexType() == RGVertex.Type.BOUNDARY) {
-                                return new JLabel();
-                        }
+	public <T> Component getVertexLabelRendererComponent(JComponent vv,
+			Object value, Font font, boolean isSelected, T vertex) {
 
-                        JLabel lab = new JLabel(val);
-                        Color col = null;
-                        if (qv.getVertexType() == RGVertex.Type.RED) {
-                                col = new Color(255, 170, 170);
-                                lab.setBackground(col);
-                                lab.setOpaque(true);
-                        }
-                        else if (qv.getVertexType() == RGVertex.Type.GREEN) {
-                                col = new Color(150, 255, 150);
-                                lab.setBackground(col);
-                                lab.setOpaque(true);
-                        }
-
-                        return lab;
-                }
-                else {
-                        return new JLabel("");
-                }
-        }
+		if (value != null && vertex instanceof Vertex) {
+			Vertex v = (Vertex) vertex;
+			if (v.isBoundaryVertex()) {
+				return new JLabel();
+			}
+			JLabel lab = new JLabel(value.toString());
+			Color colour = theory.getVertexVisualizationData(v.getVertexType()).labelColour();
+			if (colour != null) {
+				lab.setBackground(colour);
+				lab.setOpaque(true);
+			}
+			return lab;
+		} else {
+			return new JLabel("");
+		}
+	}
 }

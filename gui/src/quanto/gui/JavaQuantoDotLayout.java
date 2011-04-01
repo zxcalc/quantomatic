@@ -1,9 +1,9 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.algorithms.layout.AKDotLayout;
-import quanto.core.data.RGVertex;
-import quanto.core.data.BasicEdge;
-import quanto.core.data.RGGraph;
+import quanto.core.data.Vertex;
+import quanto.core.data.Edge;
+import quanto.core.data.CoreGraph;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -11,17 +11,17 @@ import java.awt.geom.Rectangle2D;
 import java.awt.Rectangle;
 
 public class JavaQuantoDotLayout
-extends AKDotLayout<RGVertex, BasicEdge>
+extends AKDotLayout<Vertex, Edge>
 {
 	private static final double VERTEX_PADDING = 20;
 	private static final double EMPTY_BOX_SIZE = 40;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
 
-	public JavaQuantoDotLayout(RGGraph graph, Dimension size) {
+	public JavaQuantoDotLayout(CoreGraph graph, Dimension size) {
 		super(graph);
 	}
 
-	public JavaQuantoDotLayout(RGGraph graph) {
+	public JavaQuantoDotLayout(CoreGraph graph) {
 		this(graph, new Dimension(800,600));
 	}
 
@@ -38,7 +38,7 @@ extends AKDotLayout<RGVertex, BasicEdge>
 
 
 	@Override
-	public void setLocation(RGVertex picked, Point2D p) {
+	public void setLocation(Vertex picked, Point2D p) {
 		if (p.getX() < 20)
 			p.setLocation(20, p.getY());
 		if (p.getY() < 20)
@@ -52,7 +52,7 @@ extends AKDotLayout<RGVertex, BasicEdge>
 	}
 
 	@Override
-	public void setLocation(RGVertex picked, double x, double y) {
+	public void setLocation(Vertex picked, double x, double y) {
 		if (x < 20)
 			x = 20;
 		if (y < 20)
@@ -70,7 +70,7 @@ extends AKDotLayout<RGVertex, BasicEdge>
 		double top = Double.MAX_VALUE;
 		double right = 0;
 		double bottom = 0;
-		for (RGVertex v : getGraph().getVertices()) {
+		for (Vertex v : getGraph().getVertices()) {
 			Point2D point = transform(v);
 			left = Math.min(left, point.getX());
 			top = Math.min(top, point.getY());
