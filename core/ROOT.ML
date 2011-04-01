@@ -92,7 +92,7 @@ PolyML.Project.make "theories/red_green/rg_io.ML";
 PolyML.Project.make "matching/symmetry_match_search.ML";
 
 (* Heuristic derived data structures *)
-PolyML.Project.make "heuristic/distancematrix.ML"; (* distance matrix *)
+PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
 (* more expression code; this time expresions derived from graphs, 
