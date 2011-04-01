@@ -1,11 +1,5 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package quanto.core;
 
-import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -29,16 +23,12 @@ import org.slf4j.LoggerFactory;
 
 import quanto.core.data.AttachedRewrite;
 import quanto.core.data.BangBox;
-import quanto.core.data.BoundaryVertex;
 import quanto.core.data.CoreGraph;
 import quanto.core.data.CoreObject;
 import quanto.core.data.Edge;
-import quanto.core.data.GraphElementData;
-import quanto.core.data.HVertexVisualizationData;
-import quanto.core.data.RGVertexVisualizationData;
 import quanto.core.data.Rule;
 import quanto.core.data.Vertex;
-import quanto.core.data.VertexVisualizationData;
+import quanto.core.data.VertexType;
 import quanto.util.FileUtils;
 
 /**
@@ -51,50 +41,18 @@ public class Core {
 	private final static Logger logger = LoggerFactory.getLogger(Core.class);
 
 	private class CoreTheory implements Theory {
-		Map<String, VertexVisualizationData> visData = new HashMap<String, VertexVisualizationData>();
-		Map<String, DataType> dataTypes = new HashMap<String, DataType>();
-		Map<String, String> defaults = new HashMap<String, String>();
+		Map<String, VertexType> types = new HashMap<String, VertexType>();
 
-		@Override
-		public VertexVisualizationData getVertexVisualizationData(
-				String vertexType) {
-			return visData.get(vertexType);
+		public VertexType getVertexType(String typeName) {
+			return types.get(typeName);
 		}
 
-		@Override
-		public Collection<String> getVertexTypes() {
-			return visData.keySet();
+		public Collection<VertexType> getVertexTypes() {
+			return types.values();
 		}
 
-		void addVertexType(String typeName,
-				VertexVisualizationData visualizationData, DataType dataType) {
-			visData.put(typeName, visualizationData);
-			this.dataTypes.put(typeName, dataType);
-		}
-		
-		void setDefaultData(String typeName, String value) {
-			defaults.put(typeName, value);
-		}
-
-		@Override
-		public DataType vertexDataType(String vertexType) {
-			return this.dataTypes.get(vertexType);
-		}
-
-		@Override
-		public boolean vertexHasData(String vertexType) {
-			return this.dataTypes.get(vertexType) != DataType.None;
-		}
-
-		@Override
-		public GraphElementData createDefaultData(String vertexType) {
-			if (vertexHasData(vertexType)) {
-				GraphElementData d = new GraphElementData();
-				d.setValue(defaults.get(vertexType));
-				return d;
-			} else {
-				return null;
-			}
+		void addVertexType(VertexType type) {
+			types.put(type.getTypeName(), type);
 		}
 	}
 
@@ -105,14 +63,9 @@ public class Core {
 	public Core(CoreTalker talker) {
 		this.talker = talker;
 		this.activeTheory = new CoreTheory();
-		activeTheory.addVertexType("red", new RGVertexVisualizationData(
-				Color.red), Theory.DataType.MathExpression);
-		activeTheory.setDefaultData("red", "0");
-		activeTheory.addVertexType("green", new RGVertexVisualizationData(
-				Color.green), Theory.DataType.MathExpression);
-		activeTheory.setDefaultData("green", "0");
-		activeTheory.addVertexType("hadamard", new HVertexVisualizationData(),
-				Theory.DataType.None);
+		activeTheory.addVertexType(new VertexType.Red());
+		activeTheory.addVertexType(new VertexType.Green());
+		activeTheory.addVertexType(new VertexType.Hadamard());
 		this.graphBuilder = new GraphBuilder(activeTheory);
 	}
 
@@ -134,12 +87,6 @@ public class Core {
 		return ns;
 	}
 	
-	private Vertex createVertex(String name, String vertexType) {
-		Vertex v = new Vertex(name, vertexType);
-		v.setData(activeTheory.createDefaultData(vertexType));
-		return v;
-	}
-
 	protected List<AttachedRewrite<CoreGraph>> parseRewrites(CoreGraph graph,
 			String xml) throws ParseException {
 		List<AttachedRewrite<CoreGraph>> rewrites = new ArrayList<AttachedRewrite<CoreGraph>>();
@@ -247,19 +194,23 @@ public class Core {
 		talker.redo(graph.getCoreName());
 	}
 
-	public Vertex addVertex(CoreGraph graph, String vertexType)
+	public Vertex addVertex(CoreGraph graph, VertexType vertexType)
 			throws CoreException {
 		assertCoreGraph(graph);
-		Vertex v = createVertex(
-				talker.add_vertex(graph.getCoreName(), vertexType), vertexType);
+		Vertex v = Vertex.createVertex(talker.add_vertex(graph.getCoreName(), vertexType.getTypeName()), vertexType);
 		graph.addVertex(v);
 		graph.fireStateChanged();
 		return v;
 	}
 
+	public Vertex addVertex(CoreGraph graph, String vertexType)
+			throws CoreException {
+		return addVertex(graph, activeTheory.getVertexType(vertexType));
+	}
+
 	public Vertex addBoundaryVertex(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
-		Vertex v = new BoundaryVertex(talker.add_vertex(graph.getCoreName(),
+		Vertex v = Vertex.createBoundaryVertex(talker.add_vertex(graph.getCoreName(),
 				"boundary"));
 		graph.addVertex(v);
 		graph.fireStateChanged();
@@ -346,7 +297,6 @@ public class Core {
 			throws CoreException {
 		assertCoreGraph(graph);
 		talker.bbox_kill(graph.getCoreName(), names(bboxen));
-		// FIXME: this is inefficient for multiple overlapping !-boxes
 		for (BangBox bb : bboxen) {
 			for (Vertex v : graph.getBoxedVertices(bb)) {
 				graph.removeVertex(v);

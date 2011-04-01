@@ -7,22 +7,19 @@ import java.awt.geom.Rectangle2D;
 
 public class RGVertexVisualizationData implements VertexVisualizationData {
 	private Color color;
-	
+
 	public RGVertexVisualizationData(Color color) {
 		this.color = color;
 	}
-	
-	@Override
+
 	public Color fillColour() {
 		return color;
 	}
-	
-	@Override
+
 	public Shape getShape(Rectangle2D bounds) {
 		return new Ellipse2D.Double(bounds.getX(), bounds.getY(), bounds.getWidth(), bounds.getHeight());
 	}
 
-	@Override
 	public Color labelColour() {
 		// FIXME: hack
 		if (color == Color.red) {
@@ -30,6 +27,10 @@ public class RGVertexVisualizationData implements VertexVisualizationData {
 		} else if (color == Color.green) {
 			return new Color(150, 255, 150);
 		}
+		return null;
+	}
+
+	public String fillText() {
 		return null;
 	}
 }

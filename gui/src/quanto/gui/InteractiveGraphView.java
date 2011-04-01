@@ -115,7 +115,6 @@ public class InteractiveGraphView
 		private JLabel getDummy(Object vertex) {
 				JLabel c = dummyLabels.get(vertex);
 				if (c == null) {
-					logger.info("Creating a dummy with no value");
 					c = new JLabel();
 					dummyLabels.put(vertex, c);
 				}
@@ -132,7 +131,7 @@ public class InteractiveGraphView
 			else if (vertex instanceof Vertex)
 			{
 				final Vertex qVertex = (Vertex) vertex;
-				if (qVertex.isBoundaryVertex() || !core.getActiveTheory().vertexHasData(qVertex.getVertexType())) {
+				if (qVertex.isBoundaryVertex() || !qVertex.getVertexType().hasData()) {
 					return getDummy(vertex);
 				}
 
@@ -145,11 +144,10 @@ public class InteractiveGraphView
 				// lazily create the labeler
 				Labeler labeler = components.get(qVertex);
 				if (labeler == null) {
-					logger.info("Creating a new component for vertex {}", qVertex.getCoreName());
-					labeler = new Labeler(core.getActiveTheory().vertexDataType(qVertex.getVertexType()), label);
+					labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
 					components.put(qVertex, labeler);
 					viewer.add(labeler);
-					Color colour = core.getActiveTheory().getVertexVisualizationData(qVertex.getVertexType()).labelColour();
+					Color colour = qVertex.getVertexType().getVisualizationData().labelColour();
 					if (colour != null) {
 						labeler.setColor(colour);
 					}

@@ -12,19 +12,14 @@ import java.awt.Font;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 
-import quanto.core.Theory;
 import quanto.core.data.Vertex;
-import quanto.gui.TexConstants;
 
 /**
  * 
  * @author alemer
  */
 public class QVertexAngleLabeler implements VertexLabelRenderer {
-	private Theory theory;
-
-	public QVertexAngleLabeler(Theory theory) {
-		this.theory = theory;
+	public QVertexAngleLabeler() {
 	}
 
 	public <T> Component getVertexLabelRendererComponent(JComponent vv,
@@ -36,7 +31,7 @@ public class QVertexAngleLabeler implements VertexLabelRenderer {
 				return new JLabel();
 			}
 			JLabel lab = new JLabel(value.toString());
-			Color colour = theory.getVertexVisualizationData(v.getVertexType()).labelColour();
+			Color colour = v.getVertexType().getVisualizationData().labelColour();
 			if (colour != null) {
 				lab.setBackground(colour);
 				lab.setOpaque(true);

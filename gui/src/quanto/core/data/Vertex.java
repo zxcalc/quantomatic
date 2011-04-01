@@ -4,14 +4,23 @@ package quanto.core.data;
 public class Vertex extends GraphElement {
 
 	// null == boundary
-	protected String vertexType;
+	protected VertexType vertexType;
 
-	public Vertex(String name, String vertexType) {
-		super(name);
+	public static Vertex createVertex(String name, VertexType vertexType) {
 		if (vertexType == null) {
 			throw new IllegalArgumentException("vertexType cannot be null");
 		}
+		return new Vertex(name, vertexType);
+	}
+
+	public static Vertex createBoundaryVertex(String name) {
+		return new Vertex(name);
+	}
+
+	protected Vertex(String name, VertexType vertexType) {
+		super(name);
 		this.vertexType = vertexType;
+		setData(vertexType.createDefaultData());
 	}
 
 	protected Vertex(String name) {
@@ -24,27 +33,13 @@ public class Vertex extends GraphElement {
 	 * @return the vertex type, as specified by the core,
 	 *         or null if it is a boundary vertex
 	 */
-	public String getVertexType() {
+	public VertexType getVertexType() {
 		return vertexType;
 	}
 
-	public void setVertexType(String vertexType) {
-		if (vertexType == null)
-			throw new IllegalArgumentException("vertexType cannot be null");
-		this.vertexType = vertexType;
-	}
-	
 	@Override
 	public String toString() {
 		return getLabel().replace('\\', 'B')+"    ";
-	}
-
-	public void updateTo(Vertex v) {
-		if (v.isBoundaryVertex()) {
-			throw new IllegalArgumentException("Cannot update a non-boundary vertex to a boundary vertex");
-		}
-		setVertexType(v.getVertexType());
-		setData(v.getData());
 	}
 
 	public String getLabel() {
@@ -55,6 +50,6 @@ public class Vertex extends GraphElement {
 	}
 
 	public boolean isBoundaryVertex() {
-		return false;
+		return this.vertexType == null;
 	}
 }

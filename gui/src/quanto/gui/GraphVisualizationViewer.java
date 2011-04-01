@@ -92,10 +92,10 @@ public class GraphVisualizationViewer
 				}
 			});
 
-		getRenderContext().setVertexLabelTransformer(new QVertexLabelTransformer(theory));
-		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler(theory));
-		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer(theory));
-		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer(theory));
+		getRenderContext().setVertexLabelTransformer(new QVertexLabelTransformer());
+		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler());
+		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer());
+		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer());
 
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(

@@ -78,12 +78,12 @@ public class PdfGraphVisualizationServer extends
 				});
 
 		getRenderContext().setVertexLabelTransformer(
-				new QVertexLabelTransformer(theory));
-		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler(theory));
+				new QVertexLabelTransformer());
+		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler());
 		getRenderContext().setVertexFillPaintTransformer(
-				new QVertexColorTransformer(theory));
+				new QVertexColorTransformer());
 		getRenderContext().setVertexShapeTransformer(
-				new QVertexShapeTransformer(theory));
+				new QVertexShapeTransformer());
 
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(

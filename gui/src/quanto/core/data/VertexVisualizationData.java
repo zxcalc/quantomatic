@@ -8,4 +8,5 @@ public interface VertexVisualizationData {
 	Shape getShape(Rectangle2D bounds);
 	Color fillColour();
 	Color labelColour();
+	String fillText();
 }

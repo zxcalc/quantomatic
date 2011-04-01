@@ -15,6 +15,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import quanto.core.Theory;
+
+import quanto.core.data.VertexType;
 import quanto.gui.TexConstants;
 
 @SuppressWarnings("serial")
@@ -25,9 +27,9 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	String value;
 	ChangeEvent evt;
 	Point idealLocation;
-	Theory.DataType dataType;
+	VertexType.DataType dataType;
 	
-	public Labeler(Theory.DataType dataType, String value) {
+	public Labeler(VertexType.DataType dataType, String value) {
 		setLayout(new BorderLayout());
 		this.dataType = dataType;
 		evt = new ChangeEvent(this);
@@ -116,7 +118,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	
 	public void setText(String text) {
 		value = text;
-		if (dataType == Theory.DataType.MathExpression)
+		if (dataType == VertexType.DataType.MathExpression)
 			label.setText(TexConstants.translate(value));
 		refresh();
 	}

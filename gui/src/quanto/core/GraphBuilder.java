@@ -12,11 +12,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 import net.n3.nanoxml.IXMLElement;
 import net.n3.nanoxml.IXMLParser;
@@ -29,13 +27,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quanto.core.data.BangBox;
-import quanto.core.data.BoundaryVertex;
 import quanto.core.data.CoreGraph;
 import quanto.core.data.CoreObject;
 import quanto.core.data.Edge;
-import quanto.core.data.GraphElementData;
 import quanto.core.data.Vertex;
-import quanto.core.data.VertexVisualizationData;
+import quanto.core.data.VertexType;
 
 /**
  *
@@ -129,9 +125,10 @@ public class GraphBuilder {
 				graph.removeEdge(e);
 			for (BangBox b : new ArrayList<BangBox>(graph.getBangBoxes()))
 				graph.removeBangBox(b);
+			for (Vertex v : new ArrayList<Vertex>(graph.getVertices()))
+				graph.removeVertex(v);
 
 			Map<String, Vertex> verts = getVertexMap(graph);
-			Set<Vertex> stale = new HashSet<Vertex>(graph.getVertices());
 
 			for (Object obj : graphNode.getChildrenNamed("vertex")) {
 				IXMLElement vertexNode = (IXMLElement)obj;
@@ -145,24 +142,20 @@ public class GraphBuilder {
 					if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("true"))
 					{
-						v = new BoundaryVertex(vname);
+						v = Vertex.createBoundaryVertex(vname);
 					} else if (vertexNode.getFirstChildNamed("boundary")
 							.getContent().equals("false")) {
-						String vType = vertexNode.getFirstChildNamed("colour").getContent().toLowerCase();
-						if (vType.equals("h"))
-							vType = "hadamard";
-						v = new Vertex(vname, vType);
+						String vTypeName = vertexNode.getFirstChildNamed("colour").getContent().toLowerCase();
+						if (vTypeName.equals("h"))
+							vTypeName = "hadamard";
+						VertexType vType = theory.getVertexType(vTypeName);
+						v = Vertex.createVertex(vname, vType);
 
-						if (theory.vertexHasData(vType)) {
-							GraphElementData data = theory.createDefaultData(vType);
-							if (theory.vertexDataType(vType) == Theory.DataType.MathExpression) {
-								IXMLElement expr = vertexNode
-									.getFirstChildNamed("angleexpr");
-								if (expr != null) {
-									data.setValue(expr.getFirstChildNamed("as_string").getContent());
-								}
+						if (vType.getDataType() == VertexType.DataType.MathExpression) {
+							IXMLElement expr = vertexNode.getFirstChildNamed("angleexpr");
+							if (expr != null) {
+								v.getData().setValue(expr.getFirstChildNamed("as_string").getContent());
 							}
-							v.setData(data);
 						}
 					} else {
 						throwParseException(vertexNode, ": invalid value for \"boundary\"");
@@ -179,15 +172,8 @@ public class GraphBuilder {
 					throwParseException(vertexNode, null);
 				}
 
-				Vertex old_v = verts.get(v.getCoreName());
-				if (old_v == null) {
-					verts.put(v.getCoreName(), v);
-					graph.addVertex(v);
-				} else {
-					stale.remove(old_v);
-					old_v.updateTo(v);
-					v = old_v;
-				}
+				verts.put(v.getCoreName(), v);
+				graph.addVertex(v);
 
 				if (v.isBoundaryVertex()) {
 					boundaryVertices.add(v);
@@ -195,12 +181,6 @@ public class GraphBuilder {
 			} // foreach vertex
 
 			Collections.sort(boundaryVertices, new CoreObject.NameComparator());
-
-			// Prune removed vertices
-			for (Vertex v : stale) {
-				verts.remove(v.getCoreName());
-				graph.removeVertex(v);
-			}
 
 			for (Object obj : graphNode.getChildrenNamed("edge")) {
 				IXMLElement edgeNode = (IXMLElement)obj;
