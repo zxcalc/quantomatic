@@ -9,51 +9,14 @@ structure SS_GraphParam
   structure Vertex = SSVertex;
   structure Edge = UnitEdge;
 
-  (* internal name data: normally for names in vertex data *)
-  type T = unit;
-
-  (* dummy: rename internal names in T *)
-  structure CRnmINames : COMPOUND_RENAMING
-  = (structure Nm = SStrName type obj = T);
-
-  (* rename vertices in the dependency structure *)
-  structure CRnmVNames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = Vertex type obj = T);
-
-  (* rename edges in the dependency structure *)
-  structure CRnmENames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
-
-  (* empty name-dependency information *)
-  val empty = ();
-
-  fun add_vertex vd vn vdep = vdep;
-  fun add_edge ed en vdep = vdep;
-
-  fun delete_vertex vn vdep = vdep;
-  fun delete_edge en vdep = vdep;
-
-  fun replace_vertex vd vn vdep = vdep; 
-  fun replace_edge ed en vdep = vdep;
-
-  fun of_vertex vd vn = empty;
-  fun of_edge en ed = empty;
-
-  (* renaming internal names within a vertex *)
-  structure VDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = SStrName type obj = T);
-
-  (* rename internal names within an edge data *)
-  structure EDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = SStrName type obj = Edge.data);
-
+  
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
   type subst = unit;
 
   val empty_subst = ();
   fun compose_subst u1 u2 = (); 
-  fun try_match_vertex d1 d2 u = SOME u;
+  fun try_match_vertex d1 d2 u = SSVertex.match_data (d1,d2);
   fun try_match_edge e1 e2 u = SOME u;
 
   (* IMPROVE: what data do we want here? should it be add_exp *)
@@ -74,6 +37,47 @@ structure SS_GraphParam
   val pretty_subst = Vertex.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
 
+  
+  (* internal name data: normally for names in vertex data *)
+  type T = unit;
+
+  (* empty name-dependency information *)
+  val empty = ();
+
+  fun add_vertex vd vn vdep = vdep;
+  fun add_edge ed en vdep = vdep;
+
+  fun delete_vertex vn vdep = vdep;
+  fun delete_edge en vdep = vdep;
+
+  fun replace_vertex vd vn vdep = vdep; 
+  fun replace_edge ed en vdep = vdep;
+
+  fun of_vertex vd vn = empty;
+  fun of_edge en ed = empty;
+
+  
+  (* dummy: rename internal names in T *)
+  structure CRnmINames : COMPOUND_RENAMING
+  = (structure Nm = SStrName type obj = T);
+
+  (* rename vertices in the dependency structure *)
+  structure CRnmVNames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = Vertex type obj = T);
+
+  (* rename edges in the dependency structure *)
+  structure CRnmENames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
+
+  (* renaming internal names within a vertex *)
+  structure VDataCRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = SStrName type obj = T);
+
+  (* rename internal names within an edge data *)
+  structure EDataCRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = SStrName type obj = Edge.data);
+
+  (* *)
   structure Sharing = 
   struct 
     structure Vertex = Vertex.SharingWithData;
