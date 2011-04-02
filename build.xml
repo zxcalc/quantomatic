@@ -5,10 +5,9 @@
   </description>
 
   <target name="all">
-    <!-- Create the time stamp -->
-    <exec executable="make" dir="core">
+    <exec executable="make" dir="core" failonerror="true">
     </exec>
-    <exec executable="ant" dir="gui">
+    <exec executable="ant" dir="gui" failonerror="true">
     </exec>
   </target>
 
