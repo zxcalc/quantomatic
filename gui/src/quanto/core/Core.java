@@ -59,6 +59,7 @@ public class Core {
 	private CoreTalker talker;
 	private GraphBuilder graphBuilder;
 	private CoreTheory activeTheory;
+    private Ruleset ruleset;
 
 	public Core(CoreTalker talker) {
 		this.talker = talker;
@@ -67,6 +68,7 @@ public class Core {
 		activeTheory.addVertexType(new VertexType.Green());
 		activeTheory.addVertexType(new VertexType.Hadamard());
 		this.graphBuilder = new GraphBuilder(activeTheory);
+        this.ruleset = new Ruleset(this);
 	}
 
 	public Core() throws CoreException {
@@ -75,6 +77,10 @@ public class Core {
 
 	public Theory getActiveTheory() {
 		return activeTheory;
+	}
+
+	public Ruleset getRuleset() {
+		return ruleset;
 	}
 
 	private String[] names(Collection<? extends CoreObject> c) {

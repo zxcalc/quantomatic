@@ -16,7 +16,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
 	private static final long serialVersionUID = 3656684775223085393L;
 	private final ViewPort viewPort;
-	private final RulesSidebar sidebar;
+	private final RulesBar sidebar;
 	private volatile static int frameCount = 0;
 	private QuantoApp app;
 	private ActionManager actionManager = new ActionManager();
@@ -138,7 +138,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
 		viewPort = new ViewPort(app.getViewManager(), this);
-		sidebar = new RulesSidebar(app.getCore());
+		sidebar = new RulesBar(app.getCore().getRuleset());
 
 		Delegate delegate = new Delegate();
 		actionManager.registerGenericCallback(
