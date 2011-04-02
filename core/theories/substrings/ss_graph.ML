@@ -5,14 +5,16 @@
 structure SS_GraphParam
 : GRAPH_PARAM
 = struct
-
-  structure Vertex = SSVertex;
+  (* Vertices with string data and prefix-substring matching *)
+  structure Vertex = PrefixStringVertex;
   structure Edge = UnitEdge;
 
-  
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
   type subst = unit;
+  
+  (* structure for internal names; we use string names, but this is a dummy, we don't actually have any internal names, but we have to provide this *)
+  structure IName = SStrName;
 
   val empty_subst = ();
   fun compose_subst u1 u2 = (); 
@@ -37,8 +39,8 @@ structure SS_GraphParam
   val pretty_subst = Vertex.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
 
-  
-  (* internal name data: normally for names in vertex data *)
+  (* internal variable-name to vertex-name dependencies; we have no variables 
+     in vertex data, so this is unit. *)
   type T = unit;
 
   (* empty name-dependency information *)
@@ -56,28 +58,24 @@ structure SS_GraphParam
   fun of_vertex vd vn = empty;
   fun of_edge en ed = empty;
 
-  
-  (* dummy: rename internal names in T *)
-  structure CRnmINames : COMPOUND_RENAMING
-  = (structure Nm = SStrName type obj = T);
-
-  (* rename vertices in the dependency structure *)
+  (* RENAMING *)
+  (* [dummy] Renaming internal names within vertex data *)
+  structure VDataCRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = IName type obj = Vertex.data);
+  (* [dummy] Rename internal names within edge data *)
+  structure EDataCRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
+  (* [dummy] Rename vertex-names in the dependency data *)
   structure CRnmVNames : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = Vertex type obj = T);
-
-  (* rename edges in the dependency structure *)
+  (* [dummy] Rename edge-names in the dependency data *)
   structure CRnmENames : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
+  (* [dummy] Rename internal names in T *)
+  structure CRnmINames : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = IName type obj = T);
 
-  (* renaming internal names within a vertex *)
-  structure VDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = SStrName type obj = T);
-
-  (* rename internal names within an edge data *)
-  structure EDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = SStrName type obj = Edge.data);
-
-  (* *)
+  (* convenient syntax for sharing types *)
   structure Sharing = 
   struct 
     structure Vertex = Vertex.SharingWithData;
