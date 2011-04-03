@@ -323,7 +323,7 @@ fun try_edgematch1 pt pe_pvn2 st te_tvn2 (unmatched_tes,matches) =
                          (te_tvn2 :: unmatched_tes, st)) matches
     in
       (te_tvn2::unmatched_tes,
-       ((unmatched_tes, edgematch1 pt pe_pvn2 te_tvn2 st) :: matches' 
+       (((unmatched_tes, edgematch1 pt pe_pvn2 te_tvn2 st) :: matches') 
         handle Match.match_exp _ => matches'))
     end;
 
@@ -465,6 +465,9 @@ fun match_2vertices_with_edges
       st |> update_match (Match.match_vertex (pn,pd) (tn,td))
          |> expand_adj_pat_bboxes pn tn
          |> Seq.maps (edgematch_all_adj (pn,tn))
+         (* force evaluation so as to catch exception *) 
+         (* FIXME: fix this hack *)
+         |> Seq.list_of |> Seq.of_list 
          (* remove pattern vertex, ignore now redudnent info *)
          |> Seq.map (del_pat_vertex pn)
     end handle Match.match_exp _ => Seq.empty;

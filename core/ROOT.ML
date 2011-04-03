@@ -109,7 +109,7 @@ PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 
 (* unit tests *)
-(* PolyML.Project.make "test/ROOT.ML"; *)
+PolyML.Project.make "test/ROOT.ML";
 
 (* top level run function for controller/interface protocol *)
 val run = ConsoleInterface.run_in_stdio;

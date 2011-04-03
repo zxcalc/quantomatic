@@ -425,6 +425,7 @@ functor ControllerState(
     fun load_graph ([fname], state) = 
         ((create_graph GraphName.default_name 
                      (Input.Graph.input (XMLReader.read_from_file fname)) state)
+         (* TODO: fix which exception is raised, make it consistant. *)
          handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
                raise user_exp ("The file '"^fname^"' is not a well-formed xml that defines a graph (reason: "^s1^", "^s2^")")
              | Input.Graph.bad_input_exp (s1,s2) => 
