@@ -165,6 +165,22 @@ public class Ruleset implements ChangeEventSupport {
 		updateCacheForRule(name, Boolean.FALSE);
 	}
 
+	public void activateAllRules() throws CoreException {
+		for (String name: rules.keySet()) {
+			core.getTalker().activate_rule(name);
+			rules.put(name, Boolean.TRUE);
+		}
+		fireStateChanged();
+	}
+
+	public void deactivateAllRules() throws CoreException {
+		for (String name: rules.keySet()) {
+			core.getTalker().deactivate_rule(name);
+			rules.put(name, Boolean.FALSE);
+		}
+		fireStateChanged();
+	}
+
 	public void addChangeListener(ChangeListener l) {
 		changeSupport.addChangeListener(l);
 	}

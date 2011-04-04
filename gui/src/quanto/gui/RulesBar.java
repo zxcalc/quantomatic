@@ -14,7 +14,6 @@ import javax.swing.DefaultListModel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.ListModel;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -65,8 +64,7 @@ public class RulesBar extends JPanel {
 		this.ruleset = ruleset;
 		ruleset.addChangeListener(listener);
 
-		BoxLayout layout = new BoxLayout(this, BoxLayout.PAGE_AXIS);
-		this.setLayout(layout);
+		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 
 		DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
 			public Component getListCellRendererComponent(
