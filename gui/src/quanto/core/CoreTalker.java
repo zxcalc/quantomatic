@@ -10,22 +10,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Regulate communications with the back-end. Primarily accessed via wrappers
- * to the "command" method, which throw QuantoCore.ConsoleError.
+ * Regulate communications with the back-end. Primarily accessed via wrappers to
+ * the "command" method, which throw QuantoCore.ConsoleError.
  * 
  * In this version, the core contains no GUI code.
+ * 
  * @author aleks kissinger
- *
+ * 
  */
 public abstract class CoreTalker {
 
-	private final static Logger logger =
-		LoggerFactory.getLogger(CoreTalker.class);
+	private final static Logger logger = LoggerFactory
+			.getLogger(CoreTalker.class);
 
 	public static String quantoCoreExecutable = "quanto-core";
 
-        // set to true to dump all communication to stdout
-        protected final static boolean DEBUG = false;
+	// set to true to dump all communication to stdout
+	protected final static boolean DEBUG = false;
 
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
@@ -44,56 +45,58 @@ public abstract class CoreTalker {
 			backEnd = pb.start();
 			logger.info("{} started successfully", quantoCoreExecutable);
 		} catch (IOException e) {
-                        logger.error("Could not execute {}: " + e.getMessage(), quantoCoreExecutable);
-                        logger.error("Error was", e);
-                        throw new CoreExecutionException(String.format("Could not execute \"%1$\": %2$", quantoCoreExecutable, e.getMessage()), e);
+			logger.error("Could not execute {}: " + e.getMessage(),
+					quantoCoreExecutable);
+			logger.error("Error was", e);
+			throw new CoreExecutionException(String.format(
+					"Could not execute \"%1$\": %2$", quantoCoreExecutable,
+					e.getMessage()), e);
 		}
 	}
 
-        protected final boolean isClosed() {
+	protected final boolean isClosed() {
 		return backEnd == null;
-        }
+	}
 
-        protected final InputStream getInputStream() {
-                return backEnd.getInputStream();
-        }
+	protected final InputStream getInputStream() {
+		return backEnd.getInputStream();
+	}
 
-        protected final InputStream getErrorStream() {
-                return backEnd.getErrorStream();
-        }
+	protected final InputStream getErrorStream() {
+		return backEnd.getErrorStream();
+	}
 
-        protected final OutputStream getOutputStream() {
-                return backEnd.getOutputStream();
-        }
+	protected final OutputStream getOutputStream() {
+		return backEnd.getOutputStream();
+	}
 
-        protected final void forceDestroy() {
-                backEnd.destroy();
-                backEnd = null;
-        }
+	protected final void forceDestroy() {
+		backEnd.destroy();
+		backEnd = null;
+	}
 
-        protected void writeFailure(Throwable e)
-                throws CoreCommunicationException
-        {
-                try {
-                        logger.error("Tried to write to core process, but it has terminated (exit value: {})", backEnd.exitValue());
-                        // Not much we can do: throw an exception
-                        throw new CoreTerminatedException();
-                } catch (IllegalThreadStateException ex) {
-                        logger.error("Failed to write to core process, even though it has not terminated");
-                        throw new CoreCommunicationException();
-                }
-        }
+	protected void writeFailure(Throwable e) throws CoreCommunicationException {
+		try {
+			logger.error(
+					"Tried to write to core process, but it has terminated (exit value: {})",
+					backEnd.exitValue());
+			// Not much we can do: throw an exception
+			throw new CoreTerminatedException();
+		} catch (IllegalThreadStateException ex) {
+			logger.error("Failed to write to core process, even though it has not terminated");
+			throw new CoreCommunicationException();
+		}
+	}
 
-        protected void readFailure(Throwable e)
-                throws CoreCommunicationException
-        {
-                try {
-                        logger.error("Core process terminated with exit value {}", backEnd.exitValue());
-                        throw new CoreTerminatedException(e);
-                } catch (IllegalThreadStateException ex) {
-                        throw new CoreCommunicationException(e);
-                }
-        }
+	protected void readFailure(Throwable e) throws CoreCommunicationException {
+		try {
+			logger.error("Core process terminated with exit value {}",
+					backEnd.exitValue());
+			throw new CoreTerminatedException(e);
+		} catch (IllegalThreadStateException ex) {
+			throw new CoreCommunicationException(e);
+		}
+	}
 
 	private static class ProcessCleanupThread extends Thread {
 		private Process process;
@@ -107,19 +110,17 @@ public abstract class CoreTalker {
 		public void run() {
 			try {
 				sleep(5000);
-			} catch (InterruptedException ex) {}
+			} catch (InterruptedException ex) {
+			}
 			process.destroy();
 		}
 	}
 
 	public static class Arg {
 		public enum Type {
-			Integer,
-			Name,
-			Path,
-			VertexType,
-			RawString
+			Integer, Name, Path, VertexType, RawString
 		}
+
 		private int i;
 		private String s;
 		private Type type;
@@ -175,30 +176,33 @@ public abstract class CoreTalker {
 		}
 	}
 
-        /**
-         * Ask the core nicely to quit.  No communication should be requested
-         * after this.
-         *
-         * @throws CoreCommunicationException
-         */
-        protected abstract void quit() throws CoreCommunicationException;
 	/**
-	 * Send a command with the given arguments. All of the args should be objects
-	 * which implement HasName and have non-null names
+	 * Ask the core nicely to quit. No communication should be requested after
+	 * this.
+	 * 
+	 * @throws CoreCommunicationException
 	 */
-	public abstract void command(String name, Arg ... args)
-                throws CoreException;
-	public abstract String commandAsName(String name, Arg ... args)
-                throws CoreException;
-	public abstract String commandAsRaw(String name, Arg ... args)
-                throws CoreException;
-	public abstract String[] commandAsList(String name, Arg ... args)
-                throws CoreException;
+	protected abstract void quit() throws CoreCommunicationException;
+
+	/**
+	 * Send a command with the given arguments. All of the args should be
+	 * objects which implement HasName and have non-null names
+	 */
+	public abstract void command(String name, Arg... args) throws CoreException;
+
+	public abstract String commandAsName(String name, Arg... args)
+			throws CoreException;
+
+	public abstract String commandAsRaw(String name, Arg... args)
+			throws CoreException;
+
+	public abstract String[] commandAsList(String name, Arg... args)
+			throws CoreException;
 
 	/**
 	 * Quits the core process, and releases associated resources
 	 */
-	public void destroy(){
+	public void destroy() {
 		if (backEnd != null) {
 			logger.info("Shutting down the core process");
 			try {
@@ -215,7 +219,7 @@ public abstract class CoreTalker {
 		Arg[] args = new Arg[rest.length + 1];
 		args[0] = Arg.nameArg(first);
 		for (int i = 0; i < rest.length; ++i) {
-			args[i+1] = Arg.nameArg(rest[i]);
+			args[i + 1] = Arg.nameArg(rest[i]);
 		}
 		return args;
 	}
@@ -225,7 +229,7 @@ public abstract class CoreTalker {
 		args[0] = Arg.nameArg(first);
 		args[1] = Arg.nameArg(second);
 		for (int i = 0; i < rest.length; ++i) {
-			args[i+2] = Arg.nameArg(rest[i]);
+			args[i + 2] = Arg.nameArg(rest[i]);
 		}
 		return args;
 	}
@@ -233,6 +237,11 @@ public abstract class CoreTalker {
 	/*
 	 * Below here are all the functions implemented by the quanto core
 	 */
+	
+	@Command
+	public String console_command(String command) throws CoreException {
+		return commandAsRaw("console_command", Arg.rawArg(command));
+	}
 
 	@Command
 	public void load_ruleset(File location) throws CoreException {
@@ -246,26 +255,26 @@ public abstract class CoreTalker {
 
 	@Command
 	public void new_rule(String ruleName, String lhsName, String rhsName)
-	throws CoreException {
-		command("new_rule", Arg.nameArg(ruleName), Arg.nameArg(lhsName), Arg.nameArg(rhsName));
+			throws CoreException {
+		command("new_rule", Arg.nameArg(ruleName), Arg.nameArg(lhsName),
+				Arg.nameArg(rhsName));
 	}
 
 	@Command
-	public String open_rule_lhs(String rule)
-	throws CoreException {
+	public String open_rule_lhs(String rule) throws CoreException {
 		return commandAsName("open_rule_lhs", Arg.nameArg(rule));
 	}
 
 	@Command
-	public String open_rule_rhs(String rule)
-	throws CoreException {
+	public String open_rule_rhs(String rule) throws CoreException {
 		return commandAsName("open_rule_rhs", Arg.nameArg(rule));
 	}
 
 	@Command
 	public void update_rule(String rule, String lhsName, String rhsName)
-	throws CoreException {
-		command("update_rule", Arg.nameArg(rule), Arg.nameArg(lhsName), Arg.nameArg(rhsName));
+			throws CoreException {
+		command("update_rule", Arg.nameArg(rule), Arg.nameArg(lhsName),
+				Arg.nameArg(rhsName));
 	}
 
 	@Command
@@ -349,7 +358,8 @@ public abstract class CoreTalker {
 	}
 
 	@Command
-	public void save_graph(String graphName, File location) throws CoreException {
+	public void save_graph(String graphName, File location)
+			throws CoreException {
 		command("save_graph", Arg.nameArg(graphName), Arg.pathArg(location));
 	}
 
@@ -359,8 +369,10 @@ public abstract class CoreTalker {
 	}
 
 	@Command
-	public String rename_graph(String graphName, String newName) throws CoreException {
-		return commandAsName("rename_graph", Arg.nameArg(graphName), Arg.nameArg(newName));
+	public String rename_graph(String graphName, String newName)
+			throws CoreException {
+		return commandAsName("rename_graph", Arg.nameArg(graphName),
+				Arg.nameArg(newName));
 	}
 
 	@Command
@@ -390,43 +402,47 @@ public abstract class CoreTalker {
 
 	@Command
 	public String add_vertex(String graphName, String type)
-	throws CoreException {
-		return commandAsName("add_vertex", Arg.nameArg(graphName), Arg.vertexTypeArg(type));
+			throws CoreException {
+		return commandAsName("add_vertex", Arg.nameArg(graphName),
+				Arg.vertexTypeArg(type));
 	}
 
 	@Command
-	public String rename_vertex(String graphName, String vertexName, String newName)
-	throws CoreException {
-		return commandAsName("rename_vertex", Arg.nameArg(graphName), Arg.nameArg(vertexName), Arg.nameArg(newName));
+	public String rename_vertex(String graphName, String vertexName,
+			String newName) throws CoreException {
+		return commandAsName("rename_vertex", Arg.nameArg(graphName),
+				Arg.nameArg(vertexName), Arg.nameArg(newName));
 	}
 
 	@Command
-	public void set_angle(String graphName, String vertexName, String angle) throws CoreException {
-		command("set_angle", Arg.nameArg(graphName), Arg.nameArg(vertexName), Arg.nameArg(angle));
+	public void set_angle(String graphName, String vertexName, String angle)
+			throws CoreException {
+		command("set_angle", Arg.nameArg(graphName), Arg.nameArg(vertexName),
+				Arg.nameArg(angle));
 	}
 
 	@Command
-	public void flip_vertices (String graphName, String ... verts)
-	throws CoreException {
+	public void flip_vertices(String graphName, String... verts)
+			throws CoreException {
 		command("flip_vertices", unshiftNames(graphName, verts));
 	}
 
 	@Command
-	public void delete_vertices(String graphName, String ... vertexNames)
-	throws CoreException {
+	public void delete_vertices(String graphName, String... vertexNames)
+			throws CoreException {
 		command("delete_vertices", unshiftNames(graphName, vertexNames));
 	}
 
 	@Command
-	public String add_edge(String graphName, String sourceName, String targetName)
-	throws CoreException {
+	public String add_edge(String graphName, String sourceName,
+			String targetName) throws CoreException {
 		return commandAsName("add_edge", Arg.nameArg(graphName),
-			Arg.nameArg(sourceName), Arg.nameArg(targetName));
+				Arg.nameArg(sourceName), Arg.nameArg(targetName));
 	}
 
 	@Command
-	public void delete_edges(String graphName, String ... edgeNames)
-	throws CoreException {
+	public void delete_edges(String graphName, String... edgeNames)
+			throws CoreException {
 		command("delete_edges", unshiftNames(graphName, edgeNames));
 	}
 
@@ -436,64 +452,64 @@ public abstract class CoreTalker {
 	}
 
 	@Command
-	public void bbox_drop(String graphName, String ... boxes)
-	throws CoreException {
+	public void bbox_drop(String graphName, String... boxes)
+			throws CoreException {
 		command("bbox_drop", unshiftNames(graphName, boxes));
 
 	}
 
 	@Command
-	public String bbox_merge(String graphName, String ... boxes)
-	throws CoreException {
+	public String bbox_merge(String graphName, String... boxes)
+			throws CoreException {
 		return commandAsName("bbox_merge", unshiftNames(graphName, boxes));
 
 	}
 
 	@Command
 	public String bbox_duplicate(String graphName, String box)
-	throws CoreException {
-		return commandAsName("bbox_duplicate", Arg.nameArg(graphName), Arg.nameArg(box));
+			throws CoreException {
+		return commandAsName("bbox_duplicate", Arg.nameArg(graphName),
+				Arg.nameArg(box));
 	}
 
 	@Command
-	public void bbox_kill(String graphName, String ... boxes)
-	throws CoreException {
+	public void bbox_kill(String graphName, String... boxes)
+			throws CoreException {
 		command("bbox_kill", unshiftNames(graphName, boxes));
 	}
 
 	@Command
-	public void bang_vertices (String graphName, String bb, String ... verts)
-	throws CoreException {
+	public void bang_vertices(String graphName, String bb, String... verts)
+			throws CoreException {
 		command("bang_vertices", doubleUnshiftNames(graphName, bb, verts));
 	}
 
 	@Command
-	public void unbang_vertices (String graphName, String ... verts)
-	throws CoreException {
+	public void unbang_vertices(String graphName, String... verts)
+			throws CoreException {
 		command("unbang_vertices", unshiftNames(graphName, verts));
 	}
 
 	@Command
-	public void copy_subgraph (String source, String target, String ... verts)
-	throws CoreException {
+	public void copy_subgraph(String source, String target, String... verts)
+			throws CoreException {
 		command("copy_subgraph", doubleUnshiftNames(source, target, verts));
 	}
 
 	@Command
-	public void insert_graph (String source, String target)
-	throws CoreException {
+	public void insert_graph(String source, String target) throws CoreException {
 		command("insert_graph", Arg.nameArg(source), Arg.nameArg(target));
 	}
 
 	@Command
-	public void attach_rewrites(String graphName, String ... vertexNames)
-	throws CoreException {
+	public void attach_rewrites(String graphName, String... vertexNames)
+			throws CoreException {
 		command("attach_rewrites", unshiftNames(graphName, vertexNames));
 	}
 
 	@Command
-	public void attach_one_rewrite(String graphName, String ... vertexNames)
-	throws CoreException {
+	public void attach_one_rewrite(String graphName, String... vertexNames)
+			throws CoreException {
 		command("attach_one_rewrite", unshiftNames(graphName, vertexNames));
 	}
 

@@ -16,170 +16,85 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Simulates a console interface to the core backend
- *
+ * 
  * @author alemer
  */
 public class ConsoleInterface {
-	private final static Logger logger =
-		LoggerFactory.getLogger(ConsoleInterface.class);
+	private final static Logger logger = LoggerFactory
+			.getLogger(ConsoleInterface.class);
 
-        public interface ResponseListener {
-                public void responseReceived(String response);
-        }
+	public interface ResponseListener {
+		public void responseReceived(String response);
+	}
 
-        public static class ParseException extends Exception {
-                public ParseException() {
-                }
-                public ParseException(String message) {
-                        super(message);
-                }
-        }
-
-        private CoreTalker core;
-        private ResponseListener responseListener;
+	private CoreTalker core;
+	private ResponseListener responseListener;
 	private Completer completer;
 
-        public ConsoleInterface(CoreTalker core)
-        {
-                this.core = core;
+	public ConsoleInterface(CoreTalker core) {
+		this.core = core;
 
-                // Construct the completion engine from the output of the help command.
-                completer = new Completer();
-                logger.info("Retrieving commands...");
+		// Construct the completion engine from the output of the help command.
+		completer = new Completer();
+		logger.info("Retrieving commands...");
 
-                try
-                {
-                        String result = core.commandAsRaw("help");
-                        BufferedReader reader = new BufferedReader(new StringReader(result));
-                        // eat a couple of lines of description
-                        reader.readLine(); reader.readLine();
-                        for (String ln = reader.readLine(); ln != null; ln = reader.readLine())
-                                if (! ln.equals("")) completer.addWord(ln);
-                        logger.info("Commands retrieved successfully");
-                }
-                catch (IOException ex) {
-                        logger.error("Failed to retreive commands for completion", ex);
-                }
-                catch (CoreException ex) {
-                        logger.error("Failed to retreive commands for completion", ex);
-                }
+		try {
+			// FIXME: we need a command_list command
+			String result = core.commandAsRaw("help");
+			BufferedReader reader = new BufferedReader(new StringReader(result));
+			// eat a couple of lines of description
+			reader.readLine();
+			reader.readLine();
+			for (String ln = reader.readLine(); ln != null; ln = reader
+					.readLine())
+				if (!ln.equals(""))
+					completer.addWord(ln);
+			logger.info("Commands retrieved successfully");
+		} catch (IOException ex) {
+			logger.error("Failed to retreive commands for completion", ex);
+		} catch (CoreException ex) {
+			logger.error("Failed to retreive commands for completion", ex);
+		}
 
-        }
+	}
 
-        public void setResponseListener(ResponseListener responseListener) {
-                this.responseListener = responseListener;
-        }
+	public void setResponseListener(ResponseListener responseListener) {
+		this.responseListener = responseListener;
+	}
 
-        public ResponseListener getResponseListener() {
-                return responseListener;
-        }
+	public ResponseListener getResponseListener() {
+		return responseListener;
+	}
 
 	public Completer getCompleter() {
 		return completer;
 	}
 
-        /**
-         * Execute the command asynchronously, depending on the response
-         * listener to deal with the reply.
-         *
-         * Note: currently, this is a fake - it just calls
-         * inputCommandSync.
-         *
-         * @param input
-         * @throws quanto.gui.QuantoCore.CoreException
-         */
-        public void inputCommandAsync(String input)
-                throws CoreException, ParseException
-        {
-                inputCommandSync(input, true);
-        }
+	/**
+	 * Execute the command asynchronously, depending on the response listener to
+	 * deal with the reply.
+	 * 
+	 * Note: currently, this is a fake - it just calls inputCommandSync.
+	 * 
+	 * @param input
+	 * @throws quanto.gui.QuantoCore.CoreException
+	 */
+	public void inputCommandAsync(String input) throws CoreException,
+			ParseException {
+		inputCommandSync(input, true);
+	}
 
-        private static class Command {
-                public Command(String command) {
-                        this.command = command;
-                }
-                public String command;
-                public LinkedList<CoreTalker.Arg> args = new LinkedList<CoreTalker.Arg>();
-                public CoreTalker.Arg[] getArgsArray()
-                {
-                        return args.toArray(new CoreTalker.Arg[args.size()]);
-                }
-        }
-
-        public String inputCommandSync(String input, boolean notify)
-                throws CoreException, ParseException
-        {
-                try {
-                        Reader r = new StringReader(input);
-                        StreamTokenizer t = new StreamTokenizer(r);
-                        t.slashSlashComments(false);
-                        t.slashStarComments(false);
-                        t.lowerCaseMode(false);
-                        t.eolIsSignificant(false);
-                        t.parseNumbers();
-                        t.quoteChar('"');
-                        t.quoteChar('\'');
-                        t.wordChars('a', 'z');
-                        t.wordChars('A', 'Z');
-                        t.wordChars('0', '9');
-                        t.wordChars('_', '_');
-
-                        int type = StreamTokenizer.TT_EOF;
-                        Command current = null;
-                        LinkedList<Command> commands = new LinkedList<Command>();
-                        while ((type = t.nextToken()) != StreamTokenizer.TT_EOF)
-                        {
-                                if (current == null)
-                                {
-                                        if (type == StreamTokenizer.TT_NUMBER)
-                                                throw new ParseException("Expected command, got " + t.nval);
-                                        if (type != StreamTokenizer.TT_WORD)
-                                                throw new ParseException("Expected command, got " + type);
-                                        current = new Command(t.sval);
-                                }
-                                else if (type == StreamTokenizer.TT_WORD ||
-                                         type == '\'' || type == '\"')
-                                {
-                                        current.args.addLast(CoreTalker.Arg.rawArg(t.sval));
-                                }
-                                else if (type == StreamTokenizer.TT_NUMBER)
-                                {
-                                        if (t.nval != (double)(int)t.nval) {
-                                                throw new ParseException("Only integers allowed");
-                                        }
-                                        current.args.addLast(CoreTalker.Arg.intArg((int)t.nval));
-                                }
-                                else if (type == ';' || type == StreamTokenizer.TT_EOL)
-                                {
-                                        commands.addLast(current);
-                                        current = null;
-                                }
-                                else
-                                {
-                                        throw new ParseException("Stray character: " + type);
-                                }
-                        }
-                        if (current != null)
-                                commands.addLast(current);
-
-                        StringBuilder result = new StringBuilder();
-                        for (Command cmd : commands)
-                        {
-                                try
-                                {
-                                        result.append(core.commandAsRaw(cmd.command, cmd.getArgsArray()));
-                                }
-                                catch (CommandException ex)
-                                {
-                                        result.append("Error: ").append(ex.getMessage()).append('\n');
-                                }
-                        }
-                        if (notify && (responseListener != null)) {
-                                responseListener.responseReceived(result.toString());
-                        }
-                        return result.toString();
-                } catch (IOException ex) {
-                        throw new ParseException();
-                }
-        }
+	public String inputCommandSync(String input, boolean notify)
+			throws CoreException, ParseException {
+		String ret;
+		try {
+			ret = core.console_command(input);
+		} catch (CommandException ex) {
+			ret = String.format("Error: %1$\n", ex.getMessage());
+		}
+		if (notify && (responseListener != null)) {
+			responseListener.responseReceived(ret);
+		}
+		return ret;
+	}
 }

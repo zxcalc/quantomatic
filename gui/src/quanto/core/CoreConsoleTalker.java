@@ -14,60 +14,61 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * 
  * @author alemer
  */
 public class CoreConsoleTalker extends CoreTalker {
-	private final static Logger logger =
-		LoggerFactory.getLogger(CoreConsoleTalker.class);
+	private final static Logger logger = LoggerFactory
+			.getLogger(CoreConsoleTalker.class);
 
 	private BufferedReader from_backEnd;
 	private BufferedWriter to_backEnd;
 
-        public CoreConsoleTalker() throws CoreException {
-                super(true);
-                try {
-			from_backEnd = new BufferedReader(
-                                new InputStreamReader(getInputStream()));
-			to_backEnd = new BufferedWriter(
-                                new OutputStreamWriter(getOutputStream()));
+	public CoreConsoleTalker() throws CoreException {
+		super(true);
+		try {
+			from_backEnd = new BufferedReader(new InputStreamReader(
+					getInputStream()));
+			to_backEnd = new BufferedWriter(new OutputStreamWriter(
+					getOutputStream()));
 
 			logger.info("Synchonising console...");
 			// sync the console
 			send("garbage_2039483945;");
 			send("HELO;");
-			while (!receive().contains("HELO")) {}
+			while (!receive().contains("HELO")) {
+			}
 			logger.info("Console synchronised successfully");
 
-                        // eat prompt
+			// eat prompt
 			receive();
 		} catch (CoreCommunicationException e) {
-                        forceDestroy();
-                        logger.error("Failed to set up communication with core process", e);
-                        throw e;
+			forceDestroy();
+			logger.error("Failed to set up communication with core process", e);
+			throw e;
 		}
-        }
-
+	}
 
 	/**
 	 * Sends a command to the core process
-	 *
-	 * @param command The command to send, with no newline
+	 * 
+	 * @param command
+	 *            The command to send, with no newline
 	 * @throws quanto.gui.QuantoCore.CoreCommunicationException
-	 * @throws IllegalStateException The core has already been closed
+	 * @throws IllegalStateException
+	 *             The core has already been closed
 	 */
-	private void send(String command)
-        throws CoreCommunicationException {
+	private void send(String command) throws CoreCommunicationException {
 		if (isClosed()) {
 			logger.error("Tried to receive after core had been closed");
 			throw new IllegalStateException();
 		}
 		try {
-                        if (DEBUG) {
-                                System.out.print(">>> ");
-                                System.out.println(command);
-                                System.out.flush();
-                        }
+			if (DEBUG) {
+				System.out.print(">>> ");
+				System.out.println(command);
+				System.out.flush();
+			}
 			to_backEnd.write(command);
 			to_backEnd.newLine();
 			to_backEnd.flush();
@@ -78,16 +79,16 @@ public class CoreConsoleTalker extends CoreTalker {
 
 	/**
 	 * Retrieves a response from the core process
-	 *
-	 * If no command has been sent since the last receive, this may
-	 * block indefinitely.
-	 *
+	 * 
+	 * If no command has been sent since the last receive, this may block
+	 * indefinitely.
+	 * 
 	 * @return The response
 	 * @throws quanto.gui.QuantoCore.CoreCommunicationException
-	 * @throws IllegalStateException The core has already been closed
+	 * @throws IllegalStateException
+	 *             The core has already been closed
 	 */
-	private String receive()
-	throws CoreCommunicationException {
+	private String receive() throws CoreCommunicationException {
 		synchronized (this) {
 			if (isClosed()) {
 				logger.error("Tried to receive after core had been closed");
@@ -95,46 +96,52 @@ public class CoreConsoleTalker extends CoreTalker {
 			}
 			StringBuilder message = new StringBuilder();
 			try {
-                                if (DEBUG) {
-                                        System.out.print("<<< ");
-                                }
+				if (DEBUG) {
+					System.out.print("<<< ");
+				}
 				// end of text is marked by " "+BACKSPACE (ASCII 8)
 
 				int c = from_backEnd.read();
 				while (c != 8) {
-					if (c == -1) throw new IOException();
-					message.append((char)c);
-                                        if (DEBUG) System.out.print((char)c);
+					if (c == -1)
+						throw new IOException();
+					message.append((char) c);
+					if (DEBUG)
+						System.out.print((char) c);
 					c = from_backEnd.read();
 				}
 
 				// delete the trailing space
-				message.deleteCharAt(message.length()-1);
-                                if (DEBUG) {
-                                        System.out.println();
-                                        System.out.flush();
-                                }
+				message.deleteCharAt(message.length() - 1);
+				if (DEBUG) {
+					System.out.println();
+					System.out.flush();
+				}
 			} catch (IOException e) {
-                                if (DEBUG) {
-                                        System.out.println();
-                                        System.out.flush();
-                                }
+				if (DEBUG) {
+					System.out.println();
+					System.out.flush();
+				}
 
 				logger.error("Failed to read from core process", e);
 				if (message.length() > 0) {
-					logger.error("Received partial message before read failure: {}", message);
+					logger.error(
+							"Received partial message before read failure: {}",
+							message);
 				}
 
 				readFailure(e);
 			} catch (java.lang.NullPointerException e) {
-                                if (DEBUG) {
-                                        System.out.println();
-                                        System.out.flush();
-                                }
+				if (DEBUG) {
+					System.out.println();
+					System.out.flush();
+				}
 
 				logger.error("Failed to read from core process", e);
 				if (message.length() > 0) {
-					logger.error("Received partial message before read failure: {}", message);
+					logger.error(
+							"Received partial message before read failure: {}",
+							message);
 				}
 
 				readFailure(e);
@@ -146,37 +153,36 @@ public class CoreConsoleTalker extends CoreTalker {
 
 	/**
 	 * Retrieves a response from the core process
-	 *
-	 * If the core process returns an error, a CoreReturnedErrorException
-	 * will be thrown.
-	 *
-	 * If no command has been sent since the last receive, this may
-	 * block indefinitely.
-	 *
+	 * 
+	 * If the core process returns an error, a CoreReturnedErrorException will
+	 * be thrown.
+	 * 
+	 * If no command has been sent since the last receive, this may block
+	 * indefinitely.
+	 * 
 	 * @return The response
 	 * @throws quanto.gui.QuantoCore.CoreCommunicationException
 	 * @throws quanto.gui.QuantoCore.CoreReturnedErrorException
-	 * @throws IllegalStateException The core has already been closed
+	 * @throws IllegalStateException
+	 *             The core has already been closed
 	 */
-	private String receiveOrFail()
-	throws CoreException {
+	private String receiveOrFail() throws CoreException {
 		String rcv = receive();
 
 		if (rcv.startsWith("!!!")) {
-                        String error = rcv.substring(4);
-                        if (error.startsWith("Unknown command")) {
-                                String command = error.substring(
-                                        "Unknown command: ".length(),
-                                        error.indexOf('('));
-                                throw new UnknownCommandException(error, command);
-                        } else if (error.startsWith("Wrong number of args")) {
-                                String command = error.substring(
-                                        "Wrong number of args in ".length(),
-                                        error.indexOf('('));
-                                throw new CommandArgumentsException(error, command);
-                        } else {
-                                throw new CommandException(error);
-                        }
+			String error = rcv.substring(4);
+			if (error.startsWith("Unknown command")) {
+				String command = error.substring("Unknown command: ".length(),
+						error.indexOf('('));
+				throw new UnknownCommandException(error, command);
+			} else if (error.startsWith("Wrong number of args")) {
+				String command = error
+						.substring("Wrong number of args in ".length(),
+								error.indexOf('('));
+				throw new CommandArgumentsException(error, command);
+			} else {
+				throw new CommandException(error);
+			}
 		}
 		return rcv;
 	}
@@ -186,18 +192,15 @@ public class CoreConsoleTalker extends CoreTalker {
 		if (arg.getType() == Arg.Type.Integer)
 			return raw;
 		else
-			return "\"" +
-				raw.replace("\\", "\\\\").replace("\"", "\\\"") +
-				"\"";
+			return "\"" + raw.replace("\\", "\\\\").replace("\"", "\\\"")
+					+ "\"";
 	}
 
-
 	/**
-	 * Send a command with the given arguments. All of the args should be objects
-	 * which implement HasName and have non-null names
+	 * Send a command with the given arguments. All of the args should be
+	 * objects which implement HasName and have non-null names
 	 */
-	public String commandAsRaw(String name, Arg ... args)
-	throws CoreException {
+	public String commandAsRaw(String name, Arg... args) throws CoreException {
 		synchronized (this) {
 			StringBuilder cmd = new StringBuilder(name);
 			for (Arg arg : args) {
@@ -217,27 +220,37 @@ public class CoreConsoleTalker extends CoreTalker {
 			return ret.trim();
 		}
 	}
+	
+	@Override
+	public String console_command(String command) throws CoreException {
+		send(command);
+		String ret;
+		try {
+			ret = receive();
+		} finally {
+			receive(); // eat the prompt
+		}
+		return ret.trim();
+	}
 
-        @Override
-	public void command(String name, Arg ... args)
-                throws CoreException {
+	@Override
+	public void command(String name, Arg... args) throws CoreException {
 		commandAsRaw(name, args);
 	}
 
-        @Override
-	public String commandAsName(String name, Arg ... args)
-                throws CoreException {
+	@Override
+	public String commandAsName(String name, Arg... args) throws CoreException {
 		return commandAsRaw(name, args);
 	}
 
-        @Override
-	public String[] commandAsList(String name, Arg ... args)
-                throws CoreException {
+	@Override
+	public String[] commandAsList(String name, Arg... args)
+			throws CoreException {
 		return commandAsRaw(name, args).split("\r\n|\n|\r");
 	}
 
-        @Override
-        protected void quit() throws CoreCommunicationException {
-                send("quit");
-        }
+	@Override
+	protected void quit() throws CoreCommunicationException {
+		send("quit");
+	}
 }
