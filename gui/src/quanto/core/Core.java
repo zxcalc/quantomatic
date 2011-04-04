@@ -345,7 +345,7 @@ public class Core {
 
 	public void loadRuleset(File location) throws CoreException, IOException {
 		talker.load_ruleset(location);
-		this.ruleset.fireStateChanged();
+		this.ruleset.reload();
 	}
 
 	public void loadRuleset(String ruleset) throws CoreException, IOException {
@@ -355,7 +355,7 @@ public class Core {
 			w.write(ruleset);
 			w.close();
 			talker.load_ruleset(file);
-			this.ruleset.fireStateChanged();
+			this.ruleset.reload();
 		} finally {
 			file.delete();
 		}
