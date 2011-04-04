@@ -149,39 +149,3 @@ structure RG_GraphParam
 end;
 
 
-(* IMPROVE provide table holding variable info for each vertices data *)
-
-structure Test_DB_RGGraph 
-= struct 
-  structure BasicBangGraph = BasicBangGraphFun(
-    structure Param = RG_GraphParam
-    type data = unit (* no extra inherrited data for graphs *)
-    val empty_data = ());
-  structure BBGraph = BangGraphTools(BasicBangGraph);
-  open BBGraph;
-end;
-
-structure Test_RGGraph : BANG_GRAPH = Test_DB_RGGraph;
-
-
-(* ML utility code for building RG graphs *)
-structure Test_MkG = 
-struct
-  structure VD = RG_VertexData;
-  structure V = Test_RGGraph.OVertex;
-  structure E = Test_RGGraph.Edge;
-  structure G = Test_RGGraph;
-
-  val bvert = V.EVert;
-  val zero_angle = AngleExpr.zero;
-  val var_angle = AngleExpr.mk_var;
-  fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
-  val add_angles = AngleExpr.add_expr;
-  val pi_angle = AngleExpr.pi;
-  fun mkZ a = V.IVert (VD.Znd a);
-  fun mkX a = V.IVert (VD.Xnd a);
-  val mkH = V.IVert VD.Hnd;
-  val undir_edge = (G.UnDirected,());
-  val dir_edge = (G.Directed,());
-  val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
-end;

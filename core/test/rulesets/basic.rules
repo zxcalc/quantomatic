@@ -1,0 +1,2363 @@
+<?xml version="1.0"?>
+<ruleset>
+  <allrules>
+    <rule>
+      <name>z_group4</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_group3</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_group2</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>a</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_copy_0</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>d</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_abelian1</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_group4</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_group3</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_group2</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>a</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_copy_0</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>d</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_abelian1</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>hopf_2_2</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>e</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>e</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>f</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>f</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>b</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>h</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ej</name><directed>False</directed><source>h</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ei</name><directed>False</directed><source>h</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>b</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>a</source><target>g</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>hopf_2_1</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>d</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>d</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>e</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>g</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>b</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>a</source><target>f</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>hopf_1_2</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>d</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>d</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>e</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>g</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>c</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>a</source><target>f</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>hopf_1_1</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>bialgebra1</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>h</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>g</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>d</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>d</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>c</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>c</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>f</source><target>h</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>e</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>j</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>i</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>h</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>g</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Em</name><directed>False</directed><source>j</source><target>h</target>
+                      </edge>
+                      <edge>
+                        <name>El</name><directed>False</directed><source>j</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ek</name><directed>False</directed><source>i</source><target>j</target>
+                      </edge>
+                      <edge>
+                        <name>Ej</name><directed>False</directed><source>b</source><target>i</target>
+                      </edge>
+                      <edge>
+                        <name>Ei</name><directed>False</directed><source>a</source><target>i</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_inv_hhh_swap</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>g</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>e</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>d</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>f</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>h</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ei</name><directed>False</directed><source>h</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>b</source><target>h</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>a</source><target>h</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_inv_hh_swap</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>e</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>c</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>a</source><target>f</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_inv_h_swap</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_group1_2in</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>c</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>h</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ei</name><directed>False</directed><source>h</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>g</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>g</source><target>h</target>
+                      </edge>
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>a</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>f</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_group1_1in</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>f</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>e</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>z_copy_pi</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>d</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_hhh_swap</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>g</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>e</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>d</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>f</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>h</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ei</name><directed>False</directed><source>h</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>b</source><target>h</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>a</source><target>h</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_hh_swap</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>e</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>c</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>a</source><target>f</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_h_swap</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_group1_2in</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>c</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>h</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>g</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ei</name><directed>False</directed><source>h</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eh</name><directed>False</directed><source>g</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Eg</name><directed>False</directed><source>g</source><target>h</target>
+                      </edge>
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>a</source><target>g</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>f</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_group1_1in</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ef</name><directed>False</directed><source>f</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>e</source><target>f</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>x_copy_pi</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>d</source><target>c</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>f</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>f</source><target>b</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>spider.green</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>a</boxedvertex>
+                      </bangbox>
+                      <bangbox>
+                        <name>Bb</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>e</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>a</boxedvertex>
+                      </bangbox>
+                      <bangbox>
+                        <name>Bb</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>spider.red</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>d</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>a</boxedvertex>
+                      </bangbox>
+                      <bangbox>
+                        <name>Bb</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>e</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ee</name><directed>False</directed><source>a</source><target>e</target>
+                      </edge>
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>e</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>a</boxedvertex>
+                      </bangbox>
+                      <bangbox>
+                        <name>Bb</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>red_antiloop</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>a</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>red</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>hh_to_id</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>false</boundary>
+                        <colour>H</colour>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>d</target>
+                      </edge>
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>b</source><target>c</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>d</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ed</name><directed>False</directed><source>a</source><target>d</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      
+                    </graph>
+                  </rhs></definition>
+    </rule>
+    <rule>
+      <name>green_antiloop</name>
+      <definition><lhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                      <vertex>
+                        <name>a</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Eb</name><directed>False</directed><source>a</source><target>a</target>
+                      </edge>
+                      <edge>
+                        <name>Ea</name><directed>False</directed><source>a</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </lhs>
+                  <rhs>
+                    <graph>
+                    <!-- VERTICES -->
+                      <vertex>
+                        <name>c</name>
+                        <boundary>false</boundary>
+                        <colour>green</colour>
+                        
+                      </vertex>
+                      <vertex>
+                        <name>b</name>
+                        <boundary>true</boundary>
+                      </vertex>
+                    <!-- EDGES -->
+                      <edge>
+                        <name>Ec</name><directed>False</directed><source>c</source><target>b</target>
+                      </edge>
+                    <!-- BANG BOXES  -->
+                      <bangbox>
+                        <name>Ba</name>
+                        <boxedvertex>b</boxedvertex>
+                      </bangbox>
+                    </graph>
+                  </rhs></definition>
+    </rule>
+  </allrules>
+  <tags>
+    <tag>
+      <name>bialgebra1</name>
+      <rule>bialgebra1</rule>
+    </tag>
+    <tag>
+      <name>spider</name>
+      <rule>spider.red</rule>
+      <rule>spider.green</rule>
+    </tag>
+  </tags>
+  <active>
+    <rule>green_antiloop</rule>
+    <rule>spider.red</rule>
+  </active>
+</ruleset>

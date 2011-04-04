@@ -1,10 +1,16 @@
-(* local
-*)
-open MkG;
+local
+open Test_MkG;
 
-(* structure DB_Test_Rule 
+structure Rule = Test_Rule;
+
+structure DB_Testing_Rule 
 = struct
-*)
+
+structure IO = Test_IO_Interface;
+  IO.Input.Ruleset.input o XMLReader.from_from_rile 
+
+val edge = undir_edge;
+
 (* Example of a rule that is not valid *)
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
@@ -21,7 +27,7 @@ val lhs = g;
 val _ = G.print lhs;
 (* rhs *)
 val g = G.empty;
-val g = g |> G.new_named_vertex b1 bvert;
+val g = g |> G.new_named_vertex bvert b1;
 val (n1, g) = g |> G.add_vertex (mkZ zero_angle);
 val (n2, g) = g |> G.add_vertex (mkZ zero_angle);
 val (e0, g) = g |> G.add_edge edge b1 n1;
@@ -247,13 +253,12 @@ val rule = TheoryHack.antiloop_rule;
 
 val [r2] = (Seq.list_of (Rule.rule_matches rule g));
 val _ = Rule.print r2;
-(* 
-end;
+
+end; (* test rule structure *)
 
 in
 val _ = writeln "Tests Completed Successfully: test/rule.ML"
 end;
-*)
 
 (* 
 

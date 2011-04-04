@@ -291,7 +291,3 @@ end;
 (* -------------------------------------------------------- *)
 structure RuleName : SSTR_NAMES = 
   struct open SStrName; val default_name = mk "new-rule-1"; end;
-
-(* Text example for creating rule *)
-structure Test_DB_RGRule = Rule(Test_RGGraph);
-structure Test_RGRule : RULE = Test_DB_RGRule;

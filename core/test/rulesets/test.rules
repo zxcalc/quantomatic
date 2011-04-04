@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!-- This breaks the renaming code -->
+<ruleset>
+  <allrules>
+    <rule>
+      <name>broken</name>
+      <definition>
+        <lhs>
+          <graph>
+            <!-- VERTICES -->
+            <vertex>
+              <name>a</name>
+              <boundary>false</boundary>
+              <colour>red</colour>
+            </vertex>
+            <!-- EDGES -->
+            <!-- BANG BOXES  -->
+          </graph>
+        </lhs>
+        <rhs>
+          <graph>
+            <!-- VERTICES -->
+            <vertex>
+              <name>b</name>
+              <boundary>false</boundary>
+              <colour>red</colour>
+            </vertex>
+            <vertex>
+              <name>a</name>
+              <boundary>false</boundary>
+              <colour>red</colour>
+            </vertex>
+            <!-- EDGES -->
+            <!-- BANG BOXES  -->
+          </graph>
+        </rhs>
+      </definition>
+    </rule>
+  </allrules>
+  <tags />
+  <active />
+</ruleset>

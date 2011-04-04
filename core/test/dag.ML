@@ -1,9 +1,9 @@
 
-structure Graff = RGGraph
+structure Graff = Test_Graph;
 
 val g = Graff.empty
 local
-    val bv = RGVertex.BVert
+    val bv = RG_VertexData.BVert
     val (v1,g) = g|> Graff.add_vertex bv
     val (v2,g) = g|> Graff.add_vertex bv
     val (v3,g) = g|> Graff.add_vertex bv

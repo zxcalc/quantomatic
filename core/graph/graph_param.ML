@@ -38,6 +38,11 @@ signature GRAPH_PARAM
   val empty_subst : subst (* all vars are unaffected *)
   val compose_subst : subst -> subst -> subst
 
+  (* IMPROVE: should we add a function that given a subst, tells us
+     which vertex names it affects? (could add dependency info to graph...) *)
+  val subst_in_vertex : subst -> Vertex.data -> Vertex.data
+  val subst_in_edge : subst -> Edge.data -> Edge.data
+
   (* invariant: subst instantiates vars in src before those in tgt: later code
      (isomorphism check of graphs) depends on this. *)
   val try_match_vertex : Vertex.data -> Vertex.data -> subst -> subst option
@@ -47,11 +52,6 @@ signature GRAPH_PARAM
   val match_edge : Edge.data -> Edge.data 
         -> subst -> subst (* raises match_exp *)
   
-  (* IMPROVE: should we add a function that given a subst, tells us
-     which vertex names it affects? (could add dependency info to graph...) *)
-  val subst_in_vertex : subst -> Vertex.data -> Vertex.data
-  val subst_in_edge : subst -> Edge.data -> Edge.data
-
   (* pretty printing *)
   val pretty_subst : subst -> Pretty.T
   val print_subst : subst -> unit

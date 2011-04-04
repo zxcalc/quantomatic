@@ -2,9 +2,8 @@
 
 local
   open Test_MkG; (* RGGraph *)
-  structure Rewriting = Test_RG_Rewriting; 
-  structure S = Rewriting.SimpleMatchSearch;
-  structure Match = Rewriting.Match;
+  structure S = Test_SimpleMatchSearch;
+  structure Match = Test_Match;
   fun match g1 g2 = 
       let val (rn,g2') = G.rename_apart g1 g2;
       in Seq.list_of (S.match no_extra_names g1 g2')

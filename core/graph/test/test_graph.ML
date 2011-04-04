@@ -1,3 +1,43 @@
+(* Basic structure for testing graphs later... *)
+structure DB_Test_Graph 
+= struct 
+  structure BasicBangGraph = BasicBangGraphFun(
+    structure Param = RG_GraphParam
+    type data = unit (* no extra inherrited data for graphs *)
+    val empty_data = ());
+  structure BBGraph = BangGraphTools(BasicBangGraph);
+  open BBGraph;
+end;
+
+structure Test_Graph : BANG_GRAPH = DB_Test_Graph;
+
+
+(* ML utility code for building test graphs *)
+structure Test_MkG = 
+struct
+  structure VD = RG_VertexData;
+  structure V = Test_Graph.OVertex;
+  structure E = Test_Graph.Edge;
+  structure G = Test_Graph;
+
+  val bvert = V.EVert;
+  val zero_angle = AngleExpr.zero;
+  val var_angle = AngleExpr.mk_var;
+  fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
+  val add_angles = AngleExpr.add_expr;
+  val pi_angle = AngleExpr.pi;
+  fun mkZ a = V.IVert (VD.Znd a);
+  fun mkX a = V.IVert (VD.Xnd a);
+  val mkH = V.IVert VD.Hnd;
+  val undir_edge = (G.UnDirected,());
+  val dir_edge = (G.Directed,());
+  val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+end;
+
+
+
+
+(* test some basic graph constructions *)
 local
 
 open Test_MkG;
@@ -96,7 +136,7 @@ val (e0, g4) = g4 |> G.add_edge undir_edge green9 out2;
 
 in
 (* val (g,g2,g3,g4) = (g,g2,g3,g4) *)
-val _ = Pretty.writeln (Pretty.str "Tests Passed: test/rg_graph.ML.");
+val _ = Pretty.writeln (Pretty.str "Tests Passed: test/graph.ML.");
 end
 
 (* 

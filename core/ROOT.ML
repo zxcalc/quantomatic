@@ -16,6 +16,10 @@ fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
 (* PolyML.Compiler.debug := true; *)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
+(**** generic testing stuff / move to isaplib? ****)
+PolyML.Project.make "test/testing.ML";
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile quantomatic code ****)
 
 (* Graphs *)
@@ -39,6 +43,9 @@ PolyML.Project.make "expressions/linrat_expr.ML";
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/rg_vertex.ML";
 PolyML.Project.make "theories/red_green/rg_graph.ML";
+
+(* TESTING: test_graph structure and test construction tools *)
+PolyML.Project.make "graph/test/test_graph.ML";
 
 (* output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
@@ -67,6 +74,10 @@ PolyML.Project.make "io/output_ruleset.ML";
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
 
+(* TESTING; ruleset and io construction *)
+PolyML.Project.make "theories/test/test_ruleset.ML";
+PolyML.Project.make "io/test/test_graph_io.ML";
+
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
@@ -78,9 +89,9 @@ PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 (* TESTS *)
-PolyML.Project.make "rewriting/test/rg_ruleset_rewriting.ML";
+PolyML.Project.make "matching/test/matching.ML";
+PolyML.Project.make "rewriting/test/ruleset_rewriting.ML";
 PolyML.Project.make "matching/test/simple_match_search.ML";
-PolyML.Project.make "io/test/rg_io.ML";
 
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
