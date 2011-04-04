@@ -48,7 +48,7 @@ public class Ruleset implements ChangeEventSupport {
 		Set<String> activeRules = new HashSet<String>(Arrays.<String>asList(core.getTalker().list_active_rules()));
 		rules = new HashMap<String, Boolean>();
 		for (String rule : allrules) {
-			rules.put(rule, activeRules.contains(rule));
+			rules.put(rule, Boolean.valueOf(activeRules.contains(rule)));
 		}
 	}
 
@@ -108,7 +108,7 @@ public class Ruleset implements ChangeEventSupport {
 						reload();
 						return;
 					}
-					rules.put(rulename, newActivationState);
+					rules.put(rulename, Boolean.valueOf(newActivationState));
 				}
 			}
 		}
@@ -132,7 +132,7 @@ public class Ruleset implements ChangeEventSupport {
 
 	public boolean isRuleActive(String rule) throws CoreException {
 		ensureRulesLoaded();
-		return rules.get(rules);
+		return rules.get(rule);
 	}
 
 	public void activateRulesByTag(String tag) throws CoreException {
@@ -151,7 +151,7 @@ public class Ruleset implements ChangeEventSupport {
 			reload();
 			return;
 		}
-		rules.put(name, newActivationState);
+		rules.put(name, Boolean.valueOf(newActivationState));
 		fireStateChanged();
 	}
 

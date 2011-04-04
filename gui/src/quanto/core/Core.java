@@ -345,6 +345,7 @@ public class Core {
 
 	public void loadRuleset(File location) throws CoreException, IOException {
 		talker.load_ruleset(location);
+		this.ruleset.fireStateChanged();
 	}
 
 	public void loadRuleset(String ruleset) throws CoreException, IOException {
@@ -354,6 +355,7 @@ public class Core {
 			w.write(ruleset);
 			w.close();
 			talker.load_ruleset(file);
+			this.ruleset.fireStateChanged();
 		} finally {
 			file.delete();
 		}
@@ -378,6 +380,7 @@ public class Core {
 		assertCoreGraph(lhs);
 		assertCoreGraph(rhs);
 		talker.new_rule(ruleName, lhs.getCoreName(), rhs.getCoreName());
+		this.ruleset.fireStateChanged();
 		return new Rule<CoreGraph>(ruleName, lhs, rhs);
 	}
 
