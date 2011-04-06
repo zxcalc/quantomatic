@@ -8,10 +8,10 @@ package quanto.core;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.swing.event.ChangeListener;
 
@@ -25,7 +25,9 @@ import edu.uci.ics.jung.visualization.util.DefaultChangeEventSupport;
  *
  * @author alex
  */
+// FIXME: support more detailed change events
 public class Ruleset implements ChangeEventSupport {
+
 	private final static Logger logger =
 		LoggerFactory.getLogger(CoreTalker.class);
 
@@ -46,7 +48,7 @@ public class Ruleset implements ChangeEventSupport {
 	private void loadRules() throws CoreException {
 		String[] allrules = core.getTalker().list_rules();
 		Set<String> activeRules = new HashSet<String>(Arrays.<String>asList(core.getTalker().list_active_rules()));
-		rules = new HashMap<String, Boolean>();
+		rules = new TreeMap<String, Boolean>();
 		for (String rule : allrules) {
 			rules.put(rule, Boolean.valueOf(activeRules.contains(rule)));
 		}
@@ -73,7 +75,7 @@ public class Ruleset implements ChangeEventSupport {
 	}
 
 	private void loadTagList() throws CoreException {
-		tags = new HashMap<String,Set<String>>();
+		tags = new TreeMap<String,Set<String>>();
 		String[] allTags = core.getTalker().list_tags();
 		for (String tag : allTags) {
 			tags.put(tag, null);

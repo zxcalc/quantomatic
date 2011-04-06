@@ -18,6 +18,7 @@ import java.util.List;
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -164,8 +165,6 @@ public class RulesBar extends JPanel {
 		this.ruleset = ruleset;
 		ruleset.addChangeListener(listener);
 
-		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-
 		DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
 			public Component getListCellRendererComponent(
 					JList list,
@@ -189,9 +188,18 @@ public class RulesBar extends JPanel {
 		createMenus();
 		createMenuButtons();
 
+		JButton refreshButton = new JButton("Refresh");
+		refreshButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				RulesBar.this.ruleset.reload();
+			}
+		});
+
+		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		this.add(enableButton);
 		this.add(disableButton);
 		this.add(listPane);
+		this.add(refreshButton);
 
 		loadRules();
 	}
