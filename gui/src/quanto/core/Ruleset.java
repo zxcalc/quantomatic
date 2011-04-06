@@ -181,6 +181,28 @@ public class Ruleset implements ChangeEventSupport {
 		fireStateChanged();
 	}
 
+	public void activateRules(Collection<String> ruleNames) throws CoreException {
+		if (!rules.keySet().containsAll(ruleNames)) {
+			throw new IllegalArgumentException("ruleNames contains unknown rules");
+		}
+		for (String name: ruleNames) {
+			core.getTalker().activate_rule(name);
+			rules.put(name, Boolean.TRUE);
+		}
+		fireStateChanged();
+	}
+
+	public void deactivateRules(Collection<String> ruleNames) throws CoreException {
+		if (!rules.keySet().containsAll(ruleNames)) {
+			throw new IllegalArgumentException("ruleNames contains unknown rules");
+		}
+		for (String name: ruleNames) {
+			core.getTalker().deactivate_rule(name);
+			rules.put(name, Boolean.FALSE);
+		}
+		fireStateChanged();
+	}
+
 	public void addChangeListener(ChangeListener l) {
 		changeSupport.addChangeListener(l);
 	}

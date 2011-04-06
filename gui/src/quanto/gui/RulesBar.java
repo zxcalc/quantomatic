@@ -8,15 +8,27 @@ package quanto.gui;
 import java.awt.Color;
 import java.awt.Component;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JList;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JToggleButton;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +71,94 @@ public class RulesBar extends JPanel {
 		};
 	private JList listView;
 	private DefaultListModel rulesModel;
+	private JToggleButton enableButton;
+	private JToggleButton disableButton;
+	private JPopupMenu enableMenu = new JPopupMenu();
+	private JPopupMenu disableMenu = new JPopupMenu();
+
+	private void createMenus() {
+		JMenuItem item = new JMenuItem("All");
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					ruleset.activateAllRules();
+				} catch (CoreException ex) {}
+			}
+		});
+		enableMenu.add(item);
+		item = new JMenuItem("Selection");
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Object[] descs = listView.getSelectedValues();
+					List<String> ruleNames = new LinkedList<String>();
+					for (Object d : descs) {
+						ruleNames.add(((RuleDescription)d).rulename);
+					}
+					ruleset.activateRules(ruleNames);
+				} catch (CoreException ex) {}
+			}
+		});
+		enableMenu.add(item);
+
+		item = new JMenuItem("All");
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					ruleset.deactivateAllRules();
+				} catch (CoreException ex) {}
+			}
+		});
+		disableMenu.add(item);
+		item = new JMenuItem("Selection");
+		item.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Object[] descs = listView.getSelectedValues();
+					List<String> ruleNames = new LinkedList<String>();
+					for (Object d : descs) {
+						ruleNames.add(((RuleDescription)d).rulename);
+					}
+					ruleset.deactivateRules(ruleNames);
+				} catch (CoreException ex) {}
+			}
+		});
+		disableMenu.add(item);
+	}
+	private void createMenuButtons() {
+		enableButton = new JToggleButton("Enable");
+		enableButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (enableButton.isSelected())
+					enableMenu.show(RulesBar.this, enableButton.getX(), enableButton.getY() + enableButton.getHeight());
+				else
+					enableMenu.setVisible(false);
+			}
+		});
+		enableMenu.addPopupMenuListener(new PopupMenuListener() {
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {}
+			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+				enableButton.setSelected(false);
+			}
+			public void popupMenuCanceled(PopupMenuEvent e) {}
+		});
+		disableButton = new JToggleButton("Disable");
+		disableButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (disableButton.isSelected())
+					disableMenu.show(RulesBar.this, disableButton.getX(), disableButton.getY() + disableButton.getHeight());
+				else
+					disableMenu.setVisible(false);
+			}
+		});
+		disableMenu.addPopupMenuListener(new PopupMenuListener() {
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {}
+			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+				disableButton.setSelected(false);
+			}
+			public void popupMenuCanceled(PopupMenuEvent e) {}
+		});
+	}
 
 	public RulesBar(Ruleset ruleset) {
 		this.ruleset = ruleset;
@@ -85,7 +185,14 @@ public class RulesBar extends JPanel {
 		listView = new JList(rulesModel);
 		listView.setCellRenderer(cellRenderer);
 		JScrollPane listPane = new JScrollPane(listView);
+
+		createMenus();
+		createMenuButtons();
+
+		this.add(enableButton);
+		this.add(disableButton);
 		this.add(listPane);
+
 		loadRules();
 	}
 
