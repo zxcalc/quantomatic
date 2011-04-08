@@ -24,7 +24,7 @@ public class QVertexShapeTransformer implements Transformer<Vertex, Shape> {
 
 	public Shape transform(Vertex v) {
 		if (v.isBoundaryVertex()) {
-			String text = v.getLabel();
+			String text = v.getCoreName();
 			double width = new JLabel(text).getPreferredSize().getWidth();
 			width = Math.max(width, 14);
 			return new Rectangle2D.Double(-(width / 2), -7, width, 14);

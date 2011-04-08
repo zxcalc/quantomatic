@@ -14,7 +14,6 @@ import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
 import quanto.core.data.Edge;
 import quanto.core.data.Vertex;
-import quanto.core.data.VertexType;
 
 /**
  *
@@ -29,7 +28,7 @@ public class QVertexRenderer extends BasicVertexRenderer<Vertex, Edge>
                 super.paintShapeForVertex(rc, v, shape);
 		String fillText = null;
                 if (v.isBoundaryVertex()) {
-			fillText = "0";
+			fillText = v.getCoreName();
 		} else {
 			fillText = v.getVertexType().getVisualizationData().fillText();
 		}

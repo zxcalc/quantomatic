@@ -21,8 +21,7 @@ public class QVertexLabelTransformer implements Transformer<Vertex, String> {
 	
 	public String transform(Vertex v) {
 		if (v.isBoundaryVertex()) {
-			// FIXME: what to do with boundary vertices?
-			return "0";
+			return v.getCoreName();
 		} else if (v.getVertexType().hasData()) {
 			if (v.getVertexType().getDataType() == VertexType.DataType.MathExpression)
 				return TexConstants.translate(v.getData().getStringValue());
