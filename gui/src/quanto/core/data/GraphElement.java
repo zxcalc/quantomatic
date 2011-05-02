@@ -24,7 +24,6 @@ public class GraphElement implements CoreObject, Comparable<GraphElement> {
 		this.data = data;
 	}
 
-	@Override
 	public int compareTo(GraphElement o) {
 		if (coreName == null) {
 			if (o.coreName == null)

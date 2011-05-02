@@ -19,6 +19,7 @@ import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.text.JTextComponent;
 import quanto.core.CoreException;
+import quanto.core.ParseException;
 
 public class ConsoleView extends InteractiveView {
 
@@ -153,7 +154,7 @@ public class ConsoleView extends InteractiveView {
                 {
                         output("Error: " + ex.getMessage());
                 }
-                catch (ConsoleInterface.ParseException ex)
+                catch (ParseException ex)
                 {
                         output("Failed to parse command: " + ex.getMessage());
                 }
