@@ -109,6 +109,7 @@
       <zipfileset src="${lib}/slf4j-api-1.6.1.jar" excludes="META-INF/**" />
       <!-- See http://www.slf4j.org for info on how to change how logging works -->
       <zipfileset src="${lib}/slf4j-simple-1.6.1.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/svgSalamander-tiny.jar" excludes="META-INF/**" />
       <fileset dir="${resources}"/>
       <manifest>
         <attribute name="Main-Class" value="quanto.gui.QuantoApp" />

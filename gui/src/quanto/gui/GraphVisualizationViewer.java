@@ -32,6 +32,7 @@ import org.apache.commons.collections15.Predicate;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.BackdropPaintable;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
+import quanto.gui.graphhelpers.QVertexIconTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
 import quanto.gui.graphhelpers.QVertexRenderer;
 import quanto.gui.graphhelpers.QVertexShapeTransformer;
@@ -96,6 +97,7 @@ public class GraphVisualizationViewer
 		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler());
 		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer());
 		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer());
+		getRenderContext().setVertexIconTransformer(new QVertexIconTransformer());
 
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(

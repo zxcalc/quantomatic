@@ -29,6 +29,7 @@ import org.apache.commons.collections15.Predicate;
 import quanto.core.data.BangBox;
 import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
+import quanto.gui.graphhelpers.QVertexIconTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
 import quanto.gui.graphhelpers.QVertexRenderer;
 import quanto.gui.graphhelpers.QVertexShapeTransformer;
@@ -84,6 +85,7 @@ public class PdfGraphVisualizationServer extends
 				new QVertexColorTransformer());
 		getRenderContext().setVertexShapeTransformer(
 				new QVertexShapeTransformer());
+		getRenderContext().setVertexIconTransformer(new QVertexIconTransformer());
 
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(

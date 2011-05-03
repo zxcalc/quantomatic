@@ -26,13 +26,8 @@ public class QVertexRenderer extends BasicVertexRenderer<Vertex, Edge>
                 RenderContext<Vertex,Edge> rc, Vertex v, Shape shape)
         {
                 super.paintShapeForVertex(rc, v, shape);
-		String fillText = null;
                 if (v.isBoundaryVertex()) {
-			fillText = v.getCoreName();
-		} else {
-			fillText = v.getVertexType().getVisualizationData().fillText();
-		}
-		if (fillText != null) {
+			String fillText = v.getCoreName();
                         GraphicsDecorator g = rc.getGraphicsContext();
                         Paint oldPaint = g.getPaint();
                         g.setPaint(Color.BLACK);

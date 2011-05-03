@@ -31,7 +31,7 @@ public class QVertexAngleLabeler implements VertexLabelRenderer {
 				return new JLabel();
 			}
 			JLabel lab = new JLabel(value.toString());
-			Color colour = v.getVertexType().getVisualizationData().labelColour();
+			Color colour = v.getVertexType().getVisualizationData().getLabelColour();
 			if (colour != null) {
 				lab.setBackground(colour);
 				lab.setOpaque(true);

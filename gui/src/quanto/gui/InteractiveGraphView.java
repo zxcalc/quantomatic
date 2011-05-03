@@ -147,7 +147,7 @@ public class InteractiveGraphView
 					labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
 					components.put(qVertex, labeler);
 					viewer.add(labeler);
-					Color colour = qVertex.getVertexType().getVisualizationData().labelColour();
+					Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
 					if (colour != null) {
 						labeler.setColor(colour);
 					}
