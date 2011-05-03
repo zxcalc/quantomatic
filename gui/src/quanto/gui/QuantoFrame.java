@@ -7,6 +7,7 @@ import java.awt.event.WindowEvent;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Set;
 import javax.swing.*;
 import quanto.core.CoreException;
@@ -72,14 +73,16 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		setBackground(Color.white);
 		getContentPane().setLayout(new BorderLayout());
 
+		actionManager.setControlConvertedToMeta(QuantoApp.isMac);
+		URL actionsXml = getClass().getResource("resources/actions.xml");
+		if (actionsXml == null) {
+			throw new Error("Could not find resource \"resources/actions.xml\"");
+		}
 		try {
-                        String actionFile = (QuantoApp.MAC_OS_X) ?
-                            "resources/mac_actions.xml" :
-                            "resources/actions.xml";
-			actionManager.loadActions(QuantoFrame.class.getResource(actionFile));
+			actionManager.loadActions(actionsXml);
 		}
 		catch (IOException ex) {
-			throw new Error("Could not find resource \"resources/actions.xml\": " + ex.getMessage());
+			throw new Error("Could not load resource \"resources/actions.xml\": " + ex.getMessage());
 		}
 		Set<String> menuIds = actionManager.getActionListIDs();
 		for (String id : actionManager.getActionIDs()) {

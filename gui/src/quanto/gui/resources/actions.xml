@@ -50,12 +50,12 @@
 
 	<action id="load-ruleset-command"
           name="Import ruleset..."
-          mnemonic="l"
+          mnemonic="i"
           desc="Load a ruleset"/>
 
 	<action id="save-ruleset-command"
           name="Export ruleset..."
-          mnemonic="t"
+          mnemonic="e"
           desc="Save the loaded rule state"/>
 
 	<action id="close-command"

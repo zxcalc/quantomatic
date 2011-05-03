@@ -43,6 +43,7 @@ package com.sun.jaf.ui;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 
@@ -737,6 +738,16 @@ public class ActionManager {
 	return action;
     }
 
+    private boolean controlConvertedToMeta = false;
+
+    public void setControlConvertedToMeta(boolean controlConvertedToMeta) {
+        this.controlConvertedToMeta = controlConvertedToMeta;
+    }
+
+    public boolean isControlConvertedToMeta() {
+        return controlConvertedToMeta;
+    }
+
     /**
      * Configures an action from the attributes.
      * @param action the action to configure
@@ -757,6 +768,10 @@ public class ActionManager {
 	}
 	String accel = attr.getValue(ACCEL_INDEX);
 	if (accel != null && !accel.equals("")) {
+	    if (controlConvertedToMeta)
+	    {
+		accel = accel.replaceFirst("control ", "meta ");
+	    }
 	    action.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(accel));
 	}
     }
