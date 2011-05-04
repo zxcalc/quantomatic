@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package quanto.gui;
 
 import java.awt.Color;
@@ -11,13 +10,13 @@ import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
@@ -50,8 +49,8 @@ public class RulesBar extends JPanel {
 	private final static Logger logger =
 		LoggerFactory.getLogger(RulesBar.class);
 
-	private static class RuleDescription
-	{
+	private static class RuleDescription {
+
 		public RuleDescription(String rulename, boolean active) {
 			this.rulename = rulename;
 			this.active = active;
@@ -59,17 +58,18 @@ public class RulesBar extends JPanel {
 		public String rulename;
 		public boolean active;
 
+		@Override
 		public String toString() {
 			return rulename;
 		}
 	};
-
 	private Ruleset ruleset;
 	private ChangeListener listener = new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {
-				loadRules();
-			}
-		};
+
+		public void stateChanged(ChangeEvent e) {
+			loadRules();
+		}
+	};
 	private JList listView;
 	private DefaultListModel rulesModel;
 	private JToggleButton enableButton;
@@ -80,84 +80,127 @@ public class RulesBar extends JPanel {
 	private void createMenus() {
 		JMenuItem item = new JMenuItem("All");
 		item.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				try {
 					ruleset.activateAllRules();
-				} catch (CoreException ex) {}
+				}
+				catch (CoreException ex) {
+				}
 			}
 		});
 		enableMenu.add(item);
 		item = new JMenuItem("Selection");
 		item.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				try {
 					Object[] descs = listView.getSelectedValues();
 					List<String> ruleNames = new LinkedList<String>();
 					for (Object d : descs) {
-						ruleNames.add(((RuleDescription)d).rulename);
+						ruleNames.add(((RuleDescription) d).rulename);
 					}
 					ruleset.activateRules(ruleNames);
-				} catch (CoreException ex) {}
+				}
+				catch (CoreException ex) {
+				}
 			}
 		});
 		enableMenu.add(item);
 
 		item = new JMenuItem("All");
 		item.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				try {
 					ruleset.deactivateAllRules();
-				} catch (CoreException ex) {}
+				}
+				catch (CoreException ex) {
+				}
 			}
 		});
 		disableMenu.add(item);
 		item = new JMenuItem("Selection");
 		item.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				try {
 					Object[] descs = listView.getSelectedValues();
 					List<String> ruleNames = new LinkedList<String>();
 					for (Object d : descs) {
-						ruleNames.add(((RuleDescription)d).rulename);
+						ruleNames.add(((RuleDescription) d).rulename);
 					}
 					ruleset.deactivateRules(ruleNames);
-				} catch (CoreException ex) {}
+				}
+				catch (CoreException ex) {
+				}
 			}
 		});
 		disableMenu.add(item);
 	}
+
+	protected ImageIcon createImageIcon(String path,
+					    String description) {
+		java.net.URL imgURL = getClass().getResource(path);
+		if (imgURL != null) {
+			return new ImageIcon(imgURL, description);
+		}
+		else {
+			System.err.println("Couldn't find file: " + path);
+			return null;
+		}
+	}
+
 	private void createMenuButtons() {
-		enableButton = new JToggleButton("Enable");
+		enableButton = new JToggleButton(createImageIcon("/toolbarButtonGraphics/quanto/ComputeAdd16.gif", "Enable"));
+		enableButton.setToolTipText("Enable rules");
 		enableButton.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
-				if (enableButton.isSelected())
+				if (enableButton.isSelected()) {
 					enableMenu.show(RulesBar.this, enableButton.getX(), enableButton.getY() + enableButton.getHeight());
-				else
+				}
+				else {
 					enableMenu.setVisible(false);
+				}
 			}
 		});
 		enableMenu.addPopupMenuListener(new PopupMenuListener() {
-			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {}
+
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+			}
+
 			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
 				enableButton.setSelected(false);
 			}
-			public void popupMenuCanceled(PopupMenuEvent e) {}
+
+			public void popupMenuCanceled(PopupMenuEvent e) {
+			}
 		});
-		disableButton = new JToggleButton("Disable");
+		disableButton = new JToggleButton(createImageIcon("/toolbarButtonGraphics/quanto/ComputeRemove16.gif", "Disable"));
+		disableButton.setToolTipText("Disable rules");
 		disableButton.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
-				if (disableButton.isSelected())
+				if (disableButton.isSelected()) {
 					disableMenu.show(RulesBar.this, disableButton.getX(), disableButton.getY() + disableButton.getHeight());
-				else
+				}
+				else {
 					disableMenu.setVisible(false);
+				}
 			}
 		});
 		disableMenu.addPopupMenuListener(new PopupMenuListener() {
-			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {}
+
+			public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+			}
+
 			public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
 				disableButton.setSelected(false);
 			}
-			public void popupMenuCanceled(PopupMenuEvent e) {}
+
+			public void popupMenuCanceled(PopupMenuEvent e) {
+			}
 		});
 	}
 
@@ -166,14 +209,15 @@ public class RulesBar extends JPanel {
 		ruleset.addChangeListener(listener);
 
 		DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
+
 			public Component getListCellRendererComponent(
-					JList list,
-					Object value,
-					int index,
-					boolean isSelected,
-					boolean cellHasFocus) {
+				JList list,
+				Object value,
+				int index,
+				boolean isSelected,
+				boolean cellHasFocus) {
 				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-				if (!((RuleDescription)value).active) {
+				if (!((RuleDescription) value).active) {
 					setForeground(Color.gray);
 				}
 				return this;
@@ -188,18 +232,23 @@ public class RulesBar extends JPanel {
 		createMenus();
 		createMenuButtons();
 
-		JButton refreshButton = new JButton("Refresh");
+		JButton refreshButton = new JButton(createImageIcon("/toolbarButtonGraphics/general/Refresh16.gif", "Refresh"));
+		refreshButton.setToolTipText("Refresh rules");
 		refreshButton.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				RulesBar.this.ruleset.reload();
 			}
 		});
 
+		JPanel buttonBox = new JPanel();
+		buttonBox.setLayout(new BoxLayout(buttonBox, BoxLayout.LINE_AXIS));
+		buttonBox.add(enableButton);
+		buttonBox.add(disableButton);
+		buttonBox.add(refreshButton);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-		this.add(enableButton);
-		this.add(disableButton);
+		this.add(buttonBox);
 		this.add(listPane);
-		this.add(refreshButton);
 
 		loadRules();
 	}
@@ -210,7 +259,8 @@ public class RulesBar extends JPanel {
 			for (String rule : ruleset.getRules()) {
 				rulesModel.addElement(new RuleDescription(rule, ruleset.isRuleActive(rule)));
 			}
-		} catch (CoreException ex) {
+		}
+		catch (CoreException ex) {
 			logger.error("Could not get rules", ex);
 		}
 	}
