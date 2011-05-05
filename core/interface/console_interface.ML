@@ -80,7 +80,13 @@ struct
       | G.Edge.NSet.duplicate_exp _ => 
         raise ControllerState.user_exp ("BUG: Duplicate Edge.")
       | G.Edge.Tab.UNDEF x =>
-        raise ControllerState.user_exp ("BUG: G.Edge.Tab.UNDEF");
+        raise ControllerState.user_exp ("BUG: G.Edge.Tab.UNDEF")
+      | G.Vertex.Rnm.invalid_renaming_exp x =>
+        raise ControllerState.user_exp ("BUG: invalid vertex renaming: "^x)
+      | G.Edge.Rnm.invalid_renaming_exp x =>
+        raise ControllerState.user_exp ("BUG: invalid bangbox renaming: "^x)
+      | G.BBox.Rnm.invalid_renaming_exp x =>
+        raise ControllerState.user_exp ("BUG: invalid edge renaming: "^x);
 
   fun response_string (ControllerState.OK) = "ok\n"
     | response_string (ControllerState.COUNT n) = (Int.toString n)^"\n"
@@ -95,7 +101,7 @@ struct
     | do_cmd ("NOOP", _) _ = ("", SKIP)
     | do_cmd (cmd as (cname,args)) state =
       (case Symtab.lookup commands cname
-        of SOME (_,f) => (fn (a,b)=>(response_string a, NORMAL b)) (f (args, state))
+        of SOME (_,f) => (fn (a,b)=>(response_string a, NORMAL b)) (handle_bug_in_function f (args, state))
          | NONE => ("!!! Unknown command: "^
             (CommandLexer.toString cmd)^"\n", NORMAL state))
       handle ControllerState.wrong_args_exp () =>
