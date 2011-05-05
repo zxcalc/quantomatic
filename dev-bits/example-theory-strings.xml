@@ -1,0 +1,30 @@
+<theory name="string1">
+  <nodetype name="string1">
+    <!-- -->
+    <data type="string"><default></default></data>
+    <visualization>
+    <!-- for very simple nodes:
+    shape=circle|square
+    fill=hex-rgb -->
+      <node shape="square" fill="red" stroke="black" />
+      <label fill="ff9696" />
+    </visualization>
+  </nodetype>
+...
+</theory>
+
+<graph>
+<!-- VERTICES -->
+  <vertex type="string1">
+    <name>i</name>
+    <data>foo</data>
+  </vertex>
+  <vertex type="string1">
+    <name>i</name>
+    <data>foo.woo</data>
+  </vertex>
+  <vertex type="boundary">
+    <name>j</name>
+  </vertex>
+...
+</graph>
