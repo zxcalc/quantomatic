@@ -18,7 +18,10 @@ public class QVertexIconTransformer implements Transformer<Vertex, Icon> {
 	private static final Dimension2D vertexSize = new Dimension(14, 14);
 
 	public Icon transform(Vertex input) {
-		return input.getVertexType().getVisualizationData().getIcon(vertexSize);
+		if (input.isBoundaryVertex())
+			return null;
+		else
+			return input.getVertexType().getVisualizationData().getIcon(vertexSize);
 	}
 	
 }
