@@ -2346,18 +2346,39 @@
     </rule>
   </allrules>
   <tags>
-    <tag>
-      <name>bialgebra1</name>
-      <rule>bialgebra1</rule>
-    </tag>
-    <tag>
-      <name>spider</name>
-      <rule>spider.red</rule>
-      <rule>spider.green</rule>
-    </tag>
   </tags>
   <active>
-    <rule>green_antiloop</rule>
+    <rule>z_group4</rule>
+    <rule>z_group3</rule>
+    <rule>z_group2</rule>
+    <rule>z_copy_0</rule>
+    <rule>z_abelian1</rule>
+    <rule>x_group4</rule>
+    <rule>x_group3</rule>
+    <rule>x_group2</rule>
+    <rule>x_copy_0</rule>
+    <rule>x_abelian1</rule>
+    <rule>hopf_2_2</rule>
+    <rule>hopf_2_1</rule>
+    <rule>hopf_1_2</rule>
+    <rule>hopf_1_1</rule>
+    <rule>bialgebra1</rule>
+    <rule>z_inv_hhh_swap</rule>
+    <rule>z_inv_hh_swap</rule>
+    <rule>z_inv_h_swap</rule>
+    <rule>z_group1_2in</rule>
+    <rule>z_group1_1in</rule>
+    <rule>z_copy_pi</rule>
+    <rule>x_hhh_swap</rule>
+    <rule>x_hh_swap</rule>
+    <rule>x_h_swap</rule>
+    <rule>x_group1_2in</rule>
+    <rule>x_group1_1in</rule>
+    <rule>x_copy_pi</rule>
+    <rule>spider.green</rule>
     <rule>spider.red</rule>
+    <rule>red_antiloop</rule>
+    <rule>hh_to_id</rule>
+    <rule>green_antiloop</rule>
   </active>
 </ruleset>
