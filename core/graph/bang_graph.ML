@@ -162,7 +162,7 @@ end;
 (* A  Graph With Boundary *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor BasicBangGraphFun(
-        structure Param : GRAPH_PARAM
+        structure Param : OGRAPH_PARAM
         type data 
         val empty_data : data
 ) : BASIC_BANG_GRAPH
@@ -219,7 +219,6 @@ functor BasicBangGraphFun(
 
   (* make basic graph with this as internal data *)
   structure G : BASIC_OGRAPH = BasicOGraphFun(
-    (*  structure OVertex = V *) 
     structure Param = Param
     type data = hdata
     val empty_data = empty_hdata

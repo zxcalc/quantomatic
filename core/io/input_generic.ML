@@ -3,8 +3,9 @@ signature INPUT =
 sig
   type T
   type data
-  val data_to_string : data -> string
   val input : T -> data
+
+  val data_to_string : data -> string (* for error messages *)
   exception bad_input_exp of string*string; (* message, location *)
 end;
 signature INPUT_XML = INPUT where type T = XML.tree;

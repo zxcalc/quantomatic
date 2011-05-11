@@ -1,33 +1,5 @@
-(* Outputs an XML representation of a graph. *)
-
-(*  *)
-functor OutputRGVertexDataXMLList(
-  V : OVERTEX where type IData.data = RG_VertexData.data 
-) : OUTPUT_XML_LIST 
-= struct 
-  
-  type T = XML.tree list;
-  type data = V.data;
-
-  open XML;
-  open XML_Output_Utils;
-  val colourRed = wrap_text_simple "colour" "red"
-  val colourGreen = wrap_text_simple "colour" "green"
-  val colourH = wrap_text_simple "colour" "H"
-
-  fun output_idata (RG_VertexData.Xnd a) = 
-      colourRed::(OutputLinratXML.output a)
-    | output_idata (RG_VertexData.Znd a) = 
-      colourGreen::(OutputLinratXML.output a)
-    | output_idata (RG_VertexData.Hnd) = [colourH]
-
-  fun output (V.EVert) = [wrap_bool_simple "boundary" true]
-    | output (V.IVert rg) = 
-      (wrap_bool_simple "boundary" false)::(output_idata rg)
-end;
-
 (*-------------------------------------------------------*)
-functor OutputNoEdgeDataXMLList (E : EDGE) : OUTPUT_XML_LIST
+functor OutputNoEdgeDataXMLList_v1(E : EDGE) : OUTPUT_XML_LIST
 = struct
   type data = E.data;
   type T = XML.tree list
@@ -35,7 +7,7 @@ functor OutputNoEdgeDataXMLList (E : EDGE) : OUTPUT_XML_LIST
 end
 
 (* *)
-functor OutputGraphContentsXMLList (
+functor OutputGraphContentsXMLList_v1(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_XML_LIST
         and OutputEdgeData : OUTPUT_XML_LIST
@@ -91,7 +63,7 @@ functor OutputGraphContentsXMLList (
 
 end;
 
-functor OutputGraphXML (
+functor OutputGraphXML_v1(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_XML_LIST
         and OutputEdgeData : OUTPUT_XML_LIST
@@ -101,7 +73,7 @@ functor OutputGraphXML (
 = OutputWrapXML(
     val tagname = "graph"
     val attrs = []
-    structure Output1 = OutputGraphContentsXMLList(
+    structure Output1 = OutputGraphContentsXMLList_v1(
       structure Graph = Graph
       structure OutputVertexData = OutputVertexData
       structure OutputEdgeData = OutputEdgeData

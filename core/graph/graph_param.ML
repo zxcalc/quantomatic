@@ -28,7 +28,6 @@ signature GRAPH_PARAM
   structure Edge : EDGE (* defined in pregraph.ML *) 
 
   (* SUBSTITUTION/MATCHING/UNIFICATION *)
-  
   (* this is a user exception raised when things don't match *)
   exception match_exp of unit
 
@@ -61,7 +60,7 @@ signature GRAPH_PARAM
   
   (* Dependencies between vertex and edge names and internal-names (in the 
      vertex/edge data) e.g. relating angle variable-names to vertex names in
-     which that variable occurs.  *)
+     which that variable occurs. Can be used to define vertices that are not commutative internal wiring of vertex can be dependent on edge names entereing the vertex. *)
   type T
   
   (* no vertex names, no internal variable names *)
@@ -117,5 +116,20 @@ signature GRAPH_PARAM
     sharing type subst = Sharing.subst
 end;
 
+
+(* For the typed data specification sent to the GUI 
+   The type is just a string for now, could be generalised...
+*)
+signature GRAPH_TYPED_DATA_PARAM_XML_IO = sig
+  (* type of data, e.g. vertex data *)
+  type data
+
+  (* get the type-string of a bit of data, and it's xml representation *)
+  val type_and_xml_of : data -> string * (XML.tree list)
+  val of_type_and_xml : string * (XML.tree list) -> data
+
+  (* get the theory specification xml *)
+  (* val get_gui_spec_xml : unit -> XML.tree *)
+end;
 
 

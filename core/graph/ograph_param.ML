@@ -1,16 +1,38 @@
+(* *)
+signature OGRAPH_PARAM_SHARING
+= sig 
+  include GRAPH_PARAM_SHARING;
+  structure OVertex : NAME_AND_UNIFIABLE_DATA_SHARING;
+  sharing Vertex = OVertex; (* note importance of direction. *)
+end;
+
+
+signature OGRAPH_PARAM
+= sig
+  include GRAPH_PARAM;
+  structure OVertex : OVERTEX
+
+  (* syntax convenience for sharing types *)
+  structure OSharing : OGRAPH_PARAM_SHARING
+  sharing Sharing.Vertex = OVertex.SharingWithData
+  sharing Sharing = OSharing;
+end;
+
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*   *)
 functor OGraphParam(
   structure Param : GRAPH_PARAM 
   structure OVertex : OVERTEX  (* constructed separately, needed *)
+    (* share names only; OVertex data *)
     sharing Param.Vertex.SharingWithoutData = OVertex.SharingWithoutData
     sharing type Param.subst = OVertex.subst
     sharing type Param.Vertex.data = OVertex.IData.data
-) : GRAPH_PARAM (* sharing GRAPH_PARAM.Vertex = OVertex *)
+) : OGRAPH_PARAM (* sharing GRAPH_PARAM.Vertex = OVertex *)
 = struct 
   
   structure Vertex = OVertex;
+  structure OVertex = OVertex;
   structure Edge = Param.Edge;
   
   (* internal name data *)
@@ -62,9 +84,9 @@ functor OGraphParam(
 
   val empty_subst = Param.empty_subst; (* : IName.NTab.empty; *)
   val compose_subst = Param.compose_subst; 
-      (* : Name.NTab.map_all (AngleExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
 
-  fun try_match_vertex d1 d2 u = Vertex.match_data (d1,d2) u;
+  fun try_match_vertex d1 d2 u = OVertex.match_data (d1,d2) u;
   val try_match_edge = Param.try_match_edge;
 
   (* IMPROVE: what data do we want here? should it be add_exp *)
@@ -81,20 +103,43 @@ functor OGraphParam(
          of NONE    => raise match_exp ()
           | SOME u' => u'); 
 
-  fun subst_in_vertex u vd = Vertex.subst_in_data u vd;
+  fun subst_in_vertex u vd = OVertex.subst_in_data u vd;
   val subst_in_edge = Param.subst_in_edge
 
   val pretty_subst = Param.pretty_subst;
   val print_subst = Param.print_subst;
 
+
   structure Sharing = 
   struct 
-    structure Vertex = Vertex.SharingWithData;
+    structure Vertex = OVertex.SharingWithData;
     structure Edge = Edge.EdgeSharingWithData;
     type T = T;
     type inames_renaming = CRnmINames.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
+  structure OSharing =
+  struct
+    open Sharing;
+    structure OVertex = OVertex.SharingWithIData;
+  end;
+
 end;
 
+
+(*  *)
+functor OVertexData_ParamIO(
+  structure VertexDataParamIO : GRAPH_TYPED_DATA_PARAM_XML_IO
+  structure OVertex : OVERTEX
+  sharing type OVertex.IData.data = VertexDataParamIO.data
+)
+: GRAPH_TYPED_DATA_PARAM_XML_IO
+= struct 
+  type data = OVertex.data;
+  fun type_and_xml_of (OVertex.EVert) = ("edge-point",[])
+    | type_and_xml_of (OVertex.IVert d) = VertexDataParamIO.type_and_xml_of d;
+
+  fun of_type_and_xml ("edge-point",[]) = OVertex.EVert
+    | of_type_and_xml x = OVertex.IVert (VertexDataParamIO.of_type_and_xml x);
+end;
 

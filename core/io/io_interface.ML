@@ -45,7 +45,7 @@ functor IO_Interface(
 
   structure Input = struct
 
-    structure Graph = InputGraphXML(
+    structure Graph = InputGraphXML_v2(
       structure Graph = Ruleset.Rule.Graph
       structure InputVertexData = InputVertexData
       structure InputEdgeData = InputEdgeData);
@@ -65,7 +65,7 @@ functor IO_Interface(
 
   structure Output = struct
 
-    structure Graph = OutputGraphXML(
+    structure Graph = OutputGraphXML_v2(
       structure Graph = Ruleset.Rule.Graph
       structure OutputVertexData = OutputVertexData
       structure OutputEdgeData = OutputEdgeData);

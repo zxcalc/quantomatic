@@ -16,7 +16,7 @@ struct
        wrap_int_simple "denom" d];
   
   fun render_xml_constant_part k =
-      if AngleExpr.Coeff.is_zero k then
+      if LinratExpr.Coeff.is_zero k then
         []
       else
         [wrap_els_simple "constant" (render_xml_rational k)];
@@ -34,10 +34,10 @@ struct
       end;
   
   fun output (pi,tab) = 
-      if AngleExpr.is_zero (pi,tab) then 
+      (* if LinratExpr.is_zero (pi,tab) then 
         []
-      else
-        (wrap_text_simple "as_string" (Pretty.string_of (AngleExpr.pretty (pi,tab))))
+      else *)
+        (wrap_text_simple "angleexpr" (Pretty.string_of (LinratExpr.pretty (pi,tab))))
         ::((render_xml_constant_part pi)@(render_xml_variable_part tab));
 end; (* structure *)
 

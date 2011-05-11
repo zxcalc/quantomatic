@@ -49,7 +49,7 @@ end;
 
 
 functor GraphicalTheory(
-  structure Param : GRAPH_PARAM
+  structure OParam : OGRAPH_PARAM
 (* 
   structure InputVertexData : INPUT_XML 
         and InputEdgeData : INPUT_XML 
@@ -62,9 +62,15 @@ functor GraphicalTheory(
   sharing type OutputEdgeData.data = Param.Edge.data *)
 ) = 
 struct 
+  (* structure OVertex = OVertex(Param.Vertex);
+  structure OParam = OGraphParam(
+    structure Param = Param 
+    structure OVertex = OVertex);
+  *)
+
   local 
     structure BasicBangGraph = BasicBangGraphFun(
-      structure Param = Param
+      structure Param = OParam
       type data = unit (* no extra inherrited data for graphs *)
       val empty_data = ());
     structure BBGraph = BangGraphTools(BasicBangGraph);

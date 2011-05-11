@@ -128,10 +128,10 @@ in Pretty.block
    (case v of Graph.OVertex.IVert iv =>
 	     (case iv
 	       of RG_VertexData.Xnd e =>
-		        [Pretty.str "xsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
+		        [Pretty.str "xsp[", LinratExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
 		      | RG_VertexData.Znd e =>
-		        [Pretty.str "zsp[", AngleExpr.pretty_math fmt e, Pretty.str ", "] @
+		        [Pretty.str "zsp[", LinratExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
           | RG_VertexData.Hnd => [Pretty.str "h"])
 	  | _ => [Pretty.str "id2[1]"])

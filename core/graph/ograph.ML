@@ -54,9 +54,7 @@ end; (* Basic OGraph *)
 signature OGRAPH = 
 sig 
 include GRAPH
-(* include BASIC_OGRAPH *** FIXME: fix ML: should be able to include union of signatures. EIthout it, we copy/paste code from BASIC_OGRAPH... *)
-
-
+(* include BASIC_OGRAPH *** FIXME: fix ML: should be able to include union of signatures. Without it, we copy/paste code from BASIC_OGRAPH... *)
 structure OVertex : OVERTEX
 sharing Vertex.SharingWithData = OVertex.SharingWithData
 structure SharingOGraph : OGRAPH_SHARING
@@ -161,17 +159,21 @@ end;
 (*  Basic Open Graph (Graph with a boundary/edge-points) *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor BasicOGraphFun(
-        (* structure OVertex : OVERTEX *)
-        structure Param : GRAPH_PARAM
+(*         structure OVertex : OVERTEX *)
+        structure Param : OGRAPH_PARAM
         (* sharing Param.Vertex.SharingWithData = OVertex.SharingWithData *)
         type data (* graph additional extensible/hidden data *)
         val empty_data : data
 ) 
 : BASIC_OGRAPH
 = struct
-  
+  structure Param = Param;
+  structure OVertex = Param.OVertex;
+
+(*
   structure OVertex = OVertex(Param.Vertex);
   structure Param = OGraphParam(structure Param = Param and OVertex = OVertex);
+*)
 
   structure V = OVertex;
   structure E = Param.Edge;

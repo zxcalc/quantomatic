@@ -39,8 +39,8 @@ default: bin
 $(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
 	export PATH="$(POLYML_HOME)/bin:$(PATH)" && cd ../../isaplib; make
 
-# make polyml heap
-$(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+# make polyml heap $(ISAPLIB_HEAP)
+$(QUANTO_HEAP):  $(ML_SRC_FILES) 
 	echo 'use "make_heap.ML";' | $(POLYML)
 	@echo "Built polyml heap: $(QUANTO_HEAP)"
 

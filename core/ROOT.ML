@@ -9,6 +9,8 @@ use "ROOT.ML";
 OS.FileSys.chDir rootDir);
 print_depth 3;
 
+PolyML.Project.ideModeRef := true;
+
 (* move to library? is this used? *)
 fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
 
@@ -40,26 +42,24 @@ PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_expr.ML";
 
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/rg_vertex.ML";
-PolyML.Project.make "theories/red_green/rg_graph.ML";
-
-(* TESTING: test_graph structure and test construction tools *)
-PolyML.Project.make "graph/test/test_graph.ML";
-
-(* output/input tools *)
+(* Generic output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
 PolyML.Project.make "io/input_generic.ML";
 PolyML.Project.make "io/output_generic.ML";
-
+PolyML.Project.make "io/input_linrat.ML";
 PolyML.Project.make "io/output_linrat.ML";
-
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
+PolyML.Project.make "io/input_graph_v2.ML";
+PolyML.Project.make "io/output_graph_v2.ML";
 
-PolyML.Project.make "io/input_graph.ML";
-PolyML.Project.make "io/output_graph.ML";
+(* red-green specific vertices, graphs and matching *)
+PolyML.Project.make "theories/red_green/vertex.ML";
+PolyML.Project.make "theories/red_green/graph.ML";
+
+(* TESTING: test_graph structure and test construction tools *)
+PolyML.Project.make "graph/test/test_graph.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
@@ -73,6 +73,10 @@ PolyML.Project.make "io/output_ruleset.ML";
 
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
+
+(* I/O for old RG-graphs, depends on defining RG_VertexData *)
+PolyML.Project.make "io/input_graph_v1.ML";
+PolyML.Project.make "io/output_graph_v1.ML";
 
 (* TESTING; ruleset and io construction *)
 PolyML.Project.make "theories/test/test_ruleset.ML";
@@ -97,7 +101,9 @@ PolyML.Project.make "matching/test/simple_match_search.ML";
 PolyML.Project.make "theories/graphical_theory.ML";
 
 (* construct the red-green IO *)
-PolyML.Project.make "theories/red_green/rg_io.ML";
+PolyML.Project.make "theories/red_green/io.ML";
+
+
 
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
@@ -120,7 +126,7 @@ PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 
 (* unit tests *)
-PolyML.Project.make "test/ROOT.ML";
+(* PolyML.Project.make "test/ROOT.ML"; *)
 
 (* top level run function for controller/interface protocol *)
 val run = ConsoleInterface.run_in_stdio;

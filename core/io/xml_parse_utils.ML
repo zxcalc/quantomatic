@@ -3,7 +3,7 @@ sig
   include XML
   exception bad_input_exp of string*string;
   (* NOTE:     Markup.T = string * Properties.T
-           Properties.T = XML attributes = string * string list *)
+           Properties.T = XML attributes = (string * string) list *)
 
   (* tree = Text ... | Elem ... , see xml.ML *)
   val is_text : tree -> bool (* is just text *)
@@ -19,7 +19,9 @@ sig
 
   val get_tag : tree -> string (* the tagname part of the Markup.T; raises if text *)
   val get_attributes : tree -> Properties.T (* raises if text *)
-
+  val lookup_attribute : tree -> string -> string option
+  val get_attribute : tree -> string -> string (* raises if text *)
+  
   val get_children : tree -> tree list (* raises if text *)
   val get_filtered_children : string -> tree -> tree list (* raises if text *)
   val get_filtered_children_text : string -> tree -> string list (* raises if text *)
@@ -83,6 +85,15 @@ fun get_tag (Text _) = raise bad_input_exp ("Can't get tag of text","")
 
 fun get_attributes (Text _) = raise bad_input_exp ("Can't get attribute of text","")
   | get_attributes (Elem ((elem, attr),children)) = attr;
+
+fun lookup_attribute xml attr_name = 
+    AList.lookup (op =) (get_attributes xml) attr_name;
+
+fun get_attribute xml attr_name = 
+    (case lookup_attribute xml attr_name 
+       of NONE => 
+          raise bad_input_exp ("No such attribute: '" ^ attr_name ^ "'","")
+        | SOME s => s);
 
 fun get_children (Text _) = raise bad_input_exp ("Can't get children of text","")
   | get_children (Elem ((elem, attr),children)) = children;

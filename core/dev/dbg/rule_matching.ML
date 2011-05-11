@@ -116,22 +116,22 @@ val (tn,V.IVert td) = tnv;
 val m = Match.get_mctxt (get_match st);
 val V.Xnd a1 = d;
 val V.Xnd a2 = td;
-AngleExpr.match a1 a2 m;
+LinratExpr.match a1 a2 m;
 
 MCtxt.print m;
 
-AngleExpr.print a1;
-AngleExpr.print a2;
-AngleExpr.eq (AngleExpr.parse "a") a2;
+LinratExpr.print a1;
+LinratExpr.print a2;
+LinratExpr.eq (LinratExpr.parse "a") a2;
 val (c1,t1) = a1;
 val (c2,t2) = a2;
-val (a3 as (c3,t3)) = (AngleExpr.parse "a");
+val (a3 as (c3,t3)) = (LinratExpr.parse "a");
 
 VName.NTab.list_of t1;
 VName.NTab.list_of t2;
 VName.NTab.list_of t3;
 
-(AngleExpr.parse "a")
+(LinratExpr.parse "a")
 
 
 MCtxt.vertex_idata_match d td (Match.get_mctxt m)

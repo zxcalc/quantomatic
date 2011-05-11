@@ -466,8 +466,8 @@ functor ControllerState(
     | save_graph _ = raise wrong_args_exp ()
 
   (* FIXME: make generic over vertex data *)
-  fun vertex_type "red" = V.IVert (RG_VertexData.Xnd AngleExpr.zero)
-    | vertex_type "green" =  V.IVert (RG_VertexData.Znd AngleExpr.zero)
+  fun vertex_type "red" = V.IVert (RG_VertexData.Xnd LinratExpr.zero)
+    | vertex_type "green" =  V.IVert (RG_VertexData.Znd LinratExpr.zero)
     | vertex_type "hadamard" = V.IVert RG_VertexData.Hnd
     | vertex_type "boundary" = V.EVert
     | vertex_type _ = raise user_exp "Bad vertex type."
@@ -595,14 +595,14 @@ functor ControllerState(
 
   (* FIXME: make generic, currently depends on RGVertex *)
   fun vdata a (V.IVert (RG_VertexData.Xnd _)) = 
-      V.IVert (RG_VertexData.Xnd (AngleExpr.parse a))
+      V.IVert (RG_VertexData.Xnd (LinratExpr.parse a))
     | vdata a (V.IVert (RG_VertexData.Znd _)) = 
-      V.IVert (RG_VertexData.Znd (AngleExpr.parse a))
+      V.IVert (RG_VertexData.Znd (LinratExpr.parse a))
     | vdata a _ = raise user_exp "Can only set angles for red and green vertices."
 
   fun set_angle ([_,v,a], graph) =
       ((OK, graph |> G.update_vertex_data (vdata a) (v_mk_and_check graph v))
-         handle AngleExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
+         handle LinratExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
     | set_angle _ = raise wrong_args_exp ()
 
   (* FIXME: make generic => i.e. depend only on RG Hilb term *)

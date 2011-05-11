@@ -13,7 +13,7 @@ structure RG_GraphParam
                              val default_data = ());
   structure Edge = EdgeFun(EdgeStrNm);
 
-  structure IName = AngleExpr.VName;
+  structure IName = LinratExpr.VName;
   
   (* vertex, and vertex data variable dependencies *)
   structure VDep = NameBRelFun(structure Dom = Vertex and Cod = IName);
@@ -63,7 +63,7 @@ structure RG_GraphParam
 
   fun add_vertex vd vn vdep = 
       (case RG_VertexData.angle_of_data vd of NONE => vdep
-          | SOME angle => VDep.add_to_dom vn (AngleExpr.get_vars angle) vdep);
+          | SOME angle => VDep.add_to_dom vn (LinratExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
   fun delete_vertex vn vdep = VDep.del_dom vn vdep;
@@ -88,17 +88,17 @@ structure RG_GraphParam
     fun rename rnm vd = 
         (case RG_VertexData.angle_of_data vd of NONE => (rnm,vd)
          | SOME angle => 
-           let val (rnm',angle') = AngleExpr.CRnm.rename rnm angle
+           let val (rnm',angle') = LinratExpr.CRnm.rename rnm angle
            in (rnm', RG_VertexData.map_to_angle (K angle') vd) end)
 
     fun mk_renaming vd rnm = 
         (case RG_VertexData.angle_of_data vd of NONE => rnm
-         | SOME angle => AngleExpr.CRnm.mk_renaming angle rnm);
+         | SOME angle => LinratExpr.CRnm.mk_renaming angle rnm);
 
     fun do_renaming rnm vd = 
         (case RG_VertexData.angle_of_data vd of NONE => vd
          | SOME angle => 
-           RG_VertexData.map_to_angle (AngleExpr.CRnm.do_renaming rnm) vd);
+           RG_VertexData.map_to_angle (LinratExpr.CRnm.do_renaming rnm) vd);
 
     val restrict_to_avoiding = IName.Rnm.restrict_to_avoiding;
   end;
@@ -109,11 +109,11 @@ structure RG_GraphParam
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = Vertex.subst; (* : AngleExpr.T IName.NTab.T; *)
+  type subst = Vertex.subst; (* : LinratExpr.T IName.NTab.T; *)
 
   val empty_subst = Vertex.empty_subst; (* : IName.NTab.empty; *)
   fun compose_subst u1 u2 = Vertex.compose_subst (u1,u2); 
-      (* : Name.NTab.map_all (AngleExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = Vertex.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
@@ -148,4 +148,13 @@ structure RG_GraphParam
   end;
 end;
 
+
+structure RG_OVertex = OVertex(RG_InternVertex);
+structure RG_OGraphParam = OGraphParam(
+  structure Param = RG_GraphParam 
+        and OVertex = RG_OVertex);
+
+structure RG_OVertexData_ParamIO = OVertexData_ParamIO(
+  structure VertexDataParamIO = RG_VertexData_ParamIO
+  structure OVertex = RG_OVertex);
 

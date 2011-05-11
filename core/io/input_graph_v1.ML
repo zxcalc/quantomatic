@@ -1,6 +1,52 @@
+(* ------------------------------------------------------- *)
+structure InputRGVertexDataXML_v1 : INPUT_XML
+= struct
+  open XML_Parse_Utils; 
+  type T = XML.tree;
+  type data = Test_Graph.OVertex.data;
+  structure V = Test_Graph.OVertex;
+
+  fun data_to_string _ = "[Vertex data]";
+
+  fun input_vertex_idata xml =
+      let val () = assert_tag "vertex" xml
+          val children = get_children xml
+          val col = (String.map Char.toLower o get_unique_child_text 
+                     o get_unique_elem "colour") children
+      in 
+        if (col = "h") then RG_VertexData.Hnd
+        else
+          let 
+            val angle = 
+                case lookup_unique_elem "angleexpr" children of 
+                     NONE => LinratExpr.zero
+                   | SOME a_xml => InputLinratXML.input a_xml
+          in
+            if (col = "green") then RG_VertexData.Znd angle
+            else if (col = "red") then RG_VertexData.Xnd angle
+            else raise bad_input_exp ("Unknown colour : "^col^".","")
+          end
+      end;
+
+  fun input xml = 
+      let 
+        val () = assert_tag "vertex" xml
+        val children = get_children xml
+      in
+        case lookup_unique_elem "boundary" children of 
+          NONE => (V.IVert (input_vertex_idata xml))
+        | SOME boundary_xml => 
+          if InputBoolXML.input (get_unique_child boundary_xml) then (V.EVert)
+          else (V.IVert (input_vertex_idata xml)) 
+      end;
+
+end; (* functor RGGraphInputXML*)
+
+
+
 (* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
 (* FIXME: structure used is a bit squanky and ineffeccient. *)
-functor InputGraphXML (
+functor InputGraphXML_v1(
   structure Graph : BANG_GRAPH
         and InputVertexData : INPUT_XML 
         and InputEdgeData : INPUT_XML 
@@ -96,7 +142,7 @@ end (* structure InputXML *)
 
 
 (* ------------------------------------------------------- *)
-functor InputRGVertexDataXML(
+functor InputRGVertexDataXML_v1(
   V : OVERTEX where type IData.data = RG_VertexData.data
 ) : INPUT_XML
 = struct
@@ -135,10 +181,10 @@ functor InputRGVertexDataXML(
       (let val () = assert_tag "angleexpr" xml
            val children = get_children xml 
            val constant = case (lookup_unique_elem "constant" children) of
-                            (NONE) => AngleExpr.Coeff.zero
+                            (NONE) => LinratExpr.Coeff.zero
                           | (SOME const) => input_constant const
            val vars = List.map input_variable (filter_elems "variable" children)
-       in AngleExpr.mk constant vars end)
+       in LinratExpr.mk constant vars end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"angleexpr/"^p);
     
   fun input_vertex_idata xml =
@@ -151,7 +197,7 @@ functor InputRGVertexDataXML(
         else
           let 
             val angle = 
-                case lookup_unique_elem "angleexpr" children of NONE => AngleExpr.zero
+                case lookup_unique_elem "angleexpr" children of NONE => LinratExpr.zero
                    | SOME a => input_angleexpr a
           in
             if (col = "green") then RG_VertexData.Znd angle
@@ -174,7 +220,7 @@ functor InputRGVertexDataXML(
 
 end; (* functor RGGraphInputXML*)
 
-functor InputNoEdgeDataXML (E : EDGE) :  INPUT_XML
+functor InputNoEdgeDataXML_v1(E : EDGE) :  INPUT_XML
 = struct
   open XML_Parse_Utils;
   type T = XML.tree;

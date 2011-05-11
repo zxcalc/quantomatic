@@ -1,8 +1,18 @@
+
+structure Test_OVertex = OVertex(RG_InternVertex);
+structure Test_OGraphParam = OGraphParam(
+  structure Param = RG_GraphParam 
+        and OVertex = Test_OVertex);
+
+structure Test_OVertexData_ParamIO = OVertexData_ParamIO(
+  structure VertexDataParamIO = RG_VertexData_ParamIO
+  structure OVertex = Test_OVertex);
+
 (* Basic structure for testing graphs later... *)
 structure DB_Test_Graph 
 = struct 
   structure BasicBangGraph = BasicBangGraphFun(
-    structure Param = RG_GraphParam
+    structure Param = Test_OGraphParam
     type data = unit (* no extra inherrited data for graphs *)
     val empty_data = ());
   structure BBGraph = BangGraphTools(BasicBangGraph);
@@ -21,11 +31,11 @@ struct
   structure G = Test_Graph;
 
   val bvert = V.EVert;
-  val zero_angle = AngleExpr.zero;
-  val var_angle = AngleExpr.mk_var;
-  fun var_iangle i v = AngleExpr.mk (0,1) [(v,i)];
-  val add_angles = AngleExpr.add_expr;
-  val pi_angle = AngleExpr.pi;
+  val zero_angle = LinratExpr.zero;
+  val var_angle = LinratExpr.mk_var;
+  fun var_iangle i v = LinratExpr.mk (0,1) [(v,i)];
+  val add_angles = LinratExpr.add_expr;
+  val pi_angle = LinratExpr.pi;
   fun mkZ a = V.IVert (VD.Znd a);
   fun mkX a = V.IVert (VD.Xnd a);
   val mkH = V.IVert VD.Hnd;
