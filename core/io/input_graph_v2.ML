@@ -114,9 +114,8 @@ struct
         val children = get_children xml
         val typ = 
             apply_to_unique_elem get_unique_child_text "type" children;
-        val data = get_children
-              (apply_to_unique_elem get_unique_child "data" children);
-      in TypedDataParamIO.of_type_and_xml (typ,data) 
+        val data = get_unique_child_of_typ "data" xml;
+      in TypedDataParamIO.of_type_and_xml (typ,get_children data) 
          handle bad_input_exp (s,p) => raise bad_input_exp (s,"data/"^p)
       end;
 end;

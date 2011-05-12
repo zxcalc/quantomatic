@@ -29,6 +29,7 @@ sig
   val get_unique_child : tree -> tree (* raises if not a unique child *)
   val get_unique_child_text : tree -> string (* raises if the unique child is not text *)
   val get_unique_child_ignore_wsp : tree -> tree (* raises if not a unique child *)
+  val get_unique_child_of_typ : string -> tree -> tree (* raises if not unique *)
 
   (* other helpful stuff *)
   val filter_elems : string -> tree list -> tree list
@@ -159,6 +160,8 @@ fun apply_to_unique_elem f tag trees =
     in
       (f elem) handle bad_input_exp (s,p) => raise bad_input_exp (s,tag^"/"^p)
     end;
+
+fun get_unique_child_of_typ tag tree = get_unique_elem tag (get_children tree);
 
 end
 
