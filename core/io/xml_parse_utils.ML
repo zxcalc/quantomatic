@@ -93,7 +93,7 @@ fun lookup_attribute xml attr_name =
 fun get_attribute xml attr_name = 
     (case lookup_attribute xml attr_name 
        of NONE => 
-          raise bad_input_exp ("No such attribute: '" ^ attr_name ^ "'","")
+          raise bad_input_exp ("Missing attribute: '" ^ attr_name ^ "'","")
         | SOME s => s);
 
 fun get_children (Text _) = raise bad_input_exp ("Can't get children of text","")

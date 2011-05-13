@@ -1,4 +1,11 @@
+(* 
+USAGE:
 
+use "core/dev/convert_old_files.ML";
+
+update_graphs_in_directory "examples";
+
+*)
 structure File = 
 struct
   open File;
@@ -36,7 +43,8 @@ fun get_file_renaming filename =
    and "new" filename can be read from. Renames "old" to "new" and gives back record: {input=old,output=new}  
 *)
 fun rename_prep (x as {new, old}) = 
-    let val _ = OS.FileSys.rename x; in {input = old, output=new} end;
+    let val _ = OS.FileSys.rename {old=old,new=new}; 
+    in {input = new, output=old} end;
  
 (* updating file formats *)
 fun update_ruleset {input,output} =  
@@ -56,8 +64,11 @@ fun update_graphs_in_directory d =
     let 
       val files = File.ls d;
       val graph_files = 
-          filter (fn s => (#ext (OS.Path.splitBaseExt s)) = SOME "graph") files; 
-      val graph_file_renamings = map get_file_renaming graph_files;
+          filter (fn s => (#ext (OS.Path.splitBaseExt s)) = SOME "graph") files;
+      val graph_file_renamings = 
+          map (get_file_renaming 
+               o (fn n => OS.Path.joinDirFile {dir=d,file=n})) 
+              graph_files;
     in map (update_graph o rename_prep) graph_file_renamings end;
 
 

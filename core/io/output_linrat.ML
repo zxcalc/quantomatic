@@ -1,9 +1,9 @@
 (* *)
 
 (*-------------------------------------------------------*)
-structure OutputLinratXML : OUTPUT_XML_LIST where type data = LinratExpr.T = 
+structure OutputLinratXML : OUTPUT_XML where type data = LinratExpr.T = 
 struct 
-  type T = XML.tree list;
+  type T = XML.tree;
   type data = LinratExpr.T;
 
   structure VName = LinratExpr.VName;
@@ -37,8 +37,9 @@ struct
       (* if LinratExpr.is_zero (pi,tab) then 
         []
       else *)
-        (wrap_text_simple "angleexpr" (Pretty.string_of (LinratExpr.pretty (pi,tab))))
-        ::((render_xml_constant_part pi)@(render_xml_variable_part tab));
+        wrap_els_simple "angleexpr" 
+          (wrap_text_simple "string_of" (Pretty.string_of (LinratExpr.pretty (pi,tab)))
+          ::((render_xml_constant_part pi)@(render_xml_variable_part tab)));
 end; (* structure *)
 
 (* vim:et:sts=2:sw=2

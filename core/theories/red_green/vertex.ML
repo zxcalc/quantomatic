@@ -1,5 +1,5 @@
-val rg_gui_spec_xml = XMLReader.read_from_file 
-        "gui.xml";
+(* TODO: provide link to visualisation XML *)
+(* val rg_gui_spec_xml = XMLReader.read_from_file "gui.xml"; *)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
@@ -104,9 +104,9 @@ structure RG_VertexData_ParamIO
 = struct 
   type data = RG_VertexData.data;
   fun type_and_xml_of (RG_VertexData.Xnd a) = 
-      ("X",OutputLinratXML.output a)
+      ("X",[OutputLinratXML.output a])
     | type_and_xml_of (RG_VertexData.Znd a) = 
-      ("Z",OutputLinratXML.output a)
+      ("Z",[OutputLinratXML.output a])
     | type_and_xml_of (RG_VertexData.Hnd) = 
       ("hadamard",[]);
   fun of_type_and_xml ("X",[xml]) = 
@@ -115,10 +115,12 @@ structure RG_VertexData_ParamIO
       (RG_VertexData.Znd (InputLinratXML.input xml)) 
     | of_type_and_xml ("hadamard",[]) = 
       (RG_VertexData.Hnd)
-    | of_type_and_xml (n,_) = 
-      raise XML_Parse_Utils.bad_input_exp ("NoEdgeData_ParamIO:Bad type or XML.", n);
-  (* *)
-  fun get_gui_spec_xml () = rg_gui_spec_xml;
+    | of_type_and_xml (n,xml_list) = 
+      raise XML_Parse_Utils.bad_input_exp 
+        ("RG_VertexData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
+         (Pretty.string_of (Pretty.list "[" "]" 
+           (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
+         "data");
 end;
 
 (*  *)
@@ -126,11 +128,14 @@ structure NoEdgeData_ParamIO
 : GRAPH_TYPED_DATA_PARAM_XML_IO where type data = unit 
 = struct
   type data = unit
-  fun of_type_and_xml ("unit",[]) = ()
-    | of_type_and_xml _ = 
-      raise XML_Parse_Utils.bad_input_exp ("NoEdgeData_ParamIO:Bad type or XML.", "unit");
+  fun of_type_and_xml ("unit",_) = ()
+    | of_type_and_xml (n,xml_list) = 
+      raise XML_Parse_Utils.bad_input_exp 
+        ("NoEdgeData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
+         (Pretty.string_of (Pretty.list "[" "]" 
+           (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
+         "data");
   fun type_and_xml_of () = ("unit",[]);
-  fun get_gui_spec_xml () = rg_gui_spec_xml; 
 end; 
 
 
