@@ -6,7 +6,6 @@ package quanto.gui;
 
 import javax.swing.event.ChangeEvent;
 
-import quanto.core.Theory;
 import quanto.core.data.BangBox;
 import quanto.core.data.Vertex;
 import quanto.core.data.Edge;
@@ -45,23 +44,21 @@ public class GraphVisualizationViewer
        extends BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
-	private Theory theory;
 	private CoreGraph graph;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
 
 
-	public GraphVisualizationViewer(Theory theory, CoreGraph graph) {
-		this(theory, QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
+	public GraphVisualizationViewer(CoreGraph graph) {
+		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
-	public GraphVisualizationViewer(Theory theory, Layout<Vertex, Edge> layout) {
+	public GraphVisualizationViewer(Layout<Vertex, Edge> layout) {
 		super(layout);
 
 		if (!(layout.getGraph() instanceof CoreGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.theory = theory;
 		this.graph = (CoreGraph) layout.getGraph();
 
 		layout.initialize();

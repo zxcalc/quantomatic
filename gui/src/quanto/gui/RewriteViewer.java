@@ -55,8 +55,8 @@ public class RewriteViewer extends JFrame {
 			rwPanel.setLayout(new FlowLayout());
 			JLabel ruleName = new JLabel(rw.getRuleName());
 			rwPanel.add(ruleName);
-			GraphVisualizationViewer lhs = new GraphVisualizationViewer(vis.getCore().getActiveTheory(), rw.getLhs());
-			GraphVisualizationViewer rhs = new GraphVisualizationViewer(vis.getCore().getActiveTheory(), rw.getRhs());
+			GraphVisualizationViewer lhs = new GraphVisualizationViewer(rw.getLhs());
+			GraphVisualizationViewer rhs = new GraphVisualizationViewer(rw.getRhs());
 			lhs.zoomToFit(new Dimension(100,100));
 			rhs.zoomToFit(new Dimension(100,100));
 			lhs.setBorder(new LineBorder(Color.gray, 1));

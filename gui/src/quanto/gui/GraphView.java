@@ -31,7 +31,7 @@ public class GraphView extends JPanel
 		setPreferredSize(size);
 		hasScrollbars = scrollable;
 
-		viewer = new GraphVisualizationViewer(theory, graph);
+		viewer = new GraphVisualizationViewer(graph);
 		if (scrollable)
 			add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 		else

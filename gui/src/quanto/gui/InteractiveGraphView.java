@@ -289,7 +289,7 @@ public class InteractiveGraphView
 		setPreferredSize(size);
 
 		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(new QuantoDotLayout(g));
-		viewer = new GraphVisualizationViewer(core.getActiveTheory(), smoothLayout);
+		viewer = new GraphVisualizationViewer(smoothLayout);
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
