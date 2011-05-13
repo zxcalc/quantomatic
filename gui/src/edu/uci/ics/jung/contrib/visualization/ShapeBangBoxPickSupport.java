@@ -27,14 +27,14 @@ public class ShapeBangBoxPickSupport<V, E, B>
 	extends ShapePickSupport<V, E>
 	implements BangBoxGraphElementAccessor<V, E, B> {
 
-	protected BangBoxVisualizationServer<V, E, B> bvv;
+	protected BangBoxGraphVisualizationServer<V, E, B> bvv;
 
-	public ShapeBangBoxPickSupport(BangBoxVisualizationServer<V, E, B> vv) {
+	public ShapeBangBoxPickSupport(BangBoxGraphVisualizationServer<V, E, B> vv) {
 		super(vv);
 		this.bvv = vv;
 	}
 
-	public ShapeBangBoxPickSupport(BangBoxVisualizationServer<V, E, B> vv, float pickSize) {
+	public ShapeBangBoxPickSupport(BangBoxGraphVisualizationServer<V, E, B> vv, float pickSize) {
 		super(vv, pickSize);
 		this.bvv = vv;
 	}

@@ -6,7 +6,7 @@
 package edu.uci.ics.jung.contrib.visualization.renderers;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.contrib.visualization.BangBoxRenderContext;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphRenderContext;
 import edu.uci.ics.jung.visualization.renderers.Renderer;
 
 /**
@@ -17,10 +17,10 @@ public interface BangBoxGraphRenderer<V, E, B> extends Renderer<V, E>
 {
 	interface BangBox<V, E, B> {
 		class NOOP implements BangBox {
-			public void paintBangBox(BangBoxRenderContext rc, Layout layout, Object b) {
+			public void paintBangBox(BangBoxGraphRenderContext rc, Layout layout, Object b) {
 			}
 		}
-		void paintBangBox(BangBoxRenderContext<V, E, B> rc, Layout<V, E> layout, B b);
+		void paintBangBox(BangBoxGraphRenderContext<V, E, B> rc, Layout<V, E> layout, B b);
 	}
 	/*interface BangBoxLabel<V, E, B> {
 		class NOOP implements BangBoxLabel {
@@ -29,7 +29,7 @@ public interface BangBoxGraphRenderer<V, E, B> extends Renderer<V, E>
 		void labelBangBox(BangBoxRenderContext<V, E, B> rc, Layout<V,E> layout, B e, String label);
 	}*/
 
-	void render(BangBoxRenderContext<V, E, B> renderContext, Layout<V, E> layout);
+	void render(BangBoxGraphRenderContext<V, E, B> renderContext, Layout<V, E> layout);
 
 	BangBox<V, E, B> getBangBoxRenderer();
 	void setBangBoxRenderer(BangBox<V, E, B> bangBoxRenderer);
@@ -37,7 +37,7 @@ public interface BangBoxGraphRenderer<V, E, B> extends Renderer<V, E>
 	//BangBoxLabel<V, E, B> getBangBoxLabelRenderer();
 	//void setBangBoxLabelRenderer(BangBoxLabel<V, E, B> bangBoxLabelRenderer);
 
-	void renderBangBox(BangBoxRenderContext<V, E, B> rc, Layout<V, E> layout, B b);
+	void renderBangBox(BangBoxGraphRenderContext<V, E, B> rc, Layout<V, E> layout, B b);
 
 	//void renderBangBoxLabel(BangBoxRenderContext<V, E> rc, Layout<V, E> layout, B b);
 }

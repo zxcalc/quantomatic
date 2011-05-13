@@ -6,7 +6,7 @@ package edu.uci.ics.jung.contrib.visualization.control;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphElementAccessor;
-import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.control.PickingGraphMousePlugin;
@@ -28,7 +28,7 @@ public class PickingBangBoxMousePlugin<V, E, B>
 	@Override
 	public void mousePressed(MouseEvent e) {
 		down = e.getPoint();
-		BangBoxVisualizationViewer<V, E, B> vv = (BangBoxVisualizationViewer) e.getSource();
+		BangBoxGraphVisualizationViewer<V, E, B> vv = (BangBoxGraphVisualizationViewer) e.getSource();
 		BangBoxGraphElementAccessor<V, E, B> pickSupport = vv.getPickSupport();
 		PickedState<V> pickedVertexState = vv.getPickedVertexState();
 		PickedState<E> pickedEdgeState = vv.getPickedEdgeState();

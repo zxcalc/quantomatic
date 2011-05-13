@@ -5,7 +5,6 @@
 
 package edu.uci.ics.jung.contrib.graph;
 
-import edu.uci.ics.jung.contrib.graph.DirectedBangBoxGraph;
 import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
 import java.util.Collection;
 import java.util.Collections;

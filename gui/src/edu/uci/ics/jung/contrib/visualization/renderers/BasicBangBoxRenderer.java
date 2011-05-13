@@ -7,7 +7,7 @@ package edu.uci.ics.jung.contrib.visualization.renderers;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
 import edu.uci.ics.jung.contrib.visualization.LayoutContext;
-import edu.uci.ics.jung.contrib.visualization.BangBoxRenderContext;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphRenderContext;
 import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxGraphRenderer.BangBox;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.Layer;
@@ -29,7 +29,7 @@ import javax.swing.JComponent;
 public class BasicBangBoxRenderer<V, E, B>
 	implements BangBoxGraphRenderer.BangBox<V, E, B> {
 
-	public void paintBangBox(BangBoxRenderContext<V, E, B> rc, Layout<V, E> layout, B b) {
+	public void paintBangBox(BangBoxGraphRenderContext<V, E, B> rc, Layout<V, E> layout, B b) {
 		@SuppressWarnings("unchecked")
 		BangBoxGraph<V, E, B> graph = (BangBoxGraph<V, E, B>) layout.getGraph();
 		if (!rc.getBangBoxIncludePredicate().evaluate(Context.<BangBoxGraph<V, E, B>, B>getInstance(graph, b))) {
@@ -57,7 +57,7 @@ public class BasicBangBoxRenderer<V, E, B>
 		return vt.transform(s).intersects(deviceRectangle);
 	}
 
-	protected void paintShapeForBangBox(BangBoxRenderContext<V, E, B> rc, B b, Shape shape) {
+	protected void paintShapeForBangBox(BangBoxGraphRenderContext<V, E, B> rc, B b, Shape shape) {
 		GraphicsDecorator g = rc.getGraphicsContext();
 		Paint oldPaint = g.getPaint();
 		Paint fillPaint = rc.getBangBoxFillPaintTransformer().transform(b);

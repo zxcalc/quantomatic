@@ -15,7 +15,7 @@ import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.visualization.decorators.MixedShapeTransformer;
-import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.Layer;
@@ -42,7 +42,7 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alex
  */
 public class GraphVisualizationViewer
-       extends BangBoxVisualizationViewer<Vertex, Edge, BangBox>
+       extends BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox>
 {
 	private static final long serialVersionUID = -1723894723956293847L;
 	private Theory theory;

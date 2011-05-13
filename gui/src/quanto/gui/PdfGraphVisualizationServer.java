@@ -15,7 +15,7 @@ import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfWriter;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
-import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
@@ -39,7 +39,7 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
  * @author alemer
  */
 public class PdfGraphVisualizationServer extends
-		BangBoxVisualizationViewer<Vertex, Edge, BangBox> {
+		BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox> {
 	private final CoreGraph graph;
 	private final Theory theory;
 	private boolean arrowHeadsShown = false;

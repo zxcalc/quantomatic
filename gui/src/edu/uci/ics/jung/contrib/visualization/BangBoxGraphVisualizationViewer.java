@@ -28,28 +28,28 @@ import java.awt.event.ItemListener;
  *
  * @author alemer
  */
-public class BangBoxVisualizationViewer<V, E, B>
+public class BangBoxGraphVisualizationViewer<V, E, B>
 	extends VisualizationViewer<V, E>
-	implements BangBoxVisualizationServer<V, E, B> {
+	implements BangBoxGraphVisualizationServer<V, E, B> {
 
 	protected PickedState<B> pickedBangBoxState = new MultiPickedState<B>();
 
-	public BangBoxVisualizationViewer(Layout<V, E> layout) {
+	public BangBoxGraphVisualizationViewer(Layout<V, E> layout) {
 		super(layout);
 		init();
 	}
 
-	public BangBoxVisualizationViewer(Layout<V, E> layout, Dimension preferredSize) {
+	public BangBoxGraphVisualizationViewer(Layout<V, E> layout, Dimension preferredSize) {
 		super(layout, preferredSize);
 		init();
 	}
 
-	public BangBoxVisualizationViewer(VisualizationModel<V, E> model) {
+	public BangBoxGraphVisualizationViewer(VisualizationModel<V, E> model) {
 		super(model);
 		init();
 	}
 
-	public BangBoxVisualizationViewer(VisualizationModel<V, E> model, Dimension preferredSize) {
+	public BangBoxGraphVisualizationViewer(VisualizationModel<V, E> model, Dimension preferredSize) {
 		super(model, preferredSize);
 		init();
 	}
@@ -113,11 +113,11 @@ public class BangBoxVisualizationViewer<V, E, B>
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public BangBoxRenderContext<V, E, B> getRenderContext() {
-		return (BangBoxRenderContext<V, E, B>) renderContext;
+	public BangBoxGraphRenderContext<V, E, B> getRenderContext() {
+		return (BangBoxGraphRenderContext<V, E, B>) renderContext;
 	}
 
-	public void setRenderContext(BangBoxRenderContext<V, E, B> renderContext) {
+	public void setRenderContext(BangBoxGraphRenderContext<V, E, B> renderContext) {
 		super.setRenderContext(renderContext);
 	}
 

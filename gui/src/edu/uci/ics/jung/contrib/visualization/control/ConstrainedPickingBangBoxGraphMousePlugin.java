@@ -6,7 +6,7 @@
 package edu.uci.ics.jung.contrib.visualization.control;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.contrib.visualization.BangBoxVisualizationViewer;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import java.awt.Point;
@@ -92,7 +92,7 @@ public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
 		this.topConstraint = topConstraint;
 	}
 
-	private void moveNodes(BangBoxVisualizationViewer<V, E, B> vv,
+	private void moveNodes(BangBoxGraphVisualizationViewer<V, E, B> vv,
 	                       double dx, double dy)
 	{
 		Layout<V, E> layout = vv.getGraphLayout();
@@ -168,7 +168,7 @@ public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
 	@SuppressWarnings("unchecked")
 	public void mouseDragged(MouseEvent e) {
 		if (locked == false) {
-			BangBoxVisualizationViewer<V, E, B> vv = (BangBoxVisualizationViewer<V, E, B>) e.getSource();
+			BangBoxGraphVisualizationViewer<V, E, B> vv = (BangBoxGraphVisualizationViewer<V, E, B>) e.getSource();
 			if (vertex != null) {
 				Point p = e.getPoint();
 				Point2D graphPoint = vv.getRenderContext().getMultiLayerTransformer().inverseTransform(p);

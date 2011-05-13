@@ -6,7 +6,7 @@ package edu.uci.ics.jung.contrib.visualization.renderers;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
-import edu.uci.ics.jung.contrib.visualization.BangBoxRenderContext;
+import edu.uci.ics.jung.contrib.visualization.BangBoxGraphRenderContext;
 import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxGraphRenderer.BangBox;
 import edu.uci.ics.jung.visualization.RenderContext;
 import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
@@ -25,14 +25,14 @@ public class BasicBangBoxGraphRenderer<V, E, B>
 	@Override
 	@SuppressWarnings("unchecked")
 	public void render(RenderContext<V, E> renderContext, Layout<V, E> layout) {
-		if (renderContext instanceof BangBoxRenderContext) {
-			render((BangBoxRenderContext<V, E, B>)renderContext, layout);
+		if (renderContext instanceof BangBoxGraphRenderContext) {
+			render((BangBoxGraphRenderContext<V, E, B>)renderContext, layout);
 		} else {
 			super.render(renderContext, layout);
 		}
 	}
 
-	public void render(BangBoxRenderContext<V, E, B> renderContext, Layout<V, E> layout) {
+	public void render(BangBoxGraphRenderContext<V, E, B> renderContext, Layout<V, E> layout) {
 		if (layout.getGraph() instanceof BangBoxGraph) {
 			// paint all the !-boxes
 			@SuppressWarnings("unchecked")
@@ -92,7 +92,7 @@ public class BasicBangBoxGraphRenderer<V, E, B>
 		}
 	}
 
-	public void renderBangBox(BangBoxRenderContext<V, E, B> rc, Layout<V, E> layout, B b) {
+	public void renderBangBox(BangBoxGraphRenderContext<V, E, B> rc, Layout<V, E> layout, B b) {
 		bangBoxRenderer.paintBangBox(rc, layout, b);
 	}
 

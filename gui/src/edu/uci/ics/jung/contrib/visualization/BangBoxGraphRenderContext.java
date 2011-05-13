@@ -19,7 +19,7 @@ import org.apache.commons.collections15.Transformer;
  *
  * @author alemer
  */
-public interface BangBoxRenderContext<V, E, B> extends RenderContext<V, E> {
+public interface BangBoxGraphRenderContext<V, E, B> extends RenderContext<V, E> {
 
 	PickedState<B> getPickedBangBoxState();
 	void setPickedBangBoxState(PickedState<B> pickedBangBoxState);

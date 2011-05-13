@@ -23,9 +23,9 @@ public class DefaultBangBoxShapeTransformer<V, E, B>
 	implements Transformer<LayoutContext<Layout<V, E>, B>, Shape> {
 
 	protected double padding;
-	protected BangBoxRenderContext<V, E, B> renderContext;
+	protected BangBoxGraphRenderContext<V, E, B> renderContext;
 
-	public DefaultBangBoxShapeTransformer(BangBoxRenderContext<V, E, B> renderContext, double padding) {
+	public DefaultBangBoxShapeTransformer(BangBoxGraphRenderContext<V, E, B> renderContext, double padding) {
 		this.renderContext = renderContext;
 		this.padding = padding;
 	}

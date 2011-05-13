@@ -13,14 +13,14 @@ import edu.uci.ics.jung.visualization.picking.PickedState;
  *
  * @author alemer
  */
-public interface BangBoxVisualizationServer<V,E,B> extends VisualizationServer<V, E>
+public interface BangBoxGraphVisualizationServer<V,E,B> extends VisualizationServer<V, E>
 {
 	PickedState<B> getPickedBangBoxState();
 	void setPickedBangBoxState(PickedState<B> pickedBangBoxState);
 	BangBoxGraphElementAccessor<V, E, B> getPickSupport();
 	void setPickSupport(BangBoxGraphElementAccessor<V, E, B> pickSupport);
-	BangBoxRenderContext<V, E, B> getRenderContext();
-	void setRenderContext(BangBoxRenderContext<V, E, B> renderContext);
+	BangBoxGraphRenderContext<V, E, B> getRenderContext();
+	void setRenderContext(BangBoxGraphRenderContext<V, E, B> renderContext);
 	BangBoxGraphRenderer<V, E, B> getRenderer();
 	void setRenderer(BangBoxGraphRenderer<V, E, B> renderer);
 }

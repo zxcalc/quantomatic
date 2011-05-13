@@ -45,7 +45,7 @@ import org.apache.commons.collections15.functors.TruePredicate;
  */
 @SuppressWarnings("unchecked")
 public class PluggableBangBoxGraphRenderContext<V, E, B>
-	implements BangBoxRenderContext<V, E, B> {
+	implements BangBoxGraphRenderContext<V, E, B> {
 
 	/**
 	 * pluggable support for picking graph elements by
