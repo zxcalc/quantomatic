@@ -1,22 +1,2 @@
-<graph>
-<!-- VERTICES -->
-  <vertex>
-    <name>b</name>
-    <boundary>false</boundary>
-    <colour>red</colour>
-  </vertex>
-  <vertex>
-    <name>a</name>
-    <boundary>false</boundary>
-    <colour>red</colour>
-  </vertex>
-<!-- EDGES -->
-  <edge>
-    <name>Eb</name><source>b</source><target>b</target>
-  </edge>
-  <edge>
-    <name>Ea</name><source>b</source><target>a</target>
-  </edge>
-<!-- BANG BOXES  -->
-  
-</graph>
+<?xml version="1.0"?>
+<graph><vertex name="b"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex><vertex name="a"><type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex><edge name="Eb" dir="false" source="b" target="b"><type>unit</type><data/></edge><edge name="Ea" dir="false" source="b" target="a"><type>unit</type><data/></edge></graph>
