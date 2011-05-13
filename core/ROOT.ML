@@ -125,6 +125,8 @@ PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
 (* **** *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 
+PolyML.Project.make "dev/convert_old_files.ML";
+
 (* unit tests *)
 PolyML.Project.make "test/ROOT.ML";
 
