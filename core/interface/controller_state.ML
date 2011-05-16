@@ -466,10 +466,10 @@ functor ControllerState(
     | save_graph _ = raise wrong_args_exp ()
 
   (* FIXME: make generic over vertex data *)
-  fun vertex_type "red" = V.IVert (RG_VertexData.Xnd LinratExpr.zero)
-    | vertex_type "green" =  V.IVert (RG_VertexData.Znd LinratExpr.zero)
+  fun vertex_type "X" = V.IVert (RG_VertexData.Xnd LinratExpr.zero)
+    | vertex_type "Z" =  V.IVert (RG_VertexData.Znd LinratExpr.zero)
     | vertex_type "hadamard" = V.IVert RG_VertexData.Hnd
-    | vertex_type "boundary" = V.EVert
+    | vertex_type "edge-point" = V.EVert
     | vertex_type _ = raise user_exp "Bad vertex type."
 
   fun add_vertex ([_,vt], graph) =

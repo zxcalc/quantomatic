@@ -1158,12 +1158,12 @@ public class InteractiveGraphView
 		});
 		actionMap.put(ADD_RED_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex("red");
+				addVertex("X");
 			}
 		});
 		actionMap.put(ADD_GREEN_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				addVertex("green");
+				addVertex("Z");
 			}
 		});
 		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
@@ -1369,10 +1369,10 @@ public class InteractiveGraphView
 		else {
 			switch (e.getKeyCode()) {
 				case KeyEvent.VK_R:
-					addVertex("red");
+					addVertex("X");
 					break;
 				case KeyEvent.VK_G:
-					addVertex("green");
+					addVertex("Z");
 					break;
 				case KeyEvent.VK_H:
 					addVertex("hadamard");

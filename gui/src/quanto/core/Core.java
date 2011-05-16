@@ -217,7 +217,7 @@ public class Core {
 	public Vertex addBoundaryVertex(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		Vertex v = Vertex.createBoundaryVertex(talker.add_vertex(graph.getCoreName(),
-				"boundary"));
+				"edge-point"));
 		graph.addVertex(v);
 		graph.fireStateChanged();
 		return v;
