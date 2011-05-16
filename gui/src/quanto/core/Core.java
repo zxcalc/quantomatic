@@ -64,8 +64,8 @@ public class Core {
 	public Core(CoreTalker talker) {
 		this.talker = talker;
 		this.activeTheory = new CoreTheory();
-		activeTheory.addVertexType(new VertexType.Red());
-		activeTheory.addVertexType(new VertexType.Green());
+		activeTheory.addVertexType(new VertexType.X());
+		activeTheory.addVertexType(new VertexType.Z());
 		activeTheory.addVertexType(new VertexType.Hadamard());
 		this.graphBuilder = new GraphBuilder(activeTheory);
         this.ruleset = new Ruleset(this);

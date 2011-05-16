@@ -113,6 +113,18 @@ public class GraphBuilder {
 	public void updateGraphFromXml(CoreGraph graph, String xml) throws ParseException {
 		updateGraphFromXmlReader(graph, StdXMLReader.stringReader(xml));
 	}
+	
+	public String vertexDataToString(VertexType.DataType type, IXMLElement dataNode) throws ParseException {
+		if (type == VertexType.DataType.MathExpression) {
+			IXMLElement expr = dataNode.getFirstChildNamed("angleexpr");
+			if (expr == null)
+				throwParseException(dataNode, "No angle data given");
+			return expr.getFirstChildNamed("string_of").getContent();
+		} else if (type == VertexType.DataType.String) {
+			// FIXME: how is this stored?
+		}
+		return null;
+	}
 
 	@SuppressWarnings("unchecked")
 	public void updateGraphFromXml(CoreGraph graph, IXMLElement graphNode) throws ParseException {
@@ -134,42 +146,31 @@ public class GraphBuilder {
 				IXMLElement vertexNode = (IXMLElement)obj;
 				Vertex v = null;
 
-				try {
-					String vname = vertexNode.getFirstChildNamed("name").getContent();
-					if (vname == null || vname.length() == 0)
-						throwParseException(vertexNode, "no name given");
+				String vname = vertexNode.getAttribute("name", "");
+				if (vname.length() == 0)
+					throwParseException(vertexNode, "no name given");
 
-					if (vertexNode.getFirstChildNamed("boundary")
-							.getContent().equals("true"))
+				IXMLElement typeNode = vertexNode.getFirstChildNamed("type");
+				if (typeNode == null)
+					throwParseException(vertexNode, "No vertex type given");
+				String vTypeName = typeNode.getContent();
+				if (vTypeName == null || vTypeName.length() == 0)
+					throwParseException(typeNode, "Invalid type description");
+				if (vTypeName.equals("edge-point")) {
+					v = Vertex.createBoundaryVertex(vname);
+				} else {
+					VertexType vType = theory.getVertexType(vTypeName);
+					if (vType == null)
+						throwParseException(typeNode, "Unknown vertex type \"" + vTypeName + "\"");
+					v = Vertex.createVertex(vname, vType);
+
+					if (vType.getDataType() != VertexType.DataType.None)
 					{
-						v = Vertex.createBoundaryVertex(vname);
-					} else if (vertexNode.getFirstChildNamed("boundary")
-							.getContent().equals("false")) {
-						String vTypeName = vertexNode.getFirstChildNamed("colour").getContent().toLowerCase();
-						if (vTypeName.equals("h"))
-							vTypeName = "hadamard";
-						VertexType vType = theory.getVertexType(vTypeName);
-						v = Vertex.createVertex(vname, vType);
-
-						if (vType.getDataType() == VertexType.DataType.MathExpression) {
-							IXMLElement expr = vertexNode.getFirstChildNamed("angleexpr");
-							if (expr != null) {
-								v.getData().setValue(expr.getFirstChildNamed("as_string").getContent());
-							}
-						}
-					} else {
-						throwParseException(vertexNode, ": invalid value for \"boundary\"");
+						IXMLElement dataNode = vertexNode.getFirstChildNamed("data");
+						if (dataNode == null)
+							throwParseException(vertexNode, "No vertex data given");
+						v.getData().setValue(vertexDataToString(vType.getDataType(), dataNode));
 					}
-				} catch (IllegalArgumentException e) {
-					logger.info("Got illegal arg ex", e);
-					throwParseException(vertexNode, null);
-				} catch (NullPointerException e) {
-					logger.info("Got nullptr ex", e);
-					/* if NullPointerException is thrown, the
-					 * core has most likely neglected to include
-					 * a required field.
-					 */
-					throwParseException(vertexNode, null);
 				}
 
 				verts.put(v.getCoreName(), v);
@@ -187,52 +188,56 @@ public class GraphBuilder {
 
 				Vertex source = null, target = null;
 				String ename = null;
-				IXMLElement ch = null;
+				EdgeType etype = EdgeType.DIRECTED;
+				String attrData = null;
 
-				ch = edgeNode.getFirstChildNamed("name");
-				if (ch!=null)
-					ename = ch.getContent();
-				if (ename == null || ename.length() == 0)
+				ename = edgeNode.getAttribute("name", "");
+				if (ename.length() == 0)
 					throwParseException(edgeNode, "no name given");
 
-				ch = edgeNode.getFirstChildNamed("source");
-				if (ch!=null)
-					source = verts.get(ch.getContent());
-				else
+				attrData = edgeNode.getAttribute("source", "");
+				if (attrData.length() == 0)
 					throwParseException(edgeNode, "no source given");
+				else
+					source = verts.get(attrData);
 				if (source == null)
 					throwParseException(edgeNode, "unknown source");
 
-
-				ch = edgeNode.getFirstChildNamed("target");
-				if (ch!=null)
-					target = verts.get(ch.getContent());
-				else
+				attrData = edgeNode.getAttribute("target", "");
+				if (attrData.length() == 0)
 					throwParseException(edgeNode, "no target given");
+				else
+					target = verts.get(attrData);
 				if (target == null)
 					throwParseException(edgeNode, "unknown target");
 
+//				attrData = edgeNode.getAttribute("dir", null);
+//				if (attrData == null)
+//					throwParseException(edgeNode, "no directedness given");
+//				if (attrData.equalsIgnoreCase("true"))
+//					etype = EdgeType.DIRECTED;
+//				else if (attrData.equalsIgnoreCase("false"))
+//					etype = EdgeType.UNDIRECTED;
+//				else
+//					throwParseException(edgeNode, "invalid value for edge directedness (dir)");
+
 				graph.addEdge(new Edge(ename),
-					source, target, EdgeType.DIRECTED);
+					source, target, etype);
 
 			} // foreach edge
 
 			for (IXMLElement bangBox :
 				(Vector<IXMLElement>)graphNode.getChildrenNamed("bangbox"))
 			{
-				IXMLElement nm = bangBox.getFirstChildNamed("name");
-				if (nm == null)
-					throwParseException(bangBox, "no name given");
-
-				String bbname = nm.getContent();
-				if (bbname == null || bbname.length() == 0)
+				String bbname = bangBox.getAttribute("name", "");
+				if (bbname.length() == 0)
 					throwParseException(bangBox, "no name given");
 
 				BangBox bbox = new BangBox(bbname);
 				List<Vertex> contents = new LinkedList<Vertex>();
 
 				for (IXMLElement boxedVert :
-					(Vector<IXMLElement>)bangBox.getChildrenNamed("boxedvertex"))
+					(Vector<IXMLElement>)bangBox.getChildrenNamed("vertex"))
 				{
 					Vertex v = verts.get(boxedVert.getContent());
 					if (v == null)

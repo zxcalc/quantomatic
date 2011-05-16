@@ -18,10 +18,10 @@ public interface VertexType {
 	DataType getDataType();
 	GraphElementData createDefaultData();
 
-	public static class Red implements VertexType {
+	public static class X implements VertexType {
 		VertexVisualizationData visData = new RGVertexVisualizationData(Color.red);
 		public VertexVisualizationData getVisualizationData() { return visData; }
-		public String getTypeName() { return "red"; }
+		public String getTypeName() { return "X"; }
 		public boolean hasData() { return true; }
 		public DataType getDataType() { return DataType.MathExpression; }
 		public GraphElementData createDefaultData() {
@@ -31,10 +31,10 @@ public interface VertexType {
 		}
 	}
 
-	public static class Green implements VertexType {
+	public static class Z implements VertexType {
 		VertexVisualizationData visData = new RGVertexVisualizationData(Color.green);
 		public VertexVisualizationData getVisualizationData() { return visData; }
-		public String getTypeName() { return "green"; }
+		public String getTypeName() { return "Z"; }
 		public boolean hasData() { return true; }
 		public DataType getDataType() { return DataType.MathExpression; }
 		public GraphElementData createDefaultData() {
