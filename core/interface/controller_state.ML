@@ -12,10 +12,10 @@ sig
   datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
 
   exception wrong_args_exp of unit (* when wrong arguments are given to a command *)
-  exception user_exp of string; (* for errors sent to user console *) 
+  exception user_exp of string; (* for errors sent to user console *)
 
   val init : T (* initial empty state, no graphs *)
-
+ 
   val as_name : string -> response
   val as_data : string -> response
 

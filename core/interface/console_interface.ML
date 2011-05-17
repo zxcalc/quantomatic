@@ -166,3 +166,5 @@ struct
 end;
 
 
+(* top level run function for controller/interface protocol *)
+val run = ConsoleInterface.run_in_stdio;

@@ -9,10 +9,12 @@ use "ROOT.ML";
 OS.FileSys.chDir rootDir);
 print_depth 3;
 
-PolyML.Project.ideModeRef := true;
-
-(* move to library? is this used? *)
-fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
+PolyML.Project.Log.level_ref := 4;
+PolyML.Project.depend_on_files 
+  [(* this file *)
+   "ROOT.ML"
+   (* TODO: isaplib? *)
+  ];
 
 (** For debugging, turn on debug flag: **)
 (* PolyML.Compiler.debug := true; *)
@@ -128,10 +130,13 @@ PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using 
 PolyML.Project.make "dev/convert_old_files.ML";
 
 (* unit tests *)
-PolyML.Project.make "test/ROOT.ML";
+PolyML.Project.use_root "test/ROOT.ML";
 
-(* top level run function for controller/interface protocol *)
-val run = ConsoleInterface.run_in_stdio;
+
+if PolyML.Project.heap_is_newer_than_edits "heaps/quanto_child.heap" then () 
+else 
+ (PolyML.Project.ensure_at_latest_heap ();
+  PolyML.Project.save_project_child_state "heaps/quanto_child.heap");
 
 (*
 PolyML.Project.make "test/dbg/rule_matching3-bbox-v1.ML"; 
