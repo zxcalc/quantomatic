@@ -71,4 +71,15 @@ fun update_graphs_in_directory d =
               graph_files;
     in map (update_graph o rename_prep) graph_file_renamings end;
 
+fun update_rulesets_in_directory d = 
+    let 
+      val files = File.ls d;
+      val graph_files = 
+          filter (fn s => (#ext (OS.Path.splitBaseExt s)) = SOME "rules") files;
+      val graph_file_renamings = 
+          map (get_file_renaming 
+               o (fn n => OS.Path.joinDirFile {dir=d,file=n})) 
+              graph_files;
+    in map (update_ruleset o rename_prep) graph_file_renamings end;
+
 
