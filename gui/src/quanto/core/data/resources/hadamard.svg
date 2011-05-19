@@ -1,13 +1,17 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns="http://www.w3.org/2000/svg"
-   width="14" height="14" version="1.1" viewBox="0 0 14 14">
+   width="14" height="14" version="1.1" viewBox="-7 -7 14 14">
     <rect
-       style="fill:#ffff00;stroke:#000000;stroke-width:0.95651442"
-       width="13.043486"
-       height="13.043486"
-       x="0.47825721"
-       y="0.4783" />
+	   id="boundary"
+       style="fill:#ffff00;stroke:#000000;stroke-width:1"
+       width="13"
+       height="13"
+       x="-6.5"
+       y="-6.5" />
     <text
        style="font-size:14px;fill:#000000"
-       x="1.7363281"
-       y="12.103">H</text>
+       x="-5.2636719"
+       y="5.103">H</text>
 </svg>

@@ -24,7 +24,7 @@ public class QVertexColorTransformer implements Transformer<Vertex, Paint> {
 		if (v.isBoundaryVertex()) {
 			return Color.lightGray;
 		} else {
-			return v.getVertexType().getVisualizationData().getFillColour();
+			return Color.blue;
 		}
 	}
 }

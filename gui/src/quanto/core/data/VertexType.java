@@ -18,7 +18,10 @@ public interface VertexType {
 	DataType getDataType();
 
 	public static class X implements VertexType {
-		VertexVisualizationData visData = new RGVertexVisualizationData(Color.red);
+		VertexVisualizationData visData = new SvgVertexVisualizationData(
+				VertexType.class.getResource("resources/red.svg"),
+				new Color(255, 170, 170)
+				);
 		public VertexVisualizationData getVisualizationData() { return visData; }
 		public String getTypeName() { return "X"; }
 		public boolean hasData() { return true; }
@@ -26,7 +29,10 @@ public interface VertexType {
 	}
 
 	public static class Z implements VertexType {
-		VertexVisualizationData visData = new RGVertexVisualizationData(Color.green);
+		VertexVisualizationData visData = new SvgVertexVisualizationData(
+				VertexType.class.getResource("resources/green.svg"),
+				new Color(150, 255, 150)
+				);
 		public VertexVisualizationData getVisualizationData() { return visData; }
 		public String getTypeName() { return "Z"; }
 		public boolean hasData() { return true; }
@@ -34,7 +40,15 @@ public interface VertexType {
 	}
 
 	public static class Hadamard implements VertexType {
-		VertexVisualizationData visData = new HVertexVisualizationData();
+		SvgVertexVisualizationData visData;
+
+		public Hadamard() {
+			visData = new SvgVertexVisualizationData(
+				VertexType.class.getResource("resources/hadamard.svg"),
+				null
+			);
+			visData.setAntiAliasingOn(false);
+		}
 		public VertexVisualizationData getVisualizationData() { return visData; }
 		public String getTypeName() { return "hadamard"; }
 		public boolean hasData() { return false; }

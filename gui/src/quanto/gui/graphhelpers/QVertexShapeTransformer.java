@@ -17,7 +17,6 @@ import quanto.core.data.Vertex;
  * @author alemer
  */
 public class QVertexShapeTransformer implements Transformer<Vertex, Shape> {
-	private static final Rectangle2D vertexBounds = new Rectangle2D.Double(-7, -7, 14, 14);
 
 	public QVertexShapeTransformer() {
 	}
@@ -29,7 +28,7 @@ public class QVertexShapeTransformer implements Transformer<Vertex, Shape> {
 			width = Math.max(width, 14);
 			return new Rectangle2D.Double(-(width / 2), -7, width, 14);
 		} else {
-			return v.getVertexType().getVisualizationData().getShape(vertexBounds);
+			return v.getVertexType().getVisualizationData().getShape();
 		}
 	}
 }
