@@ -203,10 +203,16 @@ public class Core {
 	public Vertex addVertex(CoreGraph graph, VertexType vertexType)
 			throws CoreException {
 		assertCoreGraph(graph);
-		Vertex v = Vertex.createVertex(talker.add_vertex(graph.getCoreName(), vertexType.getTypeName()), vertexType);
-		graph.addVertex(v);
-		graph.fireStateChanged();
-		return v;
+		try
+		{
+			return graphBuilder.addVertexFromXml(graph,
+						talker.add_vertex(graph.getCoreName(),
+										  vertexType.getTypeName()));
+		}
+		catch ( ParseException ex )
+		{
+			throw new BadResponseException("Core gave bad vertex XML");
+		}
 	}
 
 	public Vertex addVertex(CoreGraph graph, String vertexType)
@@ -216,11 +222,16 @@ public class Core {
 
 	public Vertex addBoundaryVertex(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
-		Vertex v = Vertex.createBoundaryVertex(talker.add_vertex(graph.getCoreName(),
-				"edge-point"));
-		graph.addVertex(v);
-		graph.fireStateChanged();
-		return v;
+		try
+		{
+			return graphBuilder.addVertexFromXml(graph,
+							talker.add_vertex(graph.getCoreName(),
+							"edge-point"));
+		}
+		catch ( ParseException ex )
+		{
+			throw new BadResponseException("Core gave bad vertex XML");
+		}
 	}
 
 	public void renameVertex(CoreGraph graph, Vertex vertex,
@@ -251,12 +262,17 @@ public class Core {
 	public Edge addEdge(CoreGraph graph, Vertex source, Vertex target)
 			throws CoreException {
 		assertCoreGraph(graph);
-		String eName = talker.add_edge(graph.getCoreName(),
-				source.getCoreName(), target.getCoreName());
-		Edge e = new Edge(eName);
-		graph.addEdge(e, source, target);
-		graph.fireStateChanged();
-		return e;
+		try
+		{
+			return graphBuilder.addEdgeFromXml(graph,
+							talker.add_edge(graph.getCoreName(),
+							source.getCoreName(),
+							target.getCoreName()));
+		}
+		catch ( ParseException ex )
+		{
+			throw new BadResponseException("Core gave bad vertex XML");
+		}
 	}
 
 	public void deleteEdges(CoreGraph graph, Collection<Edge> edges)

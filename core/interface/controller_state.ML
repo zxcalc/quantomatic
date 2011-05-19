@@ -148,6 +148,9 @@ functor ControllerState(
     and type Edge.data = unit 
 
   structure IO_Interface : IO_INTERFACE
+  where type Output.Vertex.data = (GraphicalTheory.Graph.Vertex.name * (GraphicalTheory.Graph.Vertex.data * (GraphicalTheory.Graph.Edge.NSet.T * GraphicalTheory.Graph.Edge.NSet.T)))
+  and type Output.Edge.data = (GraphicalTheory.Graph.Edge.name * ((GraphicalTheory.Graph.dir_or_undir * GraphicalTheory.Graph.Edge.data) * (GraphicalTheory.Graph.Vertex.name * GraphicalTheory.Graph.Vertex.name)))
+  and type Output.BBox.data = (GraphicalTheory.Graph.BBox.name * GraphicalTheory.Graph.Vertex.NSet.T)
   sharing type IO_Interface.Input.Graph.data = GraphicalTheory.Graph.T
   sharing type IO_Interface.Input.Rule.data = GraphicalTheory.Rule.T
   sharing type IO_Interface.Input.Ruleset.data = GraphicalTheory.Ruleset.T
@@ -472,16 +475,25 @@ functor ControllerState(
     | vertex_type "edge-point" = V.EVert
     | vertex_type _ = raise user_exp "Bad vertex type."
 
+  val vertex_xml =
+    as_data o XML.string_of o Output.Vertex.output
+
+  val edge_xml =
+    as_data o XML.string_of o Output.Edge.output
+
+  val bbox_xml =
+    as_data o XML.string_of o Output.BBox.output
+
   fun add_vertex ([_,vt], graph) =
       let val (n,g) = graph |> G.add_vertex (vertex_type vt)
-      in (NAME (G.Vertex.dest n), g)
+      in (vertex_xml (n,G.get_vertex g n), g)
       end
     | add_vertex _ = raise wrong_args_exp ()
 
   (* FIXME: make generic over edge data *)
   fun add_edge ([_,v1,v2], graph) =
       (let val (n,g) = graph |> G.add_edge (G.UnDirected,()) (V.mk v1) (V.mk v2)
-       in (NAME (G.Edge.dest n), g)
+       in ((edge_xml (n,G.get_edge g n)), g)
        end
        handle G.no_such_vname_exp _ =>
               raise user_exp "Bad vertex name.")

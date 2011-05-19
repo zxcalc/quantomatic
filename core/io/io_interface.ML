@@ -15,6 +15,9 @@ signature OUTPUT_INTERFACE
   structure Rewrite : OUTPUT_XML
   structure RewriteList : OUTPUT_XML where type data = Rewrite.data list
   structure Graph : OUTPUT_XML
+  structure Vertex : OUTPUT_XML
+  structure Edge : OUTPUT_XML
+  structure BBox : OUTPUT_XML
 end;
 
 signature IO_INTERFACE =
@@ -69,6 +72,17 @@ functor IO_Interface(
       structure Graph = Ruleset.Rule.Graph
       structure OutputVertexData = OutputVertexData
       structure OutputEdgeData = OutputEdgeData);
+
+    structure Vertex = OutputVertexXML_v2(
+      structure Graph = Ruleset.Rule.Graph
+      structure OutputVertexData = OutputVertexData);
+
+    structure Edge = OutputEdgeXML_v2(
+      structure Graph = Ruleset.Rule.Graph
+      structure OutputEdgeData = OutputEdgeData);
+
+    structure BBox = OutputBBoxXML_v2(
+      structure Graph = Ruleset.Rule.Graph);
 
     structure Rule = OutputRuleXML(
         structure Rule = Ruleset.Rule

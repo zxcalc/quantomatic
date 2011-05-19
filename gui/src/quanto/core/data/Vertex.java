@@ -20,7 +20,6 @@ public class Vertex extends GraphElement {
 	protected Vertex(String name, VertexType vertexType) {
 		super(name);
 		this.vertexType = vertexType;
-		setData(vertexType.createDefaultData());
 	}
 
 	protected Vertex(String name) {

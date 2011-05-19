@@ -16,7 +16,6 @@ public interface VertexType {
 	 */
 	boolean hasData();
 	DataType getDataType();
-	GraphElementData createDefaultData();
 
 	public static class X implements VertexType {
 		VertexVisualizationData visData = new RGVertexVisualizationData(Color.red);
@@ -24,11 +23,6 @@ public interface VertexType {
 		public String getTypeName() { return "X"; }
 		public boolean hasData() { return true; }
 		public DataType getDataType() { return DataType.MathExpression; }
-		public GraphElementData createDefaultData() {
-			GraphElementData data = new GraphElementData();
-			data.setValue("0");
-			return data;
-		}
 	}
 
 	public static class Z implements VertexType {
@@ -37,11 +31,6 @@ public interface VertexType {
 		public String getTypeName() { return "Z"; }
 		public boolean hasData() { return true; }
 		public DataType getDataType() { return DataType.MathExpression; }
-		public GraphElementData createDefaultData() {
-			GraphElementData data = new GraphElementData();
-			data.setValue("0");
-			return data;
-		}
 	}
 
 	public static class Hadamard implements VertexType {
@@ -50,6 +39,5 @@ public interface VertexType {
 		public String getTypeName() { return "hadamard"; }
 		public boolean hasData() { return false; }
 		public DataType getDataType() { return DataType.None; }
-		public GraphElementData createDefaultData() { return null; }
 	}
 }
