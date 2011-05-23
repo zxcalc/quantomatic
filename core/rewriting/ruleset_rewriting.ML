@@ -39,6 +39,10 @@ sig
       -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) Seq.seq 
  
+  (* to see what a rule looks like once data is matched and bang-boxes 
+     expanded. *)
+  val instantiate_rule : Match.T -> Rule.T -> Rule.T; 
+
   (* check how a single rule matches *)
   val rule_matches : Rule.T -> Rule.Graph.T -> Match.T Seq.seq
   

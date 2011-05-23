@@ -1,13 +1,24 @@
 local
 open Test_MkG;
-
 structure Rule = Test_Rule;
+structure Ruleset = Test_Ruleset;
+structure IO = Test_IO_Interface_v2;
+structure RulesetRewrites = Test_RulesetRewrites;
+structure Match = RulesetRewrites.Match;
+structure Ruleset = Test_Ruleset;
+structure MatchSearch = Test_SimpleMatchSearch;
+structure GraphSubst = Test_GraphSubst;
+in
 
-structure DB_Testing_Rule 
-= struct
+val ruleset = "rulesets/basic_v2.rules" 
+              |> XMLReader.read_from_file
+              |> IO.Input.Ruleset.input;
 
-structure IO = Test_IO_Interface;
-  IO.Input.Ruleset.input o XMLReader.from_from_rile 
+val isom_rule = Ruleset.get_rule ruleset (RuleName.mk "isometry_red");
+val x_copy_0_rule = Ruleset.get_rule ruleset (RuleName.mk "x_copy_0");
+
+val list_of_rule_matches = Seq.list_of oo RulesetRewrites.rule_matches;
+
 
 val edge = undir_edge;
 
@@ -41,6 +52,7 @@ val _ =
 val _ = writeln "Ex1";
 
 
+
 (* Example of applications of rule that does not match *)
 val g = G.empty;
 val (n1, g) = g |> G.add_vertex (mkX zero_angle);
@@ -49,9 +61,9 @@ val (n3, g) = g |> G.add_vertex (mkZ zero_angle);
 val (e0, g) = g |> G.add_edge edge n1 n3;
 val (e1, g) = g |> G.add_edge edge n2 n3;
 val _ = G.print g;
-val [] = map Rule.print (Seq.list_of (Rule.rule_matches 
-                                        TheoryHack.isometry_rule g));
+val [] = map Match.print (list_of_rule_matches isom_rule g);
 val _ = writeln "Ex2";
+
 
 
 (* test rewriting isometry lhs with isometry rule *)
@@ -67,15 +79,33 @@ val (e3, g) = g |> G.add_edge edge n2 b2;
 val _ = G.print g;
 val _ = writeln "Ex3";
 
-val (rn, rule') = (Rule.rename_rule_apart g (TheoryHack.isometry_rule));
-val _ = Rule.print rule';
-val [m1,m2] = Seq.list_of (Rule.matches rule' g);
-val _ = Match.print m1;
-val rule'' = Rule.inst_rule rule' m1;
-val [r1,r2] = map Rule.print (Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g));
+(* 
+val _ = Testing.test "Ex4"
+(fn () => let 
+  val _ = Rule.print isom_rule;
+  val [m1,m2,m3,m4] = list_of_rule_matches isom_rule g;
+  val _ = Match.print m1;
+  val inst_isom_rule = RulesetRewrites.instantiate_rule m1 isom_rule;
+  val _ = Rule.print inst_isom_rule;
+  val g1 = GraphSubst.rewrite g (Rule.get_lhs isom_rule) m1 
+                                (Rule.get_rhs isom_rule);
+  val g2 = GraphSubst.rewrite g (Rule.get_lhs isom_rule) m2 
+                                (Rule.get_rhs isom_rule);
+  val g3 = GraphSubst.rewrite g (Rule.get_lhs isom_rule) m3 
+                                (Rule.get_rhs isom_rule);
+  val g4 = GraphSubst.rewrite g (Rule.get_lhs isom_rule) m4 
+                                (Rule.get_rhs isom_rule);
+in writeln "success" end) ();
+*)
 
-val [g1,g2] = map G.print (Seq.list_of (Rule.rewrites TheoryHack.isometry_rule g));
-val _ = writeln "Ex4";
+val _ = Testing.assert_no_failed_tests();
+val _ = "UNIT TESTS FOR rule PASSED!";
+
+end;
+
+(* 
+
+
 
 
 (* Example of applications of isometry rule *)
@@ -92,7 +122,7 @@ val (e4, g) = g |> G.add_edge edge n2 n4;
 val _ = G.print g;
 val _ = writeln "Ex5";
 
-val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
+val [r1,r2] = Seq.list_of (Rule.rule_matches isom_rule g);
 val _ = map Rule.print [r1,r2];
 val fused_g1 = Rule.add_rhs r1 g;
 val fused_g2 = Rule.add_rhs r2 g;
@@ -113,9 +143,9 @@ val (e2, g) = g |> G.add_edge edge n2 n4;
 val _ = G.print g;
 val _ = writeln "Ex6";
 
-val [] = Seq.list_of (Rule.rule_matches TheoryHack.isometry_rule g);
+val [] = Seq.list_of (Rule.rule_matches isom_rule g);
 
-val [r1,r2] = Seq.list_of (Rule.rule_matches TheoryHack.copy_0_rule g);
+val [r1,r2] = Seq.list_of (Rule.rule_matches x_copy_0_rule g);
 
 
 (* Example of not applicable rules... *)
@@ -254,9 +284,6 @@ val rule = TheoryHack.antiloop_rule;
 val [r2] = (Seq.list_of (Rule.rule_matches rule g));
 val _ = Rule.print r2;
 
-end; (* test rule structure *)
-
-in
 val _ = writeln "Tests Completed Successfully: test/rule.ML"
 end;
 
@@ -332,4 +359,4 @@ exact_eq rhs1 rhs2;
     PolyML.exception_trace (fn () =>     );
 *)
 
-
+*)

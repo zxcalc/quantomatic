@@ -92,7 +92,7 @@ signature MATCH
   (* apply substitutions for data that may occur in vertices/edges *)
   val datasubst : T -> G.T -> G.T 
   (* instantiate a graph using the match, produces exactly the matched lhs
-     component, or equivalently *)
+     component, (or equivalent upto data equivalence) *)
   val inst_pat_graph : T -> G.T -> G.T 
   (* instantiate a substitution graph for the match: expand !-boxes, etc,
      keeping id map on names of boundary  *)

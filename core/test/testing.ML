@@ -1,4 +1,5 @@
 (* Generic testing *)
+(* TODO: move to isaplib: this is generic. *)
 signature TESTING = 
 sig 
   type failure = { file: string option,
