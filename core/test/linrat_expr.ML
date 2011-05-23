@@ -1,3 +1,4 @@
+(* Testing Linear Rational Expressions and matching of them. *)
 local 
     structure E = DB_LinratExpr; (* expressions *)
     structure V = E.VName; (* Variable names *)
@@ -39,23 +40,30 @@ local
     val tab2ca = V.NTab.update (a_v, zero) tab2c;
 in
 (* IMPROVE: check the right results are produced, not just *some* matching! *)
-(* testing match *)
-val SOME x = E.match a zero E.empty_match;
-val _ = E.print_match x; 
-(* a => (0) - (0) *)
+val _ = Testing.test "match a 0 = SOME ..." 
+        (fn () => let val SOME x = E.match a zero E.empty_match; 
+         in () end) ();
+        (* a => (0) - (0) *)
 
-val SOME x = E.match (a + b) zero E.empty_match;
-val _ = E.print_match x; (* *)
-(* a => (0) - (b) *)
+val _ = Testing.test "match (a + b) 0 = SOME ..." 
+        (fn () => let val SOME x = E.match (a + b) zero E.empty_match; 
+         in () end) ();
+        (* a => (0) - (b) *)
 
-val SOME x = E.match (a + b) a E.empty_match;
-val _ = E.print_match x;
-(*  a => (a) - (b) *)
+val _ = Testing.test "match (a + b) a = SOME ..." 
+        (fn () => let val SOME x = E.match (a + b) a E.empty_match; 
+         in () end) ();
+        (*  a => (a) - (b) *)
 
-val SOME x = E.match a (a + b) E.empty_match;
-val _ = E.print_match x;
-(* a => (a + b) - (0) *)
+val _ = Testing.test "match a (a + b) = SOME ..." 
+        (fn () => let val SOME x = E.match a (a + b) E.empty_match; 
+         in () end) ();
+        (* a => (a + b) - (0) *)
 
-val NONE = E.match zero a E.empty_match;
+val _ = Testing.test "match 0 a = false" 
+        (fn () => let val NONE = E.match zero a E.empty_match; 
+         in () end) ();
+
+val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR LinratExpr PASSED!";
 end;
