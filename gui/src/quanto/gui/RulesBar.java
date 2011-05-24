@@ -6,6 +6,7 @@ package quanto.gui;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,6 +19,7 @@ import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
@@ -67,31 +69,40 @@ public class RulesBar extends JPanel {
 	private ChangeListener listener = new ChangeListener() {
 
 		public void stateChanged(ChangeEvent e) {
-			loadRules();
+			loadRules((String) tagsCombo.getSelectedItem());
 		}
 	};
 	private JList listView;
 	private DefaultListModel rulesModel;
 	private JToggleButton enableButton;
 	private JToggleButton disableButton;
+	private JComboBox tagsCombo;
 	private JPopupMenu enableMenu = new JPopupMenu();
 	private JPopupMenu disableMenu = new JPopupMenu();
 
+	private JMenuItem enableAllJMenuItem  = new JMenuItem("All");
+	private JMenuItem disableAllJMenuItem  = new JMenuItem("All");
+	private JMenuItem enableSelectionJMenuItem  = new JMenuItem("Selection");
+	private JMenuItem disableSelectionJMenuItem  = new JMenuItem("Selection");
+
 	private void createMenus() {
-		JMenuItem item = new JMenuItem("All");
-		item.addActionListener(new ActionListener() {
+		enableAllJMenuItem.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
 				try {
-					ruleset.activateAllRules();
+					if (tagsCombo.getSelectedIndex() != 0) {
+						ruleset.activateRulesByTag((String) tagsCombo.getSelectedItem());
+					}
+					else {
+						ruleset.activateAllRules();
+					}
 				}
 				catch (CoreException ex) {
 				}
 			}
 		});
-		enableMenu.add(item);
-		item = new JMenuItem("Selection");
-		item.addActionListener(new ActionListener() {
+		enableMenu.add(enableAllJMenuItem);
+		enableSelectionJMenuItem.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
 				try {
@@ -106,22 +117,25 @@ public class RulesBar extends JPanel {
 				}
 			}
 		});
-		enableMenu.add(item);
+		enableMenu.add(enableSelectionJMenuItem);
 
-		item = new JMenuItem("All");
-		item.addActionListener(new ActionListener() {
+		disableAllJMenuItem.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
 				try {
-					ruleset.deactivateAllRules();
+					if (tagsCombo.getSelectedIndex() != 0) {
+						ruleset.deactivateRulesByTag((String) tagsCombo.getSelectedItem());
+					}
+					else {
+						ruleset.deactivateAllRules();
+					}
 				}
 				catch (CoreException ex) {
 				}
 			}
 		});
-		disableMenu.add(item);
-		item = new JMenuItem("Selection");
-		item.addActionListener(new ActionListener() {
+		disableMenu.add(disableAllJMenuItem);
+		disableSelectionJMenuItem.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
 				try {
@@ -136,7 +150,7 @@ public class RulesBar extends JPanel {
 				}
 			}
 		});
-		disableMenu.add(item);
+		disableMenu.add(disableSelectionJMenuItem);
 	}
 
 	protected ImageIcon createImageIcon(String path,
@@ -228,7 +242,7 @@ public class RulesBar extends JPanel {
 		listView = new JList(rulesModel);
 		listView.setCellRenderer(cellRenderer);
 		JScrollPane listPane = new JScrollPane(listView);
-
+		tagsCombo = new JComboBox();
 		createMenus();
 		createMenuButtons();
 
@@ -240,7 +254,16 @@ public class RulesBar extends JPanel {
 				RulesBar.this.ruleset.reload();
 			}
 		});
-
+		
+		tagsCombo.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent e) {
+				JComboBox cb = (JComboBox)e.getSource();
+		        String tag = (String)cb.getSelectedItem();
+		        loadRules(tag);
+			}
+		});
+		
 		JPanel buttonBox = new JPanel();
 		buttonBox.setLayout(new BoxLayout(buttonBox, BoxLayout.LINE_AXIS));
 		buttonBox.add(enableButton);
@@ -248,20 +271,54 @@ public class RulesBar extends JPanel {
 		buttonBox.add(refreshButton);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		this.add(buttonBox);
+		this.add(tagsCombo);
+		/*Because of the BoxLayout, the Jcombobox takes too much space
+		width = width of the listPane, height = preferred height*/
+		tagsCombo.setMaximumSize(new Dimension((int)listPane.getPreferredSize().getWidth(), (int)tagsCombo.getPreferredSize().getHeight()));
 		this.add(listPane);
 
-		loadRules();
+		loadTags();
+		loadRules("All Rules");
 	}
 
-	private void loadRules() {
-		rulesModel.clear();
+	private void loadTags() {
 		try {
-			for (String rule : ruleset.getRules()) {
-				rulesModel.addElement(new RuleDescription(rule, ruleset.isRuleActive(rule)));
+			tagsCombo.removeAllItems();
+			tagsCombo.addItem("All Rules");
+			for(String tag : ruleset.getTags()){
+				tagsCombo.addItem(tag);
 			}
 		}
 		catch (CoreException ex) {
-			logger.error("Could not get rules", ex);
+			logger.error("Could not get tags", ex);
+		}
+	}
+	
+	private void loadRules(String tag) {
+		rulesModel.clear();
+		/* If the tag exists, load the corresponding rules.
+		   If not then load all the rules.*/
+		try {
+			if (tagsCombo.getSelectedIndex() != 0) {
+				//Switch from "All" to "Tag" accordingly
+				enableAllJMenuItem.setText("Tag");
+				disableAllJMenuItem.setText("Tag");
+
+				for (String rule : ruleset.getRulesByTag(tag)) {
+					rulesModel.addElement(new RuleDescription(rule, ruleset.isRuleActive(rule)));
+				}
+			}
+			else {
+				enableAllJMenuItem.setText("All");
+				disableAllJMenuItem.setText("All");
+
+				for (String rule : ruleset.getRules()) {
+					rulesModel.addElement(new RuleDescription(rule, ruleset.isRuleActive(rule)));
+				}
+			}
+		}
+		catch (CoreException ex) {
+			logger.error("Could not get rules and/or tags", ex);
 		}
 	}
 }
