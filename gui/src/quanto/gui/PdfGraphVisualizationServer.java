@@ -33,6 +33,7 @@ import quanto.gui.graphhelpers.QVertexIconTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
 import quanto.gui.graphhelpers.QVertexRenderer;
 import quanto.gui.graphhelpers.QVertexShapeTransformer;
+import quanto.gui.graphhelpers.BangBoxRenderer;
 
 /**
  * 
@@ -90,7 +91,7 @@ public class PdfGraphVisualizationServer extends
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(
 				VertexLabel.Position.S);
-
+      getRenderer().setBangBoxRenderer(new BangBoxRenderer());
 		// For debugging: show a grid behind the graph
 		// addPreRenderPaintable(new GridPaintable(new
 		// GridPaintable.BoundsCalculator() {
