@@ -4,6 +4,8 @@ import quanto.core.data.BangBox;
 import quanto.core.data.Vertex;
 import quanto.core.data.Edge;
 import quanto.core.data.CoreGraph;
+import quanto.core.data.VertexType;
+
 import com.itextpdf.text.DocumentException;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -48,7 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
-import quanto.core.CoreTalker;
 import quanto.gui.graphhelpers.Labeler;
 
 public class InteractiveGraphView
@@ -88,7 +89,7 @@ public class InteractiveGraphView
 	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
-	private Core core;
+	private static Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
 	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
@@ -1016,6 +1017,13 @@ public class InteractiveGraphView
 		ViewPort.registerCommand(DUPLICATE_BANG_BOX_ACTION);
 		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_TEXT);
 		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_MATHEMATICA);
+	
+		/*
+		 * Add dynamically commands corresponding allowing to add registered vertices
+		 */
+		for (final VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
+			ViewPort.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
+		}
 	}
 
 	private void buildActionMap() {
@@ -1299,6 +1307,17 @@ public class InteractiveGraphView
 				}
 			}
 		});
+		
+		/*
+		 * Add dynamically commands corresponding allowing to add registered vertices
+		 */
+		for (final VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
+			actionMap.put("add-" + vertexType.getTypeName() + "-vertex-command", new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+						addVertex(vertexType.getTypeName());
+				}
+			});
+		}
 	}
 
 	public void attached(ViewPort vp) {
