@@ -121,7 +121,7 @@ public class Toolbox extends JPanel {
 	
 	private ToolboxArea createBangBoxArea(final QuantoFrame quantoFrame) {
 		ToolboxArea bangBoxArea = new ToolboxArea("Bang Boxes", 3, 2);
-		
+		//TODO Find nice icons for the buttons
 		JButton button = new JButton("Bang");
 		bangBoxArea.add(button);
 		button.setToolTipText("Bang Vertices");

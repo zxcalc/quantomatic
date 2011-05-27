@@ -71,10 +71,7 @@ public class InteractiveGraphView
 	public static final String SELECT_MODE_ACTION = "select-mode-command";
 	public static final String EDGE_MODE_ACTION = "edge-mode-command";
 	public static final String LATEX_TO_CLIPBOARD_ACTION = "latex-to-clipboard-command";
-	public static final String ADD_RED_VERTEX_ACTION = "add-red-vertex-command";
-	public static final String ADD_GREEN_VERTEX_ACTION = "add-green-vertex-command";
 	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-boundary-vertex-command";
-	public static final String ADD_HADAMARD_ACTION = "add-hadamard-vertex-command";
 	public static final String SHOW_REWRITES_ACTION = "show-rewrites-command";
 	public static final String NORMALISE_ACTION = "normalise-command";
 	public static final String FAST_NORMALISE_ACTION = "fast-normalise-command";
@@ -1001,10 +998,7 @@ public class InteractiveGraphView
 		ViewPort.registerCommand(SELECT_MODE_ACTION);
 		ViewPort.registerCommand(EDGE_MODE_ACTION);
 		ViewPort.registerCommand(LATEX_TO_CLIPBOARD_ACTION);
-		ViewPort.registerCommand(ADD_RED_VERTEX_ACTION);
-		ViewPort.registerCommand(ADD_GREEN_VERTEX_ACTION);
 		ViewPort.registerCommand(ADD_BOUNDARY_VERTEX_ACTION);
-		ViewPort.registerCommand(ADD_HADAMARD_ACTION);
 		ViewPort.registerCommand(SHOW_REWRITES_ACTION);
 		ViewPort.registerCommand(NORMALISE_ACTION);
 		ViewPort.registerCommand(FAST_NORMALISE_ACTION);
@@ -1164,24 +1158,9 @@ public class InteractiveGraphView
 				cb.setContents(data, data);
 			}
 		});
-		actionMap.put(ADD_RED_VERTEX_ACTION, new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				addVertex("X");
-			}
-		});
-		actionMap.put(ADD_GREEN_VERTEX_ACTION, new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				addVertex("Z");
-			}
-		});
 		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				addBoundaryVertex();
-			}
-		});
-		actionMap.put(ADD_HADAMARD_ACTION, new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				addVertex("hadamard");
 			}
 		});
 		actionMap.put(SHOW_REWRITES_ACTION, new ActionListener() {

@@ -215,28 +215,6 @@
 	  accel="control shift L"
           desc="Unlock the selected vertices"/>
 
-	<!-- Add menu commands -->
-
-	<action id="add-red-vertex-command"
-          name="Red vertex"
-          mnemonic="R"
-          desc="Add a red vertex"/>
-
-	<action id="add-green-vertex-command"
-          name="Green vertex"
-          mnemonic="G"
-          desc="Add a green vertex"/>
-
-	<action id="add-hadamard-vertex-command"
-          name="Hadamard gate"
-          mnemonic="H"
-          desc="Add a hadamard gate"/>
-
-	<action id="add-boundary-vertex-command"
-          name="Boundary vertex"
-          mnemonic="B"
-          desc="Add a boundary vertex"/>
-
 	<!-- Bang box menu commands -->
 
 	<action id="bang-vertices-command"
@@ -346,12 +324,6 @@
 			</group>
 			<empty/>
 			<action idref="latex-to-clipboard-command" />
-			<action-list id="add-menu" name="Add" mnemonic="A">
-				<action idref="add-red-vertex-command" />
-				<action idref="add-green-vertex-command" />
-				<action idref="add-hadamard-vertex-command" />
-				<action idref="add-boundary-vertex-command" />
-			</action-list>
 			<action idref="show-rewrites-command" />
 			<action idref="normalise-command" />
 			<action idref="fast-normalise-command" />
