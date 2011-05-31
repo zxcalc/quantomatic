@@ -1,7 +1,8 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (*  GHZ/W graphs, vertices can be black or white and have unit data *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-structure DB_GHZW_GraphParam
+structure GHZW_GraphParam
+: GRAPH_PARAM
 = struct
 
   structure Vertex = GHZW_Vertex;
@@ -133,8 +134,6 @@ structure DB_GHZW_GraphParam
     type subst = subst;
   end;
 end;
-
-structure GHZW_GraphParam = DB_GHZW_GraphParam : GRAPH_PARAM;
 
 structure GHZW_OVertex = OVertex(GHZW_Vertex);
 structure GHZW_OGraphParam = OGraphParam(
