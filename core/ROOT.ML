@@ -60,6 +60,7 @@ PolyML.Project.make "io/output_graph_v2.ML";
 PolyML.Project.make "theories/red_green/vertex.ML";
 PolyML.Project.make "theories/red_green/graph.ML";
 
+
 (* TESTING: test_graph structure and test construction tools *)
 PolyML.Project.make "graph/test/test_graph.ML";
 
@@ -132,11 +133,24 @@ PolyML.Project.make "dev/convert_old_files.ML";
 (* unit tests *)
 PolyML.Project.use_root "test/ROOT.ML";
 
+(* ghz-w specific vertices, graphs, and matching *)
+PolyML.Project.make "theories/ghz_w/vertex.ML";
+PolyML.Project.make "theories/ghz_w/graph.ML";
+PolyML.Project.make "theories/ghz_w/theory.ML";
 
-if PolyML.Project.heap_is_newer_than_edits "heaps/quanto_child.heap" then () 
+
+PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
+
+if PolyML.Project.heap_is_newer_than_edits "heaps/quanto_child.heap"
+then PolyML.Project.Log.log 2 "NO"
 else 
- (PolyML.Project.ensure_at_latest_heap ();
+ (PolyML.Project.Log.log 2 "YES...building child heap...";
+  PolyML.Project.ensure_at_latest_heap ();
   PolyML.Project.save_project_child_state "heaps/quanto_child.heap");
+  
+PolyML.Project.Log.log 2 "done."
+
+
 
 (*
 PolyML.Project.make "test/dbg/rule_matching3-bbox-v1.ML"; 
