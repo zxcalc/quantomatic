@@ -60,7 +60,7 @@ functor GraphicalTheory(
         and OutputEdgeData : OUTPUT_XML_LIST
   sharing type OutputVertexData.data = Param.Vertex.data
   sharing type OutputEdgeData.data = Param.Edge.data *)
-) = 
+) : GRAPHICAL_THEORY = 
 struct 
   (* structure OVertex = OVertex(Param.Vertex);
   structure OParam = OGraphParam(
