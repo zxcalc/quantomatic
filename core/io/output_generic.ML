@@ -6,7 +6,7 @@ sig
 end;
 signature OUTPUT_XML = OUTPUT where type T = XML.tree;
 signature OUTPUT_XML_LIST = OUTPUT where type T = XML.tree list;
-
+signature OUTPUT_DOT = OUTPUT where type T = string;
 
 functor OutputListify(Out1 : OUTPUT)
 = struct
@@ -41,6 +41,13 @@ functor OutputSStrNameXML(N : SSTR_NAMES) : OUTPUT_XML
   type data = N.name;
   open XML;
   fun output s = (Text (N.string_of_name s));
+end;
+
+functor OutputSStrNameDot(N: SSTR_NAMES) : OUTPUT_DOT
+= struct
+  type T = string;
+  type data = N.name;
+  fun output s = N.string_of_name s;
 end;
 
 (* composition *)

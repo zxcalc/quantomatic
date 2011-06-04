@@ -73,7 +73,10 @@ val is_boundary : T -> Vertex.name -> bool
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
 val is_endpoint' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) -> bool
-
+(* returns the SOME non-empty edge set when exactly one of the inset of ourset of edges is empty, 
+   else NONE *)
+val endpoint_of_vertex' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) 
+    -> (Edge.Ehn.halfid * Edge.NSet.T) option
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : Vertex.name -> T -> T
@@ -83,7 +86,12 @@ val del_from_edgepoints : Vertex.name -> T -> T
 val update_boundary : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
 val update_edgepoints : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
 
+
 (* *** END OF COPIED SIGNATURE *** *)
+
+(* plug together two boundary-coherent edge points. In the process, this function creates an edge, and
+   returns ((source, target), (edge, new graph)) *)
+val plug_by_boundary : Vertex.name -> Vertex.name -> T -> (Vertex.name * Vertex.name) * (Edge.name * T)
 
 
 val is_boundary_edge : T -> Edge.name -> bool
@@ -240,8 +248,8 @@ functor BasicOGraphFun(
   fun endpoint_of_vertex' (V.EVert,(ins,outs)) =
       (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
          (true, true) => NONE
-       | (false,true) => SOME (Edge.Ehn.SourceEnd, outs)
-       | (true,false) => SOME (Edge.Ehn.TargetEnd, ins)
+       | (true,false) => SOME (Edge.Ehn.SourceEnd, outs)
+       | (false,true) => SOME (Edge.Ehn.TargetEnd, ins)
        | (false,false) => NONE)
     | endpoint_of_vertex' (V.IVert d,(ins,outs)) = NONE;       
   val is_endpoint' = is_some o endpoint_of_vertex';
@@ -464,7 +472,7 @@ struct
            ((startv,endv),
             g |> delete_vertex v1
               |> delete_vertex v2
-              |> add_edge (dir, data) v1 v2));
+              |> add_edge (dir, data) startv endv));
 
 
   (* Cut edges around a vertex if they are not in the keepvset; change cut 
@@ -643,9 +651,9 @@ struct
          fn (invs,outvs) => 
             let val (_,(ins,outs)) = get_vertex g n
             in
-              if Edge.NSet.is_empty ins then 
+              if Edge.NSet.is_empty outs then 
                 (invs, Vertex.NSet.add n outvs)
-              else if Edge.NSet.is_empty outs then 
+              else if Edge.NSet.is_empty ins then 
                 (Vertex.NSet.add n invs, outvs) 
               else (invs,outvs)
             end)

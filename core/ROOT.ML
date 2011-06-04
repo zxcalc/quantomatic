@@ -81,6 +81,9 @@ PolyML.Project.make "io/io_interface.ML";
 PolyML.Project.make "io/input_graph_v1.ML";
 PolyML.Project.make "io/output_graph_v1.ML";
 
+(* Simple dot output for graphs *)
+PolyML.Project.make "io/output_graph_dot.ML";
+
 (* TESTING; ruleset and io construction *)
 PolyML.Project.make "theories/test/test_ruleset.ML";
 PolyML.Project.make "io/test/test_graph_io.ML";
@@ -137,6 +140,7 @@ PolyML.Project.use_root "test/ROOT.ML";
 PolyML.Project.make "theories/ghz_w/vertex.ML";
 PolyML.Project.make "theories/ghz_w/graph.ML";
 PolyML.Project.make "theories/ghz_w/theory.ML";
+PolyML.Project.make "theories/ghz_w/io.ML";
 
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
