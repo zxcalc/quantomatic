@@ -69,6 +69,11 @@ sharing SharingOGraph.OVertex = OVertex.SharingWithIData
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 
+(* adjacent boundary fns *)
+val get_adj_boundary : T -> Vertex.name -> Vertex.NSet.T
+val get_adj_inputs : T -> Vertex.name -> Vertex.NSet.T
+val get_adj_outputs : T -> Vertex.name -> Vertex.NSet.T
+
 (* edge points; parts of an edge *)
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
@@ -130,6 +135,7 @@ val matched_subgraph_within_vset : Vertex.NSet.T -> T -> T
    all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_vset : Vertex.NSet.T -> T -> T
 
+ 
 (* 
 val adj_tgt_info : 
     T -> Vertex.name 
@@ -622,14 +628,19 @@ struct
                          else delete_vertex n g)
         (get_vnames g) g;
   
+  fun is_input_vertex' (OVertex.EVert,(ins,_)) = Edge.NSet.is_empty ins
+    | is_input_vertex' (OVertex.IVert d,_) = false;
+  fun is_output_vertex' (OVertex.EVert,(_,outs)) = Edge.NSet.is_empty outs
+    | is_output_vertex' (OVertex.IVert d,_) = false;
   
   (* boundary vertex has either empty ins or empty outs. *)
-  fun is_boundary_vertex' (OVertex.EVert,(ins,outs)) = 
-      (Edge.NSet.is_empty outs orelse Edge.NSet.is_empty ins)
-    | is_boundary_vertex' (OVertex.IVert d,_) = false;
+  fun is_boundary_vertex' v = is_input_vertex' v orelse is_output_vertex' v;
   
   (* implicit: g n *)
   val is_boundary_vertex = is_boundary_vertex' oo get_vertex;
+  val is_input_vertex = is_input_vertex' oo get_vertex;
+  val is_output_vertex = is_output_vertex' oo get_vertex;
+  
   (* goes to or comes from bounary vertex *)
   fun is_boundary_edge g e = 
       let val (d,(s,t)) = get_edge g e 
@@ -662,9 +673,9 @@ struct
   
   
   (* get adjacent boundary vertices *)
-  fun get_adj_boundary g n = 
-      filtered_adj_vnames (is_boundary_vertex g) g n;
-  
+  fun get_adj_boundary g n = filtered_adj_vnames (is_boundary_vertex g) g n;
+  fun get_adj_inputs g n = filtered_adj_vnames (is_input_vertex g) g n;
+  fun get_adj_outputs g n = filtered_adj_vnames (is_output_vertex g) g n;
   
   (* IMPROVE: move these into graph *)
   fun pair_from_of_edge g e = 
