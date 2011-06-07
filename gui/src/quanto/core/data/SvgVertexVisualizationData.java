@@ -4,14 +4,11 @@
  */
 package quanto.core.data;
 
-import com.kitfox.svg.SVGDiagram;
-import com.kitfox.svg.ShapeElement;
-import com.kitfox.svg.app.beans.SVGIcon;
+import uk.me.randomguy3.svg.SVGDiagram;
+import uk.me.randomguy3.svg.ShapeElement;
+import uk.me.randomguy3.svg.components.SVGIcon;
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Shape;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 import java.net.URI;
 import java.net.URL;
