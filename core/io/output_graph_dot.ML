@@ -15,8 +15,7 @@ struct
     fun sty nm = case Graph.get_vertex graph nm
                    of (Graph.OVertex.IVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
                     | (Graph.OVertex.EVert, _) => " [style=filled,fillcolor=red,shape=box,width=0,height=0,fontcolor=white]"
-    fun f nm list = (Pretty.str "node ")::
-                    (Graph.Vertex.pretty_name nm)::
+    fun f nm list = (Graph.Vertex.pretty_name nm)::
                     (Pretty.str (sty nm))::
                     (Pretty.str ";\n")::
                     list

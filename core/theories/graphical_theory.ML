@@ -60,27 +60,27 @@ functor GraphicalTheory(
         and OutputEdgeData : OUTPUT_XML_LIST
   sharing type OutputVertexData.data = Param.Vertex.data
   sharing type OutputEdgeData.data = Param.Edge.data *)
-) : GRAPHICAL_THEORY = 
+) = 
 struct 
   (* structure OVertex = OVertex(Param.Vertex);
   structure OParam = OGraphParam(
     structure Param = Param 
     structure OVertex = OVertex);
   *)
-
   local 
     structure BasicBangGraph = BasicBangGraphFun(
       structure Param = OParam
       type data = unit (* no extra inherrited data for graphs *)
       val empty_data = ());
     structure BBGraph = BangGraphTools(BasicBangGraph);
-  in 
+  in
     structure DB_Graph = struct open BasicBangGraph; open BBGraph; end
   end;
   structure Graph = DB_Graph;
   structure Edge = Graph.Edge; 
-  structure Vertex = Graph.OVertex; 
+  structure Vertex = Graph.OVertex;
 
+  
   structure DB_Rule = Rule(Graph);
   structure Rule : RULE = DB_Rule;
 
@@ -115,7 +115,7 @@ struct
       val () = PolyML.addPrettyPrinter prettyVertex;
       val () = PolyML.addPrettyPrinter prettyEdge;
       val () = PolyML.addPrettyPrinter prettyBBox;
-  end; 
+  end;
   
 end;
 

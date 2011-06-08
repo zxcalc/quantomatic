@@ -36,6 +36,7 @@ sig
   val get_in : T -> int
   val get_out : T -> int
   val get_undir : T -> int
+  val get_total : T -> int
 
   val update_in : (int -> int) -> T -> T
   val update_out : (int -> int) -> T -> T
@@ -67,6 +68,7 @@ struct
   fun get_in (Arity rep) = #no_in rep;
   fun get_out (Arity rep) = #no_out rep;
   fun get_undir (Arity rep) = #no_undir rep;
+  fun get_total (Arity rep) = (#no_in rep) + (#no_out rep) + (#no_undir rep);
 
   fun update_in f (Arity rep) = 
       Arity { no_in = f(#no_in rep), no_out = #no_out rep, 
