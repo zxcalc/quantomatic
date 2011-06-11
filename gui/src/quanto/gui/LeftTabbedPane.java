@@ -15,18 +15,28 @@ import quanto.core.Core;
  */
 
 public class LeftTabbedPane extends JPanel {
+	
+	private Toolbox toolbox;
+	private JTabbedPane tabbedPane;
+	
 	public LeftTabbedPane(Core core, QuantoFrame quantoFrame) {
 		
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		
-		JTabbedPane tabbedPane = new JTabbedPane();
+		tabbedPane = new JTabbedPane();
 		RulesBar sidebar = new RulesBar(core.getRuleset());
 		tabbedPane.addTab("Rules", null, sidebar,
         "Display Ruleset");
 		
-		Toolbox toolbox = new Toolbox(core, quantoFrame);
+		toolbox = new Toolbox(core, quantoFrame);
 		tabbedPane.addTab("Toolbox", null, toolbox, "Display Toolbox");
 
 		this.add(tabbedPane);
 	}
+	
+	public void setToolbox(Toolbox toolbox) {
+		this.tabbedPane.remove(this.toolbox);
+		this.tabbedPane.addTab("Toolbox", null, toolbox, "Display Toolbox");
+	}
+	
 }

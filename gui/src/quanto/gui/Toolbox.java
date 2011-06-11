@@ -10,6 +10,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
+
 import quanto.core.Core;
 import quanto.core.data.VertexType;
 
@@ -63,9 +64,8 @@ public class Toolbox extends JPanel {
 		/* 
 		 * We have n types + 1 for the boundary vertices. Two items per line.
 		 */
-		numberOfRows = (int) (Math.ceil(core.getActiveTheory().getVertexTypes().size() + 1)/ 2);
+		numberOfRows = (int) Math.ceil(((float) core.getActiveTheory().getVertexTypes().size() + 1)/ 2);
 		addVertexArea = new ToolboxArea("Add", numberOfRows, 2);
-		
 		/*
 		 * Then loop though all the types of vertices
 		 */
@@ -80,6 +80,7 @@ public class Toolbox extends JPanel {
 				}
 			});
 		}
+		//TODO: Still need an icon for that.
 		JButton button = new JButton("Bound.");
 		addVertexArea.add(button);
 		button.setToolTipText("Add boundary vertex");
@@ -96,7 +97,7 @@ public class Toolbox extends JPanel {
 	private ToolboxArea createLockArea(final QuantoFrame quantoFrame) {
 		ToolboxArea lockArea = new ToolboxArea("Lock/Unlock", 1, 2);
 		
-		JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/Lock24.gif", "Lock Vertex"));
+		JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/Lock24.gif", "Lock Vertices"));
 		lockArea.add(button);
 		button.setToolTipText("Lock Vertices");
 		button.addActionListener(new ActionListener() {
@@ -106,7 +107,7 @@ public class Toolbox extends JPanel {
 			}
 		});
 		
-		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/Unlock24.gif", "Unlock Vertex"));
+		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/Unlock24.gif", "Unlock Vertices"));
 		lockArea.add(button);
 		button.setToolTipText("Unlock Vertices");
 		button.addActionListener(new ActionListener() {
@@ -121,8 +122,7 @@ public class Toolbox extends JPanel {
 	
 	private ToolboxArea createBangBoxArea(final QuantoFrame quantoFrame) {
 		ToolboxArea bangBoxArea = new ToolboxArea("Bang Boxes", 3, 2);
-		//TODO Find nice icons for the buttons
-		JButton button = new JButton("Bang");
+		JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/BangVertex32.png", "Bang Vertices"));
 		bangBoxArea.add(button);
 		button.setToolTipText("Bang Vertices");
 		button.addActionListener(new ActionListener() {
@@ -132,7 +132,7 @@ public class Toolbox extends JPanel {
 			}
 		});
 		
-		button = new JButton("Unbang");
+		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/UnbangVertex32.png", "Unbang Vertices"));
 		bangBoxArea.add(button);
 		button.setToolTipText("Unbang Vertices");
 		button.addActionListener(new ActionListener() {
@@ -142,7 +142,8 @@ public class Toolbox extends JPanel {
 			}
 		});
 		
-		button = new JButton("Drop");
+		//Unbang and Drop seem to do the exact same thing...
+		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/UnbangVertex32.png", "Drop Vertices"));
 		bangBoxArea.add(button);
 		button.setToolTipText("Drop Bang Box");
 		button.addActionListener(new ActionListener() {
@@ -151,8 +152,7 @@ public class Toolbox extends JPanel {
 				quantoFrame.getViewPort().executeCommand("drop-bang-box-command");
 			}
 		});
-		
-		button = new JButton("Kill");
+		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/KillBangBox32.png", "Kill Bang Box"));
 		bangBoxArea.add(button);
 		button.setToolTipText("Kill Bang Box");
 		button.addActionListener(new ActionListener() {
@@ -162,7 +162,7 @@ public class Toolbox extends JPanel {
 			}
 		});
 		
-		button = new JButton("Duplicate");
+		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/DuplicateBangBox32.png", "Duplicate Bang Box"));
 		bangBoxArea.add(button);
 		button.setToolTipText("Duplicate Bang Box");
 		button.addActionListener(new ActionListener() {

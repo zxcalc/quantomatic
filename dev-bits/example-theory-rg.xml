@@ -1,8 +1,8 @@
-<theory name="red-green">
+<theory name="red-green" implements="red-green">
   <nodetype name="red">
     <!-- NOTE: CORE should send back to GUI a vertex xml when a new vertex 
          is created. -->
-    <data type="expression.angle"></data>
+    <data type="MathExpression"></data>
     <visualization>
       <!-- for very simple nodes:
       shape=circle|square
@@ -13,7 +13,7 @@
   </nodetype>
 
   <nodetype name="hadamard">
-    <data type="none" /><!-- optional; this is the default -->
+    <data type="None" /><!-- optional; this is the default -->
     <visualization>
       <node>
         <svg xmlns="http://www.w3.org/2000/svg"

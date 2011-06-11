@@ -1,0 +1,19 @@
+<theory name="black-white" implements="ghz-w">
+  <nodetype name="GHZ">
+    <data type="None"></data>
+    <visualization>
+	   <node svgFile="white.svg">
+		</node>
+      <label fill="ffffff"/>
+    </visualization>
+  </nodetype>
+
+  <nodetype name="W">
+    <data type="None"></data>
+    <visualization>
+	 	<node svgFile="black.svg">
+		</node>
+      <label fill="ffffff"/>
+    </visualization>
+  </nodetype>
+ </theory>

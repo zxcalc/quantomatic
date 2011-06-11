@@ -54,6 +54,10 @@ public class Core {
 		void addVertexType(VertexType type) {
 			types.put(type.getTypeName(), type);
 		}
+		
+		void removeAllVertices() {
+			types.clear();
+		}
 	}
 
 	private CoreTalker talker;
@@ -61,28 +65,36 @@ public class Core {
 	private CoreTheory activeTheory;
     private Ruleset ruleset;
 
-	public Core(CoreTalker talker) {
+	public Core(CoreTalker talker, ArrayList<VertexType> vertices) {
 		this.talker = talker;
 		this.activeTheory = new CoreTheory();
-		activeTheory.addVertexType(new VertexType.X());
-		activeTheory.addVertexType(new VertexType.Z());
-		activeTheory.addVertexType(new VertexType.Hadamard());
+		
+		for(VertexType v: vertices)
+			this.activeTheory.addVertexType(v);
+		
 		this.graphBuilder = new GraphBuilder(activeTheory);
         this.ruleset = new Ruleset(this);
 	}
 
-	public Core() throws CoreException {
-		this(new CoreConsoleTalker());
+	public Core(ArrayList<VertexType> vertices) throws CoreException {
+		this(new CoreConsoleTalker(), vertices);
 	}
 
+	public void updateCoreTheory(ArrayList<VertexType> theoryVertices) {
+		this.activeTheory.removeAllVertices();
+		for (VertexType v : theoryVertices) {
+			this.activeTheory.addVertexType(v);
+		}
+	}
+	
 	public Theory getActiveTheory() {
 		return activeTheory;
 	}
-
+	
 	public Ruleset getRuleset() {
 		return ruleset;
 	}
-
+	
 	private String[] names(Collection<? extends CoreObject> c) {
 		String[] ns = new String[c.size()];
 		int i = 0;
@@ -358,7 +370,7 @@ public class Core {
 		}
 		return null;
 	}
-
+	
 	public void loadRuleset(File location) throws CoreException, IOException {
 		talker.load_ruleset(location);
 		this.ruleset.reload();

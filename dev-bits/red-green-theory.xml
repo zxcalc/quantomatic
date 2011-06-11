@@ -1,0 +1,28 @@
+<theory name="red-green" implements="red-green">
+  <nodetype name="X">
+    <data type="MathExpression"></data>
+    <visualization>
+	   <node svgFile="red.svg">
+		</node>
+      <label fill="ff9696"/>
+    </visualization>
+  </nodetype>
+
+  <nodetype name="Z">
+    <data type="MathExpression"></data>
+    <visualization>
+	 	<node svgFile="green.svg">
+		</node>
+      <label fill="96ff96"/>
+    </visualization>
+  </nodetype>
+
+  <nodetype name="hadamard">
+    <data type="None" />
+    <visualization>
+      <node svgFile="hadamard.svg">
+      </node>
+		<label fill="ffffff"/>
+    </visualization>
+  </nodetype>
+</theory>

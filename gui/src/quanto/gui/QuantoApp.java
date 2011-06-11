@@ -2,30 +2,32 @@
 package quanto.gui;
 
 import quanto.core.data.CoreGraph;
+import quanto.core.data.VertexType;
 import quanto.core.CoreTalker;
+
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.prefs.Preferences;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.awt.Component;
 import java.io.IOException;
-import quanto.core.data.BangBox;
-import quanto.core.data.Edge;
+
 import quanto.core.Core;
 import quanto.core.CoreException;
-import quanto.core.data.Vertex;
+import quanto.core.TheoryParser;
 /**
  * Singleton class 
  * @author aleks
@@ -57,7 +59,7 @@ public class QuantoApp {
 	private final Preferences globalPrefs;
 	private final Core core;
 	private JFileChooser fileChooser = null;
-	private final InteractiveViewManager viewManager;
+	private InteractiveViewManager viewManager;
 
 	public File getAppSettingsDirectory(boolean create) throws IOException {
 		File dir;
@@ -135,8 +137,8 @@ public class QuantoApp {
 		new BoolPref("show_internal_names", false, "Show internal graph names");
 	public static final StringPref LAST_OPEN_DIR =
 		new StringPref("last_open_dir", null);
-	public static final StringPref LAST_THEORY_OPEN_DIR =
-		new StringPref("last_theory_open_dir", null);
+	public static final StringPref LAST_THEORY_OPEN_FILE =
+		new StringPref("last_theory_open_file", null);
 
 	public static QuantoApp getInstance() {
 		if (theApp == null) {
@@ -246,7 +248,7 @@ public class QuantoApp {
 			logger.error("Could not load ruleset state", e);
 		}
 	}
-
+	
 	private void saveRulesetState() {
 		try {
 			logger.info("Saving theory state");
@@ -258,13 +260,38 @@ public class QuantoApp {
 		}
 	}
 
+	private ArrayList<VertexType> loadSavedTheoryState() {
+		String lastOpenedTheory = getPreference(QuantoApp.LAST_THEORY_OPEN_FILE);
+		if(lastOpenedTheory == null) {
+			logger.info("Could not load saved theory file");
+			return new ArrayList<VertexType>();
+		} else {
+			return loadTheoryFile(lastOpenedTheory);
+		}
+	}
+
+	public ArrayList<VertexType> loadTheoryFile(String theoryFilePath) {
+		File theoryFile = new File(theoryFilePath);
+		if (!theoryFile.exists()) {
+			logger.info("Could not load saved theory file");
+			return new ArrayList<VertexType>();
+		} else {
+			logger.info("Loading previous theory");
+			TheoryParser theoryParser = new TheoryParser(theoryFilePath);
+			return theoryParser.getTheoryVertices();
+		}
+	}
+	
+	public void updateCoreTheory(ArrayList<VertexType> theoryVertices) {
+		core.updateCoreTheory(theoryVertices);
+	}
+	
 	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
-
-		core = new Core();
+		core = new Core(loadSavedTheoryState());
 		loadSavedRulesetState();
+		
 		viewManager = new InteractiveViewManager(this, core);
-
 		if (MAC_OS_X) {
 			try {
 				OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));

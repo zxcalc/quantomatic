@@ -1015,7 +1015,7 @@ public class InteractiveGraphView
 		/*
 		 * Add dynamically commands corresponding allowing to add registered vertices
 		 */
-		for (final VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
+		for (VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
 			ViewPort.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
 		}
 	}

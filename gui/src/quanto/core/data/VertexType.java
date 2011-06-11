@@ -16,7 +16,24 @@ public interface VertexType {
 	 */
 	boolean hasData();
 	DataType getDataType();
-
+	
+	public class GenericVertexType implements VertexType{
+		
+		private String name;
+		private DataType dataType;
+		private VertexVisualizationData visData;
+		
+		public GenericVertexType(String name, DataType dataType, VertexVisualizationData visData) {
+			this.name = name;
+			this.dataType = dataType;
+			this.visData = visData;
+		}
+		public VertexVisualizationData getVisualizationData() {return this.visData;}
+		public String getTypeName() {return this.name;}
+		public boolean hasData() {return !this.dataType.equals(DataType.None);}
+		public DataType getDataType() {return this.dataType;}
+	}
+	
 	public static class X implements VertexType {
 		VertexVisualizationData visData = new SvgVertexVisualizationData(
 				VertexType.class.getResource("resources/red.svg"),

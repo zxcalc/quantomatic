@@ -11,13 +11,15 @@ import java.net.URL;
 import java.util.Set;
 import javax.swing.*;
 import quanto.core.CoreException;
+import quanto.core.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {
 
 	private static final long serialVersionUID = 3656684775223085393L;
 	private final ViewPort viewPort;
-	private final LeftTabbedPane sidebar;
+	private LeftTabbedPane sidebar;
+	private JSplitPane splitPane;
 	private volatile static int frameCount = 0;
 	private QuantoApp app;
 	private ActionManager actionManager = new ActionManager();
@@ -34,7 +36,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	public final static String DRAW_ARROW_HEADS_COMMAND = "draw-arrow-heads-command";
 	public final static String SHOW_INTERNAL_GRAPH_NAMES_COMMAND = "internal-graph-names-command";
 	public final static String OPEN_IN_NEW_WINDOW_COMMAND = "open-in-new-window-command";
-
+	public final static String LOAD_THEORY_COMMAND = "load-theory-command";
 	// This type has to be public in order to be registered as a
 	// handler with ActionManager.  The constructor is private, however,
 	// to prevent abuse.
@@ -113,6 +115,9 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		actionManager.registerCallback(REFRESH_ALL_COMMAND, app.getViewManager(), "refreshAll");
 		actionManager.setEnabled(REFRESH_ALL_COMMAND, true);
 
+		actionManager.registerCallback(LOAD_THEORY_COMMAND, this, "openTheory");
+		actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
+		
 		actionManager.registerCallback(DRAW_ARROW_HEADS_COMMAND,
 			new BoolPrefDelegate(QuantoApp.DRAW_ARROW_HEADS),
 			"setState");
@@ -149,7 +154,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 			delegate, "executeCommand");
 
 		//Add the scroll panes to a split pane.
-		JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+		splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		splitPane.setLeftComponent(sidebar);
 		splitPane.setRightComponent(viewPort);
 		splitPane.setDividerLocation(150);
@@ -231,7 +236,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 			app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
 		}
 	}
-
+	
 	/**
 	 * Read a graph from a file and send it to a fresh InteractiveGraphView.
 	 */
@@ -251,6 +256,19 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
+	public void openTheory() {
+		File f = app.openFile(this);
+			if (f != null) {
+				TheoryParser theoryParser = new TheoryParser(f.getAbsolutePath());
+				app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
+				app.updateCoreTheory(theoryParser.getTheoryVertices());
+				//TODO Do something to let the core know that we're using another graph_param
+				//Open a new graph as well...
+				app.createNewFrame();
+				this.closeCurrentView();
+			}
+	}
+	
 	@Override
 	protected void processWindowEvent(WindowEvent e) {
 		if (e.getID() == WindowEvent.WINDOW_CLOSING) {
