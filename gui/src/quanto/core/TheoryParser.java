@@ -19,6 +19,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
+import javax.swing.JOptionPane;
+
 public class TheoryParser {
 
 	private InputSource theoryInputSource;
@@ -156,15 +158,15 @@ class TheoryErrorProcessor extends DefaultHandler
 	}
 
 	public void error (SAXParseException e) {
-		System.out.println("Error: "+e.getMessage());
+		JOptionPane.showMessageDialog(null, e.getMessage(), "Parsing Error", JOptionPane.ERROR_MESSAGE);
 	}
 
 	public void fatalError (SAXParseException e) {
-		System.out.println("Fatal Error: "+e.getMessage());
+		JOptionPane.showMessageDialog(null, e.getMessage(), "Parsing Error", JOptionPane.ERROR_MESSAGE);
 	}
 
 	public void warning (SAXParseException e) {
-		System.out.println("Warning: "+e.getMessage());
+		JOptionPane.showMessageDialog(null, e.getMessage(), "Parsing Warning", JOptionPane.WARNING_MESSAGE);
 	}
 
 }
