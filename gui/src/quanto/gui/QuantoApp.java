@@ -18,6 +18,7 @@ import javax.swing.UIManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 
 
@@ -277,8 +278,16 @@ public class QuantoApp {
 			return new ArrayList<VertexType>();
 		} else {
 			logger.info("Loading previous theory");
-			TheoryParser theoryParser = new TheoryParser(theoryFilePath);
-			return theoryParser.getTheoryVertices();
+			TheoryParser theoryParser;
+			try {
+				theoryParser = new TheoryParser(theoryFilePath);
+				return theoryParser.getTheoryVertices();
+			} catch (SAXException e) {
+				errorDialog(e.toString());
+			} catch (IOException e) {
+				errorDialog(e.toString());
+			}
+				return new ArrayList<VertexType>();
 		}
 	}
 	

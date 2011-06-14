@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Set;
 import javax.swing.*;
+
+import org.xml.sax.SAXException;
+
 import quanto.core.CoreException;
 import quanto.core.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
@@ -259,9 +262,16 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	public void openTheory() {
 		File f = app.openFile(this);
 			if (f != null) {
-				TheoryParser theoryParser = new TheoryParser(f.getAbsolutePath());
-				app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-				app.updateCoreTheory(theoryParser.getTheoryVertices());
+				TheoryParser theoryParser;
+				try {
+					theoryParser = new TheoryParser(f.getAbsolutePath());
+					app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
+					app.updateCoreTheory(theoryParser.getTheoryVertices());
+				} catch (SAXException e) {
+					app.errorDialog(e.toString());
+				} catch (IOException e) {
+					app.errorDialog(e.toString());
+				}
 				//TODO Do something to let the core know that we're using another graph_param
 				//Open a new graph as well...
 				app.createNewFrame();

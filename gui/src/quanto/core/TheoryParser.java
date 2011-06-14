@@ -29,7 +29,7 @@ public class TheoryParser {
 	private String theoryName;
 	private String implementedTheory;
 
-	public TheoryParser(String theoryFilePath){
+	public TheoryParser(String theoryFilePath) throws SAXException, IOException{
 
 		this.theoryFilePath = theoryFilePath;
 		this.theoryInputSource = new InputSource(theoryFilePath);
@@ -44,9 +44,9 @@ public class TheoryParser {
 			reader.parse(this.theoryInputSource);
 
 		} catch(SAXException se) {
-			System.out.println("SAX Exception: "+se.getMessage());
+			throw new SAXException(se);
 		} catch(IOException ioe) {
-			System.out.println("IO Exception: "+ioe.getMessage());
+			throw new IOException(ioe);
 		}
 	}
 
@@ -157,16 +157,16 @@ class TheoryErrorProcessor extends DefaultHandler
 		super();
 	}
 
-	public void error (SAXParseException e) {
-		JOptionPane.showMessageDialog(null, e.getMessage(), "Parsing Error", JOptionPane.ERROR_MESSAGE);
+	public void error (SAXParseException e) throws SAXParseException {
+		throw new SAXParseException("Error", null, e);
 	}
 
-	public void fatalError (SAXParseException e) {
-		JOptionPane.showMessageDialog(null, e.getMessage(), "Parsing Error", JOptionPane.ERROR_MESSAGE);
+	public void fatalError (SAXParseException e) throws SAXParseException {
+		throw new SAXParseException("Fatal error", null, e);
 	}
 
-	public void warning (SAXParseException e) {
-		JOptionPane.showMessageDialog(null, e.getMessage(), "Parsing Warning", JOptionPane.WARNING_MESSAGE);
+	public void warning (SAXParseException e) throws SAXParseException {
+		throw new SAXParseException("Warning", null, e);
 	}
 
 }
