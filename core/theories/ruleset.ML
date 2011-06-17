@@ -171,10 +171,12 @@ struct
   fun update_rule (name, rule) rset = 
       rset |> update_allrules (RuleName.NTab.update (name,rule));
   
+
   fun add_fresh_rule (name, rule) rset = 
-      let val rset = delete_rule name rset (* avoid renaming, clober names *)
+      let (*val rset = delete_rule name rset (* avoid renaming, clobber names *) *)
           val (name',allrules') = RuleName.NTab.add (name,rule) (get_allrules rset) 
       in (name', rset |> set_allrules allrules') end;
+  
   
   (* add all rules from rset1 to rset2, replaces elements in rset2 on duplicates, 
      unions tags contents and unions active set. *)

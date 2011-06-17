@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Hello SML World</title>
+		
+		
+		<script type="application/x-polyml">
+			val hello_div = Option.valOf (DOM.getElementById DOM.document "hello")
+			val _ = DOM.setInnerHTML hello_div "Hello Graphical SML World"
+			
+			val paper = Option.valOf (DOM.getElementById DOM.document "paper")
+			val context = Canvas.getContext paper "2d"
+			val _ = Canvas.fillStyle context "blue"
+			val _ = Canvas.fillRect context 10 10 30 50
+		</script>
+	
+	</head>
+	<body>
+		<h1 id="hello"></h1>
+		<canvas id="paper"></canvas>
+
+	</body>
+</html>
