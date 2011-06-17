@@ -18,9 +18,10 @@ fun addGraph tdata io dom_element graph =
                       jsffi.arg.string (dot_to_svg io ((TheoryData.get_dotfun tdata) graph))])
 
 
-fun addRule tdata io dom_element (lhs,rhs) =
+fun addRule tdata io dom_element name (lhs,rhs) =
   DOM.HTMLElement (jsffi.exec_js_r "window|" "addRule"
                      [jsffi.arg.reference (DOM.fptr_of_HTMLElement dom_element),
+		      jsffi.arg.string (RuleName.string_of_name name),
                       jsffi.arg.string (dot_to_svg io ((TheoryData.get_dotfun tdata) lhs)),
                       jsffi.arg.string (dot_to_svg io ((TheoryData.get_dotfun tdata) rhs))])
 
@@ -93,7 +94,28 @@ fun output_ruleset tdata rs = let
   val rs_pairs = (TheoryData.get_rs_pairs tdata) rs
   val container = addContainer content_div ((TheoryData.get_name tdata) ^ " RULESET") false
   val io = run_dot ()
-  val _ = RuleName.NTab.map_all (fn _ => addRule tdata io container) rs_pairs
+  val _ = RuleName.NTab.map_all (addRule tdata io container) rs_pairs
+  val _ = close_dot io
+in ()
+end
+
+fun output_rule tdata lhs rhs = let
+  val c = addContainer content_div ("RULE") false
+  val io = run_dot ()
+  val _ = addRule tdata io c (RuleName.mk "*") (lhs,rhs)
+  val _ = close_dot io
+in ()
+end
+
+fun output_string string = let
+  val _ = addCodebox content_div string
+in ()
+end
+
+fun output_graph tdata graph = let
+  val c = addContainer content_div ("RULE") false
+  val io = run_dot ()
+  val _ = addGraph tdata io c graph
   val _ = close_dot io
 in ()
 end

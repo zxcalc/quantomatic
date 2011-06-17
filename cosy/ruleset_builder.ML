@@ -7,6 +7,7 @@ sig
   val update : Synthesize.T -> Ruleset.T -> Ruleset.T
   val from_synth : Synthesize.T -> Ruleset.T
   val reduce : Ruleset.T -> Ruleset.T
+  val rule_matches_rule : Ruleset.Rule.T -> Ruleset.Rule.T -> bool
 end
 
 functor RulesetBuilder (
@@ -20,7 +21,8 @@ struct
   
   fun update (_,class_table) ruleset = let
     fun add_rule tag rhs lhs rs = let
-      val (nm,rs') = rs |> Ruleset.add_fresh_rule (RuleName.mk "ra", Ruleset.Rule.mk (lhs,rhs))
+      val tryname = RuleName.mk ((TagName.string_of_name tag) ^ "_a")
+      val (nm,rs') = rs |> Ruleset.add_fresh_rule (tryname, Ruleset.Rule.mk (lhs,rhs))
     in rs' |> Ruleset.tag_rule nm tag
     end
     fun process_class class rs =
@@ -50,18 +52,18 @@ struct
       of SOME r => if bad_trivial r then (rs|> Ruleset.delete_rule rn,congs|>RuleName.NSet.delete rn) else (rs,congs)
        | NONE   => (rs,congs)
     val (rs,congs) = RuleName.NSet.fold iso_filter all_congs (rs,all_congs)
-    fun filter rn1 rn2 rs = case (Ruleset.lookup_rule rs rn1, Ruleset.lookup_rule rs rn2)
-                              of (SOME r1, SOME r2) => if rule_matches_rule r1 r2
-                                                       then rs |> Ruleset.delete_rule rn2
-                                                       else rs
-                               | _ => rs
+    fun filter rn1 rn2 rs = 
+	if RuleName.name_eq (rn1,rn2) then rs
+	else case (Ruleset.lookup_rule rs rn1, Ruleset.lookup_rule rs rn2)
+               of (SOME r1, SOME r2) => if rule_matches_rule r1 r2
+                                        then rs |> Ruleset.delete_rule rn2
+                                        else rs
+                | _ => rs
     fun reduce' reds rs = case RuleName.NSet.get_min reds
-                            of SOME red => let val new_reds = reds |> RuleName.NSet.delete red
-                                           in reduce' new_reds
-                                               (RuleName.NSet.fold (filter red) new_reds
-                                                (RuleName.NSet.fold (filter red) congs
-                                                 rs))
-                                           end
+                            of SOME red => reduce' (reds |> RuleName.NSet.delete red)
+						   (RuleName.NSet.fold (filter red) all_reds
+					            (RuleName.NSet.fold (filter red) congs
+						     rs))
                              | NONE => rs
   in reduce' all_reds rs
   end

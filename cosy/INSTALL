@@ -12,7 +12,7 @@ Once the heap is built, replace polychrome's default heap with the symlink to
 the QuantoCosy heap.
 
 # cd $FIREFOX_SUPPORT_DIR/Profiles/XXXXXXX.default/extensions/polychrome@ed.ac.uk/poly/bin
-# cp polychrome.polyml-heap polychrome.polyml-heap-bak
+# mv polychrome.polyml-heap polychrome.polyml-heap-bak
 # ln -s $QUANTO_DIR/cosy/chromeui/polychrome.polyml-heap polychrome.polyml-heap
 
 
