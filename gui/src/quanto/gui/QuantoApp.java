@@ -25,7 +25,6 @@ import java.awt.Component;
 import java.io.IOException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import quanto.core.Core;

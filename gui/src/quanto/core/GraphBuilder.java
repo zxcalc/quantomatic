@@ -80,7 +80,7 @@ public class GraphBuilder {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
 			parser.setReader(reader);
 			root = (IXMLElement) parser.parse();
-			logger.log(Level.FINEST, "XML parse took {} milliseconds", System.currentTimeMillis() - millis);
+			logger.log(Level.FINEST, "XML parse took {0} milliseconds", System.currentTimeMillis() - millis);
 			return root;
 		}
 		catch (XMLException e) {
@@ -317,6 +317,8 @@ public class GraphBuilder {
 		}
 
 		synchronized (graph) {
+			// make copies of the collections to avoid concurrent modification
+			// issues
 			for (Edge e : new ArrayList<Edge>(graph.getEdges())) {
 				graph.removeEdge(e);
 			}
