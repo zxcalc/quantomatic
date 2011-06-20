@@ -12,6 +12,7 @@ struct
   type T = string
   type data = Graph.T
   fun node_block graph = let
+    val boxtab = Graph.VtoBoxMap.get_codtab (Graph.get_bboxes graph)
     fun sty nm = case Graph.get_vertex graph nm
                    of (Graph.OVertex.IVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
                     | (Graph.OVertex.EVert, _) => " [style=filled,fillcolor=gray,shape=box,width=0,height=0,fontcolor=white]"
@@ -19,7 +20,13 @@ struct
                     (Pretty.str (sty nm))::
                     (Pretty.str ";\n")::
                     list
-  in Graph.Vertex.NSet.fold_rev f (Graph.get_vnames graph) []
+    fun box_f (box,vset) list = 
+      (Pretty.str "subgraph cluster_")::
+      (Graph.BBox.pretty_name box)::
+      (Pretty.str " {\n")::
+      (Graph.Vertex.NSet.fold_rev f vset
+      (Pretty.str "}\n"::list))
+  in Graph.BBox.NTab.fold box_f boxtab (Graph.Vertex.NSet.fold_rev f (Graph.get_unboxed graph) [])
   end
   
   fun edge_block graph = let
