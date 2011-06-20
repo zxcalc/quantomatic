@@ -1,6 +1,6 @@
 signature TENSOR_DATA =
 sig
-  structure Graph : OGRAPH
+  structure Graph : BANG_GRAPH
   
   val dimension : int (* all generators are assumed to be of fixed dimension *)
   (* given vertex data and arities, return a tensor *)

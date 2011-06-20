@@ -37,12 +37,14 @@ end
 
 signature SYNTHESIZE =
 sig
-  structure Graph : OGRAPH
+  structure Graph : BANG_GRAPH
+  structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
-  sharing Graph.SharingOGraph = Metric.Graph.SharingOGraph
+  sharing Graph.SharingBangGraph = Metric.Graph.SharingBangGraph = GraphEnum.Graph.SharingBangGraph
   type rundesc = int * int * int * int
   type T = rundesc * (Graph.T EqClass.T) Tensor.Tab.table
   val synth : (Graph.T * int * int) list -> int * int * int * int -> T
+  val synth_with_rs : GraphEnum.RulesetRewrites.Ruleset.T -> (Graph.T * int * int) list -> int * int * int * int -> T
   val stats : T -> int * int * int
 end
 
@@ -50,12 +52,13 @@ functor Synthesize (
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
   structure TData : TENSOR_DATA
-  sharing GraphEnum.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          TData.Graph.SharingOGraph
+  sharing GraphEnum.Graph.SharingBangGraph =
+          Metric.Graph.SharingBangGraph =
+          TData.Graph.SharingBangGraph
 ) : SYNTHESIZE =
 struct
   structure TEval = TensorEval(structure TData=TData)
+  structure GraphEnum = GraphEnum
   structure Graph = GraphEnum.Graph
   structure Metric = Metric
   
@@ -97,9 +100,12 @@ struct
       |> EqClass.set_redexes redexes
   end
   
-  fun synth gens (rd as (ins,outs,verts,plugs)) = (rd,
+  fun synth_with_rs rs gens (rd as (ins,outs,verts,plugs)) = (rd,
     Tensor.Tab.map (K filter_class)
-                   (GraphEnum.fold_graphs classify (gens,ins,outs,verts,plugs) Tensor.Tab.empty))
+                   (GraphEnum.fold_graphs_with_rs
+                      rs classify (gens,ins,outs,verts,plugs) Tensor.Tab.empty))
+  
+  val synth = synth_with_rs GraphEnum.RulesetRewrites.Ruleset.empty
   
   fun stats (_,class_tab) =
     Tensor.Tab.fold (fn (_,class) => fn (i,j,k) =>

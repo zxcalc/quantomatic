@@ -100,7 +100,7 @@ in ()
 end
 
 fun output_rule tdata lhs rhs = let
-  val c = addContainer content_div ("RULE") false
+  val c = addContainer content_div "RULE" false
   val io = run_dot ()
   val _ = addRule tdata io c (RuleName.mk "*") (lhs,rhs)
   val _ = close_dot io
@@ -113,7 +113,7 @@ in ()
 end
 
 fun output_graph tdata graph = let
-  val c = addContainer content_div ("RULE") false
+  val c = addContainer content_div "GRAPH" false
   val io = run_dot ()
   val _ = addGraph tdata io c graph
   val _ = close_dot io
@@ -127,6 +127,7 @@ fun output_gens tdata = let
   val _ = close_dot io
 in ()
 end
+
 
 
 

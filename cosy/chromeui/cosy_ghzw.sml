@@ -18,15 +18,34 @@ fun synth run = SYNTH (GHZW_DefaultSynth.synth (TheoryData.get_gens ghzw_data) r
 fun ruleset (SYNTH s) = RS (GHZW_RSBuilder.from_synth s)
 fun update (SYNTH s) (RS rs) = RS (rs |> GHZW_RSBuilder.update s)
 fun reduce (RS rs) = RS (GHZW_RSBuilder.reduce rs)
+fun update_with run (RS rs) =
+  RS (rs |> GHZW_RSBuilder.update
+              (GHZW_DefaultSynth.synth_with_rs
+                 rs (TheoryData.get_gens ghzw_data) run))
+         |> reduce
 fun size (RS rs) = RuleName.NTab.cardinality (GHZW_Theory.Ruleset.get_allrules rs)
-fun update_with run rs = rs |> update (synth run) |> reduce;
+fun rule_matches_rule (RULE r1) (RULE r2) = GHZW_RSBuilder.rule_matches_rule r1 r2
+
+
+(*fun update_with run rs = rs |> update (synth run) |> reduce;*)
 fun get_rule (RS rs) name = case GHZW_Theory.Ruleset.lookup_rule rs (RuleName.mk name)
 			      of SOME r => RULE r 
 			       | _ => ERR "Rule not found."
 
-fun synth_list rs runs = fold update_with runs rs
+fun synth_list runs rs = fold update_with runs rs
 
-val rs = RS GHZW_Theory.Ruleset.empty;
+
+val rs' = GHZW_Theory.Ruleset.empty
+val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "ghz_fr", GHZW_Rws.frob GHZW_VertexData.GHZ)
+val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "ghz_sp", GHZW_Rws.special GHZW_VertexData.GHZ)
+val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "w_fr", GHZW_Rws.frob GHZW_VertexData.W)
+
+val redex = TagName.mk "r"
+val rs' = rs' |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "ghz_fr") redex
+              |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "ghz_sp") redex
+              |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "w_fr") redex
+
+val rs = RS rs'
 
 fun out (SYNTH s) = output_synth ghzw_data s
   | out (RS rs) = output_ruleset ghzw_data rs

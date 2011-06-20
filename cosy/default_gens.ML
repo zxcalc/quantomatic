@@ -1,8 +1,15 @@
 functor DefaultGenerators(
-  structure Graph : OGRAPH
+  structure Graph : BANG_GRAPH
 ) =
 struct
   structure Graph = Graph
+  
+  val id = let
+    val gr = Graph.empty
+    val (a,gr) = gr |> Graph.add_vertex (Graph.OVertex.EVert)
+    val (b,gr) = gr |> Graph.add_vertex (Graph.OVertex.EVert)
+  in (gr |> Graph.doadd_edge (Graph.Directed, Graph.Edge.default_data) a b, 1, 1) 
+  end
   
   fun gen data (ins, outs) = let
     fun addk 0 gr = (gr, Graph.Vertex.NSet.empty)
@@ -23,7 +30,7 @@ struct
     fun alist 0 0 = []
       | alist k 0 = (0,k)::alist (k-1) (k-1)
       | alist k i = (i,k-i)::alist k (i-1)
-  in fold_product (cons oo gen) data_list (alist max_arity max_arity) []
+  in id::(fold_product (cons oo gen) data_list (alist max_arity max_arity) [])
   end
 end
 

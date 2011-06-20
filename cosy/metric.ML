@@ -1,7 +1,7 @@
 signature GRAPH_METRIC =
 sig
   type T
-  structure Graph : OGRAPH
+  structure Graph : BANG_GRAPH
   val compute : Graph.T -> T
   val ord : T * T -> order
   val bottom : T
@@ -11,7 +11,7 @@ sig
 end
 
 functor EdgeComplexityMetric(
-  structure Graph : OGRAPH
+  structure Graph : BANG_GRAPH
 ) =
 struct
   type T = int * int * int

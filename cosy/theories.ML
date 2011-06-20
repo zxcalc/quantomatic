@@ -39,17 +39,19 @@ end
 (* FUNCTOR APPLICATIONS *)
 
 structure GHZW_DefaultSynth = Synthesize(
-  structure GraphEnum = GraphEnumerator(structure Graph = GHZW_Theory.Graph)
+  structure GraphEnum = GraphEnumerator(
+    structure Graph = GHZW_Theory.Graph
+    structure RulesetRewrites = GHZW_Theory.RulesetRewrites)
   structure Metric = EdgeComplexityMetric(structure Graph = GHZW_Theory.Graph)
   structure TData = GHZW_TensorData
 )
 
 structure GHZW_Gens = DefaultGenerators(structure Graph = GHZW_Theory.Graph)
-
+structure GHZW_Rws = DefaultRewrites(structure Rule = GHZW_Theory.Rule)
 
 structure GHZW_RSBuilder = RulesetBuilder(
   structure Synthesize = GHZW_DefaultSynth
-  structure RulesetRewrites = GHZW_Theory.RulesetRewrites
+  structure Thy = GHZW_Theory
 )
 
 (*
