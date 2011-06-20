@@ -16,8 +16,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 
@@ -25,6 +23,10 @@ import org.xml.sax.SAXException;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.awt.Component;
 import java.io.IOException;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 import quanto.core.Core;
 import quanto.core.CoreException;
@@ -37,7 +39,7 @@ import quanto.core.TheoryParser;
 public class QuantoApp {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(QuantoApp.class);
+		Logger.getLogger("quanto.gui");
 
 	// isMac is used for CTRL vs META shortcuts, etc
 	public static final boolean isMac =
@@ -147,7 +149,7 @@ public class QuantoApp {
 				theApp = new QuantoApp();
 			} catch (CoreException ex) {
 				// FATAL!!!
-				logger.error("Failed to start core: terminating", ex);
+				logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
 				JOptionPane.showMessageDialog(null,
 					ex.getMessage(),
 					"Could not start core",
@@ -167,7 +169,17 @@ public class QuantoApp {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		logger.info("Starting quantomatic");
+		if (false) {
+			// log everything to the console
+			Logger ql = Logger.getLogger("quanto");
+			ql.setLevel(Level.ALL);
+			ql.setUseParentHandlers(false);
+			ConsoleHandler ch = new ConsoleHandler();
+			ch.setLevel(Level.FINEST);
+			ql.addHandler(ch);
+		}
+
+		logger.log(Level.FINER, "Starting quantomatic");
 		boolean mathematicaMode = false;
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
@@ -175,7 +187,9 @@ public class QuantoApp {
 
 				// determine the app name from the classpath if I can...
 				String classpath = System.getProperty("java.class.path");
-				logger.debug("Trying to determine app name using class path ({})", classpath);
+				logger.log(Level.FINEST,
+					   "Trying to determine app name using class path ({0})",
+					   classpath);
 				for (String path : classpath.split(System.getProperty("path.separator"))) {
 					if (path.indexOf("QuantoGui.jar") != -1) {
 						String[] dirs = path.split(System.getProperty("file.separator"));
@@ -185,7 +199,7 @@ public class QuantoApp {
 					}
 				}
 
-				logger.info("Invoked as OS X application ({})", appName);
+				logger.log(Level.FINER, "Invoked as OS X application ({0})", appName);
 				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram =
 					appName + "/Contents/MacOS/dot_static";
 				CoreTalker.quantoCoreExecutable =
@@ -193,17 +207,19 @@ public class QuantoApp {
 			}
 			else if (arg.equals("--mathematica-mode")) {
 				mathematicaMode = true;
-				logger.info("Mathematica mode enabled");
+				logger.log(Level.FINER, "Mathematica mode enabled");
 			}
 		}
-		logger.info("Using dot executable: {}", edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram);
-		logger.info("Using core executable: {}", CoreTalker.quantoCoreExecutable);
+		logger.log(Level.FINE, "Using dot executable: {0}",
+				       edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram);
+		logger.log(Level.FINE, "Using core executable: {0}",
+				       CoreTalker.quantoCoreExecutable);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		}
 		catch (Exception e) {
-			logger.warn("Could not set look-and-feel", e);
+			logger.log(Level.WARNING, "Could not set look-and-feel", e);
 		}
 
 		if (QuantoApp.isMac && !mathematicaMode) {
@@ -217,14 +233,14 @@ public class QuantoApp {
 
 		app.newGraph(true);
 
-		logger.info("Finished initialisation");
+		logger.log(Level.FINER, "Finished initialisation");
 	}
 
 	public boolean shutdown() {
 		saveRulesetState();
-		logger.info("Shutting down");
+		logger.log(Level.FINER, "Shutting down");
 		if (viewManager.closeAllViews()) {
-			logger.info("Exiting now");
+			logger.log(Level.FINER, "Exiting now");
 			System.exit(0);
 		}
 		return false;
@@ -234,37 +250,37 @@ public class QuantoApp {
 		try {
 			File rsetFile = new File(getAppSettingsDirectory(false).getAbsolutePath() + File.separatorChar + "stored.rules");
 			if (rsetFile.exists()) {
-				logger.info("Existing theory state found: loading");
+				logger.log(Level.FINER, "Existing theory state found: loading");
 				try {
 					core.loadRuleset(rsetFile);
 					return;
 				} catch (Exception e) {
-					logger.warn("Failed to load ruleset state", e);
+					logger.log(Level.WARNING, "Failed to load ruleset state", e);
 				}
 			} else {
-				logger.info("No theory state found");
+				logger.log(Level.FINER, "No theory state found");
 			}
 			// FIXME: try loading default ruleset
 		} catch (IOException e) {
-			logger.error("Could not load ruleset state", e);
+			logger.log(Level.WARNING, "Error when loading ruleset state", e);
 		}
 	}
 	
 	private void saveRulesetState() {
 		try {
-			logger.info("Saving theory state");
+			logger.log(Level.FINER, "Saving theory state");
 			File rsetFile = new File(getAppSettingsDirectory(true).getAbsolutePath() + File.separatorChar + "stored.rules");
 			core.saveRuleset(rsetFile);
 			return;
 		} catch (Exception e) {
-			logger.warn("Failed to save ruleset state", e);
+			logger.log(Level.WARNING, "Failed to save ruleset state", e);
 		}
 	}
 
 	private ArrayList<VertexType> loadSavedTheoryState() {
 		String lastOpenedTheory = getPreference(QuantoApp.LAST_THEORY_OPEN_FILE);
 		if(lastOpenedTheory == null) {
-			logger.info("Could not load saved theory file");
+			logger.log(Level.FINER, "No saved theory file available");
 			return new ArrayList<VertexType>();
 		} else {
 			return loadTheoryFile(lastOpenedTheory);
@@ -274,10 +290,10 @@ public class QuantoApp {
 	public ArrayList<VertexType> loadTheoryFile(String theoryFilePath) {
 		File theoryFile = new File(theoryFilePath);
 		if (!theoryFile.exists()) {
-			logger.info("Could not load saved theory file");
+			logger.log(Level.INFO, "Theory file \"{0}\" does not exist", theoryFilePath);
 			return new ArrayList<VertexType>();
 		} else {
-			logger.info("Loading previous theory");
+			logger.log(Level.FINER, "Loading previous theory");
 			TheoryParser theoryParser;
 			try {
 				theoryParser = new TheoryParser(theoryFilePath);
@@ -306,7 +322,7 @@ public class QuantoApp {
 				OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));
 			}
 			catch (Exception e) {
-				logger.error("Could not set quit handler", e);
+				logger.log(Level.SEVERE, "Could not set quit handler", e);
 			}
 		}
 	}
@@ -377,7 +393,7 @@ public class QuantoApp {
 			openNewFrame(view);
 		}
 		catch (CoreException ex) {
-			logger.error("Could not create a new graph", ex);
+			logger.log(Level.SEVERE, "Could not create a new graph", ex);
 			errorDialog("Could not create a new graph to display");
 		}
 	}
@@ -392,7 +408,8 @@ public class QuantoApp {
 			fr.setVisible(true);
 		}
 		catch (ViewUnavailableException ex) {
-			logger.warn("Tried to open an already-attached view in a new frame", ex);
+			logger.log(Level.WARNING,
+				   "Tried to open an already-attached view in a new frame", ex);
 			fr.dispose();
 			throw ex;
 		}
@@ -441,7 +458,7 @@ public class QuantoApp {
 			}
 		}
 		catch (CoreException e) {
-			logger.error("Failed to create a new graph", e);
+			logger.log(Level.SEVERE, "Failed to create a new graph", e);
 			errorDialog(e.getMessage());
 		}
 	}

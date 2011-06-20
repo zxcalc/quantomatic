@@ -8,14 +8,13 @@ import java.util.*;
 
 
 import edu.uci.ics.jung.graph.DirectedGraph;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class AbstractDotLayout<V,E> extends AbstractLayout<V, E> implements DynamicBoundsLayout {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(AbstractDotLayout.class);
+		Logger.getLogger("edu.uci.ics.jung.contrib.algorithms.layout");
 
 	public static String dotProgram = "dot";
 	public final static double DOT_SCALE = 50.0;
@@ -105,7 +104,7 @@ public abstract class AbstractDotLayout<V,E> extends AbstractLayout<V, E> implem
 				//recalculateSize();
 			}
 		} catch (IOException e) {
-			logger.error("Failed to run dot", e);
+			logger.log(Level.SEVERE, "Failed to run dot", e);
 		} finally {
 			vertexPositions = null;
 		}
@@ -129,7 +128,7 @@ public abstract class AbstractDotLayout<V,E> extends AbstractLayout<V, E> implem
 		String ln = dotIn.readLine();
 
 		while (!ln.equals("stop")) {
-			logger.debug(ln);
+			logger.log(Level.FINEST, "Processing line: {0}", ln);
 			if (ln.startsWith("graph ")) {
 				StringTokenizer tok = new StringTokenizer(ln);
 				tok.nextToken(); // "graph"
@@ -194,7 +193,9 @@ public abstract class AbstractDotLayout<V,E> extends AbstractLayout<V, E> implem
 				top = c.getY();
 		}
 
-		logger.info("Top is {}, adjusting all Y values by {}", top, vertexSpacing-top);
+		logger.log(Level.FINEST,
+				   "Top is {}, adjusting all Y values by {}",
+				   new Object[] {top, vertexSpacing-top});
 		for (Point2D c : vertexPositions.values()) {
 			c.setLocation(c.getX(), c.getY()-top+vertexSpacing);
 		}*/
@@ -259,7 +260,7 @@ public abstract class AbstractDotLayout<V,E> extends AbstractLayout<V, E> implem
 		g.append("\n");
 		addGraphContents(g);
 		g.append("}\n");
-		logger.debug("{}", g);
+		logger.log(Level.FINEST, "Dot output: {}", g);
 		return g.toString();
 	}
 

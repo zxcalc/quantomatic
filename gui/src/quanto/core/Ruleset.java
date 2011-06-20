@@ -15,11 +15,10 @@ import java.util.TreeMap;
 
 import javax.swing.event.ChangeListener;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 import edu.uci.ics.jung.visualization.util.DefaultChangeEventSupport;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -29,7 +28,7 @@ import edu.uci.ics.jung.visualization.util.DefaultChangeEventSupport;
 public class Ruleset implements ChangeEventSupport {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(CoreTalker.class);
+		Logger.getLogger("quanto.gui.ruleset");
 
 	private ChangeEventSupport changeSupport = new DefaultChangeEventSupport(this);
 
@@ -97,7 +96,7 @@ public class Ruleset implements ChangeEventSupport {
 	private void updateCacheByTag(String tag, Boolean newActivationState) {
 		if (tags != null) {
 			if (!tags.containsKey(tag)) {
-				logger.error("Inconsistent state: we don't know about tag {}", tag);
+				logger.log(Level.WARNING, "Inconsistent state: we don't know about tag {}", tag);
 				reload();
 				return;
 			}
@@ -106,7 +105,7 @@ public class Ruleset implements ChangeEventSupport {
 			if (taggedRules != null) {
 				for (String rulename : taggedRules) {
 					if (!rules.containsKey(rulename)) {
-						logger.error("Inconsistent state: {} is tagged, but does not exist!", rulename);
+						logger.log(Level.WARNING, "Inconsistent state: {} is tagged, but does not exist!", rulename);
 						reload();
 						return;
 					}
@@ -149,7 +148,7 @@ public class Ruleset implements ChangeEventSupport {
 
 	private void updateCacheForRule(String name, Boolean newActivationState) {
 		if (!rules.containsKey(name)) {
-			logger.error("Inconsistent state: core seems to know about rule \"{}\", but we don't", name);
+			logger.log(Level.WARNING, "Inconsistent state: core seems to know about rule \"{}\", but we don't", name);
 			reload();
 			return;
 		}

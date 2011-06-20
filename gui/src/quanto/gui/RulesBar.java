@@ -13,6 +13,8 @@ import java.awt.event.ActionListener;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
@@ -32,8 +34,6 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import quanto.core.CoreException;
 import quanto.core.Ruleset;
 
@@ -49,7 +49,7 @@ import quanto.core.Ruleset;
 public class RulesBar extends JPanel {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(RulesBar.class);
+		Logger.getLogger("quanto.gui");
 
 	private static class RuleDescription {
 
@@ -290,7 +290,7 @@ public class RulesBar extends JPanel {
 			}
 		}
 		catch (CoreException ex) {
-			logger.error("Could not get tags", ex);
+			logger.log(Level.WARNING, "Could not get tags from core", ex);
 		}
 	}
 	
@@ -318,7 +318,8 @@ public class RulesBar extends JPanel {
 			}
 		}
 		catch (CoreException ex) {
-			logger.error("Could not get rules and/or tags", ex);
+			logger.log(Level.WARNING,
+					   "Could not get rules and/or tags from core", ex);
 		}
 	}
 }

@@ -14,15 +14,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CoreGraph extends DirectedSparseBangBoxMultigraph<Vertex, Edge, BangBox>
 implements CoreObject, ChangeEventSupport {
-
-	@SuppressWarnings("unused")
-	private final static Logger logger =
-		LoggerFactory.getLogger(CoreGraph.class);
 
 	private static final long serialVersionUID = -1519901566511300787L;
 	protected String name;

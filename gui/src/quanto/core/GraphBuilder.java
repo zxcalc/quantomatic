@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.n3.nanoxml.IXMLElement;
 import net.n3.nanoxml.IXMLParser;
 import net.n3.nanoxml.IXMLReader;
@@ -20,8 +22,6 @@ import net.n3.nanoxml.StdXMLBuilder;
 import net.n3.nanoxml.StdXMLReader;
 import net.n3.nanoxml.XMLException;
 import net.n3.nanoxml.XMLParserFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import quanto.core.data.BangBox;
 import quanto.core.data.CoreGraph;
@@ -37,7 +37,7 @@ import quanto.core.data.VertexType;
 public class GraphBuilder {
 
 	private final static Logger logger =
-			LoggerFactory.getLogger(GraphBuilder.class);
+			Logger.getLogger("quanto.core.xml");
 	private Theory theory;
 
 	public GraphBuilder(Theory theory) {
@@ -80,7 +80,7 @@ public class GraphBuilder {
 			IXMLParser parser = XMLParserFactory.createDefaultXMLParser(new StdXMLBuilder());
 			parser.setReader(reader);
 			root = (IXMLElement) parser.parse();
-			logger.debug("XML parse took {} milliseconds", System.currentTimeMillis() - millis);
+			logger.log(Level.FINEST, "XML parse took {} milliseconds", System.currentTimeMillis() - millis);
 			return root;
 		}
 		catch (XMLException e) {

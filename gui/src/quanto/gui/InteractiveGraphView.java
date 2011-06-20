@@ -46,8 +46,6 @@ import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.Labeler;
@@ -56,10 +54,6 @@ public class InteractiveGraphView
 	extends InteractiveView
 	implements AddEdgeGraphMousePlugin.Adder<Vertex>,
 	           KeyListener {
-
-	@SuppressWarnings("unused")
-	private final static Logger logger =
-		LoggerFactory.getLogger(InteractiveGraphView.class);
 
 	private static final long serialVersionUID = 7196565776978339937L;
 

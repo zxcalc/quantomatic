@@ -10,16 +10,16 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 
  * @author alemer
  */
 public class CoreConsoleTalker extends CoreTalker {
-	private final static Logger logger = LoggerFactory
-			.getLogger(CoreConsoleTalker.class);
+	private final static Logger logger = Logger
+			.getLogger("quanto.core.console");
 
 	private BufferedReader from_backEnd;
 	private BufferedWriter to_backEnd;
@@ -32,19 +32,20 @@ public class CoreConsoleTalker extends CoreTalker {
 			to_backEnd = new BufferedWriter(new OutputStreamWriter(
 					getOutputStream()));
 
-			logger.info("Synchonising console...");
+			logger.finest("Synchonising console...");
 			// sync the console
 			send("garbage_2039483945;");
 			send("HELO;");
 			while (!receive().contains("HELO")) {
 			}
-			logger.info("Console synchronised successfully");
+			logger.finest("Console synchronised successfully");
 
 			// eat prompt
 			receive();
 		} catch (CoreCommunicationException e) {
 			forceDestroy();
-			logger.error("Failed to set up communication with core process", e);
+			logger.log(Level.SEVERE,
+					   "Failed to set up communication with core process", e);
 			throw e;
 		}
 	}
@@ -60,8 +61,8 @@ public class CoreConsoleTalker extends CoreTalker {
 	 */
 	private void send(String command) throws CoreCommunicationException {
 		if (isClosed()) {
-			logger.error("Tried to receive after core had been closed");
-			throw new IllegalStateException();
+			logger.warning("Tried to send after core had been closed");
+			throw new IllegalStateException("Tried to send after core had been closed");
 		}
 		try {
 			if (DEBUG) {
@@ -91,8 +92,8 @@ public class CoreConsoleTalker extends CoreTalker {
 	private String receive() throws CoreCommunicationException {
 		synchronized (this) {
 			if (isClosed()) {
-				logger.error("Tried to receive after core had been closed");
-				throw new IllegalStateException();
+				logger.warning("Tried to receive after core had been closed");
+				throw new IllegalStateException("Tried to receive after core had been closed");
 			}
 			StringBuilder message = new StringBuilder();
 			try {
@@ -123,10 +124,10 @@ public class CoreConsoleTalker extends CoreTalker {
 					System.out.flush();
 				}
 
-				logger.error("Failed to read from core process", e);
+				logger.log(Level.SEVERE, "Failed to read from core process", e);
 				if (message.length() > 0) {
-					logger.error(
-							"Received partial message before read failure: {}",
+					logger.log(Level.INFO,
+							"Received partial message before read failure: {0}",
 							message);
 				}
 
@@ -137,10 +138,10 @@ public class CoreConsoleTalker extends CoreTalker {
 					System.out.flush();
 				}
 
-				logger.error("Failed to read from core process", e);
+				logger.log(Level.SEVERE, "Failed to read from core process", e);
 				if (message.length() > 0) {
-					logger.error(
-							"Received partial message before read failure: {}",
+					logger.log(Level.INFO,
+							"Received partial message before read failure: {0}",
 							message);
 				}
 

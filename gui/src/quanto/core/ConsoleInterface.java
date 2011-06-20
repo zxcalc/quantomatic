@@ -7,12 +7,9 @@ package quanto.core;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StreamTokenizer;
 import java.io.StringReader;
-import java.util.LinkedList;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Simulates a console interface to the core backend
@@ -20,8 +17,8 @@ import org.slf4j.LoggerFactory;
  * @author alemer
  */
 public class ConsoleInterface {
-	private final static Logger logger = LoggerFactory
-			.getLogger(ConsoleInterface.class);
+	private final static Logger logger = Logger
+			.getLogger("quanto.core");
 
 	public interface ResponseListener {
 		public void responseReceived(String response);
@@ -36,7 +33,7 @@ public class ConsoleInterface {
 
 		// Construct the completion engine from the output of the help command.
 		completer = new Completer();
-		logger.info("Retrieving commands...");
+		logger.finest("Retrieving commands...");
 
 		try {
 			// FIXME: we need a command_list command
@@ -49,11 +46,11 @@ public class ConsoleInterface {
 					.readLine())
 				if (!ln.equals(""))
 					completer.addWord(ln);
-			logger.info("Commands retrieved successfully");
+			logger.finest("Commands retrieved successfully");
 		} catch (IOException ex) {
-			logger.error("Failed to retreive commands for completion", ex);
+			logger.log(Level.WARNING, "Failed to retreive commands for completion", ex);
 		} catch (CoreException ex) {
-			logger.error("Failed to retreive commands for completion", ex);
+			logger.log(Level.WARNING, "Failed to retreive commands for completion", ex);
 		}
 
 	}

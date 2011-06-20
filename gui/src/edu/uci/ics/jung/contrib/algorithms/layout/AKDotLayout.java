@@ -12,14 +12,14 @@ import edu.uci.ics.jung.graph.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.DirectedSparseMultigraph;
 import edu.uci.ics.jung.graph.DirectedGraph;
 import edu.uci.ics.jung.graph.Graph;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 
 	private final static Logger logger =
-		LoggerFactory.getLogger(AKDotLayout.class);
+		Logger.getLogger("edu.uci.ics.jung.contrib.algorithms.layout");
 
 	protected double vertexSpacing = 20.0;
 	List<V> vertexTable;
@@ -62,15 +62,15 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		nodeSeparation = 75;
 		rankSeparation = 60;
 		
-		DirectedGraph<V,E> graph = (DirectedGraph<V,E>)getGraph();
-		List<Set<V>> components = getComponentsForCut(graph, null);
+		DirectedGraph<V,E> digraph = (DirectedGraph<V,E>)getGraph();
+		List<Set<V>> components = getComponentsForCut(digraph, null);
 		
-		logger.debug("Processing {} component(s).", components.size());
+		logger.log(Level.FINEST, "Processing {0} component(s).", components.size());
 		
 		//List<AKDotLayout<V,E>> subLayouts = new ArrayList<AKDotLayout<V,E>>();
 		double minX = (double)nodeSeparation;
 		for (Set<V> comp : components) {
-			DirectedGraph<V,E> gr = getSubgraphWithVertices(graph, comp);
+			DirectedGraph<V,E> gr = getSubgraphWithVertices(digraph, comp);
 			AKDotLayout<V,E> layout = new AKDotLayout<V,E>(gr);
 			layout.rankSeparation = rankSeparation;
 			layout.nodeSeparation = nodeSeparation;
@@ -86,7 +86,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			minX += width + (double)nodeSeparation;
 		}
 		
-		logger.debug("Layout took {} milliseconds",
+		logger.log(Level.FINEST, "Layout took {0} milliseconds",
 				System.currentTimeMillis()-tm);
 	}
 
@@ -160,17 +160,18 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	}
 	
 	private void doLayout() {
-		Graph<V, E> graph = getGraph();
 		if (graph.getVertexCount()==0) return;
-		logger.debug("Laying out graph ({}, {})", graph.getVertexCount(), graph.getEdgeCount());
+		logger.log(Level.FINEST,
+				   "Laying out graph ({0}, {1})",
+				   new Object[] {graph.getVertexCount(), graph.getEdgeCount()});
 		
 		dagify();
 		normalize(); // for debug purposes
-		logger.debug("init ranks: {}", ranks);
+		logger.log(Level.FINEST, "init ranks: {0}", ranks);
 		
 		rank();
-		logger.debug("final ranks: {}", ranks);
-		logger.debug("max rank: {}", maxRank);
+		logger.log(Level.FINEST, "final ranks: {0}", ranks);
+		logger.log(Level.FINEST, "max rank: {0}", maxRank);
 		
 		ordering();
 		position();
@@ -192,12 +193,12 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		dag.addVertex(0);
 		addToDag(root, 0, 0);
 		
-		logger.debug("dag ({}, {})", dag.getVertexCount(), dag.getEdgeCount());
-		logger.debug("{}", dag);
+		logger.log(Level.FINEST, "dag ({0}, {1})",
+				   new Object[] {dag.getVertexCount(), dag.getEdgeCount()});
+		logger.log(Level.FINEST, "{0}", dag);
 	}
 	
 	private void addToDag(V vertex, int vertexId, int rnk) {
-		Graph<V, E> graph = getGraph();
 		ranks.put(vertexId, rnk);
 		for (E in : trySortedSet(graph.getInEdges(vertex))) {
 			V src = graph.getSource(in);
@@ -263,7 +264,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 	
 	private void rank() {
 		feasibleTree();
-		logger.debug("init tree ({}, {}) (comps: {})",
+		logger.log(Level.FINEST, "init tree ({0}, {1}) (comps: {2})",
 			new Object[] {
 			tree.getVertexCount(),
 			tree.getEdgeCount(),
@@ -278,7 +279,7 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 		}
 		
 		while (updateCutValues()) {
-			//logger.debug("Cut values: {}", cutValues);
+			logger.log(Level.FINEST, "Cut values: {0}", cutValues);
 			
 			// anti-cycling: once iter hits MAX_ITERATIONS, watch for CYCLE_SIZE
 			//   more iterations to find a local minimum. Try to break on that local
@@ -296,9 +297,9 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			
 			++iter;
 		}
-		logger.debug("rank(): cut values: {}", cutValues);
+		logger.log(Level.FINEST, "rank(): cut values: {0}", cutValues);
 
-		logger.debug("final tree ({}, {}) (comps: {})",
+		logger.log(Level.FINEST, "final tree ({0}, {1}) (comps: {2})",
 			new Object[] {
 			tree.getVertexCount(),
 			tree.getEdgeCount(),
@@ -347,10 +348,10 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 				ranks.put(v, ranks.get(v) + delta);
 			}
 			
-			//logger.debug("Ranks: {}", ranks);
+			logger.log(Level.FINEST, "Ranks: {0}", ranks);
 		}
 		
-		//logger.debug("Tree: {}", tree);
+		logger.log(Level.FINEST, "Tree: {0}", tree);
 	}
 	
 	private void initRank() {
@@ -592,10 +593,12 @@ public class AKDotLayout<V,E> extends AbstractLayout<V,E> {
 			ord.wmedian(i);
 			ord.transpose(i);
 			ord.updateCrossings();
-			logger.debug("findBestOrdering(): crossings: {}", ord.crossings);
+			logger.log(Level.FINEST, "findBestOrdering(): crossings: {0}",
+									 ord.crossings);
 			if (ord.crossings < bestOrdering.crossings) {
 				bestOrdering = new Ordering(ord);
-				logger.debug("best crossings: {}", bestOrdering.crossings);
+				logger.log(Level.FINEST, "best crossings: {0}",
+										 bestOrdering.crossings);
 			}
 		}
 	}

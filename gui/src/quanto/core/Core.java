@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.n3.nanoxml.IXMLElement;
 import net.n3.nanoxml.IXMLParser;
@@ -17,9 +19,6 @@ import net.n3.nanoxml.StdXMLBuilder;
 import net.n3.nanoxml.StdXMLReader;
 import net.n3.nanoxml.XMLException;
 import net.n3.nanoxml.XMLParserFactory;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import quanto.core.data.AttachedRewrite;
 import quanto.core.data.BangBox;
@@ -38,7 +37,7 @@ import quanto.util.FileUtils;
  */
 public class Core {
 
-	private final static Logger logger = LoggerFactory.getLogger(Core.class);
+	private final static Logger logger = Logger.getLogger("quanto.core");
 
 	private class CoreTheory implements Theory {
 		Map<String, VertexType> types = new HashMap<String, VertexType>();
@@ -173,7 +172,7 @@ public class Core {
 		try {
 			graphBuilder.updateGraphFromXml(graph, xml);
 		} catch (ParseException ex) {
-			logger.error("Failed to parse from core", ex);
+			logger.log(Level.SEVERE, "Failed to parse from core", ex);
 			throw new BadResponseException(
 					"Could not parse the graph XML from the core", xml);
 		}

@@ -5,9 +5,8 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Regulate communications with the back-end. Primarily accessed via wrappers to
@@ -20,8 +19,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class CoreTalker {
 
-	private final static Logger logger = LoggerFactory
-			.getLogger(CoreTalker.class);
+	private final static Logger logger = Logger.getLogger("quanto.core");
 
 	public static String quantoCoreExecutable = "quanto-core";
 
@@ -41,13 +39,14 @@ public abstract class CoreTalker {
 			ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable);
 
 			pb.redirectErrorStream(redirectErrorStream);
-			logger.info("Starting {}...", quantoCoreExecutable);
+			logger.log(Level.FINEST, "Starting {0}...", quantoCoreExecutable);
 			backEnd = pb.start();
-			logger.info("{} started successfully", quantoCoreExecutable);
+			logger.log(Level.FINEST, "{0} started successfully", quantoCoreExecutable);
 		} catch (IOException e) {
-			logger.error("Could not execute {}: " + e.getMessage(),
-					quantoCoreExecutable);
-			logger.error("Error was", e);
+			logger.log(Level.SEVERE,
+					   "Could not execute \"" + quantoCoreExecutable + "\": " +
+					   e.getMessage(),
+					   e);
 			throw new CoreExecutionException(String.format(
 					"Could not execute \"%1$\": %2$", quantoCoreExecutable,
 					e.getMessage()), e);
@@ -77,20 +76,21 @@ public abstract class CoreTalker {
 
 	protected void writeFailure(Throwable e) throws CoreCommunicationException {
 		try {
-			logger.error(
-					"Tried to write to core process, but it has terminated (exit value: {})",
+			logger.log(Level.SEVERE,
+					"Tried to write to core process, but it has terminated (exit value: {0})",
 					backEnd.exitValue());
 			// Not much we can do: throw an exception
 			throw new CoreTerminatedException();
 		} catch (IllegalThreadStateException ex) {
-			logger.error("Failed to write to core process, even though it has not terminated");
+			logger.log(Level.SEVERE,
+					   "Failed to write to core process, even though it has not terminated");
 			throw new CoreCommunicationException();
 		}
 	}
 
 	protected void readFailure(Throwable e) throws CoreCommunicationException {
 		try {
-			logger.error("Core process terminated with exit value {}",
+			logger.log(Level.SEVERE, "Core process terminated with exit value {0}",
 					backEnd.exitValue());
 			throw new CoreTerminatedException(e);
 		} catch (IllegalThreadStateException ex) {
@@ -204,12 +204,12 @@ public abstract class CoreTalker {
 	 */
 	public void destroy() {
 		if (backEnd != null) {
-			logger.info("Shutting down the core process");
+			logger.log(Level.FINEST, "Shutting down the core process");
 			try {
 				quit();
 				new ProcessCleanupThread(backEnd).start();
 			} catch (CoreCommunicationException ex) {
-				logger.warn("Failed to send the quit command to the core");
+				logger.log(Level.WARNING, "Failed to send the quit command to the core");
 			}
 			backEnd = null;
 		}
