@@ -367,7 +367,7 @@ fun have_matching_bboxes pnv tnv st =
     end;
 
 (* move to library? *)
-fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
+fun then_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
 
 (* should be in ograph *)
 local open RGGraph in 

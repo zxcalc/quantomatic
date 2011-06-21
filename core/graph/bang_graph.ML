@@ -155,6 +155,10 @@ val adj_pat_info_bangs :
           * (VtoBoxMap.T  (* bang box to contained adj vertices *)
              * Vertex.NSet.T)) (* other adj vertices *)
 
+(* renaming of bang-box names *)
+structure BBoxCRnm : COMPOUND_RENAMING 
+where type obj = T and type renaming = BBox.Rnm.T
+
 end;
 
 

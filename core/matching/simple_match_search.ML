@@ -92,7 +92,8 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor SimpleMatchSearch(Match : MATCH) : SIMPLE_MATCH_SEARCH
+functor SimpleMatchSearch(Match : MATCH)
+(*  : SIMPLE_MATCH_SEARCH *)
 = struct
 
 (* structure DB_MatchSearch = struct *)
@@ -340,17 +341,29 @@ fun edge_match_adj_to_pedge (pt as (pvn1,tvn1))
      of [] => raise Match.match_exp () (* no matches found for this pat e *)
       | agenda_and_st_choices' => agenda_and_st_choices');
 
-(* match up all adjavent edges of chosen pattern and target vertex *)
+(* match up all adjacent edges of chosen pattern and target vertex *)
 (* raises Match.match_exp on failure *)
 fun edgematch_all_adj (pt as (pvn1,tvn1)) st = 
-    let val adj_list = G.fold_adj (fn te => fn tvn2 => fn l => (te,tvn2)::l)
-                                  (get_unm_tgt st) tvn1 [];
+    let val adj_list = 
+        G.fold_adj (fn te as (ehn,_) => fn tvn2 => fn l => (te,tvn2)::l)
+                   (get_unm_tgt st) tvn1 [];
+        (* TODO: undir edges which are self-loops will always have two matches, one for each directon. Simple-dup removal doesn't work: all half-edges much be matched.  *)
     in 
       G.fold_adj (edge_match_adj_to_pedge pt)
                  (get_unm_pat st) pvn1 [(adj_list,st)]
         |> map snd
         |> Seq.of_list
     end;
+(* simple dup-removal for above does not work! Simple-dup removal doesn't work: all half-edges much be matched. 
+(fn te as (ehn,_) => fn tvn2 => fn (l,eset) => 
+                    let val e = E.Ehn.get_ename ehn in 
+                      if (E.NSet.contains eset e) 
+                      then (l,eset) ** avoid counting self-loop-edges twice **
+                      else ((te,tvn2)::l, E.NSet.add e eset) end)
+                   (get_unm_tgt st) tvn1 ([],E.NSet.empty);
+*)
+
+
 
 (* copy a single bang-box *)
 fun copy1_pat_bbox bbn st = 

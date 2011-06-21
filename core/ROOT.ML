@@ -91,7 +91,6 @@ PolyML.Project.make "io/test/test_graph_io.ML";
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
-
 (* naive match search implementation, find symmetric cases *)
 PolyML.Project.make "matching/simple_match_search.ML";
 (* substitution of a matched subgraph for another graph *)
@@ -100,6 +99,7 @@ PolyML.Project.make "rewriting/graph_subst.ML";
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 (* TESTS *)
 PolyML.Project.make "matching/test/matching.ML";
+PolyML.Project.make "matching/test/matching2.ML";
 PolyML.Project.make "rewriting/test/ruleset_rewriting.ML";
 PolyML.Project.make "matching/test/simple_match_search.ML";
 
@@ -108,8 +108,6 @@ PolyML.Project.make "theories/graphical_theory.ML";
 
 (* construct the red-green IO *)
 PolyML.Project.make "theories/red_green/io.ML";
-
-
 
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";

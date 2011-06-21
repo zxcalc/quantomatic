@@ -45,7 +45,7 @@ fun test testname f x =
         (for quick knowledfe of which test raised an exception...) *)
       Log.log 0 ("From file: " ^ (PolyML.Project.string_of_current_filename()));
       Log.log 0 ("Running Test: '" ^ testname ^ "' (" ^test_num_str^ ")");
-      SOME (f x) handle e => 
+      ((SOME (PolyML.exception_trace (fn () => (f x)))) handle e => 
              (Log.log 0 ("Test named '"^testname^"' (" ^test_num_str
                          ^") failed :"^ (PolyML.makestring e));
               tests_failed_ref := (
@@ -53,7 +53,7 @@ fun test testname f x =
                   test = testname,
                   id = (!test_num_ref),
                   err_exn = e } :: (!tests_failed_ref));
-              NONE)
+              NONE))
     end;
 
 exception failed_tests_exp of failure list;

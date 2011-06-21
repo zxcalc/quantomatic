@@ -60,7 +60,7 @@ signature GRAPH_PARAM
   
   (* Dependencies between vertex and edge names and internal-names (in the 
      vertex/edge data) e.g. relating angle variable-names to vertex names in
-     which that variable occurs. Can be used to define vertices that are not commutative internal wiring of vertex can be dependent on edge names entereing the vertex. *)
+     which that variable occurs. Can be used to define vertices that are not commutative internal wiring of vertex can be dependent on edge names entereing the vertex. Actually: it would be better to change the vertex type to being a list of sets if we really want non-commutative matching. Maybe drop this? This also conflicts with the ability to do compound renaming in matches: matches don't have the internal data for a vertex. I guess it could be added, but it would be rather complicated. *)
   type T
   
   (* no vertex names, no internal variable names *)

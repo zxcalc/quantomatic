@@ -355,14 +355,14 @@ fun have_matching_bboxes pnv tnv st =
     end;
 
 (* move to library? *)
-fun and_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
+fun then_try f1 f2 x = (case f1 x of NONE => NONE | SOME x2 => f2 x2);
 
 (* match edges between two vertices and add new matching to the agenda *)
 fun edgematch_adj_2vs (p as ((from_pv as (from_pn, from_pd))))
                       to_pn
                       (t as ((from_tn, _)))
                       to_tn st =
-    (case st |> and_try (match_bboxes to_pn to_tn)
+    (case st |> then_try (match_bboxes to_pn to_tn)
                         (try_add1_to_agenda (to_pn,to_tn))
       of SOME st2 => 
          let 

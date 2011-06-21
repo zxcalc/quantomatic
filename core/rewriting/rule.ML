@@ -30,6 +30,9 @@ signature BASIC_RULE
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
   
+  val rename : (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T *  Graph.BBox.Rnm.T) -> T 
+            -> (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T * Graph.BBox.Rnm.T) * T
+
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
   
@@ -270,6 +273,21 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
       of NONE => false
        | _ => true);
 *)
+
+fun rename (vrn,ern,brn) rule = 
+    let 
+      val (vrn,lhs) = Graph.VertexCRnm.rename vrn (get_lhs rule);
+      val (ern,lhs) = Graph.EdgeCRnm.rename ern lhs;
+      val (brn,lhs) = Graph.BBoxCRnm.rename brn lhs;
+      
+      val (vrn,rhs) = Graph.VertexCRnm.rename vrn (get_rhs rule);
+      val (ern,rhs) = Graph.EdgeCRnm.rename ern rhs;
+      val (brn,rhs) = Graph.BBoxCRnm.rename brn rhs;
+    in
+      (* TODO: rename automorphism info; avoid re-creation. *)
+      ((vrn,ern,brn), mk (lhs,rhs))
+    end;
+
 
 fun pretty (Rule rep) = 
     Pretty.chunks 

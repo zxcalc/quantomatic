@@ -33,7 +33,7 @@ sig
 
   (* low-level *)
   val applicable_rules' : Ruleset.T (* background ruleset *)
-      -> (Rule.T -> Rule.Graph.T -> Match.T Seq.seq) (* matcher *)
+      -> (Rule.T -> Rule.Graph.T -> Rule.T * Match.T Seq.seq) (* matcher *)
       -> RuleName.NSet.T (* subset of rules to use *) 
       -> Rule.Graph.T (* graph to look for matches of rules in *)
       -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
@@ -43,12 +43,12 @@ sig
      expanded. *)
   val instantiate_rule : Match.T -> Rule.T -> Rule.T; 
 
-  (* check how a single rule matches *)
-  val rule_matches : Rule.T -> Rule.Graph.T -> Match.T Seq.seq
+  (* check how a single rule matches (rule is renamed) *)
+  val rule_matches : Rule.T -> Rule.Graph.T -> (Rule.T * Match.T Seq.seq)
   
-  (* funny order is because we create a rule-matcher and use it in applicable_rules' *)
+  (* funny order is because we create a rule-matcher and use it in applicable_rules' (rule is renamed) *)
   val rule_matches_within : Rule.Graph.Vertex.NSet.T -> Rule.T -> Rule.Graph.T  
-      -> Match.T Seq.seq
+      -> (Rule.T * Match.T Seq.seq)
 end;
 
 (* *)
@@ -75,24 +75,35 @@ struct
 
   fun rule_matches r g =
       let
+        val rnms = 
+            (V.Rnm.mk_from_avoids (G.get_vnames g),
+             E.Rnm.mk_from_avoids (G.get_enames g),
+             BBox.Rnm.mk_from_avoids (G.get_bbnames g))
+        val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val gs = [lhs, g]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
            fold G.add_to_bbnames gs BBox.NSet.empty)
-      in MatchSearch.match names lhs g end;
-        
+      in (r,MatchSearch.match names lhs g) end;
+
+  (* TODO: no need to rename-apart the rule: matching removes the tgt of the match: it is independent of the rule. Instead, we should be providing a way to rename-apart the rule and match to correspond to a given target (so that we can display a nice picture where they look the same) *)
   fun rule_matches_within vset r g  = 
       let 
+        val rnms = 
+            (V.Rnm.mk_from_avoids (G.get_vnames g),
+             E.Rnm.mk_from_avoids (G.get_enames g),
+             BBox.Rnm.mk_from_avoids (G.get_bbnames g))
+        val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val gs = [lhs, g]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
            fold G.add_to_bbnames gs BBox.NSet.empty)
-      in MatchSearch.match names lhs 
-          (G.matched_subgraph_within_vset vset g) 
+      in (r, MatchSearch.match names lhs 
+              (G.matched_subgraph_within_vset vset g)) 
       end;
   
   (* instantiate rule with a match *)
@@ -106,21 +117,24 @@ struct
   fun applicable_rules' rset matcher rnset g = 
       RuleName.NSet.fold 
       (fn n =>
-          let val r = Ruleset.get_rule rset n
+          let val (r,matches) = matcher (Ruleset.get_rule rset n) g 
           in Seq.append 
             (Seq.map 
               (fn m => 
                ((n,instantiate_rule m r),
                 GraphSubst.rewrite g (Rule.get_lhs r) m (Rule.get_rhs r))) 
-               (matcher r g))
+               matches)
            end)
        rnset
        Seq.empty;
   
-  fun apply rset g = applicable_rules' rset rule_matches (Ruleset.get_active rset) g;
+  fun apply rset g = 
+      applicable_rules' rset rule_matches 
+       (Ruleset.get_active rset) g;
 
   fun apply_in rset g vset = 
-      applicable_rules' rset (rule_matches_within vset) (Ruleset.get_active rset) g;
+      applicable_rules' rset (rule_matches_within vset) 
+        (Ruleset.get_active rset) g;
   
   (* apply just first rule that can be applied *)
   fun apply_first rset g = 

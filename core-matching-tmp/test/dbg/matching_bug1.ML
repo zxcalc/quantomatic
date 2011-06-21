@@ -80,7 +80,7 @@ val [to_pn1,to_pn2] = Vertex.NSet.list_of pns;
 val to_pn = to_pn1;
 
 (* edgematch_adj_2vs *)
-val st2 = st |> and_try (match_bboxes to_pn to_tn)
+val st2 = st |> then_try (match_bboxes to_pn to_tn)
                         (try_add1_to_agenda (to_pn,to_tn))
 print st2;
 

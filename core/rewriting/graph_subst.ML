@@ -57,7 +57,7 @@ functor GraphSubstFun(Match : MATCH)
 
   fun datasubst_and_remove_match m g = 
        let val internal_matched_vns = 
-              V.InjEndo.get_domset (Match.get_viso m);
+              V.InjEndo.get_codset (Match.get_viso m);
       in 
         (* rename rhs to avoid names of "g", except for rhs  *)
         g |> V.NSet.fold G.delete_vertex internal_matched_vns 

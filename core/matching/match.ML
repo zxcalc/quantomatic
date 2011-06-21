@@ -109,7 +109,21 @@ signature MATCH
                       * G.Edge.name G.Edge.NTab.T) (* edge copying *)
                  * G.BBox.name) (* new bbox name *) 
                 -> T -> T;
-  
+
+  (* Renaming *)
+  val try_rename1_tgt_vname : G.Vertex.name -> G.Vertex.name 
+                              -> T -> T option; 
+  val try_rename1_pat_vname : G.Vertex.name -> G.Vertex.name 
+                              -> T -> T option; 
+
+  (* Compound renaming *)
+  structure PatVertexCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = G.Vertex.Rnm.T;
+  structure TgtVertexCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = G.Vertex.Rnm.T;
+  (* TODO: add renaming for vertices and bboxes *)
+
+  (* Pretty printing *)
   val pretty : T -> Pretty.T
   val print : T -> unit
 end;
@@ -135,7 +149,7 @@ functor Match(G : BANG_GRAPH) : MATCH
             names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
             (* Internal vertex bijection from pat to tgt *)
             viso : V.InjEndo.T,
-            (* map for boundary vertices pat to tgt vertices  *)
+            (* map for external vertices: (many to 1) pat to tgt vertices  *)
             evmap: V.Map.T,
             (* 1-1, inj half-edge mapping *)
             emap: EMap.T,
@@ -214,8 +228,11 @@ functor Match(G : BANG_GRAPH) : MATCH
   val get_bbnames = #3 o get_names;
 
   fun get_subst (Match rep) = #subst rep;
+
   val set_names = update_names o K;
   val set_subst = update_subst o K;
+  val set_viso = update_viso o K;
+  val set_evmap = update_evmap o K;
   
   fun get_bbmatch (Match rep) = #bbmatch rep;
   val get_bbmap = BBMatch.get_bbmap o get_bbmatch;
@@ -225,6 +242,68 @@ functor Match(G : BANG_GRAPH) : MATCH
   val add_bbox_map = update_bbmatch oo BBMatch.add_bbmap;
   val add_bbox_copy = update_bbmatch o BBMatch.add_copy;
   
+  fun add_vname n = update_names (fn (vns,ens,bns) => 
+                                     (V.NSet.add n vns,ens,bns));
+  fun add_ename n = update_names (fn (vns,ens,bns) => 
+                                     (vns,E.NSet.add n ens,bns));
+  fun add_bname n = update_names (fn (vns,ens,bns) => 
+                                     (vns,ens,BBox.NSet.add n bns));
+
+  (* renaming *)
+  (* TODO: rename within the bang-box *)
+  fun try_rename1_tgt_vname n1 n2 m =
+      (case (V.InjEndo.try_rename1_cod n1 n2 (get_viso m)) of NONE => NONE
+       | SOME viso2 => 
+      (case (V.Map.try_rename1_cod n1 n2 (get_evmap m)) of NONE => NONE
+       | SOME evmap2 => 
+       SOME (m |> set_viso viso2 |> set_evmap evmap2 |> add_vname n2)));
+
+  fun try_rename1_pat_vname n1 n2 m =
+      (case (V.InjEndo.try_rename1_dom n1 n2 (get_viso m)) of NONE => NONE
+       | SOME viso2 => 
+      (case (V.Map.try_rename1_dom n1 n2 (get_evmap m)) of NONE => NONE
+       | SOME evmap2 => 
+       SOME (m |> set_viso viso2 |> set_evmap evmap2 |> add_vname n2)));
+
+  (* TODO: add renamings for edges and bboxes *)
+  (* 
+  fun try_rename1_tgt_ename n1 n2 m =
+  fun try_rename1_pat_ename n1 n2 m =
+  fun try_rename1_tgt_bname n1 n2 m =
+  fun try_rename1_pat_bname n1 n2 m =
+  *)
+
+  (* compound renamings pat and tgt vertices *)
+  structure TgtVertexCRnm = CompoundRenamingFun(
+  struct 
+    structure Nm = V
+    type obj = T
+    val try_rename1 = try_rename1_tgt_vname;
+    val get_nameset = get_vnames
+  end);
+  
+  structure PatVertexCRnm = CompoundRenamingFun(
+  struct 
+    structure Nm = V
+    type obj = T
+    val try_rename1 = try_rename1_pat_vname;
+    val get_nameset = get_vnames
+  end);
+  
+
+  (* TODO: add: 
+  structure PatEdgeCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = G.Edge.Rnm.T
+  structure PatBBoxCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = G.BBox.Rnm.T
+
+  structure TgtEdgeCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = G.Edge.Rnm.T
+  structure TgtBBoxCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = G.BBox.Rnm.T
+  *)
+
+
   (* True iff egde map already contains this mapping *)
   fun emap_contains m peh_teh = 
       EMap.contains (get_emap m) peh_teh;
@@ -318,18 +397,31 @@ functor Match(G : BANG_GRAPH) : MATCH
         (V.Map.get_codtab (get_evmap m))
         g;
 
-  (*  *)      
-  fun rename_matched_internal_vs m g =
-      snd (G.VertexCRnm.rename   
-        (V.Rnm.mk_from_nmap (V.InjEndo.get_domtab (get_viso m))) g); 
+  (* rename all vertices in the subst graphs - that is the pattern (lhs) and it's replacement (rhs), and in the match accordingly. This is in order that the substitution graph and match can be displayed in the same name-space as the target graph. (e.g. for highlighting the part of the graph being matched/replaced) *)      
+  (* fun rename_match_and_subst_graphs (m,g_lhs,g_rhs) =
+      let 
+        val (vnames, enames, bnames) = (get_names m)
+
+        val (vrn,g) = 
+            g |> G.VertexCRnm.rename vrn
+            g |> G.EdgeCRnm.rename (G.BBox.Rnm.init_from_avoids bnames);
+            (brn,g) |> G.BBoxCRnm.rename (BBox.Rnm.init_from_avoids bnames);
+
+        val m2 = 
+            m |> PatVertexCRnm.do_renaming vrn
+              |> PatVertexCRnm.do_renaming ern
+              |> PatVertexCRnm.do_renaming brn;
+      in 
+        (m2, g2)
+      end;
+   *)
 
   (* instantiate a graph using the match, produces exactly the matched lhs
-     component, or equivalently *)
+     component, or equivalently. TODO: edge names? *)
   fun inst_pat_graph m g = 
-      g |> BBMatch.inst_pat_bbox_match (get_bbmatch m)
-        |> rename_matched_internal_vs m
-        |> rename_and_merge_edgepoint_vertices m
-        |> datasubst m;
+        g |> BBMatch.inst_pat_bbox_match (get_bbmatch m)
+          |> rename_and_merge_edgepoint_vertices m
+          |> datasubst m;
 
   (* instantiate a substitution graph for the match: expand !-boxes, etc,
      keeping id map on names of boundary. 
@@ -339,7 +431,9 @@ functor Match(G : BANG_GRAPH) : MATCH
      there will be no name-clash, except at the intended bits (edge-points to 
      be merged)
   *)
-  fun inst_replacement_graph m g = 
+  (* I thought I could get away with dynamic renaming of the graph; but giving up on that for now. And instead will assume (next function) that g is name-fresh from tgt. This is the old function: 
+
+   fun inst_replacement_graph m g = 
       let 
         val (vrn,g) =
           g|> G.VertexCRnm.rename (V.Rnm.mk_from_avoids (get_vnames m));
@@ -348,6 +442,17 @@ functor Match(G : BANG_GRAPH) : MATCH
         val ((vnames,enames),g) = 
           ((V.Rnm.get_avoids vrn,E.Rnm.get_avoids ern),g) |> 
           BBMatch.inst_replacement_bbox_match (get_bbmatch m);
+        val m' = m |> set_names (vnames,enames,get_bbnames m); 
+      in g |> rename_and_merge_edgepoint_vertices m'
+           |> datasubst m'
+      end;
+  *)
+
+  fun inst_replacement_graph m g = 
+      let
+        val ((vnames,enames),g) = 
+            BBMatch.inst_replacement_bbox_match (get_bbmatch m)
+              ((get_vnames m,get_enames m),g)
         val m' = m |> set_names (vnames,enames,get_bbnames m); 
       in g |> rename_and_merge_edgepoint_vertices m'
            |> datasubst m'

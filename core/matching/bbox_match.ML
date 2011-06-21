@@ -83,7 +83,7 @@ structure BBox = G.BBox;
 structure BBMap = NameMapFun(structure Dom = BBox and Cod = BBox);
 
 (* Note merging of bboxes is implicit from the map. 
-   a match is 1. copy bboxes, kill some bboxes, drop some, and finally 
+   a match is: copy bboxes, kill some bboxes, drop some, and finally 
    map to tgt what's left. 
 *)
 datatype T = BBoxMatch of
