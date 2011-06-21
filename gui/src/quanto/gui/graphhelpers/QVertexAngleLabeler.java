@@ -19,26 +19,33 @@ import quanto.core.data.Vertex;
  * @author alemer
  */
 public class QVertexAngleLabeler implements VertexLabelRenderer {
+	private JLabel dummyLabel = new JLabel();
+	private JLabel realLabel = new JLabel();
+
 	public QVertexAngleLabeler() {
+		realLabel.setOpaque(true);
 	}
 
 	public <T> Component getVertexLabelRendererComponent(JComponent vv,
 			Object value, Font font, boolean isSelected, T vertex) {
 
-		if (value != null && vertex instanceof Vertex) {
-			Vertex v = (Vertex) vertex;
-			if (v.isBoundaryVertex()) {
-				return new JLabel();
-			}
-			JLabel lab = new JLabel(value.toString());
-			Color colour = v.getVertexType().getVisualizationData().getLabelColour();
-			if (colour != null) {
-				lab.setBackground(colour);
-				lab.setOpaque(true);
-			}
-			return lab;
+		if (value == null) {
+			return dummyLabel;
 		} else {
-			return new JLabel("");
+			realLabel.setBackground(Color.white);
+			if (vertex instanceof Vertex) {
+				Vertex v = (Vertex) vertex;
+				// we render boundary labels differently
+				if (v.isBoundaryVertex()) {
+					return dummyLabel;
+				}
+				Color colour = v.getVertexType().getVisualizationData().getLabelColour();
+				if (colour != null) {
+					realLabel.setBackground(colour);
+				}
+			}
+			realLabel.setText(value.toString());
+			return realLabel;
 		}
 	}
 }

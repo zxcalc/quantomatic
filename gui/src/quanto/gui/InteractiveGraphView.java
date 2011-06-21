@@ -97,34 +97,22 @@ public class InteractiveGraphView
 	private class QVertexLabeler implements VertexLabelRenderer {
 
 		Map<Vertex, Labeler> components;
-		Map<Object, JLabel> dummyLabels;
+		JLabel dummyLabel = new JLabel();
+		JLabel realLabel = new JLabel();
 
 		public QVertexLabeler() {
 			components = new HashMap<Vertex, Labeler>();
-			dummyLabels = new HashMap<Object, JLabel>();
-		}
-		
-		private JLabel getDummy(Object vertex) {
-				JLabel c = dummyLabels.get(vertex);
-				if (c == null) {
-					c = new JLabel();
-					dummyLabels.put(vertex, c);
-				}
-				c.setText("");
-				return c;
+			realLabel.setOpaque(true);
+			realLabel.setBackground(Color.white);
 		}
 
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
-			if (value == null)
-			{
-				return getDummy(vertex);
-			}
-			else if (vertex instanceof Vertex)
+			if (vertex instanceof Vertex)
 			{
 				final Vertex qVertex = (Vertex) vertex;
 				if (qVertex.isBoundaryVertex() || !qVertex.getVertexType().hasData()) {
-					return getDummy(vertex);
+					return dummyLabel;
 				}
 
 				Point2D screen = viewer.getRenderContext().
@@ -159,9 +147,7 @@ public class InteractiveGraphView
 					});
 				}
 				
-				if (!labeler.getText().equals(label)) {
-					labeler.setText(label);
-				}
+				labeler.setText(label);
 				
 				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
@@ -172,15 +158,16 @@ public class InteractiveGraphView
 					labeler.setBounds(rect);
 				}
 
-				return labeler;
+				return dummyLabel;
+			}
+			else if (value != null)
+			{
+				realLabel.setText(value.toString());
+				return realLabel;
 			}
 			else
 			{
-				JLabel label = getDummy(vertex);
-				label.setText(value.toString());
-				label.setOpaque(true);
-				label.setBackground(Color.white);
-				return label;
+				return dummyLabel;
 			}
 		}
 
