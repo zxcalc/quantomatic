@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,12 +14,11 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import net.n3.nanoxml.IXMLElement;
-import net.n3.nanoxml.IXMLParser;
-import net.n3.nanoxml.StdXMLBuilder;
-import net.n3.nanoxml.StdXMLReader;
-import net.n3.nanoxml.XMLException;
-import net.n3.nanoxml.XMLParserFactory;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 import quanto.core.data.AttachedRewrite;
 import quanto.core.data.BangBox;
@@ -28,6 +28,13 @@ import quanto.core.data.Edge;
 import quanto.core.data.Rule;
 import quanto.core.data.Vertex;
 import quanto.core.data.VertexType;
+import quanto.core.xml.AttachedRewriteListFragmentHandler;
+import quanto.core.xml.EdgeFragmentHandler;
+import quanto.core.xml.EdgeFragmentHandler.EdgeData;
+import quanto.core.xml.FragmentHandler;
+import quanto.core.xml.GraphFragmentHandler;
+import quanto.core.xml.SAXFragmentAdaptor;
+import quanto.core.xml.VertexFragmentHandler;
 import quanto.util.FileUtils;
 
 /**
@@ -60,9 +67,29 @@ public class Core {
 	}
 
 	private CoreTalker talker;
-	private GraphBuilder graphBuilder;
 	private CoreTheory activeTheory;
-    private Ruleset ruleset;
+	private Ruleset ruleset;
+
+    	private <T> T parseXml(String xml, FragmentHandler<? extends T> handler) throws CoreException {
+		try {
+			InputSource source = new InputSource(new StringReader(xml));
+			XMLReader reader = XMLReaderFactory.createXMLReader();
+			SAXFragmentAdaptor<T> adaptor = new SAXFragmentAdaptor<T>(handler);
+			reader.setContentHandler(adaptor);
+			reader.parse(source);
+			return adaptor.getResult();
+		} catch (SAXParseException ex) {
+			logger.log(Level.SEVERE, "Failed to parse from core", ex);
+			throw new CoreCommunicationException("Could not parse XML from the core", ex);
+		} catch (SAXException ex) {
+			logger.log(Level.SEVERE, "Error when parsing XML", ex);
+			throw new CoreCommunicationException("Failed to parse XML", ex);
+		} catch (IOException ex) {
+			// this should never happen!
+			logger.log(Level.SEVERE, "Error when reading from a String", ex);
+			throw new CoreCommunicationException("Failed to read XML from String", ex);
+		}
+	}
 
 	public Core(CoreTalker talker, ArrayList<VertexType> vertices) {
 		this.talker = talker;
@@ -71,8 +98,7 @@ public class Core {
 		for(VertexType v: vertices)
 			this.activeTheory.addVertexType(v);
 		
-		this.graphBuilder = new GraphBuilder(activeTheory);
-        this.ruleset = new Ruleset(this);
+		this.ruleset = new Ruleset(this);
 	}
 
 	public Core(ArrayList<VertexType> vertices) throws CoreException {
@@ -104,43 +130,6 @@ public class Core {
 		return ns;
 	}
 	
-	protected List<AttachedRewrite<CoreGraph>> parseRewrites(CoreGraph graph,
-			String xml) throws ParseException {
-		List<AttachedRewrite<CoreGraph>> rewrites = new ArrayList<AttachedRewrite<CoreGraph>>();
-		try {
-			IXMLParser parser = XMLParserFactory
-					.createDefaultXMLParser(new StdXMLBuilder());
-			parser.setReader(StdXMLReader.stringReader(xml));
-			IXMLElement root = (IXMLElement) parser.parse();
-			int i = 0;
-			for (Object obj : root.getChildrenNamed("rewrite")) {
-				IXMLElement rw = (IXMLElement) obj;
-				IXMLElement ruleName = rw.getFirstChildNamed("rulename");
-				if (ruleName == null)
-					throw new XMLException(
-							"<rewrite> must have a <rulename> element");
-				IXMLElement lhs = rw.getFirstChildNamed("lhs")
-						.getFirstChildNamed("graph");
-				IXMLElement rhs = rw.getFirstChildNamed("rhs")
-						.getFirstChildNamed("graph");
-				rewrites.add(new AttachedRewrite<CoreGraph>(graph, i, ruleName
-						.getContent(), graphBuilder.createGraphFromXml(null,
-						lhs), graphBuilder.createGraphFromXml(null, rhs)));
-				++i;
-
-			}
-		} catch (XMLException e) {
-			throw new ParseException(e.getMessage(), e);
-		} catch (ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		} catch (InstantiationException e) {
-			throw new RuntimeException(e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
-		return rewrites;
-	}
-
 	public CoreTalker getTalker() {
 		return talker;
 	}
@@ -169,13 +158,7 @@ public class Core {
 
 	public void updateGraph(CoreGraph graph) throws CoreException {
 		String xml = talker.graph_xml(graph.getCoreName());
-		try {
-			graphBuilder.updateGraphFromXml(graph, xml);
-		} catch (ParseException ex) {
-			logger.log(Level.SEVERE, "Failed to parse from core", ex);
-			throw new BadResponseException(
-					"Could not parse the graph XML from the core", xml);
-		}
+		parseXml(xml, new GraphFragmentHandler(activeTheory, graph));
 	}
 
 	public enum RepresentationType {
@@ -213,36 +196,21 @@ public class Core {
 
 	public Vertex addVertex(CoreGraph graph, VertexType vertexType)
 			throws CoreException {
-		assertCoreGraph(graph);
-		try
-		{
-			return graphBuilder.addVertexFromXml(graph,
-						talker.add_vertex(graph.getCoreName(),
-										  vertexType.getTypeName()));
-		}
-		catch ( ParseException ex )
-		{
-			throw new BadResponseException("Core gave bad vertex XML");
-		}
+		return addVertex(graph, vertexType.getTypeName());
 	}
 
 	public Vertex addVertex(CoreGraph graph, String vertexType)
 			throws CoreException {
-		return addVertex(graph, activeTheory.getVertexType(vertexType));
+		assertCoreGraph(graph);
+		String xml = talker.add_vertex(graph.getCoreName(), vertexType);
+		Vertex v = this.<Vertex>parseXml(xml, new VertexFragmentHandler(activeTheory));
+		graph.addVertex(v);
+		graph.fireStateChanged();
+		return v;
 	}
 
 	public Vertex addBoundaryVertex(CoreGraph graph) throws CoreException {
-		assertCoreGraph(graph);
-		try
-		{
-			return graphBuilder.addVertexFromXml(graph,
-							talker.add_vertex(graph.getCoreName(),
-							"edge-point"));
-		}
-		catch ( ParseException ex )
-		{
-			throw new BadResponseException("Core gave bad vertex XML");
-		}
+		return addVertex(graph, "edge-point");
 	}
 
 	public void renameVertex(CoreGraph graph, Vertex vertex,
@@ -273,17 +241,19 @@ public class Core {
 	public Edge addEdge(CoreGraph graph, Vertex source, Vertex target)
 			throws CoreException {
 		assertCoreGraph(graph);
-		try
-		{
-			return graphBuilder.addEdgeFromXml(graph,
-							talker.add_edge(graph.getCoreName(),
-							source.getCoreName(),
-							target.getCoreName()));
-		}
-		catch ( ParseException ex )
-		{
-			throw new BadResponseException("Core gave bad vertex XML");
-		}
+		String xml = talker.add_edge(graph.getCoreName(),
+					     source.getCoreName(),
+					     target.getCoreName());
+		EdgeData e = this.<EdgeData>parseXml(xml, new EdgeFragmentHandler());
+
+		if (!source.getCoreName().equals(e.sourceName))
+			throw new CoreException("Source name from core did not match what we sent");
+		if (!target.getCoreName().equals(e.targetName))
+			throw new CoreException("Target name from core did not match what we sent");
+
+		graph.addEdge(e.edge, source, target);
+		graph.fireStateChanged();
+		return e.edge;
 	}
 
 	public void deleteEdges(CoreGraph graph, Collection<Edge> edges)
@@ -482,12 +452,10 @@ public class Core {
 
 	public List<AttachedRewrite<CoreGraph>> getAttachedRewrites(CoreGraph graph)
 			throws CoreException {
-		try {
-			String xml = talker.show_rewrites(graph.getCoreName());
-			return parseRewrites(graph, xml);
-		} catch (ParseException ex) {
-			throw new BadResponseException("Core gave bad rewrite XML");
-		}
+		String xml = talker.show_rewrites(graph.getCoreName());
+		AttachedRewriteListFragmentHandler handler =
+			new AttachedRewriteListFragmentHandler(activeTheory, graph);
+		return this.<List<AttachedRewrite<CoreGraph>>>parseXml(xml, handler);
 	}
 
 	public void applyAttachedRewrite(CoreGraph graph, int i)
