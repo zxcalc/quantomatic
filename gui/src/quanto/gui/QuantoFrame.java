@@ -14,7 +14,7 @@ import javax.swing.*;
 import org.xml.sax.SAXException;
 
 import quanto.core.CoreException;
-import quanto.core.TheoryParser;
+import quanto.core.xml.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {

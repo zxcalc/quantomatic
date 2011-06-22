@@ -1,4 +1,4 @@
-package quanto.core;
+package quanto.core.xml;
 
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLFilterImpl;
@@ -19,10 +19,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 
-import javax.swing.JOptionPane;
 
 public class TheoryParser {
-
 	private InputSource theoryInputSource;
 	private String theoryFilePath;
 	private ArrayList<VertexType> theoryVertices;
@@ -35,19 +33,12 @@ public class TheoryParser {
 		this.theoryInputSource = new InputSource(theoryFilePath);
 		this.theoryVertices = new ArrayList<VertexType>();
 
-		try {
-			XMLReader reader = XMLReaderFactory.createXMLReader();
+		XMLReader reader = XMLReaderFactory.createXMLReader();
 
-			reader.setContentHandler(new TheoryDataProcessor(this));
-			reader.setErrorHandler(new TheoryErrorProcessor());
+		reader.setContentHandler(new TheoryDataProcessor(this));
+		reader.setErrorHandler(new TheoryErrorProcessor());
 
-			reader.parse(this.theoryInputSource);
-
-		} catch(SAXException se) {
-			throw new SAXException(se);
-		} catch(IOException ioe) {
-			throw new IOException(ioe);
-		}
+		reader.parse(this.theoryInputSource);
 	}
 
 	public ArrayList<VertexType> getTheoryVertices() {
@@ -94,8 +85,9 @@ class TheoryDataProcessor extends DefaultHandler
 		this.theoryParser = theoryParser;
 	}
 
+	@Override
 	public void startElement (String namespaceUri, String localName,
-			String qualifiedName, Attributes attributes) {
+			String qualifiedName, Attributes attributes) throws SAXException {
 		if(localName.equals("theory")) {
 			this.theoryName = attributes.getValue("name");
 			this.implementedTheoryName = attributes.getValue("implements");
@@ -120,9 +112,9 @@ class TheoryDataProcessor extends DefaultHandler
 			File tmp = new File(theoryParser.getTheoryFilePath());
 			File tmp2 = new File(tmp.getParent() + "/" + attributes.getValue("svgFile"));
 			try {
-				this.svgFileURL = tmp2.toURL();
+				this.svgFileURL = tmp2.toURI().toURL();
 			} catch (MalformedURLException e) {
-				e.printStackTrace();
+				throw new SAXParseException("Malformed URL for SVG file", null);
 			}
 		} else if (localName.equals("svg")) {
 			/*
@@ -133,8 +125,9 @@ class TheoryDataProcessor extends DefaultHandler
 		}
 	}
 
+	@Override
 	public void endElement (String namespaceUri, String localName,
-			String qualifiedName) {
+			String qualifiedName) throws SAXException {
 		if(localName.equals("visualization")) {
 			theoryParser.addVertex(new VertexType.GenericVertexType(this.vertexName, this.dataType, 
 					new SvgVertexVisualizationData(
@@ -157,15 +150,18 @@ class TheoryErrorProcessor extends DefaultHandler
 		super();
 	}
 
-	public void error (SAXParseException e) throws SAXParseException {
+	@Override
+	public void error (SAXParseException e) throws SAXException {
 		throw new SAXParseException("Error", null, e);
 	}
 
-	public void fatalError (SAXParseException e) throws SAXParseException {
+	@Override
+	public void fatalError (SAXParseException e) throws SAXException {
 		throw new SAXParseException("Fatal error", null, e);
 	}
 
-	public void warning (SAXParseException e) throws SAXParseException {
+	@Override
+	public void warning (SAXParseException e) throws SAXException {
 		throw new SAXParseException("Warning", null, e);
 	}
 
@@ -183,6 +179,7 @@ class TheoryDataFilter extends XMLFilterImpl
 		this.inSVG = false;
 	}
 
+	@Override
 	public void startElement (String namespaceUri, String localName,
 			String qualifiedName, Attributes attributes)
 	throws SAXException
@@ -201,6 +198,7 @@ class TheoryDataFilter extends XMLFilterImpl
 		}
 	}
 
+	@Override
 	public void endElement (String namespaceUri, String localName,
 			String qualifiedName)
 	throws SAXException

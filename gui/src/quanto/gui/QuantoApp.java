@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 import quanto.core.Core;
 import quanto.core.CoreException;
-import quanto.core.TheoryParser;
+import quanto.core.xml.TheoryParser;
 /**
  * Singleton class 
  * @author aleks
