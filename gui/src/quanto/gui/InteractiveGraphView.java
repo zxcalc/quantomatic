@@ -1,5 +1,7 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.algorithms.layout.Layout;
+import edu.uci.ics.jung.visualization.RenderContext;
 import quanto.core.data.BangBox;
 import quanto.core.data.Vertex;
 import quanto.core.data.Edge;
@@ -38,9 +40,12 @@ import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
 import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingBangBoxGraphMousePlugin;
+import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
+import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
+import java.awt.geom.AffineTransform;
 import java.io.OutputStream;
 import java.util.EventListener;
 import java.util.EventObject;
@@ -49,6 +54,7 @@ import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.Labeler;
+import quanto.gui.graphhelpers.QVertexRenderer;
 
 public class InteractiveGraphView
 	extends InteractiveView
@@ -309,27 +315,11 @@ public class InteractiveGraphView
 		addKeyListener(this);
 		viewer.addKeyListener(this);
 
-		viewer.getRenderContext().setVertexStrokeTransformer(
-			new Transformer<Vertex, Stroke>() {
-
-				public Stroke transform(Vertex v) {
-					if (viewer.getPickedVertexState().isPicked(v)
-						|| isVertexLocked(v)) {
-						return new BasicStroke(2);
-					}
-					else {
-						return new BasicStroke(1);
-					}
-				}
-			});
 		viewer.getRenderContext().setVertexDrawPaintTransformer(
 			new Transformer<Vertex, Paint>() {
 
 				public Paint transform(Vertex v) {
-					if (viewer.getPickedVertexState().isPicked(v)) {
-						return Color.blue;
-					}
-					else if (isVertexLocked(v)) {
+					if (isVertexLocked(v)) {
 						return Color.gray;
 					}
 					else {
@@ -337,7 +327,32 @@ public class InteractiveGraphView
 					}
 				}
 			});
+		viewer.getRenderer().setVertexRenderer(new QVertexRenderer() {
+			@Override
+			public void paintVertex(RenderContext<Vertex, Edge> rc, Layout<Vertex, Edge> layout, Vertex v) {
+				if (rc.getPickedVertexState().isPicked(v)) {
+					Rectangle bounds = rc.getVertexShapeTransformer().transform(v).getBounds();
+					Point2D p = layout.transform(v);
+					p = rc.getMultiLayerTransformer().transform(Layer.LAYOUT, p);
+					float x = (float)p.getX();
+					float y = (float)p.getY();
+					// create a transform that translates to the location of
+					// the vertex to be rendered
+					AffineTransform xform = AffineTransform.getTranslateInstance(x,y);
+					// transform the vertex shape with xtransform
+					bounds = xform.createTransformedShape(bounds).getBounds();
+					bounds.translate(-1, -1);
 
+					GraphicsDecorator g = rc.getGraphicsContext();
+					bounds.grow(3, 3);
+					g.setColor(new Color(200, 200, 255));
+					g.fillRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, 4, 4);
+					g.setColor(Color.BLUE);
+					g.drawRoundRect(bounds.x, bounds.y, bounds.width, bounds.height, 4, 4);
+				}
+				super.paintVertex(rc, layout, v);
+			}
+		});
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
 
