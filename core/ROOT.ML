@@ -140,6 +140,12 @@ PolyML.Project.make "theories/ghz_w/graph.ML";
 PolyML.Project.make "theories/ghz_w/theory.ML";
 PolyML.Project.make "theories/ghz_w/io.ML";
 
+(* rgb specific vertices, graphs, and matching *)
+PolyML.Project.make "theories/red_green_blue/vertex.ML";
+PolyML.Project.make "theories/red_green_blue/graph.ML";
+PolyML.Project.make "theories/red_green_blue/theory.ML";
+PolyML.Project.make "theories/red_green_blue/io.ML";
+
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 
