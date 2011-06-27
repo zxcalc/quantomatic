@@ -53,7 +53,12 @@ body {
 	background-color: #eee;
 }
 
-.rule_label, .rule_arrow {
+.rule_label {
+	text-align: center;
+	font-size: 0.7em;
+}
+
+.rule_arrow {
 	float: left;
 	margin: 2.5em 1em;
 }

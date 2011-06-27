@@ -11,7 +11,7 @@ function addGraph(tag, svg_text) {
 }
 
 function addRule(tag, name, lhs_svg, rhs_svg) {
-    var rule = $('<div class="rule"><div class="rule_label">' + name + ':</div>' +
+    var rule = $('<div class="rule"><div class="rule_label">' + name + '</div>' +
 		 '<div class="graph">' + lhs_svg + '</div>' +
 	         '<div class="rule_arrow">&#x2192;</div>' +
 	         '<div class="graph">' + rhs_svg + '</div>' +

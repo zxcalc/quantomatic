@@ -4,25 +4,24 @@ datatype cosy =
 	 RULE of GHZW_Theory.Rule.T |
 	 ERR of string
 
-val ghzw_data : (GHZW_Theory.Graph.T, GHZW_Theory.Ruleset.T) TheoryData.T = {
+val ghzw_data : (GHZW_Theory.Graph.T, GHZW_Theory.Ruleset.T, GHZW_DefaultSynth.T) TheoryData.T = {
   name = "GHZ/W",
   dotfun = GHZW_OutputGraphDot.output,
   gens = GHZW_Gens.gen_list 4 [GHZW_VertexData.GHZ, GHZW_VertexData.W],
   stats = GHZW_DefaultSynth.stats,
+  class_list = fn synth => GHZW_DefaultSynth.eqclass_fold (cons o (apfst GHZW_TensorData.Tensor.to_string)) synth [],
   rs_pairs =
     (rule_data GHZW_Theory.Rule.get_lhs GHZW_Theory.Rule.get_rhs) o
     GHZW_Theory.Ruleset.get_allrules
 }
 
 fun synth run = SYNTH (GHZW_DefaultSynth.synth (TheoryData.get_gens ghzw_data) run)
+fun synth_with_rs (RS rs) run =
+  SYNTH (GHZW_DefaultSynth.synth_with_rs rs (TheoryData.get_gens ghzw_data) run)
 fun ruleset (SYNTH s) = RS (GHZW_RSBuilder.from_synth s)
 fun update (SYNTH s) (RS rs) = RS (rs |> GHZW_RSBuilder.update s)
 fun reduce (RS rs) = RS (GHZW_RSBuilder.reduce rs)
-fun update_with run (RS rs) =
-  RS (rs |> GHZW_RSBuilder.update
-              (GHZW_DefaultSynth.synth_with_rs
-                 rs (TheoryData.get_gens ghzw_data) run))
-         |> reduce
+fun update_with run rs = rs |> update (synth_with_rs rs run) |> reduce
 fun size (RS rs) = RuleName.NTab.cardinality (GHZW_Theory.Ruleset.get_allrules rs)
 fun rule_matches_rule (RULE r1) (RULE r2) = GHZW_RSBuilder.rule_matches_rule r1 r2
 

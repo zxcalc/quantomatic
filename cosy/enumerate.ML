@@ -1,30 +1,36 @@
 signature GRAPH_ENUMERATOR =
 sig
   structure Graph : BANG_GRAPH
-  structure RulesetRewrites : RULESET_REWRITES
-  sharing RulesetRewrites.Rule.Graph.SharingBangGraph = Graph.SharingBangGraph
+  structure Ruleset : RULESET
+  structure MatchSearch : SIMPLE_MATCH_SEARCH
+  sharing MatchSearch.Match.G.SharingBangGraph =
+          Ruleset.Rule.Graph.SharingBangGraph =
+          Graph.SharingBangGraph
   val fold_graphs : (Graph.T -> 'a -> 'a) -> (* folder *)
                     (Graph.T * int * int) list * (* generators + arities *)
                     int * int * int * int -> (* in, out, max verts, max pluggings *)
                     'a -> (* base case *)
                     'a
-  val fold_graphs_with_rs : RulesetRewrites.Ruleset.T -> (* ruleset *)
+  val fold_graphs_with_rs : Ruleset.T -> (* ruleset *)
                             (Graph.T -> 'a -> 'a) -> (* folder *)
                             (Graph.T * int * int) list * (* generators + arities *)
                             int * int * int * int -> (* in, out, max verts, max pluggings *)
                             'a -> (* base case *)
                             'a
+  val rule_matches_graph : Ruleset.Rule.T -> Graph.T -> bool
+  val has_match : Ruleset.T -> RuleName.NSet.T -> Graph.T -> bool
 end
 
 functor GraphEnumerator (
-  structure Graph : BANG_GRAPH
-  structure RulesetRewrites : RULESET_REWRITES
-  sharing RulesetRewrites.Rule.Graph.SharingBangGraph = Graph.SharingBangGraph
+  structure Ruleset : RULESET
+  structure MatchSearch : SIMPLE_MATCH_SEARCH
+  sharing MatchSearch.Match.G.SharingBangGraph =
+          Ruleset.Rule.Graph.SharingBangGraph
 ) : GRAPH_ENUMERATOR =
 struct
-  structure Graph = Graph
-  structure RulesetRewrites = RulesetRewrites
-  structure Ruleset = RulesetRewrites.Ruleset
+  structure Graph = Ruleset.Rule.Graph
+  structure Ruleset = Ruleset
+  structure MatchSearch = MatchSearch
   (* maintain list of available pluggings *)
   structure Plugs = NameBRelFun(structure Dom=Graph.Vertex and Cod=Graph.Vertex)
   
@@ -50,12 +56,35 @@ struct
   end
   (* fun dft (Lf s) vs = s::vs | dft (Br (s,ch)) vs = s::(fold dft ch vs); *)
   
+  
+  
+  fun rule_matches_graph r g = let
+    val lhs = Ruleset.Rule.get_lhs r
+    val gs = [lhs, g]
+    val names = 
+      (fold Graph.add_to_vnames  gs Graph.Vertex.NSet.empty,
+       fold Graph.add_to_enames  gs Graph.Edge.NSet.empty,
+       fold Graph.add_to_bbnames gs Graph.BBox.NSet.empty)
+    val matches = MatchSearch.match names lhs g
+  in case Seq.pull matches of NONE=>false | _=>true
+  end
+  
+  (*fun has_match rs in_rules target_graph = let
+    val redsets = RuleName.NSet.subdivide (4 * Multithreading.max_threads_value ()) in_rules
+    fun search_reds redset = RuleName.NSet.exists (fn r => rule_matches_graph (Ruleset.get_rule rs r) target_graph) redset
+  in Par_List.exists search_reds redsets
+  end*)
+  
+  fun has_match rs in_rules target_graph =
+    RuleName.NSet.exists (fn r => rule_matches_graph (Ruleset.get_rule rs r) target_graph) in_rules
+  
   fun fold_graphs_with_rs rs f (generators, total_ins, total_outs, max_verts, max_plugs) base = let
-    fun graph_is_reducible gr = case RulesetRewrites.apply_first rs gr of NONE=>false | _=>true
+    (*val rule_list = RuleName.NSet.fold (cons o (Ruleset.get_rule rs)) (Ruleset.get_rules_in_tag rs (TagName.mk "r")) []*)
+    val all_reds = Ruleset.get_rules_in_tag rs (TagName.mk "r")
     fun enum_plugs (gr, ins, plugs, plug_count) accum =
       if (ins < total_ins orelse
           plug_count > max_plugs orelse
-          graph_is_reducible gr) then accum (* return if impossible or not an irredex *)
+          has_match rs all_reds gr) then accum (* return if impossible or already redicible *)
       else (if ins = total_ins then f gr else I)
               (case first_plug plugs
                  of SOME (p,q) =>

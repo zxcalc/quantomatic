@@ -40,12 +40,14 @@ sig
   structure Graph : BANG_GRAPH
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
+  structure TData : TENSOR_DATA
   sharing Graph.SharingBangGraph = Metric.Graph.SharingBangGraph = GraphEnum.Graph.SharingBangGraph
   type rundesc = int * int * int * int
-  type T = rundesc * (Graph.T EqClass.T) Tensor.Tab.table
+  type T = rundesc * (Graph.T EqClass.T) TData.Tensor.Tab.table
   val synth : (Graph.T * int * int) list -> int * int * int * int -> T
-  val synth_with_rs : GraphEnum.RulesetRewrites.Ruleset.T -> (Graph.T * int * int) list -> int * int * int * int -> T
+  val synth_with_rs : GraphEnum.Ruleset.T -> (Graph.T * int * int) list -> int * int * int * int -> T
   val stats : T -> int * int * int
+  val eqclass_fold : (TData.Tensor.T * Graph.T EqClass.T -> 'b -> 'b) -> T -> 'b -> 'b
 end
 
 functor Synthesize (
@@ -57,10 +59,12 @@ functor Synthesize (
           TData.Graph.SharingBangGraph
 ) : SYNTHESIZE =
 struct
+  structure TData = TData
   structure TEval = TensorEval(structure TData=TData)
   structure GraphEnum = GraphEnum
   structure Graph = GraphEnum.Graph
   structure Metric = Metric
+  structure Tensor = TData.Tensor
   
   type rundesc = int * int * int * int
   type T = rundesc * (Graph.T EqClass.T) Tensor.Tab.table
@@ -105,7 +109,7 @@ struct
                    (GraphEnum.fold_graphs_with_rs
                       rs classify (gens,ins,outs,verts,plugs) Tensor.Tab.empty))
   
-  val synth = synth_with_rs GraphEnum.RulesetRewrites.Ruleset.empty
+  val synth = synth_with_rs GraphEnum.Ruleset.empty
   
   fun stats (_,class_tab) =
     Tensor.Tab.fold (fn (_,class) => fn (i,j,k) =>
@@ -113,5 +117,7 @@ struct
                         j + length (EqClass.get_congs class),
                         k + length (EqClass.get_redexes class))
                     ) class_tab (0,0,0)
+  
+  fun eqclass_fold f (_,tab) base = TData.Tensor.Tab.fold f tab base
 end
   

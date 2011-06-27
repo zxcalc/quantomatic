@@ -1,65 +1,66 @@
 signature TENSOR =
 sig
   type T
-  type perm
+  type perm = int list
+  structure Semiring : GCD_SEMIRING
   structure Tab : TABLE
+  sharing type T = Tab.key
   val pow : int -> int -> int
-  val gcd : int -> int -> int
-  val get : T -> (int * int) -> int
+  val get : T -> (int * int) -> Semiring.T
   val dim : T -> int
   val ord : T * T -> order
+  val eq : T * T -> bool
   val lower_index_count : T -> int
   val upper_index_count : T -> int
-  val tensor : (int * int * int) -> int list -> T
-  val tensorf : (int * int * int) -> ((int * int) -> int) -> T
+  val tensor : (int * int * int) -> Semiring.T list -> T
+  val tensorf : (int * int * int) -> ((int * int) -> Semiring.T) -> T
   val id : int -> int -> T
   val to_string : T -> string
   val print : T -> unit
   val product : T -> T -> T
-  val reduce : T -> int * T
-  val all_perms : T -> (perm * perm) Tab.table
-  val normalise : T -> (int * perm * perm) * T
+  val add : T -> T -> T
+  val reduce : T -> (Semiring.T * Semiring.T) * T
+  (*val all_perms : T -> (perm * perm) Tab.table*)
+  val normalise : T -> ((Semiring.T * Semiring.T) * perm * perm) * T
   val contract : (int * int) -> T -> T
   val contract2 : (int * int) -> T -> T -> T
   val compose : T -> T -> T
   val decompose_index : int -> int -> int -> int list
   val recompose_index : int -> int list -> int
-  val scalar_compare : T -> T -> (int * int) option
+  val scalar_compare : T -> T -> (Semiring.T * Semiring.T) option
   val scalar_eq : T -> T -> bool
   val perm_scalar_eq : T -> T -> bool
 end
 
-structure TensorKey : KEY =
+functor TensorKey (Semiring : GCD_SEMIRING) : KEY =
 struct
-  type key = ((int * int * int) * int vector)
+  type key = ((int * int * int) * Semiring.T vector)
   fun ord (  ((d,l,u),v),  ((d1,l1,u1),v1)  ) =
     case (prod_ord int_ord (prod_ord int_ord int_ord)) (  (d,(l,u))  ,  (d1,(l1,u1))  )
-      of EQUAL => Vector.collate int_ord (v,v1)
+      of EQUAL => Vector.collate Semiring.total_ord (v,v1)
        | comp => comp
 end
 
-structure Tensor : TENSOR = 
+functor Tensor (Semiring : GCD_SEMIRING) : TENSOR = 
 struct
-  type T = TensorKey.key
+  structure Semiring = Semiring
+  structure TKey = TensorKey(Semiring)
+  type T = TKey.key
   type perm = int list
-  val ord = TensorKey.ord
-  structure Tab = Table(TensorKey)
+  structure Tab = Table(TKey)
   
-  exception NegativeExponent
-  fun is_zero i = (i = 0)
+  exception negative_exponent_exn of unit
+  exception wrong_size_exn of unit
+  
+  val ord = TKey.ord
+  fun eq (t1,t2) = ord (t1,t2) = EQUAL
   
   (* fast exponentiation *)
   fun pow x 0 = 1
     | pow x 1 = x
-    | pow x n = if n < 0 then raise NegativeExponent else
+    | pow x n = if n < 0 then raise negative_exponent_exn () else
           (if (n mod 2 = 0) then pow (x*x) (n div 2)
                             else x * (pow (x*x) (n div 2)))
-  
-
-  fun gcd a 0 = a
-    | gcd 0 a = a
-    | gcd a b = gcd b (a mod b)
-    
   
     
     
@@ -74,22 +75,35 @@ struct
   in ((d,l,u), Vector.tabulate (pow d (u+l), (fn i => f(i div offset, i mod offset))))
   end
   
-  fun id d n = tensorf (d,n,n) (fn (row,col) => if row=col then 1 else 0)
+  fun id d n = tensorf (d,n,n) (fn (row,col) => if row=col then Semiring.one else Semiring.zero)
   
-  (* reduce to scalar-canonical form *)
-  fun reduce (size, vect) = case Vector.foldr (uncurry gcd) 0 vect
-                                 of 0 => (1, (size,vect))
-                                  | n => (n, (size, Vector.map (fn m => m div n) vect))
+  
+  (* reduce to scalar-canonical form. reduce T = ((a,b), T') ==> a/b T = T' *)
+  fun reduce (size, vect) = let
+    val c = case Vector.find (not o Semiring.is_zero) vect
+              of SOME v => if Semiring.is_real v then Semiring.one
+                           else Semiring.conjugate v
+               | NONE   => Semiring.one
+    val vect' = if Semiring.is_one c then vect else Vector.map ((curry Semiring.times) c) vect
+    val n = Vector.foldr (Semiring.gcd) Semiring.zero vect'
+  in if Semiring.is_zero n then ((Semiring.one, Semiring.one), (size,vect))
+                           else ((c,n), (size, Vector.map (fn m =>Semiring.div_real (m,n)) vect'))
+  end
   
   fun get_from_product t1 (t2 as ((d2, l2, u2), v2)) (row,col) = let
     val uoff = pow d2 u2
     val loff = pow d2 l2
-  in (get t1 (row div uoff, col div loff)) *
-     (get t2 (row mod uoff, col mod loff))
+  in Semiring.times (get t1 (row div uoff, col div loff),
+                     get t2 (row mod uoff, col mod loff))
   end
   
   fun product (t1 as ((d1, l1, u1), v1)) (t2 as ((d2, l2, u2), v2)) =
     tensorf (d1, l1+l2, u1+u2) (get_from_product t1 t2)
+  
+  fun add (t1 as ((d1,l1,u1),v1)) (t2 as ((d2,l2,u2),v2)) =
+    if d1 = d2 andalso l1 = l2 andalso u1 = u2
+    then tensorf (d1,l1,u1) (fn idx => Semiring.plus (get t1 idx, get t2 idx))
+    else raise wrong_size_exn ()
   
   fun decompose_index d len index = let
     fun dec 0 idx = []
@@ -111,10 +125,10 @@ struct
     fun tr (row, col) = let
       val rowdec = decompose_index d (u-1) row
       val coldec = decompose_index d (l-1) col
-      fun sum 0 = 0
-        | sum i = f (recompose_index d (list_ins k (i-1) rowdec),
-                     recompose_index d (list_ins j (i-1) coldec))
-                  + sum (i-1)
+      fun sum 0 = Semiring.zero
+        | sum i = Semiring.plus (f (recompose_index d (list_ins k (i-1) rowdec),
+                                    recompose_index d (list_ins j (i-1) coldec)),
+                                 sum (i-1))
     in sum d
     end
   in
@@ -128,26 +142,17 @@ struct
     contractf (get_from_product t1 t2) (l1+j,k) (d,l1+l2,u1+u2)
     
   fun compose (t2 as ((d,l2,u2),_)) (t1 as ((_,l1,_),_)) = let
-    fun comp_get 0 _ = 0
-      | comp_get n (row,col) = ((get t2 (row,n-1)) * (get t1 (n-1,col))) +
-                               (comp_get (n-1) (row,col))
+    fun comp_get 0 _ = Semiring.zero
+      | comp_get n (row,col) = Semiring.plus (Semiring.times (get t2 (row,n-1), get t1 (n-1,col)),
+                                              comp_get (n-1) (row,col))
   in tensorf (d,l1,u2) (comp_get (pow d l2))
   end
   
-  fun scalar_compare (_,v1) (_,v2) = let
-    val nz1 = Vector.findi (fn (_,n) => not (is_zero n)) v1
-    val nz2 = Vector.findi (fn (_,n) => not (is_zero n)) v2
-  in case (nz1,nz2)
-     of (NONE,NONE) => SOME (1,1)
-      | (NONE,_) => NONE
-      | (_,NONE) => NONE
-      | (SOME (p1,n1), SOME (p2,n2)) =>
-        if (p1 = p2) andalso 
-        (Vector.foldri
-            (fn (i,e,b) => (e*n2 = (Vector.sub (v2,i))*n1) andalso b)
-            true
-            v1) then SOME (n2,n1)
-        else NONE
+  (* scalar_compare T1 T2 = SOME (a,b) ==> a T1 = b T2 *)
+  fun scalar_compare t1 t2 = let
+    val ((a ,b ),t1') = reduce t1
+    val ((a',b'),t2') = reduce t2
+  in if eq (t1',t2') then SOME (Semiring.times (a,b'), Semiring.times (a',b)) else NONE
   end
   
   fun apply_perm perm lst = map (fn i => List.nth (lst,i)) perm
@@ -210,22 +215,23 @@ struct
   end*)
   
   fun all_perms (t as ((d,l,u),_)) = let
-    fun f prow pcol tab = tab |> Tab.update (tensorf (d,l,u) (permrowcol_get t prow pcol), (prow,pcol))
+    fun f prow pcol tab = let
+      val (sc, tens) = reduce (tensorf (d,l,u) (permrowcol_get t prow pcol))
+    in tab |> Tab.update (tens, (sc,prow,pcol))
+    end
   in fold_product f (perms u) (perms l) (Tab.empty)
   end
   
   fun normalise t = let
-    val (s, t') = reduce t
-    val perm_table = all_perms t'
-    val SOME t' = Tab.min_key perm_table
-    val SOME (prow,pcol) = Tab.lookup perm_table t'
-  in ((s, prow, pcol), t')
+    val perm_table = all_perms t
+    val t' = the (Tab.min_key perm_table)
+  in (the (Tab.lookup perm_table t'), t')
   end
   
   fun perm_scalar_eq t1 t2 = let
     val (_,t1') = normalise t1
     val (_,t2') = normalise t2
-  in ord (t1',t2') = EQUAL
+  in eq (t1',t2')
   end
   
   fun pad width s = let
@@ -234,11 +240,11 @@ struct
   end
   
   fun to_string ((d,l,u),v) = let
-    val width = (size (Int.toString (Vector.foldr Int.max 0 v))) + 1
+    val width = (Vector.foldr (fn (s,max) => Int.max (size (Semiring.to_string s), max)) 0 v) + 1
     val rowsize = pow d l
     fun str (i, num, rest) =
       (if (i <> 0) andalso ((i mod rowsize) = 0) then "]\n[ " else "") ^
-      (pad width (Int.toString num)) ^ rest
+      (pad width (Semiring.to_string num)) ^ rest
   in
     "[ " ^ (Vector.foldri str "" v) ^ "]\n\n"
   end
@@ -246,8 +252,10 @@ struct
   fun print t = TextIO.print (to_string t)
 end
 
+structure IntTensor = Tensor(IntSemiring)
 
-val t1 = Tensor.tensor (2,2,1)
+
+(*val t1 = Tensor.tensor (2,2,1)
 [ 0, 4, 0,  8,
  16,64,32,128]
 val t2 = Tensor.tensor (2,2,1) [0,0,8,16,32,64,128,256]
@@ -256,7 +264,7 @@ val X = Tensor.tensor (2,1,1) [0,1,1,0]
 val vect = Tensor.tensor (2,0,1) [1,2]
 val vect2 = Tensor.contract2 (0,0) X vect
 
-val _ = Tensor.print t1
+val _ = Tensor.print t1*)
 
 
 

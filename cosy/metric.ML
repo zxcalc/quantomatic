@@ -12,7 +12,7 @@ end
 
 functor EdgeComplexityMetric(
   structure Graph : BANG_GRAPH
-) =
+) : GRAPH_METRIC =
 struct
   type T = int * int * int
   structure Graph = Graph
@@ -36,5 +36,45 @@ struct
   val ord_graph = ord o (apfst compute) o (apsnd compute)
 end
 
-structure GHZW_ECMetric = EdgeComplexityMetric(structure Graph = GHZW_Theory.Graph)
+functor WeightedArityMetric(
+  structure Graph : BANG_GRAPH
+) : GRAPH_METRIC =
+struct
+  type T = int
+  structure Graph = Graph
+  val ord = int_ord
+  val bottom = 0
+  
+  (*fun weight_for_arity 0 0 = 10
+      | weight_for_arity 1 0 = 20
+      | weight_for_arity 0 1 = 23
+      | weight_for_arity 1 1 = 30
+      | weight_for_arity 2 0 = 50
+      | weight_for_arity 0 2 = 53
+      | weight_for_arity 2 1 = 80
+      | weight_for_arity 1 2 = 83
+      | weight_for_arity 3 0 = 90
+      | weight_for_arity 0 3 = 93
+      | weight_for_arity 2 2 = 110
+      | weight_for_arity 3 1 = 120
+      | weight_for_arity 1 3 = 123
+      | weight_for_arity 4 0 = 130
+      | weight_for_arity 0 4 = 133
+      | weight_for_arity n m = (20 * (5 + n)) + (21 * m)*)
+  
+  fun weight_for_arity m n l = 2*(m*m + n*n) + 2*(m + n)*(m + n) + l
+  
+  fun compute graph = let
+    fun vert_weights v tot = let
+      val loops = Graph.Edge.NTab.cardinality (Graph.get_self_loops graph v)
+      val ins = Graph.Edge.NSet.cardinality (Graph.in_enames graph v) - loops
+      val outs = Graph.Edge.NSet.cardinality (Graph.out_enames graph v) - loops
+    in (weight_for_arity ins outs loops) + tot
+    end
+  in Graph.Vertex.NSet.fold vert_weights (Graph.get_vnames graph) 0
+  end
+
+  val ord_graph = ord o (apfst compute) o (apsnd compute)
+end
+
 

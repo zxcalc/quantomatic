@@ -1,6 +1,7 @@
 signature TENSOR_DATA =
 sig
   structure Graph : BANG_GRAPH
+  structure Tensor : TENSOR
   
   val dimension : int (* all generators are assumed to be of fixed dimension *)
   (* given vertex data and arities, return a tensor *)
@@ -37,7 +38,7 @@ struct
     val lower = OVertex.NTab.get i_offsets tgt
   in (contract_offsets_for_name tgt i_offsets,
       contract_offsets_for_name src o_offsets,
-      Tensor.contract (lower,upper) tensor)
+      TData.Tensor.contract (lower,upper) tensor)
   end
   
   fun boundary_list offsets = map fst (sort (fn ((_,o1),(_,o2)) => int_ord (o1, o2)) (OVertex.NTab.list_of offsets))
@@ -47,12 +48,12 @@ struct
     val (num_in, num_out) =
       case data of OVertex.IVert _ => (Edge.NSet.cardinality in_edges, Edge.NSet.cardinality out_edges)
                  | OVertex.EVert => (1,1)
-    val (current_in, current_out) = (Tensor.lower_index_count tensor, Tensor.upper_index_count tensor)
-    val new_tensor = Tensor.product tensor (TData.tensor_for_vertex_data data (num_in, num_out))
+    val (current_in, current_out) = (TData.Tensor.lower_index_count tensor, TData.Tensor.upper_index_count tensor)
+    val new_tensor = TData.Tensor.product tensor (TData.tensor_for_vertex_data data (num_in, num_out))
     val new_i_offsets = if num_in = 0 then i_offsets
-                        else i_offsets |> OVertex.NTab.doadd (vert, (Tensor.lower_index_count tensor) + num_in - 1)
+                        else i_offsets |> OVertex.NTab.doadd (vert, (TData.Tensor.lower_index_count tensor) + num_in - 1)
     val new_o_offsets = if num_out = 0 then o_offsets
-                        else o_offsets |> OVertex.NTab.doadd (vert, (Tensor.upper_index_count tensor) + num_out - 1)
+                        else o_offsets |> OVertex.NTab.doadd (vert, (TData.Tensor.upper_index_count tensor) + num_out - 1)
     val new_verts = verts |> OVertex.NSet.add vert
     val edges_to_contract = OVertex.NSet.fold
                               (Edge.NSet.union_merge o (Graph.enames_between graph vert))
@@ -67,7 +68,7 @@ struct
       OVertex.NSet.fold_rev (append_vertex graph)
                             (Graph.get_vnames graph)
                             (OVertex.NTab.empty,OVertex.NTab.empty,OVertex.NSet.empty,
-                            Tensor.id TData.dimension 0)
+                            TData.Tensor.id TData.dimension 0)
   in (boundary_list i_offsets, boundary_list o_offsets,t)
   end
 end

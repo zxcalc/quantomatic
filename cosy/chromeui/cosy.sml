@@ -45,8 +45,8 @@ fun clearFloats dom_element =
 
 val gens = GHZW_Gens.gen_list 3 [GHZW_VertexData.GHZ,GHZW_VertexData.W];
 
-val SOME content_div = DOM.getElementById DOM.document "cosy_content"
-
+val content_div = the (DOM.getElementById DOM.document "cosy_content")
+                  handle Option => DOM.HTMLElement "NULL"
 
 
 fun run_dot () = Unix.streamsOf (Unix.execute ("/usr/bin/env",["dot", "-Tsvg"]))
@@ -71,9 +71,9 @@ fun output_synth tdata (synth as ((ins,outs,verts,plugs), class_tab)) = let
     "-----------------------------------------\n"
   val io = run_dot ()
   val _ = addCodebox parent details
-  fun output_class (tensor, class) i = let
+  fun output_class (tensor_string, class) i = let
     val container = addContainer parent ("Class " ^ (Int.toString i)) false
-    val _ = addCodebox container (Tensor.to_string tensor)
+    val _ = addCodebox container tensor_string
     val c_container = addContainer container "Congruences" false
     val r_container = addContainer container "Reducible Expressions" false
     val (congruences, redexes) = (EqClass.get_congs class, EqClass.get_redexes class)
@@ -82,10 +82,9 @@ fun output_synth tdata (synth as ((ins,outs,verts,plugs), class_tab)) = let
     val _ = case (EqClass.get_rep class) of SOME rep => (addGraph tdata io c_container rep; ()) | NONE => ()
     val _ = map_index (output_graph (length congruences) c_container) congruences
     val _ = map_index (output_graph (length redexes) r_container) redexes
-    val _ = collapseContainer container
   in i+1
   end
-  val _ = Tensor.Tab.fold (output_class) class_tab 0
+  val _ = fold (output_class) ((TheoryData.get_class_list tdata) synth) 0
   val _ = close_dot io
 in ()
 end

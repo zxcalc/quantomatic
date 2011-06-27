@@ -19,3 +19,7 @@ the QuantoCosy heap.
 Once that's done, open chromeui/cosy.html in Firefox and synthesise away. All
 interaction is from the ML prompt. Check cosy_ghzw.sml for useful functions
 and guidance for implementing other theories.
+
+Note, you can also run QuantoCosy from the terminal, using:
+
+# poly --use console.ML
