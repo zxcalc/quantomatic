@@ -19,6 +19,7 @@ sig
   val print : T -> unit
   val product : T -> T -> T
   val add : T -> T -> T
+  val conjugate_transpose : T -> T
   val reduce : T -> (Semiring.T * Semiring.T) * T
   (*val all_perms : T -> (perm * perm) Tab.table*)
   val normalise : T -> ((Semiring.T * Semiring.T) * perm * perm) * T
@@ -104,6 +105,8 @@ struct
     if d1 = d2 andalso l1 = l2 andalso u1 = u2
     then tensorf (d1,l1,u1) (fn idx => Semiring.plus (get t1 idx, get t2 idx))
     else raise wrong_size_exn ()
+    
+  fun conjugate_transpose (t as ((d,l,u),_)) = tensorf (d,u,l) (fn (r,c) => Semiring.conjugate (get t (c,r)))
   
   fun decompose_index d len index = let
     fun dec 0 idx = []
@@ -253,7 +256,7 @@ struct
 end
 
 structure IntTensor = Tensor(IntSemiring)
-
+structure CIntTensor = Tensor(CIntSemiring)
 
 (*val t1 = Tensor.tensor (2,2,1)
 [ 0, 4, 0,  8,

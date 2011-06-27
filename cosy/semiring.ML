@@ -42,7 +42,8 @@ struct
   val is_real = K true
 end
 
-structure CISemiring : GCD_SEMIRING =
+(* semiring of complexified integers *)
+structure CIntSemiring : GCD_SEMIRING =
 struct
   type T = int * int
   exception DivisionByComplex

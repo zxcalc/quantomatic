@@ -37,14 +37,33 @@ struct
     | tensor_for_vertex_data (Graph.OVertex.EVert) _ = Tensor.id dimension 1
 end
 
-(*structure RGB_TensorData : TENSOR_DATA =
+structure RGB_TensorData : TENSOR_DATA =
 struct
   structure Graph = RGB_Theory.Graph
+  structure Tensor = CIntTensor
   
   val dimension = 2
   
-  fun gen bra ket (ins, outs)
-end*)
+  val green_basis = (Tensor.tensor (2,0,1) [(1,0),(0,0)], Tensor.tensor (2,0,1) [(0,0),(1,0)])
+  val red_basis = (Tensor.tensor (2,0,1) [(1,0),(1,0)], Tensor.tensor (2,0,1) [(0,~1),(0,1)])
+  val blue_basis = (Tensor.tensor (2,0,1) [(1,0),(0,1)], Tensor.tensor (2,0,1) [(1,0),(0,~1)])
+  
+  fun gen (ket1,ket2) (ins, outs) = let
+    val one = Tensor.id 2 0
+    val bra1 = Tensor.conjugate_transpose ket1
+    val bra2 = Tensor.conjugate_transpose ket2
+    val term1 = Tensor.product (funpow ins (Tensor.product bra1) one)
+                               (funpow outs (Tensor.product ket1) one)
+    val term2 = Tensor.product (funpow ins (Tensor.product bra2) one)
+                               (funpow outs (Tensor.product ket2) one)
+  in Tensor.add term1 term2
+  end
+  
+  fun tensor_for_vertex_data (Graph.OVertex.IVert RGB_VertexData.Red) io = gen red_basis io
+    | tensor_for_vertex_data (Graph.OVertex.IVert RGB_VertexData.Green) io = gen green_basis io
+    | tensor_for_vertex_data (Graph.OVertex.IVert RGB_VertexData.Blue) io = gen blue_basis io
+    | tensor_for_vertex_data (Graph.OVertex.EVert) _ = Tensor.id 2 1
+end
 
 
 (* FUNCTOR APPLICATIONS *)
