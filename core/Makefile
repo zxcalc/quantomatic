@@ -16,8 +16,9 @@ ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../..
 
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
-POLYML=$(POLYML_HOME)/bin/poly
+POLYML=$(POLYML_HOME)/bin/poly -H 200
 POLYML_LIB=$(POLYML_HOME)/lib
+
 
 ################################
 # HEAP files defined in make_heap.ML, make_bin.ML

@@ -10,7 +10,6 @@ end;
 
 PolyML.Project.Log.log 2 "finished updating polysaves";
 
-
 PolyML.Project.ensure_at_latest_heap ();
 
 PolyML.Project.Log.log 2 "finished ensure_at_latest_heap";
