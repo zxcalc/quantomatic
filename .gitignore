@@ -1,0 +1,5 @@
+.polysave
+*.polyml-heap
+*.heap
+*.o
+core/bin/quanto-core
