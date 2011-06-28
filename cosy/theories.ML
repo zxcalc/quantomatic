@@ -79,9 +79,25 @@ structure GHZW_DefaultSynth = Synthesize(
   structure TData = GHZW_TensorData
 )
 
+structure GHZW_RSBuilder = RulesetBuilder(structure Synthesize = GHZW_DefaultSynth)
 structure GHZW_Gens = DefaultGenerators(structure Graph = GHZW_Theory.Graph)
 structure GHZW_Rws = DefaultRewrites(structure Rule = GHZW_Theory.Rule)
-structure GHZW_RSBuilder = RulesetBuilder(structure Synthesize = GHZW_DefaultSynth)
+
+structure RGB_Enum = GraphEnumerator(
+  structure Ruleset = RGB_Theory.Ruleset
+  structure MatchSearch = RGB_Theory.SimpleMatchSearch
+)
+
+structure RGB_Synth = Synthesize(
+  structure GraphEnum = RGB_Enum
+  structure Metric = WeightedArityMetric(structure Graph = RGB_Theory.Graph)
+  structure TData = RGB_TensorData
+)
+
+structure RGB_RSBuilder = RulesetBuilder(structure Synthesize = RGB_Synth)
+structure RGB_Gens = DefaultGenerators(structure Graph = RGB_Theory.Graph)
+structure RGB_Rws = DefaultRewrites(structure Rule = RGB_Theory.Rule)
+
 
 (*
 structure RG_NoPhaseSynth = Synthesize(
