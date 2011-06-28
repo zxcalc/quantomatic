@@ -266,7 +266,7 @@ fun try_match_bboxes (pvn1,tvn1) (pvn2,tvn2) st =
 (* AK: bbox_match_exp shouldn't be raised under normal failed matches. in the mean time, raising match_exp *)
 exception bbox_match_exp of unit;
 fun match_bboxes pnv tnv st = 
-    (case try_match_bboxes pnv tnv st of NONE => raise bbox_match_exp () (*Match.match_exp ()*)
+    (case try_match_bboxes pnv tnv st of NONE => raise Match.match_exp ()
      | SOME st' => st');
 
 
