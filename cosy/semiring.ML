@@ -49,7 +49,7 @@ struct
   exception DivisionByComplex
   
   fun plus ((r1,i1),(r2,i2)) = (r1+r2,i1+i2)
-  fun times ((r1,i1),(r2,i2)) = (r1*r2 + i1*i2, r1*i2 + r2*i1)
+  fun times ((r1,i1),(r2,i2)) = (r1*r2 - i1*i2, r1*i2 + r2*i1)
   fun div_real ((r1,i1),(r2,0)) = (r1 div r2, i1 div r2)
     | div_real _ = raise DivisionByComplex
   val zero = (0,0)
@@ -57,9 +57,14 @@ struct
   fun is_zero v = (v=zero)
   fun is_one v = (v=one)
   
-  fun to_string (r,0) = (Int.toString r)
-    | to_string (0,i) = (Int.toString i) ^ "i"
-    | to_string (r,i) = (Int.toString r) ^ " + " ^ (Int.toString i) ^ "i"
+  fun to_string (r,i) = let
+    val rstr = if (r < 0) then ("-" ^ Int.toString (~r)) else (Int.toString r)
+    val (isgn,iop,iabs) = if (i < 0) then ("-","-", ~i) else ("", "+", i)
+    val istr = if iabs = 1 then "i" else Int.toString iabs ^ "i"
+  in case (r,i) of (_,0) => rstr
+                 | (0,_) => isgn ^ istr
+                 | (_,_) => rstr ^ iop ^ istr
+  end
   
   val eq = (op=)
   
