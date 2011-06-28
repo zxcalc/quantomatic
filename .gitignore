@@ -1,0 +1,6 @@
+**/.polysave
+**/build/
+core/bin/quanto-core
+core/bin/quanto-core.o
+core/heaps/
+gui/dist/
