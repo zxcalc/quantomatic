@@ -4,19 +4,20 @@ datatype cosy =
 	 RULE of RGB_Theory.Rule.T |
 	 ERR of string
 
-val rgb_data : (RGB_Theory.Graph.T, RGB_Theory.Ruleset.T) TheoryData.T = {
+val rgb_data : (RGB_Theory.Graph.T, RGB_Theory.Ruleset.T, RGB_Synth.T) TheoryData.T = {
   name = "RGB",
   dotfun = RGB_OutputGraphDot.output,
-  gens = RGB_Gens.gen_list 4 [RGB_VertexData.GHZ, RGB_VertexData.W],
+  gens = RGB_Gens.gen_list 4 [RGB_VertexData.Red, RGB_VertexData.Green, RGB_VertexData.Blue],
   stats = RGB_Synth.stats,
+  class_list = fn synth => RGB_Synth.eqclass_fold (cons o (apfst RGB_TensorData.Tensor.to_string)) synth [],
   rs_pairs =
     (rule_data RGB_Theory.Rule.get_lhs RGB_Theory.Rule.get_rhs) o
     RGB_Theory.Ruleset.get_allrules
 }
 
-fun synth run = SYNTH (RGB_DefaultSynth.synth (TheoryData.get_gens ghzw_data) run)
+fun synth run = SYNTH (RGB_Synth.synth (TheoryData.get_gens rgb_data) run)
 fun synth_with_rs (RS rs) run =
-  SYNTH (RGB_DefaultSynth.synth_with_rs rs (TheoryData.get_gens ghzw_data) run)
+  SYNTH (RGB_Synth.synth_with_rs rs (TheoryData.get_gens rgb_data) run)
 fun ruleset (SYNTH s) = RS (RGB_RSBuilder.from_synth s)
 fun update (SYNTH s) (RS rs) = RS (rs |> RGB_RSBuilder.update s)
 fun reduce (RS rs) = RS (RGB_RSBuilder.reduce rs)

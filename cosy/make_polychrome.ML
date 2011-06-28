@@ -4,10 +4,10 @@ PolyML.SaveState.loadState "../core/heaps/quanto.polyml-heap";
 (* build cosy *)
 PolyML.Project.use_root "ROOT.ML";
 
-(* include custom polychrome API *)
-OS.FileSys.chDir "chromeui/polychrome";
-PolyML.Project.basic_use "main.sml";
-OS.FileSys.chDir "../..";
+(* include polychrome API *)
+OS.FileSys.chDir "../../PolyChrome/polychrome/poly";
+PolyML.Project.basic_use "ROOT.ML";
+OS.FileSys.chDir "../../../quantomatic/cosy";
 
 (* output the heap *)
 (*PolyML.Project.Log.log 2 "finished updating polysaves";
