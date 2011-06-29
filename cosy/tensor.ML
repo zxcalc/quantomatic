@@ -237,10 +237,7 @@ struct
   in eq (t1',t2')
   end
   
-  fun pad width s = let
-    fun space 0 = "" | space w = " " ^ space (w-1)
-    in s ^ space (width - (size s))
-  end
+  fun pad width s = funpow (width - size s) (prefix " ") s
   
   fun to_string ((d,l,u),v) = let
     val width = (Vector.foldr (fn (s,max) => Int.max (size (Semiring.to_string s), max)) 0 v) + 1
@@ -249,7 +246,7 @@ struct
       (if (i <> 0) andalso ((i mod rowsize) = 0) then "]\n[ " else "") ^
       (pad width (Semiring.to_string num)) ^ rest
   in
-    "[ " ^ (Vector.foldri str "" v) ^ "]\n\n"
+    "[" ^ (Vector.foldri str "" v) ^ " ]\n\n"
   end
   
   fun print t = TextIO.print (to_string t)

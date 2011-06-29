@@ -3,3 +3,4 @@
 *.heap
 *.o
 core/bin/quanto-core
+*.rules_v2
