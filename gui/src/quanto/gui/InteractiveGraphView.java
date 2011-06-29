@@ -93,46 +93,57 @@ public class InteractiveGraphView
 	private class QVertexLabeler implements VertexLabelRenderer {
 
 		Map<QVertex, Labeler> components;
+		Map<Object, JLabel> dummyLabels;
 
 		public QVertexLabeler() {
 			components = new HashMap<QVertex, Labeler>();
+			dummyLabels = new HashMap<Object, JLabel>();
+		}
+
+		private JLabel getDummy(Object vertex) {
+				JLabel c = dummyLabels.get(vertex);
+				if (c == null) {
+					c = new JLabel();
+					dummyLabels.put(vertex, c);
+				}
+				c.setText("");
+				return c;
 		}
 
 		public <T> Component getVertexLabelRendererComponent(JComponent vv,
 								     Object value, Font font, boolean isSelected, T vertex) {
-			if (vertex instanceof QVertex && ((QVertex) vertex).isAngleVertex()) {
+			if (value == null)
+			{
+				return getDummy(vertex);
+			}
+			else if (vertex instanceof QVertex)
+			{
 				final QVertex qVertex = (QVertex) vertex;
+				if (!qVertex.isAngleVertex())
+				{
+					return getDummy(vertex);
+				}
+
+				String angle = qVertex.getAngle();
+
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
 					viewer.getGraphLayout().transform(qVertex));
 
 				// lazily create the labeler
-				Labeler angleLabeler = components.get(qVertex);
-				if (angleLabeler == null) {
-					angleLabeler = new Labeler("");
-					components.put(qVertex, angleLabeler);
-					viewer.add(angleLabeler);
+				Labeler labeler = components.get(qVertex);
+				if (labeler == null) {
+					labeler = new Labeler(angle);
+					components.put(qVertex, labeler);
+					viewer.add(labeler);
 					if (qVertex.getColor().equals(Color.red)) {
-						angleLabeler.setColor(new Color(255, 170, 170));
+						labeler.setColor(new Color(255, 170, 170));
 					}
 					else {
-						angleLabeler.setColor(new Color(150, 255, 150));
+						labeler.setColor(new Color(150, 255, 150));
 					}
 
-					String angle = ((QVertex) vertex).getAngle();
-					Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
-					Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
-							      (int) screen.getY() + 10);
-					rect.setLocation(loc);
-
-					if (!angleLabeler.getText().equals(angle)) {
-						angleLabeler.setText(angle);
-					}
-					if (!angleLabeler.getBounds().equals(rect)) {
-						angleLabeler.setBounds(rect);
-					}
-
-					angleLabeler.addChangeListener(new ChangeListener() {
+					labeler.addChangeListener(new ChangeListener() {
 
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler) e.getSource();
@@ -149,29 +160,28 @@ public class InteractiveGraphView
 						}
 					});
 				}
-				String angle = qVertex.getAngle();
-				Rectangle rect = new Rectangle(angleLabeler.getPreferredSize());
+				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 						      (int) screen.getY() + 10);
 				rect.setLocation(loc);
 
-				if (!angleLabeler.getText().equals(angle)) {
-					angleLabeler.setText(angle);
+				if (!labeler.getText().equals(angle)) {
+					labeler.setText(angle);
 				}
-				if (!angleLabeler.getBounds().equals(rect)) {
-					angleLabeler.setBounds(rect);
+				if (!labeler.getBounds().equals(rect)) {
+					labeler.setBounds(rect);
 				}
 
-				return new JLabel();
+				return labeler;
 			}
-			else if (!(vertex instanceof QVertex)
-				|| ((QVertex) vertex).getVertexType() != QVertex.Type.BOUNDARY) {
-				JLabel label = new JLabel((String) value);
+			else
+			{
+				JLabel label = getDummy(vertex);
+				label.setText(value.toString());
 				label.setOpaque(true);
 				label.setBackground(Color.white);
 				return label;
 			}
-			return new JLabel();
 		}
 
 		/**
