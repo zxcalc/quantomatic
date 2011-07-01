@@ -1,14 +1,9 @@
 ################################
-# dynamic variables checked on call to make. 
-################################
-ML_SRC_FILES = $(shell ls *.ML */*.ML */*/*.ML)
-ISAP_ML_SRC_FILES = $(shell ls ../../isaplib/Makefile ../../isaplib/*/*.ML ../../isaplib/*/*/*.ML)
-
-################################
 # variables you might want to set in your own profile setup...
 ################################
 ### your local install of PolyML
 # POLYML_HOME=/home/ldixon/local/polyml-cvs-version
+ISAPLIB_SOURCES=../../isaplib
 
 ################################
 # general variables
@@ -21,10 +16,14 @@ POLYML_LIB=$(POLYML_HOME)/lib
 
 
 ################################
+# dynamic variables checked on call to make. 
+################################
+ML_SRC_FILES = $(shell find -name '*.ML')
+ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES) -name '*.ML')
+
+################################
 # HEAP files defined in make_heap.ML, make_bin.ML
 ################################
-# isaplanner heap file
-ISAPLIB_HEAP=../../isaplib/heaps/all.polyml-heap
 # quanto heap file
 QUANTO_HEAP=heaps/quanto.polyml-heap
 # binary file to produce
@@ -35,12 +34,6 @@ THE_BIN=quanto-core
 ################################
 default: bin
 
-# A bit of a hack: we just add our found polyml to the path...
-# always run make; it's quick and deals with its own deps
-$(ISAPLIB_HEAP): $(ISAP_ML_SRC_FILES)
-	export PATH="$(POLYML_HOME)/bin:$(PATH)" && cd ../../isaplib; make
-
-# make polyml heap $(ISAPLIB_HEAP)
 $(QUANTO_HEAP):  $(ML_SRC_FILES) 
 	echo 'use "make_heap.ML";' | $(POLYML)
 	@echo "Built polyml heap: $(QUANTO_HEAP)"
@@ -76,6 +69,6 @@ clean:
 	rm -f bin/$(THE_BIN)
 
 veryclean: clean
-	cd isaplib; make clean
+	$(MAKE) -C $(ISAPLIB_SOURCES) clean
 
 vclean: veryclean
