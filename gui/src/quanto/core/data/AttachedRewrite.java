@@ -9,18 +9,17 @@ package quanto.core.data;
  *
  * @author alemer
  */
-public class AttachedRewrite<G extends CoreGraph> implements Rewrite<G> {
+public class AttachedRewrite<G extends CoreGraph> {
 	private G graph;
 	private int index;
-	private G lhs;
-	private G rhs;
-	private String ruleName;
+    private Rule<G> rule;
+	private G newGraph;
 
-	public AttachedRewrite(G graph, int index, String ruleName, G lhs, G rhs) {
+	public AttachedRewrite(G graph, int index, Rule<G> rule, G newGraph) {
 		this.graph = graph;
 		this.index = index;
-		this.lhs = lhs;
-		this.rhs = rhs;
+		this.rule = rule;
+        this.newGraph = newGraph;
 	}
 
 	public G getGraph() {
@@ -32,14 +31,18 @@ public class AttachedRewrite<G extends CoreGraph> implements Rewrite<G> {
 	}
 	
 	public String getRuleName() {
-		return ruleName;
+		return rule.getCoreName();
 	}
 
 	public G getLhs() {
-		return lhs;
+		return rule.getLhs();
 	}
 
 	public G getRhs() {
-		return rhs;
+		return rule.getRhs();
+	}
+
+	public G getNewGraph() {
+		return newGraph;
 	}
 }

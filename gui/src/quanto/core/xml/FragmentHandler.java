@@ -17,6 +17,7 @@ public interface FragmentHandler<T> {
 	void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException;
 	void endElement(String uri, String localName, String qName) throws SAXException;
 	void characters(char[] ch, int start, int length) throws SAXException;
+    void ignorableWhitespace(char[] ch, int start, int length) throws SAXException;
 	boolean isComplete();
 	T buildResult() throws SAXException;
 }

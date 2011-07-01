@@ -2,7 +2,6 @@ package quanto.gui;
 
 
 import quanto.core.data.CoreGraph;
-import quanto.core.data.Rewrite;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;

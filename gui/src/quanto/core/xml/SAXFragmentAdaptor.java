@@ -28,6 +28,11 @@ public class SAXFragmentAdaptor<T> extends DefaultHandler {
 		handler.characters(ch, start, length);
 	}
 
+    @Override
+    public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
+        handler.ignorableWhitespace(ch, start, length);
+    }
+
 	@Override
 	public void setDocumentLocator(Locator locator) {
 		handler.setDocumentLocator(locator);

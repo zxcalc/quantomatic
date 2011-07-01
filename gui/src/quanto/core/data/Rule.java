@@ -9,7 +9,7 @@ package quanto.core.data;
  *
  * @author alemer
  */
-public class Rule<G extends CoreGraph> implements Rewrite<G>, CoreObject {
+public class Rule<G extends CoreGraph> implements CoreObject {
 	private String name;
 	private G lhs;
 	private G rhs;
