@@ -211,7 +211,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void importRuleset() {
-		File f = app.openFile(this, "Import ruleset");
+		File f = app.openFile(this, "Import ruleset", app.DIR_RULESET);
 		try {
 			if (f != null) {
 				app.getCore().loadRuleset(f);
@@ -226,7 +226,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void exportRuleset() {
-		File f = app.saveFile(this, "Export ruleset");
+		File f = app.saveFile(this, "Export ruleset", app.DIR_RULESET);
 		try {
 			if (f != null) {
 				app.getCore().saveRuleset(f);
@@ -260,7 +260,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void openTheory() {
-		File f = app.openFile(this);
+		File f = app.openFile(this, "Select theory file", app.DIR_THEORY);
 			if (f != null) {
 				TheoryParser theoryParser;
 				try {
