@@ -4,5 +4,7 @@
 *.polyml-heap
 *.heap
 *.o
+.*.swp
 core/bin/quanto-core
 *.rules_v2
+/gui/build-debug/
