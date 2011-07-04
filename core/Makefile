@@ -1,7 +1,7 @@
 ################################
 # variables you might want to set in your own profile setup...
 ################################
-### your local install of PolyML
+### your local install of PolyML and isaplib
 # POLYML_HOME=/home/ldixon/local/polyml-cvs-version
 ISAPLIB_SOURCES=../../isaplib
 
@@ -18,8 +18,8 @@ POLYML_LIB=$(POLYML_HOME)/lib
 ################################
 # dynamic variables checked on call to make. 
 ################################
-ML_SRC_FILES = $(shell find -name '*.ML')
-ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES) -name '*.ML')
+ML_SRC_FILES = $(shell find . | grep ".ML$$")
+ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES) | grep ".ML$$")
 
 ################################
 # HEAP files defined in make_heap.ML, make_bin.ML
