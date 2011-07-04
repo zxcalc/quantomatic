@@ -52,7 +52,7 @@ val _ = Testing.test "rule1:" (fn () => let
   in writeln "Ex1" end) ();
 
 
-val _ = Testing.test "rule2:" (fn () => let
+val _ = Testing.test "rule2: !match(isom_rule, X - X - Z)" (fn () => let
   (* Example of applications of rule that does not match *)
   val g = G.empty;
   val (n1, g) = g |> G.add_vertex (mkX zero_angle);
@@ -65,7 +65,7 @@ val _ = Testing.test "rule2:" (fn () => let
   in writeln "Ex2" end) ();
 
 
-val _ = Testing.test "rule3:" (fn () => let
+val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () => let
   (* test rewriting isometry lhs with isometry rule *)
   val g = G.empty;
   val (b1, g) = g |> G.add_vertex bvert;
