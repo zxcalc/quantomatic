@@ -81,7 +81,7 @@ struct
              BBox.Rnm.mk_from_avoids (G.get_bbnames g))
         val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
-        val gs = [lhs, g]
+        val gs = [lhs, g, Rule.get_rhs r]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
@@ -97,7 +97,7 @@ struct
              BBox.Rnm.mk_from_avoids (G.get_bbnames g))
         val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
-        val gs = [lhs, g]
+        val gs = [lhs, g, Rule.get_rhs r]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
