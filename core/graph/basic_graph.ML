@@ -312,6 +312,7 @@ fun delete_vertex n g =
 
     in g2 |> update_vertices (Vertex.NTab.delete n) end;
 
+exception rename_do_nothing_exp of unit;
 
 (* Vertex.name = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
@@ -321,7 +322,7 @@ fun rename_vname n1 n2 g =
       val vertices = (get_vertices g)
       (* gets vertex for n1, makes ure it exists *)
       val (nd,(ins,outs)) = case Vertex.NTab.lookup vertices n1 
-                             of NONE => raise no_such_vname_exp ("rename_vname", n1, g)
+                             of NONE => raise rename_do_nothing_exp ()
                               | SOME x => x;
 
       (* update the vertex entry for n1, we make sure that n2 doesn't already exist *)
@@ -340,19 +341,19 @@ fun rename_vname n1 n2 g =
             |> Edge.NSet.fold (Edge.NTab.map_entry (fn (e,(_,tos)) => 
                                                        (e,(n2,tos)))) outs;
 
-      (* give back new edge name and new graph *)
+      (* give back new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2
          |> update_Param (Param.rename_vname n1 n2)
-    end;
-
+    end handle rename_do_nothing_exp () => g;
+    (* raise no_such_vname_exp ("rename_vname", n1, g) *)
 
 fun rename_ename en1 en2 g = 
     let 
       val edges = (get_edges g)
       (* gets edge for n1, makes ure it exists *)
       val (e,(from_n,to_n)) = case Edge.NTab.lookup edges en1
-                           of NONE => raise no_such_ename_exp ("rename_vname", en1, g)
+                           of NONE => raise rename_do_nothing_exp ()
                             | SOME x => x;
 
       (* update the edge entry for n1, we make sure that n2 doesn't 
@@ -376,11 +377,13 @@ fun rename_ename en1 en2 g =
                                                       |> Edge.NSet.ins_fresh en2
                                    in (n,(ins2,outs)) end) to_n;
 
-    (* give back new edge name and new graph *)
+    (* return new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2
          |> update_Param (Param.rename_ename en1 en2)
-    end;
+    end handle rename_do_nothing_exp () => g;
+    (* no_such_ename_exp ("rename_vname", en1, g) *)
+
 
 fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
   | pretty_edge_dir_or_undir UnDirected = Pretty.str "bidir";
