@@ -29,13 +29,30 @@ signature BASIC_RULE
 
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
+    
+  (* NOTE: FIXME: these don't touch the automorphism data; they should not be used without reconstructing the automoprhism info. *)
+  val try_rename1_ename : Graph.Edge.name -> Graph.Edge.name -> T -> T option
+  val try_rename1_vname : Graph.Vertex.name -> Graph.Vertex.name 
+      -> T -> T option
+  val try_rename1_bname : Graph.BBox.name -> Graph.BBox.name -> T -> T option
   
-  val rename : (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T *  Graph.BBox.Rnm.T) -> T 
+  structure VertexCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = Graph.Vertex.Rnm.T
+  structure EdgeCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = Graph.Edge.Rnm.T
+  structure BBoxCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = Graph.BBox.Rnm.T
+
+  val rename : (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T * Graph.BBox.Rnm.T) -> T 
             -> (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T * Graph.BBox.Rnm.T) * T
 
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
   
+  val get_vnames : T -> Graph.Vertex.NSet.T
+  val get_enames : T -> Graph.Edge.NSet.T
+  val get_bnames : T -> Graph.BBox.NSet.T
+
   (* swaps lhs and rhs *)
   val symmetric : T -> T
   
@@ -274,18 +291,82 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
        | _ => true);
 *)
 
+(*  *)
+(* TODO: add renaming for extra stuff (not lhs and rhs) *)
+fun get_vnames rule = 
+    Graph.Vertex.NSet.union_merge 
+      (Graph.get_vnames (get_lhs rule))
+      (Graph.get_vnames (get_rhs rule));
+fun get_enames rule = 
+    Graph.Edge.NSet.union_merge 
+      (Graph.get_enames (get_lhs rule))
+      (Graph.get_enames (get_rhs rule));
+fun get_bnames rule = 
+    Graph.BBox.NSet.union_merge 
+      (Graph.get_bbnames (get_lhs rule))
+      (Graph.get_bbnames (get_rhs rule));
+
+exception tryify_failed of unit
+      
+fun tryify ff f x = 
+    (SOME (ff (fn x => case f x of NONE => raise tryify_failed () 
+                                 | SOME y => y)
+              x))
+    handle tryify_failed () => NONE;
+
+fun untryify f x =  
+    (case f x of NONE => raise tryify_failed ()
+     | SOME y => y);
+    
+(* *)
+fun try_rename1_vname n1 n2 rule =
+    (SOME 
+      (rule |> (update_lhs (untryify (Graph.try_rename1_vname n1 n2)))
+            |> (update_rhs (untryify (Graph.try_rename1_vname n1 n2)))))
+    handle tryify_failed () => NONE;
+fun try_rename1_ename n1 n2 rule =     
+    (SOME 
+      (rule |> (update_lhs (untryify (Graph.try_rename1_ename n1 n2)))
+            |> (update_rhs (untryify (Graph.try_rename1_ename n1 n2)))))
+    handle tryify_failed () => NONE;
+fun try_rename1_bname n1 n2 rule = 
+    (SOME 
+      (rule |> (update_lhs (untryify (Graph.try_rename1_bname n1 n2)))
+            |> (update_rhs (untryify (Graph.try_rename1_bname n1 n2)))))
+    handle tryify_failed () => NONE;
+    
+(* *)
+structure VertexCRnm = CompoundRenamingFun(
+  struct 
+    structure Nm = Graph.Vertex;
+    type obj = T
+    val try_rename1 = try_rename1_vname;
+    val get_nameset = get_vnames
+  end);
+structure EdgeCRnm = CompoundRenamingFun(
+  struct 
+    structure Nm = Graph.Edge;
+    type obj = T
+    val try_rename1 = try_rename1_ename;
+    val get_nameset = get_enames
+  end);
+structure BBoxCRnm = CompoundRenamingFun(
+  struct 
+    structure Nm = Graph.BBox;
+    type obj = T
+    val try_rename1 = try_rename1_bname;
+    val get_nameset = get_bnames
+  end);
+
+(* rename *)
 fun rename (vrn,ern,brn) rule = 
     let 
-      val (vrn,lhs) = Graph.VertexCRnm.rename vrn (get_lhs rule);
-      val (ern,lhs) = Graph.EdgeCRnm.rename ern lhs;
-      val (brn,lhs) = Graph.BBoxCRnm.rename brn lhs;
-      
-      val (vrn,rhs) = Graph.VertexCRnm.rename vrn (get_rhs rule);
-      val (ern,rhs) = Graph.EdgeCRnm.rename ern rhs;
-      val (brn,rhs) = Graph.BBoxCRnm.rename brn rhs;
+      val (vrn,rule) = VertexCRnm.rename vrn rule
+      val (ern,rule) = EdgeCRnm.rename ern rule
+      val (brn,rule) = BBoxCRnm.rename brn rule
     in
       (* TODO: rename automorphism info; avoid re-creation. *)
-      ((vrn,ern,brn), mk (lhs,rhs))
+      ((vrn,ern,brn), mk (get_lhs rule,get_rhs rule))
     end;
 
 
