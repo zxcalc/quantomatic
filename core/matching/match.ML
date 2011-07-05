@@ -389,6 +389,7 @@ functor Match(G : BANG_GRAPH) : MATCH
   fun datasubst m g = G.apply_data_subst (get_subst m) g;
 
   (* breaks invariant of edge-points having directed arity <= 1 *)
+  (* CHECK: seems to assume that codv must be named fresh for graph??? *)
   fun rename_and_merge_edgepoint_vertices m g = 
       V.NTab.fold 
         (fn (codv,domvset) => 
