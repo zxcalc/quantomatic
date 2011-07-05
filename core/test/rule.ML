@@ -93,6 +93,27 @@ val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () =
                                 (Rule.get_rhs r');
   in writeln "success" end) ();
 
+
+
+val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
+  val r = Ruleset.get_rule ruleset (RuleName.mk "bialgebra1");
+  val g = Rule.get_lhs r;
+  val (r',[m1,m2,m3,m4]) = list_of_rule_matches r g;
+  val _ = Rule.print r';
+  val _ = Match.print m1;
+  val inst_isom_rule = RulesetRewrites.instantiate_rule m1 r';
+  val _ = Rule.print inst_isom_rule;
+  val g1 = GraphSubst.rewrite g (Rule.get_lhs r') m1 
+                                (Rule.get_rhs r');
+  val g2 = GraphSubst.rewrite g (Rule.get_lhs r') m2 
+                                (Rule.get_rhs r');
+  val g3 = GraphSubst.rewrite g (Rule.get_lhs r') m3 
+                                (Rule.get_rhs r');
+  val g4 = GraphSubst.rewrite g (Rule.get_lhs r') m4 
+                                (Rule.get_rhs r');
+  in writeln "success" end) ();  
+  
+  
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";
 end;
