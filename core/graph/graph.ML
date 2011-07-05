@@ -377,9 +377,12 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
               (fn en => update_edges (Edge.NTab.map_entry 
                 (fn (e,(fromv,tov)) => (e,(v2,tov))) en))             
               outes
+          |> update_vertex_ins_and_outs 
+               (fn _ => (Edge.NSet.empty,Edge.NSet.empty)) v1
+          |> update_vertex_ins_and_outs 
+               (fn _ => (ines,outes)) v2
           |> delete_vertex v1
       end;
-
 
   (* delete subg from fromg; assumes edge and vertex names of subg are a
      subset of fromg; else delete will raise exception *)
@@ -390,8 +393,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
             |> (Vertex.NSet.fold 
                   delete_vertex
                   (get_vnames subg));
-  
-  
   
   fun try_rename1_vname en1 en2 g = 
       SOME (rename_vname en1 en2 g)
