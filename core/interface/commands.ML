@@ -224,6 +224,12 @@ local open ControllerState in
         "    print out GRAPH\n",
     lift_graph_viewer (uncurry print_graph))),
 
+    ("print_theory_name",
+     ("print_theory_name GRAPH\n\n"^
+       "     print out the name of the theory implemented by graph\n",
+    lift_graph_viewer (uncurry print_theory_name))),
+
+
     ("hilb",
      ("hilb GRAPH FORMAT\n\n"^
         "    display the hilbert space term of GRAPH where\n"^

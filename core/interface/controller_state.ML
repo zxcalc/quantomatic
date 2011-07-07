@@ -59,6 +59,7 @@ sig
   (* printing/showing info (for console) *)
   val show_rewrites : string list * T -> response (* response: OUTPUT rewrite-list-xml *)
   val print_graph : 'a list -> RG.Graph.T -> response (* response: DATA pretty-graph-structure *)
+  val print_theory_name : 'a list -> RG.Graph.T -> response (* response: NAME graph param name *)
   val list_graphs : 'a list * T -> response (* response: NAME_LIST pretty-graph-list *)
   val list_rules_with_tag : string list * T -> response (* response: NAME_LIST pretty-rule-list *)
   val list_allrules : 'a list * T -> response (* response: NAME_LIST pretty-rule-list *)
@@ -522,6 +523,10 @@ functor ControllerState(
 
   fun print_graph [_] = as_data o Pretty.string_of o G.pretty
     | print_graph _ = raise wrong_args_exp ()
+
+  fun print_theory_name [_] = as_data o Pretty.string_of o G.pretty_theory_name
+    | print_theory_name _ = raise wrong_args_exp ()
+
 
   fun undo ([name], state) = 
       let

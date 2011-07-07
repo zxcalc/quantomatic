@@ -109,6 +109,7 @@ functor OGraphParam(
   val pretty_subst = Param.pretty_subst;
   val print_subst = Param.print_subst;
 
+  val pretty_theory_name = Param.pretty_theory_name;
 
   structure Sharing = 
   struct 

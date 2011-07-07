@@ -101,6 +101,7 @@ val update_Param : (name_deps -> name_deps) -> T -> T
 val pretty : T -> Pretty.T
 val print : T -> unit
 
+val pretty_theory_name : T -> Pretty.T
 
 (* extra data for graphs, for extending the datatype cos ML can't do
 it properly from the outside; this is basically a form of record
@@ -387,6 +388,8 @@ fun rename_ename en1 en2 g =
 
 fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
   | pretty_edge_dir_or_undir UnDirected = Pretty.str "bidir";
+
+fun pretty_theory_name g = Param.pretty_theory_name;
 
 (* pretty printing *)
 fun pretty g = 
