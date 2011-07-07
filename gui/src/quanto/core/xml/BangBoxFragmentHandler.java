@@ -79,6 +79,8 @@ public class BangBoxFragmentHandler extends CoreObjectFragmentHandler<BangBoxFra
 	}
 
 	public BangBoxData buildResult() throws SAXException {
+		if (bangBoxData.vertexNames.size() == 0)
+			throw new SAXParseException("'BangBox' element cannot be empty", locator);
 		return bangBoxData;
 	}
 }
