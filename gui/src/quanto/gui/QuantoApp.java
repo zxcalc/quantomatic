@@ -87,6 +87,33 @@ public class QuantoApp {
 		return dir;
 	}
 
+	public String getRootDirectory() {
+		String applicationDir = getClass().getProtectionDomain().getCodeSource().getLocation().getPath(); 
+		if (applicationDir.endsWith(".jar"))
+		{
+		    applicationDir = new File(applicationDir).getParent();
+		}
+		else
+		{ 
+		    applicationDir += getClass().getName().replace('.', File.separatorChar);
+		    applicationDir = new File(applicationDir).getParent();
+		}
+		
+		if (applicationDir.endsWith("gui" + File.separator + "dist"))
+			applicationDir = applicationDir.replaceFirst(File.separator + "gui" + File.separator + "dist", "");
+		else
+			applicationDir = applicationDir.replaceFirst(File.separator + "gui" + File.separator + "bin" 
+					+ File.separator + "quanto" + File.separator + "gui", "");
+		
+		/*
+		 * If the user relocates the .jar file and appends the path to the core to $PATH
+		 * we cannot really infer the location of the root dir (or can we?): 
+		 * No default files will be loaded
+		 */
+		
+		return applicationDir;
+	}
+	
 	private static class Pref<T> {
 
 		final T def; // default value
@@ -265,7 +292,24 @@ public class QuantoApp {
 			} else {
 				logger.log(Level.FINER, "No theory state found");
 			}
-			// FIXME: try loading default ruleset
+			/*
+			 * Try loading a default file
+			 * TODO: Load a file that matches the theory implemented by the core.
+			 * We could have a default ruleset by theory... for now: red_green
+			 */
+			rsetFile = new File(getRootDirectory() + File.separatorChar + "rulesets" + File.separatorChar
+					+ "default.rules");
+			if (rsetFile.exists()) {
+				logger.log(Level.FINER, "Loading default ruleset");
+				try {
+					core.loadRuleset(rsetFile);
+					return;
+				} catch (Exception e) {
+					logger.log(Level.WARNING, "Could not load default file", e);
+				}
+			} else {
+				logger.log(Level.FINER, "Default ruleset could not be located on the disk");
+			}
 		} catch (IOException e) {
 			logger.log(Level.WARNING, "Error when loading ruleset state", e);
 		}
@@ -282,43 +326,52 @@ public class QuantoApp {
 		}
 	}
 
-	private ArrayList<VertexType> loadSavedTheoryState() {
+	private TheoryParser loadSavedTheoryState() {
 		String lastOpenedTheory = getPreference(QuantoApp.LAST_THEORY_OPEN_FILE);
 		if(lastOpenedTheory == null) {
-			logger.log(Level.FINER, "No saved theory file available");
-			return new ArrayList<VertexType>();
+			logger.log(Level.FINER, "No saved theory file available");	
+			/*
+			 * Try loading a default file
+			 */
+			return loadTheoryFile(getRootDirectory() + File.separatorChar + "theory-visualizations"
+					+ File.separatorChar + "red-green-theory.qth");
 		} else {
 			return loadTheoryFile(lastOpenedTheory);
 		}
 	}
 
-	public ArrayList<VertexType> loadTheoryFile(String theoryFilePath) {
+	public TheoryParser loadTheoryFile(String theoryFilePath) {
 		File theoryFile = new File(theoryFilePath);
 		if (!theoryFile.exists()) {
 			logger.log(Level.INFO, "Theory file \"{0}\" does not exist", theoryFilePath);
-			return new ArrayList<VertexType>();
+			return null;
 		} else {
 			logger.log(Level.FINER, "Loading previous theory");
 			TheoryParser theoryParser;
 			try {
 				theoryParser = new TheoryParser(theoryFilePath);
-				return theoryParser.getTheoryVertices();
+				return theoryParser;
 			} catch (SAXException e) {
 				errorDialog(e.toString());
 			} catch (IOException e) {
 				errorDialog(e.toString());
 			}
-				return new ArrayList<VertexType>();
+				return null;
 		}
 	}
 	
-	public void updateCoreTheory(ArrayList<VertexType> theoryVertices) {
-		core.updateCoreTheory(theoryVertices);
+	public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) {
+		core.updateCoreTheory(implementedTheoryName, theoryVertices);
 	}
 	
 	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
-		core = new Core(loadSavedTheoryState());
+		TheoryParser theoryParser = loadSavedTheoryState();
+		if (theoryParser != null)
+			core = new Core(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
+		else
+			core = new Core("undef", new ArrayList<VertexType>());
+		
 		loadSavedRulesetState();
 		
 		viewManager = new InteractiveViewManager(this, core);

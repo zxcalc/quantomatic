@@ -47,6 +47,8 @@ public class Core {
 	private final static Logger logger = Logger.getLogger("quanto.core");
 
 	private class CoreTheory implements Theory {
+		private String theoryName;
+		
 		Map<String, VertexType> types = new HashMap<String, VertexType>();
 
 		public VertexType getVertexType(String typeName) {
@@ -57,12 +59,20 @@ public class Core {
 			return types.values();
 		}
 
-		void addVertexType(VertexType type) {
+		public void addVertexType(VertexType type) {
 			types.put(type.getTypeName(), type);
 		}
 		
-		void removeAllVertices() {
+		public void removeAllVertices() {
 			types.clear();
+		}
+		
+		public void setTheoryName(String theoryName) {
+			this.theoryName = theoryName;
+		}
+		
+		public String getTheoryName(){
+			return this.theoryName;
 		}
 	}
 
@@ -91,22 +101,47 @@ public class Core {
 		}
 	}
 
-	public Core(CoreTalker talker, ArrayList<VertexType> vertices) {
+    private String getTheoryName() {
+    	String theoryName;
+    	try {
+			String graphName = this.talker.new_graph();
+			theoryName = this.talker.print_theory_name(graphName);
+			this.talker.kill_graph(graphName);
+		} catch (CoreException e) {
+			/*
+			 * This error is not critical : issue a warning and
+			 * keep going with an 'undef' theory
+			 */
+			logger.log(Level.WARNING, "CoreException : Could not detect which theory is implemented");
+			theoryName = "undef";
+		}
+    	return theoryName;
+    }
+    	
+	public Core(CoreTalker talker, String implementedTheoryName, ArrayList<VertexType> vertices) {
 		this.talker = talker;
 		this.activeTheory = new CoreTheory();
-		
+		this.activeTheory.setTheoryName(getTheoryName());
+		if (!implementedTheoryName.equals("undef") && !this.activeTheory.getTheoryName().equals("undef")
+				&& !implementedTheoryName.equals(this.activeTheory.getTheoryName()))
+			logger.log(Level.WARNING, "Mismatch: The theory implemented by the core and the theory" +
+					"declared in the theory visualisation file differ");
 		for(VertexType v: vertices)
 			this.activeTheory.addVertexType(v);
-		
+
 		this.ruleset = new Ruleset(this);
 	}
 
-	public Core(ArrayList<VertexType> vertices) throws CoreException {
-		this(new CoreConsoleTalker(), vertices);
+	public Core(String implementedTheoryName, ArrayList<VertexType> vertices) throws CoreException {
+		this(new CoreConsoleTalker(), implementedTheoryName, vertices);
 	}
 
-	public void updateCoreTheory(ArrayList<VertexType> theoryVertices) {
+	public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) {
 		this.activeTheory.removeAllVertices();
+		if (!implementedTheoryName.equals("undef") && !this.activeTheory.getTheoryName().equals("undef")
+				&& !implementedTheoryName.equals(this.activeTheory.getTheoryName()))
+			logger.log(Level.WARNING, "Mismatch: The theory implemented by the core and the theory" +
+					"declared in the theory visualisation file differ");
 		for (VertexType v : theoryVertices) {
 			this.activeTheory.addVertexType(v);
 		}

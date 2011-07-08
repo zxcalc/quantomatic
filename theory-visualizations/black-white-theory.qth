@@ -1,4 +1,4 @@
-<theory name="black-white" implements="ghz-w">
+<theory name="black_white" implements="ghz_w">
   <nodetype name="GHZ">
     <data type="None"></data>
     <visualization>

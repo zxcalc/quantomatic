@@ -266,7 +266,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 				try {
 					theoryParser = new TheoryParser(f.getAbsolutePath());
 					app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-					app.updateCoreTheory(theoryParser.getTheoryVertices());
+					app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
 				} catch (SAXException e) {
 					app.errorDialog(e.toString());
 				} catch (IOException e) {
