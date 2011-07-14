@@ -18,8 +18,8 @@ sig
   (* lift various functions *)
   val lift_stateless : (string list -> ControllerState.response) -> command;
   val lift_state_viewer : (string list * ControllerState.T -> ControllerState.response) -> command;
-  val lift_graph_viewer : (string list * RG.Graph.T -> ControllerState.response) -> command;
-  val lift_graph_mutator : (string list * RG.Graph.T -> ControllerState.response * RG.Graph.T) -> command;
+  val lift_graph_viewer : (string list * ControllerState.Theory.Graph.T -> ControllerState.response) -> command;
+  val lift_graph_mutator : (string list * ControllerState.Theory.Graph.T -> ControllerState.response * ControllerState.Theory.Graph.T) -> command;
 end;
 
 (* *)

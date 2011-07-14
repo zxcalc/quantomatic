@@ -1,14 +1,13 @@
 (* controller state *)
 
-structure RG = RG_Theory;
-
 structure GraphName :> SSTR_NAMES = 
 struct open SStrName val default_name = SStrName.mk "new-graph-1" end;
 
 signature CONTROLLER_STATE =
 sig
   type T;
-  type rewrite = (RuleName.name * RG.Rule.T) * RG.Graph.T
+  structure Theory : GRAPHICAL_THEORY;
+  type rewrite = (RuleName.name * Theory.Rule.T) * Theory.Graph.T
   datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
 
   exception wrong_args_exp of unit (* when wrong arguments are given to a command *)
@@ -20,28 +19,28 @@ sig
   val as_data : string -> response
 
   (* get/set*)
-  val get_rset : T -> RG.Ruleset.T
+  val get_rset : T -> Theory.Ruleset.T
   val get_rewrites : T -> rewrite list GraphName.NTab.T
-  val get_hist : T -> (RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T
-  val get_graphs : T -> RG.Graph.T GraphName.NTab.T
-  val get_graph : T -> GraphName.name -> RG.Graph.T
+  val get_hist : T -> (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T
+  val get_graphs : T -> Theory.Graph.T GraphName.NTab.T
+  val get_graph : T -> GraphName.name -> Theory.Graph.T
 
   val update_rule : string list * T -> response * T
-  val update_rset : (RG.Ruleset.T -> RG.Ruleset.T) -> T -> T
+  val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
      T -> T
   val update_hist :
-   ((RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T ->
-     (RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T) -> T -> T
+   ((Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T ->
+     (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T) -> T -> T
   val update_graphs :
-   (RG.Graph.T GraphName.NTab.T -> RG.Graph.T GraphName.NTab.T) -> T -> T
+   (Theory.Graph.T GraphName.NTab.T -> Theory.Graph.T GraphName.NTab.T) -> T -> T
 
-  val set_rset : RG.Ruleset.T -> T -> T
+  val set_rset : Theory.Ruleset.T -> T -> T
   val set_rewrites : rewrite list GraphName.NTab.T -> T -> T
-  val set_hist : (RG.Graph.T list * RG.Graph.T list) GraphName.NTab.T -> T -> T
-  val set_graphs : RG.Graph.T GraphName.NTab.T -> T -> T
-  val set_graph : RG.Graph.T -> GraphName.name -> T -> T
+  val set_hist : (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T -> T -> T
+  val set_graphs : Theory.Graph.T GraphName.NTab.T -> T -> T
+  val set_graph : Theory.Graph.T -> GraphName.name -> T -> T
 
 
 
@@ -52,14 +51,14 @@ sig
 
   (* input/output *)
   val save_ruleset : string list * T -> response (* response: OK *)
-  val save_graph : string list * RG.Graph.T -> response (* response: OK *)
+  val save_graph : string list * Theory.Graph.T -> response (* response: OK *)
   val load_ruleset : string list * T -> response * T (* response: OK *)
   val load_graph : string list * T -> response * T (* response: NAME graphname *)
 
   (* printing/showing info (for console) *)
   val show_rewrites : string list * T -> response (* response: OUTPUT rewrite-list-xml *)
-  val print_graph : 'a list -> RG.Graph.T -> response (* response: DATA pretty-graph-structure *)
-  val print_theory_name : 'a list -> RG.Graph.T -> response (* response: NAME graph param name *)
+  val print_graph : 'a list -> Theory.Graph.T -> response (* response: DATA pretty-graph-structure *)
+  val print_theory_name : 'a list -> Theory.Graph.T -> response (* response: NAME graph param name *)
   val list_graphs : 'a list * T -> response (* response: NAME_LIST pretty-graph-list *)
   val list_rules_with_tag : string list * T -> response (* response: NAME_LIST pretty-rule-list *)
   val list_allrules : 'a list * T -> response (* response: NAME_LIST pretty-rule-list *)
@@ -94,48 +93,48 @@ sig
   val kill_graph : string list * T -> response * T (* response: OK *)
   val insert_graph : string list * T -> response * T (* response: OK *)
   val duplicate_graph : string list * T -> response * T (* response: NAME graph-name *)
-  val create_graph : GraphName.name -> RG.Graph.T -> T -> response * T (* response: NAME graph-name *)
+  val create_graph : GraphName.name -> Theory.Graph.T -> T -> response * T (* response: NAME graph-name *)
   val copy_subgraph : string list * T -> response * T (* response: OK *)
 
-  val add_vertex : string list * RG.Graph.T -> response * RG.Graph.T (* response: NAME vertex-name *)
-  val add_edge : string list * RG.Graph.T -> response * RG.Graph.T (* response: NAME edge-name *)
-  val add_bang : 'a list * RG.Graph.T -> response * RG.Graph.T (* response: NAME bb-name *)
+  val add_vertex : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: NAME vertex-name *)
+  val add_edge : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: NAME edge-name *)
+  val add_bang : 'a list * Theory.Graph.T -> response * Theory.Graph.T (* response: NAME bb-name *)
 
-  val set_angle : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val rename_vertex : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val set_angle : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val rename_vertex : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
   val rename_graph : string list * T -> response * T (* response: NAME new-graph-name *)
-  val delete_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val delete_edges : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val delete_vertices : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val delete_edges : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
 
-  val bang_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val kill_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val unbang_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val merge_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val duplicate_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
-  val drop_bang : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val bang_vertices : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val kill_bang : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val unbang_vertices : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val merge_bang : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val duplicate_bang : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
+  val drop_bang : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
 
-  val flip_vertices : string list * RG.Graph.T -> response * RG.Graph.T (* response: OK *)
+  val flip_vertices : string list * Theory.Graph.T -> response * Theory.Graph.T (* response: OK *)
 
   (* other *)
-  val hilb : string list * RG.Graph.T -> response (* response: DATA hilb-term *)
+  val hilb : string list * Theory.Graph.T -> response (* response: DATA hilb-term *)
 
   (* internal *)
   val assert_tag_exists : T -> TagName.name -> unit
   val assert_rule_exists : T -> RuleName.name -> unit
   val assert_not_rule_exists : T -> RuleName.name -> unit
-  val graph_xml : 'a list -> RG.Graph.T 
+  val graph_xml : 'a list -> Theory.Graph.T 
         -> response (* response: DATA graph-xml *)
   val graph_arg : string list 
         -> GraphName.name (* first argument as a graph name *)
 
   val tag_name_action :
-   (TagName.name -> RG.Ruleset.T -> RG.Ruleset.T) -> string list * T 
+   (TagName.name -> Theory.Ruleset.T -> Theory.Ruleset.T) -> string list * T 
      -> response * T
   val rule_name_action :
-   (TagName.name -> RG.Ruleset.T -> RG.Ruleset.T) ->
+   (TagName.name -> Theory.Ruleset.T -> Theory.Ruleset.T) ->
      string list * T -> response * T
   val graph_of_rule :
-   (RG.Rule.T -> RG.Graph.T) -> string -> string list * T -> response * T
+   (Theory.Rule.T -> Theory.Graph.T) -> string -> string list * T -> response * T
 
 end;
 
@@ -161,14 +160,15 @@ functor ControllerState(
 
   exception user_exp of string
 
+  structure Theory = GraphicalTheory;
   structure Input = IO_Interface.Input;
   structure Output = IO_Interface.Output;
-  structure RulesetRewrites = GraphicalTheory.RulesetRewrites
-  structure Ruleset = GraphicalTheory.Ruleset;
-  structure R = GraphicalTheory.Rule;
-  structure G = GraphicalTheory.Graph;
-  structure V = GraphicalTheory.Vertex;
-  structure E = GraphicalTheory.Edge;
+  structure RulesetRewrites = Theory.RulesetRewrites
+  structure Ruleset = Theory.Ruleset;
+  structure R = Theory.Rule;
+  structure G = Theory.Graph;
+  structure V = Theory.Vertex;
+  structure E = Theory.Edge;
 
   type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
   datatype response = OK | COUNT of int | NAME of string | NAME_LIST of (string list) | REWRITE_LIST of (rewrite list) | DATA of string;
