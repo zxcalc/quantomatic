@@ -60,7 +60,7 @@ public class QuantoApp {
 
 	private final Preferences globalPrefs;
 	private final Core core;
-	private JFileChooser fileChooser = null;
+	private JFileChooser[] fileChooser = {null, null, null};
 	private InteractiveViewManager viewManager;
 
 	public File getAppSettingsDirectory(boolean create) throws IOException {
@@ -87,6 +87,33 @@ public class QuantoApp {
 		return dir;
 	}
 
+	public String getRootDirectory() {
+		String applicationDir = getClass().getProtectionDomain().getCodeSource().getLocation().getPath(); 
+		if (applicationDir.endsWith(".jar"))
+		{
+		    applicationDir = new File(applicationDir).getParent();
+		}
+		else
+		{ 
+		    applicationDir += getClass().getName().replace('.', File.separatorChar);
+		    applicationDir = new File(applicationDir).getParent();
+		}
+		
+		if (applicationDir.endsWith("gui" + File.separator + "dist"))
+			applicationDir = applicationDir.replaceFirst(File.separator + "gui" + File.separator + "dist", "");
+		else
+			applicationDir = applicationDir.replaceFirst(File.separator + "gui" + File.separator + "bin" 
+					+ File.separator + "quanto" + File.separator + "gui", "");
+		
+		/*
+		 * If the user relocates the .jar file and appends the path to the core to $PATH
+		 * we cannot really infer the location of the root dir (or can we?): 
+		 * No default files will be loaded
+		 */
+		
+		return applicationDir;
+	}
+	
 	private static class Pref<T> {
 
 		final T def; // default value
@@ -137,8 +164,14 @@ public class QuantoApp {
 		new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
 	public static final BoolPref SHOW_INTERNAL_NAMES =
 		new BoolPref("show_internal_names", false, "Show internal graph names");
-	public static final StringPref LAST_OPEN_DIR =
-		new StringPref("last_open_dir", null);
+	public static final StringPref[] LAST_OPEN_DIRS =
+		{ new StringPref("last_open_dir", null),
+		  new StringPref("last_open_ruleset_dir", null),
+		  new StringPref("last_open_theory_dir", null) };
+	public static final int DIR_GRAPH=0;
+	public static final int DIR_RULESET=1;
+	public static final int DIR_THEORY=2;
+
 	public static final StringPref LAST_THEORY_OPEN_FILE =
 		new StringPref("last_theory_open_file", null);
 
@@ -146,7 +179,7 @@ public class QuantoApp {
 		if (theApp == null) {
 			try {
 				theApp = new QuantoApp();
-			} catch (CoreException ex) {
+		} catch (CoreException ex) {
 				// FATAL!!!
 				logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
 				JOptionPane.showMessageDialog(null,
@@ -259,7 +292,24 @@ public class QuantoApp {
 			} else {
 				logger.log(Level.FINER, "No theory state found");
 			}
-			// FIXME: try loading default ruleset
+			/*
+			 * Try loading a default file
+			 * TODO: Load a file that matches the theory implemented by the core.
+			 * We could have a default ruleset by theory... for now: red_green
+			 */
+			rsetFile = new File(getRootDirectory() + File.separatorChar + "rulesets" + File.separatorChar
+					+ "default.rules");
+			if (rsetFile.exists()) {
+				logger.log(Level.FINER, "Loading default ruleset");
+				try {
+					core.loadRuleset(rsetFile);
+					return;
+				} catch (Exception e) {
+					logger.log(Level.WARNING, "Could not load default file", e);
+				}
+			} else {
+				logger.log(Level.FINER, "Default ruleset could not be located on the disk");
+			}
 		} catch (IOException e) {
 			logger.log(Level.WARNING, "Error when loading ruleset state", e);
 		}
@@ -276,43 +326,52 @@ public class QuantoApp {
 		}
 	}
 
-	private ArrayList<VertexType> loadSavedTheoryState() {
+	private TheoryParser loadSavedTheoryState() {
 		String lastOpenedTheory = getPreference(QuantoApp.LAST_THEORY_OPEN_FILE);
 		if(lastOpenedTheory == null) {
-			logger.log(Level.FINER, "No saved theory file available");
-			return new ArrayList<VertexType>();
+			logger.log(Level.FINER, "No saved theory file available");	
+			/*
+			 * Try loading a default file
+			 */
+			return loadTheoryFile(getRootDirectory() + File.separatorChar + "theory-visualizations"
+					+ File.separatorChar + "red-green-theory.qth");
 		} else {
 			return loadTheoryFile(lastOpenedTheory);
 		}
 	}
 
-	public ArrayList<VertexType> loadTheoryFile(String theoryFilePath) {
+	public TheoryParser loadTheoryFile(String theoryFilePath) {
 		File theoryFile = new File(theoryFilePath);
 		if (!theoryFile.exists()) {
 			logger.log(Level.INFO, "Theory file \"{0}\" does not exist", theoryFilePath);
-			return new ArrayList<VertexType>();
+			return null;
 		} else {
 			logger.log(Level.FINER, "Loading previous theory");
 			TheoryParser theoryParser;
 			try {
 				theoryParser = new TheoryParser(theoryFilePath);
-				return theoryParser.getTheoryVertices();
+				return theoryParser;
 			} catch (SAXException e) {
 				errorDialog(e.toString());
 			} catch (IOException e) {
 				errorDialog(e.toString());
 			}
-				return new ArrayList<VertexType>();
+				return null;
 		}
 	}
 	
-	public void updateCoreTheory(ArrayList<VertexType> theoryVertices) {
-		core.updateCoreTheory(theoryVertices);
+	public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) {
+		core.updateCoreTheory(implementedTheoryName, theoryVertices);
 	}
 	
 	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
-		core = new Core(loadSavedTheoryState());
+		TheoryParser theoryParser = loadSavedTheoryState();
+		if (theoryParser != null)
+			core = new Core(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
+		else
+			core = new Core("undef", new ArrayList<VertexType>());
+		
 		loadSavedRulesetState();
 		
 		viewManager = new InteractiveViewManager(this, core);
@@ -326,24 +385,24 @@ public class QuantoApp {
 		}
 	}
 
-	private void createFileChooser() {
-		if (fileChooser == null) {
-			fileChooser = new JFileChooser();
-			String lastDir = getPreference(QuantoApp.LAST_OPEN_DIR);
+	private void createFileChooser(int type) {
+		if (fileChooser[type] == null) {
+			fileChooser[type] = new JFileChooser();
+			String lastDir = getPreference(QuantoApp.LAST_OPEN_DIRS[type]);
 			if (lastDir != null) {
-				fileChooser.setCurrentDirectory(new File(lastDir));
+				fileChooser[type].setCurrentDirectory(new File(lastDir));
 			}
 		}
 	}
 
-	public File openFile(Component parent, String title) {
-		createFileChooser();
-		int retVal = fileChooser.showDialog(parent, title);
-		fileChooser.setDialogType(JFileChooser.OPEN_DIALOG);
+	public File openFile(Component parent, String title, int type) {
+		createFileChooser(type);
+		int retVal = fileChooser[type].showDialog(parent, title);
+		fileChooser[type].setDialogType(JFileChooser.OPEN_DIALOG);
 		if (retVal == JFileChooser.APPROVE_OPTION) {
-			File f = fileChooser.getSelectedFile();
+			File f = fileChooser[type].getSelectedFile();
 			if (f.getParent() != null) {
-				setPreference(QuantoApp.LAST_OPEN_DIR, f.getParent());
+				setPreference(QuantoApp.LAST_OPEN_DIRS[type], f.getParent());
 			}
 			return f;
 		}
@@ -351,17 +410,17 @@ public class QuantoApp {
 	}
 
 	public File openFile(Component parent) {
-		return openFile(parent, "Open");
+		return openFile(parent, "Open", DIR_GRAPH);
 	}
 
-	public File saveFile(Component parent, String title) {
-		createFileChooser();
-		int retVal = fileChooser.showDialog(parent, title);
-		fileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+	public File saveFile(Component parent, String title, int type) {
+		createFileChooser(type);
+		int retVal = fileChooser[type].showDialog(parent, title);
+		fileChooser[type].setDialogType(JFileChooser.SAVE_DIALOG);
 		if (retVal == JFileChooser.APPROVE_OPTION) {
-			File f = fileChooser.getSelectedFile();
+			File f = fileChooser[type].getSelectedFile();
 			if (f.getParent() != null) {
-				setPreference(QuantoApp.LAST_OPEN_DIR, f.getParent());
+				setPreference(QuantoApp.LAST_OPEN_DIRS[type], f.getParent());
 			}
 			return f;
 		}
@@ -369,7 +428,7 @@ public class QuantoApp {
 	}
 
 	public File saveFile(Component parent) {
-		return saveFile(parent, "Save");
+		return saveFile(parent, "Save", DIR_GRAPH);
 	}
 
 	public InteractiveViewManager getViewManager() {

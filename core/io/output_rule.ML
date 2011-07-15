@@ -30,6 +30,29 @@ functor OutputRuleXML (
   )
 );
 
+(* This matches the format of OutputRulesetDescXMLList in output_ruleset.ML *)
+functor OutputNamedRuleXML (
+	structure Rule : BASIC_RULE
+	structure OutputGraph : OUTPUT_XML
+	sharing type OutputGraph.data = Rule.Graph.T
+) : OUTPUT_XML
+= struct
+  structure ORParts = OutputRulePartsXMLList (
+    structure Rule = Rule
+    structure OutputGraph = OutputGraph
+  )
+  structure ORName = OutputSStrNameXML(RuleName)
+
+  type data = (RuleName.name * ORParts.data)
+  type T = XML.tree
+
+  open XML;
+  fun output (name, rule) = 
+      Elem (("rule", []), 
+            [Elem (("name", []), [ORName.output name]),
+             Elem (("definition", []), ORParts.output rule)]);
+end;
+
 
 (* -------------------------------------------------------- *)
 (* -------- REWRITES ARE MUCH LIKE RULES -------------------*)
@@ -45,7 +68,7 @@ functor OutputRewriteXML (
 = struct
   structure R = Rule
   structure OG = OutputGraph
-  structure OR = OutputRuleXML (
+  structure OR = OutputNamedRuleXML (
     structure Rule = Rule
     structure OutputGraph = OutputGraph
   );
@@ -55,8 +78,8 @@ functor OutputRewriteXML (
 
   open XML;
   fun output ((rule_name, rule), rewrittengraph)  = 
-      Elem (("rewrite", [("name", (RuleName.string_of_name rule_name))]),
-            [(Elem (("newgraph", []), [(OG.output rewrittengraph)])), OR.output rule])
+      Elem (("rewrite", []),
+            [(Elem (("newgraph", []), [(OG.output rewrittengraph)])), OR.output (rule_name, rule)])
 
 end;
 

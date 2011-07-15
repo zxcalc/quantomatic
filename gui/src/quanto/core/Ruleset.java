@@ -219,4 +219,8 @@ public class Ruleset implements ChangeEventSupport {
 	public void fireStateChanged() {
 		changeSupport.fireStateChanged();
 	}
+
+	public Core getCore() {
+		return this.core;
+	}
 }

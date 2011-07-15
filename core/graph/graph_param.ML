@@ -55,6 +55,7 @@ signature GRAPH_PARAM
   val pretty_subst : subst -> Pretty.T
   val print_subst : subst -> unit
 
+  val pretty_theory_name : Pretty.T
   
   (* INTERNAL NAME DEPENDENCIES *)
   

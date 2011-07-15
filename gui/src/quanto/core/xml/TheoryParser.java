@@ -35,8 +35,8 @@ public class TheoryParser {
 
 		XMLReader reader = XMLReaderFactory.createXMLReader();
 
-		reader.setContentHandler(new TheoryDataProcessor(this));
-		reader.setErrorHandler(new TheoryErrorProcessor());
+		reader.setContentHandler(new TheoryDataHandler(this));
+		reader.setErrorHandler(new TheoryErrorHandler());
 
 		reader.parse(this.theoryInputSource);
 	}
@@ -70,7 +70,7 @@ public class TheoryParser {
 	}
 }
 
-class TheoryDataProcessor extends DefaultHandler
+class TheoryDataHandler extends DefaultHandler
 {
 	private TheoryParser theoryParser;
 	private VertexType.DataType dataType;
@@ -80,7 +80,16 @@ class TheoryDataProcessor extends DefaultHandler
 	private String vertexName;
 	private String labelFill;
 
-	public TheoryDataProcessor(TheoryParser theoryParser) {
+	private int unknownElementDepth = 0;
+	private Mode mode = Mode.None;
+	private enum Mode {
+		None,
+		Theory,
+		Nodetype,
+		Visualization
+	}
+	
+	public TheoryDataHandler(TheoryParser theoryParser) {
 		super();
 		this.theoryParser = theoryParser;
 	}
@@ -88,64 +97,97 @@ class TheoryDataProcessor extends DefaultHandler
 	@Override
 	public void startElement (String namespaceUri, String localName,
 			String qualifiedName, Attributes attributes) throws SAXException {
-		if(localName.equals("theory")) {
+		
+		if (unknownElementDepth > 0) {
+			++unknownElementDepth;
+		} else if (mode == Mode.None) {
+			if(!"theory".equals(localName)) {
+				throw new SAXParseException("Root element was not theory", null);
+			}
 			this.theoryName = attributes.getValue("name");
 			this.implementedTheoryName = attributes.getValue("implements");
-		} else if (localName.equals("nodetype")) {
+			mode = Mode.Theory;
+		} else if(mode == Mode.Theory) {
+			if (!"nodetype".equals(localName))
+				throw new SAXParseException("Element Nodetype not found", null);
 			this.vertexName = attributes.getValue("name");
-		} else if (localName.equals("data")) {
-			if (attributes.getValue("type").equals("MathExpression")) {
-				this.dataType = VertexType.DataType.MathExpression;
-			} else if (attributes.getValue("type").equals("String")) {
-				this.dataType = VertexType.DataType.String;
+			mode = Mode.Nodetype;
+		} else if(mode == Mode.Nodetype) {
+			if ("data".equals(localName)) {
+					if (attributes.getValue("type") == null) {
+						throw new SAXParseException("Type attribute not found in element Data", null);
+					} else if (attributes.getValue("type").equals("MathExpression")) {
+						this.dataType = VertexType.DataType.MathExpression;
+					} else if (attributes.getValue("type").equals("String")) {
+						this.dataType = VertexType.DataType.String;
+					} else {
+						this.dataType = VertexType.DataType.None;
+					}
+			} else if ("visualization".equals(localName)) {
+				mode = Mode.Visualization;
 			} else {
-				this.dataType = VertexType.DataType.None;
+				throw new SAXParseException("Unexpected element found in Nodetype", null);
 			}
-		}
-		else if (localName.equals("label")) {
-			this.labelFill = attributes.getValue("fill");
-		} else if (localName.equals("node")) {
-			/*
-			 * A relative path to the svg file is given 
-			 */
-			//FIXME : will use a parser, when it's implemented
-			File tmp = new File(theoryParser.getTheoryFilePath());
-			File tmp2 = new File(tmp.getParent() + "/" + attributes.getValue("svgFile"));
-			try {
-				this.svgFileURL = tmp2.toURI().toURL();
-			} catch (MalformedURLException e) {
-				throw new SAXParseException("Malformed URL for SVG file", null);
+		} else if(mode == Mode.Visualization) {
+			if("node".equals(localName)) {
+				if (attributes.getValue("svgFile") != null) {
+					//Then the representation is given in an external file
+					File tmp = new File(theoryParser.getTheoryFilePath());
+					File tmp2 = new File(tmp.getParent() + "/" + attributes.getValue("svgFile"));
+					try {
+						this.svgFileURL = tmp2.toURI().toURL();
+					} catch (MalformedURLException e) {
+						throw new SAXParseException("Malformed URL for SVG file", null);
+					}
+				} else {
+					//Then we have an inline declaration, maybe
+				}
+			} else if ("label".equals(localName)) {
+				this.labelFill = attributes.getValue("fill");
+			} else {
+				throw new SAXParseException("Unexpected element found in Visualization", null);
 			}
-		} else if (localName.equals("svg")) {
-			/*
-			 * Inline declaration of the svg file, use the filter
-			 * The inline declaration overwrites the svg repr given in "node"
-			 */
-			//TODO: Use the filter and give it the SVG constructor
+		} else {
+			++unknownElementDepth;
 		}
 	}
 
 	@Override
 	public void endElement (String namespaceUri, String localName,
 			String qualifiedName) throws SAXException {
-		if(localName.equals("visualization")) {
-			theoryParser.addVertex(new VertexType.GenericVertexType(this.vertexName, this.dataType, 
-					new SvgVertexVisualizationData(
-							this.svgFileURL,
-							new Color(Integer.parseInt(labelFill, 16))
-					)));
-		} else if (localName.equals("theory")) {
+		if (unknownElementDepth > 0) {
+			--unknownElementDepth;
+		} else if ((mode == Mode.Visualization) && "visualization".equals(localName)) {
+			mode = Mode.Nodetype;
+			if (this.vertexName == null)
+				throw new SAXParseException("name attribute of nodetype cannot be null", null);
+			theoryParser.addVertex(new VertexType.GenericVertexType(this.vertexName, this.dataType,
+					new SvgVertexVisualizationData(this.svgFileURL, 
+							new Color(Integer.parseInt(this.labelFill, 16)))));
+		} else if ((mode == Mode.Nodetype) && ("nodetype".equals(localName))) {
+			mode = Mode.Theory;
+		} else if ((mode == Mode.Theory) && ("theory".equals(localName))) {
+			if (this.theoryName == null) {
+				theoryParser.setTheoryName("undef");
+				throw new SAXException("Could not find attribute 'name' in element <theory>", null);
+			} else {
 			theoryParser.setTheoryName(this.theoryName);
-			theoryParser.setImplementedTheoryName(this.implementedTheoryName);
-		}
-
+			}
+			
+			if (this.implementedTheoryName == null) {
+				theoryParser.setImplementedTheoryName("undef");
+				throw new SAXException("Could not find attribute 'implements' in element <theory>", null);
+			}
+			theoryParser.setImplementedTheoryName(this.implementedTheoryName);		
+			mode = Mode.None;
+		} 
 	}
 }
 
-class TheoryErrorProcessor extends DefaultHandler
+class TheoryErrorHandler extends DefaultHandler
 {
 
-	public TheoryErrorProcessor ()
+	public TheoryErrorHandler ()
 	{
 		super();
 	}
@@ -165,53 +207,4 @@ class TheoryErrorProcessor extends DefaultHandler
 		throw new SAXParseException("Warning", null, e);
 	}
 
-}
-
-class TheoryDataFilter extends XMLFilterImpl
-{
-
-	private String nodeName;
-	private Boolean inSVG;
-	private Boolean inNodenodeName;
-
-	public TheoryDataFilter(String nodeName) {
-		this.nodeName = nodeName;
-		this.inSVG = false;
-	}
-
-	@Override
-	public void startElement (String namespaceUri, String localName,
-			String qualifiedName, Attributes attributes)
-	throws SAXException
-	{
-		if ((localName.equals("nodetype")) && (attributes.getValue("name").equals(nodeName))) {
-			inNodenodeName = true;
-		} else if (inNodenodeName && (localName.equals("svg"))){
-			inSVG = true;
-			super.startElement(namespaceUri, localName, qualifiedName, 
-					attributes);
-		} else if (inSVG) {
-			super.startElement(namespaceUri, localName, qualifiedName, 
-					attributes);
-		} else {
-			return;
-		}
-	}
-
-	@Override
-	public void endElement (String namespaceUri, String localName,
-			String qualifiedName)
-	throws SAXException
-	{
-		if (localName.equals("nodetype")) {
-			inNodenodeName = true;
-		} else if (localName.equals("svg")){
-			inSVG = false;
-			super.endElement(namespaceUri, localName, qualifiedName);
-		} else if (inSVG) {
-			super.endElement(namespaceUri, localName, qualifiedName);
-		} else {
-			return;
-		}
-	}
 }

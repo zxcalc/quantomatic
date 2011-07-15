@@ -24,7 +24,7 @@ public class LeftTabbedPane extends JPanel {
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		
 		tabbedPane = new JTabbedPane();
-		RulesBar sidebar = new RulesBar(core.getRuleset());
+		RulesBar sidebar = new RulesBar(core.getRuleset(), quantoFrame);
 		tabbedPane.addTab("Rules", null, sidebar,
         "Display Ruleset");
 		

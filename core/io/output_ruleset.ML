@@ -13,6 +13,7 @@ structure OutputTagRelXMLList : OUTPUT_XML_LIST =
   );
 
 (* -------------------------------------------------------- *)
+(* This matches the format of OutputNamedRuleXML in output_rule.ML *)
 functor OutputRulesetDescXMLList (
   structure Ruleset : RULESET
 	structure OutputRule : OUTPUT_XML_LIST

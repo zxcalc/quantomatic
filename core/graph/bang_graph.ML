@@ -81,6 +81,7 @@ val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
 val get_bbox_list : T -> BBox.name list
 val get_unboxed : T -> Vertex.NSet.T
+val try_rename1_bname : BBox.name -> BBox.name -> T -> T option
 (* val rename_bbname : BBox.name -> BBox.name -> T -> T *)
 
 val update_unboxed : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T

@@ -158,8 +158,10 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 				}
 				componentData = null;
 			}
-		} else if (mode == Mode.Graph && GRAPH_ELEM.equals(localName)) {
+		} else if (mode == Mode.Graph) {
 			// complete
+            assert(GRAPH_ELEM.equals(localName));
+            mode = Mode.None;
 		} else {
 			throw new IllegalStateException("endElement cannot be called without a corresponding startElement; element was " + localName);
 		}

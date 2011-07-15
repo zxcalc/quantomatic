@@ -14,6 +14,10 @@ import org.xml.sax.SAXException;
  */
 public abstract class DefaultFragmentHandler<T> implements FragmentHandler<T> {
 	protected Locator locator = null;
+    /** Collects characters (if not null) */
+    protected StringBuilder charCollector = null;
+    /** Whether to catch ignorable whitespace in the charCollector */
+    protected boolean catchWhitespace = false;
 
 	public void setDocumentLocator(Locator locator) {
 		this.locator = locator;
@@ -26,5 +30,12 @@ public abstract class DefaultFragmentHandler<T> implements FragmentHandler<T> {
 	}
 
 	public void characters(char[] ch, int start, int length) throws SAXException {
+        if (charCollector != null)
+            charCollector.append(ch, start, length);
 	}
+
+    public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
+        if (charCollector != null && catchWhitespace)
+            charCollector.append(ch, start, length);
+    }
 }

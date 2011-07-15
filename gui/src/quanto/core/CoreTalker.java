@@ -353,6 +353,11 @@ public abstract class CoreTalker {
 	}
 
 	@Command
+	public String print_theory_name(String graphName) throws CoreException {
+		return commandAsName("print_theory_name", Arg.nameArg(graphName));
+	}
+	
+	@Command
 	public String load_graph(File location) throws CoreException {
 		return commandAsName("load_graph", Arg.pathArg(location));
 	}

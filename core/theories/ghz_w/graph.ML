@@ -125,6 +125,8 @@ structure GHZW_GraphParam
   val pretty_subst = Vertex.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
 
+  val pretty_theory_name = Pretty.str "ghz_w";
+
   structure Sharing = 
   struct 
     structure Vertex = Vertex.SharingWithData;

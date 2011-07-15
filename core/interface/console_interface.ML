@@ -10,7 +10,7 @@ end;
 structure ConsoleInterface : CONSOLE_INTERFACE = 
 struct 
   datatype consolestate = NORMAL of ControllerState.T | SKIP | QUIT;
-  structure G = RG.Graph;
+  structure G = ControllerState.Theory.Graph;
 (* 
   fun read_block readlinef () = 
       let
@@ -55,7 +55,7 @@ struct
     | help ["all"] = fold (fn a => fn b => (help1 a)^b)
                           (sort_alpha ("quit" :: (Symtab.keys commands))) "\n"
     | help [cmd] = (help1 cmd)
-    | help _ = raise ControllerState.wrong_args_exp ();
+    | help _ = raise Commands.wrong_args_exp ();
 
 
   fun handle_bug_in_function f (x as (l,st)) = (f x) 
@@ -88,12 +88,12 @@ struct
       | G.BBox.Rnm.invalid_renaming_exp x =>
         raise ControllerState.user_exp ("BUG: invalid edge renaming: "^x);
 
-  fun response_string (ControllerState.OK) = "ok\n"
-    | response_string (ControllerState.COUNT n) = (Int.toString n)^"\n"
-    | response_string (ControllerState.NAME str) = str^"\n"
-    | response_string (ControllerState.NAME_LIST xs) = (fold (suffix o (suffix "\n")) xs "")^"\n"
-    | response_string (ControllerState.REWRITE_LIST rs) = (XML.string_of (RG_IO_Interface.Output.RewriteList.output rs))^"\n"
-    | response_string (ControllerState.DATA str) = str^"\n"
+  fun response_string (Commands.OK) = "ok\n"
+    | response_string (Commands.COUNT n) = (Int.toString n)^"\n"
+    | response_string (Commands.NAME str) = str^"\n"
+    | response_string (Commands.NAME_LIST xs) = (fold (suffix o (suffix "\n")) xs "")^"\n"
+    | response_string (Commands.REWRITE_LIST rs) = (XML.string_of (RG_IO_Interface.Output.RewriteList.output rs))^"\n"
+    | response_string (Commands.DATA str) = str^"\n"
   
   fun do_cmd ("quit", _) _ = ("", QUIT)
     | do_cmd ("exit", _) _ = ("", QUIT)
@@ -104,7 +104,7 @@ struct
         of SOME (_,f) => (fn (a,b)=>(response_string a, NORMAL b)) (handle_bug_in_function f (args, state))
          | NONE => ("!!! Unknown command: "^
             (CommandLexer.toString cmd)^"\n", NORMAL state))
-      handle ControllerState.wrong_args_exp () =>
+      handle Commands.wrong_args_exp () =>
          ("!!! Wrong number of args in " ^
           (CommandLexer.toString cmd)^".\n", NORMAL state)
        | ControllerState.user_exp str => ("!!! "^str^"\n", NORMAL state)

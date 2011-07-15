@@ -36,6 +36,8 @@ import javax.swing.event.PopupMenuListener;
 
 import quanto.core.CoreException;
 import quanto.core.Ruleset;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.Rule;
 
 /**
  * Panel displaying a very simple rules interface.
@@ -66,6 +68,7 @@ public class RulesBar extends JPanel {
 		}
 	};
 	private Ruleset ruleset;
+	private QuantoFrame quantoFrame;
 	private ChangeListener listener = new ChangeListener() {
 
 		public void stateChanged(ChangeEvent e) {
@@ -218,8 +221,9 @@ public class RulesBar extends JPanel {
 		});
 	}
 
-	public RulesBar(Ruleset ruleset) {
+	public RulesBar(Ruleset ruleset, QuantoFrame quantoFrame) {
 		this.ruleset = ruleset;
+		this.quantoFrame = quantoFrame;
 		ruleset.addChangeListener(listener);
 
 		DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
@@ -255,6 +259,25 @@ public class RulesBar extends JPanel {
 			}
 		});
 		
+		JButton openRuleButton = new JButton(createImageIcon("/toolbarButtonGraphics/general/Open16.gif", "Refresh"));
+		openRuleButton.setToolTipText("Open Rule");
+		openRuleButton.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				if(listView.getSelectedIndex() != -1) {
+					try {
+						Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().openRule(listView.getSelectedValue().toString());
+						SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
+						RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
+						RulesBar.this.quantoFrame.getViewPort().attachView(spg);
+					} catch (CoreException ex) {
+						//We cannot open the rule. This is not critical. Inform the user.
+						logger.log(Level.WARNING, "Could not open selected rule : ", ex);
+					}
+				}
+			}
+		});
+
 		tagsCombo.addActionListener(new ActionListener() {
 			
 			public void actionPerformed(ActionEvent e) {
@@ -268,6 +291,7 @@ public class RulesBar extends JPanel {
 		buttonBox.setLayout(new BoxLayout(buttonBox, BoxLayout.LINE_AXIS));
 		buttonBox.add(enableButton);
 		buttonBox.add(disableButton);
+		buttonBox.add(openRuleButton);
 		buttonBox.add(refreshButton);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		this.add(buttonBox);
