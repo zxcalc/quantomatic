@@ -30,6 +30,7 @@ signature GRAPH_PARAM
   (* SUBSTITUTION/MATCHING/UNIFICATION *)
   (* this is a user exception raised when things don't match *)
   exception match_exp of unit
+  exception unknown_type_exp of string
 
   (* substitutions for internal variable names 
      (for data that lives in the edges and vertices) *)
@@ -75,6 +76,11 @@ signature GRAPH_PARAM
 
   val delete_vertex : Vertex.name -> T -> T
   val delete_edge : Edge.name -> T -> T
+
+  val vertex_type_name : Vertex.data -> string
+  val vertex_default_data : string -> Vertex.data
+  val edge_type_name : Edge.data -> string
+  val edge_default_data : string -> Edge.data
 
   (* raises Vertex.Rnm. *)
   val rename_vname : Vertex.name -> Vertex.name -> T -> T

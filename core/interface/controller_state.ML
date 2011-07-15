@@ -91,7 +91,7 @@ sig
   val copy_subgraph : GraphName.name -> GraphName.name -> Theory.Vertex.name list -> T -> T
 
   val add_vertex : string -> GraphName.name -> T -> vertex * T
-  val add_edge : Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
+  val add_edge : string -> Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
   val add_bang : GraphName.name -> T -> Theory.Graph.BBox.name * T
 
   val set_angle : Theory.Vertex.name -> string -> GraphName.name -> T -> T
@@ -349,13 +349,6 @@ functor ControllerState(
       (XMLWriter.write_to_file fname (Output.Graph.output (get_graph state gname))
        handle _ => raise user_exp ("Could not save file "^fname))
 
-  (* FIXME: make generic over vertex data *)
-  fun vertex_type "X" = V.IVert (RG_VertexData.Xnd LinratExpr.zero)
-    | vertex_type "Z" =  V.IVert (RG_VertexData.Znd LinratExpr.zero)
-    | vertex_type "hadamard" = V.IVert RG_VertexData.Hnd
-    | vertex_type "edge-point" = V.EVert
-    | vertex_type _ = raise user_exp "Bad vertex type."
-
   fun lift_graph_mutator cmdf gname state =
       let val (out,g') = cmdf (get_graph state gname)
       in (out, state |> push_hist gname 
@@ -366,19 +359,20 @@ functor ControllerState(
                |> set_graph g' gname end;
 
   fun add_vertex_internal vt graph =
-      let val (n,g) = graph |> G.add_vertex (vertex_type vt)
-      in ((n,G.get_vertex g n), g)
-      end
+      (let val (n,g) = graph |> G.add_vertex_by_type vt in
+          ((n,G.get_vertex g n), g)
+       end
+       handle G.unknown_type_exp _ => raise user_exp ("Unknown vertex type "^vt))
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
   (* FIXME: make generic over edge data *)
-  fun add_edge_internal v1 v2 graph =
-      (let val (n,g) = graph |> G.add_edge (G.UnDirected,()) v1 v2
+  fun add_edge_internal et v1 v2 graph =
+      (let val (n,g) = graph |> G.add_edge_by_type (G.UnDirected,et) v1 v2
        in ((n,G.get_edge g n), g)
        end
        handle G.no_such_vname_exp _ =>
               raise user_exp "Bad vertex name.")
-  fun add_edge v1 v2 gname state = lift_graph_mutator (add_edge_internal v1 v2) gname state
+  fun add_edge et v1 v2 gname state = lift_graph_mutator (add_edge_internal et v1 v2) gname state
 
 
   fun delete_vertices_internal vs graph =
