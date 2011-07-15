@@ -10,6 +10,7 @@ public interface VertexType {
 	}
 	VertexVisualizationData getVisualizationData();
 	String getTypeName();
+	String getMnemonic();
 	/**
 	 * Equivalent to (getDataType() != DataType.None)
 	 * @return
@@ -22,53 +23,19 @@ public interface VertexType {
 		private String name;
 		private DataType dataType;
 		private VertexVisualizationData visData;
+		private String mnemonic;
 		
-		public GenericVertexType(String name, DataType dataType, VertexVisualizationData visData) {
+		public GenericVertexType(String name, DataType dataType, String mnemonic, VertexVisualizationData visData) {
 			this.name = name;
 			this.dataType = dataType;
 			this.visData = visData;
+			this.mnemonic = mnemonic;
 		}
+
 		public VertexVisualizationData getVisualizationData() {return this.visData;}
 		public String getTypeName() {return this.name;}
+		public String getMnemonic() {return this.mnemonic;}
 		public boolean hasData() {return !this.dataType.equals(DataType.None);}
 		public DataType getDataType() {return this.dataType;}
-	}
-	
-	public static class X implements VertexType {
-		VertexVisualizationData visData = new SvgVertexVisualizationData(
-				VertexType.class.getResource("resources/red.svg"),
-				new Color(255, 170, 170)
-				);
-		public VertexVisualizationData getVisualizationData() { return visData; }
-		public String getTypeName() { return "X"; }
-		public boolean hasData() { return true; }
-		public DataType getDataType() { return DataType.MathExpression; }
-	}
-
-	public static class Z implements VertexType {
-		VertexVisualizationData visData = new SvgVertexVisualizationData(
-				VertexType.class.getResource("resources/green.svg"),
-				new Color(150, 255, 150)
-				);
-		public VertexVisualizationData getVisualizationData() { return visData; }
-		public String getTypeName() { return "Z"; }
-		public boolean hasData() { return true; }
-		public DataType getDataType() { return DataType.MathExpression; }
-	}
-
-	public static class Hadamard implements VertexType {
-		SvgVertexVisualizationData visData;
-
-		public Hadamard() {
-			visData = new SvgVertexVisualizationData(
-				VertexType.class.getResource("resources/hadamard.svg"),
-				null
-			);
-			visData.setAntiAliasingOn(false);
-		}
-		public VertexVisualizationData getVisualizationData() { return visData; }
-		public String getTypeName() { return "hadamard"; }
-		public boolean hasData() { return false; }
-		public DataType getDataType() { return DataType.None; }
 	}
 }

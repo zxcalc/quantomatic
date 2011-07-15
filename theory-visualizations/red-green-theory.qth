@@ -1,6 +1,7 @@
 <theory name="red_green" implements="red_green">
   <nodetype name="X">
     <data type="MathExpression"></data>
+	<mnemonic key="r"/>
     <visualization>
 	   <node svgFile="red.svg">
 		</node>
@@ -10,6 +11,7 @@
 
   <nodetype name="Z">
     <data type="MathExpression"></data>
+	<mnemonic key="g"/>
     <visualization>
 	 	<node svgFile="green.svg">
 		</node>
@@ -19,6 +21,7 @@
 
   <nodetype name="hadamard">
     <data type="None" />
+	<mnemonic key="h"/>
     <visualization>
       <node svgFile="hadamard.svg">
       </node>

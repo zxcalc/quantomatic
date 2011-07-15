@@ -72,7 +72,10 @@ public class Toolbox extends JPanel {
 		for (final VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
 			JButton button = new JButton(vertexType.getVisualizationData().getIcon());
 			addVertexArea.add(button);
-			button.setToolTipText("Add vertex of type " + vertexType.getTypeName());
+			String toolTipText = "Add vertex of type " + vertexType.getTypeName();
+			if (vertexType.getMnemonic() != null)
+				toolTipText += " - '"+ vertexType.getMnemonic() +"'";
+			button.setToolTipText(toolTipText);
 			button.addActionListener(new ActionListener() {
 
 				public void actionPerformed(ActionEvent e) {

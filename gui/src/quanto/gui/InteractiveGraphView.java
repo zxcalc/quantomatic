@@ -1362,15 +1362,6 @@ public class InteractiveGraphView
 		}
 		else {
 			switch (e.getKeyCode()) {
-				case KeyEvent.VK_R:
-					addVertex("X");
-					break;
-				case KeyEvent.VK_G:
-					addVertex("Z");
-					break;
-				case KeyEvent.VK_H:
-					addVertex("hadamard");
-					break;
 				case KeyEvent.VK_B:
 					addBoundaryVertex();
 					break;
@@ -1385,6 +1376,10 @@ public class InteractiveGraphView
 				case KeyEvent.VK_SPACE:
 					showRewrites();
 					break;
+			}
+			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(Character.toString(e.getKeyChar()));
+			if (v != null) {
+				addVertex(v.getTypeName());
 			}
 		}
 	}
