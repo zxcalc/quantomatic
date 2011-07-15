@@ -439,9 +439,10 @@ public abstract class CoreTalker {
 	}
 
 	@Command
-	public String add_edge(String graphName, String sourceName,
+	public String add_edge(String graphName, String type, String sourceName,
 			String targetName) throws CoreException {
 		return commandAsName("add_edge", Arg.nameArg(graphName),
+				Arg.vertexTypeArg(type),
 				Arg.nameArg(sourceName), Arg.nameArg(targetName));
 	}
 

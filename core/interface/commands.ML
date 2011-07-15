@@ -154,8 +154,8 @@ structure Commands
   fun delete_vertices (gname::vs, state) =
       (OK, (ControllerState.delete_vertices (map V.mk vs) (GraphName.mk gname) state))
     | delete_vertices (_, state) = raise wrong_args_exp ()
-  fun add_edge ([gname,v1,v2], state) =
-      apply_to_first edge_xml (ControllerState.add_edge "unit" (V.mk v1) (V.mk v2) (GraphName.mk gname) state)
+  fun add_edge ([gname,et,v1,v2], state) =
+      apply_to_first edge_xml (ControllerState.add_edge et (V.mk v1) (V.mk v2) (GraphName.mk gname) state)
     | add_edge (_, state) = raise wrong_args_exp ()
   fun delete_edges (gname::es, state) =
       (OK, (ControllerState.delete_edges (map E.mk es) (GraphName.mk gname) state))
@@ -393,8 +393,8 @@ structure Commands
       delete_vertices)),
 
     ("add_edge",
-     ("add_edge GRAPH V1 V2\n\n"^
-        "    add an edge in GRAPH from V1 to V2\n",
+     ("add_edge GRAPH TYPE V1 V2\n\n"^
+        "    add a TYPE edge in GRAPH from V1 to V2\n",
       add_edge)),
 
     ("delete_edges",

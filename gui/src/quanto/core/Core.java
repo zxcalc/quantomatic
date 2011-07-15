@@ -277,6 +277,7 @@ public class Core {
 			throws CoreException {
 		assertCoreGraph(graph);
 		String xml = talker.add_edge(graph.getCoreName(),
+					     "unit",
 					     source.getCoreName(),
 					     target.getCoreName());
 		EdgeData e = this.<EdgeData>parseXml(xml, new EdgeFragmentHandler());
