@@ -8,8 +8,8 @@ struct
   val edge = (Graph.Directed, Graph.Edge.default_data)
 
   fun bx g = let
-    val (vn,g) = g |> Graph.add_vertex (Graph.OVertex.EVert)
-    val (bn,g) = g |> Graph.new_box (Graph.BBox.default_name)
+    val (vn,g) = g |> Graph.add_vertex Graph.OVertex.EVert
+    val (bn,g) = g |> Graph.new_box Graph.BBox.default_name
   in (vn, Graph.move_to_box bn (Graph.Vertex.NSet.single vn) g)
   end
 
@@ -26,6 +26,16 @@ struct
     val rhs = rhs |> Graph.doadd_edge edge b3 i1 |> Graph.doadd_edge edge i1 b4
   in Rule.mk (lhs,rhs)
   end
+  
+  (*fun ident data = let
+      val rhs = Graph.empty
+      val (bn1,rhs) = rhs |> Graph.add_vertex Graph.OVertex.EVert
+      val (bn2,rhs) = rhs |> Graph.add_vertex Graph.OVertex.EVert
+      val (vn1,lhs) = rhs |> Graph.add_vertex (Graph.OVertex.IVert data)
+      val lhs = lhs |> Graph.doadd_edge edge bn1 vn1 |> Graph.doadd_edge edge vn1 bn2
+      val rhs = rhs |> Graph.doadd_edge edge bn1 bn2
+    in Rule.mk (lhs,rhs)
+    end*)
   
   fun special data = let
     val rhs = Graph.empty

@@ -10,12 +10,11 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       145,          7]
-NotebookDataLength[      5900,        192]
-NotebookOptionsPosition[      5555,        176]
-NotebookOutlinePosition[      5914,        192]
-CellTagsIndexPosition[      5871,        189]
-WindowFrame->Normal
-ContainsDynamic->False*)
+NotebookDataLength[      5752,        185]
+NotebookOptionsPosition[      5425,        169]
+NotebookOutlinePosition[      5804,        186]
+CellTagsIndexPosition[      5761,        183]
+WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
 Notebook[{
@@ -27,8 +26,6 @@ Cell[BoxData[
  CellChangeTimes->{{3.44293096621163*^9, 3.442930988641437*^9}}],
 
 Cell[BoxData[{
- RowBox[{
-  RowBox[{"<<", "Combinatorica`"}], ";"}], "\n", 
  RowBox[{
   RowBox[{"id", "=", 
    RowBox[{"IdentityMatrix", "[", "2", "]"}]}], 
@@ -90,25 +87,27 @@ Cell[BoxData[{
  RowBox[{
   RowBox[{
    RowBox[{"PermutedTensor", "[", "perm_", "]"}], ":=", 
-   RowBox[{"(", 
+   RowBox[{"Module", "[", 
     RowBox[{
-     RowBox[{"perm1", "=", 
+     RowBox[{"{", "perm1", "}"}], ",", "\[IndentingNewLine]", 
+     RowBox[{
+      RowBox[{"perm1", "=", 
+       RowBox[{
+        RowBox[{"Function", "[", 
+         RowBox[{"x", ",", 
+          RowBox[{"x", "+", "1"}]}], "]"}], "/@", "perm"}]}], ";", 
+      "\[IndentingNewLine]", 
       RowBox[{
        RowBox[{"Function", "[", 
-        RowBox[{"x", ",", 
-         RowBox[{"x", "+", "1"}]}], "]"}], "/@", "perm"}]}], ";", 
-     "\[IndentingNewLine]", 
-     RowBox[{
-      RowBox[{"Function", "[", 
-       RowBox[{"p", ",", 
-        RowBox[{"Permute", "[", 
-         RowBox[{"p", ",", "perm1"}], "]"}]}], "]"}], "/@", 
-      RowBox[{"Tuples", "[", 
-       RowBox[{
-        RowBox[{"{", 
-         RowBox[{"1", ",", "2"}], "}"}], ",", 
-        RowBox[{"Length", "[", "perm1", "]"}]}], "]"}]}]}], ")"}]}], 
-  ";"}], "\n", 
+        RowBox[{"p", ",", 
+         RowBox[{"Permute", "[", 
+          RowBox[{"p", ",", "perm1"}], "]"}]}], "]"}], "/@", 
+       RowBox[{"Tuples", "[", 
+        RowBox[{
+         RowBox[{"{", 
+          RowBox[{"1", ",", "2"}], "}"}], ",", 
+         RowBox[{"Length", "[", "perm1", "]"}]}], "]"}]}]}]}], 
+    "\[IndentingNewLine]", "]"}]}], ";"}], "\n", 
  RowBox[{
   RowBox[{
    RowBox[{"sig", "[", "perm__", "]"}], ":=", 
@@ -165,19 +164,14 @@ Cell[BoxData[{
    3.442699579573373*^9, 3.442699599254821*^9}, {3.442699717134639*^9, 
    3.442699759275648*^9}, {3.442699820926518*^9, 3.442699826882848*^9}, {
    3.442700046944882*^9, 3.442700049764009*^9}, {3.442701181421845*^9, 
-   3.442701200659891*^9}, {3.44270124128848*^9, 3.442701277302827*^9}}],
-
-Cell[BoxData[
- RowBox[{"(*", " ", 
-  RowBox[{"Output", " ", "generated", " ", "by", " ", "quantomatic"}], " ", 
-  "*)"}]], "Input",
- CellChangeTimes->{{3.442930948483707*^9, 3.442930962104384*^9}, {
-  3.44293099278028*^9, 3.442930995611175*^9}}]
+   3.442701200659891*^9}, {3.44270124128848*^9, 3.442701277302827*^9}, 
+   3.519636444466619*^9, {3.519636518278564*^9, 3.51963652934831*^9}}]
 },
 WindowSize->{862, 689},
 WindowMargins->{{138, Automatic}, {Automatic, 22}},
 ShowSelection->True,
-FrontEndVersion->"6.0 for Mac OS X x86 (32-bit) (April 20, 2007)",
+FrontEndVersion->"8.0 for Mac OS X x86 (32-bit, 64-bit Kernel) (November 13, \
+2010)",
 StyleDefinitions->"Default.nb"
 ]
 (* End of Notebook Content *)
@@ -191,9 +185,8 @@ CellTagsIndex->{}
 *)
 (*NotebookFileOutline
 Notebook[{
-Cell[568, 21, 220, 5, 27, "Input"],
-Cell[791, 28, 4512, 139, 275, "Input"],
-Cell[5306, 169, 245, 5, 27, "Input"]
+Cell[545, 20, 220, 5, 27, "Input"],
+Cell[768, 27, 4653, 140, 289, "Input"]
 }
 ]
 *)
