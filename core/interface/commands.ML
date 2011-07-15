@@ -140,9 +140,17 @@ structure Commands
   fun rename_vertex ([gname,old,new], state) =
       (OK, (ControllerState.rename_vertex (V.mk old) (V.mk new) (GraphName.mk gname) state))
     | rename_vertex (_, state) = raise wrong_args_exp ()
+
+  (* FIXME: make generic, currently depends on RGVertex *)
+  fun vdata a (V.IVert (RG_VertexData.Xnd _)) = 
+      V.IVert (RG_VertexData.Xnd (LinratExpr.parse a))
+    | vdata a (V.IVert (RG_VertexData.Znd _)) = 
+      V.IVert (RG_VertexData.Znd (LinratExpr.parse a))
+    | vdata _ _ = raise ControllerState.user_exp "Can only set angles for red and green vertices."
   fun set_angle ([gname,v,angle], state) =
-      (OK, (ControllerState.set_angle (V.mk v) angle (GraphName.mk gname) state))
+      (OK, (ControllerState.update_vertex_data (vdata angle) (V.mk v) (GraphName.mk gname) state))
     | set_angle (_, state) = raise wrong_args_exp ()
+
   fun delete_vertices (gname::vs, state) =
       (OK, (ControllerState.delete_vertices (map V.mk vs) (GraphName.mk gname) state))
     | delete_vertices (_, state) = raise wrong_args_exp ()
