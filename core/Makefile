@@ -65,7 +65,7 @@ run: ml-shell
 clean:
 	rm -f heaps/*.polyml-heap
 	rm -f bin/*.o
-	find -type d -name .polysave | xargs rm -rf
+	find . -type d -name .polysave | xargs rm -rf
 	rm -f bin/$(THE_BIN)
 
 veryclean: clean
