@@ -40,6 +40,10 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
+test check: $(QUANTO_HEAP)
+	echo 'use "TEST.ML";' | $(POLYML)
+	@echo "All tests passed"
+
 bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
 

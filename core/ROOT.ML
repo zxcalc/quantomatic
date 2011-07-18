@@ -130,30 +130,6 @@ PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 
 
-
-(*** TESTS ***)
-
-(* TESTING: test_graph structure and test construction tools *)
-PolyML.Project.make "graph/test/test_graph.ML";
-
-(* TESTING; ruleset and io construction *)
-PolyML.Project.make "theories/test/test_ruleset.ML";
-PolyML.Project.make "io/test/test_graph_io.ML";
-
-(* TESTING: matching *)
-PolyML.Project.make "matching/test/matching.ML";
-PolyML.Project.make "matching/test/matching2.ML";
-PolyML.Project.make "rewriting/test/ruleset_rewriting.ML";
-PolyML.Project.make "matching/test/simple_match_search.ML";
-PolyML.Project.make "matching/test/test_symmetry_match_search.ML";
-
-(* Depends on test_graph_io for now *)
-PolyML.Project.make "dev/convert_old_files.ML";
-
-(* unit tests *)
-PolyML.Project.use_root "test/ROOT.ML";
-
-
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 
 if PolyML.Project.heap_is_newer_than_edits "heaps/quanto_child.heap"
@@ -166,7 +142,3 @@ else
 PolyML.Project.Log.log 2 "done."
 
 
-
-(*
-PolyML.Project.make "test/dbg/rule_matching3-bbox-v1.ML"; 
-*)
