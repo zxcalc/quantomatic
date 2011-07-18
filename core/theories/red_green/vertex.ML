@@ -97,9 +97,15 @@ end;
 
 (*  *)
 structure RG_VertexData_ParamIO
-: GRAPH_TYPED_DATA_PARAM_XML_IO where type data = RG_VertexData.data
+: GRAPH_TYPED_DATA_PARAM_IO where type data = RG_VertexData.data
 = struct 
   type data = RG_VertexData.data;
+  exception unknown_type_exp of string;
+
+  fun type_of (RG_VertexData.Xnd _) = "X"
+    | type_of (RG_VertexData.Znd _) = "Z"
+    | type_of (RG_VertexData.Hnd) = "hadamard";
+
   fun type_and_xml_of (RG_VertexData.Xnd a) = 
       ("X",[OutputLinratXML.output a])
     | type_and_xml_of (RG_VertexData.Znd a) = 
@@ -112,27 +118,29 @@ structure RG_VertexData_ParamIO
       (RG_VertexData.Znd (InputLinratXML.input xml)) 
     | of_type_and_xml ("hadamard",[]) = 
       (RG_VertexData.Hnd)
+    | of_type_and_xml ("X",_) = 
+      raise XML_Parse_Utils.bad_input_exp ("X node data element may only have one child","")
+    | of_type_and_xml ("Z",_) = 
+      raise XML_Parse_Utils.bad_input_exp ("Z node data element may only have one child","")
+    | of_type_and_xml ("hadamard",_) = 
+      raise XML_Parse_Utils.bad_input_exp ("hadamard node data element must be empty","")
     | of_type_and_xml (n,xml_list) = 
-      raise XML_Parse_Utils.bad_input_exp 
-        ("RG_VertexData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
-         (Pretty.string_of (Pretty.list "[" "]" 
-           (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
-         "data");
-end;
+      raise unknown_type_exp n;
 
-(*  *)
-structure NoEdgeData_ParamIO 
-: GRAPH_TYPED_DATA_PARAM_XML_IO where type data = unit 
-= struct
-  type data = unit
-  fun of_type_and_xml ("unit",_) = ()
-    | of_type_and_xml (n,xml_list) = 
-      raise XML_Parse_Utils.bad_input_exp 
-        ("NoEdgeData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
-         (Pretty.string_of (Pretty.list "[" "]" 
-           (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
-         "data");
-  fun type_and_xml_of () = ("unit",[]);
-end; 
+  fun type_and_string_of (RG_VertexData.Xnd a) = 
+      ("X",Pretty.string_of (LinratExpr.pretty a))
+    | type_and_string_of (RG_VertexData.Znd a) = 
+      ("Z",Pretty.string_of (LinratExpr.pretty a))
+    | type_and_string_of (RG_VertexData.Hnd) = 
+      ("hadamard","");
+  fun of_type_and_string ("X",angle) = 
+      (RG_VertexData.Xnd (LinratExpr.parse angle))
+    | of_type_and_string ("Z",angle) = 
+      (RG_VertexData.Znd (LinratExpr.parse angle))
+    | of_type_and_string ("hadamard",_) = 
+      (RG_VertexData.Hnd)
+    | of_type_and_string (n,_) = 
+      raise unknown_type_exp n;
+end;
 
 

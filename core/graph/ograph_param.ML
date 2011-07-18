@@ -138,17 +138,28 @@ end;
 
 (*  *)
 functor OVertexData_ParamIO(
-  structure VertexDataParamIO : GRAPH_TYPED_DATA_PARAM_XML_IO
+  structure VertexDataParamIO : GRAPH_TYPED_DATA_PARAM_IO
   structure OVertex : OVERTEX
   sharing type OVertex.IData.data = VertexDataParamIO.data
 )
-: GRAPH_TYPED_DATA_PARAM_XML_IO
+: GRAPH_TYPED_DATA_PARAM_IO
 = struct 
   type data = OVertex.data;
+  exception unknown_type_exp = VertexDataParamIO.unknown_type_exp
+
+  fun type_of (OVertex.EVert) = "edge-point"
+    | type_of (OVertex.IVert d) = VertexDataParamIO.type_of d;
+
   fun type_and_xml_of (OVertex.EVert) = ("edge-point",[])
     | type_and_xml_of (OVertex.IVert d) = VertexDataParamIO.type_and_xml_of d;
 
   fun of_type_and_xml ("edge-point",[]) = OVertex.EVert
     | of_type_and_xml x = OVertex.IVert (VertexDataParamIO.of_type_and_xml x);
+
+  fun type_and_string_of (OVertex.EVert) = ("edge-point","")
+    | type_and_string_of (OVertex.IVert d) = VertexDataParamIO.type_and_string_of d;
+
+  fun of_type_and_string ("edge-point","") = OVertex.EVert
+    | of_type_and_string x = OVertex.IVert (VertexDataParamIO.of_type_and_string x);
 end;
 

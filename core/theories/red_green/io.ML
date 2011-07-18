@@ -20,11 +20,11 @@ structure RG_Theory : GRAPHICAL_THEORY = DB_RG_Theory;
 structure DB_RG_IO_Interface_v2 = IO_Interface(
   structure Ruleset = RG_Theory.Ruleset
 
-  structure InputVertexData = InputTypedData(RG_OVertexData_ParamIO);
-  structure OutputVertexData = OutputTypedData(RG_OVertexData_ParamIO);
+  structure InputVertexData = InputTypedDataXML(RG_OVertexData_ParamIO);
+  structure OutputVertexData = OutputTypedDataXML(RG_OVertexData_ParamIO);
 
-  structure InputEdgeData = InputTypedData(NoEdgeData_ParamIO);
-  structure OutputEdgeData = OutputTypedData(NoEdgeData_ParamIO);
+  structure InputEdgeData = InputTypedDataXML(NoData_ParamIO);
+  structure OutputEdgeData = OutputTypedDataXML(NoData_ParamIO);
 );
 
 

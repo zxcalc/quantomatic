@@ -137,7 +137,7 @@ functor OutputGraphXML_v2(
    This is an OUTPUT_XML_LIST, which forms the content of the vertex or 
    edge tag. (The same functor can be used for both vertices and edges) 
 *)
-functor OutputTypedData(TypedDataParamIO : GRAPH_TYPED_DATA_PARAM_XML_IO) 
+functor OutputTypedDataXML(TypedDataParamIO : GRAPH_TYPED_DATA_PARAM_IO) 
 : OUTPUT_XML_LIST = 
 struct
   open XML_Parse_Utils;
