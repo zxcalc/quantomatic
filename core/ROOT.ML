@@ -125,7 +125,7 @@ PolyML.Project.make "theories/red_green_blue/io.ML";
 (* interface protocol/console *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/command_lexer.ML"; (* lexer for quanto console *)
-PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
+PolyML.Project.make "interface/console_commands.ML"; (* quanto commands and help *)
 (* **** *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 

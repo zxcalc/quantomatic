@@ -1,5 +1,5 @@
 (* Commands available from the console and associate help stuff *)
-signature COMMANDS = 
+signature CONSOLE_COMMANDS = 
 sig
 
   datatype response = OK
@@ -25,7 +25,7 @@ sig
 end;
 
 (* *)
-structure Commands 
+structure ConsoleCommands 
 = struct 
   datatype response = OK
                     | COUNT of int
