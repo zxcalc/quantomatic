@@ -255,13 +255,6 @@ public class Core {
 		return addVertex(graph, "edge-point");
 	}
 
-	public void renameVertex(CoreGraph graph, Vertex vertex,
-			String suggestedNewName) throws CoreException {
-		assertCoreGraph(graph);
-		vertex.updateCoreName(talker.rename_vertex(graph.getCoreName(),
-				vertex.getCoreName(), suggestedNewName));
-	}
-
 	public void setVertexAngle(CoreGraph graph, Vertex v, String angle)
 			throws CoreException {
 		assertCoreGraph(graph);
