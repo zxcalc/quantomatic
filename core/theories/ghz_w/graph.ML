@@ -72,15 +72,6 @@ structure GHZW_GraphParam
   fun delete_vertex vn vdep = vdep;
   fun delete_edge en vdep = vdep;
 
-  fun vertex_type_name (GHZW_VertexData.GHZ) = "GHZ"
-    | vertex_type_name (GHZW_VertexData.W) = "W"
-  fun vertex_default_data "GHZ" = (GHZW_VertexData.GHZ)
-    | vertex_default_data "W" = (GHZW_VertexData.W)
-    | vertex_default_data s = raise unknown_type_exp s
-  fun edge_type_name () = "unit"
-  fun edge_default_data "unit" = ()
-    | edge_default_data s = raise unknown_type_exp s
-
   fun replace_vertex vd vn vdep = 
       vdep |> delete_vertex vn
            |> add_vertex vd vn;
@@ -151,4 +142,10 @@ structure GHZW_OVertex = OVertex(GHZW_Vertex);
 structure GHZW_OGraphParam = OGraphParam(
   structure Param = GHZW_GraphParam 
         and OVertex = GHZW_OVertex);
+
+structure GHZW_OVertexComponentData_Param = OVertexComponentData_Param(
+  structure VertexDataParam = GHZW_VertexComponentData_Param
+  structure OVertex = GHZW_OVertex);
+
+structure GHZW_OVertexComponentData = ElementComponentData(GHZW_OVertexComponentData_Param);
 

@@ -37,6 +37,12 @@ sig
   sharing RulesetRewrites.Sharing.Ruleset = Ruleset.Sharing 
   sharing RulesetRewrites.Sharing.Match = Match.Sharing;
 
+  (* Component data info *)
+  structure VertexComponentData : ELEMENT_COMPONENT_DATA
+  sharing type VertexComponentData.data = Vertex.data;
+  structure EdgeComponentData : ELEMENT_COMPONENT_DATA
+  sharing type EdgeComponentData.data = Edge.data;
+
   (* Input/Output *)
   (* structure IO : IO_INTERFACE
   sharing type IO.Input.Graph.data = Graph.T
@@ -50,6 +56,10 @@ end;
 
 functor GraphicalTheory(
   structure OParam : OGRAPH_PARAM
+  structure VComponentData : ELEMENT_COMPONENT_DATA
+  sharing type VComponentData.data = OParam.OVertex.data
+  structure EComponentData : ELEMENT_COMPONENT_DATA
+  sharing type EComponentData.data = OParam.Edge.data
 (* 
   structure InputVertexData : INPUT_XML 
         and InputEdgeData : INPUT_XML 
@@ -102,6 +112,9 @@ struct
     structure GraphSubst = GraphSubst;
   );
   structure RulesetRewrites : RULESET_REWRITES = DB_RulesetRewrites;
+
+  structure VertexComponentData = VComponentData;
+  structure EdgeComponentData = EComponentData;
   
   (* install pretty printers *)
   local

@@ -137,15 +137,15 @@ functor OutputGraphXML_v2(
    This is an OUTPUT_XML_LIST, which forms the content of the vertex or 
    edge tag. (The same functor can be used for both vertices and edges) 
 *)
-functor OutputTypedDataXML(TypedDataParamIO : GRAPH_TYPED_DATA_PARAM_IO) 
+functor OutputTypedDataXML(ComponentDataIO : ELEMENT_COMPONENT_DATA) 
 : OUTPUT_XML_LIST = 
 struct
   open XML_Parse_Utils;
-  type data = TypedDataParamIO.data;
+  type data = ComponentDataIO.data;
   type T = XML.tree list;
   fun output d = 
       let
-        val (typ,data_xml_list) = TypedDataParamIO.type_and_xml_of d;
+        val (typ,data_xml_list) = ComponentDataIO.type_and_xml_of d;
       in [Elem (("type",[]),[Text typ]),
           Elem (("data",[]),data_xml_list)]
       end;

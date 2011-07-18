@@ -58,13 +58,6 @@ functor OGraphParam(
   val delete_vertex = Param.delete_vertex;
   val delete_edge = Param.delete_edge;
 
-  fun vertex_type_name OVertex.EVert = "edge-point"
-    | vertex_type_name (OVertex.IVert vd) = Param.vertex_type_name vd
-  fun vertex_default_data "edge-point" = OVertex.EVert
-    | vertex_default_data vt = OVertex.IVert (Param.vertex_default_data vt)
-  val edge_type_name = Param.edge_type_name
-  val edge_default_data = Param.edge_default_data
-
   fun replace_vertex vd vn vdep = 
       vdep |> delete_vertex vn
            |> add_vertex vd vn;
@@ -135,31 +128,4 @@ functor OGraphParam(
 
 end;
 
-
-(*  *)
-functor OVertexData_ParamIO(
-  structure VertexDataParamIO : GRAPH_TYPED_DATA_PARAM_IO
-  structure OVertex : OVERTEX
-  sharing type OVertex.IData.data = VertexDataParamIO.data
-)
-: GRAPH_TYPED_DATA_PARAM_IO
-= struct 
-  type data = OVertex.data;
-  exception unknown_type_exp = VertexDataParamIO.unknown_type_exp
-
-  fun type_of (OVertex.EVert) = "edge-point"
-    | type_of (OVertex.IVert d) = VertexDataParamIO.type_of d;
-
-  fun type_and_xml_of (OVertex.EVert) = ("edge-point",[])
-    | type_and_xml_of (OVertex.IVert d) = VertexDataParamIO.type_and_xml_of d;
-
-  fun of_type_and_xml ("edge-point",[]) = OVertex.EVert
-    | of_type_and_xml x = OVertex.IVert (VertexDataParamIO.of_type_and_xml x);
-
-  fun type_and_string_of (OVertex.EVert) = ("edge-point","")
-    | type_and_string_of (OVertex.IVert d) = VertexDataParamIO.type_and_string_of d;
-
-  fun of_type_and_string ("edge-point","") = OVertex.EVert
-    | of_type_and_string x = OVertex.IVert (VertexDataParamIO.of_type_and_string x);
-end;
 

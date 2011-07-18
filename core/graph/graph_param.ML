@@ -77,11 +77,6 @@ signature GRAPH_PARAM
   val delete_vertex : Vertex.name -> T -> T
   val delete_edge : Edge.name -> T -> T
 
-  val vertex_type_name : Vertex.data -> string
-  val vertex_default_data : string -> Vertex.data
-  val edge_type_name : Edge.data -> string
-  val edge_default_data : string -> Edge.data
-
   (* raises Vertex.Rnm. *)
   val rename_vname : Vertex.name -> Vertex.name -> T -> T
   (* raises Edge.Rnm. *)
@@ -122,47 +117,5 @@ signature GRAPH_PARAM
     sharing type T = Sharing.T
     sharing type subst = Sharing.subst
 end;
-
-
-(* For the typed data specification sent to the GUI 
-   The type is just a string for now, could be generalised...
-*)
-signature GRAPH_TYPED_DATA_PARAM_IO = sig
-  (* type of data, e.g. vertex data *)
-  type data
-  exception unknown_type_exp of string;
-
-  (* get the type-string of a bit of data *)
-  (* this avoids having to format the data *)
-  val type_of : data -> string;
-
-  (* get the type-string of a bit of data, and its xml representation *)
-  val type_and_xml_of : data -> string * (XML.tree list)
-  val of_type_and_xml : string * (XML.tree list) -> data
-
-  (* get the type-string of a bit of data, and a string representation *)
-  val type_and_string_of : data -> string * string
-  val of_type_and_string : string * string -> data
-end;
-
-(* Basic implementation for things with no data *)
-structure NoData_ParamIO 
-: GRAPH_TYPED_DATA_PARAM_IO where type data = unit 
-= struct
-  type data = unit
-  exception unknown_type_exp of string;
-
-  fun type_of () = "unit";
-
-  fun of_type_and_xml ("unit",_) = ()
-    | of_type_and_xml (n,_) = 
-      raise unknown_type_exp n;
-  fun type_and_xml_of () = ("unit",[]);
-
-  fun of_type_and_string ("unit",_) = ()
-    | of_type_and_string (n,_) = 
-      raise unknown_type_exp n;
-  fun type_and_string_of () = ("unit","");
-end; 
 
 

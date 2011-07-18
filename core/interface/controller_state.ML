@@ -358,14 +358,14 @@ functor ControllerState(
                |> set_graph g' gname end;
 
   fun add_vertex_internal vt graph =
-      (let val (n,g) = graph |> G.add_vertex_by_type vt in
+      (let val (n,g) = graph |> G.add_vertex (Theory.VertexComponentData.default_data vt) in
           ((n,G.get_vertex g n), g)
        end
        handle G.unknown_type_exp _ => raise user_exp ("Unknown vertex type "^vt))
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
   fun add_edge_internal et dir_or_undir v1 v2 graph =
-      (let val (n,g) = graph |> G.add_edge_by_type (dir_or_undir,et) v1 v2
+      (let val (n,g) = graph |> G.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
        in ((n,G.get_edge g n), g)
        end
        handle G.no_such_vname_exp _ =>

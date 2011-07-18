@@ -44,14 +44,12 @@ val exact_eq : T -> T -> bool
 
 (* adding a vertex gives back unique name for it and the new graph *)
 val add_vertex : Vertex.data -> T -> Vertex.name * T 
-val add_vertex_by_type : string -> T -> Vertex.name * T 
 val doadd_vertex : Vertex.data -> T -> T
 (* raises vname_already_exists_exp on clash *)
 val new_named_vertex : Vertex.data -> Vertex.name -> T -> T  
 
 (* Vertex.names must already exist, else raises: no_such_vname_exp *)
 val add_edge : dir_or_undir * Edge.data -> Vertex.name -> Vertex.name -> T -> Edge.name * T
-val add_edge_by_type : dir_or_undir * string -> Vertex.name -> Vertex.name -> T -> Edge.name * T 
 val doadd_edge : dir_or_undir * Edge.data -> Vertex.name -> Vertex.name -> T -> T
 val new_named_edge 
     : dir_or_undir * Edge.data -> Edge.name -> Vertex.name -> Vertex.name -> T -> T (* can raise *)
@@ -303,7 +301,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   (* implicit args: nd g *)
   val add_vertex = add_named_vertex Vertex.default_name;
-  fun add_vertex_by_type vt = add_vertex (Param.vertex_default_data vt)
   val doadd_vertex = snd oo add_vertex;
   fun new_named_vertex nd n g =
       let val (n2,g2) = add_named_vertex n nd g in
@@ -317,7 +314,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   (* implicit args: e n1 n2 g *)
   val add_edge = add_named_edge Edge.default_name;
-  fun add_edge_by_type (dir,et) = add_edge (dir,Param.edge_default_data et)
   val doadd_edge = snd oooo add_edge;
   fun new_named_edge e en n1 n2 g =
       let val (en2,g2) = add_named_edge en e n1 n2 g in

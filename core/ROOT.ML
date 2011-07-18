@@ -27,18 +27,6 @@ PolyML.Project.make "test/testing.ML";
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile quantomatic code ****)
 
-(* Graphs *)
-PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
-PolyML.Project.make "graph/graph_param.ML";
-PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
-PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
-PolyML.Project.make "graph/graph_iso.ML"; (* isomorphism between graphs *)
-PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
-PolyML.Project.make "graph/ograph_param.ML";
-PolyML.Project.make "graph/ograph.ML";
-PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
-PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
-
 (* linear arithmetic expressions: data inside verticies *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
@@ -54,6 +42,23 @@ PolyML.Project.make "io/input_linrat.ML";
 PolyML.Project.make "io/output_linrat.ML";
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
+
+(* Graphs *)
+PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
+PolyML.Project.make "graph/graph_param.ML";
+PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
+PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
+PolyML.Project.make "graph/graph_iso.ML"; (* isomorphism between graphs *)
+PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
+PolyML.Project.make "graph/ograph_param.ML";
+PolyML.Project.make "graph/ograph.ML";
+PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
+PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
+
+(* component data needs to go before I/O for graphs *)
+PolyML.Project.make "theories/component_data.ML";
+
+(* I/O for graphs *)
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
 
