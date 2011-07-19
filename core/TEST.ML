@@ -19,6 +19,8 @@ PolyML.Project.make "matching/test/test_symmetry_match_search.ML";
 (* unit tests *)
 PolyML.Project.use_root "test/ROOT.ML";
 
+val _ = OS.Process.exit OS.Process.success;
+
 (*
 PolyML.Project.make "test/dbg/rule_matching3-bbox-v1.ML"; 
 *)

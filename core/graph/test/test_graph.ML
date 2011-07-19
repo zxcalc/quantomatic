@@ -4,9 +4,10 @@ structure Test_OGraphParam = OGraphParam(
   structure Param = RG_GraphParam 
         and OVertex = Test_OVertex);
 
-structure Test_OVertexData_ParamIO = OVertexData_ParamIO(
-  structure VertexDataParamIO = RG_VertexData_ParamIO
+structure Test_OVertexComponentData_Param = OVertexComponentData_Param(
+  structure VertexDataParam = RG_VertexComponentData_Param
   structure OVertex = Test_OVertex);
+structure Test_OVertexComponentData = ElementComponentData(Test_OVertexComponentData_Param);
 
 (* Basic structure for testing graphs later... *)
 structure DB_Test_Graph 

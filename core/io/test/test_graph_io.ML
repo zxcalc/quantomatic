@@ -23,10 +23,10 @@ end; (* DB_Test_IO_Interface_v1 *)
 
 structure DB_Test_IO_Interface_v2 = IO_Interface(
   structure Ruleset = Test_Ruleset
-  structure InputVertexData = InputTypedDataXML(Test_OVertexData_ParamIO);
-  structure OutputVertexData = OutputTypedDataXML(Test_OVertexData_ParamIO);
-  structure InputEdgeData = InputTypedDataXML(NoData_ParamIO);
-  structure OutputEdgeData = OutputTypedDataXML(NoData_ParamIO);
+  structure InputVertexData = InputTypedDataXML(Test_OVertexComponentData);
+  structure OutputVertexData = OutputTypedDataXML(Test_OVertexComponentData);
+  structure InputEdgeData = InputTypedDataXML(EmptyElementComponentData);
+  structure OutputEdgeData = OutputTypedDataXML(EmptyElementComponentData);
 );
 structure Test_IO_Interface_v2 : IO_INTERFACE = DB_Test_IO_Interface_v2;
 

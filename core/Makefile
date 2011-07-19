@@ -42,7 +42,7 @@ heap: $(QUANTO_HEAP)
 
 test check: $(QUANTO_HEAP)
 	echo 'use "TEST.ML";' | $(POLYML)
-	@echo "All tests passed"
+	@echo ""
 
 bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
