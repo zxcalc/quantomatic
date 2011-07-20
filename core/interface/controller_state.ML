@@ -45,12 +45,6 @@ sig
   val redo : GraphName.name -> T -> T
   val push_hist : GraphName.name -> T -> T
 
-  (* input/output *)
-  val save_ruleset : string -> T -> unit
-  val save_graph : GraphName.name -> string -> T -> unit
-  val load_ruleset : string -> T -> T
-  val load_graph : string -> T -> GraphName.name * T
-
   (* printing/showing info (for console) *)
   val get_attached_rewrites : GraphName.name -> T -> rewrite list
   val list_graphs : T -> GraphName.name list
@@ -114,16 +108,7 @@ end;
 (* controls the state of Quantomatic *)
   (* FIXME: HACK: interface cannot be generic while we depend on RG data - need to generalise protocol and GUI for arbitrary kinds of data *)
 functor ControllerState(
-
   structure GraphicalTheory : GRAPHICAL_THEORY
-
-  structure IO_Interface : IO_INTERFACE
-  where type Output.Vertex.data = (GraphicalTheory.Graph.Vertex.name * (GraphicalTheory.Graph.Vertex.data * (GraphicalTheory.Graph.Edge.NSet.T * GraphicalTheory.Graph.Edge.NSet.T)))
-  and type Output.Edge.data = (GraphicalTheory.Graph.Edge.name * ((GraphicalTheory.Graph.dir_or_undir * GraphicalTheory.Graph.Edge.data) * (GraphicalTheory.Graph.Vertex.name * GraphicalTheory.Graph.Vertex.name)))
-  and type Output.BBox.data = (GraphicalTheory.Graph.BBox.name * GraphicalTheory.Graph.Vertex.NSet.T)
-  sharing type IO_Interface.Input.Graph.data = GraphicalTheory.Graph.T
-  sharing type IO_Interface.Input.Rule.data = GraphicalTheory.Rule.T
-  sharing type IO_Interface.Input.Ruleset.data = GraphicalTheory.Ruleset.T
 ) 
 = struct
 
@@ -131,8 +116,6 @@ functor ControllerState(
   exception user_exp of string
 
   structure Theory = GraphicalTheory;
-  structure Input = IO_Interface.Input;
-  structure Output = IO_Interface.Output;
   structure RulesetRewrites = Theory.RulesetRewrites
   structure Ruleset = Theory.Ruleset;
   structure R = Theory.Rule;
@@ -274,15 +257,6 @@ functor ControllerState(
             raise user_exp "Boundaries and !-boxes on LHS must match RHS."
       end
 
-  fun load_ruleset file state =
-      (let val loader = Input.Ruleset.input o XMLReader.read_from_file
-       in state |> update_rset (Ruleset.merge (loader file)) end
-       handle IO.Io _ => raise user_exp "Can't open rules file."
-            | Input.Ruleset.bad_input_exp (s,p) => raise user_exp ("Malformed rules file: "^s^" at "^p))
-
-  fun save_ruleset file = (XMLWriter.write_to_file file) o Output.Ruleset.output o get_rset
-       handle IO.Io _ => raise user_exp ("Can't write rules file \""^file^"\".")
-
   fun delete_tag tag_name state =
       let val () = assert_tag_exists state tag_name
       in update_rset (Ruleset.delete_tag tag_name) state end
@@ -317,17 +291,6 @@ functor ControllerState(
     fun new_graph state =
         create_graph GraphName.default_name G.empty state
 
-    fun load_graph fname state = 
-        ((create_graph GraphName.default_name 
-                     (Input.Graph.input (XMLReader.read_from_file fname)) state)
-         (* TODO: fix which exception is raised, make it consistant. *)
-         handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
-               raise user_exp ("The file '"^fname^"' is not a well-formed xml that defines a graph (reason: "^s1^", "^s2^")")
-             | Input.Graph.bad_input_exp (s1,s2) => 
-               raise user_exp ("The file '"^fname^"' is not a well-formed xml that defines a graph (reason: "^s1^", "^s2^")")
-             | IO.Io {name : string, function : string, cause : exn} => 
-               raise user_exp ("Cannot open file '"^fname^"' (reason: "^ name ^ " in " ^ function ^")"))
-
   fun kill_graph name state =
       (update_graphs (fn gs => gs |> GraphName.NTab.delete name) state)
        handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^(GraphName.dest name))
@@ -342,11 +305,6 @@ functor ControllerState(
         (nm, set_graphs graphs' state)
       end
       handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^(GraphName.dest oldname)))
-
-
-  fun save_graph gname fname state =
-      (XMLWriter.write_to_file fname (Output.Graph.output (get_graph state gname))
-       handle _ => raise user_exp ("Could not save file "^fname))
 
   fun lift_graph_mutator cmdf gname state =
       let val (out,g') = cmdf (get_graph state gname)
@@ -547,7 +505,6 @@ end; (* structure Controller *)
 (* *)
 structure DB_ControllerState = ControllerState(
   structure GraphicalTheory = RG_Theory
-  structure IO_Interface = RG_IO_Interface
 );
 structure ControllerState : CONTROLLER_STATE = DB_ControllerState; 
 

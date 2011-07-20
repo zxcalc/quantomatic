@@ -10,7 +10,7 @@ signature COMMAND_LEXER
 
   (* *)
   val parse : string (* token list *) 
-              -> T list (* command and left over unparsed stuff *)
+              -> T option (* command *)
 
 
 end;
@@ -37,8 +37,10 @@ struct
   fun exprs x = x|> (((expr --| sym ";" -- exprs) >> op::)
                      || (expr >> single)
                      || (noop >> K []));
+  fun maybe_expr x = x|> ((expr >> SOME)
+                          || (noop >> K NONE))
             
-  fun parse str = parse_with (Scan.catch exprs) str
+  fun parse str = parse_with (Scan.catch maybe_expr) str
     handle MoreTokens _ => raise parse_exp ()
   fun pretty (f,args) = Pretty.block[Pretty.str f,
                      Pretty.str_list "(" ")" args]

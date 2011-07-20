@@ -44,11 +44,13 @@ sig
   sharing type EdgeComponentData.data = Edge.data;
 
   (* Input/Output *)
-  (* structure IO : IO_INTERFACE
-  sharing type IO.Input.Graph.data = Graph.T
-  sharing type IO.Input.Rule.data = Rule.T
-  sharing type IO.Input.Ruleset.data = Ruleset.T
-  *)
+  structure IO_Xml : IO_INTERFACE_XML
+    where type Output.Vertex.data = (Graph.Vertex.name * (Graph.Vertex.data * (Graph.Edge.NSet.T * Graph.Edge.NSet.T)))
+      and type Output.Edge.data = (Graph.Edge.name * ((Graph.dir_or_undir * Graph.Edge.data) * (Graph.Vertex.name * Graph.Vertex.name)))
+      and type Output.BBox.data = (Graph.BBox.name * Graph.Vertex.NSet.T)
+  sharing type IO_Xml.Input.Graph.data = Graph.T
+  sharing type IO_Xml.Input.Rule.data = Rule.T
+  sharing type IO_Xml.Input.Ruleset.data = Ruleset.T
 
 end;
 
@@ -60,23 +62,8 @@ functor GraphicalTheory(
   sharing type VComponentData.data = OParam.OVertex.data
   structure EComponentData : ELEMENT_COMPONENT_DATA
   sharing type EComponentData.data = OParam.Edge.data
-(* 
-  structure InputVertexData : INPUT_XML 
-        and InputEdgeData : INPUT_XML 
-  sharing type InputVertexData.data = Param.Vertex.data
-  sharing type InputEdgeData.data = Param.Edge.data
-
-  structure OutputVertexData : OUTPUT_XML_LIST
-        and OutputEdgeData : OUTPUT_XML_LIST
-  sharing type OutputVertexData.data = Param.Vertex.data
-  sharing type OutputEdgeData.data = Param.Edge.data *)
 ) = 
 struct 
-  (* structure OVertex = OVertex(Param.Vertex);
-  structure OParam = OGraphParam(
-    structure Param = Param 
-    structure OVertex = OVertex);
-  *)
   local 
     structure BasicBangGraph = BasicBangGraphFun(
       structure Param = OParam
@@ -115,6 +102,12 @@ struct
 
   structure VertexComponentData = VComponentData;
   structure EdgeComponentData = EComponentData;
+
+  structure IO_Xml = IO_Interface_Xml(
+    structure Ruleset = Ruleset
+    structure VertexData = VertexComponentData;
+    structure EdgeData = EdgeComponentData;
+  );
   
   (* install pretty printers *)
   local
@@ -132,10 +125,3 @@ struct
   
 end;
 
-
-(* tested in next file... don't need it twice...
-structure Test_RG_DB_Theory = GraphicalTheory(
-  structure Param = RG_GraphParam
-);
-structure Test_RG_Theory : GRAPHICAL_THEORY = RG_DB_Theory;
-*)

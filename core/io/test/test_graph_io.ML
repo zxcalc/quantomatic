@@ -21,12 +21,10 @@ structure Test_IO_Interface_v1 = struct
   end; (* input *)
 end; (* DB_Test_IO_Interface_v1 *)
 
-structure DB_Test_IO_Interface_v2 = IO_Interface(
+structure DB_Test_IO_Interface_v2 = IO_Interface_Xml(
   structure Ruleset = Test_Ruleset
-  structure InputVertexData = InputTypedDataXML(Test_OVertexComponentData);
-  structure OutputVertexData = OutputTypedDataXML(Test_OVertexComponentData);
-  structure InputEdgeData = InputTypedDataXML(EmptyElementComponentData);
-  structure OutputEdgeData = OutputTypedDataXML(EmptyElementComponentData);
+  structure VertexData = Test_OVertexComponentData;
+  structure EdgeData = EmptyElementComponentData;
 );
-structure Test_IO_Interface_v2 : IO_INTERFACE = DB_Test_IO_Interface_v2;
+structure Test_IO_Interface_v2 : IO_INTERFACE_XML = DB_Test_IO_Interface_v2;
 
