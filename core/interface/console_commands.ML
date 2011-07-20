@@ -176,7 +176,7 @@ functor ConsoleCommands(Commands : COMMANDS) : CONSOLE_COMMANDS
      ("GRAPH TYPE", "Add a TYPE vertex to GRAPH",
       liftStringResultResponse
       (fn [graph,vt] => Commands.serviceRequest (Commands.EditGraphRequest { requestId = "",
-                        graphName = graph, action = Commands.AddVertexAction { vertexType = vt } })
+                        graphName = graph, action = Commands.AddVertexAction { vertexType = vt, resultFormat = Commands.NameFormat } })
         | _          => bad_args_response))),
 
     ("rename_vertex",
@@ -206,8 +206,9 @@ functor ConsoleCommands(Commands : COMMANDS) : CONSOLE_COMMANDS
     ("add_edge",
      ("GRAPH TYPE DIR_OR_UNDIR V1 V2", "Add a TYPE edge in GRAPH from V1 to V2.  DIR_OR_UNDIR should be \"dir\" or \"undir\" for directed and undirected edges respectively.",
       liftStringResultResponse
-      (fn [graph,et] => Commands.serviceRequest (Commands.EditGraphRequest { requestId = "",
-                        graphName = graph, action = Commands.AddEdgeAction { edgeType = et } })
+      (fn [graph,et,v1,v2] => Commands.serviceRequest (Commands.EditGraphRequest { requestId = "",
+                        graphName = graph, action = Commands.AddEdgeAction
+                          { edgeType = et, source = v1, target = v2, resultFormat = Commands.NameFormat } })
         | _          => bad_args_response))),
 
     ("rename_edge",

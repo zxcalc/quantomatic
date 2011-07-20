@@ -6,6 +6,7 @@ sig
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
+  datatype format = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
 
   datatype request =
                    (* Graph commands: G *)
@@ -120,7 +121,7 @@ sig
                              (* OkResponse | ErrorResponse *)
                            | InsertGraphAction of { sourceGraphName: string }                          (* GMI *)
                              (* VertexDescriptionAction | ErrorResponse *)
-                           | AddVertexAction of { vertexType: string }                                 (* GMVA *)
+                           | AddVertexAction of { vertexType: string, resultFormat: format }           (* GMVA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }                (* GMVR *)
@@ -131,7 +132,7 @@ sig
                              (* OkResponse | ErrorResponse *)
                            | SetVertexUserDataAction of { vertexName: string, userData: string }       (* GMVU *)
                              (* EdgeDescriptionAction | ErrorResponse *)
-                           | AddEdgeAction of { edgeType: string }                                     (* GMEA *)
+                           | AddEdgeAction of { edgeType: string, source: string, target: string, resultFormat: format }(* GMEA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }                  (* GMER *)
@@ -192,6 +193,7 @@ struct
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
+  datatype format = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
 
   datatype request =
                    (* Graph commands: G *)
@@ -306,7 +308,7 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | InsertGraphAction of { sourceGraphName: string }                          (* GMI *)
                              (* VertexDescriptionAction | ErrorResponse *)
-                           | AddVertexAction of { vertexType: string }                                 (* GMVA *)
+                           | AddVertexAction of { vertexType: string, resultFormat: format }           (* GMVA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }                (* GMVR *)
@@ -317,7 +319,7 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetVertexUserDataAction of { vertexName: string, userData: string }       (* GMVU *)
                              (* EdgeDescriptionAction | ErrorResponse *)
-                           | AddEdgeAction of { edgeType: string }                                     (* GMEA *)
+                           | AddEdgeAction of { edgeType: string, source: string, target: string, resultFormat: format }(* GMEA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }                  (* GMER *)
@@ -386,6 +388,30 @@ struct
              | Input.Ruleset.bad_input_exp (s1,s2) => 
                (ErrorResponse { requestId = requestId, errorCode = "BADDATA",
                   message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state))
+
+    fun pretty_vert (n, (nd,(ins,outs))) =
+        Pretty.block [V.pretty_name n,
+                      Pretty.str "; ",
+                      Pretty.list "i{" "}" (map E.pretty_name (E.NSet.list_of ins)),
+                      Pretty.list "; o{" "}" (map E.pretty_name (E.NSet.list_of outs)),
+                      Pretty.str "; ",
+                      V.pretty_data nd
+                     ]
+
+    fun pretty_edge_dir_or_undir G.Directed = Pretty.str "dir"
+      | pretty_edge_dir_or_undir G.UnDirected = Pretty.str "bidir";
+
+    fun pretty_edge (en, ((bd,e), (n1, n2))) =
+        Pretty.block [E.pretty_name en,
+                      Pretty.str ": ",
+                      V.pretty_name n1,
+                      Pretty.str " - ",
+                      V.pretty_name n2,
+                      Pretty.str "; (",
+                      pretty_edge_dir_or_undir bd,
+                      Pretty.str ") ",
+                      E.pretty_data e
+                     ]
   in
     fun serviceRequest (ListGraphsRequest { requestId }) (state:ControllerState.T) =
           (NameListResponse { requestId = requestId, names = map GraphName.dest (ControllerState.list_graphs state) }, state)
@@ -508,9 +534,18 @@ struct
           | InsertGraphAction { sourceGraphName } =>
               (OkResponse { requestId = requestId },
                ControllerState.insert_graph (GraphName.mk sourceGraphName) (GraphName.mk graphName) state)
-          | AddVertexAction { vertexType } =>
-              (* VertexDescriptionResponse *)
-              (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+          | AddVertexAction { vertexType, resultFormat } =>
+              let
+                val (v as (vn,_),state') = ControllerState.add_vertex vertexType (GraphName.mk graphName) state
+              in
+                case resultFormat
+                  of NameFormat => (NameResponse { requestId = requestId, name = V.dest vn }, state')
+                   | XmlFormat => (XmlResponse { requestId = requestId, data = Output.Vertex.output v }, state')
+                   | PrettyFormat => (PrettyResponse { requestId = requestId, data = pretty_vert v }, state')
+                   | DescriptionFormat => 
+                (* VertexDescriptionResponse *)
+                (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state')
+              end
           | RenameVertexAction { oldName, newName } =>
               (OkResponse { requestId = requestId },
                ControllerState.rename_vertex (V.mk oldName) (V.mk newName) (GraphName.mk graphName) state)
@@ -523,9 +558,18 @@ struct
           | SetVertexUserDataAction { vertexName, userData } =>
               (* OkResponse *)
               (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-          | AddEdgeAction { edgeType } =>
-              (* EdgeDescriptionResponse *)
-              (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+          | AddEdgeAction { edgeType, source, target, resultFormat } =>
+              let
+                val (e as (en,_),state') = ControllerState.add_edge edgeType (V.mk source) (V.mk target) (GraphName.mk graphName) state
+              in
+                case resultFormat
+                  of NameFormat => (NameResponse { requestId = requestId, name = E.dest en }, state')
+                   | XmlFormat => (XmlResponse { requestId = requestId, data = Output.Edge.output e }, state')
+                   | PrettyFormat => (PrettyResponse { requestId = requestId, data = pretty_edge e }, state')
+                   | DescriptionFormat => 
+                (* EdgeDescriptionResponse *)
+                (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state')
+              end
           | RenameEdgeAction { oldName, newName } =>
               (* OkResponse *)
               (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
