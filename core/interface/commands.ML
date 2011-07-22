@@ -34,7 +34,7 @@ sig
                      (* OkResponse | ErrorResponse *)
                    | ExportRulesetToFileRequest of { requestId: string, fileName: string }   (* RSS *)
                      (* OkResponse | ErrorResponse *)
-                   | ExportRulesetAsDataRequest of { requestId: string, data: string }       (* RSE *)
+                   | ExportRulesetAsDataRequest of { requestId: string }                     (* RSE *)
 
                    (* Rule commands: RR *)
                      (* NameListResponse *)
@@ -76,7 +76,7 @@ sig
                    | ListAttachedRewritesRequest of { requestId: string, graphName: string }                       (* WL *)
                    | ApplyAttachedRewriteRequest of { requestId: string, graphName: string, index: int }           (* WW *)
 
-                   | UnknownRequest of { code: string }
+                   | UnknownRequest of { requestId: string, code: string }
 
        (* GO *)
        and graphLoadRequest = LoadEmptyGraphRequest                                                         (* GOE *)
@@ -144,7 +144,7 @@ sig
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeUserDataAction of { edgeName: string, userData: string }           (* GMEU *)
                              (* NameResponse | ErrorResponse *)
-                           | AddBangBoxAction                                                          (* GMBA *)
+                           | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }(* GMBA *)
                              (* OkResponse | ErrorResponse *)
                            | RenameBangBoxAction of { oldName: string, newName: string }               (* GMBR *)
                              (* OkResponse | ErrorResponse *)
@@ -177,7 +177,7 @@ sig
                     | UserDataResponse of { requestId: string, data: string }                  (* U *)
                     | RewriteListResponse of { requestId: string, rewrites: rewriteDesc list } (* W *)
 
-                    | UnknownResponse of { code: string }                                      (* Z *)
+                    | UnknownResponse of { requestId: string, code: string }                   (* Z *)
                     ;
 
   val serviceRequest : request -> state -> (response * state);
@@ -222,7 +222,7 @@ struct
                      (* OkResponse | ErrorResponse *)
                    | ExportRulesetToFileRequest of { requestId: string, fileName: string }   (* RSS *)
                      (* OkResponse | ErrorResponse *)
-                   | ExportRulesetAsDataRequest of { requestId: string, data: string }       (* RSE *)
+                   | ExportRulesetAsDataRequest of { requestId: string }                     (* RSE *)
 
                    (* Rule commands: RR *)
                      (* NameListResponse *)
@@ -254,9 +254,9 @@ struct
                      (* OkResponse | ErrorResponse *)
                    | DeleteRulesByTagRequest of { requestId: string, tagName: string }            (* RTD *)
                      (* OkResponse | ErrorResponse *)
-                   | ActivateRulesByTagRequest of { requestId: string, tagName: string }          (* RTA *)
+                   | ActivateRulesByTagRequest of { requestId: string, tagName: string }          (* RTY *)
                      (* OkResponse | ErrorResponse *)
-                   | DeactivateRulesByTagRequest of { requestId: string, tagName: string }        (* RTA *)
+                   | DeactivateRulesByTagRequest of { requestId: string, tagName: string }        (* RTN *)
 
                    (* Rewrite commands: W *)
                    | AttachRewritesRequest of { requestId: string, graphName: string, vertexNames: string list }   (* WA *)
@@ -264,7 +264,7 @@ struct
                    | ListAttachedRewritesRequest of { requestId: string, graphName: string }                       (* WL *)
                    | ApplyAttachedRewriteRequest of { requestId: string, graphName: string, index: int }           (* WW *)
 
-                   | UnknownRequest of { code: string }
+                   | UnknownRequest of { requestId: string, code: string }
 
        (* GO *)
        and graphLoadRequest = LoadEmptyGraphRequest                                                         (* GOE *)
@@ -332,7 +332,7 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeUserDataAction of { edgeName: string, userData: string }           (* GMEU *)
                              (* NameResponse | ErrorResponse *)
-                           | AddBangBoxAction                                                          (* GMBA *)
+                           | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }(* GMBA *)
                              (* OkResponse | ErrorResponse *)
                            | RenameBangBoxAction of { oldName: string, newName: string }               (* GMBR *)
                              (* OkResponse | ErrorResponse *)
@@ -357,7 +357,7 @@ struct
                     | XmlResponse of { requestId: string, data: XML.tree }
 
                     | NameResponse of { requestId: string, name: string }                      (* N *)
-                    | NameListResponse of { requestId: string, names: string list }            (* M *)
+                    | NameListResponse of { requestId: string, names: string list }            (* L *)
                     | GraphDescriptionResponse of { requestId: string, graph: graphDesc }      (* G *)
                     | VertexDescriptionResponse of { requestId: string, vertex: vertexDesc }   (* V *)
                     | EdgeDescriptionResponse of { requestId: string, edge: edgeDesc }         (* E *)
@@ -365,7 +365,7 @@ struct
                     | UserDataResponse of { requestId: string, data: string }                  (* U *)
                     | RewriteListResponse of { requestId: string, rewrites: rewriteDesc list } (* W *)
 
-                    | UnknownResponse of { code: string }                                      (* Z *)
+                    | UnknownResponse of { requestId: string, code: string }                   (* Z *)
                     ;
 
 
@@ -606,9 +606,16 @@ struct
           | SetEdgeUserDataAction { edgeName, userData } =>
               (* OkResponse *)
               (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-          | AddBangBoxAction =>
-              let val (nm,state') = ControllerState.add_bang (GraphName.mk graphName) state in
-                (NameResponse { requestId = requestId, name = B.dest nm }, state')
+          | AddBangBoxAction { vertexNames, resultFormat } =>
+              let
+                val gname = (GraphName.mk graphName)
+                val (nm,state') = ControllerState.add_bang gname state
+                val state'' = if vertexNames = [] then state' else
+                                 ControllerState.bang_vertices nm (map V.mk vertexNames) gname state
+              in
+                case resultFormat
+                  of NameFormat => (NameResponse { requestId = requestId, name = B.dest nm }, state'')
+                   | _ => (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state'')
               end
           | RenameBangBoxAction { oldName, newName } =>
               (* OkResponse *)
@@ -665,7 +672,7 @@ struct
                  (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
                                   message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
 
-      | serviceRequest (ExportRulesetAsDataRequest { requestId, data }) state =
+      | serviceRequest (ExportRulesetAsDataRequest { requestId }) state =
           let val get_rset_data = XMLWriter.write_to_string o Output.Ruleset.output o ControllerState.get_rset in
             (DataResponse { requestId = requestId, data = get_rset_data state }, state)
           end
@@ -759,8 +766,8 @@ struct
           (OkResponse { requestId = requestId },
            ControllerState.apply_rewrite (GraphName.mk graphName) index state)
 
-      | serviceRequest (UnknownRequest { code }) state =
-          (UnknownResponse { code = code },state)
+      | serviceRequest (UnknownRequest { requestId, code }) state =
+          (UnknownResponse { requestId = requestId, code = code },state)
   end
 
 end;

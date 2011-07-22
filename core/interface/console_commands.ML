@@ -241,7 +241,7 @@ functor ConsoleCommands(Commands : COMMANDS) : CONSOLE_COMMANDS
      ("GRAPH", "Add a new !-box to GRAPH and return its name",
       liftStringResultResponse
       (fn [graph] => Commands.serviceRequest (Commands.EditGraphRequest { requestId = "",
-                     graphName = graph, action = Commands.AddBangBoxAction })
+                     graphName = graph, action = Commands.AddBangBoxAction { vertexNames = [], resultFormat = Commands.NameFormat } })
         | _       => bad_args_response))),
 
     ("bbox_drop",

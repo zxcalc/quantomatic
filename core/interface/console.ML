@@ -6,6 +6,9 @@ end;
 signature CONSOLE =
 sig
   type state;
+  val command_name_list : string list;
+  val get_command_args : string -> string option;
+  val get_command_help : string -> string option;
   val eval_command_string : string -> state -> (state ConsoleResult.result)
   val eval_command_string_no_quit : string -> state -> (string * state)
 end;
@@ -20,6 +23,8 @@ functor Console(Commands : COMMANDS) : CONSOLE
   val sort_alpha = sort (fn x => rev_order (string_ord x));
   val command_name_list = (sort_alpha (ConsoleCommands.get_command_names commands));
   val command_name_list_with_quit = (sort_alpha ("quit" :: (ConsoleCommands.get_command_names commands)));
+  val get_command_args = ConsoleCommands.get_args commands;
+  val get_command_help = ConsoleCommands.get_help commands;
 
   fun help1 "help" = "\nhelp CMD\n\n    get help on CMD\n\n"
     | help1 cmd    =
