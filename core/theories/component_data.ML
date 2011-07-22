@@ -58,13 +58,12 @@ sig
   (* get the type-string of a bit of data *)
   (* this avoids having to format the data *)
   val type_of : data -> string;
+  val cdata_of : data -> ComponentData.T;
 
   (* the default data *)
   val default_data : string -> data;
 
-  (* get the type-string of a bit of data, and its component data *)
-  val type_and_cdata_of : data -> string * ComponentData.T
-  val of_type_and_cdata : string * ComponentData.T -> data
+  val update : (ComponentData.T -> ComponentData.T) -> (data -> data);
 end;
 
 (* Basic implementation for things with no data *)
@@ -76,13 +75,12 @@ structure NoData_Param
 
   fun type_of () = "unit";
 
+  fun cdata_of () = ComponentData.Unit;
+
   fun default_data "unit" = ()
     | default_data n = raise unknown_type_exp n;
 
-  fun type_and_cdata_of () = ("unit",ComponentData.Unit);
-
-  fun of_type_and_cdata ("unit",_) = ()
-    | of_type_and_cdata (n,_) = raise unknown_type_exp n;
+  fun update _ = I;
 end;
 
 (* Adds OGraph semantics to a ELEMENT_COMPONENT_DATA_PARAM *)
@@ -99,31 +97,37 @@ functor OVertexComponentData_Param(
   fun type_of (OVertex.EVert) = "edge-point"
     | type_of (OVertex.IVert d) = VertexDataParam.type_of d;
 
+  fun cdata_of (OVertex.EVert) = ComponentData.Unit
+    | cdata_of (OVertex.IVert d) = VertexDataParam.cdata_of d;
+
   fun default_data "edge-point" = OVertex.EVert
     | default_data n = OVertex.IVert (VertexDataParam.default_data n);
 
-  fun type_and_cdata_of (OVertex.EVert) = ("edge-point",ComponentData.Unit)
-    | type_and_cdata_of (OVertex.IVert d) = VertexDataParam.type_and_cdata_of d;
-
-  fun of_type_and_cdata ("edge-point",_) = OVertex.EVert
-    | of_type_and_cdata x = OVertex.IVert (VertexDataParam.of_type_and_cdata x);
+  fun update _ OVertex.EVert = OVertex.EVert
+    | update upd (OVertex.IVert d) = (OVertex.IVert (VertexDataParam.update upd d));
 end;
 
 signature ELEMENT_COMPONENT_DATA =
 sig
   include ELEMENT_COMPONENT_DATA_PARAM;
 
+  val type_and_cdata_of : data -> (string * ComponentData.T);
+
   val type_and_xml_of : data -> string * (XML.tree list);
-  val of_type_and_xml : string * (XML.tree list) -> data;
+  val of_type_and_xml : (string * (XML.tree list)) -> data;
+  val update_from_xml : (XML.tree list) -> (data -> data);
 
   val type_and_string_of : data -> string * string;
-  val of_type_and_string : string * string -> data;
+  val of_type_and_string : (string * string) -> data;
+  val update_from_string : string -> (data -> data);
 end;
 
 functor ElementComponentData(Param : ELEMENT_COMPONENT_DATA_PARAM) : ELEMENT_COMPONENT_DATA =
 struct
   open Param;
   local open ComponentData in
+
+  fun type_and_cdata_of d = (type_of d,cdata_of d);
 
   fun type_and_xml_of d =
     let
@@ -134,18 +138,21 @@ struct
     in
       (t,to_xml cd)
     end;
-  fun of_type_and_xml (t,xml) =
+
+  fun update_from_xml xml =
     let
-      (* use the default data to determine the structure of the xml *)
-      val (_,def) = type_and_cdata_of (default_data t)
-      (* from_xml structure xml_node_list = ComponentData.T *)
-      fun from_xml Unit _ = Unit
-        | from_xml (String _) [XML.Text s] = (String s)
-        | from_xml (LinratExpr _) [xml] = (LinratExpr (InputLinratXML.input xml))
-          handle XML_Parse_Utils.bad_input_exp (msg,_) => raise bad_format_exp msg
+      fun xml_updater _ Unit = Unit
+        | xml_updater [XML.Text s] (String _) = (String s)
+        | xml_updater _            (String _) = raise bad_format_exp "String value expected"
+        | xml_updater [xml] (LinratExpr _) = ((LinratExpr (InputLinratXML.input xml))
+              handle XML_Parse_Utils.bad_input_exp (msg,_) => raise bad_format_exp msg)
+        | xml_updater _     (LinratExpr _) = raise bad_format_exp "Single XML element expected"
     in
-      of_type_and_cdata (t,(from_xml def xml))
+      update (xml_updater xml)
     end;
+
+  fun of_type_and_xml (t,xml) =
+      update_from_xml xml (default_data t)
 
   fun type_and_string_of d =
     let
@@ -157,20 +164,20 @@ struct
       (t,to_string cd)
     end;
 
-  fun of_type_and_string (t,s) =
+  fun update_from_string str =
     let
-      (* use the default data to determine how to parse the value *)
-      val (_,def) = type_and_cdata_of (default_data t)
-      (* from_xml structure string_rep = ComponentData.T *)
-      fun from_string Unit _ = Unit
-        | from_string (String _) str = (String str)
-        | from_string (LinratExpr _) str = (LinratExpr (LinratExpr.parse str))
-          handle LinratExpr.parse_exp => raise bad_format_exp ("\"" ^ s ^ "\" is not a valid linear rational expression")
+      fun string_updater _   Unit = Unit
+        | string_updater str (String _) = (String str)
+        | string_updater str (LinratExpr _) = (LinratExpr (LinratExpr.parse str))
+              handle LinratExpr.parse_exp => raise bad_format_exp ("\"" ^ str ^ "\" is not a valid linear rational expression")
     in
-      of_type_and_cdata (t,(from_string def s))
+      update (string_updater str)
     end;
 
-  end;
+  fun of_type_and_string (t,str) =
+      update_from_string str (default_data t)
+
+  end; (* local open *)
 end;
 
 structure EmptyElementComponentData = ElementComponentData(NoData_Param);

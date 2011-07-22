@@ -6,7 +6,8 @@ sig
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
-  datatype format = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  datatype resultFormat = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  datatype componentData = StringCData of string | XmlCData of (XML.tree list) | DescriptionCData of ComponentData.T;
 
   datatype request =
                    (* Graph commands: G *)
@@ -121,25 +122,25 @@ sig
                              (* OkResponse | ErrorResponse *)
                            | InsertGraphAction of { sourceGraphName: string }                          (* GMI *)
                              (* VertexDescriptionAction | ErrorResponse *)
-                           | AddVertexAction of { vertexType: string, resultFormat: format }           (* GMVA *)
+                           | AddVertexAction of { vertexType: string, resultFormat: resultFormat }     (* GMVA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }                (* GMVR *)
                              (* OkResponse | ErrorResponse *)
                            | DeleteVerticesAction of { vertexNames: string list }                      (* GMVD *)
                              (* OkResponse | ErrorResponse *)
-                           | SetVertexDataAction of { vertexName: string, vertexData: ComponentData.T }(* GMVS *)
+                           | SetVertexDataAction of { vertexName: string, vertexData: componentData }  (* GMVS *)
                              (* OkResponse | ErrorResponse *)
                            | SetVertexUserDataAction of { vertexName: string, userData: string }       (* GMVU *)
                              (* EdgeDescriptionAction | ErrorResponse *)
-                           | AddEdgeAction of { edgeType: string, source: string, target: string, resultFormat: format }(* GMEA *)
+                           | AddEdgeAction of { edgeType: string, source: string, target: string, resultFormat: resultFormat }(* GMEA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }                  (* GMER *)
                              (* OkResponse | ErrorResponse *)
                            | DeleteEdgesAction of { edgeNames: string list }                           (* GMED *)
                              (* OkResponse | ErrorResponse *)
-                           | SetEdgeDataAction of { edgeName: string, edgeData: ComponentData.T }      (* GMES *)
+                           | SetEdgeDataAction of { edgeName: string, edgeData: componentData }        (* GMES *)
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeUserDataAction of { edgeName: string, userData: string }           (* GMEU *)
                              (* NameResponse | ErrorResponse *)
@@ -193,7 +194,8 @@ struct
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
-  datatype format = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  datatype resultFormat = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  datatype componentData = StringCData of string | XmlCData of (XML.tree list) | DescriptionCData of ComponentData.T;
 
   datatype request =
                    (* Graph commands: G *)
@@ -308,25 +310,25 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | InsertGraphAction of { sourceGraphName: string }                          (* GMI *)
                              (* VertexDescriptionAction | ErrorResponse *)
-                           | AddVertexAction of { vertexType: string, resultFormat: format }           (* GMVA *)
+                           | AddVertexAction of { vertexType: string, resultFormat: resultFormat }     (* GMVA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }                (* GMVR *)
                              (* OkResponse | ErrorResponse *)
                            | DeleteVerticesAction of { vertexNames: string list }                      (* GMVD *)
                              (* OkResponse | ErrorResponse *)
-                           | SetVertexDataAction of { vertexName: string, vertexData: ComponentData.T }(* GMVS *)
+                           | SetVertexDataAction of { vertexName: string, vertexData: componentData }  (* GMVS *)
                              (* OkResponse | ErrorResponse *)
                            | SetVertexUserDataAction of { vertexName: string, userData: string }       (* GMVU *)
                              (* EdgeDescriptionAction | ErrorResponse *)
-                           | AddEdgeAction of { edgeType: string, source: string, target: string, resultFormat: format }(* GMEA *)
+                           | AddEdgeAction of { edgeType: string, source: string, target: string, resultFormat: resultFormat }(* GMEA *)
                              (* FIXME: do we need this? *)
                              (* NameResponse | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }                  (* GMER *)
                              (* OkResponse | ErrorResponse *)
                            | DeleteEdgesAction of { edgeNames: string list }                           (* GMED *)
                              (* OkResponse | ErrorResponse *)
-                           | SetEdgeDataAction of { edgeName: string, edgeData: ComponentData.T }      (* GMES *)
+                           | SetEdgeDataAction of { edgeName: string, edgeData: componentData }        (* GMES *)
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeUserDataAction of { edgeName: string, userData: string }           (* GMEU *)
                              (* NameResponse | ErrorResponse *)
@@ -374,6 +376,8 @@ struct
     structure V = ControllerState.Theory.Vertex;
     structure E = ControllerState.Theory.Edge;
     structure B = ControllerState.Theory.Graph.BBox;
+    structure VCD = ControllerState.Theory.VertexComponentData;
+    structure ECD = ControllerState.Theory.EdgeComponentData;
     structure Input = ControllerState.Theory.IO_Xml.Input;
     structure Output = ControllerState.Theory.IO_Xml.Output;
 
@@ -553,8 +557,18 @@ struct
               (OkResponse { requestId = requestId },
                ControllerState.delete_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
           | SetVertexDataAction { vertexName, vertexData } =>
-              (* OkResponse *)
-              (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+             (let
+                val updater =
+                  case vertexData
+                    of (StringCData s)      => VCD.update_from_string s
+                     | (XmlCData xml)       => VCD.update_from_xml xml
+                     | (DescriptionCData d) => VCD.update (K d)
+              in
+                (OkResponse { requestId = requestId },
+                 ControllerState.update_vertex_data updater (V.mk vertexName) (GraphName.mk graphName) state)
+              end
+              handle (ComponentData.bad_format_exp s) =>
+                        (ErrorResponse { requestId = requestId, errorCode = "BADFORMAT", message = s }, state))
           | SetVertexUserDataAction { vertexName, userData } =>
               (* OkResponse *)
               (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
@@ -576,9 +590,19 @@ struct
           | DeleteEdgesAction { edgeNames } =>
               (OkResponse { requestId = requestId },
                ControllerState.delete_edges (map E.mk edgeNames) (GraphName.mk graphName) state)
-          | SetEdgeDataAction { edgeName, edgeData: ComponentData.T } =>
-              (* OkResponse *)
-              (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+          | SetEdgeDataAction { edgeName, edgeData } =>
+             (let
+                val updater =
+                  case edgeData
+                    of (StringCData s)      => ECD.update_from_string s
+                     | (XmlCData xml)       => ECD.update_from_xml xml
+                     | (DescriptionCData d) => ECD.update (K d)
+              in
+                (OkResponse { requestId = requestId },
+                 ControllerState.update_edge_data updater (E.mk edgeName) (GraphName.mk graphName) state)
+              end
+              handle (ComponentData.bad_format_exp s) =>
+                        (ErrorResponse { requestId = requestId, errorCode = "BADFORMAT", message = s }, state))
           | SetEdgeUserDataAction { edgeName, userData } =>
               (* OkResponse *)
               (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)

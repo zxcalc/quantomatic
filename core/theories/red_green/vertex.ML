@@ -101,29 +101,32 @@ structure RG_VertexComponentData_Param
 = struct 
   type data = RG_VertexData.data;
   exception unknown_type_exp of string;
+  exception unexpected_data_exp;
 
   fun type_of (RG_VertexData.Xnd _) = "X"
     | type_of (RG_VertexData.Znd _) = "Z"
-    | type_of (RG_VertexData.Hnd) = "hadamard";
+    | type_of (RG_VertexData.Hnd)   = "hadamard";
+
+  fun cdata_of (RG_VertexData.Xnd a) = (ComponentData.LinratExpr a)
+    | cdata_of (RG_VertexData.Znd a) = (ComponentData.LinratExpr a)
+    | cdata_of (RG_VertexData.Hnd)   = ComponentData.Unit;
 
   fun default_data "X" = (RG_VertexData.Xnd LinratExpr.zero)
     | default_data "Z" = (RG_VertexData.Znd LinratExpr.zero)
     | default_data "hadamard" = (RG_VertexData.Hnd)
+    | default_data s = raise unknown_type_exp s
 
-  fun type_and_cdata_of (RG_VertexData.Xnd a) = 
-      ("X",(ComponentData.LinratExpr a))
-    | type_and_cdata_of (RG_VertexData.Znd a) = 
-      ("Z",(ComponentData.LinratExpr a))
-    | type_and_cdata_of (RG_VertexData.Hnd) = 
-      ("hadamard",ComponentData.Unit);
-  fun of_type_and_cdata ("X",(ComponentData.LinratExpr a)) = 
-      (RG_VertexData.Xnd a)
-    | of_type_and_cdata ("Z",(ComponentData.LinratExpr a)) = 
-      (RG_VertexData.Znd a) 
-    | of_type_and_cdata ("hadamard",_) = 
-      (RG_VertexData.Hnd)
-    | of_type_and_cdata (n,_) = 
-      raise unknown_type_exp n;
+  fun unwrapUpd upd a =
+    let
+      fun unwrapLinrat (ComponentData.LinratExpr e) = e
+        | unwrapLinrat _ = raise unexpected_data_exp
+    in
+      unwrapLinrat (upd (ComponentData.LinratExpr a))
+    end;
+
+  fun update upd (RG_VertexData.Xnd a) = (RG_VertexData.Xnd (unwrapUpd upd a))
+    | update upd (RG_VertexData.Znd a) = (RG_VertexData.Znd (unwrapUpd upd a))
+    | update _   (RG_VertexData.Hnd)   = RG_VertexData.Hnd;
 end;
 
 

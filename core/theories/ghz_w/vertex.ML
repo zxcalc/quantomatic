@@ -70,10 +70,11 @@ structure GHZW_VertexComponentData_Param
   fun type_of GHZW_VertexData.GHZ = "GHZ"
     | type_of GHZW_VertexData.W = "W"
 
+  fun cdata_of _ = ComponentData.Unit;
+
   fun default_data "GHZ" = GHZW_VertexData.GHZ
     | default_data "W" = GHZW_VertexData.W
     | default_data n = raise unknown_type_exp n;
 
-  fun type_and_cdata_of t = (type_of t,ComponentData.Unit)
-  fun of_type_and_cdata (tn,_) = default_data tn
+  fun update _ = I;
 end;

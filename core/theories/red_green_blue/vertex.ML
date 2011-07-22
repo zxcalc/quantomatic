@@ -69,13 +69,14 @@ structure RGB_VertexComponentData_Param
 
   fun type_of RGB_VertexData.Red = "Red"
     | type_of RGB_VertexData.Green = "Green"
-    | type_of RGB_VertexData.Blue = "Blue"
+    | type_of RGB_VertexData.Blue = "Blue";
+
+  fun cdata_of _ = ComponentData.Unit;
 
   fun default_data "Red" = RGB_VertexData.Red
     | default_data "Green" = RGB_VertexData.Green
     | default_data "Blue" = RGB_VertexData.Blue
     | default_data n = raise unknown_type_exp n;
 
-  fun type_and_cdata_of t = (type_of t,ComponentData.Unit)
-  fun of_type_and_cdata (tn,_) = default_data tn
+  fun update _ = I;
 end;

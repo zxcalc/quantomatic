@@ -194,13 +194,13 @@ functor ConsoleCommands(Commands : COMMANDS) : CONSOLE_COMMANDS
                          graphName = graph, action = Commands.DeleteVerticesAction { vertexNames = vs } })
         | _           => bad_args_response))),
 
-    (* FIXME: linrat-only *)
     ("set_vertex_data",
-     ("GRAPH V DATA", "Set the data of vertex V to ANGLE",
+     ("GRAPH V DATA", "Set the data of vertex V to DATA",
       liftStringResultResponse
       (fn [graph,v,data] => Commands.serviceRequest (Commands.EditGraphRequest { requestId = "",
                               graphName = graph,
-                              action = Commands.SetVertexDataAction { vertexName = v, vertexData = (ComponentData.LinratExpr (LinratExpr.parse data)) } })
+                              action = Commands.SetVertexDataAction
+                                { vertexName = v, vertexData = (Commands.StringCData data) } })
         | _               => bad_args_response))),
 
     ("add_edge",
@@ -210,6 +210,15 @@ functor ConsoleCommands(Commands : COMMANDS) : CONSOLE_COMMANDS
                         graphName = graph, action = Commands.AddEdgeAction
                           { edgeType = et, source = v1, target = v2, resultFormat = Commands.NameFormat } })
         | _          => bad_args_response))),
+
+    ("set_edge_data",
+     ("GRAPH E DATA", "Set the data of edge E to DATA",
+      liftStringResultResponse
+      (fn [graph,e,data] => Commands.serviceRequest (Commands.EditGraphRequest { requestId = "",
+                              graphName = graph,
+                              action = Commands.SetEdgeDataAction
+                                { edgeName = e, edgeData = (Commands.StringCData data) } })
+        | _               => bad_args_response))),
 
     ("rename_edge",
      ("GRAPH OLD NEW", "Rename edge in GRAPH from OLD to NEW",
