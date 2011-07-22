@@ -1,4 +1,4 @@
-signature COMMAND_LEXER 
+signature CONSOLE_LEXER 
 = sig
 
   exception parse_exp of unit;
@@ -15,7 +15,7 @@ signature COMMAND_LEXER
 
 end;
 
-structure DB_CommandLexer =
+structure DB_ConsoleLexer =
 struct
   local open SimpleLexer in
 
@@ -48,10 +48,10 @@ struct
   val toString = Pretty.string_of o pretty
 
 end; (* local Lexer *)
-end; (* structure CommandLexer *)
+end; (* structure ConsoleLexer *)
 
 
-structure CommandLexer : COMMAND_LEXER = DB_CommandLexer;
+structure ConsoleLexer : CONSOLE_LEXER = DB_ConsoleLexer;
 
 (* vim:et:sts=2:ts=2:sw=2
 *)

@@ -73,7 +73,7 @@ functor Console(Commands : COMMANDS) : CONSOLE
       (case ConsoleCommands.get_command commands cname
         of SOME f => (f args state)
          | NONE => ("!!! Unknown command: "^
-            (CommandLexer.toString cmd)^"\n", state))
+            (ConsoleLexer.toString cmd)^"\n", state))
       handle ControllerState.user_exp str => ("!!! "^str^"\n", state)
 
   val error_msg = "!!! Parse error in command.\n"
@@ -87,17 +87,17 @@ functor Console(Commands : COMMANDS) : CONSOLE
         | do_cmd_with_quit ("help",args) = (ConsoleResult.NORMAL (help command_name_list_with_quit args,state))
         | do_cmd_with_quit c = (ConsoleResult.NORMAL (do_cmd c state))
     in
-      (case (CommandLexer.parse command_string)
+      (case (ConsoleLexer.parse command_string)
          of SOME c => (do_cmd_with_quit c)
           | NONE => (ConsoleResult.NORMAL ("", state)))
        handle Fail _ => (ConsoleResult.NORMAL (error_msg, state))
-            | CommandLexer.parse_exp () => (ConsoleResult.NORMAL (error_msg, state))
+            | ConsoleLexer.parse_exp () => (ConsoleResult.NORMAL (error_msg, state))
     end
 
   fun eval_command_string_no_quit command_string state =
-    (case (CommandLexer.parse command_string)
+    (case (ConsoleLexer.parse command_string)
        of SOME c => (do_cmd c state)
         | NONE => ("", state))
      handle Fail _ => (error_msg, state)
-          | CommandLexer.parse_exp () => (error_msg, state)
+          | ConsoleLexer.parse_exp () => (error_msg, state)
 end;
