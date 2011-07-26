@@ -11,7 +11,12 @@ sig
   type vertex = (Theory.Vertex.name * (Theory.Vertex.data * (Theory.Edge.NSet.T * Theory.Edge.NSet.T)));
   type edge = (Theory.Edge.name * ((Theory.Graph.dir_or_undir * Theory.Edge.data) * (Theory.Vertex.name * Theory.Vertex.name)));
 
+  (* FIXME: ditch user_exp *)
   exception user_exp of string; (* for errors sent to user console *)
+  exception unknown_graph_exp of string;
+  exception unknown_vertex_exp of string;
+  exception unknown_edge_exp of string;
+  exception unknown_bbox_exp of string;
 
   val init : T (* initial empty state, no graphs *)
 
@@ -21,6 +26,7 @@ sig
   val get_hist : T -> (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T
   val get_graphs : T -> Theory.Graph.T GraphName.NTab.T
   val get_graph : T -> GraphName.name -> Theory.Graph.T
+  val get_graph_names : T -> GraphName.name list
 
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
@@ -47,7 +53,6 @@ sig
 
   (* printing/showing info (for console) *)
   val get_attached_rewrites : GraphName.name -> T -> rewrite list
-  val list_graphs : T -> GraphName.name list
   val list_rules_with_tag : TagName.name -> T -> TagName.name list
   val list_allrules : T -> RuleName.name list
   val list_tags : T -> TagName.name list
@@ -77,11 +82,9 @@ sig
   val untag_rule : RuleName.name -> TagName.name -> T -> T
 
   (* graphs and their manipulations *)
-  val new_graph : T -> GraphName.name * T
   val kill_graph : GraphName.name -> T -> T
   val insert_graph : GraphName.name -> GraphName.name -> T -> T
-  val duplicate_graph : GraphName.name -> T -> GraphName.name * T
-  val create_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
+  val add_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
   val copy_subgraph : GraphName.name -> GraphName.name -> Theory.Vertex.name list -> T -> T
 
   val add_vertex : string -> GraphName.name -> T -> vertex * T
@@ -106,7 +109,6 @@ end;
 
 
 (* controls the state of Quantomatic *)
-  (* FIXME: HACK: interface cannot be generic while we depend on RG data - need to generalise protocol and GUI for arbitrary kinds of data *)
 functor ControllerState(
   structure GraphicalTheory : GRAPHICAL_THEORY
 ) 
@@ -114,6 +116,10 @@ functor ControllerState(
 
 
   exception user_exp of string
+  exception unknown_graph_exp of string;
+  exception unknown_vertex_exp of string;
+  exception unknown_edge_exp of string;
+  exception unknown_bbox_exp of string;
 
   structure Theory = GraphicalTheory;
   structure RulesetRewrites = Theory.RulesetRewrites
@@ -157,12 +163,12 @@ functor ControllerState(
                          rset=Ruleset.empty};
 
   (* state accessors *)
-  fun get_graph state name  =
+  fun get_graph state name =
       (case GraphName.NTab.lookup (get_graphs state) name
        of SOME g => g
-        | NONE => raise user_exp ("No such graph '"^
-                  (GraphName.dest name)^"'."))
+        | NONE => raise unknown_graph_exp (GraphName.dest name))
 
+  val get_graph_names = GraphName.NSet.list_of o GraphName.NTab.get_nameset o get_graphs
 
   (* state mutators *)
   fun push_hist gname state = 
@@ -184,8 +190,6 @@ functor ControllerState(
 
   (* ============================================== *)
   (* these functions actually implement commmands *)
-
-  val list_graphs = GraphName.NSet.list_of o GraphName.NTab.get_nameset o get_graphs
 
   (* common things we want to assert are true *)
   fun assert_tag_exists state tag_name = 
@@ -280,16 +284,10 @@ functor ControllerState(
       in update_rset (Ruleset.untag_rule rule_name tag_name) state end
 
 
-    fun create_graph default_name graph state = let
+    fun add_graph default_name graph state = let
         val (nm,gs) = (get_graphs state)
                   |> GraphName.NTab.add (default_name, graph)
         in (nm, state |> set_graphs gs) end
-
-    fun duplicate_graph gname state = 
-        create_graph gname (get_graph state gname) state
-
-    fun new_graph state =
-        create_graph GraphName.default_name G.empty state
 
   fun kill_graph name state =
       (update_graphs (fn gs => gs |> GraphName.NTab.delete name) state)

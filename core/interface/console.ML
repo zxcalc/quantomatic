@@ -1,48 +1,46 @@
 structure ConsoleResult =
 struct
-  datatype 'a result = NORMAL of (string * 'a) | QUIT;
+  datatype result = NORMAL of string | QUIT;
 end;
 
 signature CONSOLE =
 sig
-  type state;
   val command_name_list : string list;
   val get_command_args : string -> string option;
   val get_command_help : string -> string option;
-  val eval_command_string : string -> state -> (state ConsoleResult.result)
-  val eval_command_string_no_quit : string -> state -> (string * state)
+  val eval_command_string : (Commands.request -> Commands.response) -> string -> ConsoleResult.result;
+  val eval_command_string_no_quit : (Commands.request -> Commands.response) -> string -> string;
 end;
 
-functor Console(Commands : COMMANDS) : CONSOLE
+structure Console : CONSOLE
 = struct
-  type state = Commands.state;
-  type result = (state ConsoleResult.result)
-  structure ConsoleCommands = ConsoleCommands(Commands);
+  open ConsoleResult;
   val commands = ConsoleCommands.all_commands;
-  
+
   val sort_alpha = sort (fn x => rev_order (string_ord x));
   val command_name_list = (sort_alpha (ConsoleCommands.get_command_names commands));
   val command_name_list_with_quit = (sort_alpha ("quit" :: (ConsoleCommands.get_command_names commands)));
-  val get_command_args = ConsoleCommands.get_args commands;
-  val get_command_help = ConsoleCommands.get_help commands;
 
-  fun help1 "help" = "\nhelp CMD\n\n    get help on CMD\n\n"
-    | help1 cmd    =
-        case (ConsoleCommands.get_help commands cmd)
-          of SOME h => let val args = (the (ConsoleCommands.get_args commands cmd)) in
-                         ("\n"^cmd^" "^args^"\n\n    "^h^"\n\n")
-                       end
-           | NONE   => ("!!! No command called '"^cmd^"'\n")
+  fun get_command_args "help" = SOME "CMD"
+    | get_command_args cmd    = ConsoleCommands.get_args commands cmd;
+
+  fun get_command_help "help" = SOME "get help on CMD"
+    | get_command_help cmd    = ConsoleCommands.get_help commands cmd;
 
   fun help cns [] = "Type \"help CMD\" to get help on a command.\n"^
                     "Available commands:\n\n"^
                     (fold (fn a => fn b =>a^"\n"^b) cns "\n")
-    | help _   [cmd] = (help1 cmd)
+    | help _   [cmd] =
+        (case (get_command_help cmd)
+          of SOME h => let val args = (the (get_command_args cmd)) in
+                         ("\n"^cmd^" "^args^"\n\n    "^h^"\n\n")
+                       end
+           | NONE   => ("!!! No command called '"^cmd^"'\n"))
     | help _   _ = "!!! Wrong number of arguments";
 
 (*
   structure G = Commands.ControllerState.Theory.Graph;
-  fun handle_bug_in_function f args state = f args state
+  fun handle_bug_in_function f args = f args
       handle G.no_such_vname_exp (s, v, g) => 
         raise ControllerState.user_exp ("BUG: G.no_such_vname_exp")
       | G.vname_already_exists_exp (v,g) =>
@@ -73,36 +71,37 @@ functor Console(Commands : COMMANDS) : CONSOLE
         raise ControllerState.user_exp ("BUG: invalid edge renaming: "^x);
 *)
 
-  fun do_cmd ("help", args) state = (help command_name_list args, state)
-    | do_cmd (cmd as (cname,args)) state =
+  fun do_cmd _ ("help", args) = (help command_name_list args)
+    | do_cmd serviceRequest (cmd as (cname,args)) =
       (case ConsoleCommands.get_command commands cname
-        of SOME f => (f args state)
+        of SOME f => ConsoleCommands.parse_response (serviceRequest (f args))
          | NONE => ("!!! Unknown command: "^
-            (ConsoleLexer.toString cmd)^"\n", state))
-      handle ControllerState.user_exp str => ("!!! "^str^"\n", state)
+            (ConsoleLexer.toString cmd)^"\n"))
+      handle ConsoleCommands.wrong_args_exp => ConsoleCommands.parse_response ConsoleCommands.bad_args_response
+           | ControllerState.user_exp str => ("!!! "^str^"\n")
 
   val error_msg = "!!! Parse error in command.\n"
 
-  fun eval_command_string command_string state =
+  fun eval_command_string serviceRequest command_string =
     let
-      fun do_cmd_with_quit ("quit",_) = ConsoleResult.QUIT
-        | do_cmd_with_quit ("exit",_) = ConsoleResult.QUIT
-        | do_cmd_with_quit ("help",["quit"]) = (ConsoleResult.NORMAL ("\nquit\n\n    Quits the quantomatic core\n\n",state))
-        | do_cmd_with_quit ("help",["exit"]) = (ConsoleResult.NORMAL ("\nexit\n\n    Quits the quantomatic core\n\n",state))
-        | do_cmd_with_quit ("help",args) = (ConsoleResult.NORMAL (help command_name_list_with_quit args,state))
-        | do_cmd_with_quit c = (ConsoleResult.NORMAL (do_cmd c state))
+      fun do_cmd_with_quit ("quit",_) = QUIT
+        | do_cmd_with_quit ("exit",_) = QUIT
+        | do_cmd_with_quit ("help",["quit"]) = (NORMAL ("\nquit\n\n    Quits the quantomatic core\n\n"))
+        | do_cmd_with_quit ("help",["exit"]) = (NORMAL ("\nexit\n\n    Quits the quantomatic core\n\n"))
+        | do_cmd_with_quit ("help",args) = (NORMAL (help command_name_list_with_quit args))
+        | do_cmd_with_quit c = (NORMAL (do_cmd serviceRequest c))
     in
       (case (ConsoleLexer.parse command_string)
          of SOME c => (do_cmd_with_quit c)
-          | NONE => (ConsoleResult.NORMAL ("", state)))
-       handle Fail _ => (ConsoleResult.NORMAL (error_msg, state))
-            | ConsoleLexer.parse_exp () => (ConsoleResult.NORMAL (error_msg, state))
+          | NONE => (NORMAL ""))
+       handle Fail _ => (NORMAL error_msg)
+            | ConsoleLexer.parse_exp () => (NORMAL error_msg)
     end
 
-  fun eval_command_string_no_quit command_string state =
+  fun eval_command_string_no_quit serviceRequest command_string =
     (case (ConsoleLexer.parse command_string)
-       of SOME c => (do_cmd c state)
-        | NONE => ("", state))
-     handle Fail _ => (error_msg, state)
-          | ConsoleLexer.parse_exp () => (error_msg, state)
+       of SOME c => (do_cmd serviceRequest c)
+        | NONE => "")
+     handle Fail _ => error_msg
+          | ConsoleLexer.parse_exp () => error_msg
 end;

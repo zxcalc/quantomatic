@@ -3,7 +3,7 @@ sig
   type state;
 end;
 
-structure Protocol(Commands : COMMANDS) : PROTOCOL =
+structure Protocol(Controller : CONTROLLER) : PROTOCOL =
 struct
   type state = Commands.state;
 
@@ -15,8 +15,6 @@ struct
       exit failure;
       raise Fail "bad" (* Never called but sets return type as 'a *)
   end
-
-  structure Console = Console(Commands);
 
   fun print s = TextIO.StreamIO.output(stdOut, s)
   fun printInt i = print (Int.toString i)

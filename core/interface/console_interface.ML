@@ -10,14 +10,11 @@ end;
 structure ConsoleInterface : CONSOLE_INTERFACE = 
 struct 
 
-  structure RG_Console = Console(Commands(
-    structure ControllerState = ControllerState
-  ));
+  structure RG_Controller = Controller(ControllerState);
 
-  fun run_in_textstreams' cmd_eval init_state (instream,outstream) = 
+  fun run_in_textstreams' cmd_eval (instream,outstream) = 
     let fun print s = (TextIO.output (outstream, s); TextIO.flushOut outstream);
         fun read_line () = TextIO.inputLine instream
-        val cur_state = Unsynchronized.ref init_state;
         fun repl_loop () = 
             let
               val _ = print ("quanto:> ")
@@ -25,14 +22,14 @@ struct
             case read_line ()
              of NONE => (print "\n"; ())
               | SOME s =>
-                (case cmd_eval (unsuffix "\n" s) (!cur_state)
-                  of ConsoleResult.NORMAL (output, state') =>
-                      (print (output^"\n"); cur_state := state'; repl_loop ())
+                (case cmd_eval (unsuffix "\n" s)
+                  of ConsoleResult.NORMAL output =>
+                      (print (output^"\n"); repl_loop ())
                    | ConsoleResult.QUIT => ())
             end;
      in repl_loop () end;
 
-  val run_in_textstreams = run_in_textstreams' RG_Console.eval_command_string ControllerState.init
+  val run_in_textstreams = run_in_textstreams' (Console.eval_command_string RG_Controller.serviceRequest)
   
   fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
                         of SOME n => (TextIO.input1 TextIO.stdIn;())
