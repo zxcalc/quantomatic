@@ -427,21 +427,16 @@ public abstract class CoreTalker {
 	}
 
 	@Command
-	public void flip_vertices(String graphName, String... verts)
-			throws CoreException {
-		command("flip_vertices", unshiftNames(graphName, verts));
-	}
-
-	@Command
 	public void delete_vertices(String graphName, String... vertexNames)
 			throws CoreException {
 		command("delete_vertices", unshiftNames(graphName, vertexNames));
 	}
 
 	@Command
-	public String add_edge(String graphName, String sourceName,
+	public String add_edge(String graphName, String type, String sourceName,
 			String targetName) throws CoreException {
 		return commandAsName("add_edge", Arg.nameArg(graphName),
+				Arg.vertexTypeArg(type),
 				Arg.nameArg(sourceName), Arg.nameArg(targetName));
 	}
 

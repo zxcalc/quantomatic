@@ -91,10 +91,11 @@ sig
   val copy_subgraph : GraphName.name -> GraphName.name -> Theory.Vertex.name list -> T -> T
 
   val add_vertex : string -> GraphName.name -> T -> vertex * T
-  val add_edge : Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
+  val add_edge : string -> Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
   val add_bang : GraphName.name -> T -> Theory.Graph.BBox.name * T
 
-  val set_angle : Theory.Vertex.name -> string -> GraphName.name -> T -> T
+  val update_vertex_data : (Theory.Vertex.data -> Theory.Vertex.data) -> Theory.Vertex.name -> GraphName.name -> T -> T
+  val update_edge_data : (Theory.Edge.data -> Theory.Edge.data) -> Theory.Edge.name -> GraphName.name -> T -> T
   val rename_vertex : Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> T
   val rename_graph : GraphName.name -> GraphName.name -> T -> GraphName.name * T
   val delete_vertices : Theory.Vertex.name list -> GraphName.name -> T -> T
@@ -115,8 +116,6 @@ end;
 functor ControllerState(
 
   structure GraphicalTheory : GRAPHICAL_THEORY
-  where type Vertex.IData.data = RG_VertexData.data
-    and type Edge.data = unit 
 
   structure IO_Interface : IO_INTERFACE
   where type Output.Vertex.data = (GraphicalTheory.Graph.Vertex.name * (GraphicalTheory.Graph.Vertex.data * (GraphicalTheory.Graph.Edge.NSet.T * GraphicalTheory.Graph.Edge.NSet.T)))
@@ -349,13 +348,6 @@ functor ControllerState(
       (XMLWriter.write_to_file fname (Output.Graph.output (get_graph state gname))
        handle _ => raise user_exp ("Could not save file "^fname))
 
-  (* FIXME: make generic over vertex data *)
-  fun vertex_type "X" = V.IVert (RG_VertexData.Xnd LinratExpr.zero)
-    | vertex_type "Z" =  V.IVert (RG_VertexData.Znd LinratExpr.zero)
-    | vertex_type "hadamard" = V.IVert RG_VertexData.Hnd
-    | vertex_type "edge-point" = V.EVert
-    | vertex_type _ = raise user_exp "Bad vertex type."
-
   fun lift_graph_mutator cmdf gname state =
       let val (out,g') = cmdf (get_graph state gname)
       in (out, state |> push_hist gname 
@@ -366,19 +358,19 @@ functor ControllerState(
                |> set_graph g' gname end;
 
   fun add_vertex_internal vt graph =
-      let val (n,g) = graph |> G.add_vertex (vertex_type vt)
-      in ((n,G.get_vertex g n), g)
-      end
+      (let val (n,g) = graph |> G.add_vertex_by_type vt in
+          ((n,G.get_vertex g n), g)
+       end
+       handle G.unknown_type_exp _ => raise user_exp ("Unknown vertex type "^vt))
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
-  (* FIXME: make generic over edge data *)
-  fun add_edge_internal v1 v2 graph =
-      (let val (n,g) = graph |> G.add_edge (G.UnDirected,()) v1 v2
+  fun add_edge_internal et v1 v2 graph =
+      (let val (n,g) = graph |> G.add_edge_by_type (G.UnDirected,et) v1 v2
        in ((n,G.get_edge g n), g)
        end
        handle G.no_such_vname_exp _ =>
               raise user_exp "Bad vertex name.")
-  fun add_edge v1 v2 gname state = lift_graph_mutator (add_edge_internal v1 v2) gname state
+  fun add_edge et v1 v2 gname state = lift_graph_mutator (add_edge_internal et v1 v2) gname state
 
 
   fun delete_vertices_internal vs graph =
@@ -463,19 +455,17 @@ functor ControllerState(
                | SOME rs => rs
   in rewrites end;
 
-  (* FIXME: make generic, currently depends on RGVertex *)
-  fun vdata a (V.IVert (RG_VertexData.Xnd _)) = 
-      V.IVert (RG_VertexData.Xnd (LinratExpr.parse a))
-    | vdata a (V.IVert (RG_VertexData.Znd _)) = 
-      V.IVert (RG_VertexData.Znd (LinratExpr.parse a))
-    | vdata _ _ = raise user_exp "Can only set angles for red and green vertices."
-
-  fun set_angle_internal v a graph =
-      let val () = assert_v_exists graph v in
-        (graph |> G.update_vertex_data (vdata a) v
-           handle LinratExpr.parse_exp => raise user_exp "Cannot parse angle expression.")
+  fun update_vertex_data_internal vd_upd vn graph =
+      let val () = assert_v_exists graph vn in
+        graph |> G.update_vertex_data vd_upd vn
       end
-  fun set_angle v a = lift_graph_mutator_no_result (set_angle_internal v a)
+  fun update_vertex_data vd_upd vn = lift_graph_mutator_no_result (update_vertex_data_internal vd_upd vn)
+
+  fun update_edge_data_internal ed_upd en graph =
+      let val () = assert_e_exists graph en in
+        graph |> G.update_edge_data ed_upd en
+      end
+  fun update_edge_data ed_upd en = lift_graph_mutator_no_result (update_edge_data_internal ed_upd en)
 
   fun add_bang_internal graph = 
       graph |> G.new_box (G.BBox.default_name)

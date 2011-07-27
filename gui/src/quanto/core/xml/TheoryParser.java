@@ -79,6 +79,7 @@ class TheoryDataHandler extends DefaultHandler
 	private String implementedTheoryName;
 	private String vertexName;
 	private String labelFill;
+	private String mnemonic;
 
 	private int unknownElementDepth = 0;
 	private Mode mode = Mode.None;
@@ -97,7 +98,6 @@ class TheoryDataHandler extends DefaultHandler
 	@Override
 	public void startElement (String namespaceUri, String localName,
 			String qualifiedName, Attributes attributes) throws SAXException {
-		
 		if (unknownElementDepth > 0) {
 			++unknownElementDepth;
 		} else if (mode == Mode.None) {
@@ -125,6 +125,14 @@ class TheoryDataHandler extends DefaultHandler
 					}
 			} else if ("visualization".equals(localName)) {
 				mode = Mode.Visualization;
+			} else if ("mnemonic".equals(localName)) {
+				if (attributes.getValue("key") == null) {
+					throw new SAXParseException("Type attribute not found in element data", null);
+				} else if (attributes.getValue("key").length() == 1) {
+					this.mnemonic = attributes.getValue("key");
+				} else {
+					throw new SAXParseException("The 'key' attribute in element mnemonic must be one character long.", null);
+				}
 			} else {
 				throw new SAXParseException("Unexpected element found in Nodetype", null);
 			}
@@ -161,9 +169,11 @@ class TheoryDataHandler extends DefaultHandler
 			mode = Mode.Nodetype;
 			if (this.vertexName == null)
 				throw new SAXParseException("name attribute of nodetype cannot be null", null);
-			theoryParser.addVertex(new VertexType.GenericVertexType(this.vertexName, this.dataType,
+			theoryParser.addVertex(new VertexType.GenericVertexType(this.vertexName, this.dataType, this.mnemonic,
 					new SvgVertexVisualizationData(this.svgFileURL, 
 							new Color(Integer.parseInt(this.labelFill, 16)))));
+			//Reset the optional mnemonic
+			this.mnemonic = null;
 		} else if ((mode == Mode.Nodetype) && ("nodetype".equals(localName))) {
 			mode = Mode.Theory;
 		} else if ((mode == Mode.Theory) && ("theory".equals(localName))) {

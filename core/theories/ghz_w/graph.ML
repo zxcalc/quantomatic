@@ -22,6 +22,10 @@ structure GHZW_GraphParam
   (* internal name data *)
   type T = VDep.T;
 
+  (* IMPROVE: what data do we want here? should it be add_exp *)
+  exception match_exp of unit;
+  exception unknown_type_exp of string;
+
   fun get_IName vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
@@ -68,6 +72,15 @@ structure GHZW_GraphParam
   fun delete_vertex vn vdep = vdep;
   fun delete_edge en vdep = vdep;
 
+  fun vertex_type_name (GHZW_VertexData.GHZ) = "GHZ"
+    | vertex_type_name (GHZW_VertexData.W) = "W"
+  fun vertex_default_data "GHZ" = (GHZW_VertexData.GHZ)
+    | vertex_default_data "W" = (GHZW_VertexData.W)
+    | vertex_default_data s = raise unknown_type_exp s
+  fun edge_type_name () = "unit"
+  fun edge_default_data "unit" = ()
+    | edge_default_data s = raise unknown_type_exp s
+
   fun replace_vertex vd vn vdep = 
       vdep |> delete_vertex vn
            |> add_vertex vd vn;
@@ -104,9 +117,6 @@ structure GHZW_GraphParam
 
   fun try_match_vertex d1 d2 u = Vertex.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
-
-  (* IMPROVE: what data do we want here? should it be add_exp *)
-  exception match_exp of unit;
 
   (* raises match_exp *)
   fun match_vertex d1 d2 u = 

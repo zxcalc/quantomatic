@@ -34,7 +34,6 @@ structure RG_VertexData : RG_UNIFIABLE_DATA
     | data_ord (Xnd a, Xnd b) = LinratExpr.ord (a,b);
   fun data_eq (n1, n2) = case data_ord (n1, n2) of EQUAL => true | _ => false;
       
-  fun pretty_angle a = Pretty.str a;      
   fun pretty_data (Xnd a) = 
       Pretty.block [Pretty.str "X(", LinratExpr.pretty a, Pretty.str ")"]  
     | pretty_data (Znd a) = 
@@ -45,7 +44,7 @@ structure RG_VertexData : RG_UNIFIABLE_DATA
   type subst = LinratExpr.match;
   val empty_subst = LinratExpr.empty_match;
   fun compose_subst (u1,u2) = LinratExpr.compose_matches u1 u2;
-  fun match_data ((e1 as Hnd), (e2 as Hnd)) m = SOME m
+  fun match_data ((Hnd), (Hnd)) m = SOME m
     | match_data ((Znd a1),(Znd a2)) m = 
       LinratExpr.match a1 a2 m
     | match_data ((Xnd a1),(Xnd a2)) m = 
@@ -53,7 +52,7 @@ structure RG_VertexData : RG_UNIFIABLE_DATA
     | match_data _ _ = NONE;
   fun unify_data (x,y) m = 
       raise unimplemented_exp "RGVertex.unify_data: has not yet been written.";
-  fun subst_in_data u Hnd = Hnd
+  fun subst_in_data _ Hnd = Hnd
     | subst_in_data u (Xnd a) = Xnd (LinratExpr.subst u a)
     | subst_in_data u (Znd a) = Znd (LinratExpr.subst u a);
     
@@ -62,7 +61,7 @@ structure RG_VertexData : RG_UNIFIABLE_DATA
 
   fun map_to_angle f (Xnd angle) = (Xnd (f angle))
     | map_to_angle f (Znd angle) = (Xnd (f angle))
-    | map_to_angle f x = x;
+    | map_to_angle _ x = x;
 
   fun angle_of_data (Xnd angle) = SOME angle
     | angle_of_data (Znd angle) = SOME angle
@@ -93,8 +92,6 @@ structure RG_InternVertex
   end;
   (* Note signature constraint hides stuff for us *)
   structure SharingWithoutData = SharingWithData;
-  
-  val default_name = mk "a";
 
 end;
 

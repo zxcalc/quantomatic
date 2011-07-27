@@ -140,14 +140,22 @@ structure Commands
   fun rename_vertex ([gname,old,new], state) =
       (OK, (ControllerState.rename_vertex (V.mk old) (V.mk new) (GraphName.mk gname) state))
     | rename_vertex (_, state) = raise wrong_args_exp ()
+
+  (* FIXME: make generic, currently depends on RGVertex *)
+  fun vdata a (V.IVert (RG_VertexData.Xnd _)) = 
+      V.IVert (RG_VertexData.Xnd (LinratExpr.parse a))
+    | vdata a (V.IVert (RG_VertexData.Znd _)) = 
+      V.IVert (RG_VertexData.Znd (LinratExpr.parse a))
+    | vdata _ _ = raise ControllerState.user_exp "Can only set angles for red and green vertices."
   fun set_angle ([gname,v,angle], state) =
-      (OK, (ControllerState.set_angle (V.mk v) angle (GraphName.mk gname) state))
+      (OK, (ControllerState.update_vertex_data (vdata angle) (V.mk v) (GraphName.mk gname) state))
     | set_angle (_, state) = raise wrong_args_exp ()
+
   fun delete_vertices (gname::vs, state) =
       (OK, (ControllerState.delete_vertices (map V.mk vs) (GraphName.mk gname) state))
     | delete_vertices (_, state) = raise wrong_args_exp ()
-  fun add_edge ([gname,v1,v2], state) =
-      apply_to_first edge_xml (ControllerState.add_edge (V.mk v1) (V.mk v2) (GraphName.mk gname) state)
+  fun add_edge ([gname,et,v1,v2], state) =
+      apply_to_first edge_xml (ControllerState.add_edge et (V.mk v1) (V.mk v2) (GraphName.mk gname) state)
     | add_edge (_, state) = raise wrong_args_exp ()
   fun delete_edges (gname::es, state) =
       (OK, (ControllerState.delete_edges (map E.mk es) (GraphName.mk gname) state))
@@ -385,8 +393,8 @@ structure Commands
       delete_vertices)),
 
     ("add_edge",
-     ("add_edge GRAPH V1 V2\n\n"^
-        "    add an edge in GRAPH from V1 to V2\n",
+     ("add_edge GRAPH TYPE V1 V2\n\n"^
+        "    add a TYPE edge in GRAPH from V1 to V2\n",
       add_edge)),
 
     ("delete_edges",

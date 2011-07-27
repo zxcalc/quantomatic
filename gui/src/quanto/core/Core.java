@@ -49,22 +49,29 @@ public class Core {
 	private class CoreTheory implements Theory {
 		private String theoryName;
 		
+		Map<String, VertexType> mnemonics = new HashMap<String, VertexType>();
 		Map<String, VertexType> types = new HashMap<String, VertexType>();
 
 		public VertexType getVertexType(String typeName) {
 			return types.get(typeName);
 		}
 
+		public VertexType getVertexTypeByMnemonic(String mnemonic) {
+			return mnemonics.get(mnemonic);
+		}
+		
 		public Collection<VertexType> getVertexTypes() {
 			return types.values();
 		}
 
 		public void addVertexType(VertexType type) {
 			types.put(type.getTypeName(), type);
+			mnemonics.put(type.getMnemonic(), type);
 		}
 		
 		public void removeAllVertices() {
 			types.clear();
+			mnemonics.clear();
 		}
 		
 		public void setTheoryName(String theoryName) {
@@ -248,13 +255,6 @@ public class Core {
 		return addVertex(graph, "edge-point");
 	}
 
-	public void renameVertex(CoreGraph graph, Vertex vertex,
-			String suggestedNewName) throws CoreException {
-		assertCoreGraph(graph);
-		vertex.updateCoreName(talker.rename_vertex(graph.getCoreName(),
-				vertex.getCoreName(), suggestedNewName));
-	}
-
 	public void setVertexAngle(CoreGraph graph, Vertex v, String angle)
 			throws CoreException {
 		assertCoreGraph(graph);
@@ -277,6 +277,7 @@ public class Core {
 			throws CoreException {
 		assertCoreGraph(graph);
 		String xml = talker.add_edge(graph.getCoreName(),
+					     "unit",
 					     source.getCoreName(),
 					     target.getCoreName());
 		EdgeData e = this.<EdgeData>parseXml(xml, new EdgeFragmentHandler());

@@ -40,6 +40,10 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
+test check: $(QUANTO_HEAP)
+	echo 'use "TEST.ML";' | $(POLYML)
+	@echo "All tests passed"
+
 bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
 
@@ -65,7 +69,7 @@ run: ml-shell
 clean:
 	rm -f heaps/*.polyml-heap
 	rm -f bin/*.o
-	find -type d -name .polysave | xargs rm -rf
+	find . -type d -name .polysave | xargs rm -rf
 	rm -f bin/$(THE_BIN)
 
 veryclean: clean

@@ -57,14 +57,6 @@ PolyML.Project.make "io/writer.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
 
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/vertex.ML";
-PolyML.Project.make "theories/red_green/graph.ML";
-
-
-(* TESTING: test_graph structure and test construction tools *)
-PolyML.Project.make "graph/test/test_graph.ML";
-
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
 PolyML.Project.make "io/output_rule.ML";
@@ -78,16 +70,8 @@ PolyML.Project.make "io/output_ruleset.ML";
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
 
-(* I/O for old RG-graphs, depends on defining RG_VertexData *)
-PolyML.Project.make "io/input_graph_v1.ML";
-PolyML.Project.make "io/output_graph_v1.ML";
-
 (* Simple dot output for graphs *)
 PolyML.Project.make "io/output_graph_dot.ML";
-
-(* TESTING; ruleset and io construction *)
-PolyML.Project.make "theories/test/test_ruleset.ML";
-PolyML.Project.make "io/test/test_graph_io.ML";
 
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
@@ -98,17 +82,6 @@ PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
-(* TESTS *)
-PolyML.Project.make "matching/test/matching.ML";
-PolyML.Project.make "matching/test/matching2.ML";
-PolyML.Project.make "rewriting/test/ruleset_rewriting.ML";
-PolyML.Project.make "matching/test/simple_match_search.ML";
-
-(* construction of everything in a graphical theory from just param *)
-PolyML.Project.make "theories/graphical_theory.ML";
-
-(* construct the red-green IO *)
-PolyML.Project.make "theories/red_green/io.ML";
 
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
@@ -117,23 +90,25 @@ PolyML.Project.make "matching/symmetry_match_search.ML";
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
+(* construction of everything in a graphical theory from just param *)
+PolyML.Project.make "theories/graphical_theory.ML";
+
+(* red-green specific vertices, graphs and matching *)
+PolyML.Project.make "theories/red_green/vertex.ML";
+
+(* I/O for old RG-graphs, depends on defining RG_VertexData *)
+PolyML.Project.make "io/input_graph_v1.ML";
+PolyML.Project.make "io/output_graph_v1.ML";
+
+(* red-green specific vertices, graphs and matching *)
+PolyML.Project.make "theories/red_green/graph.ML";
+PolyML.Project.make "theories/red_green/io.ML";
+
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
+(* These depend on the red-green theory for now *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
-
-
-(* interface protocol/console *)
-PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
-PolyML.Project.make "interface/command_lexer.ML"; (* lexer for quanto console *)
-PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
-(* **** *)
-PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
-
-PolyML.Project.make "dev/convert_old_files.ML";
-
-(* unit tests *)
-PolyML.Project.use_root "test/ROOT.ML";
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/vertex.ML";
@@ -146,6 +121,13 @@ PolyML.Project.make "theories/red_green_blue/vertex.ML";
 PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
+
+(* interface protocol/console *)
+PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+PolyML.Project.make "interface/command_lexer.ML"; (* lexer for quanto console *)
+PolyML.Project.make "interface/commands.ML"; (* quanto commands and help *)
+(* **** *)
+PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
@@ -160,7 +142,3 @@ else
 PolyML.Project.Log.log 2 "done."
 
 
-
-(*
-PolyML.Project.make "test/dbg/rule_matching3-bbox-v1.ML"; 
-*)
