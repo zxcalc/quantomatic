@@ -14,20 +14,24 @@ struct
 
   fun run_in_textstreams' cmd_eval (instream,outstream) = 
     let fun print s = (TextIO.output (outstream, s); TextIO.flushOut outstream);
-        fun read_line () = TextIO.inputLine instream
-        fun repl_loop () = 
-            let
-              val _ = print ("quanto:> ")
-            in 
-            case read_line ()
-             of NONE => (print "\n"; ())
-              | SOME s =>
-                (case cmd_eval (unsuffix "\n" s)
-                  of ConsoleResult.NORMAL output =>
-                      (print (output^"\n"); repl_loop ())
-                   | ConsoleResult.QUIT => ())
-            end;
-     in repl_loop () end;
+				fun next_loop () = run_in_textstreams' cmd_eval (instream,outstream)
+				fun change_loop svcReq = run_in_textstreams' (Console.eval_command_string svcReq) (instream,outstream)
+				val _ = print ("quanto:> ")
+				val input = TextIO.inputLine instream
+     in
+				case input
+				 of NONE => (print "\n"; ())
+					| SOME s =>
+						(case cmd_eval (unsuffix "\n" s)
+							of InterfaceResult.NORMAL output =>
+									(print (output^"\n"); next_loop ())
+							 | InterfaceResult.CHANGE_THEORY "red-green" =>
+									(change_loop RG_Controller.serviceRequest)
+							 | InterfaceResult.CHANGE_THEORY th =>
+									(print ("!!! Unknown theory \""^th^"\"\n"); next_loop ())
+							 | InterfaceResult.SKIP => (next_loop ())
+							 | InterfaceResult.QUIT => ())
+     end;
 
   val run_in_textstreams = run_in_textstreams' (Console.eval_command_string RG_Controller.serviceRequest)
   

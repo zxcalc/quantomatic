@@ -1,6 +1,6 @@
-structure ConsoleResult =
+structure InterfaceResult =
 struct
-  datatype result = NORMAL of string | QUIT;
+  datatype result = NORMAL of string | CHANGE_THEORY of string | SKIP | QUIT;
 end;
 
 signature CONSOLE =
@@ -8,13 +8,13 @@ sig
   val command_name_list : string list;
   val get_command_args : string -> string option;
   val get_command_help : string -> string option;
-  val eval_command_string : (Commands.request -> Commands.response) -> string -> ConsoleResult.result;
-  val eval_command_string_no_quit : (Commands.request -> Commands.response) -> string -> string;
+  val eval_command_string : (Commands.request -> Commands.response) -> string -> InterfaceResult.result;
+  val eval_command_string_no_quit : (Commands.request -> Commands.response) -> string -> InterfaceResult.result;
 end;
 
 structure Console : CONSOLE
 = struct
-  open ConsoleResult;
+  open InterfaceResult;
   val commands = ConsoleCommands.all_commands;
 
   val sort_alpha = sort (fn x => rev_order (string_ord x));
@@ -22,9 +22,11 @@ structure Console : CONSOLE
   val command_name_list_with_quit = (sort_alpha ("quit" :: (ConsoleCommands.get_command_names commands)));
 
   fun get_command_args "help" = SOME "CMD"
+    | get_command_args "change_theory" = SOME "THEORY"
     | get_command_args cmd    = ConsoleCommands.get_args commands cmd;
 
-  fun get_command_help "help" = SOME "get help on CMD"
+  fun get_command_help "help" = SOME "Get help on CMD"
+    | get_command_help "change_theory" = SOME "Switch to theory THEORY"
     | get_command_help cmd    = ConsoleCommands.get_help commands cmd;
 
   fun help cns [] = "Type \"help CMD\" to get help on a command.\n"^
@@ -71,14 +73,15 @@ structure Console : CONSOLE
         raise ControllerState.user_exp ("BUG: invalid edge renaming: "^x);
 *)
 
-  fun do_cmd _ ("help", args) = (help command_name_list args)
-    | do_cmd serviceRequest (cmd as (cname,args)) =
+  fun do_cmd _ ("help", args) = (NORMAL (help command_name_list args))
+    | do_cmd _ ("change_theory", [th]) = (CHANGE_THEORY th)
+    | do_cmd _ ("change_theory", _) = (NORMAL (ConsoleCommands.parse_response ConsoleCommands.wrong_number_of_args_response))
+    | do_cmd serviceRequest (cmd as (cname,args)) = (NORMAL (
       (case ConsoleCommands.get_command commands cname
         of SOME f => ConsoleCommands.parse_response (serviceRequest (f args))
          | NONE => ("!!! Unknown command: "^
             (ConsoleLexer.toString cmd)^"\n"))
-      handle ConsoleCommands.wrong_args_exp => ConsoleCommands.parse_response ConsoleCommands.bad_args_response
-           | ControllerState.user_exp str => ("!!! "^str^"\n")
+      handle ControllerState.user_exp str => ("!!! "^str^"\n")))
 
   val error_msg = "!!! Parse error in command.\n"
 
@@ -89,11 +92,11 @@ structure Console : CONSOLE
         | do_cmd_with_quit ("help",["quit"]) = (NORMAL ("\nquit\n\n    Quits the quantomatic core\n\n"))
         | do_cmd_with_quit ("help",["exit"]) = (NORMAL ("\nexit\n\n    Quits the quantomatic core\n\n"))
         | do_cmd_with_quit ("help",args) = (NORMAL (help command_name_list_with_quit args))
-        | do_cmd_with_quit c = (NORMAL (do_cmd serviceRequest c))
+        | do_cmd_with_quit c = (do_cmd serviceRequest c)
     in
       (case (ConsoleLexer.parse command_string)
          of SOME c => (do_cmd_with_quit c)
-          | NONE => (NORMAL ""))
+          | NONE => SKIP)
        handle Fail _ => (NORMAL error_msg)
             | ConsoleLexer.parse_exp () => (NORMAL error_msg)
     end
@@ -101,7 +104,7 @@ structure Console : CONSOLE
   fun eval_command_string_no_quit serviceRequest command_string =
     (case (ConsoleLexer.parse command_string)
        of SOME c => (do_cmd serviceRequest c)
-        | NONE => "")
-     handle Fail _ => error_msg
-          | ConsoleLexer.parse_exp () => error_msg
+        | NONE => SKIP)
+     handle Fail _ => (NORMAL error_msg)
+          | ConsoleLexer.parse_exp () => (NORMAL error_msg)
 end;

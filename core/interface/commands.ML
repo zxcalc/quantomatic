@@ -8,10 +8,12 @@ struct
   datatype resultFormat = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
   datatype componentData = StringCData of string | XmlCData of (XML.tree list) | DescriptionCData of ComponentData.T;
 
-  datatype request =
+                     (* A dummy request does not change the state, and simply produces the given response *)
+  datatype request = DummyRequest of { response: response }
+
                    (* Graph commands: G *)
                      (* NameListResponse *)
-                     ListGraphsRequest of { requestId: string }                                                  (* GL *)
+                   | ListGraphsRequest of { requestId: string }                                                  (* GL *)
                      (* NameResponse | ErrorResponse *)
                    | LoadGraphRequest of { requestId: string, details: graphLoadRequest }                        (* GO *)
                      (* OkResponse | ErrorResponse *)
@@ -243,7 +245,9 @@ struct
                    ]
 
 
-  fun serviceRequest' (ListGraphsRequest { requestId }) (state:State.T) =
+  fun serviceRequest' (DummyRequest { response }) (state:State.T) = (response, state)
+
+    | serviceRequest' (ListGraphsRequest { requestId }) (state:State.T) =
         let val graphNames = map GraphName.dest (State.get_graph_names state) in
           (NameListResponse { requestId = requestId, names = graphNames }, state)
         end

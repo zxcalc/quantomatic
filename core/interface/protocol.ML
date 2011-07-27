@@ -1,12 +1,11 @@
 signature PROTOCOL =
 sig
-  type state;
+  val readRequest : unit -> Commands.request;
+  val outputResponse : Commands.response -> unit;
 end;
 
-structure Protocol(Controller : CONTROLLER) : PROTOCOL =
+structure Protocol : PROTOCOL =
 struct
-  type state = Commands.state;
-
   fun protocolError error =
   let
       open OS.Process
@@ -82,12 +81,10 @@ struct
           printEsc #"z"
   end;
 
-  fun doRequest (state:state) : state =
+  fun readRequest () =
   let
     open Commands
     open TextIO
-
-    fun serviceRequest r = outputResponse (Commands.serviceRequest state r);
 
     (* Returns the string as far as the next ESC and the terminator. *)
     fun readToEscape' (soFar: string) (terminator: char) : string =
@@ -914,7 +911,7 @@ struct
         state'
       end
 
-    | code => serviceRequest (readRequest code)
+    | code => readRequest code
 
   end
 
