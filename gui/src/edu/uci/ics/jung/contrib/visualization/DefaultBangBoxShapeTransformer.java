@@ -34,10 +34,15 @@ public class DefaultBangBoxShapeTransformer<V, E, B>
 		@SuppressWarnings("unchecked")
 		BangBoxGraph<V, E, B> graph = (BangBoxGraph<V, E, B>) context.layout.getGraph();
 		Rectangle2D rect = vertexBounds(context.layout, graph.getBoxedVertices(context.element));
-		rect.setRect(rect.getX() - padding,
-			     rect.getY() - padding,
-			     rect.getWidth() + 2*padding,
-			     rect.getHeight() + 2*padding);
+        if (rect != null) {
+            rect.setRect(rect.getX() - padding,
+                     rect.getY() - padding,
+                     rect.getWidth() + 2*padding,
+                     rect.getHeight() + 2*padding);
+        } else {
+            // FIXME: do something sensible with empty !-boxes
+            rect = new Rectangle2D.Double(0, 0, 1, 1);
+        }
 		return rect;
 	}
 
