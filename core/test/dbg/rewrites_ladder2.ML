@@ -8,12 +8,10 @@ structure Ruleset = Test_Ruleset;
 structure MatchSearch = Test_SimpleMatchSearch;
 structure GraphSubst = Test_GraphSubst;
 
-
 fun list_of_rule_matches r g = 
     let val (r', matches) = RulesetRewrites.rule_matches r g;
     in (r', Seq.list_of matches) end;
-    
-    
+
 val rset = "rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
               |> IO.Input.Ruleset.input;
@@ -26,7 +24,7 @@ val s = (RulesetRewrites.apply rset g);
 val SOME (x1,s) = Seq.pull s;
 
 (* *)
-val spider_red = Ruleset.get_rule ruleset (RuleName.mk "spider.red");
+val spider_red = Ruleset.get_rule rset (RuleName.mk "spider.red");
 
 val (r,matches) = list_of_rule_matches spider_red g;
 exception bad_match_exp of Match.T;

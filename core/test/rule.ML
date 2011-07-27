@@ -93,8 +93,6 @@ val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () =
                                 (Rule.get_rhs r');
   in writeln "success" end) ();
 
-
-
 val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
   val r = Ruleset.get_rule ruleset (RuleName.mk "bialgebra1");
   val g = Rule.get_lhs r;
@@ -113,6 +111,15 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
                                 (Rule.get_rhs r');
   in writeln "success" end) ();  
   
+  (* 
+val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
+  val spider_red = Ruleset.get_rule rset (RuleName.mk "spider.red");
+  val g = "graphs/d2-ladder_rw2.graph"
+              |> XMLReader.read_from_file
+              |> IO.Input.Graph.input;
+  val 
+  in () end) ();
+  *)   
   
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";

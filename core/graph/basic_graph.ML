@@ -269,7 +269,9 @@ fun add_named_edge en e n1 n2 g =
 						(fn (n,(ins,outs)) => (n,(Edge.NSet.ins_fresh en2 ins,outs))) n2
       (* give back new edge name and new graph *)
     in (en2, g |> set_vertices vertices2
-               |> set_edges edges2) end;
+               |> set_edges edges2) 
+    end;
+               
 
 (* implicit args: en g *)
 (* *)
@@ -293,7 +295,8 @@ fun delete_edge en g =
 
       (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
-         |> set_edges edges2 end;
+         |> set_edges edges2 
+    end;
 
 
 

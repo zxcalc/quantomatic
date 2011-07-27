@@ -265,8 +265,8 @@ fun try_match_bboxes (pvn1,tvn1) (pvn2,tvn2) st =
 
 (* AK: bbox_match_exp shouldn't be raised under normal failed matches. in the mean time, raising match_exp *)
 exception bbox_match_exp of unit;
-fun match_bboxes pnv tnv st = 
-    (case try_match_bboxes pnv tnv st of NONE => raise Match.match_exp ()
+fun match_bboxes ptv1 ptv2 st = 
+    (case try_match_bboxes ptv1 ptv2 st of NONE => raise Match.match_exp ()
      | SOME st' => st');
 
 
@@ -278,22 +278,26 @@ fun edgematch1 (pt as (pvn1,tvn1)) (pe as (peh1,(pe_dir,pe_d)),pvn2)
     if Match.emap_contains (get_match st) (peh1,teh1) then st 
     else
     let 
-      val peh2 = G.Edge.Ehn.other peh1;
+      (* get the ends close to the matched vertex *)
+      val peh2 = G.Edge.Ehn.other peh1; 
       val teh2 = G.Edge.Ehn.other teh1;
       val pat = get_unm_pat st;
     in  
       st |> update_match (Match.match_edge_data pe_d te_d)
+         (* must try to match bboxes before deleting vertex from pat. *)
+         |> match_bboxes pt (pvn2,tvn2)
+         (* set vertex and edge match and delete vertex from pat*)
          |> (if G.is_boundary pat pvn2
              then (* pvn2 is a boundary vertex *)
               del_pat_vertex pvn2
               o update_match 
                   ((case (pe_dir,te_dir) 
                       of (G.Directed, G.Directed) => 
-                         (Match.dir_match_edgehalf_name' peh1 teh1)
+                         (Match.dir_match_edgehalf_name' peh2 teh2)
                        | (G.UnDirected, G.UnDirected) => 
-                         (Match.match_edgehalf_name' peh1 teh1)
+                         (Match.match_edgehalf_name' peh2 teh2)
                        | _ => raise Match.match_exp ())
-                    o Match.match_boundary pvn2 tvn2) 
+                    o Match.match_boundary pvn2 tvn2)
              else (* pvn2 is an internal vertex *)
                del_tgt_edge (E.Ehn.get_ename teh1)
                o update_match 
@@ -309,7 +313,6 @@ fun edgematch1 (pt as (pvn1,tvn1)) (pe as (peh1,(pe_dir,pe_d)),pvn2)
                 (* don't add to the agenda if self-loop edge *)
                 o (if Vertex.name_eq (pvn2,pvn1) then I 
                     else add1_to_agenda (pvn2,tvn2)))
-         |> match_bboxes pt (pvn2,tvn2)
     end;
 
 (* THINK: make a version that builds in edge data always being symmetric: 
@@ -343,7 +346,7 @@ fun edge_match_adj_to_pedge (pt as (pvn1,tvn1))
       | agenda_and_st_choices' => agenda_and_st_choices');
 
 (* match up all adjacent edges of chosen pattern and target vertex *)
-(* raises Match.match_exp on failure *)
+(* raises Match.match_exp on failure (for early exit of loop) *)
 fun edgematch_all_adj (pt as (pvn1,tvn1)) st = 
     let val adj_list = 
         G.fold_adj (fn te as (ehn,_) => fn tvn2 => fn l => (te,tvn2)::l)
@@ -351,7 +354,9 @@ fun edgematch_all_adj (pt as (pvn1,tvn1)) st =
         (* TODO: undir edges which are self-loops will always have two matches, one for each directon. Simple-dup removal doesn't work: all half-edges much be matched.  *)
     in 
       G.fold_adj (edge_match_adj_to_pedge pt)
-                 (get_unm_pat st) pvn1 [(adj_list,st)]
+                 (get_unm_pat st) pvn1 
+                 [(adj_list,st)] (* target agenda of things to be matched, 
+                                    current state *)
         |> map snd
         |> Seq.of_list
     end;

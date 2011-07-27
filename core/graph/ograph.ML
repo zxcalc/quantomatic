@@ -310,7 +310,8 @@ functor BasicOGraphFun(
           V.IVert _ => g
         | V.EVert => 
           (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
-             (true, true) => g |> del_from_boundary n |> add_to_edgepoints n
+             (* has both incoming and outgoing egdes, so not boundary. *)
+             (false, false) => g |> del_from_boundary n |> add_to_edgepoints n
            | (_,_) => g |> add_to_boundary n)
       end;
 
@@ -523,8 +524,7 @@ struct
                     end
                 end)
               outs);
-  
-  
+    
   (* Property to be checked -- all boundary vertices have degree one *)
   (* This is not maintained but can be checked with the is_correct function*) 
   (* in particular, the graph formalism allows hyper-edges 

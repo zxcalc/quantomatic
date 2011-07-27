@@ -365,22 +365,27 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                    else new_named_edge d en vn1 vn2 g3)
                (get_edges g1));
 
-  (* *)
+  (* merge vertices, removes v1, keeps v1. deletes all edges to v1, add them as 
+     new edges to v2 (with the same name). *)
   fun merge_2vertices v1 v2 g = 
       let val (_,(ines,outes)) = get_vertex g v1
       in 
         g |> Edge.NSet.fold
-              (fn en => update_edges (Edge.NTab.map_entry 
-                (fn (e,(fromv,tov)) => (e,(fromv,v2))) en))             
+              (fn en => fn g => 
+                  let val (e,(fromv,tov)) = get_edge g en
+                  in g |> delete_edge en
+                       |> add_named_edge en e fromv v2
+                       |> snd
+                  end)
               ines
           |> Edge.NSet.fold
-              (fn en => update_edges (Edge.NTab.map_entry 
-                (fn (e,(fromv,tov)) => (e,(v2,tov))) en))             
+              (fn en => fn g => 
+                  let val (e,(fromv,tov)) = get_edge g en
+                  in g |> delete_edge en
+                       |> add_named_edge en e v2 tov
+                       |> snd
+                  end)
               outes
-          |> update_vertex_ins_and_outs 
-               (fn _ => (Edge.NSet.empty,Edge.NSet.empty)) v1
-          |> update_vertex_ins_and_outs 
-               (fn _ => (ines,outes)) v2
           |> delete_vertex v1
       end;
 
@@ -524,9 +529,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       snd (fold_subgraph' fv fe_in fe_out vs g a);
   
   (* fold a function over the adjacent vertex names. 
-     if "x <-e- y" then: "f (Ehn.mk_start e,...)"
-     if "x -e-> y" then: "f (Ehn.mk_end e,...)"
-     [ The edge-half the half connected to the adj vertex ] *)
+     The edge-half is the half connected to the adj vertex. 
+     e.g. folding of ins and outs of vertex x: 
+       if "x <-e- y" then: "f (Ehn.mk_start e,...)"
+       if "x -e-> y" then: "f (Ehn.mk_end e,...)"  *)
   fun fold_adj' f graph (ins,outs) a = 
       a |> (Edge.NSet.fold 
            (fn e => let val (d,(from,to)) = get_edge graph e 
@@ -536,7 +542,8 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
             in f (Edge.Ehn.mk_end e,d) to end) outs);
   
   (* all vertices adjacent to vertex named n; 
-     g = graph; f = function; a = accumulator *)
+     g = graph; f = function; a = accumulator.
+     The edge-half is the half connected to the adj vertex. *)
   fun fold_adj f g n a = 
       fold_adj' f g (snd (get_vertex g n)) a;
   
