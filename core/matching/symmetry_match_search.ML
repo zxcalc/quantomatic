@@ -160,18 +160,19 @@ functor RuleMatchSearch(
       end handle Match.match_exp _ => Seq.empty;
       
   exception zip_exp of unit;
-  fun zip (l::ls) (r::rs) = (l,r)::(zip ls rs)
-    | zip [] [] = []
-    | zip _ _ = raise zip_exp ();
+  fun zipl (l::ls) (r::rs) = (l,r)::(zipl ls rs)
+    | zipl [] _ =  []
+    | zipl _ _ = raise zip_exp ();
       
   (* ASSUME all edges interchangeable *)
   (* Matches two sets of edges, assumed to point in the same direction. *)
+  (* TODO: Verify assumption (safe if |patedges|<=|tgtedges| by aritychk) *)
   fun match_edgeset ps ts st =
       let val plist = E.NSet.list_of ps
           val tlist = E.NSet.list_of ts
-      in fold (fn x => Seq.maps (uncurry match_edge x)) (plist ~~ tlist)
+      in fold (fn x => Seq.maps (uncurry match_edge x)) (zipl plist tlist)
                                                         (Seq.single st)
-      end handle ListPair.UnequalLengths => Seq.empty;
+      end handle zip_exp _ => Seq.empty;
 
   fun edge_classes_between g v1 v2 =
       let val (ins1,outs1,undir1) = G.adj_edge_classes g v1
@@ -212,7 +213,8 @@ functor RuleMatchSearch(
                     o E.Ehn.other) eht
           val ((dt,Dt),(_,_)) = G.get_edge (get_target  st) (E.Ehn.get_ename eht)
           val ((dp,Dp),(_,_)) = G.get_edge (get_pattern st) (E.Ehn.get_ename ehp)
-      in  Seq.single (
+      in  Pretty.writeln (Pretty.block [V.pretty_name bvp, Pretty.str " => ", E.Ehn.pretty_name eht]);
+          Seq.single (
           st |> update_match (case (dt,dp) of
             (G.Directed,G.Directed)     => (  Match.dir_match_edgehalf (ehp,Dp)
                                                                        (eht,Dt)
