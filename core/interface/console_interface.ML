@@ -1,5 +1,5 @@
 
-signature CONSOLE_INTERFACE
+signature CONTROL_INTERFACE
 = sig
   val run_in_textstreams : TextIO.instream * TextIO.outstream -> unit 
   val run_in_stdio : unit -> unit
@@ -7,7 +7,7 @@ end;
 
 
 (* *)
-structure ConsoleInterface : CONSOLE_INTERFACE = 
+structure ConsoleInterface : CONTROL_INTERFACE = 
 struct 
 
   structure RG_Controller = Controller(ControllerState);
@@ -41,7 +41,3 @@ struct
   
   fun run_in_stdio () = (flushIn(); run_in_textstreams (TextIO.stdIn,TextIO.stdOut));
 end;
-
-
-(* top level run function for controller/interface protocol *)
-val run = ConsoleInterface.run_in_stdio;
