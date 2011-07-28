@@ -272,7 +272,8 @@ functor RuleMatchSearch(
                   (case root of
                      Rule.Initial   c  => traverse_initial v1 (set_constr c st)
                    | Rule.Rooted (c,r) => traverse_rooted tree r (set_constr c st)
-                   | Rule.Boundary  r  => traverse_boundary tree r st)
+                   | Rule.Boundary  r  => traverse_boundary tree r st
+                   | Rule.Boxed  (b,s) => Seq.empty )
       end; 
       
   (* Ramify by the appropriate self-applications of the rule. *)
