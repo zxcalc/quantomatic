@@ -91,7 +91,7 @@ sig
   val copy_subgraph : GraphName.name -> GraphName.name -> Theory.Vertex.name list -> T -> T
 
   val add_vertex : string -> GraphName.name -> T -> vertex * T
-  val add_edge : string -> Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
+  val add_edge : string -> Theory.Graph.dir_or_undir  -> Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
   val add_bang : GraphName.name -> T -> Theory.Graph.BBox.name * T
 
   val update_vertex_data : (Theory.Vertex.data -> Theory.Vertex.data) -> Theory.Vertex.name -> GraphName.name -> T -> T
@@ -364,13 +364,15 @@ functor ControllerState(
        handle G.unknown_type_exp _ => raise user_exp ("Unknown vertex type "^vt))
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
-  fun add_edge_internal et v1 v2 graph =
-      (let val (n,g) = graph |> G.add_edge_by_type (G.UnDirected,et) v1 v2
+  fun add_edge_internal et dir_or_undir v1 v2 graph =
+      (let val (n,g) = graph |> G.add_edge_by_type (dir_or_undir,et) v1 v2
        in ((n,G.get_edge g n), g)
        end
        handle G.no_such_vname_exp _ =>
               raise user_exp "Bad vertex name.")
-  fun add_edge et v1 v2 gname state = lift_graph_mutator (add_edge_internal et v1 v2) gname state
+
+  fun add_edge et dir_or_undir v1 v2 gname state = lift_graph_mutator
+  (add_edge_internal et dir_or_undir v1 v2) gname state
 
 
   fun delete_vertices_internal vs graph =

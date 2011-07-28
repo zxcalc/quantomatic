@@ -176,14 +176,23 @@
           icon="/toolbarButtonGraphics/general/Select24.gif"
           desc="Select, move and edit graph items"/>
 
-	<action id="edge-mode-command"
+	<action id="directed-edge-mode-command"
 	  type="toggle"
-          name="Edge mode"
+          name="Directed Edge mode"
+          mnemonic="G"
+	  accel="control shift G"
+          smicon="/toolbarButtonGraphics/quanto/DirectedLink16.gif"
+          icon="/toolbarButtonGraphics/quanto/DirectedLink24.gif"
+          desc="Add directed edges to the graph"/>
+
+	<action id="undirected-edge-mode-command"
+	  type="toggle"
+          name="Undirected Edge mode"
           mnemonic="E"
 	  accel="control shift E"
           smicon="/toolbarButtonGraphics/quanto/Link16.gif"
           icon="/toolbarButtonGraphics/quanto/Link24.gif"
-          desc="Add edges to the graph"/>
+          desc="Add undirected edges to the graph"/>
 
 	<action id="latex-to-clipboard-command"
           name="Latex to clipboard"
@@ -327,7 +336,8 @@
 			<empty/>
 			<group id="mouse-mode">
 				<action idref="select-mode-command" />
-				<action idref="edge-mode-command" />
+				<action idref="directed-edge-mode-command" />
+				<action idref="undirected-edge-mode-command" />
 			</group>
 			<empty/>
 			<action idref="latex-to-clipboard-command" />
@@ -369,7 +379,8 @@
 		<empty/>
 		<group id="mouse-mode">
 			<action idref="select-mode-command" />
-			<action idref="edge-mode-command" />
+			<action idref="directed-edge-mode-command" />
+			<action idref="undirected-edge-mode-command" />
 		</group>
 	</action-list>
 

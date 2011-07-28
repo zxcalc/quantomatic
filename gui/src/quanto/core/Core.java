@@ -273,11 +273,12 @@ public class Core {
 		graph.fireStateChanged();
 	}
 
-	public Edge addEdge(CoreGraph graph, Vertex source, Vertex target)
+	public Edge addEdge(CoreGraph graph, String dirOrUndir,Vertex source, Vertex target)
 			throws CoreException {
 		assertCoreGraph(graph);
 		String xml = talker.add_edge(graph.getCoreName(),
 					     "unit",
+					     dirOrUndir,
 					     source.getCoreName(),
 					     target.getCoreName());
 		EdgeData e = this.<EdgeData>parseXml(xml, new EdgeFragmentHandler());

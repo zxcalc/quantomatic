@@ -69,7 +69,8 @@ public class InteractiveGraphView
 	public static final String ABORT_ACTION = "abort-command";
 	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf-command";
 	public static final String SELECT_MODE_ACTION = "select-mode-command";
-	public static final String EDGE_MODE_ACTION = "edge-mode-command";
+	public static final String DIRECTED_EDGE_MODE_ACTION = "directed-edge-mode-command";
+	public static final String UNDIRECTED_EDGE_MODE_ACTION = "undirected-edge-mode-command";
 	public static final String LATEX_TO_CLIPBOARD_ACTION = "latex-to-clipboard-command";
 	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-boundary-vertex-command";
 	public static final String SHOW_REWRITES_ACTION = "show-rewrites-command";
@@ -94,6 +95,7 @@ public class InteractiveGraphView
 	private List<Job> activeJobs = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
+	private boolean directedEdges = false;
 	private SmoothLayoutDecorator<Vertex, Edge> smoothLayout;
 
 	public boolean viewHasParent() {
@@ -252,7 +254,10 @@ public class InteractiveGraphView
 			add(edgeMouse);
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
-				getViewPort().setCommandStateSelected(EDGE_MODE_ACTION, true);
+				if (directedEdges)
+					getViewPort().setCommandStateSelected(DIRECTED_EDGE_MODE_ACTION, true);
+				else
+					getViewPort().setCommandStateSelected(UNDIRECTED_EDGE_MODE_ACTION, true);
 			}
 		}
 
@@ -292,9 +297,10 @@ public class InteractiveGraphView
 			public void paint(Graphics g) {
 				Color old = g.getColor();
 				g.setColor(Color.red);
-				if (graphMouse.isEdgeMouse()) {
-					g.drawString("EDGE MODE", 5, 15);
-				}
+				if ((graphMouse.isEdgeMouse()) && (directedEdges)) {
+					g.drawString("DIRECTED EDGE MODE", 5, 15);
+				} else if (graphMouse.isEdgeMouse())
+					g.drawString("UNDIRECTED EDGE MODE", 5, 15);
 				g.setColor(old);
 			}
 
@@ -635,7 +641,10 @@ public class InteractiveGraphView
 
 	public void addEdge(Vertex s, Vertex t) {
 		try {
-			core.addEdge(getGraph(), s, t);
+			if (directedEdges)
+				core.addEdge(getGraph(), "dir",s, t);
+			else
+				core.addEdge(getGraph(), "undir",s, t);
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -992,7 +1001,8 @@ public class InteractiveGraphView
 		ViewPort.registerCommand(ABORT_ACTION);
 		ViewPort.registerCommand(EXPORT_TO_PDF_ACTION);
 		ViewPort.registerCommand(SELECT_MODE_ACTION);
-		ViewPort.registerCommand(EDGE_MODE_ACTION);
+		ViewPort.registerCommand(DIRECTED_EDGE_MODE_ACTION);
+		ViewPort.registerCommand(UNDIRECTED_EDGE_MODE_ACTION);
 		ViewPort.registerCommand(LATEX_TO_CLIPBOARD_ACTION);
 		ViewPort.registerCommand(ADD_BOUNDARY_VERTEX_ACTION);
 		ViewPort.registerCommand(SHOW_REWRITES_ACTION);
@@ -1009,7 +1019,7 @@ public class InteractiveGraphView
 		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_MATHEMATICA);
 	
 		/*
-		 * Add dynamically commands corresponding allowing to add registered vertices
+		 * Add dynamically commands allowing to add registered vertices
 		 */
 		for (VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
 			ViewPort.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
@@ -1137,8 +1147,15 @@ public class InteractiveGraphView
 				graphMouse.setPickingMouse();
 			}
 		});
-		actionMap.put(EDGE_MODE_ACTION, new ActionListener() {
+		actionMap.put(DIRECTED_EDGE_MODE_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				directedEdges = true;
+				graphMouse.setEdgeMouse();
+			}
+		});
+		actionMap.put(UNDIRECTED_EDGE_MODE_ACTION, new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				directedEdges = false;
 				graphMouse.setEdgeMouse();
 			}
 		});
@@ -1304,8 +1321,10 @@ public class InteractiveGraphView
 				!getGraph().isSaved()
 				);
 		}
-		if (graphMouse.isEdgeMouse())
-			vp.setCommandStateSelected(EDGE_MODE_ACTION, true);
+		if ((graphMouse.isEdgeMouse()) && (directedEdges))
+			vp.setCommandStateSelected(DIRECTED_EDGE_MODE_ACTION, true);
+		else if (graphMouse.isEdgeMouse())
+			vp.setCommandStateSelected(UNDIRECTED_EDGE_MODE_ACTION, true);
 		else
 			vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
 		setupNormaliseAction(vp);
