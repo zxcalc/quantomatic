@@ -8,6 +8,12 @@
   FIXME: !box support needed.
 *)
 
+signature RULE_MATCH_SEARCH_SHARING
+= sig
+  structure Match : MATCH_SHARING 
+end;
+
+
 signature RULE_MATCH_SEARCH
 = sig
   structure Match : MATCH 
@@ -15,6 +21,9 @@ signature RULE_MATCH_SEARCH
   structure Edge : EDGE
   structure Vertex : OVERTEX
   structure Rule : RULE
+  
+  structure Sharing : RULE_MATCH_SEARCH_SHARING 
+  sharing Sharing.Match = Match.Sharing
 
   (* sharing Vertex = BangGraph.RGVertex *)
   (* not clear why I need this this way round - but get type strange error the other way *)
@@ -256,15 +265,23 @@ functor RuleMatchSearch(
       end;
   
   (* Traverse the head of the order tree, then proceed to traverse its tail. *)
-  fun match' st = case get_order st of [] => Seq.single (get_match st)
+  fun match'' st = case get_order st of [] => Seq.single (get_match st)
     | (root,tree as Rule.Tree(v1,_))::oes =>
       let val st = st |> set_order oes
-      in Seq.maps match'
+      in Seq.maps match''
                   (case root of
                      Rule.Initial   c  => traverse_initial v1 (set_constr c st)
                    | Rule.Rooted (c,r) => traverse_rooted tree r (set_constr c st)
                    | Rule.Boundary  r  => traverse_boundary tree r st)
       end; 
+      
+  (* Ramify by the appropriate self-applications of the rule. *)
+  fun chain_match sa m =
+      let fun chain_one s = m |> Match.update_evmap (Vertex.Map.premap (Vertex.InjEndo.destr (fst s)))
+                            (*  |> Match.update_subst (compose (snd s)) *)
+      in  Seq.map chain_one (Seq.of_list sa) end;
+  
+  fun match' st r = Seq.maps (chain_match (Rule.get_selfapps r)) (match'' st)
   
   (* Obtain a lazy list of matches, given a list of names to avoid, 
      of a rule in a target graph g. *)
@@ -276,7 +293,12 @@ functor RuleMatchSearch(
                                              tgt = g,
                                            order = Rule.get_order rule,
                                            avail = G.get_vnames g,
-                                          constr = Rule.Arbitrary }));
+                                          constr = Rule.Arbitrary })) rule;
   
+  structure Sharing : RULE_MATCH_SEARCH_SHARING =
+  struct
+    structure Match = Match.Sharing;
+  end;
+
 end;
 

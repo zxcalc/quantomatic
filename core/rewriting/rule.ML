@@ -66,10 +66,13 @@ signature BASIC_RULE
                       | Arbitrary
   datatype 'a otype =   Initial of constr
                       | Rooted of constr * 'a
-                      | Boundary of 'a;
+                      | Boundary of 'a
+                      | Boxed of Graph.BBox.name * 'a otype;
   (* gets cached symmetry match-search order *)  
   val get_order : T -> (Graph.Vertex.name otype * Graph.Vertex.name tree) list
-
+  (* gets self-applications *)
+  val get_selfapps : T -> (Graph.Vertex.InjEndo.T*GraphIso.Param.subst) list
+  
   (* for pretty printing *)
   val pretty : T -> Pretty.T
   val print : T -> unit
@@ -105,7 +108,8 @@ datatype constr   =   Constrained
                     | Arbitrary
 datatype 'a otype =   Initial of constr
                     | Rooted of constr * 'a
-                    | Boundary of 'a;
+                    | Boundary of 'a
+                    | Boxed of Graph.BBox.name * 'a otype;
 
 fun keep_if_fixed n a = if Vertex.name_eq ((  Vertex.InjEndo.domf
                                             o GraphIso.get_vmap) a n, n)
@@ -131,7 +135,10 @@ fun gen_order_sub g auts vset =
          in  (auts''', Tree (v, subtr)::tail) end;
                            
 fun gen_order g auts done bound =
-    let val aset = Graph.incident_vertices g done
+    let fun maybe_box vn v = case Graph.lookup_box_of g vn of
+                               NONE   => v
+                             | SOME b => Boxed (b,v)
+        val aset = Graph.incident_vertices g done
         val (root,vset)=if Vertex.NSet.is_empty aset
                       then (NONE,Graph.get_vnames g
                                  |> Vertex.NSet.remove_set done
@@ -151,7 +158,7 @@ fun gen_order g auts done bound =
                                   val (v,orb,_) = take_orbit auts vset
                                   val auts' = fix v auts
                                   val bound' = Vertex.NSet.union_merge bound orb
-                              in   (typ,Tree(v,[]))
+                              in   (maybe_box v typ,Tree(v,[]))
                                  ::gen_order g auts'
                                              (Vertex.NSet.add v done) bound' 
                               end
@@ -160,11 +167,12 @@ fun gen_order g auts done bound =
                                   val (auts'',subtr)
                                       = gen_order_sub g auts'
                                                       (Vertex.NSet.delete v orb) 
-                              in (  if      Vertex.NSet.contains bound v
+                              in (maybe_box v 
+                                   (if      Vertex.NSet.contains bound v
                                   then Rooted (Constrained,x)
                                   else   if Graph.is_boundary g v
                                        then Boundary x
-                                       else Rooted (Arbitrary,x),
+                                       else Rooted (Arbitrary,x)),
                                   Tree(v, subtr))::gen_order g auts''
                                          (Vertex.NSet.union_merge done orb)
                                          bound
@@ -248,6 +256,7 @@ fun rename_interior_vs xvs (avoidvs, avoides, avoidbs) g =
 fun get_lhs (Rule rep) = #lhs rep;
 fun get_rhs (Rule rep) = #rhs rep;
 fun get_order (Rule rep) = #order rep;
+fun get_selfapps (Rule rep) = #selfapps rep;
 
 fun update_lhs f (Rule rep) = 
     Rule { lhs = f (#lhs rep), rhs = #rhs rep, lhs_aut = #lhs_aut rep, selfapps = #selfapps rep, order = #order rep };

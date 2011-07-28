@@ -80,11 +80,10 @@ PolyML.Project.make "matching/match.ML"; (* a graph matching *)
 PolyML.Project.make "matching/simple_match_search.ML";
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
-(* substitution used to provide rewriting with rulesets *)
-PolyML.Project.make "rewriting/ruleset_rewriting.ML";
-
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
+(* substitution used to provide rewriting with rulesets *)
+PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)

@@ -29,8 +29,8 @@ sig
   sharing type GraphSubst.Sharing.graph = Graph.T
 
   (* Matching algorithm *)
-  structure SimpleMatchSearch : SIMPLE_MATCH_SEARCH
-  sharing SimpleMatchSearch.Sharing.Match = Match.Sharing
+  structure RuleMatchSearch : RULE_MATCH_SEARCH
+  sharing RuleMatchSearch.Sharing.Match = Match.Sharing
 
   (* Sets of rules and matching for those sets *)
   structure RulesetRewrites : RULESET_REWRITES
@@ -93,12 +93,14 @@ struct
   structure DB_GraphSubst = GraphSubstFun(Match);
   structure GraphSubst : GRAPH_SUBST = DB_GraphSubst;
 
-  structure DB_SimpleMatchSearch = SimpleMatchSearch(Match);
-  structure SimpleMatchSearch : SIMPLE_MATCH_SEARCH = DB_SimpleMatchSearch;
+  structure DB_RuleMatchSearch = RuleMatchSearch(structure BangGraph = Graph;
+                                                 structure Match = Match;
+                                                 structure Rule = Rule;);
+  structure RuleMatchSearch : RULE_MATCH_SEARCH = DB_RuleMatchSearch;
 
   structure DB_RulesetRewrites = RulesetRewrites(
     structure Ruleset = Ruleset;
-    structure MatchSearch = SimpleMatchSearch;
+    structure MatchSearch = RuleMatchSearch;
     structure GraphSubst = GraphSubst;
   );
   structure RulesetRewrites : RULESET_REWRITES = DB_RulesetRewrites;
