@@ -20,6 +20,7 @@ signature GRAPH_ISO
   sharing type Sharing.graph = graph 
 
   val get : graph -> graph -> T Seq.seq
+  val get_with_endos : Param.Vertex.InjEndo.T * Param.Edge.InjEndo.T -> graph -> graph -> T Seq.seq
   val test : graph -> graph -> bool
   
   val get_vmap : T -> Param.Vertex.InjEndo.T
@@ -161,13 +162,15 @@ functor GraphIsoFun(
       (* one graph is empty and the other is not; no iso *)
     | _ => Seq.empty 
   ;
+  
+  fun get_with_endos (v_endo, e_endo) g h
+    = get_isomorphisms_sub (v_endo, e_endo,
+                            (Param.empty_subst,Param.empty_subst),Seq.empty,g,h)
     
   (* in:  graphs g, h *)
   (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
           isomorphisms between g and h *)
-  fun get g h  
-    = get_isomorphisms_sub (Vertex.InjEndo.empty,Edge.InjEndo.empty,
-                            (Param.empty_subst,Param.empty_subst),Seq.empty,g,h);
+  val get = get_with_endos (Vertex.InjEndo.empty,Edge.InjEndo.empty)
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)

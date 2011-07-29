@@ -173,13 +173,17 @@ functor BangGraphIso(Graph : BANG_GRAPH)
       (* one graph is empty and the other is not; no iso *)
     | _ => Seq.empty 
   ;
+  
+  
+  fun get_with_endos (v_endo, e_endo) g h
+    = get_isomorphisms_sub (v_endo, e_endo, BBoxInjEndo.empty,
+                            (Param.empty_subst,Param.empty_subst),Seq.empty,g,h)
     
   (* in:  graphs g, h *)
   (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
           isomorphisms between g and h *)
-  fun get g h  
-    = get_isomorphisms_sub (Vertex.InjEndo.empty,Edge.InjEndo.empty,BBoxInjEndo.empty,
-                            (Param.empty_subst,Param.empty_subst),Seq.empty,g,h);
+  val get = get_with_endos (Vertex.InjEndo.empty,Edge.InjEndo.empty)
+  
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)

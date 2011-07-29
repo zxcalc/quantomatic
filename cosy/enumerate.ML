@@ -2,10 +2,10 @@ signature GRAPH_ENUMERATOR =
 sig
   structure Graph : BANG_GRAPH
   structure Ruleset : RULESET
-  structure MatchSearch : SIMPLE_MATCH_SEARCH
-  sharing MatchSearch.Match.G.SharingBangGraph =
-          Ruleset.Rule.Graph.SharingBangGraph =
+  structure MatchSearch : RULE_MATCH_SEARCH
+  sharing Ruleset.Rule.Graph.SharingBangGraph =
           Graph.SharingBangGraph
+  sharing MatchSearch.Rule.Sharing = Ruleset.Rule.Sharing
   val fold_graphs : (Graph.T -> 'a -> 'a) -> (* folder *)
                     (Graph.T * int * int) list * (* generators + arities *)
                     int * int * int * int -> (* in, out, max verts, max pluggings *)
@@ -23,9 +23,8 @@ end
 
 functor GraphEnumerator (
   structure Ruleset : RULESET
-  structure MatchSearch : SIMPLE_MATCH_SEARCH
-  sharing MatchSearch.Match.G.SharingBangGraph =
-          Ruleset.Rule.Graph.SharingBangGraph
+  structure MatchSearch : RULE_MATCH_SEARCH
+  sharing MatchSearch.Rule.Sharing = Ruleset.Rule.Sharing
 ) : GRAPH_ENUMERATOR =
 struct
   structure Graph = Ruleset.Rule.Graph
@@ -65,7 +64,7 @@ struct
       (fold Graph.add_to_vnames  gs Graph.Vertex.NSet.empty,
        fold Graph.add_to_enames  gs Graph.Edge.NSet.empty,
        fold Graph.add_to_bbnames gs Graph.BBox.NSet.empty)
-    val matches = MatchSearch.match names lhs g
+    val matches = MatchSearch.match names r g
   in case Seq.pull matches of NONE=>false | _=>true
   end
   
