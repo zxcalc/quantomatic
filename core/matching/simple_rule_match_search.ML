@@ -1,22 +1,12 @@
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(*  Symmetry-aware matching *)
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-(*
-  This matching algorithm generates only distinct (under symmetry)
-  matches of the pattern in the target graph.
-  
-  FIXME: !box support needed.
-*)
-
-functor RuleMatchSearch(
+functor SimpleRuleMatchSearch(
   structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   structure Rule : RULE
   sharing Match.Sharing.G = BangGraph.SharingBangGraph
   sharing Rule.Sharing.Graph = BangGraph.SharingBangGraph
-) : RULE_MATCH_SEARCH
-= struct
-  
+  ) : RULE_MATCH_SEARCH
+  = struct
+
   structure BangGraph = BangGraph;
   structure Vertex = BangGraph.OVertex;
   structure Edge = BangGraph.Edge;
@@ -37,7 +27,7 @@ functor RuleMatchSearch(
           avail : V.NSet.T,
           constr : Rule.constr
          }
-  
+
   fun get_match (MState rep) = #match rep;
   fun get_lower_bound (MState rep) = #lb rep;
   fun get_pattern (MState rep) = #pat rep;
@@ -45,7 +35,7 @@ functor RuleMatchSearch(
   fun get_avail (MState rep) = #avail rep;
   fun get_order (MState rep) = #order rep;
   fun get_constr (MState rep) = #constr rep;
-         
+
   fun update_match f (MState rep) = MState { match = f (#match rep),
                                              lb = #lb rep,
                                              pat = #pat rep,
@@ -60,7 +50,7 @@ functor RuleMatchSearch(
                                              order = #order rep,
                                              avail = f (#avail rep),
                                              constr = #constr rep }
-                                             
+
   fun set_lower_bound e (MState rep) = MState { match = #match rep,
                                             lb = e,
                                             pat = #pat rep,
@@ -68,7 +58,7 @@ functor RuleMatchSearch(
                                             order = #order rep,
                                             avail = #avail rep,
                                             constr = #constr rep }
-                       
+
   fun set_order e (MState rep) = MState { match = #match rep,
                                           lb = #lb rep,
                                           pat = #pat rep,
@@ -76,7 +66,7 @@ functor RuleMatchSearch(
                                           order = e,
                                           avail = #avail rep,
                                           constr = #constr rep }
-                                          
+
   fun set_constr e (MState rep) = MState { match = #match rep,
                                           lb = #lb rep,
                                           pat = #pat rep,
@@ -84,15 +74,15 @@ functor RuleMatchSearch(
                                           order = #order rep,
                                           avail = #avail rep,
                                           constr = e }
-                                            
-                                            
+
+
   fun map2 f g p xq =
     Seq.make (fn () =>
       (case Seq.pull xq of
         NONE => NONE
       | SOME (x, xq') => SOME (f p x, map2 f g (g p x) xq')));
   fun maps2 f = Seq.flat ooo map2 f; 
-  
+
   (* Like Seq.map, except it also passes the tail of the Seq. *)
   fun map' f xq =
     Seq.make (fn () =>
@@ -100,7 +90,7 @@ functor RuleMatchSearch(
         NONE => NONE
       | SOME (x, xq') => SOME (f (x,xq'), map' f xq')));
   fun maps' f = Seq.flat o map' f;
-   
+
   (* Matches two vertices in the state. If a lower bound is set and the
      orbit is constrained,
      it will reject any target vertex below it. *) 
@@ -121,19 +111,19 @@ functor RuleMatchSearch(
                               |> update_avail (V.NSet.delete vt) ) 
           else Seq.empty )
       end handle Match.match_exp _ => Seq.empty;
-  
+
   (* Matches two edges. *)
   fun match_edge ep et st =
       let val dp = BangGraph.get_edge_data (get_pattern st) ep
           val dt = BangGraph.get_edge_data (get_target st) et
       in  Seq.single (st |> update_match (Match.match_edge false (ep,dp) (et,dt)))
       end handle Match.match_exp _ => Seq.empty;
-      
+
   exception zip_exp of unit;
   fun zipl (l::ls) (r::rs) = (l,r)::(zipl ls rs)
     | zipl [] _ =  []
     | zipl _ _ = raise zip_exp ();
-      
+
   (* ASSUME all edges interchangeable *)
   (* Matches two sets of edges, assumed to point in the same direction. *)
   (* TODO: Verify assumption (safe if |patedges|<=|tgtedges| by aritychk) *)
@@ -151,7 +141,7 @@ functor RuleMatchSearch(
           E.NSet.intersect ins2 outs1,
           E.NSet.intersect undir1 undir2)
       end;
-      
+
   (* Matches vp with vt and matches all edges between the identified
      vertices and other already-matched vertices. *)
   fun anchor vp vt st =
@@ -173,7 +163,7 @@ functor RuleMatchSearch(
                      targets
                      (st |> match_vertex vp vt)
       end;
-  
+
   (* Matches a boundary vertex bvp against a half-edge eht. *)
   fun bind bvp eht st =
       let val ehp =(  E.Ehn.other
@@ -200,7 +190,7 @@ functor RuleMatchSearch(
   fun traverse_initial v st = Seq.maps (fn x => st |> match_vertex v x
                                                    |> Seq.map (set_lower_bound x))
                                        (V.NSet.seq_of (get_avail st));
-  
+
   (* Traverse a rooted orbit tree and match all of it against
      target graph vertices. *)
   fun traverse_rooted' (Rule.Tree(r,sub)) root adj st =
@@ -210,7 +200,7 @@ functor RuleMatchSearch(
             | descend _ _ st = Seq.single st
           fun select ts (x,xq) = Seq.maps (descend ts xq) (anchor r x st)
       in maps' (select sub) adj end;
-  
+
   fun traverse_rooted tree root st = 
       let val adjac = root |> V.InjEndo.domf (Match.get_viso (get_match st))
                            |> G.adj_vnames (get_target st)
@@ -218,7 +208,7 @@ functor RuleMatchSearch(
                            |> V.NSet.seq_of
       in traverse_rooted' tree root adjac st
       end;
-      
+
   (* Traverse a necessarily rooted boundary tree and match all of it
      against target graph half-edges. *)
   fun traverse_boundary' (Rule.Tree(r,sub)) root adj st =
@@ -228,14 +218,14 @@ functor RuleMatchSearch(
             | descend _ _ st = Seq.single st
           fun select ts (x,xq) = Seq.maps (descend ts xq) (bind r x st)
       in maps' (select sub) adj end;
-  
+
   fun traverse_boundary tree root st = 
       let val adjac = root |> V.InjEndo.domf (Match.get_viso (get_match st))
                            |> G.get_vname_ehns (get_target st)
                            |> E.Ehn.NSet.seq_of
       in traverse_boundary' tree root adjac st
       end;
-  
+
   (* Traverse the head of the order tree, then proceed to traverse its tail. *)
   fun match'' st = case get_order st of [] => Seq.single (get_match st)
     | (root,tree as Rule.Tree(v1,_))::oes =>
@@ -247,15 +237,15 @@ functor RuleMatchSearch(
                    | Rule.Boundary  r  => traverse_boundary tree r st
                    | Rule.Boxed  (b,s) => Seq.empty )
       end; 
-      
+
   (* Ramify by the appropriate self-applications of the rule. *)
   fun chain_match sa m =
       let fun chain_one s = m |> Match.update_evmap (Vertex.Map.premap (Vertex.InjEndo.destr (fst s)))
                             (*  |> Match.update_subst (compose (snd s)) *)
       in  Seq.map chain_one (Seq.of_list sa) end;
-  
+
   fun match' st r = Seq.maps (chain_match (Rule.get_selfapps r)) (match'' st)
-  
+
   (* Obtain a lazy list of matches, given a list of names to avoid, 
      of a rule in a target graph g. *)
   fun match names rule g = match' (MState({match = Match.init names
@@ -267,11 +257,10 @@ functor RuleMatchSearch(
                                            order = Rule.get_order rule,
                                            avail = G.get_vnames g,
                                           constr = Rule.Arbitrary })) rule;
-  
+
   structure Sharing : RULE_MATCH_SEARCH_SHARING =
   struct
     structure Match = Match.Sharing;
   end;
 
 end;
-

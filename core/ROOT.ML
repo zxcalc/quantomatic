@@ -76,12 +76,14 @@ PolyML.Project.make "io/output_graph_dot.ML";
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
+(* signature for rule match search *)
+PolyML.Project.make "matching/rule_match_search.ML";
 (* naive match search implementation, find symmetric cases *)
-PolyML.Project.make "matching/simple_match_search.ML";
-(* substitution of a matched subgraph for another graph *)
-PolyML.Project.make "rewriting/graph_subst.ML";
+PolyML.Project.make "matching/simple_rule_match_search.ML";
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_match_search.ML";
+(* substitution of a matched subgraph for another graph *)
+PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
