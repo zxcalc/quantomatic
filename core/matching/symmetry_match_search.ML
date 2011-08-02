@@ -8,7 +8,7 @@
   FIXME: !box support needed.
 *)
 
-functor RuleMatchSearch(
+functor SymmetryRuleMatchSearch(
   structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   structure Rule : RULE
