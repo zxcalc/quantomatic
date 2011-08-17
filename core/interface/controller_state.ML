@@ -8,25 +8,32 @@ sig
   type T;
   structure Theory : GRAPHICAL_THEORY;
   type rewrite = (RuleName.name * Theory.Rule.T) * Theory.Graph.T
-  type vertex = (Theory.Vertex.name * (Theory.Vertex.data * (Theory.Edge.NSet.T * Theory.Edge.NSet.T)));
-  type edge = (Theory.Edge.name * ((Theory.Graph.dir_or_undir * Theory.Edge.data) * (Theory.Vertex.name * Theory.Vertex.name)));
+  type vertex = (Theory.Vertex.data * (Theory.Edge.NSet.T * Theory.Edge.NSet.T));
+  type edge = ((Theory.Graph.dir_or_undir * Theory.Edge.data) * (Theory.Vertex.name * Theory.Vertex.name));
 
-  (* FIXME: ditch user_exp *)
-  exception user_exp of string; (* for errors sent to user console *)
-  exception unknown_graph_exp of string;
-  exception unknown_vertex_exp of string;
-  exception unknown_edge_exp of string;
-  exception unknown_bbox_exp of string;
+  exception no_such_graph_exp of GraphName.name;
+  exception no_such_vertex_exp of (Theory.Vertex.name * GraphName.name);
+  exception no_such_vertex_type_exp of string;
+  exception no_such_edge_exp of (Theory.Edge.name * GraphName.name);
+  exception no_such_bbox_exp of (Theory.Graph.BBox.name * GraphName.name);
+  exception no_such_rule_exp of RuleName.name;
+  exception no_such_tag_exp of TagName.name;
+  exception vertex_name_exists_exp of (Theory.Vertex.name * GraphName.name);
+  exception edge_name_exists_exp of (Theory.Edge.name * GraphName.name);
+  exception bbox_name_exists_exp of (Theory.Graph.BBox.name * GraphName.name);
+  exception bad_rule_exp of string;
+  exception bad_state_exp of string;
+  exception out_of_bounds_exp of int;
 
   val init : T (* initial empty state, no graphs *)
 
   (* get/set*)
   val get_rset : T -> Theory.Ruleset.T
-  val get_rewrites : T -> rewrite list GraphName.NTab.T
-  val get_hist : T -> (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T
-  val get_graphs : T -> Theory.Graph.T GraphName.NTab.T
-  val get_graph : T -> GraphName.name -> Theory.Graph.T
-  val get_graph_names : T -> GraphName.name list
+  val get_rewrites : T -> rewrite list GraphName.NTab.T;
+  val get_hist : T -> (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T;
+  val get_graphs : T -> Theory.Graph.T GraphName.NTab.T;
+  val get_graph : T -> GraphName.name -> Theory.Graph.T;
+  val get_graph_names : T -> GraphName.name list;
 
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
@@ -87,8 +94,8 @@ sig
   val add_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
   val copy_subgraph : GraphName.name -> GraphName.name -> Theory.Vertex.name list -> T -> T
 
-  val add_vertex : string -> GraphName.name -> T -> vertex * T
-  val add_edge : string -> Theory.Graph.dir_or_undir  -> Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> edge * T
+  val add_vertex : string -> GraphName.name -> T -> (Theory.Vertex.name * vertex) * T
+  val add_edge : string -> Theory.Graph.dir_or_undir  -> Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> (Theory.Edge.name * edge) * T
   val add_bang : GraphName.name -> T -> Theory.Graph.BBox.name * T
 
   val update_vertex_data : (Theory.Vertex.data -> Theory.Vertex.data) -> Theory.Vertex.name -> GraphName.name -> T -> T
@@ -115,12 +122,6 @@ functor ControllerState(
 = struct
 
 
-  exception user_exp of string
-  exception unknown_graph_exp of string;
-  exception unknown_vertex_exp of string;
-  exception unknown_edge_exp of string;
-  exception unknown_bbox_exp of string;
-
   structure Theory = GraphicalTheory;
   structure RulesetRewrites = Theory.RulesetRewrites
   structure Ruleset = Theory.Ruleset;
@@ -128,10 +129,25 @@ functor ControllerState(
   structure G = Theory.Graph;
   structure V = Theory.Vertex;
   structure E = Theory.Edge;
+  structure B = G.BBox;
+
+  exception no_such_graph_exp of GraphName.name;
+  exception no_such_vertex_exp of (Theory.Vertex.name * GraphName.name);
+  exception no_such_vertex_type_exp of string;
+  exception no_such_edge_exp of (Theory.Edge.name * GraphName.name);
+  exception no_such_bbox_exp of (Theory.Graph.BBox.name * GraphName.name);
+  exception no_such_rule_exp of RuleName.name;
+  exception no_such_tag_exp of TagName.name;
+  exception vertex_name_exists_exp of (Theory.Vertex.name * GraphName.name);
+  exception edge_name_exists_exp of (Theory.Edge.name * GraphName.name);
+  exception bbox_name_exists_exp of (Theory.Graph.BBox.name * GraphName.name);
+  exception bad_rule_exp of string;
+  exception bad_state_exp of string;
+  exception out_of_bounds_exp of int;
 
   type rewrite = (RuleName.name * R.T) * G.T (* rule, and graph to be rewritten to *)
-  type vertex = (V.name * (V.data * (E.NSet.T * E.NSet.T)));
-  type edge = (E.name * ((G.dir_or_undir * E.data) * (V.name * V.name)));
+  type vertex =  (V.data * (E.NSet.T * E.NSet.T));
+  type edge = ((G.dir_or_undir * E.data) * (V.name * V.name));
 
   (* data for controller; top level data with which user interacts *)
   datatype T = CState of {
@@ -166,7 +182,7 @@ functor ControllerState(
   fun get_graph state name =
       (case GraphName.NTab.lookup (get_graphs state) name
        of SOME g => g
-        | NONE => raise unknown_graph_exp (GraphName.dest name))
+        | NONE => raise no_such_graph_exp name)
 
   val get_graph_names = GraphName.NSet.list_of o GraphName.NTab.get_nameset o get_graphs
 
@@ -194,25 +210,31 @@ functor ControllerState(
   (* common things we want to assert are true *)
   fun assert_tag_exists state tag_name = 
       if Ruleset.tag_exists (get_rset state) tag_name then ()
-      else raise user_exp ("No such tag named '" 
-                           ^ (TagName.string_of_name tag_name) ^ "'");
+      else raise no_such_tag_exp tag_name;
 
   fun assert_rule_exists state rule_name = 
       if Ruleset.rule_exists (get_rset state) rule_name then ()
-      else raise user_exp ("No such rule named '" 
-                           ^ (RuleName.string_of_name rule_name) ^ "'");
+      else raise no_such_rule_exp rule_name;
 
-  fun assert_v_exists graph vname =
+  fun assert_vertex_exists state gname vname =
+        if G.has_vname (get_graph state gname) vname then ()
+        else raise no_such_vertex_exp (vname, gname);
+
+  fun assert_vertex_exists_gr graph vname =
         if G.has_vname graph vname then ()
-        else raise user_exp ("No such vertex named '" ^ (V.string_of_name vname) ^ "'")
+        else raise G.no_such_vname_exp ("ASSERT", vname, graph);
 
-  fun assert_e_exists graph ename =
+  fun assert_edge_exists state gname ename =
+        if G.has_ename (get_graph state gname) ename then ()
+        else raise no_such_edge_exp (ename, gname);
+
+  fun assert_edge_exists_gr graph ename =
         if G.has_ename graph ename then ()
-        else raise user_exp ("No such edge named '" ^ (E.string_of_name ename) ^ "'")
+        else raise G.no_such_ename_exp ("ASSERT", ename, graph);
 
-  fun assert_bb_exists graph bname =
-        if G.has_bname graph bname then ()
-        else raise user_exp ("No such !-box named '" ^ (G.BBox.string_of_name bname) ^ "'")
+  fun assert_bbox_exists state gname bname =
+        if G.has_bname (get_graph state gname) bname then ()
+        else raise no_such_bbox_exp (bname, gname);
 
 
   (* basic stuff on rule tags *)
@@ -225,11 +247,16 @@ functor ControllerState(
   val list_tags =
       TagName.NSet.list_of o Ruleset.get_tags o get_rset
 
-  fun list_rules_with_tag tag_name state = 
-      let 
-        val () = assert_tag_exists state tag_name;
+  fun list_rules_with_tag tag_name state =
+    if Ruleset.tag_exists (get_rset state) tag_name
+    then
+      let
         val rule_name_set = TagRel.codf (Ruleset.get_tagrel (get_rset state)) tag_name
-      in RuleName.NSet.list_of rule_name_set end
+      in
+        RuleName.NSet.list_of rule_name_set
+      end
+    else
+      []
 
   fun tag_name_action f tag_name state =
       let val () = assert_tag_exists state tag_name
@@ -248,18 +275,15 @@ functor ControllerState(
   (* creates/replaces rule *)
   fun set_rule rule_name lhs rhs state =
       let
-        val graphs = get_graphs state
-
         (* build graphs for the LHS and RHS *)
-        val lgr = GraphName.NTab.get graphs lhs
-          handle GraphName.Tab.UNDEF _ => raise user_exp ("LHS graph '" ^ (GraphName.dest lhs) ^"' doesn't exist.")
-        val rgr = GraphName.NTab.get graphs rhs
-          handle GraphName.Tab.UNDEF _ => raise user_exp ("RHS graph '" ^ (GraphName.dest rhs) ^"' doesn't exist.")
-
-      in state |> update_rset (Ruleset.update_rule (rule_name, Ruleset.Rule.mk (lgr, rgr)))
-          handle Ruleset.Rule.bad_rule_exp _ =>
-            raise user_exp "Boundaries and !-boxes on LHS must match RHS."
+        val lgr = get_graph state lhs
+        val rgr = get_graph state rhs
+        val rule = Ruleset.Rule.mk (lgr, rgr)
+      in
+        state |> update_rset (Ruleset.update_rule (rule_name, rule))
       end
+      handle Ruleset.Rule.bad_rule_exp _ =>
+            raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS."
 
   fun delete_tag tag_name state =
       let val () = assert_tag_exists state tag_name
@@ -291,9 +315,10 @@ functor ControllerState(
 
   fun kill_graph name state =
       (update_graphs (fn gs => gs |> GraphName.NTab.delete name) state)
-       handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^(GraphName.dest name))
+       handle GraphName.NTab.Tab.UNDEF _ => raise no_such_graph_exp name
 
-  fun rename_graph oldname newname state = (let
+  fun rename_graph oldname newname state =
+     (let
           val graphs = get_graphs state
           val gr = GraphName.NTab.get graphs oldname
           val (nm,graphs') = graphs
@@ -302,50 +327,61 @@ functor ControllerState(
       in
         (nm, set_graphs graphs' state)
       end
-      handle GraphName.NTab.Tab.UNDEF _ => raise user_exp ("no such graph: "^(GraphName.dest oldname)))
+      handle GraphName.NTab.Tab.UNDEF _ => raise no_such_graph_exp oldname)
 
   fun lift_graph_mutator cmdf gname state =
       let val (out,g') = cmdf (get_graph state gname)
-      in (out, state |> push_hist gname 
-                     |> set_graph g' gname) end;
+      in
+        (out, state |> push_hist gname 
+                    |> set_graph g' gname)
+      end
+      handle G.no_such_vname_exp (_,vname,_) =>
+               raise no_such_vertex_exp (vname,gname)
+           | G.no_such_ename_exp (_,ename,_) =>
+               raise no_such_edge_exp (ename,gname)
+           | G.vname_already_exists_exp (vname,_) =>
+                raise vertex_name_exists_exp (vname,gname)
+           | G.ename_already_exists_exp (ename,_) =>
+                raise edge_name_exists_exp (ename,gname);
+
   fun lift_graph_mutator_no_result cmdf gname state =
       let val g' = cmdf (get_graph state gname)
-      in state |> push_hist gname 
-               |> set_graph g' gname end;
+      in
+        state |> push_hist gname
+              |> set_graph g' gname
+      end
+      handle G.no_such_vname_exp (_,vname,_) =>
+               raise no_such_vertex_exp (vname,gname)
+           | G.no_such_ename_exp (_,ename,_) =>
+               raise no_such_edge_exp (ename,gname)
+           | G.vname_already_exists_exp (vname,_) =>
+                raise vertex_name_exists_exp (vname,gname)
+           | G.ename_already_exists_exp (ename,_) =>
+                raise edge_name_exists_exp (ename,gname);
 
   fun add_vertex_internal vt graph =
       (let val (n,g) = graph |> G.add_vertex (Theory.VertexComponentData.default_data vt) in
           ((n,G.get_vertex g n), g)
        end
-       handle G.unknown_type_exp _ => raise user_exp ("Unknown vertex type "^vt))
+       handle G.unknown_type_exp _ => raise no_such_vertex_type_exp vt)
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
   fun add_edge_internal et dir_or_undir v1 v2 graph =
-      (let val (n,g) = graph |> G.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
+      let val (n,g) = graph |> G.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
        in ((n,G.get_edge g n), g)
        end
-       handle G.no_such_vname_exp _ =>
-              raise user_exp "Bad vertex name.")
 
   fun add_edge et dir_or_undir v1 v2 gname state = lift_graph_mutator
   (add_edge_internal et dir_or_undir v1 v2) gname state
 
 
-  fun delete_vertices_internal vs graph =
-      (fold G.delete_vertex vs graph
-       handle G.no_such_vname_exp _ => raise user_exp "No such vertex.")
-  fun delete_vertices vs = lift_graph_mutator_no_result (delete_vertices_internal vs)
+  fun delete_vertices vs =
+    lift_graph_mutator_no_result (fold G.delete_vertex vs)
 
-  fun delete_edges_internal es graph =
-      (fold G.delete_edge es graph
-       handle G.no_such_ename_exp _ => raise user_exp "No such edge.")
-  fun delete_edges es = lift_graph_mutator_no_result (delete_edges_internal es)
+  fun delete_edges es =
+    lift_graph_mutator_no_result (fold G.delete_edge es)
 
-  fun rename_vertex_internal old new graph =
-      (graph |> G.rename_vname old new
-       handle G.vname_already_exists_exp _ =>
-              raise user_exp "graph already contains a vertex of this name"
-            | G.no_such_vname_exp _ => raise user_exp "no such vertex")
+  fun rename_vertex_internal old new graph = (graph |> G.rename_vname old new)
   fun rename_vertex old new graph state = lift_graph_mutator_no_result (rename_vertex_internal old new) graph state
 
 
@@ -357,7 +393,7 @@ functor ControllerState(
               state |> set_graph g gname
                     |> update_hist (GraphName.NTab.update
                                    (gname, (gs,current::hs)))
-           | _ => raise user_exp "Can't undo, no more undo history."
+           | _ => raise bad_state_exp "Can't undo, no more undo history."
       end
 
   fun redo gname state = 
@@ -368,7 +404,7 @@ functor ControllerState(
               state |> set_graph h gname
                     |> update_hist (GraphName.NTab.update
                                    (gname, (current::gs,hs)))
-           | _ => raise user_exp "Can't redo, nothing to redo."
+           | _ => raise bad_state_exp "Can't redo, nothing to redo."
       end
 
   fun apply_rewrite gname n state =
@@ -377,9 +413,8 @@ functor ControllerState(
        in state |> push_hist gname
                 |> set_graph rewritten_graph gname
        end
-       handle GraphName.Tab.UNDEF _ => raise user_exp "No rewrites attached." 
-            | General.Subscript => raise user_exp "Rewrite not attached."
-            | Option.Option => raise user_exp "Rewrite selection must be an integer.")
+       handle GraphName.Tab.UNDEF _ => raise bad_state_exp "No rewrites attached." 
+            | General.Subscript => raise out_of_bounds_exp n)
 
   local
       fun attach_with attacher gname vs state =
@@ -402,25 +437,25 @@ functor ControllerState(
       let
         val graph = get_graph state gname 
         val (n,state') = attach_with apply_first_in gname (V.NSet.list_of (G.get_vnames graph)) state
-      in if n = 0 then raise user_exp "No more rewrites."
+      in if n = 0 then raise bad_state_exp "No more rewrites."
          else apply_rewrite gname 0 state'
       end
   end
 
   fun get_attached_rewrites gname state = let
       val rewrites = case GraphName.NTab.lookup (get_rewrites state) gname
-              of NONE => raise user_exp "No rewrites attached."
+              of NONE => raise bad_state_exp "No rewrites attached."
                | SOME rs => rs
   in rewrites end;
 
   fun update_vertex_data_internal vd_upd vn graph =
-      let val () = assert_v_exists graph vn in
+      let val () = assert_vertex_exists_gr graph vn in
         graph |> G.update_vertex_data vd_upd vn
       end
   fun update_vertex_data vd_upd vn = lift_graph_mutator_no_result (update_vertex_data_internal vd_upd vn)
 
   fun update_edge_data_internal ed_upd en graph =
-      let val () = assert_e_exists graph en in
+      let val () = assert_edge_exists_gr graph en in
         graph |> G.update_edge_data ed_upd en
       end
   fun update_edge_data ed_upd en = lift_graph_mutator_no_result (update_edge_data_internal ed_upd en)
@@ -429,50 +464,43 @@ functor ControllerState(
       graph |> G.new_box (G.BBox.default_name)
   val add_bang = lift_graph_mutator add_bang_internal
 
-  fun drop_bang_internal bs graph =
-      let val _ = map (assert_bb_exists graph) bs in
-        graph |> fold G.drop_box bs
+  fun drop_bang bs gname state =
+      let val _ = map (assert_bbox_exists state gname) bs in
+        lift_graph_mutator_no_result (fold G.drop_box bs) gname state
       end
-  fun drop_bang bs = lift_graph_mutator_no_result (drop_bang_internal bs)
 
-  fun kill_bang_internal bs graph =
-      let val _ = map (assert_bb_exists graph) bs in
-        graph |> fold G.kill_box bs
+  fun kill_bang bs gname state =
+      let val _ = map (assert_bbox_exists state gname) bs in
+        lift_graph_mutator_no_result (fold G.kill_box bs) gname state
       end
-  fun kill_bang bs = lift_graph_mutator_no_result (kill_bang_internal bs)
 
-  fun merge_bang_internal bs graph =
-      let val _ = map (assert_bb_exists graph) bs in
-        G.merge_boxes (G.BBox.NSet.of_list bs) graph
-      end 
-  fun merge_bang bs = lift_graph_mutator (merge_bang_internal bs)
+  fun merge_bang bs gname state =
+      let val _ = map (assert_bbox_exists state gname) bs in
+        lift_graph_mutator (G.merge_boxes (G.BBox.NSet.of_list bs)) gname state
+      end
 
-  fun duplicate_bang_internal bb graph =
-      let val _ = assert_bb_exists graph bb in
-        G.fresh_copy1_box bb graph
-      end 
-  fun duplicate_bang bb = lift_graph_mutator (duplicate_bang_internal bb)
+  fun duplicate_bang bb gname state =
+      let val _ = assert_bbox_exists state gname bb in
+        lift_graph_mutator (G.fresh_copy1_box bb) gname state
+      end
 
-  fun bang_vertices_internal box verts graph = 
-      let val _ = assert_bb_exists graph box
-          val _ = map (assert_v_exists graph) verts
+  fun bang_vertices box verts gname state =
+      let val _ = assert_bbox_exists state gname box
+          val _ = map (assert_vertex_exists state gname) verts
       in
-        graph |> G.move_to_box box (G.Vertex.NSet.of_list verts)
+        lift_graph_mutator_no_result (G.move_to_box box (G.Vertex.NSet.of_list verts)) gname state
       end
-  fun bang_vertices box verts = lift_graph_mutator_no_result (bang_vertices_internal box verts)
 
-  fun unbang_vertices_internal verts graph =
-      let val _ = map (assert_v_exists graph) verts in
-        graph |> G.move_to_unbox (G.Vertex.NSet.of_list verts)
+  fun unbang_vertices verts gname state =
+      let val _ = map (assert_vertex_exists state gname) verts in
+        lift_graph_mutator_no_result (G.move_to_unbox (G.Vertex.NSet.of_list verts)) gname state
       end
-  fun unbang_vertices verts = lift_graph_mutator_no_result (unbang_vertices_internal verts)
 
   fun copy_subgraph source target vs state = let
-      val graph = get_graph state source
-      val _ = map (assert_v_exists graph) vs
+      val _ = map (assert_vertex_exists state source) vs
       val clip = G.delete_subgraph_outside_vset 
                    (G.Vertex.NSet.of_list vs)
-                   graph
+                   (get_graph state source)
   in state |> set_graph clip target
   end
 
@@ -489,7 +517,7 @@ functor ControllerState(
       let
         val rset = get_rset state
         val r = case RuleName.NTab.lookup (Ruleset.get_allrules rset) rulename
-                     of SOME v => v | NONE => raise user_exp "Can't find rule."
+                     of SOME v => v | NONE => raise no_such_rule_exp rulename
         val (name, graphs) = GraphName.NTab.add (GraphName.mk ((RuleName.dest rulename)^"_"^label), getter r) (get_graphs state)
       in
         (name, state |> set_graphs graphs)

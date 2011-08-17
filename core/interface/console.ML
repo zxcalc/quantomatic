@@ -81,7 +81,7 @@ structure Console : CONSOLE
         of SOME f => ConsoleCommands.parse_response (serviceRequest (f args))
          | NONE => ("!!! Unknown command: "^
             (ConsoleLexer.toString cmd)^"\n"))
-      handle ControllerState.user_exp str => ("!!! "^str^"\n")))
+      ))
 
   val error_msg = "!!! Parse error in command.\n"
 

@@ -1,6 +1,3 @@
-(* TODO: provide link to visualisation XML *)
-(* val rg_gui_spec_xml = XMLReader.read_from_file "gui.xml"; *)
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph Vertex.) *)

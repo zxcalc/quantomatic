@@ -4,87 +4,93 @@ struct
   type edgeDesc = { name: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
-  type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
   datatype resultFormat = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
-  datatype componentData = StringCData of string | XmlCData of (XML.tree list) | DescriptionCData of ComponentData.T;
+  datatype componentData = StringCData of string
+                         | XmlCData of (XML.tree list)
+                         | DescriptionCData of ComponentData.T;
+  datatype graphData = PrettyGData of Pretty.T
+                     | XmlGData of XML.tree
+                     | DescriptionGData of graphDesc;
+  type rewriteDesc = { ruleName: string, result: graphData, lhs: graphData, rhs: graphData };
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
 
-                   (* Graph commands: G *)
+                   (*** Graph Commands ***)
+                   | ListGraphsRequest
                      (* NameListResponse *)
-                   | ListGraphsRequest of { requestId: string }                                                  (* GL *)
+                   | LoadGraphRequest of { details: graphLoadRequest }
                      (* NameResponse | ErrorResponse *)
-                   | LoadGraphRequest of { requestId: string, details: graphLoadRequest }                        (* GO *)
+                   | SaveGraphToFileRequest of { graphName: string, fileName: string }
                      (* OkResponse | ErrorResponse *)
-                   | SaveGraphToFileRequest of { requestId: string, graphName: string, fileName: string }        (* GS *)
+                   | RenameGraphRequest of { oldName: string, newName: string }
                      (* NameResponse | ErrorResponse *)
-                   | RenameGraphRequest of { requestId: string, oldName: string, newName: string }               (* GR *)
+                   | DiscardGraphRequest of { graphName: string }
                      (* OkResponse | ErrorResponse *)
-                   | DiscardGraphRequest of { requestId: string, graphName: string }                             (* GD *)
+                   | ExportGraphRequest of { graphName: string, format: graphFormat }
                      (* DataResponse | ErrorResponse *)
-                   | ExportGraphRequest of { requestId: string, graphName: string, format: graphFormat }         (* GE *)
-                   | DescribeGraphRequest of { requestId: string, graphName: string, desc: graphDescribeAction } (* GV *)
-                   | EditGraphRequest of { requestId: string, graphName: string, action: graphEditAction }       (* GM *)
+                   | DescribeGraphRequest of { graphName: string, desc: graphDescribeAction }
+                   | EditGraphRequest of { graphName: string, action: graphEditAction }
 
-                   (* Ruleset commands: RS *)
+                   (*** Ruleset commands ***)
+                   | ImportRulesetFromFileRequest of { fileName: string }
                      (* OkResponse | ErrorResponse *)
-                   | ImportRulesetFromFileRequest of { requestId: string, fileName: string } (* RSO *)
+                   | ImportRulesetFromDataRequest of { data: string }
                      (* OkResponse | ErrorResponse *)
-                   | ImportRulesetFromDataRequest of { requestId: string, data: string }     (* RSI *)
+                   | ExportRulesetToFileRequest of { fileName: string }
                      (* OkResponse | ErrorResponse *)
-                   | ExportRulesetToFileRequest of { requestId: string, fileName: string }   (* RSS *)
-                     (* OkResponse | ErrorResponse *)
-                   | ExportRulesetAsDataRequest of { requestId: string }                     (* RSE *)
+                   | ExportRulesetAsDataRequest
+                     (* DataResponse | ErrorResponse *)
 
-                   (* Rule commands: RR *)
+                   (*** Rule commands ***)
+                   | ListRulesRequest
                      (* NameListResponse *)
-                   | ListRulesRequest of { requestId: string }                        (* RRL *)
+                   | ListActiveRulesRequest
                      (* NameListResponse *)
-                   | ListActiveRulesRequest of { requestId: string }                  (* RRA *)
+                   | ListRulesByTagRequest of { tagName: string }
                      (* NameListResponse | ErrorResponse *)
-                   | ListRulesByTagRequest of { requestId: string, tagName: string }  (* RRT *)
-                   | OpenRuleLhsRequest of { requestId: string, ruleName: string }    (* RRP *)
-                   | OpenRuleRhsRequest of { requestId: string, ruleName: string }    (* RRQ *)
+                   | OpenRuleLhsRequest of { ruleName: string }
+                     (* NameResponse | ErrorResponse *)
+                   | OpenRuleRhsRequest of { ruleName: string }
+                     (* NameResponse | ErrorResponse *)
+                   | SetRuleRequest of { ruleName: string, lhsGraphName: string, rhsGraphName: string }
                      (* OkResponse | ErrorResponse *)
-                   | SetRuleRequest of { requestId: string, ruleName: string, lhsGraphName: string, rhsGraphName: string } (* RRU *)
+                   | DeleteRuleRequest of { ruleName: string }
                      (* OkResponse | ErrorResponse *)
-                   | DeleteRuleRequest of { requestId: string, ruleName: string }     (* RRD *)
+                   | ActivateRuleRequest of { ruleName: string }
                      (* OkResponse | ErrorResponse *)
-                   | ActivateRuleRequest of { requestId: string, ruleName: string }   (* RRY *)
+                   | DeactivateRuleRequest of { ruleName: string }
                      (* OkResponse | ErrorResponse *)
-                   | DeactivateRuleRequest of { requestId: string, ruleName: string } (* RRN *)
 
-                   (* Tag commands: RT *)
+                   (*** Tag commands ***)
+                   | ListTagsRequest
                      (* NameListResponse *)
-                   | ListTagsRequest of { requestId: string }                                     (* RTL *)
+                   | TagRuleRequest of { ruleName: string, tagName: string }
                      (* OkResponse | ErrorResponse *)
-                   | TagRuleRequest of { requestId: string, ruleName: string, tagName: string }   (* RTT *)
+                   | UntagRuleRequest of { ruleName: string, tagName: string }
                      (* OkResponse | ErrorResponse *)
-                   | UntagRuleRequest of { requestId: string, ruleName: string, tagName: string } (* RTU *)
+                   | ForgetTagRequest of { tagName: string }
                      (* OkResponse | ErrorResponse *)
-                   | ForgetTagRequest of { requestId: string, tagName: string }                   (* RTF *)
+                   | DeleteRulesByTagRequest of { tagName: string }
                      (* OkResponse | ErrorResponse *)
-                   | DeleteRulesByTagRequest of { requestId: string, tagName: string }            (* RTD *)
+                   | ActivateRulesByTagRequest of { tagName: string }
                      (* OkResponse | ErrorResponse *)
-                   | ActivateRulesByTagRequest of { requestId: string, tagName: string }          (* RTA *)
+                   | DeactivateRulesByTagRequest of { tagName: string }
                      (* OkResponse | ErrorResponse *)
-                   | DeactivateRulesByTagRequest of { requestId: string, tagName: string }        (* RTA *)
 
-                   (* Rewrite commands: W *)
-                   | AttachRewritesRequest of { requestId: string, graphName: string, vertexNames: string list }   (* WA *)
-                   | AttachOneRewriteRequest of { requestId: string, graphName: string, vertexNames: string list } (* WO *)
-                   | ListAttachedRewritesRequest of { requestId: string, graphName: string }                       (* WL *)
-                   | ApplyAttachedRewriteRequest of { requestId: string, graphName: string, index: int }           (* WW *)
+                   (*** Rewrite commands ***)
+                   | AttachRewritesRequest of { graphName: string, vertexNames: string list }
+                   | AttachOneRewriteRequest of { graphName: string, vertexNames: string list }
+                   | ListAttachedRewritesRequest of { graphName: string }
+                   | ApplyAttachedRewriteRequest of { graphName: string, index: int }
 
-                   | UnknownRequest of { requestId: string, code: string }
+                   | UnknownRequest of { code: string }
 
-       (* GO *)
-       and graphLoadRequest = LoadEmptyGraphRequest                                                         (* GOE *)
-                            | LoadGraphFromFileRequest of { fileName: string }                              (* GOF *)
-                            | LoadGraphFromDataRequest of { data: string }                                  (* GOD *)
-                            | CopyGraphRequest of { graphName: string }                                     (* GOG *)
-                            | CopySubgraphRequest of { source: string, graphName: string, vertexNames: string list } (* GOS *)
+       and graphLoadRequest = LoadEmptyGraphRequest of { requestedName: string }
+                            | LoadGraphFromFileRequest of { fileName: string }
+                            | LoadGraphFromDataRequest of { data: string }
+                            | CopyGraphRequest of { graphName: string }
+                            | CopySubgraphRequest of { source: string, graphName: string, vertexNames: string list }
 
                        (* Native format: suitable for saving to a file and loading again *)
        and graphFormat = NativeGraphFormat
@@ -95,91 +101,98 @@ struct
                        | MatlabGraphFormat
                        | TikzGraphFormat
 
+       and graphDescribeAction = DescribeFullGraph
                                  (* GraphDescriptionResponse | ErrorResponse *)
-       and graphDescribeAction = DescribeFullGraph                          (* GVA *)
+                               | ListVertices
                                  (* NameListResponse | ErrorResponse *)
-                               | ListVertices                               (* GVV *)
+                               | ListEdges
                                  (* NameListResponse | ErrorResponse *)
-                               | ListEdges                                  (* GVE *)
+                               | ListBangBoxes
                                  (* NameListResponse | ErrorResponse *)
-                               | ListBangBoxes                              (* GVB *)
+                               | VertexData of { vertexName: string, format: resultFormat }
                                  (* ComponentDataResponse | ErrorResponse *)
-                               | VertexData of { vertexName: string }       (* GVW *)
+                               | VertexUserData of { vertexName: string }
                                  (* UserDataResponse | ErrorResponse *)
-                               | VertexUserData of { vertexName: string }   (* GVX *)
+                               | EdgeData of { edgeName: string, format: resultFormat }
                                  (* ComponentDataResponse | ErrorResponse *)
-                               | EdgeData of { edgeName: string }           (* GVF *)
+                               | EdgeUserData of { edgeName: string }
                                  (* UserDataResponse | ErrorResponse *)
-                               | EdgeUserData of { edgeName: string }       (* GVG *)
+                               | BangBoxVertices of { bangBoxName: string }
                                  (* NameListResponse | ErrorResponse *)
-                               | BangBoxVertices of { bangBoxName: string } (* GVC *)
+                               | BangBoxUserData of { bangBoxName: string }
                                  (* UserDataResponse | ErrorResponse *)
-                               | BangBoxUserData of { bangBoxName: string } (* GVD *)
 
+       and graphEditAction = UndoAction
                              (* OkResponse | ErrorResponse *)
-       and graphEditAction = UndoAction                                                                (* GMU *)
+                           | RedoAction
                              (* OkResponse | ErrorResponse *)
-                           | RedoAction                                                                (* GMR *)
+                           | InsertGraphAction of { sourceGraphName: string }
                              (* OkResponse | ErrorResponse *)
-                           | InsertGraphAction of { sourceGraphName: string }                          (* GMI *)
+                           | AddVertexAction of { vertexType: string, resultFormat: resultFormat }
                              (* VertexDescriptionAction | ErrorResponse *)
-                           | AddVertexAction of { vertexType: string, resultFormat: resultFormat }     (* GMVA *)
-                             (* FIXME: do we need this? *)
+                           | RenameVertexAction of { oldName: string, newName: string }
                              (* NameResponse | ErrorResponse *)
-                           | RenameVertexAction of { oldName: string, newName: string }                (* GMVR *)
+                           | DeleteVerticesAction of { vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | DeleteVerticesAction of { vertexNames: string list }                      (* GMVD *)
+                           | SetVertexDataAction of { vertexName: string, vertexData: componentData }
                              (* OkResponse | ErrorResponse *)
-                           | SetVertexDataAction of { vertexName: string, vertexData: componentData }  (* GMVS *)
+                           | SetVertexUserDataAction of { vertexName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
-                           | SetVertexUserDataAction of { vertexName: string, userData: string }       (* GMVU *)
+                           | AddEdgeAction of { edgeType: string, directed: bool, source: string, target: string, resultFormat: resultFormat }
                              (* EdgeDescriptionAction | ErrorResponse *)
-                           | AddEdgeAction of { edgeType: string, directed: bool, source: string, target: string, resultFormat: resultFormat }(* GMEA *)
-                             (* FIXME: do we need this? *)
+                           | RenameEdgeAction of { oldName: string, newName: string }
                              (* NameResponse | ErrorResponse *)
-                           | RenameEdgeAction of { oldName: string, newName: string }                  (* GMER *)
+                           | DeleteEdgesAction of { edgeNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | DeleteEdgesAction of { edgeNames: string list }                           (* GMED *)
+                           | SetEdgeDataAction of { edgeName: string, edgeData: componentData }
                              (* OkResponse | ErrorResponse *)
-                           | SetEdgeDataAction of { edgeName: string, edgeData: componentData }        (* GMES *)
+                           | SetEdgeUserDataAction of { edgeName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
-                           | SetEdgeUserDataAction of { edgeName: string, userData: string }           (* GMEU *)
+                           | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }
                              (* NameResponse | ErrorResponse *)
-                           | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }(* GMBA *)
+                           | RenameBangBoxAction of { oldName: string, newName: string }
                              (* OkResponse | ErrorResponse *)
-                           | RenameBangBoxAction of { oldName: string, newName: string }               (* GMBR *)
+                           | DropBangBoxesAction of { bangBoxNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | DropBangBoxesAction of { bangBoxNames: string list }                      (* GMBD *)
+                           | KillBangBoxesAction of { bangBoxNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | KillBangBoxesAction of { bangBoxNames: string list }                      (* GMBK *)
+                           | DuplicateBangBoxAction of { bangBoxName: string }
                              (* NameResponse | ErrorResponse *)
-                           | DuplicateBangBoxAction of { bangBoxName: string }                         (* GMBC *)
+                           | MergeBangBoxesAction of { bangBoxNames: string list }
                              (* NameResponse | ErrorResponse *)
-                           | MergeBangBoxesAction of { bangBoxNames: string list }                     (* GMBM *)
+                           | BangVerticesAction of { bangBoxName: string, vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | BangVerticesAction of { bangBoxName: string, vertexNames: string list }   (* GMBB *)
+                           | UnbangVerticesAction of { vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | UnbangVerticesAction of { vertexNames: string list }                      (* GMBL *)
+                           | SetBangBoxUserDataAction of { bangBoxName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
-                           | SetBangBoxUserDataAction of { bangBoxName: string, userData: string }     (* GMBU *)
 
-       and response = OkResponse of { requestId: string }                                         (* O *)
-                    | ErrorResponse of { requestId: string, errorCode: string, message: string }  (* X *)
-                    | DataResponse of { requestId: string, data: string }                         (* R *)
-                    | PrettyResponse of { requestId: string, data: Pretty.T }
-                    | XmlResponse of { requestId: string, data: XML.tree }
+       and response = OkResponse
+                    | ErrorResponse of { errorCode: string, message: string }
+                    | DataResponse of { data: string }
+                    | PrettyResponse of { data: Pretty.T }
+                    | XmlResponse of { data: XML.tree }
+                    | CountResponse of { count: int }
 
-                    | NameResponse of { requestId: string, name: string }                      (* N *)
-                    | NameListResponse of { requestId: string, names: string list }            (* M *)
-                    | GraphDescriptionResponse of { requestId: string, graph: graphDesc }      (* G *)
-                    | VertexDescriptionResponse of { requestId: string, vertex: vertexDesc }   (* V *)
-                    | EdgeDescriptionResponse of { requestId: string, edge: edgeDesc }         (* E *)
-                    | ComponentDataResponse of { requestId: string, data: ComponentData.T }    (* D *)
-                    | UserDataResponse of { requestId: string, data: string }                  (* U *)
-                    | RewriteListResponse of { requestId: string, rewrites: rewriteDesc list } (* W *)
+                    | NameResponse of { name: string }
+                    | NameListResponse of { names: string list }
+                    | GraphDescriptionResponse of { graph: graphDesc }      (* G *)
+                    | VertexDescriptionResponse of { vertex: vertexDesc }   (* V *)
+                    | EdgeDescriptionResponse of { edge: edgeDesc }         (* E *)
+                    | ComponentDataResponse of { data: ComponentData.T }    (* D *)
+                    | UserDataResponse of { data: string }
+                    | RewriteListResponse of { rewrites: rewriteDesc list }
 
-                    | UnknownResponse of { requestId: string, code: string }                   (* Z *)
+                    | UnknownResponse of { code: string }
                     ;
+  type requestMessage = (string * request);
+  type responseMessage = (string * response);
+
+  fun serviceRequestMessage
+      (serviceRequest : request -> response)
+      ((requestId,req) : requestMessage)
+      : responseMessage
+    = (requestId,serviceRequest req);
 end;
 
 signature CONTROLLER =
@@ -204,21 +217,20 @@ struct
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
 
-  fun unknown_graph_resp requestId graphName = 
-             ErrorResponse { requestId = requestId, errorCode = "BADARG",
-                message = ("No such graph \""^graphName^"\"") }
-
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
 
-  fun load_ruleset requestId data state =
-     ((OkResponse { requestId = requestId },
-       State.update_rset (Ruleset.merge (Input.Ruleset.input data)) state)
+  fun load_ruleset reader source state =
+     ((OkResponse,
+       State.update_rset (Ruleset.merge (Input.Ruleset.input (reader source))) state)
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
-             (ErrorResponse { requestId = requestId, errorCode = "BADDATA",
+             (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-           | Input.Ruleset.bad_input_exp (s1,s2) => 
-             (ErrorResponse { requestId = requestId, errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state))
+           | Input.Ruleset.bad_input_exp (s1,s2) =>
+             (ErrorResponse { errorCode = "BADDATA",
+                message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
+           | XMLReader.bad_input_exp msg =>
+             (ErrorResponse { errorCode = "BADDATA",
+                message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state))
 
   fun pretty_vert (n, (nd,(ins,outs))) =
       Pretty.block [V.pretty_name n,
@@ -247,88 +259,99 @@ struct
 
   fun serviceRequest' (DummyRequest { response }) (state:State.T) = (response, state)
 
-    | serviceRequest' (ListGraphsRequest { requestId }) (state:State.T) =
+    | serviceRequest' (ListGraphsRequest) (state:State.T) =
         let val graphNames = map GraphName.dest (State.get_graph_names state) in
-          (NameListResponse { requestId = requestId, names = graphNames }, state)
+          (NameListResponse { names = graphNames }, state)
         end
 
-    | serviceRequest' (LoadGraphRequest { requestId, details }) state =
-        let fun load_graph data =
+    | serviceRequest' (LoadGraphRequest { details }) state =
+        let fun load_graph reader data =
                 (let
-                   val graph = (Input.Graph.input data)
+                   val graph = (Input.Graph.input (reader data))
                    val (nm,state') = State.add_graph GraphName.default_name graph state
                  in
-                   (NameResponse { requestId = requestId, name = GraphName.dest nm },state')
+                   (NameResponse { name = GraphName.dest nm },state')
                  end
                  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
-                        (ErrorResponse { requestId = requestId, errorCode = "BADDATA",
+                        (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
                       | Input.Graph.bad_input_exp (s1,s2) => 
-                        (ErrorResponse { requestId = requestId, errorCode = "BADDATA",
-                           message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state))
+                        (ErrorResponse { errorCode = "BADDATA",
+                           message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
+                      | XMLReader.bad_input_exp msg =>
+                        (ErrorResponse { errorCode = "BADDATA",
+                           message = ("The file is not a valid graph for the active theory ("^msg^")") }, state))
         in
           case details of
-            LoadEmptyGraphRequest =>
-              let val (nm,state') = State.add_graph GraphName.default_name G.empty state in
-                (NameResponse { requestId = requestId, name = GraphName.dest nm },state')
+            LoadEmptyGraphRequest { requestedName } =>
+              let
+                val tryName = if requestedName = ""
+                              then GraphName.default_name
+                              else GraphName.mk requestedName
+                val (nm,state') = State.add_graph tryName G.empty state
+              in
+                (NameResponse { name = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
-             (load_graph (XMLReader.read_from_file fileName)
+             (load_graph XMLReader.read_from_file fileName
               handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
-                     (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
+                     (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read ("^msg^")") }, state)
                    | IO.Io {name : string, function : string, cause : exn} => 
-                     (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
+                     (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
           | LoadGraphFromDataRequest { data } =>
-             load_graph (XMLReader.read_from_string data)
+             load_graph XMLReader.read_from_string data
           | CopyGraphRequest { graphName } =>
-             (let
+             let
                 val gname = GraphName.mk graphName
                 val otherGraph = State.get_graph state gname
                 val (nm,state') = State.add_graph gname otherGraph state
               in
-                (NameResponse { requestId = requestId, name = GraphName.dest nm },state')
+                (NameResponse { name = GraphName.dest nm },state')
               end
-              handle State.unknown_graph_exp gr => (unknown_graph_resp requestId gr,state))
           | CopySubgraphRequest { source, graphName, vertexNames } =>
-             (OkResponse { requestId = requestId },
+             (OkResponse,
               State.copy_subgraph (GraphName.mk source) (GraphName.mk graphName) (map V.mk vertexNames) state)
         end
 
-    | serviceRequest' (SaveGraphToFileRequest { requestId, graphName, fileName }) state =
+    | serviceRequest' (SaveGraphToFileRequest { graphName, fileName }) state =
        (let
           val graph = get_graph graphName state
           val () = ((XMLWriter.write_to_file fileName) o Output.Graph.output) graph
         in
-          (OkResponse { requestId = requestId }, state)
+          (OkResponse, state)
         end
         handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
-               (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
-                                message = ("The file could not be written to ("^msg^")") }, state)
+               (ErrorResponse {
+                  errorCode = "FILEACCESS",
+                  message = ("The file could not be written to ("^msg^")")
+                }, state)
              | IO.Io {name : string, function : string, cause : exn} => 
-               (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
-                                message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
+               (ErrorResponse {
+                  errorCode = "FILEACCESS",
+                  message = ("The file could not be written to (unknown error in "^function^" of "^name^")")
+                }, state))
 
-    | serviceRequest' (RenameGraphRequest { requestId, oldName, newName }) state =
+    | serviceRequest' (RenameGraphRequest { oldName, newName }) state =
         let val (nm,state') = State.rename_graph (GraphName.mk oldName) (GraphName.mk newName) state in
-          (NameResponse { requestId = requestId, name = GraphName.dest nm },state')
+          (NameResponse { name = GraphName.dest nm },state')
         end
 
-    | serviceRequest' (DiscardGraphRequest { requestId, graphName }) state =
-        (OkResponse { requestId = requestId }, State.kill_graph (GraphName.mk graphName) state)
+    | serviceRequest' (DiscardGraphRequest { graphName }) state =
+        (OkResponse, State.kill_graph (GraphName.mk graphName) state)
 
-    | serviceRequest' (ExportGraphRequest { requestId, graphName, format }) state =
+    | serviceRequest' (ExportGraphRequest { graphName, format }) state =
         let val graph = get_graph graphName state in
           if format = NativeGraphFormat then
               let val graph_data = (XMLWriter.write_to_string o Output.Graph.output) graph in
-                (DataResponse { requestId = requestId, data = graph_data}, state)
+                (DataResponse { data = graph_data}, state)
               end
           else if format = XmlGraphFormat then
-              (XmlResponse { requestId = requestId, data = Output.Graph.output graph}, state)
+              (XmlResponse { data = Output.Graph.output graph}, state)
           else if format = PrettyGraphFormat then
-              (PrettyResponse { requestId = requestId, data = G.pretty graph}, state)
-          else (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+              (PrettyResponse { data = G.pretty graph}, state)
+          else (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         end
 (*
 fun hilb ([format], graph) =
@@ -340,58 +363,120 @@ fun hilb ([format], graph) =
   | hilb (_, graph) = raise wrong_args_exp ()
 *)
 
-    | serviceRequest' (DescribeGraphRequest { requestId, graphName, desc }) state =
-       (case desc of
-          DescribeFullGraph =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | ListVertices =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | ListEdges =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | ListBangBoxes =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | VertexData { vertexName } =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | VertexUserData { vertexName } =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | EdgeData { edgeName } =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | EdgeUserData { edgeName } =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | BangBoxVertices { bangBoxName } =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
-        | BangBoxUserData { bangBoxName } =>
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+    | serviceRequest' (DescribeGraphRequest { graphName, desc }) state =
+       (let
+          val graph = get_graph graphName state
+        in
+          ((case desc
+              of DescribeFullGraph =>
+                    ErrorResponse {
+                      errorCode = "NOTIMP",
+                      message = "Not implemented"
+                    }
+               | ListVertices =>
+                    NameListResponse {
+                      names = (map V.dest (V.NSet.list_of (G.get_vnames graph)))
+                    }
+               | ListEdges =>
+                    NameListResponse {
+                      names = (map E.dest (E.NSet.list_of (G.get_enames graph)))
+                    }
+               | ListBangBoxes =>
+                    NameListResponse {
+                      names = (map B.dest (G.get_bbox_list graph))
+                    }
+               | VertexData { vertexName, format } =>
+                    let
+                      val vdata = G.get_vertex_data graph (V.mk vertexName)
+                    in
+                      case format
+                        of PrettyFormat =>
+                              PrettyResponse {
+                                data = V.pretty_data vdata
+                              }
+                         | XmlFormat =>
+                              let
+                                val (_,data_xml_list) = VCD.type_and_xml_of vdata
+                              in
+                                XmlResponse {
+                                  data = (XML.Elem (("data",[]),data_xml_list))
+                                }
+                              end
+                         | _ =>
+                              ErrorResponse {
+                                errorCode = "NOTIMP",
+                                message = "Not implemented"
+                              }
+                    end
+               | VertexUserData { vertexName } =>
+                    ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }
+               | EdgeData { edgeName, format } =>
+                    let
+                      val edata = G.get_edge_data graph (E.mk edgeName)
+                    in
+                      case format
+                        of PrettyFormat =>
+                              PrettyResponse {
+                                data = E.pretty_data edata
+                              }
+                         | XmlFormat =>
+                              let
+                                val (_,data_xml_list) = ECD.type_and_xml_of edata
+                              in
+                                XmlResponse {
+                                  data = (XML.Elem (("data",[]),data_xml_list))
+                                }
+                              end
+                         | _ =>
+                              ErrorResponse {
+                                errorCode = "NOTIMP",
+                                message = "Not implemented"
+                              }
+                    end
+               | EdgeUserData { edgeName } =>
+                    ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }
+               | BangBoxVertices { bangBoxName } =>
+                    NameListResponse {
+                      names = (map V.dest (V.NSet.list_of (G.get_bbox graph (B.mk bangBoxName))))
+                    }
+               | BangBoxUserData { bangBoxName } =>
+                    ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }
+               ), state)
+        end
+        handle G.no_such_vname_exp (_,vname,_) =>
+                raise State.no_such_vertex_exp (vname,GraphName.mk graphName)
+             | G.no_such_ename_exp (_,ename,_) =>
+                raise State.no_such_edge_exp (ename,GraphName.mk graphName)
         )
 
-    | serviceRequest' (EditGraphRequest { requestId, graphName, action }) state =
+    | serviceRequest' (EditGraphRequest { graphName, action }) state =
        (case action of
           UndoAction =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.undo (GraphName.mk graphName) state)
         | RedoAction =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.redo (GraphName.mk graphName) state)
         | InsertGraphAction { sourceGraphName } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.insert_graph (GraphName.mk sourceGraphName) (GraphName.mk graphName) state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
               val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
             in
               case resultFormat
-                of NameFormat => (NameResponse { requestId = requestId, name = V.dest vn }, state')
-                 | XmlFormat => (XmlResponse { requestId = requestId, data = Output.Vertex.output v }, state')
-                 | PrettyFormat => (PrettyResponse { requestId = requestId, data = pretty_vert v }, state')
+                of NameFormat => (NameResponse { name = V.dest vn }, state')
+                 | XmlFormat => (XmlResponse { data = Output.Vertex.output v }, state')
+                 | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
                  | DescriptionFormat => 
               (* VertexDescriptionResponse *)
-              (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state')
+              (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state')
             end
         | RenameVertexAction { oldName, newName } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.rename_vertex (V.mk oldName) (V.mk newName) (GraphName.mk graphName) state)
         | DeleteVerticesAction { vertexNames } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.delete_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetVertexDataAction { vertexName, vertexData } =>
            (let
@@ -401,32 +486,32 @@ fun hilb ([format], graph) =
                    | (XmlCData xml)       => VCD.update_from_xml xml
                    | (DescriptionCData d) => VCD.update (K d)
             in
-              (OkResponse { requestId = requestId },
+              (OkResponse,
                State.update_vertex_data updater (V.mk vertexName) (GraphName.mk graphName) state)
             end
             handle (ComponentData.bad_format_exp s) =>
-                      (ErrorResponse { requestId = requestId, errorCode = "BADFORMAT", message = s }, state))
+                      (ErrorResponse { errorCode = "BADDATA", message = s }, state))
         | SetVertexUserDataAction { vertexName, userData } =>
             (* OkResponse *)
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
               val dir_or_undir = if directed then G.Directed else G.UnDirected
               val (e as (en,_),state') = State.add_edge edgeType dir_or_undir (V.mk source) (V.mk target) (GraphName.mk graphName) state
             in
               case resultFormat
-                of NameFormat => (NameResponse { requestId = requestId, name = E.dest en }, state')
-                 | XmlFormat => (XmlResponse { requestId = requestId, data = Output.Edge.output e }, state')
-                 | PrettyFormat => (PrettyResponse { requestId = requestId, data = pretty_edge e }, state')
+                of NameFormat => (NameResponse { name = E.dest en }, state')
+                 | XmlFormat => (XmlResponse { data = Output.Edge.output e }, state')
+                 | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
                  | DescriptionFormat => 
               (* EdgeDescriptionResponse *)
-              (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state')
+              (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state')
             end
         | RenameEdgeAction { oldName, newName } =>
             (* OkResponse *)
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         | DeleteEdgesAction { edgeNames } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.delete_edges (map E.mk edgeNames) (GraphName.mk graphName) state)
         | SetEdgeDataAction { edgeName, edgeData } =>
            (let
@@ -436,14 +521,14 @@ fun hilb ([format], graph) =
                    | (XmlCData xml)       => ECD.update_from_xml xml
                    | (DescriptionCData d) => ECD.update (K d)
             in
-              (OkResponse { requestId = requestId },
+              (OkResponse,
                State.update_edge_data updater (E.mk edgeName) (GraphName.mk graphName) state)
             end
             handle (ComponentData.bad_format_exp s) =>
-                      (ErrorResponse { requestId = requestId, errorCode = "BADFORMAT", message = s }, state))
+                      (ErrorResponse { errorCode = "BADFORMAT", message = s }, state))
         | SetEdgeUserDataAction { edgeName, userData } =>
             (* OkResponse *)
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         | AddBangBoxAction { vertexNames, resultFormat } =>
             let
               val gname = (GraphName.mk graphName)
@@ -452,169 +537,257 @@ fun hilb ([format], graph) =
                                State.bang_vertices nm (map V.mk vertexNames) gname state
             in
               case resultFormat
-                of NameFormat => (NameResponse { requestId = requestId, name = B.dest nm }, state'')
-                 | _ => (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state'')
+                of NameFormat => (NameResponse { name = B.dest nm }, state'')
+                 | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state'')
             end
         | RenameBangBoxAction { oldName, newName } =>
             (* OkResponse *)
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         | DropBangBoxesAction { bangBoxNames } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.drop_bang (map B.mk bangBoxNames) (GraphName.mk graphName) state)
         | KillBangBoxesAction { bangBoxNames } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.kill_bang (map B.mk bangBoxNames) (GraphName.mk graphName) state)
         | DuplicateBangBoxAction { bangBoxName } =>
             let val (nm,state') = State.duplicate_bang (B.mk bangBoxName) (GraphName.mk graphName) state in
-              (NameResponse { requestId = requestId, name = B.dest nm }, state')
+              (NameResponse { name = B.dest nm }, state')
             end
         | MergeBangBoxesAction { bangBoxNames } =>
             let val (nm,state') = State.merge_bang (map B.mk bangBoxNames) (GraphName.mk graphName) state in
-              (NameResponse { requestId = requestId, name = B.dest nm }, state')
+              (NameResponse { name = B.dest nm }, state')
             end
         | BangVerticesAction { bangBoxName, vertexNames } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.bang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | UnbangVerticesAction { vertexNames } =>
-            (OkResponse { requestId = requestId },
+            (OkResponse,
              State.unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetBangBoxUserDataAction { bangBoxName, userData } =>
             (* OkResponse *)
-            (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         )
 
 
     (* Rulesets *)
-    | serviceRequest' (ImportRulesetFromFileRequest { requestId, fileName }) state =
-       (load_ruleset requestId (XMLReader.read_from_file fileName) state
+    | serviceRequest' (ImportRulesetFromFileRequest { fileName }) state =
+       (load_ruleset XMLReader.read_from_file fileName state
         handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
-               (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
+               (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read ("^msg^")") }, state)
              | IO.Io {name : string, function : string, cause : exn} => 
-               (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
+               (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
 
-    | serviceRequest' (ImportRulesetFromDataRequest { requestId, data }) state =
-        load_ruleset requestId (XMLReader.read_from_string data) state
+    | serviceRequest' (ImportRulesetFromDataRequest { data }) state =
+        load_ruleset XMLReader.read_from_string data state
 
-    | serviceRequest' (ExportRulesetToFileRequest { requestId, fileName }) state =
+    | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
           val () = ((XMLWriter.write_to_file fileName) o Output.Ruleset.output o State.get_rset) state
         in
-          (OkResponse { requestId = requestId }, state)
+          (OkResponse, state)
         end
         handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
-               (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
+               (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be written to ("^msg^")") }, state)
              | IO.Io {name : string, function : string, cause : exn} => 
-               (ErrorResponse { requestId = requestId, errorCode = "FILEACCESS",
+               (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
 
-    | serviceRequest' (ExportRulesetAsDataRequest { requestId }) state =
+    | serviceRequest' (ExportRulesetAsDataRequest) state =
         let val get_rset_data = XMLWriter.write_to_string o Output.Ruleset.output o State.get_rset in
-          (DataResponse { requestId = requestId, data = get_rset_data state }, state)
+          (DataResponse { data = get_rset_data state }, state)
         end
 
 
     (* Rules *)
-    | serviceRequest' (ListRulesRequest { requestId }) state =
+    | serviceRequest' (ListRulesRequest) state =
         let val rules = (State.list_allrules  state) in
-          (NameListResponse { requestId = requestId, names = map RuleName.dest rules }, state)
+          (NameListResponse { names = map RuleName.dest rules }, state)
         end
 
-    | serviceRequest' (ListActiveRulesRequest { requestId }) state =
+    | serviceRequest' (ListActiveRulesRequest) state =
         let val rules = (State.list_active_rules  state) in
-          (NameListResponse { requestId = requestId, names = map RuleName.dest rules }, state)
+          (NameListResponse { names = map RuleName.dest rules }, state)
         end
 
-    | serviceRequest' (ListRulesByTagRequest { requestId, tagName }) state =
+    | serviceRequest' (ListRulesByTagRequest { tagName }) state =
         let val rules = (State.list_rules_with_tag (TagName.mk tagName) state) in
-          (NameListResponse { requestId = requestId, names = map RuleName.dest rules }, state)
+          (NameListResponse { names = map RuleName.dest rules }, state)
         end
 
-    | serviceRequest' (OpenRuleLhsRequest { requestId, ruleName }) state =
+    | serviceRequest' (OpenRuleLhsRequest { ruleName }) state =
         let val (nm,state') = (State.open_rule_lhs state (RuleName.mk ruleName)) in
-          (NameResponse { requestId = requestId, name = GraphName.dest nm }, state')
+          (NameResponse { name = GraphName.dest nm }, state')
         end
 
-    | serviceRequest' (OpenRuleRhsRequest { requestId, ruleName }) state =
+    | serviceRequest' (OpenRuleRhsRequest { ruleName }) state =
         let val (nm,state') = (State.open_rule_rhs state (RuleName.mk ruleName)) in
-          (NameResponse { requestId = requestId, name = GraphName.dest nm }, state')
+          (NameResponse { name = GraphName.dest nm }, state')
         end
 
-    | serviceRequest' (SetRuleRequest { requestId, ruleName, lhsGraphName, rhsGraphName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (SetRuleRequest { ruleName, lhsGraphName, rhsGraphName }) state =
+        (OkResponse,
          State.set_rule (RuleName.mk ruleName) (GraphName.mk lhsGraphName) (GraphName.mk rhsGraphName) state)
 
-    | serviceRequest' (DeleteRuleRequest { requestId, ruleName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (DeleteRuleRequest { ruleName }) state =
+        (OkResponse,
          State.delete_rule (RuleName.mk ruleName) state)
 
-    | serviceRequest' (ActivateRuleRequest { requestId, ruleName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (ActivateRuleRequest { ruleName }) state =
+        (OkResponse,
          State.activate_rule (RuleName.mk ruleName) state)
 
-    | serviceRequest' (DeactivateRuleRequest { requestId, ruleName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (DeactivateRuleRequest { ruleName }) state =
+        (OkResponse,
          State.deactivate_rule (RuleName.mk ruleName) state)
 
 
     (* Tags *)
-    | serviceRequest' (ListTagsRequest { requestId }) state =
+    | serviceRequest' (ListTagsRequest) state =
         let val tags = (State.list_tags  state) in
-          (NameListResponse { requestId = requestId, names = map TagName.dest tags }, state)
+          (NameListResponse { names = map TagName.dest tags }, state)
         end
 
-    | serviceRequest' (TagRuleRequest { requestId, ruleName, tagName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (TagRuleRequest { ruleName, tagName }) state =
+        (OkResponse,
          State.tag_rule (RuleName.mk ruleName) (TagName.mk tagName) state)
 
-    | serviceRequest' (UntagRuleRequest { requestId, ruleName, tagName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (UntagRuleRequest { ruleName, tagName }) state =
+        (OkResponse,
          State.untag_rule (RuleName.mk ruleName) (TagName.mk tagName) state)
 
-    | serviceRequest' (ForgetTagRequest { requestId, tagName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (ForgetTagRequest { tagName }) state =
+        (OkResponse,
          State.delete_tag (TagName.mk tagName) state)
 
-    | serviceRequest' (DeleteRulesByTagRequest { requestId, tagName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (DeleteRulesByTagRequest { tagName }) state =
+        (OkResponse,
          State.delete_tag_and_its_rules (TagName.mk tagName) state)
 
-    | serviceRequest' (ActivateRulesByTagRequest { requestId, tagName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (ActivateRulesByTagRequest { tagName }) state =
+        (OkResponse,
          State.activate_rules_with_tag (TagName.mk tagName) state)
 
-    | serviceRequest' (DeactivateRulesByTagRequest { requestId, tagName }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (DeactivateRulesByTagRequest { tagName }) state =
+        (OkResponse,
          State.deactivate_rules_with_tag (TagName.mk tagName) state)
 
 
     (* Rewriting *)
-    | serviceRequest' (AttachRewritesRequest { requestId, graphName, vertexNames }) state =
-        (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+    | serviceRequest' (AttachRewritesRequest { graphName, vertexNames }) state =
+    (* attach to all vertices if none given *)
+        (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
 
-    | serviceRequest' (AttachOneRewriteRequest { requestId, graphName, vertexNames }) state =
-        (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+    | serviceRequest' (AttachOneRewriteRequest { graphName, vertexNames }) state =
+        (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
 
-    | serviceRequest' (ListAttachedRewritesRequest { requestId, graphName }) state =
-        (ErrorResponse { requestId = requestId, errorCode = "NOTIMP", message = "Not implemented" }, state)
+    | serviceRequest' (ListAttachedRewritesRequest { graphName }) state =
+        (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
 
-    | serviceRequest' (ApplyAttachedRewriteRequest { requestId, graphName, index: int }) state =
-        (OkResponse { requestId = requestId },
+    | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
+        (OkResponse,
          State.apply_rewrite (GraphName.mk graphName) index state)
 
-    | serviceRequest' (UnknownRequest { requestId, code }) state =
-        (UnknownResponse { requestId = requestId, code = code },state)
+    | serviceRequest' (UnknownRequest { code }) state =
+        (UnknownResponse { code = code },state)
     ;
 
     fun serviceRequest req =
-      let
+     (let
         val (resp,newstate) = serviceRequest' req (!cur_state)
         val () = cur_state := newstate
       in
         resp
       end
+      handle State.no_such_graph_exp gr =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPH",
+                  message = ("No such graph \""^(GraphName.dest gr)^"\"")
+                }
+           | State.no_such_vertex_exp (vertexName,graphName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHVERTEX",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" has no vertex named \""^
+                             (V.dest vertexName)^"\"")
+                }
+           | State.no_such_vertex_type_exp vt =>
+                ErrorResponse {
+                  errorCode = "BADVERTEXTYPE",
+                  message = ("Unknown vertex type \""^vt^"\"")
+                }
+           | State.no_such_edge_exp (edgeName,graphName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHEDGE",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" has no edge named \""^
+                             (E.dest edgeName)^"\"")
+                }
+           | State.no_such_bbox_exp (bboxName,graphName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHBBOX",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" has no !-box named \""^
+                             (B.dest bboxName)^"\"")
+                }
+           | State.no_such_rule_exp ruleName =>
+                ErrorResponse {
+                  errorCode = "NOSUCHRULE",
+                  message = ("No such rule \""^
+                             (RuleName.dest ruleName)^"\"")
+                }
+           | State.no_such_tag_exp tagName =>
+                ErrorResponse {
+                  errorCode = "NOSUCHTAG",
+                  message = ("No such tag \""^
+                             (TagName.dest tagName)^"\"")
+                }
+           | State.vertex_name_exists_exp (vertexName,graphName) =>
+                ErrorResponse {
+                  errorCode = "ALREADYEXISTS",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" already has a vertex named \""^
+                             (V.dest vertexName)^"\"")
+                }
+           | State.edge_name_exists_exp (edgeName,graphName) =>
+                ErrorResponse {
+                  errorCode = "ALREADYEXISTS",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" already has an edge named \""^
+                             (E.dest edgeName)^"\"")
+                }
+           | State.bbox_name_exists_exp (bboxName,graphName) =>
+                ErrorResponse {
+                  errorCode = "ALREADYEXISTS",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" already has a !-box named \""^
+                             (B.dest bboxName)^"\"")
+                }
+           | State.bad_rule_exp msg =>
+                ErrorResponse {
+                  errorCode = "BADRULE",
+                  message = msg
+                }
+           | State.bad_state_exp msg =>
+                ErrorResponse {
+                  errorCode = "BADSTATE",
+                  message = msg
+                }
+           | State.out_of_bounds_exp n =>
+                ErrorResponse {
+                  errorCode = "OUTOFRANGE",
+                  message = ("Argument "^(Int.toString n)^" is out of range")
+                }
+           );
+
 end;
 
 (* vi:ts=2:sw=2:sts=2:et
