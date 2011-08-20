@@ -10,7 +10,7 @@ structure MatchSearch = Test_SimpleMatchSearch;
 structure GraphSubst = Test_GraphSubst;
 in
 
-val ruleset = "rulesets/basic_v2.rules" 
+val ruleset = "../../test/rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
               |> IO.Input.Ruleset.input;
 
