@@ -32,6 +32,8 @@ PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_expr.ML";
+(* Testing *)
+Testing.make_test "expressions/test/linrat_expr-test.ML";
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
@@ -57,12 +59,17 @@ PolyML.Project.make "io/writer.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
 
+(* basic theory things *)
+PolyML.Project.make "theories/no_edge_data.ML";
+
 (* Testing *)
-Testing.make_test "theories/no_edge_data.ML";
-Testing.make_test "theories/test/test_vertex.ML";
+(* *)
+Testing.make_test "theories/test/vertex-test.ML";
+(* These arn't tests, but they are used only by tests. *)
 Testing.make_test "io/input_graph_v1.ML";
 Testing.make_test "io/output_graph_v1.ML";
-Testing.make_test "graph/test/test_graph.ML";
+(* *)
+Testing.make_test "graph/test/graph-test.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
@@ -81,8 +88,8 @@ PolyML.Project.make "io/io_interface.ML";
 PolyML.Project.make "io/output_graph_dot.ML";
 
 (* Testing *)
-Testing.make_test "theories/test/test_ruleset.ML";
-Testing.make_test "io/test/test_graph_io.ML";
+Testing.make_test "theories/test/ruleset-test.ML";
+Testing.make_test "io/test/graph_io-test.ML";
 
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
@@ -100,11 +107,10 @@ PolyML.Project.make "rewriting/graph_subst.ML";
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
 (* Testing *)
-Testing.make_test "matching/test/matching.ML";
-Testing.make_test "matching/test/matching2.ML";
-Testing.make_test "rewriting/test/ruleset_rewriting.ML";
-Testing.make_test "matching/test/simple_match_search.ML";
-Testing.make_test "matching/test/test_symmetry_match_search.ML";
+Testing.make_test "matching/test/simple_rule_match_search-test.ML";
+Testing.make_test "matching/test/simple_match_search-test.ML";
+Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
+Testing.make_test "matching/test/symmetry_match_search-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
@@ -142,8 +148,9 @@ PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
 
-(* Final core unit tests *)
-PolyML.Project.use_root "test/ROOT.ML";
+(* Testing *)
+Testing.make_test "io/test/load_ruleset-test.ML";
+Testing.make_test "rewriting/test/rule-test.ML";
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
