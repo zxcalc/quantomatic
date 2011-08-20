@@ -9,31 +9,26 @@
 *)
 
 functor SymmetryRuleMatchSearch(
-  structure BangGraph : BANG_GRAPH 
   structure Match : MATCH
   structure Rule : RULE
-  sharing Match.Sharing.G = BangGraph.SharingBangGraph
-  sharing Rule.Sharing.Graph = BangGraph.SharingBangGraph
+  sharing Rule.Sharing.Graph = Match.Sharing.G
 ) : RULE_MATCH_SEARCH
 = struct
   
-  structure BangGraph = BangGraph;
-  structure Vertex = BangGraph.OVertex;
-  structure Edge = BangGraph.Edge;
   structure Rule = Rule;
-  structure G = BangGraph;
-  structure V = Vertex;
-  structure E = Edge;
   structure Match = Match;
+  structure G = Match.G;
+  structure V = G.OVertex;
+  structure E = G.Edge;
 
   datatype T = 
          MState of 
          {
           match : Match.T,
-          lb : Vertex.name,
+          lb : V.name,
           pat : G.T,
           tgt : G.T,
-          order : (Vertex.name Rule.otype * Vertex.name Rule.tree) list,
+          order : (V.name Rule.otype * V.name Rule.tree) list,
           avail : V.NSet.T,
           constr : Rule.constr
          }
@@ -108,8 +103,8 @@ functor SymmetryRuleMatchSearch(
                          andalso V.name_ord (vt,get_lower_bound st)=LESS
                             then Seq.empty
                             else
-      let val dp = BangGraph.get_vertex_data (get_pattern st) vp
-          val dt = BangGraph.get_vertex_data (get_target st) vt
+      let val dp = G.get_vertex_data (get_pattern st) vp
+          val dt = G.get_vertex_data (get_target st) vt
       in (Pretty.writeln (Pretty.block [V.pretty_name vp, Pretty.str " -> ", V.pretty_name vt,
                                         Pretty.str (if (get_constr st)=Rule.Constrained then " C: " else " U: "),
                                         V.pretty_name (get_lower_bound st)]);
@@ -124,8 +119,8 @@ functor SymmetryRuleMatchSearch(
   
   (* Matches two edges. *)
   fun match_edge ep et st =
-      let val dp = BangGraph.get_edge_data (get_pattern st) ep
-          val dt = BangGraph.get_edge_data (get_target st) et
+      let val dp = G.get_edge_data (get_pattern st) ep
+          val dt = G.get_edge_data (get_target st) et
       in  Seq.single (st |> update_match (Match.match_edge false (ep,dp) (et,dt)))
       end handle Match.match_exp _ => Seq.empty;
       
@@ -250,7 +245,7 @@ functor SymmetryRuleMatchSearch(
       
   (* Ramify by the appropriate self-applications of the rule. *)
   fun chain_match sa m =
-      let fun chain_one s = m |> Match.update_evmap (Vertex.Map.premap (Vertex.InjEndo.destr (fst s)))
+      let fun chain_one s = m |> Match.update_evmap (V.Map.premap (V.InjEndo.destr (fst s)))
                             (*  |> Match.update_subst (compose (snd s)) *)
       in  Seq.map chain_one (Seq.of_list sa) end;
   
@@ -261,7 +256,7 @@ functor SymmetryRuleMatchSearch(
   fun match names rule g = match' (MState({match = Match.init names
                                                              (Rule.get_lhs rule)
                                                              g,
-                                              lb = Vertex.default_name,
+                                              lb = V.default_name,
                                              pat = Rule.get_lhs rule,
                                              tgt = g,
                                            order = Rule.get_order rule,
@@ -271,6 +266,7 @@ functor SymmetryRuleMatchSearch(
   structure Sharing : RULE_MATCH_SEARCH_SHARING =
   struct
     structure Match = Match.Sharing;
+    structure Rule = Rule.Sharing;
   end;
 
 end;

@@ -94,13 +94,14 @@ struct
   structure GraphSubst : GRAPH_SUBST = DB_GraphSubst;
 
   (* removed DB_RuleMatchSearch, suggest removing other DB_'s *)
-  structure RuleMatchSearch = SimpleRuleMatchSearch(structure BangGraph = Graph;
-                                                    structure Match = Match;
-                                                    structure Rule = Rule;);
+  structure BasicMatchSearch = SimpleMatchSearch(Match);
+  structure RuleMatchSearch = SimpleRuleMatchSearch(
+    structure MatchSearch = BasicMatchSearch;
+    structure Rule = Rule;);
 
   structure DB_RulesetRewrites = RulesetRewrites(
     structure Ruleset = Ruleset;
-    structure MatchSearch = RuleMatchSearch;
+    structure RuleMatchSearch = RuleMatchSearch;
     structure GraphSubst = GraphSubst;
   );
   structure RulesetRewrites : RULESET_REWRITES = DB_RulesetRewrites;

@@ -8,3 +8,4 @@
 core/bin/quanto-core
 *.rules_v2
 /gui/build-debug/
+core/local_config.ML

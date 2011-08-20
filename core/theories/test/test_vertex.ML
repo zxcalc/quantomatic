@@ -4,7 +4,7 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph Vertex.) *)
-signature RG_UNIFIABLE_DATA =    
+signature TEST_UNIFIABLE_DATA =    
 sig
   datatype qnd = Xnd of LinratExpr.T (* Red: defined using H of Z *) 
                | Znd of LinratExpr.T (* Green *)
@@ -16,7 +16,7 @@ sig
 end;
 
 (* reg-green vertex data *)
-structure RG_VertexData : RG_UNIFIABLE_DATA
+structure Test_VertexData : TEST_UNIFIABLE_DATA
 = struct
   exception unimplemented_exp of string;
 
@@ -51,7 +51,7 @@ structure RG_VertexData : RG_UNIFIABLE_DATA
       LinratExpr.match a1 a2 m
     | match_data _ _ = NONE;
   fun unify_data (x,y) m = 
-      raise unimplemented_exp "RGVertex.unify_data: has not yet been written.";
+      raise unimplemented_exp "Test_Vertex.unify_data: has not yet been written.";
   fun subst_in_data _ Hnd = Hnd
     | subst_in_data u (Xnd a) = Xnd (LinratExpr.subst u a)
     | subst_in_data u (Znd a) = Znd (LinratExpr.subst u a);
@@ -70,23 +70,23 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-structure RG_InternVertex
+structure Test_InternVertex
 : VERTEX
 = struct
   
-  open RG_VertexData;
+  open Test_VertexData;
   open SStrName;
 
   val default_name = mk "a";
-  val default_data = RG_VertexData.Xnd LinratExpr.zero;
+  val default_data = Test_VertexData.Xnd LinratExpr.zero;
 
   structure Map = NameMapFun(structure Dom = SStrName and Cod = SStrName);
   structure InjEndo = NameInjEndoFun(SStrName);
 
   structure SharingWithData = struct 
     open Sharing; 
-    type data = RG_VertexData.data;
-    type subst = RG_VertexData.subst;
+    type data = Test_VertexData.data;
+    type subst = Test_VertexData.subst;
     structure Map = Map.Sharing;
     structure InjEndo = InjEndo.Sharing;
   end;
@@ -96,25 +96,25 @@ structure RG_InternVertex
 end;
 
 (*  *)
-structure RG_VertexData_ParamIO
-: GRAPH_TYPED_DATA_PARAM_XML_IO where type data = RG_VertexData.data
+structure Test_VertexData_ParamIO
+: GRAPH_TYPED_DATA_PARAM_XML_IO where type data = Test_VertexData.data
 = struct 
-  type data = RG_VertexData.data;
-  fun type_and_xml_of (RG_VertexData.Xnd a) = 
+  type data = Test_VertexData.data;
+  fun type_and_xml_of (Test_VertexData.Xnd a) = 
       ("X",[OutputLinratXML.output a])
-    | type_and_xml_of (RG_VertexData.Znd a) = 
+    | type_and_xml_of (Test_VertexData.Znd a) = 
       ("Z",[OutputLinratXML.output a])
-    | type_and_xml_of (RG_VertexData.Hnd) = 
+    | type_and_xml_of (Test_VertexData.Hnd) = 
       ("hadamard",[]);
   fun of_type_and_xml ("X",[xml]) = 
-      (RG_VertexData.Xnd (InputLinratXML.input xml))
+      (Test_VertexData.Xnd (InputLinratXML.input xml))
     | of_type_and_xml ("Z",[xml]) = 
-      (RG_VertexData.Znd (InputLinratXML.input xml)) 
+      (Test_VertexData.Znd (InputLinratXML.input xml)) 
     | of_type_and_xml ("hadamard",[]) = 
-      (RG_VertexData.Hnd)
+      (Test_VertexData.Hnd)
     | of_type_and_xml (n,xml_list) = 
       raise XML_Parse_Utils.bad_input_exp 
-        ("RG_VertexData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
+        ("Test_VertexData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
          (Pretty.string_of (Pretty.list "[" "]" 
            (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
          "data");

@@ -5,18 +5,6 @@
 structure DB_RG_Theory = GraphicalTheory(structure OParam = RG_OGraphParam);
 structure RG_Theory : GRAPHICAL_THEORY = DB_RG_Theory;
 
-(* Input/Output *)
-(* structure DB_RG_IO_Interface_v1 = IO_Interface(
-  structure Ruleset = RG_Theory.Ruleset
-
-  structure InputVertexData = InputRGVertexDataXML_v1(RG_Theory.Vertex)
-  structure OutputVertexData = OutputRGVertexDataXMLList_v1(RG_Theory.Vertex)
-
-  structure InputEdgeData = InputNoEdgeDataXML_v1(RG_Theory.Edge)
-  structure OutputEdgeData = OutputNoEdgeDataXMLList_v1(RG_Theory.Edge)
-); *)
-
-
 structure DB_RG_IO_Interface_v2 = IO_Interface(
   structure Ruleset = RG_Theory.Ruleset
 

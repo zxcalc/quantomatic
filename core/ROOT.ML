@@ -22,10 +22,16 @@ PolyML.Project.depend_on_files
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** generic testing stuff / move to isaplib? ****)
-PolyML.Project.make "test/testing.ML";
+PolyML.Project.optional_make "local_config.ML";
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile quantomatic code ****)
+
+(* linear arithmetic expressions: data inside verticies *)
+PolyML.Project.make "expressions/lex.ML";
+PolyML.Project.make "expressions/coeff.ML";
+PolyML.Project.make "expressions/expr.ML"; 
+PolyML.Project.make "expressions/linrat_expr.ML";
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
@@ -39,12 +45,6 @@ PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 
-(* linear arithmetic expressions: data inside verticies *)
-PolyML.Project.make "expressions/lex.ML";
-PolyML.Project.make "expressions/coeff.ML";
-PolyML.Project.make "expressions/expr.ML"; 
-PolyML.Project.make "expressions/linrat_expr.ML";
-
 (* Generic output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
@@ -56,6 +56,13 @@ PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
+
+(* Testing *)
+Testing.make_test "theories/no_edge_data.ML";
+Testing.make_test "theories/test/test_vertex.ML";
+Testing.make_test "io/input_graph_v1.ML";
+Testing.make_test "io/output_graph_v1.ML";
+Testing.make_test "graph/test/test_graph.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
@@ -73,19 +80,31 @@ PolyML.Project.make "io/io_interface.ML";
 (* Simple dot output for graphs *)
 PolyML.Project.make "io/output_graph_dot.ML";
 
+(* Testing *)
+Testing.make_test "theories/test/test_ruleset.ML";
+Testing.make_test "io/test/test_graph_io.ML";
+
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
 (* signature for rule match search *)
 PolyML.Project.make "matching/rule_match_search.ML";
 (* naive match search implementation, find symmetric cases *)
+PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "matching/simple_rule_match_search.ML";
 (* searching for matches, but avoiding symmetric ones *)
-PolyML.Project.make "matching/symmetry_match_search.ML";
+PolyML.Project.make "matching/symmetry_rule_match_search.ML";
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
+
+(* Testing *)
+Testing.make_test "matching/test/matching.ML";
+Testing.make_test "matching/test/matching2.ML";
+Testing.make_test "rewriting/test/ruleset_rewriting.ML";
+Testing.make_test "matching/test/simple_match_search.ML";
+Testing.make_test "matching/test/test_symmetry_match_search.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
@@ -122,6 +141,9 @@ PolyML.Project.make "theories/red_green_blue/vertex.ML";
 PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
+
+(* Final core unit tests *)
+PolyML.Project.use_root "test/ROOT.ML";
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
