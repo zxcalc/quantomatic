@@ -14,7 +14,7 @@
  * ESC ::= '\u001b' ;
  * Code ::= [A-Z]+ ;
  * String ::= ([^ESC] | ESC ESC)* ;
- * StringList ::= String (ESC ',' String)*
+ * StringList ::= [0-9]+ ESC ':' (String (ESC ',' String)* )? ; length, then list
  * RequestId ::= String ;
  * Integer ::= [0-9]+ ;
  * MsgStart ::= ESC '<' ;
@@ -111,7 +111,7 @@
  * Name: NameListResponse
  * Code: "M"
  * Body:
- *   NameListRespBody ::= StringList? ;
+ *   NameListRespBody ::= StringList ;
  * Desc: A list of strings, usually names.
  *
  * Name: UserDataResponse
@@ -849,8 +849,8 @@ struct
     fun printDelim ch = print "\u001b;"
     fun printDataChunk s = (printEsc #"["; printLength s; printEsc #"|"; print s; printEsc #"]")
     fun printList [] = ()
-      | printList [s] = printString s
-      | printList (s::ss) = (printString s; List.app (fn e => (printEsc #","; printString e)) ss)
+      | printList [s] = (print "1"; printEsc #":"; printString s)
+      | printList (s::ss) = (print (Int.toString (1 + (length ss))); printEsc #":"; printString s; List.app (fn e => (printEsc #","; printString e)) ss)
     (* }}} *)
 
     (* {{{ outputResponse *)
@@ -976,25 +976,29 @@ struct
         | SOME i => i
 
     local
-      fun readList' (soFar:string) (splitter : char, terminator : char) : string list =
-        case input1 instream of
-          SOME #"\u001b" =>
-          (
-            case input1 instream of
-              NONE => protocolError "End of file"
-            | SOME ch =>
-                if ch = terminator
-                then [soFar]
-                else if ch = splitter
-                then soFar::(readList' "" (splitter, terminator))
-                else if ch = #"\u001b" (* Escaped ESC. *)
-                then readList' (soFar ^ str #"\u001b") (splitter, terminator)
-                else protocolError(str ch ^ " not " ^ str terminator)
-          )
-        | SOME ch => readList' (soFar ^ str ch) (splitter, terminator)
-        | NONE => protocolError "End of file"
+      fun readList' _ 0 (_, terminator) = (eatEscapedChar terminator; [])
+        | readList' _ 1 (_, terminator) = [readToEscape terminator]
+        | readList' soFar count (splitter, terminator) =
+           (case input1 instream
+              of SOME #"\u001b" =>
+                  (
+                    case input1 instream
+                      of NONE           => protocolError "End of file"
+                       | SOME #"\u001b" => readList' (soFar ^ "\u001b") count (splitter, terminator)
+                       | SOME ch        =>
+                            if ch = splitter then
+                              soFar::(readList' "" (count-1) (splitter, terminator))
+                            else if ch = terminator then
+                              protocolError("Wrong number of elements in list")
+                            else
+                              protocolError(str ch ^ " not " ^ str terminator)
+                  )
+               | SOME ch => readList' (soFar ^ str ch) count (splitter, terminator)
+               | NONE    => protocolError "End of file"
+               )
     in
-      val readList = readList' ""
+      fun readList (splitter:char,terminator:char) : string list =
+        readList' "" (readInt #":") (splitter,terminator)
     end
 
     fun readHeader () : (string * string) =
@@ -1058,14 +1062,8 @@ struct
     fun readListToDelim () = readList (#",",#";")
     fun readListToEnd () = readList (#",",#">")
 
-    fun assertAtDelim () =
-      let val str = readToEscape #";" in
-        if str = "" then () else protocolError "End of packet expected"
-      end
-    fun assertAtEnd () =
-      let val str = readToEscape #">" in
-        if str = "" then () else protocolError "End of packet expected"
-      end
+    fun assertAtDelim () = eatEscapedChar #";";
+    fun assertAtEnd () = eatEscapedChar #">";
     (* }}} *)
 
     (* {{{ readRequestBody *)
