@@ -97,7 +97,9 @@ signature MATCH
   (* instantiate a substitution graph for the match: expand !-boxes, etc,
      keeping id map on names of boundary  *)
   val inst_replacement_graph : T -> G.T -> G.T 
-
+  (* things involved in inst_replacement_graph *)
+  val rename_and_merge_edgepoint_vertices : T -> G.T -> G.T;
+  val merge_edgehalfs : T -> G.T -> G.T 
 
   (* bbox stuff *)
   val get_bbmap : T -> BBMatch.BBMap.T
@@ -389,7 +391,8 @@ functor Match(G : BANG_GRAPH)
   (* apply data substs of a match to all vertices and edges in graph *)
   fun datasubst m g = G.apply_data_subst (get_subst m) g;
 
-  (* breaks invariant of edge-points having directed arity <= 1 *)
+  (* breaks invariant of edge-points having directed arity <= 1; when 
+     two edge-points have the same name they get merged. *)
   (* CHECK: seems to assume that codv must be named fresh w.r.t. graph??? *)
   fun rename_and_merge_edgepoint_vertices m g = 
       V.NTab.fold 
@@ -398,6 +401,38 @@ functor Match(G : BANG_GRAPH)
           o snd o G.add_named_vertex codv V.EVert)
         (V.Map.get_codtab (get_evmap m))
         g;
+
+  (* TODO: only need to look at half of this map.only care about target 
+     ehn's with both sides covered. *)
+  fun merge_edgehalfs m g = 
+      let 
+        val codtab = EMap.get_codtab (get_emap m);
+        val to_plug = 
+          E.Ehn.NTab.fold 
+            (fn (tehn,pehn) => fn to_plug => 
+                case E.Ehn.NTab.lookup codtab (E.Ehn.other tehn) of
+                  NONE => to_plug
+                | SOME pehn2 => 
+                  if E.name_eq (E.Ehn.get_ename pehn2, E.Ehn.get_ename pehn)
+                  then to_plug
+                  (* two different edges halfs got mapped to this edge, so the
+                     half-edges they go to (they must to half edges) should be
+                     plugged. *)
+                  else 
+                    (* because we double-count, we only insert the pair source
+                       to target, and ignore the second finding *)
+                    if E.Ehn.is_start pehn then 
+                      E.Ehn.NTab.update (pehn, pehn2) to_plug
+                    else to_plug)
+            codtab E.Ehn.NTab.empty;
+      in 
+        g |> E.Ehn.NTab.fold 
+               (fn (ehn_s,ehn_t) => fn g => 
+                let val v1 = G.get_ehn_vname g ehn_s
+                    val v2 = G.get_ehn_vname g ehn_t
+                in snd (snd (G.plug_by_boundary v1 v2 g)) end)
+               to_plug
+      end;
 
   (* rename all vertices in the subst graphs - that is the pattern (lhs) and it's replacement (rhs), and in the match accordingly. This is in order that the substitution graph and match can be displayed in the same name-space as the target graph. (e.g. for highlighting the part of the graph being matched/replaced) *)      
   (* fun rename_match_and_subst_graphs (m,g_lhs,g_rhs) =
@@ -457,6 +492,7 @@ functor Match(G : BANG_GRAPH)
               ((get_vnames m,get_enames m),g)
         val m' = m |> set_names (vnames,enames,get_bbnames m); 
       in g |> rename_and_merge_edgepoint_vertices m'
+           |> merge_edgehalfs m'
            |> datasubst m'
       end;
   
@@ -493,5 +529,3 @@ functor Match(G : BANG_GRAPH)
   end;
     
 end;
-
-

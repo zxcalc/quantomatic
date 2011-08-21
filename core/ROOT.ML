@@ -94,6 +94,7 @@ Testing.make_test "io/test/graph_io-test.ML";
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
+Testing.make_test "matching/test/match-test.ML"; (* unit/regression tests *)
 (* signature for rule match search *)
 PolyML.Project.make "matching/rule_match_search.ML";
 (* naive match search implementation, find symmetric cases *)

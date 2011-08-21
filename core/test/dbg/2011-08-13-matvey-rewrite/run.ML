@@ -8,20 +8,24 @@ structure Ruleset = Test_Ruleset;
 structure MatchSearch = Test_SimpleMatchSearch;
 structure GraphSubst = Test_GraphSubst;
 
-val ruleset = "symtest.rules" 
-              |> XMLReader.read_from_file
-              |> IO.Input.Ruleset.input;
+val rset = "symtest.rules" 
+            |> XMLReader.read_from_file
+            |> IO.Input.Ruleset.input;
 
 val g = "triangle_failing_graph.graph" 
-              |> XMLReader.read_from_file
-              |> IO.Input.Graph.input;
+            |> XMLReader.read_from_file
+            |> IO.Input.Graph.input;
 
-val results = RulesetRewrites.apply ruleset g;
+(* val results = RulesetRewrites.apply ruleset g; *)
+val r = Ruleset.get_rule rset (RuleName.mk "redtriangle");
 
-(* 
 fun list_of_rule_matches r g = 
     let val (r', matches) = RulesetRewrites.rule_matches r g;
     in (r', Seq.list_of matches) end;
+
+val (r',l) = list_of_rule_matches r g;
+
+
 
 val _ = Testing.test "rule1:" (fn () => let
   

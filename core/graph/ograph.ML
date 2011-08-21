@@ -78,10 +78,11 @@ val get_adj_outputs : T -> Vertex.name -> Vertex.NSet.T
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
 val is_endpoint' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) -> bool
-(* returns the SOME non-empty edge set when exactly one of the inset of ourset of edges is empty, 
+(* returns the SOME non-empty edge set when exactly one of the inset of 
+   ourset of edges is empty, 
    else NONE *)
 val endpoint_of_vertex' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) 
-    -> (Edge.Ehn.halfid * Edge.NSet.T) option
+    -> (Edge.Ehn.halfid * Edge.NSet.T) option;
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : Vertex.name -> T -> T
@@ -257,7 +258,8 @@ functor BasicOGraphFun(
        | (true,false) => SOME (Edge.Ehn.SourceEnd, outs)
        | (false,true) => SOME (Edge.Ehn.TargetEnd, ins)
        | (false,false) => NONE)
-    | endpoint_of_vertex' (V.IVert d,(ins,outs)) = NONE;       
+    | endpoint_of_vertex' (V.IVert d,(ins,outs)) = NONE;
+  
   val is_endpoint' = is_some o endpoint_of_vertex';
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o Vertex.NSet.add;
@@ -469,7 +471,7 @@ struct
      composition with an identity. Assumes that e1 and e2 go to boundary 
      coherent edge-point vertices (vertices representing half-edges going in 
      opposite directions / both undirected) *)
-  (* *** needs modification for !-boxes *** *) 
+  (* FIXME(ldixon): *** needs modification for !-boxes *** *) 
   exception not_boundary_coherent_exp of string;
 
   fun plug_by_boundary v1 v2 g = 
@@ -486,8 +488,8 @@ struct
      incident edges into half-edges (add a boundary vertex to each one). 
      Creates V.InjEndo.T which explains how to glue cut back together; 
      automorphism is of the form: keepvset vertex => outside vertex.  
-     NOT** INVARIANT: preserves names of the keepset, creates new edges/boundary vs for the
-     rest of the graph. 
+     NOT** INVARIANT: preserves names of the keepset, creates new 
+     edges/boundary vertices for the rest of the graph. 
   *)
   (* FIXME: rewrite using fold_subgraph (from graph), with cut_edge (above) *)
   fun cut_around_vertex keepvset n (vs_g as (amorph,g)) = 
