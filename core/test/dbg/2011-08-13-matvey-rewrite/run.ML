@@ -1,3 +1,5 @@
+(* cd "test/dbg/2011-08-13-matvey-rewrite/"; *)
+
 open Test_MkG;
 structure Rule = Test_Rule;
 structure Ruleset = Test_Ruleset;
@@ -24,8 +26,10 @@ fun list_of_rule_matches r g =
     in (r', Seq.list_of matches) end;
 
 val (r',l) = list_of_rule_matches r g;
-
-
+val m = hd l;
+Rule.print r';
+G.print g;
+Match.print m;
 
 val _ = Testing.test "rule1:" (fn () => let
   

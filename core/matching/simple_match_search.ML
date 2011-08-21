@@ -211,13 +211,20 @@ functor SimpleMatchSearch(Match : MATCH)
                then (* pvn2 is a boundary vertex *)
                 del_pat_vertex pvn2
                 o update_match 
-                    ((case (pe_dir,te_dir) 
-                        of (G.Directed, G.Directed) => 
-                           (Match.dir_match_edgehalf_name' peh2 teh2)
-                         | (G.UnDirected, G.UnDirected) => 
-                           (Match.match_edgehalf_name' peh2 teh2)
-                         | _ => raise Match.match_exp ())
-                      o Match.match_boundary pvn2 tvn2)
+                  ((fn m => if Match.makes_opposite_halfs_of_same_edge 
+                                 m peh2 teh2 then
+                              (* TODO(ldixon): write this! *** *)
+                              Match.add_plugging (G.get_ehn_vname pat peh2)   
+                                                 (G.get_ehn_vname pat peh1)
+                                                 m
+                              else m)
+                   o (case (pe_dir,te_dir) 
+                      of (G.Directed, G.Directed) => 
+                         (Match.dir_match_edgehalf_name' peh2 teh2)
+                       | (G.UnDirected, G.UnDirected) => 
+                         (Match.match_edgehalf_name' peh2 teh2)
+                       | _ => raise Match.match_exp ())
+                    o Match.match_boundary pvn2 tvn2)                
                else (* pvn2 is an internal vertex *)
                  del_tgt_edge (E.Ehn.get_ename teh1)
                  o update_match 

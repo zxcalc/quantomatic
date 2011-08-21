@@ -34,7 +34,8 @@ val _ = test "merge_edgehalfs"
               |> M.match_vertex (n1, G.get_vertex_data g1 n1) 
                               (n1, G.get_vertex_data g2 n1') 
               |> M.match_boundary b1 n1'
-              |> M.match_boundary b2 n1';
+              |> M.match_boundary b2 n1'
+              |> M.add_plugging b1 b2;
               
     (* val g1' = M.inst_replacement_graph m g1; *)
     val g1' = M.merge_edgehalfs m g1;
@@ -43,7 +44,7 @@ val _ = test "merge_edgehalfs"
 
     (* check details of resulting graph *)
     val _ = if E.NSet.is_empty (G.get_edgepoints g1') then ()  
-        else raise ERROR "merge_edgehalfs: has left an edge-point";
+        else raise ERROR "merge_edgehalfs: has an edge-point";
     val SOME e = E.NSet.tryget_singleton (G.get_enames g1');
     val ((G.UnDirected,ed),(fromv,tov)) = G.get_edge g1' e; 
     val _ = if V.name_eq (fromv, n1) then () 
