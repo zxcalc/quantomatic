@@ -4,13 +4,13 @@
  */
 package quanto.core.protocol;
 
-import java.io.IOException;
+import quanto.core.CoreCommunicationException;
 
 /**
  *
  * @author alex
  */
-public class ProtocolException extends IOException {
+public class ProtocolException extends CoreCommunicationException {
 
 	public ProtocolException() {
 		super("Invalid data was received from the core");

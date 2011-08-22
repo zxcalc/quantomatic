@@ -4,8 +4,6 @@
  */
 package quanto.core.protocol;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,22 +25,22 @@ public class ProtocolReader {
         this.input = new BufferedInputStream(input);
     }
 
-    private void eatEsc() throws IOException {
+    private void eatEsc() throws ProtocolException, IOException {
         if (input.read() != ESC)
-            throw new IOException("Expected ESC");
+            throw new ProtocolException("Expected ESC");
     }
 
-    private void eatChar(char ch) throws IOException {
+    private void eatChar(char ch) throws ProtocolException, IOException {
         if (input.read() != ch)
-            throw new IOException("Expected " + ch);
+            throw new ProtocolException("Expected " + ch);
     }
 
-    private void eatEscChar(char ch) throws IOException {
+    private void eatEscChar(char ch) throws ProtocolException, IOException {
         eatEsc();
         eatChar(ch);
     }
 
-    private byte[] readDataBlock() throws IOException {
+    private byte[] readDataBlock() throws ProtocolException, IOException {
         eatEscChar('[');
         int length = readIntToEscape();
         eatEscChar('|');
@@ -59,7 +57,7 @@ public class ProtocolReader {
 
     // I'm almost tempted to use a List<Byte> - Java makes this
     // painful to do efficiently
-    private byte[] readToEscape() throws IOException {
+    private byte[] readToEscape() throws ProtocolException, IOException {
         byte[] result = null;
         byte[] buffer = new byte[50];
         int escPos = -1;
@@ -102,7 +100,7 @@ public class ProtocolReader {
         return result;
     }
 
-    private int readIntToEscape() throws IOException {
+    private int readIntToEscape() throws ProtocolException, IOException {
         try {
             return Integer.parseInt(asciiToString(readToEscape()));
         } catch (NumberFormatException ex) {
@@ -110,15 +108,15 @@ public class ProtocolReader {
         }
     }
 
-    private String readAsciiStringToEscape() throws IOException {
+    private String readAsciiStringToEscape() throws ProtocolException, IOException {
         return asciiToString(readToEscape());
     }
 
-    private String readStringToEscape() throws IOException {
+    private String readStringToEscape() throws ProtocolException, IOException {
         return utf8ToString(readToEscape());
     }
 
-    private String[] readStringList() throws IOException {
+    private String[] readStringList() throws ProtocolException, IOException {
         int length = readIntToEscape();
         if (length < 0)
             throw new ProtocolException("Array length cannot be negative");
@@ -132,7 +130,7 @@ public class ProtocolReader {
         return result;
     }
 
-    public void waitForReady() throws IOException {
+    public void waitForReady() throws IOException, ProtocolException {
         if (version != null)
             return;
 
@@ -143,88 +141,90 @@ public class ProtocolReader {
         eatEscChar('>');
     }
 
-    public String getVersion() {
+    public String getVersion() throws IOException, ProtocolException {
+        waitForReady();
         return version;
     }
 
-    private Response parseErrorResponseBody(String requestId) throws IOException {
+    private Response parseErrorResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Error, requestId);
         resp.setErrorCode(readAsciiStringToEscape());
         resp.setErrorMessage(readStringToEscape());
         return resp;
     }
 
-    private Response parseOkResponseBody(String requestId) throws IOException {
+    private Response parseOkResponseBody(String requestId) throws ProtocolException, IOException {
         return new Response(Response.MessageType.Ok, requestId);
     }
 
-    private Response parseConsoleResponseBody(String requestId) throws IOException {
+    private Response parseConsoleResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Console, requestId);
         resp.setStringData(utf8ToString(readDataBlock()));
         return resp;
     }
 
-    private Response parseConsoleHelpResponseBody(String requestId) throws IOException {
+    private Response parseConsoleHelpResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.ConsoleHelp, requestId);
         resp.setCommandArgs(readStringToEscape());
         resp.setCommandHelp(readStringToEscape());
         return resp;
     }
 
-    private Response parseDataResponseBody(String requestId) throws IOException {
+    private Response parseDataResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.RawData, requestId);
         resp.setByteData(readDataBlock());
         return resp;
     }
 
-    private Response parsePrettyResponseBody(String requestId) throws IOException {
+    private Response parsePrettyResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Pretty, requestId);
         resp.setStringData(utf8ToString(readDataBlock()));
         return resp;
     }
 
-    private Response parseXmlResponseBody(String requestId) throws IOException {
+    private Response parseXmlResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Xml, requestId);
         resp.setStringData(utf8ToString(readDataBlock()));
         return resp;
     }
 
-    private Response parseCountResponseBody(String requestId) throws IOException {
+    private Response parseCountResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Count, requestId);
         resp.setIntData(readIntToEscape());
         return resp;
     }
 
-    private Response parseNameResponseBody(String requestId) throws IOException {
+    private Response parseNameResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Name, requestId);
         resp.setStringData(utf8ToString(readDataBlock()));
         return resp;
     }
 
-    private Response parseNameListResponseBody(String requestId) throws IOException {
+    private Response parseNameListResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.NameList, requestId);
         resp.setStringListData(readStringList());
         return resp;
     }
 
-    private Response parseUserDataResponseBody(String requestId) throws IOException {
+    private Response parseUserDataResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.UserData, requestId);
         resp.setByteData(readDataBlock());
         return resp;
     }
 
-    private Response parseRewriteListResponseBody(String requestId) throws IOException {
+    private Response parseRewriteListResponseBody(String requestId) throws ProtocolException, IOException {
         // ???
+        skipToBodyEnd();
         throw new NotImplementedException();
     }
 
-    private Response parseUnknownRequestResponseBody(String requestId) throws IOException {
+    private Response parseUnknownRequestResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.UnknownRequest, requestId);
         resp.setRequestCode(readAsciiStringToEscape());
         return resp;
     }
 
-    private Response parseUnknownResponseBody(String code, String requestId) throws IOException {
+    private void skipToBodyEnd() throws IOException, ProtocolException {
         boolean esc = false;
         input.mark(2);
         int ch = input.read();
@@ -246,13 +246,17 @@ public class ProtocolReader {
             }
             ch = input.read();
         }
+    }
 
+    private Response parseUnknownResponseBody(String code, String requestId) throws ProtocolException, IOException {
+        skipToBodyEnd();
         Response resp = new Response(Response.MessageType.UnknownResponse, requestId);
         resp.setResponseCode(code);
         return resp;
     }
 
-    public Response parseNextResponse() throws IOException {
+    public Response parseNextResponse() throws IOException, ProtocolException {
+        waitForReady();
         eatEscChar('<');
         String code = readAsciiStringToEscape();
         eatEscChar(':');
