@@ -4,8 +4,11 @@
  */
 package quanto.core.protocol;
 
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedList;
+import static quanto.core.protocol.Utils.*;
 
 /**
  *
@@ -43,28 +46,10 @@ public class RequestBuilder
         components.add(comp);
         messageLength += comp.length;
     }
-    
-    private byte[] convertAsciiString(String str)
-    {
-        try {
-            return str.getBytes("US-ASCII");
-        } catch (UnsupportedEncodingException ex) {
-            throw new Error("The Java environment does not support the required US-ASCII encoding.");
-        }
-    }
-    
-    private byte[] convertUtf8String(String str)
-    {
-        try {
-            return str.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            throw new Error("The Java environment does not support the required UTF-8 encoding.");
-        }
-    }
 
     private byte[] convertInt(int i)
     {
-        return convertAsciiString(Integer.toString(i));
+        return stringToAscii(Integer.toString(i));
     }
 
     // only ASCII!!!
@@ -100,11 +85,30 @@ public class RequestBuilder
 
     public void addDataChunk(String data)
     {
-        addDataChunk(convertUtf8String(data));
+        addDataChunk(stringToUtf8(data));
     }
 
     public void addString(String data)
     {
-        addComponent(convertUtf8String(data));
+        addComponent(stringToUtf8(data));
+    }
+
+    public void addStringList(String[] items) throws IOException
+    {
+        addStringList(Arrays.asList(items));
+    }
+
+    public void addStringList(Collection<String> items) throws IOException
+    {
+        addComponent(convertInt(items.size()));
+        addEscapedChar(':');
+        boolean first = true;
+        for (String item : items) {
+            if (!first) {
+                addEscapedChar(',');
+            }
+            addString(item);
+            first = false;
+        }
     }
 }

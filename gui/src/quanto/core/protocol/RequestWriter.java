@@ -4,9 +4,11 @@
  */
 package quanto.core.protocol;
 
+import java.util.Collection;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import static quanto.core.protocol.Utils.*;
 
 /**
  *
@@ -21,28 +23,10 @@ public class RequestWriter
     public RequestWriter(OutputStream output) {
         this.output = output;
     }
-    
-    private byte[] convertAsciiString(String str)
-    {
-        try {
-            return str.getBytes("US-ASCII");
-        } catch (UnsupportedEncodingException ex) {
-            throw new Error("The Java environment does not support the required US-ASCII encoding.");
-        }
-    }
-    
-    private byte[] convertUtf8String(String str)
-    {
-        try {
-            return str.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException ex) {
-            throw new Error("The Java environment does not support the required UTF-8 encoding.");
-        }
-    }
 
     private byte[] convertInt(int i)
     {
-        return convertAsciiString(Integer.toString(i));
+        return stringToAscii(Integer.toString(i));
     }
 
     public void addHeader(String code, String requestId) throws IOException
@@ -50,9 +34,9 @@ public class RequestWriter
         assert !inMessage;
         inMessage = true;
         addEscapedChar('<');
-        output.write(convertAsciiString(code));
+        output.write(stringToAscii(code));
         addEscapedChar(':');
-        output.write(convertUtf8String(requestId));
+        output.write(stringToUtf8(requestId));
         addEscapedChar('|');
     }
 
@@ -91,12 +75,32 @@ public class RequestWriter
 
     public void addDataChunk(String data) throws IOException
     {
-        addDataChunk(convertUtf8String(data));
+        addDataChunk(stringToUtf8(data));
     }
 
     public void addString(String data) throws IOException
     {
         assert inMessage;
-        output.write(convertUtf8String(data));
+        output.write(stringToUtf8(data));
+    }
+
+    public void addStringList(String[] items) throws IOException
+    {
+        addStringList(Arrays.asList(items));
+    }
+
+    public void addStringList(Collection<String> items) throws IOException
+    {
+        assert inMessage;
+        output.write(convertInt(items.size()));
+        addEscapedChar(':');
+        boolean first = true;
+        for (String item : items) {
+            if (!first) {
+                addEscapedChar(',');
+            }
+            output.write(stringToUtf8(item));
+            first = false;
+        }
     }
 }
