@@ -641,10 +641,7 @@ public class InteractiveGraphView
 
 	public void addEdge(Vertex s, Vertex t) {
 		try {
-			if (directedEdges)
-				core.addEdge(getGraph(), "dir",s, t);
-			else
-				core.addEdge(getGraph(), "undir",s, t);
+                        core.addEdge(getGraph(), directedEdges, s, t);
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());

@@ -1,7 +1,6 @@
 package quanto.gui;
 
 import quanto.core.ConsoleInterface;
-import quanto.core.CoreTalker;
 import quanto.core.Completer;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -20,6 +19,7 @@ import javax.swing.event.CaretListener;
 import javax.swing.text.JTextComponent;
 import quanto.core.CoreException;
 import quanto.core.ParseException;
+import quanto.core.protocol.ProtocolManager;
 
 public class ConsoleView extends InteractiveView {
 
@@ -160,7 +160,7 @@ public class ConsoleView extends InteractiveView {
                 }
         }
 
-	public ConsoleView(final QuantoApp app, CoreTalker core) {
+	public ConsoleView(final QuantoApp app, ProtocolManager core) {
 		super("console");
 
 		this.setLayout(new BorderLayout());

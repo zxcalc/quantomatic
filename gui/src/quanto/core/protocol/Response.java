@@ -11,6 +11,12 @@ import static quanto.core.protocol.Utils.*;
  * @author alex
  */
 public class Response {
+    public class RewriteXml {
+        String ruleApplied;
+        String newGraphXml;
+        String instantiatedRuleLhs;
+        String instantiatedRuleRhs;
+    }
     public enum MessageType {
         Error,
         Ok,

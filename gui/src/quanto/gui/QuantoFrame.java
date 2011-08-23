@@ -260,23 +260,23 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void openTheory() {
-		File f = app.openFile(this, "Select theory file", app.DIR_THEORY);
-			if (f != null) {
-				TheoryParser theoryParser;
-				try {
-					theoryParser = new TheoryParser(f.getAbsolutePath());
-					app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-					app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
-				} catch (SAXException e) {
-					app.errorDialog(e.toString());
-				} catch (IOException e) {
-					app.errorDialog(e.toString());
-				}
-				//TODO Do something to let the core know that we're using another graph_param
-				//Open a new graph as well...
-				app.createNewFrame();
-				this.closeCurrentView();
-			}
+		File f = app.openFile(this, "Select theory file", QuantoApp.DIR_THEORY);
+                if (f != null) {
+                        try {
+                                TheoryParser theoryParser = new TheoryParser(f.getAbsolutePath());
+                                app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
+                                app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
+                                //Open a new graph as well...
+                                app.createNewFrame();
+                                this.closeCurrentView();
+                        } catch (SAXException e) {
+                                app.errorDialog(e.toString());
+                        } catch (IOException e) {
+                                app.errorDialog(e.toString());
+                        } catch (CoreException e) {
+                                app.errorDialog(e.toString());
+                        }
+                }
 	}
 	
 	@Override

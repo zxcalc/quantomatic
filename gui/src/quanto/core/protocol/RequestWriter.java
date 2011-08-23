@@ -18,6 +18,7 @@ public class RequestWriter
 {
     private OutputStream output;
     private boolean inMessage = false;
+    private boolean argNeedsClosing = false;
     public static final byte ESC = '\u001b';
 
     public RequestWriter(OutputStream output) {
@@ -40,32 +41,41 @@ public class RequestWriter
         addEscapedChar('|');
     }
 
+    private void closeArg() throws IOException
+    {
+        if (argNeedsClosing)
+            addEscapedChar(';');
+    }
+
     // only ASCII!!!
-    public void addEscapedChar(char ch) throws IOException
+    private void addEscapedChar(char ch) throws IOException
     {
         assert ch < 128;
         assert inMessage;
+        closeArg();
         output.write(ESC);
         output.write(ch);
     }
 
-    public void addDelim() throws IOException
+    public void addEmptyArg() throws IOException
     {
         assert inMessage;
-        addEscapedChar(';');
+        argNeedsClosing = true;
     }
 
     public void closeMessage() throws IOException
     {
         assert inMessage;
+        argNeedsClosing = false;
         addEscapedChar('>');
         inMessage = false;
         output.flush();
     }
 
-    public void addDataChunk(byte[] data) throws IOException
+    private void addDataChunk(byte[] data) throws IOException
     {
         assert inMessage;
+        closeArg();
         addEscapedChar('[');
         output.write(convertInt(data.length));
         addEscapedChar('|');
@@ -73,25 +83,47 @@ public class RequestWriter
         addEscapedChar(']');
     }
 
-    public void addDataChunk(String data) throws IOException
+    public void addDataChunkArg(byte[] data) throws IOException
+    {
+        addDataChunk(data);
+        argNeedsClosing = true;
+    }
+
+    public void addDataChunkArg(String data) throws IOException
     {
         addDataChunk(stringToUtf8(data));
+        argNeedsClosing = true;
     }
 
-    public void addString(String data) throws IOException
+    public void addTaggedDataChunkArg(char tag, byte[] data) throws IOException
+    {
+        addEscapedChar(tag);
+        addDataChunkArg(data);
+    }
+
+    public void addTaggedDataChunkArg(char tag, String data) throws IOException
+    {
+        addEscapedChar(tag);
+        addDataChunkArg(data);
+    }
+
+    public void addStringArg(String data) throws IOException
     {
         assert inMessage;
+        closeArg();
         output.write(stringToUtf8(data));
+        argNeedsClosing = true;
     }
 
-    public void addStringList(String[] items) throws IOException
+    public void addStringListArg(String[] items) throws IOException
     {
-        addStringList(Arrays.asList(items));
+        addStringListArg(Arrays.asList(items));
     }
 
-    public void addStringList(Collection<String> items) throws IOException
+    public void addStringListArg(Collection<String> items) throws IOException
     {
         assert inMessage;
+        closeArg();
         output.write(convertInt(items.size()));
         addEscapedChar(':');
         boolean first = true;
@@ -102,5 +134,14 @@ public class RequestWriter
             output.write(stringToUtf8(item));
             first = false;
         }
+        argNeedsClosing = true;
+    }
+
+    public void addIntArg(int value) throws IOException
+    {
+        assert inMessage;
+        closeArg();
+        output.write(stringToAscii(Integer.toString(value)));
+        argNeedsClosing = true;
     }
 }

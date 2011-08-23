@@ -26,13 +26,27 @@ public class ProtocolReader {
     }
 
     private void eatEsc() throws ProtocolException, IOException {
-        if (input.read() != ESC)
-            throw new ProtocolException("Expected ESC");
+        int gotCh = input.read();
+        if (gotCh != ESC) {
+            if (gotCh == -1)
+                throw new ProtocolException("Expected ESC, got EOF");
+            else if (Character.isISOControl(gotCh))
+                throw new ProtocolException("Expected ESC, got " + Character.getName(gotCh));
+            else
+                throw new ProtocolException("Expected ESC, got " + gotCh);
+        }
     }
 
     private void eatChar(char ch) throws ProtocolException, IOException {
-        if (input.read() != ch)
-            throw new ProtocolException("Expected " + ch);
+        int gotCh = input.read();
+        if (gotCh != ch) {
+            if (gotCh == -1)
+                throw new ProtocolException("Expected " + ch + ", got EOF");
+            else if (Character.isISOControl(gotCh))
+                throw new ProtocolException("Expected " + ch + ", got " + Character.getName(gotCh));
+            else
+                throw new ProtocolException("Expected " + ch + ", got " + (char)gotCh);
+        }
     }
 
     private void eatEscChar(char ch) throws ProtocolException, IOException {
@@ -146,9 +160,14 @@ public class ProtocolReader {
         return version;
     }
 
+    private void eatDelim() throws IOException, ProtocolException {
+        eatEscChar(';');
+    }
+
     private Response parseErrorResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Error, requestId);
         resp.setErrorCode(readAsciiStringToEscape());
+        eatDelim();
         resp.setErrorMessage(readStringToEscape());
         return resp;
     }
@@ -166,6 +185,7 @@ public class ProtocolReader {
     private Response parseConsoleHelpResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.ConsoleHelp, requestId);
         resp.setCommandArgs(readStringToEscape());
+        eatDelim();
         resp.setCommandHelp(readStringToEscape());
         return resp;
     }
@@ -239,6 +259,8 @@ public class ProtocolReader {
                     input.reset();
                     break;
                 }
+                esc = false;
+                input.mark(2);
             } else if (ch == ESC) {
                 esc = true;
             } else {
@@ -263,7 +285,7 @@ public class ProtocolReader {
         String requestId = readStringToEscape();
         eatEscChar('|');
         Response resp;
-        if (code.equals("E"))
+        if (code.equals("Q"))
             resp = parseErrorResponseBody(requestId);
         else if (code.equals("O"))
             resp = parseOkResponseBody(requestId);

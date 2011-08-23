@@ -45,8 +45,8 @@ public class Ruleset implements ChangeEventSupport {
 	}
 
 	private void loadRules() throws CoreException {
-		String[] allrules = core.getTalker().list_rules();
-		Set<String> activeRules = new HashSet<String>(Arrays.<String>asList(core.getTalker().list_active_rules()));
+		String[] allrules = core.getTalker().listRules();
+		Set<String> activeRules = new HashSet<String>(Arrays.<String>asList(core.getTalker().listActiveRules()));
 		rules = new TreeMap<String, Boolean>();
 		for (String rule : allrules) {
 			rules.put(rule, Boolean.valueOf(activeRules.contains(rule)));
@@ -61,7 +61,7 @@ public class Ruleset implements ChangeEventSupport {
 
 	private void loadTag(String tag) throws CoreException {
 		ensureTagListLoaded();
-		String[] tagrules = core.getTalker().list_rules_with_tag(tag);
+		String[] tagrules = core.getTalker().listRulesByTag(tag);
 		if (tagrules != null && tagrules.length > 0) {
 			tags.put(tag, new HashSet<String>(Arrays.<String>asList(tagrules)));
 		}
@@ -75,7 +75,7 @@ public class Ruleset implements ChangeEventSupport {
 
 	private void loadTagList() throws CoreException {
 		tags = new TreeMap<String,Set<String>>();
-		String[] allTags = core.getTalker().list_tags();
+		String[] allTags = core.getTalker().listTags();
 		for (String tag : allTags) {
 			tags.put(tag, null);
 		}
@@ -137,12 +137,12 @@ public class Ruleset implements ChangeEventSupport {
 	}
 
 	public void activateRulesByTag(String tag) throws CoreException {
-		core.getTalker().activate_rules_with_tag(tag);
+		core.getTalker().activateRulesByTag(tag);
 		updateCacheByTag(tag, Boolean.TRUE);
 	}
 
 	public void deactivateRulesByTag(String tag) throws CoreException {
-		core.getTalker().deactivate_rules_with_tag(tag);
+		core.getTalker().deactivateRulesByTag(tag);
 		updateCacheByTag(tag, Boolean.FALSE);
 	}
 
@@ -157,18 +157,18 @@ public class Ruleset implements ChangeEventSupport {
 	}
 
 	public void activateRule(String name) throws CoreException {
-		core.getTalker().activate_rule(name);
+		core.getTalker().activateRule(name);
 		updateCacheForRule(name, Boolean.TRUE);
 	}
 
 	public void deactivateRule(String name) throws CoreException {
-		core.getTalker().deactivate_rule(name);
+		core.getTalker().deactivateRule(name);
 		updateCacheForRule(name, Boolean.FALSE);
 	}
 
 	public void activateAllRules() throws CoreException {
 		for (String name: rules.keySet()) {
-			core.getTalker().activate_rule(name);
+			core.getTalker().activateRule(name);
 			rules.put(name, Boolean.TRUE);
 		}
 		fireStateChanged();
@@ -176,7 +176,7 @@ public class Ruleset implements ChangeEventSupport {
 
 	public void deactivateAllRules() throws CoreException {
 		for (String name: rules.keySet()) {
-			core.getTalker().deactivate_rule(name);
+			core.getTalker().deactivateRule(name);
 			rules.put(name, Boolean.FALSE);
 		}
 		fireStateChanged();
@@ -187,7 +187,7 @@ public class Ruleset implements ChangeEventSupport {
 			throw new IllegalArgumentException("ruleNames contains unknown rules");
 		}
 		for (String name: ruleNames) {
-			core.getTalker().activate_rule(name);
+			core.getTalker().activateRule(name);
 			rules.put(name, Boolean.TRUE);
 		}
 		fireStateChanged();
@@ -198,7 +198,7 @@ public class Ruleset implements ChangeEventSupport {
 			throw new IllegalArgumentException("ruleNames contains unknown rules");
 		}
 		for (String name: ruleNames) {
-			core.getTalker().deactivate_rule(name);
+			core.getTalker().deactivateRule(name);
 			rules.put(name, Boolean.FALSE);
 		}
 		fireStateChanged();

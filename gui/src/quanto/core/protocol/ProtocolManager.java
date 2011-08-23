@@ -6,6 +6,7 @@ package quanto.core.protocol;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import quanto.core.CommandException;
@@ -20,45 +21,48 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alemer
  */
-public class ProtocolManager
-{
-	private final static Logger logger = Logger.getLogger("quanto.core.protocol");
+public class ProtocolManager {
 
-	public static String quantoCoreExecutable = "quanto-core";
-
+    private final static Logger logger = Logger.getLogger("quanto.core.protocol");
+    public static String quantoCoreExecutable = "quanto-core";
     private DebugInputStream dbgInputStream;
     private DebugOutputStream dbgOutputStream;
     private RequestWriter writer;
     private ProtocolReader reader;
     private Process backend;
     private int nextRequestId = 1;
+    private boolean debuggingEnabled = true;
 
     public ProtocolManager() throws CoreException {
     }
 
     public void startCore() throws CoreException {
-		try {
-			ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable, "--protocol");
+        try {
+            ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable, "--protocol");
 
-			pb.redirectErrorStream(false);
-			logger.log(Level.FINEST, "Starting {0}...", quantoCoreExecutable);
-			backend = pb.start();
-			logger.log(Level.FINEST, "{0} started successfully", quantoCoreExecutable);
+            pb.redirectErrorStream(false);
+            logger.log(Level.FINEST, "Starting {0}...", quantoCoreExecutable);
+            backend = pb.start();
+            logger.log(Level.FINEST, "{0} started successfully", quantoCoreExecutable);
 
             new StreamRedirector(backend.getErrorStream(), System.err).start();
+
             dbgInputStream = new DebugInputStream(backend.getInputStream());
+            dbgInputStream.setDebuggingActive(debuggingEnabled);
             reader = new ProtocolReader(dbgInputStream);
+
             dbgOutputStream = new DebugOutputStream(backend.getOutputStream());
+            dbgOutputStream.setDebuggingActive(debuggingEnabled);
             writer = new RequestWriter(dbgOutputStream);
-		} catch (IOException e) {
-			logger.log(Level.SEVERE,
-					   "Could not execute \"" + quantoCoreExecutable + "\": " +
-					   e.getMessage(),
-					   e);
-			throw new CoreExecutionException(String.format(
-					"Could not execute \"%1$\": %2$", quantoCoreExecutable,
-					e.getMessage()), e);
-		}
+        } catch (IOException e) {
+            logger.log(Level.SEVERE,
+                    "Could not execute \"" + quantoCoreExecutable + "\": "
+                    + e.getMessage(),
+                    e);
+            throw new CoreExecutionException(String.format(
+                    "Could not execute \"%1$\": %2$", quantoCoreExecutable,
+                    e.getMessage()), e);
+        }
 
         try {
             reader.waitForReady();
@@ -66,74 +70,78 @@ public class ProtocolManager
                     "The core is running version {} of the protocol",
                     reader.getVersion());
             // FIXME: we should check that the core is running the version we expect
-		} catch (IOException e) {
-			logger.log(Level.SEVERE,
-                       "The core failed to initiate the protocol correctly",
-					   e);
-			throw new CoreExecutionException(
-                       "The core failed to initiate the protocol correctly",
-					   e);
-		}
+        } catch (IOException e) {
+            logger.log(Level.SEVERE,
+                    "The core failed to initiate the protocol correctly",
+                    e);
+            throw new CoreExecutionException(
+                    "The core failed to initiate the protocol correctly",
+                    e);
+        }
     }
 
     public void setDebuggingEnabled(boolean enabled) {
-        dbgInputStream.setDebuggingActive(enabled);
-        dbgOutputStream.setDebuggingActive(enabled);
+        debuggingEnabled = enabled;
+        if (backend != null) {
+            dbgInputStream.setDebuggingActive(enabled);
+            dbgOutputStream.setDebuggingActive(enabled);
+        }
     }
 
     public boolean isDebuggingEnabled() {
-        return dbgInputStream.isDebuggingActive();
+        return debuggingEnabled;
     }
 
-	private CoreCommunicationException writeFailure(Throwable e) {
-		try {
-			logger.log(Level.SEVERE,
-					"Tried to write to core process, but it has terminated (exit value: {0})",
-					backend.exitValue());
-			// Not much we can do: throw an exception
-			return new CoreTerminatedException();
-		} catch (IllegalThreadStateException ex) {
-			logger.log(Level.SEVERE,
-					   "Failed to write to core process, even though it has not terminated");
-			return new CoreCommunicationException();
-		}
-	}
+    private CoreCommunicationException writeFailure(Throwable e) {
+        try {
+            logger.log(Level.SEVERE,
+                    "Tried to write to core process, but it has terminated (exit value: {0})",
+                    backend.exitValue());
+            // Not much we can do: throw an exception
+            return new CoreTerminatedException();
+        } catch (IllegalThreadStateException ex) {
+            logger.log(Level.SEVERE,
+                    "Failed to write to core process, even though it has not terminated");
+            return new CoreCommunicationException();
+        }
+    }
 
-	private CoreCommunicationException readFailure(Throwable e)  {
-		try {
-			logger.log(Level.SEVERE, "Core process terminated with exit value {0}",
-					backend.exitValue());
-			return new CoreTerminatedException(e);
-		} catch (IllegalThreadStateException ex) {
-			return new CoreCommunicationException(e);
-		}
-	}
+    private CoreCommunicationException readFailure(Throwable e) {
+        try {
+            logger.log(Level.SEVERE, "Core process terminated with exit value {0}",
+                    backend.exitValue());
+            return new CoreTerminatedException(e);
+        } catch (IllegalThreadStateException ex) {
+            return new CoreCommunicationException(e);
+        }
+    }
 
-	private static class ProcessCleanupThread extends Thread {
-		private Process process;
+    private static class ProcessCleanupThread extends Thread {
 
-		public ProcessCleanupThread(Process process) {
-			super("Process cleanup thread");
-			this.process = process;
-		}
+        private Process process;
 
-		@Override
-		public void run() {
-			try {
+        public ProcessCleanupThread(Process process) {
+            super("Process cleanup thread");
+            this.process = process;
+        }
+
+        @Override
+        public void run() {
+            try {
                 logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
-				sleep(5000);
-			} catch (InterruptedException ex) {
+                sleep(5000);
+            } catch (InterruptedException ex) {
                 logger.log(Level.FINER, "Thread interupted");
-			}
+            }
             logger.log(Level.FINER, "Forcibly terminating the core process");
-			process.destroy();
-		}
-	}
+            process.destroy();
+        }
+    }
 
-	/**
-	 * Quits the core process, and releases associated resources
-	 */
-	public void killCore() {
+    /**
+     * Quits the core process, and releases associated resources
+     */
+    public void killCore() {
         if (backend != null) {
             logger.log(Level.FINEST, "Shutting down the core process");
             try {
@@ -145,7 +153,7 @@ public class ProtocolManager
             }
             backend = null;
         }
-	}
+    }
 
     private String generateRequestId() {
         return Integer.toString(nextRequestId++);
@@ -184,13 +192,17 @@ public class ProtocolManager
     private String[] getNameListResponse() throws CoreException {
         return getResponse(Response.MessageType.NameList).getStringListData();
     }
- 
+
     private byte[] getRawDataResponse() throws CoreException {
         return getResponse(Response.MessageType.RawData).getByteData();
     }
- 
+
     private String getXmlResponse() throws CoreException {
         return utf8ToString(getResponse(Response.MessageType.Xml).getByteData());
+    }
+
+    private int getCountResponse() throws CoreException {
+        return getResponse(Response.MessageType.Count).getIntData();
     }
 
     /**
@@ -201,12 +213,13 @@ public class ProtocolManager
      * @throws CoreException there was a communication error with the core
      */
     public String consoleCommand(String command) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("CC", generateRequestId());
-            writer.addDataChunk(command);
+            writer.addDataChunkArg(command);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -217,8 +230,9 @@ public class ProtocolManager
     }
 
     public String[] consoleCommandList() throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("CL", generateRequestId());
@@ -231,19 +245,20 @@ public class ProtocolManager
     }
 
     public String[] consoleHelp(String command) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("CH", generateRequestId());
-            writer.addString(command);
+            writer.addStringArg(command);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
         Response resp = getResponse(Response.MessageType.ConsoleHelp);
-        String[] result = new String[] {
+        String[] result = new String[]{
             resp.getCommandArgs(),
             resp.getCommandHelp()
         };
@@ -251,12 +266,13 @@ public class ProtocolManager
     }
 
     public void changeTheory(String theory) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
-            writer.addHeader("T", generateRequestId());
-            writer.addString(theory);
+            writer.addHeader("TS", generateRequestId());
+            writer.addStringArg(theory);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -264,9 +280,24 @@ public class ProtocolManager
         getOkResponse();
     }
 
-    public String[] listGraphs() throws CoreException {
-        if (backend == null)
+    public String currentTheory() throws CoreException {
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("TG", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+        return getNameResponse();
+    }
+
+    public String[] listGraphs() throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GL", generateRequestId());
@@ -278,14 +309,20 @@ public class ProtocolManager
         return getNameListResponse();
     }
 
+    public String loadEmptyGraph() throws CoreException {
+        return loadEmptyGraph(null);
+    }
+
     public String loadEmptyGraph(String suggestedName) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GOE", generateRequestId());
-            if (suggestedName != null)
-                writer.addString(suggestedName);
+            if (suggestedName != null) {
+                writer.addStringArg(suggestedName);
+            }
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -295,12 +332,13 @@ public class ProtocolManager
     }
 
     public String loadGraphFromFile(String fileName) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GOF", generateRequestId());
-            writer.addString(fileName);
+            writer.addStringArg(fileName);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -310,12 +348,13 @@ public class ProtocolManager
     }
 
     public String loadGraphFromData(byte[] data) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GOD", generateRequestId());
-            writer.addDataChunk(data);
+            writer.addDataChunkArg(data);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -325,12 +364,13 @@ public class ProtocolManager
     }
 
     public String copyGraph(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GOG", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -340,14 +380,15 @@ public class ProtocolManager
     }
 
     public void copySubgraphAndOverwrite(String from, String to, Collection<String> vertexNames) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GOS", generateRequestId());
-            writer.addString(from);
-            writer.addString(to);
-            writer.addStringList(vertexNames);
+            writer.addStringArg(from);
+            writer.addStringArg(to);
+            writer.addStringListArg(vertexNames);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -356,13 +397,15 @@ public class ProtocolManager
         getOkResponse();
     }
 
-    public void saveGraphToFile(String graph) throws CoreException {
-        if (backend == null)
+    public void saveGraphToFile(String graph, String filename) throws CoreException {
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GS", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
+            writer.addStringArg(filename);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -372,13 +415,14 @@ public class ProtocolManager
     }
 
     public String renameGraph(String from, String to) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GR", generateRequestId());
-            writer.addString(from);
-            writer.addString(to);
+            writer.addStringArg(from);
+            writer.addStringArg(to);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -388,12 +432,13 @@ public class ProtocolManager
     }
 
     public void discardGraph(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GD", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -403,13 +448,14 @@ public class ProtocolManager
     }
 
     public byte[] saveGraphToData(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GE", generateRequestId());
-            writer.addString("native");
-            writer.addString(graph);
+            writer.addStringArg("native");
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -419,6 +465,7 @@ public class ProtocolManager
     }
 
     public enum GraphExportFormat {
+
         HilbertTerm,
         Mathematica,
         Matlab,
@@ -426,28 +473,29 @@ public class ProtocolManager
     }
 
     public String exportGraph(String graph, GraphExportFormat format) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GE", generateRequestId());
             switch (format) {
                 case HilbertTerm:
-                    writer.addString("hilb");
+                    writer.addStringArg("hilb");
                     break;
                 case Mathematica:
-                    writer.addString("mathematica");
+                    writer.addStringArg("mathematica");
                     break;
                 case Matlab:
-                    writer.addString("matlab");
+                    writer.addStringArg("matlab");
                     break;
                 case Tikz:
-                    writer.addString("tikz");
+                    writer.addStringArg("tikz");
                     break;
                 default:
                     throw new IllegalArgumentException("Bad format");
             }
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -456,13 +504,31 @@ public class ProtocolManager
         return utf8ToString(getRawDataResponse());
     }
 
-    public String[] listVertices(String graph) throws CoreException {
-        if (backend == null)
+    public String exportGraphAsXml(String graph) throws CoreException {
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GE", generateRequestId());
+            writer.addStringArg("xml");
+            writer.addStringArg(graph);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getXmlResponse();
+    }
+
+    public String[] listVertices(String graph) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVV", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -472,12 +538,13 @@ public class ProtocolManager
     }
 
     public String[] listEdges(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVE", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -487,12 +554,13 @@ public class ProtocolManager
     }
 
     public String[] listBangBoxes(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVB", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -502,14 +570,15 @@ public class ProtocolManager
     }
 
     public String vertexDataAsXml(String graph, String vertex) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVW", generateRequestId());
-            writer.addString(graph);
-            writer.addString(vertex);
-            writer.addString("xml");
+            writer.addStringArg(graph);
+            writer.addStringArg(vertex);
+            writer.addStringArg("xml");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -519,13 +588,14 @@ public class ProtocolManager
     }
 
     public String vertexUserData(String graph, String vertex) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVX", generateRequestId());
-            writer.addString(graph);
-            writer.addString(vertex);
+            writer.addStringArg(graph);
+            writer.addStringArg(vertex);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -535,14 +605,15 @@ public class ProtocolManager
     }
 
     public String edgeDataAsXml(String graph, String edge) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVF", generateRequestId());
-            writer.addString(graph);
-            writer.addString(edge);
-            writer.addString("xml");
+            writer.addStringArg(graph);
+            writer.addStringArg(edge);
+            writer.addStringArg("xml");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -552,13 +623,14 @@ public class ProtocolManager
     }
 
     public String edgeUserData(String graph, String edge) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVG", generateRequestId());
-            writer.addString(graph);
-            writer.addString(edge);
+            writer.addStringArg(graph);
+            writer.addStringArg(edge);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -568,13 +640,14 @@ public class ProtocolManager
     }
 
     public String[] bangBoxVertices(String graph, String bangBox) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVC", generateRequestId());
-            writer.addString(graph);
-            writer.addString(bangBox);
+            writer.addStringArg(graph);
+            writer.addStringArg(bangBox);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -584,13 +657,14 @@ public class ProtocolManager
     }
 
     public String bangBoxUserData(String graph, String bangBox) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GVD", generateRequestId());
-            writer.addString(graph);
-            writer.addString(bangBox);
+            writer.addStringArg(graph);
+            writer.addStringArg(bangBox);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -600,12 +674,13 @@ public class ProtocolManager
     }
 
     public void undo(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GMU", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -615,12 +690,743 @@ public class ProtocolManager
     }
 
     public void redo(String graph) throws CoreException {
-        if (backend == null)
+        if (backend == null) {
             throw new IllegalStateException("The core is not running");
+        }
 
         try {
             writer.addHeader("GMR", generateRequestId());
-            writer.addString(graph);
+            writer.addStringArg(graph);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void insertGraph(String target, String source) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMI", generateRequestId());
+            writer.addStringArg(target);
+            writer.addStringArg(source);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public String addVertex(String graph, String vertexType) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMVA", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(vertexType);
+            writer.addStringArg("xml");
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getXmlResponse();
+    }
+
+    public String renameVertex(String graph, String from, String to) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMVR", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(from);
+            writer.addStringArg(to);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public void deleteVertices(String graph, Collection<String> vertices) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMVD", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(vertices);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void setVertexData(String graph, String vertex, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMVS", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(vertex);
+            writer.addTaggedDataChunkArg('S', data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void setVertexUserData(String graph, String vertex, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMVU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(vertex);
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public String addEdge(String graph, String edgeType, boolean directed, String sourceVertex, String targetVertex) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMEA", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(edgeType);
+            writer.addStringArg(directed ? "d" : "u");
+            writer.addStringArg(sourceVertex);
+            writer.addStringArg(targetVertex);
+            writer.addStringArg("xml");
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getXmlResponse();
+    }
+
+    public String renameEdge(String graph, String from, String to) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMER", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(from);
+            writer.addStringArg(to);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public void deleteEdges(String graph, Collection<String> edges) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMED", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(edges);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void setEdgeData(String graph, String edge, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMES", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(edge);
+            writer.addTaggedDataChunkArg('S', data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void setEdgeUserData(String graph, String edge, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMEU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(edge);
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public String addBangBox(String graph, Collection<String> vertices) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBA", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(vertices != null ? vertices : Collections.<String>emptyList());
+            writer.addStringArg("xml");
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getXmlResponse();
+    }
+
+    public String renameBangBox(String graph, String from, String to) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBR", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(from);
+            writer.addStringArg(to);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public void dropBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBD", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(bangBoxes);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void killBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBK", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(bangBoxes);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public String duplicateBangBox(String graph, String bangBox) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBC", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(bangBox);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public String mergeBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBK", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(bangBoxes);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public void bangVertices(String graph, String bangBox, Collection<String> vertices) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBB", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(bangBox);
+            writer.addStringListArg(vertices);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void unbangVertices(String graph, Collection<String> vertices) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBL", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(vertices);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void setBangBoxUserData(String graph, String bangBox, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMBU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(bangBox);
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void importRulesetFromFile(String fileName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSO", generateRequestId());
+            writer.addStringArg(fileName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void importRulesetFromData(byte[] data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSI", generateRequestId());
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void exportRulesetToFile(String fileName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSS", generateRequestId());
+            writer.addStringArg(fileName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public byte[] exportRulesetToData() throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSE", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getRawDataResponse();
+    }
+
+    public String[] listRules() throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRL", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameListResponse();
+    }
+
+    public String[] listActiveRules() throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRA", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameListResponse();
+    }
+
+    public String openRuleLhs(String rule) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRP", generateRequestId());
+            writer.addStringArg(rule);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public String openRuleRhs(String rule) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRQ", generateRequestId());
+            writer.addStringArg(rule);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+
+    public void setRule(String ruleName, String lhsGraph, String rhsGraph) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRU", generateRequestId());
+            writer.addStringArg(ruleName);
+            writer.addStringArg(lhsGraph);
+            writer.addStringArg(rhsGraph);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void deleteRule(String ruleName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRD", generateRequestId());
+            writer.addStringArg(ruleName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void activateRule(String ruleName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSY", generateRequestId());
+            writer.addStringArg(ruleName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void deactivateRule(String ruleName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSN", generateRequestId());
+            writer.addStringArg(ruleName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public String[] listTags() throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTL", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameListResponse();
+    }
+
+    public String[] listRulesByTag(String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTR", generateRequestId());
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameListResponse();
+    }
+
+    public void tagRule(String ruleName, String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTT", generateRequestId());
+            writer.addStringArg(ruleName);
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void untagRule(String ruleName, String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTU", generateRequestId());
+            writer.addStringArg(ruleName);
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void forgetTag(String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTF", generateRequestId());
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void deleteRulesByTag(String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTD", generateRequestId());
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void activateRulesByTag(String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTY", generateRequestId());
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void deactivateRulesByTag(String tag) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RTN", generateRequestId());
+            writer.addStringArg(tag);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public int attachRewrites(String graph) throws CoreException {
+        return attachRewrites(graph, Collections.<String>emptyList());
+    }
+
+    public int attachRewrites(String graph, Collection<String> vertices) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("WA", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(vertices);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getCountResponse();
+    }
+
+    public int attachOneRewrite(String graph, Collection<String> vertices) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("WO", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringListArg(vertices);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getCountResponse();
+    }
+
+    public void applyAttachedRewrite(String graph, int offset) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("WW", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addIntArg(offset);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);

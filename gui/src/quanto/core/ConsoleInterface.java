@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import quanto.core.protocol.ProtocolManager;
 
 /**
  * Simulates a console interface to the core backend
@@ -24,31 +25,22 @@ public class ConsoleInterface {
 		public void responseReceived(String response);
 	}
 
-	private CoreTalker core;
+	private ProtocolManager core;
 	private ResponseListener responseListener;
 	private Completer completer;
 
-	public ConsoleInterface(CoreTalker core) {
+	public ConsoleInterface(ProtocolManager core) {
 		this.core = core;
 
-		// Construct the completion engine from the output of the help command.
 		completer = new Completer();
-		logger.finest("Retrieving commands...");
 
 		try {
-			// FIXME: we need a command_list command
-			String result = core.commandAsRaw("help");
-			BufferedReader reader = new BufferedReader(new StringReader(result));
-			// eat a couple of lines of description
-			reader.readLine();
-			reader.readLine();
-			for (String ln = reader.readLine(); ln != null; ln = reader
-					.readLine())
-				if (!ln.equals(""))
-					completer.addWord(ln);
+                        logger.finest("Retrieving commands...");
+                        String[] commands = core.consoleCommandList();
+			for (String cmd : commands) {
+                                completer.addWord(cmd);
+                        }
 			logger.finest("Commands retrieved successfully");
-		} catch (IOException ex) {
-			logger.log(Level.WARNING, "Failed to retreive commands for completion", ex);
 		} catch (CoreException ex) {
 			logger.log(Level.WARNING, "Failed to retreive commands for completion", ex);
 		}
@@ -84,11 +76,7 @@ public class ConsoleInterface {
 	public String inputCommandSync(String input, boolean notify)
 			throws CoreException, ParseException {
 		String ret;
-		try {
-			ret = core.console_command(input);
-		} catch (CommandException ex) {
-			ret = String.format("Error: %1$\n", ex.getMessage());
-		}
+                ret = core.consoleCommand(input);
 		if (notify && (responseListener != null)) {
 			responseListener.responseReceived(ret);
 		}
