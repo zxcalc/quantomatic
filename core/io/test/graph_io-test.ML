@@ -1,7 +1,18 @@
+(* Input/Output *)
+(* structure DB_RG_IO_Interface_v1 = IO_Interface(
+  structure Ruleset = RG_Theory.Ruleset
+
+  structure InputVertexData = InputRGVertexDataXML_v1(RG_Theory.Vertex)
+  structure OutputVertexData = OutputRGVertexDataXMLList_v1(RG_Theory.Vertex)
+
+  structure InputEdgeData = InputNoEdgeDataXML_v1(RG_Theory.Edge)
+  structure OutputEdgeData = OutputNoEdgeDataXMLList_v1(RG_Theory.Edge)
+); *)
+
 (* test IO construction *)
 structure Test_IO_Interface_v1 = struct
   structure Input = struct
-    structure InputVertexData = InputRGVertexDataXML_v1(Test_Graph.OVertex)
+    structure InputVertexData = InputTestVertexDataXML_v1(Test_Graph.OVertex)
     structure InputEdgeData = InputNoEdgeDataXML_v1(Test_Graph.Edge)
 
     structure Graph = InputGraphXML_v1(

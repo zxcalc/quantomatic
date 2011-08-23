@@ -1,7 +1,10 @@
+(* TODO: provide link to visualisation XML *)
+(* val rg_gui_spec_xml = XMLReader.read_from_file "gui.xml"; *)
+
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph Vertex.) *)
-signature RG_UNIFIABLE_DATA =    
+signature TEST_UNIFIABLE_DATA =    
 sig
   datatype qnd = Xnd of LinratExpr.T (* Red: defined using H of Z *) 
                | Znd of LinratExpr.T (* Green *)
@@ -13,7 +16,7 @@ sig
 end;
 
 (* reg-green vertex data *)
-structure RG_VertexData : RG_UNIFIABLE_DATA
+structure Test_VertexData : TEST_UNIFIABLE_DATA
 = struct
   exception unimplemented_exp of string;
 
@@ -48,7 +51,7 @@ structure RG_VertexData : RG_UNIFIABLE_DATA
       LinratExpr.match a1 a2 m
     | match_data _ _ = NONE;
   fun unify_data (x,y) m = 
-      raise unimplemented_exp "RGVertex.unify_data: has not yet been written.";
+      raise unimplemented_exp "Test_Vertex.unify_data: has not yet been written.";
   fun subst_in_data _ Hnd = Hnd
     | subst_in_data u (Xnd a) = Xnd (LinratExpr.subst u a)
     | subst_in_data u (Znd a) = Znd (LinratExpr.subst u a);
@@ -67,23 +70,23 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-structure RG_InternVertex
+structure Test_InternVertex
 : VERTEX
 = struct
   
-  open RG_VertexData;
+  open Test_VertexData;
   open SStrName;
 
   val default_name = mk "a";
-  val default_data = RG_VertexData.Xnd LinratExpr.zero;
+  val default_data = Test_VertexData.Xnd LinratExpr.zero;
 
   structure Map = NameMapFun(structure Dom = SStrName and Cod = SStrName);
   structure InjEndo = NameInjEndoFun(SStrName);
 
   structure SharingWithData = struct 
     open Sharing; 
-    type data = RG_VertexData.data;
-    type subst = RG_VertexData.subst;
+    type data = Test_VertexData.data;
+    type subst = Test_VertexData.subst;
     structure Map = Map.Sharing;
     structure InjEndo = InjEndo.Sharing;
   end;
@@ -93,24 +96,24 @@ structure RG_InternVertex
 end;
 
 (*  *)
-structure RG_VertexComponentData_Param
-: ELEMENT_COMPONENT_DATA_PARAM where type data = RG_VertexData.data
+structure Test_VertexComponentData_Param
+: ELEMENT_COMPONENT_DATA_PARAM where type data = Test_VertexData.data
 = struct 
-  type data = RG_VertexData.data;
+  type data = Test_VertexData.data;
   exception unknown_type_exp of string;
   exception unexpected_data_exp;
 
-  fun type_of (RG_VertexData.Xnd _) = "X"
-    | type_of (RG_VertexData.Znd _) = "Z"
-    | type_of (RG_VertexData.Hnd)   = "hadamard";
+  fun type_of (Test_VertexData.Xnd _) = "X"
+    | type_of (Test_VertexData.Znd _) = "Z"
+    | type_of (Test_VertexData.Hnd)   = "hadamard";
 
-  fun cdata_of (RG_VertexData.Xnd a) = (ComponentData.LinratExpr a)
-    | cdata_of (RG_VertexData.Znd a) = (ComponentData.LinratExpr a)
-    | cdata_of (RG_VertexData.Hnd)   = ComponentData.Unit;
+  fun cdata_of (Test_VertexData.Xnd a) = (ComponentData.LinratExpr a)
+    | cdata_of (Test_VertexData.Znd a) = (ComponentData.LinratExpr a)
+    | cdata_of (Test_VertexData.Hnd)   = ComponentData.Unit;
 
-  fun default_data "X" = (RG_VertexData.Xnd LinratExpr.zero)
-    | default_data "Z" = (RG_VertexData.Znd LinratExpr.zero)
-    | default_data "hadamard" = (RG_VertexData.Hnd)
+  fun default_data "X" = (Test_VertexData.Xnd LinratExpr.zero)
+    | default_data "Z" = (Test_VertexData.Znd LinratExpr.zero)
+    | default_data "hadamard" = (Test_VertexData.Hnd)
     | default_data s = raise unknown_type_exp s
 
   fun unwrapUpd upd a =
@@ -121,8 +124,8 @@ structure RG_VertexComponentData_Param
       unwrapLinrat (upd (ComponentData.LinratExpr a))
     end;
 
-  fun update upd (RG_VertexData.Xnd a) = (RG_VertexData.Xnd (unwrapUpd upd a))
-    | update upd (RG_VertexData.Znd a) = (RG_VertexData.Znd (unwrapUpd upd a))
-    | update _   (RG_VertexData.Hnd)   = RG_VertexData.Hnd;
+  fun update upd (Test_VertexData.Xnd a) = (Test_VertexData.Xnd (unwrapUpd upd a))
+    | update upd (Test_VertexData.Znd a) = (Test_VertexData.Znd (unwrapUpd upd a))
+    | update _   (Test_VertexData.Hnd)   = Test_VertexData.Hnd;
 end;
 

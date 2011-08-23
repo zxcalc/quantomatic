@@ -22,7 +22,7 @@ PolyML.Project.depend_on_files
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** generic testing stuff / move to isaplib? ****)
-PolyML.Project.make "test/testing.ML";
+PolyML.Project.optional_make "local_config.ML";
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile quantomatic code ****)
@@ -33,15 +33,8 @@ PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_expr.ML";
 
-(* Generic output/input tools *)
-PolyML.Project.make "io/xml_parse_utils.ML";
-PolyML.Project.make "io/xml_output_utils.ML";
-PolyML.Project.make "io/input_generic.ML";
-PolyML.Project.make "io/output_generic.ML";
-PolyML.Project.make "io/input_linrat.ML";
-PolyML.Project.make "io/output_linrat.ML";
-PolyML.Project.make "io/reader.ML";
-PolyML.Project.make "io/writer.ML";
+(* Testing *)
+Testing.make_test "expressions/test/linrat_expr-test.ML";
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
@@ -55,12 +48,31 @@ PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 
+(* Generic output/input tools *)
+PolyML.Project.make "io/xml_parse_utils.ML";
+PolyML.Project.make "io/xml_output_utils.ML";
+PolyML.Project.make "io/input_generic.ML";
+PolyML.Project.make "io/output_generic.ML";
+PolyML.Project.make "io/input_linrat.ML";
+PolyML.Project.make "io/output_linrat.ML";
+PolyML.Project.make "io/reader.ML";
+PolyML.Project.make "io/writer.ML";
+
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
 
 (* I/O for graphs *)
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
+
+(* Testing *)
+(* *)
+Testing.make_test "theories/test/vertex-test.ML";
+(* These arn't tests, but they are used only by tests. *)
+Testing.make_test "io/input_graph_v1.ML";
+Testing.make_test "io/output_graph_v1.ML";
+(* *)
+Testing.make_test "graph/test/graph-test.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
@@ -78,18 +90,30 @@ PolyML.Project.make "io/io_interface.ML";
 (* Simple dot output for graphs *)
 PolyML.Project.make "io/output_graph_dot.ML";
 
+(* Testing *)
+Testing.make_test "theories/test/ruleset-test.ML";
+Testing.make_test "io/test/graph_io-test.ML";
+
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
+(* signature for rule match search *)
+PolyML.Project.make "matching/rule_match_search.ML";
 (* naive match search implementation, find symmetric cases *)
 PolyML.Project.make "matching/simple_match_search.ML";
+PolyML.Project.make "matching/simple_rule_match_search.ML";
+(* searching for matches, but avoiding symmetric ones *)
+PolyML.Project.make "matching/symmetry_rule_match_search.ML";
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
-(* searching for matches, but avoiding symmetric ones *)
-PolyML.Project.make "matching/symmetry_match_search.ML";
+(* Testing *)
+Testing.make_test "matching/test/simple_rule_match_search-test.ML";
+Testing.make_test "matching/test/simple_match_search-test.ML";
+Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
+Testing.make_test "matching/test/symmetry_match_search-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
@@ -126,6 +150,10 @@ PolyML.Project.make "theories/red_green_blue/vertex.ML";
 PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
+
+(* Testing *)
+Testing.make_test "io/test/load_ruleset-test.ML";
+Testing.make_test "rewriting/test/rule-test.ML";
 
 (* interface protocol/console *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)

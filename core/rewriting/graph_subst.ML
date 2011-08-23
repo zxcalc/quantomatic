@@ -70,8 +70,22 @@ functor GraphSubstFun(Match : MATCH)
   *)
   fun rewrite' g lhs m = 
       let val g' = datasubst_and_remove_match m g
-      in (fn rhs => let val rhs' = Match.inst_replacement_graph m rhs in 
-                    (rhs', G.merge_by_vertices rhs' g') end) 
+      in (fn rhs => 
+          let val rhs' = Match.inst_replacement_graph m rhs;
+              (* now rename the rhs to avoid any names that were in g.
+                 We don't touch names of edge-points and boundary as these are names that must also occur in g: vertices get merged on these names. 
+                 
+                 TODO(ldixon): remove this once layout code isn't dependent on fresh names. 
+              *)
+              val rhs_boundary = G.get_boundary rhs';
+              val rhs_edgepoints = G.get_edgepoints rhs';
+              val ignore_vset = 
+                  G.Vertex.NSet.union_merge rhs_boundary rhs_edgepoints; 
+              val v_rnm = G.Vertex.Rnm.mk ignore_vset (G.get_vnames g)
+                          G.Vertex.NTab.empty;
+              val (rnm, rhs'') = G.VertexCRnm.rename v_rnm rhs';
+          in 
+            (rhs'', G.merge_by_vertices rhs'' g') end) 
       end;
 
  fun rewrite g lhs m = snd o (rewrite' g lhs m);

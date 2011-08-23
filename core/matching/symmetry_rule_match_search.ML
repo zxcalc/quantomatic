@@ -8,53 +8,27 @@
   FIXME: !box support needed.
 *)
 
-signature RULE_MATCH_SEARCH
-= sig
-  structure Match : MATCH 
-  structure BangGraph : BANG_GRAPH
-  structure Edge : EDGE
-  structure Vertex : OVERTEX
-  structure Rule : RULE
-
-  (* sharing Vertex = BangGraph.RGVertex *)
-  (* not clear why I need this this way round - but get type strange error the other way *)
-  sharing BangGraph.SharingBangGraph = Match.Sharing.G;
-  sharing Rule.Graph.SharingBangGraph = Match.Sharing.G;
-  sharing Vertex.SharingWithIData = BangGraph.OVertex.SharingWithIData;
-  sharing Edge.EdgeSharingWithData = BangGraph.Edge.EdgeSharingWithData;
-  
-  val match : (BangGraph.Vertex.NSet.T * BangGraph.Edge.NSet.T * BangGraph.BBox.NSet.T)
-              -> Rule.T -> BangGraph.T
-              -> Match.T Seq.seq
-  
-end;
-
-functor RuleMatchSearch(
-  structure BangGraph : BANG_GRAPH 
+functor SymmetryRuleMatchSearch(
   structure Match : MATCH
   structure Rule : RULE
-  sharing Match.Sharing.G = BangGraph.SharingBangGraph
-  sharing Rule.Sharing.Graph = BangGraph.SharingBangGraph
-)
+  sharing Rule.Sharing.Graph = Match.Sharing.G
+) : RULE_MATCH_SEARCH
 = struct
   
-  structure BangGraph = BangGraph;
-  structure Vertex = BangGraph.OVertex;
-  structure Edge = BangGraph.Edge;
   structure Rule = Rule;
-  structure G = BangGraph;
-  structure V = Vertex;
-  structure E = Edge;
   structure Match = Match;
+  structure G = Match.G;
+  structure V = G.OVertex;
+  structure E = G.Edge;
 
   datatype T = 
          MState of 
          {
           match : Match.T,
-          lb : Vertex.name,
+          lb : V.name,
           pat : G.T,
           tgt : G.T,
-          order : (Vertex.name Rule.otype * Vertex.name Rule.tree) list,
+          order : (V.name Rule.otype * V.name Rule.tree) list,
           avail : V.NSet.T,
           constr : Rule.constr
          }
@@ -129,8 +103,8 @@ functor RuleMatchSearch(
                          andalso V.name_ord (vt,get_lower_bound st)=LESS
                             then Seq.empty
                             else
-      let val dp = BangGraph.get_vertex_data (get_pattern st) vp
-          val dt = BangGraph.get_vertex_data (get_target st) vt
+      let val dp = G.get_vertex_data (get_pattern st) vp
+          val dt = G.get_vertex_data (get_target st) vt
       in (Pretty.writeln (Pretty.block [V.pretty_name vp, Pretty.str " -> ", V.pretty_name vt,
                                         Pretty.str (if (get_constr st)=Rule.Constrained then " C: " else " U: "),
                                         V.pretty_name (get_lower_bound st)]);
@@ -145,24 +119,25 @@ functor RuleMatchSearch(
   
   (* Matches two edges. *)
   fun match_edge ep et st =
-      let val dp = BangGraph.get_edge_data (get_pattern st) ep
-          val dt = BangGraph.get_edge_data (get_target st) et
+      let val dp = G.get_edge_data (get_pattern st) ep
+          val dt = G.get_edge_data (get_target st) et
       in  Seq.single (st |> update_match (Match.match_edge false (ep,dp) (et,dt)))
       end handle Match.match_exp _ => Seq.empty;
       
   exception zip_exp of unit;
-  fun zip (l::ls) (r::rs) = (l,r)::(zip ls rs)
-    | zip [] [] = []
-    | zip _ _ = raise zip_exp ();
+  fun zipl (l::ls) (r::rs) = (l,r)::(zipl ls rs)
+    | zipl [] _ =  []
+    | zipl _ _ = raise zip_exp ();
       
   (* ASSUME all edges interchangeable *)
   (* Matches two sets of edges, assumed to point in the same direction. *)
+  (* TODO: Verify assumption (safe if |patedges|<=|tgtedges| by aritychk) *)
   fun match_edgeset ps ts st =
       let val plist = E.NSet.list_of ps
           val tlist = E.NSet.list_of ts
-      in fold (fn x => Seq.maps (uncurry match_edge x)) (plist ~~ tlist)
+      in fold (fn x => Seq.maps (uncurry match_edge x)) (zipl plist tlist)
                                                         (Seq.single st)
-      end handle ListPair.UnequalLengths => Seq.empty;
+      end handle zip_exp _ => Seq.empty;
 
   fun edge_classes_between g v1 v2 =
       let val (ins1,outs1,undir1) = G.adj_edge_classes g v1
@@ -203,7 +178,8 @@ functor RuleMatchSearch(
                     o E.Ehn.other) eht
           val ((dt,Dt),(_,_)) = G.get_edge (get_target  st) (E.Ehn.get_ename eht)
           val ((dp,Dp),(_,_)) = G.get_edge (get_pattern st) (E.Ehn.get_ename ehp)
-      in  Seq.single (
+      in  Pretty.writeln (Pretty.block [V.pretty_name bvp, Pretty.str " => ", E.Ehn.pretty_name eht]);
+          Seq.single (
           st |> update_match (case (dt,dp) of
             (G.Directed,G.Directed)     => (  Match.dir_match_edgehalf (ehp,Dp)
                                                                        (eht,Dt)
@@ -256,27 +232,42 @@ functor RuleMatchSearch(
       end;
   
   (* Traverse the head of the order tree, then proceed to traverse its tail. *)
-  fun match' st = case get_order st of [] => Seq.single (get_match st)
+  fun match'' st = case get_order st of [] => Seq.single (get_match st)
     | (root,tree as Rule.Tree(v1,_))::oes =>
       let val st = st |> set_order oes
-      in Seq.maps match'
+      in Seq.maps match''
                   (case root of
                      Rule.Initial   c  => traverse_initial v1 (set_constr c st)
                    | Rule.Rooted (c,r) => traverse_rooted tree r (set_constr c st)
-                   | Rule.Boundary  r  => traverse_boundary tree r st)
+                   | Rule.Boundary  r  => traverse_boundary tree r st
+                   | Rule.Boxed  (b,s) => Seq.empty )
       end; 
+      
+  (* Ramify by the appropriate self-applications of the rule. *)
+  fun chain_match sa m =
+      let fun chain_one s = m |> Match.update_evmap (V.Map.premap (V.InjEndo.destr (fst s)))
+                            (*  |> Match.update_subst (compose (snd s)) *)
+      in  Seq.map chain_one (Seq.of_list sa) end;
+  
+  fun match' st r = Seq.maps (chain_match (Rule.get_selfapps r)) (match'' st)
   
   (* Obtain a lazy list of matches, given a list of names to avoid, 
      of a rule in a target graph g. *)
   fun match names rule g = match' (MState({match = Match.init names
                                                              (Rule.get_lhs rule)
                                                              g,
-                                              lb = Vertex.default_name,
+                                              lb = V.default_name,
                                              pat = Rule.get_lhs rule,
                                              tgt = g,
                                            order = Rule.get_order rule,
                                            avail = G.get_vnames g,
-                                          constr = Rule.Arbitrary }));
+                                          constr = Rule.Arbitrary })) rule;
   
+  structure Sharing : RULE_MATCH_SEARCH_SHARING =
+  struct
+    structure Match = Match.Sharing;
+    structure Rule = Rule.Sharing;
+  end;
+
 end;
 

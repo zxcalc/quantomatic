@@ -70,7 +70,7 @@ end
 
 structure GHZW_Enum = GraphEnumerator(
   structure Ruleset = GHZW_Theory.Ruleset
-  structure MatchSearch = GHZW_Theory.SimpleMatchSearch
+  structure MatchSearch = GHZW_Theory.RuleMatchSearch
 )
 
 structure GHZW_DefaultSynth = Synthesize(
@@ -85,7 +85,7 @@ structure GHZW_Rws = DefaultRewrites(structure Rule = GHZW_Theory.Rule)
 
 structure RGB_Enum = GraphEnumerator(
   structure Ruleset = RGB_Theory.Ruleset
-  structure MatchSearch = RGB_Theory.SimpleMatchSearch
+  structure MatchSearch = RGB_Theory.RuleMatchSearch
 )
 
 structure RGB_Synth = Synthesize(
