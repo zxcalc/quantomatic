@@ -1058,7 +1058,6 @@ struct
 
     fun readComponentData () =
       let
-        val () = eatChar #"\u001b"
         val mode = readEscapedChar ()
       in
         case mode
