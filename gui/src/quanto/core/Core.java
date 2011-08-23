@@ -329,7 +329,8 @@ public class Core {
 		assertCoreGraph(graph);
 		talker.killBangBoxes(graph.getCoreName(), names(bboxen));
 		for (BangBox bb : bboxen) {
-			for (Vertex v : graph.getBoxedVertices(bb)) {
+                        List<Vertex> verts = new ArrayList<Vertex>(graph.getBoxedVertices(bb));
+			for (Vertex v : verts) {
 				graph.removeVertex(v);
 			}
 			graph.removeBangBox(bb);
