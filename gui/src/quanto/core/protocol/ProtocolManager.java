@@ -461,8 +461,8 @@ public class ProtocolManager {
 
         try {
             writer.addHeader("GE", generateRequestId());
-            writer.addStringArg("native");
             writer.addStringArg(graph);
+            writer.addStringArg("native");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -486,6 +486,7 @@ public class ProtocolManager {
 
         try {
             writer.addHeader("GE", generateRequestId());
+            writer.addStringArg(graph);
             switch (format) {
                 case HilbertTerm:
                     writer.addStringArg("hilb");
@@ -502,7 +503,6 @@ public class ProtocolManager {
                 default:
                     throw new IllegalArgumentException("Bad format");
             }
-            writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -518,8 +518,8 @@ public class ProtocolManager {
 
         try {
             writer.addHeader("GE", generateRequestId());
-            writer.addStringArg("xml");
             writer.addStringArg(graph);
+            writer.addStringArg("xml");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -919,13 +919,13 @@ public class ProtocolManager {
             writer.addHeader("GMBA", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringListArg(vertices != null ? vertices : Collections.<String>emptyList());
-            writer.addStringArg("xml");
+            writer.addStringArg("name");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getXmlResponse();
+        return getNameResponse();
     }
 
     public String renameBangBox(String graph, String from, String to) throws CoreException {

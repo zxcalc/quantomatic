@@ -534,11 +534,18 @@ fun hilb ([format], graph) =
               val gname = (GraphName.mk graphName)
               val (nm,state') = State.add_bang gname state
               val state'' = if vertexNames = [] then state' else
-                               State.bang_vertices nm (map V.mk vertexNames) gname state
+                               State.bang_vertices nm (map V.mk vertexNames) gname state'
             in
               case resultFormat
                 of NameFormat => (NameResponse { name = B.dest nm }, state'')
-                 | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state'')
+                 | XmlFormat  =>  let
+                                    val graph = (State.get_graph state'' gname)
+                                    val verts = (G.get_bbox graph nm)
+                                    val bbox  = (nm,verts)
+                                  in
+                                   (XmlResponse { data = Output.BBox.output bbox }, state'')
+                                  end
+                 | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
             end
         | RenameBangBoxAction { oldName, newName } =>
             (* OkResponse *)

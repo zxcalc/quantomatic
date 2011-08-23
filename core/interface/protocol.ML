@@ -1625,7 +1625,7 @@ struct
 
          | "GMBL" =>  let
                         val graphName = readToDelim ()
-                        val vertexNames = readListToDelim ()
+                        val vertexNames = readListToEnd ()
                       in
                         EditGraphRequest {
                           graphName = graphName,

@@ -18,6 +18,7 @@ public class StreamRedirector extends Thread
     private OutputStream to;
 
     public StreamRedirector(InputStream from, OutputStream to) {
+        super("IO stream redirector");
         this.from = from;
         this.to = to;
     }
