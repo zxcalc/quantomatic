@@ -1084,7 +1084,7 @@ struct
       case commandCode
         of "GL"   => (assertAtEnd (); ListGraphsRequest)
          | "GOE"  =>  LoadGraphRequest {
-                        details   = LoadEmptyGraphRequest {
+                        details = LoadEmptyGraphRequest {
                           requestedName = readToEnd ()
                         }
                       }
@@ -1836,9 +1836,11 @@ struct
                          | InterfaceResult.QUIT => ())
                     end
 
-         | "CL" => (printOpen #"M" requestId;
+         | "CL" => (assertAtEnd();
+                    printOpen #"M" requestId;
                     printList Console.command_name_list;
-                    printClose ())
+                    printClose ();
+                    next_loop ())
 
          | "CH" =>  let
                       val commandName = readToEnd ()
@@ -1847,20 +1849,24 @@ struct
                       print (the (Console.get_command_args commandName));
                       printDelim ();
                       print (the (Console.get_command_help commandName));
-                      printClose ()
+                      printClose ();
+                      next_loop ()
                     end
 
-         | "TS" =>  let
+         | "TS" => (let
                       val theoryName = readToEnd ()
                     in
                       case theoryName
                         of "red_green" => (outputOkResponse requestId; change_loop RG_Controller.serviceRequest)
                          | _ => (outputErrorResponse requestId "BADTHEORY" "Unknown theory"; change_loop RG_Controller.serviceRequest)
-                    end
+                    end;
+                    next_loop ())
 
-         | "TG" =>  (outputNameResponse requestId "red_green")
+         | "TG" => (assertAtEnd(); outputNameResponse requestId "red_green"; next_loop())
 
-         | code =>  (outputResponse (Commands.serviceRequestMessage eval (requestId, (readRequestBody code))))
+         | code => (outputResponse (Commands.serviceRequestMessage eval
+                                      (requestId, (readRequestBody code)));
+                    next_loop())
 
     end
   in
