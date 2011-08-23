@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.collections15.CollectionUtils;
+import org.apache.commons.collections15.Transformer;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -147,14 +149,15 @@ public class Core {
 		return ruleset;
 	}
 	
+        private Transformer<CoreObject, String> namer = new Transformer<CoreObject, String>() {
+                public String transform(CoreObject i) {
+                        return i.getCoreName();
+                }
+        };
 	private Collection<String> names(Collection<? extends CoreObject> c) {
-		List<String> ns = new ArrayList<String>(c.size());
-		int i = 0;
-		for (CoreObject n : c) {
-			ns.set(i, n.getCoreName());
-			++i;
-		}
-		return ns;
+                if (c == null)
+                    return null;
+                return CollectionUtils.collect(c, namer);
 	}
 	
 	public ProtocolManager getTalker() {
