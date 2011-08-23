@@ -216,7 +216,7 @@ public class ProtocolReader {
 
     private Response parseNameResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Name, requestId);
-        resp.setStringData(utf8ToString(readDataBlock()));
+        resp.setStringData(readStringToEscape());
         return resp;
     }
 
