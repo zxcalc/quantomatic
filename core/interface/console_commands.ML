@@ -373,7 +373,7 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     ("show_rewrites",
      ("GRAPH", "Show rewrites attached to GRAPH",
       (fn [graph] => (Commands.ListAttachedRewritesRequest {
-                     graphName = graph })
+                     graphName = graph, format = Commands.PrettyFormat  })
         | _       => bad_args_req))),
 
     ("apply_rewrite",

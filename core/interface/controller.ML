@@ -81,7 +81,7 @@ struct
                    (*** Rewrite commands ***)
                    | AttachRewritesRequest of { graphName: string, vertexNames: string list }
                    | AttachOneRewriteRequest of { graphName: string, vertexNames: string list }
-                   | ListAttachedRewritesRequest of { graphName: string }
+                   | ListAttachedRewritesRequest of { graphName: string, format: resultFormat }
                    | ApplyAttachedRewriteRequest of { graphName: string, index: int }
 
                    | UnknownRequest of { code: string }
@@ -683,7 +683,7 @@ fun hilb ([format], graph) =
     | serviceRequest' (AttachOneRewriteRequest { graphName, vertexNames }) state =
         (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
 
-    | serviceRequest' (ListAttachedRewritesRequest { graphName }) state =
+    | serviceRequest' (ListAttachedRewritesRequest { graphName, format }) state =
         (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
 
     | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =

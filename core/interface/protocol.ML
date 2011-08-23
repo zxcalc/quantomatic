@@ -175,13 +175,21 @@
  * Error responses: BADCMD
  *
  * Name: ChangeTheoryRequest
- * Code: "T"
+ * Code: "TS"
  * Body:
  *   TheoryName ::= String ;
  *   ChangeTheoryRequestBody ::= TheoryName
  * Desc: Switch to a different theory.
  * Responses: OkResponse
  * ErrorResponses: BADTHEORY
+ *
+ * Name: CurrentTheoryRequest
+ * Code: "TG"
+ * Body:
+ *   CurrentTheoryRequestBody ::= ;
+ * Desc: Get the name of the current theory
+ * Responses: NameResponse
+ * ErrorResponses:
  *
  *
  * All the following requests operate on the current theory
@@ -274,7 +282,7 @@
  * Name: ExportGraphRequest
  * Code: "GE"
  * Body:
- *   ExportFormat ::= "native" | "hilb" | "mathematica" | "matlab" | "tikz" ;
+ *   ExportFormat ::= "native" | "xml" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz" ;
  *   ExportGraphRequestBody ::= GraphName ESC ';' ExportFormat ;
  * Desc: Get a graph in a certain format.
  *       "native" is the format that would be written to disk by "GS",
@@ -283,7 +291,7 @@
  *       the latter two suitable for input into those
  *       applications.
  *       "tikz" is a LaTeX-suitable format.
- * Responses: DataResponse
+ * Responses: DataResponse | XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * ("GVA": DescribeGraphRequest; not implemented)
@@ -515,7 +523,7 @@
  * Code: "GMBA"
  * Body:
  *   AddBangBoxRequestBody ::= GraphName ESC ';'
- *                             VertexNames? ESC ';'
+ *                             VertexNames ESC ';'
  *                             ResultFormat ;
  * Desc: Add a !-box to a graph.  A list of vertices to include in
  *       the !-box may be provided
@@ -678,7 +686,7 @@
  *                          LhsGraphName ESC ';'
  *                          RhsGraphName ;
  * Desc: Create or update a rule.
- * Response: NameResponse
+ * Response: OkResponse
  * ErrorResponses: NOSUCHRULE | NOSUCHGRAPH | BADRULE
  *
  * Name: DeleteRuleRequest
@@ -801,13 +809,16 @@
  * Name: ListAttachedRewritesRequest
  * Code: "WL"
  * Body:
- *   ListAttachedRewritesRequestBody ::= GraphName ;
- * Desc: Lists the attached rewrites for a graph.
- * Response: RewriteListResponse
+ *   ListAttachedRewritesRequestBody ::= GraphName ESC ';' ResultFormat ;
+ * Desc: Lists the attached rewrites for a graph.  If the requested
+ *       result format is "name", only the rule applied will be returned
+ *       for each attached rewrite.  Note that the same rule may well
+ *       appear more than once in the list.
+ * Response: RewriteListResponse | NameListResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
  * Name: ApplyAttachedRewriteRequest
- * Code: "WL"
+ * Code: "WW"
  * Body:
  *   Index ::= Integer ;
  *   ApplyAttachedRewriteRequestBody ::= GraphName ESC ';'
@@ -846,7 +857,7 @@ struct
     fun printClose () = (printEsc #">"; TextIO.flushOut outstream)
     fun printOpen ch requestId = print (String.concat["\u001b<", String.str ch, "\u001b:", requestId, "\u001b|"])
     fun printOpenInfo ch = print (String.concat["\u001b<", String.str ch, "\u001b|"])
-    fun printDelim ch = print "\u001b;"
+    fun printDelim () = print "\u001b;"
     fun printDataChunk s = (printEsc #"["; printLength s; printEsc #"|"; print s; printEsc #"]")
     fun printList [] = ()
       | printList [s] = (print "1"; printEsc #":"; printString s)
@@ -859,7 +870,7 @@ struct
       | outputResponse (requestId, ErrorResponse { errorCode, message }) =
          (printOpen #"Q" requestId;
           print errorCode;
-          printDelim;
+          printDelim ();
           printString message;
           printClose ())
       | outputResponse (requestId, DataResponse { data }) =
@@ -918,7 +929,7 @@ struct
                   outputGraphData rhs)
             fun outputRewrites [] = ()
               | outputRewrites (w::[]) = (outputRewrite w)
-              | outputRewrites (w::ws) = (outputRewrite w; printDelim; outputRewrites ws)
+              | outputRewrites (w::ws) = (outputRewrite w; printDelim (); outputRewrites ws)
           in
            (printOpen #"W" requestId;
             outputRewrites rewrites;
@@ -930,6 +941,8 @@ struct
           printClose ())
 
     fun outputOkResponse requestId = (outputResponse (requestId, OkResponse))
+    fun outputNameResponse requestId name =
+          (outputResponse (requestId, NameResponse { name = name }))
     fun outputErrorResponse requestId code message =
           (outputResponse (requestId, ErrorResponse { errorCode = code, message = message }))
     (* }}} *)
@@ -1139,6 +1152,8 @@ struct
                         val formatName = readToEnd ()
                         val format     = case formatName
                                            of "native"      => SOME NativeGraphFormat
+                                            | "xml"         => SOME XmlGraphFormat
+                                            | "pretty"      => SOME PrettyGraphFormat
                                             | "hilb"        => SOME HilbertSpaceGraphFormat
                                             | "mathematica" => SOME MathematicaGraphFormat
                                             | "matlab"      => SOME MatlabGraphFormat
@@ -1753,9 +1768,29 @@ struct
                         }
                       end
 
-         | "WL"   =>  ListAttachedRewritesRequest {
-                        graphName = readToEnd ()
-                      }
+         | "WL" =>    let
+                        val graphName = readToDelim ()
+                        val format = case readToEnd ()
+                                       of "xml"    => SOME XmlFormat
+                                        | "native" => SOME DescriptionFormat
+                                        | "pretty" => SOME PrettyFormat
+                                        | "name"   => SOME NameFormat
+                                        | _        => NONE
+                      in
+                        case format
+                          of (SOME f) =>
+                              ListAttachedRewritesRequest {
+                                graphName = graphName,
+                                format = f
+                              }
+                           | NONE =>
+                              DummyRequest { response =
+                                ErrorResponse {
+                                  errorCode = "BADFORMAT",
+                                  message = "Unknown format requested"
+                                }
+                              }
+                      end
 
          | "WW"   =>  let
                         val graphName = readToDelim ()
@@ -1793,7 +1828,7 @@ struct
                       (case Console.eval_command_string_no_quit eval command
                         of InterfaceResult.NORMAL output =>
                             (outputCmdResult output; next_loop ())
-                         | InterfaceResult.CHANGE_THEORY "red-green" =>
+                         | InterfaceResult.CHANGE_THEORY "red_green" =>
                             (change_loop RG_Controller.serviceRequest)
                          | InterfaceResult.CHANGE_THEORY th =>
                             (outputCmdResult ("!!! Unknown theory \""^th^"\"\n"); next_loop ())
@@ -1810,18 +1845,20 @@ struct
                     in
                       printOpen #"H" requestId;
                       print (the (Console.get_command_args commandName));
-                      printDelim;
+                      printDelim ();
                       print (the (Console.get_command_help commandName));
                       printClose ()
                     end
 
-         | "T" =>   let
+         | "TS" =>  let
                       val theoryName = readToEnd ()
                     in
                       case theoryName
-                        of "red-green" => (outputOkResponse requestId; change_loop RG_Controller.serviceRequest)
+                        of "red_green" => (outputOkResponse requestId; change_loop RG_Controller.serviceRequest)
                          | _ => (outputErrorResponse requestId "BADTHEORY" "Unknown theory"; change_loop RG_Controller.serviceRequest)
                     end
+
+         | "TG" =>  (outputNameResponse requestId "red_green")
 
          | code =>  (outputResponse (Commands.serviceRequestMessage eval (requestId, (readRequestBody code))))
 
