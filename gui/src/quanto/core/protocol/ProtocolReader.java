@@ -33,7 +33,7 @@ public class ProtocolReader {
             else if (Character.isISOControl(gotCh))
                 throw new ProtocolException("Expected ESC, got " + Character.getName(gotCh));
             else
-                throw new ProtocolException("Expected ESC, got " + gotCh);
+                throw new ProtocolException("Expected ESC, got " + (char)gotCh);
         }
     }
 

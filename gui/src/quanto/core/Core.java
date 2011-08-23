@@ -1,8 +1,6 @@
 package quanto.core;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -29,14 +27,12 @@ import quanto.core.data.Rule;
 import quanto.core.data.Vertex;
 import quanto.core.data.VertexType;
 import quanto.core.protocol.ProtocolManager;
-import quanto.core.xml.AttachedRewriteListFragmentHandler;
 import quanto.core.xml.EdgeFragmentHandler;
 import quanto.core.xml.EdgeFragmentHandler.EdgeData;
 import quanto.core.xml.FragmentHandler;
 import quanto.core.xml.GraphFragmentHandler;
 import quanto.core.xml.SAXFragmentAdaptor;
 import quanto.core.xml.VertexFragmentHandler;
-import quanto.util.FileUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**

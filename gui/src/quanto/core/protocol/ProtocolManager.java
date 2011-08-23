@@ -165,6 +165,8 @@ public class ProtocolManager {
 
     private Response getResponse(Response.MessageType expectedType) throws CoreException {
         try {
+            if (debuggingEnabled)
+                System.out.append("\n<<< ");
             Response resp = reader.parseNextResponse();
             if (resp.isError()) {
                 throw errorResponseToException(resp.getErrorCode(), resp.getErrorMessage());
@@ -178,6 +180,11 @@ public class ProtocolManager {
             return resp;
         } catch (IOException ex) {
             throw readFailure(ex);
+        } finally {
+            if (debuggingEnabled) {
+                System.out.append("\n\n");
+                System.out.flush();
+            }
         }
     }
 

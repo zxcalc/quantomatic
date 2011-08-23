@@ -26,10 +26,11 @@ public class StreamRedirector extends Thread
     public void run() {
         try {
             byte[] buffer = new byte[200];
-            int count = 0;
+            int count = from.read(buffer);
             while (count != -1) {
-                count = from.read(buffer);
                 to.write(buffer, 0, count);
+                to.flush();
+                count = from.read(buffer);
             }
         } catch (IOException ex) {
         }

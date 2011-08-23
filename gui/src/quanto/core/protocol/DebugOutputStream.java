@@ -11,7 +11,7 @@ import java.io.OutputStream;
  *
  * @author alemer
  */
-public class DebugOutputStream extends OutputStream
+class DebugOutputStream extends OutputStream
 {
     private boolean debuggingActive = false;
     private OutputStream internal;
