@@ -859,7 +859,7 @@ struct
     fun printOpenInfo ch = print (String.concat["\u001b<", String.str ch, "\u001b|"])
     fun printDelim () = print "\u001b;"
     fun printDataChunk s = (printEsc #"["; printLength s; printEsc #"|"; print s; printEsc #"]")
-    fun printList [] = ()
+    fun printList [] = (print "0"; printEsc #":")
       | printList [s] = (print "1"; printEsc #":"; printString s)
       | printList (s::ss) = (print (Int.toString (1 + (length ss))); printEsc #":"; printString s; List.app (fn e => (printEsc #","; printString e)) ss)
     (* }}} *)
