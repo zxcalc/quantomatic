@@ -43,8 +43,10 @@ public class RequestWriter
 
     private void closeArg() throws IOException
     {
-        if (argNeedsClosing)
+        if (argNeedsClosing) {
+            argNeedsClosing = false;
             addEscapedChar(';');
+        }
     }
 
     // only ASCII!!!
@@ -52,7 +54,6 @@ public class RequestWriter
     {
         assert ch < 128;
         assert inMessage;
-        closeArg();
         output.write(ESC);
         output.write(ch);
     }
@@ -97,12 +98,14 @@ public class RequestWriter
 
     public void addTaggedDataChunkArg(char tag, byte[] data) throws IOException
     {
+        closeArg();
         addEscapedChar(tag);
         addDataChunkArg(data);
     }
 
     public void addTaggedDataChunkArg(char tag, String data) throws IOException
     {
+        closeArg();
         addEscapedChar(tag);
         addDataChunkArg(data);
     }
