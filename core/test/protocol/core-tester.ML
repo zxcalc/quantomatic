@@ -112,7 +112,7 @@ sig
   (**
    * Runs all the registered tests, in the order that they were registered.
    *)
-  val runRegisteredTests: unit -> unit;
+  val runRegisteredTests: unit -> bool;
 end
 
 structure CoreTester =
@@ -203,7 +203,7 @@ struct
           if code <> expCode then
             raise test_exp ("Expected a "^expCode^" response, got a "^code^" response")
           else if requestId <> expRequestId then
-            raise test_exp ("Expected request id was "^expRequestId^", got "^requestId)
+            raise test_exp ("Expected request id was \""^expRequestId^"\", got \""^requestId^"\"")
           else
             ()
         end
@@ -226,7 +226,7 @@ struct
       val body = readToEscape #">" instream
     in
       if "" <> body then
-        raise test_exp ("Expected end of body, got "^(printableEscapes body))
+        raise test_exp ("Expected end of body, got \""^(printableEscapes body)^"\"")
       else ()
     end;
   fun eatEscapedChar c instream = (eatEsc instream; eatChar c instream)
@@ -268,7 +268,7 @@ struct
   fun demandDataChunkResponse code session requestId expResp =
     let val resp = (readDataChunkResponse code session requestId) in
       if expResp <> resp then
-        raise test_exp ("Expected response "^(printableEscapes expResp)^", got "^(printableEscapes resp))
+        raise test_exp ("Expected response \""^(printableEscapes expResp)^"\", got \""^(printableEscapes resp)^"\"")
       else ()
     end
  
@@ -293,7 +293,7 @@ struct
       val body = readToEscape #">" instream
     in
       if "" <> body then
-        raise test_exp ("Expected empty body, got "^(printableEscapes body))
+        raise test_exp ("Expected empty body, got \""^(printableEscapes body)^"\"")
       else ()
     end;
   val demandOkResponse = readOkResponse;
@@ -312,9 +312,9 @@ struct
   fun demandConsoleHelpResponse session requestId (expArgs,expHelp) =
     let val (args,help) = (readConsoleHelpResponse session requestId) in
       if expArgs <> args then
-        raise test_exp ("Expected args list "^(printableEscapes expArgs)^", got "^(printableEscapes args))
+        raise test_exp ("Expected args list \""^(printableEscapes expArgs)^"\", got \""^(printableEscapes args)^"\"")
       else if expHelp <> help then
-        raise test_exp ("Expected help "^(printableEscapes expHelp)^", got "^(printableEscapes help))
+        raise test_exp ("Expected help text \""^(printableEscapes expHelp)^"\", got \""^(printableEscapes help)^"\"")
       else ()
     end
 
@@ -345,18 +345,18 @@ struct
   fun demandNameResponse session requestId expName =
     let val name = readNameResponse session requestId in
       if expName <> name then
-        raise test_exp ("Expected response was "^(printableEscapes expName)^", got "^(printableEscapes name))
+        raise test_exp ("Expected response was \""^(printableEscapes expName)^"\", got \""^(printableEscapes name)^"\"")
       else ()
     end;
 
   fun readNameListResponse ({ instream, ... }:session) requestId =
-    let val () = readHeader ("N",requestId) instream in
+    let val () = readHeader ("M",requestId) instream in
       readList (#",",#">") instream
     end
   fun demandNameListResponse session requestId expNames =
     let val names = readNameListResponse session requestId in
       if expNames <> names then
-        raise test_exp ("Expected response was "^(printableEscapes (String.concatWith "\u001b," expNames))^", got "^(printableEscapes (String.concatWith "\u001b," names)))
+        raise test_exp ("Expected response was \""^(printableEscapes (String.concatWith "\u001b," expNames))^"\", got \""^(printableEscapes (String.concatWith "\u001b," names))^"\"")
       else ()
     end;
 
@@ -370,7 +370,7 @@ struct
   fun demandUnknownRequestResponse session requestId expCode =
     let val code = readUnknownRequestResponse session requestId in
       if expCode <> code then
-        raise test_exp ("Expected code was "^(printableEscapes expCode)^", got "^(printableEscapes code))
+        raise test_exp ("Expected code was \""^(printableEscapes expCode)^"\", got \""^(printableEscapes code)^"\"")
       else ()
     end;
 
@@ -406,23 +406,27 @@ struct
       log (printableEscapes (TextIO.inputAll instream));
       Unix.kill (proc,Posix.Signal.kill));
 
-  fun runTests [] = ()
-    | runTests ((name,testFun)::ts) =
-      ((let
+  fun runTests success [] = success
+    | runTests success ((name,testFun)::ts) =
+       (let
           val () = log ("Starting test "^name^"\n\n")
           val () = TextIO.print (name^" ... ")
           val session = startSession "../../bin/quanto-core"
           val () = (testFun session handle e => (killSession session; raise e))
           val () = endSession session
-        in log ("\nTest "^name^" passed.\n\n\n"); TextIO.print "passed\n" end
+        in
+          log ("\nTest "^name^" passed.\n\n\n");
+          TextIO.print "passed\n";
+          runTests success ts
+        end
         handle test_exp msg =>
          (log ("\nTest "^name^" failed:\n  "^msg^"\n\n\n");
           TextIO.print "failed:\n  ";
           TextIO.print msg;
-          TextIO.print "\n"));
-      runTests ts)
+          TextIO.print "\n";
+          runTests false ts));
         
-  fun runRegisteredTests () = runTests (rev (!tests))
+  fun runRegisteredTests () = runTests true (rev (!tests))
 end
 
 (* vi:et:sw=2:sts=2
