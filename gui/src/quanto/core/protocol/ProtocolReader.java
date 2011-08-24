@@ -31,7 +31,7 @@ public class ProtocolReader {
             if (gotCh == -1)
                 throw new ProtocolException("Expected ESC, got EOF");
             else if (Character.isISOControl(gotCh))
-                throw new ProtocolException("Expected ESC, got " + Character.getName(gotCh));
+                throw new ProtocolException("Expected ESC, got \\u" + Integer.toHexString(gotCh));
             else
                 throw new ProtocolException("Expected ESC, got " + (char)gotCh);
         }
@@ -43,7 +43,7 @@ public class ProtocolReader {
             if (gotCh == -1)
                 throw new ProtocolException("Expected " + ch + ", got EOF");
             else if (Character.isISOControl(gotCh))
-                throw new ProtocolException("Expected " + ch + ", got " + Character.getName(gotCh));
+                throw new ProtocolException("Expected " + ch + ", got \\u" + Integer.toHexString(gotCh));
             else
                 throw new ProtocolException("Expected " + ch + ", got " + (char)gotCh);
         }
