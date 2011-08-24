@@ -101,6 +101,9 @@ sig
   (** Check the protocol version of a running session *)
   val protocolVersion: session -> string;
 
+  val setCoreExecutable: string -> unit;
+  val setLogFile: string -> unit;
+
   (**
    * Register a test.
    *
@@ -127,28 +130,32 @@ struct
 
   val printableEscapes = String.map (fn #"\u001b" => #"\u00a4" | c => c)
 
-  val logFile = "tests.log";
-  val logStream = TextIO.openOut logFile;
+  val coreExecutable = ref "../../bin/quanto-core";
+  val logStream = ref (TextIO.openOut "/dev/null");
+
+  fun setCoreExecutable exec = (coreExecutable := exec);
+  fun setLogFile file = (logStream := TextIO.openOut file);
+
   fun output (stream,msg) = (
-      TextIO.output (logStream,printableEscapes msg);
+      TextIO.output (!logStream,printableEscapes msg);
       TextIO.output (stream,msg));
   fun flushOut stream = (
-      TextIO.flushOut logStream;
+      TextIO.flushOut (!logStream);
       TextIO.flushOut stream);
   fun input1 stream =
     let
       val ch = TextIO.input1 stream
       val () = (case ch
-                  of SOME #"\u001b" => TextIO.output (logStream,"\u00a4")
-                   | SOME c => TextIO.output (logStream,String.str c)
+                  of SOME #"\u001b" => TextIO.output ((!logStream),"\u00a4")
+                   | SOME c => TextIO.output ((!logStream),String.str c)
                )
     in ch end;
   fun inputN (stream,len) =
     let
       val str = TextIO.inputN (stream,len)
-      val () = TextIO.output (logStream,printableEscapes str)
+      val () = TextIO.output (!logStream,printableEscapes str)
     in str end;
-  fun log msg = (TextIO.output (logStream,msg); TextIO.flushOut logStream)
+  fun log msg = (TextIO.output (!logStream,msg); TextIO.flushOut (!logStream))
 
   fun createRequest (code,requestId) body =
         { code = code, requestId = requestId, body = body };
@@ -409,23 +416,24 @@ struct
   fun runTests success [] = success
     | runTests success ((name,testFun)::ts) =
        (let
-          val () = log ("Starting test "^name^"\n\n")
+          val () = log "========================================\n"
+          val () = log ("Starting test \""^name^"\"\n\n")
           val () = TextIO.print (name^" ... ")
-          val session = startSession "../../bin/quanto-core"
+          val session = startSession (!coreExecutable)
           val () = (testFun session handle e => (killSession session; raise e))
           val () = endSession session
         in
-          log ("\nTest "^name^" passed.\n\n\n");
+          log ("\n\nTest \""^name^"\" passed.\n\n\n");
           TextIO.print "passed\n";
           runTests success ts
         end
         handle test_exp msg =>
-         (log ("\nTest "^name^" failed:\n  "^msg^"\n\n\n");
+         (log ("\n\nTest \""^name^"\" failed:\n  "^msg^"\n\n\n");
           TextIO.print "failed:\n  ";
           TextIO.print msg;
           TextIO.print "\n";
           runTests false ts));
-        
+
   fun runRegisteredTests () = runTests true (rev (!tests))
 end
 

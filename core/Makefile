@@ -40,9 +40,14 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
-test check: $(QUANTO_HEAP)
+standard-tests: $(QUANTO_HEAP)
 	echo 'use "TEST.ML";' | $(POLYML)
 	@echo ""
+
+protocol-tests: bin/$(THE_BIN)
+	echo 'use "PROTOCOLTEST.ML";' | $(POLYML) --core "bin/$(THE_BIN)" --log "protocol-tests.log"
+
+test check: standard-tests protocol-tests
 
 bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
