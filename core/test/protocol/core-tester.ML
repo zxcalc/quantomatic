@@ -8,7 +8,7 @@ signature CORE_TESTER =
 sig
   type session;
   type message;
-  exception session_exp of string;
+  exception test_exp of string;
 
   val createMessage: (string*string) -> string -> message;
   val delim: string;
@@ -46,6 +46,9 @@ sig
   val startSession: string -> session;
   val endSession: session -> unit;
   val protocolVersion: session -> string;
+
+  val registerTest: string -> (session -> unit) -> unit;
+  val runTests: unit -> unit;
 end
 
 structure CoreTester =
@@ -56,7 +59,7 @@ struct
                    version: string
                  }
   type message = { code: string, requestId: string, body: string };
-  exception session_exp of string;
+  exception test_exp of string;
 
   open TextIO;
 
@@ -75,9 +78,9 @@ struct
         (TextIO.output (outstream,constructMessage message); TextIO.flushOut outstream)
   fun eatChar ch instream =
         case (TextIO.input1 instream)
-          of NONE => raise session_exp ("Unexpected EOF, expecting "^(String.str ch))
+          of NONE => raise test_exp ("Unexpected EOF, expecting "^(String.str ch))
            | SOME c => if ch = c then () else
-                raise session_exp ("Unexpected char "^(String.str c)^", expecting "^(String.str ch));
+                raise test_exp ("Unexpected char "^(String.str c)^", expecting "^(String.str ch));
   val eatEsc = eatChar #"\u001b";
 
   local
@@ -86,15 +89,15 @@ struct
             of SOME #"\u001b" =>
                 (
                   case input1 instream of
-                    NONE => raise session_exp "End of file"
+                    NONE => raise test_exp "End of file"
                   | SOME #"\u001b" => (* Escaped ESC. *)
                                       readToEscape' (soFar ^ str #"\u001b") terminator instream
                   | SOME ch => if ch = terminator
                                then soFar
-                               else raise session_exp (str ch ^ " not " ^ str terminator)
+                               else raise test_exp (str ch ^ " not " ^ str terminator)
                 )
              | SOME ch => readToEscape' (soFar ^ str ch) terminator instream
-             | NONE => raise session_exp "End of file"
+             | NONE => raise test_exp "End of file"
   in
     val readToEscape = readToEscape' ""
   end
@@ -106,9 +109,9 @@ struct
           val requestId = readToEscape #"|" instream
         in
           if code <> expCode then
-            raise session_exp ("Expected a "^expCode^" response, got a "^code^" response")
+            raise test_exp ("Expected a "^expCode^" response, got a "^code^" response")
           else if requestId <> expRequestId then
-            raise session_exp ("Expected request id was "^expRequestId^", got "^requestId)
+            raise test_exp ("Expected request id was "^expRequestId^", got "^requestId)
           else
             ()
         end
@@ -132,7 +135,7 @@ struct
       val body = readToEscape #">" instream
     in
       if "" <> body then
-        raise session_exp ("Expected end of body, got "^(printableEscapes body))
+        raise test_exp ("Expected end of body, got "^(printableEscapes body))
       else ()
     end;
   fun eatEscapedChar c instream = (eatEsc instream; eatChar c instream)
@@ -145,18 +148,18 @@ struct
             of SOME #"\u001b" =>
                 (
                   case input1 instream
-                    of NONE           => raise session_exp "End of file"
+                    of NONE           => raise test_exp "End of file"
                      | SOME #"\u001b" => readList' (soFar ^ "\u001b") count (splitter, terminator) instream
                      | SOME ch        =>
                           if ch = splitter then
                             soFar::(readList' "" (count-1) (splitter, terminator) instream)
                           else if ch = terminator then
-                            raise session_exp ("Wrong number of elements in list")
+                            raise test_exp ("Wrong number of elements in list")
                           else
-                            raise session_exp (str ch ^ " not " ^ str terminator)
+                            raise test_exp (str ch ^ " not " ^ str terminator)
                 )
              | SOME ch => readList' (soFar ^ str ch) count (splitter, terminator) instream
-             | NONE    => raise session_exp "End of file"
+             | NONE    => raise test_exp "End of file"
              )
   in
     fun readList (splitter:char,terminator:char) (instream:instream) : string list =
@@ -174,7 +177,7 @@ struct
   fun demandDataChunkResponse code session requestId expResp =
     let val resp = (readDataChunkResponse code session requestId) in
       if expResp <> resp then
-        raise session_exp ("Expected response "^(printableEscapes expResp)^", got "^(printableEscapes resp))
+        raise test_exp ("Expected response "^(printableEscapes expResp)^", got "^(printableEscapes resp))
       else ()
     end
  
@@ -189,7 +192,7 @@ struct
   fun demandErrorResponse session requestId expErrorCode =
     let val (errorCode,_) = readErrorResponse session requestId in
       if expErrorCode <> errorCode then
-        raise session_exp ("Expected error code "^expErrorCode^", got "^errorCode)
+        raise test_exp ("Expected error code "^expErrorCode^", got "^errorCode)
       else ()
     end;
 
@@ -199,7 +202,7 @@ struct
       val body = readToEscape #">" instream
     in
       if "" <> body then
-        raise session_exp ("Expected empty body, got "^(printableEscapes body))
+        raise test_exp ("Expected empty body, got "^(printableEscapes body))
       else ()
     end;
   val demandOkResponse = readOkResponse;
@@ -218,9 +221,9 @@ struct
   fun demandConsoleHelpResponse session requestId (expArgs,expHelp) =
     let val (args,help) = (readConsoleHelpResponse session requestId) in
       if expArgs <> args then
-        raise session_exp ("Expected args list "^(printableEscapes expArgs)^", got "^(printableEscapes args))
+        raise test_exp ("Expected args list "^(printableEscapes expArgs)^", got "^(printableEscapes args))
       else if expHelp <> help then
-        raise session_exp ("Expected help "^(printableEscapes expHelp)^", got "^(printableEscapes help))
+        raise test_exp ("Expected help "^(printableEscapes expHelp)^", got "^(printableEscapes help))
       else ()
     end
 
@@ -240,7 +243,7 @@ struct
   fun demandCountResponse session requestId expVal =
     let val i = readCountResponse session requestId in
       if expVal <> i then
-        raise session_exp ("Expected count was "^(Int.toString expVal)^", got "^(Int.toString i))
+        raise test_exp ("Expected count was "^(Int.toString expVal)^", got "^(Int.toString i))
       else ()
     end;
 
@@ -251,7 +254,7 @@ struct
   fun demandNameResponse session requestId expName =
     let val name = readNameResponse session requestId in
       if expName <> name then
-        raise session_exp ("Expected response was "^(printableEscapes expName)^", got "^(printableEscapes name))
+        raise test_exp ("Expected response was "^(printableEscapes expName)^", got "^(printableEscapes name))
       else ()
     end;
 
@@ -262,7 +265,7 @@ struct
   fun demandNameListResponse session requestId expNames =
     let val names = readNameListResponse session requestId in
       if expNames <> names then
-        raise session_exp ("Expected response was "^(printableEscapes (String.concatWith "\u001b," expNames))^", got "^(printableEscapes (String.concatWith "\u001b," names)))
+        raise test_exp ("Expected response was "^(printableEscapes (String.concatWith "\u001b," expNames))^", got "^(printableEscapes (String.concatWith "\u001b," names)))
       else ()
     end;
 
@@ -276,7 +279,7 @@ struct
   fun demandUnknownRequestResponse session requestId expCode =
     let val code = readUnknownRequestResponse session requestId in
       if expCode <> code then
-        raise session_exp ("Expected code was "^(printableEscapes expCode)^", got "^(printableEscapes code))
+        raise test_exp ("Expected code was "^(printableEscapes expCode)^", got "^(printableEscapes code))
       else ()
     end;
 
@@ -298,9 +301,28 @@ struct
           if (OS.Process.isSuccess status) then
             ()
           else
-            raise session_exp "Core process exited with failure code"
+            raise test_exp "Core process exited with failure code"
         end
   fun protocolVersion ({ version, ... }:session) = version;
+
+  val tests: ((string*(session -> unit)) list ref) = ref [];
+
+  fun registerTest name testFun =
+    (tests := (name,testFun)::(!tests));
+
+  fun runTests' [] = ()
+    | runTests' ((name,testFun)::ts) =
+      ((let
+          val () = TextIO.print (name^"...")
+          val session = startSession "../../bin/quanto-core"
+          val () = testFun session
+          val () = endSession session
+        in TextIO.print "passed\n" end
+        handle test_exp msg =>
+          (TextIO.print "failed:\n  "; TextIO.print msg; TextIO.print "\n"));
+      runTests' ts)
+        
+  fun runTests () = runTests' (rev (!tests))
 end
 
 (* vi:et:sw=2:sts=2
