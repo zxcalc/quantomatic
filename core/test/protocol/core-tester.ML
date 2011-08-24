@@ -2,25 +2,76 @@
  * Infrastructure for doing tests on quanto-core
  *
  * Note: this will only work on Unix.
+ *
+ * Example test:
+ * CoreTester.registerTest "Change theory (invalid_theory)" (fn session => (
+ *   CoreTester.writeRequestByParts session ("TS","apple") "invalid_theory";
+ *   CoreTester.demandErrorResponse session "apple" "BADTHEORY"
+ * ));
+ * Throw a test_exp when you get something back you don't expect.
  *)
 
 signature CORE_TESTER =
 sig
   type session;
-  type message;
+  type request;
+  (** Indicates a test failure *)
   exception test_exp of string;
 
-  val createMessage: (string*string) -> string -> message;
+  (**
+   * Constructs a request
+   * Param: (code,requestId)
+   * Param: Body
+   *)
+  val createRequest: (string*string) -> string -> request;
+  (**
+   * The standard argument delimiter string.
+   * Value: "\u001b;"
+   *)
   val delim: string;
+  (**
+   * Constructs a data chunk for some data
+   * Param: data
+   * Result: "\u001b["^(String.size data)^"\u001b|"^data^"\u001b]"
+   *)
   val dataChunk: string -> string;
+  (**
+   * Escapes a string so it can be placed in a request body.
+   *
+   * Replaces all occurences of ESC ("\u001b") in its input with
+   * two copies of ESC ("\u001b\u001b").
+   *)
   val escapeStr: string -> string;
+  (**
+   * Constructs a string list
+   *)
   val stringList: string list -> string;
 
-  val writeMessage: session -> message -> unit;
+  (**
+   * Writes a previously constructed request to the core
+   *)
+  val writeRequest: session -> request -> unit;
+  (**
+   * Creates a request and sends it to the core
+   *)
+  val writeRequestByParts: session -> (string*string) -> string -> unit;
 
+
+  (**
+   * The following methods all take a session and a request id.
+   *
+   * The read* methods read in a response of that type, and return
+   * the parsed data.  If a different response is received, a
+   * test_exp is raised.
+   *
+   * The demand* methods do the same, but constrain the data
+   * received, and raise test_exp if the data is not as expected.
+   *)
   val readErrorResponse: session -> string -> (string*string);
+  (** Only the error code is checked *)
   val demandErrorResponse: session -> string -> string -> unit;
   val readOkResponse: session -> string -> unit;
+  (** Identical to readOkResponse *)
   val demandOkResponse: session -> string -> unit;
   val readConsoleResponse: session -> string -> string;
   val demandConsoleResponse: session -> string -> string -> unit;
@@ -43,12 +94,25 @@ sig
   val readUnknownRequestResponse: session -> string -> string;
   val demandUnknownRequestResponse: session -> string -> string -> unit;
 
+  (** Start a new session; not normally used directly (see registerTest) *)
   val startSession: string -> session;
+  (** End a running session; not normally used directly (see registerTest) *)
   val endSession: session -> unit;
+  (** Check the protocol version of a running session *)
   val protocolVersion: session -> string;
 
+  (**
+   * Register a test.
+   *
+   * The first argument is the test name, the second is the test method.  A
+   * freshly-started session is passed.  If the test fails, test_exp should
+   * be raised.
+   *)
   val registerTest: string -> (session -> unit) -> unit;
-  val runTests: unit -> unit;
+  (**
+   * Runs all the registered tests, in the order that they were registered.
+   *)
+  val runRegisteredTests: unit -> unit;
 end
 
 structure CoreTester =
@@ -58,15 +122,38 @@ struct
                    outstream: TextIO.outstream,
                    version: string
                  }
-  type message = { code: string, requestId: string, body: string };
+  type request = { code: string, requestId: string, body: string };
   exception test_exp of string;
 
-  open TextIO;
+  val printableEscapes = String.map (fn #"\u001b" => #"\u00a4" | c => c)
 
-  fun createMessage (code,requestId) body =
+  val logFile = "tests.log";
+  val logStream = TextIO.openOut logFile;
+  fun output (stream,msg) = (
+      TextIO.output (logStream,printableEscapes msg);
+      TextIO.output (stream,msg));
+  fun flushOut stream = (
+      TextIO.flushOut logStream;
+      TextIO.flushOut stream);
+  fun input1 stream =
+    let
+      val ch = TextIO.input1 stream
+      val () = (case ch
+                  of SOME #"\u001b" => TextIO.output (logStream,"\u00a4")
+                   | SOME c => TextIO.output (logStream,String.str c)
+               )
+    in ch end;
+  fun inputN (stream,len) =
+    let
+      val str = TextIO.inputN (stream,len)
+      val () = TextIO.output (logStream,printableEscapes str)
+    in str end;
+  fun log msg = (TextIO.output (logStream,msg); TextIO.flushOut logStream)
+
+  fun createRequest (code,requestId) body =
         { code = code, requestId = requestId, body = body };
 
-  fun constructMessage { code, requestId, body } =
+  fun constructRequest { code, requestId, body } =
         ("\u001b<"^code^"\u001b:"^requestId^"\u001b|"^body^"\u001b>")
 
   val delim = "u\001b;";
@@ -74,17 +161,22 @@ struct
   val escapeStr = String.translate (fn #"\u001b" => "\u001b\u001b" | c => String.str c);
   fun stringList ss = String.concatWith "\u001b," (map escapeStr ss)
 
-  fun writeMessage ({ outstream, ... }:session) message =
-        (TextIO.output (outstream,constructMessage message); TextIO.flushOut outstream)
+  fun writeRequest ({ outstream, ... }:session) request =
+       (log "\n\n";
+        output (outstream,constructRequest request);
+        flushOut outstream;
+        log "\n");
+  fun writeRequestByParts session header body = writeRequest session (createRequest header body);
+
   fun eatChar ch instream =
-        case (TextIO.input1 instream)
+        case (input1 instream)
           of NONE => raise test_exp ("Unexpected EOF, expecting "^(String.str ch))
            | SOME c => if ch = c then () else
                 raise test_exp ("Unexpected char "^(String.str c)^", expecting "^(String.str ch));
   val eatEsc = eatChar #"\u001b";
 
   local
-    fun readToEscape' (soFar: string) (terminator: char) (instream:instream) : string =
+    fun readToEscape' (soFar: string) (terminator: char) (instream:TextIO.instream) : string =
           case input1 instream
             of SOME #"\u001b" =>
                 (
@@ -124,12 +216,11 @@ struct
         let
           val () = (eatEsc instream; eatChar #"[" instream)
           val dataLength = readInt #"|" instream
-          val data = TextIO.inputN (instream, dataLength)
+          val data = inputN (instream, dataLength)
           val () = (eatEsc instream; eatChar #"]" instream)
         in
           data
         end;
-  val printableEscapes = String.map (fn #"\u001b" => #"\u00a4" | c => c)
   fun assertAtBodyEnd instream =
     let
       val body = readToEscape #">" instream
@@ -162,7 +253,7 @@ struct
              | NONE    => raise test_exp "End of file"
              )
   in
-    fun readList (splitter:char,terminator:char) (instream:instream) : string list =
+    fun readList (splitter:char,terminator:char) (instream:TextIO.instream) : string list =
       readList' "" (readInt #":" instream) (splitter,terminator) instream
   end
 
@@ -310,19 +401,28 @@ struct
   fun registerTest name testFun =
     (tests := (name,testFun)::(!tests));
 
-  fun runTests' [] = ()
-    | runTests' ((name,testFun)::ts) =
+  fun killSession ({proc,instream,outstream,...}:session) =
+     (TextIO.closeOut outstream;
+      log (printableEscapes (TextIO.inputAll instream));
+      Unix.kill (proc,Posix.Signal.kill));
+
+  fun runTests [] = ()
+    | runTests ((name,testFun)::ts) =
       ((let
-          val () = TextIO.print (name^"...")
+          val () = log ("Starting test "^name^"\n\n")
+          val () = TextIO.print (name^" ... ")
           val session = startSession "../../bin/quanto-core"
-          val () = testFun session
+          val () = (testFun session handle e => (killSession session; raise e))
           val () = endSession session
-        in TextIO.print "passed\n" end
+        in log ("\nTest "^name^" passed.\n\n\n"); TextIO.print "passed\n" end
         handle test_exp msg =>
-          (TextIO.print "failed:\n  "; TextIO.print msg; TextIO.print "\n"));
-      runTests' ts)
+         (log ("\nTest "^name^" failed:\n  "^msg^"\n\n\n");
+          TextIO.print "failed:\n  ";
+          TextIO.print msg;
+          TextIO.print "\n"));
+      runTests ts)
         
-  fun runTests () = runTests' (rev (!tests))
+  fun runRegisteredTests () = runTests (rev (!tests))
 end
 
 (* vi:et:sw=2:sts=2

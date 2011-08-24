@@ -1,0 +1,27 @@
+Starting test Simple test
+
+¤<V¤|1.0¤>
+Test Simple test passed.
+
+
+Starting test Change theory (invalid_theory)
+
+¤<V¤|1.0¤>
+
+¤<TS¤:apple¤|invalid_theory¤>
+¤<Q¤:apple¤|BADTHEORY¤;Unknown theory¤>
+Test Change theory (invalid_theory) passed.
+
+
+Starting test Change and get theory (red_green)
+
+¤<V¤|1.0¤>
+
+¤<TS¤:pear¤|red_green¤>
+¤<O¤:pear¤|¤>
+
+¤<TG¤:banana¤|¤>
+¤<N¤:banana¤|red_green¤>
+Test Change and get theory (red_green) passed.
+
+
