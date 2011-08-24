@@ -50,7 +50,7 @@
  * The possible responses the core can generate are:
  *
  * Name: ErrorResponse
- * Code: "E"
+ * Code: "Q"
  * Body:
  *   ErrorIdent ::= [A-Z]+ ;
  *   ErrorMessage ::= String ;
@@ -1882,5 +1882,5 @@ struct
   fun run_in_stdio () = (flushIn(); run_in_textstreams (TextIO.stdIn,TextIO.stdOut));
 end;
 
-(* vi:ts=2:sw=2:sts=2:et
+(* vi:ts=2:sw=2:sts=2:et:foldmethod=marker
 *)
