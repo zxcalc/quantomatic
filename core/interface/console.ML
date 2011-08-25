@@ -30,14 +30,14 @@ structure Console : CONSOLE
     | get_command_help cmd    = ConsoleCommands.get_help commands cmd;
 
   fun help cns [] = "Type \"help CMD\" to get help on a command.\n"^
-                    "Available commands:\n\n"^
-                    (fold (fn a => fn b =>a^"\n"^b) cns "\n")
+                    "Available commands:\n"^
+                    (fold (fn a => fn b =>"\n"^a^b) cns "")
     | help _   [cmd] =
         (case (get_command_help cmd)
           of SOME h => let val args = (the (get_command_args cmd)) in
-                         ("\n"^cmd^" "^args^"\n\n    "^h^"\n\n")
+                         ("\n"^cmd^" "^args^"\n    "^h^"\n")
                        end
-           | NONE   => ("!!! No command called '"^cmd^"'\n"))
+           | NONE   => ("!!! No command called '"^cmd))
     | help _   _ = "!!! Wrong number of arguments";
 
 (*
@@ -80,17 +80,17 @@ structure Console : CONSOLE
       (case ConsoleCommands.get_command commands cname
         of SOME f => ConsoleCommands.parse_response (serviceRequest (f args))
          | NONE => ("!!! Unknown command: "^
-            (ConsoleLexer.toString cmd)^"\n"))
+            (ConsoleLexer.toString cmd)))
       ))
 
-  val error_msg = "!!! Parse error in command.\n"
+  val error_msg = "!!! Parse error in command."
 
   fun eval_command_string serviceRequest command_string =
     let
       fun do_cmd_with_quit ("quit",_) = QUIT
         | do_cmd_with_quit ("exit",_) = QUIT
-        | do_cmd_with_quit ("help",["quit"]) = (NORMAL ("\nquit\n\n    Quits the quantomatic core\n\n"))
-        | do_cmd_with_quit ("help",["exit"]) = (NORMAL ("\nexit\n\n    Quits the quantomatic core\n\n"))
+        | do_cmd_with_quit ("help",["quit"]) = (NORMAL ("\nquit\n    Quits the quantomatic core\n"))
+        | do_cmd_with_quit ("help",["exit"]) = (NORMAL ("\nexit\n    Quits the quantomatic core\n"))
         | do_cmd_with_quit ("help",args) = (NORMAL (help command_name_list_with_quit args))
         | do_cmd_with_quit c = (do_cmd serviceRequest c)
     in

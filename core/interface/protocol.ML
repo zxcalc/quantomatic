@@ -1828,7 +1828,7 @@ struct
                         of InterfaceResult.NORMAL output =>
                             (outputCmdResult output; next_loop ())
                          | InterfaceResult.CHANGE_THEORY "red_green" =>
-                            (change_loop RG_Controller.serviceRequest)
+                            (outputCmdResult "ok"; change_loop RG_Controller.serviceRequest)
                          | InterfaceResult.CHANGE_THEORY th =>
                             (outputCmdResult ("!!! Unknown theory \""^th^"\"\n"); next_loop ())
                          | InterfaceResult.SKIP => (outputCmdResult ""; next_loop ())

@@ -305,8 +305,8 @@ struct
     end;
   val demandOkResponse = readOkResponse;
 
-  val readConsoleResponse = readDataChunkResponse "O";
-  val demandConsoleResponse = demandDataChunkResponse "O";
+  val readConsoleResponse = readDataChunkResponse "C";
+  val demandConsoleResponse = demandDataChunkResponse "C";
 
   fun readConsoleHelpResponse ({ instream, ... }:session) requestId =
     let

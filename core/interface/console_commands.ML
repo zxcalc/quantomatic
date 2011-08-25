@@ -79,7 +79,7 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _  => bad_args_req))),
 
     ("new_graph",
-     ("", "Create a new graph and return its name\n",
+     ("", "Create a new graph and return its name",
       (fn [] => (Commands.LoadGraphRequest {
                         details = Commands.LoadEmptyGraphRequest { requestedName = "" } })
         | _  => bad_args_req))),
@@ -249,7 +249,7 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _           => bad_args_req))),
 
     ("bang_vertices",
-     ("GRAPH BB V1 .. VN", "Add vertices V1..VN in graph to !-box BB\n",
+     ("GRAPH BB V1 .. VN", "Add vertices V1..VN in graph to !-box BB",
       (fn (graph::bb::vs) => (Commands.EditGraphRequest {
                              graphName = graph, action = Commands.BangVerticesAction { bangBoxName = bb, vertexNames = vs } })
         | _               => bad_args_req))),

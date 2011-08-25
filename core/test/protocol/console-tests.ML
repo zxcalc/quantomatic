@@ -22,5 +22,24 @@ CoreTester.registerTest "Get console help" (fn session => (
   CoreTester.demandConsoleHelpResponse session "c++" ("", "List all loaded rules")
 ));
 
+CoreTester.registerTest "Run console commands" (fn session => (
+  CoreTester.writeRequestByParts session ("CC","pascal")
+    (CoreTester.dataChunk "change_theory \"red_green\"");
+  CoreTester.demandConsoleResponse session "pascal" "ok";
+  CoreTester.writeRequestByParts session ("CC","js")
+    (CoreTester.dataChunk "new_graph");
+  CoreTester.demandConsoleResponse session "js" "new-graph-1";
+  CoreTester.writeRequestByParts session ("CC","perl")
+    (CoreTester.dataChunk "rename_graph \"new-graph-1\" \"my-little-graph\"");
+  CoreTester.demandConsoleResponse session "perl" "my-little-graph";
+  (* check it has updated the state properly *)
+  CoreTester.writeRequestByParts session ("GL", "ruby") "";
+  CoreTester.demandNameListResponse session "ruby" ["my-little-graph"];
+
+  CoreTester.writeRequestByParts session ("CC","objc")
+    (CoreTester.dataChunk "rename_graph foo bar");
+  CoreTester.demandConsoleResponse session "objc" "!!! No such graph \"foo\""
+));
+
 (* vi:et:sw=2:sts=2
 *)

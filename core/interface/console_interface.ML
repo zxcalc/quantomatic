@@ -26,7 +26,7 @@ struct
 							of InterfaceResult.NORMAL output =>
 									(print (output^"\n"); next_loop ())
 							 | InterfaceResult.CHANGE_THEORY "red_green" =>
-									(change_loop RG_Controller.serviceRequest)
+									(print "ok\n"; change_loop RG_Controller.serviceRequest)
 							 | InterfaceResult.CHANGE_THEORY th =>
 									(print ("!!! Unknown theory \""^th^"\"\n"); next_loop ())
 							 | InterfaceResult.SKIP => (next_loop ())
