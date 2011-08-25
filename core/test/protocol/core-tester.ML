@@ -46,6 +46,10 @@ sig
    * Constructs a string list
    *)
   val stringList: string list -> string;
+  (**
+   * Produces a message body by concatenating the given arguments with the delimiter
+   *)
+  val concatArgs: string list -> string;
 
   (**
    * Writes a previously constructed request to the core
@@ -55,6 +59,7 @@ sig
    * Creates a request and sends it to the core
    *)
   val writeRequestByParts: session -> (string*string) -> string -> unit;
+  val writeRequestByArgs: session -> (string*string) -> string list -> unit;
 
 
   (**
@@ -150,11 +155,19 @@ struct
                    | SOME c => TextIO.output ((!logStream),String.str c)
                )
     in ch end;
-  fun inputN (stream,len) =
+  fun inputN (stream,0) = ""
+    | inputN (stream,len) =
     let
       val str = TextIO.inputN (stream,len)
+      val strSize = String.size str
       val () = TextIO.output (!logStream,printableEscapes str)
-    in str end;
+    in
+      if (strSize = 0 orelse strSize = len) then
+        str
+      else
+        (* large messages sometimes get split up *)
+        (str^(inputN (stream,len-strSize)))
+    end;
   fun log msg = (TextIO.output (!logStream,msg); TextIO.flushOut (!logStream))
 
   fun createRequest (code,requestId) body =
@@ -163,10 +176,11 @@ struct
   fun constructRequest { code, requestId, body } =
         ("\u001b<"^code^"\u001b:"^requestId^"\u001b|"^body^"\u001b>")
 
-  val delim = "u\001b;";
+  val delim = "\u001b;";
   fun dataChunk data = "\u001b["^(Int.toString (String.size data))^"\u001b|"^data^"\u001b]";
   val escapeStr = String.translate (fn #"\u001b" => "\u001b\u001b" | c => String.str c);
   fun stringList ss = String.concatWith "\u001b," (map escapeStr ss)
+  val concatArgs = String.concatWith delim
 
   fun writeRequest ({ outstream, ... }:session) request =
        (log "\n\n";
@@ -174,13 +188,18 @@ struct
         flushOut outstream;
         log "\n");
   fun writeRequestByParts session header body = writeRequest session (createRequest header body);
+  fun writeRequestByArgs session header args = writeRequest session (createRequest header (concatArgs args));
 
   fun eatChar ch instream =
         case (input1 instream)
           of NONE => raise test_exp ("Unexpected EOF, expecting "^(String.str ch))
            | SOME c => if ch = c then () else
                 raise test_exp ("Unexpected char "^(String.str c)^", expecting "^(String.str ch));
-  val eatEsc = eatChar #"\u001b";
+  fun eatEsc instream =
+        case (input1 instream)
+          of NONE => raise test_exp ("Unexpected EOF, expecting ESC")
+           | SOME #"\u001b" => ()
+           | SOME c => raise test_exp ("Unexpected char "^(String.str c)^", expecting ESC");
 
   local
     fun readToEscape' (soFar: string) (terminator: char) (instream:TextIO.instream) : string =
@@ -224,6 +243,10 @@ struct
           val () = (eatEsc instream; eatChar #"[" instream)
           val dataLength = readInt #"|" instream
           val data = inputN (instream, dataLength)
+          val gotLength = String.size data
+          val _ = if gotLength < dataLength then
+              raise test_exp ("Expected "^(Int.toString dataLength)^" bytes of data, got "^(Int.toString gotLength))
+              else ()
           val () = (eatEsc instream; eatChar #"]" instream)
         in
           data
@@ -410,6 +433,7 @@ struct
 
   fun killSession ({proc,instream,outstream,...}:session) =
      (TextIO.closeOut outstream;
+      log "<<<ERROR HERE>>>";
       log (printableEscapes (TextIO.inputAll instream));
       Unix.kill (proc,Posix.Signal.kill));
 
@@ -436,6 +460,7 @@ struct
 
   fun runRegisteredTests () = runTests true (rev (!tests))
 end
+open CoreTester;
 
 (* vi:et:sw=2:sts=2
 *)

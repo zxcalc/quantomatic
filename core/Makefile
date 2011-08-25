@@ -18,7 +18,7 @@ POLYML_LIB=$(POLYML_HOME)/lib
 ################################
 # dynamic variables checked on call to make. 
 ################################
-ML_SRC_FILES = $(shell find . | grep ".ML$$")
+ML_SRC_FILES = $(shell find . | grep ".ML$$" | grep -v "test/protocol/" | grep -v "PROTOCOLTEST.ML$$")
 ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES) | grep ".ML$$")
 
 ################################
