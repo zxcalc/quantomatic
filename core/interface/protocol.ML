@@ -215,15 +215,17 @@
  * Body:
  *   FileName ::= String ;
  *   LoadGraphFromFileRequestBody ::= FileName ;
- * Desc: Load a graph from a file.
+ * Desc: Load a graph from a file.  It will be given a name based on
+ *       the file name.
  * Responses: NameResponse
  * ErrorResponses: FILEACCESS | BADDATA
  *
  * Name: LoadGraphFromDataRequest
  * Code: "GOD"
  * Body:
- *   LoadGraphFromDataRequestBody ::= DataChunk ;
- * Desc: Load a graph from the given data.
+ *   LoadGraphFromDataRequestBody ::= GraphName? ESC ';' DataChunk ;
+ * Desc: Load a graph from the given data, giving it (a variation on)
+ *       the given name.  If no name is given, a default one will be used.
  * Responses: NameResponse
  * ErrorResponses: BADDATA
  *
@@ -1093,12 +1095,14 @@ struct
                         }
                       }
          | "GOD"  =>  let
+                        val requestedName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
                         LoadGraphRequest {
                           details = LoadGraphFromDataRequest {
-                            data = data
+                            data = data,
+                            requestedName = requestedName
                           }
                         }
                       end

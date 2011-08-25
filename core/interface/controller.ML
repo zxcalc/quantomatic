@@ -88,7 +88,7 @@ struct
 
        and graphLoadRequest = LoadEmptyGraphRequest of { requestedName: string }
                             | LoadGraphFromFileRequest of { fileName: string }
-                            | LoadGraphFromDataRequest of { data: string }
+                            | LoadGraphFromDataRequest of { data: string, requestedName: string }
                             | CopyGraphRequest of { graphName: string }
                             | CopySubgraphRequest of { source: string, graphName: string, vertexNames: string list }
 
@@ -265,10 +265,11 @@ struct
         end
 
     | serviceRequest' (LoadGraphRequest { details }) state =
-        let fun load_graph reader data =
+        let fun load_graph suggestedName reader data =
                 (let
                    val graph = (Input.Graph.input (reader data))
-                   val (nm,state') = State.add_graph GraphName.default_name graph state
+                   val name = if suggestedName = "" then GraphName.default_name else GraphName.mk suggestedName
+                   val (nm,state') = State.add_graph name graph state
                  in
                    (NameResponse { name = GraphName.dest nm },state')
                  end
@@ -293,15 +294,15 @@ struct
                 (NameResponse { name = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
-             (load_graph XMLReader.read_from_file fileName
+             (load_graph (OS.Path.file fileName) XMLReader.read_from_file fileName
               handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read ("^msg^")") }, state)
                    | IO.Io {name : string, function : string, cause : exn} => 
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
-          | LoadGraphFromDataRequest { data } =>
-             load_graph XMLReader.read_from_string data
+          | LoadGraphFromDataRequest { data, requestedName } =>
+             load_graph requestedName XMLReader.read_from_string data
           | CopyGraphRequest { graphName } =>
              let
                 val gname = GraphName.mk graphName

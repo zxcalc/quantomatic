@@ -354,13 +354,14 @@ public class ProtocolManager {
         return getNameResponse();
     }
 
-    public String loadGraphFromData(byte[] data) throws CoreException {
+    public String loadGraphFromData(String suggestedName, byte[] data) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
 
         try {
             writer.addHeader("GOD", generateRequestId());
+            writer.addStringArg(suggestedName == null ? "" : suggestedName);
             writer.addDataChunkArg(data);
             writer.closeMessage();
         } catch (IOException ex) {
