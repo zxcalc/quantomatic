@@ -299,7 +299,7 @@
  * ("GVA": DescribeGraphRequest; not implemented)
  *
  * Name: ListVerticesRequest
- * Code: "GVV"
+ * Code: "GVVL"
  * Body:
  *   ListVerticesRequestBody ::= GraphName ;
  * Desc: List the vertices present in a graph
@@ -307,7 +307,7 @@
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListEdgesRequest
- * Code: "GVE"
+ * Code: "GVEL"
  * Body:
  *   ListEdgesRequestBody ::= GraphName ;
  * Desc: List the edges present in a graph
@@ -315,7 +315,7 @@
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListBangBoxesRequest
- * Code: "GVB"
+ * Code: "GVBL"
  * Body:
  *   ListBangBoxesRequestBody ::= GraphName ;
  * Desc: List the !-boxes present in a graph
@@ -323,7 +323,7 @@
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: VertexDataRequest
- * Code: "GVW"
+ * Code: "GVVD"
  * Body:
  *   ComponentDataFormat ::= "pretty" | "xml"
  *   VertexName ::= String ;
@@ -333,7 +333,7 @@
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | BADFORMAT
  *
  * Name: VertexUserDataRequest
- * Code: "GVX"
+ * Code: "GVVU"
  * Body:
  *   VertexUserDataRequestbody ::= GraphName ESC ';' VertexName ;
  * Desc: Get the user data attached to a vertex
@@ -341,7 +341,7 @@
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
  * Name: EdgeDataRequest
- * Code: "GVF"
+ * Code: "GVED"
  * Body:
  *   ComponentDataFormat ::= "pretty" | "xml"
  *   EdgeName ::= String ;
@@ -351,7 +351,7 @@
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE | BADFORMAT
  *
  * Name: EdgeUserDataRequest
- * Code: "GVG"
+ * Code: "GVEU"
  * Body:
  *   EdgeUserDataRequestbody ::= GraphName ESC ';' EdgeName ;
  * Desc: Get the user data attached to an edge
@@ -359,7 +359,7 @@
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
  *
  * Name: BangBoxVerticesRequest
- * Code: "GVC"
+ * Code: "GVBV"
  * Body:
  *   BangBoxName ::= String ;
  *   BangBoxDataRequestbody ::= GraphName ESC ';' BangBoxName ;
@@ -368,7 +368,7 @@
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | BADFORMAT
  *
  * Name: BangBoxUserDataRequest
- * Code: "GVD"
+ * Code: "GVBU"
  * Body:
  *   BangBoxUserDataRequestbody ::= GraphName ESC ';' BangBoxName ;
  * Desc: Get the user data attached to a !-box
@@ -1183,22 +1183,22 @@ struct
                         desc = DescribeFullGraph
                       }
 
-         | "GVV"  =>  DescribeGraphRequest {
+         | "GVVL" =>  DescribeGraphRequest {
                         graphName = readToEnd (),
                         desc = ListVertices
                       }
 
-         | "GVE"  =>  DescribeGraphRequest {
+         | "GVEL" =>  DescribeGraphRequest {
                         graphName = readToEnd (),
                         desc = ListEdges
                       }
 
-         | "GVB"  =>  DescribeGraphRequest {
+         | "GVBL" =>  DescribeGraphRequest {
                         graphName = readToEnd (),
                         desc = ListBangBoxes
                       }
 
-         | "GVW"  =>  let
+         | "GVVD" =>  let
                         val graphName  = readToDelim ()
                         val vertexName  = readToDelim ()
                         val format = case readToEnd ()
@@ -1225,7 +1225,7 @@ struct
                               }
                       end
 
-         | "GVX"  =>  let
+         | "GVVU" =>  let
                         val graphName  = readToDelim ()
                         val vertexName = readToEnd ()
                       in
@@ -1235,7 +1235,7 @@ struct
                         }
                       end
 
-         | "GVF" =>  let
+         | "GVED" =>  let
                         val graphName = readToDelim ()
                         val edgeName  = readToDelim ()
                         val format = case readToEnd ()
@@ -1262,7 +1262,7 @@ struct
                               }
                       end
 
-         | "GVG"  =>  let
+         | "GVEU" =>  let
                         val graphName = readToEscape #";"
                         val edgeName  = readToEnd ()
                       in
@@ -1272,7 +1272,7 @@ struct
                         }
                       end
 
-         | "GVC"  =>  let
+         | "GVBV" =>  let
                         val graphName   = readToEscape #";"
                         val bangBoxName = readToEnd ()
                       in
@@ -1282,7 +1282,7 @@ struct
                         }
                       end
 
-         | "GVD"  =>  let
+         | "GVBU" =>  let
                         val graphName   = readToEscape #";"
                         val bangBoxName = readToEnd ()
                       in

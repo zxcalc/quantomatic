@@ -160,26 +160,26 @@ let
   val _ = writeRequestByArgs session ("GOD","USA") ["example",dataChunk exampleGraphData]
   val _ = demandNameResponse session "USA" "example"
 
-  val _ = writeRequestByArgs session ("GVV","Canada") ["dummy graph"]
+  val _ = writeRequestByArgs session ("GVVL","Canada") ["dummy graph"]
   val _ = demandErrorResponse session "Canada" "NOSUCHGRAPH"
 
-  val _ = writeRequestByArgs session ("GVV","Mexico") ["example"]
+  val _ = writeRequestByArgs session ("GVVL","Mexico") ["example"]
   val vertices = readNameListResponse session "Mexico"
   val _ = if unordered_eq vertices exampleGraphVertexNames then () else
         raise test_exp "Got wrong vertex names"
 
-  val _ = writeRequestByArgs session ("GVE","Bahamas") ["dummy graph"]
+  val _ = writeRequestByArgs session ("GVEL","Bahamas") ["dummy graph"]
   val _ = demandErrorResponse session "Bahamas" "NOSUCHGRAPH"
 
-  val _ = writeRequestByArgs session ("GVE","Antigua and Barbuda") ["example"]
+  val _ = writeRequestByArgs session ("GVEL","Antigua and Barbuda") ["example"]
   val edges = readNameListResponse session "Antigua and Barbuda"
   val _ = if unordered_eq edges exampleGraphEdgeNames then () else
         raise test_exp "Got wrong edge names"
 
-  val _ = writeRequestByArgs session ("GVB","Barbados") ["dummy graph"]
+  val _ = writeRequestByArgs session ("GVBL","Barbados") ["dummy graph"]
   val _ = demandErrorResponse session "Barbados" "NOSUCHGRAPH"
 
-  val _ = writeRequestByArgs session ("GVB","Belize") ["example"]
+  val _ = writeRequestByArgs session ("GVBL","Belize") ["example"]
   val bangBoxes = readNameListResponse session "Belize"
   val _ = if unordered_eq bangBoxes exampleGraphBangBoxNames then () else
         raise test_exp "Got wrong !-box names"

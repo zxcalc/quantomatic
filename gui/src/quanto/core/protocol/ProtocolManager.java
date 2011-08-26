@@ -535,7 +535,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVV", generateRequestId());
+            writer.addHeader("GVVL", generateRequestId());
             writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
@@ -551,7 +551,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVE", generateRequestId());
+            writer.addHeader("GVEL", generateRequestId());
             writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
@@ -567,7 +567,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVB", generateRequestId());
+            writer.addHeader("GVBL", generateRequestId());
             writer.addStringArg(graph);
             writer.closeMessage();
         } catch (IOException ex) {
@@ -583,7 +583,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVW", generateRequestId());
+            writer.addHeader("GVVD", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
             writer.addStringArg("xml");
@@ -601,7 +601,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVX", generateRequestId());
+            writer.addHeader("GVVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
             writer.closeMessage();
@@ -618,7 +618,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVF", generateRequestId());
+            writer.addHeader("GVED", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(edge);
             writer.addStringArg("xml");
@@ -636,7 +636,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVG", generateRequestId());
+            writer.addHeader("GVEU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(edge);
             writer.closeMessage();
@@ -653,7 +653,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVC", generateRequestId());
+            writer.addHeader("GVBV", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(bangBox);
             writer.closeMessage();
@@ -670,7 +670,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GVD", generateRequestId());
+            writer.addHeader("GVVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(bangBox);
             writer.closeMessage();
