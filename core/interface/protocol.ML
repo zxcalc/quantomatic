@@ -102,13 +102,13 @@
  *   CountResponseBody ::= Integer ;
  * Desc: A number, usually the quantity of something.
  *
- * Name: NameResponse
+ * Name: StringResponse
  * Code: "N"
  * Body:
  *   NameResponseBody ::= String ;
  * Desc: A string, usually a name.
  *
- * Name: NameListResponse
+ * Name: StringListResponse
  * Code: "M"
  * Body:
  *   NameListRespBody ::= StringList ;
@@ -120,19 +120,24 @@
  *   UserDataRespBody ::= DataChunk ;
  * Desc: Data that was previously supplied by the tool.
  *
- * Name: RewriteListResponse
- * Code: "W"
+ * Name: StructuredDataResponse
+ * Code: "S"
  * Body:
- *   PrettyChunk ::= ESC 'P' DataChunk ;
- *   XmlChunk ::= ESC 'X' DataChunk ;
- *   GraphChunk ::= (PrettyChunk | XmlChunk) ;
- *   RuleName ::= String ;
- *   NewGraph ::= GraphChunk ;
- *   RuleLhsGraph ::= GraphChunk ;
- *   RuleRhsGraph ::= GraphChunk ;
- *   Rewrite ::= RuleName ESC ',' NewGraph ESC ',' RuleLhsGraph ESC ',' RuleRhsGraph ;
- *   RewriteListResponseBody ::= (Rewrite (ESC ';' Rewrite)* )? ;
- * Desc: A list of rewrites.
+ *   Element ::= ESC 'A' ElementContent ESC 'a'
+ *             | ...
+ *             | ESC 'Y' ElementContent ESC 'y'
+ *             | ESC 'ZA' ElementContent ESC 'za'
+ *             | ...
+ *             | ESC 'ZY' ElementContent ESC 'zy'
+ *             | ESC 'ZZA' ElementContent ESC 'zza'
+ *             | ...
+ *   ElementContent ::= Element | String | DataChunk
+ *   StructuredDataResponseBody ::= Element
+ * Desc: A sort of binary-xml style data structure.  Each element
+ *       starts with a series of capital letters (zero or more 'Z's,
+ *       followed by one other letter) and ends with the lowercase
+ *       version of the same sequence.  In between, it can contain
+ *       other elements, string data or data chunks.
  *
  * Name: UnknownRequestResponse
  * Code: "Z"
@@ -162,7 +167,7 @@
  * Body
  *   ConsoleCommandListRequestBody ::= ;
  * Desc: Get the list of possible user-console commands
- * Responses: NameListResponse
+ * Responses: StringListResponse
  * Error responses:
  *
  * Name: ConsoleHelpRequest
@@ -188,7 +193,7 @@
  * Body:
  *   CurrentTheoryRequestBody ::= ;
  * Desc: Get the name of the current theory
- * Responses: NameResponse
+ * Responses: StringResponse
  * ErrorResponses:
  *
  *
@@ -199,7 +204,7 @@
  * Body:
  *   ListGraphsRequestBody ::= ;
  * Desc: List the loaded graphs.
- * Responses: NameListResponse
+ * Responses: StringListResponse
  *
  * Name: LoadEmptyGraphRequest
  * Code: "GOE"
@@ -208,7 +213,7 @@
  *   LoadEmptyGraphRequestBody ::= (GraphName)? ;
  * Desc: Load an empty graph, optionally naming it as requested,
  *       or a variant if the name is taken.
- * Responses: NameResponse
+ * Responses: StringResponse
  *
  * Name: LoadGraphFromFileRequest
  * Code: "GOF"
@@ -217,7 +222,7 @@
  *   LoadGraphFromFileRequestBody ::= FileName ;
  * Desc: Load a graph from a file.  It will be given a name based on
  *       the file name.
- * Responses: NameResponse
+ * Responses: StringResponse
  * ErrorResponses: FILEACCESS | BADDATA
  *
  * Name: LoadGraphFromDataRequest
@@ -226,7 +231,7 @@
  *   LoadGraphFromDataRequestBody ::= GraphName? ESC ';' DataChunk ;
  * Desc: Load a graph from the given data, giving it (a variation on)
  *       the given name.  If no name is given, a default one will be used.
- * Responses: NameResponse
+ * Responses: StringResponse
  * ErrorResponses: BADDATA
  *
  * Name: CopyGraphRequest
@@ -236,7 +241,7 @@
  * Desc: Create a copy of an existing graph; the argument is the
  *       existing graph.  The new graph's name will be based on
  *       the old one.
- * Responses: NameResponse
+ * Responses: StringResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: CopySubgraphRequest
@@ -270,7 +275,7 @@
  *   RenameGraphRequestBody ::= OldGraphName ESC ';' NewGraphName ;
  * Desc: Rename a graph; if the requested new name already exists,
  *       a similar one will be picked.
- * Responses: NameResponse
+ * Responses: StringResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: DiscardGraphRequest
@@ -303,7 +308,7 @@
  * Body:
  *   ListVerticesRequestBody ::= GraphName ;
  * Desc: List the vertices present in a graph
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListEdgesRequest
@@ -311,7 +316,7 @@
  * Body:
  *   ListEdgesRequestBody ::= GraphName ;
  * Desc: List the edges present in a graph
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListBangBoxesRequest
@@ -319,7 +324,7 @@
  * Body:
  *   ListBangBoxesRequestBody ::= GraphName ;
  * Desc: List the !-boxes present in a graph
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: VertexDataRequest
@@ -364,7 +369,7 @@
  *   BangBoxName ::= String ;
  *   BangBoxDataRequestbody ::= GraphName ESC ';' BangBoxName ;
  * Desc: Get the vertices contained in a !-box
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | BADFORMAT
  *
  * Name: BangBoxUserDataRequest
@@ -408,7 +413,7 @@
  *                            VertexType ESC ';'
  *                            ResultFormat ;
  * Desc: Add a vertex to a graph
- * Response: NameResponse | XmlResponse | PrettyResponse
+ * Response: StringResponse | XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | BADVERTEXTYPE | BADFORMAT
  *
  * Name: RenameVertexRequest
@@ -471,7 +476,7 @@
  *                          TargetVertex ESC ';'
  *                          ResultFormat ;
  * Desc: Add an edge to a graph.
- * Response: NameResponse | XmlResponse | PrettyResponse
+ * Response: StringResponse | XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: RenameEdgeRequest
@@ -529,7 +534,7 @@
  *                             ResultFormat ;
  * Desc: Add a !-box to a graph.  A list of vertices to include in
  *       the !-box may be provided
- * Response: NameResponse | XmlResponse | PrettyResponse
+ * Response: StringResponse | XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: RenameBangBoxRequest
@@ -569,7 +574,7 @@
  *   DuplicateBangBoxRequestBody ::= GraphName ESC ';'
  *                                   BangBoxName ;
  * Desc: Duplicate the given !-boxe.
- * Response: NameResponse
+ * Response: StringResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: MergeBangBoxRequest
@@ -578,7 +583,7 @@
  *   MergeBangBoxRequestBody ::= GraphName ESC ';'
  *                               BangBoxNames ;
  * Desc: Merge the given !-boxes.
- * Response: NameResponse
+ * Response: StringResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: BangVerticesRequest
@@ -651,7 +656,7 @@
  * Body:
  *   ListRulesRequestBody ::= ;
  * Desc: List all loaded rules in the current theory.
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses:
  *
  * Name: ListActiveRulesRequest
@@ -659,7 +664,7 @@
  * Body:
  *   ListActiveRulesRequestBody ::= ;
  * Desc: List all active rules in the current theory.
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses:
  *
  * Name: OpenRuleLhsRequest
@@ -668,7 +673,7 @@
  *   RuleName ::= String ;
  *   OpenRuleLhsRequestBody ::= RuleName ;
  * Desc: Open the lhs of a rule as a graph.
- * Response: NameResponse
+ * Response: StringResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: OpenRuleRhsRequest
@@ -676,7 +681,7 @@
  * Body:
  *   OpenRuleRhsRequestBody ::= RuleName ;
  * Desc: Open the rhs of a rule as a graph.
- * Response: NameResponse
+ * Response: StringResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: SetRuleRequest
@@ -721,7 +726,7 @@
  *   ListTagsRequestBody ::= ;
  * Desc: List all tags in the current theory.  If a tag exists if and only
  *       if there is at least one rule tagged with it.
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses:
  *
  * Name: ListRulesByTagRequest
@@ -731,7 +736,7 @@
  *   ListRulesByTagRequestBody ::= TagName ;
  * Desc: List all rules with the given tag in the current theory.
  *       If a tag does not exist, an empty list will be returned.
- * Response: NameListResponse
+ * Response: StringListResponse
  * ErrorResponses:
  *
  * Name: TagRuleRequest
@@ -816,7 +821,7 @@
  *       result format is "name", only the rule applied will be returned
  *       for each attached rewrite.  Note that the same rule may well
  *       appear more than once in the list.
- * Response: RewriteListResponse | NameListResponse
+ * Response: StructuredDataResponse | XmlResponse | StringListResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
  * Name: ApplyAttachedRewriteRequest
@@ -895,48 +900,19 @@ struct
          (printOpen #"I" requestId;
           printInt count;
           printClose ())
-      | outputResponse (requestId, NameResponse { name }) =
+      | outputResponse (requestId, StringResponse { data }) =
          (printOpen #"N" requestId;
-          printString name;
+          printString data;
           printClose ())
-      | outputResponse (requestId, NameListResponse { names }) =
+      | outputResponse (requestId, StringListResponse { data }) =
          (printOpen #"M" requestId;
-          printList names;
+          printList data;
           printClose ())
     (* FIXME descs *)
       | outputResponse (requestId, UserDataResponse { data }) =
          (printOpen #"U" requestId;
           printDataChunk data;
           printClose ())
-      | outputResponse (requestId, RewriteListResponse { rewrites }) =
-          let
-            fun outputGraphData (PrettyGData p) =
-                  let val s = Pretty.string_of p in
-                    printEsc #"P";
-                    printDataChunk s
-                  end
-              | outputGraphData (XmlGData t) = 
-                  let val xml = XML.string_of t in
-                    printEsc #"X";
-                    printDataChunk xml
-                  end
-              (* FIXME graph descriptions *)
-            fun outputRewrite ({ruleName, result, lhs, rhs}) =
-                 (printString ruleName;
-                  printEsc #",";
-                  outputGraphData result;
-                  printEsc #",";
-                  outputGraphData lhs;
-                  printEsc #",";
-                  outputGraphData rhs)
-            fun outputRewrites [] = ()
-              | outputRewrites (w::[]) = (outputRewrite w)
-              | outputRewrites (w::ws) = (outputRewrite w; printDelim (); outputRewrites ws)
-          in
-           (printOpen #"W" requestId;
-            outputRewrites rewrites;
-            printClose ())
-          end
       | outputResponse (requestId, UnknownResponse { code }) =
          (printOpen #"Z" requestId;
           print code;
@@ -944,7 +920,7 @@ struct
 
     fun outputOkResponse requestId = (outputResponse (requestId, OkResponse))
     fun outputNameResponse requestId name =
-          (outputResponse (requestId, NameResponse { name = name }))
+          (outputResponse (requestId, StringResponse { data = name }))
     fun outputErrorResponse requestId code message =
           (outputResponse (requestId, ErrorResponse { errorCode = code, message = message }))
     (* }}} *)
@@ -1321,7 +1297,7 @@ struct
                                        of "xml"    => SOME XmlFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME NameFormat
+                                        | "name"   => SOME BasicFormat
                                         | _        => NONE
                       in
                         case format
@@ -1427,7 +1403,7 @@ struct
                                        of "xml"    => SOME XmlFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME NameFormat
+                                        | "name"   => SOME BasicFormat
                                         | _        => NONE
                       in
                         case format
@@ -1530,7 +1506,7 @@ struct
                                        of "xml"    => SOME XmlFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME NameFormat
+                                        | "name"   => SOME BasicFormat
                                         | _        => NONE
                       in
                         case format
@@ -1777,7 +1753,7 @@ struct
                                        of "xml"    => SOME XmlFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
-                                        | "name"   => SOME NameFormat
+                                        | "name"   => SOME BasicFormat
                                         | _        => NONE
                       in
                         case format

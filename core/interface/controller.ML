@@ -4,27 +4,29 @@ struct
   type edgeDesc = { name: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
-  datatype resultFormat = NameFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
+  (* BasicFormat is the name of a graph or component, and the string value of
+   * component data *)
+  datatype resultFormat = BasicFormat | PrettyFormat | XmlFormat | DescriptionFormat;
   datatype componentData = StringCData of string
                          | XmlCData of (XML.tree list)
                          | DescriptionCData of ComponentData.T;
   datatype graphData = PrettyGData of Pretty.T
                      | XmlGData of XML.tree
                      | DescriptionGData of graphDesc;
-  type rewriteDesc = { ruleName: string, result: graphData, lhs: graphData, rhs: graphData };
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
 
                    (*** Graph Commands ***)
                    | ListGraphsRequest
-                     (* NameListResponse *)
+                     (* StringListResponse *)
                    | LoadGraphRequest of { details: graphLoadRequest }
-                     (* NameResponse | ErrorResponse *)
+                     (* StringResponse | ErrorResponse *)
                    | SaveGraphToFileRequest of { graphName: string, fileName: string }
                      (* OkResponse | ErrorResponse *)
                    | RenameGraphRequest of { oldName: string, newName: string }
-                     (* NameResponse | ErrorResponse *)
+                     (* StringResponse | ErrorResponse *)
                    | DiscardGraphRequest of { graphName: string }
                      (* OkResponse | ErrorResponse *)
                    | ExportGraphRequest of { graphName: string, format: graphFormat }
@@ -44,15 +46,15 @@ struct
 
                    (*** Rule commands ***)
                    | ListRulesRequest
-                     (* NameListResponse *)
+                     (* StringListResponse *)
                    | ListActiveRulesRequest
-                     (* NameListResponse *)
+                     (* StringListResponse *)
                    | ListRulesByTagRequest of { tagName: string }
-                     (* NameListResponse | ErrorResponse *)
+                     (* StringListResponse | ErrorResponse *)
                    | OpenRuleLhsRequest of { ruleName: string }
-                     (* NameResponse | ErrorResponse *)
+                     (* StringResponse | ErrorResponse *)
                    | OpenRuleRhsRequest of { ruleName: string }
-                     (* NameResponse | ErrorResponse *)
+                     (* StringResponse | ErrorResponse *)
                    | SetRuleRequest of { ruleName: string, lhsGraphName: string, rhsGraphName: string }
                      (* OkResponse | ErrorResponse *)
                    | DeleteRuleRequest of { ruleName: string }
@@ -64,7 +66,7 @@ struct
 
                    (*** Tag commands ***)
                    | ListTagsRequest
-                     (* NameListResponse *)
+                     (* StringListResponse *)
                    | TagRuleRequest of { ruleName: string, tagName: string }
                      (* OkResponse | ErrorResponse *)
                    | UntagRuleRequest of { ruleName: string, tagName: string }
@@ -104,11 +106,11 @@ struct
        and graphDescribeAction = DescribeFullGraph
                                  (* GraphDescriptionResponse | ErrorResponse *)
                                | ListVertices
-                                 (* NameListResponse | ErrorResponse *)
+                                 (* StringListResponse | ErrorResponse *)
                                | ListEdges
-                                 (* NameListResponse | ErrorResponse *)
+                                 (* StringListResponse | ErrorResponse *)
                                | ListBangBoxes
-                                 (* NameListResponse | ErrorResponse *)
+                                 (* StringListResponse | ErrorResponse *)
                                | VertexData of { vertexName: string, format: resultFormat }
                                  (* ComponentDataResponse | ErrorResponse *)
                                | VertexUserData of { vertexName: string }
@@ -118,7 +120,7 @@ struct
                                | EdgeUserData of { edgeName: string }
                                  (* UserDataResponse | ErrorResponse *)
                                | BangBoxVertices of { bangBoxName: string }
-                                 (* NameListResponse | ErrorResponse *)
+                                 (* StringListResponse | ErrorResponse *)
                                | BangBoxUserData of { bangBoxName: string }
                                  (* UserDataResponse | ErrorResponse *)
 
@@ -131,7 +133,7 @@ struct
                            | AddVertexAction of { vertexType: string, resultFormat: resultFormat }
                              (* VertexDescriptionAction | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }
-                             (* NameResponse | ErrorResponse *)
+                             (* StringResponse | ErrorResponse *)
                            | DeleteVerticesAction of { vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | SetVertexDataAction of { vertexName: string, vertexData: componentData }
@@ -141,7 +143,7 @@ struct
                            | AddEdgeAction of { edgeType: string, directed: bool, source: string, target: string, resultFormat: resultFormat }
                              (* EdgeDescriptionAction | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }
-                             (* NameResponse | ErrorResponse *)
+                             (* StringResponse | ErrorResponse *)
                            | DeleteEdgesAction of { edgeNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeDataAction of { edgeName: string, edgeData: componentData }
@@ -149,7 +151,7 @@ struct
                            | SetEdgeUserDataAction of { edgeName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
                            | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }
-                             (* NameResponse | ErrorResponse *)
+                             (* StringResponse | ErrorResponse *)
                            | RenameBangBoxAction of { oldName: string, newName: string }
                              (* OkResponse | ErrorResponse *)
                            | DropBangBoxesAction of { bangBoxNames: string list }
@@ -157,9 +159,9 @@ struct
                            | KillBangBoxesAction of { bangBoxNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | DuplicateBangBoxAction of { bangBoxName: string }
-                             (* NameResponse | ErrorResponse *)
+                             (* StringResponse | ErrorResponse *)
                            | MergeBangBoxesAction of { bangBoxNames: string list }
-                             (* NameResponse | ErrorResponse *)
+                             (* StringResponse | ErrorResponse *)
                            | BangVerticesAction of { bangBoxName: string, vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | UnbangVerticesAction of { vertexNames: string list }
@@ -169,18 +171,20 @@ struct
 
        and response = OkResponse
                     | ErrorResponse of { errorCode: string, message: string }
+
+                    | StringResponse of { data: string }
+                    | StringListResponse of { data: string list }
+
                     | DataResponse of { data: string }
                     | PrettyResponse of { data: Pretty.T }
                     | XmlResponse of { data: XML.tree }
                     | CountResponse of { count: int }
-
-                    | NameResponse of { name: string }
-                    | NameListResponse of { names: string list }
-                    | GraphDescriptionResponse of { graph: graphDesc }      (* G *)
-                    | VertexDescriptionResponse of { vertex: vertexDesc }   (* V *)
-                    | EdgeDescriptionResponse of { edge: edgeDesc }         (* E *)
-                    | ComponentDataResponse of { data: ComponentData.T }    (* D *)
                     | UserDataResponse of { data: string }
+
+                    | GraphDescriptionResponse of { graph: graphDesc }
+                    | VertexDescriptionResponse of { vertex: vertexDesc }
+                    | EdgeDescriptionResponse of { edge: edgeDesc }
+                    | ComponentDataResponse of { data: ComponentData.T }
                     | RewriteListResponse of { rewrites: rewriteDesc list }
 
                     | UnknownResponse of { code: string }
@@ -261,7 +265,7 @@ struct
 
     | serviceRequest' (ListGraphsRequest) (state:State.T) =
         let val graphNames = map GraphName.dest (State.get_graph_names state) in
-          (NameListResponse { names = graphNames }, state)
+          (StringListResponse { data = graphNames }, state)
         end
 
     | serviceRequest' (LoadGraphRequest { details }) state =
@@ -271,7 +275,7 @@ struct
                    val name = if suggestedName = "" then GraphName.default_name else GraphName.mk suggestedName
                    val (nm,state') = State.add_graph name graph state
                  in
-                   (NameResponse { name = GraphName.dest nm },state')
+                   (StringResponse { data = GraphName.dest nm },state')
                  end
                  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
@@ -291,7 +295,7 @@ struct
                               else GraphName.mk requestedName
                 val (nm,state') = State.add_graph tryName G.empty state
               in
-                (NameResponse { name = GraphName.dest nm },state')
+                (StringResponse { data = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
              (load_graph (OS.Path.file fileName) XMLReader.read_from_file fileName
@@ -309,7 +313,7 @@ struct
                 val otherGraph = State.get_graph state gname
                 val (nm,state') = State.add_graph gname otherGraph state
               in
-                (NameResponse { name = GraphName.dest nm },state')
+                (StringResponse { data = GraphName.dest nm },state')
               end
           | CopySubgraphRequest { source, graphName, vertexNames } =>
              (OkResponse,
@@ -336,7 +340,7 @@ struct
 
     | serviceRequest' (RenameGraphRequest { oldName, newName }) state =
         let val (nm,state') = State.rename_graph (GraphName.mk oldName) (GraphName.mk newName) state in
-          (NameResponse { name = GraphName.dest nm },state')
+          (StringResponse { data = GraphName.dest nm },state')
         end
 
     | serviceRequest' (DiscardGraphRequest { graphName }) state =
@@ -375,23 +379,31 @@ fun hilb ([format], graph) =
                       message = "Not implemented"
                     }
                | ListVertices =>
-                    NameListResponse {
-                      names = (map V.dest (V.NSet.list_of (G.get_vnames graph)))
+                    StringListResponse {
+                      data = (map V.dest (V.NSet.list_of (G.get_vnames graph)))
                     }
                | ListEdges =>
-                    NameListResponse {
-                      names = (map E.dest (E.NSet.list_of (G.get_enames graph)))
+                    StringListResponse {
+                      data = (map E.dest (E.NSet.list_of (G.get_enames graph)))
                     }
                | ListBangBoxes =>
-                    NameListResponse {
-                      names = (map B.dest (G.get_bbox_list graph))
+                    StringListResponse {
+                      data = (map B.dest (G.get_bbox_list graph))
                     }
                | VertexData { vertexName, format } =>
                     let
                       val vdata = G.get_vertex_data graph (V.mk vertexName)
                     in
                       case format
-                        of PrettyFormat =>
+                        of BasicFormat =>
+                              let
+                                val (_,data_string) = VCD.type_and_string_of vdata
+                              in
+                                StringResponse {
+                                  data = data_string
+                                }
+                              end
+                         | PrettyFormat =>
                               PrettyResponse {
                                 data = V.pretty_data vdata
                               }
@@ -437,8 +449,8 @@ fun hilb ([format], graph) =
                | EdgeUserData { edgeName } =>
                     ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }
                | BangBoxVertices { bangBoxName } =>
-                    NameListResponse {
-                      names = (map V.dest (V.NSet.list_of (G.get_bbox graph (B.mk bangBoxName))))
+                    StringListResponse {
+                      data = (map V.dest (V.NSet.list_of (G.get_bbox graph (B.mk bangBoxName))))
                     }
                | BangBoxUserData { bangBoxName } =>
                     ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }
@@ -466,7 +478,7 @@ fun hilb ([format], graph) =
               val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
             in
               case resultFormat
-                of NameFormat => (NameResponse { name = V.dest vn }, state')
+                of BasicFormat => (StringResponse { data = V.dest vn }, state')
                  | XmlFormat => (XmlResponse { data = Output.Vertex.output v }, state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
                  | DescriptionFormat => 
@@ -501,7 +513,7 @@ fun hilb ([format], graph) =
               val (e as (en,_),state') = State.add_edge edgeType dir_or_undir (V.mk source) (V.mk target) (GraphName.mk graphName) state
             in
               case resultFormat
-                of NameFormat => (NameResponse { name = E.dest en }, state')
+                of BasicFormat => (StringResponse { data = E.dest en }, state')
                  | XmlFormat => (XmlResponse { data = Output.Edge.output e }, state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
                  | DescriptionFormat => 
@@ -538,7 +550,7 @@ fun hilb ([format], graph) =
                                State.bang_vertices nm (map V.mk vertexNames) gname state'
             in
               case resultFormat
-                of NameFormat => (NameResponse { name = B.dest nm }, state'')
+                of BasicFormat => (StringResponse { data = B.dest nm }, state'')
                  | XmlFormat  =>  let
                                     val graph = (State.get_graph state'' gname)
                                     val verts = (G.get_bbox graph nm)
@@ -559,11 +571,11 @@ fun hilb ([format], graph) =
              State.kill_bang (map B.mk bangBoxNames) (GraphName.mk graphName) state)
         | DuplicateBangBoxAction { bangBoxName } =>
             let val (nm,state') = State.duplicate_bang (B.mk bangBoxName) (GraphName.mk graphName) state in
-              (NameResponse { name = B.dest nm }, state')
+              (StringResponse { data = B.dest nm }, state')
             end
         | MergeBangBoxesAction { bangBoxNames } =>
             let val (nm,state') = State.merge_bang (map B.mk bangBoxNames) (GraphName.mk graphName) state in
-              (NameResponse { name = B.dest nm }, state')
+              (StringResponse { data = B.dest nm }, state')
             end
         | BangVerticesAction { bangBoxName, vertexNames } =>
             (OkResponse,
@@ -612,27 +624,27 @@ fun hilb ([format], graph) =
     (* Rules *)
     | serviceRequest' (ListRulesRequest) state =
         let val rules = (State.list_allrules  state) in
-          (NameListResponse { names = map RuleName.dest rules }, state)
+          (StringListResponse { data = map RuleName.dest rules }, state)
         end
 
     | serviceRequest' (ListActiveRulesRequest) state =
         let val rules = (State.list_active_rules  state) in
-          (NameListResponse { names = map RuleName.dest rules }, state)
+          (StringListResponse { data = map RuleName.dest rules }, state)
         end
 
     | serviceRequest' (ListRulesByTagRequest { tagName }) state =
         let val rules = (State.list_rules_with_tag (TagName.mk tagName) state) in
-          (NameListResponse { names = map RuleName.dest rules }, state)
+          (StringListResponse { data = map RuleName.dest rules }, state)
         end
 
     | serviceRequest' (OpenRuleLhsRequest { ruleName }) state =
         let val (nm,state') = (State.open_rule_lhs state (RuleName.mk ruleName)) in
-          (NameResponse { name = GraphName.dest nm }, state')
+          (StringResponse { data = GraphName.dest nm }, state')
         end
 
     | serviceRequest' (OpenRuleRhsRequest { ruleName }) state =
         let val (nm,state') = (State.open_rule_rhs state (RuleName.mk ruleName)) in
-          (NameResponse { name = GraphName.dest nm }, state')
+          (StringResponse { data = GraphName.dest nm }, state')
         end
 
     | serviceRequest' (SetRuleRequest { ruleName, lhsGraphName, rhsGraphName }) state =
@@ -655,7 +667,7 @@ fun hilb ([format], graph) =
     (* Tags *)
     | serviceRequest' (ListTagsRequest) state =
         let val tags = (State.list_tags  state) in
-          (NameListResponse { names = map TagName.dest tags }, state)
+          (StringListResponse { data = map TagName.dest tags }, state)
         end
 
     | serviceRequest' (TagRuleRequest { ruleName, tagName }) state =

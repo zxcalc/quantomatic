@@ -57,8 +57,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     | parse_response (Commands.ErrorResponse { errorCode, message }) = "!!! "^message
     | parse_response (Commands.DataResponse { data }) = data
     | parse_response (Commands.PrettyResponse { data }) = Pretty.string_of data
-    | parse_response (Commands.NameResponse { name }) = name
-    | parse_response (Commands.NameListResponse { names }) = (String.concatWith "\n" names)
+    | parse_response (Commands.StringResponse { data }) = data
+    | parse_response (Commands.StringListResponse { data }) = (String.concatWith "\n" data)
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.Unit) }) = ""
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.String s) }) = s
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratExpr a) }) = Pretty.string_of (LinratExpr.pretty a)
@@ -161,7 +161,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     ("add_vertex",
      ("GRAPH TYPE", "Add a TYPE vertex to GRAPH",
       (fn [graph,vt] => (Commands.EditGraphRequest {
-                        graphName = graph, action = Commands.AddVertexAction { vertexType = vt, resultFormat = Commands.NameFormat } })
+                        graphName = graph, action = Commands.AddVertexAction {
+                        vertexType = vt, resultFormat = Commands.BasicFormat } })
         | _          => bad_args_req))),
 
     ("rename_vertex",
@@ -189,10 +190,12 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("GRAPH TYPE DIR_OR_UNDIR V1 V2", "Add a TYPE edge in GRAPH from V1 to V2.  DIR_OR_UNDIR should be \"dir\" or \"undir\" for directed and undirected edges respectively.",
       (fn [graph,et,"dir",v1,v2] => (Commands.EditGraphRequest {
                         graphName = graph, action = Commands.AddEdgeAction
-                          { edgeType = et, directed = true, source = v1, target = v2, resultFormat = Commands.NameFormat } })
+                          { edgeType = et, directed = true, source = v1,
+                            target = v2, resultFormat = Commands.BasicFormat } })
         | [graph,et,"undir",v1,v2] => (Commands.EditGraphRequest {
                         graphName = graph, action = Commands.AddEdgeAction
-                          { edgeType = et, directed = false, source = v1, target = v2, resultFormat = Commands.NameFormat } })
+                          { edgeType = et, directed = false, source = v1,
+                            target = v2, resultFormat = Commands.BasicFormat } })
         | [_,_,_,_,_] => (Commands.DummyRequest { response = Commands.ErrorResponse
                        { errorCode = "BADARGS", message = "Third argument must be \"dir\" or \"undir\"" } })
         | _          => bad_args_req))),
@@ -221,7 +224,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     ("add_bbox",
      ("GRAPH", "Add a new !-box to GRAPH and return its name",
       (fn [graph] => (Commands.EditGraphRequest {
-                     graphName = graph, action = Commands.AddBangBoxAction { vertexNames = [], resultFormat = Commands.NameFormat } })
+                     graphName = graph, action = Commands.AddBangBoxAction {
+                     vertexNames = [], resultFormat = Commands.BasicFormat } })
         | _       => bad_args_req))),
 
     ("bbox_drop",
