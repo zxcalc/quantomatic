@@ -101,6 +101,8 @@ sig
   val update_vertex_data : (Theory.Vertex.data -> Theory.Vertex.data) -> Theory.Vertex.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.Edge.data -> Theory.Edge.data) -> Theory.Edge.name -> GraphName.name -> T -> T
   val rename_vertex : Theory.Vertex.name -> Theory.Vertex.name -> GraphName.name -> T -> T
+  val rename_edge : Theory.Edge.name -> Theory.Edge.name -> GraphName.name -> T -> T
+  val rename_bang : Theory.Graph.BBox.name -> Theory.Graph.BBox.name -> GraphName.name -> T -> T
   val rename_graph : GraphName.name -> GraphName.name -> T -> GraphName.name * T
   val delete_vertices : Theory.Vertex.name list -> GraphName.name -> T -> T
   val delete_edges : Theory.Edge.name list -> GraphName.name -> T -> T
@@ -342,7 +344,9 @@ functor ControllerState(
            | G.vname_already_exists_exp (vname,_) =>
                 raise vertex_name_exists_exp (vname,gname)
            | G.ename_already_exists_exp (ename,_) =>
-                raise edge_name_exists_exp (ename,gname);
+                raise edge_name_exists_exp (ename,gname)
+           | G.bname_already_exists_exp (bname,_) =>
+                raise bbox_name_exists_exp (bname,gname);
 
   fun lift_graph_mutator_no_result cmdf gname state =
       let val g' = cmdf (get_graph state gname)
@@ -357,7 +361,9 @@ functor ControllerState(
            | G.vname_already_exists_exp (vname,_) =>
                 raise vertex_name_exists_exp (vname,gname)
            | G.ename_already_exists_exp (ename,_) =>
-                raise edge_name_exists_exp (ename,gname);
+                raise edge_name_exists_exp (ename,gname)
+           | G.bname_already_exists_exp (bname,_) =>
+                raise bbox_name_exists_exp (bname,gname);
 
   fun add_vertex_internal vt graph =
       (let val (n,g) = graph |> G.add_vertex (Theory.VertexComponentData.default_data vt) in
@@ -384,8 +390,14 @@ functor ControllerState(
   fun rename_vertex_internal old new graph = (graph |> G.rename_vname old new)
   fun rename_vertex old new graph state = lift_graph_mutator_no_result (rename_vertex_internal old new) graph state
 
+  fun rename_edge_internal old new graph = (graph |> G.rename_ename old new)
+  fun rename_edge old new graph state = lift_graph_mutator_no_result (rename_edge_internal old new) graph state
 
-  fun undo gname state = 
+  fun rename_bang_internal old new graph = (graph |> G.rename_bname old new)
+  fun rename_bang old new graph state = lift_graph_mutator_no_result (rename_bang_internal old new) graph state
+
+
+  fun undo gname state =
       let
         val current = get_graph state gname
       in case GraphName.NTab.lookup (get_hist state) gname

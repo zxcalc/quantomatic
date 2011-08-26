@@ -3,7 +3,7 @@ struct
   type vertexDesc = { name: string, data: ComponentData.T, userData: string };
   type edgeDesc = { name: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
   type bangBoxDesc = { name: string, vertexNames: string list };
-  type graphDesc = { name: string, graphName: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
+  type graphDesc = { name: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
   (* BasicFormat is the name of a graph or component, and the string value of
    * component data *)
@@ -184,6 +184,7 @@ struct
                     | GraphDescriptionResponse of { graph: graphDesc }
                     | VertexDescriptionResponse of { vertex: vertexDesc }
                     | EdgeDescriptionResponse of { edge: edgeDesc }
+                    | BangBoxDescriptionResponse of { bangBox: bangBoxDesc }
                     | ComponentDataResponse of { data: ComponentData.T }
                     | RewriteListResponse of { rewrites: rewriteDesc list }
 
@@ -235,6 +236,38 @@ struct
            | XMLReader.bad_input_exp msg =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state))
+
+  fun describe_vertex (n, (nd,(ins,outs))) =
+    { name = V.dest n, data = VCD.cdata_of nd, userData = "" }
+
+  fun describe_edge (en, ((bd,ed), (n1, n2))) =
+    { name = E.dest en, sourceName = V.dest n1, targetName = V.dest n2,
+      directed = (bd = G.Directed), data = ECD.cdata_of ed,
+      userData = "" }
+
+  fun describe_bangbox (bn, vs) =
+    { name = B.dest bn, vertexNames = map V.dest (V.NSet.list_of vs) }
+
+  fun describe_graph (n, graph) =
+    let
+      val vert_list = V.NTab.list_of (G.get_vertices graph)
+      val edge_list = E.NTab.list_of (G.get_edges graph)
+      val bbox_list = G.VtoBoxMap.codf_list_of (G.get_bboxes graph)
+    in
+      { name = n,
+        vertices = map describe_vertex vert_list,
+        edges = map describe_edge edge_list,
+        bangBoxen = map describe_bangbox bbox_list }
+    end
+
+  fun describe_rewrite ((rn, rule), result) =
+    let
+      val lhs = State.Theory.Rule.get_lhs rule
+      val rhs = State.Theory.Rule.get_rhs rule
+    in
+      { ruleName = RuleName.dest rn, result = describe_graph ("",result),
+        lhs = describe_graph ("",lhs), rhs = describe_graph ("",rhs) }
+    end
 
   fun pretty_vert (n, (nd,(ins,outs))) =
       Pretty.block [V.pretty_name n,
@@ -374,9 +407,8 @@ fun hilb ([format], graph) =
         in
           ((case desc
               of DescribeFullGraph =>
-                    ErrorResponse {
-                      errorCode = "NOTIMP",
-                      message = "Not implemented"
+                    GraphDescriptionResponse {
+                      graph = describe_graph (graphName, graph)
                     }
                | ListVertices =>
                     StringListResponse {
@@ -415,10 +447,9 @@ fun hilb ([format], graph) =
                                   data = (XML.Elem (("data",[]),data_xml_list))
                                 }
                               end
-                         | _ =>
-                              ErrorResponse {
-                                errorCode = "NOTIMP",
-                                message = "Not implemented"
+                         | DescriptionFormat =>
+                              ComponentDataResponse {
+                                data = VCD.cdata_of vdata
                               }
                     end
                | VertexUserData { vertexName } =>
@@ -428,7 +459,15 @@ fun hilb ([format], graph) =
                       val edata = G.get_edge_data graph (E.mk edgeName)
                     in
                       case format
-                        of PrettyFormat =>
+                        of BasicFormat =>
+                              let
+                                val (_,data_string) = ECD.type_and_string_of edata
+                              in
+                                StringResponse {
+                                  data = data_string
+                                }
+                              end
+                         | PrettyFormat =>
                               PrettyResponse {
                                 data = E.pretty_data edata
                               }
@@ -440,10 +479,9 @@ fun hilb ([format], graph) =
                                   data = (XML.Elem (("data",[]),data_xml_list))
                                 }
                               end
-                         | _ =>
-                              ErrorResponse {
-                                errorCode = "NOTIMP",
-                                message = "Not implemented"
+                         | DescriptionFormat =>
+                              ComponentDataResponse {
+                                data = ECD.cdata_of edata
                               }
                     end
                | EdgeUserData { edgeName } =>
@@ -481,9 +519,10 @@ fun hilb ([format], graph) =
                 of BasicFormat => (StringResponse { data = V.dest vn }, state')
                  | XmlFormat => (XmlResponse { data = Output.Vertex.output v }, state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
-                 | DescriptionFormat => 
-              (* VertexDescriptionResponse *)
-              (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state')
+                 | DescriptionFormat =>
+                     (VertexDescriptionResponse {
+                        vertex = describe_vertex v
+                      }, state')
             end
         | RenameVertexAction { oldName, newName } =>
             (OkResponse,
@@ -517,12 +556,13 @@ fun hilb ([format], graph) =
                  | XmlFormat => (XmlResponse { data = Output.Edge.output e }, state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
                  | DescriptionFormat => 
-              (* EdgeDescriptionResponse *)
-              (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state')
+                     (EdgeDescriptionResponse {
+                        edge = describe_edge e
+                      }, state')
             end
         | RenameEdgeAction { oldName, newName } =>
-            (* OkResponse *)
-            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (OkResponse,
+             State.rename_edge (E.mk oldName) (E.mk newName) (GraphName.mk graphName) state)
         | DeleteEdgesAction { edgeNames } =>
             (OkResponse,
              State.delete_edges (map E.mk edgeNames) (GraphName.mk graphName) state)
@@ -551,6 +591,7 @@ fun hilb ([format], graph) =
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = B.dest nm }, state'')
+                 | PrettyFormat => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
                  | XmlFormat  =>  let
                                     val graph = (State.get_graph state'' gname)
                                     val verts = (G.get_bbox graph nm)
@@ -558,11 +599,19 @@ fun hilb ([format], graph) =
                                   in
                                    (XmlResponse { data = Output.BBox.output bbox }, state'')
                                   end
-                 | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+                 | DescriptionFormat => let
+                                          val graph = (State.get_graph state'' gname)
+                                          val verts = (G.get_bbox graph nm)
+                                          val bbox  = (nm,verts)
+                                        in
+                                         (BangBoxDescriptionResponse {
+                                            bangBox = describe_bangbox (nm,(G.get_bbox graph nm))
+                                          }, state'')
+                                        end
             end
         | RenameBangBoxAction { oldName, newName } =>
-            (* OkResponse *)
-            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+            (OkResponse,
+             State.rename_bang (B.mk oldName) (B.mk newName) (GraphName.mk graphName) state)
         | DropBangBoxesAction { bangBoxNames } =>
             (OkResponse,
              State.drop_bang (map B.mk bangBoxNames) (GraphName.mk graphName) state)
@@ -697,14 +746,54 @@ fun hilb ([format], graph) =
 
     (* Rewriting *)
     | serviceRequest' (AttachRewritesRequest { graphName, vertexNames }) state =
-    (* attach to all vertices if none given *)
-        (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+        let
+          val gname = GraphName.mk graphName
+          val graph = get_graph graphName state
+          val verts = if vertexNames <> [] then
+                        map V.mk vertexNames
+                      else
+                        (V.NSet.list_of (G.get_vnames graph))
+          val (count,state') = State.attach_rewrites gname verts state
+        in
+          (CountResponse { count = count }, state')
+        end
 
     | serviceRequest' (AttachOneRewriteRequest { graphName, vertexNames }) state =
-        (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+        let
+          val gname = GraphName.mk graphName
+          val graph = get_graph graphName state
+          val verts = if vertexNames <> [] then
+                        map V.mk vertexNames
+                      else
+                        (V.NSet.list_of (G.get_vnames graph))
+          val (count,state') = State.attach_first_rewrite gname verts state
+        in
+          (CountResponse { count = count }, state')
+        end
 
     | serviceRequest' (ListAttachedRewritesRequest { graphName, format }) state =
-        (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+        let
+          val rewrites = State.get_attached_rewrites  (GraphName.mk graphName) state
+        in
+          case format
+            of BasicFormat =>
+                 (StringListResponse {
+                    data = map (fn ((rn,_),_) => RuleName.dest rn) rewrites
+                  }, state)
+             | XmlFormat =>
+                 (XmlResponse {
+                    data = Output.RewriteList.output rewrites
+                  }, state)
+             | PrettyFormat => (* ??? *)
+                 (ErrorResponse {
+                    errorCode = "NOTIMP",
+                    message = "Not implemented"
+                  }, state)
+             | DescriptionFormat =>
+                 (RewriteListResponse {
+                    rewrites = map describe_rewrite rewrites
+                  }, state)
+        end
 
     | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
         (OkResponse,

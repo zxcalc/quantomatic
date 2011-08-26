@@ -39,7 +39,7 @@ val get_unboxed : T -> Vertex.NSet.T
 
 exception bname_already_exists_exp of BBox.name * T;
 val rename_bname : BBox.name -> BBox.name -> T -> T
-val try_rename_bname : BBox.name -> BBox.name -> T -> T option
+val try_rename1_bname : BBox.name -> BBox.name -> T -> T option
 
 val update_unboxed : (Vertex.NSet.T -> Vertex.NSet.T) -> T -> T
 val update_bboxes : (VtoBoxMap.T -> VtoBoxMap.T) -> T -> T
@@ -63,13 +63,14 @@ include OGRAPH;
 (* *** COPIED FROM BASIC_BANG_GRAPH ... would be better to have union version 
    of include *** *)
 
-exception merge_bbox_exp of string 
-exception overlapping_bbox_exp of Vertex.NSet.T * T
-exception no_such_bbox_exp of unit
-
 structure BBox : SSTR_NAMES; (* !(Bang)-Box names/tables/sets *)
 structure VtoBoxMap : NAME_MAP (* !-box-name to vertices *)
 structure BBoxInjEndo : NAME_INJENDO (* injendo between !-boxes *)
+
+exception merge_bbox_exp of string 
+exception overlapping_bbox_exp of Vertex.NSet.T * T
+exception no_such_bbox_exp of unit
+exception bname_already_exists_exp of BBox.name * T;
 
 structure SharingBangGraph : BANG_GRAPH_SHARING
 sharing SharingOGraph = SharingBangGraph
@@ -81,6 +82,7 @@ val get_bboxes : T -> VtoBoxMap.T
 val get_bbox : T -> BBox.name -> Vertex.NSet.T
 val get_bbox_list : T -> BBox.name list
 val get_unboxed : T -> Vertex.NSet.T
+val rename_bname : BBox.name -> BBox.name -> T -> T
 val try_rename1_bname : BBox.name -> BBox.name -> T -> T option
 (* val rename_bbname : BBox.name -> BBox.name -> T -> T *)
 
@@ -277,7 +279,7 @@ functor BasicBangGraphFun(
                               of NONE => raise bname_already_exists_exp (n1,g)
                                | SOME bxs2 => bxs2);
 
-  fun try_rename_bname n1 n2 g = 
+  fun try_rename1_bname n1 n2 g = 
       (SOME (rename_bname n1 n2 g)) handle bname_already_exists_exp _ => NONE;
 
   (* prettifying *)
@@ -330,10 +332,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* all !-box names *)
   val get_bbnames = VtoBoxMap.get_codset o get_bboxes;
   val add_to_bbnames = BBox.NSet.union_merge o get_bbnames;
-  
-  (* Bangbox renaming *)
-  fun try_rename1_bname n1 n2 g = 
-      SOME (rename_bname n1 n2 g) handle bname_already_exists_exp _ => NONE;
 
   structure BBoxCRnm = CompoundRenamingFun(
   struct 
