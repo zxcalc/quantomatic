@@ -31,6 +31,11 @@ Rule.print r';
 G.print g;
 Match.print m;
 
+val rhs = Rule.get_rhs r';
+G.print rhs;
+
+raise ERROR "stop";
+
 val _ = Testing.test "rule1:" (fn () => let
   
   in () end) ();

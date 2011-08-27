@@ -36,10 +36,12 @@ functor SimpleMatchSearch(Match : MATCH)
             agenda : V.name V.NTab.T, 
             (* global vertex and edge matching info *)
             match : Match.T, 
+            (* the full pattern graph, needed for self-plugging checks? *)
+            pat : G.T, 
             (* the pat graph with vertices removed as we match them *)
             unm_pat : G.T, 
-            (* unmatched leaves from init pat = 
-               needed because they can otherwise be introduced in the pat! *)
+            (* unmatched leaves from init pat. Needed to distinguish with
+               boundary points introduced by !-boxs *)
             pat_boundary : V.NSet.T, 
             (* tgt with matched edges removed as we match them *)
             unm_tgt : G.T 
@@ -50,42 +52,49 @@ functor SimpleMatchSearch(Match : MATCH)
       MState { (* initially used names are those of the pattern graph *)
                agenda = agenda, 
                match = match, 
+               pat = pat,
                pat_boundary = G.get_boundary pat,
                unm_pat = pat, unm_tgt = tgt };
 
   (* tools *)
   fun get_agenda (MState rep) = #agenda rep;
   fun get_match (MState rep) = #match rep;
+  fun get_pat (MState rep) = #pat rep;
   fun get_unm_pat (MState rep) = #unm_pat rep;
   fun get_pat_boundary (MState rep) = #pat_boundary rep;
 
   (* *)
   fun update_agenda f (MState rep) = 
       MState { agenda = f (#agenda rep), match = #match rep,
+               pat = #pat rep,
                unm_pat = #unm_pat rep, 
                pat_boundary = #pat_boundary rep,
                unm_tgt = #unm_tgt rep
              };
   fun update_match f (MState rep) = 
       MState { agenda = #agenda rep, match = f (#match rep),
+               pat = #pat rep,
                unm_pat = #unm_pat rep, 
                pat_boundary = #pat_boundary rep,
                unm_tgt = #unm_tgt rep
              };
   fun update_unm_pat f (MState rep) = 
       MState { agenda = #agenda rep, match = #match rep,
+               pat = #pat rep,
                unm_pat = f (#unm_pat rep), 
                pat_boundary = #pat_boundary rep,
                unm_tgt = #unm_tgt rep
              };
   fun update_pat_boundary f (MState rep) = 
       MState { agenda = #agenda rep, match = #match rep,
+               pat = #pat rep,
                unm_pat = #unm_pat rep, 
                pat_boundary = f (#pat_boundary rep),
                unm_tgt = #unm_tgt rep
              };
   fun update_unm_tgt f (MState rep) = 
       MState { agenda = #agenda rep, match = #match rep,
+               pat = #pat rep,
                unm_pat = #unm_pat rep, 
                pat_boundary = #pat_boundary rep,
                unm_tgt = f(#unm_tgt rep)
@@ -124,7 +133,64 @@ functor SimpleMatchSearch(Match : MATCH)
   val del_tgt_edge = update_unm_tgt o G.delete_edge;
   val del_tgt_edges = update_unm_tgt o E.NSet.fold G.delete_edge;
 
+  (* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
+     external ones - required by edge-matching - and probably more efficient too. 
+     IMPROVE: store a maximally internal traversal of the pattern (as the
+     pre-agenda) which can then connected to the tgt vertices as the agenda. This 
+     will save repeated search for non-boundary vertices - also the basis of more 
+     efficient algorithm. (see also get_next_pat_vertex) *)
+  fun pop_agenda st = 
+      let val agenda = (get_agenda st);
+          val pat = get_unm_pat st;
+      in 
+        case V.NTab.find (fn (n1,n2) => not (G.is_boundary pat n1)) agenda of
+          NONE => (* no internal vertices in the agenda *) 
+            (case V.NTab.pull_elem agenda
+              of NONE => NONE 
+               | SOME (n1n2,agenda2) => SOME (n1n2,set_agenda agenda2 st))
+         | SOME (n1n2 as (n1,n2)) => 
+           SOME (n1n2,set_agenda (V.NTab.delete n1 agenda) st)
+      end;
 
+  (* *)
+  (* pretty printing *)
+  fun pretty_match_pair (a,b) = 
+      Pretty.block [Pretty.str "(",
+                    V.pretty_name a,
+                    Pretty.str "->",
+                    V.pretty_name b,
+                    Pretty.str ")"];
+
+  fun pretty_next_pat_vertex st = 
+      (case (V.NSet.get_local_bot (get_unm_pat_vs st)) of 
+         NONE => Pretty.str "NONE"
+       | SOME n => Pretty.block [Pretty.str "SOME (",
+                                 V.pretty_name n,
+                                 Pretty.str ")"]);
+
+  fun get_agenda_list st = 
+      (case pop_agenda st of NONE => []
+         | SOME (x,st2) => x :: get_agenda_list st2);
+
+  fun pretty_agenda st = 
+      Pretty.list "[" "]" (map pretty_match_pair (get_agenda_list st));
+
+  fun pretty (st as MState rep) = 
+      Pretty.block 
+        [Pretty.str "MatchSearch {",
+         Pretty.chunks 
+           [Match.pretty (#match rep),
+            pretty_agenda st,
+            Pretty.block [Pretty.str "Unmatched pat: "],
+            G.pretty (#unm_pat rep),
+            Pretty.block [Pretty.str "Unmatched tgt: "],
+            G.pretty (#unm_tgt rep)
+           ],
+         Pretty.str "}"];
+
+  val print = Pretty.writeln o pretty;
+
+  (* *)
   fun ins1_to_agenda (pat_n, tgt_n) st = 
       update_agenda (V.NTab.ins (pat_n,tgt_n)) st;
 
@@ -198,10 +264,12 @@ functor SimpleMatchSearch(Match : MATCH)
       if Match.emap_contains (get_match st) (peh1,teh1) then st 
       else
       let 
-        (* get the ends close to the matched vertex *)
+        (* get the ends close to the matched vertex; peh1 and teh1 are ends
+           touching the adjacent vertex. *)
         val peh2 = E.Ehn.other peh1; 
         val teh2 = E.Ehn.other teh1;
         val pat = get_unm_pat st;
+        val init_pat = get_pat st; 
       in  
         st |> update_match (Match.match_edge_data pe_d te_d)
            (* must try to match bboxes before deleting vertex from pat. *)
@@ -211,20 +279,22 @@ functor SimpleMatchSearch(Match : MATCH)
                then (* pvn2 is a boundary vertex *)
                 del_pat_vertex pvn2
                 o update_match 
-                  ((fn m => if Match.makes_opposite_halfs_of_same_edge 
-                                 m peh2 teh2 then
-                              (* TODO(ldixon): write this! *** *)
-                              Match.add_plugging (G.get_ehn_vname pat peh2)   
-                                                 (G.get_ehn_vname pat peh1)
-                                                 m
-                              else m)
+                  ((fn m => case Match.other_plugging_half_of_same_edge 
+                                  m peh2 teh2 
+                            of NONE => m
+                             | SOME peh2_plug => 
+                              (Match.add_plugging 
+                                (G.get_ehn_vname init_pat peh1)
+                                (G.get_ehn_vname init_pat 
+                                    (E.Ehn.other peh2_plug))
+                                m))
                    o (case (pe_dir,te_dir) 
                       of (G.Directed, G.Directed) => 
                          (Match.dir_match_edgehalf_name' peh2 teh2)
                        | (G.UnDirected, G.UnDirected) => 
                          (Match.match_edgehalf_name' peh2 teh2)
                        | _ => raise Match.match_exp ())
-                    o Match.match_boundary pvn2 tvn2)                
+                    o Match.match_boundary pvn2 tvn2)
                else (* pvn2 is an internal vertex *)
                  del_tgt_edge (E.Ehn.get_ename teh1)
                  o update_match 
@@ -463,25 +533,6 @@ functor SimpleMatchSearch(Match : MATCH)
            |> update_match (Match.add_bbox_kills bboxlist)
       end;
 
-  (* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
-     external ones - required by edge-matching - and probably more efficient too. 
-     IMPROVE: store a maximally internal traversal of the pattern (as the
-     pre-agenda) which can then connected to the tgt vertices as the agenda. This 
-     will save repeated search for non-boundary vertices - also the basis of more 
-     efficient algorithm. (see also get_next_pat_vertex) *)
-  fun pop_agenda st = 
-      let val agenda = (get_agenda st);
-          val pat = get_unm_pat st;
-      in 
-        case V.NTab.find (fn (n1,n2) => not (G.is_boundary pat n1)) agenda of
-          NONE => (* no internal vertices in the agenda *) 
-            (case V.NTab.pull_elem agenda
-              of NONE => NONE 
-               | SOME (n1n2,agenda2) => SOME (n1n2,set_agenda agenda2 st))
-         | SOME (n1n2 as (n1,n2)) => 
-           SOME (n1n2,set_agenda (V.NTab.delete n1 agenda) st)
-      end;
-
   (* consider the next and-point in the agenda *)
   fun do_next_match_choices st = 
       (case pop_agenda st 
@@ -527,43 +578,6 @@ functor SimpleMatchSearch(Match : MATCH)
                -> G.T -> G.T -> Match.T Seq.seq  *)
   fun match names pat tgt = let
     in match' (Match.init names pat tgt) pat tgt V.NTab.empty end
-
-  (* pretty printing *)
-  fun pretty_match_pair (a,b) = 
-      Pretty.block [Pretty.str "(",
-                    V.pretty_name a,
-                    Pretty.str "->",
-                    V.pretty_name b,
-                    Pretty.str ")"];
-
-  fun pretty_next_pat_vertex st = 
-      (case (V.NSet.get_local_bot (get_unm_pat_vs st)) of 
-         NONE => Pretty.str "NONE"
-       | SOME n => Pretty.block [Pretty.str "SOME (",
-                                 V.pretty_name n,
-                                 Pretty.str ")"]);
-
-  fun get_agenda_list st = 
-      (case pop_agenda st of NONE => []
-         | SOME (x,st2) => x :: get_agenda_list st2);
-
-  fun pretty_agenda st = 
-      Pretty.list "[" "]" (map pretty_match_pair (get_agenda_list st));
-
-  fun pretty (st as MState rep) = 
-      Pretty.block 
-        [Pretty.str "MatchSearch {",
-         Pretty.chunks 
-           [Match.pretty (#match rep),
-            pretty_agenda st,
-            Pretty.block [Pretty.str "Unmatched pat: "],
-            G.pretty (#unm_pat rep),
-            Pretty.block [Pretty.str "Unmatched tgt: "],
-            G.pretty (#unm_tgt rep)
-           ],
-         Pretty.str "}"];
-
-  val print = Pretty.writeln o pretty;
 
   structure Sharing : BASIC_MATCH_SEARCH_SHARING =
   struct

@@ -311,6 +311,8 @@ val (e0, g4) = g4 |> G.add_edge undir_edge H3 green9;
 val (e0, g4) = g4 |> G.add_edge undir_edge green9 green10;
 val (e0, g4) = g4 |> G.add_edge undir_edge green9 out2;
 
+(* Plugging *)
+
 in
 (* val (g,g2,g3,g4) = (g,g2,g3,g4) *)
 val _ = Pretty.writeln (Pretty.str "Tests Passed: test/graph.ML.");
