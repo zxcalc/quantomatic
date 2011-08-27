@@ -1,7 +1,7 @@
 structure Commands =
 struct
-  type vertexDesc = { name: string, data: ComponentData.T, userData: string };
-  type edgeDesc = { name: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
+  type vertexDesc = { name: string, vType: string, data: ComponentData.T, userData: string };
+  type edgeDesc = { name: string, eType: string, sourceName: string, targetName: string, directed: bool, data: ComponentData.T, userData: string };
   type bangBoxDesc = { name: string, vertexNames: string list };
   type graphDesc = { name: string, vertices: vertexDesc list, edges: edgeDesc list, bangBoxen: bangBoxDesc list };
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
@@ -238,10 +238,12 @@ struct
                 message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state))
 
   fun describe_vertex (n, (nd,(ins,outs))) =
-    { name = V.dest n, data = VCD.cdata_of nd, userData = "" }
+    { name = V.dest n, vType = VCD.type_of nd,
+      data = VCD.cdata_of nd, userData = "" }
 
   fun describe_edge (en, ((bd,ed), (n1, n2))) =
-    { name = E.dest en, sourceName = V.dest n1, targetName = V.dest n2,
+    { name = E.dest en, eType = ECD.type_of ed,
+      sourceName = V.dest n1, targetName = V.dest n2,
       directed = (bd = G.Directed), data = ECD.cdata_of ed,
       userData = "" }
 

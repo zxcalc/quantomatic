@@ -869,6 +869,85 @@ struct
     fun printList [] = (print "0"; printEsc #":")
       | printList [s] = (print "1"; printEsc #":"; printString s)
       | printList (s::ss) = (print (Int.toString (1 + (length ss))); printEsc #":"; printString s; List.app (fn e => (printEsc #","; printString e)) ss)
+
+    fun printWrappedString ch str = (printEsc ch; printString str; printEsc (Char.toLower ch))
+    fun printWrappedData ch data = (printEsc ch; printDataChunk data; printEsc (Char.toLower ch))
+    fun printComponentData ch ComponentData.Unit =
+          (printEsc ch; printEsc (Char.toLower ch))
+      | printComponentData ch (ComponentData.String str) = (
+          printEsc ch;
+          printWrappedString #"S" str;
+          printEsc (Char.toLower ch))
+      | printComponentData ch (ComponentData.LinratExpr (expr as (c,varTab))) = (
+          let
+            val as_string = Pretty.string_of (LinratExpr.pretty expr)
+            fun printWrappedFrac ch (n,d) = (
+                  printEsc ch;
+                  printWrappedString #"N" (Int.toString n);
+                  printWrappedString #"D" (Int.toString d);
+                  printEsc (Char.toLower ch))
+            fun printVar ch (var, coeff) _ = (
+                  printEsc ch;
+                  printWrappedString #"N" var;
+                  printWrappedFrac #"C" coeff;
+                  printEsc (Char.toLower ch))
+          in
+            printEsc ch;
+            printEsc #"A";
+              printWrappedString #"S" as_string;
+              if LinratExpr.Coeff.is_zero c then () else
+                printWrappedFrac #"K" c;
+              LinratExpr.VName.NTab.fold (printVar #"V") varTab ();
+            printEsc #"a";
+            printEsc (Char.toLower ch)
+          end)
+    fun printVertexDesc { name, vType, data, userData } = (
+          printEsc #"V";
+          printWrappedString #"N" name;
+          printWrappedString #"T" vType;
+          printComponentData #"D" data;
+          printWrappedData #"U" userData;
+          printEsc #"v");
+    fun printEdgeDesc' { name, eType, sourceName, targetName, directed, data, userData } = (
+          printWrappedString #"N" name;
+          printWrappedString #"T" eType;
+          printEsc #"A"; printString sourceName; printEsc #"a";
+          printEsc #"B"; printString targetName; printEsc #"b";
+          printComponentData #"D" data;
+          printWrappedData #"U" userData)
+    fun printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as true, data, userData }) = (
+          printEsc #"E";
+          printEdgeDesc' desc;
+          printEsc #"e");
+    fun printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as false, data, userData }) = (
+          printEsc #"F";
+          printEdgeDesc' desc;
+          printEsc #"f");
+    fun printBangBoxDesc { name, vertexNames } = (
+          printEsc #"B";
+          printWrappedString #"N" name;
+          map (printWrappedString #"V") vertexNames;
+          printEsc #"b");
+    fun printGraphDesc { name, vertices, edges, bangBoxen } = (
+          printEsc #"G";
+          printWrappedString #"N" name;
+          map (printVertexDesc) vertices;
+          map (printEdgeDesc) edges;
+          map (printBangBoxDesc) bangBoxen;
+          printEsc #"g");
+    fun printRewriteDesc { ruleName, result, lhs, rhs } = (
+          printEsc #"W";
+          printEsc #"R";
+            printWrappedString #"N" ruleName;
+            printEsc #"L"; printGraphDesc lhs; printEsc #"l";
+            printEsc #"R"; printGraphDesc rhs; printEsc #"r";
+          printEsc #"r";
+          printGraphDesc result;
+          printEsc #"w");
+    fun printRewriteListDesc rws = (
+          printEsc #"L";
+          map printRewriteDesc rws;
+          printEsc #"l");
     (* }}} *)
 
     (* {{{ outputResponse *)
@@ -908,7 +987,30 @@ struct
          (printOpen #"M" requestId;
           printList data;
           printClose ())
-    (* FIXME descs *)
+      | outputResponse (requestId, GraphDescriptionResponse { graph }) =
+         (printOpen #"S" requestId;
+          printGraphDesc graph;
+          printClose ())
+      | outputResponse (requestId, VertexDescriptionResponse { vertex }) =
+         (printOpen #"S" requestId;
+          printVertexDesc vertex;
+          printClose ())
+      | outputResponse (requestId, EdgeDescriptionResponse { edge }) =
+         (printOpen #"S" requestId;
+          printEdgeDesc edge;
+          printClose ())
+      | outputResponse (requestId, BangBoxDescriptionResponse { bangBox }) =
+         (printOpen #"S" requestId;
+          printBangBoxDesc bangBox;
+          printClose ())
+      | outputResponse (requestId, ComponentDataResponse { data }) =
+         (printOpen #"S" requestId;
+          printComponentData #"D" data;
+          printClose ())
+      | outputResponse (requestId, RewriteListResponse { rewrites }) =
+         (printOpen #"S" requestId;
+          printRewriteListDesc rewrites;
+          printClose ())
       | outputResponse (requestId, UserDataResponse { data }) =
          (printOpen #"U" requestId;
           printDataChunk data;
