@@ -386,19 +386,18 @@ structure ConsoleCommands : CONSOLE_COMMANDS
                             SOME i => (Commands.ApplyAttachedRewriteRequest {
                                       graphName = graph, index = i })
                           | NONE => bad_args_req
-        | _         => bad_args_req)))
+        | _         => bad_args_req))),
+
+    ("print_theory_name",
+     ("", "Print out the name of the currently active theory",
+      (fn [] => Commands.TheoryNameRequest
+        | _  => bad_args_req)))
 
 (*
     ("apply_first_rewrite",
      ("apply_first_rewrite GRAPH\n\n"^
         "    attempt to attach one rewrite to GRAPH and apply it\n",
       (lift_procedure o lift_graphname_arg) ControllerState.apply_first_rewrite))
-
-    ("print_theory_name",
-     ("print_theory_name GRAPH\n\n"^
-       "     print out the name of the theory implemented by graph\n",
-      (lift_graph_viewer o lift_no_args) (as_data o Pretty.string_of o G.pretty_theory_name)
-     )),
 *)
     ]
     empty;

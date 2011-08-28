@@ -1,3 +1,16 @@
+(**********************************************************************)
+(* Provides commands for interfaces to the core                       *)
+(*                                                                    *)
+(* Commands defines those commands.                                   *)
+(* Controller implements those commands, using a CONTROLLER_STATE     *)
+(*   to provide the running state.  Each Controller implements a      *)
+(*   different theory.                                                *)
+(* ControllerRegistry provides a registry of all known Controllers.   *)
+(*   The Controller functor automatically registers its               *)
+(*   serviceRequest function with the ControllerRegistry.             *)
+(*                                                                    *)
+(**********************************************************************)
+
 structure Commands =
 struct
   type vertexDesc = { name: string, vType: string, data: ComponentData.T, userData: string };
@@ -17,6 +30,9 @@ struct
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
+
+                   | TheoryNameRequest
+                     (* StringListResponse *)
 
                    (*** Graph Commands ***)
                    | ListGraphsRequest
@@ -200,9 +216,28 @@ struct
     = (requestId,serviceRequest req);
 end;
 
+
+signature CONTROLLER_REGISTRY
+= sig
+  val register_eval_func : string -> (Commands.request -> Commands.response) -> unit;
+  val get_eval_func : string -> (Commands.request -> Commands.response) option;
+end;
+
+structure ControllerRegistry : CONTROLLER_REGISTRY
+= struct
+  val eval_funcs = Unsynchronized.ref Symtab.empty;
+
+  fun register_eval_func theory_name func =
+        eval_funcs := Symtab.update_new (theory_name,func) (!eval_funcs)
+
+  fun get_eval_func name = Symtab.lookup (!eval_funcs) name
+end;
+
+
 signature CONTROLLER =
 sig
   val serviceRequest : Commands.request -> Commands.response;
+  val theoryName : string;
 end;
 
 
@@ -222,6 +257,8 @@ struct
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
 
+  val theoryName = State.Theory.theory_name;
+
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
 
   fun load_ruleset reader source state =
@@ -237,7 +274,7 @@ struct
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state))
 
-  fun describe_vertex (n, (nd,(ins,outs))) =
+  fun describe_vertex (n, (nd,_)) =
     { name = V.dest n, vType = VCD.type_of nd,
       data = VCD.cdata_of nd, userData = "" }
 
@@ -297,6 +334,9 @@ struct
 
 
   fun serviceRequest' (DummyRequest { response }) (state:State.T) = (response, state)
+
+    | serviceRequest' TheoryNameRequest state =
+        (StringResponse { data = State.Theory.theory_name }, state)
 
     | serviceRequest' (ListGraphsRequest) (state:State.T) =
         let val graphNames = map GraphName.dest (State.get_graph_names state) in
@@ -899,6 +939,7 @@ fun hilb ([format], graph) =
                 }
            );
 
+  val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest
 end;
 
 (* vi:ts=2:sw=2:sts=2:et

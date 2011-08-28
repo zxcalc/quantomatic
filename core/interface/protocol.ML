@@ -839,8 +839,6 @@
 structure ProtocolInterface : CONTROL_INTERFACE =
 struct
 
-  structure RG_Controller = Controller(ControllerState);
-
   fun protocolError error =
   let
       open OS.Process
@@ -1161,7 +1159,8 @@ struct
     (* {{{ readRequestBody *)
     fun readRequestBody commandCode =
       case commandCode
-        of "GL"   => (assertAtEnd (); ListGraphsRequest)
+        of "TG"   => (assertAtEnd (); TheoryNameRequest)
+         | "GL"   => (assertAtEnd (); ListGraphsRequest)
          | "GOE"  =>  LoadGraphRequest {
                         details = LoadEmptyGraphRequest {
                           requestedName = readToEnd ()
@@ -1909,10 +1908,14 @@ struct
                       (case Console.eval_command_string_no_quit eval command
                         of InterfaceResult.NORMAL output =>
                             (outputCmdResult output; next_loop ())
-                         | InterfaceResult.CHANGE_THEORY "red_green" =>
-                            (outputCmdResult "ok"; change_loop RG_Controller.serviceRequest)
                          | InterfaceResult.CHANGE_THEORY th =>
-                            (outputCmdResult ("!!! Unknown theory \""^th^"\"\n"); next_loop ())
+                            (case ControllerRegistry.get_eval_func th
+                               of NONE =>
+                                   (outputCmdResult ("!!! Unknown theory \""^th^"\"");
+                                    next_loop ())
+                                | (SOME func) =>
+                                   (outputCmdResult "ok";
+                                    change_loop func))
                          | InterfaceResult.SKIP => (outputCmdResult ""; next_loop ())
                          | InterfaceResult.QUIT => ())
                     end
@@ -1937,24 +1940,26 @@ struct
          | "TS" => (let
                       val theoryName = readToEnd ()
                     in
-                      case theoryName
-                        of "red_green" => (outputOkResponse requestId; change_loop RG_Controller.serviceRequest)
-                         | _ => (outputErrorResponse requestId "BADTHEORY" "Unknown theory"; change_loop RG_Controller.serviceRequest)
-                    end;
-                    next_loop ())
-
-         | "TG" => (assertAtEnd(); outputNameResponse requestId "red_green"; next_loop())
+                      case (ControllerRegistry.get_eval_func theoryName)
+                        of (SOME func) =>
+                             (outputOkResponse requestId;
+                              change_loop func)
+                         | NONE =>
+                             (outputErrorResponse requestId "BADTHEORY" "Unknown theory";
+                              next_loop())
+                    end)
 
          | code => (outputResponse (Commands.serviceRequestMessage eval
                                       (requestId, (readRequestBody code)));
                     next_loop())
 
     end
+    val starting_eval_func = (the (ControllerRegistry.get_eval_func "red_green"));
   in
     printOpenInfo #"V";
     print "1.0";
     printClose ();
-    run_in_textstreams' RG_Controller.serviceRequest
+    run_in_textstreams' starting_eval_func
   end;
 
   fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)

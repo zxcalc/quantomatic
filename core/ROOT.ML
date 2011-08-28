@@ -129,6 +129,10 @@ PolyML.Project.make "theories/red_green/vertex.ML";
 PolyML.Project.make "io/input_graph_v1.ML";
 PolyML.Project.make "io/output_graph_v1.ML";
 
+(* Overall controller for theories *)
+PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+PolyML.Project.make "interface/controller.ML"; (* commands *)
+
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/graph.ML";
 PolyML.Project.make "theories/red_green/io.ML";
@@ -156,8 +160,6 @@ Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
 
 (* interface protocol/console *)
-PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
-PolyML.Project.make "interface/controller.ML"; (* quanto commands *)
 PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
 PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
 PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)

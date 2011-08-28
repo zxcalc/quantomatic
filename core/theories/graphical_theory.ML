@@ -1,5 +1,7 @@
 signature GRAPHICAL_THEORY = 
 sig
+  val theory_name : string;
+
   (* vertices and edges of a graph *)
   structure Vertex : OVERTEX
   structure Edge : EDGE
@@ -64,6 +66,8 @@ functor GraphicalTheory(
   sharing type EComponentData.data = OParam.Edge.data
 ) = 
 struct 
+  val theory_name = Pretty.string_of OParam.pretty_theory_name;
+
   local 
     structure BasicBangGraph = BasicBangGraphFun(
       structure Param = OParam

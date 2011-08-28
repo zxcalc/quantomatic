@@ -118,9 +118,7 @@ end;
 
 
 (* controls the state of Quantomatic *)
-functor ControllerState(
-  structure GraphicalTheory : GRAPHICAL_THEORY
-) 
+functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 = struct
 
 
@@ -539,12 +537,6 @@ functor ControllerState(
   val open_rule_rhs = graph_of_rule R.get_rhs "rhs"
 
 end; (* structure Controller *)
-
-(* *)
-structure DB_ControllerState = ControllerState(
-  structure GraphicalTheory = RG_Theory
-);
-structure ControllerState : CONTROLLER_STATE = DB_ControllerState; 
 
 (* vim:et:sts=2:sw=2
 *)

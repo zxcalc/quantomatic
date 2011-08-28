@@ -19,20 +19,5 @@ end
 
 structure RG_OutputGraphDot = OutputGraphDot(structure DotStyle = RG_DotStyle)
 
+structure RG_Controller = Controller(ControllerState(RG_Theory));
 
-(* 
-structure RG = 
-struct 
-  structure VertexData = RG_VertexData;
-  structure Vertex = RGGraph.OVertex;
-  structure Edge = RGGraph.Edge;
-  structure Graph = RGGraph;
-  structure IO = RG_IO_Interface;
-  structure Rule = RG_Rewriting.Rule;  
-  structure Ruleset = RG_Rewriting.Ruleset;  
-  structure Match = RG_Rewriting.Match;  
-  structure Subst = RG_Rewriting.GraphSubst;
-  structure SimpleMatchSearch = RG_Rewriting.SimpleMatchSearch;
-  structure RulesetRewrites = RG_Rewriting.RulesetRewrites;
-end;
-*)
