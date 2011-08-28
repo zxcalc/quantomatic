@@ -40,12 +40,14 @@ signature MATCH
   val get_bbmatch : T -> BBMatch.T
   val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
   val get_subst : T -> G.Param.subst
+  val get_pluggings : T -> G.Vertex.InjEndo.T
   val set_names : (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T) -> T -> T 
   val update_names : (   G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T
                       -> G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
                      -> T -> T
   val update_evmap : (G.Vertex.Map.T -> G.Vertex.Map.T) -> T -> T
   val update_emap : (EMap.T -> EMap.T) -> T -> T
+  val update_pluggings : (G.Vertex.InjEndo.T -> G.Vertex.InjEndo.T) -> T -> T
 
   (* check is half edges are mapped this way already *)
   val emap_contains : T -> G.Edge.Ehn.name * G.Edge.Ehn.name -> bool
@@ -77,7 +79,8 @@ signature MATCH
       -> G.Edge.name * G.Edge.data 
       -> G.Edge.name * G.Edge.data 
       -> T -> T
-
+  val add_plugging : G.Vertex.name -> G.Vertex.name -> T -> T  
+      
   (* match up vertices,  *)
   val match_vertex_data : G.Vertex.data -> G.Vertex.data -> T -> T
   val match_vertex_name : G.Vertex.name -> G.Vertex.name -> T -> T
@@ -97,7 +100,17 @@ signature MATCH
   (* instantiate a substitution graph for the match: expand !-boxes, etc,
      keeping id map on names of boundary  *)
   val inst_replacement_graph : T -> G.T -> G.T 
-
+  (* things involved in inst_replacement_graph *)
+  (* given matching pattern edge-half and targetedge-half, return the other pattern-edge-half (for a different edge), which would need to plugged to the first pattern edge half in order to match the target edge. *)
+  val other_plugging_half_of_same_edge : T -> G.Edge.Ehn.name 
+      -> G.Edge.Ehn.name -> G.Edge.Ehn.name option;
+  (* given a target edge, returns the pair of pattern edge-halfs that match 
+     it's side (if they are different, and thus if the pattern half-edges 
+     should be plugged together) *)
+  val plugging_halfs_of_same_edge : 
+      T -> G.Edge.name -> (G.Edge.Ehn.name * G.Edge.Ehn.name) option;   
+  val rename_and_merge_edgepoint_vertices : T -> G.T -> G.T;
+  val merge_edgehalfs : T -> G.T -> G.T 
 
   (* bbox stuff *)
   val get_bbmap : T -> BBMatch.BBMap.T
@@ -150,8 +163,12 @@ functor Match(G : BANG_GRAPH)
             names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
             (* Internal vertex bijection from pat to tgt *)
             viso : V.InjEndo.T,
-            (* map for external vertices: (many to 1) pat to tgt vertices  *)
+            (* map for external vertices: (many to 1) pat to tgt vertices. This 
+               does not include the vertcies in pluggings. *)
             evmap: V.Map.T,
+            (* a 1-1 map between external pattern vertices that should be 
+               plugged together by the match  *)
+            pluggings: V.InjEndo.T,
             (* 1-1, inj half-edge mapping *)
             emap: EMap.T,
             (* bang box expansion of pattern *)
@@ -170,6 +187,7 @@ functor Match(G : BANG_GRAPH)
                   (BBox.NSet.union_merge (G.get_bbnames tgt) bs)),
       viso = V.InjEndo.empty,
       evmap = V.Map.empty,
+      pluggings = V.InjEndo.empty,
       emap = EMap.empty,
       bbmatch = BBMatch.init_from_pat pat,
       subst = G.Param.empty_subst
@@ -179,6 +197,7 @@ functor Match(G : BANG_GRAPH)
   fun update_names f (Match rep) = 
       Match {names = f (#names rep),
              evmap = #evmap rep, 
+             pluggings = #pluggings rep,
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = #bbmatch rep,
@@ -186,6 +205,7 @@ functor Match(G : BANG_GRAPH)
   fun update_evmap f (Match rep) = 
       Match {names = #names rep,
              evmap = f (#evmap rep), 
+             pluggings = #pluggings rep,
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = #bbmatch rep,
@@ -193,6 +213,7 @@ functor Match(G : BANG_GRAPH)
   fun update_emap f (Match rep) = 
       Match {names = #names rep,
              evmap = #evmap rep, 
+             pluggings = #pluggings rep,
              emap = f (#emap rep),
              viso = #viso rep,
              bbmatch = #bbmatch rep,
@@ -200,6 +221,7 @@ functor Match(G : BANG_GRAPH)
   fun update_viso f (Match rep) = 
       Match {names = #names rep,
              evmap = #evmap rep, 
+             pluggings = #pluggings rep,
              emap = #emap rep,
              viso = f (#viso rep),
              bbmatch = #bbmatch rep,
@@ -207,6 +229,7 @@ functor Match(G : BANG_GRAPH)
   fun update_bbmatch f (Match rep) = 
       Match {names = #names rep,
              evmap = #evmap rep, 
+             pluggings = #pluggings rep,
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = f (#bbmatch rep),
@@ -214,12 +237,22 @@ functor Match(G : BANG_GRAPH)
   fun update_subst f (Match rep) = 
       Match {names = #names rep,
              evmap = #evmap rep, 
+             pluggings = #pluggings rep,
              emap = #emap rep,
              viso = #viso rep,
              bbmatch = #bbmatch rep,
              subst = f (#subst rep)};
-  
+  fun update_pluggings f (Match rep) = 
+      Match {names = #names rep,
+             evmap = #evmap rep, 
+             pluggings = f(#pluggings rep),
+             emap = #emap rep,
+             viso = #viso rep,
+             bbmatch = #bbmatch rep,
+             subst = #subst rep};
+             
   fun get_evmap (Match rep) = #evmap rep;
+  fun get_pluggings (Match rep) = #pluggings rep;
   fun get_emap (Match rep) = #emap rep;
   fun get_viso (Match rep) = #viso rep;
   fun get_names (Match rep) = #names rep;
@@ -234,6 +267,7 @@ functor Match(G : BANG_GRAPH)
   val set_subst = update_subst o K;
   val set_viso = update_viso o K;
   val set_evmap = update_evmap o K;
+  val set_pluggings = update_pluggings o K;
   
   fun get_bbmatch (Match rep) = #bbmatch rep;
   val get_bbmap = BBMatch.get_bbmap o get_bbmatch;
@@ -249,6 +283,10 @@ functor Match(G : BANG_GRAPH)
                                      (vns,E.NSet.add n ens,bns));
   fun add_bname n = update_names (fn (vns,ens,bns) => 
                                      (vns,ens,BBox.NSet.add n bns));
+
+  fun add_plugging v1 v2 m = 
+      m |> update_pluggings (V.InjEndo.add v1 v2)
+        |> update_evmap (V.Map.surj_del_dom v1 o V.Map.surj_del_dom v2);
 
   (* renaming *)
   (* TODO: rename within the bang-box *)
@@ -303,7 +341,6 @@ functor Match(G : BANG_GRAPH)
   structure TgtBBoxCRnm : COMPOUND_RENAMING 
   where type obj = T and type renaming = G.BBox.Rnm.T
   *)
-
 
   (* True iff egde map already contains this mapping *)
   fun emap_contains m peh_teh = 
@@ -382,14 +419,15 @@ functor Match(G : BANG_GRAPH)
   fun match_vertex (pv,pvd) (tv,tvd) m =
       m |> match_vertex_name pv tv 
         |> match_vertex_data pvd tvd; 
-             
   
-  fun match_boundary pb tb m = m |> update_evmap (V.Map.add_to_dom pb tb);
-  
+  fun match_boundary pb tb m =                   
+      m |> update_evmap (V.Map.add_to_dom pb tb);
+            
   (* apply data substs of a match to all vertices and edges in graph *)
   fun datasubst m g = G.apply_data_subst (get_subst m) g;
 
-  (* breaks invariant of edge-points having directed arity <= 1 *)
+  (* breaks invariant of edge-points having directed arity <= 1; when 
+     two edge-points have the same name they get merged. *)
   (* CHECK: seems to assume that codv must be named fresh w.r.t. graph??? *)
   fun rename_and_merge_edgepoint_vertices m g = 
       V.NTab.fold 
@@ -399,6 +437,36 @@ functor Match(G : BANG_GRAPH)
         (V.Map.get_codtab (get_evmap m))
         g;
 
+  (* plug each pair of boundary vertices that need to be plugged. *)
+  fun merge_edgehalfs m g = 
+      g |> V.NTab.fold (fn (v1,v2) => snd o snd o G.plug_by_boundary v1 v2)
+            (V.InjEndo.get_domtab (get_pluggings m));
+  
+  (* given that pehn matches tehn, optionally return the opposite half-edge 
+     that needs to be plugged to it (if it exists, else NONE). *)
+  fun other_plugging_half_of_same_edge m pehn tehn =  
+      (case E.Ehn.NTab.lookup (EMap.get_codtab (get_emap m)) (E.Ehn.other tehn) 
+        of NONE => NONE
+         | SOME pehn2 => 
+           if E.name_eq (E.Ehn.get_ename pehn2, E.Ehn.get_ename pehn)
+           then NONE
+           (* two different edges halfs got mapped to this edge, so the
+              half-edges they go to (they must to half edges) should be
+              plugged. *)
+           else SOME pehn2);
+  
+  fun plugging_halfs_of_same_edge m te = 
+      let val emap_cod = EMap.get_codtab (get_emap m);
+          val teh_start = E.Ehn.mk_start te;
+      in 
+        (case E.Ehn.NTab.lookup emap_cod teh_start 
+           of NONE => NONE
+            | SOME peh_start => 
+            (case other_plugging_half_of_same_edge m peh_start teh_start
+               of NONE => NONE
+                | SOME peh_end => SOME (peh_start,peh_end)))
+      end;   
+           
   (* rename all vertices in the subst graphs - that is the pattern (lhs) and it's replacement (rhs), and in the match accordingly. This is in order that the substitution graph and match can be displayed in the same name-space as the target graph. (e.g. for highlighting the part of the graph being matched/replaced) *)      
   (* fun rename_match_and_subst_graphs (m,g_lhs,g_rhs) =
       let 
@@ -422,6 +490,7 @@ functor Match(G : BANG_GRAPH)
      component, or equivalently. TODO: edge names? *)
   fun inst_pat_graph m g = 
         g |> BBMatch.inst_pat_bbox_match (get_bbmatch m)
+          |> merge_edgehalfs m
           |> rename_and_merge_edgepoint_vertices m
           |> datasubst m;
 
@@ -457,6 +526,7 @@ functor Match(G : BANG_GRAPH)
               ((get_vnames m,get_enames m),g)
         val m' = m |> set_names (vnames,enames,get_bbnames m); 
       in g |> rename_and_merge_edgepoint_vertices m'
+           |> merge_edgehalfs m'
            |> datasubst m'
       end;
   
@@ -467,6 +537,14 @@ functor Match(G : BANG_GRAPH)
        Pretty.str "; Es: ", E.NSet.pretty es,
        Pretty.str "; Bs: ", BBox.NSet.pretty bs];
   
+  fun pretty_pluggings pluggings = 
+      Pretty.list "[" "]" 
+        (V.NTab.fold (fn (a,b) => fn l => 
+          [Pretty.block [Pretty.str "(", V.pretty_name a, Pretty.str "<->",
+           V.pretty_name b, Pretty.str ")"]] @ l)
+          (V.InjEndo.get_domtab pluggings)
+          []);
+  
   fun pretty m = 
       Pretty.chunks 
       ([Pretty.str "Match: ",
@@ -475,6 +553,9 @@ functor Match(G : BANG_GRAPH)
          @ [Pretty.block 
              [Pretty.str "Edge-point vertex Map: ",
               V.Map.pretty (get_evmap m)]]
+         @ [Pretty.block 
+             [Pretty.str "Pluggings: ",
+              pretty_pluggings (get_pluggings m)]]
          @ [BBMatch.pretty (get_bbmatch m)]
          @ [Pretty.block 
              [Pretty.str "Internal Vertex InjEndo: ",
@@ -493,5 +574,3 @@ functor Match(G : BANG_GRAPH)
   end;
     
 end;
-
-

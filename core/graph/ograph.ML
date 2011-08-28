@@ -69,6 +69,11 @@ sharing SharingOGraph.OVertex = OVertex.SharingWithIData
 val get_boundary : T -> Vertex.NSet.T
 val is_boundary : T -> Vertex.name -> bool
 
+(* given two vertices, check if they are boundary-coherent end-points and return 
+   data for a compatible edge that could replace them. *)
+val boundary_coherence : T -> Vertex.name -> Vertex.name -> 
+     ((dir_or_undir * Edge.data) * (Vertex.name * Vertex.name)) option
+
 (* adjacent boundary fns *)
 val get_adj_boundary : T -> Vertex.name -> Vertex.NSet.T
 val get_adj_inputs : T -> Vertex.name -> Vertex.NSet.T
@@ -78,10 +83,11 @@ val get_adj_outputs : T -> Vertex.name -> Vertex.NSet.T
 val get_edgepoints : T -> Vertex.NSet.T
 val is_edgepoint : T -> Vertex.name -> bool
 val is_endpoint' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) -> bool
-(* returns the SOME non-empty edge set when exactly one of the inset of ourset of edges is empty, 
+(* returns the SOME non-empty edge set when exactly one of the inset of 
+   ourset of edges is empty, 
    else NONE *)
 val endpoint_of_vertex' : OVertex.data * (Edge.NSet.T * Edge.NSet.T) 
-    -> (Edge.Ehn.halfid * Edge.NSet.T) option
+    -> (Edge.Ehn.halfid * Edge.NSet.T) option;
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : Vertex.name -> T -> T
@@ -257,7 +263,8 @@ functor BasicOGraphFun(
        | (true,false) => SOME (Edge.Ehn.SourceEnd, outs)
        | (false,true) => SOME (Edge.Ehn.TargetEnd, ins)
        | (false,false) => NONE)
-    | endpoint_of_vertex' (V.IVert d,(ins,outs)) = NONE;       
+    | endpoint_of_vertex' (V.IVert d,(ins,outs)) = NONE;
+  
   val is_endpoint' = is_some o endpoint_of_vertex';
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o Vertex.NSet.add;
@@ -370,8 +377,9 @@ end; (* structure BasicOGraph *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Extra stuff for open graphs (cut out subgraph etc.) *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor OGraphFun(G : BASIC_OGRAPH) = 
-struct
+functor OGraphFun(G : BASIC_OGRAPH)
+(* : OGRAPH *) 
+= struct
   open G;
   structure V = OVertex;
   structure E = Edge;
@@ -425,13 +433,16 @@ struct
                in 
                   if dir_or_undir1 = Directed andalso dir_or_undir2 = Directed
                      andalso halfid1 <> halfid2 then 
-                    SOME (if halfid1 = Edge.Ehn.SourceEnd then (fromv2,tov1) else (fromv1,tov2),
-                          (dir_or_undir1, ed1))
+                    SOME ((dir_or_undir1, ed1),
+                          if halfid1 = Edge.Ehn.SourceEnd then (fromv2,tov1) 
+                          else (fromv1,tov2))
                   else if dir_or_undir1 = UnDirected 
                        andalso dir_or_undir2 = UnDirected then 
-                    SOME ((if halfid1 = Edge.Ehn.SourceEnd then tov1 else fromv1, 
-                           if halfid2 = Edge.Ehn.SourceEnd then tov2 else fromv2),
-                          (dir_or_undir1, ed1))
+                    SOME ((dir_or_undir1, ed1),
+                          (if halfid1 = Edge.Ehn.SourceEnd then tov1 
+                           else fromv1, 
+                           if halfid2 = Edge.Ehn.SourceEnd then tov2 
+                           else fromv2))
                   else NONE
                end
              | (_,_) => NONE)));
@@ -469,13 +480,13 @@ struct
      composition with an identity. Assumes that e1 and e2 go to boundary 
      coherent edge-point vertices (vertices representing half-edges going in 
      opposite directions / both undirected) *)
-  (* *** needs modification for !-boxes *** *) 
+  (* FIXME(ldixon): *** needs modification for !-boxes *** *) 
   exception not_boundary_coherent_exp of string;
 
   fun plug_by_boundary v1 v2 g = 
       (case boundary_coherence g v1 v2 
         of NONE => raise not_boundary_coherent_exp "plug_by_boundary"
-         | SOME ((startv,endv), (dir, data)) => 
+         | SOME ((dir, data),(startv,endv)) => 
            ((startv,endv),
             g |> delete_vertex v1
               |> delete_vertex v2
@@ -486,8 +497,8 @@ struct
      incident edges into half-edges (add a boundary vertex to each one). 
      Creates V.InjEndo.T which explains how to glue cut back together; 
      automorphism is of the form: keepvset vertex => outside vertex.  
-     NOT** INVARIANT: preserves names of the keepset, creates new edges/boundary vs for the
-     rest of the graph. 
+     NOT** INVARIANT: preserves names of the keepset, creates new 
+     edges/boundary vertices for the rest of the graph. 
   *)
   (* FIXME: rewrite using fold_subgraph (from graph), with cut_edge (above) *)
   fun cut_around_vertex keepvset n (vs_g as (amorph,g)) = 

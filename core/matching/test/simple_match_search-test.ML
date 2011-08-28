@@ -213,7 +213,45 @@ val _ = test "match9: should fail to match" (fn () =>
     val [] = match pat tgt;
   in () end) ();
 
+val _ = test "match with pluggings" 
+  (fn () => 
+  let
+    (* Graph: (B - X - X - B) *)
+    val g = G.empty;
+    val (b1, g) = g |> G.add_vertex bvert;
+    val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+    val (n2, g) = g |> G.add_vertex (mkX zero_angle);
+    val (b2, g) = g |> G.add_vertex bvert;
+    val (e0, g) = g |> G.add_edge undir_edge b1 n1;
+    val (e1, g) = g |> G.add_edge undir_edge n2 b2;
+    val (e2, g) = g |> G.add_edge undir_edge n1 n2;
+    val pat = g;
+    
+    (* Graph: X = X *)
+    val g = G.empty;
+    val (n1', g) = g |> G.add_vertex (mkX zero_angle);
+    val (n2', g) = g |> G.add_vertex (mkX zero_angle);
+    val (e0', g) = g |> G.add_edge undir_edge n1' n2';
+    val (e1', g) = g |> G.add_edge undir_edge n1' n2';
+    val (_, tgt) = G.rename_apart pat g;
+        
+    val [m1,m2,m3,m4] = match pat tgt;
+    val _ = writeln "----------";
+    val _ = G.print pat;
+    val _ = G.print tgt;
+    val _ = M.print m1;
+    val pat_inst1 = M.inst_pat_graph m1 pat; 
+    val _ = G.print pat_inst1;
+    
+    val pat_inst2 = M.inst_pat_graph m2 pat; 
+    val pat_inst3 = M.inst_pat_graph m3 pat; 
+    val pat_inst4 = M.inst_pat_graph m4 pat; 
+    
+    val _ = if E.NSet.is_empty (G.get_edgepoints pat_inst1) then () 
+        else raise ERROR "has an edge-point";
 
+  in () end) ();
+  
 (* one unfolding of bangbox...*)
 (* 
 val g = G.empty;
