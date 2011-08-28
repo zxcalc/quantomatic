@@ -408,12 +408,12 @@
  * Code: "GMVA"
  * Body:
  *   VertexType ::= String
- *   ResultFormat ::= "name" | "xml" | "pretty"
+ *   ResultFormat ::= "name" | "xml" | "pretty" | "native"
  *   AddVertexRequestBody ::= GraphName ESC ';'
  *                            VertexType ESC ';'
  *                            ResultFormat ;
  * Desc: Add a vertex to a graph
- * Response: StringResponse | XmlResponse | PrettyResponse
+ * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADVERTEXTYPE | BADFORMAT
  *
  * Name: RenameVertexRequest
@@ -476,7 +476,7 @@
  *                          TargetVertex ESC ';'
  *                          ResultFormat ;
  * Desc: Add an edge to a graph.
- * Response: StringResponse | XmlResponse | PrettyResponse
+ * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: RenameEdgeRequest
@@ -534,7 +534,7 @@
  *                             ResultFormat ;
  * Desc: Add a !-box to a graph.  A list of vertices to include in
  *       the !-box may be provided
- * Response: StringResponse | XmlResponse | PrettyResponse
+ * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: RenameBangBoxRequest

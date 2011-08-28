@@ -29,6 +29,7 @@ import quanto.core.data.Rule;
 import quanto.core.data.Vertex;
 import quanto.core.data.VertexType;
 import quanto.core.protocol.ProtocolManager;
+import quanto.core.xml.AttachedRewriteListFragmentHandler;
 import quanto.core.xml.EdgeFragmentHandler;
 import quanto.core.xml.EdgeFragmentHandler.EdgeData;
 import quanto.core.xml.FragmentHandler;
@@ -412,13 +413,13 @@ public class Core {
 	}
 
 	public void fastNormalise(CoreGraph graph) throws CoreException {
-                throw new NotImplementedException();
-                /* FIXME:
 		boolean didRewrites = false;
 		try {
-			while (true) {
-				talker.apply_first_rewrite(graph.getCoreName());
+                        int rwCount = talker.attachOneRewrite(graph.getCoreName());
+			while (rwCount > 0) {
+                                talker.applyAttachedRewrite(graph.getCoreName(), 0);
 				didRewrites = true;
+				rwCount = talker.attachOneRewrite(graph.getCoreName());
 			}
 		} catch (CoreException e) {
 			if (!e.getMessage().contains("No more rewrites."))
@@ -426,7 +427,6 @@ public class Core {
 		}
 		if (didRewrites)
 			updateGraph(graph);
-                */
 	}
 
 	public void cutSubgraph(CoreGraph graph, Collection<Vertex> vertices)
@@ -465,13 +465,10 @@ public class Core {
 
 	public List<AttachedRewrite<CoreGraph>> getAttachedRewrites(CoreGraph graph)
 			throws CoreException {
-                throw new NotImplementedException();
-            /* FIXME:
 		String xml = talker.listAttachedRewrites(graph.getCoreName());
 		AttachedRewriteListFragmentHandler handler =
 			new AttachedRewriteListFragmentHandler(activeTheory, graph);
 		return this.<List<AttachedRewrite<CoreGraph>>>parseXml(xml, handler);
-             */
 	}
 
 	public void applyAttachedRewrite(CoreGraph graph, int i)

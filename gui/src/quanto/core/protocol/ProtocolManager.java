@@ -1409,6 +1409,10 @@ public class ProtocolManager {
         return getCountResponse();
     }
 
+    public int attachOneRewrite(String graph) throws CoreException {
+        return attachOneRewrite(graph, Collections.<String>emptyList());
+    }
+
     public int attachOneRewrite(String graph, Collection<String> vertices) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -1441,5 +1445,22 @@ public class ProtocolManager {
         }
 
         getOkResponse();
+    }
+
+    public String listAttachedRewrites(String graph) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("WL", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg("xml");
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getXmlResponse();
     }
 }

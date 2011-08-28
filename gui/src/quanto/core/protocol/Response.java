@@ -11,12 +11,6 @@ import static quanto.core.protocol.Utils.*;
  * @author alex
  */
 public class Response {
-    public class RewriteXml {
-        String ruleApplied;
-        String newGraphXml;
-        String instantiatedRuleLhs;
-        String instantiatedRuleRhs;
-    }
     public enum MessageType {
         Error,
         Ok,
@@ -29,7 +23,7 @@ public class Response {
         Name,
         NameList,
         UserData,
-        RewriteList,
+        StructuredData,
         UnknownRequest,
         UnknownResponse
     }
@@ -166,7 +160,7 @@ public class Response {
             case Ok: return "O";
             case Pretty: return "P";
             case RawData: return "R";
-            case RewriteList: return "W";
+            case StructuredData: return "S";
             case UserData: return "U";
             case Xml: return "X";
             case UnknownRequest: return "Z";

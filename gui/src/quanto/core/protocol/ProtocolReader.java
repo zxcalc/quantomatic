@@ -232,7 +232,7 @@ public class ProtocolReader {
         return resp;
     }
 
-    private Response parseRewriteListResponseBody(String requestId) throws ProtocolException, IOException {
+    private Response parseStructuredDataResponseBody(String requestId) throws ProtocolException, IOException {
         // ???
         skipToBodyEnd();
         throw new NotImplementedException();
@@ -307,8 +307,8 @@ public class ProtocolReader {
             resp = parseNameListResponseBody(requestId);
         else if (code.equals("U"))
             resp = parseUserDataResponseBody(requestId);
-        else if (code.equals("W"))
-            resp = parseRewriteListResponseBody(requestId);
+        else if (code.equals("S"))
+            resp = parseStructuredDataResponseBody(requestId);
         else if (code.equals("Z"))
             resp = parseUnknownRequestResponseBody(requestId);
         else
