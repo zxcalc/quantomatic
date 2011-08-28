@@ -241,8 +241,9 @@ sig
 end;
 
 
-functor Controller(State : CONTROLLER_STATE) : CONTROLLER =
+functor Controller(Theory : GRAPHICAL_THEORY) : CONTROLLER =
 struct
+  structure State = ControllerState(Theory);
   val cur_state = Unsynchronized.ref State.init;
   open Commands;
 

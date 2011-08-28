@@ -19,5 +19,5 @@ end
 
 structure RG_OutputGraphDot = OutputGraphDot(structure DotStyle = RG_DotStyle)
 
-structure RG_Controller = Controller(ControllerState(RG_Theory));
+structure RG_Controller = Controller(RG_Theory);
 
