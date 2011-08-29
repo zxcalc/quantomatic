@@ -391,6 +391,17 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     ("print_theory_name",
      ("", "Print out the name of the currently active theory",
       (fn [] => Commands.TheoryNameRequest
+        | _  => bad_args_req))),
+
+    (* FIXME: should this really be here?  Technically, the use of this *)
+    (*        structure decides what theories are available             *)
+    ("list_theories",
+     ("", "Print out the list of available theories",
+      (fn [] => Commands.DummyRequest {
+                  response = Commands.StringListResponse {
+                    data = ControllerRegistry.get_theories()
+                  }
+                }
         | _  => bad_args_req)))
 
 (*

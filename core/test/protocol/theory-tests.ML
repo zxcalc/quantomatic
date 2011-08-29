@@ -1,27 +1,30 @@
-CoreTester.registerTest "Change theory (invalid_theory)" (fn session => (
-  CoreTester.writeRequestByParts session ("TS","apple") "invalid_theory";
-  CoreTester.demandErrorResponse session "apple" "BADTHEORY"
-));
+registerTest "Change/list theories" (fn session => (
+let
+  val _ = writeRequestByParts session ("TS","apple") "invalid_theory"
+  val _ = demandErrorResponse session "apple" "BADTHEORY"
 
-CoreTester.registerTest "Change and get theory (red_green)" (fn session => (
-  CoreTester.writeRequestByParts session ("TS","pear") "red_green";
-  CoreTester.demandOkResponse session "pear";
-  CoreTester.writeRequestByParts session ("TG","banana") "";
-  CoreTester.demandNameResponse session "banana" "red_green"
-));
+  val _ = writeRequestByArgs session ("TL","peach") []
+  val theories = readNameListResponse session "peach"
+  val _ = if (List.exists (fn x => (x = "red_green")) theories) then () else
+        raise test_exp "red_green theory not listed"
+  val _ = if (List.exists (fn x => (x = "ghz_w")) theories) then () else
+        raise test_exp "ghz_w theory not listed"
 
-CoreTester.registerTest "Change and get theory (red_green_blue)" (fn session => (
-  CoreTester.writeRequestByParts session ("TS","orange") "red_green_blue";
-  CoreTester.demandOkResponse session "orange";
-  CoreTester.writeRequestByParts session ("TG","kiwi") "";
-  CoreTester.demandNameResponse session "kiwi" "red_green_blue"
-));
+  val _ = writeRequestByParts session ("TS","pear") "red_green"
+  val _ = demandOkResponse session "pear"
+  val _ = writeRequestByParts session ("TG","banana") ""
+  val _ = demandNameResponse session "banana" "red_green"
 
-CoreTester.registerTest "Change and get theory (ghz_w)" (fn session => (
-  CoreTester.writeRequestByParts session ("TS","plum") "ghz_w";
-  CoreTester.demandOkResponse session "plum";
-  CoreTester.writeRequestByParts session ("TG","mango") "";
-  CoreTester.demandNameResponse session "mango" "ghz_w"
+  val _ = writeRequestByParts session ("TS","orange") "red_green_blue"
+  val _ = demandOkResponse session "orange"
+  val _ = writeRequestByParts session ("TG","kiwi") ""
+  val _ = demandNameResponse session "kiwi" "red_green_blue"
+
+  val _ = writeRequestByParts session ("TS","plum") "ghz_w"
+  val _ = demandOkResponse session "plum"
+  val _ = writeRequestByParts session ("TG","mango") ""
+  val _ = demandNameResponse session "mango" "ghz_w"
+in () end
 ));
 
 (* vi:et:sw=2:sts=2
