@@ -1954,12 +1954,11 @@ struct
                     next_loop())
 
     end
-    val starting_eval_func = (the (ControllerRegistry.get_eval_func "red_green"));
   in
     printOpenInfo #"V";
     print "1.0";
     printClose ();
-    run_in_textstreams' starting_eval_func
+    run_in_textstreams' DummyController.serviceRequest
   end;
 
   fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)

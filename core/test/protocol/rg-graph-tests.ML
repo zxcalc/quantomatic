@@ -51,8 +51,11 @@ let
   val exampleGraphBangBoxVertices = bangBoxVertices o exampleGraphBangBox
 in
 
-registerTest "Add/list/kill graphs" (fn session => (
+registerTest "Add/list/kill graphs (red_green)" (fn session => (
 let
+  val _ = writeRequestByParts session ("TS","quimby") "red_green";
+  val _ = demandOkResponse session "quimby";
+
   fun checkGraphNames expNames =
     let
       val _ = writeRequestByParts session ("GL","santa's little helper") ""
@@ -102,8 +105,11 @@ let
 in () end
 ));
 
-registerTest "Load/save graphs" (fn session => (
+registerTest "Load/save graphs (red_green)" (fn session => (
 let
+  val _ = writeRequestByParts session ("TS","Geneva") "red_green";
+  val _ = demandOkResponse session "Geneva";
+
   val inputGraphFile = OS.FileSys.tmpName()
   val graphOutstream = TextIO.openOut inputGraphFile
   val _ = TextIO.output (graphOutstream,exampleGraphData)
@@ -155,8 +161,11 @@ let
 in () end
 ));
 
-registerTest "Describe graphs" (fn session => (
+registerTest "Describe graphs (red_green)" (fn session => (
 let
+  val _ = writeRequestByParts session ("TS","Cuba") "red_green";
+  val _ = demandOkResponse session "Cuba";
+
   val _ = writeRequestByArgs session ("GOD","USA") ["example",dataChunk exampleGraphData]
   val _ = demandNameResponse session "USA" "example"
 

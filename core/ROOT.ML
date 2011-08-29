@@ -134,6 +134,14 @@ PolyML.Project.make "io/output_graph_v1.ML";
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)
 
+(* interface protocol/console *)
+PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
+PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
+PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
+PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
+PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
+PolyML.Project.make "interface/run.ML";
+
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/graph.ML";
 PolyML.Project.make "theories/red_green/io.ML";
@@ -159,14 +167,6 @@ PolyML.Project.make "theories/red_green_blue/io.ML";
 (* Testing *)
 Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
-
-(* interface protocol/console *)
-PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
-PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
-PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
-PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
-PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
-PolyML.Project.make "interface/run.ML";
 
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";

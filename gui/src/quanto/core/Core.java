@@ -36,7 +36,6 @@ import quanto.core.xml.FragmentHandler;
 import quanto.core.xml.GraphFragmentHandler;
 import quanto.core.xml.SAXFragmentAdaptor;
 import quanto.core.xml.VertexFragmentHandler;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Provides a nicer interface to the core

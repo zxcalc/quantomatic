@@ -35,8 +35,8 @@ struct
                | InterfaceResult.QUIT => ())
      end;
 
-  val starting_eval_func = (the (ControllerRegistry.get_eval_func "red_green"));
-  val run_in_textstreams = run_in_textstreams' (Console.eval_command_string starting_eval_func);
+  fun run_in_textstreams streams = run_in_textstreams'
+    (Console.eval_command_string DummyController.serviceRequest) streams;
 
   fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
                         of SOME n => (TextIO.input1 TextIO.stdIn;())

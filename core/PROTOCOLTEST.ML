@@ -4,7 +4,7 @@ use "test/protocol/test-utils.ML";
 use "test/protocol/simple-test.ML";
 use "test/protocol/theory-tests.ML";
 use "test/protocol/console-tests.ML";
-use "test/protocol/graph-tests.ML";
+use "test/protocol/rg-graph-tests.ML";
 
 fun updateCoreExec [] = setCoreExecutable "bin/quanto-core"
   | updateCoreExec ("--core"::ce::ss) = setCoreExecutable ce

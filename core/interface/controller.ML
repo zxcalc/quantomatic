@@ -940,7 +940,17 @@ fun hilb ([format], graph) =
                 }
            );
 
-  val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest
+  val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest;
+end;
+
+structure DummyController : CONTROLLER =
+struct
+  fun serviceRequest _ =
+        Commands.ErrorResponse {
+          errorCode = "NOTHEORY",
+          message = "No theory has been selected"
+        };
+  val theoryName = "dummy_theory";
 end;
 
 (* vi:ts=2:sw=2:sts=2:et
