@@ -793,7 +793,7 @@ public class ProtocolManager {
             writer.addHeader("GMVS", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
-            writer.addTaggedDataChunkArg('S', data);
+            writer.addTaggedDataChunkArg('N', data);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -885,7 +885,7 @@ public class ProtocolManager {
             writer.addHeader("GMES", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(edge);
-            writer.addTaggedDataChunkArg('S', data);
+            writer.addTaggedDataChunkArg('N', data);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);

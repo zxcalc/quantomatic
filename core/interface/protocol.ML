@@ -51,7 +51,7 @@
  *
  * Name: ErrorResponse
  * Code: "Q"
- * Body:
+ * Args:
  *   ErrorIdent ::= [A-Z]+ ;
  *   ErrorMessage ::= String ;
  *   ErrorResponseBody ::= ErrorIdent ESC ';' ErrorMessage ;
@@ -59,19 +59,19 @@
  *
  * Name: OkResponse
  * Code: "O"
- * Body:
+ * Args:
  *   OkResponseBody ::= ;
  * Desc: The requested action completed successfully.
  *
  * Name: ConsoleResponse
  * Code: "C"
- * Body:
+ * Args:
  *   ConsoleResponseBody ::= DataChunk ;
  * Desc: The response to a console command.
  *
  * Name: ConsoleHelpResponse
  * Code: "H"
- * Body:
+ * Args:
  *   CommandArgs ::= String ;
  *   CommandHelp ::= String ;
  *   HelpResponseBody ::= CommandArgs ESC ';' CommandHelp ;
@@ -79,50 +79,50 @@
  *
  * Name: DataResponse
  * Code: "R"
- * Body:
+ * Args:
  *   DataResponseBody ::= DataChunk ;
  * Desc: Raw data of some description; not intended to be parsed.
  *
  * Name: PrettyResponse
  * Code: "P"
- * Body:
+ * Args:
  *   PrettyResponseBody ::= DataChunk ;
  * Desc: "Pretty-print" data, for displaying to humans; not
  *       intended to be parsed.
  *
  * Name: XmlResponse
  * Code: "X"
- * Body:
+ * Args:
  *   XmlResponseBody ::= DataChunk ;
  * Desc: XML-formatted data.
  *
  * Name: CountResponse
  * Code: "I"
- * Body:
+ * Args:
  *   CountResponseBody ::= Integer ;
  * Desc: A number, usually the quantity of something.
  *
  * Name: StringResponse
  * Code: "N"
- * Body:
+ * Args:
  *   NameResponseBody ::= String ;
  * Desc: A string, usually a name.
  *
  * Name: StringListResponse
  * Code: "M"
- * Body:
+ * Args:
  *   NameListRespBody ::= StringList ;
  * Desc: A list of strings, usually names.
  *
  * Name: UserDataResponse
  * Code: "U"
- * Body:
+ * Args:
  *   UserDataRespBody ::= DataChunk ;
  * Desc: Data that was previously supplied by the tool.
  *
  * Name: StructuredDataResponse
  * Code: "S"
- * Body:
+ * Args:
  *   Element ::= ESC 'A' ElementContent ESC 'a'
  *             | ...
  *             | ESC 'Y' ElementContent ESC 'y'
@@ -141,7 +141,7 @@
  *
  * Name: UnknownRequestResponse
  * Code: "Z"
- * Body:
+ * Args:
  *   UnknownRequestResponseBody ::= Code ;
  * Desc: The request code was not recognised.
  *
@@ -152,46 +152,56 @@
  * In this section, error responses are the codes that
  * may be returned in an error response.
  *
+ * A request looks like
+ *   XmlDataChunk ::= ESC 'X' DataChunk ;
+ *   StringDataChunk ::= ESC 'N' DataChunk ;
+ *   StructuredDataChunk ::= ESC 'S' DataChunk ;
+ *   TaggedDataChunk ::= XmlDataChunk | StringDataChunk | StructedDataChunk ;
+ *   ObjectResultFormat ::= "name" | "xml" | "pretty" | "native" ;
+ *   GraphExportFormat ::= "native" | "xml" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz"
+ *
+ *   Argument ::= String | StringList | DataChunk | TaggedDataChunk |
+ *                Integer | ObjectResultFormat | GraphExportFormat ;
+ *
+ *   RequestBody ::= ( Argument ( ESC ';' Argument )* )?
+ *
+ *
  * The possible requests are:
  *
  * Name: ConsoleCommandRequest
  * Code: "CC"
- * Body:
- *   ConsoleCommandRequestBody ::= DataChunk ;
+ * Args:
+ *   Command: DataChunk
  * Desc: Execute user-console command
  * Responses: ConsoleResponse
  * Error responses:
  *
  * Name: ConsoleCommandListRequest
  * Code: "CL" ;
- * Body
- *   ConsoleCommandListRequestBody ::= ;
+ * Args:
  * Desc: Get the list of possible user-console commands
  * Responses: StringListResponse
  * Error responses:
  *
  * Name: ConsoleHelpRequest
  * Code: "CH"
- * Body:
- *   CommandName ::= String ;
- *   ConsoleHelpRequestBody ::= CommandName ;
+ * Args:
+ *   CommandName: String
  * Desc: Get help for a user-console command.
  * Responses: ConsoleHelpResponse
  * Error responses: BADCMD
  *
  * Name: ChangeTheoryRequest
  * Code: "TS"
- * Body:
- *   TheoryName ::= String ;
- *   ChangeTheoryRequestBody ::= TheoryName
+ * Args:
+ *   TheoryName: String
  * Desc: Switch to a different theory.
  * Responses: OkResponse
  * ErrorResponses: BADTHEORY
  *
  * Name: CurrentTheoryRequest
  * Code: "TG"
- * Body:
- *   CurrentTheoryRequestBody ::= ;
+ * Args:
  * Desc: Get the name of the current theory
  * Responses: StringResponse
  * ErrorResponses:
@@ -201,25 +211,23 @@
  *
  * Name: ListGraphsRequest
  * Code: "GL"
- * Body:
- *   ListGraphsRequestBody ::= ;
+ * Args:
  * Desc: List the loaded graphs.
  * Responses: StringListResponse
  *
  * Name: LoadEmptyGraphRequest
  * Code: "GOE"
- * Body:
- *   GraphName ::= String ;
- *   LoadEmptyGraphRequestBody ::= (GraphName)? ;
+ * Args:
+ *   GraphName: String
  * Desc: Load an empty graph, optionally naming it as requested,
- *       or a variant if the name is taken.
+ *       or a variant if the name is taken.  If no name is given
+ *       (an empty string), a default name will be used.
  * Responses: StringResponse
  *
  * Name: LoadGraphFromFileRequest
  * Code: "GOF"
- * Body:
- *   FileName ::= String ;
- *   LoadGraphFromFileRequestBody ::= FileName ;
+ * Args:
+ *   FileName: String
  * Desc: Load a graph from a file.  It will be given a name based on
  *       the file name.
  * Responses: StringResponse
@@ -227,32 +235,30 @@
  *
  * Name: LoadGraphFromDataRequest
  * Code: "GOD"
- * Body:
- *   LoadGraphFromDataRequestBody ::= GraphName? ESC ';' DataChunk ;
+ * Args:
+ *   GraphName: String
+ *   GraphData: DataChunk
  * Desc: Load a graph from the given data, giving it (a variation on)
- *       the given name.  If no name is given, a default one will be used.
+ *       the given name.  If the name is an empty string, a default
+ *       one will be used.
  * Responses: StringResponse
  * ErrorResponses: BADDATA
  *
  * Name: CopyGraphRequest
  * Code: "GOG"
- * Body:
- *   CopyGraphRequestBody ::= GraphName ;
- * Desc: Create a copy of an existing graph; the argument is the
- *       existing graph.  The new graph's name will be based on
- *       the old one.
+ * Args:
+ *   ExistingGraphName: String
+ * Desc: Create a copy of an existing graph.  The new graph's
+ *       name will be based on the old one.
  * Responses: StringResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: CopySubgraphRequest
  * Code: "GOS"
- * Body:
- *   SourceGraphName ::= GraphName ;
- *   TargetGraphName ::= GraphName ;
- *   VertexNames ::= StringList ;
- *   CopySubgraphRequestBody ::= SourceGraphName ESC ';'
- *                               TargetGraphName ESC ';'
- *                               VertexNames ;
+ * Args:
+ *   SourceGraphName: String
+ *   TargetGraphName: String
+ *   VertexNames: StringList
  * Desc: Create a copy of part of an existing graph (defined by
  *       VertexNames), overwriting TargetGraphName if it exists.
  *       This is mainly intended for clipboard support in GUI tools.
@@ -261,18 +267,18 @@
  *
  * Name: SaveGraphToFileRequest
  * Code: "GS"
- * Body:
- *   SaveGraphToFileRequestBody ::= GraphName ESC ';' FileName ;
+ * Args:
+ *   GraphName: String
+ *   FileName: String
  * Desc: Save the named graph to a file..
  * Responses: OkResponse
  * ErrorResponses: NOSUCHGRAPH | FILEACCESS
  *
  * Name: RenameGraphRequest
  * Code: "GR"
- * Body:
- *   OldGraphName ::= GraphName ;
- *   NewGraphName ::= GraphName ;
- *   RenameGraphRequestBody ::= OldGraphName ESC ';' NewGraphName ;
+ * Args:
+ *   OldGraphName: String
+ *   NewGraphName: String
  * Desc: Rename a graph; if the requested new name already exists,
  *       a similar one will be picked.
  * Responses: StringResponse
@@ -280,17 +286,17 @@
  *
  * Name: DiscardGraphRequest
  * Code: "GD"
- * Body:
- *   DiscardGraphRequestBody ::= GraphName ;
+ * Args:
+ *   GraphName: String
  * Desc: Discard a graph, forgetting everything about it.
  * Responses: OkResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ExportGraphRequest
  * Code: "GE"
- * Body:
- *   ExportFormat ::= "native" | "xml" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz" ;
- *   ExportGraphRequestBody ::= GraphName ESC ';' ExportFormat ;
+ * Args:
+ *   GraphName: String
+ *   ExportFormat: GraphExportFormat
  * Desc: Get a graph in a certain format.
  *       "native" is the format that would be written to disk by "GS",
  *       and is suitable for loading with "GOF" or "GOD".
@@ -301,151 +307,154 @@
  * Responses: DataResponse | XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
- * ("GVA": DescribeGraphRequest; not implemented)
+ * Name: DescribeGraphRequest
+ * Code: GVA
+ * Args:
+ *   GraphName: String
+ * Desc: Describe the graph in a structured manner
+ * Response: StructuredDataResponse
+ * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListVerticesRequest
  * Code: "GVVL"
- * Body:
- *   ListVerticesRequestBody ::= GraphName ;
+ * Args:
+ *   GraphName: String
  * Desc: List the vertices present in a graph
  * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListEdgesRequest
  * Code: "GVEL"
- * Body:
- *   ListEdgesRequestBody ::= GraphName ;
+ * Args:
+ *   GraphName: String
  * Desc: List the edges present in a graph
  * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: ListBangBoxesRequest
  * Code: "GVBL"
- * Body:
- *   ListBangBoxesRequestBody ::= GraphName ;
+ * Args:
+ *   GraphName: String
  * Desc: List the !-boxes present in a graph
  * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: VertexDataRequest
  * Code: "GVVD"
- * Body:
- *   ComponentDataFormat ::= "pretty" | "xml"
- *   VertexName ::= String ;
- *   VertexDataRequestbody ::= GraphName ESC ';' VertexName ESC ';' ComponentDataFormat ;
+ * Args:
+ *   GraphName: String
+ *   VertexName: String
+ *   ComponentDataFormat: "pretty" | "xml"
  * Desc: Get the component data attached to a vertex
  * Response: XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | BADFORMAT
  *
  * Name: VertexUserDataRequest
  * Code: "GVVU"
- * Body:
- *   VertexUserDataRequestbody ::= GraphName ESC ';' VertexName ;
+ * Args:
+ *   GraphName: String
+ *   VertexName: String
  * Desc: Get the user data attached to a vertex
  * Response: DataResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
  * Name: EdgeDataRequest
  * Code: "GVED"
- * Body:
- *   ComponentDataFormat ::= "pretty" | "xml"
- *   EdgeName ::= String ;
- *   EdgeDataRequestbody ::= GraphName ESC ';' EdgeName ESC ';' ComponentDataFormat ;
+ * Args:
+ *   GraphName: String
+ *   EdgeName: String
+ *   ComponentDataFormat: "pretty" | "xml"
  * Desc: Get the component data attached to an edge
  * Response: XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE | BADFORMAT
  *
  * Name: EdgeUserDataRequest
  * Code: "GVEU"
- * Body:
- *   EdgeUserDataRequestbody ::= GraphName ESC ';' EdgeName ;
+ * Args:
+ *   GraphName: String
+ *   EdgeName: String
  * Desc: Get the user data attached to an edge
  * Response: DataResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
  *
  * Name: BangBoxVerticesRequest
  * Code: "GVBV"
- * Body:
- *   BangBoxName ::= String ;
- *   BangBoxDataRequestbody ::= GraphName ESC ';' BangBoxName ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxName: String
  * Desc: Get the vertices contained in a !-box
  * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | BADFORMAT
  *
  * Name: BangBoxUserDataRequest
  * Code: "GVBU"
- * Body:
- *   BangBoxUserDataRequestbody ::= GraphName ESC ';' BangBoxName ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxName: String
  * Desc: Get the user data attached to a !-box
  * Response: DataResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: UndoRequest
  * Code: "GMU"
- * Body:
- *   UndoRequestBody ::= GraphName ;
+ * Args:
+ *   GraphName: String
  * Desc: Undo the last modification to a graph
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
  * Name: RedoRequest
  * Code: "GMR"
- * Body:
- *   RedoRequestBody ::= GraphName ;
+ * Args:
+ *   GraphName: String
  * Desc: Redo the most recently undone modification to a graph
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
  * Name: InsertGraphRequest
  * Code: "GMI"
- * Body:
- *   InsertGraphRequestBody ::= TargetGraphName ESC ';' SourceGraphName
+ * Args:
+ *   TargetGraphName: String
+ *   SourceGraphName: String
  * Desc: Insert a copy of one graph into another
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH
  *
  * Name: AddVertexRequest
  * Code: "GMVA"
- * Body:
- *   VertexType ::= String
- *   ResultFormat ::= "name" | "xml" | "pretty" | "native"
- *   AddVertexRequestBody ::= GraphName ESC ';'
- *                            VertexType ESC ';'
- *                            ResultFormat ;
+ * Args:
+ *   GraphName: String
+ *   VertexType: String
+ *   ResultFormat: ObjectResultFormat
  * Desc: Add a vertex to a graph
  * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADVERTEXTYPE | BADFORMAT
  *
  * Name: RenameVertexRequest
  * Code: "GMVR"
- * Body:
- *   OldVertexName ::= VertexName
- *   NewVertexName ::= VertexName
- *   RenameVertexRequestBody ::= GraphName ESC ';'
- *                               OldVertexName ESC ';'
- *                               NewVertexName ;
+ * Args:
+ *   GraphName: String
+ *   OldVertexName: String
+ *   NewVertexName: String
  * Desc: Rename a vertex
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | ALREADYEXISTS
  *
  * Name: DeleteVerticesRequest
  * Code: "GMVD"
- * Body:
- *   DeleteVerticesRequestBody ::= GraphName ESC ';'
- *                                 VertexNames ;
+ * Args:
+ *   GraphName: String
+ *   VertexNames: StringList
  * Desc: Delete vertices from a graph
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
  * Name: SetVertexDataRequest
  * Code: "GMVS"
- * Body:
- *   XmlDataChunk ::= ESC 'X' DataChunk
- *   StringDataChunk ::= ESC 'S' DataChunk
- *   ComponentData ::= XmlDataChunk | StringDataChunk
- *   SetVertexDataRequestBody ::= GraphName ESC ';'
- *                                VertexName ESC ';'
- *                                ComponentData ;
+ * Args:
+ *   GraphName: String
+ *   VertexName: String
+ *   ComponentData: TaggedDataChunk
  * Desc: Set the data on a vertex.  The data can be given in XML or
  *       string form.
  * Response: OkResponse
@@ -453,10 +462,10 @@
  *
  * Name: SetVertexUserDataRequest
  * Code: "GMVU"
- * Body:
- *   SetVertexDataRequestBody ::= GraphName ESC ';'
- *                                VertexName ESC ';'
- *                                DataChunk ;
+ * Args:
+ *   GraphName: String
+ *   VertexName: String
+ *   UserData: DataChunk
  * Desc: Set user data on a vertex.  This data will not be parsed by the core
  *       in any way.
  * Response: OkResponse
@@ -464,52 +473,42 @@
  *
  * Name: AddEdgeRequest
  * Code: "GMEA"
- * Body:
- *   EdgeType ::= String
- *   Directedness ::= 'd' | 'u'
- *   SourceVertex ::= VertexName
- *   TargetVertex ::= VertexName
- *   AddEdgeRequestBody ::= GraphName ESC ';'
- *                          EdgeType ESC ';'
- *                          Directedness ESC ';'
- *                          SourceVertex ESC ';'
- *                          TargetVertex ESC ';'
- *                          ResultFormat ;
+ * Args:
+ *   GraphName: String
+ *   EdgeType: String
+ *   Directedness: 'd' | 'u'
+ *   SourceVertex: String
+ *   TargetVertex: String
+ *   ResultFormat: ObjectResultFormat
  * Desc: Add an edge to a graph.
  * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH | BADFORMAT
  *
  * Name: RenameEdgeRequest
  * Code: "GMER"
- * Body:
- *   OldEdgeName ::= EdgeName
- *   NewEdgeName ::= EdgeName
- *   RenameEdgeRequestBody ::= GraphName ESC ';'
- *                             OldEdgeName ESC ';'
- *                             NewEdgeName ;
+ * Args:
+ *   GraphName: String
+ *   OldEdgeName: String
+ *   NewEdgeName: String
  * Desc: Rename an edge
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE | ALREADYEXISTS
  *
  * Name: DeleteEdgesRequest
  * Code: "GMED"
- * Body:
- *   EdgeNames ::= StringList ;
- *   DeleteEdgesRequestBody ::= GraphName ESC ';'
- *                              EdgeNames ;
+ * Args:
+ *   GraphName: String
+ *   EdgeNames: StringList
  * Desc: Delete edges from a graph
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
  *
  * Name: SetEdgeDataRequest
  * Code: "GMES"
- * Body:
- *   XmlDataChunk ::= ESC 'X' DataChunk
- *   StringDataChunk ::= ESC 'S' DataChunk
- *   ComponentData ::= XmlDataChunk | StringDataChunk
- *   SetEdgeDataRequestBody ::= GraphName ESC ';'
- *                              EdgeName ESC ';'
- *                              ComponentData ;
+ * Args:
+ *   GraphName: String
+ *   EdgeName: String
+ *   ComponentData: TaggedDataChunk
  * Desc: Set the data on an edge.  The data can be given in XML or
  *       string form.
  * Response: OkResponse
@@ -517,10 +516,10 @@
  *
  * Name: SetEdgeUserDataRequest
  * Code: "GMEU"
- * Body:
- *   SetEdgeDataRequestBody ::= GraphName ESC ';'
- *                              EdgeName ESC ';'
- *                              DataChunk ;
+ * Args:
+ *   GraphName: String
+ *   EdgeName: String
+ *   UserData: DataChunk
  * Desc: Set user data on an edge.  This data will not be parsed by the core
  *       in any way.
  * Response: OkResponse
@@ -528,10 +527,10 @@
  *
  * Name: AddBangBoxRequest
  * Code: "GMBA"
- * Body:
- *   AddBangBoxRequestBody ::= GraphName ESC ';'
- *                             VertexNames ESC ';'
- *                             ResultFormat ;
+ * Args:
+ *   GraphName: String
+ *   VertexNames: StringList
+ *   ResultFormat: ObjectResultFormat
  * Desc: Add a !-box to a graph.  A list of vertices to include in
  *       the !-box may be provided
  * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
@@ -539,59 +538,56 @@
  *
  * Name: RenameBangBoxRequest
  * Code: "GMBR"
- * Body:
- *   OldBangBoxName ::= String ;
- *   NewBangBoxName ::= String ;
- *   RenameBangBoxRequestBody ::= GraphName ESC ';'
- *                                OldBangBoxName ESC ';'
- *                                NewBangBoxName ;
+ * Args:
+ *   GraphName: String
+ *   OldBangBoxName: String
+ *   NewBangBoxName: String
  * Desc: Rename a !-box.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | ALREADYEXISTS
  *
  * Name: DropBangBoxesRequest
  * Code: "GMBD"
- * Body:
- *   BangBoxNames ::= StringList ;
- *   DropBangBoxesRequestBody ::= GraphName ESC ';'
- *                                BangBoxNames ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxNames: StringList
  * Desc: Drop the given !-boxes.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: KillBangBoxesRequest
  * Code: "GMBK"
- * Body:
- *   KillBangBoxesRequestBody ::= GraphName ESC ';'
- *                                BangBoxNames ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxNames: StringList
  * Desc: Kill the given !-boxes.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: DuplicateBangBoxRequest
  * Code: "GMBC"
- * Body:
- *   DuplicateBangBoxRequestBody ::= GraphName ESC ';'
- *                                   BangBoxName ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxName: String
  * Desc: Duplicate the given !-boxe.
  * Response: StringResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: MergeBangBoxRequest
  * Code: "GMBM"
- * Body:
- *   MergeBangBoxRequestBody ::= GraphName ESC ';'
- *                               BangBoxNames ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxNames: StringList
  * Desc: Merge the given !-boxes.
  * Response: StringResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
  *
  * Name: BangVerticesRequest
  * Code: "GMBB"
- * Body:
- *   BangVerticesRequestBody ::= GraphName ESC ';'
- *                               BangBoxName ESC ';'
- *                               VertexNames ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxName: String
+ *   VertexNames: StringList
  * Desc: Add vertices to a !-box.  They will be removed from any
  *       other !-boxes they are contained in.
  * Response: OkResponse
@@ -599,19 +595,19 @@
  *
  * Name: UnbangVerticesRequest
  * Code: "GMBL"
- * Body:
- *   UnbangVerticesRequestBody ::= GraphName ESC ';'
- *                                 VertexNames ;
+ * Args:
+ *   GraphName: String
+ *   VertexNames: StringList
  * Desc: Remove some vertices from their !-boxes.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
  * Name: SetBangBoxUserDataRequest
  * Code: "GMBU"
- * Body:
- *   SetBangBoxDataRequestBody ::= GraphName ESC ';'
- *                                 BangBoxName ESC ';'
- *                                 DataChunk ;
+ * Args:
+ *   GraphName: String
+ *   BangBoxName: String
+ *   UserData: DataChunk
  * Desc: Set user data on a !-box.  This data will not be parsed by the core
  *       in any way.
  * Response: OkResponse
@@ -619,8 +615,8 @@
  *
  * Name: ImportRulesetFromFileRequest
  * Code: "RSO"
- * Body:
- *   ImportRulesetFromFileRequestBody ::= FileName ;
+ * Args:
+ *   FileName: String
  * Desc: Import a ruleset from a file.  It will be merged with the
  *       loaded ruleset.
  * Response: OkResponse
@@ -628,8 +624,8 @@
  *
  * Name: ImportRulesetFromDataRequest
  * Code: "RSI"
- * Body:
- *   ImportRulesetFromDataRequestBody ::= DataChunk ;
+ * Args:
+ *   Data: DataChunk
  * Desc: Import a ruleset from data.  It will be merged with the
  *       loaded ruleset.
  * Response: OkResponse
@@ -637,93 +633,86 @@
  *
  * Name: ExportRulesetToFileRequest
  * Code: "RSS"
- * Body:
- *   ExportRulesetToFileRequestBody ::= FileName ;
+ * Args:
+ *   FileName: String
  * Desc: Export the loaded ruleset to a file.
  * Response: OkResponse
  * ErrorResponses: FILEACCESS
  *
  * Name: ExportRulesetAsDataRequest
  * Code: "RSE"
- * Body:
- *   ExportRulesetAsDataRequestBody ::= ;
+ * Args:
  * Desc: Export the loaded ruleset as data.
  * Response: DataResponse
  * ErrorResponses: BADDATA
  *
  * Name: ListRulesRequest
  * Code: "RRL"
- * Body:
- *   ListRulesRequestBody ::= ;
+ * Args:
  * Desc: List all loaded rules in the current theory.
  * Response: StringListResponse
  * ErrorResponses:
  *
  * Name: ListActiveRulesRequest
  * Code: "RRA"
- * Body:
- *   ListActiveRulesRequestBody ::= ;
+ * Args:
  * Desc: List all active rules in the current theory.
  * Response: StringListResponse
  * ErrorResponses:
  *
  * Name: OpenRuleLhsRequest
  * Code: "RRP"
- * Body:
- *   RuleName ::= String ;
- *   OpenRuleLhsRequestBody ::= RuleName ;
+ * Args:
+ *   RuleName: String
  * Desc: Open the lhs of a rule as a graph.
  * Response: StringResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: OpenRuleRhsRequest
  * Code: "RRQ"
- * Body:
- *   OpenRuleRhsRequestBody ::= RuleName ;
+ * Args:
+ *   RuleName: String
  * Desc: Open the rhs of a rule as a graph.
  * Response: StringResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: SetRuleRequest
  * Code: "RRU"
- * Body:
- *   LhsGraphName ::= GraphName ;
- *   RhsGraphName ::= GraphName ;
- *   SetRuleRequestBody ::= RuleName ESC ';'
- *                          LhsGraphName ESC ';'
- *                          RhsGraphName ;
+ * Args:
+ *   RuleName: String
+ *   LhsGraphName: String
+ *   RhsGraphName: String
  * Desc: Create or update a rule.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE | NOSUCHGRAPH | BADRULE
  *
  * Name: DeleteRuleRequest
  * Code: "RRD"
- * Body:
- *   DeleteRuleRequestBody ::= RuleName ;
+ * Args:
+ *   RuleName: String
  * Desc: Delete a rule.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: ActivateRuleRequest
  * Code: "RRY"
- * Body:
- *   ActivateRuleRequestBody ::= RuleName ;
+ * Args:
+ *   RuleName: String
  * Desc: Activate a rule.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: DeactivateRuleRequest
  * Code: "RRN"
- * Body:
- *   DeactivateRuleRequestBody ::= RuleName ;
+ * Args:
+ *   RuleName: String
  * Desc: Deactivate a rule.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: ListTagsRequest
  * Code: "RTL"
- * Body:
- *   ListTagsRequestBody ::= ;
+ * Args:
  * Desc: List all tags in the current theory.  If a tag exists if and only
  *       if there is at least one rule tagged with it.
  * Response: StringListResponse
@@ -731,9 +720,8 @@
  *
  * Name: ListRulesByTagRequest
  * Code: "RTR"
- * Body:
- *   TagName ::= String ;
- *   ListRulesByTagRequestBody ::= TagName ;
+ * Args:
+ *   TagName: String
  * Desc: List all rules with the given tag in the current theory.
  *       If a tag does not exist, an empty list will be returned.
  * Response: StringListResponse
@@ -741,59 +729,59 @@
  *
  * Name: TagRuleRequest
  * Code: "RTT"
- * Body:
- *   TagRuleRequestBody ::= RuleName ESC ';'
- *                          TagName ;
+ * Args:
+ *   RuleName: String
+ *   TagName: String
  * Desc: Tag a rule.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE
  *
  * Name: UntagRuleRequest
  * Code: "RTU"
- * Body:
- *   UntagRuleRequestBody ::= RuleName ESC ';'
- *                            TagName ;
+ * Args:
+ *   RuleName: String
+ *   TagName: String
  * Desc: Untag a rule.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE | NOSUCHTAG
  *
  * Name: ForgetTagRequest
  * Code: "RTF"
- * Body:
- *   ForgetTagRequestBody ::= TagName ;
+ * Args:
+ *   TagName: String
  * Desc: Remove a tag from all rules with the given tag.
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE | NOSUCHTAG
  *
  * Name: DeleteRulesByTagRequest
  * Code: "RTD"
- * Body:
- *   DeleteRulesByTagRequestBody ::= TagName ;
+ * Args:
+ *   TagName: String
  * Desc: Delete all rules with the given tag.
  * Response: OkResponse
  * ErrorResponses: NOSUCHTAG
  *
  * Name: ActivateRulesByTagRequest
  * Code: "RTY"
- * Body:
- *   ActivateRulesByTagRequestBody ::= TagName ;
+ * Args:
+ *   TagName: String
  * Desc: Activate all rules with the given tag.
  * Response: OkResponse
  * ErrorResponses: NOSUCHTAG
  *
  * Name: DeactivateRulesByTagRequest
  * Code: "RTN"
- * Body:
- *   DeactivateRulesByTagRequestBody ::= TagName ;
+ * Args:
+ *   TagName: String
  * Desc: Deactivate all rules with the given tag.
  * Response: OkResponse
  * ErrorResponses: NOSUCHTAG
  *
  * Name: AttachRewritesRequest
  * Code: "WA"
- * Body:
- *   AttachRewritesRequestBody ::= GraphName ESC ';'
- *                                 VertexNames ;
+ * Args:
+ *   GraphName: String
+ *   VertexNames: StringList
  * Desc: Finds all possible rewrites for a subgraph using the
  *       currently active rules.  If no vertex names are given,
  *       the whole graph is used.  The number of rewrites found
@@ -803,9 +791,9 @@
  *
  * Name: AttachOneRewriteRequest
  * Code: "WO"
- * Body:
- *   AttachOneRewriteRequestBody ::= GraphName ESC ';'
- *                                   VertexNames ;
+ * Args:
+ *   GraphName: String
+ *   VertexNames: StringList
  * Desc: Finds an arbitrary rewrite (if one exists) for a subgraph
  *       using the currently active rules.  If no vertex names are given,
  *       the whole graph is used.  The number of rewrites found
@@ -815,8 +803,9 @@
  *
  * Name: ListAttachedRewritesRequest
  * Code: "WL"
- * Body:
- *   ListAttachedRewritesRequestBody ::= GraphName ESC ';' ResultFormat ;
+ * Args:
+ *   GraphName: String
+ *   ResultFormat: ObjectResultFormat
  * Desc: Lists the attached rewrites for a graph.  If the requested
  *       result format is "name", only the rule applied will be returned
  *       for each attached rewrite.  Note that the same rule may well
@@ -826,10 +815,9 @@
  *
  * Name: ApplyAttachedRewriteRequest
  * Code: "WW"
- * Body:
+ * Args:
+ *   GraphName: String
  *   Index ::= Integer ;
- *   ApplyAttachedRewriteRequestBody ::= GraphName ESC ';'
- *                                       Index ;
  * Desc: Applies one of the attached rewrites to a graph.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE | OUTOFRANGE
@@ -1143,7 +1131,7 @@ struct
             let val data = readDataChunk () in
               (SOME (XmlCData [XMLReader.read_from_string data]))
             end
-           | #"S" => SOME (StringCData (readDataChunk ()))
+           | #"N" => SOME (StringCData (readDataChunk ()))
            | _    => NONE
       end
 
