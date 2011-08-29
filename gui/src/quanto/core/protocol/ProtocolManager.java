@@ -9,12 +9,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import quanto.core.CommandException;
 import quanto.core.CoreCommunicationException;
 import quanto.core.CoreException;
 import quanto.core.CoreExecutionException;
 import quanto.core.CoreTerminatedException;
-import quanto.core.UnknownCommandException;
 import static quanto.core.protocol.Utils.*;
 
 /**
@@ -160,7 +158,10 @@ public class ProtocolManager {
     }
 
     private CommandException errorResponseToException(String code, String message) {
-        return new CommandException(code, message);
+        if (code.equals("BADARGS"))
+            return new CommandArgumentsException(message);
+        else
+            return new CommandException(code, message);
     }
 
     private Response getResponse(Response.MessageType expectedType) throws CoreException {
