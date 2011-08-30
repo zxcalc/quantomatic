@@ -1,11 +1,14 @@
 package quanto.core.data;
 
+import java.awt.geom.Point2D;
+
 
 public class Vertex extends GraphElement {
 
 	// null == boundary
 	protected VertexType vertexType;
-
+	private Point2D pos;
+	
 	public static Vertex createVertex(String name, VertexType vertexType) {
 		if (vertexType == null) {
 			throw new IllegalArgumentException("vertexType cannot be null");
@@ -36,6 +39,15 @@ public class Vertex extends GraphElement {
 		return vertexType;
 	}
 
+	
+	public void setPosition(double x, double y) {
+		pos=new Point2D.Double(x, y);
+	}
+	
+	public Point2D getPosition(){
+		return pos;
+	}
+	
 	@Override
 	public String toString() {
 		return getLabel().replace('\\', 'B')+"    ";
@@ -51,4 +63,5 @@ public class Vertex extends GraphElement {
 	public boolean isBoundaryVertex() {
 		return this.vertexType == null;
 	}
+
 }

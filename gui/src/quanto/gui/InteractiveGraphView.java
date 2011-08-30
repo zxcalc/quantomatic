@@ -1,5 +1,6 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.visualization.RenderContext;
 import quanto.core.data.BangBox;
@@ -23,6 +24,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -35,6 +37,7 @@ import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Transformer;
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
+import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout;
 import edu.uci.ics.jung.contrib.algorithms.layout.SmoothLayoutDecorator;
 import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
@@ -97,6 +100,8 @@ public class InteractiveGraphView
 	private boolean saveAsEnabled = true;
 	private boolean directedEdges = false;
 	private SmoothLayoutDecorator<Vertex, Edge> smoothLayout;
+	private Map<String, Point2D> verticesCache;
+	//private Rectangle2D rewriteRect;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -270,15 +275,15 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(Core core, CoreGraph g) {
-		this(core, g, new Dimension(800, 600));
+	public InteractiveGraphView(Core core, CoreGraph g, Layout<Vertex, Edge> layout) {
+		this(core, g, new Dimension(800, 600), layout);
 	}
 
-	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) {
+	public InteractiveGraphView(Core core, CoreGraph g, Dimension size, Layout<Vertex, Edge> layout) {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 
-		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(new QuantoDotLayout(g));
+		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(layout);//new QuantoDotLayout(g));
 		viewer = new GraphVisualizationViewer(smoothLayout);
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
@@ -371,13 +376,13 @@ public class InteractiveGraphView
 		return viewer.getGraphLayout().isLocked(v);
 	}
 
-	public void lockVertices(Set<Vertex> verts) {
+public void lockVertices(Collection<Vertex> verts) {
 		for (Vertex v : verts) {
 			viewer.getGraphLayout().lock(v, true);
 		}
 	}
 
-	public void unlockVertices(Set<Vertex> verts) {
+	public void unlockVertices(Collection<Vertex> verts) {
 		for (Vertex v : verts) {
 			viewer.getGraphLayout().lock(v, false);
 		}
@@ -682,16 +687,26 @@ public class InteractiveGraphView
 			errorDialog(e.getMessage());
 		}
 	}
-
-	public void updateGraph() throws CoreException {
-		core.updateGraph(getGraph());
-		viewer.relayout();
-
-		// clean up un-needed labels:
+	
+	public void cleanUp() {
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
+		if (saveEnabled && isAttached()) {
+			getViewPort().setCommandEnabled(SAVE_GRAPH_ACTION,
+				!getGraph().isSaved()
+				);
+		}
+	}
 
+	public void updateGraph() throws CoreException {	//called from QuantoApp and SplitGraphView	
+		viewer.update();	
+		core.updateGraph(getGraph());
+		viewer.layoutModify();
+		cleanUp();	
+		// clean up un-needed labels:
 		// re-validate the picked state
-		Vertex[] oldPicked =
+		/*
+		 * Vertex[] oldPicked =
+		 
 			viewer.getPickedVertexState().getPicked().toArray(
 			new Vertex[viewer.getPickedVertexState().getPicked().size()]);
 		viewer.getPickedVertexState().clear();
@@ -702,16 +717,40 @@ public class InteractiveGraphView
 				viewer.getPickedVertexState().pick(new_v, true);
 			}
 		}
-
-		if (saveEnabled && isAttached()) {
-			getViewPort().setCommandEnabled(SAVE_GRAPH_ACTION,
-				!getGraph().isSaved()
-				);
-		}
-
-		viewer.update();
+*/
+		repaint();
+	}
+	
+	public void cacheVertexPositions(){
+		verticesCache= new HashMap<String, Point2D>();
+		for(Vertex v: getGraph().getVertices())
+				verticesCache.put(v.getCoreName(),  viewer.getGraphLayout().transform(v));
 	}
 
+	public void updateGraphRewrite(Rectangle2D rewriteRect) throws CoreException {			
+		core.updateGraph(getGraph());
+		for(Vertex v: getGraph().getVertices())	{							
+			if(verticesCache.get(v.getCoreName())!=null) {
+				viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+				viewer.getGraphLayout().lock(v, true);
+			}			
+		cleanUp();
+		}
+		int count=0;
+		for(Vertex v: getGraph().getVertices())	{					
+			if(verticesCache.get(v.getCoreName())==null)
+				if(rewriteRect!=null) {
+					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));				
+					count++;
+				}
+			cleanUp();
+		}
+		refresh();
+		cleanUp();	
+		unlockVertices(getGraph().getVertices());
+	}
+	
+	
 	public void outputToTextView(String text) {
 		TextView tview = new TextView(getTitle() + "-output", text);
 		getViewManager().addView(tview);
@@ -927,18 +966,23 @@ public class InteractiveGraphView
 		return new ArrayList<AttachedRewrite<CoreGraph>>();
 	}
 
+	
 	public void applyRewrite(int index) {
+		Rectangle2D rewriteRect=new Rectangle2D.Double();
 		try {
 			if (rewriteCache != null && rewriteCache.size() > index) {
 				List<Vertex> sub = getGraph().getSubgraphVertices(
-					rewriteCache.get(index).getLhs());
+				(CoreGraph) rewriteCache.get(index).getLhs());
 				if (sub.size() > 0) {
-					Rectangle2D rect = viewer.getSubgraphBounds(sub);
-					smoothLayout.setOrigin(rect.getCenterX(), rect.getCenterY());
+					rewriteRect = viewer.getSubgraphBounds(sub);
+					if (sub.size() == 1)	
+						smoothLayout.setOrigin(rewriteRect.getCenterX(), rewriteRect.getCenterY());
 				}
 			}
 			core.applyAttachedRewrite(getGraph(), index);
-			updateGraph();
+			cacheVertexPositions();
+			updateGraphRewrite(rewriteRect);
+			smoothLayout.setOrigin(0, 0);
 		}
 		catch (CoreException e) {
 			errorDialog("Error in rewrite. The graph probably changed "
@@ -1038,8 +1082,10 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.UNDO_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					cacheVertexPositions();
+					Rectangle2D rect=viewer.getGraphBounds();
 					core.undo(getGraph());
-					updateGraph();
+					updateGraphRewrite(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1049,8 +1095,11 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.REDO_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					cacheVertexPositions();
+					Rectangle2D rect= new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+							0, 20, viewer.getGraphLayout().getSize().height);
 					core.redo(getGraph());
-					updateGraph();
+					updateGraphRewrite(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1063,7 +1112,7 @@ public class InteractiveGraphView
 					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.cutSubgraph(getGraph(), picked);
-						updateGraph();
+						cleanUp();
 					}
 				}
 				catch (CoreException ex) {
@@ -1087,8 +1136,11 @@ public class InteractiveGraphView
 		actionMap.put(ViewPort.PASTE_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					cacheVertexPositions();
+					Rectangle2D rect=new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+							0, 20, viewer.getGraphLayout().getSize().height);
 					core.paste(getGraph());
-					updateGraph();
+					updateGraphRewrite(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1183,6 +1235,7 @@ public class InteractiveGraphView
 				if (rewriter != null)
 					abortRewriting();
 				startRewriting();
+
 			}
 		});
 		actionMap.put(ABORT_ACTION, new ActionListener() {
@@ -1198,8 +1251,10 @@ public class InteractiveGraphView
 		actionMap.put(FAST_NORMALISE_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
-					core.fastNormalise(getGraph());
-					updateGraph();
+					cacheVertexPositions();
+					Rectangle2D rect=viewer.getGraphBounds();
+					core.fastNormalise(getGraph());				
+					updateGraphRewrite(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1222,7 +1277,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
-					updateGraph();
+					cleanUp();
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1232,8 +1287,9 @@ public class InteractiveGraphView
 		actionMap.put(UNBANG_VERTICES_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					cacheVertexPositions();
 					core.removeVerticesFromBangBoxes(getGraph(), viewer.getPickedVertexState().getPicked());
-					updateGraph();
+					updateGraphRewrite(null);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1244,7 +1300,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					updateGraph();
+					cleanUp();
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1255,7 +1311,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					updateGraph();
+					cleanUp();
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1265,10 +1321,13 @@ public class InteractiveGraphView
 		actionMap.put(DUPLICATE_BANG_BOX_ACTION, new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
+					cacheVertexPositions();
+					Rectangle2D rect= new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+							0, 20, viewer.getGraphLayout().getSize().height);
 					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
 						core.duplicateBangBox(getGraph(), (BangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
 					}
-					updateGraph();
+					updateGraphRewrite(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1338,8 +1397,6 @@ public class InteractiveGraphView
 		}
 	}
 
-	public void cleanUp() {
-	}
 
 	@Override
 	protected String getUnsavedClosingMessage() {
@@ -1363,7 +1420,7 @@ public class InteractiveGraphView
 					getGraph(), viewer.getPickedEdgeState().getPicked());
 				core.deleteVertices(
 					getGraph(), viewer.getPickedVertexState().getPicked());
-				updateGraph();
+				cleanUp();
 
 			}
 			catch (CoreException err) {
@@ -1392,6 +1449,9 @@ public class InteractiveGraphView
 				case KeyEvent.VK_SPACE:
 					showRewrites();
 					break;
+				case KeyEvent.VK_A:
+					refresh();
+					break;
 			}
 			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(Character.toString(e.getKeyChar()));
 			if (v != null) {
@@ -1407,11 +1467,6 @@ public class InteractiveGraphView
 	}
 
 	public void refresh() {
-		try {
-			updateGraph();
-		}
-		catch (CoreException ex) {
-			errorDialog("Console erro", ex.getMessage());
-		}
+		viewer.layoutModify();
 	}
 }

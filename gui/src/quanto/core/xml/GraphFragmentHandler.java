@@ -102,7 +102,7 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 			}
 			graph.addEdge(e.edge, s, t);
 		}
-		graph.fireStateChanged();
+		//graph.fireStateChanged();
 		return graph;
 	}
 

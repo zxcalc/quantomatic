@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+
+import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -47,12 +49,13 @@ public class SplitGraphView extends InteractiveView {
 		this.rule = rule;
 		this.core = core;
 
-		leftView = new InteractiveGraphView(core, rule.getLhs());
+		leftView = new InteractiveGraphView(core, rule.getLhs(),  new QuantoDotLayout(rule.getLhs()));
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
 		leftView.updateGraph();
-
-		rightView = new InteractiveGraphView(core, rule.getRhs());
+		
+				
+		rightView = new InteractiveGraphView(core, rule.getRhs(),  new QuantoDotLayout(rule.getRhs()));
 		rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
 		rightView.updateGraph();

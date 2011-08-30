@@ -478,7 +478,7 @@ public class QuantoApp {
 		throws CoreException {
 		CoreGraph newGraph = core.createEmptyGraph();
 		InteractiveGraphView vis =
-			new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
+			new InteractiveGraphView(core, newGraph, new Dimension(800, 600), new QuantoForceLayout(newGraph));
 		viewManager.addView(vis);
 		return vis;
 	}
@@ -488,7 +488,7 @@ public class QuantoApp {
 		       java.io.IOException {
 		CoreGraph loadedGraph = core.loadGraph(file);
 		InteractiveGraphView vis =
-			new InteractiveGraphView(core, loadedGraph, new Dimension(800, 600));
+			new InteractiveGraphView(core, loadedGraph, new Dimension(800, 600),  new QuantoDotLayout(loadedGraph));
 		vis.setTitle(file.getName());
 
 		viewManager.addView(vis);
@@ -509,7 +509,7 @@ public class QuantoApp {
 		try {
 			CoreGraph newGraph = core.createEmptyGraph();
 			InteractiveGraphView vis =
-				new InteractiveGraphView(core, newGraph, new Dimension(800, 600));
+				new InteractiveGraphView(core, newGraph, new Dimension(800, 600),  new QuantoForceLayout(newGraph));
 			viewManager.addView(vis);
 
 			if (initial || getPreference(NEW_WINDOW_FOR_GRAPHS)) { // are we making a new window?
