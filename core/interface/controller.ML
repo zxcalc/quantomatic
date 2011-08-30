@@ -882,6 +882,11 @@ fun hilb ([format], graph) =
                              "\" has no edge named \""^
                              (E.dest edgeName)^"\"")
                 }
+           | State.no_such_edge_type_exp vt =>
+                ErrorResponse {
+                  errorCode = "BADEDGETYPE",
+                  message = ("Unknown edge type \""^vt^"\"")
+                }
            | State.no_such_bbox_exp (bboxName,graphName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHBBOX",
