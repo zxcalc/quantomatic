@@ -30,7 +30,6 @@ signature GRAPH_PARAM
   (* SUBSTITUTION/MATCHING/UNIFICATION *)
   (* this is a user exception raised when things don't match *)
   exception match_exp of unit
-  exception unknown_type_exp of string
 
   (* substitutions for internal variable names 
      (for data that lives in the edges and vertices) *)

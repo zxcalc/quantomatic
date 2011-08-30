@@ -91,7 +91,6 @@ functor OGraphParam(
 
   (* IMPROVE: what data do we want here? should it be add_exp *)
   exception match_exp of unit;
-  exception unknown_type_exp = Param.unknown_type_exp;
 
   (* raises match_exp *)
   fun match_vertex d1 d2 u = 

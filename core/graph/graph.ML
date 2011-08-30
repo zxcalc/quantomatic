@@ -13,8 +13,6 @@ structure CRnmINames : COMPOUND_RENAMING
   sharing type CRnmINames.obj = T
   sharing type CRnmINames.renaming = Param.CRnmINames.renaming
 
-exception unknown_type_exp of string;
-
 (* graph has not vertices (and thus no edges) *)
 val is_empty : T -> bool 
 
@@ -243,8 +241,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 
   structure Ehn = Edge.Ehn;
 
-  exception unknown_type_exp = Param.unknown_type_exp;
-  
   val is_empty = Vertex.NTab.is_element_empty o get_vertices;
   
   val get_vertex_list = Vertex.NTab.list_of o get_vertices;

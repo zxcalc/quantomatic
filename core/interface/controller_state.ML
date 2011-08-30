@@ -15,6 +15,7 @@ sig
   exception no_such_vertex_exp of (Theory.Vertex.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_edge_exp of (Theory.Edge.name * GraphName.name);
+  exception no_such_edge_type_exp of string;
   exception no_such_bbox_exp of (Theory.Graph.BBox.name * GraphName.name);
   exception no_such_rule_exp of RuleName.name;
   exception no_such_tag_exp of TagName.name;
@@ -135,6 +136,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception no_such_vertex_exp of (Theory.Vertex.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_edge_exp of (Theory.Edge.name * GraphName.name);
+  exception no_such_edge_type_exp of string;
   exception no_such_bbox_exp of (Theory.Graph.BBox.name * GraphName.name);
   exception no_such_rule_exp of RuleName.name;
   exception no_such_tag_exp of TagName.name;
@@ -367,13 +369,14 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       (let val (n,g) = graph |> G.add_vertex (Theory.VertexComponentData.default_data vt) in
           ((n,G.get_vertex g n), g)
        end
-       handle G.unknown_type_exp _ => raise no_such_vertex_type_exp vt)
+       handle Theory.VertexComponentData.unknown_type_exp _ => raise no_such_vertex_type_exp vt)
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
   fun add_edge_internal et dir_or_undir v1 v2 graph =
-      let val (n,g) = graph |> G.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
+      (let val (n,g) = graph |> G.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
        in ((n,G.get_edge g n), g)
        end
+       handle Theory.EdgeComponentData.unknown_type_exp _ => raise no_such_edge_type_exp et)
 
   fun add_edge et dir_or_undir v1 v2 gname state = lift_graph_mutator
   (add_edge_internal et dir_or_undir v1 v2) gname state

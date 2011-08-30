@@ -482,7 +482,7 @@
  *   ResultFormat: ObjectResultFormat
  * Desc: Add an edge to a graph.
  * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
- * ErrorResponses: NOSUCHGRAPH | BADFORMAT
+ * ErrorResponses: NOSUCHGRAPH | BADEDGETYPE | BADFORMAT
  *
  * Name: RenameEdgeRequest
  * Code: "GMER"
