@@ -101,7 +101,7 @@ public class InteractiveGraphView
 	private boolean directedEdges = false;
 	private SmoothLayoutDecorator<Vertex, Edge> smoothLayout;
 	private Map<String, Point2D> verticesCache;
-	//private Rectangle2D rewriteRect;
+	private QuantoForceLayout forceLayout;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -275,15 +275,17 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(Core core, CoreGraph g, Layout<Vertex, Edge> layout) {
-		this(core, g, new Dimension(800, 600), layout);
+	public InteractiveGraphView(Core core, CoreGraph g) {
+		this(core, g, new Dimension(800, 600));
 	}
 
-	public InteractiveGraphView(Core core, CoreGraph g, Dimension size, Layout<Vertex, Edge> layout) {
+	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
-
-		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(layout);//new QuantoDotLayout(g));
+		QuantoDotLayout initLayout = new QuantoDotLayout(g);
+		initLayout.initialize();
+		forceLayout= new QuantoForceLayout(g, initLayout, 20.0);
+		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(forceLayout);
 		viewer = new GraphVisualizationViewer(smoothLayout);
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
@@ -697,10 +699,11 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 	}
 
-	public void updateGraph() throws CoreException {	//called from QuantoApp and SplitGraphView	
-		viewer.update();	
-		core.updateGraph(getGraph());
-		viewer.layoutModify();
+	public void updateGraph2() throws CoreException {	//called from QuantoApp and SplitGraphView	
+		//viewer.update();	
+		//core.updateGraph(getGraph());
+		viewer.relayout();
+		//viewer.layoutModify();
 		cleanUp();	
 		// clean up un-needed labels:
 		// re-validate the picked state
@@ -723,8 +726,10 @@ public void lockVertices(Collection<Vertex> verts) {
 	
 	public void cacheVertexPositions(){
 		verticesCache= new HashMap<String, Point2D>();
-		for(Vertex v: getGraph().getVertices())
-				verticesCache.put(v.getCoreName(),  viewer.getGraphLayout().transform(v));
+		for(Vertex v: getGraph().getVertices()){
+			verticesCache.put(v.getCoreName(),  viewer.getGraphLayout().transform(v));
+			//v.setPosition(viewer.getGraphLayout().transform(v));
+		}
 	}
 
 	public void updateGraphRewrite(Rectangle2D rewriteRect) throws CoreException {			
@@ -745,8 +750,11 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			cleanUp();
 		}
-		refresh();
+		forceLayout.actForce();
+		viewer.layoutModify();
+		//refresh();
 		cleanUp();	
+		viewer.update();
 		unlockVertices(getGraph().getVertices());
 	}
 	
@@ -1449,9 +1457,12 @@ public void lockVertices(Collection<Vertex> verts) {
 				case KeyEvent.VK_SPACE:
 					showRewrites();
 					break;
-				case KeyEvent.VK_A:
-					refresh();
+				case KeyEvent.VK_A:{
+					forceLayout.actForce();
+					viewer.layoutModify();
+					}
 					break;
+					
 			}
 			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(Character.toString(e.getKeyChar()));
 			if (v != null) {
@@ -1466,7 +1477,9 @@ public void lockVertices(Collection<Vertex> verts) {
 	public void keyTyped(KeyEvent e) {
 	}
 
+	@Override
 	public void refresh() {
-		viewer.layoutModify();
+		// TODO Auto-generated method stub
+		
 	}
 }

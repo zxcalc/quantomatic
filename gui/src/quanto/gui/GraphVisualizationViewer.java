@@ -55,8 +55,8 @@ public class GraphVisualizationViewer
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
 
-
 	public GraphVisualizationViewer(CoreGraph graph) {
+		//this(new QuantoForceLayout(graph, new QuantoDotLayout(graph)));
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
@@ -67,7 +67,6 @@ public class GraphVisualizationViewer
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
 		this.graph = (CoreGraph) layout.getGraph();
-
 		layout.initialize();
 		setBackground(new Color(0.97f, 0.97f, 0.97f));
 
@@ -77,7 +76,7 @@ public class GraphVisualizationViewer
 
 		graph.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				relayout();
+				layoutModify();
 			}
 		});
 	}
@@ -239,22 +238,29 @@ public class GraphVisualizationViewer
 	}
 	
 	public void relayout() {
-		getGraphLayout().reset();
+		getGraphLayout().initialize();
+		update();
+	}
+	
+	public void change(){
+		//layout.graphChanged();
 		update();
 	}
 	
 	public void layoutModify() {
-		getGraphLayout().initialize();	
+		getGraphLayout().reset();	
 		update();
 	}
 
 	public void update() {
+
 		Relaxer relaxer = getModel().getRelaxer();
 		if (relaxer != null) {
 			relaxer.relax();
 		}
-
-		setPreferredSize(calculateGraphSize());
+		setPreferredSize(calculateGraphSize());				
+		for(Vertex v : getGraph().getVertices())
+			v.setPosition(getGraphLayout().transform(v));
 		revalidate();
 		repaint();
 	}

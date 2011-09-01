@@ -5,11 +5,14 @@ import java.awt.geom.Point2D;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JOptionPane;
+import org.apache.commons.collections15.Transformer;
 
+import quanto.core.data.Vertex;
+import quanto.gui.QuantoAutoLayout;
 
 
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
+import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.graph.DirectedGraph;
 
 public abstract class AbstractForceLayout <V,E> extends AbstractLayout<V, E> implements DynamicBoundsLayout{
@@ -17,9 +20,12 @@ public abstract class AbstractForceLayout <V,E> extends AbstractLayout<V, E> imp
 	protected Map<V,Point2D > vertexVelocities;
 	protected Map<V,Point2D > vertexPositions;
 	protected double vertexSpacing = 20.0;
+	Transformer<V, Point2D> initializer;
 	
-	protected AbstractForceLayout(DirectedGraph<V, E> graph, double vertexSpacing ) {
+	protected AbstractForceLayout(DirectedGraph<V, E> graph, Transformer<V, Point2D> initializer,
+			double vertexSpacing ) {
 		super(graph, new Dimension((int)Math.ceil(2*vertexSpacing), (int)Math.ceil(2*vertexSpacing)));
+		this.initializer=initializer;
 	}
 
 
@@ -109,37 +115,30 @@ public abstract class AbstractForceLayout <V,E> extends AbstractLayout<V, E> imp
 		return getGraph().getVertexCount() > 0;
 	}
 
-	
 	public void initialize() {
-		
-		if (!isWorkToDo()) return;				
-			beginLayout();		
-			forceLayout();
-			//layoutGraph();
-			endLayout();
-			recalculateSize();
+	setInitializer(initializer);
+	
+	
+	/*
+		Point2D p= new Point2D.Double(0, 0);
+	for(V v : graph.getVertices())
+		if(!transform(v).equals(p))
+
+	for (V v : graph.getVertices())
+		if(transform(v).equals(p))
+			setLocation(v, initializer.transform(v));
+	*/
 	}
 
 
 	public void reset() {
-		synchronized (getGraph()) {
-			if (!isWorkToDo()) return;
-		}
-			beginLayout();
-			recalculateSize();
-			int i=1;
-			//here setting locations for saved vertices can be done
-			Point2D p= new Point2D.Double(0, 0);
-			for (V v : graph.getVertices()) {
-				if (locations.get(v).equals(p)){
-					setLocation(v, size.width + vertexSpacing, vertexSpacing*i);					
-					i++;
-				}
-			}
-			endLayout();
-			recalculateSize();
-			
-}
+	if (!isWorkToDo()) return;				
+		beginLayout();		
+		forceLayout();
+		//layoutGraph();
+		endLayout();
+		recalculateSize();
+	}
 
 	
 

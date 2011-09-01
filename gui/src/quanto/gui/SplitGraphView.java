@@ -7,19 +7,15 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
-import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import quanto.core.data.BangBox;
-import quanto.core.data.Edge;
 import quanto.core.Core;
 
 import quanto.core.CoreException;
 import quanto.core.data.CoreGraph;
-import quanto.core.data.Vertex;
 import quanto.core.data.Rule;
 
 @SuppressWarnings("serial")
@@ -49,16 +45,16 @@ public class SplitGraphView extends InteractiveView {
 		this.rule = rule;
 		this.core = core;
 
-		leftView = new InteractiveGraphView(core, rule.getLhs(),  new QuantoDotLayout(rule.getLhs()));
+		leftView = new InteractiveGraphView(core, rule.getLhs());
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
-		leftView.updateGraph();
+		leftView.repaint();
 		
-				
-		rightView = new InteractiveGraphView(core, rule.getRhs(),  new QuantoDotLayout(rule.getRhs()));
-		rightView.setSaveEnabled(false);
+			
+		rightView = new InteractiveGraphView(core, rule.getRhs());
+				rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
-		rightView.updateGraph();
+		rightView.repaint();
 
 		setupListeners();
 		setupLayout(dim);

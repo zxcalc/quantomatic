@@ -23,10 +23,12 @@ public class Vertex extends GraphElement {
 	protected Vertex(String name, VertexType vertexType) {
 		super(name);
 		this.vertexType = vertexType;
+		pos=null;
 	}
 
 	protected Vertex(String name) {
 		super(name);
+		pos=null;
 	}
 
 	/**
@@ -40,8 +42,8 @@ public class Vertex extends GraphElement {
 	}
 
 	
-	public void setPosition(double x, double y) {
-		pos=new Point2D.Double(x, y);
+	public void setPosition(Point2D pos) {
+		this.pos=pos;
 	}
 	
 	public Point2D getPosition(){
