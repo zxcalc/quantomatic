@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.JOptionPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -52,9 +53,9 @@ implements CoreObject, ChangeEventSupport {
 		List<Vertex> verts = new ArrayList<Vertex>();
 		synchronized (this) {
 			Map<String,Vertex> vmap = getVertexMap();
-			for (Vertex v : graph.getVertices()) {
-				if (v.isBoundaryVertex())
-					continue; // don't highlight boundaries
+			for (Vertex v : graph.getVertices()) //{
+				//if (!v.isBoundaryVertex())
+				{//continue; // don't highlight boundaries
 				// find the vertex corresponding to the selected
 				//  subgraph, by name
 				Vertex real_v = vmap.get(v.getCoreName());

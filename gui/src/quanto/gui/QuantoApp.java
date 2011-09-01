@@ -494,7 +494,8 @@ public class QuantoApp {
 		viewManager.addView(vis);
 		core.renameGraph(loadedGraph, viewManager.getViewName(vis));
 
-		vis.updateGraph();
+		//vis.cleanUp();
+		//vis.updateGraph(null);
 		vis.getGraph().setSaved(true);
 		return vis;
 	}
