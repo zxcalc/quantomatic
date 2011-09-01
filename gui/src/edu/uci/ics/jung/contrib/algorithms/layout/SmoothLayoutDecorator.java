@@ -70,6 +70,10 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 		}
 	}
 	
+	public void getRelaxer(){
+		
+	}
+	
 	@Override
 	public boolean done() {
 		synchronized (getGraph()) {

@@ -79,8 +79,6 @@ public class InteractiveGraphView
 	public static final String SHOW_REWRITES_ACTION = "show-rewrites-command";
 	public static final String NORMALISE_ACTION = "normalise-command";
 	public static final String FAST_NORMALISE_ACTION = "fast-normalise-command";
-	public static final String LOCK_VERTICES_ACTION = "lock-vertices-command";
-	public static final String UNLOCK_VERTICES_ACTION = "unlock-vertices-command";
 	public static final String BANG_VERTICES_ACTION = "bang-vertices-command";
 	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices-command";
 	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box-command";
@@ -699,40 +697,15 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 	}
 
-	public void updateGraph2() throws CoreException {	//called from QuantoApp and SplitGraphView	
-		//viewer.update();	
-		//core.updateGraph(getGraph());
-		viewer.relayout();
-		//viewer.layoutModify();
-		cleanUp();	
-		// clean up un-needed labels:
-		// re-validate the picked state
-		/*
-		 * Vertex[] oldPicked =
-		 
-			viewer.getPickedVertexState().getPicked().toArray(
-			new Vertex[viewer.getPickedVertexState().getPicked().size()]);
-		viewer.getPickedVertexState().clear();
-		Map<String, Vertex> vm = getGraph().getVertexMap();
-		for (Vertex v : oldPicked) {
-			Vertex new_v = vm.get(v.getCoreName());
-			if (new_v != null) {
-				viewer.getPickedVertexState().pick(new_v, true);
-			}
-		}
-*/
-		repaint();
-	}
 	
 	public void cacheVertexPositions(){
 		verticesCache= new HashMap<String, Point2D>();
 		for(Vertex v: getGraph().getVertices()){
 			verticesCache.put(v.getCoreName(),  viewer.getGraphLayout().transform(v));
-			//v.setPosition(viewer.getGraphLayout().transform(v));
 		}
 	}
 
-	public void updateGraphRewrite(Rectangle2D rewriteRect) throws CoreException {			
+	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {			
 		core.updateGraph(getGraph());
 		for(Vertex v: getGraph().getVertices())	{							
 			if(verticesCache.get(v.getCoreName())!=null) {
@@ -750,11 +723,14 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			cleanUp();
 		}
-		forceLayout.actForce();
-		viewer.layoutModify();
-		//refresh();
+		
+		forceLayout.startModify();
+		viewer.modifyLayout();
+		forceLayout.endModify();
+
 		cleanUp();	
 		viewer.update();
+		//locking and unlocking used internally to notify the layout which vertices have user data
 		unlockVertices(getGraph().getVertices());
 	}
 	
@@ -989,7 +965,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			}
 			core.applyAttachedRewrite(getGraph(), index);
 			cacheVertexPositions();
-			updateGraphRewrite(rewriteRect);
+			updateGraph(rewriteRect);
 			smoothLayout.setOrigin(0, 0);
 		}
 		catch (CoreException e) {
@@ -1057,8 +1033,6 @@ public void lockVertices(Collection<Vertex> verts) {
 		ViewPort.registerCommand(SHOW_REWRITES_ACTION);
 		ViewPort.registerCommand(NORMALISE_ACTION);
 		ViewPort.registerCommand(FAST_NORMALISE_ACTION);
-		ViewPort.registerCommand(LOCK_VERTICES_ACTION);
-		ViewPort.registerCommand(UNLOCK_VERTICES_ACTION);
 		ViewPort.registerCommand(BANG_VERTICES_ACTION);
 		ViewPort.registerCommand(UNBANG_VERTICES_ACTION);
 		ViewPort.registerCommand(DROP_BANG_BOX_ACTION);
@@ -1093,7 +1067,7 @@ public void lockVertices(Collection<Vertex> verts) {
 					cacheVertexPositions();
 					Rectangle2D rect=viewer.getGraphBounds();
 					core.undo(getGraph());
-					updateGraphRewrite(rect);
+					updateGraph(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1107,7 +1081,7 @@ public void lockVertices(Collection<Vertex> verts) {
 					Rectangle2D rect= new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
 							0, 20, viewer.getGraphLayout().getSize().height);
 					core.redo(getGraph());
-					updateGraphRewrite(rect);
+					updateGraph(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1148,7 +1122,7 @@ public void lockVertices(Collection<Vertex> verts) {
 					Rectangle2D rect=new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
 							0, 20, viewer.getGraphLayout().getSize().height);
 					core.paste(getGraph());
-					updateGraphRewrite(rect);
+					updateGraph(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1262,23 +1236,11 @@ public void lockVertices(Collection<Vertex> verts) {
 					cacheVertexPositions();
 					Rectangle2D rect=viewer.getGraphBounds();
 					core.fastNormalise(getGraph());				
-					updateGraphRewrite(rect);
+					updateGraph(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
 				}
-			}
-		});
-		actionMap.put(LOCK_VERTICES_ACTION, new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				lockVertices(viewer.getPickedVertexState().getPicked());
-				repaint();
-			}
-		});
-		actionMap.put(UNLOCK_VERTICES_ACTION, new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				unlockVertices(viewer.getPickedVertexState().getPicked());
-				repaint();
 			}
 		});
 		actionMap.put(BANG_VERTICES_ACTION, new ActionListener() {
@@ -1297,7 +1259,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				try {
 					cacheVertexPositions();
 					core.removeVerticesFromBangBoxes(getGraph(), viewer.getPickedVertexState().getPicked());
-					updateGraphRewrite(null);
+					updateGraph(null);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1335,7 +1297,7 @@ public void lockVertices(Collection<Vertex> verts) {
 					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
 						core.duplicateBangBox(getGraph(), (BangBox)viewer.getPickedBangBoxState().getPicked().toArray()[0]);
 					}
-					updateGraphRewrite(rect);
+					updateGraph(rect);
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1457,12 +1419,13 @@ public void lockVertices(Collection<Vertex> verts) {
 				case KeyEvent.VK_SPACE:
 					showRewrites();
 					break;
+				//hotkey for force layout
 				case KeyEvent.VK_A:{
-					forceLayout.actForce();
-					viewer.layoutModify();
+					forceLayout.startModify();
+					viewer.modifyLayout();
+					forceLayout.endModify();
 					}
-					break;
-					
+					break;			
 			}
 			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(Character.toString(e.getKeyChar()));
 			if (v != null) {

@@ -5,42 +5,47 @@ import java.awt.geom.Point2D;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.swing.JOptionPane;
 
 import org.apache.commons.collections15.Transformer;
 
 import quanto.core.data.CoreGraph;
 import quanto.core.data.Edge;
 import quanto.core.data.Vertex;
-import quanto.gui.QuantoAutoLayout;
 
 
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
+import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
+import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
+import edu.uci.ics.jung.algorithms.util.IterativeContext;
 import edu.uci.ics.jung.graph.DirectedGraph;
 
-public class QuantoForceLayout  extends AbstractLayout<Vertex, Edge>{
+public class QuantoForceLayout  extends AbstractLayout<Vertex, Edge> implements IterativeContext {
 
 	protected Map<Vertex,Point2D > vertexVelocities;
 	protected Map<Vertex,Point2D > vertexPositions;
 	protected double vertexSpacing = 20.0;
-	Transformer<Vertex, Point2D> initializer;
+	private double damping=0.65;
+	private double timestep=0.01;
+	private int done;
+	private boolean modify;
+	
 	CoreGraph gr;
 	
 	protected QuantoForceLayout(DirectedGraph<Vertex, Edge> graph, Transformer<Vertex, Point2D> initializer,
 			double vertexSpacing ) {
 		super(graph, new Dimension((int)Math.ceil(2*vertexSpacing), (int)Math.ceil(2*vertexSpacing)));
-		this.initializer=initializer;
-		gr=(CoreGraph) graph;
+		setInitializer(initializer);	
+		vertexVelocities= new HashMap<Vertex, Point2D>();
+		vertexPositions= new HashMap<Vertex, Point2D>();
+		modify=true;
 	}
-
-
+	
 	public QuantoForceLayout(CoreGraph graph, QuantoDotLayout quantoDotLayout) {
 		this(graph, quantoDotLayout, 20.0);
+		gr=graph;
 	}
 
-
 	protected void beginLayout() {}
-
 	protected void endLayout() {}
 	
 	@Override
@@ -69,7 +74,6 @@ public class QuantoForceLayout  extends AbstractLayout<Vertex, Edge>{
 		Point2D p2= locations.get(v2);
 		double distSq=(p1.getX()-p2.getX())*(p1.getX()-p2.getX())+				
 				(p1.getY()-p2.getY())*(p1.getY()-p2.getY());
-		//distSq=Math.sqrt(distSq);
 		return new Point2D.Double(200*(p1.getX()-p2.getX())/distSq, 200*(p1.getY()-p2.getY())/distSq ); 
 	}
 	
@@ -80,20 +84,10 @@ public class QuantoForceLayout  extends AbstractLayout<Vertex, Edge>{
 		return new Point2D.Double(atr*(p1.getX()-p2.getX()), atr*(p1.getY()-p2.getY()));
 	}
 	
-	protected void forceLayout(){		
-		double kineticEnergy=graph.getVertices().size();
-		double damping=0.65;
-		double timestep=0.01;
-		vertexVelocities= new HashMap<Vertex, Point2D>();
-		vertexPositions= new HashMap<Vertex, Point2D>();
-		for (Vertex v : graph.getVertices()) 
-			vertexVelocities.put(v, new Point2D.Double(0, 0));
-		int i=0;
-		//int sq=graph.getVertices().size()*graph.getVertices().size();
-		while(i<10000){
-			kineticEnergy=0;
-			for (Vertex v : graph.getVertices()) {
-				if (!isLocked(v)){
+	public void step() {
+		done++;
+		for (Vertex v : graph.getVertices()) {
+			if (!isLocked(v)){
 				Point2D netForce=new Point2D.Double(0, 0);
 				vertexVelocities.put(v, new Point2D.Double(0, 0));
 				for (Vertex u : graph.getVertices()) {
@@ -108,53 +102,63 @@ public class QuantoForceLayout  extends AbstractLayout<Vertex, Edge>{
 				}
 				Point2D p=vertexVelocities.get(v);
 				vertexVelocities.put(v, new Point2D.Double((p.getX()+netForce.getX()*timestep)*damping , 
-									(p.getY()+netForce.getY()*timestep)*damping ));
+								(p.getY()+netForce.getY()*timestep)*damping ));
 				p=vertexVelocities.get(v);
 				Point2D q=locations.get(v);
 				Point2D r= new Point2D.Double(q.getX()+p.getX()*timestep, q.getY()+p.getY()*timestep);
 				setLocation(v, r);
-				kineticEnergy+=p.getX()*p.getX()+p.getY()*p.getY();
-				}
 			}
-			i++;
 		}
 	}
 	
+	public boolean done() {
+		return done>10000;
+	}	
 	
 	protected boolean isWorkToDo() {
 		return getGraph().getVertexCount() > 0;
 	}
 
 	public void initialize() {
-	GraphVisualizationViewer g=new GraphVisualizationViewer(gr);
-	//JOptionPane.showMessageDialog(g, "raz");
-	setInitializer(initializer);
+	//Needed to be run on top of DotLayout to avoid an unnecessary forceLayout iteration
+	Relaxer relaxer = new VisRunner(this);
+	relaxer.prerelax();
 	recalculateSize();
 	}
 
-	public void reset() {	
+	public void reset() {
+		recalculateSize();
+		if(modify){
 		int i=1;
 		Point2D p= new Point2D.Double(0, 0);
 		for (Vertex v : graph.getVertices()) 
-			if(transform(v).equals(p)){
+			if(locations.get(v).equals(p)){
 				setLocation(v, size.width + vertexSpacing, vertexSpacing*i);					
 				i++;
 			}
 		recalculateSize();
+		}
+		else{
+			if (!isWorkToDo()) return;				
+			beginLayout();		
+			for (Vertex v : graph.getVertices()) 
+				vertexVelocities.put(v, new Point2D.Double(0, 0));
+			done=0;
+			while(!done()){
+				step();
+			}
+			endLayout();
+			recalculateSize();
+		}
 	}
 
-	public void actForce(){
-		if (!isWorkToDo()) return;				
-		beginLayout();		
-		forceLayout();
-		//layoutGraph();
-		endLayout();
-		recalculateSize();
+    //flag to distinguish between the cases when a vertex is added and other actions performed
+	public void startModify(){
+		modify=false;
 	}
-
-	protected void layoutGraph() {
-	for(Vertex v : graph.getVertices())
-		setLocation(v, vertexPositions.get(v));
+	
+	public void endModify(){
+		modify=true;
 	}
 	
 	protected double vertexWidth(Vertex v) { return 14; }
@@ -172,5 +176,6 @@ public class QuantoForceLayout  extends AbstractLayout<Vertex, Edge>{
 		bottom += vertexSpacing;
 		size.setSize(Math.ceil(right), Math.ceil(bottom));
 	}
+
 	
 	}
