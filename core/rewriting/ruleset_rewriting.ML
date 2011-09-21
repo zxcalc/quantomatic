@@ -54,19 +54,19 @@ end;
 (* *)
 functor RulesetRewrites(
   structure Ruleset : RULESET
-  structure MatchSearch : RULE_MATCH_SEARCH
-  sharing type MatchSearch.Rule.T = Ruleset.Rule.T
+  structure RuleMatchSearch : RULE_MATCH_SEARCH
+  sharing type RuleMatchSearch.Rule.T = Ruleset.Rule.T
   structure GraphSubst : GRAPH_SUBST
-  sharing MatchSearch.Match.Sharing.G = Ruleset.Rule.Sharing.Graph;
+  sharing RuleMatchSearch.Match.Sharing.G = Ruleset.Rule.Sharing.Graph;
   sharing type GraphSubst.graph = Ruleset.Rule.Graph.T
-  sharing type GraphSubst.match = MatchSearch.Match.T
+  sharing type GraphSubst.match = RuleMatchSearch.Match.T
 ) : RULESET_REWRITES =
 struct
-  structure Match = MatchSearch.Match;
+  structure Match = RuleMatchSearch.Match;
   structure Ruleset = Ruleset;
   structure Rule = Ruleset.Rule;
   (* *)
-  structure MatchSearch = MatchSearch;
+  structure RuleMatchSearch = RuleMatchSearch;
   structure GraphSubst = GraphSubst;
 
   structure G = Rule.Graph;
@@ -87,7 +87,7 @@ struct
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
            fold G.add_to_bbnames gs BBox.NSet.empty)
-      in (r,MatchSearch.match names r g) end;
+      in (r,RuleMatchSearch.match names r g) end;
 
   (* TODO: no need to rename-apart the rule: matching removes the tgt of the match: it is independent of the rule. Instead, we should be providing a way to rename-apart the rule and match to correspond to a given target (so that we can display a nice picture where they look the same) *)
   fun rule_matches_within vset r g  = 
@@ -103,7 +103,7 @@ struct
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
            fold G.add_to_bbnames gs BBox.NSet.empty)
-      in (r, MatchSearch.match names r 
+      in (r, RuleMatchSearch.match names r 
               (G.matched_subgraph_within_vset vset g)) 
       end;
   

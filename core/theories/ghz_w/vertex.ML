@@ -59,3 +59,22 @@ structure GHZW_Vertex
   val default_name = mk "a";
 
 end;
+
+(*  *)
+structure GHZW_VertexComponentData_Param
+: ELEMENT_COMPONENT_DATA_PARAM where type data = GHZW_VertexData.data
+= struct 
+  type data = GHZW_VertexData.data;
+  exception unknown_type_exp of string;
+
+  fun type_of GHZW_VertexData.GHZ = "GHZ"
+    | type_of GHZW_VertexData.W = "W"
+
+  fun cdata_of _ = ComponentData.Unit;
+
+  fun default_data "GHZ" = GHZW_VertexData.GHZ
+    | default_data "W" = GHZW_VertexData.W
+    | default_data n = raise unknown_type_exp n;
+
+  fun update _ = I;
+end;

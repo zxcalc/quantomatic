@@ -72,17 +72,6 @@ structure RGB_GraphParam
   fun delete_vertex vn vdep = vdep;
   fun delete_edge en vdep = vdep;
 
-  fun vertex_type_name (RGB_VertexData.Red)   = "Red"
-    | vertex_type_name (RGB_VertexData.Green) = "Green"
-    | vertex_type_name (RGB_VertexData.Blue)  = "Blue"
-  fun vertex_default_data "Red"   = (RGB_VertexData.Red)
-    | vertex_default_data "Green" = (RGB_VertexData.Green)
-    | vertex_default_data "Blue"  = (RGB_VertexData.Blue)
-    | vertex_default_data s       = raise unknown_type_exp s
-  fun edge_type_name () = "unit"
-  fun edge_default_data "unit" = ()
-    | edge_default_data s = raise unknown_type_exp s
-
   fun replace_vertex vd vn vdep = 
       vdep |> delete_vertex vn
            |> add_vertex vd vn;
@@ -153,4 +142,11 @@ structure RGB_OVertex = OVertex(RGB_Vertex);
 structure RGB_OGraphParam = OGraphParam(
   structure Param = RGB_GraphParam 
         and OVertex = RGB_OVertex);
+
+structure RGB_OVertexComponentData_Param = OVertexComponentData_Param(
+  structure VertexDataParam = RGB_VertexComponentData_Param
+  structure OVertex = RGB_OVertex);
+
+structure RGB_OVertexComponentData = ElementComponentData(RGB_OVertexComponentData_Param);
+
 

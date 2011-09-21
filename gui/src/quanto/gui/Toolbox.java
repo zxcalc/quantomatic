@@ -16,7 +16,7 @@ import quanto.core.data.VertexType;
 
 /*
  * Toolbox : Allows to add vertices/gates
- * lock/unlock vertices and bang/unbang/etc... vertices.
+ * bang/unbang/etc... vertices.
  */
 
 public class Toolbox extends JPanel {
@@ -26,8 +26,8 @@ public class Toolbox extends JPanel {
 	
 	public Toolbox(Core core, QuantoFrame quantoFrame) {
 		/*
-		 * The toolbox is divided in 3 distinct categories : add, 
-		 * lock/unlock, bangbox stuff.
+		 * The toolbox is divided in 2 distinct categories : add, 
+		 * bangbox stuff.
 		 * They are all using a grid layout.
 		 */
 
@@ -40,7 +40,6 @@ public class Toolbox extends JPanel {
 		controlArea.setLayout(new BoxLayout(controlArea, BoxLayout.Y_AXIS));
 		
 		controlArea.add(createAddVertexArea(this.core));
-		controlArea.add(createLockArea(this.quantoFrame));
 		controlArea.add(createBangBoxArea(this.quantoFrame));
 		this.add(controlArea);
 	}
@@ -95,32 +94,6 @@ public class Toolbox extends JPanel {
 		});
 		
 		return addVertexArea;
-	}
-	
-	private ToolboxArea createLockArea(final QuantoFrame quantoFrame) {
-		ToolboxArea lockArea = new ToolboxArea("Lock/Unlock", 1, 2);
-		
-		JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/Lock24.gif", "Lock Vertices"));
-		lockArea.add(button);
-		button.setToolTipText("Lock Vertices");
-		button.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("lock-vertices-command");
-			}
-		});
-		
-		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/Unlock24.gif", "Unlock Vertices"));
-		lockArea.add(button);
-		button.setToolTipText("Unlock Vertices");
-		button.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("unlock-vertices-command");
-			}
-		});
-		
-		return lockArea;
 	}
 	
 	private ToolboxArea createBangBoxArea(final QuantoFrame quantoFrame) {

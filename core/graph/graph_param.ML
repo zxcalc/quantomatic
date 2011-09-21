@@ -30,7 +30,6 @@ signature GRAPH_PARAM
   (* SUBSTITUTION/MATCHING/UNIFICATION *)
   (* this is a user exception raised when things don't match *)
   exception match_exp of unit
-  exception unknown_type_exp of string
 
   (* substitutions for internal variable names 
      (for data that lives in the edges and vertices) *)
@@ -77,11 +76,6 @@ signature GRAPH_PARAM
   val delete_vertex : Vertex.name -> T -> T
   val delete_edge : Edge.name -> T -> T
 
-  val vertex_type_name : Vertex.data -> string
-  val vertex_default_data : string -> Vertex.data
-  val edge_type_name : Edge.data -> string
-  val edge_default_data : string -> Edge.data
-
   (* raises Vertex.Rnm. *)
   val rename_vname : Vertex.name -> Vertex.name -> T -> T
   (* raises Edge.Rnm. *)
@@ -121,22 +115,6 @@ signature GRAPH_PARAM
     sharing type CRnmINames.renaming = Sharing.inames_renaming
     sharing type T = Sharing.T
     sharing type subst = Sharing.subst
-end;
-
-
-(* For the typed data specification sent to the GUI 
-   The type is just a string for now, could be generalised...
-*)
-signature GRAPH_TYPED_DATA_PARAM_XML_IO = sig
-  (* type of data, e.g. vertex data *)
-  type data
-
-  (* get the type-string of a bit of data, and it's xml representation *)
-  val type_and_xml_of : data -> string * (XML.tree list)
-  val of_type_and_xml : string * (XML.tree list) -> data
-
-  (* get the theory specification xml *)
-  (* val get_gui_spec_xml : unit -> XML.tree *)
 end;
 
 

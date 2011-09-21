@@ -1,5 +1,7 @@
 signature GRAPHICAL_THEORY = 
 sig
+  val theory_name : string;
+
   (* vertices and edges of a graph *)
   structure Vertex : OVERTEX
   structure Edge : EDGE
@@ -37,12 +39,20 @@ sig
   sharing RulesetRewrites.Sharing.Ruleset = Ruleset.Sharing 
   sharing RulesetRewrites.Sharing.Match = Match.Sharing;
 
+  (* Component data info *)
+  structure VertexComponentData : ELEMENT_COMPONENT_DATA
+  sharing type VertexComponentData.data = Vertex.data;
+  structure EdgeComponentData : ELEMENT_COMPONENT_DATA
+  sharing type EdgeComponentData.data = Edge.data;
+
   (* Input/Output *)
-  (* structure IO : IO_INTERFACE
-  sharing type IO.Input.Graph.data = Graph.T
-  sharing type IO.Input.Rule.data = Rule.T
-  sharing type IO.Input.Ruleset.data = Ruleset.T
-  *)
+  structure IO_Xml : IO_INTERFACE_XML
+    where type Output.Vertex.data = (Graph.Vertex.name * (Graph.Vertex.data * (Graph.Edge.NSet.T * Graph.Edge.NSet.T)))
+      and type Output.Edge.data = (Graph.Edge.name * ((Graph.dir_or_undir * Graph.Edge.data) * (Graph.Vertex.name * Graph.Vertex.name)))
+      and type Output.BBox.data = (Graph.BBox.name * Graph.Vertex.NSet.T)
+  sharing type IO_Xml.Input.Graph.data = Graph.T
+  sharing type IO_Xml.Input.Rule.data = Rule.T
+  sharing type IO_Xml.Input.Ruleset.data = Ruleset.T
 
 end;
 
@@ -50,23 +60,14 @@ end;
 
 functor GraphicalTheory(
   structure OParam : OGRAPH_PARAM
-(* 
-  structure InputVertexData : INPUT_XML 
-        and InputEdgeData : INPUT_XML 
-  sharing type InputVertexData.data = Param.Vertex.data
-  sharing type InputEdgeData.data = Param.Edge.data
-
-  structure OutputVertexData : OUTPUT_XML_LIST
-        and OutputEdgeData : OUTPUT_XML_LIST
-  sharing type OutputVertexData.data = Param.Vertex.data
-  sharing type OutputEdgeData.data = Param.Edge.data *)
+  structure VComponentData : ELEMENT_COMPONENT_DATA
+  sharing type VComponentData.data = OParam.OVertex.data
+  structure EComponentData : ELEMENT_COMPONENT_DATA
+  sharing type EComponentData.data = OParam.Edge.data
 ) = 
 struct 
-  (* structure OVertex = OVertex(Param.Vertex);
-  structure OParam = OGraphParam(
-    structure Param = Param 
-    structure OVertex = OVertex);
-  *)
+  val theory_name = Pretty.string_of OParam.pretty_theory_name;
+
   local 
     structure BasicBangGraph = BasicBangGraphFun(
       structure Param = OParam
@@ -94,16 +95,26 @@ struct
   structure GraphSubst : GRAPH_SUBST = DB_GraphSubst;
 
   (* removed DB_RuleMatchSearch, suggest removing other DB_'s *)
-  structure RuleMatchSearch = SimpleRuleMatchSearch(structure BangGraph = Graph;
-                                                    structure Match = Match;
-                                                    structure Rule = Rule;);
+  structure BasicMatchSearch = SimpleMatchSearch(Match);
+  structure RuleMatchSearch = SimpleRuleMatchSearch(
+    structure MatchSearch = BasicMatchSearch;
+    structure Rule = Rule;);
 
   structure DB_RulesetRewrites = RulesetRewrites(
     structure Ruleset = Ruleset;
-    structure MatchSearch = RuleMatchSearch;
+    structure RuleMatchSearch = RuleMatchSearch;
     structure GraphSubst = GraphSubst;
   );
   structure RulesetRewrites : RULESET_REWRITES = DB_RulesetRewrites;
+
+  structure VertexComponentData = VComponentData;
+  structure EdgeComponentData = EComponentData;
+
+  structure IO_Xml = IO_Interface_Xml(
+    structure Ruleset = Ruleset
+    structure VertexData = VertexComponentData;
+    structure EdgeData = EdgeComponentData;
+  );
   
   (* install pretty printers *)
   local
@@ -121,10 +132,3 @@ struct
   
 end;
 
-
-(* tested in next file... don't need it twice...
-structure Test_RG_DB_Theory = GraphicalTheory(
-  structure Param = RG_GraphParam
-);
-structure Test_RG_Theory : GRAPHICAL_THEORY = RG_DB_Theory;
-*)

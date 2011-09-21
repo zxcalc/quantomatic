@@ -2,15 +2,27 @@ package quanto.gui;
 
 import com.sun.jaf.ui.ActionManager;
 import com.sun.jaf.ui.UIFactory;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Image;
 import java.awt.event.WindowEvent;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-import javax.swing.*;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.ImageIO;
+import javax.swing.Action;
+import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JSplitPane;
 import org.xml.sax.SAXException;
 
 import quanto.core.CoreException;
@@ -18,6 +30,8 @@ import quanto.core.xml.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {
+
+	private final static Logger logger = Logger.getLogger("quanto.gui");
 
 	private static final long serialVersionUID = 3656684775223085393L;
 	private final ViewPort viewPort;
@@ -70,8 +84,29 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
+    private void addIconFromRes(List<Image> to, String resourceRef) {
+        try {
+            to.add(ImageIO.read(getClass().getResource(resourceRef)));
+        } catch (IOException ex) {
+            logger.log(Level.WARNING, "Cannot find " + resourceRef, ex);
+        }
+    }
+
+    private void loadIcons() {
+        List<Image> icons = new ArrayList<Image>(6);
+        addIconFromRes(icons, "/icons/quanto_icon_16.png");
+        addIconFromRes(icons, "/icons/quanto_icon_24.png");
+        addIconFromRes(icons, "/icons/quanto_icon_32.png");
+        addIconFromRes(icons, "/icons/quanto_icon_48.png");
+        addIconFromRes(icons, "/icons/quanto_icon_64.png");
+        addIconFromRes(icons, "/icons/quanto_icon_128.png");
+        setIconImages(icons);
+    }
+
 	public QuantoFrame(QuantoApp app) {
 		super("Quantomatic");
+
+        loadIcons();
 
 		frameCount++;
 		this.app = app;
@@ -260,23 +295,23 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void openTheory() {
-		File f = app.openFile(this, "Select theory file", app.DIR_THEORY);
-			if (f != null) {
-				TheoryParser theoryParser;
-				try {
-					theoryParser = new TheoryParser(f.getAbsolutePath());
-					app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-					app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
-				} catch (SAXException e) {
-					app.errorDialog(e.toString());
-				} catch (IOException e) {
-					app.errorDialog(e.toString());
-				}
-				//TODO Do something to let the core know that we're using another graph_param
-				//Open a new graph as well...
-				app.createNewFrame();
-				this.closeCurrentView();
-			}
+		File f = app.openFile(this, "Select theory file", QuantoApp.DIR_THEORY);
+                if (f != null) {
+                        try {
+                                TheoryParser theoryParser = new TheoryParser(f.getAbsolutePath());
+                                app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
+                                app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
+                                //Open a new graph as well...
+                                app.createNewFrame();
+                                this.closeCurrentView();
+                        } catch (SAXException e) {
+                                app.errorDialog(e.toString());
+                        } catch (IOException e) {
+                                app.errorDialog(e.toString());
+                        } catch (CoreException e) {
+                                app.errorDialog(e.toString());
+                        }
+                }
 	}
 	
 	@Override

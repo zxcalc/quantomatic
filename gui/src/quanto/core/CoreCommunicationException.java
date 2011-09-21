@@ -1,7 +1,11 @@
 package quanto.core;
 
 /**
- * Could not communicate with the backend
+ * Indicates an issue in communicating with the backend.
+ * 
+ * Generally, exceptions of this type are unrecoverable.  It indicates that
+ * the core process terminated, or communication with the core was disrupted
+ * for another reason, or the core sent invalid data 
  */
 public class CoreCommunicationException extends CoreException {
 

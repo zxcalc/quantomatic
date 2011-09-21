@@ -1,6 +1,3 @@
-(* TODO: provide link to visualisation XML *)
-(* val rg_gui_spec_xml = XMLReader.read_from_file "gui.xml"; *)
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph Vertex.) *)
@@ -96,43 +93,36 @@ structure RG_InternVertex
 end;
 
 (*  *)
-structure RG_VertexData_ParamIO
-: GRAPH_TYPED_DATA_PARAM_XML_IO where type data = RG_VertexData.data
+structure RG_VertexComponentData_Param
+: ELEMENT_COMPONENT_DATA_PARAM where type data = RG_VertexData.data
 = struct 
   type data = RG_VertexData.data;
-  fun type_and_xml_of (RG_VertexData.Xnd a) = 
-      ("X",[OutputLinratXML.output a])
-    | type_and_xml_of (RG_VertexData.Znd a) = 
-      ("Z",[OutputLinratXML.output a])
-    | type_and_xml_of (RG_VertexData.Hnd) = 
-      ("hadamard",[]);
-  fun of_type_and_xml ("X",[xml]) = 
-      (RG_VertexData.Xnd (InputLinratXML.input xml))
-    | of_type_and_xml ("Z",[xml]) = 
-      (RG_VertexData.Znd (InputLinratXML.input xml)) 
-    | of_type_and_xml ("hadamard",[]) = 
-      (RG_VertexData.Hnd)
-    | of_type_and_xml (n,xml_list) = 
-      raise XML_Parse_Utils.bad_input_exp 
-        ("RG_VertexData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
-         (Pretty.string_of (Pretty.list "[" "]" 
-           (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
-         "data");
+  exception unknown_type_exp of string;
+  exception unexpected_data_exp;
+
+  fun type_of (RG_VertexData.Xnd _) = "X"
+    | type_of (RG_VertexData.Znd _) = "Z"
+    | type_of (RG_VertexData.Hnd)   = "hadamard";
+
+  fun cdata_of (RG_VertexData.Xnd a) = (ComponentData.LinratExpr a)
+    | cdata_of (RG_VertexData.Znd a) = (ComponentData.LinratExpr a)
+    | cdata_of (RG_VertexData.Hnd)   = ComponentData.Unit;
+
+  fun default_data "X" = (RG_VertexData.Xnd LinratExpr.zero)
+    | default_data "Z" = (RG_VertexData.Znd LinratExpr.zero)
+    | default_data "hadamard" = (RG_VertexData.Hnd)
+    | default_data s = raise unknown_type_exp s
+
+  fun unwrapUpd upd a =
+    let
+      fun unwrapLinrat (ComponentData.LinratExpr e) = e
+        | unwrapLinrat _ = raise unexpected_data_exp
+    in
+      unwrapLinrat (upd (ComponentData.LinratExpr a))
+    end;
+
+  fun update upd (RG_VertexData.Xnd a) = (RG_VertexData.Xnd (unwrapUpd upd a))
+    | update upd (RG_VertexData.Znd a) = (RG_VertexData.Znd (unwrapUpd upd a))
+    | update _   (RG_VertexData.Hnd)   = RG_VertexData.Hnd;
 end;
-
-(*  *)
-structure NoEdgeData_ParamIO 
-: GRAPH_TYPED_DATA_PARAM_XML_IO where type data = unit 
-= struct
-  type data = unit
-  fun of_type_and_xml ("unit",_) = ()
-    | of_type_and_xml (n,xml_list) = 
-      raise XML_Parse_Utils.bad_input_exp 
-        ("NoEdgeData_ParamIO: Bad type or XML; type = " ^ n ^ "XML: " ^ 
-         (Pretty.string_of (Pretty.list "[" "]" 
-           (map (Pretty.str o XML_Parse_Utils.get_text) xml_list))), 
-         "data");
-  fun type_and_xml_of () = ("unit",[]);
-end; 
-
 

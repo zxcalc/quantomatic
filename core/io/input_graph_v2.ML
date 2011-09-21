@@ -102,21 +102,23 @@ end (* structure InputXML *)
    The same functor can be used for both vertices and edges: XML_TAG_NAME can 
    be vertex or edge 
 *)
-functor InputTypedData(TypedDataParamIO : GRAPH_TYPED_DATA_PARAM_XML_IO) 
+functor InputTypedDataXML(ComponentDataIO : ELEMENT_COMPONENT_DATA) 
 : INPUT_XML = 
 struct
   open XML_Parse_Utils;
   type T = XML.tree;
-  type data = TypedDataParamIO.data;
+  type data = ComponentDataIO.data;
   fun data_to_string _ = "[data]"; (* FIXME: frop data_to_string? *)
-  fun input xml = 
+  fun input xml =
       let 
         val children = get_children xml
         val typ = 
             apply_to_unique_elem get_unique_child_text "type" children;
         val data = get_unique_child_of_typ "data" xml;
-      in TypedDataParamIO.of_type_and_xml (typ,get_children data) 
-         handle bad_input_exp (s,p) => raise bad_input_exp (s,"data/"^p)
+      in ComponentDataIO.of_type_and_xml (typ,get_children data) 
+         handle ComponentDataIO.unknown_type_exp _ => raise bad_input_exp 
+                                                       ("Unknown type \"" ^ typ ^ "\"", "data/type")
+              | bad_input_exp (s,p) => raise bad_input_exp (s,"data/"^p)
       end;
 end;
 

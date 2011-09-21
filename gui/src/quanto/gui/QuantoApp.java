@@ -3,7 +3,6 @@ package quanto.gui;
 
 import quanto.core.data.CoreGraph;
 import quanto.core.data.VertexType;
-import quanto.core.CoreTalker;
 
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
@@ -29,6 +28,7 @@ import java.util.logging.Logger;
 
 import quanto.core.Core;
 import quanto.core.CoreException;
+import quanto.core.protocol.ProtocolManager;
 import quanto.core.xml.TheoryParser;
 /**
  * Singleton class 
@@ -234,7 +234,7 @@ public class QuantoApp {
 				logger.log(Level.FINER, "Invoked as OS X application ({0})", appName);
 				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram =
 					appName + "/Contents/MacOS/dot_static";
-				CoreTalker.quantoCoreExecutable =
+				ProtocolManager.quantoCoreExecutable =
 					appName + "/Contents/MacOS/quanto-core-app";
 			}
 			else if (arg.equals("--mathematica-mode")) {
@@ -245,7 +245,7 @@ public class QuantoApp {
 		logger.log(Level.FINE, "Using dot executable: {0}",
 				       edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram);
 		logger.log(Level.FINE, "Using core executable: {0}",
-				       CoreTalker.quantoCoreExecutable);
+				       ProtocolManager.quantoCoreExecutable);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -360,7 +360,8 @@ public class QuantoApp {
 		}
 	}
 	
-	public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) {
+	public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) throws CoreException {;
+	
 		core.updateCoreTheory(implementedTheoryName, theoryVertices);
 	}
 	
@@ -493,7 +494,8 @@ public class QuantoApp {
 		viewManager.addView(vis);
 		core.renameGraph(loadedGraph, viewManager.getViewName(vis));
 
-		vis.updateGraph();
+		//vis.cleanUp();
+		//vis.updateGraph(null);
 		vis.getGraph().setSaved(true);
 		return vis;
 	}

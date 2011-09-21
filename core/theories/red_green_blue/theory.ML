@@ -1,1 +1,7 @@
-structure RGB_Theory = GraphicalTheory(structure OParam = RGB_OGraphParam) : GRAPHICAL_THEORY;
+structure RGB_Theory = GraphicalTheory(
+structure OParam = RGB_OGraphParam
+structure VComponentData = RGB_OVertexComponentData
+structure EComponentData = EmptyElementComponentData
+) : GRAPHICAL_THEORY;
+
+structure RGB_Controller = Controller(RGB_Theory);

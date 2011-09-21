@@ -73,17 +73,6 @@ structure RG_GraphParam
   fun delete_vertex vn vdep = VDep.del_dom vn vdep;
   fun delete_edge en vdep = vdep;
 
-  fun vertex_type_name (RG_VertexData.Xnd _) = "X"
-    | vertex_type_name (RG_VertexData.Znd _) = "Z"
-    | vertex_type_name (RG_VertexData.Hnd) = "hadamard"
-  fun vertex_default_data "X" = (RG_VertexData.Xnd LinratExpr.zero)
-    | vertex_default_data "Z" = (RG_VertexData.Znd LinratExpr.zero)
-    | vertex_default_data "hadamard" = (RG_VertexData.Hnd)
-    | vertex_default_data s = raise unknown_type_exp s
-  fun edge_type_name () = "unit"
-  fun edge_default_data "unit" = ()
-    | edge_default_data s = raise unknown_type_exp s
-
   fun replace_vertex vd vn vdep = 
       vdep |> delete_vertex vn
            |> add_vertex vd vn;
@@ -168,7 +157,9 @@ structure RG_OGraphParam = OGraphParam(
   structure Param = RG_GraphParam 
         and OVertex = RG_OVertex);
 
-structure RG_OVertexData_ParamIO = OVertexData_ParamIO(
-  structure VertexDataParamIO = RG_VertexData_ParamIO
+structure RG_OVertexComponentData_Param = OVertexComponentData_Param(
+  structure VertexDataParam = RG_VertexComponentData_Param
   structure OVertex = RG_OVertex);
+
+structure RG_OVertexComponentData = ElementComponentData(RG_OVertexComponentData_Param);
 

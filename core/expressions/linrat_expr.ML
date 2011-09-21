@@ -433,5 +433,3 @@ val parse = LinratParser.parse
 end
 
 structure LinratExpr = DB_LinratExpr : LINRAT_EXPR
-
-

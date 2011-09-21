@@ -53,13 +53,6 @@ structure SS_GraphParam
   fun delete_vertex vn vdep = vdep;
   fun delete_edge en vdep = vdep;
 
-  fun vertex_type_name _ = "subst"
-  fun vertex_default_data "subst" = ""
-    | vertex_default_data s       = raise unknown_type_exp s
-  fun edge_type_name () = "unit"
-  fun edge_default_data "unit" = ()
-    | edge_default_data s = raise unknown_type_exp s
-
   fun replace_vertex vd vn vdep = vdep; 
   fun replace_edge ed en vdep = vdep;
 

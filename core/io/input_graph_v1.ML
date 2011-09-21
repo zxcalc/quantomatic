@@ -1,7 +1,7 @@
 
 
 
-(* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
+(* XMl Parsers for BANG_GRAPH, VERTEX, and EDGE *)
 (* FIXME: structure used is a bit squanky and ineffeccient. *)
 functor InputGraphXML_v1(
   structure Graph : BANG_GRAPH
@@ -99,8 +99,8 @@ end (* structure InputXML *)
 
 
 (* ------------------------------------------------------- *)
-functor InputRGVertexDataXML_v1(
-  V : OVERTEX where type IData.data = RG_VertexData.data
+functor InputTestVertexDataXML_v1(
+  V : OVERTEX where type IData.data = Test_VertexData.data
 ) : INPUT_XML
 = struct
   open XML_Parse_Utils; 
@@ -150,15 +150,15 @@ functor InputRGVertexDataXML_v1(
           val col = (String.map Char.toLower o get_unique_child_text 
                      o get_unique_elem "colour") children
       in 
-        if (col = "h") then RG_VertexData.Hnd
+        if (col = "h") then Test_VertexData.Hnd
         else
           let 
             val angle = 
                 case lookup_unique_elem "angleexpr" children of NONE => LinratExpr.zero
                    | SOME a => input_angleexpr a
           in
-            if (col = "green") then RG_VertexData.Znd angle
-            else if (col = "red") then RG_VertexData.Xnd angle
+            if (col = "green") then Test_VertexData.Znd angle
+            else if (col = "red") then Test_VertexData.Xnd angle
             else raise bad_input_exp ("Unknown colour : "^col^".","")
           end
       end;

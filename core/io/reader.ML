@@ -2,6 +2,7 @@
 signature READER =
 sig
   type T
+  exception bad_input_exp of string
   val read_from_string : string -> T
   val read_from_file : string -> T
 end
@@ -10,8 +11,10 @@ structure XMLReader : READER  =
 struct
 
 type T = XML.tree;
+exception bad_input_exp of string;
      
-val read_from_string = XML.parse;
+fun read_from_string s = (XML.parse s)
+              handle Library.ERROR msg => raise bad_input_exp msg;
     
 fun read_from_file file = 
     let val instream =  TextIO.openIn file

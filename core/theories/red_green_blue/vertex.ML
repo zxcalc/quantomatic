@@ -59,3 +59,24 @@ structure RGB_Vertex
   structure SharingWithoutData = SharingWithData;
 
 end;
+
+(*  *)
+structure RGB_VertexComponentData_Param
+: ELEMENT_COMPONENT_DATA_PARAM where type data = RGB_VertexData.data
+= struct 
+  type data = RGB_VertexData.data;
+  exception unknown_type_exp of string;
+
+  fun type_of RGB_VertexData.Red = "Red"
+    | type_of RGB_VertexData.Green = "Green"
+    | type_of RGB_VertexData.Blue = "Blue";
+
+  fun cdata_of _ = ComponentData.Unit;
+
+  fun default_data "Red" = RGB_VertexData.Red
+    | default_data "Green" = RGB_VertexData.Green
+    | default_data "Blue" = RGB_VertexData.Blue
+    | default_data n = raise unknown_type_exp n;
+
+  fun update _ = I;
+end;

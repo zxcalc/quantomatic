@@ -18,7 +18,7 @@ POLYML_LIB=$(POLYML_HOME)/lib
 ################################
 # dynamic variables checked on call to make. 
 ################################
-ML_SRC_FILES = $(shell find . | grep ".ML$$")
+ML_SRC_FILES = $(shell find . | grep ".ML$$" | grep -v "test/protocol/" | grep -v "PROTOCOLTEST.ML$$")
 ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES) | grep ".ML$$")
 
 ################################
@@ -40,9 +40,14 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
-test check: $(QUANTO_HEAP)
+standard-tests: $(QUANTO_HEAP)
 	echo 'use "TEST.ML";' | $(POLYML)
-	@echo "All tests passed"
+	@echo ""
+
+protocol-tests: bin/$(THE_BIN)
+	echo 'use "PROTOCOLTEST.ML";' | $(POLYML) --core "bin/$(THE_BIN)" --log "protocol-tests.log"
+
+test check: standard-tests protocol-tests
 
 bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
