@@ -55,9 +55,8 @@ struct
   end
   (* fun dft (Lf s) vs = s::vs | dft (Br (s,ch)) vs = s::(fold dft ch vs); *)
   
-  
-  
-  fun rule_matches_graph r g = let
+  (* precondition: g contains no !-boxes *)
+  fun rule_matches_concrete_graph r g = let
     val lhs = Ruleset.Rule.get_lhs r
     val gs = [lhs, g]
     val names = 
@@ -67,6 +66,13 @@ struct
     val matches = MatchSearch.match names r g
   in case Seq.pull matches of NONE=>false | _=>true
   end
+  
+  val rule_matches_graph = rule_matches_concrete_graph
+  
+  (* matching using !-graphs as a target seems to be broken, so return false by default *)
+  (*fun rule_matches_graph r g = if (Graph.VtoBoxMap.is_empty o Graph.get_bboxes) g
+                               then rule_matches_concrete_graph r g
+                               else false*)
   
   (*fun has_match rs in_rules target_graph = let
     val redsets = RuleName.NSet.subdivide (4 * Multithreading.max_threads_value ()) in_rules

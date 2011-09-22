@@ -89,6 +89,14 @@ fun output_synth tdata (synth as ((ins,outs,verts,plugs), class_tab)) = let
 in ()
 end
 
+fun output_graph tdata graph = let
+  val c = addContainer content_div "GRAPH" false
+  val io = run_dot ()
+  val _ = addRule tdata io c graph
+  val _ = close_dot io
+in ()
+end
+
 fun output_ruleset tdata rs = let
   val rs_pairs = (TheoryData.get_rs_pairs tdata) rs
   val container = addContainer content_div ((TheoryData.get_name tdata) ^ " RULESET") false

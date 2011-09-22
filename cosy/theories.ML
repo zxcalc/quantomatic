@@ -16,6 +16,10 @@ struct
         Tensor.tensorf (2,ins,outs) (ghz ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))
     | tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.W) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (w (ins,outs))
+    | tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.TICK) (1,1) =
+        Tensor.tensor (2,1,1) [0,1,1,0]
+    | tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.TICK) (ins,outs) =
+        Tensor.tensorf (2,ins,outs) (K 0)  (* just return a zero tensor if bad dimensions on tick *)
     | tensor_for_vertex_data (Graph.OVertex.EVert) _ = Tensor.id dimension 1
 end
 

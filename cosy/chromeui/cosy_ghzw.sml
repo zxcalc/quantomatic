@@ -1,13 +1,29 @@
 datatype cosy = 
-	 SYNTH of GHZW_DefaultSynth.T | 
-	 RS of GHZW_Theory.Ruleset.T |
-	 RULE of GHZW_Theory.Rule.T |
-	 ERR of string
+	 
+   
+stucture Cosy =
+struct
+  structure Theory = GHZW_Theory
+  structure Synth = GHZW_DefaultSynth
+  structure Tensor = GHZW_TensorData.Tensor
+  
+  datatype T =
+   SYNTH of Synth.T | 
+   RS of Theory.Ruleset.T |
+   RULE of Theory.Rule.T |
+   GRAPH of Theory.Graph.T |
+   ERR of string
+   
+  val output_dot = GHZW_OutputGraphDot.output
+  val gens = GHZW_Gens.gen GHZW_VertexData.TICK (1,1) ::
+             (GHZW_Gens.gen_list 4 [GHZW_VertexData.GHZ, GHZW_VertexData.W])
+  
+end
 
 val ghzw_data : (GHZW_Theory.Graph.T, GHZW_Theory.Ruleset.T, GHZW_DefaultSynth.T) TheoryData.T = {
   name = "GHZ/W",
   dotfun = GHZW_OutputGraphDot.output,
-  gens = GHZW_Gens.gen_list 4 [GHZW_VertexData.GHZ, GHZW_VertexData.W],
+  gens = GHZW_Gens.gen GHZW_VertexData.TICK (1,1) :: (GHZW_Gens.gen_list 4 [GHZW_VertexData.GHZ, GHZW_VertexData.W]),
   stats = GHZW_DefaultSynth.stats,
   class_list = fn synth => GHZW_DefaultSynth.eqclass_fold (cons o (apfst GHZW_TensorData.Tensor.to_string)) synth [],
   rs_pairs =
@@ -26,15 +42,43 @@ fun update_naive run rs = rs |> update (synth run)
 fun size (RS rs) = RuleName.NTab.cardinality (GHZW_Theory.Ruleset.get_allrules rs)
 fun rule_matches_rule (RULE r1) (RULE r2) = GHZW_RSBuilder.rule_matches_rule r1 r2
 
+fun match_rule (RULE rule) (GRAPH target) = GHZW_Enum.rule_matches_graph rule target
+
 
 (*fun update_with run rs = rs |> update (synth run) |> reduce;*)
 fun get_rule (RS rs) name = case GHZW_Theory.Ruleset.lookup_rule rs (RuleName.mk name)
 			      of SOME r => RULE r 
 			       | _ => ERR "Rule not found."
 
+fun get_lhs (RULE rule) = GRAPH (GHZW_Theory.Rule.get_lhs rule)
+fun get_rhs (RULE rule) = GRAPH (GHZW_Theory.Rule.get_rhs rule)
 
 (*fun synth_list runs rs = fold update_redex runs rs*)
 
+fun escape str = let
+  fun esc #"<" = "&lt;"
+    | esc #">" = "&gt;"
+    | esc #"&" = "&amp;"
+    | esc #"\"" = "&quot;"
+    | esc c = String.str c
+in String.translate esc str
+end
+
+fun to_xml (RULE rule) = GHZW_Theory.IO_Xml.Output.Rule.output rule
+  | to_xml (GRAPH graph) = GHZW_Theory.IO_Xml.Output.Graph.output graph
+
+fun xml item = output_string (escape (XMLWriter.write_to_string (to_xml item)))
+
+fun save file item = XMLWriter.write_to_file file (to_xml item)
+
+fun load file = let
+  val data = XMLReader.read_from_file file
+in if String.isSuffix ".rule" file then
+     RULE (GHZW_Theory.IO_Xml.Input.Rule.input data)
+   else if String.isSuffix ".graph" file then
+     GRAPH (GHZW_Theory.IO_Xml.Input.Graph.input data)
+   else ERR "Unknown file extension"
+end
 
 val rs' = GHZW_Theory.Ruleset.empty
 val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "ghz_fr", GHZW_Rws.frob GHZW_VertexData.GHZ)
@@ -75,4 +119,5 @@ fun out (SYNTH s) = output_synth ghzw_data s
   | out (RULE r) = output_rule ghzw_data 
 			       (GHZW_Theory.Rule.get_lhs r)
 			       (GHZW_Theory.Rule.get_rhs r)
+  | out (GRAPH g) = output_graph ghzw_data g
   | out (ERR e) = output_string e
