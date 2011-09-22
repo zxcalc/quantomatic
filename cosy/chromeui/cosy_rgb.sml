@@ -1,3 +1,46 @@
+structure Cosy =
+struct
+  structure Theory = RGB_Theory
+  structure Synth = RGB_Synth
+  structure RSBuilder = RGB_RSBuilder
+  structure Tensor = RGB_TensorData.Tensor
+  
+  datatype T =
+   SYNTH of Synth.T | 
+   RS of Theory.Ruleset.T |
+   RULE of Theory.Rule.T |
+   GRAPH of Theory.Graph.T |
+   ERR of string
+   
+  val output_dot = RGB_OutputGraphDot.output
+  val gens = RGB_Gens.gen_list 4 [RGB_VertexData.Red, RGB_VertexData.Green, RGB_VertexData.Blue]
+  
+  local
+    val rs' = RGB_Theory.Ruleset.empty
+    val (_,rs') = rs' |> RGB_Theory.Ruleset.add_fresh_rule
+                          (RuleName.mk "r_fr", RGB_Rws.frob RGB_VertexData.Red)
+    val (_,rs') = rs' |> RGB_Theory.Ruleset.add_fresh_rule
+                          (RuleName.mk "g_fr", RGB_Rws.frob RGB_VertexData.Green)
+    val (_,rs') = rs' |> RGB_Theory.Ruleset.add_fresh_rule
+                          (RuleName.mk "b_fr", RGB_Rws.frob RGB_VertexData.Blue)
+    val (_,rs') = rs' |> RGB_Theory.Ruleset.add_fresh_rule
+                          (RuleName.mk "r_sp", RGB_Rws.special RGB_VertexData.Red)
+    val (_,rs') = rs' |> RGB_Theory.Ruleset.add_fresh_rule
+                          (RuleName.mk "g_sp", RGB_Rws.special RGB_VertexData.Green)
+    val (_,rs') = rs' |> RGB_Theory.Ruleset.add_fresh_rule
+                          (RuleName.mk "b_sp", RGB_Rws.special RGB_VertexData.Blue)
+    
+    val redex = TagName.mk "r"
+    val rs' = fold (fn s => RGB_Theory.Ruleset.tag_rule (RuleName.mk s) redex)
+               ["r_fr","g_fr","b_fr","r_sp","g_sp","b_sp"] rs'
+  in
+    val initial_rs = RS rs'
+  end
+  
+  val rule_matches_graph = RGB_Enum.rule_matches_graph
+end
+
+(*
 datatype cosy = 
 	 SYNTH of RGB_Synth.T | 
 	 RS of RGB_Theory.Ruleset.T |
@@ -54,3 +97,5 @@ fun out (SYNTH s) = output_synth rgb_data s
 			       (RGB_Theory.Rule.get_lhs r)
 			       (RGB_Theory.Rule.get_rhs r)
   | out (ERR e) = output_string e
+  
+*)
