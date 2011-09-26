@@ -34,6 +34,7 @@ struct
   end
 end
 
+
 (*
 val gens = [
   gen GHZW_VertexData.GHZ 3 0,

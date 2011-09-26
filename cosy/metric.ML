@@ -62,7 +62,17 @@ struct
       | weight_for_arity 0 4 = 133
       | weight_for_arity n m = (20 * (5 + n)) + (21 * m)*)
   
-  fun weight_for_arity m n l = 2*(m*m + n*n) + 2*(m + n)*(m + n) + l
+  fun weight_for_arity 0 0 l = 10 + l
+    | weight_for_arity 1 0 l = 20 + l
+    | weight_for_arity 0 1 l = 22 + l
+    | weight_for_arity 1 1 l = 30 + l
+    | weight_for_arity 2 0 l = 40 + l
+    | weight_for_arity 0 2 l = 44 + l
+    | weight_for_arity 2 1 l = 50 + l
+    | weight_for_arity 1 2 l = 55 + l
+    | weight_for_arity m n l = 20*(m*m + n*n) + 20*(m + n)*(m + n) + l
+  
+  (*fun weight_for_arity m n l = 2*(m*m + n*n) + 2*(m + n)*(m + n) + l*)
   
   fun compute graph = let
     fun vert_weights v tot = let

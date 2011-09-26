@@ -10,7 +10,7 @@ struct
     val outsum = List.foldr (op+) 0 (Tensor.decompose_index 2 outs i)
     val insum = List.foldr (op+) 0 (Tensor.decompose_index 2 ins j)
   in if ((outsum = 1 andalso insum = ins) orelse (outsum = 0 andalso insum = (ins - 1))) then 1 else 0
-  end;
+  end
   
   fun tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.GHZ) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (ghz ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))

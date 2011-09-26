@@ -27,16 +27,6 @@ struct
   in Rule.mk (lhs,rhs)
   end
   
-  (*fun ident data = let
-      val rhs = Graph.empty
-      val (bn1,rhs) = rhs |> Graph.add_vertex Graph.OVertex.EVert
-      val (bn2,rhs) = rhs |> Graph.add_vertex Graph.OVertex.EVert
-      val (vn1,lhs) = rhs |> Graph.add_vertex (Graph.OVertex.IVert data)
-      val lhs = lhs |> Graph.doadd_edge edge bn1 vn1 |> Graph.doadd_edge edge vn1 bn2
-      val rhs = rhs |> Graph.doadd_edge edge bn1 bn2
-    in Rule.mk (lhs,rhs)
-    end*)
-  
   fun special data = let
     val rhs = Graph.empty
     val (b1,rhs) = rhs |> bx

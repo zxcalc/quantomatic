@@ -15,7 +15,7 @@ struct
    
   val output_dot = GHZW_OutputGraphDot.output
   val gens = GHZW_Gens.gen GHZW_VertexData.TICK (1,1) ::
-             (GHZW_Gens.gen_list 4 [GHZW_VertexData.GHZ, GHZW_VertexData.W])
+             (GHZW_Gens.gen_list 3 [GHZW_VertexData.GHZ, GHZW_VertexData.W])
   
   local
     val rs' = GHZW_Theory.Ruleset.empty

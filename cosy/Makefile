@@ -4,4 +4,4 @@ polychrome.:
 
 clean:
 	rm -f chromeui/polychrome.polyml-heap
-	rm -rf **/.polysave
+	find . -type d -name .polysave | xargs rm -rf
