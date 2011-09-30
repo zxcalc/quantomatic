@@ -22,8 +22,6 @@ POLYML_LIB=$(POLYML_HOME)/lib
 ################################
 # HEAP files defined in make_heap.ML, make_bin.ML
 ################################
-# isaplanner heap file
-ISAPLIB_HEAP=../../isaplib/heaps/all.polyml-heap
 # quanto heap file
 QUANTO_HEAP=heaps/quanto.polyml-heap
 # binary file to produce
@@ -34,13 +32,11 @@ THE_BIN=quanto-core
 ################################
 default: bin
 
-# A bit of a hack: we just add our found polyml to the path...
-# always run make; it's quick and deals with its own deps
-$(ISAPLIB_HEAP): 
-	export PATH="$(POLYML_HOME)/bin:$(PATH)" && cd ../../isaplib; make
+heaps/:
+	mkdir heaps
 
 # make polyml heap
-$(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAPLIB_HEAP)
+$(QUANTO_HEAP): heaps/ $(ML_SRC_FILES)
 	echo 'use "make_heap.ML";' | $(POLYML)
 	@echo "Built polyml heap: $(QUANTO_HEAP)"
 
