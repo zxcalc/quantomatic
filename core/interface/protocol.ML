@@ -1,7 +1,7 @@
 (* {{{ Protocol documentation
  *
  * This file implements a protocol for talking to other tools.  It uses the
- * escape character (\u001b) as a tag for structural elements.  It is inspired
+ * escape character (\027) as a tag for structural elements.  It is inspired
  * by the Poly/ML IDE protocol.
  *
  * The protocol consists of a series of requests (sent from the tool to the
@@ -11,7 +11,7 @@
  * version message.  There is potential scope for other informational messages
  * in later revisions of the protocol.
  *
- * ESC ::= '\u001b' ;
+ * ESC ::= Char.chr 27;
  * Code ::= [A-Z]+ ;
  * String ::= ([^ESC] | ESC ESC)* ;
  * StringList ::= [0-9]+ ESC ':' (String (ESC ',' String)* )? ; length, then list
@@ -44,6 +44,8 @@
  * message is then of the form
  *   MsgStart Code ESC ':' RequestId MsgSep Body MsgEnd ;
  *
+ * note: ESC can also be written as #"\027", or #"\u0021b", we avoid the
+ * latter as some modification to ML don't like the \u syntax. 
  *
  ******************** RESPONSES **********************
  *
@@ -827,6 +829,8 @@
 structure ProtocolInterface : CONTROL_INTERFACE =
 struct
 
+  val ESC = Char.chr 27;
+
   fun protocolError error =
   let
       open OS.Process
@@ -843,14 +847,14 @@ struct
 
     (* {{{ Output helpers *)
     fun print s = TextIO.output(outstream, s)
-    fun printString s = print (String.translate (fn #"\u001b" => "\u001b\u001b" | c => String.str c) s)
+    fun printString s = print (String.translate (fn #"\027" => "\027\027" | c => String.str c) s)
     fun printInt i = print (Int.toString i)
     fun printLength s = printInt (String.size s)
-    fun printEsc ch = print (String.concat["\u001b", String.str ch])
+    fun printEsc ch = print (String.concat["\027", String.str ch])
     fun printClose () = (printEsc #">"; TextIO.flushOut outstream)
-    fun printOpen ch requestId = print (String.concat["\u001b<", String.str ch, "\u001b:", requestId, "\u001b|"])
-    fun printOpenInfo ch = print (String.concat["\u001b<", String.str ch, "\u001b|"])
-    fun printDelim () = print "\u001b;"
+    fun printOpen ch requestId = print (String.concat["\027<", String.str ch, "\027:", requestId, "\027|"])
+    fun printOpenInfo ch = print (String.concat["\027<", String.str ch, "\027|"])
+    fun printDelim () = print "\027;"
     fun printDataChunk s = (printEsc #"["; printLength s; printEsc #"|"; print s; printEsc #"]")
     fun printList [] = (print "0"; printEsc #":")
       | printList [s] = (print "1"; printEsc #":"; printString s)
@@ -1018,12 +1022,12 @@ struct
     local
       fun readToEscape' (soFar: string) (terminator: char) : string =
         case input1 instream
-          of SOME #"\u001b" =>
+          of SOME #"\027" =>
               (
                 case input1 instream of
                   NONE => protocolError "End of file"
-                | SOME #"\u001b" => (* Escaped ESC. *)
-                                    readToEscape' (soFar ^ str #"\u001b") terminator
+                | SOME #"\027" => (* Escaped ESC. *)
+                                    readToEscape' (soFar ^ str #"\027") terminator
                 | SOME ch => if ch = terminator
                              then soFar
                              else protocolError(str ch ^ " not " ^ str terminator)
@@ -1045,8 +1049,8 @@ struct
          | SOME c => if c = ch then () else
                      protocolError("Expected " ^ (str ch) ^ ", got " ^ (str c))
 
-    fun eatEscapedChar (ch: char) = (eatChar #"\u001b"; eatChar ch)
-    fun readEscapedChar () = (eatChar #"\u001b"; readChar ())
+    fun eatEscapedChar (ch: char) = (eatChar #"\027"; eatChar ch)
+    fun readEscapedChar () = (eatChar #"\027"; readChar ())
 
     (* Parse an integer.  Returns zero if it isn't a valid int. *)
     fun readInt termCh : int =
@@ -1059,11 +1063,11 @@ struct
         | readList' _ 1 (_, terminator) = [readToEscape terminator]
         | readList' soFar count (splitter, terminator) =
            (case input1 instream
-              of SOME #"\u001b" =>
+              of SOME #"\027" =>
                   (
                     case input1 instream
                       of NONE           => protocolError "End of file"
-                       | SOME #"\u001b" => readList' (soFar ^ "\u001b") count (splitter, terminator)
+                       | SOME #"\027" => readList' (soFar ^ "\027") count (splitter, terminator)
                        | SOME ch        =>
                             if ch = splitter then
                               soFar::(readList' "" (count-1) (splitter, terminator))
@@ -1085,7 +1089,7 @@ struct
         val () =
           case input1 instream of
             NONE => OS.Process.exit OS.Process.success (* Close down. *)
-          | SOME #"\u001b" => () (* Escape- start of packet. *)
+          | SOME #"\027" => () (* Escape- start of packet. *)
           | SOME ch => protocolError((str ch) ^ " not ESCAPE at start of packet")
         val () = eatChar #"<"
         val code = readToEscape #":"
@@ -1108,7 +1112,7 @@ struct
 
       fun skipToBodyEnd () =
         case input1 instream
-          of SOME #"\u001b" =>
+          of SOME #"\027" =>
               (
                 case input1 instream of
                   NONE => protocolError "End of file"
