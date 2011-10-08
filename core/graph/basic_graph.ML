@@ -392,6 +392,9 @@ fun rename_ename en1 en2 g =
 fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
   | pretty_edge_dir_or_undir UnDirected = Pretty.str "bidir";
 
+fun pretty_edge_connector Directed = Pretty.str "->"
+  | pretty_edge_connector UnDirected = Pretty.str "--";
+
 fun pretty_theory_name g = Param.pretty_theory_name;
 
 (* pretty printing *)
@@ -408,11 +411,12 @@ fun pretty g =
                    (fn (n, (nd,(ins,outs))) => 
                        Pretty.block 
                          [Vertex.pretty_name n,
-                          Pretty.str "; ",
+                          Pretty.str ":=",
                           Pretty.list "i{" "}" (map Edge.pretty_name (Edge.NSet.list_of ins)),
-                          Pretty.list "; o{" "}" (map Edge.pretty_name (Edge.NSet.list_of outs)),
-                          Pretty.str "; ",
-                          Vertex.pretty_data nd
+                          Pretty.list "o{" "}" (map Edge.pretty_name (Edge.NSet.list_of outs)),
+                          Pretty.str "(",
+                          Vertex.pretty_data nd,
+                          Pretty.str ")"
                    ])
                    (Vertex.NTab.list_of (get_vertices g)))],
            Pretty.block
@@ -422,14 +426,13 @@ fun pretty g =
                    (fn (en, ((bd,e), (n1, n2))) => 
                        Pretty.block 
                          [Edge.pretty_name en,
-                          Pretty.str ": ",
+                          Pretty.str ":=",
                           Vertex.pretty_name n1,
-                          Pretty.str " - ",
+                          pretty_edge_connector bd,
                           Vertex.pretty_name n2,
-                          Pretty.str "; (",
-                          pretty_edge_dir_or_undir bd,
-                          Pretty.str ") ",
-                          Edge.pretty_data e
+                          Pretty.str "(",
+                          Edge.pretty_data e,
+                          Pretty.str ") "
                    ])
                    (Edge.NTab.list_of (get_edges g)))]]],
        Pretty.str "}"

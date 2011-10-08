@@ -5,6 +5,8 @@ end;
 
 signature BASIC_MATCH_SEARCH
 = sig
+  structure Log : LOG;
+
   structure Match : MATCH
   
   structure Sharing : BASIC_MATCH_SEARCH_SHARING 
@@ -20,6 +22,8 @@ end;
 functor SimpleMatchSearch(Match : MATCH)
 = struct
 
+  structure Log : LOG = Log(val level_ref = Unsynchronized.ref 0);
+
   structure G = Match.G;
   structure V = G.OVertex;
   structure E = G.Edge;
@@ -30,22 +34,42 @@ functor SimpleMatchSearch(Match : MATCH)
   structure BBox = G.BBox;
   structure BBMap = BBMatch.BBMap;
 
+  datatype vertex_kind_name = 
+           BBoxed of V.name 
+         | UnBBoxed of V.name;
+
   datatype T = 
            MState of 
            {(* and-agenda = (pat -> tgt) = we are commited to matching these *) 
             agenda : V.name V.NTab.T, 
             (* global vertex and edge matching info *)
             match : Match.T, 
-            (* the full pattern graph, needed for self-plugging checks? *)
+            (* the full pattern graph, with it's expansions so far *)
             pat : G.T, 
-            (* the pat graph with vertices removed as we match them *)
-            unm_pat : G.T, 
-            (* unmatched leaves from init pat. Needed to distinguish with
-               boundary points introduced by !-boxs *)
-            pat_boundary : V.NSet.T, 
+            (* the unmatched pattern vertex names, with bool for being 
+               unboxed *)
+            unm_pat_vs : vertex_kind_name Seq.seq, 
             (* tgt with matched edges removed as we match them *)
             unm_tgt : G.T 
            };
+
+
+  fun name_of_vertex_kind_name (BBoxed n) = n
+    | name_of_vertex_kind_name (UnBBoxed n) = n;
+
+  (* Note w.r.t. evaluation thing: we generally rely on pat boundary and unboxed being monotomic (not affecting existing vertices during the matching process.) Gives back seq of unboxed internal names, then boxed internal names. *)
+  fun pat_vertex_agenda_seq' pat vs = 
+      let val unboxed = (G.get_unboxed pat);
+          val boxed = (G.get_boxed pat);
+      in
+        Seq.map_filter 
+          (fn n => if G.is_boundary pat (name_of_vertex_kind_name n) then NONE 
+           else SOME n)
+          (Seq.append (Seq.map UnBBoxed (V.NSet.seq_of unboxed)) 
+                      (Seq.map BBoxed (V.NSet.seq_of boxed)))
+      end;
+  fun pat_vertex_agenda_seq pat = 
+      pat_vertex_agenda_seq' pat (G.get_vnames pat);
 
   (* initial matching state *)
   fun init match pat tgt agenda =
@@ -53,50 +77,46 @@ functor SimpleMatchSearch(Match : MATCH)
                agenda = agenda, 
                match = match, 
                pat = pat,
-               pat_boundary = G.get_boundary pat,
-               unm_pat = pat, unm_tgt = tgt };
+               unm_pat_vs = pat_vertex_agenda_seq pat,
+               unm_tgt = tgt };
 
   (* tools *)
   fun get_agenda (MState rep) = #agenda rep;
   fun get_match (MState rep) = #match rep;
   fun get_pat (MState rep) = #pat rep;
-  fun get_unm_pat (MState rep) = #unm_pat rep;
-  fun get_pat_boundary (MState rep) = #pat_boundary rep;
+  fun get_unm_pat_vs (MState rep) = #unm_pat_vs rep;
+
+  val get_pat_boundary = G.get_boundary o get_pat;
 
   (* *)
   fun update_agenda f (MState rep) = 
       MState { agenda = f (#agenda rep), match = #match rep,
                pat = #pat rep,
-               unm_pat = #unm_pat rep, 
-               pat_boundary = #pat_boundary rep,
+               unm_pat_vs = #unm_pat_vs rep, 
                unm_tgt = #unm_tgt rep
              };
   fun update_match f (MState rep) = 
       MState { agenda = #agenda rep, match = f (#match rep),
                pat = #pat rep,
-               unm_pat = #unm_pat rep, 
-               pat_boundary = #pat_boundary rep,
+               unm_pat_vs = #unm_pat_vs rep, 
                unm_tgt = #unm_tgt rep
              };
-  fun update_unm_pat f (MState rep) = 
+  fun update_unm_pat_vs f (MState rep) = 
       MState { agenda = #agenda rep, match = #match rep,
                pat = #pat rep,
-               unm_pat = f (#unm_pat rep), 
-               pat_boundary = #pat_boundary rep,
+               unm_pat_vs = f (#unm_pat_vs rep), 
                unm_tgt = #unm_tgt rep
              };
-  fun update_pat_boundary f (MState rep) = 
+  fun update_pat f (MState rep) = 
       MState { agenda = #agenda rep, match = #match rep,
-               pat = #pat rep,
-               unm_pat = #unm_pat rep, 
-               pat_boundary = f (#pat_boundary rep),
+               pat = f (#pat rep),
+               unm_pat_vs = #unm_pat_vs rep, 
                unm_tgt = #unm_tgt rep
              };
   fun update_unm_tgt f (MState rep) = 
       MState { agenda = #agenda rep, match = #match rep,
                pat = #pat rep,
-               unm_pat = #unm_pat rep, 
-               pat_boundary = #pat_boundary rep,
+               unm_pat_vs = #unm_pat_vs rep, 
                unm_tgt = f(#unm_tgt rep)
              };
 
@@ -105,9 +125,6 @@ functor SimpleMatchSearch(Match : MATCH)
   val get_match_viso = Match.get_viso o get_match;
   val get_bbmap =  Match.get_bbmap o get_match;
 
-  val get_unm_pat_vs = 
-      V.NTab.get_nameset o G.get_vertices o get_unm_pat;
-  val get_unm_unboxed_pat_vs = G.get_unboxed o get_unm_pat;
   fun get_unm_tgt (MState rep) = #unm_tgt rep;
   val get_unm_unboxed_tgt_vs = G.get_unboxed o get_unm_tgt;
   fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
@@ -118,30 +135,19 @@ functor SimpleMatchSearch(Match : MATCH)
   val update_names = update_match o Match.update_names;
 
   val set_names = update_match o Match.set_names;
-  val set_unm_pat = update_unm_pat o K;
+  val set_unm_pat_vs = update_unm_pat_vs o K;
+  val set_pat = update_pat o K;
   val set_agenda = update_agenda o K;
   val set_match = update_match o K;
-
-  (* implicit: e st *)
-  val del_pat_edge = update_unm_pat o G.delete_edge;
-  (* implicit: es st *)
-  val del_pat_edges = update_unm_pat o E.NSet.fold G.delete_edge;
-  (* implicit: v st *)
-  val del_pat_vertex = update_unm_pat o G.delete_vertex;
 
   (* deletion of tgt edges as we proceed *)
   val del_tgt_edge = update_unm_tgt o G.delete_edge;
   val del_tgt_edges = update_unm_tgt o E.NSet.fold G.delete_edge;
 
-  (* pop first vertex pair (pat,tgt) from agenda; get internal vertices before
-     external ones - required by edge-matching - and probably more efficient too. 
-     IMPROVE: store a maximally internal traversal of the pattern (as the
-     pre-agenda) which can then connected to the tgt vertices as the agenda. This 
-     will save repeated search for non-boundary vertices - also the basis of more 
-     efficient algorithm. (see also get_next_pat_vertex) *)
+  (* pop first vertex pair (pat,tgt) from agenda; get internal vertices before external ones - required by edge-matching - and probably more efficient too. IMPROVE: store a maximally internal traversal of the pattern (as the pre-agenda) which can then connected to the tgt vertices as the agenda. This will save repeated search for non-boundary vertices - also the basis of more efficient algorithm. (see also get_next_pat_vertex) *)
   fun pop_agenda st = 
-      let val agenda = (get_agenda st);
-          val pat = get_unm_pat st;
+      let val agenda = get_agenda st;
+          val pat = get_pat st;
       in 
         case V.NTab.find (fn (n1,n2) => not (G.is_boundary pat n1)) agenda of
           NONE => (* no internal vertices in the agenda *) 
@@ -161,28 +167,27 @@ functor SimpleMatchSearch(Match : MATCH)
                     V.pretty_name b,
                     Pretty.str ")"];
 
-  fun pretty_next_pat_vertex st = 
-      (case (V.NSet.get_local_bot (get_unm_pat_vs st)) of 
-         NONE => Pretty.str "NONE"
-       | SOME n => Pretty.block [Pretty.str "SOME (",
-                                 V.pretty_name n,
-                                 Pretty.str ")"]);
+  fun pretty_get_unm_pat_vs st = 
+      Pretty.list "unmatched_pat_vs: [" "]" 
+        (map (V.pretty_name o name_of_vertex_kind_name) 
+             (Seq.list_of (get_unm_pat_vs st)));
 
   fun get_agenda_list st = 
       (case pop_agenda st of NONE => []
          | SOME (x,st2) => x :: get_agenda_list st2);
 
   fun pretty_agenda st = 
-      Pretty.list "[" "]" (map pretty_match_pair (get_agenda_list st));
+      Pretty.list "agenda: [" "]" (map pretty_match_pair (get_agenda_list st));
 
   fun pretty (st as MState rep) = 
       Pretty.block 
         [Pretty.str "MatchSearch {",
          Pretty.chunks 
            [Match.pretty (#match rep),
+            pretty_get_unm_pat_vs st,
             pretty_agenda st,
-            Pretty.block [Pretty.str "Unmatched pat: "],
-            G.pretty (#unm_pat rep),
+            Pretty.block [Pretty.str "pat: "],
+            G.pretty (#pat rep),
             Pretty.block [Pretty.str "Unmatched tgt: "],
             G.pretty (#unm_tgt rep)
            ],
@@ -216,7 +221,7 @@ functor SimpleMatchSearch(Match : MATCH)
   (* IMPROVE?: maybe can do lazy bbox unfolding, and have bbox copying happen
      here? probbaly need generic notion of symmetry and search *)
   fun try_match_bboxes (pvn1,tvn1) (pvn2,tvn2) st = 
-      let val pat = get_unm_pat st;
+      let val pat = get_pat st;
           val tgt = get_unm_tgt st;
       in
         (case G.lookup_box_of tgt tvn2 of 
@@ -225,7 +230,7 @@ functor SimpleMatchSearch(Match : MATCH)
               NONE => SOME st (* no bboxes; continue as normal *)
             | SOME pbbn2 => (* some pat bbox, no tgt bbox *)
               (case BBMap.lookup_domf (get_bbmap st) pbbn2 of
-                 NONE => SOME (st |> update_unm_pat (G.drop_box pbbn2)
+                 NONE => SOME (st |> update_pat (G.drop_box pbbn2)
                                   |> update_match (Match.add_bbox_drop pbbn2))
                | SOME _ => NONE)) (* pat bbox already mapped; can't be dropped  *)
          | SOME tbbn2 => 
@@ -264,12 +269,17 @@ functor SimpleMatchSearch(Match : MATCH)
       if Match.emap_contains (get_match st) (peh1,teh1) then st 
       else
       let 
+        val _ = Log.log 3 ("edgematch1: " 
+                ^ "pvn1=" ^ (V.string_of_name pvn1) 
+                ^ "; tvn1=" ^ (V.string_of_name tvn1) 
+                ^ "; peh1=" ^ (E.Ehn.string_of_name peh1) 
+                ^ "; teh1=" ^ (E.Ehn.string_of_name teh1) 
+                ^ "\n" ^ (Pretty.string_of (pretty st)));
         (* get the ends close to the matched vertex; peh1 and teh1 are ends
            touching the adjacent vertex. *)
         val peh2 = E.Ehn.other peh1; 
         val teh2 = E.Ehn.other teh1;
-        val pat = get_unm_pat st;
-        val init_pat = get_pat st; 
+        val pat = get_pat st; 
       in  
         st |> update_match (Match.match_edge_data pe_d te_d)
            (* must try to match bboxes before deleting vertex from pat. *)
@@ -277,15 +287,14 @@ functor SimpleMatchSearch(Match : MATCH)
            (* set vertex and edge match and delete vertex from pat*)
            |> (if G.is_boundary pat pvn2
                then (* pvn2 is a boundary vertex *)
-                del_pat_vertex pvn2
-                o update_match 
+                update_match 
                   ((fn m => case Match.other_plugging_half_of_same_edge 
                                   m peh2 teh2 
                             of NONE => m
                              | SOME peh2_plug => 
                               (Match.add_plugging 
-                                (G.get_ehn_vname init_pat peh1)
-                                (G.get_ehn_vname init_pat 
+                                (G.get_ehn_vname pat peh1)
+                                (G.get_ehn_vname pat 
                                     (E.Ehn.other peh2_plug))
                                 m) handle G.no_such_ename_exp _ => m)
                    o (case (pe_dir,te_dir) 
@@ -330,34 +339,66 @@ functor SimpleMatchSearch(Match : MATCH)
       end;
 
   (* all possible target edge matches, if none then fail *)
+  (* peh is the edge-half closest to pvn2 *)
   (* raises Match.match_exp on failure *)
   fun edge_match_adj_to_pedge (pt as (pvn1,tvn1))
                               (pe as (peh,(pe_dir,pe_d))) pvn2 
                               agenda_and_st_choices = 
-      (case maps (fn (unmatched_tes, st) => 
-                  snd (fold (try_edgematch1 pt (pe,pvn2) st) 
+      (Log.log 3 ("edge_match_adj_to_pedge:" 
+        ^ " pvn1=" ^ (V.string_of_name pvn1) 
+        ^ "; tvn1=" ^ (V.string_of_name tvn1) 
+        ^ "; pe=" ^ (E.Ehn.string_of_name peh) 
+        ^ "; pvn2=" ^ (V.string_of_name pvn2));
+      case maps (fn (unmatched_tes, st) =>
+                  (* if pattern edge is already matched to something, skip it *)
+                  if (Match.emap_contains_pat_ehn (get_match st) 
+                        (E.Ehn.other peh)) then
+                    (Log.log 3 ("edge_match_adj_to_pedge: skipped."); 
+                     [(unmatched_tes, st)])
+                  else
+                  (* try to match the pattern edge to each target edge *)
+                    snd (fold (try_edgematch1 pt (pe,pvn2) st) 
                             unmatched_tes 
                             ([], [])) (* start with no matches, no unused tes *)
                  ) agenda_and_st_choices
-       of [] => raise Match.match_exp () (* no matches found for this pat e *)
+       of [] => (Log.log 3 ("edge_match_adj_to_pedge: failed."); 
+                 raise Match.match_exp ()) (* no matches found for this pat e *)
         | agenda_and_st_choices' => agenda_and_st_choices');
 
   (* match up all adjacent edges of chosen pattern and target vertex *)
   (* raises Match.match_exp on failure (for early exit of loop) *)
   fun edgematch_all_adj (pt as (pvn1,tvn1)) st = 
-      let val adj_list = 
+      let 
+        val adj_list = 
           G.fold_adj (fn te as (ehn,_) => fn tvn2 => fn l => (te,tvn2)::l)
                      (get_unm_tgt st) tvn1 [];
+        fun pretty_adj_list g v =
+            let 
+              val adj_list = 
+              G.fold_adj (fn te => fn v2 => fn l => (te,v2)::l)
+                         g v [];
+            in 
+              (Pretty.list "[" "]" (map
+                (fn ((eh,_),vn) => Pretty.block [Pretty.str "(e=", E.Ehn.pretty_name eh, Pretty.str ",v=", V.pretty_name vn, Pretty.str ")"]) adj_list))
+            end;
+ 
+        val _ = Log.log 3 ("edgematch_all_adj:" 
+          ^ " pvn1=" ^ (V.string_of_name pvn1)
+          ^ "(adj=" ^ (Pretty.string_of (pretty_adj_list (get_pat st) pvn1))
+          ^ "); tvn1=" ^ (V.string_of_name tvn1)
+          ^ "(adj=" ^ (Pretty.string_of (pretty_adj_list (get_unm_tgt st) tvn1))
+          );
+
           (* TODO: undir edges which are self-loops will always have two matches, one for each directon. Simple-dup removal doesn't work: all half-edges much be matched.  *)
       in 
         G.fold_adj (edge_match_adj_to_pedge pt)
-                   (get_unm_pat st) pvn1 
+                   (get_pat st) pvn1 
                    [(adj_list,st)] (* target agenda of things to be matched, 
                                       current state *)
           |> map snd
           |> Seq.of_list
       end;
-  (* simple dup-removal for above does not work! Simple-dup removal doesn't work: all half-edges much be matched. 
+  (* Simple-dup removal doesn't work: all half-edges much be matched...
   (fn te as (ehn,_) => fn tvn2 => fn (l,eset) => 
                       let val e = E.Ehn.get_ename ehn in 
                         if (E.NSet.contains eset e) 
@@ -365,8 +406,6 @@ functor SimpleMatchSearch(Match : MATCH)
                         else ((te,tvn2)::l, E.NSet.add e eset) end)
                      (get_unm_tgt st) tvn1 ([],E.NSet.empty);
   *)
-
-
 
   (* copy a single bang-box *)
   fun copy1_pat_bbox bbn st = 
@@ -376,9 +415,9 @@ functor SimpleMatchSearch(Match : MATCH)
               (( V.Rnm.mk_from_avoids vs, 
                  E.Rnm.mk_from_avoids es,
                  G.BBox.Rnm.mk_from_avoids bs), 
-               get_unm_pat st);
+               get_pat st);
       in
-        st |> set_unm_pat pat2
+        st |> set_pat pat2
            |> set_names (V.Rnm.get_avoids vrn', 
                          E.Rnm.get_avoids ern', 
                          BBox.Rnm.get_avoids brn')
@@ -391,7 +430,7 @@ functor SimpleMatchSearch(Match : MATCH)
   fun nfold 0 f a = a
     | nfold n f a = nfold (n - 1) f (f a);
   fun copy_pat_bbox bbn k st = 
-      if k = 0 then st |> update_unm_pat (G.kill_box bbn) 
+      if k = 0 then st |> update_pat (G.kill_box bbn) 
                        |> update_match (Match.add_bbox_kills [bbn])
       else if k = 1 then st
       else if k > 1 then 
@@ -401,7 +440,10 @@ functor SimpleMatchSearch(Match : MATCH)
   fun compute_scope_arities pn tn st = 
       let 
         val (pntab,pbboxntab) = 
-            G.get_adj_arities_and_bang_arities (get_unm_pat st) pn;
+            G.get_filtered_adj_arities_and_bang_arities
+              (fn ((ehn,(edir,ed)),vn) => 
+                  Match.emap_contains_pat_ehn (get_match st) ehn)
+              (get_pat st) pn;
         val (tntab,tbboxntab) = 
             G.get_adj_arities_and_bang_arities (get_unm_tgt st) tn;
 
@@ -423,9 +465,9 @@ functor SimpleMatchSearch(Match : MATCH)
       end;
 
   (* find all expansions of bang boxes so that matching might be possible *)
-  (* IMPROVE: integrate into lookahead to do maximal early pruning? 
-     delay actual copying of bang box until we get an exact match to the number of 
-     edges? *)
+  (* IMPROVE: integrate into lookahead to do maximal early pruning? delay actual copying of bang box until we get an exact match to the number of edges? 
+  FIXME: only decide a bang-box expansion once, on first entry: this fixes a bang-boxes expansion: we must not allow a second vertex incident to the bang-box to change the expansion. 
+  *)
   (* returns seq of possible bang-box expanded graphs paired with the target 
      number of edges that need to be ignored. 
 
@@ -435,6 +477,11 @@ functor SimpleMatchSearch(Match : MATCH)
   fun expand_adj_pat_bboxes pn tn st = 
       let 
          val (scope_arity,pbboxsums) = compute_scope_arities pn tn st;
+         val _ = Log.log 3 ("expand_adj_pat_bboxes: "
+           ^ "pn=" ^ (V.string_of_name pn) 
+           ^ "; tn=" ^ (V.string_of_name tn)
+           ^ "; scope_arity=" ^ (Pretty.string_of (Arity.pretty scope_arity))
+           ^ "; pbboxsums=" ^ (Pretty.string_of (Arity.pretty scope_arity)));
       in 
         if Arity.has_negative_incidence scope_arity 
         then Seq.empty (* Fail: need at least pn edges *)
@@ -473,19 +520,19 @@ functor SimpleMatchSearch(Match : MATCH)
         (st : T) (* match state so far *)
         (tn : V.name) = (* target vertex name *)
       let 
-        val pat = get_unm_pat st;
+        val pat = get_pat st;
         val tgt = get_unm_tgt st;
         val pd = G.get_vertex_data pat pn;
         val td = G.get_vertex_data tgt tn;
+        val _ = Log.log 3 ("match_2vertices_with_edges: " 
+          ^ "pn=" ^ (V.string_of_name pn) ^ "; tn=" ^ (V.string_of_name tn));
       in (* check data matches *)
         st |> update_match (Match.match_vertex (pn,pd) (tn,td))
            |> expand_adj_pat_bboxes pn tn
            |> Seq.maps (edgematch_all_adj (pn,tn))
            (* force evaluation so as to catch exception *) 
            (* FIXME: fix this hack *)
-           |> Seq.list_of |> Seq.of_list 
-           (* remove pattern vertex, ignore now redudnent info *)
-           |> Seq.map (del_pat_vertex pn)
+           |> Seq.list_of |> Seq.of_list
       end handle Match.match_exp _ => Seq.empty;
 
 
@@ -498,38 +545,18 @@ functor SimpleMatchSearch(Match : MATCH)
   val get_unboxed_tgt_vnseq = 
       Seq.of_list o V.NSet.list_of o get_unm_unboxed_tgt_vs;
 
-  datatype pulled_vertex_kind = 
-           BBoxed of V.name 
-         | UnBBoxed of V.name;
-
-  (* try to get next unboxed pattern vertex, give back vertex in bbox if none 
-     outside it. *)
-  (* IMPROVE: store a maximally internal traversal of the pattern (as the
-     pre-agenda) which can then connected to the tgt vertices as the agenda. This 
-     will save repeated search for non-boundary vertices - also the basis of more 
-     efficient algorithm. (see also pop_agenda) *)
-  fun get_next_pat_vertex st = 
-      let val unboxed_p_vs = (get_unm_unboxed_pat_vs st)
-          val pat = get_unm_pat st
-      in
-        case V.NSet.get_exists 
-               (fn n => not (G.is_boundary pat n)) unboxed_p_vs 
-        of SOME n => SOME (UnBBoxed n)
-         | NONE => 
-            (case (V.NSet.get_local_bot unboxed_p_vs) of
-               SOME n => SOME (UnBBoxed n)
-             | NONE => 
-                (case (V.NSet.get_local_bot (get_unm_pat_vs st)) of 
-                   NONE => NONE
-                 | SOME n => SOME (BBoxed n)))
-      end;
+  (* *)
+  fun pull_next_pat_vertex st = 
+      case Seq.pull (get_unm_pat_vs st) of NONE => NONE
+      | SOME (n : vertex_kind_name, more) =>
+        SOME (n, set_unm_pat_vs more st);
 
   (* FIXME: this is used as a hack to avoid searching expansions of bang boxes which are disjoint form the rest of the pattern graph. *)
   fun drop_all_bboxes_in_pat st = 
-      let val pat = get_unm_pat st;
+      let val pat = get_pat st;
           val bboxlist = G.get_bbox_list pat;
       in 
-        st |> update_unm_pat (fold G.kill_box bboxlist)
+        st |> update_pat (fold G.kill_box bboxlist)
            |> update_match (Match.add_bbox_kills bboxlist)
       end;
 
@@ -538,22 +565,30 @@ functor SimpleMatchSearch(Match : MATCH)
       (case pop_agenda st 
         of NONE => (* nothing connected to previously matched parts *)
            (* get next pat vertex to match, non-boxed first *)
-           (case get_next_pat_vertex st of 
+           (case pull_next_pat_vertex st of 
               NONE => (* no pattern vertices left! *)
-                FoundMatch st (* because we finished! *)
-            | SOME (UnBBoxed pn) => (* have a pat vertex outside bangboxes... *)
-              Progress 
+                (Log.log 3 ("FoundMatch " 
+                  ^ "\n" ^ (Pretty.string_of (pretty st)));
+                FoundMatch st) (* because we finished! *)
+            (* have a pat vertex outside bangboxes... and we've pulled it 
+               from the unmatched pattern list. *)
+            | SOME (UnBBoxed pn, st) => 
+              (Log.log 3 ("Progress: (UnBBoxed " ^ (V.string_of_name pn) ^ ")"
+                ^ "\n" ^ (Pretty.string_of (pretty st)));
+               Progress 
                 (Seq.maps (* choices over picking a new vertex in tgt *)
                    (match_2vertices_with_edges pn st)
-                   (get_unboxed_tgt_vnseq st))
-            | SOME (BBoxed pn) => (* FIXME: add initial bbox match *)
+                   (get_unboxed_tgt_vnseq st)))
+            | SOME (BBoxed pn, st) => (* FIXME: add initial bbox match *)
               (* all other things are in boxes, 
                  so killing them all gives a valid matching... *)
               (* FIXME: find all box-unfoldings and macthes to target !-boxes *)
               FoundMatch (drop_all_bboxes_in_pat st)) 
          | SOME ((pn,tn),st2) => (* match these things, only question is how ...*)
+           (Log.log 3 ("Progress: (UnBBoxed " ^ (V.string_of_name pn) ^ ")"
+                ^ "\n" ^ (Pretty.string_of (pretty st)));
            Progress (* deal with first prescribed and-choice *)
-             (match_2vertices_with_edges pn st2 tn));
+             (match_2vertices_with_edges pn st2 tn)));
 
   (* *)
   fun match' m pat tgt initagenda = 
@@ -563,7 +598,7 @@ functor SimpleMatchSearch(Match : MATCH)
            elem of lazy list. We can then rest until asked for the next thing! *)
         fun match_search or_agenda () = 
             (case Seq.pull or_agenda of 
-               NONE => NONE
+               NONE => (Log.log 3 ("Seq.pull or_agenda = NONE"); NONE)
              | SOME (st,more_or_choices) =>
                (case do_next_match_choices st of 
                   FoundMatch st2 => 
