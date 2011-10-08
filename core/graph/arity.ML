@@ -46,6 +46,9 @@ sig
              no_out : int, (* number of outgoig edges *)
              no_undir : int (* number of undirected, connected edges *) }
 
+  val pretty : T -> Pretty.T
+  val print : T -> unit
+
 end;
 
 (* *)
@@ -105,7 +108,7 @@ struct
         no_out = (#no_out rep) div i,
         no_undir = (#no_undir rep) div i };
   
-  fun mult_by_int i (Arity rep)= 
+  fun mult_by_int i (Arity rep) = 
       Arity { no_in = (#no_in rep) * i, 
         no_out = (#no_out rep) * i,
         no_undir = (#no_undir rep) * i };
@@ -130,5 +133,16 @@ struct
          [#no_in rep, #no_out rep, #no_undir rep]
          NONE;
 
+  fun pretty (Arity rep) = 
+      Pretty.block 
+        ( [Pretty.str "(in:",
+           Pretty.str (Int.toString (#no_in rep))]
+        @ [Pretty.str ", out:",
+           Pretty.str (Int.toString (#no_in rep))]
+        @ [Pretty.str ", undir:",
+           Pretty.str (Int.toString (#no_in rep))]
+        @ [Pretty.str ")"] );
+
+  val print = Pretty.writeln o pretty;
 
 end; (* *)

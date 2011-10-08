@@ -1,0 +1,2 @@
+<?xml version="1.0"?>
+<graph><vertex name="c"><type>GHZ</type><data/></vertex><vertex name="b"><type>edge-point</type><data/></vertex><vertex name="a"><type>edge-point</type><data/></vertex><edge name="c" dir="true" source="c" target="c"><type>unit</type><data/></edge><edge name="b" dir="true" source="c" target="b"><type>unit</type><data/></edge><edge name="a" dir="true" source="a" target="c"><type>unit</type><data/></edge><bangbox name="Ba"><vertex>a</vertex></bangbox><bangbox name="Bb"><vertex>b</vertex></bangbox></graph>
