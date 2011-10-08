@@ -296,7 +296,7 @@ functor SimpleMatchSearch(Match : MATCH)
                                 (G.get_ehn_vname pat peh1)
                                 (G.get_ehn_vname pat 
                                     (E.Ehn.other peh2_plug))
-                                m) handle G.no_such_ename_exp _ => m)
+                                m))
                    o (case (pe_dir,te_dir) 
                       of (G.Directed, G.Directed) => 
                          (Match.dir_match_edgehalf_name' peh2 teh2)

@@ -38,6 +38,7 @@ end
 
 functor WeightedArityMetric(
   structure Graph : BANG_GRAPH
+  val weight_for_data : Graph.Vertex.data -> int
 ) : GRAPH_METRIC =
 struct
   type T = int
