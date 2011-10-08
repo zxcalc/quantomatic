@@ -126,10 +126,6 @@ PolyML.Project.make "theories/graphical_theory.ML";
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/vertex.ML";
 
-(* I/O for old RG-graphs, depends on defining RG_VertexData *)
-PolyML.Project.make "io/input_graph_v1.ML";
-PolyML.Project.make "io/output_graph_v1.ML";
-
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)

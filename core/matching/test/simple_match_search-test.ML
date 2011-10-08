@@ -6,6 +6,8 @@ open Testing;
 open Test_MkG;
 structure M = Test_Match;
 structure S = Test_SimpleMatchSearch;
+(* set log level for tests *)
+val _ = (S.Log.level_ref := 4)
 val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
 fun match g1 g2 = Seq.list_of (S.match no_extra_names g1 g2);
 in val _ = let 
@@ -213,7 +215,7 @@ val _ = test "match9: should fail to match" (fn () =>
     val [] = match pat tgt;
   in () end) ();
 
-val _ = test "match with pluggings" 
+val _ = test "match-with-pluggings" 
   (fn () => 
   let
     (* Graph: (B - X - X - B) *)
@@ -271,7 +273,9 @@ val [m] = Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty);
 val _ = Match.print m;
 *)
 in
-  (assert_no_failed_tests (); Pretty.writeln (Pretty.str "Tests passed: graph matching."))
+  (S.Log.level_ref := 0; 
+   assert_no_failed_tests (); 
+   Pretty.writeln (Pretty.str "Tests passed: graph matching."))
 end  (* let *)
 handle e => 
        (Pretty.writeln (Pretty.str "Test Failed: graph matching."); raise e);
