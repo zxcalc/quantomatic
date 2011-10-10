@@ -49,7 +49,7 @@
           desc="Save the current graph under a different name"/>
 
 	<action id="load-theory-command"
-		name="Load theory"
+		name="Load theory..."
 		mnemonic="T"
 		desc="Load a theory file" />
 

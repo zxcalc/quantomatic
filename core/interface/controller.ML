@@ -221,6 +221,7 @@ signature CONTROLLER_REGISTRY
 = sig
   val register_eval_func : string -> (Commands.request -> Commands.response) -> unit;
   val get_eval_func : string -> (Commands.request -> Commands.response) option;
+  val get_theories: unit -> string list;
 end;
 
 structure ControllerRegistry : CONTROLLER_REGISTRY
@@ -231,6 +232,8 @@ structure ControllerRegistry : CONTROLLER_REGISTRY
         eval_funcs := Symtab.update_new (theory_name,func) (!eval_funcs)
 
   fun get_eval_func name = Symtab.lookup (!eval_funcs) name
+
+  fun get_theories () = Symtab.keys (!eval_funcs)
 end;
 
 

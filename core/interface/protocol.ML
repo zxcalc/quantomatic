@@ -1015,6 +1015,8 @@ struct
           (outputResponse (requestId, StringResponse { data = name }))
     fun outputErrorResponse requestId code message =
           (outputResponse (requestId, ErrorResponse { errorCode = code, message = message }))
+    fun outputStringListResponse requestId items =
+          (outputResponse (requestId, StringListResponse { data = items }))
     (* }}} *)
 
     (* {{{ Input helpers *)
@@ -1940,6 +1942,10 @@ struct
                              (outputErrorResponse requestId "BADTHEORY" "Unknown theory";
                               next_loop())
                     end)
+
+         | "TL" => (assertAtEnd();
+                    outputStringListResponse requestId (ControllerRegistry.get_theories());
+                    next_loop())
 
          | code => (outputResponse (Commands.serviceRequestMessage eval
                                       (requestId, (readRequestBody code)));
