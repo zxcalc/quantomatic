@@ -6,13 +6,13 @@ sig
     datatype term =
 	     Tens of term list |
 	     Comp of term list |
-	     V of Graph.Vertex.name |
+	     V of V.name |
 	     Sigma of Permutation.T |
 	     Id of int
     (* a component holds a term and a list of inputs in order *)
-    type component = Graph.Edge.name list * term * Graph.Edge.name list
+    type component = E.name list * term * E.name list
 
-    val translate_vertex : Graph.T -> Graph.Vertex.name -> component
+    val translate_vertex : Graph.T -> V.name -> component
 end
 
 
@@ -39,13 +39,13 @@ end
 (* perform the composition t1 ; t2 *)
 fun compose (i1, t1, o1) (_, Id _, _) = (i1, t1, o1)
   | compose (i1, t1, o1) (i2, t2, o2) = let
-    val oset = Graph.Edge.NSet.of_list o1
-    val new_ins =  filter_out (Graph.Edge.NSet.contains oset) i2
+    val oset = E.NSet.of_list o1
+    val new_ins =  filter_out (E.NSet.contains oset) i2
     val full_t1 = case length new_ins
 		   of 0 => t1
 		    | n => (case t1 of Tens ts => Tens (ts@[Id n])
 				     | _ => Tens [t1, Id n])
-    val perm = Permutation.get_perm Graph.Edge.name_ord (o1 @ new_ins) i2
+    val perm = Permutation.get_perm E.name_ord (o1 @ new_ins) i2
     val sigma = if Permutation.is_id perm then [] else [Sigma perm]
 in
     (i1 @ new_ins, flat_compose (full_t1 :: sigma @ [t2]), o2)
@@ -60,7 +60,7 @@ in #2 (fold_rev compose (map tens_rank ranks) ([], Id 0, []))
 end
 
 
-fun pretty_text (V n) = Graph.Vertex.pretty_name n
+fun pretty_text (V n) = V.pretty_name n
   | pretty_text (Id num) = Pretty.str ("id(" ^ (Int.toString num) ^ ")")
   | pretty_text (Sigma perm) = Pretty.block[Pretty.str "sig",
 					    Pretty.str_list
@@ -88,16 +88,16 @@ structure Graph = RGGraph
 datatype term =
 	 Tens of term list |
 	 Comp of term list |
-	 V of Graph.Vertex.name |
+	 V of V.name |
 	 Sigma of Permutation.T |
 	 Id of int
 
 (* a component holds a term and a list of inputs in order *)
-type component = Graph.Edge.name list * term * Graph.Edge.name list
+type component = E.name list * term * E.name list
 		 
 fun translate_vertex graph v = let
-    val (ie,oe) = ((apfst Graph.Edge.NSet.list_of) o
-		   (apsnd Graph.Edge.NSet.list_of) o
+    val (ie,oe) = ((apfst E.NSet.list_of) o
+		   (apsnd E.NSet.list_of) o
 		   snd) (Graph.get_vertex graph v)
 in (ie,V v,oe)
 end

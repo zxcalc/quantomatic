@@ -86,25 +86,25 @@ end;
 (* Adds OGraph semantics to a ELEMENT_COMPONENT_DATA_PARAM *)
 functor OVertexComponentData_Param(
   structure VertexDataParam : ELEMENT_COMPONENT_DATA_PARAM
-  structure OVertex : OVERTEX
-  sharing type OVertex.IData.data = VertexDataParam.data
+  structure OVData : OVERTEX_DATA
+  sharing type OVData.IData.data = VertexDataParam.data
 )
 : ELEMENT_COMPONENT_DATA_PARAM
 = struct 
-  type data = OVertex.data;
+  type data = OVData.data;
   exception unknown_type_exp = VertexDataParam.unknown_type_exp
 
-  fun type_of (OVertex.EVert) = "edge-point"
-    | type_of (OVertex.IVert d) = VertexDataParam.type_of d;
+  fun type_of (OVData.EVert) = "edge-point"
+    | type_of (OVData.IVert d) = VertexDataParam.type_of d;
 
-  fun cdata_of (OVertex.EVert) = ComponentData.Unit
-    | cdata_of (OVertex.IVert d) = VertexDataParam.cdata_of d;
+  fun cdata_of (OVData.EVert) = ComponentData.Unit
+    | cdata_of (OVData.IVert d) = VertexDataParam.cdata_of d;
 
-  fun default_data "edge-point" = OVertex.EVert
-    | default_data n = OVertex.IVert (VertexDataParam.default_data n);
+  fun default_data "edge-point" = OVData.EVert
+    | default_data n = OVData.IVert (VertexDataParam.default_data n);
 
-  fun update _ OVertex.EVert = OVertex.EVert
-    | update upd (OVertex.IVert d) = (OVertex.IVert (VertexDataParam.update upd d));
+  fun update _ OVData.EVert = OVData.EVert
+    | update upd (OVData.IVert d) = (OVData.IVert (VertexDataParam.update upd d));
 end;
 
 signature ELEMENT_COMPONENT_DATA =

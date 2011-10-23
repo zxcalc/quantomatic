@@ -10,8 +10,8 @@ signature BASIC_MATCH_SEARCH
   structure Sharing : BASIC_MATCH_SEARCH_SHARING 
   sharing Sharing.Match = Match.Sharing
   
-  val match : (Match.G.Vertex.NSet.T * Match.G.Edge.NSet.T 
-               * Match.G.BBox.NSet.T)
+  val match : (V.NSet.T * E.NSet.T 
+               * B.NSet.T)
               -> Match.G.T -> Match.G.T
               -> Match.T Seq.seq
   
@@ -21,27 +21,23 @@ functor SimpleMatchSearch(Match : MATCH)
 = struct
 
   structure G = Match.G;
-  structure V = G.OVertex;
-  structure E = G.Edge;
 
   structure Match = Match;
 
   structure BBMatch = Match.BBMatch;
-  structure BBox = G.BBox;
-  structure BBMap = BBMatch.BBMap;
-
+  
   datatype T = 
            MState of 
            {(* and-agenda = (pat -> tgt) = we are commited to matching these *) 
             agenda : V.name V.NTab.T, 
             (* global vertex and edge matching info *)
             match : Match.T, 
-            (* the full pattern graph, needed for self-plugging checks? *)
+            (* the full pattern graph, needed for self-plugging checks. *)
             pat : G.T, 
             (* the pat graph with vertices removed as we match them *)
             unm_pat : G.T, 
             (* unmatched leaves from init pat. Needed to distinguish with
-               boundary points introduced by !-boxs *)
+               boundary points introduced by !-boxes *)
             pat_boundary : V.NSet.T, 
             (* tgt with matched edges removed as we match them *)
             unm_tgt : G.T 
@@ -224,7 +220,7 @@ functor SimpleMatchSearch(Match : MATCH)
            (case G.lookup_box_of pat pvn2 of 
               NONE => SOME st (* no bboxes; continue as normal *)
             | SOME pbbn2 => (* some pat bbox, no tgt bbox *)
-              (case BBMap.lookup_domf (get_bbmap st) pbbn2 of
+              (case BMap.lookup_domf (get_bbmap st) pbbn2 of
                  NONE => SOME (st |> update_unm_pat (G.drop_box pbbn2)
                                   |> update_match (Match.add_bbox_drop pbbn2))
                | SOME _ => NONE)) (* pat bbox already mapped; can't be dropped  *)
@@ -232,19 +228,19 @@ functor SimpleMatchSearch(Match : MATCH)
            (case G.lookup_box_of pat pvn2 of 
               NONE => NONE (* target bbox, but no pat bbox => fail *)
             | SOME pbbn2 => (* both in bboxes *)
-              (case BBMap.lookup_domf (get_bbmap st) pbbn2 of
+              (case BMap.lookup_domf (get_bbmap st) pbbn2 of
                  NONE => (* pattern bbox not yet mapped - make new mapping *)
                  (case G.lookup_box_of tgt tvn1 of
                     NONE => SOME (st |> update_match (Match.add_bbox_map pbbn2 tbbn2))
                   | SOME tbbn1 =>
                     (* two adj pat !-boxes can't match single adj target one *)
-                    if (BBox.name_eq (tbbn1,tbbn2)) andalso 
-                       not (BBox.name_eq (G.get_box_of pat pvn1,pbbn2))
+                    if (B.name_eq (tbbn1,tbbn2)) andalso 
+                       not (B.name_eq (G.get_box_of pat pvn1,pbbn2))
                     then NONE
                     else 
                       SOME (st |> update_match (Match.add_bbox_map pbbn2 tbbn2)))
                | SOME tbbn2' => (* already mapped to a tgt bang box *)
-                 if (BBox.name_eq (tbbn2,tbbn2'))
+                 if (B.name_eq (tbbn2,tbbn2'))
                  then SOME st (* already mapped to this bbox *)
                  else NONE))) (* already mapped elsewhere *)
       end;
@@ -266,8 +262,8 @@ functor SimpleMatchSearch(Match : MATCH)
       let 
         (* get the ends close to the matched vertex; peh1 and teh1 are ends
            touching the adjacent vertex. *)
-        val peh2 = E.Ehn.other peh1; 
-        val teh2 = E.Ehn.other teh1;
+        val peh2 = H.other peh1; 
+        val teh2 = H.other teh1;
         val pat = get_unm_pat st;
         val init_pat = get_pat st; 
       in  
@@ -286,7 +282,7 @@ functor SimpleMatchSearch(Match : MATCH)
                               (Match.add_plugging 
                                 (G.get_ehn_vname init_pat peh1)
                                 (G.get_ehn_vname init_pat 
-                                    (E.Ehn.other peh2_plug))
+                                    (H.other peh2_plug))
                                 m))
                    o (case (pe_dir,te_dir) 
                       of (G.Directed, G.Directed) => 
@@ -296,7 +292,7 @@ functor SimpleMatchSearch(Match : MATCH)
                        | _ => raise Match.match_exp ())
                     o Match.match_boundary pvn2 tvn2)
                else (* pvn2 is an internal vertex *)
-                 del_tgt_edge (E.Ehn.get_ename teh1)
+                 del_tgt_edge (H.get_ename teh1)
                  o update_match 
                     ((case (pe_dir,te_dir) 
                         of (G.Directed, G.Directed) => 
@@ -359,7 +355,7 @@ functor SimpleMatchSearch(Match : MATCH)
       end;
   (* simple dup-removal for above does not work! Simple-dup removal doesn't work: all half-edges much be matched. 
   (fn te as (ehn,_) => fn tvn2 => fn (l,eset) => 
-                      let val e = E.Ehn.get_ename ehn in 
+                      let val e = H.get_ename ehn in 
                         if (E.NSet.contains eset e) 
                         then (l,eset) ** avoid counting self-loop-edges twice **
                         else ((te,tvn2)::l, E.NSet.add e eset) end)
@@ -375,13 +371,13 @@ functor SimpleMatchSearch(Match : MATCH)
             G.copy1_box bbn 
               (( V.Rnm.mk_from_avoids vs, 
                  E.Rnm.mk_from_avoids es,
-                 G.BBox.Rnm.mk_from_avoids bs), 
+                 B.Rnm.mk_from_avoids bs), 
                get_unm_pat st);
       in
         st |> set_unm_pat pat2
            |> set_names (V.Rnm.get_avoids vrn', 
                          E.Rnm.get_avoids ern', 
-                         BBox.Rnm.get_avoids brn')
+                         B.Rnm.get_avoids brn')
            |> update_match (Match.add_bbox_copy 
                 (bbn,(V.Rnm.get_nmap vrn',E.Rnm.get_nmap ern'),bbn2))
       end;
@@ -408,8 +404,8 @@ functor SimpleMatchSearch(Match : MATCH)
         (* implicit: ntab k *)
         val ntab_sum = V.NTab.fold (fn (n,i) => Arity.add i);
         val sum_in_bboxtab = 
-            BBox.NTab.map_all (fn n => fn ntab => ntab_sum ntab Arity.zero);
-        val summed_bbox_sum = BBox.NTab.fold (fn (n,i) => Arity.add i);
+            B.NTab.map_all (fn n => fn ntab => ntab_sum ntab Arity.zero);
+        val summed_bbox_sum = B.NTab.fold (fn (n,i) => Arity.add i);
 
         val pbboxsums = sum_in_bboxtab pbboxntab;
         val tbboxsums = sum_in_bboxtab tbboxntab;
@@ -440,7 +436,7 @@ functor SimpleMatchSearch(Match : MATCH)
         then Seq.empty (* Fail: need at least pn edges *)
         else (* go through each bang box considering all expansions of it, 
                 upto size limit, combined with each previous possibility *)
-          BBox.NTab.fold
+          B.NTab.fold
             (fn (bbn,bbarity) => Seq.maps (* i edges to this bang box *)
                 (fn (scope_arity,st) => 
                   Seq.of_list
@@ -574,7 +570,7 @@ functor SimpleMatchSearch(Match : MATCH)
         val init_st = (init m pat tgt initagenda)
       in Seq.make (match_search (Seq.single init_st)) end;
 
-  (* val match : (V.NSet.T * E.NSet.T * G.BBox.NSet.T)
+  (* val match : (V.NSet.T * E.NSet.T * B.NSet.T)
                -> G.T -> G.T -> Match.T Seq.seq  *)
   fun match names pat tgt = let
     in match' (Match.init names pat tgt) pat tgt V.NTab.empty end

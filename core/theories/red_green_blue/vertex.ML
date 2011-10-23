@@ -32,33 +32,12 @@ structure RGB_VertexData
   
   fun pretty_subst _ = Pretty.str "";
   val print_subst = Pretty.writeln o pretty_subst;
-end;
-
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-structure RGB_Vertex
-: VERTEX
-= struct
   
-  open RGB_VertexData;
-  open SStrName;
-
-  val default_name = mk "a";
-  val default_data = RGB_VertexData.Green;
-
-  structure Map = NameMapFun(structure Dom = SStrName and Cod = SStrName);
-  structure InjEndo = NameInjEndoFun(SStrName);
-
-  structure SharingWithData = struct 
-    open Sharing; 
-    type data = RGB_VertexData.data;
-    type subst = RGB_VertexData.subst;
-    structure Map = Map.Sharing;
-    structure InjEndo = InjEndo.Sharing;
-  end;
-  (* Note signature constraint hides stuff for us *)
-  structure SharingWithoutData = SharingWithData;
-
+  val default_data = Red;
+  
+  structure Sharing = struct type data = data; type subst = subst; end;
 end;
+
 
 (*  *)
 structure RGB_VertexComponentData_Param

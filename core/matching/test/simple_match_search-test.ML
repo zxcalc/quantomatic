@@ -6,7 +6,7 @@ open Testing;
 open Test_MkG;
 structure M = Test_Match;
 structure S = Test_SimpleMatchSearch;
-val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
 fun match g1 g2 = Seq.list_of (S.match no_extra_names g1 g2);
 in val _ = let 
 
@@ -134,7 +134,7 @@ val _ = test "match7: removing a self-loop on an X node: drop bbox" (fn () =>
     val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
     val (_, g) = g |> G.add_edge undir_edge n1 n1;
     val (_, g) = g |> G.add_edge undir_edge b1 n1;
-    val (bbn, g) = g |> G.new_box (G.BBox.mk "B0");
+    val (bbn, g) = g |> G.new_box (B.mk "B0");
     val g = g |> G.move_to_box bbn (V.NSet.single b1);
     val pat = g;
     
@@ -162,7 +162,7 @@ val _ = test "match8: unfolding 1 bbox" (fn () =>
     val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
     val (_, g) = g |> G.add_edge undir_edge n1 n1;
     val (_, g) = g |> G.add_edge undir_edge b1 n1;
-    val (bbn, g) = g |> G.new_box (G.BBox.mk "B0");
+    val (bbn, g) = g |> G.new_box (B.mk "B0");
     val g = g |> G.move_to_box bbn (V.NSet.single b1);
     val pat = g;
 
@@ -247,7 +247,7 @@ val _ = test "match with pluggings"
     val pat_inst3 = M.inst_pat_graph m3 pat; 
     val pat_inst4 = M.inst_pat_graph m4 pat; 
     
-    val _ = if E.NSet.is_empty (G.get_edgepoints pat_inst1) then () 
+    val _ = if V.NSet.is_empty (G.get_edgepoints pat_inst1) then () 
         else raise ERROR "has an edge-point";
 
   in () end) ();
@@ -267,7 +267,7 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val [m] = Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty);
+val [m] = Seq.list_of (MatchSearch.match pat tgt V.NTab.empty);
 val _ = Match.print m;
 *)
 in

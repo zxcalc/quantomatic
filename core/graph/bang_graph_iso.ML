@@ -4,45 +4,31 @@
 signature BANG_GRAPH_ISO_SHARING
 = sig
   include GRAPH_ISO_SHARING
-  structure BBoxInjEndo : NAME_INJENDO_SHARING
 end;
 
 
 signature BANG_GRAPH_ISO
 = sig
   include GRAPH_ISO
-  structure BBoxInjEndo : NAME_INJENDO;
 
-  structure SharingWithBBox : BANG_GRAPH_ISO_SHARING
-  sharing Sharing = SharingWithBBox;
-  sharing BBoxInjEndo.Sharing = SharingWithBBox.BBoxInjEndo;
-
-  val get_bmap : T -> BBoxInjEndo.T
+  val get_bmap : T -> BInjEndo.T
 end;
 
 
 functor BangGraphIso(Graph : BANG_GRAPH) 
 : BANG_GRAPH_ISO
 = struct
-  
-  structure Vertex = Graph.Vertex;
-  structure Edge = Graph.Edge;
   structure Param = Graph.Param;
-  structure BBoxInjEndo = Graph.BBoxInjEndo;
   
   type graph = Graph.T;
-  type T = (Vertex.InjEndo.T * Edge.InjEndo.T * BBoxInjEndo.T * Param.subst);  
+  type subst = Param.subst;
+  type T = (VInjEndo.T * EInjEndo.T * BInjEndo.T * subst);  
 
   structure Sharing =
   struct 
-    structure Param = Param.Sharing
+    type subst = subst
     type T = T
     type graph = graph;
-  end;
-  structure SharingWithBBox = 
-  struct
-    open Sharing; 
-    structure BBoxInjEndo = BBoxInjEndo.Sharing
   end;
 
   fun get_vmap (v,_,_,_) = v;
@@ -60,8 +46,8 @@ functor BangGraphIso(Graph : BANG_GRAPH)
   fun match_boxes g h vng vnh b =
       (case (Graph.lookup_box_of g vng,Graph.lookup_box_of h vnh) of
            (NONE,NONE)       =>  b
-         | (SOME bg,SOME bh) => ((b |> BBoxInjEndo.add bg bh)
-                                handle BBoxInjEndo.add_exp _ 
+         | (SOME bg,SOME bh) => ((b |> BInjEndo.add bg bh)
+                                handle BInjEndo.add_exp _ 
                                     => raise box_mismatch_exp())
          | _                 => raise box_mismatch_exp ());
       
@@ -75,18 +61,18 @@ functor BangGraphIso(Graph : BANG_GRAPH)
   *)
   fun get_isomorphisms_match_next_edge v e b u t g h gs hs otherend = let
       val n1 = Option.valOf
-              (Edge.NSet.get_local_bot gs)
+              (E.NSet.get_local_bot gs)
       val ((dir1,d1),_) = Graph.get_edge g n1
     in 
       Seq.maps get_isomorphisms_match_next
       (Seq.map_filter
         (fn n2 => 
             let val ((dir2,d2),_) = Graph.get_edge h n2 in
-              if dir1 <> dir2 (* andalso Edge.data_eq(d1,d2) *) 
+              if dir1 <> dir2 (* andalso EData.data_eq(d1,d2) *) 
               then NONE 
               else SOME
-                (v |> Vertex.InjEndo.add (otherend n1 g) (otherend n2 h),
-                 e |> Edge.InjEndo.add n1 n2,
+                (v |> VInjEndo.add (otherend n1 g) (otherend n2 h),
+                 e |> EInjEndo.add n1 n2,
                  b,
                  u |> match_edge_both_ways d1 d2,
                  Seq.append t  (* push match of the target vertex of
@@ -95,19 +81,20 @@ functor BangGraphIso(Graph : BANG_GRAPH)
                                 otherend n2 h)),
                  g |> Graph.delete_edge n1,
                  h |> Graph.delete_edge n2)
-                 handle Vertex.InjEndo.add_exp _ => NONE
+                 handle VInjEndo.add_exp _ => NONE
                       | Param.match_exp _         => NONE
              end)
-          (Edge.NSet.seq_of hs))
+          (E.NSet.seq_of hs))
     end
   and get_isomorphisms_match_next (v,e,b,u,t,g,h) = 
     (case Seq.pull t of
       (* Nothing to match; start matching new connectivity component *)
       NONE                => let
-         val gbot = the (Vertex.NSet.get_local_bot (Graph.get_vnames g))
-         val hmin = Vertex.NSet.get_min (Graph.get_vnames h)
+         val gbot = the (V.NSet.get_local_bot (Graph.get_vnames g))
+         
+         (* TODO: ??? val hmin = V.NSet.get_min (Graph.get_vnames h) *)
          fun maketuple n = (v,e,b,u,Seq.single (gbot,n),g,h);
-      in Seq.map maketuple (Vertex.NSet.seq_of (Graph.get_vnames h)) end 
+      in Seq.map maketuple (V.NSet.seq_of (Graph.get_vnames h)) end 
       (* Something to match; return lazy list of all possible next steps *)
     | SOME ((vng,vnh),t') => let
          (* point undirected edges towards us *)
@@ -118,8 +105,8 @@ functor BangGraphIso(Graph : BANG_GRAPH)
               else gr end
          val (_,(_,gout)) = Graph.get_vertex g vng
          val (_,(_,hout)) = Graph.get_vertex h vnh
-         val g = g |> Edge.NSet.fold attract gout
-         val h = h |> Edge.NSet.fold attract hout
+         val g = g |> E.NSet.fold attract gout
+         val h = h |> E.NSet.fold attract hout
          (* some other helper stuff *)
          val (gd,(gin,gout)) = Graph.get_vertex g vng
          val (hd,(hin,hout)) = Graph.get_vertex h vnh
@@ -127,14 +114,14 @@ functor BangGraphIso(Graph : BANG_GRAPH)
                    in f end;
          fun esnk n x = let val (_,(f,t)) = Graph.get_edge x n
                    in t end;
-      in if true (*Vertex.data_eq (gd,hd)*)
-         then case (Edge.NSet.is_empty gin,
-                    Edge.NSet.is_empty hin,
-                    Edge.NSet.is_empty gout,
-                    Edge.NSet.is_empty hout) of
+      in if true (*VData.data_eq (gd,hd)*)
+         then case (E.NSet.is_empty gin,
+                    E.NSet.is_empty hin,
+                    E.NSet.is_empty gout,
+                    E.NSet.is_empty hout) of
             (* no (more) edges; match up *)
             (true,true,true,true) =>
-              Seq.single (v |> Vertex.InjEndo.add vng vnh,
+              Seq.single (v |> VInjEndo.add vng vnh,
                           e,
                           b |> match_boxes g h vng vnh,
                           u |> match_vertex_both_ways gd hd,
@@ -155,7 +142,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
                                             Vertex has already been successfully
                                             matched; skip. *)
                => get_isomorphisms_match_next (v,e,b,u,t',g,h)
-    ) handle Vertex.InjEndo.add_exp _ => Seq.empty
+    ) handle VInjEndo.add_exp _ => Seq.empty
            | Param.match_exp _         => Seq.empty
            | box_mismatch_exp _       => Seq.empty
   
@@ -176,13 +163,13 @@ functor BangGraphIso(Graph : BANG_GRAPH)
   
   
   fun get_with_endos (v_endo, e_endo) g h
-    = get_isomorphisms_sub (v_endo, e_endo, BBoxInjEndo.empty,
+    = get_isomorphisms_sub (v_endo, e_endo, BInjEndo.empty,
                             (Param.empty_subst,Param.empty_subst),Seq.empty,g,h)
     
   (* in:  graphs g, h *)
   (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
           isomorphisms between g and h *)
-  val get = get_with_endos (Vertex.InjEndo.empty,Edge.InjEndo.empty)
+  val get = get_with_endos (VInjEndo.empty,EInjEndo.empty)
   
   
   (* in:  graphs g, h *)

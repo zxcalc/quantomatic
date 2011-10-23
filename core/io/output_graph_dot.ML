@@ -1,7 +1,7 @@
 signature DOT_STYLE =
 sig
   structure Graph : BANG_GRAPH
-  val style_for_ivertex_data : Graph.OVertex.IData.data -> string
+  val style_for_ivertex_data : Graph.OVData.IData.data -> string
 end
 
 functor OutputGraphDot(
@@ -12,34 +12,34 @@ struct
   type T = string
   type data = Graph.T
   fun node_block graph = let
-    val boxtab = Graph.VtoBoxMap.get_codtab (Graph.get_bboxes graph)
+    val boxtab = VBMap.get_codtab (Graph.get_bboxes graph)
     fun sty nm = case Graph.get_vertex graph nm
-                   of (Graph.OVertex.IVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
-                    | (Graph.OVertex.EVert, _) => " [style=filled,fillcolor=gray,shape=box,width=0,height=0,fontcolor=white]"
-    fun f nm list = (Graph.Vertex.pretty_name nm)::
+                   of (Graph.OVData.IVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
+                    | (Graph.OVData.EVert, _) => " [style=filled,fillcolor=gray,shape=box,width=0,height=0,fontcolor=white]"
+    fun f nm list = (V.pretty_name nm)::
                     (Pretty.str (sty nm))::
                     (Pretty.str ";\n")::
                     list
     fun box_f (box,vset) list = 
       (Pretty.str "subgraph cluster_")::
-      (Graph.BBox.pretty_name box)::
+      (B.pretty_name box)::
       (Pretty.str " {\n")::
-      (Graph.Vertex.NSet.fold_rev f vset
+      (V.NSet.fold_rev f vset
       (Pretty.str "}\n"::list))
-  in Graph.BBox.NTab.fold box_f boxtab (Graph.Vertex.NSet.fold_rev f (Graph.get_unboxed graph) [])
+  in B.NTab.fold box_f boxtab (V.NSet.fold_rev f (Graph.get_unboxed graph) [])
   end
   
   fun edge_block graph = let
     fun f nm list = let
       val (_, (s,t)) = Graph.get_edge graph nm
-    in (Graph.Vertex.pretty_name s)::
+    in (V.pretty_name s)::
        (Pretty.str " -> ")::
-       (Graph.Vertex.pretty_name t)::
+       (V.pretty_name t)::
        (Pretty.str " [label=")::
-       (Graph.Edge.pretty_name nm)::
+       (E.pretty_name nm)::
        (Pretty.str "];\n")::list
     end
-  in Graph.Edge.NSet.fold_rev f (Graph.get_enames graph) []
+  in E.NSet.fold_rev f (Graph.get_enames graph) []
   end
   
   fun output graph = Pretty.string_of (Pretty.block (

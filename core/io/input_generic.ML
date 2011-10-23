@@ -32,7 +32,7 @@ structure InputIntXML : INPUT_XML
 end;
 
 
-functor InputSStrNameXML(N : SSTR_NAMES) : INPUT_XML 
+functor InputSStrNameXML(N : SSTR_NAME) : INPUT_XML 
 = struct 
   type T = XML.tree;
   type data = N.name;

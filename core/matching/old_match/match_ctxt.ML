@@ -24,9 +24,9 @@ sharing Sharing.G = G.SharingOGraph;
 
 val empty : T
 (* internal data matching *)
-val vertex_idata_match : G.OVertex.IData.data -> G.OVertex.IData.data -> T -> T option
+val vertex_idata_match : G.OVData.IData.data -> G.OVData.IData.data -> T -> T option
 (* match an edge to boundary vertex (in tgt) with another edge (in pat)   *)
-val edge_match : G.Edge.data -> G.Edge.data -> T -> T option
+val edge_match : G.EData.data -> G.EData.data -> T -> T option
 
 (* Assumed Properties: 
      (edge_match d1 d2 mctxt = SOME mctxt2) ==> 
@@ -34,9 +34,9 @@ val edge_match : G.Edge.data -> G.Edge.data -> T -> T option
 *)
 
 (* apply a matching information to other data *)
-val subst_in_vertex_data : T -> G.OVertex.data -> G.OVertex.data
-val subst_in_vertex_idata : T -> G.OVertex.IData.data -> G.OVertex.IData.data
-val subst_in_edge_data : T -> G.Edge.data -> G.Edge.data
+val subst_in_vertex_data : T -> G.OVData.data -> G.OVData.data
+val subst_in_vertex_idata : T -> G.OVData.IData.data -> G.OVData.IData.data
+val subst_in_edge_data : T -> G.EData.data -> G.EData.data
 
 (* *)
 val pretty : T -> Pretty.T
@@ -49,8 +49,8 @@ end;
 (* Simple instance of graph context data: no vars, no global context, unit data
    on edges, and using vertex data equality for verticex matching. *)
 functor EqMatchUnitEdgeNoCtxtFun(
-  G : OGRAPH where type Edge.data = unit
-) : MATCH_CTXT where type G.Edge.data = unit
+  G : OGRAPH where type EData.data = unit
+) : MATCH_CTXT where type G.EData.data = unit
 = struct
 
 structure G = G;
@@ -61,24 +61,24 @@ type T = unit;
 
 val empty = ();
 
-fun vertex_idata_match (d1 : OVertex.IData.data) (d2 : OVertex.IData.data) 
+fun vertex_idata_match (d1 : OVData.IData.data) (d2 : OVData.IData.data) 
                        (m : T) =
-    if OVertex.IData.data_eq (d1, d2) then SOME m else NONE;
+    if OVData.IData.data_eq (d1, d2) then SOME m else NONE;
 
 (* m is ignored because there is no edge data *)
-fun edge_match (e1 : Edge.data) (e2 : Edge.data) (m : T) = SOME m;
+fun edge_match (e1 : EData.data) (e2 : EData.data) (m : T) = SOME m;
 
 (* tries to match new pattern edge with (first) one in the target set,
 raises exception if target set is empty - we handle this give NONE *)
 exception too_many_pat_edges_exp of string;
 fun matchup_pat_edges pes tes = 
     let fun match_more (e1,ed) (tens2,ematches) = 
-            (case Edge.NSet.pull_local_bot tens2 of
+            (case E.NSet.pull_local_bot tens2 of
                NONE => raise too_many_pat_edges_exp "matchup_pat_edges"
              | SOME (tn,tens3) => 
-               (tens3, Edge.NTab.ins (e1, tn) ematches))
-    in SOME (Edge.NTab.fold 
-               match_more pes (Edge.NTab.get_nameset tes, Edge.NTab.empty))
+               (tens3, E.NTab.ins (e1, tn) ematches))
+    in SOME (E.NTab.fold 
+               match_more pes (E.NTab.get_nameset tes, E.NTab.empty))
     end handle too_many_pat_edges_exp _ => NONE;
 
 (* given:
@@ -94,9 +94,9 @@ fun multi_edge_match pes tes m =
          Seq.single ((leftover_tns,matched_ens), m))
 
 (* no data, thus these are id functions. *)
-fun subst_in_vertex_idata (m : T) (n : OVertex.IData.data) = n; 
-fun subst_in_vertex_data (m : T) (n : OVertex.data) = n; 
-fun subst_in_edge_data (m : T) (e : Edge.data) = e;
+fun subst_in_vertex_idata (m : T) (n : OVData.IData.data) = n; 
+fun subst_in_vertex_data (m : T) (n : OVData.data) = n; 
+fun subst_in_edge_data (m : T) (e : EData.data) = e;
 
 fun pretty (m : T) = Pretty.str "";
 val print = Pretty.writeln o pretty;

@@ -1,36 +1,36 @@
 
   (* opposites *)
-  val tgt_edge_has_unmatched_half : T -> G.Edge.name -> bool
-  val tgt_edge_is_fully_matched : T -> G.Edge.name -> bool
+  val tgt_edge_has_unmatched_half : T -> E.name -> bool
+  val tgt_edge_is_fully_matched : T -> E.name -> bool
 
   (* *)
-  val tgt_edgehalf_is_unmapped : T -> G.Edge.Ehn.name -> bool
-  val tgt_vertex_is_matched : T -> G.OVertex.name -> bool
+  val tgt_edgehalf_is_unmapped : T -> H.name -> bool
+  val tgt_vertex_is_matched : T -> V.name -> bool
 
   (* for incremental matching of edges *)
   (* raise option exception on failure *)
-  val match_another_halfedge : G.Edge.Ehn.name * G.Edge.data (* pattern hedge *) 
-      -> (G.Edge.data G.Edge.Ehn.NTab.T (* left over unmatched *)
-          * (G.Edge.NSet.T (* matches edges *)
+  val match_another_halfedge : H.name * G.EData.data (* pattern hedge *) 
+      -> (G.EData.data H.NTab.T (* left over unmatched *)
+          * (E.NSet.T (* matches edges *)
              * T)) 
-      -> (G.Edge.data G.Edge.Ehn.NTab.T (* left over unmatched *)
-          * (G.Edge.NSet.T (* matches edges *)
+      -> (G.EData.data H.NTab.T (* left over unmatched *)
+          * (E.NSet.T (* matches edges *)
              * T)) 
-  val match_another_fulledge : G.Edge.name * G.Edge.data (* pattern edge *)
-      -> (G.Edge.data G.Edge.Ehn.NTab.T (* left over unmatched *)
-          * (G.Edge.NSet.T (* matches edges *)
+  val match_another_fulledge : E.name * G.EData.data (* pattern edge *)
+      -> (G.EData.data H.NTab.T (* left over unmatched *)
+          * (E.NSet.T (* matches edges *)
              * T)) 
-      -> (G.Edge.data G.Edge.Ehn.NTab.T (* left over unmatched *)
-          * (G.Edge.NSet.T (* matches edges *)
+      -> (G.EData.data H.NTab.T (* left over unmatched *)
+          * (E.NSet.T (* matches edges *)
              * T))
 
   (* match many edges *)
   val multi_edge_match : 
-         (G.dir_or_undir * G.Edge.data) G.Edge.NTab.T  (* pattern edges *)
-      -> (G.dir_or_undir * G.Edge.data) G.Edge.Ehn.NTab.T (* target half-edges *)
+         (G.dir_or_undir * G.EData.data) E.NTab.T  (* pattern edges *)
+      -> (G.dir_or_undir * G.EData.data) H.NTab.T (* target half-edges *)
       -> T 
-      -> ((G.dir_or_undir * G.Edge.data) G.Edge.Ehn.NTab.T (* left over unmatched *)
-          * (G.Edge.NSet.T (* matches edges *)
+      -> ((G.dir_or_undir * G.EData.data) H.NTab.T (* left over unmatched *)
+          * (E.NSet.T (* matches edges *)
              * T)) Seq.seq
 
 
@@ -38,17 +38,17 @@
   (* adds given half to a free half of edge *)
 (* 
   val add_leaf_ehn2edge_emap 
-       : G.Edge.Ehn.name * (G.dir_or_undir * G.Edge.data) (* pat *)
-      -> G.Edge.name * (G.dir_or_undir * G.Edge.data) (* tgt *)
+       : H.name * (G.dir_or_undir * G.EData.data) (* pat *)
+      -> E.name * (G.dir_or_undir * G.EData.data) (* tgt *)
       -> T -> T
   (* only adds this half *)
-  val add_leaf_ehn2ehn_emap : G.Edge.Ehn.name * (G.dir_or_undir * G.Edge.data) 
-                              -> G.Edge.Ehn.name * (G.dir_or_undir * G.Edge.data) 
+  val add_leaf_ehn2ehn_emap : H.name * (G.dir_or_undir * G.EData.data) 
+                              -> H.name * (G.dir_or_undir * G.EData.data) 
                               -> T -> T
 
   (* adds both halfs as matching *)
-  val add_full_leaf_ehn2ehn_emap : G.Edge.Ehn.name * G.Edge.data 
-                              -> G.Edge.Ehn.name * G.Edge.data 
+  val add_full_leaf_ehn2ehn_emap : H.name * G.EData.data 
+                              -> H.name * G.EData.data 
                               -> T -> T option 
 *)
 
@@ -59,12 +59,12 @@
    will only map half of a tgt edge. *)
 fun try_add_undir_emap (peh,ped) (te,td) m = 
     let val emap = get_emap m
-        val teh_start = Ehn.mk_start te
+        val teh_start = H.mk_start te
     in case EMap.lookup_codf emap teh_start
         of NONE => (* map to start of te *) 
            add_eh_match (peh,ped) (teh_start,td) m
          | SOME _ => 
-           let val teh_end = Ehn.mk_end te in
+           let val teh_end = H.mk_end te in
              (case EMap.lookup_codf emap teh_end
                of NONE => (* map to end of te *)
                   add_eh_match (peh,ped) (teh_end,td) m
@@ -83,8 +83,8 @@ fun add_leaf_ehn2edge_emap ph t m =
 (* IMPROVE: don't use exceptions? *)
 fun add_full_leaf_ehn2ehn_emap (peh,ped) (teh,ted) m = 
     SOME (m |> update_emap (EMap.add peh teh 
-                            o EMap.add (E.Ehn.other peh) 
-                                       (E.Ehn.other teh))
+                            o EMap.add (H.other peh) 
+                                       (H.other teh))
             |> update_mctxt (the o MCtxt.edge_match ped ted))
     handle Option.Option => NONE
          | EMap.add_exp _ => NONE;
@@ -109,8 +109,8 @@ fun match_another_halfedge
         (mtes2,m2)) (* matched set of enames, match so far *)
     = let (* pull and match pat edge against next target edge. For now we treat all vertices as being symmetric on edge; IMPROVE: should be a parameter of vertex data? *)
         val ((teh1,(tdir_or_undir,ted)),unmtes3) = 
-            the (E.Ehn.NTab.pull_elem unmtes2);
-        val te1 = E.Ehn.get_ename teh1;
+            the (H.NTab.pull_elem unmtes2);
+        val te1 = H.get_ename teh1;
         (* match edge data *)
         val mctxt2 = the (MCtxt.edge_match ped ted (get_mctxt m2))
         (* update match context, and add non-loopy edge map *)
@@ -126,8 +126,8 @@ fun match_another_fulledge
       (unmtes2, (* unmatched edges *)
         (mtes2,m2)) (* matched set of enames, match so far *)
     = let (* pull and match pat edge against next target edge  *)
-        val ((teh1,ted),unmtes3) = the (E.Ehn.NTab.pull_elem unmtes2);
-        val te1 = E.Ehn.get_ename teh1;
+        val ((teh1,ted),unmtes3) = the (H.NTab.pull_elem unmtes2);
+        val te1 = H.get_ename teh1;
         (* match edge data *)
         val mctxt2 = the (MCtxt.edge_match ped ted (get_mctxt m2))
         (* update match context, and add non-loopy edge map *)

@@ -1,18 +1,18 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  Graph Parameterisation. 
-    The names that a graph depends on: Vertex names, Edge names, and any 
+    The names that a graph depends on: V.names, Edge names, and any 
     names that might occur inside the data on vertices and edges.  *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 
 signature GRAPH_PARAM_SHARING
 = sig 
-  structure Vertex : NAME_AND_UNIFIABLE_DATA_SHARING
-  structure Edge : NAME_AND_UNIFIABLE_DATA_SHARING
+  structure VData : UNIFIABLE_DATA_SHARING
+  structure EData : UNIFIABLE_DATA_SHARING
   type T
   type inames_renaming
   type subst 
-  sharing type subst = Vertex.subst
-  sharing type subst = Edge.subst
+  sharing type subst = VData.subst
+  sharing type subst = EData.subst
 end;
 
 
@@ -22,10 +22,12 @@ end;
 *)
 signature GRAPH_PARAM
 = sig
-  (* VERTEX AND EDGE DATA AND NAMES *)
+  val pretty_theory_name : Pretty.T
+
+  (* VERTEX AND EDGE DATA AND NAME *)
   (* Names for vertices and edges *)
-  structure Vertex : VERTEX (* defined in pregraph.ML *) 
-  structure Edge : EDGE (* defined in pregraph.ML *) 
+  structure VData : UNIFIABLE_DATA (* defined in pregraph.ML *) 
+  structure EData : UNIFIABLE_DATA (* defined in pregraph.ML *) 
 
   (* SUBSTITUTION/MATCHING/UNIFICATION *)
   (* this is a user exception raised when things don't match *)
@@ -39,23 +41,21 @@ signature GRAPH_PARAM
 
   (* IMPROVE: should we add a function that given a subst, tells us
      which vertex names it affects? (could add dependency info to graph...) *)
-  val subst_in_vertex : subst -> Vertex.data -> Vertex.data
-  val subst_in_edge : subst -> Edge.data -> Edge.data
+  val subst_in_vertex : subst -> VData.data -> VData.data
+  val subst_in_edge : subst -> EData.data -> EData.data
 
   (* invariant: subst instantiates vars in src before those in tgt: later code
      (isomorphism check of graphs) depends on this. *)
-  val try_match_vertex : Vertex.data -> Vertex.data -> subst -> subst option
-  val try_match_edge : Edge.data -> Edge.data -> subst -> subst option
-  val match_vertex : Vertex.data -> Vertex.data 
+  val try_match_vertex : VData.data -> VData.data -> subst -> subst option
+  val try_match_edge : EData.data -> EData.data -> subst -> subst option
+  val match_vertex : VData.data -> VData.data 
         -> subst -> subst (* raises match_exp *)
-  val match_edge : Edge.data -> Edge.data 
+  val match_edge : EData.data -> EData.data 
         -> subst -> subst (* raises match_exp *)
   
   (* pretty printing *)
   val pretty_subst : subst -> Pretty.T
   val print_subst : subst -> unit
-
-  val pretty_theory_name : Pretty.T
   
   (* INTERNAL NAME DEPENDENCIES *)
   
@@ -67,52 +67,51 @@ signature GRAPH_PARAM
   (* no vertex names, no internal variable names *)
   val empty : T
 
-  val add_vertex : Vertex.data -> Vertex.name -> T -> T 
-  val add_edge : Edge.data -> Edge.name -> T -> T
+  val add_vertex : VData.data -> V.name -> T -> T 
+  val add_edge : EData.data -> E.name -> T -> T
 
-  val of_vertex : Vertex.data -> Vertex.name -> T
-  val of_edge : Edge.data -> Edge.name -> T
+  val of_vertex : VData.data -> V.name -> T
+  val of_edge : EData.data -> E.name -> T
 
-  val delete_vertex : Vertex.name -> T -> T
-  val delete_edge : Edge.name -> T -> T
+  val delete_vertex : V.name -> T -> T
+  val delete_edge : E.name -> T -> T
 
-  (* raises Vertex.Rnm. *)
-  val rename_vname : Vertex.name -> Vertex.name -> T -> T
-  (* raises Edge.Rnm. *)
-  val rename_ename : Edge.name -> Edge.name -> T -> T 
+  (* raises V.Rnm. *)
+  val rename_vname : V.name -> V.name -> T -> T
+  (* raises E.Rnm. *)
+  val rename_ename : E.name -> E.name -> T -> T 
 
-  val replace_vertex : Vertex.data -> Vertex.name -> T -> T
-  val replace_edge : Edge.data -> Edge.name -> T -> T
+  val replace_vertex : VData.data -> V.name -> T -> T
+  val replace_edge : EData.data -> E.name -> T -> T
   
   
   (* RENAMINGS  *)
   (* IMPROVE: should we add a compound renaming for renaming internal names in 
      a  subst? *)
   (* rename internal names in T *)
-  structure CRnmINames : COMPOUND_RENAMING 
-    sharing type CRnmINames.obj = T
+  structure CRnmX : COMPOUND_RENAMING 
+    sharing type CRnmX.obj = T
   (* rename internal names in Vertex Data *)
-  structure VDataCRnmINames : COMPOUND_RENAMING
-    sharing type VDataCRnmINames.obj = Vertex.data
-    sharing type VDataCRnmINames.renaming = CRnmINames.renaming
+  structure VDataCRnmX : COMPOUND_RENAMING
+    sharing type VDataCRnmX.obj = VData.data
+    sharing type VDataCRnmX.renaming = CRnmX.renaming
   (* rename internal names in Edge Data *)
-  structure EDataCRnmINames : COMPOUND_RENAMING
-    sharing type EDataCRnmINames.obj = Edge.data
-    sharing type EDataCRnmINames.renaming = CRnmINames.renaming
+  structure EDataCRnmX : COMPOUND_RENAMING
+    sharing type EDataCRnmX.obj = EData.data
+    sharing type EDataCRnmX.renaming = CRnmX.renaming
   (* rename vertex and edge names in T *)
-  structure CRnmVNames : COMPOUND_RENAMING 
-  structure CRnmENames : COMPOUND_RENAMING 
-    sharing type CRnmVNames.obj = T
-    sharing type CRnmVNames.renaming = Vertex.Rnm.T
-    sharing type CRnmENames.obj = T 
-    sharing type CRnmENames.renaming = Edge.Rnm.T
-    
+  structure CRnmV : COMPOUND_RENAMING 
+    where type renaming = V.Rnm.T
+    sharing type CRnmV.obj = T
+  structure CRnmE : COMPOUND_RENAMING 
+    where type renaming = E.Rnm.T
+    sharing type CRnmE.obj = T 
     
   (* syntax convenience for sharing types *)
   structure Sharing : GRAPH_PARAM_SHARING
-    sharing Sharing.Vertex = Vertex.SharingWithData
-    sharing Sharing.Edge = Edge.EdgeSharingWithData
-    sharing type CRnmINames.renaming = Sharing.inames_renaming
+    sharing Sharing.VData = VData.Sharing
+    sharing Sharing.EData = EData.Sharing
+    sharing type CRnmX.renaming = Sharing.inames_renaming
     sharing type T = Sharing.T
     sharing type subst = Sharing.subst
 end;

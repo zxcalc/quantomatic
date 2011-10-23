@@ -34,7 +34,7 @@ structure RGB_GraphParam
 
   fun rename_vname n1 n2 vdep = 
       (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
-         raise Vertex.Rnm.invalid_renaming_exp "RGB_GraphParam.rename_vname"
+         raise V.Rnm.invalid_renaming_exp "RGB_GraphParam.rename_vname"
        | SOME x => x);
 
   fun rename_ename n1 n2 vdep = vdep;
@@ -42,7 +42,7 @@ structure RGB_GraphParam
   (* rename names in T *)
 
   (* rename internal names in the dependency structure *)
-  structure CRnmINames : COMPOUND_RENAMING
+  structure CRnmX : COMPOUND_RENAMING
   = CompoundRenamingFun(
     struct structure Nm = IName
            type obj = T
@@ -51,7 +51,7 @@ structure RGB_GraphParam
     end);
 
   (* rename vertices in the dependency structure *)
-  structure CRnmVNames : COMPOUND_RENAMING
+  structure CRnmV : COMPOUND_RENAMING
   = CompoundRenamingFun(
     struct structure Nm = Vertex
            type obj = T
@@ -60,7 +60,7 @@ structure RGB_GraphParam
     end);
 
   (* rename edges in the dependency structure *)
-  structure CRnmENames : COMPOUND_RENAMING
+  structure CRnmE : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
 
   (* empty name-dependency information *)
@@ -81,12 +81,12 @@ structure RGB_GraphParam
   fun of_edge en ed = empty;
 
   (* renaming internal names within a vertex *)
-  structure VDataCRnmINames : COMPOUND_RENAMING
+  structure VDataCRnmX : COMPOUND_RENAMING
   = struct 
-    type obj = Vertex.data
+    type obj = VData.data
     type renaming = IName.Rnm.T
 
-    val empty_renaming = CRnmINames.empty_renaming
+    val empty_renaming = CRnmX.empty_renaming
 
     fun rename rnm vd = (rnm,vd);
     fun mk_renaming vd rnm = rnm;
@@ -95,18 +95,18 @@ structure RGB_GraphParam
   end;
 
   (* rename internal names within an edge data *)
-  structure EDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
+  structure EDataCRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = IName type obj = EData.data);
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = Vertex.subst; (* : LinratExpr.T IName.NTab.T; *)
+  type subst = VData.subst; (* : LinratExpr.T IName.NTab.T; *)
 
-  val empty_subst = Vertex.empty_subst; (* : IName.NTab.empty; *)
-  fun compose_subst u1 u2 = Vertex.compose_subst (u1,u2); 
+  val empty_subst = VData.empty_subst; (* : IName.NTab.empty; *)
+  fun compose_subst u1 u2 = VData.compose_subst (u1,u2); 
       (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
 
-  fun try_match_vertex d1 d2 u = Vertex.match_data (d1,d2) u;
+  fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
 
   (* raises match_exp *)
@@ -120,20 +120,20 @@ structure RGB_GraphParam
          of NONE    => raise match_exp ()
           | SOME u' => u'); 
 
-  fun subst_in_vertex u vd = Vertex.subst_in_data u vd;
+  fun subst_in_vertex u vd = VData.subst_in_data u vd;
   fun subst_in_edge u ed = ed;
 
-  val pretty_subst = Vertex.pretty_subst;
+  val pretty_subst = VData.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
 
   val pretty_theory_name = Pretty.str "red_green_blue";
 
   structure Sharing = 
   struct 
-    structure Vertex = Vertex.SharingWithData;
-    structure Edge = Edge.EdgeSharingWithData;
+    structure Vertex = VData.SharingWithData;
+    structure Edge = EData.EdgeSharingWithData;
     type T = T;
-    type inames_renaming = CRnmINames.renaming; (* = IName.Rnm.renaming *)
+    type inames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
 end;

@@ -16,10 +16,10 @@ end;
   val var_angle = LinratExpr.mk_var;
   val add_angles = LinratExpr.add_expr;
   val pi_angle = LinratExpr.pi;
-  fun mkZ a = V.IVert (RGVertex.Znd a);
-  fun mkX a = V.IVert (RGVertex.Xnd a);
-  val mkH = V.IVert RGVertex.Hnd;
-  val edge : UnitEdge.data = ();
+  fun mkZ a = V.IVert (RGVData.Znd a);
+  fun mkX a = V.IVert (RGVData.Xnd a);
+  val mkH = V.IVert RGVData.Hnd;
+  val edge : UnitEData.data = ();
 
 
 

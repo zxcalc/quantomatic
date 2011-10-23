@@ -30,35 +30,12 @@ structure GHZW_VertexData
   
   fun pretty_subst _ = Pretty.str "";
   val print_subst = Pretty.writeln o pretty_subst;
+  
+  val default_data = GHZ; 
+  
+  structure Sharing = struct type data = data; type subst = subst; end; 
 end;
 
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-structure GHZW_Vertex
-: VERTEX
-= struct
-  
-  open GHZW_VertexData;
-  open SStrName;
-
-  val default_name = mk "a";
-  val default_data = GHZW_VertexData.GHZ;
-
-  structure Map = NameMapFun(structure Dom = SStrName and Cod = SStrName);
-  structure InjEndo = NameInjEndoFun(SStrName);
-
-  structure SharingWithData = struct 
-    open Sharing; 
-    type data = GHZW_VertexData.data;
-    type subst = GHZW_VertexData.subst;
-    structure Map = Map.Sharing;
-    structure InjEndo = InjEndo.Sharing;
-  end;
-  (* Note signature constraint hides stuff for us *)
-  structure SharingWithoutData = SharingWithData;
-  
-  val default_name = mk "a";
-
-end;
 
 (*  *)
 structure GHZW_VertexComponentData_Param

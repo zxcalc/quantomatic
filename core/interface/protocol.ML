@@ -874,7 +874,7 @@ struct
                   printEsc (Char.toLower ch))
             fun printVar ch (var, coeff) _ = (
                   printEsc ch;
-                  printWrappedString #"N" var;
+                  printWrappedString #"N" (X.string_of_name var);
                   printWrappedFrac #"C" coeff;
                   printEsc (Char.toLower ch))
           in
@@ -883,7 +883,7 @@ struct
               printWrappedString #"S" as_string;
               if LinratExpr.Coeff.is_zero c then () else
                 printWrappedFrac #"K" c;
-              LinratExpr.VName.NTab.fold (printVar #"V") varTab ();
+              X.NTab.fold (printVar #"V") varTab ();
             printEsc #"a";
             printEsc (Char.toLower ch)
           end)

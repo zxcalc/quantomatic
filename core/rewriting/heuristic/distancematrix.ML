@@ -37,10 +37,10 @@ functor DistanceMatrixFun(
   datatype dist = Dist of int | Infinity;
   
   type graph = Graph.T;
-  type name = Graph.Vertex.name;
-  type T  = dist Graph.Vertex.NTab.T Graph.Vertex.NTab.T;
+  type name = V.name;
+  type T  = dist V.NTab.T V.NTab.T;
   
-  structure NTab = Graph.Vertex.NTab;
+  structure NTab = V.NTab;
   
   (* Distance ordering. *)
   fun dist_ord (Dist(i),Dist(j)) = Int.compare (i,j)
@@ -84,20 +84,20 @@ functor DistanceMatrixFun(
               (* update distances around edge named en *)
               fun calc_edge en t = let
                     val ((dir,_),(vs,vt)) = Graph.get_edge g en
-                  in t |> Graph.Vertex.NSet.fold (update_dist vs vt) l
+                  in t |> V.NSet.fold (update_dist vs vt) l
                        |> (if dir=Graph.Directed then I else
-                           Graph.Vertex.NSet.fold (update_dist vt vs) l)
+                           V.NSet.fold (update_dist vt vs) l)
                   end;
               (* update distances around edge set es *)
-              fun calc_edges es t = t |> Graph.Edge.NSet.fold calc_edge es 
+              fun calc_edges es t = t |> E.NSet.fold calc_edge es 
             in t |> set_distance v v (Dist(0))
                  |> calc_edges efrom
                  |> calc_edges eto
-                 |> (calc gnext (the (Graph.Vertex.NSet.get_local_bot
+                 |> (calc gnext (the (V.NSet.get_local_bot
                                       (Graph.get_vnames gnext)))
                      handle Option => I)
             end;
-      in calc g (the (Graph.Vertex.NSet.get_local_bot l)) NTab.empty end;
+      in calc g (the (V.NSet.get_local_bot l)) NTab.empty end;
   
   (* Pretty printing of distance *)
   fun pretty_dist (Dist(i))  = Pretty.str (Int.toString i)
@@ -112,7 +112,7 @@ functor DistanceMatrixFun(
                          (map
                             (fn v1 => 
                               Pretty.block
-                                [Graph.Vertex.pretty_name v1,
+                                [V.pretty_name v1,
                                  Pretty.str " | ",
                                  Pretty.list "" "" (map 
                                   (fn v2 => pretty_dist (get_distance t v1 v2))

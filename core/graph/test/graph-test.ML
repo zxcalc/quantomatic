@@ -3,19 +3,16 @@ structure Test_GraphParam
 : GRAPH_PARAM
 = struct
 
-  structure Vertex = Test_InternVertex;
+  structure VData = Test_InternVData;
 
   (* edges have unit data, and are ignored as we use Vertex subst type *)
-  structure UnifyableEdgeData = 
-    IgnoredUnifiableData(structure D = UnitData structure S = Test_InternVertex);
-  structure EdgeStrNm = StrNmData(structure D = UnifyableEdgeData 
-                             val default_data = ());
-  structure Edge = EdgeFun(EdgeStrNm);
-
-  structure IName = LinratExpr.VName;
+  structure EData = 
+    IgnoredUnifiableData(structure D = UnitData 
+                         structure S = Test_InternVData 
+                         val default_data = ());
   
   (* vertex, and vertex data variable dependencies *)
-  structure VDep = NameBRelFun(structure Dom = Vertex and Cod = IName);
+  structure VDep = VXBRel;
   
   (* internal name data *)
   type T = VDep.T;
@@ -32,7 +29,7 @@ structure Test_GraphParam
 
   fun rename_vname n1 n2 vdep = 
       (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
-         raise Vertex.Rnm.invalid_renaming_exp "Test_GraphParam.rename_vname"
+         raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_vname"
        | SOME x => x);
 
   fun rename_ename n1 n2 vdep = vdep;
@@ -40,44 +37,44 @@ structure Test_GraphParam
   (* rename names in T *)
 
   (* rename internal names in the dependency structure *)
-  structure CRnmINames : COMPOUND_RENAMING
+  structure CRnmX : COMPOUND_RENAMING
   = CompoundRenamingFun(
-    struct structure Nm = IName
+    struct structure Nm = X
            type obj = T
            val get_nameset = get_IName
            val try_rename1 = try_rename1_iname
     end);
 
   (* rename vertices in the dependency structure *)
-  structure CRnmVNames : COMPOUND_RENAMING
+  structure CRnmV : COMPOUND_RENAMING
   = CompoundRenamingFun(
-    struct structure Nm = Vertex
+    struct structure Nm = V
            type obj = T
            val get_nameset = get_vnames
            val try_rename1 = try_rename1_vname
     end);
 
   (* rename edges in the dependency structure *)
-  structure CRnmENames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
+  structure CRnmE : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = E type obj = T);
 
   (* empty name-dependency information *)
   val empty = VDep.empty;
 
   fun add_vertex vd vn vdep = 
-      (case Test_VertexData.angle_of_data vd of NONE => vdep
+      (case Test_InternVData.angle_of_data vd of NONE => vdep
           | SOME angle => VDep.add_to_dom vn (LinratExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
   fun delete_vertex vn vdep = VDep.del_dom vn vdep;
   fun delete_edge en vdep = vdep;
 
-  fun vertex_type_name (Test_VertexData.Xnd _) = "X"
-    | vertex_type_name (Test_VertexData.Znd _) = "Z"
-    | vertex_type_name (Test_VertexData.Hnd) = "hadamard"
-  fun vertex_default_data "X" = (Test_VertexData.Xnd LinratExpr.zero)
-    | vertex_default_data "Z" = (Test_VertexData.Znd LinratExpr.zero)
-    | vertex_default_data "hadamard" = (Test_VertexData.Hnd)
+  fun vertex_type_name (Test_InternVData.Xnd _) = "X"
+    | vertex_type_name (Test_InternVData.Znd _) = "Z"
+    | vertex_type_name (Test_InternVData.Hnd) = "hadamard"
+  fun vertex_default_data "X" = (Test_InternVData.Xnd LinratExpr.zero)
+    | vertex_default_data "Z" = (Test_InternVData.Znd LinratExpr.zero)
+    | vertex_default_data "hadamard" = (Test_InternVData.Hnd)
     | vertex_default_data s = raise unknown_type_exp s
   fun edge_type_name () = "unit"
   fun edge_default_data "unit" = ()
@@ -92,44 +89,44 @@ structure Test_GraphParam
   fun of_edge en ed = empty;
 
   (* renaming internal names within a vertex *)
-  structure VDataCRnmINames : COMPOUND_RENAMING
+  structure VDataCRnmX : COMPOUND_RENAMING
   = struct 
-    type obj = Vertex.data
-    type renaming = IName.Rnm.T
+    type obj = VData.data
+    type renaming = X.Rnm.T
 
-    val empty_renaming = CRnmINames.empty_renaming
+    val empty_renaming = CRnmX.empty_renaming
 
     fun rename rnm vd = 
-        (case Test_VertexData.angle_of_data vd of NONE => (rnm,vd)
+        (case Test_InternVData.angle_of_data vd of NONE => (rnm,vd)
          | SOME angle => 
            let val (rnm',angle') = LinratExpr.CRnm.rename rnm angle
-           in (rnm', Test_VertexData.map_to_angle (K angle') vd) end)
+           in (rnm', Test_InternVData.map_to_angle (K angle') vd) end)
 
     fun mk_renaming vd rnm = 
-        (case Test_VertexData.angle_of_data vd of NONE => rnm
+        (case Test_InternVData.angle_of_data vd of NONE => rnm
          | SOME angle => LinratExpr.CRnm.mk_renaming angle rnm);
 
     fun do_renaming rnm vd = 
-        (case Test_VertexData.angle_of_data vd of NONE => vd
+        (case Test_InternVData.angle_of_data vd of NONE => vd
          | SOME angle => 
-           Test_VertexData.map_to_angle (LinratExpr.CRnm.do_renaming rnm) vd);
+           Test_InternVData.map_to_angle (LinratExpr.CRnm.do_renaming rnm) vd);
 
-    val restrict_to_avoiding = IName.Rnm.restrict_to_avoiding;
+    val restrict_to_avoiding = X.Rnm.restrict_to_avoiding;
   end;
 
   (* rename internal names within an edge data *)
-  structure EDataCRnmINames : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = IName type obj = Edge.data);
+  structure EDataCRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = EData.data);
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = Vertex.subst; (* : LinratExpr.T IName.NTab.T; *)
+  type subst = VData.subst; (* : LinratExpr.T X.NTab.T; *)
 
-  val empty_subst = Vertex.empty_subst; (* : IName.NTab.empty; *)
-  fun compose_subst u1 u2 = Vertex.compose_subst (u1,u2); 
+  val empty_subst = VData.empty_subst; (* : X.NTab.empty; *)
+  fun compose_subst u1 u2 = VData.compose_subst (u1,u2); 
       (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
 
-  fun try_match_vertex d1 d2 u = Vertex.match_data (d1,d2) u;
+  fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
 
   (* raises match_exp *)
@@ -143,33 +140,33 @@ structure Test_GraphParam
          of NONE    => raise match_exp ()
           | SOME u' => u'); 
 
-  fun subst_in_vertex u vd = Vertex.subst_in_data u vd;
+  fun subst_in_vertex u vd = VData.subst_in_data u vd;
   fun subst_in_edge u ed = ed;
 
-  val pretty_subst = Vertex.pretty_subst;
+  val pretty_subst = VData.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
 
   val pretty_theory_name = Pretty.str "red_green";
 
   structure Sharing = 
   struct 
-    structure Vertex = Vertex.SharingWithData;
-    structure Edge = Edge.EdgeSharingWithData;
+    structure VData = VData.Sharing;
+    structure EData = EData.Sharing;
     type T = T;
-    type inames_renaming = CRnmINames.renaming; (* = IName.Rnm.renaming *)
+    type inames_renaming = CRnmX.renaming; (* = X.Rnm.renaming *)
     type subst = subst;
   end;
 end;
 
 
-structure Test_OVertex = OVertex(Test_InternVertex);
+structure Test_OVData = OVertexData(Test_InternVData);
 structure Test_OGraphParam = OGraphParam(
   structure Param = Test_GraphParam 
-        and OVertex = Test_OVertex);
+        and OVData = Test_OVData);
 
 structure Test_OVertexComponentData_Param = OVertexComponentData_Param(
   structure VertexDataParam = Test_VertexComponentData_Param
-  structure OVertex = Test_OVertex);
+  structure OVData = Test_OVData);
 structure Test_OVertexComponentData = ElementComponentData(Test_OVertexComponentData_Param);
 
 (* Basic structure for testing graphs later... *)
@@ -189,26 +186,23 @@ structure Test_Graph : BANG_GRAPH = DB_Test_Graph;
 (* ML utility code for building test graphs *)
 structure Test_MkG = 
 struct
-  structure VD = Test_VertexData;
-  structure V = Test_Graph.OVertex;
-  structure E = Test_Graph.Edge;
+  structure IVData = Test_InternVData;
   structure G = Test_Graph;
+  structure OVData = Test_Graph.OVData;
 
-  val bvert = V.EVert;
+  val bvert = OVData.EVert;
   val zero_angle = LinratExpr.zero;
-  val var_angle = LinratExpr.mk_var;
+  val var_angle = LinratExpr.mk_var o X.mk;
   fun var_iangle i v = LinratExpr.mk (0,1) [(v,i)];
   val add_angles = LinratExpr.add_expr;
   val pi_angle = LinratExpr.pi;
-  fun mkZ a = V.IVert (VD.Znd a);
-  fun mkX a = V.IVert (VD.Xnd a);
-  val mkH = V.IVert VD.Hnd;
+  fun mkZ a = OVData.IVert (IVData.Znd a);
+  fun mkX a = OVData.IVert (IVData.Xnd a);
+  val mkH = OVData.IVert IVData.Hnd;
   val undir_edge = (G.UnDirected,());
   val dir_edge = (G.Directed,());
-  val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+  val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
 end;
-
-
 
 
 (* test some basic graph constructions *)

@@ -4,7 +4,7 @@
    fn limitDepth => 
    fn printElement => 
    fn obj => 
-      Pretty.writeln (VName.pretty_name obj));
+      Pretty.writeln (X.pretty_name obj));
 *)
 
 structure AlgFormat =
@@ -21,16 +21,15 @@ end
 (* Basic stuff for an expression which might have variables *)
 signature EXPR =
 sig 
-  structure VName : NAMES where type name = string;
   (* NOTE: 
-     VName.T = type of variables allowed in expressions 
-     T VName.NTab.T = mapping of vars to expressions *)
+     X.T = type of variables allowed in expressions 
+     T X.NTab.T = mapping of vars to expressions *)
   exception BadExpression of string;
   type T; (* expressions *)
   val ord : T * T -> General.order;
   val eq : T -> T -> bool;
-  val get_vars : T -> VName.NSet.T;
-  val subs : T VName.NTab.T -> T -> T;
+  val get_vars : T -> X.NSet.T;
+  val subs : T X.NTab.T -> T -> T;
   
   (* matching expressions *)
   type match (* substitutions for variables in a pattern expression *)
@@ -45,12 +44,12 @@ sig
   val print_match : match -> unit;
 
   (* internal stuff *)
-  val subst_of_match : match -> T VName.NTab.T; 
+  val subst_of_match : match -> T X.NTab.T; 
   val subst_in_match_pair : match -> T * T -> T * T;
 
 
   (* gaussian elimination *)
-  val eliminate : T -> T -> T VName.NTab.T -> T VName.NTab.T option;
+  val eliminate : T -> T -> T X.NTab.T -> T X.NTab.T option;
 
   val pretty : T -> Pretty.T;
   val pretty_math : AlgFormat.format -> T -> Pretty.T;
@@ -58,6 +57,6 @@ sig
 
   (* rename variables in an expression *)
   structure CRnm : COMPOUND_RENAMING 
-    where type obj = T and type renaming = VName.Rnm.T
+    where type obj = T and type renaming = X.Rnm.T
 
 end

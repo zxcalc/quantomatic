@@ -7,8 +7,8 @@ structure Tester
   structure HTree = HistTree;
   structure AList = AdjacencyList;
   structure ATree = AdjacencyTree;
-  structure NSet = G.RGVertex.NSet;
-  structure NTab = G.RGVertex.NTab;
+  structure NSet = V.NSet;
+  structure NTab = V.NTab;
   structure Lib = Library;
   structure RG = RandomGraph;
   structure MSt = MatchState;
@@ -27,7 +27,7 @@ structure Tester
   		Timer.checkCPUTimes cput ,Timer.checkRealTimer rt)
   	end;
 
-  val empty_names = (NSet.empty,Edge.NSet.empty,NSet.empty)
+  val empty_names = (NSet.empty,E.NSet.empty,NSet.empty)
   
   fun pull_all xs seq =
   	case Seq.pull seq of

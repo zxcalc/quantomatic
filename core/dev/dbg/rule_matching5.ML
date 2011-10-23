@@ -19,7 +19,7 @@ val (e0, g) = g |> G.add_edge edge b1 n1;
 val (e1, g) = g |> G.add_edge edge n1 b2;
 val g1 = g;
 
-val ms = Seq.list_of (MatchSearch.match g1 g0 RGVertex.NTab.empty);
+val ms = Seq.list_of (MatchSearch.match g1 g0 V.NTab.empty);
 val _ = map Match.print ms;
 val [] = ms;
 
@@ -29,7 +29,7 @@ val _ = G.print g1;
 val _ = V.NSet.print (G.get_leaf_vnames g1);
 val _ = G.print g2;
 
-val ms = Seq.list_of (MatchSearch.match g1 g2 RGVertex.NTab.empty);
+val ms = Seq.list_of (MatchSearch.match g1 g2 V.NTab.empty);
 val _ = map Match.print ms;
 val [m1,m2] = ms;
 
@@ -48,7 +48,7 @@ RGGraph.print tgt;
 
 open DB_MatchSearch;
 
-val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
+val init_st = (init Match.empty pat tgt V.NTab.empty);
 val st = init_st;
 
 (* toplevel *)
@@ -92,8 +92,8 @@ val st = st1;
 
 (* *)
 val SOME ((pn,tn),st2) = pop_agenda st;
-MCtxt.BVertex.string_of_name pn; (* r *)
-MCtxt.BVertex.string_of_name tn; (* i *)
+V.string_of_name pn; (* r *)
+V.string_of_name tn; (* i *)
 
       val pat = get_unm_pat st;
       val tgt = get_unm_tgt st;
@@ -193,7 +193,7 @@ fun edgematch_adj_verticies
       (from_tv as (from_tn,from_td)) 
       (ignore_arity,st) = *)
 
-val ((to_tn,tes)::more_tns) = Vertex.NTab.list_of tns; 
+val ((to_tn,tes)::more_tns) = V.NTab.list_of tns; 
 
 (* 
 fun strict_edgematch_adj_tgt_vertex 
@@ -211,7 +211,7 @@ val matches = Seq.list_of (Seq.make (match_search (Seq.of_list [st3,st4])));
 raise ERROR "stop";
 
 val NONE = pop_agenda st;
-val SOME pvn = (Vertex.NSet.get_local_bot (get_unm_pat_vs st));
+val SOME pvn = (V.NSet.get_local_bot (get_unm_pat_vs st));
 
 
 val SOME ((n,tn),st2) = 

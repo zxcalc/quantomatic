@@ -9,7 +9,7 @@ sig
 (* -- combinators for generating functions from OUTPUT -- *)       
   val mk_dot_vertex : outtype -> outtype -> outtype -> outtype ;
 
-  val mk_output_vertices : ((vname * (vertex * (Graph.Edge.NSet.T * Graph.Edge.NSet.T))) -> outtype) 
+  val mk_output_vertices : ((vname * (vertex * (E.NSet.T * E.NSet.T))) -> outtype) 
 			-> 
 			(graph ->   outtype);
 			
@@ -34,10 +34,10 @@ functor OutputDot_guts (Graph : GRAPH)  :  OUTPUT_DOT_BITS  =
 struct
   structure Graph = Graph;
   type graph = Graph.T;
-  type vertex = Graph.Vertex.data;
-  type edge = Graph.Edge.data;
-  type vname = Graph.Vertex.name;
-  type ename = Graph.Edge.name;
+  type vertex = Graph.VData.data;
+  type edge = Graph.EData.data;
+  type vname = V.name;
+  type ename = E.name;
 
   type outtype = Pretty.T;
        
@@ -90,17 +90,17 @@ struct
       
 
   fun output_vertex (name,(vdata, _)) 
-    = mk_dot_vertex (Pretty.str "")  (Graph.Vertex.pretty_data vdata) (Graph.Vertex.pretty_name name);
+    = mk_dot_vertex (Pretty.str "")  (Graph.VData.pretty_data vdata) (V.pretty_name name);
 
 
 
   fun output_edge (_,(edata, (src_vertex, target_vertex))) 
     = Pretty.block [Pretty.str "\"",
-		    Graph.Vertex.pretty_name src_vertex,
+		    V.pretty_name src_vertex,
 		    Pretty.str "\"->\"",
-		    Graph.Vertex.pretty_name target_vertex,
+		    V.pretty_name target_vertex,
 		    Pretty.str "\"[label=\"",
-		    Graph.Edge.pretty_data edata,
+		    Graph.EData.pretty_data edata,
 		    Pretty.str "\"];"];
 
   val output_edges = mk_output_edges output_edge;

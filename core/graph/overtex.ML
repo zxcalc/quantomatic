@@ -1,13 +1,13 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  variable-verticies / boundary-verticies  *)
 
-signature OVERTEX_SHARING
+signature OVERTEX_DATA_SHARING
 = sig
-  include NAME_AND_UNIFIABLE_DATA_SHARING
+  include UNIFIABLE_DATA_SHARING
   type idata
 end;
 
-signature OVERTEX
+signature OVERTEX_DATA
 = sig
   
   (* internal data *)
@@ -17,38 +17,17 @@ signature OVERTEX
            IVert of IData.data (* inner node with basic vertex data *)
          | EVert; (* boundary vertex with boundary data *)
   
-  include VERTEX
-  sharing type data = external_data
-  
-  val is_internal_data : data -> bool
-  
-
-  structure SharingWithIData : OVERTEX_SHARING
-  sharing type subst = IData.subst; 
-  sharing SharingWithData = SharingWithIData;
-  sharing type IData.data = SharingWithIData.idata;
-
-  val apply_to_idata : (IData.data -> IData.data) -> data -> data
-  val idata_of : data -> IData.data option
-
-end;
-
-
-signature OVERTEX_DATA = 
-sig
-  (* internal data *)
-  structure IData : UNIFIABLE_DATA
-  datatype external_data = 
-           IVert of IData.data (* inner node with basic vertex data *)
-         | EVert; (* boundary vertex with boundary data *)
   include UNIFIABLE_DATA
   sharing type data = external_data
-  sharing type subst = IData.subst
+  sharing type subst = IData.subst; 
   val is_internal_data : data -> bool
   val apply_to_idata : (IData.data -> IData.data) -> data -> data
   val idata_of : data -> IData.data option
+  
+  structure SharingWithIData : OVERTEX_DATA_SHARING
+  sharing Sharing = SharingWithIData;
+  sharing type IData.data = SharingWithIData.idata;
 end;
-
 
 (* *)
 functor OVertexData(D : UNIFIABLE_DATA) 
@@ -100,77 +79,12 @@ functor OVertexData(D : UNIFIABLE_DATA)
     | match_data _ _ = NONE;
   val pretty_subst = IData.pretty_subst;
   val print_subst = IData.print_subst;
-end;
-
-
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  Pattern Nodes construction *)
-functor OVertex(V : VERTEX)
-: OVERTEX
-= struct
-  (* signature restriction means we get just the unifiable data part of
-     Vertex *)
-  structure IData : UNIFIABLE_DATA = V; 
-  
-  (* make the new external data *)
-  structure ExternalData = OVertexData(IData);  
-  open ExternalData;
-
-  (* open the Names Part of the Vertex structure *)
-  structure VertexNames : SSTR_NAMES = V;
-  open VertexNames; 
-
-  (* also get the extra maps stuff in Vertex... TODO: push this into Names *)
-  structure Map = V.Map;
-  (* NameMapFun(structure Dom = VertexNames and Cod = VertexNames); *)
-  structure InjEndo = V.InjEndo;
-  (* NameInjEndoFun(VertexNames); *)
   
   (* create the extended sharing structures *)
-  structure SharingWithData = struct 
-    open Sharing; type data = data; type subst = subst;
-    structure Map = Map.Sharing;
-    structure InjEndo = InjEndo.Sharing;
+  structure Sharing = struct 
+    open D.Sharing; type data = external_data;
   end;
   structure SharingWithIData = struct 
-    open SharingWithData; type idata = IData.data; type subst = subst;
+    open Sharing; type idata = IData.data;
   end;
-  structure SharingWithoutData = SharingWithData; 
-
-end;
-
-
-(* as above, but creates new Map and InjEndo's for the name structure 
-   TODO: push Map and InjEndo into Names, then this becomes just an pair of
-   opens... 
-*)
-functor OVertexOfDataAndNames(
-  structure IData : UNIFIABLE_DATA
-  structure VertexNames : SSTR_NAMES
-)
-: OVERTEX
-= struct
-  structure IData : UNIFIABLE_DATA = IData;
-  
-  (* make the new external data *)
-  structure ExternalData = OVertexData(IData);  
-  open ExternalData;
-
-  (* open the Names Part of IVertex *)
-  structure VertexNames : SSTR_NAMES = VertexNames;
-  open VertexNames; 
-  
-  structure Map = NameMapFun(structure Dom = VertexNames and Cod = VertexNames);
-  structure InjEndo = NameInjEndoFun(VertexNames);
-
-  (* create the extended sharing structures *)
-  structure SharingWithData = struct 
-    open Sharing; type data = data; type subst = subst;
-    structure Map = Map.Sharing;
-    structure InjEndo = InjEndo.Sharing;
-  end;
-  structure SharingWithIData = struct 
-    open SharingWithData; type idata = IData.data; type subst = subst;
-  end;
-  structure SharingWithoutData = SharingWithData; 
 end;

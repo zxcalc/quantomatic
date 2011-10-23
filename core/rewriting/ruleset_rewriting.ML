@@ -19,24 +19,24 @@ sig
 
   (* matching *)
   val apply : Ruleset.T -> Rule.Graph.T 
-        -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
+        -> ((R.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) Seq.seq 
-  val apply_in : Ruleset.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
-        -> ((RuleName.name * Rule.T) * Rule.Graph.T) Seq.seq;
+  val apply_in : Ruleset.T -> Rule.Graph.T -> V.NSet.T  
+        -> ((R.name * Rule.T) * Rule.Graph.T) Seq.seq;
 
   (* get just first rewrite *)
   val apply_first : Ruleset.T -> Rule.Graph.T 
-        -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
+        -> ((R.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) option 
-  val apply_first_in : Ruleset.T -> Rule.Graph.T -> Rule.Graph.Vertex.NSet.T  
-        -> ((RuleName.name * Rule.T) * Rule.Graph.T) option;
+  val apply_first_in : Ruleset.T -> Rule.Graph.T -> V.NSet.T  
+        -> ((R.name * Rule.T) * Rule.Graph.T) option;
 
   (* low-level *)
   val applicable_rules' : Ruleset.T (* background ruleset *)
       -> (Rule.T -> Rule.Graph.T -> Rule.T * Match.T Seq.seq) (* matcher *)
-      -> RuleName.NSet.T (* subset of rules to use *) 
+      -> R.NSet.T (* subset of rules to use *) 
       -> Rule.Graph.T (* graph to look for matches of rules in *)
-      -> ((RuleName.name * Rule.T) (* name, rule, rewritten graph *) 
+      -> ((R.name * Rule.T) (* name, rule, rewritten graph *) 
             * Rule.Graph.T) Seq.seq 
  
   (* to see what a rule looks like once data is matched and bang-boxes 
@@ -47,7 +47,7 @@ sig
   val rule_matches : Rule.T -> Rule.Graph.T -> (Rule.T * Match.T Seq.seq)
   
   (* funny order is because we create a rule-matcher and use it in applicable_rules' (rule is renamed) *)
-  val rule_matches_within : Rule.Graph.Vertex.NSet.T -> Rule.T -> Rule.Graph.T  
+  val rule_matches_within : V.NSet.T -> Rule.T -> Rule.Graph.T  
       -> (Rule.T * Match.T Seq.seq)
 end;
 
@@ -70,23 +70,20 @@ struct
   structure GraphSubst = GraphSubst;
 
   structure G = Rule.Graph;
-  structure V = G.Vertex;
-  structure E = G.Edge;
-  structure BBox = G.BBox;
 
   fun rule_matches r g =
       let
         val rnms = 
             (V.Rnm.mk_from_avoids (G.get_vnames g),
              E.Rnm.mk_from_avoids (G.get_enames g),
-             BBox.Rnm.mk_from_avoids (G.get_bbnames g))
+             B.Rnm.mk_from_avoids (G.get_bbnames g))
         val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val gs = [lhs, g, Rule.get_rhs r]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
-           fold G.add_to_bbnames gs BBox.NSet.empty)
+           fold G.add_to_bbnames gs B.NSet.empty)
       in (r,RuleMatchSearch.match names r g) end;
 
   (* TODO: no need to rename-apart the rule: matching removes the tgt of the match: it is independent of the rule. Instead, we should be providing a way to rename-apart the rule and match to correspond to a given target (so that we can display a nice picture where they look the same) *)
@@ -95,14 +92,14 @@ struct
         val rnms = 
             (V.Rnm.mk_from_avoids (G.get_vnames g),
              E.Rnm.mk_from_avoids (G.get_enames g),
-             BBox.Rnm.mk_from_avoids (G.get_bbnames g))
+             B.Rnm.mk_from_avoids (G.get_bbnames g))
         val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val gs = [lhs, g, Rule.get_rhs r]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
-           fold G.add_to_bbnames gs BBox.NSet.empty)
+           fold G.add_to_bbnames gs B.NSet.empty)
       in (r, RuleMatchSearch.match names r 
               (G.matched_subgraph_within_vset vset g)) 
       end;
@@ -116,7 +113,7 @@ struct
   (* IMPROVE: provide a single name-space for all rules, and thus avoid 
      multiple renamings. *)
   fun applicable_rules' rset matcher rnset g = 
-      RuleName.NSet.fold 
+      R.NSet.fold 
       (fn n =>
           let val (r,matches) = matcher (Ruleset.get_rule rset n) g 
           in Seq.append 

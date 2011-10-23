@@ -22,7 +22,7 @@ end;
 structure VKind : VKIND
 = struct
   structure V = Vertex;
-  structure NSet = Edge.NTab.NSet;
+  structure NSet = E.NTab.NSet;
   
   
   type data = V.IData.data;

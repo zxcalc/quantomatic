@@ -248,11 +248,10 @@ struct
   open Commands;
 
   structure Ruleset = State.Theory.Ruleset;
-  structure R = State.Theory.Rule;
+  structure Rule = State.Theory.Rule;
   structure G = State.Theory.Graph;
-  structure V = State.Theory.Vertex;
-  structure E = State.Theory.Edge;
-  structure B = State.Theory.Graph.BBox;
+  structure OVData = State.Theory.OVData;
+  structure EData = State.Theory.EData;
   structure VCD = State.Theory.VertexComponentData;
   structure ECD = State.Theory.EdgeComponentData;
   structure Input = State.Theory.IO_Xml.Input;
@@ -292,7 +291,7 @@ struct
     let
       val vert_list = V.NTab.list_of (G.get_vertices graph)
       val edge_list = E.NTab.list_of (G.get_edges graph)
-      val bbox_list = G.VtoBoxMap.codf_list_of (G.get_bboxes graph)
+      val bbox_list = VBMap.codf_list_of (G.get_bboxes graph)
     in
       { name = n,
         vertices = map describe_vertex vert_list,
@@ -305,7 +304,7 @@ struct
       val lhs = State.Theory.Rule.get_lhs rule
       val rhs = State.Theory.Rule.get_rhs rule
     in
-      { ruleName = RuleName.dest rn, result = describe_graph ("",result),
+      { ruleName = R.dest rn, result = describe_graph ("",result),
         lhs = describe_graph ("",lhs), rhs = describe_graph ("",rhs) }
     end
 
@@ -315,7 +314,7 @@ struct
                     Pretty.list "i{" "}" (map E.pretty_name (E.NSet.list_of ins)),
                     Pretty.list "; o{" "}" (map E.pretty_name (E.NSet.list_of outs)),
                     Pretty.str "; ",
-                    V.pretty_data nd
+                    OVData.pretty_data nd
                    ]
 
   fun pretty_edge_dir_or_undir G.Directed = Pretty.str "dir"
@@ -330,7 +329,7 @@ struct
                     Pretty.str "; (",
                     pretty_edge_dir_or_undir bd,
                     Pretty.str ") ",
-                    E.pretty_data e
+                    EData.pretty_data e
                    ]
 
 
@@ -480,7 +479,7 @@ fun hilb ([format], graph) =
                               end
                          | PrettyFormat =>
                               PrettyResponse {
-                                data = V.pretty_data vdata
+                                data = OVData.pretty_data vdata
                               }
                          | XmlFormat =>
                               let
@@ -512,7 +511,7 @@ fun hilb ([format], graph) =
                               end
                          | PrettyFormat =>
                               PrettyResponse {
-                                data = E.pretty_data edata
+                                data = EData.pretty_data edata
                               }
                          | XmlFormat =>
                               let
@@ -716,44 +715,44 @@ fun hilb ([format], graph) =
     (* Rules *)
     | serviceRequest' (ListRulesRequest) state =
         let val rules = (State.list_allrules  state) in
-          (StringListResponse { data = map RuleName.dest rules }, state)
+          (StringListResponse { data = map R.dest rules }, state)
         end
 
     | serviceRequest' (ListActiveRulesRequest) state =
         let val rules = (State.list_active_rules  state) in
-          (StringListResponse { data = map RuleName.dest rules }, state)
+          (StringListResponse { data = map R.dest rules }, state)
         end
 
     | serviceRequest' (ListRulesByTagRequest { tagName }) state =
         let val rules = (State.list_rules_with_tag (TagName.mk tagName) state) in
-          (StringListResponse { data = map RuleName.dest rules }, state)
+          (StringListResponse { data = map R.dest rules }, state)
         end
 
     | serviceRequest' (OpenRuleLhsRequest { ruleName }) state =
-        let val (nm,state') = (State.open_rule_lhs state (RuleName.mk ruleName)) in
+        let val (nm,state') = (State.open_rule_lhs state (R.mk ruleName)) in
           (StringResponse { data = GraphName.dest nm }, state')
         end
 
     | serviceRequest' (OpenRuleRhsRequest { ruleName }) state =
-        let val (nm,state') = (State.open_rule_rhs state (RuleName.mk ruleName)) in
+        let val (nm,state') = (State.open_rule_rhs state (R.mk ruleName)) in
           (StringResponse { data = GraphName.dest nm }, state')
         end
 
     | serviceRequest' (SetRuleRequest { ruleName, lhsGraphName, rhsGraphName }) state =
         (OkResponse,
-         State.set_rule (RuleName.mk ruleName) (GraphName.mk lhsGraphName) (GraphName.mk rhsGraphName) state)
+         State.set_rule (R.mk ruleName) (GraphName.mk lhsGraphName) (GraphName.mk rhsGraphName) state)
 
     | serviceRequest' (DeleteRuleRequest { ruleName }) state =
         (OkResponse,
-         State.delete_rule (RuleName.mk ruleName) state)
+         State.delete_rule (R.mk ruleName) state)
 
     | serviceRequest' (ActivateRuleRequest { ruleName }) state =
         (OkResponse,
-         State.activate_rule (RuleName.mk ruleName) state)
+         State.activate_rule (R.mk ruleName) state)
 
     | serviceRequest' (DeactivateRuleRequest { ruleName }) state =
         (OkResponse,
-         State.deactivate_rule (RuleName.mk ruleName) state)
+         State.deactivate_rule (R.mk ruleName) state)
 
 
     (* Tags *)
@@ -764,11 +763,11 @@ fun hilb ([format], graph) =
 
     | serviceRequest' (TagRuleRequest { ruleName, tagName }) state =
         (OkResponse,
-         State.tag_rule (RuleName.mk ruleName) (TagName.mk tagName) state)
+         State.tag_rule (R.mk ruleName) (TagName.mk tagName) state)
 
     | serviceRequest' (UntagRuleRequest { ruleName, tagName }) state =
         (OkResponse,
-         State.untag_rule (RuleName.mk ruleName) (TagName.mk tagName) state)
+         State.untag_rule (R.mk ruleName) (TagName.mk tagName) state)
 
     | serviceRequest' (ForgetTagRequest { tagName }) state =
         (OkResponse,
@@ -821,7 +820,7 @@ fun hilb ([format], graph) =
           case format
             of BasicFormat =>
                  (StringListResponse {
-                    data = map (fn ((rn,_),_) => RuleName.dest rn) rewrites
+                    data = map (fn ((rn,_),_) => R.dest rn) rewrites
                   }, state)
              | XmlFormat =>
                  (XmlResponse {
@@ -896,7 +895,7 @@ fun hilb ([format], graph) =
                 ErrorResponse {
                   errorCode = "NOSUCHRULE",
                   message = ("No such rule \""^
-                             (RuleName.dest ruleName)^"\"")
+                             (R.dest ruleName)^"\"")
                 }
            | State.no_such_tag_exp tagName =>
                 ErrorResponse {

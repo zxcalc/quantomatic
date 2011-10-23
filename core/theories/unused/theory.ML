@@ -5,7 +5,7 @@ signature THEORY
 = sig
 
 structure Rule : RULE
-structure Rn : NAMES where type name = string
+structure Rn : NAME where type name = string
 
 type T
 
