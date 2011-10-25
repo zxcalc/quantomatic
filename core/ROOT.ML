@@ -159,11 +159,10 @@ PolyML.Project.make "theories/ghz_w/graph.ML";
 PolyML.Project.make "theories/ghz_w/theory.ML";
 PolyML.Project.make "theories/ghz_w/io.ML";
 
-(* ghz-w specific vertices, graphs, and matching *)
+(* Graphs having vertices with strings as data, substring as matching *)
 PolyML.Project.make "theories/substrings/vertex.ML";
 PolyML.Project.make "theories/substrings/graph.ML";
 PolyML.Project.make "theories/substrings/theory.ML";
-PolyML.Project.make "theories/substrings/io.ML";
 
 (* rgb specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/red_green_blue/vertex.ML";

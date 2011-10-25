@@ -5,19 +5,15 @@ structure RGB_GraphParam
 : GRAPH_PARAM
 = struct
 
-  structure Vertex = RGB_Vertex;
+  structure VData = RGB_VertexData;
 
   (* edges have unit data, and are ignored as we use Vertex subst type *)
-  structure UnifyableEdgeData = 
-    IgnoredUnifiableData(structure D = UnitData structure S = RGB_Vertex);
-  structure EdgeStrNm = StrNmData(structure D = UnifyableEdgeData 
-                             val default_data = ());
-  structure Edge = EdgeFun(EdgeStrNm);
-
-  structure IName = RGB_Vertex;
+  structure EData = 
+    IgnoredUnifiableData(structure D = UnitData structure S = VData
+                         val default_data = ());
   
   (* vertex, and vertex data variable dependencies *)
-  structure VDep = NameBRelFun(structure Dom = Vertex and Cod = IName);
+  structure VDep = VXBRel;
   
   (* internal name data *)
   type T = VDep.T;
@@ -26,10 +22,10 @@ structure RGB_GraphParam
   exception match_exp of unit;
   exception unknown_type_exp of string;
 
-  fun get_IName vdep = VDep.get_codset vdep;
+  fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
-  fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
+  fun try_rename1_xname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
 
   fun rename_vname n1 n2 vdep = 
@@ -44,16 +40,16 @@ structure RGB_GraphParam
   (* rename internal names in the dependency structure *)
   structure CRnmX : COMPOUND_RENAMING
   = CompoundRenamingFun(
-    struct structure Nm = IName
+    struct structure Nm = X
            type obj = T
-           val get_nameset = get_IName
-           val try_rename1 = try_rename1_iname
+           val get_nameset = get_xnames
+           val try_rename1 = try_rename1_xname
     end);
 
   (* rename vertices in the dependency structure *)
   structure CRnmV : COMPOUND_RENAMING
   = CompoundRenamingFun(
-    struct structure Nm = Vertex
+    struct structure Nm = V
            type obj = T
            val get_nameset = get_vnames
            val try_rename1 = try_rename1_vname
@@ -61,7 +57,7 @@ structure RGB_GraphParam
 
   (* rename edges in the dependency structure *)
   structure CRnmE : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = Edge type obj = T);
+  = EmptyCompoundRenamingFun(structure Nm = E type obj = T);
 
   (* empty name-dependency information *)
   val empty = VDep.empty;
@@ -84,19 +80,19 @@ structure RGB_GraphParam
   structure VDataCRnmX : COMPOUND_RENAMING
   = struct 
     type obj = VData.data
-    type renaming = IName.Rnm.T
+    type renaming = X.Rnm.T
 
     val empty_renaming = CRnmX.empty_renaming
 
     fun rename rnm vd = (rnm,vd);
     fun mk_renaming vd rnm = rnm;
     fun do_renaming rnm vd = vd;
-    val restrict_to_avoiding = IName.Rnm.restrict_to_avoiding;
+    val restrict_to_avoiding = X.Rnm.restrict_to_avoiding;
   end;
 
   (* rename internal names within an edge data *)
   structure EDataCRnmX : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = IName type obj = EData.data);
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = EData.data);
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
@@ -130,22 +126,22 @@ structure RGB_GraphParam
 
   structure Sharing = 
   struct 
-    structure Vertex = VData.SharingWithData;
-    structure Edge = EData.EdgeSharingWithData;
+    structure VData = VData.Sharing;
+    structure EData = EData.Sharing;
     type T = T;
     type inames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
 end;
 
-structure RGB_OVertex = OVertex(RGB_Vertex);
+structure RGB_OVertexData = OVertexData(RGB_VertexData);
 structure RGB_OGraphParam = OGraphParam(
   structure Param = RGB_GraphParam 
-        and OVertex = RGB_OVertex);
+        and OVData = RGB_OVertexData);
 
 structure RGB_OVertexComponentData_Param = OVertexComponentData_Param(
   structure VertexDataParam = RGB_VertexComponentData_Param
-  structure OVertex = RGB_OVertex);
+  structure OVData = RGB_OVertexData);
 
 structure RGB_OVertexComponentData = ElementComponentData(RGB_OVertexComponentData_Param);
 
