@@ -33,6 +33,7 @@ sig
   (* Matching algorithm *)
   structure RuleMatchSearch : RULE_MATCH_SEARCH
   sharing RuleMatchSearch.Sharing.Match = Match.Sharing
+  sharing RuleMatchSearch.Sharing.Rule = Rule.Sharing
 
   (* Sets of rules and matching for those sets *)
   structure RulesetRewrites : RULESET_REWRITES

@@ -12,17 +12,18 @@ struct
   in if ((outsum = 1 andalso insum = ins) orelse (outsum = 0 andalso insum = (ins - 1))) then 1 else 0
   end
   
-  fun tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.GHZ) (ins, outs) =
+  fun tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.GHZ) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (ghz ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))
-    | tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.W) (ins, outs) =
+    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.W) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (w (ins,outs))
-    | tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.TICK) (1,1) =
+    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.TICK) (1,1) =
         Tensor.tensor (2,1,1) [0,1,1,0]
-    | tensor_for_vertex_data (Graph.OVertex.IVert GHZW_VertexData.TICK) (ins,outs) =
+    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.TICK) (ins,outs) =
         Tensor.tensorf (2,ins,outs) (K 0)  (* just return a zero tensor if bad dimensions on tick *)
-    | tensor_for_vertex_data (Graph.OVertex.EVert) _ = Tensor.id dimension 1
+    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id dimension 1
 end
 
+(*
 structure RG_TensorDataNoPhase : TENSOR_DATA =
 struct
   structure Graph = RG_Theory.Graph
@@ -34,12 +35,13 @@ struct
            (fold (curry op+) (Tensor.decompose_index 2 ins j) 0) mod 2 then 1 else 0
   fun green (maxi,maxj) (i,j) = if ((i=0 andalso j=0) orelse (i=maxi andalso j=maxj)) then 1 else 0
   
-  fun tensor_for_vertex_data (Graph.OVertex.IVert (RG_VertexData.Znd _)) (ins, outs) =
+  fun tensor_for_vertex_data (Graph.OVData.IVert (RG_VertexData.Znd _)) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (green ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))
-    | tensor_for_vertex_data (Graph.OVertex.IVert (RG_VertexData.Xnd _)) (ins, outs) =
+    | tensor_for_vertex_data (Graph.OVData.IVert (RG_VertexData.Xnd _)) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (red (ins,outs))
-    | tensor_for_vertex_data (Graph.OVertex.EVert) _ = Tensor.id dimension 1
+    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id dimension 1
 end
+*)
 
 structure RGB_TensorData : TENSOR_DATA =
 struct
@@ -63,23 +65,21 @@ struct
   in Tensor.add term1 term2
   end
   
-  fun tensor_for_vertex_data (Graph.OVertex.IVert RGB_VertexData.Red) io = gen red_basis io
-    | tensor_for_vertex_data (Graph.OVertex.IVert RGB_VertexData.Green) io = gen green_basis io
-    | tensor_for_vertex_data (Graph.OVertex.IVert RGB_VertexData.Blue) io = gen blue_basis io
-    | tensor_for_vertex_data (Graph.OVertex.EVert) _ = Tensor.id 2 1
+  fun tensor_for_vertex_data (Graph.OVData.IVert RGB_VertexData.Red) io = gen red_basis io
+    | tensor_for_vertex_data (Graph.OVData.IVert RGB_VertexData.Green) io = gen green_basis io
+    | tensor_for_vertex_data (Graph.OVData.IVert RGB_VertexData.Blue) io = gen blue_basis io
+    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id 2 1
 end
+
 
 
 (* FUNCTOR APPLICATIONS *)
 
-structure GHZW_Enum = GraphEnumerator(
-  structure Ruleset = GHZW_Theory.Ruleset
-  structure MatchSearch = GHZW_Theory.RuleMatchSearch
-)
+structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 
 structure GHZW_DefaultSynth = Synthesize(
   structure GraphEnum = GHZW_Enum
-  structure Metric = WeightedArityMetric(structure Graph = GHZW_Theory.Graph)
+  structure Metric = WeightedArityMetric(structure Graph = GHZW_Theory.Graph; val weight_for_data = K 1)
   structure TData = GHZW_TensorData
 )
 
@@ -87,14 +87,11 @@ structure GHZW_RSBuilder = RulesetBuilder(structure Synthesize = GHZW_DefaultSyn
 structure GHZW_Gens = DefaultGenerators(structure Graph = GHZW_Theory.Graph)
 structure GHZW_Rws = DefaultRewrites(structure Rule = GHZW_Theory.Rule)
 
-structure RGB_Enum = GraphEnumerator(
-  structure Ruleset = RGB_Theory.Ruleset
-  structure MatchSearch = RGB_Theory.RuleMatchSearch
-)
+structure RGB_Enum = GraphEnumerator(structure Theory = RGB_Theory)
 
 structure RGB_Synth = Synthesize(
   structure GraphEnum = RGB_Enum
-  structure Metric = WeightedArityMetric(structure Graph = RGB_Theory.Graph)
+  structure Metric = WeightedArityMetric(structure Graph = RGB_Theory.Graph; val weight_for_data = K 1)
   structure TData = RGB_TensorData
 )
 
@@ -123,7 +120,7 @@ struct
     gens : ('graph * int * int) list,
     stats : 'synth -> int * int * int,
     class_list : 'synth -> (string * 'graph EqClass.T) list,
-    rs_pairs : 'ruleset -> ('graph * 'graph) RuleName.NTab.T
+    rs_pairs : 'ruleset -> ('graph * 'graph) R.NTab.T
   }
   
   fun get_name       ({name=x,...}:('g,'r,'s) T) = x
@@ -134,7 +131,7 @@ struct
   fun get_rs_pairs   ({rs_pairs=x,...}:('g,'r,'s) T) = x
 end
 
-fun rule_data flhs frhs = (RuleName.NTab.map_all (fn _ => fn r => (flhs r, frhs r) ))
+fun rule_data flhs frhs = (R.NTab.map_all (fn _ => fn r => (flhs r, frhs r) ))
 
 (*
 val rg_data = {
