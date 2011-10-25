@@ -392,6 +392,9 @@ fun rename_ename en1 en2 g =
 fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
   | pretty_edge_dir_or_undir UnDirected = Pretty.str "bidir";
 
+fun pretty_edge_connector Directed = Pretty.str "->"
+  | pretty_edge_connector UnDirected = Pretty.str "--";
+
 fun pretty_theory_name g = Param.pretty_theory_name;
 
 (* pretty printing *)
@@ -408,11 +411,12 @@ fun pretty g =
                    (fn (n, (nd,(ins,outs))) => 
                        Pretty.block 
                          [V.pretty_name n,
-                          Pretty.str "; ",
+                          Pretty.str ":=",
                           Pretty.list "i{" "}" (map E.pretty_name (E.NSet.list_of ins)),
-                          Pretty.list "; o{" "}" (map E.pretty_name (E.NSet.list_of outs)),
-                          Pretty.str "; ",
-                          VData.pretty_data nd
+                          Pretty.list "o{" "}" (map E.pretty_name (E.NSet.list_of outs)),
+                          Pretty.str "(",
+                          VData.pretty_data nd,
+                          Pretty.str ")"
                    ])
                    (V.NTab.list_of (get_vertices g)))],
            Pretty.block
@@ -422,14 +426,13 @@ fun pretty g =
                    (fn (en, ((bd,e), (n1, n2))) => 
                        Pretty.block 
                          [E.pretty_name en,
-                          Pretty.str ": ",
+                          Pretty.str ":=",
                           V.pretty_name n1,
-                          Pretty.str " - ",
+                          pretty_edge_connector bd,
                           V.pretty_name n2,
-                          Pretty.str "; (",
-                          pretty_edge_dir_or_undir bd,
-                          Pretty.str ") ",
-                          EData.pretty_data e
+                          Pretty.str "(",
+                          EData.pretty_data e,
+                          Pretty.str ") "
                    ])
                    (E.NTab.list_of (get_edges g)))]]],
        Pretty.str "}"

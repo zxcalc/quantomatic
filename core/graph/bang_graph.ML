@@ -49,6 +49,7 @@ val get_bboxes : T -> VBMap.T
 val get_bbox : T -> B.name -> V.NSet.T
 val get_bbox_list : T -> B.name list
 val get_unboxed : T -> V.NSet.T
+val get_boxed : T -> V.NSet.T
 val rename_bname : B.name -> B.name -> T -> T
 val try_rename1_bname : B.name -> B.name -> T -> T option
 (* val rename_bbname : B.name -> B.name -> T -> T *)
@@ -100,6 +101,12 @@ val fresh_copy1_box : B.name (* bbox to copy *)
       -> (B.name (* new box name *)
           * T) (* new graph with bbox copied *)
 
+(* *)
+val get_filtered_adj_arities_and_bang_arities : 
+    (((H.name * (dir_or_undir * EData.data)) * V.name) -> bool)
+    -> T -> V.name 
+    -> Arity.T V.NTab.T  
+       * Arity.T V.NTab.T B.NTab.T
 
 (* *)
 val get_adj_arities_and_bang_arities : 
@@ -273,6 +280,9 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* all !-box names *)
   val get_bbnames = VBMap.get_codset o get_bboxes;
   val add_to_bbnames = B.NSet.union_merge o get_bbnames;
+
+  (* all vertices in a bbox *)
+  val get_boxed = VBMap.get_domset o get_bboxes;
 
   structure BBoxCRnm = CompoundRenamingFun(
   struct 
@@ -458,10 +468,10 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       end;
   
   fun adj_pat_info_bangs g n = adj_pat_info_bangs' g n (get_vertex g n);
-  
+
   (* get arrities to adjacent vertices, return two tables, one for normal edges 
-     and one for those in a different bang-boxes. *)
-  fun get_adj_arities_and_bang_arities g n = 
+     and one for those in a different bang-boxes. Filter by function: when function is true, skip this adj entry. *)
+  fun get_filtered_adj_arities_and_bang_arities f g n = 
       let 
         val nbbox = lookup_box_of g n;
   
@@ -493,6 +503,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
             else V.NTab.update (n2,init_adj_info e) ntab;
   
         fun consider1 e n2 (ntab,bboxntab) = 
+            if f (e,n2) then (ntab,bboxntab) else 
             (case in_a_different_bbox n2 of 
                NONE => (add_one_arity e n2 ntab, bboxntab)
              | SOME bbn =>  
@@ -507,6 +518,10 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
         fold_adj consider1 g n (V.NTab.empty, B.NTab.empty)
       end;
   
+  (* get arrities to adjacent vertices, return two tables, one for normal edges 
+     and one for those in a different bang-boxes. *)
+  val get_adj_arities_and_bang_arities = 
+      get_filtered_adj_arities_and_bang_arities (K false);
 
 end; (* BangGraphFun *)
 

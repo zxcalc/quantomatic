@@ -45,6 +45,7 @@ signature MATCH
 
   (* check is half edges are mapped this way already *)
   val emap_contains : T -> H.name * H.name -> bool
+  val emap_contains_pat_ehn : T -> H.name -> bool
 
   (* exception raised when things do not match *)
   exception match_exp of unit;
@@ -337,6 +338,10 @@ functor Match(G : BANG_GRAPH)
   fun emap_contains m peh_teh = 
       HInjEndo.contains (get_emap m) peh_teh;
   
+  fun emap_contains_pat_ehn m pehn = 
+      (case (HInjEndo.lookup_domf (get_emap m) pehn) of NONE => false
+       | SOME _ => true);
+
   (* exception raised when things do not match *)
   exception match_exp of unit;
   

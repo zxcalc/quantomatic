@@ -185,7 +185,7 @@ class TheoryDataHandler extends DefaultHandler
 			}
 			
 			if (this.implementedTheoryName == null) {
-				theoryParser.setImplementedTheoryName("undef");
+				theoryParser.setImplementedTheoryName(null);
 				throw new SAXException("Could not find attribute 'implements' in element <theory>", null);
 			}
 			theoryParser.setImplementedTheoryName(this.implementedTheoryName);		

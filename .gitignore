@@ -13,3 +13,5 @@ core/local_config.ML
 /gui/.classpath
 /gui/.project
 /gui/bin/
+*~
+*#

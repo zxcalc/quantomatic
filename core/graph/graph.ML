@@ -164,7 +164,9 @@ val adj_vnames' : T -> (E.NSet.T * E.NSet.T)
 (* get incoming, outgoing, undirected edges adjacent to vertex *)
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
-(* fold over adjacents *)
+(* fold over adjacents; the edge-half argument of the folding function is the one closest to the adjacent vertex names. e.g. folding of ins and outs of vertex x: 
+       if "x <-e- y" then: "f (Ehn.mk_start e,...)"
+       if "x -e-> y" then: "f (Ehn.mk_end e,...)"   *)
 val fold_adj : (H.name * (dir_or_undir * EData.data) 
                 -> V.name -> 'a -> 'a) 
       -> T -> V.name -> 'a -> 'a
