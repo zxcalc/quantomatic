@@ -11,8 +11,8 @@ signature MATCH_SHARING
 
   sharing MCtxt.G = G
   sharing BBMatch.G = G
-  sharing EMap.Cod = G.Edge.Ehn
-  sharing EMap.Dom = G.Edge.Ehn
+  sharing EMap.Cod = G.EData.Ehn
+  sharing EMap.Dom = G.EData.Ehn
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
@@ -34,49 +34,49 @@ signature MATCH
   sharing Sharing.MCtxt = MCtxt.Sharing
 
   (* init = empty, but with pat and tgt's exterior as interface *)
-  val init : (G.Vertex.NSet.T * G.Edge.NSet.T 
-               * G.BBox.NSet.T) (* other names to avoid when matching *)
+  val init : (V.NSet.T * E.NSet.T 
+               * B.NSet.T) (* other names to avoid when matching *)
              -> G.T -> G.T -> T 
   val mk_id : G.T (* given a graph *)
               -> T (* make the id match for it *)
 
   (* basic gets *)
   val get_emap : T -> EMap.T
-  val get_viso : T -> G.Vertex.InjEndo.T
-  val get_evmap : T -> G.Vertex.Map.T
+  val get_viso : T -> VInjEndo.T
+  val get_evmap : T -> VMap.T
   val get_mctxt : T -> MCtxt.T
   val get_bbmatch : T -> BBMatch.T
-  val get_names : T -> (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T)
-  val set_names : (G.Vertex.NSet.T * G.Edge.NSet.T * G.BBox.NSet.T) -> T -> T 
+  val get_names : T -> (V.NSet.T * E.NSet.T * B.NSet.T)
+  val set_names : (V.NSet.T * E.NSet.T * B.NSet.T) -> T -> T 
 
   (* more bbox stuff *)
-  val get_bbmap : T -> BBMatch.BBMap.T
-  val add_bbox_drop : G.BBox.name -> T -> T;
-  val add_bbox_kills : G.BBox.name list -> T -> T;
-  val add_bbox_map : G.BBox.name -> G.BBox.name -> T -> T;
-  val add_bbox_copy : (G.BBox.name (* old bbname *)
-                 * (G.OVertex.name G.OVertex.NTab.T (* vertex copying *)
-                      * G.Edge.name G.Edge.NTab.T) (* edge copying *)
-                 * G.BBox.name) (* new bbox name *) 
+  val get_bbmap : T -> BBMatch.BMap.T
+  val add_bbox_drop : B.name -> T -> T;
+  val add_bbox_kills : B.name list -> T -> T;
+  val add_bbox_map : B.name -> B.name -> T -> T;
+  val add_bbox_copy : (B.name (* old bbname *)
+                 * (V.name V.NTab.T (* vertex copying *)
+                      * E.name E.NTab.T) (* edge copying *)
+                 * B.name) (* new bbox name *) 
                 -> T -> T;
 
   (* basic matching functions *)
-  val match_edgehalf : G.Edge.Ehn.name * G.Edge.data 
-      -> G.Edge.Ehn.name * G.Edge.data 
+  val match_edgehalf : H.name * G.EData.data 
+      -> H.name * G.EData.data 
       -> T -> T option
 
   val match_edge : bool (* matched in reverse direction *) 
-      -> G.Edge.name * G.Edge.data 
-      -> G.Edge.name * G.Edge.data 
+      -> E.name * G.EData.data 
+      -> E.name * G.EData.data 
       -> T -> T option
 
   (*  *)
-  val match_vertex : G.OVertex.name * G.OVertex.data
-                     -> G.OVertex.name * G.OVertex.data 
+  val match_vertex : V.name * G.OVData.data
+                     -> V.name * G.OVData.data 
                      -> T -> T option
 
   (* match pattern boundary point to target vertex/edge-point *)
-  val match_boundary : G.OVertex.name -> G.OVertex.name -> T -> T
+  val match_boundary : V.name -> V.name -> T -> T
 
   (* *)
   (* val tgt_edgehalf_is_matched *)
@@ -135,7 +135,7 @@ structure EMap = NameInjEndoFun(Ehn);
 datatype T = Match of 
          {
           (* names context for fresh names when copying bboxes in pat *)
-          names : (V.NSet.T * E.NSet.T * BBox.NSet.T),
+          names : (V.NSet.T * E.NSet.T * B.NSet.T),
           (* Internal vertex bijection from pat to tgt *)
           viso : V.InjEndo.T,
           (* map for boundary vertices pat to tgt vertices  *)
@@ -155,8 +155,8 @@ fun init (vs,es,bs) pat tgt =
                 (V.NSet.union_merge (G.get_vnames tgt) vs),  
              E.NSet.union_merge (G.get_enames pat)
                 (E.NSet.union_merge (G.get_enames tgt) es), 
-             BBox.NSet.union_merge (G.get_bbnames pat) 
-                (BBox.NSet.union_merge (G.get_bbnames tgt) bs)),
+             B.NSet.union_merge (G.get_bbnames pat) 
+                (B.NSet.union_merge (G.get_bbnames tgt) bs)),
     viso = V.InjEndo.empty,
     evmap = V.Map.empty,
     emap = EMap.empty,
@@ -177,7 +177,7 @@ fun mk_id g =
       val boundary_vnames = G.get_boundary g;
       val bbmatch = 
           BBMatch.mk_id boundary_vnames
-                        (G.VtoBoxMap.get_codset (G.get_bboxes g));
+                        (G.VBMap.get_codset (G.get_bboxes g));
       val evmap = (* mk id *)
           V.NSet.fold (fn n => V.Map.add_to_dom n n) 
                       boundary_vnames V.Map.empty;
@@ -185,8 +185,8 @@ fun mk_id g =
           E.NSet.fold 
             (* tgt mapping not needed; we always start by mapping src
                - helps keep table small *)
-            (fn n => EMap.add (Ehn.mk_start n) (Ehn.mk_start n)
-                     o EMap.add (Ehn.mk_end n) (Ehn.mk_end n))
+            (fn n => EMap.add (H.mk_start n) (H.mk_start n)
+                     o EMap.add (H.mk_end n) (H.mk_end n))
             enames EMap.empty;
       val viso = 
           V.NSet.fold (fn n => V.InjEndo.add n n) 
@@ -269,14 +269,14 @@ val tgt_vertex_is_matched = V.InjEndo.dom_contains o get_viso;
 fun tgt_edgehalf_is_matched m eh = 
     is_some (EMap.lookup_codf (get_emap m) eh);
 fun tgt_edge_is_matched m e =
-    tgt_edgehalf_is_matched m (Ehn.mk_start e) 
-    orelse tgt_edgehalf_is_matched m (Ehn.mk_end e); 
+    tgt_edgehalf_is_matched m (H.mk_start e) 
+    orelse tgt_edgehalf_is_matched m (H.mk_end e); 
 fun tgt_edge_has_unmatched_half m e = 
-    not (tgt_edgehalf_is_matched m (Ehn.mk_start e))
-    orelse not (tgt_edgehalf_is_matched m (Ehn.mk_end e)); 
+    not (tgt_edgehalf_is_matched m (H.mk_start e))
+    orelse not (tgt_edgehalf_is_matched m (H.mk_end e)); 
 fun tgt_edge_is_fully_matched m e = 
-    tgt_edgehalf_is_matched m (Ehn.mk_start e) 
-    andalso tgt_edgehalf_is_matched m (Ehn.mk_end e); 
+    tgt_edgehalf_is_matched m (H.mk_start e) 
+    andalso tgt_edgehalf_is_matched m (H.mk_end e); 
 
 
 (* assumes compatability with EMap (edge-half map) *)
@@ -292,11 +292,11 @@ fun match_edge revdir (pe, ped) (te, ted) m =
     (case MCtxt.edge_match ped ted (get_mctxt m)
       of NONE => NONE
        | SOME mctxt2 => 
-         let val (peh1,peh2) = if revdir then (Ehn.mk_end pe, Ehn.mk_start pe)
-                               else (Ehn.mk_start pe, Ehn.mk_end pe)
+         let val (peh1,peh2) = if revdir then (H.mk_end pe, H.mk_start pe)
+                               else (H.mk_start pe, H.mk_end pe)
          in
-           SOME (m |> update_emap (EMap.add peh2 (Ehn.mk_end te))
-                   |> update_emap (EMap.add peh1 (Ehn.mk_start te))
+           SOME (m |> update_emap (EMap.add peh2 (H.mk_end te))
+                   |> update_emap (EMap.add peh1 (H.mk_start te))
                    |> set_mctxt mctxt2)
          end);
 
@@ -325,7 +325,7 @@ fun pretty_names (vs,es,bs) =
   Pretty.block 
     [Pretty.str "Vs: ", V.NSet.pretty vs,
      Pretty.str "; Es: ", E.NSet.pretty es,
-     Pretty.str "; Bs: ", BBox.NSet.pretty bs];
+     Pretty.str "; Bs: ", B.NSet.pretty bs];
 
 fun pretty m = 
     Pretty.chunks 

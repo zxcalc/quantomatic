@@ -26,11 +26,11 @@ val _ = test "simple match with 1 plugging on self-loop"
     val (e0', g) = g |> G.add_edge undir_edge n1' n1';
     val g2 = g;
     
-    val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+    val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
 
     val m = (M.init no_extra_names g1 g2) 
-              |> M.match_edgehalf_name (E.Ehn.mk_start e0) (E.Ehn.mk_start e0')
-              |> M.match_edgehalf_name (E.Ehn.mk_end e1) (E.Ehn.mk_end e0')
+              |> M.match_edgehalf_name (H.mk_start e0) (H.mk_start e0')
+              |> M.match_edgehalf_name (H.mk_end e1) (H.mk_end e0')
               |> M.match_vertex (n1, G.get_vertex_data g1 n1) 
                                 (n1', G.get_vertex_data g2 n1') 
               |> M.match_boundary b1 n1'
@@ -43,7 +43,7 @@ val _ = test "simple match with 1 plugging on self-loop"
     val _ = G.print g1';
 
     (* check details of resulting graph *)
-    val _ = if E.NSet.is_empty (G.get_edgepoints g1') then ()  
+    val _ = if V.NSet.is_empty (G.get_edgepoints g1') then ()  
         else raise ERROR "merge_edgehalfs: has an edge-point";
     val SOME e = E.NSet.tryget_singleton (G.get_enames g1');
     val ((G.UnDirected,ed),(fromv,tov)) = G.get_edge g1' e; 
@@ -79,13 +79,13 @@ val _ = test "match pluggings between 2 vertices"
     val (e1', g) = g |> G.add_edge undir_edge n1' n2';
     val tgt = g;
     
-    val no_extra_names = (V.NSet.empty, E.NSet.empty, G.BBox.NSet.empty);
+    val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
 
     val m = (M.init no_extra_names pat tgt) 
-              |> M.match_edgehalf_name (E.Ehn.mk_start e0) (E.Ehn.mk_start e0')
-              |> M.match_edgehalf_name (E.Ehn.mk_end e1) (E.Ehn.mk_end e0')
-              |> M.match_edgehalf_name (E.Ehn.mk_start e2) (E.Ehn.mk_start e1')
-              |> M.match_edgehalf_name (E.Ehn.mk_end e2) (E.Ehn.mk_end e1')
+              |> M.match_edgehalf_name (H.mk_start e0) (H.mk_start e0')
+              |> M.match_edgehalf_name (H.mk_end e1) (H.mk_end e0')
+              |> M.match_edgehalf_name (H.mk_start e2) (H.mk_start e1')
+              |> M.match_edgehalf_name (H.mk_end e2) (H.mk_end e1')
               |> M.match_vertex (n1, G.get_vertex_data pat n1) 
                                 (n1', G.get_vertex_data tgt n1') 
               |> M.match_vertex (n2, G.get_vertex_data pat n2) 
@@ -94,12 +94,12 @@ val _ = test "match pluggings between 2 vertices"
               |> M.match_boundary b2 n2';
     
     val SOME should_be_e0_start = M.other_plugging_half_of_same_edge 
-          m (E.Ehn.mk_end e1) (E.Ehn.mk_end e0'); 
+          m (H.mk_end e1) (H.mk_end e0'); 
     
-    val _ = if E.Ehn.name_eq (should_be_e0_start, E.Ehn.mk_start e0) then () 
+    val _ = if H.name_eq (should_be_e0_start, H.mk_start e0) then () 
             else raise ERROR "opposite edge-point is not e0_start!";
        
-    val plug_v1 = (G.get_ehn_vname pat (E.Ehn.mk_end e1));
+    val plug_v1 = (G.get_ehn_vname pat (H.mk_end e1));
     val plug_v2 = (G.get_ehn_vname pat should_be_e0_start);
    
     val SOME ((dir,ed),(fromv,tov)) = G.boundary_coherence pat plug_v1 plug_v2; 
@@ -114,7 +114,7 @@ val _ = test "match pluggings between 2 vertices"
     val _ = G.print pat';
 
     (* check details of resulting graph *)
-    val _ = if E.NSet.is_empty (G.get_edgepoints pat') then ()  
+    val _ = if V.NSet.is_empty (G.get_edgepoints pat') then ()  
         else raise ERROR "merge_edgehalfs: has an edge-point";
     val [e1,e2] = E.NSet.list_of (G.get_enames pat');
     val ((G.UnDirected,ed),(fromv,tov)) = G.get_edge pat' e1; 

@@ -35,7 +35,7 @@ structure OutputIntXML : OUTPUT_XML
   fun output i = Text (Int.toString i)
 end;
 
-functor OutputSStrNameXML(N : SSTR_NAMES) : OUTPUT_XML 
+functor OutputSStrNameXML(N : SSTR_NAME) : OUTPUT_XML 
 = struct 
   type T = XML.tree;
   type data = N.name;
@@ -43,7 +43,7 @@ functor OutputSStrNameXML(N : SSTR_NAMES) : OUTPUT_XML
   fun output s = (Text (N.string_of_name s));
 end;
 
-functor OutputSStrNameDot(N: SSTR_NAMES) : OUTPUT_DOT
+functor OutputSStrNameDot(N: SSTR_NAME) : OUTPUT_DOT
 = struct
   type T = string;
   type data = N.name;

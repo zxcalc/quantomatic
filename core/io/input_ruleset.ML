@@ -1,4 +1,4 @@
-structure InputRuleNameXML : INPUT_XML = InputSStrNameXML(RuleName);
+structure InputRuleNameXML : INPUT_XML = InputSStrNameXML(R);
 structure InputTagNameXML : INPUT_XML = InputSStrNameXML(TagName);
 
 (* input a set of rules *)
@@ -21,7 +21,7 @@ functor InputRulesetXML(
     val entry_tagname = "rule"
     val key_tagname = "name"
     val value_tagname = "definition"
-    structure NTab = RuleName.NTab
+    structure NTab = R.NTab
     structure InputName = InputUseChildXML(InputRuleNameXML)
     structure InputValue = InputRule
   );
@@ -55,7 +55,7 @@ functor InputRulesetXML(
          Ruleset.empty 
            |> Ruleset.set_allrules rules
            |> Ruleset.set_brel tags
-           |> Ruleset.set_active (RuleName.NSet.of_list active_rules)
+           |> Ruleset.set_active (R.NSet.of_list active_rules)
        end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"ruleset/"^p);
 end;

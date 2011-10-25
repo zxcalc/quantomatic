@@ -11,7 +11,7 @@ val (rn,pat) = (G.rename_apart tgt pat);
 val _ = G.print pat;
 val _ = G.print tgt;
 
-val ms as [m1,m2] = Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty);
+val ms as [m1,m2] = Seq.list_of (MatchSearch.match pat tgt V.NTab.empty);
 val _ = Match.print m1;
 val _ = map Match.print ms;
 
@@ -23,7 +23,7 @@ RGGraph.print tgt;
 
 open DB_MatchSearch;
 
-val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
+val init_st = (init Match.empty pat tgt V.NTab.empty);
 val st = init_st;
 
 (* toplevel *)
@@ -63,8 +63,8 @@ val st = st1;
 
 (* *)
 val SOME ((pn,tn),st2) = pop_agenda st;
-MCtxt.BVertex.string_of_name pn; (* r *)
-MCtxt.BVertex.string_of_name tn; (* i *)
+V.string_of_name pn; (* r *)
+V.string_of_name tn; (* i *)
 
       val pat = get_unm_pat st;
       val tgt = get_unm_tgt st;
@@ -164,7 +164,7 @@ fun edgematch_adj_verticies
       (from_tv as (from_tn,from_td)) 
       (ignore_arity,st) = *)
 
-val ((to_tn,tes)::more_tns) = Vertex.NTab.list_of tns; 
+val ((to_tn,tes)::more_tns) = V.NTab.list_of tns; 
 
 (* 
 fun strict_edgematch_adj_tgt_vertex 
@@ -182,7 +182,7 @@ val matches = Seq.list_of (Seq.make (match_search (Seq.of_list [st3,st4])));
 raise ERROR "stop";
 
 val NONE = pop_agenda st;
-val SOME pvn = (Vertex.NSet.get_local_bot (get_unm_pat_vs st));
+val SOME pvn = (V.NSet.get_local_bot (get_unm_pat_vs st));
 
 
 val SOME ((n,tn),st2) = 

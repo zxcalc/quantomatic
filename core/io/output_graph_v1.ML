@@ -1,7 +1,7 @@
 (*-------------------------------------------------------*)
-functor OutputNoEdgeDataXMLList_v1(E : EDGE) : OUTPUT_XML_LIST
+functor OutputNoEdgeDataXMLList_v1(EData : UNIFIABLE_DATA) : OUTPUT_XML_LIST
 = struct
-  type data = E.data;
+  type data = EData.data;
   type T = XML.tree list
   fun output _ = []
 end
@@ -11,17 +11,14 @@ functor OutputGraphContentsXMLList_v1(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_XML_LIST
         and OutputEdgeData : OUTPUT_XML_LIST
-  sharing type OutputVertexData.data = Graph.Vertex.data
-  sharing type OutputEdgeData.data = Graph.Edge.data
+  sharing type OutputVertexData.data = Graph.VData.data
+  sharing type OutputEdgeData.data = Graph.EData.data
 ) : OUTPUT_XML_LIST
 = struct
-  structure V = Graph.OVertex;
-  structure E = Graph.Edge
 
-  structure VName = LinratExpr.VName;
   structure OutputVertexName = OutputSStrNameXML(V);
   structure OutputEdgeName = OutputSStrNameXML(E);
-  structure OutputBBoxName = OutputSStrNameXML(Graph.BBox);
+  structure OutputBBoxName = OutputSStrNameXML(B);
 
   type T = XML.tree list;
   type data = Graph.T;
@@ -53,7 +50,7 @@ functor OutputGraphContentsXMLList_v1(
       wrap_els_simple "bangbox" (
           (wrap_el_simple "name" (OutputBBoxName.output box))
           ::(map (fn vname => wrap_el_simple "boxedvertex" (OutputVertexName.output vname))
-                 (Graph.Vertex.NSet.list_of (Graph.get_bbox g box)))
+                 (V.NSet.list_of (Graph.get_bbox g box)))
       );
 
 
@@ -67,8 +64,8 @@ functor OutputGraphXML_v1(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_XML_LIST
         and OutputEdgeData : OUTPUT_XML_LIST
-  sharing type OutputVertexData.data = Graph.Vertex.data
-  sharing type OutputEdgeData.data = Graph.Edge.data
+  sharing type OutputVertexData.data = Graph.VData.data
+  sharing type OutputEdgeData.data = Graph.EData.data
 ) : OUTPUT_XML
 = OutputWrapXML(
     val tagname = "graph"

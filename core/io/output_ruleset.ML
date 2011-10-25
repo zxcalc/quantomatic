@@ -1,5 +1,5 @@
-structure OutputRuleNameXMLList : OUTPUT_XML_LIST where type data = RuleName.name  
-  = OutputListify(OutputSStrNameXML(RuleName));
+structure OutputRuleNameXMLList : OUTPUT_XML_LIST where type data = R.name  
+  = OutputListify(OutputSStrNameXML(R));
 structure OutputTagNameXMLList = OutputListify(OutputSStrNameXML(TagName));
 
 structure OutputTagRelXMLList : OUTPUT_XML_LIST = 
@@ -27,7 +27,7 @@ functor OutputRulesetDescXMLList (
       val entry_tagname = "rule"
       val key_tagname = "name"
       val value_tagname = "definition"
-      structure NTab = RuleName.NTab
+      structure NTab = R.NTab
       structure OutputName = OutputRuleNameXMLList
       structure OutputVal = OutputRule
     )
@@ -54,7 +54,7 @@ functor OutputRulesetDescXMLList (
   fun output rset = 
       [OutputAllRules.output (Ruleset.get_allrules rset),
        OutputTags.output (Ruleset.get_tagrel rset),
-       OutputActiveRules.output (RuleName.NSet.list_of (Ruleset.get_active rset))];
+       OutputActiveRules.output (R.NSet.list_of (Ruleset.get_active rset))];
 end;
 
 functor OutputRulesetXML (

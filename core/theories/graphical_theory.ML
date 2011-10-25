@@ -3,19 +3,19 @@ sig
   val theory_name : string;
 
   (* vertices and edges of a graph *)
-  structure Vertex : OVERTEX
-  structure Edge : EDGE
+  structure OVData : OVERTEX_DATA
+  structure EData : UNIFIABLE_DATA
   (* share the same generic graph data subst *)
-  sharing type Vertex.subst = Edge.subst 
+  sharing type OVData.subst = EData.subst 
 
   (* Graph *)
   structure Graph : BANG_GRAPH;
-  sharing Graph.OVertex.SharingWithIData = Vertex.SharingWithIData
-  sharing Graph.Edge.SharingWithData = Edge.SharingWithData
+  sharing Graph.OVData.SharingWithIData = OVData.SharingWithIData
+  sharing Graph.EData.Sharing = EData.Sharing
 
   (* Rules = pairs of graph + cached computed matching data *)
   structure Rule : RULE
-  sharing Rule.Graph.SharingBangGraph = Graph.SharingBangGraph
+  sharing Rule.Graph.SharingOGraph = Graph.SharingOGraph
 
   (* sets of rules for a graph *)
   structure Ruleset : RULESET
@@ -23,7 +23,7 @@ sig
 
   (* A matching between two graphs *)
   structure Match : MATCH
-  sharing Match.G.SharingBangGraph = Graph.SharingBangGraph;
+  sharing Match.G.SharingOGraph = Graph.SharingOGraph;
 
   (* Substitutions for graphs, replacing one component with another *)
   structure GraphSubst : GRAPH_SUBST
@@ -41,15 +41,15 @@ sig
 
   (* Component data info *)
   structure VertexComponentData : ELEMENT_COMPONENT_DATA
-  sharing type VertexComponentData.data = Vertex.data;
+  sharing type VertexComponentData.data = OVData.data;
   structure EdgeComponentData : ELEMENT_COMPONENT_DATA
-  sharing type EdgeComponentData.data = Edge.data;
+  sharing type EdgeComponentData.data = EData.data;
 
   (* Input/Output *)
   structure IO_Xml : IO_INTERFACE_XML
-    where type Output.Vertex.data = (Graph.Vertex.name * (Graph.Vertex.data * (Graph.Edge.NSet.T * Graph.Edge.NSet.T)))
-      and type Output.Edge.data = (Graph.Edge.name * ((Graph.dir_or_undir * Graph.Edge.data) * (Graph.Vertex.name * Graph.Vertex.name)))
-      and type Output.BBox.data = (Graph.BBox.name * Graph.Vertex.NSet.T)
+    where type Output.Vertex.data = (V.name * (Graph.VData.data * (E.NSet.T * E.NSet.T)))
+      and type Output.Edge.data = (E.name * ((Graph.dir_or_undir * Graph.EData.data) * (V.name * V.name)))
+      and type Output.BBox.data = (B.name * V.NSet.T)
   sharing type IO_Xml.Input.Graph.data = Graph.T
   sharing type IO_Xml.Input.Rule.data = Rule.T
   sharing type IO_Xml.Input.Ruleset.data = Ruleset.T
@@ -61,9 +61,9 @@ end;
 functor GraphicalTheory(
   structure OParam : OGRAPH_PARAM
   structure VComponentData : ELEMENT_COMPONENT_DATA
-  sharing type VComponentData.data = OParam.OVertex.data
+  sharing type VComponentData.data = OParam.OVData.data
   structure EComponentData : ELEMENT_COMPONENT_DATA
-  sharing type EComponentData.data = OParam.Edge.data
+  sharing type EComponentData.data = OParam.EData.data
 ) = 
 struct 
   val theory_name = Pretty.string_of OParam.pretty_theory_name;
@@ -78,9 +78,8 @@ struct
     structure DB_Graph = struct open BasicBangGraph; open BBGraph; end
   end;
   structure Graph = DB_Graph;
-  structure Edge = Graph.Edge; 
-  structure Vertex = Graph.OVertex;
-
+  structure EData = Graph.EData; 
+  structure OVData = Graph.OVData;
   
   structure DB_Rule = Rule(Graph);
   structure Rule : RULE = DB_Rule;
@@ -119,11 +118,11 @@ struct
   (* install pretty printers *)
   local
       fun prettyVertex _ _ x =
-        PolyML.PrettyString("\"" ^ Vertex.string_of_name x ^ "\"");
+        PolyML.PrettyString("\"" ^ V.string_of_name x ^ "\"");
       fun prettyEdge _ _ x =
-        PolyML.PrettyString("\"" ^ Edge.string_of_name x ^ "\"");
+        PolyML.PrettyString("\"" ^ E.string_of_name x ^ "\"");
       fun prettyBBox _ _ x =
-        PolyML.PrettyString("\"" ^ Graph.BBox.string_of_name x ^ "\"");
+        PolyML.PrettyString("\"" ^ B.string_of_name x ^ "\"");
   in
       val () = PolyML.addPrettyPrinter prettyVertex;
       val () = PolyML.addPrettyPrinter prettyEdge;

@@ -26,6 +26,7 @@ PolyML.Project.optional_make "local_config.ML";
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile quantomatic code ****)
+PolyML.Project.make "names.ML"; (* defines basic names used in Quantomatic *)
 
 (* linear arithmetic expressions: data inside verticies *)
 PolyML.Project.make "expressions/lex.ML";
@@ -126,6 +127,10 @@ PolyML.Project.make "theories/graphical_theory.ML";
 (* red-green specific vertices, graphs and matching *)
 PolyML.Project.make "theories/red_green/vertex.ML";
 
+(* I/O for old RG-graphs, depends on defining RG_InternVData *)
+PolyML.Project.make "io/input_graph_v1.ML";
+PolyML.Project.make "io/output_graph_v1.ML";
+
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)
@@ -153,6 +158,11 @@ PolyML.Project.make "theories/ghz_w/vertex.ML";
 PolyML.Project.make "theories/ghz_w/graph.ML";
 PolyML.Project.make "theories/ghz_w/theory.ML";
 PolyML.Project.make "theories/ghz_w/io.ML";
+
+(* Graphs having vertices with strings as data, substring as matching *)
+PolyML.Project.make "theories/substrings/vertex.ML";
+PolyML.Project.make "theories/substrings/graph.ML";
+PolyML.Project.make "theories/substrings/theory.ML";
 
 (* rgb specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/red_green_blue/vertex.ML";

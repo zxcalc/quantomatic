@@ -17,7 +17,7 @@ signature OUTPUT_INTERFACE_XML
   structure Rule : OUTPUT_XML
   structure Ruleset : OUTPUT_XML
   structure Rewrite : OUTPUT_XML
-    where type data = ((RuleName.name * Rule.data) * Graph.data)
+    where type data = ((R.name * Rule.data) * Graph.data)
   structure RewriteList : OUTPUT_XML where type data = Rewrite.data list
 end;
 
@@ -37,8 +37,8 @@ functor IO_Interface_Xml(
 
   structure VertexData : ELEMENT_COMPONENT_DATA 
         and EdgeData : ELEMENT_COMPONENT_DATA 
-  sharing type VertexData.data = Ruleset.Rule.Graph.Vertex.data
-  sharing type EdgeData.data = Ruleset.Rule.Graph.Edge.data
+  sharing type VertexData.data = Ruleset.Rule.Graph.VData.data
+  sharing type EdgeData.data = Ruleset.Rule.Graph.EData.data
 ) = struct
 
   structure Input = struct
@@ -84,7 +84,7 @@ functor IO_Interface_Xml(
         structure OutputGraph = Graph);
 
     structure Rewrite 
-    : OUTPUT_XML where type data = (RuleName.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T
+    : OUTPUT_XML where type data = (R.name * Ruleset.Rule.T) * Ruleset.Rule.Graph.T
      = OutputRewriteXML(
         structure Rule = Ruleset.Rule
         and OutputGraph = Graph

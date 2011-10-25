@@ -44,11 +44,7 @@ functor GraphSubstFun(Match : MATCH)
   type graph = Match.G.T;
   
   structure G = Match.G;
-  structure V = G.Vertex;
-  structure E = G.Edge;
   structure BBMatch = Match.BBMatch;
-  structure BBMap = BBMatch.BBMap;
-  structure BBox = G.BBox;
   
   structure Sharing = struct
     type match = match;
@@ -57,7 +53,7 @@ functor GraphSubstFun(Match : MATCH)
 
   fun datasubst_and_remove_match m g = 
        let val internal_matched_vns = 
-              V.InjEndo.get_codset (Match.get_viso m);
+              VInjEndo.get_codset (Match.get_viso m);
       in 
         (* rename rhs to avoid names of "g", except for rhs  *)
         g |> V.NSet.fold G.delete_vertex internal_matched_vns 
@@ -80,9 +76,9 @@ functor GraphSubstFun(Match : MATCH)
               val rhs_boundary = G.get_boundary rhs';
               val rhs_edgepoints = G.get_edgepoints rhs';
               val ignore_vset = 
-                  G.Vertex.NSet.union_merge rhs_boundary rhs_edgepoints; 
-              val v_rnm = G.Vertex.Rnm.mk ignore_vset (G.get_vnames g)
-                          G.Vertex.NTab.empty;
+                  V.NSet.union_merge rhs_boundary rhs_edgepoints; 
+              val v_rnm = V.Rnm.mk ignore_vset (G.get_vnames g)
+                          V.NTab.empty;
               val (rnm, rhs'') = G.VertexCRnm.rename v_rnm rhs';
           in 
             (rhs'', G.merge_by_vertices rhs'' g') end) 

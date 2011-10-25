@@ -12,7 +12,7 @@ signature FILTER
   val init : input -> T
   
   (* Apply the filter to a pair of vertices. *)
-  val apply : T -> Graph.T -> Graph.T -> Graph.Vertex.name -> Graph.Vertex.name -> bool
+  val apply : T -> Graph.T -> Graph.T -> V.name -> V.name -> bool
   
 end;
 

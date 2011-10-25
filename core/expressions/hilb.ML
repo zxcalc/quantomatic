@@ -2,30 +2,30 @@ signature GRAPH_ADAPTER =
 sig
     structure Graph : GRAPH
     val pretty_vertex : AlgFormat.format -> Graph.T ->
-			Graph.Vertex.name -> Pretty.T
+			V.name -> Pretty.T
 end
 
 (* construct tensor term from a DAG *)
 functor TensorTermFun (
   structure Graph : GRAPH
   val pretty_vertex : AlgFormat.format -> Graph.T ->
-		      Graph.Vertex.name -> Pretty.T) =
+		      V.name -> Pretty.T) =
 struct
 
 datatype term =
 	 Tens of term list |
 	 Comp of term list |
-	 V of Graph.Vertex.name |
+	 V of V.name |
 	 Sigma of Permutation.T |
 	 Id of int
 
 (* a component holds a term and a list of inputs in order *)
-type component = Graph.Edge.name list * term * Graph.Edge.name list
+type component = E.name list * term * E.name list
 
 
 fun wrap_vertex graph v = let
-    val (ie,oe) = ((apfst Graph.Edge.NSet.list_of) o
-		   (apsnd Graph.Edge.NSet.list_of) o
+    val (ie,oe) = ((apfst E.NSet.list_of) o
+		   (apsnd E.NSet.list_of) o
 		   snd) (Graph.get_vertex graph v)
 in (ie,V v,oe)
 end
@@ -53,13 +53,13 @@ end
 (* perform the composition t1 ; t2 *)
 fun compose (i1, t1, o1) (_, Id _, _) = (i1, t1, o1)
   | compose (i1, t1, o1) (i2, t2, o2) = let
-    val oset = Graph.Edge.NSet.of_list o1
-    val new_ins =  filter_out (Graph.Edge.NSet.contains oset) i2
+    val oset = E.NSet.of_list o1
+    val new_ins =  filter_out (E.NSet.contains oset) i2
     val full_t1 = case length new_ins
 		   of 0 => t1
 		    | n => (case t1 of Tens ts => Tens (ts@[Id n])
 				     | _ => Tens [t1, Id n])
-    val perm = Permutation.get_perm Graph.Edge.name_ord (o1 @ new_ins) i2
+    val perm = Permutation.get_perm E.name_ord (o1 @ new_ins) i2
     val sigma = if Permutation.is_id perm then [] else [Sigma perm]
 in
     (i1 @ new_ins, flat_compose (full_t1 :: sigma @ [t2]), o2)
@@ -109,7 +109,7 @@ end
 structure RGGraphAdapter : GRAPH_ADAPTER =
 struct
 structure Graph = RGGraph
-fun pretty_vertex _ _ = Graph.Vertex.pretty_name
+fun pretty_vertex _ _ = V.pretty_name
 
 end
 *)
@@ -119,21 +119,21 @@ structure RGHilbTerm = TensorTermFun(
 structure Graph = RG_Theory.Graph
 fun pretty_vertex fmt graph vert = let
     val (v, (ie,oe)) = Graph.get_vertex graph vert
-    val (ic,oc) = (Graph.Edge.NSet.cardinality ie,
-		   Graph.Edge.NSet.cardinality oe)
+    val (ic,oc) = (E.NSet.cardinality ie,
+		   E.NSet.cardinality oe)
     val nums = [Pretty.str (Int.toString ic),
 		Pretty.str ", ",
 		Pretty.str (Int.toString oc)]
 in Pretty.block	
-   (case v of Graph.OVertex.IVert iv =>
+   (case v of Graph.OVData.IVert iv =>
 	     (case iv
-	       of RG_VertexData.Xnd e =>
+	       of RG_InternVData.Xnd e =>
 		        [Pretty.str "xsp[", LinratExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
-		      | RG_VertexData.Znd e =>
+		      | RG_InternVData.Znd e =>
 		        [Pretty.str "zsp[", LinratExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
-          | RG_VertexData.Hnd => [Pretty.str "h"])
+          | RG_InternVData.Hnd => [Pretty.str "h"])
 	  | _ => [Pretty.str "id2[1]"])
 end
 

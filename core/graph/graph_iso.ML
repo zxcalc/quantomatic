@@ -3,45 +3,44 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 signature GRAPH_ISO_SHARING
 = sig
-  structure Param : GRAPH_PARAM_SHARING 
+  type subst
   type T
   type graph
 end;
 
 signature GRAPH_ISO
 = sig
-  structure Param : GRAPH_PARAM
+  type subst
   type graph
   type T
   
-  structure Sharing : GRAPH_ISO_SHARING
-  sharing Param.Sharing = Sharing.Param
-  sharing type Sharing.T = T 
-  sharing type Sharing.graph = graph 
-
   val get : graph -> graph -> T Seq.seq
-  val get_with_endos : Param.Vertex.InjEndo.T * Param.Edge.InjEndo.T -> graph -> graph -> T Seq.seq
+  val get_with_endos : VInjEndo.T * EInjEndo.T -> graph -> graph -> T Seq.seq
   val test : graph -> graph -> bool
   
-  val get_vmap : T -> Param.Vertex.InjEndo.T
-  val get_emap : T -> Param.Edge.InjEndo.T
-  val get_subst : T -> Param.subst
+  val get_vmap : T -> VInjEndo.T
+  val get_emap : T -> EInjEndo.T
+  val get_subst : T -> subst
+
+  structure Sharing : GRAPH_ISO_SHARING
+  sharing type Sharing.T = T 
+  sharing type Sharing.graph = graph 
+  sharing type Sharing.subst = subst 
+
 end;
 
 functor GraphIsoFun(
         structure Graph : GRAPH
 ) : GRAPH_ISO
 = struct
-  
-  structure Vertex = Graph.Vertex;
-  structure Edge = Graph.Edge;
   structure Param = Graph.Param;
   
   type graph = Graph.T;
-  type T = (Vertex.InjEndo.T * Edge.InjEndo.T * Param.subst);
+  type subst = Param.subst;
+  type T = (VInjEndo.T * EInjEndo.T * subst);
   
   structure Sharing = struct
-    structure Param = Param.Sharing
+    type subst = subst
     type T = T
     type graph = graph;
   end;
@@ -67,18 +66,18 @@ functor GraphIsoFun(
   *)
   fun get_isomorphisms_match_next_edge v e u t g h gs hs otherend = let
       val n1 = Option.valOf
-              (Edge.NSet.get_local_bot gs)
+              (E.NSet.get_local_bot gs)
       val ((dir1,d1),_) = Graph.get_edge g n1
     in 
       Seq.maps get_isomorphisms_match_next
       (Seq.map_filter
         (fn n2 => 
             let val ((dir2,d2),_) = Graph.get_edge h n2 in
-              if dir1 <> dir2 (* andalso Edge.data_eq(d1,d2) *) 
+              if dir1 <> dir2 (* andalso EData.data_eq(d1,d2) *) 
               then NONE 
               else SOME
-                (v |> Vertex.InjEndo.add (otherend n1 g) (otherend n2 h),
-                 e |> Edge.InjEndo.add n1 n2,
+                (v |> VInjEndo.add (otherend n1 g) (otherend n2 h),
+                 e |> EInjEndo.add n1 n2,
                  u |> match_edge_both_ways d1 d2,
                  Seq.append t  (* push matching of the target vertex of
                                   this edge onto the matching queue *)
@@ -86,19 +85,20 @@ functor GraphIsoFun(
                                 otherend n2 h)),
                  g |> Graph.delete_edge n1,
                  h |> Graph.delete_edge n2)
-                 handle Vertex.InjEndo.add_exp(_,_,_) => NONE
+                 handle VInjEndo.add_exp(_,_,_) => NONE
                       | Param.match_exp _              => NONE
              end)
-          (Edge.NSet.seq_of hs))
+          (E.NSet.seq_of hs))
     end
   and get_isomorphisms_match_next (v,e,u,t,g,h) = 
     (case Seq.pull t of
       (* Nothing to match; start matching new connectivity component *)
       NONE                => let
-         val gbot = the (Vertex.NSet.get_local_bot (Graph.get_vnames g))
-         val hmin = Vertex.NSet.get_min (Graph.get_vnames h)
+         val gbot = the (V.NSet.get_local_bot (Graph.get_vnames g))
+         (* TODO: what was this doing here???
+            val hmin = V.NSet.get_min (Graph.get_vnames h) *)
          fun maketuple n = (v,e,u,Seq.single (gbot,n),g,h);
-      in Seq.map maketuple (Vertex.NSet.seq_of (Graph.get_vnames h)) end 
+      in Seq.map maketuple (V.NSet.seq_of (Graph.get_vnames h)) end 
       (* Something to match; return lazy list of all possible next steps *)
     | SOME ((vng,vnh),t') => let
          (* point undirected edges towards us *)
@@ -109,8 +109,8 @@ functor GraphIsoFun(
               else gr end
          val (_,(_,gout)) = Graph.get_vertex g vng
          val (_,(_,hout)) = Graph.get_vertex h vnh
-         val g = g |> Edge.NSet.fold attract gout
-         val h = h |> Edge.NSet.fold attract hout
+         val g = g |> E.NSet.fold attract gout
+         val h = h |> E.NSet.fold attract hout
          (* some other helper stuff *)
          val (gd,(gin,gout)) = Graph.get_vertex g vng
          val (hd,(hin,hout)) = Graph.get_vertex h vnh
@@ -118,14 +118,14 @@ functor GraphIsoFun(
                    in f end;
          fun esnk n x = let val (_,(f,t)) = Graph.get_edge x n
                    in t end;
-      in if true (*Vertex.data_eq (gd,hd)*)
-         then case (Edge.NSet.is_empty gin,
-                    Edge.NSet.is_empty hin,
-                    Edge.NSet.is_empty gout,
-                    Edge.NSet.is_empty hout) of
+      in if true (*VData.data_eq (gd,hd)*)
+         then case (E.NSet.is_empty gin,
+                    E.NSet.is_empty hin,
+                    E.NSet.is_empty gout,
+                    E.NSet.is_empty hout) of
             (* no (more) edges; match up *)
             (true,true,true,true) =>
-              Seq.single (v |> Vertex.InjEndo.add vng vnh,
+              Seq.single (v |> VInjEndo.add vng vnh,
                           e,
                           u |> match_vertex_both_ways gd hd,
                           t',
@@ -145,7 +145,7 @@ functor GraphIsoFun(
                                             Vertex has already been successfully
                                             matched; skip. *)
                => get_isomorphisms_match_next (v,e,u,t',g,h)
-    ) handle Vertex.InjEndo.add_exp(_,_,_) => Seq.empty
+    ) handle VInjEndo.add_exp(_,_,_) => Seq.empty
            | Param.match_exp _              => Seq.empty
   
   (* v,e are working copies of the isomorphism to be constructed;
@@ -170,7 +170,7 @@ functor GraphIsoFun(
   (* in:  graphs g, h *)
   (* out: lazy list of (Vertex isomorphism*Edge isomorphism) containing all
           isomorphisms between g and h *)
-  val get = get_with_endos (Vertex.InjEndo.empty,Edge.InjEndo.empty)
+  val get = get_with_endos (VInjEndo.empty,EInjEndo.empty)
   
   (* in:  graphs g, h *)
   (* out: true if g~=h, false otherwise *)

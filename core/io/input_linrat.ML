@@ -2,8 +2,6 @@ structure InputLinratXML : INPUT_XML where type data = LinratExpr.T
 = struct
 
   open XML_Parse_Utils; 
-
-  structure VName = LinratExpr.VName;
   
   type T = XML.tree;  (* XML.tree *)
   type data = LinratExpr.T;
@@ -40,7 +38,7 @@ structure InputLinratXML : INPUT_XML where type data = LinratExpr.T
            val constant = case (lookup_unique_elem "constant" children) of
                             (NONE) => LinratExpr.Coeff.zero
                           | (SOME const) => input_constant const
-           val vars = List.map input_variable (filter_elems "variable" children)
+           val vars = List.map (apfst X.mk o input_variable) (filter_elems "variable" children)
        in LinratExpr.mk constant vars end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"angleexpr/"^p);
 

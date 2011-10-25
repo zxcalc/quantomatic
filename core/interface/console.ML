@@ -55,21 +55,21 @@ structure Console : CONSOLE
         raise ControllerState.user_exp ("BUG: G.merge_bbox_exp")
       | G.overlapping_bbox_exp (vs,g) =>
         raise ControllerState.user_exp ("BUG: G.overlapping_bbox_exp")
-      | G.BBox.Tab.UNDEF x =>
-        raise ControllerState.user_exp ("BUG: G.BBox.Tab.UNDEF")
-      | G.Vertex.NSet.duplicate_exp _ => 
+      | B.Tab.UNDEF x =>
+        raise ControllerState.user_exp ("BUG: B.Tab.UNDEF")
+      | V.NSet.duplicate_exp _ => 
         raise ControllerState.user_exp ("BUG: Duplicate vertex.")
-      | G.Vertex.Tab.UNDEF x =>
-        raise ControllerState.user_exp ("BUG: G.Vertex.Tab.UNDEF")
-      | G.Edge.NSet.duplicate_exp _ => 
-        raise ControllerState.user_exp ("BUG: Duplicate Edge.")
-      | G.Edge.Tab.UNDEF x =>
-        raise ControllerState.user_exp ("BUG: G.Edge.Tab.UNDEF")
-      | G.Vertex.Rnm.invalid_renaming_exp x =>
+      | V.Tab.UNDEF x =>
+        raise ControllerState.user_exp ("BUG: V.Tab.UNDEF")
+      | E.NSet.duplicate_exp _ => 
+        raise ControllerState.user_exp ("BUG: Duplicate EData.")
+      | E.Tab.UNDEF x =>
+        raise ControllerState.user_exp ("BUG: E.Tab.UNDEF")
+      | V.Rnm.invalid_renaming_exp x =>
         raise ControllerState.user_exp ("BUG: invalid vertex renaming: "^x)
-      | G.Edge.Rnm.invalid_renaming_exp x =>
+      | E.Rnm.invalid_renaming_exp x =>
         raise ControllerState.user_exp ("BUG: invalid bangbox renaming: "^x)
-      | G.BBox.Rnm.invalid_renaming_exp x =>
+      | B.Rnm.invalid_renaming_exp x =>
         raise ControllerState.user_exp ("BUG: invalid edge renaming: "^x);
 *)
 

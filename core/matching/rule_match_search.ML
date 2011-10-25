@@ -14,8 +14,8 @@ signature RULE_MATCH_SEARCH
   sharing Sharing.Match = Match.Sharing
   sharing Sharing.Rule = Rule.Sharing
   
-  val match : (Match.G.Vertex.NSet.T * Match.G.Edge.NSet.T * 
-               Match.G.BBox.NSet.T)
+  val match : (V.NSet.T * E.NSet.T * 
+               B.NSet.T)
               -> Rule.T -> Match.G.T
               -> Match.T Seq.seq
 end;

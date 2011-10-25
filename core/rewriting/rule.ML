@@ -7,11 +7,10 @@
 
 signature RULE_SHARING =
 sig
-  structure Graph : BANG_GRAPH_SHARING
-  structure GraphIso : BANG_GRAPH_ISO_SHARING 
+  structure Graph : OGRAPH_SHARING
+  structure GraphIso : GRAPH_ISO_SHARING 
   sharing type GraphIso.graph = Graph.T
-  sharing GraphIso.Param = Graph.Param 
-  sharing GraphIso.BBoxInjEndo = Graph.BBoxInjEndo
+  sharing type GraphIso.subst = Graph.Param.subst 
   type T
 end
 
@@ -23,35 +22,35 @@ signature BASIC_RULE
   type T (* rule *)
 
   structure Sharing : RULE_SHARING
-  sharing Sharing.Graph = Graph.SharingBangGraph
-  sharing Sharing.GraphIso = GraphIso.SharingWithBBox
+  sharing Sharing.Graph = Graph.SharingOGraph
+  sharing Sharing.GraphIso = GraphIso.Sharing
   sharing type Sharing.T = T  
 
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
     
   (* NOTE: FIXME: these don't touch the automorphism data; they should not be used without reconstructing the automoprhism info. *)
-  val try_rename1_ename : Graph.Edge.name -> Graph.Edge.name -> T -> T option
-  val try_rename1_vname : Graph.Vertex.name -> Graph.Vertex.name 
+  val try_rename1_ename : E.name -> E.name -> T -> T option
+  val try_rename1_vname : V.name -> V.name 
       -> T -> T option
-  val try_rename1_bname : Graph.BBox.name -> Graph.BBox.name -> T -> T option
+  val try_rename1_bname : B.name -> B.name -> T -> T option
   
   structure VertexCRnm : COMPOUND_RENAMING 
-  where type obj = T and type renaming = Graph.Vertex.Rnm.T
+  where type obj = T and type renaming = V.Rnm.T
   structure EdgeCRnm : COMPOUND_RENAMING 
-  where type obj = T and type renaming = Graph.Edge.Rnm.T
+  where type obj = T and type renaming = E.Rnm.T
   structure BBoxCRnm : COMPOUND_RENAMING 
-  where type obj = T and type renaming = Graph.BBox.Rnm.T
+  where type obj = T and type renaming = B.Rnm.T
 
-  val rename : (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T * Graph.BBox.Rnm.T) -> T 
-            -> (Graph.Vertex.Rnm.T * Graph.Edge.Rnm.T * Graph.BBox.Rnm.T) * T
+  val rename : (V.Rnm.T * E.Rnm.T * B.Rnm.T) -> T 
+            -> (V.Rnm.T * E.Rnm.T * B.Rnm.T) * T
 
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
   
-  val get_vnames : T -> Graph.Vertex.NSet.T
-  val get_enames : T -> Graph.Edge.NSet.T
-  val get_bnames : T -> Graph.BBox.NSet.T
+  val get_vnames : T -> V.NSet.T
+  val get_enames : T -> E.NSet.T
+  val get_bnames : T -> B.NSet.T
 
   (* swaps lhs and rhs *)
   val symmetric : T -> T
@@ -67,11 +66,11 @@ signature BASIC_RULE
   datatype 'a otype =   Initial of constr
                       | Rooted of constr * 'a
                       | Boundary of 'a
-                      | Boxed of Graph.BBox.name * 'a otype;
+                      | Boxed of B.name * 'a otype;
   (* gets cached symmetry match-search order *)  
-  val get_order : T -> (Graph.Vertex.name otype * Graph.Vertex.name tree) list
+  val get_order : T -> (V.name otype * V.name tree) list
   (* gets self-applications *)
-  val get_selfapps : T -> (Graph.Vertex.InjEndo.T*GraphIso.Param.subst) list
+  val get_selfapps : T -> (VInjEndo.T * GraphIso.subst) list
   
   (* for pretty printing *)
   val pretty : T -> Pretty.T
@@ -90,48 +89,38 @@ functor Rule(Graph : BANG_GRAPH)
 = struct
 
 structure Graph = Graph;
-structure Vertex = Graph.Vertex;
-structure Edge = Graph.Edge;
 structure GraphIso = BangGraphIso(Graph);
 
-(* Names of rules *)
-structure Name 
-= struct
-  open SStrName;
-  val default_name = SStrName.mk "new-rule-1"
-end
-
-
 datatype 'a tree = Tree of ('a * 'a tree list);
-type order = (Vertex.name option * Vertex.name tree) list;
+type order = (V.name option * V.name tree) list;
 datatype constr   =   Constrained
                     | Arbitrary
 datatype 'a otype =   Initial of constr
                     | Rooted of constr * 'a
                     | Boundary of 'a
-                    | Boxed of Graph.BBox.name * 'a otype;
+                    | Boxed of B.name * 'a otype;
 
-fun keep_if_fixed n a = if Vertex.name_eq ((  Vertex.InjEndo.domf
+fun keep_if_fixed n a = if V.name_eq ((  VInjEndo.domf
                                             o GraphIso.get_vmap) a n, n)
                         then [a]
                         else [];
 fun fix v auts = maps (keep_if_fixed v) auts;
 
 fun take_orbit auts vset =
-    let val v   = (the o Vertex.NSet.get_local_bot) vset
-        val orb = fold (fn x => Vertex.NSet.add ((  Vertex.InjEndo.domf
+    let val v   = (the o V.NSet.get_local_bot) vset
+        val orb = fold (fn x => V.NSet.add ((  VInjEndo.domf
                                                   o GraphIso.get_vmap) x v))
-                       auts Vertex.NSet.empty
-    in  (v, orb, Vertex.NSet.subtract vset orb) end;
+                       auts V.NSet.empty
+    in  (v, orb, V.NSet.subtract vset orb) end;
 
 fun gen_order_sub g auts vset =
-    if Vertex.NSet.is_empty vset then (auts,[])
+    if V.NSet.is_empty vset then (auts,[])
     else let val (v,orb,rest) = take_orbit auts vset
              val auts' = fix v auts
              val (auts'',subtr) = gen_order_sub g auts'
-                                                (Vertex.NSet.delete v orb)
+                                                (V.NSet.delete v orb)
              val (auts''',tail) = gen_order_sub g auts''
-                                                (Vertex.NSet.subtract vset orb)
+                                                (V.NSet.subtract vset orb)
          in  (auts''', Tree (v, subtr)::tail) end;
                            
 fun gen_order g auts done bound =
@@ -139,42 +128,42 @@ fun gen_order g auts done bound =
                                NONE   => v
                              | SOME b => Boxed (b,v)
         val aset = Graph.incident_vertices g done
-        val (root,vset)=if Vertex.NSet.is_empty aset
+        val (root,vset)=if V.NSet.is_empty aset
                       then (NONE,Graph.get_vnames g
-                                 |> Vertex.NSet.remove_set done
-                                 |> Vertex.NSet.remove_set (Graph.get_boundary g))
+                                 |> V.NSet.remove_set done
+                                 |> V.NSet.remove_set (Graph.get_boundary g))
                       else (SOME((the (* must be nonempty by adjacency *)
-                                 o Vertex.NSet.get_local_bot
-                                oo Vertex.NSet.intersect) done
+                                 o V.NSet.get_local_bot
+                                oo V.NSet.intersect) done
                                      ((Graph.adj_vnames g
                                      o the
-                                     o Vertex.NSet.get_local_bot) aset))
+                                     o V.NSet.get_local_bot) aset))
                              ,aset)
-    in if Vertex.NSet.is_empty vset then []
-    else case root of NONE => let val vsetb = Vertex.NSet.intersect vset bound
-                                  val (vset,typ) = if Vertex.NSet.is_empty vsetb
+    in if V.NSet.is_empty vset then []
+    else case root of NONE => let val vsetb = V.NSet.intersect vset bound
+                                  val (vset,typ) = if V.NSet.is_empty vsetb
                                                  then (vset,Initial Arbitrary)
                                                  else (vsetb,Initial Constrained)
                                   val (v,orb,_) = take_orbit auts vset
                                   val auts' = fix v auts
-                                  val bound' = Vertex.NSet.union_merge bound orb
+                                  val bound' = V.NSet.union_merge bound orb
                               in   (maybe_box v typ,Tree(v,[]))
                                  ::gen_order g auts'
-                                             (Vertex.NSet.add v done) bound' 
+                                             (V.NSet.add v done) bound' 
                               end
                   | SOME x => let val (v,orb,rest) = take_orbit auts vset
                                   val auts' = fix v auts
                                   val (auts'',subtr)
                                       = gen_order_sub g auts'
-                                                      (Vertex.NSet.delete v orb) 
+                                                      (V.NSet.delete v orb) 
                               in (maybe_box v 
-                                   (if      Vertex.NSet.contains bound v
+                                   (if      V.NSet.contains bound v
                                   then Rooted (Constrained,x)
                                   else   if Graph.is_boundary g v
                                        then Boundary x
                                        else Rooted (Arbitrary,x)),
                                   Tree(v, subtr))::gen_order g auts''
-                                         (Vertex.NSet.union_merge done orb)
+                                         (V.NSet.union_merge done orb)
                                          bound
                               end
     end;
@@ -184,51 +173,51 @@ fun gen_order g auts done bound =
 datatype T = Rule of { lhs : Graph.T,
                        rhs : Graph.T,
                        lhs_aut : GraphIso.T list,
-                       selfapps : (Vertex.InjEndo.T*GraphIso.Param.subst) list,
-                       order : (Vertex.name otype * Vertex.name tree) list
+                       selfapps : (VInjEndo.T * GraphIso.subst) list,
+                       order : (V.name otype * V.name tree) list
                      };
 
 exception bad_rule_exp of string * Graph.T * Graph.T;
 fun mk (lhs,rhs) = 
-    let val lhsbndry : Vertex.NSet.T = Graph.get_boundary lhs 
+    let val lhsbndry : V.NSet.T = Graph.get_boundary lhs 
     in
     (* check that rule is well-formed! *)
-    if Vertex.NSet.eq lhsbndry (Graph.get_boundary rhs) then 
+    if V.NSet.eq lhsbndry (Graph.get_boundary rhs) then 
       let (* rename rhs; sharing bvertex names with lhs, 
              all else must be distinct, but do minimal amount of renaming *)
         val ignorevnames = (* ignore boundary and also fresh rhs vnames *)
-            Vertex.NSet.union_merge 
+            V.NSet.union_merge 
               lhsbndry
-              (Vertex.NSet.subtract (Graph.get_vnames rhs)
+              (V.NSet.subtract (Graph.get_vnames rhs)
                                     (Graph.get_vnames lhs)); 
         (* ignore enames that are already fresh w.r.t. lhs *)
-        val ignoreenames = Edge.NSet.subtract (Graph.get_enames rhs)
+        val ignoreenames = E.NSet.subtract (Graph.get_enames rhs)
                             (Graph.get_enames lhs);
-        val vrn = Vertex.mk_renaming ignorevnames 
-                    (Vertex.NSet.union_merge ignorevnames 
+        val vrn = V.mk_renaming ignorevnames 
+                    (V.NSet.union_merge ignorevnames 
                       (Graph.get_vnames lhs))
-                    Vertex.NTab.empty
-        val ern = Edge.mk_renaming ignoreenames 
-                    (Edge.NSet.union_merge ignoreenames (Graph.get_enames lhs))
-                    Edge.NTab.empty
+                    V.NTab.empty
+        val ern = E.mk_renaming ignoreenames 
+                    (E.NSet.union_merge ignoreenames (Graph.get_enames lhs))
+                    E.NTab.empty
         val (rn, rhs') = Graph.rename (vrn,ern) rhs
         val lhsauts = (Seq.list_of oo GraphIso.get) lhs lhs
         val rhsauts = (Seq.list_of oo GraphIso.get) rhs rhs'
-        val lhsba = map (fn x => ((  Vertex.InjEndo.restrict_dom_to lhsbndry
+        val lhsba = map (fn x => ((  VInjEndo.restrict_dom_to lhsbndry
                                    o GraphIso.get_vmap) x,GraphIso.get_subst x))
                         lhsauts
-        val rhsba = map (fn x => ((  Vertex.InjEndo.restrict_dom_to lhsbndry
+        val rhsba = map (fn x => ((  VInjEndo.restrict_dom_to lhsbndry
                                    o GraphIso.get_vmap) x,GraphIso.get_subst x))
                         rhsauts
         (* fetches one representative from the orbit of each LHS aut|boundary
            under Aut(rhs), using fact that l1~=l2 <-> there exists an r such
            that r.l2 = l1 *)
         fun filterorbits (x::xs) os =
-            let val orbit = map ((Vertex.InjEndo.compose (fst x)) o fst) rhsba 
-                fun eq a b = ((Vertex.NTab.fold 
-                                      (fn (d,c) => Vertex.InjEndo.add d c)
-                                      (Vertex.InjEndo.get_domtab a) b; true)
-                             handle Vertex.InjEndo.add_exp _ => false)
+            let val orbit = map ((VInjEndo.compose (fst x)) o fst) rhsba 
+                fun eq a b = ((V.NTab.fold 
+                                      (fn (d,c) => VInjEndo.add d c)
+                                      (VInjEndo.get_domtab a) b; true)
+                             handle VInjEndo.add_exp _ => false)
                 val xs' = filter_out
                             (fn a => exists (eq (fst a)) orbit)
                             xs
@@ -238,7 +227,7 @@ fun mk (lhs,rhs) =
                 lhs_aut = lhsauts,
                 selfapps = filterorbits lhsba [],
                 order = gen_order lhs lhsauts
-                                  Vertex.NSet.empty Vertex.NSet.empty } end
+                                  V.NSet.empty V.NSet.empty } end
     else
       raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
     end;
@@ -246,8 +235,8 @@ fun mk (lhs,rhs) =
 (* 
 fun rename_interior_vs xvs (avoidvs, avoides, avoidbs) g = 
      let (* rename rhs; shared bvertex names, all else is distinct. *)
-        val vrn = Vertex.mk_renaming xvs avoidvs Vertex.NTab.empty
-  in Graph.rename (vrn,Edge.Rnm.empty) g  end;
+        val vrn = V.mk_renaming xvs avoidvs V.NTab.empty
+  in Graph.rename (vrn,E.Rnm.empty) g  end;
 *)
 
 (* match anything = no set matching *)
@@ -270,16 +259,16 @@ val set_rhs = update_rhs o K;
 (* 
 fun get_rhs_newnodes r = 
     let val (lhsns,rhsns) = Graph.get_vnames (get_rhs r)
-    in Vertex.NSet.subtract rhsns lhsns end;
+    in V.NSet.subtract rhsns lhsns end;
 fun get_lhs_delnodes r =
     let val (lhsns,rhsns) = Graph.get_vnames (get_lhs r)
-    in Vertex.NSet.subtract lhsns rhsns  end;
+    in V.NSet.subtract lhsns rhsns  end;
 fun get_rhs_newedges r =
     let val (lhsns,rhsns) = Graph.get_enames (get_rhs r)
-    in Edge.NSet.subtract rhsns lhsns end;
+    in E.NSet.subtract rhsns lhsns end;
 fun get_lhs_deledges r =
     let val (lhsns,rhsns) = Graph.get_enames (get_lhs r)
-    in Edge.NSet.subtract lhsns rhsns  end;
+    in E.NSet.subtract lhsns rhsns  end;
 *)
 
 (* swap lhs and rhs of a rule *)
@@ -295,7 +284,7 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
         val rhs' = Graph.rename_apart
     in
     (case Seq.pull (MatchSearch.match (get_lhs rule) (get_rhs rule) 
-                                     MatchSearch.Vertex.NTab.empty)
+                                     V.NTab.empty)
       of NONE => false
        | _ => true);
 *)
@@ -303,15 +292,15 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
 (*  *)
 (* TODO: add renaming for extra stuff (not lhs and rhs) *)
 fun get_vnames rule = 
-    Graph.Vertex.NSet.union_merge 
+    V.NSet.union_merge 
       (Graph.get_vnames (get_lhs rule))
       (Graph.get_vnames (get_rhs rule));
 fun get_enames rule = 
-    Graph.Edge.NSet.union_merge 
+    E.NSet.union_merge 
       (Graph.get_enames (get_lhs rule))
       (Graph.get_enames (get_rhs rule));
 fun get_bnames rule = 
-    Graph.BBox.NSet.union_merge 
+    B.NSet.union_merge 
       (Graph.get_bbnames (get_lhs rule))
       (Graph.get_bbnames (get_rhs rule));
 
@@ -347,21 +336,21 @@ fun try_rename1_bname n1 n2 rule =
 (* *)
 structure VertexCRnm = CompoundRenamingFun(
   struct 
-    structure Nm = Graph.Vertex;
+    structure Nm = V;
     type obj = T
     val try_rename1 = try_rename1_vname;
     val get_nameset = get_vnames
   end);
 structure EdgeCRnm = CompoundRenamingFun(
   struct 
-    structure Nm = Graph.Edge;
+    structure Nm = E;
     type obj = T
     val try_rename1 = try_rename1_ename;
     val get_nameset = get_enames
   end);
 structure BBoxCRnm = CompoundRenamingFun(
   struct 
-    structure Nm = Graph.BBox;
+    structure Nm = B;
     type obj = T
     val try_rename1 = try_rename1_bname;
     val get_nameset = get_bnames
@@ -389,13 +378,9 @@ val print = Pretty.writeln o pretty;
 
 
 structure Sharing = struct
-  structure Graph = Graph.SharingBangGraph;
-  structure GraphIso = GraphIso.SharingWithBBox;
+  structure Graph = Graph.SharingOGraph;
+  structure GraphIso = GraphIso.Sharing;
   type T = T;
 end;
 
 end;
-
-(* -------------------------------------------------------- *)
-structure RuleName : SSTR_NAMES = 
-  struct open SStrName; val default_name = mk "new-rule-1"; end;

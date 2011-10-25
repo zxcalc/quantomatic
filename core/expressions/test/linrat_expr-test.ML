@@ -1,15 +1,15 @@
 (* Testing Linear Rational Expressions and matching of them. *)
 local 
     structure E = DB_LinratExpr; (* expressions *)
-    structure V = E.VName; (* Variable names *)
+    structure V = X; (* Variable names *)
     structure R = E.Coeff; (* rational numbers *)
     
     val zero = E.zero;
     val pi = E.pi;
     
-    val a_v = "a";
-    val b_v = "b";
-    val c_v = "c";
+    val a_v = V.mk "a";
+    val b_v = V.mk "b";
+    val c_v = V.mk "c";
     
     val a = E.mk_var a_v;
     val b = E.mk_var b_v;

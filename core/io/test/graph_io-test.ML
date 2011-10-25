@@ -12,8 +12,8 @@
 (* test IO construction *)
 structure Test_IO_Interface_v1 = struct
   structure Input = struct
-    structure InputVertexData = InputTestVertexDataXML_v1(Test_Graph.OVertex)
-    structure InputEdgeData = InputNoEdgeDataXML_v1(Test_Graph.Edge)
+    structure InputVertexData = InputTestVertexDataXML_v1(Test_Graph.OVData)
+    structure InputEdgeData = InputNoEdgeDataXML_v1(Test_Graph.EData)
 
     structure Graph = InputGraphXML_v1(
       structure Graph = Test_Ruleset.Rule.Graph

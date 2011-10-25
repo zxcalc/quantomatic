@@ -14,8 +14,8 @@ val ruleset = "../../test/rulesets/basic_v2.rules"
               |> XMLReader.read_from_file
               |> IO.Input.Ruleset.input;
 
-val isom_rule = Ruleset.get_rule ruleset (RuleName.mk "isometry_red");
-val x_copy_0_rule = Ruleset.get_rule ruleset (RuleName.mk "x_copy_0");
+val isom_rule = Ruleset.get_rule ruleset (R.mk "isometry_red");
+val x_copy_0_rule = Ruleset.get_rule ruleset (R.mk "x_copy_0");
 
 fun list_of_rule_matches r g = 
     let val (r', matches) = RulesetRewrites.rule_matches r g;
@@ -94,7 +94,7 @@ val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () =
   in writeln "success" end) ();
 
 val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
-  val r = Ruleset.get_rule ruleset (RuleName.mk "bialgebra1");
+  val r = Ruleset.get_rule ruleset (R.mk "bialgebra1");
   val g = Rule.get_lhs r;
   val (r',[m1,m2,m3,m4]) = list_of_rule_matches r g;
   val _ = Rule.print r';
@@ -113,7 +113,7 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
   
   (* 
 val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
-  val spider_red = Ruleset.get_rule rset (RuleName.mk "spider.red");
+  val spider_red = Ruleset.get_rule rset (R.mk "spider.red");
   val g = "graphs/d2-ladder_rw2.graph"
               |> XMLReader.read_from_file
               |> IO.Input.Graph.input;

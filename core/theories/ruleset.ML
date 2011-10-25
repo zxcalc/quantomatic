@@ -1,10 +1,3 @@
-(* global name structure for tags *)
-structure TagName : SSTR_NAMES = 
-    struct open SStrName; val default_name = mk "new-ruleset-1"; end;
-
-(* binary relation between tags and rule names *)
-structure TagRel : NAME_BINREL = SStrBRel;
-
 (* sharing types for Rulesets *)
 signature RULESET_SHARING =
 sig
@@ -27,37 +20,37 @@ sig
     sharing Sharing.Rule = Rule.Sharing
     sharing type Sharing.T = T
 
-  exception no_such_rule_exp of RuleName.name;
+  exception no_such_rule_exp of R.name;
 
   (* basic getting of info about rulesets *)
-  val get_allrules : T -> Rule.T RuleName.NTab.T 
-  val get_all_rule_names_list : T -> RuleName.name list
+  val get_allrules : T -> Rule.T R.NTab.T 
+  val get_all_rule_names_list : T -> R.name list
   val get_tags : T -> TagName.NSet.T 
-  val get_rules_in_tag : T -> TagName.name -> RuleName.NSet.T
-  val get_active : T -> RuleName.NSet.T 
+  val get_rules_in_tag : T -> TagName.name -> R.NSet.T
+  val get_active : T -> R.NSet.T 
   val get_tagrel : T -> TagRel.T
-  val get_rule : T -> RuleName.name -> Rule.T 
-  val lookup_rule : T -> RuleName.name -> Rule.T option
+  val get_rule : T -> R.name -> Rule.T 
+  val lookup_rule : T -> R.name -> Rule.T option
 
   val set_brel : TagRel.T -> T -> T 
-  val set_allrules : Rule.T RuleName.NTab.T -> T -> T 
-  val set_active : RuleName.NSet.T -> T -> T 
+  val set_allrules : Rule.T R.NTab.T -> T -> T 
+  val set_active : R.NSet.T -> T -> T 
 
-  val is_activate : T -> RuleName.name -> bool
-  val rule_exists : T -> RuleName.name -> bool
+  val is_activate : T -> R.name -> bool
+  val rule_exists : T -> R.name -> bool
   val tag_exists : T -> TagName.name -> bool
 
   (* manipulating the ruleset *)
   val merge : T -> T -> T (* rules in first replace those in second with same name *)
 
-  val add_fresh_rule : RuleName.name * Rule.T -> T -> RuleName.name * T (* fresh name for rule *)
-  val update_rule : RuleName.name * Rule.T -> T -> T (* replaces/inserts *)
-  val tag_rule : RuleName.name -> TagName.name -> T -> T
-  val untag_rule : RuleName.name -> TagName.name -> T -> T
+  val add_fresh_rule : R.name * Rule.T -> T -> R.name * T (* fresh name for rule *)
+  val update_rule : R.name * Rule.T -> T -> T (* replaces/inserts *)
+  val tag_rule : R.name -> TagName.name -> T -> T
+  val untag_rule : R.name -> TagName.name -> T -> T
   
-  val activate_rule : RuleName.name -> T -> T
-  val deactivate_rule : RuleName.name -> T -> T
-  val delete_rule : RuleName.name -> T -> T
+  val activate_rule : R.name -> T -> T
+  val deactivate_rule : R.name -> T -> T
+  val delete_rule : R.name -> T -> T
 
   val activate_tag : TagName.name -> T -> T
   val deactivate_tag : TagName.name -> T -> T
@@ -75,14 +68,10 @@ functor Ruleset(Rule : RULE) =
 struct
   
   structure Rule = Rule;
-  
   structure G = Rule.Graph;
-  structure BBox = G.BBox;
-  structure V = G.OVertex;
-  structure E = G.Edge;
   
-  exception no_such_rule_exp of RuleName.name;
-  exception duplicate_rule_exp of RuleName.name;
+  exception no_such_rule_exp of R.name;
+  exception duplicate_rule_exp of R.name;
   
   (* at some point, a ruleset should be a richer structure,
      but this will do for now. Its just a rule list and a flag
@@ -90,14 +79,14 @@ struct
      The rule list has a boolean to show if  the rule is active *)
   datatype T = 
     Ruleset of
-      { allrules : Rule.T RuleName.NTab.T,
+      { allrules : Rule.T R.NTab.T,
         brel : TagRel.T,
-        active : RuleName.NSet.T };
+        active : R.NSet.T };
   
   val empty = Ruleset {
-        allrules = RuleName.NTab.empty,
+        allrules = R.NTab.empty,
         brel = TagRel.empty,
-        active = RuleName.NSet.empty
+        active = R.NSet.empty
       };
   
   fun get_allrules (Ruleset rep) = #allrules rep;
@@ -125,18 +114,18 @@ struct
   end
   
   fun rule_exists rset rname = 
-      RuleName.NTab.contains (get_allrules rset) rname; 
+      R.NTab.contains (get_allrules rset) rname; 
   
   fun is_activate rset rname =  
-      RuleName.NSet.contains (get_active rset) rname; 
+      R.NSet.contains (get_active rset) rname; 
   
   fun lookup_rule rset rule_name = 
-      RuleName.NTab.lookup (get_allrules rset) rule_name; 
+      R.NTab.lookup (get_allrules rset) rule_name; 
   
   fun get_rule rset rule_name =
-      RuleName.NTab.get (get_allrules rset) rule_name; 
+      R.NTab.get (get_allrules rset) rule_name; 
       
-  fun get_all_rule_names_list rset = RuleName.NTab.keys (get_allrules rset);
+  fun get_all_rule_names_list rset = R.NTab.keys (get_allrules rset);
   fun get_tags rset = TagRel.get_codset (get_tagrel rset);
   
   fun get_rules_in_tag rset tagname = TagRel.codf (get_tagrel rset) tagname;
@@ -147,34 +136,34 @@ struct
   (* *)
   fun set_rule_activation activate name rset =
       if rule_exists rset name then 
-        rset |> update_active ((if activate then RuleName.NSet.add
-                               else RuleName.NSet.delete) name)
+        rset |> update_active ((if activate then R.NSet.add
+                               else R.NSet.delete) name)
       else raise no_such_rule_exp name;
   
   (* these all raise UNDEF on failure *)
   val activate_rule = set_rule_activation true;
   val deactivate_rule = set_rule_activation false;
   fun delete_rule name rset = 
-      rset |> update_active (RuleName.NSet.delete name)
+      rset |> update_active (R.NSet.delete name)
            |> update_brel (TagRel.del_dom name)
-           |> update_allrules (RuleName.NTab.delete name);
+           |> update_allrules (R.NTab.delete name);
   
   
   fun activate_tag tagname rset = 
-      RuleName.NSet.fold activate_rule (get_rules_in_tag rset tagname) rset;
+      R.NSet.fold activate_rule (get_rules_in_tag rset tagname) rset;
   fun deactivate_tag tagname rset = 
-      RuleName.NSet.fold deactivate_rule (get_rules_in_tag rset tagname) rset;
+      R.NSet.fold deactivate_rule (get_rules_in_tag rset tagname) rset;
   fun delete_tag tagname rset = 
-      RuleName.NSet.fold delete_rule (get_rules_in_tag rset tagname) rset;
+      R.NSet.fold delete_rule (get_rules_in_tag rset tagname) rset;
   
   
   fun update_rule (name, rule) rset = 
-      rset |> update_allrules (RuleName.NTab.update (name,rule));
+      rset |> update_allrules (R.NTab.update (name,rule));
   
 
   fun add_fresh_rule (name, rule) rset = 
       let (*val rset = delete_rule name rset (* avoid renaming, clobber names *) *)
-          val (name',allrules') = RuleName.NTab.add (name,rule) (get_allrules rset) 
+          val (name',allrules') = R.NTab.add (name,rule) (get_allrules rset) 
       in (name', rset |> set_allrules allrules') end;
   
   
@@ -182,10 +171,10 @@ struct
      unions tags contents and unions active set. *)
   fun merge rset1 rset2 = 
       rset2 
-        |> update_allrules (fn rtab2 => RuleName.NTab.merge_joint 
+        |> update_allrules (fn rtab2 => R.NTab.merge_joint 
                                           (K true) rtab2 (get_allrules rset1))
         |> update_brel (TagRel.union_merge (get_tagrel rset1))
-        |> update_active (RuleName.NSet.union_merge (get_active rset1));
+        |> update_active (R.NSet.union_merge (get_active rset1));
   
   fun tag_rule rname tagname rset =
       if rule_exists rset rname then 
@@ -198,7 +187,7 @@ struct
       else raise no_such_rule_exp rname;
   
   fun delete_rules_in_tag tagname rset = 
-      rset |> RuleName.NSet.fold delete_rule (get_rules_in_tag rset tagname);
+      rset |> R.NSet.fold delete_rule (get_rules_in_tag rset tagname);
 
 end; (* functor Ruleset *)
 

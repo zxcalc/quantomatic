@@ -41,9 +41,9 @@ functor OutputNamedRuleXML (
     structure Rule = Rule
     structure OutputGraph = OutputGraph
   )
-  structure ORName = OutputSStrNameXML(RuleName)
+  structure ORName = OutputSStrNameXML(R)
 
-  type data = (RuleName.name * ORParts.data)
+  type data = (R.name * ORParts.data)
   type T = XML.tree
 
   open XML;
@@ -66,13 +66,12 @@ functor OutputRewriteXML (
   sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_XML
 = struct
-  structure R = Rule
   structure OG = OutputGraph
   structure OR = OutputNamedRuleXML (
     structure Rule = Rule
     structure OutputGraph = OutputGraph
   );
-  type data = (RuleName.name * R.T) (* rulename, and rule *) 
+  type data = (R.name * Rule.T) (* rulename, and rule *) 
               * Rule.Graph.T (* what the graph got rewritten to *)
   type T = XML.tree
 

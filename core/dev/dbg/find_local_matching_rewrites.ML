@@ -9,15 +9,15 @@ val rule_list =
 val g = RGGraphLoaderSaver.load_graph "test/dbg/QFT2qubit_10.xml";
 
 (* print vertex names in the graph *)
-RGGraph.Vertex.NSet.print (RGGraph.get_vnames g);
+V.NSet.print (RGGraph.get_vnames g);
 
 (*  *)
 PolyML.Debug.breakEx 
-(RGGraph.no_such_vname_exp ("",RGGraph.Vertex.default_name,g));
+(RGGraph.no_such_vname_exp ("",V.default_name,g));
 PolyML.Debug.clearEx 
-(RGGraph.no_such_vname_exp ("",RGGraph.Vertex.default_name,g));
+(RGGraph.no_such_vname_exp ("",V.default_name,g));
 
-val vns = RGVertex.NSet.empty;
+val vns = V.NSet.empty;
 Seq.list_of (Ruleset.apply_rules_in vns g);
 
 val tgt = RGGraph.cut_subgraph_of_selection vns g;
@@ -39,7 +39,7 @@ open MkG;
 val g = G.empty;
 val (b1, g) = g |> G.add_vertex bvert;
 
-G.cut_subgraph_of_selection G.Vertex.NSet.empty g;
+G.cut_subgraph_of_selection V.NSet.empty g;
 
 
 

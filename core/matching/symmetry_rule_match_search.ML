@@ -18,8 +18,6 @@ functor SymmetryRuleMatchSearch(
   structure Rule = Rule;
   structure Match = Match;
   structure G = Match.G;
-  structure V = G.OVertex;
-  structure E = G.Edge;
 
   datatype T = 
          MState of 
@@ -151,13 +149,13 @@ functor SymmetryRuleMatchSearch(
      vertices and other already-matched vertices. *)
   fun anchor vp vt st =
       let val targets = V.NSet.intersect (G.adj_vnames (get_pattern st) vp)
-                                         ((V.InjEndo.get_domset
+                                         ((VInjEndo.get_domset
                                          o Match.get_viso
                                          o get_match) st)
           fun anchor_to vap st =
               let val (ap,bp,cp) = edge_classes_between (get_pattern st) vp vap
                   val (at,bt,ct) = edge_classes_between (get_target st) vt
-                                                        ((V.InjEndo.domf
+                                                        ((VInjEndo.domf
                                                         o Match.get_viso
                                                         o get_match) st vap)
               in st |> match_edgeset ap at
@@ -171,14 +169,14 @@ functor SymmetryRuleMatchSearch(
   
   (* Matches a boundary vertex bvp against a half-edge eht. *)
   fun bind bvp eht st =
-      let val ehp =(  E.Ehn.other
-                    o the o E.Ehn.NSet.get_local_bot
+      let val ehp =(  H.other
+                    o the o H.NSet.get_local_bot
                     o G.get_vname_ehns (get_pattern st)) bvp
           val vt  =(  G.get_ehn_vname (get_target st)
-                    o E.Ehn.other) eht
-          val ((dt,Dt),(_,_)) = G.get_edge (get_target  st) (E.Ehn.get_ename eht)
-          val ((dp,Dp),(_,_)) = G.get_edge (get_pattern st) (E.Ehn.get_ename ehp)
-      in  Pretty.writeln (Pretty.block [V.pretty_name bvp, Pretty.str " => ", E.Ehn.pretty_name eht]);
+                    o H.other) eht
+          val ((dt,Dt),(_,_)) = G.get_edge (get_target  st) (H.get_ename eht)
+          val ((dp,Dp),(_,_)) = G.get_edge (get_pattern st) (H.get_ename ehp)
+      in  Pretty.writeln (Pretty.block [V.pretty_name bvp, Pretty.str " => ", H.pretty_name eht]);
           Seq.single (
           st |> update_match (case (dt,dp) of
             (G.Directed,G.Directed)     => (  Match.dir_match_edgehalf (ehp,Dp)
@@ -207,7 +205,7 @@ functor SymmetryRuleMatchSearch(
       in maps' (select sub) adj end;
   
   fun traverse_rooted tree root st = 
-      let val adjac = root |> V.InjEndo.domf (Match.get_viso (get_match st))
+      let val adjac = root |> VInjEndo.domf (Match.get_viso (get_match st))
                            |> G.adj_vnames (get_target st)
                            |> V.NSet.intersect (get_avail st)
                            |> V.NSet.seq_of
@@ -225,9 +223,9 @@ functor SymmetryRuleMatchSearch(
       in maps' (select sub) adj end;
   
   fun traverse_boundary tree root st = 
-      let val adjac = root |> V.InjEndo.domf (Match.get_viso (get_match st))
+      let val adjac = root |> VInjEndo.domf (Match.get_viso (get_match st))
                            |> G.get_vname_ehns (get_target st)
-                           |> E.Ehn.NSet.seq_of
+                           |> H.NSet.seq_of
       in traverse_boundary' tree root adjac st
       end;
   
@@ -245,7 +243,7 @@ functor SymmetryRuleMatchSearch(
       
   (* Ramify by the appropriate self-applications of the rule. *)
   fun chain_match sa m =
-      let fun chain_one s = m |> Match.update_evmap (V.Map.premap (V.InjEndo.destr (fst s)))
+      let fun chain_one s = m |> Match.update_evmap (VMap.premap (VInjEndo.destr (fst s)))
                             (*  |> Match.update_subst (compose (snd s)) *)
       in  Seq.map chain_one (Seq.of_list sa) end;
   

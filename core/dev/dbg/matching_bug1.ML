@@ -19,7 +19,7 @@ G.print g;
 
 (* print vertex names in the graph *)
 val vns = G.get_vnames g;
-G.Vertex.NSet.print vns;
+V.NSet.print vns;
 
 (* find the subset of rules which raise an exception *)
 val problem_rules = 
@@ -50,7 +50,7 @@ val bs = RGGraph.get_bbnames rhs;
 val names = (vs,es,bs);
 
 val m = (Match.init names pat tgt);
-val init_st = (MatchSearch.init m pat tgt Vertex.NTab.empty);
+val init_st = (MatchSearch.init m pat tgt V.NTab.empty);
 val st = init_st;
 
 open DB_MatchSearch;
@@ -74,9 +74,9 @@ val (from_pv as (from_pn,from_pd)) = (pn,pd); (* pat vertex *)
 val (from_tv as (from_tn,from_td)) = (tn,td); (* tgt vertex *)
 val (ignore_arity,st) = (0,st2); (* state of matching so far *)
 
-val [(to_tn,tes)] = Vertex.NTab.list_of tns;
+val [(to_tn,tes)] = V.NTab.list_of tns;
 
-val [to_pn1,to_pn2] = Vertex.NSet.list_of pns;
+val [to_pn1,to_pn2] = V.NSet.list_of pns;
 val to_pn = to_pn1;
 
 (* edgematch_adj_2vs *)
@@ -136,7 +136,7 @@ val vs = RGGraph.get_vnames rhs;
 val es = RGGraph.get_enames rhs;
 val bs = RGGraph.get_bbnames rhs;
 val names = (vs,es,bs);
-val init_st = (init (Match.init names pat tgt) pat tgt Vertex.NTab.empty);
+val init_st = (init (Match.init names pat tgt) pat tgt V.NTab.empty);
 val st = init_st;
 print st;
 
@@ -207,7 +207,7 @@ PolyML.exception_trace (fn () =>
 
 val ms = 
  PolyML.exception_trace (fn () => 
-  Seq.list_of (MatchSearch.match pat tgt RGVertex.NTab.empty)
+  Seq.list_of (MatchSearch.match pat tgt V.NTab.empty)
 );
 val l = length ms;
 val bad_ms = 
@@ -260,7 +260,7 @@ val (rn,g) = (get_rhs rule)
                        (BBMatch.get_new_xmap_names bbmatch);
 
 
-val (bn1,bn2)::more = BBMap.Dom.NTab.list_of (BBMap.get_domtab (BBMatch.get_copies bbmatch));
+val (bn1,bn2)::more = BMap.Dom.NTab.list_of (BMap.get_domtab (BBMatch.get_copies bbmatch));
 
 PolyML.exception_trace (fn () =>
   RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g));

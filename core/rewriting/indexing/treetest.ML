@@ -7,8 +7,8 @@ structure TreeTester
   structure HTree = HistTree;
   structure AList = AdjacencyList;
   structure ATree = AdjacencyTree;
-  structure NSet = G.RGVertex.NSet;
-  structure NTab = G.RGVertex.NTab;
+  structure NSet = V.NSet;
+  structure NTab = V.NTab;
   structure Lib = Library;
   structure RG = RandomGraph;
   structure MSt = MatchState;

@@ -5,9 +5,9 @@ val zero_angle = LinratExpr.zero;
 val var_angle = LinratExpr.mk_var;
 val add_angles = LinratExpr.add_expr;
 val pi_angle = LinratExpr.pi;
-fun mkZ a = V.IVert (RGVertex.Znd a);
-fun mkX a = V.IVert (RGVertex.Xnd a);
-val mkH = V.IVert RGVertex.Hnd;
+fun mkZ a = V.IVert (RGVData.Znd a);
+fun mkX a = V.IVert (RGVData.Xnd a);
+val mkH = V.IVert RGVData.Hnd;
 val edge = ();
 
 (* X isometry + stuff should still be matched by isometry  *)
@@ -51,7 +51,7 @@ RGGraph.print pat;
 
 raise ERROR "stop";
 
-val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
+val init_st = (init Match.empty pat tgt V.NTab.empty);
 val st = init_st;
 MatchSearch.print st;
 (* match boundary "i" to 4 tgt bverts *)

@@ -10,8 +10,8 @@ structure MyTester
   structure HTree = HistTree;
   structure AList = AdjacencyList;
   structure ATree = AdjacencyTree;
-  structure NSet = G.RGVertex.NSet;
-  structure NTab = G.RGVertex.NTab;
+  structure NSet = V.NSet;
+  structure NTab = V.NTab;
   structure Lib = Library;
   structure RG = RandomGraph;
   structure MSt = MatchState;
@@ -42,7 +42,7 @@ structure MyTester
     | zipwith f (x::xs) (y::ys) = (f x y) :: zipwith f xs ys;
     
   
-  val empty_names = (NSet.empty,Edge.NSet.empty,NSet.empty)
+  val empty_names = (NSet.empty,E.NSet.empty,NSet.empty)
   
   fun pull_all xs seq =
   	case Seq.pull seq of

@@ -4,16 +4,13 @@ functor InputGraphXML_v2(
   structure Graph : BANG_GRAPH
         and InputVertexData : INPUT_XML
         and InputEdgeData : INPUT_XML
-  sharing type InputVertexData.data = Graph.Vertex.data
-  sharing type InputEdgeData.data = Graph.Edge.data
+  sharing type InputVertexData.data = Graph.VData.data
+  sharing type InputEdgeData.data = Graph.EData.data
 )  : INPUT_XML
 = struct
   open XML_Parse_Utils; 
 
   structure G = Graph;
-  structure V = Graph.OVertex;
-  structure E = Graph.Edge;
-  structure B = Graph.BBox;
   
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;

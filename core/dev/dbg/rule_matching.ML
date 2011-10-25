@@ -28,7 +28,7 @@ RGGraph.print tgt;
 RGGraph.print pat;
 
 
-val init_st = (init Match.empty pat tgt Vertex.NTab.empty);
+val init_st = (init Match.empty pat tgt V.NTab.empty);
 val st = init_st;
 (* match boundary "i" to 4 tgt bverts *)
 val (Progress s) = do_next_match_choices st;
@@ -41,7 +41,7 @@ val matches = Seq.list_of (Seq.make (match_search (Seq.of_list [st3,st4])));
 raise ERROR "stop";
 
 val NONE = pop_agenda st;
-val SOME pvn = (Vertex.NSet.get_local_bot (get_unm_pat_vs st));
+val SOME pvn = (V.NSet.get_local_bot (get_unm_pat_vs st));
 
 
 val SOME ((n,tn),st2) = 
@@ -127,9 +127,9 @@ val (c1,t1) = a1;
 val (c2,t2) = a2;
 val (a3 as (c3,t3)) = (LinratExpr.parse "a");
 
-VName.NTab.list_of t1;
-VName.NTab.list_of t2;
-VName.NTab.list_of t3;
+X.NTab.list_of t1;
+X.NTab.list_of t2;
+X.NTab.list_of t3;
 
 (LinratExpr.parse "a")
 
@@ -139,7 +139,7 @@ MCtxt.vertex_idata_match d td (Match.get_mctxt m)
 val [tn1,tn2,tn3] = Seq.list_of (get_tgt_vnseq st);
 
 val tn = tn2;
-val SOME pn = (Vertex.NSet.get_local_bot (get_unm_pat_vs st));
+val SOME pn = (V.NSet.get_local_bot (get_unm_pat_vs st));
 V.print_name pn;
 V.print_name tn;
 
@@ -168,8 +168,8 @@ edgematch_adj_verticies (pn,pd) (tn,td) (pns,tns)
 val from_pd = pd;
 val from_tn = tn;
 
-val SOME ((teh, more_tehs)) = Edge.Ehn.NSet.pull_local_bot left_over_tehs;
-E.Ehn.print_name teh;
+val SOME ((teh, more_tehs)) = H.NSet.pull_local_bot left_over_tehs;
+H.print_name teh;
 
 raise ERROR "stop";
 
@@ -177,7 +177,7 @@ pop_agenda st;
 
 
 
-val SOME Va = (Vertex.NSet.get_local_bot (get_unm_pat_vs st));
+val SOME Va = (V.NSet.get_local_bot (get_unm_pat_vs st));
 val [Vd, Ve, Vf] = Seq.list_of (get_tgt_vnseq st);
 
 val n = Va;
@@ -205,8 +205,8 @@ val st = st2;
 val (d,edgens) = Graph.get_vertex pat n;
 val (td,tedgens) = Graph.get_vertex tgt tn;
 
-val BVertex.IVert d = d;
-val BVertex.IVert td = td;
+val BVData.IVert d = d;
+val BVData.IVert td = td;
 
 val SOME st2 = match_vertex (n,d) (tn,td) st;
 
