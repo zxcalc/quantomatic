@@ -18,8 +18,8 @@ structure Console : CONSOLE
   val commands = ConsoleCommands.all_commands;
 
   val sort_alpha = sort (fn x => rev_order (string_ord x));
-  val command_name_list = (sort_alpha (ConsoleCommands.get_command_names commands));
-  val command_name_list_with_quit = (sort_alpha ("quit" :: (ConsoleCommands.get_command_names commands)));
+  val command_name_list = (sort_alpha ("help" :: "change_theory" :: (ConsoleCommands.get_command_names commands)));
+  val command_name_list_with_quit = (sort_alpha ("quit" :: command_name_list));
 
   fun get_command_args "help" = SOME "CMD"
     | get_command_args "change_theory" = SOME "THEORY"
