@@ -80,9 +80,11 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _  => bad_args_req))),
 
     ("new_graph",
-     ("", "Create a new graph and return its name",
+     ("[NAME]", "Create a new graph and return its name, which will be based on NAME (if given)",
       (fn [] => (Commands.LoadGraphRequest {
                         details = Commands.LoadEmptyGraphRequest { requestedName = "" } })
+        | [nm] => (Commands.LoadGraphRequest {
+                        details = Commands.LoadEmptyGraphRequest { requestedName = nm } })
         | _  => bad_args_req))),
 
     ("load_graph",
@@ -223,10 +225,10 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _           => bad_args_req))),
 
     ("add_bbox",
-     ("GRAPH", "Add a new !-box to GRAPH and return its name",
-      (fn [graph] => (Commands.EditGraphRequest {
+     ("GRAPH [V1 .. VN]", "Add a new !-box to GRAPH containing V1 .. VN and return its name",
+      (fn (graph::vs) => (Commands.EditGraphRequest {
                      graphName = graph, action = Commands.AddBangBoxAction {
-                     vertexNames = [], resultFormat = Commands.BasicFormat } })
+                     vertexNames = vs, resultFormat = Commands.BasicFormat } })
         | _       => bad_args_req))),
 
     ("bbox_drop",
