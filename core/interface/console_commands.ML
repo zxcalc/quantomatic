@@ -59,6 +59,7 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     | parse_response (Commands.PrettyResponse { data }) = Pretty.string_of data
     | parse_response (Commands.StringResponse { data }) = data
     | parse_response (Commands.StringListResponse { data }) = (String.concatWith "\n" data)
+    | parse_response (Commands.CountResponse { count }) = Int.toString count
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.Unit) }) = ""
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.String s) }) = s
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratExpr a) }) = Pretty.string_of (LinratExpr.pretty a)
