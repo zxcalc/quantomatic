@@ -70,8 +70,8 @@ public class RulesBar extends JPanel {
 	private Ruleset ruleset;
 	private QuantoFrame quantoFrame;
 	private ChangeListener listener = new ChangeListener() {
-
 		public void stateChanged(ChangeEvent e) {
+            loadTags();
 			loadRules((String) tagsCombo.getSelectedItem());
 		}
 	};
@@ -87,6 +87,8 @@ public class RulesBar extends JPanel {
 	private JMenuItem disableAllJMenuItem  = new JMenuItem("All");
 	private JMenuItem enableSelectionJMenuItem  = new JMenuItem("Selection");
 	private JMenuItem disableSelectionJMenuItem  = new JMenuItem("Selection");
+
+    private boolean suppressTagComboCallback = false;
 
 	private void createMenus() {
 		enableAllJMenuItem.addActionListener(new ActionListener() {
@@ -134,6 +136,7 @@ public class RulesBar extends JPanel {
 					}
 				}
 				catch (CoreException ex) {
+                    System.err.println(ex.getMessage());
 				}
 			}
 		});
@@ -156,7 +159,7 @@ public class RulesBar extends JPanel {
 		disableMenu.add(disableSelectionJMenuItem);
 	}
 
-	protected ImageIcon createImageIcon(String path,
+	private ImageIcon createImageIcon(String path,
 					    String description) {
 		java.net.URL imgURL = getClass().getResource(path);
 		if (imgURL != null) {
@@ -228,6 +231,7 @@ public class RulesBar extends JPanel {
 
 		DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
 
+            @Override
 			public Component getListCellRendererComponent(
 				JList list,
 				Object value,
@@ -279,11 +283,12 @@ public class RulesBar extends JPanel {
 		});
 
 		tagsCombo.addActionListener(new ActionListener() {
-			
 			public void actionPerformed(ActionEvent e) {
-				JComboBox cb = (JComboBox)e.getSource();
-		        String tag = (String)cb.getSelectedItem();
-		        loadRules(tag);
+                if (!suppressTagComboCallback) {
+                    JComboBox cb = (JComboBox)e.getSource();
+                    String tag = (String)cb.getSelectedItem();
+                    loadRules(tag);
+                }
 			}
 		});
 		
@@ -307,11 +312,27 @@ public class RulesBar extends JPanel {
 
 	private void loadTags() {
 		try {
-			tagsCombo.removeAllItems();
-			tagsCombo.addItem("All Rules");
-			for(String tag : ruleset.getTags()){
-				tagsCombo.addItem(tag);
-			}
+            try {
+                suppressTagComboCallback = true;
+                String oldSelection = null;
+                if (tagsCombo.getItemCount() > 0) {
+                    oldSelection = tagsCombo.getSelectedItem().toString();
+                    tagsCombo.removeAllItems();
+                }
+                tagsCombo.addItem("All Rules");
+                for(String tag : ruleset.getTags()){
+                    tagsCombo.addItem(tag);
+                }
+                if (oldSelection != null) {
+                    for (int i = 0; i < tagsCombo.getItemCount(); ++i) {
+                        if (oldSelection.equals(tagsCombo.getItemAt(i).toString())) {
+                            tagsCombo.setSelectedIndex(i);
+                        }
+                    }
+                }
+            } finally {
+                suppressTagComboCallback = false;
+            }
 		}
 		catch (CoreException ex) {
 			logger.log(Level.WARNING, "Could not get tags from core", ex);
