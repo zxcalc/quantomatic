@@ -22,7 +22,7 @@ end;
 functor SimpleMatchSearch(Match : MATCH)
 = struct
 
-  structure Log : LOG = Log(val level_ref = Unsynchronized.ref 0);
+  structure Log : LOG = Log(val init_level = 0);
 
   structure G = Match.G;
 

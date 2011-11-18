@@ -7,7 +7,8 @@ open Test_MkG;
 structure M = Test_Match;
 structure S = Test_SimpleMatchSearch;
 (* set log level for tests *)
-val _ = (S.Log.level_ref := 4)
+val old_log_level = !(S.Log.level_ref);
+val _ = (S.Log.level_ref := 4);
 val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
 fun match g1 g2 = Seq.list_of (S.match no_extra_names g1 g2);
 in val _ = let 
@@ -273,7 +274,7 @@ val [m] = Seq.list_of (MatchSearch.match pat tgt V.NTab.empty);
 val _ = Match.print m;
 *)
 in
-  (S.Log.level_ref := 0; 
+  (S.Log.level_ref := old_log_level;
    assert_no_failed_tests (); 
    Pretty.writeln (Pretty.str "Tests passed: graph matching."))
 end  (* let *)
