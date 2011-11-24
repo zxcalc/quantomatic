@@ -1,3 +1,12 @@
+(* Simple graph matching
+ *
+ * BASIC_MATCH_SEARCH, BASIC_MATCH_SEARCH_SHARING,
+ * SimpleMatchSearch(Match: MATCH): BASIC_MATCH_SEARCH
+ *
+ * Searches for matchings of a pattern graph on a target graph in a
+ * fairly naive way.
+ *)
+
 signature BASIC_MATCH_SEARCH_SHARING
 = sig
   structure Match : MATCH_SHARING 
@@ -7,22 +16,24 @@ signature BASIC_MATCH_SEARCH
 = sig
   structure Log : LOG;
 
+  (* A description of a match (depends on graph type) *)
   structure Match : MATCH
   
   structure Sharing : BASIC_MATCH_SEARCH_SHARING 
   sharing Sharing.Match = Match.Sharing
-  
-  val match : (V.NSet.T * E.NSet.T 
-               * B.NSet.T)
-              -> Match.G.T -> Match.G.T
-              -> Match.T Seq.seq
+
+  (* Searches for matches *)
+  val match : (V.NSet.T * E.NSet.T * B.NSet.T) (* names to avoid *)
+              -> Match.G.T (* pattern graph *)
+	      -> Match.G.T (* target graph *)
+              -> Match.T Seq.seq (* (lazy) list of matches *)
   
 end;
 
 functor SimpleMatchSearch(Match : MATCH)
 = struct
 
-  structure Log : LOG = Log(val level_ref = Unsynchronized.ref 0);
+  structure Log : LOG = Log(val init_level = 0);
 
   structure G = Match.G;
 
@@ -40,9 +51,9 @@ functor SimpleMatchSearch(Match : MATCH)
             agenda : V.name V.NTab.T, 
             (* global vertex and edge matching info *)
             match : Match.T, 
-            (* the full pattern graph, with it's expansions so far *)
+            (* the full pattern graph, with its expansions so far *)
             pat : G.T, 
-            (* the unmatched pattern vertex names, with bool for being 
+            (* the unmatched pattern vertex names, with a flag for being 
                unboxed *)
             unm_pat_vs : vertex_kind_name Seq.seq, 
             (* tgt with matched edges removed as we match them *)
@@ -212,7 +223,7 @@ functor SimpleMatchSearch(Match : MATCH)
       (case try_add1_to_agenda (pat_n,tgt_n) st of SOME st' => st'
        | NONE => raise Match.match_exp ()); 
 
-  (* try to match the bang-box's of the given pattern and tgt node:
+  (* try to match the bang-boxes of the given pattern and tgt node:
      mapping must be injective, and tgt *)
   (* IMPROVE?: maybe can do lazy bbox unfolding, and have bbox copying happen
      here? probbaly need generic notion of symmetry and search *)
@@ -385,7 +396,7 @@ functor SimpleMatchSearch(Match : MATCH)
           ^ "(adj=" ^ (Pretty.string_of (pretty_adj_list (get_unm_tgt st) tvn1))
           );
 
-          (* TODO: undir edges which are self-loops will always have two matches, one for each directon. Simple-dup removal doesn't work: all half-edges much be matched.  *)
+          (* TODO: undir edges which are self-loops will always have two matches, one for each directon. Simple-dup removal doesn't work: all half-edges must be matched.  *)
       in 
         G.fold_adj (edge_match_adj_to_pedge pt)
                    (get_pat st) pvn1 
@@ -579,7 +590,9 @@ functor SimpleMatchSearch(Match : MATCH)
               (* all other things are in boxes, 
                  so killing them all gives a valid matching... *)
               (* FIXME: find all box-unfoldings and macthes to target !-boxes *)
-              FoundMatch (drop_all_bboxes_in_pat st)) 
+              (Log.log 3 ("Progress: (BBoxed " ^ (V.string_of_name pn) ^ ")"
+                ^ "\n" ^ (Pretty.string_of (pretty st)));
+              FoundMatch (drop_all_bboxes_in_pat st)))
          | SOME ((pn,tn),st2) => (* match these things, only question is how ...*)
            (Log.log 3 ("Progress: (UnBBoxed " ^ (V.string_of_name pn) ^ ")"
                 ^ "\n" ^ (Pretty.string_of (pretty st)));

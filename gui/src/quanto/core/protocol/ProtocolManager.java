@@ -1234,7 +1234,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("RSY", generateRequestId());
+            writer.addHeader("RRY", generateRequestId());
             writer.addStringArg(ruleName);
             writer.closeMessage();
         } catch (IOException ex) {
@@ -1250,7 +1250,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("RSN", generateRequestId());
+            writer.addHeader("RRN", generateRequestId());
             writer.addStringArg(ruleName);
             writer.closeMessage();
         } catch (IOException ex) {

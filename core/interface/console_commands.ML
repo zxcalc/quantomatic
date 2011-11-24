@@ -59,6 +59,7 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     | parse_response (Commands.PrettyResponse { data }) = Pretty.string_of data
     | parse_response (Commands.StringResponse { data }) = data
     | parse_response (Commands.StringListResponse { data }) = (String.concatWith "\n" data)
+    | parse_response (Commands.CountResponse { count }) = Int.toString count
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.Unit) }) = ""
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.String s) }) = s
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratExpr a) }) = Pretty.string_of (LinratExpr.pretty a)
@@ -79,9 +80,11 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _  => bad_args_req))),
 
     ("new_graph",
-     ("", "Create a new graph and return its name",
+     ("[NAME]", "Create a new graph and return its name, which will be based on NAME (if given)",
       (fn [] => (Commands.LoadGraphRequest {
                         details = Commands.LoadEmptyGraphRequest { requestedName = "" } })
+        | [nm] => (Commands.LoadGraphRequest {
+                        details = Commands.LoadEmptyGraphRequest { requestedName = nm } })
         | _  => bad_args_req))),
 
     ("load_graph",
@@ -222,10 +225,10 @@ structure ConsoleCommands : CONSOLE_COMMANDS
         | _           => bad_args_req))),
 
     ("add_bbox",
-     ("GRAPH", "Add a new !-box to GRAPH and return its name",
-      (fn [graph] => (Commands.EditGraphRequest {
+     ("GRAPH [V1 .. VN]", "Add a new !-box to GRAPH containing V1 .. VN and return its name",
+      (fn (graph::vs) => (Commands.EditGraphRequest {
                      graphName = graph, action = Commands.AddBangBoxAction {
-                     vertexNames = [], resultFormat = Commands.BasicFormat } })
+                     vertexNames = vs, resultFormat = Commands.BasicFormat } })
         | _       => bad_args_req))),
 
     ("bbox_drop",

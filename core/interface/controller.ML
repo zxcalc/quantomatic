@@ -952,7 +952,8 @@ end;
 
 structure DummyController : CONTROLLER =
 struct
-  fun serviceRequest _ =
+  fun serviceRequest (Commands.DummyRequest { response }) = response
+    | serviceRequest _ =
         Commands.ErrorResponse {
           errorCode = "NOTHEORY",
           message = "No theory has been selected"

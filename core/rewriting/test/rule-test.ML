@@ -9,6 +9,7 @@ structure Ruleset = Test_Ruleset;
 structure MatchSearch = Test_SimpleMatchSearch;
 structure GraphSubst = Test_GraphSubst;
 in
+val old_log_level = !(MatchSearch.Log.level_ref);
 val _ = MatchSearch.Log.level_ref := 4;
 val ruleset = "../../test/rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
@@ -121,7 +122,7 @@ val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
   in () end) ();
   *)   
 
-val _ = MatchSearch.Log.level_ref := 0;
+val _ = MatchSearch.Log.level_ref := old_log_level;
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";
 end;
