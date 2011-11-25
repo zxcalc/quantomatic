@@ -88,7 +88,7 @@ public class InteractiveGraphView
 	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
-	private static Core core;
+	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
 	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
@@ -1020,32 +1020,32 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 	}
 
-	public static void registerKnownCommands() {
-		ViewPort.registerCommand(SAVE_GRAPH_ACTION);
-		ViewPort.registerCommand(SAVE_GRAPH_AS_ACTION);
-		ViewPort.registerCommand(ABORT_ACTION);
-		ViewPort.registerCommand(EXPORT_TO_PDF_ACTION);
-		ViewPort.registerCommand(SELECT_MODE_ACTION);
-		ViewPort.registerCommand(DIRECTED_EDGE_MODE_ACTION);
-		ViewPort.registerCommand(UNDIRECTED_EDGE_MODE_ACTION);
-		ViewPort.registerCommand(LATEX_TO_CLIPBOARD_ACTION);
-		ViewPort.registerCommand(ADD_BOUNDARY_VERTEX_ACTION);
-		ViewPort.registerCommand(SHOW_REWRITES_ACTION);
-		ViewPort.registerCommand(NORMALISE_ACTION);
-		ViewPort.registerCommand(FAST_NORMALISE_ACTION);
-		ViewPort.registerCommand(BANG_VERTICES_ACTION);
-		ViewPort.registerCommand(UNBANG_VERTICES_ACTION);
-		ViewPort.registerCommand(DROP_BANG_BOX_ACTION);
-		ViewPort.registerCommand(KILL_BANG_BOX_ACTION);
-		ViewPort.registerCommand(DUPLICATE_BANG_BOX_ACTION);
-		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_TEXT);
-		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_MATHEMATICA);
+	public static void registerKnownCommands(Core core, Collection<String> commands) {
+		commands.add(SAVE_GRAPH_ACTION);
+		commands.add(SAVE_GRAPH_AS_ACTION);
+		commands.add(ABORT_ACTION);
+		commands.add(EXPORT_TO_PDF_ACTION);
+		commands.add(SELECT_MODE_ACTION);
+		commands.add(DIRECTED_EDGE_MODE_ACTION);
+		commands.add(UNDIRECTED_EDGE_MODE_ACTION);
+		commands.add(LATEX_TO_CLIPBOARD_ACTION);
+		commands.add(ADD_BOUNDARY_VERTEX_ACTION);
+		commands.add(SHOW_REWRITES_ACTION);
+		commands.add(NORMALISE_ACTION);
+		commands.add(FAST_NORMALISE_ACTION);
+		commands.add(BANG_VERTICES_ACTION);
+		commands.add(UNBANG_VERTICES_ACTION);
+		commands.add(DROP_BANG_BOX_ACTION);
+		commands.add(KILL_BANG_BOX_ACTION);
+		commands.add(DUPLICATE_BANG_BOX_ACTION);
+		commands.add(DUMP_HILBERT_TERM_AS_TEXT);
+		commands.add(DUMP_HILBERT_TERM_AS_MATHEMATICA);
 	
 		/*
 		 * Add dynamically commands allowing to add registered vertices
 		 */
 		for (VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
-			ViewPort.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
+			commands.add("add-" + vertexType.getTypeName() + "-vertex-command");
 		}
 	}
 

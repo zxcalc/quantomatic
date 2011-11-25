@@ -1,27 +1,19 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.SystemColor;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 
-import java.util.Set;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 
 public class ViewPort extends JPanel {
 
 	private static final long serialVersionUID = -2789609872128334500L;
-	private static Set<String> knownCommands;
 
 	private ViewPortHost host;
 	private InteractiveView attachedView = null;
@@ -45,29 +37,6 @@ public class ViewPort extends JPanel {
 				refreshLabel();
 
 		}
-	}
-
-	public static Collection<String> getKnownCommands() {
-		if (knownCommands == null) {
-			knownCommands = new HashSet<String>();
-
-			knownCommands.add(UNDO_ACTION);
-			knownCommands.add(REDO_ACTION);
-			knownCommands.add(CUT_ACTION);
-			knownCommands.add(COPY_ACTION);
-			knownCommands.add(PASTE_ACTION);
-			knownCommands.add(SELECT_ALL_ACTION);
-			knownCommands.add(DESELECT_ALL_ACTION);
-
-			InteractiveGraphView.registerKnownCommands();
-			TextView.registerKnownCommands();
-			ConsoleView.registerKnownCommands();
-			SplitGraphView.registerKnownCommands();
-		}
-		return knownCommands;
-	}
-	public static void registerCommand(String command) {
-		getKnownCommands().add(command);
 	}
 
 	/**

@@ -7,6 +7,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
+import java.util.Collection;
 import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -118,8 +119,8 @@ public class SplitGraphView extends InteractiveView {
 		}
 	}
 
-	public static void registerKnownCommands() {
-		//ViewPort.registerCommand(USE_RULE_ACTION);
+	public static void registerKnownCommands(Collection<String> commands) {
+		//commands.add(USE_RULE_ACTION);
 	}
 
 	public void commandTriggered(String command) {

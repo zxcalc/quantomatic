@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -25,6 +27,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JSplitPane;
 import org.xml.sax.SAXException;
 
+import quanto.core.Core;
 import quanto.core.CoreException;
 import quanto.core.xml.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
@@ -55,6 +58,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     // This type has to be public in order to be registered as a
     // handler with ActionManager.  The constructor is private, however,
     // to prevent abuse.
+	private Set<String> knownCommands;
 
     public class Delegate {
 
@@ -106,6 +110,23 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         addIconFromRes(icons, "/icons/quanto_icon_128.png");
         setIconImages(icons);
     }
+
+	private void loadKnownCommands(Core core) {
+        knownCommands = new HashSet<String>();
+
+        knownCommands.add(ViewPort.UNDO_ACTION);
+        knownCommands.add(ViewPort.REDO_ACTION);
+        knownCommands.add(ViewPort.CUT_ACTION);
+        knownCommands.add(ViewPort.COPY_ACTION);
+        knownCommands.add(ViewPort.PASTE_ACTION);
+        knownCommands.add(ViewPort.SELECT_ALL_ACTION);
+        knownCommands.add(ViewPort.DESELECT_ALL_ACTION);
+
+        InteractiveGraphView.registerKnownCommands(core, knownCommands);
+        TextView.registerKnownCommands(knownCommands);
+        ConsoleView.registerKnownCommands(knownCommands);
+        SplitGraphView.registerKnownCommands(knownCommands);
+	}
 
     public QuantoFrame(QuantoApp app) {
         super("Quantomatic");
@@ -191,9 +212,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         viewPort = new ViewPort(app.getViewManager(), this);
         sidebar = new LeftTabbedPane(app.getCore(), this);
 
+        loadKnownCommands(app.getCore());
         Delegate delegate = new Delegate();
         actionManager.registerGenericCallback(
-                ViewPort.getKnownCommands(),
+                knownCommands,
                 delegate, "executeCommand");
 
         //Add the scroll panes to a split pane.

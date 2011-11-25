@@ -10,6 +10,7 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Collection;
 import java.util.SortedSet;
 import java.util.Stack;
 
@@ -255,7 +256,7 @@ public class ConsoleView extends InteractiveView {
 		return true;
 	}
 
-	public static void registerKnownCommands() {
+	public static void registerKnownCommands(Collection<String> commands) {
 	}
 
 	public void commandTriggered(String command) {
