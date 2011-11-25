@@ -6,10 +6,28 @@ import java.util.LinkedList;
 
 /**
  * Allows commands to be directed to the appropriate place
+ *
+ * These are the document-centric commands that will be passed
+ * on to the document view.
+ *
+ * FIXME: this should do more (eg: methods to enable/disable actions
+ * and trigger commands).  It should possibly do the multiplexing
+ * instead of referring to ViewPort.
+ *
  * @author Alex Merry
  */
 public class CommandManager
 {
+    /**
+     * Action name entries
+     * 
+     * Having these all in one place makes sure we don't spread typos around
+     * the code.  Hence all other code should refer to
+     * CommandManager.Command.Foo, not the string "foo-command".
+     * 
+     * This class also deals with registering the callbacks properly with
+     * ActionManager.
+     */
     public enum Command
     {
         Save("save-command"),
@@ -23,8 +41,12 @@ public class CommandManager
         DeselectAll("deselect-all-command");
         //UseRule("use-rule-command");
 
-        private Command(String value) {
-            this.actionName = value;
+        /**
+         * Create a new command action
+         * @param actionName  The action name (as in resources/actions.xml)
+         */
+        private Command(String actionName) {
+            this.actionName = actionName;
         }
         private final String actionName;
         @Override

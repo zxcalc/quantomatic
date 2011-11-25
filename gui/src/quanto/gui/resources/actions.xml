@@ -4,6 +4,20 @@
 <!--
   The actions define all the Actions in an application
   and toolbars and menus which use the actions
+
+  Every action needs a corresponding registration somewhere
+  in the code that specifies what to do when the action is
+  triggered.  For "global" actions (such as new graph, open,
+  quit), this is in QuantoFrame (the CommandAction and
+  BoolPrefAction enums).  For actions that are delegated to
+  views (the document-centric ones such as save, cut, select
+  all etc.), there should be an entry in CommandManager that
+  fixes the string name of the action (so typos can only be
+  in one place), and code to deal with/enable/disable those
+  actions should be in the relevant views.
+
+  Currently, this isn't quite followed - InteractiveGraphView
+  does its own thing.
 -->
 
 <action-set id="quanto-frame">
