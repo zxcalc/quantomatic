@@ -42,19 +42,81 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     private volatile static int frameCount = 0;
     private QuantoApp app;
     private ActionManager actionManager = new ActionManager();
-    // these all taken from resources/actions.xml
-    public final static String NEW_WINDOW_COMMAND = "new-win-command";
-    public final static String NEW_GRAPH_COMMAND = "new-graph-command";
-    public final static String OPEN_GRAPH_COMMAND = "open-command";
-    public final static String LOAD_RULESET_COMMAND = "load-ruleset-command";
-    public final static String SAVE_RULESET_COMMAND = "save-ruleset-command";
-    public final static String CLOSE_COMMAND = "close-command";
-    public final static String QUIT_COMMAND = "quit-command";
-    public final static String REFRESH_ALL_COMMAND = "refresh-all-graphs-command";
-    public final static String DRAW_ARROW_HEADS_COMMAND = "draw-arrow-heads-command";
-    public final static String SHOW_INTERNAL_GRAPH_NAMES_COMMAND = "internal-graph-names-command";
-    public final static String OPEN_IN_NEW_WINDOW_COMMAND = "open-in-new-window-command";
-    public final static String LOAD_THEORY_COMMAND = "load-theory-command";
+    /**
+     * Command actions that are dealt with directly by the frame
+     * 
+     * These are "global" command (as opposed to toggle, for example) actions,
+     * such as Open or Quit.  Each should be dealt with by a separate
+     * (non-static) method in this class.
+     */
+    public enum CommandAction
+    {
+        NewWindow("new-win-command", "createNewFrame"),
+        NewGraph("new-graph-command", "createNewGraph"),
+        OpenGraph("open-command", "openGraph"),
+        LoadTheory("load-theory-command", "openTheory"),
+        LoadRuleset("load-ruleset-command", "importRuleset"),
+        SaveRuleset("save-ruleset-command", "exportRuleset"),
+        Close("close-command", "closeCurrentView"),
+        Quit("quit-command", "quit"),
+        RefreshAll("refresh-all-command", "refreshall");
+
+        /**
+         * Create a new command action
+         * @param actionName  The action name (as in resources/actions.xml)
+         * @param methodName  The name of the method (in the QuantoFrame class)
+         *                     to invoke when the action is triggered
+         */
+        private CommandAction(String actionName, String methodName) {
+            this.actionName = actionName;
+            this.methodName = methodName;
+        }
+        private final String actionName;
+        private final String methodName;
+        @Override
+        public String toString() {
+            return actionName;
+        }
+        public String actionName() {
+            return actionName;
+        }
+        public String methodName() {
+            return methodName;
+        }
+    }
+    /**
+     * An action that toggles a boolean preference
+     */
+    public enum BoolPrefAction
+    {
+        DrawArrowHeads("draw-arrow-heads-command", QuantoApp.DRAW_ARROW_HEADS),
+        ShowInternalGraphNames("internal-graph-names-command", QuantoApp.SHOW_INTERNAL_NAMES),
+        OpenInNewWindow("open-in-new-window-command", QuantoApp.NEW_WINDOW_FOR_GRAPHS);
+
+        /**
+         * Create a boolean preference action
+         * 
+         * @param commandValue  The action name (as in resources/actions.xml)
+         * @param pref  The boolean preference object (as in QuantoApp)
+         */
+        private BoolPrefAction(String actionName, BoolPref pref) {
+            this.actionName = actionName;
+            this.pref = pref;
+        }
+        private final String actionName;
+        private final BoolPref pref;
+        @Override
+        public String toString() {
+            return actionName;
+        }
+        public String actionName() {
+            return actionName;
+        }
+        public BoolPref getPref() {
+            return pref;
+        }
+    }
+
     // This type has to be public in order to be registered as a
     // handler with ActionManager.  The constructor is private, however,
     // to prevent abuse.
@@ -111,22 +173,9 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         setIconImages(icons);
     }
 
-	private void loadKnownCommands(Core core) {
-        knownCommands = new HashSet<String>();
-
-        knownCommands.add(ViewPort.UNDO_ACTION);
-        knownCommands.add(ViewPort.REDO_ACTION);
-        knownCommands.add(ViewPort.CUT_ACTION);
-        knownCommands.add(ViewPort.COPY_ACTION);
-        knownCommands.add(ViewPort.PASTE_ACTION);
-        knownCommands.add(ViewPort.SELECT_ALL_ACTION);
-        knownCommands.add(ViewPort.DESELECT_ALL_ACTION);
-
-        InteractiveGraphView.registerKnownCommands(core, knownCommands);
-        TextView.registerKnownCommands(knownCommands);
-        ConsoleView.registerKnownCommands(knownCommands);
-        SplitGraphView.registerKnownCommands(knownCommands);
-	}
+    public void quit() {
+        app.shutdown();
+    }
 
     public QuantoFrame(QuantoApp app) {
         super("Quantomatic");
@@ -154,53 +203,21 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
                 actionManager.setEnabled(id, false);
             }
         }
-        actionManager.registerCallback(NEW_WINDOW_COMMAND, app, "createNewFrame");
-        actionManager.setEnabled(NEW_WINDOW_COMMAND, true);
 
-        actionManager.registerCallback(NEW_GRAPH_COMMAND, this, "createNewGraph");
-        actionManager.setEnabled(NEW_GRAPH_COMMAND, true);
-
-        actionManager.registerCallback(OPEN_GRAPH_COMMAND, this, "openGraph");
-        actionManager.setEnabled(OPEN_GRAPH_COMMAND, true);
-
-        actionManager.registerCallback(CLOSE_COMMAND, this, "closeCurrentView");
-        actionManager.setEnabled(CLOSE_COMMAND, true);
-
-        actionManager.registerCallback(LOAD_RULESET_COMMAND, this, "importRuleset");
-        actionManager.setEnabled(LOAD_RULESET_COMMAND, true);
-
-        actionManager.registerCallback(SAVE_RULESET_COMMAND, this, "exportRuleset");
-        actionManager.setEnabled(SAVE_RULESET_COMMAND, true);
-
-        actionManager.registerCallback(QUIT_COMMAND, app, "shutdown");
-        actionManager.setEnabled(QUIT_COMMAND, true);
-
-        actionManager.registerCallback(REFRESH_ALL_COMMAND, app.getViewManager(), "refreshAll");
-        actionManager.setEnabled(REFRESH_ALL_COMMAND, true);
-
-        actionManager.registerCallback(LOAD_THEORY_COMMAND, this, "openTheory");
-        actionManager.setEnabled(LOAD_THEORY_COMMAND, true);
-
-        actionManager.registerCallback(DRAW_ARROW_HEADS_COMMAND,
-                new BoolPrefDelegate(QuantoApp.DRAW_ARROW_HEADS),
-                "setState");
-        actionManager.setEnabled(DRAW_ARROW_HEADS_COMMAND, true);
-        actionManager.setSelected(DRAW_ARROW_HEADS_COMMAND,
-                app.getPreference(QuantoApp.DRAW_ARROW_HEADS));
-
-        actionManager.registerCallback(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
-                new BoolPrefDelegate(QuantoApp.SHOW_INTERNAL_NAMES),
-                "setState");
-        actionManager.setEnabled(SHOW_INTERNAL_GRAPH_NAMES_COMMAND, true);
-        actionManager.setSelected(SHOW_INTERNAL_GRAPH_NAMES_COMMAND,
-                app.getPreference(QuantoApp.SHOW_INTERNAL_NAMES));
-
-        actionManager.registerCallback(OPEN_IN_NEW_WINDOW_COMMAND,
-                new BoolPrefDelegate(QuantoApp.NEW_WINDOW_FOR_GRAPHS),
-                "setState");
-        actionManager.setEnabled(OPEN_IN_NEW_WINDOW_COMMAND, true);
-        actionManager.setSelected(OPEN_IN_NEW_WINDOW_COMMAND,
-                app.getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS));
+        for (CommandAction action: CommandAction.values()) {
+            actionManager.registerCallback(action.actionName(), this, action.methodName());
+            actionManager.setEnabled(action.actionName(), true);
+        }
+        for (BoolPrefAction action: BoolPrefAction.values()) {
+            actionManager.registerCallback(action.actionName(),
+                    new BoolPrefDelegate(action.getPref()),
+                    "setState");
+            actionManager.setEnabled(action.actionName(), true);
+            actionManager.setSelected(action.actionName(),
+                    app.getPreference(action.getPref()));
+        }
+        CommandManager commandManager = new CommandManager(actionManager);
+        InteractiveGraphView.registerKnownCommands(app.getCore(), commandManager);
 
         UIFactory factory = new UIFactory(actionManager);
         setJMenuBar(factory.createMenuBar("main-menu"));
@@ -211,12 +228,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
         viewPort = new ViewPort(app.getViewManager(), this);
         sidebar = new LeftTabbedPane(app.getCore(), this);
-
-        loadKnownCommands(app.getCore());
-        Delegate delegate = new Delegate();
-        actionManager.registerGenericCallback(
-                knownCommands,
-                delegate, "executeCommand");
+        commandManager.setViewPort(viewPort);
 
         //Add the scroll panes to a split pane.
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -232,7 +244,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     private void removeQuitFromFileMenu() {
         JMenuBar menuBar = getJMenuBar();
         Action fileMenuAction = actionManager.getAction("file-menu");
-        Action quitCommandAction = actionManager.getAction(QUIT_COMMAND);
+        Action quitCommandAction = actionManager.getAction(CommandAction.Quit.actionName());
         for (int i = 0; i < menuBar.getMenuCount(); ++i) {
             JMenu menu = menuBar.getMenu(i);
             if (menu != null && menu.getAction() == fileMenuAction) {
@@ -248,6 +260,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         }
     }
 
+    public void refreshAll() {
+        app.getViewManager().refreshAll();
+    }
+
     public void openView(InteractiveView view) {
         if (app.getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS)) {
             app.openNewFrame(view);
@@ -261,6 +277,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         if (result == ViewPort.CloseResult.NoMoreViews) {
             dispose();
         }
+    }
+
+    public void createNewFrame() {
+        app.createNewFrame();
     }
 
     public void createNewGraph() {
@@ -355,11 +375,11 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     }
 
     public void setViewAllowedToClose(boolean allowed) {
-        actionManager.setEnabled(CLOSE_COMMAND, allowed);
+        actionManager.setEnabled(CommandAction.Close.actionName(), allowed);
     }
 
     public boolean isViewAllowedToClose() {
-        return actionManager.isEnabled(CLOSE_COMMAND);
+        return actionManager.isEnabled(CommandAction.Close.actionName());
     }
 
     public void setCommandEnabled(String command, boolean enabled) {

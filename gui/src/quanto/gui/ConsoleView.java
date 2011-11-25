@@ -204,27 +204,27 @@ public class ConsoleView extends InteractiveView {
 		if (isAttached()) {
 			ViewPort vp = getViewPort();
 			if (lastFocusOwner == null) {
-				vp.setCommandEnabled(ViewPort.CUT_ACTION, false);
-				vp.setCommandEnabled(ViewPort.COPY_ACTION, false);
-				vp.setCommandEnabled(ViewPort.PASTE_ACTION, false);
-				vp.setCommandEnabled(ViewPort.SELECT_ALL_ACTION, false);
-				vp.setCommandEnabled(ViewPort.DESELECT_ALL_ACTION, false);
+				vp.setCommandEnabled(CommandManager.Command.Cut, false);
+				vp.setCommandEnabled(CommandManager.Command.Copy, false);
+				vp.setCommandEnabled(CommandManager.Command.Paste, false);
+				vp.setCommandEnabled(CommandManager.Command.SelectAll, false);
+				vp.setCommandEnabled(CommandManager.Command.DeselectAll, false);
 			}
 			else {
 				boolean hasSelection = (lastFocusOwner.getSelectionEnd() - lastFocusOwner.getSelectionStart()) != 0;
-				vp.setCommandEnabled(ViewPort.CUT_ACTION,
+				vp.setCommandEnabled(CommandManager.Command.Cut,
 					lastFocusOwner.isEditable() &&
 					hasSelection
 					);
-				vp.setCommandEnabled(ViewPort.COPY_ACTION,
+				vp.setCommandEnabled(CommandManager.Command.Copy,
 					hasSelection
 					);
-				vp.setCommandEnabled(ViewPort.PASTE_ACTION,
+				vp.setCommandEnabled(CommandManager.Command.Paste,
 					lastFocusOwner.isEditable()
 					);
-				vp.setCommandEnabled(ViewPort.SELECT_ALL_ACTION,
+				vp.setCommandEnabled(CommandManager.Command.SelectAll,
 					true);
-				vp.setCommandEnabled(ViewPort.DESELECT_ALL_ACTION,
+				vp.setCommandEnabled(CommandManager.Command.DeselectAll,
 					true);
 			}
 		}
@@ -242,11 +242,11 @@ public class ConsoleView extends InteractiveView {
 	}
 
 	public void detached(ViewPort vp) {
-		vp.setCommandEnabled(ViewPort.CUT_ACTION, false);
-		vp.setCommandEnabled(ViewPort.COPY_ACTION, false);
-		vp.setCommandEnabled(ViewPort.PASTE_ACTION, false);
-		vp.setCommandEnabled(ViewPort.SELECT_ALL_ACTION, false);
-		vp.setCommandEnabled(ViewPort.DESELECT_ALL_ACTION, false);
+        vp.setCommandEnabled(CommandManager.Command.Cut, false);
+        vp.setCommandEnabled(CommandManager.Command.Copy, false);
+        vp.setCommandEnabled(CommandManager.Command.Paste, false);
+        vp.setCommandEnabled(CommandManager.Command.SelectAll, false);
+        vp.setCommandEnabled(CommandManager.Command.DeselectAll, false);
 	}
 
 	public void cleanUp() {
@@ -256,27 +256,24 @@ public class ConsoleView extends InteractiveView {
 		return true;
 	}
 
-	public static void registerKnownCommands(Collection<String> commands) {
-	}
-
 	public void commandTriggered(String command) {
-		if (ViewPort.CUT_ACTION.equals(command)) {
+		if (CommandManager.Command.Cut.matches(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.cut();
 		}
-		else if (ViewPort.COPY_ACTION.equals(command)) {
+		else if (CommandManager.Command.Copy.matches(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.copy();
 		}
-		else if (ViewPort.PASTE_ACTION.equals(command)) {
+		else if (CommandManager.Command.Paste.matches(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.paste();
 		}
-		else if (ViewPort.SELECT_ALL_ACTION.equals(command)) {
+		else if (CommandManager.Command.SelectAll.matches(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.selectAll();
 		}
-		else if (ViewPort.DESELECT_ALL_ACTION.equals(command)) {
+		else if (CommandManager.Command.DeselectAll.matches(command)) {
 			if (lastFocusOwner != null)
 				lastFocusOwner.select(0, 0);
 		}

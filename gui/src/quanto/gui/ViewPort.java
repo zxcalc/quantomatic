@@ -23,14 +23,6 @@ public class ViewPort extends JPanel {
 	private boolean showInternalNames = false;
 	private ViewRenameListener viewRenameListener = new ViewRenameListener();
 
-	public static final String UNDO_ACTION = "undo-command";
-	public static final String REDO_ACTION = "redo-command";
-	public static final String CUT_ACTION = "cut-command";
-	public static final String COPY_ACTION = "copy-command";
-	public static final String PASTE_ACTION = "paste-command";
-	public static final String SELECT_ALL_ACTION = "select-all-command";
-	public static final String DESELECT_ALL_ACTION = "deselect-all-command";
-
 	private class ViewRenameListener implements PropertyChangeListener {
 		public void propertyChange(PropertyChangeEvent evt) {
 			if (evt.getSource() == attachedView)
@@ -151,8 +143,14 @@ public class ViewPort extends JPanel {
 		}
 	}
 
+	public void setCommandEnabled(CommandManager.Command command, boolean enabled) {
+		host.setCommandEnabled(command.toString(), enabled);
+    }
 	public void setCommandEnabled(String command, boolean enabled) {
 		host.setCommandEnabled(command, enabled);
+	}
+	public boolean isCommandEnabled(CommandManager.Command command) {
+		return host.isCommandEnabled(command.toString());
 	}
 	public boolean isCommandEnabled(String command) {
 		return host.isCommandEnabled(command);
