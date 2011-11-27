@@ -174,6 +174,9 @@ PolyML.Project.make "theories/red_green_blue/io.ML";
 Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
 
+(* Test to make sure example code for playing with graphs at the ML level 
+   are working. *)
+Testing.make_test "ml_hackery.ML";
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 
