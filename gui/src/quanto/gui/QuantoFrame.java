@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -27,7 +25,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JSplitPane;
 import org.xml.sax.SAXException;
 
-import quanto.core.Core;
 import quanto.core.CoreException;
 import quanto.core.xml.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;

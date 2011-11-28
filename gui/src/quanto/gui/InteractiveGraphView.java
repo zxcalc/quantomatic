@@ -67,23 +67,6 @@ public class InteractiveGraphView
 	private static final long serialVersionUID = 7196565776978339937L;
 
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
-	public static final String ABORT_ACTION = "abort-command";
-	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf-command";
-	public static final String SELECT_MODE_ACTION = "select-mode-command";
-	public static final String DIRECTED_EDGE_MODE_ACTION = "directed-edge-mode-command";
-	public static final String UNDIRECTED_EDGE_MODE_ACTION = "undirected-edge-mode-command";
-	public static final String LATEX_TO_CLIPBOARD_ACTION = "latex-to-clipboard-command";
-	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-boundary-vertex-command";
-	public static final String SHOW_REWRITES_ACTION = "show-rewrites-command";
-	public static final String NORMALISE_ACTION = "normalise-command";
-	public static final String FAST_NORMALISE_ACTION = "fast-normalise-command";
-	public static final String BANG_VERTICES_ACTION = "bang-vertices-command";
-	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices-command";
-	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box-command";
-	public static final String KILL_BANG_BOX_ACTION = "kill-bang-box-command";
-	public static final String DUPLICATE_BANG_BOX_ACTION = "duplicate-bang-box-command";
-	public static final String DUMP_HILBERT_TERM_AS_TEXT = "hilbert-as-text-command";
-	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
 	private Core core;
@@ -245,7 +228,7 @@ public class InteractiveGraphView
 			add(pickingMouse);
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
-				getViewPort().setCommandStateSelected(SELECT_MODE_ACTION, true);
+				getViewPort().setCommandStateSelected(CommandManager.Command.SelectMode, true);
 			}
 		}
 
@@ -256,9 +239,9 @@ public class InteractiveGraphView
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
 				if (directedEdges)
-					getViewPort().setCommandStateSelected(DIRECTED_EDGE_MODE_ACTION, true);
+					getViewPort().setCommandStateSelected(CommandManager.Command.DirectedEdgeMode, true);
 				else
-					getViewPort().setCommandStateSelected(UNDIRECTED_EDGE_MODE_ACTION, true);
+					getViewPort().setCommandStateSelected(CommandManager.Command.UndirectedEdgeMode, true);
 			}
 		}
 
@@ -591,13 +574,13 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 		activeJobs.add(job);
 		if (getViewPort() != null) {
-			getViewPort().setCommandEnabled(ABORT_ACTION, true);
+			getViewPort().setCommandEnabled(CommandManager.Command.Abort, true);
 		}
 		job.addJobListener(new JobListener() {
 			public void jobEnded(JobEndEvent event) {
 				activeJobs.remove(job);
 				if (activeJobs.size() == 0 && getViewPort() != null) {
-					getViewPort().setCommandEnabled(ABORT_ACTION, false);
+					getViewPort().setCommandEnabled(CommandManager.Command.Abort, false);
 				}
 			}
 		});
@@ -786,10 +769,10 @@ public void lockVertices(Collection<Vertex> verts) {
 
 	private void setupNormaliseAction(ViewPort vp) {
 		if (rewriter == null) {
-			vp.setCommandEnabled(NORMALISE_ACTION, true);
+			vp.setCommandEnabled(CommandManager.Command.Normalise, true);
 		}
 		else {
-			vp.setCommandEnabled(NORMALISE_ACTION, false);
+			vp.setCommandEnabled(CommandManager.Command.Normalise, false);
 		}
 	}
 
@@ -1019,24 +1002,6 @@ public void lockVertices(Collection<Vertex> verts) {
 	}
 
 	public static void registerKnownCommands(Core core, CommandManager commandManager) {
-		commandManager.registerCommand(ABORT_ACTION);
-		commandManager.registerCommand(EXPORT_TO_PDF_ACTION);
-		commandManager.registerCommand(SELECT_MODE_ACTION);
-		commandManager.registerCommand(DIRECTED_EDGE_MODE_ACTION);
-		commandManager.registerCommand(UNDIRECTED_EDGE_MODE_ACTION);
-		commandManager.registerCommand(LATEX_TO_CLIPBOARD_ACTION);
-		commandManager.registerCommand(ADD_BOUNDARY_VERTEX_ACTION);
-		commandManager.registerCommand(SHOW_REWRITES_ACTION);
-		commandManager.registerCommand(NORMALISE_ACTION);
-		commandManager.registerCommand(FAST_NORMALISE_ACTION);
-		commandManager.registerCommand(BANG_VERTICES_ACTION);
-		commandManager.registerCommand(UNBANG_VERTICES_ACTION);
-		commandManager.registerCommand(DROP_BANG_BOX_ACTION);
-		commandManager.registerCommand(KILL_BANG_BOX_ACTION);
-		commandManager.registerCommand(DUPLICATE_BANG_BOX_ACTION);
-		commandManager.registerCommand(DUMP_HILBERT_TERM_AS_TEXT);
-		commandManager.registerCommand(DUMP_HILBERT_TERM_AS_MATHEMATICA);
-	
 		/*
 		 * Add dynamically commands allowing to add registered vertices
 		 */
@@ -1140,7 +1105,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			}
 		});
 
-		actionMap.put(EXPORT_TO_PDF_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.ExportToPdf.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 
@@ -1169,24 +1134,24 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(SELECT_MODE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.SelectMode.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				graphMouse.setPickingMouse();
 			}
 		});
-		actionMap.put(DIRECTED_EDGE_MODE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DirectedEdgeMode.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				directedEdges = true;
 				graphMouse.setEdgeMouse();
 			}
 		});
-		actionMap.put(UNDIRECTED_EDGE_MODE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.UndirectedEdgeMode.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				directedEdges = false;
 				graphMouse.setEdgeMouse();
 			}
 		});
-		actionMap.put(LATEX_TO_CLIPBOARD_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.LatexToClipboard.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String tikz = TikzOutput.generate(
                                         getGraph(),
@@ -1198,17 +1163,17 @@ public void lockVertices(Collection<Vertex> verts) {
 				cb.setContents(data, data);
 			}
 		});
-		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.AddBoundaryVertex.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				addBoundaryVertex();
 			}
 		});
-		actionMap.put(SHOW_REWRITES_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.ShowRewrites.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				showRewrites();
 			}
 		});
-		actionMap.put(NORMALISE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Normalise.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (rewriter != null)
 					abortRewriting();
@@ -1216,7 +1181,7 @@ public void lockVertices(Collection<Vertex> verts) {
 
 			}
 		});
-		actionMap.put(ABORT_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Abort.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (activeJobs != null && activeJobs.size() > 0) {
 					Job[] jobs = activeJobs.toArray(new Job[activeJobs.size()]);
@@ -1226,7 +1191,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(FAST_NORMALISE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.FastNormalise.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1239,7 +1204,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(BANG_VERTICES_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.BangVertices.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
@@ -1250,7 +1215,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(UNBANG_VERTICES_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.UnbangVertices.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1262,7 +1227,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(DROP_BANG_BOX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DropBangBox.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
@@ -1273,7 +1238,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(KILL_BANG_BOX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.KillBangBox.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
@@ -1284,7 +1249,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(DUPLICATE_BANG_BOX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DuplicateBangBox.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1301,7 +1266,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			}
 		});
 
-		actionMap.put(DUMP_HILBERT_TERM_AS_TEXT, new ActionListener() {
+		actionMap.put(CommandManager.Command.DumpHilbertTermAsText.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
@@ -1311,7 +1276,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(DUMP_HILBERT_TERM_AS_MATHEMATICA, new ActionListener() {
+		actionMap.put(CommandManager.Command.DumpHilbertTermAsMathematica.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
@@ -1321,7 +1286,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		
+
 		/*
 		 * Add dynamically commands corresponding allowing to add registered vertices
 		 */
@@ -1344,19 +1309,19 @@ public void lockVertices(Collection<Vertex> verts) {
 				);
 		}
 		if ((graphMouse.isEdgeMouse()) && (directedEdges))
-			vp.setCommandStateSelected(DIRECTED_EDGE_MODE_ACTION, true);
+			vp.setCommandStateSelected(CommandManager.Command.DirectedEdgeMode, true);
 		else if (graphMouse.isEdgeMouse())
-			vp.setCommandStateSelected(UNDIRECTED_EDGE_MODE_ACTION, true);
+			vp.setCommandStateSelected(CommandManager.Command.UndirectedEdgeMode, true);
 		else
-			vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
+			vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 		setupNormaliseAction(vp);
 		if (activeJobs == null || activeJobs.size() == 0) {
-			vp.setCommandEnabled(ABORT_ACTION, false);
+			vp.setCommandEnabled(CommandManager.Command.Abort, false);
 		}
 	}
 
 	public void detached(ViewPort vp) {
-		vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
+		vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, false);

@@ -155,8 +155,14 @@ public class ViewPort extends JPanel {
 	public boolean isCommandEnabled(String command) {
 		return host.isCommandEnabled(command);
 	}
+	public void setCommandStateSelected(CommandManager.Command command, boolean selected) {
+		host.setCommandStateSelected(command.toString(), selected);
+	}
 	public void setCommandStateSelected(String command, boolean selected) {
 		host.setCommandStateSelected(command, selected);
+	}
+	public boolean isCommandStateSelected(CommandManager.Command command) {
+		return host.isCommandStateSelected(command.toString());
 	}
 	public boolean isCommandStateSelected(String command) {
 		return host.isCommandStateSelected(command);

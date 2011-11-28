@@ -38,8 +38,26 @@ public class CommandManager
         Copy("copy-command"),
         Paste("paste-command"),
         SelectAll("select-all-command"),
-        DeselectAll("deselect-all-command");
-        //UseRule("use-rule-command");
+        DeselectAll("deselect-all-command"),
+        //UseRule("use-rule-command"),
+
+	    Abort("abort-command"),
+	    ExportToPdf("export-to-pdf-command"),
+	    SelectMode("select-mode-command"),
+	    DirectedEdgeMode("directed-edge-mode-command"),
+	    UndirectedEdgeMode("undirected-edge-mode-command"),
+	    LatexToClipboard("latex-to-clipboard-command"),
+	    AddBoundaryVertex("add-boundary-vertex-command"),
+	    ShowRewrites("show-rewrites-command"),
+	    Normalise("normalise-command"),
+	    FastNormalise("fast-normalise-command"),
+	    BangVertices("bang-vertices-command"),
+	    UnbangVertices("unbang-vertices-command"),
+	    DropBangBox("drop-bang-box-command"),
+	    KillBangBox("kill-bang-box-command"),
+	    DuplicateBangBox("duplicate-bang-box-command"),
+	    DumpHilbertTermAsText("hilbert-as-text-command"),
+	    DumpHilbertTermAsMathematica("hilbert-as-mathematica-command");
 
         /**
          * Create a new command action
