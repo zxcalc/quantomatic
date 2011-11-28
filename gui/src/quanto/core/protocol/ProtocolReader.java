@@ -8,7 +8,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 import static quanto.core.protocol.Utils.*;
 
 /**
@@ -235,7 +234,7 @@ public class ProtocolReader {
     private Response parseStructuredDataResponseBody(String requestId) throws ProtocolException, IOException {
         // ???
         skipToBodyEnd();
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     private Response parseUnknownRequestResponseBody(String requestId) throws ProtocolException, IOException {

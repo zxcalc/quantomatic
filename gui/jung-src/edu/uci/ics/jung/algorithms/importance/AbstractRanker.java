@@ -177,7 +177,7 @@ public abstract class AbstractRanker<V,E> extends IterativeProcess {
         }
 
         mRankings = sortedRankings;
-        Collections.sort(mRankings);
+        Collections.<Ranking<?> >sort(mRankings);
     }
 
     /**

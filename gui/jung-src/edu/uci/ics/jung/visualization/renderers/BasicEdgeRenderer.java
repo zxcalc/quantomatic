@@ -37,8 +37,8 @@ import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 
 public class BasicEdgeRenderer<V,E> implements Renderer.Edge<V,E> {
 	
-	protected EdgeArrowRenderingSupport edgeArrowRenderingSupport =
-		new BasicEdgeArrowRenderingSupport();
+	protected EdgeArrowRenderingSupport<V,E> edgeArrowRenderingSupport =
+		new BasicEdgeArrowRenderingSupport<V,E>();
 
     public void paintEdge(RenderContext<V,E> rc, Layout<V, E> layout, E e) {
         GraphicsDecorator g2d = rc.getGraphicsContext();
@@ -259,12 +259,12 @@ public class BasicEdgeRenderer<V,E> implements Renderer.Edge<V,E> {
         }
     }
 
-	public EdgeArrowRenderingSupport getEdgeArrowRenderingSupport() {
+	public EdgeArrowRenderingSupport<V,E> getEdgeArrowRenderingSupport() {
 		return edgeArrowRenderingSupport;
 	}
 
 	public void setEdgeArrowRenderingSupport(
-			EdgeArrowRenderingSupport edgeArrowRenderingSupport) {
+			EdgeArrowRenderingSupport<V,E> edgeArrowRenderingSupport) {
 		this.edgeArrowRenderingSupport = edgeArrowRenderingSupport;
 	}
 }

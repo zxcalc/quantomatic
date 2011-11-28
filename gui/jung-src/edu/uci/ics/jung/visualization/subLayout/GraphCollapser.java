@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Pair;
+import java.util.logging.Level;
 
 public class GraphCollapser  {
     
@@ -28,6 +29,7 @@ public class GraphCollapser  {
         return (Graph)originalGraph.getClass().newInstance();
     }
     
+    @SuppressWarnings("unchecked")
     public Graph collapse(Graph inGraph, Graph clusterGraph) {
         
         if(clusterGraph.getVertexCount() < 2) return inGraph;
@@ -36,7 +38,7 @@ public class GraphCollapser  {
         try {
             graph = createGraph();
         } catch(Exception ex) {
-            ex.printStackTrace();
+            logger.log(Level.FINE, "Could not create graph", ex);
         }
         Collection cluster = clusterGraph.getVertices();
         
@@ -71,15 +73,16 @@ public class GraphCollapser  {
         return graph;
     }
     
+    @SuppressWarnings("unchecked")
     public Graph expand(Graph inGraph, Graph clusterGraph) {
         Graph graph = inGraph;
         try {
             graph = createGraph();
         } catch(Exception ex) {
-            ex.printStackTrace();
+            logger.log(Level.FINE, "Could not create graph", ex);
         }
         Collection cluster = clusterGraph.getVertices();
-        logger.fine("cluster to expand is "+cluster);
+        logger.log(Level.FINE, "cluster to expand is {0}", cluster);
 
         // put all clusterGraph vertices and edges into the new Graph
         for(Object v : cluster) {
@@ -155,17 +158,13 @@ public class GraphCollapser  {
     	return contained;
     }
     
+    @SuppressWarnings("unchecked")
     public Graph getClusterGraph(Graph inGraph, Collection picked) {
         Graph clusterGraph;
         try {
             clusterGraph = createGraph();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-            return null;
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        } catch(Exception ex) {
+            logger.log(Level.FINE, "Could not create graph", ex);
             return null;
         }
         for(Object v : picked) {
