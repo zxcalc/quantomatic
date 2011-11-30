@@ -29,7 +29,7 @@ public class ProtocolManager {
     private ProtocolReader reader;
     private Process backend;
     private int nextRequestId = 1;
-    private boolean debuggingEnabled = true;
+    private boolean debuggingEnabled = false;
 
     public ProtocolManager() throws CoreException {
     }

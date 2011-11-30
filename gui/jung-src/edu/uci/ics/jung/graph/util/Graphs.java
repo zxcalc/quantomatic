@@ -60,7 +60,7 @@ public class Graphs {
      * @param forest the forest for which a synchronized wrapper is to be created
 	 * @return a synchronized Forest backed by the passed Forest
 	 */
-	public static <V,E> SynchronizedForest<V,E> synchronizedForest(Forest<V,E> forest) {
+	public static <V,E> Forest<V,E> synchronizedForest(Forest<V,E> forest) {
 		return new SynchronizedForest<V,E>(forest);
 	}
 	
@@ -71,7 +71,7 @@ public class Graphs {
      * @param tree the tree for which a synchronized wrapper is to be created
 	 * @return a synchronized Tree backed by the passed Tree
 	 */
-	public static <V,E> SynchronizedTree<V,E> synchronizedTree(Tree<V,E> tree) {
+	public static <V,E> Tree<V,E> synchronizedTree(Tree<V,E> tree) {
 		return new SynchronizedTree<V,E>(tree);
 	}
 	
@@ -115,7 +115,7 @@ public class Graphs {
      * @param tree the tree for which the unmodifiable wrapper is to be returned
      * @return an unmodifiable <code>Tree</code> backed by the passed tree
 	 */
-	public static <V,E> UnmodifiableTree<V,E> unmodifiableTree(Tree<V,E> tree) {
+	public static <V,E> Tree<V,E> unmodifiableTree(Tree<V,E> tree) {
 		return new UnmodifiableTree<V,E>(tree);
 	}
 	
@@ -126,7 +126,7 @@ public class Graphs {
      * @param forest the forest for which the unmodifiable wrapper is to be returned
      * @return an unmodifiable <code>Forest</code> backed by the passed forest
      */
-	public static <V,E> UnmodifiableForest<V,E> unmodifiableForest(Forest<V,E> forest) {
+	public static <V,E> Forest<V,E> unmodifiableForest(Forest<V,E> forest) {
 		return new UnmodifiableForest<V,E>(forest);
 	}
 	

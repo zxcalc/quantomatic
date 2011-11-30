@@ -19,7 +19,6 @@ public class AddEdgeGraphMousePlugin<V,E> extends AbstractGraphMousePlugin
 implements MouseListener, MouseMotionListener {
 	protected VisualizationViewer<V,E> vis;
 	protected Adder<V> adder;
-	private Point2D down;
 	private Point2D current;
 	
 	public static interface Adder<V> {
