@@ -22,6 +22,7 @@ import static quanto.core.protocol.Utils.*;
 public class ProtocolManager {
 
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
+
     public static String quantoCoreExecutable = "quanto-core";
     private DebugInputStream dbgInputStream;
     private DebugOutputStream dbgOutputStream;
@@ -29,7 +30,7 @@ public class ProtocolManager {
     private ProtocolReader reader;
     private Process backend;
     private int nextRequestId = 1;
-    private boolean debuggingEnabled = false;
+    private boolean debuggingEnabled = true;
 
     public ProtocolManager() throws CoreException {
     }

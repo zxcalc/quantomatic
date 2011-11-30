@@ -65,6 +65,8 @@ class DebugOutputStream extends OutputStream
 
     @Override
     public void flush() throws IOException {
+        if (debuggingActive)
+            System.out.flush();
         internal.flush();
     }
 
