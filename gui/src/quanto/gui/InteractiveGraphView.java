@@ -198,7 +198,7 @@ public class InteractiveGraphView
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin<Vertex, Edge, BangBox>() {
+			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin<Vertex, Edge, BangBox>(20.0,20.0) {
 				// don't change the cursor
 				@Override
 				public void mouseEntered(MouseEvent e) {}
