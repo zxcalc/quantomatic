@@ -38,6 +38,10 @@ import quanto.core.xml.TheoryParser;
  */
 public class QuantoApp {
 
+    private static final boolean LOG_PROTOCOL = false;
+    private static final boolean LOG_JUNG = false;
+    private static final boolean LOG_QUANTO = false;
+
     private final static Logger logger =
             Logger.getLogger("quanto.gui");
     // isMac is used for CTRL vs META shortcuts, etc
@@ -196,7 +200,23 @@ public class QuantoApp {
      * @param args
      */
     public static void main(String[] args) {
-        if (false) {
+        if (LOG_PROTOCOL) {
+            // protocol stream
+            Logger protocolLogger = Logger.getLogger("quanto.core.protocol.stream");
+            protocolLogger.setUseParentHandlers(false);
+            ConsoleHandler ch = new ConsoleHandler();
+            ch.setLevel(Level.FINEST);
+            protocolLogger.addHandler(ch);
+
+	    // choose real log level here
+            protocolLogger.setLevel(Level.ALL);
+        } else {
+            // only log problems by default
+            // this is required for when LOG_QUANTO is true but LOG_PROTOCOL is false
+            Logger protocolLogger = Logger.getLogger("quanto.core.protocol.stream");
+            protocolLogger.setLevel(Level.INFO);
+        }
+        if (LOG_QUANTO) {
             // log everything to the console
             Logger ql = Logger.getLogger("quanto");
             ql.setUseParentHandlers(false);
@@ -207,7 +227,7 @@ public class QuantoApp {
 	    // choose real log level here
             ql.setLevel(Level.ALL);
         }
-        if (false) {
+        if (LOG_JUNG) {
             // log everything to the console
             Logger ql = Logger.getLogger("edu.uci.ics.jung");
             ql.setUseParentHandlers(false);
@@ -582,3 +602,5 @@ public class QuantoApp {
         globalPrefs.put(pref.key, value);
     }
 }
+
+//vi:et:sts=4:sw=4

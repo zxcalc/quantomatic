@@ -24,13 +24,12 @@ public class ProtocolManager {
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
     public static String quantoCoreExecutable = "quanto-core";
-    private DebugInputStream dbgInputStream;
-    private DebugOutputStream dbgOutputStream;
+    private LoggingInputStream dbgInputStream;
+    private LoggingOutputStream dbgOutputStream;
     private RequestWriter writer;
     private ProtocolReader reader;
     private Process backend;
     private int nextRequestId = 1;
-    private boolean debuggingEnabled = true;
 
     public ProtocolManager() throws CoreException {
     }
@@ -46,13 +45,8 @@ public class ProtocolManager {
 
             new StreamRedirector(backend.getErrorStream(), System.err).start();
 
-            dbgInputStream = new DebugInputStream(backend.getInputStream());
-            dbgInputStream.setDebuggingActive(debuggingEnabled);
-            reader = new ProtocolReader(dbgInputStream);
-
-            dbgOutputStream = new DebugOutputStream(backend.getOutputStream());
-            dbgOutputStream.setDebuggingActive(debuggingEnabled);
-            writer = new RequestWriter(dbgOutputStream);
+            reader = new ProtocolReader(backend.getInputStream());
+            writer = new RequestWriter(backend.getOutputStream());
         } catch (IOException e) {
             logger.log(Level.SEVERE,
                     "Could not execute \"" + quantoCoreExecutable + "\": "
@@ -77,18 +71,6 @@ public class ProtocolManager {
                     "The core failed to initiate the protocol correctly",
                     e);
         }
-    }
-
-    public void setDebuggingEnabled(boolean enabled) {
-        debuggingEnabled = enabled;
-        if (backend != null) {
-            dbgInputStream.setDebuggingActive(enabled);
-            dbgOutputStream.setDebuggingActive(enabled);
-        }
-    }
-
-    public boolean isDebuggingEnabled() {
-        return debuggingEnabled;
     }
 
     private CoreCommunicationException writeFailure(Throwable e) {
@@ -167,8 +149,6 @@ public class ProtocolManager {
 
     private Response getResponse(Response.MessageType expectedType) throws CoreException {
         try {
-            if (debuggingEnabled)
-                System.out.append("\n<<< ");
             Response resp = reader.parseNextResponse();
             if (resp.isError()) {
                 throw errorResponseToException(resp.getErrorCode(), resp.getErrorMessage());
@@ -182,11 +162,6 @@ public class ProtocolManager {
             return resp;
         } catch (IOException ex) {
             throw readFailure(ex);
-        } finally {
-            if (debuggingEnabled) {
-                System.out.append("\n\n");
-                System.out.flush();
-            }
         }
     }
 
