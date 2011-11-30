@@ -20,7 +20,6 @@ import org.xml.sax.SAXException;
 
 
 import apple.dts.samplecode.osxadapter.OSXAdapter;
-import com.itextpdf.text.xml.simpleparser.handler.NeverNewLineHandler;
 import java.awt.Component;
 import java.io.IOException;
 import java.util.logging.ConsoleHandler;
@@ -200,11 +199,24 @@ public class QuantoApp {
         if (false) {
             // log everything to the console
             Logger ql = Logger.getLogger("quanto");
-            ql.setLevel(Level.ALL);
             ql.setUseParentHandlers(false);
             ConsoleHandler ch = new ConsoleHandler();
             ch.setLevel(Level.FINEST);
             ql.addHandler(ch);
+
+	    // choose real log level here
+            ql.setLevel(Level.ALL);
+        }
+        if (false) {
+            // log everything to the console
+            Logger ql = Logger.getLogger("edu.uci.ics.jung");
+            ql.setUseParentHandlers(false);
+            ConsoleHandler ch = new ConsoleHandler();
+            ch.setLevel(Level.FINEST);
+            ql.addHandler(ch);
+
+	    // choose real log level here
+            ql.setLevel(Level.ALL);
         }
 
         logger.log(Level.FINER, "Starting quantomatic");

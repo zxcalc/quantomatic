@@ -7,14 +7,13 @@ package edu.uci.ics.jung.contrib.visualization.control;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 import edu.uci.ics.jung.visualization.picking.PickedState;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.Set;
-import quanto.core.data.Edge;
-import quanto.core.data.Vertex;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -22,6 +21,10 @@ import quanto.core.data.Vertex;
  */
 public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
 	extends PickingBangBoxMousePlugin<V, E, B> {
+
+    private static final Logger logger = Logger.getLogger(
+            "edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingBangBoxGraphMousePlugin");
+
 	protected double leftConstraint = 0.0;
 	protected double topConstraint = 0.0;
 	protected double xDragBounce = 0.0;
@@ -98,22 +101,31 @@ public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
 		Layout<V, E> layout = vv.getGraphLayout();
 		double odx = 0.0;
 		double ody = 0.0;
+        logger.log(Level.FINEST,
+                   "Asked to move nodes by ({0},{1})",
+                   new Object[]{dx, dy});
 		// if the mouse has moved without taking nodes
 		// with it, because of the constraints, let it
 		// move back to its starting point (relative to
 		// the nodes) before moving again.
-		if (dx > 0 && xDragBounce < 0)
+		if (dx > 0 && xDragBounce > 0)
 		{
-			double xfer = Math.min(dx, -xDragBounce);
+			double xfer = Math.min(dx, xDragBounce);
+            logger.log(Level.FINEST,
+                       "We have an x bounce of {0}; unwinding by {1}",
+                       new Object[]{xDragBounce, xfer});
 			dx -= xfer;
-			xDragBounce += xfer;
+			xDragBounce -= xfer;
 			odx -= xfer;
 		}
-		if (dy > 0 && yDragBounce < 0)
+		if (dy > 0 && yDragBounce > 0)
 		{
-			double xfer = Math.min(dy, -yDragBounce);
+			double xfer = Math.min(dy, yDragBounce);
+            logger.log(Level.FINEST,
+                       "We have a y bounce of {0}; unwinding by {1}",
+                       new Object[]{yDragBounce, xfer});
 			dy -= xfer;
-			yDragBounce += xfer;
+			yDragBounce -= xfer;
 			ody -= xfer;
 		}
 		PickedState<V> ps = vv.getPickedVertexState();
@@ -128,20 +140,26 @@ public class ConstrainedPickingBangBoxGraphMousePlugin<V, E, B>
 				farTop = Math.min(farTop, vp.getY());
 			}
 		}
+        logger.log(Level.FINEST,
+                   "Top left of selected nodes is ({0},{1}); constraints start at ({2},{3})",
+                   new Object[]{farLeft, farTop,leftConstraint,topConstraint});
 		// record how far we moved without taking nodes
 		// with us, so we can bounce back later
 		if (farLeft + dx < leftConstraint) {
 			double diff = leftConstraint - (farLeft + dx);
-			xDragBounce -= diff;
+			xDragBounce += diff;
 			dx += diff;
 			odx += diff;
 		}
 		if (farTop + dy < topConstraint) {
 			double diff = topConstraint - (farTop + dy);
-			yDragBounce -= diff;
+			yDragBounce += diff;
 			dy += diff;
 			ody += diff;
 		}
+        logger.log(Level.FINEST,
+                   "Final adjustment is ({0},{1})",
+                   new Object[]{dx, dy});
 		if (constrainingAction == ConstrainingAction.StopMovement ||
 			(odx == 0.0 && ody == 0.0))
 		{
