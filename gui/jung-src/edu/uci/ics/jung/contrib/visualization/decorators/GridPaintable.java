@@ -19,7 +19,6 @@ import java.awt.geom.Rectangle2D;
  *
  * @author alemer
  */
-@SuppressWarnings("unused")
 public class GridPaintable implements VisualizationServer.Paintable
 {
         public interface BoundsCalculator {

@@ -15,9 +15,6 @@
   fixes the string name of the action (so typos can only be
   in one place), and code to deal with/enable/disable those
   actions should be in the relevant views.
-
-  Currently, this isn't quite followed - InteractiveGraphView
-  does its own thing.
 -->
 
 <action-set id="quanto-frame">

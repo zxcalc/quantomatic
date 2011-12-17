@@ -15,7 +15,7 @@ package edu.uci.ics.jung.algorithms.importance;
  * the original position of the instance in the list and the actual ranking score.
  * @author Scott White
  */
-public class Ranking<V> implements Comparable {
+public class Ranking<V> implements Comparable<Ranking> {
     /**
      * The original (0-indexed) position of the instance being ranked
      */
@@ -46,9 +46,8 @@ public class Ranking<V> implements Comparable {
      * @param o The other ranking
      * @return -1 if the other ranking is higher, 0 if they are equal, and 1 if this ranking is higher
      */
-    public int compareTo(Object o) {
+    public int compareTo(Ranking otherRanking) {
 
-        Ranking otherRanking = (Ranking) o;
         return Double.compare(otherRanking.rankScore,rankScore);
     }
 

@@ -1,4 +1,4 @@
-package edu.uci.ics.jung.contrib.graph.util;
+package edu.uci.ics.jung.graph.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 /**
  * EdgeIndexFunction that draws parallel edges in a balanced way. Note

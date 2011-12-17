@@ -14,7 +14,7 @@ import quanto.core.data.CoreGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout;
-import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.visualization.decorators.MixedShapeTransformer;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;

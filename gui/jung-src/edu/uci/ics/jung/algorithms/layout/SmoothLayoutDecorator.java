@@ -1,10 +1,9 @@
-package edu.uci.ics.jung.contrib.algorithms.layout;
+package edu.uci.ics.jung.algorithms.layout;
 
 import java.awt.geom.Point2D;
 
 import org.apache.commons.collections15.Transformer;
 
-import edu.uci.ics.jung.algorithms.layout.*;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
 import edu.uci.ics.jung.algorithms.util.IterativeContext;
