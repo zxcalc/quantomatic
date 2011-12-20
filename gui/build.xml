@@ -110,10 +110,6 @@
       <zipfileset src="${lib}/iText-5.0.6.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/collections-generic-4.01.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/colt-1.2.0.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-algorithms-2.0.1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-api-2.0.1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-graph-impl-2.0.1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-visualization-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/svgSiren.jar" excludes="META-INF/**" />
       <fileset dir="${resources}"/>
       <manifest>
