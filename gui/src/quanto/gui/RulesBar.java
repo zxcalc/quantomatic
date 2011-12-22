@@ -296,7 +296,7 @@ public class RulesBar extends JPanel {
 					RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
 					RulesBar.this.quantoFrame.getViewPort().attachView(spg);
 
-					rulesModel.addElement(new RuleDescription(ruleName, true));
+					rulesModel.addElement(new RuleDescription(ruleName, false));
 				} catch (CoreException ex) {
 					//We cannot create the rule. This is not critical. Inform the user.
 					logger.log(Level.WARNING, "Could not create a new rule : ", ex);

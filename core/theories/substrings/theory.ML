@@ -4,6 +4,8 @@ structure Str_Theory = GraphicalTheory(
   structure EComponentData = EmptyElementComponentData
 );
 
+structure Str_Controller = Controller(Str_Theory); 
+
 structure Str_DotStyle : DOT_STYLE =
 struct
   structure Graph = GHZW_Theory.Graph

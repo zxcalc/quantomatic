@@ -51,7 +51,7 @@ structure Str_VertexComponentData_Param
   type data = PrefixStringVertexData.data;
   exception unknown_type_exp of string;
   exception unexpected_data_exp;
-  fun type_of s = "string";
+  fun type_of s = s;
   fun cdata_of s = ComponentData.Unit;
   fun default_data s = s;
   fun update f x = x;
