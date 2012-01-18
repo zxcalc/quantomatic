@@ -11,6 +11,8 @@ import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -24,6 +26,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -88,7 +91,7 @@ public class RulesBar extends JPanel {
 	private JMenuItem enableSelectionJMenuItem  = new JMenuItem("Selection");
 	private JMenuItem disableSelectionJMenuItem  = new JMenuItem("Selection");
 
-    private boolean suppressTagComboCallback = false;
+	private boolean suppressTagComboCallback = false;
 
 	private void createMenus() {
 		enableAllJMenuItem.addActionListener(new ActionListener() {
@@ -238,7 +241,8 @@ public class RulesBar extends JPanel {
 				int index,
 				boolean isSelected,
 				boolean cellHasFocus) {
-				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				super.getListCellRendererComponent(list, value, 
+                                        index, isSelected, cellHasFocus);
 				if (!((RuleDescription) value).active) {
 					setForeground(Color.gray);
 				}
@@ -246,9 +250,20 @@ public class RulesBar extends JPanel {
 			}
 		};
 
-		rulesModel = new DefaultListModel();
+		rulesModel = new DefaultListModel();                
 		listView = new JList(rulesModel);
 		listView.setCellRenderer(cellRenderer);
+		listView.addMouseListener(new MouseAdapter() {
+                
+			public void mousePressed(MouseEvent e)
+{
+	if ((e.getClickCount() == 2) &&
+		((e.getModifiers() & e.BUTTON1_MASK) == e.BUTTON1_MASK)){
+		editRule((String) listView.getSelectedValue().toString());
+		}
+}
+
+});
 		JScrollPane listPane = new JScrollPane(listView);
 		tagsCombo = new JComboBox();
 		createMenus();
@@ -263,25 +278,32 @@ public class RulesBar extends JPanel {
 			}
 		});
 		
-		JButton openRuleButton = new JButton(createImageIcon("/toolbarButtonGraphics/general/Open16.gif", "Refresh"));
-		openRuleButton.setToolTipText("Open Rule");
-		openRuleButton.addActionListener(new ActionListener() {
+		JButton createRuleButton = new JButton(createImageIcon("/toolbarButtonGraphics/general/New16.gif", "Create Rule"));
+		createRuleButton.setToolTipText("Create Rule");
+		createRuleButton.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				if(listView.getSelectedIndex() != -1) {
-					try {
-						Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().openRule(listView.getSelectedValue().toString());
-						SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
-						RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
-						RulesBar.this.quantoFrame.getViewPort().attachView(spg);
-					} catch (CoreException ex) {
-						//We cannot open the rule. This is not critical. Inform the user.
-						logger.log(Level.WARNING, "Could not open selected rule : ", ex);
-					}
+                            
+				String ruleName = JOptionPane.showInputDialog("Rule Name:");
+				if (ruleName == null) {
+					return;
+				}
+				try {
+					CoreGraph lhs = RulesBar.this.ruleset.getCore().createEmptyGraph();
+					CoreGraph rhs = RulesBar.this.ruleset.getCore().createEmptyGraph(); 
+					Rule<CoreGraph> rule = new Rule<CoreGraph>(ruleName, lhs, rhs);
+					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
+					RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
+					RulesBar.this.quantoFrame.getViewPort().attachView(spg);
+
+					rulesModel.addElement(new RuleDescription(ruleName, false));
+				} catch (CoreException ex) {
+					//We cannot create the rule. This is not critical. Inform the user.
+					logger.log(Level.WARNING, "Could not create a new rule : ", ex);
 				}
 			}
 		});
-
+                
 		tagsCombo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
                 if (!suppressTagComboCallback) {
@@ -296,7 +318,7 @@ public class RulesBar extends JPanel {
 		buttonBox.setLayout(new BoxLayout(buttonBox, BoxLayout.LINE_AXIS));
 		buttonBox.add(enableButton);
 		buttonBox.add(disableButton);
-		buttonBox.add(openRuleButton);
+		buttonBox.add(createRuleButton);
 		buttonBox.add(refreshButton);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		this.add(buttonBox);
@@ -309,7 +331,20 @@ public class RulesBar extends JPanel {
 		loadTags();
 		loadRules("All Rules");
 	}
+        
+	private void editRule(String rule) {
 
+		try {
+			Rule<CoreGraph> ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
+			SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), ruleGraphs);
+			RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
+			RulesBar.this.quantoFrame.getViewPort().attachView(spg);
+		} catch (CoreException ex) {
+			//We cannot open the rule. This is not critical. Inform the user.
+			logger.log(Level.WARNING, "Could not open selected rule : ", ex);
+		}
+	}
+        
 	private void loadTags() {
 		try {
             try {
@@ -350,7 +385,8 @@ public class RulesBar extends JPanel {
 				disableAllJMenuItem.setText("Tag");
 
 				for (String rule : ruleset.getRulesByTag(tag)) {
-					rulesModel.addElement(new RuleDescription(rule, ruleset.isRuleActive(rule)));
+					rulesModel.addElement(new RuleDescription(rule, 
+                                                ruleset.isRuleActive(rule)));
 				}
 			}
 			else {
@@ -358,7 +394,8 @@ public class RulesBar extends JPanel {
 				disableAllJMenuItem.setText("All");
 
 				for (String rule : ruleset.getRules()) {
-					rulesModel.addElement(new RuleDescription(rule, ruleset.isRuleActive(rule)));
+                                        rulesModel.addElement(new RuleDescription(rule, 
+                                                ruleset.isRuleActive(rule)));
 				}
 			}
 		}

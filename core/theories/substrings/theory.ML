@@ -5,4 +5,3 @@ structure Str_Theory = GraphicalTheory(
 );
 
 structure Str_Controller = Controller(Str_Theory);
-
