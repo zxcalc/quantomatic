@@ -1,0 +1,10 @@
+<theory name="strings" implements="strings">
+  <nodetype name="String">
+    <data type="String">a</data>
+	  <mnemonic key="n"/>
+    <visualization>
+	    <node svgFile="white.svg"></node>
+      <label fill="ffffff"/>
+    </visualization>
+  </nodetype>
+</theory>

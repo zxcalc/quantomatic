@@ -124,9 +124,6 @@ PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
 
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/vertex.ML";
-
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)
@@ -139,15 +136,17 @@ PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using 
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 PolyML.Project.make "interface/run.ML";
 
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/graph.ML";
-PolyML.Project.make "theories/red_green/io.ML";
-
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
 (* These depend on the red-green theory for now *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
+
+(* red-green specific vertices, graphs and matching *)
+PolyML.Project.make "theories/red_green/vertex.ML";
+PolyML.Project.make "theories/red_green/graph.ML";
+PolyML.Project.make "theories/red_green/theory.ML";
+PolyML.Project.make "theories/red_green/io.ML";
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/vertex.ML";
@@ -159,6 +158,7 @@ PolyML.Project.make "theories/ghz_w/io.ML";
 PolyML.Project.make "theories/substrings/vertex.ML";
 PolyML.Project.make "theories/substrings/graph.ML";
 PolyML.Project.make "theories/substrings/theory.ML";
+PolyML.Project.make "theories/substrings/io.ML";
 
 (* rgb specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/red_green_blue/vertex.ML";

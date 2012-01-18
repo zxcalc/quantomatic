@@ -120,6 +120,8 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		value = text;
 		if (dataType == VertexType.DataType.MathExpression)
 			label.setText(TexConstants.translate(value));
+    else if (dataType == VertexType.DataType.String)
+      label.setText(value);
 		refresh();
 	}
 	
