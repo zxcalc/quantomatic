@@ -38,7 +38,7 @@ structure PrefixStringVertexData
   fun pretty_subst () = Pretty.str "vertex subst: ()";
   val print_subst = Pretty.writeln o pretty_subst;  
 
-  val default_data = "a";
+  val default_data = "";
   
   structure Sharing = struct type data = data; type subst = subst; end;  
 end;
@@ -52,8 +52,16 @@ structure Str_VertexComponentData_Param
   exception unknown_type_exp of string;
   exception unexpected_data_exp;
   fun type_of s = "String";
-  fun cdata_of s = ComponentData.Unit;
+  fun cdata_of s = ComponentData.String s;
   fun default_data s = s;
-  fun update f x = x;
+
+  fun unwrapUpd upd a =
+    let
+      fun unwrapString (ComponentData.String e) = e
+        | unwrapString _ = raise unexpected_data_exp
+    in
+      unwrapString (upd (ComponentData.String a))
+    end;
+  fun update f x = unwrapUpd f x;
 end;
 
