@@ -162,6 +162,13 @@ PolyML.Project.make "theories/substrings/graph.ML";
 PolyML.Project.make "theories/substrings/theory.ML";
 PolyML.Project.make "theories/substrings/io.ML";
 
+(* Graphs having strings as types, linrat as data and both substrings and linrat
+ * as matching *)
+PolyML.Project.make "theories/substr_linrat/vertex.ML";
+PolyML.Project.make "theories/substr_linrat/graph.ML";
+PolyML.Project.make "theories/substr_linrat/theory.ML";
+PolyML.Project.make "theories/substr_linrat/io.ML";
+
 (* rgb specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/red_green_blue/vertex.ML";
 PolyML.Project.make "theories/red_green_blue/graph.ML";
@@ -175,6 +182,7 @@ Testing.make_test "rewriting/test/rule-test.ML";
 (* Test to make sure example code for playing with graphs at the ML level 
    are working. *)
 Testing.make_test "ml_hackery.ML";
+Testing.make_test "theories/substr_linrat/test/test.ML";
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 
