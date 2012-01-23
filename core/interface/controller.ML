@@ -275,7 +275,10 @@ struct
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
            | XMLReader.bad_input_exp msg =>
              (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state))
+                message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state)
+          | _ =>
+             (ErrorResponse { errorCode = "BADDATA",
+                message = ("The file is not a valid ruleset for the active theory.") }, state))
 
   fun describe_vertex (n, (nd,_)) =
     { name = V.dest n, vType = VCD.type_of nd,

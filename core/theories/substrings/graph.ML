@@ -10,7 +10,7 @@ structure Str_GraphParam
   (* Vertices with string data and prefix-substring matching *)
   structure VData = PrefixStringVertexData;
   structure EData = IgnoredUnifiableData(structure D = UnitData;
-    structure S = UnitSubst; val default_data = ());
+  structure S = UnitSubst; val default_data = ());
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
