@@ -1,5 +1,5 @@
 theory QuantoCore
-imports Main io 
+imports Main io  
 uses
 
 (* Overall controller for theories *)
@@ -13,6 +13,49 @@ uses
  "../../core/interface/console_interface.ML" (* generic protocol using commands *)
  "../../core/interface/protocol.ML" (* protocol for tools *)
  "../../core/interface/run.ML" 
+
+(* more expression code; this time expresions derived from graphs, 
+   e.g. for interaction with Mathematica/Maple/etc. *)
+(* These depend on the red-green theory for now *)
+(* more expression code; this time expresions derived from graphs, 
+   e.g. for interaction with Mathematica/Maple/etc. *)
+(* These depend on the red-green theory for now *)
+ "../../core/expressions/alg.ML" (* algebraic expression utils *)
+ "../../core/expressions/hilb.ML" (* hilbert space stuff *)
+
+(* red-green specific vertices, graphs and matching *)
+ "../../core/theories/red_green/vertex.ML"
+ "../../core/theories/red_green/graph.ML"
+ "../../core/theories/red_green/theory.ML"
+ "../../core/theories/red_green/io.ML"
+
+(* ghz-w specific vertices, graphs, and matching *)
+ "../../core/theories/ghz_w/vertex.ML"
+ "../../core/theories/ghz_w/graph.ML"
+ "../../core/theories/ghz_w/theory.ML"
+ "../../core/theories/ghz_w/io.ML"
+
+(* Graphs having vertices with strings as data, substring as matching *)
+ "../../core/theories/substrings/vertex.ML"
+ "../../core/theories/substrings/graph.ML"
+ "../../core/theories/substrings/theory.ML"
+ "../../core/theories/substrings/io.ML"
+
+(* Graphs having strings as types, linrat as data and both substrings and linrat
+ * as matching *)
+ "../../core/theories/substr_linrat/vertex.ML"
+ "../../core/theories/substr_linrat/graph.ML"
+ "../../core/theories/substr_linrat/theory.ML"
+ "../../core/theories/substr_linrat/io.ML"
+
+(* rgb specific vertices, graphs, and matching *)
+ "../../core/theories/red_green_blue/vertex.ML"
+ "../../core/theories/red_green_blue/graph.ML"
+ "../../core/theories/red_green_blue/theory.ML"
+ "../../core/theories/red_green_blue/io.ML"
+
+(* OLD STUFFF *)
+(*
 
 (* red-green specific vertices, graphs and matching *)
  "../../core/theories/red_green/graph.ML"
@@ -35,6 +78,7 @@ uses
  "../../core/theories/red_green_blue/graph.ML"
  "../../core/theories/red_green_blue/theory.ML"
  "../../core/theories/red_green_blue/io.ML"
+*)
 
 begin
 
