@@ -13,6 +13,8 @@ import java.awt.event.ActionListener;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -25,6 +27,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JList;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -64,7 +67,7 @@ public class RulesBar extends JPanel {
 		}
 		public String rulename;
 		public boolean active;
-
+		
 		@Override
 		public String toString() {
 			return rulename;
@@ -93,6 +96,61 @@ public class RulesBar extends JPanel {
 
 	private boolean suppressTagComboCallback = false;
 
+	private JPopupMenu createRuleContextualMenu() {
+		JPopupMenu popupMenu = new JPopupMenu();
+		JMenuItem menuItem = new JMenuItem("Edit rule");
+	    popupMenu.add(menuItem);
+	    menuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				editRule(listView.getSelectedValue().toString());
+			}
+	    });
+	    
+	    JMenu subMenu = new JMenu("Add tag");
+	    
+	    try {
+	    	Collection<String> allTags = ruleset.getTags();
+	    	for (String tag: allTags) {
+	    		menuItem = new JMenuItem(tag);
+	    		menuItem.addActionListener(new ActionListener() {
+	    			public void actionPerformed(ActionEvent e) {
+	    				ruleset.tagRule(listView.getSelectedValue().toString(), e.getActionCommand());
+	    			}
+    			});
+    			subMenu.add(menuItem);
+    		}
+	    } catch (CoreException e) {
+	   		 logger.warning("Could not load tags from the core.");
+	   	}
+	    menuItem = new JMenuItem("New Tag...");
+	    menuItem.addActionListener(new ActionListener() {	
+			public void actionPerformed(ActionEvent e) {
+				String tag = JOptionPane.showInputDialog("Tag:");
+				if (tag == null) return;
+				
+				ruleset.tagRule(listView.getSelectedValue().toString(), tag);
+			}
+		});
+	    subMenu.add(menuItem);
+	    popupMenu.add(subMenu);
+	    
+	    ArrayList<String> tags = ruleset.getRuleTags(listView.getSelectedValue().toString());
+	    if (!tags.isEmpty()) {
+	    	subMenu = new JMenu("Remove tag");
+	    	for (String tag: tags) {
+	    		menuItem = new JMenuItem(tag);
+	    		menuItem.addActionListener(new ActionListener() {
+	    			public void actionPerformed(ActionEvent e) {
+	    				ruleset.untagRule(listView.getSelectedValue().toString(), e.getActionCommand());
+	    			}
+	    		});
+	    		subMenu.add(menuItem);
+	    	}
+	    	popupMenu.add(subMenu);	
+	    }
+	    return popupMenu;
+	}
+	
 	private void createMenus() {
 		enableAllJMenuItem.addActionListener(new ActionListener() {
 
@@ -232,7 +290,7 @@ public class RulesBar extends JPanel {
 		this.quantoFrame = quantoFrame;
 		ruleset.addChangeListener(listener);
 
-		DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
+		final DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
 
             @Override
 			public Component getListCellRendererComponent(
@@ -243,9 +301,11 @@ public class RulesBar extends JPanel {
 				boolean cellHasFocus) {
 				super.getListCellRendererComponent(list, value, 
                                         index, isSelected, cellHasFocus);
+				setName(value.toString());
 				if (!((RuleDescription) value).active) {
 					setForeground(Color.gray);
 				}
+				
 				return this;
 			}
 		};
@@ -256,14 +316,14 @@ public class RulesBar extends JPanel {
 		listView.addMouseListener(new MouseAdapter() {
                 
 			public void mousePressed(MouseEvent e)
-{
-	if ((e.getClickCount() == 2) &&
-		((e.getModifiers() & e.BUTTON1_MASK) == e.BUTTON1_MASK)){
-		editRule((String) listView.getSelectedValue().toString());
-		}
-}
-
-});
+			{
+				if ((e.getModifiers() & e.BUTTON1_MASK) == e.BUTTON1_MASK) {
+					JPopupMenu contextualMenu = createRuleContextualMenu();
+		            contextualMenu.show(e.getComponent(),
+		                       e.getX(), e.getY());
+				}
+			}
+		});
 		JScrollPane listPane = new JScrollPane(listView);
 		tagsCombo = new JComboBox();
 		createMenus();
@@ -380,7 +440,6 @@ public class RulesBar extends JPanel {
 		   If not then load all the rules.*/
 		try {
 			if (tagsCombo.getSelectedIndex() != 0) {
-				//Switch from "All" to "Tag" accordingly
 				enableAllJMenuItem.setText("Tag");
 				disableAllJMenuItem.setText("Tag");
 
