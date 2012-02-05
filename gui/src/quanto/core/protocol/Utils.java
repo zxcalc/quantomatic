@@ -5,7 +5,6 @@
 package quanto.core.protocol;
 
 import java.io.UnsupportedEncodingException;
-
 /**
  *
  * @author alex

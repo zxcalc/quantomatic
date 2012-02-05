@@ -4,7 +4,6 @@
  */
 package quanto.gui;
 
-import javax.swing.JOptionPane;
 import javax.swing.event.ChangeEvent;
 
 import quanto.core.data.BangBox;
@@ -13,7 +12,6 @@ import quanto.core.data.Edge;
 import quanto.core.data.CoreGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
-import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout;
 import edu.uci.ics.jung.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.visualization.decorators.MixedShapeTransformer;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
@@ -23,14 +21,11 @@ import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 
 import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Predicate;
@@ -248,9 +243,11 @@ public class GraphVisualizationViewer
 		if (relaxer != null) {
 			relaxer.relax();
 		}
-		setPreferredSize(calculateGraphSize());				
-		for(Vertex v : getGraph().getVertices())
+		setPreferredSize(calculateGraphSize());
+		Collection<Vertex> c = getGraph().getVertices();
+		for(Vertex v : getGraph().getVertices()) {
 			v.setPosition(getGraphLayout().transform(v));
+		}
 		revalidate();
 		repaint();
 	}

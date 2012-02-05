@@ -522,6 +522,23 @@ public class ProtocolManager {
         return getNameListResponse();
     }
 
+    public String graphUserData(String graph, String dataName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GVGU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(dataName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+        
+        return utf8ToString(getRawDataResponse());
+    }
+    
     public String[] listEdges(String graph) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -572,7 +589,7 @@ public class ProtocolManager {
         return getXmlResponse();
     }
 
-    public String vertexUserData(String graph, String vertex) throws CoreException {
+    public String vertexUserData(String graph, String vertex, String dataName) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -581,6 +598,7 @@ public class ProtocolManager {
             writer.addHeader("GVVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
+            writer.addStringArg(dataName);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -707,6 +725,24 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void setGraphUserData(String graph, String dataName, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMGU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(dataName);
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+    
     public String addVertex(String graph, String vertexType) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -778,7 +814,7 @@ public class ProtocolManager {
         getOkResponse();
     }
 
-    public void setVertexUserData(String graph, String vertex, String data) throws CoreException {
+    public void setVertexUserData(String graph, String vertex, String dataName, String data) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -787,6 +823,7 @@ public class ProtocolManager {
             writer.addHeader("GMVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
+            writer.addStringArg(dataName);
             writer.addDataChunkArg(data);
             writer.closeMessage();
         } catch (IOException ex) {

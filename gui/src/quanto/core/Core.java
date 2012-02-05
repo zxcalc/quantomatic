@@ -1,5 +1,6 @@
 package quanto.core;
 
+import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -170,6 +171,13 @@ public class Core {
         return g;
     }
 
+    static String Point2DToString(Point2D p) {
+    	int X = (int) p.getX();
+		int Y = (int) p.getY();
+		
+		return String.valueOf(X) + ":" + String.valueOf(Y);
+    }
+    
     public void saveGraph(CoreGraph graph, File location) throws CoreException,
             IOException {
         assertCoreGraph(graph);

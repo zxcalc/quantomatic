@@ -121,6 +121,8 @@ struct
 
        and graphDescribeAction = DescribeFullGraph
                                  (* GraphDescriptionResponse | ErrorResponse *)
+                               | GraphUserData of { dataName: string }
+                                 (* UserDataResponse | ErrorResponse *)
                                | ListVertices
                                  (* StringListResponse | ErrorResponse *)
                                | ListEdges
@@ -129,7 +131,7 @@ struct
                                  (* StringListResponse | ErrorResponse *)
                                | VertexData of { vertexName: string, format: resultFormat }
                                  (* ComponentDataResponse | ErrorResponse *)
-                               | VertexUserData of { vertexName: string }
+                               | VertexUserData of { vertexName: string, dataName: string}
                                  (* UserDataResponse | ErrorResponse *)
                                | EdgeData of { edgeName: string, format: resultFormat }
                                  (* ComponentDataResponse | ErrorResponse *)
@@ -146,6 +148,7 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | InsertGraphAction of { sourceGraphName: string }
                              (* OkResponse | ErrorResponse *)
+                           | SetGraphUserDataAction of { dataName: string, userData: string }
                            | AddVertexAction of { vertexType: string, resultFormat: resultFormat }
                              (* VertexDescriptionAction | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }
@@ -154,7 +157,8 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetVertexDataAction of { vertexName: string, vertexData: componentData }
                              (* OkResponse | ErrorResponse *)
-                           | SetVertexUserDataAction of { vertexName: string, userData: string }
+                           | SetVertexUserDataAction of { vertexName: string,
+                           dataName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
                            | AddEdgeAction of { edgeType: string, directed: bool, source: string, target: string, resultFormat: resultFormat }
                              (* EdgeDescriptionAction | ErrorResponse *)
@@ -458,6 +462,16 @@ fun hilb ([format], graph) =
                     GraphDescriptionResponse {
                       graph = describe_graph (graphName, graph)
                     }
+               | GraphUserData { dataName }=>
+                    let
+                      val data = G.get_graph_user_data graph dataName 
+                    in
+                      (case data of SOME a => 
+                          DataResponse { data = a }
+                       | NONE => 
+                          raise State.no_such_graph_user_data_exp (GraphName.mk
+                          graphName, dataName))
+                    end
                | ListVertices =>
                     StringListResponse {
                       data = (map V.dest (V.NSet.list_of (G.get_vnames graph)))
@@ -500,8 +514,14 @@ fun hilb ([format], graph) =
                                 data = VCD.cdata_of vdata
                               }
                     end
-               | VertexUserData { vertexName } =>
-                    ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }
+               | VertexUserData { vertexName, dataName } =>
+                  (case (Symtab.lookup (!(G.get_vertex_user_data graph
+                        (V.mk vertexName))) dataName) of  
+                       SOME a => DataResponse { data = a }
+                       | NONE => 
+                          raise State.no_such_vertex_user_data_exp (V.mk
+                          vertexName, dataName))
+
                | EdgeData { edgeName, format } =>
                     let
                       val edata = G.get_edge_data graph (E.mk edgeName)
@@ -559,6 +579,10 @@ fun hilb ([format], graph) =
         | InsertGraphAction { sourceGraphName } =>
             (OkResponse,
              State.insert_graph (GraphName.mk sourceGraphName) (GraphName.mk graphName) state)
+        | SetGraphUserDataAction {dataName, userData} =>
+            (OkResponse,
+              State.update_graph_user_data (GraphName.mk graphName) dataName
+              userData state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
               val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
@@ -591,9 +615,9 @@ fun hilb ([format], graph) =
             end
             handle (ComponentData.bad_format_exp s) =>
                       (ErrorResponse { errorCode = "BADDATA", message = s }, state))
-        | SetVertexUserDataAction { vertexName, userData } =>
-            (* OkResponse *)
-            (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+        | SetVertexUserDataAction { vertexName, dataName, userData } =>
+            (OkResponse,
+              State.update_vertex_user_data dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
               val dir_or_undir = if directed then G.Directed else G.UnDirected
@@ -863,6 +887,23 @@ fun hilb ([format], graph) =
                   errorCode = "NOSUCHGRAPH",
                   message = ("No such graph \""^(GraphName.dest gr)^"\"")
                 }
+           | State.no_such_graph_user_data_exp (graphName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPHUSERDATA",
+                  message = ("Graph \""^
+                             (GraphName.dest graphName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
+          | State.no_such_vertex_user_data_exp (vertexName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPHUSERDATA",
+                  message = ("Vertex \""^
+                             (V.dest vertexName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
+
            | State.no_such_vertex_exp (vertexName,graphName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHVERTEX",

@@ -65,6 +65,7 @@ PolyML.Project.make "io/writer.ML";
 PolyML.Project.make "theories/component_data.ML";
 
 (* I/O for graphs *)
+PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
 

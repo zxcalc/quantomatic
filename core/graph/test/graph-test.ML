@@ -220,6 +220,10 @@ val n_c = (V.mk "n_c");
 val g = g |> G.rename_vname n_a n_c;
 val e3 = (E.mk "e_c");
 val g = g |> G.rename_ename e0 e3;
+(* adding user data to the graph and the vertices  *)
+val g = G.update_graph_user_data "key" "data" g;
+val vertex_data = G.get_vertex_user_data g n_c;
+val () = vertex_data := Symtab.update ("key", "data") (!vertex_data);
 
 (* 3 CNOTs = swap example *)
 val g2 = G.empty;

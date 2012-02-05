@@ -87,6 +87,8 @@ functor OutputGraphContentsXMLList_v2(
           and OutputEdgeData = OutputEdgeData);
   structure bbout = OutputBBoxXML_v2(
     structure Graph = Graph);
+  structure udout = OutputGraphUserDataXMLList (
+    structure Graph = Graph);
 
   type T = XML.tree list;
   type data = Graph.T;
@@ -101,7 +103,10 @@ functor OutputGraphContentsXMLList_v2(
   fun output_bbox g box = bbout.output (box,(Graph.get_bbox g box))
   fun output_bboxes g = (map (output_bbox g) (Graph.get_bbox_list g))
 
-  fun output g = (output_vertices g)@(output_edges g)@(output_bboxes g)
+  fun output_user_data g = [wrap_els_simple "user_data" (udout.output g)]
+
+  fun output g = (output_vertices g)@(output_edges g)@(output_bboxes g)@
+                 (output_user_data g)
 
 end;
 

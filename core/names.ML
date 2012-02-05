@@ -21,6 +21,7 @@ signature QUANTO_NAME
   structure X : SSTR_NAME;  (* eXpression variables in data *)
   structure R : SSTR_NAME;  (* Rules *)
   structure T : SSTR_NAME;  (* Theories *)
+  structure UV : SSTR_NAME;  (* Vertex User Data *)
 
   structure VMap : NAME_MAP
     sharing VMap.Dom.Sharing = V.Sharing
@@ -50,10 +51,20 @@ signature QUANTO_NAME
     sharing VBMap.Dom.Sharing = V.Sharing;
     sharing VBMap.Cod.Sharing = B.Sharing;
 
+  structure UVMap : NAME_MAP
+    sharing UVMap.Dom.Sharing = UV.Sharing
+    sharing UVMap.Cod.Sharing = UV.Sharing
+  structure UVInjEndo : NAME_INJENDO
+    sharing UVInjEndo.Dom.Sharing = UV.Sharing
+
   (* *)
   structure VXBRel : NAME_BINREL
   sharing VXBRel.Dom.Sharing = V.Sharing;
   sharing VXBRel.Cod.Sharing = X.Sharing;
+
+  structure VVUDBRel : NAME_BINREL
+  sharing VVUDBRel.Dom.Sharing = V.Sharing;
+  sharing VVUDBRel.Cod.Sharing = UV.Sharing;
 
   (* Tags to identify sets of rules *)
   structure TagName : SSTR_NAME;  
@@ -83,7 +94,9 @@ structure QuantoNames :> QUANTO_NAME
     val default_name = mk "new-rule-1"; end;   (* Rules *)
   structure T = struct open SStrName; 
     val default_name = mk "new-theory-1"; end;  (* Theories *)
-  
+  structure UV = struct open SStrName;
+    val default_name = mk "Va"; end;  (* vertices *)
+ 
   structure VMap = SStrMap;
   structure VInjEndo = SStrInjEndo;
   
@@ -96,8 +109,12 @@ structure QuantoNames :> QUANTO_NAME
   structure BMap = SStrMap;
   structure BInjEndo = SStrInjEndo;
 
+  structure UVMap = SStrMap;
+  structure UVInjEndo = SStrInjEndo;
+
   (* Bijections between vertex names and Expression Names *)
   structure VXBRel = SStrBRel;
+  structure VVUDBRel = SStrBRel;
   structure VBMap = SStrMap;
   
   (* Ruleset *)

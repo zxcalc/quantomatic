@@ -1,6 +1,5 @@
 package quanto.gui;
 
-import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.visualization.RenderContext;
 import quanto.core.data.BangBox;
@@ -24,7 +23,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -54,6 +52,7 @@ import java.util.EventObject;
 import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
+import quanto.core.protocol.Point2DUserDataSerialiazer;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.Labeler;
 import quanto.gui.graphhelpers.QVertexRenderer;
@@ -265,6 +264,19 @@ public class InteractiveGraphView
 		forceLayout= new QuantoForceLayout(g, initLayout, 20.0);
 		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(forceLayout);
 		viewer = new GraphVisualizationViewer(smoothLayout);
+		
+		/* This is probably not the place to do it:
+		 * get vertices user data from graph, and set
+		 * position.*/
+    	Map<String, Vertex> vmap = g.getVertexMap();
+    	for(String key : vmap.keySet()) {
+    		Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+			Point2D p = pds.getVertexUserData(core.getTalker(), g, key);
+			if (p != null) {
+				viewer.getGraphLayout().setLocation(vmap.get(key), p);
+			}
+    	}
+		
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -292,6 +304,7 @@ public class InteractiveGraphView
 			public boolean useTransform() {
 				return false;
 			}
+			
 		});
 
 		viewer.addMouseListener(new MouseAdapter() {
@@ -348,7 +361,7 @@ public class InteractiveGraphView
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
 
 		viewer.setBoundingBoxEnabled(true);
-
+		
 		buildActionMap();
 	}
 	
@@ -356,7 +369,7 @@ public class InteractiveGraphView
 		return viewer.getGraphLayout().isLocked(v);
 	}
 
-public void lockVertices(Collection<Vertex> verts) {
+	public void lockVertices(Collection<Vertex> verts) {
 		for (Vertex v : verts) {
 			viewer.getGraphLayout().lock(v, true);
 		}
@@ -367,7 +380,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			viewer.getGraphLayout().lock(v, false);
 		}
 	}
-
+	
 	public boolean isSaveEnabled() {
 		return saveEnabled;
 	}
@@ -419,7 +432,7 @@ public void lockVertices(Collection<Vertex> verts) {
 	public GraphVisualizationViewer getVisualization() {
 		return viewer;
 	}
-
+	
 	public void addChangeListener(ChangeListener listener) {
 		viewer.addChangeListener(listener);
 	}
@@ -968,6 +981,7 @@ public void lockVertices(Collection<Vertex> verts) {
 		File f = QuantoApp.getInstance().saveFile(this);
 		if (f != null) {
 			try {
+				setVerticesPositionData(getGraph());
 				core.saveGraph(getGraph(), f);
 				getGraph().setFileName(f.getAbsolutePath());
 				getGraph().setSaved(true);
@@ -982,9 +996,17 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 	}
 
+	private void setVerticesPositionData(CoreGraph graph) {
+	    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	    for(Vertex v : graph.getVertices()) {
+	    	pds.setVertexUserData(core.getTalker(), graph, v.getCoreName(),viewer.getGraphLayout().transform(v));
+	    }
+	}
+	
 	public void saveGraph() {
 		if (getGraph().getFileName() != null) {
 			try {
+				setVerticesPositionData(getGraph());
 				core.saveGraph(getGraph(), new File(getGraph().getFileName()));
 				getGraph().setSaved(true);
 			}

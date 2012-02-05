@@ -88,6 +88,7 @@ sig
   (* graphs and their manipulations *)
   val kill_graph : GraphName.name -> T -> T
   val insert_graph : GraphName.name -> GraphName.name -> T -> T
+  val update_graph_user_data : GraphName.name -> string -> string -> T -> T
   val add_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
   val copy_subgraph : GraphName.name -> GraphName.name -> V.name list -> T -> T
 
@@ -96,6 +97,7 @@ sig
   val add_bang : GraphName.name -> T -> B.name * T
 
   val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
+  val update_vertex_user_data : string -> string -> V.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
   val rename_vertex : V.name -> V.name -> GraphName.name -> T -> T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
@@ -128,6 +130,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   structure EData = Graph.EData;
 
   exception no_such_graph_exp of GraphName.name;
+  exception no_such_graph_user_data_exp of (GraphName.name * string);
+  exception no_such_vertex_user_data_exp of (V.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_edge_exp of (E.name * GraphName.name);
@@ -461,6 +465,18 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         graph |> Graph.update_vertex_data vd_upd vn
       end
   fun update_vertex_data vd_upd vn = lift_graph_mutator_no_result (update_vertex_data_internal vd_upd vn)
+  
+  fun update_vertex_user_data_internal dn ud vn g =
+      let
+        val () = assert_vertex_exists_gr g vn
+        val data_t = Graph.get_vertex_user_data g vn
+        val () = data_t := Symtab.update (dn, ud) (!data_t)
+      in
+        g
+      end;
+
+  fun update_vertex_user_data dn ud vn = lift_graph_mutator_no_result
+    (update_vertex_user_data_internal dn ud vn)
 
   fun update_edge_data_internal ed_upd en graph =
       let val () = assert_edge_exists_gr graph en in
@@ -520,6 +536,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       in state |> push_hist tname
                             |> set_graph (Graph.merge_by_vertices targ source) tname
       end
+
+  fun update_graph_user_data gname dname udata state =
+    lift_graph_mutator_no_result (Graph.update_graph_user_data dname udata)
+    gname state
 
   fun graph_of_rule getter label state rulename =
       let
