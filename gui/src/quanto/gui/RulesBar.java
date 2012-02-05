@@ -283,7 +283,6 @@ public class RulesBar extends JPanel {
 		createRuleButton.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-                            
 				String ruleName = JOptionPane.showInputDialog("Rule Name:");
 				if (ruleName == null) {
 					return;
@@ -291,12 +290,13 @@ public class RulesBar extends JPanel {
 				try {
 					CoreGraph lhs = RulesBar.this.ruleset.getCore().createEmptyGraph();
 					CoreGraph rhs = RulesBar.this.ruleset.getCore().createEmptyGraph(); 
-					Rule<CoreGraph> rule = new Rule<CoreGraph>(ruleName, lhs, rhs);
+					Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().createRule(ruleName, lhs, rhs);
+					
 					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
 					RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
 					RulesBar.this.quantoFrame.getViewPort().attachView(spg);
 
-					rulesModel.addElement(new RuleDescription(ruleName, false));
+					RulesBar.this.ruleset.reload();
 				} catch (CoreException ex) {
 					//We cannot create the rule. This is not critical. Inform the user.
 					logger.log(Level.WARNING, "Could not create a new rule : ", ex);
