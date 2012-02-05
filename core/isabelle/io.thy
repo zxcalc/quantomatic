@@ -9,6 +9,8 @@ uses
  "../../core/io/xml_output_utils.ML"
  "../../core/io/input_generic.ML"
  "../../core/io/output_generic.ML"
+ "../../core/io/input_string.ML"
+ "../../core/io/output_string.ML"
  "../../core/io/input_linrat.ML"
  "../../core/io/output_linrat.ML"
  "../../core/io/reader.ML"
@@ -60,6 +62,9 @@ uses
 (* construction of everything in a graphical theory from just param *)
  "../../core/theories/graphical_theory.ML"
 
+
+(* OK TO HERE *)
+(*
 (* red-green specific vertices, graphs and matching *)
  "../../core/theories/red_green/vertex.ML"
 
@@ -69,6 +74,7 @@ uses
 (* I/O for old RG-graphs, depends on defining RG_VertexData *)
  "../../core/io/input_graph_v1.ML"
  "../../core/io/output_graph_v1.ML"
+*)
 begin
 
 end;
