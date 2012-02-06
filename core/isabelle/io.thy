@@ -20,6 +20,7 @@ uses
  "../../core/theories/component_data.ML"
 
 (* I/O for graphs *)
+ "../../core/io/output_user_data.ML"
  "../../core/io/input_graph_v2.ML"
  "../../core/io/output_graph_v2.ML"
 
