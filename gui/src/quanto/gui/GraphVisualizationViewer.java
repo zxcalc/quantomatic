@@ -63,7 +63,7 @@ public class GraphVisualizationViewer
 		}
 		this.graph = (CoreGraph) layout.getGraph();
 		layout.initialize();
-		setBackground(new Color(0.97f, 0.97f, 0.97f));
+        setBackground(Color.white);
 
 		setupRendering();
 
@@ -158,9 +158,11 @@ public class GraphVisualizationViewer
 					boundsPaint = new BackdropPaintable(getGraphLayout());
                                         boundsPaint.setBackgroundColor(new Color(0.99f, 0.99f, 0.99f));
 				}
+                setBackground(new Color(0.97f, 0.97f, 0.97f));
 				prependPreRenderPaintable(boundsPaint);
 			}
 			else {
+                setBackground(Color.white);
 				removePreRenderPaintable(boundsPaint);
 			}
 		}

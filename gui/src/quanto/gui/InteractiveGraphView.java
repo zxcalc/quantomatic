@@ -54,6 +54,7 @@ import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
 import quanto.core.Core;
+import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
 import quanto.gui.graphhelpers.Labeler;
 import quanto.gui.graphhelpers.QVertexRenderer;
 
@@ -290,6 +291,9 @@ public class InteractiveGraphView
 		graphMouse = new RWMouse();
 		viewer.setGraphMouse(graphMouse);
 
+        viewer.getRenderContext().getMultiLayerTransformer().setTransformer(Layer.VIEW, new ConstrainedMutableAffineTransformer());
+        viewer.getRenderContext().getMultiLayerTransformer().setTransformer(Layer.LAYOUT, new ConstrainedMutableAffineTransformer());
+
 		viewer.addPreRenderPaintable(new VisualizationServer.Paintable() {
 
 			public void paint(Graphics g) {
@@ -361,7 +365,7 @@ public class InteractiveGraphView
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
 
-		viewer.setBoundingBoxEnabled(true);
+		viewer.setBoundingBoxEnabled(false);
 		
 		buildActionMap();
 	}
