@@ -79,6 +79,7 @@ public class InteractiveGraphView
 	private SmoothLayoutDecorator<Vertex, Edge> smoothLayout;
 	private Map<String, Point2D> verticesCache;
 	private QuantoForceLayout forceLayout;
+	private QuantoDotLayout initLayout;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -259,7 +260,7 @@ public class InteractiveGraphView
 	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
-		QuantoDotLayout initLayout = new QuantoDotLayout(g);
+		initLayout = new QuantoDotLayout(g);
 		initLayout.initialize();
 		forceLayout= new QuantoForceLayout(g, initLayout, 20.0);
 		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(forceLayout);
@@ -1123,6 +1124,14 @@ public class InteractiveGraphView
 		actionMap.put(CommandManager.Command.DeselectAll.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				viewer.getPickedVertexState().clear();
+			}
+		});
+		actionMap.put(CommandManager.Command.Relayout.toString(), new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+                // re-layout
+                initLayout.reset();
+                forceLayout.forgetPositions();
+                viewer.update();
 			}
 		});
 

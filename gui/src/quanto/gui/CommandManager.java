@@ -41,6 +41,8 @@ public class CommandManager
         DeselectAll("deselect-all-command"),
         //UseRule("use-rule-command"),
 
+        Relayout("relayout-graph-command"),
+
 	    Abort("abort-command"),
 	    ExportToPdf("export-to-pdf-command"),
 	    SelectMode("select-mode-command"),

@@ -54,6 +54,10 @@ public class QuantoForceLayout extends AbstractLayout<Vertex, Edge> implements I
         return size;
     }
 
+    public void forgetPositions() {
+        locations.clear();
+    }
+
     @Override
     public void setLocation(Vertex picked, Point2D p) {
         if (p.getX() < 20) {

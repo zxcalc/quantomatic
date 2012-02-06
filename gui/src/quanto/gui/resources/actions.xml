@@ -153,6 +153,11 @@
           mnemonic="R"
           desc="Refresh all open graphs"/>
 
+	<action id="relayout-graph-command"
+          name="Re-layout graph"
+          mnemonic="L"
+          desc="Refresh the current graphs"/>
+
 	<action id="draw-arrow-heads-command"
 	  type="toggle"
 	  name="Draw arrow heads"
@@ -336,6 +341,7 @@
 
 		<action-list id="view-menu" name="View" mnemonic="V">
 			<action idref="refresh-all-graphs-command" />
+            <action idref="relayout-graph-command" />
 			<empty/>
 			<action idref="draw-arrow-heads-command" />
 			<action idref="internal-graph-names-command" />
