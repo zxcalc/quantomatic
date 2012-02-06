@@ -14,6 +14,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -314,10 +315,16 @@ public class RulesBar extends JPanel {
 		listView = new JList(rulesModel);
 		listView.setCellRenderer(cellRenderer);
 		listView.addMouseListener(new MouseAdapter() {
-                
+            @Override
 			public void mousePressed(MouseEvent e)
 			{
-				if ((e.getModifiers() & e.BUTTON1_MASK) == e.BUTTON1_MASK) {
+				if (e.isPopupTrigger()) {
+                    int index = listView.locationToIndex(e.getPoint());
+                    if (index < 0)
+                        return;
+                    if (Arrays.binarySearch(listView.getSelectedIndices(), index) < 0) {
+                        listView.setSelectedIndex(index);
+                    }
 					JPopupMenu contextualMenu = createRuleContextualMenu();
 		            contextualMenu.show(e.getComponent(),
 		                       e.getX(), e.getY());
