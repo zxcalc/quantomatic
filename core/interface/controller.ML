@@ -515,8 +515,8 @@ fun hilb ([format], graph) =
                               }
                     end
                | VertexUserData { vertexName, dataName } =>
-                  (case (Symtab.lookup (!(G.get_vertex_user_data graph
-                        (V.mk vertexName))) dataName) of  
+                  (case (Symtab.lookup (G.get_vertex_user_data graph
+                        (V.mk vertexName)) dataName) of  
                        SOME a => DataResponse { data = a }
                        | NONE => 
                           raise State.no_such_vertex_user_data_exp (V.mk

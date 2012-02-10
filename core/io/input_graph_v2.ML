@@ -51,17 +51,20 @@ functor InputGraphXML_v2(
     end;
 
   fun set_graph_ud tab g =
-    let
-      val () = (G.get_user_data g) := tab
-    in
-      g
-    end;
+    G.update_graph_user_data (fn _ => tab) g;
 
   fun set_vertex_ud (vn,tab) g =
-    let 
-      val () = (G.get_vertex_user_data g vn) := tab
+    let
+      val brel = G.get_vertices_u_d_brel g;
+      fun get_uv_name v = case (VVUDBRel.lookup_domf brel v) of
+        SOME x => (case (UV.NSet.get_first x) of
+            NONE =>  raise bad_input_exp ("Vertex "^V.dest vn^" has no user" 
+              ^"data attached to it.", "(vertex_user_data"^(V.dest vn))
+            | SOME y => y)
+       | NONE =>  raise bad_input_exp ("Vertex "^V.dest vn^" has no user" 
+            ^"data attached to it.", "(vertex_user_data"^(V.dest vn))
     in
-      g
+      G.update_vertex_user_data (fn _ => tab) (get_uv_name vn) g
     end;
 
   fun input_user_data xml g =

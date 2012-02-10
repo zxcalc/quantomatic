@@ -44,7 +44,7 @@ functor OutputVertexUDXMLList(
   fun output_vertex g (name, vdata) = 
     Elem (("vertex_data", [("name", V.dest name)]),
       (OutputUserDataXMLList.output
-      (!(Graph.get_vertex_user_data g name))));
+      (Graph.get_vertex_user_data g name)));
 
     fun output g = map (output_vertex g) (Graph.get_vertex_list g);
 end;
@@ -76,8 +76,7 @@ functor OutputGraphUserDataXMLList(
   open XML;
   open XML_Output_Utils;
 
-  fun output_graph_user_data g = [OutputGraphUDXML.output (!(Graph.get_user_data
-  g))]
+  fun output_graph_user_data g = [OutputGraphUDXML.output (Graph.get_user_data g)]
   fun output_vertices_user_data g = udvout.output g
   fun output g = (output_vertices_user_data g)@(output_graph_user_data g)
 

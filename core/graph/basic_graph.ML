@@ -26,7 +26,7 @@ structure Param : GRAPH_PARAM
 (* each edge is either directed, or bi-directed: this is the family of graphs
    with these edges in both directions. *)
 datatype dir_or_undir = Directed | UnDirected;
-type user_data = string Symtab.table Unsynchronized.ref;
+type user_data = string Symtab.table;
 type T; (* a graph *)
 
 type name_deps (* dependencies between vertex, edge and data names *)
@@ -84,9 +84,9 @@ val get_edges : T
                    E.NTab.T
 val get_Param : T -> name_deps
 val get_vertices_user_data : T -> user_data UV.NTab.T
-val get_vertex_user_data : T -> V.name -> string Symtab.table Unsynchronized.ref
-val get_vertex_user_data_list : T -> (UV.name * string Symtab.table
-Unsynchronized.ref) list;
+val get_vertex_user_data : T -> V.name -> string Symtab.table
+val get_vertex_user_data_list : T -> (UV.name * string Symtab.table) list
+val get_vertices_u_d_brel : T -> VVUDBRel.T
 (* updating graph internal representation... *)
 val update_vertices : ((VData.data * (E.NSet.T * E.NSet.T)) 
                          V.NTab.T 
@@ -117,9 +117,9 @@ val update_data : (data -> data) -> T -> T
 
 (* Takes a key and may return the corresponding value *)
 val get_graph_user_data : T -> string -> string option;
-val update_graph_user_data : string -> string -> T -> T;
+val update_graph_user_data : (user_data -> user_data) -> T -> T;
 (* Returns the symtab *)
-val get_user_data : T -> string Symtab.table Unsynchronized.ref;
+val get_user_data : T -> string Symtab.table;
 end;
 
 
@@ -150,7 +150,7 @@ type name_deps = Param.T;
  representing the family of graphs with this edge in both directions. *)
 datatype dir_or_undir = Directed | UnDirected;
 
-type user_data = string Symtab.table Unsynchronized.ref;
+type user_data = string Symtab.table;
 (* a graph *)
 datatype T = Graph of 
          {
@@ -176,7 +176,7 @@ structure SharingBasicGraph = struct
   structure Param = Param.Sharing;
   type T = T;
   type dir_or_undir = dir_or_undir;
-  type user_data = string Symtab.table Unsynchronized.ref;
+  type user_data = string Symtab.table;
   structure VDDep = VVUDBRel;
 end;
 
@@ -192,21 +192,21 @@ fun update_data f (Graph rep) =
 
 fun get_user_data (Graph rep) = #graph_user_data rep;
 fun get_graph_user_data (Graph rep) k =
-  Symtab.lookup (!(#graph_user_data rep)) k;
+  Symtab.lookup (#graph_user_data rep) k;
   
-fun update_graph_user_data k v (Graph rep) =
-  let
-     val () = (#graph_user_data rep) := Symtab.update (k, v) (!(#graph_user_data rep))
-  in
-     Graph rep
- end;
+fun update_graph_user_data f (Graph rep) =
+    Graph { vertices = #vertices rep, edges = #edges rep, 
+            name_deps = #name_deps rep, data = #data rep,
+            graph_user_data = f (#graph_user_data rep),
+            vertices_user_data = #vertices_user_data rep,
+            vertices_u_d_brel = #vertices_u_d_brel rep};
 
 (* basic graph stuff... *)
 val empty = Graph { vertices = V.NTab.empty, 
                     edges = E.NTab.empty,
                     name_deps = Param.empty,
                     data = empty_data,
-                    graph_user_data = Unsynchronized.ref Symtab.empty,
+                    graph_user_data = Symtab.empty,
                     vertices_user_data = UV.NTab.empty,
                     vertices_u_d_brel = VDDep.empty};
 fun update_vertices f (Graph rep) = 
@@ -325,8 +325,8 @@ fun add_named_vertex n nd g =
     let val (n2,vertices2) = 
             V.NTab.add (n,(nd,(E.NSet.empty,E.NSet.empty))) 
                             (get_vertices g)
-        val (un, vertices_u_d) = UV.NTab.add (uv_mk n, (Unsynchronized.ref
-        Symtab.empty)) (get_vertices_user_data g)
+        val (un, vertices_u_d) = UV.NTab.add (uv_mk n, (Symtab.empty)) 
+          (get_vertices_user_data g)
         val brel  = VDDep.add1 n2 un (get_vertices_u_d_brel g)
     in (n2, g |> set_vertices vertices2
               |> set_vertices_user_data vertices_u_d

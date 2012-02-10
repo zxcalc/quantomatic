@@ -469,12 +469,18 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun update_vertex_user_data_internal dn ud vn g =
       let
         val () = assert_vertex_exists_gr g vn
-        val data_t = Graph.get_vertex_user_data g vn
-        val () = data_t := Symtab.update (dn, ud) (!data_t)
+        val updater = Symtab.update (dn, ud)
+        val brel = Graph.get_vertices_u_d_brel g
+        fun get_uv_name v = case (VVUDBRel.lookup_domf brel v)
+          of SOME x => (case (UV.NSet.get_first x) 
+            of SOME y => y
+             | NONE => 
+                raise no_such_vertex_user_data_exp (vn, "No such user data."))
+           | NONE => 
+              raise no_such_vertex_user_data_exp (vn, "No such user data.")
       in
-        g
+        Graph.update_vertex_user_data updater (get_uv_name vn) g
       end;
-
   fun update_vertex_user_data dn ud vn = lift_graph_mutator_no_result
     (update_vertex_user_data_internal dn ud vn)
 
@@ -538,8 +544,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       end
 
   fun update_graph_user_data gname dname udata state =
-    lift_graph_mutator_no_result (Graph.update_graph_user_data dname udata)
-    gname state
+    lift_graph_mutator_no_result (Graph.update_graph_user_data (Symtab.update
+        (dname,udata))) gname state
 
   fun graph_of_rule getter label state rulename =
       let
