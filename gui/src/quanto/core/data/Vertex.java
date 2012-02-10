@@ -1,6 +1,7 @@
 package quanto.core.data;
 
 import java.awt.geom.Point2D;
+import java.util.Map;
 
 
 public class Vertex extends GraphElement {
@@ -8,6 +9,7 @@ public class Vertex extends GraphElement {
 	// null == boundary
 	protected VertexType vertexType;
 	private Point2D pos;
+	private Map<String, String> user_data;
 	
 	public static Vertex createVertex(String name, VertexType vertexType) {
 		if (vertexType == null) {
@@ -50,6 +52,21 @@ public class Vertex extends GraphElement {
 		return pos;
 	}
 	
+	public void setVertexUserData(Map<String, String> map) {
+		user_data = map;
+	}
+	
+	public void setVertexUserData(String k, String v) {
+		user_data.put(k, v);
+	}
+	
+	public Map<String, String> getVertexUserData() {
+		return user_data;
+	}
+	
+	public String getVertexUserData(String k) {
+		return user_data.get(k);
+	}
 	@Override
 	public String toString() {
 		return getLabel().replace('\\', 'B')+"    ";

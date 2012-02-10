@@ -42,7 +42,6 @@ sig
   (* direct conversion from XML text elements to value *)
   val get_boolean : tree -> bool (* raises if not "true" or "false" (case-insensitive) *)
   val get_int : tree -> int (* raises if not text or cannot parse to integer *)
-  val get_cdata : tree -> string (* Raises if CDATA tags cannot be found *)
 
 end;
 
@@ -81,21 +80,6 @@ fun get_int (Text s) =
         SOME i => i 
       | NONE => raise bad_input_exp  ("Expected integer but found '"^s^"'.",""))
   | get_int (Elem ((tag,_),_)) = raise bad_input_exp ("Expected integer but found <"^ tag ^"> element.","");
-
-(*FIXME: There must be a safer way to do it *)
-fun get_cdata (Text s) = 
-  if ((String.isPrefix "<![CDATA[" s) andalso (String.isSuffix "]]>" s))
-      (* Can't use String.size  *)
-      then 
-        let 
-          val reverse = String.implode o rev o String.explode
-          fun uc_extract a str = String.extract(str, a, NONE) 
-        in
-          (reverse o (uc_extract 3) o reverse o (uc_extract 9)) s
-        end
-      else raise bad_input_exp ("Expected CDATA but found ,"^s^"'.","")
-  | get_cdata (Elem ((tag,_),_)) = raise bad_input_exp ("Expected CDATA but"^
-                                          "found <"^ tag ^"> element.", "");
 
 fun get_tag (Text _) = raise bad_input_exp ("Can't get tag of text","")
   | get_tag (Elem ((tag, attr),children)) = tag;

@@ -21,9 +21,9 @@ functor InputGraphXML_v2(
     let
       val _ = assert_tag "entry" xml
       val child = get_unique_child xml
-      val k = (get_attribute xml "dataname") 
+      val k = (get_attribute xml "name") 
               handle bad_input_exp (s,p) => raise bad_input_exp (s,"entry/"^p)
-      val data = get_cdata child
+      val data = get_text child
     in
       (k, data) 
     end;

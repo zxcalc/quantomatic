@@ -9,7 +9,7 @@ structure OutputAsCData : OUTPUT_XML_LIST
   open XML;
   open XML_Output_Utils;
 
-  fun output s = Text ("<![CDATA[" ^  s ^ "]]>")::[]
+  fun output s = (CData s)::[]
 
 end;
 
@@ -22,7 +22,7 @@ structure OutputUserDataXMLList:OUTPUT_XML_LIST
   open XML_Output_Utils;
 
   fun output_entry (k, s) = 
-    Elem (("entry", [("dataname", k)]),
+    Elem (("entry", [("name", k)]),
     OutputAsCData.output s);
 
   fun output tab = map output_entry (Symtab.dest tab);

@@ -22,11 +22,13 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 	private Theory theory;
 	private CoreGraph graph;
 	private Map<String,Vertex> verts;
+	private Map<String,Map<String, String>> verts_ud;
 	private Set<EdgeFragmentHandler.EdgeData> edges;
 	private Set<BangBoxFragmentHandler.BangBoxData> bbs;
 	private enum Mode {
 		None,
 		Graph,
+		UserData,
 		Component
 	}
 	private Mode mode = Mode.None;
@@ -37,7 +39,9 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 	private static final String VERTEX_ELEM = "vertex";
 	private static final String EDGE_ELEM = "edge";
 	private static final String BANGBOX_ELEM = "bangbox";
-
+	private static final String USERDATA_ELEM = "user_data";
+	private static final String VERTEX_UD_ELEM = "vertex_data";
+	
 	public GraphFragmentHandler(Theory theory, CoreGraph graph) {
 		this.theory = theory;
 		this.graph = graph;
@@ -66,6 +70,7 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 		}
 		for (Vertex v : verts.values()) {
 			graph.addVertex(v);
+			v.setVertexUserData(verts_ud.get(v.getCoreName()));
 		}
 		for (BangBoxFragmentHandler.BangBoxData b : bbs) {
 			Set<Vertex> contents = new HashSet<Vertex>();
@@ -118,6 +123,7 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 			verts = new HashMap<String, Vertex>();
 			edges = new HashSet<EdgeFragmentHandler.EdgeData>();
 			bbs = new HashSet<BangBoxFragmentHandler.BangBoxData>();
+			verts_ud = new HashMap<String, Map<String,String>>();
 			mode = Mode.Graph;
 		} else if (mode == Mode.Graph) {
 			if (VERTEX_ELEM.equals(localName)) {
@@ -126,7 +132,12 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 				componentData = new EdgeFragmentHandler();
 			} else if (BANGBOX_ELEM.equals(localName)) {
 				componentData = new BangBoxFragmentHandler();
-			} else {
+			} else if (VERTEX_UD_ELEM.equals(localName)) {
+				componentData = new VertexUserDataFragmentHandler();
+			} else if (USERDATA_ELEM.equals(localName)) {
+				return;
+			}
+			else {
 				++unknownElementDepth;
 				return;
 			}
@@ -155,10 +166,15 @@ public class GraphFragmentHandler extends DefaultFragmentHandler<CoreGraph> {
 					edges.add(((EdgeFragmentHandler)componentData).buildResult());
 				} else if (componentData instanceof BangBoxFragmentHandler) {
 					bbs.add(((BangBoxFragmentHandler)componentData).buildResult());
+				} else if (componentData instanceof VertexUserDataFragmentHandler) {
+					verts_ud.put(((VertexUserDataFragmentHandler)componentData).name,
+							((VertexUserDataFragmentHandler)componentData).buildResult());
 				}
 				componentData = null;
 			}
 		} else if (mode == Mode.Graph) {
+			if (USERDATA_ELEM.equals(localName))//Just ignore that tag
+				return;
 			// complete
             assert(GRAPH_ELEM.equals(localName));
             mode = Mode.None;
