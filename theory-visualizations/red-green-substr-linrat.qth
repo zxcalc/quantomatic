@@ -1,0 +1,31 @@
+<theory name="red_green" implements="substr_linrat">
+  <nodetype name="X">
+    <data type="MathExpression"></data>
+	<mnemonic key="r"/>
+    <visualization>
+	   <node svgFile="red.svg">
+		</node>
+      <label fill="ff9696"/>
+    </visualization>
+  </nodetype>
+
+  <nodetype name="Z">
+    <data type="MathExpression"></data>
+	<mnemonic key="g"/>
+    <visualization>
+	 	<node svgFile="green.svg">
+		</node>
+      <label fill="96ff96"/>
+    </visualization>
+  </nodetype>
+
+  <nodetype name="hadamard">
+    <data type="None" />
+	<mnemonic key="h"/>
+    <visualization>
+      <node svgFile="hadamard.svg">
+      </node>
+		<label fill="ffffff"/>
+    </visualization>
+  </nodetype>
+</theory>
