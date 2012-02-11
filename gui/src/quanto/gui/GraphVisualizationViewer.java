@@ -147,7 +147,11 @@ public class GraphVisualizationViewer
 	public CoreGraph getGraph() {
 		return graph;
 	}
-
+	
+	public void setCoreGraph(CoreGraph g) {
+		this.graph = g;
+	}
+	
 	/**
 	 * Draw a bounding box around the graph.
 	 */
@@ -229,7 +233,8 @@ public class GraphVisualizationViewer
 		return layout.getSize();
 	}*/
 
-	public void shift(Rectangle2D rect, Vertex v, Point2D shift) {	
+	public void shift(Rectangle2D rect, Vertex v, Point2D shift) {
+		
 		getGraphLayout().setLocation(v, new Point2D.Double(
 				 rect.getCenterX()+shift.getX(), rect.getCenterY()+shift.getY()));
 	}

@@ -53,13 +53,12 @@ implements CoreObject, ChangeEventSupport {
 		List<Vertex> verts = new ArrayList<Vertex>();
 		synchronized (this) {
 			Map<String,Vertex> vmap = getVertexMap();
-			for (Vertex v : graph.getVertices()) //{
-				//if (!v.isBoundaryVertex())
-				{//continue; // don't highlight boundaries
-				// find the vertex corresponding to the selected
-				//  subgraph, by name
-				Vertex real_v = vmap.get(v.getCoreName());
-				if (real_v != null) verts.add(real_v);
+			//Vertices which are not in the new graph
+			//Will be highlighted
+			for (Vertex v : getVertices()) {
+				if (graph.getVertexMap().get(v.getCoreName()) == null){
+					verts.add(v);
+				}
 			}
 		}
 		return verts;
@@ -110,5 +109,12 @@ implements CoreObject, ChangeEventSupport {
 
 	public void removeChangeListener(ChangeListener l) {
 		changeListeners.remove(l);
+	}
+	
+	public void updateGraph(CoreGraph new_graph) {
+		synchronized (this) {
+			for (Vertex v: new_graph.getVertices())
+				addVertex(v);
+		}
 	}
 }

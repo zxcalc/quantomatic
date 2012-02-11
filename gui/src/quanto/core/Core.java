@@ -170,13 +170,6 @@ public class Core {
         g.setFileName(location.getAbsolutePath());
         return g;
     }
-
-    static String Point2DToString(Point2D p) {
-    	int X = (int) p.getX();
-		int Y = (int) p.getY();
-		
-		return String.valueOf(X) + ":" + String.valueOf(Y);
-    }
     
     public void saveGraph(CoreGraph graph, File location) throws CoreException,
             IOException {
@@ -250,7 +243,7 @@ public class Core {
         String xml = talker.addVertex(graph.getCoreName(), vertexType);
         Vertex v = this.<Vertex>parseXml(xml, new VertexFragmentHandler(activeTheory));
         graph.addVertex(v);
-        graph.fireStateChanged();
+        graph.fireStateChanged();    
         return v;
     }
 
@@ -292,7 +285,6 @@ public class Core {
         if (!target.getCoreName().equals(e.targetName)) {
             throw new CoreException("Target name from core did not match what we sent");
         }
-
         graph.addEdge(e.edge, source, target);
         graph.fireStateChanged();
         return e.edge;

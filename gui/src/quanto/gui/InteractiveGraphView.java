@@ -205,7 +205,11 @@ public class InteractiveGraphView
 				public void mouseEntered(MouseEvent e) {}
 				@Override
 				public void mouseExited(MouseEvent e) {}
-
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					super.mouseReleased(e);
+					setVerticesPositionData();
+				}
 			};
 			edgeMouse = new AddEdgeGraphMousePlugin<Vertex, Edge>(
 				viewer,
@@ -217,7 +221,6 @@ public class InteractiveGraphView
 		public void clearMouse() {
 			edgeMouseActive = false;
 			remove(edgeMouse);
-
 			pickingMouseActive = false;
 			remove(pickingMouse);
 		}
@@ -276,6 +279,7 @@ public class InteractiveGraphView
 			Point2D p = pds.getVertexUserData(core.getTalker(), g, key);
 			if (p != null) {
 				viewer.getGraphLayout().setLocation(vmap.get(key), p);
+				viewer.getGraphLayout().lock(vmap.get(key), true);
 			}
     	}
 		
@@ -654,6 +658,7 @@ public class InteractiveGraphView
 	public void addBoundaryVertex() {
 		try {
 			core.addBoundaryVertex(getGraph());
+			setVerticesPositionData();
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -663,6 +668,7 @@ public class InteractiveGraphView
 	public void addVertex(String type) {
 		try {
 			core.addVertex(getGraph(), type);
+			setVerticesPositionData();
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -699,15 +705,46 @@ public class InteractiveGraphView
 	public void cacheVertexPositions(){
 		verticesCache= new HashMap<String, Point2D>();
 		for(Vertex v: getGraph().getVertices()){
-			verticesCache.put(v.getCoreName(),  viewer.getGraphLayout().transform(v));
+			int X = (int) viewer.getGraphLayout().transform(v).getX();
+			int Y = (int) viewer.getGraphLayout().transform(v).getY();
+			Point2D p = new Point2D.Double(X, Y);
+			verticesCache.put(v.getCoreName(),  p);
 		}
 	}
 
-	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {			
+	public void setVerticesPositionData() {
+		//FIXME: When a vertex is added, we save its position in the core
+		//and a new graph is pushed on the undo stack... you need to undo
+		//twice to remove it.
+		CoreGraph graph = getGraph();
+	    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	    for(Vertex v : graph.getVertices()) {
+	    	//Update only if the vertex moved
+	    	int X = (int) viewer.getGraphLayout().transform(v).getX();
+	    	int Y = (int) viewer.getGraphLayout().transform(v).getY();
+	    	Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+	    	Point2D new_p = new Point2D.Double(X, Y);
+	    	if (old_p == null) {
+	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+	    			new_p);
+	    	} else if (!old_p.equals(new_p)){
+	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+		    			new_p);
+	    	}
+	    }
+	}
+	
+	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
 		core.updateGraph(getGraph());
-		for(Vertex v: getGraph().getVertices())	{							
+		for(Vertex v: getGraph().getVertices())	{	
 			if(verticesCache.get(v.getCoreName())!=null) {
-				viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+				Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+				Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+				if (p != null) {
+					viewer.getGraphLayout().setLocation(v, p);
+				} else {
+					viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+				}
 				viewer.getGraphLayout().lock(v, true);
 			}			
 		cleanUp();
@@ -716,7 +753,8 @@ public class InteractiveGraphView
 		for(Vertex v: getGraph().getVertices())	{					
 			if(verticesCache.get(v.getCoreName())==null)
 				if(rewriteRect!=null) {
-					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));				
+					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
+					setVerticesPositionData();
 					count++;
 				}
 			cleanUp();
@@ -725,7 +763,6 @@ public class InteractiveGraphView
 		forceLayout.startModify();
 		viewer.modifyLayout();
 		forceLayout.endModify();
-
 		cleanUp();	
 		viewer.update();
 		//locking and unlocking used internally to notify the layout which vertices have user data
@@ -877,14 +914,14 @@ public class InteractiveGraphView
 				while (rws.size() > 0
 					&& !Thread.interrupted()) {
 					rw = r.nextInt(rws.size());
-					invokeHighlightSubgraphAndWait(rws.get(rw).getLhs());
+					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
 					sleep(1500);
-					invokeApplyRewriteAndWait(rw);
+					invokeApplyRewriteAndWait(rw);	
 					++count;
 					attachNextRewrite();
 					rws = getRewrites();
 				}
-
+				
 				fireJobFinished();
 				invokeInfoDialogAndWait("Applied " + count + " rewrites");
 			}
@@ -953,8 +990,9 @@ public class InteractiveGraphView
 		Rectangle2D rewriteRect=new Rectangle2D.Double();
 		try {
 			if (rewriteCache != null && rewriteCache.size() > index) {
+				viewer.setCoreGraph(rewriteCache.get(index).getGraph());
 				List<Vertex> sub = getGraph().getSubgraphVertices(
-				(CoreGraph) rewriteCache.get(index).getLhs());
+				(CoreGraph) rewriteCache.get(index).getNewGraph());
 				if (sub.size() > 0) {
 					rewriteRect = viewer.getSubgraphBounds(sub);
 					if (sub.size() == 1)	
@@ -963,6 +1001,7 @@ public class InteractiveGraphView
 			}
 			core.applyAttachedRewrite(getGraph(), index);
 			cacheVertexPositions();
+			getGraph().updateGraph(rewriteCache.get(index).getNewGraph());
 			updateGraph(rewriteRect);
 			smoothLayout.setOrigin(0, 0);
 		}
@@ -986,7 +1025,6 @@ public class InteractiveGraphView
 		File f = QuantoApp.getInstance().saveFile(this);
 		if (f != null) {
 			try {
-				setVerticesPositionData(getGraph());
 				core.saveGraph(getGraph(), f);
 				getGraph().setFileName(f.getAbsolutePath());
 				getGraph().setSaved(true);
@@ -1000,18 +1038,10 @@ public class InteractiveGraphView
 			}
 		}
 	}
-
-	private void setVerticesPositionData(CoreGraph graph) {
-	    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-	    for(Vertex v : graph.getVertices()) {
-	    	pds.setVertexUserData(core.getTalker(), graph, v.getCoreName(),viewer.getGraphLayout().transform(v));
-	    }
-	}
 	
 	public void saveGraph() {
 		if (getGraph().getFileName() != null) {
 			try {
-				setVerticesPositionData(getGraph());
 				core.saveGraph(getGraph(), new File(getGraph().getFileName()));
 				getGraph().setSaved(true);
 			}
@@ -1136,6 +1166,7 @@ public class InteractiveGraphView
                 initLayout.reset();
                 forceLayout.forgetPositions();
                 viewer.update();
+                setVerticesPositionData();
 			}
 		});
 
@@ -1419,6 +1450,7 @@ public class InteractiveGraphView
 					forceLayout.startModify();
 					viewer.modifyLayout();
 					forceLayout.endModify();
+					setVerticesPositionData();
 					}
 					break;			
 			}
