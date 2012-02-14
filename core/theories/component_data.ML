@@ -1,3 +1,4 @@
+(* *)
 signature COMPONENT_DATA = 
 sig
   datatype T = Unit
@@ -49,15 +50,19 @@ struct
     | pretty (LinratExpr e) = LinratExpr.pretty e
 end;
 
+(* TODO: Explain in more detail what this does. *)
+(* Some kind of wrapper for data to put it into a single bigger globally 
+   defined type, used to then talk to the GUI. *)
 signature ELEMENT_COMPONENT_DATA_PARAM =
 sig
   (* type of data, e.g. vertex data *)
   type data
   exception unknown_type_exp of string;
 
-  (* get the type-string of a bit of data *)
+  (* get the type-string for the data, this tells the GUI how to handle it *)
   (* this avoids having to format the data *)
   val type_of : data -> string;
+  (* Gets the Component Data value for this bit of data *)
   val cdata_of : data -> ComponentData.T;
 
   (* the default data *)

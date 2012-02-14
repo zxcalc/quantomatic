@@ -234,6 +234,9 @@ structure ControllerRegistry : CONTROLLER_REGISTRY
 
   fun register_eval_func theory_name func =
         eval_funcs := Symtab.update_new (theory_name,func) (!eval_funcs)
+        handle Symtab.DUP _ => 
+          raise ERROR ("Cannot register theory: '" ^ theory_name 
+            ^ "'; this theory is already registered.");
 
   fun get_eval_func name = Symtab.lookup (!eval_funcs) name
 

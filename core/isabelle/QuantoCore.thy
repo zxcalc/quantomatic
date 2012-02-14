@@ -1,5 +1,5 @@
 theory QuantoCore
-imports Main io   
+imports Main io
 uses
 
 (* Overall controller for theories *)

@@ -176,6 +176,12 @@ PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
 
+(*  *)
+PolyML.Project.make "theories/isaplanner_rtechn/vertex.ML";
+PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
+PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
+PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
+
 (* Testing *)
 Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
