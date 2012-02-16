@@ -17,6 +17,7 @@ val ruleset = "../../test/rulesets/basic_v2.rules"
 
 val isom_rule = Ruleset.get_rule ruleset (R.mk "isometry_red");
 val x_copy_0_rule = Ruleset.get_rule ruleset (R.mk "x_copy_0");
+val x_abelian1_rule = Ruleset.get_rule ruleset (R.mk "x_abelian1");
 
 fun list_of_rule_matches r g = 
     let val (r', matches) = RulesetRewrites.rule_matches r g;
@@ -112,6 +113,20 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
                                 (Rule.get_rhs r');
   in writeln "success" end) ();  
   
+
+(*val _ = Testing.test "rule5: rewriting x_abelian1 (loop)" (fn () => let
+  val g = G.empty;
+  val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+  val (e1, g) = g |> G.add_edge undir_edge n1 n1;
+  val _ = G.print g;
+
+  val (r', m1) = list_of_rule_matches x_abelian1_rule g;
+  val _ = Rule.print r';
+  val _ = Match.print (hd m1);
+  val inst_xabelian_rule = RulesetRewrites.instantiate_rule (hd m1) r';
+  val _ = Rule.print inst_xabelian_rule;
+  in writeln "success" end) ();  
+*)
   (* 
 val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
   val spider_red = Ruleset.get_rule rset (R.mk "spider.red");

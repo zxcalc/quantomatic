@@ -435,7 +435,7 @@ functor Match(G : BANG_GRAPH)
 
   (* plug each pair of boundary vertices that need to be plugged. *)
   fun merge_edgehalfs m g = 
-      g |> V.NTab.fold (fn (v1,v2) => snd o snd o G.plug_by_boundary v1 v2)
+      g |> V.NTab.fold (fn (v1,v2) => snd o G.plug_by_boundary v1 v2)
             (VInjEndo.get_domtab (get_pluggings m));
   
   (* given that pehn matches tehn, optionally return the opposite half-edge 
@@ -522,7 +522,7 @@ functor Match(G : BANG_GRAPH)
         val ((vnames,enames),g) = 
             BBMatch.inst_replacement_bbox_match (get_bbmatch m)
               ((get_vnames m,get_enames m),g)
-        val m' = m |> set_names (vnames,enames,get_bbnames m); 
+        val m' = m |> set_names (vnames,enames,get_bbnames m);
       in g |> rename_and_merge_edgepoint_vertices m'
            |> merge_edgehalfs m'
            |> datasubst m'

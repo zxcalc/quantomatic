@@ -102,7 +102,7 @@ val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
 (* plug together two boundary-coherent edge points. In the process, this function creates an edge, and
    returns ((source, target), (edge, new graph)) *)
-val plug_by_boundary : V.name -> V.name -> T -> (V.name * V.name) * (E.name * T)
+val plug_by_boundary : V.name -> V.name -> T -> (V.name * V.name) * T
 
 
 val is_boundary_edge : T -> E.name -> bool
@@ -479,11 +479,21 @@ functor OGraphFun(G : BASIC_OGRAPH)
   fun plug_by_boundary v1 v2 g = 
       (case boundary_coherence g v1 v2 
         of NONE => raise not_boundary_coherent_exp "plug_by_boundary"
-         | SOME ((dir, data),(startv,endv)) => 
-           ((startv,endv),
+         | SOME ((dir, data),(startv,endv)) => (
+        (* Check if boundary vertices are removed, then do not add an edge *)
+        (* There is a prettier way to do that *)
+           if ((V.NTab.name_eq(v1, startv) andalso V.NTab.name_eq(v2, endv)) 
+                  orelse ( V.NTab.name_eq(v2, startv) andalso V.NTab.name_eq(v1,
+                  endv))) 
+           then 
+            ((startv,endv),
+            g |> delete_vertex v1
+              |> delete_vertex v2)
+           else
+            ((startv,endv),
             g |> delete_vertex v1
               |> delete_vertex v2
-              |> add_edge (dir, data) startv endv));
+              |> snd o (add_edge (dir, data) startv endv))));
 
 
   (* Cut edges around a vertex if they are not in the keepvset; change cut 
