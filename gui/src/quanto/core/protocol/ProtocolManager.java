@@ -761,7 +761,7 @@ public class ProtocolManager {
         return getXmlResponse();
     }
 
-    public String renameVertex(String graph, String from, String to) throws CoreException {
+    public String[] renameVertex(String graph, String from, String to) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -775,8 +775,7 @@ public class ProtocolManager {
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
-
-        return getNameResponse();
+        return getNameListResponse();
     }
 
     public void deleteVertices(String graph, Collection<String> vertices) throws CoreException {

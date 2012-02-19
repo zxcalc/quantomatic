@@ -152,7 +152,7 @@ struct
                            | AddVertexAction of { vertexType: string, resultFormat: resultFormat }
                              (* VertexDescriptionAction | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }
-                             (* StringResponse | ErrorResponse *)
+                             (* StringListResponse | ErrorResponse *)
                            | DeleteVerticesAction of { vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | SetVertexDataAction of { vertexName: string, vertexData: componentData }
@@ -600,8 +600,12 @@ fun hilb ([format], graph) =
                       }, state')
             end
         | RenameVertexAction { oldName, newName } =>
-            (OkResponse,
-             State.rename_vertex (V.mk oldName) (V.mk newName) (GraphName.mk graphName) state)
+          let
+            val (vlist, state') = State.rename_vertex (V.mk oldName) (V.mk newName) 
+                                (GraphName.mk graphName) state
+          in
+            (StringListResponse {data = map V.dest vlist}, state')
+          end
         | DeleteVerticesAction { vertexNames } =>
             (OkResponse,
              State.delete_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
