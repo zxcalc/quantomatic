@@ -46,7 +46,24 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		add(active, BorderLayout.CENTER);
 		refresh();
 	}
-	
+
+	public Labeler(String value) {
+		setLayout(new BorderLayout());
+		this.dataType = VertexType.DataType.String;
+		evt = new ChangeEvent(this);
+		label = new JLabel();
+		label.setOpaque(false);
+		setColor(Color.yellow);
+		textField = new JTextField();
+		setText(value);
+		
+		addMouseListener(this);
+		textField.addKeyListener(this);
+		textField.addFocusListener(this);
+		active = label;
+		add(active, BorderLayout.CENTER);
+		refresh();
+	}
 	@Override
 	public void setLocation(Point p) {
 		super.setLocation(p);

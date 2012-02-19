@@ -478,7 +478,7 @@
  *   OldVertexName: String
  *   NewVertexName: String
  * Desc: Rename a vertex
- * Response: OkResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | ALREADYEXISTS
  *
  * Name: DeleteVerticesRequest

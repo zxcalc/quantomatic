@@ -103,7 +103,7 @@ sig
 
   val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
-  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> T
+  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (string list) * T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
   val rename_bang : B.name -> B.name -> GraphName.name -> T -> T
   val rename_graph : GraphName.name -> GraphName.name -> T -> GraphName.name * T
@@ -469,8 +469,20 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun delete_edges es =
     lift_graph_mutator_no_result (fold Graph.delete_edge es)
 
-  fun rename_vertex_internal old new graph = (graph |> Graph.rename_vname old new)
-  fun rename_vertex old new graph state = lift_graph_mutator_no_result (rename_vertex_internal old new) graph state
+  fun rename_vertex_internal old new graph = ([old],graph |> Graph.rename_vname old new)
+    handle Graph.vname_already_exists_exp (vn, g) =>
+      if (Graph.is_edgepoint graph new)
+      then (raise Graph.vname_already_exists_exp (vn, g))
+      else (* Rename apart the old vertex *)
+        let
+          (*Ideally, we would just need to call the suc function in order
+           * to generate a fresh name, but how?*)
+          val ((frshN,_),_) = add_vertex_internal "edge-point" graph 
+        in
+          ([new,frshN],graph |> Graph.rename_vname new (frshN)
+                 |> Graph.rename_vname old new)
+        end;  
+  fun rename_vertex old new graph state = lift_graph_mutator (rename_vertex_internal old new) graph state
 
   fun rename_edge_internal old new graph = (graph |> Graph.rename_ename old new)
   fun rename_edge old new graph state = lift_graph_mutator_no_result (rename_edge_internal old new) graph state

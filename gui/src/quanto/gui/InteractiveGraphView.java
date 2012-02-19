@@ -106,28 +106,54 @@ public class InteractiveGraphView
 			if (vertex instanceof Vertex)
 			{
 				final Vertex qVertex = (Vertex) vertex;
-				if (qVertex.isBoundaryVertex() || !qVertex.getVertexType().hasData()) {
+				if (!qVertex.isBoundaryVertex() && !qVertex.getVertexType().hasData()) {
 					return dummyLabel;
 				}
 
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
 					viewer.getGraphLayout().transform(qVertex));
-				
-				String label = qVertex.getData().getStringValue();
 
-				// lazily create the labeler
-				Labeler labeler = components.get(qVertex);
-				if (labeler == null) {
-					labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
-					components.put(qVertex, labeler);
-					viewer.add(labeler);
-					Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
-					if (colour != null) {
-						labeler.setColor(colour);
+				Labeler labeler = null;
+				String label = null;
+				if (qVertex.isBoundaryVertex()) {
+					label = qVertex.getCoreName();
+					labeler = components.get(qVertex);
+					 if (labeler == null) {
+					      labeler = new Labeler(label);
+					      components.put(qVertex, labeler);
+					      viewer.add(labeler);
+					      Color colour = new Color(0, 0, 0, 0);
+					      labeler.setColor(colour);
+					      labeler.addChangeListener(new ChangeListener() {
+					           public void stateChanged(ChangeEvent e) {
+					                Labeler lab = (Labeler) e.getSource();
+					                if (qVertex != null) {
+					                     try {
+					                        String newN = lab.getText();
+					                        String oldN = qVertex.getCoreName();
+					                        core.renameVertex(getGraph(), oldN, newN);
+					                     }
+					                     catch (CoreException err) {
+					                          errorDialog(err.getMessage());
+					                     }
+					                }
+					           }
+					      });
 					}
-
-					labeler.addChangeListener(new ChangeListener() {
+				} else {
+					label = qVertex.getData().getStringValue();
+					// lazily create the labeler
+					labeler = components.get(qVertex);
+					if (labeler == null) {
+						labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
+						components.put(qVertex, labeler);
+						viewer.add(labeler);
+						Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
+						if (colour != null) {
+							labeler.setColor(colour);
+						}
+						labeler.addChangeListener(new ChangeListener() {
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler) e.getSource();
 							if (qVertex != null) {
@@ -136,19 +162,20 @@ public class InteractiveGraphView
 								}
 								catch (CoreException err) {
 									coreErrorMessage("The label could not be updated", err);
+									}
 								}
 							}
-						}
-					});
+						});
+					}
 				}
-				
+
 				labeler.setText(label);
 				
 				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 						      (int) screen.getY() + 10);
 				rect.setLocation(loc);
-
+				
 				if (!labeler.getBounds().equals(rect)) {
 					labeler.setBounds(rect);
 				}
