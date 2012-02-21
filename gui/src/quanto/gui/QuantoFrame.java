@@ -277,7 +277,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     }
 
     public void createNewFrame() {
-        app.createNewFrame();
+        app.createNewFrame(false);
     }
 
     public void createNewGraph() {
@@ -338,9 +338,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
                 TheoryParser theoryParser = new TheoryParser(f.getAbsolutePath());
                 app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
                 app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-                // FIXME: this isn't right...
-                //Open a new graph as well...
-                app.createNewFrame();
+                app.createNewFrame(true);
             this.closeCurrentView();
             } catch (SAXException e) {
                 app.errorDialog(e.toString());

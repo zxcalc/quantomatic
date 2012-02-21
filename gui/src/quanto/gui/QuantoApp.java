@@ -499,9 +499,11 @@ public class QuantoApp {
         JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
     }
 
-    public void createNewFrame() {
+    public void createNewFrame(boolean with_new_graph) {
         try {
-            InteractiveView view = viewManager.getNextFreeView();
+            InteractiveView view = null;
+            if (!with_new_graph)
+                 view = viewManager.getNextFreeView();
             if (view == null) {
                 view = createNewGraph();
             }
