@@ -31,6 +31,9 @@ signature USER_DATA =
     val update_e_ud  : updater -> E.name -> T -> T;
     val update_bb_ud : updater -> B.name -> T -> T;
 
+    val rename_vertex  : V.name -> V.name -> T -> T;
+    val rename_edge    : E.name -> E.name -> T -> T;
+    val rename_bangbox : B.name -> B.name -> T -> T;
     (* We want to keep our data in sync with the content of the graph 
      * it is related to: each time the graph changes see
      * if vertices||edges||!-boxes were removed *)
@@ -38,11 +41,16 @@ signature USER_DATA =
 
     val print_user_data : T -> unit;
     val pretty_user_data : T -> Pretty.T;
+
+    exception vname_already_exists of (V.name * T);
+    exception ename_already_exists of (E.name * T);
+    exception bbname_already_exists of (B.name * T);
   end;
 
 functor UserData(Graph:BANG_GRAPH):USER_DATA
 =struct
     structure Graph = Graph;
+
     type user_data = string Symtab.table;
 
     type g_ud  = user_data;
@@ -58,7 +66,12 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
       edge_ud   : e_ud, (* ''                Edge *)
       bangb_ud : bb_ud   (* ''                !-Box *)
     }
-    
+
+    exception vname_already_exists of (V.name * T);
+    exception ename_already_exists of (E.name * T);
+    exception bbname_already_exists of (B.name * T);
+
+   
     (* That's the one advertised in the signature *)
     fun update_g_ud f (UD {graph_ud=g, vertex_ud=v, edge_ud=e, bangb_ud= b}) =
       UD {graph_ud =(f g), vertex_ud=v, edge_ud=e, bangb_ud=b} 
@@ -162,7 +175,22 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
              |> set_e_ud e_ud'
              |> set_b_ud b_ud'
         end;
+
+  fun rename_vertex oldname newname ud =
+    case (V.NTab.try_rename1 oldname newname (get_vs_ud ud)) of
+      SOME a => set_v_ud a ud
+      | NONE => raise vname_already_exists (newname, ud)
+  fun rename_edge oldname newname ud =
+    case (E.NTab.try_rename1 oldname newname (get_es_ud ud)) of
+      SOME a => set_e_ud a ud
+      | NONE => raise ename_already_exists (newname, ud)
+
+  fun rename_bangbox oldname newname ud =
+    case (B.NTab.try_rename1 oldname newname (get_bs_ud ud)) of
+      SOME a => set_b_ud a ud
+      | NONE => raise bbname_already_exists (newname, ud)
+
         (* TODO *)
-        fun pretty_user_data ud = Pretty.str "Not Implemented";
-        val print_user_data = Pretty.writeln o pretty_user_data;
+  fun pretty_user_data ud = Pretty.str "Not Implemented";
+  val print_user_data = Pretty.writeln o pretty_user_data;
 end;

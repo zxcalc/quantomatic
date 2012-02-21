@@ -7,7 +7,6 @@ package edu.uci.ics.jung.contrib.visualization.renderers;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphRenderContext;
-import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxGraphRenderer.BangBox;
 import edu.uci.ics.jung.visualization.RenderContext;
 import edu.uci.ics.jung.visualization.renderers.BasicRenderer;
 import java.util.ConcurrentModificationException;
@@ -21,7 +20,7 @@ public class BasicBangBoxGraphRenderer<V, E, B>
 	implements BangBoxGraphRenderer<V, E, B> {
 
 	protected BangBox<V, E, B> bangBoxRenderer = new BasicBangBoxRenderer<V, E, B>();
-
+	protected BangBoxLabel<V, E, B> bangBoxLabelRenderer = new BasicBangBoxLabelRenderer<V, E, B>();
 	@Override
 	@SuppressWarnings("unchecked")
 	public void render(RenderContext<V, E> renderContext, Layout<V, E> layout) {
@@ -44,10 +43,10 @@ public class BasicBangBoxGraphRenderer<V, E, B>
 						renderContext,
 						layout,
 						b);
-//					renderBangBoxLabel(
-//						rc,
-//						layout,
-//						b);
+					renderBangBoxLabel(
+						renderContext,
+						layout,
+						b);
 				}
 			}
 			catch (ConcurrentModificationException cme) {
@@ -96,9 +95,9 @@ public class BasicBangBoxGraphRenderer<V, E, B>
 		bangBoxRenderer.paintBangBox(rc, layout, b);
 	}
 
-	//public void renderBangBoxLabel(BangBoxRenderContext<V, E> rc, Layout<V, E> layout, B b) {
-	//	bangBoxRenderer.paintBangBox(rc, layout, b, rc.getBangBoxLabelTransformer().transform(b));
-	//}
+	public void renderBangBoxLabel(BangBoxGraphRenderContext<V, E, B> rc, Layout<V, E> layout, B b) {
+		bangBoxLabelRenderer.labelBangBox(rc, layout, b, rc.getBangBoxLabelTransformer().transform(b));
+	}
 
 	public BangBox<V, E, B> getBangBoxRenderer() {
 		return bangBoxRenderer;
@@ -107,4 +106,12 @@ public class BasicBangBoxGraphRenderer<V, E, B>
 	public void setBangBoxRenderer(BangBox<V, E, B> bangBoxRenderer) {
 		this.bangBoxRenderer = bangBoxRenderer;
 	}
+
+     public BangBoxLabel<V, E, B> getBangBoxLabelRenderer() {
+          return this.bangBoxLabelRenderer;
+     }
+
+     public void setBangBoxLabelRenderer(BangBoxLabel<V, E, B> bangBoxLabelRenderer) {
+          this.bangBoxLabelRenderer = bangBoxLabelRenderer;
+     }
 }

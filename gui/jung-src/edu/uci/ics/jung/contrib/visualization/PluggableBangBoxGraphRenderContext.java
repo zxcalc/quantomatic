@@ -7,6 +7,7 @@ package edu.uci.ics.jung.contrib.visualization;
 import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
+import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxLabelRenderer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.graph.util.DefaultParallelEdgeIndexFunction;
@@ -58,7 +59,8 @@ public class PluggableBangBoxGraphRenderContext<V, E, B>
 	protected Transformer<LayoutContext<Layout<V, E>, B>, Shape> bangBoxShapeTransformer = new DefaultBangBoxShapeTransformer<V, E, B>(this, 5.0);
 	protected Transformer<B, Paint> bangBoxFillPaintTransformer = new ConstantTransformer(Color.lightGray);
 	protected Transformer<B, Paint> bangBoxDrawPaintTransformer = new ConstantTransformer(Color.gray);
-
+	protected Transformer<B, String> bangBoxLabelTransformer = new ConstantTransformer(null);
+	protected BangBoxLabelRenderer bangBoxLabelRenderer = new DefaultBangBoxLabelRenderer();
 	// code copied from PluggableGraphRenderContext, since we can't usefully
 	// subclass it, because they didn't make the constructor protected
 	protected PluggableBangBoxGraphRenderContext() {
@@ -667,4 +669,32 @@ public class PluggableBangBoxGraphRenderContext<V, E, B>
 		this.arrowFillPaintTransformer = arrowFillPaintTransformer;
 
 	}
+	/* Never Used */
+     public Transformer<B, String> getBangBoxLabelTransformer() {
+          return this.bangBoxLabelTransformer;
+     }
+     /* Never Used */
+     public void setBangBoxLabelTransformer(
+               Transformer<B, String> bangBoxLabelTransformer) {
+          this.bangBoxLabelTransformer = bangBoxLabelTransformer;
+     }
+
+     public BangBoxLabelRenderer getBangBoxLabelRenderer() {
+          return this.bangBoxLabelRenderer;
+     }
+
+     public void setBangBoxLabelRenderer(
+               BangBoxLabelRenderer bangBoxLabelRenderer) {
+          this.bangBoxLabelRenderer = bangBoxLabelRenderer;
+     }
+     
+     /* Never used */
+     public Transformer<B, Font> getBangBoxFontTransformer() {
+          return null;
+     }
+
+     /* Never Used */
+     public void setBangBoxFontTransformer(
+               Transformer<B, Font> bangBoxFontTransformer) {
+     }
 }

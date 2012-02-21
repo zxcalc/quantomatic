@@ -28,23 +28,32 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.Vector;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.commons.collections15.functors.FalsePredicate;
+import org.apache.commons.collections15.functors.TruePredicate;
+import org.apache.commons.collections15.Predicate;
+
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.SmoothLayoutDecorator;
+import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
 import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
 import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingBangBoxGraphMousePlugin;
+import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxLabelRenderer;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.contrib.visualization.ShapeBangBoxPickSupport;
+import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.geom.AffineTransform;
@@ -132,7 +141,19 @@ public class InteractiveGraphView
 					                     try {
 					                        String newN = lab.getText();
 					                        String oldN = qVertex.getCoreName();
-					                        core.renameVertex(getGraph(), oldN, newN);
+					                        cacheVertexPositions();
+					                        String[] names = core.renameVertex(getGraph(), oldN, newN);
+					                         if (names.length == 2) {
+					                              Point2D oldP = verticesCache.get(newN);
+					                              verticesCache.put(names[1], oldP);
+					                              verticesCache.remove(newN);
+					                         }
+					                         Point2D oldP = verticesCache.get(oldN);
+					                         verticesCache.put(newN, oldP);
+					                         verticesCache.remove(oldN);
+					                         Rectangle2D rect=new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+                                                            0, 20, viewer.getGraphLayout().getSize().height);
+                                                  updateGraph(rect);
 					                     }
 					                     catch (CoreException err) {
 					                          errorDialog(err.getMessage());
@@ -205,6 +226,109 @@ public class InteractiveGraphView
 		}
 	}
 
+	    private class QBangBoxLabeler implements BangBoxLabelRenderer {
+
+	          Map<BangBox, Labeler> components;
+	          JLabel dummyLabel = new JLabel();
+	          JLabel realLabel = new JLabel();
+	          
+	          public QBangBoxLabeler() {
+	               components = new HashMap<BangBox, Labeler>();
+	               realLabel.setOpaque(true);
+	               realLabel.setBackground(Color.white);
+	          }
+	          
+	          public <T> Component getBangBoxLabelRendererComponent(JComponent vv,
+	                                             Object value, Font font, boolean isSelected, T bb) {
+	               if (bb instanceof BangBox)
+	               {
+	                    final BangBox qBb = (BangBox) bb;
+	                    
+	                    //FIXME: This method is called a lot, it would probably be nicer
+	                    //to store a map: BB -> Shape, so we compute the position of the
+	                    //label directly from the shape of the BB and avoid all that min/max
+	                    //thing.
+	                    if (!getGraph().containsBangBox(qBb))
+	                         return dummyLabel;
+	                    Collection<Vertex> bangedV = getGraph().getBoxedVertices(qBb);
+	                    if (bangedV.isEmpty())
+	                         return dummyLabel;
+	                    Point2D screen = new Point2D.Double(0, 0);
+	                    SortedSet<Double> Xs = new TreeSet<Double>();
+	                    SortedSet<Double> Ys = new TreeSet<Double>();
+	                    
+	                    for(Vertex v: bangedV) {
+	                         Point2D p = viewer.getRenderContext().
+	                                        getMultiLayerTransformer().transform(
+	                                                  viewer.getGraphLayout().transform(v));
+	                         Xs.add(p.getX());
+	                         Ys.add(p.getY());
+	                    } 
+	                    screen.setLocation((Xs.last() - Xs.first())/2 + Xs.first(), Ys.first());
+	                    Labeler labeler = null;
+	                    String label = null;
+	                    label = qBb.getCoreName();
+	                    labeler = components.get(qBb);
+	                    if (labeler == null) {
+	                         labeler = new Labeler(label);
+	                         components.put(qBb, labeler);
+	                         viewer.add(labeler);
+	                         Color colour = new Color(0, 0, 0, 0);
+	                         labeler.setColor(colour);
+	                         labeler.addChangeListener(new ChangeListener() {
+	                         public void stateChanged(ChangeEvent e) {
+	                              Labeler lab = (Labeler) e.getSource();
+	                              if (qBb != null) {
+	                                   try {
+	                                        String newN = lab.getText();
+	                                        String oldN = qBb.getCoreName();
+	                                        core.renameBangBox(getGraph(), oldN, newN);
+	                                        qBb.updateCoreName(newN);
+	                                   }
+	                                   catch (CoreException err) {
+	                                        errorDialog(err.getMessage());
+	                                              }
+	                                         }
+	                                    }
+	                               });
+	                         }
+
+	                    labeler.setText(label);
+	                    
+	                    Rectangle rect = new Rectangle(labeler.getPreferredSize());
+	                    Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
+	                                    (int) screen.getY() - 30);
+	                    rect.setLocation(loc);
+	                    
+	                    if (!labeler.getBounds().equals(rect)) {
+	                         labeler.setBounds(rect);
+	                    }
+
+	                    return dummyLabel;
+	               }
+	               else if (value != null)
+	               {
+	                    realLabel.setText(value.toString());
+	                    return realLabel;
+	               }
+	               else
+	               {
+	                    return dummyLabel;
+	               }
+	          }
+
+	          /**
+	           * Removes orphaned labels.
+	           */
+	          public void cleanup() {
+	               final Map<BangBox, Labeler> oldComponents = components;
+	               components = new HashMap<BangBox, Labeler>();
+	               for (Labeler l : oldComponents.values()) {
+	                    viewer.remove(l);
+	               }
+	          }
+	     }
+	
 	/**
 	 * A graph mouse for doing most interactive graph operations.
 	 *
@@ -392,10 +516,9 @@ public class InteractiveGraphView
 		});
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
-
 		// increase the picksize
+		viewer.getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());
 		viewer.setPickSupport(new ShapeBangBoxPickSupport(viewer, 4));
-
 		viewer.setBoundingBoxEnabled(false);
 		
 		buildActionMap();
@@ -732,10 +855,18 @@ public class InteractiveGraphView
 
     public void removeOldLabels() {
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
+		((QBangBoxLabeler) viewer.getRenderContext().getBangBoxLabelRenderer()).cleanup();
     }
 	
 	public void cleanUp() {
         removeOldLabels();
+		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
+		((QBangBoxLabeler) viewer.getRenderContext().getBangBoxLabelRenderer()).cleanup();
+		if (saveEnabled && isAttached()) {
+			getViewPort().setCommandEnabled(CommandManager.Command.Save,
+				!getGraph().isSaved()
+				);
+		}
 	}
 	
 	public void cacheVertexPositions(){

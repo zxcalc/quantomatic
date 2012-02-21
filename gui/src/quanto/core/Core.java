@@ -375,6 +375,12 @@ public class Core {
         this.ruleset.reload();
     }
 
+    public void renameBangBox(CoreGraph graph, String oldName, String newName) 
+         throws CoreException {
+         assertCoreGraph(graph);
+         talker.renameBangBox(graph.getCoreName(), oldName, newName);
+    }
+    
     public void loadRuleset(File location) throws CoreException, IOException {
         talker.importRulesetFromFile(location.getAbsolutePath());
         this.ruleset.reload();
@@ -497,20 +503,9 @@ public class Core {
         talker.applyAttachedRewrite(graph.getCoreName(), i);
     }
 
-		public void renameVertex(CoreGraph graph, String oldName, String newName)
+    public String[] renameVertex(CoreGraph graph, String oldName, String newName)
 	 					throws CoreException	{
 			String[] names = talker.renameVertex(graph.getCoreName(), oldName, newName);
-
-			Vertex oldV = graph.getVertexMap().get(oldName);
-			graph.removeVertex(oldV);
-			oldV.updateCoreName(newName);
-			if(names.length == 2) {
-				Vertex newV = graph.getVertexMap().get(newName);
-				graph.removeVertex(newV);
-				newV.updateCoreName(names[1]);
-				graph.removeVertex(newV);
-				graph.addVertex(newV);
-			}
-			graph.addVertex(oldV);
-		}	
+			return names;
+	}	
 }

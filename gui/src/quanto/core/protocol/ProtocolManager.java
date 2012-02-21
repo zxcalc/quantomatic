@@ -999,7 +999,7 @@ public class ProtocolManager {
         return getNameResponse();
     }
 
-    public String renameBangBox(String graph, String from, String to) throws CoreException {
+    public void renameBangBox(String graph, String from, String to) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -1014,7 +1014,7 @@ public class ProtocolManager {
             throw writeFailure(ex);
         }
 
-        return getNameResponse();
+        getOkResponse();
     }
 
     public void dropBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {

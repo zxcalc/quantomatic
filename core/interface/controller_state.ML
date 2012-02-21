@@ -469,7 +469,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun delete_edges es =
     lift_graph_mutator_no_result (fold Graph.delete_edge es)
 
-  fun rename_vertex_internal old new graph = ([old],graph |> Graph.rename_vname old new)
+  fun rename_vertex_internal old new graph =
+    ([old],graph |> Graph.rename_vname old new)
     handle Graph.vname_already_exists_exp (vn, g) =>
       if (Graph.is_edgepoint graph new)
       then (raise Graph.vname_already_exists_exp (vn, g))
@@ -480,10 +481,36 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
           val ((frshN,_),_) = add_vertex_internal "edge-point" graph 
         in
           ([new,frshN],graph |> Graph.rename_vname new (frshN)
-                 |> Graph.rename_vname old new)
+                             |> Graph.rename_vname old new)
         end;  
-  fun rename_vertex old new graph state = lift_graph_mutator (rename_vertex_internal old new) graph state
-
+ 
+  (* There was no conflict *) 
+        fun rename_vertex_uidata old (new::[]) graphName state =
+    let
+      val ud = get_graph_ud state graphName
+    in
+      state |> set_graph_ud (UIData.rename_vertex old new ud) graphName
+    end
+    (* We had a conflict, therefore we have a freshName for 
+     * the internal vertex that need to rename as well *)
+    | rename_vertex_uidata old (new::fresh::[]) graphName state =
+    let
+      val ud = get_graph_ud state graphName
+      val ud' = ud |> UIData.rename_vertex new fresh
+                   |> UIData.rename_vertex old new
+    in
+      state |> set_graph_ud ud' graphName
+    end;
+        
+  fun rename_vertex old new graph state = 
+    let
+      val (out, state') = lift_graph_mutator (rename_vertex_internal old new) graph state
+    in
+    (* When a vertex is renamed, the ui_data as well *)
+     (out, state' 
+                |> rename_vertex_uidata old out graph)
+    end;
+  (*TODO: We want the uidata to follow !-boxes and edges when they are renamed*)
   fun rename_edge_internal old new graph = (graph |> Graph.rename_ename old new)
   fun rename_edge old new graph state = lift_graph_mutator_no_result (rename_edge_internal old new) graph state
 
