@@ -372,6 +372,12 @@ public class Core {
         return null;
     }
 
+    public void renameBangBox(CoreGraph graph, String oldName, String newName) 
+         throws CoreException {
+         assertCoreGraph(graph);
+         talker.renameBangBox(graph.getCoreName(), oldName, newName);
+    }
+    
     public void loadRuleset(File location) throws CoreException, IOException {
         talker.importRulesetFromFile(location.getAbsolutePath());
         this.ruleset.reload();

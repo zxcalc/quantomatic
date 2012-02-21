@@ -29,8 +29,10 @@ import java.util.Collection;
 
 import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Predicate;
-import quanto.gui.graphhelpers.QVertexAngleLabeler;
+
+import quanto.gui.graphhelpers.QBangBoxLabeler;
 import quanto.gui.graphhelpers.BackdropPaintable;
+import quanto.gui.graphhelpers.QVertexAngleLabeler;
 import quanto.gui.graphhelpers.QVertexColorTransformer;
 import quanto.gui.graphhelpers.QVertexIconTransformer;
 import quanto.gui.graphhelpers.QVertexLabelTransformer;
@@ -96,11 +98,12 @@ public class GraphVisualizationViewer
 		getRenderContext().setVertexFillPaintTransformer(new QVertexColorTransformer());
 		getRenderContext().setVertexShapeTransformer(new QVertexShapeTransformer());
 		getRenderContext().setVertexIconTransformer(new QVertexIconTransformer());
-
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(
 			VertexLabel.Position.S);
-      getRenderer().setBangBoxRenderer(new BangBoxRenderer());
+
+          getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());		
+		getRenderer().setBangBoxRenderer(new BangBoxRenderer());
 		// For debugging: show a grid behind the graph
 		//addPreRenderPaintable(new GridPaintable(new GridPaintable.BoundsCalculator() {
                 //              public Rectangle2D getBounds() { return getGraphBounds(); }
