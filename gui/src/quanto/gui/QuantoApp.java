@@ -393,6 +393,7 @@ public class QuantoApp {
     public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) throws CoreException {
 
         core.updateCoreTheory(implementedTheoryName, theoryVertices);
+        core.getRuleset().reload();
     }
 
     private TheoryParser demandTheory() {
