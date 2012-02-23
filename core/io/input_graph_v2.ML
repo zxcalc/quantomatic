@@ -11,12 +11,76 @@ functor InputGraphXML_v2(
   open XML_Parse_Utils; 
 
   structure G = Graph;
-  
+
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;
 
   fun data_to_string _ = "[Graph]";
-  
+ 
+  fun input_entry xml =
+    let
+      val _ = assert_tag "entry" xml
+      val child = get_unique_child xml
+      val k = (get_attribute xml "name") 
+              handle bad_input_exp (s,p) => raise bad_input_exp (s,"entry/"^p)
+      val data = get_text child
+    in
+      (k, data) 
+    end;
+
+  fun input_graph_ud xml = 
+    let
+      val _ = assert_tag "graph_data" xml
+      val children = get_children xml
+      fun mk_tab entries = Symtab.make entries
+    in
+      mk_tab (map input_entry (filter_elems "entry" children))
+    end;
+
+  fun input_vertex_ud xml =
+    let
+      val _ = assert_tag "vertex_data" xml
+      val name = (get_attribute xml "name")
+              handle bad_input_exp (s,p) => raise bad_input_exp (s,"vertex_data/"^p)
+      val children = get_children xml
+      fun mk_tab entries = Symtab.make entries
+    in
+      (V.mk name, mk_tab (map input_entry (filter_elems "entry" children)))
+         handle bad_input_exp (s,p) => 
+           raise bad_input_exp (s,"vertex_data("^name^")/"^p)
+    end;
+
+  fun set_graph_ud tab g =
+    G.update_graph_user_data (fn _ => tab) g;
+
+  fun set_vertex_ud (vn,tab) g =
+    let
+      val brel = G.get_vertices_u_d_brel g;
+      fun get_uv_name v = case (VVUDBRel.lookup_domf brel v) of
+        SOME x => (case (UV.NSet.get_first x) of
+            NONE =>  raise bad_input_exp ("Vertex "^V.dest vn^" has no user" 
+              ^"data attached to it.", "(vertex_user_data"^(V.dest vn))
+            | SOME y => y)
+       | NONE =>  raise bad_input_exp ("Vertex "^V.dest vn^" has no user" 
+            ^"data attached to it.", "(vertex_user_data"^(V.dest vn))
+    in
+      G.update_vertex_user_data (fn _ => tab) (get_uv_name vn) g
+    end;
+
+  fun input_user_data xml g =
+    let
+      val _ = assert_tag "user_data" xml
+      val children = get_children xml
+      val graph_data = case (lookup_unique_elem "graph_data" children) of
+        SOME x => input_graph_ud x
+        | NONE => Symtab.empty
+      val vertices_ud = map input_vertex_ud (filter_elems "vertex_data" children)
+    in
+      g
+        |> set_graph_ud graph_data
+        |> fold set_vertex_ud vertices_ud
+    end;
+
   fun input_edge_rel xml = 
       let 
         val _ = assert_tag "edge" xml
@@ -80,11 +144,17 @@ functor InputGraphXML_v2(
          val vertices = List.map input_vertex (filter_elems "vertex" children)
          val edges = List.map input_edge_rel (filter_elems "edge" children)
          val bboxes = List.map input_bbox (filter_elems "bangbox" children)
+         (* Evaluation is delayed because we need 
+          * the graph to be populated first *)
+         fun parse_user_data g = (case (lookup_unique_elem "user_data" children) of
+            NONE => g
+            | SOME x => input_user_data x g)
        in
          G.empty 
            |> fold add_v vertices 
            |> fold add_e edges
            |> fold add_bb bboxes 
+           |> parse_user_data
        end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"graph/"^p);
   

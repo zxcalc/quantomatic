@@ -1,23 +1,26 @@
 update install docs: 
 
- - clarify need for POLYLIB in env;
+ - clarify need for POLYLIB in env
+   (I think LD_LIBRARY_PATH is what is actually required, although
+    on Linux even that shouldn't be required as the path should be
+    embedded in the executable - AHM)
  - clarify other needed tools: e.g. dot
 
-1. Java Layout
-2. Customisable vertex/edge data
+1. Java Layout (done-ish)
+2. Customisable vertex/edge data (sort-of)
 3. Matching respects edge direction
 4. Finish theory editor   
    -> "proof view"
-5. Remove symmetries in matching 
+5. Remove symmetries in matching (doesn't work with !-boxes)
 6. More general semantics (e.g. relational)
 7. Gui support for plugging
 8. Plugging lots of points (model check - eval on basis)
-9. improve mathematic support
-10. auto-confluence analysis (requirs graph unification)
+9. improve mathematica support
+10. auto-confluence analysis (requires graph unification)
 11. better diagrams into TeX
 12. Tool palettes / Generic UI polish / scroll bars / refactor
 front-end
-13. Faster rendering (text controls)
+13. Faster rendering (text controls) (I think this is OK now)
 14. Rethinks views
 15. Enforce Types for vertices
 16. different graph types: planar; progressive; etc.

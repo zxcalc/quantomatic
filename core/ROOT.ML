@@ -54,6 +54,8 @@ PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
 PolyML.Project.make "io/input_generic.ML";
 PolyML.Project.make "io/output_generic.ML";
+PolyML.Project.make "io/input_string.ML";
+PolyML.Project.make "io/output_string.ML";
 PolyML.Project.make "io/input_linrat.ML";
 PolyML.Project.make "io/output_linrat.ML";
 PolyML.Project.make "io/reader.ML";
@@ -63,6 +65,7 @@ PolyML.Project.make "io/writer.ML";
 PolyML.Project.make "theories/component_data.ML";
 
 (* I/O for graphs *)
+PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
 
@@ -124,13 +127,6 @@ PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
 
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/vertex.ML";
-
-(* I/O for old RG-graphs, depends on defining RG_InternVData *)
-PolyML.Project.make "io/input_graph_v1.ML";
-PolyML.Project.make "io/output_graph_v1.ML";
-
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)
@@ -143,15 +139,17 @@ PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using 
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 PolyML.Project.make "interface/run.ML";
 
-(* red-green specific vertices, graphs and matching *)
-PolyML.Project.make "theories/red_green/graph.ML";
-PolyML.Project.make "theories/red_green/io.ML";
-
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
 (* These depend on the red-green theory for now *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)
 PolyML.Project.make "expressions/hilb.ML"; (* hilbert space stuff *)
+
+(* red-green specific vertices, graphs and matching *)
+PolyML.Project.make "theories/red_green/vertex.ML";
+PolyML.Project.make "theories/red_green/graph.ML";
+PolyML.Project.make "theories/red_green/theory.ML";
+PolyML.Project.make "theories/red_green/io.ML";
 
 (* ghz-w specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/ghz_w/vertex.ML";
@@ -163,6 +161,14 @@ PolyML.Project.make "theories/ghz_w/io.ML";
 PolyML.Project.make "theories/substrings/vertex.ML";
 PolyML.Project.make "theories/substrings/graph.ML";
 PolyML.Project.make "theories/substrings/theory.ML";
+PolyML.Project.make "theories/substrings/io.ML";
+
+(* Graphs having strings as types, linrat as data and both substrings and linrat
+ * as matching *)
+PolyML.Project.make "theories/substr_linrat/vertex.ML";
+PolyML.Project.make "theories/substr_linrat/graph.ML";
+PolyML.Project.make "theories/substr_linrat/theory.ML";
+PolyML.Project.make "theories/substr_linrat/io.ML";
 
 (* rgb specific vertices, graphs, and matching *)
 PolyML.Project.make "theories/red_green_blue/vertex.ML";
@@ -170,10 +176,20 @@ PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
 
+(*  *)
+PolyML.Project.make "theories/isaplanner_rtechn/vertex.ML";
+PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
+PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
+PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
+
 (* Testing *)
 Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
 
+(* Test to make sure example code for playing with graphs at the ML level 
+   are working. *)
+Testing.make_test "ml_hackery.ML";
+Testing.make_test "theories/substr_linrat/test/test.ML";
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 

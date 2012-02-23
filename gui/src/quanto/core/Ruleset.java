@@ -5,6 +5,7 @@
 
 package quanto.core;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -92,7 +93,40 @@ public class Ruleset implements ChangeEventSupport {
 		rules = null;
 		fireStateChanged();
 	}
-
+	
+	public ArrayList<String> getRuleTags(String ruleName) {		
+		/* Reverse lookup: obviously inefficient because of the data structure in use.*/
+		ArrayList<String> ruleTags = new ArrayList<String>();
+		try {
+			ensureTagListLoaded();
+			for (String key : tags.keySet()) {
+				ensureTagLoaded(key);
+				if (tags.get(key).contains(ruleName)) ruleTags.add(key);
+			}
+			} catch (CoreException e) {
+				logger.log(Level.WARNING, "Could not load tags from the core");
+			}
+		return ruleTags;
+	}
+	
+	public void tagRule(String ruleName, String tag) {
+		try {
+			core.getTalker().tagRule(ruleName, tag);
+		} catch (CoreException e) {
+			logger.log(Level.WARNING, "Could not tag rule {}", ruleName);
+		}
+		reload();
+	}
+	
+	public void untagRule(String ruleName, String tag) {
+		try {
+			core.getTalker().untagRule(ruleName, tag);
+		} catch (CoreException e) {
+			logger.log(Level.WARNING, "Could not tag rule {}", ruleName);
+		}
+		reload();
+	}
+	
 	private void updateCacheByTag(String tag, Boolean newActivationState) {
 		if (tags != null) {
 			if (!tags.containsKey(tag)) {

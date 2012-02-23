@@ -1,3 +1,5 @@
+
+
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph VData.) *)

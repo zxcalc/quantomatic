@@ -51,9 +51,17 @@ structure Str_VertexComponentData_Param
   type data = PrefixStringVertexData.data;
   exception unknown_type_exp of string;
   exception unexpected_data_exp;
-  fun type_of s = "string";
-  fun cdata_of s = ComponentData.Unit;
+  fun type_of s = "String";
+  fun cdata_of s = ComponentData.String s;
   fun default_data s = s;
-  fun update f x = x;
+
+  fun unwrapUpd upd a =
+    let
+      fun unwrapString (ComponentData.String e) = e
+        | unwrapString _ = raise unexpected_data_exp
+    in
+      unwrapString (upd (ComponentData.String a))
+    end;
+  fun update f x = unwrapUpd f x;
 end;
 

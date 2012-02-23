@@ -22,14 +22,14 @@ import static quanto.core.protocol.Utils.*;
 public class ProtocolManager {
 
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
+
     public static String quantoCoreExecutable = "quanto-core";
-    private DebugInputStream dbgInputStream;
-    private DebugOutputStream dbgOutputStream;
+    private LoggingInputStream dbgInputStream;
+    private LoggingOutputStream dbgOutputStream;
     private RequestWriter writer;
     private ProtocolReader reader;
     private Process backend;
     private int nextRequestId = 1;
-    private boolean debuggingEnabled = true;
 
     public ProtocolManager() throws CoreException {
     }
@@ -45,13 +45,8 @@ public class ProtocolManager {
 
             new StreamRedirector(backend.getErrorStream(), System.err).start();
 
-            dbgInputStream = new DebugInputStream(backend.getInputStream());
-            dbgInputStream.setDebuggingActive(debuggingEnabled);
-            reader = new ProtocolReader(dbgInputStream);
-
-            dbgOutputStream = new DebugOutputStream(backend.getOutputStream());
-            dbgOutputStream.setDebuggingActive(debuggingEnabled);
-            writer = new RequestWriter(dbgOutputStream);
+            reader = new ProtocolReader(backend.getInputStream());
+            writer = new RequestWriter(backend.getOutputStream());
         } catch (IOException e) {
             logger.log(Level.SEVERE,
                     "Could not execute \"" + quantoCoreExecutable + "\": "
@@ -76,18 +71,6 @@ public class ProtocolManager {
                     "The core failed to initiate the protocol correctly",
                     e);
         }
-    }
-
-    public void setDebuggingEnabled(boolean enabled) {
-        debuggingEnabled = enabled;
-        if (backend != null) {
-            dbgInputStream.setDebuggingActive(enabled);
-            dbgOutputStream.setDebuggingActive(enabled);
-        }
-    }
-
-    public boolean isDebuggingEnabled() {
-        return debuggingEnabled;
     }
 
     private CoreCommunicationException writeFailure(Throwable e) {
@@ -166,8 +149,6 @@ public class ProtocolManager {
 
     private Response getResponse(Response.MessageType expectedType) throws CoreException {
         try {
-            if (debuggingEnabled)
-                System.out.append("\n<<< ");
             Response resp = reader.parseNextResponse();
             if (resp.isError()) {
                 throw errorResponseToException(resp.getErrorCode(), resp.getErrorMessage());
@@ -181,11 +162,6 @@ public class ProtocolManager {
             return resp;
         } catch (IOException ex) {
             throw readFailure(ex);
-        } finally {
-            if (debuggingEnabled) {
-                System.out.append("\n\n");
-                System.out.flush();
-            }
         }
     }
 
@@ -546,6 +522,23 @@ public class ProtocolManager {
         return getNameListResponse();
     }
 
+    public String graphUserData(String graph, String dataName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GVGU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(dataName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+        
+        return utf8ToString(getRawDataResponse());
+    }
+    
     public String[] listEdges(String graph) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -596,7 +589,7 @@ public class ProtocolManager {
         return getXmlResponse();
     }
 
-    public String vertexUserData(String graph, String vertex) throws CoreException {
+    public String vertexUserData(String graph, String vertex, String dataName) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -605,6 +598,7 @@ public class ProtocolManager {
             writer.addHeader("GVVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
+            writer.addStringArg(dataName);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -731,6 +725,24 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void setGraphUserData(String graph, String dataName, String data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("GMGU", generateRequestId());
+            writer.addStringArg(graph);
+            writer.addStringArg(dataName);
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+    
     public String addVertex(String graph, String vertexType) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -802,7 +814,7 @@ public class ProtocolManager {
         getOkResponse();
     }
 
-    public void setVertexUserData(String graph, String vertex, String data) throws CoreException {
+    public void setVertexUserData(String graph, String vertex, String dataName, String data) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -811,6 +823,7 @@ public class ProtocolManager {
             writer.addHeader("GMVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
+            writer.addStringArg(dataName);
             writer.addDataChunkArg(data);
             writer.closeMessage();
         } catch (IOException ex) {

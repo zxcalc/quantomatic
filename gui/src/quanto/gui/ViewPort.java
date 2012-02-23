@@ -1,27 +1,19 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.SystemColor;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 
-import java.util.Set;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 
 public class ViewPort extends JPanel {
 
 	private static final long serialVersionUID = -2789609872128334500L;
-	private static Set<String> knownCommands;
 
 	private ViewPortHost host;
 	private InteractiveView attachedView = null;
@@ -31,43 +23,12 @@ public class ViewPort extends JPanel {
 	private boolean showInternalNames = false;
 	private ViewRenameListener viewRenameListener = new ViewRenameListener();
 
-	public static final String UNDO_ACTION = "undo-command";
-	public static final String REDO_ACTION = "redo-command";
-	public static final String CUT_ACTION = "cut-command";
-	public static final String COPY_ACTION = "copy-command";
-	public static final String PASTE_ACTION = "paste-command";
-	public static final String SELECT_ALL_ACTION = "select-all-command";
-	public static final String DESELECT_ALL_ACTION = "deselect-all-command";
-
 	private class ViewRenameListener implements PropertyChangeListener {
 		public void propertyChange(PropertyChangeEvent evt) {
 			if (evt.getSource() == attachedView)
 				refreshLabel();
 
 		}
-	}
-
-	public static Collection<String> getKnownCommands() {
-		if (knownCommands == null) {
-			knownCommands = new HashSet<String>();
-
-			knownCommands.add(UNDO_ACTION);
-			knownCommands.add(REDO_ACTION);
-			knownCommands.add(CUT_ACTION);
-			knownCommands.add(COPY_ACTION);
-			knownCommands.add(PASTE_ACTION);
-			knownCommands.add(SELECT_ALL_ACTION);
-			knownCommands.add(DESELECT_ALL_ACTION);
-
-			InteractiveGraphView.registerKnownCommands();
-			TextView.registerKnownCommands();
-			ConsoleView.registerKnownCommands();
-			SplitGraphView.registerKnownCommands();
-		}
-		return knownCommands;
-	}
-	public static void registerCommand(String command) {
-		getKnownCommands().add(command);
 	}
 
 	/**
@@ -182,14 +143,26 @@ public class ViewPort extends JPanel {
 		}
 	}
 
+	public void setCommandEnabled(CommandManager.Command command, boolean enabled) {
+		host.setCommandEnabled(command.toString(), enabled);
+    }
 	public void setCommandEnabled(String command, boolean enabled) {
 		host.setCommandEnabled(command, enabled);
+	}
+	public boolean isCommandEnabled(CommandManager.Command command) {
+		return host.isCommandEnabled(command.toString());
 	}
 	public boolean isCommandEnabled(String command) {
 		return host.isCommandEnabled(command);
 	}
+	public void setCommandStateSelected(CommandManager.Command command, boolean selected) {
+		host.setCommandStateSelected(command.toString(), selected);
+	}
 	public void setCommandStateSelected(String command, boolean selected) {
 		host.setCommandStateSelected(command, selected);
+	}
+	public boolean isCommandStateSelected(CommandManager.Command command) {
+		return host.isCommandStateSelected(command.toString());
 	}
 	public boolean isCommandStateSelected(String command) {
 		return host.isCommandStateSelected(command);

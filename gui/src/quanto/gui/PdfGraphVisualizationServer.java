@@ -14,7 +14,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfWriter;
 import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.util.Context;

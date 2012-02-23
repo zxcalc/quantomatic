@@ -7,6 +7,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
+import java.util.Collection;
 import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -20,8 +21,6 @@ import quanto.core.data.Rule;
 
 @SuppressWarnings("serial")
 public class SplitGraphView extends InteractiveView {
-
-	public static final String USE_RULE_ACTION = "use-rule-command";
 
 	private boolean leftFocused = true;
 	private InteractiveGraphView leftView;
@@ -118,12 +117,8 @@ public class SplitGraphView extends InteractiveView {
 		}
 	}
 
-	public static void registerKnownCommands() {
-		//ViewPort.registerCommand(USE_RULE_ACTION);
-	}
-
 	public void commandTriggered(String command) {
-		if (InteractiveGraphView.SAVE_GRAPH_ACTION.equals(command)) {
+		if (CommandManager.Command.Save.matches(command)) {
 			try {
 				if (rule != null) {
 					core.saveRule(rule);
@@ -143,7 +138,7 @@ public class SplitGraphView extends InteractiveView {
 
 	public void attached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, true);
-		vp.setCommandEnabled(InteractiveGraphView.SAVE_GRAPH_ACTION,
+		vp.setCommandEnabled(CommandManager.Command.Save,
 			rule != null && !isSaved()
 			);
 		updateFocus();
@@ -151,7 +146,7 @@ public class SplitGraphView extends InteractiveView {
 
 	public void detached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, false);
-		vp.setCommandEnabled(InteractiveGraphView.SAVE_GRAPH_ACTION,
+		vp.setCommandEnabled(CommandManager.Command.Save,
 			false
 			);
 		if (leftFocused) {
@@ -193,7 +188,7 @@ public class SplitGraphView extends InteractiveView {
 			this.saved = saved;
 			if (rule != null && isAttached()) {
 				getViewPort().setCommandEnabled(
-					InteractiveGraphView.SAVE_GRAPH_ACTION,
+					CommandManager.Command.Save,
 					!isSaved()
 					);
 			}

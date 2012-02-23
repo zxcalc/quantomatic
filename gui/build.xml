@@ -6,7 +6,6 @@
 
   <!-- set global properties for this build -->
   <property name="root" location="../" />
-  <property name="src" location="src"/>
   <property name="build" location="build"/>
   <property name="build.debug" location="build-debug"/>
   <property name="dist" location="dist"/>
@@ -52,12 +51,16 @@
     </exec>
   </target>
   <target name="compile" depends="init" description="compile the source">
-    <!-- Compile the java code from ${src} into ${build} -->
-    <javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+    <javac destdir="${build}" includeantruntime="false">
+      <src path="src" />
+      <src path="jung-src" />
       <classpath refid="quanto.classpath.build" />
     </javac>
     <copy todir="${build}">
-	    <fileset dir="${src}">
+	    <fileset dir="src">
+		    <include name="**/resources/*" />
+	    </fileset>
+	    <fileset dir="jung-src">
 		    <include name="**/resources/*" />
 	    </fileset>
     </copy>
@@ -82,13 +85,18 @@
     </target>
 
     -->
-    <javac srcdir="${src}" destdir="${build.debug}" includeantruntime="false" debug="true">
+    <javac destdir="${build.debug}" includeantruntime="false" debug="true">
+      <src path="src" />
+      <src path="jung-src" />
       <classpath refid="quanto.classpath.build" />
       <compilerarg value="-Xlint:unchecked" />
       <compilerarg value="-Xlint:deprecation" />
     </javac>
     <copy todir="${build.debug}">
-	    <fileset dir="${src}">
+	    <fileset dir="src">
+		    <include name="**/resources/*" />
+	    </fileset>
+	    <fileset dir="jung-src">
 		    <include name="**/resources/*" />
 	    </fileset>
     </copy>
@@ -102,10 +110,6 @@
       <zipfileset src="${lib}/iText-5.0.6.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/collections-generic-4.01.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/colt-1.2.0.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-algorithms-2.0.1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-api-2.0.1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-graph-impl-2.0.1.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jung-visualization-2.0.1.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/svgSiren.jar" excludes="META-INF/**" />
       <fileset dir="${resources}"/>
       <manifest>

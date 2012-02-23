@@ -1,0 +1,36 @@
+<theory>
+  <nodetype name="red">
+    <!-- NOTE: CORE should send back to GUI a vertex xml when a new vertex 
+         is created. -->
+    <data type="expression.angle"></data>
+    <visualization>
+      <!-- for very simple nodes:
+      shape=circle|square
+      fill=hex-rgb -->
+      <node shape="circle" fill="red" stroke="black" />
+      <label fill="ff9696" />
+    </visualization>
+  </nodetype>
+
+  <nodetype name="hadamard">
+    <data type="none" /><!-- optional; this is the default -->
+    <visualization>
+      <node>
+        <svg xmlns="http://www.w3.org/2000/svg"
+            width="14" height="14" version="1.1">
+             <rect
+                style="fill:#ffff00;stroke:#000000;stroke-width:0.95651442"
+                width="13.043486"
+                height="13.043486"
+                x="0.47825721"
+                y="0.4783" />
+             <text
+                style="font-size:14px;fill:#000000;font-family:Bitstream Vera Sans"
+                x="1.7363281"
+                y="12.103">H</text>
+        </svg>
+      </node>
+    </visualization>
+  </nodetype>
+</theory>
+

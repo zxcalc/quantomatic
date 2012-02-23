@@ -8,7 +8,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+import java.util.logging.Level;
 import static quanto.core.protocol.Utils.*;
 
 /**
@@ -18,11 +18,12 @@ import static quanto.core.protocol.Utils.*;
 public class ProtocolReader {
     private static final char ESC = '\u001b';
 
-    private BufferedInputStream input;
+    private LoggingInputStream input;
     private String version;
 
     public ProtocolReader(InputStream input) {
-        this.input = new BufferedInputStream(input);
+        this.input = new LoggingInputStream(
+                new BufferedInputStream(input), "quanto.core.protocol.stream");
     }
 
     private void eatEsc() throws ProtocolException, IOException {
@@ -148,11 +149,20 @@ public class ProtocolReader {
         if (version != null)
             return;
 
-        eatEscChar('<');
-        eatChar('V');
-        eatEscChar('|');
-        version = readStringToEscape();
-        eatEscChar('>');
+        try {
+            eatEscChar('<');
+            eatChar('V');
+            eatEscChar('|');
+            version = readStringToEscape();
+            eatEscChar('>');
+            input.writeLog(Level.FINEST, "Received version message");
+        } catch (IOException ex) {
+            input.writeLog(Level.SEVERE, "Received partial version message");
+            throw ex;
+        } catch (ProtocolException ex) {
+            input.writeLog(Level.SEVERE, "Received invalid version message");
+            throw ex;
+        }
     }
 
     public String getVersion() throws IOException, ProtocolException {
@@ -235,7 +245,7 @@ public class ProtocolReader {
     private Response parseStructuredDataResponseBody(String requestId) throws ProtocolException, IOException {
         // ???
         skipToBodyEnd();
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     private Response parseUnknownRequestResponseBody(String requestId) throws ProtocolException, IOException {
@@ -279,41 +289,50 @@ public class ProtocolReader {
 
     public Response parseNextResponse() throws IOException, ProtocolException {
         waitForReady();
-        eatEscChar('<');
-        String code = readAsciiStringToEscape();
-        eatEscChar(':');
-        String requestId = readStringToEscape();
-        eatEscChar('|');
-        Response resp;
-        if (code.equals("Q"))
-            resp = parseErrorResponseBody(requestId);
-        else if (code.equals("O"))
-            resp = parseOkResponseBody(requestId);
-        else if (code.equals("C"))
-            resp = parseConsoleResponseBody(requestId);
-        else if (code.equals("H"))
-            resp = parseConsoleHelpResponseBody(requestId);
-        else if (code.equals("R"))
-            resp = parseDataResponseBody(requestId);
-        else if (code.equals("P"))
-            resp = parsePrettyResponseBody(requestId);
-        else if (code.equals("X"))
-            resp = parseXmlResponseBody(requestId);
-        else if (code.equals("I"))
-            resp = parseCountResponseBody(requestId);
-        else if (code.equals("N"))
-            resp = parseNameResponseBody(requestId);
-        else if (code.equals("M"))
-            resp = parseNameListResponseBody(requestId);
-        else if (code.equals("U"))
-            resp = parseUserDataResponseBody(requestId);
-        else if (code.equals("S"))
-            resp = parseStructuredDataResponseBody(requestId);
-        else if (code.equals("Z"))
-            resp = parseUnknownRequestResponseBody(requestId);
-        else
-            resp = parseUnknownResponseBody(code, requestId);
-        eatEscChar('>');
-        return resp;
+        try {
+            eatEscChar('<');
+            String code = readAsciiStringToEscape();
+            eatEscChar(':');
+            String requestId = readStringToEscape();
+            eatEscChar('|');
+            Response resp;
+            if (code.equals("Q"))
+                resp = parseErrorResponseBody(requestId);
+            else if (code.equals("O"))
+                resp = parseOkResponseBody(requestId);
+            else if (code.equals("C"))
+                resp = parseConsoleResponseBody(requestId);
+            else if (code.equals("H"))
+                resp = parseConsoleHelpResponseBody(requestId);
+            else if (code.equals("R"))
+                resp = parseDataResponseBody(requestId);
+            else if (code.equals("P"))
+                resp = parsePrettyResponseBody(requestId);
+            else if (code.equals("X"))
+                resp = parseXmlResponseBody(requestId);
+            else if (code.equals("I"))
+                resp = parseCountResponseBody(requestId);
+            else if (code.equals("N"))
+                resp = parseNameResponseBody(requestId);
+            else if (code.equals("M"))
+                resp = parseNameListResponseBody(requestId);
+            else if (code.equals("U"))
+                resp = parseUserDataResponseBody(requestId);
+            else if (code.equals("S"))
+                resp = parseStructuredDataResponseBody(requestId);
+            else if (code.equals("Z"))
+                resp = parseUnknownRequestResponseBody(requestId);
+            else
+                resp = parseUnknownResponseBody(code, requestId);
+            eatEscChar('>');
+            input.writeLog(Level.FINEST, "Received message");
+            return resp;
+        } catch (IOException ex) {
+            input.writeLog(Level.SEVERE, "Received partial message");
+            throw ex;
+        } catch (ProtocolException ex) {
+            input.writeLog(Level.SEVERE, "Received invalid message");
+            throw ex;
+        }
     }
 }

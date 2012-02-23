@@ -1,6 +1,5 @@
 package quanto.gui;
 
-import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.visualization.RenderContext;
 import quanto.core.data.BangBox;
@@ -24,7 +23,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -37,8 +35,7 @@ import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Transformer;
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
-import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout;
-import edu.uci.ics.jung.contrib.algorithms.layout.SmoothLayoutDecorator;
+import edu.uci.ics.jung.algorithms.layout.SmoothLayoutDecorator;
 import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
@@ -55,7 +52,9 @@ import java.util.EventObject;
 import java.util.LinkedList;
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
+import quanto.core.protocol.Point2DUserDataSerialiazer;
 import quanto.core.Core;
+import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
 import quanto.gui.graphhelpers.Labeler;
 import quanto.gui.graphhelpers.QVertexRenderer;
 
@@ -67,28 +66,9 @@ public class InteractiveGraphView
 	private static final long serialVersionUID = 7196565776978339937L;
 
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
-	public static final String SAVE_GRAPH_ACTION = "save-command";
-	public static final String SAVE_GRAPH_AS_ACTION = "save-as-command";
-	public static final String ABORT_ACTION = "abort-command";
-	public static final String EXPORT_TO_PDF_ACTION = "export-to-pdf-command";
-	public static final String SELECT_MODE_ACTION = "select-mode-command";
-	public static final String DIRECTED_EDGE_MODE_ACTION = "directed-edge-mode-command";
-	public static final String UNDIRECTED_EDGE_MODE_ACTION = "undirected-edge-mode-command";
-	public static final String LATEX_TO_CLIPBOARD_ACTION = "latex-to-clipboard-command";
-	public static final String ADD_BOUNDARY_VERTEX_ACTION = "add-boundary-vertex-command";
-	public static final String SHOW_REWRITES_ACTION = "show-rewrites-command";
-	public static final String NORMALISE_ACTION = "normalise-command";
-	public static final String FAST_NORMALISE_ACTION = "fast-normalise-command";
-	public static final String BANG_VERTICES_ACTION = "bang-vertices-command";
-	public static final String UNBANG_VERTICES_ACTION = "unbang-vertices-command";
-	public static final String DROP_BANG_BOX_ACTION = "drop-bang-box-command";
-	public static final String KILL_BANG_BOX_ACTION = "kill-bang-box-command";
-	public static final String DUPLICATE_BANG_BOX_ACTION = "duplicate-bang-box-command";
-	public static final String DUMP_HILBERT_TERM_AS_TEXT = "hilbert-as-text-command";
-	public static final String DUMP_HILBERT_TERM_AS_MATHEMATICA = "hilbert-as-mathematica-command";
 
 	private GraphVisualizationViewer viewer;
-	private static Core core;
+	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
 	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
@@ -100,6 +80,7 @@ public class InteractiveGraphView
 	private SmoothLayoutDecorator<Vertex, Edge> smoothLayout;
 	private Map<String, Point2D> verticesCache;
 	private QuantoForceLayout forceLayout;
+	private QuantoDotLayout initLayout;
 
 	public boolean viewHasParent() {
 		return this.getParent() != null;
@@ -218,13 +199,17 @@ public class InteractiveGraphView
 				viewer,
 				InteractiveGraphView.this,
 				InputEvent.BUTTON1_MASK | InputEvent.ALT_MASK));
-			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin<Vertex, Edge, BangBox>() {
+			pickingMouse = new ConstrainedPickingBangBoxGraphMousePlugin<Vertex, Edge, BangBox>(20.0,20.0) {
 				// don't change the cursor
 				@Override
 				public void mouseEntered(MouseEvent e) {}
 				@Override
 				public void mouseExited(MouseEvent e) {}
-
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					super.mouseReleased(e);
+					setVerticesPositionData();
+				}
 			};
 			edgeMouse = new AddEdgeGraphMousePlugin<Vertex, Edge>(
 				viewer,
@@ -236,7 +221,6 @@ public class InteractiveGraphView
 		public void clearMouse() {
 			edgeMouseActive = false;
 			remove(edgeMouse);
-
 			pickingMouseActive = false;
 			remove(pickingMouse);
 		}
@@ -247,7 +231,7 @@ public class InteractiveGraphView
 			add(pickingMouse);
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
-				getViewPort().setCommandStateSelected(SELECT_MODE_ACTION, true);
+				getViewPort().setCommandStateSelected(CommandManager.Command.SelectMode, true);
 			}
 		}
 
@@ -258,9 +242,9 @@ public class InteractiveGraphView
 			InteractiveGraphView.this.repaint();
 			if (isAttached()) {
 				if (directedEdges)
-					getViewPort().setCommandStateSelected(DIRECTED_EDGE_MODE_ACTION, true);
+					getViewPort().setCommandStateSelected(CommandManager.Command.DirectedEdgeMode, true);
 				else
-					getViewPort().setCommandStateSelected(UNDIRECTED_EDGE_MODE_ACTION, true);
+					getViewPort().setCommandStateSelected(CommandManager.Command.UndirectedEdgeMode, true);
 			}
 		}
 
@@ -280,11 +264,25 @@ public class InteractiveGraphView
 	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
-		QuantoDotLayout initLayout = new QuantoDotLayout(g);
+		initLayout = new QuantoDotLayout(g);
 		initLayout.initialize();
 		forceLayout= new QuantoForceLayout(g, initLayout, 20.0);
 		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(forceLayout);
 		viewer = new GraphVisualizationViewer(smoothLayout);
+		
+		/* This is probably not the place to do it:
+		 * get vertices user data from graph, and set
+		 * position.*/
+    	Map<String, Vertex> vmap = g.getVertexMap();
+    	for(String key : vmap.keySet()) {
+    		Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+			Point2D p = pds.getVertexUserData(core.getTalker(), g, key);
+			if (p != null) {
+				viewer.getGraphLayout().setLocation(vmap.get(key), p);
+				viewer.getGraphLayout().lock(vmap.get(key), true);
+			}
+    	}
+		
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -296,6 +294,9 @@ public class InteractiveGraphView
 
 		graphMouse = new RWMouse();
 		viewer.setGraphMouse(graphMouse);
+
+        viewer.getRenderContext().getMultiLayerTransformer().setTransformer(Layer.VIEW, new ConstrainedMutableAffineTransformer());
+        viewer.getRenderContext().getMultiLayerTransformer().setTransformer(Layer.LAYOUT, new ConstrainedMutableAffineTransformer());
 
 		viewer.addPreRenderPaintable(new VisualizationServer.Paintable() {
 
@@ -312,6 +313,7 @@ public class InteractiveGraphView
 			public boolean useTransform() {
 				return false;
 			}
+			
 		});
 
 		viewer.addMouseListener(new MouseAdapter() {
@@ -367,8 +369,8 @@ public class InteractiveGraphView
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
 
-		viewer.setBoundingBoxEnabled(true);
-
+		viewer.setBoundingBoxEnabled(false);
+		
 		buildActionMap();
 	}
 	
@@ -376,7 +378,7 @@ public class InteractiveGraphView
 		return viewer.getGraphLayout().isLocked(v);
 	}
 
-public void lockVertices(Collection<Vertex> verts) {
+	public void lockVertices(Collection<Vertex> verts) {
 		for (Vertex v : verts) {
 			viewer.getGraphLayout().lock(v, true);
 		}
@@ -387,7 +389,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			viewer.getGraphLayout().lock(v, false);
 		}
 	}
-
+	
 	public boolean isSaveEnabled() {
 		return saveEnabled;
 	}
@@ -397,17 +399,17 @@ public void lockVertices(Collection<Vertex> verts) {
 			this.saveEnabled = saveEnabled;
 			if (isAttached()) {
 				getViewPort().setCommandEnabled(
-					SAVE_GRAPH_ACTION,
+					CommandManager.Command.Save,
 					saveEnabled && !isSaved());
 			}
 			if (saveEnabled) {
-				actionMap.put(SAVE_GRAPH_ACTION, new ActionListener() {
+				actionMap.put(CommandManager.Command.Save.toString(), new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						saveGraph();
 					}
 				});
 			} else {
-				actionMap.remove(SAVE_GRAPH_ACTION);
+				actionMap.remove(CommandManager.Command.Save.toString());
 			}
 		}
 	}
@@ -421,17 +423,17 @@ public void lockVertices(Collection<Vertex> verts) {
 			this.saveAsEnabled = saveAsEnabled;
 			if (isAttached()) {
 				getViewPort().setCommandEnabled(
-					SAVE_GRAPH_AS_ACTION,
+					CommandManager.Command.SaveAs,
 					saveAsEnabled);
 			}
 			if (saveAsEnabled) {
-				actionMap.put(SAVE_GRAPH_AS_ACTION, new ActionListener() {
+				actionMap.put(CommandManager.Command.SaveAs.toString(), new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						saveGraphAs();
 					}
 				});
 			} else {
-				actionMap.remove(SAVE_GRAPH_AS_ACTION);
+				actionMap.remove(CommandManager.Command.SaveAs.toString());
 			}
 		}
 	}
@@ -439,7 +441,7 @@ public void lockVertices(Collection<Vertex> verts) {
 	public GraphVisualizationViewer getVisualization() {
 		return viewer;
 	}
-
+	
 	public void addChangeListener(ChangeListener listener) {
 		viewer.addChangeListener(listener);
 	}
@@ -593,13 +595,13 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 		activeJobs.add(job);
 		if (getViewPort() != null) {
-			getViewPort().setCommandEnabled(ABORT_ACTION, true);
+			getViewPort().setCommandEnabled(CommandManager.Command.Abort, true);
 		}
 		job.addJobListener(new JobListener() {
 			public void jobEnded(JobEndEvent event) {
 				activeJobs.remove(job);
 				if (activeJobs.size() == 0 && getViewPort() != null) {
-					getViewPort().setCommandEnabled(ABORT_ACTION, false);
+					getViewPort().setCommandEnabled(CommandManager.Command.Abort, false);
 				}
 			}
 		});
@@ -656,6 +658,7 @@ public void lockVertices(Collection<Vertex> verts) {
 	public void addBoundaryVertex() {
 		try {
 			core.addBoundaryVertex(getGraph());
+			setVerticesPositionData();
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -665,6 +668,7 @@ public void lockVertices(Collection<Vertex> verts) {
 	public void addVertex(String type) {
 		try {
 			core.addVertex(getGraph(), type);
+			setVerticesPositionData();
 		}
 		catch (CoreException e) {
 			errorDialog(e.getMessage());
@@ -691,7 +695,7 @@ public void lockVertices(Collection<Vertex> verts) {
 	public void cleanUp() {
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
 		if (saveEnabled && isAttached()) {
-			getViewPort().setCommandEnabled(SAVE_GRAPH_ACTION,
+			getViewPort().setCommandEnabled(CommandManager.Command.Save,
 				!getGraph().isSaved()
 				);
 		}
@@ -701,15 +705,46 @@ public void lockVertices(Collection<Vertex> verts) {
 	public void cacheVertexPositions(){
 		verticesCache= new HashMap<String, Point2D>();
 		for(Vertex v: getGraph().getVertices()){
-			verticesCache.put(v.getCoreName(),  viewer.getGraphLayout().transform(v));
+			int X = (int) viewer.getGraphLayout().transform(v).getX();
+			int Y = (int) viewer.getGraphLayout().transform(v).getY();
+			Point2D p = new Point2D.Double(X, Y);
+			verticesCache.put(v.getCoreName(),  p);
 		}
 	}
 
-	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {			
+	public void setVerticesPositionData() {
+		//FIXME: When a vertex is added, we save its position in the core
+		//and a new graph is pushed on the undo stack... you need to undo
+		//twice to remove it.
+		CoreGraph graph = getGraph();
+	    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	    for(Vertex v : graph.getVertices()) {
+	    	//Update only if the vertex moved
+	    	int X = (int) viewer.getGraphLayout().transform(v).getX();
+	    	int Y = (int) viewer.getGraphLayout().transform(v).getY();
+	    	Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+	    	Point2D new_p = new Point2D.Double(X, Y);
+	    	if (old_p == null) {
+	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+	    			new_p);
+	    	} else if (!old_p.equals(new_p)){
+	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+		    			new_p);
+	    	}
+	    }
+	}
+	
+	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
 		core.updateGraph(getGraph());
-		for(Vertex v: getGraph().getVertices())	{							
+		for(Vertex v: getGraph().getVertices())	{	
 			if(verticesCache.get(v.getCoreName())!=null) {
-				viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+				Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+				Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+				if (p != null) {
+					viewer.getGraphLayout().setLocation(v, p);
+				} else {
+					viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+				}
 				viewer.getGraphLayout().lock(v, true);
 			}			
 		cleanUp();
@@ -718,7 +753,8 @@ public void lockVertices(Collection<Vertex> verts) {
 		for(Vertex v: getGraph().getVertices())	{					
 			if(verticesCache.get(v.getCoreName())==null)
 				if(rewriteRect!=null) {
-					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));				
+					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
+					setVerticesPositionData();
 					count++;
 				}
 			cleanUp();
@@ -727,7 +763,6 @@ public void lockVertices(Collection<Vertex> verts) {
 		forceLayout.startModify();
 		viewer.modifyLayout();
 		forceLayout.endModify();
-
 		cleanUp();	
 		viewer.update();
 		//locking and unlocking used internally to notify the layout which vertices have user data
@@ -788,10 +823,10 @@ public void lockVertices(Collection<Vertex> verts) {
 
 	private void setupNormaliseAction(ViewPort vp) {
 		if (rewriter == null) {
-			vp.setCommandEnabled(NORMALISE_ACTION, true);
+			vp.setCommandEnabled(CommandManager.Command.Normalise, true);
 		}
 		else {
-			vp.setCommandEnabled(NORMALISE_ACTION, false);
+			vp.setCommandEnabled(CommandManager.Command.Normalise, false);
 		}
 	}
 
@@ -879,14 +914,14 @@ public void lockVertices(Collection<Vertex> verts) {
 				while (rws.size() > 0
 					&& !Thread.interrupted()) {
 					rw = r.nextInt(rws.size());
-					invokeHighlightSubgraphAndWait(rws.get(rw).getLhs());
+					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
 					sleep(1500);
-					invokeApplyRewriteAndWait(rw);
+					invokeApplyRewriteAndWait(rw);	
 					++count;
 					attachNextRewrite();
 					rws = getRewrites();
 				}
-
+				
 				fireJobFinished();
 				invokeInfoDialogAndWait("Applied " + count + " rewrites");
 			}
@@ -955,8 +990,9 @@ public void lockVertices(Collection<Vertex> verts) {
 		Rectangle2D rewriteRect=new Rectangle2D.Double();
 		try {
 			if (rewriteCache != null && rewriteCache.size() > index) {
+				viewer.setCoreGraph(rewriteCache.get(index).getGraph());
 				List<Vertex> sub = getGraph().getSubgraphVertices(
-				(CoreGraph) rewriteCache.get(index).getLhs());
+				(CoreGraph) rewriteCache.get(index).getNewGraph());
 				if (sub.size() > 0) {
 					rewriteRect = viewer.getSubgraphBounds(sub);
 					if (sub.size() == 1)	
@@ -965,6 +1001,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			}
 			core.applyAttachedRewrite(getGraph(), index);
 			cacheVertexPositions();
+			getGraph().updateGraph(rewriteCache.get(index).getNewGraph());
 			updateGraph(rewriteRect);
 			smoothLayout.setOrigin(0, 0);
 		}
@@ -1001,7 +1038,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			}
 		}
 	}
-
+	
 	public void saveGraph() {
 		if (getGraph().getFileName() != null) {
 			try {
@@ -1020,48 +1057,28 @@ public void lockVertices(Collection<Vertex> verts) {
 		}
 	}
 
-	public static void registerKnownCommands() {
-		ViewPort.registerCommand(SAVE_GRAPH_ACTION);
-		ViewPort.registerCommand(SAVE_GRAPH_AS_ACTION);
-		ViewPort.registerCommand(ABORT_ACTION);
-		ViewPort.registerCommand(EXPORT_TO_PDF_ACTION);
-		ViewPort.registerCommand(SELECT_MODE_ACTION);
-		ViewPort.registerCommand(DIRECTED_EDGE_MODE_ACTION);
-		ViewPort.registerCommand(UNDIRECTED_EDGE_MODE_ACTION);
-		ViewPort.registerCommand(LATEX_TO_CLIPBOARD_ACTION);
-		ViewPort.registerCommand(ADD_BOUNDARY_VERTEX_ACTION);
-		ViewPort.registerCommand(SHOW_REWRITES_ACTION);
-		ViewPort.registerCommand(NORMALISE_ACTION);
-		ViewPort.registerCommand(FAST_NORMALISE_ACTION);
-		ViewPort.registerCommand(BANG_VERTICES_ACTION);
-		ViewPort.registerCommand(UNBANG_VERTICES_ACTION);
-		ViewPort.registerCommand(DROP_BANG_BOX_ACTION);
-		ViewPort.registerCommand(KILL_BANG_BOX_ACTION);
-		ViewPort.registerCommand(DUPLICATE_BANG_BOX_ACTION);
-		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_TEXT);
-		ViewPort.registerCommand(DUMP_HILBERT_TERM_AS_MATHEMATICA);
-	
+	public static void registerKnownCommands(Core core, CommandManager commandManager) {
 		/*
 		 * Add dynamically commands allowing to add registered vertices
 		 */
 		for (VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
-			ViewPort.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
+			commandManager.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
 		}
 	}
 
 	private void buildActionMap() {
-		actionMap.put(SAVE_GRAPH_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Save.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				saveGraph();
 			}
 		});
-		actionMap.put(SAVE_GRAPH_AS_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.SaveAs.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				saveGraphAs();
 			}
 		});
 
-		actionMap.put(ViewPort.UNDO_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Undo.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1074,7 +1091,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(ViewPort.REDO_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Redo.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1088,7 +1105,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(ViewPort.CUT_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Cut.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
@@ -1102,7 +1119,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(ViewPort.COPY_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Copy.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
@@ -1115,7 +1132,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(ViewPort.PASTE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Paste.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1129,7 +1146,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(ViewPort.SELECT_ALL_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.SelectAll.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				synchronized (getGraph()) {
 					for (Vertex v : getGraph().getVertices()) {
@@ -1138,13 +1155,22 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(ViewPort.DESELECT_ALL_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DeselectAll.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				viewer.getPickedVertexState().clear();
 			}
 		});
+		actionMap.put(CommandManager.Command.Relayout.toString(), new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+                // re-layout
+                initLayout.reset();
+                forceLayout.forgetPositions();
+                viewer.update();
+                setVerticesPositionData();
+			}
+		});
 
-		actionMap.put(EXPORT_TO_PDF_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.ExportToPdf.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 
@@ -1173,24 +1199,24 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(SELECT_MODE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.SelectMode.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				graphMouse.setPickingMouse();
 			}
 		});
-		actionMap.put(DIRECTED_EDGE_MODE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DirectedEdgeMode.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				directedEdges = true;
 				graphMouse.setEdgeMouse();
 			}
 		});
-		actionMap.put(UNDIRECTED_EDGE_MODE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.UndirectedEdgeMode.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				directedEdges = false;
 				graphMouse.setEdgeMouse();
 			}
 		});
-		actionMap.put(LATEX_TO_CLIPBOARD_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.LatexToClipboard.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				String tikz = TikzOutput.generate(
                                         getGraph(),
@@ -1202,17 +1228,17 @@ public void lockVertices(Collection<Vertex> verts) {
 				cb.setContents(data, data);
 			}
 		});
-		actionMap.put(ADD_BOUNDARY_VERTEX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.AddBoundaryVertex.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				addBoundaryVertex();
 			}
 		});
-		actionMap.put(SHOW_REWRITES_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.ShowRewrites.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				showRewrites();
 			}
 		});
-		actionMap.put(NORMALISE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Normalise.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (rewriter != null)
 					abortRewriting();
@@ -1220,7 +1246,7 @@ public void lockVertices(Collection<Vertex> verts) {
 
 			}
 		});
-		actionMap.put(ABORT_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.Abort.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (activeJobs != null && activeJobs.size() > 0) {
 					Job[] jobs = activeJobs.toArray(new Job[activeJobs.size()]);
@@ -1230,7 +1256,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(FAST_NORMALISE_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.FastNormalise.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1243,7 +1269,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(BANG_VERTICES_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.BangVertices.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
@@ -1254,7 +1280,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(UNBANG_VERTICES_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.UnbangVertices.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1266,7 +1292,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(DROP_BANG_BOX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DropBangBox.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
@@ -1277,7 +1303,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(KILL_BANG_BOX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.KillBangBox.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
@@ -1288,7 +1314,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(DUPLICATE_BANG_BOX_ACTION, new ActionListener() {
+		actionMap.put(CommandManager.Command.DuplicateBangBox.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
@@ -1305,7 +1331,7 @@ public void lockVertices(Collection<Vertex> verts) {
 			}
 		});
 
-		actionMap.put(DUMP_HILBERT_TERM_AS_TEXT, new ActionListener() {
+		actionMap.put(CommandManager.Command.DumpHilbertTermAsText.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
@@ -1315,7 +1341,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		actionMap.put(DUMP_HILBERT_TERM_AS_MATHEMATICA, new ActionListener() {
+		actionMap.put(CommandManager.Command.DumpHilbertTermAsMathematica.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
@@ -1325,7 +1351,7 @@ public void lockVertices(Collection<Vertex> verts) {
 				}
 			}
 		});
-		
+
 		/*
 		 * Add dynamically commands corresponding allowing to add registered vertices
 		 */
@@ -1343,24 +1369,24 @@ public void lockVertices(Collection<Vertex> verts) {
 			vp.setCommandEnabled(actionName, true);
 		}
 		if (saveEnabled) {
-			vp.setCommandEnabled(SAVE_GRAPH_ACTION,
+			vp.setCommandEnabled(CommandManager.Command.Save,
 				!getGraph().isSaved()
 				);
 		}
 		if ((graphMouse.isEdgeMouse()) && (directedEdges))
-			vp.setCommandStateSelected(DIRECTED_EDGE_MODE_ACTION, true);
+			vp.setCommandStateSelected(CommandManager.Command.DirectedEdgeMode, true);
 		else if (graphMouse.isEdgeMouse())
-			vp.setCommandStateSelected(UNDIRECTED_EDGE_MODE_ACTION, true);
+			vp.setCommandStateSelected(CommandManager.Command.UndirectedEdgeMode, true);
 		else
-			vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
+			vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 		setupNormaliseAction(vp);
 		if (activeJobs == null || activeJobs.size() == 0) {
-			vp.setCommandEnabled(ABORT_ACTION, false);
+			vp.setCommandEnabled(CommandManager.Command.Abort, false);
 		}
 	}
 
 	public void detached(ViewPort vp) {
-		vp.setCommandStateSelected(SELECT_MODE_ACTION, true);
+		vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, false);
@@ -1424,6 +1450,7 @@ public void lockVertices(Collection<Vertex> verts) {
 					forceLayout.startModify();
 					viewer.modifyLayout();
 					forceLayout.endModify();
+					setVerticesPositionData();
 					}
 					break;			
 			}

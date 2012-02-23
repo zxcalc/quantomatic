@@ -1,6 +1,7 @@
 package quanto.gui;
 
 import java.awt.BorderLayout;
+import java.util.Collection;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
@@ -35,7 +36,7 @@ public class TextView extends InteractiveView {
 		return true;
 	}
 
-	public static void registerKnownCommands() {
+	public static void registerKnownCommands(Collection<String> commands) {
 	}
 
 	public void commandTriggered(String command) {

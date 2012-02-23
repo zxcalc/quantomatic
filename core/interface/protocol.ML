@@ -317,6 +317,16 @@
  * Response: StructuredDataResponse
  * ErrorResponses: NOSUCHGRAPH
  *
+ * Name: GraphUserDataRequest
+ * Code: "GVGU"
+ * Args:
+ *   GraphName: String
+ *   DataName: String
+ * Desc: Get the user data attached to a graph under the name
+ *       dataName
+ * Response: UserDataResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
+ *
  * Name: ListVerticesRequest
  * Code: "GVVL"
  * Args:
@@ -356,7 +366,9 @@
  * Args:
  *   GraphName: String
  *   VertexName: String
- * Desc: Get the user data attached to a vertex
+ *   DataName: String
+ * Desc: Get the user data attached to a vertex under the name
+ *       DataName
  * Response: DataResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
@@ -421,6 +433,17 @@
  * Desc: Insert a copy of one graph into another
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH
+ *
+ * Name: SetGraphUserDataRequest
+ * Code: "GMGU"
+ * Args:
+ *   GraphName: String
+ *   dataName: String
+ *   UserData: DataChunk
+ * Desc: Set user data on a graph.  This data will not be parsed by the core
+ *       in any way.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
  * Name: AddVertexRequest
  * Code: "GMVA"
@@ -1254,6 +1277,15 @@ struct
                         desc = DescribeFullGraph
                       }
 
+         | "GVGU" => let
+                        val graphName = readToDelim()
+                        val dataName = readToEnd ()
+                     in
+                       DescribeGraphRequest {
+                         graphName = graphName,
+                         desc = GraphUserData { dataName = dataName }
+                       }
+                     end
          | "GVVL" =>  DescribeGraphRequest {
                         graphName = readToEnd (),
                         desc = ListVertices
@@ -1298,11 +1330,13 @@ struct
 
          | "GVVU" =>  let
                         val graphName  = readToDelim ()
-                        val vertexName = readToEnd ()
+                        val vertexName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = VertexUserData { vertexName = vertexName }
+                          desc = VertexUserData { vertexName = vertexName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1384,6 +1418,21 @@ struct
                                     }
                         }
                       end
+
+         | "GMGU" =>  let
+                        val graphName = readToDelim ()
+                        val dataName =  readToDelim ()
+                        val userData = readDataChunk ()
+                        val () = assertAtEnd ()
+                       in
+                         EditGraphRequest {
+                           graphName = graphName,
+                           action = SetGraphUserDataAction {
+                                      dataName = dataName,
+                                      userData = userData
+                                    }        
+                         }
+                       end
 
          | "GMVA" =>  let
                         val graphName = readToDelim ()
@@ -1473,6 +1522,7 @@ struct
          | "GMVU" =>  let
                         val graphName = readToDelim ()
                         val vertexName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1480,6 +1530,7 @@ struct
                           graphName = graphName,
                           action =  SetVertexUserDataAction {
                                       vertexName = vertexName,
+                                      dataName = dataName,
                                       userData = data
                                     }
                         }

@@ -4,10 +4,12 @@
  */
 package quanto.core.protocol;
 
+import java.io.BufferedOutputStream;
 import java.util.Collection;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.logging.Level;
 import static quanto.core.protocol.Utils.*;
 
 /**
@@ -16,13 +18,15 @@ import static quanto.core.protocol.Utils.*;
  */
 public class RequestWriter
 {
-    private OutputStream output;
+    private LoggingOutputStream output;
     private boolean inMessage = false;
     private boolean argNeedsClosing = false;
     public static final byte ESC = '\u001b';
 
     public RequestWriter(OutputStream output) {
-        this.output = output;
+        this.output = new LoggingOutputStream(
+                new BufferedOutputStream(output),
+                "quanto.core.protocol.stream");
     }
 
     private byte[] convertInt(int i)
@@ -70,6 +74,7 @@ public class RequestWriter
         argNeedsClosing = false;
         addEscapedChar('>');
         inMessage = false;
+        output.writeLog(Level.FINEST, "Sending message to core");
         output.flush();
     }
 

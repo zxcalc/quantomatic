@@ -1,5 +1,6 @@
 package quanto.core;
 
+import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -169,7 +170,7 @@ public class Core {
         g.setFileName(location.getAbsolutePath());
         return g;
     }
-
+    
     public void saveGraph(CoreGraph graph, File location) throws CoreException,
             IOException {
         assertCoreGraph(graph);
@@ -242,7 +243,7 @@ public class Core {
         String xml = talker.addVertex(graph.getCoreName(), vertexType);
         Vertex v = this.<Vertex>parseXml(xml, new VertexFragmentHandler(activeTheory));
         graph.addVertex(v);
-        graph.fireStateChanged();
+        graph.fireStateChanged();    
         return v;
     }
 
@@ -284,7 +285,6 @@ public class Core {
         if (!target.getCoreName().equals(e.targetName)) {
             throw new CoreException("Target name from core did not match what we sent");
         }
-
         graph.addEdge(e.edge, source, target);
         graph.fireStateChanged();
         return e.edge;

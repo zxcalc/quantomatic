@@ -4,7 +4,6 @@
  */
 package quanto.gui;
 
-import javax.swing.JOptionPane;
 import javax.swing.event.ChangeEvent;
 
 import quanto.core.data.BangBox;
@@ -13,8 +12,7 @@ import quanto.core.data.Edge;
 import quanto.core.data.CoreGraph;
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
-import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout;
-import edu.uci.ics.jung.contrib.graph.util.BalancedEdgeIndexFunction;
+import edu.uci.ics.jung.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.contrib.visualization.decorators.MixedShapeTransformer;
 import edu.uci.ics.jung.contrib.visualization.BangBoxGraphVisualizationViewer;
 import edu.uci.ics.jung.graph.Graph;
@@ -23,14 +21,11 @@ import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.renderers.Renderer.VertexLabel;
 import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 
 import javax.swing.event.ChangeListener;
 import org.apache.commons.collections15.Predicate;
@@ -68,7 +63,7 @@ public class GraphVisualizationViewer
 		}
 		this.graph = (CoreGraph) layout.getGraph();
 		layout.initialize();
-		setBackground(new Color(0.97f, 0.97f, 0.97f));
+        setBackground(Color.white);
 
 		setupRendering();
 
@@ -152,7 +147,11 @@ public class GraphVisualizationViewer
 	public CoreGraph getGraph() {
 		return graph;
 	}
-
+	
+	public void setCoreGraph(CoreGraph g) {
+		this.graph = g;
+	}
+	
 	/**
 	 * Draw a bounding box around the graph.
 	 */
@@ -163,9 +162,11 @@ public class GraphVisualizationViewer
 					boundsPaint = new BackdropPaintable(getGraphLayout());
                                         boundsPaint.setBackgroundColor(new Color(0.99f, 0.99f, 0.99f));
 				}
+                setBackground(new Color(0.97f, 0.97f, 0.97f));
 				prependPreRenderPaintable(boundsPaint);
 			}
 			else {
+                setBackground(Color.white);
 				removePreRenderPaintable(boundsPaint);
 			}
 		}
@@ -232,7 +233,8 @@ public class GraphVisualizationViewer
 		return layout.getSize();
 	}*/
 
-	public void shift(Rectangle2D rect, Vertex v, Point2D shift) {	
+	public void shift(Rectangle2D rect, Vertex v, Point2D shift) {
+		
 		getGraphLayout().setLocation(v, new Point2D.Double(
 				 rect.getCenterX()+shift.getX(), rect.getCenterY()+shift.getY()));
 	}
@@ -248,9 +250,11 @@ public class GraphVisualizationViewer
 		if (relaxer != null) {
 			relaxer.relax();
 		}
-		setPreferredSize(calculateGraphSize());				
-		for(Vertex v : getGraph().getVertices())
+		setPreferredSize(calculateGraphSize());
+		Collection<Vertex> c = getGraph().getVertices();
+		for(Vertex v : getGraph().getVertices()) {
 			v.setPosition(getGraphLayout().transform(v));
+		}
 		revalidate();
 		repaint();
 	}

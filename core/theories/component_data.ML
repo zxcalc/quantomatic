@@ -1,3 +1,4 @@
+(* *)
 signature COMPONENT_DATA = 
 sig
   datatype T = Unit
@@ -26,12 +27,12 @@ struct
   exception bad_format_exp of string;
 
   fun xml_of Unit = []
-    | xml_of (String s) = [XML.Text s]
+    | xml_of (String s) = [OutputStringXML.output s]
     | xml_of (LinratExpr e) = [OutputLinratXML.output e];
 
   fun of_xml_unit _ = Unit
-  fun of_xml_string [XML.Text s] = String s
-    | of_xml_string _ = raise bad_format_exp "Raw text expected"
+  fun of_xml_string [n] = (String (InputStringXML.input n) handle XML_Parse_Utils.bad_input_exp(s,_) => raise bad_format_exp s)
+    | of_xml_string _ = raise bad_format_exp "Single XML Node expected"
   fun of_xml_linrat [n] = (LinratExpr (InputLinratXML.input n) handle XML_Parse_Utils.bad_input_exp(s,_) => raise bad_format_exp s)
     | of_xml_linrat _ = raise bad_format_exp "Single XML node expected"
 
@@ -49,15 +50,19 @@ struct
     | pretty (LinratExpr e) = LinratExpr.pretty e
 end;
 
+(* TODO: Explain in more detail what this does. *)
+(* Some kind of wrapper for data to put it into a single bigger globally 
+   defined type, used to then talk to the GUI. *)
 signature ELEMENT_COMPONENT_DATA_PARAM =
 sig
   (* type of data, e.g. vertex data *)
   type data
   exception unknown_type_exp of string;
 
-  (* get the type-string of a bit of data *)
+  (* get the type-string for the data, this tells the GUI how to handle it *)
   (* this avoids having to format the data *)
   val type_of : data -> string;
+  (* Gets the Component Data value for this bit of data *)
   val cdata_of : data -> ComponentData.T;
 
   (* the default data *)
@@ -133,7 +138,7 @@ struct
     let
       val (t,cd) = type_and_cdata_of d
       fun to_xml Unit = []
-        | to_xml (String s) = [XML.Text s]
+        | to_xml (String s) = [OutputStringXML.output s]
         | to_xml (LinratExpr e) = [OutputLinratXML.output e]
     in
       (t,to_xml cd)
@@ -142,9 +147,10 @@ struct
   fun update_from_xml xml =
     let
       fun xml_updater _ Unit = Unit
-        | xml_updater [XML.Text s] (String _) = (String s)
-        | xml_updater _            (String _) = raise bad_format_exp "String value expected"
-        | xml_updater [xml] (LinratExpr _) = ((LinratExpr (InputLinratXML.input xml))
+        | xml_updater [xml] (String _) = ((String (InputStringXML.input xml))
+              handle XML_Parse_Utils.bad_input_exp (msg,_) => raise bad_format_exp msg)
+        | xml_updater _            (String _) = raise bad_format_exp "String XML element expected"
+        | xml_updater [xml] (LinratExpr _) = ((LinratExpr (InputLinratXML.input xml)) 
               handle XML_Parse_Utils.bad_input_exp (msg,_) => raise bad_format_exp msg)
         | xml_updater _     (LinratExpr _) = raise bad_format_exp "Single XML element expected"
     in

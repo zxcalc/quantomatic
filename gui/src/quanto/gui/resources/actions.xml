@@ -4,6 +4,17 @@
 <!--
   The actions define all the Actions in an application
   and toolbars and menus which use the actions
+
+  Every action needs a corresponding registration somewhere
+  in the code that specifies what to do when the action is
+  triggered.  For "global" actions (such as new graph, open,
+  quit), this is in QuantoFrame (the CommandAction and
+  BoolPrefAction enums).  For actions that are delegated to
+  views (the document-centric ones such as save, cut, select
+  all etc.), there should be an entry in CommandManager that
+  fixes the string name of the action (so typos can only be
+  in one place), and code to deal with/enable/disable those
+  actions should be in the relevant views.
 -->
 
 <action-set id="quanto-frame">
@@ -141,6 +152,11 @@
           name="Refresh all graphs"
           mnemonic="R"
           desc="Refresh all open graphs"/>
+
+	<action id="relayout-graph-command"
+          name="Re-layout graph"
+          mnemonic="L"
+          desc="Refresh the current graphs"/>
 
 	<action id="draw-arrow-heads-command"
 	  type="toggle"
@@ -325,6 +341,7 @@
 
 		<action-list id="view-menu" name="View" mnemonic="V">
 			<action idref="refresh-all-graphs-command" />
+            <action idref="relayout-graph-command" />
 			<empty/>
 			<action idref="draw-arrow-heads-command" />
 			<action idref="internal-graph-names-command" />

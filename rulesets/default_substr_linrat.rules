@@ -1,0 +1,910 @@
+<?xml version="1.0"?>
+<ruleset><allrules>
+
+
+
+<rule><name>isometry_red</name><definition><lhs>
+<graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="d" dir="false" source="a" target="c">
+<type>unit</type><data/></edge>
+<edge name="c" dir="false" source="b" target="a">
+<type>unit</type><data/></edge>
+<edge name="b" dir="false" source="b" target="a">
+<type>unit</type><data/></edge>
+<edge name="a" dir="false" source="d" target="b">
+<type>unit</type><data/></edge></graph>
+</lhs>
+<rhs>
+<graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="a" dir="false" source="d" target="c">
+<type>unit</type><data/></edge></graph>
+</rhs>
+</definition>
+</rule>
+
+
+<rule><name>isometry_green</name><definition><lhs>
+<graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="d" dir="false" source="a" target="c">
+<type>unit</type><data/></edge>
+<edge name="c" dir="false" source="b" target="a">
+<type>unit</type><data/></edge>
+<edge name="b" dir="false" source="b" target="a">
+<type>unit</type><data/></edge>
+<edge name="a" dir="false" source="d" target="b">
+<type>unit</type><data/></edge></graph>
+</lhs>
+<rhs>
+<graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="a" dir="false" source="d" target="c">
+<type>unit</type><data/></edge></graph>
+</rhs>
+</definition>
+</rule>
+<rule><name>z_group4</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="a" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="c" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_group3</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="a" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="c" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_group2</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="b" target="a">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="c" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_copy_0</name><definition><lhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="d" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_abelian1</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="a" target="c">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_group4</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="a" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="c" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_group3</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="a" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="c" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_group2</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="b" target="a">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="c" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_copy_0</name><definition><lhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="d" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_abelian1</name><definition><lhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="a" target="c">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>hopf_2_2</name><definition><lhs><graph><vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="e" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="e" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="f" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="f" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="b" target="e">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="h">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="g">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ej" dir="false" source="h" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ei" dir="false" source="h" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eh" dir="false" source="b" target="g">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="a" target="g">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>hopf_2_1</name><definition><lhs><graph><vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="d" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="d" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="e" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="g">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eh" dir="false" source="g" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="b" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ef" dir="false" source="a" target="f">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>hopf_1_2</name><definition><lhs><graph><vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="d" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="d" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="e" target="b">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="g">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eh" dir="false" source="g" target="b">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="c" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ef" dir="false" source="a" target="f">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>hopf_1_1</name><definition><lhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ed" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>bialgebra1</name><definition><lhs><graph><vertex name="h">
+<type>edge-point</type><data/></vertex>
+<vertex name="g">
+<type>edge-point</type><data/></vertex>
+<vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eh" dir="false" source="d" target="f">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="d" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ef" dir="false" source="c" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="c" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="f" target="h">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="e" target="g">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="j">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="i">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="h">
+<type>edge-point</type><data/></vertex>
+<vertex name="g">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Em" dir="false" source="j" target="h">
+<type>unit</type><data/></edge>
+<edge name="El" dir="false" source="j" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ek" dir="false" source="i" target="j">
+<type>unit</type><data/></edge>
+<edge name="Ej" dir="false" source="b" target="i">
+<type>unit</type><data/></edge>
+<edge name="Ei" dir="false" source="a" target="i">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_inv_hhh_swap</name><definition><lhs><graph><vertex name="g">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="f">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="g" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="e" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="d" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="f" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="h">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ei" dir="false" source="h" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eh" dir="false" source="b" target="h">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="a" target="h">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_inv_hh_swap</name><definition><lhs><graph><vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ed" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="e" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="c" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="a" target="f">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_inv_h_swap</name><definition><lhs><graph><vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_group1_2in</name><definition><lhs><graph><vertex name="e">
+<type>edge-point</type><data/></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ed" dir="false" source="c" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="h">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="g">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>edge-point</type><data/></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ei" dir="false" source="h" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eh" dir="false" source="g" target="f">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="g" target="h">
+<type>unit</type><data/></edge>
+<edge name="Ef" dir="false" source="a" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="f" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_group1_1in</name><definition><lhs><graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="f" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="e" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>z_copy_pi</name><definition><lhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="d" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_hhh_swap</name><definition><lhs><graph><vertex name="g">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="f">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="g" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="e" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="d" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="f" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="h">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>edge-point</type><data/></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ei" dir="false" source="h" target="c">
+<type>unit</type><data/></edge>
+<edge name="Eh" dir="false" source="b" target="h">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="a" target="h">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_hh_swap</name><definition><lhs><graph><vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ed" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="e" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="c" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="a" target="f">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_h_swap</name><definition><lhs><graph><vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_group1_2in</name><definition><lhs><graph><vertex name="e">
+<type>edge-point</type><data/></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ed" dir="false" source="c" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="h">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="g">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>edge-point</type><data/></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ei" dir="false" source="h" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eh" dir="false" source="g" target="f">
+<type>unit</type><data/></edge>
+<edge name="Eg" dir="false" source="g" target="h">
+<type>unit</type><data/></edge>
+<edge name="Ef" dir="false" source="a" target="g">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="f" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_group1_1in</name><definition><lhs><graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ef" dir="false" source="f" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ee" dir="false" source="e" target="f">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>x_copy_pi</name><definition><lhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="d" target="b">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="d">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="d" target="c">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="f">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="f" target="b">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="a" target="e">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>spider.green</name><definition><lhs><graph><vertex name="d">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="d" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>a</vertex>
+</bangbox><bangbox name="Bb"><vertex>b</vertex>
+</bangbox></graph></lhs><rhs><graph><vertex name="e">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="a" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="e" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>a</vertex>
+</bangbox><bangbox name="Bb"><vertex>b</vertex>
+</bangbox></graph></rhs></definition></rule><rule><name>spider.red</name><definition><lhs><graph><vertex name="d">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="a" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="d" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>a</vertex>
+</bangbox><bangbox name="Bb"><vertex>b</vertex>
+</bangbox></graph></lhs><rhs><graph><vertex name="e">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ee" dir="false" source="a" target="e">
+<type>unit</type><data/></edge>
+<edge name="Ed" dir="false" source="e" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>a</vertex>
+</bangbox><bangbox name="Bb"><vertex>b</vertex>
+</bangbox></graph></rhs></definition></rule><rule><name>red_antiloop</name><definition><lhs><graph><vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="a" target="a">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>b</vertex>
+</bangbox></graph></lhs><rhs><graph><vertex name="c">
+<type>X</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>b</vertex>
+</bangbox></graph></rhs></definition></rule><rule><name>hh_to_id</name><definition><lhs><graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="c">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>hadamard</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="d">
+<type>unit</type><data/></edge>
+<edge name="Eb" dir="false" source="b" target="c">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge></graph></lhs><rhs><graph><vertex name="d">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ed" dir="false" source="a" target="d">
+<type>unit</type><data/></edge></graph></rhs></definition></rule><rule><name>green_antiloop</name><definition><lhs><graph><vertex name="b">
+<type>edge-point</type><data/></vertex>
+<vertex name="a">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+
+<edge name="Eb" dir="false" source="a" target="a">
+<type>unit</type><data/></edge>
+<edge name="Ea" dir="false" source="a" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>b</vertex>
+</bangbox></graph></lhs><rhs><graph><vertex name="c">
+<type>Z</type><data><angleexpr><string_of>0</string_of></angleexpr></data></vertex>
+<vertex name="b">
+<type>edge-point</type><data/></vertex>
+
+<edge name="Ec" dir="false" source="c" target="b">
+<type>unit</type><data/></edge><bangbox name="Ba"><vertex>b</vertex>
+</bangbox></graph></rhs></definition></rule></allrules><tags/><active><rule>green_antiloop</rule><rule>hh_to_id</rule><rule>red_antiloop</rule><rule>spider.red</rule><rule>spider.green</rule><rule>x_copy_pi</rule><rule>x_group1_1in</rule><rule>x_group1_2in</rule><rule>x_h_swap</rule><rule>x_hh_swap</rule><rule>x_hhh_swap</rule><rule>z_copy_pi</rule><rule>z_group1_1in</rule><rule>z_group1_2in</rule><rule>z_inv_h_swap</rule><rule>z_inv_hh_swap</rule><rule>z_inv_hhh_swap</rule><rule>bialgebra1</rule><rule>hopf_1_1</rule><rule>hopf_1_2</rule><rule>hopf_2_1</rule><rule>hopf_2_2</rule><rule>x_abelian1</rule><rule>x_copy_0</rule><rule>x_group2</rule><rule>x_group3</rule><rule>x_group4</rule><rule>z_abelian1</rule><rule>z_copy_0</rule><rule>z_group2</rule><rule>z_group3</rule><rule>z_group4</rule></active></ruleset>
