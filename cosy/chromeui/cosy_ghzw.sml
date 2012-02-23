@@ -14,21 +14,32 @@ struct
    ERR of string
    
   val output_dot = GHZW_OutputGraphDot.output
-  val gens = GHZW_Gens.gen GHZW_VertexData.TICK (1,1) ::
-             (GHZW_Gens.gen_list 3 [GHZW_VertexData.GHZ, GHZW_VertexData.W])
+  
+  val z00 = GHZW_Gens.gen GHZW_VertexData.ZERO (0,0)
+  val z10 = GHZW_Gens.gen GHZW_VertexData.ZERO (1,0)
+  val z01 = GHZW_Gens.gen GHZW_VertexData.ZERO (0,1)
+  
+  val gens = [z10,z01,GHZW_Gens.gen GHZW_VertexData.TICK (1,1)] @
+              GHZW_Gens.gen_list 3 [GHZW_VertexData.GHZ, GHZW_VertexData.W]
   
   local
     val rs' = GHZW_Theory.Ruleset.empty
     val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule
-                          (RuleName.mk "ghz_fr", GHZW_Rws.frob GHZW_VertexData.GHZ)
+                          (R.mk "ghz_fr", GHZW_Rws.frob GHZW_VertexData.GHZ)
     val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule
-                          (RuleName.mk "ghz_sp", GHZW_Rws.special GHZW_VertexData.GHZ)
+                          (R.mk "ghz_sp", GHZW_Rws.special GHZW_VertexData.GHZ)
     val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule
-                          (RuleName.mk "w_fr", GHZW_Rws.frob GHZW_VertexData.W)
+                          (R.mk "w_fr", GHZW_Rws.frob GHZW_VertexData.W)
+    (*val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule
+                          (R.mk "z0", GHZW_Theory.Rule.mk (#1 z00, #1 z00))
+    val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule
+                          (R.mk "z1", GHZW_Theory.Rule.mk (#1 z10, #1 z10))
+    val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule
+                          (R.mk "z2", GHZW_Theory.Rule.mk (#1 z01, #1 z01)) *)
     val redex = TagName.mk "r"
-    val rs' = rs' |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "ghz_fr") redex
-                  |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "ghz_sp") redex
-                  |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "w_fr") redex
+    
+    val rs' = fold (fn r => GHZW_Theory.Ruleset.tag_rule (R.mk r) redex)
+              ["ghz_fr","ghz_sp","w_fr"] rs'
   in
     val initial_rs = RS rs'
   end
@@ -60,14 +71,14 @@ fun update (SYNTH s) (RS rs) = RS (rs |> GHZW_RSBuilder.update s)
 fun reduce (RS rs) = RS (GHZW_RSBuilder.reduce rs)
 fun update_redex run rs = rs |> update (synth_with_rs rs run) |> reduce
 fun update_naive run rs = rs |> update (synth run)
-fun size (RS rs) = RuleName.NTab.cardinality (GHZW_Theory.Ruleset.get_allrules rs)
+fun size (RS rs) = R.NTab.cardinality (GHZW_Theory.Ruleset.get_allrules rs)
 fun rule_matches_rule (RULE r1) (RULE r2) = GHZW_RSBuilder.rule_matches_rule r1 r2
 
 fun match_rule (RULE rule) (GRAPH target) = GHZW_Enum.rule_matches_graph rule target
 
 
 (*fun update_with run rs = rs |> update (synth run) |> reduce;*)
-fun get_rule (RS rs) name = case GHZW_Theory.Ruleset.lookup_rule rs (RuleName.mk name)
+fun get_rule (RS rs) name = case GHZW_Theory.Ruleset.lookup_rule rs (R.mk name)
 			      of SOME r => RULE r 
 			       | _ => ERR "Rule not found."
 
@@ -102,14 +113,14 @@ in if String.isSuffix ".rule" file then
 end
 
 val rs' = GHZW_Theory.Ruleset.empty
-val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "ghz_fr", GHZW_Rws.frob GHZW_VertexData.GHZ)
-val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "ghz_sp", GHZW_Rws.special GHZW_VertexData.GHZ)
-val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (RuleName.mk "w_fr", GHZW_Rws.frob GHZW_VertexData.W)
+val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (R.mk "ghz_fr", GHZW_Rws.frob GHZW_VertexData.GHZ)
+val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (R.mk "ghz_sp", GHZW_Rws.special GHZW_VertexData.GHZ)
+val (_,rs') = rs' |> GHZW_Theory.Ruleset.add_fresh_rule (R.mk "w_fr", GHZW_Rws.frob GHZW_VertexData.W)
 
 val redex = TagName.mk "r"
-val rs' = rs' |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "ghz_fr") redex
-              |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "ghz_sp") redex
-              |> GHZW_Theory.Ruleset.tag_rule (RuleName.mk "w_fr") redex
+val rs' = rs' |> GHZW_Theory.Ruleset.tag_rule (R.mk "ghz_fr") redex
+              |> GHZW_Theory.Ruleset.tag_rule (R.mk "ghz_sp") redex
+              |> GHZW_Theory.Ruleset.tag_rule (R.mk "w_fr") redex
 
 val rs = RS rs'
 

@@ -80,7 +80,8 @@ struct
       val loops = E.NTab.cardinality (Graph.get_self_loops graph v)
       val ins = E.NSet.cardinality (Graph.in_enames graph v) - loops
       val outs = E.NSet.cardinality (Graph.out_enames graph v) - loops
-    in (weight_for_arity ins outs loops) + tot
+      val dat = fst (Graph.get_vertex graph v)
+    in (weight_for_data dat * weight_for_arity ins outs loops) + tot
     end
   in V.NSet.fold vert_weights (Graph.get_vnames graph) 0
   end

@@ -20,6 +20,8 @@ struct
         Tensor.tensor (2,1,1) [0,1,1,0]
     | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.TICK) (ins,outs) =
         Tensor.tensorf (2,ins,outs) (K 0)  (* just return a zero tensor if bad dimensions on tick *)
+    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.ZERO) (ins,outs) =
+        Tensor.tensorf (2,ins,outs) (K 0)  (* always return 0 tensor *)
     | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id dimension 1
 end
 
@@ -77,9 +79,15 @@ end
 
 structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 
+structure GHZW_Metric = WeightedArityMetric(
+  structure Graph = GHZW_Theory.Graph
+  fun weight_for_data (Graph.OVData.IVert GHZW_VertexData.ZERO) = 1
+    | weight_for_data _ = 5
+)
+
 structure GHZW_DefaultSynth = Synthesize(
   structure GraphEnum = GHZW_Enum
-  structure Metric = WeightedArityMetric(structure Graph = GHZW_Theory.Graph; val weight_for_data = K 1)
+  structure Metric = GHZW_Metric
   structure TData = GHZW_TensorData
 )
 

@@ -20,7 +20,7 @@ fun addGraph io dom_element graph =
 fun addRule io dom_element name rule =
   DOM.HTMLElement (jsffi.exec_js_r "window|" "addRule" [
                       jsffi.arg.reference (DOM.fptr_of_HTMLElement dom_element),
-		                  jsffi.arg.string (RuleName.string_of_name name),
+		                  jsffi.arg.string (R.string_of_name name),
                       jsffi.arg.string (dot_to_svg io (Cosy.output_dot (Cosy.Theory.Rule.get_lhs rule))),
                       jsffi.arg.string (dot_to_svg io (Cosy.output_dot (Cosy.Theory.Rule.get_rhs rule)))
                   ])
@@ -102,7 +102,7 @@ fun output_ruleset rs = let
   (*val rs_pairs = (TheoryData.get_rs_pairs tdata) rs*)
   val container = addContainer content_div (Cosy.Theory.theory_name ^ " Ruleset") false
   val io = run_dot ()
-  val _ = RuleName.NTab.map_all (addRule io container) (Cosy.Theory.Ruleset.get_allrules rs)
+  val _ = R.NTab.map_all (addRule io container) (Cosy.Theory.Ruleset.get_allrules rs)
   val _ = close_dot io
 in ()
 end
@@ -110,7 +110,7 @@ end
 fun output_rule rule = let
   val c = addContainer content_div "Rule" false
   val io = run_dot ()
-  val _ = addRule io c (RuleName.mk "*") rule
+  val _ = addRule io c (R.mk "*") rule
   val _ = close_dot io
 in ()
 end
@@ -165,14 +165,14 @@ fun update_naive run rs = rs |> update (synth run)
 (*   RULESET FUNCTIONS   *)
 (*************************)
 
-fun size (Cosy.RS rs) = RuleName.NTab.cardinality (Cosy.Theory.Ruleset.get_allrules rs)
+fun size (Cosy.RS rs) = R.NTab.cardinality (Cosy.Theory.Ruleset.get_allrules rs)
 fun rule_matches_rule (Cosy.RULE r1) (Cosy.RULE r2) = Cosy.RSBuilder.rule_matches_rule r1 r2
 
 fun match_rule (Cosy.RULE rule) (Cosy.GRAPH target) = Cosy.rule_matches_graph rule target
 
 
 fun get_rule (Cosy.RS rs) name =
-  case Cosy.Theory.Ruleset.lookup_rule rs (RuleName.mk name)
+  case Cosy.Theory.Ruleset.lookup_rule rs (R.mk name)
     of SOME r => Cosy.RULE r 
      | _ => Cosy.ERR "Rule not found."
 
