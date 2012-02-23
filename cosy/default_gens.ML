@@ -6,23 +6,23 @@ struct
   
   val id = let
     val gr = Graph.empty
-    val (a,gr) = gr |> Graph.add_vertex (Graph.OVertex.EVert)
-    val (b,gr) = gr |> Graph.add_vertex (Graph.OVertex.EVert)
-  in (gr |> Graph.doadd_edge (Graph.Directed, Graph.Edge.default_data) a b, 1, 1) 
+    val (a,gr) = gr |> Graph.add_vertex (Graph.OVData.EVert)
+    val (b,gr) = gr |> Graph.add_vertex (Graph.OVData.EVert)
+  in (gr |> Graph.doadd_edge (Graph.Directed, Graph.EData.default_data) a b, 1, 1) 
   end
   
   fun gen data (ins, outs) = let
-    fun addk 0 gr = (gr, Graph.Vertex.NSet.empty)
+    fun addk 0 gr = (gr, V.NSet.empty)
       | addk k gr = let
-          val (v,gr) = gr |> Graph.add_vertex Graph.OVertex.EVert
+          val (v,gr) = gr |> Graph.add_vertex Graph.OVData.EVert
           val (gr,vs) = addk (k-1) gr
-    in (gr, Graph.Vertex.NSet.add v vs)
+    in (gr, V.NSet.add v vs)
     end
-    val (iv, gr) = Graph.empty |> Graph.add_vertex (Graph.OVertex.IVert data)
+    val (iv, gr) = Graph.empty |> Graph.add_vertex (Graph.OVData.IVert data)
     val (gr,invs) = addk ins gr
     val (gr,outvs) = addk outs gr
-    val gr = Graph.Vertex.NSet.fold (fn v => Graph.doadd_edge (Graph.Directed, Graph.Edge.default_data) v iv) invs gr
-    val gr = Graph.Vertex.NSet.fold (fn v => Graph.doadd_edge (Graph.Directed, Graph.Edge.default_data) iv v) outvs gr
+    val gr = V.NSet.fold (fn v => Graph.doadd_edge (Graph.Directed, Graph.EData.default_data) v iv) invs gr
+    val gr = V.NSet.fold (fn v => Graph.doadd_edge (Graph.Directed, Graph.EData.default_data) iv v) outvs gr
   in (gr, ins, outs)
   end
   
@@ -33,6 +33,7 @@ struct
   in id::(fold_product (cons oo gen) data_list (alist max_arity max_arity) [])
   end
 end
+
 
 (*
 val gens = [

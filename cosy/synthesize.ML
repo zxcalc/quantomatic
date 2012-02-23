@@ -41,11 +41,11 @@ sig
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
   structure TData : TENSOR_DATA
-  sharing Graph.SharingBangGraph = Metric.Graph.SharingBangGraph = GraphEnum.Graph.SharingBangGraph
+  sharing Graph.SharingOGraph = Metric.Graph.SharingOGraph = GraphEnum.Theory.Graph.SharingOGraph
   type rundesc = int * int * int * int
   type T = rundesc * (Graph.T EqClass.T) TData.Tensor.Tab.table
   val synth : (Graph.T * int * int) list -> int * int * int * int -> T
-  val synth_with_rs : GraphEnum.Ruleset.T -> (Graph.T * int * int) list -> int * int * int * int -> T
+  val synth_with_rs : GraphEnum.Theory.Ruleset.T -> (Graph.T * int * int) list -> int * int * int * int -> T
   val stats : T -> int * int * int
   val eqclass_fold : (TData.Tensor.T * Graph.T EqClass.T -> 'b -> 'b) -> T -> 'b -> 'b
 end
@@ -54,15 +54,15 @@ functor Synthesize (
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
   structure TData : TENSOR_DATA
-  sharing GraphEnum.Graph.SharingBangGraph =
-          Metric.Graph.SharingBangGraph =
-          TData.Graph.SharingBangGraph
+  sharing GraphEnum.Theory.Graph.SharingOGraph =
+          Metric.Graph.SharingOGraph =
+          TData.Graph.SharingOGraph
 ) : SYNTHESIZE =
 struct
   structure TData = TData
   structure TEval = TensorEval(structure TData=TData)
   structure GraphEnum = GraphEnum
-  structure Graph = GraphEnum.Graph
+  structure Graph = GraphEnum.Theory.Graph
   structure Metric = Metric
   structure Tensor = TData.Tensor
   
@@ -73,8 +73,8 @@ struct
   fun classify gr class_table = let
     val (ins,outs,tens) = TEval.tensor_for_graph gr
     val ((scalar,perm_outs,perm_ins),tens') = Tensor.normalise tens
-    val norm_ins = map (fn n => Graph.Vertex.mk ("i_"^(Int.toString n))) perm_ins
-    val norm_outs = map (fn n => Graph.Vertex.mk ("o_"^(Int.toString n))) perm_outs
+    val norm_ins = map (fn n => V.mk ("i_"^(Int.toString n))) perm_ins
+    val norm_outs = map (fn n => V.mk ("o_"^(Int.toString n))) perm_outs
     val gr' = fold2 Graph.rename_vname ins norm_ins (fold2 Graph.rename_vname outs norm_outs gr)
   in class_table |> Tensor.Tab.update (tens',
       (case Tensor.Tab.lookup class_table tens'
@@ -109,7 +109,7 @@ struct
                    (GraphEnum.fold_graphs_with_rs
                       rs classify (gens,ins,outs,verts,plugs) Tensor.Tab.empty))
   
-  val synth = synth_with_rs GraphEnum.Ruleset.empty
+  val synth = synth_with_rs GraphEnum.Theory.Ruleset.empty
   
   fun stats (_,class_tab) =
     Tensor.Tab.fold (fn (_,class) => fn (i,j,k) =>
