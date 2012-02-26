@@ -19,10 +19,10 @@
    xml:space="preserve"
    id="svg3130"
    inkscape:version="0.48.1 r9760"
-   sodipodi:docname="quanto_icon.svg"
-   inkscape:export-filename="/home/scratch/Quanto/quantomatic/gui/icons/quanto_icon_48.png"
-   inkscape:export-xdpi="8.4375"
-   inkscape:export-ydpi="8.4375"><metadata
+   sodipodi:docname="quanto_icon_small.svg"
+   inkscape:export-filename="/home/scratch/Quanto/quantomatic/gui/resources/icons/quanto_icon_24.png"
+   inkscape:export-xdpi="4.2055283"
+   inkscape:export-ydpi="4.2055283"><metadata
    id="metadata3238"><rdf:RDF><cc:Work
        rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
          rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
@@ -37,16 +37,16 @@
    guidetolerance="10"
    inkscape:pageopacity="0"
    inkscape:pageshadow="2"
-   inkscape:window-width="1248"
-   inkscape:window-height="643"
+   inkscape:window-width="1280"
+   inkscape:window-height="976"
    id="namedview3234"
    showgrid="false"
-   inkscape:zoom="0.52734375"
-   inkscape:cx="115.31963"
-   inkscape:cy="256"
-   inkscape:window-x="26"
-   inkscape:window-y="28"
-   inkscape:window-maximized="0"
+   inkscape:zoom="1.0546875"
+   inkscape:cx="337.98966"
+   inkscape:cy="271.74131"
+   inkscape:window-x="-3"
+   inkscape:window-y="25"
+   inkscape:window-maximized="1"
    inkscape:current-layer="svg3130" />
 <g
    id="Layer_7"
@@ -164,18 +164,7 @@
 	</g>
 </g>
 
-<text
-   xml:space="preserve"
-   style="font-size:298.37036133px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"
-   x="92.752594"
-   y="371.6741"
-   id="text5136"
-   sodipodi:linespacing="125%"><tspan
-     sodipodi:role="line"
-     id="tspan5138"
-     x="92.752594"
-     y="371.6741"
-     style="font-size:298.37036133px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;font-family:CoffeeTin;-inkscape-font-specification:CoffeeTin">Q</tspan></text>
+
 <g
    id="Layer_2"
    transform="matrix(1.2670608,0,0,1.2670608,-74.257074,-72.309413)">
@@ -214,6 +203,7 @@
    font-size="180"
    id="text3192"
    style="font-size:180px;fill:#470c10;display:none;font-family:RosewoodStd-Regular">M</text>
+
 
 </g>
 <g
