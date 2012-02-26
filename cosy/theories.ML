@@ -74,8 +74,49 @@ struct
 end
 
 
+structure RG_TensorData : TENSOR_DATA =
+struct
+  structure Graph = RG_Theory.Graph
+  structure Tensor = CIntTensor
+  
+  val dimension = 2
+  
+  val green_basis = (Tensor.tensor (2,0,1) [(1,0),(0,0)], Tensor.tensor (2,0,1) [(0,0),(1,0)])
+  val red_basis = (Tensor.tensor (2,0,1) [(1,0),(1,0)], Tensor.tensor (2,0,1) [(0,~1),(0,1)])
+  
+  fun gen (ket1,ket2) (ins, outs) = let
+    val one = Tensor.id 2 0
+    val bra1 = Tensor.conjugate_transpose ket1
+    val bra2 = Tensor.conjugate_transpose ket2
+    val term1 = Tensor.product (funpow ins (Tensor.product bra1) one)
+                               (funpow outs (Tensor.product ket1) one)
+    val term2 = Tensor.product (funpow ins (Tensor.product bra2) one)
+                               (funpow outs (Tensor.product ket2) one)
+  in Tensor.add term1 term2
+  end
+  
+  val zero = LinratExpr.zero
+  
+  fun tensor_for_vertex_data (Graph.OVData.IVert (RG_InternVData.Xnd _)) io = gen red_basis io
+    | tensor_for_vertex_data (Graph.OVData.IVert (RG_InternVData.Znd _)) io = gen green_basis io
+    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id 2 1
+end
+
 
 (* FUNCTOR APPLICATIONS *)
+
+structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)
+
+structure RG_Synth = Synthesize(
+  structure GraphEnum = RG_Enum
+  structure Metric = WeightedArityMetric(structure Graph = RG_Theory.Graph; val weight_for_data = K 1)
+  structure TData = RG_TensorData
+)
+
+structure RG_RSBuilder = RulesetBuilder(structure Synthesize = RG_Synth)
+structure RG_Gens = DefaultGenerators(structure Graph = RG_Theory.Graph)
+structure RG_Rws = DefaultRewrites(structure Rule = RG_Theory.Rule)
+
 
 structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 
