@@ -72,6 +72,7 @@ public class GraphVisualizationViewer
 		graph.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				modifyLayout();
+                fireStateChanged();
 			}
 		});
 	}

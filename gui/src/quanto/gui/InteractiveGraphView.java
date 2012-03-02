@@ -372,6 +372,16 @@ public class InteractiveGraphView
 		viewer.setBoundingBoxEnabled(false);
 		
 		buildActionMap();
+
+        g.addChangeListener(new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                if (saveEnabled && isAttached()) {
+                    getViewPort().setCommandEnabled(CommandManager.Command.Save,
+                        !getGraph().isSaved()
+                        );
+                }
+            }
+        });
 	}
 	
 	public boolean isVertexLocked(Vertex v) {
@@ -691,16 +701,14 @@ public class InteractiveGraphView
 			errorDialog(e.getMessage());
 		}
 	}
+
+    public void removeOldLabels() {
+		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
+    }
 	
 	public void cleanUp() {
-		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
-		if (saveEnabled && isAttached()) {
-			getViewPort().setCommandEnabled(CommandManager.Command.Save,
-				!getGraph().isSaved()
-				);
-		}
+        removeOldLabels();
 	}
-
 	
 	public void cacheVertexPositions(){
 		verticesCache= new HashMap<String, Point2D>();
@@ -747,23 +755,22 @@ public class InteractiveGraphView
 				}
 				viewer.getGraphLayout().lock(v, true);
 			}			
-		cleanUp();
 		}
 		int count=0;
 		for(Vertex v: getGraph().getVertices())	{					
-			if(verticesCache.get(v.getCoreName())==null)
+			if(verticesCache.get(v.getCoreName())==null) {
 				if(rewriteRect!=null) {
 					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
 					setVerticesPositionData();
 					count++;
 				}
-			cleanUp();
+            }
 		}
 		
 		forceLayout.startModify();
 		viewer.modifyLayout();
 		forceLayout.endModify();
-		cleanUp();	
+		removeOldLabels();	
 		viewer.update();
 		//locking and unlocking used internally to notify the layout which vertices have user data
 		unlockVertices(getGraph().getVertices());
@@ -1111,7 +1118,7 @@ public class InteractiveGraphView
 					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.cutSubgraph(getGraph(), picked);
-						cleanUp();
+                        removeOldLabels();
 					}
 				}
 				catch (CoreException ex) {
@@ -1273,7 +1280,6 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
-					cleanUp();
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1296,7 +1302,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					cleanUp();
+                    removeOldLabels();
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1307,7 +1313,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					cleanUp();
+                    removeOldLabels();
 				}
 				catch (CoreException ex) {
 					errorDialog("Console Error", ex.getMessage());
@@ -1416,7 +1422,7 @@ public class InteractiveGraphView
 					getGraph(), viewer.getPickedEdgeState().getPicked());
 				core.deleteVertices(
 					getGraph(), viewer.getPickedVertexState().getPicked());
-				cleanUp();
+                removeOldLabels();
 
 			}
 			catch (CoreException err) {
