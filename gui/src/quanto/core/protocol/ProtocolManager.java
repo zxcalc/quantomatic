@@ -708,7 +708,7 @@ public class ProtocolManager {
         getOkResponse();
     }
 
-    public void insertGraph(String target, String source) throws CoreException {
+    public void insertGraph(String source, String target) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
