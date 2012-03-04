@@ -9,7 +9,7 @@ sig
   val get_command_args : string -> string option;
   val get_command_help : string -> string option;
   val eval_command_string : (Commands.request -> Commands.response) -> string -> InterfaceResult.result;
-  val eval_command_string_no_quit : (Commands.request -> Commands.response) -> string -> InterfaceResult.result;
+  val eval_command_string_for_gui : (Commands.request -> Commands.response) -> string -> InterfaceResult.result;
 end;
 
 structure Console : CONSOLE
@@ -18,8 +18,8 @@ structure Console : CONSOLE
   val commands = ConsoleCommands.all_commands;
 
   val sort_alpha = sort (fn x => rev_order (string_ord x));
-  val command_name_list = (sort_alpha ("help" :: "change_theory" :: (ConsoleCommands.get_command_names commands)));
-  val command_name_list_with_quit = (sort_alpha ("quit" :: command_name_list));
+  val command_name_list = (sort_alpha ("help" :: (ConsoleCommands.get_command_names commands)));
+  val command_name_list_for_console = (sort_alpha ("change_theory" :: "quit" :: command_name_list));
 
   fun get_command_args "help" = SOME "CMD"
     | get_command_args "change_theory" = SOME "THEORY"
@@ -74,8 +74,6 @@ structure Console : CONSOLE
 *)
 
   fun do_cmd _ ("help", args) = (NORMAL (help command_name_list args))
-    | do_cmd _ ("change_theory", [th]) = (CHANGE_THEORY th)
-    | do_cmd _ ("change_theory", _) = (NORMAL (ConsoleCommands.parse_response ConsoleCommands.wrong_number_of_args_response))
     | do_cmd serviceRequest (cmd as (cname,args)) = (NORMAL (
       (case ConsoleCommands.get_command commands cname
         of SOME f => ConsoleCommands.parse_response (serviceRequest (f args))
@@ -87,21 +85,24 @@ structure Console : CONSOLE
 
   fun eval_command_string serviceRequest command_string =
     let
-      fun do_cmd_with_quit ("quit",_) = QUIT
-        | do_cmd_with_quit ("exit",_) = QUIT
-        | do_cmd_with_quit ("help",["quit"]) = (NORMAL ("\nquit\n    Quits the quantomatic core\n"))
-        | do_cmd_with_quit ("help",["exit"]) = (NORMAL ("\nexit\n    Quits the quantomatic core\n"))
-        | do_cmd_with_quit ("help",args) = (NORMAL (help command_name_list_with_quit args))
-        | do_cmd_with_quit c = (do_cmd serviceRequest c)
+      fun do_cmd_for_console ("quit",_) = QUIT
+        | do_cmd_for_console ("exit",_) = QUIT
+        | do_cmd_for_console ("change_theory", [th]) = (CHANGE_THEORY th)
+        | do_cmd_for_console ("change_theory", _) = (NORMAL (ConsoleCommands.parse_response ConsoleCommands.wrong_number_of_args_response))
+        | do_cmd_for_console ("help",["quit"]) = (NORMAL ("\nquit\n    Quits the quantomatic core\n"))
+        | do_cmd_for_console ("help",["exit"]) = (NORMAL ("\nexit\n    Quits the quantomatic core\n"))
+        | do_cmd_for_console ("help",args) = (NORMAL (help
+            command_name_list_for_console args))
+        | do_cmd_for_console c = (do_cmd serviceRequest c)
     in
       (case (ConsoleLexer.parse command_string)
-         of SOME c => (do_cmd_with_quit c)
+         of SOME c => (do_cmd_for_console c)
           | NONE => SKIP)
        handle Fail _ => (NORMAL error_msg)
             | ConsoleLexer.parse_exp () => (NORMAL error_msg)
     end
 
-  fun eval_command_string_no_quit serviceRequest command_string =
+  fun eval_command_string_for_gui serviceRequest command_string =
     (case (ConsoleLexer.parse command_string)
        of SOME c => (do_cmd serviceRequest c)
         | NONE => SKIP)
