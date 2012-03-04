@@ -1950,7 +1950,7 @@ struct
                               printDataChunk data;
                               printClose ())
                     in
-                      (case Console.eval_command_string_no_quit eval command
+                      (case Console.eval_command_string_for_gui eval command
                         of InterfaceResult.NORMAL output =>
                             (outputCmdResult output; next_loop ())
                          | InterfaceResult.CHANGE_THEORY th =>
