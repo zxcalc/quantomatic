@@ -86,15 +86,19 @@ public class RulesBar extends JPanel {
 	private DefaultListModel rulesModel;
 	private JToggleButton enableButton;
 	private JToggleButton disableButton;
+	private JToggleButton deleteButton;
 	private JComboBox tagsCombo;
 	private JPopupMenu enableMenu = new JPopupMenu();
 	private JPopupMenu disableMenu = new JPopupMenu();
-
 	private JMenuItem enableAllJMenuItem  = new JMenuItem("All");
 	private JMenuItem disableAllJMenuItem  = new JMenuItem("All");
 	private JMenuItem enableSelectionJMenuItem  = new JMenuItem("Selection");
 	private JMenuItem disableSelectionJMenuItem  = new JMenuItem("Selection");
 
+	private JPopupMenu deleteMenu = new JPopupMenu();
+	private JMenuItem deleteSelectionJMenuItem = new JMenuItem("Selection");
+	private JMenuItem deleteAllJMenuItem = new JMenuItem("All");
+	
 	private boolean suppressTagComboCallback = false;
 
 	private JPopupMenu createRuleContextualMenu() {
@@ -198,7 +202,7 @@ public class RulesBar extends JPanel {
 					}
 				}
 				catch (CoreException ex) {
-                    System.err.println(ex.getMessage());
+				     logger.log(Level.WARNING, "Could not disable rules");
 				}
 			}
 		});
@@ -215,10 +219,46 @@ public class RulesBar extends JPanel {
 					ruleset.deactivateRules(ruleNames);
 				}
 				catch (CoreException ex) {
+				     logger.log(Level.WARNING, "Could not disable selected rules");
 				}
 			}
 		});
 		disableMenu.add(disableSelectionJMenuItem);
+		
+		
+	     deleteAllJMenuItem.addActionListener(new ActionListener() {
+
+	               public void actionPerformed(ActionEvent e) {
+	                    try {
+	                         if (tagsCombo.getSelectedIndex() != 0) {
+	                              ruleset.deleteRulesByTag((String) tagsCombo.getSelectedItem());
+	                         }
+	                         else {
+	                              for(String r: ruleset.getRules())
+	                                   ruleset.deleteRule(r);
+	                         }
+	                    }
+	                    catch (CoreException ex) {
+	                         logger.log(Level.WARNING, "Could not delete rules");
+	                    }
+	               }
+	          });
+	     deleteMenu.add(deleteAllJMenuItem);
+		deleteSelectionJMenuItem.addActionListener(new ActionListener() {
+               
+               public void actionPerformed(ActionEvent e) {
+                   try {
+                        Object[] descs = listView.getSelectedValues();
+                        for (Object d: descs)
+                             ruleset.deleteRule(((RuleDescription)d).rulename);
+                   }
+                   catch (CoreException ex)
+                   {
+                        logger.log(Level.WARNING, "Could not delete selected rules");
+                   }         
+               }
+          });
+		deleteMenu.add(deleteSelectionJMenuItem);
 	}
 
 	private ImageIcon createImageIcon(String path,
@@ -284,6 +324,32 @@ public class RulesBar extends JPanel {
 			public void popupMenuCanceled(PopupMenuEvent e) {
 			}
 		});
+		
+		deleteButton = new JToggleButton(createImageIcon("/toolbarButtonGraphics/general/Delete16.gif", "Enable"));
+          deleteButton.setToolTipText("Delete rules");
+          deleteButton.addActionListener(new ActionListener() {
+
+               public void actionPerformed(ActionEvent e) {
+                    if (deleteButton.isSelected()) {
+                         deleteMenu.show(RulesBar.this, deleteButton.getX(), deleteButton.getY() + deleteButton.getHeight());
+                    }
+                    else {
+                         deleteMenu.setVisible(false);
+                    }
+               }
+          });
+          deleteMenu.addPopupMenuListener(new PopupMenuListener() {
+
+               public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+               }
+
+               public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+                    deleteButton.setSelected(false);
+               }
+
+               public void popupMenuCanceled(PopupMenuEvent e) {
+               }
+          });
 	}
 
 	public RulesBar(Ruleset ruleset, QuantoFrame quantoFrame) {
@@ -385,6 +451,7 @@ public class RulesBar extends JPanel {
 		buttonBox.setLayout(new BoxLayout(buttonBox, BoxLayout.LINE_AXIS));
 		buttonBox.add(enableButton);
 		buttonBox.add(disableButton);
+		buttonBox.add(deleteButton);
 		buttonBox.add(createRuleButton);
 		buttonBox.add(refreshButton);
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
@@ -449,7 +516,7 @@ public class RulesBar extends JPanel {
 			if (tagsCombo.getSelectedIndex() != 0) {
 				enableAllJMenuItem.setText("Tag");
 				disableAllJMenuItem.setText("Tag");
-
+				deleteAllJMenuItem.setText("Tag");
 				for (String rule : ruleset.getRulesByTag(tag)) {
 					rulesModel.addElement(new RuleDescription(rule, 
                                                 ruleset.isRuleActive(rule)));
@@ -458,7 +525,7 @@ public class RulesBar extends JPanel {
 			else {
 				enableAllJMenuItem.setText("All");
 				disableAllJMenuItem.setText("All");
-
+				deleteAllJMenuItem.setText("All");
 				for (String rule : ruleset.getRules()) {
                                         rulesModel.addElement(new RuleDescription(rule, 
                                                 ruleset.isRuleActive(rule)));
