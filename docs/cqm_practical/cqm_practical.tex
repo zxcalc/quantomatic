@@ -3,8 +3,40 @@
 \input{preamble.tex}
 \input{tikzstyles.tex}
 
+\title{CQM Practical: MBQC in Quantomatic}
+
 \begin{document}
 
-test
+\maketitle
+
+There are various models of quantum computation. You most likely already know about the \textit{circuit model}, where quantum computation is performed in three steps:
+
+\begin{enumerate}
+  \item Prepare some collection of qubits in an initial state.
+  \item Perform unitary \textit{quantum gates} on these qubits.
+  \item Measure the result.
+\end{enumerate}
+
+In this model, steps 1 and 3 are more or less fixed, whereas step 2 is where the interesting stuff happens. in this picture, the quantum programs is represented by a circuit diagram. however this is not the only paradigm for quantum computing. another choice is \textit{measurement based quantum computing}. in this model, computation consists of these steps:
+
+\begin{enumerate}
+  \item Prepare some qubits in the $\ket{+}$ state.
+  \item Entangle pairs of qubits using controlled-$Z$ operations.
+  \item Perform a series of measurements at some angles $\alpha_i$.
+\end{enumerate}
+
+The family of states that can be prepared using steps 1 and 2 are called \textit{graph states}. This is because they are often represented as graphs, using nodes to represent qubits and edges to represent controlled-$Z$ operations. Usually, the graph state is taken to be fixed, and the interesting part of an MBQC program is step 3. Perhaps surprisingly, MBQC is just as powerful as the circuit model. That is, it is \textit{universal for quantum computing}. In this practical, we will prove this result using Quantomatic.
+
+\section{The Z/X Calculus}
+
+The Z/X calculus extends the normal red/green calculus with three new generators. The first two are the phase gates $Z_\alpha$ and $X_\alpha$. The third is the Hadamard gate.
+\begin{center}
+    $Z_\alpha :=$ \tikzfig{green_phase}
+    \qquad\qquad
+    $X_\alpha :=$ \tikzfig{red_phase}
+    \qquad\qquad
+    $H := $ \tikzfig{hadamard}
+\end{center}
+
 
 \end{document}

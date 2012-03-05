@@ -1,0 +1,11 @@
+\begin{tikzpicture}[dotpic]
+	\begin{pgfonlayer}{nodelayer}
+		\node [style=hadamard] (0) at (0, 0) {$H$};
+		\node [style=none] (1) at (0, 1) {};
+		\node [style=none] (2) at (0, -1) {};
+	\end{pgfonlayer}
+	\begin{pgfonlayer}{edgelayer}
+		\draw [style=diredge] (1.center) to (0);
+		\draw [style=diredge] (0) to (2.center);
+	\end{pgfonlayer}
+\end{tikzpicture}
