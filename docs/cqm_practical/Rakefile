@@ -1,0 +1,69 @@
+$BUILD_DIR = 'build'
+$MAIN_JOB = 'cqm_practical'
+$MAIN_FILE = $MAIN_JOB + '.tex'
+$LATEX = 'pdflatex -interaction=nonstopmode -halt-on-error'
+$BIBTEX = 'bibtex'
+
+$INCLUDE_FILES = Dir[
+  'preamble.tex','tikzfig.sty','tikzstyles.tex',
+  'figures/*.{png,tikz,pdf}']
+
+def copy_and_strip(from, to)
+  puts "copy_and_strip: #{from} => #{to}"
+  f1 = open(from); f2 = open(to, 'w')
+  f1.each_line { |ln| f2.write(ln.sub(/^%=/, '')) }
+  f1.close; f2.close
+end
+
+def run_bibtex (dir, name)
+  if ENV['verbose']
+		sh "(cd #{dir}; #{$BIBTEX} #{name})"
+	else
+		output = `(cd #{dir}; #{$BIBTEX} #{name})`
+		unless $? == 0
+			puts output
+			fail "RAKE: BibTeX error in job #{name}."
+		end
+	end
+end
+
+def run_latex (dir, name, file)
+	if ENV['verbose']
+		sh "(cd #{dir}; #{$LATEX} -jobname #{name} #{file})"
+	else
+	  puts "building #{name}..."
+		output = `(cd #{dir}; #{$LATEX} -jobname #{name} #{file})`
+		unless $? == 0
+			puts output
+			fail "RAKE: LaTeX error in job #{name}."
+		end
+		puts "done"
+	end
+end
+
+task :default => [:draft]
+
+directory $BUILD_DIR
+
+
+task :copy_files => [$BUILD_DIR] do
+  cp $INCLUDE_FILES, $BUILD_DIR
+end
+
+task :draft => [:copy_files] do
+  cp $MAIN_FILE, $BUILD_DIR
+  run_latex($BUILD_DIR, $MAIN_JOB, $MAIN_FILE)
+  #run_bibtex($BUILD_DIR, $MAIN_JOB)
+  cp "#{$BUILD_DIR}/#{$MAIN_JOB}.pdf", '.'
+end
+
+
+task :clean do
+  sh %{rm -Rf build}
+  sh %{rm #{$MAIN_JOB}.pdf}
+end
+
+
+
+
+

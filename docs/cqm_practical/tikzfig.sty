@@ -1,0 +1,28 @@
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{trees}
+\usetikzlibrary{topaths}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{matrix,backgrounds,folding}
+\usetikzlibrary{chains,scopes,positioning,fit}
+\usetikzlibrary{arrows,shadows}
+\usetikzlibrary{calc} 
+\usetikzlibrary{chains}
+\usetikzlibrary{shapes,shapes.geometric,shapes.misc}
+
+\newcommand{\tikzfig}[1]{%
+\beginpgfgraphicnamed{#1}
+\InputIfFileExists{#1.tikz}{}{\input{./figures/#1.tikz}}
+\endpgfgraphicnamed}
+\newcommand{\ctikzfig}[1]{%
+\begin{center}\rm
+  \tikzfig{#1}
+\end{center}}
+\newcommand{\inlinetikzfig}[1]{\InputIfFileExists{#1.tikz}{}{\input{./figures/#1.tikz}}}
+
+\pgfdeclarelayer{edgelayer}
+\pgfdeclarelayer{nodelayer}
+\pgfsetlayers{background,edgelayer,nodelayer,main}
+\tikzstyle{none}=[inner sep=0mm]
+\tikzstyle{every loop}=[]
