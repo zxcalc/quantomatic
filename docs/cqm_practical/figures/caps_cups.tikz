@@ -1,0 +1,28 @@
+\begin{tikzpicture}[dotpic]
+	\begin{pgfonlayer}{nodelayer}
+		\node [style=green dot] (0) at (-5.5, 0.25) {};
+		\node [style=none] (1) at (-6.25, -0.5) {};
+		\node [style=none] (2) at (-4.75, -0.5) {};
+		\node [style=none] (3) at (-3.25, -0.5) {};
+		\node [style=red dot] (4) at (-2.5, 0.25) {};
+		\node [style=none] (5) at (-1.75, -0.5) {};
+		\node [style=none] (6) at (-4, 0) {$=$};
+		\node [style=none] (7) at (2.5, 0.5) {};
+		\node [style=none] (8) at (5.5, 0.5) {};
+		\node [style=red dot] (9) at (4.75, -0.25) {};
+		\node [style=none] (10) at (3.25, 0) {$=$};
+		\node [style=none] (11) at (1, 0.5) {};
+		\node [style=none] (12) at (4, 0.5) {};
+		\node [style=green dot] (13) at (1.75, -0.25) {};
+	\end{pgfonlayer}
+	\begin{pgfonlayer}{edgelayer}
+		\draw [style=diredge, in=90, out=0] (0) to (2.center);
+		\draw [style=diredge, in=90, out=180] (0) to (1.center);
+		\draw [style=diredge, in=90, out=0] (4) to (5.center);
+		\draw [style=diredge, in=90, out=180] (4) to (3.center);
+		\draw [style=diredge, in=0, out=-90] (7.center) to (13);
+		\draw [style=diredge, in=180, out=-90] (11.center) to (13);
+		\draw [style=diredge, in=0, out=-90] (8.center) to (9);
+		\draw [style=diredge, in=180, out=-90] (12.center) to (9);
+	\end{pgfonlayer}
+\end{tikzpicture}

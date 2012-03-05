@@ -1,0 +1,17 @@
+\begin{tikzpicture}[dotpic]
+	\begin{pgfonlayer}{nodelayer}
+		\node [style=none] (0) at (0, 0.75) {...};
+		\node [style=none] (1) at (-0.5, 1.25) {};
+		\node [style=none] (2) at (0.5, 1.25) {};
+		\node [style=none] (3) at (0, -0.75) {...};
+		\node [style=none] (4) at (-0.5, -1.25) {};
+		\node [style=none] (5) at (0.5, -1.25) {};
+		\node [style=red dot] (6) at (0, 0) {$\alpha$};
+	\end{pgfonlayer}
+	\begin{pgfonlayer}{edgelayer}
+		\draw [style=diredge, bend right=15] (1.center) to (6);
+		\draw [style=diredge, bend left=15] (2.center) to (6);
+		\draw [style=diredge, bend left=15] (6) to (5.center);
+		\draw [style=diredge, bend right=15] (6) to (4.center);
+	\end{pgfonlayer}
+\end{tikzpicture}

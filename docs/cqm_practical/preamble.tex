@@ -27,6 +27,23 @@
 \theoremstyle{definition}\newtheorem{assumption}[theorem]{Assumption}
 \theoremstyle{definition}\newtheorem{notation}[theorem]{Notation}
 
+
+% REWRITING OPERATORS
+\newcommand{\normalised}{\ensuremath{\!\downarrow\,}}
+\newcommand{\cmdrewritesto}{\tikz[baseline=-0.25em] { \draw [-open triangle 45, line width=0.2pt] (0,0) -- (0.5,0); }\,}
+\newcommand{\cmdrewriteequiv}{\tikz[baseline=-0.25em] { \draw [open triangle 45-open triangle 45, line width=0.2pt] (0,0) -- node [auto,yshift=-1.2mm] {$*$} (0.7,0); }\,}
+\newcommand{\cmdrewritetrans}{\tikz[baseline=-0.25em] { \draw [-open triangle 45, line width=0.2pt] (0,0) -- node [auto,pos=0.3,yshift=-1.2mm] {$*$} (0.5,0); }\,}
+
+\newcommand{\cmdleftrewritesto}{\tikz[baseline=-0.25em] { \draw [open triangle 45-, line width=0.2pt] (0,0) -- (0.5,0); }\,}
+\newcommand{\cmdleftrewritetrans}{\tikz[baseline=-0.25em] { \draw [open triangle 45-, line width=0.2pt] (0,0) -- node [auto,pos=0.7,yshift=-1.2mm] {$*$} (0.5,0); }\,}
+
+\DeclareMathOperator{\rewritesto}{\cmdrewritesto}
+\DeclareMathOperator{\rewriteequiv}{\cmdrewriteequiv}
+\DeclareMathOperator{\rewritetrans}{\cmdrewritetrans}
+\DeclareMathOperator{\leftrewritesto}{\cmdleftrewritesto}
+\DeclareMathOperator{\leftrewritetrans}{\cmdleftrewritetrans}
+
+
 % BRAS AND KETS
 \newcommand{\bra}[1]{\ensuremath{\left\langle #1 \right|}}
 \newcommand{\ket}[1]{\ensuremath{\left| #1 \right\rangle}}

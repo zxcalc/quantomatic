@@ -1,0 +1,60 @@
+\begin{tikzpicture}[dotpic]
+	\begin{pgfonlayer}{nodelayer}
+		\node [style=none] (0) at (-4, 1.5) {};
+		\node [style=none] (1) at (4.75, 1.5) {};
+		\node [style=none] (2) at (-6.75, 1.25) {};
+		\node [style=none] (3) at (-5.75, 1.25) {};
+		\node [style=none] (4) at (2, 1.25) {};
+		\node [style=none] (5) at (3, 1.25) {};
+		\node [style=none] (6) at (-3, 1) {};
+		\node [style=none] (7) at (-2, 1) {};
+		\node [style=none] (8) at (5.75, 1) {};
+		\node [style=none] (9) at (6.75, 1) {};
+		\node [style=none] (10) at (-6.25, 0.75) {...};
+		\node [style=none] (11) at (2.5, 0.75) {...};
+		\node [style=green dot] (12) at (-4, 0.5) {$\alpha$};
+		\node [style=none] (13) at (-2.75, 0.5) {...};
+		\node [style=red dot] (14) at (4.75, 0.5) {$\alpha$};
+		\node [style=none] (15) at (6, 0.5) {...};
+		\node [style=green dot] (16) at (-6.25, 0) {$\alpha$};
+		\node [style=none] (17) at (-5, 0) {$:=$};
+		\node [style=red dot] (18) at (2.5, 0) {$\alpha$};
+		\node [style=none] (19) at (3.75, 0) {$:=$};
+		\node [style=green dot] (20) at (-3.25, -0.5) {};
+		\node [style=red dot] (21) at (5.5, -0.5) {};
+		\node [style=none] (22) at (-6.25, -0.75) {...};
+		\node [style=none] (23) at (2.5, -0.75) {...};
+		\node [style=none] (24) at (-3.25, -1) {...};
+		\node [style=none] (25) at (5.5, -1) {...};
+		\node [style=none] (26) at (-6.75, -1.25) {};
+		\node [style=none] (27) at (-5.75, -1.25) {};
+		\node [style=none] (28) at (-3.75, -1.25) {};
+		\node [style=none] (29) at (-2.75, -1.25) {};
+		\node [style=none] (30) at (2, -1.25) {};
+		\node [style=none] (31) at (3, -1.25) {};
+		\node [style=none] (32) at (5, -1.25) {};
+		\node [style=none] (33) at (6, -1.25) {};
+	\end{pgfonlayer}
+	\begin{pgfonlayer}{edgelayer}
+		\draw [style=diredge, bend right=15] (8.center) to (21);
+		\draw [style=diredge] (1.center) to (14);
+		\draw [style=diredge, bend left=15] (3.center) to (16);
+		\draw [style=diredge, bend left=15] (21) to (33.center);
+		\draw [style=diredge, bend right=15] (2.center) to (16);
+		\draw [style=diredge, bend right=15] (4.center) to (18);
+		\draw [style=diredge, bend left=15] (16) to (27.center);
+		\draw [style=diredge, bend right=15] (12) to (20);
+		\draw [style=diredge, bend right=15] (14) to (21);
+		\draw [style=diredge, bend left=15] (5.center) to (18);
+		\draw [style=diredge, bend left=15] (18) to (31.center);
+		\draw [style=diredge, bend left=15] (20) to (29.center);
+		\draw [style=diredge, bend right=15] (16) to (26.center);
+		\draw [style=diredge, bend right=15] (6.center) to (20);
+		\draw [style=diredge, bend right=15] (20) to (28.center);
+		\draw [style=diredge] (0.center) to (12);
+		\draw [style=diredge, bend right=15] (18) to (30.center);
+		\draw [style=diredge, bend left=15] (7.center) to (20);
+		\draw [style=diredge, bend left=15] (9.center) to (21);
+		\draw [style=diredge, bend right=15] (21) to (32.center);
+	\end{pgfonlayer}
+\end{tikzpicture}

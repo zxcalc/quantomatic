@@ -1,0 +1,37 @@
+\begin{tikzpicture}[dotpic]
+	\begin{pgfonlayer}{nodelayer}
+		\node [style=none] (0) at (2, -1.25) {};
+		\node [style=none] (1) at (1, 1.25) {};
+		\node [style=none] (2) at (1, -1.25) {};
+		\node [style=red dot] (3) at (1.5, 0) {$\alpha$};
+		\node [style=none] (4) at (1.5, 0.75) {...};
+		\node [style=none] (5) at (2, 1.25) {};
+		\node [style=none] (6) at (1.5, -0.75) {...};
+		\node [style=none] (7) at (0, 0) {$=$};
+		\node [style=hadamard] (8) at (-2, 1) {$H$};
+		\node [style=none] (9) at (-1.5, -1.5) {...};
+		\node [style=green dot] (10) at (-1.5, 0) {$\alpha$};
+		\node [style=hadamard] (11) at (-2, -1) {$H$};
+		\node [style=hadamard] (12) at (-1, 1) {$H$};
+		\node [style=hadamard] (13) at (-1, -1) {$H$};
+		\node [style=none] (14) at (-1.5, 1.5) {...};
+		\node [style=none] (15) at (-1, 1.75) {};
+		\node [style=none] (16) at (-2, 1.75) {};
+		\node [style=none] (17) at (-2, -1.75) {};
+		\node [style=none] (18) at (-1, -1.75) {};
+	\end{pgfonlayer}
+	\begin{pgfonlayer}{edgelayer}
+		\draw [style=diredge, bend right=15] (1.center) to (3);
+		\draw [style=diredge, bend left=15] (5.center) to (3);
+		\draw [style=diredge, bend left=15] (3) to (0.center);
+		\draw [style=diredge, bend right=15] (3) to (2.center);
+		\draw [style=diredge, bend right=15] (8) to (10);
+		\draw [style=diredge, bend left=15] (12) to (10);
+		\draw [style=diredge, bend left=15] (10) to (13);
+		\draw [style=diredge, bend right=15] (10) to (11);
+		\draw [style=diredge] (16.center) to (8);
+		\draw [style=diredge] (15.center) to (12);
+		\draw [style=diredge] (13) to (18.center);
+		\draw [style=diredge] (11) to (17.center);
+	\end{pgfonlayer}
+\end{tikzpicture}
