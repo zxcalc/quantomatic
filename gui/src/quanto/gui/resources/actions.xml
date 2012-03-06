@@ -195,8 +195,8 @@
 	<action id="directed-edge-mode-command"
 	  type="toggle"
           name="Directed Edge mode"
-          mnemonic="G"
-	  accel="control shift G"
+          mnemonic="D"
+	  accel="control shift D"
           smicon="/toolbarButtonGraphics/quanto/DirectedLink16.gif"
           icon="/toolbarButtonGraphics/quanto/DirectedLink24.gif"
           desc="Add directed edges to the graph"/>
