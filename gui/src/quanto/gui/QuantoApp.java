@@ -38,9 +38,9 @@ import quanto.core.xml.TheoryParser;
  */
 public class QuantoApp {
 
-    private static final boolean LOG_PROTOCOL = false;
+    private static final boolean LOG_PROTOCOL = true;
     private static final boolean LOG_JUNG = false;
-    private static final boolean LOG_QUANTO = false;
+    private static final boolean LOG_QUANTO = true;
 
     private final static Logger logger =
             Logger.getLogger("quanto.gui");

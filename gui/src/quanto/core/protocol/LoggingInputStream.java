@@ -36,7 +36,7 @@ class LoggingInputStream extends FilterInputStream
 
     public void writeLog(Level level, String message) {
         if (logger.isLoggable(level)) {
-            logger.log(level, "{0}: {1}",
+            logger.log(level, "{0}: \"{1}\"",
                     new Object[] {
                         message,
                         logStream.toString().replace('\u001b', '\u00a4')

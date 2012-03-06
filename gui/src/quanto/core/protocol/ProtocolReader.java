@@ -26,15 +26,19 @@ public class ProtocolReader {
                 new BufferedInputStream(input), "quanto.core.protocol.stream");
     }
 
+    public void close() throws IOException {
+        input.close();
+    }
+
     private void eatEsc() throws ProtocolException, IOException {
         int gotCh = input.read();
         if (gotCh != ESC) {
             if (gotCh == -1)
-                throw new ProtocolException("Expected ESC, got EOF");
+                throw new ProtocolException("Expected ESC from core, got EOF");
             else if (Character.isISOControl(gotCh))
-                throw new ProtocolException("Expected ESC, got \\u" + Integer.toHexString(gotCh));
+                throw new ProtocolException("Expected ESC from core, got \\u" + String.format("%1$04x", gotCh));
             else
-                throw new ProtocolException("Expected ESC, got " + (char)gotCh);
+                throw new ProtocolException("Expected ESC from core, got " + (char)gotCh);
         }
     }
 
