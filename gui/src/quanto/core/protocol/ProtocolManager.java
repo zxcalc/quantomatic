@@ -24,8 +24,6 @@ public class ProtocolManager {
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
     public static String quantoCoreExecutable = "quanto-core";
-    private LoggingInputStream dbgInputStream;
-    private LoggingOutputStream dbgOutputStream;
     private RequestWriter writer;
     private ProtocolReader reader;
     private Process backend;
@@ -126,8 +124,8 @@ public class ProtocolManager {
         if (backend != null) {
             logger.log(Level.FINEST, "Shutting down the core process");
             try {
-                dbgInputStream.close();
-                dbgOutputStream.close();
+                reader.close();
+                writer.close();
                 new ProcessCleanupThread(backend).start();
             } catch (IOException ex) {
                 logger.log(Level.WARNING, "Failed to close communication channels to the core");
