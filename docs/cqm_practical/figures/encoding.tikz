@@ -1,8 +1,8 @@
 \begin{tikzpicture}[dotpic]
 	\begin{pgfonlayer}{nodelayer}
-		\node [style=green dot] (0) at (-5.25, 0.5) {};
-		\node [style=none] (1) at (-5.25, -0.75) {};
-		\node [style=none, anchor=east] (2) at (-6, 0) {$N_i :=$};
+		\node [style=green dot] (0) at (-4.25, 0.5) {};
+		\node [style=none] (1) at (-4.25, -0.75) {};
+		\node [style=none, anchor=east] (2) at (-5, 0) {$N_i :=$};
 		\node [style=none, anchor=east] (3) at (-0.75, 0) {$E_{i,j} :=$};
 		\node [style=none] (4) at (0, -1.25) {};
 		\node [style=green dot] (5) at (0, 0) {};
@@ -16,8 +16,10 @@
 		\node [style=green dot] (13) at (7.25, 1.25) {$\alpha$};
 		\node [style=none] (14) at (5.5, -2.5) {};
 		\node [style=none] (15) at (5.5, 2.5) {};
-		\node [style=green dot] (16) at (7.25, -1.75) {$\alpha+\pi$};
+		\node [style=green dot, inner sep=1 pt] (16) at (7.25, -1.75) {$\alpha\!+\!\pi$};
 		\node [style=none] (17) at (7.25, 0.25) {};
+		\node [style=none, anchor=west] (18) at (8.75, 1.5) {if outcome is $0$};
+		\node [style=none, anchor=west] (19) at (8.75, -1.25) {if outcome is $1$};
 	\end{pgfonlayer}
 	\begin{pgfonlayer}{edgelayer}
 		\draw [style=diredge] (0) to (1.center);

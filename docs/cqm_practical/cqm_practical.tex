@@ -17,7 +17,7 @@ There are various models of quantum computation. You most likely already know ab
   \item Measure the result.
 \end{enumerate}
 
-In this model, steps 1 and 3 are more or less fixed, whereas step 2 is where the interesting stuff happens. in this picture, the quantum programs is represented by a circuit diagram. however this is not the only paradigm for quantum computing. another choice is \textit{measurement based quantum computing}. in this model, computation consists of these steps:
+In this model, steps 1 and 3 are more or less fixed, whereas step 2 is where the interesting stuff happens. in this picture, the quantum programs is represented by a circuit diagram. however this is not the only paradigm for quantum computing. another choice is \textit{measurement based quantum computing} (MBQC). in this model, computation consists of these steps:
 
 \begin{enumerate}
   \item Prepare some qubits in the $\ket{+}$ state.
@@ -27,7 +27,7 @@ In this model, steps 1 and 3 are more or less fixed, whereas step 2 is where the
 
 The family of states that can be prepared using steps 1 and 2 are called \textit{graph states}. This is because they are often represented as graphs, using nodes to represent qubits and edges to represent controlled-$Z$ operations. Usually, the graph state is taken to be fixed, and the interesting part of an MBQC program is step 3. Perhaps surprisingly, MBQC is just as powerful as the circuit model. That is, it is \textit{universal for quantum computing}. In this practical, we will prove this result using Quantomatic.
 
-\section*{The Z/X Calculus}
+\section{The Z/X Calculus}\label{sec:zx}
 
 The Z/X calculus extends the normal red/green calculus with three new generators. The first two are the phase gates $Z_\alpha$ and $X_\alpha$. The third is the Hadamard gate.
 \begin{center}
@@ -55,7 +55,7 @@ Furthermore, the green points associated with phases $0$ and $\pi$ are classical
 \ctikzfig{classical_points}
 
 
-\section*{Translating MBQC Program into Z/X graphs}
+\section{Translating MBQC Program into Z/X graphs}\label{sec:mbqc}
 
 An MBQC program is an expression consisting of the following operations:
 
@@ -74,7 +74,7 @@ This program prepares ancillae at 3 and 4, entangles 3 to 4, 2 to 3, and 1 to 3,
 
 Note that measurements are non-deterministic, so either of the two outcomes shown may happen when we measure a qubit. The main point of MBQC is we can recover \textit{deterministic} computation by first performing measurements, then performing \textit{corrections} later by applying unitaries or adjusting the angles at which we perform later measurements.
 
-\section*{Quantomatic Basics}
+\section{Quantomatic Basics}\label{sec:quanto}
 
 We will implement a fragment of the Z/X calculus in Quantomatic as a \textit{graph rewrite system}. The difference in a rewrite system and a set of graphical axioms is that equations $G = H$ are replaced with \textit{reduction rules} $G \rewritesto H$. First, we'll see how to input graphs and rules into Quantomatic, and how to express collections of edges with ellipses using graph patterns.
 
@@ -158,6 +158,46 @@ We now have a choice to apply the spider-merge rule to the two green vertices or
 \medskip
 \noindent{\color{blue} Implement the completion above as a rule in Quantomatic. Show that the original $\pi$-copy rule is now redundant and remove it.}
 \medskip
+
+If we can close all critical pairs in a (terminating) rewrite system, it is possible to show that all normal forms are unique. That is, the system is \textit{confluent and terminating}.
+
+
+\section*{Exercise 3: The CNOT Gate Using MBQC}
+
+It is a well-known result that single-qubit unitaries and the CNOT gate are universal for quantum computing. In the Z/X calculus, we can write the CNOT gate as:
+\begin{equation}\label{eq:cnot}
+  \tikzfig{cnot}
+\end{equation}
+
+Recall the MBQC program from section~\ref{sec:mbqc}.
+
+\[ M_2^0 M_4^0 E_{1,3} E_{2,3} E_{3,4} N_3 N_4 \]
+
+\medskip
+\noindent{\color{blue} Use the translation from section~\ref{sec:mbqc} to translate this program into a graph in Quantomatic, for measurement outcomes $\{ M_2^0 \rightarrow 0, M_4^0 \rightarrow 0 \}$. Implement enough rules from section~\ref{sec:zx} to normalise the measurement pattern into (\ref{eq:cnot}).}
+\medskip
+
+Even if we do not get outcome $00$, we can still produce a CNOT gate by performing single-qubit corrections.
+
+\medskip
+\noindent{\color{blue} For each of the other three outcomes, find red and green phases to apply to qubits 1 and 3 to produce a CNOT gate. Show that all four cases reduce to (\ref{eq:cnot}) in Quantomatic.}
+\medskip
+
+Let $M_{i,A}^\alpha$ be a measurement labelled $A$ of the $i$-th qubit at angle $\alpha$. Let $Z_j^A$ be the identity for the outcome $0$ of the measurement labelled $A$ and a $Z_\pi$ gate for outcome $1$. Define $X_j^A$ similarly. These are called \textit{conditional corrections}.
+
+\medskip
+\noindent{\color{blue} Using conditional corrections, write an MBQC program that produces the CNOT gate, regardless of the measurement outcomes.}
+\medskip
+
+\section*{Bonus: Implementing Single Qubit Unitaries}
+
+Any single qubit unitary can be written using three phase gates, $U = Z_\alpha X_\beta Z_\gamma$.
+
+\medskip
+\noindent{\color{blue} Write an MBQC program that implements an arbitrary single qubit unitary. Show that for several combinations of outcomes that the program reduces to a composition $Z_\alpha X_\beta Z_\gamma$ in Quantomatic.}
+\medskip
+
+Note that measurement angles can be chosen based on previous measurement outcomes. This is known as \textit{feed-forward} in MBQC. The existence of these two programs shows that MBQC is as powerful as the circuit model.
 
 
 \end{document}
