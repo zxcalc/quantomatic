@@ -1183,15 +1183,6 @@ public class InteractiveGraphView
 
 					File outputFile =  QuantoApp.getInstance().saveFile(InteractiveGraphView.this);
 					if (outputFile != null) {
-						if (outputFile.exists()) {
-							int overwriteAnswer = JOptionPane.showConfirmDialog(
-								InteractiveGraphView.this,
-								"Are you sure you want to overwrite \"" + outputFile.getName() + "\"?",
-								"Overwrite file?",
-								JOptionPane.YES_NO_OPTION);
-							if (overwriteAnswer != JOptionPane.YES_OPTION)
-								return;
-						}
 						OutputStream file = new FileOutputStream(outputFile);
                                                 PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(core.getActiveTheory(), getGraph());
 						server.renderToPdf(file);
