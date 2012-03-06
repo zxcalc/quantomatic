@@ -26,6 +26,10 @@ public class ProtocolReader {
                 new BufferedInputStream(input), "quanto.core.protocol.stream");
     }
 
+    public void close() throws IOException {
+        input.close();
+    }
+
     private void eatEsc() throws ProtocolException, IOException {
         int gotCh = input.read();
         if (gotCh != ESC) {

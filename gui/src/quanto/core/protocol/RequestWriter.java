@@ -29,6 +29,10 @@ public class RequestWriter
                 "quanto.core.protocol.stream");
     }
 
+    public void close() throws IOException {
+        output.close();
+    }
+
     private byte[] convertInt(int i)
     {
         return stringToAscii(Integer.toString(i));
