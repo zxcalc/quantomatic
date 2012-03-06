@@ -87,8 +87,7 @@ We will implement a fragment of the Z/X calculus in Quantomatic as a \textit{gra
 Launch Quantomatic using:
 
 \begin{verbatim}
-  $ cd /path/to/quantomatic/
-  $ ant run.gui
+  $ /usr/local/practicals/cqm/quantomatic
 \end{verbatim}
 
 You will now be looking at a blank graph. Along the left is the theory editor panel. In this panel, click on the arrow to the right of ``Rules'' to open the toolbox. Here, you can add dots of either colour, Hadamard gates, and boundary vertices. Click each of these buttons several times to add various kinds of nodes to a graph. Set phases for red and green nodes by double-clicking on the $0$. Note that it will recognise latex for Greek letters (\verb!\alpha!, \verb!\beta!, etc.).
@@ -128,7 +127,7 @@ Rather than implement the spider theorem as a single reduction rule, we can impl
 \begin{enumerate}
   \item A rule that merges adjacent dots of the same colour.
   \item A rule that removes self-loops.
-  \item A rule that turns spiders with 1 input and 1 output
+  \item A rule that turns spiders with 1 input and 1 output into identities.
 \end{enumerate}
 
 Note the the first and second rule need to handle any number of inputs and outputs on the spiders. Bang-boxes can be used for this.
@@ -171,10 +170,10 @@ It is a well-known result that single-qubit unitaries and the CNOT gate are univ
 
 Recall the MBQC program from section~\ref{sec:mbqc}.
 
-\[ M_2^0 M_4^0 E_{1,3} E_{2,3} E_{3,4} N_3 N_4 \]
+\[ M_2^0 M_3^0 E_{1,3} E_{2,3} E_{3,4} N_3 N_4 \]
 
 \medskip
-\noindent{\color{blue} Use the translation from section~\ref{sec:mbqc} to translate this program into a graph in Quantomatic, for measurement outcomes $\{ M_2^0 \rightarrow 0, M_4^0 \rightarrow 0 \}$. Implement enough rules from section~\ref{sec:zx} to normalise the measurement pattern into (\ref{eq:cnot}).}
+\noindent{\color{blue} Use the translation from section~\ref{sec:mbqc} to translate this program into a graph in Quantomatic, for measurement outcomes $\{ M_2^0 \rightarrow 0, M_3^0 \rightarrow 0 \}$. Implement enough rules from section~\ref{sec:zx} to normalise the measurement pattern into (\ref{eq:cnot}).}
 \medskip
 
 Even if we do not get outcome $00$, we can still produce a CNOT gate by performing single-qubit corrections.
