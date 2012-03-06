@@ -83,10 +83,13 @@ structure Console : CONSOLE
 
   val error_msg = "!!! Parse error in command."
 
+  exception bang of unit;
+
   fun eval_command_string serviceRequest command_string =
     let
       fun do_cmd_for_console ("quit",_) = QUIT
         | do_cmd_for_console ("exit",_) = QUIT
+        | do_cmd_for_console ("crashme",_) = raise bang ()
         | do_cmd_for_console ("change_theory", [th]) = (CHANGE_THEORY th)
         | do_cmd_for_console ("change_theory", _) = (NORMAL (ConsoleCommands.parse_response ConsoleCommands.wrong_number_of_args_response))
         | do_cmd_for_console ("help",["quit"]) = (NORMAL ("\nquit\n    Quits the quantomatic core\n"))
@@ -104,7 +107,8 @@ structure Console : CONSOLE
 
   fun eval_command_string_for_gui serviceRequest command_string =
     (case (ConsoleLexer.parse command_string)
-       of SOME c => (do_cmd serviceRequest c)
+       of SOME ("crashme",_) => (raise bang ())
+        | SOME c => (do_cmd serviceRequest c)
         | NONE => SKIP)
      handle Fail _ => (NORMAL error_msg)
           | ConsoleLexer.parse_exp () => (NORMAL error_msg)
