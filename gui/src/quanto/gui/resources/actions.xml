@@ -25,7 +25,7 @@
 	<action id="new-win-command"
           name="New window"
           mnemonic="W"
-	  accel="control shift N"
+          accel="control shift N"
           desc="Open a new window"/>
 
 	<action id="new-graph-command"
@@ -41,7 +41,7 @@
           mnemonic="O"
           smicon="/toolbarButtonGraphics/general/Open16.gif"
           icon="/toolbarButtonGraphics/general/Open24.gif"
-	  accel="control O"
+          accel="control O"
           desc="Open an existing graph"/>
 
 	<action id="save-command"
@@ -55,6 +55,7 @@
 	<action id="save-as-command"
           name="Save as..."
           mnemonic="a"
+          accel="control shift S"
           smicon="/toolbarButtonGraphics/general/SaveAs16.gif"
           icon="/toolbarButtonGraphics/general/SaveAs24.gif"
           desc="Save the current graph under a different name"/>
