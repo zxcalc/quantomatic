@@ -379,6 +379,7 @@ public class InteractiveGraphView
                     getViewPort().setCommandEnabled(CommandManager.Command.Save,
                         !getGraph().isSaved()
                         );
+                    firePropertyChange("saved", !getGraph().isSaved(), getGraph().isSaved());
                 }
             }
         });
@@ -1033,8 +1034,10 @@ public class InteractiveGraphView
 		if (f != null) {
 			try {
 				core.saveGraph(getGraph(), f);
+				core.renameGraph(getGraph(), f.getName());
 				getGraph().setFileName(f.getAbsolutePath());
 				getGraph().setSaved(true);
+				firePropertyChange("saved", !getGraph().isSaved(), getGraph().isSaved());
 				setTitle(f.getName());
 			}
 			catch (CoreException e) {
@@ -1051,6 +1054,7 @@ public class InteractiveGraphView
 			try {
 				core.saveGraph(getGraph(), new File(getGraph().getFileName()));
 				getGraph().setSaved(true);
+				firePropertyChange("saved", !getGraph().isSaved(), getGraph().isSaved());
 			}
 			catch (CoreException e) {
 				errorDialog(e.getMessage());
