@@ -84,7 +84,7 @@ public class RewriteViewer extends JFrame {
 				public void mouseEntered(MouseEvent e) {
 					CoreGraph match =
 						RewriteViewer.this.rewrites
-							.get(thisIndex).getLhs();
+							.get(thisIndex).getNewGraph();
 					RewriteViewer.this.vis.highlightSubgraph(match);
 				}
 				
