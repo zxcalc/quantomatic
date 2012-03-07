@@ -232,6 +232,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         splitPane.setLeftComponent(sidebar);
         splitPane.setRightComponent(viewPort);
         splitPane.setDividerLocation(150);
+        splitPane.setDividerSize(15);
         splitPane.setOneTouchExpandable(true);
 
         getContentPane().add(splitPane, BorderLayout.CENTER);
