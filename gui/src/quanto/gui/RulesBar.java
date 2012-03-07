@@ -93,31 +93,38 @@ public class RulesBar extends JPanel {
 	private JPopupMenu createRuleContextualMenu() {
 		JPopupMenu popupMenu = new JPopupMenu();
 		JMenuItem menuItem = new JMenuItem("Edit rule");
-	    popupMenu.add(menuItem);
-	    menuItem.addActionListener(new ActionListener() {
+		popupMenu.add(menuItem);
+		menuItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				editRule(listView.getSelectedValue().toString());
 			}
-	    });
-	    
-	    JMenu subMenu = new JMenu("Add tag");
-	    
-	    try {
-	    	Collection<String> allTags = ruleset.getTags();
-	    	for (String tag: allTags) {
-	    		menuItem = new JMenuItem(tag);
-	    		menuItem.addActionListener(new ActionListener() {
-	    			public void actionPerformed(ActionEvent e) {
-	    				ruleset.tagRule(listView.getSelectedValue().toString(), e.getActionCommand());
-	    			}
-    			});
-    			subMenu.add(menuItem);
-    		}
-	    } catch (CoreException e) {
+		});
+		
+		menuItem = new JMenuItem("Delete rule");
+          popupMenu.add(menuItem);
+          menuItem.addActionListener(new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    deleteSelectedRules();
+               }
+          });
+          
+		JMenu subMenu = new JMenu("Add tag");
+		try {
+		     Collection<String> allTags = ruleset.getTags();
+		     for (String tag: allTags) {
+		          menuItem = new JMenuItem(tag);
+		          menuItem.addActionListener(new ActionListener() {
+		               public void actionPerformed(ActionEvent e) {
+		                    ruleset.tagRule(listView.getSelectedValue().toString(), e.getActionCommand());
+		               }
+		          });
+		          subMenu.add(menuItem);
+		     }
+		} catch (CoreException e) {
 	   		 logger.warning("Could not load tags from the core.");
-	   	}
-	    menuItem = new JMenuItem("New Tag...");
-	    menuItem.addActionListener(new ActionListener() {	
+		}
+		menuItem = new JMenuItem("New Tag...");
+		menuItem.addActionListener(new ActionListener() {	
 			public void actionPerformed(ActionEvent e) {
 				String tag = JOptionPane.showInputDialog("Tag:");
 				if (tag == null) return;
@@ -200,15 +207,7 @@ public class RulesBar extends JPanel {
           deleteButton.addActionListener(new ActionListener() {
 
                public void actionPerformed(ActionEvent e) {
-                    try {
-                         Object[] descs = listView.getSelectedValues();
-                         for (Object d : descs) {
-                              ruleset.deleteRule(((RuleDescription) d).rulename);
-                         }
-                    }
-                    catch (CoreException ex) {
-                         logger.log(Level.WARNING, "Could not disable selected rules");
-                    }
+                    deleteSelectedRules();
                }
           });
           
@@ -340,7 +339,22 @@ public class RulesBar extends JPanel {
 			logger.log(Level.WARNING, "Could not open selected rule : ", ex);
 		}
 	}
-        
+     
+	private void deleteSelectedRules() {
+          if (JOptionPane.showConfirmDialog(null, "Delete selected rule(s)?",
+                    "Delete Rules", JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION)
+               return;
+          try {
+               Object[] descs = listView.getSelectedValues();
+               for (Object d : descs) {
+                    ruleset.deleteRule(((RuleDescription) d).rulename);
+               }
+          }
+          catch (CoreException ex) {
+               logger.log(Level.WARNING, "Could not disable selected rules");
+          }
+	}
+	
 	private void loadTags() {
 		try {
             try {
