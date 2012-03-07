@@ -34,12 +34,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
-import javax.swing.JToggleButton;
 
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.event.PopupMenuEvent;
-import javax.swing.event.PopupMenuListener;
 
 import quanto.core.CoreException;
 import quanto.core.Ruleset;
@@ -205,7 +202,6 @@ public class RulesBar extends JPanel {
                public void actionPerformed(ActionEvent e) {
                     try {
                          Object[] descs = listView.getSelectedValues();
-                         List<String> ruleNames = new LinkedList<String>();
                          for (Object d : descs) {
                               ruleset.deleteRule(((RuleDescription) d).rulename);
                          }
