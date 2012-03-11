@@ -67,6 +67,8 @@ sharing SharingOGraph.OVData = OVData.SharingWithIData
 
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
+val get_inputs : T -> V.NSet.T
+val get_outputs : T -> V.NSet.T
 val is_boundary : T -> V.name -> bool
 
 (* given two vertices, check if they are boundary-coherent end-points and return 
@@ -674,8 +676,12 @@ functor OGraphFun(G : BASIC_OGRAPH)
             end)
         (get_boundary g)
         (V.NSet.empty, V.NSet.empty);
-  
-  
+
+  (* rewrite to do this efficiently: don't calculate both when you only 
+     want one. *)
+  val get_inputs = fst o get_in_and_out_vnames;
+  val get_outputs = fst o get_in_and_out_vnames;
+        
   (* get adjacent boundary vertices *)
   fun get_adj_boundary g n = filtered_adj_vnames (is_boundary_vertex g) g n;
   fun get_adj_inputs g n = filtered_adj_vnames (is_input_vertex g) g n;

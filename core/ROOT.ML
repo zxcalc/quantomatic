@@ -49,6 +49,9 @@ PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 
+(*  *)
+(* PolyML.Project.make "layout/ograph_layout.ML"; *)
+
 (* Generic output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
