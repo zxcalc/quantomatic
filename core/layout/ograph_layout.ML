@@ -2,22 +2,23 @@
 : 
 = struct
 *) 
+local 
+  structure Graph = Str_Theory.Graph;
+in 
 structure OGraphPreLayout = 
 struct
-  structure Theory = Str_Theory;
-  open Theory;
-
-  (* grid layout of graph *)
-  datatype T = PreLayout of (V.NSet.T) (* horizontal seq defines a layer *) 
-                            list (* vertical seq connected to previous layer *)
-                            list; (* horizontal seq of disconnected parts *)
-
+  (* Given vertices seen_vs in graph g, this is true when next_v has 
+     an edge to it from one of the seen_vs of g. *)
   fun is_on_next_level g seen_vs next_v = 
     V.NSet.sub_set (Graph.pred_vnames g next_v) seen_vs;
 
+  (* Given vertex names seen_vs in graph g, add the vertices with edges from 
+     v to the set of vertex names next_vs *)
   fun add_next_vs g seen_vs v next_vs = 
     let 
-      (* look at a vertex, v', that is assumed to be adjacent to v, and decide if it should be on the next level of the layout (true when all it's ancestors have been seen, but it hasn't yet). *)
+      (* look at a vertex, v', that is assumed to be adjacent to v, and 
+         decide if it should be on the next level of the layout (true when 
+         all it's ancestors have been seen, but it hasn't yet). *)
       fun consider_next_v (ehn, (dir, data)) v' vs =
         if H.is_start ehn then vs (* going into v, so skip *)
         else (* going out of v, so maybe put on next level *)
@@ -73,6 +74,38 @@ struct
   fun pretty_layout (l : V.NSet.T list) = 
     Pretty.list "[" "]" 
       (map V.NSet.pretty l); 
-    
+
   val print_layout = Pretty.writeln o pretty_layout;
+  
+  datatype box = Param of {
+    (* space between vertices *)
+    spacing : int,
+    (* vertexs-size *)
+    vertex_size : int,
+    (* edge-width *)
+    edge_width : int
+  };
+  
+  datatype box = Box of {
+    (* in terms of number of vertices *)
+    width : int,
+    height : int,
+    vertex_layout : V.name list list
+  };
+  
+  fun width_of_layout l = 
+      fold (fn vset => fn n => 
+            let val n' = V.NSet.cardinality vset in 
+              if n < n' then n' else n end) l 0;
+  
+  fun height_of_layout l = length l;
+
+  fun box_of_layout l = 
+    Box {
+      width = width_of_layout l,
+      height = height_of_layout l,
+      vertex_layout = map V.NSet.list_of l
+    };
+  
 end;
+end; (* *)

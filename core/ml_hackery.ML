@@ -74,7 +74,6 @@ val _ = r1
 
 end; (* *)
 
-
 PolyML.Project.make "layout/ograph_layout.ML";
 
 local 
@@ -93,4 +92,7 @@ in
   val _ = Str_Theory.Graph.print g;
   val layouts = OGraphPreLayout.layout_graph g;
   val _ = map OGraphPreLayout.print_layout layouts;
+  
+  val boxes = map OGraphPreLayout.box_of_layout layouts;
 end;
+

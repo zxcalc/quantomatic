@@ -9,8 +9,7 @@ structure RTechn_GraphParam
 
   (* Vertices with string data and prefix-substring matching *)
   structure VData = RTechn_VertexData;
-  structure EData = IgnoredUnifiableData(structure D = UnitData;
-  structure S = UnitSubst; val default_data = ());
+  structure EData = StringData;
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
@@ -19,7 +18,7 @@ structure RTechn_GraphParam
   val empty_subst = ();
   fun compose_subst u1 u2 = (); 
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
-  fun try_match_edge e1 e2 u = SOME u;
+  fun try_match_edge e1 e2 u = EData.match_data (e1,e2) u;
 
   (* IMPROVE: what data do we want here? should it be add_exp *)
   exception match_exp of unit;
@@ -98,6 +97,10 @@ structure RTechn_OVertexComponentData_Param = OVertexComponentData_Param(
 structure RTechn_OVertexComponentData = 
   ElementComponentData(RTechn_OVertexComponentData_Param);
 
+structure RTechn_EdgeComponentData = 
+  ElementComponentData(Str_ComponentData_Param);
+    
+  
 (* ML utility code for building SS graphs *)
 (*
 structure MkG = 
