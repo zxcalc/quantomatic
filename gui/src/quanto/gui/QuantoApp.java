@@ -475,6 +475,15 @@ public class QuantoApp {
         fileChooser[type].setDialogType(JFileChooser.SAVE_DIALOG);
         if (retVal == JFileChooser.APPROVE_OPTION) {
             File f = fileChooser[type].getSelectedFile();
+            if (f.exists()) {
+                int overwriteAnswer = JOptionPane.showConfirmDialog(
+                    parent,
+                    "Are you sure you want to overwrite \"" + f.getName() + "\"?",
+                    "Overwrite file?",
+                    JOptionPane.YES_NO_OPTION);
+                if (overwriteAnswer != JOptionPane.YES_OPTION)
+                    return null;
+            }
             if (f.getParent() != null) {
                 setPreference(QuantoApp.LAST_OPEN_DIRS[type], f.getParent());
             }

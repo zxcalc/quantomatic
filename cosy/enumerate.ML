@@ -1,72 +1,71 @@
 signature GRAPH_ENUMERATOR =
 sig
-  structure Graph : BANG_GRAPH
-  structure Ruleset : RULESET
-  structure MatchSearch : RULE_MATCH_SEARCH
-  sharing Ruleset.Rule.Graph.SharingBangGraph =
-          Graph.SharingBangGraph
-  sharing MatchSearch.Rule.Sharing = Ruleset.Rule.Sharing
-  val fold_graphs : (Graph.T -> 'a -> 'a) -> (* folder *)
-                    (Graph.T * int * int) list * (* generators + arities *)
+  structure Theory : GRAPHICAL_THEORY
+  val fold_graphs : (Theory.Graph.T -> 'a -> 'a) -> (* folder *)
+                    (Theory.Graph.T * int * int) list * (* generators + arities *)
                     int * int * int * int -> (* in, out, max verts, max pluggings *)
                     'a -> (* base case *)
                     'a
-  val fold_graphs_with_rs : Ruleset.T -> (* ruleset *)
-                            (Graph.T -> 'a -> 'a) -> (* folder *)
-                            (Graph.T * int * int) list * (* generators + arities *)
+  val fold_graphs_with_rs : Theory.Ruleset.T -> (* ruleset *)
+                            (Theory.Graph.T -> 'a -> 'a) -> (* folder *)
+                            (Theory.Graph.T * int * int) list * (* generators + arities *)
                             int * int * int * int -> (* in, out, max verts, max pluggings *)
                             'a -> (* base case *)
                             'a
-  val rule_matches_graph : Ruleset.Rule.T -> Graph.T -> bool
-  val has_match : Ruleset.T -> RuleName.NSet.T -> Graph.T -> bool
+  val rule_matches_graph : Theory.Rule.T -> Theory.Graph.T -> bool
+  val has_match : Theory.Ruleset.T -> R.NSet.T -> Theory.Graph.T -> bool
 end
 
 functor GraphEnumerator (
-  structure Ruleset : RULESET
-  structure MatchSearch : RULE_MATCH_SEARCH
-  sharing MatchSearch.Rule.Sharing = Ruleset.Rule.Sharing
+  structure Theory : GRAPHICAL_THEORY
 ) : GRAPH_ENUMERATOR =
 struct
-  structure Graph = Ruleset.Rule.Graph
-  structure Ruleset = Ruleset
-  structure MatchSearch = MatchSearch
+  structure Theory = Theory
+  structure Graph = Theory.Graph
+  
   (* maintain list of available pluggings *)
-  structure Plugs = NameBRelFun(structure Dom=Graph.Vertex and Cod=Graph.Vertex)
+  structure Plugs = NameBRelFun(structure Dom=V and Cod=V)
   
   (* get the lowest plugging *)
   fun first_plug rel = 
-    case Graph.Vertex.NSet.get_first (Plugs.get_domset rel)
-      of SOME a => SOME (a, the (Graph.Vertex.NSet.get_first (Plugs.domf rel a)))
+    case V.NSet.get_first (Plugs.get_domset rel)
+      of SOME a => SOME (a, the (V.NSet.get_first (Plugs.domf rel a)))
        | NONE   => NONE
   
   fun add_gen gen gr = Graph.merge_by_vertices gr (snd (Graph.rename_apart gr gen))
   fun do_plug (p,q) gr = (snd o snd) (Graph.plug_by_boundary p q gr)
   fun get_plugs gr = let
-    val filt = Graph.Vertex.NSet.filter (Graph.Vertex.NSet.is_empty o (Graph.get_adj_boundary gr))
+    val filt = V.NSet.filter (V.NSet.is_empty o (Graph.get_adj_boundary gr))
     val (ins,outs) = Graph.get_in_and_out_vnames gr
     val (ins',outs') = (filt ins, filt outs)
-  in if Graph.Vertex.NSet.is_empty ins' orelse Graph.Vertex.NSet.is_empty outs'
+  in if V.NSet.is_empty ins' orelse V.NSet.is_empty outs'
      then Plugs.empty else Plugs.empty |> Plugs.add_many ins' outs'
   end
   fun delete_plugs_like gr (p,q) plugs = let (* remove all plugs that are essentially (p,q) because of commutativity *)
-    val ps = Graph.pred_vnames gr (the (Graph.Vertex.NSet.get_first (Graph.succ_vnames gr p)))
-    val qs = Graph.succ_vnames gr (the (Graph.Vertex.NSet.get_first (Graph.pred_vnames gr q)))
+    val ps = Graph.pred_vnames gr (the (V.NSet.get_first (Graph.succ_vnames gr p)))
+    val qs = Graph.succ_vnames gr (the (V.NSet.get_first (Graph.pred_vnames gr q)))
   in plugs |> Plugs.del_many ps qs
   end
   (* fun dft (Lf s) vs = s::vs | dft (Br (s,ch)) vs = s::(fold dft ch vs); *)
   
-  
-  
-  fun rule_matches_graph r g = let
-    val lhs = Ruleset.Rule.get_lhs r
+  (* precondition: g contains no !-boxes *)
+  fun rule_matches_concrete_graph r g = let
+    val lhs = Theory.Rule.get_lhs r
     val gs = [lhs, g]
     val names = 
-      (fold Graph.add_to_vnames  gs Graph.Vertex.NSet.empty,
-       fold Graph.add_to_enames  gs Graph.Edge.NSet.empty,
-       fold Graph.add_to_bbnames gs Graph.BBox.NSet.empty)
-    val matches = MatchSearch.match names r g
+      (fold Graph.add_to_vnames  gs V.NSet.empty,
+       fold Graph.add_to_enames  gs E.NSet.empty,
+       fold Graph.add_to_bbnames gs B.NSet.empty)
+    val matches = Theory.RuleMatchSearch.match names r g
   in case Seq.pull matches of NONE=>false | _=>true
   end
+  
+  val rule_matches_graph = rule_matches_concrete_graph
+  
+  (* matching using !-graphs as a target seems to be broken, so return false by default *)
+  (*fun rule_matches_graph r g = if (Graph.VtoBoxMap.is_empty o Graph.get_bboxes) g
+                               then rule_matches_concrete_graph r g
+                               else false*)
   
   (*fun has_match rs in_rules target_graph = let
     val redsets = RuleName.NSet.subdivide (4 * Multithreading.max_threads_value ()) in_rules
@@ -75,11 +74,11 @@ struct
   end*)
   
   fun has_match rs in_rules target_graph =
-    RuleName.NSet.exists (fn r => rule_matches_graph (Ruleset.get_rule rs r) target_graph) in_rules
+    R.NSet.exists (fn r => rule_matches_graph (Theory.Ruleset.get_rule rs r) target_graph) in_rules
   
   fun fold_graphs_with_rs rs f (generators, total_ins, total_outs, max_verts, max_plugs) base = let
     (*val rule_list = RuleName.NSet.fold (cons o (Ruleset.get_rule rs)) (Ruleset.get_rules_in_tag rs (TagName.mk "r")) []*)
-    val all_reds = Ruleset.get_rules_in_tag rs (TagName.mk "r")
+    val all_reds = Theory.Ruleset.get_rules_in_tag rs (TagName.mk "r")
     fun enum_plugs (gr, ins, plugs, plug_count) accum =
       if (ins < total_ins orelse
           plug_count > max_plugs orelse
@@ -110,7 +109,7 @@ struct
   in enum_gens (Graph.empty, generators, 0, 0, 0) base
   end
   
-  fun fold_graphs f run base = fold_graphs_with_rs Ruleset.empty f run base
+  fun fold_graphs f run base = fold_graphs_with_rs Theory.Ruleset.empty f run base
 end
 
 

@@ -1,4 +1,10 @@
-PolyML.Project.depend_on_files ["ROOT.ML"];
+val rootDir = OS.FileSys.getDir();
+(OS.FileSys.chDir (rootDir ^ "/../core/"); 
+use "ROOT.ML"; 
+OS.FileSys.chDir rootDir);
+print_depth 3;
+
+PolyML.Project.depend_on_files [rootDir^"/../core/ROOT.ML", rootDir^"/ROOT.ML"];
 
 PolyML.Project.make "default_rws.ML";
 PolyML.Project.make "default_gens.ML";

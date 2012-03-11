@@ -8,12 +8,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author alemer
  */
 public class StreamRedirector extends Thread
 {
+    private final static Logger logger = Logger.getLogger("quanto.core.protocol.streamredirector");
     private InputStream from;
     private OutputStream to;
 
@@ -34,6 +38,7 @@ public class StreamRedirector extends Thread
                 count = from.read(buffer);
             }
         } catch (IOException ex) {
+            logger.log(Level.WARNING, "Failed to redirect stderr", ex);
         }
     }
 }

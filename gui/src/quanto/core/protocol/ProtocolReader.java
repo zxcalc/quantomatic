@@ -4,6 +4,7 @@
  */
 package quanto.core.protocol;
 
+import java.util.logging.Logger;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +18,7 @@ import static quanto.core.protocol.Utils.*;
  */
 public class ProtocolReader {
     private static final char ESC = '\u001b';
+    private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
     private LoggingInputStream input;
     private String version;
@@ -26,15 +28,19 @@ public class ProtocolReader {
                 new BufferedInputStream(input), "quanto.core.protocol.stream");
     }
 
+    public void close() throws IOException {
+        input.close();
+    }
+
     private void eatEsc() throws ProtocolException, IOException {
         int gotCh = input.read();
         if (gotCh != ESC) {
             if (gotCh == -1)
-                throw new ProtocolException("Expected ESC, got EOF");
+                throw new ProtocolException("Expected ESC from core, got EOF");
             else if (Character.isISOControl(gotCh))
-                throw new ProtocolException("Expected ESC, got \\u" + Integer.toHexString(gotCh));
+                throw new ProtocolException("Expected ESC from core, got \\u" + String.format("%1$04x", gotCh));
             else
-                throw new ProtocolException("Expected ESC, got " + (char)gotCh);
+                throw new ProtocolException("Expected ESC from core, got " + (char)gotCh);
         }
     }
 
@@ -329,10 +335,32 @@ public class ProtocolReader {
             return resp;
         } catch (IOException ex) {
             input.writeLog(Level.SEVERE, "Received partial message");
+            consumeStream();
             throw ex;
         } catch (ProtocolException ex) {
             input.writeLog(Level.SEVERE, "Received invalid message");
+            consumeStream();
             throw ex;
+        }
+    }
+
+    private void consumeStream() {
+        try {
+            byte[] b = new byte[1024];
+            int count = 0;
+            int avail = input.available();
+            while (avail > 0) {
+                if (avail > b.length)
+                    avail = b.length;
+                count = input.read(b, 0, avail);
+                if (count != -1 && logger.isLoggable(Level.INFO)) {
+                    String strVal = new String(b, 0, count)
+                            .replace('\u001b', '\u00a4');
+                    logger.log(Level.INFO, "Discarding data: \"{0}\"", strVal);
+                }
+                avail = input.available();
+            }
+        } catch (IOException ex) {
         }
     }
 }

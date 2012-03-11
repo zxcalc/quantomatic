@@ -180,6 +180,12 @@ public class Ruleset implements ChangeEventSupport {
 		updateCacheByTag(tag, Boolean.FALSE);
 	}
 
+	public void deleteRulesByTag(String tag) throws CoreException {
+	     core.getTalker().deleteRulesByTag(tag);
+	     reload();
+	     fireStateChanged();     
+	}
+	
 	private void updateCacheForRule(String name, Boolean newActivationState) {
 		if (!rules.containsKey(name)) {
 			logger.log(Level.WARNING, "Inconsistent state: core seems to know about rule \"{}\", but we don't", name);
@@ -216,6 +222,12 @@ public class Ruleset implements ChangeEventSupport {
 		fireStateChanged();
 	}
 
+	public void deleteRule(String rule) throws CoreException {
+	     core.getTalker().deleteRule(rule);
+	     reload();
+	     fireStateChanged();     
+	}
+	
 	public void activateRules(Collection<String> ruleNames) throws CoreException {
 		if (!rules.keySet().containsAll(ruleNames)) {
 			throw new IllegalArgumentException("ruleNames contains unknown rules");
