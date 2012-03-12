@@ -54,6 +54,14 @@ uses
  "../../core/theories/red_green_blue/theory.ML"
  "../../core/theories/red_green_blue/io.ML"
 
+
+(* rgb specific vertices, graphs, and matching *)
+ "../../core/theories/isaplanner_rtechn/vertex.ML"
+ "../../core/theories/isaplanner_rtechn/graph.ML"
+ "../../core/theories/isaplanner_rtechn/theory.ML"
+ "../../core/theories/isaplanner_rtechn/io.ML"
+
+
 (* OLD STUFFF *)
 (*
 

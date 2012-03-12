@@ -2,6 +2,12 @@ theory io
 imports Main graph
 uses
 
+(* TODO(ldixon): push the edits to xml.ML back to Isabelle -
+re-loading over Isabelle's library means that quanto's XML structure,
+and anything that uses it, will be incompatible with the one that is
+loaded over it. Alternatively, make an xml2 library. *)
+"~~/contrib/isaplib/General/xml.ML"
+
 (* Quantomatic CORE *)
 
 (* Generic output/input tools *)
