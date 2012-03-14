@@ -1368,12 +1368,14 @@ struct
                       end
 
          | "GVEU" =>  let
-                        val graphName = readToEscape #";"
-                        val edgeName  = readToEnd ()
+                        val graphName  = readToDelim ()
+                        val edgeName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = EdgeUserData { edgeName = edgeName }
+                          desc = EdgeUserData { edgeName = edgeName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1388,12 +1390,14 @@ struct
                       end
 
          | "GVBU" =>  let
-                        val graphName   = readToEscape #";"
-                        val bangBoxName = readToEnd ()
+                        val graphName  = readToDelim ()
+                        val bangBoxName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = BangBoxUserData { bangBoxName = bangBoxName }
+                          desc = BangBoxUserData { bangBoxName = bangBoxName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1633,6 +1637,7 @@ struct
          | "GMEU" =>  let
                         val graphName = readToDelim ()
                         val edgeName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1640,6 +1645,7 @@ struct
                           graphName = graphName,
                           action =  SetEdgeUserDataAction {
                                       edgeName = edgeName,
+                                      dataName = dataName,
                                       userData = data
                                     }
                         }
@@ -1764,6 +1770,7 @@ struct
          | "GMBU" =>  let
                         val graphName = readToDelim ()
                         val bangBoxName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1771,6 +1778,7 @@ struct
                           graphName = graphName,
                           action =  SetBangBoxUserDataAction {
                                       bangBoxName = bangBoxName,
+                                      dataName = dataName,
                                       userData = data
                                     }
                         }

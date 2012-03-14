@@ -3,13 +3,17 @@ signature CONTROLLER_STATE =
 sig
   type T;
   structure Theory : GRAPHICAL_THEORY;
+  structure UIData : USER_DATA;
+
   type rewrite = (R.name * Theory.Rule.T) * Theory.Graph.T
   type vertex = (Theory.OVData.data * (E.NSet.T * E.NSet.T));
   type edge = ((Theory.Graph.dir_or_undir * Theory.EData.data) * (V.name * V.name));
-
+  type history = ((Theory.Graph.T * UIData.T) list * 
+                    (Theory.Graph.T * UIData.T) list ) GraphName.NTab.T;
   exception no_such_graph_exp of GraphName.name;
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
+  exception no_such_vertex_user_data_exp of (V.name * string);
   exception no_such_edge_exp of (E.name * GraphName.name);
   exception no_such_edge_type_exp of string;
   exception no_such_bbox_exp of (B.name * GraphName.name);
@@ -27,8 +31,9 @@ sig
   (* get/set*)
   val get_rset : T -> Theory.Ruleset.T
   val get_rewrites : T -> rewrite list GraphName.NTab.T;
-  val get_hist : T -> (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T;
+  val get_hist : T -> history;
   val get_graphs : T -> Theory.Graph.T GraphName.NTab.T;
+  val get_ud : T -> UIData.T;
   val get_graph : T -> GraphName.name -> Theory.Graph.T;
   val get_graph_names : T -> GraphName.name list;
 
@@ -36,18 +41,16 @@ sig
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
      T -> T
-  val update_hist :
-   ((Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T ->
-     (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T) -> T -> T
+  val update_hist : (history -> history) -> T -> T;
   val update_graphs :
    (Theory.Graph.T GraphName.NTab.T -> Theory.Graph.T GraphName.NTab.T) -> T -> T
 
   val set_rset : Theory.Ruleset.T -> T -> T
   val set_rewrites : rewrite list GraphName.NTab.T -> T -> T
-  val set_hist : (Theory.Graph.T list * Theory.Graph.T list) GraphName.NTab.T -> T -> T
+  val set_hist : history -> T -> T
   val set_graphs : Theory.Graph.T GraphName.NTab.T -> T -> T
   val set_graph : Theory.Graph.T -> GraphName.name -> T -> T
-
+  val set_ud : UIData.T -> GraphName.name -> T -> T
 
 
   (* history *)
@@ -88,7 +91,6 @@ sig
   (* graphs and their manipulations *)
   val kill_graph : GraphName.name -> T -> T
   val insert_graph : GraphName.name -> GraphName.name -> T -> T
-  val update_graph_user_data : GraphName.name -> string -> string -> T -> T
   val add_graph : GraphName.name -> Theory.Graph.T -> T -> GraphName.name * T
   val copy_subgraph : GraphName.name -> GraphName.name -> V.name list -> T -> T
 
@@ -97,7 +99,6 @@ sig
   val add_bang : GraphName.name -> T -> B.name * T
 
   val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
-  val update_vertex_user_data : string -> string -> V.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
   val rename_vertex : V.name -> V.name -> GraphName.name -> T -> T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
@@ -112,7 +113,18 @@ sig
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
   val drop_bang : B.name list -> GraphName.name -> T -> T
-
+  (* UI Data getters/setters *)
+  val update_graph_user_data : string -> string ->  GraphName.name -> T -> T
+  val get_graph_user_data : GraphName.name -> T -> string Symtab.table
+  val update_vertex_user_data : string -> string -> V.name -> GraphName.name -> T -> T
+  val get_vertex_user_data : GraphName.name -> V.name -> T -> (string
+    Symtab.table option)
+  val update_edge_user_data : string -> string -> E.name -> GraphName.name -> T -> T
+  val get_edge_user_data : GraphName.name -> E.name -> T -> (string
+    Symtab.table option)
+  val update_bangbox_user_data : string -> string -> B.name -> GraphName.name -> T -> T
+  val get_bangbox_user_data : GraphName.name -> B.name -> T -> (string
+    Symtab.table option)
 end;
 
 
@@ -128,10 +140,13 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   structure Graph = Theory.Graph;
   structure OVData = Graph.OVData;
   structure EData = Graph.EData;
+  structure UIData = UserData(Graph):USER_DATA;
 
   exception no_such_graph_exp of GraphName.name;
   exception no_such_graph_user_data_exp of (GraphName.name * string);
   exception no_such_vertex_user_data_exp of (V.name * string);
+  exception no_such_edge_user_data_exp of (E.name * string);
+  exception no_such_bangbox_user_data_exp of (B.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_edge_exp of (E.name * GraphName.name);
@@ -150,33 +165,39 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   type rewrite = (R.name * Rule.T) * Graph.T (* rule, and graph to be rewritten to *)
   type vertex =  (OVData.data * (E.NSet.T * E.NSet.T));
   type edge = ((Graph.dir_or_undir * EData.data) * (V.name * V.name));
-
+  type history = ((Theory.Graph.T * UIData.T) list * 
+                    (Theory.Graph.T * UIData.T) list ) GraphName.NTab.T;
   (* data for controller; top level data with which user interacts *)
   datatype T = CState of {
        graphs : Graph.T GraphName.NTab.T, (* the known graphs *)
        rewrites : (rewrite list) GraphName.NTab.T, (* cached possible rewrites *)
-       hist : (Graph.T list * Graph.T list) GraphName.NTab.T, (* past and future *)
+       ud : UIData.T GraphName.NTab.T, (* User Data *)
+       hist : history, (* past and future *)
        rset : Ruleset.T (* the known rules *)
   }
 
   (* getters and setters for the state *)
-  fun update_graphs f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
-    CState {graphs=(f g),rewrites=r,hist=h,rset=t}
-  fun update_rewrites f (CState {graphs=g,rewrites=r,hist=h,rset=t}) =
-    CState {graphs=g,rewrites=(f r),hist=h,rset=t}
-  fun update_hist f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
-    CState {graphs=g,rewrites=r,hist=(f h),rset=t}
-  fun update_rset f (CState {graphs=g,rewrites=r,hist=h,rset=t}) = 
-    CState {graphs=g,rewrites=r,hist=h,rset=(f t)}
-  val (set_graphs,set_rewrites,set_hist,set_rset) = 
-    (update_graphs o K, update_rewrites o K, update_hist o K, update_rset o K)
+  fun update_graphs f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
+    CState {graphs=(f g),rewrites=r,ud=u,hist=h,rset=t} 
+  fun update_rewrites f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
+    CState {graphs=g,rewrites=(f r),ud=u,hist=h,rset=t}
+  fun update_ud f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=(f u),hist=h,rset=t}
+  fun update_hist f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=(f h),rset=t}
+  fun update_rset f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,rset=(f t)}
+  val (set_graphs,set_rewrites,set_ud,set_hist,set_rset) = 
+    (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K, update_rset o K)
   fun get_graphs (CState {graphs=g,...}) = g
   fun get_rewrites (CState {rewrites=r,...}) = r
+  fun get_ud (CState {ud=u,...}) = u
   fun get_hist (CState {hist=h,...}) = h
   fun get_rset (CState {rset=t,...}) = t
 
   val init = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
+                         ud=GraphName.NTab.empty,
                          hist=GraphName.NTab.empty,
                          rset=Ruleset.empty};
 
@@ -188,6 +209,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   val get_graph_names = GraphName.NSet.list_of o GraphName.NTab.get_nameset o get_graphs
 
+  fun get_graph_ud state name =
+      (case GraphName.NTab.lookup (get_ud state) name
+       of SOME u => u
+        | NONE => raise no_such_graph_exp name)
+
   (* state mutators *)
   fun push_hist gname state = 
       let
@@ -195,7 +221,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
             the_default ([],[]) (GraphName.NTab.lookup (get_hist state) gname)
         val hist' = (get_hist state)
                           |> GraphName.NTab.update
-                          (gname,((get_graph state gname)::back, []))
+                          (gname,((get_graph state gname, get_graph_ud state gname)::back, []))
       in state |> set_hist hist'
       end
 
@@ -203,9 +229,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
    * so should be cleared *)
   fun set_graph graph' gname state =
       state |> update_graphs (GraphName.NTab.update (gname,graph'))
-              |> update_rewrites (GraphName.NTab.update (gname,[]))    
+            |> update_rewrites (GraphName.NTab.update (gname,[]))    
 
 
+  fun set_graph_ud ud' gname state =
+      state |> update_ud (GraphName.NTab.update (gname,ud'))
   (* ============================================== *)
   (* these functions actually implement commmands *)
 
@@ -318,11 +346,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
           val () = assert_tag_exists state tag_name
       in update_rset (Ruleset.untag_rule rule_name tag_name) state end
 
-
     fun add_graph default_name graph state = let
         val (nm,gs) = (get_graphs state)
                   |> GraphName.NTab.add (default_name, graph)
-        in (nm, state |> set_graphs gs) end
+        in (nm, state |> set_graphs gs
+                      |> set_graph_ud UIData.init nm) end
 
   fun kill_graph name state =
       (update_graphs (fn gs => gs |> GraphName.NTab.delete name) state)
@@ -330,21 +358,33 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun rename_graph oldname newname state =
      (let
+          (* When a graph is renamed there is no reason to loose its
+           * history and its user data.  *)
           val graphs = get_graphs state
           val gr = GraphName.NTab.get graphs oldname
+          val hist = the_default ([],[]) (GraphName.NTab.lookup (get_hist state)
+                                                                    oldname)
+          val ud = GraphName.NTab.get (get_ud state) oldname
           val (nm,graphs') = graphs
                     |> GraphName.NTab.delete oldname
                     |> GraphName.NTab.add (newname, gr)
+          val hist' = GraphName.NTab.update (nm, hist) (get_hist state)
+          val ud' = GraphName.NTab.update (nm, ud) (get_ud state) 
       in
-        (nm, set_graphs graphs' state)
+        (nm, state |> set_graphs graphs'
+                   |> set_hist hist'
+                   |> set_ud ud')
       end
       handle GraphName.NTab.Tab.UNDEF _ => raise no_such_graph_exp oldname)
 
   fun lift_graph_mutator cmdf gname state =
-      let val (out,g') = cmdf (get_graph state gname)
+      let 
+          val (out,g') = cmdf (get_graph state gname)
+          val ud' = UIData.update_against_graph (get_graph_ud state gname) g'
       in
         (out, state |> push_hist gname 
-                    |> set_graph g' gname)
+                    |> set_graph g' gname
+                    |> set_graph_ud ud' gname)
       end
       handle Graph.no_such_vname_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
@@ -358,10 +398,13 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                 raise bbox_name_exists_exp (bname,gname);
 
   fun lift_graph_mutator_no_result cmdf gname state =
-      let val g' = cmdf (get_graph state gname)
+      let 
+          val g' = cmdf (get_graph state gname)
+          val ud' = UIData.update_against_graph (get_graph_ud state gname) g'
       in
         state |> push_hist gname
               |> set_graph g' gname
+              |> set_graph_ud ud' gname
       end
       handle Graph.no_such_vname_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
@@ -373,6 +416,21 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                 raise edge_name_exists_exp (ename,gname)
            | Graph.bname_already_exists_exp (bname,_) =>
                 raise bbox_name_exists_exp (bname,gname);
+
+  fun lift_ud_mutator_no_result cmdf gname state =
+      let 
+         (* Make sure the graph exists *)
+          val g_ = get_graph state gname
+          val u' = cmdf (get_graph_ud state gname)
+      in
+        state |> push_hist gname
+              |> set_graph_ud u' gname
+      end
+      handle Graph.no_such_vname_exp (_,vname,_) =>
+               raise no_such_vertex_exp (vname,gname)
+           | Graph.no_such_ename_exp (_,ename,_) =>
+               raise no_such_edge_exp (ename,gname);
+
 
   fun add_vertex_internal vt graph =
       (let val (n,g) = graph |> Graph.add_vertex (Theory.VertexComponentData.default_data vt) in
@@ -409,23 +467,29 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun undo gname state =
       let
-        val current = get_graph state gname
+        val current_graph = get_graph state gname
+        val current_ud = get_graph_ud state gname
+        val current = (current_graph, current_ud)
       in case GraphName.NTab.lookup (get_hist state) gname
-          of SOME (g::gs, hs) =>
+          of SOME ((g,u)::ps, hs) =>
               state |> set_graph g gname
+                    |> set_graph_ud u gname
                     |> update_hist (GraphName.NTab.update
-                                   (gname, (gs,current::hs)))
+                                   (gname, (ps,current::hs)))
            | _ => raise bad_state_exp "Can't undo, no more undo history."
       end
 
   fun redo gname state = 
       let
-        val current = get_graph state gname
+        val current_graph = get_graph state gname
+        val current_ud = get_graph_ud state gname
+        val current = (current_graph, current_ud)
       in case GraphName.NTab.lookup (get_hist state) gname
-          of SOME (gs, h::hs) =>
+          of SOME (gs, (h,u)::ps) =>
               state |> set_graph h gname
+                    |> set_graph_ud u gname
                     |> update_hist (GraphName.NTab.update
-                                   (gname, (current::gs,hs)))
+                                   (gname, (current::gs,ps)))
            | _ => raise bad_state_exp "Can't redo, nothing to redo."
       end
 
@@ -475,24 +539,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         graph |> Graph.update_vertex_data vd_upd vn
       end
   fun update_vertex_data vd_upd vn = lift_graph_mutator_no_result (update_vertex_data_internal vd_upd vn)
-  
-  fun update_vertex_user_data_internal dn ud vn g =
-      let
-        val () = assert_vertex_exists_gr g vn
-        val updater = Symtab.update (dn, ud)
-        val brel = Graph.get_vertices_u_d_brel g
-        fun get_uv_name v = case (VVUDBRel.lookup_domf brel v)
-          of SOME x => (case (UV.NSet.get_first x) 
-            of SOME y => y
-             | NONE => 
-                raise no_such_vertex_user_data_exp (vn, "No such user data."))
-           | NONE => 
-              raise no_such_vertex_user_data_exp (vn, "No such user data.")
-      in
-        Graph.update_vertex_user_data updater (get_uv_name vn) g
-      end;
-  fun update_vertex_user_data dn ud vn = lift_graph_mutator_no_result
-    (update_vertex_user_data_internal dn ud vn)
+ 
 
   fun update_edge_data_internal ed_upd en graph =
       let val () = assert_edge_exists_gr graph en in
@@ -553,10 +600,6 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                             |> set_graph (Graph.merge_by_vertices targ source) tname
       end
 
-  fun update_graph_user_data gname dname udata state =
-    lift_graph_mutator_no_result (Graph.update_graph_user_data (Symtab.update
-        (dname,udata))) gname state
-
   fun graph_of_rule getter label state rulename =
       let
         val rset = get_rset state
@@ -569,6 +612,70 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   val open_rule_lhs = graph_of_rule Rule.get_lhs "lhs"
   val open_rule_rhs = graph_of_rule Rule.get_rhs "rhs"
+
+  (* Set and get the user data  *)
+
+  fun update_graph_user_data_internal dn ud user_data =
+    let
+      val updater = Symtab.update (dn, ud)
+    in
+      UIData.update_g_ud updater user_data
+    end
+
+  fun update_graph_user_data dn ud = lift_ud_mutator_no_result
+    (update_graph_user_data_internal dn ud)
+
+
+  fun get_graph_user_data gn state =
+    UIData.get_g_ud (get_graph_ud state gn)
+
+  fun update_vertex_user_data_internal dn ud vn user_data =
+      let
+        val updater = Symtab.update (dn, ud)
+      in
+        UIData.update_v_ud updater vn user_data
+      end
+  fun update_vertex_user_data dn ud vn = lift_ud_mutator_no_result
+    (update_vertex_user_data_internal dn ud vn)
+
+  fun get_vertex_user_data gn vn state =
+    let
+      val () = assert_vertex_exists state gn vn
+    in
+      UIData.get_v_ud (get_graph_ud state gn) vn
+    end
+
+  fun update_edge_user_data_internal dn ud en user_data =
+      let
+        val updater = Symtab.update (dn, ud)
+      in
+        UIData.update_e_ud updater en user_data
+      end
+  fun update_edge_user_data dn ud en = lift_ud_mutator_no_result
+    (update_edge_user_data_internal dn ud en)
+
+  fun get_edge_user_data gn en state =
+    let
+      val () = assert_edge_exists state gn en
+    in
+      UIData.get_e_ud (get_graph_ud state gn) en
+    end
+
+  fun update_bangbox_user_data_internal dn ud bn user_data =
+      let
+        val updater = Symtab.update (dn, ud)
+      in
+        UIData.update_bb_ud updater bn user_data
+      end
+  fun update_bangbox_user_data dn ud bn = lift_ud_mutator_no_result
+    (update_bangbox_user_data_internal dn ud bn)
+
+  fun get_bangbox_user_data gn bn state =
+    let
+      val () = assert_bbox_exists state gn bn
+    in
+      UIData.get_bb_ud (get_graph_ud state gn) bn
+    end
 
 end; (* structure Controller *)
 

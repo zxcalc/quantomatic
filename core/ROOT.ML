@@ -67,7 +67,11 @@ PolyML.Project.make "io/writer.ML";
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
 
+(* Storing UI data on graphs, vertices, !-Boxes and edges *)
+PolyML.Project.make "interface/user_data.ML";
+
 (* I/O for graphs *)
+PolyML.Project.make "io/input_user_data.ML";
 PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
