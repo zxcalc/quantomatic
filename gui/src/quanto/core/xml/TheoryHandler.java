@@ -176,7 +176,7 @@ public class TheoryHandler extends DefaultHandler {
                         URL svgUrl = resolveUrl(attributes.getValue("svgFile"));
                         svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgUrl);
                         if (svgdocURI == null) {
-                            throw new SAXParseException("Could not load SVG from '" + svgUrl + "'", null);
+                            throw new SAXParseException("Could not load SVG from '" + svgUrl + "'", locator);
                         }
                         data.dependentResources.add(svgUrl);
                     } catch (MalformedURLException e) {
