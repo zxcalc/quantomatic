@@ -113,7 +113,7 @@ public class Ruleset implements ChangeEventSupport {
 		try {
 			core.getTalker().tagRule(ruleName, tag);
 		} catch (CoreException e) {
-			logger.log(Level.WARNING, "Could not tag rule {}", ruleName);
+			logger.log(Level.WARNING, "Could not tag rule {0}", ruleName);
 		}
 		reload();
 	}
@@ -122,7 +122,7 @@ public class Ruleset implements ChangeEventSupport {
 		try {
 			core.getTalker().untagRule(ruleName, tag);
 		} catch (CoreException e) {
-			logger.log(Level.WARNING, "Could not tag rule {}", ruleName);
+			logger.log(Level.WARNING, "Could not tag rule {0}", ruleName);
 		}
 		reload();
 	}
@@ -130,7 +130,7 @@ public class Ruleset implements ChangeEventSupport {
 	private void updateCacheByTag(String tag, Boolean newActivationState) {
 		if (tags != null) {
 			if (!tags.containsKey(tag)) {
-				logger.log(Level.WARNING, "Inconsistent state: we don't know about tag {}", tag);
+				logger.log(Level.WARNING, "Inconsistent state: we don't know about tag {0}", tag);
 				reload();
 				return;
 			}
@@ -139,7 +139,7 @@ public class Ruleset implements ChangeEventSupport {
 			if (taggedRules != null) {
 				for (String rulename : taggedRules) {
 					if (!rules.containsKey(rulename)) {
-						logger.log(Level.WARNING, "Inconsistent state: {} is tagged, but does not exist!", rulename);
+						logger.log(Level.WARNING, "Inconsistent state: {0} is tagged, but does not exist!", rulename);
 						reload();
 						return;
 					}
@@ -188,7 +188,7 @@ public class Ruleset implements ChangeEventSupport {
 	
 	private void updateCacheForRule(String name, Boolean newActivationState) {
 		if (!rules.containsKey(name)) {
-			logger.log(Level.WARNING, "Inconsistent state: core seems to know about rule \"{}\", but we don't", name);
+			logger.log(Level.WARNING, "Inconsistent state: core seems to know about rule \"{0}\", but we don't", name);
 			reload();
 			return;
 		}

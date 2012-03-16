@@ -58,7 +58,7 @@ public class ProtocolManager {
         try {
             reader.waitForReady();
             logger.log(Level.FINE,
-                    "The core is running version {} of the protocol",
+                    "The core is running version {0} of the protocol",
                     reader.getVersion());
             // FIXME: we should check that the core is running the version we expect
         } catch (IOException e) {

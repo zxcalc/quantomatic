@@ -460,12 +460,12 @@ public class QuantoApp {
                     savePersistentCopy(resFile, lastTheoryDir + File.separatorChar + resFile.getName());
                 } else {
                     logger.log(Level.WARNING,
-                            "Theory ({}) had a dependent file ({}) not in the same directory; could not save it",
+                            "Theory ({0}) had a dependent file ({1}) not in the same directory; could not save it",
                             new Object[] { theoryFile, resFile });
                 }
             } else {
                 logger.log(Level.WARNING,
-                        "Theory had a dependent resource ({}) that was not a file; could not save it",
+                        "Theory ({0}) had a dependent resource ({1}) that was not a file; could not save it",
                         new Object[] { theoryFile, resource });
             }
         }
