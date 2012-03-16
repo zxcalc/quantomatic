@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.xml.sax.Locator;
 import uk.me.randomguy3.svg.SVGCache;
 
 
@@ -40,8 +43,9 @@ public class TheoryParser {
 
 		XMLReader reader = XMLReaderFactory.createXMLReader();
 
-		reader.setContentHandler(new TheoryDataHandler(this));
-		reader.setErrorHandler(new TheoryErrorHandler());
+        TheoryDataHandler handler = new TheoryDataHandler(this);
+		reader.setContentHandler(handler);
+		reader.setErrorHandler(handler);
 
 		reader.parse(this.theoryInputSource);
 	}
@@ -82,8 +86,10 @@ public class TheoryParser {
 		return this.theoryFilePath;
 	}
 }
+
 class TheoryDataHandler extends DefaultHandler
 {
+    private static Logger logger = Logger.getLogger("quanto.core.xml.TheoryParser");
 	private TheoryParser theoryParser;
 	private VertexType.DataType dataType;
 	private URI svgdocURI;
@@ -92,6 +98,7 @@ class TheoryDataHandler extends DefaultHandler
 	private String vertexName;
 	private String labelFill;
 	private String mnemonic;
+    private Locator locator;
 
 	private int unknownElementDepth = 0;
 	private Mode mode = Mode.None;
@@ -107,6 +114,11 @@ class TheoryDataHandler extends DefaultHandler
 		this.theoryParser = theoryParser;
 	}
 
+    @Override
+    public void setDocumentLocator(Locator locator) {
+        this.locator = locator;
+    }
+
 	@Override
 	public void startElement (String namespaceUri, String localName,
 			String qualifiedName, Attributes attributes) throws SAXException {
@@ -114,20 +126,20 @@ class TheoryDataHandler extends DefaultHandler
 			++unknownElementDepth;
 		} else if (mode == Mode.None) {
 			if(!"theory".equals(localName)) {
-				throw new SAXParseException("Root element was not theory", null);
+				throw new SAXParseException("Root element was not theory", locator);
 			}
 			this.theoryName = attributes.getValue("name");
 			this.implementedTheoryName = attributes.getValue("implements");
 			mode = Mode.Theory;
 		} else if(mode == Mode.Theory) {
 			if (!"nodetype".equals(localName))
-				throw new SAXParseException("Element Nodetype not found", null);
+				throw new SAXParseException("Element Nodetype not found", locator);
 			this.vertexName = attributes.getValue("name");
 			mode = Mode.Nodetype;
 		} else if(mode == Mode.Nodetype) {
 			if ("data".equals(localName)) {
 					if (attributes.getValue("type") == null) {
-						throw new SAXParseException("Type attribute not found in element Data", null);
+						throw new SAXParseException("Type attribute not found in element Data", locator);
 					} else if (attributes.getValue("type").equals("MathExpression")) {
 						this.dataType = VertexType.DataType.MathExpression;
 					} else if (attributes.getValue("type").equals("String")) {
@@ -139,14 +151,14 @@ class TheoryDataHandler extends DefaultHandler
 				mode = Mode.Visualization;
 			} else if ("mnemonic".equals(localName)) {
 				if (attributes.getValue("key") == null) {
-					throw new SAXParseException("Type attribute not found in element data", null);
+					throw new SAXParseException("Type attribute not found in element data", locator);
 				} else if (attributes.getValue("key").length() == 1) {
 					this.mnemonic = attributes.getValue("key");
 				} else {
 					throw new SAXParseException("The 'key' attribute in element mnemonic must be one character long.", null);
 				}
 			} else {
-				throw new SAXParseException("Unexpected element found in Nodetype", null);
+				throw new SAXParseException("Unexpected element found in Nodetype", locator);
 			}
 		} else if(mode == Mode.Visualization) {
 			if("node".equals(localName)) {
@@ -161,16 +173,16 @@ class TheoryDataHandler extends DefaultHandler
                         }
                         theoryParser.addDependentFile(svgFile);
 					} catch (MalformedURLException e) {
-						throw new SAXParseException("Malformed URL for SVG file", null);
+						throw new SAXParseException("Malformed URL for SVG file", locator);
 					}
 				} else {
 					//Then we have an inline declaration, maybe
-                    throw new SAXParseException("No svgFile attribute given", null);
+                    throw new SAXParseException("No svgFile attribute given", locator);
 				}
 			} else if ("label".equals(localName)) {
 				this.labelFill = attributes.getValue("fill");
 			} else {
-				throw new SAXParseException("Unexpected element found in Visualization", null);
+				throw new SAXParseException("Unexpected element found in Visualization", locator);
 			}
 		} else {
 			++unknownElementDepth;
@@ -185,7 +197,7 @@ class TheoryDataHandler extends DefaultHandler
 		} else if ((mode == Mode.Visualization) && "visualization".equals(localName)) {
 			mode = Mode.Nodetype;
 			if (this.vertexName == null) {
-				throw new SAXParseException("name attribute of nodetype cannot be null", null);
+				throw new SAXParseException("name attribute of nodetype cannot be null", locator);
             }
             theoryParser.addVertex(new VertexType.GenericVertexType(this.vertexName, this.dataType, this.mnemonic,
                     new SvgVertexVisualizationData(svgdocURI, 
@@ -197,42 +209,32 @@ class TheoryDataHandler extends DefaultHandler
 		} else if ((mode == Mode.Theory) && ("theory".equals(localName))) {
 			if (this.theoryName == null) {
 				theoryParser.setTheoryName("undef");
-				throw new SAXException("Could not find attribute 'name' in element <theory>", null);
+				throw new SAXParseException("Could not find attribute 'name' in element <theory>", locator);
 			} else {
 			theoryParser.setTheoryName(this.theoryName);
 			}
 			
 			if (this.implementedTheoryName == null) {
 				theoryParser.setImplementedTheoryName(null);
-				throw new SAXException("Could not find attribute 'implements' in element <theory>", null);
+				throw new SAXParseException("Could not find attribute 'implements' in element <theory>", locator);
 			}
 			theoryParser.setImplementedTheoryName(this.implementedTheoryName);		
 			mode = Mode.None;
 		} 
 	}
-}
-
-class TheoryErrorHandler extends DefaultHandler
-{
-
-	public TheoryErrorHandler ()
-	{
-		super();
-	}
 
 	@Override
 	public void error (SAXParseException e) throws SAXException {
-		throw new SAXParseException("Error", null, e);
+		logger.log(Level.FINE, "Recoverable error during parse of theory file", e);
 	}
 
 	@Override
 	public void fatalError (SAXParseException e) throws SAXException {
-		throw new SAXParseException("Fatal error", null, e);
+		throw e;
 	}
 
 	@Override
 	public void warning (SAXParseException e) throws SAXException {
-		throw new SAXParseException("Warning", null, e);
+		logger.log(Level.FINE, "Warning during parse of theory file", e);
 	}
-
 }
