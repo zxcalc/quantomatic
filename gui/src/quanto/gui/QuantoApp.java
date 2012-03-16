@@ -21,6 +21,7 @@ import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.awt.Component;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,7 +29,7 @@ import java.util.logging.Logger;
 import quanto.core.Core;
 import quanto.core.CoreException;
 import quanto.core.protocol.ProtocolManager;
-import quanto.core.xml.TheoryParser;
+import quanto.core.xml.TheoryHandler;
 import quanto.util.FileUtils;
 
 /**
@@ -410,12 +411,12 @@ public class QuantoApp {
         }
     }
 
-    private TheoryParser loadSavedTheoryState() {
+    private TheoryHandler.Data loadSavedTheoryState() {
         File lastOpenedTheory = getPersistentCopyForReading(lastTheoryFileName);
         if (lastOpenedTheory != null) {
             logger.log(Level.FINER, "Loading previous theory");
             try {
-                return new TheoryParser(lastOpenedTheory.getAbsolutePath());
+                return TheoryHandler.parse(lastOpenedTheory);
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Failed to load stored theory", ex);
             }
@@ -429,7 +430,7 @@ public class QuantoApp {
         URL defaultTheory = getClass().getResource("resources/red-green-theory.qth");
         logger.log(Level.FINER, "Attempting to load a default theory at {0}", defaultTheory);
         try {
-            return new TheoryParser(defaultTheory);
+            return TheoryHandler.parse(defaultTheory);
         } catch (Exception ex) {
             logger.log(Level.FINER, "Failed to load default theory", ex);
         }
@@ -439,21 +440,19 @@ public class QuantoApp {
     private void clearTheoryDir() {
         try {
             File theoryDir = new File(getAppSettingsDirectory(false), lastTheoryDir);
-            for (File file : theoryDir.listFiles()) {
-                file.delete();
+            File[] files = theoryDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    file.delete();
+                }
             }
         } catch (IOException ex) {}
     }
 
-    private void saveTheoryCopy(TheoryParser parser) {
+    private void saveTheoryCopy(File theoryFile, Collection<URL> dependentFiles) {
         clearTheoryDir();
-        if (!"file".equals(parser.getTheoryURL().getProtocol())) {
-            logger.warning("Could not save theory as it was not a file");
-            return;
-        }
-        File theoryFile = new File(parser.getTheoryURL().getPath());
         savePersistentCopy(theoryFile, lastTheoryFileName);
-        for (URL resource : parser.getDependentResources()) {
+        for (URL resource : dependentFiles) {
             if ("file".equals(resource.getProtocol())) {
                 File resFile = new File(resource.getPath());
                 if (resFile.getParentFile().equals(theoryFile.getParentFile())) {
@@ -473,9 +472,9 @@ public class QuantoApp {
 
     public void changeTheory(File theoryFile) {
         try {
-            TheoryParser parser = new TheoryParser(theoryFile.getAbsolutePath());
-            core.updateCoreTheory(parser.getImplementedTheoryName(), parser.getTheoryVertices());
-            saveTheoryCopy(parser);
+            TheoryHandler.Data theoryData = TheoryHandler.parse(theoryFile);
+            core.updateCoreTheory(theoryData.coreName, theoryData.vertices);
+            saveTheoryCopy(theoryFile, theoryData.dependentResources);
             viewManager.closeAllViews();
         } catch (CoreException e) {
             errorDialog(e.toString());
@@ -486,16 +485,16 @@ public class QuantoApp {
         }
     }
 
-    private TheoryParser demandTheory() {
+    private TheoryHandler.Data demandTheory() {
         File f = openFile(null, "Select theory file", QuantoApp.DIR_THEORY);
         if (f == null) {
             errorDialog("Cannot proceed without a theory");
             System.exit(1);
         }
         try {
-            TheoryParser parser = new TheoryParser(f.getAbsolutePath());
-            saveTheoryCopy(parser);
-            return parser;
+            TheoryHandler.Data data = TheoryHandler.parse(f);
+            saveTheoryCopy(f, data.dependentResources);
+            return data;
         } catch (IOException ex) {
             errorDialog(String.format(
                     "Could not open theory file (%1$s); cannot proceed",
@@ -512,13 +511,13 @@ public class QuantoApp {
 
     private QuantoApp() throws CoreException {
         globalPrefs = Preferences.userNodeForPackage(this.getClass());
-        TheoryParser theoryParser = loadSavedTheoryState();
+        TheoryHandler.Data data = loadSavedTheoryState();
 
-        if (theoryParser == null) {
-            theoryParser = demandTheory();
+        if (data == null) {
+            data = demandTheory();
         }
 
-        core = new Core(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
+        core = new Core(data.coreName, data.vertices);
 
         loadSavedRulesetState();
 

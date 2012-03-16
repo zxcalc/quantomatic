@@ -23,10 +23,8 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JSplitPane;
-import org.xml.sax.SAXException;
 
 import quanto.core.CoreException;
-import quanto.core.xml.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
 
 public class QuantoFrame extends JFrame implements ViewPortHost {
