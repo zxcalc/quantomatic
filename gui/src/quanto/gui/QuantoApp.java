@@ -1,33 +1,26 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
-import quanto.core.data.CoreGraph;
-
+import apple.dts.samplecode.osxadapter.OSXAdapter;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.util.prefs.Preferences;
-
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.UIManager;
-
-import org.xml.sax.SAXException;
-
-
-
-import apple.dts.samplecode.osxadapter.OSXAdapter;
-import java.awt.Component;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.prefs.Preferences;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import org.xml.sax.SAXException;
 import quanto.core.Core;
 import quanto.core.CoreException;
+import quanto.core.data.CoreGraph;
 import quanto.core.protocol.ProtocolManager;
 import quanto.core.xml.TheoryHandler;
 import quanto.util.FileUtils;
