@@ -424,16 +424,14 @@ public class QuantoApp {
         }
 
         /*
-         * Try loading a default file
+         * Try loading a default theory
          */
-        String defaultFile = getRootDirectory() + File.separatorChar
-                + "theory-visualizations" + File.separatorChar
-                + "red-green-theory.qth";
-        logger.log(Level.FINER, "Attempting to load a default file at {0}", defaultFile);
+        URL defaultTheory = getClass().getResource("resources/red-green-theory.qth");
+        logger.log(Level.FINER, "Attempting to load a default theory at {0}", defaultTheory);
         try {
-            return new TheoryParser(defaultFile);
+            return new TheoryParser(defaultTheory);
         } catch (Exception ex) {
-            logger.log(Level.FINER, "Failed to load default file", ex);
+            logger.log(Level.FINER, "Failed to load default theory", ex);
         }
         return null;
     }
