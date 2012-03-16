@@ -12,6 +12,8 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
@@ -49,7 +51,7 @@ public class TheoryHandler extends DefaultHandler {
     public static Data parse(URL url) throws SAXException, IOException {
 		XMLReader reader = XMLReaderFactory.createXMLReader();
 
-        TheoryHandler handler = new TheoryHandler(url);
+        TheoryHandler handler = new TheoryHandler();
 		reader.setContentHandler(handler);
 
 		reader.parse(new InputSource(url.toExternalForm()));
@@ -58,7 +60,6 @@ public class TheoryHandler extends DefaultHandler {
     }
 
     public static class Data {
-
         public String name;
         public String coreName;
         public ArrayList<VertexType> vertices = new ArrayList<VertexType>();
@@ -68,6 +69,7 @@ public class TheoryHandler extends DefaultHandler {
     private VertexType.DataType dataType;
     private URI svgdocURI;
     private URL baseURL;
+    private URL locatorBaseURL;
     private String theoryName;
     private String implementedTheoryName;
     private String vertexName;
@@ -78,15 +80,13 @@ public class TheoryHandler extends DefaultHandler {
     private Mode mode = Mode.None;
 
     private enum Mode {
-
         None,
         Theory,
         Nodetype,
         Visualization
     }
 
-    public TheoryHandler(URL baseURL) {
-        this.baseURL = baseURL;
+    public TheoryHandler() {
     }
 
     public void setBaseURL(URL baseURL) {
@@ -101,9 +101,24 @@ public class TheoryHandler extends DefaultHandler {
         return data;
     }
 
+    private URL resolveUrl(String url) throws MalformedURLException {
+        if (baseURL != null)
+            return new URL(baseURL, url);
+        else if (locatorBaseURL != null)
+            return new URL(locatorBaseURL, url);
+        else
+            return new URL(url);
+    }
+
     @Override
     public void setDocumentLocator(Locator locator) {
         this.locator = locator;
+        locatorBaseURL = null;
+        if (locator != null) {
+            try {
+                locatorBaseURL = new URL(locator.getSystemId());
+            } catch (MalformedURLException ex) {}
+        }
     }
 
     @Override
@@ -158,7 +173,7 @@ public class TheoryHandler extends DefaultHandler {
                 if (attributes.getValue("svgFile") != null) {
                     //Then the representation is given in an external file
                     try {
-                        URL svgUrl = new URL(baseURL, attributes.getValue("svgFile"));
+                        URL svgUrl = resolveUrl(attributes.getValue("svgFile"));
                         svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgUrl);
                         if (svgdocURI == null) {
                             throw new SAXParseException("Could not load SVG from '" + svgUrl + "'", null);
