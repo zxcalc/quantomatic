@@ -20,6 +20,7 @@ import org.xml.sax.SAXException;
 import apple.dts.samplecode.osxadapter.OSXAdapter;
 import java.awt.Component;
 import java.io.IOException;
+import java.net.URL;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -448,9 +449,27 @@ public class QuantoApp {
 
     private void saveTheoryCopy(TheoryParser parser) {
         clearTheoryDir();
-        savePersistentCopy(new File(parser.getTheoryFilePath()), lastTheoryFileName);
-        for (File file : parser.getDependentFiles()) {
-            savePersistentCopy(file, lastTheoryDir + File.separatorChar + file.getName());
+        if (!"file".equals(parser.getTheoryURL().getProtocol())) {
+            logger.warning("Could not save theory as it was not a file");
+            return;
+        }
+        File theoryFile = new File(parser.getTheoryURL().getPath());
+        savePersistentCopy(theoryFile, lastTheoryFileName);
+        for (URL resource : parser.getDependentResources()) {
+            if ("file".equals(resource.getProtocol())) {
+                File resFile = new File(resource.getPath());
+                if (resFile.getParentFile().equals(theoryFile.getParentFile())) {
+                    savePersistentCopy(resFile, lastTheoryDir + File.separatorChar + resFile.getName());
+                } else {
+                    logger.log(Level.WARNING,
+                            "Theory ({}) had a dependent file ({}) not in the same directory; could not save it",
+                            new Object[] { theoryFile, resFile });
+                }
+            } else {
+                logger.log(Level.WARNING,
+                        "Theory had a dependent resource ({}) that was not a file; could not save it",
+                        new Object[] { theoryFile, resource });
+            }
         }
     }
 

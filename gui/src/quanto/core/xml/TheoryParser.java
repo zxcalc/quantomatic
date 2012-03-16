@@ -30,16 +30,22 @@ import uk.me.randomguy3.svg.SVGCache;
 
 public class TheoryParser {
 	private InputSource theoryInputSource;
-	private String theoryFilePath;
+    private URL theoryURL;
 	private ArrayList<VertexType> theoryVertices = new ArrayList<VertexType>();
 	private String theoryName;
 	private String implementedTheory;
-	private LinkedList<File> dependentFiles = new LinkedList<File>();
+	private LinkedList<URL> dependentResources = new LinkedList<URL>();
 
-	public TheoryParser(String theoryFilePath) throws SAXException, IOException{
+	public TheoryParser(String theoryFilePath) throws SAXException, IOException {
+        this(new File(theoryFilePath));
+    }
+	public TheoryParser(File theoryFile) throws SAXException, IOException {
+        this(theoryFile.toURI().toURL());
+    }
+	public TheoryParser(URL theoryURL) throws SAXException, IOException {
 
-		this.theoryFilePath = theoryFilePath;
-		this.theoryInputSource = new InputSource(theoryFilePath);
+        this.theoryURL = theoryURL;
+		this.theoryInputSource = new InputSource(theoryURL.toString());
 
 		XMLReader reader = XMLReaderFactory.createXMLReader();
 
@@ -54,12 +60,12 @@ public class TheoryParser {
 		return Collections.unmodifiableCollection(theoryVertices);
 	}
 
-    public Collection<File> getDependentFiles() {
-		return Collections.unmodifiableCollection(dependentFiles);
+    public Collection<URL> getDependentResources() {
+		return Collections.unmodifiableCollection(dependentResources);
     }
 
-    void addDependentFile(File file) {
-        dependentFiles.add(file);
+    void addDependentResource(URL location) {
+        dependentResources.add(location);
     }
 
 	public void addVertex(VertexType vertex) {
@@ -82,8 +88,8 @@ public class TheoryParser {
 		return this.implementedTheory;
 	}
 
-	public String getTheoryFilePath() {
-		return this.theoryFilePath;
+	public URL getTheoryURL() {
+		return theoryURL;
 	}
 }
 
@@ -164,14 +170,13 @@ class TheoryDataHandler extends DefaultHandler
 			if("node".equals(localName)) {
 				if (attributes.getValue("svgFile") != null) {
 					//Then the representation is given in an external file
-					File theoryFile = new File(theoryParser.getTheoryFilePath());
-					File svgFile = new File(theoryFile.getParent(), attributes.getValue("svgFile"));
 					try {
-                        svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgFile.toURI().toURL());
+                        URL svgUrl = new URL(theoryParser.getTheoryURL(), attributes.getValue("svgFile"));
+                        svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgUrl);
                         if (svgdocURI == null) {
-                            throw new SAXParseException("Could not load SVG file '" + svgFile.getAbsolutePath() + "'", null);
+                            throw new SAXParseException("Could not load SVG from '" + svgUrl + "'", null);
                         }
-                        theoryParser.addDependentFile(svgFile);
+                        theoryParser.addDependentResource(svgUrl);
 					} catch (MalformedURLException e) {
 						throw new SAXParseException("Malformed URL for SVG file", locator);
 					}
