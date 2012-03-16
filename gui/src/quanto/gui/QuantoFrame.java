@@ -223,8 +223,8 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         }
         getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
-        viewPort = new ViewPort(app.getViewManager(), this);
-        sidebar = new LeftTabbedPane(app.getCore(), this);
+        viewPort = new ViewPort(app.getViewManager(), this, app.getCore());
+        sidebar = new LeftTabbedPane(app.getCore(), viewPort);
         commandManager.setViewPort(viewPort);
 
         //Add the scroll panes to a split pane.
@@ -335,21 +335,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     public void openTheory() {
         File f = app.openFile(this, "Select theory file", QuantoApp.DIR_THEORY);
         if (f != null) {
-            try {
-                TheoryParser theoryParser = new TheoryParser(f.getAbsolutePath());
-                app.updateCoreTheory(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
-                app.setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-                // FIXME: this isn't right...
-                //Open a new graph as well...
-                app.createNewFrame();
-            this.closeCurrentView();
-            } catch (SAXException e) {
-                app.errorDialog(e.toString());
-            } catch (IOException e) {
-                app.errorDialog(e.toString());
-            } catch (CoreException e) {
-                app.errorDialog(e.toString());
-            }
+            app.changeTheory(f);
         }
     }
 
@@ -360,7 +346,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
                 app.shutdown();
             } else {
                 frameCount--;
-                viewPort.detachView();
+                viewPort.clearPort();
                 dispose();
             }
         } else {

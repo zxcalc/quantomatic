@@ -12,6 +12,9 @@ import javax.swing.JPanel;
 
 
 import quanto.core.Core;
+import quanto.core.CoreChangeListener;
+import quanto.core.CoreEvent;
+import quanto.core.Theory;
 import quanto.core.data.VertexType;
 
 /*
@@ -22,9 +25,9 @@ import quanto.core.data.VertexType;
 public class Toolbox extends JPanel {
 	
 	private Core core;
-	private QuantoFrame quantoFrame;
+    private ViewPort viewPort;
 	
-	public Toolbox(Core core, QuantoFrame quantoFrame) {
+	public Toolbox(Core core, ViewPort viewPort) {
 		/*
 		 * The toolbox is divided in 2 distinct categories : add, 
 		 * bangbox stuff.
@@ -34,13 +37,13 @@ public class Toolbox extends JPanel {
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		
 		this.core = core;
-		this.quantoFrame = quantoFrame;
+        this.viewPort = viewPort;
 		
 		JPanel controlArea = new JPanel();
 		controlArea.setLayout(new BoxLayout(controlArea, BoxLayout.Y_AXIS));
 		
-		controlArea.add(createAddVertexArea(this.core));
-		controlArea.add(createBangBoxArea(this.quantoFrame));
+		controlArea.add(new AddVertexArea());
+		controlArea.add(createBangBoxArea());
 		this.add(controlArea);
 	}
 
@@ -55,48 +58,8 @@ public class Toolbox extends JPanel {
 			return null;
 		}
 	}
-	
-	private ToolboxArea createAddVertexArea(Core core) {
-		ToolboxArea addVertexArea;
-		int numberOfRows;
-		
-		/* 
-		 * We have n types + 1 for the boundary vertices. Two items per line.
-		 */
-		numberOfRows = (int) Math.ceil(((float) core.getActiveTheory().getVertexTypes().size() + 1)/ 2);
-		addVertexArea = new ToolboxArea("Add", numberOfRows, 2);
-		/*
-		 * Then loop though all the types of vertices
-		 */
-		for (final VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
-			JButton button = new JButton(vertexType.getVisualizationData().getIcon());
-			addVertexArea.add(button);
-			String toolTipText = "Add vertex of type " + vertexType.getTypeName();
-			if (vertexType.getMnemonic() != null)
-				toolTipText += " - '"+ vertexType.getMnemonic() +"'";
-			button.setToolTipText(toolTipText);
-			button.addActionListener(new ActionListener() {
 
-				public void actionPerformed(ActionEvent e) {
-					quantoFrame.getViewPort().executeCommand("add-" + vertexType.getTypeName() + "-vertex-command");
-				}
-			});
-		}
-		//TODO: Still need an icon for that.
-		JButton button = new JButton("Bound.");
-		addVertexArea.add(button);
-		button.setToolTipText("Add boundary vertex");
-		button.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("add-boundary-vertex-command");
-			}
-		});
-		
-		return addVertexArea;
-	}
-	
-	private ToolboxArea createBangBoxArea(final QuantoFrame quantoFrame) {
+	private ToolboxArea createBangBoxArea() {
 		ToolboxArea bangBoxArea = new ToolboxArea("Bang Boxes", 3, 2);
 		JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/BangVertex32.png", "Bang Vertices"));
 		bangBoxArea.add(button);
@@ -104,7 +67,7 @@ public class Toolbox extends JPanel {
 		button.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("bang-vertices-command");
+				viewPort.executeCommand("bang-vertices-command");
 			}
 		});
 		
@@ -114,7 +77,7 @@ public class Toolbox extends JPanel {
 		button.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("unbang-vertices-command");
+				viewPort.executeCommand("unbang-vertices-command");
 			}
 		});
 		
@@ -125,7 +88,7 @@ public class Toolbox extends JPanel {
 		button.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("drop-bang-box-command");
+				viewPort.executeCommand("drop-bang-box-command");
 			}
 		});
 		button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/KillBangBox32.png", "Kill Bang Box"));
@@ -134,7 +97,7 @@ public class Toolbox extends JPanel {
 		button.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("kill-bang-box-command");
+				viewPort.executeCommand("kill-bang-box-command");
 			}
 		});
 		
@@ -144,7 +107,7 @@ public class Toolbox extends JPanel {
 		button.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				quantoFrame.getViewPort().executeCommand("duplicate-bang-box-command");
+				viewPort.executeCommand("duplicate-bang-box-command");
 			}
 		});
 		
@@ -157,6 +120,56 @@ public class Toolbox extends JPanel {
 			super(new GridLayout(rows, columns));
 			setBorder(BorderFactory.createTitledBorder(name));
 		}
+        
+        protected void setRows(int rows) {
+            ((GridLayout)getLayout()).setRows(rows);
+        }
 	}
+    
+    private static int rowsForTheory(Theory theory) {
+        return (int) Math.ceil(((float) theory.getVertexTypes().size() + 1)/ 2);
+    }
+    class AddVertexArea extends ToolboxArea {
+        public AddVertexArea() {
+            super("Add", rowsForTheory(core.getActiveTheory()), 2);
+            loadButtons();
+            core.addCoreChangeListener(new CoreChangeListener() {
+                public void theoryChanged(CoreEvent evt) {
+                    AddVertexArea.this.removeAll();
+                    setRows(rowsForTheory(core.getActiveTheory()));
+                    loadButtons();
+                }
+            });
+        }
+        
+        private void loadButtons() {
+            /*
+             * Then loop though all the types of vertices
+             */
+            for (final VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
+                JButton button = new JButton(vertexType.getVisualizationData().getIcon());
+                this.add(button);
+                String toolTipText = "Add vertex of type " + vertexType.getTypeName();
+                if (vertexType.getMnemonic() != null)
+                    toolTipText += " - '"+ vertexType.getMnemonic() +"'";
+                button.setToolTipText(toolTipText);
+                button.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        viewPort.executeCommand("add-" + vertexType.getTypeName() + "-vertex-command");
+                    }
+                });
+            }
+            //TODO: Still need an icon for that.
+            JButton button = new JButton("Bound.");
+            this.add(button);
+            button.setToolTipText("Add boundary vertex");
+            button.addActionListener(new ActionListener() {
+
+                public void actionPerformed(ActionEvent e) {
+                    viewPort.executeCommand("add-boundary-vertex-command");
+                }
+            });
+        }
+    }
 }
 

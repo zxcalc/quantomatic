@@ -1,6 +1,5 @@
 package quanto.core;
 
-import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -13,6 +12,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.event.EventListenerList;
 import org.apache.commons.collections15.CollectionUtils;
 import org.apache.commons.collections15.Transformer;
 import org.xml.sax.InputSource;
@@ -46,6 +46,8 @@ import quanto.core.xml.VertexFragmentHandler;
 public class Core {
 
     private final static Logger logger = Logger.getLogger("quanto.core");
+    
+    EventListenerList listenerList = new EventListenerList();
 
     private class CoreTheory implements Theory {
 
@@ -108,7 +110,7 @@ public class Core {
         }
     }
 
-    public Core(String implementedTheoryName, ArrayList<VertexType> vertices) throws CoreException {
+    public Core(String implementedTheoryName, Collection<VertexType> vertices) throws CoreException {
         this.talker = new ProtocolManager();
         talker.startCore();
         talker.changeTheory(implementedTheoryName);
@@ -121,11 +123,33 @@ public class Core {
         this.ruleset = new Ruleset(this);
     }
 
-    public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) throws CoreException {
+    public void updateCoreTheory(String implementedTheoryName, Collection<VertexType> theoryVertices) throws CoreException {
         talker.changeTheory(implementedTheoryName);
         this.activeTheory.removeAllVertices();
         for (VertexType v : theoryVertices) {
             this.activeTheory.addVertexType(v);
+        }
+        fireTheoryChanged();
+    }
+
+    public void addCoreChangeListener(CoreChangeListener l) {
+        listenerList.add(CoreChangeListener.class, l);
+    }
+
+    public void removeCoreChangeListener(CoreChangeListener l) {
+        listenerList.remove(CoreChangeListener.class, l);
+    }
+
+    protected void fireTheoryChanged() {
+        CoreEvent coreEvent = null;
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==CoreChangeListener.class) {
+                // Lazily create the event:
+                if (coreEvent == null)
+                    coreEvent = new CoreEvent(this, activeTheory);
+                ((CoreChangeListener)listeners[i+1]).theoryChanged(coreEvent);
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Map;
 import org.apache.commons.collections15.BidiMap;
+import org.apache.commons.collections15.MapIterator;
 import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
 import org.apache.commons.collections15.comparators.ComparableComparator;
 import org.apache.commons.collections15.contrib.HashCodeComparator;
@@ -25,10 +26,8 @@ public class InteractiveViewManager {
 		new DualTreeBidiMap<String, InteractiveView>(
 		ComparableComparator.<String>getInstance(),
 		new HashCodeComparator<InteractiveView>());
-	private final ConsoleView console;
-	private ViewRenameListener viewRenameListener = new ViewRenameListener();
 
-	private class ViewRenameListener implements PropertyChangeListener {
+	private PropertyChangeListener viewRenameListener = new PropertyChangeListener() {
 		public void propertyChange(PropertyChangeEvent evt) {
 			if (!"title".equals(evt.getPropertyName()))
 				return;
@@ -40,28 +39,14 @@ public class InteractiveViewManager {
 				views.put(newName, view);
 			}
 		}
-	}
-
-	public InteractiveViewManager(QuantoApp app, Core core) {
-		console = new ConsoleView(app, core.getTalker());
-		addView(console);
-	}
-
-	public ConsoleView getConsole() {
-		return console;
-	}
+	};
 
 	public InteractiveView getNextFreeView() {
-		return getNextFreeView(false);
-	}
-
-	public InteractiveView getNextFreeView(boolean favourNonConsole) {
 		InteractiveView foundView = null;
 		for (InteractiveView view : views.values()) {
 			if (!view.isAttached()) {
 				foundView = view;
-				if (!favourNonConsole || view != console)
-					break;
+                break;
 			}
 		}
 		return foundView;
@@ -108,11 +93,14 @@ public class InteractiveViewManager {
 			if (!view.checkCanClose())
 				return false;
 		}
-		for (InteractiveView view : views.values()) {
-			if (view.isAttached())
-				view.getViewPort().detachView();
-			view.cleanUp();
-
+        MapIterator<String, InteractiveView> it = views.mapIterator();
+        while (it.hasNext()) {
+            it.next();
+            InteractiveView view = it.getValue();
+            it.remove();
+            if (view.isAttached())
+                view.getViewPort().switchToConsole();
+            view.cleanUp();
 		}
 		return true;
 	}

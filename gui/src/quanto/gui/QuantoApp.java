@@ -2,13 +2,11 @@
 package quanto.gui;
 
 import quanto.core.data.CoreGraph;
-import quanto.core.data.VertexType;
 
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.prefs.Preferences;
 
 import javax.swing.JFileChooser;
@@ -30,6 +28,7 @@ import quanto.core.Core;
 import quanto.core.CoreException;
 import quanto.core.protocol.ProtocolManager;
 import quanto.core.xml.TheoryParser;
+import quanto.util.FileUtils;
 
 /**
  * Singleton class 
@@ -41,7 +40,6 @@ public class QuantoApp {
     private static final boolean LOG_PROTOCOL = false;
     private static final boolean LOG_JUNG = false;
     private static final boolean LOG_QUANTO = false;
-
     private final static Logger logger =
             Logger.getLogger("quanto.gui");
     // isMac is used for CTRL vs META shortcuts, etc
@@ -65,8 +63,10 @@ public class QuantoApp {
     private final Core core;
     private JFileChooser[] fileChooser = {null, null, null};
     private InteractiveViewManager viewManager;
+    public static final String lastTheoryDir = "theory";
+    public static final String lastTheoryFileName = lastTheoryDir + File.separatorChar + "stored.qth";
 
-    public File getAppSettingsDirectory(boolean create) throws IOException {
+    public static File getAppSettingsDirectory(boolean create) throws IOException {
         File dir;
         String userHome = System.getProperty("user.home");
         if (isWin) {
@@ -113,6 +113,69 @@ public class QuantoApp {
          */
 
         return applicationDir;
+    }
+
+    /**
+     * Gets the local persistent copy of a file for a given name for reading
+     * 
+     * If this returns a non-null object, it will be the same as that returned
+     * by getPersistentCopyForWriting, and the same as the file saved to by
+     * savePersistentCopy.
+     * 
+     * @param name the name to store the file as
+     * @return null if there was no persistent copy, else a File object pointing
+     *         to an actual file
+     */
+    private File getPersistentCopyForReading(String name) {
+        File f = null;
+        try {
+            f = new File(getAppSettingsDirectory(false), name);
+            if (!f.isFile()) {
+                f = null;
+            }
+        } catch (IOException ex) {
+        }
+        return f;
+    }
+
+    /**
+     * Gets the local persistent copy of a file for a given name for writing
+     * 
+     * @param name the name to store the file as
+     * @return a File object; the file may not exist, but the parent directory
+     *         will
+     * @throws IOException if there was a non-normal file with that name, or if
+     *                     the parent directory of the requested file could not
+     *                     be created
+     */
+    private File getPersistentCopyForWriting(String name)
+            throws IOException {
+        File f = new File(getAppSettingsDirectory(false), name);
+        if (f.exists() && !f.isFile()) {
+            throw new IOException(name + " is a not a normal file");
+        }
+        if (!f.getParentFile().exists()) {
+            if (!f.getParentFile().mkdirs()) {
+                throw new IOException("Could not create parent directory for " + name);
+            }
+        }
+        return f;
+    }
+
+    /**
+     * Save a local persistent copy of a file
+     * 
+     * The copy can later be retrieved with getPersistentCopyForReading.
+     *
+     * @param file  the file to save a copy of
+     * @param name  the name to give the saved copy
+     */
+    private void savePersistentCopy(File file, String name) {
+        try {
+            FileUtils.copy(file, getPersistentCopyForWriting(name));
+        } catch (IOException ex) {
+            logger.log(Level.WARNING, "Failed to save local copy of " + file.getPath(), ex);
+        }
     }
 
     private static class Pref<T> {
@@ -171,8 +234,6 @@ public class QuantoApp {
     public static final int DIR_GRAPH = 0;
     public static final int DIR_RULESET = 1;
     public static final int DIR_THEORY = 2;
-    public static final StringPref LAST_THEORY_OPEN_FILE =
-            new StringPref("last_theory_open_file", null);
 
     public static QuantoApp getInstance() {
         if (theApp == null) {
@@ -208,7 +269,7 @@ public class QuantoApp {
             ch.setLevel(Level.FINEST);
             protocolLogger.addHandler(ch);
 
-	    // choose real log level here
+            // choose real log level here
             protocolLogger.setLevel(Level.ALL);
         } else {
             // only log problems by default
@@ -224,7 +285,7 @@ public class QuantoApp {
             ch.setLevel(Level.FINEST);
             ql.addHandler(ch);
 
-	    // choose real log level here
+            // choose real log level here
             ql.setLevel(Level.ALL);
         }
         if (LOG_JUNG) {
@@ -235,7 +296,7 @@ public class QuantoApp {
             ch.setLevel(Level.FINEST);
             ql.addHandler(ch);
 
-	    // choose real log level here
+            // choose real log level here
             ql.setLevel(Level.ALL);
         }
 
@@ -305,46 +366,42 @@ public class QuantoApp {
     }
 
     private void loadSavedRulesetState() {
-        try {
-            File rsetFile = new File(getAppSettingsDirectory(false).getAbsolutePath() + File.separatorChar + "stored.rules");
-            if (rsetFile.exists()) {
-                logger.log(Level.FINER, "Existing theory state found: loading");
-                try {
-                    core.loadRuleset(rsetFile);
-                    return;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Failed to load ruleset state", e);
-                }
-            } else {
-                logger.log(Level.FINER, "No theory state found");
+        File rsetFile = getPersistentCopyForReading("stored.rules");
+        if (rsetFile.exists()) {
+            logger.log(Level.FINER, "Existing theory state found: loading");
+            try {
+                core.loadRuleset(rsetFile);
+                return;
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Failed to load ruleset state", e);
             }
-            /*
-             * Try loading a default file
-             * TODO: Load a file that matches the theory implemented by the core.
-             * We could have a default ruleset by theory... for now: red_green
-             */
-            rsetFile = new File(getRootDirectory() + File.separatorChar + "rulesets" + File.separatorChar
-                    + "default.rules");
-            if (rsetFile.exists()) {
-                logger.log(Level.FINER, "Loading default ruleset");
-                try {
-                    core.loadRuleset(rsetFile);
-                    return;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Could not load default file", e);
-                }
-            } else {
-                logger.log(Level.FINER, "Default ruleset could not be located on the disk");
+        } else {
+            logger.log(Level.FINER, "No theory state found");
+        }
+        /*
+         * Try loading a default file
+         * TODO: Load a file that matches the theory implemented by the core.
+         * We could have a default ruleset by theory... for now: red_green
+         */
+        rsetFile = new File(getRootDirectory() + File.separatorChar + "rulesets" + File.separatorChar
+                + "default.rules");
+        if (rsetFile.exists()) {
+            logger.log(Level.FINER, "Loading default ruleset");
+            try {
+                core.loadRuleset(rsetFile);
+                return;
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Could not load default file", e);
             }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error when loading ruleset state", e);
+        } else {
+            logger.log(Level.FINER, "Default ruleset could not be located on the disk");
         }
     }
 
     private void saveRulesetState() {
         try {
             logger.log(Level.FINER, "Saving theory state");
-            File rsetFile = new File(getAppSettingsDirectory(true).getAbsolutePath() + File.separatorChar + "stored.rules");
+            File rsetFile = getPersistentCopyForWriting("stored.rules");
             core.saveRuleset(rsetFile);
             return;
         } catch (Exception e) {
@@ -353,46 +410,63 @@ public class QuantoApp {
     }
 
     private TheoryParser loadSavedTheoryState() {
-        String lastOpenedTheory = getPreference(QuantoApp.LAST_THEORY_OPEN_FILE);
-        if (lastOpenedTheory == null) {
-            logger.log(Level.FINER, "No saved theory file available");
-            /*
-             * Try loading a default file
-             */
-            return loadTheoryFile(getRootDirectory() + File.separatorChar + "theory-visualizations"
-                    + File.separatorChar + "red-green-theory.qth");
-        } else {
+        File lastOpenedTheory = getPersistentCopyForReading(lastTheoryFileName);
+        if (lastOpenedTheory != null) {
             logger.log(Level.FINER, "Loading previous theory");
-            return loadTheoryFile(lastOpenedTheory);
-        }
-    }
-
-    public TheoryParser loadTheoryFile(String theoryFilePath) {
-        File theoryFile = new File(theoryFilePath);
-        if (!theoryFile.exists()) {
-            logger.log(Level.INFO, "Theory file \"{0}\" does not exist", theoryFilePath);
-            return null;
-        } else {
-            TheoryParser theoryParser;
             try {
-                theoryParser = new TheoryParser(theoryFilePath);
-                return theoryParser;
-            } catch (SAXException e) {
-                errorDialog(e.toString());
-            } catch (IOException e) {
-                errorDialog(e.toString());
+                return new TheoryParser(lastOpenedTheory.getAbsolutePath());
+            } catch (Exception ex) {
+                logger.log(Level.WARNING, "Failed to load stored theory", ex);
             }
-            return null;
+        } else {
+            logger.log(Level.FINER, "No saved theory file available");
+        }
+
+        /*
+         * Try loading a default file
+         */
+        String defaultFile = getRootDirectory() + File.separatorChar
+                + "theory-visualizations" + File.separatorChar
+                + "red-green-theory.qth";
+        logger.log(Level.FINER, "Attempting to load a default file at {0}", defaultFile);
+        try {
+            return new TheoryParser(defaultFile);
+        } catch (Exception ex) {
+            logger.log(Level.FINER, "Failed to load default file", ex);
+        }
+        return null;
+    }
+
+    private void clearTheoryDir() {
+        try {
+            File theoryDir = new File(getAppSettingsDirectory(false), lastTheoryDir);
+            for (File file : theoryDir.listFiles()) {
+                file.delete();
+            }
+        } catch (IOException ex) {}
+    }
+
+    private void saveTheoryCopy(TheoryParser parser) {
+        clearTheoryDir();
+        savePersistentCopy(new File(parser.getTheoryFilePath()), lastTheoryFileName);
+        for (File file : parser.getDependentFiles()) {
+            savePersistentCopy(file, lastTheoryDir + File.separatorChar + file.getName());
         }
     }
 
-    public boolean openTheory(Component parent) {
-        return false;
-    }
-
-    public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) throws CoreException {
-
-        core.updateCoreTheory(implementedTheoryName, theoryVertices);
+    public void changeTheory(File theoryFile) {
+        try {
+            TheoryParser parser = new TheoryParser(theoryFile.getAbsolutePath());
+            core.updateCoreTheory(parser.getImplementedTheoryName(), parser.getTheoryVertices());
+            saveTheoryCopy(parser);
+            viewManager.closeAllViews();
+        } catch (CoreException e) {
+            errorDialog(e.toString());
+        } catch (SAXException e) {
+            errorDialog(e.toString());
+        } catch (IOException e) {
+            errorDialog(e.toString());
+        }
     }
 
     private TheoryParser demandTheory() {
@@ -403,7 +477,7 @@ public class QuantoApp {
         }
         try {
             TheoryParser parser = new TheoryParser(f.getAbsolutePath());
-            setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
+            saveTheoryCopy(parser);
             return parser;
         } catch (IOException ex) {
             errorDialog(String.format(
@@ -431,7 +505,7 @@ public class QuantoApp {
 
         loadSavedRulesetState();
 
-        viewManager = new InteractiveViewManager(this, core);
+        viewManager = new InteractiveViewManager();
         if (MAC_OS_X) {
             try {
                 OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));
@@ -477,12 +551,13 @@ public class QuantoApp {
             File f = fileChooser[type].getSelectedFile();
             if (f.exists()) {
                 int overwriteAnswer = JOptionPane.showConfirmDialog(
-                    parent,
-                    "Are you sure you want to overwrite \"" + f.getName() + "\"?",
-                    "Overwrite file?",
-                    JOptionPane.YES_NO_OPTION);
-                if (overwriteAnswer != JOptionPane.YES_OPTION)
+                        parent,
+                        "Are you sure you want to overwrite \"" + f.getName() + "\"?",
+                        "Overwrite file?",
+                        JOptionPane.YES_NO_OPTION);
+                if (overwriteAnswer != JOptionPane.YES_OPTION) {
                     return null;
+                }
             }
             if (f.getParent() != null) {
                 setPreference(QuantoApp.LAST_OPEN_DIRS[type], f.getParent());

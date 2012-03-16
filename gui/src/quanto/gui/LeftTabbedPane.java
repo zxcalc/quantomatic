@@ -1,7 +1,5 @@
 package quanto.gui;
 
-import java.awt.BorderLayout;
-import java.awt.Container;
 
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
@@ -19,16 +17,16 @@ public class LeftTabbedPane extends JPanel {
 	private Toolbox toolbox;
 	private JTabbedPane tabbedPane;
 	
-	public LeftTabbedPane(Core core, QuantoFrame quantoFrame) {
+	public LeftTabbedPane(Core core, ViewPort viewPort) {
 		
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
 		
 		tabbedPane = new JTabbedPane();
-		RulesBar sidebar = new RulesBar(core.getRuleset(), quantoFrame);
+		RulesBar sidebar = new RulesBar(core.getRuleset(), viewPort);
 		tabbedPane.addTab("Rules", null, sidebar,
         "Display Ruleset");
 		
-		toolbox = new Toolbox(core, quantoFrame);
+		toolbox = new Toolbox(core, viewPort);
 		tabbedPane.addTab("Toolbox", null, toolbox, "Display Toolbox");
 
 		this.add(tabbedPane);

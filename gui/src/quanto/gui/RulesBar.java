@@ -72,7 +72,7 @@ public class RulesBar extends JPanel {
 		}
 	};
 	private Ruleset ruleset;
-	private QuantoFrame quantoFrame;
+	private ViewPort viewPort;
 	private ChangeListener listener = new ChangeListener() {
 		public void stateChanged(ChangeEvent e) {
             loadTags();
@@ -235,8 +235,8 @@ public class RulesBar extends JPanel {
                          Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().createRule(ruleName, lhs, rhs);
                          
                          SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
-                         RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
-                         RulesBar.this.quantoFrame.getViewPort().attachView(spg);
+                         RulesBar.this.viewPort.getViewManager().addView(spg);
+                         RulesBar.this.viewPort.attachView(spg);
 
                          RulesBar.this.ruleset.reload();
                     } catch (CoreException ex) {
@@ -247,9 +247,9 @@ public class RulesBar extends JPanel {
           });
 	}
 
-	public RulesBar(Ruleset ruleset, QuantoFrame quantoFrame) {
+	public RulesBar(Ruleset ruleset, ViewPort viewPort) {
 		this.ruleset = ruleset;
-		this.quantoFrame = quantoFrame;
+		this.viewPort = viewPort;
 		ruleset.addChangeListener(listener);
 
 		final DefaultListCellRenderer cellRenderer = new DefaultListCellRenderer() {
@@ -332,8 +332,8 @@ public class RulesBar extends JPanel {
 		try {
 			Rule<CoreGraph> ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
 			SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), ruleGraphs);
-			RulesBar.this.quantoFrame.getViewPort().getViewManager().addView(spg);
-			RulesBar.this.quantoFrame.getViewPort().attachView(spg);
+			RulesBar.this.viewPort.getViewManager().addView(spg);
+			RulesBar.this.viewPort.attachView(spg);
 		} catch (CoreException ex) {
 			//We cannot open the rule. This is not critical. Inform the user.
 			logger.log(Level.WARNING, "Could not open selected rule : ", ex);
