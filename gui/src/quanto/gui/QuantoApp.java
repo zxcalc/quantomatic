@@ -391,7 +391,6 @@ public class QuantoApp {
             logger.log(Level.FINER, "Loading default ruleset");
             try {
                 core.loadRuleset(rsetFile);
-                return;
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Could not load default file", e);
             }
@@ -405,7 +404,6 @@ public class QuantoApp {
             logger.log(Level.FINER, "Saving theory state");
             File rsetFile = getPersistentCopyForWriting("stored.rules");
             core.saveRuleset(rsetFile);
-            return;
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to save ruleset state", e);
         }

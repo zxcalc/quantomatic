@@ -6,24 +6,16 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Image;
 import java.awt.event.WindowEvent;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
-import javax.swing.Action;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JSplitPane;
-
+import javax.swing.*;
 import quanto.core.CoreException;
 import quanto.gui.QuantoApp.BoolPref;
 
@@ -288,7 +280,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     }
 
     public void importRuleset() {
-        File f = app.openFile(this, "Import ruleset", app.DIR_RULESET);
+        File f = app.openFile(this, "Import ruleset", QuantoApp.DIR_RULESET);
         try {
             if (f != null) {
                 app.getCore().loadRuleset(f);
@@ -301,7 +293,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
     }
 
     public void exportRuleset() {
-        File f = app.saveFile(this, "Export ruleset", app.DIR_RULESET);
+        File f = app.saveFile(this, "Export ruleset", QuantoApp.DIR_RULESET);
         try {
             if (f != null) {
                 app.getCore().saveRuleset(f);
