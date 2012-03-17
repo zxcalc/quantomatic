@@ -17,6 +17,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
 import quanto.core.data.SvgVertexVisualizationData;
 import quanto.core.data.VertexType;
+import quanto.core.data.VertexVisualizationData;
 import uk.me.randomguy3.svg.SVGCache;
 
 /**
@@ -60,22 +61,26 @@ public class TheoryHandler extends DefaultHandler {
     public static class Data {
         public String name;
         public String coreName;
+        public String friendlyName;
         public ArrayList<VertexType> vertices = new ArrayList<VertexType>();
         public LinkedList<URL> dependentResources = new LinkedList<URL>();
     }
     private Data data = new Data();
-    private VertexType.DataType dataType;
-    private URI svgdocURI;
     private URL baseURL;
     private URL locatorBaseURL;
-    private String theoryName;
-    private String implementedTheoryName;
-    private String vertexName;
-    private String labelFill;
-    private String mnemonic;
     private Locator locator;
     private int unknownElementDepth = 0;
     private Mode mode = Mode.None;
+    
+    // vertex
+    private String vertexName;
+    private VertexType.DataType dataType;
+    private Character mnemonic;
+    private VertexVisualizationData visdata;
+
+    // vertex vis
+    private URI svgdocURI;
+    private Color labelFill;
 
     private enum Mode {
         None,
@@ -123,6 +128,12 @@ public class TheoryHandler extends DefaultHandler {
     public void startDocument() throws SAXException {
         data = new Data();
     }
+    
+    private SAXException missingAttrEx(String attr, String element) {
+        return new SAXParseException(
+                "Missing '" + attr + "' attribute in <" + element + "> element",
+                locator);
+    }
 
     @Override
     public void startElement(String namespaceUri, String localName,
@@ -133,38 +144,56 @@ public class TheoryHandler extends DefaultHandler {
             if (!"theory".equals(localName)) {
                 throw new SAXParseException("Root element was not theory", locator);
             }
-            this.theoryName = attributes.getValue("name");
-            this.implementedTheoryName = attributes.getValue("implements");
+
+            data.name = attributes.getValue("name");
+            if (data.name == null) {
+                throw missingAttrEx("name", "theory");
+            }
+
+            data.coreName = attributes.getValue("implements");
+            if (data.coreName == null) {
+                throw missingAttrEx("implements", "theory");
+            }
+
+            data.friendlyName = attributes.getValue("friendlyname");
+            if (data.friendlyName == null) {
+                data.friendlyName = data.name;
+            }
+
             mode = Mode.Theory;
         } else if (mode == Mode.Theory) {
-            if (!"nodetype".equals(localName)) {
-                throw new SAXParseException("Element Nodetype not found", locator);
+            if ("nodetype".equals(localName)) {
+                this.vertexName = attributes.getValue("name");
+                if (vertexName == null || vertexName.isEmpty()) {
+                    throw missingAttrEx("name", "nodetype");
+                }
+                mode = Mode.Nodetype;
+            } else {
+                ++unknownElementDepth;
             }
-            this.vertexName = attributes.getValue("name");
-            mode = Mode.Nodetype;
         } else if (mode == Mode.Nodetype) {
             if ("data".equals(localName)) {
-                if (attributes.getValue("type") == null) {
-                    throw new SAXParseException("Type attribute not found in element Data", locator);
-                } else if (attributes.getValue("type").equals("MathExpression")) {
-                    this.dataType = VertexType.DataType.MathExpression;
-                } else if (attributes.getValue("type").equals("String")) {
-                    this.dataType = VertexType.DataType.String;
-                } else {
-                    this.dataType = VertexType.DataType.None;
+                String dtype = attributes.getValue("type");
+                if (dtype == null) {
+                    throw missingAttrEx("type", "element");
+                }
+                try {
+                    this.dataType = VertexType.DataType.valueOf(dtype);
+                } catch (IllegalArgumentException ex) {
+                    throw new SAXParseException("Unknown data type '" + dtype + "'", locator);
                 }
             } else if ("visualization".equals(localName)) {
                 mode = Mode.Visualization;
             } else if ("mnemonic".equals(localName)) {
                 if (attributes.getValue("key") == null) {
-                    throw new SAXParseException("Type attribute not found in element data", locator);
+                    throw missingAttrEx("key", "mnemonic");
                 } else if (attributes.getValue("key").length() == 1) {
-                    this.mnemonic = attributes.getValue("key");
+                    this.mnemonic = attributes.getValue("key").charAt(0);
                 } else {
-                    throw new SAXParseException("The 'key' attribute in element mnemonic must be one character long.", null);
+                    throw new SAXParseException("The 'key' attribute in element mnemonic must be one character long.", locator);
                 }
             } else {
-                throw new SAXParseException("Unexpected element found in Nodetype", locator);
+                ++unknownElementDepth;
             }
         } else if (mode == Mode.Visualization) {
             if ("node".equals(localName)) {
@@ -185,9 +214,18 @@ public class TheoryHandler extends DefaultHandler {
                     throw new SAXParseException("No svgFile attribute given", locator);
                 }
             } else if ("label".equals(localName)) {
-                this.labelFill = attributes.getValue("fill");
+                String fillSpec = attributes.getValue("fill");
+                if (fillSpec != null && !fillSpec.isEmpty()) {
+                    this.labelFill = uk.me.randomguy3.svg.xml.ColorTable.parseColor(fillSpec);
+                    if (this.labelFill == null) {
+                        throw new SAXParseException(
+                                "Invalid color '" +  fillSpec + 
+                                "' in 'fill' attribute of 'label' element",
+                                locator);
+                    }
+                }
             } else {
-                throw new SAXParseException("Unexpected element found in Visualization", locator);
+                ++unknownElementDepth;
             }
         } else {
             ++unknownElementDepth;
@@ -200,29 +238,34 @@ public class TheoryHandler extends DefaultHandler {
         if (unknownElementDepth > 0) {
             --unknownElementDepth;
         } else if ((mode == Mode.Visualization) && "visualization".equals(localName)) {
-            mode = Mode.Nodetype;
-            if (this.vertexName == null) {
-                throw new SAXParseException("name attribute of nodetype cannot be null", locator);
+            if (svgdocURI == null) {
+                throw new SAXParseException("<visualization> element missing SVG data", locator);
             }
-            data.vertices.add(new VertexType.GenericVertexType(this.vertexName, this.dataType, this.mnemonic,
-                    new SvgVertexVisualizationData(svgdocURI,
-                    new Color(Integer.parseInt(this.labelFill, 16)))));
-            //Reset the optional mnemonic
-            this.mnemonic = null;
+            // labelFill may be omitted
+            visdata = new SvgVertexVisualizationData(svgdocURI, labelFill);
+
+            svgdocURI = null;
+            labelFill = null;
+
+            mode = Mode.Nodetype;
         } else if ((mode == Mode.Nodetype) && ("nodetype".equals(localName))) {
+            if (visdata == null) {
+                throw new SAXParseException("<nodetype> element has no <visualization> element", locator);
+            }
+            if (dataType == null) {
+                throw new SAXParseException("<nodetype> element has no <data> element", locator);
+            }
+            VertexType vt = new VertexType.GenericVertexType(
+                    vertexName, dataType, mnemonic, visdata);
+            data.vertices.add(vt);
+
+            mnemonic = null;
+            visdata = null;
+            dataType = null;
+            vertexName = null;
+
             mode = Mode.Theory;
         } else if ((mode == Mode.Theory) && ("theory".equals(localName))) {
-            if (this.theoryName == null) {
-                data.name = "undef";
-                throw new SAXParseException("Could not find attribute 'name' in element <theory>", locator);
-            } else {
-                data.name = this.theoryName;
-            }
-
-            if (this.implementedTheoryName == null) {
-                throw new SAXParseException("Could not find attribute 'implements' in element <theory>", locator);
-            }
-            data.coreName = this.implementedTheoryName;
             mode = Mode.None;
         }
     }

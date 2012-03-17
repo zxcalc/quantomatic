@@ -52,14 +52,14 @@ public class Core {
     private class CoreTheory implements Theory {
 
         private String theoryName;
-        Map<String, VertexType> mnemonics = new HashMap<String, VertexType>();
-        Map<String, VertexType> types = new HashMap<String, VertexType>();
+        private Map<Character, VertexType> mnemonics = new HashMap<Character, VertexType>();
+        private Map<String, VertexType> types = new HashMap<String, VertexType>();
 
         public VertexType getVertexType(String typeName) {
             return types.get(typeName);
         }
 
-        public VertexType getVertexTypeByMnemonic(String mnemonic) {
+        public VertexType getVertexTypeByMnemonic(char mnemonic) {
             return mnemonics.get(mnemonic);
         }
 
@@ -69,7 +69,8 @@ public class Core {
 
         public void addVertexType(VertexType type) {
             types.put(type.getTypeName(), type);
-            mnemonics.put(type.getMnemonic(), type);
+            if (type.getMnemonic() != null)
+                mnemonics.put(type.getMnemonic(), type);
         }
 
         public void removeAllVertices() {

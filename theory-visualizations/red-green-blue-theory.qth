@@ -1,11 +1,11 @@
-<theory name="red_green_blue" implements="red_green_blue">
+<theory name="red_green_blue" friendlyname="Red/Green/Blue" implements="red_green_blue">
   <nodetype name="Red">
     <data type="None"></data>
 	<mnemonic key="r"/>
     <visualization>
 	   <node svgFile="red.svg">
 		</node>
-      <label fill="ff9696"/>
+      <label fill="#ff9696"/>
     </visualization>
   </nodetype>
 
@@ -15,7 +15,7 @@
     <visualization>
 	 	<node svgFile="green.svg">
 		</node>
-      <label fill="96ff96"/>
+      <label fill="#96ff96"/>
     </visualization>
   </nodetype>
 
@@ -25,7 +25,7 @@
     <visualization>
 	 	<node svgFile="blue.svg">
 		</node>
-      <label fill="9696ff"/>
+      <label fill="#9696ff"/>
     </visualization>
   </nodetype>
 </theory>

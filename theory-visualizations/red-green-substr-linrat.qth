@@ -1,11 +1,11 @@
-<theory name="red_green" implements="substr_linrat">
+<theory name="red_green" friendlyname="Red/Green (substr)" implements="substr_linrat">
   <nodetype name="X">
     <data type="MathExpression"></data>
 	<mnemonic key="r"/>
     <visualization>
 	   <node svgFile="red.svg">
 		</node>
-      <label fill="ff9696"/>
+      <label fill="#ff9696"/>
     </visualization>
   </nodetype>
 
@@ -15,7 +15,7 @@
     <visualization>
 	 	<node svgFile="green.svg">
 		</node>
-      <label fill="96ff96"/>
+      <label fill="#96ff96"/>
     </visualization>
   </nodetype>
 
@@ -25,7 +25,6 @@
     <visualization>
       <node svgFile="hadamard.svg">
       </node>
-		<label fill="ffffff"/>
     </visualization>
   </nodetype>
 </theory>

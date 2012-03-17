@@ -1,11 +1,10 @@
-<theory name="black_white" implements="ghz_w">
+<theory name="black_white" friendlyname="Black/White" implements="ghz_w">
   <nodetype name="GHZ">
     <data type="None"></data>
 	<mnemonic key="g"/>
     <visualization>
 	   <node svgFile="white.svg">
 		</node>
-      <label fill="ffffff"/>
     </visualization>
   </nodetype>
 
@@ -15,7 +14,6 @@
     <visualization>
 	 	<node svgFile="black.svg">
 		</node>
-      <label fill="ffffff"/>
     </visualization>
   </nodetype>
  </theory>

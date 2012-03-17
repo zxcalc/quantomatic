@@ -1,4 +1,4 @@
-<theory corename="red-green">
+<theory name="red_green" friendlyname="Red/Green" implements="red-green">
   <nodetype name="X">
     <data type="expression.angle"></data>
 	<mnemonic key="r"/>
@@ -8,7 +8,7 @@
            <circle id="boundary" style="fill:#ff0000;stroke:#000000;stroke-width:1" cx="0" cy="0" r="6.5" /> 
         </svg>
       </node>
-      <label fill="ff9696" />
+      <label fill="#ff9696" />
     </visualization>
   </nodetype>
 
@@ -21,7 +21,7 @@
            <circle id="boundary" style="fill:#00ff00;stroke:#000000;stroke-width:1" cx="0" cy="0" r="6.5" /> 
         </svg>
       </node>
-      <label fill="ff9696" />
+      <label fill="#ff9696" />
     </visualization>
   </nodetype>
 

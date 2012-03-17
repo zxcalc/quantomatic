@@ -1,11 +1,11 @@
-<theory name="strings" implements="strings">
+<theory name="strings" friendlyname="Strings" implements="strings">
   <nodetype name="String">
     
     <data type="String"></data>
 	  <mnemonic key="n"/>
     <visualization>
 	    <node svgFile="white.svg"></node>
-      <label fill="ffffff"/>
+      <label fill="#ffffff"/>
     </visualization>
   </nodetype>
 

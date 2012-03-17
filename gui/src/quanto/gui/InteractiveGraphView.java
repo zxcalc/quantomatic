@@ -1455,7 +1455,7 @@ public class InteractiveGraphView
 					}
 					break;			
 			}
-			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(Character.toString(e.getKeyChar()));
+			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(e.getKeyChar());
 			if (v != null) {
 				addVertex(v.getTypeName());
 			}
