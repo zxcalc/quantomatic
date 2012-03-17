@@ -201,4 +201,30 @@
     <delete dir="${build.debug}"/>
     <delete dir="${dist}"/>
   </target>
+    <target depends="compile.debug" description="Debug Quanto (NetBeans)" name="debug-nb">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+        <property environment="env"/>
+        <nbjpdastart addressproperty="jpda.address" name="QuantoGui" transport="dt_socket">
+            <classpath refid="quanto.classpath.debug"/>
+        </nbjpdastart>
+        <java classname="quanto.gui.QuantoApp" fork="true">
+            <classpath refid="quanto.classpath.debug"/>
+            <env key="PATH" path="${root}/core/bin/:${env.PATH}"/>
+            <jvmarg value="-Xdebug"/>
+            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
+        </java>
+    </target>
+    <target name="nb-profile" depends="compile.debug" description="Profile Quanto (NetBeans)">
+        <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
+
+        <nbprofiledirect>
+            <classpath refid="quanto.classpath.debug"/>
+        </nbprofiledirect>
+
+        <java classname="quanto.gui.QuantoApp" fork="true">
+            <classpath refid="quanto.classpath.debug"/>
+            <env key="PATH" path="${root}/core/bin/:${env.PATH}"/>
+            <jvmarg value="${profiler.info.jvmargs.agent}"/>
+        </java>
+    </target>
 </project>
