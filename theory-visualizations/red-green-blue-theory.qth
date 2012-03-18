@@ -1,4 +1,4 @@
-<theory name="red_green_blue" friendlyname="Red/Green/Blue" implements="red_green_blue">
+<theory name="Red/Green/Blue" implements="red_green_blue">
   <nodetype name="Red">
     <data type="None"></data>
 	<mnemonic key="r"/>

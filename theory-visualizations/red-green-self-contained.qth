@@ -1,4 +1,4 @@
-<theory name="red_green" friendlyname="Red/Green" implements="red-green">
+<theory name="Red/Green" implements="red_green">
   <nodetype name="X">
     <data type="expression.angle"></data>
 	<mnemonic key="r"/>

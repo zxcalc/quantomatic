@@ -59,10 +59,13 @@ public class TheoryHandler extends DefaultHandler {
     }
 
     public static class Data {
+        /** The user-visible theory name */
         public String name;
+        /** The core theory that backs this theory */
         public String coreName;
-        public String friendlyName;
+        /** The vertices defined by this theory */
         public ArrayList<VertexType> vertices = new ArrayList<VertexType>();
+        /** The resources referenced by this theory file (eg: SVG files) */
         public LinkedList<URL> dependentResources = new LinkedList<URL>();
     }
     private Data data = new Data();
@@ -153,11 +156,6 @@ public class TheoryHandler extends DefaultHandler {
             data.coreName = attributes.getValue("implements");
             if (data.coreName == null) {
                 throw missingAttrEx("implements", "theory");
-            }
-
-            data.friendlyName = attributes.getValue("friendlyname");
-            if (data.friendlyName == null) {
-                data.friendlyName = data.name;
             }
 
             mode = Mode.Theory;

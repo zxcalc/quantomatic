@@ -418,7 +418,7 @@ public class QuantoApp {
         /*
          * Try loading a default theory
          */
-        URL defaultTheory = getClass().getResource("resources/red-green-theory.qth");
+        URL defaultTheory = getClass().getResource("/theories/red_green/red-green-theory.qth");
         logger.log(Level.FINER, "Attempting to load a default theory at {0}", defaultTheory);
         try {
             return TheoryHandler.parse(defaultTheory);
