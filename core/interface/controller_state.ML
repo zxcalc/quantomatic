@@ -57,7 +57,10 @@ sig
   val undo : GraphName.name -> T -> T
   val redo : GraphName.name -> T -> T
   val push_hist : GraphName.name -> T -> T
-
+  val start_undo_group : GraphName.name -> T -> T (* nathing is pushed on the
+  undo stack  *)
+  val end_undo_group : GraphName.name -> T -> T (* push_hist actually pushes
+  the changes creating a new undo point  *)
   (* printing/showing info (for console) *)
   val get_attached_rewrites : GraphName.name -> T -> rewrite list
   val list_rules_with_tag : TagName.name -> T -> TagName.name list
@@ -173,32 +176,40 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        rewrites : (rewrite list) GraphName.NTab.T, (* cached possible rewrites *)
        ud : UIData.T GraphName.NTab.T, (* User Data *)
        hist : history, (* past and future *)
+       merge_changes: bool GraphName.NTab.T, (* whether we create a new undo
+       point when the state is modified  *)
        rset : Ruleset.T (* the known rules *)
   }
 
   (* getters and setters for the state *)
-  fun update_graphs f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
-    CState {graphs=(f g),rewrites=r,ud=u,hist=h,rset=t} 
-  fun update_rewrites f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
-    CState {graphs=g,rewrites=(f r),ud=u,hist=h,rset=t}
-  fun update_ud f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=(f u),hist=h,rset=t}
-  fun update_hist f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=(f h),rset=t}
-  fun update_rset f (CState {graphs=g,rewrites=r,ud=u,hist=h,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=h,rset=(f t)}
-  val (set_graphs,set_rewrites,set_ud,set_hist,set_rset) = 
-    (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K, update_rset o K)
+  fun update_graphs f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
+    CState {graphs=(f g),rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t} 
+  fun update_rewrites f (CState
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
+    CState {graphs=g,rewrites=(f r),ud=u,hist=h,merge_changes=mg,rset=t}
+  fun update_ud f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=(f u),hist=h,merge_changes=mg,rset=t}
+  fun update_hist f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=(f h),merge_changes=mg,rset=t}
+  fun update_merge_changes f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=(f mg),rset=t}
+  fun update_rset f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=(f t)}
+  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset) = 
+    (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K,
+    update_merge_changes o K, update_rset o K)
   fun get_graphs (CState {graphs=g,...}) = g
   fun get_rewrites (CState {rewrites=r,...}) = r
   fun get_ud (CState {ud=u,...}) = u
   fun get_hist (CState {hist=h,...}) = h
+  fun get_merge_changes (CState {merge_changes=mg,...}) = mg
   fun get_rset (CState {rset=t,...}) = t
 
   val init = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
                          ud=GraphName.NTab.empty,
                          hist=GraphName.NTab.empty,
+                         merge_changes=GraphName.NTab.empty,
                          rset=Ruleset.empty};
 
   (* state accessors *)
@@ -219,10 +230,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let
         val (back,_) = 
             the_default ([],[]) (GraphName.NTab.lookup (get_hist state) gname)
-        val hist' = (get_hist state)
-                          |> GraphName.NTab.update
-                          (gname,((get_graph state gname, get_graph_ud state gname)::back, []))
-      in state |> set_hist hist'
+        val mg = the_default false (GraphName.NTab.lookup (get_merge_changes
+                                    state) gname) 
+        val hist =  (get_hist state) 
+                      |> GraphName.NTab.update (gname, 
+                        ((get_graph state gname, get_graph_ud state gname)::back, []))
+      in if mg then state else state |> set_hist hist
       end
 
   (* any time the graph is changed, any attached rewrites are invalid,
@@ -234,6 +247,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun set_graph_ud ud' gname state =
       state |> update_ud (GraphName.NTab.update (gname,ud'))
+
   (* ============================================== *)
   (* these functions actually implement commmands *)
 
@@ -677,6 +691,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       UIData.get_bb_ud (get_graph_ud state gn) bn
     end
 
+  fun start_undo_group gname state =
+    state |> update_merge_changes (GraphName.NTab.update (gname,true))
+  fun end_undo_group gname state =
+    state |> update_merge_changes (GraphName.NTab.update (gname,false))
 end; (* structure Controller *)
 
 (* vim:et:sts=2:sw=2

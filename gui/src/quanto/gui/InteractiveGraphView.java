@@ -50,6 +50,7 @@ import java.io.OutputStream;
 import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
+
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
@@ -717,25 +718,35 @@ public class InteractiveGraphView
 	}
 
 	public void setVerticesPositionData() {
-	     //FIXME: When a vertex is added, we save its position in the core
-	     //and a new graph is pushed on the undo stack... you need to undo
-	     //twice to remove it.
 	     CoreGraph graph = getGraph();
 	     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	     try {
+          core.startUndoGroup(getGraph());
 	     for(Vertex v : graph.getVertices()) {
-	          //Update only if the vertex moved
 	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
 	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
 	          Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
 	          Point2D new_p = new Point2D.Double(X, Y);
 	          if (old_p == null) {
-	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-	                         new_p);
-	          } else if (!old_p.equals(new_p)){
-	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-	                         new_p);
+	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
 	          }
 	     }
+	     core.endUndoGroup(getGraph());
+	     } catch (CoreException e) {
+              errorDialog(e.getMessage());
+          }
+          for(Vertex v : graph.getVertices()) {
+               //Update only if the vertex moved: we store ints, allow 
+               //a 1px delta.
+               int X = (int) smoothLayout.getDelegate().transform(v).getX();
+               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+               Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+               Point2D new_p = new Point2D.Double(X, Y);
+               if (old_p.distance(new_p) > 1.5) {
+                    pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+                                   new_p);
+                    }
+          }	     
 	}
 	
 	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
@@ -756,9 +767,15 @@ public class InteractiveGraphView
 		for(Vertex v: getGraph().getVertices())	{					
 			if(verticesCache.get(v.getCoreName())==null) {
 				if(rewriteRect!=null) {
-					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
-					setVerticesPositionData();
-					count++;
+				     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+	                    if (p != null) {
+	                         viewer.getGraphLayout().setLocation(v, p);
+	                    } else {
+	                         viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
+	                         setVerticesPositionData();
+	                         count++;
+	                    }
 				}
             }
 		}
@@ -1064,7 +1081,7 @@ public class InteractiveGraphView
 
 	public static void registerKnownCommands(Core core, CommandManager commandManager) {
 		/*
-		 * Add dynamically commands allowing to add registered vertices
+		 * Add commands dynamically and add registered vertex types
 		 */
 		for (VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
 			commandManager.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");

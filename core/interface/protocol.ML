@@ -425,6 +425,22 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
+ * Name: StartUndoGroupRequest
+ * Code: "GMSU"
+ * Args:
+ *   GraphName: String
+ * Desc: Starts an undo group: changes are merge on the undo stack
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ *
+ * Name: EndUndoGroupRequest
+ * Code: "GMFU"
+ * Args:
+ *   GraphName: String
+ * Desc: Ends the undo group: create an undo point whenver the state is changed
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+*
  * Name: InsertGraphRequest
  * Code: "GMI"
  * Args:
@@ -1409,6 +1425,16 @@ struct
          | "GMR"  =>  EditGraphRequest {
                         graphName = readToEnd (),
                         action = RedoAction
+                      }
+
+         | "GMSU"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = StartUndoGroupAction
+                      }
+
+         | "GMFU"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = EndUndoGroupAction
                       }
 
          | "GMI"  =>  let

@@ -733,6 +733,38 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void startUndoGroup(String graph) throws CoreException {
+         if (backend == null) {
+             throw new IllegalStateException("The core is not running");
+         }
+
+         try {
+             writer.addHeader("GMSU", generateRequestId());
+             writer.addStringArg(graph);
+             writer.closeMessage();
+         } catch (IOException ex) {
+             throw writeFailure(ex);
+         }
+
+         getOkResponse();
+     }
+
+    public void endUndoGroup(String graph) throws CoreException {
+         if (backend == null) {
+             throw new IllegalStateException("The core is not running");
+         }
+
+         try {
+             writer.addHeader("GMFU", generateRequestId());
+             writer.addStringArg(graph);
+             writer.closeMessage();
+         } catch (IOException ex) {
+             throw writeFailure(ex);
+         }
+
+         getOkResponse();
+     }
+    
     public void insertGraph(String source, String target) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -782,7 +814,7 @@ public class ProtocolManager {
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
-
+        
         return getXmlResponse();
     }
 

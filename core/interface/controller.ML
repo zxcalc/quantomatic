@@ -149,6 +149,10 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | RedoAction
                              (* OkResponse | ErrorResponse *)
+                           | StartUndoGroupAction
+                             (* OkResponse | ErrorResponse *)
+                           | EndUndoGroupAction
+                              (* OkResponse | ErrorResponse *)
                            | InsertGraphAction of { sourceGraphName: string }
                              (* OkResponse | ErrorResponse *)
                            | SetGraphUserDataAction of { dataName: string, userData: string }
@@ -645,6 +649,12 @@ fun hilb ([format], graph) =
         | RedoAction =>
             (OkResponse,
              State.redo (GraphName.mk graphName) state)
+        | StartUndoGroupAction =>
+            (OkResponse,
+             State.start_undo_group (GraphName.mk graphName) state)
+        | EndUndoGroupAction =>
+            (OkResponse,
+             State.end_undo_group (GraphName.mk graphName) state)
         | InsertGraphAction { sourceGraphName } =>
             (OkResponse,
              State.insert_graph (GraphName.mk sourceGraphName) (GraphName.mk graphName) state)

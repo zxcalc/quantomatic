@@ -215,6 +215,16 @@ public class Core {
         talker.redo(graph.getCoreName());
     }
 
+    public void startUndoGroup(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.startUndoGroup(graph.getCoreName());
+     }
+
+     public void endUndoGroup(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.endUndoGroup(graph.getCoreName());
+     }
+    
     public Vertex addVertex(CoreGraph graph, VertexType vertexType)
             throws CoreException {
         return addVertex(graph, vertexType.getTypeName());
