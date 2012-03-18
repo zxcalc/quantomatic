@@ -707,35 +707,35 @@ public class InteractiveGraphView
 	}
 	
 	public void cacheVertexPositions(){
-		verticesCache= new HashMap<String, Point2D>();
-		for(Vertex v: getGraph().getVertices()){
-			int X = (int) viewer.getGraphLayout().transform(v).getX();
-			int Y = (int) viewer.getGraphLayout().transform(v).getY();
-			Point2D p = new Point2D.Double(X, Y);
-			verticesCache.put(v.getCoreName(),  p);
-		}
+	     verticesCache= new HashMap<String, Point2D>();
+	     for(Vertex v: getGraph().getVertices()){
+	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D p = new Point2D.Double(X, Y);
+	          verticesCache.put(v.getCoreName(),  p);
+	     }
 	}
 
 	public void setVerticesPositionData() {
-		//FIXME: When a vertex is added, we save its position in the core
-		//and a new graph is pushed on the undo stack... you need to undo
-		//twice to remove it.
-		CoreGraph graph = getGraph();
-	    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-	    for(Vertex v : graph.getVertices()) {
-	    	//Update only if the vertex moved
-	    	int X = (int) viewer.getGraphLayout().transform(v).getX();
-	    	int Y = (int) viewer.getGraphLayout().transform(v).getY();
-	    	Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
-	    	Point2D new_p = new Point2D.Double(X, Y);
-	    	if (old_p == null) {
-	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-	    			new_p);
-	    	} else if (!old_p.equals(new_p)){
-	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-		    			new_p);
-	    	}
-	    }
+	     //FIXME: When a vertex is added, we save its position in the core
+	     //and a new graph is pushed on the undo stack... you need to undo
+	     //twice to remove it.
+	     CoreGraph graph = getGraph();
+	     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	     for(Vertex v : graph.getVertices()) {
+	          //Update only if the vertex moved
+	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+	          Point2D new_p = new Point2D.Double(X, Y);
+	          if (old_p == null) {
+	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+	                         new_p);
+	          } else if (!old_p.equals(new_p)){
+	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
+	                         new_p);
+	          }
+	     }
 	}
 	
 	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
