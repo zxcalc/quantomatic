@@ -131,10 +131,16 @@ public class TheoryHandler extends DefaultHandler {
     public void startDocument() throws SAXException {
         data = new Data();
     }
-    
+
     private SAXException missingAttrEx(String attr, String element) {
         return new SAXParseException(
                 "Missing '" + attr + "' attribute in <" + element + "> element",
+                locator);
+    }
+
+    private SAXException emptyAttrEx(String attr, String element) {
+        return new SAXParseException(
+                "Attribute '" + attr + "' cannot be empty in <" + element + "> element",
                 locator);
     }
 
@@ -151,19 +157,25 @@ public class TheoryHandler extends DefaultHandler {
             data.name = attributes.getValue("name");
             if (data.name == null) {
                 throw missingAttrEx("name", "theory");
+            } else if (data.name.isEmpty()) {
+                throw emptyAttrEx("name", "theory");
             }
 
             data.coreName = attributes.getValue("implements");
             if (data.coreName == null) {
                 throw missingAttrEx("implements", "theory");
+            } else if (data.coreName.isEmpty()) {
+                throw emptyAttrEx("implements", "theory");
             }
 
             mode = Mode.Theory;
         } else if (mode == Mode.Theory) {
             if ("nodetype".equals(localName)) {
                 this.vertexName = attributes.getValue("name");
-                if (vertexName == null || vertexName.isEmpty()) {
+                if (vertexName == null) {
                     throw missingAttrEx("name", "nodetype");
+                } else if (vertexName.isEmpty()) {
+                    throw emptyAttrEx("name", "nodetype");
                 }
                 mode = Mode.Nodetype;
             } else {
@@ -174,6 +186,8 @@ public class TheoryHandler extends DefaultHandler {
                 String dtype = attributes.getValue("type");
                 if (dtype == null) {
                     throw missingAttrEx("type", "element");
+                } else if (dtype.isEmpty()) {
+                    throw emptyAttrEx("type", "element");
                 }
                 try {
                     this.dataType = VertexType.DataType.valueOf(dtype);
@@ -183,10 +197,13 @@ public class TheoryHandler extends DefaultHandler {
             } else if ("visualization".equals(localName)) {
                 mode = Mode.Visualization;
             } else if ("mnemonic".equals(localName)) {
-                if (attributes.getValue("key") == null) {
+                String key = attributes.getValue("key");
+                if (key == null) {
                     throw missingAttrEx("key", "mnemonic");
-                } else if (attributes.getValue("key").length() == 1) {
-                    this.mnemonic = attributes.getValue("key").charAt(0);
+                } else if (key.isEmpty()) {
+                    throw emptyAttrEx("key", "mnemonic");
+                } else if (key.length() == 1) {
+                    this.mnemonic = key.charAt(0);
                 } else {
                     throw new SAXParseException("The 'key' attribute in element mnemonic must be one character long.", locator);
                 }
@@ -195,10 +212,11 @@ public class TheoryHandler extends DefaultHandler {
             }
         } else if (mode == Mode.Visualization) {
             if ("node".equals(localName)) {
-                if (attributes.getValue("svgFile") != null) {
+                String svgFile = attributes.getValue("svgFile");
+                if (svgFile != null && !svgFile.isEmpty()) {
                     //Then the representation is given in an external file
                     try {
-                        URL svgUrl = resolveUrl(attributes.getValue("svgFile"));
+                        URL svgUrl = resolveUrl(svgFile);
                         svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgUrl);
                         if (svgdocURI == null) {
                             throw new SAXParseException("Could not load SVG from '" + svgUrl + "'", locator);
