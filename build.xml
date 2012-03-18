@@ -24,7 +24,7 @@
     </exec>
   </target>
   <target name="clean.core" description="Clean up builds files from the core">
-    <exec executable="make" dir="gui" failonerror="true">
+    <exec executable="make" dir="core" failonerror="true">
       <arg value="clean" />
     </exec>
   </target>
