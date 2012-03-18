@@ -126,6 +126,7 @@ public class Core {
 
     public void updateCoreTheory(String implementedTheoryName, Collection<VertexType> theoryVertices) throws CoreException {
         talker.changeTheory(implementedTheoryName);
+        this.activeTheory.setTheoryName(implementedTheoryName);
         this.activeTheory.removeAllVertices();
         for (VertexType v : theoryVertices) {
             this.activeTheory.addVertexType(v);
