@@ -20,6 +20,7 @@ import javax.swing.UIManager;
 import org.xml.sax.SAXException;
 import quanto.core.Core;
 import quanto.core.CoreException;
+import quanto.core.Theory;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.ProtocolManager;
 import quanto.core.xml.TheoryHandler;
@@ -464,7 +465,7 @@ public class QuantoApp {
     public void changeTheory(File theoryFile) {
         try {
             TheoryHandler.Data theoryData = TheoryHandler.parse(theoryFile);
-            core.updateCoreTheory(theoryData.coreName, theoryData.vertices);
+            core.updateCoreTheory(new Theory(theoryData));
             saveTheoryCopy(theoryFile, theoryData.dependentResources);
             viewManager.closeAllViews();
         } catch (CoreException e) {
@@ -502,13 +503,12 @@ public class QuantoApp {
 
     private QuantoApp() throws CoreException {
         globalPrefs = Preferences.userNodeForPackage(this.getClass());
-        TheoryHandler.Data data = loadSavedTheoryState();
 
+        TheoryHandler.Data data = loadSavedTheoryState();
         if (data == null) {
             data = demandTheory();
         }
-
-        core = new Core(data.coreName, data.vertices);
+        core = new Core(new Theory(data));
 
         loadSavedRulesetState();
 

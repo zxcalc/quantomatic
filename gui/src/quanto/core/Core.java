@@ -49,45 +49,8 @@ public class Core {
     
     EventListenerList listenerList = new EventListenerList();
 
-    private class CoreTheory implements Theory {
-
-        private String theoryName;
-        private Map<Character, VertexType> mnemonics = new HashMap<Character, VertexType>();
-        private Map<String, VertexType> types = new HashMap<String, VertexType>();
-
-        public VertexType getVertexType(String typeName) {
-            return types.get(typeName);
-        }
-
-        public VertexType getVertexTypeByMnemonic(char mnemonic) {
-            return mnemonics.get(mnemonic);
-        }
-
-        public Collection<VertexType> getVertexTypes() {
-            return types.values();
-        }
-
-        public void addVertexType(VertexType type) {
-            types.put(type.getTypeName(), type);
-            if (type.getMnemonic() != null)
-                mnemonics.put(type.getMnemonic(), type);
-        }
-
-        public void removeAllVertices() {
-            types.clear();
-            mnemonics.clear();
-        }
-
-        public void setTheoryName(String theoryName) {
-            this.theoryName = theoryName;
-        }
-
-        public String getTheoryName() {
-            return this.theoryName;
-        }
-    }
     private ProtocolManager talker;
-    private CoreTheory activeTheory;
+    private Theory activeTheory;
     private Ruleset ruleset;
 
     private <T> T parseXml(String xml, FragmentHandler<? extends T> handler) throws CoreException {
@@ -111,26 +74,18 @@ public class Core {
         }
     }
 
-    public Core(String implementedTheoryName, Collection<VertexType> vertices) throws CoreException {
+    public Core(Theory theory) throws CoreException {
         this.talker = new ProtocolManager();
         talker.startCore();
-        talker.changeTheory(implementedTheoryName);
-        this.activeTheory = new CoreTheory();
-        this.activeTheory.setTheoryName(implementedTheoryName);
-        for (VertexType v : vertices) {
-            this.activeTheory.addVertexType(v);
-        }
+        talker.changeTheory(theory.getCoreName());
+        this.activeTheory = theory;
 
         this.ruleset = new Ruleset(this);
     }
 
-    public void updateCoreTheory(String implementedTheoryName, Collection<VertexType> theoryVertices) throws CoreException {
-        talker.changeTheory(implementedTheoryName);
-        this.activeTheory.setTheoryName(implementedTheoryName);
-        this.activeTheory.removeAllVertices();
-        for (VertexType v : theoryVertices) {
-            this.activeTheory.addVertexType(v);
-        }
+    public void updateCoreTheory(Theory theory) throws CoreException {
+        talker.changeTheory(theory.getCoreName());
+        this.activeTheory = theory;
         fireTheoryChanged();
     }
 
