@@ -1,4 +1,4 @@
-<theory name="red_green" friendlyname="Red/Green (substr)" implements="substr_linrat">
+<theory name="Red/Green (substr)" implements="substr_linrat">
   <nodetype name="X">
     <data type="MathExpression"></data>
 	<mnemonic key="r"/>

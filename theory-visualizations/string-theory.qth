@@ -1,4 +1,4 @@
-<theory name="strings" friendlyname="Strings" implements="strings">
+<theory name="Strings" implements="strings">
   <nodetype name="String">
     
     <data type="String"></data>
