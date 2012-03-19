@@ -51,9 +51,9 @@ struct
                    | EditGraphRequest of { graphName: string, action: graphEditAction }
 
                    (*** Ruleset commands ***)
-                   | ImportRulesetFromFileRequest of { fileName: string }
+                   | ImportRulesetFromFileRequest of { fileName: string, replace: bool }
                      (* OkResponse | ErrorResponse *)
-                   | ImportRulesetFromDataRequest of { data: string }
+                   | ImportRulesetFromDataRequest of { data: string, replace: bool }
                      (* OkResponse | ErrorResponse *)
                    | ExportRulesetToFileRequest of { fileName: string }
                      (* OkResponse | ErrorResponse *)
@@ -271,9 +271,14 @@ struct
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
 
-  fun load_ruleset reader source state =
+  fun update_ruleset rset true state =
+       State.update_rset (Ruleset.merge rset) state
+    | update_ruleset rset false state =
+       State.set_rset rset state
+
+  fun load_ruleset reader source replace state =
      ((OkResponse,
-       State.update_rset (Ruleset.merge (Input.Ruleset.input (reader source))) state)
+       update_ruleset (Input.Ruleset.input (reader source)) replace state)
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
@@ -714,8 +719,8 @@ fun hilb ([format], graph) =
 
 
     (* Rulesets *)
-    | serviceRequest' (ImportRulesetFromFileRequest { fileName }) state =
-       (load_ruleset XMLReader.read_from_file fileName state
+    | serviceRequest' (ImportRulesetFromFileRequest { fileName, replace }) state =
+       (load_ruleset XMLReader.read_from_file fileName replace state
         handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read ("^msg^")") }, state)
@@ -723,8 +728,8 @@ fun hilb ([format], graph) =
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
 
-    | serviceRequest' (ImportRulesetFromDataRequest { data }) state =
-        load_ruleset XMLReader.read_from_string data state
+    | serviceRequest' (ImportRulesetFromDataRequest { data, replace }) state =
+        load_ruleset XMLReader.read_from_string data replace state
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let

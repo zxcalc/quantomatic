@@ -13,7 +13,7 @@ import javax.swing.JPanel;
 
 import quanto.core.Core;
 import quanto.core.CoreChangeListener;
-import quanto.core.CoreEvent;
+import quanto.core.TheoryChangeEvent;
 import quanto.core.Theory;
 import quanto.core.data.VertexType;
 
@@ -134,10 +134,14 @@ public class Toolbox extends JPanel {
             super("Add", rowsForTheory(core.getActiveTheory()), 2);
             loadButtons();
             core.addCoreChangeListener(new CoreChangeListener() {
-                public void theoryChanged(CoreEvent evt) {
+                public void theoryChanged(TheoryChangeEvent evt) {
                     AddVertexArea.this.removeAll();
                     setRows(rowsForTheory(core.getActiveTheory()));
                     loadButtons();
+                    AddVertexArea.this.validate();
+                }
+
+                public void theoryAboutToChange(TheoryChangeEvent evt) {
                 }
             });
         }

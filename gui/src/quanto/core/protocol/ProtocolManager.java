@@ -1112,6 +1112,38 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void replaceRulesetFromFile(String fileName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSP", generateRequestId());
+            writer.addStringArg(fileName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public void replaceRulesetFromData(byte[] data) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RSJ", generateRequestId());
+            writer.addDataChunkArg(data);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
     public void exportRulesetToFile(String fileName) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");

@@ -11,5 +11,6 @@ import java.util.EventListener;
  * @author alemer
  */
 public interface CoreChangeListener extends EventListener {
-    void theoryChanged(CoreEvent evt);
+    void theoryAboutToChange(TheoryChangeEvent evt);
+    void theoryChanged(TheoryChangeEvent evt);
 }

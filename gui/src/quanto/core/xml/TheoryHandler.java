@@ -4,14 +4,28 @@
  */
 package quanto.core.xml;
 
+import com.sun.org.apache.xml.internal.serialize.OutputFormat;
+import com.sun.org.apache.xml.internal.serialize.XMLSerializer;
 import java.awt.Color;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.imageio.IIOException;
+import javax.xml.namespace.NamespaceContext;
+import javax.xml.stream.XMLEventWriter;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import org.apache.commons.collections15.map.IdentityMap;
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
@@ -57,6 +71,74 @@ public class TheoryHandler extends DefaultHandler {
         
         return handler.getData();
     }
+    
+    public interface ResourceHandler {
+        URL getResource(URL original) throws IOException;
+    }
+    
+    public static void write(Data data, File file, ResourceHandler resHand)
+        throws IOException
+    {
+        FileWriter writer = new FileWriter(file);
+        try {
+            write(data, writer, resHand);
+        } finally {
+            writer.close();
+        }
+    }
+    
+    public static void write(Data data, Writer writer, ResourceHandler resHand)
+        throws IOException
+    {
+        try {
+            XMLOutputFactory outFact = XMLOutputFactory.newFactory();
+            XMLStreamWriter w = outFact.createXMLStreamWriter(writer);
+            w.writeStartDocument();
+            w.writeStartElement("theory");
+            w.writeAttribute("name", data.name);
+            w.writeAttribute("implements", data.coreName);
+
+            for (VertexType vt : data.vertices) {
+                w.writeStartElement("nodetype");
+                w.writeAttribute("name", vt.getTypeName());
+
+                w.writeStartElement("data");
+                w.writeAttribute("type", vt.getDataType().name());
+                w.writeEndElement();
+                
+                if (vt.getMnemonic() != null) {
+                    w.writeStartElement("mnemonic");
+                    w.writeAttribute("key", vt.getMnemonic().toString());
+                    w.writeEndElement();
+                }
+
+                w.writeStartElement("visualization");
+                VertexVisualizationData visdata = vt.getVisualizationData();
+                w.writeStartElement("node");
+                URL origURL = data.svgFiles.get(visdata);
+                URL newURL = resHand.getResource(origURL);
+                w.writeAttribute("svgFile", newURL.toExternalForm());
+                w.writeEndElement();
+                if (visdata.getLabelColour() != null) {
+                    w.writeStartElement("label");
+                    Color fill = visdata.getLabelColour();
+                    w.writeAttribute("fill", String.format("#%1$02x%2$02x%3$02x",
+                            fill.getRed(), fill.getGreen(), fill.getBlue()));
+                    w.writeEndElement();
+                }
+                w.writeEndElement();
+
+                w.writeEndElement();
+            }
+
+            w.writeEndElement();
+            w.writeEndDocument();
+            w.close();
+        } catch (XMLStreamException ex) {
+            throw new IOException(ex);
+        }
+        writer.flush();
+    }
 
     public static class Data {
         /** The user-visible theory name */
@@ -65,8 +147,9 @@ public class TheoryHandler extends DefaultHandler {
         public String coreName;
         /** The vertices defined by this theory */
         public ArrayList<VertexType> vertices = new ArrayList<VertexType>();
-        /** The resources referenced by this theory file (eg: SVG files) */
-        public LinkedList<URL> dependentResources = new LinkedList<URL>();
+        /** The external SVG files */
+        public Map<VertexVisualizationData, URL> svgFiles =
+                new IdentityMap<VertexVisualizationData, URL>();
     }
     private Data data = new Data();
     private URL baseURL;
@@ -83,6 +166,7 @@ public class TheoryHandler extends DefaultHandler {
 
     // vertex vis
     private URI svgdocURI;
+    private URL svgURL;
     private Color labelFill;
 
     private enum Mode {
@@ -216,12 +300,11 @@ public class TheoryHandler extends DefaultHandler {
                 if (svgFile != null && !svgFile.isEmpty()) {
                     //Then the representation is given in an external file
                     try {
-                        URL svgUrl = resolveUrl(svgFile);
-                        svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgUrl);
+                        svgURL = resolveUrl(svgFile);
+                        svgdocURI = SVGCache.getSVGUniverse().loadSVG(svgURL);
                         if (svgdocURI == null) {
-                            throw new SAXParseException("Could not load SVG from '" + svgUrl + "'", locator);
+                            throw new SAXParseException("Could not load SVG from '" + svgURL + "'", locator);
                         }
-                        data.dependentResources.add(svgUrl);
                     } catch (MalformedURLException e) {
                         throw new SAXParseException("Malformed URL for SVG file", locator);
                     }
@@ -259,8 +342,10 @@ public class TheoryHandler extends DefaultHandler {
             }
             // labelFill may be omitted
             visdata = new SvgVertexVisualizationData(svgdocURI, labelFill);
+            data.svgFiles.put(visdata, svgURL);
 
             svgdocURI = null;
+            svgURL = null;
             labelFill = null;
 
             mode = Mode.Nodetype;

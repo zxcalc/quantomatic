@@ -1777,7 +1777,13 @@ struct
                       end
 
          | "RSO" =>  ImportRulesetFromFileRequest {
-                                fileName = readToEnd ()
+                                fileName = readToEnd (),
+                                replace = false
+                              }
+
+         | "RSP" =>  ImportRulesetFromFileRequest {
+                                fileName = readToEnd (),
+                                replace = true
                               }
 
          | "RSI"  =>  let
@@ -1785,7 +1791,18 @@ struct
                         val () = assertAtEnd ()
                       in
                         ImportRulesetFromDataRequest {
-                          data = data
+                          data = data,
+                          replace = false
+                        }
+                      end
+
+         | "RSJ"  =>  let
+                        val data = readDataChunk ()
+                        val () = assertAtEnd ()
+                      in
+                        ImportRulesetFromDataRequest {
+                          data = data,
+                          replace = true
                         }
                       end
 

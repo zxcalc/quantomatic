@@ -18,9 +18,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import org.xml.sax.SAXException;
-import quanto.core.Core;
-import quanto.core.CoreException;
-import quanto.core.Theory;
+import quanto.core.*;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.ProtocolManager;
 import quanto.core.xml.TheoryHandler;
@@ -59,6 +57,7 @@ public class QuantoApp {
     private final Core core;
     private JFileChooser[] fileChooser = {null, null, null};
     private InteractiveViewManager viewManager;
+    private TheoryManager theoryManager;
     public static final String lastTheoryDir = "theory";
     public static final String lastTheoryFileName = lastTheoryDir + File.separatorChar + "stored.qth";
 
@@ -352,7 +351,7 @@ public class QuantoApp {
     }
 
     public boolean shutdown() {
-        saveRulesetState();
+        theoryManager.saveState();
         logger.log(Level.FINER, "Shutting down");
         if (viewManager.closeAllViews()) {
             logger.log(Level.FINER, "Exiting now");
@@ -361,132 +360,19 @@ public class QuantoApp {
         return false;
     }
 
-    private void loadSavedRulesetState() {
-        File rsetFile = getPersistentCopyForReading("stored.rules");
-        if (rsetFile != null) {
-            logger.log(Level.FINER, "Existing theory state found: loading");
-            try {
-                core.loadRuleset(rsetFile);
-                return;
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Failed to load ruleset state", e);
-            }
-        } else {
-            logger.log(Level.FINER, "No theory state found");
-        }
-        /*
-         * Try loading a default file
-         * TODO: Load a file that matches the theory implemented by the core.
-         * We could have a default ruleset by theory... for now: red_green
-         */
-        rsetFile = new File(getRootDirectory() + File.separatorChar + "rulesets" + File.separatorChar
-                + "default.rules");
-        if (rsetFile.exists()) {
-            logger.log(Level.FINER, "Loading default ruleset");
-            try {
-                core.loadRuleset(rsetFile);
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Could not load default file", e);
-            }
-        } else {
-            logger.log(Level.FINER, "Default ruleset could not be located on the disk");
-        }
+    public TheoryManager getTheoryManager() {
+        return theoryManager;
     }
 
-    private void saveRulesetState() {
-        try {
-            logger.log(Level.FINER, "Saving theory state");
-            File rsetFile = getPersistentCopyForWriting("stored.rules");
-            core.saveRuleset(rsetFile);
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to save ruleset state", e);
-        }
-    }
-
-    private TheoryHandler.Data loadSavedTheoryState() {
-        File lastOpenedTheory = getPersistentCopyForReading(lastTheoryFileName);
-        if (lastOpenedTheory != null) {
-            logger.log(Level.FINER, "Loading previous theory");
-            try {
-                return TheoryHandler.parse(lastOpenedTheory);
-            } catch (Exception ex) {
-                logger.log(Level.WARNING, "Failed to load stored theory", ex);
-            }
-        } else {
-            logger.log(Level.FINER, "No saved theory file available");
-        }
-
-        /*
-         * Try loading a default theory
-         */
-        URL defaultTheory = getClass().getResource("/theories/red_green/red-green-theory.qth");
-        logger.log(Level.FINER, "Attempting to load a default theory at {0}", defaultTheory);
-        try {
-            return TheoryHandler.parse(defaultTheory);
-        } catch (Exception ex) {
-            logger.log(Level.FINER, "Failed to load default theory", ex);
-        }
-        return null;
-    }
-
-    private void clearTheoryDir() {
-        try {
-            File theoryDir = new File(getAppSettingsDirectory(false), lastTheoryDir);
-            File[] files = theoryDir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    file.delete();
-                }
-            }
-        } catch (IOException ex) {}
-    }
-
-    private void saveTheoryCopy(File theoryFile, Collection<URL> dependentFiles) {
-        clearTheoryDir();
-        savePersistentCopy(theoryFile, lastTheoryFileName);
-        for (URL resource : dependentFiles) {
-            if ("file".equals(resource.getProtocol())) {
-                File resFile = new File(resource.getPath());
-                if (resFile.getParentFile().equals(theoryFile.getParentFile())) {
-                    savePersistentCopy(resFile, lastTheoryDir + File.separatorChar + resFile.getName());
-                } else {
-                    logger.log(Level.WARNING,
-                            "Theory ({0}) had a dependent file ({1}) not in the same directory; could not save it",
-                            new Object[] { theoryFile, resFile });
-                }
-            } else {
-                logger.log(Level.WARNING,
-                        "Theory ({0}) had a dependent resource ({1}) that was not a file; could not save it",
-                        new Object[] { theoryFile, resource });
-            }
-        }
-    }
-
-    public void changeTheory(File theoryFile) {
-        try {
-            TheoryHandler.Data theoryData = TheoryHandler.parse(theoryFile);
-            core.updateCoreTheory(new Theory(theoryData));
-            saveTheoryCopy(theoryFile, theoryData.dependentResources);
-            viewManager.closeAllViews();
-        } catch (CoreException e) {
-            errorDialog(e.toString());
-        } catch (SAXException e) {
-            errorDialog(e.toString());
-        } catch (IOException e) {
-            errorDialog(e.toString());
-        }
-    }
-
-    private TheoryHandler.Data demandTheory() {
+    private void demandTheoryOrQuit() {
         File f = openFile(null, "Select theory file", QuantoApp.DIR_THEORY);
         if (f == null) {
             errorDialog("Cannot proceed without a theory");
             System.exit(1);
         }
         try {
-            TheoryHandler.Data data = TheoryHandler.parse(f);
-            saveTheoryCopy(f, data.dependentResources);
-            return data;
+            Theory theory = theoryManager.loadTheory(f.toURI().toURL());
+            core.updateCoreTheory(theory);
         } catch (IOException ex) {
             errorDialog(String.format(
                     "Could not open theory file (%1$s); cannot proceed",
@@ -497,22 +383,45 @@ public class QuantoApp {
                     "Corrupted theory file (%1$s); cannot proceed",
                     ex.getMessage()));
             System.exit(1);
+        } catch (CoreException ex) {
+            errorDialog(String.format(
+                    "Core refused to load theory (%1$s); cannot proceed",
+                    ex.getMessage()));
+            System.exit(1);
+        } catch (DuplicateTheoryException ex) {
+            logger.log(Level.SEVERE,
+                    "Got a duplicate theory exception, but there were " +
+                    "no existing theories",
+                    ex);
+            System.exit(1);
         }
-        throw new Error("This line should not be reachable");
     }
 
     private QuantoApp() throws CoreException {
         globalPrefs = Preferences.userNodeForPackage(this.getClass());
 
-        TheoryHandler.Data data = loadSavedTheoryState();
-        if (data == null) {
-            data = demandTheory();
-        }
-        core = new Core(new Theory(data));
-
-        loadSavedRulesetState();
-
+        core = new Core();
         viewManager = new InteractiveViewManager();
+
+        File theoryDir = null;
+        try {
+            theoryDir = new File(getAppSettingsDirectory(true), "theories");
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, ex.getLocalizedMessage(), ex);
+        }
+        theoryManager = new TheoryManager(theoryDir, core);
+        if (core.getActiveTheory() == null)
+            demandTheoryOrQuit();
+        
+        core.addCoreChangeListener(new CoreChangeListener() {
+
+            public void theoryAboutToChange(TheoryChangeEvent evt) {}
+
+            public void theoryChanged(TheoryChangeEvent evt) {
+                viewManager.closeAllViews();
+            }
+        });
+
         if (MAC_OS_X) {
             try {
                 OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));

@@ -271,7 +271,14 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("FILENAME", "Add the rules contained in FILENAME to the existing ruleset.  "^
               "Tags will also be imported, and will overwrite existing tags of the same name.",
       (fn [filename] => (Commands.ImportRulesetFromFileRequest
-                          { fileName = filename })
+                          { fileName = filename, replace = false })
+        | _          => bad_args_req))),
+
+    ("replace_ruleset",
+     ("FILENAME", "Replace the existing ruleset with the rules contained in FILENAME.  "^
+              "Tags will also be imported.",
+      (fn [filename] => (Commands.ImportRulesetFromFileRequest
+                          { fileName = filename, replace = true })
         | _          => bad_args_req))),
 
     ("export_ruleset",

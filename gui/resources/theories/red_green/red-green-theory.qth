@@ -1,5 +1,5 @@
 
-<theory name="red_green" friendlyname="Red/Green" implements="red_green">
+<theory name="Red/Green" implements="red_green">
     <nodetype name="X">
         <data type="MathExpression" />
         <mnemonic key="r" />
