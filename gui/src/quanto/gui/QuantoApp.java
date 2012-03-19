@@ -363,7 +363,7 @@ public class QuantoApp {
 
     private void loadSavedRulesetState() {
         File rsetFile = getPersistentCopyForReading("stored.rules");
-        if (rsetFile.exists()) {
+        if (rsetFile != null) {
             logger.log(Level.FINER, "Existing theory state found: loading");
             try {
                 core.loadRuleset(rsetFile);
