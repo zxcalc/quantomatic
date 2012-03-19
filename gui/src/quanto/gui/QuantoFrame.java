@@ -25,6 +25,8 @@ import javax.swing.JMenuItem;
 import javax.swing.JSplitPane;
 import org.xml.sax.SAXException;
 
+import javax.swing.plaf.basic.BasicSplitPaneUI;
+
 import quanto.core.CoreException;
 import quanto.core.xml.TheoryParser;
 import quanto.gui.QuantoApp.BoolPref;
@@ -232,7 +234,9 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         splitPane.setLeftComponent(sidebar);
         splitPane.setRightComponent(viewPort);
         splitPane.setDividerLocation(150);
-        splitPane.setDividerSize(15);
+        splitPane.setDividerSize(10);
+        splitPane.setUI(new BasicSplitPaneUI());
+        splitPane.setBackground(Color.DARK_GRAY);
         splitPane.setOneTouchExpandable(true);
 
         getContentPane().add(splitPane, BorderLayout.CENTER);
