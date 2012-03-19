@@ -50,7 +50,7 @@
       <arg value="bin" />
     </exec>
   </target>
-  <target name="compile" depends="init" description="compile the source">
+  <target name="compile" depends="init" description="Compile Quantomatic">
     <javac destdir="${build}" includeantruntime="false">
       <src path="src" />
       <src path="jung-src" />
@@ -65,7 +65,7 @@
 	    </fileset>
     </copy>
   </target>
-  <target name="compile.debug" depends="init" description="compile the source with debugging enabled">
+  <target name="compile.debug" depends="init" description="Compile Quantomatic with debugging symbols">
     <!-- Use this for ide integration.  eg: for a NetBeans freeform project,
          use the following code in ide-file-targets.xml
 	 (see http://www.netbeans.org/kb/articles/freeform-config.html#debugj2se)
@@ -101,7 +101,7 @@
 	    </fileset>
     </copy>
   </target>
-  <target name="jar" depends="compile" description="generate the distribution">
+  <target name="jar" depends="compile" description="Generate a single-file distribution">
     <!-- Create the distribution directory -->
     <mkdir dir="${dist}"/>
     <!-- Put everything in ${build} into the QuantoGui.jar file -->
@@ -122,7 +122,7 @@
     </zip>
     <delete file="${dist}/temp_final.jar" />
   </target>
-  <target name="macapp" depends="jar" description="build OS X application">
+  <target name="macapp" depends="jar" description="Build Mac OS X application">
     <mkdir dir="${appdir}"/>
     <delete dir="${appdir}/${appname}.app" />
     <unzip src="app_skel.zip" dest="${appdir}" />
@@ -167,7 +167,7 @@
 
   <target 	name="dmg"
 			depends="macapp"
-			description="create compressed DMG for distribution">
+			description="Create compressed DMG for distribution on Mac OS X">
     
 	<delete file="${dist}/${appname}.dmg" />
 	<mkdir dir="${appdir}/theories" />
@@ -188,20 +188,27 @@
       <arg line="create -fs HFS+ -srcfolder ${appdir} -volname ${appname} ${dist}/${appname}.dmg" />
     </exec>
   </target>
-  <target name="run" depends="compile" description="run quanto">
+  <target name="run" depends="compile" description="Run Quantomatic">
     <property environment="env" />
     <java classname="quanto.gui.QuantoApp" fork="true">
       <classpath refid="quanto.classpath.run" />
       <env key="PATH" path="${root}/core/bin/:${env.PATH}" />
     </java>
   </target>
-  <target name="clean" description="clean up">
+  <target name="run.debug" depends="compile.debug" description="Run Quantomatic">
+    <property environment="env" />
+    <java classname="quanto.gui.QuantoApp" fork="true">
+      <classpath refid="quanto.classpath.debug" />
+      <env key="PATH" path="${root}/core/bin/:${env.PATH}" />
+    </java>
+  </target>
+  <target name="clean" description="Delete build-time files">
     <!-- Delete the ${build}, ${build.debug} and ${dist} directory trees -->
     <delete dir="${build}"/>
     <delete dir="${build.debug}"/>
     <delete dir="${dist}"/>
   </target>
-    <target depends="compile.debug" description="Debug Quanto (NetBeans)" name="debug-nb">
+    <target depends="compile.debug" description="Debug Quantomatic (NetBeans)" name="debug-nb">
         <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
         <property environment="env"/>
         <nbjpdastart addressproperty="jpda.address" name="QuantoGui" transport="dt_socket">
@@ -214,7 +221,7 @@
             <jvmarg value="-Xrunjdwp:transport=dt_socket,address=${jpda.address}"/>
         </java>
     </target>
-    <target name="nb-profile" depends="compile.debug" description="Profile Quanto (NetBeans)">
+    <target name="profile-nb" depends="compile.debug" description="Profile Quantomatic (NetBeans)">
         <fail unless="netbeans.home">This target can only run inside the NetBeans IDE.</fail>
 
         <nbprofiledirect>
