@@ -69,5 +69,38 @@ Status: <div id="status"></div>
 <p/>
 Result: <div id="status"></div>
 <p/>
+Graph: <div id="graph">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+  viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice"
+  style="width:500; height:500; z-index:-2;">
+
+  <circle id="c1" cx="50" cy="50" r="10" stroke="black" stroke-width="2" fill="red">
+  <animateMotion path="M 0 0 L 100 100" dur="1s" fill="freeze" />
+  </circle>
+
+  <circle id="c2" cx="100" cy="100" r="10" stroke="black" stroke-width="2" fill="red">
+  <animateMotion path="M 0 0 L 200 200" dur="1s" fill="freeze" />
+  </circle>
+
+  <path d="M 50 50 L 100 100 Z" style="stroke:rgb(255,0,0);stroke-width:2">
+  <!-- <animateMotion path="M -100 -100 L 200 200" dur="1s" fill="freeze" /> -->
+
+  <animate dur="1s" attributeName="d"
+         values="M 50 50 L 100 100 Z ; M 150 150 L 300 300 Z" fill="freeze"/>
+  </path>
+  <!-- 
+  <path d="M 50 50 L 100 100 Z" style="stroke:rgb(0,255,0);stroke-width:2" />
+
+  <path d="M 150 150 L 300 300 Z" style="stroke:rgb(0,0,255);stroke-width:2" />
+-->
+  <!-- line x1="0" y1="0" x2="200" y2="200"
+  style="stroke:rgb(255,0,0);stroke-width:2"-->
+
+  <!-- rect x="50" y="20" rx="20" ry="20" width="150" height="150" style="fill:red;stroke:black;stroke-width:5;opacity:0.5" -->
+
+  <rect cx="50" cy="50" r="10" stroke="black" stroke-width="2" fill="red" />
+</svg>
+</div>
+
 </body>
 </html>
