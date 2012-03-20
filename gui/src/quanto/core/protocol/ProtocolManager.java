@@ -1255,6 +1255,23 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void renameRule(String oldName, String newName) throws CoreException {
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("RRR", generateRequestId());
+            writer.addStringArg(oldName);
+            writer.addStringArg(newName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
     public void deleteRule(String ruleName) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");

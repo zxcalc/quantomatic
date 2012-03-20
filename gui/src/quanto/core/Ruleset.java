@@ -249,6 +249,17 @@ public class Ruleset implements ChangeEventSupport {
 		}
 		fireStateChanged();
 	}
+    
+    public void renameRule(String oldName, String newName) throws CoreException {
+		if (!rules.containsKey(oldName)) {
+			throw new IllegalArgumentException("Unknown rule \"" + oldName + "\"");
+		}
+        core.getTalker().renameRule(oldName, newName);
+        Boolean active = rules.get(oldName);
+        rules.remove(oldName);
+        rules.put(newName, active);
+        fireStateChanged();
+    }
 
 	public void addChangeListener(ChangeListener l) {
 		changeSupport.addChangeListener(l);

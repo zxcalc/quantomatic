@@ -142,6 +142,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception vertex_name_exists_exp of (V.name * GraphName.name);
   exception edge_name_exists_exp of (E.name * GraphName.name);
   exception bbox_name_exists_exp of (B.name * GraphName.name);
+  exception rule_name_exists_exp of R.name;
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
@@ -217,6 +218,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       if Ruleset.rule_exists (get_rset state) rule_name then ()
       else raise no_such_rule_exp rule_name;
 
+  fun assert_rule_does_not_exist state rule_name = 
+      if Ruleset.rule_exists (get_rset state) rule_name
+      then raise rule_name_exists_exp rule_name
+      else ();
+
   fun assert_vertex_exists state gname vname =
         if Graph.has_vname (get_graph state gname) vname then ()
         else raise no_such_vertex_exp (vname, gname);
@@ -272,6 +278,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   val deactivate_rule  = rule_name_action Ruleset.deactivate_rule
   val activate_rule = rule_name_action Ruleset.activate_rule
   val delete_rule = rule_name_action Ruleset.delete_rule
+  fun rename_rule oldName newName state =
+      let val () = assert_rule_exists state oldName
+          val () = assert_rule_does_not_exist state newName
+      in update_rset (Ruleset.rename_rule oldName newName) state end
 
   (* creates/replaces rule *)
   fun set_rule rule_name lhs rhs state =

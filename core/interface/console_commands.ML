@@ -335,6 +335,11 @@ structure ConsoleCommands : CONSOLE_COMMANDS
       (fn [rule] => (Commands.DeactivateRuleRequest { ruleName = rule })
         | _      => bad_args_req))),
 
+    ("rename_rule",
+     ("OLDNAME NEWNAME", "Rename the rule OLDNAME to NEWNAME",
+      (fn [rule,new] => (Commands.RenameRuleRequest { oldName = rule, newName = new })
+        | _      => bad_args_req))),
+
     ("list_tags",
      ("", "List all known tags for rules",
       (fn [] => (Commands.ListTagsRequest)

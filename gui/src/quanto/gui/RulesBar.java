@@ -100,6 +100,14 @@ public class RulesBar extends JPanel {
 			}
 		});
 		
+		menuItem = new JMenuItem("Rename rule");
+        popupMenu.add(menuItem);
+        menuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                renameRule(listView.getSelectedValue().toString());
+            }
+        });
+		
 		menuItem = new JMenuItem("Delete rule");
           popupMenu.add(menuItem);
           menuItem.addActionListener(new ActionListener() {
@@ -334,6 +342,20 @@ public class RulesBar extends JPanel {
 			SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), ruleGraphs);
 			RulesBar.this.viewPort.getViewManager().addView(spg);
 			RulesBar.this.viewPort.attachView(spg);
+		} catch (CoreException ex) {
+			//We cannot open the rule. This is not critical. Inform the user.
+			logger.log(Level.WARNING, "Could not open selected rule : ", ex);
+		}
+	}
+        
+	private void renameRule(String rule) {
+
+		try {
+            String newName = JOptionPane.showInputDialog(this,
+                    "Enter a new name for the rule \"" + rule + "\"", rule);
+            if (newName != null && !newName.isEmpty()) {
+                ruleset.renameRule(rule, newName);
+            }
 		} catch (CoreException ex) {
 			//We cannot open the rule. This is not critical. Inform the user.
 			logger.log(Level.WARNING, "Could not open selected rule : ", ex);

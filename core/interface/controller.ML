@@ -79,6 +79,8 @@ struct
                      (* OkResponse | ErrorResponse *)
                    | DeactivateRuleRequest of { ruleName: string }
                      (* OkResponse | ErrorResponse *)
+                   | RenameRuleRequest of { oldName: string, newName: string }
+                     (* OkResponse | ErrorResponse *)
 
                    (*** Tag commands ***)
                    | ListTagsRequest
@@ -792,6 +794,10 @@ fun hilb ([format], graph) =
         (OkResponse,
          State.deactivate_rule (R.mk ruleName) state)
 
+    | serviceRequest' (RenameRuleRequest { oldName, newName }) state =
+        (OkResponse,
+         State.rename_rule (R.mk oldName) (R.mk newName) state)
+
 
     (* Tags *)
     | serviceRequest' (ListTagsRequest) state =
@@ -981,6 +987,12 @@ fun hilb ([format], graph) =
                              (GraphName.dest graphName)^
                              "\" already has a !-box named \""^
                              (B.dest bboxName)^"\"")
+                }
+           | State.rule_name_exists_exp ruleName =>
+                ErrorResponse {
+                  errorCode = "ALREADYEXISTS",
+                  message = ("There is already a rule named \""^
+                             (R.dest ruleName)^"\"")
                 }
            | State.bad_rule_exp msg =>
                 ErrorResponse {
