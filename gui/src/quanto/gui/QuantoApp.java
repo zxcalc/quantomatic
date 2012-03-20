@@ -8,8 +8,6 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.util.Collection;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,8 +19,6 @@ import org.xml.sax.SAXException;
 import quanto.core.*;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.ProtocolManager;
-import quanto.core.xml.TheoryHandler;
-import quanto.util.FileUtils;
 
 /**
  * Singleton class 

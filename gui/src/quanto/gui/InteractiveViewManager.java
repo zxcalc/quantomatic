@@ -13,7 +13,6 @@ import org.apache.commons.collections15.MapIterator;
 import org.apache.commons.collections15.bidimap.DualTreeBidiMap;
 import org.apache.commons.collections15.comparators.ComparableComparator;
 import org.apache.commons.collections15.contrib.HashCodeComparator;
-import quanto.core.Core;
 
 /**
  *
