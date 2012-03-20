@@ -71,13 +71,14 @@ ml-shell: $(QUANTO_HEAP)
 run: ml-shell
 
 # 
-clean:
+localclean:
 	rm -f heaps/*.polyml-heap
 	rm -f bin/*.o
 	find . -type d -name .polysave | xargs rm -rf
 	rm -f bin/$(THE_BIN)
 
-veryclean: clean
+clean: localclean
 	$(MAKE) -C $(ISAPLIB_SOURCES) clean
 
+veryclean: clean
 vclean: veryclean
