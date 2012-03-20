@@ -106,7 +106,7 @@ public class ViewPort extends JPanel {
     
     private void switchToNextAvailableView() {
         InteractiveView newView = viewManager.getNextFreeView();
-        if (attachedView == null) {
+        if (newView == null) {
             newView = console;
         }
         attachView(newView);
