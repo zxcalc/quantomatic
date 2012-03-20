@@ -388,7 +388,7 @@ public class Core {
         assertCoreGraph(lhs);
         assertCoreGraph(rhs);
         talker.setRule(ruleName, lhs.getCoreName(), rhs.getCoreName());
-        this.ruleset.fireStateChanged();
+        this.ruleset.ruleAdded(ruleName, true);
         return new Rule<CoreGraph>(ruleName, lhs, rhs);
     }
 
