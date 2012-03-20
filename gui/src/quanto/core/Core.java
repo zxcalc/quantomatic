@@ -5,13 +5,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import javax.swing.event.EventListenerList;
 import org.apache.commons.collections15.CollectionUtils;
 import org.apache.commons.collections15.Transformer;
@@ -20,23 +17,10 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
-
-import quanto.core.data.AttachedRewrite;
-import quanto.core.data.BangBox;
-import quanto.core.data.CoreGraph;
-import quanto.core.data.CoreObject;
-import quanto.core.data.Edge;
-import quanto.core.data.Rule;
-import quanto.core.data.Vertex;
-import quanto.core.data.VertexType;
+import quanto.core.data.*;
 import quanto.core.protocol.ProtocolManager;
-import quanto.core.xml.AttachedRewriteListFragmentHandler;
-import quanto.core.xml.EdgeFragmentHandler;
 import quanto.core.xml.EdgeFragmentHandler.EdgeData;
-import quanto.core.xml.FragmentHandler;
-import quanto.core.xml.GraphFragmentHandler;
-import quanto.core.xml.SAXFragmentAdaptor;
-import quanto.core.xml.VertexFragmentHandler;
+import quanto.core.xml.*;
 
 /**
  * Provides a nicer interface to the core
@@ -74,19 +58,24 @@ public class Core {
         }
     }
 
-    public Core(Theory theory) throws CoreException {
+    public Core() throws CoreException {
         this.talker = new ProtocolManager();
         talker.startCore();
-        talker.changeTheory(theory.getCoreName());
-        this.activeTheory = theory;
-
         this.ruleset = new Ruleset(this);
     }
 
-    public void updateCoreTheory(Theory theory) throws CoreException {
+    public Core(Theory theory) throws CoreException {
+        this();
         talker.changeTheory(theory.getCoreName());
         this.activeTheory = theory;
-        fireTheoryChanged();
+    }
+
+    public void updateCoreTheory(Theory theory) throws CoreException {
+        fireTheoryAboutToChange(theory);
+        Theory oldTheory = activeTheory;
+        talker.changeTheory(theory.getCoreName());
+        this.activeTheory = theory;
+        fireTheoryChanged(oldTheory);
     }
 
     public void addCoreChangeListener(CoreChangeListener l) {
@@ -97,14 +86,27 @@ public class Core {
         listenerList.remove(CoreChangeListener.class, l);
     }
 
-    protected void fireTheoryChanged() {
-        CoreEvent coreEvent = null;
+    protected void fireTheoryAboutToChange(Theory newTheory) {
+        TheoryChangeEvent coreEvent = null;
         Object[] listeners = listenerList.getListenerList();
         for (int i = listeners.length-2; i>=0; i-=2) {
             if (listeners[i]==CoreChangeListener.class) {
                 // Lazily create the event:
                 if (coreEvent == null)
-                    coreEvent = new CoreEvent(this, activeTheory);
+                    coreEvent = new TheoryChangeEvent(this, activeTheory, newTheory);
+                ((CoreChangeListener)listeners[i+1]).theoryAboutToChange(coreEvent);
+            }
+        }
+    }
+
+    protected void fireTheoryChanged(Theory oldTheory) {
+        TheoryChangeEvent coreEvent = null;
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==CoreChangeListener.class) {
+                // Lazily create the event:
+                if (coreEvent == null)
+                    coreEvent = new TheoryChangeEvent(this, oldTheory, activeTheory);
                 ((CoreChangeListener)listeners[i+1]).theoryChanged(coreEvent);
             }
         }
@@ -351,6 +353,16 @@ public class Core {
             }
         }
         return null;
+    }
+
+    public void replaceRuleset(File location) throws CoreException, IOException {
+        talker.replaceRulesetFromFile(location.getAbsolutePath());
+        this.ruleset.reload();
+    }
+
+    public void replaceRuleset(byte[] ruleset) throws CoreException, IOException {
+        talker.replaceRulesetFromData(ruleset);
+        this.ruleset.reload();
     }
 
     public void loadRuleset(File location) throws CoreException, IOException {

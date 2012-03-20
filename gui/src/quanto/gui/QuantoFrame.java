@@ -41,7 +41,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         NewWindow("new-win-command", "createNewFrame"),
         NewGraph("new-graph-command", "createNewGraph"),
         OpenGraph("open-command", "openGraph"),
-        LoadTheory("load-theory-command", "openTheory"),
         LoadRuleset("load-ruleset-command", "importRuleset"),
         SaveRuleset("save-ruleset-command", "exportRuleset"),
         Close("close-command", "closeCurrentView"),
@@ -211,6 +210,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         if (QuantoApp.MAC_OS_X) {
             removeQuitFromFileMenu();
         }
+        insertTheoryMenu();
         getContentPane().add(factory.createToolBar("main-toolbar"), BorderLayout.PAGE_START);
 
         viewPort = new ViewPort(app.getViewManager(), this, app.getCore());
@@ -227,6 +227,26 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
         getContentPane().add(splitPane, BorderLayout.CENTER);
         this.pack();
+    }
+
+    private void insertTheoryMenu() {
+        JMenuBar menuBar = getJMenuBar();
+        Action fileMenuAction = actionManager.getAction("file-menu");
+        Action LoadTheoryAction = actionManager.getAction("load-theory-command");
+        for (int i = 0; i < menuBar.getMenuCount(); ++i) {
+            JMenu menu = menuBar.getMenu(i);
+            if (menu != null && menu.getAction() == fileMenuAction) {
+                for (int j = menu.getItemCount() - 1; j >= 0; --j) {
+                    JMenuItem item = menu.getItem(j);
+                    if (item != null && item.getAction() == LoadTheoryAction) {
+                        menu.remove(j);
+                        menu.add(new TheoryMenu(app, this), j);
+                        return;
+                    }
+                }
+                return;
+            }
+        }
     }
 
     private void removeQuitFromFileMenu() {
@@ -319,13 +339,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
             app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
         } catch (java.io.IOException e) {
             app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
-        }
-    }
-
-    public void openTheory() {
-        File f = app.openFile(this, "Select theory file", QuantoApp.DIR_THEORY);
-        if (f != null) {
-            app.changeTheory(f);
         }
     }
 

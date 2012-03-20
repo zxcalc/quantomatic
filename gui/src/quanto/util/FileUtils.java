@@ -5,13 +5,8 @@
 
 package quanto.util;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,19 +34,25 @@ public final class FileUtils {
 		}
 	}
 
-    public static void copy(File fromFile, File toFile)
-            throws IOException {
+    public static void copy(File fromFile, File toFile) throws IOException {
         if (!fromFile.isFile()) {
             throw new IOException("Not a file: " + fromFile.getPath());
         }
+        copy(new FileInputStream(fromFile), toFile);
+    }
+
+    public static void copy(URL fromURL, File toFile) throws IOException {
+        copy(fromURL.openStream(), toFile);
+    }
+
+    public static void copy(InputStream from, File toFile) throws IOException {
+
         if (toFile.exists() && !toFile.isFile()) {
             throw new IOException("Not a file: " + toFile.getPath());
         }
 
-        FileInputStream from = null;
-        FileOutputStream to = null;
+        OutputStream to = null;
         try {
-            from = new FileInputStream(fromFile);
             to = new FileOutputStream(toFile);
             byte[] buffer = new byte[4096];
             int bytesRead;
@@ -60,12 +61,10 @@ public final class FileUtils {
                 to.write(buffer, 0, bytesRead); // write
             }
         } finally {
-            if (from != null) {
-                try {
-                    from.close();
-                } catch (IOException e) {
-                    logger.log(Level.FINE, "Failed to close input file", e);
-                }
+            try {
+                from.close();
+            } catch (IOException e) {
+                logger.log(Level.FINE, "Failed to close input file", e);
             }
             if (to != null) {
                 try {
