@@ -185,13 +185,8 @@ public class InteractiveGraphView
 		private boolean pickingMouseActive, edgeMouseActive;
 
 		public RWMouse() {
-			int mask = InputEvent.CTRL_MASK;
-			if (QuantoApp.isMac) {
-				mask = InputEvent.META_MASK;
-			}
-
-			add(new ScalingGraphMousePlugin(new ViewScalingControl(), mask));
-			add(new ViewTranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
+			add(new ScalingGraphMousePlugin(new ViewScalingControl(), QuantoApp.COMMAND_MASK));
+			add(new ViewTranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | QuantoApp.COMMAND_MASK));
 			ViewScrollingGraphMousePlugin scrollerPlugin = new ViewScrollingGraphMousePlugin();
 			scrollerPlugin.setShift(10.0);
 			add(scrollerPlugin);
