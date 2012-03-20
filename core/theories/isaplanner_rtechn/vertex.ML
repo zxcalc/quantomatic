@@ -63,18 +63,20 @@ structure RTechn_VertexData : UNIFIABLE_DATA = DB_RTechn_VertexData;
 structure RTechn_VertexComponentData_Param
 : ELEMENT_COMPONENT_DATA_PARAM where type data = RTechn_VertexData.data
 = struct 
-  type data = RTechn_VertexData.data;
+  type data = DB_RTechn_VertexData.data;
   exception unknown_type_exp of string;
   exception unexpected_data_exp;
-  fun type_of s = "String";
+  fun type_of (DB_RTechn_VertexData.RTechnNode _) = "RT"
+    | type_of (DB_RTechn_VertexData.GoalNode _) = "Gs";
+  
+  (* TODO: do someting more beautiful; this just uses the pretty function to set the string; also: printing and parsing should be symmetric. *)
   fun cdata_of d = 
-    (* TODO: do someting more beautiful; this just uses the pretty function to set the string *)
     ComponentData.String (Pretty.string_of (RTechn_VertexData.pretty_data d));
   
   (* New nodes are by default RTechnNodes *)
   fun default_data s = DB_RTechn_VertexData.RTechnNode s; 
 
-  (* TODO: currently edts to the string are simply ignored. *)
+  (* TODO: currently edits to the string are simply ignored. *)
   fun update f x = x; 
 end;
 
@@ -134,16 +136,9 @@ structure Str_ComponentData_Param
   exception unexpected_data_exp;
   fun type_of s = "String";
   fun cdata_of s = ComponentData.String s;
-  fun default_data s = s;
-
-  fun unwrapUpd upd a =
-    let
-      fun unwrapString (ComponentData.String e) = e
-        | unwrapString _ = raise unexpected_data_exp
-    in
-      unwrapString (upd (ComponentData.String a))
-    end;
-  fun update f x = unwrapUpd f x;
+  fun default_data "String" = "undefined"
+    | default_data n = raise unknown_type_exp n;
+  fun update f x = x;
 end;
 
 

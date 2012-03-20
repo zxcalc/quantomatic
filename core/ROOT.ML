@@ -191,8 +191,9 @@ Testing.make_test "rewriting/test/rule-test.ML";
 
 (* Test to make sure example code for playing with graphs at the ML level 
    are working. *)
-Testing.make_test "ml_hackery.ML";
 Testing.make_test "theories/substr_linrat/test/test.ML";
+
+Testing.make_test "example_code/ROOT.ML";
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 

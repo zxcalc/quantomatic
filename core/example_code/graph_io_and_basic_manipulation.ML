@@ -1,7 +1,3 @@
-(*------------------------------------------------------------------------------
-This file demonstrates some handy bits of ML for playing with graphs in Quantomatic. 
-------------------------------------------------------------------------------*)
-
 local 
 (* Select the Theory we are going to work in. See theories/*/theory.ML. Below uses theories/substrings/theory.ML, which provides string data on vertices, no variable data, and prefix-substring as matching. *)
 structure Theory = Str_Theory;
@@ -20,10 +16,10 @@ val g0 = Graph.empty;
 val _ = g0
   |> IO_Xml.Output.Graph.output
   |> XMLWriter.write_to_file 
-       "theories/substrings/test/graphs/empty_graph.graph";
+       "../theories/substrings/test/graphs/empty_graph.graph";
 
 (* Read the graph from the file *)
-val g2 = "theories/substrings/test/graphs/empty_graph.graph"
+val g2 = "../theories/substrings/test/graphs/empty_graph.graph"
   |> XMLReader.read_from_file
   |> IO_Xml.Input.Graph.input;
   
@@ -54,10 +50,10 @@ val (en3, g3) = g3 |> Graph.add_edge
 val _ = g3
   |> IO_Xml.Output.Graph.output
   |> XMLWriter.write_to_file 
-       "theories/substrings/test/graphs/g3.graph";
+       "../theories/substrings/test/graphs/g3.graph";
 
 (* Read the graph from the file *)
-val g4 = "theories/substrings/test/graphs/g3.graph"
+val g4 = "../theories/substrings/test/graphs/g3.graph"
   |> XMLReader.read_from_file
   |> IO_Xml.Input.Graph.input;
 
@@ -70,29 +66,6 @@ val r1 = Rule.mk (g3,g4);
 val _ = r1
   |> IO_Xml.Output.Rule.output
   |> XMLWriter.write_to_file 
-       "theories/substrings/test/rules/r1.graph";
+       "../theories/substrings/test/rules/r1.graph";
 
 end; (* *)
-
-PolyML.Project.make "layout/ograph_layout.ML";
-
-local 
-  structure Theory = Str_Theory;
-  open Theory;
-in
-  val (_, g) = g4 |> Graph.add_vertex (OVData.IVert ("nar."));
-
-  val input_vlist = V.NSet.list_of (Graph.get_inputs g);
-  val (seen_vs,next_vs) = 
-      OGraphPreLayout.add_to_next_vlist g input_vlist (V.NSet.empty,V.NSet.empty);
-      
-  val (seen_vs,next_vs) =
-      OGraphPreLayout.add_to_next_vlist g (V.NSet.list_of next_vs) (seen_vs,V.NSet.empty); 
-      
-  val _ = Str_Theory.Graph.print g;
-  val layouts = OGraphPreLayout.layout_graph g;
-  val _ = map OGraphPreLayout.print_layout layouts;
-  
-  val boxes = map OGraphPreLayout.box_of_layout layouts;
-end;
-

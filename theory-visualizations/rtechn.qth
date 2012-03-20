@@ -1,0 +1,23 @@
+<theory name="isaplanner_rtechn" implements="isaplanner_rtechn">
+
+  <nodetype name="RT">
+    <data type="String"></data>
+	<mnemonic key="r"/>
+    <visualization>
+	   <node svgFile="white.svg">
+		</node>
+      <label fill="#ffffff"/>
+    </visualization>
+  </nodetype>
+
+  <nodetype name="Gs">
+    <data type="String"></data>
+	<mnemonic key="g"/>
+    <visualization>
+	 	<node svgFile="blue.svg">
+		</node>
+      <label fill="#ffffff"/>
+    </visualization>
+  </nodetype>
+
+</theory>
