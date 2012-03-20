@@ -106,69 +106,6 @@ public class QuantoApp {
         return applicationDir;
     }
 
-    /**
-     * Gets the local persistent copy of a file for a given name for reading
-     * 
-     * If this returns a non-null object, it will be the same as that returned
-     * by getPersistentCopyForWriting, and the same as the file saved to by
-     * savePersistentCopy.
-     * 
-     * @param name the name to store the file as
-     * @return null if there was no persistent copy, else a File object pointing
-     *         to an actual file
-     */
-    private File getPersistentCopyForReading(String name) {
-        File f = null;
-        try {
-            f = new File(getAppSettingsDirectory(false), name);
-            if (!f.isFile()) {
-                f = null;
-            }
-        } catch (IOException ex) {
-        }
-        return f;
-    }
-
-    /**
-     * Gets the local persistent copy of a file for a given name for writing
-     * 
-     * @param name the name to store the file as
-     * @return a File object; the file may not exist, but the parent directory
-     *         will
-     * @throws IOException if there was a non-normal file with that name, or if
-     *                     the parent directory of the requested file could not
-     *                     be created
-     */
-    private File getPersistentCopyForWriting(String name)
-            throws IOException {
-        File f = new File(getAppSettingsDirectory(false), name);
-        if (f.exists() && !f.isFile()) {
-            throw new IOException(name + " is a not a normal file");
-        }
-        if (!f.getParentFile().exists()) {
-            if (!f.getParentFile().mkdirs()) {
-                throw new IOException("Could not create parent directory for " + name);
-            }
-        }
-        return f;
-    }
-
-    /**
-     * Save a local persistent copy of a file
-     * 
-     * The copy can later be retrieved with getPersistentCopyForReading.
-     *
-     * @param file  the file to save a copy of
-     * @param name  the name to give the saved copy
-     */
-    private void savePersistentCopy(File file, String name) {
-        try {
-            FileUtils.copy(file, getPersistentCopyForWriting(name));
-        } catch (IOException ex) {
-            logger.log(Level.WARNING, "Failed to save local copy of " + file.getPath(), ex);
-        }
-    }
-
     private static class Pref<T> {
 
         final T def; // default value
