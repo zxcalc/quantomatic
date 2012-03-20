@@ -207,7 +207,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 
         UIFactory factory = new UIFactory(actionManager);
         setJMenuBar(factory.createMenuBar("main-menu"));
-        if (QuantoApp.MAC_OS_X) {
+        if (QuantoApp.isMac) {
             removeQuitFromFileMenu();
         }
         insertTheoryMenu();

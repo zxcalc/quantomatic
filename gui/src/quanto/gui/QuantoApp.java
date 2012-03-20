@@ -38,18 +38,14 @@ public class QuantoApp {
             Logger.getLogger("quanto.gui");
     // isMac is used for CTRL vs META shortcuts, etc
     public static final boolean isMac =
-            (System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
+            (System.getProperty("os.name").toLowerCase().indexOf("mac os x") != -1);
     public static final boolean isWin =
             (System.getProperty("os.name").toLowerCase().indexOf("win") != -1);
     public static final boolean isUnix =
             (System.getProperty("os.name").toLowerCase().indexOf("nix") != -1
             || System.getProperty("os.name").toLowerCase().indexOf("nux") != -1);
-    // MAC_OS_X is used to determine whether we use OSXAdapter to
-    // hook into the application menu
-    public static final boolean MAC_OS_X =
-            (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
     public static final int COMMAND_MASK =
-            MAC_OS_X ? java.awt.event.InputEvent.META_DOWN_MASK
+            isMac ? java.awt.event.InputEvent.META_DOWN_MASK
             : java.awt.event.InputEvent.CTRL_DOWN_MASK;
     private static QuantoApp theApp = null;
     public static boolean useExperimentalLayout = false;
@@ -422,7 +418,7 @@ public class QuantoApp {
             }
         });
 
-        if (MAC_OS_X) {
+        if (isMac) {
             try {
                 OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));
             } catch (Exception e) {
