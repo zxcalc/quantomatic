@@ -174,7 +174,7 @@ public class SplitGraphView extends InteractiveView {
 				}
 			}
 			catch (CoreException err) {
-				errorDialog(err.getMessage());
+                coreErrorDialog("Could not save rule", err);
 			}
 		} else {
 			if (leftFocused)

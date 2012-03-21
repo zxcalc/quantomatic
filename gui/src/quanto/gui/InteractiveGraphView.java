@@ -132,7 +132,7 @@ public class InteractiveGraphView
 									core.setVertexAngle(getGraph(), qVertex, lab.getText());
 								}
 								catch (CoreException err) {
-									errorDialog(err.getMessage());
+									coreErrorMessage("The label could not be updated", err);
 								}
 							}
 						}
@@ -654,10 +654,10 @@ public class InteractiveGraphView
 
 	public void addEdge(Vertex s, Vertex t) {
 		try {
-                        core.addEdge(getGraph(), directedEdges, s, t);
+            core.addEdge(getGraph(), directedEdges, s, t);
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not add a directed edge", e);
 		}
 	}
 
@@ -667,7 +667,7 @@ public class InteractiveGraphView
 			setVerticesPositionData();
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not add a boundary vertex", e);
 		}
 	}
 
@@ -677,7 +677,7 @@ public class InteractiveGraphView
 			setVerticesPositionData();
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not add a vertex", e);
 		}
 	}
 
@@ -694,7 +694,7 @@ public class InteractiveGraphView
 			rewrites.setVisible(true);
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 	}
 
@@ -844,7 +844,7 @@ public class InteractiveGraphView
 					getGraph().getVertices());
 			}
 			catch (CoreException e) {
-				errorDialog(e.getMessage());
+                coreErrorDialog("Could not attach the next rewrite", e);
 			}
 		}
 
@@ -982,7 +982,7 @@ public class InteractiveGraphView
 			return rewriteCache;
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 
 		return new ArrayList<AttachedRewrite<CoreGraph>>();
@@ -1009,8 +1009,7 @@ public class InteractiveGraphView
 			smoothLayout.setOrigin(0, 0);
 		}
 		catch (CoreException e) {
-			errorDialog("Error in rewrite. The graph probably changed "
-				+ "after this rewrite was attached.");
+			coreErrorDialog("Could not apply the rewrite", e);
 		}
 	}
 
@@ -1036,10 +1035,10 @@ public class InteractiveGraphView
 				setTitle(f.getName());
 			}
 			catch (CoreException e) {
-				errorDialog(e.getMessage());
+                coreErrorDialog("Could not save the graph", e);
 			}
 			catch (IOException e) {
-				errorDialog(e.getMessage());
+                detailedErrorDialog("Save Graph", "Could not save the graph", e.getLocalizedMessage());
 			}
 		}
 	}
@@ -1052,10 +1051,10 @@ public class InteractiveGraphView
 				firePropertyChange("saved", !getGraph().isSaved(), getGraph().isSaved());
 			}
 			catch (CoreException e) {
-				errorDialog(e.getMessage());
+                coreErrorDialog("Could not save the graph", e);
 			}
 			catch (IOException e) {
-				errorDialog(e.getMessage());
+                detailedErrorDialog("Save Graph", "Could not save the graph", e.getLocalizedMessage());
 			}
 		}
 		else {
@@ -1093,7 +1092,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not undo", ex);
 				}
 			}
 		});
@@ -1107,7 +1106,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not redo", ex);
 				}
 			}
 		});
@@ -1121,7 +1120,7 @@ public class InteractiveGraphView
 					}
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not cut selection", ex);
 				}
 			}
 		});
@@ -1134,7 +1133,7 @@ public class InteractiveGraphView
 					}
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not copy selection", ex);
 				}
 			}
 		});
@@ -1148,7 +1147,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not paste selection", ex);
 				}
 			}
 		});
@@ -1189,10 +1188,10 @@ public class InteractiveGraphView
 					}
 				}
 				catch (DocumentException ex) {
-					errorDialog("Error generating PDF", ex.getMessage());
+                    detailedErrorMessage("Export to PDF", "Could not generate the PDF", ex.getLocalizedMessage());
 				}
 				catch (IOException ex) {
-					errorDialog("Error writing file", ex.getMessage());
+                    detailedErrorMessage("Export to PDF", "Could not save the PDF", ex.getLocalizedMessage());
 				}
 			}
 		});
@@ -1262,7 +1261,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not normalise graph", ex);
 				}
 			}
 		});
@@ -1272,7 +1271,7 @@ public class InteractiveGraphView
 					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not add !-box", ex);
 				}
 			}
 		});
@@ -1284,7 +1283,7 @@ public class InteractiveGraphView
 					updateGraph(null);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not remove vertices from !-box", ex);
 				}
 			}
 		});
@@ -1295,7 +1294,7 @@ public class InteractiveGraphView
                     removeOldLabels();
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not remove !-box", ex);
 				}
 			}
 		});
@@ -1306,7 +1305,7 @@ public class InteractiveGraphView
                     removeOldLabels();
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not kill !-box", ex);
 				}
 			}
 		});
@@ -1322,7 +1321,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not duplicate !-box", ex);
 				}
 			}
 		});
@@ -1333,7 +1332,7 @@ public class InteractiveGraphView
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not create Hilbert term", ex);
 				}
 			}
 		});
@@ -1343,7 +1342,7 @@ public class InteractiveGraphView
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not create Hilbert term", ex);
 				}
 			}
 		});
@@ -1416,7 +1415,7 @@ public class InteractiveGraphView
 
 			}
 			catch (CoreException err) {
-				errorDialog(err.getMessage());
+                coreErrorMessage("Could not delete the vertex", err);
 			}
 			finally {
 				// if null things are in the picked state, weird stuff

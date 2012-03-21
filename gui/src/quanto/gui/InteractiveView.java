@@ -3,6 +3,7 @@ package quanto.gui;
 import java.awt.LayoutManager;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import quanto.core.CoreException;
 
 /**
  * An interactive view, which is pretty much self-sufficient. Meant to be
@@ -147,11 +148,92 @@ public abstract class InteractiveView extends JPanel {
 	}
 
 	abstract public void refresh();
+    
+    /**
+     * Display an error message without getting in the way.
+     * 
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param msg  the message
+     */
+    protected void errorMessage(String message) {
+        // FIXME: this should be non-modal
+        errorDialog(message);
+    }
 
+    /**
+     * Display an error message from the core without getting in the way.
+     *
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param msg  a short message explaining what could not be done
+     * @param ex  the exception thrown by the core
+     */
+	protected void coreErrorMessage(String msg, CoreException ex) {
+        // FIXME: this should be non-modal
+        DetailedErrorDialog.showCoreErrorDialog(this, msg, ex);
+	}
+
+    /**
+     * Display an error message, with extra detail, without getting in the way.
+     *
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param details  a more detailed message explaining why it could not be done
+     */
+	protected void detailedErrorMessage(String title, String msg, String details) {
+        DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, details);
+	}
+
+    /**
+     * Display a modal error message to the user.
+     * 
+     * Consider whether errorMessage might be less annoying.
+     *
+     * @param msg  the error message
+     */
 	protected void errorDialog(String msg) {
 		errorDialog("Error", msg);
 	}
 
+    /**
+     * Display a modal error message from the core.
+     * 
+     * Consider whether coreErrorMessage might be less annoying.
+     *
+     * @param msg  a short message explaining what could not be done
+     * @param ex  the exception thrown by the core
+     */
+	protected void coreErrorDialog(String msg, CoreException ex) {
+        DetailedErrorDialog.showCoreErrorDialog(this, msg, ex);
+	}
+
+    /**
+     * Display a modal error message, with extra detail.
+     * 
+     * Consider whether detailedErrorMessage might be less annoying.
+     *
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param details  a more detailed message explaining why it could not be done
+     */
+	protected void detailedErrorDialog(String title, String msg, String details) {
+        DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, details);
+	}
+
+    /**
+     * Display a modal error message to the user.
+     * 
+     * Consider whether errorMessage might be less annoying.
+     *
+     * @param title  a title for the message
+     * @param msg  the error message
+     */
 	protected void errorDialog(String title, String msg) {
 		JOptionPane.showMessageDialog(this, msg, title, JOptionPane.ERROR_MESSAGE);
 	}

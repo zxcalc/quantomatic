@@ -36,9 +36,6 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
-
 import quanto.core.CoreException;
 import quanto.core.Ruleset;
 import quanto.core.RulesetChangeListener;
@@ -190,9 +187,7 @@ public class RulesBar extends JPanel {
 
     private void showModalError(String message, CoreException ex) {
         logger.log(Level.SEVERE, message, ex);
-        JOptionPane.showMessageDialog(this,
-                message, "Core Error",
-                JOptionPane.ERROR_MESSAGE);
+        DetailedErrorDialog.showCoreErrorDialog(this, message, ex);
     }
 
     private void logError(String message, CoreException ex) {
