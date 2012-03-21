@@ -77,7 +77,15 @@ public class ProtocolManager {
                     "Tried to write to core process, but it has terminated (exit value: {0})",
                     backend.exitValue());
             // Not much we can do: throw an exception
-            return new CoreTerminatedException();
+            if (reader.getLastInvalidOutput() != null &&
+                    !reader.getLastInvalidOutput().isEmpty()) {
+                // probably an exception trace
+                return new CoreTerminatedException(
+                        "The core terminated with the following message:\n\n" +
+                        reader.getLastInvalidOutput());
+            } else {
+                return new CoreTerminatedException();
+            }
         } catch (IllegalThreadStateException ex) {
             logger.log(Level.SEVERE,
                     "Failed to write to core process, even though it has not terminated");
