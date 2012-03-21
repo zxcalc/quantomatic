@@ -166,6 +166,25 @@ public class ProtocolManager {
                 throw new ProtocolException("Expected a " + expectedType.toString() + " response, but got a " + resp.getMessageType().toString() + " response");
             }
             return resp;
+        } catch (ProtocolException ex) {
+            try {
+                // try to get the exit value, because that's the only way
+                // to see if it's terminated
+                backend.exitValue();
+                // yes, it exited
+                if (reader.getLastInvalidOutput() != null &&
+                        !reader.getLastInvalidOutput().isEmpty()) {
+                    // probably an exception trace
+                    throw new CoreTerminatedException(
+                            "The core terminated with the following message:\n\n" +
+                            reader.getLastInvalidOutput(), ex);
+                } else {
+                    throw new CoreTerminatedException(ex);
+                }
+            } catch (IllegalThreadStateException ex2) {
+                // no, it didn't exit
+                throw ex;
+            }
         } catch (IOException ex) {
             throw readFailure(ex);
         }
