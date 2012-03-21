@@ -75,7 +75,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
      */
     public enum BoolPrefAction
     {
-        DrawArrowHeads("draw-arrow-heads-command", QuantoApp.DRAW_ARROW_HEADS),
         ShowInternalGraphNames("internal-graph-names-command", QuantoApp.SHOW_INTERNAL_NAMES),
         OpenInNewWindow("open-in-new-window-command", QuantoApp.NEW_WINDOW_FOR_GRAPHS);
 

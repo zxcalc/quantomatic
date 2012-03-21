@@ -146,8 +146,6 @@ public class QuantoApp {
         }
     }
     // Preferences
-    public static final BoolPref DRAW_ARROW_HEADS =
-            new BoolPref("draw_arrow_heads", false, "Draw arrow geads");
     public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
             new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
     public static final BoolPref SHOW_INTERNAL_NAMES =

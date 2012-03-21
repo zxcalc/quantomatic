@@ -159,12 +159,6 @@
           mnemonic="L"
           desc="Refresh the current graphs"/>
 
-	<action id="draw-arrow-heads-command"
-	  type="toggle"
-	  name="Draw arrow heads"
-	  mnemonic="D"
-	  desc="Draw arrow heads on edges in graphs"/>
-
 	<action id="internal-graph-names-command"
 	  type="toggle"
 	  name="Show internal graph names"
@@ -344,7 +338,6 @@
 			<action idref="refresh-all-graphs-command" />
             <action idref="relayout-graph-command" />
 			<empty/>
-			<action idref="draw-arrow-heads-command" />
 			<action idref="internal-graph-names-command" />
 			<action idref="open-in-new-window-command" />
 		</action-list>

@@ -1216,9 +1216,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				String tikz = TikzOutput.generate(
                                         getGraph(),
-                                        viewer.getGraphLayout(),
-                                        QuantoApp.getInstance().getPreference(
-						QuantoApp.DRAW_ARROW_HEADS));
+                                        viewer.getGraphLayout());
 				Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
 				StringSelection data = new StringSelection(tikz);
 				cb.setContents(data, data);

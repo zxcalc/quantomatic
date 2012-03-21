@@ -55,8 +55,18 @@ public class EdgeFragmentHandler extends CoreObjectFragmentHandler<EdgeFragmentH
 				throw new SAXParseException("'target' attribute cannot be empty",
 						locator);
 
+			String dir = attributes.getValue("", "dir");
+			if (dir == null)
+				throw new SAXParseException("Missing 'dir' attribute",
+						locator);
+			dir = dir.trim();
+            boolean directed = dir.equalsIgnoreCase("true");
+            if (!directed && !dir.equalsIgnoreCase("false"))
+				throw new SAXParseException("Invalid value '" + dir + "' for 'dir' attribute",
+						locator);
+
 			edgeData = new EdgeData();
-			edgeData.edge = new Edge(name);
+			edgeData.edge = new Edge(name, directed);
 			edgeData.sourceName = source;
 			edgeData.targetName = target;
 

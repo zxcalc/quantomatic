@@ -10,7 +10,7 @@ import edu.uci.ics.jung.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 public class TikzOutput {
-	public static String generate(CoreGraph graph, Layout<Vertex, Edge> layout, boolean withArrowHeads) {
+	public static String generate(CoreGraph graph, Layout<Vertex, Edge> layout) {
 		StringBuilder tikz = new StringBuilder("\\begin{tikzpicture}[quanto]\n");
 		synchronized (graph) {
 			Point2D p;
@@ -34,7 +34,7 @@ public class TikzOutput {
 			for (Edge e : graph.getEdges()) {
 				idx = eif.getIndex(graph, e) + 1;
                                 tikz.append("\\draw [");
-				if (withArrowHeads) {
+				if (e.isDirected()) {
 					tikz.append("-latex");
                                 }
 				if (idx!=0) {

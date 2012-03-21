@@ -88,7 +88,7 @@ public class GraphVisualizationViewer
 			new Predicate<Context<Graph<Vertex, Edge>, Edge>>()
 			{
 				public boolean evaluate(Context<Graph<Vertex, Edge>, Edge> object) {
-					return QuantoApp.getInstance().getPreference(QuantoApp.DRAW_ARROW_HEADS);
+					return object.element.isDirected();
 				}
 			});
 
