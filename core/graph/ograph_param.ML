@@ -81,7 +81,7 @@ functor OGraphParam(
 
   val empty_subst = Param.empty_subst; (* : IName.NTab.empty; *)
   val compose_subst = Param.compose_subst; 
-      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = OVData.match_data (d1,d2) u;
   val try_match_edge = Param.try_match_edge;

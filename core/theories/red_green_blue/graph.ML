@@ -96,11 +96,11 @@ structure RGB_GraphParam
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = VData.subst; (* : LinratExpr.T IName.NTab.T; *)
+  type subst = VData.subst; (* : LinratAngleExpr.T IName.NTab.T; *)
 
   val empty_subst = VData.empty_subst; (* : IName.NTab.empty; *)
   fun compose_subst u1 u2 = VData.compose_subst (u1,u2); 
-      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;

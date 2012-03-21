@@ -63,7 +63,7 @@ structure Test_GraphParam
 
   fun add_vertex vd vn vdep = 
       (case Test_InternVData.angle_of_data vd of NONE => vdep
-          | SOME angle => VDep.add_to_dom vn (LinratExpr.get_vars angle) vdep);
+          | SOME angle => VDep.add_to_dom vn (LinratAngleExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
   fun delete_vertex vn vdep = VDep.del_dom vn vdep;
@@ -72,8 +72,8 @@ structure Test_GraphParam
   fun vertex_type_name (Test_InternVData.Xnd _) = "X"
     | vertex_type_name (Test_InternVData.Znd _) = "Z"
     | vertex_type_name (Test_InternVData.Hnd) = "hadamard"
-  fun vertex_default_data "X" = (Test_InternVData.Xnd LinratExpr.zero)
-    | vertex_default_data "Z" = (Test_InternVData.Znd LinratExpr.zero)
+  fun vertex_default_data "X" = (Test_InternVData.Xnd LinratAngleExpr.zero)
+    | vertex_default_data "Z" = (Test_InternVData.Znd LinratAngleExpr.zero)
     | vertex_default_data "hadamard" = (Test_InternVData.Hnd)
     | vertex_default_data s = raise unknown_type_exp s
   fun edge_type_name () = "unit"
@@ -99,17 +99,17 @@ structure Test_GraphParam
     fun rename rnm vd = 
         (case Test_InternVData.angle_of_data vd of NONE => (rnm,vd)
          | SOME angle => 
-           let val (rnm',angle') = LinratExpr.CRnm.rename rnm angle
+           let val (rnm',angle') = LinratAngleExpr.CRnm.rename rnm angle
            in (rnm', Test_InternVData.map_to_angle (K angle') vd) end)
 
     fun mk_renaming vd rnm = 
         (case Test_InternVData.angle_of_data vd of NONE => rnm
-         | SOME angle => LinratExpr.CRnm.mk_renaming angle rnm);
+         | SOME angle => LinratAngleExpr.CRnm.mk_renaming angle rnm);
 
     fun do_renaming rnm vd = 
         (case Test_InternVData.angle_of_data vd of NONE => vd
          | SOME angle => 
-           Test_InternVData.map_to_angle (LinratExpr.CRnm.do_renaming rnm) vd);
+           Test_InternVData.map_to_angle (LinratAngleExpr.CRnm.do_renaming rnm) vd);
 
     val restrict_to_avoiding = X.Rnm.restrict_to_avoiding;
   end;
@@ -120,11 +120,11 @@ structure Test_GraphParam
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = VData.subst; (* : LinratExpr.T X.NTab.T; *)
+  type subst = VData.subst; (* : LinratAngleExpr.T X.NTab.T; *)
 
   val empty_subst = VData.empty_subst; (* : X.NTab.empty; *)
   fun compose_subst u1 u2 = VData.compose_subst (u1,u2); 
-      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
@@ -191,11 +191,11 @@ struct
   structure OVData = Test_Graph.OVData;
 
   val bvert = OVData.EVert;
-  val zero_angle = LinratExpr.zero;
-  val var_angle = LinratExpr.mk_var o X.mk;
-  fun var_iangle i v = LinratExpr.mk (0,1) [(v,i)];
-  val add_angles = LinratExpr.add_expr;
-  val pi_angle = LinratExpr.pi;
+  val zero_angle = LinratAngleExpr.zero;
+  val var_angle = LinratAngleExpr.mk_var o X.mk;
+  fun var_iangle i v = LinratAngleExpr.mk (0,1) [(v,i)];
+  val add_angles = LinratAngleExpr.add_expr;
+  val pi_angle = LinratAngleExpr.pi;
   fun mkZ a = OVData.IVert (IVData.Znd a);
   fun mkX a = OVData.IVert (IVData.Xnd a);
   val mkH = OVData.IVert IVData.Hnd;

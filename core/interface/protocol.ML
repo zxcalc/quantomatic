@@ -891,9 +891,9 @@ struct
           printEsc ch;
           printWrappedString #"S" str;
           printEsc (Char.toLower ch))
-      | printComponentData ch (ComponentData.LinratExpr (expr as (c,varTab))) = (
+      | printComponentData ch (ComponentData.LinratAngleExpr (expr as (c,varTab))) = (
           let
-            val as_string = Pretty.string_of (LinratExpr.pretty expr)
+            val as_string = Pretty.string_of (LinratAngleExpr.pretty expr)
             fun printWrappedFrac ch (n,d) = (
                   printEsc ch;
                   printWrappedString #"N" (Int.toString n);
@@ -908,7 +908,7 @@ struct
             printEsc ch;
             printEsc #"A";
               printWrappedString #"S" as_string;
-              if LinratExpr.Coeff.is_zero c then () else
+              if LinratAngleExpr.Coeff.is_zero c then () else
                 printWrappedFrac #"K" c;
               X.NTab.fold (printVar #"V") varTab ();
             printEsc #"a";

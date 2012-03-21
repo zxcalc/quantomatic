@@ -3,7 +3,7 @@ signature COMPONENT_DATA =
 sig
   datatype T = Unit
              | String of string
-             | LinratExpr of LinratExpr.T;
+             | LinratAngleExpr of LinratAngleExpr.T;
   exception bad_format_exp of string;
 
   val xml_of : T -> XML.tree list
@@ -23,31 +23,31 @@ structure ComponentData : COMPONENT_DATA =
 struct
   datatype T = Unit
              | String of string
-             | LinratExpr of LinratExpr.T;
+             | LinratAngleExpr of LinratAngleExpr.T;
   exception bad_format_exp of string;
 
   fun xml_of Unit = []
     | xml_of (String s) = [OutputStringXML.output s]
-    | xml_of (LinratExpr e) = [OutputLinratXML.output e];
+    | xml_of (LinratAngleExpr e) = [OutputLinratXML.output e];
 
   fun of_xml_unit _ = Unit
   fun of_xml_string [n] = (String (InputStringXML.input n) handle XML_Parse_Utils.bad_input_exp(s,_) => raise bad_format_exp s)
     | of_xml_string _ = raise bad_format_exp "Single XML Node expected"
-  fun of_xml_linrat [n] = (LinratExpr (InputLinratXML.input n) handle XML_Parse_Utils.bad_input_exp(s,_) => raise bad_format_exp s)
+  fun of_xml_linrat [n] = (LinratAngleExpr (InputLinratXML.input n) handle XML_Parse_Utils.bad_input_exp(s,_) => raise bad_format_exp s)
     | of_xml_linrat _ = raise bad_format_exp "Single XML node expected"
 
   fun string_of Unit = ""
     | string_of (String s) = s
-    | string_of (LinratExpr e) = Pretty.string_of (LinratExpr.pretty e)
+    | string_of (LinratAngleExpr e) = Pretty.string_of (LinratAngleExpr.pretty e)
 
   fun of_string_unit _ = Unit
   fun of_string_string s = (String s)
-  fun of_string_linrat e = (LinratExpr (LinratExpr.parse e))
-      handle LinratExpr.parse_exp => raise bad_format_exp ("\"" ^ e ^ "\" is not a valid linear rational expression")
+  fun of_string_linrat e = (LinratAngleExpr (LinratAngleExpr.parse e))
+      handle LinratAngleExpr.parse_exp => raise bad_format_exp ("\"" ^ e ^ "\" is not a valid linear rational expression")
 
   fun pretty Unit = Pretty.str ""
     | pretty (String s) = Pretty.quote (Pretty.str s)
-    | pretty (LinratExpr e) = LinratExpr.pretty e
+    | pretty (LinratAngleExpr e) = LinratAngleExpr.pretty e
 end;
 
 (* TODO: Explain in more detail what this does. *)
@@ -139,7 +139,7 @@ struct
       val (t,cd) = type_and_cdata_of d
       fun to_xml Unit = []
         | to_xml (String s) = [OutputStringXML.output s]
-        | to_xml (LinratExpr e) = [OutputLinratXML.output e]
+        | to_xml (LinratAngleExpr e) = [OutputLinratXML.output e]
     in
       (t,to_xml cd)
     end;
@@ -150,9 +150,9 @@ struct
         | xml_updater [xml] (String _) = ((String (InputStringXML.input xml))
               handle XML_Parse_Utils.bad_input_exp (msg,_) => raise bad_format_exp msg)
         | xml_updater _            (String _) = raise bad_format_exp "String XML element expected"
-        | xml_updater [xml] (LinratExpr _) = ((LinratExpr (InputLinratXML.input xml)) 
+        | xml_updater [xml] (LinratAngleExpr _) = ((LinratAngleExpr (InputLinratXML.input xml)) 
               handle XML_Parse_Utils.bad_input_exp (msg,_) => raise bad_format_exp msg)
-        | xml_updater _     (LinratExpr _) = raise bad_format_exp "Single XML element expected"
+        | xml_updater _     (LinratAngleExpr _) = raise bad_format_exp "Single XML element expected"
     in
       update (xml_updater xml)
     end;
@@ -165,7 +165,7 @@ struct
       val (t,cd) = type_and_cdata_of d
       fun to_string Unit = ""
         | to_string (String s) = s
-        | to_string (LinratExpr e) = Pretty.string_of (LinratExpr.pretty e)
+        | to_string (LinratAngleExpr e) = Pretty.string_of (LinratAngleExpr.pretty e)
     in
       (t,to_string cd)
     end;
@@ -174,8 +174,8 @@ struct
     let
       fun string_updater _   Unit = Unit
         | string_updater str (String _) = (String str)
-        | string_updater str (LinratExpr _) = (LinratExpr (LinratExpr.parse str))
-              handle LinratExpr.parse_exp => raise bad_format_exp ("\"" ^ str ^ "\" is not a valid linear rational expression")
+        | string_updater str (LinratAngleExpr _) = (LinratAngleExpr (LinratAngleExpr.parse str))
+              handle LinratAngleExpr.parse_exp => raise bad_format_exp ("\"" ^ str ^ "\" is not a valid linear rational expression")
     in
       update (string_updater str)
     end;

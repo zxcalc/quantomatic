@@ -1,12 +1,12 @@
-structure InputLinratXML : INPUT_XML where type data = LinratExpr.T
+structure InputLinratXML : INPUT_XML where type data = LinratAngleExpr.T
 = struct
 
   open XML_Parse_Utils; 
   
   type T = XML.tree;  (* XML.tree *)
-  type data = LinratExpr.T;
+  type data = LinratAngleExpr.T;
 
-  val data_to_string = Pretty.string_of o LinratExpr.pretty;
+  val data_to_string = Pretty.string_of o LinratAngleExpr.pretty;
   
   fun input_rational xml = 
       let val children = get_children xml;
@@ -36,10 +36,10 @@ structure InputLinratXML : INPUT_XML where type data = LinratExpr.T
       (let val () = assert_tag "angleexpr" xml
            val children = get_children xml 
            val constant = case (lookup_unique_elem "constant" children) of
-                            (NONE) => LinratExpr.Coeff.zero
+                            (NONE) => LinratAngleExpr.Coeff.zero
                           | (SOME const) => input_constant const
            val vars = List.map (apfst X.mk o input_variable) (filter_elems "variable" children)
-       in LinratExpr.mk constant vars end)
+       in LinratAngleExpr.mk constant vars end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"angleexpr/"^p);
 
 end;

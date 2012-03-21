@@ -63,7 +63,7 @@ structure SUBSTR_LINRAT_GraphParam
 
   fun add_vertex vd vn vdep = 
       (case SUBSTR_LINRAT_InternVData.angle_of_data vd of NONE => vdep
-          | SOME angle => VDep.add_to_dom vn (LinratExpr.get_vars angle) vdep);
+          | SOME angle => VDep.add_to_dom vn (LinratAngleExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
   fun delete_vertex vn vdep = VDep.del_dom vn vdep;
@@ -88,17 +88,17 @@ structure SUBSTR_LINRAT_GraphParam
     fun rename rnm vd = 
         (case SUBSTR_LINRAT_InternVData.angle_of_data vd of NONE => (rnm,vd)
          | SOME angle => 
-           let val (rnm',angle') = LinratExpr.CRnm.rename rnm angle
+           let val (rnm',angle') = LinratAngleExpr.CRnm.rename rnm angle
            in (rnm', SUBSTR_LINRAT_InternVData.map_to_angle (K angle') vd) end)
 
     fun mk_renaming vd rnm = 
         (case SUBSTR_LINRAT_InternVData.angle_of_data vd of NONE => rnm
-         | SOME angle => LinratExpr.CRnm.mk_renaming angle rnm);
+         | SOME angle => LinratAngleExpr.CRnm.mk_renaming angle rnm);
 
     fun do_renaming rnm vd = 
         (case SUBSTR_LINRAT_InternVData.angle_of_data vd of NONE => vd
          | SOME angle => 
-           SUBSTR_LINRAT_InternVData.map_to_angle (LinratExpr.CRnm.do_renaming rnm) vd);
+           SUBSTR_LINRAT_InternVData.map_to_angle (LinratAngleExpr.CRnm.do_renaming rnm) vd);
 
     val restrict_to_avoiding = X.Rnm.restrict_to_avoiding;
   end;
@@ -109,11 +109,11 @@ structure SUBSTR_LINRAT_GraphParam
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = VData.subst; (* : LinratExpr.T IName.NTab.T; *)
+  type subst = VData.subst; (* : LinratAngleExpr.T IName.NTab.T; *)
 
   val empty_subst = VData.empty_subst; (* : IName.NTab.empty; *)
   fun compose_subst u1 u2 = VData.compose_subst (u1,u2); 
-      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;

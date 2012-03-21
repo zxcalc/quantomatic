@@ -32,10 +32,10 @@ PolyML.Project.make "names.ML"; (* defines basic names used in Quantomatic *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
-PolyML.Project.make "expressions/linrat_expr.ML";
+PolyML.Project.make "expressions/linrat_angle_expr.ML";
 
 (* Testing *)
-Testing.make_test "expressions/test/linrat_expr-test.ML";
+Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)

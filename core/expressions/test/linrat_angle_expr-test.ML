@@ -1,6 +1,6 @@
-(* Testing Linear Rational Expressions and matching of them. *)
+(* Testing Linear Rational Angle Expressions and matching of them. *)
 local 
-    structure E = DB_LinratExpr; (* expressions *)
+    structure E = DB_LinratAngleExpr; (* expressions *)
     structure V = X; (* Variable names *)
     structure R = E.Coeff; (* rational numbers *)
     
@@ -65,5 +65,5 @@ val _ = Testing.test "match 0 a = false"
          in () end) ();
 
 val _ = Testing.assert_no_failed_tests();
-val _ = "UNIT TESTS FOR LinratExpr PASSED!";
+val _ = "UNIT TESTS FOR LinratAngleExpr PASSED!";
 end;

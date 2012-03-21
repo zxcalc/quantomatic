@@ -1,9 +1,14 @@
 (* linear combinations with rational coeffs (and pi) *)
-signature LINRAT_EXPR
+signature LINRAT_ANGLE_EXPR
 = sig 
   include EXPR
   structure Coeff : RATIONAL
   exception parse_exp
+  (* Parse a string into a linear rational expression *)
+  (* any alphabetic text (and \) is considered a variable name *)
+  (* except \pi *)
+  (* constants and coeffs of \pi are taken as coeffs of \pi, *)
+  (* and calculated modulo 2 *)
   val parse : string -> T
   val zero : T
   val is_zero : T -> bool
@@ -15,7 +20,7 @@ signature LINRAT_EXPR
   val scale_expr : Coeff.T -> T -> T
 end;
 
-structure DB_LinratExpr =
+structure DB_LinratAngleExpr =
 struct 
 
 (* Variable names in expressions *)
@@ -429,4 +434,4 @@ val parse = LinratParser.parse
 
 end
 
-structure LinratExpr = DB_LinratExpr : LINRAT_EXPR
+structure LinratAngleExpr = DB_LinratAngleExpr : LINRAT_ANGLE_EXPR
