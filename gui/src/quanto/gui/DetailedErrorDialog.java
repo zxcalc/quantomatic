@@ -39,7 +39,7 @@ import quanto.core.CoreException;
 public class DetailedErrorDialog {
 
     public static void showCoreErrorDialog(Component parent, String message, CoreException ex) {
-        showDetailedErrorDialog(parent, "Core Error", message, ex.getLocalizedMessage());
+        showDetailedErrorDialog(parent, "Core Error", message, ex);
     }
     public static void showDetailedErrorDialog(
             Component parent,
@@ -48,6 +48,14 @@ public class DetailedErrorDialog {
             String details)
     {
         showDetailedMessageDialog(parent, title, message, details, JOptionPane.ERROR_MESSAGE);
+    }
+    public static void showDetailedErrorDialog(
+            Component parent,
+            String title,
+            String message,
+            Throwable ex)
+    {
+        showDetailedMessageDialog(parent, title, message, ex.getLocalizedMessage(), JOptionPane.ERROR_MESSAGE);
     }
     public static void showDetailedMessageDialog(
             Component parent,

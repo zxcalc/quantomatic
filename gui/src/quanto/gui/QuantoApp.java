@@ -294,26 +294,28 @@ public class QuantoApp {
     private void demandTheoryOrQuit() {
         File f = openFile(null, "Select theory file", QuantoApp.DIR_THEORY);
         if (f == null) {
-            errorDialog("Cannot proceed without a theory");
+            JOptionPane.showMessageDialog(null, "Cannot proceed without a theory", "Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
         try {
             Theory theory = theoryManager.loadTheory(f.toURI().toURL());
             core.updateCoreTheory(theory);
         } catch (IOException ex) {
-            errorDialog(String.format(
-                    "Could not open theory file (%1$s); cannot proceed",
-                    ex.getMessage()));
+            DetailedErrorDialog.showDetailedErrorDialog(null,
+                    "Open theory",
+                    "Could not open theory file; cannot proceed",
+                    ex);
             System.exit(1);
         } catch (SAXException ex) {
-            errorDialog(String.format(
-                    "Corrupted theory file (%1$s); cannot proceed",
-                    ex.getMessage()));
+            DetailedErrorDialog.showDetailedErrorDialog(null,
+                    "Open theory",
+                    "Corrupted theory file; cannot proceed",
+                    ex);
             System.exit(1);
         } catch (CoreException ex) {
-            errorDialog(String.format(
-                    "Core refused to load theory (%1$s); cannot proceed",
-                    ex.getMessage()));
+            DetailedErrorDialog.showCoreErrorDialog(null,
+                    "Core refused to load theory; cannot proceed",
+                    ex);
             System.exit(1);
         } catch (DuplicateTheoryException ex) {
             logger.log(Level.SEVERE,
@@ -422,10 +424,6 @@ public class QuantoApp {
         return core;
     }
 
-    public void errorDialog(String message) {
-        JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
-    }
-
     public void createNewFrame() {
         try {
             InteractiveView view = viewManager.getNextFreeView();
@@ -435,7 +433,7 @@ public class QuantoApp {
             openNewFrame(view);
         } catch (CoreException ex) {
             logger.log(Level.SEVERE, "Could not create a new graph", ex);
-            errorDialog("Could not create a new graph to display");
+            DetailedErrorDialog.showCoreErrorDialog(null, "Could not create a new graph to display", ex);
         }
     }
 
@@ -498,7 +496,7 @@ public class QuantoApp {
             }
         } catch (CoreException e) {
             logger.log(Level.SEVERE, "Failed to create a new graph", e);
-            errorDialog(e.getMessage());
+            DetailedErrorDialog.showCoreErrorDialog(null, "Could not create a new graph to display", e);
         }
     }
 

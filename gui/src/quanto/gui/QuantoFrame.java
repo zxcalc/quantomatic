@@ -4,6 +4,7 @@ import com.sun.jaf.ui.ActionManager;
 import com.sun.jaf.ui.UIFactory;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Image;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -228,6 +229,121 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         this.pack();
     }
 
+    /**
+     * Display an error message from the core without getting in the way.
+     *
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param msg  a short message explaining what could not be done
+     * @param ex  the exception thrown by the core
+     */
+    public void coreErrorMessage(String message, CoreException ex) {
+        // FIXME: this should be non-modal
+        DetailedErrorDialog.showCoreErrorDialog(this, message, ex);
+    }
+
+    /**
+     * Display an error message, with extra detail, without getting in the way.
+     *
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param details  a more detailed message explaining why it could not be done
+     */
+	public void detailedErrorMessage(String title, String msg, String details) {
+        // FIXME: this should be non-modal
+        DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, details);
+	}
+
+    /**
+     * Display an error message, with extra detail, without getting in the way.
+     *
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param ex  an exception detailing the error
+     */
+	public void detailedErrorMessage(String title, String msg, Throwable ex) {
+        // FIXME: this should be non-modal
+        DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, ex.getLocalizedMessage());
+	}
+
+    /**
+     * Display an error message without getting in the way.
+     * 
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param msg  the message
+     */
+	public void errorMessage(String title, String msg) {
+        // FIXME: this should be non-modal
+		JOptionPane.showMessageDialog(this, msg, title, JOptionPane.ERROR_MESSAGE);
+	}
+
+    /**
+     * Display a modal error message from the core.
+     * 
+     * Consider whether coreErrorMessage might be less annoying.
+     *
+     * @param parent  the parent component, or null to use the frame
+     * @param msg  a short message explaining what could not be done
+     * @param ex  the exception thrown by the core
+     */
+    public void coreErrorDialog(Component parent, String message, CoreException ex) {
+        DetailedErrorDialog.showCoreErrorDialog(parent == null ? this : parent, message, ex);
+    }
+
+    /**
+     * Display a modal error message, with extra detail.
+     * 
+     * Consider whether detailedErrorMessage might be less annoying.
+     *
+     * @param parent  the parent component, or null to use the frame
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param details  a more detailed message explaining why it could not be done
+     */
+	public void detailedErrorDialog(Component parent, String title, String msg, String details) {
+        DetailedErrorDialog.showDetailedErrorDialog(parent == null ? this : parent, title, msg, details);
+	}
+
+    /**
+     * Display a modal error message, with extra detail.
+     * 
+     * Consider whether detailedErrorMessage might be less annoying.
+     *
+     * @param parent  the parent component, or null to use the frame
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param ex  an exception detailing the error
+     */
+	public void detailedErrorDialog(Component parent, String title, String msg, Throwable ex) {
+        DetailedErrorDialog.showDetailedErrorDialog(parent == null ? this : parent, title, msg, ex.getLocalizedMessage());
+	}
+
+    /**
+     * Display a modal error message.
+     * 
+     * Consider whether errorMessage might be less annoying.
+     *
+     * @param parent  the parent component, or null to use the frame
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     */
+	public void errorDialog(Component parent, String title, String msg) {
+		JOptionPane.showMessageDialog(parent == null ? this : parent, msg, title, JOptionPane.ERROR_MESSAGE);
+	}
+
+    public File openFile(String title, int type) {
+        return app.openFile(this, title, type);
+    }
+
     private void insertTheoryMenu() {
         JMenuBar menuBar = getJMenuBar();
         Action fileMenuAction = actionManager.getAction("file-menu");
@@ -239,7 +355,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
                     JMenuItem item = menu.getItem(j);
                     if (item != null && item.getAction() == LoadTheoryAction) {
                         menu.remove(j);
-                        menu.add(new TheoryMenu(app, this), j);
+                        menu.add(new TheoryMenu(app.getTheoryManager(), this), j);
                         return;
                     }
                 }
@@ -294,7 +410,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
         try {
             openView(app.createNewGraph());
         } catch (CoreException ex) {
-            app.errorDialog("Could not create new graph: " + ex.getMessage());
+            coreErrorDialog(this, "Could not create new graph", ex);
         }
     }
 
@@ -304,10 +420,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
             if (f != null) {
                 app.getCore().loadRuleset(f);
             }
-        } catch (CoreException e) {
-            app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
-        } catch (java.io.IOException e) {
-            app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
+        } catch (CoreException ex) {
+            coreErrorDialog(this, "Error in core when opening \"" + f.getName() + "\"", ex);
+        } catch (java.io.IOException ex) {
+            detailedErrorDialog(this, "Import Ruleset", "Could not read \"" + f.getName() + "\"", ex);
         }
     }
 
@@ -317,10 +433,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
             if (f != null) {
                 app.getCore().saveRuleset(f);
             }
-        } catch (CoreException e) {
-            app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
-        } catch (java.io.IOException e) {
-            app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
+        } catch (CoreException ex) {
+            coreErrorDialog(this, "Error in core when writing to \"" + f.getName() + "\"", ex);
+        } catch (java.io.IOException ex) {
+            detailedErrorDialog(this, "Export Ruleset", "Could not write \"" + f.getName() + "\"", ex);
         }
     }
 
@@ -334,10 +450,10 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
                 InteractiveView view = app.openGraph(f);
                 openView(view);
             }
-        } catch (CoreException e) {
-            app.errorDialog("Error in core when opening \"" + f.getName() + "\": " + e.getMessage());
-        } catch (java.io.IOException e) {
-            app.errorDialog("Could not read \"" + f.getName() + "\": " + e.getMessage());
+        } catch (CoreException ex) {
+            coreErrorDialog(this, "Error in core when opening \"" + f.getName() + "\"", ex);
+        } catch (java.io.IOException ex) {
+            detailedErrorDialog(this, "Open Graph", "Could not read \"" + f.getName() + "\"", ex);
         }
     }
 

@@ -191,6 +191,20 @@ public abstract class InteractiveView extends JPanel {
 	}
 
     /**
+     * Display an error message, with extra detail, without getting in the way.
+     *
+     * This is intended for situations where the problem was not directly
+     * caused by the user clicking something.
+     *
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param ex  an exception detailing the error
+     */
+	protected void detailedErrorMessage(String title, String msg, Throwable ex) {
+        DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, ex.getLocalizedMessage());
+	}
+
+    /**
      * Display a modal error message to the user.
      * 
      * Consider whether errorMessage might be less annoying.
@@ -224,6 +238,19 @@ public abstract class InteractiveView extends JPanel {
      */
 	protected void detailedErrorDialog(String title, String msg, String details) {
         DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, details);
+	}
+
+    /**
+     * Display a modal error message, with extra detail.
+     * 
+     * Consider whether detailedErrorMessage might be less annoying.
+     *
+     * @param title  a title for the dialog
+     * @param msg  a short message explaining what could not be done
+     * @param ex  an exception detailing the error
+     */
+	protected void detailedErrorDialog(String title, String msg, Throwable ex) {
+        DetailedErrorDialog.showDetailedErrorDialog(this, title, msg, ex.getLocalizedMessage());
 	}
 
     /**

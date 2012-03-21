@@ -33,8 +33,7 @@ public class TheoryMenu extends JMenu {
     private final static Logger logger = Logger.getLogger("quanto.gui.TheoryMenu");
 
     private final TheoryManager manager;
-    private Frame parent;
-    private QuantoApp app;
+    private QuantoFrame parent;
     private JMenu removeMenu;
     private List<Theory> shadowList;
     private int activeIndex = -1;
@@ -123,7 +122,7 @@ public class TheoryMenu extends JMenu {
                 TheoryRadioMenuItem tmi = (TheoryRadioMenuItem)e.getSource();
                 manager.getCore().updateCoreTheory(tmi.theory);
             } catch (CoreException ex) {
-                app.errorDialog(ex.getLocalizedMessage());
+                parent.coreErrorDialog(null, "Could not change theory", ex);
             }
         }
     };
@@ -153,10 +152,9 @@ public class TheoryMenu extends JMenu {
         }
     }
 
-    public TheoryMenu(QuantoApp app, Frame parent) {
+    public TheoryMenu(TheoryManager manager, QuantoFrame parent) {
         super("Theories");
-        this.manager = app.getTheoryManager();
-        this.app = app;
+        this.manager = manager;
         this.parent = parent;
 
         manager.addChangeListener(theoryManagerListener);
@@ -189,20 +187,20 @@ public class TheoryMenu extends JMenu {
     }
     
     private void loadTheory() {
-        File f = app.openFile(parent, "Select theory file", QuantoApp.DIR_THEORY);
+        File f = parent.openFile("Select theory file", QuantoApp.DIR_THEORY);
         if (f != null) {
             try {
                 Theory theory = manager.loadTheory(f.toURI().toURL());
                 manager.getCore().updateCoreTheory(theory);
             } catch (CoreException ex) {
-                app.errorDialog(ex.getLocalizedMessage());
+                parent.coreErrorDialog(null, "Could not change theory", ex);
             } catch (SAXException ex) {
-                app.errorDialog(ex.getLocalizedMessage());
+                parent.detailedErrorDialog(null, "Open Theory", "Could not parse theory", ex);
             } catch (IOException ex) {
-                app.errorDialog(ex.getLocalizedMessage());
+                parent.detailedErrorDialog(null, "Open Theory", "Could not read theory", ex);
             } catch (DuplicateTheoryException ex) {
                 // FIXME: maybe offer to replace it directly?
-                app.errorDialog("There is already a theory named \"" +
+                parent.errorDialog(null, "Open Theory", "There is already a theory named \"" +
                         ex.getTheoryName() +
                         "\"; please remove it first");
             }
