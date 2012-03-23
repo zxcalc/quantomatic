@@ -383,12 +383,25 @@ public class Core {
         return talker.exportRulesetToData();
     }
 
+    /**
+     * Creates a rule from two graphs.
+     * 
+     * Any existing rule with the same name will be replaced.
+     *
+     * @param ruleName
+     * @param lhs
+     * @param rhs
+     * @return
+     * @throws CoreException 
+     */
     public Rule<CoreGraph> createRule(String ruleName, CoreGraph lhs,
             CoreGraph rhs) throws CoreException {
         assertCoreGraph(lhs);
         assertCoreGraph(rhs);
         talker.setRule(ruleName, lhs.getCoreName(), rhs.getCoreName());
-        this.ruleset.ruleAdded(ruleName, false);
+        // FIXME: get actual rule active state from core
+        if (!this.ruleset.getRules().contains(ruleName))
+            this.ruleset.ruleAdded(ruleName, false);
         return new Rule<CoreGraph>(ruleName, lhs, rhs);
     }
 
