@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.Vector;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
@@ -721,7 +722,8 @@ public class InteractiveGraphView
 	     CoreGraph graph = getGraph();
 	     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
 	     try {
-          core.startUndoGroup(getGraph());
+	     //New vertices are added but not pushed on the undo stack 
+          core.startUndoGroup(graph);
 	     for(Vertex v : graph.getVertices()) {
 	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
 	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
@@ -731,22 +733,45 @@ public class InteractiveGraphView
 	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
 	          }
 	     }
-	     core.endUndoGroup(getGraph());
+	     core.endUndoGroup(graph);
 	     } catch (CoreException e) {
               errorDialog(e.getMessage());
           }
-          for(Vertex v : graph.getVertices()) {
-               //Update only if the vertex moved: we store ints, allow 
-               //a 1px delta.
+	     
+	     Vector<Vertex> vertices = new Vector<Vertex> ();
+	     for (Vertex v: graph.getVertices()) {
                int X = (int) smoothLayout.getDelegate().transform(v).getX();
                int Y = (int) smoothLayout.getDelegate().transform(v).getY();
                Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
                Point2D new_p = new Point2D.Double(X, Y);
                if (old_p.distance(new_p) > 1.5) {
-                    pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-                                   new_p);
-                    }
-          }	     
+                    vertices.add(v);
+               }
+	     }     
+	     if (vertices.size() > 0) {
+	          //The first one creates an undo point
+	          Vertex v = vertices.firstElement();
+               int X = (int) smoothLayout.getDelegate().transform(v).getX();
+               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D new_p = new Point2D.Double(X, Y);
+               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+               vertices.remove(v);
+	     }
+	     if (vertices.size() <= 0)
+	          return;
+	     try {
+	          //The others do not
+	          core.startUndoGroup(graph);
+	          for(Vertex v : vertices) {
+	               int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	               Point2D new_p = new Point2D.Double(X, Y);
+	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+	           }
+	           core.endUndoGroup(graph);
+	      } catch (CoreException e) {
+	           errorDialog(e.getMessage());
+	      }
 	}
 	
 	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
