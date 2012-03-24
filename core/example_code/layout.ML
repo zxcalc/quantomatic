@@ -20,5 +20,9 @@ in
   val _ = map OGraphPreLayout.print_layout layouts;
   
   val boxes = map OGraphPreLayout.box_of_layout layouts;
+  
+  val _ = WritePretty.write_to_file "./foo.svg"
+          (OGraphPreLayout.pretty_in_svg 500 500 
+            (OGraphPreLayout.svg_pretty_vertex (V.mk "x") 100 150)); 
 end;
 

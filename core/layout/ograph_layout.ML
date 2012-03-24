@@ -106,6 +106,27 @@ struct
       height = height_of_layout l,
       vertex_layout = map V.NSet.list_of l
     };
+
+  fun pretty_in_svg x y p = 
+    Pretty.block 
+      ((map Pretty.str 
+          ["<div id=\"graph\">",
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" ",
+          "version=\"1.1\" ",
+          "viewBox=\"0 0 1000 1000\" preserveAspectRatio=\"xMidYMid slice\" ",
+          "style=\"width:", Int.toString x, "; height:", 
+          Int.toString y ,"; z-index:-2;\">",
+          "\n"])
+        @ [p]
+        @ (map Pretty.str
+           ["</svg></div>", "\n"]));
   
+  fun svg_pretty_vertex n x y = 
+    Pretty.block (map Pretty.str 
+      ["<circle id=\"", V.string_of_name n, "\" ", 
+      "cx=\"", Int.toString x, "\" ", 
+      "cy=\"", Int.toString y, "\" ",
+      "r=\"10\" stroke=\"black\" stroke-width=\"2\" fill=\"red\">\n"]);
+    
 end;
 end; (* *)
