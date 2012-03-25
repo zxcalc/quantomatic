@@ -96,13 +96,13 @@ public class SplitGraphView extends InteractiveView {
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
 		leftView.repaint();
-		
+		leftView.setVerticesPositionData();
 			
 		rightView = new InteractiveGraphView(core, rule.getRhs());
-				rightView.setSaveEnabled(false);
+		rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
 		rightView.repaint();
-
+		rightView.setVerticesPositionData();
 		setupListeners();
 		setupLayout(dim);
 		setSaved(true);

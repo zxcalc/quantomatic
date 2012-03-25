@@ -278,8 +278,7 @@ public class InteractiveGraphView
 				viewer.getGraphLayout().setLocation(vmap.get(key), p);
 				viewer.getGraphLayout().lock(vmap.get(key), true);
 			}
-    	}
-		
+    	}	
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -744,7 +743,7 @@ public class InteractiveGraphView
                int Y = (int) smoothLayout.getDelegate().transform(v).getY();
                Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
                Point2D new_p = new Point2D.Double(X, Y);
-               if ((old_p != null) && (old_p.distance(new_p) > 1.5)) {
+               if (old_p.distance(new_p) > 1.5) {
                     vertices.add(v);
                }
 	     }     

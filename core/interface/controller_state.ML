@@ -611,7 +611,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val targ = get_graph state tname
         val (_, source) = Graph.rename_apart targ sarg
       in state |> push_hist tname
-                            |> set_graph (Graph.merge_by_vertices targ source) tname
+               |> set_graph (Graph.merge_by_vertices targ source) tname
       end
 
   fun graph_of_rule getter label state rulename =
@@ -621,7 +621,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                      of SOME v => v | NONE => raise no_such_rule_exp rulename
         val (name, graphs) = GraphName.NTab.add (GraphName.mk ((R.dest rulename)^"_"^label), getter r) (get_graphs state)
       in
-        (name, state |> set_graphs graphs)
+        (name, state
+                     |> set_graphs graphs
+                     |> set_graph_ud UIData.init name)
       end
 
   val open_rule_lhs = graph_of_rule Rule.get_lhs "lhs"
