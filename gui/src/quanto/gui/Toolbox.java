@@ -164,7 +164,7 @@ public class Toolbox extends JPanel {
                 });
             }
             //TODO: Still need an icon for that.
-            JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/EdgePointIcon24.png", "Add Boundary Vertex"));
+            JButton button = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/EdgePointIcon20.png", "Add Boundary Vertex"));
             this.add(button);
             button.setToolTipText("Add Boundary Vertex");
             button.addActionListener(new ActionListener() {
