@@ -44,6 +44,7 @@ import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingBangBoxG
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
+import edu.uci.ics.jung.contrib.visualization.ShapeBangBoxPickSupport;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.geom.AffineTransform;
@@ -364,6 +365,9 @@ public class InteractiveGraphView
 		});
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
+
+		// increase the picksize
+		viewer.setPickSupport(new ShapeBangBoxPickSupport(viewer, 4));
 
 		viewer.setBoundingBoxEnabled(false);
 		
