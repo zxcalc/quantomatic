@@ -64,6 +64,7 @@ import java.util.LinkedList;
 
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
+import quanto.core.protocol.CopyOfUserDataSerializer;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
@@ -957,6 +958,7 @@ public class InteractiveGraphView
 	                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
 	                    if (p != null) {
 	                         viewer.getGraphLayout().setLocation(v, p);
+	                         viewer.getGraphLayout().lock(v, true);
 	                    } else {
 	                         viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
 	                         setVerticesPositionData();
@@ -1347,6 +1349,30 @@ public class InteractiveGraphView
 					Rectangle2D rect=new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
 							0, 20, viewer.getGraphLayout().getSize().height);
 					core.paste(getGraph());
+					/* 
+					 * FIXME: maybe, this is not the right place? 
+					 * When we paste a graph we want to keep it's layout as well, so we get it's quanto-position uidata
+					 * and translate everything so that it ends up at the right of the current graph.
+					 * What we get is a graph, already merged and with fresh names. So in order to know which one 
+					 * were copied we check the "copy_of" user_data which is set automatically by the core when a
+					 * subgraph get copied, and set the value to "" afterwards (<- TODO we should actually make it
+					 * possible to remove the uidata we don't want anymore)  
+					 *  */
+					CopyOfUserDataSerializer cos = new CopyOfUserDataSerializer();
+					Point2DUserDataSerialiazer pos = new Point2DUserDataSerialiazer();
+					
+				     core.startUndoGroup(getGraph());
+					for (Vertex v: getGraph().getVertices()) {
+					     String copy_of_vertex = cos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					     if ((copy_of_vertex != null) && (!copy_of_vertex.equals(""))) {
+					          //Then translate its quanto-gui:position
+					          Point2D position = pos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					          position.setLocation(position.getX() + rect.getCenterX() + 20, position.getY());
+					          pos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), position);
+					          cos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), "");
+					     }
+					}
+					core.endUndoGroup(getGraph());
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {

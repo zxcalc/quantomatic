@@ -470,7 +470,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     lift_graph_mutator_no_result (fold Graph.delete_edge es)
 
   fun rename_vertex_internal old new graph =
-    ([old],graph |> Graph.rename_vname old new)
+    ([new],graph |> Graph.rename_vname old new)
     handle Graph.vname_already_exists_exp (vn, g) =>
       if (Graph.is_edgepoint graph new)
       then (raise Graph.vname_already_exists_exp (vn, g))
@@ -485,7 +485,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         end;  
  
   (* There was no conflict *) 
-        fun rename_vertex_uidata old (new::[]) graphName state =
+  fun rename_vertex_uidata old (new::[]) graphName state =
     let
       val ud = get_graph_ud state graphName
     in
@@ -635,22 +635,99 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let val _ = map (assert_vertex_exists state gname) verts in
         lift_graph_mutator_no_result (Graph.move_to_unbox (V.NSet.of_list verts)) gname state
       end
-
+  (* Copy the subgraph as well as it user data *)
+  (* Here is the problem: when a graph is copied it's 
+   * usually in order to paste it later. However, once it's
+   * pasted (especially if it's in the same graph), 
+   * and renamed it may useful to know
+   * where our vertices come from, i.e. what they are the copy of
+   * A solution is to store that as ui_data on the vertices, edges, etc...*)
   fun copy_subgraph source target vs state = let
       val _ = map (assert_vertex_exists state source) vs
       val clip = Graph.delete_subgraph_outside_vset 
                    (V.NSet.of_list vs)
                    (get_graph state source)
+      fun add_v_ud ud n ud' =
+        let
+          val v_ud = case (UIData.get_v_ud ud n) of
+            SOME a => a
+            | NONE => Symtab.empty 
+        in
+          ud' |> UIData.update_v_ud (fn _ => v_ud) n
+              |> UIData.update_v_ud (Symtab.update ("copy_of", V.dest n)) n
+        end
+      fun add_e_ud ud n ud' =
+        let
+          val e_ud = case (UIData.get_e_ud ud n) of
+            SOME a => a
+            | NONE => Symtab.empty 
+        in
+          ud' |> UIData.update_e_ud (fn _ => e_ud) n
+              |> UIData.update_e_ud (Symtab.update ("copy_of", E.dest n)) n
+        end
+      fun add_b_ud ud n ud' =
+        let
+          val b_ud = case (UIData.get_bb_ud ud n) of
+            SOME a => a
+            | NONE => Symtab.empty 
+        in
+          ud' |> UIData.update_bb_ud (fn _ => b_ud) n
+              |> UIData.update_bb_ud (Symtab.update ("copy_of", B.dest n)) n
+        end
+      val ud  = get_graph_ud state source
+      val ud' = UIData.init |> fold (add_v_ud ud)
+                      (V.NSet.list_of (Graph.get_vnames clip))
+                            |> fold (add_e_ud ud)
+                      (E.NSet.list_of (Graph.get_enames clip))
+                            |> fold (add_b_ud ud)
+                      (Graph.get_bbox_list clip)
+                            |> UIData.update_g_ud 
+                      (fn _ => (UIData.get_g_ud ud))
   in state |> set_graph clip target
+           |> set_graph_ud ud' target 
   end
 
+  (* Rename apart the graph, insert it and insert its user data as well*)
   fun insert_graph sname tname state = 
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
-        val (_, source) = Graph.rename_apart targ sarg
+        val (rn, source) = Graph.rename_apart targ sarg
+      fun add_v_ud rn ud n ud' =
+        let
+          val v_ud = case (UIData.get_v_ud ud n) of
+            SOME a => a
+            | NONE => Symtab.empty 
+        in
+          UIData.update_v_ud (fn _ => v_ud) (V.Rnm.get rn n) ud'
+        end
+      fun add_e_ud rn ud n ud' =
+        let
+          val e_ud = case (UIData.get_e_ud ud n) of
+            SOME a => a
+            | NONE => Symtab.empty 
+        in
+          UIData.update_e_ud (fn _ => e_ud) (E.Rnm.get rn n) ud'
+        end
+      fun add_b_ud ud n ud' =
+        let
+          val b_ud = case (UIData.get_bb_ud ud n) of
+            SOME a => a
+            | NONE => Symtab.empty 
+        in
+          UIData.update_bb_ud (fn _ => b_ud) n ud'
+        end
+        val ud = get_graph_ud state sname
+        val ud_t = get_graph_ud state tname
+        val ud' = ud_t |> fold (add_v_ud (fst rn) ud)
+                    (V.NSet.list_of (Graph.get_vnames sarg))
+                     |> fold (add_e_ud (snd rn) ud)
+                    (E.NSet.list_of (Graph.get_enames sarg))
+                    |> fold (add_b_ud ud) 
+                    ( Graph.get_bbox_list sarg)
       in state |> push_hist tname
                |> set_graph (Graph.merge_by_vertices targ source) tname
+               |> set_graph_ud ud' tname
       end
 
   fun graph_of_rule getter label state rulename =
