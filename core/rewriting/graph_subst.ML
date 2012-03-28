@@ -77,9 +77,13 @@ functor GraphSubstFun(Match : MATCH)
               val rhs_edgepoints = G.get_edgepoints rhs';
               val ignore_vset = 
                   V.NSet.union_merge rhs_boundary rhs_edgepoints; 
+              val ignore_eset = E.NSet.empty;
               val v_rnm = V.Rnm.mk ignore_vset (G.get_vnames g)
                           V.NTab.empty;
-              val (rnm, rhs'') = G.VertexCRnm.rename v_rnm rhs';
+              val e_rnm = E.Rnm.mk ignore_eset (G.get_enames g)
+                          E.NTab.empty;
+              val (_, rhs'') = rhs' |> snd o G.VertexCRnm.rename v_rnm
+                                    |> G.EdgeCRnm.rename e_rnm;
           in 
             (rhs'', G.merge_by_vertices rhs'' g') end) 
       end;

@@ -475,18 +475,36 @@ functor OGraphFun(G : BASIC_OGRAPH)
      composition with an identity. Assumes that e1 and e2 go to boundary 
      coherent edge-point vertices (vertices representing half-edges going in 
      opposite directions / both undirected) *)
+  (* If we have e1 : v2 - v1 and e2: v1 - v2 then we cannot remove the
+   * edge-points and add an edge between them: we remove them and add an
+   * edge-point with a self-loop  *)
   (* FIXME(ldixon): *** needs modification for !-boxes *** *) 
   exception not_boundary_coherent_exp of string;
 
   fun plug_by_boundary v1 v2 g = 
       (case boundary_coherence g v1 v2 
         of NONE => raise not_boundary_coherent_exp "plug_by_boundary"
-         | SOME ((dir, data),(startv,endv)) => 
-           ((startv,endv),
-            g |> delete_vertex v1
-              |> delete_vertex v2
-              |> add_edge (dir, data) startv endv));
-
+         | SOME ((dir, data),(startv,endv)) => (
+        (* Would be much nicer with a list of booleans and pattern matching
+         * but not really worth it...?  *)
+          if ((V.NTab.name_eq (v1, startv) andalso
+            V.NTab.name_eq (v2, endv)) orelse ( V.NTab.name_eq (v2, startv) andalso
+              V.NTab.name_eq (v1, endv))) 
+          then 
+            let
+              val (nn, g') = g |> delete_vertex v1
+                               |> delete_vertex v2
+                               (* Could be endv, does not change anything in
+                                * this case  *)
+                               |> add_named_vertex startv OVData.EVert
+             in
+             ((nn, nn), g' |> add_edge (dir, data) nn nn)
+             end
+          else
+            ((startv,endv),
+              g |> delete_vertex v1
+                |> delete_vertex v2
+                |> add_edge (dir, data) startv endv)));
 
   (* Cut edges around a vertex if they are not in the keepvset; change cut 
      incident edges into half-edges (add a boundary vertex to each one). 
