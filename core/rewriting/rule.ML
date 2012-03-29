@@ -178,11 +178,28 @@ datatype T = Rule of { lhs : Graph.T,
                      };
 
 exception bad_rule_exp of string * Graph.T * Graph.T;
+
+(* Internal function that makes sure that:
+  *   - Boundary names are the same
+  *   - !-Boxes names are the same
+  *   FIXME: It seems that when we have something like RHS: Bb(Va) => LHS: Bb(Vb)
+  *   we run into trouble... hard to chek with all the renaming...*)
+fun check_rule_consistency lhs rhs = 
+    let
+      val lhsboundary = Graph.get_boundary lhs 
+      val rhsboundary = Graph.get_boundary rhs
+    in
+      (V.NSet.eq lhsboundary rhsboundary) andalso
+      (B.NSet.eq (Graph.get_bbnames lhs) (Graph.get_bbnames rhs))
+   end; 
+
 fun mk (lhs,rhs) = 
-    let val lhsbndry : V.NSet.T = Graph.get_boundary lhs 
+    let 
+      val lhsbndry : V.NSet.T = Graph.get_boundary lhs
     in
     (* check that rule is well-formed! *)
-    if V.NSet.eq lhsbndry (Graph.get_boundary rhs) then 
+    if check_rule_consistency lhs rhs
+    then 
       let (* rename rhs; sharing bvertex names with lhs, 
              all else must be distinct, but do minimal amount of renaming *)
         val ignorevnames = (* ignore boundary and also fresh rhs vnames *)
