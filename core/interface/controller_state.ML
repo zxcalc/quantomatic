@@ -336,7 +336,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
-            raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS."
+            raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."
 
   fun delete_tag tag_name state =
       let val () = assert_tag_exists state tag_name

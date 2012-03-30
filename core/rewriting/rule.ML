@@ -181,16 +181,21 @@ exception bad_rule_exp of string * Graph.T * Graph.T;
 
 (* Internal function that makes sure that:
   *   - Boundary names are the same
-  *   - !-Boxes names are the same
-  *   FIXME: It seems that when we have something like RHS: Bb(Va) => LHS: Bb(Vb)
-  *   we run into trouble... hard to chek with all the renaming...*)
+  *   - !-Boxes names are the samei
+  *   -Check if !-boxes in LHS bang the same boundary vertices in
+  *   RHS *)
 fun check_rule_consistency lhs rhs = 
     let
       val lhsboundary = Graph.get_boundary lhs 
       val rhsboundary = Graph.get_boundary rhs
+      val lhsboundary' = filter (Graph.is_boxed lhs) (V.NSet.list_of lhsboundary)
+      fun has_same_bangbox vn b = b andalso
+          (Graph.is_boxed rhs vn)   andalso
+           B.name_eq ((Graph.get_box_of lhs vn),(Graph.get_box_of rhs vn)) 
     in
       (V.NSet.eq lhsboundary rhsboundary) andalso
-      (B.NSet.eq (Graph.get_bbnames lhs) (Graph.get_bbnames rhs))
+      (B.NSet.eq (Graph.get_bbnames lhs) (Graph.get_bbnames rhs)) andalso
+      (fold (has_same_bangbox) (lhsboundary') true)
    end; 
 
 fun mk (lhs,rhs) = 
