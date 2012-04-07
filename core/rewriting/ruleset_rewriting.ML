@@ -103,7 +103,7 @@ struct
       in (r, RuleMatchSearch.match names r 
               (G.matched_subgraph_within_vset vset g)) 
       end;
-  
+ 
   (* instantiate rule with a match *)
   fun instantiate_rule m r = 
       Rule.mk (Match.inst_pat_graph m (Rule.get_lhs r), 
@@ -115,7 +115,14 @@ struct
   fun applicable_rules' rset matcher rnset g = 
       R.NSet.fold 
       (fn n =>
-          let val (r,matches) = matcher (Ruleset.get_rule rset n) g 
+          let
+            (* When we apply rules we want to make sure the expression
+             * names in the rules do not clash with the ones in the graph *)
+            val rule = Ruleset.get_rule rset n 
+            val (rnm_x, lhs) = G.rename_graph_data_apart g (Rule.get_lhs rule)
+            val (_, rhs) = G.CRnmX.rename rnm_x (Rule.get_rhs rule)
+            val rule' = Rule.mk(lhs, rhs)
+            val (r,matches) = matcher rule' g 
           in Seq.append 
             (Seq.map 
               (fn m => 
