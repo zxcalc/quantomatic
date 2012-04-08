@@ -13,4 +13,7 @@ public interface UserDataSerializer<D> {
 	
 	public D getVertexUserData(ProtocolManager talker, CoreGraph g, String vertexName);
 	public D getGraphUserData(ProtocolManager talker, CoreGraph g);
+	
+	public void deleteVertexUserData(ProtocolManager talker, CoreGraph g, String VertexName);
+	public void deleteGraphUserData(ProtocolManager talker, CoreGraph g);
 }

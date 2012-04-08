@@ -156,6 +156,9 @@ struct
                            | InsertGraphAction of { sourceGraphName: string }
                              (* OkResponse | ErrorResponse *)
                            | SetGraphUserDataAction of { dataName: string, userData: string }
+                              (* OkResponse | ErrorResponse  *)
+                           | DeleteGraphUserDataAction of { dataName: string}
+                              (* OkResponse | ErrorResponse *)
                            | AddVertexAction of { vertexType: string, resultFormat: resultFormat }
                              (* VertexDescriptionAction | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }
@@ -167,6 +170,9 @@ struct
                            | SetVertexUserDataAction of { vertexName: string,
                            dataName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
+                           | DeleteVertexUserDataAction of { vertexName: string,
+                           dataName: string}
+                             (* OkResponse | ErrorResponse *)
                            | AddEdgeAction of { edgeType: string, directed: bool, source: string, target: string, resultFormat: resultFormat }
                              (* EdgeDescriptionAction | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }
@@ -177,6 +183,9 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeUserDataAction of { edgeName: string,
                            dataName: string, userData: string }
+                             (* OkResponse | ErrorResponse *)
+                           | DeleteEdgeUserDataAction of {edgeName: string,
+                              dataName : string }
                              (* OkResponse | ErrorResponse *)
                            | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }
                              (* StringResponse | ErrorResponse *)
@@ -196,6 +205,9 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetBangBoxUserDataAction of { bangBoxName: string,
                               dataName : string, userData: string }
+                             (* OkResponse | ErrorResponse *)
+                           | DeleteBangBoxUserDataAction of {bangBoxName: string,
+                              dataName : string }
                              (* OkResponse | ErrorResponse *)
 
        and response = OkResponse
@@ -662,6 +674,10 @@ fun hilb ([format], graph) =
             (OkResponse,
               State.update_graph_user_data dataName userData
               (GraphName.mk graphName) state)
+        | DeleteGraphUserDataAction {dataName} =>
+            (OkResponse,
+              State.delete_graph_user_data dataName (GraphName.mk graphName)
+              state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
               val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
@@ -701,6 +717,10 @@ fun hilb ([format], graph) =
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
               State.update_vertex_user_data dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
+        | DeleteVertexUserDataAction { vertexName, dataName } =>
+            (OkResponse,
+              State.delete_vertex_user_data dataName (V.mk vertexName) 
+                (GraphName.mk graphName) state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
               val dir_or_undir = if directed then G.Directed else G.UnDirected
@@ -737,6 +757,10 @@ fun hilb ([format], graph) =
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
               State.update_edge_user_data dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
+        | DeleteEdgeUserDataAction { edgeName, dataName } =>
+            (OkResponse,
+              State.delete_edge_user_data dataName (E.mk edgeName) 
+                (GraphName.mk graphName) state)
         | AddBangBoxAction { vertexNames, resultFormat } =>
             let
               val gname = (GraphName.mk graphName)
@@ -790,6 +814,10 @@ fun hilb ([format], graph) =
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
               State.update_bangbox_user_data dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
+        | DeleteBangBoxUserDataAction { bangBoxName, dataName } =>
+            (OkResponse,
+              State.delete_bangbox_user_data dataName (B.mk bangBoxName) 
+                (GraphName.mk graphName) state)
         )
 
 

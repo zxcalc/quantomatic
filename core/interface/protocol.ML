@@ -459,7 +459,16 @@
  * Desc: Set user data on a graph.  This data will not be parsed by the core
  *       in any way.
  * Response: OkResponse
- * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
+ * ErrorResponses: NOSUCHGRAPH
+ * 
+ * Name: DeleteGraphUserDataRequest
+ * Code: "GMDGU"
+ * Args:
+ *  GraphName: String
+ *  dataName: String
+ * Desc: Delete user data on a graph.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH
  *
  * Name: AddVertexRequest
  * Code: "GMVA"
@@ -506,9 +515,20 @@
  * Args:
  *   GraphName: String
  *   VertexName: String
+ *   DataName: String
  *   UserData: DataChunk
  * Desc: Set user data on a vertex.  This data will not be parsed by the core
  *       in any way.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
+ *
+ * Name: DeleteVertexUserDataRequest
+ * Code: "GMDVU"
+ * Args:
+ *  GraphName: String
+ *  VertexName: String
+ *  DataName: String
+ * Desc: Remove user data DataName on vertex VertexName
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
@@ -563,6 +583,16 @@
  *   UserData: DataChunk
  * Desc: Set user data on an edge.  This data will not be parsed by the core
  *       in any way.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
+ * 
+ * Name: DeleteEdgeUserDataRequest
+ * Code: "GMDEU"
+ * Args:
+ *  GraphName: String
+ *  EdgeName: String
+ *  DataName: String
+ * Desc: Remove user data DataName on vertex EdgeName
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
  *
@@ -653,6 +683,16 @@
  *       in any way.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
+ *
+ * Name: DeleteBangBoxUserDataRequest
+ * Code: "GMDBU"
+ * Args:
+ *  GraphName: String
+ *  BangBoxName: String
+ *  DataName: String
+ * Desc: Remove user data DataName on vertex BangBoxName
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHBANGBOX
  *
  * Name: ImportRulesetFromFileRequest
  * Code: "RSO"
@@ -1464,6 +1504,18 @@ struct
                          }
                        end
 
+         | "GMDGU" =>  let
+                        val graphName = readToDelim ()
+                        val dataName =  readToEnd ()
+                       in
+                         EditGraphRequest {
+                           graphName = graphName,
+                           action = DeleteGraphUserDataAction {
+                                      dataName = dataName
+                                    }        
+                         }
+                       end
+
          | "GMVA" =>  let
                         val graphName = readToDelim ()
                         val vertexType = readToDelim ()
@@ -1562,6 +1614,20 @@ struct
                                       vertexName = vertexName,
                                       dataName = dataName,
                                       userData = data
+                                    }
+                        }
+                      end
+
+         | "GMDVU" =>  let
+                        val graphName = readToDelim ()
+                        val vertexName = readToDelim ()
+                        val dataName = readToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  DeleteVertexUserDataAction {
+                                      vertexName = vertexName,
+                                      dataName = dataName
                                     }
                         }
                       end
@@ -1673,6 +1739,20 @@ struct
                                       edgeName = edgeName,
                                       dataName = dataName,
                                       userData = data
+                                    }
+                        }
+                      end
+
+         | "GMDEU" =>  let
+                        val graphName = readToDelim ()
+                        val edgeName = readToDelim ()
+                        val dataName = readToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  DeleteEdgeUserDataAction {
+                                      edgeName = edgeName,
+                                      dataName = dataName
                                     }
                         }
                       end
@@ -1806,6 +1886,20 @@ struct
                                       bangBoxName = bangBoxName,
                                       dataName = dataName,
                                       userData = data
+                                    }
+                        }
+                      end
+
+         | "GMDBU" =>  let
+                        val graphName = readToDelim ()
+                        val bangBoxName = readToDelim ()
+                        val dataName = readToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  DeleteBangBoxUserDataAction {
+                                      bangBoxName = bangBoxName,
+                                      dataName = dataName
                                     }
                         }
                       end

@@ -1355,8 +1355,7 @@ public class InteractiveGraphView
 					 * and translate everything so that it ends up at the right of the current graph.
 					 * What we get is a graph, already merged and with fresh names. So in order to know which one 
 					 * were copied we check the "copy_of" user_data which is set automatically by the core when a
-					 * subgraph get copied, and set the value to "" afterwards (<- TODO we should actually make it
-					 * possible to remove the uidata we don't want anymore)  
+					 * subgraph get copied, and delete it afterwards.
 					 *  */
 					CopyOfUserDataSerializer cos = new CopyOfUserDataSerializer();
 					Point2DUserDataSerialiazer pos = new Point2DUserDataSerialiazer();
@@ -1369,7 +1368,7 @@ public class InteractiveGraphView
 					          Point2D position = pos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
 					          position.setLocation(position.getX() + rect.getCenterX() + 20, position.getY());
 					          pos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), position);
-					          cos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), "");
+					          cos.deleteVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
 					     }
 					}
 					core.endUndoGroup(getGraph());

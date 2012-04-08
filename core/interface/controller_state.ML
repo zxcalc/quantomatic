@@ -116,18 +116,27 @@ sig
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
   val drop_bang : B.name list -> GraphName.name -> T -> T
+
   (* UI Data getters/setters *)
+  (* ... For Graphs *)
   val update_graph_user_data : string -> string ->  GraphName.name -> T -> T
   val get_graph_user_data : GraphName.name -> T -> string Symtab.table
+  val delete_graph_user_data : string -> GraphName.name -> T -> T
+  (* ... For Vertices *)
   val update_vertex_user_data : string -> string -> V.name -> GraphName.name -> T -> T
   val get_vertex_user_data : GraphName.name -> V.name -> T -> (string
     Symtab.table option)
+  val delete_vertex_user_data : string -> V.name -> GraphName.name -> T -> T
+  (* ... For Edges *)
   val update_edge_user_data : string -> string -> E.name -> GraphName.name -> T -> T
   val get_edge_user_data : GraphName.name -> E.name -> T -> (string
     Symtab.table option)
+  val delete_edge_user_data : string -> E.name -> GraphName.name -> T -> T
+  (* ... For !-Boxes *)
   val update_bangbox_user_data : string -> string -> B.name -> GraphName.name -> T -> T
   val get_bangbox_user_data : GraphName.name -> B.name -> T -> (string
     Symtab.table option)
+  val delete_bangbox_user_data : string -> B.name -> GraphName.name -> T -> T
 end;
 
 
@@ -745,8 +754,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   val open_rule_lhs = graph_of_rule Rule.get_lhs "lhs"
   val open_rule_rhs = graph_of_rule Rule.get_rhs "rhs"
 
-  (* Set and get the user data  *)
-
+  (* Set, delete and get the user data  *)
+  (* On Graphs:  *)
   fun update_graph_user_data_internal dn ud user_data =
     let
       val updater = Symtab.update (dn, ud)
@@ -757,16 +766,27 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun update_graph_user_data dn ud = lift_ud_mutator_no_result
     (update_graph_user_data_internal dn ud)
 
+  fun delete_graph_user_data_internal dn user_data = 
+    let
+      val updater = Symtab.delete dn
+    in
+      UIData.update_g_ud updater user_data
+    end
+
+  fun delete_graph_user_data dn = lift_ud_mutator_no_result
+    (delete_graph_user_data_internal dn)
 
   fun get_graph_user_data gn state =
     UIData.get_g_ud (get_graph_ud state gn)
 
+  (* On Vertices:  *)
   fun update_vertex_user_data_internal dn ud vn user_data =
-      let
-        val updater = Symtab.update (dn, ud)
-      in
-        UIData.update_v_ud updater vn user_data
-      end
+    let
+      val updater = Symtab.update (dn, ud)
+    in
+      UIData.update_v_ud updater vn user_data
+    end
+
   fun update_vertex_user_data dn ud vn = lift_ud_mutator_no_result
     (update_vertex_user_data_internal dn ud vn)
 
@@ -777,12 +797,23 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       UIData.get_v_ud (get_graph_ud state gn) vn
     end
 
+  fun delete_vertex_user_data_internal dn vn user_data =
+    let
+      val updater = Symtab.delete dn
+    in
+      UIData.update_v_ud updater vn user_data
+    end
+  fun delete_vertex_user_data dn vn = lift_ud_mutator_no_result
+    (delete_vertex_user_data_internal dn vn)
+
+  (* On Edges:  *)
   fun update_edge_user_data_internal dn ud en user_data =
-      let
-        val updater = Symtab.update (dn, ud)
-      in
-        UIData.update_e_ud updater en user_data
-      end
+    let
+      val updater = Symtab.update (dn, ud)
+    in
+      UIData.update_e_ud updater en user_data
+    end
+
   fun update_edge_user_data dn ud en = lift_ud_mutator_no_result
     (update_edge_user_data_internal dn ud en)
 
@@ -793,12 +824,23 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       UIData.get_e_ud (get_graph_ud state gn) en
     end
 
+  fun delete_edge_user_data_internal dn en user_data =
+    let
+      val updater = Symtab.delete_safe dn
+    in
+      UIData.update_e_ud updater en user_data
+    end
+  fun delete_edge_user_data dn en = lift_ud_mutator_no_result
+    (delete_edge_user_data_internal dn en)
+
+  (* On Bang Boxes:  *)
   fun update_bangbox_user_data_internal dn ud bn user_data =
-      let
-        val updater = Symtab.update (dn, ud)
-      in
-        UIData.update_bb_ud updater bn user_data
-      end
+    let
+      val updater = Symtab.update (dn, ud)
+    in
+      UIData.update_bb_ud updater bn user_data
+    end
+
   fun update_bangbox_user_data dn ud bn = lift_ud_mutator_no_result
     (update_bangbox_user_data_internal dn ud bn)
 
@@ -808,6 +850,15 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     in
       UIData.get_bb_ud (get_graph_ud state gn) bn
     end
+
+  fun delete_bangbox_user_data_internal dn bn user_data =
+    let
+      val updater = Symtab.delete_safe dn
+    in
+      UIData.update_bb_ud updater bn user_data
+    end
+  fun delete_bangbox_user_data dn bn = lift_ud_mutator_no_result
+    (delete_bangbox_user_data_internal dn bn)
 
   fun start_undo_group gname state =
     state |> update_merge_changes (GraphName.NTab.update (gname,true))

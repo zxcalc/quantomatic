@@ -62,7 +62,21 @@ public class Point2DUserDataSerialiazer implements UserDataSerializer<Point2D> {
 		
 		return p;
 	}
+	
+     public void deleteVertexUserData(ProtocolManager talker, CoreGraph g,
+               String VertexName) {
+          
+          try {
+               talker.deleteVertexUserData(g.getCoreName(), VertexName, 
+                         this.dataTag);
+          } catch (CoreException e) {
+               logger.log(Level.FINE, "Could not delete data on vertex " 
+                                             + VertexName, e);
+          }
+     }
+	
 	/* Irrelevant for this type */
 	public Point2D getGraphUserData(ProtocolManager talker, CoreGraph g) {return null;}
 	public void setGraphUserData(ProtocolManager talker, CoreGraph g, Point2D data) {}
+     public void deleteGraphUserData(ProtocolManager talker, CoreGraph g) {}
 }
