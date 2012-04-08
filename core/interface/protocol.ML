@@ -425,6 +425,22 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
+ * Name: StartUndoGroupRequest
+ * Code: "GMSU"
+ * Args:
+ *   GraphName: String
+ * Desc: Starts an undo group: changes are merge on the undo stack
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ *
+ * Name: EndUndoGroupRequest
+ * Code: "GMFU"
+ * Args:
+ *   GraphName: String
+ * Desc: Ends the undo group: create an undo point whenver the state is changed
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+*
  * Name: InsertGraphRequest
  * Code: "GMI"
  * Args:
@@ -462,7 +478,7 @@
  *   OldVertexName: String
  *   NewVertexName: String
  * Desc: Rename a vertex
- * Response: OkResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | ALREADYEXISTS
  *
  * Name: DeleteVerticesRequest
@@ -1368,12 +1384,14 @@ struct
                       end
 
          | "GVEU" =>  let
-                        val graphName = readToEscape #";"
-                        val edgeName  = readToEnd ()
+                        val graphName  = readToDelim ()
+                        val edgeName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = EdgeUserData { edgeName = edgeName }
+                          desc = EdgeUserData { edgeName = edgeName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1388,12 +1406,14 @@ struct
                       end
 
          | "GVBU" =>  let
-                        val graphName   = readToEscape #";"
-                        val bangBoxName = readToEnd ()
+                        val graphName  = readToDelim ()
+                        val bangBoxName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = BangBoxUserData { bangBoxName = bangBoxName }
+                          desc = BangBoxUserData { bangBoxName = bangBoxName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1405,6 +1425,16 @@ struct
          | "GMR"  =>  EditGraphRequest {
                         graphName = readToEnd (),
                         action = RedoAction
+                      }
+
+         | "GMSU"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = StartUndoGroupAction
+                      }
+
+         | "GMFU"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = EndUndoGroupAction
                       }
 
          | "GMI"  =>  let
@@ -1633,6 +1663,7 @@ struct
          | "GMEU" =>  let
                         val graphName = readToDelim ()
                         val edgeName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1640,6 +1671,7 @@ struct
                           graphName = graphName,
                           action =  SetEdgeUserDataAction {
                                       edgeName = edgeName,
+                                      dataName = dataName,
                                       userData = data
                                     }
                         }
@@ -1764,6 +1796,7 @@ struct
          | "GMBU" =>  let
                         val graphName = readToDelim ()
                         val bangBoxName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1771,6 +1804,7 @@ struct
                           graphName = graphName,
                           action =  SetBangBoxUserDataAction {
                                       bangBoxName = bangBoxName,
+                                      dataName = dataName,
                                       userData = data
                                     }
                         }

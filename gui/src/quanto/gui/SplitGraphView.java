@@ -1,6 +1,5 @@
 package quanto.gui;
 
-import com.itextpdf.text.SplitCharacter;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -12,6 +11,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -96,13 +96,13 @@ public class SplitGraphView extends InteractiveView {
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
 		leftView.repaint();
-		
+		leftView.setVerticesPositionData();
 			
 		rightView = new InteractiveGraphView(core, rule.getRhs());
-				rightView.setSaveEnabled(false);
+		rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
 		rightView.repaint();
-
+		rightView.setVerticesPositionData();
 		setupListeners();
 		setupLayout(dim);
 		setSaved(true);
@@ -176,6 +176,41 @@ public class SplitGraphView extends InteractiveView {
 			catch (CoreException err) {
                 coreErrorDialog("Could not save rule", err);
 			}
+		} else if (CommandManager.Command.SaveAs.matches(command)) {
+			try {
+                String newName = JOptionPane.showInputDialog(this,
+                        "Rule name:",
+                        rule == null ? "" : rule.getCoreName());
+                if (newName == null || newName.isEmpty())
+                    return;
+
+                while (core.getRuleset().getRules().contains(newName)) {
+                    int overwrite = JOptionPane.showConfirmDialog(this,
+                            "A rule named \"" + newName +
+                            "\" already exists. " + 
+                            "Do you want to overwrite it?",
+                            "Overwrite rule",
+                            JOptionPane.YES_NO_CANCEL_OPTION);
+
+                    if (overwrite == JOptionPane.YES_OPTION)
+                        break; // continue
+                    else if (overwrite != JOptionPane.NO_OPTION)
+                        return; // cancelled - give up
+
+                    newName = JOptionPane.showInputDialog(this,
+                            "Rule name:",
+                            rule == null ? "" : rule.getCoreName());
+                    if (newName == null || newName.isEmpty())
+                        return;
+                }
+
+                rule = core.createRule(newName, rule.getLhs(), rule.getRhs());
+                setTitle(newName);
+                setSaved(true);
+			}
+			catch (CoreException err) {
+                coreErrorDialog("Could not save rule", err);
+			}
 		} else {
 			if (leftFocused)
 				leftView.commandTriggered(command);
@@ -186,6 +221,7 @@ public class SplitGraphView extends InteractiveView {
 
 	public void attached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, true);
+		vp.setCommandEnabled(CommandManager.Command.SaveAs, true);
 		vp.setCommandEnabled(CommandManager.Command.Save,
 			rule != null && !isSaved()
 			);
@@ -194,9 +230,8 @@ public class SplitGraphView extends InteractiveView {
 
 	public void detached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, false);
-		vp.setCommandEnabled(CommandManager.Command.Save,
-			false
-			);
+		vp.setCommandEnabled(CommandManager.Command.SaveAs, false);
+		vp.setCommandEnabled(CommandManager.Command.Save, false);
 		if (leftFocused) {
 			leftView.detached(vp);
 		}

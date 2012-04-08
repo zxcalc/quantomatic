@@ -733,6 +733,38 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void startUndoGroup(String graph) throws CoreException {
+         if (backend == null) {
+             throw new IllegalStateException("The core is not running");
+         }
+
+         try {
+             writer.addHeader("GMSU", generateRequestId());
+             writer.addStringArg(graph);
+             writer.closeMessage();
+         } catch (IOException ex) {
+             throw writeFailure(ex);
+         }
+
+         getOkResponse();
+     }
+
+    public void endUndoGroup(String graph) throws CoreException {
+         if (backend == null) {
+             throw new IllegalStateException("The core is not running");
+         }
+
+         try {
+             writer.addHeader("GMFU", generateRequestId());
+             writer.addStringArg(graph);
+             writer.closeMessage();
+         } catch (IOException ex) {
+             throw writeFailure(ex);
+         }
+
+         getOkResponse();
+     }
+    
     public void insertGraph(String source, String target) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
@@ -782,11 +814,11 @@ public class ProtocolManager {
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
-
+        
         return getXmlResponse();
     }
 
-    public String renameVertex(String graph, String from, String to) throws CoreException {
+    public String[] renameVertex(String graph, String from, String to) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -800,8 +832,7 @@ public class ProtocolManager {
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
-
-        return getNameResponse();
+        return getNameListResponse();
     }
 
     public void deleteVertices(String graph, Collection<String> vertices) throws CoreException {
@@ -968,7 +999,7 @@ public class ProtocolManager {
         return getNameResponse();
     }
 
-    public String renameBangBox(String graph, String from, String to) throws CoreException {
+    public void renameBangBox(String graph, String from, String to) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -983,7 +1014,7 @@ public class ProtocolManager {
             throw writeFailure(ex);
         }
 
-        return getNameResponse();
+        getOkResponse();
     }
 
     public void dropBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {

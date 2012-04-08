@@ -22,7 +22,7 @@ public class Point2DUserDataSerialiazer implements UserDataSerializer<Point2D> {
 			return X + ":" + Y;
 		} catch (NullPointerException e) {
 			/*Should never happen as a vertex
-			 * as a vertex always has a position..
+			 * always has a position..
 			 */
 			return null;
 		}

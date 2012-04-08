@@ -215,6 +215,16 @@ public class Core {
         talker.redo(graph.getCoreName());
     }
 
+    public void startUndoGroup(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.startUndoGroup(graph.getCoreName());
+     }
+
+     public void endUndoGroup(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.endUndoGroup(graph.getCoreName());
+     }
+    
     public Vertex addVertex(CoreGraph graph, VertexType vertexType)
             throws CoreException {
         return addVertex(graph, vertexType.getTypeName());
@@ -365,6 +375,12 @@ public class Core {
         this.ruleset.reload();
     }
 
+    public void renameBangBox(CoreGraph graph, String oldName, String newName) 
+         throws CoreException {
+         assertCoreGraph(graph);
+         talker.renameBangBox(graph.getCoreName(), oldName, newName);
+    }
+    
     public void loadRuleset(File location) throws CoreException, IOException {
         talker.importRulesetFromFile(location.getAbsolutePath());
         this.ruleset.reload();
@@ -383,12 +399,25 @@ public class Core {
         return talker.exportRulesetToData();
     }
 
+    /**
+     * Creates a rule from two graphs.
+     * 
+     * Any existing rule with the same name will be replaced.
+     *
+     * @param ruleName
+     * @param lhs
+     * @param rhs
+     * @return
+     * @throws CoreException 
+     */
     public Rule<CoreGraph> createRule(String ruleName, CoreGraph lhs,
             CoreGraph rhs) throws CoreException {
         assertCoreGraph(lhs);
         assertCoreGraph(rhs);
         talker.setRule(ruleName, lhs.getCoreName(), rhs.getCoreName());
-        this.ruleset.ruleAdded(ruleName, false);
+        // FIXME: get actual rule active state from core
+        if (!this.ruleset.getRules().contains(ruleName))
+            this.ruleset.ruleAdded(ruleName, false);
         return new Rule<CoreGraph>(ruleName, lhs, rhs);
     }
 
@@ -473,4 +502,10 @@ public class Core {
             throws CoreException {
         talker.applyAttachedRewrite(graph.getCoreName(), i);
     }
+
+    public String[] renameVertex(CoreGraph graph, String oldName, String newName)
+	 					throws CoreException	{
+			String[] names = talker.renameVertex(graph.getCoreName(), oldName, newName);
+			return names;
+	}	
 }
