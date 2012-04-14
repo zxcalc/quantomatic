@@ -1315,6 +1315,33 @@ public class InteractiveGraphView
 				}
 			}
 		});
+          actionMap.put(CommandManager.Command.UndoRewrite.toString(), new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    try {
+                         cacheVertexPositions();
+                         Rectangle2D rect=viewer.getGraphBounds();
+                         core.undoRewrite(getGraph());
+                         updateGraph(rect);
+                    }
+                    catch (CoreException ex) {
+                    coreErrorDialog("Could not undo", ex);
+                    }
+               }
+          });
+          actionMap.put(CommandManager.Command.RedoRewrite.toString(), new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    try {
+                         cacheVertexPositions();
+                         Rectangle2D rect= new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+                                   0, 20, viewer.getGraphLayout().getSize().height);
+                         core.redoRewrite(getGraph());
+                         updateGraph(rect);
+                    }
+                    catch (CoreException ex) {
+                    coreErrorDialog("Could not redo", ex);
+                    }
+               }
+          });
 		actionMap.put(CommandManager.Command.Cut.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {

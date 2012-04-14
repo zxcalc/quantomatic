@@ -425,6 +425,22 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
+ * Name: UndoRewriteRequest
+ * Code: "GMUR"
+ * Args:
+ *   GraphName: String
+ * Desc: Undo the last modification to a graph
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ *
+ * Name: RedoRewriteRequest
+ * Code: "GMRR"
+ * Args:
+ *   GraphName: String
+ * Desc: Redo the most recently undone modification to a graph
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ * 
  * Name: StartUndoGroupRequest
  * Code: "GMSU"
  * Args:
@@ -1465,6 +1481,15 @@ struct
          | "GMR"  =>  EditGraphRequest {
                         graphName = readToEnd (),
                         action = RedoAction
+                      }
+         | "GMUR"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = UndoRewriteAction
+                      }
+
+         | "GMRR"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = RedoRewriteAction
                       }
 
          | "GMSU"  =>  EditGraphRequest {

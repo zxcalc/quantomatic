@@ -215,6 +215,16 @@ public class Core {
         talker.redo(graph.getCoreName());
     }
 
+    public void undoRewrite(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.undoRewrite(graph.getCoreName());
+     }
+
+     public void redoRewrite(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.redoRewrite(graph.getCoreName());
+     }
+    
     public void startUndoGroup(CoreGraph graph) throws CoreException {
          assertCoreGraph(graph);
          talker.startUndoGroup(graph.getCoreName());

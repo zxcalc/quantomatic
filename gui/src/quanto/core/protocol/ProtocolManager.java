@@ -733,6 +733,38 @@ public class ProtocolManager {
         getOkResponse();
     }
 
+    public void undoRewrite(String graph) throws CoreException {
+         if (backend == null) {
+             throw new IllegalStateException("The core is not running");
+         }
+
+         try {
+             writer.addHeader("GMUR", generateRequestId());
+             writer.addStringArg(graph);
+             writer.closeMessage();
+         } catch (IOException ex) {
+             throw writeFailure(ex);
+         }
+
+         getOkResponse();
+     }
+
+     public void redoRewrite(String graph) throws CoreException {
+         if (backend == null) {
+             throw new IllegalStateException("The core is not running");
+         }
+
+         try {
+             writer.addHeader("GMRR", generateRequestId());
+             writer.addStringArg(graph);
+             writer.closeMessage();
+         } catch (IOException ex) {
+             throw writeFailure(ex);
+         }
+
+         getOkResponse();
+     }
+    
     public void startUndoGroup(String graph) throws CoreException {
          if (backend == null) {
              throw new IllegalStateException("The core is not running");

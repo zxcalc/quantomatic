@@ -105,6 +105,18 @@
 	  accel="control Y"
           desc="Redo the action that was last undone"/>
 
+	<action id="undo-rewrite-command"
+          name="Undo Rewrite"
+          mnemonic="U"
+	  accel="control shift Z"
+          desc="Undo the last rewrite"/>
+
+	<action id="redo-rewrite-command"
+          name="Redo Rewrite"
+          mnemonic="r"
+	  accel="control shift Y"
+          desc="Redo the rewrite that was last undone"/>
+
 	<action id="copy-command"
           name="Copy"
           mnemonic="C"
@@ -323,6 +335,8 @@
 		<action-list id="edit-menu" name="Edit" mnemonic="E">
 			<action idref="undo-command"/>
 			<action idref="redo-command"/>
+			<action idref="undo-rewrite-command"/>
+			<action idref="redo-rewrite-command"/>
 			<empty/>
 			<action idref="cut-command"/>
 			<action idref="copy-command"/>

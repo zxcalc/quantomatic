@@ -149,6 +149,10 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | RedoAction
                              (* OkResponse | ErrorResponse *)
+                           | UndoRewriteAction
+                              (* OkResponse | ErrorResponse *)
+                           | RedoRewriteAction
+                              (* OkResponse | ErrorResponse *)
                            | StartUndoGroupAction
                              (* OkResponse | ErrorResponse *)
                            | EndUndoGroupAction
@@ -674,6 +678,12 @@ fun hilb ([format], graph) =
         | RedoAction =>
             (OkResponse,
              State.redo (GraphName.mk graphName) state)
+        | UndoRewriteAction =>
+            (OkResponse,
+             State.undo_rewrite (GraphName.mk graphName) state)
+        | RedoRewriteAction =>
+            (OkResponse,
+             State.redo_rewrite (GraphName.mk graphName) state)
         | StartUndoGroupAction =>
             (OkResponse,
              State.start_undo_group (GraphName.mk graphName) state)
