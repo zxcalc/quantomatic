@@ -1044,6 +1044,22 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
+        | State.no_such_edge_user_data_exp (edgeName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPHUSERDATA",
+                  message = ("Edge \""^
+                             (E.dest edgeName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
+       | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPHUSERDATA",
+                  message = ("!-Box \""^
+                             (B.dest bbName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
 
            | State.no_such_vertex_exp (vertexName,graphName) =>
                 ErrorResponse {

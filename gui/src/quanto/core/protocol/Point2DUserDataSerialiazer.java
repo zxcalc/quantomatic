@@ -79,4 +79,32 @@ public class Point2DUserDataSerialiazer implements UserDataSerializer<Point2D> {
 	public Point2D getGraphUserData(ProtocolManager talker, CoreGraph g) {return null;}
 	public void setGraphUserData(ProtocolManager talker, CoreGraph g, Point2D data) {}
      public void deleteGraphUserData(ProtocolManager talker, CoreGraph g) {}
+
+     @Override
+     public Point2D getEdgeUserData(ProtocolManager talker, CoreGraph g,
+               String edgeName) {
+          // TODO Auto-generated method stub
+          return null;
+     }
+
+     @Override
+     public Point2D getBangBoxUserData(ProtocolManager talker, CoreGraph g,
+               String bangBoxName) {
+          // TODO Auto-generated method stub
+          return null;
+     }
+
+     @Override
+     public void deleteEdgeUserData(ProtocolManager talker, CoreGraph g,
+               String edgeName) {
+          // TODO Auto-generated method stub
+          
+     }
+
+     @Override
+     public void deleteBangBoxUserData(ProtocolManager talker, CoreGraph g,
+               String bangBoxName) {
+          // TODO Auto-generated method stub
+          
+     }
 }

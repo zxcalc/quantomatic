@@ -650,7 +650,7 @@ public class ProtocolManager {
         return getXmlResponse();
     }
 
-    public String edgeUserData(String graph, String edge) throws CoreException {
+    public String edgeUserData(String graph, String edge, String dataName) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -659,6 +659,7 @@ public class ProtocolManager {
             writer.addHeader("GVEU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(edge);
+            writer.addStringArg(dataName);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
@@ -684,7 +685,7 @@ public class ProtocolManager {
         return getNameListResponse();
     }
 
-    public String bangBoxUserData(String graph, String bangBox) throws CoreException {
+    public String bangBoxUserData(String graph, String bangBox, String dataName) throws CoreException {
         if (backend == null) {
             throw new IllegalStateException("The core is not running");
         }
@@ -693,6 +694,7 @@ public class ProtocolManager {
             writer.addHeader("GVVU", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(bangBox);
+            writer.addStringArg(dataName);
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);

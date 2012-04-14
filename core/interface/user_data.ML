@@ -157,21 +157,54 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
           val g_vnset = Graph.get_vnames g
           val ud_vnset = V.NTab.get_nameset (get_vs_ud ud)
           val v_diff = V.NSet.remove_set g_vnset ud_vnset
-          val v_ud' = (V.NSet.fold (V.NTab.delete) v_diff) (get_vs_ud ud)
+          val v_ud' = V.NSet.fold (V.NTab.delete) v_diff (get_vs_ud ud)
           (* Check which edges where removed *)
           val g_enset = Graph.get_enames g
           val ud_enset = E.NTab.get_nameset (get_es_ud ud)
           val e_diff = E.NSet.remove_set g_enset ud_enset
-          val e_ud' = (E.NSet.fold (E.NTab.delete) e_diff) (get_es_ud ud)
+          val e_ud' = E.NSet.fold (E.NTab.delete) e_diff (get_es_ud ud)
           (* Check which bangboxes where removed *)
           val g_bnset = Graph.get_bbnames g
           val ud_bnset = B.NTab.get_nameset (get_bs_ud ud)
           val b_diff = B.NSet.remove_set g_bnset ud_bnset
-          val b_ud' = (B.NSet.fold (B.NTab.delete) b_diff) (get_bs_ud ud)
+          val b_ud' = B.NSet.fold (B.NTab.delete) b_diff (get_bs_ud ud)
+
+
+          (* We also check whether the symtabs attached to vertices, etc...
+           * is empty: no need to store an empty tab that will eventually
+           * pollute the XML  *)
+          (*TODO: Do all that with a functor, instead of duplucating
+           * functions *)
+         (*Vertices...*)
+         fun clean_vertex n ud' = case V.NTab.lookup ud' n of
+                                    SOME tab => if Symtab.is_empty tab
+                                      then V.NTab.delete n ud'
+                                      else ud'
+                                    | NONE => ud'
+         val vnames = V.NTab.get_nameset v_ud'
+         val v_ud'' = (V.NSet.fold (clean_vertex) vnames) v_ud'
+         (*Edge...*)
+         fun clean_edge n ud' = case E.NTab.lookup ud' n of
+                                    SOME tab => if Symtab.is_empty tab
+                                      then E.NTab.delete n ud'
+                                      else ud'
+                                    | NONE => ud'
+         val enames = E.NTab.get_nameset e_ud'
+         val e_ud'' = (E.NSet.fold (clean_edge) enames) e_ud'
+          (*!-Boxes...*)
+         fun clean_bb n ud' = case B.NTab.lookup ud' n of
+                                    SOME tab => if Symtab.is_empty tab
+                                      then B.NTab.delete n ud'
+                                      else ud'
+                                    | NONE => ud'
+         val bbnames = B.NTab.get_nameset b_ud'
+         val b_ud'' = (B.NSet.fold (clean_bb) bbnames) b_ud'
+ 
         in
-          ud |> set_v_ud v_ud'
-             |> set_e_ud e_ud'
-             |> set_b_ud b_ud'
+          ud
+             |> set_v_ud v_ud''
+             |> set_e_ud e_ud''
+             |> set_b_ud b_ud''
         end;
 
   fun rename_vertex oldname newname ud =

@@ -1398,6 +1398,19 @@ public class InteractiveGraphView
 					          cos.deleteVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
 					     }
 					}
+					/* For now we do nothing with Edge and !-Boxes user data but still need to remove their "copy_of" UD */
+					for (Edge edge: getGraph().getEdges()) {
+					     String copy_of = cos.getEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     if ((copy_of != null) && (!copy_of.equals(""))) {
+					          cos.deleteEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     }
+					}
+					for (BangBox bb: getGraph().getBangBoxes()) {
+                              String copy_of = cos.getBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              if ((copy_of != null) && (!copy_of.equals(""))) {
+                                   cos.deleteBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              }
+                         }
 					core.endUndoGroup(getGraph());
 					updateGraph(rect);
 				}
