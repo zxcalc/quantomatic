@@ -27,6 +27,7 @@ public class CopyOfUserDataSerializer implements UserDataSerializer<String> {
      public void setVertexUserData(ProtocolManager talker, CoreGraph g, String vertexName, String data){
           String dataString = dataToString(data);
           if (dataString == null) return;
+          if (dataString.equals("")) return;
           try {
                talker.setVertexUserData(g.getCoreName(), vertexName, 
                          this.dataTag, dataString);
@@ -49,8 +50,74 @@ public class CopyOfUserDataSerializer implements UserDataSerializer<String> {
           
           return s;
      }
+     
+     public void deleteVertexUserData(ProtocolManager talker, CoreGraph g,
+               String vertexName) {
+          
+          try {
+               talker.deleteVertexUserData(g.getCoreName(), vertexName, 
+                         this.dataTag);
+          } catch (CoreException e) {
+               logger.log(Level.FINE, "Could not delete data on vertex " 
+                                             + vertexName, e);
+          }
+     }
+     
      /* Irrelevant for this type */
      public String getGraphUserData(ProtocolManager talker, CoreGraph g) {return null;}
      public void setGraphUserData(ProtocolManager talker, CoreGraph g, String data) {}
+     public void deleteGraphUserData(ProtocolManager talker, CoreGraph g) {}
+
+     public String getEdgeUserData(ProtocolManager talker, CoreGraph g,
+               String edgeName) {
+          
+          String s;
+          try {
+               s = stringToData(talker.edgeUserData(g.getCoreName(), edgeName,
+                         this.dataTag));
+          } catch (CoreException e) {
+               logger.log(Level.FINE, "Could not get copy_of on vertex " 
+                         + edgeName, e);
+               return null;
+          }
+          return s;
+     }
+
+     public String getBangBoxUserData(ProtocolManager talker, CoreGraph g,
+               String bangBoxName) {
+
+          String s;
+          try {
+               s = stringToData(talker.bangBoxUserData(g.getCoreName(), bangBoxName,
+                         this.dataTag));
+          } catch (CoreException e) {
+               logger.log(Level.FINE, "Could not get copy_of on vertex " 
+                         + bangBoxName, e);
+               return null;
+          }
+          return s;
+     }
+
+     public void deleteEdgeUserData(ProtocolManager talker, CoreGraph g,
+               String edgeName) {
+          try {
+               talker.deleteEdgeUserData(g.getCoreName(), edgeName, 
+                         this.dataTag);
+          } catch (CoreException e) {
+               logger.log(Level.FINE, "Could not delete data on vertex " 
+                                             + edgeName, e);
+          }
+     }
+
+     public void deleteBangBoxUserData(ProtocolManager talker, CoreGraph g,
+               String bangBoxName) {
+          try {
+               talker.deleteEdgeUserData(g.getCoreName(), bangBoxName, 
+                         this.dataTag);
+          } catch (CoreException e) {
+               logger.log(Level.FINE, "Could not delete data on vertex " 
+                                             + bangBoxName, e);
+          }
+     }
 }
 

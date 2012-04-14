@@ -1,4 +1,8 @@
 (*-------------------------------------------------------*)
+(* Everything we need to export UIData for graphs and rsets *)
+
+
+(* Output a graph and all its UI Data *)
 
 structure OutputAsCData : OUTPUT_XML_LIST
 =struct
@@ -102,12 +106,50 @@ functor OutputUIDataXML(
   )
 )
 
-structure OutputGraphAndUserDataXMLList : OUTPUT_XML_LIST
+(* Output UIData attached on rules*)
+
+functor OutputRulesetUIDataXMLList(
+  structure UIData : USER_DATA
+) : OUTPUT_XML_LIST
+= struct
+  structure udout = OutputUIDataXML(structure UIData = UIData);
+  
+  type T = XML.tree list;
+  type data = (UIData.T * UIData.T) R.NTab.T;
+
+  open XML;
+  open XML_Output_Utils;
+
+  fun add_rulename rname = wrap_text_simple "rulename" (R.dest rname);
+  fun output_lhs g = wrap_el_simple "lhs" (udout.output g);
+  fun output_rhs g = wrap_el_simple "rhs" (udout.output g);
+
+  fun output_rule lhs rhs rname = [wrap_els_simple "rule" 
+  ([add_rulename rname]@[output_lhs lhs]@[output_rhs rhs])];
+
+  fun output ntab = R.NTab.fold (fn (nm,a) => fn tr => tr@(output_rule (fst a) (snd a) nm))
+        ntab [];
+end;
+
+functor OutputRulesetUIDataXML(
+  structure UIData : USER_DATA
+) : OUTPUT_XML
+= OutputWrapXML (
+  val tagname = "ruleset_user_data"
+  val attrs = []
+  structure Output1 = OutputRulesetUIDataXMLList(
+    structure UIData = UIData
+  )
+)
+(* Util *)
+
+structure OutputStructAndUserDataXMLList : OUTPUT_XML_LIST
 =struct
   type T = XML.tree list
   type data = XML.tree * XML.tree;
 
   fun output (t1,t2) = [t1]@[t2];
 end;
+
 (* vim:et:sts=2:sw=2
 *)

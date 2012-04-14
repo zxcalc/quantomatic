@@ -215,6 +215,16 @@ public class Core {
         talker.redo(graph.getCoreName());
     }
 
+    public void undoRewrite(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.undoRewrite(graph.getCoreName());
+     }
+
+     public void redoRewrite(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.redoRewrite(graph.getCoreName());
+     }
+    
     public void startUndoGroup(CoreGraph graph) throws CoreException {
          assertCoreGraph(graph);
          talker.startUndoGroup(graph.getCoreName());
@@ -302,6 +312,13 @@ public class Core {
         return bb;
     }
 
+    public void bangVertices(CoreGraph graph, String bangBox, Collection<Vertex> vertices)
+              throws CoreException {
+          assertCoreGraph(graph);
+          talker.bangVertices(graph.getCoreName(), bangBox, names(vertices));
+          graph.fireStateChanged();
+     }
+    
     public void removeVerticesFromBangBoxes(CoreGraph graph,
             Collection<Vertex> vertices) throws CoreException {
         assertCoreGraph(graph);

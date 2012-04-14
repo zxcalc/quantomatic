@@ -1315,6 +1315,33 @@ public class InteractiveGraphView
 				}
 			}
 		});
+          actionMap.put(CommandManager.Command.UndoRewrite.toString(), new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    try {
+                         cacheVertexPositions();
+                         Rectangle2D rect=viewer.getGraphBounds();
+                         core.undoRewrite(getGraph());
+                         updateGraph(rect);
+                    }
+                    catch (CoreException ex) {
+                    coreErrorDialog("Could not undo", ex);
+                    }
+               }
+          });
+          actionMap.put(CommandManager.Command.RedoRewrite.toString(), new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    try {
+                         cacheVertexPositions();
+                         Rectangle2D rect= new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+                                   0, 20, viewer.getGraphLayout().getSize().height);
+                         core.redoRewrite(getGraph());
+                         updateGraph(rect);
+                    }
+                    catch (CoreException ex) {
+                    coreErrorDialog("Could not redo", ex);
+                    }
+               }
+          });
 		actionMap.put(CommandManager.Command.Cut.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
@@ -1355,8 +1382,7 @@ public class InteractiveGraphView
 					 * and translate everything so that it ends up at the right of the current graph.
 					 * What we get is a graph, already merged and with fresh names. So in order to know which one 
 					 * were copied we check the "copy_of" user_data which is set automatically by the core when a
-					 * subgraph get copied, and set the value to "" afterwards (<- TODO we should actually make it
-					 * possible to remove the uidata we don't want anymore)  
+					 * subgraph get copied, and delete it afterwards.
 					 *  */
 					CopyOfUserDataSerializer cos = new CopyOfUserDataSerializer();
 					Point2DUserDataSerialiazer pos = new Point2DUserDataSerialiazer();
@@ -1369,9 +1395,22 @@ public class InteractiveGraphView
 					          Point2D position = pos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
 					          position.setLocation(position.getX() + rect.getCenterX() + 20, position.getY());
 					          pos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), position);
-					          cos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), "");
+					          cos.deleteVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
 					     }
 					}
+					/* For now we do nothing with Edge and !-Boxes user data but still need to remove their "copy_of" UD */
+					for (Edge edge: getGraph().getEdges()) {
+					     String copy_of = cos.getEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     if ((copy_of != null) && (!copy_of.equals(""))) {
+					          cos.deleteEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     }
+					}
+					for (BangBox bb: getGraph().getBangBoxes()) {
+                              String copy_of = cos.getBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              if ((copy_of != null) && (!copy_of.equals(""))) {
+                                   cos.deleteBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              }
+                         }
 					core.endUndoGroup(getGraph());
 					updateGraph(rect);
 				}

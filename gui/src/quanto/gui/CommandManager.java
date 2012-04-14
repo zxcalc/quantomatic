@@ -34,6 +34,8 @@ public class CommandManager
         SaveAs("save-as-command"),
         Undo("undo-command"),
         Redo("redo-command"),
+        UndoRewrite("undo-rewrite-command"),
+        RedoRewrite("redo-rewrite-command"),
         Cut("cut-command"),
         Copy("copy-command"),
         Paste("paste-command"),

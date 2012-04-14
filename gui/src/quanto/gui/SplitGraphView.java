@@ -211,6 +211,11 @@ public class SplitGraphView extends InteractiveView {
 			catch (CoreException err) {
                 coreErrorDialog("Could not save rule", err);
 			}
+		} else if ((CommandManager.Command.DirectedEdgeMode.matches(command)) ||
+		           (CommandManager.Command.UndirectedEdgeMode.matches(command)) ||
+		           (CommandManager.Command.SelectMode.matches(command))) {
+		     leftView.commandTriggered(command);
+		     rightView.commandTriggered(command);
 		} else {
 			if (leftFocused)
 				leftView.commandTriggered(command);

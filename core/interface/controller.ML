@@ -149,6 +149,10 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | RedoAction
                              (* OkResponse | ErrorResponse *)
+                           | UndoRewriteAction
+                              (* OkResponse | ErrorResponse *)
+                           | RedoRewriteAction
+                              (* OkResponse | ErrorResponse *)
                            | StartUndoGroupAction
                              (* OkResponse | ErrorResponse *)
                            | EndUndoGroupAction
@@ -156,6 +160,9 @@ struct
                            | InsertGraphAction of { sourceGraphName: string }
                              (* OkResponse | ErrorResponse *)
                            | SetGraphUserDataAction of { dataName: string, userData: string }
+                              (* OkResponse | ErrorResponse  *)
+                           | DeleteGraphUserDataAction of { dataName: string}
+                              (* OkResponse | ErrorResponse *)
                            | AddVertexAction of { vertexType: string, resultFormat: resultFormat }
                              (* VertexDescriptionAction | ErrorResponse *)
                            | RenameVertexAction of { oldName: string, newName: string }
@@ -167,6 +174,9 @@ struct
                            | SetVertexUserDataAction of { vertexName: string,
                            dataName: string, userData: string }
                              (* OkResponse | ErrorResponse *)
+                           | DeleteVertexUserDataAction of { vertexName: string,
+                           dataName: string}
+                             (* OkResponse | ErrorResponse *)
                            | AddEdgeAction of { edgeType: string, directed: bool, source: string, target: string, resultFormat: resultFormat }
                              (* EdgeDescriptionAction | ErrorResponse *)
                            | RenameEdgeAction of { oldName: string, newName: string }
@@ -177,6 +187,9 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetEdgeUserDataAction of { edgeName: string,
                            dataName: string, userData: string }
+                             (* OkResponse | ErrorResponse *)
+                           | DeleteEdgeUserDataAction of {edgeName: string,
+                              dataName : string }
                              (* OkResponse | ErrorResponse *)
                            | AddBangBoxAction of { vertexNames: string list, resultFormat: resultFormat }
                              (* StringResponse | ErrorResponse *)
@@ -196,6 +209,9 @@ struct
                              (* OkResponse | ErrorResponse *)
                            | SetBangBoxUserDataAction of { bangBoxName: string,
                               dataName : string, userData: string }
+                             (* OkResponse | ErrorResponse *)
+                           | DeleteBangBoxUserDataAction of {bangBoxName: string,
+                              dataName : string }
                              (* OkResponse | ErrorResponse *)
 
        and response = OkResponse
@@ -276,12 +292,18 @@ struct
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
   structure UIDataOutput = OutputUIDataXML(structure UIData = State.UIData);
+  structure RulesetUIDataOutput = OutputRulesetUIDataXML(structure UIData = State.UIData);
   structure GraphAndUIOutput = OutputWrapXML(
               val tagname = "graph_and_user_data"
               val attrs = []
-              structure Output1 = OutputGraphAndUserDataXMLList);
+              structure Output1 = OutputStructAndUserDataXMLList);
+  structure RulesetAndUIOutput = OutputWrapXML(
+              val tagname = "ruleset_and_user_data"
+              val attrs = []
+              structure Output1 = OutputStructAndUserDataXMLList);
   structure UIDataInput = InputUIDataXML(structure UIData = State.UIData);
-
+  structure InputRulesetUIData = InputRulesetUIDataXML(structure UIData =
+        State.UIData);
   val theoryName = State.Theory.theory_name;
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
@@ -293,9 +315,16 @@ struct
     | update_ruleset rset false state =
        State.set_rset rset state
 
+  fun update_ruleset_ud rset_ud true state =
+      State.update_rset_uidata (R.NTab.merge_joint (K true) rset_ud) state 
+    | update_ruleset_ud rset_ud _ state =
+      State.set_rset_uidata rset_ud state
+
   fun load_ruleset reader source replace state =
      ((OkResponse,
-       update_ruleset (Input.Ruleset.input (reader source)) replace state)
+       state |> update_ruleset (Input.Ruleset.input (reader source)) replace 
+             |> update_ruleset_ud (InputRulesetUIData.input (reader source)) replace
+       )
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
@@ -649,6 +678,12 @@ fun hilb ([format], graph) =
         | RedoAction =>
             (OkResponse,
              State.redo (GraphName.mk graphName) state)
+        | UndoRewriteAction =>
+            (OkResponse,
+             State.undo_rewrite (GraphName.mk graphName) state)
+        | RedoRewriteAction =>
+            (OkResponse,
+             State.redo_rewrite (GraphName.mk graphName) state)
         | StartUndoGroupAction =>
             (OkResponse,
              State.start_undo_group (GraphName.mk graphName) state)
@@ -662,6 +697,10 @@ fun hilb ([format], graph) =
             (OkResponse,
               State.update_graph_user_data dataName userData
               (GraphName.mk graphName) state)
+        | DeleteGraphUserDataAction {dataName} =>
+            (OkResponse,
+              State.delete_graph_user_data dataName (GraphName.mk graphName)
+              state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
               val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
@@ -701,6 +740,10 @@ fun hilb ([format], graph) =
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
               State.update_vertex_user_data dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
+        | DeleteVertexUserDataAction { vertexName, dataName } =>
+            (OkResponse,
+              State.delete_vertex_user_data dataName (V.mk vertexName) 
+                (GraphName.mk graphName) state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
               val dir_or_undir = if directed then G.Directed else G.UnDirected
@@ -737,6 +780,10 @@ fun hilb ([format], graph) =
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
               State.update_edge_user_data dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
+        | DeleteEdgeUserDataAction { edgeName, dataName } =>
+            (OkResponse,
+              State.delete_edge_user_data dataName (E.mk edgeName) 
+                (GraphName.mk graphName) state)
         | AddBangBoxAction { vertexNames, resultFormat } =>
             let
               val gname = (GraphName.mk graphName)
@@ -790,6 +837,10 @@ fun hilb ([format], graph) =
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
               State.update_bangbox_user_data dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
+        | DeleteBangBoxUserDataAction { bangBoxName, dataName } =>
+            (OkResponse,
+              State.delete_bangbox_user_data dataName (B.mk bangBoxName) 
+                (GraphName.mk graphName) state)
         )
 
 
@@ -808,7 +859,10 @@ fun hilb ([format], graph) =
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
-          val () = ((XMLWriter.write_to_file fileName) o Output.Ruleset.output o State.get_rset) state
+          val ruleset_tree = (Output.Ruleset.output o State.get_rset) state
+          val uidata_tree = (RulesetUIDataOutput.output o State.get_rset_uidata) state
+          val () = (XMLWriter.write_to_file fileName)
+                      (RulesetAndUIOutput.output (ruleset_tree, uidata_tree))
         in
           (OkResponse, state)
         end
@@ -987,6 +1041,22 @@ fun hilb ([format], graph) =
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("Vertex \""^
                              (V.dest vertexName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
+        | State.no_such_edge_user_data_exp (edgeName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPHUSERDATA",
+                  message = ("Edge \""^
+                             (E.dest edgeName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
+       | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHGRAPHUSERDATA",
+                  message = ("!-Box \""^
+                             (B.dest bbName)^
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }

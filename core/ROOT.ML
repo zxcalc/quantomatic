@@ -75,6 +75,7 @@ PolyML.Project.make "io/input_user_data.ML";
 PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
+PolyML.Project.make "io/input_ruleset_user_data.ML";
 
 (* Testing *)
 (* *)
