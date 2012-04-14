@@ -150,9 +150,7 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
         set_b_ud bud2 ud
       end;
       (* Call it whenever the graph changes. We *remove* elements
-       * only since it is pointless to add emtpy tables anyway
-       * FIXME: If a vertex is renamed we want to keep its ud instead
-       * of trashing it... *)
+       * only since it is pointless to add emtpy tables anyway*)
       fun update_against_graph ud g =
         let 
           (* Check which vertices where removed*)

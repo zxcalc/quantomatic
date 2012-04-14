@@ -36,7 +36,7 @@ sig
   val get_ud : T -> UIData.T;
   val get_graph : T -> GraphName.name -> Theory.Graph.T;
   val get_graph_names : T -> GraphName.name list;
-
+  val get_rset_uidata : T -> (UIData.T * UIData.T) R.NTab.T;
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
@@ -187,39 +187,51 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        hist : history, (* past and future *)
        merge_changes: bool GraphName.NTab.T, (* whether we create a new undo
        point when the state is modified  *)
-       rset : Ruleset.T (* the known rules *)
+       rset : Ruleset.T, (* the known rules *)
+       rset_uidata : (UIData.T * UIData.T) R.NTab.T (* lhs and rhs uidata *)
   }
 
   (* getters and setters for the state *)
-  fun update_graphs f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
-    CState {graphs=(f g),rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t} 
+  fun update_graphs f (CState
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=(f g),rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu} 
   fun update_rewrites f (CState
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
-    CState {graphs=g,rewrites=(f r),ud=u,hist=h,merge_changes=mg,rset=t}
-  fun update_ud f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=(f u),hist=h,merge_changes=mg,rset=t}
-  fun update_hist f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=(f h),merge_changes=mg,rset=t}
-  fun update_merge_changes f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=(f mg),rset=t}
-  fun update_rset f (CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=(f t)}
-  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset) = 
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=g,rewrites=(f r),ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}
+  fun update_ud f (CState 
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=g,rewrites=r,ud=(f u),hist=h,merge_changes=mg,rset=t,rset_uidata=tu}
+  fun update_hist f (CState 
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=(f h),merge_changes=mg,rset=t,rset_uidata=tu}
+  fun update_merge_changes f (CState 
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=(f mg),rset=t,rset_uidata=tu}
+  fun update_rset f (CState 
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=(f t),rset_uidata=tu}
+  fun update_rset_uidata f (CState
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=(f tu)}
+
+  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset,set_rset_uidata) = 
     (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K,
-    update_merge_changes o K, update_rset o K)
+    update_merge_changes o K, update_rset o K, update_rset_uidata o K)
   fun get_graphs (CState {graphs=g,...}) = g
   fun get_rewrites (CState {rewrites=r,...}) = r
   fun get_ud (CState {ud=u,...}) = u
   fun get_hist (CState {hist=h,...}) = h
   fun get_merge_changes (CState {merge_changes=mg,...}) = mg
   fun get_rset (CState {rset=t,...}) = t
+  fun get_rset_uidata (CState {rset_uidata=tu,...}) = tu
 
   val init = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
                          ud=GraphName.NTab.empty,
                          hist=GraphName.NTab.empty,
                          merge_changes=GraphName.NTab.empty,
-                         rset=Ruleset.empty};
+                         rset=Ruleset.empty,
+                         rset_uidata=R.NTab.empty};
 
   (* state accessors *)
   fun get_graph state name =
@@ -233,6 +245,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       (case GraphName.NTab.lookup (get_ud state) name
        of SOME u => u
         | NONE => raise no_such_graph_exp name)
+
+  fun get_rule_ud state name =
+      (case R.NTab.lookup (get_rset_uidata state) name
+      of SOME rud => rud
+      | NONE => (UIData.init, UIData.init))
 
   (* state mutators *)
   fun push_hist gname state = 
@@ -253,10 +270,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       state |> update_graphs (GraphName.NTab.update (gname,graph'))
             |> update_rewrites (GraphName.NTab.update (gname,[]))    
 
-
   fun set_graph_ud ud' gname state =
       state |> update_ud (GraphName.NTab.update (gname,ud'))
 
+  fun set_rule_ud ud' rulename state =
+      state |> update_rset_uidata (R.NTab.update (rulename, ud'))
   (* ============================================== *)
   (* these functions actually implement commmands *)
 
@@ -295,6 +313,19 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         else raise no_such_bbox_exp (bname, gname);
 
 
+  (* Internal function: takes the state and updates the rset_uidata
+   * against the current ruleset: removes dead user data  *)
+  fun update_rset_uidata_against state =
+    let
+      val rulenames = (R.NTab.get_nameset o Ruleset.get_allrules o get_rset) state
+      val ruleuidatanames = (R.NTab.get_nameset o get_rset_uidata) state
+      val diff = R.NSet.remove_set rulenames ruleuidatanames
+      val rset_uidata' = (R.NSet.fold (R.NTab.delete) diff) 
+                                (get_rset_uidata state)
+    in
+      state |> set_rset_uidata rset_uidata'
+    end;
+
   (* basic stuff on rule tags *)
   val list_allrules =
       R.NSet.list_of o R.NTab.get_nameset o Ruleset.get_allrules o get_rset
@@ -325,14 +356,18 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun rule_name_action f rule state = 
       let val () = assert_rule_exists state rule
-      in update_rset (f rule) state end
+      in state |> update_rset (f rule)
+               |> update_rset_uidata_against
+      end
   val deactivate_rule  = rule_name_action Ruleset.deactivate_rule
   val activate_rule = rule_name_action Ruleset.activate_rule
   val delete_rule = rule_name_action Ruleset.delete_rule
   fun rename_rule oldName newName state =
       let val () = assert_rule_exists state oldName
           val () = assert_rule_does_not_exist state newName
-      in update_rset (Ruleset.rename_rule oldName newName) state end
+      in state |> update_rset (Ruleset.rename_rule oldName newName)
+               |> update_rset_uidata (snd o (R.NTab.rename1 oldName newName)) 
+      end
 
   (* creates/replaces rule *)
   fun set_rule rule_name lhs rhs state =
@@ -341,8 +376,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val lgr = get_graph state lhs
         val rgr = get_graph state rhs
         val rule = Ruleset.Rule.mk (lgr, rgr)
+        val lgr_ud = get_graph_ud state lhs
+        val rgr_ud = get_graph_ud state rhs
       in
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
+              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud)))
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
             raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."
@@ -353,12 +391,16 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun delete_rules_in_tag tag_name state =
       let val () = assert_tag_exists state tag_name
-      in update_rset (Ruleset.delete_rules_in_tag tag_name) state end
+      in state |> update_rset (Ruleset.delete_rules_in_tag tag_name)
+               |> update_rset_uidata_against
+      end
 
   fun delete_tag_and_its_rules tag_name state =
       let val () = assert_tag_exists state tag_name
-      in update_rset (Ruleset.delete_tag tag_name
-                                   o Ruleset.delete_rules_in_tag tag_name) state end
+      in state |> update_rset (Ruleset.delete_tag tag_name
+                                   o Ruleset.delete_rules_in_tag tag_name)
+               |> update_rset_uidata_against
+      end
 
   fun tag_rule rule_name tag_name state = 
       let val () = assert_rule_exists state rule_name
@@ -369,7 +411,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
           val () = assert_tag_exists state tag_name
       in update_rset (Ruleset.untag_rule rule_name tag_name) state end
 
-    fun add_graph default_name graph state = let
+  fun add_graph default_name graph state = let
         val (nm,gs) = (get_graphs state)
                   |> GraphName.NTab.add (default_name, graph)
         in (nm, state |> set_graphs gs
@@ -501,7 +543,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       state |> set_graph_ud (UIData.rename_vertex old new ud) graphName
     end
     (* We had a conflict, therefore we have a freshName for 
-     * the internal vertex that need to rename as well *)
+     * the internal vertex that we need to rename as well *)
     | rename_vertex_uidata old (new::fresh::[]) graphName state =
     let
       val ud = get_graph_ud state graphName
@@ -696,7 +738,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
            |> set_graph_ud ud' target 
   end
 
-  (* Rename apart the graph, insert it and insert its user data as well*)
+  (* Rename the graph apart, insert it and insert its user data as well*)
   fun insert_graph sname tname state = 
       let
         val sarg = get_graph state sname
@@ -739,20 +781,21 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                |> set_graph_ud ud' tname
       end
 
-  fun graph_of_rule getter label state rulename =
+  fun graph_of_rule getter pos label state rulename =
       let
         val rset = get_rset state
         val r = case R.NTab.lookup (Ruleset.get_allrules rset) rulename
-                     of SOME v => v | NONE => raise no_such_rule_exp rulename
+                     of SOME v => v 
+                    | NONE => raise no_such_rule_exp rulename
         val (name, graphs) = GraphName.NTab.add (GraphName.mk ((R.dest rulename)^"_"^label), getter r) (get_graphs state)
       in
         (name, state
                      |> set_graphs graphs
-                     |> set_graph_ud UIData.init name)
+                     |> set_graph_ud (pos (get_rule_ud state rulename)) name)
       end
 
-  val open_rule_lhs = graph_of_rule Rule.get_lhs "lhs"
-  val open_rule_rhs = graph_of_rule Rule.get_rhs "rhs"
+  val open_rule_lhs = graph_of_rule Rule.get_lhs fst "lhs"
+  val open_rule_rhs = graph_of_rule Rule.get_rhs snd "rhs"
 
   (* Set, delete and get the user data  *)
   (* On Graphs:  *)

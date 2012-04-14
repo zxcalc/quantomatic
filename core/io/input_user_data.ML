@@ -44,10 +44,10 @@ fun input_element mk tag xml =
   val input_eud =  input_element (E.mk) "edge_userdata";
   val input_bud =  input_element (B.mk) "bangbox_userdata";
 
-  fun add_g_ud g_ud ud = UD.update_g_ud (fn _ => g_ud) ud 
-  fun add_v_ud (n, vud) ud = UD.update_v_ud (fn _ => vud) n ud 
-  fun add_e_ud (n, eud) ud = UD.update_e_ud (fn _ => eud) n ud
-  fun add_b_ud (n, bud) ud = UD.update_bb_ud (fn _ => bud) n ud
+  fun add_g_ud g_ud = UD.update_g_ud (fn _ => g_ud);
+  fun add_v_ud (n, vud) = UD.update_v_ud (fn _ => vud) n; 
+  fun add_e_ud (n, eud) = UD.update_e_ud (fn _ => eud) n;
+  fun add_b_ud (n, bud) = UD.update_bb_ud (fn _ => bud) n;
 
   fun input_graph_ud xml =
     let
@@ -60,13 +60,10 @@ fun input_element mk tag xml =
 
   (* There may or may not be user_data but if there
    * are then we must have a graph_and_user_data tag*)
-  fun input_ud xml = if not (test_tag "graph_and_user_data" xml)
-    then UIData.init
-    else
+  fun input_ud xml =
       let
-        val xml' = List.last (get_children xml) (*The user data is the last  *)
-        val () = assert_tag "user_data" xml'
-        val children = get_children xml'
+        val () = assert_tag "user_data" xml
+        val children = get_children xml
         val graph_ud = input_graph_ud (get_unique_elem "graph_data" children)
         (* Better to use a functor here, but not really worth it *)
         val vs_ud = List.map input_vud (filter_elems "vertex_userdata" children)
@@ -80,8 +77,15 @@ fun input_element mk tag xml =
           |> fold add_b_ud bs_ud
       end
       handle bad_input_exp (s,p) => raise bad_input_exp (s, "user_data/"^p);
+  
+  (* Not in the standard lib? *)
+  fun flip f x y = f y x;
 
-  val input = input_ud;
+  fun input xml = (case (List.map ((flip test_tag) xml) 
+                        ["graph_and_user_data","user_data"]) of
+                          [true, _] => input_ud (List.last (get_children xml))
+                        | [_, true] => input_ud xml
+                        | [false,false] => UD.init);
 			   
 end; (* structure InputXML *)
 

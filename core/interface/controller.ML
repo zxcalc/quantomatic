@@ -288,12 +288,18 @@ struct
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
   structure UIDataOutput = OutputUIDataXML(structure UIData = State.UIData);
+  structure RulesetUIDataOutput = OutputRulesetUIDataXML(structure UIData = State.UIData);
   structure GraphAndUIOutput = OutputWrapXML(
               val tagname = "graph_and_user_data"
               val attrs = []
-              structure Output1 = OutputGraphAndUserDataXMLList);
+              structure Output1 = OutputStructAndUserDataXMLList);
+  structure RulesetAndUIOutput = OutputWrapXML(
+              val tagname = "ruleset_and_user_data"
+              val attrs = []
+              structure Output1 = OutputStructAndUserDataXMLList);
   structure UIDataInput = InputUIDataXML(structure UIData = State.UIData);
-
+  structure InputRulesetUIData = InputRulesetUIDataXML(structure UIData =
+        State.UIData);
   val theoryName = State.Theory.theory_name;
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
@@ -305,9 +311,16 @@ struct
     | update_ruleset rset false state =
        State.set_rset rset state
 
+  fun update_ruleset_ud rset_ud true state =
+      State.update_rset_uidata (R.NTab.merge_joint (K true) rset_ud) state 
+    | update_ruleset_ud rset_ud _ state =
+      State.set_rset_uidata rset_ud state
+
   fun load_ruleset reader source replace state =
      ((OkResponse,
-       update_ruleset (Input.Ruleset.input (reader source)) replace state)
+       state |> update_ruleset (Input.Ruleset.input (reader source)) replace 
+             |> update_ruleset_ud (InputRulesetUIData.input (reader source)) replace
+       )
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
@@ -836,7 +849,10 @@ fun hilb ([format], graph) =
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
-          val () = ((XMLWriter.write_to_file fileName) o Output.Ruleset.output o State.get_rset) state
+          val ruleset_tree = (Output.Ruleset.output o State.get_rset) state
+          val uidata_tree = (RulesetUIDataOutput.output o State.get_rset_uidata) state
+          val () = (XMLWriter.write_to_file fileName)
+                      (RulesetAndUIOutput.output (ruleset_tree, uidata_tree))
         in
           (OkResponse, state)
         end

@@ -43,8 +43,12 @@ functor InputRulesetXML(
     structure Input1 = InputUseChildXML(InputRuleNameXML));
   
   fun input xml = 
-      (let val () = assert_tag "ruleset" xml
-           val children = get_children xml
+      (let 
+           val is_wrapped= test_tag "ruleset_and_user_data" xml
+           val xml' = if is_wrapped then hd (get_children xml)
+                                    else xml
+           val () = assert_tag "ruleset" xml'
+           val children = get_children xml'
            val rules = (InputAllRules.input (get_unique_elem "allrules" children)) 
              handle bad_input_exp (s,p) => raise bad_input_exp (s,"allrules/"^p);
            val tags = (InputBRel.input (get_unique_elem "tags" children))
