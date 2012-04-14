@@ -40,8 +40,7 @@ public class DefaultBangBoxShapeTransformer<V, E, B>
                      rect.getWidth() + 2*padding,
                      rect.getHeight() + 2*padding);
         } else {
-            // FIXME: do something sensible with empty !-boxes
-            rect = new Rectangle2D.Double(0, 0, 1, 1);
+            rect = new Rectangle2D.Double(0, 0, 0, 0);
         }
 		return rect;
 	}

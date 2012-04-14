@@ -1162,7 +1162,7 @@ public class ProtocolManager {
         }
 
         try {
-            writer.addHeader("GMBK", generateRequestId());
+            writer.addHeader("GMBM", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringListArg(bangBoxes);
             writer.closeMessage();

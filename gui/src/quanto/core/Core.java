@@ -312,6 +312,13 @@ public class Core {
         return bb;
     }
 
+    public void bangVertices(CoreGraph graph, String bangBox, Collection<Vertex> vertices)
+              throws CoreException {
+          assertCoreGraph(graph);
+          talker.bangVertices(graph.getCoreName(), bangBox, names(vertices));
+          graph.fireStateChanged();
+     }
+    
     public void removeVerticesFromBangBoxes(CoreGraph graph,
             Collection<Vertex> vertices) throws CoreException {
         assertCoreGraph(graph);
