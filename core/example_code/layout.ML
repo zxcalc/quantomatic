@@ -29,7 +29,7 @@ in
   (* one box for each disconnected component *)
   val boxes = map OGraphPreLayout.box_of_layout layouts;
   
-  val positions = map OGraphPreLayout.pos_maps_of_box boxes;
+  val positions = map (OGraphPreLayout.pos_maps_of_box 50 50) boxes;
 
 end;
 
