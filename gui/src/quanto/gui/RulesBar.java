@@ -230,6 +230,28 @@ public class RulesBar extends JPanel {
             }
         });
 
+        menuItem = new JMenuItem("New Rule by Reverse");
+        popupMenu.add(menuItem);
+        menuItem.addActionListener(new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+                 String name = JOptionPane.showInputDialog(RulesBar.this, "Rule name:", ruleName + "-rev");
+                 if (ruleName == null) {
+                     return;
+                 }
+                 
+                 try {
+                      Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
+                      rule = new Rule<CoreGraph>(ruleName, rule.getRhs(), rule.getLhs());
+                      SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
+                      RulesBar.this.viewPort.getViewManager().addView(spg);
+                      RulesBar.this.viewPort.attachView(spg);
+                  } catch (CoreException ex) {
+                      showModalError("Could not create a new rule.", ex);
+                  }
+            }
+        });
+        
         JMenu subMenu = new JMenu("Add tag");
         try {
             Collection<String> allTags = ruleset.getTags();
