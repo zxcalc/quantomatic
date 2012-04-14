@@ -561,13 +561,32 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
      (out, state' 
                 |> rename_vertex_uidata old out graph)
     end;
-  (*TODO: We want the uidata to follow !-boxes and edges when they are renamed*)
+
+  (* Internal semi-generic function used to rename uidata
+   * on edges and !-boxes  *)
+  fun rename_edge_or_bb_uidata renamer old new graphName state =
+    let
+      val ud = get_graph_ud state graphName
+      val ud' = ud |> renamer old new 
+    in
+      state |> set_graph_ud ud' graphName
+    end;
+
   fun rename_edge_internal old new graph = (graph |> Graph.rename_ename old new)
-  fun rename_edge old new graph state = lift_graph_mutator_no_result (rename_edge_internal old new) graph state
+  fun rename_edge old new graph state = 
+      let
+        val state' = lift_graph_mutator_no_result (rename_edge_internal old new) graph state
+      in
+        state' |> rename_edge_or_bb_uidata UIData.rename_edge old new graph 
+      end;
 
   fun rename_bang_internal old new graph = (graph |> Graph.rename_bname old new)
-  fun rename_bang old new graph state = lift_graph_mutator_no_result (rename_bang_internal old new) graph state
-
+  fun rename_bang old new graph state = 
+    let
+      val state' = lift_graph_mutator_no_result (rename_bang_internal old new) graph state
+    in
+      state' |> rename_edge_or_bb_uidata UIData.rename_bangbox old new graph
+    end;
 
   fun undo gname state =
       let
