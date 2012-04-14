@@ -1,22 +1,19 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  A structure that defines vertices with strings as data and 
     prefix-substring matching. *)
-structure RTechnKey : NAME where type name = string = StrName;
-
 structure DB_RTechn_VertexData
 = struct
 
-  datatype data =  RTechnNode of RTechnKey.name
-                 | GoalNode of  StrIntName.name  (* goal/wire type *)
-                              * StrIntName.NSet.T; (* goal names of this type *)
-                  (* was GoalNode.T  *)
-
+  datatype data = GoalNode of string  (* goal type *) 
+                              * SStrName.NSet.T (* goal names of this type *)
+                | RTechnNode of string;  (* technique name *)
+  
   (* ordering is used for building tables, sorting, etc *)
   fun data_ord (GoalNode _, RTechnNode _) = LESS
     | data_ord (RTechnNode _, GoalNode _) = GREATER
     | data_ord (GoalNode tss1, GoalNode tss2) = 
-      prod_ord StrIntName.name_ord StrIntName.NSet.ord (tss1,tss2)
-    | data_ord (RTechnNode s1, RTechnNode s2) = StrName.name_ord (s1,s2);
+      prod_ord String.compare SStrName.NSet.ord (tss1,tss2)
+    | data_ord (RTechnNode s1, RTechnNode s2) = String.compare (s1,s2);
 
   (* equality check (should agree with order):
      data_eq(x,y) <=> data_ord (x,y) = EQUAL *)
@@ -25,13 +22,11 @@ structure DB_RTechn_VertexData
           | _ => false);
  
   (* pretty printing code *)
-  fun pretty_data (RTechnNode n) = 
-      Pretty.block [ Pretty.str "RTechnNode(", RTechnKey.pretty_name n, 
-                     Pretty.str ")"]
-    | pretty_data (GoalNode (t,nset)) =  
-      Pretty.block [ Pretty.str "GoalNode(", 
-                     StrIntName.pretty_name t, Pretty.str ", ",
-                     StrIntName.NSet.pretty nset, Pretty.str ")"];
+  fun pretty_data (RTechnNode s) = 
+      Pretty.block [ Pretty.str "RTechnNode(", Pretty.str s, Pretty.str ")"]
+    | pretty_data (GoalNode (t,ss)) =  
+      Pretty.block [ Pretty.str "GoalNode(", Pretty.str t, Pretty.str ", ",
+                     SStrName.NSet.pretty ss, Pretty.str ")"];
   val print_data = Pretty.writeln o pretty_data;
   
   (* no variables in our vertex data, so we have dummy unit subst *)
@@ -40,13 +35,13 @@ structure DB_RTechn_VertexData
   fun compose_subst (u1,u2) = ();
   
   (* matching is string prefix "abc" matches "abcd" and "abc.d" but not 
-     "ab.cd" or "aabc"; the number index is ignored. *)
+     "ab.cd" or "aabc" *)
   fun match_data (ss as (GoalNode _, RTechnNode _)) subst = NONE 
     | match_data (ss as (RTechnNode _, GoalNode _)) subst = NONE 
     | match_data (ss as (RTechnNode s1, RTechnNode s2)) subst =  
       if String.isPrefix s1 s2 then SOME subst else NONE
     | match_data (ss as (GoalNode (s1,_), GoalNode (s2,_))) subst =  
-      if String.isPrefix (fst s1) (fst s2) then SOME subst else NONE; 
+      if String.isPrefix s1 s2 then SOME subst else NONE; 
   (* unification: if x matches y, and y matches x (with the same subst) *) 
   (* for string prefix, x and y must be the same string *)
   fun unify_data xy subst = if data_eq xy then SOME subst else NONE;
@@ -145,3 +140,5 @@ structure Str_ComponentData_Param
     | default_data n = raise unknown_type_exp n;
   fun update f x = x;
 end;
+
+
