@@ -35,6 +35,9 @@ functor OGraphParam(
   (* internal name data *)
   type T = Param.T;
 
+  val get_xnames = Param.get_xnames;
+
+  val rename_xname = Param.rename_xname;
   val rename_vname = Param.rename_vname;
   val rename_ename = Param.rename_ename;
   
@@ -52,11 +55,11 @@ functor OGraphParam(
           | SOME idata => Param.add_vertex idata vn vdep);
   val add_edge = Param.add_edge;
 
-  val delete_vertex = Param.delete_vertex;
-  val delete_edge = Param.delete_edge;
+  val delete_vname = Param.delete_vname;
+  val delete_ename = Param.delete_ename;
 
   fun replace_vertex vd vn vdep = 
-      vdep |> delete_vertex vn
+      vdep |> delete_vname vn
            |> add_vertex vd vn;
   val replace_edge = Param.replace_edge;
 
@@ -113,7 +116,7 @@ functor OGraphParam(
     structure VData = OVData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type inames_renaming = CRnmX.renaming; (* = X.Rnm.renaming *)
+    type xnames_renaming = CRnmX.renaming; (* = X.Rnm.renaming *)
     type subst = subst;
   end;
   structure OSharing =

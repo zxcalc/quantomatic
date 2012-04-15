@@ -21,12 +21,17 @@ structure SUBSTR_LINRAT_GraphParam
   exception match_exp of unit;
   exception unknown_type_exp of string;
 
-  fun get_IName vdep = VDep.get_codset vdep;
+  fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
-  fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
+  fun try_rename1_xname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
 
+  fun rename_xname n1 n2 vdep = 
+      (case VDep.try_rename1_cod n1 n2 vdep of NONE => 
+         raise X.Rnm.invalid_renaming_exp "SUBSTR_LINRAT_GraphParam.rename_xname"
+       | SOME x => x);
+       
   fun rename_vname n1 n2 vdep = 
       (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
          raise V.Rnm.invalid_renaming_exp "SUBSTR_LINRAT_GraphParam.rename_vname"
@@ -41,8 +46,8 @@ structure SUBSTR_LINRAT_GraphParam
   = CompoundRenamingFun(
     struct structure Nm = X
            type obj = T
-           val get_nameset = get_IName
-           val try_rename1 = try_rename1_iname
+           val get_nameset = get_xnames
+           val try_rename1 = try_rename1_xname
     end);
 
   (* rename vertices in the dependency structure *)
@@ -66,11 +71,11 @@ structure SUBSTR_LINRAT_GraphParam
           | SOME angle => VDep.add_to_dom vn (LinratAngleExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
-  fun delete_vertex vn vdep = VDep.del_dom vn vdep;
-  fun delete_edge en vdep = vdep;
+  fun delete_vname vn vdep = VDep.del_dom vn vdep;
+  fun delete_ename en vdep = vdep;
 
   fun replace_vertex vd vn vdep = 
-      vdep |> delete_vertex vn
+      vdep |> delete_vname vn
            |> add_vertex vd vn;
   fun replace_edge ed en vdep = vdep;
 
@@ -142,7 +147,7 @@ structure SUBSTR_LINRAT_GraphParam
     structure VData = VData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type inames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
+    type xnames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
 end;

@@ -134,6 +134,37 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
 
   in writeln "success" end) ();  
 
+
+val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming of internal variables prior to rewriting." (fn () => let
+  (* lhs *)
+  val lhs = let val g = G.empty;
+      val (b1, g) = g |> G.add_vertex bvert;
+      val (x1, g) = g |> G.add_vertex (mkX (parse_angle "a + b"));
+      val (e0, g) = g |> G.add_edge undir_edge x1 b1;
+  in g end;
+  val _ = G.print lhs;
+  (* rhs *)
+  val rhs = let val g = G.empty;
+      val (b1, g) = g |> G.add_vertex bvert;
+      val (x1, g) = g |> G.add_vertex (mkX (parse_angle "a"));
+      val (x2, g) = g |> G.add_vertex (mkX (parse_angle "b"));
+      val (e0, g) = g |> G.add_edge undir_edge x1 x2;
+      val (e1, g) = g |> G.add_edge undir_edge x2 b1;
+  in g end;
+  val _ = G.print rhs;
+  val rule = Rule.mk (lhs,rhs);
+  (* tgt graph *)
+  val tgt = let val g = G.empty;
+      val (x1, g) = g |> G.add_vertex (mkX (parse_angle "c"));
+      val (x2, g) = g |> G.add_vertex (mkZ (parse_angle "b"));
+      val (b1, g) = g |> G.add_vertex bvert;
+      val (e0, g) = g |> G.add_edge undir_edge x1 x2;
+  in g end
+  
+  val (r', matches) = list_of_rule_matches rule tgt;
+  val _ = Rule.print r';
+  in () end) ();
+
   (* 
 val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
   val spider_red = Ruleset.get_rule rset (R.mk "spider.red");

@@ -28,6 +28,11 @@ structure RGB_GraphParam
   fun try_rename1_xname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
 
+  fun rename_xname n1 n2 vdep = 
+      (case VDep.try_rename1_cod n1 n2 vdep of NONE => 
+         raise X.Rnm.invalid_renaming_exp "RGB_GraphParam.rename_xname"
+       | SOME x => x);
+
   fun rename_vname n1 n2 vdep = 
       (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
          raise V.Rnm.invalid_renaming_exp "RGB_GraphParam.rename_vname"
@@ -65,11 +70,11 @@ structure RGB_GraphParam
   fun add_vertex vd vn vdep = vdep;
   fun add_edge ed en vdep = vdep;
 
-  fun delete_vertex vn vdep = vdep;
-  fun delete_edge en vdep = vdep;
+  fun delete_vname vn vdep = vdep;
+  fun delete_ename en vdep = vdep;
 
   fun replace_vertex vd vn vdep = 
-      vdep |> delete_vertex vn
+      vdep |> delete_vname vn
            |> add_vertex vd vn;
   fun replace_edge ed en vdep = vdep;
 
@@ -129,7 +134,7 @@ structure RGB_GraphParam
     structure VData = VData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type inames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
+    type xnames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
 end;

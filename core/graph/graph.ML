@@ -8,7 +8,7 @@ sig
 
 include BASIC_GRAPH
 
-(* renaming internal names in a graph *)
+(* renaming internal names in a graph, used for variables within a vertex. *)
 structure CRnmX : COMPOUND_RENAMING
   sharing type CRnmX.obj = T
   sharing type CRnmX.renaming = Param.CRnmX.renaming
@@ -72,8 +72,9 @@ val has_vname : T -> V.name -> bool;
 val has_ename : T -> E.name -> bool;
 
 (* renaming *)
-val try_rename1_ename : E.name -> E.name -> T -> T option
+val try_rename1_xname : X.name -> X.name -> T -> T option
 val try_rename1_vname : V.name -> V.name -> T -> T option
+val try_rename1_ename : E.name -> E.name -> T -> T option
 
 structure VertexCRnm : COMPOUND_RENAMING 
 where type obj = T and type renaming = V.Rnm.T
@@ -396,6 +397,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                   delete_vertex
                   (get_vnames subg));
   
+  fun try_rename1_xname en1 en2 g = 
+      SOME (rename_xname en1 en2 g)
+      handle X.Rnm.invalid_renaming_exp _ => NONE;
+
   fun try_rename1_vname en1 en2 g = 
       SOME (rename_vname en1 en2 g)
       handle vname_already_exists_exp _ => NONE;

@@ -3,12 +3,13 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile isaplib libraries ****)
 
-val rootDir = OS.FileSys.getDir();
-(OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
-use "ROOT.ML"; 
-OS.FileSys.chDir rootDir);
+val rootDir = OS.FileSys.getDir(); 
+val _ = OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
+val _ = use "ROOT.ML"; 
+val _ = OS.FileSys.chDir rootDir;
 print_depth 3;
 
+val rootDir = OS.FileSys.getDir(); 
 PolyML.Project.Log.level_ref := 4;
 PolyML.Project.depend_on_files 
   [(* this file *)
@@ -209,6 +210,4 @@ else
   PolyML.Project.ensure_at_latest_heap ();
   PolyML.Project.save_project_child_state "heaps/quanto_child.heap");
   
-PolyML.Project.Log.log 2 "done."
-
-
+PolyML.Project.Log.log 2 "done.";

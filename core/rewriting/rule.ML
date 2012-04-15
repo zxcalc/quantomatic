@@ -29,12 +29,16 @@ signature BASIC_RULE
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
     
-  (* NOTE: FIXME: these don't touch the automorphism data; they should not be used without reconstructing the automoprhism info. *)
+  (* NOTE/WARNING: these don't touch the automorphism data; they should not 
+     be used without reconstructing the automoprhism info. *)
   val try_rename1_ename : E.name -> E.name -> T -> T option
   val try_rename1_vname : V.name -> V.name 
       -> T -> T option
   val try_rename1_bname : B.name -> B.name -> T -> T option
+  val try_rename1_xname : X.name -> X.name -> T -> T option
   
+  structure XCRnm : COMPOUND_RENAMING 
+  where type obj = T and type renaming = X.Rnm.T
   structure VertexCRnm : COMPOUND_RENAMING 
   where type obj = T and type renaming = V.Rnm.T
   structure EdgeCRnm : COMPOUND_RENAMING 
@@ -42,12 +46,13 @@ signature BASIC_RULE
   structure BBoxCRnm : COMPOUND_RENAMING 
   where type obj = T and type renaming = B.Rnm.T
 
-  val rename : (V.Rnm.T * E.Rnm.T * B.Rnm.T) -> T 
-            -> (V.Rnm.T * E.Rnm.T * B.Rnm.T) * T
+  val rename : (X.Rnm.T * V.Rnm.T * E.Rnm.T * B.Rnm.T) -> T 
+            -> (X.Rnm.T * V.Rnm.T * E.Rnm.T * B.Rnm.T) * T
 
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
   
+  val get_xnames : T -> X.NSet.T
   val get_vnames : T -> V.NSet.T
   val get_enames : T -> E.NSet.T
   val get_bnames : T -> B.NSet.T
@@ -58,7 +63,6 @@ signature BASIC_RULE
   (* rule is a trivial identity : lhs matches rhs *)
   val is_trivial : T -> bool
   
-
   (* extra cached meta-data *)
   datatype 'a tree = Tree of ('a * 'a tree list);
   datatype constr   =   Constrained
@@ -313,6 +317,10 @@ fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
 
 (*  *)
 (* TODO: add renaming for extra stuff (not lhs and rhs) *)
+fun get_xnames rule = 
+    X.NSet.union_merge 
+      (Graph.get_xnames (get_lhs rule))
+      (Graph.get_xnames (get_rhs rule));
 fun get_vnames rule = 
     V.NSet.union_merge 
       (Graph.get_vnames (get_lhs rule))
@@ -339,6 +347,11 @@ fun untryify f x =
      | SOME y => y);
     
 (* *)
+fun try_rename1_xname n1 n2 rule =
+    (SOME 
+      (rule |> (update_lhs (untryify (Graph.try_rename1_xname n1 n2)))
+            |> (update_rhs (untryify (Graph.try_rename1_xname n1 n2)))))
+    handle tryify_failed () => NONE;
 fun try_rename1_vname n1 n2 rule =
     (SOME 
       (rule |> (update_lhs (untryify (Graph.try_rename1_vname n1 n2)))
@@ -356,6 +369,13 @@ fun try_rename1_bname n1 n2 rule =
     handle tryify_failed () => NONE;
     
 (* *)
+structure XCRnm = CompoundRenamingFun(
+  struct 
+    structure Nm = X;
+    type obj = T
+    val try_rename1 = try_rename1_xname;
+    val get_nameset = get_xnames
+  end);
 structure VertexCRnm = CompoundRenamingFun(
   struct 
     structure Nm = V;
@@ -379,16 +399,16 @@ structure BBoxCRnm = CompoundRenamingFun(
   end);
 
 (* rename *)
-fun rename (vrn,ern,brn) rule = 
+fun rename (xrn,vrn,ern,brn) rule = 
     let 
+      val (xrn,rule) = XCRnm.rename xrn rule
       val (vrn,rule) = VertexCRnm.rename vrn rule
       val (ern,rule) = EdgeCRnm.rename ern rule
       val (brn,rule) = BBoxCRnm.rename brn rule
     in
       (* TODO: rename automorphism info; avoid re-creation. *)
-      ((vrn,ern,brn), mk (get_lhs rule,get_rhs rule))
+      ((xrn,vrn,ern,brn), mk (get_lhs rule,get_rhs rule))
     end;
-
 
 fun pretty (Rule rep) = 
     Pretty.chunks 
