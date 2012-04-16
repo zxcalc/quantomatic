@@ -333,10 +333,10 @@ local
   (fn () => let 
     val true = X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
                           (X.mk "y")) 
-    (* val (d,ios) = G.get_vertex g n_x2;
+    val (d,ios) = G.get_vertex g n_x2;
     val y =  X.name_eq (the (X.NSet.tryget_singleton 
                          (G.Param.get_xnames (G.Param.of_vertex d n_x2))), 
-                        (X.mk "y")); *)
+                        (X.mk "y"));
     in () end) ();
 
   val _ = Testing.test "After renaming, still has correct singleton vname dep" (fn () => let 
@@ -359,19 +359,20 @@ local
     val (x1, g) = g |> G.add_vertex (mkX (parse_angle "a + b"));
     val (e0, g) = g |> G.add_edge undir_edge x1 b1;
     val xnames = G.get_xnames g;
-    val _ = G.print g;
+    val _ = (writeln "graph before renaming: "; G.print g);
     val xrn = X.Rnm.mk_from_avoids xnames;
     val (xrn', g') = G.CRnmX.rename xrn g;
-    val _ = G.print g';
+    val _ = (writeln "renaming: "; X.Rnm.print xrn');
+    val _ = (writeln "graph after renaming: "; G.print g');
     val xnames' = G.get_xnames g';
-    (* val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
+    val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
                   raise ERROR "old name was accidentally kept in graph xnames!" else I)
               xnames' ();
     val (d,ios) = G.get_vertex g' x1;
     val xnames'' = G.Param.get_xnames (G.Param.of_vertex d x1);
     val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
                   raise ERROR "old name was accidentally kept vertex data!" else I)
-              xnames'' (); *)
+              xnames'' ();
     in () end) ();
 
 in

@@ -484,13 +484,13 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     val get_nameset = get_xnames
   end);
   
-  (*  *)
-  fun rename (xrn,vrn,ern) g = 
+  (*  *) 
+  fun rename (xrn,vrn,ern) g1 = 
       let 
-        val (xrn2,g') = CRnmX.rename xrn g
-        val (vrn2,g') = VertexCRnm.rename vrn g
-        val (ern2,g'') = EdgeCRnm.rename ern g'
-      in ((xrn2,vrn2,ern2),g'') end;
+        val (xrn2,g2) = CRnmX.rename xrn g1
+        val (vrn2,g3) = VertexCRnm.rename vrn g2
+        val (ern2,g4) = EdgeCRnm.rename ern g3
+      in ((xrn2,vrn2,ern2),g4) end;
   
   (* rename g2 apart from g1 *)
   fun rename_apart g1 g2 = 
