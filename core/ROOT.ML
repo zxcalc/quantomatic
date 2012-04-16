@@ -3,10 +3,11 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile isaplib libraries ****)
 
-val rootDir = OS.FileSys.getDir(); 
+local val rootDir = OS.FileSys.getDir(); in 
 val _ = OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
 val _ = use "ROOT.ML"; 
 val _ = OS.FileSys.chDir rootDir;
+end;
 print_depth 3;
 
 val rootDir = OS.FileSys.getDir(); 

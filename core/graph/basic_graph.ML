@@ -38,6 +38,9 @@ sharing type SharingBasicGraph.dir_or_undir = dir_or_undir;
 
 exception bug_exp of string;
 
+exception no_such_xname_exp of string * X.name * T;
+exception xname_already_exists_exp of X.name * T;
+
 exception no_such_vname_exp of string * V.name * T;
 exception vname_already_exists_exp of V.name * T;
 
@@ -209,6 +212,8 @@ val get_edge_nset = E.NTab.get_nameset o get_edges;
 val lookup_vertex = V.NTab.lookup o get_vertices
 val lookup_edge = E.NTab.lookup o get_edges
 
+exception no_such_xname_exp of string * X.name * T;
+exception xname_already_exists_exp of X.name * T;
 exception no_such_vname_exp of string * V.name * T;
 exception vname_already_exists_exp of V.name * T;
 exception no_such_ename_exp of string * E.name * T;
@@ -343,9 +348,28 @@ fun delete_vertex n g =
 
 exception rename_do_nothing_exp of unit;
 
-(* implicit args: n1 n2 g; raises X.Rnm. *) 
-val rename_xname = update_param oo Param.rename_xname;
-  
+(* implicit args: n1 n2 g; raises X.Rnm. *)
+(* renames internal variable name n1 to n2 (assuming n2 is fresh in this graph)
+   Updates the name in the param data as well as in each vertex and edge data in
+   which the name occurs. *)
+fun rename_xname n1 n2 g =
+    let 
+      val param = get_param g;
+      val vnames_to_update = Param.dep_vnames_of_xname param n1 
+      val enames_to_update = Param.dep_enames_of_xname param n1
+    in 
+      g |> update_param (Param.rename_xname n1 n2)
+        |> update_vertices (
+            V.NSet.fold (V.NTab.map_entry (fn (d,ios) => (
+                  Param.subst_xname_in_vdata n1 n2 d,ios))) 
+              vnames_to_update)
+        |> update_edges (
+            E.NSet.fold (E.NTab.map_entry (fn ((dir,d),fromto) => 
+                  ((dir,Param.subst_xname_in_edata n1 n2 d),fromto))) 
+              enames_to_update)
+    end handle X.Rnm.invalid_renaming_exp _ => 
+        raise xname_already_exists_exp (n2,g);
+
 (* V.name = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
    n2 must not exist already, n1 must exist *)

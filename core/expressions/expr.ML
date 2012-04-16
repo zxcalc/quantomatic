@@ -56,6 +56,7 @@ sig
   val print : T -> unit;
 
   (* rename variables in an expression *)
+  val try_rename1 : X.name -> X.name -> T -> T option;
   structure CRnm : COMPOUND_RENAMING 
     where type obj = T and type renaming = X.Rnm.T
 

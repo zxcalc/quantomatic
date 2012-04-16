@@ -226,7 +226,8 @@ fun mk (lhs,rhs) =
         val ern = E.mk_renaming ignoreenames 
                     (E.NSet.union_merge ignoreenames (Graph.get_enames lhs))
                     E.NTab.empty
-        val (rn, rhs') = Graph.rename (vrn,ern) rhs
+        val xrn = X.Rnm.empty;
+        val (rn, rhs') = Graph.rename (xrn,vrn,ern) rhs
         val lhsauts = (Seq.list_of oo GraphIso.get) lhs lhs
         val rhsauts = (Seq.list_of oo GraphIso.get) rhs rhs'
         val lhsba = map (fn x => ((  VInjEndo.restrict_dom_to lhsbndry
@@ -333,18 +334,6 @@ fun get_bnames rule =
     B.NSet.union_merge 
       (Graph.get_bbnames (get_lhs rule))
       (Graph.get_bbnames (get_rhs rule));
-
-exception tryify_failed of unit
-      
-fun tryify ff f x = 
-    (SOME (ff (fn x => case f x of NONE => raise tryify_failed () 
-                                 | SOME y => y)
-              x))
-    handle tryify_failed () => NONE;
-
-fun untryify f x =  
-    (case f x of NONE => raise tryify_failed ()
-     | SOME y => y);
     
 (* *)
 fun try_rename1_xname n1 n2 rule =

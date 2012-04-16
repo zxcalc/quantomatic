@@ -24,6 +24,9 @@ structure SUBSTR_LINRAT_GraphParam
   fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
+  fun dep_vnames_of_xname vdep n = VDep.codf vdep n;
+  fun dep_enames_of_xname vdep n = E.NSet.empty;
+
   fun try_rename1_xname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
 
@@ -147,7 +150,6 @@ structure SUBSTR_LINRAT_GraphParam
     structure VData = VData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type xnames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
 end;

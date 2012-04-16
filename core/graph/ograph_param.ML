@@ -37,6 +37,13 @@ functor OGraphParam(
 
   val get_xnames = Param.get_xnames;
 
+  val dep_vnames_of_xname = Param.dep_vnames_of_xname;
+  val dep_enames_of_xname = Param.dep_enames_of_xname;
+  
+  val subst_xname_in_vdata = 
+      OVData.apply_to_idata oo Param.subst_xname_in_vdata;
+  val subst_xname_in_edata = Param.subst_xname_in_edata;
+  
   val rename_xname = Param.rename_xname;
   val rename_vname = Param.rename_vname;
   val rename_ename = Param.rename_ename;
@@ -67,16 +74,16 @@ functor OGraphParam(
   val of_edge = Param.of_edge;
 
   (* renaming internal names within a vertex *)
-  structure VDataCRnmX : COMPOUND_RENAMING
+  (* structure VDataCRnmX : COMPOUND_RENAMING
   = EmbedCompoundRenaming(
     structure Crnm = Param.VDataCRnmX
     type T = OVData.data
     val update = OVData.apply_to_idata
     val try_to_get = OVData.idata_of
   );
-
+  *)
   (* rename internal names within an edge data *)
-  structure EDataCRnmX = Param.EDataCRnmX;
+  (* structure EDataCRnmX = Param.EDataCRnmX; *)
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
@@ -116,7 +123,6 @@ functor OGraphParam(
     structure VData = OVData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type xnames_renaming = CRnmX.renaming; (* = X.Rnm.renaming *)
     type subst = subst;
   end;
   structure OSharing =

@@ -64,6 +64,19 @@ val _ = Testing.test "match 0 a = false"
         (fn () => let val NONE = E.match zero a E.empty_match; 
          in () end) ();
 
+val _ = Testing.test "try_rename1" 
+        (fn () => let 
+         val x = E.parse "a + b"
+         val _ = (writeln "x: "; E.print x)
+         val NONE = E.try_rename1 (X.mk "a") (X.mk "b") x;
+         val SOME x2 = E.try_rename1 (X.mk "a") (X.mk "c") x; 
+         val _ = (writeln "x2: "; E.print x2);
+         val x3 = E.parse "c + b";
+         val _ = (writeln "x3: "; E.print x3);
+         val false = E.is_zero (E.subtr_expr x x3);
+         val true = E.is_zero (E.subtr_expr x2 x3);
+         in () end) ();
+
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR LinratAngleExpr PASSED!";
 end;

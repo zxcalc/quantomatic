@@ -9,7 +9,6 @@ signature GRAPH_PARAM_SHARING
   structure VData : UNIFIABLE_DATA_SHARING
   structure EData : UNIFIABLE_DATA_SHARING
   type T
-  type xnames_renaming
   type subst 
   sharing type subst = VData.subst
   sharing type subst = EData.subst
@@ -81,6 +80,9 @@ signature GRAPH_PARAM
   val delete_vname : V.name -> T -> T
   val delete_ename : E.name -> T -> T
 
+  val dep_vnames_of_xname : T -> X.name -> V.NSet.T
+  val dep_enames_of_xname : T -> X.name -> E.NSet.T 
+
   (* raises X.Rnm. *)
   val rename_xname : X.name -> X.name -> T -> T
   (* raises V.Rnm. *)
@@ -90,10 +92,15 @@ signature GRAPH_PARAM
 
   val replace_vertex : VData.data -> V.name -> T -> T
   val replace_edge : EData.data -> E.name -> T -> T
-  
+
+  (* CONSIDER: move to unifiable data? *)
+  val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;
+  val subst_xname_in_edata : X.name -> X.name -> EData.data -> EData.data;
+
   (* RENAMINGS  *)
   (* rename internal var names in T *)
   structure CRnmX : COMPOUND_RENAMING 
+    where type renaming = X.Rnm.T
     sharing type CRnmX.obj = T
   (* rename vertex and edge names in T *)
   structure CRnmV : COMPOUND_RENAMING 
@@ -102,21 +109,20 @@ signature GRAPH_PARAM
   structure CRnmE : COMPOUND_RENAMING 
     where type renaming = E.Rnm.T
     sharing type CRnmE.obj = T 
-    
+  
   (* rename internal names in Vertex Data *)
-  structure VDataCRnmX : COMPOUND_RENAMING
-    sharing type VDataCRnmX.obj = VData.data
-    sharing type VDataCRnmX.renaming = CRnmX.renaming
+  (* structure VDataCRnmX : COMPOUND_RENAMING
+    where type renaming = X.Rnm.T
+    sharing type VDataCRnmX.obj = VData.data *)
   (* rename internal names in Edge Data *)
-  structure EDataCRnmX : COMPOUND_RENAMING
-    sharing type EDataCRnmX.obj = EData.data
-    sharing type EDataCRnmX.renaming = CRnmX.renaming
+  (* structure EDataCRnmX : COMPOUND_RENAMING
+    where type renaming = X.Rnm.T
+    sharing type EDataCRnmX.obj = EData.data *)
       
   (* syntax convenience for sharing types *)
   structure Sharing : GRAPH_PARAM_SHARING
     sharing Sharing.VData = VData.Sharing
     sharing Sharing.EData = EData.Sharing
-    sharing type CRnmX.renaming = Sharing.xnames_renaming
     sharing type T = Sharing.T
     sharing type subst = Sharing.subst
 end;
@@ -147,15 +153,21 @@ struct
   fun rename_ename n1 n2 d = d;
   fun replace_vertex vd vn vdep = vdep; 
   fun replace_edge ed en vdep = vdep;
+  fun dep_vnames_of_xname () n = V.NSet.empty;
+  fun dep_enames_of_xname () n = E.NSet.empty; 
   
   (* rename internal names in the dependency structure *)
   (* RENAMING *)
   (* [dummy] Renaming internal names within vertex data *)
-  structure VDataCRnmX : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = X type obj = vdata);
+  (* structure VDataCRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = vdata); *)
   (* [dummy] Rename internal names within edge data *)
-  structure EDataCRnmX : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = X type obj = edata);
+  (* structure EDataCRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = edata); *)
+  
+  fun subst_xname_in_vdata () n1 n2 = () 
+  fun subst_xname_in_edata () n1 n2 = () 
+  
   (* [dummy] Rename vertex-names in the dependency data *)
   structure CRnmV : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = V type obj = T);

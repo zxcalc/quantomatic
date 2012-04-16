@@ -85,14 +85,12 @@ fun try_rename1 n1 n2 (k,tab) =
     (case X.NTab.try_rename1 n1 n2 tab of 
        NONE => NONE
      | SOME tab2 => SOME (k,tab2));
-
-
+     
 structure CRnm = CompoundRenamingFun(
     structure Nm = X
     type obj = T
     val get_nameset = get_vars
     val try_rename1 = try_rename1);
-
 
 (* various mk functions ============================================ *)
 val empty = X.NTab.empty : Coeff.T X.NTab.T;

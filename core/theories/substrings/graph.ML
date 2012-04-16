@@ -50,7 +50,6 @@ structure Str_GraphParam
     structure VData = VData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type xnames_renaming = CRnmX.renaming; (* = IName.Rnm.renaming *)
     type subst = subst;
   end;
 end;

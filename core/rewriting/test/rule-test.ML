@@ -161,8 +161,24 @@ val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming
       val (e0, g) = g |> G.add_edge undir_edge x1 x2;
   in g end
   
-  val (r', matches) = list_of_rule_matches rule tgt;
-  val _ = Rule.print r';
+  val (rule', matches) = list_of_rule_matches rule tgt;
+  val _ = Rule.print rule';
+  
+  val rule_xnames = Rule.get_xnames rule'; 
+  val _ = Pretty.writeln (Pretty.str "XNames in rule: ");
+  val _ = X.NSet.print rule_xnames;
+  
+  val SOME vname = (* FIXME: brittle: hardcoded right choice of fresh name *)
+                    (X.mk "d") 
+                    |> G.Param.dep_vnames_of_xname 
+                        (Rule.get_lhs rule' |> G.get_param)
+                    |> V.NSet.tryget_singleton;
+  
+  val d = G.get_vertex_data (Rule.get_lhs rule') vname;
+  val vdep = G.Param.of_vertex d;
+  
+  val false = X.NSet.contains rule_xnames (X.mk "b");
+  val true = X.NSet.contains rule_xnames (X.mk "a");
   in () end) ();
 
   (* 
