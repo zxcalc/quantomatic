@@ -21,6 +21,13 @@ structure Test_GraphParam
   exception match_exp of unit;
   exception unknown_type_exp of string;
 
+  fun subst_xname_in_vdata n1 n2 d =
+      Test_InternVData.map_to_angle 
+        (untryify (LinratAngleExpr.try_rename1 n1 n2)) d 
+      handle tryify_failed () => 
+        raise X.Rnm.invalid_renaming_exp "subst_xname_in_vdata";
+  fun subst_xname_in_edata n1 n2 d = d;
+  
   fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
@@ -95,14 +102,6 @@ structure Test_GraphParam
 
   fun of_vertex vd vn = add_vertex vd vn VDep.empty;
   fun of_edge en ed = empty;
-
-  fun subst_xname_in_vdata n1 n2 d =
-      Test_InternVData.map_to_angle 
-        (untryify (LinratAngleExpr.try_rename1 n1 n2)) d 
-      handle tryify_failed () => 
-        raise X.Rnm.invalid_renaming_exp "subst_xname_in_vdata";
-      
-  fun subst_xname_in_edata n1 n2 d = d;
   
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)

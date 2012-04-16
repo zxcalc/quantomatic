@@ -804,7 +804,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
-        val (rn, source) = Graph.rename_apart targ sarg
+        val ((xrn,vrn,ern), source) = Graph.rename_apart targ sarg
       fun add_v_ud rn ud n ud' =
         let
           val v_ud = case (UIData.get_v_ud ud n) of
@@ -831,9 +831,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         end
         val ud = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
-        val ud' = ud_t |> fold (add_v_ud (fst rn) ud)
+        val ud' = ud_t |> fold (add_v_ud vrn ud)
                     (V.NSet.list_of (Graph.get_vnames sarg))
-                     |> fold (add_e_ud (snd rn) ud)
+                     |> fold (add_e_ud ern ud)
                     (E.NSet.list_of (Graph.get_enames sarg))
                     |> fold (add_b_ud ud) 
                     ( Graph.get_bbox_list sarg)

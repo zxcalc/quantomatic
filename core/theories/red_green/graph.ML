@@ -21,6 +21,13 @@ structure RG_GraphParam
   exception match_exp of unit;
   exception unknown_type_exp of string;
 
+  fun subst_xname_in_vdata n1 n2 d =
+    RG_InternVData.map_to_angle 
+      (untryify (LinratAngleExpr.try_rename1 n1 n2)) d 
+    handle tryify_failed () => 
+      raise X.Rnm.invalid_renaming_exp "subst_xname_in_vdata";
+  fun subst_xname_in_edata n1 n2 d = d;
+
   fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
@@ -83,36 +90,6 @@ structure RG_GraphParam
 
   fun of_vertex vd vn = add_vertex vd vn VDep.empty;
   fun of_edge en ed = empty;
-
-  (* renaming internal names within a vertex *)
-  structure VDataCRnmX : COMPOUND_RENAMING
-  = struct 
-    type obj = VData.data
-    type renaming = X.Rnm.T
-
-    val empty_renaming = CRnmX.empty_renaming
-
-    fun rename rnm vd = 
-        (case RG_InternVData.angle_of_data vd of NONE => (rnm,vd)
-         | SOME angle => 
-           let val (rnm',angle') = LinratAngleExpr.CRnm.rename rnm angle
-           in (rnm', RG_InternVData.map_to_angle (K angle') vd) end)
-
-    fun mk_renaming vd rnm = 
-        (case RG_InternVData.angle_of_data vd of NONE => rnm
-         | SOME angle => LinratAngleExpr.CRnm.mk_renaming angle rnm);
-
-    fun do_renaming rnm vd = 
-        (case RG_InternVData.angle_of_data vd of NONE => vd
-         | SOME angle => 
-           RG_InternVData.map_to_angle (LinratAngleExpr.CRnm.do_renaming rnm) vd);
-
-    val restrict_to_avoiding = X.Rnm.restrict_to_avoiding;
-  end;
-
-  (* rename internal names within an edge data *)
-  structure EDataCRnmX : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = X type obj = EData.data);
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
