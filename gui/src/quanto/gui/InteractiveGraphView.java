@@ -880,6 +880,20 @@ public class InteractiveGraphView
 	     }
 	}
 
+	public void setVertexPositionData(Vertex v) {
+	     try {
+	          core.startUndoGroup(getGraph());
+	          Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D new_p = new Point2D.Double(X, Y);
+	          pds.setVertexUserData(getCore().getTalker(), getGraph(), v.getCoreName(), new_p);
+	          core.endUndoGroup(getGraph());
+	     } catch (CoreException e) {
+	          errorDialog(e.getMessage());
+	     }
+	}
+	
 	public void setVerticesPositionData() {
 	     CoreGraph graph = getGraph();
 	     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
@@ -938,21 +952,19 @@ public class InteractiveGraphView
 	
 	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
 		core.updateGraph(getGraph());
-		for(Vertex v: getGraph().getVertices())	{	
-			if(verticesCache.get(v.getCoreName())!=null) {
-				Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-				Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
-				if (p != null) {
-					viewer.getGraphLayout().setLocation(v, p);
-				} else {
-					viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
-				}
-				viewer.getGraphLayout().lock(v, true);
-			}			
-		}
 		int count=0;
-		for(Vertex v: getGraph().getVertices())	{					
-			if(verticesCache.get(v.getCoreName())==null) {
+		for(Vertex v: getGraph().getVertices())	{
+		     if(verticesCache.get(v.getCoreName())!=null) {
+                    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+                    if (p != null) {
+                         viewer.getGraphLayout().setLocation(v, p);
+                    } else {
+                         viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+                    }
+                    viewer.getGraphLayout().lock(v, true);
+               }
+		     else {
 				if(rewriteRect!=null) {
 				     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
 	                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
@@ -961,13 +973,12 @@ public class InteractiveGraphView
 	                         viewer.getGraphLayout().lock(v, true);
 	                    } else {
 	                         viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
-	                         setVerticesPositionData();
+	                         setVertexPositionData(v);
 	                         count++;
 	                    }
 				}
-            }
+			}
 		}
-		
 		forceLayout.startModify();
 		viewer.modifyLayout();
 		forceLayout.endModify();
