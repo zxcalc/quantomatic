@@ -21,7 +21,6 @@ structure Str_GraphParam
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
 
-  (* IMPROVE: what data do we want here? should it be add_exp *)
   exception match_exp of unit;
   exception unknown_type_exp of string;
   (* raises match_exp *)

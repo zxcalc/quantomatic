@@ -142,8 +142,8 @@ struct
   (* empty name-dependency information *)
   val empty = ();
   fun get_xnames d = X.NSet.empty;
-  fun subst_xname_in_vdata n1 n2 _ = () 
-  fun subst_xname_in_edata n1 n2 _ = () 
+  fun subst_xname_in_vdata n1 n2 d = d
+  fun subst_xname_in_edata n1 n2 d = d 
   fun add_vertex vd vn vdep = vdep;
   fun add_edge ed en vdep = vdep;
   fun of_vertex vd vn = empty;
