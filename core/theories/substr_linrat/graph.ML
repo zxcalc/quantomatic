@@ -17,6 +17,10 @@ structure SUBSTR_LINRAT_GraphParam
   (* internal name data *)
   type T = VDep.T;
 
+  (* pretty printing *)
+  val pretty = VDep.pretty;
+  val print = VDep.print;
+
   (* IMPROVE: what data do we want here? should it be add_exp *)
   exception match_exp of unit;
   exception unknown_type_exp of string;

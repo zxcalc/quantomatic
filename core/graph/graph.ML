@@ -481,7 +481,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     structure Nm = X
     type obj = T
     val try_rename1 = try_rename1_xname;
-    val get_nameset = get_xnames
+    val get_nameset = get_xnames;
   end);
   
   (*  *) 

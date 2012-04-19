@@ -35,6 +35,11 @@ functor OGraphParam(
   (* internal name data *)
   type T = Param.T;
 
+  
+  (* pretty printing *)
+  val pretty = Param.pretty;
+  val print = Param.print;
+
   val get_xnames = Param.get_xnames;
 
   val dep_vnames_of_xname = Param.dep_vnames_of_xname;

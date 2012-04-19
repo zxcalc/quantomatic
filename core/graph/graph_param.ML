@@ -71,6 +71,11 @@ signature GRAPH_PARAM
   (* no vertex names, no internal variable names *)
   val empty : T
 
+  (* pretty printing *)
+  val pretty : T -> Pretty.T
+  val print : T -> unit
+
+  (*  *)
   val add_vertex : VData.data -> V.name -> T -> T 
   val add_edge : EData.data -> E.name -> T -> T
 
@@ -129,6 +134,7 @@ end;
 
 (* functor that takes away the work when the vertices and edges have no 
    internal data. *)
+(* TODO: make this have a signature & fit into GRAPH_PARAM signature. *)
 functor NoInternalDataGraphParam(type vdata type edata) = 
 struct 
   type T = unit;
@@ -139,6 +145,11 @@ struct
   (* INTERNAL NAME DEPENDENCIES *)
   (* internal name data *)
   type T = unit;
+  
+  (* pretty printing *)
+  fun pretty () = Pretty.str "()";
+  val print = Pretty.writeln o pretty;
+  
   (* empty name-dependency information *)
   val empty = ();
   fun get_xnames d = X.NSet.empty;

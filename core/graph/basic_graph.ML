@@ -266,10 +266,10 @@ fun add_named_vertex n nd g =
             V.NTab.add (n,(nd,(E.NSet.empty,E.NSet.empty))) 
                             (get_vertices g)
     in (n2, g |> set_vertices vertices2
-              |> update_param (Param.add_vertex nd n)) 
+              |> update_param (Param.add_vertex nd n2)) 
     end;
 
-(* implicit arg: g *)
+(* implicit arg: g; raises V.NSet.duplicate_exp *)
 fun new_named_vertex n d =
     update_vertices 
       (V.NTab.ins (n,(d,(E.NSet.empty,E.NSet.empty))))
@@ -299,7 +299,7 @@ fun add_named_edge en (e as (bd,d)) n1 n2 g =
       (* give back new edge name and new graph *)
     in (en2, g |> set_vertices vertices2
                |> set_edges edges2
-               |> update_param (Param.add_edge d en)) 
+               |> update_param (Param.add_edge d en2)) 
     end;
 
 (* implicit args: en g *)
@@ -355,6 +355,9 @@ exception rename_do_nothing_exp of unit;
 fun rename_xname n1 n2 g =
     let 
       val param = get_param g;
+      (* val _ = if X.NSet.contains (Param.get_xnames param) n2 then 
+                raise xname_already_exists_exp (n2,g)
+              else (); *)
       val vnames_to_update = Param.dep_vnames_of_xname param n1 
       val enames_to_update = Param.dep_enames_of_xname param n1
     in 

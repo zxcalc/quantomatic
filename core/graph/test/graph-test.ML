@@ -17,6 +17,10 @@ structure Test_GraphParam
   (* internal name data *)
   type T = VDep.T;
 
+  (* pretty printing *)
+  val pretty = VDep.pretty;
+  val print = VDep.print;
+  
   (* IMPROVE: what data do we want here? should it be add_exp *)
   exception match_exp of unit;
   exception unknown_type_exp of string;
@@ -327,6 +331,13 @@ local
     val _ = (writeln "g before renaming: "; G.print g);
     val g = g |> G.rename_xname (X.mk "x") (X.mk "y");
     val _ = (writeln "g after renaming: "; G.print g);
+    
+    val _ = Testing.test "vname dep is the right singleton after renaming" 
+    (fn () => let 
+      val dep_v_name = the (V.NSet.tryget_singleton 
+          (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "y"))); 
+      val true = V.name_eq (n_x2, dep_v_name); 
+      in () end) ();
   in (g,n_x2) end;
 
   val _ = Testing.test "Single variable was renamed in dependencies" 
@@ -360,9 +371,11 @@ local
     val (e0, g) = g |> G.add_edge undir_edge x1 b1;
     val xnames = G.get_xnames g;
     val _ = (writeln "graph before renaming: "; G.print g);
+    val _ = (writeln "\n"; G.Param.print (G.get_param g));
     val xrn = X.Rnm.mk_from_avoids xnames;
     val (xrn', g') = G.CRnmX.rename xrn g;
-    val _ = (writeln "renaming: "; X.Rnm.print xrn');
+    val _ = (writeln "\n"; X.Rnm.print xrn');
+    val _ = (writeln "\n"; G.Param.print (G.get_param g'));
     val _ = (writeln "graph after renaming: "; G.print g');
     val xnames' = G.get_xnames g';
     val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
