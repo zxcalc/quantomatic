@@ -7,7 +7,7 @@ structure DB_RTechn_VertexData
 = struct
 
   datatype data =  RTechnNode of RTechnKey.name
-                 | GoalNode of  StrIntName.name  (* goal/wire type *)
+                 | GoalNode of  StrName.name  (* goal/wire type *)
                               * StrIntName.NSet.T; (* goal names of this type *)
                   (* was GoalNode.T  *)
 
@@ -15,7 +15,7 @@ structure DB_RTechn_VertexData
   fun data_ord (GoalNode _, RTechnNode _) = LESS
     | data_ord (RTechnNode _, GoalNode _) = GREATER
     | data_ord (GoalNode tss1, GoalNode tss2) = 
-      prod_ord StrIntName.name_ord StrIntName.NSet.ord (tss1,tss2)
+      prod_ord StrName.name_ord StrIntName.NSet.ord (tss1,tss2)
     | data_ord (RTechnNode s1, RTechnNode s2) = StrName.name_ord (s1,s2);
 
   (* equality check (should agree with order):
@@ -30,7 +30,7 @@ structure DB_RTechn_VertexData
                      Pretty.str ")"]
     | pretty_data (GoalNode (t,nset)) =  
       Pretty.block [ Pretty.str "GoalNode(", 
-                     StrIntName.pretty_name t, Pretty.str ", ",
+                     StrName.pretty_name t, Pretty.str ", ",
                      StrIntName.NSet.pretty nset, Pretty.str ")"];
   val print_data = Pretty.writeln o pretty_data;
   
@@ -46,7 +46,7 @@ structure DB_RTechn_VertexData
     | match_data (ss as (RTechnNode s1, RTechnNode s2)) subst =  
       if String.isPrefix s1 s2 then SOME subst else NONE
     | match_data (ss as (GoalNode (s1,_), GoalNode (s2,_))) subst =  
-      if String.isPrefix (fst s1) (fst s2) then SOME subst else NONE; 
+      if String.isPrefix s1 s2 then SOME subst else NONE; 
   (* unification: if x matches y, and y matches x (with the same subst) *) 
   (* for string prefix, x and y must be the same string *)
   fun unify_data xy subst = if data_eq xy then SOME subst else NONE;

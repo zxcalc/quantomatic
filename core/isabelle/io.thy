@@ -1,5 +1,5 @@
 theory io
-imports Main graph
+imports Main graph 
 uses
 
 (* TODO(ldixon): push the edits to xml.ML back to Isabelle -
@@ -25,10 +25,15 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* component data needs to go before I/O for graphs *)
  "../../core/theories/component_data.ML"
 
+(* Storing UI data on graphs, vertices, !-Boxes and edges *)
+ "../../core/interface/user_data.ML"
+
 (* I/O for graphs *)
+ "../../core/io/input_user_data.ML"
  "../../core/io/output_user_data.ML"
  "../../core/io/input_graph_v2.ML"
  "../../core/io/output_graph_v2.ML"
+ "../../core/io/input_ruleset_user_data.ML"
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
  "../../core/rewriting/rule.ML"
