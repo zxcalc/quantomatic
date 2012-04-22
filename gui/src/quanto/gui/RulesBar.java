@@ -236,13 +236,13 @@ public class RulesBar extends JPanel {
 
             public void actionPerformed(ActionEvent e) {
                  String name = JOptionPane.showInputDialog(RulesBar.this, "Rule name:", ruleName + "-rev");
-                 if (ruleName == null) {
+                 if (name == null) {
                      return;
                  }
                  
                  try {
                       Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
-                      rule = new Rule<CoreGraph>(ruleName, rule.getRhs(), rule.getLhs());
+                      rule = RulesBar.this.ruleset.getCore().createRule(name, rule.getRhs(), rule.getLhs());
                       SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
                       RulesBar.this.viewPort.getViewManager().addView(spg);
                       RulesBar.this.viewPort.attachView(spg);
