@@ -66,6 +66,10 @@ import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.protocol.CopyOfUserDataSerializer;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
+import quanto.core.strategies.DFSStrategy;
+import quanto.core.strategies.QuantoStrategy;
+import quanto.core.strategies.RandomStrategy;
+import quanto.core.strategies.SimpleMetrics;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
 import quanto.gui.graphhelpers.Labeler;
@@ -95,6 +99,8 @@ public class InteractiveGraphView
 	private QuantoForceLayout forceLayout;
 	private QuantoDotLayout initLayout;
 
+	private QuantoStrategy strategy = null;
+	
 	public boolean viewHasParent() {
 		return this.getParent() != null;
 	}
@@ -435,7 +441,8 @@ public class InteractiveGraphView
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
-
+		//FIXME WE whould make the choice of the strategy a global preference
+		strategy = new DFSStrategy(core, new SimpleMetrics(), 0);
 		Relaxer r = viewer.getModel().getRelaxer();
 		if (r != null) {
 			r.setSleepTime(10);
@@ -1064,6 +1071,15 @@ public class InteractiveGraphView
 			}
 		}
 
+		private void attachAllRewrites() {
+			try {
+				core.attachRewrites(getGraph(), getGraph().getVertices());
+			}
+			catch (CoreException e) {
+                coreErrorDialog("Could not attach the next rewrite", e);
+			}
+		}
+		
 		private void invokeHighlightSubgraphAndWait(CoreGraph subgraph)
 			throws InterruptedException {
 			highlight = true;
@@ -1125,19 +1141,19 @@ public class InteractiveGraphView
 			try {
 				// FIXME: communicating with the core: is this
 				//        really threadsafe?  Probably not.
-				attachNextRewrite();
+				
+				attachAllRewrites();
 				List<AttachedRewrite<CoreGraph>> rws = getRewrites();
 				int count = 0;
-				Random r = new Random();
 				int rw = 0;
 				while (rws.size() > 0
 					&& !Thread.interrupted()) {
-					rw = r.nextInt(rws.size());
+					rw = strategy.getNext(rws, getGraph());
 					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
 					sleep(1500);
 					invokeApplyRewriteAndWait(rw);	
 					++count;
-					attachNextRewrite();
+					attachAllRewrites();
 					rws = getRewrites();
 				}
 				
