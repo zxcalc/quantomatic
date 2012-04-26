@@ -95,7 +95,7 @@ struct
   in Tensor.add term1 term2
   end
   
-  val zero = LinratExpr.zero
+  val zero = LinratAngleExpr.zero
   
   fun tensor_for_vertex_data (Graph.OVData.IVert (RG_InternVData.Xnd _)) io = gen red_basis io
     | tensor_for_vertex_data (Graph.OVData.IVert (RG_InternVData.Znd _)) io = gen green_basis io
@@ -186,7 +186,7 @@ fun rule_data flhs frhs = (R.NTab.map_all (fn _ => fn r => (flhs r, frhs r) ))
 val rg_data = {
   name = "RG",
   dotfun = RG_OutputGraphDot.output,
-  gens = RG_Gens.gen_list 4 [RG_VertexData.Znd LinratExpr.zero, RG_VertexData.Xnd LinratExpr.zero],
+  gens = RG_Gens.gen_list 4 [RG_VertexData.Znd LinratAngleExpr.zero, RG_VertexData.Xnd LinratExpr.zero],
   synth = RG_NoPhaseSynth.synth
 }
 *)
