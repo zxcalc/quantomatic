@@ -186,7 +186,7 @@ fun rule_data flhs frhs = (R.NTab.map_all (fn _ => fn r => (flhs r, frhs r) ))
 val rg_data = {
   name = "RG",
   dotfun = RG_OutputGraphDot.output,
-  gens = RG_Gens.gen_list 4 [RG_VertexData.Znd LinratAngleExpr.zero, RG_VertexData.Xnd LinratExpr.zero],
+  gens = RG_Gens.gen_list 4 [RG_VertexData.Znd LinratAngleExpr.zero, RG_VertexData.Xnd LinratAngleExpr.zero],
   synth = RG_NoPhaseSynth.synth
 }
 *)
