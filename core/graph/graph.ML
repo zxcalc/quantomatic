@@ -8,11 +8,6 @@ sig
 
 include BASIC_GRAPH
 
-(* renaming internal names in a graph *)
-structure CRnmX : COMPOUND_RENAMING
-  sharing type CRnmX.obj = T
-  sharing type CRnmX.renaming = Param.CRnmX.renaming
-
 (* graph has not vertices (and thus no edges) *)
 val is_empty : T -> bool 
 
@@ -72,21 +67,25 @@ val has_vname : T -> V.name -> bool;
 val has_ename : T -> E.name -> bool;
 
 (* renaming *)
-val try_rename1_ename : E.name -> E.name -> T -> T option
+val try_rename1_xname : X.name -> X.name -> T -> T option
 val try_rename1_vname : V.name -> V.name -> T -> T option
+val try_rename1_ename : E.name -> E.name -> T -> T option
 
+(* renaming internal names in a graph, used for variables within a vertex. *)
+structure CRnmX : COMPOUND_RENAMING
+where type obj = T and type renaming = X.Rnm.T
 structure VertexCRnm : COMPOUND_RENAMING 
 where type obj = T and type renaming = V.Rnm.T
 structure EdgeCRnm : COMPOUND_RENAMING 
 where type obj = T and type renaming = E.Rnm.T
 
-val rename : (V.renaming * E.renaming) -> T 
-    -> (V.renaming * E.renaming) * T 
+val rename : (X.renaming * V.renaming * E.renaming) -> T 
+    -> (X.renaming * V.renaming * E.renaming) * T 
 (* rename the 2nd graph to avoid all names in the first one *)
-val rename_apart : T -> T -> (V.renaming * E.renaming) * T 
+val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T 
 
 (* rename internal data apart *)
-val rename_graph_data_apart : T -> T -> CRnmX.renaming * T 
+(* val rename_graph_data_apart : T -> T -> CRnmX.renaming * T *) 
 
 (* 
 val rename_vnames : V.NSet.T -> V.renaming * T -> V.renaming * T
@@ -396,6 +395,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                   delete_vertex
                   (get_vnames subg));
   
+  fun try_rename1_xname en1 en2 g = 
+      SOME (rename_xname en1 en2 g)
+      handle xname_already_exists_exp _ => NONE;
+
   fun try_rename1_vname en1 en2 g = 
       SOME (rename_vname en1 en2 g)
       handle vname_already_exists_exp _ => NONE;
@@ -421,26 +424,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     val get_nameset = get_enames
   end);
   
-  (*  *)
-  fun rename (vrn,ern) g = 
-      let 
-        val (vrn2,g') = VertexCRnm.rename vrn g
-        val (ern2,g'') = EdgeCRnm.rename ern g'
-      in ((vrn2,ern2),g'') end;
-  
-  (* rename g2 apart from g1 *)
-  fun rename_apart g1 g2 = 
-      let 
-        val vrn = V.Rnm.mk_from_avoids 
-            (V.NSet.union_merge (get_vnames g1) (get_vnames g2))
-        val ern = E.Rnm.mk_from_avoids 
-            (E.NSet.union_merge (get_enames g1) (get_enames g2))
-      in rename (vrn,ern) g2 end;
-  
   (* rename internal data apart *)
   (* IMPROVE: don't do the slow fold over everything; use dependency info in 
      NameDeps to rename only the needed parts, etc. *)
-  structure CRnmX : COMPOUND_RENAMING
+  (* structure CRnmX : COMPOUND_RENAMING
   = struct 
     type obj = T
     type renaming = Param.CRnmX.renaming;
@@ -479,14 +466,44 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
              (get_edges g));
     
     val restrict_to_avoiding = Param.CRnmX.restrict_to_avoiding;
-  end;
+  end; *)
   
-  (* *)
+  (*
   fun rename_graph_data_apart g1 g2 = 
       let val rnm = CRnmX.restrict_to_avoiding 
                       (CRnmX.mk_renaming g1 CRnmX.empty_renaming)
       in CRnmX.rename rnm g2 end;
+  *)
+   
+  structure CRnmX : COMPOUND_RENAMING
+  = CompoundRenamingFun(
+  struct 
+    structure Nm = X
+    type obj = T
+    val try_rename1 = try_rename1_xname;
+    val get_nameset = get_xnames;
+  end);
   
+  (*  *) 
+  fun rename (xrn,vrn,ern) g1 = 
+      let 
+        val (xrn2,g2) = CRnmX.rename xrn g1
+        val (vrn2,g3) = VertexCRnm.rename vrn g2
+        val (ern2,g4) = EdgeCRnm.rename ern g3
+      in ((xrn2,vrn2,ern2),g4) end;
+  
+  (* rename g2 apart from g1 *)
+  fun rename_apart g1 g2 = 
+      let 
+        val xrn = X.Rnm.mk_from_avoids 
+            (X.NSet.union_merge (get_xnames g1) (get_xnames g2))
+        val vrn = V.Rnm.mk_from_avoids 
+            (V.NSet.union_merge (get_vnames g1) (get_vnames g2))
+        val ern = E.Rnm.mk_from_avoids 
+            (E.NSet.union_merge (get_enames g1) (get_enames g2))
+      in rename (xrn,vrn,ern) g2 end;   
+      
+      
   (* fold: pass over every vertex (fv) edge between the selected vertices 
      (fe_in); and over every edge going out of the selected vertex set (fe_out).
      There is an invariant which is that edges are considered only after at 

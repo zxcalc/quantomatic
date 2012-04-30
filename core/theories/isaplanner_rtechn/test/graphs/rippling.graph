@@ -1,0 +1,311 @@
+<?xml version="1.0"?>
+<graph>
+<vertex name="split_id"><type>RT</type><data><string_of>split_if</string_of></data></vertex>
+<vertex name="simp_no_asm_simp_changee"><type>RT</type><data><string_of>simp_no_asm_simp_changed</string_of></data></vertex>
+<vertex name="simp_no_asm_simp_changed"><type>RT</type><data><string_of>simp_no_asm_simp_changed</string_of></data></vertex>
+<vertex name="rippling.weak_fert_subst_in_rhs"><type>RT</type><data><string_of>rippling.weak_fert_subst_in_rhs</string_of></data></vertex>
+<vertex name="rippling.weak_fert_subst_in_lhs"><type>RT</type><data><string_of>rippling.weak_fert_subst_in_lhs</string_of></data></vertex>
+<vertex name="rippling.weak_fert_subst_eq_sym_false"><type>RT</type><data><string_of>rippling.weak_fert_subst_eq_sym_false</string_of></data></vertex>
+<vertex name="rippling.weak_fert_subst_eq_sym_true"><type>RT</type><data><string_of>rippling.weak_fert_subst_eq_sym_true</string_of></data></vertex>
+<vertex name="rippling.strong_fert"><type>RT</type><data><string_of>rippling.strong_fert</string_of></data></vertex>
+<vertex name="rippling.start_rippling"><type>RT</type><data><string_of>rippling.start_rippling</string_of></data></vertex>
+<vertex name="rippling.ripple_step"><type>RT</type><data><string_of>rippling.ripple_step</string_of></data></vertex>
+<vertex name="rippling.id_base"><type>RT</type><data><string_of>rippling.id_base</string_of></data></vertex>
+<vertex name="rippling.get_and_filter_equality_skeletons"><type>RT</type><data><string_of>rippling.get_and_filter_equality_skeletons</string_of></data></vertex>
+<vertex name="rippling.filter_equality_goals"><type>RT</type><data><string_of>rippling.filter_equality_goals</string_of></data></vertex>
+<vertex name="rippling.fertilisation_split"><type>RT</type><data><string_of>rippling.fertilisation_split</string_of></data></vertex>
+<vertex name="merge_ij"><type>RT</type><data><string_of>merge_ij</string_of></data></vertex>
+<vertex name="merge_ii"><type>RT</type><data><string_of>merge_ii</string_of></data></vertex>
+<vertex name="merge_ih"><type>RT</type><data><string_of>merge_ih</string_of></data></vertex>
+<vertex name="merge_ig"><type>RT</type><data><string_of>merge_ig</string_of></data></vertex>
+<vertex name="merge_if"><type>RT</type><data><string_of>merge_if</string_of></data></vertex>
+<vertex name="merge_ie"><type>RT</type><data><string_of>merge_ie</string_of></data></vertex>
+<vertex name="merge_id"><type>RT</type><data><string_of>merge_id</string_of></data></vertex>
+<vertex name="Vh"><type>edge-point</type><data/>
+</vertex>
+<vertex name="Vf"><type>edge-point</type><data/>
+</vertex>
+<vertex name="Ve"><type>edge-point</type><data/>
+</vertex>
+<vertex name="Va"><type>edge-point</type><data/>
+</vertex>
+<vertex name="induct"><type>RT</type><data><string_of>induct</string_of></data></vertex>
+<vertex name="os"><type>RT</type><data><string_of>os</string_of></data></vertex>
+<vertex name="or"><type>RT</type><data><string_of>or</string_of></data></vertex>
+<vertex name="ba">
+<type>Gs</type>
+<data><string_of>
+block indent=2 {}</string_of></data></vertex>
+<vertex name="az"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ay"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ax"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="aw"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="av"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="au"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="at"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="as"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ar"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="aq"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ap"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ao"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="an"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="am"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="al"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ak"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="aj"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ai"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ah"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ag"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="af"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ae"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ad"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ac"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="ab"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="aa"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="z"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="y"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="x"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="w"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="v"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="u"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="t"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="s"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="r"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="q"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="p"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="o"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<vertex name="l"><type>Gs</type><data><string_of>blockindent=2{}</string_of></data></vertex>
+<edge name="result.skeleton0.snd1" dir="true" source="os" target="aj"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton0.snd0" dir="true" source="or" target="z"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton0.fst1" dir="true" source="os" target="af"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton0.fst0" dir="true" source="or" target="v"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton11" dir="true" source="am" target="or"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton10" dir="true" source="split_id" target="am"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton9" dir="true" source="p" target="split_id"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton7" dir="true" source="af" target="rippling.weak_fert_subst_eq_sym_true"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton6" dir="true" source="aj" target="rippling.weak_fert_subst_eq_sym_false"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton5" dir="true" source="v" target="rippling.weak_fert_subst_in_lhs"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton4" dir="true" source="ao" target="os"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton3" dir="true" source="z" target="rippling.weak_fert_subst_in_rhs"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton2" dir="true" source="split_id" target="ao"><type>String</type><data/>
+</edge>
+<edge name="result.skeleton0" dir="true" source="rippling.get_and_filter_equality_skeletons" target="p"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown14" dir="true" source="y" target="merge_ie"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown13" dir="true" source="rippling.weak_fert_subst_in_lhs" target="y"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown12" dir="true" source="merge_ii" target="as"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown11" dir="true" source="ae" target="merge_ii"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown10" dir="true" source="merge_ig" target="ae"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown9" dir="true" source="ac" target="merge_ig"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown8" dir="true" source="rippling.weak_fert_subst_eq_sym_false" target="ac"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown7" dir="true" source="ai" target="merge_ig"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown6" dir="true" source="rippling.weak_fert_subst_eq_sym_true" target="ai"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown5" dir="true" source="u" target="merge_ii"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown4" dir="true" source="merge_ie" target="u"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown3" dir="true" source="s" target="merge_ie"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown2" dir="true" source="rippling.weak_fert_subst_in_rhs" target="s"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown1" dir="true" source="au" target="Ve"><type>String</type><data/>
+</edge>
+<edge name="goal.unknown0" dir="true" source="rippling.ripple_step" target="au"><type>String</type><data/>
+</edge>
+<edge name="goal.step3" dir="true" source="az" target="rippling.start_rippling"><type>String</type><data/>
+</edge>
+<edge name="goal.step0" dir="true" source="induct" target="az"><type>String</type><data/>
+</edge>
+<edge name="goal.simp5" dir="true" source="ax" target="Vh"><type>String</type><data/>
+</edge>
+<edge name="goal.simp4" dir="true" source="merge_ij" target="ax"><type>String</type><data/>
+</edge>
+<edge name="goal.simp3" dir="true" source="al" target="merge_ij"><type>String</type><data/>
+</edge>
+<edge name="goal.simp2" dir="true" source="simp_no_asm_simp_changee" target="al"><type>String</type><data/>
+</edge>
+<edge name="goal.simp1" dir="true" source="o" target="merge_ij"><type>String</type><data/>
+</edge>
+<edge name="goal.simp0" dir="true" source="simp_no_asm_simp_changed" target="o"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.end3" dir="true" source="at" target="rippling.fertilisation_split"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.end0" dir="true" source="rippling.ripple_step" target="at"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.noteq0.snd0" dir="true" source="os" target="ak"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.noteq0.fst0" dir="true" source="os" target="ag"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.noteq5" dir="true" source="ag" target="rippling.weak_fert_subst_eq_sym_true"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.noteq4" dir="true" source="aw" target="os"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.noteq3" dir="true" source="ak" target="rippling.weak_fert_subst_eq_sym_false"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.noteq0" dir="true" source="rippling.filter_equality_goals" target="aw"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.eq0.snd0" dir="true" source="or" target="aa"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.eq0.fst0" dir="true" source="or" target="w"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.eq5" dir="true" source="w" target="rippling.weak_fert_subst_in_lhs"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.eq4" dir="true" source="an" target="or"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.eq3" dir="true" source="aa" target="rippling.weak_fert_subst_in_rhs"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0.eq0" dir="true" source="rippling.filter_equality_goals" target="an"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully5" dir="true" source="ap" target="rippling.filter_equality_goals"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully4" dir="true" source="q" target="rippling.get_and_filter_equality_skeletons"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully2" dir="true" source="rippling.get_and_filter_equality_skeletons" target="ap"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.not_fully0" dir="true" source="rippling.fertilisation_split" target="q"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.fully3" dir="true" source="aq" target="rippling.strong_fert"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0.fully0" dir="true" source="rippling.fertilisation_split" target="aq"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active4" dir="true" source="av" target="rippling.ripple_step"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active2" dir="true" source="rippling.ripple_step" target="av"><type>String</type><data/>
+</edge>
+<edge name="goal.rippling.active0" dir="true" source="rippling.start_rippling" target="av"><type>String</type><data/>
+</edge>
+<edge name="goal.inductable1" dir="true" source="l" target="induct"><type>String</type><data/>
+</edge>
+<edge name="goal.inductable0" dir="true" source="Va" target="l"><type>String</type><data/>
+</edge>
+<edge name="goal.conds14" dir="true" source="x" target="merge_id"><type>String</type><data/>
+</edge>
+<edge name="goal.conds13" dir="true" source="rippling.weak_fert_subst_in_lhs" target="x"><type>String</type><data/>
+</edge>
+<edge name="goal.conds12" dir="true" source="merge_ih" target="as"><type>String</type><data/>
+</edge>
+<edge name="goal.conds11" dir="true" source="ad" target="merge_ih"><type>String</type><data/>
+</edge>
+<edge name="goal.conds10" dir="true" source="merge_if" target="ad"><type>String</type><data/>
+</edge>
+<edge name="goal.conds9" dir="true" source="ab" target="merge_if"><type>String</type><data/>
+</edge>
+<edge name="goal.conds8" dir="true" source="rippling.weak_fert_subst_eq_sym_false" target="ab"><type>String</type><data/>
+</edge>
+<edge name="goal.conds7" dir="true" source="ah" target="merge_if"><type>String</type><data/>
+</edge>
+<edge name="goal.conds6" dir="true" source="rippling.weak_fert_subst_eq_sym_true" target="ah"><type>String</type><data/>
+</edge>
+<edge name="goal.conds5" dir="true" source="t" target="merge_ih"><type>String</type><data/>
+</edge>
+<edge name="goal.conds4" dir="true" source="merge_id" target="t"><type>String</type><data/>
+</edge>
+<edge name="goal.conds3" dir="true" source="r" target="merge_id"><type>String</type><data/>
+</edge>
+<edge name="goal.conds2" dir="true" source="rippling.weak_fert_subst_in_rhs" target="r"><type>String</type><data/>
+</edge>
+<edge name="goal.conds1" dir="true" source="ar" target="Vf"><type>String</type><data/>
+</edge>
+<edge name="goal.conds0" dir="true" source="rippling.strong_fert" target="ar"><type>String</type><data/>
+</edge>
+<edge name="goal.base4" dir="true" source="ay" target="rippling.id_base"><type>String</type><data/>
+</edge>
+<edge name="goal.base2" dir="true" source="rippling.id_base" target="ba"><type>String</type><data/>
+</edge>
+<edge name="goal.base0" dir="true" source="induct" target="ay"><type>String</type><data/>
+</edge>
+<edge name="goal2" dir="true" source="as" target="simp_no_asm_simp_changee"><type>String</type><data/>
+</edge>
+<edge name="goal1" dir="true" source="ba" target="simp_no_asm_simp_changed"><type>String</type><data/>
+</edge>
+<user_data><vertex_data name="split_id"/>
+<vertex_data name="simp_no_asm_simp_changee"/>
+<vertex_data name="simp_no_asm_simp_changed"/>
+<vertex_data name="rippling.weak_fert_subst_in_rhs"/>
+<vertex_data name="rippling.weak_fert_subst_in_lhs"/>
+<vertex_data name="rippling.weak_fert_subst_eq_sym_false"/>
+<vertex_data name="rippling.weak_fert_subst_eq_sym_true"/>
+<vertex_data name="rippling.strong_fert"/>
+<vertex_data name="rippling.start_rippling"/>
+<vertex_data name="rippling.ripple_step"/>
+<vertex_data name="rippling.id_base"/>
+<vertex_data name="rippling.get_and_filter_equality_skeletons"/>
+<vertex_data name="rippling.filter_equality_goals"/>
+<vertex_data name="rippling.fertilisation_split"/>
+<vertex_data name="merge_ij"/>
+<vertex_data name="merge_ii"/>
+<vertex_data name="merge_ih"/>
+<vertex_data name="merge_ig"/>
+<vertex_data name="merge_if"/>
+<vertex_data name="merge_ie"/>
+<vertex_data name="merge_id"/>
+<vertex_data name="Vh"/>
+<vertex_data name="Vf"/>
+<vertex_data name="Ve"/>
+<vertex_data name="Va"/>
+<vertex_data name="induct"/>
+<vertex_data name="os"/>
+<vertex_data name="or"/>
+<vertex_data name="ba"/>
+<vertex_data name="az"/>
+<vertex_data name="ay"/>
+<vertex_data name="ax"/>
+<vertex_data name="aw"/>
+<vertex_data name="av"/>
+<vertex_data name="au"/>
+<vertex_data name="at"/>
+<vertex_data name="as"/>
+<vertex_data name="ar"/>
+<vertex_data name="aq"/>
+<vertex_data name="ap"/>
+<vertex_data name="ao"/>
+<vertex_data name="an"/>
+<vertex_data name="am"/>
+<vertex_data name="al"/>
+<vertex_data name="ak"/>
+<vertex_data name="aj"/>
+<vertex_data name="ai"/>
+<vertex_data name="ah"/>
+<vertex_data name="ag"/>
+<vertex_data name="af"/>
+<vertex_data name="ae"/>
+<vertex_data name="ad"/>
+<vertex_data name="ac"/>
+<vertex_data name="ab"/>
+<vertex_data name="aa"/>
+<vertex_data name="z"/>
+<vertex_data name="y"/>
+<vertex_data name="x"/>
+<vertex_data name="w"/>
+<vertex_data name="v"/>
+<vertex_data name="u"/>
+<vertex_data name="t"/>
+<vertex_data name="s"/>
+<vertex_data name="r"/>
+<vertex_data name="q"/>
+<vertex_data name="p"/>
+<vertex_data name="o"/>
+<vertex_data name="l"/>
+<graph_data/>
+</user_data></graph>

@@ -35,6 +35,21 @@ functor OGraphParam(
   (* internal name data *)
   type T = Param.T;
 
+  
+  (* pretty printing *)
+  val pretty = Param.pretty;
+  val print = Param.print;
+
+  val get_xnames = Param.get_xnames;
+
+  val dep_vnames_of_xname = Param.dep_vnames_of_xname;
+  val dep_enames_of_xname = Param.dep_enames_of_xname;
+  
+  val subst_xname_in_vdata = 
+      OVData.apply_to_idata oo Param.subst_xname_in_vdata;
+  val subst_xname_in_edata = Param.subst_xname_in_edata;
+  
+  val rename_xname = Param.rename_xname;
   val rename_vname = Param.rename_vname;
   val rename_ename = Param.rename_ename;
   
@@ -52,11 +67,11 @@ functor OGraphParam(
           | SOME idata => Param.add_vertex idata vn vdep);
   val add_edge = Param.add_edge;
 
-  val delete_vertex = Param.delete_vertex;
-  val delete_edge = Param.delete_edge;
+  val delete_vname = Param.delete_vname;
+  val delete_ename = Param.delete_ename;
 
   fun replace_vertex vd vn vdep = 
-      vdep |> delete_vertex vn
+      vdep |> delete_vname vn
            |> add_vertex vd vn;
   val replace_edge = Param.replace_edge;
 
@@ -64,16 +79,16 @@ functor OGraphParam(
   val of_edge = Param.of_edge;
 
   (* renaming internal names within a vertex *)
-  structure VDataCRnmX : COMPOUND_RENAMING
+  (* structure VDataCRnmX : COMPOUND_RENAMING
   = EmbedCompoundRenaming(
     structure Crnm = Param.VDataCRnmX
     type T = OVData.data
     val update = OVData.apply_to_idata
     val try_to_get = OVData.idata_of
   );
-
+  *)
   (* rename internal names within an edge data *)
-  structure EDataCRnmX = Param.EDataCRnmX;
+  (* structure EDataCRnmX = Param.EDataCRnmX; *)
 
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
@@ -81,7 +96,7 @@ functor OGraphParam(
 
   val empty_subst = Param.empty_subst; (* : IName.NTab.empty; *)
   val compose_subst = Param.compose_subst; 
-      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = OVData.match_data (d1,d2) u;
   val try_match_edge = Param.try_match_edge;
@@ -113,7 +128,6 @@ functor OGraphParam(
     structure VData = OVData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type inames_renaming = CRnmX.renaming; (* = X.Rnm.renaming *)
     type subst = subst;
   end;
   structure OSharing =

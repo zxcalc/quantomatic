@@ -1,5 +1,5 @@
 theory graph
-imports Main expressions
+imports Main expressions 
 uses
 (* Graphs *)
  "../../core/graph/arity.ML" (* arity of vertices (in,out,undir) *)

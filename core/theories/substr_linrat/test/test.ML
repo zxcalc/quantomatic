@@ -41,10 +41,10 @@ val g3 = Graph.empty;
 (* add vertices *)
 val (vn1, g3) = g3 |> Graph.add_vertex (OVData.EVert);
 val (vn2, g3) = g3 |> Graph.add_vertex (OVData.IVert
-(SUBSTR_LINRAT_InternVData.S_E ("blah.foo.", LinratExpr.zero)));
+(SUBSTR_LINRAT_InternVData.S_E ("blah.foo.", LinratAngleExpr.zero)));
 
 val (vn3, g3) = g3 |> Graph.add_vertex (OVData.IVert 
-(SUBSTR_LINRAT_InternVData.S_E ("blah.bar.", LinratExpr.zero)));
+(SUBSTR_LINRAT_InternVData.S_E ("blah.bar.", LinratAngleExpr.zero)));
 (* add edges *)
 val (en1, g3) = g3 |> Graph.add_edge 
   (Graph.Directed, EData.default_data) vn1 vn2;

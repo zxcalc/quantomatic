@@ -425,6 +425,38 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE
  *
+ * Name: UndoRewriteRequest
+ * Code: "GMUR"
+ * Args:
+ *   GraphName: String
+ * Desc: Undo the last modification to a graph
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ *
+ * Name: RedoRewriteRequest
+ * Code: "GMRR"
+ * Args:
+ *   GraphName: String
+ * Desc: Redo the most recently undone modification to a graph
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ * 
+ * Name: StartUndoGroupRequest
+ * Code: "GMSU"
+ * Args:
+ *   GraphName: String
+ * Desc: Starts an undo group: changes are merge on the undo stack
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+ *
+ * Name: EndUndoGroupRequest
+ * Code: "GMFU"
+ * Args:
+ *   GraphName: String
+ * Desc: Ends the undo group: create an undo point whenver the state is changed
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | BADSTATE
+*
  * Name: InsertGraphRequest
  * Code: "GMI"
  * Args:
@@ -443,7 +475,16 @@
  * Desc: Set user data on a graph.  This data will not be parsed by the core
  *       in any way.
  * Response: OkResponse
- * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
+ * ErrorResponses: NOSUCHGRAPH
+ * 
+ * Name: DeleteGraphUserDataRequest
+ * Code: "GMDGU"
+ * Args:
+ *  GraphName: String
+ *  dataName: String
+ * Desc: Delete user data on a graph.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH
  *
  * Name: AddVertexRequest
  * Code: "GMVA"
@@ -462,7 +503,7 @@
  *   OldVertexName: String
  *   NewVertexName: String
  * Desc: Rename a vertex
- * Response: OkResponse
+ * Response: StringListResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | ALREADYEXISTS
  *
  * Name: DeleteVerticesRequest
@@ -490,9 +531,20 @@
  * Args:
  *   GraphName: String
  *   VertexName: String
+ *   DataName: String
  *   UserData: DataChunk
  * Desc: Set user data on a vertex.  This data will not be parsed by the core
  *       in any way.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
+ *
+ * Name: DeleteVertexUserDataRequest
+ * Code: "GMDVU"
+ * Args:
+ *  GraphName: String
+ *  VertexName: String
+ *  DataName: String
+ * Desc: Remove user data DataName on vertex VertexName
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
  *
@@ -547,6 +599,16 @@
  *   UserData: DataChunk
  * Desc: Set user data on an edge.  This data will not be parsed by the core
  *       in any way.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
+ * 
+ * Name: DeleteEdgeUserDataRequest
+ * Code: "GMDEU"
+ * Args:
+ *  GraphName: String
+ *  EdgeName: String
+ *  DataName: String
+ * Desc: Remove user data DataName on vertex EdgeName
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE
  *
@@ -637,6 +699,16 @@
  *       in any way.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX
+ *
+ * Name: DeleteBangBoxUserDataRequest
+ * Code: "GMDBU"
+ * Args:
+ *  GraphName: String
+ *  BangBoxName: String
+ *  DataName: String
+ * Desc: Remove user data DataName on vertex BangBoxName
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHBANGBOX
  *
  * Name: ImportRulesetFromFileRequest
  * Code: "RSO"
@@ -891,9 +963,9 @@ struct
           printEsc ch;
           printWrappedString #"S" str;
           printEsc (Char.toLower ch))
-      | printComponentData ch (ComponentData.LinratExpr (expr as (c,varTab))) = (
+      | printComponentData ch (ComponentData.LinratAngleExpr (expr as (c,varTab))) = (
           let
-            val as_string = Pretty.string_of (LinratExpr.pretty expr)
+            val as_string = Pretty.string_of (LinratAngleExpr.pretty expr)
             fun printWrappedFrac ch (n,d) = (
                   printEsc ch;
                   printWrappedString #"N" (Int.toString n);
@@ -908,7 +980,7 @@ struct
             printEsc ch;
             printEsc #"A";
               printWrappedString #"S" as_string;
-              if LinratExpr.Coeff.is_zero c then () else
+              if LinratAngleExpr.Coeff.is_zero c then () else
                 printWrappedFrac #"K" c;
               X.NTab.fold (printVar #"V") varTab ();
             printEsc #"a";
@@ -1368,12 +1440,14 @@ struct
                       end
 
          | "GVEU" =>  let
-                        val graphName = readToEscape #";"
-                        val edgeName  = readToEnd ()
+                        val graphName  = readToDelim ()
+                        val edgeName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = EdgeUserData { edgeName = edgeName }
+                          desc = EdgeUserData { edgeName = edgeName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1388,12 +1462,14 @@ struct
                       end
 
          | "GVBU" =>  let
-                        val graphName   = readToEscape #";"
-                        val bangBoxName = readToEnd ()
+                        val graphName  = readToDelim ()
+                        val bangBoxName = readToDelim ()
+                        val dataName = readToEnd ()
                       in
                         DescribeGraphRequest {
                           graphName = graphName,
-                          desc = BangBoxUserData { bangBoxName = bangBoxName }
+                          desc = BangBoxUserData { bangBoxName = bangBoxName,
+                                                  dataName = dataName }
                         }
                       end
 
@@ -1405,6 +1481,25 @@ struct
          | "GMR"  =>  EditGraphRequest {
                         graphName = readToEnd (),
                         action = RedoAction
+                      }
+         | "GMUR"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = UndoRewriteAction
+                      }
+
+         | "GMRR"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = RedoRewriteAction
+                      }
+
+         | "GMSU"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = StartUndoGroupAction
+                      }
+
+         | "GMFU"  =>  EditGraphRequest {
+                        graphName = readToEnd (),
+                        action = EndUndoGroupAction
                       }
 
          | "GMI"  =>  let
@@ -1430,6 +1525,18 @@ struct
                            action = SetGraphUserDataAction {
                                       dataName = dataName,
                                       userData = userData
+                                    }        
+                         }
+                       end
+
+         | "GMDGU" =>  let
+                        val graphName = readToDelim ()
+                        val dataName =  readToEnd ()
+                       in
+                         EditGraphRequest {
+                           graphName = graphName,
+                           action = DeleteGraphUserDataAction {
+                                      dataName = dataName
                                     }        
                          }
                        end
@@ -1536,6 +1643,20 @@ struct
                         }
                       end
 
+         | "GMDVU" =>  let
+                        val graphName = readToDelim ()
+                        val vertexName = readToDelim ()
+                        val dataName = readToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  DeleteVertexUserDataAction {
+                                      vertexName = vertexName,
+                                      dataName = dataName
+                                    }
+                        }
+                      end
+
          | "GMEA" =>  let
                         val graphName = readToDelim ()
                         val edgeType = readToDelim ()
@@ -1633,6 +1754,7 @@ struct
          | "GMEU" =>  let
                         val graphName = readToDelim ()
                         val edgeName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1640,7 +1762,22 @@ struct
                           graphName = graphName,
                           action =  SetEdgeUserDataAction {
                                       edgeName = edgeName,
+                                      dataName = dataName,
                                       userData = data
+                                    }
+                        }
+                      end
+
+         | "GMDEU" =>  let
+                        val graphName = readToDelim ()
+                        val edgeName = readToDelim ()
+                        val dataName = readToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  DeleteEdgeUserDataAction {
+                                      edgeName = edgeName,
+                                      dataName = dataName
                                     }
                         }
                       end
@@ -1738,7 +1875,7 @@ struct
          | "GMBB" =>  let
                         val graphName = readToDelim ()
                         val bangBoxName = readToDelim ()
-                        val vertexNames = readListToDelim ()
+                        val vertexNames = readListToEnd ()
                       in
                         EditGraphRequest {
                           graphName = graphName,
@@ -1764,6 +1901,7 @@ struct
          | "GMBU" =>  let
                         val graphName = readToDelim ()
                         val bangBoxName = readToDelim ()
+                        val dataName = readToDelim ()
                         val data = readDataChunk ()
                         val () = assertAtEnd ()
                       in
@@ -1771,13 +1909,34 @@ struct
                           graphName = graphName,
                           action =  SetBangBoxUserDataAction {
                                       bangBoxName = bangBoxName,
+                                      dataName = dataName,
                                       userData = data
                                     }
                         }
                       end
 
+         | "GMDBU" =>  let
+                        val graphName = readToDelim ()
+                        val bangBoxName = readToDelim ()
+                        val dataName = readToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
+                          action =  DeleteBangBoxUserDataAction {
+                                      bangBoxName = bangBoxName,
+                                      dataName = dataName
+                                    }
+                        }
+                      end
+
          | "RSO" =>  ImportRulesetFromFileRequest {
-                                fileName = readToEnd ()
+                                fileName = readToEnd (),
+                                replace = false
+                              }
+
+         | "RSP" =>  ImportRulesetFromFileRequest {
+                                fileName = readToEnd (),
+                                replace = true
                               }
 
          | "RSI"  =>  let
@@ -1785,7 +1944,18 @@ struct
                         val () = assertAtEnd ()
                       in
                         ImportRulesetFromDataRequest {
-                          data = data
+                          data = data,
+                          replace = false
+                        }
+                      end
+
+         | "RSJ"  =>  let
+                        val data = readDataChunk ()
+                        val () = assertAtEnd ()
+                      in
+                        ImportRulesetFromDataRequest {
+                          data = data,
+                          replace = true
                         }
                       end
 
@@ -1830,6 +2000,20 @@ struct
          | "RRN"  =>  DeactivateRuleRequest {
                         ruleName = readToEnd()
                       }
+
+         | "RRR"  =>  RenameRuleRequest {
+                        oldName = readToDelim(),
+                        newName = readToEnd()
+                      }
+         | "RRR"  =>  let
+                        val oldName = readToDelim ()
+                        val newName = readToEnd ()
+                      in
+                        RenameRuleRequest {
+                          oldName = oldName,
+                          newName = oldName
+                        }
+                      end
 
          | "RTL"  => (assertAtEnd (); ListTagsRequest)
 

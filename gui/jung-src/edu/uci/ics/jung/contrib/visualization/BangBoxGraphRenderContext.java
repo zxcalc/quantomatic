@@ -6,9 +6,12 @@ package edu.uci.ics.jung.contrib.visualization;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
 import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
+import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxLabelRenderer;
 import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.RenderContext;
 import edu.uci.ics.jung.visualization.picking.PickedState;
+
+import java.awt.Font;
 import java.awt.Paint;
 import java.awt.Shape;
 import java.awt.Stroke;
@@ -30,14 +33,13 @@ public interface BangBoxGraphRenderContext<V, E, B> extends RenderContext<V, E> 
 	Transformer<B, Stroke> getBangBoxStrokeTransformer();
 	void setBangBoxStrokeTransformer(Transformer<B, Stroke> bangBoxStrokeTransformer);
 
-	//Transformer<B,String> getBangBoxLabelTransformer();
-	//void setBangBoxLabelTransformer(Transformer<B,String> bangBoxLabelTransformer);
+	Transformer<B,String> getBangBoxLabelTransformer();
+	void setBangBoxLabelTransformer(Transformer<B,String> bangBoxLabelTransformer);
 
-	//BangBoxLabelRenderer getBangBoxLabelRenderer();
-	//void getBangBoxLabelRenderer(BangBoxLabelRenderer bangBoxLabelRenderer);
-
-	//Transformer<B,Font> getBangBoxFontTransformer();
-	//void setBangBoxFontTransformer(Transformer<B,Font> bangBoxFontTransformer);
+	BangBoxLabelRenderer getBangBoxLabelRenderer();
+	void setBangBoxLabelRenderer(BangBoxLabelRenderer bangBoxLabelRenderer);
+	Transformer<B,Font> getBangBoxFontTransformer();
+	void setBangBoxFontTransformer(Transformer<B,Font> bangBoxFontTransformer);
 
 	Predicate<Context<BangBoxGraph<V, E, B>, B>> getBangBoxIncludePredicate();
 	void setBangBoxIncludePredicate(Predicate<Context<BangBoxGraph<V, E, B>, B>> bangBoxIncludePredicate);

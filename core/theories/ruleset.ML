@@ -21,6 +21,7 @@ sig
     sharing type Sharing.T = T
 
   exception no_such_rule_exp of R.name;
+  exception rname_already_exists_exp of R.name;
 
   (* basic getting of info about rulesets *)
   val get_allrules : T -> Rule.T R.NTab.T 
@@ -51,6 +52,7 @@ sig
   val activate_rule : R.name -> T -> T
   val deactivate_rule : R.name -> T -> T
   val delete_rule : R.name -> T -> T
+  val rename_rule : R.name -> R.name -> T -> T
 
   val activate_tag : TagName.name -> T -> T
   val deactivate_tag : TagName.name -> T -> T
@@ -71,7 +73,7 @@ struct
   structure G = Rule.Graph;
   
   exception no_such_rule_exp of R.name;
-  exception duplicate_rule_exp of R.name;
+  exception rname_already_exists_exp of R.name;
   
   (* at some point, a ruleset should be a richer structure,
      but this will do for now. Its just a rule list and a flag
@@ -147,6 +149,32 @@ struct
       rset |> update_active (R.NSet.delete name)
            |> update_brel (TagRel.del_dom name)
            |> update_allrules (R.NTab.delete name);
+
+
+  exception invalid_state_exp of unit;
+  fun rename_rule old new rset = 
+      let
+        val rules = (get_allrules rset)
+        val rule = case R.NTab.lookup rules old
+                     of NONE => raise no_such_rule_exp old
+                      | SOME r => r;
+        val rules2 =
+            case (rules |> R.NTab.delete old
+                        |> R.NTab.try_ins (new,rule))
+              of NONE => raise rname_already_exists_exp new
+               | SOME r => r;
+        val brel = case TagRel.try_rename1_dom old new (get_tagrel rset)
+                     of NONE => raise invalid_state_exp ()
+                      | SOME b => b;
+        val active =
+            case (R.NSet.try_rename1 old new (get_active rset))
+              of NONE => raise invalid_state_exp ()
+               | SOME r => r;
+      in
+        rset |> set_active active
+             |> set_brel brel
+             |> set_allrules rules2
+      end;
   
   
   fun activate_tag tagname rset = 

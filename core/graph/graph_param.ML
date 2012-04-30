@@ -9,7 +9,6 @@ signature GRAPH_PARAM_SHARING
   structure VData : UNIFIABLE_DATA_SHARING
   structure EData : UNIFIABLE_DATA_SHARING
   type T
-  type inames_renaming
   type subst 
   sharing type subst = VData.subst
   sharing type subst = EData.subst
@@ -61,21 +60,36 @@ signature GRAPH_PARAM
   
   (* Dependencies between vertex and edge names and internal-names (in the 
      vertex/edge data) e.g. relating angle variable-names to vertex names in
-     which that variable occurs. Can be used to define vertices that are not commutative internal wiring of vertex can be dependent on edge names entereing the vertex. Actually: it would be better to change the vertex type to being a list of sets if we really want non-commutative matching. Maybe drop this? This also conflicts with the ability to do compound renaming in matches: matches don't have the internal data for a vertex. I guess it could be added, but it would be rather complicated. *)
+     which that variable occurs. Can be used to define vertices that are not commutative internal wiring of vertex can be dependent on edge names entereing the vertex. 
+     
+     Actually: it might be better to change the vertex type to being a list of sets if we really want non-commutative matching. Maybe drop this? This also conflicts with the ability to do compound renaming in matches: matches don't have the internal data for a vertex. I guess it could be added, but it would be rather complicated. *)
   type T
   
+  (* get the internal variable names used *)
+  val get_xnames : T -> X.NSet.T
+
   (* no vertex names, no internal variable names *)
   val empty : T
 
+  (* pretty printing *)
+  val pretty : T -> Pretty.T
+  val print : T -> unit
+
+  (*  *)
   val add_vertex : VData.data -> V.name -> T -> T 
   val add_edge : EData.data -> E.name -> T -> T
 
   val of_vertex : VData.data -> V.name -> T
   val of_edge : EData.data -> E.name -> T
 
-  val delete_vertex : V.name -> T -> T
-  val delete_edge : E.name -> T -> T
+  val delete_vname : V.name -> T -> T
+  val delete_ename : E.name -> T -> T
 
+  val dep_vnames_of_xname : T -> X.name -> V.NSet.T
+  val dep_enames_of_xname : T -> X.name -> E.NSet.T 
+
+  (* raises X.Rnm. *)
+  val rename_xname : X.name -> X.name -> T -> T
   (* raises V.Rnm. *)
   val rename_vname : V.name -> V.name -> T -> T
   (* raises E.Rnm. *)
@@ -83,22 +97,16 @@ signature GRAPH_PARAM
 
   val replace_vertex : VData.data -> V.name -> T -> T
   val replace_edge : EData.data -> E.name -> T -> T
-  
-  
+
+  (* CONSIDER: move to unifiable data? *)
+  val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;
+  val subst_xname_in_edata : X.name -> X.name -> EData.data -> EData.data;
+
   (* RENAMINGS  *)
-  (* IMPROVE: should we add a compound renaming for renaming internal names in 
-     a  subst? *)
-  (* rename internal names in T *)
+  (* rename internal var names in T *)
   structure CRnmX : COMPOUND_RENAMING 
+    where type renaming = X.Rnm.T
     sharing type CRnmX.obj = T
-  (* rename internal names in Vertex Data *)
-  structure VDataCRnmX : COMPOUND_RENAMING
-    sharing type VDataCRnmX.obj = VData.data
-    sharing type VDataCRnmX.renaming = CRnmX.renaming
-  (* rename internal names in Edge Data *)
-  structure EDataCRnmX : COMPOUND_RENAMING
-    sharing type EDataCRnmX.obj = EData.data
-    sharing type EDataCRnmX.renaming = CRnmX.renaming
   (* rename vertex and edge names in T *)
   structure CRnmV : COMPOUND_RENAMING 
     where type renaming = V.Rnm.T
@@ -106,14 +114,78 @@ signature GRAPH_PARAM
   structure CRnmE : COMPOUND_RENAMING 
     where type renaming = E.Rnm.T
     sharing type CRnmE.obj = T 
-    
+  
+  (* rename internal names in Vertex Data *)
+  (* structure VDataCRnmX : COMPOUND_RENAMING
+    where type renaming = X.Rnm.T
+    sharing type VDataCRnmX.obj = VData.data *)
+  (* rename internal names in Edge Data *)
+  (* structure EDataCRnmX : COMPOUND_RENAMING
+    where type renaming = X.Rnm.T
+    sharing type EDataCRnmX.obj = EData.data *)
+      
   (* syntax convenience for sharing types *)
   structure Sharing : GRAPH_PARAM_SHARING
     sharing Sharing.VData = VData.Sharing
     sharing Sharing.EData = EData.Sharing
-    sharing type CRnmX.renaming = Sharing.inames_renaming
     sharing type T = Sharing.T
     sharing type subst = Sharing.subst
 end;
 
+(* functor that takes away the work when the vertices and edges have no 
+   internal data. *)
+(* TODO: make this have a signature & fit into GRAPH_PARAM signature. *)
+functor NoInternalDataGraphParam(type vdata type edata) = 
+struct 
+  type T = unit;
+  
+  fun get_xnames () = X.NSet.empty;
+  val empty = ();
 
+  (* INTERNAL NAME DEPENDENCIES *)
+  (* internal name data *)
+  type T = unit;
+  
+  (* pretty printing *)
+  fun pretty () = Pretty.str "()";
+  val print = Pretty.writeln o pretty;
+  
+  (* empty name-dependency information *)
+  val empty = ();
+  fun get_xnames d = X.NSet.empty;
+  fun subst_xname_in_vdata n1 n2 d = d
+  fun subst_xname_in_edata n1 n2 d = d 
+  fun add_vertex vd vn vdep = vdep;
+  fun add_edge ed en vdep = vdep;
+  fun of_vertex vd vn = empty;
+  fun of_edge en ed = empty;
+  fun delete_vname vn vdep = vdep;
+  fun delete_ename en vdep = vdep;
+  fun rename_xname n1 n2 d = d;
+  fun rename_vname n1 n2 d = d;
+  fun rename_ename n1 n2 d = d;
+  fun replace_vertex vd vn vdep = vdep; 
+  fun replace_edge ed en vdep = vdep;
+  fun dep_vnames_of_xname () n = V.NSet.empty;
+  fun dep_enames_of_xname () n = E.NSet.empty; 
+  
+  (* rename internal names in the dependency structure *)
+  (* RENAMING *)
+  (* [dummy] Renaming internal names within vertex data *)
+  (* structure VDataCRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = vdata); *)
+  (* [dummy] Rename internal names within edge data *)
+  (* structure EDataCRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = edata); *)
+    
+  (* [dummy] Rename vertex-names in the dependency data *)
+  structure CRnmV : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = V type obj = T);
+  (* [dummy] Rename edge-names in the dependency data *)
+  structure CRnmE : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = E type obj = T);
+  (* [dummy] Rename internal names in T *)
+  structure CRnmX : COMPOUND_RENAMING
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = T);
+
+end;

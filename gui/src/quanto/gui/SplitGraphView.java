@@ -8,6 +8,10 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import javax.swing.JSplitPane;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -16,6 +20,8 @@ import javax.swing.event.ChangeListener;
 import quanto.core.Core;
 
 import quanto.core.CoreException;
+import quanto.core.Ruleset;
+import quanto.core.RulesetChangeListener;
 import quanto.core.data.CoreGraph;
 import quanto.core.data.Rule;
 
@@ -32,6 +38,46 @@ public class SplitGraphView extends InteractiveView {
 	// we keep our own copy of this, in case someone else changes the
 	// rule name in Rewrite
 	private Core core;
+    
+    private RulesetChangeListener listener = new RulesetChangeListener() {
+
+        public void rulesetReplaced(Ruleset source) {
+            try {
+                if (!core.getRuleset().getRules().contains(rule.getCoreName())) {
+                    if (isAttached()) {
+                        getViewPort().closeCurrentView();
+                    } else if (getViewManager() != null) {
+                        getViewManager().removeView(SplitGraphView.this);
+                    }
+                }
+            } catch (CoreException ex) {
+                Logger.getLogger(SplitGraphView.class.getName())
+                        .log(Level.SEVERE, "Failed to get rule list.", ex);
+            }
+        }
+
+        public void rulesRemoved(Ruleset source, Collection<String> ruleNames) {
+            if (ruleNames.contains(rule.getCoreName())) {
+                if (isAttached()) {
+                    getViewPort().closeCurrentView();
+                } else if (getViewManager() != null) {
+                    getViewManager().removeView(SplitGraphView.this);
+                }
+            }
+        }
+
+        public void rulesRenamed(Ruleset source, Map<String, String> renaming) {
+            if (renaming.containsKey(rule.getCoreName())) {
+                rule.updateCoreName(renaming.get(rule.getCoreName()));
+                setTitle(rule.getCoreName());
+            }
+        }
+
+        public void rulesAdded(Ruleset source, Collection<String> ruleNames) {}
+        public void rulesActiveStateChanged(Ruleset source, Map<String, Boolean> newState) {}
+        public void rulesTagged(Ruleset source, String tag, Collection<String> ruleNames, boolean newTag) {}
+        public void rulesUntagged(Ruleset source, String tag, Collection<String> ruleNames, boolean tagRemoved) {}
+    };
 
 	public SplitGraphView(Core core, Rule<CoreGraph> rule)
 	throws CoreException {
@@ -43,18 +89,20 @@ public class SplitGraphView extends InteractiveView {
 		super(rule.getCoreName());
 		this.rule = rule;
 		this.core = core;
+        
+        core.getRuleset().addRulesetChangeListener(listener);
 
 		leftView = new InteractiveGraphView(core, rule.getLhs());
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
 		leftView.repaint();
-		
+		leftView.setVerticesPositionData();
 			
 		rightView = new InteractiveGraphView(core, rule.getRhs());
-				rightView.setSaveEnabled(false);
+		rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
 		rightView.repaint();
-
+		rightView.setVerticesPositionData();
 		setupListeners();
 		setupLayout(dim);
 		setSaved(true);
@@ -126,8 +174,48 @@ public class SplitGraphView extends InteractiveView {
 				}
 			}
 			catch (CoreException err) {
-				errorDialog(err.getMessage());
+                coreErrorDialog("Could not save rule", err);
 			}
+		} else if (CommandManager.Command.SaveAs.matches(command)) {
+			try {
+                String newName = JOptionPane.showInputDialog(this,
+                        "Rule name:",
+                        rule == null ? "" : rule.getCoreName());
+                if (newName == null || newName.isEmpty())
+                    return;
+
+                while (core.getRuleset().getRules().contains(newName)) {
+                    int overwrite = JOptionPane.showConfirmDialog(this,
+                            "A rule named \"" + newName +
+                            "\" already exists. " + 
+                            "Do you want to overwrite it?",
+                            "Overwrite rule",
+                            JOptionPane.YES_NO_CANCEL_OPTION);
+
+                    if (overwrite == JOptionPane.YES_OPTION)
+                        break; // continue
+                    else if (overwrite != JOptionPane.NO_OPTION)
+                        return; // cancelled - give up
+
+                    newName = JOptionPane.showInputDialog(this,
+                            "Rule name:",
+                            rule == null ? "" : rule.getCoreName());
+                    if (newName == null || newName.isEmpty())
+                        return;
+                }
+
+                rule = core.createRule(newName, rule.getLhs(), rule.getRhs());
+                setTitle(newName);
+                setSaved(true);
+			}
+			catch (CoreException err) {
+                coreErrorDialog("Could not save rule", err);
+			}
+		} else if ((CommandManager.Command.DirectedEdgeMode.matches(command)) ||
+		           (CommandManager.Command.UndirectedEdgeMode.matches(command)) ||
+		           (CommandManager.Command.SelectMode.matches(command))) {
+		     leftView.commandTriggered(command);
+		     rightView.commandTriggered(command);
 		} else {
 			if (leftFocused)
 				leftView.commandTriggered(command);
@@ -138,6 +226,7 @@ public class SplitGraphView extends InteractiveView {
 
 	public void attached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, true);
+		vp.setCommandEnabled(CommandManager.Command.SaveAs, true);
 		vp.setCommandEnabled(CommandManager.Command.Save,
 			rule != null && !isSaved()
 			);
@@ -146,9 +235,8 @@ public class SplitGraphView extends InteractiveView {
 
 	public void detached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, false);
-		vp.setCommandEnabled(CommandManager.Command.Save,
-			false
-			);
+		vp.setCommandEnabled(CommandManager.Command.SaveAs, false);
+		vp.setCommandEnabled(CommandManager.Command.Save, false);
 		if (leftFocused) {
 			leftView.detached(vp);
 		}
@@ -160,6 +248,7 @@ public class SplitGraphView extends InteractiveView {
 	public void cleanUp() {
 		leftView.cleanUp();
 		rightView.cleanUp();
+        core.getRuleset().removeRulesetChangeListener(listener);
 	}
 
 	@Override

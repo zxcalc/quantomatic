@@ -17,6 +17,7 @@ val ruleset = "../../test/rulesets/basic_v2.rules"
 
 val isom_rule = Ruleset.get_rule ruleset (R.mk "isometry_red");
 val x_copy_0_rule = Ruleset.get_rule ruleset (R.mk "x_copy_0");
+val x_abelian1_rule = Ruleset.get_rule ruleset (R.mk "x_abelian1");
 
 fun list_of_rule_matches r g = 
     let val (r', matches) = RulesetRewrites.rule_matches r g;
@@ -112,6 +113,74 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
                                 (Rule.get_rhs r');
   in writeln "success" end) ();  
   
+
+  (* Self-Loop, we create two vertices with self-loops and try to rewrite the
+   * whole graph. *)
+  val _ = Testing.test "rule5: rewriting x_abelian1 (loop)" (fn () => let
+  val g = G.empty;
+  val (n1, g) = g |> G.add_vertex (mkX zero_angle);
+  val (n2, g) = g |> G.add_vertex (mkX zero_angle);
+  val (e1, g) = g |> G.add_edge undir_edge n1 n1;
+  val (e2, g) = g |> G.add_edge undir_edge n2 n2;
+  val _ = G.print g;
+
+  val (r', m1) = list_of_rule_matches x_abelian1_rule g;
+  val _ = Rule.print r';
+  val _ = Match.print (hd m1);
+  val g = GraphSubst.rewrite g (Rule.get_lhs r') (hd m1) (Rule.get_rhs r');
+  val (r', m1) = list_of_rule_matches x_abelian1_rule g;
+  val g = GraphSubst.rewrite g (Rule.get_lhs r') (hd m1) (Rule.get_rhs r');
+  val _ = G.print g;
+
+  in writeln "success" end) ();  
+
+
+val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming of internal variables prior to rewriting." (fn () => let
+  (* lhs *)
+  val lhs = let val g = G.empty;
+      val (b1, g) = g |> G.add_vertex bvert;
+      val (x1, g) = g |> G.add_vertex (mkX (parse_angle "a + b"));
+      val (e0, g) = g |> G.add_edge undir_edge x1 b1;
+  in g end;
+  val _ = G.print lhs;
+  (* rhs *)
+  val rhs = let val g = G.empty;
+      val (b1, g) = g |> G.add_vertex bvert;
+      val (x1, g) = g |> G.add_vertex (mkX (parse_angle "a"));
+      val (x2, g) = g |> G.add_vertex (mkX (parse_angle "b"));
+      val (e0, g) = g |> G.add_edge undir_edge x1 x2;
+      val (e1, g) = g |> G.add_edge undir_edge x2 b1;
+  in g end;
+  val _ = G.print rhs;
+  val rule = Rule.mk (lhs,rhs);
+  (* tgt graph *)
+  val tgt = let val g = G.empty;
+      val (x1, g) = g |> G.add_vertex (mkX (parse_angle "c"));
+      val (x2, g) = g |> G.add_vertex (mkZ (parse_angle "b"));
+      val (b1, g) = g |> G.add_vertex bvert;
+      val (e0, g) = g |> G.add_edge undir_edge x1 x2;
+  in g end
+  
+  val (rule', matches) = list_of_rule_matches rule tgt;
+  val _ = Rule.print rule';
+  
+  val rule_xnames = Rule.get_xnames rule'; 
+  val _ = Pretty.writeln (Pretty.str "XNames in rule: ");
+  val _ = X.NSet.print rule_xnames;
+  
+  val SOME vname = (* FIXME: brittle: hardcoded right choice of fresh name *)
+                    (X.mk "d") 
+                    |> G.Param.dep_vnames_of_xname 
+                        (Rule.get_lhs rule' |> G.get_param)
+                    |> V.NSet.tryget_singleton;
+  
+  val d = G.get_vertex_data (Rule.get_lhs rule') vname;
+  val vdep = G.Param.of_vertex d;
+  
+  val false = X.NSet.contains rule_xnames (X.mk "b");
+  val true = X.NSet.contains rule_xnames (X.mk "a");
+  in () end) ();
+
   (* 
 val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
   val spider_red = Ruleset.get_rule rset (R.mk "spider.red");

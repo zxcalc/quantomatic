@@ -1,7 +1,5 @@
 package quanto.core.data;
 
-import java.awt.Color;
-
 public interface VertexType {
 	enum DataType {
 		MathExpression,
@@ -10,7 +8,11 @@ public interface VertexType {
 	}
 	VertexVisualizationData getVisualizationData();
 	String getTypeName();
-	String getMnemonic();
+    /**
+     * The mnemonic for adding the vertex
+     * @return a character, or null if there is no mnemonic
+     */
+	Character getMnemonic();
 	/**
 	 * Equivalent to (getDataType() != DataType.None)
 	 * @return
@@ -23,9 +25,9 @@ public interface VertexType {
 		private String name;
 		private DataType dataType;
 		private VertexVisualizationData visData;
-		private String mnemonic;
+		private Character mnemonic;
 		
-		public GenericVertexType(String name, DataType dataType, String mnemonic, VertexVisualizationData visData) {
+		public GenericVertexType(String name, DataType dataType, Character mnemonic, VertexVisualizationData visData) {
 			this.name = name;
 			this.dataType = dataType;
 			this.visData = visData;
@@ -34,7 +36,7 @@ public interface VertexType {
 
 		public VertexVisualizationData getVisualizationData() {return this.visData;}
 		public String getTypeName() {return this.name;}
-		public String getMnemonic() {return this.mnemonic;}
+		public Character getMnemonic() {return this.mnemonic;}
 		public boolean hasData() {return !this.dataType.equals(DataType.None);}
 		public DataType getDataType() {return this.dataType;}
 	}

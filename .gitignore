@@ -13,6 +13,7 @@ core/bin/quanto-core
 core/local_config.ML
 /gui/.classpath
 /gui/.project
+/gui/nbproject
 /gui/bin/
 *~
 *#

@@ -1,10 +1,10 @@
 (* *)
 
 (*-------------------------------------------------------*)
-structure OutputLinratXML : OUTPUT_XML where type data = LinratExpr.T = 
+structure OutputLinratXML : OUTPUT_XML where type data = LinratAngleExpr.T = 
 struct 
   type T = XML.tree;
-  type data = LinratExpr.T;
+  type data = LinratAngleExpr.T;
 
   open XML;
   open XML_Output_Utils;
@@ -14,7 +14,7 @@ struct
        wrap_int_simple "denom" d];
   
   fun render_xml_constant_part k =
-      if LinratExpr.Coeff.is_zero k then
+      if LinratAngleExpr.Coeff.is_zero k then
         []
       else
         [wrap_els_simple "constant" (render_xml_rational k)];
@@ -32,11 +32,11 @@ struct
       end;
   
   fun output (pi,tab) = 
-      (* if LinratExpr.is_zero (pi,tab) then 
+      (* if LinratAngleExpr.is_zero (pi,tab) then 
         []
       else *)
         wrap_els_simple "angleexpr" 
-          (wrap_text_simple "string_of" (Pretty.string_of (LinratExpr.pretty (pi,tab)))
+          (wrap_text_simple "string_of" (Pretty.string_of (LinratAngleExpr.pretty (pi,tab)))
           ::((render_xml_constant_part pi)@(render_xml_variable_part tab)));
 end; (* structure *)
 

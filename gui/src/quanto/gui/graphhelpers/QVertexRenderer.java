@@ -26,17 +26,5 @@ public class QVertexRenderer extends BasicVertexRenderer<Vertex, Edge>
                 RenderContext<Vertex,Edge> rc, Vertex v, Shape shape)
         {
                 super.paintShapeForVertex(rc, v, shape);
-                if (v.isBoundaryVertex()) {
-			String fillText = v.getCoreName();
-                        GraphicsDecorator g = rc.getGraphicsContext();
-                        Paint oldPaint = g.getPaint();
-                        g.setPaint(Color.BLACK);
-                        Rectangle2D boxRect = shape.getBounds2D();
-                        Rectangle2D textRect = g.getFontMetrics().getStringBounds(fillText, g.getDelegate());
-                        double x = boxRect.getCenterX() - textRect.getCenterX();
-                        double y = boxRect.getCenterY() - textRect.getCenterY();
-                        g.drawString(fillText, (float)x, (float)y);
-                        g.setPaint(oldPaint);
-                }
         }
 }

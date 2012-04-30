@@ -26,7 +26,7 @@ fun pretty_vertex fmt graph vert = let
 		Pretty.str (Int.toString oc)]
 in Pretty.block	
    (case v of Graph.OVData.IVert (SUBSTR_LINRAT_InternVData.S_E (s, e)) =>
-    [Pretty.str s, Pretty.str "[", LinratExpr.pretty_math fmt e, Pretty.str ","] @
+    [Pretty.str s, Pretty.str "[", LinratAngleExpr.pretty_math fmt e, Pretty.str ","] @
       nums @ [Pretty.str "]"] 
 	  | _ => [Pretty.str "id2[1]"])
 end

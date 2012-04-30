@@ -194,7 +194,7 @@ top = c.getY();
 }
 
 logger.log(Level.FINEST,
-"Top is {}, adjusting all Y values by {}",
+"Top is {0}, adjusting all Y values by {1}",
 new Object[] {top, vertexSpacing-top});
 for (Point2D c : vertexPositions.values()) {
 c.setLocation(c.getX(), c.getY()-top+vertexSpacing);
@@ -260,7 +260,7 @@ addGraphAttrs(g);
 g.append("\n");
 addGraphContents(g);
 g.append("}\n");
-logger.log(Level.FINEST, "Dot output: {}", g);
+logger.log(Level.FINEST, "Dot output: {0}", g);
 return g.toString();
 }
 

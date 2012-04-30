@@ -62,7 +62,7 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     | parse_response (Commands.CountResponse { count }) = Int.toString count
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.Unit) }) = ""
     | parse_response (Commands.ComponentDataResponse { data as (ComponentData.String s) }) = s
-    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratExpr a) }) = Pretty.string_of (LinratExpr.pretty a)
+    | parse_response (Commands.ComponentDataResponse { data as (ComponentData.LinratAngleExpr a) }) = Pretty.string_of (LinratAngleExpr.pretty a)
     | parse_response (Commands.UserDataResponse { data }) = data
     | parse_response _ = raise unexpected_response_exp;
 
@@ -271,7 +271,14 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("FILENAME", "Add the rules contained in FILENAME to the existing ruleset.  "^
               "Tags will also be imported, and will overwrite existing tags of the same name.",
       (fn [filename] => (Commands.ImportRulesetFromFileRequest
-                          { fileName = filename })
+                          { fileName = filename, replace = false })
+        | _          => bad_args_req))),
+
+    ("replace_ruleset",
+     ("FILENAME", "Replace the existing ruleset with the rules contained in FILENAME.  "^
+              "Tags will also be imported.",
+      (fn [filename] => (Commands.ImportRulesetFromFileRequest
+                          { fileName = filename, replace = true })
         | _          => bad_args_req))),
 
     ("export_ruleset",
@@ -326,6 +333,11 @@ structure ConsoleCommands : CONSOLE_COMMANDS
     ("deactivate_rule",
      ("RULE", "Prevent RULE from being used for rewriting",
       (fn [rule] => (Commands.DeactivateRuleRequest { ruleName = rule })
+        | _      => bad_args_req))),
+
+    ("rename_rule",
+     ("OLDNAME NEWNAME", "Rename the rule OLDNAME to NEWNAME",
+      (fn [rule,new] => (Commands.RenameRuleRequest { oldName = rule, newName = new })
         | _      => bad_args_req))),
 
     ("list_tags",

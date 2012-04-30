@@ -74,7 +74,8 @@ struct
   fun rule_matches r g =
       let
         val rnms = 
-            (V.Rnm.mk_from_avoids (G.get_vnames g),
+            (X.Rnm.mk_from_avoids (G.get_xnames g),
+             V.Rnm.mk_from_avoids (G.get_vnames g),
              E.Rnm.mk_from_avoids (G.get_enames g),
              B.Rnm.mk_from_avoids (G.get_bbnames g))
         val (rnm,r) = Rule.rename rnms r;
@@ -86,11 +87,17 @@ struct
            fold G.add_to_bbnames gs B.NSet.empty)
       in (r,RuleMatchSearch.match names r g) end;
 
-  (* TODO: no need to rename-apart the rule: matching removes the tgt of the match: it is independent of the rule. Instead, we should be providing a way to rename-apart the rule and match to correspond to a given target (so that we can display a nice picture where they look the same) *)
+  (* TODO: no need to totally rename-apart the rule: matching removes the tgt 
+     of the match: it is independent of the rule. Instead, we should be
+     providing a way to rename-apart the rule and match to correspond to a given
+     target (so that we can display a nice picture where they look the same). Is
+     this true even for internal variables names? They need to be renamed to
+     avoid new variables being captured. *)
   fun rule_matches_within vset r g  = 
       let 
         val rnms = 
-            (V.Rnm.mk_from_avoids (G.get_vnames g),
+            (X.Rnm.mk_from_avoids (G.get_xnames g),
+             V.Rnm.mk_from_avoids (G.get_vnames g),
              E.Rnm.mk_from_avoids (G.get_enames g),
              B.Rnm.mk_from_avoids (G.get_bbnames g))
         val (rnm,r) = Rule.rename rnms r;

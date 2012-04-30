@@ -6,13 +6,13 @@
     rather than OGraph VData.) *)
 signature TEST_UNIFIABLE_DATA =    
 sig
-  datatype qnd = Xnd of LinratExpr.T (* Red: defined using H of Z *) 
-               | Znd of LinratExpr.T (* Green *)
+  datatype qnd = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
+               | Znd of LinratAngleExpr.T (* Green *)
                | Hnd; (* Hadamard node *)
   include UNIFIABLE_DATA
   sharing type data = qnd;
-  val angle_of_data : data -> LinratExpr.T option;
-  val map_to_angle : (LinratExpr.T -> LinratExpr.T) -> data -> data; 
+  val angle_of_data : data -> LinratAngleExpr.T option;
+  val map_to_angle : (LinratAngleExpr.T -> LinratAngleExpr.T) -> data -> data; 
 end;
 
 (* reg-green vertex data *)
@@ -20,43 +20,43 @@ structure Test_InternVData : TEST_UNIFIABLE_DATA
 = struct
   exception unimplemented_exp of string;
 
-  datatype qnd = Xnd of LinratExpr.T (* Red: defined using H of Z *) 
-               | Znd of LinratExpr.T (* Green *)
+  datatype qnd = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
+               | Znd of LinratAngleExpr.T (* Green *)
                | Hnd; (* Hadamard node *)
   type data = qnd; 
 
   fun data_ord (Hnd, Hnd) = EQUAL
     | data_ord (Hnd, _) = LESS
     | data_ord (_, Hnd) = GREATER
-    | data_ord (Znd a, Znd b) = LinratExpr.ord (a,b)
+    | data_ord (Znd a, Znd b) = LinratAngleExpr.ord (a,b)
     | data_ord (Znd _, _) = LESS
     | data_ord (_, Znd _) = GREATER
-    | data_ord (Xnd a, Xnd b) = LinratExpr.ord (a,b);
+    | data_ord (Xnd a, Xnd b) = LinratAngleExpr.ord (a,b);
   fun data_eq (n1, n2) = case data_ord (n1, n2) of EQUAL => true | _ => false;
       
   fun pretty_data (Xnd a) = 
-      Pretty.block [Pretty.str "X(", LinratExpr.pretty a, Pretty.str ")"]  
+      Pretty.block [Pretty.str "X(", LinratAngleExpr.pretty a, Pretty.str ")"]  
     | pretty_data (Znd a) = 
-      Pretty.block [Pretty.str "Z(", LinratExpr.pretty a, Pretty.str ")"]
+      Pretty.block [Pretty.str "Z(", LinratAngleExpr.pretty a, Pretty.str ")"]
     | pretty_data Hnd = Pretty.str "H";
   val print_data = Pretty.writeln o pretty_data;
   
-  type subst = LinratExpr.match;
-  val empty_subst = LinratExpr.empty_match;
-  fun compose_subst (u1,u2) = LinratExpr.compose_matches u1 u2;
+  type subst = LinratAngleExpr.match;
+  val empty_subst = LinratAngleExpr.empty_match;
+  fun compose_subst (u1,u2) = LinratAngleExpr.compose_matches u1 u2;
   fun match_data ((Hnd), (Hnd)) m = SOME m
     | match_data ((Znd a1),(Znd a2)) m = 
-      LinratExpr.match a1 a2 m
+      LinratAngleExpr.match a1 a2 m
     | match_data ((Xnd a1),(Xnd a2)) m = 
-      LinratExpr.match a1 a2 m
+      LinratAngleExpr.match a1 a2 m
     | match_data _ _ = NONE;
   fun unify_data (x,y) m = 
       raise unimplemented_exp "Test_VData.unify_data: has not yet been written.";
   fun subst_in_data _ Hnd = Hnd
-    | subst_in_data u (Xnd a) = Xnd (LinratExpr.subst u a)
-    | subst_in_data u (Znd a) = Znd (LinratExpr.subst u a);
+    | subst_in_data u (Xnd a) = Xnd (LinratAngleExpr.subst u a)
+    | subst_in_data u (Znd a) = Znd (LinratAngleExpr.subst u a);
     
-  val pretty_subst = LinratExpr.pretty_match;
+  val pretty_subst = LinratAngleExpr.pretty_match;
   val print_subst = Pretty.writeln o pretty_subst;
 
   fun map_to_angle f (Xnd angle) = (Xnd (f angle))
@@ -67,7 +67,7 @@ structure Test_InternVData : TEST_UNIFIABLE_DATA
     | angle_of_data (Znd angle) = SOME angle
     | angle_of_data _ = NONE;
     
-  val default_data = Xnd LinratExpr.zero;
+  val default_data = Xnd LinratAngleExpr.zero;
   
   structure Sharing = struct type data = data; type subst = subst; end
 end;
@@ -85,21 +85,21 @@ structure Test_VertexComponentData_Param
     | type_of (VData.Znd _) = "Z"
     | type_of (VData.Hnd)   = "hadamard";
 
-  fun cdata_of (VData.Xnd a) = (ComponentData.LinratExpr a)
-    | cdata_of (VData.Znd a) = (ComponentData.LinratExpr a)
+  fun cdata_of (VData.Xnd a) = (ComponentData.LinratAngleExpr a)
+    | cdata_of (VData.Znd a) = (ComponentData.LinratAngleExpr a)
     | cdata_of (VData.Hnd)   = ComponentData.Unit;
 
-  fun default_data "X" = (VData.Xnd LinratExpr.zero)
-    | default_data "Z" = (VData.Znd LinratExpr.zero)
+  fun default_data "X" = (VData.Xnd LinratAngleExpr.zero)
+    | default_data "Z" = (VData.Znd LinratAngleExpr.zero)
     | default_data "hadamard" = (VData.Hnd)
     | default_data s = raise unknown_type_exp s
 
   fun unwrapUpd upd a =
     let
-      fun unwrapLinrat (ComponentData.LinratExpr e) = e
+      fun unwrapLinrat (ComponentData.LinratAngleExpr e) = e
         | unwrapLinrat _ = raise unexpected_data_exp
     in
-      unwrapLinrat (upd (ComponentData.LinratExpr a))
+      unwrapLinrat (upd (ComponentData.LinratAngleExpr a))
     end;
 
   fun update upd (VData.Xnd a) = (VData.Xnd (unwrapUpd upd a))

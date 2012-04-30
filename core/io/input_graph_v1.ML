@@ -133,10 +133,10 @@ functor InputTestVertexDataXML_v1(
       (let val () = assert_tag "angleexpr" xml
            val children = get_children xml 
            val constant = case (lookup_unique_elem "constant" children) of
-                            (NONE) => LinratExpr.Coeff.zero
+                            (NONE) => LinratAngleExpr.Coeff.zero
                           | (SOME const) => input_constant const
            val vars = List.map input_variable (filter_elems "variable" children)
-       in LinratExpr.mk constant vars end)
+       in LinratAngleExpr.mk constant vars end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"angleexpr/"^p);
     
   fun input_vertex_idata xml =
@@ -149,7 +149,7 @@ functor InputTestVertexDataXML_v1(
         else
           let 
             val angle = 
-                case lookup_unique_elem "angleexpr" children of NONE => LinratExpr.zero
+                case lookup_unique_elem "angleexpr" children of NONE => LinratAngleExpr.zero
                    | SOME a => input_angleexpr a
           in
             if (col = "green") then Test_InternVData.Znd angle

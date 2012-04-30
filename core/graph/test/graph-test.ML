@@ -17,15 +17,34 @@ structure Test_GraphParam
   (* internal name data *)
   type T = VDep.T;
 
+  (* pretty printing *)
+  val pretty = VDep.pretty;
+  val print = VDep.print;
+  
   (* IMPROVE: what data do we want here? should it be add_exp *)
   exception match_exp of unit;
   exception unknown_type_exp of string;
 
-  fun get_IName vdep = VDep.get_codset vdep;
+  fun subst_xname_in_vdata n1 n2 d =
+      Test_InternVData.map_to_angle 
+        (untryify (LinratAngleExpr.try_rename1 n1 n2)) d 
+      handle tryify_failed () => 
+        raise X.Rnm.invalid_renaming_exp "subst_xname_in_vdata";
+  fun subst_xname_in_edata n1 n2 d = d;
+  
+  fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
-  fun try_rename1_iname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
+  fun dep_vnames_of_xname vdep n = VDep.codf vdep n;
+  fun dep_enames_of_xname vdep n = E.NSet.empty;
+
+  fun try_rename1_xname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
+
+  fun rename_xname n1 n2 vdep = 
+      (case VDep.try_rename1_cod n1 n2 vdep of NONE => 
+         raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_xname"
+       | SOME x => x);
 
   fun rename_vname n1 n2 vdep = 
       (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
@@ -41,8 +60,8 @@ structure Test_GraphParam
   = CompoundRenamingFun(
     struct structure Nm = X
            type obj = T
-           val get_nameset = get_IName
-           val try_rename1 = try_rename1_iname
+           val get_nameset = get_xnames
+           val try_rename1 = try_rename1_xname
     end);
 
   (* rename vertices in the dependency structure *)
@@ -63,17 +82,17 @@ structure Test_GraphParam
 
   fun add_vertex vd vn vdep = 
       (case Test_InternVData.angle_of_data vd of NONE => vdep
-          | SOME angle => VDep.add_to_dom vn (LinratExpr.get_vars angle) vdep);
+          | SOME angle => VDep.add_to_dom vn (LinratAngleExpr.get_vars angle) vdep);
   fun add_edge ed en vdep = vdep;
 
-  fun delete_vertex vn vdep = VDep.del_dom vn vdep;
-  fun delete_edge en vdep = vdep;
+  fun delete_vname vn vdep = VDep.del_dom vn vdep;
+  fun delete_ename en vdep = vdep;
 
   fun vertex_type_name (Test_InternVData.Xnd _) = "X"
     | vertex_type_name (Test_InternVData.Znd _) = "Z"
     | vertex_type_name (Test_InternVData.Hnd) = "hadamard"
-  fun vertex_default_data "X" = (Test_InternVData.Xnd LinratExpr.zero)
-    | vertex_default_data "Z" = (Test_InternVData.Znd LinratExpr.zero)
+  fun vertex_default_data "X" = (Test_InternVData.Xnd LinratAngleExpr.zero)
+    | vertex_default_data "Z" = (Test_InternVData.Znd LinratAngleExpr.zero)
     | vertex_default_data "hadamard" = (Test_InternVData.Hnd)
     | vertex_default_data s = raise unknown_type_exp s
   fun edge_type_name () = "unit"
@@ -81,50 +100,20 @@ structure Test_GraphParam
     | edge_default_data s = raise unknown_type_exp s
 
   fun replace_vertex vd vn vdep = 
-      vdep |> delete_vertex vn
+      vdep |> delete_vname vn
            |> add_vertex vd vn;
   fun replace_edge ed en vdep = vdep;
 
   fun of_vertex vd vn = add_vertex vd vn VDep.empty;
   fun of_edge en ed = empty;
-
-  (* renaming internal names within a vertex *)
-  structure VDataCRnmX : COMPOUND_RENAMING
-  = struct 
-    type obj = VData.data
-    type renaming = X.Rnm.T
-
-    val empty_renaming = CRnmX.empty_renaming
-
-    fun rename rnm vd = 
-        (case Test_InternVData.angle_of_data vd of NONE => (rnm,vd)
-         | SOME angle => 
-           let val (rnm',angle') = LinratExpr.CRnm.rename rnm angle
-           in (rnm', Test_InternVData.map_to_angle (K angle') vd) end)
-
-    fun mk_renaming vd rnm = 
-        (case Test_InternVData.angle_of_data vd of NONE => rnm
-         | SOME angle => LinratExpr.CRnm.mk_renaming angle rnm);
-
-    fun do_renaming rnm vd = 
-        (case Test_InternVData.angle_of_data vd of NONE => vd
-         | SOME angle => 
-           Test_InternVData.map_to_angle (LinratExpr.CRnm.do_renaming rnm) vd);
-
-    val restrict_to_avoiding = X.Rnm.restrict_to_avoiding;
-  end;
-
-  (* rename internal names within an edge data *)
-  structure EDataCRnmX : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = X type obj = EData.data);
-
+  
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
-  type subst = VData.subst; (* : LinratExpr.T X.NTab.T; *)
+  type subst = VData.subst; (* : LinratAngleExpr.T X.NTab.T; *)
 
   val empty_subst = VData.empty_subst; (* : X.NTab.empty; *)
   fun compose_subst u1 u2 = VData.compose_subst (u1,u2); 
-      (* : Name.NTab.map_all (LinratExpr.subs u2) u1; *)
+      (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
   fun try_match_edge e1 e2 u = SOME u;
@@ -153,7 +142,6 @@ structure Test_GraphParam
     structure VData = VData.Sharing;
     structure EData = EData.Sharing;
     type T = T;
-    type inames_renaming = CRnmX.renaming; (* = X.Rnm.renaming *)
     type subst = subst;
   end;
 end;
@@ -191,11 +179,12 @@ struct
   structure OVData = Test_Graph.OVData;
 
   val bvert = OVData.EVert;
-  val zero_angle = LinratExpr.zero;
-  val var_angle = LinratExpr.mk_var o X.mk;
-  fun var_iangle i v = LinratExpr.mk (0,1) [(v,i)];
-  val add_angles = LinratExpr.add_expr;
-  val pi_angle = LinratExpr.pi;
+  val parse_angle = LinratAngleExpr.parse;
+  val zero_angle = LinratAngleExpr.zero;
+  val var_angle = LinratAngleExpr.mk_var o X.mk;
+  fun var_iangle i v = LinratAngleExpr.mk (0,1) [(v,i)];
+  val add_angles = LinratAngleExpr.add_expr;
+  val pi_angle = LinratAngleExpr.pi;
   fun mkZ a = OVData.IVert (IVData.Znd a);
   fun mkX a = OVData.IVert (IVData.Xnd a);
   val mkH = OVData.IVert IVData.Hnd;
@@ -306,18 +295,107 @@ val (e0, g4) = g4 |> G.add_edge undir_edge green9 out2;
 
 in
 (* val (g,g2,g3,g4) = (g,g2,g3,g4) *)
-val _ = Pretty.writeln (Pretty.str "Tests Passed: test/graph.ML.");
+val _ = Pretty.writeln (Pretty.str "Tests set 1 Passed: test/graph.ML.");
 end
 
-(* 
-in 
-val _ = Pretty.writeln (Pretty.str "Tests passed: red-green graphs.");
-end;
-*)
+
+(* Basic test for internal variable dependency management. *)
+local 
+  open Test_MkG;
+  
+  val _ = let 
+  (* create the graph *)
+  val (g,n_x2) = let 
+    val g = G.empty;
+    val (n_a, g) = g |> G.add_vertex bvert;
+    val (n_b, g) = g |> G.add_vertex bvert;
+    val (n_x, g) = g |> G.add_named_vertex (V.mk "with x") 
+                                           (mkX (parse_angle "2/3*x"));
+    val (e0, g) = g |> G.add_edge undir_edge n_a n_x;
+    val (e1, g) = g |> G.add_edge undir_edge n_x n_b;
+  
+    val _ = Testing.test "Single variable in dependencies" (fn () => let 
+      val true = X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
+                            (X.mk "x"))
+      in () end) ();
+    
+    val _ = Testing.test "vname dep is the right singleton" (fn () => let 
+      val dep_v_name = the (V.NSet.tryget_singleton 
+          (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "x"))); 
+      val true = V.name_eq (n_x, dep_v_name); 
+      in () end) ();
+      
+    val n_x2 = (V.mk "n_x2");
+    val g = g |> G.rename_vname n_x n_x2;
+    val g = g |> G.rename_ename e0 (E.mk "e_c");
+    val _ = (writeln "g before renaming: "; G.print g);
+    val g = g |> G.rename_xname (X.mk "x") (X.mk "y");
+    val _ = (writeln "g after renaming: "; G.print g);
+    
+    val _ = Testing.test "vname dep is the right singleton after renaming" 
+    (fn () => let 
+      val dep_v_name = the (V.NSet.tryget_singleton 
+          (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "y"))); 
+      val true = V.name_eq (n_x2, dep_v_name); 
+      in () end) ();
+  in (g,n_x2) end;
+
+  val _ = Testing.test "Single variable was renamed in dependencies" 
+  (fn () => let 
+    val true = X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
+                          (X.mk "y")) 
+    val (d,ios) = G.get_vertex g n_x2;
+    val y =  X.name_eq (the (X.NSet.tryget_singleton 
+                         (G.Param.get_xnames (G.Param.of_vertex d n_x2))), 
+                        (X.mk "y"));
+    in () end) ();
+
+  val _ = Testing.test "After renaming, still has correct singleton vname dep" (fn () => let 
+    val dep_v_name = the (V.NSet.tryget_singleton 
+        (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "y"))); 
+    val true = V.name_eq (n_x2, dep_v_name); 
+    in () end) ();
+  
+  val _ = Testing.test "After renaming, internal vertex data was updated" (fn () => let 
+    val d = G.get_vertex_data g n_x2;
+    val expected_data = (mkX (parse_angle "2/3*y"));
+    val true = G.VData.data_eq (d,expected_data);
+    in () end) ();
+  in () end; (* these tests should not bind any names. *)
+  
+  val _ = Testing.test "G.CRnmX.rename: renaming of internal variables: X(a+b)-"
+  (fn () => let
+    val g = G.empty;
+    val (b1, g) = g |> G.add_vertex bvert;
+    val (x1, g) = g |> G.add_vertex (mkX (parse_angle "a + b"));
+    val (e0, g) = g |> G.add_edge undir_edge x1 b1;
+    val xnames = G.get_xnames g;
+    val _ = (writeln "graph before renaming: "; G.print g);
+    val _ = (writeln "\n"; G.Param.print (G.get_param g));
+    val xrn = X.Rnm.mk_from_avoids xnames;
+    val (xrn', g') = G.CRnmX.rename xrn g;
+    val _ = (writeln "\n"; X.Rnm.print xrn');
+    val _ = (writeln "\n"; G.Param.print (G.get_param g'));
+    val _ = (writeln "graph after renaming: "; G.print g');
+    val xnames' = G.get_xnames g';
+    val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
+                  raise ERROR "old name was accidentally kept in graph xnames!" else I)
+              xnames' ();
+    val (d,ios) = G.get_vertex g' x1;
+    val xnames'' = G.Param.get_xnames (G.Param.of_vertex d x1);
+    val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
+                  raise ERROR "old name was accidentally kept vertex data!" else I)
+              xnames'' ();
+    in () end) ();
+
+in
+val _ = Testing.assert_no_failed_tests();
+val _ = "UNIT TESTS FOR LinratAngleExpr PASSED!";
+end; (* ends local namespace used for testing *)
+
 (* For debugging...
 
 PolyML.exception_trace (fn () => 
   
 ) ;
-
 *)

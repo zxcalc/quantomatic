@@ -30,9 +30,8 @@ public class SvgVertexVisualizationData implements VertexVisualizationData {
 	ShapeElement boundsElement;
 	Rectangle2D diagramBounds;
 
-	public SvgVertexVisualizationData(URL svgFile, Color labelColor) {
+	public SvgVertexVisualizationData(URI svgdocURI, Color labelColor) {
 		this.labelColor = labelColor;
-		URI svgdocURI = cachedIcon.getSvgUniverse().loadSVG(svgFile);
 		cachedIcon.setSvgURI(svgdocURI);
 		cachedIcon.setScaleToFit(true);
 		cachedIcon.setAntiAlias(true);

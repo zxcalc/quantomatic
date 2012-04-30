@@ -6,48 +6,26 @@ sig
 end
 
 (* ------------------------------------------------------- *)
-
-(* save typing *)
-structure WriteString
-=
-struct
-fun write file str = 
-    let val outstream =  TextIO.openOut file
-    in 
-      (
-       TextIO.output (outstream, str);
-       TextIO.closeOut outstream
-      )
-    end;
-end
+functor Writer(type T val to_string : T -> string) : WRITER
+= struct
+  type T = T
+  val write_to_string = to_string;
+  fun write_to_file file x = 
+      let val s = write_to_string x;
+          val outstream = TextIO.openOut file
+      in 
+        (TextIO.output (outstream, s);
+         TextIO.closeOut outstream)
+      end;
+end;
 
 (* ------------------------------------------------------- *)
-
-structure PrettyWriter : WRITER
-=
-struct
-type T = Pretty.T;
-open WriteString;
-
-val write_to_string = Pretty.string_of
-
-fun write_to_file file output = 
-    write file (write_to_string output)
-
-end
-
-(* ------------------------------------------------------- *)
-
-structure XMLWriter : WRITER
-=
-struct
-type T = XML.tree;
-open WriteString;
-
-val write_to_string = (prefix XML.header) o XML.string_of
-
-fun write_to_file file output = 
-    write file (write_to_string output)
-
-end
-
+structure WriteString : WRITER = Writer(
+  type T = string 
+  val to_string = I);
+structure WritePretty : WRITER = Writer(
+  type T = Pretty.T 
+  val to_string = Pretty.string_of);
+structure XMLWriter : WRITER = Writer(
+  type T = XML.tree
+  val to_string = (prefix XML.header) o XML.string_of)

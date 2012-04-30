@@ -1,18 +1,15 @@
 package quanto.core;
 
-import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import javax.swing.event.EventListenerList;
 import org.apache.commons.collections15.CollectionUtils;
 import org.apache.commons.collections15.Transformer;
 import org.xml.sax.InputSource;
@@ -20,23 +17,10 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
-
-import quanto.core.data.AttachedRewrite;
-import quanto.core.data.BangBox;
-import quanto.core.data.CoreGraph;
-import quanto.core.data.CoreObject;
-import quanto.core.data.Edge;
-import quanto.core.data.Rule;
-import quanto.core.data.Vertex;
-import quanto.core.data.VertexType;
+import quanto.core.data.*;
 import quanto.core.protocol.ProtocolManager;
-import quanto.core.xml.AttachedRewriteListFragmentHandler;
-import quanto.core.xml.EdgeFragmentHandler;
 import quanto.core.xml.EdgeFragmentHandler.EdgeData;
-import quanto.core.xml.FragmentHandler;
-import quanto.core.xml.GraphFragmentHandler;
-import quanto.core.xml.SAXFragmentAdaptor;
-import quanto.core.xml.VertexFragmentHandler;
+import quanto.core.xml.*;
 
 /**
  * Provides a nicer interface to the core
@@ -46,45 +30,11 @@ import quanto.core.xml.VertexFragmentHandler;
 public class Core {
 
     private final static Logger logger = Logger.getLogger("quanto.core");
+    
+    EventListenerList listenerList = new EventListenerList();
 
-    private class CoreTheory implements Theory {
-
-        private String theoryName;
-        Map<String, VertexType> mnemonics = new HashMap<String, VertexType>();
-        Map<String, VertexType> types = new HashMap<String, VertexType>();
-
-        public VertexType getVertexType(String typeName) {
-            return types.get(typeName);
-        }
-
-        public VertexType getVertexTypeByMnemonic(String mnemonic) {
-            return mnemonics.get(mnemonic);
-        }
-
-        public Collection<VertexType> getVertexTypes() {
-            return types.values();
-        }
-
-        public void addVertexType(VertexType type) {
-            types.put(type.getTypeName(), type);
-            mnemonics.put(type.getMnemonic(), type);
-        }
-
-        public void removeAllVertices() {
-            types.clear();
-            mnemonics.clear();
-        }
-
-        public void setTheoryName(String theoryName) {
-            this.theoryName = theoryName;
-        }
-
-        public String getTheoryName() {
-            return this.theoryName;
-        }
-    }
     private ProtocolManager talker;
-    private CoreTheory activeTheory;
+    private Theory activeTheory;
     private Ruleset ruleset;
 
     private <T> T parseXml(String xml, FragmentHandler<? extends T> handler) throws CoreException {
@@ -108,24 +58,57 @@ public class Core {
         }
     }
 
-    public Core(String implementedTheoryName, ArrayList<VertexType> vertices) throws CoreException {
+    public Core() throws CoreException {
         this.talker = new ProtocolManager();
         talker.startCore();
-        talker.changeTheory(implementedTheoryName);
-        this.activeTheory = new CoreTheory();
-        this.activeTheory.setTheoryName(implementedTheoryName);
-        for (VertexType v : vertices) {
-            this.activeTheory.addVertexType(v);
-        }
-
         this.ruleset = new Ruleset(this);
     }
 
-    public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) throws CoreException {
-        talker.changeTheory(implementedTheoryName);
-        this.activeTheory.removeAllVertices();
-        for (VertexType v : theoryVertices) {
-            this.activeTheory.addVertexType(v);
+    public Core(Theory theory) throws CoreException {
+        this();
+        talker.changeTheory(theory.getCoreName());
+        this.activeTheory = theory;
+    }
+
+    public void updateCoreTheory(Theory theory) throws CoreException {
+        fireTheoryAboutToChange(theory);
+        Theory oldTheory = activeTheory;
+        talker.changeTheory(theory.getCoreName());
+        this.activeTheory = theory;
+        fireTheoryChanged(oldTheory);
+    }
+
+    public void addCoreChangeListener(CoreChangeListener l) {
+        listenerList.add(CoreChangeListener.class, l);
+    }
+
+    public void removeCoreChangeListener(CoreChangeListener l) {
+        listenerList.remove(CoreChangeListener.class, l);
+    }
+
+    protected void fireTheoryAboutToChange(Theory newTheory) {
+        TheoryChangeEvent coreEvent = null;
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==CoreChangeListener.class) {
+                // Lazily create the event:
+                if (coreEvent == null)
+                    coreEvent = new TheoryChangeEvent(this, activeTheory, newTheory);
+                ((CoreChangeListener)listeners[i+1]).theoryAboutToChange(coreEvent);
+            }
+        }
+    }
+
+    protected void fireTheoryChanged(Theory oldTheory) {
+        TheoryChangeEvent coreEvent = null;
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==CoreChangeListener.class) {
+                // Lazily create the event:
+                if (coreEvent == null)
+                    coreEvent = new TheoryChangeEvent(this, oldTheory, activeTheory);
+                ((CoreChangeListener)listeners[i+1]).theoryChanged(coreEvent);
+            }
         }
     }
 
@@ -232,6 +215,26 @@ public class Core {
         talker.redo(graph.getCoreName());
     }
 
+    public void undoRewrite(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.undoRewrite(graph.getCoreName());
+     }
+
+     public void redoRewrite(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.redoRewrite(graph.getCoreName());
+     }
+    
+    public void startUndoGroup(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.startUndoGroup(graph.getCoreName());
+     }
+
+     public void endUndoGroup(CoreGraph graph) throws CoreException {
+         assertCoreGraph(graph);
+         talker.endUndoGroup(graph.getCoreName());
+     }
+    
     public Vertex addVertex(CoreGraph graph, VertexType vertexType)
             throws CoreException {
         return addVertex(graph, vertexType.getTypeName());
@@ -309,6 +312,13 @@ public class Core {
         return bb;
     }
 
+    public void bangVertices(CoreGraph graph, String bangBox, Collection<Vertex> vertices)
+              throws CoreException {
+          assertCoreGraph(graph);
+          talker.bangVertices(graph.getCoreName(), bangBox, names(vertices));
+          graph.fireStateChanged();
+     }
+    
     public void removeVerticesFromBangBoxes(CoreGraph graph,
             Collection<Vertex> vertices) throws CoreException {
         assertCoreGraph(graph);
@@ -372,6 +382,22 @@ public class Core {
         return null;
     }
 
+    public void replaceRuleset(File location) throws CoreException, IOException {
+        talker.replaceRulesetFromFile(location.getAbsolutePath());
+        this.ruleset.reload();
+    }
+
+    public void replaceRuleset(byte[] ruleset) throws CoreException, IOException {
+        talker.replaceRulesetFromData(ruleset);
+        this.ruleset.reload();
+    }
+
+    public void renameBangBox(CoreGraph graph, String oldName, String newName) 
+         throws CoreException {
+         assertCoreGraph(graph);
+         talker.renameBangBox(graph.getCoreName(), oldName, newName);
+    }
+    
     public void loadRuleset(File location) throws CoreException, IOException {
         talker.importRulesetFromFile(location.getAbsolutePath());
         this.ruleset.reload();
@@ -390,12 +416,25 @@ public class Core {
         return talker.exportRulesetToData();
     }
 
+    /**
+     * Creates a rule from two graphs.
+     * 
+     * Any existing rule with the same name will be replaced.
+     *
+     * @param ruleName
+     * @param lhs
+     * @param rhs
+     * @return
+     * @throws CoreException 
+     */
     public Rule<CoreGraph> createRule(String ruleName, CoreGraph lhs,
             CoreGraph rhs) throws CoreException {
         assertCoreGraph(lhs);
         assertCoreGraph(rhs);
         talker.setRule(ruleName, lhs.getCoreName(), rhs.getCoreName());
-        this.ruleset.fireStateChanged();
+        // FIXME: get actual rule active state from core
+        if (!this.ruleset.getRules().contains(ruleName))
+            this.ruleset.ruleAdded(ruleName, false);
         return new Rule<CoreGraph>(ruleName, lhs, rhs);
     }
 
@@ -480,4 +519,10 @@ public class Core {
             throws CoreException {
         talker.applyAttachedRewrite(graph.getCoreName(), i);
     }
+
+    public String[] renameVertex(CoreGraph graph, String oldName, String newName)
+	 					throws CoreException	{
+			String[] names = talker.renameVertex(graph.getCoreName(), oldName, newName);
+			return names;
+	}	
 }

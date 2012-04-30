@@ -160,8 +160,8 @@ fun output_vertex (name,(vdata, _))
     let val (style,label)  = 
 	    case vdata of V.EVert => (boundary_dot_style, Pretty.str str_name)
 			| V.IVert stuff =>
-			  case stuff of V.Xnd a => (default_Xdot_style, LinratExpr.pretty a)
-				      | V.Znd a => (default_Zdot_style, LinratExpr.pretty a)
+			  case stuff of V.Xnd a => (default_Xdot_style, LinratAngleExpr.pretty a)
+				      | V.Znd a => (default_Zdot_style, LinratAngleExpr.pretty a)
 				      | V.Hnd => (default_Hdot_style, Pretty.str "H")
     in 
       guts.mk_dot_vertex (Pretty.str style)  (label) (V.pretty_name name)

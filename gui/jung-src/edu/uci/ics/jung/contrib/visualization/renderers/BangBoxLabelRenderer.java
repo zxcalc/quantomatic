@@ -30,10 +30,6 @@ public interface BangBoxLabelRenderer {
 	 *				valid value
 	 * @param	vertex  the vertex for the label being drawn.
 	 */
-	<T> Component getEdgeLabelRendererComponent(JComponent vv, Object value,
-						    Font font, boolean isSelected, T edge);
-
-	boolean isRotateEdgeLabels();
-
-	void setRotateEdgeLabels(boolean state);
+	<B> Component getBangBoxLabelRendererComponent(JComponent vv, Object value,
+						    Font font, boolean isSelected, B bangBox);
 }

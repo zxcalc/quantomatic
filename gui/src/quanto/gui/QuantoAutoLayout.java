@@ -3,8 +3,6 @@ package quanto.gui;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
 
-import javax.swing.JOptionPane;
-
 import quanto.core.data.CoreGraph;
 import quanto.core.data.Edge;
 import quanto.core.data.Vertex;

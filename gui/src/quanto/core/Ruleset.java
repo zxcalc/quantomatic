@@ -9,29 +9,31 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 import javax.swing.event.ChangeListener;
 
-import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
-import edu.uci.ics.jung.visualization.util.DefaultChangeEventSupport;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.EventListenerList;
 
 /**
  *
  * @author alex
  */
 // FIXME: support more detailed change events
-public class Ruleset implements ChangeEventSupport {
+public class Ruleset {
 
 	private final static Logger logger =
 		Logger.getLogger("quanto.gui.ruleset");
 
-	private ChangeEventSupport changeSupport = new DefaultChangeEventSupport(this);
+	private EventListenerList listenerList = new EventListenerList();
 
 	private Core core;
 	// rule name -> active state
@@ -91,63 +93,54 @@ public class Ruleset implements ChangeEventSupport {
 	public void reload() {
 		tags = null;
 		rules = null;
-		fireStateChanged();
+		fireRulesetReplaced();
 	}
 	
-	public ArrayList<String> getRuleTags(String ruleName) {		
+	public ArrayList<String> getRuleTags(String ruleName) throws CoreException {		
 		/* Reverse lookup: obviously inefficient because of the data structure in use.*/
 		ArrayList<String> ruleTags = new ArrayList<String>();
-		try {
-			ensureTagListLoaded();
-			for (String key : tags.keySet()) {
-				ensureTagLoaded(key);
-				if (tags.get(key).contains(ruleName)) ruleTags.add(key);
-			}
-			} catch (CoreException e) {
-				logger.log(Level.WARNING, "Could not load tags from the core");
-			}
+        ensureTagListLoaded();
+        for (String key : tags.keySet()) {
+            ensureTagLoaded(key);
+            if (tags.get(key).contains(ruleName)) ruleTags.add(key);
+        }
 		return ruleTags;
 	}
-	
-	public void tagRule(String ruleName, String tag) {
-		try {
-			core.getTalker().tagRule(ruleName, tag);
-		} catch (CoreException e) {
-			logger.log(Level.WARNING, "Could not tag rule {}", ruleName);
-		}
-		reload();
-	}
-	
-	public void untagRule(String ruleName, String tag) {
-		try {
-			core.getTalker().untagRule(ruleName, tag);
-		} catch (CoreException e) {
-			logger.log(Level.WARNING, "Could not tag rule {}", ruleName);
-		}
-		reload();
-	}
-	
-	private void updateCacheByTag(String tag, Boolean newActivationState) {
-		if (tags != null) {
-			if (!tags.containsKey(tag)) {
-				logger.log(Level.WARNING, "Inconsistent state: we don't know about tag {}", tag);
-				reload();
-				return;
-			}
 
-			Set<String> taggedRules = tags.get(tag);
-			if (taggedRules != null) {
-				for (String rulename : taggedRules) {
-					if (!rules.containsKey(rulename)) {
-						logger.log(Level.WARNING, "Inconsistent state: {} is tagged, but does not exist!", rulename);
-						reload();
-						return;
-					}
-					rules.put(rulename, Boolean.valueOf(newActivationState));
-				}
-			}
-		}
-		fireStateChanged();
+	public void tagRule(String ruleName, String tag) throws CoreException {
+		core.getTalker().tagRule(ruleName, tag);
+        if (tags != null) {
+            boolean newTag = !tags.containsKey(tag);
+            if (newTag) {
+                Set<String> set = new HashSet<String>();
+                set.add(ruleName);
+                tags.put(tag, set);
+            } else {
+                tags.get(tag).add(ruleName);
+            }
+            fireRulesTagged(tag, Collections.singleton(ruleName), newTag);
+        } else {
+            // lazy
+            fireRulesetReplaced();
+        }
+	}
+	
+	public void untagRule(String ruleName, String tag) throws CoreException {
+        if (tags == null || tags.containsKey(tag)) {
+            core.getTalker().untagRule(ruleName, tag);
+            if (tags != null) {
+                tags.get(tag).remove(ruleName);
+                if (tags.get(tag).isEmpty()) {
+                    tags.remove(tag);
+                    fireRulesUntagged(tag, Collections.singleton(ruleName), true);
+                } else {
+                    fireRulesUntagged(tag, Collections.singleton(ruleName), false);
+                }
+            } else {
+                // lazy
+                fireRulesetReplaced();
+            }
+        }
 	}
 
 	public Collection<String> getTags() throws CoreException {
@@ -171,100 +164,211 @@ public class Ruleset implements ChangeEventSupport {
 	}
 
 	public void activateRulesByTag(String tag) throws CoreException {
+        Collection<String> changedRules = tags.get(tag);
 		core.getTalker().activateRulesByTag(tag);
-		updateCacheByTag(tag, Boolean.TRUE);
+        Map<String,Boolean> updated = new HashMap<String, Boolean>(changedRules.size());
+        for (String rule : changedRules) {
+            updated.put(rule, Boolean.TRUE);
+        }
+        rules.putAll(updated);
+        fireRulesActiveStateChanged(updated);
 	}
 
 	public void deactivateRulesByTag(String tag) throws CoreException {
+        Collection<String> changedRules = tags.get(tag);
 		core.getTalker().deactivateRulesByTag(tag);
-		updateCacheByTag(tag, Boolean.FALSE);
+        Map<String,Boolean> updated = new HashMap<String, Boolean>(changedRules.size());
+        for (String rule : changedRules) {
+            updated.put(rule, Boolean.FALSE);
+        }
+        rules.putAll(updated);
+        fireRulesActiveStateChanged(updated);
 	}
 
 	public void deleteRulesByTag(String tag) throws CoreException {
-	     core.getTalker().deleteRulesByTag(tag);
-	     reload();
-	     fireStateChanged();     
-	}
-	
-	private void updateCacheForRule(String name, Boolean newActivationState) {
-		if (!rules.containsKey(name)) {
-			logger.log(Level.WARNING, "Inconsistent state: core seems to know about rule \"{}\", but we don't", name);
-			reload();
-			return;
-		}
-		rules.put(name, Boolean.valueOf(newActivationState));
-		fireStateChanged();
+        Collection<String> removedRules = tags.get(tag);
+	    core.getTalker().deleteRulesByTag(tag);
+        tags.remove(tag);
+        rules.keySet().removeAll(removedRules);
+	    fireRulesRemoved(removedRules);    
 	}
 
 	public void activateRule(String name) throws CoreException {
 		core.getTalker().activateRule(name);
-		updateCacheForRule(name, Boolean.TRUE);
+		rules.put(name, Boolean.TRUE);
+        fireRulesActiveStateChanged(Collections.singletonMap(name, Boolean.TRUE));
 	}
 
 	public void deactivateRule(String name) throws CoreException {
 		core.getTalker().deactivateRule(name);
-		updateCacheForRule(name, Boolean.FALSE);
+		rules.put(name, Boolean.FALSE);
+        fireRulesActiveStateChanged(Collections.singletonMap(name, Boolean.FALSE));
 	}
 
 	public void activateAllRules() throws CoreException {
-		for (String name: rules.keySet()) {
-			core.getTalker().activateRule(name);
-			rules.put(name, Boolean.TRUE);
-		}
-		fireStateChanged();
+        try {
+            for (String name: rules.keySet()) {
+                core.getTalker().activateRule(name);
+                rules.put(name, Boolean.TRUE);
+            }
+            fireRulesActiveStateChanged(Collections.unmodifiableMap(rules));
+        } catch (CoreException ex) {
+            reload();
+            throw ex;
+        }
 	}
 
 	public void deactivateAllRules() throws CoreException {
-		for (String name: rules.keySet()) {
-			core.getTalker().deactivateRule(name);
-			rules.put(name, Boolean.FALSE);
-		}
-		fireStateChanged();
+        try {
+            for (String name: rules.keySet()) {
+                core.getTalker().deactivateRule(name);
+                rules.put(name, Boolean.FALSE);
+            }
+            fireRulesActiveStateChanged(Collections.unmodifiableMap(rules));
+        } catch (CoreException ex) {
+            reload();
+            throw ex;
+        }
 	}
 
 	public void deleteRule(String rule) throws CoreException {
 	     core.getTalker().deleteRule(rule);
-	     reload();
-	     fireStateChanged();     
+         rules.remove(rule);
+         Iterator<Set<String>> it = tags.values().iterator();
+         while (it.hasNext()) {
+             it.next().remove(rule);
+         }
+	     fireRulesRemoved(Collections.singleton(rule));
 	}
 	
 	public void activateRules(Collection<String> ruleNames) throws CoreException {
 		if (!rules.keySet().containsAll(ruleNames)) {
 			throw new IllegalArgumentException("ruleNames contains unknown rules");
 		}
-		for (String name: ruleNames) {
-			core.getTalker().activateRule(name);
-			rules.put(name, Boolean.TRUE);
-		}
-		fireStateChanged();
+        try {
+            Map<String,Boolean> changes = new HashMap<String, Boolean>();
+            for (String name: ruleNames) {
+                core.getTalker().activateRule(name);
+                rules.put(name, Boolean.TRUE);
+                changes.put(name, Boolean.TRUE);
+            }
+            fireRulesActiveStateChanged(changes);
+        } catch (CoreException ex) {
+            reload();
+            throw ex;
+        }
 	}
 
 	public void deactivateRules(Collection<String> ruleNames) throws CoreException {
 		if (!rules.keySet().containsAll(ruleNames)) {
 			throw new IllegalArgumentException("ruleNames contains unknown rules");
 		}
-		for (String name: ruleNames) {
-			core.getTalker().deactivateRule(name);
-			rules.put(name, Boolean.FALSE);
+        try {
+            Map<String,Boolean> changes = new HashMap<String, Boolean>();
+            for (String name: ruleNames) {
+                core.getTalker().deactivateRule(name);
+                rules.put(name, Boolean.FALSE);
+                changes.put(name, Boolean.FALSE);
+            }
+            fireRulesActiveStateChanged(changes);
+        } catch (CoreException ex) {
+            reload();
+            throw ex;
+        }
+	}
+    
+    public void renameRule(String oldName, String newName) throws CoreException {
+		if (!rules.containsKey(oldName)) {
+			throw new IllegalArgumentException("Unknown rule \"" + oldName + "\"");
 		}
-		fireStateChanged();
+        core.getTalker().renameRule(oldName, newName);
+        Boolean active = rules.get(oldName);
+        rules.remove(oldName);
+        rules.put(newName, active);
+        Iterator<Set<String>> it = tags.values().iterator();
+        while (it.hasNext()) {
+            Set<String> tagRules = it.next();
+            tagRules.remove(oldName);
+            tagRules.add(newName);
+        }
+        fireRulesRenamed(Collections.singletonMap(oldName, newName));
+    }
+
+	public void addRulesetChangeListener(RulesetChangeListener l) {
+		listenerList.add(RulesetChangeListener.class, l);
 	}
 
-	public void addChangeListener(ChangeListener l) {
-		changeSupport.addChangeListener(l);
+	public void removeRulesetChangeListener(RulesetChangeListener l) {
+		listenerList.remove(RulesetChangeListener.class, l);
 	}
 
-	public void removeChangeListener(ChangeListener l) {
-		changeSupport.removeChangeListener(l);
+	protected void fireRulesAdded(Collection<String> rules) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesAdded(this, rules);
+            }
+        }
 	}
 
-	public ChangeListener[] getChangeListeners() {
-		return changeSupport.getChangeListeners();
+	protected void fireRulesRemoved(Collection<String> rules) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesRemoved(this, rules);
+            }
+        }
 	}
 
-	public void fireStateChanged() {
-		changeSupport.fireStateChanged();
+	protected void fireRulesRenamed(Map<String,String> renaming) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesRenamed(this, renaming);
+            }
+        }
 	}
+
+	protected void fireRulesActiveStateChanged(Map<String,Boolean> newState) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesActiveStateChanged(this, newState);
+            }
+        }
+	}
+
+	protected void fireRulesTagged(String tag, Collection<String> rules, boolean created) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesTagged(this, tag, rules, created);
+            }
+        }
+	}
+
+	protected void fireRulesUntagged(String tag, Collection<String> rules, boolean removed) {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesUntagged(this, tag, rules, removed);
+            }
+        }
+	}
+
+	protected void fireRulesetReplaced() {
+        Object[] listeners = listenerList.getListenerList();
+        for (int i = listeners.length-2; i>=0; i-=2) {
+            if (listeners[i]==RulesetChangeListener.class) {
+                ((RulesetChangeListener)listeners[i+1]).rulesetReplaced(this);
+            }
+        }
+	}
+
+    void ruleAdded(String name, boolean active) {
+        rules.put(name, active);
+        fireRulesAdded(Collections.singleton(name));
+    }
 
 	public Core getCore() {
 		return this.core;

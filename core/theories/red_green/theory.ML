@@ -27,10 +27,10 @@ in Pretty.block
    (case v of Graph.OVData.IVert iv =>
 	     (case iv
 	       of RG_InternVData.Xnd e =>
-		        [Pretty.str "xsp[", LinratExpr.pretty_math fmt e, Pretty.str ", "] @
+		        [Pretty.str "xsp[", LinratAngleExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
 		      | RG_InternVData.Znd e =>
-		        [Pretty.str "zsp[", LinratExpr.pretty_math fmt e, Pretty.str ", "] @
+		        [Pretty.str "zsp[", LinratAngleExpr.pretty_math fmt e, Pretty.str ", "] @
 		        nums @ [Pretty.str "]"]
           | RG_InternVData.Hnd => [Pretty.str "h"])
 	  | _ => [Pretty.str "id2[1]"])

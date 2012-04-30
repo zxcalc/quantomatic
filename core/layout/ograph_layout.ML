@@ -57,6 +57,8 @@ struct
       val (x as (seen_vs, layout1)) = 
         add_to_layouts g init_vs (V.NSet.empty, init_layout);
       
+      (* there may be graph components which are disjoint from inputs, we now 
+         make the layout for each of these. *)
       val (x as (seen_vs, layouts)) = 
           V.NSet.fold
             (fn v => fn (seen_vs, layouts) =>
@@ -66,10 +68,11 @@ struct
                   add_to_layouts g (V.NSet.single v) (seen_vs, init_layout)
                 in (seen_vs', new_layout :: layouts) end)
             (Graph.get_vnames g) (seen_vs, [layout1]);
-            
-    (* seen_vs = (Graph.get_vnames g) *)
-    in (* fix ordering of layouts *) 
-    map rev layouts end;
+      (* Invariant: seen_vs = (Graph.get_vnames g) *)
+
+      (* fix ordering of layouts *)
+      val layouts_inputs_to_outputs = map rev layouts         
+    in layouts_inputs_to_outputs end;
 
   fun pretty_layout (l : V.NSet.T list) = 
     Pretty.list "[" "]" 
@@ -106,6 +109,56 @@ struct
       height = height_of_layout l,
       vertex_layout = map V.NSet.list_of l
     };
+
+  (* define the x-coordinate for each vertex in the row, updating it's 
+     entry in xposmap. *)
+  fun add_row_to_xpos_map pix_width row xposmap = 
+      let 
+        val pix_sep = (Real.fromInt pix_width) / (Real.fromInt ((length row) + 1));
+        val (endpos, xposmap) = 
+          fold (fn v => fn (xpos,xposmap) => 
+                (pix_sep + xpos, V.NTab.update (v,xpos) xposmap)
+               ) row (pix_sep, xposmap)
+      in xposmap end;
   
+  fun add_layout_to_ypos_map vsep layout yposmap = 
+      fold (fn row => fn (ypos, yposmap) =>
+            (ypos + vsep, fold (fn v => V.NTab.update (v,ypos)) row yposmap)
+           ) layout (vsep, yposmap);
+  
+  fun pos_maps_of_box hsep vsep (Box rep) =
+    let
+      (* pix_width is total width of the layout, this is used to centre-align
+         the vertices by the widest part of the graph. *)
+      val pix_width = (hsep + 1) * (#width rep)
+      val xpos_map = 
+          fold (add_row_to_xpos_map pix_width) 
+               (#vertex_layout rep) V.NTab.empty; 
+      val ypos_map = 
+          add_layout_to_ypos_map vsep (#vertex_layout rep) V.NTab.empty;
+    in 
+      (xpos_map, ypos_map)
+    end;
+
+  fun svg_pretty_in_context p = 
+    Pretty.block 
+      ((map Pretty.str 
+         ["<svg xmlns=\"http://www.w3.org/2000/svg\" ",
+          "version=\"1.1\" ",
+          (* "viewBox=\"0 0 1000 1000\" preserveAspectRatio=\"xMidYMid slice\" ",
+          "style=\"width:", Int.toString x, "; height:", 
+          Int.toString y,"; z-index:-2;", *) 
+          "\">", "\n"])
+        @ [p]
+        @ (map Pretty.str
+           ["</svg>", "\n"]));
+  
+  fun svg_pretty_vertex n x y = 
+    Pretty.block (map Pretty.str 
+      ["<circle id=\"", V.string_of_name n, "\" ", 
+      "cx=\"", Int.toString x, "\" ", 
+      "cy=\"", Int.toString y, "\" ",
+      "r=\"10\" stroke=\"black\" stroke-width=\"2\" fill=\"red\" />\n"]);
+    
 end;
 end; (* *)

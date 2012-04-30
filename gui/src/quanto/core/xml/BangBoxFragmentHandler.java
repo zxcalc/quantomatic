@@ -18,7 +18,7 @@ import quanto.core.data.BangBox;
 public class BangBoxFragmentHandler extends CoreObjectFragmentHandler<BangBoxFragmentHandler.BangBoxData> {
 	public static class BangBoxData {
 		public BangBox bangBox;
-		public Collection<String> vertexNames = new HashSet<String>();
+		public Collection<String> vertexNames;
 	}
 	enum Mode {
 		None, BangBox, Vertex
@@ -39,6 +39,7 @@ public class BangBoxFragmentHandler extends CoreObjectFragmentHandler<BangBoxFra
 			extractName(attributes);
 
 			bangBoxData.bangBox = new BangBox(name);
+            bangBoxData.vertexNames = new HashSet<String>();
 
 			mode = Mode.BangBox;
 		} else if (mode == Mode.BangBox && "vertex".equals(localName)) {

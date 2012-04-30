@@ -11,7 +11,6 @@ structure Param : GRAPH_PARAM_SHARING;
 sharing Param.VData = VData;
 sharing Param.EData = EData;
 type dir_or_undir;
-type user_data;
 type T;
 end;
 
@@ -23,13 +22,12 @@ sig
 structure VData : UNIFIABLE_DATA
 structure EData : UNIFIABLE_DATA
 structure Param : GRAPH_PARAM
+
 (* each edge is either directed, or bi-directed: this is the family of graphs
    with these edges in both directions. *)
 datatype dir_or_undir = Directed | UnDirected;
-type user_data = string Symtab.table;
-type T; (* a graph *)
 
-type name_deps (* dependencies between vertex, edge and data names *)
+type T; (* a graph *)
 
 structure SharingBasicGraph : BASIC_GRAPH_SHARING
 sharing SharingBasicGraph.EData = EData.Sharing;
@@ -40,6 +38,9 @@ sharing type SharingBasicGraph.dir_or_undir = dir_or_undir;
 
 exception bug_exp of string;
 
+exception no_such_xname_exp of string * X.name * T;
+exception xname_already_exists_exp of X.name * T;
+
 exception no_such_vname_exp of string * V.name * T;
 exception vname_already_exists_exp of V.name * T;
 
@@ -48,6 +49,9 @@ exception ename_already_exists_exp of E.name * T;
 
 (* Making Graphs *)
 val empty : T
+
+val get_xnames : T -> X.NSet.T
+
 (* adding a vertex gives back unique name for it and the new graph *)
 (* V.name = suggested name *)
 val add_named_vertex : V.name -> VData.data -> T -> V.name * T 
@@ -63,13 +67,14 @@ val delete_vertex : V.name -> T -> T
 (* replace all occurances of old name (1st arg) with new name (2nd arg) *)
 (*  2nd name must not already exist and 1st must already exist, 
     else an exception is raised *)
+val rename_xname : X.name -> X.name -> T -> T 
 val rename_vname : V.name -> V.name -> T -> T 
 val rename_ename : E.name -> E.name -> T -> T 
 
 (* update a data of a vertex or edge *)
 val update_vertex_data : (VData.data -> VData.data) -> V.name -> T -> T
 val update_edge_data : (EData.data -> EData.data) -> E.name -> T -> T
-val update_vertex_user_data : (user_data -> user_data) -> UV.name -> T -> T
+
 (* getting graph internal representation... *)
 val get_vertices : T 
                 -> (VData.data 
@@ -82,11 +87,8 @@ val get_edges : T
                     * (V.name (* from this vertex *)
                        * V.name)) (* to this vertex *)
                    E.NTab.T
-val get_Param : T -> name_deps
-val get_vertices_user_data : T -> user_data UV.NTab.T
-val get_vertex_user_data : T -> V.name -> string Symtab.table
-val get_vertex_user_data_list : T -> (UV.name * string Symtab.table) list
-val get_vertices_u_d_brel : T -> VVUDBRel.T
+val get_param : T -> Param.T
+
 (* updating graph internal representation... *)
 val update_vertices : ((VData.data * (E.NSet.T * E.NSet.T)) 
                          V.NTab.T 
@@ -97,8 +99,8 @@ val update_edges : (((dir_or_undir * EData.data)
                     -> ((dir_or_undir * EData.data) 
                         * (V.name * V.name)) E.NTab.T)
                    -> T -> T
-val update_Param : (name_deps -> name_deps) -> T -> T
-val update_vertices_user_data : (user_data UV.NTab.T -> user_data UV.NTab.T) -> T -> T
+val update_param : (Param.T -> Param.T) -> T -> T
+
 
 (* pretty printing *)
 val pretty : T -> Pretty.T
@@ -115,11 +117,6 @@ type data
 val get_data : T -> data;
 val update_data : (data -> data) -> T -> T
 
-(* Takes a key and may return the corresponding value *)
-val get_graph_user_data : T -> string -> string option;
-val update_graph_user_data : (user_data -> user_data) -> T -> T;
-(* Returns the symtab *)
-val get_user_data : T -> string Symtab.table;
 end;
 
 
@@ -136,7 +133,6 @@ functor BasicGraphFun(
 structure VData = Param.VData;
 structure EData = Param.EData;
 structure Param = Param;
-structure VDDep = VVUDBRel;
 
 exception bug_exp of string;
 
@@ -144,13 +140,11 @@ exception bug_exp of string;
 signatures/structures; this provides a style of OOP for normal
 structured ML. *)
 type data = data;
-type name_deps = Param.T;
 
 (* is the edge representing a singtle graph with the directed edge, or is it
  representing the family of graphs with this edge in both directions. *)
 datatype dir_or_undir = Directed | UnDirected;
 
-type user_data = string Symtab.table;
 (* a graph *)
 datatype T = Graph of 
          {
@@ -162,13 +156,13 @@ datatype T = Graph of
                    * (V.name (* from this vertex *)
                       * V.name)) (* to this vertex *)
                     E.NTab.T,  
-          (* dependencies between names in data and other graph things *)
-          name_deps : Param.T,
-          data : data, (* global data about a graph *)
-          graph_user_data : user_data,
-          vertices_user_data : user_data UV.NTab.T,
-          vertices_u_d_brel : VDDep.T
+          (* dependencies between names in vertex data and other graph things *)
+          param : Param.T,
+          (* other global data that extends the graph definition, 
+             e.g. boundary vertices, bang-boxes, etc *)
+          data : data
          };
+
 (* *)
 structure SharingBasicGraph = struct
   structure VData = VData.Sharing;
@@ -176,106 +170,54 @@ structure SharingBasicGraph = struct
   structure Param = Param.Sharing;
   type T = T;
   type dir_or_undir = dir_or_undir;
-  type user_data = string Symtab.table;
-  structure VDDep = VVUDBRel;
 end;
 
-(* internal data stuff *)
+(* extensible/internal data stuff *)
 fun get_data (Graph rep) = #data rep;
 val empty_data = empty_data;
 fun update_data f (Graph rep) = 
     Graph { vertices = #vertices rep, edges = #edges rep,
-            name_deps = #name_deps rep, data = f (#data rep),
-            graph_user_data = #graph_user_data rep,
-            vertices_user_data = #vertices_user_data rep,
-            vertices_u_d_brel = #vertices_u_d_brel rep};
-
-fun get_user_data (Graph rep) = #graph_user_data rep;
-fun get_graph_user_data (Graph rep) k =
-  Symtab.lookup (#graph_user_data rep) k;
-  
-fun update_graph_user_data f (Graph rep) =
-    Graph { vertices = #vertices rep, edges = #edges rep, 
-            name_deps = #name_deps rep, data = #data rep,
-            graph_user_data = f (#graph_user_data rep),
-            vertices_user_data = #vertices_user_data rep,
-            vertices_u_d_brel = #vertices_u_d_brel rep};
+            param = #param rep, data = f (#data rep)};
 
 (* basic graph stuff... *)
 val empty = Graph { vertices = V.NTab.empty, 
                     edges = E.NTab.empty,
-                    name_deps = Param.empty,
-                    data = empty_data,
-                    graph_user_data = Symtab.empty,
-                    vertices_user_data = UV.NTab.empty,
-                    vertices_u_d_brel = VDDep.empty};
+                    param = Param.empty,
+                    data = empty_data};
 fun update_vertices f (Graph rep) = 
     Graph { vertices = f (#vertices rep), edges = #edges rep, 
-            name_deps = #name_deps rep, data = #data rep,
-            graph_user_data = #graph_user_data rep,
-            vertices_user_data = #vertices_user_data rep,
-            vertices_u_d_brel = #vertices_u_d_brel rep};
-
-
+            param = #param rep, data = #data rep };
 fun update_edges f (Graph rep) = 
     Graph { vertices = #vertices rep, edges = f (#edges rep),
-            name_deps = #name_deps rep, data = #data rep,
-            graph_user_data = #graph_user_data rep,
-            vertices_user_data = #vertices_user_data rep,
-            vertices_u_d_brel = #vertices_u_d_brel rep};
-
-
-fun update_Param f (Graph rep) = 
+            param = #param rep, data = #data rep };
+fun update_param f (Graph rep) = 
     Graph { vertices = #vertices rep, edges = #edges rep,
-            name_deps = f(#name_deps rep), data = #data rep,
-            graph_user_data = #graph_user_data rep,
-            vertices_user_data = #vertices_user_data rep,
-            vertices_u_d_brel = #vertices_u_d_brel rep};
-
-
-fun update_vertices_user_data f (Graph rep) = 
-    Graph { vertices = #vertices rep, edges = #edges rep,
-            name_deps = #name_deps rep, data = #data rep,
-            graph_user_data = #graph_user_data rep,
-            vertices_user_data = f (#vertices_user_data rep),
-            vertices_u_d_brel = #vertices_u_d_brel rep};
-
-fun update_vertices_u_d_brel f (Graph rep) = 
-    Graph { vertices = #vertices rep, edges = #edges rep,
-            name_deps = #name_deps rep, data = #data rep,
-            graph_user_data = #graph_user_data rep,
-            vertices_user_data = #vertices_user_data rep,
-            vertices_u_d_brel = f (#vertices_u_d_brel rep)};
-
-
+            param = f(#param rep), data = #data rep };
 val set_vertices = update_vertices o K;
 val set_edges = update_edges o K;
-val set_Param = update_Param o K;
-val set_vertices_user_data = update_vertices_user_data o K;
-val set_vertices_u_d_brel = update_vertices_u_d_brel o K;
+val set_param = update_param o K;
 
 fun get_vertices (Graph rep) = #vertices rep;
 fun get_edges (Graph rep) = #edges rep;
-fun get_Param (Graph rep) = #name_deps rep;
-fun get_vertices_user_data (Graph rep) = #vertices_user_data rep;
-fun get_vertices_u_d_brel (Graph rep) = #vertices_u_d_brel rep;
+fun get_param (Graph rep) = #param rep;
+
+fun get_xnames g = Param.get_xnames (get_param g);
 
 val get_vertex_list = V.NTab.list_of o get_vertices;
 val get_edge_list = E.NTab.list_of o get_edges;
 val get_vertex_nset = V.NTab.get_nameset o get_vertices;
 val get_edge_nset = E.NTab.get_nameset o get_edges;
-val get_vertex_user_data_list = UV.NTab.list_of o get_vertices_user_data;
 
 (* implicit: g n *)
 val lookup_vertex = V.NTab.lookup o get_vertices
 val lookup_edge = E.NTab.lookup o get_edges
-val lookup_vertex_user_data = UV.NTab.lookup o get_vertices_user_data
+
+exception no_such_xname_exp of string * X.name * T;
+exception xname_already_exists_exp of X.name * T;
 exception no_such_vname_exp of string * V.name * T;
 exception vname_already_exists_exp of V.name * T;
 exception no_such_ename_exp of string * E.name * T;
-exception no_such_vudata_exp of string * string * UV.name * T;
 exception ename_already_exists_exp of E.name * T;
-fun uv_mk n = UV.mk (V.dest n);
 
 fun get_vertex g n = 
     case lookup_vertex g n 
@@ -286,66 +228,58 @@ fun get_edge g en =
      of NONE => raise no_such_ename_exp ("get_edge", en, g)
       | SOME x => x;
 
-fun get_vertex_user_data g vn =
-  let
-      val un = 
-       case VDDep.lookup_domf (get_vertices_u_d_brel g) vn of
-            NONE => raise no_such_vname_exp ("get_vertex_user_data", vn, g)
-            | SOME x => (case UV.NSet.get_first x of 
-                NONE => raise no_such_vname_exp ("get_vertex_user_data", vn, g)
-                | SOME y => y);
-      val vertices_u_d = get_vertices_user_data g
-      val ud_t = case UV.NTab.lookup vertices_u_d un of
-            NONE => raise no_such_vname_exp ("get_vertex_vertex_user_data", vn, g)
-            | SOME x => x;
-  in
-    ud_t
-  end;
-
 (* implicit arg: g *)
-fun update_vertex_data f n = 
-    update_vertices (V.NTab.map_entry (fn (nd,ios) => (f nd,ios)) n);
+fun update_vertex_data f n g = 
+    let val (d,_) = get_vertex g n 
+        val d2 = f d
+    in
+      g |> update_vertices (V.NTab.map_entry (fn (_,ios) => (d2,ios)) n)
+        |> update_param (Param.replace_vertex d2 n)
+    end;
 fun update_vertex_ins f n = 
     update_vertices (V.NTab.map_entry 
                        (fn (nd,(ins,outs)) => (nd,(f ins, outs))) n);
 fun update_vertex_outs f n = 
     update_vertices (V.NTab.map_entry 
                        (fn (nd,(ins,outs)) => (nd,(ins, f outs))) n);
-fun update_edge f en = 
-    update_edges (E.NTab.map_entry f en);
-fun update_edge_data f = 
-    update_edge (fn ((bd,e),fromto) => ((bd,f e),fromto));
+fun update_edge f n g = 
+    let val e = get_edge g n 
+        val e2 as ((bd,d2),fromto) = f e
+    in
+      g |> update_edges (E.NTab.map_entry (fn _ => e2) n)
+        |> update_param (Param.replace_edge d2 n)
+    end;
+fun update_edge_data f n g = 
+    let val ((bd,d),fromto) = get_edge g n 
+        val d2 = f d
+    in
+      g |> update_edges (E.NTab.map_entry (fn _ => ((bd,d2),fromto)) n)
+        |> update_param (Param.replace_edge d2 n)
+    end;
+(*     update_edge (fn ((bd,d),fromto) => ((bd,f d),fromto)); *)
 fun update_edge_dir_or_undir f = 
-    update_edge (fn ((bd,e),fromto) => ((f bd,e),fromto));
-fun update_vertex_user_data f n = 
-    update_vertices_user_data (UV.NTab.map_entry f n);
+    update_edge (fn ((bd,d),fromto) => ((f bd,d),fromto));
 
 (* adding a vertex gives back unique name for it and the new graph *)
 fun add_named_vertex n nd g =
     let val (n2,vertices2) = 
             V.NTab.add (n,(nd,(E.NSet.empty,E.NSet.empty))) 
                             (get_vertices g)
-        val (un, vertices_u_d) = UV.NTab.add (uv_mk n, (Symtab.empty)) 
-          (get_vertices_user_data g)
-        val brel  = VDDep.add1 n2 un (get_vertices_u_d_brel g)
     in (n2, g |> set_vertices vertices2
-              |> set_vertices_user_data vertices_u_d
-              |> update_vertices_u_d_brel (fn _ => brel)) end;
-
-(* implicit arg: g *)
-fun new_named_vertex n nd g =
-    let
-        val (n', g') = add_named_vertex n nd g 
-    in
-        g'
+              |> update_param (Param.add_vertex nd n2)) 
     end;
 
+(* implicit arg: g; raises V.NSet.duplicate_exp *)
+fun new_named_vertex n d =
+    update_vertices 
+      (V.NTab.ins (n,(d,(E.NSet.empty,E.NSet.empty))))
+    o update_param (Param.add_vertex d n); 
 
 (* implicit args: g n *)
 val has_vname = V.NTab.contains_name o get_vertices;
 val has_ename = E.NTab.contains_name o get_edges;
 
-fun add_named_edge en e n1 n2 g = 
+fun add_named_edge en (e as (bd,d)) n1 n2 g = 
     let 
       (* make sure the vertices exist *) 
       val _ = if has_vname g n1 then
@@ -364,9 +298,9 @@ fun add_named_edge en e n1 n2 g =
 						(fn (n,(ins,outs)) => (n,(E.NSet.ins_fresh en2 ins,outs))) n2
       (* give back new edge name and new graph *)
     in (en2, g |> set_vertices vertices2
-               |> set_edges edges2) 
+               |> set_edges edges2
+               |> update_param (Param.add_edge d en2)) 
     end;
-               
 
 (* implicit args: en g *)
 (* *)
@@ -391,9 +325,8 @@ fun delete_edge en g =
       (* give back new edge name and new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2 
+         |> update_param (Param.delete_ename en)
     end;
-
-
 
 (* deleting vertex also removes all it's edges. *)
 fun delete_vertex n g = 
@@ -408,24 +341,37 @@ fun delete_vertex n g =
       val g2 = 
           g |> E.NSet.fold delete_edge ins
             |> E.NSet.fold delete_edge (E.NSet.subtract outs ins)
-      (* get the corresponding user data name  *) 
-      val un = 
-          case VDDep.lookup_domf (get_vertices_u_d_brel g) n of
-            NONE => raise no_such_vname_exp ("delete_vertex", n, g)
-            | SOME x => (case UV.NSet.get_first x of 
-                NONE => raise no_such_vname_exp ("delete_vertex", n, g)
-                | SOME y => y);
-      val vertices_u_d = get_vertices_user_data g
-      val ud = case UV.NTab.lookup vertices_u_d un of
-            NONE => raise no_such_vname_exp ("delete_vertex", n, g)
-            | SOME x => x;
-    in g2 |> update_vertices (V.NTab.delete n) 
-          |> update_vertices_user_data (UV.NTab.delete un)
-          |> update_vertices_u_d_brel (VDDep.del_dom n)
-          |> update_vertices_u_d_brel (VDDep.del_cod un)
-end;
+
+    in g2 |> update_vertices (V.NTab.delete n)
+          |> update_param (Param.delete_vname n)
+    end;
 
 exception rename_do_nothing_exp of unit;
+
+(* implicit args: n1 n2 g; raises X.Rnm. *)
+(* renames internal variable name n1 to n2 (assuming n2 is fresh in this graph)
+   Updates the name in the param data as well as in each vertex and edge data in
+   which the name occurs. *)
+fun rename_xname n1 n2 g =
+    let 
+      val param = get_param g;
+      (* val _ = if X.NSet.contains (Param.get_xnames param) n2 then 
+                raise xname_already_exists_exp (n2,g)
+              else (); *)
+      val vnames_to_update = Param.dep_vnames_of_xname param n1 
+      val enames_to_update = Param.dep_enames_of_xname param n1
+    in 
+      g |> update_param (Param.rename_xname n1 n2)
+        |> update_vertices (
+            V.NSet.fold (V.NTab.map_entry (fn (d,ios) => (
+                  Param.subst_xname_in_vdata n1 n2 d,ios))) 
+              vnames_to_update)
+        |> update_edges (
+            E.NSet.fold (E.NTab.map_entry (fn ((dir,d),fromto) => 
+                  ((dir,Param.subst_xname_in_edata n1 n2 d),fromto))) 
+              enames_to_update)
+    end handle X.Rnm.invalid_renaming_exp _ => 
+        raise xname_already_exists_exp (n2,g);
 
 (* V.name = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
@@ -437,6 +383,7 @@ fun rename_vname n1 n2 g =
       val (nd,(ins,outs)) = case V.NTab.lookup vertices n1 
                              of NONE => raise rename_do_nothing_exp ()
                               | SOME x => x;
+
       (* update the vertex entry for n1, we make sure that n2 doesn't already exist *)
       val vertices2 = 
           case (vertices |> V.NTab.delete n1
@@ -444,21 +391,19 @@ fun rename_vname n1 n2 g =
                          |> V.NTab.try_ins (n2,(nd,(ins,outs))))
            of NONE => raise vname_already_exists_exp (n2,g)
             | SOME vertices2 => vertices2;
-      val brel = case VDDep.try_rename1_dom n1 n2 (get_vertices_u_d_brel g) of
-          NONE => raise rename_do_nothing_exp ()
-          | SOME x => x;
-      (* update any edges to use the new name n2 instead of n1, using ins and outs lists *)
+
+      (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
       val edges2 = 
           (get_edges g)
             |> E.NSet.fold (E.NTab.map_entry (fn (e,(from,_)) => 
                                                        (e,(from,n2)))) ins
             |> E.NSet.fold (E.NTab.map_entry (fn (e,(_,tos)) => 
                                                        (e,(n2,tos)))) outs;
+
       (* give back new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2
-         |> update_Param (Param.rename_vname n1 n2)
-         |> update_vertices_u_d_brel (fn _ => brel)
+         |> update_param (Param.rename_vname n1 n2)
     end handle rename_do_nothing_exp () => g;
     (* raise no_such_vname_exp ("rename_vname", n1, g) *)
 
@@ -494,7 +439,7 @@ fun rename_ename en1 en2 g =
     (* return new graph *)
     in g |> set_vertices vertices2
          |> set_edges edges2
-         |> update_Param (Param.rename_ename en1 en2)
+         |> update_param (Param.rename_ename en1 en2)
     end handle rename_do_nothing_exp () => g;
     (* no_such_ename_exp ("rename_vname", en1, g) *)
 

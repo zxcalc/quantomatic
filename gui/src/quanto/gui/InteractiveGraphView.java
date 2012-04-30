@@ -27,22 +27,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.Vector;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
+import org.apache.commons.collections15.functors.FalsePredicate;
+import org.apache.commons.collections15.functors.TruePredicate;
+import org.apache.commons.collections15.Predicate;
+
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.SmoothLayoutDecorator;
+import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
 import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
 import edu.uci.ics.jung.contrib.visualization.control.ConstrainedPickingBangBoxGraphMousePlugin;
+import edu.uci.ics.jung.contrib.visualization.renderers.BangBoxLabelRenderer;
 import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
+import edu.uci.ics.jung.contrib.visualization.ShapeBangBoxPickSupport;
+import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.geom.AffineTransform;
@@ -50,8 +61,10 @@ import java.io.OutputStream;
 import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
+
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
+import quanto.core.protocol.CopyOfUserDataSerializer;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
@@ -103,28 +116,66 @@ public class InteractiveGraphView
 			if (vertex instanceof Vertex)
 			{
 				final Vertex qVertex = (Vertex) vertex;
-				if (qVertex.isBoundaryVertex() || !qVertex.getVertexType().hasData()) {
+				if (!qVertex.isBoundaryVertex() && !qVertex.getVertexType().hasData()) {
 					return dummyLabel;
 				}
 
 				Point2D screen = viewer.getRenderContext().
 					getMultiLayerTransformer().transform(
 					viewer.getGraphLayout().transform(qVertex));
-				
-				String label = qVertex.getData().getStringValue();
 
-				// lazily create the labeler
-				Labeler labeler = components.get(qVertex);
-				if (labeler == null) {
-					labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
-					components.put(qVertex, labeler);
-					viewer.add(labeler);
-					Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
-					if (colour != null) {
-						labeler.setColor(colour);
+				Labeler labeler = null;
+				String label = null;
+				if (qVertex.isBoundaryVertex()) {
+					label = qVertex.getCoreName();
+					labeler = components.get(qVertex);
+					 if (labeler == null) {
+					      labeler = new Labeler(label);
+					      components.put(qVertex, labeler);
+					      viewer.add(labeler);
+					      Color colour = new Color(0, 0, 0, 0);
+					      labeler.setColor(colour);
+					      labeler.addChangeListener(new ChangeListener() {
+					           public void stateChanged(ChangeEvent e) {
+					                Labeler lab = (Labeler) e.getSource();
+					                if (qVertex != null) {
+					                     try {
+					                        String newN = lab.getText();
+					                        String oldN = qVertex.getCoreName();
+					                        cacheVertexPositions();
+					                        String[] names = core.renameVertex(getGraph(), oldN, newN);
+					                         if (names.length == 2) {
+					                              Point2D oldP = verticesCache.get(newN);
+					                              verticesCache.put(names[1], oldP);
+					                              verticesCache.remove(newN);
+					                         }
+					                         Point2D oldP = verticesCache.get(oldN);
+					                         verticesCache.put(newN, oldP);
+					                         verticesCache.remove(oldN);
+					                         Rectangle2D rect=new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+                                                            0, 20, viewer.getGraphLayout().getSize().height);
+                                                  updateGraph(rect);
+					                     }
+					                     catch (CoreException err) {
+					                          errorDialog(err.getMessage());
+					                     }
+					                }
+					           }
+					      });
 					}
-
-					labeler.addChangeListener(new ChangeListener() {
+				} else {
+					label = qVertex.getData().getStringValue();
+					// lazily create the labeler
+					labeler = components.get(qVertex);
+					if (labeler == null) {
+						labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
+						components.put(qVertex, labeler);
+						viewer.add(labeler);
+						Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
+						if (colour != null) {
+							labeler.setColor(colour);
+						}
+						labeler.addChangeListener(new ChangeListener() {
 						public void stateChanged(ChangeEvent e) {
 							Labeler lab = (Labeler) e.getSource();
 							if (qVertex != null) {
@@ -132,20 +183,21 @@ public class InteractiveGraphView
 									core.setVertexAngle(getGraph(), qVertex, lab.getText());
 								}
 								catch (CoreException err) {
-									errorDialog(err.getMessage());
+									coreErrorMessage("The label could not be updated", err);
+									}
 								}
 							}
-						}
-					});
+						});
+					}
 				}
-				
+
 				labeler.setText(label);
 				
 				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
 						      (int) screen.getY() + 10);
 				rect.setLocation(loc);
-
+				
 				if (!labeler.getBounds().equals(rect)) {
 					labeler.setBounds(rect);
 				}
@@ -175,6 +227,109 @@ public class InteractiveGraphView
 		}
 	}
 
+	    private class QBangBoxLabeler implements BangBoxLabelRenderer {
+
+	          Map<BangBox, Labeler> components;
+	          JLabel dummyLabel = new JLabel();
+	          JLabel realLabel = new JLabel();
+	          
+	          public QBangBoxLabeler() {
+	               components = new HashMap<BangBox, Labeler>();
+	               realLabel.setOpaque(true);
+	               realLabel.setBackground(Color.white);
+	          }
+	          
+	          public <T> Component getBangBoxLabelRendererComponent(JComponent vv,
+	                                             Object value, Font font, boolean isSelected, T bb) {
+	               if (bb instanceof BangBox)
+	               {
+	                    final BangBox qBb = (BangBox) bb;
+	                    
+	                    //FIXME: This method is called a lot, it would probably be nicer
+	                    //to store a map: BB -> Shape, so we compute the position of the
+	                    //label directly from the shape of the BB and avoid all that min/max
+	                    //thing.
+	                    if (!getGraph().containsBangBox(qBb))
+	                         return dummyLabel;
+	                    Collection<Vertex> bangedV = getGraph().getBoxedVertices(qBb);
+	                    if (bangedV.isEmpty())
+	                         return dummyLabel;
+	                    Point2D screen = new Point2D.Double(0, 0);
+	                    SortedSet<Double> Xs = new TreeSet<Double>();
+	                    SortedSet<Double> Ys = new TreeSet<Double>();
+	                    
+	                    for(Vertex v: bangedV) {
+	                         Point2D p = viewer.getRenderContext().
+	                                        getMultiLayerTransformer().transform(
+	                                                  viewer.getGraphLayout().transform(v));
+	                         Xs.add(p.getX());
+	                         Ys.add(p.getY());
+	                    } 
+	                    screen.setLocation((Xs.last() - Xs.first())/2 + Xs.first(), Ys.first());
+	                    Labeler labeler = null;
+	                    String label = null;
+	                    label = qBb.getCoreName();
+	                    labeler = components.get(qBb);
+	                    if (labeler == null) {
+	                         labeler = new Labeler(label);
+	                         components.put(qBb, labeler);
+	                         viewer.add(labeler);
+	                         Color colour = new Color(0, 0, 0, 0);
+	                         labeler.setColor(colour);
+	                         labeler.addChangeListener(new ChangeListener() {
+	                         public void stateChanged(ChangeEvent e) {
+	                              Labeler lab = (Labeler) e.getSource();
+	                              if (qBb != null) {
+	                                   try {
+	                                        String newN = lab.getText();
+	                                        String oldN = qBb.getCoreName();
+	                                        core.renameBangBox(getGraph(), oldN, newN);
+	                                        qBb.updateCoreName(newN);
+	                                   }
+	                                   catch (CoreException err) {
+	                                        errorDialog(err.getMessage());
+	                                              }
+	                                         }
+	                                    }
+	                               });
+	                         }
+
+	                    labeler.setText(label);
+	                    
+	                    Rectangle rect = new Rectangle(labeler.getPreferredSize());
+	                    Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
+	                                    (int) screen.getY() - 30);
+	                    rect.setLocation(loc);
+	                    
+	                    if (!labeler.getBounds().equals(rect)) {
+	                         labeler.setBounds(rect);
+	                    }
+
+	                    return dummyLabel;
+	               }
+	               else if (value != null)
+	               {
+	                    realLabel.setText(value.toString());
+	                    return realLabel;
+	               }
+	               else
+	               {
+	                    return dummyLabel;
+	               }
+	          }
+
+	          /**
+	           * Removes orphaned labels.
+	           */
+	          public void cleanup() {
+	               final Map<BangBox, Labeler> oldComponents = components;
+	               components = new HashMap<BangBox, Labeler>();
+	               for (Labeler l : oldComponents.values()) {
+	                    viewer.remove(l);
+	               }
+	          }
+	     }
+	
 	/**
 	 * A graph mouse for doing most interactive graph operations.
 	 *
@@ -185,13 +340,8 @@ public class InteractiveGraphView
 		private boolean pickingMouseActive, edgeMouseActive;
 
 		public RWMouse() {
-			int mask = InputEvent.CTRL_MASK;
-			if (QuantoApp.isMac) {
-				mask = InputEvent.META_MASK;
-			}
-
-			add(new ScalingGraphMousePlugin(new ViewScalingControl(), mask));
-			add(new ViewTranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | mask));
+			add(new ScalingGraphMousePlugin(new ViewScalingControl(), QuantoApp.COMMAND_MASK));
+			add(new ViewTranslatingGraphMousePlugin(InputEvent.BUTTON1_MASK | QuantoApp.COMMAND_MASK));
 			ViewScrollingGraphMousePlugin scrollerPlugin = new ViewScrollingGraphMousePlugin();
 			scrollerPlugin.setShift(10.0);
 			add(scrollerPlugin);
@@ -281,8 +431,7 @@ public class InteractiveGraphView
 				viewer.getGraphLayout().setLocation(vmap.get(key), p);
 				viewer.getGraphLayout().lock(vmap.get(key), true);
 			}
-    	}
-		
+    	}	
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -368,7 +517,9 @@ public class InteractiveGraphView
 		});
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
-
+		// increase the picksize
+		viewer.getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());
+		viewer.setPickSupport(new ShapeBangBoxPickSupport(viewer, 4));
 		viewer.setBoundingBoxEnabled(false);
 		
 		buildActionMap();
@@ -659,10 +810,10 @@ public class InteractiveGraphView
 
 	public void addEdge(Vertex s, Vertex t) {
 		try {
-                        core.addEdge(getGraph(), directedEdges, s, t);
+            core.addEdge(getGraph(), directedEdges, s, t);
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not add a directed edge", e);
 		}
 	}
 
@@ -672,7 +823,7 @@ public class InteractiveGraphView
 			setVerticesPositionData();
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not add a boundary vertex", e);
 		}
 	}
 
@@ -682,7 +833,7 @@ public class InteractiveGraphView
 			setVerticesPositionData();
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not add a vertex", e);
 		}
 	}
 
@@ -699,75 +850,135 @@ public class InteractiveGraphView
 			rewrites.setVisible(true);
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 	}
 
     public void removeOldLabels() {
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
+		((QBangBoxLabeler) viewer.getRenderContext().getBangBoxLabelRenderer()).cleanup();
     }
 	
 	public void cleanUp() {
         removeOldLabels();
+		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
+		((QBangBoxLabeler) viewer.getRenderContext().getBangBoxLabelRenderer()).cleanup();
+		if (saveEnabled && isAttached()) {
+			getViewPort().setCommandEnabled(CommandManager.Command.Save,
+				!getGraph().isSaved()
+				);
+		}
 	}
 	
 	public void cacheVertexPositions(){
-		verticesCache= new HashMap<String, Point2D>();
-		for(Vertex v: getGraph().getVertices()){
-			int X = (int) viewer.getGraphLayout().transform(v).getX();
-			int Y = (int) viewer.getGraphLayout().transform(v).getY();
-			Point2D p = new Point2D.Double(X, Y);
-			verticesCache.put(v.getCoreName(),  p);
-		}
+	     verticesCache= new HashMap<String, Point2D>();
+	     for(Vertex v: getGraph().getVertices()){
+	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D p = new Point2D.Double(X, Y);
+	          verticesCache.put(v.getCoreName(),  p);
+	     }
 	}
 
+	public void setVertexPositionData(Vertex v) {
+	     try {
+	          core.startUndoGroup(getGraph());
+	          Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D new_p = new Point2D.Double(X, Y);
+	          pds.setVertexUserData(getCore().getTalker(), getGraph(), v.getCoreName(), new_p);
+	          core.endUndoGroup(getGraph());
+	     } catch (CoreException e) {
+	          errorDialog(e.getMessage());
+	     }
+	}
+	
 	public void setVerticesPositionData() {
-		//FIXME: When a vertex is added, we save its position in the core
-		//and a new graph is pushed on the undo stack... you need to undo
-		//twice to remove it.
-		CoreGraph graph = getGraph();
-	    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-	    for(Vertex v : graph.getVertices()) {
-	    	//Update only if the vertex moved
-	    	int X = (int) viewer.getGraphLayout().transform(v).getX();
-	    	int Y = (int) viewer.getGraphLayout().transform(v).getY();
-	    	Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
-	    	Point2D new_p = new Point2D.Double(X, Y);
-	    	if (old_p == null) {
-	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-	    			new_p);
-	    	} else if (!old_p.equals(new_p)){
-	    		pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(),
-		    			new_p);
-	    	}
-	    }
+	     CoreGraph graph = getGraph();
+	     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	     try {
+	     //New vertices are added but not pushed on the undo stack 
+          core.startUndoGroup(graph);
+	     for(Vertex v : graph.getVertices()) {
+	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+	          Point2D new_p = new Point2D.Double(X, Y);
+	          if (old_p == null) {
+	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+	          }
+	     }
+	     core.endUndoGroup(graph);
+	     } catch (CoreException e) {
+              errorDialog(e.getMessage());
+          }
+	     
+	     Vector<Vertex> vertices = new Vector<Vertex> ();
+	     for (Vertex v: graph.getVertices()) {
+               int X = (int) smoothLayout.getDelegate().transform(v).getX();
+               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+               Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+               Point2D new_p = new Point2D.Double(X, Y);
+               if (old_p.distance(new_p) > 1.5) {
+                    vertices.add(v);
+               }
+	     }     
+	     if (vertices.size() > 0) {
+	          //The first one creates an undo point
+	          Vertex v = vertices.firstElement();
+               int X = (int) smoothLayout.getDelegate().transform(v).getX();
+               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	          Point2D new_p = new Point2D.Double(X, Y);
+               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+               vertices.remove(v);
+	     }
+	     if (vertices.size() <= 0)
+	          return;
+	     try {
+	          //The others do not
+	          core.startUndoGroup(graph);
+	          for(Vertex v : vertices) {
+	               int X = (int) smoothLayout.getDelegate().transform(v).getX();
+	               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+	               Point2D new_p = new Point2D.Double(X, Y);
+	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+	           }
+	           core.endUndoGroup(graph);
+	      } catch (CoreException e) {
+	           errorDialog(e.getMessage());
+	      }
 	}
 	
 	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
 		core.updateGraph(getGraph());
-		for(Vertex v: getGraph().getVertices())	{	
-			if(verticesCache.get(v.getCoreName())!=null) {
-				Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-				Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
-				if (p != null) {
-					viewer.getGraphLayout().setLocation(v, p);
-				} else {
-					viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
-				}
-				viewer.getGraphLayout().lock(v, true);
-			}			
-		}
 		int count=0;
-		for(Vertex v: getGraph().getVertices())	{					
-			if(verticesCache.get(v.getCoreName())==null) {
+		for(Vertex v: getGraph().getVertices())	{
+		     if(verticesCache.get(v.getCoreName())!=null) {
+                    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+                    if (p != null) {
+                         viewer.getGraphLayout().setLocation(v, p);
+                    } else {
+                         viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
+                    }
+                    viewer.getGraphLayout().lock(v, true);
+               }
+		     else {
 				if(rewriteRect!=null) {
-					viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
-					setVerticesPositionData();
-					count++;
+				     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+	                    if (p != null) {
+	                         viewer.getGraphLayout().setLocation(v, p);
+	                         viewer.getGraphLayout().lock(v, true);
+	                    } else {
+	                         viewer.shift(rewriteRect, v, new Point2D.Double(0, 20*count));
+	                         setVertexPositionData(v);
+	                         count++;
+	                    }
 				}
-            }
+			}
 		}
-		
 		forceLayout.startModify();
 		viewer.modifyLayout();
 		forceLayout.endModify();
@@ -849,7 +1060,7 @@ public class InteractiveGraphView
 					getGraph().getVertices());
 			}
 			catch (CoreException e) {
-				errorDialog(e.getMessage());
+                coreErrorDialog("Could not attach the next rewrite", e);
 			}
 		}
 
@@ -987,7 +1198,7 @@ public class InteractiveGraphView
 			return rewriteCache;
 		}
 		catch (CoreException e) {
-			errorDialog(e.getMessage());
+			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 
 		return new ArrayList<AttachedRewrite<CoreGraph>>();
@@ -1014,8 +1225,7 @@ public class InteractiveGraphView
 			smoothLayout.setOrigin(0, 0);
 		}
 		catch (CoreException e) {
-			errorDialog("Error in rewrite. The graph probably changed "
-				+ "after this rewrite was attached.");
+			coreErrorDialog("Could not apply the rewrite", e);
 		}
 	}
 
@@ -1041,10 +1251,10 @@ public class InteractiveGraphView
 				setTitle(f.getName());
 			}
 			catch (CoreException e) {
-				errorDialog(e.getMessage());
+                coreErrorDialog("Could not save the graph", e);
 			}
 			catch (IOException e) {
-				errorDialog(e.getMessage());
+                detailedErrorDialog("Save Graph", "Could not save the graph", e.getLocalizedMessage());
 			}
 		}
 	}
@@ -1057,10 +1267,10 @@ public class InteractiveGraphView
 				firePropertyChange("saved", !getGraph().isSaved(), getGraph().isSaved());
 			}
 			catch (CoreException e) {
-				errorDialog(e.getMessage());
+                coreErrorDialog("Could not save the graph", e);
 			}
 			catch (IOException e) {
-				errorDialog(e.getMessage());
+                detailedErrorDialog("Save Graph", "Could not save the graph", e.getLocalizedMessage());
 			}
 		}
 		else {
@@ -1070,7 +1280,7 @@ public class InteractiveGraphView
 
 	public static void registerKnownCommands(Core core, CommandManager commandManager) {
 		/*
-		 * Add dynamically commands allowing to add registered vertices
+		 * Add commands dynamically and add registered vertex types
 		 */
 		for (VertexType vertexType : core.getActiveTheory().getVertexTypes()) {
 			commandManager.registerCommand("add-" + vertexType.getTypeName() + "-vertex-command");
@@ -1098,7 +1308,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not undo", ex);
 				}
 			}
 		});
@@ -1112,10 +1322,37 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not redo", ex);
 				}
 			}
 		});
+          actionMap.put(CommandManager.Command.UndoRewrite.toString(), new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    try {
+                         cacheVertexPositions();
+                         Rectangle2D rect=viewer.getGraphBounds();
+                         core.undoRewrite(getGraph());
+                         updateGraph(rect);
+                    }
+                    catch (CoreException ex) {
+                    coreErrorDialog("Could not undo", ex);
+                    }
+               }
+          });
+          actionMap.put(CommandManager.Command.RedoRewrite.toString(), new ActionListener() {
+               public void actionPerformed(ActionEvent e) {
+                    try {
+                         cacheVertexPositions();
+                         Rectangle2D rect= new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
+                                   0, 20, viewer.getGraphLayout().getSize().height);
+                         core.redoRewrite(getGraph());
+                         updateGraph(rect);
+                    }
+                    catch (CoreException ex) {
+                    coreErrorDialog("Could not redo", ex);
+                    }
+               }
+          });
 		actionMap.put(CommandManager.Command.Cut.toString(), new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
@@ -1126,7 +1363,7 @@ public class InteractiveGraphView
 					}
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not cut selection", ex);
 				}
 			}
 		});
@@ -1139,7 +1376,7 @@ public class InteractiveGraphView
 					}
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not copy selection", ex);
 				}
 			}
 		});
@@ -1150,10 +1387,46 @@ public class InteractiveGraphView
 					Rectangle2D rect=new Rectangle2D.Double(viewer.getGraphLayout().getSize().width, 
 							0, 20, viewer.getGraphLayout().getSize().height);
 					core.paste(getGraph());
+					/* 
+					 * FIXME: maybe, this is not the right place? 
+					 * When we paste a graph we want to keep it's layout as well, so we get it's quanto-position uidata
+					 * and translate everything so that it ends up at the right of the current graph.
+					 * What we get is a graph, already merged and with fresh names. So in order to know which one 
+					 * were copied we check the "copy_of" user_data which is set automatically by the core when a
+					 * subgraph get copied, and delete it afterwards.
+					 *  */
+					CopyOfUserDataSerializer cos = new CopyOfUserDataSerializer();
+					Point2DUserDataSerialiazer pos = new Point2DUserDataSerialiazer();
+					
+				     core.startUndoGroup(getGraph());
+					for (Vertex v: getGraph().getVertices()) {
+					     String copy_of_vertex = cos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					     if ((copy_of_vertex != null) && (!copy_of_vertex.equals(""))) {
+					          //Then translate its quanto-gui:position
+					          Point2D position = pos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					          position.setLocation(position.getX() + rect.getCenterX() + 20, position.getY());
+					          pos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), position);
+					          cos.deleteVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					     }
+					}
+					/* For now we do nothing with Edge and !-Boxes user data but still need to remove their "copy_of" UD */
+					for (Edge edge: getGraph().getEdges()) {
+					     String copy_of = cos.getEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     if ((copy_of != null) && (!copy_of.equals(""))) {
+					          cos.deleteEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     }
+					}
+					for (BangBox bb: getGraph().getBangBoxes()) {
+                              String copy_of = cos.getBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              if ((copy_of != null) && (!copy_of.equals(""))) {
+                                   cos.deleteBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              }
+                         }
+					core.endUndoGroup(getGraph());
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not paste selection", ex);
 				}
 			}
 		});
@@ -1194,10 +1467,10 @@ public class InteractiveGraphView
 					}
 				}
 				catch (DocumentException ex) {
-					errorDialog("Error generating PDF", ex.getMessage());
+                    detailedErrorMessage("Export to PDF", "Could not generate the PDF", ex.getLocalizedMessage());
 				}
 				catch (IOException ex) {
-					errorDialog("Error writing file", ex.getMessage());
+                    detailedErrorMessage("Export to PDF", "Could not save the PDF", ex.getLocalizedMessage());
 				}
 			}
 		});
@@ -1222,9 +1495,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				String tikz = TikzOutput.generate(
                                         getGraph(),
-                                        viewer.getGraphLayout(),
-                                        QuantoApp.getInstance().getPreference(
-						QuantoApp.DRAW_ARROW_HEADS));
+                                        viewer.getGraphLayout());
 				Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
 				StringSelection data = new StringSelection(tikz);
 				cb.setContents(data, data);
@@ -1267,7 +1538,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not normalise graph", ex);
 				}
 			}
 		});
@@ -1277,7 +1548,7 @@ public class InteractiveGraphView
 					core.addBangBox(getGraph(), viewer.getPickedVertexState().getPicked());
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not add !-box", ex);
 				}
 			}
 		});
@@ -1289,7 +1560,7 @@ public class InteractiveGraphView
 					updateGraph(null);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not remove vertices from !-box", ex);
 				}
 			}
 		});
@@ -1300,7 +1571,7 @@ public class InteractiveGraphView
                     removeOldLabels();
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not remove !-box", ex);
 				}
 			}
 		});
@@ -1311,7 +1582,7 @@ public class InteractiveGraphView
                     removeOldLabels();
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not kill !-box", ex);
 				}
 			}
 		});
@@ -1327,7 +1598,7 @@ public class InteractiveGraphView
 					updateGraph(rect);
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not duplicate !-box", ex);
 				}
 			}
 		});
@@ -1338,7 +1609,7 @@ public class InteractiveGraphView
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Plain));
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not create Hilbert term", ex);
 				}
 			}
 		});
@@ -1348,7 +1619,7 @@ public class InteractiveGraphView
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
 				}
 				catch (CoreException ex) {
-					errorDialog("Console Error", ex.getMessage());
+                    coreErrorDialog("Could not create Hilbert term", ex);
 				}
 			}
 		});
@@ -1421,7 +1692,7 @@ public class InteractiveGraphView
 
 			}
 			catch (CoreException err) {
-				errorDialog(err.getMessage());
+                coreErrorMessage("Could not delete the vertex", err);
 			}
 			finally {
 				// if null things are in the picked state, weird stuff
@@ -1455,7 +1726,7 @@ public class InteractiveGraphView
 					}
 					break;			
 			}
-			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(Character.toString(e.getKeyChar()));
+			VertexType v = core.getActiveTheory().getVertexTypeByMnemonic(e.getKeyChar());
 			if (v != null) {
 				addVertex(v.getTypeName());
 			}

@@ -343,8 +343,11 @@ public class ProtocolReader {
             throw ex;
         }
     }
+    
+    private String lastInvalidOutput;
 
     private void consumeStream() {
+        StringBuilder output = new StringBuilder();
         try {
             byte[] b = new byte[1024];
             int count = 0;
@@ -354,13 +357,19 @@ public class ProtocolReader {
                     avail = b.length;
                 count = input.read(b, 0, avail);
                 if (count != -1 && logger.isLoggable(Level.INFO)) {
-                    String strVal = new String(b, 0, count)
-                            .replace('\u001b', '\u00a4');
-                    logger.log(Level.INFO, "Discarding data: \"{0}\"", strVal);
+                    String strVal = new String(b, 0, count);
+                    logger.log(Level.INFO, "Discarding data: \"{0}\"",
+                            strVal.replace('\u001b', '\u00a4'));
+                    output.append(strVal);
                 }
                 avail = input.available();
             }
         } catch (IOException ex) {
         }
+        lastInvalidOutput = output.toString();
+    }
+
+    public String getLastInvalidOutput() {
+        return lastInvalidOutput;
     }
 }

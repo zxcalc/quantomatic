@@ -1,35 +1,24 @@
 // vim:sts=8:ts=8:noet:sw=8
 package quanto.gui;
 
-import quanto.core.data.CoreGraph;
-import quanto.core.data.VertexType;
-
+import apple.dts.samplecode.osxadapter.OSXAdapter;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.prefs.Preferences;
-
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.UIManager;
-
-import org.xml.sax.SAXException;
-
-
-
-import apple.dts.samplecode.osxadapter.OSXAdapter;
-import java.awt.Component;
 import java.io.IOException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import quanto.core.Core;
-import quanto.core.CoreException;
+import java.util.prefs.Preferences;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import org.xml.sax.SAXException;
+import quanto.core.*;
+import quanto.core.data.CoreGraph;
 import quanto.core.protocol.ProtocolManager;
-import quanto.core.xml.TheoryParser;
 
 /**
  * Singleton class 
@@ -41,23 +30,18 @@ public class QuantoApp {
     private static final boolean LOG_PROTOCOL = false;
     private static final boolean LOG_JUNG = false;
     private static final boolean LOG_QUANTO = false;
-
     private final static Logger logger =
             Logger.getLogger("quanto.gui");
     // isMac is used for CTRL vs META shortcuts, etc
     public static final boolean isMac =
-            (System.getProperty("os.name").toLowerCase().indexOf("mac") != -1);
+            (System.getProperty("os.name").toLowerCase().indexOf("mac os x") != -1);
     public static final boolean isWin =
             (System.getProperty("os.name").toLowerCase().indexOf("win") != -1);
     public static final boolean isUnix =
             (System.getProperty("os.name").toLowerCase().indexOf("nix") != -1
             || System.getProperty("os.name").toLowerCase().indexOf("nux") != -1);
-    // MAC_OS_X is used to determine whether we use OSXAdapter to
-    // hook into the application menu
-    public static final boolean MAC_OS_X =
-            (System.getProperty("os.name").toLowerCase().startsWith("mac os x"));
     public static final int COMMAND_MASK =
-            MAC_OS_X ? java.awt.event.InputEvent.META_DOWN_MASK
+            isMac ? java.awt.event.InputEvent.META_DOWN_MASK
             : java.awt.event.InputEvent.CTRL_DOWN_MASK;
     private static QuantoApp theApp = null;
     public static boolean useExperimentalLayout = false;
@@ -65,8 +49,11 @@ public class QuantoApp {
     private final Core core;
     private JFileChooser[] fileChooser = {null, null, null};
     private InteractiveViewManager viewManager;
+    private TheoryManager theoryManager;
+    public static final String lastTheoryDir = "theory";
+    public static final String lastTheoryFileName = lastTheoryDir + File.separatorChar + "stored.qth";
 
-    public File getAppSettingsDirectory(boolean create) throws IOException {
+    public static File getAppSettingsDirectory(boolean create) throws IOException {
         File dir;
         String userHome = System.getProperty("user.home");
         if (isWin) {
@@ -159,8 +146,6 @@ public class QuantoApp {
         }
     }
     // Preferences
-    public static final BoolPref DRAW_ARROW_HEADS =
-            new BoolPref("draw_arrow_heads", false, "Draw arrow geads");
     public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
             new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
     public static final BoolPref SHOW_INTERNAL_NAMES =
@@ -171,8 +156,6 @@ public class QuantoApp {
     public static final int DIR_GRAPH = 0;
     public static final int DIR_RULESET = 1;
     public static final int DIR_THEORY = 2;
-    public static final StringPref LAST_THEORY_OPEN_FILE =
-            new StringPref("last_theory_open_file", null);
 
     public static QuantoApp getInstance() {
         if (theApp == null) {
@@ -208,7 +191,7 @@ public class QuantoApp {
             ch.setLevel(Level.FINEST);
             protocolLogger.addHandler(ch);
 
-	    // choose real log level here
+            // choose real log level here
             protocolLogger.setLevel(Level.ALL);
         } else {
             // only log problems by default
@@ -224,7 +207,7 @@ public class QuantoApp {
             ch.setLevel(Level.FINEST);
             ql.addHandler(ch);
 
-	    // choose real log level here
+            // choose real log level here
             ql.setLevel(Level.ALL);
         }
         if (LOG_JUNG) {
@@ -235,7 +218,7 @@ public class QuantoApp {
             ch.setLevel(Level.FINEST);
             ql.addHandler(ch);
 
-	    // choose real log level here
+            // choose real log level here
             ql.setLevel(Level.ALL);
         }
 
@@ -295,7 +278,7 @@ public class QuantoApp {
     }
 
     public boolean shutdown() {
-        saveRulesetState();
+        theoryManager.saveState();
         logger.log(Level.FINER, "Shutting down");
         if (viewManager.closeAllViews()) {
             logger.log(Level.FINER, "Exiting now");
@@ -304,135 +287,71 @@ public class QuantoApp {
         return false;
     }
 
-    private void loadSavedRulesetState() {
-        try {
-            File rsetFile = new File(getAppSettingsDirectory(false).getAbsolutePath() + File.separatorChar + "stored.rules");
-            if (rsetFile.exists()) {
-                logger.log(Level.FINER, "Existing theory state found: loading");
-                try {
-                    core.loadRuleset(rsetFile);
-                    return;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Failed to load ruleset state", e);
-                }
-            } else {
-                logger.log(Level.FINER, "No theory state found");
-            }
-            /*
-             * Try loading a default file
-             * TODO: Load a file that matches the theory implemented by the core.
-             * We could have a default ruleset by theory... for now: red_green
-             */
-            rsetFile = new File(getRootDirectory() + File.separatorChar + "rulesets" + File.separatorChar
-                    + "default.rules");
-            if (rsetFile.exists()) {
-                logger.log(Level.FINER, "Loading default ruleset");
-                try {
-                    core.loadRuleset(rsetFile);
-                    return;
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Could not load default file", e);
-                }
-            } else {
-                logger.log(Level.FINER, "Default ruleset could not be located on the disk");
-            }
-        } catch (IOException e) {
-            logger.log(Level.WARNING, "Error when loading ruleset state", e);
-        }
+    public TheoryManager getTheoryManager() {
+        return theoryManager;
     }
 
-    private void saveRulesetState() {
-        try {
-            logger.log(Level.FINER, "Saving theory state");
-            File rsetFile = new File(getAppSettingsDirectory(true).getAbsolutePath() + File.separatorChar + "stored.rules");
-            core.saveRuleset(rsetFile);
-            return;
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to save ruleset state", e);
-        }
-    }
-
-    private TheoryParser loadSavedTheoryState() {
-        String lastOpenedTheory = getPreference(QuantoApp.LAST_THEORY_OPEN_FILE);
-        if (lastOpenedTheory == null) {
-            logger.log(Level.FINER, "No saved theory file available");
-            /*
-             * Try loading a default file
-             */
-            return loadTheoryFile(getRootDirectory() + File.separatorChar + "theory-visualizations"
-                    + File.separatorChar + "red-green-theory.qth");
-        } else {
-            logger.log(Level.FINER, "Loading previous theory");
-            return loadTheoryFile(lastOpenedTheory);
-        }
-    }
-
-    public TheoryParser loadTheoryFile(String theoryFilePath) {
-        File theoryFile = new File(theoryFilePath);
-        if (!theoryFile.exists()) {
-            logger.log(Level.INFO, "Theory file \"{0}\" does not exist", theoryFilePath);
-            return null;
-        } else {
-            TheoryParser theoryParser;
-            try {
-                theoryParser = new TheoryParser(theoryFilePath);
-                return theoryParser;
-            } catch (SAXException e) {
-                errorDialog(e.toString());
-            } catch (IOException e) {
-                errorDialog(e.toString());
-            }
-            return null;
-        }
-    }
-
-    public boolean openTheory(Component parent) {
-        return false;
-    }
-
-    public void updateCoreTheory(String implementedTheoryName, ArrayList<VertexType> theoryVertices) throws CoreException {
-
-        core.updateCoreTheory(implementedTheoryName, theoryVertices);
-    }
-
-    private TheoryParser demandTheory() {
+    private void demandTheoryOrQuit() {
         File f = openFile(null, "Select theory file", QuantoApp.DIR_THEORY);
         if (f == null) {
-            errorDialog("Cannot proceed without a theory");
+            JOptionPane.showMessageDialog(null, "Cannot proceed without a theory", "Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
         try {
-            TheoryParser parser = new TheoryParser(f.getAbsolutePath());
-            setPreference(quanto.gui.QuantoApp.LAST_THEORY_OPEN_FILE, f.getAbsolutePath());
-            return parser;
+            Theory theory = theoryManager.loadTheory(f.toURI().toURL());
+            core.updateCoreTheory(theory);
         } catch (IOException ex) {
-            errorDialog(String.format(
-                    "Could not open theory file (%1$s); cannot proceed",
-                    ex.getMessage()));
+            DetailedErrorDialog.showDetailedErrorDialog(null,
+                    "Open theory",
+                    "Could not open theory file; cannot proceed",
+                    ex);
             System.exit(1);
         } catch (SAXException ex) {
-            errorDialog(String.format(
-                    "Corrupted theory file (%1$s); cannot proceed",
-                    ex.getMessage()));
+            DetailedErrorDialog.showDetailedErrorDialog(null,
+                    "Open theory",
+                    "Corrupted theory file; cannot proceed",
+                    ex);
+            System.exit(1);
+        } catch (CoreException ex) {
+            DetailedErrorDialog.showCoreErrorDialog(null,
+                    "Core refused to load theory; cannot proceed",
+                    ex);
+            System.exit(1);
+        } catch (DuplicateTheoryException ex) {
+            logger.log(Level.SEVERE,
+                    "Got a duplicate theory exception, but there were " +
+                    "no existing theories",
+                    ex);
             System.exit(1);
         }
-        throw new Error("This line should not be reachable");
     }
 
     private QuantoApp() throws CoreException {
         globalPrefs = Preferences.userNodeForPackage(this.getClass());
-        TheoryParser theoryParser = loadSavedTheoryState();
 
-        if (theoryParser == null) {
-            theoryParser = demandTheory();
+        core = new Core();
+        viewManager = new InteractiveViewManager();
+
+        File theoryDir = null;
+        try {
+            theoryDir = new File(getAppSettingsDirectory(true), "theories");
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, ex.getLocalizedMessage(), ex);
         }
+        theoryManager = new TheoryManager(theoryDir, core);
+        if (core.getActiveTheory() == null)
+            demandTheoryOrQuit();
+        
+        core.addCoreChangeListener(new CoreChangeListener() {
 
-        core = new Core(theoryParser.getImplementedTheoryName(), theoryParser.getTheoryVertices());
+            public void theoryAboutToChange(TheoryChangeEvent evt) {}
 
-        loadSavedRulesetState();
+            public void theoryChanged(TheoryChangeEvent evt) {
+                viewManager.closeAllViews();
+            }
+        });
 
-        viewManager = new InteractiveViewManager(this, core);
-        if (MAC_OS_X) {
+        if (isMac) {
             try {
                 OSXAdapter.setQuitHandler(this, getClass().getDeclaredMethod("shutdown", (Class[]) null));
             } catch (Exception e) {
@@ -477,12 +396,13 @@ public class QuantoApp {
             File f = fileChooser[type].getSelectedFile();
             if (f.exists()) {
                 int overwriteAnswer = JOptionPane.showConfirmDialog(
-                    parent,
-                    "Are you sure you want to overwrite \"" + f.getName() + "\"?",
-                    "Overwrite file?",
-                    JOptionPane.YES_NO_OPTION);
-                if (overwriteAnswer != JOptionPane.YES_OPTION)
+                        parent,
+                        "Are you sure you want to overwrite \"" + f.getName() + "\"?",
+                        "Overwrite file?",
+                        JOptionPane.YES_NO_OPTION);
+                if (overwriteAnswer != JOptionPane.YES_OPTION) {
                     return null;
+                }
             }
             if (f.getParent() != null) {
                 setPreference(QuantoApp.LAST_OPEN_DIRS[type], f.getParent());
@@ -504,10 +424,6 @@ public class QuantoApp {
         return core;
     }
 
-    public void errorDialog(String message) {
-        JOptionPane.showMessageDialog(null, message, "Console Error", JOptionPane.ERROR_MESSAGE);
-    }
-
     public void createNewFrame() {
         try {
             InteractiveView view = viewManager.getNextFreeView();
@@ -517,7 +433,7 @@ public class QuantoApp {
             openNewFrame(view);
         } catch (CoreException ex) {
             logger.log(Level.SEVERE, "Could not create a new graph", ex);
-            errorDialog("Could not create a new graph to display");
+            DetailedErrorDialog.showCoreErrorDialog(null, "Could not create a new graph to display", ex);
         }
     }
 
@@ -580,7 +496,7 @@ public class QuantoApp {
             }
         } catch (CoreException e) {
             logger.log(Level.SEVERE, "Failed to create a new graph", e);
-            errorDialog(e.getMessage());
+            DetailedErrorDialog.showCoreErrorDialog(null, "Could not create a new graph to display", e);
         }
     }
 

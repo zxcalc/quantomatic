@@ -236,7 +236,7 @@ functor BasicBangGraphFun(
   fun rename_bname n1 n2 g = 
       g |> update_bboxes (fn bxs => 
                              case VBMap.try_rename1_cod n1 n2 bxs 
-                              of NONE => raise bname_already_exists_exp (n1,g)
+                              of NONE => raise bname_already_exists_exp (n2,g)
                                | SOME bxs2 => bxs2);
 
   fun try_rename1_bname n1 n2 g = 

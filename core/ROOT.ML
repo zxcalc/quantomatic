@@ -3,12 +3,14 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile isaplib libraries ****)
 
-val rootDir = OS.FileSys.getDir();
-(OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
-use "ROOT.ML"; 
-OS.FileSys.chDir rootDir);
+local val rootDir = OS.FileSys.getDir(); in 
+val _ = OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
+val _ = use "ROOT.ML"; 
+val _ = OS.FileSys.chDir rootDir;
+end;
 print_depth 3;
 
+val rootDir = OS.FileSys.getDir(); 
 PolyML.Project.Log.level_ref := 4;
 PolyML.Project.depend_on_files 
   [(* this file *)
@@ -32,10 +34,10 @@ PolyML.Project.make "names.ML"; (* defines basic names used in Quantomatic *)
 PolyML.Project.make "expressions/lex.ML";
 PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
-PolyML.Project.make "expressions/linrat_expr.ML";
+PolyML.Project.make "expressions/linrat_angle_expr.ML";
 
 (* Testing *)
-Testing.make_test "expressions/test/linrat_expr-test.ML";
+Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
 
 (* Graphs *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
@@ -67,10 +69,15 @@ PolyML.Project.make "io/writer.ML";
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
 
+(* Storing UI data on graphs, vertices, !-Boxes and edges *)
+PolyML.Project.make "interface/user_data.ML";
+
 (* I/O for graphs *)
+PolyML.Project.make "io/input_user_data.ML";
 PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
+PolyML.Project.make "io/input_ruleset_user_data.ML";
 
 (* Testing *)
 (* *)
@@ -191,8 +198,9 @@ Testing.make_test "rewriting/test/rule-test.ML";
 
 (* Test to make sure example code for playing with graphs at the ML level 
    are working. *)
-Testing.make_test "ml_hackery.ML";
 Testing.make_test "theories/substr_linrat/test/test.ML";
+
+Testing.make_test "example_code/ROOT.ML";
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 
@@ -203,6 +211,4 @@ else
   PolyML.Project.ensure_at_latest_heap ();
   PolyML.Project.save_project_child_state "heaps/quanto_child.heap");
   
-PolyML.Project.Log.log 2 "done."
-
-
+PolyML.Project.Log.log 2 "done.";

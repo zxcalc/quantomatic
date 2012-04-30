@@ -53,7 +53,8 @@ structure Str_VertexComponentData_Param
   exception unexpected_data_exp;
   fun type_of s = "String";
   fun cdata_of s = ComponentData.String s;
-  fun default_data s = s;
+  fun default_data "String" = "undefined"
+    | default_data n = raise unknown_type_exp n;
 
   fun unwrapUpd upd a =
     let
@@ -62,6 +63,8 @@ structure Str_VertexComponentData_Param
     in
       unwrapString (upd (ComponentData.String a))
     end;
-  fun update f x = unwrapUpd f x;
+  fun update f x = 
+    
+  unwrapUpd f x;
 end;
 
