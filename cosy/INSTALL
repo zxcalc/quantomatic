@@ -5,7 +5,6 @@
 Ensure that the quantomatic core heap (../core/heaps/quanto.polyml-heap) is
 built, then build the polychrome heap with:
 
-# cd chromeui
 # make
 
 Once the heap is built, replace polychrome's default heap with the symlink to
