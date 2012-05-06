@@ -24,6 +24,7 @@ signature USER_DATA =
 
     val set_v_ud  : v_ud -> T -> T;
     val set_e_ud  : e_ud -> T -> T;
+    val set_b_ud  : bb_ud -> T -> T;
 
     val get_v_ud  : T -> V.name -> user_data option;
     val get_e_ud  : T -> E.name -> user_data option;
