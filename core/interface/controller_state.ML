@@ -856,11 +856,13 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         end
         val ud = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
+        (*FIXME: Instead of doing all these folds use the *.NTab.rename
+         * function... *)
         val ud' = ud_t |> fold (add_v_ud vrn ud)
                     (V.NSet.list_of (Graph.get_vnames sarg))
-                     |> fold (add_e_ud ern ud)
+                       |> fold (add_e_ud ern ud)
                     (E.NSet.list_of (Graph.get_enames sarg))
-                    |> fold (add_b_ud ud) 
+                       |> fold (add_b_ud ud) 
                     ( Graph.get_bbox_list sarg)
       in state |> push_hist tname UA
                |> set_graph (Graph.merge_by_vertices targ source) tname
