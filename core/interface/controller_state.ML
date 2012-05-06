@@ -384,9 +384,34 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val rule = Ruleset.Rule.mk (lgr, rgr)
         val lgr_ud = get_graph_ud state lhs
         val rgr_ud = get_graph_ud state rhs
+
+        (* Problem: When Rule.mk is called it renames the RHS apart.
+         * Therefore, the names in rhs_ud become obsolete and we need to 
+         * rename them as well. It does not seem to be a good idea to make
+         * Rule.mk return the renamings and it involves a lot changes everywhere
+         * in the code: We rename them by hand *)
+        val lhs_boundary = Graph.get_boundary lgr
+        val ign_vnames =
+            V.NSet.union_merge
+              lhs_boundary
+              (V.NSet.subtract (Graph.get_vnames rgr)
+                                  (Graph.get_vnames lgr))
+        val ign_enames = E.NSet.subtract (Graph.get_enames rgr)
+                          (Graph.get_enames lgr)
+        val vrn = V.mk_renaming ign_vnames
+                      (V.NSet.union_merge ign_vnames
+                        (Graph.get_vnames lgr)) V.NTab.empty
+        val ern = E.mk_renaming ign_enames 
+                    (E.NSet.union_merge ign_enames (Graph.get_enames lgr))
+                    E.NTab.empty
+        (* Now we actually do the renaming *)
+        val (_,newvtab) = (V.NTab.rename vrn (UIData.get_vs_ud rgr_ud)) 
+        val (_,newetab) = (E.NTab.rename ern (UIData.get_es_ud rgr_ud)) 
+        val rgr_ud' = rgr_ud |> UIData.set_v_ud newvtab
+                             |> UIData.set_e_ud newetab
       in
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
-              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud)))
+              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud')))
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
             raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."

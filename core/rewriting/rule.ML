@@ -185,8 +185,8 @@ exception bad_rule_exp of string * Graph.T * Graph.T;
 
 (* Internal function that makes sure that:
   *   - Boundary names are the same
-  *   - !-Boxes names are the samei
-  *   -Check if !-boxes in LHS bang the same boundary vertices in
+  *   - !-Boxes names are the same
+  *   -Check if !-boxes in LHS bang the same boundary vertices as in
   *   RHS *)
 fun check_rule_consistency lhs rhs = 
     let
