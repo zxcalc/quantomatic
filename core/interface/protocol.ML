@@ -807,6 +807,25 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE
  *
+ * Name: RuleUserDataRequest
+ * Code : "RUD"
+ * Args:
+ *  RuleName: String
+ *  DataName: String
+ * Desc: Returns the user data attached on a rule (!!! not on its graphs)
+ * Response: DataResponse
+ * ErrorResponses: NOSUCHRULEUSERDATA
+ *
+ * Name: SetRuleUserDataRequest
+ * Code: "SRUD"
+ * Args:
+ *  RuleName: String
+ *  DataName: String
+ *  UserData: String 
+ * Desc: Set data on a rule (!!! not on its graphs)
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHRULEUSERDATA
+ *
  * Name: ListTagsRequest
  * Code: "RTL"
  * Args:
@@ -2000,6 +2019,23 @@ struct
          | "RRN"  =>  DeactivateRuleRequest {
                         ruleName = readToEnd()
                       }
+         | "RUD"  =>  RuleUserDataRequest {
+                        ruleName = readToDelim(),
+                        dataName = readToEnd()
+                      }
+         | "SRUD" =>  let
+                        val ruleName = readToDelim ()
+                        val dataName = readToDelim ()
+                        val data = readDataChunk ()
+                        val () = assertAtEnd ()
+                      in
+                        SetRuleUserDataRequest {
+                          ruleName = ruleName,
+                          dataName = dataName,
+                          userData = data
+                      }
+                      end
+
 
          | "RRR"  =>  RenameRuleRequest {
                         oldName = readToDelim(),

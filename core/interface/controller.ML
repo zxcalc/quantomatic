@@ -81,6 +81,11 @@ struct
                      (* OkResponse | ErrorResponse *)
                    | RenameRuleRequest of { oldName: string, newName: string }
                      (* OkResponse | ErrorResponse *)
+                   | RuleUserDataRequest of { ruleName: string, dataName: string}
+                     (* DataResponse | ErrorResponse *)
+                   | SetRuleUserDataRequest of { ruleName: string, dataName: string,
+                                                userData: string}
+                     (* OkResponse | ErrorResponse *)
 
                    (*** Tag commands ***)
                    | ListTagsRequest
@@ -304,6 +309,7 @@ struct
   structure UIDataInput = InputUIDataXML(structure UIData = State.UIData);
   structure InputRulesetUIData = InputRulesetUIDataXML(structure UIData =
         State.UIData);
+
   val theoryName = State.Theory.theory_name;
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
@@ -533,7 +539,7 @@ fun hilb ([format], graph) =
                       val data = Symtab.lookup tab dataName
                     in
                       (case data of SOME a => 
-                          DataResponse { data = "a" }
+                          DataResponse { data = a }
                        | NONE => 
                           raise State.no_such_graph_user_data_exp (GraphName.mk
                           graphName, dataName))
@@ -924,8 +930,24 @@ fun hilb ([format], graph) =
     | serviceRequest' (RenameRuleRequest { oldName, newName }) state =
         (OkResponse,
          State.rename_rule (R.mk oldName) (R.mk newName) state)
-
-
+    | serviceRequest' (RuleUserDataRequest { ruleName, dataName }) state =
+      let
+        val tab = fst (State.get_rule_ud state (R.mk ruleName))
+        val data = (case Symtab.lookup tab dataName of
+          SOME a => a
+          | NONE => 
+              raise State.no_such_rule_user_data_exp (R.mk ruleName, dataName))
+      in
+        (DataResponse { data = data }, state)
+      end
+    | serviceRequest' (SetRuleUserDataRequest {ruleName, dataName, userData}) state =
+      let
+        val ud = State.get_rule_ud state (R.mk ruleName)
+        val tab = Symtab.update (dataName, userData) (fst ud) 
+        val state' = State.set_rule_ud (tab, (snd ud)) (R.mk ruleName) state
+      in
+            (OkResponse, state')
+      end
     (* Tags *)
     | serviceRequest' (ListTagsRequest) state =
         let val tags = (State.list_tags  state) in
@@ -1036,7 +1058,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-          | State.no_such_vertex_user_data_exp (vertexName, dataName) =>
+           | State.no_such_vertex_user_data_exp (vertexName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("Vertex \""^
@@ -1044,7 +1066,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-        | State.no_such_edge_user_data_exp (edgeName, dataName) =>
+           | State.no_such_edge_user_data_exp (edgeName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("Edge \""^
@@ -1052,7 +1074,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-       | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
+           | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("!-Box \""^
@@ -1060,7 +1082,14 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-
+           | State.no_such_rule_user_data_exp (rName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHRULEUSERDATA",
+                  message = ("Rule \""^
+                             (R.dest rName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
            | State.no_such_vertex_exp (vertexName,graphName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHVERTEX",

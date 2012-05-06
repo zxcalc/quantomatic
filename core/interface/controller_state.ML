@@ -12,10 +12,13 @@ sig
                       | UA of (Theory.Graph.T * UIData.T)
   type history = ((undo_block) list * 
                     (undo_block) list ) GraphName.NTab.T;
+  type ud_unit = string Symtab.table
+
   exception no_such_graph_exp of GraphName.name;
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_vertex_user_data_exp of (V.name * string);
+  exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_edge_exp of (E.name * GraphName.name);
   exception no_such_edge_type_exp of string;
   exception no_such_bbox_exp of (B.name * GraphName.name);
@@ -38,7 +41,7 @@ sig
   val get_ud : T -> UIData.T;
   val get_graph : T -> GraphName.name -> Theory.Graph.T;
   val get_graph_names : T -> GraphName.name list;
-  val get_rset_uidata : T -> (UIData.T * UIData.T) R.NTab.T;
+  val get_rset_uidata : T -> (ud_unit * (UIData.T * UIData.T)) R.NTab.T;
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
@@ -163,6 +166,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception no_such_vertex_user_data_exp of (V.name * string);
   exception no_such_edge_user_data_exp of (E.name * string);
   exception no_such_bangbox_user_data_exp of (B.name * string);
+  exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_edge_exp of (E.name * GraphName.name);
@@ -185,6 +189,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                       | UA of (Theory.Graph.T * UIData.T)
   type history = ((undo_block) list * 
                     (undo_block) list ) GraphName.NTab.T;
+  type ud_unit = string Symtab.table
+
   (* data for controller; top level data with which user interacts *)
   datatype T = CState of {
        graphs : Graph.T GraphName.NTab.T, (* the known graphs *)
@@ -194,7 +200,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        merge_changes: bool GraphName.NTab.T, (* whether we create a new undo
        point when the state is modified  *)
        rset : Ruleset.T, (* the known rules *)
-       rset_uidata : (UIData.T * UIData.T) R.NTab.T (* lhs and rhs uidata *)
+       rset_uidata : (ud_unit * (UIData.T * UIData.T)) R.NTab.T (* lhs and rhs uidata *)
   }
 
   (* getters and setters for the state *)
@@ -255,7 +261,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun get_rule_ud state name =
       (case R.NTab.lookup (get_rset_uidata state) name
       of SOME rud => rud
-      | NONE => (UIData.init, UIData.init))
+      | NONE => (Symtab.empty, (UIData.init, UIData.init)))
 
   (* state mutators *)
   fun push_hist gname tp state = 
@@ -409,9 +415,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val (_,newetab) = (E.NTab.rename ern (UIData.get_es_ud rgr_ud)) 
         val rgr_ud' = rgr_ud |> UIData.set_v_ud newvtab
                              |> UIData.set_e_ud newetab
+        (* We also need to take care of the uidata attached to the rule itself *)
+        val rule_ud = fst (get_rule_ud state rule_name)
       in
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
-              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud')))
+              |> update_rset_uidata 
+                  (R.NTab.update (rule_name, (rule_ud, (lgr_ud, rgr_ud'))))
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
             raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."
@@ -856,8 +865,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                      |> set_graph_ud (pos (get_rule_ud state rulename)) name)
       end
 
-  val open_rule_lhs = graph_of_rule Rule.get_lhs fst "lhs"
-  val open_rule_rhs = graph_of_rule Rule.get_rhs snd "rhs"
+  val open_rule_lhs = graph_of_rule Rule.get_lhs (fst o snd) "lhs"
+  val open_rule_rhs = graph_of_rule Rule.get_rhs (snd o snd) "rhs"
 
   (* Set, delete and get the user data  *)
   (* On Graphs:  *)

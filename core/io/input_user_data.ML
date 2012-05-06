@@ -59,7 +59,7 @@ fun input_element mk tag xml =
     end;
 
   (* There may or may not be user_data but if there
-   * are then we must have a graph_and_user_data tag*)
+   * is then we must have a graph_and_user_data tag*)
   fun input_ud xml =
       let
         val () = assert_tag "user_data" xml
