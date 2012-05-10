@@ -1,0 +1,47 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    start
+    circles [label="match circles in UMC"]
+    die0 [label=die]
+    scheduledpm [label="pop next v from SPM"]
+    doomed [label="is v doomed?"]
+    die1 [label=die]
+    nextnhd [label="take next wire vertex w in UMW\nadjacent to v"]
+    addwiretomatch [label="add wire and endpoint\nto matching and remove\nall wire-vertices in wire from UMW"]
+    wireend [label="endpoint in UMW?"]
+    wireendbound [label="remove from UMW"]
+    wireendpm [label="is wire end already in PM"]
+    matchagree [label="do matchings agree?"]
+    die2 [label=die]
+    markpm [label="remove from UMN,\nadd to SPM and PM"]
+    unmatchedtargnhd [label="does tgt of v have\nany unmatched edges?"]
+    complete [label="remove v from PM"]
+    unmatched [label="unmatched vertex?"]
+    markpm2 [label="remove from UMN,\nadd to SPM and PM"]
+    done
+    
+    start -> circles
+    circles -> die0 [label=fail]
+    circles -> scheduledpm [label=success]
+    scheduledpm -> doomed
+    doomed -> die1 [label=yes]
+    doomed -> nextnhd [label=no]
+    nextnhd -> wireend [label="foreach valid match\n of wire containing w"]
+    wireend -> wireendpm [label=no]
+    wireend -> addwiretomatch [label=yes]
+    wireendpm -> matchagree [label=yes]
+    matchagree -> die2 [label=no]
+    matchagree -> addwiretomatch [label=yes]
+    wireendpm -> markpm [label=no]
+    markpm -> addwiretomatch
+    addwiretomatch -> nextnhd
+    nextnhd -> unmatchedtargnhd [label=none]
+    unmatchedtargnhd -> complete [label=no]
+    unmatchedtargnhd -> scheduledpm [label=yes]
+    complete -> scheduledpm
+    scheduledpm -> unmatched [label=none]
+    unmatched -> done [label=no]
+    unmatched -> markpm2 [label="foreach\nmatching"]
+    markpm2 -> scheduledpm
+}
