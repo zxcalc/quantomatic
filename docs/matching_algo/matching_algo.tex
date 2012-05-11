@@ -1,8 +1,22 @@
 \documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{fullpage}
 \usepackage{graphicx}
 
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\codom}{cod}
+
 \begin{document}
+
+\section{Normalisation}
+
+We normalise both the pattern and target graphs by ensuring that
+\begin{itemize}
+\item each wire connected to a node-vertex at both ends has exactly two wire-vertices on it
+\item boundary vertices are adjacent to either node-vertices or another boundary vertex
+\item circles (wires in a loop with no node-vertices) have exactly two wire-vertices on them
+\end{itemize}
 
 \section{Match State}
 
@@ -26,6 +40,24 @@ The goal of the concrete matching step is to match all of the concrete vertices 
 \begin{center}
     \includegraphics[height=16cm]{concrete_part.pdf}
 \end{center}
+
+\subsection{Preconditions}
+\begin{itemize}
+\item $L$ and $G$ are both normalised
+\item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
+\item each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
+\item $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
+\item $U_c$ genuinely does contain circles
+\end{itemize}
+
+\subsection{Postconditions}
+These are true for the match state that results from each successful branch:
+\begin{itemize}
+\item $U_c = U_w = U_n = P = \varnothing$ (we cleaned up after ourselves)
+\item $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
+\item $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
+\item $m$ induces a graph monomorphism from the full subgraph of $L$ described by $\dom(m)$ to the full subgraph of $G$ described by $\codom(m)$ ($m$ is actually a partial matching from $L$ to $G$)
+\end{itemize}
 
 \section{Outer Loop: Pattern Expansion}
 
