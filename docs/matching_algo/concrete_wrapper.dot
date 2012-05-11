@@ -1,0 +1,32 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    
+    start [color=green]
+    normalise [label="normalise and remove\nempty wires"]
+    addwires [label="add any unmatched circles\nto Uc and (non-circle) wire\nvertices to Uw"]
+    addnodes [label="add any unmatched nodes\nnot in P to Un"]
+    unmatched [label="Un, Uw, or Uc non-empty?"]
+    match [label="match all\nconcrete vertices"]
+    morebang [label="has more !-boxes?"]
+    morebang1 [label="has more !-boxes?"]
+    pickbang [label="pick first top-level !-box"]
+    schedule [label="re-schedule vertices in P\nadjancent to modified\n!-boxes"]
+    killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
+    emptywires [label="match empty wires"]
+    done [label="return match",color=blue]
+    
+    start -> normalise -> addwires -> addnodes -> unmatched
+    unmatched -> match [label=yes]
+    unmatched -> morebang [label=no]
+    match -> morebang [label="foreach\nmatching",color=red]
+    morebang -> killcomplete [label=yes]
+    killcomplete -> morebang1
+    morebang1 -> pickbang [label=yes]
+    morebang1 -> schedule [label=no]
+    pickbang -> schedule [label="COPY/DROP",color=red]
+    pickbang -> schedule [label="KILL",color=red]
+    schedule -> addwires
+    morebang -> emptywires [label=no]
+    emptywires -> done
+}

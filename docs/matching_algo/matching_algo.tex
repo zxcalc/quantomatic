@@ -6,16 +6,33 @@
 
 \section{Match State}
 
-A match state consists of:
+For a string graph $G$, let $N(G)$ be the set of node-vertices and $W(G)$ the wire-vertices.
 
-itemize
+Let $L$ be the pattern and $G$ the target. A match state consists of:
 
-\section{Concrete Matching}
+\begin{itemize}
+    \item $U_c \subseteq W(L)$ : a set of unmatched circles
+    \item $U_w \subseteq W(L)$ : a set of unmatched (non-circle) wire-vertices
+    \item $U_n \subseteq N(L)$ : a set of unmatched node-vertices
+    \item $P \subseteq N(L)$ : a set of partially-matched node-vertices
+    \item $P_s \subseteq P$ : a set of partially-matched node-vertices scheduled for re-checking
+    \item $m : V_L \rightarrow V_G$ : a partial injective function of the current match. When this is total and local iso, this match is complete.
+\end{itemize}
 
+\section{Inner Loop: Concrete Matching}
 
+The goal of the concrete matching step is to match all of the concrete vertices in the graph. If a node-vertex is not connected to a !-box, its complete neighbourhood will also be matched. If it is connected to one or more !-boxes, only some if its neighbourhood is matched. We refer to these as \textit{partially matched} node-vertices. A node-vertex $v$ such that the neighbourhood of $m(v)$ is totally covered is called \textit{completely matched}.
 
 \begin{center}
-    \includegraphics[width=16cm]{concrete_part.pdf}
+    \includegraphics[height=16cm]{concrete_part.pdf}
 \end{center}
+
+\section{Outer Loop: Pattern Expansion}
+
+\begin{center}
+    \includegraphics[height=16cm]{pattern_part.pdf}
+\end{center}
+
+
 
 \end{document}

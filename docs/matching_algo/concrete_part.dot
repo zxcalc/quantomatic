@@ -1,25 +1,24 @@
 digraph {
     node [shape=box]
     edge [fontsize=10]
-    start
-    circles [label="match circles in UMC"]
-    die0 [label=die]
-    scheduledpm [label="pop next v from SPM"]
-    doomed [label="is v doomed?"]
-    die1 [label=die]
-    nextnhd [label="take next wire vertex w in UMW\nadjacent to v"]
-    addwiretomatch [label="add wire and endpoint\nto matching and remove\nall wire-vertices in wire from UMW"]
-    wireend [label="endpoint in UMW?"]
-    wireendbound [label="remove from UMW"]
-    wireendpm [label="is wire end already in PM"]
+    start [color=green]
+    circles [label="match circles in Uc"]
+    die0 [label=die,color=blue]
+    scheduledpm [label="pop next v from Ps"]
+    doomed [label="doomed(v)?"]
+    die1 [label=die,color=blue]
+    nextnhd [label="take next wire vertex w in Uw\nadjacent to v"]
+    addwiretomatch [label="add wire and endpoint\nto matching and remove\nall wire-vertices in wire from Uw"]
+    wireend [label="endpoint in Uw?"]
+    wireendpm [label="is wire end already in P?"]
     matchagree [label="do matchings agree?"]
-    die2 [label=die]
-    markpm [label="remove from UMN,\nadd to SPM and PM"]
+    die2 [label=die,color=blue]
+    markpm [label="remove from Un,\nadd to Ps and P"]
     unmatchedtargnhd [label="does tgt of v have\nany unmatched edges?"]
-    complete [label="remove v from PM"]
+    complete [label="remove v from P"]
     unmatched [label="unmatched vertex?"]
-    markpm2 [label="remove from UMN,\nadd to SPM and PM"]
-    done
+    markpm2 [label="remove from Un,\nadd to Ps and P"]
+    done [color=blue,label="return match"]
     
     start -> circles
     circles -> die0 [label=fail]
@@ -27,7 +26,7 @@ digraph {
     scheduledpm -> doomed
     doomed -> die1 [label=yes]
     doomed -> nextnhd [label=no]
-    nextnhd -> wireend [label="foreach valid match\n of wire containing w"]
+    nextnhd -> wireend [label="foreach valid match\n of wire containing w",color=red]
     wireend -> wireendpm [label=no]
     wireend -> addwiretomatch [label=yes]
     wireendpm -> matchagree [label=yes]
@@ -42,6 +41,6 @@ digraph {
     complete -> scheduledpm
     scheduledpm -> unmatched [label=none]
     unmatched -> done [label=no]
-    unmatched -> markpm2 [label="foreach\nmatching"]
+    unmatched -> markpm2 [label="foreach\nmatching",color=red]
     markpm2 -> scheduledpm
 }
