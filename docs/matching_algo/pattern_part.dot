@@ -14,6 +14,8 @@ digraph {
     pickbang [label="pick first top-level !-box"]
     schedule [label="re-schedule vertices in P\nadjancent to modified\n!-boxes"]
     killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
+    nopartial [label="is P empty?"]
+    die [label=die,color=blue]
     emptywires [label="match empty wires"]
     done [label="return match",color=blue]
     
@@ -25,9 +27,11 @@ digraph {
     killcomplete -> morebang1
     morebang1 -> pickbang [label=yes]
     morebang1 -> schedule [label=no]
-    pickbang -> schedule [label="COPY/DROP",color=red]
+    pickbang -> schedule [label="EXPAND",color=red]
     pickbang -> schedule [label="KILL",color=red]
     schedule -> addwires
-    morebang -> emptywires [label=no]
-    emptywires -> done
+    morebang -> nopartial [label=no]
+    nopartial -> emptywires [label=yes]
+    nopartial -> die [label=no]
+    emptywires -> done [label="foreach\nmatching",color=red]
 }

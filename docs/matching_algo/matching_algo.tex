@@ -33,36 +33,50 @@ Let $L$ be the pattern and $G$ the target. A match state consists of:
     \item $m : V_L \rightarrow V_G$ : a partial injective function of the current match. When this is total and local iso, this match is complete.
 \end{itemize}
 
+Note that circles are given as the name of smallest wire-vertex in the circle, w.r.t. the name ordering.
+
 \section{Inner Loop: Concrete Matching}
 
 The goal of the concrete matching step is to match all of the concrete vertices in the graph. If a node-vertex is not connected to a !-box, its complete neighbourhood will also be matched. If it is connected to one or more !-boxes, only some if its neighbourhood is matched. We refer to these as \textit{partially matched} node-vertices. A node-vertex $v$ such that the neighbourhood of $m(v)$ is totally covered is called \textit{completely matched}.
 
-\begin{center}
-    \includegraphics[height=16cm]{concrete_part.pdf}
-\end{center}
+The concrete matching routine is given a function ``doomed'', which returns true if a match of a concrete node-vertex is impossible. For !-box matching this returns true if the (concrete) neighbourhood of $v$ contains fewer in-edges (resp. out-edges) than that of $m(v)$ and there are no !-boxes connected to $v$ by an in-edge (resp. out-edge). It also takes a match state, subject to the following preconditions:
 
 \subsection{Preconditions}
 \begin{itemize}
-\item $L$ and $G$ are both normalised
-\item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
-\item each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
-\item $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
-\item $U_c$ genuinely does contain circles
+  \item $L$ and $G$ are both normalised
+  \item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
+  \item each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
+  \item $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
+  \item $U_c$ genuinely does contain circles
 \end{itemize}
+
+\begin{center}
+  \includegraphics[height=16cm]{concrete_part.pdf}
+\end{center}
 
 \subsection{Postconditions}
 These are true for the match state that results from each successful branch:
 \begin{itemize}
-\item $U_c = U_w = U_n = P = \varnothing$ (we cleaned up after ourselves)
-\item $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
-\item $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
-\item $m$ induces a graph monomorphism from the full subgraph of $L$ described by $\dom(m)$ to the full subgraph of $G$ described by $\codom(m)$ ($m$ is actually a partial matching from $L$ to $G$)
+  \item $U_c = U_w = U_n = P_s = \varnothing$ (every vertex marked for matching was handled)
+  \item $m$ is a partial matching from $L$ to $G$ that satisfies local iso condition for concrete vertices not in $P$,
+  \item $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
+  \item $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
 \end{itemize}
 
-\section{Outer Loop: Pattern Expansion}
+\section{Testing Wrapper: Concrete Matching Only}
+
+For testing purposes, it is straight-forward to wrap the above procedure to just do concrete matching.
 
 \begin{center}
-    \includegraphics[height=16cm]{pattern_part.pdf}
+  \includegraphics[height=12cm]{concrete_wrapper.pdf}
+\end{center}
+
+\section{Full Wrapper: Lazy !-Box Expansion}
+
+Since we are only matching !-graphs on to concrete graphs, it suffices to restrict !-box operations to only two: KILL and EXPAND (COPY, then DROP the new box).
+
+\begin{center}
+  \includegraphics[height=16cm]{pattern_part.pdf}
 \end{center}
 
 
