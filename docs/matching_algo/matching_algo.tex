@@ -1,0 +1,70 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fullpage}
+\usepackage{graphicx}
+
+\DeclareMathOperator{\dom}{dom}
+\DeclareMathOperator{\codom}{cod}
+
+\begin{document}
+
+\section{Normalisation}
+
+We normalise both the pattern and target graphs by ensuring that
+\begin{itemize}
+\item each wire connected to a node-vertex at both ends has exactly two wire-vertices on it
+\item boundary vertices are adjacent to either node-vertices or another boundary vertex
+\item circles (wires in a loop with no node-vertices) have exactly two wire-vertices on them
+\end{itemize}
+
+\section{Match State}
+
+For a string graph $G$, let $N(G)$ be the set of node-vertices and $W(G)$ the wire-vertices.
+
+Let $L$ be the pattern and $G$ the target. A match state consists of:
+
+\begin{itemize}
+    \item $U_c \subseteq W(L)$ : a set of unmatched circles
+    \item $U_w \subseteq W(L)$ : a set of unmatched (non-circle) wire-vertices
+    \item $U_n \subseteq N(L)$ : a set of unmatched node-vertices
+    \item $P \subseteq N(L)$ : a set of partially-matched node-vertices
+    \item $P_s \subseteq P$ : a set of partially-matched node-vertices scheduled for re-checking
+    \item $m : V_L \rightarrow V_G$ : a partial injective function of the current match. When this is total and local iso, this match is complete.
+\end{itemize}
+
+\section{Inner Loop: Concrete Matching}
+
+The goal of the concrete matching step is to match all of the concrete vertices in the graph. If a node-vertex is not connected to a !-box, its complete neighbourhood will also be matched. If it is connected to one or more !-boxes, only some if its neighbourhood is matched. We refer to these as \textit{partially matched} node-vertices. A node-vertex $v$ such that the neighbourhood of $m(v)$ is totally covered is called \textit{completely matched}.
+
+\begin{center}
+    \includegraphics[height=16cm]{concrete_part.pdf}
+\end{center}
+
+\subsection{Preconditions}
+\begin{itemize}
+\item $L$ and $G$ are both normalised
+\item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
+\item each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
+\item $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
+\item $U_c$ genuinely does contain circles
+\end{itemize}
+
+\subsection{Postconditions}
+These are true for the match state that results from each successful branch:
+\begin{itemize}
+\item $U_c = U_w = U_n = P = \varnothing$ (we cleaned up after ourselves)
+\item $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
+\item $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
+\item $m$ induces a graph monomorphism from the full subgraph of $L$ described by $\dom(m)$ to the full subgraph of $G$ described by $\codom(m)$ ($m$ is actually a partial matching from $L$ to $G$)
+\end{itemize}
+
+\section{Outer Loop: Pattern Expansion}
+
+\begin{center}
+    \includegraphics[height=16cm]{pattern_part.pdf}
+\end{center}
+
+
+
+\end{document}

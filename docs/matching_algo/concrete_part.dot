@@ -1,0 +1,46 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    start [color=green]
+    circles [label="match circles in Uc"]
+    die0 [label=die,color=blue]
+    scheduledpm [label="pop next v from Ps"]
+    doomed [label="doomed(v)?"]
+    die1 [label=die,color=blue]
+    nextnhd [label="take next wire vertex w in Uw\nadjacent to v"]
+    addwiretomatch [label="add wire and endpoint\nto matching and remove\nall wire-vertices in wire from Uw"]
+    wireend [label="endpoint in Uw?"]
+    wireendpm [label="is wire end already in P?"]
+    matchagree [label="do matchings agree?"]
+    die2 [label=die,color=blue]
+    markpm [label="remove from Un,\nadd to Ps and P"]
+    unmatchedtargnhd [label="does tgt of v have\nany unmatched edges?"]
+    complete [label="remove v from P"]
+    unmatched [label="unmatched vertex?"]
+    markpm2 [label="remove from Un,\nadd to Ps and P"]
+    done [color=blue,label="return match"]
+    
+    start -> circles
+    circles -> die0 [label=fail]
+    circles -> scheduledpm [label=success]
+    scheduledpm -> doomed
+    doomed -> die1 [label=yes]
+    doomed -> nextnhd [label=no]
+    nextnhd -> wireend [label="foreach valid match\n of wire containing w",color=red]
+    wireend -> wireendpm [label=no]
+    wireend -> addwiretomatch [label=yes]
+    wireendpm -> matchagree [label=yes]
+    matchagree -> die2 [label=no]
+    matchagree -> addwiretomatch [label=yes]
+    wireendpm -> markpm [label=no]
+    markpm -> addwiretomatch
+    addwiretomatch -> nextnhd
+    nextnhd -> unmatchedtargnhd [label=none]
+    unmatchedtargnhd -> complete [label=no]
+    unmatchedtargnhd -> scheduledpm [label=yes]
+    complete -> scheduledpm
+    scheduledpm -> unmatched [label=none]
+    unmatched -> done [label=no]
+    unmatched -> markpm2 [label="foreach\nmatching",color=red]
+    markpm2 -> scheduledpm
+}
