@@ -1,12 +1,18 @@
 functor WeightedArityMetric(
-  structure Graph : BANG_GRAPH
-  val weight_for_data : Graph.VData.data -> int
+  structure MT : METRIC_TYPE
+  val weight_for_data : MT.Graph.VData.data -> int
 ) : METRIC =
 struct
-  type T = int
-  structure Graph = Graph
-  val ord = int_ord
-  val bottom = 0
+  structure MT = MT;
+  structure Graph = MT.Graph;
+  datatype metric_type = datatype MT.metric_type;
+  datatype metric_rec = datatype MT.metric_rec;
+  type T = metric_type
+
+
+
+  fun ord (Tup1 a, Tup1 b) = int_ord (a,b)
+  val bottom = Tup1 0
 
   val name = "Weighted Arity Metric"
   val desc = "Description Goes here"
@@ -49,9 +55,16 @@ struct
       val dat = fst (Graph.get_vertex graph v)
     in (weight_for_data dat * weight_for_arity ins outs loops) + tot
     end
-  in V.NSet.fold vert_weights (Graph.get_vnames graph) 0
+  in SOME (Tup1 (V.NSet.fold vert_weights (Graph.get_vnames graph) 0))
   end
 
-  val ord_graph = ord o (apfst compute) o (apsnd compute)
+  fun internal_ord ((SOME a), (SOME b)) = SOME (ord (a,b))
+  val ord_graph = internal_ord o (apfst compute) o (apsnd compute)
+  val metric_record = MR {desc = desc, 
+                          compute = MT.to_foreign_type o compute,
+                          ord_graph = ord_graph,
+                          ord = ord o 
+                            (fn (a,b) => (MT.from_foreign_type a, MT.from_foreign_type a)),
+                          bottom = MT.to_foreign_type_safe bottom}
 end
 

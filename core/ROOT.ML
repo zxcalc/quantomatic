@@ -52,10 +52,12 @@ PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 
 (* Metrics *)
-PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
+PolyML.Project.make "metrics/metric_type.ML"; (* Utils to handle int tuples *)
+PolyML.Project.make "metrics/metrics/metric.ML"; (* METRIC signature *)
 PolyML.Project.make "metrics/metrics/edge_complexity_metric.ML";
 PolyML.Project.make "metrics/metrics/weighted_arity_metric.ML";
 PolyML.Project.make "metrics/metrics/sets_cardinals_metric.ML";
+PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
 (*  *)
 (* PolyML.Project.make "layout/ograph_layout.ML"; *)
 

@@ -109,6 +109,12 @@ struct
                    | ListAttachedRewritesRequest of { graphName: string, format: resultFormat }
                    | ApplyAttachedRewriteRequest of { graphName: string, index: int }
 
+                   (*** Metrics related commands ***)
+                   | ListMetricsNamesRequest
+                   (* StringListResponse *)
+                   | ListMetricsDescsRequest
+                   (* StringListResponse *)
+
                    | UnknownRequest of { code: string }
 
        and graphLoadRequest = LoadEmptyGraphRequest of { requestedName: string }
@@ -225,11 +231,12 @@ struct
                     | StringResponse of { data: string }
                     | StringListResponse of { data: string list }
 
+                    | MetricResponse of { data: int list}
+
                     | DataResponse of { data: string }
                     | PrettyResponse of { data: Pretty.T }
                     | XmlResponse of { data: XML.tree }
                     | CountResponse of { count: int }
-                    | UserDataResponse of { data: string }
 
                     | GraphDescriptionResponse of { graph: graphDesc }
                     | VertexDescriptionResponse of { vertex: vertexDesc }
@@ -1033,6 +1040,11 @@ fun hilb ([format], graph) =
     | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
         (OkResponse,
          State.apply_rewrite (GraphName.mk graphName) index state)
+
+    | serviceRequest' ListMetricsNamesRequest state =
+      (StringListResponse { data = State.get_names_metrics state }, state)
+    | serviceRequest' ListMetricsDescsRequest state =
+      (StringListResponse { data = State.get_descs_metrics state}, state)
 
     | serviceRequest' (UnknownRequest { code }) state =
         (UnknownResponse { code = code },state)

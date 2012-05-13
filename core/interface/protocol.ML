@@ -938,6 +938,18 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE | OUTOFRANGE
  *
+ * Name: ListMetricsNamesRequest
+ * Code: "MNL"
+ * Args: none
+ * Desc: Returns the names of all the available metrics
+ * Response: StringListResponse
+ * 
+ * Name ListMetricsDescsRequest
+ * Code: "MDL"
+ * Args: none
+ * Desc: Return the descriptions of all the available metrics
+ * Response: StringListResponse 
+ *
  * }}} *)
 
 structure ProtocolInterface : CONTROL_INTERFACE =
@@ -973,7 +985,7 @@ struct
     fun printList [] = (print "0"; printEsc #":")
       | printList [s] = (print "1"; printEsc #":"; printString s)
       | printList (s::ss) = (print (Int.toString (1 + (length ss))); printEsc #":"; printString s; List.app (fn e => (printEsc #","; printString e)) ss)
-
+    fun printIntList s = printList (List.map (Int.toString) s)
     fun printWrappedString ch str = (printEsc ch; printString str; printEsc (Char.toLower ch))
     fun printWrappedData ch data = (printEsc ch; printDataChunk data; printEsc (Char.toLower ch))
     fun printComponentData ch ComponentData.Unit =
@@ -1091,6 +1103,10 @@ struct
          (printOpen #"M" requestId;
           printList data;
           printClose ())
+      | outputResponse (requestId, MetricResponse { data }) =
+        (printOpen #"M" requestId;
+          printIntList data;
+          printClose())
       | outputResponse (requestId, GraphDescriptionResponse { graph }) =
          (printOpen #"S" requestId;
           printGraphDesc graph;
@@ -1114,10 +1130,6 @@ struct
       | outputResponse (requestId, RewriteListResponse { rewrites }) =
          (printOpen #"S" requestId;
           printRewriteListDesc rewrites;
-          printClose ())
-      | outputResponse (requestId, UserDataResponse { data }) =
-         (printOpen #"U" requestId;
-          printDataChunk data;
           printClose ())
       | outputResponse (requestId, UnknownResponse { code }) =
          (printOpen #"Z" requestId;
@@ -2146,6 +2158,9 @@ struct
                           index = index
                         }
                       end
+
+         | "MNL" => ListMetricsNamesRequest
+         | "MDL" => ListMetricsDescsRequest
 
          | code   =>  (* Something else.  Reply with empty response. *)
                      (skipToBodyEnd ();
