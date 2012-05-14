@@ -5,11 +5,11 @@
 \usepackage{graphicx}
 
 \DeclareMathOperator{\dom}{dom}
-\DeclareMathOperator{\codom}{cod}
 
 \begin{document}
 
 \section{Normalisation}
+\label{sec:normalisation}
 
 We normalise both the pattern and target graphs by ensuring that
 \begin{itemize}
@@ -19,32 +19,49 @@ We normalise both the pattern and target graphs by ensuring that
 \end{itemize}
 
 \section{Bare Wires and Circles}
+\label{sec:wires-and-circles}
 
-Two forms of graph component require special attention: \emph{circles}, which are wires forming a closed loop with no node-vertices, and \emph{bare wires}, which are graph components equivalent to isolated points.  A circle is normalised to two wire-vertices with two edges between them, one in each direction.  A bare wire is normalised to an input connected directly to an output.
+Two forms of graph component require special attention: \emph{circles}, which are wires forming a closed loop with no node-vertices, and \emph{bare wires}, which are graph components equivalent to isolated points.  A circle is normalised to two wire-vertices with two edges between them, one in each direction.  A bare wire is normalised to an input connected directly to an output.  Normalisation will ensure that any wire-vertex not in a circle or bare wire will be adjacent to exactly one node-vertex.
 
-Circles can only ever match against other circles, and all matchings for a given rule and target that are identical except on circles will produce isomorphic graphs after rewriting.  Therefore, all that is relevant when matching circles is the number of circles in the pattern and the target.  Without $!$-boxes, it is sufficient to check that there are at least as many circles in the target as in the pattern, and pick an arbitrary matching of circles; this does not require any branching.  Circle matching is therefore always done first in any round of conrete matching.  More circle matching may be necessary after copying $!$-boxes in the pattern, as this may produce more circles.
+Circles can only ever match against other circles, and all matchings for a given rule and target that are identical except on circles will produce isomorphic graphs after rewriting.  Therefore, all that is relevant when matching circles is the number of circles in the pattern and the target.  Without $!$-boxes, it is sufficient to check that there are at least as many circles in the target as in the pattern, and pick an arbitrary matching of circles; this does not require any branching.  Circle matching is therefore always done first in any round of conrete matching.  More circle matching may be necessary after expanding $!$-boxes in the pattern, as this may produce more circles.
 
-Bare wires are more complicated, as they can match any wire in the target, not just bare wires.  This can create a huge amount of branching.  We therefore leave wire matching until right at the end of the matching process, so that the ``hard'' part of the matching is not repeated unnecessarily.  When matching a bare wire, we need to choose an unmatched edge in the target graph (one where either the edge source or target are not matched, or where the edge source and target are matched by an input and an output respectively) and split it into three edges joined with two wire-vertices.  The bare wire is then matched against these two new wire-vertices and the edge between them.
+Bare wires are more complicated, as they can match any wire in the target, not just bare wires.  This can create a huge amount of branching.  We therefore leave wire matching until right at the end of the matching process, so that the ``hard'' part of the matching is not repeated unnecessarily.  When matching a bare wire, we need to choose an unmatched edge in the target graph (one where either the edge's source or target are not matched, or where the edge's source and target are matched by an output and an input respectively) and split it into three edges joined with two wire-vertices.  The bare wire is then matched against these two new wire-vertices and the edge between them.
 
 
 \section{Match State}
+\label{sec:match-state}
 
 For a string graph $G$, let $N(G)$ be the set of node-vertices and $W(G)$ the wire-vertices.
 
 Let $L$ be the pattern and $G$ the target. A match state consists of:
 
 \begin{itemize}
-    \item $U_c \subseteq W(L)$ : a set of unmatched circles
+    \item $U_c \subseteq W(L)\times W(L)$ : a set of unmatched circles, as pairs of wire-vertices
     \item $U_w \subseteq W(L)$ : a set of unmatched (non-circle) wire-vertices
     \item $U_n \subseteq N(L)$ : a set of unmatched node-vertices
     \item $P \subseteq N(L)$ : a set of partially-matched node-vertices
     \item $P_s \subseteq P$ : a set of partially-matched node-vertices scheduled for re-checking
-    \item $m : V_L \rightarrow V_G$ : a partial injective function of the current match. When this is total and local iso, this match is complete.
+    \item $m : V_L \rightarrow V_G$ : a partial function describing the match so far
 \end{itemize}
 
-Note that circles are given as the name of smallest wire-vertex in the circle, w.r.t. the name ordering.
+Throughout the entire procedure, we maintain the following global invariants:
+\begin{enumerate}
+  \renewcommand{\theenumi}{(\arabic{enumi})}
+  \renewcommand{\labelenumi}{\theenumi}
+  \item \label{enum:m-inv-inj} $m$ is injective and respects vertex types
+  \item \label{enum:m-inv-local-iso} For any node-vertex $v \in \dom(m)\setminus P$, all vertices adjacent to $m(v)$ in $G$ are in the image of $m$
+  \item \label{enum:m-inv-edge-match} For any $v,w \in \dom(m)$, if there is an edge from $v$ to $w$ in $L$, then there is an edge of the same type from $m(v)$ to $m(w)$ in $G$
+\end{enumerate}
+
+Matching is complete when $m$ is total and $P$ is empty.  Providing we maintain the above invariants and ensure that $L$ and $G$ are simple graphs, $m$ will induce a unique graph monomorphism $\hat m:L \rightarrow G$, and this will be a local isomorphism.
+
+That $\hat m$ exists and is the unique morphism from $L$ to $G$ that restricts to $m$ can be seen by construction: invariant \ref{enum:m-inv-edge-match} ensures that a mapping consistent with $m$ can be found for each edge in $L$ and simplicity of $G$ ensures that there is only one such mapping.  Invariant \ref{enum:m-inv-inj} ensures the vertex-function (ie: $m$) is injective, and so simplicity of $L$ ensures that the edge function is also injective, and invariants \ref{enum:m-inv-inj} and \ref{enum:m-inv-edge-match} ensure that both functions respect typing, and hence $\hat m$ is a monomorphism.  Invariant \ref{enum:m-inv-local-iso} ensures that $\hat m$ will be a local isomorphism.
+
+Providing the match state satisfies the above invariants, $P$ is empty and $m$ is total everywhere except on bare wires, the bare wire matching procedure given in section \ref{sec:wires-and-circles} maintains the invariants and makes $m$ total on $V_L$.
+
 
 \section{Inner Loop: Concrete Matching}
+\label{sec:inner-loop}
 
 The goal of the concrete matching step is to match all of the concrete vertices in the graph. If a node-vertex is not connected to a !-box, its complete neighbourhood will also be matched. If it is connected to one or more !-boxes, only some if its neighbourhood is matched. We refer to these as \textit{partially matched} node-vertices. A node-vertex $v$ such that the neighbourhood of $m(v)$ is totally covered is called \textit{completely matched}.
 
@@ -52,11 +69,15 @@ The concrete matching routine is given a function ``doomed'', which returns true
 
 \subsection{Preconditions}
 \begin{enumerate}
-  \item $L$ and $G$ are both normalised
-  \item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
-  \item Each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
-  \item $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
-  \item $U_c$ genuinely does contain circles
+  \renewcommand{\theenumi}{(\arabic{enumi})}
+  \renewcommand{\labelenumi}{\theenumi}
+  \item \label{enum:il-precond-norm} $L$ and $G$ are both normalised
+  \item \label{enum:il-precond-inv} The match state satisfies the global invariants
+  \item \label{enum:il-precond-unmatched} $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
+  \item \label{enum:il-precond-reachable} Each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
+  \item \label{enum:il-precond-P-matched} $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
+  \item \label{enum:il-precond-circles} $U_c$ contains only circles, and $U_w$ contains no wire-vertices that are in circles
+  \item \label{enum:il-precond-wire-connected} If $v \in \dom(m)$ is a wire-vertex, then any vertices it is adjacent to are also in $\dom(m)$
 \end{enumerate}
 
 \subsection{Algorithm}
@@ -67,13 +88,61 @@ The concrete matching routine is given a function ``doomed'', which returns true
 \subsection{Postconditions}
 These are true for the match state that results from each successful branch:
 \begin{enumerate}
-  \item $U_c = U_w = U_n = P_s = \varnothing$ (every vertex marked for matching was handled)
-  \item $m$ is a partial matching from $L$ to $G$ that satisfies local iso condition for concrete vertices not in $P$,
-  \item $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
-  \item $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
+  \renewcommand{\theenumi}{(\arabic{enumi})}
+  \renewcommand{\labelenumi}{\theenumi}
+  \item \label{enum:il-postcond-inv} The match state satisfies the global invariants
+  \item \label{enum:il-postcond-no-unmatched} $U_c = U_w = U_n = P_s = \varnothing$ (every vertex marked for matching was handled)
+  \item \label{enum:il-postcond-P} $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
+  \item \label{enum:il-postcond-all-matched} $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
+  \item \label{enum:il-postcond-wire-connected} If $v \in \dom(m)$ is a wire-vertex, then any vertices it is adjacent to are also in $\dom(m)$
 \end{enumerate}
 
+\subsection{Correctness}
+
+\subsubsection{Invariants}
+
+\begin{enumerate}
+  \renewcommand{\theenumi}{(\roman{enumi})}
+  \renewcommand{\labelenumi}{\theenumi}
+  \item \label{enum:il-inv-circles} $U_c$ contains only circles, and $U_w$ contains no wire-vertices that are in circles
+
+	This is guaranteed at the start by precondition \ref{enum:il-precond-circles}, and trivially maintained by the fact that nothing is ever added to either of these sets.
+  \item \label{enum:il-inv-unmatched} $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$
+
+	This is guaranteed at the start by precondition \ref{enum:il-precond-unmatched}.  Nothing is ever added to $U_c$, $U_w$ or $U_n$.  There are three places where vertices are added to $m$.  The first is when matching circles, when we match the contents of $U_c$ and set $U_c$ to be empty.  We cannot add anything from $U_w$ at this point, due to \ref{enum:il-inv-circles}, and we cannot add anything from $U_n$, since that contains only node-vertices.  The second is when $P_s$ is empty and we take a vertex from $U_n$ and add its matching to $m$, which clearly maintains the invariant.  In the final case all the wire-vertices added to $m$ are removed from $U_w$ at the same time and if a node-vertex is added to $m$ it has already been removed from $U_n$.  In both the final two cases, $U_c$ is already empty.
+  \item \label{enum:il-inv-wire-connected} If $v \in \dom(m)$ is a wire-vertex, then any vertices it is adjacent to are also in $\dom(m)$
+
+This is satisfied at the start of the algorithm by precondition \ref{enum:il-precond-wire-connected}.  There are only two places we add wire-vertices: when matching circles and when matching wires connected to a partially matched node-vertex.  In the former case, each wire-vertex we add to $m$ is adjacent to exactly one other wire-vertex, which we also add to $m$.  In the latter case, we add the entire wire, including the end-point not already in $m$, to $m$.  So both cases preserve the invariant.
+\end{enumerate}
+
+One consequence of these invariants is that $m$ is only ever extended by this algorithm: we never alter what any vertex already in $\dom(m)$ maps to.  This can be seen by noting that when matching circles, we only ever add wire-vertices that are in $U_c$; when $P_s$ is empty we only ever add a single node-vertex, which is drawn from $U_n$, and when exploring wires connected to a vertex in $P$, normalisation ensures that if the wire terminates with a wire-vertex, it must be the only wire-vertex on the wire, which means that we only add a single vertex to $m$, and that vertex is drawn from $U_w$.  Otherwise, it must terminated with a node-vertex and the wire must contain exactly two wire-vertices.  The first is in $U_w$, and hence not in $\dom(m)$, and so the second (which it is adjacent to) cannot be in $\dom(m)$ by invariant \ref{enum:il-inv-wire-connected}.  The only other vertex added to $m$ is the terminating node-vertex.  If this is in $P$, it is only added if the matchings agree (which doesn't change anything).  If not, the node-vertex cannot be in $\dom(m)$ by global invariant \ref{enum:m-inv-local-iso} and the fact that its image is adjacent to a wire-vertex not in the image of $m$ (since we only consider partial matchings whose image does not intersect with the image of $m$).
+
+\subsubsection{Global Invariants}
+
+That $m$ remains injective and continues to respect typing follows from the fact that it is only ever extended with valid partial matchings whose image is disjoint from the full subgraph defined by the image of $m$.
+
+There are three points where we extend $m$, and we will consider them independently for the other global invariants.
+
+One of the two simpler cases is where we match circles.  The partial match that is added encompasses the entire graph component connected to the vertices we add to $m$, and so global invariant \ref{enum:m-inv-edge-match} is maintained.  We only add wire-vertices, so global invariant \ref{enum:m-inv-local-iso} is trivially maintained.
+
+The other simple case is where $P_s$ is empty and we extend $m$ with a matching from an element of $U_n$.  The vertex is added to $P$, and so global invariant \ref{enum:m-inv-local-iso} is trivially satisfied.  Global invariant \ref{enum:m-inv-edge-match} is also maintained as none of the adjacent (wire-)vertices can be in $\dom(m)$ by local invariant \ref{enum:il-inv-wire-connected}.
+
+The final case we need to consider is where we add a wire connected to something in $P$.  If we add a node-vertex that is not already in $P$ to $m$, it is added to $P$, and so global invariant \ref{enum:m-inv-local-iso} is trivially satisfied.  For global invariant \ref{enum:m-inv-edge-match}, if the matched wire ended in a wire-vertex, only one vertex was added, and the only incident edge to that vertex has a corresponding edge in the target.  Otherwise, a wire terminated with a node-vertex was added.  All the incident edges of the two wire-vertices on the wire have corresponding edges in the target (by the matching), so all we have to consider are the incident edges of the node-vertex.  If it was already in $\dom(m)$, we already know the invariant holds.  Otherwise, none of the incident wire-vertices could have already been in $\dom(m)$, by invariant \ref{enum:il-inv-wire-connected}, and so global invariant \ref{enum:m-inv-edge-match} must be maintained.
+
+
+
+\subsubsection{Termination}
+
+For termination of the inner loop exploring the wires incident to a node-vertex $v$, we consider the variant $n = |U_w\cap N_L(v)|$, where $N_L(v)$ is the neighbourhood of $v$ in $L$.  In each of these branches, $n$ decreases by either $1$ or $2$, and nothing is ever added to $U_w$ (and $N_L(v)$ is fixed).  So this loop must terminate.
+
+The loop working through $P_s$ has two branches: when it is not empty and when it is not.  Either may add more things to $P_s$.  We will take as variant $m = 2|U_n| + |P_s|$.  When this is $0$, the algorithm will terminate.  Otherwise, if $P_s$ is empty, $U_n$ will have one vertex removed and added to $P_s$, decreasing $m$ by one.  If $P_s$ is not empty, one vertex will be removed from $P_s$, decreasing $m$ by one.  Every vertex that is added to $P_s$ in this loop is taken from $U_n$, further decreasing $m$.  As a result, $m$ will decrease by at least one with every iteration of the loop.
+
+\subsubsection{Postconditions}
+
+Postcondition \ref{enum:il-postcond-inv} has already been shown.  Postcondition \ref{enum:il-postcond-wire-connected} is guaranteed by invariant \ref{enum:il-inv-wire-connected}
+
 \section{Testing Wrapper: Concrete Matching Only}
+\label{sec:test-wrapper}
 
 For testing purposes, it is straight-forward to wrap the above procedure to just do concrete matching.  When we populate the match state, we do it in the following manner:
 \begin{itemize}
@@ -83,17 +152,18 @@ For testing purposes, it is straight-forward to wrap the above procedure to just
 \item $P$, $P_s$ and $m$ will be empty
 \end{itemize}
 
-This will ensure the preconditions for the concrete matching inner-loop will be satisfied (assuming normalisation).  The only precondition that is not trivially satisfied is (3), but this follows from the fact that normalisation ensures that the only wire-vertices not adjacent to a node-vertex are those in circles and bare wires.
+This will ensure the preconditions for the concrete matching inner-loop will be satisfied (assuming normalisation).  The only precondition that is not trivially satisfied is \ref{enum:il-precond-reachable}, but this follows from the fact that normalisation ensures that the only wire-vertices not adjacent to a node-vertex are those in circles and bare wires.
 
 \begin{center}
   \includegraphics[height=12cm]{concrete_wrapper.pdf}
 \end{center}
 
-The postconditions of the concrete matching inner-loop, together with how we created the initial match state, ensure that, if $P$ is empty, $m$ is a valid matching (satisfying the local isomorphism condition) from all of the pattern graph, except its bare wires, to the target graph.  Once bare wires are added, we have only valid matchings.
+The postconditions of the concrete matching inner-loop, together with how we created the initial match state, ensure that a successful termination of this algorithm produces a valid matching, since $m$ will be total after matching bare wires and the global invariants from section \ref{sec:match-state} are maintained.
 
 \section{Full Wrapper: Lazy !-Box Expansion}
+\label{sec:full-wrapper}
 
-Since we are only matching !-graphs on to concrete graphs, it suffices to restrict !-box operations to only two: KILL and EXPAND (COPY, then DROP the new box).
+Since we are only matching pattern graphs on to concrete graphs, it suffices to restrict $!$-box operations to only two: KILL and EXPAND (COPY, then DROP the new box).
 
 \begin{center}
   \includegraphics[height=16cm]{pattern_part.pdf}
