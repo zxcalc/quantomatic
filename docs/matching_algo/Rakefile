@@ -12,3 +12,7 @@ directory 'build'
 task :clean do
 	sh 'rm -rf build matching_algo.pdf'
 end
+	
+task :view => ['default'] do
+	sh 'xdg-open matching_algo.pdf'
+end
