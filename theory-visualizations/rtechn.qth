@@ -4,9 +4,9 @@
     <data type="String"></data>
 	<mnemonic key="r"/>
     <visualization>
-	   <node svgFile="white.svg">
+	   <node svgFile="red.svg">
 		</node>
-      <label fill="#ffffff"/>
+      <label fill="#ff0000"/>
     </visualization>
   </nodetype>
 
@@ -16,7 +16,7 @@
     <visualization>
 	 	<node svgFile="blue.svg">
 		</node>
-      <label fill="#ffffff"/>
+      <label fill="#0000ff"/>
     </visualization>
   </nodetype>
 

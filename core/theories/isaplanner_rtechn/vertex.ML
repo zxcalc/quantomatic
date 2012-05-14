@@ -34,6 +34,12 @@ structure DB_RTechn_VertexData
                      StrIntName.NSet.pretty nset, Pretty.str ")"];
   val print_data = Pretty.writeln o pretty_data;
   
+  (* pretty printing code *)
+  fun pretty_node (RTechnNode n) = RTechnKey.pretty_name n
+    | pretty_node (GoalNode (t,nset)) = StrIntName.pretty_name t;
+  val print_node = Pretty.writeln o pretty_data;
+
+  
   (* no variables in our vertex data, so we have dummy unit subst *)
   type subst = unit;
   val empty_subst = ();
@@ -74,15 +80,40 @@ structure RTechn_VertexComponentData_Param
   fun type_of (DB_RTechn_VertexData.RTechnNode _) = "RT"
     | type_of (DB_RTechn_VertexData.GoalNode _) = "Gs";
   
-  (* TODO: do someting more beautiful; this just uses the pretty function to set the string; also: printing and parsing should be symmetric. *)
+  (* TODO: do someting more beautiful; this just uses the pretty function to set the string; 
+     also: printing and parsing should be symmetric. *)
   fun cdata_of d = 
-    ComponentData.String (Pretty.string_of (RTechn_VertexData.pretty_data d));
+    ComponentData.String (Pretty.string_of (DB_RTechn_VertexData.pretty_node d));
   
   (* New nodes are by default RTechnNodes *)
-  fun default_data s = DB_RTechn_VertexData.RTechnNode s; 
+  fun default_data "RT" = DB_RTechn_VertexData.RTechnNode "?"
+    | default_data "Gs" = DB_RTechn_VertexData.GoalNode 
+        (("?",0), StrIntName.NSet.empty)
+    | default_data s = raise unknown_type_exp s;
 
   (* TODO: currently edits to the string are simply ignored. *)
   fun update f x = x; 
+
+  fun unwrapUpdRT upd d =
+    let
+      fun unwrapRTechnNode (ComponentData.String s) = DB_RTechn_VertexData.RTechnNode s
+        | unwrapRTechnNode _ = raise unexpected_data_exp
+    in
+      unwrapRTechnNode (upd (cdata_of d))
+    end;
+
+  fun unwrapUpdGs upd d =
+    let
+      fun unwrapGs (ComponentData.String s) = 
+          DB_RTechn_VertexData.GoalNode 
+            ((s,0), StrIntName.NSet.empty)
+        | unwrapGs _ = raise unexpected_data_exp
+    in
+      unwrapGs (upd (cdata_of d))
+    end;
+
+  fun update upd (d as DB_RTechn_VertexData.RTechnNode _) = unwrapUpdRT upd d
+    | update upd (d as DB_RTechn_VertexData.GoalNode _) = unwrapUpdGs upd d;  
 end;
 
 

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<graph><vertex name="Vd"><type>edge-point</type><data/></vertex>
+<vertex name="Va"><type>edge-point</type><data/></vertex>
+<vertex name="G"><type>Gs</type>
+<data><string_of>blockindent=2GoalNode(goal0, blockindent=2{blockindent=2g1})</string_of></data>
+</vertex>
+<vertex name="ie"><type>RT</type>
+<data><string_of>blockindent=2RTechnNode(ie)</string_of></data>
+</vertex>
+<vertex name="id"><type>RT</type>
+<data><string_of>blockindent=2RTechnNode(id)</string_of></data>
+</vertex>
+<edge name="goal3" dir="true" source="ie" target="Vd">
+<type>String</type>
+<data><string_of>goal0c</string_of></data></edge>
+<edge name="goal1" dir="true" source="G" target="id">
+<type>String</type><data><string_of>goal0</string_of></data>
+</edge>
+<edge name="goal0" dir="true" source="Va" target="G"><type>String</type>
+<data><string_of>goal0</string_of></data></edge>
+<edge name="Ea" dir="true" source="id" target="ie"><type>String</type>
+<data><string_of>goal0a</string_of></data></edge>
+</graph>

@@ -68,17 +68,3 @@ structure RTechn_OVertexComponentData =
 
 structure RTechn_EdgeComponentData = 
   ElementComponentData(Str_ComponentData_Param);
-    
-  
-(* ML utility code for building SS graphs *)
-(*
-structure MkG = 
-struct
-  structure G = StrGraph;
-  val bvert = G.OVData.EVert;
-  fun mk a = G.OVData.IVert a;
-  val undir_edge = (G.UnDirected,());
-  val dir_edge = (G.Directed,());
-  val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
-end;
-*)
