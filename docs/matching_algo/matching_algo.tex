@@ -18,6 +18,15 @@ We normalise both the pattern and target graphs by ensuring that
 \item circles (wires in a loop with no node-vertices) have exactly two wire-vertices on them
 \end{itemize}
 
+\section{Bare Wires and Circles}
+
+Two forms of graph component require special attention: \emph{circles}, which are wires forming a closed loop with no node-vertices, and \emph{bare wires}, which are graph components equivalent to isolated points.  A circle is normalised to two wire-vertices with two edges between them, one in each direction.  A bare wire is normalised to an input connected directly to an output.
+
+Circles can only ever match against other circles, and all matchings for a given rule and target that are identical except on circles will produce isomorphic graphs after rewriting.  Therefore, all that is relevant when matching circles is the number of circles in the pattern and the target.  Without $!$-boxes, it is sufficient to check that there are at least as many circles in the target as in the pattern, and pick an arbitrary matching of circles; this does not require any branching.  Circle matching is therefore always done first in any round of conrete matching.  More circle matching may be necessary after copying $!$-boxes in the pattern, as this may produce more circles.
+
+Bare wires are more complicated, as they can match any wire in the target, not just bare wires.  This can create a huge amount of branching.  We therefore leave wire matching until right at the end of the matching process, so that the ``hard'' part of the matching is not repeated unnecessarily.  When matching a bare wire, we need to choose an unmatched edge in the target graph (one where either the edge source or target are not matched, or where the edge source and target are matched by an input and an output respectively) and split it into three edges joined with two wire-vertices.  The bare wire is then matched against these two new wire-vertices and the edge between them.
+
+
 \section{Match State}
 
 For a string graph $G$, let $N(G)$ be the set of node-vertices and $W(G)$ the wire-vertices.
@@ -42,34 +51,45 @@ The goal of the concrete matching step is to match all of the concrete vertices 
 The concrete matching routine is given a function ``doomed'', which returns true if a match of a concrete node-vertex is impossible. For !-box matching this returns true if the (concrete) neighbourhood of $v$ contains fewer in-edges (resp. out-edges) than that of $m(v)$ and there are no !-boxes connected to $v$ by an in-edge (resp. out-edge). It also takes a match state, subject to the following preconditions:
 
 \subsection{Preconditions}
-\begin{itemize}
+\begin{enumerate}
   \item $L$ and $G$ are both normalised
   \item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$ (ie: the vertices in the unmatched sets are not part of the existing matching)
-  \item each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
+  \item Each vertex in $U_w$ is adjacent to something in $U_n\cup P$ (ensures we can always reach wire vertices in $U_w$ by starting from a node-vertex in $U_n$ or $P$)
   \item $P \subseteq \dom(m)$ ($P$ contains either partially-matched or completely-matched vertices)
   \item $U_c$ genuinely does contain circles
-\end{itemize}
+\end{enumerate}
 
+\subsection{Algorithm}
 \begin{center}
   \includegraphics[height=16cm]{concrete_part.pdf}
 \end{center}
 
 \subsection{Postconditions}
 These are true for the match state that results from each successful branch:
-\begin{itemize}
+\begin{enumerate}
   \item $U_c = U_w = U_n = P_s = \varnothing$ (every vertex marked for matching was handled)
   \item $m$ is a partial matching from $L$ to $G$ that satisfies local iso condition for concrete vertices not in $P$,
   \item $P$ is exactly the set of vertices in $\dom(m)$ that are adjacent to a vertex not in $\dom(m)$ ($P$ contains exactly the partially-matched vertices)
   \item $\dom(m)$ is the union of the initial states of $U_c$, $U_w$, $U_n$ and $\dom(m)$ (we have matched everything we were asked to, and not lost anything in the process)
-\end{itemize}
+\end{enumerate}
 
 \section{Testing Wrapper: Concrete Matching Only}
 
-For testing purposes, it is straight-forward to wrap the above procedure to just do concrete matching.
+For testing purposes, it is straight-forward to wrap the above procedure to just do concrete matching.  When we populate the match state, we do it in the following manner:
+\begin{itemize}
+\item $U_c$ will contain all circles
+\item $U_w$ will contain all other wire vertices, except those forming bare wires (boundary vertices connected to another boundary vertex)
+\item $U_n$ will contain all node vertices
+\item $P$, $P_s$ and $m$ will be empty
+\end{itemize}
+
+This will ensure the preconditions for the concrete matching inner-loop will be satisfied (assuming normalisation).  The only precondition that is not trivially satisfied is (3), but this follows from the fact that normalisation ensures that the only wire-vertices not adjacent to a node-vertex are those in circles and bare wires.
 
 \begin{center}
   \includegraphics[height=12cm]{concrete_wrapper.pdf}
 \end{center}
+
+The postconditions of the concrete matching inner-loop, together with how we created the initial match state, ensure that, if $P$ is empty, $m$ is a valid matching (satisfying the local isomorphism condition) from all of the pattern graph, except its bare wires, to the target graph.  Once bare wires are added, we have only valid matchings.
 
 \section{Full Wrapper: Lazy !-Box Expansion}
 

@@ -8,7 +8,7 @@ digraph {
     addwires [label="add unmatched (non-circle, concrete) wire-vertices to Uw"]
     addnodes [label="add any unmatched (concrete)\nnode-vertices not in P to Un"]
     unmatched [label="Un, Uw, or Uc non-empty?"]
-    match [label="apply concrete matching"]
+    match [label="apply concrete matching",color=red]
     morebang [label="has more !-boxes?"]
     morebang1 [label="has more !-boxes?"]
     pickbang [label="pick first top-level !-box"]
@@ -16,7 +16,7 @@ digraph {
     killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
     nopartial [label="is P empty?"]
     die [label=die,color=blue]
-    emptywires [label="match empty wires"]
+    emptywires [label="match bare wires"]
     done [label="return match",color=blue]
     
     start -> normalise -> addcircles -> addwires -> addnodes -> unmatched
