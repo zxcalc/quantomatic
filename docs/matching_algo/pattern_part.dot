@@ -1,0 +1,37 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    
+    start [color=green]
+    normalise [label="normalise and remove empty wires"]
+    addcircles [label="add unmatched (concrete) circles to Uc"]
+    addwires [label="add unmatched (non-circle, concrete) wire-vertices to Uw"]
+    addnodes [label="add any unmatched (concrete)\nnode-vertices not in P to Un"]
+    unmatched [label="Un, Uw, or Uc non-empty?"]
+    match [label="apply concrete matching",color=red]
+    morebang [label="has more !-boxes?"]
+    morebang1 [label="has more !-boxes?"]
+    pickbang [label="pick first top-level !-box"]
+    schedule [label="re-schedule vertices in P\nadjancent to modified\n!-boxes"]
+    killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
+    nopartial [label="is P empty?"]
+    die [label=die,color=blue]
+    emptywires [label="match bare wires"]
+    done [label="return match",color=blue]
+    
+    start -> normalise -> addcircles -> addwires -> addnodes -> unmatched
+    unmatched -> match [label=yes]
+    unmatched -> morebang [label=no]
+    match -> morebang [label="foreach\nmatching",color=red]
+    morebang -> killcomplete [label=yes]
+    killcomplete -> morebang1
+    morebang1 -> pickbang [label=yes]
+    morebang1 -> schedule [label=no]
+    pickbang -> schedule [label="EXPAND",color=red]
+    pickbang -> schedule [label="KILL",color=red]
+    schedule -> addwires
+    morebang -> nopartial [label=no]
+    nopartial -> emptywires [label=yes]
+    nopartial -> die [label=no]
+    emptywires -> done [label="foreach\nmatching",color=red]
+}

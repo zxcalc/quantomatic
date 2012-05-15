@@ -384,9 +384,34 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val rule = Ruleset.Rule.mk (lgr, rgr)
         val lgr_ud = get_graph_ud state lhs
         val rgr_ud = get_graph_ud state rhs
+
+        (* Problem: When Rule.mk is called it renames the RHS apart.
+         * Therefore, the names in rhs_ud become obsolete and we need to 
+         * rename them as well. It does not seem to be a good idea to make
+         * Rule.mk return the renamings and it involves a lot changes everywhere
+         * in the code: We rename them by hand *)
+        val lhs_boundary = Graph.get_boundary lgr
+        val ign_vnames =
+            V.NSet.union_merge
+              lhs_boundary
+              (V.NSet.subtract (Graph.get_vnames rgr)
+                                  (Graph.get_vnames lgr))
+        val ign_enames = E.NSet.subtract (Graph.get_enames rgr)
+                          (Graph.get_enames lgr)
+        val vrn = V.mk_renaming ign_vnames
+                      (V.NSet.union_merge ign_vnames
+                        (Graph.get_vnames lgr)) V.NTab.empty
+        val ern = E.mk_renaming ign_enames 
+                    (E.NSet.union_merge ign_enames (Graph.get_enames lgr))
+                    E.NTab.empty
+        (* Now we actually do the renaming *)
+        val (_,newvtab) = (V.NTab.rename vrn (UIData.get_vs_ud rgr_ud)) 
+        val (_,newetab) = (E.NTab.rename ern (UIData.get_es_ud rgr_ud)) 
+        val rgr_ud' = rgr_ud |> UIData.set_v_ud newvtab
+                             |> UIData.set_e_ud newetab
       in
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
-              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud)))
+              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud')))
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
             raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."
@@ -805,38 +830,14 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val sarg = get_graph state sname
         val targ = get_graph state tname
         val ((xrn,vrn,ern), source) = Graph.rename_apart targ sarg
-      fun add_v_ud rn ud n ud' =
-        let
-          val v_ud = case (UIData.get_v_ud ud n) of
-            SOME a => a
-            | NONE => Symtab.empty 
-        in
-          UIData.update_v_ud (fn _ => v_ud) (V.Rnm.get rn n) ud'
-        end
-      fun add_e_ud rn ud n ud' =
-        let
-          val e_ud = case (UIData.get_e_ud ud n) of
-            SOME a => a
-            | NONE => Symtab.empty 
-        in
-          UIData.update_e_ud (fn _ => e_ud) (E.Rnm.get rn n) ud'
-        end
-      fun add_b_ud ud n ud' =
-        let
-          val b_ud = case (UIData.get_bb_ud ud n) of
-            SOME a => a
-            | NONE => Symtab.empty 
-        in
-          UIData.update_bb_ud (fn _ => b_ud) n ud'
-        end
-        val ud = get_graph_ud state sname
+        (* Rename the ud and insert it on the new graph  *)
+        val ud_s = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
-        val ud' = ud_t |> fold (add_v_ud vrn ud)
-                    (V.NSet.list_of (Graph.get_vnames sarg))
-                     |> fold (add_e_ud ern ud)
-                    (E.NSet.list_of (Graph.get_enames sarg))
-                    |> fold (add_b_ud ud) 
-                    ( Graph.get_bbox_list sarg)
+        val (_,newvtab) = (V.NTab.rename vrn (UIData.get_vs_ud ud_s)) 
+        val (_,newetab) = (E.NTab.rename ern (UIData.get_es_ud ud_s)) 
+        val ud' = ud_t |> UIData.set_v_ud newvtab
+                       |> UIData.set_e_ud newetab
+                       |> UIData.set_b_ud (UIData.get_bs_ud ud_s) 
       in state |> push_hist tname UA
                |> set_graph (Graph.merge_by_vertices targ source) tname
                |> set_graph_ud ud' tname

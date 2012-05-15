@@ -1,0 +1,18 @@
+task :default => ['build'] do
+    cp Dir['matching_algo.tex', '*.dot'], 'build'
+	cd 'build'
+    Dir['*.dot'].each {|f| sh %{dot -Tpdf #{f} -o #{f[0..-5]}.pdf}}
+    sh 'pdflatex matching_algo.tex'
+    cd '..'
+    cp 'build/matching_algo.pdf', '.'
+end
+
+directory 'build'
+	
+task :clean do
+	sh 'rm -rf build matching_algo.pdf'
+end
+	
+task :view => ['default'] do
+	sh 'xdg-open matching_algo.pdf'
+end

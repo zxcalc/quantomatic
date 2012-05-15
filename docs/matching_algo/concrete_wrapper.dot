@@ -1,0 +1,19 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    
+    start [color=green]
+    normalise [label="normalise"]
+    addverts [label="populate the match state with\neverything except bare wires"]
+    match [label="match all concrete vertices",color=red]
+    nopartial [label="is P empty?"]
+    die [label=die,color=blue]
+    emptywires [label="match bare wires"]
+    done [label="return match",color=blue]
+    
+    start -> normalise -> addverts -> match
+    match -> nopartial [label="foreach\nmatching",color=red]
+    nopartial -> emptywires [label=yes]
+    nopartial -> die [label=no]
+    emptywires -> done [label="foreach\nmatching",color=red]
+}

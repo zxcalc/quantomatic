@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.Vector;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -36,14 +35,11 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import org.apache.commons.collections15.Transformer;
-import org.apache.commons.collections15.functors.FalsePredicate;
-import org.apache.commons.collections15.functors.TruePredicate;
-import org.apache.commons.collections15.Predicate;
 
 import quanto.core.CoreException;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.SmoothLayoutDecorator;
-import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
+//import edu.uci.ics.jung.contrib.graph.BangBoxGraph;
 import edu.uci.ics.jung.contrib.visualization.control.AddEdgeGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.control.ViewScrollingGraphMousePlugin;
 import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
@@ -53,7 +49,7 @@ import edu.uci.ics.jung.visualization.Layer;
 import edu.uci.ics.jung.visualization.VisualizationServer;
 import edu.uci.ics.jung.visualization.control.*;
 import edu.uci.ics.jung.contrib.visualization.ShapeBangBoxPickSupport;
-import edu.uci.ics.jung.graph.util.Context;
+//import edu.uci.ics.jung.graph.util.Context;
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.geom.AffineTransform;
@@ -61,6 +57,8 @@ import java.io.OutputStream;
 import java.util.EventListener;
 import java.util.EventObject;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
@@ -77,7 +75,7 @@ public class InteractiveGraphView
 	           KeyListener {
 
 	private static final long serialVersionUID = 7196565776978339937L;
-
+        private static final Logger logger = Logger.getLogger("quanto.gui.InteractiveGraphView");
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
 
 	private GraphVisualizationViewer viewer;
@@ -375,7 +373,7 @@ public class InteractiveGraphView
 			remove(pickingMouse);
 		}
 
-		public void setPickingMouse() {
+		final public void setPickingMouse() {
 			clearMouse();
 			pickingMouseActive = true;
 			add(pickingMouse);
@@ -519,7 +517,7 @@ public class InteractiveGraphView
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
 		// increase the picksize
 		viewer.getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());
-		viewer.setPickSupport(new ShapeBangBoxPickSupport(viewer, 4));
+		viewer.setPickSupport(new ShapeBangBoxPickSupport<Vertex,Edge,BangBox>(viewer, 4));
 		viewer.setBoundingBoxEnabled(false);
 		
 		buildActionMap();
@@ -762,7 +760,7 @@ public class InteractiveGraphView
 		job.addJobListener(new JobListener() {
 			public void jobEnded(JobEndEvent event) {
 				activeJobs.remove(job);
-				if (activeJobs.size() == 0 && getViewPort() != null) {
+				if (activeJobs.isEmpty() && getViewPort() != null) {
 					getViewPort().setCommandEnabled(CommandManager.Command.Abort, false);
 				}
 			}
@@ -914,7 +912,7 @@ public class InteractiveGraphView
               errorDialog(e.getMessage());
           }
 	     
-	     Vector<Vertex> vertices = new Vector<Vertex> ();
+	     ArrayList<Vertex> vertices = new ArrayList<Vertex> ();
 	     for (Vertex v: graph.getVertices()) {
                int X = (int) smoothLayout.getDelegate().transform(v).getX();
                int Y = (int) smoothLayout.getDelegate().transform(v).getY();
@@ -926,7 +924,7 @@ public class InteractiveGraphView
 	     }     
 	     if (vertices.size() > 0) {
 	          //The first one creates an undo point
-	          Vertex v = vertices.firstElement();
+	          Vertex v = vertices.get(0);
                int X = (int) smoothLayout.getDelegate().transform(v).getX();
                int Y = (int) smoothLayout.getDelegate().transform(v).getY();
 	          Point2D new_p = new Point2D.Double(X, Y);
@@ -1116,7 +1114,8 @@ public class InteractiveGraphView
 				SwingUtilities.invokeAndWait(runnable);
 			}
 			catch (InvocationTargetException ex) {
-				ex.printStackTrace();
+				logger.log(Level.WARNING,
+                                        "invoke and wait failed", ex);
 			}
 		}
 
@@ -1652,7 +1651,7 @@ public class InteractiveGraphView
 		else
 			vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 		setupNormaliseAction(vp);
-		if (activeJobs == null || activeJobs.size() == 0) {
+		if (activeJobs == null || activeJobs.isEmpty()) {
 			vp.setCommandEnabled(CommandManager.Command.Abort, false);
 		}
 	}

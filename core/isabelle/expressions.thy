@@ -1,5 +1,5 @@
 theory expressions
-imports Main "~~/contrib/isaplib/isabelle/isaplib/isaplib"
+imports Main "~~/contrib/isaplib/isabelle/isaplib/isaplib"  
 uses
 
  (* defines names used in quantomatic *)
@@ -9,7 +9,7 @@ uses
  "../../core/expressions/lex.ML"
  "../../core/expressions/coeff.ML"
  "../../core/expressions/expr.ML"
- "../../core/expressions/linrat_expr.ML"
+ "../../core/expressions/linrat_angle_expr.ML"
 
 begin
 

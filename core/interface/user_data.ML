@@ -22,6 +22,10 @@ signature USER_DATA =
     val get_es_ud : T -> e_ud;
     val get_bs_ud : T -> bb_ud;
 
+    val set_v_ud  : v_ud -> T -> T;
+    val set_e_ud  : e_ud -> T -> T;
+    val set_b_ud  : bb_ud -> T -> T;
+
     val get_v_ud  : T -> V.name -> user_data option;
     val get_e_ud  : T -> E.name -> user_data option;
     val get_bb_ud : T -> B.name -> user_data option;
@@ -215,7 +219,6 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
     case (E.NTab.try_rename1 oldname newname (get_es_ud ud)) of
       SOME a => set_e_ud a ud
       | NONE => raise ename_already_exists (newname, ud)
-
   fun rename_bangbox oldname newname ud =
     case (B.NTab.try_rename1 oldname newname (get_bs_ud ud)) of
       SOME a => set_b_ud a ud
