@@ -4,7 +4,7 @@ digraph {
     start [color=green]
     circles [label="match circles in Uc\n(and empty Uc)"]
     die0 [label=die,color=blue]
-    scheduledpm [label="pop next v from Ps"]
+    scheduledpm [label="choose v in Ps"]
     doomed [label="doomed(v)?"]
     die1 [label=die,color=blue]
     nextnhd [label="take next wire vertex w in Uw\nadjacent to v"]
@@ -15,11 +15,12 @@ digraph {
     die2 [label=die,color=blue]
     markpm [label="remove from Un,\nadd to Ps and P"]
     unmatchedtargnhd [label="does tgt of v have\nany unmatched edges?"]
-    complete [label="remove v from P"]
-    unmatched [label="unmatched vertex?"]
-    markpm2 [label="remove from Un,\nadd to m, Ps, and P"]
+    unschedule [label="remove v from Ps"]
+    complete [label="remove v from Ps and P"]
+    unmatched [label="choose v in Un"]
+    markpm2 [label="remove v from Un and\nadd to m, Ps, and P"]
     done [color=blue,label="return match"]
-    
+
     start -> circles
     circles -> die0 [label=fail]
     circles -> scheduledpm [label=success]
@@ -37,10 +38,11 @@ digraph {
     addwiretomatch -> nextnhd
     nextnhd -> unmatchedtargnhd [label=none]
     unmatchedtargnhd -> complete [label=no]
-    unmatchedtargnhd -> scheduledpm [label=yes]
+    unmatchedtargnhd -> unschedule [label=yes]
+    unschedule -> scheduledpm
     complete -> scheduledpm
     scheduledpm -> unmatched [label=none]
-    unmatched -> done [label=no]
+    unmatched -> done [label=none]
     unmatched -> markpm2 [label="foreach\nmatching",color=red]
     markpm2 -> scheduledpm
 }
