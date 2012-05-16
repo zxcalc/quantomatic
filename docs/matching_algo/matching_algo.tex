@@ -295,9 +295,7 @@ We need to show that the preconditions of the concrete matching step are satisfi
 
 \subsection{Correctness}
 
-\TODOinline{everything found is a valid matching}
-
-Given what is said in section \ref{sec:match-state} WRT global invariants, this comes down to showing that $m$ is complete at the end, which is fairly easy.
+At the end of the algorithm, everything that was ever in the concrete part of the graph except for bare wires has been added to $m$ by the concrete matching step (postcondition \ref{enum:il-postcond-all-matched}, together with the fact that we always add everything concrete and unmatched to $U_w$, $U_c$ and $U_n$, except bare wires).  We have no more $!$-boxes, so the entire graph is concrete.  $P$ is also empty.  We matched bare wires at the last stage, so $m$ is in fact total on $L$.  So, by the argument in section \ref{sec:match-state}, $m$ is a valid match from the final state of $L$ to $G$.  Since we have only ever performed valid $!$-box operations on $L$, this is a valid instance of $L$, and hence we have found a valid matching from $L$ to $G$.
 
 \subsection{Completeness}
 
