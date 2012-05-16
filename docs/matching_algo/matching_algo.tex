@@ -1,12 +1,26 @@
 \documentclass{article}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{color}
 \usepackage{enumitem}
 \usepackage{fullpage}
 \usepackage{graphicx}
 
 \DeclareMathOperator{\dom}{dom}
 \DeclareMathOperator{\im}{im}
+
+\newcommand{\TODOitem}{%
+\typeout{WARNING!!! there is still a TODO left}
+\color{blue}\item
+}
+\newcommand{\TODO}[1]{%
+\typeout{WARNING!!! there is still a TODO left}
+\marginpar{\textbf{!TODO: }\emph{#1}}
+}
+\newcommand{\TODOinline}[1]{%
+\typeout{WARNING!!! there is still a TODO left}
+{\color{blue}\textbf{!TODO: }#1}
+}
 
 \begin{document}
 
@@ -204,6 +218,9 @@ The loop working through $P_s$ has two branches: when it is not empty and when i
   Global invariant \ref{enum:g-inv-local-iso} gives us most of what we need.  We just need that if $v$ is completely matched, it is not in $P$.  But this is guaranteed by invariant \ref{enum:il-inv-Ps} and the fact that $P_s = \varnothing$.
 \end{enumerate}
 
+\subsubsection{Completeness}
+
+\TODOinline{all possible ways of satisfying the postconditions are found}
 \section{Testing Wrapper: Concrete Matching Only}
 \label{sec:test-wrapper}
 
@@ -275,5 +292,15 @@ We need to show that the preconditions of the concrete matching step are satisfi
 
   This is implicit in the step where we populate $U_w$ and $U_c$.
 \end{enumerate}
+
+\subsection{Correctness}
+
+\TODOinline{everything found is a valid matching}
+
+Given what is said in section \ref{sec:match-state} WRT global invariants, this comes down to showing that $m$ is complete at the end, which is fairly easy.
+
+\subsection{Completeness}
+
+\TODOinline{all possible matchings are found}
 
 \end{document}
