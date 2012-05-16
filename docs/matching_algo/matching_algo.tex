@@ -226,6 +226,8 @@ The postconditions of the concrete matching inner-loop, together with how we cre
 \section{Full Wrapper: Lazy !-Box Expansion}
 \label{sec:full-wrapper}
 
+This algorithm performs lazy $!$-box expansion to find all possible matchings of a pattern graph against a string graph.  In order for the algorithm to be deterministic, we disallow pattern graphs with empty $!$-boxes or $!$-boxes containing only bare wires, as these may be expanded any number of times and still match any graph that contains a wire.
+
 Since we are only matching pattern graphs on to concrete graphs, it suffices to restrict $!$-box operations to only two: KILL and EXPAND (COPY, then DROP the new box).
 
 \begin{center}
@@ -233,5 +235,45 @@ Since we are only matching pattern graphs on to concrete graphs, it suffices to 
 \end{center}
 
 
+\subsection{Termination}
+
+Each step terminates, and there is only one loop.  As a variant, we take
+\[ n = |V_G| + |V_L\setminus\dom(m)| - |\dom(m)| \]
+
+We calculate the variant at the point where we consider terminating the loop, immediately after the concrete matching step.  If the previous iteration involved killing one or more $!$-boxes, $V_L\setminus\dom(m)$ will decrease (by the combined size of the $!$-boxes).  If the previous iteration involved expanding a $!$-box, $|\dom(m)|$ will increase (by the size of the $!$-box, excluding any bare wires).  $V_L\setminus\dom(m)$ is clearly bounded below by $0$, and $|\dom(m)|$ is bounded below by $|V_G|$, by global invariant \ref{enum:g-inv-inj}, so $n$ is bounded below by $0$ and decreases with every iteration.  Hence the algorithm terminates.
+
+
+\subsection{Concrete Matching Preconditions}
+
+We need to show that the preconditions of the concrete matching step are satisfied whenever it is reached.
+
+\begin{enumerate}[label=(\roman*),ref=(\roman*)]
+  \item $L$ and $G$ are both normalised
+
+  We normalise the graphs at the start.  We never alter $G$ after that.  Because $!$-boxes are open subgraphs, we always remove or copy an entire wire at once, which ensures that $L$ remains normalised throughout.
+  \item The match state satisfies the global invariants
+
+  Only the concrete matching step alters $m$ or $P$ in any way, and this maintains the global invariants.
+  \item $U_c\cap\dom(m) = U_w\cap\dom(m) = U_n\cap\dom(m) = \varnothing$
+
+  We only ever add unmatched vertices to these sets.
+  \item Each vertex in $U_w$ is adjacent to something in $U_n\cup P_s$
+
+  This follows from openness of $!$-boxes, which (together with normalisation) ensures that any concrete wire-vertex that is not on a circle or bare wire must be adjacent to a concrete node-vertex.  The first time concrete matching happens, all such node-vertices are put in $U_n$.
+  
+  Since all non-bare-wire, non-circle concrete vertices are added to $U_w$ each time, and so added to $\dom(m)$ by the concrete matching step, on subsequent iterations of concrete matching any wire-vertex $v$ in $U_w$ must have arisen from the expansion of a $!$-box (since this is the only way concrete vertices can be added).  If $v$ is adjacent to a node-vertex that came from the $!$-box expansion, that node-vertex will be added to $U_n$.  Otherwise, it must be adjacent to a node-vertex in $\dom(m)$, and hence in $P$ (by the postconditions of the concrete matching step).  Then this node-vertex (being adjacent to the expanded $!$-box) will be added to $P_s$.
+  \item If $v \in P$ and $N_G(m(v)) \subseteq \im(m)$, $v \in P_s$ (everything that is completely matched and in $P$ is also in $P_s$)
+
+  The first time we run the concrete matching step, $P$ is empty.  After each concrete matching step, the postconditions ensure that there is no completely matched vertex in $P$.  As the rest of the algorithm does not add anything to $P$ or alter $m$, this is maintained throughout.
+  \item If $v \in U_w$ and $w$ is a wire-vertex adjacent to $v$ in $L$, $w \in U_w$.
+
+  This is guaranteed by openness of $!$-boxes: we only ever add entire wires to $U_w$.
+  \item If $v \in \dom(m)$ is a wire-vertex, then any vertices it is adjacent to are also in $\dom(m)$
+
+  This is guaranteed by the postcondition \ref{enum:il-postcond-all-matched} in combination with precondition \ref{enum:il-inv-wire-uw} and the fact that $m$ is only altered by the concrete matching step.
+  \item $U_c$ contains only circles, and $U_w$ contains no wire-vertices that are in circles
+
+  This is implicit in the step where we populate $U_w$ and $U_c$.
+\end{enumerate}
 
 \end{document}
