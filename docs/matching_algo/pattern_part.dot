@@ -9,7 +9,7 @@ digraph {
     morebang [label="has more !-boxes?"]
     morebang1 [label="has more !-boxes?"]
     pickbang [label="pick first top-level !-box"]
-    schedule [label="re-schedule vertices in P\nadjancent to modified\n!-boxes"]
+    schedule [label="add vertices in P adjacent to\nmodified !-boxes to Ps"]
     killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
     nopartial [label="is P empty?"]
     die [label=die,color=blue]
@@ -21,9 +21,9 @@ digraph {
     morebang -> killcomplete [label=yes]
     killcomplete -> morebang1
     morebang1 -> pickbang [label=yes]
-    morebang1 -> schedule [label=no]
+    morebang1 -> nopartial [label=no]
     pickbang -> schedule [label="EXPAND",color=red]
-    pickbang -> schedule [label="KILL",color=red]
+    pickbang -> morebang [label="KILL",color=red]
     schedule -> addunmatched
     morebang -> nopartial [label=no]
     nopartial -> emptywires [label=yes]
