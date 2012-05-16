@@ -146,7 +146,7 @@ The preconditions (section \ref{sec:il-precond}) are maintained throughout the a
 \end{enumerate}
 
 To these, we add an additional invariant:
-\begin{enumerate}[resume*]
+\begin{enumerate}[resume,label=(\roman*),ref=(\roman*)]
   \item \label{enum:il-inv-extend} $m$ restricts to its initial state (it is only ever extended, never changed in any other way)
 
   This is clearly true at the start of the algorithm.  When matching circles, we only ever add vertices that are in $U_c$, which is disjoint from $\dom(m)$ by invariant \ref{enum:il-inv-unmatched}.  When $P_s$ is empty we only ever add a single node-vertex, which is drawn from $U_n$ (which, again by \ref{enum:il-inv-unmatched}, is disjoint from $\dom(m)$).
