@@ -9,6 +9,10 @@
 \DeclareMathOperator{\dom}{dom}
 \DeclareMathOperator{\im}{im}
 
+\DeclareMathOperator{\N}{N}
+\DeclareMathOperator{\PN}{PN}
+\DeclareMathOperator{\W}{W}
+
 \newcommand{\TODOitem}{%
 \typeout{WARNING!!! there is still a TODO left}
 \color{blue}\item
@@ -300,5 +304,21 @@ At the end of the algorithm, everything that was ever in the concrete part of th
 \subsection{Completeness}
 
 \TODOinline{all possible matchings are found}
+
+\section{Alternate Wrapper: Partial (Non-strict) Graph Matching}
+
+The advantage of the concrete/wrapper separation is it allows easy implementation of alternative pattern graph paradigms. The one described in this section is strictly weaker than $!$-box matching, yet in many cases could perform better, as the pattern expansion does not require an indeterminism. That is, it is uniquely determined by a single run of the concrete matching algorithm.
+
+A partial string graph $(L, \PN(L))$ is a string graph with a marked subset of node-vertices $\PN(L) \subseteq \N(L)$ that are allowed to be matched partially. A partial string graph rewrite rule is a normal string graph rewrite rule $(L,R)$ with a surjection $p: \PN(L) \twoheadrightarrow \PN(R)$. \textit{Reversible} PSG rules are those where $p$ is a bijection.
+
+A PSG match is a normal match, with the exception that local iso need only be satisfied for node-vertices in $\N(L) - \PN(L)$. Instantiation of a PSG is done by adding new edges with boundaries for every unmatched edge in the neighbourhood of $m(n)$ for all $n \in \PN(L)$. For rule instantiation, the new edge/boundary pairs are added both the the neighbourhood of $n \in \PN(L)$ and $p(n) \in \PN(R)$.
+
+Matching can be done as a wrapper for the concrete matching algorithm.
+
+\begin{center}
+  \includegraphics[height=12cm]{nonstrict.pdf}
+\end{center}
+
+The result is the same as DPO rewriting for more general spans $L \leftarrow I \rightarrow R$ where $I$ contains the shared boundary of $L$ and $R$ along with some node-vertices. For non-reversible rules, the map $I \rightarrow R$ does not need to be mono.
 
 \end{document}

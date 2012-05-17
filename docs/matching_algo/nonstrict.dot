@@ -1,0 +1,17 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    start [color=green]
+    addwires [label="add circles and non-bare\nwires to UC and UW, resp."]
+    addpartial [label="add NS(L) to PS and\nN(L)-NS(L) to UN"]
+    match [label="apply concrete matching",color=red]
+    test [label="is P contained in NS(L)?"]
+    die [color=blue]
+    inst [label="instantiate match (or rule)"]
+    done [label="return match",color=blue]
+    
+    start -> addwires -> addpartial -> match -> test
+    test -> die [label=no]
+    test -> inst [label=yes]
+    inst -> done
+}
