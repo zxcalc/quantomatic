@@ -309,6 +309,8 @@ At the end of the algorithm, everything that was ever in the concrete part of th
 
 The previous algorithm greedily matches all concrete vertices in each iteration. However, in a situation where different concrete components of a graph are connected only by a path containing !-boxes, this could produce many spurious match candidates that only get ruled out when the connecting !-box is killed or expanded. The following algorithm removed this problem by doing concrete matching component-wise, only moving to the next component once all !-boxes connected to the currently matched concrete components have been expanded.
 
+Here, concrete component means a connected subgraph containing no vertices in !-boxes, excluding bare wires and circles.
+
 \begin{center}
   \includegraphics[height=16cm]{component_pattern_part.pdf}
 \end{center}

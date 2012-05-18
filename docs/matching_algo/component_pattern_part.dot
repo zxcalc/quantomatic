@@ -4,9 +4,10 @@ digraph {
     
     start [color=green]
     normalise [label="normalise"]
-    addunmatched [label="add all unmatched vertices\nsharing a concrete component\nwith v in dom(m) to UN"]
+    circles [label="add unmatched circles to UC"]
+    addunmatched [label="add all unmatched vertices\nsharing a concrete component\nwith v in dom(m) to UN/UW"]
     hascomp [label="has unmatched\nconcrete component?"]
-    addcomp [label="add next unmatched\nconcrete component to UN"]
+    addcomp [label="add next unmatched\nconcrete component to UN/UW"]
     match [label="apply concrete matching",color=red]
     killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
     moreborderbang [label="has top-level !-box\nB bordering dom(m)?"]
@@ -15,16 +16,17 @@ digraph {
     KILLborderbang [label="KILL B",color=red]
     EXPANDbang [label="EXPAND B",color=red]
     KILLbang [label="KILL B",color=red]
-    schedule [label="add vertices in P adjacent to\nmodified !-boxes to Ps"]
+    schedule [label="add vertices in P adjacent to\nmodified !-boxes to Ps and\nunmatched circles to UC"]
     nopartial [label="is P empty?"]
     die [label=die,color=blue]
     emptywires [label="match bare wires"]
     done [label="return match",color=blue]
     
-    start -> normalise -> hascomp
+    start -> normalise -> circles -> hascomp
     addunmatched -> match
     hascomp -> addcomp [label=yes]
-    addcomp -> match -> killcomplete
+    addcomp -> match
+    match -> killcomplete [label="foreach\nmatching",color=red]
     killcomplete -> moreborderbang
     moreborderbang -> EXPANDborderbang [label=yes,color=red]
     moreborderbang -> KILLborderbang [label=yes,color=red]
@@ -35,9 +37,9 @@ digraph {
     morebang -> EXPANDbang [label=yes,color=red]
     morebang -> KILLbang [label=yes,color=red]
     KILLbang -> morebang
-    EXPANDbang -> hascomp
+    EXPANDbang -> circles
     morebang -> nopartial [label=no]
     nopartial -> die [label=no]
     nopartial -> emptywires [label=yes]
-    emptywires -> done
+    emptywires -> done [label="foreach\nmatching",color=red]
 }

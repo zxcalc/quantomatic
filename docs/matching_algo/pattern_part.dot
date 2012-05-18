@@ -6,9 +6,9 @@ digraph {
     normalise [label="normalise"]
     addunmatched [label="add unmatched concrete vertices\n(except those in bare wires)\nto UC, UW or UN as appropriate"]
     match [label="apply concrete matching",color=red]
-    morebang [label="has more !-boxes?"]
-    morebang1 [label="has more !-boxes?"]
-    pickbang [label="pick first top-level !-box"]
+    morebang [label="has top-level !-box B?"]
+    EXPANDbang [label="EXPAND B",color=red]
+    KILLbang [label="KILL B",color=red]
     schedule [label="add vertices in P adjacent to\nmodified !-boxes to PS"]
     killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
     nopartial [label="is P empty?"]
@@ -17,15 +17,14 @@ digraph {
     done [label="return match",color=blue]
     
     start -> normalise -> addunmatched -> match
-    match -> morebang [label="foreach\nmatching",color=red]
-    morebang -> killcomplete [label=yes]
-    killcomplete -> morebang1
-    morebang1 -> pickbang [label=yes]
-    morebang1 -> nopartial [label=no]
-    pickbang -> schedule [label="EXPAND",color=red]
-    pickbang -> morebang [label="KILL",color=red]
-    schedule -> addunmatched
+    match -> killcomplete [label="foreach\nmatching",color=red]
+    killcomplete -> morebang
+    morebang -> EXPANDbang [label=yes,color=red]
+    morebang -> KILLbang [label=yes,color=red]
+    EXPANDbang -> schedule
+    KILLbang -> morebang
     morebang -> nopartial [label=no]
+    schedule -> addunmatched
     nopartial -> emptywires [label=yes]
     nopartial -> die [label=no]
     emptywires -> done [label="foreach\nmatching",color=red]
