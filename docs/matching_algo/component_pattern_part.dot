@@ -1,0 +1,51 @@
+digraph {
+    node [shape=box]
+    edge [fontsize=10]
+    
+    start [color=green]
+    normalise [label="normalise"]
+    addunmatched [label="add all unmatched vertices\nsharing a concrete component\nwith v in dom(m) to UN"]
+    hascomp [label="has unmatched\nconcrete component?"]
+    addcomp [label="add next unmatched\nconcrete component to UN"]
+    match [label="apply concrete matching",color=red]
+    killcomplete [label="kill all !-boxes that\nare adjacent to completely\nmatched node-vertices"]
+    
+    moreborderbang [label="has top-level !-box\nB bordering dom(m)?"]
+    morebang [label="has top-level !-box B?"]
+    
+    EXPANDborderbang [label="EXPAND B",color=red]
+    KILLborderbang [label="KILL B",color=red]
+    EXPANDbang [label="EXPAND B",color=red]
+    KILLbang [label="KILL B",color=red]
+    
+    schedule [label="add vertices in P adjacent to\nmodified !-boxes to Ps"]
+    
+    nopartial [label="is P empty?"]
+    die [label=die,color=blue]
+    emptywires [label="match bare wires"]
+    done [label="return match",color=blue]
+    
+    start -> normalise -> hascomp
+    addunmatched -> match
+    hascomp -> addcomp [label=yes]
+    addcomp -> match -> killcomplete
+    killcomplete -> moreborderbang
+    moreborderbang -> EXPANDborderbang [label=yes,color=red]
+    moreborderbang -> KILLborderbang [label=yes,color=red]
+    KILLborderbang -> moreborderbang
+    moreborderbang -> hascomp [label=no]
+    
+    EXPANDborderbang -> schedule -> addunmatched
+    
+    hascomp -> morebang [label=no]
+    morebang -> EXPANDbang [label=yes,color=red]
+    morebang -> KILLbang [label=yes,color=red]
+    KILLbang -> morebang
+    
+    EXPANDbang -> hascomp
+    
+    morebang -> nopartial [label=no]
+    nopartial -> die [label=no]
+    nopartial -> emptywires [label=yes]
+    emptywires -> done
+}

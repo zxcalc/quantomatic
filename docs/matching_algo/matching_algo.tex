@@ -305,6 +305,12 @@ At the end of the algorithm, everything that was ever in the concrete part of th
 
 \TODOinline{all possible matchings are found}
 
+\section{Improved Pattern Wrapper: Component-wise !-box Expansion}
+
+\begin{center}
+  \includegraphics[height=16cm]{component_pattern_part.pdf}
+\end{center}
+
 \section{Alternate Wrapper: Partial (Non-strict) Graph Matching}
 
 The advantage of the concrete/wrapper separation is it allows easy implementation of alternative pattern graph paradigms. The one described in this section is strictly weaker than $!$-box matching, yet in many cases could perform better, as the pattern expansion does not require an indeterminism. That is, it is uniquely determined by a single run of the concrete matching algorithm.
