@@ -950,6 +950,33 @@
  * Desc: Return the descriptions of all the available metrics
  * Response: StringListResponse 
  *
+ * GetCurrentMetricNameRequest
+ *  Code: "MCMN"
+ *  Args: none
+ *  Desc: Return the name of the current metric
+ *  Response: StringResponse
+ *
+ * SetMetricRequest
+ *  Code: "MSM"
+ *  Args: 
+ *    metricName: string
+ *  Desc: Change the current metric te metricName
+ *  Response: OkResponse
+ *
+ * ComputeMetricRequest
+ *  Code: "MCM"
+ *  Args: 
+ *    graphName: string
+ *  Desc: Compute the metric of a given graph 
+ *  Response: MetricResponse
+ *
+ * OrdMetricRequest
+ *  Code: "MOM"
+ *  Args:
+ *    metric1: string list
+ *    metric2: string list
+ *  Desc: Compare two metrics given as lists 
+ *  Response: CountResponse (0, 1 ,2 for le, eq, ge )
  * }}} *)
 
 structure ProtocolInterface : CONTROL_INTERFACE =
@@ -2159,9 +2186,32 @@ struct
                         }
                       end
 
-         | "MNL" => ListMetricsNamesRequest
-         | "MDL" => ListMetricsDescsRequest
-
+         | "MNL" => (assertAtEnd (); ListMetricsNamesRequest)
+         | "MDL" => (assertAtEnd (); ListMetricsDescsRequest)
+         | "MCMN" => (assertAtEnd (); GetCurrentMetricNameRequest)
+         | "MSM" => let
+                      val metricName = readToEnd()
+                    in
+                      SetMetricRequest {
+                        metricName = metricName
+                      }
+                    end
+         | "MCM" => let
+                      val gn = readToEnd()
+                    in
+                      ComputeMetricRequest {
+                        graphName = gn
+                      }
+                    end
+         | "MOM" => let
+                      val metric1 = readListToDelim ()
+                      val metric2 = readListToEnd ()
+                    in
+                      OrdMetricRequest {
+                        metric1 = metric1,
+                        metric2 = metric2
+                      }
+                    end 
          | code   =>  (* Something else.  Reply with empty response. *)
                      (skipToBodyEnd ();
                       UnknownRequest {

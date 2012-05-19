@@ -11,7 +11,7 @@ sig
 
   val compute : MT.Graph.T -> T option (* In case a metric is for a specific
   graphical theory : we allow it to fail *)
-  val ord : (T * T) -> order
+  val ord : (T * T) -> order option
   val ord_graph : (MT.Graph.T * MT.Graph.T) -> order option
   val bottom : T;
 

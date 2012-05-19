@@ -114,7 +114,15 @@ struct
                    (* StringListResponse *)
                    | ListMetricsDescsRequest
                    (* StringListResponse *)
-
+                   | GetCurrentMetricNameRequest
+                   (* StringResponse *)
+                   | SetMetricRequest of { metricName: string }
+                   (* OkResponse *)
+                   | ComputeMetricRequest of { graphName: string }
+                   (* MetricResponse *)
+                   | OrdMetricRequest of 
+                        { metric1 : string list, metric2: string list}
+                   (* Count Response: 0 1 2 for le, eq, gr *)
                    | UnknownRequest of { code: string }
 
        and graphLoadRequest = LoadEmptyGraphRequest of { requestedName: string }
@@ -1045,7 +1053,15 @@ fun hilb ([format], graph) =
       (StringListResponse { data = State.get_names_metrics state }, state)
     | serviceRequest' ListMetricsDescsRequest state =
       (StringListResponse { data = State.get_descs_metrics state}, state)
-
+    | serviceRequest' GetCurrentMetricNameRequest state =
+      (StringResponse { data = State.get_current_name_metric state}, state)
+    | serviceRequest' (SetMetricRequest { metricName}) state =
+      (OkResponse, State.set_metric metricName state)
+    | serviceRequest' (ComputeMetricRequest { graphName }) state =
+      (MetricResponse 
+        { data = State.compute_metric (GraphName.mk graphName) state }, state)
+    | serviceRequest' (OrdMetricRequest { metric1, metric2}) state = 
+        (CountResponse {count = State.ord_metric metric1 metric2 state}, state) 
     | serviceRequest' (UnknownRequest { code }) state =
         (UnknownResponse { code = code },state)
     ;
@@ -1193,6 +1209,22 @@ fun hilb ([format], graph) =
                   errorCode = "OUTOFRANGE",
                   message = ("Argument "^(Int.toString n)^" is out of range")
                 }
+           | State.no_such_metric_exp name =>
+                ErrorResponse {
+                  errorCode = "NOSUCHMETRIC",
+                  message = ("Metric "^name^" does not exist")
+                }
+           | State.unsupported_metric_exp name =>
+                ErrorResponse {
+                  errorCode = "UNSUPPORTEDMETRIC",
+                  message = (name^" cannot be used with this graphical theory")
+                }
+           | State.not_an_int_exp s =>
+                ErrorResponse {
+                  errorCode = "NOTANINT",
+                  message = (s^" could not be parsed as an integer")
+                }
+ 
            );
 
   val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest;

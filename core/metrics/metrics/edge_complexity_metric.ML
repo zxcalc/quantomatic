@@ -11,7 +11,9 @@ struct
   val name = "Edge Complexity Metric"
   val desc = "Description Goes Here"
 
-  fun ord (Tup3 (a,b,c), Tup3 (d,e,f)) = (prod_ord int_ord (prod_ord int_ord int_ord)) ((a,(b,c)), (d,(e,f)))
+  fun ord (Tup3 (a,b,c), Tup3 (d,e,f)) = SOME ((prod_ord int_ord (prod_ord
+    int_ord int_ord)) ((a,(b,c)), (d,(e,f))))
+     | ord _ = NONE
   val bottom = Tup3 (0,0,0)
 
   fun compute graph = let
@@ -27,7 +29,7 @@ struct
   in SOME (Tup3 (ec, verts, edges))
   end
   
-  fun internal_ord (SOME a, SOME b) = SOME (ord (a,b))
+  fun internal_ord (SOME a, SOME b) = ord (a,b)
   val ord_graph = internal_ord o (apfst compute) o (apsnd compute)
 
   val metric_record = MR {desc = desc, 

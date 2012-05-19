@@ -407,7 +407,26 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("", "Print out the name of the currently active theory",
       (fn [] => Commands.TheoryNameRequest
         | _  => bad_args_req))),
-
+    ("list_metrics_names",
+     ("", "Print out the names of available metrics",
+      (fn [] => Commands.ListMetricsNamesRequest
+        | _  => bad_args_req))),   
+    ("list_metrics_descs",
+     ("", "Print out the descriptions of the available metrics",
+      (fn [] => Commands.ListMetricsDescsRequest
+        | _  => bad_args_req))),   
+    ("get_current_metric_name",
+     ("", "Print out the name of the metric currently selected",
+      (fn [] => Commands.GetCurrentMetricNameRequest
+        | _  => bad_args_req))),   
+    ("set_metric",
+     ("NAME", "Set metric NAME as the current metric",
+      (fn [nm] => (Commands.SetMetricRequest {metricName= nm})
+        | _  => bad_args_req))),   
+    ("compute_metric",
+     ("GRAPHNAME", "Compute the current metric on GRAPHNAME",
+      (fn [nm] => (Commands.ComputeMetricRequest {graphName= nm}) 
+        | _  => bad_args_req))),   
     (* FIXME: should this really be here?  Technically, the use of this *)
     (*        structure decides what theories are available             *)
     ("list_theories",

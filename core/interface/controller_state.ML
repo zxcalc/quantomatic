@@ -31,6 +31,9 @@ sig
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
+  exception unsupported_metric_exp of string;
+  exception no_such_metric_exp of string;
+  exception not_an_int_exp of string;
 
   val init : T (* initial empty state, no graphs *)
 
@@ -149,8 +152,8 @@ sig
   (* Functions for metrics *)
   val set_metric : string -> T -> T;
   val compute_metric : GraphName.name -> T -> MetController.foreign_type; 
-  val ord_graph_metric : GraphName.name -> GraphName.name -> T -> order;
-  val ord_metric : MetController.foreign_type -> MetController.foreign_type -> T -> order;
+  val ord_graph_metric : GraphName.name -> GraphName.name -> T -> int;
+  val ord_metric : string list -> string list -> T -> int;
   val bottom_metric : T -> MetController.foreign_type;
 
   val get_names_metrics : T -> string list;
@@ -195,6 +198,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
   exception unsupported_metric_exp of string;
+  exception no_such_metric_exp of string;
+  exception not_an_int_exp of string;
   type rewrite = (R.name * Rule.T) * Graph.T (* rule, and graph to be rewritten to *)
   type vertex =  (OVData.data * (E.NSet.T * E.NSet.T));
   type edge = ((Graph.dir_or_undir * EData.data) * (V.name * V.name));
@@ -1015,7 +1020,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       val met_cont = get_met_cont state
     in
       set_met_cont (MetController.set_current_metric nm met_cont) state
-    end;
+    end
+      handle MetController.no_such_metric_exp n => 
+        raise no_such_metric_exp n;
 
   fun compute_metric gn state =
     let
@@ -1028,6 +1035,17 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
             (MetController.get_current_metric_name met_cont)
     end;    
 
+  (* Tiny function to convert order to an int: 0 1 2 *)
+  fun convert_order_to_int (SOME ord) state =
+    (case ord of
+        LESS => 0
+      | GREATER => 2
+      | _   => 1)   
+    | convert_order_to_int NONE state =
+      raise unsupported_metric_exp  
+            (MetController.get_current_metric_name (get_met_cont state))
+  (* ** *)
+
   fun ord_graph_metric gn1 gn2 state =
     let
       val g1 = get_graph state gn1
@@ -1035,14 +1053,22 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       val met_cont = get_met_cont state
     in
       case (MetController.get_current_ord_graph met_cont) (g1,g2) of
-      SOME a => a
+      SOME a => convert_order_to_int (SOME a) state
     | NONE => raise unsupported_metric_exp
             (MetController.get_current_metric_name met_cont)
     end;
 
-  fun ord_metric m1 m2 state =
-    MetController.get_current_ord (get_met_cont state) (m1,m2);
-
+  fun ord_metric ms1 ms2 state = 
+    let
+      fun parseInt s = case Int.fromString s of
+        SOME i => i
+        | NONE => raise not_an_int_exp s
+      val m1 = List.map (parseInt) ms1
+      val m2 = List.map (parseInt) ms2
+    in
+      state |> convert_order_to_int 
+                (MetController.get_current_ord (get_met_cont state) (m1,m2))
+    end;
   fun bottom_metric state =
     MetController.get_current_bottom (get_met_cont state);
 
@@ -1052,7 +1078,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     MetController.get_metrics_descs (get_met_cont state);
 
   fun get_current_name_metric state =
-    MetController.get_current_metric_name (get_met_cont state);
+    MetController.get_current_metric_name (get_met_cont state)
+    handle MetController.no_such_metric_exp n =>
+      raise no_such_metric_exp n;
 end; (* structure Controller *)
 (* vim:et:sts=2:sw=2
 *)

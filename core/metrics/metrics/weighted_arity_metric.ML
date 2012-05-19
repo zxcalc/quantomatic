@@ -11,7 +11,8 @@ struct
 
 
 
-  fun ord (Tup1 a, Tup1 b) = int_ord (a,b)
+  fun ord (Tup1 a, Tup1 b) = SOME (int_ord (a,b))
+    | ord _ = NONE
   val bottom = Tup1 0
 
   val name = "Weighted Arity Metric"
@@ -58,7 +59,7 @@ struct
   in SOME (Tup1 (V.NSet.fold vert_weights (Graph.get_vnames graph) 0))
   end
 
-  fun internal_ord ((SOME a), (SOME b)) = SOME (ord (a,b))
+  fun internal_ord ((SOME a), (SOME b)) = ord (a,b)
   val ord_graph = internal_ord o (apfst compute) o (apsnd compute)
   val metric_record = MR {desc = desc, 
                           compute = MT.to_foreign_type o compute,

@@ -207,6 +207,8 @@ Testing.make_test "rewriting/test/rule-test.ML";
    are working. *)
 Testing.make_test "theories/substr_linrat/test/test.ML";
 
+(* Testing for Metrics *)
+Testing.make_test "metrics/test/test.ML";
 Testing.make_test "example_code/ROOT.ML";
 
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";

@@ -17,12 +17,14 @@ signature METRIC_TYPE =
                        Tup5 of (base_type * base_type * base_type * base_type *
                                   base_type) |
                        Tup6 of (base_type * base_type * base_type * base_type *
-                                  base_type * base_type);
+                                  base_type * base_type) |
+                       Malformed;
 
     datatype metric_rec = MR of { desc      : string, 
                                   compute   : (Graph.T -> foreign_type option), 
                                   ord_graph : ((Graph.T * Graph.T) -> order option),
-                                  ord       : (((foreign_type) * (foreign_type)) -> order),
+                                  ord       : (((foreign_type) * (foreign_type))
+                                  -> order option),
                                   bottom    : foreign_type};
 
     val to_foreign_type   : metric_type option -> foreign_type option;
@@ -33,7 +35,7 @@ signature METRIC_TYPE =
     val get_mr_desc : metric_rec -> string;
     val get_mr_compute : metric_rec -> (Graph.T -> foreign_type option);
     val get_mr_ord : metric_rec -> 
-      (((foreign_type) * (foreign_type)) -> order);
+      (((foreign_type) * (foreign_type)) -> order option);
     val get_mr_ord_graph : metric_rec -> ((Graph.T * Graph.T) -> order option);
     val get_mr_bottom : metric_rec -> foreign_type;
   end;
@@ -55,12 +57,14 @@ functor MetricType(
                        Tup5 of (base_type * base_type * base_type * base_type *
                                   base_type) |
                        Tup6 of (base_type * base_type * base_type * base_type *
-                                  base_type * base_type);
+                                  base_type * base_type) |
+                       Malformed;
 
     datatype metric_rec = MR of { desc      : string, 
                                   compute   : (Graph.T -> foreign_type option), 
                                   ord_graph : ((Graph.T * Graph.T) -> order option),
-                                  ord        : (((foreign_type) * (foreign_type)) -> order),
+                                  ord        : (((foreign_type) *
+                                  (foreign_type)) -> order option),
                                   bottom    : foreign_type};
 
     fun get_mr_desc (MR {desc=d, ...}) = d;
@@ -84,7 +88,7 @@ functor MetricType(
       | to_foreign_type_safe ((Tup4 (a,b,c,d))) = [a,b,c,d]
       | to_foreign_type_safe ((Tup5 (a,b,c,d,e))) = [a,b,c,d,e]
       | to_foreign_type_safe ((Tup6 (a,b,c,d,e,f))) = [a,b,c,d,e,f]   
-
+      | to_foreign_type_safe Malformed = []
 
     fun from_foreign_type [a] = Tup1 a
       | from_foreign_type [a,b] = Tup2 (a,b)      
@@ -92,6 +96,7 @@ functor MetricType(
       | from_foreign_type [a,b,c,d] = Tup4 (a,b,c,d)      
       | from_foreign_type [a,b,c,d,e] = Tup5 (a,b,c,d,e)      
       | from_foreign_type [a,b,c,d,e,f] = Tup6 (a,b,c,d,e,f)      
+      | from_foreign_type _ = Malformed
  
  
   end;

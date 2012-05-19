@@ -94,8 +94,6 @@ public class InteractiveGraphView
 	private QuantoForceLayout forceLayout;
 	private QuantoDotLayout initLayout;
 
-	private QuantoStrategy strategy = null;
-	
 	public boolean viewHasParent() {
 		return this.getParent() != null;
 	}
@@ -436,8 +434,6 @@ public class InteractiveGraphView
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
-		//FIXME WE whould make the choice of the strategy a global preference
-		strategy = new RulesPriorityStrategy(getCore());
 		Relaxer r = viewer.getModel().getRelaxer();
 		if (r != null) {
 			r.setSleepTime(10);
@@ -1132,6 +1128,16 @@ public class InteractiveGraphView
 			}
 		}
 
+        private int getRulePriority(String ruleName) {
+            try {
+                String prioStr = getCore().getTalker().ruleUserData(ruleName, "quanto-gui:priority");
+                return  Integer.parseInt(prioStr);
+            } catch (CoreException e) {
+                //We could not get the priority for that rule... set it to 5
+                return 5;
+          }
+        }
+
 		@Override
 		public void run() {
 			try {
@@ -1144,7 +1150,17 @@ public class InteractiveGraphView
 				int rw = 0;
 				while (rws.size() > 0
 					&& !Thread.interrupted()) {
-					rw = strategy.getNext(rws, getGraph());
+                    int max = -100;
+                    int c = 0;
+                    int toApply = 0;
+                    for (AttachedRewrite<CoreGraph> r : rws) {
+                        int priority = getRulePriority(r.getRuleName());
+                        if (priority >= max) {
+                            max = priority;
+                            rw = c;
+                        }
+                        c++;
+                    }
 					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
 					sleep(1500);
 					invokeApplyRewriteAndWait(rw);	

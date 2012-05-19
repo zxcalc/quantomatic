@@ -1721,4 +1721,101 @@ public class ProtocolManager {
 
         return getXmlResponse();
     }
-}
+
+    public String[] listMetricsNames() throws CoreException {
+
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("MNL", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameListResponse();
+    }
+        public String[] listMetricsDescs() throws CoreException {
+
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("MDL", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameListResponse();
+    }
+
+     public String getCurrentMetricNameRequest() throws CoreException {
+
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("MCMN", generateRequestId());
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getNameResponse();
+    }
+    public void setMetricRequest(String metricName) throws CoreException {
+
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("MSM", generateRequestId());
+            writer.addStringArg(metricName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+     public void computeMetricRequest(String graphName) throws CoreException {
+
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("MCM", generateRequestId());
+            writer.addStringArg(graphName);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        getOkResponse();
+    }
+
+    public int ordMetricRequest(int[] metric1, int[] metric2) throws CoreException {
+
+        if (backend == null) {
+            throw new IllegalStateException("The core is not running");
+        }
+
+        try {
+            writer.addHeader("MOM", generateRequestId());
+            writer.addIntListArg(metric1);
+            writer.addIntListArg(metric2);
+            writer.closeMessage();
+        } catch (IOException ex) {
+            throw writeFailure(ex);
+        }
+
+        return getCountResponse();
+    }
+ }

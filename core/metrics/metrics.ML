@@ -17,7 +17,7 @@ sig
    val get_current_metric_name : T -> string;
 
    val get_current_desc : T -> string;
-   val get_current_ord : T -> ((MT.foreign_type * MT.foreign_type) -> order);
+   val get_current_ord : T -> ((MT.foreign_type * MT.foreign_type) -> order option);
    val get_current_compute : T -> (Graph.T -> MT.foreign_type option );
    val get_current_ord_graph : T -> ((Graph.T * Graph.T) -> order option); 
    val get_current_bottom : T -> MT.foreign_type;
