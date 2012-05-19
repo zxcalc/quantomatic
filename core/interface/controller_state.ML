@@ -4,6 +4,7 @@ sig
   type T;
   structure Theory : GRAPHICAL_THEORY;
   structure UIData : USER_DATA;
+  structure MetController : METRICS;
 
   type rewrite = (R.name * Theory.Rule.T) * Theory.Graph.T
   type vertex = (Theory.OVData.data * (E.NSet.T * E.NSet.T));
@@ -12,10 +13,13 @@ sig
                       | UA of (Theory.Graph.T * UIData.T)
   type history = ((undo_block) list * 
                     (undo_block) list ) GraphName.NTab.T;
+  type ud_unit = string Symtab.table
+
   exception no_such_graph_exp of GraphName.name;
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_vertex_user_data_exp of (V.name * string);
+  exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_edge_exp of (E.name * GraphName.name);
   exception no_such_edge_type_exp of string;
   exception no_such_bbox_exp of (B.name * GraphName.name);
@@ -27,6 +31,9 @@ sig
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
+  exception unsupported_metric_exp of string;
+  exception no_such_metric_exp of string;
+  exception not_an_int_exp of string;
 
   val init : T (* initial empty state, no graphs *)
 
@@ -38,7 +45,7 @@ sig
   val get_ud : T -> UIData.T;
   val get_graph : T -> GraphName.name -> Theory.Graph.T;
   val get_graph_names : T -> GraphName.name list;
-  val get_rset_uidata : T -> (UIData.T * UIData.T) R.NTab.T;
+  val get_rset_uidata : T -> (ud_unit * (UIData.T * UIData.T)) R.NTab.T;
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
@@ -141,6 +148,17 @@ sig
   val get_bangbox_user_data : GraphName.name -> B.name -> T -> (string
     Symtab.table option)
   val delete_bangbox_user_data : string -> B.name -> GraphName.name -> T -> T
+
+  (* Functions for metrics *)
+  val set_metric : string -> T -> T;
+  val compute_metric : GraphName.name -> T -> MetController.foreign_type; 
+  val ord_graph_metric : GraphName.name -> GraphName.name -> T -> int;
+  val ord_metric : string list -> string list -> T -> int;
+  val bottom_metric : T -> MetController.foreign_type;
+
+  val get_names_metrics : T -> string list;
+  val get_descs_metrics : T -> string list;
+  val get_current_name_metric : T -> string;
 end;
 
 
@@ -157,12 +175,14 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   structure OVData = Graph.OVData;
   structure EData = Graph.EData;
   structure UIData = UserData(Graph):USER_DATA;
+  structure MetController = MetricsController(structure Graph = Graph);
 
   exception no_such_graph_exp of GraphName.name;
   exception no_such_graph_user_data_exp of (GraphName.name * string);
   exception no_such_vertex_user_data_exp of (V.name * string);
   exception no_such_edge_user_data_exp of (E.name * string);
   exception no_such_bangbox_user_data_exp of (B.name * string);
+  exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
   exception no_such_edge_exp of (E.name * GraphName.name);
@@ -177,7 +197,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
-
+  exception unsupported_metric_exp of string;
+  exception no_such_metric_exp of string;
+  exception not_an_int_exp of string;
   type rewrite = (R.name * Rule.T) * Graph.T (* rule, and graph to be rewritten to *)
   type vertex =  (OVData.data * (E.NSet.T * E.NSet.T));
   type edge = ((Graph.dir_or_undir * EData.data) * (V.name * V.name));
@@ -185,6 +207,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                       | UA of (Theory.Graph.T * UIData.T)
   type history = ((undo_block) list * 
                     (undo_block) list ) GraphName.NTab.T;
+  type ud_unit = string Symtab.table
+
   (* data for controller; top level data with which user interacts *)
   datatype T = CState of {
        graphs : Graph.T GraphName.NTab.T, (* the known graphs *)
@@ -194,35 +218,50 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        merge_changes: bool GraphName.NTab.T, (* whether we create a new undo
        point when the state is modified  *)
        rset : Ruleset.T, (* the known rules *)
-       rset_uidata : (UIData.T * UIData.T) R.NTab.T (* lhs and rhs uidata *)
+       rset_uidata : (ud_unit * (UIData.T * UIData.T)) R.NTab.T, (* lhs and rhs uidata *)
+       met_cont : MetController.T (* Metrics for graphs *)
   }
 
   (* getters and setters for the state *)
   fun update_graphs f (CState
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=(f g),rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu} 
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=(f g),rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,met_cont=mt} 
   fun update_rewrites f (CState
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=g,rewrites=(f r),ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=(f r),ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,met_cont=mt} 
   fun update_ud f (CState 
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=g,rewrites=r,ud=(f u),hist=h,merge_changes=mg,rset=t,rset_uidata=tu}
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=r,ud=(f u),hist=h,merge_changes=mg,rset=t,rset_uidata=tu,met_cont=mt} 
   fun update_hist f (CState 
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=(f h),merge_changes=mg,rset=t,rset_uidata=tu}
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=(f h),merge_changes=mg,rset=t,rset_uidata=tu,met_cont=mt} 
   fun update_merge_changes f (CState 
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=(f mg),rset=t,rset_uidata=tu}
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=(f mg),rset=t,rset_uidata=tu,met_cont=mt} 
   fun update_rset f (CState 
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=(f t),rset_uidata=tu}
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=(f t),rset_uidata=tu,met_cont=mt} 
   fun update_rset_uidata f (CState
-    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu}) = 
-    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=(f tu)}
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=(f tu),met_cont=mt} 
+  fun update_met_cont f (CState
+    {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
+      met_cont=mt}) = 
+    CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,met_cont=(f mt)} 
 
-  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset,set_rset_uidata) = 
+  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset,set_rset_uidata,
+    set_met_cont) = 
     (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K,
-    update_merge_changes o K, update_rset o K, update_rset_uidata o K)
+    update_merge_changes o K, update_rset o K, update_rset_uidata o K,
+    update_met_cont o K)
+
   fun get_graphs (CState {graphs=g,...}) = g
   fun get_rewrites (CState {rewrites=r,...}) = r
   fun get_ud (CState {ud=u,...}) = u
@@ -230,6 +269,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun get_merge_changes (CState {merge_changes=mg,...}) = mg
   fun get_rset (CState {rset=t,...}) = t
   fun get_rset_uidata (CState {rset_uidata=tu,...}) = tu
+  fun get_met_cont (CState {met_cont=mt,...}) = mt
 
   val init = CState {graphs=GraphName.NTab.empty,
                          rewrites=GraphName.NTab.empty,
@@ -237,7 +277,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                          hist=GraphName.NTab.empty,
                          merge_changes=GraphName.NTab.empty,
                          rset=Ruleset.empty,
-                         rset_uidata=R.NTab.empty};
+                         rset_uidata=R.NTab.empty,
+                         met_cont = MetController.init};
 
   (* state accessors *)
   fun get_graph state name =
@@ -255,7 +296,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun get_rule_ud state name =
       (case R.NTab.lookup (get_rset_uidata state) name
       of SOME rud => rud
-      | NONE => (UIData.init, UIData.init))
+      | NONE => (Symtab.empty, (UIData.init, UIData.init)))
 
   (* state mutators *)
   fun push_hist gname tp state = 
@@ -409,9 +450,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val (_,newetab) = (E.NTab.rename ern (UIData.get_es_ud rgr_ud)) 
         val rgr_ud' = rgr_ud |> UIData.set_v_ud newvtab
                              |> UIData.set_e_ud newetab
+        (* We also need to take care of the uidata attached to the rule itself *)
+        val rule_ud = fst (get_rule_ud state rule_name)
       in
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
-              |> update_rset_uidata (R.NTab.update (rule_name, (lgr_ud, rgr_ud')))
+              |> update_rset_uidata 
+                  (R.NTab.update (rule_name, (rule_ud, (lgr_ud, rgr_ud'))))
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
             raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."
@@ -856,8 +900,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                      |> set_graph_ud (pos (get_rule_ud state rulename)) name)
       end
 
-  val open_rule_lhs = graph_of_rule Rule.get_lhs fst "lhs"
-  val open_rule_rhs = graph_of_rule Rule.get_rhs snd "rhs"
+  val open_rule_lhs = graph_of_rule Rule.get_lhs (fst o snd) "lhs"
+  val open_rule_rhs = graph_of_rule Rule.get_rhs (snd o snd) "rhs"
 
   (* Set, delete and get the user data  *)
   (* On Graphs:  *)
@@ -969,7 +1013,74 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     state |> update_merge_changes (GraphName.NTab.update (gname,true))
   fun end_undo_group gname state =
     state |> update_merge_changes (GraphName.NTab.update (gname,false))
-end; (* structure Controller *)
 
+  (* Functions for metrics *)
+  fun set_metric nm state = 
+    let
+      val met_cont = get_met_cont state
+    in
+      set_met_cont (MetController.set_current_metric nm met_cont) state
+    end
+      handle MetController.no_such_metric_exp n => 
+        raise no_such_metric_exp n;
+
+  fun compute_metric gn state =
+    let
+      val g = get_graph state gn
+      val met_cont = get_met_cont state
+    in
+      case (MetController.get_current_compute met_cont) g of
+        SOME a => a
+        | NONE => raise unsupported_metric_exp
+            (MetController.get_current_metric_name met_cont)
+    end;    
+
+  (* Tiny function to convert order to an int: 0 1 2 *)
+  fun convert_order_to_int (SOME ord) state =
+    (case ord of
+        LESS => 0
+      | GREATER => 2
+      | _   => 1)   
+    | convert_order_to_int NONE state =
+      raise unsupported_metric_exp  
+            (MetController.get_current_metric_name (get_met_cont state))
+  (* ** *)
+
+  fun ord_graph_metric gn1 gn2 state =
+    let
+      val g1 = get_graph state gn1
+      val g2 = get_graph state gn2
+      val met_cont = get_met_cont state
+    in
+      case (MetController.get_current_ord_graph met_cont) (g1,g2) of
+      SOME a => convert_order_to_int (SOME a) state
+    | NONE => raise unsupported_metric_exp
+            (MetController.get_current_metric_name met_cont)
+    end;
+
+  fun ord_metric ms1 ms2 state = 
+    let
+      fun parseInt s = case Int.fromString s of
+        SOME i => i
+        | NONE => raise not_an_int_exp s
+      val m1 = List.map (parseInt) ms1
+      val m2 = List.map (parseInt) ms2
+    in
+      state |> convert_order_to_int 
+                (MetController.get_current_ord (get_met_cont state) (m1,m2))
+    end;
+  fun bottom_metric state =
+    MetController.get_current_bottom (get_met_cont state);
+
+  fun get_names_metrics state =
+    MetController.get_metrics_names (get_met_cont state); 
+  fun get_descs_metrics state = 
+    MetController.get_metrics_descs (get_met_cont state);
+
+  fun get_current_name_metric state =
+    MetController.get_current_metric_name (get_met_cont state)
+    handle MetController.no_such_metric_exp n =>
+      raise no_such_metric_exp n;
+end; (* structure Controller *)
 (* vim:et:sts=2:sw=2
 *)

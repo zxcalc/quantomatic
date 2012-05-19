@@ -156,4 +156,20 @@ public class RequestWriter
         output.write(stringToAscii(Integer.toString(value)));
         argNeedsClosing = true;
     }
+
+    public void addIntListArg(int[] values) throws IOException
+    {
+        assert inMessage;
+        closeArg();
+        output.write(convertInt(values.length));
+        boolean first = true;
+        for (int i: values) {
+            if(!first) {
+                addEscapedChar(',');
+            }
+            output.write(stringToUtf8(Integer.toString(i)));
+            first = false;
+        }
+        argNeedsClosing = true;
+    }
 }

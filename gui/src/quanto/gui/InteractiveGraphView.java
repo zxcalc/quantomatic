@@ -64,6 +64,7 @@ import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.protocol.CopyOfUserDataSerializer;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
+import quanto.core.strategies.*;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
 import quanto.gui.graphhelpers.Labeler;
@@ -433,7 +434,6 @@ public class InteractiveGraphView
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
-
 		Relaxer r = viewer.getModel().getRelaxer();
 		if (r != null) {
 			r.setSleepTime(10);
@@ -1062,6 +1062,15 @@ public class InteractiveGraphView
 			}
 		}
 
+		private void attachAllRewrites() {
+			try {
+				core.attachRewrites(getGraph(), getGraph().getVertices());
+			}
+			catch (CoreException e) {
+                coreErrorDialog("Could not attach the next rewrite", e);
+			}
+		}
+		
 		private void invokeHighlightSubgraphAndWait(CoreGraph subgraph)
 			throws InterruptedException {
 			highlight = true;
@@ -1119,24 +1128,44 @@ public class InteractiveGraphView
 			}
 		}
 
+        private int getRulePriority(String ruleName) {
+            try {
+                String prioStr = getCore().getTalker().ruleUserData(ruleName, "quanto-gui:priority");
+                return  Integer.parseInt(prioStr);
+            } catch (CoreException e) {
+                //We could not get the priority for that rule... set it to 5
+                return 5;
+          }
+        }
+
 		@Override
 		public void run() {
 			try {
 				// FIXME: communicating with the core: is this
 				//        really threadsafe?  Probably not.
-				attachNextRewrite();
+				
+				attachAllRewrites();
 				List<AttachedRewrite<CoreGraph>> rws = getRewrites();
 				int count = 0;
-				Random r = new Random();
 				int rw = 0;
 				while (rws.size() > 0
 					&& !Thread.interrupted()) {
-					rw = r.nextInt(rws.size());
+                    int max = -100;
+                    int c = 0;
+                    int toApply = 0;
+                    for (AttachedRewrite<CoreGraph> r : rws) {
+                        int priority = getRulePriority(r.getRuleName());
+                        if (priority >= max) {
+                            max = priority;
+                            rw = c;
+                        }
+                        c++;
+                    }
 					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
 					sleep(1500);
 					invokeApplyRewriteAndWait(rw);	
 					++count;
-					attachNextRewrite();
+					attachAllRewrites();
 					rws = getRewrites();
 				}
 				

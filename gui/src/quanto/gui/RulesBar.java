@@ -13,6 +13,7 @@ import java.awt.event.ActionListener;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.print.Printable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -201,7 +202,7 @@ public class RulesBar extends JPanel {
     }
 
     private JPopupMenu createRuleContextualMenu() {
-        final String ruleName = listView.getSelectedValue().toString();
+        final String ruleName = ((RuleDescription) listView.getSelectedValue()).rulename;
         JPopupMenu popupMenu = new JPopupMenu();
         JMenuItem menuItem = new JMenuItem("Edit rule");
         popupMenu.add(menuItem);
@@ -218,6 +219,28 @@ public class RulesBar extends JPanel {
 
             public void actionPerformed(ActionEvent e) {
                 renameRule(ruleName);
+            }
+        });
+
+        menuItem = new JMenuItem("Change Priority");
+        popupMenu.add(menuItem);
+        menuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String previousPriority = RulesBar.this.ruleset.getCore().getTalker().
+                            ruleUserData(ruleName, "quanto-gui:priority");
+                    String priorityString = JOptionPane.showInputDialog(RulesBar.this, "Priority:", previousPriority);
+                    if (priorityString == null) {
+                        return;
+                    }
+                  RulesBar.this.ruleset.getCore().getTalker().setRuleUserData(ruleName,
+                          "quanto-gui:priority", priorityString);
+                  RulesBar.this.ruleset.reload();
+                } catch (CoreException ex) {
+                   showModalError("Rule Priority", ex);
+                }
             }
         });
 
@@ -292,7 +315,7 @@ public class RulesBar extends JPanel {
         popupMenu.add(subMenu);
 
         try {
-            ArrayList<String> tags = ruleset.getRuleTags(listView.getSelectedValue().toString());
+            ArrayList<String> tags = ruleset.getRuleTags(((RuleDescription) listView.getSelectedValue()).rulename);
             if (!tags.isEmpty()) {
                 subMenu = new JMenu("Remove tag");
                 for (String tag : tags) {
@@ -404,6 +427,10 @@ public class RulesBar extends JPanel {
                     SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
                     RulesBar.this.viewPort.getViewManager().addView(spg);
                     RulesBar.this.viewPort.attachView(spg);
+
+                    //By default the priority is set to 5
+                    RulesBar.this.ruleset.getCore().getTalker().setRuleUserData(ruleName,
+                                    "quanto-gui:priority", "5");
                 } catch (CoreException ex) {
                     showModalError("Could not create a new rule.", ex);
                 }
@@ -425,7 +452,16 @@ public class RulesBar extends JPanel {
                     int index,
                     boolean isSelected,
                     boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value,
+            String priorityStr = "5";
+            try {
+                priorityStr = RulesBar.this.ruleset.getCore().getTalker().
+                            ruleUserData(value.toString(), "quanto-gui:priority");
+
+            } catch (CoreException e) {
+                logger.log(Level.FINE, "Could not get the priority of rule " + value.toString());
+            }
+                super.getListCellRendererComponent(list, value.toString() + " -P" +
+                        priorityStr,
                         index, isSelected, cellHasFocus);
                 setName(value.toString());
                 if (!((RuleDescription) value).active) {

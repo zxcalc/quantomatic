@@ -807,6 +807,25 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHRULE
  *
+ * Name: RuleUserDataRequest
+ * Code : "RUD"
+ * Args:
+ *  RuleName: String
+ *  DataName: String
+ * Desc: Returns the user data attached on a rule (!!! not on its graphs)
+ * Response: DataResponse
+ * ErrorResponses: NOSUCHRULEUSERDATA
+ *
+ * Name: SetRuleUserDataRequest
+ * Code: "SRUD"
+ * Args:
+ *  RuleName: String
+ *  DataName: String
+ *  UserData: String 
+ * Desc: Set data on a rule (!!! not on its graphs)
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHRULEUSERDATA
+ *
  * Name: ListTagsRequest
  * Code: "RTL"
  * Args:
@@ -919,6 +938,45 @@
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE | OUTOFRANGE
  *
+ * Name: ListMetricsNamesRequest
+ * Code: "MNL"
+ * Args: none
+ * Desc: Returns the names of all the available metrics
+ * Response: StringListResponse
+ * 
+ * Name ListMetricsDescsRequest
+ * Code: "MDL"
+ * Args: none
+ * Desc: Return the descriptions of all the available metrics
+ * Response: StringListResponse 
+ *
+ * GetCurrentMetricNameRequest
+ *  Code: "MCMN"
+ *  Args: none
+ *  Desc: Return the name of the current metric
+ *  Response: StringResponse
+ *
+ * SetMetricRequest
+ *  Code: "MSM"
+ *  Args: 
+ *    metricName: string
+ *  Desc: Change the current metric te metricName
+ *  Response: OkResponse
+ *
+ * ComputeMetricRequest
+ *  Code: "MCM"
+ *  Args: 
+ *    graphName: string
+ *  Desc: Compute the metric of a given graph 
+ *  Response: MetricResponse
+ *
+ * OrdMetricRequest
+ *  Code: "MOM"
+ *  Args:
+ *    metric1: string list
+ *    metric2: string list
+ *  Desc: Compare two metrics given as lists 
+ *  Response: CountResponse (0, 1 ,2 for le, eq, ge )
  * }}} *)
 
 structure ProtocolInterface : CONTROL_INTERFACE =
@@ -954,7 +1012,7 @@ struct
     fun printList [] = (print "0"; printEsc #":")
       | printList [s] = (print "1"; printEsc #":"; printString s)
       | printList (s::ss) = (print (Int.toString (1 + (length ss))); printEsc #":"; printString s; List.app (fn e => (printEsc #","; printString e)) ss)
-
+    fun printIntList s = printList (List.map (Int.toString) s)
     fun printWrappedString ch str = (printEsc ch; printString str; printEsc (Char.toLower ch))
     fun printWrappedData ch data = (printEsc ch; printDataChunk data; printEsc (Char.toLower ch))
     fun printComponentData ch ComponentData.Unit =
@@ -1072,6 +1130,10 @@ struct
          (printOpen #"M" requestId;
           printList data;
           printClose ())
+      | outputResponse (requestId, MetricResponse { data }) =
+        (printOpen #"M" requestId;
+          printIntList data;
+          printClose())
       | outputResponse (requestId, GraphDescriptionResponse { graph }) =
          (printOpen #"S" requestId;
           printGraphDesc graph;
@@ -1095,10 +1157,6 @@ struct
       | outputResponse (requestId, RewriteListResponse { rewrites }) =
          (printOpen #"S" requestId;
           printRewriteListDesc rewrites;
-          printClose ())
-      | outputResponse (requestId, UserDataResponse { data }) =
-         (printOpen #"U" requestId;
-          printDataChunk data;
           printClose ())
       | outputResponse (requestId, UnknownResponse { code }) =
          (printOpen #"Z" requestId;
@@ -2000,6 +2058,23 @@ struct
          | "RRN"  =>  DeactivateRuleRequest {
                         ruleName = readToEnd()
                       }
+         | "RUD"  =>  RuleUserDataRequest {
+                        ruleName = readToDelim(),
+                        dataName = readToEnd()
+                      }
+         | "SRUD" =>  let
+                        val ruleName = readToDelim ()
+                        val dataName = readToDelim ()
+                        val data = readDataChunk ()
+                        val () = assertAtEnd ()
+                      in
+                        SetRuleUserDataRequest {
+                          ruleName = ruleName,
+                          dataName = dataName,
+                          userData = data
+                      }
+                      end
+
 
          | "RRR"  =>  RenameRuleRequest {
                         oldName = readToDelim(),
@@ -2111,6 +2186,32 @@ struct
                         }
                       end
 
+         | "MNL" => (assertAtEnd (); ListMetricsNamesRequest)
+         | "MDL" => (assertAtEnd (); ListMetricsDescsRequest)
+         | "MCMN" => (assertAtEnd (); GetCurrentMetricNameRequest)
+         | "MSM" => let
+                      val metricName = readToEnd()
+                    in
+                      SetMetricRequest {
+                        metricName = metricName
+                      }
+                    end
+         | "MCM" => let
+                      val gn = readToEnd()
+                    in
+                      ComputeMetricRequest {
+                        graphName = gn
+                      }
+                    end
+         | "MOM" => let
+                      val metric1 = readListToDelim ()
+                      val metric2 = readListToEnd ()
+                    in
+                      OrdMetricRequest {
+                        metric1 = metric1,
+                        metric2 = metric2
+                      }
+                    end 
          | code   =>  (* Something else.  Reply with empty response. *)
                      (skipToBodyEnd ();
                       UnknownRequest {

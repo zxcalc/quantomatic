@@ -81,6 +81,11 @@ struct
                      (* OkResponse | ErrorResponse *)
                    | RenameRuleRequest of { oldName: string, newName: string }
                      (* OkResponse | ErrorResponse *)
+                   | RuleUserDataRequest of { ruleName: string, dataName: string}
+                     (* DataResponse | ErrorResponse *)
+                   | SetRuleUserDataRequest of { ruleName: string, dataName: string,
+                                                userData: string}
+                     (* OkResponse | ErrorResponse *)
 
                    (*** Tag commands ***)
                    | ListTagsRequest
@@ -104,6 +109,20 @@ struct
                    | ListAttachedRewritesRequest of { graphName: string, format: resultFormat }
                    | ApplyAttachedRewriteRequest of { graphName: string, index: int }
 
+                   (*** Metrics related commands ***)
+                   | ListMetricsNamesRequest
+                   (* StringListResponse *)
+                   | ListMetricsDescsRequest
+                   (* StringListResponse *)
+                   | GetCurrentMetricNameRequest
+                   (* StringResponse *)
+                   | SetMetricRequest of { metricName: string }
+                   (* OkResponse *)
+                   | ComputeMetricRequest of { graphName: string }
+                   (* MetricResponse *)
+                   | OrdMetricRequest of 
+                        { metric1 : string list, metric2: string list}
+                   (* Count Response: 0 1 2 for le, eq, gr *)
                    | UnknownRequest of { code: string }
 
        and graphLoadRequest = LoadEmptyGraphRequest of { requestedName: string }
@@ -220,11 +239,12 @@ struct
                     | StringResponse of { data: string }
                     | StringListResponse of { data: string list }
 
+                    | MetricResponse of { data: int list}
+
                     | DataResponse of { data: string }
                     | PrettyResponse of { data: Pretty.T }
                     | XmlResponse of { data: XML.tree }
                     | CountResponse of { count: int }
-                    | UserDataResponse of { data: string }
 
                     | GraphDescriptionResponse of { graph: graphDesc }
                     | VertexDescriptionResponse of { vertex: vertexDesc }
@@ -304,6 +324,7 @@ struct
   structure UIDataInput = InputUIDataXML(structure UIData = State.UIData);
   structure InputRulesetUIData = InputRulesetUIDataXML(structure UIData =
         State.UIData);
+
   val theoryName = State.Theory.theory_name;
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
@@ -533,7 +554,7 @@ fun hilb ([format], graph) =
                       val data = Symtab.lookup tab dataName
                     in
                       (case data of SOME a => 
-                          DataResponse { data = "a" }
+                          DataResponse { data = a }
                        | NONE => 
                           raise State.no_such_graph_user_data_exp (GraphName.mk
                           graphName, dataName))
@@ -924,8 +945,24 @@ fun hilb ([format], graph) =
     | serviceRequest' (RenameRuleRequest { oldName, newName }) state =
         (OkResponse,
          State.rename_rule (R.mk oldName) (R.mk newName) state)
-
-
+    | serviceRequest' (RuleUserDataRequest { ruleName, dataName }) state =
+      let
+        val tab = fst (State.get_rule_ud state (R.mk ruleName))
+        val data = (case Symtab.lookup tab dataName of
+          SOME a => a
+          | NONE => 
+              raise State.no_such_rule_user_data_exp (R.mk ruleName, dataName))
+      in
+        (DataResponse { data = data }, state)
+      end
+    | serviceRequest' (SetRuleUserDataRequest {ruleName, dataName, userData}) state =
+      let
+        val ud = State.get_rule_ud state (R.mk ruleName)
+        val tab = Symtab.update (dataName, userData) (fst ud) 
+        val state' = State.set_rule_ud (tab, (snd ud)) (R.mk ruleName) state
+      in
+            (OkResponse, state')
+      end
     (* Tags *)
     | serviceRequest' (ListTagsRequest) state =
         let val tags = (State.list_tags  state) in
@@ -1012,6 +1049,19 @@ fun hilb ([format], graph) =
         (OkResponse,
          State.apply_rewrite (GraphName.mk graphName) index state)
 
+    | serviceRequest' ListMetricsNamesRequest state =
+      (StringListResponse { data = State.get_names_metrics state }, state)
+    | serviceRequest' ListMetricsDescsRequest state =
+      (StringListResponse { data = State.get_descs_metrics state}, state)
+    | serviceRequest' GetCurrentMetricNameRequest state =
+      (StringResponse { data = State.get_current_name_metric state}, state)
+    | serviceRequest' (SetMetricRequest { metricName}) state =
+      (OkResponse, State.set_metric metricName state)
+    | serviceRequest' (ComputeMetricRequest { graphName }) state =
+      (MetricResponse 
+        { data = State.compute_metric (GraphName.mk graphName) state }, state)
+    | serviceRequest' (OrdMetricRequest { metric1, metric2}) state = 
+        (CountResponse {count = State.ord_metric metric1 metric2 state}, state) 
     | serviceRequest' (UnknownRequest { code }) state =
         (UnknownResponse { code = code },state)
     ;
@@ -1036,7 +1086,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-          | State.no_such_vertex_user_data_exp (vertexName, dataName) =>
+           | State.no_such_vertex_user_data_exp (vertexName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("Vertex \""^
@@ -1044,7 +1094,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-        | State.no_such_edge_user_data_exp (edgeName, dataName) =>
+           | State.no_such_edge_user_data_exp (edgeName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("Edge \""^
@@ -1052,7 +1102,7 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-       | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
+           | State.no_such_bangbox_user_data_exp (bbName, dataName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHGRAPHUSERDATA",
                   message = ("!-Box \""^
@@ -1060,7 +1110,14 @@ fun hilb ([format], graph) =
                              "\" has no user data named \""^
                              (dataName)^"\"")
                 }
-
+           | State.no_such_rule_user_data_exp (rName, dataName) =>
+                ErrorResponse {
+                  errorCode = "NOSUCHRULEUSERDATA",
+                  message = ("Rule \""^
+                             (R.dest rName)^
+                             "\" has no user data named \""^
+                             (dataName)^"\"")
+                }
            | State.no_such_vertex_exp (vertexName,graphName) =>
                 ErrorResponse {
                   errorCode = "NOSUCHVERTEX",
@@ -1152,6 +1209,22 @@ fun hilb ([format], graph) =
                   errorCode = "OUTOFRANGE",
                   message = ("Argument "^(Int.toString n)^" is out of range")
                 }
+           | State.no_such_metric_exp name =>
+                ErrorResponse {
+                  errorCode = "NOSUCHMETRIC",
+                  message = ("Metric "^name^" does not exist")
+                }
+           | State.unsupported_metric_exp name =>
+                ErrorResponse {
+                  errorCode = "UNSUPPORTEDMETRIC",
+                  message = (name^" cannot be used with this graphical theory")
+                }
+           | State.not_an_int_exp s =>
+                ErrorResponse {
+                  errorCode = "NOTANINT",
+                  message = (s^" could not be parsed as an integer")
+                }
+ 
            );
 
   val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest;

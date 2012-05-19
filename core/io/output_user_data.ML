@@ -113,22 +113,30 @@ functor OutputRulesetUIDataXMLList(
 ) : OUTPUT_XML_LIST
 = struct
   structure udout = OutputUIDataXML(structure UIData = UIData);
-  
+  structure ruleudout = OutputWrapXML (
+    val tagname = "rule_userdata"
+    val attrs = []
+    structure Output1 = OutputUserDataXMLList
+  ); 
+
   type T = XML.tree list;
-  type data = (UIData.T * UIData.T) R.NTab.T;
+  type ud_unit = string Symtab.table
+  type data = (ud_unit * (UIData.T * UIData.T)) R.NTab.T;
 
   open XML;
   open XML_Output_Utils;
 
   fun add_rulename rname = wrap_text_simple "rulename" (R.dest rname);
+  fun output_rule_ud rule_ud = 
+    wrap_el_simple "rule_data" (ruleudout.output rule_ud);
   fun output_lhs g = wrap_el_simple "lhs" (udout.output g);
   fun output_rhs g = wrap_el_simple "rhs" (udout.output g);
 
-  fun output_rule lhs rhs rname = [wrap_els_simple "rule" 
-  ([add_rulename rname]@[output_lhs lhs]@[output_rhs rhs])];
+  fun output_rule rule_ud lhs rhs rname = [wrap_els_simple "rule" 
+  ([add_rulename rname]@[output_rule_ud rule_ud]@[output_lhs lhs]@[output_rhs rhs])];
 
-  fun output ntab = R.NTab.fold (fn (nm,a) => fn tr => tr@(output_rule (fst a) (snd a) nm))
-        ntab [];
+  fun output ntab = R.NTab.fold (fn (nm,a) => fn tr => 
+    tr@(output_rule (fst a) ((fst o snd) a) ((snd o snd) a) nm)) ntab [];
 end;
 
 functor OutputRulesetUIDataXML(
