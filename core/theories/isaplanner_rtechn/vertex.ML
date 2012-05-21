@@ -36,7 +36,7 @@ structure DB_RTechn_VertexData
   
   (* pretty printing code *)
   fun pretty_node (RTechnNode n) = RTechnKey.pretty_name n
-    | pretty_node (GoalNode (t,nset)) = StrIntName.pretty_name t;
+    | pretty_node (GoalNode (t,nset)) = StrName.pretty_name t;
   val print_node = Pretty.writeln o pretty_data;
 
   
@@ -88,7 +88,7 @@ structure RTechn_VertexComponentData_Param
   (* New nodes are by default RTechnNodes *)
   fun default_data "RT" = DB_RTechn_VertexData.RTechnNode "?"
     | default_data "Gs" = DB_RTechn_VertexData.GoalNode 
-        (("?",0), StrIntName.NSet.empty)
+        ("?", StrIntName.NSet.empty)
     | default_data s = raise unknown_type_exp s;
 
   (* TODO: currently edits to the string are simply ignored. *)
@@ -106,7 +106,7 @@ structure RTechn_VertexComponentData_Param
     let
       fun unwrapGs (ComponentData.String s) = 
           DB_RTechn_VertexData.GoalNode 
-            ((s,0), StrIntName.NSet.empty)
+            (s, StrIntName.NSet.empty)
         | unwrapGs _ = raise unexpected_data_exp
     in
       unwrapGs (upd (cdata_of d))
