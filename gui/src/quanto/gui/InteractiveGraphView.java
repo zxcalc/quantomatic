@@ -64,7 +64,6 @@ import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.protocol.CopyOfUserDataSerializer;
 import quanto.core.protocol.Point2DUserDataSerialiazer;
-import quanto.core.strategies.*;
 import quanto.core.Core;
 import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
 import quanto.gui.graphhelpers.Labeler;
