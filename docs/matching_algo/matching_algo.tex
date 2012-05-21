@@ -128,6 +128,13 @@ These are true for the match state that results from each successful branch:
 
 Postconditions \ref{enum:il-postcond-inv} and \ref{enum:il-postcond-all-matched} state that the algorithm has completed the requested work.  Postcondition \ref{enum:il-postcond-no-unmatched} just states that we left the match state ``clean''; it still satisfies all the preconditions and repeating the algorithm without altering the state further would do nothing.
 
+\subsection{Termination}
+\label{sec:termination}
+
+For termination of the inner loop exploring the wires incident to a node-vertex $v$, we consider the variant $n = |U_W\cap N_L(v)|$, where $N_L(v)$ is the neighbourhood of $v$ in $L$.  In each of these branches, $n$ decreases by either $1$ or $2$, and nothing is ever added to $U_W$ (and $N_L(v)$ is fixed).  So this loop must terminate.
+
+The loop working through $P_S$ has two branches: when it is not empty and when it is not.  Either may add more things to $P_S$.  We will take as variant $m = 2|U_N| + |P_S|$.  When this is $0$, the algorithm will terminate.  Otherwise, if $P_S$ is empty, $U_N$ will have one vertex removed and added to $P_S$, decreasing $m$ by one.  If $P_S$ is not empty, one vertex will be removed from $P_S$, decreasing $m$ by one.  Every vertex that is added to $P_S$ in this loop is taken from $U_N$, further decreasing $m$.  As a result, $m$ will decrease by at least one with every iteration of the loop.
+
 \subsection{Correctness}
 
 First, we note that our data structure constraints are never broken: we never add anything to $U_C$, $U_W$ or $U_N$, so these cannot contain objects of the wrong type.  When we add things to $P$, they are always either taken from $U_N$ or are the end of a wire that does not terminate in a vertex in $U_W$; normalisation and precondition \ref{enum:il-inv-wire-uw} guarantee that the vertex is a node-vertex in this case.  Finally, when removing vertices from $P$ they are removed from $P_S$ simultaneously, and when adding vertices to $P_S$ they are added to $P$ at the same time.
@@ -195,13 +202,6 @@ The final case we need to consider is where we add a wire connected to something
 \end{enumerate}
 
 
-\subsubsection{Termination}
-\label{sec:termination}
-
-For termination of the inner loop exploring the wires incident to a node-vertex $v$, we consider the variant $n = |U_W\cap N_L(v)|$, where $N_L(v)$ is the neighbourhood of $v$ in $L$.  In each of these branches, $n$ decreases by either $1$ or $2$, and nothing is ever added to $U_W$ (and $N_L(v)$ is fixed).  So this loop must terminate.
-
-The loop working through $P_S$ has two branches: when it is not empty and when it is not.  Either may add more things to $P_S$.  We will take as variant $m = 2|U_N| + |P_S|$.  When this is $0$, the algorithm will terminate.  Otherwise, if $P_S$ is empty, $U_N$ will have one vertex removed and added to $P_S$, decreasing $m$ by one.  If $P_S$ is not empty, one vertex will be removed from $P_S$, decreasing $m$ by one.  Every vertex that is added to $P_S$ in this loop is taken from $U_N$, further decreasing $m$.  As a result, $m$ will decrease by at least one with every iteration of the loop.
-
 \subsubsection{Postconditions}
 
 \begin{enumerate}
@@ -222,9 +222,25 @@ The loop working through $P_S$ has two branches: when it is not empty and when i
   Global invariant \ref{enum:g-inv-local-iso} gives us most of what we need.  We just need that if $v$ is completely matched, it is not in $P$.  But this is guaranteed by invariant \ref{enum:il-inv-Ps} and the fact that $P_S = \varnothing$.
 \end{enumerate}
 
-\subsubsection{Completeness}
+\subsection{Completeness}
+\label{sec:il-complete}
 
-\TODOinline{all possible ways of satisfying the postconditions are found}
+\TODO{need some restrictions on doomed(v)}
+Let $f$ be a matching of the full subgraph of $L$ given by the vertices $U_C \cup U_W \cup U_N \cup \dom(m)$ into $G$ that restricts to $m$ on the vertices in $\dom(m)$.  Then we need to show that, after completion of the algorithm, one of the match states produced will agree with $f$ on vertices, except on circles.  Note that, by the argument in section \ref{sec:match-state}, this will then uniquely extend to $f$.
+
+Since $f$ is a matching with $U_C$ in its domain (and $U_C\cap\dom(m) = \varnothing$ and $f$ restricts to $m$), there must be at least $|U_C|$ unmatched circles in $G$, and so the step where we match circles must succeed.
+
+Invariant: the vertex map part of $f$ restricts to $m$.  $m$ is extended in two places (after circle-matching).  Each of these follows a branching point.  We need to show that in both of these places, there is a branch that will maintain this invariant.  We also need to show that none of the ``die'' branches are taken.
+
+When adding something from $U_N$, it is clear that $f(v)$ is a valid matching for $v$, and so this is a branch that will maintain the invariant.
+
+\TODOinline{doomed(v)}
+
+When adding something from $U_W$, the wire starting $f(w)$ must be a valid matching for the wire starting with $w$, as the entire wire must be in the domain of $f$: if $w$ is an input or output, this is trivial.  Otherwise, there must be a wire-vertex $w'$ adjacent to $w$, and a node-vertex $n$ adjacent to $w'$.  Then $w'$ is in $U_W$, and hence in $\dom(f)$, by precondition \ref{enum:il-inv-wire-uw}, and then $n$ must be in either $P_S$ or $U_N$, by precondition \ref{enum:il-inv-reachable}, and so in $\dom(m)$ or $U_N$, and hence $n$ is in $\dom(f)$.  Once we have matched $w$ against $f(w)$, the only possible matching for $w'$ is $f(w')$, and similarly $n$ must match against $f(n)$.  If $n$ is already in $\dom(m)$, we know it maps to $f(m)$, so the matchings must agree.  So this branch maintains the invariant (and does not die).
+
+Thus, regardless of how vertices are chosen from $P_S$, $U_N$ or $U_W$, there must be a trace that returns a match where $m$ agrees with $f$ on vertices.
+
+
 \section{Testing Wrapper: Concrete Matching Only}
 \label{sec:test-wrapper}
 
@@ -242,7 +258,15 @@ This will ensure the preconditions for the concrete matching inner-loop will be 
   \includegraphics[height=12cm]{concrete_wrapper.pdf}
 \end{center}
 
+\subsection{Correctness}
+
 The postconditions of the concrete matching inner-loop, together with how we created the initial match state, ensure that a successful termination of this algorithm produces a valid matching, since $m$ will be total after matching bare wires and the global invariants from section \ref{sec:match-state} are maintained.
+
+\subsection{Completeness}
+
+Let $f:L \rightarrow G'$ be a matching of $L$ (after normalisation) onto a graph equivalent to $G$ (up to wire expansion/contraction).
+
+following the argument in section \ref{sec:il-complete}, as if $f:L \rightarrow G'$ is a matching to a graph equivalent to $G'$, then after the concrete step (which is given an empty $m$), there must be a branch where $m$ agrees with the restriction of $f$ to all of $L$ except bare wires.  $P$ must then be empty by postcondition \ref{enum:il-postcond-P}.
 
 \section{Full Wrapper: Lazy !-Box Expansion}
 \label{sec:full-wrapper}
@@ -307,7 +331,7 @@ At the end of the algorithm, everything that was ever in the concrete part of th
 
 \section{Improved Pattern Wrapper: Component-wise !-box Expansion}
 
-The previous algorithm greedily matches all concrete vertices in each iteration. However, in a situation where different concrete components of a graph are connected only by a path containing !-boxes, this could produce many spurious match candidates that only get ruled out when the connecting !-box is killed or expanded. The following algorithm removed this problem by doing concrete matching component-wise, only moving to the next component once all !-boxes connected to the currently matched concrete components have been expanded.
+The previous algorithm greedily matches all concrete vertices in each iteration. However, in a situation where different concrete components of a graph are connected only by a path containing !-boxes, this could produce many spurious match candidates that only get ruled out when the connecting !-box is killed or expanded. The following algorithm removes this problem by doing concrete matching component-wise, only moving to the next component once all !-boxes connected to the currently matched concrete components have been expanded.
 
 Here, concrete component means a connected subgraph containing no vertices in !-boxes, excluding bare wires and circles.
 
