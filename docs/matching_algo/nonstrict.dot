@@ -1,17 +1,19 @@
 digraph {
     node [shape=box]
     edge [fontsize=10]
+
     start [color=green]
-    addwires [label="add circles and non-bare\nwires to UC and UW, resp."]
-    addpartial [label="add NS(L) to PS and\nN(L)-NS(L) to UN"]
-    match [label="apply concrete matching",color=red]
-    test [label="is P contained in NS(L)?"]
-    die [color=blue]
-    inst [label="instantiate match (or rule)"]
+    normalise [label="normalise"]
+    addverts [label="populate the match state with\neverything except bare wires"]
+    match [label="match all concrete vertices",color=red]
+    ptest [label="is P contained in NS(L)?"]
+    die [label=die,color=blue]
+    emptywires [label="match bare wires"]
     done [label="return match",color=blue]
     
-    start -> addwires -> addpartial -> match -> test
-    test -> die [label=no]
-    test -> inst [label=yes]
-    inst -> done
+    start -> normalise -> addverts -> match
+    match -> ptest [label="foreach\nmatching",color=red]
+    ptest -> emptywires [label=yes]
+    ptest -> die [label=no]
+    emptywires -> done [label="foreach\nmatching",color=red]
 }
