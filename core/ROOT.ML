@@ -134,8 +134,14 @@ PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
 
 (* New matching implementation *)
-PolyML.Project.make "matching2/inner_match.ML"; (* signature for inner (concrete) matching *)
 
+PolyML.Project.make "matching2/match_state.ML";
+
+(* signature for inner (concrete) matching *)
+PolyML.Project.make "matching2/inner_match_search.ML";
+
+(* signature for outer (e.g. !-box) matching *)
+PolyML.Project.make "matching2/outer_match_search.ML";
 
 
 (* Testing *)
