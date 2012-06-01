@@ -115,6 +115,7 @@ PolyML.Project.make "io/output_graph_dot.ML";
 Testing.make_test "theories/test/ruleset-test.ML";
 Testing.make_test "io/test/graph_io-test.ML";
 
+
 (* matching *)
 PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
 PolyML.Project.make "matching/match.ML"; (* a graph matching *)
@@ -130,6 +131,12 @@ PolyML.Project.make "matching/symmetry_rule_match_search.ML";
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriting.ML";
+
+
+(* New matching implementation *)
+PolyML.Project.make "matching2/inner_match.ML"; (* signature for inner (concrete) matching *)
+
+
 
 (* Testing *)
 Testing.make_test "matching/test/simple_rule_match_search-test.ML";
