@@ -2,6 +2,7 @@ signature INNER_MATCH_SEARCH_SHARING =
 sig
   structure G : OGRAPH_SHARING
   structure MatchState : OGRAPH_MATCH_STATE_SHARING
+    sharing MatchState.G = G
 end
 
 signature INNER_MATCH_SEARCH =

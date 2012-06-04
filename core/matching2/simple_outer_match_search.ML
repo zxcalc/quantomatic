@@ -6,10 +6,13 @@ struct
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
   
-  fun match_avoiding_names (vnames,enames) pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
-  in Seq.empty
+  (* TODO: actually schedule things to be matched and do wires *)
+  fun match_avoiding_names names pat tgt = let
+    val ms = MatchState.empty
+      |> MatchState.set_names names
+      |> MatchState.set_pat (G.normalise pat)
+      |> MatchState.set_tgt (G.normalise tgt)
+  in InnerMatchSearch.match_concrete ms
   end
   
   val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)

@@ -3,6 +3,9 @@ sig
   structure G : OGRAPH_SHARING
   structure InnerMatchSearch : INNER_MATCH_SEARCH_SHARING
   structure MatchState : OGRAPH_MATCH_STATE_SHARING
+  
+  sharing MatchState = InnerMatchSearch.MatchState
+  sharing InnerMatchSearch.G = G
 end
 
 signature OUTER_MATCH_SEARCH =
