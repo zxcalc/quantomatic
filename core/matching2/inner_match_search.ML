@@ -11,4 +11,7 @@ sig
   structure Sharing : INNER_MATCH_SEARCH_SHARING
     sharing Sharing.G = G.SharingOGraph
     sharing Sharing.MatchState = MatchState.Sharing
+    
+  (* do as much concrete matching as possible and return a lazy list of updated match states *)
+  val match_concrete : MatchState.T -> MatchState.T Seq.seq
 end

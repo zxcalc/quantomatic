@@ -6,7 +6,12 @@ struct
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
   
-  fun match_avoiding_names (vnames,enames) pat tgt = Seq.empty
+  fun match_avoiding_names (vnames,enames) pat tgt = let
+    val pat' = G.normalise pat
+    val tgt' = G.normalise tgt
+  in Seq.empty
+  end
+  
   val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)
   
   structure Sharing =
