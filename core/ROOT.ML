@@ -143,6 +143,9 @@ PolyML.Project.make "matching2/inner_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
 PolyML.Project.make "matching2/outer_match_search.ML";
 
+(* pattern-free wrapper for simple_inner_match_search *)
+PolyML.Project.make "matching2/simple_outer_match_search.ML";
+
 
 (* Testing *)
 Testing.make_test "matching/test/simple_rule_match_search-test.ML";

@@ -1,7 +1,18 @@
+signature OGRAPH_MATCH_STATE_SHARING
+= sig
+  type T
+  structure G : OGRAPH_SHARING
+end
+
 signature OGRAPH_MATCH_STATE
 = sig
-  structure G : OGRAPH
   type T
+  structure G : OGRAPH
+  
+  (* sharing via sharing structure *)
+  structure Sharing : OGRAPH_MATCH_STATE_SHARING
+    sharing type Sharing.T = T
+    sharing Sharing.G = G.SharingOGraph
   
   val update_names : ((V.NSet.T * E.NSet.T) -> (V.NSet.T * E.NSet.T)) -> T -> T
   val update_vmap : (VInjEndo.T -> VInjEndo.T) -> T -> T
@@ -45,4 +56,10 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   
   val set_names = update_names o K
   val set_vmap = update_vmap o K
+  
+  structure Sharing : OGRAPH_MATCH_STATE_SHARING 
+  = struct
+    structure G = G.SharingOGraph
+    type T = T;
+  end;
 end
