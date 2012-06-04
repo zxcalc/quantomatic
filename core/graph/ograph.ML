@@ -24,6 +24,7 @@ sharing SharingOGraph.OVData = OVData.SharingWithIData
    have no data. Boundary have only input edges, 
    or only output edges. Edgepoints have both input and output edges *)
 
+
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
 val is_boundary : T -> V.name -> bool
@@ -31,6 +32,10 @@ val is_boundary : T -> V.name -> bool
 (* edge points; parts of an edge *)
 val get_edgepoints : T -> V.NSet.T
 val is_edgepoint : T -> V.name -> bool
+
+(* interior vertices are neither *)
+val is_ivertex : T -> V.name -> bool
+
 val is_endpoint' : OVData.data * (E.NSet.T * E.NSet.T) -> bool
 (* returns the SOME non-empty edge set when exactly one of the inset of ourset of edges is empty, 
    else NONE *)
@@ -143,7 +148,23 @@ val matched_subgraph_within_vset : V.NSet.T -> T -> T
    all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
- 
+(*
+(* fold over all of the wires in the OGraph, given as subgraphs *)
+val fold_wires : (T -> 'a -> 'a) -> T -> 'a -> 'a
+
+(* return the set of wires in this graph, referred to by the name-minimal edge in the wire *)
+val wires : T -> E.NSet.T
+
+(* return the wire (ie. the subgraph) containing the given edge *)
+val wire_for_edge : T -> E.name -> T
+*)
+
+(* return a graph that has exactly two edge points on every wire *)
+val normalise : T -> T
+
+(* return a graph that has no unnecessary edge points *)
+val minimise : T -> T
+
 (* 
 val adj_tgt_info : 
     T -> V.name 
@@ -266,6 +287,8 @@ functor BasicOGraphFun(
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o V.NSet.add;
   val del_from_edgepoints = update_edgepoints o V.NSet.delete;
+  
+  fun is_ivertex g v = not (is_edgepoint g v orelse is_boundary g v)
 
   (* implicit: g *)
   fun rename1_in_boundary n1 n2 = 
@@ -788,5 +811,57 @@ functor OGraphFun(G : BASIC_OGRAPH)
       end;
   
   fun adj_pat_info g n = adj_pat_info' g n (get_vertex g n);
+  
+  (*fun wire_for_edge g e = let
+    fun add_edge_from_g e' g' = let
+      val (data_and_dir, (src,tgt)) = get_edge g e'
+      val g' = if has_vname g src then g' else snd (g' |> add_named_vertex src (get_vertex_data g src))
+      val g' = if has_vname g tgt then g' else snd (g' |> add_named_vertex tgt (get_vertex_data g tgt))
+      val g' = snd (g' |> add_named_edge e' data_and_dir src tgt)
+    in g'
+    end
+    fun grow_fw v g' =
+      if is_edgepoint g' v then g'
+      else g'
+  in grow_fw ((snd o snd) (get_edge g e)) (empty |> add_edge_from_g e)
+  end
+  
+  fun fold_wires f g accum = accum
+  
+  fun wires g = E.NSet.empty*)
 
+  
+  (* TODO: both of these functions will need to be modified for !-graphs *)
+  
+  fun minimise g = let
+    fun min_ep ep g' = let
+      val succ = V.NSet.tryget_singleton (succ_vnames g' ep)
+      val pred = V.NSet.tryget_singleton (pred_vnames g' ep)
+    in case (pred, succ)
+       of (SOME s, SOME t) => let
+            val inedge = (the o E.NSet.tryget_singleton) (in_enames g' ep)
+            val (dir_and_data,_) = get_edge g' inedge
+          in (g' |> delete_vertex ep |> doadd_edge dir_and_data s t)
+          end
+        | (_,_) => g'
+    end
+  in V.NSet.fold min_ep (get_edgepoints g) g
+  end
+  
+  fun normalise g = let
+    fun norm_edge e g' = let
+      val (data_and_dir, (src,tgt)) = get_edge g' e
+    in if (is_ivertex g' src andalso is_ivertex g' tgt) then
+         let val (ep1,g') = g' |> add_vertex OVData.EVert
+             val (ep2,g') = g' |> add_vertex OVData.EVert
+          in g' |> doadd_edge data_and_dir src ep1
+                |> doadd_edge data_and_dir ep1 ep2
+                |> doadd_edge data_and_dir ep2 tgt
+                |> delete_edge e
+          end
+       else g'
+    end
+  in E.NSet.fold norm_edge (get_enames g) g
+  end
+  
 end; (* OpenGraphFun *)
