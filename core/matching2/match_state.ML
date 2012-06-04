@@ -40,6 +40,8 @@ signature OGRAPH_MATCH_STATE
   val set_u_wireverts     : V.NSet.T -> T -> T
   val set_p_nodeverts     : V.NSet.T -> T -> T
   val set_ps_nodeverts    : V.NSet.T -> T -> T
+  
+  val empty : T
 end
 
 functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
@@ -59,6 +61,16 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     p_nodeverts : V.NSet.T,
     (* partially matched node-vertices, scheduled for re-matching *)
     ps_nodeverts : V.NSet.T
+  }
+  
+  val empty = MatchState {
+    names = (V.NSet.empty, E.NSet.empty),
+    vmap = VInjEndo.empty,
+    u_circles = V.NSet.empty,
+    u_nodeverts = V.NSet.empty,
+    u_wireverts = V.NSet.empty,
+    p_nodeverts = V.NSet.empty,
+    ps_nodeverts = V.NSet.empty
   }
   
   (* getters and setters *)
