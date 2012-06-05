@@ -25,6 +25,11 @@ sharing SharingOGraph.OVData = OVData.SharingWithIData
    or only output edges. Edgepoints have both input and output edges *)
 
 
+(* FIXME: these methods should be deprecated in favour of the ones below.
+   I suggest keeping track of boundary info in Rule, closer to where it is
+   used. *)
+
+
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
 val is_boundary : T -> V.name -> bool
@@ -50,7 +55,8 @@ val del_from_edgepoints : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
 val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
-end; (* Basic OGraph *)
+
+end (* Basic OGraph *)
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
@@ -159,6 +165,37 @@ val wires : T -> E.NSet.T
 val wire_for_edge : T -> E.name -> T
 *)
 
+
+(* FIXME: put these where they should go (possibly in BASIC_GRAPH) *)
+val get_source : T -> E.name -> V.name
+val get_target : T -> E.name -> V.name
+
+
+
+(*** functions useful when dealing ignorantly with undirected edges ***)
+
+(* Given a wire vertex and an edge, give the other connected edge, if it
+   exists. In the case of a wire-vertex with a single, given self-loop,
+   return NONE. *)
+val wv_get_other_edge : T -> V.name -> E.name -> E.name option
+
+(* given an edge and vertex, get the other end *)
+val edge_get_other_vertex : T -> E.name -> V.name -> V.name
+
+(* Return the endpoints and set of edges of the wire containing the given
+   edge. The first endpoint is the one closest to the source of the edge. *)
+val get_wire_containing_edge : T -> E.name -> (V.name * V.name * E.NSet.T)
+
+
+
+val is_input_vertex : T -> V.name -> bool
+val is_output_vertex : T -> V.name -> bool
+
+val is_wire_vertex    : T -> V.name -> bool
+val is_node_vertex    : T -> V.name -> bool
+val get_wire_vertices : T -> V.NSet.T
+val get_node_vertices : T -> V.NSet.T
+
 (* return a graph that has exactly two edge points on every wire *)
 val normalise : T -> T
 
@@ -194,6 +231,11 @@ val adj_info :
           * EData.data E.NTab.T (* undirected self-loops *)
           * V.NSet.T) (* other adj vertices *)
 *)
+
+
+(* NEW OGraph functions. These use the new terminology, and should
+   supercede their equivalents *)
+
 
 end;
 
@@ -240,6 +282,7 @@ functor BasicOGraphFun(
       {boundary = (#boundary hdata), 
        edgepoints = f (#edgepoints hdata),
        data = (#data hdata)};    
+
 
   (* make basic graph with this as internal data *)
   structure G = BasicGraphFun(
@@ -366,6 +409,8 @@ functor BasicOGraphFun(
       g |> rename1_in_boundary n1 n2
         |> rename1_in_edgepoints n1 n2 
         |> G.rename_vname n1 n2;
+
+
 
   (* prettifying *)
   fun pretty g = 
@@ -811,6 +856,9 @@ functor OGraphFun(G : BASIC_OGRAPH)
       end;
   
   fun adj_pat_info g n = adj_pat_info' g n (get_vertex g n);
+
+  
+
   
   (*fun wire_for_edge g e = let
     fun add_edge_from_g e' g' = let
@@ -830,22 +878,62 @@ functor OGraphFun(G : BASIC_OGRAPH)
   
   fun wires g = E.NSet.empty*)
 
+  val get_source = (fst o snd) oo get_edge
+  val get_target = (snd o snd) oo get_edge
+
+
+  fun is_wire_vertex g v = false
+  fun is_node_vertex g v = false
+  fun get_wire_vertices g = V.NSet.filter (is_wire_vertex g) (get_vnames g)
+  fun get_node_vertices g = V.NSet.filter (is_node_vertex g) (get_vnames g)
+  
+  
+  fun wv_get_other_edge g wv e = let
+    val (_,(in_e,out_e)) = get_vertex g wv
+  in if E.NSet.contains in_e e
+     then if E.NSet.contains out_e e then NONE else E.NSet.tryget_singleton out_e
+     else E.NSet.tryget_singleton in_e
+  end
+  
+  fun edge_get_other_vertex g e v = let
+    val (_,(s,t)) = get_edge g e
+  in if V.name_eq(s,v) then t else s
+  end
+
+  fun get_wire_containing_edge g e = let
+    (* proceed in the direction of v away from prev_e until we hit e, a boundary, or a
+       node-vertex. return endpoint and edges encountered *)
+    fun traverse v prev_e =
+      if is_node_vertex g v then (v,E.NSet.empty)
+      else case wv_get_other_edge g v prev_e
+             of SOME new_e =>
+               if E.name_eq (e, new_e)  (* come back around, is a circle *)
+               then (get_source g e, E.NSet.empty) (* so we get the same node for both endpoints *)
+               else let val (v', es) = traverse (edge_get_other_vertex g new_e v) new_e
+                    in (v', es |> E.NSet.add new_e)
+                    end
+              | NONE => (v, E.NSet.empty)
+    val (s_end,bw_edges) = traverse (get_source g e) e
+    val (t_end,fw_edges) = traverse (get_target g e) e
+  in (s_end, t_end, bw_edges |> E.NSet.union_merge fw_edges |> E.NSet.add e)
+  end
+
   
   (* TODO: both of these functions will need to be modified for !-graphs *)
   
   fun minimise g = let
-    fun min_ep ep g' = let
-      val succ = V.NSet.tryget_singleton (succ_vnames g' ep)
-      val pred = V.NSet.tryget_singleton (pred_vnames g' ep)
+    fun min_wv wv g' = let
+      val succ = V.NSet.tryget_singleton (succ_vnames g' wv)
+      val pred = V.NSet.tryget_singleton (pred_vnames g' wv)
     in case (pred, succ)
        of (SOME s, SOME t) => let
-            val inedge = (the o E.NSet.tryget_singleton) (in_enames g' ep)
+            val inedge = (the o E.NSet.tryget_singleton) (in_enames g' wv)
             val (dir_and_data,_) = get_edge g' inedge
-          in (g' |> delete_vertex ep |> doadd_edge dir_and_data s t)
+          in (g' |> delete_vertex wv |> doadd_edge dir_and_data s t)
           end
         | (_,_) => g'
     end
-  in V.NSet.fold min_ep (get_edgepoints g) g
+  in V.NSet.fold min_wv (get_wire_vertices g) g
   end
   
   fun normalise g = let
@@ -864,4 +952,5 @@ functor OGraphFun(G : BASIC_OGRAPH)
   in E.NSet.fold norm_edge (get_enames g) g
   end
   
+
 end; (* OpenGraphFun *)

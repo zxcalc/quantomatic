@@ -387,11 +387,26 @@ local
                   raise ERROR "old name was accidentally kept vertex data!" else I)
               xnames'' ();
     in () end) ();
-
 in
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR LinratAngleExpr PASSED!";
 end; (* ends local namespace used for testing *)
+
+
+structure WireTests =
+struct
+  open Test_MkG
+  val g = G.empty
+  val (b1,g) = g|> G.add_vertex bvert
+  val (b2,g) = g|> G.add_vertex bvert
+  val (r1,g) = g|> G.add_vertex (mkX zero_angle)
+  val (r2,g) = g|> G.add_vertex (mkX zero_angle)
+  val (e1,g) = g|> G.add_edge dir_edge r1 b1
+  val (e2,g) = g|> G.add_edge dir_edge b1 b2
+  val (e3,g) = g|> G.add_edge dir_edge b2 r2
+  
+  val (s_end, t_end, es) = G.get_wire_containing_edge g e1
+end
 
 (* For debugging...
 
