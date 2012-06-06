@@ -22,6 +22,9 @@ val get_vertex : T -> V.name -> (VData.data * (E.NSet.T * E.NSet.T))
 val get_edge : T -> E.name -> ((dir_or_undir * EData.data) 
                                   * (V.name * V.name))
 
+val get_edge_source : T -> E.name -> V.name
+val get_edge_target : T -> E.name -> V.name
+
 val get_vertex_data : T -> V.name -> VData.data
 val get_edge_data : T -> E.name -> EData.data
 
@@ -261,6 +264,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       case lookup_edge g en 
        of NONE => raise no_such_ename_exp ("get_edge", en, g)
         | SOME x => x;
+  
+  val get_edge_source = (fst o snd) oo get_edge
+  val get_edge_target = (snd o snd) oo get_edge
   
   fun get_ehn_vname g ehn = 
       let val (_,(s,t)) = get_edge g (H.get_ename ehn)

@@ -393,19 +393,90 @@ val _ = "UNIT TESTS FOR LinratAngleExpr PASSED!";
 end; (* ends local namespace used for testing *)
 
 
-structure WireTests =
-struct
+local
   open Test_MkG
   val g = G.empty
-  val (b1,g) = g|> G.add_vertex bvert
-  val (b2,g) = g|> G.add_vertex bvert
-  val (r1,g) = g|> G.add_vertex (mkX zero_angle)
-  val (r2,g) = g|> G.add_vertex (mkX zero_angle)
-  val (e1,g) = g|> G.add_edge dir_edge r1 b1
-  val (e2,g) = g|> G.add_edge dir_edge b1 b2
-  val (e3,g) = g|> G.add_edge dir_edge b2 r2
+  val (b1,g) = g|> G.add_named_vertex (V.mk "b1") bvert
+  val (b2,g) = g|> G.add_named_vertex (V.mk "b2") bvert
+  val (b3,g) = g|> G.add_named_vertex (V.mk "b3") bvert
+  val (b4,g) = g|> G.add_named_vertex (V.mk "b4") bvert
+  val (b5,g) = g|> G.add_named_vertex (V.mk "b5") bvert
+  val (b6,g) = g|> G.add_named_vertex (V.mk "b6") bvert
   
-  val (s_end, t_end, es) = G.get_wire_containing_edge g e1
+  val (c1,g) = g|> G.add_named_vertex (V.mk "c1") bvert
+  val (c2,g) = g|> G.add_named_vertex (V.mk "c2") bvert
+  val (c3,g) = g|> G.add_named_vertex (V.mk "c3") bvert
+  
+  val (r1,g) = g|> G.add_named_vertex (V.mk "r1") (mkX zero_angle)
+  val (r2,g) = g|> G.add_named_vertex (V.mk "r2") (mkX zero_angle)
+  val (r3,g) = g|> G.add_named_vertex (V.mk "r3") (mkX zero_angle)
+  
+  val (e1,g)  = g|> G.add_edge dir_edge r1 b1
+  val (e2,g)  = g|> G.add_edge dir_edge b1 b2
+  val (e3,g)  = g|> G.add_edge dir_edge b2 r2
+  val (e4,g)  = g|> G.add_edge dir_edge r2 b3
+  val (e5,g)  = g|> G.add_edge dir_edge b3 b4
+  val (e6,g)  = g|> G.add_edge dir_edge r2 r3
+  val (e7,g)  = g|> G.add_edge dir_edge r3 b5
+  val (e8,g)  = g|> G.add_edge dir_edge b5 r3
+  val (e9,g)  = g|> G.add_edge dir_edge c1 c2
+  val (e10,g) = g|> G.add_edge dir_edge c2 c1
+  val (e11,g) = g|> G.add_edge dir_edge c3 c3
+  
+  val (e12,g) = g|> G.add_edge undir_edge r2 b6
+  val (e13,g) = g|> G.add_edge undir_edge b6 r3
+  
+  
+  val wire1 = G.get_wire_containing_edge g e2
+  val wire2 = G.get_wire_containing_edge g e5
+  val wire3 = G.get_wire_containing_edge g e6
+  val wire4 = G.get_wire_containing_edge g e7
+  val wire5 = G.get_wire_containing_edge g e9
+  val wire6 = G.get_wire_containing_edge g e11
+  val wire7 = G.get_wire_containing_edge g e12
+  val _ = G.print g
+  
+  val wires     = sort G.wire_ord [wire1,wire2,wire3,wire4,wire5,wire6,wire7]
+  val wires'    = sort G.wire_ord (G.get_wire_list g)
+  
+  val _ = (Pretty.writeln o Pretty.str) "wires: "
+  val _ = map (Pretty.writeln o G.pretty_wire) wires
+  val _ = (Pretty.writeln o Pretty.str) "wires': "
+  val _ = map (Pretty.writeln o G.pretty_wire) wires'
+  
+  
+  fun c_wire_lists (w::ws) (w'::ws') =
+    if G.wire_eq w w' then c_wire_lists ws ws'
+    else raise ERROR ("wire lists differ EXPECTED: "^Pretty.string_of (G.pretty_wire w)^
+                      "  GOT: "^Pretty.string_of (G.pretty_wire w'))
+    | c_wire_lists [] [] = ()
+    | c_wire_lists _ _   = raise ERROR "failed, wire lists of different lengths"
+  
+  val _ = Testing.test "G.get_wire_containing_edge - interior wire"
+  (fn () => if G.wire_eq (r1, r2, V.NSet.of_list [b1, b2], E.NSet.of_list [e1, e2, e3]) wire1 then I
+            else raise ERROR "interior wire incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - boundary wire"
+  (fn () => if G.wire_eq (r2, b4, V.NSet.of_list [b3], E.NSet.of_list [e4, e5]) wire2 then I
+            else raise ERROR "boundary wire incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - no interior wvs"
+  (fn () => if G.wire_eq (r2, r3, V.NSet.empty, E.NSet.of_list [e6]) wire3 then I
+            else raise ERROR "no interior wvs incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - self loop"
+  (fn () => if G.wire_eq (r3, r3, V.NSet.of_list [b5], E.NSet.of_list [e7, e8]) wire4 then I
+            else raise ERROR "self loop incorrect") ()
+  (* c1 has the minimal end, so it should be chosen as the endpoint *)
+  val _ = Testing.test "G.get_wire_containing_edge - circle1"
+  (fn () => if (G.wire_eq (c1, c1, V.NSet.of_list [c2], E.NSet.of_list [e9,e10]) wire5)
+            then I
+            else raise ERROR ("circle1 incorrect: " ^ (Pretty.string_of o G.pretty_wire) wire5)) ()
+  val _ = Testing.test "G.get_wire_containing_edge - circle2"
+  (fn () => if G.wire_eq (c3, c3, V.NSet.empty, E.NSet.of_list [e11]) wire6 then I
+            else raise ERROR "circle2 incorrect") ()
+  val _ = Testing.test "G.get_wire_list"
+  (fn () => c_wire_lists wires wires') ()
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR WIRE FUNCTIONS PASSED!"
 end
 
 (* For debugging...

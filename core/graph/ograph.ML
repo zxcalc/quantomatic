@@ -154,21 +154,7 @@ val matched_subgraph_within_vset : V.NSet.T -> T -> T
    all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
-(*
-(* fold over all of the wires in the OGraph, given as subgraphs *)
-val fold_wires : (T -> 'a -> 'a) -> T -> 'a -> 'a
 
-(* return the set of wires in this graph, referred to by the name-minimal edge in the wire *)
-val wires : T -> E.NSet.T
-
-(* return the wire (ie. the subgraph) containing the given edge *)
-val wire_for_edge : T -> E.name -> T
-*)
-
-
-(* FIXME: put these where they should go (possibly in BASIC_GRAPH) *)
-val get_source : T -> E.name -> V.name
-val get_target : T -> E.name -> V.name
 
 
 
@@ -182,9 +168,21 @@ val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 (* given an edge and vertex, get the other end *)
 val edge_get_other_vertex : T -> E.name -> V.name -> V.name
 
-(* Return the endpoints and set of edges of the wire containing the given
+(* FIXME: wire type is currently a 4-tuple of endpoints + interior wire verts + edges. Should this be encapsulated? *)
+
+val wire_eq : (V.name * V.name * V.NSet.T * E.NSet.T) -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
+val wire_ord : (V.name * V.name * V.NSet.T * E.NSet.T) * (V.name * V.name * V.NSet.T * E.NSet.T) -> order
+
+val pretty_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> Pretty.T
+
+val delete_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
+
+(* Return the endpoints, intermediate wire-vertices, and edges of the wire containing the given
    edge. The first endpoint is the one closest to the source of the edge. *)
-val get_wire_containing_edge : T -> E.name -> (V.name * V.name * E.NSet.T)
+val get_wire_containing_edge : T -> E.name -> (V.name * V.name * V.NSet.T * E.NSet.T)
+
+(* Return a list of all the wires in the graph *)
+val get_wire_list : T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
 
 
 
@@ -878,12 +876,9 @@ functor OGraphFun(G : BASIC_OGRAPH)
   
   fun wires g = E.NSet.empty*)
 
-  val get_source = (fst o snd) oo get_edge
-  val get_target = (snd o snd) oo get_edge
 
-
-  fun is_wire_vertex g v = false
-  fun is_node_vertex g v = false
+  fun is_wire_vertex g v = case get_vertex_data g v of OVData.EVert => true | _ => false
+  val is_node_vertex = not oo is_wire_vertex
   fun get_wire_vertices g = V.NSet.filter (is_wire_vertex g) (get_vnames g)
   fun get_node_vertices g = V.NSet.filter (is_node_vertex g) (get_vnames g)
   
@@ -899,44 +894,92 @@ functor OGraphFun(G : BASIC_OGRAPH)
     val (_,(s,t)) = get_edge g e
   in if V.name_eq(s,v) then t else s
   end
+  
+  (* use lexicographic order *)
+  fun wire_ord ( (s,t,w,e) , (s',t',w',e') ) =
+    prod_ord (prod_ord V.name_ord V.name_ord) (prod_ord V.NSet.ord E.NSet.ord)
+    (   ((s,t),(w,e))   ,   ((s',t'),(w',e'))   )
+  
+  fun wire_eq w1 w2 = wire_ord (w1, w2) = EQUAL
+  
+  fun pretty_wire (s,t,w,e) = Pretty.list "wire(" ")" [V.pretty_name s, V.pretty_name t, V.NSet.pretty w, E.NSet.pretty e]
 
   fun get_wire_containing_edge g e = let
     (* proceed in the direction of v away from prev_e until we hit e, a boundary, or a
        node-vertex. return endpoint and edges encountered *)
     fun traverse v prev_e =
-      if is_node_vertex g v then (v,E.NSet.empty)
+      if is_node_vertex g v then (v, V.NSet.empty, E.NSet.empty)
       else case wv_get_other_edge g v prev_e
              of SOME new_e =>
                if E.name_eq (e, new_e)  (* come back around, is a circle *)
-               then (get_source g e, E.NSet.empty) (* so we get the same node for both endpoints *)
-               else let val (v', es) = traverse (edge_get_other_vertex g new_e v) new_e
-                    in (v', es |> E.NSet.add new_e)
-                    end
-              | NONE => (v, E.NSet.empty)
-    val (s_end,bw_edges) = traverse (get_source g e) e
-    val (t_end,fw_edges) = traverse (get_target g e) e
-  in (s_end, t_end, bw_edges |> E.NSet.union_merge fw_edges |> E.NSet.add e)
+               then (get_edge_source g e, V.NSet.empty, E.NSet.empty) (* so we get the same node for both endpoints *)
+               else (* v is a wire vertex that is not an endpoint *)
+                 let val (v', wvs, es) = traverse (edge_get_other_vertex g new_e v) new_e
+                 in (v', wvs |> V.NSet.add v, es |> E.NSet.add new_e)
+                 end
+              | NONE => (v, V.NSet.empty, E.NSet.empty)
+    val (s_end,s_wvs,s_es) = traverse (get_edge_source g e) e
+    val (t_end,t_wvs,t_es) = traverse (get_edge_target g e) e
+    val es = s_es |> E.NSet.union_merge t_es |> E.NSet.add e
+  (* for circles, we take the minimum name to be s=t and the rest to be internal wire-vertices *)
+  in if V.name_eq (s_end,t_end) andalso is_wire_vertex g s_end then
+       let
+         val wvs = s_wvs |> V.NSet.union_merge t_wvs |> V.NSet.add s_end
+         val min_wv = (the o V.NSet.get_min) wvs
+       in (min_wv, min_wv, wvs |> V.NSet.delete min_wv, es)
+       end
+     else (s_end, t_end, s_wvs |> V.NSet.union_merge t_wvs, es)
+  end
+  
+  fun get_wire_list g = let
+    fun gw es = if E.NSet.is_empty es then []
+                else let val wire = get_wire_containing_edge g ((the o E.NSet.get_min) es)
+                     in wire :: gw (es |> E.NSet.remove_set (#4 wire))
+                     end
+  in gw (get_enames g)
   end
 
+
+  fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
+  
   
   (* TODO: both of these functions will need to be modified for !-graphs *)
-  
   fun minimise g = let
-    fun min_wv wv g' = let
-      val succ = V.NSet.tryget_singleton (succ_vnames g' wv)
-      val pred = V.NSet.tryget_singleton (pred_vnames g' wv)
-    in case (pred, succ)
-       of (SOME s, SOME t) => let
-            val inedge = (the o E.NSet.tryget_singleton) (in_enames g' wv)
-            val (dir_and_data,_) = get_edge g' inedge
-          in (g' |> delete_vertex wv |> doadd_edge dir_and_data s t)
-          end
-        | (_,_) => g'
+    val wire_list = get_wire_list g
+    (* add a normalised wire where the given wire is *)
+    fun add_min_wire (s,t,_,es) h = let
+      (* this data should be the same for all edges in the wire *)
+      val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
+    in g |> doadd_edge dir_and_data s t
     end
-  in V.NSet.fold min_wv (get_wire_vertices g) g
+  (* new wires are added before remove old ones because we need edge data *)
+  in fold delete_wire wire_list (fold add_min_wire wire_list g)
   end
   
   fun normalise g = let
+    val wire_list = get_wire_list g
+    (* add a normalised wire where the given wire is *)
+    fun add_norm_wire (s,t,_,es) h = let
+      (* this data should be the same for all edges in the wire *)
+      val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
+    in
+      (* add two extra wire verts on internal wires *)
+      if is_node_vertex h s andalso is_node_vertex h t then
+        let
+          val (b1,g) = g |> add_vertex OVData.EVert
+          val (b2,g) = g |> add_vertex OVData.EVert
+        in g |> doadd_edge dir_and_data s b1
+             |> doadd_edge dir_and_data b1 b2
+             |> doadd_edge dir_and_data b2 t
+        end
+      (* add no extra wire-verts on boundary wires, bare wires, or circles *)
+      else g |> doadd_edge dir_and_data s t
+    end
+  (* new wires are added before remove old ones because we need edge data *)
+  in fold delete_wire wire_list (fold add_norm_wire wire_list g)
+  end
+  
+  (* fun normalise g = let
     fun norm_edge e g' = let
       val (data_and_dir, (src,tgt)) = get_edge g' e
     in if (is_ivertex g' src andalso is_ivertex g' tgt) then
@@ -950,7 +993,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
        else g'
     end
   in E.NSet.fold norm_edge (get_enames g) g
-  end
+  end *)
   
 
 end; (* OpenGraphFun *)
