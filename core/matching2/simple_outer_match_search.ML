@@ -10,32 +10,27 @@ struct
   fun match_avoiding_names names pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
-    val wv = G.get_wire_vertices pat
-    (* find all circles and remove them from wv *)
-    val circles = V.NSet.filter 
-      (fn v => case V.NSet.tryget_singleton (G.succ_vnames pat v)
-                 of SOME v' => V.name_eq(v,v') | NONE => false) wv
-    val wv = wv |> V.NSet.subtract circles
-    (* find all bare wires and remove them from wv *)
-    val (wire_sources, wire_targets) = V.NSet.fold
-      (fn v => fn (ss,tt) => (
-        if G.is_input_vertex pat v then
-          (* use of 'the' because normalised graphs should not contain isolated points *)
-          let val v' = (the o V.NSet.tryget_singleton) (G.succ_vnames pat v)
-          in if G.is_wire_vertex pat v'
-             then (ss|>V.NSet.add v, tt|>V.NSet.add v')
-             else (ss,tt)
-          end
-        else (ss,tt))) wv (V.NSet.empty, V.NSet.empty)
-    val wv = wv |> V.NSet.subtract wire_sources |> V.NSet.subtract wire_targets
+    val wires = G.get_wire_list pat
+    fun delete_wvs_in_wire (s,t,wv,_) set =
+      set |> V.NSet.union_merge wv
+          |> (if G.is_wire_vertex pat s then V.NSet.add s else I)
+          |> (if G.is_wire_vertex pat t then V.NSet.add t else I)
+    
+    val circles = filter (fn (s,t,_,_) => V.name_eq (s,t) andalso G.is_wire_vertex pat s) wires
+    val bare_wires = filter (fn (s,t,_,_) => G.is_wire_vertex pat s andalso G.is_wire_vertex pat t) wires
+    
+    val wvs = fold delete_wvs_in_wire (circles @ bare_wires) (G.get_wire_vertices pat)
+    val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
+    val bare_wire_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
+    
     val ms = MatchState.empty
       |> MatchState.set_names names
       |> MatchState.set_pat pat
       |> MatchState.set_tgt tgt
-      |> MatchState.set_u_circles circles
+      |> MatchState.set_u_circles circle_wvs
       |> MatchState.set_u_nodeverts (G.get_node_vertices pat)
-      |> MatchState.set_u_wireverts wv
-  in InnerMatchSearch.match_concrete ms
+      |> MatchState.set_u_wireverts wvs
+  in Seq.maps InnerMatchSearch.match_bare_wires (InnerMatchSearch.match_concrete ms)
   end
   
   val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)

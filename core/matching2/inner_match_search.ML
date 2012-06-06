@@ -15,4 +15,7 @@ sig
     
   (* do as much concrete matching as possible and return a lazy list of updated match states *)
   val match_concrete : MatchState.T -> MatchState.T Seq.seq
+  
+  (* match the given set of bare wires, expanded edge points where necessary *)
+  val match_bare_wires : MatchState.T -> MatchState.T Seq.seq
 end

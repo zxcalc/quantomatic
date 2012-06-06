@@ -21,6 +21,7 @@ signature OGRAPH_MATCH_STATE
   val update_u_circles    : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_wireverts  : (V.NSet.T -> V.NSet.T) -> T -> T
+  val update_u_bare_wires : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_p_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_ps_nodeverts : (V.NSet.T -> V.NSet.T) -> T -> T
   
@@ -56,142 +57,166 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   
   datatype T = MatchState of {
     (* names context for fresh names when copying bboxes in pat *)
-    names : (V.NSet.T * E.NSet.T),
+    names        : V.NSet.T * E.NSet.T,
     (* pattern and target graphs *)
-    pat : G.T,
-    tgt : G.T,
+    pat          : G.T,
+    tgt          : G.T,
     (* internal vertex mapping from pat to tgt *)
-    vmap : VInjEndo.T,
+    vmap         : VInjEndo.T,
     (* circles, node-vertices, and wire-vertices to be matched *)
-    u_circles : V.NSet.T,
-    u_nodeverts : V.NSet.T,
-    u_wireverts : V.NSet.T,
+    u_circles    : V.NSet.T,
+    u_nodeverts  : V.NSet.T,
+    u_wireverts  : V.NSet.T,
+    u_bare_wires : V.NSet.T,
     (* partially matched node-vertices *)
-    p_nodeverts : V.NSet.T,
+    p_nodeverts  : V.NSet.T,
     (* partially matched node-vertices, scheduled for re-matching *)
     ps_nodeverts : V.NSet.T
   }
   
   val empty = MatchState {
-    names = (V.NSet.empty, E.NSet.empty),
-    pat = G.empty,
-    tgt = G.empty,
-    vmap = VInjEndo.empty,
-    u_circles = V.NSet.empty,
-    u_nodeverts = V.NSet.empty,
-    u_wireverts = V.NSet.empty,
-    p_nodeverts = V.NSet.empty,
+    names        = (V.NSet.empty, E.NSet.empty),
+    pat          = G.empty,
+    tgt          = G.empty,
+    vmap         = VInjEndo.empty,
+    u_circles    = V.NSet.empty,
+    u_nodeverts  = V.NSet.empty,
+    u_wireverts  = V.NSet.empty,
+    u_bare_wires = V.NSet.empty,
+    p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty
   }
   
   (* getters and setters *)
   
   fun update_names f (MatchState r) = MatchState {
-    names = f (#names r),
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
+    names        = f(#names r),
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_pat f (MatchState r) = MatchState {
-    names = #names r,
-    pat = f (#pat r),
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
+    names        = #names r,
+    pat          = f(#pat r),
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_tgt f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = f (#tgt r),
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = f(#tgt r),
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_vmap f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = f (#vmap r),
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = f(#vmap r),
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_u_circles f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = f (#u_circles r),
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = f(#u_circles r),
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_u_nodeverts f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = f (#u_nodeverts r),
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = f(#u_nodeverts r),
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_u_wireverts f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = f (#u_wireverts r),
-    p_nodeverts = #p_nodeverts r,
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = f(#u_wireverts r),
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
+    ps_nodeverts = #ps_nodeverts r
+  }
+  
+  fun update_u_bare_wires f (MatchState r) = MatchState {
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = f(#u_bare_wires r),
+    p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_p_nodeverts f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = f (#p_nodeverts r),
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = f(#p_nodeverts r),
     ps_nodeverts = #ps_nodeverts r
   }
   
   fun update_ps_nodeverts f (MatchState r) = MatchState {
-    names = #names r,
-    pat = #pat r,
-    tgt = #tgt r,
-    vmap = #vmap r,
-    u_circles = #u_circles r,
-    u_nodeverts = #u_nodeverts r,
-    u_wireverts = #u_wireverts r,
-    p_nodeverts = #p_nodeverts r,
-    ps_nodeverts = f (#ps_nodeverts r)
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
+    ps_nodeverts = f(#ps_nodeverts r)
   }
   
   fun get_names        (MatchState r) = #names r
@@ -201,6 +226,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   fun get_u_circles    (MatchState r) = #u_circles r
   fun get_u_nodeverts  (MatchState r) = #u_nodeverts r
   fun get_u_wireverts  (MatchState r) = #u_wireverts r
+  fun get_u_bare_wires (MatchState r) = #u_bare_wires r
   fun get_p_nodeverts  (MatchState r) = #p_nodeverts r
   fun get_ps_nodeverts (MatchState r) = #ps_nodeverts r
   
@@ -214,6 +240,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   val set_u_circles    = update_u_circles    o K
   val set_u_nodeverts  = update_u_nodeverts  o K
   val set_u_wireverts  = update_u_wireverts  o K
+  val set_u_bare_wires = update_u_bare_wires o K
   val set_p_nodeverts  = update_p_nodeverts  o K
   val set_ps_nodeverts = update_ps_nodeverts o K
   
