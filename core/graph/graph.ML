@@ -25,6 +25,9 @@ val get_edge : T -> E.name -> ((dir_or_undir * EData.data)
 val get_edge_source : T -> E.name -> V.name
 val get_edge_target : T -> E.name -> V.name
 
+val get_in_edges  : T -> V.name -> E.NSet.T
+val get_out_edges : T -> V.name -> E.NSet.T
+
 val get_vertex_data : T -> V.name -> VData.data
 val get_edge_data : T -> E.name -> EData.data
 
@@ -267,6 +270,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   val get_edge_source = (fst o snd) oo get_edge
   val get_edge_target = (snd o snd) oo get_edge
+  
+  val get_in_edges  = (fst o snd) oo get_vertex
+  val get_out_edges = (snd o snd) oo get_vertex
   
   fun get_ehn_vname g ehn = 
       let val (_,(s,t)) = get_edge g (H.get_ename ehn)
