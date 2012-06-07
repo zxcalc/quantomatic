@@ -4,10 +4,16 @@ functor SimpleInnerMatchSearch(
 = struct
   structure G = G
   structure MatchState = OGraphMatchState(structure G = G)
-    
-  (* do as much concrete matching as possible and return a lazy list of updated match states *)
-  fun match_concrete m = Seq.empty
   
+  
+  (* do as much concrete matching as possible and return a lazy list of updated match states *)
+  fun match_concrete m =
+    if V.NSet.is_empty (MatchState.get_u_circles m) andalso
+       V.NSet.is_empty (MatchState.get_u_nodeverts m) andalso
+       V.NSet.is_empty (MatchState.get_u_wireverts m) andalso
+       V.NSet.is_empty (MatchState.get_ps_nodeverts m)
+    then Seq.single m
+    else Seq.empty (* stub *)
   
   (* candidate edges for matching are:
            - the unique edge in a circle, bare wire, or boundary wire
