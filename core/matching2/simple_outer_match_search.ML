@@ -6,7 +6,6 @@ struct
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
   
-  (* TODO: make this cope with undirected edges *)
   fun match_avoiding_names names pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt

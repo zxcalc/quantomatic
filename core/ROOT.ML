@@ -143,7 +143,6 @@ PolyML.Project.make "matching2/inner_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
 PolyML.Project.make "matching2/outer_match_search.ML";
 
-
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching2/simple_inner_match_search.ML";
 
@@ -156,6 +155,7 @@ Testing.make_test "matching/test/simple_rule_match_search-test.ML";
 Testing.make_test "matching/test/simple_match_search-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 Testing.make_test "matching/test/symmetry_match_search-test.ML";
+Testing.make_test "matching2/test/test-matching2.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
