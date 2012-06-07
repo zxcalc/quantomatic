@@ -472,6 +472,9 @@ local
   val _ = Testing.test "G.get_wire_containing_edge - circle2"
   (fn () => if G.wire_eq (c3, c3, V.NSet.empty, E.NSet.of_list [e11]) wire6 then I
             else raise ERROR "circle2 incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - undirected"
+  (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b6], E.NSet.of_list [e12,e13]) wire7 then I
+            else raise ERROR "circle2 incorrect") ()
   val _ = Testing.test "G.get_wire_list"
   (fn () => c_wire_lists wires wires') ()
 in
