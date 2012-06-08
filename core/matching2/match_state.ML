@@ -18,6 +18,7 @@ signature OGRAPH_MATCH_STATE
   val update_pat          : (G.T -> G.T) -> T -> T
   val update_tgt          : (G.T -> G.T) -> T -> T
   val update_vmap         : (VInjEndo.T -> VInjEndo.T) -> T -> T
+  val update_emap         : (EInjEndo.T -> EInjEndo.T) -> T -> T
   val update_u_circles    : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_u_wireverts  : (V.NSet.T -> V.NSet.T) -> T -> T
@@ -29,6 +30,7 @@ signature OGRAPH_MATCH_STATE
   val get_pat             : T -> G.T
   val get_tgt             : T -> G.T
   val get_vmap            : T -> VInjEndo.T
+  val get_emap            : T -> EInjEndo.T
   val get_u_circles       : T -> V.NSet.T
   val get_u_nodeverts     : T -> V.NSet.T
   val get_u_wireverts     : T -> V.NSet.T
@@ -40,6 +42,7 @@ signature OGRAPH_MATCH_STATE
   val set_pat             : G.T -> T -> T
   val set_tgt             : G.T -> T -> T
   val set_vmap            : VInjEndo.T -> T -> T
+  val set_emap            : EInjEndo.T -> T -> T
   val set_u_circles       : V.NSet.T -> T -> T
   val set_u_nodeverts     : V.NSet.T -> T -> T
   val set_u_wireverts     : V.NSet.T -> T -> T
@@ -50,7 +53,10 @@ signature OGRAPH_MATCH_STATE
   
   val empty : T
   
-  (* associates the sources and targets of the given edges in vmap *)
+  (* initialise MatchState and schedule all vertices in pattern to be matched *)
+  val init_and_schedule_all : G.T -> G.T -> T
+  
+  (* adds edge and both endpoints to match *)
   val add_edge_to_match : (E.name * E.name) -> T -> T
 end
 
@@ -64,8 +70,10 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     (* pattern and target graphs *)
     pat          : G.T,
     tgt          : G.T,
-    (* internal vertex mapping from pat to tgt *)
+    (* vertex mapping from pat to tgt *)
     vmap         : VInjEndo.T,
+    (* edge mapping from pat to tgt *)
+    emap         : EInjEndo.T,
     (* circles, node-vertices, and wire-vertices to be matched *)
     u_circles    : V.NSet.T,
     u_nodeverts  : V.NSet.T,
@@ -83,6 +91,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = G.empty,
     tgt          = G.empty,
     vmap         = VInjEndo.empty,
+    emap         = EInjEndo.empty,
     u_circles    = V.NSet.empty,
     u_nodeverts  = V.NSet.empty,
     u_wireverts  = V.NSet.empty,
@@ -99,6 +108,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -113,6 +123,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = f(#pat r),
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -127,6 +138,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = f(#tgt r),
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -141,6 +153,22 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = f(#vmap r),
+    emap         = #emap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
+    ps_nodeverts = #ps_nodeverts r,
+    match_subst  = #match_subst r
+  }
+
+  fun update_emap f (MatchState r) = MatchState {
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    emap         = f(#emap r),
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -155,6 +183,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = f(#u_circles r),
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -169,6 +198,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = f(#u_nodeverts r),
     u_wireverts  = #u_wireverts r,
@@ -183,6 +213,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = f(#u_wireverts r),
@@ -197,6 +228,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -211,6 +243,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -225,6 +258,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -239,6 +273,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
+    emap         = #emap r,
     u_circles    = #u_circles r,
     u_nodeverts  = #u_nodeverts r,
     u_wireverts  = #u_wireverts r,
@@ -252,6 +287,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   fun get_pat          (MatchState r) = #pat r
   fun get_tgt          (MatchState r) = #tgt r
   fun get_vmap         (MatchState r) = #vmap r
+  fun get_emap         (MatchState r) = #emap r
   fun get_u_circles    (MatchState r) = #u_circles r
   fun get_u_nodeverts  (MatchState r) = #u_nodeverts r
   fun get_u_wireverts  (MatchState r) = #u_wireverts r
@@ -264,6 +300,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   val set_pat             = update_pat          o K
   val set_tgt             = update_tgt          o K
   val set_vmap            = update_vmap         o K
+  val set_emap            = update_emap         o K
   val set_u_circles       = update_u_circles    o K
   val set_u_nodeverts     = update_u_nodeverts  o K
   val set_u_wireverts     = update_u_wireverts  o K
@@ -271,14 +308,34 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   val set_p_nodeverts     = update_p_nodeverts  o K
   val set_ps_nodeverts    = update_ps_nodeverts o K
   val set_match_subst     = update_match_subst  o K
-
   
   fun add_edge_to_match (ep, et) ms = let
     val (_,(sp,tp)) = G.get_edge (get_pat ms) ep
-    val (_,(st,tt)) = G.get_edge (get_tgt ms) ep
-  in ms |> update_vmap (fn vmap => (
-       vmap |> VInjEndo.add sp st |> VInjEndo.add tp tt
-     ))
+    val (_,(st,tt)) = G.get_edge (get_tgt ms) et
+  in ms |> update_vmap (VInjEndo.add sp st o VInjEndo.add tp tt)
+        |> update_emap (EInjEndo.add ep et)
+  end
+  
+  fun init_and_schedule_all pat tgt = let
+    val wires = G.get_wire_list pat
+    fun delete_wvs_in_wire (s,t,wv,_) set =
+      set |> V.NSet.remove_set wv
+          |> (if G.is_wire_vertex pat s then V.NSet.delete s else I)
+          |> (if G.is_wire_vertex pat t then V.NSet.delete t else I)
+    
+    val circles = filter (fn (s,t,_,_) => V.name_eq (s,t) andalso G.is_wire_vertex pat s) wires
+    val bare_wires = filter (fn (s,t,_,_) => G.is_wire_vertex pat s andalso G.is_wire_vertex pat t) wires
+    
+    val wvs = fold delete_wvs_in_wire (circles @ bare_wires) (G.get_wire_vertices pat)
+    val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
+    val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
+  in empty
+      |> set_pat pat
+      |> set_tgt tgt
+      |> set_u_circles circle_wvs
+      |> set_u_nodeverts (G.get_node_vertices pat)
+      |> set_u_wireverts wvs
+      |> set_u_bare_wires bare_wire_es
   end
   
   
