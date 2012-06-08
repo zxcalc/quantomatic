@@ -946,7 +946,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
   (* TODO: both of these functions will need to be modified for !-graphs *)
   fun minimise g = let
     val wire_list = get_wire_list g
-    (* add a normalised wire where the given wire is *)
+    (* add a minimised wire where the given wire is *)
     fun add_min_wire (s,t,_,es) h = let
       (* this data should be the same for all edges in the wire *)
       val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
@@ -966,14 +966,14 @@ functor OGraphFun(G : BASIC_OGRAPH)
       (* add two extra wire verts on internal wires *)
       if is_node_vertex h s andalso is_node_vertex h t then
         let
-          val (b1,g) = g |> add_vertex OVData.EVert
-          val (b2,g) = g |> add_vertex OVData.EVert
-        in g |> doadd_edge dir_and_data s b1
+          val (b1,h) = h |> add_vertex OVData.EVert
+          val (b2,h) = h |> add_vertex OVData.EVert
+        in h |> doadd_edge dir_and_data s b1
              |> doadd_edge dir_and_data b1 b2
              |> doadd_edge dir_and_data b2 t
         end
       (* add no extra wire-verts on boundary wires, bare wires, or circles *)
-      else g |> doadd_edge dir_and_data s t
+      else h |> doadd_edge dir_and_data s t
     end
   (* new wires are added before remove old ones because we need edge data *)
   in fold delete_wire wire_list (fold add_norm_wire wire_list g)
