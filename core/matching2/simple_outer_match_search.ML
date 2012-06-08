@@ -10,7 +10,8 @@ struct
     val pat = G.normalise pat
     val tgt = G.normalise tgt
     val ms = MatchState.init_and_schedule_all pat tgt |> MatchState.set_names names
-  in Seq.maps InnerMatchSearch.match_bare_wires (InnerMatchSearch.match_concrete ms)
+  in Seq.filter MatchState.is_total
+       (Seq.maps InnerMatchSearch.match_bare_wires (InnerMatchSearch.match_concrete ms))
   end
   
   val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)

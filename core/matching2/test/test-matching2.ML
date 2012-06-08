@@ -61,3 +61,32 @@ in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR MATCHING2/BARE WIRES PASSED!"
 end
+
+(*local*)
+  open Test_MkG
+  structure M = Test_Matcher
+  
+  val bare_wire = G.empty
+  val (b1,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b1") bvert
+  val (b2,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b2") bvert
+  val (_,bare_wire)  = bare_wire |> G.add_named_edge (E.mk "e1") dir_edge b1 b2
+  
+  val circle = G.empty
+  val (b3,circle) = circle |> G.add_named_vertex (V.mk "b3") bvert
+  val (_,circle)  = circle |> G.add_named_edge (E.mk "e2") dir_edge b3 b3
+  
+  
+  val mseq = M.match circle G.empty
+  val _ = Testing.test "M.match - circle --> empty"
+  (fn () => if length (Seq.list_of mseq) = 0 then I
+            else raise ERROR ("expected 0 matching, got " ^ Int.toString (length (Seq.list_of mseq)))) ()
+  
+  val mseq = M.match circle circle
+  val _ = Testing.test "M.match - circle --> circle"
+  (fn () => if length (Seq.list_of mseq) = 1 then I
+            else raise ERROR ("expected 1 matching, got " ^ Int.toString (length (Seq.list_of mseq)))) ()
+(*in*)
+  (*val _ = Testing.assert_no_failed_tests();*)
+  val _ = "UNIT TESTS FOR MATCHING2/CIRCLES PASSED!"
+(*end*)
+

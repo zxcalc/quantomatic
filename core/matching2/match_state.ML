@@ -53,11 +53,20 @@ signature OGRAPH_MATCH_STATE
   
   val empty : T
   
+  (* returns true if vmap and evap represent a total graph hm *)
+  val is_total : T -> bool
+  
   (* initialise MatchState and schedule all vertices in pattern to be matched *)
   val init_and_schedule_all : G.T -> G.T -> T
   
+  (* Convenience functions for adding things to match. Convention is these do NOT remove 
+     vertices or edges from the u_*, p_*, or ps_* sets. The caller should do that. *)
+  
   (* adds edge and both endpoints to match *)
   val add_edge_to_match : (E.name * E.name) -> T -> T
+  
+  (* adds wire vertex and associated circle to match *)
+  val add_circle_to_match : (V.name * V.name) -> T -> T
 end
 
 functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
@@ -316,6 +325,17 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
         |> update_emap (EInjEndo.add ep et)
   end
   
+  fun add_circle_to_match (cp, ct) ms = let
+    val ep = (the o E.NSet.tryget_singleton) (G.get_in_edges (get_pat ms) cp)
+    val et = (the o E.NSet.tryget_singleton) (G.get_in_edges (get_tgt ms) ct)
+  in ms |> update_vmap (VInjEndo.add cp ct)
+        |> update_emap (EInjEndo.add ep et)
+  end
+  
+  fun is_total ms =
+    V.NSet.eq (VInjEndo.get_domset (get_vmap ms)) (G.get_vnames (get_pat ms)) andalso
+    E.NSet.eq (EInjEndo.get_domset (get_emap ms)) (G.get_enames (get_pat ms))
+  
   fun init_and_schedule_all pat tgt = let
     val wires = G.get_wire_list pat
     fun delete_wvs_in_wire (s,t,wv,_) set =
@@ -324,7 +344,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
           |> (if G.is_wire_vertex pat t then V.NSet.delete t else I)
     
     val circles = filter (fn (s,t,_,_) => V.name_eq (s,t) andalso G.is_wire_vertex pat s) wires
-    val bare_wires = filter (fn (s,t,_,_) => G.is_wire_vertex pat s andalso G.is_wire_vertex pat t) wires
+    val bare_wires = filter (fn (s,t,_,_) => not (V.name_eq (s,t)) andalso G.is_wire_vertex pat s andalso G.is_wire_vertex pat t) wires
     
     val wvs = fold delete_wvs_in_wire (circles @ bare_wires) (G.get_wire_vertices pat)
     val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty

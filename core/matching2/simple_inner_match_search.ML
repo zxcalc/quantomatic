@@ -8,15 +8,38 @@ functor SimpleInnerMatchSearch(
   
   exception InnerMatchError of string
   
-  (* do as much concrete matching as possible and return a lazy list of updated match states *)
-  fun match_concrete m =
-    if V.NSet.is_empty (MatchState.get_u_circles m) andalso
-       V.NSet.is_empty (MatchState.get_u_nodeverts m) andalso
-       V.NSet.is_empty (MatchState.get_u_wireverts m) andalso
-       V.NSet.is_empty (MatchState.get_ps_nodeverts m)
-    then Seq.single m
-    else Seq.empty (* stub *)
   
+  fun u_circles_in_tgt ms = let
+    val tgt = MatchState.get_tgt ms
+  in fold (fn (s,t,_,_) =>
+       if G.is_wire_vertex tgt s andalso V.name_eq (s,t) andalso (* is a circle *)
+       not (VInjEndo.dom_contains (MatchState.get_vmap ms) s)    (* not matched *)
+       then V.NSet.add s else I) (G.get_wire_list tgt) V.NSet.empty
+  end
+  
+  fun match_circles ms = let
+    fun m_circ cp (SOME (ms', cts)) =
+         (case V.NSet.get_min cts
+            of SOME ct => SOME (ms' |> MatchState.add_circle_to_match (cp,ct)
+                                    |> MatchState.update_u_circles (V.NSet.delete cp),
+                                cts |> V.NSet.delete ct)
+             | NONE => NONE)
+      | m_circ _ NONE = NONE
+  in case V.NSet.fold m_circ (MatchState.get_u_circles ms) (SOME (ms, u_circles_in_tgt ms))
+       of SOME (ms',_) => SOME ms' | NONE => NONE
+  end
+  
+  
+  (* do as much concrete matching as possible and return a lazy list of updated match states *)
+  fun match_concrete ms = case match_circles ms
+    of SOME ms => Seq.single ms (* stub *)
+     | NONE => Seq.empty
+  
+  
+  
+  (*****************************************)
+  (********** BARE WIRE MATCHING ***********)
+  (*****************************************)
   
   (* grow the single, given edge into:
       - a circle consisting of two edges for circles,
