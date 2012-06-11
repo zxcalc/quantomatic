@@ -62,6 +62,10 @@ signature OGRAPH_MATCH_STATE
   (* Convenience functions for adding things to match. Convention is these do NOT remove 
      vertices or edges from the u_*, p_*, or ps_* sets. The caller should do that. *)
   
+  
+  (* adds given vertex to match *)
+  val add_vertex_to_match : (V.name * V.name) -> T -> T
+  
   (* adds edge and both endpoints to match *)
   val add_edge_to_match : (E.name * E.name) -> T -> T
   
@@ -331,6 +335,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   in ms |> update_vmap (VInjEndo.add cp ct)
         |> update_emap (EInjEndo.add ep et)
   end
+  
+  fun add_vertex_to_match (vp, vt) ms = ms |> update_vmap (VInjEndo.add vp vt)
   
   fun is_total ms =
     V.NSet.eq (VInjEndo.get_domset (get_vmap ms)) (G.get_vnames (get_pat ms)) andalso

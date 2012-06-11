@@ -9,6 +9,12 @@ functor SimpleInnerMatchSearch(
   exception InnerMatchError of string
   
   
+  (*****************************************)
+  (************ CIRCLE MATCHING ************)
+  (*****************************************)
+  
+  (* FIXME: circle matching ignores edge data *)
+  
   fun u_circles_in_tgt ms = let
     val tgt = MatchState.get_tgt ms
   in fold (fn (s,t,_,_) =>
@@ -30,10 +36,47 @@ functor SimpleInnerMatchSearch(
   end
   
   
-  (* do as much concrete matching as possible and return a lazy list of updated match states *)
+  (*****************************************)
+  (************* MAIN MATCHING *************)
+  (*****************************************)
+  
+  fun match_main ms = let
+    
+    (* remove pnv from u_nodeverts, and schedule at all sites where it matches *)
+    fun match_and_schedule_new nv = let
+      val ms' = ms |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
+                   |> MatchState.update_p_nodeverts  (V.NSet.add nv)
+                   |> MatchState.update_ps_nodeverts (V.NSet.add nv)
+      val unm_nv_tgt = V.NSet.subtract
+        (G.get_node_vertices (MatchState.get_tgt ms'))
+        (VInjEndo.get_codset (MatchState.get_vmap ms'))
+      val nv_data = G.get_vertex_data (MatchState.get_pat ms') nv
+      fun m_nodevert tnv =
+        case G.VData.match_data (nv_data, G.get_vertex_data (MatchState.get_tgt ms') tnv)
+                                (MatchState.get_match_subst ms)
+          of SOME subst => match_main (ms' |> MatchState.set_match_subst subst
+                                           |> MatchState.add_vertex_to_match (nv, tnv))
+           | NONE => Seq.empty
+    in V.NSet.fold (Seq.append o m_nodevert) unm_nv_tgt Seq.empty
+    end
+    
+    (* continue matching from the given partially-matched node-vertex *)
+    (* STUB: just unschedule given vertex *)
+    fun continue_matching_from nv =
+      match_main (ms |> MatchState.update_ps_nodeverts (V.NSet.delete nv))
+    
+  in case V.NSet.get_min (MatchState.get_ps_nodeverts ms)
+       of SOME ps => continue_matching_from ps
+        | NONE => (
+            case V.NSet.get_min (MatchState.get_u_nodeverts ms)
+              of SOME un => match_and_schedule_new un
+               | NONE => Seq.single ms) (* nothing left to do *)
+  end
+  
+  (* match all circles, then enter main matching routine *)
   fun match_concrete ms = case match_circles ms
-    of SOME ms => Seq.single ms (* stub *)
-     | NONE => Seq.empty
+    of SOME ms' => match_main ms'
+     | NONE     => Seq.empty (* return nothing if circles can't be matched *)
   
   
   
