@@ -156,7 +156,12 @@ val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
 
 
+(* NEW OGraph functions. These use the new terminology, and should
+   supercede their equivalents *)
 
+
+
+(* TODO: remove old functions when convenient *)
 
 (*** functions useful when dealing ignorantly with undirected edges ***)
 
@@ -194,45 +199,16 @@ val is_node_vertex    : T -> V.name -> bool
 val get_wire_vertices : T -> V.NSet.T
 val get_node_vertices : T -> V.NSet.T
 
+(* this replaces the old fold_adj, which uses half-edges *)
+val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T
+
+
 (* return a graph that has exactly two edge points on every wire *)
 val normalise : T -> T
 
 (* return a graph that has no unnecessary edge points *)
 val minimise : T -> T
 
-(* 
-val adj_tgt_info : 
-    T -> V.name 
-    -> VData.data 
-       * (EData.data E.NTab.T (* directed self-loops *)
-          * EData.data E.NTab.T (* undireted self-loops *)
-          * V.NSet.T) (* other adj vertices *)
-*)
-
-(* adjacent information next to an edge *)
-(* datatype adj_info = 
-  AdjInfo of { undir_bndry : (H.name * EData.data) V.NTab.T,
-               in_bndry : (H.name * EData.data) V.NTab.T,
-               out_bndry : (H.name * EData.data) V.NTab.T,
-               dir_loops : EData.data E.NTab.T,
-               undir_loops : EData.data E.NTab.T,
-               other_vs : V.NSet.T
-             };
-
-val adj_info : 
-    T -> V.name 
-    -> VData.data 
-       * ((H.name * EData.data) V.NTab.T (* undirected boundary *)
-          * (H.name * EData.data) V.NTab.T (* incoming boundary *)  
-          * (H.name * EData.data) V.NTab.T (* outgoing boundary *)
-          * EData.data E.NTab.T (* direted self-loops *)
-          * EData.data E.NTab.T (* undirected self-loops *)
-          * V.NSet.T) (* other adj vertices *)
-*)
-
-
-(* NEW OGraph functions. These use the new terminology, and should
-   supercede their equivalents *)
 
 
 end;
@@ -978,6 +954,15 @@ functor OGraphFun(G : BASIC_OGRAPH)
   (* new wires are added before remove old ones because we need edge data *)
   in fold delete_wire wire_list (fold add_norm_wire wire_list g)
   end
+  
+  fun fold_adj_wire_vertices f g v accum = let
+    val (_,(ins,outs)) = get_vertex g v
+    fun wrap_f e = let val wv = edge_get_other_vertex g e v in
+                   if is_wire_vertex g wv then f (wv,e) else I
+                   end
+  in E.NSet.fold wrap_f (E.NSet.union_merge ins outs) accum
+  end
+  
   
   (* fun normalise g = let
     fun norm_edge e g' = let

@@ -40,44 +40,61 @@ functor SimpleInnerMatchSearch(
   (************* MAIN MATCHING *************)
   (*****************************************)
   
-  fun match_main doomedf ms = let
-    
-    (* remove nv from u_nodeverts, and schedule at all sites where it matches *)
-    fun match_and_schedule_new nv = let
-      val ms' = ms |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
-                   |> MatchState.update_p_nodeverts  (V.NSet.add nv)
-                   |> MatchState.update_ps_nodeverts (V.NSet.add nv)
-      val unm_nv_tgt = V.NSet.subtract
-        (G.get_node_vertices (MatchState.get_tgt ms'))
-        (VInjEndo.get_codset (MatchState.get_vmap ms'))
-      val nv_data = G.get_vertex_data (MatchState.get_pat ms') nv
-      fun m_nodevert tnv =
-        case G.VData.match_data (nv_data, G.get_vertex_data (MatchState.get_tgt ms') tnv)
-                                (MatchState.get_match_subst ms)
-          of SOME subst => match_main doomedf
-                             (ms' |> MatchState.set_match_subst subst
-                                  |> MatchState.add_vertex_to_match (nv, tnv))
-           | NONE => Seq.empty
-    in V.NSet.fold (Seq.append o m_nodevert) unm_nv_tgt Seq.empty
-    end
-    
-    (* continue matching from the given partially-matched node-vertex *)
-    (* STUB: just unschedule given vertex *)
-    fun continue_matching_from nv =
-      match_main doomedf (ms |> MatchState.update_ps_nodeverts (V.NSet.delete nv))
-    
-  in case V.NSet.get_min (MatchState.get_ps_nodeverts ms)
-       of SOME ps => continue_matching_from ps
-        | NONE => (
-            case V.NSet.get_min (MatchState.get_u_nodeverts ms)
-              of SOME un => match_and_schedule_new un
-               | NONE => Seq.single ms) (* nothing left to do *)
-  end
+  fun match_concrete doomedf match_state = let
   
-  (* match all circles, then enter main matching routine *)
-  fun match_concrete doomedf ms = case match_circles ms
-    of SOME ms' => match_main doomedf ms'
-     | NONE     => Seq.empty (* return nothing if circles can't be matched *)
+    (* main matching loop *)
+    fun match_main ms = let
+      
+      (* remove nv from u_nodeverts, and schedule at all sites where it matches *)
+      fun match_and_schedule_new nv = let
+        val ms' = ms |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
+                     |> MatchState.update_p_nodeverts  (V.NSet.add nv)
+                     |> MatchState.update_ps_nodeverts (V.NSet.add nv)
+        val unm_nv_tgt = V.NSet.subtract
+          (G.get_node_vertices (MatchState.get_tgt ms'))
+          (VInjEndo.get_codset (MatchState.get_vmap ms'))
+        val nv_data = G.get_vertex_data (MatchState.get_pat ms') nv
+        fun m_nodevert tnv =
+          case G.VData.match_data (nv_data, G.get_vertex_data (MatchState.get_tgt ms') tnv)
+                                  (MatchState.get_match_subst ms)
+            of SOME subst => match_main (ms' |> MatchState.set_match_subst subst
+                                             |> MatchState.add_vertex_to_match (nv, tnv))
+             | NONE => Seq.empty
+      in V.NSet.fold (Seq.append o m_nodevert) unm_nv_tgt Seq.empty
+      end
+      
+      
+      (* continue matching from the given partially-matched node-vertex *)
+      fun continue_matching_from nvp = if doomedf ms nvp then Seq.empty else let
+        val nvt = VInjEndo.domf (MatchState.get_vmap ms) nvp
+        fun trymatch_edge ep et = let
+          val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
+          val ((dir_p,data_p), _) = G.get_edge pat ep
+          val ((dir_t,data_t), _) = G.get_edge tgt et
+          val pat_inedge = V.name_eq (G.get_edge_target pat ep, nvp)
+          val tgt_inedge = V.name_eq (G.get_edge_target tgt et, nvt)
+        in if dir_p = dir_t andalso (            (* directedness must match and... *)
+                dir_p = G.UnDirected orelse      (* undirected or... *)
+                (pat_inedge = tgt_inedge))       (* directions match *)
+           then G.EData.match_data (data_p,data_t) (MatchState.get_match_subst ms)
+           else NONE
+        end
+      in match_main (ms |> MatchState.update_ps_nodeverts (V.NSet.delete nvp)) (* STUB: just unschedules given vertex *)
+      end
+    
+    (* process next node-vertex in schedule *)  
+    in case V.NSet.get_min (MatchState.get_ps_nodeverts ms)        (* if there are partially matched node-verts scheduled, *)
+         of SOME ps => continue_matching_from ps                   (* traverse from there... *)
+          | NONE => (
+              case V.NSet.get_min (MatchState.get_u_nodeverts ms)  (* otherwise find a new unmatched vertex and match/schedule *)
+                of SOME un => match_and_schedule_new un
+                 | NONE => Seq.single ms) (* nothing left to do *)
+    end (* match_main *)
+  
+  in case match_circles match_state (* match all circles, then enter main matching routine *)
+       of SOME ms => match_main ms
+        | NONE    => Seq.empty      (* return nothing if circles can't be matched *)
+  end
   
   
   
