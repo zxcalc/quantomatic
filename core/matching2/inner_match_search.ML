@@ -21,8 +21,8 @@ sig
   val match_circles : MatchState.T -> MatchState.T option
   
   
-  (*** These are exposed mainly for debugging ***)
-  val u_circles_in_tgt : MatchState.T -> V.NSet.T
+  (*** Uncomment for debug ***)
+  (*val u_circles_in_tgt : MatchState.T -> V.NSet.T*)
   
   structure Sharing : INNER_MATCH_SEARCH_SHARING
     sharing Sharing.G = G.SharingOGraph

@@ -164,7 +164,7 @@ functor SimpleInnerMatchSearch(
         
         (* unmatched edges in target graph *)
         val (_,(ins,outs)) = G.get_vertex (MatchState.get_tgt ms) nvt
-        val unm_tgt = E.NSet.filter (EInjEndo.cod_contains (MatchState.get_emap ms))
+        val unm_tgt = E.NSet.filter (not o (EInjEndo.cod_contains (MatchState.get_emap ms)))
                                     (E.NSet.union_merge ins outs)
       in case next_ep
            of SOME ep =>
@@ -174,7 +174,10 @@ functor SimpleInnerMatchSearch(
                  of SOME ms' => Seq.append (match_nhd ms' nvp)
                   | NONE     => I
              )) unm_tgt Seq.empty
-            | NONE => match_main ms
+            | NONE => match_main (* remove from partially matched if unm_tgt is empty *)
+                        (ms |> (if E.NSet.is_empty unm_tgt
+                                then MatchState.update_p_nodeverts (V.NSet.delete nvp)
+                                else I))
       end
       
       
