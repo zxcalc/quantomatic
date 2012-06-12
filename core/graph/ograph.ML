@@ -189,6 +189,9 @@ val get_wire_containing_edge : T -> E.name -> (V.name * V.name * V.NSet.T * E.NS
 (* Return a list of all the wires in the graph *)
 val get_wire_list : T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
 
+(* Given a vertex and first edge, return the (non-circle, normalised) wire,
+   starting with that edge as two lists containing verts and edges.  *)
+val normalised_wire_as_lists : T -> V.name -> E.name -> (V.name list * E.name list)
 
 
 val is_input_vertex : T -> V.name -> bool
@@ -200,7 +203,7 @@ val get_wire_vertices : T -> V.NSet.T
 val get_node_vertices : T -> V.NSet.T
 
 (* this replaces the old fold_adj, which uses half-edges *)
-val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T
+(*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
 
 
 (* return a graph that has exactly two edge points on every wire *)
@@ -907,6 +910,19 @@ functor OGraphFun(G : BASIC_OGRAPH)
      else (s_end, t_end, s_wvs |> V.NSet.union_merge t_wvs, es)
   end
   
+  
+  fun normalised_wire_as_lists g head first_edge = let
+    val wv1 = edge_get_other_vertex g first_edge head
+    val e1maybe = wv_get_other_edge g wv1 first_edge
+  in case e1maybe 
+       of NONE    => ([head,wv1],[first_edge]) (* boundary *)
+        | SOME e1 => let val wv2  = edge_get_other_vertex g e1 wv1 (* internal *)
+                         val e2   = the (wv_get_other_edge g wv2 e1)
+                         val tail = edge_get_other_vertex g e2 wv2
+                     in ([head,wv1,wv2,tail],[e1,e2])
+                     end
+  end
+  
   fun get_wire_list g = let
     fun gw es = if E.NSet.is_empty es then []
                 else let val wire = get_wire_containing_edge g ((the o E.NSet.get_min) es)
@@ -955,13 +971,13 @@ functor OGraphFun(G : BASIC_OGRAPH)
   in fold delete_wire wire_list (fold add_norm_wire wire_list g)
   end
   
-  fun fold_adj_wire_vertices f g v accum = let
+  (*fun fold_adj_wire_vertices f g v accum = let
     val (_,(ins,outs)) = get_vertex g v
     fun wrap_f e = let val wv = edge_get_other_vertex g e v in
                    if is_wire_vertex g wv then f (wv,e) else I
                    end
   in E.NSet.fold wrap_f (E.NSet.union_merge ins outs) accum
-  end
+  end*)
   
   
   (* fun normalise g = let

@@ -99,7 +99,7 @@ end
   val two_x = G.empty
   val (_,two_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
   val (_,two_x) = one_x |> G.add_named_vertex (V.mk "x2") (mkX zero_angle)
-    
+  
   
   val mseq = M.match one_x G.empty
   val _ = Testing.test "M.match - one x --> empty" (assert_n_match 0 mseq) ()
