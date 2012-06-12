@@ -123,41 +123,6 @@ functor SimpleInnerMatchSearch(
      | NONE => NONE (* edge data did not match: ep -> et *)
   end
   
-  (* return (SOME match_state) if we can successfully add the wire *)
-  (*fun tryadd_wire ms (nvp,ep) (nvt,et) = let
-    val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
-    val e_subst = let
-      val ((dir_p,data_p), _) = G.get_edge pat ep
-      val ((dir_t,data_t), _) = G.get_edge tgt et
-      val pat_inedge = V.name_eq (G.get_edge_target pat ep, nvp)
-      val tgt_inedge = V.name_eq (G.get_edge_target tgt et, nvt)
-    in if dir_p = dir_t andalso (            (* directedness must match and... *)
-            dir_p = G.UnDirected orelse      (* undirected or... *)
-            (pat_inedge = tgt_inedge))       (* directions match *)
-       then G.EData.match_data (data_p,data_t) (MatchState.get_match_subst ms)
-       else NONE
-    end
-  in case e_subst
-       of SOME e_subst' => let
-            (* get the whole wire *)
-            val (wirep_vs,wirep_es) = G.normalised_wire_as_lists pat nvp ep
-            val (wiret_vs,wiret_es) = G.normalised_wire_as_lists tgt nvt ep
-          in case (wirep_vs, wiret_vs)
-               of ([_,_,_,_],[_,_])                 => NONE (* internal in pat, bdry in tgt *)
-                | ([hp,b1p],(ht::b1t::_))           => (  (* bdry in pat *)
-                    case G.VData.match_data 
-                                (G.get_vertex_data pat b1p, G.get_vertex_data tgt b1t)
-                                e_subst'
-                      of SOME subst' => SOME (
-                           ms |> MatchState.add_edge_to_match (ep, et)
-                              |> MatchState.update_u_wireverts (V.NSet.delete b1p))
-                       | NONE => NONE
-                  )
-                | ([hp,b1p,b2p,tp],[ht,b1t,b2t,tt]) =>      (* internal in both *)
-                | _     => raise InnerMatchError "Got unexpected wire list. Check normalisation."
-          end
-        | NONE => NONE
-  end*)
   
     
   fun match_concrete doomedf match_state = let

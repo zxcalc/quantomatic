@@ -836,24 +836,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
 
   
 
-  
-  (*fun wire_for_edge g e = let
-    fun add_edge_from_g e' g' = let
-      val (data_and_dir, (src,tgt)) = get_edge g e'
-      val g' = if has_vname g src then g' else snd (g' |> add_named_vertex src (get_vertex_data g src))
-      val g' = if has_vname g tgt then g' else snd (g' |> add_named_vertex tgt (get_vertex_data g tgt))
-      val g' = snd (g' |> add_named_edge e' data_and_dir src tgt)
-    in g'
-    end
-    fun grow_fw v g' =
-      if is_edgepoint g' v then g'
-      else g'
-  in grow_fw ((snd o snd) (get_edge g e)) (empty |> add_edge_from_g e)
-  end
-  
-  fun fold_wires f g accum = accum
-  
-  fun wires g = E.NSet.empty*)
 
 
   fun is_wire_vertex g v = case get_vertex_data g v of OVData.EVert => true | _ => false
@@ -971,30 +953,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
   in fold delete_wire wire_list (fold add_norm_wire wire_list g)
   end
   
-  (*fun fold_adj_wire_vertices f g v accum = let
-    val (_,(ins,outs)) = get_vertex g v
-    fun wrap_f e = let val wv = edge_get_other_vertex g e v in
-                   if is_wire_vertex g wv then f (wv,e) else I
-                   end
-  in E.NSet.fold wrap_f (E.NSet.union_merge ins outs) accum
-  end*)
-  
-  
-  (* fun normalise g = let
-    fun norm_edge e g' = let
-      val (data_and_dir, (src,tgt)) = get_edge g' e
-    in if (is_ivertex g' src andalso is_ivertex g' tgt) then
-         let val (ep1,g') = g' |> add_vertex OVData.EVert
-             val (ep2,g') = g' |> add_vertex OVData.EVert
-          in g' |> doadd_edge data_and_dir src ep1
-                |> doadd_edge data_and_dir ep1 ep2
-                |> doadd_edge data_and_dir ep2 tgt
-                |> delete_edge e
-          end
-       else g'
-    end
-  in E.NSet.fold norm_edge (get_enames g) g
-  end *)
   
 
 end; (* OpenGraphFun *)
