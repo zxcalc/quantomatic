@@ -13,46 +13,39 @@ functor SimpleInnerMatchSearch(
   (************ CIRCLE MATCHING ************)
   (*****************************************)
   
-  
-  (* Circle matching always acts deterministically. This may need to be
-     changed if circles every have data that generates non-trivial subst's. *)
-  
+
   fun u_circles_in_tgt ms = let
     val tgt = MatchState.get_tgt ms
   in fold (fn (s,t,_,_) =>
        if G.is_wire_vertex tgt s andalso V.name_eq (s,t) andalso (* is a circle *)
-       not (VInjEndo.dom_contains (MatchState.get_vmap ms) s)    (* not matched *)
+       not (VInjEndo.cod_contains (MatchState.get_vmap ms) s)    (* not matched *)
        then V.NSet.add s else I) (G.get_wire_list tgt) V.NSet.empty
   end
-  
-  fun match_circles ms = let
-    val (pat,tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
-    fun find_matching_circ cp cts =
-      case V.NSet.get_min cts
-        of SOME ct => (
-          case G.VData.match_data (G.get_vertex_data pat cp, G.get_vertex_data tgt ct)
-                                  (MatchState.get_match_subst ms)
-            of SOME v_subst =>
-              let
-                val ep = (the o E.NSet.tryget_singleton) (G.get_in_edges pat cp)
-                val et = (the o E.NSet.tryget_singleton) (G.get_in_edges tgt ct)
-              in
-                case G.EData.match_data (G.get_edge_data pat ep, G.get_edge_data tgt et) v_subst
-                  of SOME e_subst => SOME (ct,e_subst)
-                   | NONE => NONE
-              end
-          )
-         | NONE => NONE
-    fun m_circ cp (SOME (ms', cts)) =
-         (case find_matching_circ cp cts
-            of SOME (ct,subst) => SOME (ms' |> MatchState.add_circle_to_match (cp,ct)
-                                            |> MatchState.update_u_circles (V.NSet.delete cp),
-                                        cts |> V.NSet.delete ct)
-             | NONE => NONE)
-      | m_circ _ NONE = NONE
-  in case V.NSet.fold m_circ (MatchState.get_u_circles ms) (SOME (ms, u_circles_in_tgt ms))
-       of SOME (ms',_) => SOME ms' | NONE => NONE
-  end
+
+  fun match_circles ms =
+    case V.NSet.get_min (MatchState.get_u_circles ms)
+      of SOME cp => let
+           val (pat,tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
+           val cpdata = G.get_vertex_data pat cp
+           val ep = (the o E.NSet.tryget_singleton) (G.get_in_edges pat cp)
+           val ((epdir,epdata),_) = G.get_edge pat ep
+           val subst = MatchState.get_match_subst ms
+           fun m_circ ct = let
+             val ctdata = G.get_vertex_data tgt ct
+             val et = (the o E.NSet.tryget_singleton) (G.get_in_edges tgt ct)
+             val ((etdir,etdata),_) = G.get_edge tgt et
+           in case (epdir = etdir,
+                    perhaps_apply [G.VData.match_data (cpdata,ctdata),
+                                   G.EData.match_data (epdata,etdata)] subst)
+                of (true, SOME subst') =>
+                      match_circles (ms |> MatchState.update_u_circles (V.NSet.delete cp)
+                                        |> MatchState.add_circle_to_match (cp,ct)
+                                        |> MatchState.set_match_subst subst')
+                 | (_, NONE) => Seq.empty
+           end
+         in V.NSet.fold (Seq.append o m_circ) (u_circles_in_tgt ms) Seq.empty
+         end
+       | NONE => Seq.single ms (* no circles left to match, return match state *)
   
   
   (*****************************************)
@@ -195,9 +188,8 @@ functor SimpleInnerMatchSearch(
                  | NONE => Seq.single ms) (* nothing left to do *)
     end (* match_main *)
   
-  in case match_circles match_state (* match all circles, then enter main matching routine *)
-       of SOME ms => match_main ms
-        | NONE    => Seq.empty      (* return nothing if circles can't be matched *)
+  (* match all circles, then enter main matching routine *)
+  in Seq.maps match_main (match_circles match_state)
   end
   
   

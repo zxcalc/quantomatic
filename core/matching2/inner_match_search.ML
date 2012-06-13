@@ -17,9 +17,9 @@ sig
   (* Match all the bare wires in u_bare_wires, expanding edge points where necessary. *)
   val match_bare_wires : MatchState.T -> MatchState.T Seq.seq
   
-  (* Match all circles. This can be done deterministically, as we don't care which circles go where. *)
-  val match_circles : MatchState.T -> MatchState.T option
-  
+  (* Match all circles.*)
+  val match_circles : MatchState.T -> MatchState.T Seq.seq
+    
   
   (*** Uncomment for debug ***)
   (*val u_circles_in_tgt : MatchState.T -> V.NSet.T*)

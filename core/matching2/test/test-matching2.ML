@@ -62,31 +62,6 @@ in
   val _ = "UNIT TESTS FOR MATCHING2/BARE WIRES PASSED!"
 end
 
-local
-  open Test_MkG
-  open Test_MatchUtil
-  structure M = Test_Matcher
-  
-  val bare_wire = G.empty
-  val (b1,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b1") bvert
-  val (b2,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b2") bvert
-  val (_,bare_wire)  = bare_wire |> G.add_named_edge (E.mk "e1") dir_edge b1 b2
-  
-  val circle = G.empty
-  val (b3,circle) = circle |> G.add_named_vertex (V.mk "b3") bvert
-  val (_,circle)  = circle |> G.add_named_edge (E.mk "e2") dir_edge b3 b3
-  
-  
-  val mseq = M.match circle G.empty
-  val _ = Testing.test "M.match - circle --> empty"  (assert_n_match 0 mseq) ()
-  
-  val mseq = M.match circle circle
-  val _ = Testing.test "M.match - circle --> circle" (assert_n_match 1 mseq) ()
-in
-  val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR MATCHING2/CIRCLES PASSED!"
-end
-
 
 local
   open Test_MkG
@@ -159,6 +134,7 @@ local
   val (_,b_x_x_b)  = b_x_x_b |> G.add_named_edge (E.mk "e2") dir_edge b4 x2
   val (_,b_x_x_b)  = b_x_x_b |> G.add_named_edge (E.mk "e3") dir_edge x3 b5
   
+    
   val mseq = M.match G.empty one_x
   val _ = Testing.test "M.match - empty --> one x" (assert_n_match 1 mseq) ()
   
@@ -182,5 +158,99 @@ local
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR MATCHING2/MAIN PASSED!"
+end
+
+
+local
+  open Test_MkG
+  open Test_MatchUtil
+  structure M = Test_Matcher
+  val g = G.empty
+  val (x6,g) = g |> G.add_named_vertex (V.mk "x6") (mkX (LinratAngleExpr.parse "a"))
+  val (x7,g) = g |> G.add_named_vertex (V.mk "x7") (mkX (LinratAngleExpr.parse "b"))
+  val (_,g)  = g |> G.add_named_edge (E.mk "e4") dir_edge x6 x7
+  val diff_angles = g
+  
+  val g = G.empty
+  val (x8,g) = g |> G.add_named_vertex (V.mk "x8") (mkX (LinratAngleExpr.parse "a"))
+  val (x9,g) = g |> G.add_named_vertex (V.mk "x9") (mkX (LinratAngleExpr.parse "a"))
+  val (_,g)  = g |> G.add_named_edge (E.mk "e5") dir_edge x8 x9
+  val same_angles = g
+  
+  val g = G.empty
+  val (x10,g) = g |> G.add_named_vertex (V.mk "x10") (mkX (LinratAngleExpr.parse "2"))
+  val (x11,g) = g |> G.add_named_vertex (V.mk "x11") (mkX (LinratAngleExpr.parse "1"))
+  val (_,g)  = g |> G.add_named_edge (E.mk "e6") dir_edge x10 x11
+  val diff_const = g
+  
+  val g = G.empty
+  val (x12,g) = g |> G.add_named_vertex (V.mk "x12") (mkX (LinratAngleExpr.parse "2"))
+  val (x13,g) = g |> G.add_named_vertex (V.mk "x13") (mkX (LinratAngleExpr.parse "2"))
+  val (_,g)  = g |> G.add_named_edge (E.mk "e7") dir_edge x12 x13
+  val same_const = g
+
+  val mseq = M.match diff_angles diff_angles
+  val _ = Testing.test "M.match - diff angles --> diff angles" (assert_n_match 1 mseq) ()
+  
+  val mseq = M.match diff_angles same_angles
+  val _ = Testing.test "M.match - diff angles --> same angles" (assert_n_match 1 mseq) ()
+  
+  val mseq = M.match diff_angles diff_const
+  val _ = Testing.test "M.match - diff angles --> diff const" (assert_n_match 1 mseq) ()
+  
+  val mseq = M.match diff_angles same_const
+  val _ = Testing.test "M.match - diff angles --> same const" (assert_n_match 1 mseq) ()
+  
+  val mseq = M.match diff_const diff_angles
+  val _ = Testing.test "M.match - diff const --> diff angles" (assert_n_match 0 mseq) ()
+  
+  val mseq = M.match same_angles diff_const
+  val _ = Testing.test "M.match - same angles --> diff const" (assert_n_match 0 mseq) ()
+  
+  val mseq = M.match same_angles diff_angles
+  val _ = Testing.test "M.match - same angles --> diff angles" (assert_n_match 0 mseq) ()
+  
+  val mseq = M.match same_angles same_const
+  val _ = Testing.test "M.match - same angles --> same const" (assert_n_match 1 mseq) ()
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR MATCHING2/ANGLES PASSED!"
+end
+
+local
+  open Test_MkG
+  open Test_MatchUtil
+  structure M = Test_Matcher
+  
+  val bare_wire = G.empty
+  val (b1,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b1") bvert
+  val (b2,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b2") bvert
+  val (_,bare_wire)  = bare_wire |> G.add_named_edge (E.mk "e1") dir_edge b1 b2
+  
+  val circle = G.empty
+  val (b3,circle) = circle |> G.add_named_vertex (V.mk "b3") bvert
+  val (_,circle)  = circle |> G.add_named_edge (E.mk "e2") dir_edge b3 b3
+  
+  val g = G.empty
+  val (b4,g) = g |> G.add_named_vertex (V.mk "b4") bvert
+  val (_,g)  = g |> G.add_named_edge (E.mk "e3") dir_edge b4 b4
+  val (b5,g) = g |> G.add_named_vertex (V.mk "b5") bvert
+  val (_,g)  = g |> G.add_named_edge (E.mk "e4") dir_edge b5 b5
+  val two_circles = g
+  
+  val mseq = M.match circle G.empty
+  val _ = Testing.test "M.match - circle --> empty"  (assert_n_match 0 mseq) ()
+  
+  val mseq = M.match circle circle
+  val _ = Testing.test "M.match - circle --> circle" (assert_n_match 1 mseq) ()
+  
+  val mseq = M.match circle two_circles
+  val _ = Testing.test "M.match - circle --> two circles" (assert_n_match 2 mseq) ()
+  
+  val mseq = M.match two_circles two_circles
+  val _ = Testing.test "M.match - two circles --> two circles" (assert_n_match 2 mseq) ()
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR MATCHING2/CIRCLES PASSED!"
 end
 
