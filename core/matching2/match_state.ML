@@ -1,3 +1,5 @@
+(* The match state for graph matching *)
+(* see docs/matching_algo for details *)
 signature OGRAPH_MATCH_STATE_SHARING
 = sig
   type T

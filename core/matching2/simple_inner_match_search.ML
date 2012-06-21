@@ -1,3 +1,5 @@
+(* The inner matching loop *)
+(* see docs/matching_algo for details *)
 functor SimpleInnerMatchSearch(
     structure G : OGRAPH
 ) : INNER_MATCH_SEARCH

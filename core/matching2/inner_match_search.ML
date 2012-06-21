@@ -1,3 +1,5 @@
+(* The inner matching loop interface *)
+(* see docs/matching_algo for details *)
 signature INNER_MATCH_SEARCH_SHARING =
 sig
   structure G : OGRAPH_SHARING
