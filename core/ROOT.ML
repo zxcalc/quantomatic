@@ -146,8 +146,9 @@ PolyML.Project.make "matching2/outer_match_search.ML";
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching2/simple_inner_match_search.ML";
 
-(* pattern-free wrapper for simple_inner_match_search *)
-PolyML.Project.make "matching2/simple_outer_match_search.ML";
+(* wrappers for inner_match_search *)
+(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
+PolyML.Project.make "matching2/concrete_outer_match_search.ML";
 
 
 (* Testing *)

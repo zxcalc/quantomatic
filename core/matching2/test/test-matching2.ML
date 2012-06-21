@@ -1,6 +1,6 @@
 
 structure Test_InnerMatcher = SimpleInnerMatchSearch(structure G = Test_MkG.G)
-structure Test_Matcher = SimpleOuterMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
+structure Test_Matcher = ConcreteOuterMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
 
 structure Test_MatchUtil =
 struct

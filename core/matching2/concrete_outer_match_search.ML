@@ -1,4 +1,4 @@
-functor SimpleOuterMatchSearch(
+functor ConcreteOuterMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
 ) : OUTER_MATCH_SEARCH =
 struct
@@ -6,7 +6,7 @@ struct
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
   
-  fun concrete_doomedf ms nv = false
+  fun concrete_doomedf _ _ = false
   
   fun match_avoiding_names names pat tgt = let
     val pat = G.normalise pat
