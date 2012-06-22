@@ -376,7 +376,7 @@ struct
     let
       val vert_list = V.NTab.list_of (G.get_vertices graph)
       val edge_list = E.NTab.list_of (G.get_edges graph)
-      val bbox_list = VBMap.codf_list_of (G.get_v_bbox_map graph)
+      val bbox_list = B.NTab.list_of (G.get_bbox_table graph)
     in
       { name = n,
         vertices = map describe_vertex vert_list,

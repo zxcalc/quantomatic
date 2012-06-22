@@ -175,9 +175,7 @@ fun mk_id g =
       val enames = G.get_enames g;
       val bbnames = G.get_bboxes g; 
       val boundary_vnames = G.get_boundary g;
-      val bbmatch = 
-          BBMatch.mk_id boundary_vnames
-                        (G.VBMap.get_codset (G.get_v_bbox_map g));
+      val bbmatch = BBMatch.mk_id boundary_vnames (G.get_bboxes g);
       val evmap = (* mk id *)
           V.NSet.fold (fn n => V.Map.add_to_dom n n) 
                       boundary_vnames V.Map.empty;

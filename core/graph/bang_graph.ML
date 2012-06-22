@@ -42,7 +42,6 @@ exception no_such_bbox_exp of unit
 
 exception bbox_already_exists_exp of B.name * T;
 
-(* FIXME: alter *) val get_v_bbox_map : T -> VBMap.T
 val get_bbox_contents : T -> B.name -> V.NSet.T
 val get_bbox_list : T -> B.name list
 val get_unbboxed : T -> V.NSet.T
@@ -54,6 +53,8 @@ val try_rename1_bbox : B.name -> B.name -> T -> T option
  * since using these can lead to an inconsistent state *)
 
 (* *** END OF COPIED *** *)
+
+val get_bbox_table : T -> V.NSet.T B.NTab.T
 
 val get_bboxes : T -> B.NSet.T
 val add_to_bboxes : T -> B.NSet.T -> B.NSet.T
@@ -266,6 +267,8 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* provide open graph functions/tools *)
   structure OGraph = OGraphFun(G);
   open OGraph;
+
+  val get_bbox_table = VBMap.get_codtab o get_v_bbox_map
 
   (* all !-box names *)
   val get_bboxes = VBMap.get_codset o get_v_bbox_map;
