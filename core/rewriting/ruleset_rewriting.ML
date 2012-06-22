@@ -77,14 +77,14 @@ struct
             (X.Rnm.mk_from_avoids (G.get_xnames g),
              V.Rnm.mk_from_avoids (G.get_vnames g),
              E.Rnm.mk_from_avoids (G.get_enames g),
-             B.Rnm.mk_from_avoids (G.get_bbnames g))
+             B.Rnm.mk_from_avoids (G.get_bboxes g))
         val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val gs = [lhs, g, Rule.get_rhs r]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
-           fold G.add_to_bbnames gs B.NSet.empty)
+           fold G.add_to_bboxes gs B.NSet.empty)
       in (r,RuleMatchSearch.match names r g) end;
 
   (* TODO: no need to totally rename-apart the rule: matching removes the tgt 
@@ -99,14 +99,14 @@ struct
             (X.Rnm.mk_from_avoids (G.get_xnames g),
              V.Rnm.mk_from_avoids (G.get_vnames g),
              E.Rnm.mk_from_avoids (G.get_enames g),
-             B.Rnm.mk_from_avoids (G.get_bbnames g))
+             B.Rnm.mk_from_avoids (G.get_bboxes g))
         val (rnm,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val gs = [lhs, g, Rule.get_rhs r]
         val names = 
           (fold G.add_to_vnames gs V.NSet.empty,
            fold G.add_to_enames gs E.NSet.empty,
-           fold G.add_to_bbnames gs B.NSet.empty)
+           fold G.add_to_bboxes gs B.NSet.empty)
       in (r, RuleMatchSearch.match names r 
               (G.matched_subgraph_within_vset vset g)) 
       end;

@@ -376,7 +376,7 @@ struct
     let
       val vert_list = V.NTab.list_of (G.get_vertices graph)
       val edge_list = E.NTab.list_of (G.get_edges graph)
-      val bbox_list = VBMap.codf_list_of (G.get_bboxes graph)
+      val bbox_list = VBMap.codf_list_of (G.get_v_bbox_map graph)
     in
       { name = n,
         vertices = map describe_vertex vert_list,
@@ -665,7 +665,7 @@ fun hilb ([format], graph) =
                 end
                | BangBoxVertices { bangBoxName } =>
                     StringListResponse {
-                      data = (map V.dest (V.NSet.list_of (G.get_bbox graph (B.mk bangBoxName))))
+                      data = (map V.dest (V.NSet.list_of (G.get_bbox_contents graph (B.mk bangBoxName))))
                     }
                | BangBoxUserData { bangBoxName, dataName } =>
                 let
@@ -817,18 +817,18 @@ fun hilb ([format], graph) =
                  | PrettyFormat => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
                  | XmlFormat  =>  let
                                     val graph = (State.get_graph state'' gname)
-                                    val verts = (G.get_bbox graph nm)
+                                    val verts = (G.get_bbox_contents graph nm)
                                     val bbox  = (nm,verts)
                                   in
                                    (XmlResponse { data = Output.BBox.output bbox }, state'')
                                   end
                  | DescriptionFormat => let
                                           val graph = (State.get_graph state'' gname)
-                                          val verts = (G.get_bbox graph nm)
+                                          val verts = (G.get_bbox_contents graph nm)
                                           val bbox  = (nm,verts)
                                         in
                                          (BangBoxDescriptionResponse {
-                                            bangBox = describe_bangbox (nm,(G.get_bbox graph nm))
+                                            bangBox = describe_bangbox (nm,(G.get_bbox_contents graph nm))
                                           }, state'')
                                         end
             end

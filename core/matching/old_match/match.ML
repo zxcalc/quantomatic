@@ -155,8 +155,8 @@ fun init (vs,es,bs) pat tgt =
                 (V.NSet.union_merge (G.get_vnames tgt) vs),  
              E.NSet.union_merge (G.get_enames pat)
                 (E.NSet.union_merge (G.get_enames tgt) es), 
-             B.NSet.union_merge (G.get_bbnames pat) 
-                (B.NSet.union_merge (G.get_bbnames tgt) bs)),
+             B.NSet.union_merge (G.get_bboxes pat) 
+                (B.NSet.union_merge (G.get_bboxes tgt) bs)),
     viso = V.InjEndo.empty,
     evmap = V.Map.empty,
     emap = EMap.empty,
@@ -173,11 +173,11 @@ fun mk_id g =
     let 
       val vnames = G.get_vnames g;
       val enames = G.get_enames g;
-      val bbnames = G.get_bbnames g; 
+      val bbnames = G.get_bboxes g; 
       val boundary_vnames = G.get_boundary g;
       val bbmatch = 
           BBMatch.mk_id boundary_vnames
-                        (G.VBMap.get_codset (G.get_bboxes g));
+                        (G.VBMap.get_codset (G.get_v_bbox_map g));
       val evmap = (* mk id *)
           V.NSet.fold (fn n => V.Map.add_to_dom n n) 
                       boundary_vnames V.Map.empty;
@@ -192,7 +192,7 @@ fun mk_id g =
           V.NSet.fold (fn n => V.InjEndo.add n n) 
                       (V.NSet.subtract vnames boundary_vnames) 
                       V.InjEndo.empty;
-    in Match {names = (vnames,enames,G.get_bbnames g),
+    in Match {names = (vnames,enames,G.get_bboxes g),
               evmap = evmap, 
               viso = viso, 
               emap = emap, 

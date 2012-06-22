@@ -98,7 +98,7 @@ functor OutputGraphContentsXMLList_v2(
 
   fun output_edges g = (map eout.output (Graph.get_edge_list g))
 
-  fun output_bbox g box = bbout.output (box,(Graph.get_bbox g box))
+  fun output_bbox g box = bbout.output (box,(Graph.get_bbox_contents g box))
   fun output_bboxes g = (map (output_bbox g) (Graph.get_bbox_list g))
 
   fun output g = (output_vertices g)@(output_edges g)@(output_bboxes g)

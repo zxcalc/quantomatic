@@ -48,7 +48,7 @@ signature USER_DATA =
 
     exception vname_already_exists of (V.name * T);
     exception ename_already_exists of (E.name * T);
-    exception bbname_already_exists of (B.name * T);
+    exception bbbox_already_exists of (B.name * T);
   end;
 
 functor UserData(Graph:BANG_GRAPH):USER_DATA
@@ -73,7 +73,7 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
 
     exception vname_already_exists of (V.name * T);
     exception ename_already_exists of (E.name * T);
-    exception bbname_already_exists of (B.name * T);
+    exception bbbox_already_exists of (B.name * T);
 
    
     (* That's the one advertised in the signature *)
@@ -168,7 +168,7 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
           val e_diff = E.NSet.remove_set g_enset ud_enset
           val e_ud' = E.NSet.fold (E.NTab.delete) e_diff (get_es_ud ud)
           (* Check which bangboxes where removed *)
-          val g_bnset = Graph.get_bbnames g
+          val g_bnset = Graph.get_bboxes g
           val ud_bnset = B.NTab.get_nameset (get_bs_ud ud)
           val b_diff = B.NSet.remove_set g_bnset ud_bnset
           val b_ud' = B.NSet.fold (B.NTab.delete) b_diff (get_bs_ud ud)
@@ -222,7 +222,7 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
   fun rename_bangbox oldname newname ud =
     case (B.NTab.try_rename1 oldname newname (get_bs_ud ud)) of
       SOME a => set_b_ud a ud
-      | NONE => raise bbname_already_exists (newname, ud)
+      | NONE => raise bbbox_already_exists (newname, ud)
 
         (* TODO *)
   fun pretty_user_data ud = Pretty.str "Not Implemented";

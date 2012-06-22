@@ -16,7 +16,7 @@ fun rule_matches_graph r g = let
    val names =
      (fold Graph.add_to_vnames  gs V.NSet.empty,
       fold Graph.add_to_enames  gs E.NSet.empty,
-      fold Graph.add_to_bbnames gs B.NSet.empty)
+      fold Graph.add_to_bboxes gs B.NSet.empty)
    val matches = MatchSearch.match names lhs g
  in case Seq.pull matches of NONE=>false | _=>true
  end

@@ -12,7 +12,7 @@ struct
   type T = string
   type data = Graph.T
   fun node_block graph = let
-    val boxtab = VBMap.get_codtab (Graph.get_bboxes graph)
+    val boxtab = VBMap.get_codtab (Graph.get_v_bbox_map graph)
     fun sty nm = case Graph.get_vertex graph nm
                    of (Graph.OVData.IVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
                     | (Graph.OVData.EVert, _) => " [style=filled,fillcolor=gray,shape=box,width=0,height=0,fontcolor=white]"

@@ -50,7 +50,7 @@ functor OutputGraphContentsXMLList_v1(
       wrap_els_simple "bangbox" (
           (wrap_el_simple "name" (OutputBBoxName.output box))
           ::(map (fn vname => wrap_el_simple "boxedvertex" (OutputVertexName.output vname))
-                 (V.NSet.list_of (Graph.get_bbox g box)))
+                 (V.NSet.list_of (Graph.get_bbox_contents g box)))
       );
 
 

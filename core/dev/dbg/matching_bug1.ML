@@ -46,7 +46,7 @@ val pat = Rule.get_lhs rule;
 val rhs = (Rule.get_rhs rule);
 val vs = RGGraph.get_vnames rhs;
 val es = RGGraph.get_enames rhs;
-val bs = RGGraph.get_bbnames rhs;
+val bs = RGGraph.get_bboxes rhs;
 val names = (vs,es,bs);
 
 val m = (Match.init names pat tgt);
@@ -134,7 +134,7 @@ open DB_MatchSearch;
 val rhs = (Rule.get_rhs rule);
 val vs = RGGraph.get_vnames rhs;
 val es = RGGraph.get_enames rhs;
-val bs = RGGraph.get_bbnames rhs;
+val bs = RGGraph.get_bboxes rhs;
 val names = (vs,es,bs);
 val init_st = (init (Match.init names pat tgt) pat tgt V.NTab.empty);
 val st = init_st;

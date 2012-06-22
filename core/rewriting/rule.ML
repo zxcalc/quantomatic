@@ -34,7 +34,7 @@ signature BASIC_RULE
   val try_rename1_ename : E.name -> E.name -> T -> T option
   val try_rename1_vname : V.name -> V.name 
       -> T -> T option
-  val try_rename1_bname : B.name -> B.name -> T -> T option
+  val try_rename1_bbox : B.name -> B.name -> T -> T option
   val try_rename1_xname : X.name -> X.name -> T -> T option
   
   structure XCRnm : COMPOUND_RENAMING 
@@ -198,7 +198,7 @@ fun check_rule_consistency lhs rhs =
            B.name_eq ((Graph.get_bbox_of lhs vn),(Graph.get_bbox_of rhs vn)) 
     in
       (V.NSet.eq lhsboundary rhsboundary) andalso
-      (B.NSet.eq (Graph.get_bbnames lhs) (Graph.get_bbnames rhs)) andalso
+      (B.NSet.eq (Graph.get_bboxes lhs) (Graph.get_bboxes rhs)) andalso
       (fold (has_same_bangbox) (lhsboundary') true)
    end; 
 
@@ -332,8 +332,8 @@ fun get_enames rule =
       (Graph.get_enames (get_rhs rule));
 fun get_bnames rule = 
     B.NSet.union_merge 
-      (Graph.get_bbnames (get_lhs rule))
-      (Graph.get_bbnames (get_rhs rule));
+      (Graph.get_bboxes (get_lhs rule))
+      (Graph.get_bboxes (get_rhs rule));
     
 (* *)
 fun try_rename1_xname n1 n2 rule =
@@ -351,10 +351,10 @@ fun try_rename1_ename n1 n2 rule =
       (rule |> (update_lhs (untryify (Graph.try_rename1_ename n1 n2)))
             |> (update_rhs (untryify (Graph.try_rename1_ename n1 n2)))))
     handle tryify_failed () => NONE;
-fun try_rename1_bname n1 n2 rule = 
+fun try_rename1_bbox n1 n2 rule = 
     (SOME 
-      (rule |> (update_lhs (untryify (Graph.try_rename1_bname n1 n2)))
-            |> (update_rhs (untryify (Graph.try_rename1_bname n1 n2)))))
+      (rule |> (update_lhs (untryify (Graph.try_rename1_bbox n1 n2)))
+            |> (update_rhs (untryify (Graph.try_rename1_bbox n1 n2)))))
     handle tryify_failed () => NONE;
     
 (* *)
@@ -383,7 +383,7 @@ structure BBoxCRnm = CompoundRenamingFun(
   struct 
     structure Nm = B;
     type obj = T
-    val try_rename1 = try_rename1_bname;
+    val try_rename1 = try_rename1_bbox;
     val get_nameset = get_bnames
   end);
 

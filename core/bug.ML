@@ -10,7 +10,7 @@ fun rule_matches_graph r g = let
     val names = 
         (fold GHZW_Theory.Graph.add_to_vnames  gs GHZW_Theory.Graph.Vertex.NSet.empty,
          fold GHZW_Theory.Graph.add_to_enames  gs GHZW_Theory.Graph.Edge.NSet.empty,
-         fold GHZW_Theory.Graph.add_to_bbnames gs GHZW_Theory.Graph.BBox.NSet.empty)
+         fold GHZW_Theory.Graph.add_to_bboxes gs GHZW_Theory.Graph.BBox.NSet.empty)
 val matches = GHZW_Theory.RuleMatchSearch.match names r g
 in case Seq.pull matches of NONE=>false | _=>true
 end

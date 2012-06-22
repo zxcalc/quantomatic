@@ -175,8 +175,8 @@ functor Match(G : BANG_GRAPH)
                   (V.NSet.union_merge (G.get_vnames tgt) vs),  
                E.NSet.union_merge (G.get_enames pat)
                   (E.NSet.union_merge (G.get_enames tgt) es), 
-               B.NSet.union_merge (G.get_bbnames pat) 
-                  (B.NSet.union_merge (G.get_bbnames tgt) bs)),
+               B.NSet.union_merge (G.get_bboxes pat) 
+                  (B.NSet.union_merge (G.get_bboxes tgt) bs)),
       viso = VInjEndo.empty,
       evmap = VMap.empty,
       pluggings = VInjEndo.empty,
@@ -251,7 +251,7 @@ functor Match(G : BANG_GRAPH)
   
   val get_vnames = #1 o get_names;
   val get_enames = #2 o get_names;
-  val get_bbnames = #3 o get_names;
+  val get_bboxes = #3 o get_names;
 
   fun get_subst (Match rep) = #subst rep;
 
@@ -511,7 +511,7 @@ functor Match(G : BANG_GRAPH)
         val ((vnames,enames),g) = 
           ((V.Rnm.get_avoids vrn,E.Rnm.get_avoids ern),g) |> 
           BBMatch.inst_replacement_bbox_match (get_bbmatch m);
-        val m' = m |> set_names (vnames,enames,get_bbnames m); 
+        val m' = m |> set_names (vnames,enames,get_bboxes m); 
       in g |> rename_and_merge_edgepoint_vertices m'
            |> datasubst m'
       end;
@@ -522,7 +522,7 @@ functor Match(G : BANG_GRAPH)
         val ((vnames,enames),g) = 
             BBMatch.inst_replacement_bbox_match (get_bbmatch m)
               ((get_vnames m,get_enames m),g)
-        val m' = m |> set_names (vnames,enames,get_bbnames m); 
+        val m' = m |> set_names (vnames,enames,get_bboxes m); 
       in g |> rename_and_merge_edgepoint_vertices m'
            |> merge_edgehalfs m'
            |> datasubst m'

@@ -356,7 +356,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         else raise Graph.no_such_ename_exp ("ASSERT", ename, graph);
 
   fun assert_bbox_exists state gname bname =
-        if Graph.has_bname (get_graph state gname) bname then ()
+        if Graph.has_bbox (get_graph state gname) bname then ()
         else raise no_such_bbox_exp (bname, gname);
 
 
@@ -534,7 +534,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                 raise vertex_name_exists_exp (vname,gname)
            | Graph.ename_already_exists_exp (ename,_) =>
                 raise edge_name_exists_exp (ename,gname)
-           | Graph.bname_already_exists_exp (bname,_) =>
+           | Graph.bbox_already_exists_exp (bname,_) =>
                 raise bbox_name_exists_exp (bname,gname);
 
   fun lift_graph_mutator_no_result cmdf gname state =
@@ -554,7 +554,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                 raise vertex_name_exists_exp (vname,gname)
            | Graph.ename_already_exists_exp (ename,_) =>
                 raise edge_name_exists_exp (ename,gname)
-           | Graph.bname_already_exists_exp (bname,_) =>
+           | Graph.bbox_already_exists_exp (bname,_) =>
                 raise bbox_name_exists_exp (bname,gname);
 
   fun lift_ud_mutator_no_result cmdf gname state =
@@ -655,7 +655,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         state' |> rename_edge_or_bb_uidata UIData.rename_edge old new graph 
       end;
 
-  fun rename_bang_internal old new graph = (graph |> Graph.rename_bname old new)
+  fun rename_bang_internal old new graph = (graph |> Graph.rename_bbox old new)
   fun rename_bang old new graph state = 
     let
       val state' = lift_graph_mutator_no_result (rename_bang_internal old new) graph state
