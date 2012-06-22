@@ -70,7 +70,7 @@ signature BASIC_RULE
   datatype 'a otype =   Initial of constr
                       | Rooted of constr * 'a
                       | Boundary of 'a
-                      | Boxed of B.name * 'a otype;
+                      | Boxed of B.NSet.T * 'a otype;
   (* gets cached symmetry match-search order *)  
   val get_order : T -> (V.name otype * V.name tree) list
   (* gets self-applications *)
@@ -102,7 +102,7 @@ datatype constr   =   Constrained
 datatype 'a otype =   Initial of constr
                     | Rooted of constr * 'a
                     | Boundary of 'a
-                    | Boxed of B.name * 'a otype;
+                    | Boxed of B.NSet.T * 'a otype;
 
 fun keep_if_fixed n a = if V.name_eq ((  VInjEndo.domf
                                             o GraphIso.get_vmap) a n, n)
@@ -128,9 +128,9 @@ fun gen_order_sub g auts vset =
          in  (auts''', Tree (v, subtr)::tail) end;
                            
 fun gen_order g auts done bound =
-    let fun maybe_box vn v = case Graph.lookup_bbox_of g vn of
-                               NONE   => v
-                             | SOME b => Boxed (b,v)
+    let fun maybe_box vn v = if Graph.is_bboxed g vn then
+                               Boxed (Graph.get_bboxes_of g vn,v)
+                             else v
         val aset = Graph.incident_vertices g done
         val (root,vset)=if V.NSet.is_empty aset
                       then (NONE,Graph.get_vnames g
@@ -195,7 +195,7 @@ fun check_rule_consistency lhs rhs =
       val lhsboundary' = filter (Graph.is_bboxed lhs) (V.NSet.list_of lhsboundary)
       fun has_same_bangbox vn b = b andalso
           (Graph.is_bboxed rhs vn)   andalso
-           B.name_eq ((Graph.get_bbox_of lhs vn),(Graph.get_bbox_of rhs vn)) 
+           B.NSet.eq (Graph.get_bboxes_of lhs vn) (Graph.get_bboxes_of rhs vn)
     in
       (V.NSet.eq lhsboundary rhsboundary) andalso
       (B.NSet.eq (Graph.get_bboxes lhs) (Graph.get_bboxes rhs)) andalso

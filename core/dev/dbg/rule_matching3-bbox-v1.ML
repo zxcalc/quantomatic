@@ -8,7 +8,7 @@ val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
 val (_, g) = g |> G.add_edge edge n1 n1;
 val (_, g) = g |> G.add_edge edge b1 n1;
 val (bbn, g) = g |> G.new_bbox (B.mk "B0");
-val g = g |> G.move_to_bbox bbn (V.NSet.single b1);
+val g = g |> G.add_to_bbox bbn (V.NSet.single b1);
 val pat = g;
 
 val (bcopy,g2) = G.copy1_bbox (B.mk "B0") pat;

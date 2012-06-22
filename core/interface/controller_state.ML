@@ -123,7 +123,7 @@ sig
 
   val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
   val kill_bang : B.name list -> GraphName.name -> T -> T
-  val unbang_vertices : V.name list -> GraphName.name -> T -> T
+  val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
   val drop_bang : B.name list -> GraphName.name -> T -> T
@@ -809,7 +809,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let val _ = assert_bbox_exists state gname box
           val _ = map (assert_vertex_exists state gname) verts
       in
-        lift_graph_mutator_no_result (Graph.move_to_bbox box (V.NSet.of_list verts)) gname state
+        lift_graph_mutator_no_result (Graph.add_to_bbox box (V.NSet.of_list verts)) gname state
       end
 
   fun unbang_vertices verts gname state =

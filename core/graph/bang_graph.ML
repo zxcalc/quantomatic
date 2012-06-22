@@ -61,6 +61,7 @@ val add_to_bboxes : T -> B.NSet.T -> B.NSet.T
 
 (* FIXME: remove *) val lookup_bbox_of : T -> V.name -> B.name option
 (* FIXME: remove *) val get_bbox_of : T -> V.name -> B.name
+val get_bboxes_of : T -> V.name -> B.NSet.T
 
 val is_bboxed : T -> V.name -> bool
 
@@ -69,6 +70,8 @@ val has_bbox : T -> B.name -> bool
 val new_bbox : B.name -> T -> B.name * T
 (* FIXME: remove *) val move_to_bbox : B.name -> V.NSet.T -> T -> T
 (* FIXME: remove *) val move_to_unbbox : V.NSet.T -> T -> T
+val add_to_bbox : B.name -> V.NSet.T -> T -> T
+val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
 
 val kill_bbox : B.name -> T -> T
@@ -310,6 +313,9 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun get_bbox_of g v = 
       VBMap.domf (get_v_bbox_map g) v 
       handle VBMap.not_in_dom_exp _ => raise no_such_bbox_exp ();
+  fun get_bboxes_of g v = case (lookup_bbox_of g v) of
+                               NONE => B.NSet.empty
+                             | SOME b => B.NSet.single b
 
   fun is_bboxed g v = V.NSet.contains (VBMap.get_domset (get_v_bbox_map g)) v;
 
@@ -334,6 +340,10 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun move_to_unbbox vs g = 
       g |> update_v_bbox_map (V.NSet.fold VBMap.del_dom vs)
         |> update_unbboxed (V.NSet.union_merge vs);
+
+  val add_to_bbox = move_to_bbox
+  (* FIXME: what should happen if not in bbox? *)
+  fun remove_from_bbox _ = move_to_unbbox
   
   (* overrides previous function *)
   (* Merge g1 into g2.
