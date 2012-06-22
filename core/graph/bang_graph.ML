@@ -34,12 +34,12 @@ signature BANG_GRAPH =
 sig
 include OGRAPH;
 
+exception merge_bbox_exp of string 
+exception no_such_bbox_exp of unit
+
 (* *** COPIED FROM BASIC_BANG_GRAPH ... would be better to have union version 
    of include *** *)
 
-exception merge_bbox_exp of string 
-exception overlapping_bbox_exp of V.NSet.T * T
-exception no_such_bbox_exp of unit
 exception bbox_already_exists_exp of B.name * T;
 
 val get_v_bbox_map : T -> VBMap.T
@@ -300,7 +300,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
 
 
-  exception overlapping_bbox_exp of V.NSet.T * T;
   exception no_such_bbox_exp of unit;
 
   (* lookup name of box that v is in, NONE if unboxed *)
