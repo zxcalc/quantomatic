@@ -24,9 +24,6 @@ val update_bboxes : (VBMap.T -> VBMap.T) -> T -> T
 val set_unbboxed : V.NSet.T -> T -> T
 val set_bboxes : VBMap.T -> T -> T
 
-val add_to_unbboxed : V.name -> T -> T
-val del_from_unbboxed : V.name -> T -> T
-
 end;
 
 
