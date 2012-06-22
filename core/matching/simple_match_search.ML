@@ -66,8 +66,8 @@ functor SimpleMatchSearch(Match : MATCH)
 
   (* Note w.r.t. evaluation thing: we generally rely on pat boundary and unboxed being monotomic (not affecting existing vertices during the matching process.) Gives back seq of unboxed internal names, then boxed internal names. *)
   fun pat_vertex_agenda_seq' pat vs = 
-      let val unboxed = (G.get_unboxed pat);
-          val boxed = (G.get_boxed pat);
+      let val unboxed = (G.get_unbboxed pat);
+          val boxed = (G.get_bboxed pat);
       in
         Seq.map_filter 
           (fn n => if G.is_boundary pat (name_of_vertex_kind_name n) then NONE 
@@ -133,7 +133,7 @@ functor SimpleMatchSearch(Match : MATCH)
   val get_bbmap =  Match.get_bbmap o get_match;
 
   fun get_unm_tgt (MState rep) = #unm_tgt rep;
-  val get_unm_unboxed_tgt_vs = G.get_unboxed o get_unm_tgt;
+  val get_unm_unboxed_tgt_vs = G.get_unbboxed o get_unm_tgt;
   fun get_tgt_vs (MState rep) = (* tgt contains all vs; only edges are removed *)
       V.NTab.get_nameset o G.get_vertices o get_unm_tgt;
   val get_unm_tgt_es =
@@ -231,27 +231,27 @@ functor SimpleMatchSearch(Match : MATCH)
       let val pat = get_pat st;
           val tgt = get_unm_tgt st;
       in
-        (case G.lookup_box_of tgt tvn2 of 
+        (case G.lookup_bbox_of tgt tvn2 of 
            NONE => 
-           (case G.lookup_box_of pat pvn2 of 
+           (case G.lookup_bbox_of pat pvn2 of 
               NONE => SOME st (* no bboxes; continue as normal *)
             | SOME pbbn2 => (* some pat bbox, no tgt bbox *)
               (case BMap.lookup_domf (get_bbmap st) pbbn2 of
-                 NONE => SOME (st |> update_pat (G.drop_box pbbn2)
+                 NONE => SOME (st |> update_pat (G.drop_bbox pbbn2)
                                   |> update_match (Match.add_bbox_drop pbbn2))
                | SOME _ => NONE)) (* pat bbox already mapped; can't be dropped  *)
          | SOME tbbn2 => 
-           (case G.lookup_box_of pat pvn2 of 
+           (case G.lookup_bbox_of pat pvn2 of 
               NONE => NONE (* target bbox, but no pat bbox => fail *)
             | SOME pbbn2 => (* both in bboxes *)
               (case BMap.lookup_domf (get_bbmap st) pbbn2 of
                  NONE => (* pattern bbox not yet mapped - make new mapping *)
-                 (case G.lookup_box_of tgt tvn1 of
+                 (case G.lookup_bbox_of tgt tvn1 of
                     NONE => SOME (st |> update_match (Match.add_bbox_map pbbn2 tbbn2))
                   | SOME tbbn1 =>
                     (* two adj pat !-boxes can't match single adj target one *)
                     if (B.name_eq (tbbn1,tbbn2)) andalso 
-                       not (B.name_eq (G.get_box_of pat pvn1,pbbn2))
+                       not (B.name_eq (G.get_bbox_of pat pvn1,pbbn2))
                     then NONE
                     else 
                       SOME (st |> update_match (Match.add_bbox_map pbbn2 tbbn2)))
@@ -418,7 +418,7 @@ functor SimpleMatchSearch(Match : MATCH)
   fun copy1_pat_bbox bbn st = 
       let val (names as vs,es,bs) = get_names st
           val (bbn2,((vrn',ern',brn'),pat2)) = 
-            G.copy1_box bbn 
+            G.copy1_bbox bbn 
               (( V.Rnm.mk_from_avoids vs, 
                  E.Rnm.mk_from_avoids es,
                  B.Rnm.mk_from_avoids bs), 
@@ -437,7 +437,7 @@ functor SimpleMatchSearch(Match : MATCH)
   fun nfold 0 f a = a
     | nfold n f a = nfold (n - 1) f (f a);
   fun copy_pat_bbox bbn k st = 
-      if k = 0 then st |> update_pat (G.kill_box bbn) 
+      if k = 0 then st |> update_pat (G.kill_bbox bbn) 
                        |> update_match (Match.add_bbox_kills [bbn])
       else if k = 1 then st
       else if k > 1 then 
@@ -549,7 +549,7 @@ functor SimpleMatchSearch(Match : MATCH)
          | Progress of T Seq.seq (* or choices in matching *)
 
   (* get tgt vertex names as a seq *)
-  val get_unboxed_tgt_vnseq = 
+  val get_unbboxed_tgt_vnseq = 
       Seq.of_list o V.NSet.list_of o get_unm_unboxed_tgt_vs;
 
   (* *)
@@ -563,7 +563,7 @@ functor SimpleMatchSearch(Match : MATCH)
       let val pat = get_pat st;
           val bboxlist = G.get_bbox_list pat;
       in 
-        st |> update_pat (fold G.kill_box bboxlist)
+        st |> update_pat (fold G.kill_bbox bboxlist)
            |> update_match (Match.add_bbox_kills bboxlist)
       end;
 
@@ -585,7 +585,7 @@ functor SimpleMatchSearch(Match : MATCH)
                Progress 
                 (Seq.maps (* choices over picking a new vertex in tgt *)
                    (match_2vertices_with_edges pn st)
-                   (get_unboxed_tgt_vnseq st)))
+                   (get_unbboxed_tgt_vnseq st)))
             | SOME (BBoxed pn, st) => (* FIXME: add initial bbox match *)
               (* all other things are in boxes, 
                  so killing them all gives a valid matching... *)

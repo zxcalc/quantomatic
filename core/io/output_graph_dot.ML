@@ -26,7 +26,7 @@ struct
       (Pretty.str " {\n")::
       (V.NSet.fold_rev f vset
       (Pretty.str "}\n"::list))
-  in B.NTab.fold box_f boxtab (V.NSet.fold_rev f (Graph.get_unboxed graph) [])
+  in B.NTab.fold box_f boxtab (V.NSet.fold_rev f (Graph.get_unbboxed graph) [])
   end
   
   fun edge_block graph = let

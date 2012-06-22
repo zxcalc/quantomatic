@@ -7,11 +7,11 @@ val (b1, g) = g |> G.add_vertex bvert;
 val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
 val (_, g) = g |> G.add_edge edge n1 n1;
 val (_, g) = g |> G.add_edge edge b1 n1;
-val (bbn, g) = g |> G.new_box (B.mk "B0");
-val g = g |> G.move_to_box bbn (V.NSet.single b1);
+val (bbn, g) = g |> G.new_bbox (B.mk "B0");
+val g = g |> G.move_to_bbox bbn (V.NSet.single b1);
 val pat = g;
 
-val (bcopy,g2) = G.copy1_box (B.mk "B0") pat;
+val (bcopy,g2) = G.copy1_bbox (B.mk "B0") pat;
 
 
 (* X with 2 boundaries and self-loop *)
@@ -45,7 +45,7 @@ val st = init_st;
 
 (* *)
 val SOME (UnBBoxed pn) = get_next_pat_vertex st;
-val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val [tn1,tn2,tn3] = Seq.list_of (get_unbboxed_tgt_vnseq st);
 val tn = tn3;
 
       val pat = get_unm_pat st;
@@ -104,7 +104,7 @@ val (Progress s) = do_next_match_choices st;
 val NONE = pop_agenda st;
 val SOME (UnBBoxed pvn) = get_next_pat_vertex st;
 
-val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val [tn1,tn2,tn3] = Seq.list_of (get_unbboxed_tgt_vnseq st);
 val tn = tn1;
 
 (* match_2vertices_with_edges pvn st *)

@@ -12,20 +12,20 @@ include BASIC_OGRAPH;
 val get_bboxes : T -> VBMap.T
 val get_bbox : T -> B.name -> V.NSet.T
 val get_bbox_list : T -> B.name list
-val get_unboxed : T -> V.NSet.T
+val get_unbboxed : T -> V.NSet.T
 
 exception bname_already_exists_exp of B.name * T;
 val rename_bname : B.name -> B.name -> T -> T
 val try_rename1_bname : B.name -> B.name -> T -> T option
 
-val update_unboxed : (V.NSet.T -> V.NSet.T) -> T -> T
+val update_unbboxed : (V.NSet.T -> V.NSet.T) -> T -> T
 val update_bboxes : (VBMap.T -> VBMap.T) -> T -> T
 
-val set_unboxed : V.NSet.T -> T -> T
+val set_unbboxed : V.NSet.T -> T -> T
 val set_bboxes : VBMap.T -> T -> T
 
-val add_to_unboxed : V.name -> T -> T
-val del_from_unboxed : V.name -> T -> T
+val add_to_unbboxed : V.name -> T -> T
+val del_from_unbboxed : V.name -> T -> T
 
 end;
 
@@ -48,8 +48,8 @@ exception bname_already_exists_exp of B.name * T;
 val get_bboxes : T -> VBMap.T
 val get_bbox : T -> B.name -> V.NSet.T
 val get_bbox_list : T -> B.name list
-val get_unboxed : T -> V.NSet.T
-val get_boxed : T -> V.NSet.T
+val get_unbboxed : T -> V.NSet.T
+val get_bboxed : T -> V.NSet.T
 val rename_bname : B.name -> B.name -> T -> T
 val try_rename1_bname : B.name -> B.name -> T -> T option
 
@@ -61,24 +61,24 @@ val try_rename1_bname : B.name -> B.name -> T -> T option
 val get_bbnames : T -> B.NSet.T
 val add_to_bbnames : T -> B.NSet.T -> B.NSet.T
 
-val lookup_box_of : T -> V.name -> B.name option
-val get_box_of : T -> V.name -> B.name
+val lookup_bbox_of : T -> V.name -> B.name option
+val get_bbox_of : T -> V.name -> B.name
 
-val is_boxed : T -> V.name -> bool
+val is_bboxed : T -> V.name -> bool
 
 val has_bname : T -> B.name -> bool
 
-val new_box : B.name -> T -> B.name * T
-val move_to_box : B.name -> V.NSet.T -> T -> T
-val move_to_unbox : V.NSet.T -> T -> T
+val new_bbox : B.name -> T -> B.name * T
+val move_to_bbox : B.name -> V.NSet.T -> T -> T
+val move_to_unbbox : V.NSet.T -> T -> T
 
 
-val kill_box : B.name -> T -> T
-val drop_box : B.name -> T -> T
-val merge_boxes : B.NSet.T -> T -> B.name * T
+val kill_bbox : B.name -> T -> T
+val drop_bbox : B.name -> T -> T
+val merge_bboxes : B.NSet.T -> T -> B.name * T
 
 
-val copy1_box : B.name (* bbox to copy *) 
+val copy1_bbox : B.name (* bbox to copy *) 
       -> ((V.renaming (* renaming for bbox copy/avoids *)
            * E.renaming 
            * B.renaming) 
@@ -89,7 +89,7 @@ val copy1_box : B.name (* bbox to copy *)
                * B.renaming) (* bbname copying *)
              * T)) (* new graph with bbox copied *)
 
-val fresh_copy1_box : B.name (* bbox to copy *) 
+val fresh_copy1_bbox : B.name (* bbox to copy *) 
       -> T (* graph containing bbox name *) 
       -> (B.name (* new box name *)
           * T) (* new graph with bbox copied *)
@@ -155,7 +155,7 @@ functor BasicBangGraphFun(
              unboxed : V.NSet.T,
              data : data
            };
-  fun get_unboxed_of_hdata (HData rep) = #unboxed rep;
+  fun get_unbboxed_of_hdata (HData rep) = #unboxed rep;
   fun get_bboxes_of_hdata (HData rep) = #bboxes rep;
   fun get_data_of_hdata (HData rep) = #data rep;
   fun update_bboxes_of_hdata f (HData rep) =
@@ -168,7 +168,7 @@ functor BasicBangGraphFun(
               bboxes = #bboxes rep,
               unboxed = #unboxed rep
             };
-  fun update_unboxed_of_hdata f (HData rep) =
+  fun update_unbboxed_of_hdata f (HData rep) =
       HData { data = #data rep,
               bboxes = #bboxes rep,
               unboxed = f (#unboxed rep)
@@ -193,25 +193,25 @@ functor BasicBangGraphFun(
   val update_data = G.update_data o update_data_of_hdata;
 
   (* for bbox part of added data *)
-  val get_unboxed = get_unboxed_of_hdata o G.get_data;
+  val get_unbboxed = get_unbboxed_of_hdata o G.get_data;
   val get_bboxes : T -> VBMap.T = get_bboxes_of_hdata o G.get_data;
   val get_bbox_list = VBMap.get_codlist o get_bboxes;
-  val update_unboxed = G.update_data o update_unboxed_of_hdata;
+  val update_unbboxed = G.update_data o update_unbboxed_of_hdata;
   val update_bboxes = G.update_data o update_bboxes_of_hdata;
-  val set_unboxed = update_unboxed o K;
-  val add_to_unboxed = update_unboxed o V.NSet.add;
-  val del_from_unboxed = update_unboxed o V.NSet.delete;
+  val set_unbboxed = update_unbboxed o K;
+  val add_to_unbboxed = update_unbboxed o V.NSet.add;
+  val del_from_unbboxed = update_unbboxed o V.NSet.delete;
   val set_bboxes : VBMap.T -> T -> T = update_bboxes o K;
   val get_bbox = B.NTab.get o VBMap.get_codtab o get_bboxes;
 
   (* modified/new basic graph functions *)
   fun add_named_vertex n v g =
       let val (n2,g2) = G.add_named_vertex n v g
-      in (n2, add_to_unboxed n2 g2) end;
+      in (n2, add_to_unbboxed n2 g2) end;
 
   (* deleting vertex also removes all it's edges. *)
   fun delete_vertex n g = 
-      g |> del_from_unboxed n
+      g |> del_from_unbboxed n
         |> update_bboxes (VBMap.surj_del_dom n)
         |> G.delete_vertex n;
 
@@ -220,7 +220,7 @@ functor BasicBangGraphFun(
         (* the NONE case should never happen: all vertices already occur in 
            graph, so G.rename_vname should have raised an exeption. *)
         |> update_bboxes (the o VBMap.try_rename1_dom n1 n2) 
-        |> update_unboxed (the o V.NSet.try_rename1 n1 n2); 
+        |> update_unbboxed (the o V.NSet.try_rename1 n1 n2); 
                        
 
   exception bname_already_exists_exp of B.name * T;
@@ -275,7 +275,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val add_to_bbnames = B.NSet.union_merge o get_bbnames;
 
   (* all vertices in a bbox *)
-  val get_boxed = VBMap.get_domset o get_bboxes;
+  val get_bboxed = VBMap.get_domset o get_bboxes;
 
   structure BBoxCRnm = CompoundRenamingFun(
   struct 
@@ -307,17 +307,17 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   exception no_such_bbox_exp of unit;
 
   (* lookup name of box that v is in, NONE if unboxed *)
-  fun lookup_box_of g v = VBMap.lookup_domf (get_bboxes g) v;
-  fun get_box_of g v = 
+  fun lookup_bbox_of g v = VBMap.lookup_domf (get_bboxes g) v;
+  fun get_bbox_of g v = 
       VBMap.domf (get_bboxes g) v 
       handle VBMap.not_in_dom_exp _ => raise no_such_bbox_exp ();
 
-  fun is_boxed g v = V.NSet.contains (VBMap.get_domset (get_bboxes g)) v;
+  fun is_bboxed g v = V.NSet.contains (VBMap.get_domset (get_bboxes g)) v;
 
   val has_bname = B.NTab.contains_name o VBMap.get_codtab o get_bboxes;
 
   (* make a new empty !-box *)
-  fun new_box bn g = 
+  fun new_bbox bn g = 
       let
         val bboxes = (get_bboxes g);
         val bn2 = B.NSet.new (VBMap.get_codset bboxes) bn;
@@ -327,14 +327,14 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   
   (* add to a !-box; makes new box, if name doesn't alreayd exist;
   IMPROVE: raise exception if box doesn't already exist? *)
-  fun move_to_box bn vs g = 
+  fun move_to_bbox bn vs g = 
       g |> update_bboxes (VBMap.add_to_cod bn vs 
                           o V.NSet.fold VBMap.del_dom vs)
-        |> update_unboxed (V.NSet.remove_set vs);
+        |> update_unbboxed (V.NSet.remove_set vs);
   
-  fun move_to_unbox vs g = 
+  fun move_to_unbbox vs g = 
       g |> update_bboxes (V.NSet.fold VBMap.del_dom vs)
-        |> update_unboxed (V.NSet.union_merge vs);
+        |> update_unbboxed (V.NSet.union_merge vs);
   
   (* overrides previous function *)
   (* Merge g1 into g2.
@@ -350,13 +350,13 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
         g2 |> OGraph.merge_by_vertices g1
            |> B.NTab.fold
                 (fn (bbn,vset) => 
-                  move_to_box bbn 
+                  move_to_bbox bbn 
                     (V.NSet.subtract vset (get_edgepoints g1)))
                 (VBMap.get_codtab g1bboxes)
        end;
 
   (* copy bang box, given renaming info, or possibly with dictated renaming. *)
-  fun copy1_box bn ((vrn,ern,brn),g) = 
+  fun copy1_bbox bn ((vrn,ern,brn),g) = 
       let val bbox_vs = get_bbox g bn;
           val old_new_vnames = V.Rnm.get_newnames vrn;
           val vrn2 = V.Rnm.set_newnames V.NSet.empty vrn;
@@ -373,23 +373,23 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
          ))
       end;
 
-  fun fresh_copy1_box bn g = 
-      let val (bname, (_, graph)) = copy1_box bn
+  fun fresh_copy1_bbox bn g = 
+      let val (bname, (_, graph)) = copy1_bbox bn
                 ((V.Rnm.mk_from_avoids (get_vnames g),
                 E.Rnm.mk_from_avoids (get_enames g),
                 B.Rnm.mk_from_avoids (get_bbnames g)),g)
       in (bname, graph) end;
   
-  fun kill_box bn g = 
+  fun kill_bbox bn g = 
       let val bbox_vs = get_bbox g bn
       in g |> V.NSet.fold delete_vertex bbox_vs
            |> update_bboxes (VBMap.del_cod bn)
       end;
   
-  fun drop_box bn g = 
+  fun drop_bbox bn g = 
       let val bbox_vs = get_bbox g bn 
       in g |> update_bboxes (VBMap.del_cod bn)
-           |> update_unboxed (V.NSet.union_merge bbox_vs)
+           |> update_unbboxed (V.NSet.union_merge bbox_vs)
       end;
   
   
@@ -397,13 +397,13 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   exception merge_bbox_exp of string 
   
   (* returns bbox-name merged all boxes into and new merged graph *)
-  fun merge_boxes bnset g = 
+  fun merge_bboxes bnset g = 
       (case B.NSet.pull_local_top bnset of 
          NONE => raise merge_bbox_exp "given empty bbox name set"
        | SOME (bn,bnset2) => 
          (bn, B.NSet.fold 
               (fn bn2 => fn g2 =>
-                   g2 |> move_to_box bn (get_bbox g2 bn2)
+                   g2 |> move_to_bbox bn (get_bbox g2 bn2)
                       |> update_bboxes (VBMap.del_cod bn2))
               bnset2 g));
   
@@ -419,7 +419,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* auxillary function; adding a vertex to a map of adj banged, 
      or a set of others. *)
   fun add_to_others g n (vtobang, others) = 
-      (case lookup_box_of g n of NONE => (vtobang, V.NSet.add n others)
+      (case lookup_bbox_of g n of NONE => (vtobang, V.NSet.add n others)
        | SOME bbn => (if VBMap.dom_contains vtobang n then vtobang 
                          else VBMap.add_to_dom n bbn vtobang, 
                       others));
@@ -466,13 +466,13 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
      and one for those in a different bang-boxes. Filter by function: when function is true, skip this adj entry. *)
   fun get_filtered_adj_arities_and_bang_arities f g n = 
       let 
-        val nbbox = lookup_box_of g n;
+        val nbbox = lookup_bbox_of g n;
   
         (* interesting case for auto-optimisation *)
         fun in_a_different_bbox n2 = 
-            (case nbbox of NONE => lookup_box_of g n2
+            (case nbbox of NONE => lookup_bbox_of g n2
              | SOME bbn => 
-                (case lookup_box_of g n2 of 
+                (case lookup_bbox_of g n2 of 
                     NONE => NONE
                   | SOME bbn2 => 
                     if (not (B.name_eq (bbn, bbn2))) 

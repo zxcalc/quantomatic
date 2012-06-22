@@ -44,7 +44,7 @@ functor BangGraphIso(Graph : BANG_GRAPH)
       
   exception box_mismatch_exp of unit;
   fun match_boxes g h vng vnh b =
-      (case (Graph.lookup_box_of g vng,Graph.lookup_box_of h vnh) of
+      (case (Graph.lookup_bbox_of g vng,Graph.lookup_bbox_of h vnh) of
            (NONE,NONE)       =>  b
          | (SOME bg,SOME bh) => ((b |> BInjEndo.add bg bh)
                                 handle BInjEndo.add_exp _ 

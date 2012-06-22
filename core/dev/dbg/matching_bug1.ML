@@ -159,7 +159,7 @@ val [st] = l;
 
 (* *)
 val SOME (UnBBoxed pn) = get_next_pat_vertex st;
-val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val [tn1,tn2,tn3] = Seq.list_of (get_unbboxed_tgt_vnseq st);
 val tn = tn1;
 
       val pat = get_unm_pat st;
@@ -263,13 +263,13 @@ val (rn,g) = (get_rhs rule)
 val (bn1,bn2)::more = BMap.Dom.NTab.list_of (BMap.get_domtab (BBMatch.get_copies bbmatch));
 
 PolyML.exception_trace (fn () =>
-  RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((vrn,ern),g));
+  RGGraph.copy1_bbox_given_ext_rnm bn1 bn2 ((vrn,ern),g));
 
 
 
 
 PolyML.exception_trace (fn () =>
-  RGGraph.copy1_box_given_ext_rnm bn1 bn2 ((vrnm,ernm),g));
+  RGGraph.copy1_bbox_given_ext_rnm bn1 bn2 ((vrnm,ernm),g));
 
 
 (* *)

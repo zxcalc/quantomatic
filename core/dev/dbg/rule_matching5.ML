@@ -112,7 +112,7 @@ val (ignore_arity,st) = (0, match_lfvertex pn (tn,td) st);
 
 (* or ...*)
 val SOME (UnBBoxed pn) = get_next_pat_vertex st;
-val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val [tn1,tn2,tn3] = Seq.list_of (get_unbboxed_tgt_vnseq st);
 val tn = tn3;
 
 (* then ... *)
@@ -178,7 +178,7 @@ val (Progress s) = do_next_match_choices st;
 val NONE = pop_agenda st;
 val SOME (UnBBoxed pvn) = get_next_pat_vertex st;
 
-val [tn1,tn2,tn3] = Seq.list_of (get_unboxed_tgt_vnseq st);
+val [tn1,tn2,tn3] = Seq.list_of (get_unbboxed_tgt_vnseq st);
 val tn = tn1;
 
 (* match_2vertices_with_edges pvn st *)

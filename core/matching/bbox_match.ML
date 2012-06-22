@@ -275,11 +275,11 @@ fun add_copy (bbn1,(vtab,etab),bbn2) m =
                 val vrn = V.Rnm.mk_from_nmap vtab
                 val ern = E.Rnm.mk_from_nmap etab
                 val brn = B.Rnm.do_compose_rename1 bn1 bn2 B.Rnm.empty
-                val (_,(_,g)) = G.copy1_box bn1 ((vrn,ern,brn),g)
+                val (_,(_,g)) = G.copy1_bbox bn1 ((vrn,ern,brn),g)
               in g end)
             (BMap.get_domtab (get_copies bbmatch))
-        |> B.NSet.fold G.kill_box (get_kill bbmatch)
-        |> B.NSet.fold G.drop_box (get_drop bbmatch);
+        |> B.NSet.fold G.kill_bbox (get_kill bbmatch)
+        |> B.NSet.fold G.drop_bbox (get_drop bbmatch);
 
   (* makes sure to copy external/boundary vertex names exactly, 
      but other vertices are named arbitrarily, but fresh.
@@ -302,11 +302,11 @@ fun add_copy (bbn1,(vtab,etab),bbn2) m =
                  val ern = E.Rnm.mk_from_avoids avoid_es;
                  val brn = B.Rnm.do_compose_rename1 bn1 bn2 B.Rnm.empty
                  val (_,((vrn,ern,brn),g)) = 
-                     G.copy1_box bn1 ((vrn,ern,brn),g)
+                     G.copy1_bbox bn1 ((vrn,ern,brn),g)
                in ((V.Rnm.get_avoids vrn, E.Rnm.get_avoids ern), g) end)
               (BMap.get_domtab (get_copies bbmatch))
-          ||> (B.NSet.fold G.kill_box (get_kill bbmatch))
-          ||> (B.NSet.fold G.drop_box (get_drop bbmatch))
+          ||> (B.NSet.fold G.kill_bbox (get_kill bbmatch))
+          ||> (B.NSet.fold G.drop_bbox (get_drop bbmatch))
       end;
 
   

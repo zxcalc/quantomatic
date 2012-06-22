@@ -17,8 +17,8 @@ val (b1, g) = g |> G.add_vertex bvert;
 val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
 val (_, g) = g |> G.add_edge undir_edge n1 n1;
 val (_, g) = g |> G.add_edge undir_edge b1 n1;
-val (bbn, g) = g |> G.new_box (B.mk "B0");
-val g = g |> G.move_to_box bbn (V.NSet.single b1);
+val (bbn, g) = g |> G.new_bbox (B.mk "B0");
+val g = g |> G.move_to_bbox bbn (V.NSet.single b1);
 val x_1loop_spider = g;
 
 (* self-loop on X(b) and a dangling edge *)
@@ -61,7 +61,7 @@ S.print st;
 
   (* if nothing on the agenda *)
   val SOME (S.UnBBoxed pn) = S.get_next_pat_vertex st;
-  val tns = S.get_unboxed_tgt_vnseq st;
+  val tns = S.get_unbboxed_tgt_vnseq st;
   val SOME (tn,tns) = Seq.pull tns;
   val sts = Seq.list_of (S.match_2vertices_with_edges pn st tn);
 

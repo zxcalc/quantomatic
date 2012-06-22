@@ -57,10 +57,10 @@ functor InputGraphXML_v1(
       snd (Graph.add_named_edge ename (Graph.UnDirected,edata) src tgt g)
   
   fun add_bb (bname,bvlist) g = 
-      let val (realname, g') = Graph.new_box bname g
+      let val (realname, g') = Graph.new_bbox bname g
           val vset  = V.NSet.of_list bvlist
       in
-        Graph.move_to_box realname vset g'
+        Graph.move_to_bbox realname vset g'
       end
   
   fun input_vertex xml = 

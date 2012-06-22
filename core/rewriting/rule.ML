@@ -128,7 +128,7 @@ fun gen_order_sub g auts vset =
          in  (auts''', Tree (v, subtr)::tail) end;
                            
 fun gen_order g auts done bound =
-    let fun maybe_box vn v = case Graph.lookup_box_of g vn of
+    let fun maybe_box vn v = case Graph.lookup_bbox_of g vn of
                                NONE   => v
                              | SOME b => Boxed (b,v)
         val aset = Graph.incident_vertices g done
@@ -192,10 +192,10 @@ fun check_rule_consistency lhs rhs =
     let
       val lhsboundary = Graph.get_boundary lhs 
       val rhsboundary = Graph.get_boundary rhs
-      val lhsboundary' = filter (Graph.is_boxed lhs) (V.NSet.list_of lhsboundary)
+      val lhsboundary' = filter (Graph.is_bboxed lhs) (V.NSet.list_of lhsboundary)
       fun has_same_bangbox vn b = b andalso
-          (Graph.is_boxed rhs vn)   andalso
-           B.name_eq ((Graph.get_box_of lhs vn),(Graph.get_box_of rhs vn)) 
+          (Graph.is_bboxed rhs vn)   andalso
+           B.name_eq ((Graph.get_bbox_of lhs vn),(Graph.get_bbox_of rhs vn)) 
     in
       (V.NSet.eq lhsboundary rhsboundary) andalso
       (B.NSet.eq (Graph.get_bbnames lhs) (Graph.get_bbnames rhs)) andalso

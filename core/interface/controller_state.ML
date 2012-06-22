@@ -782,39 +782,39 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun update_edge_data ed_upd en = lift_graph_mutator_no_result (update_edge_data_internal ed_upd en)
 
   fun add_bang_internal graph = 
-      graph |> Graph.new_box (B.default_name)
+      graph |> Graph.new_bbox (B.default_name)
   val add_bang = lift_graph_mutator add_bang_internal
 
   fun drop_bang bs gname state =
       let val _ = map (assert_bbox_exists state gname) bs in
-        lift_graph_mutator_no_result (fold Graph.drop_box bs) gname state
+        lift_graph_mutator_no_result (fold Graph.drop_bbox bs) gname state
       end
 
   fun kill_bang bs gname state =
       let val _ = map (assert_bbox_exists state gname) bs in
-        lift_graph_mutator_no_result (fold Graph.kill_box bs) gname state
+        lift_graph_mutator_no_result (fold Graph.kill_bbox bs) gname state
       end
 
   fun merge_bang bs gname state =
       let val _ = map (assert_bbox_exists state gname) bs in
-        lift_graph_mutator (Graph.merge_boxes (B.NSet.of_list bs)) gname state
+        lift_graph_mutator (Graph.merge_bboxes (B.NSet.of_list bs)) gname state
       end
 
   fun duplicate_bang bb gname state =
       let val _ = assert_bbox_exists state gname bb in
-        lift_graph_mutator (Graph.fresh_copy1_box bb) gname state
+        lift_graph_mutator (Graph.fresh_copy1_bbox bb) gname state
       end
 
   fun bang_vertices box verts gname state =
       let val _ = assert_bbox_exists state gname box
           val _ = map (assert_vertex_exists state gname) verts
       in
-        lift_graph_mutator_no_result (Graph.move_to_box box (V.NSet.of_list verts)) gname state
+        lift_graph_mutator_no_result (Graph.move_to_bbox box (V.NSet.of_list verts)) gname state
       end
 
   fun unbang_vertices verts gname state =
       let val _ = map (assert_vertex_exists state gname) verts in
-        lift_graph_mutator_no_result (Graph.move_to_unbox (V.NSet.of_list verts)) gname state
+        lift_graph_mutator_no_result (Graph.move_to_unbbox (V.NSet.of_list verts)) gname state
       end
   (* Copy the subgraph as well as it user data *)
   (* Here is the problem: when a graph is copied it's 

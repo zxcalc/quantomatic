@@ -187,10 +187,10 @@ fun multi_fulledge_match pes tes m =
 (* unused? *)
 (* 
 fun copy_then_drop_pat_bbox bbn k st = 
-    if k = 0 then update_unm_pat (BangGraph.kill_box bbn) st
-    else if k = 1 then update_unm_pat (BangGraph.drop_box bbn) st
+    if k = 0 then update_unm_pat (BangGraph.kill_bbox bbn) st
+    else if k = 1 then update_unm_pat (BangGraph.drop_bbox bbn) st
     else if k > 1 then 
-      update_unm_pat (BangGraph.drop_box bbn 
-                      o nfold (k - 1) (snd o BangGraph.copy1_box bbn)) st
+      update_unm_pat (BangGraph.drop_bbox bbn 
+                      o nfold (k - 1) (snd o BangGraph.copy1_bbox bbn)) st
     else raise bug_exp "copy_then_drop_pat_bbox: negative copy";
 *)
