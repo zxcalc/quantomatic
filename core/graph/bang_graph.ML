@@ -52,16 +52,9 @@ val get_unboxed : T -> V.NSet.T
 val get_boxed : T -> V.NSet.T
 val rename_bname : B.name -> B.name -> T -> T
 val try_rename1_bname : B.name -> B.name -> T -> T option
-(* val rename_bbname : B.name -> B.name -> T -> T *)
 
-val update_unboxed : (V.NSet.T -> V.NSet.T) -> T -> T
-val update_bboxes : (VBMap.T -> VBMap.T) -> T -> T
-val set_unboxed : V.NSet.T -> T -> T
-
-(* val add_to_unboxed : V.NSet.T -> T -> T;
-val del_from_unboxed : V.NSet.T -> T -> T;
-*)
-val set_bboxes : VBMap.T -> T -> T;
+(* we don't copy updaters/setters for internal structures,
+ * since using these can lead to an inconsistent state *)
 
 (* *** END OF COPIED *** *)
 
