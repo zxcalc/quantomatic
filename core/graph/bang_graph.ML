@@ -9,7 +9,7 @@ signature BASIC_BANG_GRAPH =
 sig
 include BASIC_OGRAPH;
 
-val get_v_bbox_map : T -> VBMap.T
+(* FIXME: alter *) val get_v_bbox_map : T -> VBMap.T
 val get_bbox_contents : T -> B.name -> V.NSet.T
 val get_bbox_list : T -> B.name list
 val get_unbboxed : T -> V.NSet.T
@@ -19,10 +19,10 @@ val rename_bbox : B.name -> B.name -> T -> T
 val try_rename1_bbox : B.name -> B.name -> T -> T option
 
 val update_unbboxed : (V.NSet.T -> V.NSet.T) -> T -> T
-val update_v_bbox_map : (VBMap.T -> VBMap.T) -> T -> T
+(* FIXME: alter *) val update_v_bbox_map : (VBMap.T -> VBMap.T) -> T -> T
 
 val set_unbboxed : V.NSet.T -> T -> T
-val set_v_bbox_map : VBMap.T -> T -> T
+(* FIXME: alter *) val set_v_bbox_map : VBMap.T -> T -> T
 
 end;
 
@@ -42,7 +42,7 @@ exception no_such_bbox_exp of unit
 
 exception bbox_already_exists_exp of B.name * T;
 
-val get_v_bbox_map : T -> VBMap.T
+(* FIXME: alter *) val get_v_bbox_map : T -> VBMap.T
 val get_bbox_contents : T -> B.name -> V.NSet.T
 val get_bbox_list : T -> B.name list
 val get_unbboxed : T -> V.NSet.T
@@ -58,16 +58,16 @@ val try_rename1_bbox : B.name -> B.name -> T -> T option
 val get_bboxes : T -> B.NSet.T
 val add_to_bboxes : T -> B.NSet.T -> B.NSet.T
 
-val lookup_bbox_of : T -> V.name -> B.name option
-val get_bbox_of : T -> V.name -> B.name
+(* FIXME: remove *) val lookup_bbox_of : T -> V.name -> B.name option
+(* FIXME: remove *) val get_bbox_of : T -> V.name -> B.name
 
 val is_bboxed : T -> V.name -> bool
 
 val has_bbox : T -> B.name -> bool
 
 val new_bbox : B.name -> T -> B.name * T
-val move_to_bbox : B.name -> V.NSet.T -> T -> T
-val move_to_unbbox : V.NSet.T -> T -> T
+(* FIXME: remove *) val move_to_bbox : B.name -> V.NSet.T -> T -> T
+(* FIXME: remove *) val move_to_unbbox : V.NSet.T -> T -> T
 
 
 val kill_bbox : B.name -> T -> T

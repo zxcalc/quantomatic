@@ -46,9 +46,14 @@ signature QUANTO_NAME
   structure BInjEndo : NAME_INJENDO
     sharing BInjEndo.Dom.Sharing = B.Sharing
 
+  (* FIXME: remove *)
   structure VBMap : NAME_MAP
     sharing VBMap.Dom.Sharing = V.Sharing;
     sharing VBMap.Cod.Sharing = B.Sharing;
+
+  structure BVBRel : NAME_BINREL
+    sharing BVBRel.Dom.Sharing = B.Sharing;
+    sharing BVBRel.Cod.Sharing = V.Sharing;
 
   (* *)
   structure VXBRel : NAME_BINREL
@@ -99,6 +104,7 @@ structure QuantoNames :> QUANTO_NAME
   (* Bijections between vertex names and Expression Names *)
   structure VXBRel = SStrBRel;
   structure VBMap = SStrMap;
+  structure BVBRel = SStrBRel;
   
   (* Ruleset *)
   (* global name structure for tags *)
