@@ -427,6 +427,10 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("GRAPHNAME", "Compute the current metric on GRAPHNAME",
       (fn [nm] => (Commands.ComputeMetricRequest {graphName= nm}) 
         | _  => bad_args_req))),   
+    ("check_ruleset",
+      ("", "Print out the rewrite graph of the ruleset",
+        (fn [] => Commands.CheckRulesetRequest
+          | _ => bad_args_req))),
     (* FIXME: should this really be here?  Technically, the use of this *)
     (*        structure decides what theories are available             *)
     ("list_theories",

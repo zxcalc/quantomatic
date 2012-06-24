@@ -141,8 +141,13 @@ Testing.make_test "matching/test/symmetry_match_search-test.ML";
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
 PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
+
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
+
+(* Ruleset Checking *)
+PolyML.Project.make "rewriting/checking/rgraph.ML";
+PolyML.Project.make "rewriting/checking/ruleset_checking.ML";
 
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)

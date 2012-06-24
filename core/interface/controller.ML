@@ -109,6 +109,10 @@ struct
                    | ListAttachedRewritesRequest of { graphName: string, format: resultFormat }
                    | ApplyAttachedRewriteRequest of { graphName: string, index: int }
 
+                   (*** Ruleset Checking ***)
+                   | CheckRulesetRequest
+                   (* String Response *)
+
                    (*** Metrics related commands ***)
                    | ListMetricsNamesRequest
                    (* StringListResponse *)
@@ -309,6 +313,7 @@ struct
   structure EData = State.Theory.EData;
   structure VCD = State.Theory.VertexComponentData;
   structure ECD = State.Theory.EdgeComponentData;
+  structure RulesetChecking = RSetChecking(Theory);
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
   structure UIDataOutput = OutputUIDataXML(structure UIData = State.UIData);
@@ -1048,7 +1053,15 @@ fun hilb ([format], graph) =
     | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
         (OkResponse,
          State.apply_rewrite (GraphName.mk graphName) index state)
-
+    | serviceRequest' CheckRulesetRequest state =
+      let
+        val rgraph = RulesetChecking.init
+                        |> RulesetChecking.set_rset (State.get_rset state)
+                        |> RulesetChecking.do_checking
+                        |> RulesetChecking.get_rgraph
+      in
+        (PrettyResponse {data= (RulesetChecking.RewriteGraph.pretty rgraph)}, state)
+      end
     | serviceRequest' ListMetricsNamesRequest state =
       (StringListResponse { data = State.get_names_metrics state }, state)
     | serviceRequest' ListMetricsDescsRequest state =
