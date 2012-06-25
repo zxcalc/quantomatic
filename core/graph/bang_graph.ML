@@ -69,7 +69,7 @@ val has_bbox : T -> B.name -> bool
 
 val add_bbox : T -> B.name * T
 val doadd_bbox : T -> T
-val new_named_bbox : B.name -> T -> B.name * T
+val add_named_bbox : B.name -> T -> B.name * T
 (* FIXME: remove *) val move_to_bbox : B.name -> V.NSet.T -> T -> T
 (* FIXME: remove *) val move_to_unbbox : V.NSet.T -> T -> T
 val add_to_bbox : B.name -> V.NSet.T -> T -> T
@@ -324,14 +324,14 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val has_bbox = B.NTab.contains_name o VBMap.get_codtab o get_v_bbox_map;
 
   (* make a new empty !-box *)
-  fun new_named_bbox bn g = 
+  fun add_named_bbox bn g = 
       let
         val bboxes = (get_v_bbox_map g);
         val bn2 = B.NSet.new (VBMap.get_codset bboxes) bn;
         val bboxes2 : VBMap.T = 
             VBMap.add_to_cod bn2 V.NSet.empty bboxes;
       in (bn2, g |> set_v_bbox_map bboxes2) end;
-  val add_bbox = new_named_bbox B.default_name
+  val add_bbox = add_named_bbox B.default_name
   val doadd_bbox = snd o add_bbox
   
   (* add to a !-box; makes new box, if name doesn't alreayd exist;

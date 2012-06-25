@@ -107,7 +107,7 @@ val (b1, g) = g |> G.add_vertex bvert;
 val (n1, g) = g |> G.add_vertex (mkX (var_angle "a"));
 val (_, g) = g |> G.add_edge undir_edge n1 n1;
 val (_, g) = g |> G.add_edge undir_edge b1 n1;
-val (bbn, g) = g |> G.new_named_bbox (B.mk "B0");
+val (bbn, g) = g |> G.add_named_bbox (B.mk "B0");
 val g = g |> G.move_to_bbox bbn (V.NSet.single b1);
 val x_1loop_spider = g;
 
