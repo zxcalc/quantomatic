@@ -43,13 +43,48 @@ functor BangGraphIso(Graph : BANG_GRAPH)
       (u |> Param.match_vertex v1 v2, u'|> Param.match_vertex v2 v1);
       
   exception box_mismatch_exp of unit;
+  fun match_boxes' gbs hbs b =
+    let
+      (* if bbox is in the domain of b, assert its image
+       * is in h_unm, and remove bbox from g_unm and its
+       * image from h_unm *)
+      fun unmatched bbox (g_unm,h_unm) =
+        case BInjEndo.lookup_domf b bbox of
+             NONE => (g_unm,h_unm)
+           | SOME bbox' =>
+                (B.NSet.delete' bbox g_unm,B.NSet.delete' bbox' h_unm)
+                handle B.NSet.empty_exp _ => raise box_mismatch_exp()
+      (* gbs_unm is everything in gbs, but not in dom of b
+       * hbs_unm is hbs without the images of (gbs\gbs_unm) *)
+      val (gbs_unm,hbs_unm) = B.NSet.fold unmatched gbs (gbs,hbs)
+      fun assert_unmatched' bbox () =
+        if BInjEndo.cod_contains b bbox then
+          raise box_mismatch_exp()
+        else ()
+      val () = B.NSet.fold assert_unmatched' hbs_unm ()
+      val _ = if (B.NSet.cardinality gbs_unm) = (B.NSet.cardinality hbs_unm) then
+                () else raise box_mismatch_exp()
+
+      fun matches_for_bb bbox (map,unm_tgts) =
+        let
+          fun add_match bbox' =
+            (BInjEndo.add bbox bbox' map,B.NSet.delete' bbox' unm_tgts)
+        in
+          B.NSet.fold (fn b => Seq.cons (add_match b)) unm_tgts Seq.empty
+        end
+      val seq = B.NSet.fold (fn b => Seq.maps (matches_for_bb b)) gbs_unm (Seq.single (b,hbs_unm))
+    in Seq.map fst seq end
+
   fun match_boxes g h vng vnh b =
-      (case (Graph.lookup_bbox_of g vng,Graph.lookup_bbox_of h vnh) of
-           (NONE,NONE)       =>  b
-         | (SOME bg,SOME bh) => ((b |> BInjEndo.add bg bh)
-                                handle BInjEndo.add_exp _ 
-                                    => raise box_mismatch_exp())
-         | _                 => raise box_mismatch_exp ());
+    let
+      val gbs = Graph.get_bboxes_of g vng
+      val hbs = Graph.get_bboxes_of h vnh
+    in
+      if B.NSet.is_empty gbs andalso B.NSet.is_empty hbs then
+        Seq.single b
+      else
+        match_boxes' gbs hbs b
+    end
       
     
   (* v = vertex iso, 
@@ -121,13 +156,15 @@ functor BangGraphIso(Graph : BANG_GRAPH)
                     E.NSet.is_empty hout) of
             (* no (more) edges; match up *)
             (true,true,true,true) =>
-              Seq.single (v |> VInjEndo.add vng vnh,
-                          e,
-                          b |> match_boxes g h vng vnh,
-                          u |> match_vertex_both_ways gd hd,
-                          t',
-                          g |> Graph.delete_vertex vng,
-                          h |> Graph.delete_vertex vnh)
+              let
+                val v' = v |> VInjEndo.add vng vnh
+                val u' = u |> match_vertex_both_ways gd hd
+                val g' = g |> Graph.delete_vertex vng
+                val h' = h |> Graph.delete_vertex vnh
+              in
+                Seq.map (fn b' => (v',e,b',u',t',g',h'))
+                        (match_boxes g h vng vnh b)
+              end
             (* some outgoing edges remaining *)
           | (_,_,false,false) =>
             get_isomorphisms_match_next_edge v e b u t g h gout hout esnk
