@@ -60,7 +60,7 @@ functor InputGraphXML_v2(
             (if dir then G.Directed else G.UnDirected,edata) 
             src tgt g);  
   fun add_bb (bname,bvlist) g = 
-      let val (realname, g') = G.new_bbox bname g
+      let val (realname, g') = G.new_named_bbox bname g
           val vset  = V.NSet.of_list bvlist
       in G.add_to_bbox realname vset g' end
   

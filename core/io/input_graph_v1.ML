@@ -57,7 +57,7 @@ functor InputGraphXML_v1(
       snd (Graph.add_named_edge ename (Graph.UnDirected,edata) src tgt g)
   
   fun add_bb (bname,bvlist) g = 
-      let val (realname, g') = Graph.new_bbox bname g
+      let val (realname, g') = Graph.new_named_bbox bname g
           val vset  = V.NSet.of_list bvlist
       in
         Graph.add_to_bbox realname vset g'

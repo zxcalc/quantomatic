@@ -782,7 +782,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun update_edge_data ed_upd en = lift_graph_mutator_no_result (update_edge_data_internal ed_upd en)
 
   fun add_bang_internal graph = 
-      graph |> Graph.new_bbox (B.default_name)
+      graph |> Graph.new_named_bbox (B.default_name)
   val add_bang = lift_graph_mutator add_bang_internal
 
   fun drop_bang bs gname state =
