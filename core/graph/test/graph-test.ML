@@ -504,8 +504,8 @@ local
   val g3 = g3 |> G.add_to_bbox b1_3 (V.NSet.single n_a_1);
 
   val g4 = g2
-  val (b0_4, g3) = g3 |> G.add_bbox;
-  val (_, g3) = g3 |> G.add_bbox;
+  val (b0_4, g4) = g4 |> G.add_bbox;
+  val (_, g4) = g4 |> G.add_bbox;
   val g4 = g4 |> G.add_to_bbox b0_4 (V.NSet.single n_b_2);
 
   fun seq_count sq =
