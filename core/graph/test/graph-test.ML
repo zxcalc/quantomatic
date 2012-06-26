@@ -486,6 +486,131 @@ end; (* ends local namespace used for testing *)
 
 local
   open Test_MkG
+
+  val ge = G.empty
+  val _ = Testing.test "G.get_bboxes - empty"
+    (fn () => if B.NSet.is_empty (G.get_bboxes ge) then I
+            else raise ERROR "get_bboxes (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_bbox_rel - empty"
+    (fn () => if BVBRel.is_empty (G.get_bbox_rel ge) then I
+            else raise ERROR "get_bbox_rel (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_bbox_table - empty"
+    (fn () => if B.NTab.is_name_empty (G.get_bbox_table ge) then I
+            else raise ERROR "get_bbox_table (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_vertex_bbox_table - empty"
+    (fn () => if V.NTab.is_name_empty (G.get_vertex_bbox_table ge) then I
+            else raise ERROR "get_vertex_bbox_table (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_bboxed - empty"
+    (fn () => if V.NSet.is_empty (G.get_bboxed ge) then I
+            else raise ERROR "get_bboxed (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_unbboxed - empty"
+    (fn () => if V.NSet.is_empty (G.get_unbboxed ge) then I
+            else raise ERROR "get_unbboxed (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_empty_bboxes - empty"
+    (fn () => if B.NSet.is_empty (G.get_empty_bboxes ge) then I
+            else raise ERROR "get_empty_bboxes (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_bbox_list - empty"
+    (fn () => case G.get_bbox_list ge of
+                   [] => I
+                 | _ => raise ERROR "get_bbox_list (empty) incorrect") ()
+
+  val _ = Testing.test "G.has_bbox - empty"
+    (fn () => if not (G.has_bbox ge B.default_name) then I
+            else raise ERROR "has_bbox (empty) incorrect") ()
+
+  val _ = Testing.test "G.get_bbox_contents - empty"
+    (fn () => (G.get_bbox_contents ge B.default_name;
+            raise ERROR "get_bbox_contents (empty) incorrect")
+            handle G.no_such_bbox_exp _ => I) ()
+
+  val _ = Testing.test "G.get_bboxes_of - empty"
+    (fn () => (G.get_bboxes_of ge V.default_name;
+            raise ERROR "get_bboxes_of (empty) incorrect")
+            handle G.no_such_vname_exp _ => I) ()
+
+  val _ = Testing.test "G.is_bboxed - empty"
+    (fn () => (G.is_bboxed ge V.default_name;
+            raise ERROR "is_bboxed (empty) incorrect")
+            handle G.no_such_vname_exp _ => I) ()
+
+  val _ = Testing.test "G.rename_bbox - empty"
+    (fn () => let
+                val g' = G.rename_bbox (B.mk "B0") (B.mk "B1") ge
+              in
+                (* no effect *)
+                if B.NSet.is_empty (G.get_bboxes g') then I
+                else raise ERROR "rename_bbox (empty) incorrect"
+              end) ()
+
+  val _ = Testing.test "G.try_rename1_bbox - empty"
+    (fn () =>
+      case G.try_rename1_bbox (B.mk "B0") (B.mk "B1") ge of
+           NONE =>
+             raise ERROR "try_rename1_bbox (empty) incorrect [got NONE]"
+         | SOME g' =>
+             (* no effect *)
+             if B.NSet.is_empty (G.get_bboxes g') then I
+             else raise ERROR "try_rename1_bbox (empty) incorrect [added bbox]"
+         ) ()
+
+  val _ = Testing.test "G.delete_bbox - empty"
+    (fn () => G.delete_bbox B.default_name ge) ()
+
+  val _ = Testing.test "G.add_to_bbox - empty"
+    (fn () => (G.add_to_bbox B.default_name (V.NSet.single V.default_name) ge;
+            raise ERROR "add_to_bbox (empty) incorrect")
+            handle G.no_such_vname_exp _ => I
+                 | G.no_such_bbox_exp _ => I) ()
+
+  val _ = Testing.test "G.remove_from_bbox - empty"
+    (fn () => (G.remove_from_bbox B.default_name (V.NSet.single V.default_name) ge;
+            raise ERROR "remove_from_bbox (empty) incorrect")
+            handle G.no_such_vname_exp _ => I
+                 | G.no_such_bbox_exp _ => I) ()
+
+  val _ = Testing.test "G.kill_bbox - empty"
+    (fn () => (G.kill_bbox B.default_name ge;
+            raise ERROR "kill_bbox (empty) incorrect")
+            handle G.no_such_bbox_exp _ => I) ()
+
+  val _ = Testing.test "G.drop_bbox - empty"
+    (fn () => (G.drop_bbox B.default_name ge;
+            raise ERROR "drop_bbox (empty) incorrect")
+            handle G.no_such_bbox_exp _ => I) ()
+
+  val _ = Testing.test "G.merge_bboxes - empty"
+    (fn () =>
+    let
+      val bs = B.NSet.of_list [B.mk "B0", B.mk "B1"]
+    in
+      (G.merge_bboxes bs ge;
+            raise ERROR "merge_bboxes (empty) incorrect")
+            handle G.no_such_bbox_exp _ => I
+    end) ()
+
+  (* FIXME: test copy1_bbox *)
+
+  val _ = Testing.test "G.fresh_copy1_bbox - empty"
+    (fn () => (G.fresh_copy1_bbox B.default_name ge;
+            raise ERROR "fresh_copy1_bbox (empty) incorrect")
+            handle G.no_such_bbox_exp _ => I) ()
+
+  (* FIXME: test rename_apart_incl_bboxes *)
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"
+end; (* ends local namespace used for testing *)
+
+
+local
+  open Test_MkG
   val g1 = G.empty
   val (n_a_1, g1) = g1 |> G.add_vertex (mkZ zero_angle);
   val (n_b_1, g1) = g1 |> G.add_vertex mkH;
