@@ -444,7 +444,11 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
         val bbox_vs = get_bbox_contents g bn;
         val ((vrn',ern'),g') = copy1_vset bbox_vs ((vrn, ern),g);
         val (new_bn_opt,brn') = B.Rnm.rename1 bn brn;
-        val bn' = (case new_bn_opt of NONE => bn | SOME bn' => bn');
+        val bn' = (case new_bn_opt
+                     of NONE => raise ERROR ("copy1_bbox was passed brn that " ^
+                                "does not avoid !-box being renamed")
+                      | SOME bn' => bn');
+        val g'' = new_named_bbox bn' g'
         fun extend_bbs v gr =
           let
             val SOME v' = V.Rnm.lookup vrn' v
@@ -454,9 +458,9 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
           in
             B.NSet.fold (fn b => add_to_bbox b vs) bbs gr
           end
-        val g'' = V.NSet.fold extend_bbs bbox_vs g'
+        val g''' = V.NSet.fold extend_bbs bbox_vs g''
       in
-         (bn', ((vrn',ern',brn'), g''))
+         (bn', ((vrn',ern',brn'), g'''))
       end;
 
   fun fresh_copy1_bbox bn g =
