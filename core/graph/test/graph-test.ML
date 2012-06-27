@@ -30,13 +30,13 @@ structure Test_GraphParam
         (untryify (LinratAngleExpr.try_rename1 n1 n2)) d 
       handle tryify_failed () => 
         raise X.Rnm.invalid_renaming_exp "subst_xname_in_vdata";
-  fun subst_xname_in_edata n1 n2 d = d;
+  fun subst_xname_in_edata _ _ d = d;
   
   fun get_xnames vdep = VDep.get_codset vdep;
   fun get_vnames vdep = VDep.get_domset vdep;
 
   fun dep_vnames_of_xname vdep n = VDep.codf vdep n;
-  fun dep_enames_of_xname vdep n = E.NSet.empty;
+  fun dep_enames_of_xname _    _ = E.NSet.empty;
 
   fun try_rename1_xname n1 n2 vdep = VDep.try_rename1_cod n1 n2 vdep;
   fun try_rename1_vname n1 n2 vdep = VDep.try_rename1_dom n1 n2 vdep;
@@ -51,7 +51,7 @@ structure Test_GraphParam
          raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_vname"
        | SOME x => x);
 
-  fun rename_ename n1 n2 vdep = vdep;
+  fun rename_ename _ _ vdep = vdep;
   
   (* rename names in T *)
 
@@ -83,10 +83,10 @@ structure Test_GraphParam
   fun add_vertex vd vn vdep = 
       (case Test_InternVData.angle_of_data vd of NONE => vdep
           | SOME angle => VDep.add_to_dom vn (LinratAngleExpr.get_vars angle) vdep);
-  fun add_edge ed en vdep = vdep;
+  fun add_edge _ _ vdep = vdep;
 
   fun delete_vname vn vdep = VDep.del_dom vn vdep;
-  fun delete_ename en vdep = vdep;
+  fun delete_ename _ vdep = vdep;
 
   fun vertex_type_name (Test_InternVData.Xnd _) = "X"
     | vertex_type_name (Test_InternVData.Znd _) = "Z"
@@ -102,10 +102,10 @@ structure Test_GraphParam
   fun replace_vertex vd vn vdep = 
       vdep |> delete_vname vn
            |> add_vertex vd vn;
-  fun replace_edge ed en vdep = vdep;
+  fun replace_edge _ _ vdep = vdep;
 
   fun of_vertex vd vn = add_vertex vd vn VDep.empty;
-  fun of_edge en ed = empty;
+  fun of_edge _ _ = empty;
   
   (* substitutions for variables in vertex/edge data 
      (usually, we only have data on vertices) *)
@@ -116,7 +116,7 @@ structure Test_GraphParam
       (* : Name.NTab.map_all (LinratAngleExpr.subs u2) u1; *)
 
   fun try_match_vertex d1 d2 u = VData.match_data (d1,d2) u;
-  fun try_match_edge e1 e2 u = SOME u;
+  fun try_match_edge _ _ u = SOME u;
 
   (* raises match_exp *)
   fun match_vertex d1 d2 u = 
@@ -130,7 +130,7 @@ structure Test_GraphParam
           | SOME u' => u'); 
 
   fun subst_in_vertex u vd = VData.subst_in_data u vd;
-  fun subst_in_edge u ed = ed;
+  fun subst_in_edge _ ed = ed;
 
   val pretty_subst = VData.pretty_subst;
   val print_subst = Pretty.writeln o pretty_subst;
@@ -192,6 +192,13 @@ struct
   val undir_edge = (G.UnDirected,());
   val dir_edge = (G.Directed,());
   val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
+
+  (* FIXME: move into Testing in isaplib *)
+  (* This causes exceptions to be raised in the right place *)
+  fun test_force s f v =
+    case Testing.test s f v of
+         NONE => raise Testing.failed_tests_exp (!Testing.tests_failed_ref)
+       | SOME x => x
 end;
 
 
@@ -205,7 +212,7 @@ val g = G.empty;
 val (n_a, g) = g |> G.add_vertex bvert;
 val (n_b, g) = g |> G.add_vertex bvert;
 val (e0, g) = g |> G.add_edge undir_edge n_a n_b;
-val (e1, g) = g |> G.add_edge undir_edge n_a n_b;
+val (_, g) = g |> G.add_edge undir_edge n_a n_b;
 val n_c = (V.mk "n_c");
 val g = g |> G.rename_vname n_a n_c;
 val e3 = (E.mk "e_c");
@@ -226,17 +233,17 @@ val (red1, g2) = g2 |> G.add_named_vertex (V.mk "red1") (mkX zero_angle);
 val (red2, g2) = g2 |> G.add_named_vertex (V.mk "red2") (mkX zero_angle);
 val (red3, g2) = g2 |> G.add_named_vertex (V.mk "red3") (mkX zero_angle);
 
-val (e0, g2) = g2 |> G.add_edge undir_edge in1 green1;
-val (e0, g2) = g2 |> G.add_edge undir_edge in2 red1;
-val (e0, g2) = g2 |> G.add_edge undir_edge red1 green1;
-val (e0, g2) = g2 |> G.add_edge undir_edge red1 green2;
-val (e0, g2) = g2 |> G.add_edge undir_edge red2 green1;
-val (e0, g2) = g2 |> G.add_edge undir_edge red2 green2;
-val (e0, g2) = g2 |> G.add_edge undir_edge red3 green2;
-val (e0, g2) = g2 |> G.add_edge undir_edge red2 green3;
-val (e0, g2) = g2 |> G.add_edge undir_edge red3 green3;
-val (e0, g2) = g2 |> G.add_edge undir_edge out1 green3;
-val (e0, g2) = g2 |> G.add_edge undir_edge out2 red3;
+val (_, g2) = g2 |> G.add_edge undir_edge in1 green1;
+val (_, g2) = g2 |> G.add_edge undir_edge in2 red1;
+val (_, g2) = g2 |> G.add_edge undir_edge red1 green1;
+val (_, g2) = g2 |> G.add_edge undir_edge red1 green2;
+val (_, g2) = g2 |> G.add_edge undir_edge red2 green1;
+val (_, g2) = g2 |> G.add_edge undir_edge red2 green2;
+val (_, g2) = g2 |> G.add_edge undir_edge red3 green2;
+val (_, g2) = g2 |> G.add_edge undir_edge red2 green3;
+val (_, g2) = g2 |> G.add_edge undir_edge red3 green3;
+val (_, g2) = g2 |> G.add_edge undir_edge out1 green3;
+val (_, g2) = g2 |> G.add_edge undir_edge out2 red3;
 
 (* just a swap *)
 
@@ -248,8 +255,8 @@ val (out1, g3)  = g3 |> G.add_named_vertex (V.mk "out1")
 					       bvert;
 val (out2, g3)  = g3 |> G.add_named_vertex (V.mk "out2")
 					       bvert;
-val (e0, g3) = g3 |> G.add_edge undir_edge in1 out2;
-val (e0, g3) = g3 |> G.add_edge undir_edge in2 out1;
+val (_, g3) = g3 |> G.add_edge undir_edge in1 out2;
+val (_, g3) = g3 |> G.add_edge undir_edge in2 out1;
 
 
 (*  A MC pattern for a CNOT *)
@@ -275,22 +282,22 @@ val (H1, g4) = g4 |> G.add_named_vertex (V.mk "H1") mkH;
 val (H2, g4) = g4 |> G.add_named_vertex (V.mk "H2") mkH;
 val (H3, g4) = g4 |> G.add_named_vertex (V.mk "H3") mkH;
 
-val (e0, g4) = g4 |> G.add_edge undir_edge in1 green2;
-val (e0, g4) = g4 |> G.add_edge undir_edge in2 green3;
-val (e0, g4) = g4 |> G.add_edge undir_edge green3 green1;
-val (e0, g4) = g4 |> G.add_edge undir_edge green2 out1;
-val (e0, g4) = g4 |> G.add_edge undir_edge green2 H1;
-val (e0, g4) = g4 |> G.add_edge undir_edge H1 green5;
-val (e0, g4) = g4 |> G.add_edge undir_edge green5 green4;
-val (e0, g4) = g4 |> G.add_edge undir_edge green5 green6;
-val (e0, g4) = g4 |> G.add_edge undir_edge green3 H2;
-val (e0, g4) = g4 |> G.add_edge undir_edge H2 green6;
-val (e0, g4) = g4 |> G.add_edge undir_edge green6 green7;
-val (e0, g4) = g4 |> G.add_edge undir_edge green7 green8;
-val (e0, g4) = g4 |> G.add_edge undir_edge green7 H3;
-val (e0, g4) = g4 |> G.add_edge undir_edge H3 green9;
-val (e0, g4) = g4 |> G.add_edge undir_edge green9 green10;
-val (e0, g4) = g4 |> G.add_edge undir_edge green9 out2;
+val (_, g4) = g4 |> G.add_edge undir_edge in1 green2;
+val (_, g4) = g4 |> G.add_edge undir_edge in2 green3;
+val (_, g4) = g4 |> G.add_edge undir_edge green3 green1;
+val (_, g4) = g4 |> G.add_edge undir_edge green2 out1;
+val (_, g4) = g4 |> G.add_edge undir_edge green2 H1;
+val (_, g4) = g4 |> G.add_edge undir_edge H1 green5;
+val (_, g4) = g4 |> G.add_edge undir_edge green5 green4;
+val (_, g4) = g4 |> G.add_edge undir_edge green5 green6;
+val (_, g4) = g4 |> G.add_edge undir_edge green3 H2;
+val (_, g4) = g4 |> G.add_edge undir_edge H2 green6;
+val (_, g4) = g4 |> G.add_edge undir_edge green6 green7;
+val (_, g4) = g4 |> G.add_edge undir_edge green7 green8;
+val (_, g4) = g4 |> G.add_edge undir_edge green7 H3;
+val (_, g4) = g4 |> G.add_edge undir_edge H3 green9;
+val (_, g4) = g4 |> G.add_edge undir_edge green9 green10;
+val (_, g4) = g4 |> G.add_edge undir_edge green9 out2;
 
 (* Plugging *)
 
@@ -315,16 +322,19 @@ local
     val (e0, g) = g |> G.add_edge undir_edge n_a n_x;
     val (e1, g) = g |> G.add_edge undir_edge n_x n_b;
   
-    val _ = Testing.test "Single variable in dependencies" (fn () => let 
-      val true = X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
-                            (X.mk "x"))
-      in () end) ();
+    val _ = Testing.test "Single variable in dependencies" (fn () =>
+      if X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
+                            (X.mk "x")) then ()
+      else raise ERROR "Variable name was wrong") ();
     
-    val _ = Testing.test "vname dep is the right singleton" (fn () => let 
-      val dep_v_name = the (V.NSet.tryget_singleton 
-          (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "x"))); 
-      val true = V.name_eq (n_x, dep_v_name); 
-      in () end) ();
+    val _ = Testing.test "vname dep is the right singleton" (fn () =>
+      let 
+        val dep_v_name = the (V.NSet.tryget_singleton 
+            (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "x"))); 
+      in
+        if V.name_eq (n_x, dep_v_name) then ()
+        else raise ERROR "Vertex name was wrong"
+      end) ();
       
     val n_x2 = (V.mk "n_x2");
     val g = g |> G.rename_vname n_x n_x2;
@@ -334,19 +344,22 @@ local
     val _ = (writeln "g after renaming: "; G.print g);
     
     val _ = Testing.test "vname dep is the right singleton after renaming" 
-    (fn () => let 
-      val dep_v_name = the (V.NSet.tryget_singleton 
-          (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "y"))); 
-      val true = V.name_eq (n_x2, dep_v_name); 
-      in () end) ();
+    (fn () =>
+      let 
+        val dep_v_name = the (V.NSet.tryget_singleton 
+            (G.Param.dep_vnames_of_xname (G.get_param g) (X.mk "y"))); 
+      in
+        if V.name_eq (n_x2, dep_v_name) then ()
+        else raise ERROR "Vertex name was wrong"
+      end) ();
   in (g,n_x2) end;
 
   val _ = Testing.test "Single variable was renamed in dependencies" 
   (fn () => let 
     val true = X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
                           (X.mk "y")) 
-    val (d,ios) = G.get_vertex g n_x2;
-    val y =  X.name_eq (the (X.NSet.tryget_singleton 
+    val (d,_) = G.get_vertex g n_x2;
+    val true =  X.name_eq (the (X.NSet.tryget_singleton 
                          (G.Param.get_xnames (G.Param.of_vertex d n_x2))), 
                         (X.mk "y"));
     in () end) ();
@@ -382,7 +395,7 @@ local
     val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
                   raise ERROR "old name was accidentally kept in graph xnames!" else I)
               xnames' ();
-    val (d,ios) = G.get_vertex g' x1;
+    val (d,_) = G.get_vertex g' x1;
     val xnames'' = G.Param.get_xnames (G.Param.of_vertex d x1);
     val () = X.NSet.fold (fn n => if X.NSet.contains xnames n then 
                   raise ERROR "old name was accidentally kept vertex data!" else I)
@@ -488,59 +501,59 @@ local
   open Test_MkG
 
   val ge = G.empty
-  val _ = Testing.test "G.get_bboxes - empty"
+  val _ = test_force "G.get_bboxes - empty"
     (fn () => if B.NSet.is_empty (G.get_bboxes ge) then I
             else raise ERROR "get_bboxes (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_bbox_rel - empty"
+  val _ = test_force "G.get_bbox_rel - empty"
     (fn () => if BVBRel.is_empty (G.get_bbox_rel ge) then I
             else raise ERROR "get_bbox_rel (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_bbox_table - empty"
+  val _ = test_force "G.get_bbox_table - empty"
     (fn () => if B.NTab.is_name_empty (G.get_bbox_table ge) then I
             else raise ERROR "get_bbox_table (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_vertex_bbox_table - empty"
+  val _ = test_force "G.get_vertex_bbox_table - empty"
     (fn () => if V.NTab.is_name_empty (G.get_vertex_bbox_table ge) then I
             else raise ERROR "get_vertex_bbox_table (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_bboxed - empty"
+  val _ = test_force "G.get_bboxed - empty"
     (fn () => if V.NSet.is_empty (G.get_bboxed ge) then I
             else raise ERROR "get_bboxed (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_unbboxed - empty"
+  val _ = test_force "G.get_unbboxed - empty"
     (fn () => if V.NSet.is_empty (G.get_unbboxed ge) then I
             else raise ERROR "get_unbboxed (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_empty_bboxes - empty"
+  val _ = test_force "G.get_empty_bboxes - empty"
     (fn () => if B.NSet.is_empty (G.get_empty_bboxes ge) then I
             else raise ERROR "get_empty_bboxes (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_bbox_list - empty"
+  val _ = test_force "G.get_bbox_list - empty"
     (fn () => case G.get_bbox_list ge of
                    [] => I
                  | _ => raise ERROR "get_bbox_list (empty) incorrect") ()
 
-  val _ = Testing.test "G.has_bbox - empty"
+  val _ = test_force "G.has_bbox - empty"
     (fn () => if not (G.has_bbox ge B.default_name) then I
             else raise ERROR "has_bbox (empty) incorrect") ()
 
-  val _ = Testing.test "G.get_bbox_contents - empty"
+  val _ = test_force "G.get_bbox_contents - empty"
     (fn () => (G.get_bbox_contents ge B.default_name;
             raise ERROR "get_bbox_contents (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
-  val _ = Testing.test "G.get_bboxes_of - empty"
+  val _ = test_force "G.get_bboxes_of - empty"
     (fn () => (G.get_bboxes_of ge V.default_name;
             raise ERROR "get_bboxes_of (empty) incorrect")
             handle G.no_such_vname_exp _ => I) ()
 
-  val _ = Testing.test "G.is_bboxed - empty"
+  val _ = test_force "G.is_bboxed - empty"
     (fn () => (G.is_bboxed ge V.default_name;
             raise ERROR "is_bboxed (empty) incorrect")
             handle G.no_such_vname_exp _ => I) ()
 
-  val _ = Testing.test "G.rename_bbox - empty"
+  val _ = test_force "G.rename_bbox - empty"
     (fn () => let
                 val g' = G.rename_bbox (B.mk "B0") (B.mk "B1") ge
               in
@@ -549,7 +562,7 @@ local
                 else raise ERROR "rename_bbox (empty) incorrect"
               end) ()
 
-  val _ = Testing.test "G.try_rename1_bbox - empty"
+  val _ = test_force "G.try_rename1_bbox - empty"
     (fn () =>
       case G.try_rename1_bbox (B.mk "B0") (B.mk "B1") ge of
            NONE =>
@@ -560,32 +573,32 @@ local
              else raise ERROR "try_rename1_bbox (empty) incorrect [added bbox]"
          ) ()
 
-  val _ = Testing.test "G.delete_bbox - empty"
+  val _ = test_force "G.delete_bbox - empty"
     (fn () => G.delete_bbox B.default_name ge) ()
 
-  val _ = Testing.test "G.add_to_bbox - empty"
+  val _ = test_force "g.add_to_bbox - empty"
     (fn () => (G.add_to_bbox B.default_name (V.NSet.single V.default_name) ge;
-            raise ERROR "add_to_bbox (empty) incorrect")
+            raise error "add_to_bbox (empty) incorrect")
             handle G.no_such_vname_exp _ => I
                  | G.no_such_bbox_exp _ => I) ()
 
-  val _ = Testing.test "G.remove_from_bbox - empty"
+  val _ = test_force "G.remove_from_bbox - empty"
     (fn () => (G.remove_from_bbox B.default_name (V.NSet.single V.default_name) ge;
             raise ERROR "remove_from_bbox (empty) incorrect")
             handle G.no_such_vname_exp _ => I
                  | G.no_such_bbox_exp _ => I) ()
 
-  val _ = Testing.test "G.kill_bbox - empty"
+  val _ = test_force "G.kill_bbox - empty"
     (fn () => (G.kill_bbox B.default_name ge;
             raise ERROR "kill_bbox (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
-  val _ = Testing.test "G.drop_bbox - empty"
+  val _ = test_force "G.drop_bbox - empty"
     (fn () => (G.drop_bbox B.default_name ge;
             raise ERROR "drop_bbox (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
-  val _ = Testing.test "G.merge_bboxes - empty"
+  val _ = test_force "G.merge_bboxes - empty"
     (fn () =>
     let
       val bs = B.NSet.of_list [B.mk "B0", B.mk "B1"]
@@ -597,12 +610,182 @@ local
 
   (* FIXME: test copy1_bbox *)
 
-  val _ = Testing.test "G.fresh_copy1_bbox - empty"
+  val _ = test_force "G.fresh_copy1_bbox - empty"
     (fn () => (G.fresh_copy1_bbox B.default_name ge;
             raise ERROR "fresh_copy1_bbox (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
   (* FIXME: test rename_apart_incl_bboxes *)
+
+  val (b0,gnv) = test_force "G.add_named_bbox (1)"
+        (fn g =>
+        let
+          val bexp = (B.mk "B0")
+          val (b,g') = G.add_named_bbox bexp g
+        in
+          case B.NSet.tryget_singleton (G.get_bboxes g') of
+               NONE => raise ERROR "add_named_bbox did not add a !-box"
+             | SOME b' =>
+                    if not (B.name_eq (b,b')) then
+                      raise ERROR "add_named_bbox returned the wrong name"
+                    else if not (B.name_eq (b,bexp)) then
+                      raise ERROR "add_named_bbox added the wrong name"
+                    else (b,g')
+        end) ge
+
+  val (b1,gnv) = test_force "G.add_named_bbox (2)"
+        (fn g =>
+        let
+          val bexp = (B.mk "B1")
+          val bs_old = G.get_bboxes g
+          val (b,g') = G.add_named_bbox bexp g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+        in
+          case B.NSet.tryget_singleton bs_added of
+               NONE => raise ERROR "add_named_bbox did not add a !-box"
+             | SOME b' =>
+                    if not (B.name_eq (b,b')) then
+                      raise ERROR "add_named_bbox returned the wrong name"
+                    else if not (B.name_eq (b,bexp)) then
+                      raise ERROR "add_named_bbox added the wrong name"
+                    else (b,g')
+        end) gnv
+
+  val (b2,gnv) = test_force "G.add_named_bbox (already exists)"
+        (fn g =>
+        let
+          val badd = b0
+          val bs_old = G.get_bboxes g
+          val (b,g') = G.add_named_bbox badd g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+        in
+          case B.NSet.tryget_singleton bs_added of
+               NONE => raise ERROR "add_named_bbox did not add a !-box"
+             | SOME b' =>
+                    if not (B.name_eq (b,b')) then
+                      raise ERROR "add_named_bbox returned the wrong name"
+                    (* This time it _should_ be different *)
+                    else if B.name_eq (b,badd) then
+                      raise ERROR "add_named_bbox added the wrong name"
+                    else (b,g')
+        end) gnv
+
+  val _ = test_force "G.delete_bbox (no such bb)"
+        (fn g =>
+        let
+          val bexp = (B.mk "B9")
+          val bs_old = G.get_bboxes g
+          val g' = G.delete_bbox bexp g
+          val bs_new = G.get_bboxes g'
+        in
+          if not (B.NSet.eq bs_old bs_new) then
+            raise ERROR "delete_bbox managed to delete a !-box that didn't exist"
+          else g'
+        end) gnv
+
+  val _ = test_force "G.delete_bbox (empty !-box)"
+        (fn g =>
+        let
+          val bexp = b0
+          val bs_old = G.get_bboxes g
+          val g' = G.delete_bbox bexp g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+          val _ = if not (B.NSet.is_empty bs_added) then
+                    raise ERROR "delete_bbox managed to add something"
+                  else ()
+          val bs_removed = B.NSet.subtract bs_old bs_new
+        in
+          case B.NSet.tryget_singleton bs_removed of
+               NONE => raise ERROR "delete_bbox did not delete exactly one item"
+             | SOME b' =>
+                    if not (B.name_eq (b',bexp)) then
+                      raise ERROR "delete_bbox deleted the wrong !-box"
+                    else g'
+        end) gnv
+
+  val _ = test_force "G.rename_bbox (no such bb; new tgt)"
+        (fn g =>
+        let
+          val bfrom = (B.mk "B8")
+          val bto = (B.mk "B9")
+          val bs_old = G.get_bboxes g
+          val g' = G.rename_bbox bfrom bto g
+          val bs_new = G.get_bboxes g'
+        in
+          if not (B.NSet.eq bs_old bs_new) then
+            raise ERROR "rename_bbox changed the graph"
+          else g'
+        end) gnv
+
+  val _ = test_force "G.rename_bbox (no such bb; existing tgt)"
+        (fn g =>
+        let
+          val bfrom = (B.mk "B8")
+          val bto = b0
+          val bs_old = G.get_bboxes g
+          val g' = G.rename_bbox bfrom bto g
+          val bs_new = G.get_bboxes g'
+        in
+          if not (B.NSet.eq bs_old bs_new) then
+            raise ERROR "rename_bbox changed the graph"
+          else g'
+        end) gnv
+
+  val gv = gnv
+  val (x1,gv) = gv |> G.add_vertex (mkX  zero_angle);
+  val (x2,gv) = gv |> G.add_vertex (mkX  zero_angle);
+  val (x3,gv) = gv |> G.add_vertex (mkX  zero_angle);
+  val (_ ,gv) = gv |> G.add_edge dir_edge x1 x2
+  val (_ ,gv) = gv |> G.add_edge dir_edge x2 x3
+  val (_ ,gv) = gv |> G.add_edge dir_edge x3 x1
+
+  val _ = test_force "G.add_to_bbox (no such bbox)"
+        (fn g => (G.add_to_bbox (B.mk "B9") (V.NSet.single x1) g;
+                  raise error "add_to_bbox (empty) incorrect")
+                 handle G.no_such_bbox_exp _ => I) gnv
+
+  val g_disjoint = test_force "G.add_to_bbox/G.get_bbox_contents (disjoint)"
+        (fn g =>
+        let
+          val b0_exp = (V.NSet.single x1)
+          val b1_exp = (V.NSet.of_list [x2,x3])
+          val bs_old = G.get_bboxes g
+          val g' = G.add_to_bbox b0 b0_exp g
+          val g'' = G.add_to_bbox b1 b1_exp g'
+          val bs_new = G.get_bboxes g'
+          val _ = if not (B.NSet.eq bs_old bs_new) then
+                    raise ERROR "add_to_bbox changed the !-box set"
+                  else ()
+          val _ = if not (V.NSet.eq b0_exp (G.get_bbox_contents g'' b0)) then
+                    raise ERROR "add_to_bbox did not set B0 contents properly"
+                  else ()
+          val _ = if not (V.NSet.eq b1_exp (G.get_bbox_contents g'' b1)) then
+                    raise ERROR "add_to_bbox did not set B1 contents properly"
+                  else ()
+        in g'' end) gnv
+
+  val g_overlap = test_force "G.add_to_bbox/G.get_bbox_contents (overlapping)"
+        (fn g =>
+        let
+          val b0_exp = (V.NSet.of_list [x1,x2])
+          val b1_exp = (V.NSet.of_list [x2,x3])
+          val bs_old = G.get_bboxes g
+          val g' = G.add_to_bbox b0 b0_exp g
+          val g'' = G.add_to_bbox b1 b1_exp g'
+          val bs_new = G.get_bboxes g'
+          val _ = if not (B.NSet.eq bs_old bs_new) then
+                    raise ERROR "add_to_bbox changed the !-box set"
+                  else ()
+          val _ = if not (V.NSet.eq b0_exp (G.get_bbox_contents g'' b0)) then
+                    raise ERROR "add_to_bbox did not set B0 contents properly"
+                  else ()
+          val _ = if not (V.NSet.eq b1_exp (G.get_bbox_contents g'' b1)) then
+                    raise ERROR "add_to_bbox did not set B1 contents properly"
+                  else ()
+        in g'' end) gnv
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"
