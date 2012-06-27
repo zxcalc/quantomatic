@@ -194,7 +194,6 @@ struct
   val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);
 
   (* FIXME: move into Testing in isaplib *)
-  (* This causes exceptions to be raised in the right place *)
   fun test_force s f v =
     case Testing.test s f v of
          NONE => raise Testing.failed_tests_exp (!Testing.tests_failed_ref)
@@ -734,18 +733,27 @@ local
           else g'
         end) gnv
 
+  val _ = test_force "G.add_to_bbox (no such verts)"
+        (fn g => (G.add_to_bbox b0 (V.NSet.single V.default_name) g;
+                  raise error "add_to_bbox (no such verts) incorrect")
+                 handle G.no_such_vnames_exp _ => I) gnv
+
   val gv = gnv
   val (x1,gv) = gv |> G.add_vertex (mkX  zero_angle);
   val (x2,gv) = gv |> G.add_vertex (mkX  zero_angle);
   val (x3,gv) = gv |> G.add_vertex (mkX  zero_angle);
+  val (x4,gv) = gv |> G.add_vertex (mkX  zero_angle);
   val (_ ,gv) = gv |> G.add_edge dir_edge x1 x2
   val (_ ,gv) = gv |> G.add_edge dir_edge x2 x3
   val (_ ,gv) = gv |> G.add_edge dir_edge x3 x1
+  val (_ ,gv) = gv |> G.add_edge dir_edge x4 x1
+  val (_ ,gv) = gv |> G.add_edge dir_edge x4 x2
+  val (_ ,gv) = gv |> G.add_edge dir_edge x4 x3
 
   val _ = test_force "G.add_to_bbox (no such bbox)"
         (fn g => (G.add_to_bbox (B.mk "B9") (V.NSet.single x1) g;
                   raise error "add_to_bbox (empty) incorrect")
-                 handle G.no_such_bbox_exp _ => I) gnv
+                 handle G.no_such_bbox_exp _ => I) gv
 
   val g_disjoint = test_force "G.add_to_bbox/G.get_bbox_contents (disjoint)"
         (fn g =>
@@ -755,7 +763,7 @@ local
           val bs_old = G.get_bboxes g
           val g' = G.add_to_bbox b0 b0_exp g
           val g'' = G.add_to_bbox b1 b1_exp g'
-          val bs_new = G.get_bboxes g'
+          val bs_new = G.get_bboxes g''
           val _ = if not (B.NSet.eq bs_old bs_new) then
                     raise ERROR "add_to_bbox changed the !-box set"
                   else ()
@@ -765,7 +773,7 @@ local
           val _ = if not (V.NSet.eq b1_exp (G.get_bbox_contents g'' b1)) then
                     raise ERROR "add_to_bbox did not set B1 contents properly"
                   else ()
-        in g'' end) gnv
+        in g'' end) gv
 
   val g_overlap = test_force "G.add_to_bbox/G.get_bbox_contents (overlapping)"
         (fn g =>
@@ -775,7 +783,7 @@ local
           val bs_old = G.get_bboxes g
           val g' = G.add_to_bbox b0 b0_exp g
           val g'' = G.add_to_bbox b1 b1_exp g'
-          val bs_new = G.get_bboxes g'
+          val bs_new = G.get_bboxes g''
           val _ = if not (B.NSet.eq bs_old bs_new) then
                     raise ERROR "add_to_bbox changed the !-box set"
                   else ()
@@ -785,7 +793,171 @@ local
           val _ = if not (V.NSet.eq b1_exp (G.get_bbox_contents g'' b1)) then
                     raise ERROR "add_to_bbox did not set B1 contents properly"
                   else ()
-        in g'' end) gnv
+        in g'' end) gv
+
+  val _ = test_force "G.get_empty_bboxes (empty !-boxes)"
+        (fn (g,blist) =>
+        let
+          val bs = G.get_empty_bboxes g
+          val _ = if not (B.NSet.eq bs (B.NSet.of_list blist)) then
+                    raise ERROR "get_empty_bboxes did not give correct !-boxes"
+                  else ()
+        in () end) (gv,[b0,b1,b2])
+
+  val _ = test_force "G.get_empty_bboxes (disjoint)"
+        (fn (g,blist) =>
+        let
+          val bs = G.get_empty_bboxes g
+          val _ = if not (B.NSet.eq bs (B.NSet.of_list blist)) then
+                    raise ERROR "get_empty_bboxes did not give correct !-boxes"
+                  else ()
+        in () end) (g_disjoint,[b2])
+
+  val _ = test_force "G.get_bboxed (empty !-boxes)"
+        (fn (g,vlist) =>
+        let
+          val vs = G.get_bboxed g
+          val _ = if not (V.NSet.eq vs (V.NSet.of_list vlist)) then
+                    raise ERROR "get_bboxed did not give correct verts"
+                  else ()
+        in () end) (gv,[])
+
+  val _ = test_force "G.get_bboxed (disjoint)"
+        (fn (g,vlist) =>
+        let
+          val vs = G.get_bboxed g
+          val _ = if not (V.NSet.eq vs (V.NSet.of_list vlist)) then
+                    raise ERROR "get_bboxed did not give correct verts"
+                  else ()
+        in () end) (g_disjoint,[x1,x2,x3])
+
+  val _ = test_force "G.get_bboxed (overlapping)"
+        (fn (g,vlist) =>
+        let
+          val vs = G.get_bboxed g
+          val _ = if not (V.NSet.eq vs (V.NSet.of_list vlist)) then
+                    raise ERROR "get_bboxed did not give correct verts"
+                  else ()
+        in () end) (g_overlap,[x1,x2,x3])
+
+  val _ = test_force "G.get_unbboxed (empty !-boxes)"
+        (fn (g,vlist) =>
+        let
+          val vs = G.get_unbboxed g
+          val _ = if not (V.NSet.eq vs (V.NSet.of_list vlist)) then
+                    raise ERROR "get_unbboxed did not give correct verts"
+                  else ()
+        in () end) (gv,[x1,x2,x3,x4])
+
+  val _ = test_force "G.get_unbboxed (disjoint)"
+        (fn (g,vlist) =>
+        let
+          val vs = G.get_unbboxed g
+          val _ = if not (V.NSet.eq vs (V.NSet.of_list vlist)) then
+                    raise ERROR "get_unbboxed did not give correct verts"
+                  else ()
+        in () end) (g_disjoint,[x4])
+
+  val _ = test_force "G.get_unbboxed (overlapping)"
+        (fn (g,vlist) =>
+        let
+          val vs = G.get_unbboxed g
+          val _ = if not (V.NSet.eq vs (V.NSet.of_list vlist)) then
+                    raise ERROR "get_unbboxed did not give correct verts"
+                  else ()
+        in () end) (g_overlap,[x4])
+
+  val _ = test_force "G.get_bboxes_of (disjoint)"
+        (fn g =>
+        let
+          val bs1 = G.get_bboxes_of g x1
+          val b = case B.NSet.tryget_singleton bs1
+                    of NONE => raise ERROR "get_bboxes_of did not give correct number (1) of bboxes"
+                     | SOME b' => b'
+          val _ = if not (B.name_eq (b0,b)) then
+                    raise ERROR "get_bboxes_of did not give the correct !-box"
+                  else ()
+          val bs4 = G.get_bboxes_of g x4
+          val _ = if not (B.NSet.is_empty bs4) then
+                    raise ERROR "get_bboxes_of did not give correct number (0) of bboxes"
+                  else ()
+        in () end) g_disjoint
+
+  val _ = test_force "G.get_bboxes_of (overlapping)"
+        (fn g =>
+        let
+          val bs3 = G.get_bboxes_of g x3
+          val b = case B.NSet.tryget_singleton bs3
+                    of NONE => raise ERROR "get_bboxes_of did not give correct number (1) of bboxes"
+                     | SOME b' => b'
+          val _ = if not (B.name_eq (b1,b)) then
+                    raise ERROR "get_bboxes_of did not give the correct !-box"
+                  else ()
+          val bs2 = G.get_bboxes_of g x2
+          val _ = if (B.NSet.cardinality bs2) <> 2 then
+                    raise ERROR "get_bboxes_of did not give correct number (2) of bboxes"
+                  else ()
+          val _ = if not (B.NSet.eq (B.NSet.of_list [b0,b1]) bs2) then
+                    raise ERROR "get_bboxes_of did not give correct bboxes"
+                  else ()
+        in () end) g_overlap
+
+  val _ = test_force "G.delete_bbox (disjoint)"
+        (fn g =>
+        let
+          val bs_old = G.get_bboxes g
+          val g' = G.delete_bbox b0 g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+          val _ = if not (B.NSet.is_empty bs_added) then
+                    raise ERROR "delete_bbox managed to add something"
+                  else ()
+          val bs_removed = B.NSet.subtract bs_old bs_new
+          val b = case B.NSet.tryget_singleton bs_removed of
+                       NONE => raise ERROR "delete_bbox did not delete !-box"
+                     | SOME b' => b'
+          val _ = if not (B.name_eq (b0,b)) then
+                    raise ERROR "delete_bbox did not delete the correct !-box"
+                  else ()
+          val _ = if not (V.NSet.eq (G.get_vnames g) (G.get_vnames g')) then
+                    raise ERROR "delete_bbox changed vertices"
+                  else ()
+        in g' end) g_disjoint
+
+  val _ = test_force "G.rename_bbox (disjoint; existing !-box)"
+        (fn g => (G.rename_bbox b0 b1 g;
+                  raise error "rename_bbox (name clash) did not throw exception")
+                 handle G.bbox_already_exists_exp _ => I) g_disjoint
+
+  val _ = test_force "G.rename_bbox (disjoint)"
+        (fn g =>
+        let
+          val bnew = (B.mk "B9")
+          val bs_old = G.get_bboxes g
+          val g' = G.rename_bbox b0 bnew g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+          val badd = case B.NSet.tryget_singleton bs_added of
+                       NONE => raise ERROR "rename_bbox did not add new !-box"
+                     | SOME b' => b'
+          val bs_removed = B.NSet.subtract bs_old bs_new
+          val brem = case B.NSet.tryget_singleton bs_removed of
+                       NONE => raise ERROR "rename_bbox did not remove old !-box"
+                     | SOME b' => b'
+          val _ = if not (B.name_eq (b0,brem)) then
+                    raise ERROR "rename_bbox did not rename the correct !-box"
+                  else ()
+          val _ = if not (B.name_eq (bnew,badd)) then
+                    raise ERROR "rename_bbox did not use the correct name"
+                  else ()
+          val _ = if not (V.NSet.eq (G.get_bbox_contents g b0)
+                                    (G.get_bbox_contents g' bnew)) then
+                    raise ERROR "rename_bbox did not preserve contents"
+                  else ()
+          val _ = if not (V.NSet.eq (G.get_vnames g) (G.get_vnames g')) then
+                    raise ERROR "rename_bbox changed vertices"
+                  else ()
+        in g' end) g_disjoint
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"

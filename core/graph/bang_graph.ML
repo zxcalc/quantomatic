@@ -255,9 +255,13 @@ functor BasicBangGraphFun(
 
   (* raises bbbox_already_exists_exp if bbox name already exists *)
   fun rename_bbox n1 n2 g =
-      g |> update_bbox_rel (fn bxs =>
+      g |> update_bboxes (fn bxs =>
+                             case B.NSet.try_rename1 n1 n2 bxs
+                               of NONE => raise bbox_already_exists_exp (n2,g)
+                                | SOME bxs2 => bxs2)
+        |> update_bbox_rel (fn bxs =>
                              case BVBRel.try_rename1_dom n1 n2 bxs
-                              of NONE => raise bbox_already_exists_exp (n2,g)
+                              of NONE => raise bug_exp "bbox in bbox_rel but not bboxes"
                                | SOME bxs2 => bxs2);
 
   (* modified graph functions *)
@@ -328,7 +332,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   (* lookup names of boxes that v is in *)
   fun get_bboxes_of g v =
       case V.NTab.lookup (get_vertex_bbox_table g) v of
-           NONE => (if not (V.NTab.contains (get_vertices g) v) then
+           NONE => (if not (V.NTab.contains_name (get_vertices g) v) then
                       raise no_such_vname_exp ("get_bboxes_of", v, g)
                     else B.NSet.empty)
          | SOME bs => bs;
@@ -365,8 +369,11 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun add_to_bbox b vs g =
     if not (has_bbox g b) then
       raise no_such_bbox_exp ()
+    else if not (V.NSet.sub_set vs (get_vnames g)) then
+      raise no_such_vnames_exp ("add_to_bbox",vs,g)
     else
       g |> update_bbox_rel (BVBRel.add_to_dom b vs);
+
   fun remove_from_bbox b vs g =
     if not (has_bbox g b) then
       raise no_such_bbox_exp ()
