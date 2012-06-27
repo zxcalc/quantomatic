@@ -98,6 +98,7 @@ val get_bboxes_of : T -> V.name -> B.NSet.T
 (* no_such_vname_exp if vertex does not exist *)
 val is_bboxed : T -> V.name -> bool
 
+(* bbox_already_exists_exp *)
 val new_named_bbox : B.name -> T -> T
 val add_bbox : T -> B.name * T
 val doadd_bbox : T -> T
@@ -116,10 +117,19 @@ val remove_from_bbox : B.name -> V.NSet.T -> T -> T
  * each one *)
 val add_to_bboxes : T -> B.NSet.T -> B.NSet.T
 
+(* no_such_bbox_exp *)
 val kill_bbox : B.name -> T -> T
+(* no_such_bbox_exp *)
 val drop_bbox : B.name -> T -> T
 val merge_bboxes : B.NSet.T -> T -> B.name * T
 
+(* copy a set of vertices, making copy having names fresh w.r.t.
+   vrn and ern (edge and vertex renaming).
+   copies edges to all vertices outside the selected set.
+   assumes: (get_vnames g) <= get_avoids(vrn)
+            (get_enames g) <= get_avoids(ern)
+            (get_bboxes g) <= get_avoids(brn)
+*)
 val copy1_bbox : B.name (* bbox to copy *)
       -> ((V.renaming (* renaming for bbox copy/avoids *)
            * E.renaming
