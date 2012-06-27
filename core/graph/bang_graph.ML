@@ -146,6 +146,22 @@ val fresh_copy1_bbox : B.name (* bbox to copy *)
       -> (B.name (* new box name *)
           * T) (* new graph with bbox copied *)
 
+(* copy and drop *)
+val expand1_bbox : B.name (* bbox to expand *)
+      -> ((V.renaming (* renaming for bbox copy/avoids *)
+           * E.renaming
+           * B.renaming)
+          * T) (* graph containing bbox name *)
+      -> ((V.renaming (* how vnames were copied *)
+               * E.renaming (* ename copying *)
+               * B.renaming) (* bbname copying *)
+             * T) (* new graph with bbox expanded *)
+
+(* copy and drop *)
+val fresh_expand1_bbox : B.name (* bbox to expand *)
+      -> T (* graph containing bbox name *)
+      -> T (* new graph with bbox expanded *)
+
 (* FIXME: remove? *)
 val get_filtered_adj_arities_and_bang_arities :
     (((H.name * (dir_or_undir * EData.data)) * V.name) -> bool)
@@ -449,6 +465,32 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                 E.Rnm.mk_from_avoids (get_enames g),
                 B.Rnm.mk_from_avoids (get_bboxes g)),g)
       in (bname, graph) end;
+
+  fun expand1_bbox bn ((vrn,ern,brn),g) =
+    (* brn is currently unused, but will be needed for
+     * nested !-boxes *)
+      let
+        val bbox_vs = get_bbox_contents g bn;
+        val ((vrn',ern'),g') = copy1_vset bbox_vs ((vrn, ern),g);
+        fun extend_bbs v gr =
+          let
+            val SOME v' = V.Rnm.lookup vrn' v
+            val vs = V.NSet.single v'
+            val bbs = B.NSet.delete bn (get_bboxes_of g v)
+          in
+            B.NSet.fold (fn b => add_to_bbox b vs) bbs gr
+          end
+        val g'' = V.NSet.fold extend_bbs bbox_vs g'
+      in
+         ((vrn',ern',brn), g'')
+      end;
+
+  fun fresh_expand1_bbox bn g =
+      let val (_, graph) = expand1_bbox bn
+                ((V.Rnm.mk_from_avoids (get_vnames g),
+                E.Rnm.mk_from_avoids (get_enames g),
+                B.Rnm.mk_from_avoids (get_bboxes g)),g)
+      in graph end;
 
   (* FIXME: this code is largely duplicated in bgraph - clean up *)
 
