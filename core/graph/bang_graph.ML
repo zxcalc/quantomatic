@@ -4,6 +4,16 @@
 (* FIXME: make merge_by_vertices respect !-boxes. ? need general notion of
    data merging? *)
 
+(* Quantomatic's implementation of pattern graphs (a.k.a. !-graphs) deviates
+ * from the theoretical version in several ways.  The !-vertices are stored
+ * separately to other vertex types, in their own namespace (B, rather than V).
+ * The edges from !-vertices to non-!-vertices (ie: the contents of the !-box)
+ * are stored implicitly as a binary relation.  Similarly, the edges between
+ * !-vertices are stored as a partial order.  This is possible because there is
+ * at most one edge between a !-vertex and any other vertex, and the !-vertex
+ * must be the source of the edge.
+ *)
+
 (* Basic Bang Graphs: data and also basic functions *)
 signature BASIC_BANG_GRAPH =
 sig
