@@ -219,9 +219,8 @@ functor RGraph(
     * merge the two vertices.*)
    fun are_isomorphic g1 g2 =
      let
-      (* Create two rules g1 => g2 and g2 => g1. See if there are matches *)
-      val r  = Rule.mk (g1,g2)
-      val r' = Rule.symmetric r 
+      val r  = Rule.mk (g1,g1)
+      val r' = Rule.mk (g2,g2)
       fun has_match rule g = case (Seq.pull o snd o 
                                     (flip RSetRewrites.rule_matches g)) rule
                               of SOME _ => true
@@ -253,7 +252,6 @@ functor RGraph(
                   end)
               outes
           |> delete_vertex v1
-          |> rename_vertex v2 new_name 
       end;
 
   (* Unify1: take a graphname and see if there are any isomorphic graphs in the 
@@ -332,27 +330,29 @@ functor RGraph(
       val time' = time + 1
       val states' = states |> set_state_dtime time' v
                            |> set_state_status DISCOVERED v
-      (* FIXME: Hope there are no name clashes here...  *)
-      fun classify time states un (vn,en) rg =
+      fun classify un (vn,en) ((states'',time''),rg) =
         (let
           fun set_edge_type t = rg |> get_edges
                                    |> E.NTab.map_entry (fn (((a,b),c),_) =>
                                                    (((a,b),c),t)) en
                                    |> (flip set_edges) rg
         in
-          case (get_vertex_state_status vn states)
+          case (get_vertex_state_status vn states'')
             of UNVISITED => (let  
-                              val rg' = set_edge_type Tree
+                              val ((sts,tm),rg') = visit vn states'' time''
+                                                (set_edge_type Tree)
                             in
-                              visit vn states time rg'
+                              ((sts |> set_state_status VISITED vn
+                                , tm), rg')
                             end)
-            | DISCOVERED => set_edge_type Back
-            | VISITED =>  if (get_vertex_state_dtime un states) < (get_vertex_state_dtime vn states)
-                            then set_edge_type Forward
-                            else set_edge_type Cross
+            | DISCOVERED => ((states'', time''),set_edge_type Back)
+            | VISITED =>  if (get_vertex_state_dtime un states'') <
+                (get_vertex_state_dtime vn states'')
+                            then ((states'',time''), set_edge_type Forward)
+                            else ((states'',time''), set_edge_type Cross)
         end) 
     in
-      rg |> fold (classify time' states' v) (get_children_of v rg)
+      ((states',time'), rg) |> fold (classify v) (get_children_of v rg)
     end;
 
   fun treeify r rg =
@@ -363,6 +363,7 @@ functor RGraph(
       rg |> set_root (SOME r)
          |> clear_labels 
          |> visit r states time
+         |> snd
     end;
 
   fun pretty_edge_type Tree = Pretty.str "Tree"

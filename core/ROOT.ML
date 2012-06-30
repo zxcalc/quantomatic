@@ -207,6 +207,8 @@ PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 (* Testing *)
 Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
+Testing.make_test "rewriting/checking/test/rgraph_test_struct.ML";
+Testing.make_test "rewriting/checking/test/rgraph_test.ML";
 
 (* Test to make sure example code for playing with graphs at the ML level 
    are working. *)
