@@ -29,8 +29,9 @@ sig
 
   val get_edges : T -> edge E.NTab.T
   val get_vertices : T ->  vertex GraphName.NTab.T
-  val get_root : T -> GraphName.name option (* NONE if some connected componenent
+  val get_root : T -> root (* NONE if some connected component
                                               of the graph has not been "treeified"  *)
+  val set_root : root -> T -> T
   val get_vnames : T -> GraphName.NSet.T
   val get_enames : T -> E.NSet.T
 
@@ -40,6 +41,11 @@ sig
 
   val unify1 : GraphName.name -> T -> T
   val unify : T -> T
+
+  val init_states : T -> state GraphName.NTab.T
+  val set_state_status : status -> GraphName.name -> state GraphName.NTab.T ->
+                                                            state GraphName.NTab.T
+  val get_vertex_state_status : GraphName.name -> state GraphName.NTab.T -> status
 
   val treeify : GraphName.name -> T -> T
 
@@ -289,7 +295,7 @@ functor RGraph(
   (* Given a vertex, that we set as root, we can label the edges in its
    * connected component as Tree, Cross ,etc...*)
 
-
+  (* Keep track of the status of the vertices as well as their discovery times *)
   fun init_states rg = 
     let
       val vnames = GraphName.NTab.get_nameset (get_vertices rg)
@@ -324,6 +330,8 @@ functor RGraph(
     in
       List.map lookup outs
     end;
+
+  (* Core of the algo: recursively called. First call takes the name of the root *)
 
   fun visit v states time rg =
     let

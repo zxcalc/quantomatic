@@ -145,9 +145,13 @@ PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
 
-(* Ruleset Checking *)
+(* Rewrite Graph *)
 PolyML.Project.make "rewriting/checking/rgraph.ML";
+(* Ruleset Checking *)
 PolyML.Project.make "rewriting/checking/ruleset_checking.ML";
+
+(* Rewrite Trees *)
+PolyML.Project.make "rewrite_tree/rewrite_tree.ML";
 
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)

@@ -18,7 +18,7 @@ fun list_of_rule_matches r g =
 val (_,g) = G.empty |> G.add_vertex (mkZ zero_angle);
 val r = Rule.mk (g,g);
 val (r, matches) = list_of_rule_matches r g;
-val m = List.hd matches 
+val m = List.hd matches; 
 
 
 (* First test that the implementation of the edge classification of a graph is
@@ -114,5 +114,27 @@ val () = rg |> RewriteGraph.treeify n1
 val rg = rg |> RewriteGraph.unify;
 val () = rg |> RewriteGraph.treeify n1
             |> RewriteGraph.print;
+
+val rg = RewriteGraph.init;
+val g1 = G.empty |> G.add_vertex (mkZ zero_angle)
+                 |> snd;
+val g2 = G.empty |> G.add_vertex (mkZ zero_angle)
+                 |> snd
+                 |> G.add_vertex (mkZ zero_angle)
+                 |> snd;
+(* A graph with 4 vertices, g1 appears twice *)
+val (n1, rg) = RewriteGraph.add_vertex g1 rg;
+val (n2, rg) = RewriteGraph.add_vertex g2 rg;
+val (n3, rg) = RewriteGraph.add_vertex g2 rg;
+
+val (e1,rg) = rg |> RewriteGraph.add_edge l ((n1,n3), ed);
+val (e2,rg) = rg |> RewriteGraph.add_edge l ((n1,n2), ed);
+
+val () = rg |> RewriteGraph.treeify n1
+            |> RewriteGraph.print;
+val rg = rg |> RewriteGraph.unify;
+val () = rg |> RewriteGraph.treeify n1
+            |> RewriteGraph.print;
+
 
 end;
