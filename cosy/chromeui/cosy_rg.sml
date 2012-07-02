@@ -14,7 +14,7 @@ struct
    
   val output_dot = RG_OutputGraphDot.output
   val zero = LinratAngleExpr.zero
-  val gens = RG_Gens.gen_list 4 [RG_InternVData.Xnd zero, RG_InternVData.Znd zero]
+  val gens = RG_Gens.gen_list 3 [RG_InternVData.Xnd zero, RG_InternVData.Znd zero]
   
   local
     val rs' = RG_Theory.Ruleset.empty

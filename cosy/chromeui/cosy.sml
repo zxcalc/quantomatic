@@ -43,7 +43,7 @@ fun clearFloats dom_element =
                   jsffi.exec_js "window|" "clearFloats"
                    [jsffi.arg.reference (DOM.fptr_of_HTMLElement dom_element)]
 
-val gens = GHZW_Gens.gen_list 3 [GHZW_VertexData.GHZ,GHZW_VertexData.W];
+val gens = GHZW_Gens.gen_list 2 [GHZW_VertexData.GHZ,GHZW_VertexData.W];
 
 val content_div = the (DOM.getElementById DOM.document "cosy_content")
                   handle Option => DOM.HTMLElement "NULL"

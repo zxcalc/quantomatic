@@ -82,7 +82,7 @@ struct
   val dimension = 2
   
   val green_basis = (Tensor.tensor (2,0,1) [(1,0),(0,0)], Tensor.tensor (2,0,1) [(0,0),(1,0)])
-  val red_basis = (Tensor.tensor (2,0,1) [(1,0),(1,0)], Tensor.tensor (2,0,1) [(0,~1),(0,1)])
+  val red_basis = (Tensor.tensor (2,0,1) [(1,0),(1,0)], Tensor.tensor (2,0,1) [(1,0),(~1,0)])
   
   fun gen (ket1,ket2) (ins, outs) = let
     val one = Tensor.id 2 0
@@ -109,7 +109,10 @@ structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)
 
 structure RG_Synth = Synthesize(
   structure GraphEnum = RG_Enum
-  structure Metric = WeightedArityMetric(structure Graph = RG_Theory.Graph; val weight_for_data = K 1)
+  structure Metric = WeightedArityMetric(structure Graph = RG_Theory.Graph;
+    fun weight_for_data (Graph.OVData.IVert (RG_InternVData.Xnd _)) = 6
+      | weight_for_data (Graph.OVData.IVert (RG_InternVData.Znd _)) = 5
+      | weight_for_data _ = 4)
   structure TData = RG_TensorData
 )
 
