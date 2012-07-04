@@ -278,14 +278,3 @@ functor SimpleInnerMatchSearch(
     structure MatchState = MatchState.Sharing
   end
 end
-
-(* type-coerced version of SimpleInnerMatchSearch for pattern graphs *)
-functor BGSimpleInnerMatchSearch(
-    structure MatchState : BANG_GRAPH_MATCH_STATE
-) : INNER_BG_MATCH_SEARCH
-= struct
-  structure BG = MatchState.BG;
-  structure BGMatchState = MatchState;
-  structure SIMS = SimpleInnerMatchSearch(structure MatchState = MatchState);
-  open SIMS;
-end
