@@ -19,6 +19,34 @@ signature OGRAPH_MATCH_STATE
     sharing type Sharing.T = T
     sharing Sharing.G = G.SharingOGraph
   
+  (* names context for fresh names when copying bboxes in pat *)
+  val get_names           : T -> (V.NSet.T * E.NSet.T)
+  (* the graph to match from *)
+  val get_pat             : T -> G.T
+  (* the graph to match onto *)
+  val get_tgt             : T -> G.T
+  (* the vertex map so far (from pat verts to tgt verts *)
+  val get_vmap            : T -> VInjEndo.T
+  (* the edge map so far (from pat edges to tgt edges *)
+  val get_emap            : T -> EInjEndo.T
+  (* circles waiting to be matched *)
+  (* contains a representative vertex from each circle *)
+  val get_u_circles       : T -> V.NSet.T
+  (* node vertices waiting to be matched *)
+  val get_u_nodeverts     : T -> V.NSet.T
+  (* wire vertices waiting to be matched *)
+  val get_u_wireverts     : T -> V.NSet.T
+  (* bare wires waiting to be matched *)
+  val get_u_bare_wires    : T -> E.NSet.T
+  (* partially-matched vertices - these are in vmap, but not all
+   * the adjacent edges of their images are in the image of emap *)
+  val get_p_nodeverts     : T -> V.NSet.T
+  (* those vertices in p_nodeverts that may have new matchings
+   * of adjacent wires *)
+  val get_ps_nodeverts    : T -> V.NSet.T
+  (* the vertex/edge data substitution for the matching *)
+  val get_match_subst     : T -> G.Param.subst
+
   val update_names        : ((V.NSet.T * E.NSet.T) -> (V.NSet.T * E.NSet.T)) -> T -> T
   val update_pat          : (G.T -> G.T) -> T -> T
   val update_tgt          : (G.T -> G.T) -> T -> T
@@ -31,18 +59,7 @@ signature OGRAPH_MATCH_STATE
   val update_p_nodeverts  : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_ps_nodeverts : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_match_subst  : (G.Param.subst -> G.Param.subst) -> T -> T
-  val get_names           : T -> (V.NSet.T * E.NSet.T)
-  val get_pat             : T -> G.T
-  val get_tgt             : T -> G.T
-  val get_vmap            : T -> VInjEndo.T
-  val get_emap            : T -> EInjEndo.T
-  val get_u_circles       : T -> V.NSet.T
-  val get_u_nodeverts     : T -> V.NSet.T
-  val get_u_wireverts     : T -> V.NSet.T
-  val get_u_bare_wires    : T -> E.NSet.T
-  val get_p_nodeverts     : T -> V.NSet.T
-  val get_ps_nodeverts    : T -> V.NSet.T
-  val get_match_subst     : T -> G.Param.subst
+
   val set_names           : (V.NSet.T * E.NSet.T) -> T -> T
   val set_pat             : G.T -> T -> T
   val set_tgt             : G.T -> T -> T
@@ -59,10 +76,13 @@ signature OGRAPH_MATCH_STATE
   val empty : T
   
   (* returns true if vmap and evap represent a total graph hm *)
+  (* will only return true if p_nodeverts is empty (local isomorphism) *)
   val is_total : T -> bool
   
   (* initialise MatchState and schedule all vertices in pattern to be matched *)
-  val init_and_schedule_all : G.T -> G.T -> T
+  val init_and_schedule_all : G.T -> (* pattern *)
+                              G.T -> (* target *)
+                              T
   
   (* Convenience functions for adding things to match. Convention is these do NOT remove 
      vertices or edges from the u_*, p_*, or ps_* sets. The caller should do that. *)
