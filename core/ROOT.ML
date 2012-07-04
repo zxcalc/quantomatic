@@ -149,6 +149,8 @@ PolyML.Project.make "matching2/simple_inner_match_search.ML";
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
 PolyML.Project.make "matching2/concrete_outer_match_search.ML";
+(* naive pattern-graph wrapper *)
+PolyML.Project.make "matching2/simple_pattern_outer_match_search.ML";
 
 
 (* Testing *)

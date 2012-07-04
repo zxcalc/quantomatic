@@ -79,6 +79,8 @@ signature OGRAPH_MATCH_STATE
   val init : G.T -> (* pattern *)
              G.T -> (* target *)
              T
+
+  val get_complete_nodeverts : T -> V.NSet.T
   
   (* returns true if vmap and evap represent a total graph hm *)
   (* will only return true if p_nodeverts is empty (local isomorphism) *)
@@ -109,8 +111,18 @@ signature BANG_GRAPH_MATCH_STATE
   include OGRAPH_MATCH_STATE;
   (* NB: there is no BANG_GRAPH_SHARING signature *)
   structure BG : BANG_GRAPH;
-  sharing type G.T = BG.T;
-  sharing type G.Param.subst = BG.Param.subst;
+  sharing G.SharingOGraph = BG.SharingOGraph;
+
+  (* initialise MatchState and schedule all concrete vertices in pattern
+   * to be matched
+   * args: pattern graph, target graph *)
+  val init_and_schedule_concrete : G.T -> G.T -> T
+  (* schedules all the concrete vertices that have not been seen before
+   *)
+  val schedule_new_concrete : T -> T
+
+  (* Kills any !-boxes that are adjacent to a completely-matched vertex *)
+  val kill_impossible_bboxes : T -> T
 end
 
 functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
@@ -392,6 +404,13 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   end
   
   fun add_vertex_to_match (vp, vt) ms = ms |> update_vmap (VInjEndo.add vp vt)
+
+  fun get_complete_nodeverts ms = let
+    val node_vs = V.NSet.filter (G.is_node_vertex (get_pat ms))
+                  (VInjEndo.get_domset (get_vmap ms))
+  in
+    V.NSet.subtract node_vs (get_p_nodeverts ms)
+  end
   
   fun is_total ms =
     V.NSet.eq (VInjEndo.get_domset (get_vmap ms)) (G.get_vnames (get_pat ms)) andalso
@@ -432,4 +451,55 @@ functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
   structure BG = G;
   structure OGMS = OGraphMatchState(structure G = G);
   open OGMS;
+
+  fun schedule_concrete new_vs new_es ms = let
+    val pat = get_pat ms
+    val unbboxed = V.NSet.subtract new_vs (BG.get_bboxed pat)
+    val wires = G.get_wires_for_edges pat new_es
+    fun delete_wvs_in_wire (s,t,wv,_) set =
+      set |> V.NSet.remove_set wv
+          |> (if G.is_wire_vertex pat s then V.NSet.delete s else I)
+          |> (if G.is_wire_vertex pat t then V.NSet.delete t else I)
+    val circles = filter (fn (s,t,_,_) =>
+                    V.name_eq (s,t) andalso
+                    G.is_wire_vertex pat s andalso
+                    V.NSet.contains unbboxed s
+                  ) wires
+    val bare_wires = filter (fn (s,t,_,_) =>
+                       not (V.name_eq (s,t)) andalso
+                       G.is_wire_vertex pat s andalso
+                       G.is_wire_vertex pat t andalso
+                       V.NSet.contains unbboxed s
+                     ) wires
+    val nvs = V.NSet.filter (G.is_node_vertex pat) new_vs
+    val wvs' = V.NSet.filter (G.is_wire_vertex pat) new_vs
+    val wvs = fold delete_wvs_in_wire (circles @ bare_wires) wvs'
+    val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
+    val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
+  in
+    ms |> set_u_circles circle_wvs
+       |> set_u_nodeverts (V.NSet.intersect unbboxed nvs)
+       |> set_u_wireverts (V.NSet.intersect unbboxed wvs)
+       |> set_u_bare_wires bare_wire_es
+  end
+
+  (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
+   * normalised *)
+  (* FIXME: make more efficient? *)
+  fun init_and_schedule_concrete pat tgt =
+    schedule_concrete (G.get_vnames pat) (G.get_enames pat) (init pat tgt)
+
+  fun schedule_new_concrete ms = let
+    val new_vs = V.NSet.subtract (G.get_vnames (get_pat ms))
+                                 (VInjEndo.get_domset (get_vmap ms))
+    val new_es = E.NSet.subtract (G.get_enames (get_pat ms))
+                                 (EInjEndo.get_domset (get_emap ms))
+  in
+    schedule_concrete new_vs new_es ms
+  end
+
+  (* FIXME: this should kill any !-box that is adjacent to
+   * a complete vertex *)
+  (* use get_complete_nodeverts *)
+  fun kill_impossible_bboxes ms = ms (* FIXME *)
 end

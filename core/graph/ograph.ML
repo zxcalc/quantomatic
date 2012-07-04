@@ -186,6 +186,9 @@ val delete_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
    edge. The first endpoint is the one closest to the source of the edge. *)
 val get_wire_containing_edge : T -> E.name -> (V.name * V.name * V.NSet.T * E.NSet.T)
 
+(* Return a list of all the wires in the graph that contain any of the given edges *)
+val get_wires_for_edges : T -> E.NSet.T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
+
 (* Return a list of all the wires in the graph *)
 val get_wire_list : T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
 
@@ -905,14 +908,16 @@ functor OGraphFun(G : BASIC_OGRAPH)
                      end
   end
   
-  fun get_wire_list g = let
-    fun gw es = if E.NSet.is_empty es then []
-                else let val wire = get_wire_containing_edge g ((the o E.NSet.get_min) es)
-                     in wire :: gw (es |> E.NSet.remove_set (#4 wire))
+  fun get_wires_for_edges g es = let
+    fun gw es' = if E.NSet.is_empty es' then []
+                else let val wire = get_wire_containing_edge g ((the o
+                E.NSet.get_min) es')
+                     in wire :: gw (es' |> E.NSet.remove_set (#4 wire))
                      end
-  in gw (get_enames g)
+  in gw es
   end
-
+  
+  fun get_wire_list g = get_wires_for_edges g (get_enames g)
 
   fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
   

@@ -34,6 +34,7 @@ sig
   include OUTER_MATCH_SEARCH;
   structure BG : BANG_GRAPH;
   structure BGMatchState : BANG_GRAPH_MATCH_STATE;
-  sharing type G.T = BG.T;
-  sharing type BGMatchState.T = MatchState.T;
+  sharing G.SharingOGraph = BG.SharingOGraph;
+  sharing BGMatchState.G.SharingOGraph = G.SharingOGraph;
+  sharing MatchState.Sharing = BGMatchState.Sharing
 end
