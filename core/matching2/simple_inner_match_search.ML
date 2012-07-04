@@ -1,11 +1,11 @@
 (* The inner matching loop *)
 (* see docs/matching_algo for details *)
 functor SimpleInnerMatchSearch(
-    structure G : OGRAPH
+    structure MatchState : OGRAPH_MATCH_STATE
 ) : INNER_MATCH_SEARCH
 = struct
-  structure G = G
-  structure MatchState = OGraphMatchState(structure G = G)
+  structure G = MatchState.G
+  structure MatchState = MatchState
   
   
   exception InnerMatchError of string
