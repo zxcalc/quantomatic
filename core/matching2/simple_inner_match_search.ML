@@ -120,7 +120,7 @@ functor SimpleInnerMatchSearch(
   
   
     
-  fun match_concrete doomedf match_state = let
+  fun match_pending doomedf match_state = let
   
     (* main matching loop *)
     fun match_main ms = let
