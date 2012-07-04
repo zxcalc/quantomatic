@@ -30,3 +30,12 @@ sig
     sharing Sharing.G = G.SharingOGraph
     sharing Sharing.MatchState = MatchState.Sharing
 end
+
+signature INNER_BG_MATCH_SEARCH =
+sig
+  include INNER_MATCH_SEARCH;
+  structure BG : BANG_GRAPH;
+  structure BGMatchState : BANG_GRAPH_MATCH_STATE;
+  sharing type G.T = BG.T;
+  sharing type BGMatchState.T = MatchState.T;
+end

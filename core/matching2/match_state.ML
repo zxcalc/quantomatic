@@ -1,11 +1,14 @@
 (* The match state for graph matching *)
 (* see docs/matching_algo for details *)
+
+(* The type-sharing struct for OGRAPH_MATCH_STATE *)
 signature OGRAPH_MATCH_STATE_SHARING
 = sig
   type T
   structure G : OGRAPH_SHARING
 end
 
+(* The match state for concrete graph matching *)
 signature OGRAPH_MATCH_STATE
 = sig
   type T
@@ -73,6 +76,16 @@ signature OGRAPH_MATCH_STATE
   
   (* adds wire vertex and associated circle to match *)
   val add_circle_to_match : (V.name * V.name) -> T -> T
+end
+
+(* The match state for pattern graph matching *)
+signature BANG_GRAPH_MATCH_STATE
+= sig
+  include OGRAPH_MATCH_STATE;
+  (* NB: there is no BANG_GRAPH_SHARING signature *)
+  structure BG : BANG_GRAPH;
+  sharing type G.T = BG.T;
+  sharing type G.Param.subst = BG.Param.subst;
 end
 
 functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
@@ -373,4 +386,12 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     structure G = G.SharingOGraph
     type T = T;
   end;
+end
+
+(* type-coerced version of MatchState for pattern graphs *)
+functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
+= struct
+  structure BG = G;
+  structure OGMS = OGraphMatchState(structure G = G);
+  open OGMS;
 end

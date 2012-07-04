@@ -28,3 +28,12 @@ sig
       
   val match : G.T -> G.T -> MatchState.T Seq.seq
 end
+
+signature OUTER_BG_MATCH_SEARCH =
+sig
+  include OUTER_MATCH_SEARCH;
+  structure BG : BANG_GRAPH;
+  structure BGMatchState : BANG_GRAPH_MATCH_STATE;
+  sharing type G.T = BG.T;
+  sharing type BGMatchState.T = MatchState.T;
+end
