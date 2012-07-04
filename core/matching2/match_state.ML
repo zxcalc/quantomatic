@@ -74,6 +74,11 @@ signature OGRAPH_MATCH_STATE
   val set_match_subst     : G.Param.subst -> T -> T
   
   val empty : T
+
+  (* initialise MatchState with nothing added *)
+  val init : G.T -> (* pattern *)
+             G.T -> (* target *)
+             T
   
   (* returns true if vmap and evap represent a total graph hm *)
   (* will only return true if p_nodeverts is empty (local isomorphism) *)
@@ -138,6 +143,21 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     names        = (V.NSet.empty, E.NSet.empty),
     pat          = G.empty,
     tgt          = G.empty,
+    vmap         = VInjEndo.empty,
+    emap         = EInjEndo.empty,
+    u_circles    = V.NSet.empty,
+    u_nodeverts  = V.NSet.empty,
+    u_wireverts  = V.NSet.empty,
+    u_bare_wires = E.NSet.empty,
+    p_nodeverts  = V.NSet.empty,
+    ps_nodeverts = V.NSet.empty,
+    match_subst  = G.Param.empty_subst
+  }
+
+  fun init pat tgt = MatchState {
+    names        = (V.NSet.empty, E.NSet.empty),
+    pat          = pat,
+    tgt          = tgt,
     vmap         = VInjEndo.empty,
     emap         = EInjEndo.empty,
     u_circles    = V.NSet.empty,
@@ -391,9 +411,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     val wvs = fold delete_wvs_in_wire (circles @ bare_wires) (G.get_wire_vertices pat)
     val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
     val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
-  in empty
-      |> set_pat pat
-      |> set_tgt tgt
+  in init pat tgt
       |> set_u_circles circle_wvs
       |> set_u_nodeverts (G.get_node_vertices pat)
       |> set_u_wireverts wvs
