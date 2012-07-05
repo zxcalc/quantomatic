@@ -99,7 +99,8 @@ val is_endpoint' : OVData.data * (E.NSet.T * E.NSet.T) -> bool
 (* returns the SOME non-empty edge set when exactly one of the inset of 
    ourset of edges is empty, 
    else NONE *)
-val endpoint_of_vertex' : OVData.data * (E.NSet.T * E.NSet.T) 
+(* either remove or create a wire version *)
+(* FIXME: remove *) val endpoint_of_vertex' : OVData.data * (E.NSet.T * E.NSet.T) 
     -> (H.halfid * E.NSet.T) option;
 
 (* internal: don't presurve well-formedness *)
@@ -306,7 +307,13 @@ functor BasicOGraphFun(
        | (false,false) => NONE)
     | endpoint_of_vertex' (OVData.IVert d,(ins,outs)) = NONE;
   
-  val is_endpoint' = is_some o endpoint_of_vertex';
+  fun is_endpoint' (OVData.EVert,(ins,outs)) =
+      (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
+         (true, true) => false
+       | (true,false) => true
+       | (false,true) => true
+       | (false,false) => false)
+    | is_endpoint' (OVData.IVert d,(ins,outs)) = false;
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o V.NSet.add;
   val del_from_edgepoints = update_edgepoints o V.NSet.delete;
@@ -461,6 +468,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
   (* v1 and v2 are boundary coherent (half-edges of opposite direction, or both undirected): they can be plugged together; return SOME ((fromv,tov),(dir,edgedata)) where fromv is the source of connecting edge, and tov is the target. If the half-edges were directed, this respects the edge direction. 
   Assumes edge data is the same for both edges. 
   *)
+  (* FIXME: rewrite not to use half-edges or remove *)
   fun boundary_coherence g v1 v2 = 
       (case endpoint_of_vertex' (get_vertex g v1) of 
          NONE => NONE
@@ -491,33 +499,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
              | (_,_) => NONE)));
 
   val boundary_coherent = is_some ooo boundary_coherence;
-(* 
-      (case endpoint_of_vertex' (get_vertex g v1) of 
-         NONE => NONE
-       | SOME (halfid1,es1) => 
-         (case endpoint_of_vertex' (get_vertex g v2) of 
-            NONE => NONE
-          | SOME (halfid2,es2) => 
-            (case (E.NSet.tryget_singleton es1, 
-                   E.NSet.tryget_singleton es2) of 
-               (SOME e1,SOME e2) => 
-               let val (dir_or_undir1,(ed1,(fromv1,tov1))) = get_edge g e1
-                   val (dir_or_undir2,(ed2,(fromv2,tov2))) = get_edge g e2
-                   val (src, dst) = if V.name_eq (fromv1, v1) 
-                                      then ((fromv2,e2), (tov1,e1)) 
-                                      else ((fromv1,e1), (tov2,e2)); 
-               in 
-                  if dir_or_undir1 = Directed andalso dir_or_undir2 = Directed
-                       andalso halfid1 <> halfid2 then 
-                     SOME (Directed, (src, dst))
-                  else if dir_or_undir1 = UnDirected 
-                       andalso dir_or_undir2 = UnDirected then 
-                     SOME (UnDirected, (src, dst))
-                  else NONE
-               end)
-             | (_,_) => NONE));
-*)
-
 
   (* plug two half-edges, represented by vertices. This is equiavlent to graph 
      composition with an identity. Assumes that e1 and e2 go to boundary 
@@ -561,7 +542,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
      NOT** INVARIANT: preserves names of the keepset, creates new 
      edges/boundary vertices for the rest of the graph. 
   *)
-  (* FIXME: rewrite using fold_subgraph (from graph), with cut_edge (above) *)
   fun cut_around_vertex keepvset n (vs_g as (amorph,g)) = 
       (case get_vertex g n of (OVData.EVert,(ins,outs)) => vs_g
        | (d,(ins,outs)) => 
@@ -758,88 +738,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
       let val (ed,(from,to)) = get_edge g e in (e,ed,from) end;
   fun pair_to_of_edge g e = 
       let val (ed,(from,to)) = get_edge g e in (e,ed,to) end;
-  
-  (* find all adjacent vertices, except self, divided into: 
-     boundary, and others *)
-  fun adj_tgt_info' g n0 (d,(ins,outs)) = 
-      let 
-        fun consider_edge (e,ed,n) (loopes, others) = 
-            if V.name_eq (n,n0) then 
-              (E.NTab.update (e, ed) loopes, others)
-            else (loopes, V.NSet.add n others);
-      in 
-        (d, (E.NTab.empty, V.NSet.empty)
-              |> (E.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
-              |> (E.NSet.fold (consider_edge o (pair_to_of_edge g)) outs))
-      end;
-  
-  fun adj_tgt_info g n =  adj_tgt_info' g n (get_vertex g n);
-  
-  
-  
-  (* 
-  (* find all adjacent vertices, except self, divided into: 
-     boundary, and others *)
-  fun adj_info' g n0 (d,(ins,outs)) = 
-      let 
-        fun consider_edge eh adjinfo = 
-            let val n = get_ehn_vname g (H.other eh) 
-                val en = H.get_ename eh in
-            if V.name_eq (n,n0) then  (* loop *)
-              (leaftab, E.NTab.update (en,fst (get_edge g en)) loopes, others)
-            else if V.NSet.contains others n then adjinfo
-            else if V.NTab.contains leaftab n then 
-              (V.NTab.delete n leaftab, loopes,
-               V.NSet.add n others)
-            (* IMPROVE: avoid edge data lookup when we later throw 
-               away things from boundary set... *)
-            else if is_boundary g n then 
-              (V.NTab.ins (n,(eh,fst (get_edge g en))) leaftab, loopes, others)
-            else 
-              (leaftab, loopes, V.NSet.add n others)
-            end;
-      in 
-        (d, (V.NTab.empty, E.NTab.empty, V.NSet.empty)
-              |> (E.NSet.fold (consider_edge o H.mk_end) ins)
-              |> (E.NSet.fold (consider_edge o H.mk_start) outs))
-      end;
-  
-  fun adj_info g n = adj_pat_info' g n (get_vertex g n);
-  *)
-  
-  
-  
-  (* find all adjacent vertices, except self, divided into: 
-     boundary, and others *)
-  fun adj_pat_info' g n0 (d,(ins,outs)) = 
-      let 
-        fun consider_edge eh (adjinfo as (leaftab, loopes, others)) = 
-            let val n = get_ehn_vname g (H.other eh) 
-                val en = H.get_ename eh in
-            if V.name_eq (n,n0) then 
-              (leaftab, E.NTab.update (en,fst (get_edge g en)) loopes, others)
-            else if V.NSet.contains others n then adjinfo
-            else if V.NTab.contains leaftab n then 
-              (V.NTab.delete n leaftab, loopes,
-               V.NSet.add n others)
-            (* IMPROVE: avoid edge data lookup when we later throw 
-               away things from boundry set... *)
-            else if is_boundary g n then 
-              (V.NTab.ins (n,(eh,fst (get_edge g en))) leaftab, loopes, others)
-            else 
-              (leaftab, loopes, V.NSet.add n others)
-            end;
-      in 
-        (d, (V.NTab.empty, E.NTab.empty, V.NSet.empty)
-              |> (E.NSet.fold (consider_edge o H.mk_end) ins)
-              |> (E.NSet.fold (consider_edge o H.mk_start) outs))
-      end;
-  
-  fun adj_pat_info g n = adj_pat_info' g n (get_vertex g n);
-
-  
-
-
 
   fun is_wire_vertex g v = case get_vertex_data g v of OVData.EVert => true | _ => false
   val is_node_vertex = not oo is_wire_vertex

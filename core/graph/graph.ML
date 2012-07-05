@@ -125,8 +125,6 @@ val has_edges_between : T -> V.name -> V.name -> bool
 val enames_between : T -> V.name -> V.name -> E.NSet.T
 val edges_between : T -> V.name -> V.name 
       -> (dir_or_undir * EData.data) E.NTab.T (* in either dir *)
-val halfedges_between : T -> V.name -> V.name 
-      -> (dir_or_undir * EData.data) H.NTab.T (* half edge going from fst vertex name *)
 val dir_enames_between : T -> V.name -> V.name 
       -> E.NSet.T (* from fst to snd vertex *) 
          * E.NSet.T (* from snd to fst vertex *) 
@@ -134,32 +132,8 @@ val dir_edges_between : T -> V.name -> V.name
       -> (dir_or_undir * EData.data) E.NTab.T (* from fst to snd vertex *) 
          * (dir_or_undir * EData.data) E.NTab.T (* from snd to fst vertex *) 
 
-(* val hens_between : T -> V.name -> V.name -> H.NSet.T *)
-val get_vname_ehns : T -> V.name -> H.NSet.T
-val get_ehn_vname : T -> H.name -> V.name
-val get_ehn_data : T -> H.name -> EData.data
-(* val get_ehn_dir_or_undir : T -> H.name -> dir_or_undir *)
-
-(* folding over a subgraph (in no particular order, except at least one edge of 
-    a vertex before it's adjacent edges) *)
-val fold_subgraph : 
-  (* fold this over every vertex *)
-  (V.name * VData.data -> 'a -> 'a)
-  (* fold over every internal edge *)
-  -> (H.halfid * (V.name * VData.data) (* seen this vertex *)
-      -> V.name (* other vertex *)
-      -> E.NSet.name * (dir_or_undir * EData.data) (* edge *) 
-      -> 'a -> 'a) (* data to update *)
-  (* fold over every edge leaving the subgraph *)
-  -> (H.halfid * (V.name * VData.data) (* seen this vertex *)
-      -> V.name (* other vertex *)
-      -> E.NSet.name * (dir_or_undir * EData.data) (* edge *) 
-      -> 'a -> 'a) (* data to update *)
-  (* fold over the subgraph identified by this subset of vertices *)
-  -> V.NSet.T 
-  -> T (* in this graph *) 
-  -> 'a -> 'a (* to update this data *)
-
+(* FIXME: remove *) val get_vname_ehns : T -> V.name -> H.NSet.T
+(* FIXME: remove *) val get_ehn_vname : T -> H.name -> V.name
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> V.name -> V.NSet.T
@@ -172,7 +146,7 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 (* fold over adjacents; the edge-half argument of the folding function is the one closest to the adjacent vertex names. e.g. folding of ins and outs of vertex x: 
        if "x <-e- y" then: "f (Ehn.mk_start e,...)"
        if "x -e-> y" then: "f (Ehn.mk_end e,...)"   *)
-val fold_adj : (H.name * (dir_or_undir * EData.data) 
+(* FIXME: remove *) val fold_adj : (H.name * (dir_or_undir * EData.data) 
                 -> V.name -> 'a -> 'a) 
       -> T -> V.name -> 'a -> 'a
 
@@ -188,16 +162,6 @@ val adj_etab_to_vnames : T -> V.name
 val incident_vertices : T -> V.NSet.T -> V.NSet.T
 
 (* get adj vertices (from edge info) and from vertex name *)
-
-(* singletons have no other incident edges - they only have the one 
-   to the given vertex *)
-val adj_singleton_vs : T -> V.name 
-                        -> H.name V.NTab.T  (* singletons *)
-                           * V.NSet.T (* other adj *)
-val adj_singleton_vs' : T -> (E.NSet.T * E.NSet.T)
-                         -> H.name V.NTab.T (* singletons *)
-                            * V.NSet.T (* other adj *)
-
 val adj_vertices_with_edges : T -> V.name 
                    -> ((dir_or_undir * EData.data) E.NTab.T) V.NTab.T
 val adj_vertices_with_edges' : T -> (V.name * (E.NSet.T * E.NSet.T))
@@ -277,8 +241,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun get_ehn_vname g ehn = 
       let val (_,(s,t)) = get_edge g (H.get_ename ehn)
       in if H.is_start ehn then s else t end;
-  
-  fun get_ehn_data g ehn = snd (fst (get_edge g (H.get_ename ehn)));
   
   val get_vertex_data = fst oo get_vertex;
   val get_edge_data = (snd o fst) oo get_edge;
@@ -514,46 +476,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         val ern = E.Rnm.mk_from_avoids 
             (E.NSet.union_merge (get_enames g1) (get_enames g2))
       in rename (xrn,vrn,ern) g2 end;   
-      
-      
-  (* fold: pass over every vertex (fv) edge between the selected vertices 
-     (fe_in); and over every edge going out of the selected vertex set (fe_out).
-     There is an invariant which is that edges are considered only after at 
-     last one end-point is considered. The considered end-point is passed as a
-     parameter to the edge-fold functions. *)
-  (* the (') function, starts form vertex v *) 
-  fun fold_subgraph' fv fe_in fe_out vs g a = 
-      let fun edgef (x as (h_end,(v,vd))) seen_edges e a = 
-              if E.NSet.contains seen_edges e then a
-              else 
-                let val (ed,(fromv,tov)) = get_edge g e in
-                  case h_end of 
-                    H.TargetEnd => 
-                    if V.NSet.contains vs fromv then fe_in x tov (e,ed) a
-                    else fe_out x tov (e,ed) a
-                  | H.SourceEnd => 
-                    if V.NSet.contains vs fromv then fe_in x fromv (e,ed) a
-                    else fe_out x fromv (e,ed) a
-                end;
-      in
-        V.NSet.fold 
-          (fn v => fn (seen_edges,a) =>
-            let val (vd,(in_es,out_es)) = get_vertex g v in 
-               (seen_edges |> E.NSet.union_merge out_es 
-                           |> E.NSet.union_merge in_es,
-                a |> fv (v,vd)
-                  |> E.NSet.fold 
-                      (edgef (H.TargetEnd,(v,vd)) seen_edges) in_es
-                  |> E.NSet.fold 
-                      (edgef (H.SourceEnd,(v,vd)) seen_edges) out_es)
-            end)
-          vs (E.NSet.empty,a)
-      end;
-  
-  (* ignore the 'seen' edges *)
-  fun fold_subgraph fv fe_in fe_out vs g a = 
-      snd (fold_subgraph' fv fe_in fe_out vs g a);
-  
+
   (* fold a function over the adjacent vertex names. 
      The edge-half is the half connected to the adj vertex. 
      e.g. folding of ins and outs of vertex x: 
@@ -656,36 +579,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun adj_vertices_with_enames g n = 
       adj_vertices_with_enames' g (snd (get_vertex g n));
   
-  (* IMPROVE: use fold function to simplify this *)
-  (* find all adjacent vertices which have no other egdes than the one
-     (from the given ins/outs) of this vertex *)
-  fun adj_singleton_vs' g (ins,outs) = 
-      (V.NTab.empty, V.NSet.empty)
-        |> (E.NSet.fold 
-              (fn e => fn (adjinfo as (stab, notsset)) => 
-               let val (_,(from,to)) = get_edge g e
-               in if V.NSet.contains notsset from then adjinfo
-                  else if V.NTab.contains stab from then 
-                    (V.NTab.delete from stab, 
-                     V.NSet.add from notsset)
-                  else 
-                    (V.NTab.ins (from,H.mk_start e) stab, 
-                     notsset)
-               end)
-              ins)
-        |> (E.NSet.fold 
-              (fn e => fn (adjinfo as (stab, notsset)) => 
-               let val (_,(from,to)) = get_edge g e
-               in if V.NSet.contains notsset to then adjinfo
-                  else if V.NTab.contains stab to then 
-                    (V.NTab.delete to stab, V.NSet.add to notsset)
-                  else 
-                    (V.NTab.ins (to,H.mk_end e) stab, notsset)
-               end)
-              outs);
-  fun adj_singleton_vs g n = adj_singleton_vs' g (snd (get_vertex g n));
-  
-  
   (* all vertices adjacent to vertex *)
   val adj_vnames' = fold_adj' (K V.NSet.add);
   fun adj_vnames g n = fold_adj (K V.NSet.add) g n V.NSet.empty;
@@ -744,19 +637,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
           (E.NSet.intersect ins2 outs1)
       end;    
   
-  (* 
-  fun hens_between g n1 n2 = 
-      let 
-        val (_,(ins1,outs1)) = get_vertex g n1
-        val (_,(ins2,outs2)) = get_vertex g n2
-      in
-        H.NSet.union_merge
-          (E.NSet.intersect ins1 outs2)
-          (E.NSet.intersect ins2 outs1)
-      end;
-  *)
-  
-  
   (* *)
   fun has_edges_between g n1 n2 = 
       let 
@@ -785,17 +665,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         (fn e => E.NTab.ins (e, fst (get_edge g e)))
         (enames_between g n1 n2)
         E.NTab.empty;
-  
-  fun halfedges_between g n1 n2 = 
-      let val (lr,rl) = dir_enames_between g n1 n2 in
-        H.NTab.empty
-          |> (E.NSet.fold 
-                (fn e => H.NTab.ins 
-                           (H.mk_start e, fst (get_edge g e))) lr)
-          |> (E.NSet.fold 
-                (fn e => H.NTab.ins 
-                           (H.mk_end e, fst (get_edge g e))) rl)
-      end;
   
   fun dir_edges_between g n1 n2 = 
       let val (lr,rl) = dir_enames_between g n1 n2 in

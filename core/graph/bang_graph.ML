@@ -172,15 +172,13 @@ val fresh_expand1_bbox : B.name (* bbox to expand *)
       -> T (* graph containing bbox name *)
       -> T (* new graph with bbox expanded *)
 
-(* FIXME: remove? *)
-val get_filtered_adj_arities_and_bang_arities :
+(* FIXME: remove *) val get_filtered_adj_arities_and_bang_arities :
     (((H.name * (dir_or_undir * EData.data)) * V.name) -> bool)
     -> T -> V.name
     -> Arity.T V.NTab.T
        * Arity.T V.NTab.T B.NTab.T
 
-(* FIXME: remove? *)
-val get_adj_arities_and_bang_arities :
+(* FIXME: remove *) val get_adj_arities_and_bang_arities :
     T -> V.name
     -> Arity.T V.NTab.T
        * Arity.T V.NTab.T B.NTab.T
@@ -521,44 +519,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
        | SOME bbn => (if VBMap.dom_contains vtobang n then vtobang
                          else VBMap.add_to_dom n bbn vtobang,
                       others));
-
-  (* find all adjacent vertices, except self, divided into:
-     boundary leafs, bangbox vertices, and others *)
-  fun adj_tgt_info_bangs' g n0 (d,(ins,outs)) =
-      let
-        fun consider_edge (e,ed,n) (loopes, others) =
-            if V.name_eq (n,n0) then (E.NTab.update (e, ed) loopes, others)
-            else (loopes, add_to_others g n others)
-      in
-        (d, (E.NTab.empty, (VBMap.empty, V.NSet.empty))
-              |> (E.NSet.fold (consider_edge o (pair_from_of_edge g)) ins)
-              |> (E.NSet.fold (consider_edge o (pair_to_of_edge g)) outs))
-      end;
-
-  fun adj_tgt_info_bangs g n =  adj_tgt_info_bangs' g n (get_vertex g n);
-
-  (* find all adjacent vertices, except self, divided into:
-     boundary leafs, and others *)
-  fun adj_pat_info_bangs' g n0 (d,(ins,outs)) =
-      let
-        fun consider_edge eh (leaftab, loopes, others) =
-            let val n = get_ehn_vname g (H.other eh)
-                val en = H.get_ename eh in
-            if V.name_eq (n,n0) then (* self-loop *)
-              (leaftab, E.NTab.update (en,get_edge_data g en) loopes, others)
-            else if V.NTab.contains leaftab n then
-              (V.NTab.delete n leaftab, loopes, add_to_others g n others)
-            else if is_boundary g n then
-              (V.NTab.ins (n,(eh,get_edge_data g en)) leaftab, loopes, others)
-            else (leaftab, loopes, add_to_others g n others)
-            end;
-      in
-        (d, (V.NTab.empty, E.NTab.empty, (VBMap.empty, V.NSet.empty))
-              |> (E.NSet.fold (consider_edge o H.mk_end) ins)
-              |> (E.NSet.fold (consider_edge o H.mk_start) outs))
-      end;
-
-  fun adj_pat_info_bangs g n = adj_pat_info_bangs' g n (get_vertex g n);
 
   (* get arrities to adjacent vertices, return two tables, one for normal edges
      and one for those in a different bang-boxes. Filter by function: when function is true, skip this adj entry. *)
