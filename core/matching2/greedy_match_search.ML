@@ -45,9 +45,20 @@ struct
         SOME (ms', choose_next_bbox ms')
       end
 
-      fun do_copy () =
-        SOME (BGMatchState.update_pat (BG.fresh_expand1_bbox b) ms,
+      fun do_copy () = let
+        fun expand_bbox g = let
+          val (v_avoid,e_avoid) = BGMatchState.get_names ms
+          val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
+          val e_avoid = e_avoid |> E.NSet.union_merge (BG.get_enames g)
+          val vrn = V.Rnm.mk_from_avoids v_avoid
+          val ern = E.Rnm.mk_from_avoids e_avoid
+          val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
+          val (_,g') = BG.expand1_bbox b ((vrn,ern,brn),g)
+        in g' end
+      in
+        SOME (BGMatchState.update_pat expand_bbox ms,
               Seq.empty)
+      end
 
       val copy_seq = Seq.maps match_loop
             (Seq.map BGMatchState.schedule_new_concrete
