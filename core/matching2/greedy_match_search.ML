@@ -39,11 +39,8 @@ struct
 
   fun match_loop ms' = let
     fun kill_and_expand b ms = let
-      fun do_kill () = let
-        val ms' = BGMatchState.update_pat (BG.kill_bbox b) ms
-      in
-        SOME (ms', choose_next_bbox ms')
-      end
+      fun do_kill ms =
+        choose_next_bbox (BGMatchState.update_pat (BG.kill_bbox b) ms)
 
       fun do_copy () = let
         fun expand_bbox g = let
@@ -64,7 +61,7 @@ struct
             (Seq.map BGMatchState.schedule_new_concrete
               (Seq.make do_copy))
     in
-      Seq.append (Seq.make do_kill) copy_seq
+      Seq.append (Seq.maps do_kill (Seq.single ms)) copy_seq
     end
     and choose_next_bbox ms =
       case get_next_bbox (BGMatchState.get_pat ms) of
@@ -84,9 +81,8 @@ struct
     val tgt = G.normalise tgt
     val ms = BGMatchState.init_and_schedule_concrete pat tgt |>
     BGMatchState.set_names names
-  in Seq.filter BGMatchState.is_total
-       (Seq.maps InnerMatchSearch.match_bare_wires
-       (match_loop ms))
+  in
+    match_loop ms
   end
 
   val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)
