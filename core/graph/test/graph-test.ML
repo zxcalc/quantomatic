@@ -1444,6 +1444,75 @@ local
           val _ = Testing.assert "correct number of edges"
                   ((E.NSet.cardinality (G.get_enames g')) = 2)
         in g' end) ()
+
+  val g = G.empty
+  (* RHS of spider pattern *)
+  val (v1,g) = g |> G.add_vertex bvert
+  val (v2,g) = g |> G.add_vertex (mkX zero_angle)
+  val (v3,g) = g |> G.add_vertex bvert
+  val (_ ,g) = g |> G.add_edge dir_edge v1 v2
+  val (_ ,g) = g |> G.add_edge dir_edge v2 v3
+  val g      = g |> G.new_named_bbox b0
+                 |> G.new_named_bbox b1
+                 |> G.add_to_bbox b0 (V.NSet.single v1)
+                 |> G.add_to_bbox b1 (V.NSet.single v3)
+  val spider_rhs_pat = g
+
+  val _ = test_force "G.fresh_copy1_bbox (spider)"
+        (fn g =>
+        let
+          val bs_old = G.get_bboxes g
+          val (b,g') = G.fresh_copy1_bbox b0 g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+          val badd = case B.NSet.tryget_singleton bs_added of
+                       NONE => raise ERROR "fresh_copy1_bbox did not add new !-box"
+                     | SOME b' => b'
+          val _ = Testing.assert "correct bbox added"
+                  (B.name_eq (b,badd))
+          val bs_removed = B.NSet.subtract bs_old bs_new
+          val _ = Testing.assert "no bboxes removed"
+                  (B.NSet.is_empty bs_removed)
+          val _ = Testing.assert "old verts remain"
+                  (V.NSet.sub_set (G.get_vnames g) (G.get_vnames g'))
+          val _ = Testing.assert "new verts are new"
+                  (V.NSet.is_empty (V.NSet.intersect (G.get_bbox_contents g' b) (G.get_vnames g)))
+          val _ = Testing.assert "b0 unchanged"
+                  (V.NSet.eq (G.get_bbox_contents g b0)
+                             (G.get_bbox_contents g' b0))
+          val _ = Testing.assert "b1 unchanged"
+                  (V.NSet.eq (G.get_bbox_contents g b1)
+                             (G.get_bbox_contents g' b1))
+          val vadd = case V.NSet.tryget_singleton (G.get_bbox_contents g' b) of
+                       NONE => raise ERROR "new !-box has wrong number of vertices"
+                     | SOME v' => v'
+          val _ = Testing.assert "New !-box is connected"
+                  (G.has_edges_between g' vadd v2)
+        in g' end) spider_rhs_pat
+
+  val _ = test_force "G.fresh_expand1_bbox (spider)"
+        (fn g =>
+        let
+          val bs_old = G.get_bboxes g
+          val g' = G.fresh_expand1_bbox b0 g
+          val bs_new = G.get_bboxes g'
+          val _ = Testing.assert "bboxes unchanged"
+                  (B.NSet.eq bs_old bs_new)
+          val _ = Testing.assert "old verts remain"
+                  (V.NSet.sub_set (G.get_vnames g) (G.get_vnames g'))
+          val _ = Testing.assert "b0 unchanged"
+                  (V.NSet.eq (G.get_bbox_contents g b0)
+                             (G.get_bbox_contents g' b0))
+          val _ = Testing.assert "b1 unchanged"
+                  (V.NSet.eq (G.get_bbox_contents g b1)
+                             (G.get_bbox_contents g' b1))
+          val newverts = V.NSet.subtract (G.get_vnames g') (G.get_vnames g)
+          val vadd = case V.NSet.tryget_singleton newverts of
+                       NONE => raise ERROR "wrong number of vertices added"
+                     | SOME v' => v'
+          val _ = Testing.assert "New vertex is connected"
+                  (G.has_edges_between g' vadd v2)
+        in g' end) spider_rhs_pat
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"
