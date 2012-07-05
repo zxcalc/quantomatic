@@ -87,11 +87,6 @@ val is_boundary : T -> V.name -> bool
 val boundary_coherence : T -> V.name -> V.name -> 
      ((dir_or_undir * EData.data) * (V.name * V.name)) option
 
-(* adjacent boundary fns *)
-val get_adj_boundary : T -> V.name -> V.NSet.T
-val get_adj_inputs : T -> V.name -> V.NSet.T
-val get_adj_outputs : T -> V.name -> V.NSet.T
-
 (* edge points; parts of an edge *)
 val get_edgepoints : T -> V.NSet.T
 val is_edgepoint : T -> V.name -> bool
@@ -726,11 +721,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
      want one. *)
   val get_inputs = fst o get_in_and_out_vnames;
   val get_outputs = fst o get_in_and_out_vnames;
-        
-  (* get adjacent boundary vertices *)
-  fun get_adj_boundary g n = filtered_adj_vnames (is_boundary_vertex g) g n;
-  fun get_adj_inputs g n = filtered_adj_vnames (is_input_vertex g) g n;
-  fun get_adj_outputs g n = filtered_adj_vnames (is_output_vertex g) g n;
   
   (* IMPROVE: move these into graph *)
   fun pair_from_of_edge g e = 

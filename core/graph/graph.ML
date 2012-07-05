@@ -90,14 +90,6 @@ val rename : (X.renaming * V.renaming * E.renaming) -> T
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T 
 
-(* rename internal data apart *)
-(* val rename_graph_data_apart : T -> T -> CRnmX.renaming * T *) 
-
-(* 
-val rename_vnames : V.NSet.T -> V.renaming * T -> V.renaming * T
-val rename_enames : E.NSet.T -> E.renaming * T -> E.renaming * T
-*)
-
 (* merge two graphs which have distinct egdes by shared vertices:
    vertices with same name are kept only once, edges must be
    distinct. *)
@@ -105,7 +97,7 @@ val merge_by_vertices : T -> T -> T
 
 (* merge_2vertices: all edges of first get moved to second, and first gets 
    removed. *)
-val merge_2vertices : V.name -> V.name -> T -> T
+(* FIXME: remove *) val merge_2vertices : V.name -> V.name -> T -> T
 
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
@@ -137,8 +129,6 @@ val dir_edges_between : T -> V.name -> V.name
 
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> V.name -> V.NSet.T
-val adj_vnames' : T -> (E.NSet.T * E.NSet.T) 
-    -> V.NSet.T ->  V.NSet.T
     
 (* get incoming, outgoing, undirected edges adjacent to vertex *)
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
@@ -152,27 +142,8 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
                 -> V.name -> 'a -> 'a) 
       -> T -> V.name -> 'a -> 'a
 
-(* filtered set of adj vertex names *)
-val filtered_adj_vnames : (V.name -> bool) 
-      -> T -> V.name -> V.NSet.T
-
-(* all incident edges and where they go to, by edge name *)
-val adj_etab_to_vnames : T -> V.name 
-      -> V.name E.NTab.T -> V.name E.NTab.T
-
 (* the vertices connected to the given set, but outside it *) 
 val incident_vertices : T -> V.NSet.T -> V.NSet.T
-
-(* get adj vertices (from edge info) and from vertex name *)
-val adj_vertices_with_edges : T -> V.name 
-                   -> ((dir_or_undir * EData.data) E.NTab.T) V.NTab.T
-val adj_vertices_with_edges' : T -> (V.name * (E.NSet.T * E.NSet.T))
-                    -> ((dir_or_undir * EData.data) E.NTab.T) V.NTab.T
-
-val adj_vertices_with_enames : T -> V.name 
-                               -> E.NSet.T V.NTab.T
-val adj_vertices_with_enames' : T -> (E.NSet.T * E.NSet.T)
-                                -> E.NSet.T V.NTab.T
 
 val get_self_loops : T -> V.name -> EData.data E.NTab.T
 
@@ -180,8 +151,6 @@ val in_enames : T -> V.name -> E.NSet.T
 val out_enames : T -> V.name -> E.NSet.T
 val pred_vnames : T -> V.name -> V.NSet.T
 val succ_vnames : T -> V.name -> V.NSet.T
-
-val get_adj_arities : T -> V.name -> Arity.T V.NTab.T
 
 val get_arity : T -> V.name -> Arity.T
 
@@ -443,13 +412,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     
     val restrict_to_avoiding = Param.CRnmX.restrict_to_avoiding;
   end; *)
-  
-  (*
-  fun rename_graph_data_apart g1 g2 = 
-      let val rnm = CRnmX.restrict_to_avoiding 
-                      (CRnmX.mk_renaming g1 CRnmX.empty_renaming)
-      in CRnmX.rename rnm g2 end;
-  *)
    
   structure CRnmX : COMPOUND_RENAMING
   = CompoundRenamingFun(
@@ -498,44 +460,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun fold_adj_halfedges f g n a = 
       fold_adj_halfedges' f g (snd (get_vertex g n)) a;
   
-  (* create table of edge name to adj *)
-  val adj_etab_to_vnames = 
-      fold_adj_halfedges (fn (eh, d) => fn n2 => fn etab => 
-                   let val e = H.get_ename eh
-                   in if E.NTab.contains etab e then etab
-                      else E.NTab.update (e,n2) etab
-                   end);
-  
-  (* IMPROVE: use fold function ! *)
-  (* make a table: (EData.data E.NTab.T) V.NTab.T
-  holding every edge's data that is connects n and to the key V.NTab, 
-  the V.NTab has every vertex adjacent to n. (Note: ignores direction) *)
-  fun adj_vertices_with_edges' g (n,(ins,outs)) = 
-      V.NTab.empty
-        |> (E.NSet.fold 
-              (fn e => fn ntab => 
-               let val (d,(from,to)) = get_edge g e
-               in if V.name_eq (from,n) then ntab (* no self-loops *)
-                  else if V.NTab.contains ntab from
-                  then 
-                    V.NTab.map_entry 
-                      (E.NTab.ins (e,d)) (* no dup exp for well-formed graphs *)
-                      from ntab
-                  else V.NTab.ins (from,E.NTab.ins (e,d) E.NTab.empty) ntab
-               end)
-              ins)
-        |> (E.NSet.fold 
-              (fn e => fn ntab => 
-               let val (d,(from,to)) = get_edge g e
-               in if V.name_eq (to,n) then ntab (* no self-loops *)
-                  else if (V.NTab.contains ntab to) then   
-                    V.NTab.map_entry 
-                      (E.NTab.ins (e,d)) (* no dup exp for well-formed graphs *)
-                    to ntab
-                  else V.NTab.ins (to,E.NTab.ins (e,d) E.NTab.empty) ntab
-               end)
-              outs);
-  
   fun get_self_loops' g n ins = 
       E.NTab.empty
         |> (E.NSet.fold 
@@ -548,38 +472,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   fun get_self_loops g n = 
       get_self_loops' g n (fst (snd (get_vertex g n)));
-  
-  fun adj_vertices_with_edges g n = 
-      adj_vertices_with_edges' g (n,snd (get_vertex g n));
-  
-  (* IMPROVE: use fold function to simplify this *)
-  fun adj_vertices_with_enames' g (ins,outs) = 
-      V.NTab.empty
-        |> (E.NSet.fold 
-              (fn e => fn ntab => 
-               let val (_,(from,to)) = get_edge g e
-               in if (V.NTab.contains ntab from) then 
-                    V.NTab.map_entry 
-                      (E.NSet.add e) (* no dup exp for well-formed graphs *)
-                      from ntab
-                  else 
-                    V.NTab.ins (from,E.NSet.add e E.NSet.empty) ntab
-               end)
-              ins)
-        |> (E.NSet.fold 
-              (fn e => fn ntab => 
-               let val (d,(from,to)) = get_edge g e
-               in if (V.NTab.contains ntab to) then 
-                    V.NTab.map_entry 
-                      (E.NSet.add e) (* no dup exp for well-formed graphs *)
-                      to ntab
-                  else 
-                    V.NTab.ins (to,E.NSet.add e E.NSet.empty) ntab
-               end)
-              outs);
-  
-  fun adj_vertices_with_enames g n = 
-      adj_vertices_with_enames' g (snd (get_vertex g n));
   
   (* all vertices adjacent to vertex *)
   val adj_vnames' = fold_adj_halfedges' (K V.NSet.add);
@@ -595,14 +487,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
          val undirs = E.NSet.empty |> E.NSet.fold add_if_undir ins
                                       |> E.NSet.fold add_if_undir outs
       in (E.NSet.subtract ins undirs,E.NSet.subtract outs undirs,undirs) end;
-  
-  (* filtered set of adj vertex *)
-  fun filter_adj_fn f (e : H.name * (dir_or_undir * EData.data)) n s = 
-      if (f n) then V.NSet.add n s else s;
-  val filtered_adj_vnames' = fold_adj_halfedges' o filter_adj_fn;
-  fun filtered_adj_vnames f g n = 
-      fold_adj_halfedges (filter_adj_fn f) g n V.NSet.empty;;
-  
   
   (* some more convenience functions for directed graphs *)
   fun in_enames g = fst o snd o (get_vertex g);
@@ -887,16 +771,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
     | add_edge_to_arity (eh,(Directed,ed)) arity =
       if H.is_start eh then Arity.update_in (fn x => x + 1) arity 
       else Arity.update_out (fn x => x + 1) arity; 
-
-  fun get_adj_arities g n = 
-      let   
-        fun add_one_arity e n2 ntab =
-            if V.NTab.contains_name ntab n2 then
-              V.NTab.map_entry (add_edge_to_arity e) n2 ntab
-            else V.NTab.update (n2,init_arity e) ntab;
-      in 
-        fold_adj_halfedges add_one_arity g n V.NTab.empty
-      end;
       
   fun get_arity g n =
       let   
