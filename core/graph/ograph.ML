@@ -204,10 +204,24 @@ val get_node_vertices : T -> V.NSet.T
 (* TODO: ? *)
 (*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
 
-(* return a graph that has exactly two edge points on every wire *)
+(* Return a graph that has exactly two edge points
+ * on every wire between two node-vertices, and no
+ * unnecessary edge points on any other wire.
+ *
+ * Note that this function assumes there are no
+ * isolated points in the graph - it will not touch
+ * isolated points, nor will it create any (bare
+ * wires always have at least one edge)
+ *)
 val normalise : T -> T
 
-(* return a graph that has no unnecessary edge points *)
+(* Return a graph that has no unnecessary edge points.
+ *
+ * Note that this function assumes there are no
+ * isolated points in the graph - it will not touch
+ * isolated points, nor will it create any (bare
+ * wires always have at least one edge)
+ *)
 val minimise : T -> T
 
 
@@ -809,14 +823,13 @@ functor OGraphFun(G : BASIC_OGRAPH)
   fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
   
   
-  (* TODO: both of these functions will need to be modified for !-graphs *)
   fun minimise g = let
     val wire_list = get_wire_list g
     (* add a minimised wire where the given wire is *)
     fun add_min_wire (s,t,_,es) h = let
       (* this data should be the same for all edges in the wire *)
       val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
-    in g |> doadd_edge dir_and_data s t
+    in h |> doadd_edge dir_and_data s t
     end
   (* new wires are added before remove old ones because we need edge data *)
   in fold delete_wire wire_list (fold add_min_wire wire_list g)
