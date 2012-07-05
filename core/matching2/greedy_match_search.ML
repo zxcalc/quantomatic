@@ -39,9 +39,11 @@ struct
 
   fun match_loop ms' = let
     fun kill_and_expand b ms = let
-      fun do_kill () =
-        SOME (BGMatchState.update_pat (BG.kill_bbox b) ms,
-              choose_next_bbox ms)
+      fun do_kill () = let
+        val ms' = BGMatchState.update_pat (BG.kill_bbox b) ms
+      in
+        SOME (ms', choose_next_bbox ms')
+      end
 
       fun do_copy () =
         SOME (BGMatchState.update_pat (BG.fresh_expand1_bbox b) ms,
