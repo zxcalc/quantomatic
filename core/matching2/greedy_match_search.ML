@@ -6,13 +6,6 @@
  * This wrapper greedily matches the whole concrete part of the
  * graph, and then picks an arbitrary top-level !-box and tries
  * both expanding it and killing it.
- *
- * There are a couple of optimisations: it uses
- * BANG_GRAPH_MATCH_STATE.kill_impossible_bboxes to discard
- * !-boxes that cannot be expanded without breaking the match,
- * and it uses a "vertex doomed" function to give up matching
- * when no expansion of the available !-boxes would produce a
- * matching.
  *)
 functor GreedyMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
@@ -42,26 +35,23 @@ struct
       fun do_kill ms =
         choose_next_bbox (BGMatchState.update_pat (BG.kill_bbox b) ms)
 
-      fun do_copy () = let
-        fun expand_bbox g = let
-          val (v_avoid,e_avoid) = BGMatchState.get_names ms
-          val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
-          val e_avoid = e_avoid |> E.NSet.union_merge (BG.get_enames g)
-          val vrn = V.Rnm.mk_from_avoids v_avoid
-          val ern = E.Rnm.mk_from_avoids e_avoid
-          val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
-          val (_,g') = BG.expand1_bbox b ((vrn,ern,brn),g)
-        in g' end
-      in
-        SOME (BGMatchState.update_pat expand_bbox ms,
-              Seq.empty)
-      end
+      fun expand_bbox g = let
+        val (v_avoid,e_avoid) = BGMatchState.get_names ms
+        val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
+        val e_avoid = e_avoid |> E.NSet.union_merge (BG.get_enames g)
+        val vrn = V.Rnm.mk_from_avoids v_avoid
+        val ern = E.Rnm.mk_from_avoids e_avoid
+        val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
+        val (_,g') = BG.expand1_bbox b ((vrn,ern,brn),g)
+      in g' end
 
-      val copy_seq = Seq.maps match_loop
-            (Seq.map BGMatchState.schedule_new_concrete
-              (Seq.make do_copy))
+      val do_copy = match_loop
+                    o BGMatchState.schedule_new_concrete
+                    o (BGMatchState.update_pat expand_bbox)
+
     in
-      Seq.append (Seq.maps do_kill (Seq.single ms)) copy_seq
+      Seq.append (Seq.maps do_kill (Seq.single ms))
+                 (Seq.maps do_copy (Seq.single ms))
     end
     and choose_next_bbox ms =
       case get_next_bbox (BGMatchState.get_pat ms) of
