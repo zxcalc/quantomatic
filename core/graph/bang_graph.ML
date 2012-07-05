@@ -450,7 +450,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun copy1_bbox bn ((vrn,ern,brn),g) =
       let
         val bbox_vs = get_bbox_contents g bn;
-        val ((vrn',ern'),g') = copy1_vset bbox_vs ((vrn, ern),g);
+        val ((vrn',ern'),g') = copy_subgraph bbox_vs ((vrn, ern),g);
         val (new_bn_opt,brn') = B.Rnm.rename1 bn brn;
         val bn' = (case new_bn_opt
                      of NONE => raise ERROR ("copy1_bbox was passed brn that " ^
@@ -483,7 +483,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
      * nested !-boxes *)
       let
         val bbox_vs = get_bbox_contents g bn;
-        val ((vrn',ern'),g') = copy1_vset bbox_vs ((vrn, ern),g);
+        val ((vrn',ern'),g') = copy_subgraph bbox_vs ((vrn, ern),g);
         fun extend_bbs v gr =
           let
             val SOME v' = V.Rnm.lookup vrn' v

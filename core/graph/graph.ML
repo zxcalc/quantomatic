@@ -164,8 +164,10 @@ val spanning_dag : T -> T
 val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
 val get_dag_ranks : T -> V.name list list
 
-(* copy a set of vertices, copying all adjacent edges. *)
-val copy1_vset : V.NSet.T 
+(* Duplicates a subgraph (defined by a set of vertices) and
+ * maintains its connectivity to the rest of the graph
+ *)
+val copy_subgraph : V.NSet.T
     -> (V.Rnm.T * E.Rnm.T) * T 
     -> (V.Rnm.T * E.Rnm.T) * T
 
@@ -734,7 +736,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
      copies edges to all vertices outside the selected set. 
      assumes: (get_Xnames g) <= get_avoids(Xrn); for X = {e, v}.
   *)
-  fun copy1_vset vset ((vrn,ern),g) = 
+  fun copy_subgraph vset ((vrn,ern),g) =
       V.NSet.fold 
         (fn v => fn ((vrn,ern),g) => (* copy each vertex *)
             let
