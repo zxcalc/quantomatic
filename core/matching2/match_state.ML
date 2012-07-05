@@ -72,7 +72,14 @@ signature OGRAPH_MATCH_STATE
   val set_p_nodeverts     : V.NSet.T -> T -> T
   val set_ps_nodeverts    : V.NSet.T -> T -> T
   val set_match_subst     : G.Param.subst -> T -> T
-  
+
+  val extend_u_circles    : V.NSet.T -> T -> T
+  val extend_u_nodeverts  : V.NSet.T -> T -> T
+  val extend_u_wireverts  : V.NSet.T -> T -> T
+  val extend_u_bare_wires : E.NSet.T -> T -> T
+  val extend_p_nodeverts  : V.NSet.T -> T -> T
+  val extend_ps_nodeverts : V.NSet.T -> T -> T
+
   val empty : T
 
   (* initialise MatchState with nothing added *)
@@ -391,7 +398,14 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   val set_p_nodeverts     = update_p_nodeverts  o K
   val set_ps_nodeverts    = update_ps_nodeverts o K
   val set_match_subst     = update_match_subst  o K
-  
+
+  val extend_u_circles    = update_u_circles o V.NSet.union_merge
+  val extend_u_nodeverts  = update_u_nodeverts o V.NSet.union_merge
+  val extend_u_wireverts  = update_u_wireverts o V.NSet.union_merge
+  val extend_u_bare_wires = update_u_bare_wires o E.NSet.union_merge
+  val extend_p_nodeverts  = update_p_nodeverts o V.NSet.union_merge
+  val extend_ps_nodeverts = update_ps_nodeverts o V.NSet.union_merge
+
   fun add_edge_to_match (ep, et) ms = let
     val (_,(sp,tp)) = G.get_edge (get_pat ms) ep
     val (_,(st,tt)) = G.get_edge (get_tgt ms) et
@@ -487,7 +501,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     ]
   end;
   val print = Pretty.writeln o pretty;
-  
+
   structure Sharing : OGRAPH_MATCH_STATE_SHARING 
   = struct
     structure G = G.SharingOGraph
@@ -527,10 +541,10 @@ functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
     val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
     val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
   in
-    ms |> set_u_circles circle_wvs
-       |> set_u_nodeverts (V.NSet.intersect unbboxed nvs)
-       |> set_u_wireverts (V.NSet.intersect unbboxed wvs)
-       |> set_u_bare_wires bare_wire_es
+    ms |> extend_u_circles circle_wvs
+       |> extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
+       |> extend_u_wireverts (V.NSet.intersect unbboxed wvs)
+       |> extend_u_bare_wires bare_wire_es
   end
 
   (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
