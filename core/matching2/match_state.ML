@@ -103,6 +103,9 @@ signature OGRAPH_MATCH_STATE
   
   (* adds wire vertex and associated circle to match *)
   val add_circle_to_match : (V.name * V.name) -> T -> T
+
+  val pretty : T -> Pretty.T
+  val print : T -> unit
 end
 
 (* The match state for pattern graph matching *)
@@ -437,6 +440,53 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
       |> set_u_bare_wires bare_wire_es
   end
   
+  fun pretty ms = let
+    fun pretty_vset prefix vs =
+      if V.NSet.is_empty vs then []
+      else [Pretty.block [
+              Pretty.str (prefix^": "),
+              V.NSet.pretty vs
+           ]]
+    fun pretty_eset prefix es =
+      if E.NSet.is_empty es then []
+      else [Pretty.block [
+              Pretty.str (prefix^": "),
+              E.NSet.pretty es
+           ]]
+  in
+    Pretty.chunks [
+      Pretty.str "Match {",
+      Pretty.block [
+        Pretty.str "  ", (* indent *)
+        Pretty.chunks ([
+          Pretty.block [
+            Pretty.str "Pattern: ",
+            G.pretty (get_pat ms)
+          ],
+          Pretty.block [
+            Pretty.str "Target: ",
+            G.pretty (get_tgt ms)
+          ],
+          Pretty.block [
+            Pretty.str "VMap: ",
+            VInjEndo.pretty (get_vmap ms)
+          ],
+          Pretty.block [
+            Pretty.str "EMap: ",
+            EInjEndo.pretty (get_emap ms)
+          ]
+        ]
+        @ (pretty_vset "U_Cicles" (get_u_circles ms))
+        @ (pretty_vset "U_NodeVerts" (get_u_nodeverts ms))
+        @ (pretty_vset "U_WireVerts" (get_u_wireverts ms))
+        @ (pretty_eset "U_BareWires" (get_u_bare_wires ms))
+        @ (pretty_vset "P_NodeVerts" (get_p_nodeverts ms))
+        @ (pretty_vset "Ps_NodeVerts" (get_ps_nodeverts ms)))
+      ],
+      Pretty.str "}"
+    ]
+  end;
+  val print = Pretty.writeln o pretty;
   
   structure Sharing : OGRAPH_MATCH_STATE_SHARING 
   = struct

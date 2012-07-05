@@ -1,6 +1,6 @@
 local (* Test matching with concrete graphs *)
   open Test_MkG
-  open Test_MatchUtil
+  open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
   
   val one_x = G.empty
@@ -64,7 +64,7 @@ end
 
 local (* Test matching with disjoint !-boxes *)
   open Test_MkG
-  open Test_MatchUtil
+  open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
 in
   val _ = Testing.assert_no_failed_tests();

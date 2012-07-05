@@ -16,13 +16,27 @@ structure Test_GreedyMatcher =
 
 structure Test_MatchUtil =
 struct
-  fun assert_n_match n mseq () = let val nm = length (Seq.list_of mseq)
+  fun assert_n_match n mseq () = let
+    val mlist = Seq.list_of mseq
+    val nm = length mlist
   in if nm = n then I
-     else raise ERROR (
-      "expected " ^
-      Int.toString n ^
-      " matching(s), got " ^
-      Int.toString nm)
+     else
+       (List.map Test_MatchState.print mlist;
+        raise ERROR ("expected " ^ Int.toString n ^
+                     " matching(s), got " ^ Int.toString nm))
+  end
+end
+
+structure Test_BGMatchUtil =
+struct
+  fun assert_n_match n mseq () = let
+    val mlist = Seq.list_of mseq
+    val nm = length mlist
+  in if nm = n then I
+     else
+       (List.map Test_BGMatchState.print mlist;
+        raise ERROR ("expected " ^ Int.toString n ^
+                     " matching(s), got " ^ Int.toString nm))
   end
 end
 
