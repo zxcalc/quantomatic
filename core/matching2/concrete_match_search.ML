@@ -1,7 +1,7 @@
 (* A wrapper for matching concrete graphs against concrete graphs *)
 (* see docs/matching_algo for details *)
 (* This wrapper is very simple, as the InnerMatchSearch does all the work *)
-functor ConcreteOuterMatchSearch(
+functor ConcreteMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
 ) : OUTER_MATCH_SEARCH =
 struct

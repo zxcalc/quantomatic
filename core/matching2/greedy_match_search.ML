@@ -1,9 +1,23 @@
-(* A wrapper for matching concrete graphs against concrete graphs *)
-(* see docs/matching_algo for details *)
-(* This wrapper is very simple, as the InnerMatchSearch does all the work *)
-functor SimplePatternOuterMatchSearch(
+(* A wrapper for matching bang graphs against concrete graphs
+ * see docs/matching_algo for details
+ *
+ * This implements the "Lazy !-Box Expansion" algorithm
+ *
+ * This wrapper greedily matches the whole concrete part of the
+ * graph, and then picks an arbitrary top-level !-box and tries
+ * both expanding it and killing it.
+ *
+ * There are a couple of optimisations: it uses
+ * BANG_GRAPH_MATCH_STATE.kill_impossible_bboxes to discard
+ * !-boxes that cannot be expanded without breaking the match,
+ * and it uses a "vertex doomed" function to give up matching
+ * when no expansion of the available !-boxes would produce a
+ * matching.
+ *)
+functor GreedyMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
-    (* this arg is required to make typing work sanely *)
+    (* This arg is required to make typing work sanely. *)
+    (* It must be the same structure as the one in InnerMatchSearch *)
     structure BGMatchState : BANG_GRAPH_MATCH_STATE
     sharing InnerMatchSearch.MatchState.Sharing = BGMatchState.Sharing
 ) : OUTER_BG_MATCH_SEARCH =

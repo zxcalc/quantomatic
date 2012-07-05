@@ -1,7 +1,7 @@
 
 structure Test_MatchState = OGraphMatchState(structure G = Test_MkG.G)
 structure Test_InnerMatcher = SimpleInnerMatchSearch(structure MatchState = Test_MatchState)
-structure Test_Matcher = ConcreteOuterMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
+structure Test_Matcher = ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
 
 structure Test_MatchUtil =
 struct
