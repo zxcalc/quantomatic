@@ -146,7 +146,7 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 (* fold over adjacents; the edge-half argument of the folding function is the one closest to the adjacent vertex names. e.g. folding of ins and outs of vertex x: 
        if "x <-e- y" then: "f (Ehn.mk_start e,...)"
        if "x -e-> y" then: "f (Ehn.mk_end e,...)"   *)
-(* FIXME: remove *) val fold_adj : (H.name * (dir_or_undir * EData.data) 
+(* FIXME: remove *) val fold_adj_halfedges : (H.name * (dir_or_undir * EData.data) 
                 -> V.name -> 'a -> 'a) 
       -> T -> V.name -> 'a -> 'a
 
@@ -482,7 +482,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
      e.g. folding of ins and outs of vertex x: 
        if "x <-e- y" then: "f (H.mk_start e,...)"
        if "x -e-> y" then: "f (H.mk_end e,...)"  *)
-  fun fold_adj' f graph (ins,outs) a = 
+  fun fold_adj_halfedges' f graph (ins,outs) a = 
       a |> (E.NSet.fold 
            (fn e => let val (d,(from,to)) = get_edge graph e 
             in f (H.mk_start e,d) from end) ins)
@@ -493,12 +493,12 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* all vertices adjacent to vertex named n; 
      g = graph; f = function; a = accumulator.
      The edge-half is the half connected to the adj vertex. *)
-  fun fold_adj f g n a = 
-      fold_adj' f g (snd (get_vertex g n)) a;
+  fun fold_adj_halfedges f g n a = 
+      fold_adj_halfedges' f g (snd (get_vertex g n)) a;
   
   (* create table of edge name to adj *)
   val adj_etab_to_vnames = 
-      fold_adj (fn (eh, d) => fn n2 => fn etab => 
+      fold_adj_halfedges (fn (eh, d) => fn n2 => fn etab => 
                    let val e = H.get_ename eh
                    in if E.NTab.contains etab e then etab
                       else E.NTab.update (e,n2) etab
@@ -580,8 +580,8 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       adj_vertices_with_enames' g (snd (get_vertex g n));
   
   (* all vertices adjacent to vertex *)
-  val adj_vnames' = fold_adj' (K V.NSet.add);
-  fun adj_vnames g n = fold_adj (K V.NSet.add) g n V.NSet.empty;
+  val adj_vnames' = fold_adj_halfedges' (K V.NSet.add);
+  fun adj_vnames g n = fold_adj_halfedges (K V.NSet.add) g n V.NSet.empty;
   
   (* adjacent edge classes *)
   fun adj_edge_classes g n = let
@@ -597,9 +597,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* filtered set of adj vertex *)
   fun filter_adj_fn f (e : H.name * (dir_or_undir * EData.data)) n s = 
       if (f n) then V.NSet.add n s else s;
-  val filtered_adj_vnames' = fold_adj' o filter_adj_fn;
+  val filtered_adj_vnames' = fold_adj_halfedges' o filter_adj_fn;
   fun filtered_adj_vnames f g n = 
-      fold_adj (filter_adj_fn f) g n V.NSet.empty;;
+      fold_adj_halfedges (filter_adj_fn f) g n V.NSet.empty;;
   
   
   (* some more convenience functions for directed graphs *)
@@ -858,7 +858,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                        | SOME v' => 
                          (v',new_named_vertex (get_vertex_data g v) v' g))
             in
-              fold_adj (* for each connected edge *)
+              fold_adj_halfedges (* for each connected edge *)
                 (fn (ehn, dir_and_data) => fn v2 => 
                  fn (r_g as ((vrn,ern), g)) =>
                     (* has the other end of the edge already been added? *)
@@ -893,7 +893,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
               V.NTab.map_entry (add_edge_to_arity e) n2 ntab
             else V.NTab.update (n2,init_arity e) ntab;
       in 
-        fold_adj add_one_arity g n V.NTab.empty
+        fold_adj_halfedges add_one_arity g n V.NTab.empty
       end;
       
   fun get_arity g n =
@@ -901,7 +901,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         fun add_one_arity e n2 arity =
             add_edge_to_arity e arity
       in 
-        fold_adj add_one_arity g n Arity.zero
+        fold_adj_halfedges add_one_arity g n Arity.zero
       end;
 end; end; (* local -- hides opened Graph data types; structure *)
 

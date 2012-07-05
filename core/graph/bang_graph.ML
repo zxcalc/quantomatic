@@ -566,7 +566,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                                            V.NTab.empty)
                                    bboxntab))
       in
-        fold_adj consider1 g n (V.NTab.empty, B.NTab.empty)
+        fold_adj_halfedges consider1 g n (V.NTab.empty, B.NTab.empty)
       end;
 
   (* get arrities to adjacent vertices, return two tables, one for normal edges

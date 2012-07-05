@@ -377,12 +377,12 @@ functor SimpleMatchSearch(Match : MATCH)
   fun edgematch_all_adj (pt as (pvn1,tvn1)) st = 
       let 
         val adj_list = 
-          G.fold_adj (fn te as (ehn,_) => fn tvn2 => fn l => (te,tvn2)::l)
+          G.fold_adj_halfedges (fn te as (ehn,_) => fn tvn2 => fn l => (te,tvn2)::l)
                      (get_unm_tgt st) tvn1 [];
         fun pretty_adj_list g v =
             let 
               val adj_list = 
-              G.fold_adj (fn te => fn v2 => fn l => (te,v2)::l)
+              G.fold_adj_halfedges (fn te => fn v2 => fn l => (te,v2)::l)
                          g v [];
             in 
               (Pretty.list "[" "]" (map
@@ -398,7 +398,7 @@ functor SimpleMatchSearch(Match : MATCH)
 
           (* TODO: undir edges which are self-loops will always have two matches, one for each directon. Simple-dup removal doesn't work: all half-edges must be matched.  *)
       in 
-        G.fold_adj (edge_match_adj_to_pedge pt)
+        G.fold_adj_halfedges (edge_match_adj_to_pedge pt)
                    (get_pat st) pvn1 
                    [(adj_list,st)] (* target agenda of things to be matched, 
                                       current state *)

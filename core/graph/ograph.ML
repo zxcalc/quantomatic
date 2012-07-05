@@ -206,9 +206,8 @@ val is_node_vertex    : T -> V.name -> bool
 val get_wire_vertices : T -> V.NSet.T
 val get_node_vertices : T -> V.NSet.T
 
-(* this replaces the old fold_adj, which uses half-edges *)
+(* TODO: ? *)
 (*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
-
 
 (* return a graph that has exactly two edge points on every wire *)
 val normalise : T -> T

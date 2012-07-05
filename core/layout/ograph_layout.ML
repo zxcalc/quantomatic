@@ -24,7 +24,7 @@ struct
         else (* going out of v, so maybe put on next level *)
           if is_on_next_level g seen_vs v' then V.NSet.add v' vs 
           else vs;
-    in Graph.fold_adj consider_next_v g v next_vs end;
+    in Graph.fold_adj_halfedges consider_next_v g v next_vs end;
     
   (* make list of vs that will be on the next level *)
   fun add_to_next_vlist g current_vlist (seen_vs,next_vs) = 
