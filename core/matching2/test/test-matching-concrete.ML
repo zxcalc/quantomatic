@@ -44,7 +44,7 @@ local
   val _ = Testing.test "M.match - 2 wires --> circle"  (assert_n_match 1 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR MATCHING2/BARE WIRES PASSED!"
+  val _ = "UNIT TESTS FOR CONCRETE MATCHING OF BARE WIRES PASSED!"
 end
 
 
@@ -79,7 +79,7 @@ local
   
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR MATCHING2/ISOLATED NODE-VERTICES PASSED!"
+  val _ = "UNIT TESTS FOR CONCRETE MATCHING OF ISOLATED NODE-VERTICES PASSED!"
 end
 
 local
@@ -142,7 +142,7 @@ local
   val _ = Testing.test "M.match - b to x to x to b --> x x loop" (assert_n_match 2 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR MATCHING2/MAIN PASSED!"
+  val _ = "UNIT TESTS FOR CONCRETE MATCHING PASSED!"
 end
 
 
@@ -199,7 +199,7 @@ local
   val _ = Testing.test "M.match - same angles --> same const" (assert_n_match 1 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR MATCHING2/ANGLES PASSED!"
+  val _ = "UNIT TESTS FOR CONCRETE MATCHING WITH ANGLES PASSED!"
 end
 
 local
@@ -236,6 +236,6 @@ local
   val _ = Testing.test "M.match - two circles --> two circles" (assert_n_match 2 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR MATCHING2/CIRCLES PASSED!"
+  val _ = "UNIT TESTS FOR CONCRETE MATCHING OF CIRCLES PASSED!"
 end
 
