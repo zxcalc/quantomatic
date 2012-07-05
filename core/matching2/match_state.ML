@@ -567,8 +567,14 @@ functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
     schedule_concrete new_vs new_es ms
   end
 
-  (* FIXME: this should kill any !-box that is adjacent to
-   * a complete vertex *)
-  (* use get_complete_nodeverts *)
-  fun kill_impossible_bboxes ms = ms (* FIXME *)
+  fun kill_impossible_bboxes ms = let
+    val pat = get_pat ms
+    val complete = get_complete_nodeverts ms
+    val touched = G.incident_vertices pat complete
+    fun kill_all_bboxes v =
+      B.NSet.fold BG.kill_bbox (BG.get_bboxes_of pat v)
+    val pat' = V.NSet.fold kill_all_bboxes touched pat
+  in
+    set_pat pat' ms
+  end
 end
