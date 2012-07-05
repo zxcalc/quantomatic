@@ -25,6 +25,8 @@ exception no_such_bbox_exp of unit
 val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
 val get_bbox_rel : T -> BVBRel.T
+(* Return the "parent" relation for nested bang-boxes *)
+val get_bbox_parent_rel : T -> BInjEndo.T
 (* Does not contain empty !-boxes *)
 val get_bbox_table : T -> V.NSet.T B.NTab.T
 (* Does not contain unboxed vertices *)
@@ -221,28 +223,40 @@ functor BasicBangGraphFun(
            HData of
            { bboxes : B.NSet.T,
              bbox_rel : BVBRel.T,
+             bbox_parent_rel : BInjEndo.T,
              data : data
            };
   fun get_bboxes_of_hdata (HData rep) = #bboxes rep;
   fun get_bbox_rel_of_hdata (HData rep) = #bbox_rel rep;
+  fun get_bbox_parent_rel_of_hdata (HData rep) = #bbox_parent_rel rep;
   fun get_data_of_hdata (HData rep) = #data rep;
   fun update_bboxes_of_hdata f (HData rep) =
       HData { data = #data rep,
               bbox_rel = #bbox_rel rep,
+              bbox_parent_rel = #bbox_parent_rel rep,
               bboxes = f (#bboxes rep)
             };
   fun update_bbox_rel_of_hdata f (HData rep) =
       HData { data = #data rep,
               bbox_rel = f (#bbox_rel rep),
+              bbox_parent_rel = #bbox_parent_rel rep,
+              bboxes = #bboxes rep
+            };
+  fun update_bbox_parent_rel_of_hdata f (HData rep) =
+      HData { data = #data rep,
+              bbox_rel = #bbox_rel rep,
+              bbox_parent_rel = f (#bbox_parent_rel rep),
               bboxes = #bboxes rep
             };
   fun update_data_of_hdata f (HData rep) =
       HData { data = f (#data rep),
               bbox_rel = #bbox_rel rep,
+              bbox_parent_rel = #bbox_parent_rel rep,
               bboxes = #bboxes rep
             };
   val empty_hdata = HData { bboxes = B.NSet.empty,
                      bbox_rel = BVBRel.empty,
+                     bbox_parent_rel = BInjEndo.empty,
                      data = empty_data};
 
   (* make basic graph with this as internal data *)
@@ -264,8 +278,9 @@ functor BasicBangGraphFun(
   exception no_such_bbox_exp of unit;
 
   (* for bbox part of added data *)
-  val get_bboxes : T -> B.NSet.T = get_bboxes_of_hdata o G.get_data;
-  val get_bbox_rel : T -> BVBRel.T = get_bbox_rel_of_hdata o G.get_data;
+  val get_bboxes = get_bboxes_of_hdata o G.get_data;
+  val get_bbox_rel = get_bbox_rel_of_hdata o G.get_data;
+  val get_bbox_parent_rel = get_bbox_parent_rel_of_hdata o G.get_data;
   val get_bbox_table = BVBRel.get_domtab o get_bbox_rel
   val get_vertex_bbox_table = BVBRel.get_codtab o get_bbox_rel
   (* all vertices that are in at least one bbox *)
@@ -284,6 +299,7 @@ functor BasicBangGraphFun(
 
   val update_bboxes = G.update_data o update_bboxes_of_hdata;
   val update_bbox_rel = G.update_data o update_bbox_rel_of_hdata;
+  val update_bbox_parent_rel = G.update_data o update_bbox_parent_rel_of_hdata;
 
   fun add_bbox_named_like b g = let
     val (bn',bs') = B.NSet.add_new b (get_bboxes g)
