@@ -1,6 +1,18 @@
-structure Test_MatchState = OGraphMatchState(structure G = Test_MkG.G)
-structure Test_InnerMatcher = SimpleInnerMatchSearch(structure MatchState = Test_MatchState)
-structure Test_ConcreteMatcher = ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
+structure Test_MatchState =
+  OGraphMatchState(structure G = Test_MkG.G)
+structure Test_BGMatchState =
+  BangGraphMatchState(structure G = Test_MkG.G)
+structure Test_InnerMatcher =
+  SimpleInnerMatchSearch(structure MatchState = Test_MatchState)
+structure Test_BGInnerMatcher =
+  SimpleInnerMatchSearch(structure MatchState = Test_BGMatchState)
+structure Test_ConcreteMatcher =
+  ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
+structure Test_GreedyMatcher =
+  GreedyMatchSearch(
+    structure InnerMatchSearch = Test_BGInnerMatcher
+    structure BGMatchState = Test_BGMatchState
+  )
 
 structure Test_MatchUtil =
 struct

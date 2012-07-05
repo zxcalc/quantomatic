@@ -160,6 +160,7 @@ Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 Testing.make_test "matching/test/symmetry_match_search-test.ML";
 Testing.make_test "matching2/test/test-matching-setup.ML";
 Testing.make_test "matching2/test/test-matching-concrete.ML";
+Testing.make_test "matching2/test/test-matching-greedy.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
