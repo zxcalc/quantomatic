@@ -88,7 +88,7 @@ local
   structure M = Test_ConcreteMatcher
   
   val one_x = G.empty
-  val (x1,one_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
+  val (_,one_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
   
   val x_to_x = G.empty
   val (x2,x_to_x) = x_to_x |> G.add_named_vertex (V.mk "x2") (mkX zero_angle)
@@ -206,11 +206,6 @@ local
   open Test_MkG
   open Test_MatchUtil
   structure M = Test_ConcreteMatcher
-  
-  val bare_wire = G.empty
-  val (b1,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b1") bvert
-  val (b2,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b2") bvert
-  val (_,bare_wire)  = bare_wire |> G.add_named_edge (E.mk "e1") dir_edge b1 b2
   
   val circle = G.empty
   val (b3,circle) = circle |> G.add_named_vertex (V.mk "b3") bvert
