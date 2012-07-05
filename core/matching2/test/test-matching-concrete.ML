@@ -1,24 +1,8 @@
 
-structure Test_MatchState = OGraphMatchState(structure G = Test_MkG.G)
-structure Test_InnerMatcher = SimpleInnerMatchSearch(structure MatchState = Test_MatchState)
-structure Test_Matcher = ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
-
-structure Test_MatchUtil =
-struct
-  fun assert_n_match n mseq () = let val nm = length (Seq.list_of mseq)
-  in if nm = n then I
-     else raise ERROR (
-      "expected " ^
-      Int.toString n ^
-      " matching(s), got " ^
-      Int.toString nm)
-  end
-end
-
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = Test_Matcher
+  structure M = Test_ConcreteMatcher
   
   val bare_wire = G.empty
   val (b1,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b1") bvert
@@ -67,7 +51,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = Test_Matcher
+  structure M = Test_ConcreteMatcher
   
   val one_x = G.empty
   val (_,one_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
@@ -101,7 +85,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = Test_Matcher
+  structure M = Test_ConcreteMatcher
   
   val one_x = G.empty
   val (x1,one_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
@@ -165,7 +149,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = Test_Matcher
+  structure M = Test_ConcreteMatcher
   val g = G.empty
   val (x6,g) = g |> G.add_named_vertex (V.mk "x6") (mkX (LinratAngleExpr.parse "a"))
   val (x7,g) = g |> G.add_named_vertex (V.mk "x7") (mkX (LinratAngleExpr.parse "b"))
@@ -221,7 +205,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = Test_Matcher
+  structure M = Test_ConcreteMatcher
   
   val bare_wire = G.empty
   val (b1,bare_wire) = bare_wire |> G.add_named_vertex (V.mk "b1") bvert
