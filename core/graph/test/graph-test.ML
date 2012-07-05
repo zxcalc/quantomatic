@@ -1424,6 +1424,26 @@ local
           val _ = Testing.assert "new verts are as expected"
                   (V.NSet.eq vs_exp (G.get_vnames g'))
         in g' end) circles_pat
+
+  val _ = test_force "G.fresh_expand1_bbox (circle)"
+        (fn _ =>
+        let
+          val g = circles_pat
+          val bs_old = G.get_bboxes g
+          val g' = G.fresh_expand1_bbox b0 g
+          val bs_new = G.get_bboxes g'
+          val _ = Testing.assert "bboxes unchanged"
+                  (B.NSet.eq bs_old bs_new)
+          val _ = Testing.assert "old verts remain"
+                  (V.NSet.sub_set (G.get_vnames g) (G.get_vnames g'))
+          val _ = Testing.assert "old bbox the same"
+                  (V.NSet.eq (G.get_bbox_contents g b0)
+                             (G.get_bbox_contents g' b0))
+          val _ = Testing.assert "correct number of verts"
+                  ((V.NSet.cardinality (G.get_vnames g')) = 2)
+          val _ = Testing.assert "correct number of edges"
+                  ((E.NSet.cardinality (G.get_enames g')) = 2)
+        in g' end) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"
