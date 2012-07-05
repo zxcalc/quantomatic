@@ -142,6 +142,23 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
                 -> V.name -> 'a -> 'a) 
       -> T -> V.name -> 'a -> 'a
 
+datatype incidence_type = Incoming | Outgoing | SelfLoop;
+(* Fold over the incident edges.
+ *
+ * Each incident edge will feature exactly once, as an
+ * incoming edge, an outgoing edge or a self-loop.
+ *
+ * In addition to the edge information and the incidence
+ * type, the vertex on other other end will be given.
+ * In the case of self-loops, this will be the same as
+ * the vertex originally passed.
+ *
+ * The folding order is undefined.
+ *)
+val fold_adj : (incidence_type * V.name * (E.name * (dir_or_undir * EData.data))
+                -> 'a -> 'a)
+      -> T -> V.name -> 'a -> 'a
+
 (* the vertices connected to the given set, but outside it *) 
 val incident_vertices : T -> V.NSet.T -> V.NSet.T
 
@@ -219,7 +236,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   val get_edge_data = (snd o fst) oo get_edge;
   
   fun get_vname_ehns g v = 
-      let val (d,(ines,outes)) = (get_vertex g v)
+      let val (_,(ines,outes)) = (get_vertex g v)
       in
         H.NSet.empty 
           |> E.NSet.fold (H.NSet.add o H.mk_start) outes 
@@ -227,7 +244,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       end;
   
   val set_vertex_data = update_vertex_data o K;
-  val set_edge_data = update_edge_data o K;
   val set_edge_data = update_edge_data o K;
   
   
@@ -315,7 +331,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       in 
         g |> E.NSet.fold
               (fn en => fn g => 
-                  let val (e,(fromv,tov)) = get_edge g en
+                  let val (e,(fromv,_)) = get_edge g en
                   in g |> delete_edge en
                        |> add_named_edge en e fromv v2
                        |> snd
@@ -323,7 +339,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
               ines
           |> E.NSet.fold
               (fn en => fn g => 
-                  let val (e,(fromv,tov)) = get_edge g en
+                  let val (e,(_,tov)) = get_edge g en
                   in g |> delete_edge en
                        |> add_named_edge en e v2 tov
                        |> snd
@@ -450,10 +466,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
        if "x -e-> y" then: "f (H.mk_end e,...)"  *)
   fun fold_adj_halfedges' f graph (ins,outs) a = 
       a |> (E.NSet.fold 
-           (fn e => let val (d,(from,to)) = get_edge graph e 
+           (fn e => let val (d,(from,_)) = get_edge graph e
             in f (H.mk_start e,d) from end) ins)
         |> (E.NSet.fold 
-           (fn e => let val (d,(from,to)) = get_edge graph e 
+           (fn e => let val (d,(_,to)) = get_edge graph e
             in f (H.mk_end e,d) to end) outs);
   
   (* all vertices adjacent to vertex named n; 
@@ -461,12 +477,37 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
      The edge-half is the half connected to the adj vertex. *)
   fun fold_adj_halfedges f g n a = 
       fold_adj_halfedges' f g (snd (get_vertex g n)) a;
+
+  datatype incidence_type = Incoming | Outgoing | SelfLoop;
+
+  fun fold_adj f g v a = let
+    val (ins,outs) = snd (get_vertex g v)
+  in
+    a |> (E.NSet.fold
+         (fn e => let
+            val (d,(from,to)) = get_edge g e 
+            val inctyp =
+              if V.name_eq (from,to)
+              then SelfLoop
+              else Incoming
+          in
+            f (inctyp,from,(e,d))
+          end) ins)
+      |> (E.NSet.fold
+         (fn e => let
+            val (d,(from,to)) = get_edge g e 
+          in
+            if V.name_eq (from,to)
+            then (fn x => x)
+            else f (Outgoing,to,(e,d))
+          end) outs)
+  end;
   
   fun get_self_loops' g n ins = 
       E.NTab.empty
         |> (E.NSet.fold 
               (fn e => fn etab => 
-               let val ((bd,d),(from,to)) = get_edge g e
+               let val ((_,d),(from,_)) = get_edge g e
                in if V.name_eq (n,from) 
                   then E.NTab.ins (e,d) etab else etab
                end)
@@ -476,8 +517,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
       get_self_loops' g n (fst (snd (get_vertex g n)));
   
   (* all vertices adjacent to vertex *)
-  val adj_vnames' = fold_adj_halfedges' (K V.NSet.add);
-  fun adj_vnames g n = fold_adj_halfedges (K V.NSet.add) g n V.NSet.empty;
+  fun adj_vnames g v = fold_adj (fn (_,v',_) => V.NSet.add v') g v V.NSet.Empty
   
   (* adjacent edge classes *)
   fun adj_edge_classes g n = let
@@ -496,11 +536,19 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   (* names of adj vertices with edges going to them *)
   fun succ_vnames g vname =
-      adj_vnames' g (E.NSet.empty, out_enames g vname) V.NSet.empty;
+      E.NSet.fold
+           (fn e => let val (_,(_,to)) = get_edge g e 
+            in V.NSet.add to end)
+           (out_enames g vname)
+           V.NSet.empty;
   
   (* names of adj vertices with edges coming in from them *)
-  fun pred_vnames g n =
-      adj_vnames' g (in_enames g n, E.NSet.empty) V.NSet.empty;
+  fun pred_vnames g vname =
+      E.NSet.fold
+           (fn e => let val (_,(from,_)) = get_edge g e 
+            in V.NSet.add from end)
+           (in_enames g vname)
+           V.NSet.empty;
   
   (* vertices incident into vns *)
   (* the vertices connected to the given set, but outside it *) 
@@ -513,17 +561,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                   else V.NSet.add n2)
               (adj_vnames g n))
         vns V.NSet.empty;
-  
-  (* edge names between two vertcies *)
-  fun enames_between g n1 n2 = 
-      let 
-        val (_,(ins1,outs1)) = get_vertex g n1
-        val (_,(ins2,outs2)) = get_vertex g n2
-      in
-        E.NSet.union_merge
-          (E.NSet.intersect ins1 outs2)
-          (E.NSet.intersect ins2 outs1)
-      end;    
   
   (* *)
   fun has_edges_between g n1 n2 = 
@@ -590,12 +627,12 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
            v1s) andalso 
         (* now check same edge data *)
         (E.NTab.forall (* note that we dont re-check structure *)
-           (fn (e,((bd,ed),_)) => 
+           (fn (e,((_,ed),_)) =>
                (* from above, we know we have same edge names: could use get *)
                case E.NTab.lookup e2s e of 
                  NONE => false
                (* now check have same edge data *)
-               | SOME ((bd2,ed2),_) => EData.data_eq (ed,ed2))
+               | SOME ((_,ed2),_) => EData.data_eq (ed,ed2))
            e1s)
       end;
   
@@ -718,17 +755,17 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* assumes ern has all edge names of the graph in avoid set, 
      else may raise no_such_ename_exp (when copying/renaming an 
      edge that is already the graph) *)
-  fun copy1edge (ehn, dir_and_data) v v2 ((vrn,ern), g) =
+  fun copy1edge inctyp (e, dir_and_data) v v2 ((vrn,ern), g) =
       let 
-        val e = H.get_ename ehn;
         val (new_e_opt,ern') = E.Rnm.rename1 e ern;
-        val (e',g') = 
+        val (_,g') =
             (case new_e_opt of NONE => 
                raise no_such_ename_exp ("renaming doesn't have edge in avoid set",e,g)
              | SOME e' => 
-               (e', if H.is_start ehn 
-                    then new_named_edge dir_and_data e' v2 v g 
-                    else new_named_edge dir_and_data e' v v2 g));
+               (e', case inctyp of
+                         Incoming => new_named_edge dir_and_data e' v2 v g
+                       | _ => new_named_edge dir_and_data e' v v2 g
+                    ));
       in ((vrn,ern'),g') end;
 
   (* copy a set of vertices, making copy having names fresh w.r.t. 
@@ -746,40 +783,39 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                        | SOME v' => 
                          (v',new_named_vertex (get_vertex_data g v) v' g))
             in
-              fold_adj_halfedges (* for each connected edge *)
-                (fn (ehn, dir_and_data) => fn v2 => 
-                 fn (r_g as ((vrn,ern), g)) =>
+              fold_adj (* for each connected edge *)
+                (fn (inctyp,v2,(e, dir_and_data)) =>
+                 fn (r_g as ((vrn,_), _)) =>
                     (* has the other end of the edge already been added? *)
                     if V.NSet.contains vset v2 then 
                       (case V.Rnm.lookup vrn v2 of 
                            NONE => r_g
                          (* add edges to any other adjacent stuff that has already been copied *)
-                         | SOME v2' => copy1edge (ehn, dir_and_data) v' v2' r_g)
+                         | SOME v2' => copy1edge inctyp (e, dir_and_data) v' v2' r_g)
                      else (* if outside of vset, copy edge to vertex outside *)
-                        copy1edge (ehn, dir_and_data) v' v2 r_g
+                        copy1edge inctyp (e, dir_and_data) v' v2 r_g
                 ) g' v ((vrn',ern),g')
              end
         ) vset ((vrn,ern), g);
 
-  
-  fun init_arity (eh,(UnDirected,ed)) = 
-      Arity.update_undir (fn x => x + 1) Arity.zero
-    | init_arity (eh,(Directed,ed)) = 
-      if H.is_start eh then Arity.update_in (fn x => x + 1) Arity.zero
-      else Arity.update_out (fn x => x + 1) Arity.zero;
-
-  fun add_edge_to_arity (eh,(UnDirected,ed)) arity = 
-      Arity.update_undir (fn x => x + 1) arity 
-    | add_edge_to_arity (eh,(Directed,ed)) arity =
-      if H.is_start eh then Arity.update_in (fn x => x + 1) arity 
-      else Arity.update_out (fn x => x + 1) arity; 
       
-  fun get_arity g n =
+  fun get_arity g v =
       let   
-        fun add_one_arity e n2 arity =
-            add_edge_to_arity e arity
+        fun plus1 x = x + 1
+        fun plus2 x = x + 2
+        fun strip_args (inctyp,_,(_,(dirtyp,_))) = (inctyp,dirtyp)
+        fun add_edge_to_arity (SelfLoop,UnDirected) =
+            Arity.update_undir plus2
+          | add_edge_to_arity (_,UnDirected) =
+            Arity.update_undir plus1
+          | add_edge_to_arity (Incoming,Directed) =
+            Arity.update_in plus1
+          | add_edge_to_arity (Outgoing,Directed) =
+            Arity.update_out plus1
+          | add_edge_to_arity (SelfLoop,Directed) =
+            Arity.update_in plus1 o Arity.update_out plus1
       in 
-        fold_adj_halfedges add_one_arity g n Arity.zero
+        fold_adj (add_edge_to_arity o strip_args) g v Arity.zero
       end;
 end; end; (* local -- hides opened Graph data types; structure *)
 

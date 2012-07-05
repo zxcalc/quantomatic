@@ -19,12 +19,12 @@ struct
       (* look at a vertex, v', that is assumed to be adjacent to v, and 
          decide if it should be on the next level of the layout (true when 
          all it's ancestors have been seen, but it hasn't yet). *)
-      fun consider_next_v (ehn, (dir, data)) v' vs =
-        if H.is_start ehn then vs (* going into v, so skip *)
-        else (* going out of v, so maybe put on next level *)
+      fun consider_next_v (Graph.SelfLoop,_,_) vs = vs
+        | consider_next_v (Graph.Incoming,_,_) vs = vs
+        | consider_next_v (Graph.Outgoing,v',_) vs =
           if is_on_next_level g seen_vs v' then V.NSet.add v' vs 
           else vs;
-    in Graph.fold_adj_halfedges consider_next_v g v next_vs end;
+    in Graph.fold_adj consider_next_v g v next_vs end;
     
   (* make list of vs that will be on the next level *)
   fun add_to_next_vlist g current_vlist (seen_vs,next_vs) = 
