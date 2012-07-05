@@ -57,8 +57,8 @@ local
   val (_,one_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
   
   val two_x = G.empty
-  val (_,two_x) = one_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
-  val (_,two_x) = one_x |> G.add_named_vertex (V.mk "x2") (mkX zero_angle)
+  val (_,two_x) = two_x |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
+  val (_,two_x) = two_x |> G.add_named_vertex (V.mk "x2") (mkX zero_angle)
   
   
   val mseq = M.match one_x G.empty
