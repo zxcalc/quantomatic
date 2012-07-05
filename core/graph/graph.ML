@@ -146,6 +146,8 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 (* fold over adjacents; the edge-half argument of the folding function is the one closest to the adjacent vertex names. e.g. folding of ins and outs of vertex x: 
        if "x <-e- y" then: "f (Ehn.mk_start e,...)"
        if "x -e-> y" then: "f (Ehn.mk_end e,...)"   *)
+(* function is passed the half-edge corresponding to the "other end" of the
+ * edge, the edge data, and the vertex at the other end of the edge *)
 (* FIXME: remove *) val fold_adj_halfedges : (H.name * (dir_or_undir * EData.data) 
                 -> V.name -> 'a -> 'a) 
       -> T -> V.name -> 'a -> 'a
