@@ -518,6 +518,10 @@ functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
 
   fun schedule_concrete new_vs new_es ms = let
     val pat = get_pat ms
+
+    val touched = G.incident_vertices pat new_vs
+    val to_sched = V.NSet.intersect (get_p_nodeverts ms) touched
+
     val unbboxed = V.NSet.subtract new_vs (BG.get_bboxed pat)
     val wires = G.get_wires_for_edges pat new_es
     fun delete_wvs_in_wire (s,t,wv,_) set =
@@ -545,6 +549,7 @@ functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
        |> extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
        |> extend_u_wireverts (V.NSet.intersect unbboxed wvs)
        |> extend_u_bare_wires bare_wire_es
+       |> extend_ps_nodeverts to_sched
   end
 
   (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
