@@ -1392,6 +1392,38 @@ local
                   (G.VData.data_eq (G.get_vertex_data g' b1_new,
                                     G.get_vertex_data g x2))
         in g' end) g_overlap
+
+  val g = G.empty
+  (* circle in a !-box *)
+  val (v1,g) = g |> G.add_vertex bvert
+  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
+  val g      = g |> G.new_named_bbox b0
+  val g      = g |> G.add_to_bbox b0 (V.NSet.single v1)
+  val circles_pat = g
+
+  val _ = test_force "G.fresh_copy1_bbox (circle)"
+        (fn g =>
+        let
+          val bs_old = G.get_bboxes g
+          val (b,g') = G.fresh_copy1_bbox b0 g
+          val bs_new = G.get_bboxes g'
+          val bs_added = B.NSet.subtract bs_new bs_old
+          val badd = case B.NSet.tryget_singleton bs_added of
+                       NONE => raise ERROR "fresh_copy1_bbox did not add new !-box"
+                     | SOME b' => b'
+          val _ = Testing.assert "correct bbox added"
+                  (B.name_eq (b,badd))
+          val bs_removed = B.NSet.subtract bs_old bs_new
+          val _ = Testing.assert "no bboxes removed"
+                  (B.NSet.is_empty bs_removed)
+          val _ = Testing.assert "old verts remain"
+                  (V.NSet.sub_set (G.get_vnames g) (G.get_vnames g'))
+          val _ = Testing.assert "new verts are new"
+                  (V.NSet.is_empty (V.NSet.intersect (G.get_bbox_contents g' b) (G.get_vnames g)))
+          val vs_exp = V.NSet.union_merge (G.get_vnames g) (G.get_bbox_contents g' b)
+          val _ = Testing.assert "new verts are as expected"
+                  (V.NSet.eq vs_exp (G.get_vnames g'))
+        in g' end) circles_pat
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"
