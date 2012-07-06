@@ -271,12 +271,6 @@ fun add_named_vertex n nd g =
               |> update_param (Param.add_vertex nd n2)) 
     end;
 
-(* implicit arg: g; raises V.NSet.duplicate_exp *)
-fun new_named_vertex n d =
-    update_vertices 
-      (V.NTab.ins (n,(d,(E.NSet.empty,E.NSet.empty))))
-    o update_param (Param.add_vertex d n); 
-
 (* implicit args: g n *)
 val has_vname = V.NTab.contains_name o get_vertices;
 val has_ename = E.NTab.contains_name o get_edges;

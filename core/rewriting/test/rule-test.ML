@@ -40,7 +40,7 @@ val _ = Testing.test "rule1:" (fn () => let
   val _ = G.print lhs;
   (* rhs *)
   val g = G.empty;
-  val g = g |> G.new_named_vertex bvert b1;
+  val g = g |> G.new_named_vertex b1 bvert;
   val (n1, g) = g |> G.add_vertex (mkZ zero_angle);
   val (n2, g) = g |> G.add_vertex (mkZ zero_angle);
   val (e0, g) = g |> G.add_edge undir_edge b1 n1;
