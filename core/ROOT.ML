@@ -94,6 +94,7 @@ Testing.make_test "io/input_graph_v1.ML";
 Testing.make_test "io/output_graph_v1.ML";
 (* *)
 Testing.make_test "graph/test/graph-test.ML";
+Testing.make_test "graph/test/test-bang-graph.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
