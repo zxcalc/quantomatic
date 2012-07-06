@@ -652,73 +652,80 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                         then () else raise ERROR "Inconsistent !-boxes"
               in w end
 
-  fun minimise g = let
-    val wire_list = get_wire_list g
-    (* add a minimised wire where the given wire is *)
-    fun add_min_wire (wire as (s,t,wvs,es)) h = let
-      (* this data should be the same for all edges in the wire *)
-      val _ = check_wire_bboxes h wire
-      val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
-      fun add_wire_with_bboxes s t bs g = let
-        val (wv,g') = g |> add_vertex OVData.EVert
-        val g'' = g' |> doadd_edge dir_and_data s wv
-                     |> doadd_edge dir_and_data wv t
-        val wvset = V.NSet.single wv
-      in
-        g'' |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
-      end
-    in
-      if is_wire_vertex h s orelse is_wire_vertex h t then
-        h |> doadd_edge dir_and_data s t
-      else
-        case V.NSet.get_local_bot wvs of
-             NONE => h |> doadd_edge dir_and_data s t
-           | SOME wv =>
-               let
-                 val bs = get_bboxes_of h wv
-                 val edge_sufficient = B.NSet.is_empty bs orelse
-                      (B.NSet.eq bs (B.NSet.union_merge (get_bboxes_of h s)
-                                                        (get_bboxes_of h t)))
-               in
-                 if edge_sufficient
-                 then h |> doadd_edge dir_and_data s t
-                 else h |> add_wire_with_bboxes s t bs
-               end
-    end
-  (* new wires are added before remove old ones because we need edge data *)
-  in fold delete_wire wire_list (fold add_min_wire wire_list g)
-  end
+  fun assert_wire_coherent g = (OGraph.assert_wire_coherent g)
+                             o (check_wire_bboxes g)
 
-  fun normalise g = let
-    val wire_list = get_wire_list g
-    (* add a normalised wire where the given wire is *)
-    fun add_norm_wire (wire as (s,t,wvs,es)) h = let
-      val _ = check_wire_bboxes h wire
-      (* this data should be the same for all edges in the wire *)
-      val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
-    in
+  fun is_wire_minimal g (s,t,wvs,_) =
+    (V.NSet.is_empty wvs)
+    orelse
+    (case V.NSet.tryget_singleton wvs of
+          NONE => false
+        | SOME wv =>
+            let
+              val wire_bs = get_bboxes_of g wv
+              val s_bs = get_bboxes_of g s
+              val t_bs = get_bboxes_of g t
+              val end_bs = B.NSet.union_merge s_bs t_bs
+            in
+              not (B.NSet.eq wire_bs end_bs)
+            end)
+  (* is_wire_normalised is unchanged from OGraph *)
+
+  fun minimise_wire' (wire as (s,t,wvs,es)) g =
+    if is_wire_vertex g s orelse is_wire_vertex g t then
+      (* any wire !-boxes will be on s or t *)
+      OGraph.minimise_wire' wire g
+    else
+      case V.NSet.get_local_bot wvs of
+           (* no extra !-boxes *)
+           NONE => OGraph.minimise_wire' wire g
+         | SOME wv =>
+             let
+               val bs = get_bboxes_of g wv
+               val edge_sufficient = B.NSet.is_empty bs orelse
+                    (B.NSet.eq bs (B.NSet.union_merge (get_bboxes_of g s)
+                                                      (get_bboxes_of g t)))
+             in
+               if edge_sufficient
+               then OGraph.minimise_wire' wire g
+               else
+                 let
+                   val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
+                   val (wv,g) = g |> add_vertex OVData.EVert
+                   val (e1,g) = g |> add_edge dir_and_data s wv
+                   val (e2,g) = g |> add_edge dir_and_data wv t
+                   val wvset = V.NSet.single wv
+                   val eset = E.NSet.of_list [e1,e2]
+                 in
+                   ((s,t,wvset,eset),
+                    g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs)
+                 end
+             end
+
+  fun normalise_wire' (wire as (s,t,wvs,es)) g =
+    if is_wire_vertex g s orelse is_wire_vertex g t then
+      (* any wire !-boxes will be on s or t *)
+      OGraph.minimise_wire' wire g
+    else
       (* add two extra wire verts on internal wires *)
-      if is_node_vertex h s andalso is_node_vertex h t then
-        let
-          val (b1,h) = h |> add_vertex OVData.EVert
-          val (b2,h) = h |> add_vertex OVData.EVert
-          val bs = case V.NSet.get_local_bot wvs of
-                        NONE => B.NSet.union_merge (get_bboxes_of h s)
-                                                   (get_bboxes_of h t)
-                      | SOME wv => get_bboxes_of h wv
-          val wvset = V.NSet.of_list [b1,b2]
-        in
-          h |> doadd_edge dir_and_data s b1
-            |> doadd_edge dir_and_data b1 b2
-            |> doadd_edge dir_and_data b2 t
-            |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
-        end
-      (* add no extra wire-verts on boundary wires, bare wires, or circles *)
-      else h |> doadd_edge dir_and_data s t
-    end
-  (* new wires are added before remove old ones because we need edge data *)
-  in fold delete_wire wire_list (fold add_norm_wire wire_list g)
-  end
+      let
+        val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
+        val bs = case V.NSet.get_local_bot wvs of
+                      NONE => B.NSet.union_merge (get_bboxes_of g s)
+                                                 (get_bboxes_of g t)
+                    | SOME wv => get_bboxes_of g wv
+        val (b1,g) = g |> add_vertex OVData.EVert
+        val (b2,g) = g |> add_vertex OVData.EVert
+        val (e1,g) = g |> add_edge dir_and_data s b1
+        val (e2,g) = g |> add_edge dir_and_data b1 b2
+        val (e3,g) = g |> add_edge dir_and_data b2 t
+        val wvset = V.NSet.of_list [b1,b2]
+        val eset = E.NSet.of_list [e1,e2,e3]
+      in
+        ((s,t,wvset,eset),
+         g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
+           |> delete_wire wire)
+      end
 
 end; (* BangGraphFun *)
 

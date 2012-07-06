@@ -172,6 +172,46 @@ val pretty_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> Pretty.T
 
 val delete_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
 
+(* raises an exception if the wire is not coherent *)
+val assert_wire_coherent : T -> (V.name * V.name * V.NSet.T * E.NSet.T)
+                        -> (V.name * V.name * V.NSet.T * E.NSet.T)
+
+(* Returns true if minimising the wire would have no effect *)
+val is_wire_minimal : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
+(* Removes any unnecessary wire vertices from a wire
+ *
+ * Raises an exception if the wire is not coherent.
+ *
+ * Returns the new wire and the new graph
+ *)
+val minimise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
+  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
+(* same as minimise_wire, but does not do any checks *)
+(* intended for inheriting structures to use *)
+val minimise_wire' : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
+  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
+(* Same as minimise_wire, but does not give you the wire back *)
+val do_minimise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
+
+(* Returns true if normalising the wire would have no effect *)
+val is_wire_normal : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
+(* Ensures that there are exactly two wire-vertices on the wire if
+ * it is an internal wire (one between two node-vertices), and
+ * minimises the wire otherwise.
+ *
+ * Raises an exception if the wire is not coherent.
+ *
+ * Returns the new wire and the new graph
+ *)
+val normalise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
+  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
+(* same as normalise_wire, but does not do any checks *)
+(* intended for inheriting structures to use *)
+val normalise_wire' : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
+  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
+(* Same as normalise_wire, but does not give you the wire back *)
+val do_normalise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
+
 (* Return the endpoints, intermediate wire-vertices, and edges of the wire containing the given
    edge. The first endpoint is the one closest to the source of the edge. *)
 val get_wire_containing_edge : T -> E.name -> (V.name * V.name * V.NSet.T * E.NSet.T)
@@ -808,43 +848,63 @@ functor OGraphFun(G : BASIC_OGRAPH)
   fun get_wire_list g = get_wires_for_edges g (get_enames g)
 
   fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
-  
-  
-  fun minimise g = let
-    val wire_list = get_wire_list g
-    (* add a minimised wire where the given wire is *)
-    fun add_min_wire (s,t,_,es) h = let
-      (* this data should be the same for all edges in the wire *)
-      val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
-    in h |> doadd_edge dir_and_data s t
-    end
-  (* new wires are added before remove old ones because we need edge data *)
-  in fold delete_wire wire_list (fold add_min_wire wire_list g)
+
+  (* FIXME: check data same across wire *)
+  fun assert_wire_coherent g wire = wire
+
+  fun is_wire_minimal _ (_,_,wvs,_) = V.NSet.is_empty wvs
+
+  fun minimise_wire' (wire as (s,t,_,es)) g = let
+    val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
+    val (e,g') = g |> add_edge dir_and_data s t
+  in
+    ((s,t,V.NSet.empty,E.NSet.single e),
+     g' |> delete_wire wire)
   end
-  
-  fun normalise g = let
-    val wire_list = get_wire_list g
-    (* add a normalised wire where the given wire is *)
-    fun add_norm_wire (s,t,_,es) h = let
-      (* this data should be the same for all edges in the wire *)
-      val (dir_and_data,_) = get_edge h ((the o E.NSet.get_min) es)
-    in
-      (* add two extra wire verts on internal wires *)
-      if is_node_vertex h s andalso is_node_vertex h t then
-        let
-          val (b1,h) = h |> add_vertex OVData.EVert
-          val (b2,h) = h |> add_vertex OVData.EVert
-        in h |> doadd_edge dir_and_data s b1
-             |> doadd_edge dir_and_data b1 b2
-             |> doadd_edge dir_and_data b2 t
-        end
+  fun minimise_wire wire g = let
+    val _ = assert_wire_coherent wire
+  in
+    if is_wire_minimal g wire
+    then (wire,g)
+    else minimise_wire' wire g
+  end
+  val do_minimise_wire = snd oo minimise_wire
+
+  fun is_wire_normalised g (s,t,wvs,_) =
+    if is_node_vertex g s andalso is_node_vertex g t then
+      V.NSet.cardinality wvs = 2
+    else
+      V.NSet.is_empty wvs
+
+  fun normalise_wire' (wire as (s,t,_,es)) g =
+    if is_wire_vertex g s orelse is_wire_vertex g t then
       (* add no extra wire-verts on boundary wires, bare wires, or circles *)
-      else h |> doadd_edge dir_and_data s t
-    end
-  (* new wires are added before remove old ones because we need edge data *)
-  in fold delete_wire wire_list (fold add_norm_wire wire_list g)
+      minimise_wire' wire g
+    else
+      (* add two extra wire verts on internal wires *)
+      let
+        val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
+        val (b1,g) = g |> add_vertex OVData.EVert
+        val (b2,g) = g |> add_vertex OVData.EVert
+        val (e1,g) = g |> add_edge dir_and_data s b1
+        val (e2,g) = g |> add_edge dir_and_data b1 b2
+        val (e3,g) = g |> add_edge dir_and_data b2 t
+      in
+        ((s,t,V.NSet.of_list [b1,b2],E.NSet.of_list [e1,e2,e3]),
+         g |> delete_wire wire)
+      end
+
+  fun normalise_wire wire g = let
+    val _ = assert_wire_coherent wire
+  in
+    if is_wire_normalised g wire
+    then (wire,g)
+    else normalise_wire' wire g
   end
-  
-  
+  val do_normalise_wire = snd oo normalise_wire
+
+  fun minimise g = g |> fold do_minimise_wire (get_wire_list g)
+
+  fun normalise g = g |> fold do_normalise_wire (get_wire_list g)
 
 end; (* OpenGraphFun *)
