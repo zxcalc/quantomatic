@@ -35,7 +35,7 @@ val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
 (* bbox_already_exists_exp *)
-val new_named_bbox : B.name -> T -> T
+val add_named_bbox : B.name -> T -> T
 val add_bbox : T -> B.name * T
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
@@ -78,7 +78,7 @@ val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
 (* bbox_already_exists_exp *)
-val new_named_bbox : B.name -> T -> T
+val add_named_bbox : B.name -> T -> T
 val add_bbox : T -> B.name * T
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
@@ -278,7 +278,7 @@ functor BasicBangGraphFun(
   val update_bboxes = G.update_data o update_bboxes_of_hdata;
   val update_bbox_rel = G.update_data o update_bbox_rel_of_hdata;
 
-  fun new_named_bbox b g =
+  fun add_named_bbox b g =
     g |> update_bboxes (B.NSet.ins_fresh b)
     handle B.NSet.duplicate_exp _ => 
       raise bbox_already_exists_exp (b,g)
@@ -456,7 +456,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                      of NONE => raise ERROR ("copy1_bbox was passed brn that " ^
                                 "does not avoid !-box being renamed")
                       | SOME bn' => bn');
-        val g'' = new_named_bbox bn' g'
+        val g'' = add_named_bbox bn' g'
         fun extend_bbs v gr =
           let
             val SOME v' = V.Rnm.lookup vrn' v

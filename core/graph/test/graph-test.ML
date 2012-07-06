@@ -641,40 +641,40 @@ local
 
   val b0 = B.mk "B0"
   val b1 = B.mk "B1"
-  val gnv = test_force "G.new_named_bbox (1)"
+  val gnv = test_force "G.add_named_bbox (1)"
         (fn g =>
         let
           val bexp = b0
-          val g' = G.new_named_bbox bexp g
+          val g' = G.add_named_bbox bexp g
         in
           case B.NSet.tryget_singleton (G.get_bboxes g') of
-               NONE => raise ERROR "new_named_bbox did not add a !-box"
+               NONE => raise ERROR "add_named_bbox did not add a !-box"
              | SOME b =>
                     if not (B.name_eq (b,bexp)) then
-                      raise ERROR "new_named_bbox added the wrong name"
+                      raise ERROR "add_named_bbox added the wrong name"
                     else g'
         end) ge
 
-  val gnv = test_force "G.new_named_bbox (2)"
+  val gnv = test_force "G.add_named_bbox (2)"
         (fn g =>
         let
           val bexp = b1
           val bs_old = G.get_bboxes g
-          val g' = G.new_named_bbox bexp g
+          val g' = G.add_named_bbox bexp g
           val bs_new = G.get_bboxes g'
           val bs_added = B.NSet.subtract bs_new bs_old
         in
           case B.NSet.tryget_singleton bs_added of
-               NONE => raise ERROR "new_named_bbox did not add a !-box"
+               NONE => raise ERROR "add_named_bbox did not add a !-box"
              | SOME b =>
                     if not (B.name_eq (b,bexp)) then
-                      raise ERROR "new_named_bbox added the wrong name"
+                      raise ERROR "add_named_bbox added the wrong name"
                     else g'
         end) gnv
 
-  val _ = test_force "G.new_named_bbox (existing !-box)"
-        (fn g => (G.new_named_bbox b0 g;
-                  raise error "new_named_bbox (name clash) did not throw exception")
+  val _ = test_force "G.add_named_bbox (existing !-box)"
+        (fn g => (G.add_named_bbox b0 g;
+                  raise error "add_named_bbox (name clash) did not throw exception")
                  handle G.bbox_already_exists_exp _ => I) gnv
 
   val (b2,gnv) = test_force "G.add_bbox"
@@ -686,10 +686,10 @@ local
           val bs_added = B.NSet.subtract bs_new bs_old
         in
           case B.NSet.tryget_singleton bs_added of
-               NONE => raise ERROR "new_named_bbox did not add a !-box"
+               NONE => raise ERROR "add_named_bbox did not add a !-box"
              | SOME b' =>
                     if not (B.name_eq (b,b')) then
-                      raise ERROR "new_named_bbox returned the wrong name"
+                      raise ERROR "add_named_bbox returned the wrong name"
                     else (b,g')
         end) gnv
 
@@ -1119,32 +1119,32 @@ local
                   else ()
         in g' end) g_disjoint
 
-  val _ = test_force "G.new_named_bbox (name clash)"
-        (fn g => (G.new_named_bbox b0 g;
-                  raise error "new_named_bbox (name clash) did not throw exception")
+  val _ = test_force "G.add_named_bbox (name clash)"
+        (fn g => (G.add_named_bbox b0 g;
+                  raise error "add_named_bbox (name clash) did not throw exception")
                  handle G.bbox_already_exists_exp _ => I) gv
 
-  val _ = test_force "G.new_named_bbox (new name)"
+  val _ = test_force "G.add_named_bbox (new name)"
         (fn g =>
         let
           val bnew = (B.mk "B9")
           val bs_old = G.get_bboxes g
-          val g' = G.new_named_bbox bnew g
+          val g' = G.add_named_bbox bnew g
           val bs_new = G.get_bboxes g'
           val bs_added = B.NSet.subtract bs_new bs_old
           val badd = case B.NSet.tryget_singleton bs_added of
-                       NONE => raise ERROR "new_named_bbox did not add new !-box"
+                       NONE => raise ERROR "add_named_bbox did not add new !-box"
                      | SOME b' => b'
           val bs_removed = B.NSet.subtract bs_old bs_new
           val _ = if B.NSet.is_empty bs_removed then ()
-                  else raise ERROR "new_named_bbox removed a !-box"
+                  else raise ERROR "add_named_bbox removed a !-box"
           val _ = if not (B.name_eq (bnew,badd)) then
-                    raise ERROR "new_named_bbox did not use the correct name"
+                    raise ERROR "add_named_bbox did not use the correct name"
                   else ()
           val _ = if V.NSet.is_empty (G.get_bbox_contents g' bnew) then ()
-                  else raise ERROR "new_named_bbox put stuff in the new !-box"
+                  else raise ERROR "add_named_bbox put stuff in the new !-box"
           val _ = if V.NSet.eq (G.get_vnames g) (G.get_vnames g') then ()
-                  else raise ERROR "new_named_bbox changed vertices"
+                  else raise ERROR "add_named_bbox changed vertices"
         in g' end) gv
 
   val _ = test_force "G.add_bbox"
@@ -1419,7 +1419,7 @@ local
   (* circle in a !-box *)
   val (v1,g) = g |> G.add_vertex bvert
   val (_ ,g) = g |> G.add_edge dir_edge v1 v1
-  val g      = g |> G.new_named_bbox b0
+  val g      = g |> G.add_named_bbox b0
   val g      = g |> G.add_to_bbox b0 (V.NSet.single v1)
   val circles_pat = g
 
@@ -1474,8 +1474,8 @@ local
   val (v3,g) = g |> G.add_vertex bvert
   val (_ ,g) = g |> G.add_edge dir_edge v1 v2
   val (_ ,g) = g |> G.add_edge dir_edge v2 v3
-  val g      = g |> G.new_named_bbox b0
-                 |> G.new_named_bbox b1
+  val g      = g |> G.add_named_bbox b0
+                 |> G.add_named_bbox b1
                  |> G.add_to_bbox b0 (V.NSet.single v1)
                  |> G.add_to_bbox b1 (V.NSet.single v3)
   val spider_rhs_pat = g
