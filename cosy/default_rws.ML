@@ -9,8 +9,8 @@ struct
 
   fun bx g = let
     val (vn,g) = g |> Graph.add_vertex Graph.OVData.EVert
-    val (bn,g) = g |> Graph.new_box B.default_name
-  in (vn, Graph.move_to_box bn (V.NSet.single vn) g)
+    val (bn,g) = g |> Graph.add_bbox
+  in (vn, Graph.add_to_bbox bn (V.NSet.single vn) g)
   end
 
   fun frob data = let

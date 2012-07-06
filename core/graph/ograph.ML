@@ -195,6 +195,7 @@ val normalised_wire_as_lists : T -> V.name -> E.name -> (V.name list * E.name li
 
 val is_input_vertex : T -> V.name -> bool
 val is_output_vertex : T -> V.name -> bool
+val is_boundary_vertex : T -> V.name -> bool
 
 val is_wire_vertex    : T -> V.name -> bool
 val is_node_vertex    : T -> V.name -> bool
@@ -223,8 +224,6 @@ val normalise : T -> T
  * wires always have at least one edge)
  *)
 val minimise : T -> T
-
-
 
 end;
 

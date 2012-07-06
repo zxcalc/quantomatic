@@ -35,7 +35,9 @@ struct
   fun add_gen gen gr = Graph.merge_by_vertices gr (snd (Graph.rename_apart gr gen))
   fun do_plug (p,q) gr = (snd o snd) (Graph.plug_by_boundary p q gr)
   fun get_plugs gr = let
-    val filt = V.NSet.filter (V.NSet.is_empty o (Graph.get_adj_boundary gr))
+    fun not_adj_to_boundary v = Graph.fold_adj (fn (_,v',_) => fn a =>
+      a andalso (not (Graph.is_boundary_vertex gr v'))) gr v true
+    val filt = V.NSet.filter not_adj_to_boundary
     val (ins,outs) = Graph.get_in_and_out_vnames gr
     val (ins',outs') = (filt ins, filt outs)
   in if V.NSet.is_empty ins' orelse V.NSet.is_empty outs'
@@ -55,7 +57,7 @@ struct
     val names = 
       (fold Graph.add_to_vnames  gs V.NSet.empty,
        fold Graph.add_to_enames  gs E.NSet.empty,
-       fold Graph.add_to_bbnames gs B.NSet.empty)
+       fold Graph.add_to_bboxes gs B.NSet.empty)
     val matches = Theory.RuleMatchSearch.match names r g
   in case Seq.pull matches of NONE=>false | _=>true
   end
