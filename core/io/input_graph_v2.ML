@@ -54,9 +54,9 @@ functor InputGraphXML_v2(
       in (name,bangverts) end;
   
   fun add_v (vname,vdata) g = 
-      G.new_named_vertex vname vdata g
+      G.add_named_vertex vname vdata g
   fun add_e (ename,dir,edata,src,tgt) g = 
-      G.new_named_edge ename 
+      G.add_named_edge ename 
             (if dir then G.Directed else G.UnDirected,edata) 
             src tgt g;
   fun add_bb (bname,bvlist) g = 

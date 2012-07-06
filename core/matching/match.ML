@@ -429,7 +429,7 @@ functor Match(G : BANG_GRAPH)
       V.NTab.fold 
         (fn (codv,domvset) => 
           V.NSet.fold (fn v2 => G.merge_2vertices v2 codv) domvset
-          o snd o G.add_named_vertex codv OVData.EVert)
+          o snd o G.add_vertex_named_like codv OVData.EVert)
         (VMap.get_codtab (get_evmap m))
         g;
 

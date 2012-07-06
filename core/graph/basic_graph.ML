@@ -55,10 +55,10 @@ val get_xnames : T -> X.NSet.T
 
 (* adding a vertex gives back unique name for it and the new graph *)
 (* V.name = suggested name *)
-val add_named_vertex : V.name -> VData.data -> T -> V.name * T 
+val add_vertex_named_like : V.name -> VData.data -> T -> V.name * T 
 
 (* V.names must already exist, else raises: no_such_vname_exp *)
-val add_named_edge : E.name -> (dir_or_undir * EData.data)
+val add_edge_named_like : E.name -> (dir_or_undir * EData.data)
     -> V.name -> V.name -> T -> E.name * T 
 
 (* delete raises an exception if there is no such edge/vertex *)
@@ -263,7 +263,7 @@ fun update_edge_dir_or_undir f =
     update_edge (fn ((bd,d),fromto) => ((f bd,d),fromto));
 
 (* adding a vertex gives back unique name for it and the new graph *)
-fun add_named_vertex n nd g =
+fun add_vertex_named_like n nd g =
     let val (n2,vertices2) = 
             V.NTab.add (n,(nd,(E.NSet.empty,E.NSet.empty))) 
                             (get_vertices g)
@@ -275,13 +275,13 @@ fun add_named_vertex n nd g =
 val has_vname = V.NTab.contains_name o get_vertices;
 val has_ename = E.NTab.contains_name o get_edges;
 
-fun add_named_edge en (e as (bd,d)) n1 n2 g = 
+fun add_edge_named_like en (e as (bd,d)) n1 n2 g = 
     let 
       (* make sure the vertices exist *) 
       val _ = if has_vname g n1 then
                 if has_vname g n2 then () 
-                else raise no_such_vname_exp ("add_named_edge", n2, g)
-              else raise no_such_vname_exp ("add_named_edge", n1, g);
+                else raise no_such_vname_exp ("add_edge_named_like", n2, g)
+              else raise no_such_vname_exp ("add_edge_named_like", n1, g);
       (* add the new egde *)
       val (en2,edges2) = E.NTab.add (en,(e,(n1,n2))) (get_edges g)
 

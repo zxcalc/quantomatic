@@ -362,8 +362,8 @@ functor BasicOGraphFun(
 
 
   (* modified/new basic graph functions *)
-  fun add_named_vertex n v g =
-      let val (n2,g2) = G.add_named_vertex n v g
+  fun add_vertex_named_like n v g =
+      let val (n2,g2) = G.add_vertex_named_like n v g
       in (n2, g2 |> (case v of (OVData.EVert) => add_to_edgepoints n2 
                              | (OVData.IVert _) => I))
       end;
@@ -399,8 +399,8 @@ functor BasicOGraphFun(
       end;
 
   (* *)
-  fun add_named_edge en e n1 n2 g = 
-      let val (en2,g2) = G.add_named_edge en e n1 n2 g in 
+  fun add_edge_named_like en e n1 n2 g = 
+      let val (en2,g2) = G.add_edge_named_like en e n1 n2 g in 
         (en2, 
          g2 |> update_point_kind_from_add_edge n1 
             |> update_point_kind_from_add_edge n2)
@@ -547,7 +547,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
                                |> delete_vertex v2
                                (* Could be endv, does not change anything in
                                 * this case  *)
-                               |> add_named_vertex startv OVData.EVert
+                               |> add_vertex_named_like startv OVData.EVert
              in
              ((nn, nn), g' |> add_edge (dir, data) nn nn)
              end

@@ -20,6 +20,7 @@ sig
 include BASIC_OGRAPH;
 
 exception bbox_already_exists_exp of B.name * T;
+exception no_such_bbox_exp of unit
 
 val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
@@ -34,9 +35,7 @@ val get_bboxed : T -> V.NSet.T
 val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
-(* bbox_already_exists_exp *)
-val add_named_bbox : B.name -> T -> T
-val add_bbox : T -> B.name * T
+val add_bbox_named_like : B.name -> T -> (B.name * T)
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
@@ -44,6 +43,12 @@ val delete_bbox : B.name -> T -> T
 (* throws bbox_already_exists_exp on name clash *)
 (* identity if original name does not exist *)
 val rename_bbox : B.name -> B.name -> T -> T
+
+(* no_such_bbox_exp if !-box does not exist *)
+val add_to_bbox : B.name -> V.NSet.T -> T -> T
+(* no_such_bbox_exp if !-box does not exist *)
+(* does not raise if verts are not in !-box *)
+val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
 (* must make sure the bbox_rel dom is a subset of bboxes *)
 val update_bboxes : (B.NSet.T -> B.NSet.T) -> T -> T
@@ -63,6 +68,7 @@ include OGRAPH;
    of include *** *)
 
 exception bbox_already_exists_exp of B.name * T;
+exception no_such_bbox_exp of unit
 
 val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
@@ -77,9 +83,6 @@ val get_bboxed : T -> V.NSet.T
 val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
-(* bbox_already_exists_exp *)
-val add_named_bbox : B.name -> T -> T
-val add_bbox : T -> B.name * T
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
@@ -88,13 +91,18 @@ val delete_bbox : B.name -> T -> T
 (* identity if original name does not exist *)
 val rename_bbox : B.name -> B.name -> T -> T
 
+(* no_such_bbox_exp if !-box does not exist *)
+val add_to_bbox : B.name -> V.NSet.T -> T -> T
+(* no_such_bbox_exp if !-box does not exist *)
+(* does not raise if verts are not in !-box *)
+val remove_from_bbox : B.name -> V.NSet.T -> T -> T
+
 (* we don't copy updaters/setters for internal structures,
  * since using these can lead to an inconsistent state *)
 
 (* *** END OF COPIED *** *)
 
 exception merge_bbox_exp of string
-exception no_such_bbox_exp of unit
 (* thrown when using old API on a graph with overlapping !-boxes *)
 (* FIXME: remove *) exception multiple_bboxes_exp of unit
 
@@ -112,15 +120,13 @@ val get_bboxes_of : T -> V.name -> B.NSet.T
 (* no_such_vname_exp if vertex does not exist *)
 val is_bboxed : T -> V.name -> bool
 
+(* bbox_already_exists_exp *)
+val add_named_bbox : B.name -> T -> T
+val add_bbox : T -> B.name * T
 val doadd_bbox : T -> T
 
 val try_rename1_bbox : B.name -> B.name -> T -> T option
 
-(* no_such_bbox_exp if !-box does not exist *)
-val add_to_bbox : B.name -> V.NSet.T -> T -> T
-(* no_such_bbox_exp if !-box does not exist *)
-(* does not raise if verts are not in !-box *)
-val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 (* FIXME: remove *) val move_to_bbox : B.name -> V.NSet.T -> T -> T
 (* FIXME: remove *) val move_to_unbbox : V.NSet.T -> T -> T
 
@@ -255,6 +261,7 @@ functor BasicBangGraphFun(
   val update_data = G.update_data o update_data_of_hdata;
 
   exception bbox_already_exists_exp of B.name * T;
+  exception no_such_bbox_exp of unit;
 
   (* for bbox part of added data *)
   val get_bboxes : T -> B.NSet.T = get_bboxes_of_hdata o G.get_data;
@@ -278,13 +285,8 @@ functor BasicBangGraphFun(
   val update_bboxes = G.update_data o update_bboxes_of_hdata;
   val update_bbox_rel = G.update_data o update_bbox_rel_of_hdata;
 
-  fun add_named_bbox b g =
-    g |> update_bboxes (B.NSet.ins_fresh b)
-    handle B.NSet.duplicate_exp _ => 
-      raise bbox_already_exists_exp (b,g)
-
-  fun add_bbox g = let
-    val (bn',bs') = B.NSet.add_new B.default_name (get_bboxes g)
+  fun add_bbox_named_like b g = let
+    val (bn',bs') = B.NSet.add_new b (get_bboxes g)
   in
     (bn', g |> update_bboxes (fn _ => bs'))
   end
@@ -314,6 +316,20 @@ functor BasicBangGraphFun(
         (* the NONE case should never happen: all vertices already occur in
            graph, so G.rename_vname should have raised an exeption. *)
         |> update_bbox_rel (the o BVBRel.try_rename1_cod n1 n2);
+
+  fun add_to_bbox b vs g =
+    if not (B.NSet.contains (get_bboxes g) b) then
+      raise no_such_bbox_exp ()
+    else if not (V.NSet.sub_set vs ((V.NTab.get_nameset o get_vertices) g)) then
+      raise no_such_vnames_exp ("add_to_bbox",vs,g)
+    else
+      g |> update_bbox_rel (BVBRel.add_to_dom b vs);
+
+  fun remove_from_bbox b vs g =
+    if not (B.NSet.contains (get_bboxes g) b) then
+      raise no_such_bbox_exp ()
+    else
+      g |> update_bbox_rel (BVBRel.del_from_dom b vs);
 
   (* prettifying *)
   fun pretty g =
@@ -353,7 +369,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   structure OGraph = OGraphFun(G);
   open OGraph;
 
-  exception no_such_bbox_exp of unit;
   exception merge_bbox_exp of string
   (* FIXME: remove *) exception multiple_bboxes_exp of unit
 
@@ -395,24 +410,17 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
     else
       raise no_such_vname_exp ("is_bboxed", v, g)
 
+  fun add_named_bbox b g = let
+    val (b',g') = add_bbox_named_like b g
+  in
+    if B.name_eq (b,b') then g'
+    else raise bbox_already_exists_exp (b,g)
+  end
+  val add_bbox = add_bbox_named_like B.default_name
   val doadd_bbox = snd o add_bbox
 
   fun try_rename1_bbox n1 n2 g =
       (SOME (rename_bbox n1 n2 g)) handle bbox_already_exists_exp _ => NONE;
-
-  fun add_to_bbox b vs g =
-    if not (has_bbox g b) then
-      raise no_such_bbox_exp ()
-    else if not (V.NSet.sub_set vs (get_vnames g)) then
-      raise no_such_vnames_exp ("add_to_bbox",vs,g)
-    else
-      g |> update_bbox_rel (BVBRel.add_to_dom b vs);
-
-  fun remove_from_bbox b vs g =
-    if not (has_bbox g b) then
-      raise no_such_bbox_exp ()
-    else
-      g |> update_bbox_rel (BVBRel.del_from_dom b vs);
 
   fun move_to_bbox bn vs g =
     g |> update_bbox_rel (BVBRel.add_to_dom bn vs

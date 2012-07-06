@@ -33,10 +33,10 @@ local
   val _ = RGGraph.print lhs;
   (* rhs *)
   val g = RGGraph.empty;
-  val g = g |> RGGraph.new_named_vertex b1 bvert;
-  val g = g |> RGGraph.new_named_vertex b2 bvert;
-  val g = g |> RGGraph.new_named_vertex b3 bvert;
-  val g = g |> RGGraph.new_named_vertex b4 bvert;
+  val g = g |> RGGraph.add_named_vertex b1 bvert;
+  val g = g |> RGGraph.add_named_vertex b2 bvert;
+  val g = g |> RGGraph.add_named_vertex b3 bvert;
+  val g = g |> RGGraph.add_named_vertex b4 bvert;
   val (n1, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (n2, g) = g |> RGGraph.add_vertex (mkX zero_angle);
   val (e0, g) = g |> RGGraph.add_edge edge b1 n1;

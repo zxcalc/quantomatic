@@ -7,9 +7,9 @@ local
   val g = G.empty
   val b1 = V.mk "b1"
   val b2 = V.mk "b2"
-  val g = g |> G.new_named_vertex b1 bvert
-            |> G.new_named_vertex b2 bvert
-            |> G.new_named_edge (E.mk "e1") dir_edge b1 b2
+  val g = g |> G.add_named_vertex b1 bvert
+            |> G.add_named_vertex b2 bvert
+            |> G.add_named_edge (E.mk "e1") dir_edge b1 b2
   val bare_wire = g
   
   val g = G.empty
@@ -17,18 +17,18 @@ local
   val b4 = V.mk "b4"
   val b5 = V.mk "b5"
   val b6 = V.mk "b6"
-  val g = g |> G.new_named_vertex b3 bvert
-            |> G.new_named_vertex b4 bvert
-            |> G.new_named_edge (E.mk "e2") dir_edge b3 b4
-            |> G.new_named_vertex b5 bvert
-            |> G.new_named_vertex b6 bvert
-            |> G.new_named_edge (E.mk "e3") dir_edge b5 b6
+  val g = g |> G.add_named_vertex b3 bvert
+            |> G.add_named_vertex b4 bvert
+            |> G.add_named_edge (E.mk "e2") dir_edge b3 b4
+            |> G.add_named_vertex b5 bvert
+            |> G.add_named_vertex b6 bvert
+            |> G.add_named_edge (E.mk "e3") dir_edge b5 b6
   val two_bare_wires = g
   
   val g = G.empty
   val b7 = V.mk "b7"
-  val g = g |> G.new_named_vertex b7 bvert
-            |> G.new_named_edge (E.mk "e3") dir_edge b7 b7
+  val g = g |> G.add_named_vertex b7 bvert
+            |> G.add_named_edge (E.mk "e3") dir_edge b7 b7
   val circle = g
   
   val mseq = M.match bare_wire G.empty
@@ -64,12 +64,12 @@ local
   structure M = Test_ConcreteMatcher
   
   val g = G.empty
-  val g = g |> G.new_named_vertex (V.mk "x1") (mkX zero_angle)
+  val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
   val one_x = g
   
   val g = G.empty
-  val g = g |> G.new_named_vertex (V.mk "x1") (mkX zero_angle)
-            |> G.new_named_vertex (V.mk "x2") (mkX zero_angle)
+  val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
+            |> G.add_named_vertex (V.mk "x2") (mkX zero_angle)
   val two_x = g
   
   val mseq = M.match one_x G.empty
@@ -97,50 +97,50 @@ local
   structure M = Test_ConcreteMatcher
   
   val g = G.empty
-  val g = g |> G.new_named_vertex (V.mk "x1") (mkX zero_angle)
+  val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
   val one_x = g
   
   val g = G.empty
   val x2 = V.mk "x2"
   val x3 = V.mk "x3"
-  val g = g |> G.new_named_vertex x2 (mkX zero_angle)
-            |> G.new_named_vertex x3 (mkX zero_angle)
-            |> G.new_named_edge (E.mk "e1") dir_edge x2 x3
+  val g = g |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex x3 (mkX zero_angle)
+            |> G.add_named_edge (E.mk "e1") dir_edge x2 x3
   val x_to_x = g
   
-  val g = g |> G.new_named_edge (E.mk "e2") dir_edge x3 x2
+  val g = g |> G.add_named_edge (E.mk "e2") dir_edge x3 x2
   val x_x_loop = g
   
   val g = G.empty
   val x4 = V.mk "x4"
   val b1 = V.mk "b1"
-  val g = g |> G.new_named_vertex x4 (mkX zero_angle)
-            |> G.new_named_vertex b1 bvert
-            |> G.new_named_edge (E.mk "e3") dir_edge x4 b1
+  val g = g |> G.add_named_vertex x4 (mkX zero_angle)
+            |> G.add_named_vertex b1 bvert
+            |> G.add_named_edge (E.mk "e3") dir_edge x4 b1
   val x_to_b = g
   
   val g = G.empty
   val b2 = V.mk "b2"
   val x5 = V.mk "x5"
-  val g = g |> G.new_named_vertex b2 bvert
-            |> G.new_named_vertex x5 (mkX zero_angle)
-            |> G.new_named_edge (E.mk "e4") dir_edge b2 x5
+  val g = g |> G.add_named_vertex b2 bvert
+            |> G.add_named_vertex x5 (mkX zero_angle)
+            |> G.add_named_edge (E.mk "e4") dir_edge b2 x5
   val b_to_x = g
   
   val b3 = V.mk "b3"
   val b4 = V.mk "b4"
-  val g = g |> G.new_named_vertex b3 bvert
-            |> G.new_named_vertex b4 bvert
-            |> G.new_named_edge (E.mk "e5") dir_edge b3 b4
+  val g = g |> G.add_named_vertex b3 bvert
+            |> G.add_named_vertex b4 bvert
+            |> G.add_named_edge (E.mk "e5") dir_edge b3 b4
   val b_to_x_plus_bw = g
   
   val g = x_to_x
   val b5 = V.mk "b5"
   val b6 = V.mk "b6"
-  val g = g |> G.new_named_vertex b5 bvert
-            |> G.new_named_vertex b6 bvert
-            |> G.new_named_edge (E.mk "e6") dir_edge b5 x2
-            |> G.new_named_edge (E.mk "e7") dir_edge x3 b6
+  val g = g |> G.add_named_vertex b5 bvert
+            |> G.add_named_vertex b6 bvert
+            |> G.add_named_edge (E.mk "e6") dir_edge b5 x2
+            |> G.add_named_edge (E.mk "e7") dir_edge x3 b6
   val b_x_x_b = g
   
   val mseq = M.match G.empty one_x
@@ -177,33 +177,33 @@ local
   val g = G.empty
   val x1 = V.mk "x1"
   val x2 = V.mk "x2"
-  val g = g |> G.new_named_vertex x1 (mkX (LinratAngleExpr.parse "a"))
-            |> G.new_named_vertex x2 (mkX (LinratAngleExpr.parse "b"))
-            |> G.new_named_edge (E.mk "e1") dir_edge x1 x2
+  val g = g |> G.add_named_vertex x1 (mkX (LinratAngleExpr.parse "a"))
+            |> G.add_named_vertex x2 (mkX (LinratAngleExpr.parse "b"))
+            |> G.add_named_edge (E.mk "e1") dir_edge x1 x2
   val diff_angles = g
   
   val g = G.empty
   val x3 = V.mk "x3"
   val x4 = V.mk "x4"
-  val g = g |> G.new_named_vertex x3 (mkX (LinratAngleExpr.parse "a"))
-            |> G.new_named_vertex x4 (mkX (LinratAngleExpr.parse "a"))
-            |> G.new_named_edge (E.mk "e2") dir_edge x3 x4
+  val g = g |> G.add_named_vertex x3 (mkX (LinratAngleExpr.parse "a"))
+            |> G.add_named_vertex x4 (mkX (LinratAngleExpr.parse "a"))
+            |> G.add_named_edge (E.mk "e2") dir_edge x3 x4
   val same_angles = g
   
   val g = G.empty
   val x5 = V.mk "x5"
   val x6 = V.mk "x6"
-  val g = g |> G.new_named_vertex x5 (mkX (LinratAngleExpr.parse "2"))
-            |> G.new_named_vertex x6 (mkX (LinratAngleExpr.parse "1"))
-            |> G.new_named_edge (E.mk "e6") dir_edge x5 x6
+  val g = g |> G.add_named_vertex x5 (mkX (LinratAngleExpr.parse "2"))
+            |> G.add_named_vertex x6 (mkX (LinratAngleExpr.parse "1"))
+            |> G.add_named_edge (E.mk "e6") dir_edge x5 x6
   val diff_const = g
   
   val g = G.empty
   val x7 = V.mk "x7"
   val x8 = V.mk "x8"
-  val g = g |> G.new_named_vertex x7 (mkX (LinratAngleExpr.parse "2"))
-            |> G.new_named_vertex x8 (mkX (LinratAngleExpr.parse "2"))
-            |> G.new_named_edge (E.mk "e7") dir_edge x7 x8
+  val g = g |> G.add_named_vertex x7 (mkX (LinratAngleExpr.parse "2"))
+            |> G.add_named_vertex x8 (mkX (LinratAngleExpr.parse "2"))
+            |> G.add_named_edge (E.mk "e7") dir_edge x7 x8
   val same_const = g
 
   val mseq = M.match diff_angles diff_angles
@@ -241,17 +241,17 @@ local
 
   val g = G.empty
   val b1 = V.mk "b1"
-  val g = g |> G.new_named_vertex b1 bvert
-            |> G.new_named_edge (E.mk "e1") dir_edge b1 b1
+  val g = g |> G.add_named_vertex b1 bvert
+            |> G.add_named_edge (E.mk "e1") dir_edge b1 b1
   val circle = g
   
   val g = G.empty
   val b2 = V.mk "b2"
   val b3 = V.mk "b3"
-  val g = g |> G.new_named_vertex b2 bvert
-            |> G.new_named_edge (E.mk "e2") dir_edge b2 b2
-            |> G.new_named_vertex b3 bvert
-            |> G.new_named_edge (E.mk "e3") dir_edge b3 b3
+  val g = g |> G.add_named_vertex b2 bvert
+            |> G.add_named_edge (E.mk "e2") dir_edge b2 b2
+            |> G.add_named_vertex b3 bvert
+            |> G.add_named_edge (E.mk "e3") dir_edge b3 b3
   val two_circles = g
   
   val mseq = M.match circle G.empty

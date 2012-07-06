@@ -45,12 +45,12 @@ val exact_eq : T -> T -> bool
 val add_vertex : VData.data -> T -> V.name * T 
 val doadd_vertex : VData.data -> T -> T
 (* raises vname_already_exists_exp on clash *)
-val new_named_vertex : V.name -> VData.data -> T -> T  
+val add_named_vertex : V.name -> VData.data -> T -> T  
 
 (* V.names must already exist, else raises: no_such_vname_exp *)
 val add_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> E.name * T
 val doadd_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> T
-val new_named_edge 
+val add_named_edge 
     : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
 val swap_edge_dir : E.name -> T -> T
 
@@ -236,10 +236,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   
   (* implicit args: nd g *)
-  val add_vertex = add_named_vertex V.default_name;
+  val add_vertex = add_vertex_named_like V.default_name;
   val doadd_vertex = snd oo add_vertex;
-  fun new_named_vertex n nd g =
-      let val (n2,g2) = add_named_vertex n nd g in
+  fun add_named_vertex n nd g =
+      let val (n2,g2) = add_vertex_named_like n nd g in
         if V.name_eq (n2, n) then g2 else 
         raise vname_already_exists_exp (n, g)
       end;
@@ -249,10 +249,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   val has_ename = E.NTab.contains_name o get_edges;
   
   (* implicit args: e n1 n2 g *)
-  val add_edge = add_named_edge E.default_name;
+  val add_edge = add_edge_named_like E.default_name;
   val doadd_edge = snd oooo add_edge;
-  fun new_named_edge en e n1 n2 g =
-      let val (en2,g2) = add_named_edge en e n1 n2 g in
+  fun add_named_edge en e n1 n2 g =
+      let val (en2,g2) = add_edge_named_like en e n1 n2 g in
         if E.name_eq (en2, en) then g2 else 
         raise ename_already_exists_exp (en,g)
       end;
@@ -296,13 +296,13 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   fun merge_by_vertices g1 g2 = 
       g2 |> (V.NTab.fold 
                (fn (vn,(d,_)) => fn g3 => 
-                   if has_vname g3 vn then g3 else new_named_vertex vn d g3)
+                   if has_vname g3 vn then g3 else add_named_vertex vn d g3)
                (get_vertices g1))
          |> (E.NTab.fold 
                (fn (en,(d,(vn1,vn2))) => fn g3 => 
                    if has_ename g3 en then 
                      raise ename_already_exists_exp (en, g3)
-                   else new_named_edge en d vn1 vn2 g3)
+                   else add_named_edge en d vn1 vn2 g3)
                (get_edges g1));
 
   (* delete subg from fromg; assumes edge and vertex names of subg are a
@@ -661,10 +661,10 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* several common uses for dag_traverse *)
   local
       fun ignore_edge _ _ _ _ = I
-      fun keep_edge e edata s t g = #2(g|>add_named_edge e edata s t)
+      fun keep_edge e edata s t g = #2(g|>add_edge_named_like e edata s t)
       (* flip_edge also removes self-loops *)
       fun flip_edge e edata s t g = if V.name_ord (s,t) = EQUAL then g
-            else #2(g|>add_named_edge e edata t s)
+            else #2(g|>add_edge_named_like e edata t s)
   in
       (* remove self-loops and reverse back-edges *)
       val convert_to_dag = dag_traverse flip_edge keep_edge keep_edge
@@ -701,8 +701,8 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                raise no_such_ename_exp ("renaming doesn't have edge in avoid set",e,g)
              | SOME e' => 
                (e', case inctyp of
-                         Incoming => new_named_edge e' dir_and_data v2 v g
-                       | _ => new_named_edge e' dir_and_data v v2 g
+                         Incoming => add_named_edge e' dir_and_data v2 v g
+                       | _ => add_named_edge e' dir_and_data v v2 g
                     ));
       in ((vrn,ern'),g') end;
 
@@ -719,7 +719,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
               val (v',g') = (case new_v_opt of NONE => 
                          raise no_such_vname_exp ("renaming doesn't have vertex in avoid set",v,g)
                        | SOME v' => 
-                         (v',new_named_vertex v' (get_vertex_data g v) g))
+                         (v',add_named_vertex v' (get_vertex_data g v) g))
             in
               fold_adj (* for each connected edge *)
                 (fn (inctyp,v2,(e, dir_and_data)) =>
@@ -783,7 +783,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
               (fn en => fn g => 
                   let val (e,(fromv,_)) = get_edge g en
                   in g |> delete_edge en
-                       |> add_named_edge en e fromv v2
+                       |> add_edge_named_like en e fromv v2
                        |> snd
                   end)
               ines
@@ -791,7 +791,7 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
               (fn en => fn g => 
                   let val (e,(_,tov)) = get_edge g en
                   in g |> delete_edge en
-                       |> add_named_edge en e v2 tov
+                       |> add_edge_named_like en e v2 tov
                        |> snd
                   end)
               outes
