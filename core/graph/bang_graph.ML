@@ -38,6 +38,7 @@ val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
 val add_bbox_named_like : B.name -> T -> (B.name * T)
+(* delete a bbox and orphan its children *)
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
@@ -52,13 +53,20 @@ val add_to_bbox : B.name -> V.NSet.T -> T -> T
 (* does not raise if verts are not in !-box *)
 val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
+(* set parent of the given bbox *)
+val set_bbox_parent : B.name -> B.name -> T -> T
+
+(* make the given bbox an orphan *)
+val clear_bbox_parent : B.name -> T -> T
+
+(* returns true if bbox has parent *)
+val bbox_has_parent : T -> B.name -> bool
+
+
 (* must make sure the bbox_rel dom is a subset of bboxes *)
 val update_bboxes : (B.NSet.T -> B.NSet.T) -> T -> T
 val update_bbox_rel : (BVBRel.T -> BVBRel.T) -> T -> T
 val update_bbox_parent_rel : (BMap.T -> BMap.T) -> T -> T
-
-val set_bbox_parent : B.name -> B.name -> T -> T
-val clear_bbox_parent : B.name -> T -> T
 
 end;
 
@@ -79,6 +87,8 @@ exception no_such_bbox_exp of unit
 val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
 val get_bbox_rel : T -> BVBRel.T
+(* Return the "parent" relation for nested bang-boxes *)
+val get_bbox_parent_rel : T -> BMap.T
 (* Does not contain empty !-boxes *)
 val get_bbox_table : T -> V.NSet.T B.NTab.T
 (* Does not contain unboxed vertices *)
@@ -89,6 +99,7 @@ val get_bboxed : T -> V.NSet.T
 val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
+val add_bbox_named_like : B.name -> T -> (B.name * T)
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
@@ -102,6 +113,15 @@ val add_to_bbox : B.name -> V.NSet.T -> T -> T
 (* no_such_bbox_exp if !-box does not exist *)
 (* does not raise if verts are not in !-box *)
 val remove_from_bbox : B.name -> V.NSet.T -> T -> T
+
+(* set parent of the given bbox *)
+val set_bbox_parent : B.name -> B.name -> T -> T
+
+(* make the given bbox an orphan *)
+val clear_bbox_parent : B.name -> T -> T
+
+(* returns true if bbox has parent *)
+val bbox_has_parent : T -> B.name -> bool
 
 (* we don't copy updaters/setters for internal structures,
  * since using these can lead to an inconsistent state *)
@@ -312,6 +332,10 @@ functor BasicBangGraphFun(
   fun clear_bbox_parent b =
     update_bbox_parent_rel (BMap.surj_del_dom b)
 
+  fun bbox_has_parent g b =
+    case BMap.lookup_domf (get_bbox_parent_rel g) b
+      of SOME _ => true | NONE => false
+
   fun add_bbox_named_like b g = let
     val (bn',bs') = B.NSet.add_new b (get_bboxes g)
   in
@@ -319,7 +343,11 @@ functor BasicBangGraphFun(
   end
 
   fun delete_bbox bn g =
-        g |> update_bboxes (B.NSet.delete bn)
+        g |> (case BMap.lookup_codf (get_bbox_parent_rel g) bn
+              of SOME ch => B.NSet.fold clear_bbox_parent ch
+               | NONE => I)
+          |> clear_bbox_parent bn
+          |> update_bboxes (B.NSet.delete bn)
           |> update_bbox_rel (BVBRel.del_dom bn)
 
   (* raises bbbox_already_exists_exp if bbox name already exists *)
@@ -383,7 +411,10 @@ functor BasicBangGraphFun(
                           B.NSet.pretty (get_empty_bboxes g)],
                        Pretty.block
                          [Pretty.str "Bang-Box relation: ",
-                          BVBRel.pretty (get_bbox_rel g)]])
+                          BVBRel.pretty (get_bbox_rel g)],
+                       Pretty.block
+                         [Pretty.str "Bang-Box parent relation: ",
+                          BMap.pretty (get_bbox_parent_rel g)]])
                 @ [G.pretty g])],
           Pretty.str "}"
         ];
@@ -471,16 +502,24 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val add_to_bboxes = B.NSet.union_merge o get_bboxes;
 
   fun kill_bbox bn g =
-      let val bbox_vs = get_bbox_contents g bn in
-        g |> V.NSet.fold delete_vertex bbox_vs
-          |> delete_bbox bn
+    if not (has_bbox g bn) then raise no_such_bbox_exp ()
+    else
+      let
+        val g' =
+          g |> (case BMap.lookup_codf (get_bbox_parent_rel g) bn
+                  of SOME ch => B.NSet.fold kill_bbox ch
+                   | NONE => I)
+        val bbox_vs = get_bbox_contents g' bn
+      in
+        g' |> V.NSet.fold delete_vertex bbox_vs
+           |> delete_bbox bn
       end;
 
-  fun drop_bbox b g =
-    if not (has_bbox g b) then
+  fun drop_bbox bn g =
+    if not (has_bbox g bn) then
       raise no_such_bbox_exp ()
     else
-      delete_bbox b g;
+      g |> delete_bbox bn;
 
   (* returns merged bbox-name and new merged graph *)
   fun merge_bboxes bnset g =
