@@ -687,27 +687,27 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
   (* Asserts that all the vertices in vs have exactly the
    * !-boxes vs *)
-  fun check_bboxes g bs vs =
+  fun check_bboxes g bs (w as (_,_,vs,_)) =
     V.NSet.fold (fn v => fn bs =>
       if B.NSet.eq bs (get_bboxes_of g v) then bs
-      else raise ERROR "Inconsistent !-boxes") vs bs
+      else raise wire_exp ("Inconsistent !-boxes",g,w)) vs bs
   fun check_wire_bboxes g (w as (s,t,wvs,_)) =
     if is_wire_vertex g s then
       (if is_wire_vertex g t then
-         (check_bboxes g (get_bboxes_of g s) wvs; w)
+         (check_bboxes g (get_bboxes_of g s) w; w)
        else
          let
            val bs = get_bboxes_of g s
-           val _ = check_bboxes g bs wvs
+           val _ = check_bboxes g bs w
            val _ = if B.NSet.sub_set (get_bboxes_of g t) bs
-                   then () else raise ERROR "Inconsistent !-boxes"
+                   then () else raise wire_exp ("Inconsistent !-boxes",g,w)
          in w end)
     else if is_wire_vertex g t then
       let
         val bs = get_bboxes_of g t
-        val _ = check_bboxes g bs wvs
+        val _ = check_bboxes g bs w
         val _ = if B.NSet.sub_set (get_bboxes_of g s) bs
-                then () else raise ERROR "Inconsistent !-boxes"
+                then () else raise wire_exp ("Inconsistent !-boxes",g,w)
       in w end
     else
       case V.NSet.get_local_bot wvs of
@@ -715,11 +715,11 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
          | SOME wv =>
               let
                 val bs = get_bboxes_of g wv
-                val _ = check_bboxes g bs wvs
+                val _ = check_bboxes g bs w
                 val _ = if B.NSet.sub_set (get_bboxes_of g s) bs
-                        then () else raise ERROR "Inconsistent !-boxes"
+                        then () else raise wire_exp ("Inconsistent !-boxes",g,w)
                 val _ = if B.NSet.sub_set (get_bboxes_of g t) bs
-                        then () else raise ERROR "Inconsistent !-boxes"
+                        then () else raise wire_exp ("Inconsistent !-boxes",g,w)
               in w end
 
   fun assert_wire_coherent g = (OGraph.assert_wire_coherent g)

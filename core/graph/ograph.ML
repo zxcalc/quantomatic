@@ -155,6 +155,8 @@ val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
 (*** functions useful when dealing ignorantly with undirected edges ***)
 
+exception wire_exp of (string * T * (V.name * V.name * V.NSet.T * E.NSet.T));
+
 (* Given a wire vertex and an edge, give the other connected edge, if it
    exists. In the case of a wire-vertex with a single, given self-loop,
    return NONE. *)
@@ -172,7 +174,7 @@ val pretty_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> Pretty.T
 
 val delete_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
 
-(* raises an exception if the wire is not coherent *)
+(* raises wire_exp if the wire is not coherent *)
 val assert_wire_coherent : T -> (V.name * V.name * V.NSet.T * E.NSet.T)
                         -> (V.name * V.name * V.NSet.T * E.NSet.T)
 
@@ -761,7 +763,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
   fun get_wire_vertices g = V.NSet.filter (is_wire_vertex g) (get_vnames g)
   fun get_node_vertices g = V.NSet.filter (is_node_vertex g) (get_vnames g)
 
-
   fun wv_get_other_edge g wv e = let
     val (_,(in_e,out_e)) = get_vertex g wv
   in if E.NSet.contains in_e e
@@ -823,8 +824,24 @@ functor OGraphFun(G : BASIC_OGRAPH)
 
   fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
 
-  (* FIXME: check data same across wire *)
-  fun assert_wire_coherent g wire = wire
+  exception wire_exp of (string * T * (V.name * V.name * V.NSet.T * E.NSet.T));
+
+  fun assert_wire_coherent g (w as (_,_,_,es)) = let
+    val sample_edge = the (E.NSet.get_local_bot es)
+    val ((dir_or_undir,data),_) = get_edge g sample_edge
+  in
+    (* FIXME: check all in same direction if directed *)
+    E.NSet.fold (fn e => fn w =>
+      let
+        val ((dou',data'),_) = get_edge g e
+      in
+        if (dir_or_undir <> dou')
+        then raise wire_exp ("Directedness of edges differs",g,w)
+        else if not (EData.data_eq (data,data'))
+        then raise wire_exp ("Data of edges differs",g,w)
+        else w 
+      end) es w
+  end
 
   fun is_wire_minimal _ (_,_,wvs,_) = V.NSet.is_empty wvs
 
