@@ -701,6 +701,14 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                     g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs)
                  end
              end
+  fun minimise_wire wire g = let
+    val _ = assert_wire_coherent g wire
+  in
+    if is_wire_minimal g wire
+    then (wire,g)
+    else minimise_wire' wire g
+  end
+  val do_minimise_wire = snd oo minimise_wire
 
   fun normalise_wire' (wire as (s,t,wvs,es)) g =
     if is_wire_vertex g s orelse is_wire_vertex g t then
@@ -726,6 +734,18 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
          g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
            |> delete_wire wire)
       end
+  fun normalise_wire wire g = let
+    val _ = assert_wire_coherent g wire
+  in
+    if is_wire_normalised g wire
+    then (wire,g)
+    else normalise_wire' wire g
+  end
+  val do_normalise_wire = snd oo normalise_wire
+
+  fun minimise g = g |> fold do_minimise_wire (get_wire_list g)
+
+  fun normalise g = g |> fold do_normalise_wire (get_wire_list g)
 
 end; (* BangGraphFun *)
 

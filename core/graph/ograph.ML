@@ -186,15 +186,11 @@ val is_wire_minimal : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
  *)
 val minimise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
   -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
-(* same as minimise_wire, but does not do any checks *)
-(* intended for inheriting structures to use *)
-val minimise_wire' : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
-  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
 (* Same as minimise_wire, but does not give you the wire back *)
 val do_minimise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
 
 (* Returns true if normalising the wire would have no effect *)
-val is_wire_normal : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
+val is_wire_normalised : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
 (* Ensures that there are exactly two wire-vertices on the wire if
  * it is an internal wire (one between two node-vertices), and
  * minimises the wire otherwise.
@@ -204,10 +200,6 @@ val is_wire_normal : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
  * Returns the new wire and the new graph
  *)
 val normalise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
-  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
-(* same as normalise_wire, but does not do any checks *)
-(* intended for inheriting structures to use *)
-val normalise_wire' : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
   -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
 (* Same as normalise_wire, but does not give you the wire back *)
 val do_normalise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
@@ -844,7 +836,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
      g' |> delete_wire wire)
   end
   fun minimise_wire wire g = let
-    val _ = assert_wire_coherent wire
+    val _ = assert_wire_coherent g wire
   in
     if is_wire_minimal g wire
     then (wire,g)
@@ -875,9 +867,8 @@ functor OGraphFun(G : BASIC_OGRAPH)
         ((s,t,V.NSet.of_list [b1,b2],E.NSet.of_list [e1,e2,e3]),
          g |> delete_wire wire)
       end
-
   fun normalise_wire wire g = let
-    val _ = assert_wire_coherent wire
+    val _ = assert_wire_coherent g wire
   in
     if is_wire_normalised g wire
     then (wire,g)
