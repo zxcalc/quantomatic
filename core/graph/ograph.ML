@@ -288,11 +288,9 @@ functor BasicOGraphFun(
   (* for boundary part of added data *)
   val get_boundary = get_boundary_of_hdata o G.get_data;
   val update_boundary = G.update_data o update_boundary_of_hdata;
-  val set_boundary = update_boundary o K;
   (* for edgepoints *)
   val get_edgepoints = get_edgepoints_of_hdata o G.get_data;
   val update_edgepoints = G.update_data o update_edgepoints_of_hdata;
-  val set_edgepoints = update_edgepoints o K;
 
   (* *)
   val add_to_boundary = update_boundary o V.NSet.add;
@@ -306,7 +304,7 @@ functor BasicOGraphFun(
        | (true,false) => SOME (H.SourceEnd, outs)
        | (false,true) => SOME (H.TargetEnd, ins)
        | (false,false) => NONE)
-    | endpoint_of_vertex' (OVData.IVert d,(ins,outs)) = NONE;
+    | endpoint_of_vertex' (OVData.IVert _,_) = NONE;
   
   fun is_endpoint' (OVData.EVert,(ins,outs)) =
       (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
@@ -314,7 +312,7 @@ functor BasicOGraphFun(
        | (true,false) => true
        | (false,true) => true
        | (false,false) => false)
-    | is_endpoint' (OVData.IVert d,(ins,outs)) = false;
+    | is_endpoint' (OVData.IVert _,_) = false;
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o V.NSet.add;
   val del_from_edgepoints = update_edgepoints o V.NSet.delete;
@@ -382,7 +380,7 @@ functor BasicOGraphFun(
       end;
 
   fun delete_edge en g = 
-      let val (e,(fromv,tov)) = E.NTab.get (get_edges g) en in
+      let val (_,(fromv,tov)) = E.NTab.get (get_edges g) en in
         g |> G.delete_edge en
           |> update_point_kind_from_del_edge fromv
           |> update_point_kind_from_del_edge tov
@@ -462,9 +460,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
             |> add_to_boundary newv2)
       end;
 
-  fun cut_edge e g = 
-      let val (d,(fromv,tov)) = get_edge g e 
-      in cut_edge' (e, get_edge g e) g end;
+  fun cut_edge e g = cut_edge' (e, get_edge g e) g
 
   (* v1 and v2 are boundary coherent (half-edges of opposite direction, or both undirected): they can be plugged together; return SOME ((fromv,tov),(dir,edgedata)) where fromv is the source of connecting edge, and tov is the target. If the half-edges were directed, this respects the edge direction. 
   Assumes edge data is the same for both edges. 
@@ -481,7 +477,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
                    E.NSet.tryget_singleton es2) of 
                (SOME e1,SOME e2) => 
                let val ((dir_or_undir1,ed1),(fromv1,tov1)) = get_edge g e1
-                   val ((dir_or_undir2,ed2),(fromv2,tov2)) = get_edge g e2
+                   val ((dir_or_undir2,_),(fromv2,tov2)) = get_edge g e2
                in 
                   if dir_or_undir1 = Directed andalso dir_or_undir2 = Directed
                      andalso halfid1 <> halfid2 then 
@@ -498,8 +494,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
                   else NONE
                end
              | (_,_) => NONE)));
-
-  val boundary_coherent = is_some ooo boundary_coherence;
 
   (* plug two half-edges, represented by vertices. This is equiavlent to graph 
      composition with an identity. Assumes that e1 and e2 go to boundary 
@@ -544,17 +538,17 @@ functor OGraphFun(G : BASIC_OGRAPH)
      edges/boundary vertices for the rest of the graph. 
   *)
   fun cut_around_vertex keepvset n (vs_g as (amorph,g)) = 
-      (case get_vertex g n of (OVData.EVert,(ins,outs)) => vs_g
-       | (d,(ins,outs)) => 
+      (case get_vertex g n of (OVData.EVert,_) => vs_g
+       | (_,(ins,outs)) => 
          vs_g
           |> E.NSet.fold 
               (fn e => fn (newvs,g) => 
-                let val (d,(fromv,tov)) = get_edge g e in 
+                let val (d,(fromv,_)) = get_edge g e in 
                   if V.NSet.contains keepvset fromv then (newvs, g)
                   else
                     let val (newv1,g1) = add_vertex OVData.EVert g 
                         val (newv2,g2) = add_vertex OVData.EVert g1
-                        val (newe,g3) = add_edge d fromv newv2 g2
+                        val (_,g3) = add_edge d fromv newv2 g2
                     in
                       (amorph |> VInjEndo.add newv1 newv2,
                        g3 |> update_edges (E.NTab.update (e, (d,(newv1,n))))
@@ -564,12 +558,12 @@ functor OGraphFun(G : BASIC_OGRAPH)
               ins 
           |> E.NSet.fold 
               (fn e => fn (newvs,g) => 
-                let val (d,(fromv,tov)) = get_edge g e in 
+                let val (d,(_,tov)) = get_edge g e in 
                   if V.NSet.contains keepvset tov then (newvs, g)
                   else
                     let val (newv1,g1) = add_vertex OVData.EVert g 
                         val (newv2,g2) = add_vertex OVData.EVert g1
-                        val (newe,g3) = add_edge d newv2 tov g2
+                        val (_,g3) = add_edge d newv2 tov g2
                     in
                       (amorph |> VInjEndo.add newv1 newv2,
                        g3 |> update_edges (E.NTab.update (e, (d,(n,newv1))))
@@ -614,17 +608,17 @@ functor OGraphFun(G : BASIC_OGRAPH)
            in
              bg |> (case d1 
                      of OVData.EVert => update_boundary (V.NSet.delete n1)
-                      | OVData.IVert id2 => 
+                      | OVData.IVert _ => 
                         (case d2 
                           of OVData.EVert => (* update boundary and data *)
                              update_boundary (V.NSet.delete n2)
                              o set_vertex_data d1 n2
-                           | OVData.IVert id1 => I)) (* nothing to do *)
+                           | OVData.IVert _ => I)) (* nothing to do *)
                 (* update edges *)
                 |> E.NSet.fold (update_edge_vnames 
-                                     (fn (from,to) => (from,n2))) ins1 
+                                     (fn (from,_) => (from,n2))) ins1 
                 |> E.NSet.fold (update_edge_vnames 
-                                     (fn (from,to) => (n2,to))) outs1 
+                                     (fn (_,to) => (n2,to))) outs1 
                 |> update_vertex_enames (K (E.NSet.union_merge ins1 ins2,
                                             E.NSet.union_merge outs1 outs2)) n2
                 (* drop boundary node n1; keep what it was merged with *)
@@ -641,9 +635,9 @@ functor OGraphFun(G : BASIC_OGRAPH)
   
 
   (* remove any vertices that don't have an edge from the vset and for any vertices not in vset, but with edge(s) to vset, they get changed into edge-points. Note: this is a cheeky use of edge-points for variable-vertices. We should probably introduce a proper notion of variable vertex/uninstantiated vertex. *)
-  fun abstract_subgraph_from_vset vset (pvs_g as (pvs,g)) = 
+  fun abstract_subgraph_from_vset vset (pvs_g as (_,g)) = 
       E.NTab.fold 
-        (fn (e,((dir_or_undir,ed),(fromv,tov))) => fn (pvs_g as (pvs,g)) =>  
+        (fn (_,(_,(fromv,tov))) => fn (pvs_g as (pvs,g)) =>  
           case (V.NSet.contains vset fromv, V.NSet.contains vset tov) 
             of (true,true) => pvs_g
              | (false,true) => (V.NSet.add fromv pvs, change_into_edgepoint fromv g)
@@ -682,9 +676,9 @@ functor OGraphFun(G : BASIC_OGRAPH)
         (get_vnames g) g;
   
   fun is_input_vertex' (OVData.EVert,(ins,_)) = E.NSet.is_empty ins
-    | is_input_vertex' (OVData.IVert d,_) = false;
+    | is_input_vertex' (OVData.IVert _,_) = false;
   fun is_output_vertex' (OVData.EVert,(_,outs)) = E.NSet.is_empty outs
-    | is_output_vertex' (OVData.IVert d,_) = false;
+    | is_output_vertex' (OVData.IVert _,_) = false;
   
   (* boundary vertex has either empty ins or empty outs. *)
   fun is_boundary_vertex' v = is_input_vertex' v orelse is_output_vertex' v;
@@ -696,7 +690,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
   
   (* goes to or comes from bounary vertex *)
   fun is_boundary_edge g e = 
-      let val (d,(s,t)) = get_edge g e 
+      let val (_,(s,t)) = get_edge g e 
       in is_boundary_vertex g s orelse is_boundary_vertex g t end;
   
   fun get_edgepoint_vnames g = 
@@ -731,16 +725,16 @@ functor OGraphFun(G : BASIC_OGRAPH)
   
   (* IMPROVE: move these into graph *)
   fun pair_from_of_edge g e = 
-      let val (ed,(from,to)) = get_edge g e in (e,ed,from) end;
+      let val (ed,(from,_)) = get_edge g e in (e,ed,from) end;
   fun pair_to_of_edge g e = 
-      let val (ed,(from,to)) = get_edge g e in (e,ed,to) end;
+      let val (ed,(_,to)) = get_edge g e in (e,ed,to) end;
 
   fun is_wire_vertex g v = case get_vertex_data g v of OVData.EVert => true | _ => false
   val is_node_vertex = not oo is_wire_vertex
   fun get_wire_vertices g = V.NSet.filter (is_wire_vertex g) (get_vnames g)
   fun get_node_vertices g = V.NSet.filter (is_node_vertex g) (get_vnames g)
-  
-  
+
+
   fun wv_get_other_edge g wv e = let
     val (_,(in_e,out_e)) = get_vertex g wv
   in if E.NSet.contains in_e e
