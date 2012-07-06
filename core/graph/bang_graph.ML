@@ -34,7 +34,9 @@ val get_bboxed : T -> V.NSet.T
 val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
-val add_named_bbox : B.name -> T -> B.name * T
+(* bbox_already_exists_exp *)
+val new_named_bbox : B.name -> T -> T
+val add_bbox : T -> B.name * T
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
@@ -75,7 +77,9 @@ val get_bboxed : T -> V.NSet.T
 val get_unbboxed : T -> V.NSet.T
 val get_empty_bboxes : T -> B.NSet.T
 
-val add_named_bbox : B.name -> T -> B.name * T
+(* bbox_already_exists_exp *)
+val new_named_bbox : B.name -> T -> T
+val add_bbox : T -> B.name * T
 (* does not delete the contained vertices *)
 (* identity if name does not exist *)
 val delete_bbox : B.name -> T -> T
@@ -108,9 +112,6 @@ val get_bboxes_of : T -> V.name -> B.NSet.T
 (* no_such_vname_exp if vertex does not exist *)
 val is_bboxed : T -> V.name -> bool
 
-(* bbox_already_exists_exp *)
-val new_named_bbox : B.name -> T -> T
-val add_bbox : T -> B.name * T
 val doadd_bbox : T -> T
 
 val try_rename1_bbox : B.name -> B.name -> T -> T option
@@ -277,12 +278,17 @@ functor BasicBangGraphFun(
   val update_bboxes = G.update_data o update_bboxes_of_hdata;
   val update_bbox_rel = G.update_data o update_bbox_rel_of_hdata;
 
-  fun add_named_bbox bn g =
-    let
-      val (bn',bs') = B.NSet.add_new bn (get_bboxes g)
-    in
-      (bn', g |> update_bboxes (fn _ => bs'))
-    end
+  fun new_named_bbox b g =
+    g |> update_bboxes (B.NSet.ins_fresh b)
+    handle B.NSet.duplicate_exp _ => 
+      raise bbox_already_exists_exp (b,g)
+
+  fun add_bbox g = let
+    val (bn',bs') = B.NSet.add_new B.default_name (get_bboxes g)
+  in
+    (bn', g |> update_bboxes (fn _ => bs'))
+  end
+
   fun delete_bbox bn g =
         g |> update_bboxes (B.NSet.delete bn)
           |> update_bbox_rel (BVBRel.del_dom bn)
@@ -389,12 +395,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
     else
       raise no_such_vname_exp ("is_bboxed", v, g)
 
-  fun new_named_bbox b g =
-    let val (b',g') = add_named_bbox b g in
-      if B.name_eq (b',b) then g'
-      else raise bbox_already_exists_exp (b,g)
-    end
-  val add_bbox = add_named_bbox B.default_name
   val doadd_bbox = snd o add_bbox
 
   fun try_rename1_bbox n1 n2 g =

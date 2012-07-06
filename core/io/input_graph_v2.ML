@@ -54,15 +54,15 @@ functor InputGraphXML_v2(
       in (name,bangverts) end;
   
   fun add_v (vname,vdata) g = 
-      snd (G.add_named_vertex vname vdata g)
+      G.new_named_vertex vname vdata g
   fun add_e (ename,dir,edata,src,tgt) g = 
-      snd (G.add_named_edge ename 
+      G.new_named_edge ename 
             (if dir then G.Directed else G.UnDirected,edata) 
-            src tgt g);  
+            src tgt g;
   fun add_bb (bname,bvlist) g = 
-      let val (realname, g') = G.add_named_bbox bname g
-          val vset  = V.NSet.of_list bvlist
-      in G.add_to_bbox realname vset g' end
+      let val g' = G.new_named_bbox bname g
+          val vset = V.NSet.of_list bvlist
+      in G.add_to_bbox bname vset g' end
   
   fun input_vertex xml = 
       let val () = assert_tag "vertex" xml;

@@ -217,86 +217,95 @@ val g = g |> G.rename_vname n_a n_c;
 val e3 = (E.mk "e_c");
 val g = g |> G.rename_ename e0 e3;
 
+val in1 = V.mk "in1"
+val in2 = V.mk "in2"
+val out1 = V.mk "out1"
+val out2 = V.mk "out2"
+val green1 = V.mk "green1"
+val green2 = V.mk "green2"
+val green3 = V.mk "green3"
+val green4 = V.mk "green4"
+val green5 = V.mk "green5"
+val green6 = V.mk "green6"
+val green7 = V.mk "green7"
+val green8 = V.mk "green8"
+val green9 = V.mk "green9"
+val green10 = V.mk "green10"
+val red1 = V.mk "red1"
+val red2 = V.mk "red2"
+val red3 = V.mk "red3"
+val H1 = V.mk "H1"
+val H2 = V.mk "H2"
+val H3 = V.mk "H3"
+
 (* 3 CNOTs = swap example *)
 val g2 = G.empty;
-val (in1, g2)  = g2 |> G.add_named_vertex (V.mk "in1") bvert;
-val (in2, g2)  = g2 |> G.add_named_vertex (V.mk "in2") bvert;  
-val (out1, g2)  = g2 |> G.add_named_vertex (V.mk "out1") bvert;
-val (out2, g2)  = g2 |> G.add_named_vertex (V.mk "out2") bvert;
-
-val (green1, g2) = g2 |> G.add_named_vertex (V.mk "green1") (mkZ zero_angle);
-val (green2, g2) = g2 |> G.add_named_vertex (V.mk "green2") (mkZ zero_angle);
-val (green3, g2) = g2 |> G.add_named_vertex (V.mk "green3") (mkZ zero_angle);
-
-val (red1, g2) = g2 |> G.add_named_vertex (V.mk "red1") (mkX zero_angle);
-val (red2, g2) = g2 |> G.add_named_vertex (V.mk "red2") (mkX zero_angle);
-val (red3, g2) = g2 |> G.add_named_vertex (V.mk "red3") (mkX zero_angle);
-
-val (_, g2) = g2 |> G.add_edge undir_edge in1 green1;
-val (_, g2) = g2 |> G.add_edge undir_edge in2 red1;
-val (_, g2) = g2 |> G.add_edge undir_edge red1 green1;
-val (_, g2) = g2 |> G.add_edge undir_edge red1 green2;
-val (_, g2) = g2 |> G.add_edge undir_edge red2 green1;
-val (_, g2) = g2 |> G.add_edge undir_edge red2 green2;
-val (_, g2) = g2 |> G.add_edge undir_edge red3 green2;
-val (_, g2) = g2 |> G.add_edge undir_edge red2 green3;
-val (_, g2) = g2 |> G.add_edge undir_edge red3 green3;
-val (_, g2) = g2 |> G.add_edge undir_edge out1 green3;
-val (_, g2) = g2 |> G.add_edge undir_edge out2 red3;
+val g2 = g2 |> G.new_named_vertex in1 bvert
+            |> G.new_named_vertex in2 bvert
+            |> G.new_named_vertex out1 bvert
+            |> G.new_named_vertex out2 bvert
+            |> G.new_named_vertex green1 (mkZ zero_angle)
+            |> G.new_named_vertex green2 (mkZ zero_angle)
+            |> G.new_named_vertex green3 (mkZ zero_angle)
+            |> G.new_named_vertex red1 (mkX zero_angle)
+            |> G.new_named_vertex red2 (mkX zero_angle)
+            |> G.new_named_vertex red3 (mkX zero_angle)
+            |> G.doadd_edge undir_edge in1 green1
+            |> G.doadd_edge undir_edge in2 red1
+            |> G.doadd_edge undir_edge red1 green1
+            |> G.doadd_edge undir_edge red1 green2
+            |> G.doadd_edge undir_edge red2 green1
+            |> G.doadd_edge undir_edge red2 green2
+            |> G.doadd_edge undir_edge red3 green2
+            |> G.doadd_edge undir_edge red2 green3
+            |> G.doadd_edge undir_edge red3 green3
+            |> G.doadd_edge undir_edge out1 green3
+            |> G.doadd_edge undir_edge out2 red3;
 
 (* just a swap *)
-
 val g3 = G.empty;
-val (in1, g3)  = g3 |> G.add_named_vertex (V.mk "in1") bvert;
-val (in2, g3)  = g3 |> G.add_named_vertex (V.mk "in2") bvert;
-
-val (out1, g3)  = g3 |> G.add_named_vertex (V.mk "out1")  
-					       bvert;
-val (out2, g3)  = g3 |> G.add_named_vertex (V.mk "out2")
-					       bvert;
-val (_, g3) = g3 |> G.add_edge undir_edge in1 out2;
-val (_, g3) = g3 |> G.add_edge undir_edge in2 out1;
-
+val g3 = g3 |> G.new_named_vertex in1 bvert
+            |> G.new_named_vertex in2 bvert
+            |> G.new_named_vertex out1 bvert
+            |> G.new_named_vertex out2 bvert
+            |> G.doadd_edge undir_edge in1 out2
+            |> G.doadd_edge undir_edge in2 out1;
 
 (*  A MC pattern for a CNOT *)
 val g4 = G.empty;
-val (in1, g4)  = g4 |> G.add_named_vertex (V.mk "in1") bvert;
-val (in2, g4)  = g4 |> G.add_named_vertex (V.mk "in2") bvert;
-
-val (out1, g4)  = g4 |> G.add_named_vertex (V.mk "out1") bvert;
-val (out2, g4)  = g4 |> G.add_named_vertex (V.mk "out2") bvert;
-
-val (green1, g4) = g4 |> G.add_named_vertex (V.mk "green1") (mkZ zero_angle);
-val (green2, g4) = g4 |> G.add_named_vertex (V.mk "green2") (mkZ zero_angle);
-val (green3, g4) = g4 |> G.add_named_vertex (V.mk "green3") (mkZ zero_angle);
-val (green4, g4) = g4 |> G.add_named_vertex (V.mk "green4") (mkZ zero_angle);
-val (green5, g4) = g4 |> G.add_named_vertex (V.mk "green5") (mkZ zero_angle);
-val (green6, g4) = g4 |> G.add_named_vertex (V.mk "green6") (mkZ zero_angle);
-val (green7, g4) = g4 |> G.add_named_vertex (V.mk "green7") (mkZ zero_angle);
-val (green8, g4) = g4 |> G.add_named_vertex (V.mk "green8") (mkZ zero_angle);
-val (green9, g4) = g4 |> G.add_named_vertex (V.mk "green9") (mkZ zero_angle);
-val (green10, g4) = g4 |> G.add_named_vertex (V.mk "green10") (mkZ zero_angle);
-
-val (H1, g4) = g4 |> G.add_named_vertex (V.mk "H1") mkH;
-val (H2, g4) = g4 |> G.add_named_vertex (V.mk "H2") mkH;
-val (H3, g4) = g4 |> G.add_named_vertex (V.mk "H3") mkH;
-
-val (_, g4) = g4 |> G.add_edge undir_edge in1 green2;
-val (_, g4) = g4 |> G.add_edge undir_edge in2 green3;
-val (_, g4) = g4 |> G.add_edge undir_edge green3 green1;
-val (_, g4) = g4 |> G.add_edge undir_edge green2 out1;
-val (_, g4) = g4 |> G.add_edge undir_edge green2 H1;
-val (_, g4) = g4 |> G.add_edge undir_edge H1 green5;
-val (_, g4) = g4 |> G.add_edge undir_edge green5 green4;
-val (_, g4) = g4 |> G.add_edge undir_edge green5 green6;
-val (_, g4) = g4 |> G.add_edge undir_edge green3 H2;
-val (_, g4) = g4 |> G.add_edge undir_edge H2 green6;
-val (_, g4) = g4 |> G.add_edge undir_edge green6 green7;
-val (_, g4) = g4 |> G.add_edge undir_edge green7 green8;
-val (_, g4) = g4 |> G.add_edge undir_edge green7 H3;
-val (_, g4) = g4 |> G.add_edge undir_edge H3 green9;
-val (_, g4) = g4 |> G.add_edge undir_edge green9 green10;
-val (_, g4) = g4 |> G.add_edge undir_edge green9 out2;
+val g4 = g4 |> G.new_named_vertex in1 bvert
+            |> G.new_named_vertex in2 bvert
+            |> G.new_named_vertex out1 bvert
+            |> G.new_named_vertex out2 bvert
+            |> G.new_named_vertex green1 (mkZ zero_angle)
+            |> G.new_named_vertex green2 (mkZ zero_angle)
+            |> G.new_named_vertex green3 (mkZ zero_angle)
+            |> G.new_named_vertex green4 (mkZ zero_angle)
+            |> G.new_named_vertex green5 (mkZ zero_angle)
+            |> G.new_named_vertex green6 (mkZ zero_angle)
+            |> G.new_named_vertex green7 (mkZ zero_angle)
+            |> G.new_named_vertex green8 (mkZ zero_angle)
+            |> G.new_named_vertex green9 (mkZ zero_angle)
+            |> G.new_named_vertex green10 (mkZ zero_angle)
+            |> G.new_named_vertex H1 mkH
+            |> G.new_named_vertex H2 mkH
+            |> G.new_named_vertex H3 mkH
+            |> G.doadd_edge undir_edge in1 green2
+            |> G.doadd_edge undir_edge in2 green3
+            |> G.doadd_edge undir_edge green3 green1
+            |> G.doadd_edge undir_edge green2 out1
+            |> G.doadd_edge undir_edge green2 H1
+            |> G.doadd_edge undir_edge H1 green5
+            |> G.doadd_edge undir_edge green5 green4
+            |> G.doadd_edge undir_edge green5 green6
+            |> G.doadd_edge undir_edge green3 H2
+            |> G.doadd_edge undir_edge H2 green6
+            |> G.doadd_edge undir_edge green6 green7
+            |> G.doadd_edge undir_edge green7 green8
+            |> G.doadd_edge undir_edge green7 H3
+            |> G.doadd_edge undir_edge H3 green9
+            |> G.doadd_edge undir_edge green9 green10
+            |> G.doadd_edge undir_edge green9 out2;
 
 (* Plugging *)
 
@@ -313,13 +322,17 @@ local
   val _ = let 
   (* create the graph *)
   val (g,n_x2) = let 
+    val n_a = V.mk "n_a"
+    val n_b = V.mk "n_b"
+    val n_x = V.mk "n_x"
+    val e0 = E.mk "e0"
+    val e1 = E.mk "e1"
     val g = G.empty;
-    val (n_a, g) = g |> G.add_vertex bvert;
-    val (n_b, g) = g |> G.add_vertex bvert;
-    val (n_x, g) = g |> G.add_named_vertex (V.mk "with x") 
-                                           (mkX (parse_angle "2/3*x"));
-    val (e0, g) = g |> G.add_edge undir_edge n_a n_x;
-    val (e1, g) = g |> G.add_edge undir_edge n_x n_b;
+    val g = g |> G.new_named_vertex n_a bvert
+              |> G.new_named_vertex n_b bvert
+              |> G.new_named_vertex n_x (mkX (parse_angle "2/3*x"))
+              |> G.new_named_edge e0 undir_edge n_a n_x
+              |> G.new_named_edge e1 undir_edge n_x n_b
   
     val _ = Testing.test "Single variable in dependencies" (fn () =>
       if X.name_eq (the (X.NSet.tryget_singleton (G.get_xnames g)), 
@@ -408,22 +421,32 @@ end; (* ends local namespace used for testing *)
 
 local
   open Test_MkG
+  val b1 = V.mk "b1"
+  val b2 = V.mk "b2"
+  val b3 = V.mk "b3"
+  val b4 = V.mk "b4"
+  val b5 = V.mk "b5"
+  val b6 = V.mk "b6"
+  val c1 = V.mk "c1"
+  val c2 = V.mk "c2"
+  val c3 = V.mk "c3"
+  val r1 = V.mk "r1"
+  val r2 = V.mk "r2"
+  val r3 = V.mk "r3"
+
   val g = G.empty
-  val (b1,g) = g|> G.add_named_vertex (V.mk "b1") bvert
-  val (b2,g) = g|> G.add_named_vertex (V.mk "b2") bvert
-  val (b3,g) = g|> G.add_named_vertex (V.mk "b3") bvert
-  val (b4,g) = g|> G.add_named_vertex (V.mk "b4") bvert
-  val (b5,g) = g|> G.add_named_vertex (V.mk "b5") bvert
-  val (b6,g) = g|> G.add_named_vertex (V.mk "b6") bvert
-  
-  val (c1,g) = g|> G.add_named_vertex (V.mk "c1") bvert
-  val (c2,g) = g|> G.add_named_vertex (V.mk "c2") bvert
-  val (c3,g) = g|> G.add_named_vertex (V.mk "c3") bvert
-  
-  val (r1,g) = g|> G.add_named_vertex (V.mk "r1") (mkX zero_angle)
-  val (r2,g) = g|> G.add_named_vertex (V.mk "r2") (mkX zero_angle)
-  val (r3,g) = g|> G.add_named_vertex (V.mk "r3") (mkX zero_angle)
-  
+  val g = g |> G.new_named_vertex b1 bvert
+            |> G.new_named_vertex b2 bvert
+            |> G.new_named_vertex b3 bvert
+            |> G.new_named_vertex b4 bvert
+            |> G.new_named_vertex b5 bvert
+            |> G.new_named_vertex b6 bvert
+            |> G.new_named_vertex c1 bvert
+            |> G.new_named_vertex c2 bvert
+            |> G.new_named_vertex c3 bvert
+            |> G.new_named_vertex r1 (mkX zero_angle)
+            |> G.new_named_vertex r2 (mkX zero_angle)
+            |> G.new_named_vertex r3 (mkX zero_angle)
   val (e1,g)  = g|> G.add_edge dir_edge r1 b1
   val (e2,g)  = g|> G.add_edge dir_edge b1 b2
   val (e3,g)  = g|> G.add_edge dir_edge b2 r2
@@ -616,58 +639,57 @@ local
 
   (* FIXME: test rename_apart_incl_bboxes *)
 
-  val (b0,gnv) = test_force "G.add_named_bbox (1)"
+  val b0 = B.mk "B0"
+  val b1 = B.mk "B1"
+  val gnv = test_force "G.new_named_bbox (1)"
         (fn g =>
         let
-          val bexp = (B.mk "B0")
-          val (b,g') = G.add_named_bbox bexp g
+          val bexp = b0
+          val g' = G.new_named_bbox bexp g
         in
           case B.NSet.tryget_singleton (G.get_bboxes g') of
-               NONE => raise ERROR "add_named_bbox did not add a !-box"
-             | SOME b' =>
-                    if not (B.name_eq (b,b')) then
-                      raise ERROR "add_named_bbox returned the wrong name"
-                    else if not (B.name_eq (b,bexp)) then
-                      raise ERROR "add_named_bbox added the wrong name"
-                    else (b,g')
+               NONE => raise ERROR "new_named_bbox did not add a !-box"
+             | SOME b =>
+                    if not (B.name_eq (b,bexp)) then
+                      raise ERROR "new_named_bbox added the wrong name"
+                    else g'
         end) ge
 
-  val (b1,gnv) = test_force "G.add_named_bbox (2)"
+  val gnv = test_force "G.new_named_bbox (2)"
         (fn g =>
         let
-          val bexp = (B.mk "B1")
+          val bexp = b1
           val bs_old = G.get_bboxes g
-          val (b,g') = G.add_named_bbox bexp g
+          val g' = G.new_named_bbox bexp g
           val bs_new = G.get_bboxes g'
           val bs_added = B.NSet.subtract bs_new bs_old
         in
           case B.NSet.tryget_singleton bs_added of
-               NONE => raise ERROR "add_named_bbox did not add a !-box"
-             | SOME b' =>
-                    if not (B.name_eq (b,b')) then
-                      raise ERROR "add_named_bbox returned the wrong name"
-                    else if not (B.name_eq (b,bexp)) then
-                      raise ERROR "add_named_bbox added the wrong name"
-                    else (b,g')
+               NONE => raise ERROR "new_named_bbox did not add a !-box"
+             | SOME b =>
+                    if not (B.name_eq (b,bexp)) then
+                      raise ERROR "new_named_bbox added the wrong name"
+                    else g'
         end) gnv
 
-  val (b2,gnv) = test_force "G.add_named_bbox (already exists)"
+  val _ = test_force "G.new_named_bbox (existing !-box)"
+        (fn g => (G.new_named_bbox b0 g;
+                  raise error "new_named_bbox (name clash) did not throw exception")
+                 handle G.bbox_already_exists_exp _ => I) gnv
+
+  val (b2,gnv) = test_force "G.add_bbox"
         (fn g =>
         let
-          val badd = b0
           val bs_old = G.get_bboxes g
-          val (b,g') = G.add_named_bbox badd g
+          val (b,g') = G.add_bbox g
           val bs_new = G.get_bboxes g'
           val bs_added = B.NSet.subtract bs_new bs_old
         in
           case B.NSet.tryget_singleton bs_added of
-               NONE => raise ERROR "add_named_bbox did not add a !-box"
+               NONE => raise ERROR "new_named_bbox did not add a !-box"
              | SOME b' =>
                     if not (B.name_eq (b,b')) then
-                      raise ERROR "add_named_bbox returned the wrong name"
-                    (* This time it _should_ be different *)
-                    else if B.name_eq (b,badd) then
-                      raise ERROR "add_named_bbox added the wrong name"
+                      raise ERROR "new_named_bbox returned the wrong name"
                     else (b,g')
         end) gnv
 

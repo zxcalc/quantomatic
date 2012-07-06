@@ -49,18 +49,17 @@ functor InputGraphXML_v1(
       in (name,bangverts) end;
   
   (* uncurry some graph methods *)
-  fun add_v (vname,vdata) g = 
-      snd (Graph.add_named_vertex vname vdata g)
+  fun add_v (vname,vdata) g = Graph.new_named_vertex vname vdata g
   
   (* FIXME: load up direction information *)
   fun add_e (ename,edata,src,tgt) g = 
-      snd (Graph.add_named_edge ename (Graph.UnDirected,edata) src tgt g)
+      Graph.new_named_edge ename (Graph.UnDirected,edata) src tgt g
   
   fun add_bb (bname,bvlist) g = 
-      let val (realname, g') = Graph.add_named_bbox bname g
+      let val g' = Graph.new_named_bbox bname g
           val vset  = V.NSet.of_list bvlist
       in
-        Graph.add_to_bbox realname vset g'
+        Graph.add_to_bbox bname vset g'
       end
   
   fun input_vertex xml = 
