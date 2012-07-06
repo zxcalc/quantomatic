@@ -55,6 +55,11 @@ val del_from_edgepoints : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
 val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
+(* Get an edge that can join two boundary vertices, if
+ * there is such an edge.
+ *)
+val get_plugging : T -> V.name -> V.name
+  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
 
 end (* Basic OGraph *)
 
@@ -224,6 +229,53 @@ val is_wire_vertex    : T -> V.name -> bool
 val is_node_vertex    : T -> V.name -> bool
 val get_wire_vertices : T -> V.NSet.T
 val get_node_vertices : T -> V.NSet.T
+
+exception plugging_exp of (T*V.name*V.name);
+
+(* True if and only if one of the given vertices is
+ * an input and one an output with the same edge data *)
+val are_pluggable : T -> V.name -> V.name -> bool
+(* Get an edge that can join two boundary vertices, if
+ * there is such an edge.
+ *
+ * This will return NONE exactly when are_verts_pluggable
+ * returns false
+ *)
+(* copied from BASIC_BANG_GRAPH *)
+val get_plugging : T -> V.name -> V.name
+  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
+(* Plug two boundary vertices together.
+ *
+ * Raises plugging_exp if the vertices are not pluggable.
+ *
+ * Returns the name of the created edge.
+ *)
+val plug : V.name -> V.name -> T -> (E.name * T)
+(* Exactly like plug, but does not return the edge name. *)
+val do_plug : V.name -> V.name -> T -> T
+(* Plug two boundary vertices together and minimises the
+ * plugged wire (so all unnecessary wire vertices will be
+ * removed).
+ *
+ * Raises plugging_exp if the vertices are not pluggable.
+ *
+ * Returns the new wire
+ *)
+val plug_and_minimise : V.name -> V.name -> T
+      -> ((V.name * V.name * V.NSet.T * E.NSet.T) * T)
+(* Exactly like plug_and_minimise, but does not return the wire. *)
+val do_plug_and_minimise : V.name -> V.name -> T -> T
+(* Plug two boundary vertices together and normalises the
+ * plugged wire.
+ *
+ * Raises plugging_exp if the vertices are not pluggable.
+ *
+ * Returns the new wire
+ *)
+val plug_and_normalise : V.name -> V.name -> T
+      -> ((V.name * V.name * V.NSet.T * E.NSet.T) * T)
+(* Exactly like plug_and_normalise, but does not return the wire. *)
+val do_plug_and_normalise : V.name -> V.name -> T -> T
 
 (* TODO: ? *)
 (*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
@@ -425,6 +477,32 @@ functor BasicOGraphFun(
         |> rename1_in_edgepoints n1 n2 
         |> G.rename_vname n1 n2;
 
+  fun get_only_edge' (OVData.EVert,(ins,outs)) =
+    (case (E.NSet.is_empty ins,E.NSet.is_empty outs) of
+          (true,false) => E.NSet.tryget_singleton outs
+        | (false,true) => E.NSet.tryget_singleton ins
+        | _            => NONE)
+    | get_only_edge' (OVData.IVert _,_) = NONE;
+  val get_only_edge = get_only_edge' oo get_vertex
+  fun get_plugging g v1 v2 =
+    case (get_only_edge g v1,get_only_edge g v2) of
+         (SOME e1,SOME e2) =>
+            (case (get_edge g e1,get_edge g e2) of
+                  (((UnDirected,d1),_),((UnDirected,d2),_)) =>
+                    if EData.data_eq (d1,d2)
+                    then SOME ((UnDirected,d1),(v1,v2))
+                    else NONE
+                | (((Directed,d1),(e1s,e1t)),((Directed,d2),(e2s,e2t))) =>
+                    if not (EData.data_eq (d1,d2))
+                    then NONE
+                    else if (V.name_eq (e1s,v1) andalso V.name_eq (e2t,v2))
+                    then SOME ((Directed,d1),(v2,v1))
+                    else if (V.name_eq (e1t,v1) andalso V.name_eq (e2s,v2))
+                    then SOME ((Directed,d1),(v1,v2))
+                    else NONE
+                | _ => NONE
+            )
+       | _ => NONE
 
 
   (* prettifying *)
@@ -894,7 +972,28 @@ functor OGraphFun(G : BASIC_OGRAPH)
   val do_normalise_wire = snd oo normalise_wire
 
   fun minimise g = g |> fold do_minimise_wire (get_wire_list g)
-
   fun normalise g = g |> fold do_normalise_wire (get_wire_list g)
+
+  exception plugging_exp of (T * V.name * V.name);
+
+  val are_pluggable = is_some ooo get_plugging
+  fun plug v1 v2 g =
+    case get_plugging g v1 v2 of
+         NONE => raise plugging_exp (g,v1,v2)
+         (* FIXME: direction *)
+       | SOME (ed,(v1',v2')) => add_edge ed v1' v2' g;
+  val do_plug = snd ooo plug
+  fun plug_and_minimise g v1 v2 = let
+    val (e,g') = plug g v1 v2
+  in
+    minimise_wire (get_wire_containing_edge g' e) g'
+  end
+  val do_plug_and_minimise = snd ooo plug_and_minimise
+  fun plug_and_normalise g v1 v2 = let
+    val (e,g') = plug g v1 v2
+  in
+    normalise_wire (get_wire_containing_edge g' e) g'
+  end
+  val do_plug_and_normalise = snd ooo plug_and_normalise
 
 end; (* OpenGraphFun *)

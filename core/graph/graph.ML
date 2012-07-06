@@ -17,11 +17,8 @@ val lookup_vertex : T -> V.name
 val lookup_edge : T -> E.name 
 									-> ((dir_or_undir * EData.data) 
                       * (V.name * V.name)) option
-(* getting stuff from graphs (exception if not there) *)
-val get_vertex : T -> V.name -> (VData.data * (E.NSet.T * E.NSet.T))
-val get_edge : T -> E.name -> ((dir_or_undir * EData.data) 
-                                  * (V.name * V.name))
 
+(* getting stuff from graphs (exception if not there) *)
 val get_edge_source : T -> E.name -> V.name
 val get_edge_target : T -> E.name -> V.name
 
@@ -204,16 +201,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* implicit: g n *)
   val lookup_vertex = V.NTab.lookup o get_vertices
   val lookup_edge = E.NTab.lookup o get_edges
-  
-  (* *)
-  fun get_vertex g n = 
-      case lookup_vertex g n 
-       of NONE => raise no_such_vname_exp ("get_vertex", n, g)
-        | SOME x => x;
-  fun get_edge g en = 
-      case lookup_edge g en 
-       of NONE => raise no_such_ename_exp ("get_edge", en, g)
-        | SOME x => x;
   
   val get_edge_source = (fst o snd) oo get_edge
   val get_edge_target = (snd o snd) oo get_edge

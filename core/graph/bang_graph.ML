@@ -358,6 +358,18 @@ functor BasicBangGraphFun(
     else
       g |> update_bbox_rel (BVBRel.del_from_dom b vs);
 
+  fun get_plugging g v1 v2 = let
+    (* gah, stupid inheritance games *)
+    fun get_bboxes_of g v =
+        case V.NTab.lookup (get_vertex_bbox_table g) v of
+             NONE => B.NSet.empty
+           | SOME bs => bs;
+  in
+    if B.NSet.eq (get_bboxes_of g v1) (get_bboxes_of g v2)
+    then G.get_plugging g v1 v2
+    else NONE
+  end;
+
   (* prettifying *)
   fun pretty g =
       Pretty.chunks
@@ -814,8 +826,20 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val do_normalise_wire = snd oo normalise_wire
 
   fun minimise g = g |> fold do_minimise_wire (get_wire_list g)
-
   fun normalise g = g |> fold do_normalise_wire (get_wire_list g)
+
+  fun plug_and_minimise g v1 v2 = let
+    val (e,g') = plug g v1 v2
+  in
+    minimise_wire (get_wire_containing_edge g' e) g'
+  end
+  val do_plug_and_minimise = snd ooo plug_and_minimise
+  fun plug_and_normalise g v1 v2 = let
+    val (e,g') = plug g v1 v2
+  in
+    normalise_wire (get_wire_containing_edge g' e) g'
+  end
+  val do_plug_and_normalise = snd ooo plug_and_normalise
 
 end; (* BangGraphFun *)
 

@@ -520,6 +520,288 @@ end; (* ends local namespace used for testing *)
 
 
 local
+  open Test_MkG;
+
+  val x1 = V.mk "x1"
+  val x2 = V.mk "x2"
+  val x3 = V.mk "x3"
+  val x4 = V.mk "x4"
+  val in1 = V.mk "in1"
+  val in2 = V.mk "in2"
+  val in3 = V.mk "in3"
+  val in4 = V.mk "in4"
+  val out1 = V.mk "out1"
+  val out2 = V.mk "out2"
+  val out3 = V.mk "out3"
+  val out4 = V.mk "out4"
+  val wv1 = V.mk "wv1"
+  val wv2 = V.mk "wv2"
+  val wv3 = V.mk "wv3"
+  val wv4 = V.mk "wv4"
+  val b1 = V.mk "b1"
+  val b2 = V.mk "b2"
+  val b3 = V.mk "b3"
+  val b4 = V.mk "b4"
+
+  val g = G.empty;
+  val g = g |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex x3 (mkX zero_angle)
+            |> G.add_named_vertex x4 (mkX zero_angle)
+
+            |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex in2 bvert
+            |> G.add_named_vertex in3 bvert
+            |> G.add_named_vertex in4 bvert
+
+            |> G.add_named_vertex out1 bvert
+            |> G.add_named_vertex out2 bvert
+            |> G.add_named_vertex out3 bvert
+            |> G.add_named_vertex out4 bvert
+
+            |> G.add_named_vertex wv1 bvert
+            |> G.add_named_vertex wv2 bvert
+            |> G.add_named_vertex wv3 bvert
+            |> G.add_named_vertex wv4 bvert
+
+            |> G.add_named_vertex b1 bvert
+            |> G.add_named_vertex b2 bvert
+            |> G.add_named_vertex b3 bvert
+            |> G.add_named_vertex b4 bvert
+
+            |> G.doadd_edge dir_edge in1 x1
+            |> G.doadd_edge dir_edge in2 x2
+            |> G.doadd_edge dir_edge x1 out1
+            |> G.doadd_edge dir_edge x3 out3
+            |> G.doadd_edge dir_edge x1 wv1
+            |> G.doadd_edge dir_edge wv1 x1
+
+            |> G.doadd_edge undir_edge b1 x1
+            |> G.doadd_edge undir_edge b2 x2
+            |> G.doadd_edge undir_edge x3 b3
+            |> G.doadd_edge undir_edge x1 b4
+            |> G.doadd_edge undir_edge x2 wv2
+            |> G.doadd_edge undir_edge x2 wv2
+            |> G.doadd_edge undir_edge x3 wv3
+            |> G.doadd_edge undir_edge wv3 x3
+
+  val _ = Testing.test "G.are_pluggable (1)"
+          (fn () => Testing.assert "pluggable"
+                    (G.are_pluggable g in1 out1)) ()
+  val _ = Testing.test "G.are_pluggable (2)"
+          (fn () => Testing.assert "pluggable"
+                    (G.are_pluggable g in2 out3)) ()
+  val _ = Testing.test "G.are_pluggable (3)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g in1 in2))) ()
+  val _ = Testing.test "G.are_pluggable (4)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g in1 wv1))) ()
+  val _ = Testing.test "G.are_pluggable (5)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g wv1 out3))) ()
+  val _ = Testing.test "G.are_pluggable (6)"
+          (fn () => Testing.assert "pluggable"
+                    (G.are_pluggable g b1 b2)) ()
+  val _ = Testing.test "G.are_pluggable (7)"
+          (fn () => Testing.assert "pluggable"
+                    (G.are_pluggable g b1 b3)) ()
+  val _ = Testing.test "G.are_pluggable (8)"
+          (fn () => Testing.assert "pluggable"
+                    (G.are_pluggable g b4 b3)) ()
+  val _ = Testing.test "G.are_pluggable (9)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g b1 wv2))) ()
+  val _ = Testing.test "G.are_pluggable (10)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g b1 wv3))) ()
+  val _ = Testing.test "G.are_pluggable (10)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g b1 wv1))) ()
+  val _ = Testing.test "G.are_pluggable (11)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g b3 wv2))) ()
+  val _ = Testing.test "G.are_pluggable (12)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g in1 b3))) ()
+  val _ = Testing.test "G.are_pluggable (13)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g b3 in1))) ()
+  val _ = Testing.test "G.are_pluggable (14)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g out1 b3))) ()
+  val _ = Testing.test "G.are_pluggable (15)"
+          (fn () => Testing.assert "not pluggable"
+                    (not (G.are_pluggable g b3 out1))) ()
+
+  val _ = Testing.test "G.get_plugging (1)"
+          (fn () =>
+          case G.get_plugging g in1 out1 of
+               SOME ((G.Directed,_),(v1,v2)) =>
+                 Testing.assert "correct vertex names"
+                    ((V.name_eq (v1,out1)) andalso
+                     (V.name_eq (v2,in1)))
+             | SOME _ => raise ERROR "Wrong directedness"
+             | NONE   => raise ERROR "No plugging found") ()
+  val _ = Testing.test "G.get_plugging (2)"
+          (fn () =>
+          case G.get_plugging g out3 in2 of
+               SOME ((G.Directed,_),(v1,v2)) =>
+                 Testing.assert "correct vertex names"
+                    ((V.name_eq (v1,out3)) andalso
+                     (V.name_eq (v2,in2)))
+             | SOME _ => raise ERROR "Wrong directedness"
+             | NONE   => raise ERROR "No plugging found") ()
+  val _ = Testing.test "G.get_plugging (3)"
+          (fn () =>
+          case G.get_plugging g b1 b2 of
+               SOME ((G.UnDirected,_),(v1,v2)) =>
+                 Testing.assert "correct vertex names"
+                    (V.NSet.eq (V.NSet.of_list [b1,b2])
+                               (V.NSet.of_list [v1,v2]))
+             | SOME _ => raise ERROR "Wrong directedness"
+             | NONE   => raise ERROR "No plugging found") ()
+  val _ = Testing.test "G.get_plugging (4)"
+          (fn () =>
+          case G.get_plugging g b1 b3 of
+               SOME ((G.UnDirected,_),(v1,v2)) =>
+                 Testing.assert "correct vertex names"
+                    (V.NSet.eq (V.NSet.of_list [b1,b3])
+                               (V.NSet.of_list [v1,v2]))
+             | SOME _ => raise ERROR "Wrong directedness"
+             | NONE   => raise ERROR "No plugging found") ()
+  val _ = Testing.test "G.get_plugging (5)"
+          (fn () =>
+          case G.get_plugging g b4 b3 of
+               SOME ((G.UnDirected,_),(v1,v2)) =>
+                 Testing.assert "correct vertex names"
+                    (V.NSet.eq (V.NSet.of_list [b4,b3])
+                               (V.NSet.of_list [v1,v2]))
+             | SOME _ => raise ERROR "Wrong directedness"
+             | NONE   => raise ERROR "No plugging found") ()
+
+  val _ = Testing.test "G.plug (1)"
+          (fn () =>
+          let
+            val (e,g') = G.plug in1 out1 g
+          in
+            case G.get_edge g' e of
+                 ((G.Directed,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      ((V.name_eq (v1,out1)) andalso
+                       (V.name_eq (v2,in1)))
+               | _ => raise ERROR "Wrong directedness"
+          end) ()
+  val _ = Testing.test "G.plug (2)"
+          (fn () =>
+          let
+            val (e,g') = G.plug out3 in2 g
+          in
+            case G.get_edge g' e of
+                 ((G.Directed,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      ((V.name_eq (v1,out3)) andalso
+                       (V.name_eq (v2,in2)))
+               | _ => raise ERROR "Wrong directedness"
+          end) ()
+  val _ = Testing.test "G.plug (3)"
+          (fn () =>
+          let
+            val (e,g') = G.plug b1 b2 g
+          in
+            case G.get_edge g' e of
+                 ((G.UnDirected,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      (V.NSet.eq (V.NSet.of_list [b1,b2])
+                                 (V.NSet.of_list [v1,v2]))
+               | _ => raise ERROR "Wrong directedness"
+          end) ()
+  val _ = Testing.test "G.plug (4)"
+          (fn () =>
+          let
+            val (e,g') = G.plug b1 b3 g
+          in
+            case G.get_edge g' e of
+                 ((G.UnDirected,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      (V.NSet.eq (V.NSet.of_list [b1,b3])
+                                 (V.NSet.of_list [v1,v2]))
+               | _ => raise ERROR "Wrong directedness"
+          end) ()
+  val _ = Testing.test "G.plug (5)"
+          (fn () =>
+          let
+            val (e,g') = G.plug b4 b3 g
+          in
+            case G.get_edge g' e of
+                 ((G.UnDirected,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      (V.NSet.eq (V.NSet.of_list [b4,b3])
+                                 (V.NSet.of_list [v1,v2]))
+               | _ => raise ERROR "Wrong directedness"
+          end) ()
+
+  val _ = Testing.test "G.plug_and_minimise (1)"
+          (fn () =>
+          let
+            val ((s,t,wvs,es),g') = G.plug_and_minimise in1 out1 g
+          in
+             (Testing.assert "correct vertex names"
+                (V.NSet.eq (V.NSet.single x1)
+                           (V.NSet.of_list [s,t]));
+              Testing.assert "no wire verts"
+                (V.NSet.is_empty wvs);
+              case E.NSet.tryget_singleton es of
+                   SOME e =>
+                     (case G.get_edge g' e of
+                          ((Directed,_),_) => ()
+                        | _ => raise ERROR "Wrong directedness")
+                 | NONE => raise ERROR "Wrong edge count"
+             )
+          end
+          ) ()
+  val _ = Testing.test "G.plug_and_minimise (2)"
+          (fn () =>
+          let
+            val ((s,t,wvs,es),g') = G.plug_and_minimise out3 in2 g
+          in
+             (Testing.assert "correct vertex names"
+                (V.NSet.eq (V.NSet.of_list [x2,x3])
+                           (V.NSet.of_list [s,t]));
+              Testing.assert "no wire verts"
+                (V.NSet.is_empty wvs);
+              case E.NSet.tryget_singleton es of
+                   SOME e =>
+                     (case G.get_edge g' e of
+                          ((Directed,_),_) => ()
+                        | _ => raise ERROR "Wrong directedness")
+                 | NONE => raise ERROR "Wrong edge count"
+             )
+          end
+          ) ()
+
+  val _ = Testing.test "G.plug_and_normalise (1)"
+          (fn () =>
+          let
+            val ((s,t,wvs,es),g') = G.plug_and_normalise in1 out1 g
+          in
+             (Testing.assert "correct vertex names"
+                (V.NSet.eq (V.NSet.single x1)
+                           (V.NSet.of_list [s,t]));
+              Testing.assert "2 wire verts"
+                (V.NSet.cardinality wvs = 2);
+              Testing.assert "2 edge verts"
+                (E.NSet.cardinality es = 3)
+             )
+          end
+          ) ()
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR PLUGGING PASSED!"
+end; (* ends local namespace used for testing *)
+
+
+local
   open Test_MkG
 
   val ge = G.empty
