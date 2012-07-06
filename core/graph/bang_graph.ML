@@ -26,7 +26,7 @@ val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
 val get_bbox_rel : T -> BVBRel.T
 (* Return the "parent" relation for nested bang-boxes *)
-val get_bbox_parent_rel : T -> BInjEndo.T
+val get_bbox_parent_rel : T -> BMap.T
 (* Does not contain empty !-boxes *)
 val get_bbox_table : T -> V.NSet.T B.NTab.T
 (* Does not contain unboxed vertices *)
@@ -55,6 +55,10 @@ val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 (* must make sure the bbox_rel dom is a subset of bboxes *)
 val update_bboxes : (B.NSet.T -> B.NSet.T) -> T -> T
 val update_bbox_rel : (BVBRel.T -> BVBRel.T) -> T -> T
+val update_bbox_parent_rel : (BMap.T -> BMap.T) -> T -> T
+
+val set_bbox_parent : B.name -> B.name -> T -> T
+val clear_bbox_parent : B.name -> T -> T
 
 end;
 
@@ -223,7 +227,7 @@ functor BasicBangGraphFun(
            HData of
            { bboxes : B.NSet.T,
              bbox_rel : BVBRel.T,
-             bbox_parent_rel : BInjEndo.T,
+             bbox_parent_rel : BMap.T,
              data : data
            };
   fun get_bboxes_of_hdata (HData rep) = #bboxes rep;
@@ -256,7 +260,7 @@ functor BasicBangGraphFun(
             };
   val empty_hdata = HData { bboxes = B.NSet.empty,
                      bbox_rel = BVBRel.empty,
-                     bbox_parent_rel = BInjEndo.empty,
+                     bbox_parent_rel = BMap.empty,
                      data = empty_data};
 
   (* make basic graph with this as internal data *)
@@ -300,6 +304,13 @@ functor BasicBangGraphFun(
   val update_bboxes = G.update_data o update_bboxes_of_hdata;
   val update_bbox_rel = G.update_data o update_bbox_rel_of_hdata;
   val update_bbox_parent_rel = G.update_data o update_bbox_parent_rel_of_hdata;
+  
+  fun set_bbox_parent b bp = 
+    update_bbox_parent_rel (BMap.add_to_dom b bp)
+  
+  (* orphan the given !-box. If its parent has no children, remove from parent rel *)
+  fun clear_bbox_parent b =
+    update_bbox_parent_rel (BMap.surj_del_dom b)
 
   fun add_bbox_named_like b g = let
     val (bn',bs') = B.NSet.add_new b (get_bboxes g)
@@ -470,8 +481,33 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                       |> delete_bbox bn2)
               bnset2 g));
 
+  
+  (* copy a bbox and its children. If parent has been copied, inherit the copy
+     as new parent, otherwise inherit the current parent. *)
+
+
+
+  fun copy_bbox_children from_bbox to_bbox_opt (brn,g) =
+    let
+      val children = BMap.lookup_codf (get_bbox_parent_rel g) from_bbox
+      fun copy_child c (brn,g) = let
+        val (new_c_opt,brn') = B.Rnm.rename1 c brn
+        val new_c = case new_c_opt of SOME x=>x | NONE =>
+                    raise ERROR ("bad renamer passed to copy_bbox_children")
+        val g' = g |> add_named_bbox new_c
+                   |> (case to_bbox_opt
+                         of SOME bb => set_bbox_parent new_c bb
+                          | NONE => I)
+      in copy_bbox_children c new_c_opt (brn',g')
+      end
+    in case children
+         of SOME cs => B.NSet.fold copy_child cs (brn,g)
+          | NONE => (brn,g)
+    end
+  
   (* copy bang box, given renaming info, or possibly with dictated renaming. *)
-  fun copy1_bbox bn ((vrn,ern,brn),g) =
+
+(*  fun copy1_bbox bn ((vrn,ern,brn),g) =
       let
         val bbox_vs = get_bbox_contents g bn;
         val ((vrn',ern'),g') = copy_subgraph bbox_vs ((vrn, ern),g);
@@ -488,45 +524,55 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
             val bbs' = B.NSet.delete bn (get_bboxes_of g v)
             val bbs = B.NSet.add bn' bbs'
           in
-            B.NSet.fold (fn b => add_to_bbox b vs) bbs gr
-          end
-        val g''' = V.NSet.fold extend_bbs bbox_vs g''
-      in
-         (bn', ((vrn',ern',brn'), g'''))
-      end;
+            B.NSet.fold (fn b => add_to_bbox b vs) bbs gr*)
 
-  fun fresh_copy1_bbox bn g =
-      let val (bname, (_, graph)) = copy1_bbox bn
-                ((V.Rnm.mk_from_avoids (get_vnames g),
-                E.Rnm.mk_from_avoids (get_enames g),
-                B.Rnm.mk_from_avoids (get_bboxes g)),g)
-      in (bname, graph) end;
-
-  fun expand1_bbox bn ((vrn,ern,brn),g) =
-    (* brn is currently unused, but will be needed for
-     * nested !-boxes *)
-      let
-        val bbox_vs = get_bbox_contents g bn;
-        val ((vrn',ern'),g') = copy_subgraph bbox_vs ((vrn, ern),g);
-        fun extend_bbs v gr =
-          let
-            val SOME v' = V.Rnm.lookup vrn' v
-            val vs = V.NSet.single v'
-            val bbs = B.NSet.delete bn (get_bboxes_of g v)
-          in
-            B.NSet.fold (fn b => add_to_bbox b vs) bbs gr
+  fun copy_or_expand MK_BBOX bn ((vrn,ern,brn),g) =
+    let
+      val bbox_vs = get_bbox_contents g bn;
+      val ((vrn',ern'),g') = copy_subgraph bbox_vs ((vrn, ern),g);
+      val (g', new_bn_opt, brn') =
+        if MK_BBOX then
+          let val (new_bn_opt,brn') = B.Rnm.rename1 bn brn
+          in case new_bn_opt
+               of SOME bn' => (add_named_bbox bn' g', new_bn_opt, brn')
+                | NONE => raise ERROR
+                          ("copy_or_expand was passed brn that " ^
+                           "does not avoid !-box being renamed")
           end
-        val g'' = V.NSet.fold extend_bbs bbox_vs g'
-      in
-         ((vrn',ern',brn), g'')
-      end;
+        else (g', NONE, brn)
+      val (brn',g') = copy_bbox_children bn new_bn_opt (brn',g')
+      fun map_bbox_name b = case B.Rnm.lookup brn' b of SOME b' => b' | NONE => b
+      fun extend_bbs v gr =
+        let
+          (* find the vertex that this one was copied from *)
+          val vnew = the (V.Rnm.lookup vrn' v)
+          val bbs_to_extend = get_bboxes_of g v
+           |> B.NSet.delete bn
+           |> (case new_bn_opt of SOME bn' => B.NSet.add bn' | NONE => I)
+           |> B.NSet.fold (fn b => B.NSet.add (map_bbox_name b)) B.NSet.empty
+        in
+          B.NSet.fold (fn b => add_to_bbox b (V.NSet.single vnew)) bbs_to_extend gr
+        end
+      val g' = V.NSet.fold extend_bbs bbox_vs g'
+    in
+       (new_bn_opt, ((vrn',ern',brn'), g'))
+    end;
+
+  val copy1_bbox = (apfst the) oo (copy_or_expand true)
+  val expand1_bbox = snd oo (copy_or_expand false)
+
+  fun fresh_namers_for g =
+    (V.Rnm.mk_from_avoids (get_vnames g),
+     E.Rnm.mk_from_avoids (get_enames g),
+     B.Rnm.mk_from_avoids (get_bboxes g))
 
   fun fresh_expand1_bbox bn g =
-      let val (_, graph) = expand1_bbox bn
-                ((V.Rnm.mk_from_avoids (get_vnames g),
-                E.Rnm.mk_from_avoids (get_enames g),
-                B.Rnm.mk_from_avoids (get_bboxes g)),g)
-      in graph end;
+    let val (_, graph) = expand1_bbox bn (fresh_namers_for g, g)
+    in graph end;
+
+  fun fresh_copy1_bbox bn g =
+    let val (bname, (_, graph)) = copy1_bbox bn (fresh_namers_for g, g)
+    in (bname, graph) end;
 
   (* FIXME: this code is largely duplicated in bgraph - clean up *)
 
