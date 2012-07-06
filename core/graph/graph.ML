@@ -95,10 +95,6 @@ val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T
    distinct. *)
 val merge_by_vertices : T -> T -> T
 
-(* merge_2vertices: all edges of first get moved to second, and first gets 
-   removed. *)
-(* FIXME: remove *) val merge_2vertices : V.name -> V.name -> T -> T
-
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
 
@@ -124,23 +120,11 @@ val dir_edges_between : T -> V.name -> V.name
       -> (dir_or_undir * EData.data) E.NTab.T (* from fst to snd vertex *) 
          * (dir_or_undir * EData.data) E.NTab.T (* from snd to fst vertex *) 
 
-(* FIXME: remove *) val get_vname_ehns : T -> V.name -> H.NSet.T
-(* FIXME: remove *) val get_ehn_vname : T -> H.name -> V.name
-
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> V.name -> V.NSet.T
     
 (* get incoming, outgoing, undirected edges adjacent to vertex *)
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
-
-(* fold over adjacents; the edge-half argument of the folding function is the one closest to the adjacent vertex names. e.g. folding of ins and outs of vertex x: 
-       if "x <-e- y" then: "f (Ehn.mk_start e,...)"
-       if "x -e-> y" then: "f (Ehn.mk_end e,...)"   *)
-(* function is passed the half-edge corresponding to the "other end" of the
- * edge, the edge data, and the vertex at the other end of the edge *)
-(* FIXME: remove *) val fold_adj_halfedges : (H.name * (dir_or_undir * EData.data) 
-                -> V.name -> 'a -> 'a) 
-      -> T -> V.name -> 'a -> 'a
 
 datatype incidence_type = Incoming | Outgoing | SelfLoop;
 (* Fold over the incident edges.
@@ -188,6 +172,15 @@ val copy_subgraph : V.NSet.T
     -> (V.Rnm.T * E.Rnm.T) * T 
     -> (V.Rnm.T * E.Rnm.T) * T
 
+
+(*** DEPRECATED FUNCTIONS ***)
+
+(* FIXME: remove *) val get_vname_ehns : T -> V.name -> H.NSet.T
+(* FIXME: remove *) val get_ehn_vname : T -> H.name -> V.name
+(* FIXME: remove *) val fold_adj_halfedges : (H.name * (dir_or_undir * EData.data) 
+                -> V.name -> 'a -> 'a) -> T -> V.name -> 'a -> 'a
+(* FIXME: remove *) val merge_2vertices : V.name -> V.name -> T -> T
+
 end;
 
 
@@ -228,21 +221,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   val get_in_edges  = (fst o snd) oo get_vertex
   val get_out_edges = (snd o snd) oo get_vertex
   
-  fun get_ehn_vname g ehn = 
-      let val (_,(s,t)) = get_edge g (H.get_ename ehn)
-      in if H.is_start ehn then s else t end;
-  
   val get_vertex_data = fst oo get_vertex;
   val get_edge_data = (snd o fst) oo get_edge;
-  
-  fun get_vname_ehns g v = 
-      let val (_,(ines,outes)) = (get_vertex g v)
-      in
-        H.NSet.empty 
-          |> E.NSet.fold (H.NSet.add o H.mk_start) outes 
-          |> E.NSet.fold (H.NSet.add o H.mk_end) ines
-      end;
-  
+
   val set_vertex_data = update_vertex_data o K;
   val set_edge_data = update_edge_data o K;
   
@@ -323,30 +304,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
                      raise ename_already_exists_exp (en, g3)
                    else new_named_edge d en vn1 vn2 g3)
                (get_edges g1));
-
-  (* merge vertices, removes v1, keeps v1. deletes all edges to v1, add them as 
-     new edges to v2 (with the same name). *)
-  fun merge_2vertices v1 v2 g = 
-      let val (_,(ines,outes)) = get_vertex g v1
-      in 
-        g |> E.NSet.fold
-              (fn en => fn g => 
-                  let val (e,(fromv,_)) = get_edge g en
-                  in g |> delete_edge en
-                       |> add_named_edge en e fromv v2
-                       |> snd
-                  end)
-              ines
-          |> E.NSet.fold
-              (fn en => fn g => 
-                  let val (e,(_,tov)) = get_edge g en
-                  in g |> delete_edge en
-                       |> add_named_edge en e v2 tov
-                       |> snd
-                  end)
-              outes
-          |> delete_vertex v1
-      end;
 
   (* delete subg from fromg; assumes edge and vertex names of subg are a
      subset of fromg; else delete will raise exception *)
@@ -458,25 +415,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         val ern = E.Rnm.mk_from_avoids 
             (E.NSet.union_merge (get_enames g1) (get_enames g2))
       in rename (xrn,vrn,ern) g2 end;   
-
-  (* fold a function over the adjacent vertex names. 
-     The edge-half is the half connected to the adj vertex. 
-     e.g. folding of ins and outs of vertex x: 
-       if "x <-e- y" then: "f (H.mk_start e,...)"
-       if "x -e-> y" then: "f (H.mk_end e,...)"  *)
-  fun fold_adj_halfedges' f graph (ins,outs) a = 
-      a |> (E.NSet.fold 
-           (fn e => let val (d,(from,_)) = get_edge graph e
-            in f (H.mk_start e,d) from end) ins)
-        |> (E.NSet.fold 
-           (fn e => let val (d,(_,to)) = get_edge graph e
-            in f (H.mk_end e,d) to end) outs);
-  
-  (* all vertices adjacent to vertex named n; 
-     g = graph; f = function; a = accumulator.
-     The edge-half is the half connected to the adj vertex. *)
-  fun fold_adj_halfedges f g n a = 
-      fold_adj_halfedges' f g (snd (get_vertex g n)) a;
 
   datatype incidence_type = Incoming | Outgoing | SelfLoop;
 
@@ -816,6 +754,48 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
             Arity.update_in plus1 o Arity.update_out plus1
       in 
         fold_adj (add_edge_to_arity o strip_args) g v Arity.zero
+      end;
+
+  (*** DEPRECATED FUNCTIONS ***)
+  fun get_ehn_vname g ehn = 
+      let val (_,(s,t)) = get_edge g (H.get_ename ehn)
+      in if H.is_start ehn then s else t end;
+  fun get_vname_ehns g v = 
+      let val (_,(ines,outes)) = (get_vertex g v)
+      in
+        H.NSet.empty 
+          |> E.NSet.fold (H.NSet.add o H.mk_start) outes 
+          |> E.NSet.fold (H.NSet.add o H.mk_end) ines
+      end;
+  fun fold_adj_halfedges' f graph (ins,outs) a = 
+      a |> (E.NSet.fold 
+           (fn e => let val (d,(from,_)) = get_edge graph e
+            in f (H.mk_start e,d) from end) ins)
+        |> (E.NSet.fold 
+           (fn e => let val (d,(_,to)) = get_edge graph e
+            in f (H.mk_end e,d) to end) outs);
+  fun fold_adj_halfedges f g n a = 
+      fold_adj_halfedges' f g (snd (get_vertex g n)) a;
+  fun merge_2vertices v1 v2 g = 
+      let val (_,(ines,outes)) = get_vertex g v1
+      in 
+        g |> E.NSet.fold
+              (fn en => fn g => 
+                  let val (e,(fromv,_)) = get_edge g en
+                  in g |> delete_edge en
+                       |> add_named_edge en e fromv v2
+                       |> snd
+                  end)
+              ines
+          |> E.NSet.fold
+              (fn en => fn g => 
+                  let val (e,(_,tov)) = get_edge g en
+                  in g |> delete_edge en
+                       |> add_named_edge en e v2 tov
+                       |> snd
+                  end)
+              outes
+          |> delete_vertex v1
       end;
 end; end; (* local -- hides opened Graph data types; structure *)
 
