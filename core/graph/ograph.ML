@@ -222,11 +222,6 @@ val get_wires_for_edges : T -> E.NSet.T -> (V.name * V.name * V.NSet.T * E.NSet.
 (* Return a list of all the wires in the graph *)
 val get_wire_list : T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
 
-(* Given a vertex and first edge, return the (non-circle, normalised) wire,
-   starting with that edge as two lists containing verts and edges.  *)
-val normalised_wire_as_lists : T -> V.name -> E.name -> (V.name list * E.name list)
-
-
 val is_input_vertex : T -> V.name -> bool
 val is_output_vertex : T -> V.name -> bool
 val is_boundary_vertex : T -> V.name -> bool
@@ -822,20 +817,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
        end
      else (s_end, t_end, s_wvs |> V.NSet.union_merge t_wvs, es)
   end
-  
-  
-  fun normalised_wire_as_lists g head first_edge = let
-    val wv1 = edge_get_other_vertex g first_edge head
-    val e1maybe = wv_get_other_edge g wv1 first_edge
-  in case e1maybe 
-       of NONE    => ([head,wv1],[first_edge]) (* boundary *)
-        | SOME e1 => let val wv2  = edge_get_other_vertex g e1 wv1 (* internal *)
-                         val e2   = the (wv_get_other_edge g wv2 e1)
-                         val tail = edge_get_other_vertex g e2 wv2
-                     in ([head,wv1,wv2,tail],[e1,e2])
-                     end
-  end
-  
+
   fun get_wires_for_edges g es = let
     fun gw es' = if E.NSet.is_empty es' then []
                 else let val wire = get_wire_containing_edge g ((the o
