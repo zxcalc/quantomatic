@@ -91,12 +91,6 @@ val boundary_coherence : T -> V.name -> V.name ->
 val get_edgepoints : T -> V.NSet.T
 val is_edgepoint : T -> V.name -> bool
 val is_endpoint' : OVData.data * (E.NSet.T * E.NSet.T) -> bool
-(* returns the SOME non-empty edge set when exactly one of the inset of 
-   ourset of edges is empty, 
-   else NONE *)
-(* either remove or create a wire version *)
-(* FIXME: remove *) val endpoint_of_vertex' : OVData.data * (E.NSet.T * E.NSet.T) 
-    -> (H.halfid * E.NSet.T) option;
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : V.name -> T -> T
