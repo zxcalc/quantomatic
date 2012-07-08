@@ -3,20 +3,20 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile isaplib libraries ****)
 
-local val rootDir = OS.FileSys.getDir(); in 
-val _ = OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
-val _ = use "ROOT.ML"; 
-val _ = OS.FileSys.chDir rootDir;
-end;
+val rootDir = OS.FileSys.getDir();
+
+(* Include isaplib *)
+OS.FileSys.chDir (rootDir ^ "/../../isaplib/");
+use "ROOT.ML";
+OS.FileSys.chDir rootDir;
+
 print_depth 3;
 
-val rootDir = OS.FileSys.getDir(); 
 PolyML.Project.Log.level_ref := 4;
-PolyML.Project.depend_on_files 
-  [(* this file *)
+PolyML.Project.depend_on_files
+  [
    rootDir ^ "/../../isaplib/ROOT.ML",
    rootDir ^ "/ROOT.ML"
-   (* TODO: isaplib? *)
   ];
 
 (** For debugging, turn on debug flag: **)
