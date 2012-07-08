@@ -131,30 +131,27 @@ PolyML.Project.make "matching/simple_match_search.ML";
 PolyML.Project.make "matching/simple_rule_match_search.ML";
 (* searching for matches, but avoiding symmetric ones *)
 PolyML.Project.make "matching/symmetry_rule_match_search.ML";
-(* substitution of a matched subgraph for another graph *)
-PolyML.Project.make "rewriting/graph_subst.ML";
-(* substitution used to provide rewriting with rulesets *)
-PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
 
 (* New matching implementation *)
-
 PolyML.Project.make "matching2/match_state.ML";
-
 (* signature for inner (concrete) matching *)
 PolyML.Project.make "matching2/inner_match_search.ML";
-
 (* signature for outer (e.g. !-box) matching *)
 PolyML.Project.make "matching2/outer_match_search.ML";
-
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching2/simple_inner_match_search.ML";
-
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
 PolyML.Project.make "matching2/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching2/greedy_match_search.ML";
+
+
+(* substitution of a matched subgraph for another graph *)
+PolyML.Project.make "rewriting/graph_subst.ML";
+(* substitution used to provide rewriting with rulesets *)
+PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 
 
 (* Testing *)
