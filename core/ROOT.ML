@@ -135,6 +135,7 @@ PolyML.Project.make "matching/symmetry_rule_match_search.ML";
 
 (* New matching implementation *)
 PolyML.Project.make "matching2/match_state.ML";
+PolyML.Project.make "matching2/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)
 PolyML.Project.make "matching2/inner_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
