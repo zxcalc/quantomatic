@@ -112,10 +112,9 @@ functor BangGraphMatchState(
     val complete = get_complete_nodeverts ms
     val touched = G.incident_vertices pat complete
     fun kill_all_bboxes v =
-      B.NSet.fold BG.kill_bbox (BG.get_bboxes_of pat v)
-    val pat' = V.NSet.fold kill_all_bboxes touched pat
+      B.NSet.fold kill_pat_bbox (BG.get_bboxes_of pat v)
   in
-    set_pat pat' ms
+    V.NSet.fold kill_all_bboxes touched ms
   end
 end
 
