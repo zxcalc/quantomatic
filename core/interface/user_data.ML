@@ -65,10 +65,10 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
     type updater = (user_data -> user_data); 
  
     datatype T = UD of {
-      graph_ud : g_ud, (* A symtab for the graph *)
+      graph_ud : g_ud,  (* A symtab for the  Graph   *)
       vertex_ud : v_ud, (* A symtab for each Vertex *)
-      edge_ud   : e_ud, (* ''                Edge *)
-      bangb_ud : bb_ud   (* ''                !-Box *)
+      edge_ud   : e_ud, (* ''                Edge   *)
+      bangb_ud : bb_ud  (* ''                !-Box  *)
     }
 
     exception vname_already_exists of (V.name * T);
@@ -113,6 +113,11 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
       in
         V.NTab.lookup vs_ud n
       end;
+  
+    fun get_v_ud_safe ud n =
+      case get_v_ud ud n
+        of SOME t => t
+         | NONE => Symtab.empty
 
     fun get_e_ud ud n = 
       let
@@ -121,12 +126,22 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
         E.NTab.lookup es_ud n
       end;
 
+    fun get_e_ud_safe ud n =
+      case get_e_ud ud n
+        of SOME t => t
+         | NONE => Symtab.empty
+
     fun get_bb_ud ud n = 
       let
         val bs_ud = get_bs_ud ud
       in
         B.NTab.lookup bs_ud n
       end;
+
+    fun get_bb_ud_safe ud n =
+      case get_bb_ud ud n
+        of SOME t => t
+         | NONE => Symtab.empty
 
     (* Lazily attach the user_data *) 
     fun update_v_ud upd n ud = 
@@ -224,7 +239,33 @@ functor UserData(Graph:BANG_GRAPH):USER_DATA
       SOME a => set_b_ud a ud
       | NONE => raise bbbox_already_exists (newname, ud)
 
-        (* TODO *)
-  fun pretty_user_data ud = Pretty.str "Not Implemented";
+  fun pretty_symtab tab = 
+    let
+      fun pretty_kv (k,v) = Pretty.str (" " ^ k ^ "=> " ^ v ^ ", ")
+    in
+      Pretty.chunks (map pretty_kv (Symtab.dest tab))
+    end;
+  fun pretty_nametab pretty_printer = pretty_printer pretty_symtab
+
+  fun pretty_user_data ud = 
+    Pretty.chunks
+      [Pretty.str "User Data{",
+       Pretty.block
+        [Pretty.str " ",
+         Pretty.chunks
+         [Pretty.block
+          [Pretty.str "Graph User Data: ",
+           pretty_symtab (get_g_ud ud)],
+          Pretty.block
+          [Pretty.str "Vertices User Data: ",
+           pretty_nametab V.NTab.pretty (get_vs_ud ud)],
+           Pretty.block
+          [Pretty.str "Edges User Data: ",
+           pretty_nametab E.NTab.pretty (get_es_ud ud)],
+            Pretty.block
+          [Pretty.str "!-Boxes User Data: ",
+          pretty_nametab B.NTab.pretty (get_bs_ud ud)]]],
+       Pretty.str "}"]
+          
   val print_user_data = Pretty.writeln o pretty_user_data;
 end;

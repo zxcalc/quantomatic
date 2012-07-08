@@ -163,6 +163,8 @@ struct
                                | BangBoxUserData of { bangBoxName: string,
                                                       dataName: string }
                                  (* UserDataResponse | ErrorResponse *)
+                               | PrintUserData
+                                 (* PrettyResponse | ErrorResponse *)
 
        and graphEditAction = UndoAction
                              (* OkResponse | ErrorResponse *)
@@ -683,6 +685,14 @@ fun hilb ([format], graph) =
                 in
                       DataResponse { data = data }
                 end
+
+               | PrintUserData => 
+                let
+                  val ud = State.get_graph_ud state (GraphName.mk graphName)
+                in
+                  PrettyResponse {data = State.UIData.pretty_user_data ud}
+                end
+
             ), state)
            end
         handle G.no_such_vname_exp (_,vname,_) =>
@@ -1048,7 +1058,6 @@ fun hilb ([format], graph) =
     | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
         (OkResponse,
          State.apply_rewrite (GraphName.mk graphName) index state)
-
     | serviceRequest' ListMetricsNamesRequest state =
       (StringListResponse { data = State.get_names_metrics state }, state)
     | serviceRequest' ListMetricsDescsRequest state =

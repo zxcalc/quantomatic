@@ -130,7 +130,12 @@ sig
 
   (* UI Data getters/setters *)
   (* ... For Graphs *)
+
+  (* get_graph_ud actually returns the UD.T structure, with everything about the
+   * vertices, etc...   ......*)
+  val get_graph_ud : T -> GraphName.name -> UIData.T
   val update_graph_user_data : string -> string ->  GraphName.name -> T -> T
+  (* ...... whereas get_graph_user_data returns the data attached to the graph *)
   val get_graph_user_data : GraphName.name -> T -> string Symtab.table
   val delete_graph_user_data : string -> GraphName.name -> T -> T
   (* ... For Vertices *)
