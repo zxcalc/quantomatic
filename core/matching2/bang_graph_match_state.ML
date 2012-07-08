@@ -9,6 +9,11 @@ signature BANG_GRAPH_MATCH_STATE
   structure BG : BANG_GRAPH;
   sharing G.SharingOGraph = BG.SharingOGraph;
 
+  (* names to avoid when copying bboxes in pat *)
+  val get_pat_avoids    : T -> (V.NSet.T * E.NSet.T)
+  val update_pat_avoids : ((V.NSet.T * E.NSet.T) -> (V.NSet.T * E.NSet.T)) -> T -> T
+  val set_pat_avoids    : (V.NSet.T * E.NSet.T) -> T -> T
+
   (* initialise MatchState and schedule all concrete vertices in pattern
    * to be matched
    * args: pattern graph, target graph *)
@@ -31,13 +36,45 @@ functor BangGraphMatchState(
   val empty_data : data
 ) : BANG_GRAPH_MATCH_STATE
 = struct
+  type data2 = data
+
+  type bdata = {
+    (* names context for fresh names when copying bboxes in pat *)
+    pat_avoids   : V.NSet.T * E.NSet.T,
+    (* type-extensibility *)
+    data         : data
+  };
+  fun get_data_of_bdata (bdata:bdata) : data = #data bdata;
+  fun update_data_of_bdata f bdata = {
+    pat_avoids = #pat_avoids bdata,
+    data       = f (#data bdata)
+  };
+  fun get_pat_avoids_of_bdata bdata = #pat_avoids bdata
+  fun update_pat_avoids_of_bdata f (bdata:bdata) = {
+    pat_avoids = f (#pat_avoids bdata),
+    data       = #data bdata
+  };
+
   structure BG = G;
   structure OGMS = OGraphMatchState(
     structure G = G
-    type data = data
-    val empty_data = empty_data
+    type data = bdata
+    val empty_data = {
+      pat_avoids = (V.NSet.empty, E.NSet.empty),
+      data       = empty_data
+    }
   );
   open OGMS;
+
+  (* override data things from OGraphMatchState *)
+  type data = data2
+  val get_data = get_data_of_bdata o OGMS.get_data;
+  val update_data = OGMS.update_data o update_data_of_bdata;
+
+  (* new getters/setters *)
+  val get_pat_avoids = get_pat_avoids_of_bdata o OGMS.get_data;
+  val update_pat_avoids = OGMS.update_data o update_pat_avoids_of_bdata;
+  val set_pat_avoids = update_pat_avoids o K;
 
   fun schedule_concrete new_vs new_es ms = let
     val pat = get_pat ms
@@ -93,7 +130,7 @@ functor BangGraphMatchState(
   (* FIXME: record this in an appropriate format *)
   fun expand_pat_bbox b ms = let
     fun expand_bbox g = let
-      val (v_avoid,e_avoid) = get_names ms
+      val (v_avoid,e_avoid) = get_pat_avoids ms
       val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
       val e_avoid = e_avoid |> E.NSet.union_merge (BG.get_enames g)
       val vrn = V.Rnm.mk_from_avoids v_avoid

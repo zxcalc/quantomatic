@@ -16,16 +16,14 @@ struct
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
-  fun match_avoiding_names names pat tgt = let
+  fun match pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
-    val ms = MatchState.init_and_schedule_all pat tgt |> MatchState.set_names names
+    val ms = MatchState.init_and_schedule_all pat tgt
   in Seq.filter MatchState.is_total
        (Seq.maps InnerMatchSearch.match_bare_wires
         (InnerMatchSearch.match_pending concrete_doomedf ms))
   end
-  
-  val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)
   
   structure Sharing =
   struct

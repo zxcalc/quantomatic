@@ -19,8 +19,6 @@ signature OGRAPH_MATCH_STATE
     sharing type Sharing.T = T
     sharing Sharing.G = G.SharingOGraph
   
-  (* names context for fresh names when copying bboxes in pat *)
-  val get_names           : T -> (V.NSet.T * E.NSet.T)
   (* the graph to match from *)
   val get_pat             : T -> G.T
   (* the graph to match onto *)
@@ -47,7 +45,6 @@ signature OGRAPH_MATCH_STATE
   (* the vertex/edge data substitution for the matching *)
   val get_match_subst     : T -> G.Param.subst
 
-  val update_names        : ((V.NSet.T * E.NSet.T) -> (V.NSet.T * E.NSet.T)) -> T -> T
   val update_pat          : (G.T -> G.T) -> T -> T
   val update_tgt          : (G.T -> G.T) -> T -> T
   val update_vmap         : (VInjEndo.T -> VInjEndo.T) -> T -> T
@@ -60,7 +57,6 @@ signature OGRAPH_MATCH_STATE
   val update_ps_nodeverts : (V.NSet.T -> V.NSet.T) -> T -> T
   val update_match_subst  : (G.Param.subst -> G.Param.subst) -> T -> T
 
-  val set_names           : (V.NSet.T * E.NSet.T) -> T -> T
   val set_pat             : G.T -> T -> T
   val set_tgt             : G.T -> T -> T
   val set_vmap            : VInjEndo.T -> T -> T
@@ -134,8 +130,6 @@ functor OGraphMatchState(
   type data = data
   
   datatype T = MatchState of {
-    (* names context for fresh names when copying bboxes in pat *)
-    names        : V.NSet.T * E.NSet.T,
     (* pattern and target graphs *)
     pat          : G.T,
     tgt          : G.T,
@@ -157,7 +151,6 @@ functor OGraphMatchState(
   }
   
   val empty = MatchState {
-    names        = (V.NSet.empty, E.NSet.empty),
     pat          = G.empty,
     tgt          = G.empty,
     vmap         = VInjEndo.empty,
@@ -173,7 +166,6 @@ functor OGraphMatchState(
   }
 
   fun init pat tgt = MatchState {
-    names        = (V.NSet.empty, E.NSet.empty),
     pat          = pat,
     tgt          = tgt,
     vmap         = VInjEndo.empty,
@@ -189,25 +181,8 @@ functor OGraphMatchState(
   }
   
   (* getters and setters *)
-  
-  fun update_names f (MatchState r) = MatchState {
-    names        = f(#names r),
-    pat          = #pat r,
-    tgt          = #tgt r,
-    vmap         = #vmap r,
-    emap         = #emap r,
-    u_circles    = #u_circles r,
-    u_nodeverts  = #u_nodeverts r,
-    u_wireverts  = #u_wireverts r,
-    u_bare_wires = #u_bare_wires r,
-    p_nodeverts  = #p_nodeverts r,
-    ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r,
-    data         = #data r
-  }
 
   fun update_pat f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = f(#pat r),
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -223,7 +198,6 @@ functor OGraphMatchState(
   }
 
   fun update_tgt f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = f(#tgt r),
     vmap         = #vmap r,
@@ -239,7 +213,6 @@ functor OGraphMatchState(
   }
 
   fun update_vmap f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = f(#vmap r),
@@ -255,7 +228,6 @@ functor OGraphMatchState(
   }
 
   fun update_emap f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -271,7 +243,6 @@ functor OGraphMatchState(
   }
 
   fun update_u_circles f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -287,7 +258,6 @@ functor OGraphMatchState(
   }
 
   fun update_u_nodeverts f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -303,7 +273,6 @@ functor OGraphMatchState(
   }
 
   fun update_u_wireverts f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -319,7 +288,6 @@ functor OGraphMatchState(
   }
 
   fun update_u_bare_wires f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -335,7 +303,6 @@ functor OGraphMatchState(
   }
 
   fun update_p_nodeverts f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -351,7 +318,6 @@ functor OGraphMatchState(
   }
 
   fun update_ps_nodeverts f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -367,7 +333,6 @@ functor OGraphMatchState(
   }
 
   fun update_match_subst f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -383,7 +348,6 @@ functor OGraphMatchState(
   }
 
   fun update_data f (MatchState r) = MatchState {
-    names        = #names r,
     pat          = #pat r,
     tgt          = #tgt r,
     vmap         = #vmap r,
@@ -398,7 +362,6 @@ functor OGraphMatchState(
     data         = f(#data r)
   }
 
-  fun get_names        (MatchState r) = #names r
   fun get_pat          (MatchState r) = #pat r
   fun get_tgt          (MatchState r) = #tgt r
   fun get_vmap         (MatchState r) = #vmap r
@@ -412,7 +375,6 @@ functor OGraphMatchState(
   fun get_match_subst  (MatchState r) = #match_subst r
   fun get_data         (MatchState r) = #data r
 
-  val set_names           = update_names        o K
   val set_pat             = update_pat          o K
   val set_tgt             = update_tgt          o K
   val set_vmap            = update_vmap         o K

@@ -19,14 +19,10 @@ sig
     sharing Sharing.G = G.SharingOGraph
     sharing Sharing.InnerMatchSearch = InnerMatchSearch.Sharing
     sharing Sharing.MatchState = MatchState.Sharing
-    
-  (* Searches for matches *)
-  val match_avoiding_names : (V.NSet.T * E.NSet.T) (* names to avoid *)
-    -> G.T                   (* pattern graph *)
-    -> G.T                   (* target graph *)
-    -> MatchState.T Seq.seq  (* (lazy) list of matches *)
-      
-  val match : G.T -> G.T -> MatchState.T Seq.seq
+  
+  val match : G.T           (* pattern graph *)
+    -> G.T                  (* target graph *)
+    -> MatchState.T Seq.seq (* (lazy) list of matches *)
 end
 
 signature OUTER_BG_MATCH_SEARCH =
@@ -37,4 +33,10 @@ sig
   sharing G.SharingOGraph = BG.SharingOGraph;
   sharing BGMatchState.G.SharingOGraph = G.SharingOGraph;
   sharing MatchState.Sharing = BGMatchState.Sharing
+  
+  (* Searches for matches *)
+  val match_avoiding_names : (V.NSet.T * E.NSet.T) (* names to avoid *)
+    -> G.T                   (* pattern graph *)
+    -> G.T                   (* target graph *)
+    -> MatchState.T Seq.seq  (* (lazy) list of matches *)
 end

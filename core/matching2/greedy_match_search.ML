@@ -56,7 +56,7 @@ struct
     val pat = G.normalise pat
     val tgt = G.normalise tgt
     val ms = BGMatchState.init_and_schedule_concrete pat tgt |>
-    BGMatchState.set_names names
+    BGMatchState.set_pat_avoids names
   in
     match_loop ms
   end
