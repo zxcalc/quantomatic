@@ -105,6 +105,7 @@ val del_from_edgepoints : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
 val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
+(* get_plugging is copied further down, with the other plugging functions *)
 
 (* *** END OF COPIED SIGNATURE *** *)
 
