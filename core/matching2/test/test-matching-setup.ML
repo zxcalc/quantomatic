@@ -1,7 +1,15 @@
 structure Test_MatchState =
-  OGraphMatchState(structure G = Test_MkG.G)
+  OGraphMatchState(
+    structure G = Test_MkG.G
+    type data = unit
+    val empty_data = ()
+  )
 structure Test_BGMatchState =
-  BangGraphMatchState(structure G = Test_MkG.G)
+  BangGraphMatchState(
+    structure G = Test_MkG.G
+    type data = unit
+    val empty_data = ()
+  )
 structure Test_InnerMatcher =
   SimpleInnerMatchSearch(structure MatchState = Test_MatchState)
 structure Test_BGInnerMatcher =

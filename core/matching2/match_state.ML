@@ -113,6 +113,15 @@ signature OGRAPH_MATCH_STATE
 
   val pretty : T -> Pretty.T
   val print : T -> unit
+
+  (* extra data for match state, for extending the datatype cos ML can't do
+  it properly from the outside; this is basically a form of record
+  extensibility, allowing hidden types, but will doing the lazy
+  extension of data -- allows OOP style extension of signature/structure
+  by refining data. *)
+  type data
+  val get_data : T -> data;
+  val update_data : (data -> data) -> T -> T
 end
 
 (* The match state for pattern graph matching *)
@@ -138,9 +147,14 @@ signature BANG_GRAPH_MATCH_STATE
   val kill_impossible_bboxes : T -> T
 end
 
-functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
+functor OGraphMatchState(
+  structure G : OGRAPH
+  type data (* additional data *)
+  val empty_data : data
+) : OGRAPH_MATCH_STATE
 = struct
   structure G = G
+  type data = data
   
   datatype T = MatchState of {
     (* names context for fresh names when copying bboxes in pat *)
@@ -161,7 +175,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     p_nodeverts  : V.NSet.T,
     (* partially matched node-vertices, scheduled for re-matching *)
     ps_nodeverts : V.NSet.T,
-    match_subst  : G.Param.subst
+    match_subst  : G.Param.subst,
+    data         : data
   }
   
   val empty = MatchState {
@@ -176,7 +191,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = E.NSet.empty,
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
-    match_subst  = G.Param.empty_subst
+    match_subst  = G.Param.empty_subst,
+    data         = empty_data
   }
 
   fun init pat tgt = MatchState {
@@ -191,7 +207,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = E.NSet.empty,
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
-    match_subst  = G.Param.empty_subst
+    match_subst  = G.Param.empty_subst,
+    data         = empty_data
   }
   
   (* getters and setters *)
@@ -208,7 +225,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_pat f (MatchState r) = MatchState {
@@ -223,7 +241,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_tgt f (MatchState r) = MatchState {
@@ -238,7 +257,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_vmap f (MatchState r) = MatchState {
@@ -253,7 +273,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_emap f (MatchState r) = MatchState {
@@ -268,7 +289,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_u_circles f (MatchState r) = MatchState {
@@ -283,7 +305,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_u_nodeverts f (MatchState r) = MatchState {
@@ -298,7 +321,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_u_wireverts f (MatchState r) = MatchState {
@@ -313,7 +337,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_u_bare_wires f (MatchState r) = MatchState {
@@ -328,7 +353,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = f(#u_bare_wires r),
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_p_nodeverts f (MatchState r) = MatchState {
@@ -343,7 +369,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = f(#p_nodeverts r),
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_ps_nodeverts f (MatchState r) = MatchState {
@@ -358,7 +385,8 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = f(#ps_nodeverts r),
-    match_subst  = #match_subst r
+    match_subst  = #match_subst r,
+    data         = #data r
   }
 
   fun update_match_subst f (MatchState r) = MatchState {
@@ -373,7 +401,24 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = f(#match_subst r)
+    match_subst  = f(#match_subst r),
+    data         = #data r
+  }
+
+  fun update_data f (MatchState r) = MatchState {
+    names        = #names r,
+    pat          = #pat r,
+    tgt          = #tgt r,
+    vmap         = #vmap r,
+    emap         = #emap r,
+    u_circles    = #u_circles r,
+    u_nodeverts  = #u_nodeverts r,
+    u_wireverts  = #u_wireverts r,
+    u_bare_wires = #u_bare_wires r,
+    p_nodeverts  = #p_nodeverts r,
+    ps_nodeverts = #ps_nodeverts r,
+    match_subst  = #match_subst r,
+    data         = f(#data r)
   }
 
   fun get_names        (MatchState r) = #names r
@@ -388,6 +433,7 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
   fun get_p_nodeverts  (MatchState r) = #p_nodeverts r
   fun get_ps_nodeverts (MatchState r) = #ps_nodeverts r
   fun get_match_subst  (MatchState r) = #match_subst r
+  fun get_data         (MatchState r) = #data r
 
   val set_names           = update_names        o K
   val set_pat             = update_pat          o K
@@ -513,10 +559,18 @@ functor OGraphMatchState(structure G : OGRAPH) : OGRAPH_MATCH_STATE
 end
 
 (* type-coerced version of MatchState for pattern graphs *)
-functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
+functor BangGraphMatchState(
+  structure G : BANG_GRAPH
+  type data
+  val empty_data : data
+) : BANG_GRAPH_MATCH_STATE
 = struct
   structure BG = G;
-  structure OGMS = OGraphMatchState(structure G = G);
+  structure OGMS = OGraphMatchState(
+    structure G = G
+    type data = data
+    val empty_data = empty_data
+  );
   open OGMS;
 
   fun schedule_concrete new_vs new_es ms = let
