@@ -95,7 +95,6 @@ val boundary_coherence : T -> V.name -> V.name ->
 (* edge points; parts of an edge *)
 val get_edgepoints : T -> V.NSet.T
 val is_edgepoint : T -> V.name -> bool
-val is_endpoint' : OVData.data * (E.NSet.T * E.NSet.T) -> bool
 
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : V.name -> T -> T
