@@ -32,23 +32,9 @@ struct
 
   fun match_loop ms' = let
     fun kill_and_expand b ms = let
-      fun do_kill ms =
-        choose_next_bbox (BGMatchState.update_pat (BG.kill_bbox b) ms)
-
-      fun expand_bbox g = let
-        val (v_avoid,e_avoid) = BGMatchState.get_names ms
-        val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
-        val e_avoid = e_avoid |> E.NSet.union_merge (BG.get_enames g)
-        val vrn = V.Rnm.mk_from_avoids v_avoid
-        val ern = E.Rnm.mk_from_avoids e_avoid
-        val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
-        val (_,g') = BG.expand1_bbox b ((vrn,ern,brn),g)
-      in g' end
-
-      val do_copy = match_loop
-                    o BGMatchState.schedule_new_concrete
-                    o (BGMatchState.update_pat expand_bbox)
-
+      val do_kill = choose_next_bbox o (BGMatchState.kill_pat_bbox b)
+      val do_copy = match_loop o BGMatchState.schedule_new_concrete
+                               o (BGMatchState.expand_pat_bbox b)
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
                  (Seq.maps do_copy (Seq.single ms))

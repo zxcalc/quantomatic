@@ -131,6 +131,9 @@ signature BANG_GRAPH_MATCH_STATE
    *)
   val schedule_new_concrete : T -> T
 
+  val expand_pat_bbox : B.name -> T -> T
+  val kill_pat_bbox : B.name -> T -> T
+
   (* Kills any !-boxes that are adjacent to a completely-matched vertex *)
   val kill_impossible_bboxes : T -> T
 end
@@ -566,6 +569,23 @@ functor BangGraphMatchState(structure G : BANG_GRAPH) : BANG_GRAPH_MATCH_STATE
   in
     schedule_concrete new_vs new_es ms
   end
+
+  (* FIXME: record this in an appropriate format *)
+  fun expand_pat_bbox b ms = let
+    fun expand_bbox g = let
+      val (v_avoid,e_avoid) = get_names ms
+      val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
+      val e_avoid = e_avoid |> E.NSet.union_merge (BG.get_enames g)
+      val vrn = V.Rnm.mk_from_avoids v_avoid
+      val ern = E.Rnm.mk_from_avoids e_avoid
+      val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
+      val (_,g') = BG.expand1_bbox b ((vrn,ern,brn),g)
+    in g' end
+  in
+    ms |> update_pat expand_bbox
+  end
+  (* FIXME: record this in an appropriate format *)
+  fun kill_pat_bbox b = update_pat (BG.kill_bbox b)
 
   fun kill_impossible_bboxes ms = let
     val pat = get_pat ms
