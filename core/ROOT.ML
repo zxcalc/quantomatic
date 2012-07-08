@@ -93,8 +93,11 @@ Testing.make_test "theories/test/vertex-test.ML";
 Testing.make_test "io/input_graph_v1.ML";
 Testing.make_test "io/output_graph_v1.ML";
 (* *)
-Testing.make_test "graph/test/graph-test.ML";
+Testing.make_test "graph/test/test-graph-setup.ML";
+Testing.make_test "graph/test/test-graph.ML";
+Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
+Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
