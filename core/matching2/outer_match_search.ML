@@ -35,8 +35,10 @@ sig
   sharing MatchState.Sharing = BGMatchState.Sharing
   
   (* Searches for matches *)
-  val match_avoiding_names : (V.NSet.T * E.NSet.T) (* names to avoid *)
-    -> G.T                   (* pattern graph *)
-    -> G.T                   (* target graph *)
-    -> MatchState.T Seq.seq  (* (lazy) list of matches *)
+  val match_avoiding_tracking
+     : (V.NSet.T *          (* names to avoid *)
+        V.NSet.T)           (* names to track *)
+    -> G.T                  (* pattern graph *)
+    -> G.T                  (* target graph *)
+    -> MatchState.T Seq.seq (* (lazy) list of matches *)
 end

@@ -52,16 +52,17 @@ struct
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
-  fun match_avoiding_names names pat tgt = let
+  fun match_avoiding_tracking (avoid,track) pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
-    val ms = BGMatchState.init_and_schedule_concrete pat tgt |>
-    BGMatchState.set_pat_avoids names
+    val ms = BGMatchState.init_and_schedule_concrete pat tgt
+              |> BGMatchState.set_pat_avoids avoid
+              |> BGMatchState.set_pat_tracked track
   in
     match_loop ms
   end
 
-  val match = match_avoiding_names (V.NSet.empty, E.NSet.empty)
+  val match = match_avoiding_tracking (V.NSet.empty, V.NSet.empty)
 
   structure Sharing =
   struct
