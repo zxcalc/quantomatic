@@ -188,8 +188,13 @@ struct
 
   fun rule_matches r g =
       let
+        (* Vertices and variables must be renamed away from
+         * those in g, otherwise the rewriting will fail
+         * (a quirk of the implementations of LinRatExpr and
+         * V.CRnm) *)
         val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g),
-                    V.Rnm.empty, E.Rnm.empty, B.Rnm.empty)
+                    V.Rnm.mk_from_avoids (G.get_vnames g),
+                    E.Rnm.empty, B.Rnm.empty)
         val (_,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val rhs = Rule.get_rhs r;
@@ -199,8 +204,13 @@ struct
 
   fun rule_matches_within vset r g  = 
       let 
+        (* Vertices and variables must be renamed away from
+         * those in g, otherwise the rewriting will fail
+         * (a quirk of the implementations of LinRatExpr and
+         * V.CRnm) *)
         val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g),
-                    V.Rnm.empty, E.Rnm.empty, B.Rnm.empty)
+                    V.Rnm.mk_from_avoids (G.get_vnames g),
+                    E.Rnm.empty, B.Rnm.empty)
         val (_,r) = Rule.rename rnms r;
         val lhs = Rule.get_lhs r;
         val rhs = Rule.get_rhs r;
