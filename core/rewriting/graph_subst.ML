@@ -161,7 +161,32 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
           end)
       end;
 
- fun rewrite g lhs m = snd o (rewrite' g lhs m);
+  fun rewrite g lhs m = snd o (rewrite' g lhs m);
+
+end;
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
+functor BangGraphSubstFun(MatchState : BANG_GRAPH_MATCH_STATE)
+= struct
+  type match = MatchState.T;
+  type graph = MatchState.G.T;
+  
+  structure Sharing = struct
+    type match = match;
+    type graph = graph;
+  end;
+
+  structure OGSF = OGraphSubstFun(MatchState);
+
+  fun rewrite' g lhs m = let
+    val do_rewrite = OGSF.rewrite' g lhs m
+  in
+    (fn rhs => rhs |> MatchState.replay_pat_bbox_ops m
+                   |> do_rewrite)
+  end
+
+  fun rewrite g lhs m = snd o (rewrite' g lhs m);
 
 end;
 
