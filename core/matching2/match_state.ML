@@ -50,6 +50,7 @@ signature OGRAPH_MATCH_STATE
 
   val update_pat          : (G.T -> G.T) -> T -> T
   val update_tgt          : (G.T -> G.T) -> T -> T
+  val update_full_tgt     : (G.T -> G.T) -> T -> T
   val update_vmap         : (VInjEndo.T -> VInjEndo.T) -> T -> T
   val update_emap         : (EInjEndo.T -> EInjEndo.T) -> T -> T
   val update_u_circles    : (V.NSet.T -> V.NSet.T) -> T -> T
@@ -62,6 +63,7 @@ signature OGRAPH_MATCH_STATE
 
   val set_pat             : G.T -> T -> T
   val set_tgt             : G.T -> T -> T
+  val set_full_tgt        : G.T -> T -> T
   val set_vmap            : VInjEndo.T -> T -> T
   val set_emap            : EInjEndo.T -> T -> T
   val set_u_circles       : V.NSet.T -> T -> T
