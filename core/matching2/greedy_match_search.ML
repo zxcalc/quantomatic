@@ -13,9 +13,8 @@ functor GreedyMatchSearch(
     (* It must be the same structure as the one in InnerMatchSearch *)
     structure BGMatchState : BANG_GRAPH_MATCH_STATE
     sharing InnerMatchSearch.MatchState.Sharing = BGMatchState.Sharing
-) : OUTER_BG_MATCH_SEARCH =
+) : BG_MATCH_SEARCH =
 struct
-  structure InnerMatchSearch = InnerMatchSearch
   structure BGMatchState = BGMatchState
   structure BG = BGMatchState.BG
   structure MatchState = InnerMatchSearch.MatchState
@@ -67,7 +66,6 @@ struct
   structure Sharing =
   struct
     structure G = G.SharingOGraph
-    structure InnerMatchSearch = InnerMatchSearch.Sharing
     structure MatchState = MatchState.Sharing
   end
 end

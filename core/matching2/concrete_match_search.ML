@@ -3,9 +3,8 @@
 (* This wrapper is very simple, as the InnerMatchSearch does all the work *)
 functor ConcreteMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
-) : OUTER_MATCH_SEARCH =
+) : MATCH_SEARCH =
 struct
-  structure InnerMatchSearch = InnerMatchSearch
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
   
@@ -28,7 +27,6 @@ struct
   structure Sharing =
   struct
     structure G = G.SharingOGraph
-    structure InnerMatchSearch = InnerMatchSearch.Sharing
     structure MatchState = MatchState.Sharing
   end
 end

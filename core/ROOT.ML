@@ -139,7 +139,7 @@ PolyML.Project.make "matching2/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)
 PolyML.Project.make "matching2/inner_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
-PolyML.Project.make "matching2/outer_match_search.ML";
+PolyML.Project.make "matching2/match_search.ML";
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching2/simple_inner_match_search.ML";
 (* wrappers for inner_match_search *)
