@@ -93,7 +93,7 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
+functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
 = struct
   type match = MatchState.T;
   type graph = MatchState.G.T;
@@ -109,21 +109,28 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
      allows lhs computation to be performed just once, then many rhs'
      to be given.
   *)
-  fun rewrite g _ m =
+  fun rewrite _ _ m =
     let
+      val g = MatchState.get_tgt m
       val pat = MatchState.get_pat m
       val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
       val shared_boundary = G.get_boundary pat;
       val vmap = MatchState.get_vmap m
+      val vmapf = VInjEndo.domf vmap
       val matched = VInjEndo.get_codset vmap;
           (* remove the matched part *)
-      val interior = V.NSet.fold (V.NSet.delete o (VInjEndo.domf vmap))
+      val interior = V.NSet.fold (V.NSet.delete o vmapf)
                                  shared_boundary
                                  matched
       (* h is g with LHS cut out *)
       val h = g |> V.NSet.fold G.delete_vertex interior
                    (* apply the data substitution to what remains *)
                 |> subst_data;
+
+      val _ = writeln "G:";
+      val _ = G.print g
+      val _ = writeln "G-pat:";
+      val _ = G.print h
 
       (* Rename the RHS verts for merging.
        *
@@ -147,10 +154,18 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
       val v_rnm2 = V.Rnm.mk V.NSet.empty
                             g_pat_verts
                             (VInjEndo.get_domtab vmap);
-      val prepare = snd o G.VertexCRnm.rename v_rnm1
+
+      val _ = writeln "Rename 1:"
+      val _ = V.Rnm.print v_rnm1
+      val _ = writeln "Rename 2:"
+      val _ = V.Rnm.print v_rnm2
+
+      val prepare = (tap (fn x => (writeln "prepared rhs:"; G.print x)))
                   o snd o G.VertexCRnm.rename v_rnm2
+                  o snd o G.VertexCRnm.rename v_rnm1
                   o snd o G.EdgeCRnm.rename e_rnm
                   o subst_data
+                  o (tap (fn x => (writeln "orig rhs:"; G.print x)))
 
       in (fn rhs =>
           let
@@ -166,7 +181,7 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor BangGraphSubstFun(MatchState : BANG_GRAPH_MATCH_STATE)
+functor BangGraphSubst(MatchState : BANG_GRAPH_MATCH_STATE)
 = struct
   type match = MatchState.T;
   type graph = MatchState.G.T;
@@ -176,10 +191,10 @@ functor BangGraphSubstFun(MatchState : BANG_GRAPH_MATCH_STATE)
     type graph = graph;
   end;
 
-  structure OGSF = OGraphSubstFun(MatchState);
+  structure OGS = OGraphSubst(MatchState);
 
   fun rewrite g lhs m = let
-    val do_rewrite = OGSF.rewrite g lhs m
+    val do_rewrite = OGS.rewrite g lhs m
   in
     (fn rhs => rhs |> MatchState.replay_pat_bbox_ops m
                    |> do_rewrite)

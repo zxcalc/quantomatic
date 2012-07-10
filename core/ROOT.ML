@@ -158,12 +158,14 @@ PolyML.Project.make "rewriting/ruleset_rewriting.ML";
 (* Testing *)
 Testing.make_test "matching/test/simple_rule_match_search-test.ML";
 Testing.make_test "matching/test/simple_match_search-test.ML";
-Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
-Testing.make_test "matching/test/symmetry_match_search-test.ML";
+
 Testing.make_test "matching2/test/test-matching-setup.ML";
 Testing.make_test "matching2/test/test-bang-match-state.ML";
 Testing.make_test "matching2/test/test-matching-concrete.ML";
 Testing.make_test "matching2/test/test-matching-greedy.ML";
+
+Testing.make_test "rewriting/test/graph_subst-test.ML";
+Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
