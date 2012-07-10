@@ -179,7 +179,9 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
 
       in (fn rhs =>
           let
-              val rhs' = prepare rhs
+            val _ = log_graph 4 "RHS" rhs
+            val rhs' = prepare rhs
+            val _ = log_graph 4 "RHS (prepared)" rhs'
           in
             ((pat,rhs'), G.merge_by_vertices rhs' h)
           end)
