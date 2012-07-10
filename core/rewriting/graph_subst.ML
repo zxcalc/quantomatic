@@ -114,15 +114,17 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
     let
       val pat = MatchState.get_pat m
       val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
-      val lhs_boundary = G.get_boundary pat;
+      val shared_boundary = G.get_boundary pat;
       val vmap = MatchState.get_vmap m
       val matched = VInjEndo.get_codset vmap;
           (* remove the matched part *)
-      val interior = V.NSet.fold (V.NSet.delete o (VInjEndo.domf vmap)) lhs_boundary matched
+      val interior = V.NSet.fold (V.NSet.delete o (VInjEndo.domf vmap))
+                                 shared_boundary
+                                 matched
       (* h is g with LHS cut out *)
       val h = g |> V.NSet.fold G.delete_vertex interior
                    (* apply the data substitution to what remains *)
-                |> subst_data
+                |> subst_data;
 
       (* Rename the RHS verts for merging.
        *
@@ -136,23 +138,20 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
        *
        * It also does the data substitution.
        *)
-      val g_pat_verts = V.NSet.union_merge (G.get_vnames g) (G.get_vnames pat)
+      val g_pat_verts = V.NSet.union_merge (G.get_vnames g) (G.get_vnames pat);
       val e_rnm = E.Rnm.mk_from_avoids (G.get_enames g);
+      (* first v rename makes all names except boundary verts fresh *)
+      (* this avoid clashes when doing the second rename *)
+      val v_rnm1 = V.Rnm.mk shared_boundary g_pat_verts V.NTab.empty;
       (* second v rename sets the boundary verts to match the
        * corresponding verts in h. *)
-      (* defined here for efficiency (only once for each rhs) *)
-      val v_rnm2 = V.Rnm.mk V.NSet.empty g_pat_verts (VInjEndo.get_domtab vmap);
-      fun prepare rhs = let
-        val rhs_boundary = G.get_boundary rhs;
-        (* first v rename makes all names except boundary verts fresh *)
-        (* this avoid clashes when doing the second rename *)
-        val v_rnm1 = V.Rnm.mk rhs_boundary g_pat_verts V.NTab.empty;
-      in
-        rhs |> snd o G.VertexCRnm.rename v_rnm1
-            |> snd o G.VertexCRnm.rename v_rnm2
-            |> snd o G.EdgeCRnm.rename e_rnm
-            |> subst_data
-      end
+      val v_rnm2 = V.Rnm.mk V.NSet.empty
+                            g_pat_verts
+                            (VInjEndo.get_domtab vmap);
+      val prepare = snd o G.VertexCRnm.rename v_rnm1
+                  o snd o G.VertexCRnm.rename v_rnm2
+                  o snd o G.EdgeCRnm.rename e_rnm
+                  o subst_data
 
       in (fn rhs =>
           let
