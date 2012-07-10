@@ -5,11 +5,8 @@ structure Ruleset = Test_Ruleset;
 structure IO = Test_IO_Interface_v2;
 structure RulesetRewriter = Test_RulesetRewriter;
 structure Ruleset = Test_Ruleset;
-structure MatchSearch = Test_SimpleMatchSearch;
-structure GraphSubst = Test_GraphSubst;
+structure GraphSubst = Test_BangGraphSubst;
 in
-val old_log_level = !(MatchSearch.Log.level_ref);
-val _ = MatchSearch.Log.level_ref := 4;
 val ruleset = "../../test/rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
               |> IO.Input.Ruleset.input;
@@ -178,7 +175,7 @@ val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming
   
   val false = X.NSet.contains rule_xnames (X.mk "b");
   val true = X.NSet.contains rule_xnames (X.mk "a");
-  in () end) ();
+  in writeln "success" end) ();
 
   (* 
 val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
@@ -190,7 +187,6 @@ val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
   in () end) ();
   *)   
 
-val _ = MatchSearch.Log.level_ref := old_log_level;
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";
 end;
