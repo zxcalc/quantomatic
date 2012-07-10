@@ -30,7 +30,7 @@ signature GRAPH_SUBST
                -> graph (* lhs (not inst) *)
                -> match (* match of lhs *)
                -> graph (* replace with rhs (not yet inst) *)
-               -> graph (* new rhs, as it is named/expanded in result graph *)
+               -> (graph*graph) (* new rhs, as it is named/expanded in result graph *)
                   * graph (* new, rewritten graph *)
 
 end;
@@ -63,8 +63,9 @@ functor GraphSubstFun(Match : MATCH)
      allows lhs computation to be performed just once, then many rhs' 
      to be given.
   *)
-  fun rewrite g _ m =
+  fun rewrite g lhs m =
       let val g' = datasubst_and_remove_match m g
+          val lhs' = Match.inst_pat_graph m lhs;
       in (fn rhs => 
           let val rhs' = Match.inst_replacement_graph m rhs;
               (* now rename the rhs to avoid any names that were in g.
@@ -84,7 +85,8 @@ functor GraphSubstFun(Match : MATCH)
               val (_, rhs'') = rhs' |> snd o G.VertexCRnm.rename v_rnm
                                     |> G.EdgeCRnm.rename e_rnm;
           in 
-            (rhs'', G.merge_by_vertices rhs'' g') end) 
+            (((lhs',rhs''), G.merge_by_vertices rhs'' g'))
+          end) 
       end;
 
  fun do_rewrite g lhs m = snd o (rewrite g lhs m);
@@ -111,7 +113,7 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
   *)
   fun rewrite _ _ m =
     let
-      val g = MatchState.get_tgt m
+      val g = MatchState.get_full_tgt m
       val pat = MatchState.get_pat m
       val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
       val shared_boundary = G.get_boundary pat;
@@ -159,7 +161,7 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
           let
               val rhs' = prepare rhs
           in
-            (rhs', G.merge_by_vertices rhs' h)
+            ((pat,rhs'), G.merge_by_vertices rhs' h)
           end)
       end;
 

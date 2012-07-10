@@ -17,6 +17,11 @@ sig
   val match : G.T           (* pattern graph *)
     -> G.T                  (* target graph *)
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
+  
+  val match_subgraph : G.T  (* pattern graph *)
+    -> G.T                  (* target graph *)
+    -> V.NSet.T             (* target subgraph verts *)
+    -> MatchState.T Seq.seq (* (lazy) list of matches *)
 end
 
 signature BG_MATCH_SEARCH =
@@ -34,5 +39,14 @@ sig
         V.NSet.T)           (* names to track *)
     -> G.T                  (* pattern graph *)
     -> G.T                  (* target graph *)
+    -> MatchState.T Seq.seq (* (lazy) list of matches *)
+  
+  (* Searches for matches *)
+  val match_subgraph_avoiding_tracking
+     : (V.NSet.T *          (* names to avoid *)
+        V.NSet.T)           (* names to track *)
+    -> G.T                  (* pattern graph *)
+    -> G.T                  (* target graph *)
+    -> V.NSet.T             (* target subgraph verts *)
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
 end

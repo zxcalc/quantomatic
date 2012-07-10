@@ -48,9 +48,6 @@ struct
         (InnerMatchSearch.match_pending doomedf ms'))
   end
 
-  (* We just put everything in the match state, and for each match
-   * provided by the inner loop, we match the bare wires, and discard any
-   * incomplete matches (as we have nothing left to add to the pattern) *)
   fun match_avoiding_tracking (avoid,track) pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
@@ -61,7 +58,18 @@ struct
     match_loop ms
   end
 
+  fun match_subgraph_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
+    val pat = G.normalise pat
+    val tgt = G.normalise tgt
+    val ms = BGMatchState.init_subgraph_and_schedule_concrete pat tgt tgt_verts
+              |> BGMatchState.set_pat_avoids avoid
+              |> BGMatchState.set_pat_tracked track
+  in
+    match_loop ms
+  end
+
   val match = match_avoiding_tracking (V.NSet.empty, V.NSet.empty)
+  val match_subgraph = match_subgraph_avoiding_tracking (V.NSet.empty, V.NSet.empty)
 
   structure Sharing =
   struct

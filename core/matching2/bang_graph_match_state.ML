@@ -31,6 +31,7 @@ signature BANG_GRAPH_MATCH_STATE
    * to be matched
    * args: pattern graph, target graph *)
   val init_and_schedule_concrete : G.T -> G.T -> T
+  val init_subgraph_and_schedule_concrete : G.T -> G.T -> V.NSet.T -> T
   (* schedules all the concrete vertices that have not been seen before
    *)
   val schedule_new_concrete : T -> T
@@ -182,6 +183,13 @@ functor BangGraphMatchState(
    * normalised *)
   fun init_and_schedule_concrete pat tgt =
     schedule_concrete (G.get_vnames pat) (G.get_enames pat) (init pat tgt)
+
+  (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
+   * normalised *)
+  fun init_subgraph_and_schedule_concrete pat tgt tgt_verts =
+    schedule_concrete (G.get_vnames pat)
+                      (G.get_enames pat)
+                      (init_subgraph pat tgt tgt_verts)
 
   fun schedule_new_concrete ms = let
     val new_vs = V.NSet.subtract (G.get_vnames (get_pat ms))

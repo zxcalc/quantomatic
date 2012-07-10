@@ -152,7 +152,7 @@ PolyML.Project.make "matching2/greedy_match_search.ML";
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
-PolyML.Project.make "rewriting/ruleset_rewriting.ML";
+PolyML.Project.make "rewriting/ruleset_rewriter.ML";
 
 
 (* Testing *)

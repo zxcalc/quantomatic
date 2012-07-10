@@ -173,7 +173,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
 
   structure Theory = GraphicalTheory;
-  structure RulesetRewrites = Theory.RulesetRewrites
+  structure RulesetRewriter = Theory.RulesetRewriter
   structure Ruleset = Theory.Ruleset;
   structure Rule = Theory.Rule;
   structure Graph = Theory.Graph;
@@ -565,7 +565,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun lift_ud_mutator_no_result cmdf gname state =
       let 
          (* Make sure the graph exists *)
-          val g_ = get_graph state gname
+          val _ = get_graph state gname
           val u' = cmdf (get_graph_ud state gname)
       in
         state |> push_hist gname UA
@@ -752,10 +752,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
            end)
 
       fun apply_first_in rset vs g = 
-          case RulesetRewrites.apply_first_in rset vs g of NONE => Seq.empty
+          case RulesetRewriter.apply_first_in rset vs g of NONE => Seq.empty
           | SOME x => Seq.single x;
   in
-  val attach_rewrites = attach_with RulesetRewrites.apply_in;
+  val attach_rewrites = attach_with RulesetRewriter.apply_in;
   val attach_first_rewrite = attach_with apply_first_in; 
 
   fun apply_first_rewrite gname state = 

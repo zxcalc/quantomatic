@@ -300,6 +300,21 @@ val normalise : T -> T
  *)
 val minimise : T -> T
 
+(* Returns the minimal subgraph containing the given node vertices,
+ * with wires preserved.
+ *
+ * Wires between vertices in the set will be preserved as-is.  Wires
+ * from a vertex in the set to elsewhere in the graph will be
+ * retained up to the first wire-vertex.
+ *
+ * The result is guaranteed to be a true subgraph (ie: no new or
+ * renamed vertices) and to be normal, providing the input graph was
+ * normal.
+ *
+ * This will NOT WORK if the graph is not normalised.
+ *)
+val get_open_subgraph : V.NSet.T -> T -> T
+
 end;
 
 
@@ -320,7 +335,6 @@ functor BasicOGraphFun(
   (* to avoid using clobbered data and empty graph from the 
      open G (see below) *)
   type data2 = data;
-  val empty_data2 = empty_data;
   
   (* we add boundary to Graph data, as well as edge-points; these are 
      disjoint sets *)
@@ -362,7 +376,6 @@ functor BasicOGraphFun(
   
   (* clobber sub-graph data *)
   type data = data2;
-  val empty_data = empty_data2;
   val get_data = get_data_of_hdata o G.get_data;
   val update_data = G.update_data o update_data_of_hdata;
 
@@ -995,5 +1008,29 @@ functor OGraphFun(G : BASIC_OGRAPH)
     normalise_wire (get_wire_containing_edge g' e) g'
   end
   val do_plug_and_normalise = snd ooo plug_and_normalise
+
+  (* finds the open subgraph defined by a node-vertex set *)
+  (* assumes graph is normalised *)
+  (* returns a set of vertices *)
+  fun find_open_subgraph vset g = let
+    fun add_edge_source e = V.NSet.add (get_edge_source g e)
+    fun add_edge_target e = V.NSet.add (get_edge_target g e)
+    fun absorb vn =
+      case get_vertex g vn of
+           (OVData.EVert,_) => V.NSet.add vn
+         | (_,(ins,outs)) =>
+             (E.NSet.fold add_edge_source ins)
+             o (E.NSet.fold add_edge_target outs)
+             o (V.NSet.add vn)
+  in
+    V.NSet.fold absorb vset vset
+  end
+
+  fun get_open_subgraph vset g = let
+    val retained = find_open_subgraph vset g
+    val removed = V.NSet.subtract (get_vnames g) retained
+  in
+    V.NSet.fold delete_vertex removed g
+  end
 
 end; (* OpenGraphFun *)

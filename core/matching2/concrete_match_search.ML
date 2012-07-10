@@ -11,17 +11,29 @@ struct
   (* We can't provide any information that the inner match search
    * does not already know *)
   fun concrete_doomedf _ _ = false
-  
+
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
+  fun do_match ms = 
+    Seq.filter MatchState.is_total
+       (Seq.maps InnerMatchSearch.match_bare_wires
+        (InnerMatchSearch.match_pending concrete_doomedf ms))
+  
   fun match pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
     val ms = MatchState.init_and_schedule_all pat tgt
-  in Seq.filter MatchState.is_total
-       (Seq.maps InnerMatchSearch.match_bare_wires
-        (InnerMatchSearch.match_pending concrete_doomedf ms))
+  in
+    do_match ms
+  end
+  
+  fun match_subgraph pat tgt tgt_verts = let
+    val pat = G.normalise pat
+    val tgt = G.normalise tgt
+    val ms = MatchState.init_subgraph_and_schedule_all pat tgt tgt_verts
+  in
+    do_match ms
   end
   
   structure Sharing =

@@ -36,9 +36,9 @@ sig
   sharing RuleMatchSearch.Sharing.Rule = Rule.Sharing
 
   (* Sets of rules and matching for those sets *)
-  structure RulesetRewrites : RULESET_REWRITES
-  sharing RulesetRewrites.Sharing.Ruleset = Ruleset.Sharing 
-  sharing RulesetRewrites.Sharing.Match = Match.Sharing;
+  structure RulesetRewriter : RULESET_REWRITER
+  sharing RulesetRewriter.Sharing.Ruleset = Ruleset.Sharing 
+  sharing type RulesetRewriter.Sharing.match = Match.T;
 
   (* Component data info *)
   structure VertexComponentData : ELEMENT_COMPONENT_DATA
@@ -100,12 +100,12 @@ struct
     structure MatchSearch = BasicMatchSearch;
     structure Rule = Rule;);
 
-  structure DB_RulesetRewrites = RulesetRewrites(
+  structure DB_RulesetRewriter = RulesetRewriterOld(
     structure Ruleset = Ruleset;
     structure RuleMatchSearch = RuleMatchSearch;
     structure GraphSubst = GraphSubst;
   );
-  structure RulesetRewrites : RULESET_REWRITES = DB_RulesetRewrites;
+  structure RulesetRewriter : RULESET_REWRITER = DB_RulesetRewriter;
 
   structure VertexComponentData = VComponentData;
   structure EdgeComponentData = EComponentData;

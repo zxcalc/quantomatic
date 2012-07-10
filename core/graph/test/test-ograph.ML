@@ -335,7 +335,7 @@ local
               case E.NSet.tryget_singleton es of
                    SOME e =>
                      (case G.get_edge g' e of
-                          ((Directed,_),_) => ()
+                          ((G.Directed,_),_) => ()
                         | _ => raise ERROR "Wrong directedness")
                  | NONE => raise ERROR "Wrong edge count"
              )
@@ -354,7 +354,7 @@ local
               case E.NSet.tryget_singleton es of
                    SOME e =>
                      (case G.get_edge g' e of
-                          ((Directed,_),_) => ()
+                          ((G.Directed,_),_) => ()
                         | _ => raise ERROR "Wrong directedness")
                  | NONE => raise ERROR "Wrong edge count"
              )
@@ -364,7 +364,7 @@ local
   val _ = Testing.test "G.plug_and_normalise (1)"
           (fn () =>
           let
-            val ((s,t,wvs,es),g') = G.plug_and_normalise in1 out1 g
+            val ((s,t,wvs,es),_) = G.plug_and_normalise in1 out1 g
           in
              (Testing.assert "correct vertex names"
                 (V.NSet.eq (V.NSet.single x1)
@@ -381,5 +381,117 @@ in
   val _ = "UNIT TESTS FOR PLUGGING PASSED!"
 end; (* ends local namespace used for testing *)
 
+
+(* Test subgraph functions *)
+local
+  open Test_MkG;
+
+  val x1 = V.mk "x1"
+  val x2 = V.mk "x2"
+  val x3 = V.mk "x3"
+  val x4 = V.mk "x4"
+  val x5 = V.mk "x5"
+  val wv1 = V.mk "wv1"
+  val wv2 = V.mk "wv2"
+  val wv3 = V.mk "wv3"
+  val wv4 = V.mk "wv4"
+  val wv5 = V.mk "wv5"
+  val wv6 = V.mk "wv6"
+  val wv7 = V.mk "wv7"
+  val wv8 = V.mk "wv8"
+  val wv9 = V.mk "wv9"
+  val wv10 = V.mk "wv10"
+  val wv11 = V.mk "wv11"
+  val wv12 = V.mk "wv12"
+  val wv13 = V.mk "wv13"
+  val wv14 = V.mk "wv14"
+  val wv15 = V.mk "wv15"
+  val wv16 = V.mk "wv16"
+  val wv17 = V.mk "wv17"
+  val wv18 = V.mk "wv18"
+  val wv19 = V.mk "wv19"
+  val wv20 = V.mk "wv20"
+
+  val g = G.empty;
+  val g = g |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex x3 (mkX zero_angle)
+
+            |> G.add_named_vertex wv1 bvert
+            |> G.add_named_vertex wv2 bvert
+            |> G.add_named_vertex wv3 bvert
+            |> G.add_named_vertex wv4 bvert
+            |> G.add_named_vertex wv5 bvert
+            |> G.add_named_vertex wv6 bvert
+            |> G.add_named_vertex wv7 bvert
+            |> G.add_named_vertex wv8 bvert
+            |> G.add_named_vertex wv9 bvert
+            |> G.add_named_vertex wv10 bvert
+            |> G.add_named_vertex wv11 bvert
+            |> G.add_named_vertex wv12 bvert
+            |> G.add_named_vertex wv13 bvert
+
+            (* circle *)
+            |> G.doadd_edge dir_edge   wv1 wv1
+            (* bare wire *)
+            |> G.doadd_edge undir_edge wv2 wv3
+            (* main graph *)
+            |> G.doadd_edge dir_edge   x1  wv4
+            |> G.doadd_edge dir_edge   wv4 wv5
+            |> G.doadd_edge dir_edge   wv5 x1
+            |> G.doadd_edge undir_edge wv6 x2
+            |> G.doadd_edge undir_edge x2  wv7
+            |> G.doadd_edge undir_edge wv7 wv8
+            |> G.doadd_edge undir_edge wv8 x3
+            |> G.doadd_edge dir_edge   x2  wv9
+            |> G.doadd_edge dir_edge   wv9 wv10
+            |> G.doadd_edge dir_edge   wv10 x3
+
+            (* these will be connected to later *)
+            |> G.doadd_edge undir_edge x3   wv12
+            |> G.doadd_edge dir_edge   x3   wv13
+            |> G.doadd_edge dir_edge   x2   wv11
+  val exp_subgraph = g
+
+  val retain = V.NSet.of_list [x1,x2,x3,wv1,wv2,wv3]
+
+  val g = g |> G.add_named_vertex x4 (mkX zero_angle)
+            |> G.add_named_vertex x5 (mkX zero_angle)
+
+            |> G.add_named_vertex wv14 bvert
+            |> G.add_named_vertex wv15 bvert
+            |> G.add_named_vertex wv16 bvert
+            |> G.add_named_vertex wv17 bvert
+            |> G.add_named_vertex wv18 bvert
+            |> G.add_named_vertex wv19 bvert
+            |> G.add_named_vertex wv20 bvert
+
+            (* circle *)
+            |> G.doadd_edge undir_edge wv14 wv14
+            (* bare wire *)
+            |> G.doadd_edge dir_edge   wv15 wv16
+            (* main graph *)
+            |> G.doadd_edge undir_edge wv12 wv17
+            |> G.doadd_edge undir_edge wv17 x4
+            |> G.doadd_edge dir_edge   wv13 wv18
+            |> G.doadd_edge dir_edge   wv18 x4
+            |> G.doadd_edge undir_edge x4   wv19
+            |> G.doadd_edge dir_edge   wv11 wv20
+            |> G.doadd_edge dir_edge   wv20 x5
+  val full_graph = g
+
+in
+  val _ = Testing.test "get_open_subgraph" (fn () => let
+    val g = G.get_open_subgraph retain full_graph
+    val _ = writeln "Subgraph was:"
+    val _ = G.print g
+    val _ = Testing.assert "subgraph was as expected"
+              (G.exact_eq g exp_subgraph)
+  in writeln "success" end
+  ) ()
+
+  val _ = Testing.assert_no_failed_tests();
+  val _ = writeln "UNIT TESTS FOR SUBGRAPHS PASSED!"
+end; (* ends local namespace used for testing *)
 
 
