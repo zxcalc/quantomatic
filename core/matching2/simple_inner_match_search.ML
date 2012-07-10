@@ -210,25 +210,36 @@ functor SimpleInnerMatchSearch(
   (* grow the single, given edge into:
       - a circle consisting of two edges for circles,
       - otherwise a chain of three edges, return the middle edge *)
-  fun grow_edge g e = let
-    val (dd, (s,t)) = G.get_edge g e
+  fun grow_edge g h e = let
+    val (dd, (s,t)) = G.get_edge h e
   in if V.name_eq (s,t) then
       let
-        val (b1,g) = g |> G.add_vertex G.OVData.EVert
-        val g = g |> G.doadd_edge dd s b1
-        val (mid_e, g) = g |> G.add_edge dd b1 t
-        val g = g |> G.delete_edge e
-      in ((b1,mid_e,t),g)
+        val (b1,h) = h |> G.add_vertex G.OVData.EVert
+        val (e1,h) = h |> G.add_edge dd s b1
+        val (mid_e, h) = h |> G.add_edge dd b1 t
+        val h = h |> G.delete_edge e
+        (* now repeat on g *)
+        val g = g |> G.add_named_vertex b1 G.OVData.EVert
+                  |> G.add_named_edge e1 dd s b1
+                  |> G.add_named_edge mid_e dd b1 t
+                  |> G.delete_edge e
+      in ((b1,mid_e,t),g,h)
       end
     else
       let 
-        val (b1,g) = g |> G.add_vertex G.OVData.EVert
-        val (b2,g) = g |> G.add_vertex G.OVData.EVert
-        val g = g |> G.doadd_edge dd s b1
-        val (mid_e,g) = g |> G.add_edge dd b1 b2
-        val g = g |> G.doadd_edge dd b2 t
-        val g = g |> G.delete_edge e
-      in ((b1,mid_e,b2),g)
+        val (b1,h) = h |> G.add_vertex G.OVData.EVert
+        val (b2,h) = h |> G.add_vertex G.OVData.EVert
+        val (e1,h) = h |> G.add_edge dd s b1
+        val (mid_e,h) = h |> G.add_edge dd b1 b2
+        val (e2,h) = h |> G.add_edge dd b2 t
+        val h = h |> G.delete_edge e
+        val g = g |> G.add_named_vertex b1 G.OVData.EVert
+                  |> G.add_named_vertex b2 G.OVData.EVert
+                  |> G.add_named_edge e1 dd s b1
+                  |> G.add_named_edge mid_e dd b1 b2
+                  |> G.add_named_edge e2 dd b2 t
+                  |> G.delete_edge e
+      in ((b1,mid_e,b2),g,h)
       end
   end
   
@@ -258,7 +269,8 @@ functor SimpleInnerMatchSearch(
       val edges = E.NSet.filter (is_candidate_for_bw) (G.get_enames tgt)
       fun match_bw e = let
         (* grow edge and grab relevant data *)
-        val ((s,mid_e,t), tgt') = grow_edge tgt e
+        val fulltgt = MatchState.get_full_tgt ms
+        val ((s,mid_e,t), tgt', fulltgt') = grow_edge tgt fulltgt e
         val ((_, et_data), (tgt_s,tgt_t)) = G.get_edge tgt' mid_e
         val (tgt_sdata,tgt_tdata) = (G.get_vertex_data tgt' tgt_s, G.get_vertex_data tgt' tgt_t)
         
@@ -268,6 +280,7 @@ functor SimpleInnerMatchSearch(
                                       G.VData.match_data (bw_tdata, tgt_tdata)]
         fun add_bw new_subst = let
           val ms' = ms |> MatchState.set_tgt tgt' (* save the new, edge-homeo equivalent target *)
+                       |> MatchState.set_full_tgt fulltgt'
                        |> MatchState.set_match_subst new_subst
                        |> MatchState.update_u_bare_wires (E.NSet.delete bw)
         in (fn (es,et) =>
