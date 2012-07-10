@@ -120,8 +120,8 @@ signature OGRAPH_MATCH_STATE
   (* adds given vertex to match *)
   val add_vertex_to_match : (V.name * V.name) -> T -> T
   
-  (* adds edge and both endpoints to match *)
-  val add_edge_to_match : (E.name * E.name) -> T -> T
+  (* adds edge and given endpoints to match *)
+  val add_edge_to_match : (E.name * V.name) -> (E.name * V.name) -> T -> T
   
   (* adds wire vertex and associated circle to match *)
   val add_circle_to_match : (V.name * V.name) -> T -> T
@@ -462,10 +462,8 @@ functor OGraphMatchState(
   val extend_p_nodeverts  = update_p_nodeverts o V.NSet.union_merge
   val extend_ps_nodeverts = update_ps_nodeverts o V.NSet.union_merge
 
-  fun add_edge_to_match (ep, et) ms = let
-    val (_,(sp,tp)) = G.get_edge (get_pat ms) ep
-    val (_,(st,tt)) = G.get_edge (get_tgt ms) et
-  in ms |> update_vmap (VInjEndo.add sp st o VInjEndo.add tp tt)
+  fun add_edge_to_match (ep, vp) (et, vt) ms = let
+  in ms |> update_vmap (VInjEndo.add vp vt)
         |> update_emap (EInjEndo.add ep et)
   end
   

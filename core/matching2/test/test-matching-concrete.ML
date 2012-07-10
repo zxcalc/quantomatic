@@ -142,6 +142,36 @@ local
             |> G.add_named_edge (E.mk "e6") dir_edge b5 x2
             |> G.add_named_edge (E.mk "e7") dir_edge x3 b6
   val b_x_x_b = g
+
+  val g = G.empty
+  val a = V.mk "a"
+  val b = V.mk "b"
+  val c = V.mk "c"
+  val d = V.mk "d"
+  val g = g |> G.add_named_vertex d bvert
+            |> G.add_named_vertex c bvert
+            |> G.add_named_vertex b (mkX zero_angle)
+            |> G.add_named_vertex a (mkX zero_angle)
+            |> G.add_named_edge (E.mk "d") undir_edge a c
+            |> G.add_named_edge (E.mk "c") undir_edge b a
+            |> G.add_named_edge (E.mk "b") undir_edge b a
+            |> G.add_named_edge (E.mk "a") undir_edge d b
+  val x_isom_lhs = g
+
+  val g = G.empty;
+  val va = V.mk "Va"
+  val vb = V.mk "Vb"
+  val vc = V.mk "Vc"
+  val vd = V.mk "Vd"
+  val g = g |> G.add_named_vertex vd bvert
+            |> G.add_named_vertex vc (mkX zero_angle)
+            |> G.add_named_vertex vb (mkX zero_angle)
+            |> G.add_named_vertex va bvert
+            |> G.add_named_edge (E.mk "Ed") undir_edge vc vd
+            |> G.add_named_edge (E.mk "Ec") undir_edge vb vc
+            |> G.add_named_edge (E.mk "Eb") undir_edge vb vc
+            |> G.add_named_edge (E.mk "Ea") undir_edge va vb
+  val x_isom_lhs_2 = g
   
   val mseq = M.match G.empty one_x
   val _ = Testing.test "M.match - empty --> one x" (assert_n_match 1 mseq) ()
@@ -163,6 +193,9 @@ local
   
   val mseq = M.match b_x_x_b x_x_loop
   val _ = Testing.test "M.match - b to x to x to b --> x x loop" (assert_n_match 2 mseq) ()
+  
+  val mseq = M.match x_isom_lhs x_isom_lhs_2
+  val _ = Testing.test "M.match - x isom --> x isom" (assert_n_match 4 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR CONCRETE MATCHING PASSED!"
