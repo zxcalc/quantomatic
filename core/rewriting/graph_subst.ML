@@ -127,11 +127,6 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
                    (* apply the data substitution to what remains *)
                 |> subst_data;
 
-      val _ = writeln "G:";
-      val _ = G.print g
-      val _ = writeln "G-pat:";
-      val _ = G.print h
-
       (* Rename the RHS verts for merging.
        *
        * The aim is to have the boundary verts match where the
@@ -155,17 +150,10 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
                             g_pat_verts
                             (VInjEndo.get_domtab vmap);
 
-      val _ = writeln "Rename 1:"
-      val _ = V.Rnm.print v_rnm1
-      val _ = writeln "Rename 2:"
-      val _ = V.Rnm.print v_rnm2
-
-      val prepare = (tap (fn x => (writeln "prepared rhs:"; G.print x)))
-                  o snd o G.VertexCRnm.rename v_rnm2
+      val prepare = snd o G.VertexCRnm.rename v_rnm2
                   o snd o G.VertexCRnm.rename v_rnm1
                   o snd o G.EdgeCRnm.rename e_rnm
                   o subst_data
-                  o (tap (fn x => (writeln "orig rhs:"; G.print x)))
 
       in (fn rhs =>
           let
