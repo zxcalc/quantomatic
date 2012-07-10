@@ -5,6 +5,9 @@ functor ConcreteMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
 ) : MATCH_SEARCH =
 struct
+
+  structure Log : LOG = Log(val init_level = 0);
+
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
   

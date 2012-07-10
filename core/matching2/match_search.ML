@@ -8,6 +8,8 @@ end
 
 signature MATCH_SEARCH =
 sig
+  structure Log : LOG;
+
   structure MatchState : OGRAPH_MATCH_STATE
   structure G : OGRAPH
   structure Sharing : MATCH_SEARCH_SHARING

@@ -9,6 +9,8 @@ end
 
 signature INNER_MATCH_SEARCH =
 sig
+  structure Log : LOG;
+
   structure G : OGRAPH
   structure MatchState : OGRAPH_MATCH_STATE
 

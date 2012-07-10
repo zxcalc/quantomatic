@@ -15,6 +15,9 @@ functor GreedyMatchSearch(
     sharing InnerMatchSearch.MatchState.Sharing = BGMatchState.Sharing
 ) : BG_MATCH_SEARCH =
 struct
+
+  structure Log : LOG = Log(val init_level = 0);
+
   structure BGMatchState = BGMatchState
   structure BG = BGMatchState.BG
   structure MatchState = InnerMatchSearch.MatchState

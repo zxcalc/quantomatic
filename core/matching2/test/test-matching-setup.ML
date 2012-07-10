@@ -3,24 +3,28 @@ structure Test_MatchState =
     structure G = Test_MkG.G
     type data = unit
     val empty_data = ()
-  )
+  );
 structure Test_BGMatchState =
   BangGraphMatchState(
     structure G = Test_MkG.G
     type data = unit
     val empty_data = ()
-  )
+  );
 structure Test_InnerMatcher =
-  SimpleInnerMatchSearch(structure MatchState = Test_MatchState)
+  SimpleInnerMatchSearch(structure MatchState = Test_MatchState);
 structure Test_BGInnerMatcher =
-  SimpleInnerMatchSearch(structure MatchState = Test_BGMatchState)
+  SimpleInnerMatchSearch(structure MatchState = Test_BGMatchState);
 structure Test_ConcreteMatcher =
-  ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher)
+  ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher);
 structure Test_GreedyMatcher =
   GreedyMatchSearch(
     structure InnerMatchSearch = Test_BGInnerMatcher
     structure BGMatchState = Test_BGMatchState
-  )
+  );
+Test_InnerMatcher.Log.level_ref := 4;
+Test_BGInnerMatcher.Log.level_ref := 4;
+Test_ConcreteMatcher.Log.level_ref := 4;
+Test_GreedyMatcher.Log.level_ref := 4;
 
 structure Test_MatchUtil =
 struct
@@ -33,7 +37,7 @@ struct
         raise ERROR ("expected " ^ Int.toString n ^
                      " matching(s), got " ^ Int.toString nm))
   end
-end
+end;
 
 structure Test_BGMatchUtil =
 struct
@@ -67,5 +71,5 @@ struct
   in
     (g1,g2)
   end
-end
+end;
 
