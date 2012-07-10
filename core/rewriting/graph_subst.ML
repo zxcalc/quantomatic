@@ -1,7 +1,9 @@
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *)
-(*  Computing substitutions of graphs: replacing a matched graph with a
-    new graph that shares the same interface. *)
-(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *
+ *  Computing substitutions of graphs: replacing a matched graph with a
+ *  new graph that shares the same interface.
+ *
+ *  This implements double-pushout rewriting.
+ * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 signature GRAPH_SUBST_SHARING =
 sig
   type graph
@@ -18,21 +20,18 @@ signature GRAPH_SUBST
   sharing type match = Sharing.match;
   
   (* rewriting pattern graph *)
-  val rewrite : graph (* old graph *)
-                -> graph (* lhs *)
-                -> match (* match of lhs (not inst) *)
-                -> graph (* replace with this rhs (not inst yet) *)
-                -> graph (* new, rewritten graph *)
+  val do_rewrite : graph (* old graph *)
+                   -> graph (* lhs *)
+                   -> match (* match of lhs (not inst) *)
+                   -> graph (* replace with this rhs (not inst yet) *)
+                   -> graph (* new, rewritten graph *)
 
-  val rewrite' : graph (* old graph *)
-                -> graph (* lhs (not inst) *)
-                -> match (* match of lhs *)
-                -> graph (* replace with rhs (not yet inst) *)
-                -> graph (* new rhs, as it is named/expanded in result graph *)
-                   * graph (* new, rewritten graph *)
-  
-  (* internal *)
-  val datasubst_and_remove_match : match -> graph -> graph
+  val rewrite : graph (* old graph *)
+               -> graph (* lhs (not inst) *)
+               -> match (* match of lhs *)
+               -> graph (* replace with rhs (not yet inst) *)
+               -> graph (* new rhs, as it is named/expanded in result graph *)
+                  * graph (* new, rewritten graph *)
 
 end;
 
@@ -64,7 +63,7 @@ functor GraphSubstFun(Match : MATCH)
      allows lhs computation to be performed just once, then many rhs' 
      to be given.
   *)
-  fun rewrite' g lhs m = 
+  fun rewrite g _ m =
       let val g' = datasubst_and_remove_match m g
       in (fn rhs => 
           let val rhs' = Match.inst_replacement_graph m rhs;
@@ -88,7 +87,7 @@ functor GraphSubstFun(Match : MATCH)
             (rhs'', G.merge_by_vertices rhs'' g') end) 
       end;
 
- fun rewrite g lhs m = snd o (rewrite' g lhs m);
+ fun do_rewrite g lhs m = snd o (rewrite g lhs m);
 
 end;
 
@@ -110,7 +109,7 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
      allows lhs computation to be performed just once, then many rhs'
      to be given.
   *)
-  fun rewrite' g _ m =
+  fun rewrite g _ m =
     let
       val pat = MatchState.get_pat m
       val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
@@ -161,7 +160,7 @@ functor OGraphSubstFun(MatchState : OGRAPH_MATCH_STATE)
           end)
       end;
 
-  fun rewrite g lhs m = snd o (rewrite' g lhs m);
+  fun do_rewrite g lhs m = snd o (rewrite g lhs m);
 
 end;
 
@@ -179,14 +178,14 @@ functor BangGraphSubstFun(MatchState : BANG_GRAPH_MATCH_STATE)
 
   structure OGSF = OGraphSubstFun(MatchState);
 
-  fun rewrite' g lhs m = let
-    val do_rewrite = OGSF.rewrite' g lhs m
+  fun rewrite g lhs m = let
+    val do_rewrite = OGSF.rewrite g lhs m
   in
     (fn rhs => rhs |> MatchState.replay_pat_bbox_ops m
                    |> do_rewrite)
   end
 
-  fun rewrite g lhs m = snd o (rewrite' g lhs m);
+  fun do_rewrite g lhs m = snd o (rewrite g lhs m);
 
 end;
 

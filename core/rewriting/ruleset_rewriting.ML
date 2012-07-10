@@ -127,7 +127,7 @@ struct
             (Seq.map 
               (fn m => 
                ((n,instantiate_rule m r),
-                GraphSubst.rewrite g (Rule.get_lhs r) m (Rule.get_rhs r))) 
+                GraphSubst.do_rewrite g (Rule.get_lhs r) m (Rule.get_rhs r)))
                matches)
            end)
        rnset
