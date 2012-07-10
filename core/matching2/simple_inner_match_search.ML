@@ -61,9 +61,9 @@ functor SimpleInnerMatchSearch(
   (* Try to recursively add wire to matching, starting with the given head
      vertex and edge. Return NONE on failure. *)
   fun tryadd_wire ms (vp,ep) (vt,et) = let
-    val _ = Log.log 4 ("Attempting to match ("^(V.string_of_name vp)^
+    val _ = Log.logf 4 (fn () => "Attempting to match ("^(V.string_of_name vp)^
                        ","^(E.string_of_name ep)^") against ("^
-                       (V.string_of_name vt)^","^(E.string_of_name et)^")")
+                       (V.string_of_name vt)^","^(E.string_of_name et)^")") ()
     val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
     val e_subst_maybe = let (* check edge compatibilty and update subst *)
       val ((dir_p,data_p), _) = G.get_edge pat ep
@@ -82,8 +82,8 @@ functor SimpleInnerMatchSearch(
     let
       val new_vp = G.edge_get_other_vertex pat ep vp
       val new_vt = G.edge_get_other_vertex tgt et vt
-      val _ = Log.log 4 ("pat edge end is "^(V.string_of_name new_vp)^
-                         " and tgt edge end is "^(V.string_of_name new_vt))
+      val _ = Log.logf 4 (fn () => "pat edge end is "^(V.string_of_name new_vp)^
+                         " and tgt edge end is "^(V.string_of_name new_vt)) ()
     in
       if V.NSet.contains (MatchState.get_p_nodeverts ms) new_vp
       then if VInjEndo.contains (MatchState.get_vmap ms) (new_vp, new_vt)

@@ -12,6 +12,8 @@ end;
 
 signature GRAPH_SUBST
 = sig
+  structure Log : LOG
+
   type graph
   type match
   
@@ -39,6 +41,8 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor GraphSubstFun(Match : MATCH)
 = struct
+  structure Log : LOG = Log(val init_level = 0)
+
   type match = Match.T;
   type graph = Match.G.T;
   
@@ -97,6 +101,8 @@ end;
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
 = struct
+  structure Log : LOG = Log(val init_level = 0)
+
   type match = MatchState.T;
   type graph = MatchState.G.T;
   
@@ -106,6 +112,14 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
     type match = match;
     type graph = graph;
   end;
+
+  fun log_p pretty_f lvl name =
+    Log.logf lvl (fn g => Pretty.string_of
+        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
+
+  val log_graph = log_p G.pretty
+  val log_vrnm = log_p V.Rnm.pretty
+  val log_ernm = log_p E.Rnm.pretty
 
   (* implicit rhs; efficiency:
      allows lhs computation to be performed just once, then many rhs'
@@ -128,6 +142,9 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
       val h = g |> V.NSet.fold G.delete_vertex interior
                    (* apply the data substitution to what remains *)
                 |> subst_data;
+      val _ = log_graph 4 "pat" pat
+      val _ = log_graph 3 "G" g
+      val _ = log_graph 3 "G-pat" h
 
       (* Rename the RHS verts for merging.
        *
@@ -151,6 +168,9 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
       val v_rnm2 = V.Rnm.mk V.NSet.empty
                             g_pat_verts
                             (VInjEndo.get_domtab vmap);
+      val _ = log_vrnm 4 "v_rnm1" v_rnm1
+      val _ = log_vrnm 4 "v_rnm2" v_rnm2
+      val _ = log_ernm 4 "e_rnm" e_rnm
 
       val prepare = snd o G.VertexCRnm.rename v_rnm2
                   o snd o G.VertexCRnm.rename v_rnm1
@@ -182,6 +202,8 @@ functor BangGraphSubst(MatchState : BANG_GRAPH_MATCH_STATE)
   end;
 
   structure OGS = OGraphSubst(MatchState);
+
+  structure Log = OGS.Log;
 
   fun rewrite g lhs m = let
     val do_rewrite = OGS.rewrite g lhs m

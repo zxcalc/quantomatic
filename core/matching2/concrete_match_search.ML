@@ -23,21 +23,15 @@ struct
        (Seq.maps InnerMatchSearch.match_bare_wires
         (InnerMatchSearch.match_pending concrete_doomedf ms))
 
-  fun log lvl (f:'a->string) (x:'a) =
-    if lvl <= (!Log.level_ref) then
-      Log.log lvl (f x)
-    else ()
-
-  fun logp lvl msg (f:'a->Pretty.T) (x:'a) =
-    if lvl <= (!Log.level_ref) then
-      Log.log lvl (Pretty.string_of (Pretty.chunks [Pretty.str msg,(f x)]))
-    else ()
+  fun log_graph lvl name =
+    Log.logf lvl (fn g => Pretty.string_of
+        (Pretty.chunks [Pretty.str (name^":"),(G.pretty g)]))
   
   fun match pat tgt = let
     val pat' = G.normalise pat
     val tgt' = G.normalise tgt
-    val _ = logp 3 "Normalised pattern:" (fn () => G.pretty pat') ()
-    val _ = logp 3 "Normalised target:" (fn () => G.pretty tgt') ()
+    val _ = log_graph 3 "Normalised pattern" pat
+    val _ = log_graph 3 "Normalised target" tgt'
     val ms = MatchState.init_and_schedule_all pat' tgt'
   in
     do_match ms
