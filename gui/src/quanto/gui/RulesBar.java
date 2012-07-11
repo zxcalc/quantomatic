@@ -222,28 +222,6 @@ public class RulesBar extends JPanel {
             }
         });
 
-        menuItem = new JMenuItem("Change Priority");
-        popupMenu.add(menuItem);
-        menuItem.addActionListener(new ActionListener() {
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    String previousPriority = RulesBar.this.ruleset.getCore().getTalker().
-                            ruleUserData(ruleName, "quanto-gui:priority");
-                    String priorityString = JOptionPane.showInputDialog(RulesBar.this, "Priority:", previousPriority);
-                    if (priorityString == null) {
-                        return;
-                    }
-                  RulesBar.this.ruleset.getCore().getTalker().setRuleUserData(ruleName,
-                          "quanto-gui:priority", priorityString);
-                  RulesBar.this.ruleset.reload();
-                } catch (CoreException ex) {
-                   showModalError("Rule Priority", ex);
-                }
-            }
-        });
-
         menuItem = new JMenuItem("Delete rule");
         popupMenu.add(menuItem);
         menuItem.addActionListener(new ActionListener() {
@@ -452,16 +430,7 @@ public class RulesBar extends JPanel {
                     int index,
                     boolean isSelected,
                     boolean cellHasFocus) {
-            String priorityStr = "5";
-            try {
-                priorityStr = RulesBar.this.ruleset.getCore().getTalker().
-                            ruleUserData(value.toString(), "quanto-gui:priority");
-
-            } catch (CoreException e) {
-                logger.log(Level.FINE, "Could not get the priority of rule " + value.toString());
-            }
-                super.getListCellRendererComponent(list, value.toString() + " -P" +
-                        priorityStr,
+                super.getListCellRendererComponent(list, value.toString(),
                         index, isSelected, cellHasFocus);
                 setName(value.toString());
                 if (!((RuleDescription) value).active) {
