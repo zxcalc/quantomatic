@@ -177,15 +177,35 @@ val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming
   val true = X.NSet.contains rule_xnames (X.mk "a");
   in writeln "success" end) ();
 
-  (* 
-val _ = Testing.test "rule5: bang-box rewrite" (fn () => let
-  val spider_red = Ruleset.get_rule rset (R.mk "spider.red");
-  val g = "graphs/d2-ladder_rw2.graph"
+
+val _ = Testing.test "ruleset rewriting 1: ladder with red spider (all)" (fn () => let
+  val ruleset = "../../test/rulesets/basic_v2.rules" 
+                |> XMLReader.read_from_file
+                |> IO.Input.Ruleset.input;
+
+  val graph = "../../test/graphs/d2-ladder_rw1.graph"
               |> XMLReader.read_from_file
               |> IO.Input.Graph.input;
-  val 
-  in () end) ();
-  *)   
+
+  val rws = RulesetRewriter.apply_first ruleset graph
+
+  in writeln "success" end) ();
+
+(*
+val _ = Testing.test "ruleset rewriting 2: ladder with red spider (full subgraph)" (fn () => let
+  val ruleset = "../../test/rulesets/basic_v2.rules" 
+                |> XMLReader.read_from_file
+                |> IO.Input.Ruleset.input;
+
+  val graph = "../../test/graphs/d2-ladder_rw1.graph"
+              |> XMLReader.read_from_file
+              |> IO.Input.Graph.input;
+
+  val vset = G.get_vnames graph;
+  val rws = RulesetRewriter.apply_first_in ruleset graph vset
+
+  in writeln "success" end) ();
+*)
 
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";

@@ -23,6 +23,11 @@ struct
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
 
+  fun log_p pretty_f lvl name =
+    Log.logf lvl (fn g => Pretty.string_of
+        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
+  val log_graph = log_p G.pretty
+
   (* FIXME *)
   fun doomedf _ _ = false
 
@@ -54,6 +59,8 @@ struct
   fun match_avoiding_tracking (avoid,track) pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
+    val _ = log_graph 4 "Normalised pattern" pat
+    val _ = log_graph 4 "Normalised target" tgt
     val ms = BGMatchState.init_and_schedule_concrete pat tgt
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track
@@ -64,6 +71,8 @@ struct
   fun match_subgraph_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
+    val _ = log_graph 4 "Normalised pattern" pat
+    val _ = log_graph 4 "Normalised target" tgt
     val ms = BGMatchState.init_subgraph_and_schedule_concrete pat tgt tgt_verts
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track

@@ -6,6 +6,8 @@ end;
 
 signature RULESET_REWRITER =
 sig
+  structure Log : LOG
+
   structure Ruleset : RULESET
   structure Rule : RULE 
   sharing Ruleset.Rule.Sharing = Rule.Sharing
@@ -63,6 +65,8 @@ functor RulesetRewriterOld(
   sharing type GraphSubst.match = RuleMatchSearch.Match.T
 ) : RULESET_REWRITER =
 struct
+  structure Log : LOG = Log(val init_level = 0)
+
   structure Match = RuleMatchSearch.Match;
   structure Ruleset = Ruleset;
   structure Rule = Ruleset.Rule;
@@ -176,6 +180,8 @@ functor RulesetRewriter(
   sharing type GraphSubst.match = MatchSearch.MatchState.T
 ) : RULESET_REWRITER =
 struct
+  structure Log : LOG = Log(val init_level = 0)
+
   structure MatchState = MatchSearch.BGMatchState;
   structure Ruleset = Ruleset;
   structure Rule = Ruleset.Rule;
@@ -186,16 +192,26 @@ struct
 
   structure G = Rule.Graph;
 
+  fun log_p pretty_f lvl name =
+    Log.logf lvl (fn g => Pretty.string_of
+        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
+
+  val log_graph = log_p G.pretty
+  val log_rule = log_p Rule.pretty
+
   fun rule_matches r g =
       let
         (* Vertices and variables must be renamed away from
          * those in g, otherwise the rewriting will fail
          * (a quirk of the implementations of LinRatExpr and
          * V.CRnm) *)
+        val _ = Log.log 4 "Checking whether rule matches"
         val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g),
                     V.Rnm.mk_from_avoids (G.get_vnames g),
                     E.Rnm.empty, B.Rnm.empty)
+        val _ = Log.log 4 "Renaming rule"
         val (_,r) = Rule.rename rnms r;
+        val _ = Log.log 4 "Done renaming rule"
         val lhs = Rule.get_lhs r;
         val rhs = Rule.get_rhs r;
         val avoid = G.get_vnames rhs;
@@ -229,21 +245,28 @@ struct
   (* IMPROVE: provide a single name-space for all rules, and thus avoid 
      multiple renamings. *)
   fun applicable_rules rset matcher rnset g = 
+      (log_graph 4 "Finding matches for graph" g;
       R.NSet.fold 
       (fn n =>
           let
-            val (r,matches) = matcher (Ruleset.get_rule rset n) g 
+            val rule = (Ruleset.get_rule rset n)
+            val _ = log_rule 4 ("Trying rule "^(R.string_of_name n)) rule
+            val (r,matches) = matcher rule g 
+            val _ = log_rule 4 "Rule instantiated as" r
             val rw = GraphSubst.rewrite g (Rule.get_lhs r)
+            val _ = Log.log 4 ("rw set up for rule "^(R.string_of_name n))
             fun apply_rw m = let
+              val _ = Log.log 4 ("Applying rule "^(R.string_of_name n))
               val (rulepair,g) = rw m (Rule.get_rhs r)
             in
-              ((n,Rule.mk rulepair),g)
+              (Log.log 4 ("Applying (2) rule "^(R.string_of_name n));
+              ((n,Rule.mk rulepair),(G.minimise g)))
             end
           in
             Seq.append (Seq.map apply_rw matches)
           end)
        rnset
-       Seq.empty;
+       Seq.empty);
   
   fun apply rset g = 
       applicable_rules rset rule_matches 
@@ -254,10 +277,15 @@ struct
         (Ruleset.get_active rset) g;
   
   (* apply just first rule that can be applied *)
-  fun apply_first rset g = 
-      case Seq.pull (apply rset g) 
+  fun apply_first rset g = let
+    val _ = Log.log 4 "apply_first called"
+    val mseq = (apply rset g)
+    val _ = Log.log 4 "apply_first: sequence produced"
+  in
+      case Seq.pull mseq
        of NONE => NONE
-        | SOME (h,_) => SOME h;
+        | SOME (h,_) => SOME h
+  end;
 
   fun apply_first_in rset vset g = 
       case Seq.pull (apply_in rset vset g) 

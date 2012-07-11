@@ -43,9 +43,11 @@ functor SimpleInnerMatchSearch(
                     perhaps_apply [G.VData.match_data (cpdata,ctdata),
                                    G.EData.match_data (epdata,etdata)] subst)
                 of (true, SOME subst') =>
+                      (Log.logf 3 (fn () => "Matched circle "^(V.string_of_name cp)^
+                        " against "^(V.string_of_name ct)) ();
                       match_circles (ms |> MatchState.update_u_circles (V.NSet.delete cp)
                                         |> MatchState.add_circle_to_match (cp,ct)
-                                        |> MatchState.set_match_subst subst')
+                                        |> MatchState.set_match_subst subst'))
                  | (_, NONE) => Seq.empty
            end
          in V.NSet.fold (Seq.append o m_circ) (u_circles_in_tgt ms) Seq.empty
@@ -87,9 +89,11 @@ functor SimpleInnerMatchSearch(
     in
       if V.NSet.contains (MatchState.get_p_nodeverts ms) new_vp
       then if VInjEndo.contains (MatchState.get_vmap ms) (new_vp, new_vt)
-           then SOME (ms |> MatchState.add_edge_to_match (ep,new_vp) (et,new_vt)
+           then (Log.logf 3 (fn () => "Matched edge "^(E.string_of_name ep)^
+                        " against "^(E.string_of_name et)) ();
+                SOME (ms |> MatchState.add_edge_to_match (ep,new_vp) (et,new_vt)
                          |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                         |> MatchState.set_match_subst e_subst)
+                         |> MatchState.set_match_subst e_subst))
            else NONE
       else
         case G.VData.match_data (G.get_vertex_data pat new_vp,
@@ -102,24 +106,30 @@ functor SimpleInnerMatchSearch(
               case (G.wv_get_other_edge pat new_vp ep, G.wv_get_other_edge tgt new_vt et)
                (* pat and tgt are internal. add edge to match and recurse *)
                of (SOME new_ep, SOME new_et) =>
+                (Log.logf 3 (fn () => "Matched edge "^(E.string_of_name ep)^
+                        " against "^(E.string_of_name et)) ();
                  tryadd_wire (ms |> MatchState.add_edge_to_match (ep,new_vp) (et,new_vt)
                                  |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
                                  |> MatchState.set_match_subst v_subst)
-                             (new_vp,new_ep) (new_vt,new_et)
+                             (new_vp,new_ep) (new_vt,new_et))
                (* pat is internal, tgt is bdry. fail *)
                 | (SOME _, NONE) => NONE
                (* pat is boundary. add edge to match and finish *)
                 | (NONE, _) =>
+                (Log.logf 3 (fn () => "Matched edge "^(E.string_of_name ep)^
+                        " against "^(E.string_of_name et)) ();
                   SOME (ms |> MatchState.add_edge_to_match (ep,new_vp) (et,new_vt)
                            |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                           |> MatchState.set_match_subst v_subst)
+                           |> MatchState.set_match_subst v_subst))
             else (* new_vp and new_vt are node-vertices *)
               if V.NSet.contains (MatchState.get_u_nodeverts ms) new_vp
-              then SOME (ms |> MatchState.add_edge_to_match (ep,new_vp) (et,new_vt)
+              then (Log.logf 3 (fn () => "Matched edge "^(E.string_of_name ep)^
+                        " against "^(E.string_of_name et)) ();
+                   SOME (ms |> MatchState.add_edge_to_match (ep,new_vp) (et,new_vt)
                             |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
                             |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
                             |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                            |> MatchState.set_match_subst v_subst)
+                            |> MatchState.set_match_subst v_subst))
               else NONE (* if this node-vert isn't scheduled for matching, leave its wire alone *)
            | NONE => NONE (* vertex data did not match: new_vp -> new_vt *)
     end
