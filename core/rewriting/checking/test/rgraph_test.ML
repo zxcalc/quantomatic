@@ -7,7 +7,6 @@ structure Ruleset = Test_Ruleset;
 structure RulesetRewrites = Test_RulesetRewrites;
 structure Match = RulesetRewrites.Match;
 structure RewriteGraph = Test_RGraph;
-(*structure RewriteGraph = RewriteGraph(Test_RulesetRewrites);*)
 in
 
 fun list_of_rule_matches r g = 
@@ -81,7 +80,7 @@ val (e9,rg) = rg |> RewriteGraph.add_edge l ((n3, n4), ed);
 val () = rg |> RewriteGraph.print
 val rg = rg |> RewriteGraph.treeify n1
 val () = rg |> RewriteGraph.print
-(*TODO: Make the compilation fail the edge types are not correct *)
+(*TODO: Make the compilation fail if the edge types are not correct *)
 
 
 (* Now test unification *)
@@ -135,6 +134,4 @@ val () = rg |> RewriteGraph.treeify n1
 val rg = rg |> RewriteGraph.unify;
 val () = rg |> RewriteGraph.treeify n1
             |> RewriteGraph.print;
-
-
 end;

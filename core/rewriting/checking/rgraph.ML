@@ -39,6 +39,10 @@ sig
   val add_named_vertex : Graph.T -> GraphName.name -> T -> (GraphName.name * T)
   val add_edge   : string -> ((GraphName.name * GraphName.name) * edge_data) -> T -> (E.name * T)
 
+ 
+  val has_vertex : GraphName.name -> T -> bool 
+  val get_vertex : T -> GraphName.name -> vertex 
+
   val unify1 : GraphName.name -> T -> T
   val unify : T -> T
 
@@ -118,6 +122,8 @@ functor RGraph(
   val init = RGraph { edges = E.NTab.empty, 
                       vertices = GraphName.NTab.empty,
                       root = NONE}
+
+  fun has_vertex name rg = GraphName.NTab.contains_name (get_vertices rg) name
 
   fun add_named_vertex g name rg = 
     let
@@ -238,10 +244,9 @@ functor RGraph(
   fun merge_vertices v1 v2 g = 
     let 
       val (_,(ines,outes)) = get_vertex g v1
-      val new_name = GraphName.mk
-        ("(" ^ GraphName.dest v1 ^ "M" ^ GraphName.dest v2 ^ ")")
+      val new_name = v2
     in 
-        g |> E.NSet.fold
+        (new_name, g |> E.NSet.fold
               (fn en => fn g => 
                   let val (((fromv,tov),d),t) = get_edge g en
                   in g |> delete_edge en
@@ -257,7 +262,7 @@ functor RGraph(
                        |> snd
                   end)
               outes
-          |> delete_vertex v1
+          |> delete_vertex v1)
       end;
 
   (* Unify1: take a graphname and see if there are any isomorphic graphs in the 
@@ -271,7 +276,8 @@ functor RGraph(
                          | NONE => raise no_such_vertex_exp ("unify1", gn, rg)
       fun check_and_unify n rg' = case GraphName.NTab.lookup (get_vertices rg') n
                                 of SOME (v,(_,_)) => if (are_isomorphic v g)
-                                                      then merge_vertices n gn rg'
+                                                      then snd (merge_vertices gn
+                                                                  n rg')
                                                       else rg'
                                  | NONE => rg'
     in
@@ -280,12 +286,15 @@ functor RGraph(
 
   fun unify rg = 
     let
-      fun check_and_unify n rg' = case GraphName.NTab.lookup (get_vertices rg') n
-                                  of SOME _ => unify1 n rg'
-                                   | NONE => rg'
-    in
-      rg |> 
-          GraphName.NSet.fold (check_and_unify) 
+      fun check_and_unify n rg' = 
+        if GraphName.NTab.is_name_empty (get_vertices rg') then
+          case GraphName.NTab.lookup (get_vertices rg') n
+                                    of SOME _ => unify1 n rg'
+                                     | NONE => rg'
+        else
+          rg'
+      in
+        rg |> GraphName.NSet.fold (check_and_unify) 
                       (GraphName.NTab.get_nameset (get_vertices rg))
     end;
 
