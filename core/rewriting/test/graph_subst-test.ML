@@ -292,7 +292,8 @@ val _ = Testing.test "rule1: spider" (fn () => let
             |> G.doadd_edge dir_edge x1 x2
   val tgt = g
 
-  val mseq = M.match lhs tgt
+  val rhs_vnames = G.get_vnames rhs
+  val mseq = M.match_avoiding_tracking (rhs_vnames,rhs_vnames) lhs tgt
   val SOME (ms,_) = Seq.pull mseq
 
   val result = GSub.do_rewrite tgt lhs ms rhs

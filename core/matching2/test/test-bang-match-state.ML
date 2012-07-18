@@ -33,6 +33,7 @@ local (* Test matching with concrete graphs *)
 
   val ms = MS.init spider_pat G.empty
             |> MS.set_pat_avoids (G.get_vnames spider_pat_plus_v4)
+            |> MS.set_pat_tracked (V.NSet.of_list [v1,v3])
 
   val ms = ms |> MS.expand_pat_bbox b0
               |> MS.expand_pat_bbox b0

@@ -234,7 +234,7 @@ functor BangGraphMatchState(
     val vmap' = V.NSet.fold (fn v =>
         case V.NTab.lookup vmap v of
              NONE => (fn x => x)
-           | SOME v' => V.NTab.ins (v,v')) tracked vmap
+           | SOME v' => V.NTab.ins (v,v')) tracked V.NTab.empty
     val bbop = BBCopy {
         bbox = b,
         vmap = vmap',
