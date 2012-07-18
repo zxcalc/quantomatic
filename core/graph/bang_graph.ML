@@ -240,7 +240,6 @@ functor BasicBangGraphFun(
 
   (* to avoid using clobbered data and empty graph from the opened Basic Graph *)
   type data2 = data;
-  val empty_data2 = empty_data;
 
   (* we add bbox to Graph data, this is hidden *)
   datatype hdata =
@@ -294,7 +293,6 @@ functor BasicBangGraphFun(
 
   (* clobber sub-graph data stuff *)
   type data = data2;
-  val empty_data = empty_data2;
   val get_data = get_data_of_hdata o G.get_data;
   val update_data = G.update_data o update_data_of_hdata;
 
@@ -627,20 +625,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
   (* FIXME: this code is largely duplicated in bgraph - clean up *)
 
-  (* IMPROVE: move these into graph *)
-  fun pair_from_of_edge g e =
-      let val ((bd,ed),(from,to)) = get_edge g e in (e,ed,from) end;
-  fun pair_to_of_edge g e =
-      let val ((bd,ed),(from,to)) = get_edge g e in (e,ed,to) end;
-
-  (* auxillary function; adding a vertex to a map of adj banged,
-     or a set of others. *)
-  fun add_to_others g n (vtobang, others) =
-      (case lookup_bbox_of g n of NONE => (vtobang, V.NSet.add n others)
-       | SOME bbn => (if VBMap.dom_contains vtobang n then vtobang
-                         else VBMap.add_to_dom n bbn vtobang,
-                      others));
-
   (* get arrities to adjacent vertices, return two tables, one for normal edges
      and one for those in a different bang-boxes. Filter by function: when function is true, skip this adj entry. *)
   fun get_filtered_adj_arities_and_bang_arities f g n =
@@ -658,14 +642,14 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                     then SOME bbn2 else NONE));
 
         (* *)
-        fun init_adj_info (eh,(UnDirected,ed)) =
+        fun init_adj_info (_,(UnDirected,_)) =
             Arity.add_1_undir Arity.zero
-          | init_adj_info (eh,(Directed,ed)) =
+          | init_adj_info (eh,(Directed,_)) =
             if H.is_start eh then Arity.add_1_in Arity.zero
             else Arity.add_1_out Arity.zero;
         (* *)
-        fun add_one_to_adj_info (eh,(UnDirected,ed)) a = Arity.add_1_undir a
-          | add_one_to_adj_info (eh,(Directed,ed)) a =
+        fun add_one_to_adj_info (_,(UnDirected,_)) a = Arity.add_1_undir a
+          | add_one_to_adj_info (eh,(Directed,_)) a =
             if H.is_start eh then Arity.add_1_in a
             else Arity.add_1_out a;
 
