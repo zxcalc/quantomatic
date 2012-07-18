@@ -142,9 +142,9 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
       val h = g |> V.NSet.fold G.delete_vertex interior
                    (* apply the data substitution to what remains *)
                 |> subst_data;
-      val _ = log_graph 4 "pat" pat
-      val _ = log_graph 3 "G" g
-      val _ = log_graph 3 "G-pat" h
+      val _ = log_graph 4 "OGraphSubst.rewrite: pattern graph" pat
+      val _ = log_graph 3 "OGraphSubst.rewrite: G" g
+      val _ = log_graph 3 "OGraphSubst.rewrite: G-pat" h
 
       (* Rename the RHS verts for merging.
        *
@@ -168,9 +168,9 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
       val v_rnm2 = V.Rnm.mk V.NSet.empty
                             g_pat_verts
                             (VInjEndo.get_domtab vmap);
-      val _ = log_vrnm 4 "v_rnm1" v_rnm1
-      val _ = log_vrnm 4 "v_rnm2" v_rnm2
-      val _ = log_ernm 4 "e_rnm" e_rnm
+      val _ = log_vrnm 4 "OGraphSubst.rewrite: v_rnm1" v_rnm1
+      val _ = log_vrnm 4 "OGraphSubst.rewrite: v_rnm2" v_rnm2
+      val _ = log_ernm 4 "OGraphSubst.rewrite: e_rnm" e_rnm
 
       val prepare = snd o G.VertexCRnm.rename v_rnm2
                   o snd o G.VertexCRnm.rename v_rnm1
@@ -179,11 +179,11 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
 
       in (fn rhs =>
           let
-            val _ = log_graph 4 "RHS" rhs
+            val _ = log_graph 4 "OGraphSubst.rewrite: RHS" rhs
             val rhs' = prepare rhs
-            val _ = log_graph 4 "RHS (prepared)" rhs'
+            val _ = log_graph 4 "OGraphSubst.rewrite: RHS (prepared)" rhs'
             val pat' = prepare pat
-            val _ = log_graph 4 "Pat (prepared)" pat'
+            val _ = log_graph 4 "OGraphSubst.rewrite: LHS (prepared)" pat'
           in
             ((pat',rhs'), G.merge_by_vertices rhs' h)
           end)

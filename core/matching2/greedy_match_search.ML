@@ -27,6 +27,7 @@ struct
     Log.logf lvl (fn g => Pretty.string_of
         (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
   val log_graph = log_p G.pretty
+  val log_v_nset = log_p V.NSet.pretty
 
   (* FIXME *)
   fun doomedf _ _ = false
@@ -37,11 +38,22 @@ struct
       Seq.filter BGMatchState.is_total
         (InnerMatchSearch.match_bare_wires ms)
 
+  fun kill_pat_bbox b ms = let
+    val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
+  in
+    BGMatchState.kill_pat_bbox b ms
+  end
+  fun expand_pat_bbox b ms = let
+    val _ = Log.logf 2 (fn () => "Expanding !-box "^(B.string_of_name b)) ()
+  in
+    BGMatchState.expand_pat_bbox b ms
+  end
+
   fun match_loop ms' = let
     fun kill_and_expand b ms = let
-      val do_kill = choose_next_bbox o (BGMatchState.kill_pat_bbox b)
+      val do_kill = choose_next_bbox o (kill_pat_bbox b)
       val do_copy = match_loop o BGMatchState.schedule_new_concrete
-                               o (BGMatchState.expand_pat_bbox b)
+                               o (expand_pat_bbox b)
     in
       Seq.append (Seq.maps do_kill (Seq.single ms))
                  (Seq.maps do_copy (Seq.single ms))
@@ -59,8 +71,10 @@ struct
   fun match_avoiding_tracking (avoid,track) pat tgt = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
-    val _ = log_graph 4 "Normalised pattern" pat
-    val _ = log_graph 4 "Normalised target" tgt
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
+    val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
+    val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
     val ms = BGMatchState.init_and_schedule_concrete pat tgt
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track
@@ -71,8 +85,11 @@ struct
   fun match_subgraph_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
-    val _ = log_graph 4 "Normalised pattern" pat
-    val _ = log_graph 4 "Normalised target" tgt
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
+    val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
+    val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
+    val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
     val ms = BGMatchState.init_subgraph_and_schedule_concrete pat tgt tgt_verts
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track

@@ -23,15 +23,17 @@ struct
        (Seq.maps InnerMatchSearch.match_bare_wires
         (InnerMatchSearch.match_pending concrete_doomedf ms))
 
-  fun log_graph lvl name =
+  fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
-        (Pretty.chunks [Pretty.str (name^":"),(G.pretty g)]))
+        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
+  val log_graph = log_p G.pretty
+  val log_v_nset = log_p V.NSet.pretty
   
   fun match pat tgt = let
     val pat' = G.normalise pat
     val tgt' = G.normalise tgt
-    val _ = log_graph 3 "Normalised pattern" pat
-    val _ = log_graph 3 "Normalised target" tgt'
+    val _ = log_graph 3 "ConcreteMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 "ConcreteMatchSearch: normalised target" tgt
     val ms = MatchState.init_and_schedule_all pat' tgt'
   in
     do_match ms
@@ -40,6 +42,9 @@ struct
   fun match_subgraph pat tgt tgt_verts = let
     val pat = G.normalise pat
     val tgt = G.normalise tgt
+    val _ = log_graph 3 "ConcreteMatchSearch: normalised pattern" pat
+    val _ = log_graph 3 "ConcreteMatchSearch: normalised target" tgt
+    val _ = log_v_nset 4 "ConcreteMatchSearch: target vertices" tgt_verts
     val ms = MatchState.init_subgraph_and_schedule_all pat tgt tgt_verts
   in
     do_match ms
