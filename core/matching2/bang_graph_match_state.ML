@@ -200,10 +200,8 @@ functor BangGraphMatchState(
     schedule_concrete new_vs new_es ms
   end
 
-  fun replay_bbox_op _ (BBKill b) g =
-        (PolyML.print ("Killing !-box "^(B.string_of_name b));BG.kill_bbox b g)
+  fun replay_bbox_op _ (BBKill b) g = BG.kill_bbox b g
     | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
-        val _ = PolyML.print ("Expanding !-box "^(B.string_of_name bbox))
         val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
         val vrn = V.Rnm.mk V.NSet.empty v_avoid vmap
         val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
