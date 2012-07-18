@@ -182,8 +182,10 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
             val _ = log_graph 4 "RHS" rhs
             val rhs' = prepare rhs
             val _ = log_graph 4 "RHS (prepared)" rhs'
+            val pat' = prepare pat
+            val _ = log_graph 4 "Pat (prepared)" pat'
           in
-            ((pat,rhs'), G.merge_by_vertices rhs' h)
+            ((pat',rhs'), G.merge_by_vertices rhs' h)
           end)
       end;
 
