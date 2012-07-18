@@ -10,4 +10,5 @@ structure DB_Test_RulesetRewriter = RulesetRewriter(
   structure GraphSubst = Test_BangGraphSubst;
 );
 structure Test_RulesetRewriter : RULESET_REWRITER = DB_Test_RulesetRewriter;
-Test_RulesetRewriter.Log.level_ref := 4;
+(* set to 4 for really detailed messages *)
+Test_RulesetRewriter.Log.level_ref := 2;
