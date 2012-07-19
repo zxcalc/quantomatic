@@ -19,6 +19,7 @@ signature BASIC_BANG_GRAPH =
 sig
 include BASIC_OGRAPH;
 
+exception bbox_not_open_exp of B.name * T;
 exception bbox_already_exists_exp of B.name * T;
 exception no_such_bbox_exp of unit
 
@@ -81,6 +82,7 @@ include OGRAPH;
 (* *** COPIED FROM BASIC_BANG_GRAPH ... would be better to have union version
    of include *** *)
 
+exception bbox_not_open_exp of B.name * T;
 exception bbox_already_exists_exp of B.name * T;
 exception no_such_bbox_exp of unit
 
@@ -296,6 +298,7 @@ functor BasicBangGraphFun(
   val get_data = get_data_of_hdata o G.get_data;
   val update_data = G.update_data o update_data_of_hdata;
 
+  exception bbox_not_open_exp of B.name * T;
   exception bbox_already_exists_exp of B.name * T;
   exception no_such_bbox_exp of unit;
 
@@ -360,6 +363,51 @@ functor BasicBangGraphFun(
                                | SOME bxs2 => bxs2);
 
   (* modified graph functions *)
+  fun add_edge_named_like en edd s t g = let
+    val (sd,_) = get_vertex g s
+    val (td,_) = get_vertex g s
+    fun get_bboxes_of g v =
+        case V.NTab.lookup (get_vertex_bbox_table g) v of
+             NONE => B.NSet.empty
+           | SOME bs => bs;
+  in
+    (* FIXME: just extend the !-boxes, instead of raising
+     * an exception? *)
+    case (sd,td)
+      of (OVData.EVert,OVData.EVert) =>
+          let
+            val sbbs = get_bboxes_of g s
+            val tbbs = get_bboxes_of g t
+            fun one_bad_bbox () = let
+                val (l,_,r) = B.NSet.contrast sbbs tbbs
+                val bad_bbs = B.NSet.union_merge l r
+              in the (B.NSet.get_local_bot bad_bbs) end
+            val _ = if B.NSet.eq sbbs tbbs then ()
+                    else raise bbox_not_open_exp (one_bad_bbox(),g)
+          in G.add_edge_named_like en edd s t g end
+       | (OVData.IVert _,OVData.EVert) =>
+          let
+            val sbbs = get_bboxes_of g s
+            val tbbs = get_bboxes_of g t
+            fun one_bad_bbox () = let
+                val bad_bbs = B.NSet.subtract sbbs tbbs
+              in the (B.NSet.get_local_bot bad_bbs) end
+            val _ = if B.NSet.sub_set sbbs tbbs then ()
+                    else raise bbox_not_open_exp (one_bad_bbox(),g)
+          in G.add_edge_named_like en edd s t g end
+       | (OVData.EVert,OVData.IVert _) =>
+          let
+            val sbbs = get_bboxes_of g s
+            val tbbs = get_bboxes_of g t
+            fun one_bad_bbox () = let
+                val bad_bbs = B.NSet.subtract tbbs sbbs
+              in the (B.NSet.get_local_bot bad_bbs) end
+            val _ = if B.NSet.sub_set tbbs sbbs then ()
+                    else raise bbox_not_open_exp (one_bad_bbox(),g)
+          in G.add_edge_named_like en edd s t g end
+       | _ => G.add_edge_named_like en edd s t g
+  end
+
   fun delete_vertex n g =
       g |> update_bbox_rel (BVBRel.del_cod n)
         |> G.delete_vertex n;
@@ -371,6 +419,7 @@ functor BasicBangGraphFun(
         |> update_bbox_rel (the o BVBRel.try_rename1_cod n1 n2);
 
   fun add_to_bbox b vs g =
+    (* FIXME: check consistency (or extend automagically) *)
     if not (B.NSet.contains (get_bboxes g) b) then
       raise no_such_bbox_exp ()
     else if not (V.NSet.sub_set vs ((V.NTab.get_nameset o get_vertices) g)) then
@@ -379,6 +428,7 @@ functor BasicBangGraphFun(
       g |> update_bbox_rel (BVBRel.add_to_dom b vs);
 
   fun remove_from_bbox b vs g =
+    (* FIXME: check consistency (or extend automagically) *)
     if not (B.NSet.contains (get_bboxes g) b) then
       raise no_such_bbox_exp ()
     else
@@ -780,9 +830,12 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
     if is_wire_vertex g s orelse is_wire_vertex g t then
       (* any wire !-boxes will be on s or t *)
       OGraph.minimise_wire' wire g
+    else if B.NSet.is_empty (get_bboxes g) then
+      (* treat as OGraph *)
+      OGraph.minimise_wire' wire g
     else
       case V.NSet.get_local_bot wvs of
-           (* no extra !-boxes *)
+           (* already minimal *)
            NONE => OGraph.minimise_wire' wire g
          | SOME wv =>
              let
@@ -796,14 +849,15 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                else
                  let
                    val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
+                   val g      = g |> delete_wire wire
                    val (wv,g) = g |> add_vertex OVData.EVert
+                   val wvset  = V.NSet.single wv
+                   val g      = g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
                    val (e1,g) = g |> add_edge dir_and_data s wv
                    val (e2,g) = g |> add_edge dir_and_data wv t
-                   val wvset = V.NSet.single wv
-                   val eset = E.NSet.of_list [e1,e2]
+                   val eset   = E.NSet.of_list [e1,e2]
                  in
-                   ((s,t,wvset,eset),
-                    g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs)
+                   ((s,t,wvset,eset), g)
                  end
              end
   fun minimise_wire wire g = let
@@ -827,17 +881,17 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                       NONE => B.NSet.union_merge (get_bboxes_of g s)
                                                  (get_bboxes_of g t)
                     | SOME wv => get_bboxes_of g wv
+        val g      = g |> delete_wire wire
         val (b1,g) = g |> add_vertex OVData.EVert
         val (b2,g) = g |> add_vertex OVData.EVert
+        val wvset  = V.NSet.of_list [b1,b2]
+        val g      = g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
         val (e1,g) = g |> add_edge dir_and_data s b1
         val (e2,g) = g |> add_edge dir_and_data b1 b2
         val (e3,g) = g |> add_edge dir_and_data b2 t
-        val wvset = V.NSet.of_list [b1,b2]
-        val eset = E.NSet.of_list [e1,e2,e3]
+        val eset   = E.NSet.of_list [e1,e2,e3]
       in
-        ((s,t,wvset,eset),
-         g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
-           |> delete_wire wire)
+        ((s,t,wvset,eset), g)
       end
   fun normalise_wire wire g = let
     val _ = assert_wire_coherent g wire

@@ -178,8 +178,8 @@ local (* Test matching with disjoint !-boxes *)
   val mseq = M.match spider_rhs_pat x_with_loop
   val _ = Testing.test "M.match - spider (RHS) pattern --> x with loop" (assert_n_match 1 mseq) ()
 
-  val mseq = M.match star_pat single_x
-  val _ = Testing.test "M.match - star pattern --> single x" (assert_n_match 0 mseq) ()
+  val _ = Testing.test "M.match - star pattern --> single x"
+      (fn () => assert_n_match 0 (M.match star_pat single_x) ()) ()
 
   val mseq = M.match star_pat single_z
   val _ = Testing.test "M.match - star pattern --> single z" (assert_n_match 1 mseq) ()

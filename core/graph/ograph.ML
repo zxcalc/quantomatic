@@ -20,6 +20,25 @@ structure SharingOGraph : OGRAPH_SHARING
 sharing SharingBasicGraph = SharingOGraph
 sharing SharingOGraph.OVData = OVData.SharingWithIData
 
+(* raised when an operation would break consistency of
+ * a wire-vertex (ie: more than one input or more than
+ * one output, or mis-matched edge types)
+ *)
+exception wire_vertex_exp of (string * T * V.name);
+
+(* internal *)
+val assert_can_add_edge : T
+  -> (V.name * (VData.data * (E.NSet.T * E.NSet.T)))
+  -> (V.name * (VData.data * (E.NSet.T * E.NSet.T)))
+  -> (dir_or_undir * EData.data)
+  -> unit
+
+(* Get an edge that can join two boundary vertices, if
+ * there is such an edge.
+ *)
+val get_plugging : T -> V.name -> V.name
+  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
+
 (* points (edge and boundary, both kinds of vertices) 
    have no data. Boundary have only input edges, 
    or only output edges. Edgepoints have both input and output edges *)
@@ -54,12 +73,6 @@ val del_from_boundary : V.name -> T -> T
 val del_from_edgepoints : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
 val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
-
-(* Get an edge that can join two boundary vertices, if
- * there is such an edge.
- *)
-val get_plugging : T -> V.name -> V.name
-  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
 
 end (* Basic OGraph *)
 
@@ -467,13 +480,68 @@ functor BasicOGraphFun(
            | (_,_) => g |> add_to_boundary n)
       end;
 
-  (* *)
-  fun add_edge_named_like en e n1 n2 g = 
-      let val (en2,g2) = G.add_edge_named_like en e n1 n2 g in 
-        (en2, 
-         g2 |> update_point_kind_from_add_edge n1 
-            |> update_point_kind_from_add_edge n2)
-      end;
+  exception wire_vertex_exp of (string * T * V.name);
+
+  fun assert_edges_consistent g v (dir_or_undir,ed) (dir_or_undir',ed') = let
+    val _ = if dir_or_undir = dir_or_undir' then ()
+            else raise wire_vertex_exp ("Conflicting directedness",g,v)
+    val _ = if EData.data_eq (ed,ed') then ()
+            else raise wire_vertex_exp ("Different edge data",g,v)
+  in () end
+
+  fun assert_can_add_out (_,(OVData.IVert _,_)) _ _ = ()
+    | assert_can_add_out (v,(OVData.EVert,(ins,outs))) edata g = let
+    val _ = if E.NSet.is_empty outs then ()
+            else raise wire_vertex_exp ("Already has output",g,v)
+    fun assert_consistent (edd,_) =
+      assert_edges_consistent g v (Directed,edata) edd
+  in
+    case E.NSet.tryget_singleton ins
+      of NONE => ()
+       | SOME e => assert_consistent (get_edge g e)
+  end
+  fun assert_can_add_in (_,(OVData.IVert _,_)) _ _ = ()
+    | assert_can_add_in (v,(OVData.EVert,(ins,outs))) edata g = let
+    val _ = if E.NSet.is_empty ins then ()
+            else raise wire_vertex_exp ("Already has input",g,v)
+    fun assert_consistent (edd,_) =
+      assert_edges_consistent g v (Directed,edata) edd
+  in
+    case E.NSet.tryget_singleton outs
+      of NONE => ()
+       | SOME e => assert_consistent (get_edge g e)
+  end
+  fun assert_can_add_undir (_,(OVData.IVert _,_)) _ _ = ()
+    | assert_can_add_undir (v,(OVData.EVert,(ins,outs))) edata g = let
+    val adj = E.NSet.union_merge ins outs
+    fun assert_consistent (edd,_) =
+      assert_edges_consistent g v (UnDirected,edata) edd
+  in
+    if E.NSet.is_empty adj then ()
+    else
+      case E.NSet.tryget_singleton adj
+        of NONE => raise wire_vertex_exp ("Already has two adjacent edges",g,v)
+         | SOME e => assert_consistent (get_edge g e)
+  end
+
+  fun assert_can_add_edge g s t (dir_or_undir,data) =
+    case dir_or_undir
+      of Directed => (assert_can_add_out s data g;
+                      assert_can_add_in t data g)
+       | UnDirected => (assert_can_add_undir s data g;
+                        assert_can_add_undir t data g)
+
+  (* this is identical to the one in BangGraph *)
+  fun add_edge_named_like en e n1 n2 g = let
+    val vdesc1 = get_vertex g n1
+    val vdesc2 = get_vertex g n2
+    val _ = assert_can_add_edge g (n1,vdesc1) (n2,vdesc2) e
+    val (en2,g2) = G.add_edge_named_like en e n1 n2 g
+  in
+    (en2,
+     g2 |> update_point_kind_from_add_edge n1
+        |> update_point_kind_from_add_edge n2)
+  end;
 
   fun delete_edge en g = 
       let val (_,(fromv,tov)) = E.NTab.get (get_edges g) en in
@@ -949,10 +1017,10 @@ functor OGraphFun(G : BASIC_OGRAPH)
 
   fun minimise_wire' (wire as (s,t,_,es)) g = let
     val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
-    val (e,g') = g |> add_edge dir_and_data s t
+    val (e,g') = g |> delete_wire wire
+                   |> add_edge dir_and_data s t
   in
-    ((s,t,V.NSet.empty,E.NSet.single e),
-     g' |> delete_wire wire)
+    ((s,t,V.NSet.empty,E.NSet.single e), g')
   end
   fun minimise_wire wire g = let
     val _ = assert_wire_coherent g wire
@@ -977,14 +1045,14 @@ functor OGraphFun(G : BASIC_OGRAPH)
       (* add two extra wire verts on internal wires *)
       let
         val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
+        val g      = g |> delete_wire wire
         val (b1,g) = g |> add_vertex OVData.EVert
         val (b2,g) = g |> add_vertex OVData.EVert
         val (e1,g) = g |> add_edge dir_and_data s b1
         val (e2,g) = g |> add_edge dir_and_data b1 b2
         val (e3,g) = g |> add_edge dir_and_data b2 t
       in
-        ((s,t,V.NSet.of_list [b1,b2],E.NSet.of_list [e1,e2,e3]),
-         g |> delete_wire wire)
+        ((s,t,V.NSet.of_list [b1,b2],E.NSet.of_list [e1,e2,e3]), g)
       end
   fun normalise_wire wire g = let
     val _ = assert_wire_coherent g wire

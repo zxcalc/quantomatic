@@ -9,6 +9,11 @@ local
   val b6 = V.mk "b6"
   val b7 = V.mk "b7"
   val b8 = V.mk "b8"
+  val b9 = V.mk "b9"
+  val b10 = V.mk "b10"
+  val b11 = V.mk "b11"
+  val b12 = V.mk "b12"
+  val b13 = V.mk "b13"
   val c1 = V.mk "c1"
   val c2 = V.mk "c2"
   val c3 = V.mk "c3"
@@ -49,23 +54,85 @@ local
   val (e15,g) = g|> G.add_edge undir_edge r3 b7
   val (e16,g) = g|> G.add_edge undir_edge b8 r2
   val (e17,g) = g|> G.add_edge undir_edge b8 r3
+  val g_raw = g
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex b4 bvert
+            |> G.add_named_vertex c1 bvert
+            |> G.add_named_vertex c3 bvert
+            |> G.add_named_vertex r1 (mkX zero_angle)
+            |> G.add_named_vertex r2 (mkX zero_angle)
+            |> G.add_named_vertex r3 (mkX zero_angle)
+            |> G.doadd_edge dir_edge r1 r2
+            |> G.doadd_edge dir_edge r2 b4
+            |> G.doadd_edge dir_edge r2 r3
+            |> G.doadd_edge dir_edge r3 r3
+            |> G.doadd_edge dir_edge c1 c1
+            |> G.doadd_edge dir_edge c3 c3
+            |> G.doadd_edge undir_edge r2 r3
+            |> G.doadd_edge undir_edge r2 r3
+            |> G.doadd_edge undir_edge r2 r3
+  val g_min = g
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex b1 bvert
+            |> G.add_named_vertex b2 bvert
+            |> G.add_named_vertex b3 bvert
+            |> G.add_named_vertex b4 bvert
+            |> G.add_named_vertex b5 bvert
+            |> G.add_named_vertex b6 bvert
+            |> G.add_named_vertex b7 bvert
+            |> G.add_named_vertex b8 bvert
+            |> G.add_named_vertex b9 bvert
+            |> G.add_named_vertex b10 bvert
+            |> G.add_named_vertex b11 bvert
+            |> G.add_named_vertex b12 bvert
+            |> G.add_named_vertex b13 bvert
+            |> G.add_named_vertex c1 bvert
+            |> G.add_named_vertex c2 bvert
+            |> G.add_named_vertex c3 bvert
+            |> G.add_named_vertex r1 (mkX zero_angle)
+            |> G.add_named_vertex r2 (mkX zero_angle)
+            |> G.add_named_vertex r3 (mkX zero_angle)
+            |> G.doadd_edge dir_edge r1 b1
+            |> G.doadd_edge dir_edge b1 b2
+            |> G.doadd_edge dir_edge b2 r2
+            |> G.doadd_edge dir_edge r2 b4
+            |> G.doadd_edge dir_edge r2 b3
+            |> G.doadd_edge dir_edge b3 b5
+            |> G.doadd_edge dir_edge b5 r3
+            |> G.doadd_edge dir_edge r3 b6
+            |> G.doadd_edge dir_edge b6 b7
+            |> G.doadd_edge dir_edge b7 r3
+            |> G.doadd_edge dir_edge c1 c1
+            |> G.doadd_edge dir_edge c3 c3
+            |> G.doadd_edge undir_edge r2 b8
+            |> G.doadd_edge undir_edge b8 b9
+            |> G.doadd_edge undir_edge b9 r3
+            |> G.doadd_edge undir_edge r2 b10
+            |> G.doadd_edge undir_edge b10 b11
+            |> G.doadd_edge undir_edge b11 r3
+            |> G.doadd_edge undir_edge r2 b12
+            |> G.doadd_edge undir_edge b12 b13
+            |> G.doadd_edge undir_edge b13 r3
+  val g_norm = g
   
-  val wire1 = G.get_wire_containing_edge g e2
-  val wire2 = G.get_wire_containing_edge g e5
-  val wire3 = G.get_wire_containing_edge g e6
-  val wire4 = G.get_wire_containing_edge g e7
-  val wire5 = G.get_wire_containing_edge g e9
-  val wire5' = G.get_wire_containing_edge g e10
-  val wire6 = G.get_wire_containing_edge g e11
-  val wire7 = G.get_wire_containing_edge g e12
-  val wire8 = G.get_wire_containing_edge g e14
-  val wire8' = G.get_wire_containing_edge g e15
-  val wire9 = G.get_wire_containing_edge g e16
-  val wire9' = G.get_wire_containing_edge g e17
-  val _ = G.print g
+  val wire1 = G.get_wire_containing_edge g_raw e2
+  val wire2 = G.get_wire_containing_edge g_raw e5
+  val wire3 = G.get_wire_containing_edge g_raw e6
+  val wire4 = G.get_wire_containing_edge g_raw e7
+  val wire5 = G.get_wire_containing_edge g_raw e9
+  val wire5' = G.get_wire_containing_edge g_raw e10
+  val wire6 = G.get_wire_containing_edge g_raw e11
+  val wire7 = G.get_wire_containing_edge g_raw e12
+  val wire8 = G.get_wire_containing_edge g_raw e14
+  val wire8' = G.get_wire_containing_edge g_raw e15
+  val wire9 = G.get_wire_containing_edge g_raw e16
+  val wire9' = G.get_wire_containing_edge g_raw e17
+  val _ = G.print g_raw
   
   val wires     = sort G.wire_ord [wire1,wire2,wire3,wire4,wire5,wire6,wire7,wire8,wire9]
-  val wires'    = sort G.wire_ord (G.get_wire_list g)
+  val wires'    = sort G.wire_ord (G.get_wire_list g_raw)
   
   val _ = (Pretty.writeln o Pretty.str) "wires: "
   val _ = map (Pretty.writeln o G.pretty_wire) wires
@@ -121,6 +188,11 @@ local
             else raise ERROR "undirected 3' incorrect") ()
   val _ = Testing.test "G.get_wire_list"
   (fn () => c_wire_lists wires wires') ()
+  val _ = Testing.test "G.minimise"
+    (fn () => GIso.test (G.minimise g_raw) g_min) ()
+  val _ = Testing.test "G.normalise"
+    (fn () => GIso.test (G.normalise g_raw) g_norm) ()
+
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR WIRE FUNCTIONS PASSED!"

@@ -265,31 +265,31 @@ functor SimpleInnerMatchSearch(
     val (dd, (s,t)) = G.get_edge h e
   in if V.name_eq (s,t) then
       let
+        val h = h |> G.delete_edge e
         val (b1,h) = h |> G.add_vertex G.OVData.EVert
         val (e1,h) = h |> G.add_edge dd s b1
         val (mid_e, h) = h |> G.add_edge dd b1 t
-        val h = h |> G.delete_edge e
         (* now repeat on g *)
-        val g = g |> G.add_named_vertex b1 G.OVData.EVert
+        val g = g |> G.delete_edge e
+                  |> G.add_named_vertex b1 G.OVData.EVert
                   |> G.add_named_edge e1 dd s b1
                   |> G.add_named_edge mid_e dd b1 t
-                  |> G.delete_edge e
       in ((b1,mid_e,t),g,h)
       end
     else
       let 
+        val h = h |> G.delete_edge e
         val (b1,h) = h |> G.add_vertex G.OVData.EVert
         val (b2,h) = h |> G.add_vertex G.OVData.EVert
         val (e1,h) = h |> G.add_edge dd s b1
         val (mid_e,h) = h |> G.add_edge dd b1 b2
         val (e2,h) = h |> G.add_edge dd b2 t
-        val h = h |> G.delete_edge e
-        val g = g |> G.add_named_vertex b1 G.OVData.EVert
+        val g = g |> G.delete_edge e
+                  |> G.add_named_vertex b1 G.OVData.EVert
                   |> G.add_named_vertex b2 G.OVData.EVert
                   |> G.add_named_edge e1 dd s b1
                   |> G.add_named_edge mid_e dd b1 b2
                   |> G.add_named_edge e2 dd b2 t
-                  |> G.delete_edge e
       in ((b1,mid_e,b2),g,h)
       end
   end
