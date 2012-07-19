@@ -7,6 +7,8 @@ local
   val b4 = V.mk "b4"
   val b5 = V.mk "b5"
   val b6 = V.mk "b6"
+  val b7 = V.mk "b7"
+  val b8 = V.mk "b8"
   val c1 = V.mk "c1"
   val c2 = V.mk "c2"
   val c3 = V.mk "c3"
@@ -21,6 +23,8 @@ local
             |> G.add_named_vertex b4 bvert
             |> G.add_named_vertex b5 bvert
             |> G.add_named_vertex b6 bvert
+            |> G.add_named_vertex b7 bvert
+            |> G.add_named_vertex b8 bvert
             |> G.add_named_vertex c1 bvert
             |> G.add_named_vertex c2 bvert
             |> G.add_named_vertex c3 bvert
@@ -41,18 +45,26 @@ local
   
   val (e12,g) = g|> G.add_edge undir_edge r2 b6
   val (e13,g) = g|> G.add_edge undir_edge b6 r3
-  
+  val (e14,g) = g|> G.add_edge undir_edge r2 b7
+  val (e15,g) = g|> G.add_edge undir_edge r3 b7
+  val (e16,g) = g|> G.add_edge undir_edge b8 r2
+  val (e17,g) = g|> G.add_edge undir_edge b8 r3
   
   val wire1 = G.get_wire_containing_edge g e2
   val wire2 = G.get_wire_containing_edge g e5
   val wire3 = G.get_wire_containing_edge g e6
   val wire4 = G.get_wire_containing_edge g e7
   val wire5 = G.get_wire_containing_edge g e9
+  val wire5' = G.get_wire_containing_edge g e10
   val wire6 = G.get_wire_containing_edge g e11
   val wire7 = G.get_wire_containing_edge g e12
+  val wire8 = G.get_wire_containing_edge g e14
+  val wire8' = G.get_wire_containing_edge g e15
+  val wire9 = G.get_wire_containing_edge g e16
+  val wire9' = G.get_wire_containing_edge g e17
   val _ = G.print g
   
-  val wires     = sort G.wire_ord [wire1,wire2,wire3,wire4,wire5,wire6,wire7]
+  val wires     = sort G.wire_ord [wire1,wire2,wire3,wire4,wire5,wire6,wire7,wire8,wire9]
   val wires'    = sort G.wire_ord (G.get_wire_list g)
   
   val _ = (Pretty.writeln o Pretty.str) "wires: "
@@ -85,12 +97,28 @@ local
   (fn () => if (G.wire_eq (c1, c1, V.NSet.of_list [c2], E.NSet.of_list [e9,e10]) wire5)
             then I
             else raise ERROR ("circle1 incorrect: " ^ (Pretty.string_of o G.pretty_wire) wire5)) ()
+  val _ = Testing.test "G.get_wire_containing_edge - circle1 (other edge)"
+  (fn () => if (G.wire_eq (c1, c1, V.NSet.of_list [c2], E.NSet.of_list [e9,e10]) wire5')
+            then I
+            else raise ERROR ("circle1 (other edge) incorrect: " ^ (Pretty.string_of o G.pretty_wire) wire5')) ()
   val _ = Testing.test "G.get_wire_containing_edge - circle2"
   (fn () => if G.wire_eq (c3, c3, V.NSet.empty, E.NSet.of_list [e11]) wire6 then I
             else raise ERROR "circle2 incorrect") ()
   val _ = Testing.test "G.get_wire_containing_edge - undirected"
   (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b6], E.NSet.of_list [e12,e13]) wire7 then I
-            else raise ERROR "circle2 incorrect") ()
+            else raise ERROR "undirected incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - undirected 2"
+  (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b7], E.NSet.of_list [e14,e15]) wire8 then I
+            else raise ERROR "undirected 2 incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - undirected 2'"
+  (fn () => if G.wire_eq wire8 wire8' then I
+            else raise ERROR "undirected 2' incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - undirected 3"
+  (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b8], E.NSet.of_list [e16,e17]) wire9 then I
+            else raise ERROR "undirected 3 incorrect") ()
+  val _ = Testing.test "G.get_wire_containing_edge - undirected 3'"
+  (fn () => if G.wire_eq wire9 wire9' then I
+            else raise ERROR "undirected 3' incorrect") ()
   val _ = Testing.test "G.get_wire_list"
   (fn () => c_wire_lists wires wires') ()
 in

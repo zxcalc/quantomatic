@@ -172,11 +172,18 @@ val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 (* given an edge and vertex, get the other end *)
 val edge_get_other_vertex : T -> E.name -> V.name -> V.name
 
+(* Wire equality; assumes the wires are in the same graph *)
 val wire_eq : Wire -> Wire -> bool
+(* An arbitrary total order on wires; assumes the wires are in the same graph *)
 val wire_ord : Wire * Wire -> order
 
 val pretty_wire : Wire -> Pretty.T
 
+(* Deletes a wire, except for the end-points.
+ *
+ * Note that deleting a boundary wire, a bare wire or a circle
+ * will leave an isolated wire-vertex behind.
+ *)
 val delete_wire : Wire -> T -> T
 
 (* raises wire_exp if the wire is not coherent *)
@@ -851,9 +858,19 @@ functor OGraphFun(G : BASIC_OGRAPH)
 
   fun wv_get_other_edge g wv e = let
     val (_,(in_e,out_e)) = get_vertex g wv
-  in if E.NSet.contains in_e e
-     then if E.NSet.contains out_e e then NONE else E.NSet.tryget_singleton out_e
-     else E.NSet.tryget_singleton in_e
+  in
+    case get_edge g e
+      of ((Directed,_),_) =>
+            if E.NSet.contains in_e e
+            then
+              if E.NSet.contains out_e e
+              then NONE
+              else E.NSet.tryget_singleton out_e
+            else E.NSet.tryget_singleton in_e
+       | ((UnDirected,_),_) =>
+           let val edges = E.NSet.union_merge in_e out_e in
+             E.NSet.tryget_singleton (E.NSet.delete e edges)
+           end
   end
   
   fun edge_get_other_vertex g e v = let
@@ -861,10 +878,8 @@ functor OGraphFun(G : BASIC_OGRAPH)
   in if V.name_eq(s,v) then t else s
   end
   
-  (* use lexicographic order *)
-  fun wire_ord ( (s,t,w,e) , (s',t',w',e') ) =
-    prod_ord (prod_ord V.name_ord V.name_ord) (prod_ord V.NSet.ord E.NSet.ord)
-    (   ((s,t),(w,e))   ,   ((s',t'),(w',e'))   )
+  (* the edge-set is unique to a particular wire *)
+  fun wire_ord ( (_,_,_,es) , (_,_,_,es') ) = E.NSet.ord (es,es')
   
   fun wire_eq w1 w2 = wire_ord (w1, w2) = EQUAL
   
