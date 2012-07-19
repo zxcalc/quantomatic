@@ -158,9 +158,11 @@ val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
 (* TODO: remove old functions when convenient *)
 
+type Wire = V.name * V.name * V.NSet.T * E.NSet.T;
+
 (*** functions useful when dealing ignorantly with undirected edges ***)
 
-exception wire_exp of (string * T * (V.name * V.name * V.NSet.T * E.NSet.T));
+exception wire_exp of (string * T * Wire);
 
 (* Given a wire vertex and an edge, give the other connected edge, if it
    exists. In the case of a wire-vertex with a single, given self-loop,
@@ -170,34 +172,30 @@ val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 (* given an edge and vertex, get the other end *)
 val edge_get_other_vertex : T -> E.name -> V.name -> V.name
 
-(* FIXME: wire type is currently a 4-tuple of endpoints + interior wire verts + edges. Should this be encapsulated? *)
+val wire_eq : Wire -> Wire -> bool
+val wire_ord : Wire * Wire -> order
 
-val wire_eq : (V.name * V.name * V.NSet.T * E.NSet.T) -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
-val wire_ord : (V.name * V.name * V.NSet.T * E.NSet.T) * (V.name * V.name * V.NSet.T * E.NSet.T) -> order
+val pretty_wire : Wire -> Pretty.T
 
-val pretty_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> Pretty.T
-
-val delete_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
+val delete_wire : Wire -> T -> T
 
 (* raises wire_exp if the wire is not coherent *)
-val assert_wire_coherent : T -> (V.name * V.name * V.NSet.T * E.NSet.T)
-                        -> (V.name * V.name * V.NSet.T * E.NSet.T)
+val assert_wire_coherent : T -> Wire -> Wire
 
 (* Returns true if minimising the wire would have no effect *)
-val is_wire_minimal : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
+val is_wire_minimal : T -> Wire -> bool
 (* Removes any unnecessary wire vertices from a wire
  *
  * Raises an exception if the wire is not coherent.
  *
  * Returns the new wire and the new graph
  *)
-val minimise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
-  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
+val minimise_wire : Wire -> T -> Wire * T
 (* Same as minimise_wire, but does not give you the wire back *)
-val do_minimise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
+val do_minimise_wire : Wire -> T -> T
 
 (* Returns true if normalising the wire would have no effect *)
-val is_wire_normalised : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
+val is_wire_normalised : T -> Wire -> bool
 (* Ensures that there are exactly two wire-vertices on the wire if
  * it is an internal wire (one between two node-vertices), and
  * minimises the wire otherwise.
@@ -206,20 +204,19 @@ val is_wire_normalised : T -> (V.name * V.name * V.NSet.T * E.NSet.T) -> bool
  *
  * Returns the new wire and the new graph
  *)
-val normalise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T
-  -> (V.name * V.name * V.NSet.T * E.NSet.T) * T
+val normalise_wire : Wire -> T -> Wire * T
 (* Same as normalise_wire, but does not give you the wire back *)
-val do_normalise_wire : (V.name * V.name * V.NSet.T * E.NSet.T) -> T -> T
+val do_normalise_wire : Wire -> T -> T
 
 (* Return the endpoints, intermediate wire-vertices, and edges of the wire containing the given
    edge. The first endpoint is the one closest to the source of the edge. *)
-val get_wire_containing_edge : T -> E.name -> (V.name * V.name * V.NSet.T * E.NSet.T)
+val get_wire_containing_edge : T -> E.name -> Wire
 
 (* Return a list of all the wires in the graph that contain any of the given edges *)
-val get_wires_for_edges : T -> E.NSet.T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
+val get_wires_for_edges : T -> E.NSet.T -> Wire list
 
 (* Return a list of all the wires in the graph *)
-val get_wire_list : T -> (V.name * V.name * V.NSet.T * E.NSet.T) list
+val get_wire_list : T -> Wire list
 
 val is_input_vertex : T -> V.name -> bool
 val is_output_vertex : T -> V.name -> bool
@@ -261,8 +258,7 @@ val do_plug : V.name -> V.name -> T -> T
  *
  * Returns the new wire
  *)
-val plug_and_minimise : V.name -> V.name -> T
-      -> ((V.name * V.name * V.NSet.T * E.NSet.T) * T)
+val plug_and_minimise : V.name -> V.name -> T -> (Wire * T)
 (* Exactly like plug_and_minimise, but does not return the wire. *)
 val do_plug_and_minimise : V.name -> V.name -> T -> T
 (* Plug two boundary vertices together and normalises the
@@ -272,8 +268,7 @@ val do_plug_and_minimise : V.name -> V.name -> T -> T
  *
  * Returns the new wire
  *)
-val plug_and_normalise : V.name -> V.name -> T
-      -> ((V.name * V.name * V.NSet.T * E.NSet.T) * T)
+val plug_and_normalise : V.name -> V.name -> T -> (Wire * T)
 (* Exactly like plug_and_normalise, but does not return the wire. *)
 val do_plug_and_normalise : V.name -> V.name -> T -> T
 
@@ -915,6 +910,7 @@ functor OGraphFun(G : BASIC_OGRAPH)
 
   fun delete_wire (_,_,wvs,es) h = V.NSet.fold delete_vertex wvs (E.NSet.fold delete_edge es h)
 
+  type Wire = V.name * V.name * V.NSet.T * E.NSet.T;
   exception wire_exp of (string * T * (V.name * V.name * V.NSet.T * E.NSet.T));
 
   fun assert_wire_coherent g (w as (_,_,_,es)) = let
