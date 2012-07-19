@@ -33,15 +33,15 @@ functor SimpleInnerMatchSearch(
     MatchState.add_vertex_to_match (vp,vt) ms
   end
   fun log_match_fail_v1 msg v =
-    Log.log 2 ("!! "^msg^" ("^(V.string_of_name v))
+    Log.log 2 ("!! "^msg^" ("^(V.string_of_name v)^")")
   fun log_match_fail_v2 msg v1 v2 =
-    Log.log 2 ("!! "^msg^" ("^(V.string_of_name v1)^" -> "^(V.string_of_name v2))
+    Log.log 2 ("!! "^msg^" ("^(V.string_of_name v1)^" -> "^(V.string_of_name v2)^")")
   fun log_match_fail_e2 msg e1 e2 =
-    Log.log 2 ("!! "^msg^" ("^(E.string_of_name e1)^" -> "^(E.string_of_name e2))
+    Log.log 2 ("!! "^msg^" ("^(E.string_of_name e1)^" -> "^(E.string_of_name e2)^")")
   (* this version is for things that failed straight away *)
   (* (ie: when branches aren't killed, but are never created) *)
   fun log_match_fail_e2' msg e1 e2 =
-    Log.log 4 ("!! "^msg^" ("^(E.string_of_name e1)^" -> "^(E.string_of_name e2))
+    Log.log 4 ("!! "^msg^" ("^(E.string_of_name e1)^" -> "^(E.string_of_name e2)^")")
   
   (*****************************************)
   (************ CIRCLE MATCHING ************)
