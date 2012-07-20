@@ -19,7 +19,7 @@ signature BASIC_BANG_GRAPH =
 sig
 include BASIC_OGRAPH;
 
-exception bbox_not_open_exp of B.name * T;
+exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
 exception bbox_already_exists_exp of B.name * T;
 exception no_such_bbox_exp of unit
 
@@ -82,7 +82,7 @@ include OGRAPH;
 (* *** COPIED FROM BASIC_BANG_GRAPH ... would be better to have union version
    of include *** *)
 
-exception bbox_not_open_exp of B.name * T;
+exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
 exception bbox_already_exists_exp of B.name * T;
 exception no_such_bbox_exp of unit
 
@@ -298,7 +298,7 @@ functor BasicBangGraphFun(
   val get_data = get_data_of_hdata o G.get_data;
   val update_data = G.update_data o update_data_of_hdata;
 
-  exception bbox_not_open_exp of B.name * T;
+  exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
   exception bbox_already_exists_exp of B.name * T;
   exception no_such_bbox_exp of unit;
 
@@ -365,7 +365,7 @@ functor BasicBangGraphFun(
   (* modified graph functions *)
   fun add_edge_named_like en edd s t g = let
     val (sd,_) = get_vertex g s
-    val (td,_) = get_vertex g s
+    val (td,_) = get_vertex g t
     fun get_bboxes_of g v =
         case V.NTab.lookup (get_vertex_bbox_table g) v of
              NONE => B.NSet.empty
@@ -383,7 +383,7 @@ functor BasicBangGraphFun(
                 val bad_bbs = B.NSet.union_merge l r
               in the (B.NSet.get_local_bot bad_bbs) end
             val _ = if B.NSet.eq sbbs tbbs then ()
-                    else raise bbox_not_open_exp (one_bad_bbox(),g)
+                    else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
           in G.add_edge_named_like en edd s t g end
        | (OVData.IVert _,OVData.EVert) =>
           let
@@ -393,7 +393,7 @@ functor BasicBangGraphFun(
                 val bad_bbs = B.NSet.subtract sbbs tbbs
               in the (B.NSet.get_local_bot bad_bbs) end
             val _ = if B.NSet.sub_set sbbs tbbs then ()
-                    else raise bbox_not_open_exp (one_bad_bbox(),g)
+                    else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
           in G.add_edge_named_like en edd s t g end
        | (OVData.EVert,OVData.IVert _) =>
           let
@@ -403,7 +403,7 @@ functor BasicBangGraphFun(
                 val bad_bbs = B.NSet.subtract tbbs sbbs
               in the (B.NSet.get_local_bot bad_bbs) end
             val _ = if B.NSet.sub_set tbbs sbbs then ()
-                    else raise bbox_not_open_exp (one_bad_bbox(),g)
+                    else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
           in G.add_edge_named_like en edd s t g end
        | _ => G.add_edge_named_like en edd s t g
   end
