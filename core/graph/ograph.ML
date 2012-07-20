@@ -39,15 +39,8 @@ val assert_can_add_edge : T
 val get_plugging : T -> V.name -> V.name
   -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
 
-(* points (edge and boundary, both kinds of vertices) 
-   have no data. Boundary have only input edges, 
-   or only output edges. Edgepoints have both input and output edges *)
 
-
-(* FIXME: these methods should be deprecated in favour of the ones below.
-   I suggest keeping track of boundary info in Rule, closer to where it is
-   used. *)
-
+(* FIXME: Move boundary caching to Rule *)
 
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
@@ -93,44 +86,9 @@ val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
 
 (* *** END OF COPIED SIGNATURE *** *)
 
-
-val is_boundary_edge : T -> E.name -> bool
-
-(* get the subsets of boundary, divided into either input or output. *)
-val get_in_and_out_vnames : T -> V.NSet.T (* input *) 
-                                 * V.NSet.T (* output *)
-
-(* merge points (all adj edges) and keep vertex data (replacing edge-point), assumes they have the same internal data if they are both internal vertices *)
-val rename_or_merge_vname : V.name -> V.name -> T -> T
-
-(* cut all edges that go outside the selected set of vertices from the 
-   given vertex. Extends the gluing automorphism *)
-val cut_around_vertex : V.NSet.T -> V.name 
-    -> (VInjEndo.T * T) -> (VInjEndo.T * T)
-(* cut all edges that go from within the subgraph to outside it; 
-   returns the gluing automorphism, and a new graph which will be disjoint *)
-val cut_around_subgraph: V.NSet.T -> T -> (VInjEndo.T * T)
-
-(* Given selection set of vertices, make subgraph with with incident edges that 
-   went to a vertex outside selection, now go to a single edge-point. Perserves 
-   matching; doesn't (necessarily) produce a valid ograph. *)
-val matched_subgraph_within_vset' : V.NSet.T -> T 
-    -> VInjEndo.T * T (* returns gluing/cutting for new 'boundary', 
-                              and cut graph *)
-val matched_subgraph_within_vset : V.NSet.T -> T -> T
-
 (* Given selection set of vertices, make subgraph: 
    all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_vset : V.NSet.T -> T -> T
-
-
-
-(* NEW OGraph functions. These use the new terminology, and should
-   supercede their equivalents *)
-
-
-
-(* TODO: remove old functions when convenient *)
 
 type Wire = V.name * V.name * V.NSet.T * E.NSet.T;
 
@@ -612,40 +570,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
                   (get_boundary g)
                   true;
   
-  (* if n1 is boundary and something else is already called n2, then
-  merge n1 and the vertex called n2, used for bang-box copy *)
-  
-  (* rename n1 to n2, if n2 already exists, if several vertices have
-     non-boundary data, its assumed to be the same. 
-     edges; get unioned
-     Note: I've not really thought about what happens if n1 = n2, currently id. 
-  *)
-  fun rename_or_merge_vname n1 n2 bg =
-      if V.name_eq (n1,n2) then bg (* should raise an error? *)
-      else 
-      (case lookup_vertex bg n2 
-        of NONE => bg |> rename_vname n1 n2
-         | SOME (d2,(ins2,outs2)) => (* clash, so merge egdes to n1 into n2 *)
-           let val (d1,(ins1,outs1)) = get_vertex bg n1
-           in
-             bg |> (case d1 
-                     of OVData.EVert => update_boundary (V.NSet.delete n1)
-                      | OVData.IVert _ => 
-                        (case d2 
-                          of OVData.EVert => (* update boundary and data *)
-                             update_boundary (V.NSet.delete n2)
-                             o set_vertex_data d1 n2
-                           | OVData.IVert _ => I)) (* nothing to do *)
-                (* update edges *)
-                |> E.NSet.fold (update_edge_vnames 
-                                     (fn (from,_) => (from,n2))) ins1 
-                |> E.NSet.fold (update_edge_vnames 
-                                     (fn (_,to) => (n2,to))) outs1 
-                |> update_vertex_enames (K (E.NSet.union_merge ins1 ins2,
-                                            E.NSet.union_merge outs1 outs2)) n2
-                (* drop boundary node n1; keep what it was merged with *)
-                |> update_vertices (V.NTab.delete n1)
-           end);
   
   (* cut around subgraph identified by vns; introduces new half-edges, so that 
      vns is disjoint from the rest of the graphs. *)
@@ -695,33 +619,19 @@ functor OGraphFun(G : BASIC_OGRAPH)
   val is_boundary_vertex = is_boundary_vertex' oo get_vertex;
   val is_input_vertex = is_input_vertex' oo get_vertex;
   val is_output_vertex = is_output_vertex' oo get_vertex;
-  
-  (* goes to or comes from bounary vertex *)
-  fun is_boundary_edge g e = 
-      let val (_,(s,t)) = get_edge g e 
-      in is_boundary_vertex g s orelse is_boundary_vertex g t end;
-  
-  (* identify in and out boundary nodes (all edges come in-to or
-     out-of this node) and try to preserve them in rhs *)
-  fun get_in_and_out_vnames g = 
-      V.NSet.fold 
-        (fn n => 
-         fn (invs,outvs) => 
-            let val (_,(ins,outs)) = get_vertex g n
-            in
-              if E.NSet.is_empty outs then 
-                (invs, V.NSet.add n outvs)
-              else if E.NSet.is_empty ins then 
-                (V.NSet.add n invs, outvs) 
-              else (invs,outvs)
-            end)
-        (get_boundary g)
-        (V.NSet.empty, V.NSet.empty);
 
-  (* rewrite to do this efficiently: don't calculate both when you only 
-     want one. *)
-  val get_inputs = fst o get_in_and_out_vnames;
-  val get_outputs = fst o get_in_and_out_vnames;
+  fun get_inputs g =
+      V.NSet.fold (fn n => if E.NSet.is_empty (get_in_edges g n)
+                           then V.NSet.add n
+                           else I)
+                   (get_boundary g)
+                   V.NSet.empty;
+  fun get_outputs g =
+      V.NSet.fold (fn n => if E.NSet.is_empty (get_out_edges g n)
+                           then V.NSet.add n
+                           else I)
+                   (get_boundary g)
+                   V.NSet.empty;
   
   (* IMPROVE: move these into graph *)
   fun pair_from_of_edge g e = 
