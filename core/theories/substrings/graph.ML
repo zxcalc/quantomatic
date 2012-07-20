@@ -71,8 +71,8 @@ structure Str_OVertexComponentData =
 structure MkG = 
 struct
   structure G = StrGraph;
-  val bvert = G.OVData.EVert;
-  fun mk a = G.OVData.IVert a;
+  val bvert = G.OVData.WVert;
+  fun mk a = G.OVData.NVert a;
   val undir_edge = (G.UnDirected,());
   val dir_edge = (G.Directed,());
   val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);

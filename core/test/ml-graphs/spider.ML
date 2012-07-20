@@ -16,9 +16,9 @@ end;
   val var_angle = LinratAngleExpr.mk_var;
   val add_angles = LinratAngleExpr.add_expr;
   val pi_angle = LinratAngleExpr.pi;
-  fun mkZ a = V.IVert (RGVData.Znd a);
-  fun mkX a = V.IVert (RGVData.Xnd a);
-  val mkH = V.IVert RGVData.Hnd;
+  fun mkZ a = V.NVert (RGVData.Znd a);
+  fun mkX a = V.NVert (RGVData.Xnd a);
+  val mkH = V.NVert RGVData.Hnd;
   val edge : UnitEData.data = ();
 
 

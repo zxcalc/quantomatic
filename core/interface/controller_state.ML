@@ -621,7 +621,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       state |> set_graph_ud (UIData.rename_vertex old new ud) graphName
     end
     (* We had a conflict, therefore we have a freshName for 
-     * the internal vertex that we need to rename as well *)
+     * the node vertex that we need to rename as well *)
     | rename_vertex_uidata old (new::fresh::[]) graphName state =
     let
       val ud = get_graph_ud state graphName

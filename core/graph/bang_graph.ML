@@ -359,7 +359,7 @@ functor BasicBangGraphFun(
     (* FIXME: just extend the !-boxes, instead of raising
      * an exception? *)
     case (sd,td)
-      of (OVData.EVert,OVData.EVert) =>
+      of (OVData.WVert,OVData.WVert) =>
           let
             val sbbs = get_bboxes_of g s
             val tbbs = get_bboxes_of g t
@@ -370,7 +370,7 @@ functor BasicBangGraphFun(
             val _ = if B.NSet.eq sbbs tbbs then ()
                     else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
           in G.add_edge_named_like en edd s t g end
-       | (OVData.IVert _,OVData.EVert) =>
+       | (OVData.NVert _,OVData.WVert) =>
           let
             val sbbs = get_bboxes_of g s
             val tbbs = get_bboxes_of g t
@@ -380,7 +380,7 @@ functor BasicBangGraphFun(
             val _ = if B.NSet.sub_set sbbs tbbs then ()
                     else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
           in G.add_edge_named_like en edd s t g end
-       | (OVData.EVert,OVData.IVert _) =>
+       | (OVData.WVert,OVData.NVert _) =>
           let
             val sbbs = get_bboxes_of g s
             val tbbs = get_bboxes_of g t
@@ -669,9 +669,9 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
      (Replaces basic merge_by_vertices to include bboxes)
      Assumes edge-names are disjoint. Assumes bbox names disjoint.
      Assumes all edge-points from g1 are in g2 already (and copied bboxes skip edge-points)
-     When an edge-point in g1 overlaps an internal vertex in g2, if the
+     When an edge-point in g1 overlaps a node vertex in g2, if the
      edge-point is in a bangbox, then the bang-box doesn't extend to the
-     internal vertex. *)
+     node vertex. *)
   (* FIXME: implement this correctly
   fun merge_by_vertices g1 g2 =
       g2 |> OGraph.merge_by_vertices g1
@@ -760,7 +760,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                  let
                    val (dir_and_data,_) = get_edge g ((the o E.NSet.get_local_bot) es)
                    val g      = g |> delete_wire wire
-                   val (wv,g) = g |> add_vertex OVData.EVert
+                   val (wv,g) = g |> add_vertex OVData.WVert
                    val wvset  = V.NSet.single wv
                    val g      = g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
                    val (e1,g) = g |> add_edge dir_and_data s wv
@@ -792,8 +792,8 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                                                  (get_bboxes_of g t)
                     | SOME wv => get_bboxes_of g wv
         val g      = g |> delete_wire wire
-        val (b1,g) = g |> add_vertex OVData.EVert
-        val (b2,g) = g |> add_vertex OVData.EVert
+        val (b1,g) = g |> add_vertex OVData.WVert
+        val (b2,g) = g |> add_vertex OVData.WVert
         val wvset  = V.NSet.of_list [b1,b2]
         val g      = g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
         val (e1,g) = g |> add_edge dir_and_data s b1

@@ -158,8 +158,8 @@ fun output_vertex (name,(vdata, _))
     val str_name = Pretty.string_of (V.pretty_name name) 
   in
     let val (style,label)  = 
-	    case vdata of V.EVert => (boundary_dot_style, Pretty.str str_name)
-			| V.IVert stuff =>
+	    case vdata of V.WVert => (boundary_dot_style, Pretty.str str_name)
+			| V.NVert stuff =>
 			  case stuff of V.Xnd a => (default_Xdot_style, LinratAngleExpr.pretty a)
 				      | V.Znd a => (default_Zdot_style, LinratAngleExpr.pretty a)
 				      | V.Hnd => (default_Hdot_style, Pretty.str "H")

@@ -110,8 +110,8 @@ print st;
 val pnv = (pn,pd);
 val tnv = (tn,td);
 
-val (n,V.IVert d) = pnv;
-val (tn,V.IVert td) = tnv;
+val (n,V.NVert d) = pnv;
+val (tn,V.NVert td) = tnv;
 
 val m = Match.get_mctxt (get_match st);
 val V.Xnd a1 = d;
@@ -205,8 +205,8 @@ val st = st2;
 val (d,edgens) = Graph.get_vertex pat n;
 val (td,tedgens) = Graph.get_vertex tgt tn;
 
-val BVData.IVert d = d;
-val BVData.IVert td = td;
+val BVData.NVert d = d;
+val BVData.NVert td = td;
 
 val SOME st2 = match_vertex (n,d) (tn,td) st;
 

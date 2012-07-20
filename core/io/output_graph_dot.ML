@@ -14,8 +14,8 @@ struct
   fun node_block graph = let
     val boxtab = Graph.get_bbox_table graph
     fun sty nm = case Graph.get_vertex graph nm
-                   of (Graph.OVData.IVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
-                    | (Graph.OVData.EVert, _) => " [style=filled,fillcolor=gray,shape=box,width=0,height=0,fontcolor=white]"
+                   of (Graph.OVData.NVert data, _) => " " ^ (DotStyle.style_for_ivertex_data data)
+                    | (Graph.OVData.WVert, _) => " [style=filled,fillcolor=gray,shape=box,width=0,height=0,fontcolor=white]"
     fun f nm list = (V.pretty_name nm)::
                     (Pretty.str (sty nm))::
                     (Pretty.str ";\n")::

@@ -486,7 +486,7 @@ local
                            (V.NSet.of_list [s,t]));
               Testing.assert "2 wire verts"
                 (V.NSet.cardinality wvs = 2);
-              Testing.assert "2 edge verts"
+              Testing.assert "2 edges"
                 (E.NSet.cardinality es = 3)
              )
           end

@@ -179,16 +179,16 @@ struct
   structure OVData = Test_Graph.OVData;
   structure GIso = BangGraphIso(Test_Graph);
 
-  val bvert = OVData.EVert;
+  val bvert = OVData.WVert;
   val parse_angle = LinratAngleExpr.parse;
   val zero_angle = LinratAngleExpr.zero;
   val var_angle = LinratAngleExpr.mk_var o X.mk;
   fun var_iangle i v = LinratAngleExpr.mk (0,1) [(v,i)];
   val add_angles = LinratAngleExpr.add_expr;
   val pi_angle = LinratAngleExpr.pi;
-  fun mkZ a = OVData.IVert (IVData.Znd a);
-  fun mkX a = OVData.IVert (IVData.Xnd a);
-  val mkH = OVData.IVert IVData.Hnd;
+  fun mkZ a = OVData.NVert (IVData.Znd a);
+  fun mkX a = OVData.NVert (IVData.Xnd a);
+  val mkH = OVData.NVert IVData.Hnd;
   val undir_edge = (G.UnDirected,());
   val dir_edge = (G.Directed,());
   val no_extra_names = (V.NSet.empty, E.NSet.empty, B.NSet.empty);

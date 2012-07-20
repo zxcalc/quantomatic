@@ -99,17 +99,17 @@ functor OVertexComponentData_Param(
   type data = OVData.data;
   exception unknown_type_exp = VertexDataParam.unknown_type_exp
 
-  fun type_of (OVData.EVert) = "edge-point"
-    | type_of (OVData.IVert d) = VertexDataParam.type_of d;
+  fun type_of (OVData.WVert) = "edge-point"
+    | type_of (OVData.NVert d) = VertexDataParam.type_of d;
 
-  fun cdata_of (OVData.EVert) = ComponentData.Unit
-    | cdata_of (OVData.IVert d) = VertexDataParam.cdata_of d;
+  fun cdata_of (OVData.WVert) = ComponentData.Unit
+    | cdata_of (OVData.NVert d) = VertexDataParam.cdata_of d;
 
-  fun default_data "edge-point" = OVData.EVert
-    | default_data n = OVData.IVert (VertexDataParam.default_data n);
+  fun default_data "edge-point" = OVData.WVert
+    | default_data n = OVData.NVert (VertexDataParam.default_data n);
 
-  fun update _ OVData.EVert = OVData.EVert
-    | update upd (OVData.IVert d) = (OVData.IVert (VertexDataParam.update upd d));
+  fun update _ OVData.WVert = OVData.WVert
+    | update upd (OVData.NVert d) = (OVData.NVert (VertexDataParam.update upd d));
 end;
 
 signature ELEMENT_COMPONENT_DATA =

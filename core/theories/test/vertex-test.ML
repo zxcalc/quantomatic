@@ -2,7 +2,7 @@
 (* val rg_gui_spec_xml = XMLReader.read_from_file "gui.xml"; *)
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
+(*  node vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph VData.) *)
 signature TEST_UNIFIABLE_DATA =    
 sig

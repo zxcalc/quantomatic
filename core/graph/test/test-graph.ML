@@ -179,7 +179,7 @@ local
     val true = V.name_eq (n_x2, dep_v_name); 
     in () end) ();
   
-  val _ = Testing.test "After renaming, internal vertex data was updated" (fn () => let 
+  val _ = Testing.test "After renaming, node vertex data was updated" (fn () => let 
     val d = G.get_vertex_data g n_x2;
     val expected_data = (mkX (parse_angle "2/3*y"));
     val true = G.VData.data_eq (d,expected_data);
