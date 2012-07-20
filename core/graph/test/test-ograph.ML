@@ -89,7 +89,6 @@ local
             |> G.add_named_vertex b12 bvert
             |> G.add_named_vertex b13 bvert
             |> G.add_named_vertex c1 bvert
-            |> G.add_named_vertex c2 bvert
             |> G.add_named_vertex c3 bvert
             |> G.add_named_vertex r1 (mkX zero_angle)
             |> G.add_named_vertex r2 (mkX zero_angle)
@@ -189,9 +188,25 @@ local
   val _ = Testing.test "G.get_wire_list"
   (fn () => c_wire_lists wires wires') ()
   val _ = Testing.test "G.minimise"
-    (fn () => GIso.test (G.minimise g_raw) g_min) ()
+    (fn () =>
+      let
+        val g_min' = G.minimise g_raw
+      in
+        if GIso.test g_min' g_min then ()
+        else (writeln "Expected"; G.print g_min;
+              writeln "Got"; G.print g_min';
+              raise ERROR "Minimise gave incorrect graph")
+      end) ()
   val _ = Testing.test "G.normalise"
-    (fn () => GIso.test (G.normalise g_raw) g_norm) ()
+    (fn () =>
+      let
+        val g_norm' = G.normalise g_raw
+      in
+        if GIso.test g_norm' g_norm then ()
+        else (writeln "Expected"; G.print g_norm;
+              writeln "Got"; G.print g_norm';
+              raise ERROR "Normalise gave incorrect graph")
+      end) ()
 
 in
   val _ = Testing.assert_no_failed_tests();
