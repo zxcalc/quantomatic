@@ -9,8 +9,15 @@ functor SimpleInnerMatchSearch(
   structure G = MatchState.G
   structure MatchState = MatchState
   
-  
   exception InnerMatchError of string
+
+
+  fun log_p pretty_f lvl name =
+    Log.logf lvl (fn g => Pretty.string_of
+        (Pretty.chunks [Pretty.str (name^":"),(pretty_f g)]))
+  val log_graph = log_p G.pretty
+  val log_vset = log_p V.NSet.pretty
+  val log_vmap = log_p VInjEndo.pretty
 
   fun ind 0 str = str
     | ind n str = ind (n-1) (" "^str)
@@ -130,48 +137,58 @@ functor SimpleInnerMatchSearch(
     let
       val new_vp = G.edge_get_other_vertex pat ep vp
       val new_vt = G.edge_get_other_vertex tgt et vt
+      val vmap = MatchState.get_vmap ms
     in
       if V.NSet.contains (MatchState.get_p_nodeverts ms) new_vp
-      then if VInjEndo.contains (MatchState.get_vmap ms) (new_vp, new_vt)
-           then SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                         |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                         |> MatchState.set_match_subst e_subst)
-           else (log_match_fail_v2 lvl "Match conflict" new_vp new_vt; NONE)
+      then
+        if VInjEndo.contains vmap (new_vp, new_vt)
+        then SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                      |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
+                      |> MatchState.set_match_subst e_subst)
+        else (log_match_fail_v2 lvl "Match conflict" new_vp new_vt; NONE)
       else
-        case G.VData.match_data (G.get_vertex_data pat new_vp,
-                                 G.get_vertex_data tgt new_vt)
-                                e_subst
-          of SOME v_subst =>
-            (* since data matched, new_vp is a node- or wire-vertex iff new_vt is *)
-            if G.is_wire_vertex pat new_vp
-            then (* new_vp and new_vt are wire-vertices *)
-              case (G.wv_get_other_edge pat new_vp ep, G.wv_get_other_edge tgt new_vt et)
-               (* pat and tgt are internal. add edge to match and recurse *)
-               of (SOME new_ep, SOME new_et) =>
-                 tryadd_wire lvl
-                    (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                        |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                        |> MatchState.set_match_subst v_subst)
-                    (new_vp,new_ep) (new_vt,new_et)
-               (* pat is internal, tgt is bdry. fail *)
-                | (SOME _, NONE) =>
-                    (log_match_fail_v2 lvl "Tgt wire too short" new_vp new_vt; NONE)
-               (* pat is boundary. add edge to match and finish *)
-                | (NONE, _) =>
-                  SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                           |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
-                           |> MatchState.set_match_subst v_subst)
-            else (* new_vp and new_vt are node-vertices *)
-              if V.NSet.contains (MatchState.get_u_nodeverts ms) new_vp
-              then SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
-                            |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
-                            |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
-                            |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
-                            |> MatchState.set_match_subst v_subst)
-              else (* if this node-vert isn't scheduled for matching, leave its wire alone *)
-                   (log_match_fail_v1 lvl "Not scheduled" new_vp; NONE)
-           | NONE => (* vertex data did not match: new_vp -> new_vt *)
-                     (log_match_fail_v2 lvl "OVData mismatch" new_vp new_vt; NONE)
+        if VInjEndo.cod_contains vmap new_vt
+        then (* this is not a "valid wire matching" *)
+          if VInjEndo.contains vmap (new_vp, new_vt)
+          then raise ERROR "Hit the same match twice; this should not happen"
+          else (log_match_fail_v2 lvl "Wire endpoint already matched"
+                                  new_vp new_vt;
+                NONE)
+        else
+          case G.VData.match_data (G.get_vertex_data pat new_vp,
+                                   G.get_vertex_data tgt new_vt)
+                                  e_subst
+            of SOME v_subst =>
+              (* since data matched, new_vp is a node- or wire-vertex iff new_vt is *)
+              if G.is_wire_vertex pat new_vp
+              then (* new_vp and new_vt are wire-vertices *)
+                case (G.wv_get_other_edge pat new_vp ep, G.wv_get_other_edge tgt new_vt et)
+                 (* pat and tgt are internal. add edge to match and recurse *)
+                 of (SOME new_ep, SOME new_et) =>
+                   tryadd_wire lvl
+                      (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                          |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
+                          |> MatchState.set_match_subst v_subst)
+                      (new_vp,new_ep) (new_vt,new_et)
+                 (* pat is internal, tgt is bdry. fail *)
+                  | (SOME _, NONE) =>
+                      (log_match_fail_v2 lvl "Tgt wire too short" new_vp new_vt; NONE)
+                 (* pat is boundary. add edge to match and finish *)
+                  | (NONE, _) =>
+                    SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                             |> MatchState.update_u_wireverts (V.NSet.delete new_vp)
+                             |> MatchState.set_match_subst v_subst)
+              else (* new_vp and new_vt are node-vertices *)
+                if V.NSet.contains (MatchState.get_u_nodeverts ms) new_vp
+                then SOME (ms |> add_edge_to_match lvl (ep,new_vp) (et,new_vt)
+                              |> MatchState.update_u_nodeverts (V.NSet.delete new_vp)
+                              |> MatchState.update_p_nodeverts (V.NSet.add new_vp)
+                              |> MatchState.update_ps_nodeverts (V.NSet.add new_vp)
+                              |> MatchState.set_match_subst v_subst)
+                else (* if this node-vert isn't scheduled for matching, leave its wire alone *)
+                     (log_match_fail_v1 lvl "Not scheduled" new_vp; NONE)
+             | NONE => (* vertex data did not match: new_vp -> new_vt *)
+                       (log_match_fail_v2 lvl "OVData mismatch" new_vp new_vt; NONE)
     end
      | NONE => (* edge data did not match: ep -> et *)
                (log_match_fail_e2 lvl "EData mismatch" ep et; NONE)
@@ -184,9 +201,18 @@ functor SimpleInnerMatchSearch(
   
     (* main matching loop *)
     fun match_main lvl ms = let
+      val _ = Log.logf 3 (fn () => ind lvl "== Entering main loop") ()
+      val _ = log_graph 4 "Pattern" (MatchState.get_pat ms)
+      val _ = log_graph 4 "Target" (MatchState.get_tgt ms)
+      val _ = log_vset 4 "U" (MatchState.get_u_nodeverts ms)
+      val _ = log_vset 4 "P" (MatchState.get_p_nodeverts ms)
+      val _ = log_vset 4 "Ps" (MatchState.get_ps_nodeverts ms)
+      val _ = log_vmap 4 "M" (MatchState.get_vmap ms)
       
       (* remove nv from u_nodeverts, and schedule at all sites where it matches *)
       fun match_and_schedule_new nv = let
+        val _ = Log.logf 3 (fn () => ind lvl
+              "== Next unmatched: "^(V.string_of_name nv)) ()
         val ms' = ms |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
                      |> MatchState.update_p_nodeverts  (V.NSet.add nv)
                      |> MatchState.update_ps_nodeverts (V.NSet.add nv)
@@ -205,9 +231,10 @@ functor SimpleInnerMatchSearch(
       end
       
       
-      
       (* match all scheduled wires in the neighbourhood of the given node-vertex *)
       fun match_nhd lvl ms nvp = let
+        val _ = Log.logf 3 (fn () => ind lvl
+              "== Matching nhd of "^(V.string_of_name nvp)) ()
         val nvt = VInjEndo.domf (MatchState.get_vmap ms) nvp
         val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
             
