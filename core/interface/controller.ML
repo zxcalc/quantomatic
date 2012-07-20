@@ -1197,6 +1197,24 @@ fun hilb ([format], graph) =
                              "\" already has a !-box named \""^
                              (B.dest bboxName)^"\"")
                 }
+           | State.inconsistent_bbox_exp (_,b,g) =>
+                ErrorResponse {
+                  errorCode = "BAD_BBOX",
+                  message = ("This operation would make !-box \""^
+                             (B.dest b)^
+                             "\" in graph \""^
+                             (GraphName.dest g)^
+                             "\" inconsistent")
+                }
+           | State.wire_vertex_exp (msg,g,v) =>
+                ErrorResponse {
+                  errorCode = "BAD_WIRE_VERTEX",
+                  message = ("This operation would make wire-vertex \""^
+                             (V.dest v)^
+                             "\" in graph \""^
+                             (GraphName.dest g)^
+                             "\" inconsistent ("^msg^")")
+                }
            | State.rule_name_exists_exp ruleName =>
                 ErrorResponse {
                   errorCode = "ALREADYEXISTS",

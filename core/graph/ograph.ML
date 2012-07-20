@@ -67,9 +67,7 @@ structure SharingOGraph : OGRAPH_SHARING
 sharing SharingBasicGraph = SharingOGraph
 sharing SharingOGraph.OVData = OVData.SharingWithIData
 
-(* points (edge and boundary, both kinds of vertices) 
-   have no data. Boundary have only input edges, 
-   or only output edges. Edgepoints have both input and output edges *)
+exception wire_vertex_exp of (string * T * V.name);
 
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
@@ -354,15 +352,15 @@ functor BasicOGraphFun(
 
   fun assert_edges_consistent g v (dir_or_undir,ed) (dir_or_undir',ed') = let
     val _ = if dir_or_undir = dir_or_undir' then ()
-            else raise wire_vertex_exp ("Conflicting directedness",g,v)
+            else raise wire_vertex_exp ("conflicting directedness",g,v)
     val _ = if EData.data_eq (ed,ed') then ()
-            else raise wire_vertex_exp ("Different edge data",g,v)
+            else raise wire_vertex_exp ("different edge data",g,v)
   in () end
 
   fun assert_can_add_out (_,(OVData.NVert _,_)) _ _ = ()
     | assert_can_add_out (v,(OVData.WVert,(ins,outs))) edata g = let
     val _ = if E.NSet.is_empty outs then ()
-            else raise wire_vertex_exp ("Already has output",g,v)
+            else raise wire_vertex_exp ("already has output",g,v)
     fun assert_consistent (edd,_) =
       assert_edges_consistent g v (Directed,edata) edd
   in
@@ -373,7 +371,7 @@ functor BasicOGraphFun(
   fun assert_can_add_in (_,(OVData.NVert _,_)) _ _ = ()
     | assert_can_add_in (v,(OVData.WVert,(ins,outs))) edata g = let
     val _ = if E.NSet.is_empty ins then ()
-            else raise wire_vertex_exp ("Already has input",g,v)
+            else raise wire_vertex_exp ("already has input",g,v)
     fun assert_consistent (edd,_) =
       assert_edges_consistent g v (Directed,edata) edd
   in
@@ -390,7 +388,7 @@ functor BasicOGraphFun(
     if E.NSet.is_empty adj then ()
     else
       case E.NSet.tryget_singleton adj
-        of NONE => raise wire_vertex_exp ("Already has two adjacent edges",g,v)
+        of NONE => raise wire_vertex_exp ("already has two adjacent edges",g,v)
          | SOME e => assert_consistent (get_edge g e)
   end
 

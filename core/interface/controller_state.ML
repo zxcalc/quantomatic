@@ -28,6 +28,8 @@ sig
   exception vertex_name_exists_exp of (V.name * GraphName.name);
   exception edge_name_exists_exp of (E.name * GraphName.name);
   exception bbox_name_exists_exp of (B.name * GraphName.name);
+  exception inconsistent_bbox_exp of ((V.name * V.name) * B.name * GraphName.name);
+  exception wire_vertex_exp of (string * GraphName.name * V.name);
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
@@ -198,6 +200,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception vertex_name_exists_exp of (V.name * GraphName.name);
   exception edge_name_exists_exp of (E.name * GraphName.name);
   exception bbox_name_exists_exp of (B.name * GraphName.name);
+  exception inconsistent_bbox_exp of ((V.name * V.name) * B.name * GraphName.name);
+  exception wire_vertex_exp of (string * GraphName.name * V.name);
   exception rule_name_exists_exp of R.name;
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
@@ -590,8 +594,13 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        end
        handle Theory.EdgeComponentData.unknown_type_exp _ => raise no_such_edge_type_exp et)
 
-  fun add_edge et dir_or_undir v1 v2 gname state = lift_graph_mutator
-  (add_edge_internal et dir_or_undir v1 v2) gname state
+  fun add_edge et dir_or_undir v1 v2 gname state =
+   (lift_graph_mutator (add_edge_internal et dir_or_undir v1 v2) gname state
+    handle Graph.wire_vertex_exp (msg,_,v)
+             => raise wire_vertex_exp (msg,gname,v)
+         | Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
+   )
 
 
   fun delete_vertices vs =
@@ -602,7 +611,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun rename_vertex_internal old new graph =
     ([new],graph |> Graph.rename_vname old new)
-    handle Graph.vname_already_exists_exp (vn, g) =>
+    handle Graph.vname_already_exists_exp _ =>
       (* Rename apart the old vertex *)
       let
         (*Ideally, we would just need to call the suc function in order
@@ -809,15 +818,24 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       end
 
   fun bang_vertices box verts gname state =
-      let val _ = assert_bbox_exists state gname box
-          val _ = map (assert_vertex_exists state gname) verts
+      let
+        val _ = assert_bbox_exists state gname box
+        val _ = map (assert_vertex_exists state gname) verts
+        val vset = V.NSet.of_list verts
       in
-        lift_graph_mutator_no_result (Graph.add_to_bbox box (V.NSet.of_list verts)) gname state
+        lift_graph_mutator_no_result (Graph.add_to_bbox box vset) gname state
+        handle Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
       end
 
   fun unbang_vertices verts gname state =
-      let val _ = map (assert_vertex_exists state gname) verts in
-        lift_graph_mutator_no_result (Graph.move_to_unbbox (V.NSet.of_list verts)) gname state
+      let
+        val _ = map (assert_vertex_exists state gname) verts
+        val vset = V.NSet.of_list verts
+      in
+        lift_graph_mutator_no_result (Graph.move_to_unbbox vset) gname state
+        handle Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
       end
   (* Copy the subgraph as well as it user data *)
   (* Here is the problem: when a graph is copied it's 
@@ -876,7 +894,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
-        val ((xrn,vrn,ern), source) = Graph.rename_apart targ sarg
+        val ((_,vrn,ern), source) = Graph.rename_apart targ sarg
         (* Rename the ud and insert it on the new graph  *)
         val ud_s = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
@@ -1039,7 +1057,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     end;    
 
   (* Tiny function to convert order to an int: 0 1 2 *)
-  fun convert_order_to_int (SOME ord) state =
+  fun convert_order_to_int (SOME ord) _ =
     (case ord of
         LESS => 0
       | GREATER => 2
