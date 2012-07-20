@@ -29,19 +29,19 @@ struct
   val log_graph = log_p G.pretty
   val log_v_nset = log_p V.NSet.pretty
   
-  fun match pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
+  fun match_normalised pat tgt = let
     val _ = log_graph 3 "ConcreteMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "ConcreteMatchSearch: normalised target" tgt
-    val ms = MatchState.init_and_schedule_all pat' tgt'
+    val ms = MatchState.init_and_schedule_all pat tgt
   in
     do_match ms
   end
+  fun match pat tgt = let
+    val pat' = G.normalise pat
+    val tgt' = G.normalise tgt
+  in match_normalised pat' tgt' end
   
   fun match_subgraph pat tgt tgt_verts = let
-    val pat = G.normalise pat
-    val tgt = G.normalise tgt
     val _ = log_graph 3 "ConcreteMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "ConcreteMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "ConcreteMatchSearch: target vertices" tgt_verts
@@ -49,6 +49,10 @@ struct
   in
     do_match ms
   end
+  fun match_subgraph_normalised pat tgt = let
+    val pat = G.normalise pat
+    val tgt = G.normalise tgt
+  in match_subgraph_normalised pat tgt end
   
   structure Sharing =
   struct

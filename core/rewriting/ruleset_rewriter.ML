@@ -206,33 +206,35 @@ struct
          * (a quirk of the implementations of LinRatExpr and
          * V.CRnm) *)
         val _ = Log.log 3 "RulesetRewriter.rule_matches"
-        val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g),
-                    V.Rnm.mk_from_avoids (G.get_vnames g),
+        val g_norm = G.normalise g
+        val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g_norm),
+                    V.Rnm.mk_from_avoids (G.get_vnames g_norm),
                     E.Rnm.empty, B.Rnm.empty)
         val (_,r) = Rule.rename rnms r;
-        val lhs = Rule.get_lhs r;
-        val rhs = Rule.get_rhs r;
+        val lhs = G.normalise (Rule.get_lhs r);
+        val rhs = G.normalise (Rule.get_rhs r);
         val avoid = G.get_vnames rhs;
         val track = G.get_vnames rhs;
-      in (r,MatchSearch.match_avoiding_tracking (avoid,track) lhs g) end;
+      in (r,MatchSearch.match_normalised_avoiding_tracking (avoid,track) lhs g_norm) end;
 
   fun rule_matches_within vset r g  = 
       let 
-        (* Vertices and variables must be renamed away from
-         * those in g, otherwise the rewriting will fail
-         * (a quirk of the implementations of LinRatExpr and
-         * V.CRnm) *)
+        (* (Boundary) vertices and variables must be renamed
+         * away from those in g, otherwise the rewriting will
+         * fail (a quirk of the implementations of LinRatExpr
+         * and V.CRnm) *)
         val _ = Log.log 3 "RulesetRewriter.rule_matches_within"
-        val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g),
-                    V.Rnm.mk_from_avoids (G.get_vnames g),
+        val g_norm = G.normalise g
+        val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g_norm),
+                    V.Rnm.mk_from_avoids (G.get_vnames g_norm),
                     E.Rnm.empty, B.Rnm.empty)
         val (_,r) = Rule.rename rnms r;
-        val lhs = Rule.get_lhs r;
-        val rhs = Rule.get_rhs r;
+        val lhs = G.normalise (Rule.get_lhs r);
+        val rhs = G.normalise (Rule.get_rhs r);
         val avoid = G.get_vnames rhs;
         val track = G.get_vnames rhs;
       in (r,
-          MatchSearch.match_subgraph_avoiding_tracking
+          MatchSearch.match_subgraph_normalised_avoiding_tracking
             (avoid,track) lhs g vset) end;
   
   (* instantiate rule with a match *)
