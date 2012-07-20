@@ -14,8 +14,6 @@ signature QUANTO_NAME
   
   structure V : SSTR_NAME;  (* vertices *)
   structure E : SSTR_NAME;  (* Edges *)
-  structure H : EHN_NAME;   (* Edge-halfs *)
-  sharing type H.edgename = E.name;
   
   structure B : SSTR_NAME;  (* Bang-boxes *)
   structure X : SSTR_NAME;  (* eXpression variables in data *)
@@ -34,22 +32,11 @@ signature QUANTO_NAME
   structure EInjEndo : NAME_INJENDO
     sharing EInjEndo.Dom.Sharing = E.Sharing
 
-  structure HMap : NAME_MAP
-    sharing HMap.Dom.Sharing = H.Sharing
-    sharing HMap.Cod.Sharing = H.Sharing
-  structure HInjEndo : NAME_INJENDO
-    sharing HInjEndo.Dom.Sharing = H.Sharing
-
   structure BMap : NAME_MAP
     sharing BMap.Dom.Sharing = B.Sharing
     sharing BMap.Cod.Sharing = B.Sharing
   structure BInjEndo : NAME_INJENDO
     sharing BInjEndo.Dom.Sharing = B.Sharing
-
-  (* FIXME: remove *)
-  structure VBMap : NAME_MAP
-    sharing VBMap.Dom.Sharing = V.Sharing;
-    sharing VBMap.Cod.Sharing = B.Sharing;
 
   structure BVBRel : NAME_BINREL
     sharing BVBRel.Dom.Sharing = B.Sharing;
@@ -79,7 +66,6 @@ structure QuantoNames :> QUANTO_NAME
     val default_name = mk "Va"; end;  (* vertices *)
   structure E = struct open SStrName;
     val default_name = mk "Ea"; end;  (* edges *)
-  structure H = EhnFun(E); (* half-edges *)
   structure B = struct open SStrName; 
     val default_name = mk "Ba"; end; (* bang boxes *)
   structure X = struct open SStrName; 
@@ -94,16 +80,12 @@ structure QuantoNames :> QUANTO_NAME
   
   structure EMap = SStrMap;
   structure EInjEndo = SStrInjEndo;
-
-  structure HMap = NameMapFun(structure Dom = H and Cod = H);
-  structure HInjEndo = NameInjEndoFun(H);
   
   structure BMap = SStrMap;
   structure BInjEndo = SStrInjEndo;
 
   (* Bijections between vertex names and Expression Names *)
   structure VXBRel = SStrBRel;
-  structure VBMap = SStrMap;
   structure BVBRel = SStrBRel;
   
   (* Ruleset *)

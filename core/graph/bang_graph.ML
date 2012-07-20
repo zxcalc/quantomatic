@@ -132,7 +132,6 @@ val bbox_has_parent : T -> B.name -> bool
 
 exception merge_bbox_exp of string
 (* thrown when using old API on a graph with overlapping !-boxes *)
-(* FIXME: remove *) exception multiple_bboxes_exp of unit
 
 (* getters for bbox -> vert *)
 val get_bbox_list : T -> B.name list
@@ -143,8 +142,6 @@ val get_bbox_contents : T -> B.name -> V.NSet.T
 (* getters for vert -> bbox *)
 (* no_such_vname_exp if vertex does not exist *)
 val get_bboxes_of : T -> V.name -> B.NSet.T
-(* FIXME: remove *) val lookup_bbox_of : T -> V.name -> B.name option
-(* FIXME: remove *) val get_bbox_of : T -> V.name -> B.name
 (* no_such_vname_exp if vertex does not exist *)
 val is_bboxed : T -> V.name -> bool
 
@@ -155,7 +152,6 @@ val doadd_bbox : T -> T
 
 val try_rename1_bbox : B.name -> B.name -> T -> T option
 
-(* FIXME: remove *) val move_to_bbox : B.name -> V.NSet.T -> T -> T
 (* FIXME: remove *) val move_to_unbbox : V.NSet.T -> T -> T
 
 (* utility for folding across a list of graphs, adding the names from
@@ -206,17 +202,6 @@ val expand1_bbox : B.name (* bbox to expand *)
 val fresh_expand1_bbox : B.name (* bbox to expand *)
       -> T (* graph containing bbox name *)
       -> T (* new graph with bbox expanded *)
-
-(* FIXME: remove *) val get_filtered_adj_arities_and_bang_arities :
-    (((H.name * (dir_or_undir * EData.data)) * V.name) -> bool)
-    -> T -> V.name
-    -> Arity.T V.NTab.T
-       * Arity.T V.NTab.T B.NTab.T
-
-(* FIXME: remove *) val get_adj_arities_and_bang_arities :
-    T -> V.name
-    -> Arity.T V.NTab.T
-       * Arity.T V.NTab.T B.NTab.T
 
 (* renaming of bang-box names *)
 structure BBoxCRnm : COMPOUND_RENAMING
@@ -488,7 +473,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   open OGraph;
 
   exception merge_bbox_exp of string
-  (* FIXME: remove *) exception multiple_bboxes_exp of unit
 
   (* getters for bbox -> vert *)
   val get_bbox_list = B.NSet.list_of o get_bboxes;
@@ -509,19 +493,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                       raise no_such_vname_exp ("get_bboxes_of", v, g)
                     else B.NSet.empty)
          | SOME bs => bs;
-  fun lookup_bbox_of g v =
-    let
-      val bboxes = get_bboxes_of g v
-    in
-      if B.NSet.is_empty bboxes then NONE
-      else case B.NSet.tryget_singleton bboxes of
-                NONE => raise multiple_bboxes_exp ()
-              | SOME b => SOME b
-    end
-  fun get_bbox_of g v =
-      case lookup_bbox_of g v of
-           NONE => raise no_such_bbox_exp ()
-         | SOME b => b;
   fun is_bboxed g v =
     if V.NSet.contains (get_vnames g) v then
       V.NSet.contains (get_bboxed g) v
@@ -540,6 +511,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun try_rename1_bbox n1 n2 g =
       (SOME (rename_bbox n1 n2 g)) handle bbox_already_exists_exp _ => NONE;
 
+  (* FIXME: remove *)
   fun move_to_bbox bn vs g =
     g |> update_bbox_rel (BVBRel.add_to_dom bn vs
                         o V.NSet.fold BVBRel.del_cod vs)
@@ -672,62 +644,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun fresh_copy1_bbox bn g =
     let val (bname, (_, graph)) = copy1_bbox bn (fresh_namers_for g, g)
     in (bname, graph) end;
-
-  (* FIXME: this code is largely duplicated in bgraph - clean up *)
-
-  (* get arrities to adjacent vertices, return two tables, one for normal edges
-     and one for those in a different bang-boxes. Filter by function: when function is true, skip this adj entry. *)
-  fun get_filtered_adj_arities_and_bang_arities f g n =
-      let
-        val nbbox = lookup_bbox_of g n;
-
-        (* interesting case for auto-optimisation *)
-        fun in_a_different_bbox n2 =
-            (case nbbox of NONE => lookup_bbox_of g n2
-             | SOME bbn =>
-                (case lookup_bbox_of g n2 of
-                    NONE => NONE
-                  | SOME bbn2 =>
-                    if (not (B.name_eq (bbn, bbn2)))
-                    then SOME bbn2 else NONE));
-
-        (* *)
-        fun init_adj_info (_,(UnDirected,_)) =
-            Arity.add_1_undir Arity.zero
-          | init_adj_info (eh,(Directed,_)) =
-            if H.is_start eh then Arity.add_1_in Arity.zero
-            else Arity.add_1_out Arity.zero;
-        (* *)
-        fun add_one_to_adj_info (_,(UnDirected,_)) a = Arity.add_1_undir a
-          | add_one_to_adj_info (eh,(Directed,_)) a =
-            if H.is_start eh then Arity.add_1_in a
-            else Arity.add_1_out a;
-
-        fun add_one_arity e n2 ntab =
-            if V.NTab.contains_name ntab n2 then
-              V.NTab.map_entry (add_one_to_adj_info e) n2 ntab
-            else V.NTab.update (n2,init_adj_info e) ntab;
-
-        fun consider1 e n2 (ntab,bboxntab) =
-            if f (e,n2) then (ntab,bboxntab) else
-            (case in_a_different_bbox n2 of
-               NONE => (add_one_arity e n2 ntab, bboxntab)
-             | SOME bbn =>
-               (ntab,
-                if B.NTab.contains_name bboxntab bbn then
-                  B.NTab.map_entry (add_one_arity e n2) bbn bboxntab
-                else
-                  B.NTab.update (bbn, add_one_arity e n2
-                                           V.NTab.empty)
-                                   bboxntab))
-      in
-        fold_adj_halfedges consider1 g n (V.NTab.empty, B.NTab.empty)
-      end;
-
-  (* get arrities to adjacent vertices, return two tables, one for normal edges
-     and one for those in a different bang-boxes. *)
-  val get_adj_arities_and_bang_arities =
-      get_filtered_adj_arities_and_bang_arities (K false);
 
   structure BBoxCRnm = CompoundRenamingFun(
   struct

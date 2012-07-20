@@ -60,12 +60,6 @@ val is_edgepoint : T -> V.name -> bool
 (* interior vertices are neither *)
 val is_ivertex : T -> V.name -> bool
 
-val is_endpoint' : OVData.data * (E.NSet.T * E.NSet.T) -> bool
-(* returns the SOME non-empty edge set when exactly one of the inset of ourset of edges is empty, 
-   else NONE *)
-val endpoint_of_vertex' : OVData.data * (E.NSet.T * E.NSet.T) 
-    -> (H.halfid * E.NSet.T) option
-
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : V.name -> T -> T
 val add_to_edgepoints : V.name -> T -> T
@@ -100,11 +94,6 @@ val get_inputs : T -> V.NSet.T
 val get_outputs : T -> V.NSet.T
 val is_boundary : T -> V.name -> bool
 
-(* given two vertices, check if they are boundary-coherent end-points and return 
-   data for a compatible edge that could replace them. *)
-val boundary_coherence : T -> V.name -> V.name -> 
-     ((dir_or_undir * EData.data) * (V.name * V.name)) option
-
 (* edge points; parts of an edge *)
 val get_edgepoints : T -> V.NSet.T
 val is_edgepoint : T -> V.name -> bool
@@ -121,10 +110,6 @@ val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
 (* *** END OF COPIED SIGNATURE *** *)
 
-(* plug together two boundary-coherent edge points. In the process, this function creates an edge, and
-   returns ((source, target), (edge, new graph)) *)
-val plug_by_boundary : V.name -> V.name -> T -> (V.name * V.name) * (E.name * T)
-
 
 val is_boundary_edge : T -> E.name -> bool
 
@@ -134,10 +119,6 @@ val get_edgepoint_vnames : T -> V.NSet.T
 (* get the subsets of boundary, divided into either input or output. *)
 val get_in_and_out_vnames : T -> V.NSet.T (* input *) 
                                  * V.NSet.T (* output *)
-
-(* change vertex into a point (throw away data, making this an edge-point or a boundary point) *)
-val change_into_edgepoint : V.name -> T -> T
-val change_into_internal : V.name -> OVData.IData.data -> T -> T
 
 (* merge points (all adj edges) and keep vertex data (replacing edge-point), assumes they have the same internal data if they are both internal vertices *)
 val rename_or_merge_vname : V.name -> V.name -> T -> T
@@ -405,23 +386,7 @@ functor BasicOGraphFun(
   val add_to_boundary = update_boundary o V.NSet.add;
   val del_from_boundary = update_boundary o V.NSet.delete;
   val is_boundary = V.NSet.contains o get_boundary;
-
-  (* endpoints are edge-points with ins or outs empty. *)
-  fun endpoint_of_vertex' (OVData.EVert,(ins,outs)) =
-      (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
-         (true, true) => NONE
-       | (true,false) => SOME (H.SourceEnd, outs)
-       | (false,true) => SOME (H.TargetEnd, ins)
-       | (false,false) => NONE)
-    | endpoint_of_vertex' (OVData.IVert _,_) = NONE;
   
-  fun is_endpoint' (OVData.EVert,(ins,outs)) =
-      (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
-         (true, true) => false
-       | (true,false) => true
-       | (false,true) => true
-       | (false,false) => false)
-    | is_endpoint' (OVData.IVert _,_) = false;
   val is_edgepoint = V.NSet.contains o get_edgepoints;
   val add_to_edgepoints = update_edgepoints o V.NSet.add;
   val del_from_edgepoints = update_edgepoints o V.NSet.delete;
@@ -626,18 +591,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
   structure GraphTools = GraphToolsFun(G);
   open GraphTools;
   
-  (* change n to become a boundary vertex *)
-  fun change_into_edgepoint n g = 
-      g |> (if is_endpoint' (get_vertex g n)
-            then add_to_boundary else add_to_edgepoints) n
-        |> set_vertex_data OVData.EVert n;
-  
-  (* change n to become a boundary vertex *)
-  fun change_into_internal n d g = 
-      g |> del_from_boundary n
-        |> del_from_edgepoints n
-        |> set_vertex_data (OVData.IVert d) n;
-  
   (* cut an edge, adding the introduced bounary vertices to the automorphism *)
   fun cut_edge' (e,(d,(fromv,tov))) g = 
       let val (newv1,g1) = add_vertex OVData.EVert g 
@@ -652,73 +605,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
 
   fun cut_edge e g = cut_edge' (e, get_edge g e) g
 
-  (* v1 and v2 are boundary coherent (half-edges of opposite direction, or both undirected): they can be plugged together; return SOME ((fromv,tov),(dir,edgedata)) where fromv is the source of connecting edge, and tov is the target. If the half-edges were directed, this respects the edge direction. 
-  Assumes edge data is the same for both edges. 
-  *)
-  (* FIXME: rewrite not to use half-edges or remove *)
-  fun boundary_coherence g v1 v2 = 
-      (case endpoint_of_vertex' (get_vertex g v1) of 
-         NONE => NONE
-       | SOME (halfid1,es1) => 
-         (case endpoint_of_vertex' (get_vertex g v2) of 
-            NONE => NONE
-          | SOME (halfid2,es2) => 
-            (case (E.NSet.tryget_singleton es1, 
-                   E.NSet.tryget_singleton es2) of 
-               (SOME e1,SOME e2) => 
-               let val ((dir_or_undir1,ed1),(fromv1,tov1)) = get_edge g e1
-                   val ((dir_or_undir2,_),(fromv2,tov2)) = get_edge g e2
-               in 
-                  if dir_or_undir1 = Directed andalso dir_or_undir2 = Directed
-                     andalso halfid1 <> halfid2 then 
-                    SOME ((dir_or_undir1, ed1),
-                          if halfid1 = H.SourceEnd then (fromv2,tov1) 
-                          else (fromv1,tov2))
-                  else if dir_or_undir1 = UnDirected 
-                       andalso dir_or_undir2 = UnDirected then 
-                    SOME ((dir_or_undir1, ed1),
-                          (if halfid1 = H.SourceEnd then tov1 
-                           else fromv1, 
-                           if halfid2 = H.SourceEnd then tov2 
-                           else fromv2))
-                  else NONE
-               end
-             | (_,_) => NONE)));
-
-  (* plug two half-edges, represented by vertices. This is equiavlent to graph 
-     composition with an identity. Assumes that e1 and e2 go to boundary 
-     coherent edge-point vertices (vertices representing half-edges going in 
-     opposite directions / both undirected) *)
-  (* If we have e1 : v2 - v1 and e2: v1 - v2 then we cannot remove the
-   * edge-points and add an edge between them: we remove them and add an
-   * edge-point with a self-loop  *)
-  (* FIXME(ldixon): *** needs modification for !-boxes *** *) 
-  exception not_boundary_coherent_exp of string;
-
-  fun plug_by_boundary v1 v2 g = 
-      (case boundary_coherence g v1 v2 
-        of NONE => raise not_boundary_coherent_exp "plug_by_boundary"
-         | SOME ((dir, data),(startv,endv)) => (
-        (* Would be much nicer with a list of booleans and pattern matching
-         * but not really worth it...?  *)
-          if ((V.NTab.name_eq (v1, startv) andalso
-            V.NTab.name_eq (v2, endv)) orelse ( V.NTab.name_eq (v2, startv) andalso
-              V.NTab.name_eq (v1, endv))) 
-          then 
-            let
-              val (nn, g') = g |> delete_vertex v1
-                               |> delete_vertex v2
-                               (* Could be endv, does not change anything in
-                                * this case  *)
-                               |> add_vertex_named_like startv OVData.EVert
-             in
-             ((nn, nn), g' |> add_edge (dir, data) nn nn)
-             end
-          else
-            ((startv,endv),
-              g |> delete_vertex v1
-                |> delete_vertex v2
-                |> add_edge (dir, data) startv endv)));
 
   (* Cut edges around a vertex if they are not in the keepvset; change cut 
      incident edges into half-edges (add a boundary vertex to each one). 
@@ -822,20 +708,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
         (cut_around_vertex vns)
         vns
         (VInjEndo.empty,g);
-  
-
-  (* remove any vertices that don't have an edge from the vset and for any vertices not in vset, but with edge(s) to vset, they get changed into edge-points. Note: this is a cheeky use of edge-points for variable-vertices. We should probably introduce a proper notion of variable vertex/uninstantiated vertex. *)
-  fun abstract_subgraph_from_vset vset (pvs_g as (_,g)) = 
-      E.NTab.fold 
-        (fn (_,(_,(fromv,tov))) => fn (pvs_g as (pvs,g)) =>  
-          case (V.NSet.contains vset fromv, V.NSet.contains vset tov) 
-            of (true,true) => pvs_g
-             | (false,true) => (V.NSet.add fromv pvs, change_into_edgepoint fromv g)
-             | (true,false) => (V.NSet.add tov pvs, change_into_edgepoint fromv g)
-             | (false,false) => pvs_g
-        )
-        (get_edges g)
-        pvs_g;
 
 
   (* make a subgraph from a node selection: any vertices with edges
@@ -1072,7 +944,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
   fun plug v1 v2 g =
     case get_plugging g v1 v2 of
          NONE => raise plugging_exp (g,v1,v2)
-         (* FIXME: direction *)
        | SOME (ed,(v1',v2')) => add_edge ed v1' v2' g;
   val do_plug = snd ooo plug
   fun plug_and_minimise g v1 v2 = let
