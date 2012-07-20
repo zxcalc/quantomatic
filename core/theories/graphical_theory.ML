@@ -22,7 +22,7 @@ sig
   sharing Ruleset.Sharing.Rule = Rule.Sharing 
 
   (* A matching between two graphs *)
-  structure Match : MATCH
+  structure Match : OGRAPH_MATCH_STATE
   sharing Match.G.SharingOGraph = Graph.SharingOGraph;
 
   (* Substitutions for graphs, replacing one component with another *)
@@ -31,9 +31,9 @@ sig
   sharing type GraphSubst.Sharing.graph = Graph.T
 
   (* Matching algorithm *)
-  structure RuleMatchSearch : RULE_MATCH_SEARCH
-  sharing RuleMatchSearch.Sharing.Match = Match.Sharing
-  sharing RuleMatchSearch.Sharing.Rule = Rule.Sharing
+  structure MatchSearch : MATCH_SEARCH
+  sharing MatchSearch.Sharing.MatchState = Match.Sharing
+  sharing MatchSearch.Sharing.G = Graph.SharingOGraph
 
   (* Sets of rules and matching for those sets *)
   structure RulesetRewriter : RULESET_REWRITER
@@ -76,36 +76,34 @@ struct
       val empty_data = ());
     structure BBGraph = BangGraphTools(BasicBangGraph);
   in
-    structure DB_Graph = struct open BasicBangGraph; open BBGraph; end
+    structure Graph = struct open BasicBangGraph; open BBGraph; end
   end;
-  structure Graph = DB_Graph;
   structure EData = Graph.EData; 
   structure OVData = Graph.OVData;
   
-  structure DB_Rule = Rule(Graph);
-  structure Rule : RULE = DB_Rule;
+  structure Rule = Rule(Graph);
 
-  structure DB_Ruleset = Ruleset(Rule);  
-  structure Ruleset = DB_Ruleset : RULESET
+  structure Ruleset = Ruleset(Rule);
 
-  structure DB_Match = Match(Graph);
-  structure Match : MATCH = DB_Match;
+  structure Match = BangGraphMatchState(
+                      structure G = Graph
+                      type data = unit
+                      val empty_data = ()
+                    )
 
-  structure DB_GraphSubst = GraphSubstFun(Match);
-  structure GraphSubst : GRAPH_SUBST = DB_GraphSubst;
+  structure GraphSubst = BangGraphSubst(Match);
 
-  (* removed DB_RuleMatchSearch, suggest removing other DB_'s *)
-  structure BasicMatchSearch = SimpleMatchSearch(Match);
-  structure RuleMatchSearch = SimpleRuleMatchSearch(
-    structure MatchSearch = BasicMatchSearch;
-    structure Rule = Rule;);
+  structure InnerMatchSearch = SimpleInnerMatchSearch(structure MatchState = Match);
+  structure MatchSearch = GreedyMatchSearch(
+    structure InnerMatchSearch = InnerMatchSearch;
+    structure BGMatchState = Match;
+  );
 
-  structure DB_RulesetRewriter = RulesetRewriterOld(
+  structure RulesetRewriter = RulesetRewriter(
     structure Ruleset = Ruleset;
-    structure RuleMatchSearch = RuleMatchSearch;
+    structure MatchSearch = MatchSearch;
     structure GraphSubst = GraphSubst;
   );
-  structure RulesetRewriter : RULESET_REWRITER = DB_RulesetRewriter;
 
   structure VertexComponentData = VComponentData;
   structure EdgeComponentData = EComponentData;
