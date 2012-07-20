@@ -26,13 +26,6 @@ sharing SharingOGraph.OVData = OVData.SharingWithIData
  *)
 exception wire_vertex_exp of (string * T * V.name);
 
-(* internal *)
-val assert_can_add_edge : T
-  -> (V.name * (VData.data * (E.NSet.T * E.NSet.T)))
-  -> (V.name * (VData.data * (E.NSet.T * E.NSet.T)))
-  -> (dir_or_undir * EData.data)
-  -> unit
-
 (* Get an edge that can join two boundary vertices, if
  * there is such an edge.
  *)
@@ -350,66 +343,80 @@ functor BasicOGraphFun(
 
   exception wire_vertex_exp of (string * T * V.name);
 
-  fun assert_edges_consistent g v (dir_or_undir,ed) (dir_or_undir',ed') = let
-    val _ = if dir_or_undir = dir_or_undir' then ()
-            else raise wire_vertex_exp ("conflicting directedness",g,v)
-    val _ = if EData.data_eq (ed,ed') then ()
-            else raise wire_vertex_exp ("different edge data",g,v)
-  in () end
+  local
+    fun assert_edges_consistent g v (dir_or_undir,ed) (dir_or_undir',ed') = let
+      val _ = if dir_or_undir = dir_or_undir' then ()
+              else raise wire_vertex_exp ("conflicting directedness",g,v)
+      val _ = if EData.data_eq (ed,ed') then ()
+              else raise wire_vertex_exp ("different edge data",g,v)
+    in () end
 
-  fun assert_can_add_out (_,(OVData.NVert _,_)) _ _ = ()
-    | assert_can_add_out (v,(OVData.WVert,(ins,outs))) edata g = let
-    val _ = if E.NSet.is_empty outs then ()
-            else raise wire_vertex_exp ("already has output",g,v)
-    fun assert_consistent (edd,_) =
-      assert_edges_consistent g v (Directed,edata) edd
-  in
-    case E.NSet.tryget_singleton ins
-      of NONE => ()
-       | SOME e => assert_consistent (get_edge g e)
-  end
-  fun assert_can_add_in (_,(OVData.NVert _,_)) _ _ = ()
-    | assert_can_add_in (v,(OVData.WVert,(ins,outs))) edata g = let
-    val _ = if E.NSet.is_empty ins then ()
-            else raise wire_vertex_exp ("already has input",g,v)
-    fun assert_consistent (edd,_) =
-      assert_edges_consistent g v (Directed,edata) edd
-  in
-    case E.NSet.tryget_singleton outs
-      of NONE => ()
-       | SOME e => assert_consistent (get_edge g e)
-  end
-  fun assert_can_add_undir (_,(OVData.NVert _,_)) _ _ = ()
-    | assert_can_add_undir (v,(OVData.WVert,(ins,outs))) edata g = let
-    val adj = E.NSet.union_merge ins outs
-    fun assert_consistent (edd,_) =
-      assert_edges_consistent g v (UnDirected,edata) edd
-  in
-    if E.NSet.is_empty adj then ()
-    else
-      case E.NSet.tryget_singleton adj
-        of NONE => raise wire_vertex_exp ("already has two adjacent edges",g,v)
+    fun assert_can_add_out (_,(OVData.NVert _,_)) _ _ = ()
+      | assert_can_add_out (v,(OVData.WVert,(ins,outs))) edata g = let
+      val _ = if E.NSet.is_empty outs then ()
+              else raise wire_vertex_exp ("already has output",g,v)
+      fun assert_consistent (edd,_) =
+        assert_edges_consistent g v (Directed,edata) edd
+    in
+      case E.NSet.tryget_singleton ins
+        of NONE => ()
          | SOME e => assert_consistent (get_edge g e)
-  end
+    end
+    fun assert_can_add_in (_,(OVData.NVert _,_)) _ _ = ()
+      | assert_can_add_in (v,(OVData.WVert,(ins,outs))) edata g = let
+      val _ = if E.NSet.is_empty ins then ()
+              else raise wire_vertex_exp ("already has input",g,v)
+      fun assert_consistent (edd,_) =
+        assert_edges_consistent g v (Directed,edata) edd
+    in
+      case E.NSet.tryget_singleton outs
+        of NONE => ()
+         | SOME e => assert_consistent (get_edge g e)
+    end
+    fun assert_can_add_undir (_,(OVData.NVert _,_)) _ _ = ()
+      | assert_can_add_undir (v,(OVData.WVert,(ins,outs))) edata g = let
+      fun fail () = raise wire_vertex_exp
+                          ("already has two adjacent edges",g,v)
+      fun assert_consistent (edd,_) =
+        assert_edges_consistent g v (UnDirected,edata) edd
+      fun assert_one_compat es =
+        case E.NSet.tryget_singleton es
+          of NONE => fail ()
+           | SOME e => assert_consistent (get_edge g e)
+    in
+      case (E.NSet.is_empty ins,E.NSet.is_empty outs)
+        of (true,true) => ()
+         | (false,false) => fail ()
+         | (true,false) => assert_one_compat outs
+         | (false,true) => assert_one_compat ins
+    end
+    fun assert_can_add_selfloop (_,(OVData.NVert _,_)) _ _ = ()
+      | assert_can_add_selfloop (v,(OVData.WVert,(ins,outs))) _ g =
+          if (E.NSet.is_empty ins) andalso (E.NSet.is_empty outs) then ()
+          else raise wire_vertex_exp ("already has adjacent edges",g,v)
 
-  fun assert_can_add_edge g s t (dir_or_undir,data) =
-    case dir_or_undir
-      of Directed => (assert_can_add_out s data g;
-                      assert_can_add_in t data g)
-       | UnDirected => (assert_can_add_undir s data g;
-                        assert_can_add_undir t data g)
-
-  (* this is identical to the one in BangGraph *)
-  fun add_edge_named_like en e n1 n2 g = let
-    val vdesc1 = get_vertex g n1
-    val vdesc2 = get_vertex g n2
-    val _ = assert_can_add_edge g (n1,vdesc1) (n2,vdesc2) e
-    val (en2,g2) = G.add_edge_named_like en e n1 n2 g
+    fun assert_can_add_edge g s t (dir_or_undir,data) =
+      case dir_or_undir
+        of Directed => (assert_can_add_out s data g;
+                        assert_can_add_in t data g)
+         | UnDirected =>
+             if V.name_eq ((fst s),(fst t))
+             then assert_can_add_selfloop s data g
+             else (assert_can_add_undir s data g;
+                   assert_can_add_undir t data g)
   in
-    (en2,
-     g2 |> update_point_kind_from_add_edge n1
-        |> update_point_kind_from_add_edge n2)
-  end;
+    (* this is identical to the one in BangGraph *)
+    fun add_edge_named_like en e n1 n2 g = let
+      val vdesc1 = get_vertex g n1
+      val vdesc2 = get_vertex g n2
+      val _ = assert_can_add_edge g (n1,vdesc1) (n2,vdesc2) e
+      val (en2,g2) = G.add_edge_named_like en e n1 n2 g
+    in
+      (en2,
+       g2 |> update_point_kind_from_add_edge n1
+          |> update_point_kind_from_add_edge n2)
+    end
+  end
 
   fun delete_edge en g = 
       let val (_,(fromv,tov)) = E.NTab.get (get_edges g) en in
