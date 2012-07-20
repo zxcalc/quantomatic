@@ -1,8 +1,4 @@
 (* FIXME: remove *)
-structure DB_Test_GraphSubst = GraphSubstFun(Test_Match);
-structure Test_GraphSubst : GRAPH_SUBST = DB_Test_GraphSubst;
-Test_GraphSubst.Log.level_ref := 4;
-
 structure DB_Test_OGraphSubst = OGraphSubst(Test_MatchState);
 structure Test_OGraphSubst : GRAPH_SUBST = DB_Test_OGraphSubst;
 Test_OGraphSubst.Log.level_ref := 4;

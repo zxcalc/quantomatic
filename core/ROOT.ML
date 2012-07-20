@@ -121,19 +121,6 @@ Testing.make_test "io/test/graph_io-test.ML";
 
 
 (* matching *)
-PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
-PolyML.Project.make "matching/match.ML"; (* a graph matching *)
-Testing.make_test "matching/test/match-test.ML"; (* unit/regression tests *)
-(* signature for rule match search *)
-PolyML.Project.make "matching/rule_match_search.ML";
-(* naive match search implementation, find symmetric cases *)
-PolyML.Project.make "matching/simple_match_search.ML";
-PolyML.Project.make "matching/simple_rule_match_search.ML";
-(* searching for matches, but avoiding symmetric ones *)
-PolyML.Project.make "matching/symmetry_rule_match_search.ML";
-
-
-(* New matching implementation *)
 PolyML.Project.make "matching2/match_state.ML";
 PolyML.Project.make "matching2/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)
@@ -156,9 +143,6 @@ PolyML.Project.make "rewriting/ruleset_rewriter.ML";
 
 
 (* Testing *)
-Testing.make_test "matching/test/simple_rule_match_search-test.ML";
-Testing.make_test "matching/test/simple_match_search-test.ML";
-
 Testing.make_test "matching2/test/test-matching-setup.ML";
 Testing.make_test "matching2/test/test-bang-match-state.ML";
 Testing.make_test "matching2/test/test-matching-concrete.ML";
@@ -169,7 +153,6 @@ Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
-PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
