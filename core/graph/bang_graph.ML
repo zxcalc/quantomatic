@@ -511,11 +511,6 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun try_rename1_bbox n1 n2 g =
       (SOME (rename_bbox n1 n2 g)) handle bbox_already_exists_exp _ => NONE;
 
-  (* FIXME: remove *)
-  fun move_to_bbox bn vs g =
-    g |> update_bbox_rel (BVBRel.add_to_dom bn vs
-                        o V.NSet.fold BVBRel.del_cod vs)
-      |> update_bboxes (B.NSet.add bn);
   fun move_to_unbbox vs g =
       g |> update_bbox_rel (V.NSet.fold BVBRel.del_cod vs);
 
@@ -677,14 +672,13 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
      When an edge-point in g1 overlaps an internal vertex in g2, if the
      edge-point is in a bangbox, then the bang-box doesn't extend to the
      internal vertex. *)
+  (* FIXME: implement this correctly
   fun merge_by_vertices g1 g2 =
       g2 |> OGraph.merge_by_vertices g1
          |> B.NTab.fold
-   (* FIXME: this is probably wrong *)
-              (fn (bbn,vset) =>
-                move_to_bbox bbn
-                  (V.NSet.subtract vset (get_edgepoints g1)))
+              (fn (bbn,vset) => ???)
               (get_bbox_table g1);
+  *)
 
   (* Asserts that all the vertices in vs have exactly the
    * !-boxes vs *)
