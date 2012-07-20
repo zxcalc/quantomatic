@@ -257,9 +257,10 @@ struct
           val rw = GraphSubst.rewrite g (Rule.get_lhs r)
           fun apply_rw m = let
             val _ = Log.log 1 ("Applying rule "^rulename)
-            val (rulepair,g) = rw m (Rule.get_rhs r)
+            val ((lhs,rhs),g) = rw m (Rule.get_rhs r)
+            val rule = Rule.mk (G.minimise lhs,G.minimise rhs)
           in
-            ((n,Rule.mk rulepair),(G.minimise g))
+            ((n,rule),(G.minimise g))
           end
         in
           Seq.append (Seq.map apply_rw matches)
