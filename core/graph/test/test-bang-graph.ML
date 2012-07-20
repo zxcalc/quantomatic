@@ -1021,6 +1021,94 @@ in
 end; (* ends local namespace used for testing *)
 
 
+(* testing wire functions with !-boxes *)
+local
+  open Test_BBox_Util;
+  
+  val in1 = V.mk "in1"
+  val in2 = V.mk "in2"
+  val out1 = V.mk "out1"
+  val w1 = V.mk "w1"
+  val w2 = V.mk "w2"
+  val w3 = V.mk "w3"
+  val w4 = V.mk "w4"
+  val w5 = V.mk "w5"
+  val w6 = V.mk "w6"
+  val x1 = V.mk "x1"
+  val x2 = V.mk "x2"
+  val z1 = V.mk "z1"
+  val z2 = V.mk "z2"
+  val b1 = B.mk "B1"
+  val b2 = B.mk "B2"
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex in2 bvert
+            |> G.add_named_vertex out1 bvert
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex z1 (mkZ zero_angle)
+            |> G.add_named_vertex z2 (mkZ zero_angle)
+            |> G.doadd_edge dir_edge in1 x1
+            |> G.doadd_edge dir_edge in2 x1
+            |> G.doadd_edge dir_edge z1 x2
+            |> G.doadd_edge dir_edge x1 z2
+            |> G.doadd_edge dir_edge x2 z2
+            |> G.doadd_edge dir_edge z2 out1
+            |> G.add_named_bbox b1
+            |> G.add_named_bbox b2
+            |> G.add_to_bbox b1 (V.NSet.single in2)
+            |> G.add_to_bbox b2 (V.NSet.single z1)
+  val g1 = g
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex in2 bvert
+            |> G.add_named_vertex out1 bvert
+            |> G.add_named_vertex w1 bvert
+            |> G.add_named_vertex w2 bvert
+            |> G.add_named_vertex w3 bvert
+            |> G.add_named_vertex w4 bvert
+            |> G.add_named_vertex w5 bvert
+            |> G.add_named_vertex w6 bvert
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex z1 (mkZ zero_angle)
+            |> G.add_named_vertex z2 (mkZ zero_angle)
+            |> G.doadd_edge dir_edge in1 x1
+            |> G.doadd_edge dir_edge in2 x1
+            |> G.doadd_edge dir_edge z1 w1
+            |> G.doadd_edge dir_edge w1 w2
+            |> G.doadd_edge dir_edge w2 x2
+            |> G.doadd_edge dir_edge x1 w3
+            |> G.doadd_edge dir_edge w3 w4
+            |> G.doadd_edge dir_edge w4 z2
+            |> G.doadd_edge dir_edge x2 w5
+            |> G.doadd_edge dir_edge w5 w6
+            |> G.doadd_edge dir_edge w6 z2
+            |> G.doadd_edge dir_edge z2 out1
+            |> G.add_named_bbox b1
+            |> G.add_named_bbox b2
+            |> G.add_to_bbox b1 (V.NSet.single in2)
+            |> G.add_to_bbox b2 (V.NSet.of_list [z1,w1,w2])
+  val g1_norm = g
+
+  val _ = Testing.test "G.normalise"
+    (fn () =>
+      let
+        val g1_norm' = G.normalise g1
+      in
+        if GIso.test g1_norm' g1_norm then ()
+        else (writeln "Expected"; G.print g1_norm;
+              writeln "Got"; G.print g1_norm';
+              raise ERROR "Normalise gave incorrect graph")
+      end) ()
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR WIRE FUNCTIONS WITH !-BOXES PASSED!"
+end; (* ends local namespace used for testing *)
+
+
 (* testing nested !-boxes *)
 
 local
