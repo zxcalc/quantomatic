@@ -603,17 +603,15 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun rename_vertex_internal old new graph =
     ([new],graph |> Graph.rename_vname old new)
     handle Graph.vname_already_exists_exp (vn, g) =>
-      if (Graph.is_edgepoint graph new)
-      then (raise Graph.vname_already_exists_exp (vn, g))
-      else (* Rename apart the old vertex *)
-        let
-          (*Ideally, we would just need to call the suc function in order
-           * to generate a fresh name, but how?*)
-          val ((frshN,_),_) = add_vertex_internal "edge-point" graph 
-        in
-          ([new,frshN],graph |> Graph.rename_vname new (frshN)
-                             |> Graph.rename_vname old new)
-        end;  
+      (* Rename apart the old vertex *)
+      let
+        (*Ideally, we would just need to call the suc function in order
+         * to generate a fresh name, but how?*)
+        val ((frshN,_),_) = add_vertex_internal "edge-point" graph
+      in
+        ([new,frshN],graph |> Graph.rename_vname new (frshN)
+                           |> Graph.rename_vname old new)
+      end;
  
   (* There was no conflict *) 
   fun rename_vertex_uidata old (new::[]) graphName state =

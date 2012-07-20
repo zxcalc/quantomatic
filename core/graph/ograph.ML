@@ -53,20 +53,10 @@ val get_plugging : T -> V.name -> V.name
 val get_boundary : T -> V.NSet.T
 val is_boundary : T -> V.name -> bool
 
-(* edge points; parts of an edge *)
-val get_edgepoints : T -> V.NSet.T
-val is_edgepoint : T -> V.name -> bool
-
-(* interior vertices are neither *)
-val is_ivertex : T -> V.name -> bool
-
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : V.name -> T -> T
-val add_to_edgepoints : V.name -> T -> T
 val del_from_boundary : V.name -> T -> T
-val del_from_edgepoints : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
-val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
 end (* Basic OGraph *)
 
@@ -94,17 +84,10 @@ val get_inputs : T -> V.NSet.T
 val get_outputs : T -> V.NSet.T
 val is_boundary : T -> V.name -> bool
 
-(* edge points; parts of an edge *)
-val get_edgepoints : T -> V.NSet.T
-val is_edgepoint : T -> V.name -> bool
-
 (* internal: don't presurve well-formedness *)
 val add_to_boundary : V.name -> T -> T
-val add_to_edgepoints : V.name -> T -> T
 val del_from_boundary : V.name -> T -> T
-val del_from_edgepoints : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
-val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
 (* get_plugging is copied further down, with the other plugging functions *)
 
@@ -112,9 +95,6 @@ val update_edgepoints : (V.NSet.T -> V.NSet.T) -> T -> T
 
 
 val is_boundary_edge : T -> E.name -> bool
-
-(* get points living on an edge; but not boundary ones *)
-val get_edgepoint_vnames : T -> V.NSet.T
 
 (* get the subsets of boundary, divided into either input or output. *)
 val get_in_and_out_vnames : T -> V.NSet.T (* input *) 
@@ -335,25 +315,16 @@ functor BasicOGraphFun(
   (* we add boundary to Graph data, as well as edge-points; these are 
      disjoint sets *)
   type hdata = { boundary : V.NSet.T,
-                 edgepoints : V.NSet.T,
                  data : data};
   val empty_hdata = {boundary = V.NSet.empty,
-                     edgepoints = V.NSet.empty,
                      data = empty_data};
   fun get_data_of_hdata hdata = #data hdata;
   fun update_data_of_hdata f hdata = 
       {boundary = #boundary hdata, 
-       edgepoints = (#edgepoints hdata),
        data = f (#data hdata)};
   fun get_boundary_of_hdata hdata = #boundary hdata;
   fun update_boundary_of_hdata f hdata = 
       {boundary = f (#boundary hdata), 
-       edgepoints = (#edgepoints hdata),
-       data = (#data hdata)};    
-  fun get_edgepoints_of_hdata hdata = #edgepoints hdata;
-  fun update_edgepoints_of_hdata f hdata = 
-      {boundary = (#boundary hdata), 
-       edgepoints = f (#edgepoints hdata),
        data = (#data hdata)};    
 
 
@@ -378,21 +349,12 @@ functor BasicOGraphFun(
   (* for boundary part of added data *)
   val get_boundary = get_boundary_of_hdata o G.get_data;
   val update_boundary = G.update_data o update_boundary_of_hdata;
-  (* for edgepoints *)
-  val get_edgepoints = get_edgepoints_of_hdata o G.get_data;
-  val update_edgepoints = G.update_data o update_edgepoints_of_hdata;
 
   (* *)
   val add_to_boundary = update_boundary o V.NSet.add;
   val del_from_boundary = update_boundary o V.NSet.delete;
   val is_boundary = V.NSet.contains o get_boundary;
   
-  val is_edgepoint = V.NSet.contains o get_edgepoints;
-  val add_to_edgepoints = update_edgepoints o V.NSet.add;
-  val del_from_edgepoints = update_edgepoints o V.NSet.delete;
-  
-  fun is_ivertex g v = not (is_edgepoint g v orelse is_boundary g v)
-
   (* implicit: g *)
   fun rename1_in_boundary n1 n2 = 
       update_boundary (fn bs => 
@@ -400,24 +362,9 @@ functor BasicOGraphFun(
                            of NONE => bs
                             | SOME bs2 => bs2);
 
-  (* implicit: g *)
-  fun rename1_in_edgepoints n1 n2 = 
-      update_edgepoints (fn vs => 
-                          case V.NSet.try_rename1 n1 n2 vs
-                           of NONE => vs
-                            | SOME vs2 => vs2);
-
-
-  (* modified/new basic graph functions *)
-  fun add_vertex_named_like n v g =
-      let val (n2,g2) = G.add_vertex_named_like n v g
-      in (n2, g2 |> (case v of (OVData.EVert) => add_to_edgepoints n2 
-                             | (OVData.IVert _) => I))
-      end;
   (* Note: deleting vertex also removes all it's edges. *)
   fun delete_vertex n g = 
       g |> del_from_boundary n (* if not in boundary, does nothing *)
-        |> del_from_edgepoints n (* if not in edgepoints, does nothing *)
         |> G.delete_vertex n;
 
   (* *)
@@ -441,7 +388,7 @@ functor BasicOGraphFun(
         | OVData.EVert => 
           (case (E.NSet.is_empty ins, E.NSet.is_empty outs) of
              (* has both incoming and outgoing egdes, so not boundary. *)
-             (false, false) => g |> del_from_boundary n |> add_to_edgepoints n
+             (false, false) => g |> del_from_boundary n
            | (_,_) => g |> add_to_boundary n)
       end;
 
@@ -522,7 +469,6 @@ functor BasicOGraphFun(
   *)
   fun rename_vname n1 n2 g = 
       g |> rename1_in_boundary n1 n2
-        |> rename1_in_edgepoints n1 n2 
         |> G.rename_vname n1 n2;
 
   fun get_only_edge' (OVData.EVert,(ins,outs)) =
@@ -754,14 +700,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
   fun is_boundary_edge g e = 
       let val (_,(s,t)) = get_edge g e 
       in is_boundary_vertex g s orelse is_boundary_vertex g t end;
-  
-  fun get_edgepoint_vnames g = 
-      V.NTab.fold 
-        (fn (n,dio) => 
-            if is_boundary_vertex' dio then V.NSet.add n
-            else I)
-        (get_vertices g)
-        V.NSet.empty;
   
   (* identify in and out boundary nodes (all edges come in-to or
      out-of this node) and try to preserve them in rhs *)
