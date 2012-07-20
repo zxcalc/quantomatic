@@ -187,11 +187,10 @@ val _ = Testing.test "ruleset rewriting 1: ladder with red spider (all)" (fn () 
               |> XMLReader.read_from_file
               |> IO.Input.Graph.input;
 
-  val rws = RulesetRewriter.apply_first ruleset graph
+  val _ = RulesetRewriter.apply_first ruleset graph
 
   in writeln "success" end) ();
 
-(*
 val _ = Testing.test "ruleset rewriting 2: ladder with red spider (full subgraph)" (fn () => let
   val ruleset = "../../test/rulesets/basic_v2.rules" 
                 |> XMLReader.read_from_file
@@ -202,10 +201,40 @@ val _ = Testing.test "ruleset rewriting 2: ladder with red spider (full subgraph
               |> IO.Input.Graph.input;
 
   val vset = G.get_vnames graph;
-  val rws = RulesetRewriter.apply_first_in ruleset graph vset
+  val _ = RulesetRewriter.apply_first_in ruleset graph vset
 
   in writeln "success" end) ();
-*)
+
+val _ = Testing.test "ruleset rewriting 2: ladder with red spider (rpt)" (fn () => let
+  val ruleset = "../../test/rulesets/basic_v2_all.rules" 
+                |> XMLReader.read_from_file
+                |> IO.Input.Ruleset.input;
+
+  val graph = "../../test/graphs/d2-ladder_rw3.graph"
+              |> XMLReader.read_from_file
+              |> IO.Input.Graph.input;
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex (V.mk "a") bvert
+            |> G.add_named_vertex (V.mk "b") bvert
+            |> G.add_named_vertex (V.mk "c") bvert
+            |> G.add_named_vertex (V.mk "d") bvert
+            |> G.doadd_edge undir_edge (V.mk "a") (V.mk "d")
+            |> G.doadd_edge undir_edge (V.mk "b") (V.mk "c")
+  val exp_graph = g
+
+  fun do_rw g =
+    case RulesetRewriter.apply_first ruleset g
+      of NONE => g
+       | SOME (_,g') => do_rw g'
+
+  val new_graph = do_rw graph
+  val _ = if GIso.test new_graph exp_graph then ()
+          else (writeln "Expected"; G.print exp_graph;
+                writeln "Got"; G.print new_graph;
+                raise ERROR "Rewriting gave wrong graph")
+
+  in writeln "success" end) ();
 
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";
