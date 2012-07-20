@@ -36,7 +36,7 @@ struct
 
                    (*** Graph Commands ***)
                    | ListGraphsRequest
-                     (* StringListResponse *)
+                     (* StringResponse *)
                    | LoadGraphRequest of { details: graphLoadRequest }
                      (* StringResponse | ErrorResponse *)
                    | SaveGraphToFileRequest of { graphName: string, fileName: string }
