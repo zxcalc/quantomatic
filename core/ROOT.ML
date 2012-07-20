@@ -121,19 +121,19 @@ Testing.make_test "io/test/graph_io-test.ML";
 
 
 (* matching *)
-PolyML.Project.make "matching2/match_state.ML";
-PolyML.Project.make "matching2/bang_graph_match_state.ML";
+PolyML.Project.make "matching/match_state.ML";
+PolyML.Project.make "matching/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)
-PolyML.Project.make "matching2/inner_match_search.ML";
+PolyML.Project.make "matching/inner_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
-PolyML.Project.make "matching2/match_search.ML";
+PolyML.Project.make "matching/match_search.ML";
 (* simple inner loop for the matching algo *)
-PolyML.Project.make "matching2/simple_inner_match_search.ML";
+PolyML.Project.make "matching/simple_inner_match_search.ML";
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
-PolyML.Project.make "matching2/concrete_match_search.ML";
+PolyML.Project.make "matching/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
-PolyML.Project.make "matching2/greedy_match_search.ML";
+PolyML.Project.make "matching/greedy_match_search.ML";
 
 
 (* substitution of a matched subgraph for another graph *)
@@ -143,10 +143,10 @@ PolyML.Project.make "rewriting/ruleset_rewriter.ML";
 
 
 (* Testing *)
-Testing.make_test "matching2/test/test-matching-setup.ML";
-Testing.make_test "matching2/test/test-bang-match-state.ML";
-Testing.make_test "matching2/test/test-matching-concrete.ML";
-Testing.make_test "matching2/test/test-matching-greedy.ML";
+Testing.make_test "matching/test/test-matching-setup.ML";
+Testing.make_test "matching/test/test-bang-match-state.ML";
+Testing.make_test "matching/test/test-matching-concrete.ML";
+Testing.make_test "matching/test/test-matching-greedy.ML";
 
 Testing.make_test "rewriting/test/graph_subst-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
