@@ -559,7 +559,7 @@
  *   ResultFormat: ObjectResultFormat
  * Desc: Add an edge to a graph.
  * Response: StringResponse | XmlResponse | PrettyResponse | StructuredDataResponse
- * ErrorResponses: NOSUCHGRAPH | BADEDGETYPE | BADFORMAT
+ * ErrorResponses: NOSUCHGRAPH | BAD_BBOX | BAD_WIRE_VERTEX | BADEDGETYPE | BADFORMAT
  *
  * Name: RenameEdgeRequest
  * Code: "GMER"
@@ -678,16 +678,26 @@
  * Desc: Add vertices to a !-box.  They will be removed from any
  *       other !-boxes they are contained in.
  * Response: OkResponse
- * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | NOSUCHVERTEX
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | NOSUCHVERTEX | BAD_BBOX
  *
- * Name: UnbangVerticesRequest
+ * Name: CompletelyUnbangVerticesRequest
  * Code: "GMBL"
  * Args:
  *   GraphName: String
  *   VertexNames: StringList
  * Desc: Remove some vertices from their !-boxes.
  * Response: OkResponse
- * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | BAD_BBOX
+ *
+ * Name: UnbangVerticesRequest
+ * Code: "GMBX"
+ * Args:
+ *   GraphName: String
+ *   BangBoxName: String
+ *   VertexNames: StringList
+ * Desc: Remove some vertices from a !-box.
+ * Response: OkResponse
+ * ErrorResponses: NOSUCHGRAPH | NOSUCHBBOX | NOSUCHVERTEX | BAD_BBOX
  *
  * Name: SetBangBoxUserDataRequest
  * Code: "GMBU"
@@ -1950,7 +1960,21 @@ struct
                       in
                         EditGraphRequest {
                           graphName = graphName,
+                          action =  CompletelyUnbangVerticesAction {
+                                      vertexNames = vertexNames
+                                    }
+                        }
+                      end
+
+         | "GMBX" =>  let
+                        val graphName = readToDelim ()
+                        val bangBoxName = readToDelim ()
+                        val vertexNames = readListToEnd ()
+                      in
+                        EditGraphRequest {
+                          graphName = graphName,
                           action =  UnbangVerticesAction {
+                                      bangBoxName = bangBoxName,
                                       vertexNames = vertexNames
                                     }
                         }

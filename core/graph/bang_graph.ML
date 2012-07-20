@@ -152,7 +152,7 @@ val doadd_bbox : T -> T
 
 val try_rename1_bbox : B.name -> B.name -> T -> T option
 
-(* FIXME: remove *) val move_to_unbbox : V.NSet.T -> T -> T
+val remove_from_all_bboxes : V.NSet.T -> T -> T
 
 (* utility for folding across a list of graphs, adding the names from
  * each one *)
@@ -511,8 +511,8 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun try_rename1_bbox n1 n2 g =
       (SOME (rename_bbox n1 n2 g)) handle bbox_already_exists_exp _ => NONE;
 
-  fun move_to_unbbox vs g =
-      g |> update_bbox_rel (V.NSet.fold BVBRel.del_cod vs);
+  fun remove_from_all_bboxes vs g =
+    B.NSet.fold (fn b => remove_from_bbox b vs) (get_bboxes g) g
 
   val add_to_bboxes = B.NSet.union_merge o get_bboxes;
 

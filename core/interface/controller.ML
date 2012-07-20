@@ -226,7 +226,9 @@ struct
                              (* StringResponse | ErrorResponse *)
                            | BangVerticesAction of { bangBoxName: string, vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | UnbangVerticesAction of { vertexNames: string list }
+                           | CompletelyUnbangVerticesAction of { vertexNames: string list }
+                             (* OkResponse | ErrorResponse *)
+                           | UnbangVerticesAction of { bangBoxName: string, vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | SetBangBoxUserDataAction of { bangBoxName: string,
                               dataName : string, userData: string }
@@ -862,9 +864,12 @@ fun hilb ([format], graph) =
         | BangVerticesAction { bangBoxName, vertexNames } =>
             (OkResponse,
              State.bang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
-        | UnbangVerticesAction { vertexNames } =>
+        | CompletelyUnbangVerticesAction { vertexNames } =>
             (OkResponse,
-             State.unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
+             State.completely_unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
+        | UnbangVerticesAction { bangBoxName, vertexNames } =>
+            (OkResponse,
+             State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
               State.update_bangbox_user_data dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)

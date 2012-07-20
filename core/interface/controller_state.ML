@@ -125,6 +125,7 @@ sig
 
   val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
   val kill_bang : B.name list -> GraphName.name -> T -> T
+  val completely_unbang_vertices : V.name list -> GraphName.name -> T -> T
   val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
@@ -828,15 +829,28 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
 
-  fun unbang_vertices verts gname state =
+  fun completely_unbang_vertices verts gname state =
       let
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
       in
-        lift_graph_mutator_no_result (Graph.move_to_unbbox vset) gname state
+        lift_graph_mutator_no_result (Graph.remove_from_all_bboxes vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
+
+  fun unbang_vertices box verts gname state =
+      let
+        val _ = assert_bbox_exists state gname box
+        val _ = map (assert_vertex_exists state gname) verts
+        val vset = V.NSet.of_list verts
+        val mutator = Graph.remove_from_bbox box vset
+      in
+        lift_graph_mutator_no_result mutator gname state
+        handle Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
+      end
+
   (* Copy the subgraph as well as it user data *)
   (* Here is the problem: when a graph is copied it's 
    * usually in order to paste it later. However, once it's

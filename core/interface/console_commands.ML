@@ -261,10 +261,16 @@ structure ConsoleCommands : CONSOLE_COMMANDS
                              graphName = graph, action = Commands.BangVerticesAction { bangBoxName = bb, vertexNames = vs } })
         | _               => bad_args_req))),
 
-    ("unbang_vertices",
-     ("GRAPH V1 .. VN", "Remove vertices V1..VN from their current !-box",
+    ("completely_unbang_vertices",
+     ("GRAPH V1 .. VN", "Remove vertices V1..VN from all their current !-boxes",
       (fn (graph::vs) => (Commands.EditGraphRequest {
-                         graphName = graph, action = Commands.UnbangVerticesAction { vertexNames = vs } })
+                         graphName = graph, action = Commands.CompletelyUnbangVerticesAction { vertexNames = vs } })
+        | _           => bad_args_req))),
+
+    ("unbang_vertices",
+     ("GRAPH BB V1 .. VN", "Remove vertices V1..VN from !-box BB",
+      (fn (graph::bb::vs) => (Commands.EditGraphRequest {
+                         graphName = graph, action = Commands.UnbangVerticesAction { bangBoxName = bb, vertexNames = vs } })
         | _           => bad_args_req))),
 
     ("import_ruleset",
