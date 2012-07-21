@@ -4,44 +4,23 @@
  */
 package quanto.gui;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.print.Printable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.swing.BoxLayout;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JList;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-
 import quanto.core.CoreException;
 import quanto.core.Ruleset;
 import quanto.core.RulesetChangeListener;
 import quanto.core.data.CoreGraph;
 import quanto.core.data.Rule;
+import quanto.core.protocol.userdata.RulePriorityRuleUserDataSerializer;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Panel displaying a very simple rules interface.
@@ -407,8 +386,9 @@ public class RulesBar extends JPanel {
                     RulesBar.this.viewPort.attachView(spg);
 
                     //By default the priority is set to 5
-                    RulesBar.this.ruleset.getCore().getTalker().setRuleUserData(ruleName,
-                                    "quanto-gui:priority", "5");
+                    RulePriorityRuleUserDataSerializer priorityRuleUserDataSerializer =
+                            new RulePriorityRuleUserDataSerializer(RulesBar.this.ruleset.getCore().getTalker());
+                    priorityRuleUserDataSerializer.setRuleUserData(ruleName,5);
                 } catch (CoreException ex) {
                     showModalError("Could not create a new rule.", ex);
                 }
