@@ -32,7 +32,8 @@ struct
   (* FIXME *)
   fun doomedf _ _ = false
 
-  fun get_next_bbox g = B.NSet.get_local_bot (BG.get_bboxes g)
+  fun get_next_bbox g =
+    B.NSet.get_exists (not o (BG.bbox_has_parent g)) (BG.get_bboxes g)
 
   fun finish_match ms =
       Seq.filter BGMatchState.is_total
