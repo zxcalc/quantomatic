@@ -3,36 +3,45 @@ local (* Test matching with concrete graphs *)
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
 
+  val c1 = V.mk "c1"
+  val in1 = V.mk "in1"
+  val in2 = V.mk "in2"
+  val out1 = V.mk "out1"
+  val out2 = V.mk "out2"
+  val x1 = V.mk "x1"
+  val x2 = V.mk "x2"
+  val x3 = V.mk "x3"
+
   val g = G.empty
   (* circle *)
-  val (v1,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
+  val g = g |> G.add_named_vertex c1 bvert
+            |> G.doadd_edge dir_edge c1 c1
   (* bare wire *)
-  val (v2,g) = g |> G.add_vertex bvert
-  val (v3,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v2 v3
+            |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex out1 bvert
+            |> G.doadd_edge dir_edge in1 out1
   (* x with two boundaries *)
-  val (v4,g) = g |> G.add_vertex bvert
-  val (v5,g) = g |> G.add_vertex (mkX zero_angle)
-  val (v6,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v4 v5
-  val (_ ,g) = g |> G.add_edge dir_edge v5 v6
+            |> G.add_named_vertex in2 bvert
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex out2 bvert
+            |> G.doadd_edge dir_edge in2 x1
+            |> G.doadd_edge dir_edge x1 out2
   val pat = g
   
   val g = G.empty
   (* circle *)
-  val (v1,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
+  val g = g |> G.add_named_vertex c1 bvert
+            |> G.doadd_edge dir_edge c1 c1
   (* x to x to x *)
-  val (v4,g) = g |> G.add_vertex (mkX zero_angle)
-  val (v5,g) = g |> G.add_vertex (mkX zero_angle)
-  val (v6,g) = g |> G.add_vertex (mkX zero_angle)
-  val (_ ,g) = g |> G.add_edge dir_edge v4 v5
-  val (_ ,g) = g |> G.add_edge dir_edge v5 v6
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex x3 (mkX zero_angle)
+            |> G.doadd_edge dir_edge x1 x2
+            |> G.doadd_edge dir_edge x2 x3
   val tgt = g
 
-  val mseq = M.match pat tgt
-  val _ = Testing.test "M.match - pat --> tgt" (assert_n_match 2 mseq) ()
+  val _ = Testing.test "M.match - pat --> tgt"
+          (fn () => assert_n_match 2 (M.match pat tgt) ()) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR GREEDY MATCHING WITH CONCRETE GRAPHS PASSED!"
@@ -44,154 +53,166 @@ local (* Test matching with disjoint !-boxes *)
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
 
+  val c1 = V.mk "c1"
+  val c2 = V.mk "c2"
+  val c3 = V.mk "c3"
+  val in1 = V.mk "in1"
+  val in2 = V.mk "in2"
+  val out1 = V.mk "out1"
+  val x1 = V.mk "x1"
+  val x2 = V.mk "x2"
+  val x3 = V.mk "x3"
+  val z1 = V.mk "z1"
+
+  val b1 = B.mk "B1"
+  val b2 = B.mk "B2"
+
   val g = G.empty
   (* circle in a !-box *)
-  val (v1,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
-  val (b1,g) = g |> G.add_bbox
-  val g      = g |> G.add_to_bbox b1 (V.NSet.single v1)
+  val g = g |> G.add_named_vertex c1 bvert
+            |> G.doadd_edge dir_edge c1 c1
+            |> G.add_named_bbox b1
+            |> G.add_to_bbox b1 (V.NSet.single c1)
   val circles_pat = g
 
   val g = G.empty
   (* one circle *)
-  val (v1,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
+  val g = g |> G.add_named_vertex c1 bvert
+            |> G.doadd_edge dir_edge c1 c1
   val one_circle = g
 
   (* two circles *)
-  val (v2,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v2 v2
+  val g = g |> G.add_named_vertex c2 bvert
+            |> G.doadd_edge dir_edge c2 c2
   val two_circles = g
 
   (* three circles *)
-  val (v3,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v3 v3
+  val g = g |> G.add_named_vertex c3 bvert
+            |> G.doadd_edge dir_edge c3 c3
   val three_circles = g
 
   val g = G.empty
   (* circle and bare wire in a !-box *)
-  val (v1,g) = g |> G.add_vertex bvert
-  val (v2,g) = g |> G.add_vertex bvert
-  val (v3,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
-  val (_ ,g) = g |> G.add_edge dir_edge v2 v3
-  val (b1,g) = g |> G.add_bbox
-  val g      = g |> G.add_to_bbox b1 (V.NSet.single v1)
-                 |> G.add_to_bbox b1 (V.NSet.single v2)
-                 |> G.add_to_bbox b1 (V.NSet.single v3)
+  val g = g |> G.add_named_vertex c1 bvert
+            |> G.doadd_edge dir_edge c1 c1
+            |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex out1 bvert
+            |> G.doadd_edge dir_edge in1 out1
+            |> G.add_named_bbox b1
+            |> G.add_to_bbox b1 (V.NSet.of_list [c1,in1,out1])
   val circle_wire_pat = g
 
   val g = G.empty
   (* RHS of spider pattern *)
-  val (v1,g) = g |> G.add_vertex bvert
-  val (v2,g) = g |> G.add_vertex (mkX zero_angle)
-  val (v3,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v2
-  val (_ ,g) = g |> G.add_edge dir_edge v2 v3
-  val (b1,g) = g |> G.add_bbox
-  val (b2,g) = g |> G.add_bbox
-  val g      = g |> G.add_to_bbox b1 (V.NSet.single v1)
-                 |> G.add_to_bbox b2 (V.NSet.single v3)
-  val spider_rhs_pat = g
+  val g = g |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex out1 bvert
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.doadd_edge dir_edge in1 x1
+            |> G.doadd_edge dir_edge x1 out1
+            |> G.add_named_bbox b1
+            |> G.add_named_bbox b2
+            |> G.add_to_bbox b1 (V.NSet.single in1)
+            |> G.add_to_bbox b2 (V.NSet.single out1)
+  val x_any_ins_outs_pat = g
 
   val g = G.empty
-  val (v1,g) = g |> G.add_vertex (mkX zero_angle)
+  val g = g |> G.add_named_vertex x1 (mkX zero_angle)
   val single_x = g
 
-  val (v2,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v2
+  val g = g |> G.add_named_vertex out1 bvert
+            |> G.doadd_edge dir_edge x1 out1
   val x_with_output = g
 
-  val (v3,g) = g |> G.add_vertex bvert
-  val (v4,g) = g |> G.add_vertex bvert
-  val (_ ,g) = g |> G.add_edge dir_edge v3 v1
-  val (_ ,g) = g |> G.add_edge dir_edge v4 v1
+  val g = g |> G.add_named_vertex in1 bvert
+            |> G.add_named_vertex in2 bvert
+            |> G.doadd_edge dir_edge in1 x1
+            |> G.doadd_edge dir_edge in2 x1
   val x_with_output_and_two_inputs = g
 
   val g = single_x
-  val (v2,g) = g |> G.add_vertex (mkX zero_angle)
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v2
+  val g = g |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.doadd_edge dir_edge x1 x2
   val x_to_x = g
 
   val g = single_x
-  val (_ ,g) = g |> G.add_edge dir_edge v1 v1
+  val g = g |> G.doadd_edge dir_edge x1 x1
   val x_with_loop = g
 
   val g = G.empty
   (* Z connected to any number of Xs *)
-  val (v1,g) = g |> G.add_vertex (mkZ zero_angle)
-  val (v2,g) = g |> G.add_vertex (mkX zero_angle)
-  val (_ ,g) = g |> G.add_edge undir_edge v1 v2
-  val (b1,g) = g |> G.add_bbox
-  val g      = g |> G.add_to_bbox b1 (V.NSet.single v2)
+  val g = g |> G.add_named_vertex z1 (mkZ zero_angle)
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.doadd_edge undir_edge z1 x1
+            |> G.add_named_bbox b1
+            |> G.add_to_bbox b1 (V.NSet.single x1)
   val star_pat = g
 
   val g = G.empty
-  val (v1,g) = g |> G.add_vertex (mkZ zero_angle)
+  val g = g |> G.add_named_vertex z1 (mkZ zero_angle)
   val single_z = g
 
-  val (v2,g) = g |> G.add_vertex (mkX zero_angle)
-  val (_ ,g) = g |> G.add_edge undir_edge v1 v2
+  val g = g |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.doadd_edge undir_edge z1 x1
   val star_one_spoke = g
 
-  val (v3,g) = g |> G.add_vertex (mkX zero_angle)
-  val (_ ,g) = g |> G.add_edge undir_edge v1 v3
+  val g = g |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.doadd_edge undir_edge z1 x2
   val star_two_spokes = g
 
-  val (v4,g) = g |> G.add_vertex (mkX zero_angle)
-  val (_ ,g) = g |> G.add_edge undir_edge v1 v4
+  val g = g |> G.add_named_vertex x3 (mkX zero_angle)
+            |> G.doadd_edge undir_edge z1 x3
   val star_three_spokes = g
 
-  val mseq = M.match circles_pat G.empty
-  val _ = Testing.test "M.match - circles pattern --> empty" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - circles pattern --> empty"
+          (fn () => assert_n_match 1 (M.match circles_pat G.empty) ()) ()
 
-  val mseq = M.match circles_pat one_circle
-  val _ = Testing.test "M.match - circles pattern --> one circle" (assert_n_match 2 mseq) ()
+  val _ = Testing.test "M.match - circles pattern --> one circle"
+          (fn () => assert_n_match 2 (M.match circles_pat one_circle) ()) ()
 
-  val mseq = M.match circles_pat two_circles
-  val _ = Testing.test "M.match - circles pattern --> two circles" (assert_n_match 5 mseq) ()
+  val _ = Testing.test "M.match - circles pattern --> two circles"
+          (fn () => assert_n_match 5 (M.match circles_pat two_circles) ()) ()
 
-  val mseq = M.match circles_pat three_circles
-  val _ = Testing.test "M.match - circles pattern --> three circles" (assert_n_match 16 mseq) ()
+  val _ = Testing.test "M.match - circles pattern --> three circles"
+          (fn () => assert_n_match 16 (M.match circles_pat three_circles) ()) ()
 
-  val mseq = M.match circle_wire_pat one_circle
-  val _ = Testing.test "M.match - circles+wire pattern --> one circle" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - circles+wire pattern --> one circle"
+          (fn () => assert_n_match 1 (M.match circle_wire_pat one_circle) ()) ()
 
-  val mseq = M.match circle_wire_pat two_circles
-  val _ = Testing.test "M.match - circles+wire pattern --> two circles" (assert_n_match 3 mseq) ()
+  val _ = Testing.test "M.match - circles+wire pattern --> two circles"
+          (fn () => assert_n_match 3 (M.match circle_wire_pat two_circles) ()) ()
 
-  val mseq = M.match spider_rhs_pat one_circle
-  val _ = Testing.test "M.match - spider (RHS) pattern --> one circle" (assert_n_match 0 mseq) ()
+  val _ = Testing.test "M.match - x any ins or outs pattern --> one circle"
+          (fn () => assert_n_match 0 (M.match x_any_ins_outs_pat one_circle) ()) ()
 
-  val mseq = M.match spider_rhs_pat single_x
-  val _ = Testing.test "M.match - spider (RHS) pattern --> single x vertex" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - x any ins or outs pattern --> single x vertex"
+          (fn () => assert_n_match 1 (M.match x_any_ins_outs_pat single_x) ()) ()
 
-  val mseq = M.match spider_rhs_pat x_with_output
-  val _ = Testing.test "M.match - spider (RHS) pattern --> x->1" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - x any ins or outs pattern --> x->1"
+          (fn () => assert_n_match 1 (M.match x_any_ins_outs_pat x_with_output) ()) ()
 
-  val mseq = M.match spider_rhs_pat x_with_output_and_two_inputs
-  val _ = Testing.test "M.match - spider (RHS) pattern --> 2->x->1" (assert_n_match 2 mseq) ()
+  val _ = Testing.test "M.match - x any ins or outs pattern --> 2->x->1"
+          (fn () => assert_n_match 2 (M.match x_any_ins_outs_pat x_with_output_and_two_inputs) ()) ()
 
-  val mseq = M.match spider_rhs_pat x_to_x
-  val _ = Testing.test "M.match - spider (RHS) pattern --> x->x" (assert_n_match 2 mseq) ()
+  val _ = Testing.test "M.match - x any ins or outs pattern --> x->x"
+          (fn () => assert_n_match 2 (M.match x_any_ins_outs_pat x_to_x) ()) ()
 
-  val mseq = M.match spider_rhs_pat x_with_loop
-  val _ = Testing.test "M.match - spider (RHS) pattern --> x with loop" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - x any ins or outs pattern --> x with loop"
+          (fn () => assert_n_match 1 (M.match x_any_ins_outs_pat x_with_loop) ()) ()
 
   val _ = Testing.test "M.match - star pattern --> single x"
-      (fn () => assert_n_match 0 (M.match star_pat single_x) ()) ()
+          (fn () => assert_n_match 0 (M.match star_pat single_x) ()) ()
 
-  val mseq = M.match star_pat single_z
-  val _ = Testing.test "M.match - star pattern --> single z" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - star pattern --> single z"
+          (fn () => assert_n_match 1 (M.match star_pat single_z) ()) ()
 
-  val mseq = M.match star_pat star_one_spoke
-  val _ = Testing.test "M.match - star pattern --> one-spoke star" (assert_n_match 1 mseq) ()
+  val _ = Testing.test "M.match - star pattern --> one-spoke star"
+          (fn () => assert_n_match 1 (M.match star_pat star_one_spoke) ()) ()
 
-  val mseq = M.match star_pat star_two_spokes
-  val _ = Testing.test "M.match - star pattern --> two-spoke star" (assert_n_match 2 mseq) ()
+  val _ = Testing.test "M.match - star pattern --> two-spoke star"
+          (fn () => assert_n_match 2 (M.match star_pat star_two_spokes) ()) ()
 
-  val mseq = M.match star_pat star_three_spokes
-  val _ = Testing.test "M.match - star pattern --> three-spoke star" (assert_n_match 6 mseq) ()
+  val _ = Testing.test "M.match - star pattern --> three-spoke star"
+          (fn () => assert_n_match 6 (M.match star_pat star_three_spokes) ()) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR GREEDY MATCHING WITH DISJOINT !-BOXES PASSED!"
