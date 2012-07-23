@@ -1015,6 +1015,84 @@ local
           val _ = Testing.assert "New vertex is connected"
                   (G.has_edges_between g' vadd v2)
         in g' end) spider_rhs_pat
+
+  val lvl0 = V.mk "l0"
+  val lvl1a = V.mk "l1-a"
+  val lvl2a = V.mk "l2-a"
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex lvl0 (mkZ zero_angle)
+            |> G.add_named_vertex lvl1a (mkX zero_angle)
+            |> G.add_named_vertex lvl2a (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl0 lvl1a
+            |> G.doadd_edge dir_edge lvl1a lvl2a
+            |> G.add_named_bbox b0
+            |> G.add_named_bbox b1
+            |> G.add_to_bbox b0 (V.NSet.of_list [lvl1a,lvl2a])
+            |> G.add_to_bbox b1 (V.NSet.single lvl2a)
+  val balanced_tree_pat = g
+
+  val _ = Testing.test "G.kill_bbox (balanced tree; outer)"
+        (fn g =>
+        let
+          val g' = G.kill_bbox b0 g
+          val _ = Testing.assert "correct !-boxes"
+                (B.NSet.eq (B.NSet.single b1) (G.get_bboxes g'))
+          val _ = Testing.assert "correct verts"
+                (V.NSet.eq (V.NSet.single lvl0) (G.get_vnames g'))
+          val _ = Testing.assert "B1 is empty"
+                (V.NSet.is_empty (G.get_bbox_contents g' b1))
+        in g' end) balanced_tree_pat
+
+  val _ = Testing.test "G.kill_bbox (balanced tree; inner)"
+        (fn g =>
+        let
+          val g' = G.kill_bbox b1 g
+          val _ = Testing.assert "correct !-boxes"
+                (B.NSet.eq (B.NSet.single b0) (G.get_bboxes g'))
+          val _ = Testing.assert "correct verts"
+                (V.NSet.eq (V.NSet.of_list [lvl0,lvl1a]) (G.get_vnames g'))
+          val _ = Testing.assert "B0 has correct verts"
+                (V.NSet.eq (V.NSet.single lvl1a) (G.get_bbox_contents g' b0))
+        in g' end) balanced_tree_pat
+
+  val _ = Testing.test "G.fresh_expand1_bbox (balanced tree; outer)"
+        (fn g =>
+        let
+          val g' = G.fresh_expand1_bbox b0 g
+          val new_verts = V.NSet.subtract (G.get_vnames g') (G.get_vnames g)
+        in
+          (Testing.assert "bboxes unchanged"
+             (B.NSet.eq (G.get_bboxes g) (G.get_bboxes g'));
+           Testing.assert "old verts remain"
+             (V.NSet.sub_set (G.get_vnames g) (G.get_vnames g'));
+           Testing.assert "correct number of new verts"
+             (V.NSet.cardinality new_verts = 2);
+           Testing.assert "correct verts in b0"
+             (V.NSet.eq (G.get_bbox_contents g b0) (G.get_bbox_contents g' b0));
+           Testing.assert "correct number of verts in b1"
+             (V.NSet.cardinality (G.get_bbox_contents g' b1) = 2);
+           g')
+        end) balanced_tree_pat
+
+  val _ = Testing.test "G.fresh_expand1_bbox (balanced tree; inner)"
+        (fn g =>
+        let
+          val g' = G.fresh_expand1_bbox b1 g
+          val new_verts = V.NSet.subtract (G.get_vnames g') (G.get_vnames g)
+        in
+          (Testing.assert "bboxes unchanged"
+             (B.NSet.eq (G.get_bboxes g) (G.get_bboxes g'));
+           Testing.assert "old verts remain"
+             (V.NSet.sub_set (G.get_vnames g) (G.get_vnames g'));
+           Testing.assert "correct number of new verts"
+             (V.NSet.cardinality new_verts = 1);
+           Testing.assert "correct number of new verts in b0"
+             (V.NSet.cardinality (G.get_bbox_contents g' b0) = 3);
+           Testing.assert "correct verts in b1"
+             (V.NSet.eq (G.get_bbox_contents g b1) (G.get_bbox_contents g' b1));
+           g')
+        end) balanced_tree_pat
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-BOX FUNCTIONS PASSED!"
@@ -1129,49 +1207,59 @@ local
 
   (* unbalenced tree of depth 3 *)
   val unbalanced = g |> G.set_bbox_parent b2 b1
-  (*val _ = G.print unbalanced*)
+
+  val unbalanced_norm = G.normalise unbalanced
+  val _ = G.print unbalanced_norm
   
-  val _ = Testing.test "unbalanced.b2 should have 1 parent"
-    (fn() => if G.bbox_has_parent unbalanced b2
-             then () else raise ERROR("has no parent")) ()
+  val _ = Testing.test "G.bbox_has_parent" (fn() =>
+    Testing.assert "b2 has a parent" (G.bbox_has_parent unbalanced b2)) ()
   
-  val utree_drop = g |> G.drop_bbox b1
-  val _ = Testing.test "utree_drop.b2 should have 0 parents"
-    (fn() => if G.bbox_has_parent utree_drop b2
-             then raise ERROR("still has a parent") else ()) ()
+  val _ = Testing.test "drop_bbox on parent box" (fn() =>
+    let val utree_drop = unbalanced |> G.drop_bbox b1 in
+      Testing.assert "b2 has no parent" (not (G.bbox_has_parent utree_drop b2))
+    end) ()
   
-  val utree_outer_kill = unbalanced |> G.kill_bbox b1
-  (*val _ = G.print utree_outer_kill*)
+  val _ = Testing.test "unbalanced tree: kill_bbox on parent box" (fn() =>
+    let val g = unbalanced |> G.kill_bbox b1 in
+      Testing.assert "no !-boxes" (B.NSet.is_empty (G.get_bboxes g))
+    end) ()
   
-  val _ = Testing.test "utree_outer_kill should have no bboxes"
-    (assert_n_bboxes utree_outer_kill 0) ()
-    
-  val utree_inner_kill = unbalanced |> G.kill_bbox b2
-  (*val _ = G.print utree_inner_kill*)
+  val _ = Testing.test "unbalanced tree: kill_bbox on child box" (fn() =>
+    let val g = unbalanced |> G.kill_bbox b2 in
+      Testing.assert "only b1 exists"
+         (B.NSet.eq (B.NSet.single b1) (G.get_bboxes g))
+    end) ()
   
-  val (_,utree_inner_copy) = unbalanced |> G.fresh_copy1_bbox b2
-  val (b1',utree_outer_copy) = unbalanced |> G.fresh_copy1_bbox b1
+  val _ = Testing.test "unbalanced tree: copy_bbox on parent box" (fn() =>
+    let val (_,g) = G.fresh_copy1_bbox b1 unbalanced in
+      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 4)
+    end) ()
   
-  (* get a hold of the new child *)
-  (*val b2' = case BMap.lookup_codf (G.get_bbox_parent_rel utree_outer_copy) b1'
-              of SOME (*.....*)*)
+  val _ = Testing.test "unbalanced tree: copy_bbox on child box" (fn() =>
+    let val (_,g) = G.fresh_copy1_bbox b2 unbalanced in
+      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 3)
+    end) ()
   
-  val _ = Testing.test "utree_outer_kill should have no bboxes"
-    (assert_n_bboxes utree_outer_kill 0) ()
-    
-  val _ = Testing.test "utree_inner_kill should have 1 bbox"
-    (assert_n_bboxes utree_inner_kill 1) ()
-    
-  val _ = Testing.test "utree_inner_copy should have 3 bboxes"
-    (assert_n_bboxes utree_inner_copy 3) ()
-    
-  val _ = Testing.test "utree_outer_copy should have 4 bboxes"
-    (assert_n_bboxes utree_outer_copy 4) ()
+  val _ = Testing.test "normed unbalanced tree: kill_bbox on parent box" (fn() =>
+    let val g = unbalanced_norm |> G.kill_bbox b1 in
+      Testing.assert "no !-boxes" (B.NSet.is_empty (G.get_bboxes g))
+    end) ()
   
-  val btree100 = balanced |> G.kill_bbox b1 |> G.kill_bbox b2
+  val _ = Testing.test "normed unbalanced tree: kill_bbox on child box" (fn() =>
+    let val g = unbalanced_norm |> G.kill_bbox b2 in
+      Testing.assert "only b1 exists"
+         (B.NSet.eq (B.NSet.single b1) (G.get_bboxes g))
+    end) ()
   
-  (* TODO: write me *)
-  val _ = Testing.test "btree100 should have 1 vertex" (fn() => ()) ()
+  val _ = Testing.test "normed unbalanced tree: copy_bbox on parent box" (fn() =>
+    let val (_,g) = G.fresh_copy1_bbox b1 unbalanced_norm in
+      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 4)
+    end) ()
+  
+  val _ = Testing.test "normed unbalanced tree: copy_bbox on child box" (fn() =>
+    let val (_,g) = G.fresh_copy1_bbox b2 unbalanced_norm in
+      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 3)
+    end) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR NESTED BANG-BOX EXPANSION PASSED!"

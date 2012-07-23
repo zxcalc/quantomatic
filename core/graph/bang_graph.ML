@@ -117,6 +117,7 @@ val add_to_bbox : B.name -> V.NSet.T -> T -> T
 val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
 (* set parent of the given bbox *)
+(* snd will be the parent of the fst *)
 val set_bbox_parent : B.name -> B.name -> T -> T
 
 (* make the given bbox an orphan *)
@@ -312,6 +313,7 @@ functor BasicBangGraphFun(
   val update_bbox_parent_rel = G.update_data o update_bbox_parent_rel_of_hdata;
   
   fun set_bbox_parent b bp = 
+    (* FIXME: enforce consistency *)
     update_bbox_parent_rel (BMap.add_to_dom b bp)
   
   (* orphan the given !-box. If its parent has no children, remove from parent rel *)
@@ -347,6 +349,9 @@ functor BasicBangGraphFun(
                               of NONE => raise bug_exp "bbox in bbox_rel but not bboxes"
                                | SOME bxs2 => bxs2);
 
+  (* use with caution *)
+  structure OGHelpers = OGraphFun(G)
+
   (* modified graph functions *)
   fun add_edge_named_like en edd s t g = let
     val (sd,_) = get_vertex g s
@@ -355,42 +360,29 @@ functor BasicBangGraphFun(
         case V.NTab.lookup (get_vertex_bbox_table g) v of
              NONE => B.NSet.empty
            | SOME bs => bs;
+    val sbbs = get_bboxes_of g s
+    val tbbs = get_bboxes_of g t
+    val (e,g') = G.add_edge_named_like en edd s t g
+    fun repair_wire wvs = let
+      val wire_bbs = B.NSet.union_merge sbbs tbbs
+    in
+      update_bbox_rel (BVBRel.add_many wire_bbs wvs)
+    end
   in
-    (* FIXME: just extend the !-boxes, instead of raising
-     * an exception? *)
     case (sd,td)
       of (OVData.WVert,OVData.WVert) =>
-          let
-            val sbbs = get_bboxes_of g s
-            val tbbs = get_bboxes_of g t
-            fun one_bad_bbox () = let
-                val (l,_,r) = B.NSet.contrast sbbs tbbs
-                val bad_bbs = B.NSet.union_merge l r
-              in the (B.NSet.get_local_bot bad_bbs) end
-            val _ = if B.NSet.eq sbbs tbbs then ()
-                    else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
-          in G.add_edge_named_like en edd s t g end
+            let val (_,_,wvs,_) = OGHelpers.get_wire_containing_edge g' e in
+              (e,repair_wire (V.NSet.add s (V.NSet.add t wvs)) g')
+            end
        | (OVData.NVert _,OVData.WVert) =>
-          let
-            val sbbs = get_bboxes_of g s
-            val tbbs = get_bboxes_of g t
-            fun one_bad_bbox () = let
-                val bad_bbs = B.NSet.subtract sbbs tbbs
-              in the (B.NSet.get_local_bot bad_bbs) end
-            val _ = if B.NSet.sub_set sbbs tbbs then ()
-                    else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
-          in G.add_edge_named_like en edd s t g end
+            let val (_,_,wvs,_) = OGHelpers.get_wire_containing_edge g' e in
+              (e,repair_wire (V.NSet.add t wvs) g')
+            end
        | (OVData.WVert,OVData.NVert _) =>
-          let
-            val sbbs = get_bboxes_of g s
-            val tbbs = get_bboxes_of g t
-            fun one_bad_bbox () = let
-                val bad_bbs = B.NSet.subtract tbbs sbbs
-              in the (B.NSet.get_local_bot bad_bbs) end
-            val _ = if B.NSet.sub_set tbbs sbbs then ()
-                    else raise bbox_not_open_exp ((s,t),one_bad_bbox(),g)
-          in G.add_edge_named_like en edd s t g end
-       | _ => G.add_edge_named_like en edd s t g
+            let val (_,_,wvs,_) = OGHelpers.get_wire_containing_edge g' e in
+              (e,repair_wire (V.NSet.add s wvs) g')
+            end
+       | (OVData.NVert _,OVData.NVert _) => (e,g')
   end
 
   fun delete_vertex n g =
