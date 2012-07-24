@@ -607,7 +607,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
           val bbs_to_extend = get_bboxes_of g v
            |> B.NSet.delete bn
            |> (case new_bn_opt of SOME bn' => B.NSet.add bn' | NONE => I)
-           |> B.NSet.fold (fn b => B.NSet.add (map_bbox_name b)) B.NSet.empty
+           |> (fn bs => B.NSet.fold (fn b => B.NSet.add (map_bbox_name b)) bs B.NSet.empty)
         in
           B.NSet.fold (fn b => add_to_bbox b (V.NSet.single vnew)) bbs_to_extend gr
         end

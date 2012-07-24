@@ -1206,13 +1206,15 @@ local
   val balanced = g
 
   (* unbalenced tree of depth 3 *)
-  val unbalanced = g |> G.set_bbox_parent b2 b1
+  val unbalanced = balanced |> G.set_bbox_parent b2 b1
 
   val unbalanced_norm = G.normalise unbalanced
   val _ = G.print unbalanced_norm
   
   val _ = Testing.test "G.bbox_has_parent" (fn() =>
     Testing.assert "b2 has a parent" (G.bbox_has_parent unbalanced b2)) ()
+  val _ = Testing.test "G.bbox_has_parent" (fn() =>
+    Testing.assert "b1 does not have a parent" (not (G.bbox_has_parent unbalanced b1))) ()
   
   val _ = Testing.test "drop_bbox on parent box" (fn() =>
     let val utree_drop = unbalanced |> G.drop_bbox b1 in
@@ -1231,13 +1233,33 @@ local
     end) ()
   
   val _ = Testing.test "unbalanced tree: copy_bbox on parent box" (fn() =>
-    let val (_,g) = G.fresh_copy1_bbox b1 unbalanced in
-      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 4)
+    let
+      val oldg = unbalanced
+      val (b1',g) = G.fresh_copy1_bbox b1 oldg
+      val _ = Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 4)
+      val new_bboxes = B.NSet.subtract (G.get_bboxes g) (G.get_bboxes oldg)
+      val b2' = (the o B.NSet.tryget_singleton) (B.NSet.delete b1' new_bboxes)
+    in
+      G.print oldg;
+      G.print g;
+      Testing.assert "b1' looks right"
+        (V.NSet.cardinality (G.get_bbox_contents g b1) =
+         V.NSet.cardinality (G.get_bbox_contents g b1'));
+      Testing.assert "b2' looks right"
+        (V.NSet.cardinality (G.get_bbox_contents g b2) =
+         V.NSet.cardinality (G.get_bbox_contents g b2'))
     end) ()
   
   val _ = Testing.test "unbalanced tree: copy_bbox on child box" (fn() =>
-    let val (_,g) = G.fresh_copy1_bbox b2 unbalanced in
-      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 3)
+    let
+      val oldg = unbalanced
+      val (b2',g) = G.fresh_copy1_bbox b2 oldg
+      val _ = Testing.assert "3 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 3)
+    in
+      G.print g;
+      Testing.assert "b2' looks right"
+        (V.NSet.cardinality (G.get_bbox_contents g b2) =
+         V.NSet.cardinality (G.get_bbox_contents g b2'))
     end) ()
   
   val _ = Testing.test "normed unbalanced tree: kill_bbox on parent box" (fn() =>
@@ -1252,8 +1274,19 @@ local
     end) ()
   
   val _ = Testing.test "normed unbalanced tree: copy_bbox on parent box" (fn() =>
-    let val (_,g) = G.fresh_copy1_bbox b1 unbalanced_norm in
-      Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 4)
+    let
+      val oldg = unbalanced_norm
+      val (b1',g) = G.fresh_copy1_bbox b1 oldg
+      val _ = Testing.assert "4 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 4)
+      val new_bboxes = B.NSet.subtract (G.get_bboxes g) (G.get_bboxes oldg)
+      val b2' = (the o B.NSet.tryget_singleton) (B.NSet.delete b1' new_bboxes)
+    in
+      Testing.assert "b1' looks right"
+        (V.NSet.cardinality (G.get_bbox_contents g b1) =
+         V.NSet.cardinality (G.get_bbox_contents g b1'));
+      Testing.assert "b2' looks right"
+        (V.NSet.cardinality (G.get_bbox_contents g b2) =
+         V.NSet.cardinality (G.get_bbox_contents g b2'))
     end) ()
   
   val _ = Testing.test "normed unbalanced tree: copy_bbox on child box" (fn() =>
