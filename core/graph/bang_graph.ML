@@ -137,6 +137,11 @@ val bbox_has_parent : T -> B.name -> bool
 exception merge_bbox_exp of string
 (* thrown when using old API on a graph with overlapping !-boxes *)
 
+(* If adding an edge between the two given vertices would extend
+ * one or more !-boxes, return one such !-box, otherwise NONE
+ *)
+val tryget_bbox_extended_by_edge : V.name -> V.name -> T -> B.name option
+
 (* getters for bbox -> vert *)
 val get_bbox_list : T -> B.name list
 val has_bbox : T -> B.name -> bool
@@ -483,6 +488,42 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   open OGraph;
 
   exception merge_bbox_exp of string
+
+  fun tryget_bbox_extended_by_edge s t g = let
+    val (sd,_) = get_vertex g s
+    val (td,_) = get_vertex g t
+    fun get_bboxes_of g v =
+        case V.NTab.lookup (get_vertex_bbox_table g) v of
+             NONE => B.NSet.empty
+           | SOME bs => bs;
+    fun check_nv_wv n w = let
+      val nbbs = get_bboxes_of g n
+      val wbbs = get_bboxes_of g w
+      fun one_bad_bbox () = let
+          val bad_bbs = B.NSet.subtract nbbs wbbs
+        in the (B.NSet.get_local_bot bad_bbs) end
+    in
+      if B.NSet.sub_set nbbs wbbs then NONE
+      else SOME (one_bad_bbox())
+    end
+  in
+    case (sd,td)
+      of (OVData.WVert,OVData.WVert) =>
+          let
+            val sbbs = get_bboxes_of g s
+            val tbbs = get_bboxes_of g t
+            fun one_bad_bbox () = let
+                val (l,_,r) = B.NSet.contrast sbbs tbbs
+                val bad_bbs = B.NSet.union_merge l r
+              in the (B.NSet.get_local_bot bad_bbs) end
+          in
+            if B.NSet.eq sbbs tbbs then NONE
+            else SOME (one_bad_bbox())
+          end
+       | (OVData.NVert _,OVData.WVert) => check_nv_wv s t
+       | (OVData.WVert,OVData.NVert _) => check_nv_wv t s
+       | _ => NONE
+  end
 
   (* getters for bbox -> vert *)
   val get_bbox_list = B.NSet.list_of o get_bboxes;

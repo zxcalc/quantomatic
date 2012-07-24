@@ -545,7 +545,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
            | Graph.ename_already_exists_exp (ename,_) =>
                 raise edge_name_exists_exp (ename,gname)
            | Graph.bbox_already_exists_exp (bname,_) =>
-                raise bbox_name_exists_exp (bname,gname);
+                raise bbox_name_exists_exp (bname,gname)
+           | Graph.wire_vertex_exp (msg,_,v) =>
+                raise wire_vertex_exp (msg,gname,v)
+           | Graph.bbox_not_open_exp (vs,b,_) =>
+                raise inconsistent_bbox_exp (vs,b,gname);
 
   fun lift_graph_mutator_no_result cmdf gname state =
       let 
@@ -589,11 +593,17 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        handle Theory.VertexComponentData.unknown_type_exp _ => raise no_such_vertex_type_exp vt)
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
-  fun add_edge_internal et dir_or_undir v1 v2 graph =
-      (let val (n,g) = graph |> Graph.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
-       in ((n,Graph.get_edge g n), g)
-       end
-       handle Theory.EdgeComponentData.unknown_type_exp _ => raise no_such_edge_type_exp et)
+  fun add_edge_internal et dir_or_undir v1 v2 graph = let
+    val data = Theory.EdgeComponentData.default_data et
+               handle Theory.EdgeComponentData.unknown_type_exp _
+                        => raise no_such_edge_type_exp et
+    val _ = case Graph.tryget_bbox_extended_by_edge v1 v2 graph
+              of NONE => ()
+               | SOME b => raise Graph.bbox_not_open_exp ((v1,v2),b,graph)
+    val (n,g) = graph |> Graph.add_edge (dir_or_undir,data) v1 v2
+  in
+    ((n,Graph.get_edge g n), g)
+  end
 
   fun add_edge et dir_or_undir v1 v2 gname state =
    (lift_graph_mutator (add_edge_internal et dir_or_undir v1 v2) gname state

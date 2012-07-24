@@ -3,59 +3,59 @@ local
   open Test_BBox_Util;
 
   val ge = G.empty
-  val _ = test_force "G.get_bboxes - empty"
+  val _ = Testing.test "G.get_bboxes - empty"
     (fn () => if B.NSet.is_empty (G.get_bboxes ge) then I
             else raise ERROR "get_bboxes (empty) incorrect") ()
 
-  val _ = test_force "G.get_bbox_rel - empty"
+  val _ = Testing.test "G.get_bbox_rel - empty"
     (fn () => if BVBRel.is_empty (G.get_bbox_rel ge) then I
             else raise ERROR "get_bbox_rel (empty) incorrect") ()
 
-  val _ = test_force "G.get_bbox_table - empty"
+  val _ = Testing.test "G.get_bbox_table - empty"
     (fn () => if B.NTab.is_name_empty (G.get_bbox_table ge) then I
             else raise ERROR "get_bbox_table (empty) incorrect") ()
 
-  val _ = test_force "G.get_vertex_bbox_table - empty"
+  val _ = Testing.test "G.get_vertex_bbox_table - empty"
     (fn () => if V.NTab.is_name_empty (G.get_vertex_bbox_table ge) then I
             else raise ERROR "get_vertex_bbox_table (empty) incorrect") ()
 
-  val _ = test_force "G.get_bboxed - empty"
+  val _ = Testing.test "G.get_bboxed - empty"
     (fn () => if V.NSet.is_empty (G.get_bboxed ge) then I
             else raise ERROR "get_bboxed (empty) incorrect") ()
 
-  val _ = test_force "G.get_unbboxed - empty"
+  val _ = Testing.test "G.get_unbboxed - empty"
     (fn () => if V.NSet.is_empty (G.get_unbboxed ge) then I
             else raise ERROR "get_unbboxed (empty) incorrect") ()
 
-  val _ = test_force "G.get_empty_bboxes - empty"
+  val _ = Testing.test "G.get_empty_bboxes - empty"
     (fn () => if B.NSet.is_empty (G.get_empty_bboxes ge) then I
             else raise ERROR "get_empty_bboxes (empty) incorrect") ()
 
-  val _ = test_force "G.get_bbox_list - empty"
+  val _ = Testing.test "G.get_bbox_list - empty"
     (fn () => case G.get_bbox_list ge of
                    [] => I
                  | _ => raise ERROR "get_bbox_list (empty) incorrect") ()
 
-  val _ = test_force "G.has_bbox - empty"
+  val _ = Testing.test "G.has_bbox - empty"
     (fn () => if not (G.has_bbox ge B.default_name) then I
             else raise ERROR "has_bbox (empty) incorrect") ()
 
-  val _ = test_force "G.get_bbox_contents - empty"
+  val _ = Testing.test "G.get_bbox_contents - empty"
     (fn () => (G.get_bbox_contents ge B.default_name;
             raise ERROR "get_bbox_contents (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
-  val _ = test_force "G.get_bboxes_of - empty"
+  val _ = Testing.test "G.get_bboxes_of - empty"
     (fn () => (G.get_bboxes_of ge V.default_name;
             raise ERROR "get_bboxes_of (empty) incorrect")
             handle G.no_such_vname_exp _ => I) ()
 
-  val _ = test_force "G.is_bboxed - empty"
+  val _ = Testing.test "G.is_bboxed - empty"
     (fn () => (G.is_bboxed ge V.default_name;
             raise ERROR "is_bboxed (empty) incorrect")
             handle G.no_such_vname_exp _ => I) ()
 
-  val _ = test_force "G.rename_bbox - empty"
+  val _ = Testing.test "G.rename_bbox - empty"
     (fn () => let
                 val g' = G.rename_bbox (B.mk "B0") (B.mk "B1") ge
               in
@@ -64,7 +64,7 @@ local
                 else raise ERROR "rename_bbox (empty) incorrect"
               end) ()
 
-  val _ = test_force "G.try_rename1_bbox - empty"
+  val _ = Testing.test "G.try_rename1_bbox - empty"
     (fn () =>
       case G.try_rename1_bbox (B.mk "B0") (B.mk "B1") ge of
            NONE =>
@@ -75,32 +75,32 @@ local
              else raise ERROR "try_rename1_bbox (empty) incorrect [added bbox]"
          ) ()
 
-  val _ = test_force "G.delete_bbox - empty"
+  val _ = Testing.test "G.delete_bbox - empty"
     (fn () => G.delete_bbox B.default_name ge) ()
 
-  val _ = test_force "g.add_to_bbox - empty"
+  val _ = Testing.test "g.add_to_bbox - empty"
     (fn () => (G.add_to_bbox B.default_name (V.NSet.single V.default_name) ge;
             raise error "add_to_bbox (empty) incorrect")
             handle G.no_such_vname_exp _ => I
                  | G.no_such_bbox_exp _ => I) ()
 
-  val _ = test_force "G.remove_from_bbox - empty"
+  val _ = Testing.test "G.remove_from_bbox - empty"
     (fn () => (G.remove_from_bbox B.default_name (V.NSet.single V.default_name) ge;
             raise ERROR "remove_from_bbox (empty) incorrect")
             handle G.no_such_vname_exp _ => I
                  | G.no_such_bbox_exp _ => I) ()
 
-  val _ = test_force "G.kill_bbox - empty"
+  val _ = Testing.test "G.kill_bbox - empty"
     (fn () => (G.kill_bbox B.default_name ge;
             raise ERROR "kill_bbox (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
-  val _ = test_force "G.drop_bbox - empty"
+  val _ = Testing.test "G.drop_bbox - empty"
     (fn () => (G.drop_bbox B.default_name ge;
             raise ERROR "drop_bbox (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
 
-  val _ = test_force "G.merge_bboxes - empty"
+  val _ = Testing.test "G.merge_bboxes - empty"
     (fn () =>
     let
       val bs = B.NSet.of_list [B.mk "B0", B.mk "B1"]
@@ -112,7 +112,7 @@ local
 
   (* FIXME: test copy1_bbox *)
 
-  val _ = test_force "G.fresh_copy1_bbox - empty"
+  val _ = Testing.test "G.fresh_copy1_bbox - empty"
     (fn () => (G.fresh_copy1_bbox B.default_name ge;
             raise ERROR "fresh_copy1_bbox (empty) incorrect")
             handle G.no_such_bbox_exp _ => I) ()
@@ -152,7 +152,7 @@ local
                     else g'
         end) gnv
 
-  val _ = test_force "G.add_named_bbox (existing !-box)"
+  val _ = Testing.test "G.add_named_bbox (existing !-box)"
         (fn g => (G.add_named_bbox b0 g;
                   raise error "add_named_bbox (name clash) did not throw exception")
                  handle G.bbox_already_exists_exp _ => I) gnv
@@ -173,7 +173,7 @@ local
                     else (b,g')
         end) gnv
 
-  val _ = test_force "G.delete_bbox (no such bb)"
+  val _ = Testing.test "G.delete_bbox (no such bb)"
         (fn g =>
         let
           val bexp = (B.mk "B9")
@@ -186,7 +186,7 @@ local
           else g'
         end) gnv
 
-  val _ = test_force "G.delete_bbox (empty !-box)"
+  val _ = Testing.test "G.delete_bbox (empty !-box)"
         (fn g =>
         let
           val bexp = b0
@@ -207,7 +207,7 @@ local
                     else g'
         end) gnv
 
-  val _ = test_force "G.rename_bbox (no such bb; new tgt)"
+  val _ = Testing.test "G.rename_bbox (no such bb; new tgt)"
         (fn g =>
         let
           val bfrom = (B.mk "B8")
@@ -221,7 +221,7 @@ local
           else g'
         end) gnv
 
-  val _ = test_force "G.rename_bbox (no such bb; existing tgt)"
+  val _ = Testing.test "G.rename_bbox (no such bb; existing tgt)"
         (fn g =>
         let
           val bfrom = (B.mk "B8")
@@ -235,7 +235,7 @@ local
           else g'
         end) gnv
 
-  val _ = test_force "G.add_to_bbox (no such verts)"
+  val _ = Testing.test "G.add_to_bbox (no such verts)"
         (fn g => (G.add_to_bbox b0 (V.NSet.single V.default_name) g;
                   raise error "add_to_bbox (no such verts) incorrect")
                  handle G.no_such_vnames_exp _ => I) gnv
@@ -252,7 +252,7 @@ local
   val (_ ,gv) = gv |> G.add_edge dir_edge x4 x2
   val (_ ,gv) = gv |> G.add_edge dir_edge x4 x3
 
-  val _ = test_force "G.add_to_bbox (no such bbox)"
+  val _ = Testing.test "G.add_to_bbox (no such bbox)"
         (fn g => (G.add_to_bbox (B.mk "B9") (V.NSet.single x1) g;
                   raise error "add_to_bbox (no such bbox) incorrect")
                  handle G.no_such_bbox_exp _ => I) gv
@@ -297,12 +297,12 @@ local
                   else ()
         in g'' end) gv
 
-  val _ = test_force "G.remove_from_bbox (no such bbox)"
+  val _ = Testing.test "G.remove_from_bbox (no such bbox)"
         (fn g => (G.remove_from_bbox (B.mk "B9") (V.NSet.single x1) g;
                   raise error "remove_from_bbox (no such bbox) incorrect")
                  handle G.no_such_bbox_exp _ => I) gv
 
-  val _ = test_force "G.remove_from_bbox (disjoint; 1)"
+  val _ = Testing.test "G.remove_from_bbox (disjoint; 1)"
         (fn g =>
         let
           val b1_rem = (V.NSet.single x2)
@@ -315,7 +315,7 @@ local
                   else raise ERROR "remove_from_bbox did not set B1 contents properly"
         in g' end) g_disjoint
 
-  val _ = test_force "G.remove_from_bbox (disjoint; 2)"
+  val _ = Testing.test "G.remove_from_bbox (disjoint; 2)"
         (fn g =>
         let
           val b1_rem = (V.NSet.of_list [x2,x3])
@@ -328,7 +328,7 @@ local
                   else raise ERROR "remove_from_bbox did not set B1 contents properly"
         in g' end) g_disjoint
 
-  val _ = test_force "G.remove_from_bbox (disjoint; 3)"
+  val _ = Testing.test "G.remove_from_bbox (disjoint; 3)"
         (fn g =>
         let
           val b1_rem = (V.NSet.of_list [x1,x2])
@@ -341,7 +341,7 @@ local
                   else raise ERROR "remove_from_bbox did not set B1 contents properly"
         in g' end) g_disjoint
 
-  val _ = test_force "G.remove_from_bbox (overlapping; 1)"
+  val _ = Testing.test "G.remove_from_bbox (overlapping; 1)"
         (fn g =>
         let
           val b1_rem = (V.NSet.single x2)
@@ -356,7 +356,7 @@ local
                   else raise ERROR "remove_from_bbox(B1) changed B0"
         in g' end) g_overlap
 
-  val _ = test_force "G.get_empty_bboxes (empty !-boxes)"
+  val _ = Testing.test "G.get_empty_bboxes (empty !-boxes)"
         (fn (g,blist) =>
         let
           val bs = G.get_empty_bboxes g
@@ -365,7 +365,7 @@ local
                   else ()
         in () end) (gv,[b0,b1,b2])
 
-  val _ = test_force "G.get_empty_bboxes (disjoint)"
+  val _ = Testing.test "G.get_empty_bboxes (disjoint)"
         (fn (g,blist) =>
         let
           val bs = G.get_empty_bboxes g
@@ -374,7 +374,7 @@ local
                   else ()
         in () end) (g_disjoint,[b2])
 
-  val _ = test_force "G.get_bboxed (empty !-boxes)"
+  val _ = Testing.test "G.get_bboxed (empty !-boxes)"
         (fn (g,vlist) =>
         let
           val vs = G.get_bboxed g
@@ -383,7 +383,7 @@ local
                   else ()
         in () end) (gv,[])
 
-  val _ = test_force "G.get_bboxed (disjoint)"
+  val _ = Testing.test "G.get_bboxed (disjoint)"
         (fn (g,vlist) =>
         let
           val vs = G.get_bboxed g
@@ -392,7 +392,7 @@ local
                   else ()
         in () end) (g_disjoint,[x1,x2,x3])
 
-  val _ = test_force "G.get_bboxed (overlapping)"
+  val _ = Testing.test "G.get_bboxed (overlapping)"
         (fn (g,vlist) =>
         let
           val vs = G.get_bboxed g
@@ -401,7 +401,7 @@ local
                   else ()
         in () end) (g_overlap,[x1,x2,x3])
 
-  val _ = test_force "G.get_unbboxed (empty !-boxes)"
+  val _ = Testing.test "G.get_unbboxed (empty !-boxes)"
         (fn (g,vlist) =>
         let
           val vs = G.get_unbboxed g
@@ -410,7 +410,7 @@ local
                   else ()
         in () end) (gv,[x1,x2,x3,x4])
 
-  val _ = test_force "G.get_unbboxed (disjoint)"
+  val _ = Testing.test "G.get_unbboxed (disjoint)"
         (fn (g,vlist) =>
         let
           val vs = G.get_unbboxed g
@@ -419,7 +419,7 @@ local
                   else ()
         in () end) (g_disjoint,[x4])
 
-  val _ = test_force "G.get_unbboxed (overlapping)"
+  val _ = Testing.test "G.get_unbboxed (overlapping)"
         (fn (g,vlist) =>
         let
           val vs = G.get_unbboxed g
@@ -428,7 +428,7 @@ local
                   else ()
         in () end) (g_overlap,[x4])
 
-  val _ = test_force "G.get_bboxes_of (disjoint)"
+  val _ = Testing.test "G.get_bboxes_of (disjoint)"
         (fn g =>
         let
           val bs1 = G.get_bboxes_of g x1
@@ -444,7 +444,7 @@ local
                   else ()
         in () end) g_disjoint
 
-  val _ = test_force "G.get_bboxes_of (overlapping)"
+  val _ = Testing.test "G.get_bboxes_of (overlapping)"
         (fn g =>
         let
           val bs3 = G.get_bboxes_of g x3
@@ -460,7 +460,7 @@ local
                   else raise ERROR "get_bboxes_of did not give correct bboxes"
         in () end) g_overlap
 
-  val _ = test_force "G.get_bbox_list"
+  val _ = Testing.test "G.get_bbox_list"
         (fn _ =>
         let
           val bs = G.get_bbox_list g_disjoint
@@ -470,7 +470,7 @@ local
                   else raise ERROR "get_bbox_list gave different answer to get_bboxes"
         in () end) ()
 
-  val _ = test_force "G.has_bbox"
+  val _ = Testing.test "G.has_bbox"
         (fn _ =>
         let
           val _ = if G.has_bbox g_disjoint b0 then ()
@@ -481,7 +481,7 @@ local
                   else raise ERROR "has_bbox gave wrong answer for 'B9'"
         in () end) ()
 
-  val _ = test_force "G.is_bboxed"
+  val _ = Testing.test "G.is_bboxed"
         (fn _ =>
         let
           val _ = if G.is_bboxed g_disjoint x1 then ()
@@ -492,7 +492,7 @@ local
                   else raise ERROR "is_bboxed gave wrong answer for x2 (overlapping)"
         in () end) ()
 
-  val _ = test_force "G.delete_bbox (disjoint; no such bbox)"
+  val _ = Testing.test "G.delete_bbox (disjoint; no such bbox)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -504,7 +504,7 @@ local
           val _ = Testing.assert "verts unchanged" (V.NSet.eq vs_old vs_new)
         in g' end) g_disjoint
 
-  val _ = test_force "G.delete_bbox (disjoint)"
+  val _ = Testing.test "G.delete_bbox (disjoint)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -526,12 +526,12 @@ local
                   else ()
         in g' end) g_disjoint
 
-  val _ = test_force "G.rename_bbox (disjoint; existing !-box)"
+  val _ = Testing.test "G.rename_bbox (disjoint; existing !-box)"
         (fn g => (G.rename_bbox b0 b1 g;
                   raise error "rename_bbox (name clash) did not throw exception")
                  handle G.bbox_already_exists_exp _ => I) g_disjoint
 
-  val _ = test_force "G.rename_bbox (disjoint)"
+  val _ = Testing.test "G.rename_bbox (disjoint)"
         (fn g =>
         let
           val bnew = (B.mk "B9")
@@ -561,13 +561,13 @@ local
                   else ()
         in g' end) g_disjoint
 
-  val _ = test_force "G.try_rename1_bbox (disjoint; existing !-box)"
+  val _ = Testing.test "G.try_rename1_bbox (disjoint; existing !-box)"
         (fn g => (case G.try_rename1_bbox b0 b1 g
                     of NONE => I
                      | SOME _ => raise error "try_rename1_bbox (name clash) did not return NONE")
                   ) g_disjoint
 
-  val _ = test_force "G.try_rename1_bbox (disjoint)"
+  val _ = Testing.test "G.try_rename1_bbox (disjoint)"
         (fn g =>
         let
           val bnew = (B.mk "B9")
@@ -599,12 +599,12 @@ local
                   else ()
         in g' end) g_disjoint
 
-  val _ = test_force "G.add_named_bbox (name clash)"
+  val _ = Testing.test "G.add_named_bbox (name clash)"
         (fn g => (G.add_named_bbox b0 g;
                   raise error "add_named_bbox (name clash) did not throw exception")
                  handle G.bbox_already_exists_exp _ => I) gv
 
-  val _ = test_force "G.add_named_bbox (new name)"
+  val _ = Testing.test "G.add_named_bbox (new name)"
         (fn g =>
         let
           val bnew = (B.mk "B9")
@@ -627,7 +627,7 @@ local
                   else raise ERROR "add_named_bbox changed vertices"
         in g' end) gv
 
-  val _ = test_force "G.add_bbox"
+  val _ = Testing.test "G.add_bbox"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -649,7 +649,7 @@ local
                   else raise ERROR "add_bbox changed vertices"
         in g' end) gv
 
-  val _ = test_force "G.doadd_bbox"
+  val _ = Testing.test "G.doadd_bbox"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -668,12 +668,12 @@ local
                   else raise ERROR "doadd_bbox changed vertices"
         in g' end) gv
 
-  val _ = test_force "G.kill_bbox (no such bbox)"
+  val _ = Testing.test "G.kill_bbox (no such bbox)"
         (fn g => (G.kill_bbox (B.mk "B9") g;
                   Testing.assert "kill_bbox throws exception" false)
                  handle G.no_such_bbox_exp _ => ()) g_disjoint
 
-  val _ = test_force "G.kill_bbox (disjoint)"
+  val _ = Testing.test "G.kill_bbox (disjoint)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -697,7 +697,7 @@ local
                 (V.NSet.eq (G.get_bbox_contents g b1) (G.get_bbox_contents g' b1))
         in g' end) g_disjoint
 
-  val _ = test_force "G.kill_bbox (overlapping)"
+  val _ = Testing.test "G.kill_bbox (overlapping)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -722,12 +722,12 @@ local
                 (V.NSet.eq exp_b1 (G.get_bbox_contents g' b1))
         in g' end) g_overlap
 
-  val _ = test_force "G.drop_bbox (no such bbox)"
+  val _ = Testing.test "G.drop_bbox (no such bbox)"
         (fn g => (G.drop_bbox (B.mk "B9") g;
                   Testing.assert "drop_bbox throws exception" false)
                  handle G.no_such_bbox_exp _ => ()) g_disjoint
 
-  val _ = test_force "G.drop_bbox (disjoint)"
+  val _ = Testing.test "G.drop_bbox (disjoint)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -749,17 +749,17 @@ local
                   else ()
         in g' end) g_disjoint
 
-  val _ = test_force "G.merge_bboxes (empty set)"
+  val _ = Testing.test "G.merge_bboxes (empty set)"
         (fn g => (G.merge_bboxes B.NSet.empty g;
                   Testing.assert "merge_bboxes throws exception" false)
                  handle G.merge_bbox_exp _ => ()) g_disjoint
 
-  val _ = test_force "G.merge_bboxes (some missing !-boxes)"
+  val _ = Testing.test "G.merge_bboxes (some missing !-boxes)"
         (fn g => (G.merge_bboxes (B.NSet.of_list [b0,b1,B.mk "B9"]) g;
                   Testing.assert "merge_bboxes throws exception" false)
                  handle G.no_such_bbox_exp _ => ()) g_disjoint
 
-  val _ = test_force "G.merge_bboxes (empty)"
+  val _ = Testing.test "G.merge_bboxes (empty)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -774,7 +774,7 @@ local
                   (B.NSet.eq (G.get_empty_bboxes g') bs_new)
         in g' end) gv
 
-  val _ = test_force "G.merge_bboxes (disjoint)"
+  val _ = Testing.test "G.merge_bboxes (disjoint)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -791,7 +791,7 @@ local
                   (V.NSet.eq vexp (G.get_bbox_contents g' b ))
         in g' end) g_disjoint
 
-  val _ = test_force "G.merge_bboxes (overlapping)"
+  val _ = Testing.test "G.merge_bboxes (overlapping)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -808,12 +808,12 @@ local
                   (V.NSet.eq vexp (G.get_bbox_contents g' b ))
         in g' end) g_overlap
 
-  val _ = test_force "G.fresh_copy1_bbox (no such !-boxes)"
+  val _ = Testing.test "G.fresh_copy1_bbox (no such !-boxes)"
         (fn g => (G.fresh_copy1_bbox (B.mk "B9") g;
                   Testing.assert "fresh_copy1_bbox throws exception" false)
                  handle G.no_such_bbox_exp _ => ()) g_disjoint
 
-  val _ = test_force "G.fresh_copy1_bbox (empty)"
+  val _ = Testing.test "G.fresh_copy1_bbox (empty)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -834,7 +834,7 @@ local
                   (B.NSet.eq (G.get_empty_bboxes g') bs_new)
         in g' end) gv
 
-  val _ = test_force "G.fresh_copy1_bbox (disjoint)"
+  val _ = Testing.test "G.fresh_copy1_bbox (disjoint)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -860,7 +860,7 @@ local
                   (V.NSet.eq (G.get_bbox_contents g b1) (G.get_bbox_contents g' b1))
         in g' end) g_disjoint
 
-  val _ = test_force "G.fresh_copy1_bbox (overlapping)"
+  val _ = Testing.test "G.fresh_copy1_bbox (overlapping)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -903,7 +903,7 @@ local
   val g      = g |> G.add_to_bbox b0 (V.NSet.single v1)
   val circles_pat = g
 
-  val _ = test_force "G.fresh_copy1_bbox (circle)"
+  val _ = Testing.test "G.fresh_copy1_bbox (circle)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -927,7 +927,7 @@ local
                   (V.NSet.eq vs_exp (G.get_vnames g'))
         in g' end) circles_pat
 
-  val _ = test_force "G.fresh_expand1_bbox (circle)"
+  val _ = Testing.test "G.fresh_expand1_bbox (circle)"
         (fn _ =>
         let
           val g = circles_pat
@@ -960,7 +960,7 @@ local
                  |> G.add_to_bbox b1 (V.NSet.single v3)
   val spider_rhs_pat = g
 
-  val _ = test_force "G.fresh_copy1_bbox (spider)"
+  val _ = Testing.test "G.fresh_copy1_bbox (spider)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -992,7 +992,7 @@ local
                   (G.has_edges_between g' vadd v2)
         in g' end) spider_rhs_pat
 
-  val _ = test_force "G.fresh_expand1_bbox (spider)"
+  val _ = Testing.test "G.fresh_expand1_bbox (spider)"
         (fn g =>
         let
           val bs_old = G.get_bboxes g
@@ -1118,6 +1118,10 @@ local
   val z2 = V.mk "z2"
   val b1 = B.mk "B1"
   val b2 = B.mk "B2"
+  val b3 = B.mk "B3"
+  val b4 = B.mk "B4"
+  val b5 = B.mk "B5"
+  val b6 = B.mk "B6"
 
   val g = G.empty
   val g = g |> G.add_named_vertex in1 bvert
@@ -1181,6 +1185,90 @@ local
               writeln "Got"; G.print g1_norm';
               raise ERROR "Normalise gave incorrect graph")
       end) ()
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex w1 bvert
+            |> G.add_named_vertex w2 bvert
+            |> G.add_named_vertex w3 bvert
+            |> G.add_named_vertex w4 bvert
+            |> G.add_named_vertex w5 bvert
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex z1 (mkZ zero_angle)
+            |> G.add_named_vertex z2 (mkZ zero_angle)
+            |> G.add_named_bbox b1
+            |> G.add_named_bbox b2
+            |> G.add_named_bbox b3
+            |> G.add_named_bbox b4
+            |> G.add_named_bbox b5
+            |> G.add_named_bbox b6
+            |> G.add_to_bbox b1 (V.NSet.of_list [w1,w3])
+            |> G.add_to_bbox b2 (V.NSet.single w4)
+            |> G.add_to_bbox b3 (V.NSet.of_list [w1,w2,w3,w4,z1])
+            |> G.add_to_bbox b4 (V.NSet.single z2)
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (1)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge w1 w2 g
+        of NONE => raise ERROR "tryget_bbox_extended_by_edge claimed edge would not extend !-box"
+         | SOME b => Testing.assert "Correct !-box returned" (B.name_eq (b,b1))
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (2)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge w1 w3 g
+        of NONE => ()
+         | SOME _ => raise ERROR "tryget_bbox_extended_by_edge claimed edge would extend !-box"
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (3)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge w1 w4 g
+        of NONE => raise ERROR "tryget_bbox_extended_by_edge claimed edge would not extend !-box"
+         | SOME b => Testing.assert "Correct !-box returned"
+                      ((B.name_eq (b,b1)) orelse ((B.name_eq (b,b2))))
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (4)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge x1 z1 g
+        of NONE => ()
+         | SOME _ => raise ERROR "tryget_bbox_extended_by_edge claimed edge would extend !-box"
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (5)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge x1 w1 g
+        of NONE => ()
+         | SOME _ => raise ERROR "tryget_bbox_extended_by_edge claimed edge would extend !-box"
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (6)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge z1 w1 g
+        of NONE => ()
+         | SOME _ => raise ERROR "tryget_bbox_extended_by_edge claimed edge would extend !-box"
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (7)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge w1 z1 g
+        of NONE => ()
+         | SOME _ => raise ERROR "tryget_bbox_extended_by_edge claimed edge would extend !-box"
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (8)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge x1 w5 g
+        of NONE => ()
+         | SOME _ => raise ERROR "tryget_bbox_extended_by_edge claimed edge would extend !-box"
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (9)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge z1 w5 g
+        of NONE => raise ERROR "tryget_bbox_extended_by_edge claimed edge would not extend !-box"
+         | SOME b => Testing.assert "Correct !-box returned"
+                      (B.name_eq (b,b3))
+    ) ()
+  val _ = Testing.test "G.tryget_bbox_extended_by_edge (10)"
+    (fn () =>
+      case G.tryget_bbox_extended_by_edge w5 z1 g
+        of NONE => raise ERROR "tryget_bbox_extended_by_edge claimed edge would not extend !-box"
+         | SOME b => Testing.assert "Correct !-box returned"
+                      (B.name_eq (b,b3))
+    ) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR WIRE FUNCTIONS WITH !-BOXES PASSED!"
