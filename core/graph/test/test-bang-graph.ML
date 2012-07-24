@@ -1269,6 +1269,51 @@ local
          | SOME b => Testing.assert "Correct !-box returned"
                       (B.name_eq (b,b3))
     ) ()
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex w1 bvert
+            |> G.add_named_vertex w2 bvert
+            |> G.add_named_vertex w3 bvert
+            |> G.add_named_vertex w4 bvert
+            |> G.add_named_vertex w5 bvert
+            |> G.add_named_vertex w6 bvert
+            |> G.add_named_vertex x1 (mkX zero_angle)
+            |> G.add_named_vertex x2 (mkX zero_angle)
+            |> G.add_named_vertex z1 (mkZ zero_angle)
+            |> G.add_named_vertex z2 (mkZ zero_angle)
+            |> G.add_named_bbox b1
+            |> G.add_named_bbox b2
+            |> G.add_named_bbox b3
+            |> G.add_named_bbox b4
+            |> G.add_named_bbox b5
+            |> G.add_named_bbox b6
+            |> G.doadd_edge undir_edge w1 w2
+            |> G.doadd_edge undir_edge x1 w3
+            |> G.doadd_edge undir_edge w3 w4
+            |> G.doadd_edge undir_edge w4 x2
+            |> G.doadd_edge undir_edge z1 w5
+            |> G.doadd_edge undir_edge z2 w6
+            |> G.doadd_edge undir_edge z2 w6
+  val _ = Testing.test "G.add_to_bbox/G.remove_from_bbox"
+    (fn () =>
+    let
+      val g' = G.add_to_bbox b1 (V.NSet.of_list [w1,x1,z1,z2]) g
+      val g'' = G.remove_from_bbox b1 (V.NSet.of_list [w2,w3,w4,w5,w6]) g'
+      val g''' = G.remove_from_bbox b1 (V.NSet.of_list [x1,z1,z2]) g'
+      val g'''' = G.remove_from_bbox b1 (V.NSet.of_list [w1,w2,x1,w3,w4,z1,w5,z2,w6]) g'
+      val b1vs = G.get_bbox_contents g' b1
+    in
+      Testing.assert "b1 has right verts"
+        (V.NSet.eq b1vs (V.NSet.of_list [w1,w2,x1,w3,w4,z1,w5,z2,w6]));
+      Testing.assert "removal had no effect"
+        (V.NSet.eq b1vs (G.get_bbox_contents g'' b1));
+      Testing.assert "b1 has right verts after removal of nvs"
+        (V.NSet.eq (G.get_bbox_contents g''' b1)
+                   (V.NSet.of_list [w1,w2,w3,w4,w5,w6]));
+      Testing.assert "b1 is empty after removing everything"
+        (V.NSet.is_empty (G.get_bbox_contents g'''' b1))
+    end
+    ) ()
 in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR WIRE FUNCTIONS WITH !-BOXES PASSED!"

@@ -114,9 +114,16 @@ val delete_bbox : B.name -> T -> T
 val rename_bbox : B.name -> B.name -> T -> T
 
 (* no_such_bbox_exp if !-box does not exist *)
+(* The minimum open subgraph containing the
+ * given vertices is added, to ensure the
+ * !-box remains an open subgraph.
+ *)
 val add_to_bbox : B.name -> V.NSet.T -> T -> T
 (* no_such_bbox_exp if !-box does not exist *)
 (* does not raise if verts are not in !-box *)
+(* Does not remove any vertices that are
+ * necessary for the !-box to remain open
+ *)
 val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
 (* set parent of the first bbox to be the second bbox *)
@@ -418,21 +425,50 @@ functor BasicBangGraphFun(
            graph, so G.rename_vname should have raised an exeption. *)
         |> update_bbox_rel (the o BVBRel.try_rename1_cod n1 n2);
 
+  fun find_open_subgraph g vset = let
+    fun add_if_wv v = if OGHelpers.is_wire_vertex g v then V.NSet.add v else I
+    fun add_incoming_wire e = let
+      val (s,_,wvs,_) = OGHelpers.get_wire_containing_edge g e
+    in
+      (add_if_wv s) o V.NSet.union_merge wvs
+    end
+    fun add_outgoing_wire e = let
+      val (_,t,wvs,_) = OGHelpers.get_wire_containing_edge g e
+    in
+      (add_if_wv t) o V.NSet.union_merge wvs
+    end
+    fun absorb vn = let
+      val (_,(ins,outs)) = get_vertex g vn
+    in
+       (E.NSet.fold add_incoming_wire ins)
+       o (E.NSet.fold add_outgoing_wire outs)
+    end
+  in
+    V.NSet.fold absorb vset vset
+  end
+
   fun add_to_bbox b vs g =
-    (* FIXME: check consistency (or extend automagically) *)
     if not (B.NSet.contains (get_bboxes g) b) then
       raise no_such_bbox_exp ()
     else if not (V.NSet.sub_set vs ((V.NTab.get_nameset o get_vertices) g)) then
       raise no_such_vnames_exp ("add_to_bbox",vs,g)
     else
-      g |> update_bbox_rel (BVBRel.add_to_dom b vs);
+      g |> update_bbox_rel (BVBRel.add_to_dom b (find_open_subgraph g vs));
 
   fun remove_from_bbox b vs g =
-    (* FIXME: check consistency (or extend automagically) *)
     if not (B.NSet.contains (get_bboxes g) b) then
       raise no_such_bbox_exp ()
     else
-      g |> update_bbox_rel (BVBRel.del_from_dom b vs);
+      let
+        val old_bvs = 
+          (case B.NTab.lookup (get_bbox_table g) b of
+                NONE    => V.NSet.empty
+              | SOME vs => vs)
+        val new_bvs = find_open_subgraph g (V.NSet.subtract old_bvs vs)
+        val remove_bvs = V.NSet.subtract old_bvs new_bvs
+      in
+        g |> update_bbox_rel (BVBRel.del_from_dom b remove_bvs)
+      end
 
   fun get_plugging g v1 v2 = let
     (* gah, stupid inheritance games *)

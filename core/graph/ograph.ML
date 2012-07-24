@@ -812,9 +812,15 @@ functor OGraphFun(G : BASIC_OGRAPH)
   end
   val do_plug_and_normalise = snd ooo plug_and_normalise
 
-  (* finds the open subgraph defined by a node-vertex set *)
-  (* assumes graph is normalised *)
-  (* returns a set of vertices *)
+  (* finds the open subgraph defined by a node-vertex set
+   * assumes graph is normalised
+   * returns a set of vertices
+   *
+   * NB: bang_graph has a [less efficient] version of this
+   * that does not assume normalisation
+   * FIXME: use that to provide a general version of
+   *        get_open_subgraph?
+   *)
   fun find_open_subgraph vset g = let
     fun add_edge_source e = V.NSet.add (get_edge_source g e)
     fun add_edge_target e = V.NSet.add (get_edge_target g e)

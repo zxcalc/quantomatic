@@ -828,19 +828,21 @@ fun hilb ([format], graph) =
                 of BasicFormat => (StringResponse { data = B.dest nm }, state'')
                  | PrettyFormat => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
                  | XmlFormat  =>  let
-                                    val graph = (State.get_graph state'' gname)
-                                    val verts = (G.get_bbox_contents graph nm)
+                                    val graph = State.get_graph state'' gname
+                                    val verts = G.get_bbox_contents graph nm
                                     val bbox  = (nm,verts)
                                   in
-                                   (XmlResponse { data = Output.BBox.output bbox }, state'')
+                                   (XmlResponse {
+                                      data = Output.BBox.output bbox
+                                    }, state'')
                                   end
                  | DescriptionFormat => let
-                                          val graph = (State.get_graph state'' gname)
-                                          val verts = (G.get_bbox_contents graph nm)
+                                          val graph = State.get_graph state'' gname
+                                          val verts = G.get_bbox_contents graph nm
                                           val bbox  = (nm,verts)
                                         in
                                          (BangBoxDescriptionResponse {
-                                            bangBox = describe_bangbox (nm,(G.get_bbox_contents graph nm))
+                                            bangBox = describe_bangbox bbox
                                           }, state'')
                                         end
             end
@@ -862,12 +864,16 @@ fun hilb ([format], graph) =
               (StringResponse { data = B.dest nm }, state')
             end
         | BangVerticesAction { bangBoxName, vertexNames } =>
+            (* FIXME: return a description of the !-box *)
+            (* Some extra verts may have been added *)
             (OkResponse,
              State.bang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | CompletelyUnbangVerticesAction { vertexNames } =>
             (OkResponse,
              State.completely_unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
         | UnbangVerticesAction { bangBoxName, vertexNames } =>
+            (* FIXME: return a description of the !-box *)
+            (* Some extra verts may have been removed *)
             (OkResponse,
              State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
