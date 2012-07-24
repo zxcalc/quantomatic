@@ -217,3 +217,99 @@ in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR GREEDY MATCHING WITH DISJOINT !-BOXES PASSED!"
 end
+
+
+local (* Test matching with disjoint !-boxes *)
+  open Test_MkG
+  open Test_BGMatchUtil
+  structure M = Test_GreedyMatcher
+
+  val lvl0 = V.mk "l0"
+  val lvl1a = V.mk "l1-a"
+  val lvl1b = V.mk "l1-b"
+  val lvl1c = V.mk "l1-c"
+  val lvl2a = V.mk "l2-a"
+  val lvl2b = V.mk "l2-b"
+  val lvl2c = V.mk "l2-c"
+
+  val b1 = B.mk "B1"
+  val b2 = B.mk "B2"
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex lvl0 (mkZ zero_angle)
+            |> G.add_named_vertex lvl1a (mkX zero_angle)
+            |> G.add_named_vertex lvl2a (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl0 lvl1a
+            |> G.doadd_edge dir_edge lvl1a lvl2a
+            |> G.add_named_bbox b1
+            |> G.add_named_bbox b2
+            |> G.add_to_bbox b1 (V.NSet.of_list [lvl1a,lvl2a])
+            |> G.add_to_bbox b2 (V.NSet.single lvl2a)
+  val balanced_tree_pat = g
+
+  val g = g |> G.set_bbox_parent b2 b1
+  val arbitrary_tree_pat = g
+
+  val g = G.empty
+  val g = g |> G.add_named_vertex lvl0 (mkZ zero_angle)
+  val min_tree = g
+
+  val g = g |> G.add_named_vertex lvl1a (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl0 lvl1a
+  val tree_1 = g
+
+  val g = g |> G.add_named_vertex lvl1b (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl0 lvl1b
+  val tree_2 = g
+
+  val g = g |> G.add_named_vertex lvl1c (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl0 lvl1c
+  val tree_3 = g
+
+  val g = tree_1
+  val g = g |> G.add_named_vertex lvl2a (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl1a lvl2a
+  val tree_1_1 = g
+
+  val g = g |> G.add_named_vertex lvl2b (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl1a lvl2b
+  val tree_1_2 = g
+
+  val g = tree_2
+  val g = g |> G.add_named_vertex lvl2a (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl1a lvl2a
+  val tree_2_1 = g
+
+  val g = g |> G.add_named_vertex lvl2b (mkX zero_angle)
+            |> G.doadd_edge dir_edge lvl1a lvl2b
+  val tree_2_1_1 = g
+
+  fun assert_n_warnings n ms = let
+    val ws = Test_BGMatchState.get_warnings ms
+  in
+    Testing.assert ((Int.toString n)^" warnings") (length ws = n)
+  end
+
+  val _ = Testing.test "M.match - balanced tree --> tree {}"
+          (fn () => let val mseq = M.match balanced_tree_pat min_tree in
+          assert_n_match 1 mseq ();
+          assert_n_warnings 1 (Seq.hd mseq) end) ()
+
+  val _ = Testing.test "M.match - arbitrary tree --> tree {}"
+          (fn () => assert_n_match 1 (M.match arbitrary_tree_pat min_tree) ()) ()
+
+  val _ = Testing.test "M.match - balanced tree --> tree {1}"
+          (fn () => assert_n_match 1 (M.match balanced_tree_pat tree_1) ()) ()
+
+  val _ = Testing.test "M.match - arbitrary tree --> tree {1}"
+          (fn () => assert_n_match 1 (M.match arbitrary_tree_pat tree_1) ()) ()
+
+  val _ = Testing.test "M.match - balanced tree --> tree {2}"
+          (fn () => assert_n_match 2 (M.match balanced_tree_pat tree_2) ()) ()
+
+  val _ = Testing.test "M.match - arbitrary tree --> tree {2}"
+          (fn () => assert_n_match 2 (M.match arbitrary_tree_pat tree_2) ()) ()
+in
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR GREEDY MATCHING WITH OVERLAPPING !-BOXES PASSED!"
+end

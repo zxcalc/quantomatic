@@ -9,6 +9,13 @@ signature BANG_GRAPH_MATCH_STATE
   structure BG : BANG_GRAPH;
   sharing G.SharingOGraph = BG.SharingOGraph;
 
+  (* Issues encountered during matching *)
+  datatype Warning = (* A !-box with no node-vertices was killed to stop
+                      * it running wild; matching will therefore be
+                      * incomplete
+                      *)
+                     WildBBoxKilled of B.name;
+
   (* Vertex names to avoid when copying bboxes in pat
    *
    * (see replay_pat_bbox_ops)
@@ -26,6 +33,13 @@ signature BANG_GRAPH_MATCH_STATE
   val get_pat_tracked    : T -> V.NSet.T
   val update_pat_tracked : (V.NSet.T -> V.NSet.T) -> T -> T
   val set_pat_tracked    : V.NSet.T -> T -> T
+
+  (* Issues encountered during matching.
+   *
+   * (see Warning datatype)
+   *)
+  val get_warnings : T -> Warning list
+  val add_warning  : Warning -> T -> T
 
   (* initialise MatchState and schedule all concrete vertices in pattern
    * to be matched
@@ -73,6 +87,8 @@ functor BangGraphMatchState(
                       bmap : B.name B.NTab.T
                     };
 
+  datatype Warning = WildBBoxKilled of B.name;
+
   type bdata = {
     (* names context for fresh names when copying bboxes in pat *)
     pat_avoids   : V.NSet.T,
@@ -80,6 +96,8 @@ functor BangGraphMatchState(
     pat_tracked  : V.NSet.T,
     (* !-box operation sequence *)
     pat_bbox_ops : BBoxOp list,
+    (* Issues encountered during matching *)
+    warnings     : Warning list,
     (* type-extensibility *)
     data         : data
   };
@@ -88,6 +106,7 @@ functor BangGraphMatchState(
     pat_avoids   = #pat_avoids bdata,
     pat_tracked  = #pat_tracked bdata,
     pat_bbox_ops = #pat_bbox_ops bdata,
+    warnings     = #warnings bdata,
     data         = f (#data bdata)
   };
   fun get_pat_avoids_of_bdata (bdata:bdata) = #pat_avoids bdata
@@ -95,6 +114,7 @@ functor BangGraphMatchState(
     pat_avoids   = f (#pat_avoids bdata),
     pat_tracked  = #pat_tracked bdata,
     pat_bbox_ops = #pat_bbox_ops bdata,
+    warnings     = #warnings bdata,
     data         = #data bdata
   };
   fun get_pat_tracked_of_bdata (bdata:bdata) = #pat_tracked bdata
@@ -102,6 +122,7 @@ functor BangGraphMatchState(
     pat_avoids   = #pat_avoids bdata,
     pat_tracked  = f (#pat_tracked bdata),
     pat_bbox_ops = #pat_bbox_ops bdata,
+    warnings     = #warnings bdata,
     data         = #data bdata
   };
   fun get_pat_bbox_ops_of_bdata (bdata:bdata) = #pat_bbox_ops bdata
@@ -109,6 +130,15 @@ functor BangGraphMatchState(
     pat_avoids   = #pat_avoids bdata,
     pat_tracked  = #pat_tracked bdata,
     pat_bbox_ops = f (#pat_bbox_ops bdata),
+    warnings     = #warnings bdata,
+    data         = #data bdata
+  };
+  fun get_warnings_of_bdata (bdata:bdata) = #warnings bdata
+  fun add_warning_of_bdata w (bdata:bdata) = {
+    pat_avoids   = #pat_avoids bdata,
+    pat_tracked  = #pat_tracked bdata,
+    pat_bbox_ops = #pat_bbox_ops bdata,
+    warnings     = w::(#warnings bdata),
     data         = #data bdata
   };
 
@@ -120,6 +150,7 @@ functor BangGraphMatchState(
       pat_avoids   = V.NSet.empty,
       pat_tracked   = V.NSet.empty,
       pat_bbox_ops = [],
+      warnings     = [],
       data         = empty_data
     }
   );
@@ -141,6 +172,9 @@ functor BangGraphMatchState(
 
   val get_pat_bbox_ops = get_pat_bbox_ops_of_bdata o OGMS.get_data;
   val update_pat_bbox_ops = OGMS.update_data o update_pat_bbox_ops_of_bdata;
+
+  val get_warnings = get_warnings_of_bdata o OGMS.get_data;
+  val add_warning = OGMS.update_data o add_warning_of_bdata;
 
   (* FIXME: make more efficient? *)
   fun schedule_concrete new_vs new_es ms = let
@@ -249,16 +283,53 @@ functor BangGraphMatchState(
   in
     ms |> set_pat pat'
        |> update_pat_bbox_ops (cons (BBKill b))
+    handle BG.no_such_bbox_exp _ => ms
   end
 
-  fun kill_impossible_bboxes ms = let
+  fun kill_bboxes_adj_to_complete_nvs ms = let
     val pat = get_pat ms
     val complete = get_complete_nodeverts ms
     val touched = G.incident_vertices pat complete
-    fun kill_all_bboxes v =
-      B.NSet.fold kill_pat_bbox (BG.get_bboxes_of pat v)
+    fun kill_all_bboxes v ms = let
+      val pat = get_pat ms
+    in
+      B.NSet.fold kill_pat_bbox (BG.get_bboxes_of pat v) ms
+      handle G.no_such_vname_exp _ => ms
+    end
   in
     V.NSet.fold kill_all_bboxes touched ms
   end
+
+  fun kill_wild_bboxes ms = let
+    fun is_end_of_bare_wire g v =
+      if G.is_input_vertex g v
+      then
+        case E.NSet.tryget_singleton (G.get_out_edges g v)
+          of NONE => false (* this shouldn't happen, but isn't strictly impossible *)
+           | SOME e => G.is_output_vertex g (G.get_edge_target g e)
+      else
+        if G.is_output_vertex g v
+        then
+          case E.NSet.tryget_singleton (G.get_in_edges g v)
+            of NONE => false (* this shouldn't happen, but isn't strictly impossible *)
+             | SOME e => G.is_input_vertex g (G.get_edge_source g e)
+        else
+          false
+    fun is_wild g bbox =
+      V.NSet.forall (is_end_of_bare_wire g) (BG.get_bbox_contents g bbox)
+    fun kill_pat_bbox' bbox ms =
+      ms |> kill_pat_bbox bbox
+         |> add_warning (WildBBoxKilled bbox)
+    fun kill_if_wild bbox ms =
+      (if is_wild (get_pat ms) bbox
+       then kill_pat_bbox' bbox ms
+       else ms)
+      handle BG.no_such_bbox_exp _ => ms
+  in
+    B.NSet.fold kill_if_wild (BG.get_bboxes (get_pat ms)) ms
+  end
+
+  val kill_impossible_bboxes = kill_wild_bboxes
+                             o kill_bboxes_adj_to_complete_nvs
 end
 
