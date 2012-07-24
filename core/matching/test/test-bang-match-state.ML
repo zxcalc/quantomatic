@@ -19,13 +19,13 @@ local (* Test matching with concrete graphs *)
             |> G.add_named_edge (E.mk "e2") dir_edge v2 v3
             |> G.add_named_bbox b0
             |> G.add_named_bbox b1
-            |> G.add_to_bbox b0 (V.NSet.single v1)
-            |> G.add_to_bbox b1 (V.NSet.single v3)
+            |> G.doadd_to_bbox b0 (V.NSet.single v1)
+            |> G.doadd_to_bbox b1 (V.NSet.single v3)
   val spider_pat = g
 
   val g = g |> G.add_named_vertex v4 (mkZ zero_angle)
-            |> G.add_to_bbox b0 (V.NSet.single v4)
-            |> G.add_to_bbox b1 (V.NSet.single v4)
+            |> G.doadd_to_bbox b0 (V.NSet.single v4)
+            |> G.doadd_to_bbox b1 (V.NSet.single v4)
   val spider_pat_plus_v4 = g
 
   val _ = Testing.test "Original graphs coherent"

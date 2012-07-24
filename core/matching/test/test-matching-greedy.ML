@@ -72,7 +72,7 @@ local (* Test matching with disjoint !-boxes *)
   val g = g |> G.add_named_vertex c1 bvert
             |> G.doadd_edge dir_edge c1 c1
             |> G.add_named_bbox b1
-            |> G.add_to_bbox b1 (V.NSet.single c1)
+            |> G.doadd_to_bbox b1 (V.NSet.single c1)
   val circles_pat = g
 
   val g = G.empty
@@ -99,7 +99,7 @@ local (* Test matching with disjoint !-boxes *)
             |> G.add_named_vertex out1 bvert
             |> G.doadd_edge dir_edge in1 out1
             |> G.add_named_bbox b1
-            |> G.add_to_bbox b1 (V.NSet.of_list [c1,in1,out1])
+            |> G.doadd_to_bbox b1 (V.NSet.of_list [c1,in1,out1])
   val circle_wire_pat = g
 
   val g = G.empty
@@ -111,8 +111,8 @@ local (* Test matching with disjoint !-boxes *)
             |> G.doadd_edge dir_edge x1 out1
             |> G.add_named_bbox b1
             |> G.add_named_bbox b2
-            |> G.add_to_bbox b1 (V.NSet.single in1)
-            |> G.add_to_bbox b2 (V.NSet.single out1)
+            |> G.doadd_to_bbox b1 (V.NSet.single in1)
+            |> G.doadd_to_bbox b2 (V.NSet.single out1)
   val x_any_ins_outs_pat = g
 
   val g = G.empty
@@ -144,7 +144,7 @@ local (* Test matching with disjoint !-boxes *)
             |> G.add_named_vertex x1 (mkX zero_angle)
             |> G.doadd_edge undir_edge z1 x1
             |> G.add_named_bbox b1
-            |> G.add_to_bbox b1 (V.NSet.single x1)
+            |> G.doadd_to_bbox b1 (V.NSet.single x1)
   val star_pat = g
 
   val g = G.empty
@@ -243,8 +243,8 @@ local (* Test matching with disjoint !-boxes *)
             |> G.doadd_edge dir_edge lvl1a lvl2a
             |> G.add_named_bbox b1
             |> G.add_named_bbox b2
-            |> G.add_to_bbox b1 (V.NSet.of_list [lvl1a,lvl2a])
-            |> G.add_to_bbox b2 (V.NSet.single lvl2a)
+            |> G.doadd_to_bbox b1 (V.NSet.of_list [lvl1a,lvl2a])
+            |> G.doadd_to_bbox b2 (V.NSet.single lvl2a)
   val balanced_tree_pat = g
 
   val g = g |> G.set_bbox_parent b2 b1

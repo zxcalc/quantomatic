@@ -59,7 +59,7 @@ functor InputGraphXML_v1(
       let val g' = Graph.add_named_bbox bname g
           val vset  = V.NSet.of_list bvlist
       in
-        Graph.add_to_bbox bname vset g'
+        Graph.doadd_to_bbox bname vset g'
       end
   
   fun input_vertex xml = 

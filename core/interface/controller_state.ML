@@ -834,7 +834,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
       in
-        lift_graph_mutator_no_result (Graph.add_to_bbox box vset) gname state
+        lift_graph_mutator_no_result (Graph.doadd_to_bbox box vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
@@ -854,7 +854,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         val _ = assert_bbox_exists state gname box
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
-        val mutator = Graph.remove_from_bbox box vset
+        val mutator = Graph.doremove_from_bbox box vset
       in
         lift_graph_mutator_no_result mutator gname state
         handle Graph.bbox_not_open_exp (vs,b,_)

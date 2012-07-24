@@ -221,10 +221,10 @@ val _ = Testing.test "rule1: spider" (fn () => let
             |> G.add_named_bbox b2
             |> G.add_named_bbox b3
             |> G.add_named_bbox b4
-            |> G.add_to_bbox b1 (V.NSet.single in1)
-            |> G.add_to_bbox b2 (V.NSet.single in2)
-            |> G.add_to_bbox b3 (V.NSet.single out1)
-            |> G.add_to_bbox b4 (V.NSet.single out2)
+            |> G.doadd_to_bbox b1 (V.NSet.single in1)
+            |> G.doadd_to_bbox b2 (V.NSet.single in2)
+            |> G.doadd_to_bbox b3 (V.NSet.single out1)
+            |> G.doadd_to_bbox b4 (V.NSet.single out2)
   val lhs = g
 
   val g = G.empty
@@ -242,10 +242,10 @@ val _ = Testing.test "rule1: spider" (fn () => let
             |> G.add_named_bbox b2
             |> G.add_named_bbox b3
             |> G.add_named_bbox b4
-            |> G.add_to_bbox b1 (V.NSet.single in1)
-            |> G.add_to_bbox b2 (V.NSet.single in2)
-            |> G.add_to_bbox b3 (V.NSet.single out1)
-            |> G.add_to_bbox b4 (V.NSet.single out2)
+            |> G.doadd_to_bbox b1 (V.NSet.single in1)
+            |> G.doadd_to_bbox b2 (V.NSet.single in2)
+            |> G.doadd_to_bbox b3 (V.NSet.single out1)
+            |> G.doadd_to_bbox b4 (V.NSet.single out2)
   val rhs = g
 
   val g = G.empty

@@ -50,10 +50,10 @@ val delete_bbox : B.name -> T -> T
 val rename_bbox : B.name -> B.name -> T -> T
 
 (* no_such_bbox_exp if !-box does not exist *)
-val add_to_bbox : B.name -> V.NSet.T -> T -> T
+val add_to_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
 (* no_such_bbox_exp if !-box does not exist *)
 (* does not raise if verts are not in !-box *)
-val remove_from_bbox : B.name -> V.NSet.T -> T -> T
+val remove_from_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
 
 (* set parent of the given bbox *)
 (* bbox_bad_parent_exp if fst is not a subset of snd *)
@@ -117,14 +117,22 @@ val rename_bbox : B.name -> B.name -> T -> T
 (* The minimum open subgraph containing the
  * given vertices is added, to ensure the
  * !-box remains an open subgraph.
+ *
+ * Returns the actual vertices added (always
+ * a superset of the vertex set given).
  *)
-val add_to_bbox : B.name -> V.NSet.T -> T -> T
+val add_to_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
+val doadd_to_bbox : B.name -> V.NSet.T -> T -> T
 (* no_such_bbox_exp if !-box does not exist *)
 (* does not raise if verts are not in !-box *)
 (* Does not remove any vertices that are
  * necessary for the !-box to remain open
+ *
+ * Returns the actual vertices removed (always
+ * a subset of the vertex set given).
  *)
-val remove_from_bbox : B.name -> V.NSet.T -> T -> T
+val remove_from_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
+val doremove_from_bbox : B.name -> V.NSet.T -> T -> T
 
 (* set parent of the first bbox to be the second bbox *)
 (* snd will be the parent of the fst *)
@@ -451,9 +459,13 @@ functor BasicBangGraphFun(
     if not (B.NSet.contains (get_bboxes g) b) then
       raise no_such_bbox_exp ()
     else if not (V.NSet.sub_set vs ((V.NTab.get_nameset o get_vertices) g)) then
-      raise no_such_vnames_exp ("add_to_bbox",vs,g)
+      raise no_such_vnames_exp ("doadd_to_bbox",vs,g)
     else
-      g |> update_bbox_rel (BVBRel.add_to_dom b (find_open_subgraph g vs));
+      let
+        val to_add = find_open_subgraph g vs
+      in
+        (to_add, g |> update_bbox_rel (BVBRel.add_to_dom b to_add))
+      end
 
   fun remove_from_bbox b vs g =
     if not (B.NSet.contains (get_bboxes g) b) then
@@ -467,7 +479,7 @@ functor BasicBangGraphFun(
         val new_bvs = find_open_subgraph g (V.NSet.subtract old_bvs vs)
         val remove_bvs = V.NSet.subtract old_bvs new_bvs
       in
-        g |> update_bbox_rel (BVBRel.del_from_dom b remove_bvs)
+        (remove_bvs, g |> update_bbox_rel (BVBRel.del_from_dom b remove_bvs))
       end
 
   fun get_plugging g v1 v2 = let
@@ -561,6 +573,9 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
        | _ => NONE
   end
 
+  val doadd_to_bbox = snd ooo add_to_bbox
+  val doremove_from_bbox = snd ooo remove_from_bbox
+
   (* getters for bbox -> vert *)
   val get_bbox_list = B.NSet.list_of o get_bboxes;
   val has_bbox = B.NSet.contains o get_bboxes;
@@ -599,7 +614,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
       (SOME (rename_bbox n1 n2 g)) handle bbox_already_exists_exp _ => NONE;
 
   fun remove_from_all_bboxes vs g =
-    B.NSet.fold (fn b => remove_from_bbox b vs) (get_bboxes g) g
+    B.NSet.fold (fn b => doremove_from_bbox b vs) (get_bboxes g) g
 
   val add_to_bboxes = B.NSet.union_merge o get_bboxes;
 
@@ -630,7 +645,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
        | SOME (bn,bnset2) =>
          (bn, B.NSet.fold
               (fn bn2 => fn g2 =>
-                   g2 |> add_to_bbox bn (get_bbox_contents g2 bn2)
+                   g2 |> doadd_to_bbox bn (get_bbox_contents g2 bn2)
                       |> delete_bbox bn2)
               bnset2 g));
 
@@ -677,7 +692,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
             val bbs' = B.NSet.delete bn (get_bboxes_of g v)
             val bbs = B.NSet.add bn' bbs'
           in
-            B.NSet.fold (fn b => add_to_bbox b vs) bbs gr*)
+            B.NSet.fold (fn b => doadd_to_bbox b vs) bbs gr*)
 
   fun copy_or_expand MK_BBOX bn ((vrn,ern,brn),g) =
     let
@@ -704,7 +719,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
            |> (case new_bn_opt of SOME bn' => B.NSet.add bn' | NONE => I)
            |> (fn bs => B.NSet.fold (fn b => B.NSet.add (map_bbox_name b)) bs B.NSet.empty)
         in
-          B.NSet.fold (fn b => add_to_bbox b (V.NSet.single vnew)) bbs_to_extend gr
+          B.NSet.fold (fn b => doadd_to_bbox b (V.NSet.single vnew)) bbs_to_extend gr
         end
       val g' = V.NSet.fold extend_bbs bbox_vs g'
     in
@@ -849,7 +864,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
                    val g      = g |> delete_wire wire
                    val (wv,g) = g |> add_vertex OVData.WVert
                    val wvset  = V.NSet.single wv
-                   val g      = g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
+                   val g      = g |> B.NSet.fold (fn b => doadd_to_bbox b wvset) bs
                    val (e1,g) = g |> add_edge dir_and_data s wv
                    val (e2,g) = g |> add_edge dir_and_data wv t
                    val eset   = E.NSet.of_list [e1,e2]
@@ -882,7 +897,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
         val (b1,g) = g |> add_vertex OVData.WVert
         val (b2,g) = g |> add_vertex OVData.WVert
         val wvset  = V.NSet.of_list [b1,b2]
-        val g      = g |> B.NSet.fold (fn b => add_to_bbox b wvset) bs
+        val g      = g |> B.NSet.fold (fn b => doadd_to_bbox b wvset) bs
         val (e1,g) = g |> add_edge dir_and_data s b1
         val (e2,g) = g |> add_edge dir_and_data b1 b2
         val (e3,g) = g |> add_edge dir_and_data b2 t
