@@ -21,6 +21,7 @@ include BASIC_OGRAPH;
 
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
 exception bbox_already_exists_exp of B.name * T;
+exception bbox_bad_parent_exp of B.name * B.name * T;
 exception no_such_bbox_exp of unit
 
 val get_bboxes : T -> B.NSet.T
@@ -55,6 +56,7 @@ val add_to_bbox : B.name -> V.NSet.T -> T -> T
 val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
 (* set parent of the given bbox *)
+(* bbox_bad_parent_exp if fst is not a subset of snd *)
 val set_bbox_parent : B.name -> B.name -> T -> T
 
 (* make the given bbox an orphan *)
@@ -85,6 +87,7 @@ include OGRAPH;
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
 exception bbox_already_exists_exp of B.name * T;
 exception no_such_bbox_exp of unit
+exception bbox_bad_parent_exp of B.name * B.name * T;
 
 val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
@@ -116,7 +119,7 @@ val add_to_bbox : B.name -> V.NSet.T -> T -> T
 (* does not raise if verts are not in !-box *)
 val remove_from_bbox : B.name -> V.NSet.T -> T -> T
 
-(* set parent of the given bbox *)
+(* set parent of the first bbox to be the second bbox *)
 (* snd will be the parent of the fst *)
 val set_bbox_parent : B.name -> B.name -> T -> T
 
@@ -287,6 +290,7 @@ functor BasicBangGraphFun(
   exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
   exception bbox_already_exists_exp of B.name * T;
   exception no_such_bbox_exp of unit;
+  exception bbox_bad_parent_exp of B.name * B.name * T;
 
   (* for bbox part of added data *)
   val get_bboxes = get_bboxes_of_hdata o G.get_data;
@@ -312,9 +316,23 @@ functor BasicBangGraphFun(
   val update_bbox_rel = G.update_data o update_bbox_rel_of_hdata;
   val update_bbox_parent_rel = G.update_data o update_bbox_parent_rel_of_hdata;
   
-  fun set_bbox_parent b bp = 
-    (* FIXME: enforce consistency *)
-    update_bbox_parent_rel (BMap.add_to_dom b bp)
+  fun set_bbox_parent b bp g = let
+    val has_bbox = B.NSet.contains o get_bboxes;
+    fun get_bbox_contents g b =
+      if has_bbox g b then
+        (case B.NTab.lookup (get_bbox_table g) b of
+              NONE    => V.NSet.empty
+            | SOME vs => vs)
+      else
+        raise no_such_bbox_exp ()
+    val b_vs = get_bbox_contents g b
+    val bp_vs = get_bbox_contents g bp
+    val _ = if V.NSet.sub_set b_vs bp_vs then ()
+            else raise bbox_bad_parent_exp (b,bp,g)
+    (* FIXME: enforce anti-symmetry (no loops) *)
+  in
+    update_bbox_parent_rel (BMap.add_to_dom b bp) g
+  end
   
   (* orphan the given !-box. If its parent has no children, remove from parent rel *)
   fun clear_bbox_parent b =
