@@ -5,15 +5,18 @@ sig
   structure L : LITERAL
 
   val empty : T
-  val add_node : T * L.T -> T
-  val get_first_node: T -> L.T
-  val is_contained : L.T * T -> bool
+  val add_literal : T -> L.T -> T
+  val get_first_literal : T -> L.T 
 
-  val mk : G.T * T -> T
+  val mk : G.T -> T -> T
   val target_function : G.T -> T
 
+  val is_contained : L.T * T -> bool
+  val eq : T * T -> bool
   val check_strong_compatibility : T * T -> bool
   val check_weak_compatibility : T * T -> bool
+
+  val fprintf : T -> string
 
 end
 
@@ -30,20 +33,20 @@ struct
   val empty = [];
 
   (* Add a node to a contour *)
-  fun add_node(c,l) = l::c
+  fun add_literal c l = l::c
 
   (* Get the first node in a contour *)
-  fun get_first_node(l::literals) = l
-    | get_first_node(l::[]) = l
+  fun get_first_literal(l::literals) = l
+    | get_first_literal(l::[]) = l
 
   (* Helper function to find if a literal is contained in a list of literals *)
-  fun is_contained(x,[]) = false
-    | is_contained(x,l::[]) = if (V.string_of_name (#name x) = V.string_of_name (#name l)) then true else false
-    | is_contained(x,l::literals) = if (V.string_of_name (#name x) = V.string_of_name (#name l)) then true else is_contained(x,literals)
+  fun is_contained(x, []) = false
+    | is_contained(x,l::[]) = if L.eq(x,l) then true else false
+    | is_contained(x,l::literals) = if L.eq(x,l) then true else is_contained(x,literals)
 
   (* Helper function to remove literals corresponding to the same node *)
-  fun remove_duplicate(e,l::literals) = if is_contained(l,e) then remove_duplicate(e,literals) else remove_duplicate (l::e,literals)
-    | remove_duplicate(e,l::[]) = if is_contained(l,e) then e else l::e
+  fun remove_duplicate(e,l::[]) = if is_contained(l,e) then e else l::e
+    | remove_duplicate(e,l::literals) = if is_contained(l,e) then remove_duplicate(e,literals) else remove_duplicate(l::e,literals)
 
 
   (* Build the first contour given a graph *)
@@ -51,29 +54,70 @@ struct
       let
         val vnames = G.get_unbboxed(g)
         val v::vlist = V.NSet.list_of(vnames)
-        val l = L.mk(g,v)
+        val l = L.mk g v
         val c = empty
       in
         l::c
       end
 
+  fun remove_nodes_in_contour(adj::[],c) = if is_contained(adj,c) then [] else adj::[] 
+    | remove_nodes_in_contour(adj::adjs,c) = 
+        if is_contained(adj,c) 
+        then remove_nodes_in_contour(adjs,c)
+        else adj::remove_nodes_in_contour(adjs,c)
+
+
+  fun maps2 _ [] [] = []
+    | maps2 f (x::xs) (y::ys) = f x y @ maps2 f xs ys
+    | maps2 _ _ _ = raise ListPair.UnequalLengths;
+
+
   (* Build a contour starting from another contour *)
-  fun mk(g,c) = 
+  fun mk g c = 
         let
           val g_list = replicate (length c) g
           val gl_list = g_list ~~ c
 
-          val adj_nodes = maps L.get_adj gl_list
+          val adj_nodes = maps2 L.get_adj g_list c
+          val adj_nodes = remove_nodes_in_contour(adj_nodes,c)
           val e = empty
         in
           remove_duplicate(e,adj_nodes)
         end
 
 
+  
+
+  (* Helper functions to check if two contours are the same *)
+  fun find_literal(c1,[]) = false
+    | find_literal(c1,c2::[]) = if L.eq(c1,c2) then true else false
+    | find_literal(c1,c2::c2s) = if L.eq(c1,c2) then true else find_literal(c1,c2s)
+
+  fun remove_literal(c1,c2::[]) = []
+    | remove_literal(c1,c2::c2s) = if L.eq(c1,c2) then c2s else c2::remove_literal(c1,c2s)
+
+  fun is_same_contour(c1::[],c2::[]) = if L.eq(c1,c2) then true else false
+    | is_same_contour(c1::c1s,c2::[]) = if L.eq(c1,c2) then true else false
+    | is_same_contour(c1::c1s,c2::c2s) = 
+      if L.eq(c1,c2) then is_same_contour (c1s,c2s)
+      else if find_literal(c1,c2s) then is_same_contour(c1s,c2::remove_literal(c1,c2s)) else false
+
+
+
+  (* This function checks for physical equality between c1 and c2, that is if c1 and c2 are the same contour *)
+  fun eq (c1,c2) =
+    if (length c1 = length c2) then is_same_contour(c1,c2)
+    else false
+
   (* This function checks if c1 is strongly compatible with c2, which may be different from checking if c2 is strongly compatible with c1 *)
   fun check_strong_compatibility (c1,c2) = false
 
   (* This function checks if c1 is weakly compatible with c2, which may be different from checking if c2 is weakly compatible with c1 *)
   fun check_weak_compatibility (c1,c2) = false
+
+
+  fun fprintf([]) = ""
+    | fprintf(l::[]) = L.fprintf(l)
+    | fprintf(l::ls) = L.fprintf(l) ^ " " ^ fprintf(ls) ^ " "
 
 end

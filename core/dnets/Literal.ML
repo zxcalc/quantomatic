@@ -1,12 +1,30 @@
 signature LITERAL =
 sig
 	type T
+	type multiplicity
 	structure G : BANG_GRAPH
 
-	val mk : G.T * V.name -> T
+	val mk : G.T -> V.name -> T
+	val match : T * T -> bool
 	val eq : T * T -> bool
 
-	val get_adj : G.T * T -> T list
+	val get_adj : G.T -> T -> T list
+
+	val get_name : T -> V.name
+	val get_kind : T -> G.VData.data
+	val get_kind_mult : T -> multiplicity
+	val get_input_arity : T -> int
+	val get_input_mult : T -> multiplicity
+	val get_output_arity : T -> int
+	val get_output_mult : T -> multiplicity
+
+	val mult_eq : multiplicity * multiplicity -> bool
+
+	val mult_none : multiplicity
+	val mult_star : multiplicity
+	val mult_qm : multiplicity
+
+	val fprintf : T -> string
 
 end
 
@@ -42,7 +60,7 @@ struct
 		
 	
 	(* Helper functions to get multiplicity *)
-	fun get_kind_mult(g,v) =
+	fun compute_kind_mult g v =
 	   let
 	      val adj_vert = G.adj_vnames g v
 	      val v_list = V.NSet.list_of adj_vert
@@ -52,7 +70,7 @@ struct
 	         else None
 	   end	
 
-	fun get_input_mult(g,v) =
+	fun compute_input_mult g v =
 		let
 	      val adj_vert = G.pred_vnames g v
 	      val v_list = V.NSet.list_of adj_vert
@@ -61,7 +79,7 @@ struct
 	     else None
 	   end
 
-	fun get_output_mult(g,v) =
+	fun compute_output_mult g v =
 		let
 	      val adj_vert = G.succ_vnames g v
 	      val v_list = V.NSet.list_of adj_vert
@@ -71,19 +89,19 @@ struct
 	   end
 
 	(* Make a literal *)   
-	fun mk(g,v) = 
+	fun mk g v = 
 		let
 			val k = G.get_vertex_data g v
 			
-			val k_m = get_kind_mult(g,v)			
+			val k_m = compute_kind_mult g v			
 			
 			val i_a = Arity.get_in (G.get_arity g v)
 			
-			val i_m = get_input_mult(g,v)
+			val i_m = compute_input_mult g v
 			
 			val o_a = Arity.get_out (G.get_arity g v)
 
-			val o_m = get_output_mult(g,v)
+			val o_m = compute_output_mult g v
 		in
 			{name = v, kind = k, kind_mult = k_m, input_arity = i_a, input_mult = i_m, output_arity = o_a, output_mult = o_m} : T
 		end
@@ -105,24 +123,52 @@ struct
 		     else if (#output_arity l1 < #output_arity l2) andalso (#output_mult l1 = Star) then true
 		          else false
 
-	(* Compare literals *)
-	fun eq(l1,l2) = compare_kind(l1,l2) andalso compare_input(l1,l2) andalso compare_output(l1,l2)
+	(* Compare literals for logical equality, that is check if they are equivalent *)
+	fun match(l1,l2) = compare_kind(l1,l2) andalso compare_input(l1,l2) andalso compare_output(l1,l2)
 
-	(* Get adjacent nodes *)
-	fun get_adj(g,l) =
+	(* Compare literals for physical equality, that is the two literals are the same node-vertex *)
+	fun eq(l1,l2)  = V.name_eq(#name l1, #name l2)
+
+	(* Get the literals of all the adjacent nodes *)
+	fun get_adj g l =
 		let
 	      val adj_vert = G.adj_vnames g (#name l)
 	      val v_list = V.NSet.list_of adj_vert
 
 	      val g_list = replicate (length v_list) g
 
-	      val gv_list = g_list ~~ v_list
-
 	    in
 
-		  map mk gv_list    
+		  map2 mk g_list v_list    
 	      
 	    end
 
+
+	fun get_name(l) = #name l
+
+	fun get_kind(l) = #kind l
+
+	fun get_kind_mult(l) = #kind_mult l
+
+	fun get_input_arity(l) = #input_arity l
+
+	fun get_input_mult(l) = #input_mult l
+
+	fun get_output_arity(l) = #output_arity l
+
+	fun get_output_mult(l) = #output_mult l
+
+	fun mult_eq (m1,m2) =
+	  if ((m1=Star andalso m2=Star) orelse (m1=QM andalso m2=QM) orelse (m1=None andalso m2=None)) then true
+	  else false
+
+	val mult_none = None
+
+	val mult_qm = QM
+
+	val mult_star = Star
+
+
+	fun fprintf(l) = V.string_of_name(#name l)
 
 end

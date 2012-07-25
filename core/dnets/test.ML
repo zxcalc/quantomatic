@@ -1,37 +1,230 @@
 local
   open Test_MkG
   open Test_MatchUtil
-  
-  structure L = Literal
 
+  
+  structure CL = Contour_List(G)
+  structure C = CL.C
+  structure L = C.L
+
+  val bvert = Test_Graph.OVData.EVert;
+  
+  (* Building the graphs *)
   val g = G.empty
   
   val v1 = V.mk "v1"
   val v2 = V.mk "v2"
   val v3 = V.mk "v3"
   val v4 = V.mk "v4"
+  val v5 = V.mk "v5"
 
   val e1 = E.mk "e1"
   val e2 = E.mk "e2"
   val e3 = E.mk "e3"
-
-  val bvert = Test_Graph.OVData.EVert;
+  val e4 = E.mk "e4"
   
   val g = g |> G.add_named_vertex v1 bvert
             |> G.add_named_vertex v2 bvert
             |> G.add_named_vertex v3 bvert
             |> G.add_named_vertex v4 bvert
+            |> G.add_named_vertex v5 bvert
             |> G.add_named_edge e1 dir_edge v1 v2
-            |> G.add_named_edge e1 dir_edge v1 v3
-            |> G.add_named_edge e1 dir_edge v2 v4
+            |> G.add_named_edge e2 dir_edge v1 v3
+            |> G.add_named_edge e3 dir_edge v2 v3
+            |> G.add_named_edge e4 dir_edge v5 v4
 
-  val lit = L.mk g v1
-  val _ = Testing.test "Literal name" (assert_n_match v1 (#name lit)) ()
-  val _ = Testing.test "Literal kind" (assert_n_match bvert (#kind lit)) ()
-  val _ = Testing.test "Literal input arity" (assert_n_match 0 (#input_arity lit)) ()
-  val _ = Testing.test "Literal input mult" (assert_n_match None (#input_mult lit)) ()
-  val _ = Testing.test "Literal output arity" (assert_n_match 2 (#output_arity lit)) ()
-  val _ = Testing.test "Literal output mult" (assert_n_match None (#output_mult lit)) ()
+  val (bb1,g) = g |> G.add_bbox
+  val g = g |> G.add_to_bbox bb1 (V.NSet.single v5)
+
+  val lit1_1 = L.mk g v1
+  val lit1_2 = L.mk g v2
+  val lit1_3 = L.mk g v3
+  val lit1_4 = L.mk g v4
+  val lit1_5 = L.mk g v5
+  
+
+
+  val h = G.empty
+  
+  val w1 = V.mk "w1"
+  val w2 = V.mk "w2"
+  val w3 = V.mk "w3"
+  val w4 = V.mk "w4"
+
+  val o1 = E.mk "o1"
+  val o2 = E.mk "o2"
+  val o3 = E.mk "o3"
+  val o4 = E.mk "o4"
+  
+  val h = h |> G.add_named_vertex w1 bvert
+            |> G.add_named_vertex w2 bvert
+            |> G.add_named_vertex w3 bvert
+            |> G.add_named_vertex w4 bvert
+            |> G.add_named_edge o1 dir_edge w1 w2
+            |> G.add_named_edge o2 dir_edge w1 w3
+            |> G.add_named_edge o3 dir_edge w1 w4
+            |> G.add_named_edge o4 dir_edge w4 w3
+
+  val (bb2,h) = h |> G.add_bbox
+  val h = h |> G.add_to_bbox bb2 (V.NSet.single w1)
+            |> G.add_to_bbox bb2 (V.NSet.single w4)
+
+  val lit2_1 = L.mk h w1
+  val lit2_2 = L.mk h w2
+  val lit2_3 = L.mk h w3
+  val lit2_4 = L.mk h w4
+
+
+
+  (* TESTING LITERALS *)
+
+  (* Assertion functions *)
+  fun assert_name_eq(a:V.name,b:V.name) =
+    if V.name_eq(a,b) then true
+    else raise ERROR ("Literal names do not match!")
+
+  fun assert_kind_eq(a:G.VData.data,b:G.VData.data) =
+    if G.VData.data_eq(a,b) then true
+    else raise ERROR ("Literal kinds do not match!")
+
+  fun assert_int_eq(a,b,s) =
+    if (a=b) then true
+    else raise ERROR ("Literal " ^ s ^ "do not match!")
+
+  fun assert_mult_eq(a:L.multiplicity,b:L.multiplicity,s) =
+    if L.mult_eq(a,b) then true
+    else raise ERROR ("Literal " ^ s ^ "do not match!")
+
+
+  (* Tests *)
+  val name1 = L.get_name lit1_1
+  val name2 = L.get_name lit1_2
+  val _ = Testing.test "Checking literal name.." assert_name_eq (name1,v1)
+  val _ = Testing.test "Checking literal name.." assert_name_eq (name2,v2)
+  
+  val kind1 = L.get_kind lit1_1
+  val kind2 = L.get_kind lit1_2
+  val _ = Testing.test "Checking literal kind.." assert_kind_eq (kind1,bvert)
+  val _ = Testing.test "Checking literal kind.." assert_kind_eq (kind2,bvert)
+
+  val k_m1 = L.get_kind_mult lit1_1
+  val k_m2 = L.get_kind_mult lit1_2
+  val k_m4 = L.get_kind_mult lit1_4
+  val k_m5 = L.get_kind_mult lit1_5
+  val _ = Testing.test "Checking literal kind-mult" assert_mult_eq (k_m1,L.mult_none,"kind-mult")
+  val _ = Testing.test "Checking literal kind-mult" assert_mult_eq (k_m2,L.mult_none,"kind-mult")
+  val _ = Testing.test "Checking literal kind-mult" assert_mult_eq (k_m4,L.mult_qm,"kind-mult") 
+  val _ = Testing.test "Checking literal kind-mult" assert_mult_eq (k_m5,L.mult_star,"kind-mult")  
+
+  val i_a1 = L.get_input_arity lit1_1
+  val i_a2 = L.get_input_arity lit1_2
+  val _ = Testing.test "Checking literal input-arity" assert_int_eq (i_a1,0,"input-arity")
+  val _ = Testing.test "Checking literal input-arity" assert_int_eq (i_a2,1,"input-arity")
+
+  val i_m1 = L.get_input_mult lit1_1
+  val i_m2 = L.get_input_mult lit1_2
+  val i_m4 = L.get_input_mult lit1_4
+  val _ = Testing.test "Checking literal input-mult" assert_mult_eq (i_m1,L.mult_none,"input-mult")
+  val _ = Testing.test "Checking literal input-mult" assert_mult_eq (i_m2,L.mult_none,"input-mult")
+  val _ = Testing.test "Checking literal input-mult" assert_mult_eq (i_m4,L.mult_star,"input-mult")
+
+  val o_a1 = L.get_output_arity lit1_1
+  val o_a2 = L.get_output_arity lit1_2
+  val _ = Testing.test "Checking literal output-arity" assert_int_eq (o_a1,2,"output-arity")
+  val _ = Testing.test "Checking literal output-arity" assert_int_eq (o_a2,1,"output-arity")
+
+  val o_m1 = L.get_output_mult lit1_1
+  val o_m2 = L.get_output_mult lit1_2
+  val o_m4 = L.get_output_mult lit1_4
+  val _ = Testing.test "Checking literal output-mult" assert_mult_eq (o_m1,L.mult_none,"output-mult")
+  val _ = Testing.test "Checking literal output-mult" assert_mult_eq (o_m2,L.mult_none,"output-mult")
+  val _ = Testing.test "Checking literal output-mult" assert_mult_eq (o_m4,L.mult_none,"output-mult")
+
+
+  (* TESTING CONTOURS *)
+
+  (* Assertion functions *)
+  fun is_one(x,[]) = false
+    | is_one(x,c::[]) = if C.eq(x,c) then true else false
+    | is_one(x,c::cs) = if C.eq(x,c) then true else is_one(x,cs)
+     
+
+  fun assert_tgt_fn(c,cc) =
+    if (is_one(c,cc)) then true
+    else raise ERROR ("Error in target function")
+
+  fun assert_contour_length(i,c) = if (length c = i) then true 
+    else raise ERROR ("Error in contour length")
+
+  fun assert_is_in_contour(l,[]) = raise ERROR ("Error in the elements of the contour")
+    | assert_is_in_contour(l,c::[]) = if L.eq(l,c) then true else raise ERROR ("Error in the elements of the contour")
+    | assert_is_in_contour(l,c::cs) = if L.eq(l,c) then true else assert_is_in_contour(l,cs)
+
+     fun assert_is_not_in_contour(l,[]) = true
+    | assert_is_not_in_contour(l,c::[]) = if L.eq(l,c) then raise ERROR ("Error in the elements of the contour") else true
+    | assert_is_not_in_contour(l,c::cs) = if L.eq(l,c) then raise ERROR ("Error in the elements of the contour") else assert_is_not_in_contour(l,cs)
+
+  
+  (* Tests *)
+  val e = C.empty
+  val trg1 = C.target_function g  
+  val ok1 = C.add_literal e lit1_1
+  val ok2 = C.add_literal e lit1_2
+  val ok3 = C.add_literal e lit1_3
+  val ok4 = C.add_literal e lit1_4
+  val ok1list = ok1::ok2::ok3::ok4::[] 
+
+  val trg2 = C.target_function h
+  val ok2 = C.add_literal e lit2_2
+  val ok3 = C.add_literal e lit2_3
+  val ok2list = ok2::ok3::[]
+
+  val _ = Testing.test "Checking target function" assert_tgt_fn (trg1,ok1list)
+  val _ = Testing.test "Checking target function" assert_tgt_fn (trg2,ok2list) 
+
+
+  val c1 = C.mk g trg1
+  val _ = Testing.test "Checking number of literals" assert_contour_length (2,c1)
+  val _ = Testing.test "Checking element in contour" assert_is_in_contour (lit1_2,c1)
+  val _ = Testing.test "Checking element in contour" assert_is_in_contour (lit1_3,c1)
+  val _ = Testing.test "Checking element in contour" assert_is_not_in_contour (lit1_4,c1)
+  val _ = Testing.test "Checking element in contour" assert_is_not_in_contour (lit1_5,c1)
+
+  val c2 = C.mk g (lit1_2::lit1_3::[])
+  val _ = Testing.test "Checking number of literals" assert_contour_length (1,c2)
+
+
+  (* TESTING CONTOUR LISTS *)
+
+  (* Assertion functions *)
+  fun assert_contour_list_length(i,cl) = if (length cl = i) then true 
+    else raise ERROR ("Error in contour list length")
+
+  fun assert_contour_list_eq(cl1,cl2) = if CL.eq(cl1,cl2) then true
+    else raise ERROR ("Error in contour list")
+
+  (* Tests *)
+  val cl1 = CL.mk g
+  val hand_cl1 = (lit1_1::[]) :: (lit1_2::lit1_3::[]) :: []
+  val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (2,cl1)
+  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl1,cl1)
+
+  val cl2 = CL.mk h
+  val hand_cl2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
+  val hand_cl3 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_3::lit2_4::[]) :: []
+  val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (3,cl2)
+  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl2,cl2)
+  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl3,cl2)
+
+
+  (* TESTING DNET *)
+
+  (* Assertion functions *)
+
+  (* Tests *)
+  val dnet = Test_Graph.NTab.empty
+  val gname = Test_Graph.mk "g"
+  val dnet = Test_Graph.NTab.ins (gname g) dnet
 
 in
   val _ = Testing.assert_no_failed_tests();
