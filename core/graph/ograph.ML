@@ -817,7 +817,8 @@ functor OGraphFun(G : BASIC_OGRAPH)
    * returns a set of vertices
    *
    * NB: bang_graph has a [less efficient] version of this
-   * that does not assume normalisation
+   * that does not assume normalisation (but also returns
+   * complete outgoing wires, not just the first wire vertex)
    * FIXME: use that to provide a general version of
    *        get_open_subgraph?
    *)
