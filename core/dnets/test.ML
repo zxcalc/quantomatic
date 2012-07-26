@@ -3,7 +3,8 @@ local
   open Test_MatchUtil
 
   
-  structure CL = Contour_List(G)
+  structure TD = Top_DNet(G)
+  structure CL = TD.CL
   structure C = CL.C
   structure L = C.L
 
@@ -76,6 +77,34 @@ local
 
 
 
+  val j = G.empty
+  
+  val u1 = V.mk "u1"
+  val u2 = V.mk "u2"
+  val u3 = V.mk "u3"
+  val u4 = V.mk "u4"
+
+  val i1 = E.mk "i1"
+  val i2 = E.mk "i2"
+  val i3 = E.mk "i3"
+  val i4 = E.mk "i4"
+  
+  val j = j |> G.add_named_vertex u1 bvert
+            |> G.add_named_vertex u2 bvert
+            |> G.add_named_vertex u3 bvert
+            |> G.add_named_vertex u4 bvert
+            |> G.add_named_edge i1 dir_edge u1 u2
+            |> G.add_named_edge i2 dir_edge u1 u3
+            |> G.add_named_edge i3 dir_edge u2 u3
+            |> G.add_named_edge i4 dir_edge u3 u4
+
+  val lit3_1 = L.mk j u1
+  val lit3_2 = L.mk j u2
+  val lit3_3 = L.mk j u3
+  val lit3_4 = L.mk j u4
+
+
+
   (* TESTING LITERALS *)
 
   (* Assertion functions *)
@@ -145,8 +174,8 @@ local
 
   (* Assertion functions *)
   fun is_one(x,[]) = false
-    | is_one(x,c::[]) = if C.eq(x,c) then true else false
-    | is_one(x,c::cs) = if C.eq(x,c) then true else is_one(x,cs)
+    | is_one(x,c::[]) = if C.equiv(x,c) then true else false
+    | is_one(x,c::cs) = if C.equiv(x,c) then true else is_one(x,cs)
      
 
   fun assert_tgt_fn(c,cc) =
@@ -200,7 +229,7 @@ local
   fun assert_contour_list_length(i,cl) = if (length cl = i) then true 
     else raise ERROR ("Error in contour list length")
 
-  fun assert_contour_list_eq(cl1,cl2) = if CL.eq(cl1,cl2) then true
+  fun assert_contour_list_eq(cl1,cl2) = if CL.equiv(cl1,cl2) then true
     else raise ERROR ("Error in contour list")
 
   (* Tests *)
@@ -210,21 +239,112 @@ local
   val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl1,cl1)
 
   val cl2 = CL.mk h
-  val hand_cl2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
-  val hand_cl3 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_3::lit2_4::[]) :: []
+  val hand_cl2_1 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
+  val hand_cl2_2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_3::lit2_4::[]) :: []
   val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (3,cl2)
-  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl2,cl2)
-  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl3,cl2)
+  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl2_1,cl2)
+  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl2_2,cl2)
+
+  val cl3 = CL.mk j
+  val hand_cl3 = (lit3_1::[]) :: (lit3_2::lit3_3::[]) :: (lit3_4::[]) :: []
+  val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (3,cl3)
+  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl3,cl3)
+
 
 
   (* TESTING DNET *)
 
   (* Assertion functions *)
+  fun assert_contour_eq([],[]) = true
+    | assert_contour_eq(c1,c2) = if C.equiv(c1,c2) then true
+     else raise ERROR ("Contours do not match")
+    | assert_contour_eq(_,_) = false
+
+  fun assert_graph_name_eq(n1,n2) = if GraphName.name_eq(n1,n2) then true
+     else raise ERROR ("Graph names do not match")
+
+  fun assert_children_length(i,j) = if i=j then true
+    else raise ERROR ("Children number do not match")
 
   (* Tests *)
-  val dnet = Test_Graph.NTab.empty
+  (*val dnet = Test_Graph.NTab.empty
   val gname = Test_Graph.mk "g"
-  val dnet = Test_Graph.NTab.ins (gname g) dnet
+  val dnet = Test_Graph.NTab.ins (gname g) dnet*)
+
+  val e = TD.empty
+  val cl1 = (lit1_1::[]) :: (lit1_2::lit1_3::[]) :: []
+  val cl2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
+  val cl3 = (lit3_1::[]) :: (lit3_2::lit3_3::[]) :: (lit3_4::[]) :: []
+  val cll = cl1 :: cl2 :: cl3 :: []
+  val gn1 = GraphName.mk "g"
+  val gn2 = GraphName.mk "h"
+  val gn3 = GraphName.mk "j"
+  val gnl = gn1 :: gn2 :: gn3 :: []
+
+  val tree = TD.add_cl_list_to_dnet e cll gnl
+  
+  val level_1 = tree
+  val node_1 = tree
+  val contour_1_1 = TD.get_contour(level_1)
+  val children_1_1 = TD.get_children(level_1)
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_1_1,C.empty)
+  val _ = Testing.test "Checking the children" assert_children_length((length children_1_1),2)
+
+  (* val _ = Testing.test "Checking the contour" assert_contour_eq((lit1_1::[]),(lit3_1::[])) *)
+
+  val level_2 = children_1_1
+  val node_2_1 = nth level_2 0
+  val node_2_2 = nth level_2 1
+  val contour_2_1 = TD.get_contour(node_2_1)
+  val contour_2_2 = TD.get_contour(node_2_2)
+  val children_2_1 = TD.get_children(node_2_1)
+  val children_2_2 = TD.get_children(node_2_2)
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_2_2,(lit2_2::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_2_1,(lit1_1::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_2_1,(lit3_1::[]))
+  val _ = Testing.test "Checking the children" assert_children_length((length children_2_1),2)
+  val _ = Testing.test "Checking the children" assert_children_length((length children_2_2),1)
+
+  val level_3 = children_2_1 :: children_2_2 :: []
+  val node_3_1 = nth children_2_1 0
+  val node_3_2 = nth children_2_1 1
+  val node_3_3 = nth children_2_2 0
+  val contour_3_1 = TD.get_contour(node_3_1)
+  val contour_3_2 = TD.get_contour(node_3_2)
+  val contour_3_3 = TD.get_contour(node_3_3)
+  val children_3_1 = TD.get_children(node_3_1)
+  val children_3_2 = TD.get_children(node_3_2)
+  val children_3_3 = TD.get_children(node_3_3)
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_3_3,(lit2_1::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_3_2,(lit1_2::lit1_3::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_3_1,(lit3_2::lit3_3::[]))
+  val _ = Testing.test "Checking the children" assert_children_length((length children_3_1),1)
+  val _ = Testing.test "Checking the children" assert_children_length((length children_3_2),1)
+  val _ = Testing.test "Checking the children" assert_children_length((length children_3_3),1)
+
+  val level_4 = children_3_1 :: children_3_2 :: children_3_3 :: []
+  val node_4_1 = nth children_3_1 0
+  val node_4_2 = nth children_3_2 0
+  val node_4_3 = nth children_3_3 0
+  val contour_4_1 = TD.get_contour(node_4_1)
+  val children_4_1 = TD.get_children(node_4_1)
+  val graph_4_2 = TD.get_graph(node_4_2)
+  val contour_4_3 = TD.get_contour(node_4_3)
+  val children_4_3 = TD.get_children(node_4_3)
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_4_1,(lit3_4::[]))
+  val _ = Testing.test "Checking the children" assert_children_length((length children_4_1),1)
+  val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_4_2, gn1)
+  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_4_3,(lit2_4::lit2_3::[]))
+  val _ = Testing.test "Checking the children" assert_children_length((length children_4_3),1)
+  
+
+  val level_5 = children_4_1 :: children_4_3 :: []
+  val node_5_1 = nth children_4_1 0
+  val node_5_3 = nth children_4_3 0
+  val graph_5_1 = TD.get_graph(node_5_1)
+  val graph_5_3 = TD.get_graph(node_5_3)
+  val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_5_1, gn3)
+  val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_5_3, gn2)
 
 in
   val _ = Testing.assert_no_failed_tests();

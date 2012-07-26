@@ -1,6 +1,7 @@
 signature TOP_DNET =
 sig
   type T
+  type tree
   structure G : BANG_GRAPH
   structure CL : CONTOUR_LIST
   
@@ -11,6 +12,13 @@ sig
   val empty : T
   val add_cl_to_dnet : T -> CL.T -> GraphName.name -> T
   val add_cl_list_to_dnet : T -> CL.T list -> GraphName.name list -> T
+
+  val fprintf : tree list -> string
+
+  val is_node : tree -> bool
+  val get_contour : tree -> CL.C.T
+  val get_children : tree -> tree list
+  val get_graph : tree -> GraphName.name
 end
 
 
@@ -40,13 +48,13 @@ struct
 
     (* Helper function to compare contours *)
     fun equal(Node{contour=contour, children=children}, c) =
-       if CL.C.eq(contour,c) then true else false
+       if CL.C.equiv(contour,c) then true else false
 
     (* Helper function to check if a contour is inside the list of contours associated with a node *)
-	fun is_contained(c,[]) = false
-  	  | is_contained(c,Node{contour=contour, children=children}::[]) = if CL.C.eq(contour,c) then true else false
+	  fun is_contained(c,[]) = false
+  	  | is_contained(c,Node{contour=contour, children=children}::[]) = if CL.C.equiv(contour,c) then true else false
   	  | is_contained(c,Leaf{graph=graph}::[]) = false
-  	  | is_contained(c,Node{contour=contour, children=children}::cl) = if CL.C.eq(contour,c) then true else is_contained(c,cl)
+  	  | is_contained(c,Node{contour=contour, children=children}::cl) = if CL.C.equiv(contour,c) then true else is_contained(c,cl)
   	  | is_contained(c,Leaf{graph=graph}::cl) = is_contained(c,cl)
 
     (* Helper function to retrieve a specific node from a list*)
@@ -98,8 +106,8 @@ struct
                 end
 
 
-    fun add_cl_list_to_dnet d (cl::cll) (gn::gns) = add_cl_list_to_dnet (add_cl_to_dnet d cl gn) cll gns
-      | add_cl_list_to_dnet d (cl::[]) (gn::[]) = add_cl_to_dnet d cl gn
+    fun add_cl_list_to_dnet d (cl::[]) (gn::[]) = add_cl_to_dnet d cl gn
+      | add_cl_list_to_dnet d (cl::cll) (gn::gns) = add_cl_list_to_dnet (add_cl_to_dnet d cl gn) cll gns
 
 	(* build a tree given a set of pattern graphs *)
 	fun mk(tab) =
@@ -119,6 +127,16 @@ struct
 
 	(* compute the list of all the graphs not pruned *)
 	fun fold f a b = b
+
+
+
+  fun fprintf ([]) = ""
+    | fprintf (t::[]) = 
+      if (is_node(t)) then CL.C.fprintf(get_contour(t)) ^ " " ^ fprintf(get_children(t))
+      else GraphName.string_of_name(get_graph(t))
+    | fprintf (t::ts) = 
+      if (is_node(t)) then CL.C.fprintf(get_contour(t)) ^ " " ^ fprintf(ts) ^ " " ^ fprintf(get_children(t))
+      else GraphName.string_of_name(get_graph(t)) ^ " " ^ fprintf(ts)
 
 end
 

@@ -200,7 +200,7 @@ struct
        | SOME x => x
 end;
 
-
+(*
 (* test some basic graph constructions *)
 local
 
@@ -1603,7 +1603,7 @@ in
   val _ = Testing.assert_no_failed_tests();
   val _ = "UNIT TESTS FOR !-GRAPH ISOS PASSED!"
 end
-
+*)
 (* For debugging...
 
 PolyML.exception_trace (fn () => 
