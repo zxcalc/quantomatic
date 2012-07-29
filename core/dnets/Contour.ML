@@ -7,6 +7,10 @@ sig
   val empty : T
   val add_literal : T -> L.T -> T
   val get_first_literal : T -> L.T 
+  val get_contour_mult_none : T -> T
+  val get_contour_mult_star : T -> T
+  val get_contour_mult_qm : T -> T
+  val get_contour_mult_star_or_qm : T -> T
 
   val mk : G.T -> T -> T
   val target_function : G.T -> T
@@ -36,8 +40,26 @@ struct
   fun add_literal c l = l::c
 
   (* Get the first node in a contour *)
-  fun get_first_literal(l::literals) = l
-    | get_first_literal(l::[]) = l
+  fun get_first_literal(l::[]) = l
+    | get_first_literal(l::literals) = l
+
+  (* Get only the literal with multiplicity equal to None *)
+  fun get_contour_mult_none([]) = empty
+    | get_contour_mult_none(l::[]) = if L.is_mult_none(l) then l::[] else []
+    | get_contour_mult_none(l::ls) = if L.is_mult_none(l) then l::get_contour_mult_none(ls) else get_contour_mult_none(ls)
+
+  (* Get only the literal with multiplicity equal to Star *)
+  fun get_contour_mult_star([]) = empty
+    | get_contour_mult_star(l::[]) = if L.is_mult_star(l) then l::[] else []
+    | get_contour_mult_star(l::ls) = if L.is_mult_star(l) then l::get_contour_mult_star(ls) else get_contour_mult_star(ls)
+
+  (* Get only the literal with multiplicity equal to QM *)
+  fun get_contour_mult_qm([]) = empty
+    | get_contour_mult_qm(l::[]) = if L.is_mult_qm(l) then l::[] else []
+    | get_contour_mult_qm(l::ls) = if L.is_mult_qm(l) then l::get_contour_mult_qm(ls) else get_contour_mult_qm(ls)     
+
+  (* Get the literal with multiplicity equal to Star or QM *)
+  fun get_contour_mult_star_or_qm(c) = flat (get_contour_mult_star(c) :: get_contour_mult_qm(c) :: [])
 
   (* Helper function to find if a literal is contained in a list of literals *)
   fun is_contained(x, []) = false

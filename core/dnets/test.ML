@@ -189,11 +189,18 @@ local
     | assert_is_in_contour(l,c::[]) = if L.eq(l,c) then true else raise ERROR ("Error in the elements of the contour")
     | assert_is_in_contour(l,c::cs) = if L.eq(l,c) then true else assert_is_in_contour(l,cs)
 
-     fun assert_is_not_in_contour(l,[]) = true
+  fun assert_is_not_in_contour(l,[]) = true
     | assert_is_not_in_contour(l,c::[]) = if L.eq(l,c) then raise ERROR ("Error in the elements of the contour") else true
     | assert_is_not_in_contour(l,c::cs) = if L.eq(l,c) then raise ERROR ("Error in the elements of the contour") else assert_is_not_in_contour(l,cs)
 
+  fun assert_strong_compatibility(c1,c2) = if C.check_strong_compatibility(c1,c2) then true else raise ERROR ("Error in strong compatibility")  
+
+  fun assert_no_strong_compatibility(c1,c2) = if C.check_strong_compatibility(c1,c2) then raise ERROR ("Error in strong compatibility") else true
   
+  fun assert_weak_compatibility(c1,c2) = if C.check_weak_compatibility(c1,c2) then true else raise ERROR ("Error in weak compatibility")  
+
+  fun assert_no_weak_compatibility(c1,c2) = if C.check_weak_compatibility(c1,c2) then raise ERROR ("Error in weak compatibility") else true
+
   (* Tests *)
   val e = C.empty
   val trg1 = C.target_function g  

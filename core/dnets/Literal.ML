@@ -9,7 +9,6 @@ sig
 	val equiv : T * T -> bool
 	val match : T * T -> bool
 	
-
 	val get_adj : G.T -> T -> T list
 
 	val get_name : T -> V.name
@@ -25,8 +24,13 @@ sig
 	val mult_none : multiplicity
 	val mult_star : multiplicity
 	val mult_qm : multiplicity
+	val is_mult_none : T -> bool
+	val is_mult_star : T -> bool
+	val is_mult_qm : T -> bool
 
 	val fprintf : T -> string
+
+	val build : V.name * G.VData.data * multiplicity * int * multiplicity * int * multiplicity -> T
 
 end
 
@@ -90,6 +94,10 @@ struct
 	     else None
 	   end
 
+
+	fun build (n, k, k_m, i_a, i_m, o_a, o_m) =
+          {name = n, kind = k, kind_mult = k_m, input_arity = i_a, input_mult = i_m, output_arity = o_a, output_mult = o_m} : T
+
 	(* Make a literal *)   
 	fun mk g v = 
 		let
@@ -105,9 +113,9 @@ struct
 
 			val o_m = compute_output_mult g v
 		in
-			{name = v, kind = k, kind_mult = k_m, input_arity = i_a, input_mult = i_m, output_arity = o_a, output_mult = o_m} : T
+			 build (v, k, k_m, i_a, i_m, o_a, o_m)
 		end
-
+    
 
 	(* Helper functions to compare literal matching *)
 	fun match_kind(l1,l2) = 
@@ -176,6 +184,7 @@ struct
 	    end
 
 
+	(* Getters for a literal *)
 	fun get_name(l) = #name l
 
 	fun get_kind(l) = #kind l
@@ -190,15 +199,23 @@ struct
 
 	fun get_output_mult(l) = #output_mult l
 
-	fun mult_eq (m1,m2) =
-	  if ((m1=Star andalso m2=Star) orelse (m1=QM andalso m2=QM) orelse (m1=None andalso m2=None)) then true
-	  else false
 
+	(* Function to work with multiplicity *)
 	val mult_none = None
 
 	val mult_qm = QM
 
 	val mult_star = Star
+
+	fun mult_eq (m1,m2) =
+	  if ((m1=Star andalso m2=Star) orelse (m1=QM andalso m2=QM) orelse (m1=None andalso m2=None)) then true
+	  else false
+
+	fun is_mult_none(l) = if mult_eq((#kind_mult l),None) then true else false
+
+	fun is_mult_star(l) = if mult_eq((#kind_mult l),Star) then true else false
+
+	fun is_mult_qm(l) = if mult_eq((#kind_mult l),QM) then true else false
 
 
 	fun fprintf(l) = V.string_of_name(#name l)
