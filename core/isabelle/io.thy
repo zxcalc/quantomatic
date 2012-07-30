@@ -1,4 +1,4 @@
-theory io
+theory io 
 imports Main graph 
 uses
 
@@ -51,42 +51,36 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* Simple dot output for graphs *)
  "../../core/io/output_graph_dot.ML"
 
-(* matching *)
- "../../core/matching/bbox_match.ML" (* match info for bbox graphs *)
- "../../core/matching/match.ML" (* a graph matching *)
 
-(* signature for rule match search *)
- "../../core/matching/rule_match_search.ML"
-(* naive match search implementation, find symmetric cases *)
- "../../core/matching/simple_match_search.ML"
- "../../core/matching/simple_rule_match_search.ML"
-(* searching for matches, but avoiding symmetric ones *)
- "../../core/matching/symmetry_rule_match_search.ML"
+(* matching *)
+ "../../core/matching/match_state.ML"
+ "../../core/matching/bang_graph_match_state.ML"
+(* signature for inner (concrete) matching *)
+ "../../core/matching/inner_match_search.ML"
+(* signature for outer (e.g. !-box) matching *)
+ "../../core/matching/match_search.ML"
+(* simple inner loop for the matching algo *)
+ "../../core/matching/simple_inner_match_search.ML"
+(* wrappers for inner_match_search *)
+(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
+ "../../core/matching/concrete_match_search.ML"
+(* naive pattern-graph wrapper *)
+ "../../core/matching/greedy_match_search.ML"
+
+
+
+
 (* substitution of a matched subgraph for another graph *)
  "../../core/rewriting/graph_subst.ML"
 (* substitution used to provide rewriting with rulesets *)
- "../../core/rewriting/ruleset_rewriting.ML"
+ "../../core/rewriting/ruleset_rewriter.ML" 
 
 (* Heuristic derived data structures *)
  "../../core/rewriting/heuristic/distancematrix.ML" (* distance matrix *)
- "../../core/matching/filter.ML" (* incremental match filter *)
 
 (* construction of everything in a graphical theory from just param *)
  "../../core/theories/graphical_theory.ML"
 
-
-(* OK TO HERE *)
-(*
-(* red-green specific vertices, graphs and matching *)
- "../../core/theories/red_green/vertex.ML"
-
- (* testing required in input_graph_v1 *)
- "../../core/theories/test/vertex-test.ML"
-
-(* I/O for old RG-graphs, depends on defining RG_VertexData *)
- "../../core/io/input_graph_v1.ML"
- "../../core/io/output_graph_v1.ML"
-*)
 begin
 
 end;
