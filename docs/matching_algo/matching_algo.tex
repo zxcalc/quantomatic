@@ -80,7 +80,7 @@ That $\hat m$ exists and is the unique morphism from $L$ to $G$ that restricts t
 Providing the match state satisfies the above invariants, $P$ is empty and $m$ is total everywhere except on bare wires, the bare wire matching procedure given in section \ref{sec:wires-and-circles} maintains the invariants and makes $m$ total on $V_L$.
 
 
-\section{Inner Loop: Concrete Matching}
+\section{Inner Loop: (Partial) Concrete Matching}
 \label{sec:inner-loop}
 
 The goal of the concrete matching step is to match all of the concrete vertices in the graph. If a node-vertex is not connected to a !-box, its complete neighbourhood will also be matched. If it is connected to one or more !-boxes, only some if its neighbourhood is matched. We refer to these as \textit{partially matched} node-vertices. A node-vertex $v$ such that the neighbourhood of $m(v)$ is totally covered is called \textit{completely matched}.
@@ -241,10 +241,10 @@ When adding something from $U_W$, the wire starting $f(w)$ must be a valid match
 Thus, regardless of how vertices are chosen from $P_S$, $U_N$ or $U_W$, there must be a trace that returns a match where $m$ agrees with $f$ on vertices.
 
 
-\section{Testing Wrapper: Concrete Matching Only}
+\section{String Graph to String Graph Matching}
 \label{sec:test-wrapper}
 
-For testing purposes, it is straight-forward to wrap the above procedure to just do concrete matching.  When we populate the match state, we do it in the following manner:
+For testing purposes, and as a general procedure for matching string-graphs against other string-graphs, it is straight-forward to wrap the above procedure to just do concrete matching.  When we populate the match state, we do it in the following manner:
 \begin{itemize}
 \item $U_C$ will contain all circles
 \item $U_W$ will contain all other wire vertices, except those forming bare wires (boundary vertices connected to another boundary vertex)
@@ -268,10 +268,10 @@ Let $f:L \rightarrow G'$ be a matching of $L$ (after normalisation) onto a graph
 
 following the argument in section \ref{sec:il-complete}, as if $f:L \rightarrow G'$ is a matching to a graph equivalent to $G'$, then after the concrete step (which is given an empty $m$), there must be a branch where $m$ agrees with the restriction of $f$ to all of $L$ except bare wires.  $P$ must then be empty by postcondition \ref{enum:il-postcond-P}.
 
-\section{Full Wrapper: Lazy !-Box Expansion}
+\section{Greedy $!$-Graph to String Graph Matching}
 \label{sec:full-wrapper}
 
-This algorithm performs lazy $!$-box expansion to find all possible matchings of a pattern graph against a string graph.  In order for the algorithm to be deterministic, we disallow pattern graphs with empty $!$-boxes or $!$-boxes containing only bare wires, as these may be expanded any number of times and still match any graph that contains a wire.
+This algorithm lazily expands or kills $!$-boxes to find all possible matchings of a pattern graph against a string graph, greedily matching everything not in a $!$-box at each stage.  The algorithm is complete and terminating only for those pattern graphs where no sequence of $!$-operations can result in a $!$-box that is empty or contains only bare wires (the implementation in Quantomatic actually allows such pattern graphs, but will fail to find all possible matchings for such graphs).
 
 Since we are only matching pattern graphs on to concrete graphs, it suffices to restrict $!$-box operations to only two: KILL and EXPAND (COPY, then DROP the new box).
 
@@ -282,10 +282,14 @@ Since we are only matching pattern graphs on to concrete graphs, it suffices to 
 
 \subsection{Termination}
 
+The algorithm terminates, on the assumption that no sequence of $!$-box operations will ever produce a \textit{wild} $!$-box (ie: a $!$-box that is either empty or contains only bare wires), by the following argument.
+
 Each step terminates, and there is only one loop.  As a variant, we take
 \[ n = |V_G| + |V_L\setminus\dom(m)| - |\dom(m)| \]
 
-We calculate the variant at the point where we consider terminating the loop, immediately after the concrete matching step.  If the previous iteration involved killing one or more $!$-boxes, $V_L\setminus\dom(m)$ will decrease (by the combined size of the $!$-boxes).  If the previous iteration involved expanding a $!$-box, $|\dom(m)|$ will increase (by the size of the $!$-box, excluding any bare wires).  $V_L\setminus\dom(m)$ is clearly bounded below by $0$, and $|\dom(m)|$ is bounded below by $|V_G|$, by global invariant \ref{enum:g-inv-inj}, so $n$ is bounded below by $0$ and decreases with every iteration.  Hence the algorithm terminates.
+We calculate the variant at the point where we consider terminating the loop, immediately after the concrete matching step.  If the previous iteration involved killing one or more $!$-boxes, $V_L\setminus\dom(m)$ will decrease (by the combined size of the $!$-boxes, less bare wires --- this amount is positive due to the above assumption).  If the previous iteration involved expanding a $!$-box, $|\dom(m)|$ will increase (by the size of the $!$-box, excluding any bare wires).  $V_L\setminus\dom(m)$ is clearly bounded below by $0$, and $|\dom(m)|$ is bounded below by $|V_G|$, by global invariant \ref{enum:g-inv-inj}, so $n$ is bounded below by $0$ and decreases with every iteration.  Hence the algorithm terminates.
+
+Note that Quantomatic's implementation ensures termination (at the expense of completeness) for all pattern graphs by killing any wild $!$-boxes as soon as they are produced.
 
 
 \subsection{Concrete Matching Preconditions}
@@ -329,7 +333,9 @@ At the end of the algorithm, everything that was ever in the concrete part of th
 
 \TODOinline{all possible matchings are found}
 
-\section{Improved Pattern Wrapper: Component-wise !-box Expansion}
+Note that Quantomatic's implementation is incomplete when the pattern graph is \textit{wild} --- ie, when there is a sequence of $!$-box operations on the pattern graph that can produce a wild $!$-box.
+
+\section{Component-wise $!$-Graph to String Graph Matching}
 
 The previous algorithm greedily matches all concrete vertices in each iteration. However, in a situation where different concrete components of a graph are connected only by a path containing !-boxes, this could produce many spurious match candidates that only get ruled out when the connecting !-box is killed or expanded. The following algorithm removes this problem by doing concrete matching component-wise, only moving to the next component once all !-boxes connected to the currently matched concrete components have been expanded.
 
@@ -339,7 +345,7 @@ Here, concrete component means a connected subgraph containing no vertices in !-
   \includegraphics[height=16cm]{component_pattern_part.pdf}
 \end{center}
 
-\section{Alternate Wrapper: Partial (Non-strict) Graph Matching}
+\section{Partial (Non-strict) String Graph to String Graph Matching}
 
 The advantage of the concrete/wrapper separation is it allows easy implementation of alternative pattern graph paradigms. The one described in this section is strictly weaker than $!$-box matching, yet in many cases could perform better, as the pattern expansion does not require an indeterminism. That is, it is uniquely determined by a single run of the concrete matching algorithm.
 

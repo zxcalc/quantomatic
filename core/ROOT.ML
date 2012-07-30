@@ -3,20 +3,20 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
 (**** Compile isaplib libraries ****)
 
-local val rootDir = OS.FileSys.getDir(); in 
-val _ = OS.FileSys.chDir (rootDir ^ "/../../isaplib/"); 
-val _ = use "ROOT.ML"; 
-val _ = OS.FileSys.chDir rootDir;
-end;
+val rootDir = OS.FileSys.getDir();
+
+(* Include isaplib *)
+OS.FileSys.chDir (rootDir ^ "/../../isaplib/");
+use "ROOT.ML";
+OS.FileSys.chDir rootDir;
+
 print_depth 3;
 
-val rootDir = OS.FileSys.getDir(); 
 PolyML.Project.Log.level_ref := 4;
-PolyML.Project.depend_on_files 
-  [(* this file *)
+PolyML.Project.depend_on_files
+  [
    rootDir ^ "/../../isaplib/ROOT.ML",
    rootDir ^ "/ROOT.ML"
-   (* TODO: isaplib? *)
   ];
 
 (** For debugging, turn on debug flag: **)
@@ -93,7 +93,11 @@ Testing.make_test "theories/test/vertex-test.ML";
 Testing.make_test "io/input_graph_v1.ML";
 Testing.make_test "io/output_graph_v1.ML";
 (* *)
-Testing.make_test "graph/test/graph-test.ML";
+Testing.make_test "graph/test/test-graph-setup.ML";
+Testing.make_test "graph/test/test-graph.ML";
+Testing.make_test "graph/test/test-ograph.ML";
+Testing.make_test "graph/test/test-bang-graph.ML";
+Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
@@ -117,54 +121,38 @@ PolyML.Project.make "io/output_graph_dot.ML";
 
 
 (* matching *)
-PolyML.Project.make "matching/bbox_match.ML"; (* match info for bbox graphs *)
-PolyML.Project.make "matching/match.ML"; (* a graph matching *)
-(* Testing.make_test "matching/test/match-test.ML"; (* unit/regression tests *) *)
-(* signature for rule match search *)
-PolyML.Project.make "matching/rule_match_search.ML";
-(* naive match search implementation, find symmetric cases *)
-PolyML.Project.make "matching/simple_match_search.ML";
-PolyML.Project.make "matching/simple_rule_match_search.ML";
-(* searching for matches, but avoiding symmetric ones *)
-PolyML.Project.make "matching/symmetry_rule_match_search.ML";
+PolyML.Project.make "matching/match_state.ML";
+PolyML.Project.make "matching/bang_graph_match_state.ML";
+(* signature for inner (concrete) matching *)
+PolyML.Project.make "matching/inner_match_search.ML";
+(* signature for outer (e.g. !-box) matching *)
+PolyML.Project.make "matching/match_search.ML";
+(* simple inner loop for the matching algo *)
+PolyML.Project.make "matching/simple_inner_match_search.ML";
+(* wrappers for inner_match_search *)
+(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
+PolyML.Project.make "matching/concrete_match_search.ML";
+(* naive pattern-graph wrapper *)
+PolyML.Project.make "matching/greedy_match_search.ML";
+
+
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
 (* substitution used to provide rewriting with rulesets *)
-PolyML.Project.make "rewriting/ruleset_rewriting.ML";
-
-
-(* New matching implementation *)
-
-PolyML.Project.make "matching2/match_state.ML";
-
-(* signature for inner (concrete) matching *)
-PolyML.Project.make "matching2/inner_match_search.ML";
-
-(* signature for outer (e.g. !-box) matching *)
-PolyML.Project.make "matching2/outer_match_search.ML";
-
-(* simple inner loop for the matching algo *)
-PolyML.Project.make "matching2/simple_inner_match_search.ML";
-
-(* wrappers for inner_match_search *)
-(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
-PolyML.Project.make "matching2/concrete_match_search.ML";
-(* naive pattern-graph wrapper *)
-PolyML.Project.make "matching2/greedy_match_search.ML";
+PolyML.Project.make "rewriting/ruleset_rewriter.ML";
 
 
 (* Testing *)
-(* Testing.make_test "matching/test/simple_rule_match_search-test.ML"; *)
-(* Testing.make_test "matching/test/simple_match_search-test.ML"; *)
-(* Testing.make_test "rewriting/test/ruleset_rewriting-test.ML"; *)
-(* Testing.make_test "matching/test/symmetry_match_search-test.ML"; *)
-Testing.make_test "matching2/test/test-matching-setup.ML"; 
-(* Testing.make_test "matching2/test/test-matching-concrete.ML"; *)
-(* Testing.make_test "matching2/test/test-matching-greedy.ML"; *)
+Testing.make_test "matching/test/test-matching-setup.ML";
+Testing.make_test "matching/test/test-bang-match-state.ML";
+Testing.make_test "matching/test/test-matching-concrete.ML";
+Testing.make_test "matching/test/test-matching-greedy.ML";
+
+Testing.make_test "rewriting/test/graph_subst-test.ML";
+Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
-PolyML.Project.make "matching/filter.ML"; (* incremental match filter *)
 
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
@@ -233,8 +221,9 @@ PolyML.Project.make "dnets/TopDNet.ML";
 Testing.make_test "dnets/test.ML"; 
 
 (* Testing *)
-(* Testing.make_test "io/test/load_ruleset-test.ML"; *)
-(* Testing.make_test "rewriting/test/rule-test.ML"; *)
+Testing.make_test "io/test/load_ruleset-test.ML";
+Testing.make_test "rewriting/test/rule-test.ML";
+Testing.make_test "test/regression-tests.ML";
 
 (* Test to make sure example code for playing with graphs at the ML level 
    are working. *)

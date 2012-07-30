@@ -1,12 +1,12 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
 import quanto.core.Theory;
 import quanto.core.data.CoreGraph;
-import edu.uci.ics.jung.contrib.visualization.ViewZoomScrollPane;
-import java.awt.Dimension;
-import javax.swing.JPanel;
-import java.awt.BorderLayout;
+
+import javax.swing.*;
 import javax.swing.event.ChangeListener;
+import java.awt.*;
 
 public class GraphView extends JPanel
 {

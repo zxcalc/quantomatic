@@ -12,7 +12,7 @@ in
             (OGraphPreLayout.svg_pretty_vertex (V.mk "x") 100 150)); 
 
   (* create the layout/drawing for the graph g4 with an extra vertex added. *)
-  val (_, g) = g4 |> Graph.add_vertex (OVData.IVert ("nar."));
+  val (_, g) = g4 |> Graph.add_vertex (OVData.NVert ("nar."));
 
   (* test adding next vlist *)
   val input_vlist = V.NSet.list_of (Graph.get_inputs g);

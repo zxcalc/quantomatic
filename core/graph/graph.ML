@@ -17,11 +17,8 @@ val lookup_vertex : T -> V.name
 val lookup_edge : T -> E.name 
 									-> ((dir_or_undir * EData.data) 
                       * (V.name * V.name)) option
-(* getting stuff from graphs (exception if not there) *)
-val get_vertex : T -> V.name -> (VData.data * (E.NSet.T * E.NSet.T))
-val get_edge : T -> E.name -> ((dir_or_undir * EData.data) 
-                                  * (V.name * V.name))
 
+(* getting stuff from graphs (exception if not there) *)
 val get_edge_source : T -> E.name -> V.name
 val get_edge_target : T -> E.name -> V.name
 
@@ -172,15 +169,6 @@ val copy_subgraph : V.NSet.T
     -> (V.Rnm.T * E.Rnm.T) * T 
     -> (V.Rnm.T * E.Rnm.T) * T
 
-
-(*** DEPRECATED FUNCTIONS ***)
-
-(* FIXME: remove *) val get_vname_ehns : T -> V.name -> H.NSet.T
-(* FIXME: remove *) val get_ehn_vname : T -> H.name -> V.name
-(* FIXME: remove *) val fold_adj_halfedges : (H.name * (dir_or_undir * EData.data) 
-                -> V.name -> 'a -> 'a) -> T -> V.name -> 'a -> 'a
-(* FIXME: remove *) val merge_2vertices : V.name -> V.name -> T -> T
-
 end;
 
 
@@ -204,16 +192,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   (* implicit: g n *)
   val lookup_vertex = V.NTab.lookup o get_vertices
   val lookup_edge = E.NTab.lookup o get_edges
-  
-  (* *)
-  fun get_vertex g n = 
-      case lookup_vertex g n 
-       of NONE => raise no_such_vname_exp ("get_vertex", n, g)
-        | SOME x => x;
-  fun get_edge g en = 
-      case lookup_edge g en 
-       of NONE => raise no_such_ename_exp ("get_edge", en, g)
-        | SOME x => x;
   
   val get_edge_source = (fst o snd) oo get_edge
   val get_edge_target = (snd o snd) oo get_edge
@@ -756,47 +734,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         fold_adj (add_edge_to_arity o strip_args) g v Arity.zero
       end;
 
-  (*** DEPRECATED FUNCTIONS ***)
-  fun get_ehn_vname g ehn = 
-      let val (_,(s,t)) = get_edge g (H.get_ename ehn)
-      in if H.is_start ehn then s else t end;
-  fun get_vname_ehns g v = 
-      let val (_,(ines,outes)) = (get_vertex g v)
-      in
-        H.NSet.empty 
-          |> E.NSet.fold (H.NSet.add o H.mk_start) outes 
-          |> E.NSet.fold (H.NSet.add o H.mk_end) ines
-      end;
-  fun fold_adj_halfedges' f graph (ins,outs) a = 
-      a |> (E.NSet.fold 
-           (fn e => let val (d,(from,_)) = get_edge graph e
-            in f (H.mk_start e,d) from end) ins)
-        |> (E.NSet.fold 
-           (fn e => let val (d,(_,to)) = get_edge graph e
-            in f (H.mk_end e,d) to end) outs);
-  fun fold_adj_halfedges f g n a = 
-      fold_adj_halfedges' f g (snd (get_vertex g n)) a;
-  fun merge_2vertices v1 v2 g = 
-      let val (_,(ines,outes)) = get_vertex g v1
-      in 
-        g |> E.NSet.fold
-              (fn en => fn g => 
-                  let val (e,(fromv,_)) = get_edge g en
-                  in g |> delete_edge en
-                       |> add_edge_named_like en e fromv v2
-                       |> snd
-                  end)
-              ines
-          |> E.NSet.fold
-              (fn en => fn g => 
-                  let val (e,(_,tov)) = get_edge g en
-                  in g |> delete_edge en
-                       |> add_edge_named_like en e v2 tov
-                       |> snd
-                  end)
-              outes
-          |> delete_vertex v1
-      end;
 end; end; (* local -- hides opened Graph data types; structure *)
 
 

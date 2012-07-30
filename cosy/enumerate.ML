@@ -33,7 +33,6 @@ struct
        | NONE   => NONE
   
   fun add_gen gen gr = Graph.merge_by_vertices gr (snd (Graph.rename_apart gr gen))
-  fun do_plug (p,q) gr = (snd o snd) (Graph.plug_by_boundary p q gr)
   fun get_plugs gr = let
     fun not_adj_to_boundary v = Graph.fold_adj (fn (_,v',_) => fn a =>
       a andalso (not (Graph.is_boundary_vertex gr v'))) gr v true
@@ -88,7 +87,7 @@ struct
       else (if ins = total_ins then f gr else I)
               (case first_plug plugs
                  of SOME (p,q) =>
-                      enum_plugs (gr |> do_plug (p,q), (* do plug *)
+                      enum_plugs (gr |> Graph.do_plug p q, (* do plug *)
                                   ins-1,
                                   plugs |> Plugs.del_dom p |> Plugs.del_cod q,
                                   plug_count+1)

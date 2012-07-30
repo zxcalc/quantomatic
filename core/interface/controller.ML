@@ -36,7 +36,7 @@ struct
 
                    (*** Graph Commands ***)
                    | ListGraphsRequest
-                     (* StringListResponse *)
+                     (* StringResponse *)
                    | LoadGraphRequest of { details: graphLoadRequest }
                      (* StringResponse | ErrorResponse *)
                    | SaveGraphToFileRequest of { graphName: string, fileName: string }
@@ -163,6 +163,8 @@ struct
                                | BangBoxUserData of { bangBoxName: string,
                                                       dataName: string }
                                  (* UserDataResponse | ErrorResponse *)
+                               | PrintUserData
+                                 (* PrettyResponse | ErrorResponse *)
 
        and graphEditAction = UndoAction
                              (* OkResponse | ErrorResponse *)
@@ -224,7 +226,9 @@ struct
                              (* StringResponse | ErrorResponse *)
                            | BangVerticesAction of { bangBoxName: string, vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
-                           | UnbangVerticesAction of { vertexNames: string list }
+                           | CompletelyUnbangVerticesAction of { vertexNames: string list }
+                             (* OkResponse | ErrorResponse *)
+                           | UnbangVerticesAction of { bangBoxName: string, vertexNames: string list }
                              (* OkResponse | ErrorResponse *)
                            | SetBangBoxUserDataAction of { bangBoxName: string,
                               dataName : string, userData: string }
@@ -683,6 +687,14 @@ fun hilb ([format], graph) =
                 in
                       DataResponse { data = data }
                 end
+
+               | PrintUserData => 
+                let
+                  val ud = State.get_graph_ud state (GraphName.mk graphName)
+                in
+                  PrettyResponse {data = State.UIData.pretty_user_data ud}
+                end
+
             ), state)
            end
         handle G.no_such_vname_exp (_,vname,_) =>
@@ -816,19 +828,21 @@ fun hilb ([format], graph) =
                 of BasicFormat => (StringResponse { data = B.dest nm }, state'')
                  | PrettyFormat => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
                  | XmlFormat  =>  let
-                                    val graph = (State.get_graph state'' gname)
-                                    val verts = (G.get_bbox_contents graph nm)
+                                    val graph = State.get_graph state'' gname
+                                    val verts = G.get_bbox_contents graph nm
                                     val bbox  = (nm,verts)
                                   in
-                                   (XmlResponse { data = Output.BBox.output bbox }, state'')
+                                   (XmlResponse {
+                                      data = Output.BBox.output bbox
+                                    }, state'')
                                   end
                  | DescriptionFormat => let
-                                          val graph = (State.get_graph state'' gname)
-                                          val verts = (G.get_bbox_contents graph nm)
+                                          val graph = State.get_graph state'' gname
+                                          val verts = G.get_bbox_contents graph nm
                                           val bbox  = (nm,verts)
                                         in
                                          (BangBoxDescriptionResponse {
-                                            bangBox = describe_bangbox (nm,(G.get_bbox_contents graph nm))
+                                            bangBox = describe_bangbox bbox
                                           }, state'')
                                         end
             end
@@ -850,11 +864,18 @@ fun hilb ([format], graph) =
               (StringResponse { data = B.dest nm }, state')
             end
         | BangVerticesAction { bangBoxName, vertexNames } =>
+            (* FIXME: return a description of the !-box *)
+            (* Some extra verts may have been added *)
             (OkResponse,
              State.bang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
-        | UnbangVerticesAction { vertexNames } =>
+        | CompletelyUnbangVerticesAction { vertexNames } =>
             (OkResponse,
-             State.unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
+             State.completely_unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
+        | UnbangVerticesAction { bangBoxName, vertexNames } =>
+            (* FIXME: return a description of the !-box *)
+            (* Some extra verts may have been removed *)
+            (OkResponse,
+             State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
               State.update_bangbox_user_data dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
@@ -1048,7 +1069,6 @@ fun hilb ([format], graph) =
     | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
         (OkResponse,
          State.apply_rewrite (GraphName.mk graphName) index state)
-
     | serviceRequest' ListMetricsNamesRequest state =
       (StringListResponse { data = State.get_names_metrics state }, state)
     | serviceRequest' ListMetricsDescsRequest state =
@@ -1187,6 +1207,24 @@ fun hilb ([format], graph) =
                              (GraphName.dest graphName)^
                              "\" already has a !-box named \""^
                              (B.dest bboxName)^"\"")
+                }
+           | State.inconsistent_bbox_exp (_,b,g) =>
+                ErrorResponse {
+                  errorCode = "BAD_BBOX",
+                  message = ("This operation would make !-box \""^
+                             (B.dest b)^
+                             "\" in graph \""^
+                             (GraphName.dest g)^
+                             "\" inconsistent")
+                }
+           | State.wire_vertex_exp (msg,g,v) =>
+                ErrorResponse {
+                  errorCode = "BAD_WIRE_VERTEX",
+                  message = ("This operation would make wire-vertex \""^
+                             (V.dest v)^
+                             "\" in graph \""^
+                             (GraphName.dest g)^
+                             "\" inconsistent ("^msg^")")
                 }
            | State.rule_name_exists_exp ruleName =>
                 ErrorResponse {

@@ -35,7 +35,7 @@ structure VKind : VKIND
   	let 
   	   val arity = NSet.cardinality inedges + NSet.cardinality outedges
   	in case idata of
-  	   	 V.IVert qdata 	=> Kind (qdata,arity)
+  	   	 V.NVert qdata 	=> Kind (qdata,arity)
   	   	|V.BVert	=> Bound
   	end;
   

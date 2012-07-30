@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -62,9 +61,9 @@ import java.util.logging.Logger;
 
 import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
-import quanto.core.protocol.CopyOfUserDataSerializer;
-import quanto.core.protocol.Point2DUserDataSerialiazer;
 import quanto.core.Core;
+import quanto.core.protocol.userdata.CopyOfGraphUserDataSerializer;
+import quanto.core.protocol.userdata.PositionGraphUserDataSerializer;
 import quanto.gui.graphhelpers.ConstrainedMutableAffineTransformer;
 import quanto.gui.graphhelpers.Labeler;
 import quanto.gui.graphhelpers.QVertexRenderer;
@@ -423,8 +422,8 @@ public class InteractiveGraphView
 		 * position.*/
     	Map<String, Vertex> vmap = g.getVertexMap();
     	for(String key : vmap.keySet()) {
-    		Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-			Point2D p = pds.getVertexUserData(core.getTalker(), g, key);
+    		PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
+			Point2D p = (Point2D) pds.getVertexUserData(g, key);
 			if (p != null) {
 				viewer.getGraphLayout().setLocation(vmap.get(key), p);
 				viewer.getGraphLayout().lock(vmap.get(key), true);
@@ -880,11 +879,11 @@ public class InteractiveGraphView
 	public void setVertexPositionData(Vertex v) {
 	     try {
 	          core.startUndoGroup(getGraph());
-	          Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	          PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
 	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
 	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
 	          Point2D new_p = new Point2D.Double(X, Y);
-	          pds.setVertexUserData(getCore().getTalker(), getGraph(), v.getCoreName(), new_p);
+	          pds.setVertexUserData(getGraph(), v.getCoreName(), new_p);
 	          core.endUndoGroup(getGraph());
 	     } catch (CoreException e) {
 	          errorDialog(e.getMessage());
@@ -893,17 +892,17 @@ public class InteractiveGraphView
 	
 	public void setVerticesPositionData() {
 	     CoreGraph graph = getGraph();
-	     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
+	     PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
 	     try {
 	     //New vertices are added but not pushed on the undo stack 
           core.startUndoGroup(graph);
 	     for(Vertex v : graph.getVertices()) {
 	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
 	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-	          Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+	          Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
 	          Point2D new_p = new Point2D.Double(X, Y);
 	          if (old_p == null) {
-	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+	               pds.setVertexUserData(graph, v.getCoreName(), new_p);
 	          }
 	     }
 	     core.endUndoGroup(graph);
@@ -915,7 +914,7 @@ public class InteractiveGraphView
 	     for (Vertex v: graph.getVertices()) {
                int X = (int) smoothLayout.getDelegate().transform(v).getX();
                int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-               Point2D old_p = pds.getVertexUserData(getCore().getTalker(), graph, v.getCoreName());
+               Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
                Point2D new_p = new Point2D.Double(X, Y);
                if (old_p.distance(new_p) > 1.5) {
                     vertices.add(v);
@@ -927,7 +926,7 @@ public class InteractiveGraphView
                int X = (int) smoothLayout.getDelegate().transform(v).getX();
                int Y = (int) smoothLayout.getDelegate().transform(v).getY();
 	          Point2D new_p = new Point2D.Double(X, Y);
-               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+               pds.setVertexUserData(graph, v.getCoreName(), new_p);
                vertices.remove(v);
 	     }
 	     if (vertices.size() <= 0)
@@ -939,7 +938,7 @@ public class InteractiveGraphView
 	               int X = (int) smoothLayout.getDelegate().transform(v).getX();
 	               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
 	               Point2D new_p = new Point2D.Double(X, Y);
-	               pds.setVertexUserData(getCore().getTalker(), graph, v.getCoreName(), new_p);
+	               pds.setVertexUserData(graph, v.getCoreName(), new_p);
 	           }
 	           core.endUndoGroup(graph);
 	      } catch (CoreException e) {
@@ -952,8 +951,8 @@ public class InteractiveGraphView
 		int count=0;
 		for(Vertex v: getGraph().getVertices())	{
 		     if(verticesCache.get(v.getCoreName())!=null) {
-                    Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+                    PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
+                    Point2D p = (Point2D) pds.getVertexUserData(getGraph(), v.getCoreName());
                     if (p != null) {
                          viewer.getGraphLayout().setLocation(v, p);
                     } else {
@@ -963,8 +962,8 @@ public class InteractiveGraphView
                }
 		     else {
 				if(rewriteRect!=null) {
-				     Point2DUserDataSerialiazer pds = new Point2DUserDataSerialiazer();
-	                    Point2D p = pds.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+				     PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
+	                    Point2D p = (Point2D) pds.getVertexUserData(getGraph(), v.getCoreName());
 	                    if (p != null) {
 	                         viewer.getGraphLayout().setLocation(v, p);
 	                         viewer.getGraphLayout().lock(v, true);
@@ -1127,16 +1126,6 @@ public class InteractiveGraphView
 			}
 		}
 
-        private int getRulePriority(String ruleName) {
-            try {
-                String prioStr = getCore().getTalker().ruleUserData(ruleName, "quanto-gui:priority");
-                return  Integer.parseInt(prioStr);
-            } catch (CoreException e) {
-                //We could not get the priority for that rule... set it to 5
-                return 5;
-          }
-        }
-
 		@Override
 		public void run() {
 			try {
@@ -1149,17 +1138,6 @@ public class InteractiveGraphView
 				int rw = 0;
 				while (rws.size() > 0
 					&& !Thread.interrupted()) {
-                    int max = -100;
-                    int c = 0;
-                    int toApply = 0;
-                    for (AttachedRewrite<CoreGraph> r : rws) {
-                        int priority = getRulePriority(r.getRuleName());
-                        if (priority >= max) {
-                            max = priority;
-                            rw = c;
-                        }
-                        c++;
-                    }
 					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
 					sleep(1500);
 					invokeApplyRewriteAndWait(rw);	
@@ -1422,31 +1400,31 @@ public class InteractiveGraphView
 					 * were copied we check the "copy_of" user_data which is set automatically by the core when a
 					 * subgraph get copied, and delete it afterwards.
 					 *  */
-					CopyOfUserDataSerializer cos = new CopyOfUserDataSerializer();
-					Point2DUserDataSerialiazer pos = new Point2DUserDataSerialiazer();
+					CopyOfGraphUserDataSerializer cos = new CopyOfGraphUserDataSerializer(core.getTalker());
+                    PositionGraphUserDataSerializer pos = new PositionGraphUserDataSerializer(core.getTalker());
 					
 				     core.startUndoGroup(getGraph());
 					for (Vertex v: getGraph().getVertices()) {
-					     String copy_of_vertex = cos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					     String copy_of_vertex = (String) cos.getVertexUserData(getGraph(), v.getCoreName());
 					     if ((copy_of_vertex != null) && (!copy_of_vertex.equals(""))) {
 					          //Then translate its quanto-gui:position
-					          Point2D position = pos.getVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					          Point2D position = (Point2D) pos.getVertexUserData(getGraph(), v.getCoreName());
 					          position.setLocation(position.getX() + rect.getCenterX() + 20, position.getY());
-					          pos.setVertexUserData(core.getTalker(), getGraph(), v.getCoreName(), position);
-					          cos.deleteVertexUserData(core.getTalker(), getGraph(), v.getCoreName());
+					          pos.setVertexUserData(getGraph(), v.getCoreName(), position);
+					          cos.deleteVertexUserData(getGraph(), v.getCoreName());
 					     }
 					}
 					/* For now we do nothing with Edge and !-Boxes user data but still need to remove their "copy_of" UD */
 					for (Edge edge: getGraph().getEdges()) {
-					     String copy_of = cos.getEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					     String copy_of = (String) cos.getEdgeUserData(getGraph(), edge.getCoreName());
 					     if ((copy_of != null) && (!copy_of.equals(""))) {
-					          cos.deleteEdgeUserData(core.getTalker(), getGraph(), edge.getCoreName());
+					          cos.deleteEdgeUserData(getGraph(), edge.getCoreName());
 					     }
 					}
 					for (BangBox bb: getGraph().getBangBoxes()) {
-                              String copy_of = cos.getBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                              String copy_of = (String) cos.getBangBoxUserData(getGraph(), bb.getCoreName());
                               if ((copy_of != null) && (!copy_of.equals(""))) {
-                                   cos.deleteBangBoxUserData(core.getTalker(), getGraph(), bb.getCoreName());
+                                   cos.deleteBangBoxUserData(getGraph(), bb.getCoreName());
                               }
                          }
 					core.endUndoGroup(getGraph());

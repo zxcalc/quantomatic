@@ -261,10 +261,16 @@ structure ConsoleCommands : CONSOLE_COMMANDS
                              graphName = graph, action = Commands.BangVerticesAction { bangBoxName = bb, vertexNames = vs } })
         | _               => bad_args_req))),
 
-    ("unbang_vertices",
-     ("GRAPH V1 .. VN", "Remove vertices V1..VN from their current !-box",
+    ("completely_unbang_vertices",
+     ("GRAPH V1 .. VN", "Remove vertices V1..VN from all their current !-boxes",
       (fn (graph::vs) => (Commands.EditGraphRequest {
-                         graphName = graph, action = Commands.UnbangVerticesAction { vertexNames = vs } })
+                         graphName = graph, action = Commands.CompletelyUnbangVerticesAction { vertexNames = vs } })
+        | _           => bad_args_req))),
+
+    ("unbang_vertices",
+     ("GRAPH BB V1 .. VN", "Remove vertices V1..VN from !-box BB",
+      (fn (graph::bb::vs) => (Commands.EditGraphRequest {
+                         graphName = graph, action = Commands.UnbangVerticesAction { bangBoxName = bb, vertexNames = vs } })
         | _           => bad_args_req))),
 
     ("import_ruleset",
@@ -407,26 +413,37 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("", "Print out the name of the currently active theory",
       (fn [] => Commands.TheoryNameRequest
         | _  => bad_args_req))),
+    ("print_user_data",
+     ("GRAPH", "Prints out all the user data attached to GRAPH",
+      (fn [graph] => (Commands.DescribeGraphRequest {
+                     graphName = graph, desc = Commands.PrintUserData})
+        | _       => bad_args_req))),
+
     ("list_metrics_names",
      ("", "Print out the names of available metrics",
       (fn [] => Commands.ListMetricsNamesRequest
         | _  => bad_args_req))),   
+
     ("list_metrics_descs",
      ("", "Print out the descriptions of the available metrics",
       (fn [] => Commands.ListMetricsDescsRequest
         | _  => bad_args_req))),   
+
     ("get_current_metric_name",
      ("", "Print out the name of the metric currently selected",
       (fn [] => Commands.GetCurrentMetricNameRequest
         | _  => bad_args_req))),   
+
     ("set_metric",
      ("NAME", "Set metric NAME as the current metric",
       (fn [nm] => (Commands.SetMetricRequest {metricName= nm})
         | _  => bad_args_req))),   
+
     ("compute_metric",
      ("GRAPHNAME", "Compute the current metric on GRAPHNAME",
       (fn [nm] => (Commands.ComputeMetricRequest {graphName= nm}) 
         | _  => bad_args_req))),   
+
     (* FIXME: should this really be here?  Technically, the use of this *)
     (*        structure decides what theories are available             *)
     ("list_theories",

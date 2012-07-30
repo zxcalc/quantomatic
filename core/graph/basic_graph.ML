@@ -53,6 +53,11 @@ val empty : T
 
 val get_xnames : T -> X.NSet.T
 
+(* getting stuff from graphs (exception if not there) *)
+val get_vertex : T -> V.name -> (VData.data * (E.NSet.T * E.NSet.T))
+val get_edge : T -> E.name -> ((dir_or_undir * EData.data)
+                                  * (V.name * V.name))
+
 (* adding a vertex gives back unique name for it and the new graph *)
 (* V.name = suggested name *)
 val add_vertex_named_like : V.name -> VData.data -> T -> V.name * T 

@@ -28,6 +28,8 @@ sig
   exception vertex_name_exists_exp of (V.name * GraphName.name);
   exception edge_name_exists_exp of (E.name * GraphName.name);
   exception bbox_name_exists_exp of (B.name * GraphName.name);
+  exception inconsistent_bbox_exp of ((V.name * V.name) * B.name * GraphName.name);
+  exception wire_vertex_exp of (string * GraphName.name * V.name);
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
@@ -123,6 +125,7 @@ sig
 
   val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
   val kill_bang : B.name list -> GraphName.name -> T -> T
+  val completely_unbang_vertices : V.name list -> GraphName.name -> T -> T
   val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
@@ -130,7 +133,12 @@ sig
 
   (* UI Data getters/setters *)
   (* ... For Graphs *)
+
+  (* get_graph_ud actually returns the UD.T structure, with everything about the
+   * vertices, etc...   ......*)
+  val get_graph_ud : T -> GraphName.name -> UIData.T
   val update_graph_user_data : string -> string ->  GraphName.name -> T -> T
+  (* ...... whereas get_graph_user_data returns the data attached to the graph *)
   val get_graph_user_data : GraphName.name -> T -> string Symtab.table
   val delete_graph_user_data : string -> GraphName.name -> T -> T
   (* ... For Vertices *)
@@ -168,7 +176,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
 
   structure Theory = GraphicalTheory;
-  structure RulesetRewrites = Theory.RulesetRewrites
+  structure RulesetRewriter = Theory.RulesetRewriter
   structure Ruleset = Theory.Ruleset;
   structure Rule = Theory.Rule;
   structure Graph = Theory.Graph;
@@ -193,6 +201,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   exception vertex_name_exists_exp of (V.name * GraphName.name);
   exception edge_name_exists_exp of (E.name * GraphName.name);
   exception bbox_name_exists_exp of (B.name * GraphName.name);
+  exception inconsistent_bbox_exp of ((V.name * V.name) * B.name * GraphName.name);
+  exception wire_vertex_exp of (string * GraphName.name * V.name);
   exception rule_name_exists_exp of R.name;
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
@@ -535,7 +545,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
            | Graph.ename_already_exists_exp (ename,_) =>
                 raise edge_name_exists_exp (ename,gname)
            | Graph.bbox_already_exists_exp (bname,_) =>
-                raise bbox_name_exists_exp (bname,gname);
+                raise bbox_name_exists_exp (bname,gname)
+           | Graph.wire_vertex_exp (msg,_,v) =>
+                raise wire_vertex_exp (msg,gname,v)
+           | Graph.bbox_not_open_exp (vs,b,_) =>
+                raise inconsistent_bbox_exp (vs,b,gname);
 
   fun lift_graph_mutator_no_result cmdf gname state =
       let 
@@ -560,7 +574,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun lift_ud_mutator_no_result cmdf gname state =
       let 
          (* Make sure the graph exists *)
-          val g_ = get_graph state gname
+          val _ = get_graph state gname
           val u' = cmdf (get_graph_ud state gname)
       in
         state |> push_hist gname UA
@@ -579,14 +593,25 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        handle Theory.VertexComponentData.unknown_type_exp _ => raise no_such_vertex_type_exp vt)
   fun add_vertex vt gname state = lift_graph_mutator (add_vertex_internal vt) gname state
 
-  fun add_edge_internal et dir_or_undir v1 v2 graph =
-      (let val (n,g) = graph |> Graph.add_edge (dir_or_undir,Theory.EdgeComponentData.default_data et) v1 v2
-       in ((n,Graph.get_edge g n), g)
-       end
-       handle Theory.EdgeComponentData.unknown_type_exp _ => raise no_such_edge_type_exp et)
+  fun add_edge_internal et dir_or_undir v1 v2 graph = let
+    val data = Theory.EdgeComponentData.default_data et
+               handle Theory.EdgeComponentData.unknown_type_exp _
+                        => raise no_such_edge_type_exp et
+    val _ = case Graph.tryget_bbox_extended_by_edge v1 v2 graph
+              of NONE => ()
+               | SOME b => raise Graph.bbox_not_open_exp ((v1,v2),b,graph)
+    val (n,g) = graph |> Graph.add_edge (dir_or_undir,data) v1 v2
+  in
+    ((n,Graph.get_edge g n), g)
+  end
 
-  fun add_edge et dir_or_undir v1 v2 gname state = lift_graph_mutator
-  (add_edge_internal et dir_or_undir v1 v2) gname state
+  fun add_edge et dir_or_undir v1 v2 gname state =
+   (lift_graph_mutator (add_edge_internal et dir_or_undir v1 v2) gname state
+    handle Graph.wire_vertex_exp (msg,_,v)
+             => raise wire_vertex_exp (msg,gname,v)
+         | Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
+   )
 
 
   fun delete_vertices vs =
@@ -597,18 +622,16 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   fun rename_vertex_internal old new graph =
     ([new],graph |> Graph.rename_vname old new)
-    handle Graph.vname_already_exists_exp (vn, g) =>
-      if (Graph.is_edgepoint graph new)
-      then (raise Graph.vname_already_exists_exp (vn, g))
-      else (* Rename apart the old vertex *)
-        let
-          (*Ideally, we would just need to call the suc function in order
-           * to generate a fresh name, but how?*)
-          val ((frshN,_),_) = add_vertex_internal "edge-point" graph 
-        in
-          ([new,frshN],graph |> Graph.rename_vname new (frshN)
-                             |> Graph.rename_vname old new)
-        end;  
+    handle Graph.vname_already_exists_exp _ =>
+      (* Rename apart the old vertex *)
+      let
+        (*Ideally, we would just need to call the suc function in order
+         * to generate a fresh name, but how?*)
+        val ((frshN,_),_) = add_vertex_internal "edge-point" graph
+      in
+        ([new,frshN],graph |> Graph.rename_vname new (frshN)
+                           |> Graph.rename_vname old new)
+      end;
  
   (* There was no conflict *) 
   fun rename_vertex_uidata old (new::[]) graphName state =
@@ -618,7 +641,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       state |> set_graph_ud (UIData.rename_vertex old new ud) graphName
     end
     (* We had a conflict, therefore we have a freshName for 
-     * the internal vertex that we need to rename as well *)
+     * the node vertex that we need to rename as well *)
     | rename_vertex_uidata old (new::fresh::[]) graphName state =
     let
       val ud = get_graph_ud state graphName
@@ -747,10 +770,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
            end)
 
       fun apply_first_in rset vs g = 
-          case RulesetRewrites.apply_first_in rset vs g of NONE => Seq.empty
+          case RulesetRewriter.apply_first_in rset vs g of NONE => Seq.empty
           | SOME x => Seq.single x;
   in
-  val attach_rewrites = attach_with RulesetRewrites.apply_in;
+  val attach_rewrites = attach_with RulesetRewriter.apply_in;
   val attach_first_rewrite = attach_with apply_first_in; 
 
   fun apply_first_rewrite gname state = 
@@ -806,16 +829,38 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       end
 
   fun bang_vertices box verts gname state =
-      let val _ = assert_bbox_exists state gname box
-          val _ = map (assert_vertex_exists state gname) verts
+      let
+        val _ = assert_bbox_exists state gname box
+        val _ = map (assert_vertex_exists state gname) verts
+        val vset = V.NSet.of_list verts
       in
-        lift_graph_mutator_no_result (Graph.add_to_bbox box (V.NSet.of_list verts)) gname state
+        lift_graph_mutator_no_result (Graph.doadd_to_bbox box vset) gname state
+        handle Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
       end
 
-  fun unbang_vertices verts gname state =
-      let val _ = map (assert_vertex_exists state gname) verts in
-        lift_graph_mutator_no_result (Graph.move_to_unbbox (V.NSet.of_list verts)) gname state
+  fun completely_unbang_vertices verts gname state =
+      let
+        val _ = map (assert_vertex_exists state gname) verts
+        val vset = V.NSet.of_list verts
+      in
+        lift_graph_mutator_no_result (Graph.remove_from_all_bboxes vset) gname state
+        handle Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
       end
+
+  fun unbang_vertices box verts gname state =
+      let
+        val _ = assert_bbox_exists state gname box
+        val _ = map (assert_vertex_exists state gname) verts
+        val vset = V.NSet.of_list verts
+        val mutator = Graph.doremove_from_bbox box vset
+      in
+        lift_graph_mutator_no_result mutator gname state
+        handle Graph.bbox_not_open_exp (vs,b,_)
+             => raise inconsistent_bbox_exp (vs,b,gname)
+      end
+
   (* Copy the subgraph as well as it user data *)
   (* Here is the problem: when a graph is copied it's 
    * usually in order to paste it later. However, once it's
@@ -873,7 +918,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
-        val ((xrn,vrn,ern), source) = Graph.rename_apart targ sarg
+        val ((_,vrn,ern), source) = Graph.rename_apart targ sarg
         (* Rename the ud and insert it on the new graph  *)
         val ud_s = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
@@ -1036,7 +1081,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     end;    
 
   (* Tiny function to convert order to an int: 0 1 2 *)
-  fun convert_order_to_int (SOME ord) state =
+  fun convert_order_to_int (SOME ord) _ =
     (case ord of
         LESS => 0
       | GREATER => 2

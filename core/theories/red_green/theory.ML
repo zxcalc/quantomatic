@@ -24,7 +24,7 @@ fun pretty_vertex fmt graph vert = let
 		Pretty.str ", ",
 		Pretty.str (Int.toString oc)]
 in Pretty.block	
-   (case v of Graph.OVData.IVert iv =>
+   (case v of Graph.OVData.NVert iv =>
 	     (case iv
 	       of RG_InternVData.Xnd e =>
 		        [Pretty.str "xsp[", LinratAngleExpr.pretty_math fmt e, Pretty.str ", "] @

@@ -62,7 +62,7 @@ functor InputGraphXML_v2(
   fun add_bb (bname,bvlist) g = 
       let val g' = G.add_named_bbox bname g
           val vset = V.NSet.of_list bvlist
-      in G.add_to_bbox bname vset g' end
+      in G.doadd_to_bbox bname vset g' end
   
   fun input_vertex xml = 
       let val () = assert_tag "vertex" xml;

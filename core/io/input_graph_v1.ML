@@ -59,7 +59,7 @@ functor InputGraphXML_v1(
       let val g' = Graph.add_named_bbox bname g
           val vset  = V.NSet.of_list bvlist
       in
-        Graph.add_to_bbox bname vset g'
+        Graph.doadd_to_bbox bname vset g'
       end
   
   fun input_vertex xml = 
@@ -163,11 +163,11 @@ functor InputTestVertexDataXML_v1(
         val children = get_children xml
       in
         case lookup_unique_elem "boundary" children of 
-          NONE => (OVData.IVert (input_vertex_idata xml))
+          NONE => (OVData.NVert (input_vertex_idata xml))
         | SOME boundary_xml => 
           if InputBoolXML.input (get_unique_child boundary_xml) then 
-            (OVData.EVert)
-          else (OVData.IVert (input_vertex_idata xml)) 
+            (OVData.WVert)
+          else (OVData.NVert (input_vertex_idata xml)) 
       end;
 
 end; (* functor RGGraphInputXML*)

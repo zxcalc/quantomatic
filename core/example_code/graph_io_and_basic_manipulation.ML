@@ -35,9 +35,9 @@ We'll create a graph that has 3 vertics, connected in a line "vn1 -> vn2 -> vn3"
 (* Let g3 be the empty graph. *)
 val g3 = Graph.empty;
 (* add vertices *)
-val (vn1, g3) = g3 |> Graph.add_vertex (OVData.EVert);
-val (vn2, g3) = g3 |> Graph.add_vertex (OVData.IVert ("blah.foo."));
-val (vn3, g3) = g3 |> Graph.add_vertex (OVData.IVert ("blah.bar."));
+val (vn1, g3) = g3 |> Graph.add_vertex (OVData.WVert);
+val (vn2, g3) = g3 |> Graph.add_vertex (OVData.NVert ("blah.foo."));
+val (vn3, g3) = g3 |> Graph.add_vertex (OVData.NVert ("blah.bar."));
 (* add edges *)
 val (en1, g3) = g3 |> Graph.add_edge 
   (Graph.Directed, EData.default_data) vn1 vn2;

@@ -1,7 +1,9 @@
 (* test construction of Ruleset *)
-structure DB_Test_RulesetRewrites = RulesetRewrites(
+structure DB_Test_RulesetRewriter = RulesetRewriter(
   structure Ruleset = Test_Ruleset;
-  structure RuleMatchSearch = Test_SimpleRuleMatchSearch;
-  structure GraphSubst = Test_GraphSubst;
+  structure MatchSearch = Test_GreedyMatcher;
+  structure GraphSubst = Test_BangGraphSubst;
 );
-structure Test_RulesetRewrites : RULESET_REWRITES = DB_Test_RulesetRewrites;
+structure Test_RulesetRewriter : RULESET_REWRITER = DB_Test_RulesetRewriter;
+(* set to 4 for really detailed messages *)
+Test_RulesetRewriter.Log.level_ref := 2;

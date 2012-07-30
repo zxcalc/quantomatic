@@ -1,7 +1,7 @@
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-(*  internal vertex data for red-green vertex (i.e. before Graph Vertex 
+(*  node vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph VData.) *)
 signature RG_UNIFIABLE_DATA =    
 sig
