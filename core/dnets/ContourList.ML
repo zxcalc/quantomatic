@@ -26,18 +26,18 @@ struct
   (* Helper function to erase from a contour all the nodes which appear in previous contours *) 
   fun filter_remaining(c,f,[]) = []
     | filter_remaining(c,f,r::[]) =
-          if (C.is_contained(r,c)) then r::f
+          if (C.is_eq_literal_contained(r,c)) then r::f
           else f
     | filter_remaining(c,f,r::rs) = 
-          if (C.is_contained(r,c)) then filter_remaining (c,r::f,rs) 
+          if (C.is_eq_literal_contained(r,c)) then filter_remaining (c,r::f,rs) 
           else filter_remaining(c,f,rs)
 
   fun reassess_remaining(c,f,[]) = f 
     | reassess_remaining(c,f,r::[]) =
-          if (C.is_contained(r,c)) then f
+          if (C.is_eq_literal_contained(r,c)) then f
           else r::f
     | reassess_remaining(c,f,r::rs) = 
-          if (C.is_contained(r,c)) then reassess_remaining (c,f,rs)
+          if (C.is_eq_literal_contained(r,c)) then reassess_remaining (c,f,rs)
           else reassess_remaining(c,r::f,rs)
 
   

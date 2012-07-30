@@ -9,6 +9,10 @@ local
   structure L = C.L
 
   val bvert = Test_Graph.OVData.EVert;
+  val k1 = (mkX zero_angle)
+  val k2 = (mkX (LinratAngleExpr.parse "1"))
+  val k3 = (mkX (LinratAngleExpr.parse "2"))
+
   
   (* Building the graphs *)
   val g = G.empty
@@ -24,11 +28,11 @@ local
   val e3 = E.mk "e3"
   val e4 = E.mk "e4"
   
-  val g = g |> G.add_named_vertex v1 bvert
-            |> G.add_named_vertex v2 bvert
-            |> G.add_named_vertex v3 bvert
-            |> G.add_named_vertex v4 bvert
-            |> G.add_named_vertex v5 bvert
+  val g = g |> G.add_named_vertex v1 k1
+            |> G.add_named_vertex v2 k2
+            |> G.add_named_vertex v3 k2
+            |> G.add_named_vertex v4 k1
+            |> G.add_named_vertex v5 k2
             |> G.add_named_edge e1 dir_edge v1 v2
             |> G.add_named_edge e2 dir_edge v1 v3
             |> G.add_named_edge e3 dir_edge v2 v3
@@ -57,10 +61,10 @@ local
   val o3 = E.mk "o3"
   val o4 = E.mk "o4"
   
-  val h = h |> G.add_named_vertex w1 bvert
-            |> G.add_named_vertex w2 bvert
-            |> G.add_named_vertex w3 bvert
-            |> G.add_named_vertex w4 bvert
+  val h = h |> G.add_named_vertex w1 k2
+            |> G.add_named_vertex w2 k2
+            |> G.add_named_vertex w3 k2
+            |> G.add_named_vertex w4 k1
             |> G.add_named_edge o1 dir_edge w1 w2
             |> G.add_named_edge o2 dir_edge w1 w3
             |> G.add_named_edge o3 dir_edge w1 w4
@@ -89,10 +93,10 @@ local
   val i3 = E.mk "i3"
   val i4 = E.mk "i4"
   
-  val j = j |> G.add_named_vertex u1 bvert
-            |> G.add_named_vertex u2 bvert
-            |> G.add_named_vertex u3 bvert
-            |> G.add_named_vertex u4 bvert
+  val j = j |> G.add_named_vertex u1 k1
+            |> G.add_named_vertex u2 k1
+            |> G.add_named_vertex u3 k2
+            |> G.add_named_vertex u4 k2
             |> G.add_named_edge i1 dir_edge u1 u2
             |> G.add_named_edge i2 dir_edge u1 u3
             |> G.add_named_edge i3 dir_edge u2 u3
@@ -133,8 +137,8 @@ local
   
   val kind1 = L.get_kind lit1_1
   val kind2 = L.get_kind lit1_2
-  val _ = Testing.test "Checking literal kind.." assert_kind_eq (kind1,bvert)
-  val _ = Testing.test "Checking literal kind.." assert_kind_eq (kind2,bvert)
+  val _ = Testing.test "Checking literal kind.." assert_kind_eq (kind1,k1)
+  val _ = Testing.test "Checking literal kind.." assert_kind_eq (kind2,k2)
 
   val k_m1 = L.get_kind_mult lit1_1
   val k_m2 = L.get_kind_mult lit1_2
@@ -193,6 +197,14 @@ local
     | assert_is_not_in_contour(l,c::[]) = if L.eq(l,c) then raise ERROR ("Error in the elements of the contour") else true
     | assert_is_not_in_contour(l,c::cs) = if L.eq(l,c) then raise ERROR ("Error in the elements of the contour") else assert_is_not_in_contour(l,cs)
 
+  fun assert_contour_equiv([],[]) = true
+    | assert_contour_equiv(c1,c2) = if C.equiv(c1,c2) then true
+     else raise ERROR ("Contours do not match")
+    | assert_contour_equiv(_,_) = false
+
+  fun assert_matching_contour_containing(c1,c2) = if C.is_matching_contour_contained(c1,c2) then true
+    else raise ERROR ("Error in contour list")
+
   fun assert_strong_compatibility(c1,c2) = if C.check_strong_compatibility(c1,c2) then true else raise ERROR ("Error in strong compatibility")  
 
   fun assert_no_strong_compatibility(c1,c2) = if C.check_strong_compatibility(c1,c2) then raise ERROR ("Error in strong compatibility") else true
@@ -229,6 +241,63 @@ local
   val c2 = C.mk g (lit1_2::lit1_3::[])
   val _ = Testing.test "Checking number of literals" assert_contour_length (1,c2)
 
+  
+  val lit_1 = L.build((V.mk "a"), k1, L.mult_none, 1, L.mult_none, 1, L.mult_none)
+  val lit_2 = L.build((V.mk "b"), k2, L.mult_none, 1, L.mult_none, 0, L.mult_none)
+  val target = lit_1 :: lit_2 :: lit_2 :: []
+
+  val lit_3 = L.build((V.mk "c"), k1, L.mult_star, 0, L.mult_none, 1, L.mult_none)
+  val pattern_1 = lit_1 :: lit_2 :: lit_3 :: lit_2 :: []
+  val lit_4 =  L.build((V.mk "d"), k1, L.mult_none, 1, L.mult_none, 1, L.mult_star)
+  val pattern_2 = lit_2 :: lit_4 :: lit_2 :: []
+  val lit_5 = L.build((V.mk "e"), bvert, L.mult_none, 1, L.mult_none, 0, L.mult_none)
+  val lit_6 = L.build((V.mk "f"), k2, L.mult_star, 1, L.mult_none, 0, L.mult_none)
+  val pattern_3 = lit_5 :: lit_6 :: []
+
+  val pattern_2_concrete = C.get_contour_mult_none(pattern_2)
+  val pattern_2_abstract = C.get_contour_mult_star_or_qm(pattern_2)
+  val pattern_3_concrete = C.get_contour_mult_none(pattern_3)
+  val pattern_3_abstract = C.get_contour_mult_star_or_qm(pattern_3)
+  val _ = Testing.test "Checking abstract and concrete contour" assert_contour_equiv(pattern_2_concrete, pattern_2)
+  val _ = Testing.test "Checking abstract and concrete contour" assert_contour_equiv(pattern_2_abstract, C.empty)
+  val _ = Testing.test "Checking abstract and concrete contour" assert_contour_equiv(pattern_3_concrete, (lit_5::[]))
+  val _ = Testing.test "Checking abstract and concrete contour" assert_contour_equiv(pattern_3_abstract, (lit_6::[]))
+
+  val _ = Testing.test "Checking containment" assert_matching_contour_containing(pattern_2_concrete,target)
+  val _ = Testing.test "Checking containment" assert_matching_contour_containing((lit_1 :: lit_2 :: lit_2 :: []),target)
+
+  val _ = Testing.test "Checking strong compatibility" assert_strong_compatibility(target,pattern_1)
+  val _ = Testing.test "Checking strong compatibility" assert_strong_compatibility(target,pattern_2)
+  val _ = Testing.test "Checking strong compatibility" assert_strong_compatibility(target,pattern_3)
+
+  val lit_7 = L.build((V.mk "g"), k2, L.mult_qm, 1, L.mult_none, 0, L.mult_none)
+  val pattern_4 = lit_5 :: lit_7 :: []
+  val lit_8 = L.build((V.mk "h"), k2, L.mult_none, 1, L.mult_star, 0, L.mult_none)
+  val pattern_5 = lit_8 :: []
+  val _ = Testing.test "Checking strong compatibility" assert_no_strong_compatibility(target,pattern_4)
+  val _ = Testing.test "Checking strong compatibility" assert_no_strong_compatibility(target,pattern_5)
+  val _ = Testing.test "Checking weak compatibility" assert_weak_compatibility(target,pattern_4)
+  val _ = Testing.test "Checking weak compatibility" assert_weak_compatibility(target,pattern_5)
+
+  val lit_9 = L.build((V.mk "j"), k2, L.mult_qm, 1, L.mult_none, 1, L.mult_none)
+  val pattern_6 = lit_1 :: lit_1 :: lit_9 :: lit_6 :: []
+  val pattern_7 = lit_1 :: lit_2 :: lit_8 :: lit_5 :: []
+  val lit_10 = L.build((V.mk "k"), k1, L.mult_star, 1, L.mult_none, 1, L.mult_none)
+  val lit_11 = L.build((V.mk "l"), k2, L.mult_none, 1, L.mult_none, 1, L.mult_none)
+  val lit_12 = L.build((V.mk "m"), k2, L.mult_none, 2, L.mult_none, 1, L.mult_none)
+  val pattern_8 = lit_10 :: lit_11 :: lit_12 :: []
+  val lit_13 = L.build((V.mk "n"), k1, L.mult_qm, 1, L.mult_none, 0, L.mult_none)
+  val pattern_9 = lit_13 :: lit_11 :: []
+  val _ = Testing.test "Checking strong compatibility" assert_no_strong_compatibility(target,pattern_6)
+  val _ = Testing.test "Checking strong compatibility" assert_no_strong_compatibility(target,pattern_7)
+  val _ = Testing.test "Checking strong compatibility" assert_no_strong_compatibility(target,pattern_8)
+  val _ = Testing.test "Checking strong compatibility" assert_no_strong_compatibility(target,pattern_9)
+  val _ = Testing.test "Checking weak compatibility" assert_no_weak_compatibility(target,pattern_6)
+  val _ = Testing.test "Checking weak compatibility" assert_no_weak_compatibility(target,pattern_7)
+  val _ = Testing.test "Checking weak compatibility" assert_no_weak_compatibility(target,pattern_8)
+  val _ = Testing.test "Checking weak compatibility" assert_no_weak_compatibility(target,pattern_9)
+  
+ 
 
   (* TESTING CONTOUR LISTS *)
 
@@ -236,37 +305,33 @@ local
   fun assert_contour_list_length(i,cl) = if (length cl = i) then true 
     else raise ERROR ("Error in contour list length")
 
-  fun assert_contour_list_eq(cl1,cl2) = if CL.equiv(cl1,cl2) then true
+  fun assert_contour_list_equiv(cl1,cl2) = if CL.equiv(cl1,cl2) then true
     else raise ERROR ("Error in contour list")
+
 
   (* Tests *)
   val cl1 = CL.mk g
   val hand_cl1 = (lit1_1::[]) :: (lit1_2::lit1_3::[]) :: []
   val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (2,cl1)
-  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl1,cl1)
+  val _ = Testing.test "Checking the contours" assert_contour_list_equiv (hand_cl1,cl1)
 
   val cl2 = CL.mk h
   val hand_cl2_1 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
   val hand_cl2_2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_3::lit2_4::[]) :: []
   val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (3,cl2)
-  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl2_1,cl2)
-  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl2_2,cl2)
+  val _ = Testing.test "Checking the contours" assert_contour_list_equiv (hand_cl2_1,cl2)
+  val _ = Testing.test "Checking the contours" assert_contour_list_equiv (hand_cl2_2,cl2)
 
   val cl3 = CL.mk j
   val hand_cl3 = (lit3_1::[]) :: (lit3_2::lit3_3::[]) :: (lit3_4::[]) :: []
   val _ = Testing.test "Checking number of contours in contour list" assert_contour_list_length (3,cl3)
-  val _ = Testing.test "Checking the contours" assert_contour_list_eq (hand_cl3,cl3)
+  val _ = Testing.test "Checking the contours" assert_contour_list_equiv (hand_cl3,cl3)
 
 
 
   (* TESTING DNET *)
 
-  (* Assertion functions *)
-  fun assert_contour_eq([],[]) = true
-    | assert_contour_eq(c1,c2) = if C.equiv(c1,c2) then true
-     else raise ERROR ("Contours do not match")
-    | assert_contour_eq(_,_) = false
-
+  (* Assertion functions *) 
   fun assert_graph_name_eq(n1,n2) = if GraphName.name_eq(n1,n2) then true
      else raise ERROR ("Graph names do not match")
 
@@ -294,10 +359,11 @@ local
   val node_1 = tree
   val contour_1_1 = TD.get_contour(level_1)
   val children_1_1 = TD.get_children(level_1)
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_1_1,C.empty)
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_1_1,C.empty)
   val _ = Testing.test "Checking the children" assert_children_length((length children_1_1),2)
 
-  (* val _ = Testing.test "Checking the contour" assert_contour_eq((lit1_1::[]),(lit3_1::[])) *)
+  (* val _ = Testing.test "Checking the contour" assert_contour_equiv((lit1_1::[]),(lit3_1::[])) *)
+
 
   val level_2 = children_1_1
   val node_2_1 = nth level_2 0
@@ -306,9 +372,9 @@ local
   val contour_2_2 = TD.get_contour(node_2_2)
   val children_2_1 = TD.get_children(node_2_1)
   val children_2_2 = TD.get_children(node_2_2)
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_2_2,(lit2_2::[]))
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_2_1,(lit1_1::[]))
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_2_1,(lit3_1::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_2_2,(lit2_2::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_2_1,(lit1_1::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_2_1,(lit3_1::[]))
   val _ = Testing.test "Checking the children" assert_children_length((length children_2_1),2)
   val _ = Testing.test "Checking the children" assert_children_length((length children_2_2),1)
 
@@ -322,9 +388,9 @@ local
   val children_3_1 = TD.get_children(node_3_1)
   val children_3_2 = TD.get_children(node_3_2)
   val children_3_3 = TD.get_children(node_3_3)
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_3_3,(lit2_1::[]))
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_3_2,(lit1_2::lit1_3::[]))
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_3_1,(lit3_2::lit3_3::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_3_3,(lit2_1::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_3_2,(lit1_2::lit1_3::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_3_1,(lit3_2::lit3_3::[]))
   val _ = Testing.test "Checking the children" assert_children_length((length children_3_1),1)
   val _ = Testing.test "Checking the children" assert_children_length((length children_3_2),1)
   val _ = Testing.test "Checking the children" assert_children_length((length children_3_3),1)
@@ -338,10 +404,10 @@ local
   val graph_4_2 = TD.get_graph(node_4_2)
   val contour_4_3 = TD.get_contour(node_4_3)
   val children_4_3 = TD.get_children(node_4_3)
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_4_1,(lit3_4::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_4_1,(lit3_4::[]))
   val _ = Testing.test "Checking the children" assert_children_length((length children_4_1),1)
   val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_4_2, gn1)
-  val _ = Testing.test "Checking the contour" assert_contour_eq(contour_4_3,(lit2_4::lit2_3::[]))
+  val _ = Testing.test "Checking the contour" assert_contour_equiv(contour_4_3,(lit2_4::lit2_3::[]))
   val _ = Testing.test "Checking the children" assert_children_length((length children_4_3),1)
   
 
@@ -351,7 +417,7 @@ local
   val graph_5_1 = TD.get_graph(node_5_1)
   val graph_5_3 = TD.get_graph(node_5_3)
   val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_5_1, gn3)
-  val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_5_3, gn2)
+  val _ = Testing.test "Checking the graph" assert_graph_name_eq(graph_5_3, gn2) 
 
 in
   val _ = Testing.assert_no_failed_tests();
