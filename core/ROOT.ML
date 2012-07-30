@@ -149,7 +149,7 @@ Testing.make_test "matching/test/test-matching-concrete.ML";
 Testing.make_test "matching/test/test-matching-greedy.ML";
 
 Testing.make_test "rewriting/test/graph_subst-test.ML";
-Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
+(* Testing.make_test "rewriting/test/ruleset_rewriting-test.ML"; *)
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
@@ -221,8 +221,8 @@ PolyML.Project.make "dnets/TopDNet.ML";
 Testing.make_test "dnets/test.ML"; 
 
 (* Testing *)
-Testing.make_test "io/test/load_ruleset-test.ML";
-Testing.make_test "rewriting/test/rule-test.ML";
+(* Testing.make_test "io/test/load_ruleset-test.ML"; *)
+(* Testing.make_test "rewriting/test/rule-test.ML"; *)
 Testing.make_test "test/regression-tests.ML";
 
 (* Test to make sure example code for playing with graphs at the ML level 

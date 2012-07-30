@@ -119,7 +119,7 @@ struct
 
 	(* Helper functions to compare literal matching *)
     fun one_is_a_bondary(l1,l2) = 
-        if (G.VData.data_eq(#kind l1, G.OVData.EVert) orelse G.VData.data_eq(#kind l2, G.OVData.EVert)) then true else false
+        if (G.VData.data_eq(#kind l1, G.OVData.WVert) orelse G.VData.data_eq(#kind l2, G.OVData.WVert)) then true else false
 
     fun the_output_matches(l1,l2) =
         if (#output_arity l1 = #output_arity l2) 

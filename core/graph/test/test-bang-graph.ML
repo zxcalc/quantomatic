@@ -1316,18 +1316,11 @@ local
     ) ()
 in
   val _ = Testing.assert_no_failed_tests();
-<<<<<<< HEAD:core/graph/test/graph-test.ML
-  val _ = "UNIT TESTS FOR !-GRAPH ISOS PASSED!"
-end
-*)
-(* For debugging...
-=======
   val _ = "UNIT TESTS FOR WIRE FUNCTIONS WITH !-BOXES PASSED!"
 end; (* ends local namespace used for testing *)
 
 
 (* testing nested !-boxes *)
->>>>>>> integration:core/graph/test/test-bang-graph.ML
 
 local
   open Test_BBox_Util;

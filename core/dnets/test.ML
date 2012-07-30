@@ -8,7 +8,7 @@ local
   structure C = CL.C
   structure L = C.L
 
-  val bvert = Test_Graph.OVData.EVert;
+  val bvert = Test_Graph.OVData.WVert;
   val k1 = (mkX zero_angle)
   val k2 = (mkX (LinratAngleExpr.parse "1"))
   val k3 = (mkX (LinratAngleExpr.parse "2"))
@@ -39,7 +39,7 @@ local
             |> G.add_named_edge e4 dir_edge v5 v4
 
   val (bb1,g) = g |> G.add_bbox
-  val g = g |> G.add_to_bbox bb1 (V.NSet.single v5)
+  val g = g |> G.doadd_to_bbox bb1 (V.NSet.single v5)
 
   val lit1_1 = L.mk g v1
   val lit1_2 = L.mk g v2
@@ -71,8 +71,8 @@ local
             |> G.add_named_edge o4 dir_edge w4 w3
 
   val (bb2,h) = h |> G.add_bbox
-  val h = h |> G.add_to_bbox bb2 (V.NSet.single w1)
-            |> G.add_to_bbox bb2 (V.NSet.single w4)
+  val h = h |> G.doadd_to_bbox bb2 (V.NSet.single w1)
+            |> G.doadd_to_bbox bb2 (V.NSet.single w4)
 
   val lit2_1 = L.mk h w1
   val lit2_2 = L.mk h w2
