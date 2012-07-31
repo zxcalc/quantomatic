@@ -1,0 +1,14 @@
+\usepackage{tikz}
+
+\usepackage{ifthen}
+\ifthenelse{\isundefined{\realjobname}}{}{\pgfrealjobname{\realjobname}}
+
+\usetikzlibrary{shapes}
+\usetikzlibrary[shapes.geometric]
+
+\newcommand{\tikzfig}[1]{%
+\beginpgfgraphicnamed{#1}
+\InputIfFileExists{#1.tikz}{}{\input{./figures/#1.tikz}}
+\endpgfgraphicnamed}
+
+\newcommand{\inlinetikzfig}[1]{\InputIfFileExists{#1.tikz}{}{\input{./figures/#1.tikz}}}

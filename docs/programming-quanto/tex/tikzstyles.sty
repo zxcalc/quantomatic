@@ -1,0 +1,25 @@
+\tikzstyle{square box}=[rectangle,fill=white,draw=black,minimum height=6mm,minimum width=6mm]
+\tikzstyle{square gray box}=[square box,fill=gray!30]
+
+\tikzstyle{dot}=[inner sep=0.5mm,fill=black,draw=black,shape=circle]
+\tikzstyle{small dot}=[dot,inner sep=0.2mm]
+\tikzstyle{oplus}=[shape=circle,inner sep=-2mm]
+\tikzstyle{white dot}=[dot,fill=white]
+\tikzstyle{gray dot}=[dot,fill=gray]
+\tikzstyle{none}=[inner sep=0mm]
+\tikzstyle{rn}=[dot,fill=red]
+\tikzstyle{gn}=[dot,fill=green]
+\tikzstyle{pt}=[regular polygon,regular polygon sides=3,draw=black,inner sep=-0.5pt]
+\tikzstyle{copt}=[pt,regular polygon rotate=180]
+\tikzstyle{copt2}=[pt,rotate=180]
+\tikzstyle{tick}=[sloped,rotate=90,font=\small\bf,xshift=0.07mm]
+\tikzstyle{dotpic}=[scale=0.75,baseline,yshift=1mm]
+\tikzstyle{every loop}=[]
+
+\newcommand{\measure}{%
+\begin{minipage}{5.5mm}
+\begin{tikzpicture}[scale=0.25]
+	\draw [thick,fill=gray!5] (1,-0.5) arc (0:180:1) -- cycle;
+	\draw [thick] (0,-0.5) -- (45:1);
+\end{tikzpicture}
+\end{minipage}}
