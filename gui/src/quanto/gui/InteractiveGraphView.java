@@ -404,11 +404,11 @@ public class InteractiveGraphView
 		}
 	}
 
-	public InteractiveGraphView(Core core, CoreGraph g) {
+	public InteractiveGraphView(Core core, CoreGraph g) throws CoreException {
 		this(core, g, new Dimension(800, 600));
 	}
 
-	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) {
+	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) throws CoreException {
 		super(new BorderLayout(), g.getCoreName());
 		setPreferredSize(size);
 		initLayout = new QuantoDotLayout(g);
@@ -416,7 +416,7 @@ public class InteractiveGraphView
 		forceLayout= new QuantoForceLayout(g, initLayout, 20.0);
 		smoothLayout = new SmoothLayoutDecorator<Vertex, Edge>(forceLayout);
 		viewer = new GraphVisualizationViewer(smoothLayout);
-		
+
 		/* This is probably not the place to do it:
 		 * get vertices user data from graph, and set
 		 * position.*/
@@ -428,7 +428,7 @@ public class InteractiveGraphView
 				viewer.getGraphLayout().setLocation(vmap.get(key), p);
 				viewer.getGraphLayout().lock(vmap.get(key), true);
 			}
-    	}	
+    	}
 		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
 
 		this.core = core;
@@ -894,44 +894,40 @@ public class InteractiveGraphView
 	     CoreGraph graph = getGraph();
 	     PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
 	     try {
-	     //New vertices are added but not pushed on the undo stack 
-          core.startUndoGroup(graph);
-	     for(Vertex v : graph.getVertices()) {
-	          int X = (int) smoothLayout.getDelegate().transform(v).getX();
-	          int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-	          Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
-	          Point2D new_p = new Point2D.Double(X, Y);
-	          if (old_p == null) {
-	               pds.setVertexUserData(graph, v.getCoreName(), new_p);
-	          }
-	     }
-	     core.endUndoGroup(graph);
-	     } catch (CoreException e) {
-              errorDialog(e.getMessage());
-          }
-	     
-	     ArrayList<Vertex> vertices = new ArrayList<Vertex> ();
-	     for (Vertex v: graph.getVertices()) {
-               int X = (int) smoothLayout.getDelegate().transform(v).getX();
-               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-               Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
-               Point2D new_p = new Point2D.Double(X, Y);
-               if (old_p.distance(new_p) > 1.5) {
-                    vertices.add(v);
-               }
-	     }     
-	     if (vertices.size() > 0) {
-	          //The first one creates an undo point
-	          Vertex v = vertices.get(0);
-               int X = (int) smoothLayout.getDelegate().transform(v).getX();
-               int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-	          Point2D new_p = new Point2D.Double(X, Y);
-               pds.setVertexUserData(graph, v.getCoreName(), new_p);
-               vertices.remove(v);
-	     }
-	     if (vertices.size() <= 0)
-	          return;
-	     try {
+             //New vertices are added but not pushed on the undo stack 
+              core.startUndoGroup(graph);
+             for(Vertex v : graph.getVertices()) {
+                  int X = (int) smoothLayout.getDelegate().transform(v).getX();
+                  int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+                  Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
+                  Point2D new_p = new Point2D.Double(X, Y);
+                  if (old_p == null) {
+                       pds.setVertexUserData(graph, v.getCoreName(), new_p);
+                  }
+             }
+             core.endUndoGroup(graph);
+
+             ArrayList<Vertex> vertices = new ArrayList<Vertex> ();
+             for (Vertex v: graph.getVertices()) {
+                   int X = (int) smoothLayout.getDelegate().transform(v).getX();
+                   int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+                   Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
+                   Point2D new_p = new Point2D.Double(X, Y);
+                   if (old_p.distance(new_p) > 1.5) {
+                        vertices.add(v);
+                   }
+             }     
+             if (vertices.size() > 0) {
+                  //The first one creates an undo point
+                  Vertex v = vertices.get(0);
+                   int X = (int) smoothLayout.getDelegate().transform(v).getX();
+                   int Y = (int) smoothLayout.getDelegate().transform(v).getY();
+                  Point2D new_p = new Point2D.Double(X, Y);
+                   pds.setVertexUserData(graph, v.getCoreName(), new_p);
+                   vertices.remove(v);
+             }
+             if (vertices.size() <= 0)
+                  return;
 	          //The others do not
 	          core.startUndoGroup(graph);
 	          for(Vertex v : vertices) {

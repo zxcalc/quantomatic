@@ -14,6 +14,5 @@ public class PositionGraphUserDataSerializer extends GraphUserDataSerializer {
 
     public PositionGraphUserDataSerializer(ProtocolManager talker) {
         super(talker, serializer, suffix);
-        System.out.println("Initialization " + suffix);
     }
 }
