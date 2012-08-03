@@ -177,6 +177,26 @@ val _ = Testing.test "rule6: X(a+b)- => X(a)-X(b)-, matching X(c)-Z(b): renaming
   val true = X.NSet.contains rule_xnames (X.mk "a");
   in writeln "success" end) ();
 
+
+val _ = Testing.test "rule7: isom_rule rewrites subgraph" (fn () => let
+  (* Example of applications of rule that does not match *)
+  val g = G.empty;
+  val (x1, g) = g |> G.add_vertex (mkX zero_angle);
+  val (x2, g) = g |> G.add_vertex (mkX zero_angle);
+  val (z1, g) = g |> G.add_vertex (mkZ zero_angle);
+  val (z2, g) = g |> G.add_vertex (mkZ zero_angle);
+  val (_,  g) = g |> G.add_edge undir_edge z1 x1;
+  val (_,  g) = g |> G.add_edge undir_edge x1 x2;
+  val (_,  g) = g |> G.add_edge undir_edge x1 x2;
+  val (_,  g) = g |> G.add_edge undir_edge x2 z2;
+  val _ = G.print g;
+  val verts = V.NSet.single x1;
+  val rseq = RulesetRewriter.applicable_rules ruleset
+      (RulesetRewriter.rule_matches_within verts) 
+      (R.NSet.single (R.mk "isometry_red")) g;
+  val _ = Seq.list_of rseq;
+  in writeln "success" end) ();
+
 val _ = Testing.assert_no_failed_tests();
 val _ = "UNIT TESTS FOR rule PASSED!";
 end;

@@ -204,8 +204,8 @@ functor OGraphMatchState(
 
   fun init_subgraph pat tgt tgt_verts = MatchState {
     pat          = pat,
-    tgt          = tgt,
-    full_tgt     = G.get_open_subgraph tgt_verts tgt,
+    tgt          = G.get_open_subgraph tgt_verts tgt,
+    full_tgt     = tgt,
     vmap         = VInjEndo.empty,
     emap         = EInjEndo.empty,
     u_circles    = V.NSet.empty,
