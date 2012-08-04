@@ -316,6 +316,8 @@ struct
   structure RulesetChecking = RSetChecking(Theory);
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
+  structure RewriteTreeOutput = OutputRewriteTreeXML(structure RTree =
+    State.RewriteTree);
   structure UIDataOutput = OutputUIDataXML(structure UIData = State.UIData);
   structure RulesetUIDataOutput = OutputRulesetUIDataXML(structure UIData = State.UIData);
   structure GraphAndUIOutput = OutputWrapXML(

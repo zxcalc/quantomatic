@@ -12,7 +12,12 @@ signature REWRITE_TREE =
     structure Rule : RULE
     structure RSetRewrites : RULESET_REWRITES
     structure RewriteGraph : RGRAPH
-    structure G : BANG_GRAPH
+      where type Graph.SharingBasicGraph.Param.VData.data =
+        GTheory.RulesetRewrites.Sharing.Match.BBMatch.G.Param.VData.data
+      and
+            type Graph.SharingBasicGraph.Param.EData.data =
+        GTheory.RulesetRewrites.Sharing.Match.BBMatch.G.Param.EData.data;
+    structure G : BANG_GRAPH;
     structure M : METRICS
 
     type T
@@ -23,7 +28,7 @@ signature REWRITE_TREE =
     val get_rgraph : T -> RewriteGraph.T;
     val get_agenda : T -> GraphName.name list;
     val get_mc : T -> M.T;
-
+    val get_current_vertex : T -> GraphName.name option
     val set_rset : Ruleset.T -> T -> T;
     val set_mc : M.T -> T -> T;
   end;
@@ -33,12 +38,12 @@ functor RewriteTree(
 ) : REWRITE_TREE = struct
   
   structure GTheory = GTheory;
-  structure Ruleset = GTheory.Ruleset;
-  structure Rule = GTheory.Rule;
   structure RSetRewrites = GTheory.RulesetRewrites;
-  structure RewriteGraph = RGraph(structure RSetRewrites = RSetRewrites);
-  structure G = Rule.Graph;
   structure Match = RSetRewrites.Match;
+  structure Ruleset = RSetRewrites.Ruleset;
+  structure Rule = RSetRewrites.Rule;
+  structure RewriteGraph = RGraph(structure RSetRewrites = RSetRewrites);
+  structure G = Match.G;
   structure GraphSubst = GraphSubstFun(Match);
   structure M = MetricsController(structure Graph = G);
 
@@ -159,6 +164,9 @@ functor RewriteTree(
        * metric *)
       fun rewrite (m,rws) =
         let
+          (* TODO: Actually, by doing so, we give the priority to
+           * the graph which minimizes the metric of the first rule
+           * instead of all the possible candidates for a given graph...  *)
           fun insert (m,rwg) [] = [(m,rwg)]
             | insert (m,rwg) xs = 
                 let

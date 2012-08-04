@@ -8,8 +8,9 @@
 signature RGRAPH =
 sig
 
+  structure RSetRewrites : RULESET_REWRITES;
+  structure Rule : RULE;
   structure Graph: BANG_GRAPH
-  structure Rule : RULE
   structure Match: MATCH
     
   type T
@@ -53,6 +54,7 @@ sig
 
   val treeify : GraphName.name -> T -> T
 
+  val edge_type_to_string : edge_type -> string 
   val pretty : T -> Pretty.T
   val print : T -> unit
   
@@ -383,11 +385,11 @@ functor RGraph(
          |> snd
     end;
 
-  fun pretty_edge_type Tree = Pretty.str "Tree"
-    | pretty_edge_type Back = Pretty.str "Back" 
-    | pretty_edge_type Forward = Pretty.str "Forward" 
-    | pretty_edge_type Cross = Pretty.str "Cross" 
-    | pretty_edge_type Other = Pretty.str "Other" 
+  fun edge_type_to_string Tree = "Tree"
+    | edge_type_to_string Back = "Back" 
+    | edge_type_to_string Forward = "Forward" 
+    | edge_type_to_string Cross = "Cross" 
+    | edge_type_to_string Other = "Other" 
 
   val pretty_edge_data = R.pretty_name o fst
 
@@ -423,7 +425,7 @@ functor RGraph(
                           Pretty.str " ( ",
                           pretty_edge_data ed,
                           Pretty.str "  ",
-                          pretty_edge_type et,
+                          (Pretty.str o edge_type_to_string) et,
                           Pretty.str " ) "
                    ])
                    (E.NTab.list_of (get_edges g)))]]],

@@ -153,6 +153,10 @@ PolyML.Project.make "rewriting/checking/ruleset_checking.ML";
 (* Rewrite Trees *)
 PolyML.Project.make "rewrite_tree/rewrite_tree.ML";
 
+
+(* Output for rewrite trees *)
+PolyML.Project.make "io/output_rewrite_tree.ML";
+
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)

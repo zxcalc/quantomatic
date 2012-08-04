@@ -3,6 +3,7 @@ signature CONTROLLER_STATE =
 sig
   type T;
   structure Theory : GRAPHICAL_THEORY;
+  structure RewriteTree : REWRITE_TREE;
   structure UIData : USER_DATA;
   structure MetController : METRICS;
 
@@ -168,6 +169,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
 
   structure Theory = GraphicalTheory;
+  structure RewriteTree = RewriteTree(Theory);
   structure RulesetRewrites = Theory.RulesetRewrites
   structure Ruleset = Theory.Ruleset;
   structure Rule = Theory.Rule;
