@@ -4,12 +4,19 @@ sig
 	type multiplicity
 	structure G : BANG_GRAPH
 
+    (* CONSTRUCTOR *)
 	val mk : G.T -> V.name -> T
+	val build : V.name * G.VData.data * multiplicity * int * multiplicity * int * multiplicity -> T
+	
+	(* COMPARISON FUNCTIONS *)
 	val eq : T * T -> bool
 	val equiv : T * T -> bool
 	val match : T * T -> bool
 	
+	(* GETTERS *)
 	val get_adj : G.T -> T -> T list
+	val get_pred : G.T -> T -> T list
+	val get_succ : G.T -> T -> T list
 
 	val get_name : T -> V.name
 	val get_kind : T -> G.VData.data
@@ -19,20 +26,20 @@ sig
 	val get_output_arity : T -> int
 	val get_output_mult : T -> multiplicity
 
-	val mult_eq : multiplicity * multiplicity -> bool
-
+    (* MULTIPLICITY FUNCTIONS*)
 	val mult_none : multiplicity
 	val mult_star : multiplicity
 	val mult_qm : multiplicity
 	val is_kind_mult_none : T -> bool
 	val is_kind_mult_star : T -> bool
 	val is_kind_mult_qm : T -> bool
+	val mult_eq : multiplicity * multiplicity -> bool
 
-	val fprintf : T -> string
-
-	val build : V.name * G.VData.data * multiplicity * int * multiplicity * int * multiplicity -> T
+	(* PRINT FUNCTION *)
+	val printout : T -> string
 
 end
+
 
 
 functor Literal ( G : BANG_GRAPH ) : LITERAL =
@@ -48,86 +55,37 @@ struct
 	           input_arity : int,
 	           input_mult : multiplicity, 
 	           output_arity : int,
-	           output_mult : multiplicity }
+	           output_mult : multiplicity }	
 
-	(* Helper function to check if all the adjacent nodes are in a bang-box *)
-	fun all_bang(g, []) = false
-  	  | all_bang(g, v::[]) = G.is_bboxed g v
-  	  | all_bang(g, v::vlist) =
-      	if G.is_bboxed g v then all_bang(g, vlist)
-      	else false
-
-    (* Helper function to check if any of the adjacent nodes is in a bang-box *)
-    fun exists_bang(g, []) = false
-      | exists_bang (g, v::[]) = G.is_bboxed g v
-      | exists_bang (g, v::vlist) =
-        if G.is_bboxed g v then true
-        else exists_bang(g,vlist)
-		
-	
-	(* Helper functions to get multiplicity *)
-	fun compute_kind_mult g v =
-	   let
-	      val adj_vert = G.adj_vnames g v
-	      val v_list = V.NSet.list_of adj_vert
-	   in
-	     if G.is_bboxed g v then Star
-	     else if all_bang(g, v_list) then QM
-	         else None
-	   end	
-
-	fun compute_input_mult g v =
-		let
-	      val adj_vert = G.pred_vnames g v
-	      val v_list = V.NSet.list_of adj_vert
-	   in
-	     if exists_bang(g,v_list) then Star
-	     else None
-	   end
-
-	fun compute_output_mult g v =
-		let
-	      val adj_vert = G.succ_vnames g v
-	      val v_list = V.NSet.list_of adj_vert
-	   in
-	     if exists_bang(g,v_list) then Star
-	     else None
-	   end
+	val mult_none = None
+	val mult_qm = QM
+	val mult_star = Star
 
 
+	(* This function builds a literal by packaging its data in a literal type *)
 	fun build (n, k, k_m, i_a, i_m, o_a, o_m) =
           {name = n, kind = k, kind_mult = k_m, input_arity = i_a, input_mult = i_m, output_arity = o_a, output_mult = o_m} : T
 
-	(* Make a literal *)   
+	(* This function builds a literal given a graph g and a node-vertex v *)   
 	fun mk g v = 
 		let
-			val k = G.get_vertex_data g v
-			
-			val k_m = compute_kind_mult g v			
-			
-			val i_a = Arity.get_in (G.get_arity g v)
-			
-			val i_m = compute_input_mult g v
-			
+			val k = G.get_vertex_data g v			
+			val k_m = None						
+			val i_a = Arity.get_in (G.get_arity g v)			
+			val i_m = None			
 			val o_a = Arity.get_out (G.get_arity g v)
-
-			val o_m = compute_output_mult g v
+			val o_m = None
 		in
-			 build (v, k, k_m, i_a, i_m, o_a, o_m)
+			build (v, k, k_m, i_a, i_m, o_a, o_m)
 		end
     
 
-	(* Helper functions to compare literal matching *)
+	(* HELPER FUNCTIONS to compare literal matching *)
+	(* This function checks if one literal between l1 and l2 has a boundary kind *)
     fun one_is_a_bondary(l1,l2) = 
         if (G.VData.data_eq(#kind l1, G.OVData.WVert) orelse G.VData.data_eq(#kind l2, G.OVData.WVert)) then true else false
 
-    fun the_output_matches(l1,l2) =
-        if (#output_arity l1 = #output_arity l2) 
-           orelse ((#output_arity l1 > #output_arity l2) andalso (#output_mult l2 = Star))
-           orelse ((#output_arity l1 < #output_arity l2) andalso (#output_mult l1 = Star))
-        then true
-        else false  
-
+    (* This function checks if the input arity of two literals l1 and l2 can match *)
     fun the_input_matches(l1,l2) = 
     	if (#input_arity l1 = #input_arity l2) 
            orelse ((#input_arity l1 > #input_arity l2) andalso (#input_mult l2 = Star))
@@ -135,10 +93,19 @@ struct
         then true
         else false 
 
-	(* Functions to compare literal matching *)
+    (* This function checks if the output arity of two literals l1 and l2 can match *)
+    fun the_output_matches(l1,l2) =
+        if (#output_arity l1 = #output_arity l2) 
+           orelse ((#output_arity l1 > #output_arity l2) andalso (#output_mult l2 = Star))
+           orelse ((#output_arity l1 < #output_arity l2) andalso (#output_mult l1 = Star))
+        then true
+        else false  
+
+	(* This functions checks if the kinds of two literals l1 and l2 match *)
 	fun match_kind(l1,l2) = 
 		G.VData.data_eq(#kind l1, #kind l2) orelse one_is_a_bondary(l1,l2)
 
+	(* This functions checks if the input arity of two literals l1 and l2 match *)
 	fun match_input(l1,l2) = 
 		if (#input_arity l1 = #input_arity l2) then true
 		else if (#input_arity l1 > #input_arity l2) andalso (#input_mult l2 = Star) then true
@@ -147,6 +114,7 @@ struct
 		               then true  	
 		               else false
 
+    (* This functions checks if the output arity of two literals l1 and l2 match *)
 	fun match_output(l1,l2) =
 		if (#output_arity l1 = #output_arity l2) then true
 		else if (#output_arity l1 > #output_arity l2) andalso (#output_mult l2 = Star) then true
@@ -155,7 +123,14 @@ struct
 		               then true
 		               else false
 
-	(* Functions to compare literal equivalence *)
+    (* This function checks for matching between c1 and c2, that is if c1 and c2 can match each other *)
+    (* TRUE iff l1 and l2 are literals that can be reduced to one another; they can be generated by different node-vertices; they can differ on the multiplicity *)
+  	(* MATCHING is used when pruning the tree in order to identify contours that are strongly or weakly compatible *)
+  	fun match(l1,l2) = match_kind(l1,l2) andalso match_input(l1,l2) andalso match_output(l1,l2)
+
+
+
+	(* This functions checks if the kinds of two literals l1 and l2 are equivalent *)
 	fun equiv_kind(l1,l2) = 
 		if (G.VData.data_eq(#kind l1, #kind l2)) andalso
 		   ( (#input_mult l1 = None andalso #input_mult l2 = None) orelse
@@ -164,6 +139,7 @@ struct
 		then true
 		else false
 
+    (* This functions checks if the input arity of two literals l1 and l2 are equivalent *)
 	fun equiv_input(l1,l2) = 
 		if (#input_arity l1 = #input_arity l2) andalso
 		   ( (#input_mult l1 = None andalso #input_mult l2 = None) orelse
@@ -171,43 +147,27 @@ struct
 		then true
 		else false
 
+    (* This functions checks if the output arity of two literals l1 and l2 are equivalent *)
 	fun equiv_output(l1,l2) =
 		if (#output_arity l1 = #output_arity l2) andalso
 		   ( (#output_mult l1 = None andalso #output_mult l2 = None) orelse
 		   	 (#output_mult l1 = Star andalso #output_mult l2 = Star) )
 		then true
 		else false	          
-
-
-	(* This function checks for matching between c1 and c2, that is if c1 and c2 can match each other *)
-    (* TRUE iff l1 and l2 are literals that can be reduced to one another; they can be generated by different node-vertices; they can differ on the multiplicity *)
-  	(* MATCHING is used when pruning the tree in order to identify contours that are strongly or weakly compatible *)
-  	fun match(l1,l2) = match_kind(l1,l2) andalso match_input(l1,l2) andalso match_output(l1,l2)
-
+	
     (* This function checks for equivalence between c1 and c2, that is if c1 and c2 are equivalent contours *)
     (* TRUE iff l1 and l2 are literals that can be reduced to one another; they can be generated by different node-vertices *)
     (* EQUIVALENCE is used when building the tree in order identify contours which are equivalent and share a node in the tree *)
     fun equiv(l1,l2) = equiv_kind(l1,l2) andalso equiv_input(l1,l2) andalso equiv_output(l1,l2)
 
+
+
 	(* This function checks for equality between l1 and l2, that is if l1 and l2 are the same literal *)
     (* TRUE iff l1 and l2 are literals generated by the same node-vertex *)
     (* EQUALITY is used when building contours in order to build a single literal for every node-vertex *)
-    fun eq(l1,l2)  = V.name_eq(#name l1, #name l2)
+    fun eq(l1,l2)  = V.name_eq(#name l1, #name l2) 
 
-	(* Get the literals of all the adjacent nodes *)
-	fun get_adj g l =
-		let
-	      val adj_vert = G.adj_vnames g (#name l)
-	      val v_list = V.NSet.list_of adj_vert
-
-	      val g_list = replicate (length v_list) g
-
-	    in
-
-		  map2 mk g_list v_list    
-	      
-	    end
-
+	
 
 	(* Getters for a literal *)
 	fun get_name(l) = #name l
@@ -225,24 +185,58 @@ struct
 	fun get_output_mult(l) = #output_mult l
 
 
-	(* Function to work with multiplicity *)
-	val mult_none = None
 
-	val mult_qm = QM
+	(* This function returns the literals of all the adjacent nodes to the literal l in the graph g *)
+	fun get_adj g l =
+		let
+	      val adj_vert = G.adj_vnames g (#name l)
+	      val v_list = V.NSet.list_of adj_vert
 
-	val mult_star = Star
+	      val g_list = replicate (length v_list) g
+	    in
+		  map2 mk g_list v_list         
+	    end
 
+	(* This function returns the literals of all the predecessor nodes of the literal l in the graph g *)
+	fun get_pred g l =
+		let
+	      val adj_vert = G.pred_vnames g (#name l)
+	      val v_list = V.NSet.list_of adj_vert
+
+	      val g_list = replicate (length v_list) g
+	    in
+		  map2 mk g_list v_list         
+	    end
+
+	(* This function returns the literals of all the successor nodes of the literal l in the graph g *)
+	fun get_succ g l =
+		let
+	      val adj_vert = G.succ_vnames g (#name l)
+	      val v_list = V.NSet.list_of adj_vert
+
+	      val g_list = replicate (length v_list) g
+	    in
+		  map2 mk g_list v_list         
+	    end
+
+
+
+	(* Functions to work with multiplicity *)
 	fun mult_eq (m1,m2) =
 	  if ((m1=Star andalso m2=Star) orelse (m1=QM andalso m2=QM) orelse (m1=None andalso m2=None)) then true
 	  else false
-
+	  
 	fun is_kind_mult_none(l) = if mult_eq((#kind_mult l),None) then true else false
 
 	fun is_kind_mult_star(l) = if mult_eq((#kind_mult l),Star) then true else false
 
 	fun is_kind_mult_qm(l) = if mult_eq((#kind_mult l),QM) then true else false
 
+	
 
-	fun fprintf(l) = V.string_of_name(#name l)
+
+
+	(* This function prints the literal l*)
+	fun printout(l) = V.string_of_name(#name l)
 
 end
