@@ -12,11 +12,12 @@ sig
   val add_cl_list_to_dnet : T -> CL.T list -> GraphName.name list -> T
 
   (* PRUNING FUNCTIONS *)
+  val pruning : T -> G.T -> (V.name * GraphName.name list) list
   val prune : V.name -> G.T -> T -> T
   val graphs : T -> GraphName.name list
 
   (* FOLD FUNCTION *)
-  val fold : (G.T -> 'a -> 'a) -> 'a -> T -> T
+  val fold : (('a * 'b) -> G.T GraphName.NTab.T -> G.T GraphName.NTab.T) -> 'a list -> 'b list -> G.T GraphName.NTab.T -> G.T GraphName.NTab.T
 
   (* GETTERS *)
   val is_node : tree -> bool
@@ -310,6 +311,24 @@ struct
     else get_graph(t)::[]
 
 
+  fun do_pruning tree target [] = []
+    | do_pruning tree target (n::[]) = (prune n target tree) :: []
+    | do_pruning tree target (n::ns) = (prune n target tree) :: (do_pruning tree target ns)
+
+  fun do_graphing [] = []
+    | do_graphing (t::[]) = (graphs t) :: []
+    | do_graphing (t::ts) = (graphs t) :: (do_graphing ts)
+
+  fun pruning tree target =
+    let
+      val nodelist = G.get_unbboxed target
+      val nodelist = V.NSet.list_of nodelist
+      val treelist = do_pruning tree target (rev nodelist)
+      val graphslist = do_graphing (rev treelist)
+    in
+      nodelist ~~ graphslist
+    end
+
 
   (* This function checks if two graphs g1 and g2 are equal *)
   (* TRUE iff the graphs have the same name *)
@@ -341,7 +360,9 @@ struct
 
 
 	(* Fold function *)
-	fun fold f a b = b
+	fun fold _ [] [] tab = tab
+    | fold f (gn::gns) (g::gs) tab = f (gn,g) (fold f gns gs tab)
+    | fold _ _ _ _ = raise ListPair.UnequalLengths;
 
 
 

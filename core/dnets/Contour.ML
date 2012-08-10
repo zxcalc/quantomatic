@@ -1,6 +1,7 @@
 signature CONTOUR =
 sig
   type T
+  structure LIB : TDNET_LIBRARY
   structure G : BANG_GRAPH
   structure L : LITERAL
 
@@ -46,17 +47,12 @@ functor Contour ( G : BANG_GRAPH ) : CONTOUR =
 struct
 
   structure G = G
+  structure LIB = TDNet_Library
   structure L = Literal(G)
 
   type T = L.T list;
 
   val empty = [];
-
-
-  (* Generic library helper function *)
-  fun maps2 _ [] [] = []
-    | maps2 f (x::xs) (y::ys) = f x y @ maps2 f xs ys
-    | maps2 _ _ _ = raise ListPair.UnequalLengths;
 
 
  
@@ -303,7 +299,7 @@ struct
           val g_list = replicate (length c) g
           val gl_list = g_list ~~ c
 
-          val contour = maps2 L.get_adj g_list c
+          val contour = LIB.maps3 L.get_adj g c
           val contour = remove_eq_duplicate(contour)
           val contour = complement_eq_contour(c,contour)
         in

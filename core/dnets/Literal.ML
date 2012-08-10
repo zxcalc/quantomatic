@@ -83,23 +83,7 @@ struct
 	(* HELPER FUNCTIONS to compare literal matching *)
 	(* This function checks if one literal between l1 and l2 has a boundary kind *)
     fun one_is_a_bondary(l1,l2) = 
-        if (G.VData.data_eq(#kind l1, G.OVData.WVert) orelse G.VData.data_eq(#kind l2, G.OVData.WVert)) then true else false
-
-    (* This function checks if the input arity of two literals l1 and l2 can match *)
-    fun the_input_matches(l1,l2) = 
-    	if (#input_arity l1 = #input_arity l2) 
-           orelse ((#input_arity l1 > #input_arity l2) andalso (#input_mult l2 = Star))
-           orelse ((#input_arity l1 < #input_arity l2) andalso (#input_mult l1 = Star))
-        then true
-        else false 
-
-    (* This function checks if the output arity of two literals l1 and l2 can match *)
-    fun the_output_matches(l1,l2) =
-        if (#output_arity l1 = #output_arity l2) 
-           orelse ((#output_arity l1 > #output_arity l2) andalso (#output_mult l2 = Star))
-           orelse ((#output_arity l1 < #output_arity l2) andalso (#output_mult l1 = Star))
-        then true
-        else false  
+        if (G.VData.data_eq(#kind l1, G.OVData.WVert) orelse G.VData.data_eq(#kind l2, G.OVData.WVert)) then true else false 
 
 	(* This functions checks if the kinds of two literals l1 and l2 match *)
 	fun match_kind(l1,l2) = 
@@ -110,7 +94,7 @@ struct
 		if (#input_arity l1 = #input_arity l2) then true
 		else if (#input_arity l1 > #input_arity l2) andalso (#input_mult l2 = Star) then true
 		     else if (#input_arity l1 < #input_arity l2) andalso (#input_mult l1 = Star) then true
-		          else if one_is_a_bondary(l1,l2) andalso the_output_matches(l1,l2)
+		          else if one_is_a_bondary(l1,l2)
 		               then true  	
 		               else false
 
@@ -119,7 +103,7 @@ struct
 		if (#output_arity l1 = #output_arity l2) then true
 		else if (#output_arity l1 > #output_arity l2) andalso (#output_mult l2 = Star) then true
 		     else if (#output_arity l1 < #output_arity l2) andalso (#output_mult l1 = Star) then true
-		          else if one_is_a_bondary(l1,l2) andalso the_input_matches(l1,l2)
+		          else if one_is_a_bondary(l1,l2)
 		               then true
 		               else false
 

@@ -8,6 +8,7 @@ local
   structure C = CL.C
   structure L = C.L
 
+
   val b = Test_Graph.OVData.WVert;
   val k1 = (mkX zero_angle)
   val k2 = (mkX (LinratAngleExpr.parse "1"))
@@ -102,20 +103,21 @@ local
   val y1 = V.mk "y1"
   val y2 = V.mk "y2"
   val y3 = V.mk "y3"
+  val y4 = V.mk "y4"
 
   val l1 = E.mk "l1"
   val l2 = E.mk "l2"
   val l3 = E.mk "l3"
+  val l4 = E.mk "l4"
   
   val k = k |> G.add_named_vertex y1 k1
             |> G.add_named_vertex y2 k1
-            |> G.add_named_vertex y3 b
+            |> G.add_named_vertex y3 k2
+            |> G.add_named_vertex y4 b
             |> G.add_named_edge l1 dir_edge y1 y2
             |> G.add_named_edge l2 dir_edge y1 y3
             |> G.add_named_edge l3 dir_edge y2 y3
-
-  val (bb4,k) = k |> G.add_bbox
-  val k = k |> G.doadd_to_bbox bb4 (V.NSet.single y2)
+            |> G.add_named_edge l4 dir_edge y3 y4
 
 
 
@@ -148,6 +150,16 @@ local
   val lit3_2 = nth c3_2 0
   val lit3_3 = nth c3_2 1
   val lit3_4 = nth c3_3 0
+
+
+  val cl4 = CL.mk k
+  val c4_1 = nth cl4 0
+  val c4_2 = nth cl4 1
+  val c4_3 = nth cl4 2
+  val lit4_1 = nth c4_1 0
+  val lit4_2 = nth c4_2 0
+  val lit4_3 = nth c4_2 1
+  val lit4_4 = nth c4_3 0
 
 
   
@@ -297,7 +309,15 @@ local
   val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit2_3, L.build ( (V.mk "w3"), k2, L.mult_qm, 0, L.mult_star, 0, L.mult_none) )
   val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit2_4, L.build ( (V.mk "w4"), k1, L.mult_star, 0, L.mult_star, 1, L.mult_none) )
  
- 
+  val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_1, L.build ( (V.mk "y1"), k2, L.mult_none, 0, L.mult_none, 3, L.mult_none) )
+  val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_2, L.build ( (V.mk "y2"), k2, L.mult_none, 1, L.mult_none, 0, L.mult_none) )
+  val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_3, L.build ( (V.mk "y3"), k1, L.mult_none, 2, L.mult_none, 0, L.mult_none) )
+  val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_4, L.build ( (V.mk "y4"), b, L.mult_none, 1, L.mult_none, 1, L.mult_none) )
+
+  val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit4_1, L.build ( (V.mk "y1"), k1, L.mult_none, 0, L.mult_none, 2, L.mult_none) )
+  val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit4_2, L.build ( (V.mk "y2"), k1, L.mult_none, 1, L.mult_none, 1, L.mult_none) )
+  val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit4_3, L.build ( (V.mk "y3"), k2, L.mult_none, 2, L.mult_none, 1, L.mult_none) )
+  val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit4_4, L.build ( (V.mk "y4"), b, L.mult_none, 1, L.mult_none, 0, L.mult_none) )
 
 
   (* TESTING CONTOURS *)
@@ -470,6 +490,10 @@ local
   val _ = Testing.test "Checking number of contours in contour list.." assert_contour_list_length (3,cl3)
   val _ = Testing.test "Checking the contours.." assert_contour_list_equiv (hand_cl3,cl3)
 
+  val hand_cl4 = (lit4_1::[]) :: (lit4_2::lit4_3::[]) :: (lit4_4::[]) :: []
+  val _ = Testing.test "Checking number of contours in contour list.." assert_contour_list_length (3,cl4)
+  val _ = Testing.test "Checking the contours.." assert_contour_list_equiv (hand_cl4,cl4)
+
 
 
 
@@ -484,18 +508,19 @@ local
     if i=j then true
     else raise ERROR ("Children number do not match")
 
+  
   (* Tests *)
-  val e = TD.empty
-  val cl1 = (lit1_1::[]) :: (lit1_2::lit1_3::[]) :: []
-  val cl2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
-  val cl3 = (lit3_1::[]) :: (lit3_2::lit3_3::[]) :: (lit3_4::[]) :: []
-  val cll = cl1 :: cl2 :: cl3 :: []
   val gn1 = GraphName.mk "g"
   val gn2 = GraphName.mk "h"
   val gn3 = GraphName.mk "j"
-  val gnl = gn1 :: gn2 :: gn3 :: []
+  val gn4 = GraphName.mk "k"
+  val gnl = gn1 :: gn2 :: gn3 :: gn4 :: []
+  val gl = g :: h :: j :: k ::[]
 
-  val tree = TD.add_cl_list_to_dnet e cll gnl
+  val tab = GraphName.NTab.empty
+  val tab = TD.fold GraphName.NTab.doadd gnl gl tab
+
+  val tree = TD.mk tab
   
   val level_1 = tree
   val node_1 = tree
@@ -516,7 +541,7 @@ local
   val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_2_1,(lit3_1::[]))
   val _ = Testing.test "Checking the children.." assert_children_length((length children_2_1),2)
   val _ = Testing.test "Checking the children.." assert_children_length((length children_2_2),1)
-
+ 
   val level_3 = children_2_1 :: children_2_2 :: []
   val node_3_1 = nth children_2_1 0
   val node_3_2 = nth children_2_1 1
@@ -528,32 +553,40 @@ local
   val children_3_2 = TD.get_children(node_3_2)
   val children_3_3 = TD.get_children(node_3_3)
   val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_3_3,(lit2_1::[]))
-  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_3_2,(lit1_2::lit1_3::[]))
-  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_3_1,(lit3_2::lit3_3::[]))
+  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_3_1,(lit1_2::lit1_3::[]))
+  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_3_2,(lit3_2::lit3_3::[]))
   val _ = Testing.test "Checking the children.." assert_children_length((length children_3_1),1)
-  val _ = Testing.test "Checking the children.." assert_children_length((length children_3_2),1)
+  val _ = Testing.test "Checking the children.." assert_children_length((length children_3_2),2)
   val _ = Testing.test "Checking the children.." assert_children_length((length children_3_3),1)
 
   val level_4 = children_3_1 :: children_3_2 :: children_3_3 :: []
   val node_4_1 = nth children_3_1 0
   val node_4_2 = nth children_3_2 0
-  val node_4_3 = nth children_3_3 0
-  val contour_4_1 = TD.get_contour(node_4_1)
-  val children_4_1 = TD.get_children(node_4_1)
-  val graph_4_2 = TD.get_graph(node_4_2)
+  val node_4_3 = nth children_3_2 1
+  val node_4_4 = nth children_3_3 0
+  val graph_4_1 = TD.get_graph(node_4_1)
+  val contour_4_2 = TD.get_contour(node_4_2)
+  val children_4_2 = TD.get_children(node_4_2)
   val contour_4_3 = TD.get_contour(node_4_3)
   val children_4_3 = TD.get_children(node_4_3)
-  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_4_1,(lit3_4::[]))
-  val _ = Testing.test "Checking the children.." assert_children_length((length children_4_1),1)
-  val _ = Testing.test "Checking the graph.." assert_graph_name_eq(graph_4_2, gn1)
-  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_4_3,(lit2_4::lit2_3::[]))
+  val contour_4_4 = TD.get_contour(node_4_4)
+  val children_4_4 = TD.get_children(node_4_4)
+  val _ = Testing.test "Checking the graph.." assert_graph_name_eq(graph_4_1, gn1)
+  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_4_2,(lit3_4::[]))
+  val _ = Testing.test "Checking the children.." assert_children_length((length children_4_2),1)
+  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_4_3,(lit4_4::[]))
   val _ = Testing.test "Checking the children.." assert_children_length((length children_4_3),1)
-  
-  val level_5 = children_4_1 :: children_4_3 :: []
-  val node_5_1 = nth children_4_1 0
-  val node_5_3 = nth children_4_3 0
+  val _ = Testing.test "Checking the contour.." assert_contour_equiv(contour_4_4,(lit2_4::lit2_3::[]))
+  val _ = Testing.test "Checking the children.." assert_children_length((length children_4_4),1)
+ 
+  val level_5 = children_4_2 :: children_4_3 :: children_4_4 :: []
+  val node_5_1 = nth children_4_2 0
+  val node_5_2 = nth children_4_3 0
+  val node_5_3 = nth children_4_4 0
   val graph_5_1 = TD.get_graph(node_5_1)
+  val graph_5_2 = TD.get_graph(node_5_2)
   val graph_5_3 = TD.get_graph(node_5_3)
+  val _ = Testing.test "Checking the graph.." assert_graph_name_eq(graph_5_2, gn4)
   val _ = Testing.test "Checking the graph.." assert_graph_name_eq(graph_5_1, gn3)
   val _ = Testing.test "Checking the graph.." assert_graph_name_eq(graph_5_3, gn2) 
 
@@ -651,6 +684,78 @@ local
 
  
 
+
+  val target5 = G.empty
+  
+  val t5_v1 = V.mk "t5v1"
+  val t5_v2 = V.mk "t5v2"
+  val t5_v3 = V.mk "t5v3"
+  val t5_v4 = V.mk "t5v4"
+  val t5_v5 = V.mk "t5v5"
+
+  val t5_e1 = E.mk "t5e1"
+  val t5_e2 = E.mk "t5e2"
+  val t5_e3 = E.mk "t5e3"
+  val t5_e4 = E.mk "t5e4"
+  val t5_e5 = E.mk "t5e5"
+  
+  val target5 = target5 |> G.add_named_vertex t5_v1 k1
+                        |> G.add_named_vertex t5_v2 k1
+                        |> G.add_named_vertex t5_v3 k2
+                        |> G.add_named_vertex t5_v4 k3
+                        |> G.add_named_vertex t5_v5 k2
+                        |> G.add_named_edge t5_e1 dir_edge t5_v1 t5_v2
+                        |> G.add_named_edge t5_e2 dir_edge t5_v1 t5_v3
+                        |> G.add_named_edge t5_e3 dir_edge t5_v2 t5_v3
+                        |> G.add_named_edge t5_e4 dir_edge t5_v3 t5_v4
+                        |> G.add_named_edge t5_e5 dir_edge t5_v4 t5_v5
+
+  val t5_cl = CL.mk target5
+  val t5_c1_1 = nth t5_cl 0
+  val t5_c1_2 = nth t5_cl 1
+  val t5_c1_3 = nth t5_cl 1
+  val t5_c1_4 = nth t5_cl 2
+  val t5_lit1 = nth t5_c1_1 0
+  val t5_lit2 = nth t5_c1_2 0
+  val t5_lit3 = nth t5_c1_2 1
+  val t5_lit4 = nth t5_c1_3 0
+  val t5_lit5 = nth t5_c1_4 0
+
+
+
+
+  val target6 = G.empty
+  
+  val t6_v1 = V.mk "t6v1"
+  val t6_v2 = V.mk "t6v2"
+  val t6_v3 = V.mk "t6v3"
+  val t6_v4 = V.mk "t6v4"
+
+  val t6_e1 = E.mk "t6e1"
+  val t6_e2 = E.mk "t6e2"
+  val t6_e3 = E.mk "t6e3"
+  val t6_e4 = E.mk "t6e4"
+  val t6_e5 = E.mk "t6e5"
+  
+  val target6 = target6 |> G.add_named_vertex t6_v1 k1
+                        |> G.add_named_vertex t6_v2 k1
+                        |> G.add_named_vertex t6_v3 k2
+                        |> G.add_named_vertex t6_v4 k2
+                        |> G.add_named_edge t6_e1 dir_edge t6_v1 t6_v2
+                        |> G.add_named_edge t6_e2 dir_edge t6_v1 t6_v3
+                        |> G.add_named_edge t6_e3 dir_edge t6_v2 t6_v3
+                        |> G.add_named_edge t6_e4 dir_edge t6_v3 t6_v4
+
+  val t6_cl = CL.mk target6
+  val t6_c1_1 = nth t6_cl 0
+  val t6_c1_2 = nth t6_cl 1
+  val t6_c1_3 = nth t6_cl 1
+  val t6_lit1 = nth t6_c1_1 0
+  val t6_lit2 = nth t6_c1_2 0
+  val t6_lit3 = nth t6_c1_2 1
+  val t6_lit4 = nth t6_c1_3 0
+
+
   (* TESTING PRUNING *)
 
   fun printout([]) = " "
@@ -668,21 +773,22 @@ local
   
 
   (* Tests *)
-  val e = TD.empty
-  val cl1 = (lit1_1::[]) :: (lit1_2::lit1_3::[]) :: []
-  val cl2 = (lit2_2::[]) :: (lit2_1::[]) :: (lit2_4::lit2_3::[]) :: []
-  val cl3 = (lit3_1::[]) :: (lit3_2::lit3_3::[]) :: (lit3_4::[]) :: []
-  val cll = cl1 :: cl2 :: cl3 :: []
   val gn1 = GraphName.mk "g"
   val gn2 = GraphName.mk "h"
   val gn3 = GraphName.mk "j"
-  val gnl = gn1 :: gn2 :: gn3 :: []
+  val gn4 = GraphName.mk "k"
+  val gnl = gn1 :: gn2 :: gn3 :: gn4 :: []
+  val gl = g :: h :: j :: k ::[]
 
+  val tab = GraphName.NTab.empty
+  val tab = TD.fold GraphName.NTab.doadd gnl gl tab
+
+  val tree = TD.mk tab
   
-  val tree = TD.add_cl_list_to_dnet e cll gnl
+
   val tree_graphs = TD.graphs tree
   val _ = Testing.test "Checking the graphs in the tree.." assert_graphs_eq(gnl,tree_graphs)
- 
+
 
   val pruned_tree1 = TD.prune t1_v1 target1 tree
 
@@ -759,6 +865,14 @@ local
   val _ = Testing.test "Checking the literals.." assert_lit_equiv(t4_lit2_2,L.build( V.mk "t4v1b", k2, L.mult_none, 0, L.mult_none, 3, L.mult_none ))
   val _ = Testing.test "Checking the literals.." assert_lit_equiv(t4_lit3_1,L.build( V.mk "t4v3", k2, L.mult_none, 3, L.mult_none, 0, L.mult_none ))
   val _ = Testing.test "Checking the literals.." assert_lit_equiv(t4_lit3_2,L.build( V.mk "t4v4", k1, L.mult_none, 2, L.mult_none, 1, L.mult_none ))
+
+  val pruned_tree5 = TD.prune t5_v1 target5 tree
+  val pruned_tree5_graphs = TD.graphs pruned_tree5
+  val _ = Testing.test "Checking the graphs.." assert_graphs_eq(gn4::[],pruned_tree5_graphs)
+
+  val pruned_tree6 = TD.prune t6_v1 target6 tree
+  val pruned_tree6_graphs = TD.graphs pruned_tree6
+  val _ = Testing.test "Checking the graphs.." assert_graphs_eq(gn3 :: gn4:: [],pruned_tree6_graphs)
 
 
 in

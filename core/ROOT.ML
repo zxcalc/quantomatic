@@ -213,12 +213,14 @@ PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 
 
+PolyML.Project.make "dnets/DNetsLib.ML";
 PolyML.Project.make "dnets/Literal.ML";
 PolyML.Project.make "dnets/Contour.ML";
 PolyML.Project.make "dnets/ContourList.ML";
 PolyML.Project.make "dnets/TopDNet.ML";
 
 Testing.make_test "dnets/test.ML"; 
+PolyML.Project.make "dnets/perf.ML";
 
 (* Testing *)
 (* Testing.make_test "io/test/load_ruleset-test.ML"; *)
