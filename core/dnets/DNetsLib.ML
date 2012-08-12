@@ -9,6 +9,9 @@ sig
   val rm_element : ('a * 'a -> bool) -> 'a -> 'a list -> 'a list
   val sub_x_y : ('a * 'a -> bool) -> 'a list -> 'a list -> 'a list
 
+  val one_of : 'a list -> 'a
+  val random_range : int -> int -> int
+
 end
 
 
@@ -37,6 +40,31 @@ struct
   fun sub_x_y _ x [] = x
     | sub_x_y f x (y::[]) = if is_contained f y x then rm_element f y x else x
     | sub_x_y f x (y::ys) = if is_contained f y x then sub_x_y f (rm_element f y x) ys else sub_x_y f x ys
+
+
+
+  fun rmod x y = x - y * Real.realFloor (x / y)
+
+  local
+    val a = 16807.0;
+    val m = 2147483647.0;
+    (*val r = Real.fromInt(Time.toMicroseconds(Time.now()) * Time.toNanoseconds(Time.now())) / Real.fromInt(Time.toMilliseconds(Time.now()))
+    *)
+    val r = 753476576.3423
+    val random_seed = Unsynchronized.ref r
+  in
+    fun random () = CRITICAL (fn () =>
+      let val r = rmod (a * ! random_seed) m
+      in (random_seed := r; r) end);
+  end
+
+  fun random_range l h =
+    if h < l orelse l < 0 then raise RANDOM
+    else l + Real.floor (rmod (random ()) (real (h - l + 1)));
+
+  fun one_of xs = nth xs (random_range 0 (length xs - 1));
+
+
 
 
 end

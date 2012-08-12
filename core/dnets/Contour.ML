@@ -20,6 +20,8 @@ sig
   val get_contour_mult_qm : T -> T
   val get_contour_mult_star_or_qm : T -> T
 
+  val contains_boundary : T -> bool
+
   (* COMPARISON FUNCTIONS *)
   val eq : T * T -> bool
   val equiv : T * T -> bool
@@ -79,7 +81,9 @@ struct
   fun get_contour_mult_star_or_qm(c) = flat (get_contour_mult_star(c) :: get_contour_mult_qm(c) :: [])
 
   
-
+  fun contains_boundary ([]) = false
+    | contains_boundary (l::[]) = L.is_boundary l
+    | contains_boundary (l::ls) = if L.is_boundary l then true else contains_boundary ls
 
   
   (* This function finds if a literal l is contained in a contour c *)

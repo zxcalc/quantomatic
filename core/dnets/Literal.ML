@@ -4,6 +4,8 @@ sig
 	type multiplicity
 	structure G : BANG_GRAPH
 
+	val boundary : G.VData.data
+
     (* CONSTRUCTOR *)
 	val mk : G.T -> V.name -> T
 	val build : V.name * G.VData.data * multiplicity * int * multiplicity * int * multiplicity -> T
@@ -25,6 +27,8 @@ sig
 	val get_input_mult : T -> multiplicity
 	val get_output_arity : T -> int
 	val get_output_mult : T -> multiplicity
+
+	val is_boundary : T -> bool
 
     (* MULTIPLICITY FUNCTIONS*)
 	val mult_none : multiplicity
@@ -57,10 +61,11 @@ struct
 	           output_arity : int,
 	           output_mult : multiplicity }	
 
+	val boundary = G.OVData.WVert
+
 	val mult_none = None
 	val mult_qm = QM
 	val mult_star = Star
-
 
 	(* This function builds a literal by packaging its data in a literal type *)
 	fun build (n, k, k_m, i_a, i_m, o_a, o_m) =
@@ -83,7 +88,7 @@ struct
 	(* HELPER FUNCTIONS to compare literal matching *)
 	(* This function checks if one literal between l1 and l2 has a boundary kind *)
     fun one_is_a_bondary(l1,l2) = 
-        if (G.VData.data_eq(#kind l1, G.OVData.WVert) orelse G.VData.data_eq(#kind l2, G.OVData.WVert)) then true else false 
+        if (G.VData.data_eq(#kind l1, boundary) orelse G.VData.data_eq(#kind l2, boundary)) then true else false 
 
 	(* This functions checks if the kinds of two literals l1 and l2 match *)
 	fun match_kind(l1,l2) = 
@@ -218,6 +223,7 @@ struct
 
 	
 
+	fun is_boundary(l) = G.VData.data_eq(#kind l, boundary)
 
 
 	(* This function prints the literal l*)

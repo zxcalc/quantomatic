@@ -147,21 +147,18 @@ struct
     | remove_not_leaf(t::[]) = if is_node(t) then [] else t::[]
     | remove_not_leaf(t::ts) = if is_node(t) then remove_not_leaf(ts) else t::remove_not_leaf(ts)
 
-  (* This functions filters the children of a node according to the strong compatibility with a contour c *)
-  fun strong_filter_children(c,[]) = []
-    | strong_filter_children(c,t::[]) =
-      if (is_node(t))
-      then if CL.C.check_strong_compatibility(c,get_contour(t))
-           then Node{contour=get_contour(t), children=get_children(t)}::[]
-           else []
-      else t::[]
-    | strong_filter_children(c,t::ts) =
-      if (is_node(t))
-      then if CL.C.check_strong_compatibility(c,get_contour(t))
-           then Node{contour=get_contour(t), children=get_children(t)}::strong_filter_children(c,ts)
-           else strong_filter_children(c,ts)
-      else t::strong_filter_children(c,ts)
-
+  fun is_there_boundary([]) = false
+    | is_there_boundary(t::[]) = 
+      if (is_node(t)) then 
+        if CL.C.contains_boundary(get_contour(t)) then true
+        else false
+      else false
+    | is_there_boundary(t::ts) =
+      if (is_node(t)) then
+        if CL.C.contains_boundary(get_contour(t)) then true
+        else is_there_boundary(ts)
+      else is_there_boundary(ts)
+ 
   (* This functions filters the children of a node according to the weak compatibility with a contour c *)
   fun weak_filter_children(c,[]) = []
     | weak_filter_children(c,t::[]) =
@@ -177,48 +174,20 @@ struct
            else weak_filter_children(c,ts)
       else t::weak_filter_children(c,ts)  
 
-  (* This function recursively prunes the tree t using strong compatibility*)
-  fun strong_prune_trees([],_) = []
-    | strong_prune_trees(t::[],c::[]) =
-        if (is_node(t))
-        then
-          let
-            val children = get_children(t)
-            val new_children = strong_filter_children(c,children)
-          in
-            Node{contour=get_contour(t),children=new_children} :: []
-          end
-        else t::[]
-    | strong_prune_trees(t::[],c::cs) = 
-        if (is_node(t))
-        then 
-          let
-            val children = get_children(t)
-            val new_children = strong_filter_children(c,children)
-          in
-            Node{contour=get_contour(t),children=strong_prune_trees(new_children,cs)} :: []
-          end
-        else t::[]
-    | strong_prune_trees(t::ts,c::[]) =
-        if (is_node(t))
-        then
-          let 
-            val children = get_children(t)
-            val new_children = strong_filter_children(c,children)
-          in
-            Node{contour=get_contour(t),children=new_children} :: strong_prune_trees(ts,c::[])
-          end
-        else t::strong_prune_trees(ts,c::[])
-    | strong_prune_trees(t::ts,c::cs) =
-        if (is_node(t))
-        then 
-          let
-            val children = get_children(t)
-            val new_children = strong_filter_children(c,children)
-          in
-            Node{contour=get_contour(t),children=strong_prune_trees(new_children,cs)} :: strong_prune_trees(ts,c::cs)
-          end
-        else t::strong_prune_trees(ts,c::cs)
+  (* This functions filters the children of a node according to the strong compatibility with a contour c *)
+  fun strong_filter_children(c,[]) = []
+    | strong_filter_children(c,t::[]) =
+      if (is_node(t))
+      then if CL.C.check_strong_compatibility(c,get_contour(t))
+           then Node{contour=get_contour(t), children=get_children(t)}::[]
+           else []
+      else t::[]
+    | strong_filter_children(c,t::ts) =
+      if (is_node(t))
+      then if CL.C.check_strong_compatibility(c,get_contour(t))
+           then Node{contour=get_contour(t), children=get_children(t)}::strong_filter_children(c,ts)
+           else strong_filter_children(c,ts)
+      else t::strong_filter_children(c,ts)
 
   (* This function recursively prunes the tree t using weak compatibility*)
   fun weak_prune_trees([],_) = []
@@ -263,6 +232,59 @@ struct
           end
         else t::weak_prune_trees(ts,c::cs)
 
+  (* This function recursively prunes the tree t using strong compatibility*)
+  fun strong_prune_trees([],_) = []
+    | strong_prune_trees(t::[],c::[]) =
+        if (is_node(t))
+        then
+          let
+            val children = get_children(t)
+            val is_weak = is_there_boundary(children)
+            val new_children = if(is_weak) then weak_filter_children(c,children)
+                             else strong_filter_children(c,children)
+          in
+            Node{contour=get_contour(t),children=new_children} :: []
+          end
+        else t::[]
+    | strong_prune_trees(t::[],c::cs) = 
+        if (is_node(t))
+        then 
+          let
+            val children = get_children(t)
+            val is_weak = is_there_boundary(children)
+            val new_children = if(is_weak) then weak_filter_children(c,children)
+                             else strong_filter_children(c,children)
+          in
+            if (is_weak) then Node{contour=get_contour(t),children=weak_prune_trees(new_children,cs)} :: []
+            else Node{contour=get_contour(t),children=strong_prune_trees(new_children,cs)} :: []
+          end
+        else t::[]
+    | strong_prune_trees(t::ts,c::[]) =
+        if (is_node(t))
+        then
+          let 
+            val children = get_children(t)
+            val is_weak = is_there_boundary(children)
+            val new_children = if(is_weak) then weak_filter_children(c,children)
+                             else strong_filter_children(c,children)
+          in
+            Node{contour=get_contour(t),children=new_children} :: strong_prune_trees(ts,c::[])
+          end
+        else t::strong_prune_trees(ts,c::[])
+    | strong_prune_trees(t::ts,c::cs) =
+        if (is_node(t))
+        then 
+          let
+            val children = get_children(t)
+            val is_weak = is_there_boundary(children)
+            val new_children = if(is_weak) then weak_filter_children(c,children)
+                             else strong_filter_children(c,children)
+          in
+            if (is_weak) then Node{contour=get_contour(t),children=weak_prune_trees(new_children,cs)} :: strong_prune_trees(ts,c::cs)
+            else Node{contour=get_contour(t),children=strong_prune_trees(new_children,cs)} :: strong_prune_trees(ts,c::cs)
+          end
+        else t::strong_prune_trees(ts,c::cs)
+
   (* This function perform the first step of the pruning of the tree t at the root *)
   fun prune_tree(t,[]) = t
     | prune_tree(t,c::[]) =
@@ -270,7 +292,9 @@ struct
       then 
         let
           val children = get_children(t)
-          val new_children = strong_filter_children(c,children)
+          val is_weak = is_there_boundary(children)
+          val new_children = if(is_weak) then weak_filter_children(c,children)
+                             else strong_filter_children(c,children)
         in
           Node{contour=get_contour(t),children=new_children}
         end  
@@ -280,9 +304,12 @@ struct
       then
         let
           val children = get_children(t)
-          val new_children = strong_filter_children(c,children)
+          val is_weak = is_there_boundary(children)
+          val new_children = if(is_weak) then weak_filter_children(c,children)
+                             else strong_filter_children(c,children)
         in
-          Node{contour=get_contour(t),children=strong_prune_trees(new_children,cs)}
+          if (is_weak) then Node{contour=get_contour(t),children=weak_prune_trees(new_children,cs)}
+          else Node{contour=get_contour(t),children=strong_prune_trees(new_children,cs)}
         end
       else t      
 		

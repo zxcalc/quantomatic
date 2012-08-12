@@ -9,10 +9,10 @@ local
   structure L = C.L
 
 
-  val b = Test_Graph.OVData.WVert;
+  val b = L.boundary;
   val k1 = (mkX zero_angle)
   val k2 = (mkX (LinratAngleExpr.parse "1"))
-  val k3 = (mkX (LinratAngleExpr.parse "2"))
+  val k3 = (mkX (LinratAngleExpr.parse "a"))
 
 
 
@@ -459,7 +459,6 @@ local
   val _ = Testing.test "Checking weak compatibility.." assert_no_weak_compatibility(target,pattern_7)
   val _ = Testing.test "Checking weak compatibility.." assert_no_weak_compatibility(target,pattern_8)
   val _ = Testing.test "Checking weak compatibility.." assert_no_weak_compatibility(target,pattern_9)
-
   
 
   (* TESTING CONTOUR LISTS *)
