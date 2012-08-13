@@ -85,6 +85,10 @@ struct
     | contains_boundary (l::[]) = L.is_boundary l
     | contains_boundary (l::ls) = if L.is_boundary l then true else contains_boundary ls
 
+  fun contains_two_boundaries([]) = false
+    | contains_two_boundaries(l::[]) = false
+    | contains_two_boundaries(l::ls) = if L.is_boundary l then contains_boundary ls else contains_two_boundaries ls
+
   
   (* This function finds if a literal l is contained in a contour c *)
   fun is_eq_literal_contained(l,[]) = false
@@ -276,25 +280,35 @@ struct
        L.build ( L.get_name(l), L.get_kind(l), set_kind_mult(g,pc,l), set_input_arity(g,l), set_input_mult(g,pc,l), set_output_arity(g,l), set_output_mult(g,pc,l) ) :: rebuild_literals(g,pc,ls)
 
   
+  fun add_qm_to_boundaries([]) = []
+    | add_qm_to_boundaries(l::[]) = 
+      if L.is_boundary(l) then L.build ( L.get_name(l), L.get_kind(l), L.mult_qm, L.get_input_arity(l), L.get_input_mult(l), L.get_output_arity(l), L.get_output_mult(l) ) :: []
+      else l ::[]
+    | add_qm_to_boundaries(l::ls) =
+      if L.is_boundary(l) then L.build ( L.get_name(l), L.get_kind(l), L.mult_qm, L.get_input_arity(l), L.get_input_mult(l), L.get_output_arity(l), L.get_output_mult(l) ) :: add_qm_to_boundaries(ls)  
+      else l :: add_qm_to_boundaries(ls)  
+
+  fun rebuild_boundaries(c) = 
+    if contains_two_boundaries(c) then add_qm_to_boundaries(c) else c
 
   (* This function builds the first contour given a graph g *)
   fun target_function(g) =
       let
         val vnames = G.get_unbboxed(g)
         val v::vlist = V.NSet.list_of(vnames)        
-        val l = L.mk g v
-        val ls = rebuild_literals(g,[],l::[])
+        val lit = L.mk g v
+        val contour = rebuild_literals(g,[],lit::[])
       in
-        ls
+        rebuild_boundaries(contour)
       end
 
   (* This function build the first contour using the node-vertex v *)
   fun mk_first_contour g v =
       let
-        val l = L.mk g v
-        val ls = rebuild_literals(g,[],l::[])
+        val lit = L.mk g v
+        val contour = rebuild_literals(g,[],lit::[])
       in
-        ls
+        rebuild_boundaries(contour)
       end 
 
   (* This function builds a contour starting from another contour c *)
@@ -306,8 +320,9 @@ struct
           val contour = LIB.maps3 L.get_adj g c
           val contour = remove_eq_duplicate(contour)
           val contour = complement_eq_contour(c,contour)
+          val contour = rebuild_literals(g,c,contour)
         in
-          rebuild_literals(g,c,contour)
+          rebuild_boundaries(contour)
         end
 
 

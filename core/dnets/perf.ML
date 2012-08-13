@@ -229,7 +229,7 @@
   val target = nth targets 0
 
   val _ = printout ("Pruning the tree using the target graph..\n\n")
-  val graph_by_vertex = TD.pruning tree target
+  val graph_by_vertex = TD.extended_pruning tree target
 
   val _ = printout ("Evaluating performances..\n")
   val num_matchings = enumerate_graphs graph_by_vertex
