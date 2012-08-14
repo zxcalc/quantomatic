@@ -80,11 +80,12 @@ struct
   (* This function returns a contout containing only the literal with multiplicity equal to Star or QM *)
   fun get_contour_mult_star_or_qm(c) = flat (get_contour_mult_star(c) :: get_contour_mult_qm(c) :: [])
 
-  
+  (* This function checks if a boundary contains at least one boundary node-vertex *)  
   fun contains_boundary ([]) = false
     | contains_boundary (l::[]) = L.is_boundary l
     | contains_boundary (l::ls) = if L.is_boundary l then true else contains_boundary ls
 
+  (* This function checks if a boundary contains at least two boundary node-vertex *)  
   fun contains_two_boundaries([]) = false
     | contains_two_boundaries(l::[]) = false
     | contains_two_boundaries(l::ls) = if L.is_boundary l then contains_boundary ls else contains_two_boundaries ls
@@ -152,8 +153,6 @@ struct
 
 
 
-
-
   (* This function finds if a literal l is contained in a contour c *)
   fun is_equiv_literal_contained(l, []) = false
     | is_equiv_literal_contained(l,c::[]) = if L.equiv(l,c) then true else false
@@ -188,10 +187,6 @@ struct
   fun equiv (c1,c2) =
     if (length c1 = length c2) then is_equiv_contour(c1,c2)
     else false
-
-
-
-
 
 
 
@@ -279,7 +274,7 @@ struct
     | rebuild_literals(g,pc,l::ls) =
        L.build ( L.get_name(l), L.get_kind(l), set_kind_mult(g,pc,l), set_input_arity(g,l), set_input_mult(g,pc,l), set_output_arity(g,l), set_output_mult(g,pc,l) ) :: rebuild_literals(g,pc,ls)
 
-  
+  (* This function adds a qm multiplicity to the boundary node-vertices in l::ls *)
   fun add_qm_to_boundaries([]) = []
     | add_qm_to_boundaries(l::[]) = 
       if L.is_boundary(l) then L.build ( L.get_name(l), L.get_kind(l), L.mult_qm, L.get_input_arity(l), L.get_input_mult(l), L.get_output_arity(l), L.get_output_mult(l) ) :: []
@@ -288,6 +283,7 @@ struct
       if L.is_boundary(l) then L.build ( L.get_name(l), L.get_kind(l), L.mult_qm, L.get_input_arity(l), L.get_input_mult(l), L.get_output_arity(l), L.get_output_mult(l) ) :: add_qm_to_boundaries(ls)  
       else l :: add_qm_to_boundaries(ls)  
 
+  (* This function rebuilds the literals adding a qm multiplicity to a boundary node-vertex if the contour c contains more than one boundary node-vertex *)
   fun rebuild_boundaries(c) = 
     if contains_two_boundaries(c) then add_qm_to_boundaries(c) else c
 
@@ -325,13 +321,10 @@ struct
           rebuild_boundaries(contour)
         end
 
-
   (* This function adds the literal l to the contour c *)
   fun add_literal c l = l::c
 
   
-
-
 
   (* This function finds if a literal l is contained in a contour c *)
   fun is_matching_literal_contained(l, []) = false
@@ -416,8 +409,6 @@ struct
     in
       if (is_matching_contour_contained(c2_concrete,c1)) then true else false
     end
-
-
 
 
 

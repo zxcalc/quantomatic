@@ -175,6 +175,7 @@ struct
         else t :: weak_prune_trees(ts,c::cs)
 
 
+  (* This function recursively prunes the tree t using strong compatibility*)
   fun extended_strong_prune_trees([],[]) = []
     | extended_strong_prune_trees(t::[],[]) = t::[]
     | extended_strong_prune_trees([],c::[]) = []    
@@ -239,7 +240,8 @@ struct
         else
           t :: extended_strong_prune_trees(ts,c::cs)
 
-  (* This function perform the first step of the pruning of the tree t at the root *)
+
+  (* This function perform the first step of the extended pruning of the tree t at the root *)
   fun extended_prune_tree(t,[]) = t
     | extended_prune_tree(t,c::[]) =
       if (is_node(t))
@@ -260,7 +262,7 @@ struct
         end
       else t 
 
-  (* This function perform the first step of the pruning of the tree t at the root *)
+  (* This function perform the first step of the standard pruning of the tree t at the root *)
   fun standard_prune_tree(t,[]) = t
     | standard_prune_tree(t,c::[]) =
       if (is_node(t))
@@ -281,7 +283,7 @@ struct
         end
       else t      
 		
-	(* This function prunes a tree given a tree t, a graph g and a starting node-vertex v to build the contour list of g*)
+	(* This function use the extended algorithm to prune a tree given a tree t, a graph g and a starting node-vertex v to build the contour list of g*)
 	fun extended_prune v g t =
     let
       val target_contour_list = CL.mk_from g v
@@ -289,7 +291,7 @@ struct
       extended_prune_tree(t,target_contour_list)
     end
 
-  (* This function prunes a tree given a tree t, a graph g and a starting node-vertex v to build the contour list of g*)
+  (* This function use the standard algorithm to prune a tree given a tree t, a graph g and a starting node-vertex v to build the contour list of g*)
   fun standard_prune v g t =
     let
       val target_contour_list = CL.mk_from g v
@@ -311,18 +313,22 @@ struct
     if (is_node(t)) then explore_branches(get_children(t))
     else get_graph(t)::[]
 
+  (* This function returns the list of the names of all the graphs encoded in a list of discrimination trees t::ts *)
   fun collect_graphs [] = []
     | collect_graphs (t::[]) = (graphs t) :: []
     | collect_graphs (t::ts) = (graphs t) :: (collect_graphs ts)
 
+  (* This function receives a discrimination tree and executes the extended pruning algorithm using all possible contour list built from a target and a starting node-vertex n *)
   fun do_extended_pruning tree target [] = []
     | do_extended_pruning tree target (n::[]) = (extended_prune n target tree) :: []
     | do_extended_pruning tree target (n::ns) = (extended_prune n target tree) :: (do_extended_pruning tree target ns)
 
+  (* This function receives a discrimination tree and executes the standard pruning algorithm using all possible contour list built from a target and a starting node-vertex n *)
   fun do_standard_pruning tree target [] = []
     | do_standard_pruning tree target (n::[]) = (standard_prune n target tree) :: []
     | do_standard_pruning tree target (n::ns) = (standard_prune n target tree) :: (do_standard_pruning tree target ns)
 
+  (* This function recevives a discrimination tree and a target graph and starts the extended pruning algorithm *)
   fun extended_pruning tree target =
     let
       val nodelist = G.get_unbboxed target
@@ -333,6 +339,7 @@ struct
       nodelist ~~ graphslist
     end
 
+  (* This function recevives a discrimination tree and a target graph and starts the standard pruning algorithm *)
   fun standard_pruning tree target =
     let
       val nodelist = G.get_unbboxed target
@@ -390,10 +397,3 @@ struct
       else GraphName.string_of_name(get_graph(t)) ^ " " ^ printout(ts)
 
 end
-
-(*
-val dnet = mk pattern_graphs;
-
-val dnet' = prune target_graph dnet;
-
-val matches = fold (fn r => fn lst => (match r g)@lst) dnet' [];*)

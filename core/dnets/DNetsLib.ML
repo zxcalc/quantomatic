@@ -1,16 +1,15 @@
 signature TDNET_LIBRARY =
 sig
   
+  (* GENERIC FUNCTIONS *)
   val maps2 : ('a -> 'b -> 'b list) -> 'a list -> 'b list -> 'b list
   val maps3 : ('a -> 'b -> 'c list) -> 'a -> 'b list -> 'c list
 
+  (* LIST FUNCTIONS *)
   val is_contained : ('a * 'a -> bool) -> 'a -> 'a list -> bool
   val rm_duplicates : ('a * 'a -> bool) -> 'a list -> 'a list
   val rm_element : ('a * 'a -> bool) -> 'a -> 'a list -> 'a list
   val sub_x_y : ('a * 'a -> bool) -> 'a list -> 'a list -> 'a list
-
-  val one_of : 'a list -> 'a
-  val random_range : int -> int -> int
 
 end
 

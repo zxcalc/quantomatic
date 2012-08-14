@@ -174,7 +174,6 @@ struct
 	fun get_output_mult(l) = #output_mult l
 
 
-
 	(* This function returns the literals of all the adjacent nodes to the literal l in the graph g *)
 	fun get_adj g l =
 		let
@@ -208,6 +207,8 @@ struct
 		  map2 mk g_list v_list         
 	    end
 
+	(* This function checks if a literal is a boundary node-vertex *)
+	fun is_boundary(l) = G.VData.data_eq(#kind l, boundary)
 
 
 	(* Functions to work with multiplicity *)
@@ -221,9 +222,6 @@ struct
 
 	fun is_kind_mult_qm(l) = if mult_eq((#kind_mult l),QM) then true else false
 
-	
-
-	fun is_boundary(l) = G.VData.data_eq(#kind l, boundary)
 
 
 	(* This function prints the literal l*)
