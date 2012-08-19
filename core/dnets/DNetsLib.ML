@@ -42,28 +42,4 @@ struct
 
 
 
-  fun rmod x y = x - y * Real.realFloor (x / y)
-
-  local
-    val a = 16807.0;
-    val m = 2147483647.0;
-    (*val r = Real.fromInt(Time.toMicroseconds(Time.now()) * Time.toNanoseconds(Time.now())) / Real.fromInt(Time.toMilliseconds(Time.now()))
-    *)
-    val r = 753476576.3423
-    val random_seed = Unsynchronized.ref r
-  in
-    fun random () = CRITICAL (fn () =>
-      let val r = rmod (a * ! random_seed) m
-      in (random_seed := r; r) end);
-  end
-
-  fun random_range l h =
-    if h < l orelse l < 0 then raise RANDOM
-    else l + Real.floor (rmod (random ()) (real (h - l + 1)));
-
-  fun one_of xs = nth xs (random_range 0 (length xs - 1));
-
-
-
-
 end
