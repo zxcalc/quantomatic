@@ -99,7 +99,7 @@ functor SimpleInnerMatchSearch(
                      (log_match_fail_e2' lvl "Circle EData mismatch" ep et;
                       Seq.empty)
            end
-         in V.NSet.fold (Seq.append o m_circ) (u_circles_in_tgt ms) Seq.empty
+         in Seq.maps m_circ (V.NSet.fold Seq.cons (u_circles_in_tgt ms) Seq.empty)
          end
        | NONE => (* no circles left to match, return match state *)
                  (Log.log 2 "== All circles matched"; Seq.single ms)
@@ -227,7 +227,7 @@ functor SimpleInnerMatchSearch(
                 match_main (lvl+1) (ms' |> MatchState.set_match_subst subst
                                         |> add_vertex_to_match lvl (nv, tnv))
              | NONE => Seq.empty
-      in V.NSet.fold (Seq.append o m_nodevert) unm_nv_tgt Seq.empty
+      in Seq.maps m_nodevert (V.NSet.fold Seq.cons unm_nv_tgt Seq.empty)
       end
       
       
@@ -352,8 +352,10 @@ functor SimpleInnerMatchSearch(
           (G.is_wire_vertex tgt s andalso G.is_wire_vertex tgt t)) (* circles + middle edges *)
       end
       
-      (* return all the edges of the right kind with matching dir_or_undir *)
-      val edges = E.NSet.filter (is_candidate_for_bw) (G.get_enames tgt)
+      (* sequence of all the edges of the right kind with matching dir_or_undir *)
+      val edges = E.NSet.fold_rev
+        (fn e => if is_candidate_for_bw e then Seq.cons e else I)
+        (G.get_enames tgt) Seq.empty
       fun match_bw e = let
         (* grow edge and grab relevant data *)
         val fulltgt = MatchState.get_full_tgt ms
@@ -387,7 +389,7 @@ functor SimpleInnerMatchSearch(
                end
            | NONE => Seq.empty
       end
-    in E.NSet.fold (Seq.append o match_bw) edges Seq.empty
+    in Seq.maps match_bw edges
     end
   end
   val match_bare_wires = match_bare_wires' 0
