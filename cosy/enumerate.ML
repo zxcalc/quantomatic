@@ -87,7 +87,7 @@ struct
       else (if ins = total_ins then f gr else I)
               (case first_plug plugs
                  of SOME (p,q) =>
-                      enum_plugs (gr |> Graph.do_plug p q, (* do plug *)
+                      enum_plugs (gr |> Graph.do_plug p q |> Graph.minimise, (* do plug *)
                                   ins-1,
                                   plugs |> Plugs.del_dom p |> Plugs.del_cod q,
                                   plug_count+1)

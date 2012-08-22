@@ -205,6 +205,7 @@ fun as_data list = fold2
   (0 upto (length list - 1)) list ""
 
 
+val cosy = process update_redex Cosy.initial_rs
 
 
 (********************)
