@@ -40,17 +40,18 @@ sig
   structure Graph : BANG_GRAPH
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
-  structure TData : TENSOR_DATA
+  (*structure TData : TENSOR_DATA*)
   sharing Graph.SharingOGraph = Metric.Graph.SharingOGraph = GraphEnum.Theory.Graph.SharingOGraph
   type rundesc = int * int * int * int
-  type T = rundesc * (Graph.T EqClass.T) TData.Tensor.Tab.table
-  val synth : (Graph.T * int * int) list -> int * int * int * int -> T
-  val synth_with_rs : GraphEnum.Theory.Ruleset.T -> (Graph.T * int * int) list -> int * int * int * int -> T
+  type T
+  val synth : (Graph.T * int * int) list -> rundesc -> T
+  val synth_with_rs : GraphEnum.Theory.Ruleset.T -> (Graph.T * int * int) list -> rundesc -> T
   val stats : T -> int * int * int
-  val eqclass_fold : (TData.Tensor.T * Graph.T EqClass.T -> 'b -> 'b) -> T -> 'b -> 'b
+  (*val eqclass_fold : (TData.Tensor.T * Graph.T EqClass.T -> 'b -> 'b) -> T -> 'b -> 'b*)
+  val eqclass_fold : (Graph.T EqClass.T -> 'b -> 'b) -> T -> 'b -> 'b
 end
 
-functor Synthesize (
+functor TensorSynth (
   structure GraphEnum : GRAPH_ENUMERATOR
   structure Metric : GRAPH_METRIC
   structure TData : TENSOR_DATA
@@ -118,6 +119,6 @@ struct
                         k + length (EqClass.get_redexes class))
                     ) class_tab (0,0,0)
   
-  fun eqclass_fold f (_,tab) base = TData.Tensor.Tab.fold f tab base
+  fun eqclass_fold f (_,tab) base = TData.Tensor.Tab.fold (f o snd) tab base
 end
   

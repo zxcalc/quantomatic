@@ -812,6 +812,22 @@ functor OGraphFun(G : BASIC_OGRAPH)
   end
   val do_plug_and_normalise = snd ooo plug_and_normalise
 
+  (*fun plug_minimised g v1 v2 =
+    case get_plugging g v1 v2
+      of NONE => raise plugging_exp (g,v1,v2)
+       | SOME (e,v1',v2') => if v1 = v1'*)
+  (*let
+    val plug_target =
+      case (V.NSet.tryget_singleton (pred_vnames g v1),
+            V.NSet.tryget_singleton (pred_vnames g v2),
+            V.NSet.tryget_singleton (succ_vnames g v1),
+            V.NSet.tryget_singleton (succ_vnames g v2))
+        of (SOME from, NONE, NONE, SOME to) => if from=v2 then NONE else SOME (from, to)
+         | (NONE, SOME from, SOME to, NONE) => if from=v1 then NONE else SOME (from, to)
+         | _ => raise plugging_exp ("Attempted to plug non-boundary-coherent wire-verts", v1, v2)
+  in g |> delete_vertex v1 |> (case plug_target of NONE => add_edge (E.mk ))
+  end*)
+
   (* finds the open subgraph defined by a node-vertex set
    * assumes graph is normalised
    * returns a set of vertices

@@ -31,7 +31,7 @@ struct
              fold (add_rule (TagName.mk "c") rep) (EqClass.get_congs class)
                (fold (add_rule (TagName.mk "r") rep) (EqClass.get_redexes class) rs)
          | NONE => rs
-  in Synthesize.eqclass_fold (process_class o snd) synth ruleset
+  in Synthesize.eqclass_fold process_class synth ruleset
   end
   
   fun from_synth synth = Ruleset.empty |> update synth

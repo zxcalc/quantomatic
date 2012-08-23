@@ -107,7 +107,7 @@ end
 
 structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)
 
-structure RG_Synth = Synthesize(
+structure RG_Synth = TensorSynth(
   structure GraphEnum = RG_Enum
   structure Metric = WeightedArityMetric(structure Graph = RG_Theory.Graph;
     fun weight_for_data (Graph.OVData.NVert (RG_InternVData.Xnd _)) = 6
@@ -129,7 +129,7 @@ structure GHZW_Metric = WeightedArityMetric(
     | weight_for_data _ = 5
 )
 
-structure GHZW_DefaultSynth = Synthesize(
+structure GHZW_DefaultSynth = TensorSynth(
   structure GraphEnum = GHZW_Enum
   structure Metric = GHZW_Metric
   structure TData = GHZW_TensorData
@@ -141,7 +141,7 @@ structure GHZW_Rws = DefaultRewrites(structure Rule = GHZW_Theory.Rule)
 
 structure RGB_Enum = GraphEnumerator(structure Theory = RGB_Theory)
 
-structure RGB_Synth = Synthesize(
+structure RGB_Synth = TensorSynth(
   structure GraphEnum = RGB_Enum
   structure Metric = WeightedArityMetric(structure Graph = RGB_Theory.Graph; val weight_for_data = K 1)
   structure TData = RGB_TensorData
@@ -153,7 +153,7 @@ structure RGB_Rws = DefaultRewrites(structure Rule = RGB_Theory.Rule)
 
 
 (*
-structure RG_NoPhaseSynth = Synthesize(
+structure RG_NoPhaseSynth = TensorSynth(
   structure GraphEnum = GraphEnumerator(structure Graph = RG_Theory.Graph)
   structure Metric = EdgeComplexityMetric(structure Graph = RG_Theory.Graph)
   structure TData = RG_TensorDataNoPhase
