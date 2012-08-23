@@ -206,6 +206,12 @@ PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
 
+(* petri specific vertices, graphs, and matching *)
+PolyML.Project.make "theories/petri/vertex.ML";
+PolyML.Project.make "theories/petri/graph.ML";
+PolyML.Project.make "theories/petri/theory.ML";
+PolyML.Project.make "theories/petri/io.ML";
+
 (*  *)
 PolyML.Project.make "theories/isaplanner_rtechn/vertex.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
