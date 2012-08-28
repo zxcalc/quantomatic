@@ -37,6 +37,9 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
 import quanto.gui.graphhelpers.BangBoxRenderer;
 
 /**
+ * Displays a graph.
+ *
+ * Listen to state changes to know when the size changed.
  *
  * @author alex
  */
@@ -238,6 +241,9 @@ public class GraphVisualizationViewer
 	}
 
 	public void update() {
+		// FIXME: there are threading issues here
+		// We revalidate and repaint while the relaxer is still changing the
+		// layout
 		Relaxer relaxer = getModel().getRelaxer();
 		if (relaxer != null) {
 			relaxer.relax();
