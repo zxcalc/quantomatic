@@ -22,7 +22,8 @@ sig
    *
    * The first argument is a "doomed" function, which should return
    * true if it is known that matching for the given vertex will
-   * ultimately fail.
+   * ultimately fail.  The second argument is the name of a
+   * partially-matched vertex in the pattern graph.
    *
    * Note that this will _not_ match bare wires.
    *)
