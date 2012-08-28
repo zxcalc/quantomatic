@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package quanto.gui;
 
 import quanto.util.StringNamer;
@@ -19,18 +15,20 @@ import org.apache.commons.collections15.contrib.HashCodeComparator;
  * @author alex
  */
 public class InteractiveViewManager {
+
 	// bidirectional map implemented as dual trees. note that get(null) or
 	//  getKey(null) will raise exceptions in the Comparators.
 	private final BidiMap<String, InteractiveView> views =
-		new DualTreeBidiMap<String, InteractiveView>(
-		ComparableComparator.<String>getInstance(),
-		new HashCodeComparator<InteractiveView>());
-
+			new DualTreeBidiMap<String, InteractiveView>(
+			ComparableComparator.<String>getInstance(),
+			new HashCodeComparator<InteractiveView>());
 	private PropertyChangeListener viewRenameListener = new PropertyChangeListener() {
+
 		public void propertyChange(PropertyChangeEvent evt) {
-			if (!"title".equals(evt.getPropertyName()))
+			if (!"title".equals(evt.getPropertyName())) {
 				return;
-			InteractiveView view = (InteractiveView)evt.getSource();
+			}
+			InteractiveView view = (InteractiveView) evt.getSource();
 			synchronized (views) {
 				String oldName = views.getKey(view);
 				views.remove(oldName);
@@ -45,7 +43,7 @@ public class InteractiveViewManager {
 		for (InteractiveView view : views.values()) {
 			if (!view.isAttached()) {
 				foundView = view;
-                break;
+				break;
 			}
 		}
 		return foundView;
@@ -82,24 +80,27 @@ public class InteractiveViewManager {
 
 	public void removeView(String name) {
 		InteractiveView view = views.get(name);
-		if (view == null)
+		if (view == null) {
 			throw new IllegalArgumentException("No such view");
+		}
 		removeView(view);
 	}
 
 	public boolean closeAllViews() {
 		for (InteractiveView view : views.values()) {
-			if (!view.checkCanClose())
+			if (!view.checkCanClose()) {
 				return false;
+			}
 		}
-        MapIterator<String, InteractiveView> it = views.mapIterator();
-        while (it.hasNext()) {
-            it.next();
-            InteractiveView view = it.getValue();
-            it.remove();
-            if (view.isAttached())
-                view.getViewPort().switchToConsole();
-            view.cleanUp();
+		MapIterator<String, InteractiveView> it = views.mapIterator();
+		while (it.hasNext()) {
+			it.next();
+			InteractiveView view = it.getValue();
+			it.remove();
+			if (view.isAttached()) {
+				view.getViewPort().switchToConsole();
+			}
+			view.cleanUp();
 		}
 		return true;
 	}

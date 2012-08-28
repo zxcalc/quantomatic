@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package quanto.gui.graphhelpers;
 
 import edu.uci.ics.jung.algorithms.layout.Layout;
@@ -19,38 +14,37 @@ import quanto.core.data.Vertex;
  *
  * @author alemer
  */
-public class BackdropPaintable implements VisualizationServer.Paintable
-{
+public class BackdropPaintable implements VisualizationServer.Paintable {
+
 	private Color pageBackground = Color.WHITE;
-        private Layout<Vertex, Edge> layout;
+	private Layout<Vertex, Edge> layout;
 
-        public BackdropPaintable(Layout<Vertex, Edge> layout) {
-                // FIXME: better to update the size when it changes?
-                this.layout = layout;
-        }
+	public BackdropPaintable(Layout<Vertex, Edge> layout) {
+		// FIXME: better to update the size when it changes?
+		this.layout = layout;
+	}
 
-        public Color getBackgroundColor() {
-                return pageBackground;
-        }
+	public Color getBackgroundColor() {
+		return pageBackground;
+	}
 
-        public void setBackgroundColor(Color color) {
-                pageBackground = color;
-        }
+	public void setBackgroundColor(Color color) {
+		pageBackground = color;
+	}
 
-        public void paint(Graphics g) {
-                Graphics2D gr = (Graphics2D)g;
-                Color oldColor = g.getColor();
-                Dimension size = layout.getSize();
-                Rectangle2D bounds = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
-                g.setColor(pageBackground);
-                gr.fill(bounds);
-                g.setColor(Color.black);
-                gr.draw(bounds);
-                g.setColor(oldColor);
-        }
+	public void paint(Graphics g) {
+		Graphics2D gr = (Graphics2D) g;
+		Color oldColor = g.getColor();
+		Dimension size = layout.getSize();
+		Rectangle2D bounds = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
+		g.setColor(pageBackground);
+		gr.fill(bounds);
+		g.setColor(Color.black);
+		gr.draw(bounds);
+		g.setColor(oldColor);
+	}
 
-        public boolean useTransform() {
-                return true;
-        }
-
+	public boolean useTransform() {
+		return true;
+	}
 }

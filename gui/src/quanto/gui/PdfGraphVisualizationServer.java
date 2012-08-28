@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package quanto.gui;
 
 import quanto.core.Theory;
@@ -39,10 +34,9 @@ import quanto.gui.graphhelpers.BangBoxRenderer;
  * 
  * @author alemer
  */
-public class PdfGraphVisualizationServer extends
-		BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox> {
+public class PdfGraphVisualizationServer extends BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox> {
+
 	private final CoreGraph graph;
-	private final Theory theory;
 	private boolean arrowHeadsShown = false;
 
 	public PdfGraphVisualizationServer(Theory theory, CoreGraph graph) {
@@ -58,7 +52,6 @@ public class PdfGraphVisualizationServer extends
 			throw new IllegalArgumentException(
 					"Only QuantoGraphs are supported");
 		}
-		this.theory = theory;
 		this.graph = (CoreGraph) layout.getGraph();
 
 		layout.initialize();
@@ -68,10 +61,11 @@ public class PdfGraphVisualizationServer extends
 
 	private void setupRendering() {
 		getRenderContext().setParallelEdgeIndexFunction(
-				BalancedEdgeIndexFunction.<Vertex, Edge> getInstance());
+				BalancedEdgeIndexFunction.<Vertex, Edge>getInstance());
 
 		getRenderContext().setEdgeArrowPredicate(
 				new Predicate<Context<Graph<Vertex, Edge>, Edge>>() {
+
 					public boolean evaluate(
 							Context<Graph<Vertex, Edge>, Edge> object) {
 						return object.element.isDirected();
@@ -90,7 +84,7 @@ public class PdfGraphVisualizationServer extends
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(
 				VertexLabel.Position.S);
-      getRenderer().setBangBoxRenderer(new BangBoxRenderer());
+		getRenderer().setBangBoxRenderer(new BangBoxRenderer());
 		// For debugging: show a grid behind the graph
 		// addPreRenderPaintable(new GridPaintable(new
 		// GridPaintable.BoundsCalculator() {
@@ -126,6 +120,7 @@ public class PdfGraphVisualizationServer extends
 
 		// create a virtual screen so Jung doesn't freak
 		JComponent virtual = new JComponent() {
+
 			private static final long serialVersionUID = 1L;
 
 			@Override

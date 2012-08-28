@@ -9,17 +9,18 @@ import quanto.core.data.Edge;
 import quanto.core.data.Vertex;
 import quanto.core.data.BangBox;
 
-public class BangBoxRenderer extends BasicBangBoxRenderer<Vertex, Edge, BangBox> 
-{
-     Shape shape = null;
+public class BangBoxRenderer extends BasicBangBoxRenderer<Vertex, Edge, BangBox> {
+
+	Shape shape = null;
+
 	@Override
 	protected void paintShapeForBangBox(BangBoxGraphRenderContext<Vertex, Edge, BangBox> rc, BangBox b, Shape shape) {
-    	
-    	super.paintShapeForBangBox((BangBoxGraphRenderContext<Vertex, Edge, BangBox>) rc, b, shape);
-    	this.shape = shape;
-    }
-	
+
+		super.paintShapeForBangBox((BangBoxGraphRenderContext<Vertex, Edge, BangBox>) rc, b, shape);
+		this.shape = shape;
+	}
+
 	public Shape getShape() {
-	     return this.shape;
+		return this.shape;
 	}
 }

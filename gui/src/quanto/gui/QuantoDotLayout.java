@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotBangBoxLayout;
@@ -16,6 +11,7 @@ import quanto.core.data.Vertex;
  * @author alex
  */
 public class QuantoDotLayout extends AbstractDotBangBoxLayout<Vertex, Edge, BangBox> {
+
 	public static final double PADDING = 23.0;
 
 	public QuantoDotLayout(CoreGraph graph) {
