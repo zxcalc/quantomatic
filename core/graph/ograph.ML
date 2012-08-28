@@ -92,9 +92,6 @@ exception wire_exp of (string * T * Wire);
    return NONE. *)
 val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 
-(* given an edge and vertex, get the other end *)
-val edge_get_other_vertex : T -> E.name -> V.name -> V.name
-
 (* Wire equality; assumes the wires are in the same graph *)
 val wire_eq : Wire -> Wire -> bool
 (* An arbitrary total order on wires; assumes the wires are in the same graph *)
@@ -664,11 +661,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
            let val edges = E.NSet.union_merge in_e out_e in
              E.NSet.tryget_singleton (E.NSet.delete e edges)
            end
-  end
-  
-  fun edge_get_other_vertex g e v = let
-    val (_,(s,t)) = get_edge g e
-  in if V.name_eq(s,v) then t else s
   end
   
   (* the edge-set is unique to a particular wire *)

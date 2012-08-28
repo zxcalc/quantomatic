@@ -22,6 +22,9 @@ val lookup_edge : T -> E.name
 val get_edge_source : T -> E.name -> V.name
 val get_edge_target : T -> E.name -> V.name
 
+(* given an edge and vertex, get the other end *)
+val edge_get_other_vertex : T -> E.name -> V.name -> V.name
+
 val get_in_edges  : T -> V.name -> E.NSet.T
 val get_out_edges : T -> V.name -> E.NSet.T
 
@@ -195,6 +198,11 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   val get_edge_source = (fst o snd) oo get_edge
   val get_edge_target = (snd o snd) oo get_edge
+  
+  fun edge_get_other_vertex g e v = let
+    val (_,(s,t)) = get_edge g e
+  in if V.name_eq(s,v) then t else s
+  end
   
   val get_in_edges  = (fst o snd) oo get_vertex
   val get_out_edges = (snd o snd) oo get_vertex
