@@ -51,13 +51,9 @@ import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.geom.AffineTransform;
 import java.io.OutputStream;
-import java.util.EventListener;
-import java.util.EventObject;
-import java.util.LinkedList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.swing.event.EventListenerList;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.core.protocol.userdata.CopyOfGraphUserDataSerializer;
@@ -79,8 +75,6 @@ public class InteractiveGraphView
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
 	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
-	private JPanel indicatorPanel = null;
-	private List<Job> activeJobs = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
 	private boolean directedEdges = false;
@@ -404,7 +398,7 @@ public class InteractiveGraphView
 	}
 
 	public InteractiveGraphView(Core core, CoreGraph g, Dimension size) throws CoreException {
-		super(new BorderLayout(), g.getCoreName());
+		super(g.getCoreName());
 		setPreferredSize(size);
 		initLayout = new QuantoDotLayout(g);
 		initLayout.initialize();
@@ -424,7 +418,7 @@ public class InteractiveGraphView
 				viewer.getGraphLayout().lock(vmap.get(key), true);
 			}
 		}
-		add(new ViewZoomScrollPane(viewer), BorderLayout.CENTER);
+		setMainComponent(new ViewZoomScrollPane(viewer));
 
 		this.core = core;
 		Relaxer r = viewer.getModel().getRelaxer();
@@ -508,8 +502,8 @@ public class InteractiveGraphView
 		});
 
 		viewer.getRenderContext().setVertexLabelRenderer(new QVertexLabeler());
-		// increase the picksize
 		viewer.getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());
+		// increase the picksize
 		viewer.setPickSupport(new ShapeBangBoxPickSupport<Vertex, Edge, BangBox>(viewer, 4));
 		viewer.setBoundingBoxEnabled(false);
 
@@ -605,209 +599,6 @@ public class InteractiveGraphView
 		return viewer.getGraph();
 	}
 
-	protected static ImageIcon createImageIcon(String path) {
-		java.net.URL imgURL = InteractiveGraphView.class.getResource(path);
-		if (imgURL != null) {
-			return new ImageIcon(imgURL);
-		} else {
-			System.err.println("Couldn't find file: " + path);
-			return null;
-		}
-	}
-
-	private class JobEndEvent extends EventObject {
-
-		private boolean aborted = false;
-
-		public JobEndEvent(Object source) {
-			super(source);
-		}
-
-		public JobEndEvent(Object source, boolean aborted) {
-			super(source);
-			this.aborted = aborted;
-		}
-
-		public boolean jobWasAborted() {
-			return aborted;
-		}
-	}
-
-	private interface JobListener extends EventListener {
-
-		/**
-		 * Notifies the listener that the job has terminated.
-		 *
-		 * Guaranteed to be sent exactly once in the life of a job.
-		 * @param event
-		 */
-		void jobEnded(JobEndEvent event);
-	}
-
-	/**
-	 * A separate thread that executes some job on the graph
-	 * asynchronously.
-	 *
-	 * This mainly exists to allow the job to be displayed to the user
-	 * and aborted.
-	 *
-	 * The job must call fireJobFinished() when it has come to a natural
-	 * end.  It may also call fireJobAborted() when it is interrupted,
-	 * but should work fine even if it doesn't.
-	 */
-	private abstract class Job extends Thread {
-
-		private EventListenerList listenerList = new EventListenerList();
-		private JobEndEvent jobEndEvent = null;
-
-		/**
-		 * Abort the job.  The default implementation interrupts the
-		 * thread and calls fireJobAborted().
-		 */
-		public void abortJob() {
-			this.interrupt();
-			fireJobAborted();
-		}
-
-		/**
-		 * Add a job listener.
-		 *
-		 * All job listener methods execute in the context of the
-		 * AWT event queue.
-		 * @param l
-		 */
-		public void addJobListener(JobListener l) {
-			listenerList.add(JobListener.class, l);
-		}
-
-		public void removeJobListener(JobListener l) {
-			listenerList.remove(JobListener.class, l);
-		}
-
-		/**
-		 * Notify listeners that the job has finished successfully,
-		 * if no notification has already been sent.
-		 */
-		protected final void fireJobFinished() {
-			if (jobEndEvent == null) {
-				fireJobEnded(false);
-			}
-		}
-
-		/**
-		 * Notify listeners that the job has been aborted, if no
-		 * notification has already been sent.
-		 */
-		protected final void fireJobAborted() {
-			if (jobEndEvent == null) {
-				fireJobEnded(true);
-			}
-		}
-
-		private void fireJobEnded(final boolean aborted) {
-			SwingUtilities.invokeLater(new Runnable() {
-
-				public void run() {
-					// Guaranteed to return a non-null array
-					Object[] listeners = listenerList.getListenerList();
-					// Process the listeners last to first, notifying
-					// those that are interested in this event
-					for (int i = listeners.length - 2; i >= 0; i -= 2) {
-						if (listeners[i] == JobListener.class) {
-							// Lazily create the event:
-							if (jobEndEvent == null) {
-								jobEndEvent = new JobEndEvent(this, aborted);
-							}
-							((JobListener) listeners[i + 1]).jobEnded(jobEndEvent);
-						}
-					}
-				}
-			});
-		}
-	}
-
-	private class JobIndicatorPanel extends JPanel {
-
-		private JLabel textLabel;
-		private JButton cancelButton = null;
-
-		public JobIndicatorPanel(String description, final Job job) {
-			super(new BorderLayout());
-
-			setBorder(BorderFactory.createEmptyBorder(3, 3, 3, 3));
-			setBackground(UIManager.getColor("textHighlight"));
-
-			textLabel = new JLabel(description);
-			add(textLabel, BorderLayout.CENTER);
-
-			cancelButton = new JButton(createImageIcon("/toolbarButtonGraphics/general/Stop16.gif"));
-			cancelButton.setToolTipText("Abort this operation");
-			cancelButton.setMargin(new Insets(0, 0, 0, 0));
-			cancelButton.addActionListener(new ActionListener() {
-
-				public void actionPerformed(ActionEvent e) {
-					job.abortJob();
-				}
-			});
-			add(cancelButton, BorderLayout.LINE_END);
-		}
-	}
-
-	/**
-	 * Registers a job, allowing it to be aborted by the "Abort all"
-	 * action.
-	 *
-	 * Does not need to be called for a job if showJobIndicator() is called
-	 * for that job.
-	 * @param job
-	 */
-	private void registerJob(final Job job) {
-		if (activeJobs == null) {
-			activeJobs = new LinkedList<Job>();
-		}
-		activeJobs.add(job);
-		if (getViewPort() != null) {
-			getViewPort().setCommandEnabled(CommandManager.Command.Abort, true);
-		}
-		job.addJobListener(new JobListener() {
-
-			public void jobEnded(JobEndEvent event) {
-				activeJobs.remove(job);
-				if (activeJobs.isEmpty() && getViewPort() != null) {
-					getViewPort().setCommandEnabled(CommandManager.Command.Abort, false);
-				}
-			}
-		});
-	}
-
-	/**
-	 * Shows an indicator at the bottom of the view with (optionally)
-	 * a button to cancel the job.
-	 *
-	 * @param jobDescription  The text on the indicator
-	 * @param cancelListener  Called when the user cancels the job
-	 *                        (if null, no cancel button is shown)
-	 */
-	private void showJobIndicator(String jobDescription, Job job) {
-		registerJob(job);
-		if (indicatorPanel == null) {
-			indicatorPanel = new JPanel();
-			indicatorPanel.setLayout(new BoxLayout(indicatorPanel, BoxLayout.PAGE_AXIS));
-			add(indicatorPanel, BorderLayout.PAGE_END);
-		}
-		final JobIndicatorPanel indicator = new JobIndicatorPanel(jobDescription, job);
-		indicatorPanel.add(indicator);
-		indicatorPanel.validate();
-		InteractiveGraphView.this.validate();
-		job.addJobListener(new JobListener() {
-
-			public void jobEnded(JobEndEvent event) {
-				indicatorPanel.remove(indicator);
-				InteractiveGraphView.this.validate();
-			}
-		});
-	}
-
 	/**
 	 * Compute a bounding box and scale such that the largest
 	 * dimension fits within the view port.
@@ -866,6 +657,7 @@ public class InteractiveGraphView
 		((QBangBoxLabeler) viewer.getRenderContext().getBangBoxLabelRenderer()).cleanup();
 	}
 
+	@Override
 	public void cleanUp() {
 		removeOldLabels();
 		((QVertexLabeler) viewer.getRenderContext().getVertexLabelRenderer()).cleanup();
@@ -1238,10 +1030,13 @@ public class InteractiveGraphView
 		return core;
 	}
 
+	@Override
 	public void commandTriggered(String command) {
 		ActionListener listener = actionMap.get(command);
 		if (listener != null) {
 			listener.actionPerformed(new ActionEvent(this, -1, command));
+		} else {
+			super.commandTriggered(command);
 		}
 	}
 
@@ -1473,9 +1268,9 @@ public class InteractiveGraphView
 						file.close();
 					}
 				} catch (DocumentException ex) {
-					detailedErrorMessage("Export to PDF", "Could not generate the PDF", ex.getLocalizedMessage());
+					detailedErrorMessage("Could not generate the PDF", ex);
 				} catch (IOException ex) {
-					detailedErrorMessage("Export to PDF", "Could not save the PDF", ex.getLocalizedMessage());
+					detailedErrorMessage("Could not save the PDF", ex);
 				}
 			}
 		});
@@ -1530,17 +1325,6 @@ public class InteractiveGraphView
 				}
 				startRewriting();
 
-			}
-		});
-		actionMap.put(CommandManager.Command.Abort.toString(), new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				if (activeJobs != null && activeJobs.size() > 0) {
-					Job[] jobs = activeJobs.toArray(new Job[activeJobs.size()]);
-					for (Job job : jobs) {
-						job.abortJob();
-					}
-				}
 			}
 		});
 		actionMap.put(CommandManager.Command.FastNormalise.toString(), new ActionListener() {
@@ -1651,6 +1435,7 @@ public class InteractiveGraphView
 		}
 	}
 
+	@Override
 	public void attached(ViewPort vp) {
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, true);
@@ -1667,17 +1452,17 @@ public class InteractiveGraphView
 			vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 		}
 		setupNormaliseAction(vp);
-		if (activeJobs == null || activeJobs.isEmpty()) {
-			vp.setCommandEnabled(CommandManager.Command.Abort, false);
-		}
+		super.attached(vp);
 	}
 
+	@Override
 	public void detached(ViewPort vp) {
 		vp.setCommandStateSelected(CommandManager.Command.SelectMode, true);
 
 		for (String actionName : actionMap.keySet()) {
 			vp.setCommandEnabled(actionName, false);
 		}
+		super.detached(vp);
 	}
 
 	@Override
@@ -1685,6 +1470,7 @@ public class InteractiveGraphView
 		return "Graph '" + getGraph().getCoreName() + "' is unsaved. Close anyway?";
 	}
 
+	@Override
 	public boolean isSaved() {
 		return getGraph().isSaved();
 	}
@@ -1747,10 +1533,5 @@ public class InteractiveGraphView
 	}
 
 	public void keyTyped(KeyEvent e) {
-	}
-
-	@Override
-	public void refresh() {
-		// TODO Auto-generated method stub
 	}
 }

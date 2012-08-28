@@ -1,6 +1,5 @@
 package quanto.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.FocusAdapter;
@@ -137,14 +136,12 @@ public class SplitGraphView extends InteractiveView {
 	}
 
 	private void setupLayout(Dimension dim) {
-		setLayout(new BorderLayout());
-
 		splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		splitPane.setLeftComponent(leftView);
 		splitPane.setRightComponent(rightView);
 		splitPane.setDividerLocation(((int) dim.getWidth() - 140) / 2);
 
-		add(splitPane, BorderLayout.CENTER);
+		setMainComponent(splitPane);
 	}
 
 	public boolean hasExpandingWorkspace() {
@@ -169,6 +166,7 @@ public class SplitGraphView extends InteractiveView {
 		}
 	}
 
+	@Override
 	public void commandTriggered(String command) {
 		if (CommandManager.Command.Save.matches(command)) {
 			try {
@@ -227,16 +225,20 @@ public class SplitGraphView extends InteractiveView {
 				rightView.commandTriggered(command);
 			}
 		}
+		super.commandTriggered(command);
 	}
 
+	@Override
 	public void attached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, true);
 		vp.setCommandEnabled(CommandManager.Command.SaveAs, true);
 		vp.setCommandEnabled(CommandManager.Command.Save,
 				rule != null && !isSaved());
 		updateFocus();
+		super.attached(vp);
 	}
 
+	@Override
 	public void detached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, false);
 		vp.setCommandEnabled(CommandManager.Command.SaveAs, false);
@@ -246,12 +248,15 @@ public class SplitGraphView extends InteractiveView {
 		} else {
 			rightView.detached(vp);
 		}
+		super.detached(vp);
 	}
 
+	@Override
 	public void cleanUp() {
 		leftView.cleanUp();
 		rightView.cleanUp();
 		core.getRuleset().removeRulesetChangeListener(listener);
+		super.cleanUp();
 	}
 
 	@Override
@@ -271,6 +276,7 @@ public class SplitGraphView extends InteractiveView {
 		return rightView;
 	}
 
+	@Override
 	public boolean isSaved() {
 		return saved;
 	}
@@ -287,6 +293,7 @@ public class SplitGraphView extends InteractiveView {
 		}
 	}
 
+	@Override
 	public void refresh() {
 		leftView.refresh();
 		rightView.refresh();

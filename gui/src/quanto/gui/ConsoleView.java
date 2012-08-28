@@ -161,7 +161,7 @@ public class ConsoleView extends InteractiveView {
 	public ConsoleView(ProtocolManager core) {
 		super("console");
 
-		this.setLayout(new BorderLayout());
+		JPanel console = new JPanel(new BorderLayout());
 		output = new JTextArea();
 		output.setEditable(false);
 		output.addFocusListener(focusListener);
@@ -184,8 +184,9 @@ public class ConsoleView extends InteractiveView {
 
 		JScrollPane scroll = new JScrollPane(output);
 		scroll.setPreferredSize(new Dimension(800, 600));
-		this.add(scroll, BorderLayout.CENTER);
-		this.add(commandPane, BorderLayout.PAGE_END);
+		console.add(scroll, BorderLayout.CENTER);
+		console.add(commandPane, BorderLayout.PAGE_END);
+		setMainComponent(console);
 
 		this.coreConsole = new ConsoleInterface(core);
 		coreConsole.setResponseListener(new ConsoleInterface.ResponseListener() {
@@ -229,27 +230,25 @@ public class ConsoleView extends InteractiveView {
 		input.grabFocus();
 	}
 
+	@Override
 	public void attached(ViewPort vp) {
 		// refuse to allow us to be closed
 		vp.preventViewClosure();
 		input.requestFocusInWindow();
+		super.attached(vp);
 	}
 
+	@Override
 	public void detached(ViewPort vp) {
 		vp.setCommandEnabled(CommandManager.Command.Cut, false);
 		vp.setCommandEnabled(CommandManager.Command.Copy, false);
 		vp.setCommandEnabled(CommandManager.Command.Paste, false);
 		vp.setCommandEnabled(CommandManager.Command.SelectAll, false);
 		vp.setCommandEnabled(CommandManager.Command.DeselectAll, false);
+		super.detached(vp);
 	}
 
-	public void cleanUp() {
-	}
-
-	public boolean isSaved() {
-		return true;
-	}
-
+	@Override
 	public void commandTriggered(String command) {
 		if (CommandManager.Command.Cut.matches(command)) {
 			if (lastFocusOwner != null) {
@@ -272,8 +271,6 @@ public class ConsoleView extends InteractiveView {
 				lastFocusOwner.select(0, 0);
 			}
 		}
-	}
-
-	public void refresh() {
+		super.commandTriggered(command);
 	}
 }
