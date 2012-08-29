@@ -701,7 +701,7 @@ public class InteractiveGraphView
 			for (Vertex v : graph.getVertices()) {
 				int X = (int) smoothLayout.getDelegate().transform(v).getX();
 				int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-				Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
+				Point2D old_p = pds.getVertexUserData(graph, v.getCoreName());
 				Point2D new_p = new Point2D.Double(X, Y);
 				if (old_p == null) {
 					pds.setVertexUserData(graph, v.getCoreName(), new_p);

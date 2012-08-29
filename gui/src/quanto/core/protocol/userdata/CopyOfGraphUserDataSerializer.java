@@ -7,7 +7,7 @@ import quanto.core.protocol.userdata.dataserialization.StringDataSerializer;
  * User: benjaminfrot
  * Date: 7/21/12
  */
-public class CopyOfGraphUserDataSerializer extends GraphUserDataSerializer {
+public class CopyOfGraphUserDataSerializer extends GraphUserDataSerializer<String> {
 
     private static String suffix = "copy_of";
     private static StringDataSerializer serializer = new StringDataSerializer();
