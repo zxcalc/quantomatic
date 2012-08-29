@@ -162,6 +162,7 @@ public class Core {
 	public void updateGraph(CoreGraph graph) throws CoreException {
 		String xml = talker.exportGraphAsXml(graph.getCoreName());
 		parseXml(xml, new GraphFragmentHandler(activeTheory, graph));
+		graph.fireStateChanged();
 	}
 
 	public enum RepresentationType {
@@ -207,11 +208,13 @@ public class Core {
 	public void undo(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.undo(graph.getCoreName());
+		updateGraph(graph);
 	}
 
 	public void redo(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.redo(graph.getCoreName());
+		updateGraph(graph);
 	}
 
 	public void undoRewrite(CoreGraph graph) throws CoreException {
@@ -379,7 +382,6 @@ public class Core {
 		String name = talker.duplicateBangBox(graph.getCoreName(),
 				bbox.getCoreName());
 		updateGraph(graph);
-		graph.fireStateChanged();
 		for (BangBox bb : graph.getBangBoxes()) {
 			if (bb.getCoreName().equals(name)) {
 				return bb;
