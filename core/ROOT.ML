@@ -73,6 +73,9 @@ PolyML.Project.make "io/output_linrat.ML";
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 
+(*MJB*)
+PolyML.Project.make "io/simple_file_io.ML";
+
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
 
@@ -98,6 +101,10 @@ Testing.make_test "graph/test/test-graph.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 Testing.make_test "graph/test/test-bang-graph-iso.ML";
+
+(*MJB*)
+Testing.make_test "graph/test/test-simple-graph-util.ML";
+Testing.make_test "graph/test/test-random-graph-util.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
@@ -129,6 +136,8 @@ PolyML.Project.make "matching/inner_match_search.ML";
 PolyML.Project.make "matching/match_search.ML";
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching/simple_inner_match_search.ML";
+(*MJB: a parallel version of the simple inner loop for the matching algo*)
+PolyML.Project.make "matching/simple_inner_match_search_parallel.ML";
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
 PolyML.Project.make "matching/concrete_match_search.ML";
@@ -147,6 +156,9 @@ Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-matching-concrete.ML";
 Testing.make_test "matching/test/test-matching-greedy.ML";
+
+(*MJB*)
+Testing.make_test "matching/test/test-matching-speed.ML";
 
 Testing.make_test "rewriting/test/graph_subst-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";

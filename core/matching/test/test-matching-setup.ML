@@ -21,6 +21,7 @@ structure Test_GreedyMatcher =
     structure InnerMatchSearch = Test_BGInnerMatcher
     structure BGMatchState = Test_BGMatchState
   );
+
 (* set to 4 for really detailed messages *)
 Test_InnerMatcher.Log.level_ref := 2;
 Test_BGInnerMatcher.Log.level_ref := 2;
