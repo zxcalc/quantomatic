@@ -14,13 +14,13 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import quanto.core.Theory;
 
 import quanto.core.data.VertexType;
 import quanto.gui.TexConstants;
 
 @SuppressWarnings("serial")
 public class Labeler extends JPanel implements MouseListener, KeyListener, FocusListener {
+
 	JLabel label;
 	JTextField textField;
 	JComponent active;
@@ -28,7 +28,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	ChangeEvent evt;
 	Point idealLocation;
 	VertexType.DataType dataType;
-	
+
 	public Labeler(VertexType.DataType dataType, String value) {
 		setLayout(new BorderLayout());
 		this.dataType = dataType;
@@ -38,7 +38,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		setColor(Color.yellow);
 		textField = new JTextField();
 		setText(value);
-		
+
 		addMouseListener(this);
 		textField.addKeyListener(this);
 		textField.addFocusListener(this);
@@ -56,7 +56,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		setColor(Color.yellow);
 		textField = new JTextField();
 		setText(value);
-		
+
 		addMouseListener(this);
 		textField.addKeyListener(this);
 		textField.addFocusListener(this);
@@ -64,27 +64,28 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		add(active, BorderLayout.CENTER);
 		refresh();
 	}
+
 	@Override
 	public void setLocation(Point p) {
 		super.setLocation(p);
 	}
-	
+
 	public Point getIdealLocation() {
 		return idealLocation;
 	}
-	
+
 	public void setIdealLocation(Point p) {
 		idealLocation = p;
 	}
-	
+
 	public void setColor(Color c) {
 		setBackground(c);
-		setBorder(new LineBorder(c,1));
+		setBorder(new LineBorder(c, 1));
 	}
-	
+
 	//@Override
 	public void mouseClicked(MouseEvent e) {
-		if (e.getClickCount()==2) {
+		if (e.getClickCount() == 2) {
 			textField.setText(getText());
 			remove(label);
 			add(textField, BorderLayout.CENTER);
@@ -94,7 +95,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 			refresh();
 		}
 	}
-	
+
 	//@Override
 	public void keyReleased(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ENTER) {
@@ -102,62 +103,80 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		}
 		refresh();
 	}
-	
+
 	//@Override
 	public void focusLost(FocusEvent e) {
 		updateLabel();
 		refresh();
 	}
-	
+
 	public boolean isBeingEdited() {
 		return active == textField;
 	}
-	
+
 	private void updateLabel() {
 		String old = getText();
 		setText(textField.getText());
 		remove(textField);
 		active = label;
 		add(active, BorderLayout.CENTER);
-		if (!old.equals(getText())) fireStateChanged();
+		if (!old.equals(getText())) {
+			fireStateChanged();
+		}
 	}
-	
+
 	private void refresh() {
 		revalidate();
 		// along with keeping the bounds, this forces a redraw
 		setBounds(new Rectangle(getPreferredSize()));
 		repaint();
 	}
-	
+
 	public String getText() {
 		return value;
 	}
-	
+
 	public void setText(String text) {
 		value = text;
-		if (dataType == VertexType.DataType.MathExpression)
+		if (dataType == VertexType.DataType.MathExpression) {
 			label.setText(TexConstants.translate(value));
-    else if (dataType == VertexType.DataType.String)
-      label.setText(value);
+		} else if (dataType == VertexType.DataType.String) {
+			label.setText(value);
+		}
 		refresh();
 	}
-	
+
 	public void addChangeListener(ChangeListener l) {
 		listenerList.add(ChangeListener.class, l);
 	}
-	
+
 	public void fireStateChanged() {
 		ChangeListener[] listeners =
-			listenerList.<ChangeListener>getListeners(ChangeListener.class); 
-		for (ChangeListener l : listeners) l.stateChanged(evt);
+				listenerList.<ChangeListener>getListeners(ChangeListener.class);
+		for (ChangeListener l : listeners) {
+			l.stateChanged(evt);
+		}
 	}
-	
+
 	// stubs
-	public void mouseEntered(MouseEvent e) {}
-	public void mouseExited(MouseEvent e) {}
-	public void mousePressed(MouseEvent e) {}
-	public void mouseReleased(MouseEvent e) {}
-	public void keyPressed(KeyEvent e) {}
-	public void keyTyped(KeyEvent e) {}
-	public void focusGained(FocusEvent e) {}
+	public void mouseEntered(MouseEvent e) {
+	}
+
+	public void mouseExited(MouseEvent e) {
+	}
+
+	public void mousePressed(MouseEvent e) {
+	}
+
+	public void mouseReleased(MouseEvent e) {
+	}
+
+	public void keyPressed(KeyEvent e) {
+	}
+
+	public void keyTyped(KeyEvent e) {
+	}
+
+	public void focusGained(FocusEvent e) {
+	}
 }

@@ -10,6 +10,7 @@ import edu.uci.ics.jung.graph.util.BalancedEdgeIndexFunction;
 import edu.uci.ics.jung.graph.util.EdgeIndexFunction;
 
 public class TikzOutput {
+
 	public static String generate(CoreGraph graph, Layout<Vertex, Edge> layout) {
 		StringBuilder tikz = new StringBuilder("\\begin{tikzpicture}[quanto]\n");
 		synchronized (graph) {
@@ -18,46 +19,30 @@ public class TikzOutput {
 			for (Vertex v : graph.getVertices()) {
 				p = layout.transform(v);
 				col = v.getVertexType().toString().toLowerCase();
-				tikz.append("\\node [").append(col).append(" vertex] ")
-                                        .append("(").append(v.getCoreName()).append(") ")
-					.append("at (")
-					.append(Double.toString(Math.floor(p.getX()) / 40.0))
-					.append(",")
-					.append(Double.toString(Math.floor(p.getY()) / -40.0))
-					.append(") {};\n");
+				tikz.append("\\node [").append(col).append(" vertex] ").append("(").append(v.getCoreName()).append(") ").append("at (").append(Double.toString(Math.floor(p.getX()) / 40.0)).append(",").append(Double.toString(Math.floor(p.getY()) / -40.0)).append(") {};\n");
 			}
-			
+
 			EdgeIndexFunction<Vertex, Edge> eif =
-				BalancedEdgeIndexFunction.<Vertex, Edge>getInstance();
-			
+					BalancedEdgeIndexFunction.<Vertex, Edge>getInstance();
+
 			int idx;
 			for (Edge e : graph.getEdges()) {
 				idx = eif.getIndex(graph, e) + 1;
-                                tikz.append("\\draw [");
+				tikz.append("\\draw [");
 				if (e.isDirected()) {
 					tikz.append("-latex");
-                                }
-				if (idx!=0) {
+				}
+				if (idx != 0) {
 					tikz.append(",bend left=").append(idx * 20);
 				}
-				tikz.append("] (")
-                                        .append(graph.getSource(e).getCoreName())
-                                        .append(") to ")
-                                        .append("(")
-                                        .append(graph.getDest(e).getCoreName())
-                                        .append(");\n");
+				tikz.append("] (").append(graph.getSource(e).getCoreName()).append(") to ").append("(").append(graph.getDest(e).getCoreName()).append(");\n");
 			}
-			
+
 			for (Vertex v : graph.getVertices()) {
 				col = v.getVertexType().toString().toLowerCase();
-				if (! v.getLabel().equals("0"))
-					tikz.append("\\node [")
-                                                .append(col)
-                                                .append(" angle] at (")
-                                                .append(v.getCoreName())
-                                                .append(") {$")
-						.append(v.getLabel())
-                                                .append("$};\n");
+				if (!v.getLabel().equals("0")) {
+					tikz.append("\\node [").append(col).append(" angle] at (").append(v.getCoreName()).append(") {$").append(v.getLabel()).append("$};\n");
+				}
 			}
 		}
 		tikz.append("\\end{tikzpicture}\n");

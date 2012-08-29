@@ -11,8 +11,8 @@ import java.awt.geom.Rectangle2D;
 import java.awt.Rectangle;
 
 public class JavaQuantoDotLayout
-extends AKDotLayout<Vertex, Edge>
-{
+		extends AKDotLayout<Vertex, Edge> {
+
 	private static final double VERTEX_PADDING = 20;
 	private static final double EMPTY_BOX_SIZE = 40;
 	private Rectangle boundingRect = new Rectangle(0, 0, 0, 0);
@@ -22,7 +22,7 @@ extends AKDotLayout<Vertex, Edge>
 	}
 
 	public JavaQuantoDotLayout(CoreGraph graph) {
-		this(graph, new Dimension(800,600));
+		this(graph, new Dimension(800, 600));
 	}
 
 	@Override
@@ -36,33 +36,36 @@ extends AKDotLayout<Vertex, Edge>
 		return boundingRect.getSize();
 	}
 
-
 	@Override
 	public void setLocation(Vertex picked, Point2D p) {
-		if (p.getX() < 20)
+		if (p.getX() < 20) {
 			p.setLocation(20, p.getY());
-		if (p.getY() < 20)
+		}
+		if (p.getY() < 20) {
 			p.setLocation(p.getX(), 20);
+		}
 		super.setLocation(picked, p);
 		boundingRect.add(new Rectangle2D.Double(
-			p.getX()-VERTEX_PADDING,
-			p.getY()-VERTEX_PADDING,
-			2*VERTEX_PADDING,
-			2*VERTEX_PADDING));
+				p.getX() - VERTEX_PADDING,
+				p.getY() - VERTEX_PADDING,
+				2 * VERTEX_PADDING,
+				2 * VERTEX_PADDING));
 	}
 
 	@Override
 	public void setLocation(Vertex picked, double x, double y) {
-		if (x < 20)
+		if (x < 20) {
 			x = 20;
-		if (y < 20)
+		}
+		if (y < 20) {
 			y = 20;
+		}
 		super.setLocation(picked, x, y);
 		boundingRect.add(new Rectangle2D.Double(
-			x-VERTEX_PADDING,
-			y-VERTEX_PADDING,
-			2*VERTEX_PADDING,
-			2*VERTEX_PADDING));
+				x - VERTEX_PADDING,
+				y - VERTEX_PADDING,
+				2 * VERTEX_PADDING,
+				2 * VERTEX_PADDING));
 	}
 
 	public void recalculateSize() {
@@ -81,19 +84,15 @@ extends AKDotLayout<Vertex, Edge>
 		top -= VERTEX_PADDING;
 		right += VERTEX_PADDING;
 		bottom += VERTEX_PADDING;
-		if (left < right && top < bottom)
-		{
+		if (left < right && top < bottom) {
 			// get the same padding right and bottom as left and top
 			boundingRect.setRect(
-				0,
-				0,
-				right + left,
-				bottom + top);
-		}
-		else
-		{
+					0,
+					0,
+					right + left,
+					bottom + top);
+		} else {
 			boundingRect.setRect(0, 0, EMPTY_BOX_SIZE, EMPTY_BOX_SIZE);
 		}
 	}
 }
-

@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package quanto.gui;
 
 import javax.swing.event.ChangeEvent;
@@ -41,20 +37,21 @@ import quanto.gui.graphhelpers.QVertexShapeTransformer;
 import quanto.gui.graphhelpers.BangBoxRenderer;
 
 /**
+ * Displays a graph.
+ *
+ * Listen to state changes to know when the size changed.
  *
  * @author alex
  */
 public class GraphVisualizationViewer
-       extends BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox>
-{
+		extends BangBoxGraphVisualizationViewer<Vertex, Edge, BangBox> {
+
 	private static final long serialVersionUID = -1723894723956293847L;
 	private CoreGraph graph;
 	private BackdropPaintable boundsPaint;
 	private boolean boundsPaintingEnabled = false;
-//private QuantoForceLayout layout;
-	
+
 	public GraphVisualizationViewer(CoreGraph graph) {
-	//	this(new QuantoForceLayout(graph, new QuantoDotLayout(graph)));
 		this(QuantoApp.useExperimentalLayout ? new JavaQuantoDotLayout(graph) : new QuantoDotLayout(graph));
 	}
 
@@ -65,34 +62,35 @@ public class GraphVisualizationViewer
 		}
 		this.graph = (CoreGraph) layout.getGraph();
 		layout.initialize();
-        setBackground(Color.white);
+		setBackground(Color.white);
 
 		setupRendering();
 
 		setPreferredSize(calculateGraphSize());
 
 		graph.addChangeListener(new ChangeListener() {
+
 			public void stateChanged(ChangeEvent e) {
 				modifyLayout();
-                fireStateChanged();
+				fireStateChanged();
 			}
 		});
 	}
 
-	private void  setupRendering() {
+	private void setupRendering() {
 		getRenderContext().setParallelEdgeIndexFunction(
-			BalancedEdgeIndexFunction.<Vertex, Edge>getInstance());
+				BalancedEdgeIndexFunction.<Vertex, Edge>getInstance());
 
 		getRenderContext().setEdgeShapeTransformer(
-			new MixedShapeTransformer<Vertex, Edge>());
+				new MixedShapeTransformer<Vertex, Edge>());
 
 		getRenderContext().setEdgeArrowPredicate(
-			new Predicate<Context<Graph<Vertex, Edge>, Edge>>()
-			{
-				public boolean evaluate(Context<Graph<Vertex, Edge>, Edge> object) {
-					return object.element.isDirected();
-				}
-			});
+				new Predicate<Context<Graph<Vertex, Edge>, Edge>>() {
+
+					public boolean evaluate(Context<Graph<Vertex, Edge>, Edge> object) {
+						return object.element.isDirected();
+					}
+				});
 
 		getRenderContext().setVertexLabelTransformer(new QVertexLabelTransformer());
 		getRenderContext().setVertexLabelRenderer(new QVertexAngleLabeler());
@@ -101,18 +99,17 @@ public class GraphVisualizationViewer
 		getRenderContext().setVertexIconTransformer(new QVertexIconTransformer());
 		getRenderer().setVertexRenderer(new QVertexRenderer());
 		getRenderer().getVertexLabelRenderer().setPosition(
-			VertexLabel.Position.S);
+				VertexLabel.Position.S);
 
-          getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());		
+		getRenderContext().setBangBoxLabelRenderer(new QBangBoxLabeler());
 		getRenderer().setBangBoxRenderer(new BangBoxRenderer());
 		// For debugging: show a grid behind the graph
 		//addPreRenderPaintable(new GridPaintable(new GridPaintable.BoundsCalculator() {
-                //              public Rectangle2D getBounds() { return getGraphBounds(); }
-                //}));
+		//              public Rectangle2D getBounds() { return getGraphBounds(); }
+		//}));
 	}
 
-	private Dimension calculateGraphSize()
-	{
+	private Dimension calculateGraphSize() {
 		Dimension size = getGraphLayout().getSize();
 		Rectangle2D rect = new Rectangle2D.Double(0, 0, size.getWidth(), size.getHeight());
 		Shape bound = getRenderContext().getMultiLayerTransformer().transform(rect);
@@ -131,11 +128,11 @@ public class GraphVisualizationViewer
 		double centerX = size.getWidth() / 2.0;
 		double centerY = size.getHeight() / 2.0;
 		mt.translate(
-			centerX - gb.getCenterX(),
-			centerY - gb.getCenterY());
+				centerX - gb.getCenterX(),
+				centerY - gb.getCenterY());
 		float scale = Math.min(
-			(float) (size.getWidth() / gb.getWidth()),
-			(float) (size.getHeight() / gb.getHeight()));
+				(float) (size.getWidth() / gb.getWidth()),
+				(float) (size.getHeight() / gb.getHeight()));
 		if (scale < 1) {
 			mt.scale(scale, scale, new Point2D.Double(centerX, centerY));
 		}
@@ -151,11 +148,11 @@ public class GraphVisualizationViewer
 	public CoreGraph getGraph() {
 		return graph;
 	}
-	
+
 	public void setCoreGraph(CoreGraph g) {
 		this.graph = g;
 	}
-	
+
 	/**
 	 * Draw a bounding box around the graph.
 	 */
@@ -164,13 +161,12 @@ public class GraphVisualizationViewer
 			if (enabled) {
 				if (boundsPaint == null) {
 					boundsPaint = new BackdropPaintable(getGraphLayout());
-                                        boundsPaint.setBackgroundColor(new Color(0.99f, 0.99f, 0.99f));
+					boundsPaint.setBackgroundColor(new Color(0.99f, 0.99f, 0.99f));
 				}
-                setBackground(new Color(0.97f, 0.97f, 0.97f));
+				setBackground(new Color(0.97f, 0.97f, 0.97f));
 				prependPreRenderPaintable(boundsPaint);
-			}
-			else {
-                setBackground(Color.white);
+			} else {
+				setBackground(Color.white);
 				removePreRenderPaintable(boundsPaint);
 			}
 		}
@@ -192,35 +188,32 @@ public class GraphVisualizationViewer
 		return bounds;
 	}
 
-        // FIXME: this isn't really the right place
-        public static Rectangle2D getSubgraphBounds(
-                Layout<Vertex, Edge> layout,
-                Collection<Vertex> subgraph)
-        {
+	// FIXME: this isn't really the right place
+	public static Rectangle2D getSubgraphBounds(
+			Layout<Vertex, Edge> layout,
+			Collection<Vertex> subgraph) {
 		Rectangle2D bounds = null;
-                for (Vertex v : subgraph) {
-                        Point2D p = layout.transform(v);
-                        if (bounds == null) {
-                                bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
-                        }
-                        else {
-                                bounds.add(p);
-                        }
-                }
-                if (bounds != null) {
-                        bounds.setRect(bounds.getX() - 20,
-                                       bounds.getY() - 20,
-                                       bounds.getWidth() + 40,
-                                       bounds.getHeight() + 40);
-                }
+		for (Vertex v : subgraph) {
+			Point2D p = layout.transform(v);
+			if (bounds == null) {
+				bounds = new Rectangle2D.Double(p.getX(), p.getY(), 0, 0);
+			} else {
+				bounds.add(p);
+			}
+		}
+		if (bounds != null) {
+			bounds.setRect(bounds.getX() - 20,
+					bounds.getY() - 20,
+					bounds.getWidth() + 40,
+					bounds.getHeight() + 40);
+		}
 
 		if (bounds == null) {
 			return new Rectangle2D.Double(0.0d, 0.0d, 20.0d, 20.0d);
-		}
-		else {
+		} else {
 			return bounds;
 		}
-        }
+	}
 
 	/**
 	 * Compute the bounding box of the subgraph under its current layout.
@@ -228,40 +221,39 @@ public class GraphVisualizationViewer
 	 */
 	public Rectangle2D getSubgraphBounds(Collection<Vertex> subgraph) {
 		synchronized (getGraph()) {
-                        return getSubgraphBounds(getGraphLayout(), subgraph);
-                }
+			return getSubgraphBounds(getGraphLayout(), subgraph);
+		}
 	}
 
 	/*@Override
 	public Dimension getPreferredSize() {
-		return layout.getSize();
+	return layout.getSize();
 	}*/
-
 	public void shift(Rectangle2D rect, Vertex v, Point2D shift) {
-		
+
 		getGraphLayout().setLocation(v, new Point2D.Double(
-				 rect.getCenterX()+shift.getX(), rect.getCenterY()+shift.getY()));
+				rect.getCenterX() + shift.getX(), rect.getCenterY() + shift.getY()));
 	}
-	
 
 	public void modifyLayout() {
-		getGraphLayout().reset();	
+		getGraphLayout().reset();
 		update();
 	}
 
 	public void update() {
+		// FIXME: there are threading issues here
+		// We revalidate and repaint while the relaxer is still changing the
+		// layout
 		Relaxer relaxer = getModel().getRelaxer();
 		if (relaxer != null) {
 			relaxer.relax();
 		}
 		setPreferredSize(calculateGraphSize());
 		Collection<Vertex> c = getGraph().getVertices();
-		for(Vertex v : getGraph().getVertices()) {
+		for (Vertex v : getGraph().getVertices()) {
 			v.setPosition(getGraphLayout().transform(v));
 		}
 		revalidate();
 		repaint();
 	}
-
-	
 }

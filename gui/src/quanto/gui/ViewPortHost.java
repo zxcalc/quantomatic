@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package quanto.gui;
 
 /**
@@ -11,6 +6,7 @@ package quanto.gui;
  * @author alex
  */
 public interface ViewPortHost {
+
 	/**
 	 * Opens the selected view.
 	 *
@@ -33,7 +29,10 @@ public interface ViewPortHost {
 	void attachedViewChanged(InteractiveView newView);
 
 	void setCommandEnabled(String command, boolean enabled);
+
 	boolean isCommandEnabled(String command);
+
 	void setCommandStateSelected(String command, boolean selected);
+
 	boolean isCommandStateSelected(String command);
 }

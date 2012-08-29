@@ -92,9 +92,6 @@ exception wire_exp of (string * T * Wire);
    return NONE. *)
 val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 
-(* given an edge and vertex, get the other end *)
-val edge_get_other_vertex : T -> E.name -> V.name -> V.name
-
 (* Wire equality; assumes the wires are in the same graph *)
 val wire_eq : Wire -> Wire -> bool
 (* An arbitrary total order on wires; assumes the wires are in the same graph *)
@@ -666,11 +663,6 @@ functor OGraphFun(G : BASIC_OGRAPH)
            end
   end
   
-  fun edge_get_other_vertex g e v = let
-    val (_,(s,t)) = get_edge g e
-  in if V.name_eq(s,v) then t else s
-  end
-  
   (* the edge-set is unique to a particular wire *)
   fun wire_ord ( (_,_,_,es) , (_,_,_,es') ) = E.NSet.ord (es,es')
   
@@ -811,6 +803,22 @@ functor OGraphFun(G : BASIC_OGRAPH)
     normalise_wire (get_wire_containing_edge g' e) g'
   end
   val do_plug_and_normalise = snd ooo plug_and_normalise
+
+  (*fun plug_minimised g v1 v2 =
+    case get_plugging g v1 v2
+      of NONE => raise plugging_exp (g,v1,v2)
+       | SOME (e,v1',v2') => if v1 = v1'*)
+  (*let
+    val plug_target =
+      case (V.NSet.tryget_singleton (pred_vnames g v1),
+            V.NSet.tryget_singleton (pred_vnames g v2),
+            V.NSet.tryget_singleton (succ_vnames g v1),
+            V.NSet.tryget_singleton (succ_vnames g v2))
+        of (SOME from, NONE, NONE, SOME to) => if from=v2 then NONE else SOME (from, to)
+         | (NONE, SOME from, SOME to, NONE) => if from=v1 then NONE else SOME (from, to)
+         | _ => raise plugging_exp ("Attempted to plug non-boundary-coherent wire-verts", v1, v2)
+  in g |> delete_vertex v1 |> (case plug_target of NONE => add_edge (E.mk ))
+  end*)
 
   (* finds the open subgraph defined by a node-vertex set
    * assumes graph is normalised

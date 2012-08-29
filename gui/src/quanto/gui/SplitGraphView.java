@@ -1,6 +1,5 @@
 package quanto.gui;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.FocusAdapter;
@@ -38,66 +37,71 @@ public class SplitGraphView extends InteractiveView {
 	// we keep our own copy of this, in case someone else changes the
 	// rule name in Rewrite
 	private Core core;
-    
-    private RulesetChangeListener listener = new RulesetChangeListener() {
+	private RulesetChangeListener listener = new RulesetChangeListener() {
 
-        public void rulesetReplaced(Ruleset source) {
-            try {
-                if (!core.getRuleset().getRules().contains(rule.getCoreName())) {
-                    if (isAttached()) {
-                        getViewPort().closeCurrentView();
-                    } else if (getViewManager() != null) {
-                        getViewManager().removeView(SplitGraphView.this);
-                    }
-                }
-            } catch (CoreException ex) {
-                Logger.getLogger(SplitGraphView.class.getName())
-                        .log(Level.SEVERE, "Failed to get rule list.", ex);
-            }
-        }
+		public void rulesetReplaced(Ruleset source) {
+			try {
+				if (!core.getRuleset().getRules().contains(rule.getCoreName())) {
+					if (isAttached()) {
+						getViewPort().closeCurrentView();
+					} else if (getViewManager() != null) {
+						getViewManager().removeView(SplitGraphView.this);
+					}
+				}
+			} catch (CoreException ex) {
+				Logger.getLogger(SplitGraphView.class.getName()).log(Level.SEVERE, "Failed to get rule list.", ex);
+			}
+		}
 
-        public void rulesRemoved(Ruleset source, Collection<String> ruleNames) {
-            if (ruleNames.contains(rule.getCoreName())) {
-                if (isAttached()) {
-                    getViewPort().closeCurrentView();
-                } else if (getViewManager() != null) {
-                    getViewManager().removeView(SplitGraphView.this);
-                }
-            }
-        }
+		public void rulesRemoved(Ruleset source, Collection<String> ruleNames) {
+			if (ruleNames.contains(rule.getCoreName())) {
+				if (isAttached()) {
+					getViewPort().closeCurrentView();
+				} else if (getViewManager() != null) {
+					getViewManager().removeView(SplitGraphView.this);
+				}
+			}
+		}
 
-        public void rulesRenamed(Ruleset source, Map<String, String> renaming) {
-            if (renaming.containsKey(rule.getCoreName())) {
-                rule.updateCoreName(renaming.get(rule.getCoreName()));
-                setTitle(rule.getCoreName());
-            }
-        }
+		public void rulesRenamed(Ruleset source, Map<String, String> renaming) {
+			if (renaming.containsKey(rule.getCoreName())) {
+				rule.updateCoreName(renaming.get(rule.getCoreName()));
+				setTitle(rule.getCoreName());
+			}
+		}
 
-        public void rulesAdded(Ruleset source, Collection<String> ruleNames) {}
-        public void rulesActiveStateChanged(Ruleset source, Map<String, Boolean> newState) {}
-        public void rulesTagged(Ruleset source, String tag, Collection<String> ruleNames, boolean newTag) {}
-        public void rulesUntagged(Ruleset source, String tag, Collection<String> ruleNames, boolean tagRemoved) {}
-    };
+		public void rulesAdded(Ruleset source, Collection<String> ruleNames) {
+		}
+
+		public void rulesActiveStateChanged(Ruleset source, Map<String, Boolean> newState) {
+		}
+
+		public void rulesTagged(Ruleset source, String tag, Collection<String> ruleNames, boolean newTag) {
+		}
+
+		public void rulesUntagged(Ruleset source, String tag, Collection<String> ruleNames, boolean tagRemoved) {
+		}
+	};
 
 	public SplitGraphView(Core core, Rule<CoreGraph> rule)
-	throws CoreException {
+			throws CoreException {
 		this(core, rule, new Dimension(800, 600));
 	}
 
 	public SplitGraphView(Core core, Rule<CoreGraph> rule, Dimension dim)
-	throws CoreException {
+			throws CoreException {
 		super(rule.getCoreName());
 		this.rule = rule;
 		this.core = core;
-        
-        core.getRuleset().addRulesetChangeListener(listener);
+
+		core.getRuleset().addRulesetChangeListener(listener);
 
 		leftView = new InteractiveGraphView(core, rule.getLhs());
 		leftView.setSaveEnabled(false);
 		leftView.setSaveAsEnabled(false);
 		leftView.repaint();
 		leftView.setVerticesPositionData();
-			
+
 		rightView = new InteractiveGraphView(core, rule.getRhs());
 		rightView.setSaveEnabled(false);
 		rightView.setSaveAsEnabled(false);
@@ -132,14 +136,12 @@ public class SplitGraphView extends InteractiveView {
 	}
 
 	private void setupLayout(Dimension dim) {
-		setLayout(new BorderLayout());
-
 		splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		splitPane.setLeftComponent(leftView);
 		splitPane.setRightComponent(rightView);
 		splitPane.setDividerLocation(((int) dim.getWidth() - 140) / 2);
 
-		add(splitPane, BorderLayout.CENTER);
+		setMainComponent(splitPane);
 	}
 
 	public boolean hasExpandingWorkspace() {
@@ -151,8 +153,7 @@ public class SplitGraphView extends InteractiveView {
 		if (leftFocused) {
 			focusMe = leftView;
 			unfocusMe = rightView;
-		}
-		else {
+		} else {
 			focusMe = rightView;
 			unfocusMe = leftView;
 		}
@@ -165,6 +166,7 @@ public class SplitGraphView extends InteractiveView {
 		}
 	}
 
+	@Override
 	public void commandTriggered(String command) {
 		if (CommandManager.Command.Save.matches(command)) {
 			try {
@@ -172,83 +174,89 @@ public class SplitGraphView extends InteractiveView {
 					core.saveRule(rule);
 					setSaved(true);
 				}
-			}
-			catch (CoreException err) {
-                coreErrorDialog("Could not save rule", err);
+			} catch (CoreException err) {
+				coreErrorDialog("Could not save rule", err);
 			}
 		} else if (CommandManager.Command.SaveAs.matches(command)) {
 			try {
-                String newName = JOptionPane.showInputDialog(this,
-                        "Rule name:",
-                        rule == null ? "" : rule.getCoreName());
-                if (newName == null || newName.isEmpty())
-                    return;
+				String newName = JOptionPane.showInputDialog(this,
+						"Rule name:",
+						rule == null ? "" : rule.getCoreName());
+				if (newName == null || newName.isEmpty()) {
+					return;
+				}
 
-                while (core.getRuleset().getRules().contains(newName)) {
-                    int overwrite = JOptionPane.showConfirmDialog(this,
-                            "A rule named \"" + newName +
-                            "\" already exists. " + 
-                            "Do you want to overwrite it?",
-                            "Overwrite rule",
-                            JOptionPane.YES_NO_CANCEL_OPTION);
+				while (core.getRuleset().getRules().contains(newName)) {
+					int overwrite = JOptionPane.showConfirmDialog(this,
+							"A rule named \"" + newName
+							+ "\" already exists. "
+							+ "Do you want to overwrite it?",
+							"Overwrite rule",
+							JOptionPane.YES_NO_CANCEL_OPTION);
 
-                    if (overwrite == JOptionPane.YES_OPTION)
-                        break; // continue
-                    else if (overwrite != JOptionPane.NO_OPTION)
-                        return; // cancelled - give up
+					if (overwrite == JOptionPane.YES_OPTION) {
+						break; // continue
+					} else if (overwrite != JOptionPane.NO_OPTION) {
+						return; // cancelled - give up
+					}
+					newName = JOptionPane.showInputDialog(this,
+							"Rule name:",
+							rule == null ? "" : rule.getCoreName());
+					if (newName == null || newName.isEmpty()) {
+						return;
+					}
+				}
 
-                    newName = JOptionPane.showInputDialog(this,
-                            "Rule name:",
-                            rule == null ? "" : rule.getCoreName());
-                    if (newName == null || newName.isEmpty())
-                        return;
-                }
-
-                rule = core.createRule(newName, rule.getLhs(), rule.getRhs());
-                setTitle(newName);
-                setSaved(true);
+				rule = core.createRule(newName, rule.getLhs(), rule.getRhs());
+				setTitle(newName);
+				setSaved(true);
+			} catch (CoreException err) {
+				coreErrorDialog("Could not save rule", err);
 			}
-			catch (CoreException err) {
-                coreErrorDialog("Could not save rule", err);
-			}
-		} else if ((CommandManager.Command.DirectedEdgeMode.matches(command)) ||
-		           (CommandManager.Command.UndirectedEdgeMode.matches(command)) ||
-		           (CommandManager.Command.SelectMode.matches(command))) {
-		     leftView.commandTriggered(command);
-		     rightView.commandTriggered(command);
+		} else if ((CommandManager.Command.DirectedEdgeMode.matches(command))
+				|| (CommandManager.Command.UndirectedEdgeMode.matches(command))
+				|| (CommandManager.Command.SelectMode.matches(command))) {
+			leftView.commandTriggered(command);
+			rightView.commandTriggered(command);
 		} else {
-			if (leftFocused)
+			if (leftFocused) {
 				leftView.commandTriggered(command);
-			else
+			} else {
 				rightView.commandTriggered(command);
+			}
 		}
+		super.commandTriggered(command);
 	}
 
+	@Override
 	public void attached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, true);
 		vp.setCommandEnabled(CommandManager.Command.SaveAs, true);
 		vp.setCommandEnabled(CommandManager.Command.Save,
-			rule != null && !isSaved()
-			);
+				rule != null && !isSaved());
 		updateFocus();
+		super.attached(vp);
 	}
 
+	@Override
 	public void detached(ViewPort vp) {
 		//vp.setCommandEnabled(USE_RULE_ACTION, false);
 		vp.setCommandEnabled(CommandManager.Command.SaveAs, false);
 		vp.setCommandEnabled(CommandManager.Command.Save, false);
 		if (leftFocused) {
 			leftView.detached(vp);
-		}
-		else {
+		} else {
 			rightView.detached(vp);
 		}
+		super.detached(vp);
 	}
 
+	@Override
 	public void cleanUp() {
 		leftView.cleanUp();
 		rightView.cleanUp();
-        core.getRuleset().removeRulesetChangeListener(listener);
+		core.getRuleset().removeRulesetChangeListener(listener);
+		super.cleanUp();
 	}
 
 	@Override
@@ -268,6 +276,7 @@ public class SplitGraphView extends InteractiveView {
 		return rightView;
 	}
 
+	@Override
 	public boolean isSaved() {
 		return saved;
 	}
@@ -277,14 +286,14 @@ public class SplitGraphView extends InteractiveView {
 			this.saved = saved;
 			if (rule != null && isAttached()) {
 				getViewPort().setCommandEnabled(
-					CommandManager.Command.Save,
-					!isSaved()
-					);
+						CommandManager.Command.Save,
+						!isSaved());
 			}
 			firePropertyChange("saved", !saved, saved);
 		}
 	}
 
+	@Override
 	public void refresh() {
 		leftView.refresh();
 		rightView.refresh();

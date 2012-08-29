@@ -1,6 +1,5 @@
 package quanto.gui;
 
-
 import quanto.core.data.CoreGraph;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -26,16 +25,18 @@ import javax.swing.border.LineBorder;
 import quanto.core.data.AttachedRewrite;
 
 public class RewriteViewer extends JFrame {
+
 	private static final long serialVersionUID = 3627522980375030017L;
 	private final InteractiveGraphView vis;
 	protected List<AttachedRewrite<CoreGraph>> rewrites;
-	
+
 	public RewriteViewer(InteractiveGraphView vis) {
 		super("Rewrites for " + vis.getTitle());
 		this.vis = vis;
 		rewrites = vis.getRewrites();
 
 		KeyListener esc = new KeyAdapter() {
+
 			@Override
 			public void keyReleased(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
@@ -45,7 +46,7 @@ public class RewriteViewer extends JFrame {
 		};
 
 		JPanel panel = new JPanel();
-		panel.setLayout(new GridLayout(rewrites.size(),1));
+		panel.setLayout(new GridLayout(rewrites.size(), 1));
 		int index = 0;
 		JButton cancel = new JButton("Cancel");
 		JComponent focusMe = cancel;
@@ -56,8 +57,8 @@ public class RewriteViewer extends JFrame {
 			rwPanel.add(ruleName);
 			GraphVisualizationViewer lhs = new GraphVisualizationViewer(rw.getLhs());
 			GraphVisualizationViewer rhs = new GraphVisualizationViewer(rw.getRhs());
-			lhs.zoomToFit(new Dimension(100,100));
-			rhs.zoomToFit(new Dimension(100,100));
+			lhs.zoomToFit(new Dimension(100, 100));
+			rhs.zoomToFit(new Dimension(100, 100));
 			lhs.setBorder(new LineBorder(Color.gray, 1));
 			rhs.setBorder(new LineBorder(Color.gray, 1));
 			JButton apply = new JButton("=>");
@@ -65,57 +66,61 @@ public class RewriteViewer extends JFrame {
 			rwPanel.add(lhs);
 			rwPanel.add(apply);
 			rwPanel.add(rhs);
-			if (index == 0) focusMe = apply;
+			if (index == 0) {
+				focusMe = apply;
+			}
 			rwPanel.setBorder(new LineBorder(Color.black, 1));
 			panel.add(rwPanel);
-			
+
 			final int thisIndex = index;
-			
+
 			apply.addActionListener(new ActionListener() {
+
 				public void actionPerformed(ActionEvent e) {
 					RewriteViewer.this.vis.clearHighlight();
 					RewriteViewer.this.vis.applyRewrite(thisIndex);
 					RewriteViewer.this.dispose();
 				}
 			});
-			
+
 			MouseAdapter hl = new MouseAdapter() {
+
 				@Override
 				public void mouseEntered(MouseEvent e) {
 					CoreGraph match =
-						RewriteViewer.this.rewrites
-							.get(thisIndex).getNewGraph();
+							RewriteViewer.this.rewrites.get(thisIndex).getNewGraph();
 					RewriteViewer.this.vis.highlightSubgraph(match);
 				}
-				
+
 				@Override
 				public void mouseExited(MouseEvent e) {
 					RewriteViewer.this.vis.clearHighlight();
 				}
 			};
-			
+
 			rwPanel.addMouseListener(hl);
 			lhs.addMouseListener(hl);
 			rhs.addMouseListener(hl);
 			apply.addMouseListener(hl);
-			
+
 			index++;
 		}
-		
+
 		JScrollPane scroll = new JScrollPane(panel);
 		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		getContentPane().setLayout(new BorderLayout());
-		getContentPane().add(scroll, BorderLayout.CENTER);		
+		getContentPane().add(scroll, BorderLayout.CENTER);
 		cancel.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent e) {
 				RewriteViewer.this.dispose();
 			}
 		});
-		
+
 		getContentPane().add(cancel, BorderLayout.SOUTH);
 
 		pack();
-		
+
 		focusMe.grabFocus();
 		focusMe.addKeyListener(esc);
 		addKeyListener(esc);

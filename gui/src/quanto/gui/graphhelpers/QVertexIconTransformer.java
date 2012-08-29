@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package quanto.gui.graphhelpers;
 
 import javax.swing.Icon;
@@ -13,11 +9,12 @@ import quanto.core.data.Vertex;
  * @author alemer
  */
 public class QVertexIconTransformer implements Transformer<Vertex, Icon> {
+
 	public Icon transform(Vertex input) {
-		if (input.isBoundaryVertex())
+		if (input.isBoundaryVertex()) {
 			return null;
-		else
+		} else {
 			return input.getVertexType().getVisualizationData().getIcon();
+		}
 	}
-	
 }

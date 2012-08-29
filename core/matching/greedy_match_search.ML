@@ -29,8 +29,37 @@ struct
   val log_graph = log_p G.pretty
   val log_v_nset = log_p V.NSet.pretty
 
-  (* FIXME *)
-  fun doomedf _ _ = false
+  (* TODO: it is probably worth optimising this some more *)
+  fun doomedf ms pv = let
+    val pat = BGMatchState.get_pat ms
+    val tgt = BGMatchState.get_tgt ms
+    val tv = VInjEndo.domf (BGMatchState.get_vmap ms) pv
+    val parity = BG.get_arity pat pv
+    val tarity = BG.get_arity tgt tv
+    fun has_bbox es = let
+      fun other_end_in_bbox e =
+        BG.is_bboxed pat (BG.edge_get_other_vertex pat e pv)
+    in
+      E.NSet.exists other_end_in_bbox es
+    end
+    val need_more_ins = Arity.get_in parity < Arity.get_in tarity
+    val need_more_outs = Arity.get_out parity < Arity.get_out tarity
+    val need_more_undir = Arity.get_undir parity < Arity.get_undir tarity
+    fun chk_bbox (inctyp,v,(e,(dirtyp,_))) (nmins,nmouts,nmundir) =
+      (* we can ignore selfloops, as the graph is normalised *)
+      case (inctyp,dirtyp)
+        of (BG.SelfLoop,_) => raise ERROR ("Unexpected self-loop in normed graph ("^
+                V.string_of_name pv^","^E.string_of_name e^")")
+         | (_,BG.UnDirected) => (nmins,nmouts,nmundir andalso not (BG.is_bboxed pat v))
+         | (BG.Incoming,BG.Directed) => (nmins andalso not (BG.is_bboxed pat v),nmouts,nmundir)
+         | (BG.Outgoing,BG.Directed) => (nmins,nmouts andalso not (BG.is_bboxed pat v),nmundir)
+  in
+    (need_more_ins orelse need_more_outs orelse need_more_undir)
+    andalso
+    (let val (nmins,nmouts,nmundir) =
+      BG.fold_adj chk_bbox pat pv (need_more_ins,need_more_outs,need_more_undir)
+     in nmins orelse nmouts orelse nmundir end)
+  end
 
   fun get_next_bbox g =
     B.NSet.get_exists (not o (BG.bbox_has_parent g)) (BG.get_bboxes g)
