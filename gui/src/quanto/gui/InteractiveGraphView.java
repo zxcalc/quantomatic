@@ -130,19 +130,17 @@ public class InteractiveGraphView
 									try {
 										String newN = lab.getText();
 										String oldN = qVertex.getCoreName();
-										cacheVertexPositions();
 										String displacedName = core.renameVertex(getGraph(), qVertex, newN);
-										if (displacedName != null) {
-											Point2D oldP = verticesCache.get(newN);
-											verticesCache.put(displacedName, oldP);
-											verticesCache.remove(newN);
+										if (verticesCache != null) {
+											if (displacedName != null) {
+												Point2D oldP = verticesCache.get(newN);
+												verticesCache.put(displacedName, oldP);
+												verticesCache.remove(newN);
+											}
+											Point2D oldP = verticesCache.get(oldN);
+											verticesCache.put(newN, oldP);
+											verticesCache.remove(oldN);
 										}
-										Point2D oldP = verticesCache.get(oldN);
-										verticesCache.put(newN, oldP);
-										verticesCache.remove(oldN);
-										Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-												0, 20, viewer.getGraphLayout().getSize().height);
-										updateGraph(rect);
 									} catch (CoreException err) {
 										errorDialog(err.getMessage());
 									}
