@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.swing.JOptionPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -113,8 +112,9 @@ implements CoreObject, ChangeEventSupport {
 	
 	public void updateGraph(CoreGraph new_graph) {
 		synchronized (this) {
-			for (Vertex v: new_graph.getVertices())
+			for (Vertex v: new_graph.getVertices()) {
 				addVertex(v);
+			}
 		}
 	}
 }

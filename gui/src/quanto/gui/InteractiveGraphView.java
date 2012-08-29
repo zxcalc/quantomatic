@@ -111,8 +111,8 @@ public class InteractiveGraphView
 						getMultiLayerTransformer().transform(
 						viewer.getGraphLayout().transform(qVertex));
 
-				Labeler labeler = null;
-				String label = null;
+				Labeler labeler;
+				String label;
 				if (qVertex.isBoundaryVertex()) {
 					label = qVertex.getCoreName();
 					labeler = components.get(qVertex);
@@ -250,10 +250,8 @@ public class InteractiveGraphView
 					Ys.add(p.getY());
 				}
 				screen.setLocation((Xs.last() - Xs.first()) / 2 + Xs.first(), Ys.first());
-				Labeler labeler = null;
-				String label = null;
-				label = qBb.getCoreName();
-				labeler = components.get(qBb);
+				String label = qBb.getCoreName();
+				Labeler labeler = components.get(qBb);
 				if (labeler == null) {
 					labeler = new Labeler(label);
 					components.put(qBb, labeler);
@@ -512,6 +510,7 @@ public class InteractiveGraphView
 		g.addChangeListener(new ChangeListener() {
 
 			public void stateChanged(ChangeEvent e) {
+				removeOldLabels();
 				if (saveEnabled && isAttached()) {
 					getViewPort().setCommandEnabled(CommandManager.Command.Save,
 							!getGraph().isSaved());
@@ -1158,7 +1157,6 @@ public class InteractiveGraphView
 					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.cutSubgraph(getGraph(), picked);
-						removeOldLabels();
 					}
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not cut selection", ex);
@@ -1367,7 +1365,6 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					removeOldLabels();
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not remove !-box", ex);
 				}
@@ -1378,7 +1375,6 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					removeOldLabels();
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not kill !-box", ex);
 				}
@@ -1488,7 +1484,6 @@ public class InteractiveGraphView
 						getGraph(), viewer.getPickedEdgeState().getPicked());
 				core.deleteVertices(
 						getGraph(), viewer.getPickedVertexState().getPicked());
-				removeOldLabels();
 
 			} catch (CoreException err) {
 				coreErrorMessage("Could not delete the vertex", err);

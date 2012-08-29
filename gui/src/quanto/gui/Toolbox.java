@@ -6,6 +6,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.geom.Rectangle2D;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -192,10 +194,7 @@ public class Toolbox extends JPanel {
 						HashSet<Vertex> vertices = new HashSet<Vertex>();
 						vertices.add(v);
 						try {
-							view.cacheVertexPositions();
-							Rectangle2D rect = view.getVisualization().getGraphBounds();
-							core.bangVertices(graph, bangBox.getCoreName(), vertices);
-							view.updateGraph(rect);
+							core.bangVertices(graph, bangBox, vertices);
 						} catch (CoreException ex) {
 							showModalError("Bang Vertex", ex);
 						}
@@ -216,13 +215,7 @@ public class Toolbox extends JPanel {
 
 					public void actionPerformed(ActionEvent e) {
 						try {
-							HashSet<BangBox> bbs = new HashSet<BangBox>();
-							bbs.add(b);
-							bbs.add(bangBox);
-							view.cacheVertexPositions();
-							Rectangle2D rect = view.getVisualization().getGraphBounds();
-							core.mergeBangBoxes(graph, bbs);
-							view.updateGraph(rect);
+							core.mergeBangBoxes(graph, Arrays.asList(b, bangBox));
 						} catch (CoreException ex) {
 							showModalError("Merge !-Box", ex);
 						}
@@ -243,12 +236,7 @@ public class Toolbox extends JPanel {
 
 			public void actionPerformed(ActionEvent e) {
 				try {
-					HashSet<BangBox> bbs = new HashSet<BangBox>();
-					bbs.add(bangBox);
-					view.cacheVertexPositions();
-					Rectangle2D rect = view.getVisualization().getGraphBounds();
-					core.dropBangBoxes(graph, bbs);
-					view.updateGraph(rect);
+					core.dropBangBoxes(graph, Collections.singleton(bangBox));
 				} catch (CoreException ex) {
 					showModalError("Drop!-Box", ex);
 				}

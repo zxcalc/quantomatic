@@ -311,10 +311,14 @@ public class Core {
 		return bb;
 	}
 
-	public void bangVertices(CoreGraph graph, String bangBox, Collection<Vertex> vertices)
+	public void bangVertices(CoreGraph graph, BangBox bangBox, Collection<Vertex> vertices)
 			throws CoreException {
 		assertCoreGraph(graph);
-		talker.bangVertices(graph.getCoreName(), bangBox, names(vertices));
+		if (!graph.containsBangBox(bangBox)) {
+			throw new IllegalStateException("The graph does not contain that !-box");
+		}
+		talker.bangVertices(graph.getCoreName(), bangBox.getCoreName(), names(vertices));
+		graph.addVerticesToBangBox(bangBox, vertices);
 		graph.fireStateChanged();
 	}
 
@@ -322,7 +326,10 @@ public class Core {
 			Collection<Vertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		talker.unbangVertices(graph.getCoreName(), names(vertices));
-		updateGraph(graph);
+		for (BangBox bb: graph.getBangBoxes()) {
+			graph.removeVerticesFromBangBox(bb, vertices);
+		}
+		graph.fireStateChanged();
 	}
 
 	public void dropBangBoxes(CoreGraph graph, Collection<BangBox> bboxen)
