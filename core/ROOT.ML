@@ -76,6 +76,9 @@ PolyML.Project.make "io/writer.ML";
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
 
+(* boilerplate data functors for enumerated datatypes *)
+PolyML.Project.make "theories/enum_data.ML";
+
 (* Storing UI data on graphs, vertices, !-Boxes and edges *)
 PolyML.Project.make "interface/user_data.ML";
 
