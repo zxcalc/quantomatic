@@ -1,13 +1,5 @@
 package quanto.gui;
 
-import quanto.core.CoreException;
-import quanto.core.Ruleset;
-import quanto.core.RulesetChangeListener;
-import quanto.core.data.CoreGraph;
-import quanto.core.data.Rule;
-import quanto.core.protocol.userdata.RulePriorityRuleUserDataSerializer;
-
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -17,6 +9,13 @@ import java.util.*;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.*;
+import quanto.core.CoreException;
+import quanto.core.Ruleset;
+import quanto.core.RulesetChangeListener;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.Rule;
+import quanto.core.protocol.userdata.RulePriorityRuleUserDataSerializer;
 
 /**
  * Panel displaying a very simple rules interface.
@@ -155,14 +154,14 @@ public class RulesBar extends JPanel {
 			}
 		}
 	};
-	private JList listView;
-	private DefaultListModel rulesModel;
+	private JList<RuleDescription> listView;
+	private DefaultListModel<RuleDescription> rulesModel;
 	private JButton enableButton;
 	private JButton disableButton;
 	private JButton deleteButton;
 	private JButton createRuleButton;
 	private JButton refreshButton;
-	private JComboBox tagsCombo;
+	private JComboBox<String> tagsCombo;
 	private boolean suppressTagComboCallback = false;
 
 	private void showModalError(String message, CoreException ex) {
@@ -421,8 +420,8 @@ public class RulesBar extends JPanel {
 			}
 		};
 
-		rulesModel = new DefaultListModel();
-		listView = new JList(rulesModel);
+		rulesModel = new DefaultListModel<RuleDescription>();
+		listView = new JList<RuleDescription>(rulesModel);
 		listView.setCellRenderer(cellRenderer);
 		listView.addMouseListener(new MouseAdapter() {
 
@@ -443,7 +442,7 @@ public class RulesBar extends JPanel {
 			}
 		});
 		JScrollPane listPane = new JScrollPane(listView);
-		tagsCombo = new JComboBox();
+		tagsCombo = new JComboBox<String>();
 		createMenuButtons();
 
 
