@@ -1,23 +1,18 @@
 package quanto.gui;
 
-import java.awt.Dimension;
-import java.awt.geom.Point2D;
-import java.util.HashMap;
-import java.util.Map;
-
-
-import org.apache.commons.collections15.Transformer;
-
-import quanto.core.data.CoreGraph;
-import quanto.core.data.Edge;
-import quanto.core.data.Vertex;
-
-
 import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
 import edu.uci.ics.jung.algorithms.util.IterativeContext;
 import edu.uci.ics.jung.graph.DirectedGraph;
+import java.awt.Dimension;
+import java.awt.geom.Point2D;
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.commons.collections15.Transformer;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.Edge;
+import quanto.core.data.Vertex;
 
 public class QuantoForceLayout extends AbstractLayout<Vertex, Edge> implements IterativeContext {
 

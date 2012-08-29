@@ -2,8 +2,8 @@ package quanto.gui;
 
 import edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotBangBoxLayout;
 import quanto.core.data.BangBox;
-import quanto.core.data.Edge;
 import quanto.core.data.CoreGraph;
+import quanto.core.data.Edge;
 import quanto.core.data.Vertex;
 
 /**

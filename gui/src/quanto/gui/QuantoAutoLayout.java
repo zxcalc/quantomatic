@@ -1,12 +1,11 @@
 package quanto.gui;
 
+import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 import java.awt.Dimension;
 import java.awt.geom.Point2D;
-
 import quanto.core.data.CoreGraph;
 import quanto.core.data.Edge;
 import quanto.core.data.Vertex;
-import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
 
 public class QuantoAutoLayout extends AbstractLayout<Vertex, Edge> {
 

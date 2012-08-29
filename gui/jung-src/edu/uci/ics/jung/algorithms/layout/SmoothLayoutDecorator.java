@@ -1,12 +1,10 @@
 package edu.uci.ics.jung.algorithms.layout;
 
-import java.awt.geom.Point2D;
-
-import org.apache.commons.collections15.Transformer;
-
 import edu.uci.ics.jung.algorithms.layout.util.Relaxer;
 import edu.uci.ics.jung.algorithms.layout.util.VisRunner;
 import edu.uci.ics.jung.algorithms.util.IterativeContext;
+import java.awt.geom.Point2D;
+import org.apache.commons.collections15.Transformer;
 
 public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	private double lastTick;
@@ -23,8 +21,9 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	public void initialize() {
 		super.initialize();
 
-		if (currentState == null)
+		if (currentState == null) {
 			currentState = new StaticLayout<V,E>(delegate.getGraph(), origin);
+		}
 
 		lastTick = -1.0;
 
@@ -64,7 +63,9 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	public void step() {
 		synchronized (getGraph()) {
 			boolean moved = false;
-			for (V v : getGraph().getVertices()) moved = tick(v) || moved;
+			for (V v : getGraph().getVertices()) {
+				moved = tick(v) || moved;
+			}
 			//done = ! moved;
 		}
 	}
@@ -92,11 +93,15 @@ public class SmoothLayoutDecorator<V,E> extends LayoutDecorator<V, E> {
 	private boolean tick(V v) {
 		Point2D source = currentState.transform(v);
 		Point2D dest = getDelegate().transform(v);
-		if (lastTick == -1.0) lastTick = millis();
+		if (lastTick == -1.0) {
+			lastTick = millis();
+		}
 
 		double thisTick = millis();
 		double rate = (thisTick - lastTick) * speed;
-		if (rate>1) rate = 1;
+		if (rate>1) {
+			rate = 1;
+		}
 		double dx = dest.getX() - source.getX();
 		double dy = dest.getY() - source.getY();
 
