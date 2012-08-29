@@ -520,9 +520,31 @@ public class Core {
         talker.applyAttachedRewrite(graph.getCoreName(), i);
     }
 
-    public String[] renameVertex(CoreGraph graph, String oldName, String newName)
+	/**
+	 * Rename a vertex.
+	 * 
+	 * Note that if a vertex with the new name already exists, that vertex
+	 * (and not v) will be given a new name.
+	 *
+	 * @param graph   The graph the vertex is in
+	 * @param v       The vertex to rename
+	 * @param newName The new name for the vertex
+	 * @return if a vertex called newName already existed, the new name for that
+	 *         vertex, otherwise null
+	 * @throws CoreException 
+	 */
+    public String renameVertex(CoreGraph graph, Vertex v, String newName)
 	 					throws CoreException	{
-			String[] names = talker.renameVertex(graph.getCoreName(), oldName, newName);
-			return names;
+			String[] names = talker.renameVertex(graph.getCoreName(), v.getCoreName(), newName);
+			if (names.length > 1) {
+				for (Vertex vv: graph.getVertices()) {
+					if (vv.getCoreName().equals(names[0])) {
+						vv.updateCoreName(names[1]);
+					}
+				}
+			}
+			v.updateCoreName(names[0]);
+			graph.fireStateChanged();
+			return (names.length > 1) ? names[1] :  null;
 	}	
 }

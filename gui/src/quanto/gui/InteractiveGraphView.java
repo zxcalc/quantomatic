@@ -131,10 +131,10 @@ public class InteractiveGraphView
 										String newN = lab.getText();
 										String oldN = qVertex.getCoreName();
 										cacheVertexPositions();
-										String[] names = core.renameVertex(getGraph(), oldN, newN);
-										if (names.length == 2) {
+										String displacedName = core.renameVertex(getGraph(), qVertex, newN);
+										if (displacedName != null) {
 											Point2D oldP = verticesCache.get(newN);
-											verticesCache.put(names[1], oldP);
+											verticesCache.put(displacedName, oldP);
 											verticesCache.remove(newN);
 										}
 										Point2D oldP = verticesCache.get(oldN);
