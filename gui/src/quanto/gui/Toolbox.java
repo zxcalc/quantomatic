@@ -148,14 +148,13 @@ public class Toolbox extends JPanel {
 	private JMenu createSubPopupMenu(final BangBox bangBox, final InteractiveGraphView view) {
 		final CoreGraph graph = view.getGraph();
 		JMenu menu = new JMenu(bangBox.getCoreName());
-		JMenuItem menuItem = null;
 		JMenu subMenu = new JMenu("Bang Vertex...");
 		if (graph.getVertices().size() > 0) {
 			for (final Vertex v : graph.getVertices()) {
 				if (graph.getBoxedVertices(bangBox).contains(v)) {
 					continue;
 				}
-				menuItem = new JMenuItem(v.getCoreName());
+				JMenuItem menuItem = new JMenuItem(v.getCoreName());
 				menuItem.addMouseListener(new MouseListener() {
 
 					@Override
@@ -212,7 +211,7 @@ public class Toolbox extends JPanel {
 				if (b.getCoreName().equals(bangBox.getCoreName())) {
 					continue;
 				}
-				menuItem = new JMenuItem(b.getCoreName());
+				JMenuItem menuItem = new JMenuItem(b.getCoreName());
 				menuItem.addActionListener(new ActionListener() {
 
 					public void actionPerformed(ActionEvent e) {
@@ -233,13 +232,13 @@ public class Toolbox extends JPanel {
 			}
 			menu.add(subMenu);
 		}
-		String label = null;
+		String label;
 		if (graph.getBoxedVertices(bangBox).isEmpty()) {
 			label = "Drop this (empty) !-Box";
 		} else {
 			label = "Drop this !-Box";
 		}
-		menuItem = new JMenuItem(label);
+		JMenuItem menuItem = new JMenuItem(label);
 		menuItem.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
@@ -260,8 +259,7 @@ public class Toolbox extends JPanel {
 	}
 
 	private JPopupMenu createPopupMenu() {
-		CoreGraph graph = null;
-		InteractiveGraphView view = null;
+		InteractiveGraphView view;
 		if (viewPort.getAttachedView() instanceof InteractiveGraphView) {
 			view = (InteractiveGraphView) viewPort.getAttachedView();
 		} else if (viewPort.getAttachedView() instanceof SplitGraphView) {
@@ -273,7 +271,7 @@ public class Toolbox extends JPanel {
 		} else {
 			return null;
 		}
-		graph = view.getGraph();
+		CoreGraph graph = view.getGraph();
 		JPopupMenu menu = new JPopupMenu();
 		if (graph.getBangBoxes().isEmpty()) {
 			JMenuItem menuItem = new JMenuItem("No !-Boxes");
