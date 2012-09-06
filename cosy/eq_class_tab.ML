@@ -88,15 +88,17 @@ end
 functor EqClassTab(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
-  sharing Theory.Graph.SharingOGraph = Metric.Graph.SharingOGraph
   val eq : Theory.Graph.T * Theory.Graph.T -> bool
+  sharing Theory.Graph.SharingOGraph = Metric.Graph.SharingOGraph
   type data
 ) : EQ_CLASS_TAB =
 struct
   structure Theory = Theory
   structure Metric = Metric
   structure G = Theory.Graph
-  structure GraphEntry = GraphEntry(structure Graph = G; type data = data)
+  structure GraphEntry = GraphEntry(
+    structure Graph = G
+    type data = data)
   
   type T = unit
   
