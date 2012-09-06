@@ -1,3 +1,40 @@
+signature GRAPH_ENTRY =
+sig
+  structure Graph : BANG_GRAPH
+  type T
+  type data
+  val update_graph : (Graph.T -> Graph.T) -> T -> T
+  val update_dirty : (bool -> bool) -> T -> T
+  val update_data  : (data -> data) -> T -> T
+  val get_graph    : T -> Graph.T
+  val get_dirty    : T -> bool
+  val get_data     : T -> data
+  val set_graph    : Graph.T -> T -> T
+  val set_dirty    : bool -> T -> T
+  val set_data     : data -> T -> T
+  val mk : Graph.T * data -> T
+end
+
+functor GraphEntry(
+  structure Graph : BANG_GRAPH
+  type data
+) : GRAPH_ENTRY =
+struct
+  structure Graph = Graph
+  type data = data
+  datatype T = GE of { graph: Graph.T, data: data, dirty: bool }
+  fun update_graph f (GE r) = GE {graph= f(#graph r),dirty= #dirty r,data= #data r}
+  fun update_dirty f (GE r) = GE {graph= #graph r,dirty= f(#dirty r),data= #data r}
+  fun update_data f (GE r)  = GE {graph= #graph r,dirty= #dirty r,data= f(#data r)}
+  fun get_graph (GE r) = #graph r
+  fun get_dirty (GE r) = #dirty r
+  fun get_data  (GE r) = #data r
+  val set_graph = update_graph o K
+  val set_dirty = update_dirty o K
+  val set_data  = update_data  o K
+  fun mk (gr, d) = GE { graph = gr, data = d, dirty = true }
+end
+
 signature EQ_CLASS =
 sig
   type 'a T
@@ -37,11 +74,14 @@ sig
   type T
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
-  val get_irredexes : T -> Theory.Graph.T list
-  val update : T -> Theory.Graph.T -> T
+  structure GraphEntry : GRAPH_ENTRY
+  val get_irredexes : T -> GraphEntry.T list
+  val update : T -> GraphEntry.T -> T
   val empty : T
   
-  sharing Theory.Graph.SharingOGraph = Metric.Graph.SharingOGraph
+  sharing Theory.Graph.SharingOGraph =
+          Metric.Graph.SharingOGraph =
+          GraphEntry.Graph.SharingOGraph
 end
 
 
@@ -50,11 +90,13 @@ functor EqClassTab(
   structure Metric : GRAPH_METRIC
   sharing Theory.Graph.SharingOGraph = Metric.Graph.SharingOGraph
   val eq : Theory.Graph.T * Theory.Graph.T -> bool
+  type data
 ) : EQ_CLASS_TAB =
 struct
   structure Theory = Theory
   structure Metric = Metric
   structure G = Theory.Graph
+  structure GraphEntry = GraphEntry(structure Graph = G; type data = data)
   
   type T = unit
   
