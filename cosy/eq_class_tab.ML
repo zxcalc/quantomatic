@@ -142,9 +142,12 @@ struct
   fun tryadd_to_class cls ge =
     if eq (get_graph (EqClass.get_rep cls), get_graph ge)
     then SOME (
-      if Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge) = LESS
-      then cls |> EqClass.update_redexes (cons ge)
-      else cls |> EqClass.update_congs (cons ge))
+      case Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge)
+      of LESS    => cls |> EqClass.update_redexes (cons ge)
+       | GREATER => cls |> EqClass.update_redexes (fn reds => EqClass.get_rep cls :: EqClass.get_congs cls @ reds)
+                        |> EqClass.set_congs []
+                        |> EqClass.set_rep ge
+       | EQUAL   => cls |> EqClass.update_congs (cons ge))
     else NONE
   
   fun find_and_add ge classlist = let
