@@ -76,7 +76,8 @@ sig
   val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
   val get_irredexes : T -> GraphEntry.T list
   val get_redexes : T -> GraphEntry.T list
-  val update : T -> GraphEntry.T -> T
+  val update_one : GraphEntry.T -> T -> T
+  val update : GraphEntry.T list -> T -> T
   val empty : T
 end
 
@@ -157,7 +158,7 @@ struct
         | (false, cs) => (EqClass.mk ge :: cs)
   end
   
-  fun update tab ge =
+  fun update_one ge tab =
     if exists_redexes (has_match ge) tab then tab
     else let
       val gr = get_graph ge
@@ -165,6 +166,8 @@ struct
                    V.NSet.cardinality (G.get_inputs gr))
     in tab |> ClassIndex.map_default (arity, []) (find_and_add ge)
     end
+  
+  fun update ge_list tab = fold update_one ge_list tab
   
   val empty = ClassIndex.empty
 end
