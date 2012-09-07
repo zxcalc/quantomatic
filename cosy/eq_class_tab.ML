@@ -19,16 +19,16 @@ signature EQ_CLASS =
 sig
   type T
   structure GraphEntry : GRAPH_ENTRY
-  val get_rep : T -> GraphEntry.T option
-  val get_congs : T -> GraphEntry.T list
-  val get_redexes : T -> GraphEntry.T list
-  val update_rep : (GraphEntry.T option -> GraphEntry.T option) -> T -> T
-  val update_congs : (GraphEntry.T list -> GraphEntry.T list) -> T -> T
+  val update_rep     : (GraphEntry.T -> GraphEntry.T) -> T -> T
+  val update_congs   : (GraphEntry.T list -> GraphEntry.T list) -> T -> T
   val update_redexes : (GraphEntry.T list -> GraphEntry.T list) -> T -> T
-  val set_rep : GraphEntry.T option -> T -> T
-  val set_congs : GraphEntry.T list -> T -> T
-  val set_redexes : GraphEntry.T list -> T -> T
-  val empty : T
+  val get_rep        : T -> GraphEntry.T
+  val get_congs      : T -> GraphEntry.T list
+  val get_redexes    : T -> GraphEntry.T list
+  val set_rep        : GraphEntry.T -> T -> T
+  val set_congs      : GraphEntry.T list -> T -> T
+  val set_redexes    : GraphEntry.T list -> T -> T
+  val mk : GraphEntry.T -> T
 end
 
 functor EqClass(
@@ -53,28 +53,29 @@ struct
     fun mk (gr, d) = GE { graph = gr, data = d, dirty = true }
   end
 
-  type T = {
-        rep : GraphEntry.T option,
-      congs : GraphEntry.T list,
-    redexes : GraphEntry.T list }
-  fun get_rep ({rep=x,...}:T) = x
-  fun get_congs ({congs=x,...}:T) = x
-  fun get_redexes ({redexes=x,...}:T) = x
-  fun update_rep f ({rep=rep,congs=congs,redexes=redexes}:T) = {rep=f rep,congs=congs,redexes=redexes}
-  fun update_congs f ({rep=rep,congs=congs,redexes=redexes}:T) = {rep=rep,congs=f congs,redexes=redexes}
-  fun update_redexes f ({rep=rep,congs=congs,redexes=redexes}:T) = {rep=rep,congs=congs,redexes=f redexes}
-  fun set_rep x cl = update_rep (K x) cl
-  fun set_congs x cl = update_congs (K x) cl
-  fun set_redexes x cl = update_redexes (K x) cl
-  
-  val empty = { rep = NONE, congs = [], redexes = [] }
+  datatype T = EQCLASS of { rep: GraphEntry.T, congs: GraphEntry.T list, redexes: GraphEntry.T list }
+  fun update_rep f (EQCLASS r)     = EQCLASS {rep= f(#rep r),congs= #congs r,redexes= #redexes r}
+  fun update_congs f (EQCLASS r)   = EQCLASS {rep= #rep r,congs= f(#congs r),redexes= #redexes r}
+  fun update_redexes f (EQCLASS r) = EQCLASS {rep= #rep r,congs= #congs r,redexes= f(#redexes r)}
+  fun get_rep     (EQCLASS r) = #rep r
+  fun get_congs   (EQCLASS r) = #congs r
+  fun get_redexes (EQCLASS r) = #redexes r
+  val set_rep     = update_rep     o K
+  val set_congs   = update_congs   o K
+  val set_redexes = update_redexes o K  
+  fun mk ge = EQCLASS { rep = ge, congs = [], redexes = [] }
 end
 
 signature EQ_CLASS_TAB =
 sig
   type T
   structure GraphEntry : GRAPH_ENTRY
+  val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
+  val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
+  val exists_redexes : (GraphEntry.T -> bool) -> T -> bool
+  val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
   val get_irredexes : T -> GraphEntry.T list
+  val get_redexes : T -> GraphEntry.T list
   val update : T -> GraphEntry.T -> T
   val empty : T
 end
@@ -93,6 +94,7 @@ struct
     structure Graph = G
     type data = data)
   structure GraphEntry = EqClass.GraphEntry
+  open GraphEntry
   
   structure ClassIndex = Table(
     type key = int * int
@@ -101,7 +103,68 @@ struct
   
   type T = (EqClass.T list) ClassIndex.table
   
-  fun get_irredexes _  = []
-  fun update _ _ = ClassIndex.empty
+  (* convenience functions for pulling out redexes and irredexes *)
+  local
+    exception found_exn of unit
+    fun fold_to_exists fldf f tab = 
+      fldf (fn x => fn _ =>
+        (if f x then raise found_exn () else false)) tab false
+      handle found_exn () => true
+  in
+    fun fold_redexes f =
+      ClassIndex.fold (fn (_, classlist) =>
+        fold (fn class =>
+          fold f (EqClass.get_redexes class)
+        ) classlist
+      )
+      
+    fun fold_irredexes f =
+      ClassIndex.fold (fn (_, classlist) =>
+        fold (fn class =>
+          fold f (EqClass.get_rep class :: EqClass.get_congs class)
+        ) classlist
+      )
+      
+    fun get_redexes tab = fold_redexes cons tab []
+    fun get_irredexes tab = fold_irredexes cons tab []
+    val exists_redexes = fold_to_exists fold_redexes
+    val exists_irredexes = fold_to_exists fold_irredexes
+  end
+  
+  
+  
+  fun has_match tgt pat =
+    is_some (Seq.pull (Theory.MatchSearch.match
+      (get_graph pat) (get_graph tgt)
+    ))
+  
+  fun tryadd_to_class cls ge =
+    if eq (get_graph (EqClass.get_rep cls), get_graph ge)
+    then SOME (
+      if Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge) = LESS
+      then cls |> EqClass.update_redexes (cons ge)
+      else cls |> EqClass.update_congs (cons ge))
+    else NONE
+  
+  fun find_and_add ge classlist = let
+    fun tryaddf cls (cls_found, rest) =
+      if cls_found then (cls_found, cls :: rest)
+      else (case tryadd_to_class cls ge
+              of SOME cls' => (true, cls' :: rest)
+               | NONE      => (false, cls :: rest))
+  in case fold tryaddf classlist (false, [])
+       of (true, cs) => cs
+        | (false, cs) => (EqClass.mk ge :: cs)
+  end
+  
+  fun update tab ge =
+    if exists_redexes (has_match ge) tab then tab
+    else let
+      val gr = get_graph ge
+      val arity = (V.NSet.cardinality (G.get_inputs gr),
+                   V.NSet.cardinality (G.get_inputs gr))
+    in tab |> ClassIndex.map_default (arity, []) (find_and_add ge)
+    end
+  
   val empty = ClassIndex.empty
 end
