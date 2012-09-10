@@ -139,6 +139,8 @@ struct
       (get_graph pat) (get_graph tgt)
     ))
   
+  (* returns (SOME new_class) if graph is equivalent to the representative,
+     and NONE otherwise *)
   fun tryadd_to_class cls ge =
     if eq (get_graph (EqClass.get_rep cls), get_graph ge)
     then SOME (
