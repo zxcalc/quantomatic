@@ -17,42 +17,68 @@ sig
   sharing Sharing.Ruleset = Ruleset.Sharing;
   sharing type Sharing.match = match;
 
-  (* matching *)
-  val apply : Ruleset.T -> Rule.Graph.T 
-        -> ((R.name * Rule.T) (* name, rule, rewritten graph *) 
-            * Rule.Graph.T) Seq.seq 
-  val apply_in : Ruleset.T -> Rule.Graph.T -> V.NSet.T  
-        -> ((R.name * Rule.T) * Rule.Graph.T) Seq.seq;
+  (* Finds all rewrites for a graph using the active rules
+   * in a ruleset
+   *)
+  val apply : Ruleset.T (* ruleset to use *)
+           -> Rule.Graph.T (* graph to rewrite *)
+           -> ((R.name * Rule.T) * Rule.Graph.T) Seq.seq;
+              (* instantiated rule and new graph *)
 
-  (* get just first rewrite *)
-  val apply_first : Ruleset.T -> Rule.Graph.T 
-        -> ((R.name * Rule.T) (* name, rule, rewritten graph *) 
-            * Rule.Graph.T) option 
-  val apply_first_in : Ruleset.T -> Rule.Graph.T -> V.NSet.T  
-        -> ((R.name * Rule.T) * Rule.Graph.T) option;
+  (* Finds all rewrites for a subgraph using the active rules
+   * in a ruleset. Note that the match is actually performed
+   * on the smallest open subgraph containing the given
+   * vertices
+   *)
+  val apply_in : Ruleset.T (* ruleset to use *)
+              -> Rule.Graph.T (* graph to rewrite *)
+              -> V.NSet.T (* subgraph to match against *)
+              -> ((R.name * Rule.T) * Rule.Graph.T) Seq.seq;
+              (* instantiated rule and new graph *)
 
-  (* low-level *)
+  (* As apply, but gives only the first result *)
+  val apply_first : Ruleset.T
+                 -> Rule.Graph.T 
+                 -> ((R.name * Rule.T) * Rule.Graph.T) option ;
+  (* As apply_in, but gives only the first result *)
+  val apply_first_in : Ruleset.T
+                    -> Rule.Graph.T
+                    -> V.NSet.T  
+                    -> ((R.name * Rule.T) * Rule.Graph.T) option;
+
+  (* Find all rewrites in a set of rules *)
   val applicable_rules : Ruleset.T (* background ruleset *)
       -> (Rule.T -> Rule.Graph.T -> Rule.T * match Seq.seq) (* matcher *)
       -> R.NSet.T (* subset of rules to use *) 
       -> Rule.Graph.T (* graph to look for matches of rules in *)
-      -> ((R.name * Rule.T) (* name, rule, rewritten graph *) 
-            * Rule.Graph.T) Seq.seq 
+      -> ((R.name * Rule.T) * Rule.Graph.T) Seq.seq;
+         (* instantiated rule and new graph *)
  
-  (* to see what a rule looks like once data is matched and bang-boxes 
-     expanded. *)
+  (* Performs the !-box operations and data substitutions
+   * required by a matching.
+   *
+   * Assumes the rule LHS is exactly what was used for matching
+   * (ie: this should be the renamed rule from rule_matches or
+   *  rule_matches_within)
+   *)
   val instantiate_rule : match -> Rule.T -> Rule.T; 
 
-  (* check how a single rule matches (rule is renamed) *)
-  val rule_matches : Rule.T -> Rule.Graph.T -> (Rule.T * match Seq.seq)
+  (* Find all matches of a rule's LHS in a graph *)
+  val rule_matches : Rule.T       (* rule *)
+                  -> Rule.Graph.T (* graph to match against *)
+                  -> (Rule.T      (* renamed rule (USE THIS FOR REWRITING) *)
+                      * match Seq.seq); (* a lazy list of matches *)
   
-  (* funny order is because we create a rule-matcher and use it in applicable_rules (rule is renamed) *)
-  val rule_matches_within : V.NSet.T -> Rule.T -> Rule.Graph.T  
-      -> (Rule.T * match Seq.seq)
+  (* Find all matches of a rule's LHS in a subgraph *)
+  val rule_matches_within : V.NSet.T     (* subgraph to match against *)
+                         -> Rule.T       (* rule *)
+                         -> Rule.Graph.T (* graph to match against *)
+                         -> (Rule.T      (* renamed rule (USE THIS FOR REWRITING) *)
+                             * match Seq.seq); (* a lazy list of matches *)
 
   (* a couple of helpful fns because match is opaque *)
-  val print_match : match -> unit
-  val pretty_match : match -> Pretty.T
+  val print_match : match -> unit;
+  val pretty_match : match -> Pretty.T;
 end;
 
 (* *)

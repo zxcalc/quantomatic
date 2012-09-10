@@ -22,16 +22,18 @@ signature GRAPH_SUBST
   sharing type match = Sharing.match;
   
   (* rewriting pattern graph *)
-  val do_rewrite : graph (* old graph *)
-                   -> graph (* lhs *)
+  val do_rewrite : graph (* old graph [IGNORED] *)
+                   -> graph (* lhs [IGNORED] *)
                    -> match (* match of lhs (not inst) *)
-                   -> graph (* replace with this rhs (not inst yet) *)
+                   -> graph (* replace with this rhs (not inst yet, but with
+                               same boundary names as match pattern) *)
                    -> graph (* new, rewritten graph *)
 
-  val rewrite : graph (* old graph *)
-               -> graph (* lhs (not inst) *)
+  val rewrite : graph (* old graph [IGNORED] *)
+               -> graph (* lhs (not inst) [IGNORED] *)
                -> match (* match of lhs *)
-               -> graph (* replace with rhs (not yet inst) *)
+               -> graph (* replace with this rhs (not inst yet, but with
+                           same boundary names as match pattern) *)
                -> (graph*graph) (* new rhs, as it is named/expanded in result graph *)
                   * graph (* new, rewritten graph *)
 
