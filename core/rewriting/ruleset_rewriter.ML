@@ -76,6 +76,16 @@ sig
                          -> (Rule.T      (* renamed rule (USE THIS FOR REWRITING) *)
                              * match Seq.seq); (* a lazy list of matches *)
 
+  (* Apply a rewrite at a match.
+   *
+   * The rule's LHS must be EXACTLY what was used in matching
+   * (so if you used rule_matches or similar, it should be
+   * the renamed rule that is returned).
+   *
+   * The returned rule and graph will be minimal string graphs.
+   *)
+  val rewrite : Rule.T -> match -> (Rule.T * Rule.Graph.T);
+
   (* a couple of helpful fns because match is opaque *)
   val print_match : match -> unit;
   val pretty_match : match -> Pretty.T;
@@ -152,6 +162,15 @@ struct
   fun instantiate_rule m r = 
       Rule.mk (MatchState.get_pat m, 
                MatchState.replay_pat_bbox_ops m (Rule.get_rhs r));
+
+  fun rewrite rule m = let
+    (* NB: GraphSubst.rewrite ignores its first two args *)
+    val rw = GraphSubst.rewrite G.empty G.empty
+    val ((lhs',rhs'),g') = rw m (Rule.get_rhs rule)
+  in
+    (Rule.mk (G.minimise lhs',G.minimise rhs'),
+     G.minimise g')
+  end
   
   (* apply rules to whole graph *)
   (* IMPROVE: provide a single name-space for all rules, and thus avoid 
@@ -167,13 +186,11 @@ struct
           val _ = log_rule 2 ("Trying rule "^rulename) rule
           val (r,matches) = matcher rule g
           val _ = log_rule 3 "Rule instantiated as" r
-          val rw = GraphSubst.rewrite g (Rule.get_lhs r)
           fun apply_rw m = let
             val _ = Log.log 1 ("Applying rule "^rulename)
-            val ((lhs,rhs),g) = rw m (Rule.get_rhs r)
-            val rule = Rule.mk (G.minimise lhs,G.minimise rhs)
+            val (rule,g) = rewrite r m
           in
-            ((n,rule),(G.minimise g))
+            ((n,rule),g)
           end
         in
           Seq.append (Seq.map apply_rw matches)
