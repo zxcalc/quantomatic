@@ -86,6 +86,21 @@ sig
    *)
   val rewrite : Rule.T -> match -> (Rule.T * Rule.Graph.T);
 
+  (* Find all ways of rewriting a graph with a single rule *)
+  val rule_rewrites : Rule.T       (* rule *)
+                   -> Rule.Graph.T (* graph to match against *)
+                   -> (Rule.T * Rule.Graph.T) Seq.seq;
+                      (* a lazy list of rewritten graphs, with instantiated
+                       * rules *)
+  
+  (* Find all ways of rewriting a subgraph with a single rule *)
+  val rule_rewrites_within : V.NSet.T     (* subgraph to match against *)
+                          -> Rule.T       (* rule *)
+                          -> Rule.Graph.T (* graph to match against *)
+                          -> (Rule.T * Rule.Graph.T) Seq.seq;
+                             (* a lazy list of rewritten graphs, with
+                              * instantiated rules *)
+
   (* a couple of helpful fns because match is opaque *)
   val print_match : match -> unit;
   val pretty_match : match -> Pretty.T;
@@ -168,6 +183,20 @@ struct
   in
     (Rule.mk (G.minimise lhs',G.minimise rhs'),
      G.minimise g')
+  end
+
+  fun rule_rewrites r g = let
+    val (r',mseq) = rule_matches r g
+    val rw = rewrite r'
+  in
+    Seq.map rw mseq
+  end
+
+  fun rule_rewrites_within vs r g = let
+    val (r',mseq) = rule_matches_within vs r g
+    val rw = rewrite r'
+  in
+    Seq.map rw mseq
   end
   
   (* apply rules to whole graph *)
