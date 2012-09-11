@@ -164,9 +164,7 @@ struct
                MatchState.replay_pat_bbox_ops m (Rule.get_rhs r));
 
   fun rewrite rule m = let
-    (* NB: GraphSubst.rewrite ignores its first two args *)
-    val rw = GraphSubst.rewrite G.empty G.empty
-    val ((lhs',rhs'),g') = rw m (Rule.get_rhs rule)
+    val ((lhs',rhs'),g') = GraphSubst.rewrite m (Rule.get_rhs rule)
   in
     (Rule.mk (G.minimise lhs',G.minimise rhs'),
      G.minimise g')

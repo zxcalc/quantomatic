@@ -81,14 +81,10 @@ val _ = Testing.test "rule3: [g1,g2,g3,g4] = subst(isom_lhs, isom_lhs)" (fn () =
   val _ = RulesetRewriter.print_match m1;
   val inst_isom_rule = RulesetRewriter.instantiate_rule m1 r';
   val _ = Rule.print inst_isom_rule;
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m1
-                                (Rule.get_rhs r');
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m2
-                                (Rule.get_rhs r');
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m3
-                                (Rule.get_rhs r');
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m4
-                                (Rule.get_rhs r');
+  val _ = RulesetRewriter.rewrite r' m1;
+  val _ = RulesetRewriter.rewrite r' m2;
+  val _ = RulesetRewriter.rewrite r' m3;
+  val _ = RulesetRewriter.rewrite r' m4;
   in writeln "success" end) ();
 
 val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
@@ -99,14 +95,10 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
   val _ = RulesetRewriter.print_match m1;
   val inst_isom_rule = RulesetRewriter.instantiate_rule m1 r';
   val _ = Rule.print inst_isom_rule;
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m1
-                                (Rule.get_rhs r');
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m2
-                                (Rule.get_rhs r');
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m3
-                                (Rule.get_rhs r');
-  val _ = GraphSubst.do_rewrite g (Rule.get_lhs r') m4
-                                (Rule.get_rhs r');
+  val _ = RulesetRewriter.rewrite r' m1;
+  val _ = RulesetRewriter.rewrite r' m2;
+  val _ = RulesetRewriter.rewrite r' m3;
+  val _ = RulesetRewriter.rewrite r' m4;
   in writeln "success" end) ();  
   
 
@@ -123,9 +115,9 @@ val _ = Testing.test "rule4: rewriting bialgebra (self-matches)" (fn () => let
   val (r', m1) = list_of_rule_matches x_abelian1_rule g;
   val _ = Rule.print r';
   val _ = RulesetRewriter.print_match (hd m1);
-  val g = GraphSubst.do_rewrite g (Rule.get_lhs r') (hd m1) (Rule.get_rhs r');
+  val (_,g) = RulesetRewriter.rewrite r' (hd m1);
   val (r', m1) = list_of_rule_matches x_abelian1_rule g;
-  val g = GraphSubst.do_rewrite g (Rule.get_lhs r') (hd m1) (Rule.get_rhs r');
+  val (_,g) = RulesetRewriter.rewrite r' (hd m1);
   val _ = G.print g;
 
   in writeln "success" end) ();  

@@ -22,20 +22,16 @@ signature GRAPH_SUBST
   sharing type match = Sharing.match;
   
   (* rewriting pattern graph *)
-  val do_rewrite : graph (* old graph [IGNORED] *)
-                   -> graph (* lhs [IGNORED] *)
-                   -> match (* match of lhs (not inst) *)
-                   -> graph (* replace with this rhs (not inst yet, but with
-                               same boundary names as match pattern) *)
-                   -> graph (* new, rewritten graph *)
+  val do_rewrite : match (* match of lhs (not inst) *)
+                -> graph (* replace with this rhs (not inst yet, but with
+                            same boundary names as match pattern) *)
+                -> graph (* new, rewritten graph *)
 
-  val rewrite : graph (* old graph [IGNORED] *)
-               -> graph (* lhs (not inst) [IGNORED] *)
-               -> match (* match of lhs *)
-               -> graph (* replace with this rhs (not inst yet, but with
-                           same boundary names as match pattern) *)
-               -> (graph*graph) (* new rhs, as it is named/expanded in result graph *)
-                  * graph (* new, rewritten graph *)
+  val rewrite : match (* match of lhs *)
+             -> graph (* replace with this rhs (not inst yet, but with
+                         same boundary names as match pattern) *)
+             -> (graph*graph) (* new rhs, as it is named/expanded in result graph *)
+                * graph (* new, rewritten graph *)
 
 end;
 
@@ -67,7 +63,7 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
      allows lhs computation to be performed just once, then many rhs'
      to be given.
   *)
-  fun rewrite _ _ m =
+  fun rewrite m =
     let
       val g = MatchState.get_full_tgt m
       val pat = MatchState.get_pat m
@@ -131,7 +127,7 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
           end)
       end;
 
-  fun do_rewrite g lhs m = snd o (rewrite g lhs m);
+  val do_rewrite = snd oo rewrite;
 
 end;
 
@@ -151,14 +147,9 @@ functor BangGraphSubst(MatchState : BANG_GRAPH_MATCH_STATE)
 
   structure Log = OGS.Log;
 
-  fun rewrite g lhs m = let
-    val do_rewrite = OGS.rewrite g lhs m
-  in
-    (fn rhs => rhs |> MatchState.replay_pat_bbox_ops m
-                   |> do_rewrite)
-  end
+  fun rewrite m = (OGS.rewrite m) o (MatchState.replay_pat_bbox_ops m)
 
-  fun do_rewrite g lhs m = snd o (rewrite g lhs m);
+  val do_rewrite = snd oo rewrite;
 
 end;
 
