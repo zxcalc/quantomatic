@@ -53,6 +53,14 @@ sig
       -> Rule.Graph.T (* graph to look for matches of rules in *)
       -> ((R.name * Rule.T) * Rule.Graph.T) Seq.seq;
          (* instantiated rule and new graph *)
+
+
+  (* Low-level functions
+   *
+   * FIXME: these are a bit out of place here, as they don't
+   * use Ruleset.T, but just act directly with rules.  However,
+   * Rule doesn't know about matches.
+   *)
  
   (* Performs the !-box operations and data substitutions
    * required by a matching.
