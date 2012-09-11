@@ -9,7 +9,6 @@ structure EComponentData = EmptyElementComponentData
 );
 structure SUBSTR_LINRAT_Theory : GRAPHICAL_THEORY = DB_SUBSTR_LINRAT_Theory;
 
-structure SUBSTR_LINRAT_Controller = Controller(SUBSTR_LINRAT_Theory);
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* terms used within the SUBSTR_LINRAT theory. *)

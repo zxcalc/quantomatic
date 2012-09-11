@@ -450,7 +450,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("", "Print out the list of available theories",
       (fn [] => Commands.DummyRequest {
                   response = Commands.StringListResponse {
-                    data = ControllerRegistry.get_theories()
+                    data = ControllerRegistry.get_theories
+                            ControllerRegistry.default
                   }
                 }
         | _  => bad_args_req)))
