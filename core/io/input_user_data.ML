@@ -1,4 +1,3 @@
-(* FIXME: structure used is a bit squanky and ineffeccient. *)
 functor InputUIDataXML(
   structure UIData : USER_DATA
 )  : INPUT_XML

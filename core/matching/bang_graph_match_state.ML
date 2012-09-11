@@ -176,7 +176,6 @@ functor BangGraphMatchState(
   val get_warnings = get_warnings_of_bdata o OGMS.get_data;
   val add_warning = OGMS.update_data o add_warning_of_bdata;
 
-  (* FIXME: make more efficient? *)
   fun schedule_concrete new_vs new_es ms = let
     val pat = get_pat ms
 

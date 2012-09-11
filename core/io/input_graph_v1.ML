@@ -2,7 +2,6 @@
 
 
 (* XMl Parsers for BANG_GRAPH, VERTEX, and EDGE *)
-(* FIXME: structure used is a bit squanky and ineffeccient. *)
 functor InputGraphXML_v1(
   structure Graph : BANG_GRAPH
         and InputVertexData : INPUT_XML 
