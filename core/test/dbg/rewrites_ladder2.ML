@@ -41,11 +41,11 @@ exception bug_exp of RuleName.name * Rule.T;
       RuleName.NSet.fold 
       (fn n => fn ms =>
           let val (r,matches) = matcher (Ruleset.get_rule rset n) g 
+              val rw = RulesetRewriter.rewrite r
           in 
             ((map 
               (fn m => 
-               ((n,RulesetRewriter.instantiate_rule m r),
-                GraphSubst.rewrite g (Rule.get_lhs r) m (Rule.get_rhs r)))
+               ((n,RulesetRewriter.instantiate_rule m r),rw m))
               (Seq.list_of matches))
               handle _ => raise bug_exp (n,r))
             @ ms
