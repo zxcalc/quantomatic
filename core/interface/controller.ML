@@ -270,29 +270,6 @@ struct
 end;
 
 
-signature CONTROLLER_REGISTRY
-= sig
-  val register_eval_func : string -> (Commands.request -> Commands.response) -> unit;
-  val get_eval_func : string -> (Commands.request -> Commands.response) option;
-  val get_theories: unit -> string list;
-end;
-
-structure ControllerRegistry : CONTROLLER_REGISTRY
-= struct
-  val eval_funcs = Unsynchronized.ref Symtab.empty;
-
-  fun register_eval_func theory_name func =
-        eval_funcs := Symtab.update_new (theory_name,func) (!eval_funcs)
-        handle Symtab.DUP _ => 
-          raise ERROR ("Cannot register theory: '" ^ theory_name 
-            ^ "'; this theory is already registered.");
-
-  fun get_eval_func name = Symtab.lookup (!eval_funcs) name
-
-  fun get_theories () = Symtab.keys (!eval_funcs)
-end;
-
-
 signature CONTROLLER =
 sig
   val serviceRequest : Commands.request -> Commands.response;
@@ -1264,8 +1241,6 @@ fun hilb ([format], graph) =
                 }
  
            );
-
-  val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest;
 end;
 
 structure DummyController : CONTROLLER =

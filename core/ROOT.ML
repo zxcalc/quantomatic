@@ -160,18 +160,6 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
 
-(* Overall controller for theories *)
-PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
-PolyML.Project.make "interface/controller.ML"; (* commands *)
-
-(* interface protocol/console *)
-PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
-PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
-PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
-PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
-PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
-PolyML.Project.make "interface/run.ML";
-
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
 (* These depend on the red-green theory for now *)
@@ -220,6 +208,19 @@ PolyML.Project.make "theories/isaplanner_rtechn/vertex.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
+
+(* Overall controller for theories *)
+PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+PolyML.Project.make "interface/controller.ML"; (* commands *)
+PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
+
+(* interface protocol/console *)
+PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
+PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
+PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
+PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
+PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
+PolyML.Project.make "interface/run.ML";
 
 (* Testing *)
 Testing.make_test "io/test/load_ruleset-test.ML";

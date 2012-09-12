@@ -4,4 +4,3 @@ structure Str_Theory = GraphicalTheory(
   structure EComponentData = EmptyElementComponentData
 );
 
-structure Str_Controller = Controller(Str_Theory);

@@ -161,10 +161,10 @@
 
 	<!-- View menu commands -->
 
-	<action id="refresh-all-graphs-command"
-          name="Refresh all graphs"
+	<action id="refresh-graph-command"
+          name="Refresh graph"
           mnemonic="R"
-          desc="Refresh all open graphs"/>
+          desc="Reload graph from core"/>
 
 	<action id="relayout-graph-command"
           name="Re-layout graph"
@@ -349,7 +349,7 @@
 		</action-list>
 
 		<action-list id="view-menu" name="View" mnemonic="V">
-			<action idref="refresh-all-graphs-command" />
+			<action idref="refresh-graph-command" />
             <action idref="relayout-graph-command" />
 			<empty/>
 			<action idref="internal-graph-names-command" />
