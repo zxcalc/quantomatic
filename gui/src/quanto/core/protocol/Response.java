@@ -10,7 +10,7 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alex
  */
-public class Response {
+class Response {
     public enum MessageType {
         Error,
         Ok,

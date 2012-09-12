@@ -33,13 +33,17 @@ public class ProtocolManager {
     }
 
     public void startCore() throws CoreException {
+		startCore(quantoCoreExecutable);
+    }
+
+    public void startCore(String executable) throws CoreException {
         try {
-            ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable, "--protocol");
+            ProcessBuilder pb = new ProcessBuilder(executable, "--protocol");
 
             pb.redirectErrorStream(false);
-            logger.log(Level.FINEST, "Starting {0}...", quantoCoreExecutable);
+            logger.log(Level.FINEST, "Starting {0}...", executable);
             backend = pb.start();
-            logger.log(Level.FINEST, "{0} started successfully", quantoCoreExecutable);
+            logger.log(Level.FINEST, "{0} started successfully", executable);
 
             new StreamRedirector(backend.getErrorStream(), System.err).start();
 
@@ -47,11 +51,11 @@ public class ProtocolManager {
             writer = new RequestWriter(backend.getOutputStream());
         } catch (IOException e) {
             logger.log(Level.SEVERE,
-                    "Could not execute \"" + quantoCoreExecutable + "\": "
+                    "Could not execute \"" + executable + "\": "
                     + e.getMessage(),
                     e);
             throw new CoreExecutionException(String.format(
-                    "Could not execute \"%1$\": %2$", quantoCoreExecutable,
+                    "Could not execute \"%1$\": %2$", executable,
                     e.getMessage()), e);
         }
 

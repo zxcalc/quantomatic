@@ -16,7 +16,7 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alex
  */
-public class ProtocolReader {
+class ProtocolReader {
     private static final char ESC = '\u001b';
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
