@@ -1415,6 +1415,16 @@ public class InteractiveGraphView
 				}
 			}
 		});
+		actionMap.put(CommandManager.Command.Refresh.toString(), new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				try {
+					core.updateGraph(getGraph());
+				} catch (CoreException ex) {
+					coreErrorDialog("Could not refresh graph", ex);
+				}
+			}
+		});
 
 		/*
 		 * Add dynamically commands corresponding allowing to add registered vertices
