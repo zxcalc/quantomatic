@@ -1,6 +1,6 @@
 package quanto.core.protocol.userdata;
 
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 import quanto.core.protocol.userdata.dataserialization.StringDataSerializer;
 
 /**
@@ -12,7 +12,7 @@ public class CopyOfGraphUserDataSerializer extends GraphUserDataSerializer<Strin
     private static String suffix = "copy_of";
     private static StringDataSerializer serializer = new StringDataSerializer();
 
-    public CopyOfGraphUserDataSerializer(ProtocolManager talker) {
+    public CopyOfGraphUserDataSerializer(CoreTalker talker) {
         super(talker, serializer, suffix);
     }
 }

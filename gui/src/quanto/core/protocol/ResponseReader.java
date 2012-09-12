@@ -16,15 +16,24 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alex
  */
-class ProtocolReader {
+class ResponseReader {
     private static final char ESC = '\u001b';
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
     private LoggingInputStream input;
     private String version;
     private StringBuilder lastMessage = new StringBuilder();
+    private String lastInvalidOutput;
 
-    public ProtocolReader(InputStream input) {
+    public String getLastInvalidOutput() {
+        return lastInvalidOutput;
+    }
+
+	public String getLastMessage() {
+		return lastMessage.toString();
+	}
+
+    public ResponseReader(InputStream input) {
         this.input = new LoggingInputStream(
                 new BufferedInputStream(input), "quanto.core.protocol.stream");
     }
@@ -245,28 +254,25 @@ class ProtocolReader {
         }
     }
 
-    private void readToEndOfStream() {
+    private void readAvailableInvalidData() throws IOException {
 		if (isClosed()) {
 			return;
 		}
-        try {
-            byte[] b = new byte[1024];
-            int count = 0;
-            int avail = input.available();
-            while (avail > 0) {
-                if (avail > b.length)
-                    avail = b.length;
-                count = input.read(b, 0, avail);
-                if (count != -1 && logger.isLoggable(Level.INFO)) {
-                    String strVal = new String(b, 0, count);
-                    logger.log(Level.INFO, "Discarding data: \"{0}\"",
-                            strVal.replace('\u001b', '\u00a4'));
-                    lastMessage.append(strVal);
-                }
-                avail = input.available();
-            }
-        } catch (IOException ex) {
-        }
+		byte[] b = new byte[1024];
+		int count = 0;
+		int avail = input.available();
+		while (avail > 0) {
+			if (avail > b.length)
+				avail = b.length;
+			count = read(b, 0, avail);
+			if (count != -1 && logger.isLoggable(Level.INFO)) {
+				String strVal = new String(b, 0, count);
+				logger.log(Level.INFO, "Discarding data: \"{0}\"",
+						strVal.replace('\u001b', '\u00a4'));
+				lastMessage.append(strVal);
+			}
+			avail = input.available();
+		}
         lastInvalidOutput = lastMessage.toString();
     }
 	
@@ -435,18 +441,12 @@ class ProtocolReader {
             return resp;
         } catch (IOException ex) {
             input.writeLog(Level.SEVERE, "Received partial message");
-            readToEndOfStream();
+            readAvailableInvalidData();
             throw ex;
         } catch (ProtocolException ex) {
             input.writeLog(Level.SEVERE, "Received invalid message");
-            readToEndOfStream();
+            readAvailableInvalidData();
             throw ex;
         }
-    }
-    
-    private String lastInvalidOutput;
-
-    public String getLastInvalidOutput() {
-        return lastInvalidOutput;
     }
 }

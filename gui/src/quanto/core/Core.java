@@ -18,7 +18,7 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 import quanto.core.data.*;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 import quanto.core.xml.EdgeFragmentHandler.EdgeData;
 import quanto.core.xml.*;
 
@@ -31,7 +31,7 @@ public class Core {
 
 	private final static Logger logger = Logger.getLogger("quanto.core");
 	EventListenerList listenerList = new EventListenerList();
-	private ProtocolManager talker;
+	private CoreTalker talker;
 	private Theory activeTheory;
 	private Ruleset ruleset;
 
@@ -56,14 +56,13 @@ public class Core {
 		}
 	}
 
-	public Core() throws CoreException {
-		this.talker = new ProtocolManager();
-		talker.startCore();
+	public Core(CoreTalker talker) throws CoreException {
+		this.talker = talker;
 		this.ruleset = new Ruleset(this);
 	}
 
-	public Core(Theory theory) throws CoreException {
-		this();
+	public Core(CoreTalker talker, Theory theory) throws CoreException {
+		this(talker);
 		talker.changeTheory(theory.getCoreName());
 		this.activeTheory = theory;
 	}
@@ -132,7 +131,7 @@ public class Core {
 		return CollectionUtils.collect(c, namer);
 	}
 
-	public ProtocolManager getTalker() {
+	public CoreTalker getTalker() {
 		return talker;
 	}
 
@@ -172,19 +171,19 @@ public class Core {
 
 	public String hilbertSpaceRepresentation(CoreGraph graph,
 			RepresentationType format) throws CoreException {
-		ProtocolManager.GraphExportFormat exportFormat;
+		CoreTalker.GraphExportFormat exportFormat;
 		switch (format) {
 			case Plain:
-				exportFormat = ProtocolManager.GraphExportFormat.HilbertTerm;
+				exportFormat = CoreTalker.GraphExportFormat.HilbertTerm;
 				break;
 			case Latex:
-				exportFormat = ProtocolManager.GraphExportFormat.Tikz;
+				exportFormat = CoreTalker.GraphExportFormat.Tikz;
 				break;
 			case Mathematica:
-				exportFormat = ProtocolManager.GraphExportFormat.Mathematica;
+				exportFormat = CoreTalker.GraphExportFormat.Mathematica;
 				break;
 			case Matlab:
-				exportFormat = ProtocolManager.GraphExportFormat.Matlab;
+				exportFormat = CoreTalker.GraphExportFormat.Matlab;
 				break;
 			default:
 				throw new IllegalArgumentException("Invalid format");

@@ -17,7 +17,8 @@ import javax.swing.UIManager;
 import org.xml.sax.SAXException;
 import quanto.core.*;
 import quanto.core.data.CoreGraph;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreProcess;
+import quanto.core.protocol.CoreTalker;
 
 /**
  * Singleton class 
@@ -45,6 +46,7 @@ public class QuantoApp {
 	private static QuantoApp theApp = null;
 	public static boolean useExperimentalLayout = false;
 	private final Preferences globalPrefs;
+	private final CoreProcess coreProcess;
 	private final Core core;
 	private JFileChooser[] fileChooser = {null, null, null};
 	private InteractiveViewManager viewManager;
@@ -244,7 +246,7 @@ public class QuantoApp {
 				logger.log(Level.FINER, "Invoked as OS X application ({0})", appName);
 				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram =
 						appName + "/Contents/MacOS/dot_static";
-				ProtocolManager.quantoCoreExecutable =
+				CoreProcess.quantoCoreExecutable =
 						appName + "/Contents/MacOS/quanto-core-app";
 			} else if (arg.equals("--mathematica-mode")) {
 				mathematicaMode = true;
@@ -254,7 +256,7 @@ public class QuantoApp {
 		logger.log(Level.FINE, "Using dot executable: {0}",
 				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram);
 		logger.log(Level.FINE, "Using core executable: {0}",
-				ProtocolManager.quantoCoreExecutable);
+				CoreProcess.quantoCoreExecutable);
 
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -328,7 +330,9 @@ public class QuantoApp {
 	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 
-		core = new Core();
+		coreProcess = new CoreProcess();
+		coreProcess.startCore();
+		core = new Core(coreProcess.getTalker());
 		viewManager = new InteractiveViewManager();
 
 		File theoryDir = null;
