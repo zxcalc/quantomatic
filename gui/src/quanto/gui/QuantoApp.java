@@ -18,7 +18,6 @@ import org.xml.sax.SAXException;
 import quanto.core.*;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.CoreProcess;
-import quanto.core.protocol.CoreTalker;
 
 /**
  * Singleton class 
@@ -43,7 +42,6 @@ public class QuantoApp {
 	public static final int COMMAND_MASK =
 			isMac ? java.awt.event.InputEvent.META_DOWN_MASK
 			: java.awt.event.InputEvent.CTRL_DOWN_MASK;
-	private static QuantoApp theApp = null;
 	public static boolean useExperimentalLayout = false;
 	private final Preferences globalPrefs;
 	private final CoreProcess coreProcess;
@@ -156,27 +154,6 @@ public class QuantoApp {
 	public static final int DIR_RULESET = 1;
 	public static final int DIR_THEORY = 2;
 
-	public static QuantoApp getInstance() {
-		if (theApp == null) {
-			try {
-				theApp = new QuantoApp();
-			} catch (CoreException ex) {
-				// FATAL!!!
-				logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
-				JOptionPane.showMessageDialog(null,
-						ex.getMessage(),
-						"Could not start core",
-						JOptionPane.ERROR_MESSAGE);
-				System.exit(1);
-			}
-		}
-		return theApp;
-	}
-
-	public static boolean hasInstance() {
-		return !(theApp == null);
-	}
-
 	/**
 	 * main entry point for the GUI application
 	 * @param args
@@ -281,11 +258,19 @@ public class QuantoApp {
 					"Quanto");
 		}
 
-		QuantoApp app = getInstance();
-
-		app.newGraph(true);
-
-		logger.log(Level.FINER, "Finished initialisation");
+		try {
+			QuantoApp app = new QuantoApp();
+			app.newGraph(true);
+			logger.log(Level.FINER, "Finished initialisation");
+		} catch (CoreException ex) {
+			// FATAL!!!
+			logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
+			JOptionPane.showMessageDialog(null,
+					ex.getMessage(),
+					"Could not start core",
+					JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
+		}
 	}
 
 	public boolean shutdown() {
