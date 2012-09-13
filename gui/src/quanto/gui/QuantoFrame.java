@@ -462,7 +462,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	 * Read a graph from a file and send it to a fresh InteractiveGraphView.
 	 */
 	public void openGraph() {
-		File f = app.openFile(this);
+		File f = InteractiveGraphView.chooseGraphFile(this);
 		try {
 			if (f != null) {
 				InteractiveView view = app.openGraph(f);

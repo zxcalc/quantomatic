@@ -184,6 +184,9 @@ public class QuantoApp {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		/*
+		 * Setup logging
+		 */
 		if (LOG_PROTOCOL) {
 			// protocol stream
 			Logger protocolLogger = Logger.getLogger("quanto.core.protocol.stream");
@@ -223,6 +226,9 @@ public class QuantoApp {
 			ql.setLevel(Level.ALL);
 		}
 
+		/*
+		 * Find external executables
+		 */
 		logger.log(Level.FINER, "Starting quantomatic");
 		boolean mathematicaMode = false;
 		for (String arg : args) {
@@ -258,12 +264,18 @@ public class QuantoApp {
 		logger.log(Level.FINE, "Using core executable: {0}",
 				CoreProcess.quantoCoreExecutable);
 
+		/*
+		 * Try to blend into the system we're running on
+		 */
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Could not set look-and-feel", e);
 		}
 
+		/*
+		 * Mac magic
+		 */
 		if (QuantoApp.isMac && !mathematicaMode) {
 			//System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty(
@@ -329,6 +341,7 @@ public class QuantoApp {
 
 	private QuantoApp() throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
+		InteractiveGraphView.setPreferencesNode(globalPrefs.node("graphs"));
 
 		coreProcess = new CoreProcess();
 		coreProcess.startCore();

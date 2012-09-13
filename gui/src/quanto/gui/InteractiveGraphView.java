@@ -54,6 +54,9 @@ import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import java.util.prefs.Preferences;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.core.protocol.userdata.CopyOfGraphUserDataSerializer;
@@ -69,6 +72,8 @@ public class InteractiveGraphView
 
 	private static final long serialVersionUID = 7196565776978339937L;
 	private static final Logger logger = Logger.getLogger("quanto.gui.InteractiveGraphView");
+	private static Preferences prefsNode;
+	
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
 	private GraphVisualizationViewer viewer;
 	private Core core;
@@ -83,8 +88,19 @@ public class InteractiveGraphView
 	private QuantoForceLayout forceLayout;
 	private QuantoDotLayout initLayout;
 
+	private JFileChooser graphSaveFileChooser;
+	private JFileChooser pdfSaveFileChooser;
+
 	public boolean viewHasParent() {
 		return this.getParent() != null;
+	}
+
+	public static void setPreferencesNode(Preferences prefsNode) {
+		InteractiveGraphView.prefsNode = prefsNode;
+	}
+
+	public static Preferences getPreferencesNode() {
+		return prefsNode;
 	}
 
 	private class QVertexLabeler implements VertexLabelRenderer {
@@ -1038,8 +1054,41 @@ public class InteractiveGraphView
 	}
 
 	public void saveGraphAs() {
-		File f = QuantoApp.getInstance().saveFile(this);
-		if (f != null) {
+		if (graphSaveFileChooser == null) {
+			graphSaveFileChooser = new JFileChooser();
+			graphSaveFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+			FileFilter filter = new FileNameExtensionFilter("Quanto graph",
+					"graph", "qgr");
+			graphSaveFileChooser.addChoosableFileFilter(filter);
+			graphSaveFileChooser.setFileFilter(filter);
+			if (prefsNode != null) {
+				String path = prefsNode.get("lastGraphDir", null);
+				if (path != null) {
+					graphSaveFileChooser.setCurrentDirectory(new File(path));
+				}
+			}
+		}
+		String fileName = getGraph().getFileName();
+		if (fileName != null && !fileName.isEmpty()) {
+			graphSaveFileChooser.setSelectedFile(new File(fileName));
+		}
+		
+		int retVal = graphSaveFileChooser.showDialog(this, "Save Graph");
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			File f = graphSaveFileChooser.getSelectedFile();
+			if (f.exists()) {
+				int overwriteAnswer = JOptionPane.showConfirmDialog(
+						this,
+						"Are you sure you want to overwrite \"" + f.getName() + "\"?",
+						"Overwrite file?",
+						JOptionPane.YES_NO_OPTION);
+				if (overwriteAnswer != JOptionPane.YES_OPTION) {
+					return;
+				}
+			}
+			if (f.getParent() != null && prefsNode != null) {
+				prefsNode.put("lastGraphDir", f.getParent());
+			}
 			try {
 				core.saveGraph(getGraph(), f);
 				core.renameGraph(getGraph(), f.getName());
@@ -1068,6 +1117,91 @@ public class InteractiveGraphView
 			}
 		} else {
 			saveGraphAs();
+		}
+	}
+	
+	public void exportToPdf() {
+		try {
+			if (pdfSaveFileChooser == null) {
+				pdfSaveFileChooser = new JFileChooser();
+				pdfSaveFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+				FileFilter filter = new FileNameExtensionFilter("PDF Document", "pdf");
+				pdfSaveFileChooser.addChoosableFileFilter(filter);
+				pdfSaveFileChooser.setFileFilter(filter);
+				String fileName = getGraph().getFileName();
+				if (fileName != null && !fileName.isEmpty()) {
+					pdfSaveFileChooser.setCurrentDirectory(new File(fileName).getParentFile());
+				} else if (prefsNode != null) {
+					String path = prefsNode.get("lastPdfDir", null);
+					if (path != null) {
+						pdfSaveFileChooser.setCurrentDirectory(new File(path));
+					}
+				}
+			}
+			int retVal = graphSaveFileChooser.showDialog(this, "Export to PDF");
+			if (retVal == JFileChooser.APPROVE_OPTION) {
+				File f = graphSaveFileChooser.getSelectedFile();
+				if (f.exists()) {
+					int overwriteAnswer = JOptionPane.showConfirmDialog(
+							this,
+							"Are you sure you want to overwrite \"" + f.getName() + "\"?",
+							"Overwrite file?",
+							JOptionPane.YES_NO_OPTION);
+					if (overwriteAnswer != JOptionPane.YES_OPTION) {
+						return;
+					}
+				}
+				if (f.getParent() != null && prefsNode != null) {
+					prefsNode.put("lastPdfDir", f.getParent());
+				}
+				OutputStream file = new FileOutputStream(f);
+				PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(core.getActiveTheory(), getGraph());
+				server.renderToPdf(file);
+				file.close();
+			}
+		} catch (DocumentException ex) {
+			detailedErrorMessage("Could not generate the PDF", ex);
+		} catch (IOException ex) {
+			detailedErrorMessage("Could not save the PDF", ex);
+		}
+	}
+	
+	public static String getLastGraphDirectory() {
+		if (prefsNode != null) {
+			return prefsNode.get("lastGraphDir", null);
+		}
+		return null;
+	}
+	
+	/**
+	 * Presents the user with an "Open Graph" dialog
+	 * 
+	 * The directory will be set to the last directory that was used for
+	 * opening or saving a graph.
+	 *
+	 * @param parent
+	 * @return 
+	 */
+	public static File chooseGraphFile(Component parent) {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setDialogType(JFileChooser.OPEN_DIALOG);
+		FileFilter filter = new FileNameExtensionFilter("Quanto graph",
+				"graph", "qgr");
+		chooser.addChoosableFileFilter(filter);
+		chooser.setFileFilter(filter);
+		String path = getLastGraphDirectory();
+		if (path != null) {
+			chooser.setCurrentDirectory(new File(path));
+		}
+		int retVal = chooser.showDialog(parent, "Open Graph");
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			File f = chooser.getSelectedFile();
+			if (f.getParent() != null && prefsNode != null) {
+				prefsNode.put("lastGraphDir", f.getParent());
+			}
+			return f;
+		} else {
+			return null;
 		}
 	}
 
@@ -1254,20 +1388,7 @@ public class InteractiveGraphView
 		actionMap.put(CommandManager.Command.ExportToPdf.toString(), new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				try {
-
-					File outputFile = QuantoApp.getInstance().saveFile(InteractiveGraphView.this);
-					if (outputFile != null) {
-						OutputStream file = new FileOutputStream(outputFile);
-						PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(core.getActiveTheory(), getGraph());
-						server.renderToPdf(file);
-						file.close();
-					}
-				} catch (DocumentException ex) {
-					detailedErrorMessage("Could not generate the PDF", ex);
-				} catch (IOException ex) {
-					detailedErrorMessage("Could not save the PDF", ex);
-				}
+				exportToPdf();
 			}
 		});
 		actionMap.put(CommandManager.Command.SelectMode.toString(), new ActionListener() {
