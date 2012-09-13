@@ -121,8 +121,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	// This type has to be public in order to be registered as a
 	// handler with ActionManager.  The constructor is private, however,
 	// to prevent abuse.
-	private Set<String> knownCommands;
-
 	public class Delegate {
 
 		private Delegate() {
