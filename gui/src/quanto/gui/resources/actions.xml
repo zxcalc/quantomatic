@@ -171,12 +171,6 @@
           mnemonic="L"
           desc="Refresh the current graphs"/>
 
-	<action id="internal-graph-names-command"
-	  type="toggle"
-	  name="Show internal graph names"
-	  mnemonic="S"
-	  desc="Show the graph names used internally by the backend in the window list"/>
-
 	<action id="open-in-new-window-command"
 	  type="toggle"
 	  name="Open graphs in new window"
@@ -352,7 +346,6 @@
 			<action idref="refresh-graph-command" />
             <action idref="relayout-graph-command" />
 			<empty/>
-			<action idref="internal-graph-names-command" />
 			<action idref="open-in-new-window-command" />
 		</action-list>
 

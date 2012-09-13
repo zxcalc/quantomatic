@@ -149,8 +149,6 @@ public class QuantoApp {
 	// Preferences
 	public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
 			new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
-	public static final BoolPref SHOW_INTERNAL_NAMES =
-			new BoolPref("show_internal_names", false, "Show internal graph names");
 	public static final StringPref[] LAST_OPEN_DIRS = {new StringPref("last_open_dir", null),
 		new StringPref("last_open_ruleset_dir", null),
 		new StringPref("last_open_theory_dir", null)};
