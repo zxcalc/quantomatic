@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -18,6 +20,7 @@ import org.xml.sax.SAXException;
 import quanto.core.*;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.CoreProcess;
+import quanto.core.protocol.CoreTalker;
 
 /**
  * Singleton class 
@@ -206,6 +209,9 @@ public class QuantoApp {
 		 */
 		logger.log(Level.FINER, "Starting quantomatic");
 		boolean mathematicaMode = false;
+		String coreSocket = null;
+		String coreOverride = null;
+		String dotOverride = null;
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
 				String appName = "Quantomatic.app";
@@ -225,14 +231,26 @@ public class QuantoApp {
 				}
 
 				logger.log(Level.FINER, "Invoked as OS X application ({0})", appName);
-				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram =
-						appName + "/Contents/MacOS/dot_static";
-				CoreProcess.quantoCoreExecutable =
-						appName + "/Contents/MacOS/quanto-core-app";
+				if (dotOverride != null)
+					dotOverride = appName + "/Contents/MacOS/dot_static";
+				if (coreOverride != null)
+					coreOverride = appName + "/Contents/MacOS/quanto-core-app";
 			} else if (arg.equals("--mathematica-mode")) {
 				mathematicaMode = true;
 				logger.log(Level.FINER, "Mathematica mode enabled");
+			} else if (arg.startsWith("--core=")) {
+				coreOverride = arg.substring("--core=".length());
+			} else if (arg.startsWith("--dot=")) {
+				dotOverride = arg.substring("--dot=".length());
+			} else if (arg.startsWith("--core-socket=")) {
+				coreSocket = arg.substring("--core-socket=".length());
 			}
+		}
+		if (coreOverride != null) {
+			CoreProcess.quantoCoreExecutable = coreOverride;
+		}
+		if (dotOverride != null) {
+			edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram = dotOverride;
 		}
 		logger.log(Level.FINE, "Using dot executable: {0}",
 				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram);
@@ -259,11 +277,25 @@ public class QuantoApp {
 		}
 
 		try {
-			QuantoApp app = new QuantoApp();
+			QuantoApp app;
+			if (coreSocket != null) {
+				File socket = new File(coreSocket);
+				if (!socket.exists()) {
+					logger.log(Level.SEVERE, "Core socket '{0}' does not exist", coreSocket);
+					System.exit(1);
+				}
+				CoreTalker talker = new CoreTalker();
+				talker.connect(new FileInputStream(socket), new FileOutputStream(socket));
+				app = new QuantoApp(talker);
+			} else {
+				app = new QuantoApp();
+			}
 			app.newGraph(true);
 			logger.log(Level.FINER, "Finished initialisation");
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, "Failed to connect to core: terminating", ex);
+			System.exit(1);
 		} catch (CoreException ex) {
-			// FATAL!!!
 			logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
 			JOptionPane.showMessageDialog(null,
 					ex.getMessage(),
@@ -277,6 +309,9 @@ public class QuantoApp {
 		theoryManager.saveState();
 		logger.log(Level.FINER, "Shutting down");
 		if (viewManager.closeAllViews()) {
+			if (coreProcess != null) {
+				coreProcess.killCore();
+			}
 			logger.log(Level.FINER, "Exiting now");
 			System.exit(0);
 		}
@@ -322,13 +357,22 @@ public class QuantoApp {
 		}
 	}
 
-	private QuantoApp() throws CoreException {
+	public QuantoApp() throws CoreException {
+		this(null);
+	}
+
+	public QuantoApp(CoreTalker talker) throws CoreException {
 		globalPrefs = Preferences.userNodeForPackage(this.getClass());
 		InteractiveGraphView.setPreferencesNode(globalPrefs.node("graphs"));
 
-		coreProcess = new CoreProcess();
-		coreProcess.startCore();
-		core = new Core(coreProcess.getTalker());
+		if (talker == null) {
+			coreProcess = new CoreProcess();
+			coreProcess.startCore();
+			talker = coreProcess.getTalker();
+		} else {
+			coreProcess = null;
+		}
+		core = new Core(talker);
 		viewManager = new InteractiveViewManager();
 
 		File theoryDir = null;
