@@ -132,7 +132,7 @@ public class QuantoApp {
 		}
 	}
 
-	public static class BoolPref extends Pref<Boolean> implements ItemListener {
+	public class BoolPref extends Pref<Boolean> implements ItemListener {
 
 		protected BoolPref(String key, Boolean def) {
 			super(key, def);
@@ -143,11 +143,11 @@ public class QuantoApp {
 		}
 
 		public void itemStateChanged(ItemEvent e) {
-			QuantoApp.getInstance().setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
+			QuantoApp.this.setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
 		}
 	}
 	// Preferences
-	public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
+	public final BoolPref NEW_WINDOW_FOR_GRAPHS =
 			new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
 	public static final StringPref[] LAST_OPEN_DIRS = {new StringPref("last_open_dir", null),
 		new StringPref("last_open_ruleset_dir", null),

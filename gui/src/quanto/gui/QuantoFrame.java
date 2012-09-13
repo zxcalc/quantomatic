@@ -85,39 +85,6 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		}
 	}
 
-	/**
-	 * An action that toggles a boolean preference
-	 */
-	public enum BoolPrefAction {
-
-		OpenInNewWindow("open-in-new-window-command", QuantoApp.NEW_WINDOW_FOR_GRAPHS);
-
-		/**
-		 * Create a boolean preference action
-		 * 
-		 * @param commandValue  The action name (as in resources/actions.xml)
-		 * @param pref  The boolean preference object (as in QuantoApp)
-		 */
-		private BoolPrefAction(String actionName, BoolPref pref) {
-			this.actionName = actionName;
-			this.pref = pref;
-		}
-		private final String actionName;
-		private final BoolPref pref;
-
-		@Override
-		public String toString() {
-			return actionName;
-		}
-
-		public String actionName() {
-			return actionName;
-		}
-
-		public BoolPref getPref() {
-			return pref;
-		}
-	}
 	// This type has to be public in order to be registered as a
 	// handler with ActionManager.  The constructor is private, however,
 	// to prevent abuse.
@@ -207,14 +174,12 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 			actionManager.registerCallback(action.actionName(), this, action.methodName());
 			actionManager.setEnabled(action.actionName(), true);
 		}
-		for (BoolPrefAction action : BoolPrefAction.values()) {
-			actionManager.registerCallback(action.actionName(),
-					new BoolPrefDelegate(action.getPref()),
-					"setState");
-			actionManager.setEnabled(action.actionName(), true);
-			actionManager.setSelected(action.actionName(),
-					app.getPreference(action.getPref()));
-		}
+		actionManager.registerCallback("open-in-new-window-command",
+				new BoolPrefDelegate(app.NEW_WINDOW_FOR_GRAPHS),
+				"setState");
+			actionManager.setEnabled("open-in-new-window-command", true);
+			actionManager.setSelected("open-in-new-window-command",
+					app.getPreference(app.NEW_WINDOW_FOR_GRAPHS));
 		CommandManager commandManager = new CommandManager(actionManager);
 		InteractiveGraphView.registerKnownCommands(app.getCore(), commandManager);
 
@@ -403,7 +368,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 	}
 
 	public void openView(InteractiveView view) {
-		if (app.getPreference(QuantoApp.NEW_WINDOW_FOR_GRAPHS)) {
+		if (app.getPreference(app.NEW_WINDOW_FOR_GRAPHS)) {
 			app.openNewFrame(view);
 		} else {
 			viewPort.attachView(view);
