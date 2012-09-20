@@ -1,3 +1,12 @@
+signature OUTPUT_DOT = OUTPUT where type T = string;
+
+functor OutputSStrNameDot(N: SSTR_NAME) : OUTPUT_DOT
+= struct
+  type T = string;
+  type data = N.name;
+  fun output s = N.string_of_name s;
+end;
+
 signature DOT_STYLE =
 sig
   structure Graph : BANG_GRAPH
