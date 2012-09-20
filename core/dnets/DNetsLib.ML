@@ -10,6 +10,8 @@ sig
   val rm_duplicates : ('a * 'a -> bool) -> 'a list -> 'a list
   val rm_element : ('a * 'a -> bool) -> 'a -> 'a list -> 'a list
   val sub_x_y : ('a * 'a -> bool) -> 'a list -> 'a list -> 'a list
+  val intersect_x_y : ('a * 'a -> bool) -> 'a list -> 'a list -> 'a list
+  val compl_x_y : ('a * 'a -> bool) -> 'a list -> 'a list -> 'a list
 
 end
 
@@ -40,6 +42,12 @@ struct
     | sub_x_y f x (y::[]) = if is_contained f y x then rm_element f y x else x
     | sub_x_y f x (y::ys) = if is_contained f y x then sub_x_y f (rm_element f y x) ys else sub_x_y f x ys
 
+  fun intersect_x_y _ x [] = []
+    | intersect_x_y _ [] y = []
+    | intersect_x_y f x (y::[]) = if is_contained f y x then y::[] else []
+    | intersect_x_y f x (y::ys) = if is_contained f y x then y::(intersect_x_y f (rm_element f y x) ys) else intersect_x_y f x ys
+
+  fun compl_x_y f x y = sub_x_y f x (intersect_x_y f x y)
 
 
 end

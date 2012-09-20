@@ -24,17 +24,17 @@
   val pattern_params = {kinds = k1 :: k2 :: k3 :: [],
 
                         num_graphs = 100,
-                        num_nodes = 30,
-                        num_edges = 30,
-                        num_bbox = 0,
-                        max_num_nodes_per_bbox = 0,
-                        num_bound = 0 }
+                        num_nodes = 4,
+                        num_edges = 4,
+                        num_bbox = 3,
+                        max_num_nodes_per_bbox = 1,
+                        num_bound = 1 }
 
   val target_params = {kinds = k1 :: k2 :: k3 :: [],
 
                        num_graphs = 1,
-                       num_nodes = 50,
-                       num_edges = 50,
+                       num_nodes = 30,
+                       num_edges = 30,
                        num_bbox = 0,
                        max_num_nodes_per_bbox = 0,
                        num_bound = 0 }
@@ -385,11 +385,11 @@
     let
       val pattern_params = {kinds = k1 :: k2 :: k3 :: [],
                           num_graphs = 100,
-                          num_nodes = 10,
-                          num_edges = 10,
-                          num_bbox = 5,
+                          num_nodes = 7,
+                          num_edges = 7,
+                          num_bbox = v,
                           max_num_nodes_per_bbox = 1,
-                          num_bound = v }
+                          num_bound = 0 }
     in
       stat_test iterations pattern_params target_params i
     end
@@ -402,7 +402,7 @@
 
 
   val indexes = 0 :: 1 :: 2 :: 3 :: 4 :: 5 :: 6 :: []
-  val variables = 1 :: 2 :: 3 :: 4 :: 5 :: 6 :: 7  :: []
+  val variables = 0 :: 1 :: 2 :: 3 :: 4 :: 5 :: 6 ::[]
   val signal = iterate_simul indexes variables
 
 

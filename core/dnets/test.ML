@@ -395,7 +395,7 @@ local
   val o_m2 = L.get_output_mult lit1_2
   val _ = Testing.test "Checking literal output-mult.." assert_mult_eq (o_m1,L.mult_none,"output-mult")
   val _ = Testing.test "Checking literal output-mult.." assert_mult_eq (o_m2,L.mult_none,"output-mult")
- 
+
   val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit2_1, L.build ( (V.mk "p2_v1"), k2, L.mult_star, 0, L.mult_none, 3, L.mult_star) )
   val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit2_2, L.build ( (V.mk "p2_v2"), k2, L.mult_none, 1, L.mult_star, 0, L.mult_none) )
   val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit2_3, L.build ( (V.mk "p2_v3"), k2, L.mult_qm, 2, L.mult_star, 0, L.mult_none) )
@@ -405,7 +405,7 @@ local
   val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit2_2, L.build ( (V.mk "p2_v2"), k2, L.mult_none, 0, L.mult_star, 0, L.mult_none) )
   val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit2_3, L.build ( (V.mk "p2_v3"), k2, L.mult_qm, 0, L.mult_star, 0, L.mult_none) )
   val _ = Testing.test "Checking literal equivalence.." assert_lit_equiv (lit2_4, L.build ( (V.mk "p2_v4"), k1, L.mult_star, 0, L.mult_star, 1, L.mult_none) )
- 
+
   val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_1, L.build ( (V.mk "p4_v1"), k2, L.mult_none, 0, L.mult_none, 3, L.mult_none) )
   val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_2, L.build ( (V.mk "p4_v2"), k2, L.mult_none, 1, L.mult_none, 0, L.mult_none) )
   val _ = Testing.test "Checking literal equality.." assert_lit_eq (lit4_3, L.build ( (V.mk "p4_v3"), k1, L.mult_none, 2, L.mult_none, 0, L.mult_none) )
