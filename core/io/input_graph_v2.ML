@@ -13,8 +13,6 @@ functor InputGraphXML_v2(
   
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;
-
-  fun data_to_string _ = "[Graph]";
   
   fun input_edge_rel xml = 
       let 
@@ -109,7 +107,6 @@ struct
   open XML_Parse_Utils;
   type T = XML.tree;
   type data = ComponentDataIO.data;
-  fun data_to_string _ = "[data]"; (* FIXME: drop data_to_string? *)
   fun input xml =
       let 
         val children = get_children xml

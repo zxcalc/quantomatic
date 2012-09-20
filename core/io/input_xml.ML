@@ -7,8 +7,6 @@ structure InputStringXML : INPUT_XML where type data = string
   
   type T = XML.tree;  (* XML.tree *)
   type data = string;
-
-  val data_to_string = (fn x => x);
   
   fun input xml  =
     (let val s = get_unique_child_text xml ;
@@ -23,8 +21,6 @@ structure InputBoolXML : INPUT_XML
   type data = bool;
   exception bad_input_exp of string*string;
 
-  fun data_to_string true = "true"
-    | data_to_string false = "false";
   fun input xml = XML_Parse_Utils.get_boolean xml;
 end;
 
@@ -34,7 +30,6 @@ structure InputIntXML : INPUT_XML
   type data = int;
   exception bad_input_exp of string*string;
 
-  fun data_to_string i = Int.toString i;
   fun input xml = XML_Parse_Utils.get_int xml;
 end;
 
@@ -44,7 +39,6 @@ functor InputSStrNameXML(N : SSTR_NAME) : INPUT_XML
   type T = XML.tree;
   type data = N.name;
   exception bad_input_exp of string*string;
-  fun data_to_string s = N.dest s;
   fun input xml = N.mk (XML_Parse_Utils.get_text xml);
 end;
 
@@ -54,7 +48,6 @@ functor InputUseChildXML(In : INPUT_XML) : INPUT_XML
   type T = XML.tree;
   type data = In.data;
   exception bad_input_exp of string*string;
-  val data_to_string = In.data_to_string;
   open XML;
   fun input (Text _) = raise bad_input_exp ("Can't get unique child of text","")
     | input (Elem ((elem, attr),[child])) = ((In.input child)
@@ -82,7 +75,6 @@ functor InputListXML (
   type T = XML.tree;
   type data = Input1.data list;
   open XML_Parse_Utils;
-  fun data_to_string xs = fold (fn item => fn str => ((Input1.data_to_string item)^str)) xs "";
   fun input xml = 
       (let val () = XML_Parse_Utils.assert_tag tagname xml
            val els = filter_elems item_tagname (get_children xml)
@@ -119,7 +111,6 @@ functor InputNameBRelXML (
   type T = XML.tree;
   type data = BRel.T;
   open XML_Parse_Utils;
-  fun data_to_string _ = tagname;
   fun input xml = 
       (let val () = assert_tag tagname xml;
            val rel_els = filter_elems rel_tagname (get_children xml)
@@ -168,19 +159,18 @@ functor InputNTabXML (
   type T = XML.tree;
   type data = InputValue.data NTab.T;
   open XML_Parse_Utils;
-  fun data_to_string _ = tagname;
   fun input xml = 
       (let val () = assert_tag tagname xml
            val els = filter_elems entry_tagname (get_children xml)
        in 
          fold 
-           (fn el => 
-            let 
+           (fn el =>
+            let
               val children = get_children el
               val name = (apply_to_unique_elem InputName.input key_tagname children)
-                handle bad_input_exp (s,p) => raise bad_input_exp (s,entry_tagname^"/"^p)
+                handle InputName.bad_input_exp e => raise bad_input_exp e
               val value = (apply_to_unique_elem InputValue.input value_tagname children)
-                handle bad_input_exp (s,p) => raise bad_input_exp (s,entry_tagname^" ("^(InputName.data_to_string name)^")/"^p)
+                handle InputValue.bad_input_exp e => raise bad_input_exp e
             in NTab.ins (name, value) end)
            els
            NTab.empty 

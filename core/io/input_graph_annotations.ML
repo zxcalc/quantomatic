@@ -9,8 +9,6 @@ structure InputGraphStringTableAnnotationsXML :
   type T =  XML.tree;
   type data = Ann.T;
 
-  fun data_to_string _ = "[Annotations]";
-
   fun input_entry xml =
     let
      val _ = assert_tag "entry" xml

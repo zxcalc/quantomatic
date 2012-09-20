@@ -13,8 +13,6 @@ functor InputRulesetXML(
   type T = XML.tree;
   type data = Ruleset.T;
 
-  fun data_to_string _ = "[Ruleset]";
-
   structure InputAllRules = 
   InputNTabXML(
     val tagname = "allrules"

@@ -11,8 +11,6 @@ structure InputRulesetStringTableAnnotationsXML : INPUT_XML
   type T = XML.tree;
   type data = RA.T;
 
-  fun data_to_string _ = "[RulesetUserData]";
-
   fun input_entry xml =
     let
      val _ = assert_tag "entry" xml

@@ -10,8 +10,6 @@ functor InputRuleXML (
 
   type T = XML.tree;
   type data = Rule.T;
-
-  fun data_to_string _ = "[Rule]";
   
   fun input xml = 
       (let val children = get_children xml

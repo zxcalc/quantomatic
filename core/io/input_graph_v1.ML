@@ -15,8 +15,6 @@ functor InputGraphXML_v1(
   type T = XML.tree;  (* XML.tree *)
   type data = Graph.T;
 
-  fun data_to_string _ = "[Graph]";
-
 (* 
   val input_source = force_get_text_from "source"
   val input_target = force_get_text_from "target"
@@ -101,8 +99,6 @@ functor InputTestVertexDataXML_v1(
   type T = XML.tree;
   type data = OVData.data;
   
-  fun data_to_string _ = "[Vertex data]";
-
   fun input_rational xml = 
       let val children = get_children xml;
           val num = get_unique_child (get_unique_elem "num" children)
@@ -176,7 +172,6 @@ functor InputNoEdgeDataXML_v1(EData : UNIFIABLE_DATA) :  INPUT_XML
   open XML_Parse_Utils;
   type T = XML.tree;
   type data = EData.data;
-  fun data_to_string _ = "[Edge data]";
   val input = K EData.default_data;
 end;
 

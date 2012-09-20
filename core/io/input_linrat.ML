@@ -5,8 +5,6 @@ structure InputLinratXML : INPUT_XML where type data = LinratAngleExpr.T
   
   type T = XML.tree;  (* XML.tree *)
   type data = LinratAngleExpr.T;
-
-  val data_to_string = Pretty.string_of o LinratAngleExpr.pretty;
   
   fun input_rational xml = 
       let val children = get_children xml;
