@@ -1,12 +1,12 @@
 structure InputLinratXML : INPUT_XML where type data = LinratAngleExpr.T
 = struct
 
-  open XML_Parse_Utils; 
+  open XML_Parse_Utils;
   
-  type T = XML.tree;  (* XML.tree *)
+  type T = XML.tree;
   type data = LinratAngleExpr.T;
   
-  fun input_rational xml = 
+  fun input_rational xml =
       let val children = get_children xml;
           val num = get_unique_child (get_unique_elem "num" children)
           val denom = get_unique_child (get_unique_elem "denom" children)
@@ -17,12 +17,12 @@ structure InputLinratXML : INPUT_XML where type data = LinratAngleExpr.T
        in input_rational xml end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"constant/"^p);
   
-  fun input_coeff xml = 
+  fun input_coeff xml =
       (let val () = assert_tag "coefficient" xml
        in input_rational xml end)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"coefficient/"^p);
   
-  fun input_variable xml = 
+  fun input_variable xml =
       (let val _ = assert_tag "variable" xml
            val children = get_children xml
            val name = get_unique_child_text (get_unique_elem "name" children)
@@ -32,7 +32,7 @@ structure InputLinratXML : INPUT_XML where type data = LinratAngleExpr.T
   
   fun input xml  =
       (let val () = assert_tag "angleexpr" xml
-           val children = get_children xml 
+           val children = get_children xml
            val constant = case (lookup_unique_elem "constant" children) of
                             (NONE) => LinratAngleExpr.Coeff.zero
                           | (SOME const) => input_constant const
@@ -41,3 +41,38 @@ structure InputLinratXML : INPUT_XML where type data = LinratAngleExpr.T
       handle bad_input_exp (s,p) => raise bad_input_exp (s,"angleexpr/"^p);
 
 end;
+
+structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
+= struct
+  open JsonUtils;
+  structure C = LinratAngleExpr.Coeff;
+  type data = LinratAngleExpr.T;
+  
+  fun parse_rational obj = let
+    val num = get_int obj "num"
+    val denom = get_int obj "denom"
+  in
+    C.mk num denom
+  end
+  
+  fun get_rational_easy dflt obj prop =
+    case Json.lookup obj prop
+      of SOME (Json.Object obj') => parse_rational obj'
+       | SOME (Json.Null) => dflt
+       | NONE => dflt
+       | _ => raise bad_input_exp ("Property \""^prop^"\" was not an object","")
+  
+  fun parse_vars obj =
+    map (fn n => (X.mk n,get_rational_easy C.zero obj n)) (Json.properties obj)
+  
+  fun input (Json.Object obj) =
+        let
+          val pi = get_rational_easy C.zero obj "pi"
+          val vars = get_object_easy obj "vars"
+        in
+          LinratAngleExpr.mk pi (parse_vars vars)
+        end
+    | input _ = raise bad_input_exp ("Expected object","");
+
+end;
+

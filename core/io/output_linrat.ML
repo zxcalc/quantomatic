@@ -1,6 +1,3 @@
-(* *)
-
-(*-------------------------------------------------------*)
 structure OutputLinratXML : OUTPUT_XML where type data = LinratAngleExpr.T = 
 struct 
   type T = XML.tree;
@@ -40,5 +37,40 @@ struct
           ::((render_xml_constant_part pi)@(render_xml_variable_part tab)));
 end; (* structure *)
 
-(* vim:et:sts=2:sw=2
-*)
+structure OutputLinratJSON : OUTPUT_JSON where type data = LinratAngleExpr.T =
+struct
+  open JsonUtils;
+  type data = LinratAngleExpr.T;
+  
+  fun make_rational (num,denom) = let
+    val add_num = Json.update ("num",(Json.Int num))
+    val add_denom = Json.update ("denom",(Json.Int denom))
+    val add_all = add_denom o add_num
+  in
+    Json.Object (add_all Json.empty_obj)
+  end
+  
+  fun make_vars tab = let
+    fun add_entry (v,c) = Json.update (X.string_of_name v,make_rational c)
+  in
+    Json.Object (X.NTab.fold add_entry tab Json.empty_obj)
+  end
+  
+  fun output (pi,tab) = let
+    (* we try to minimise the output *)
+    val add_const = if LinratAngleExpr.Coeff.is_zero pi
+                    then I
+                    else Json.update ("pi",(make_rational pi))
+    val add_vars = if X.NTab.is_name_empty tab
+                   then I
+                   else Json.update ("vars",(make_vars tab))
+    (*
+    val str = Pretty.string_of (LinratAngleExpr.pretty (pi,tab))
+    val add_str = Json.update "expr" (Json.String str)
+    *)
+    val add_all = (* add_str o *) add_vars o add_const
+  in
+    Json.Object (add_all Json.empty_obj)
+  end
+end; (* structure *)
+

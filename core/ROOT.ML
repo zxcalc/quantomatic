@@ -70,10 +70,14 @@ PolyML.Project.make "io/input_generic.ML";
 PolyML.Project.make "io/output_generic.ML";
 PolyML.Project.make "io/input_xml.ML";
 PolyML.Project.make "io/output_xml.ML";
+PolyML.Project.make "io/input_json.ML";
+PolyML.Project.make "io/output_json.ML";
 PolyML.Project.make "io/input_linrat.ML";
 PolyML.Project.make "io/output_linrat.ML";
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
+
+Testing.make_test "io/test/linrat-io-test.ML";
 
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
