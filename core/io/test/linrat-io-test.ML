@@ -50,5 +50,10 @@ in
   val _ = Testing.test "LinratAngleExpr I/O: parse 3/8 pi + 2/3 \\beta"
             test_reparse (L.mk (C.mk 3 8) [(X.mk "\\beta",C.mk 2 3)])
 
+  (* NB: uses a quirk of the JSON parser (it parses JSON fragments) *)
+  val _ = Testing.test "LinratAngleExpr I/O: parse as string"
+            test_parse ("\"3/8 \\\\pi + 2/3 \\\\beta\"",
+                        L.mk (C.mk 3 8) [(X.mk "\\beta",C.mk 2 3)])
+
   val _ = Testing.assert_no_failed_tests();
 end

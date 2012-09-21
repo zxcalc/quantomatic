@@ -72,7 +72,8 @@ structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
         in
           LinratAngleExpr.mk pi (parse_vars vars)
         end
-    | input _ = raise bad_input_exp ("Expected object","");
+    | input (Json.String s) = LinratAngleExpr.parse s
+    | input _ = raise bad_input_exp ("Expected object or string","");
 
 end;
 
