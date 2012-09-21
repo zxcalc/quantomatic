@@ -86,6 +86,7 @@ PolyML.Project.make "theories/enum_data.ML";
 (* I/O for graphs *)
 PolyML.Project.make "io/graph_xml_v2_input.ML";
 PolyML.Project.make "io/graph_xml_v2_output.ML";
+PolyML.Project.make "io/graph_json.ML";
 PolyML.Project.make "io/graph_annotations_xml_input.ML";
 PolyML.Project.make "io/graph_annotations_xml_output.ML";
 

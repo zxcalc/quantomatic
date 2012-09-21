@@ -1,6 +1,6 @@
 structure InputLinratJSON : INPUT_JSON where type data = LinratAngleExpr.T
 = struct
-  open JsonUtils;
+  open JsonInputUtils;
   structure C = LinratAngleExpr.Coeff;
   type data = LinratAngleExpr.T;
   
@@ -36,7 +36,7 @@ end;
 
 structure OutputLinratJSON : OUTPUT_JSON where type data = LinratAngleExpr.T =
 struct
-  open JsonUtils;
+  open JsonOutputUtils;
   type data = LinratAngleExpr.T;
   
   fun make_rational (num,denom) = let

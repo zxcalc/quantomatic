@@ -22,7 +22,7 @@ include BASIC_OGRAPH;
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
 exception bbox_already_exists_exp of B.name * T;
 exception bbox_bad_parent_exp of B.name * B.name * T;
-exception no_such_bbox_exp of unit
+exception no_such_bbox_exp of string * B.name * T;
 
 val get_bboxes : T -> B.NSet.T
 (* Does not contain empty !-boxes (or unboxed vertices) *)
@@ -86,7 +86,7 @@ include OGRAPH;
 
 exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
 exception bbox_already_exists_exp of B.name * T;
-exception no_such_bbox_exp of unit
+exception no_such_bbox_exp of string * B.name * T;
 exception bbox_bad_parent_exp of B.name * B.name * T;
 
 val get_bboxes : T -> B.NSet.T
@@ -156,6 +156,8 @@ exception merge_bbox_exp of string
  * one or more !-boxes, return one such !-box, otherwise NONE
  *)
 val tryget_bbox_extended_by_edge : V.name -> V.name -> T -> B.name option
+
+val lookup_bbox_parent : T -> B.name -> B.name option
 
 (* getters for bbox -> vert *)
 val get_bbox_list : T -> B.name list
@@ -309,7 +311,7 @@ functor BasicBangGraphFun(
 
   exception bbox_not_open_exp of (V.name * V.name) * B.name * T;
   exception bbox_already_exists_exp of B.name * T;
-  exception no_such_bbox_exp of unit;
+  exception no_such_bbox_exp of string * B.name * T;
   exception bbox_bad_parent_exp of B.name * B.name * T;
 
   (* for bbox part of added data *)
@@ -344,7 +346,7 @@ functor BasicBangGraphFun(
               NONE    => V.NSet.empty
             | SOME vs => vs)
       else
-        raise no_such_bbox_exp ()
+        raise no_such_bbox_exp ("set_bbox_parent",b,g)
     val b_vs = get_bbox_contents g b
     val bp_vs = get_bbox_contents g bp
     val _ = if V.NSet.sub_set b_vs bp_vs then ()
@@ -457,7 +459,7 @@ functor BasicBangGraphFun(
 
   fun add_to_bbox b vs g =
     if not (B.NSet.contains (get_bboxes g) b) then
-      raise no_such_bbox_exp ()
+      raise no_such_bbox_exp ("add_to_bbox",b,g)
     else if not (V.NSet.sub_set vs ((V.NTab.get_nameset o get_vertices) g)) then
       raise no_such_vnames_exp ("doadd_to_bbox",vs,g)
     else
@@ -469,7 +471,7 @@ functor BasicBangGraphFun(
 
   fun remove_from_bbox b vs g =
     if not (B.NSet.contains (get_bboxes g) b) then
-      raise no_such_bbox_exp ()
+      raise no_such_bbox_exp ("remove_from_bbox",b,g)
     else
       let
         val old_bvs = 
@@ -576,6 +578,8 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val doadd_to_bbox = snd ooo add_to_bbox
   val doremove_from_bbox = snd ooo remove_from_bbox
 
+  val lookup_bbox_parent = BMap.lookup_domf o get_bbox_parent_rel
+
   (* getters for bbox -> vert *)
   val get_bbox_list = B.NSet.list_of o get_bboxes;
   val has_bbox = B.NSet.contains o get_bboxes;
@@ -585,7 +589,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
             NONE    => V.NSet.empty
           | SOME vs => vs)
     else
-      raise no_such_bbox_exp ()
+      raise no_such_bbox_exp ("get_bbox_contents",b,g)
 
   (* getters for vert -> bbox *)
   (* lookup names of boxes that v is in *)
@@ -619,7 +623,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   val add_to_bboxes = B.NSet.union_merge o get_bboxes;
 
   fun kill_bbox bn g =
-    if not (has_bbox g bn) then raise no_such_bbox_exp ()
+    if not (has_bbox g bn) then raise no_such_bbox_exp ("kill_bbox",bn,g)
     else
       let
         val g' =
@@ -634,7 +638,7 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
 
   fun drop_bbox bn g =
     if not (has_bbox g bn) then
-      raise no_such_bbox_exp ()
+      raise no_such_bbox_exp ("drop_bbox",bn,g)
     else
       g |> delete_bbox bn;
 

@@ -1,10 +1,47 @@
 signature INPUT_JSON = INPUT where type T = Json.json;
 signature OUTPUT_JSON = OUTPUT where type T = Json.json;
 
-structure JsonUtils =
+structure JsonInputUtils =
 struct
   type T = Json.json;
   exception bad_input_exp of string*string;
+
+  fun prepend_prop prop loc =
+    if String.size loc > 0
+    then prop^"."^loc
+    else prop
+
+  fun fold_obj_easy f obj prop =
+    (case Json.lookup obj prop
+       of SOME (Json.Object obj') =>
+            Json.fold (fn (k,v) => f (k,v)
+                       handle bad_input_exp (m,l) =>
+                         raise bad_input_exp (m,
+                                prepend_prop (prop^"."^k) l))
+                      obj'
+        | SOME Json.Null => I
+        | NONE => I
+        | _ => raise bad_input_exp ("Expected an object",prop))
+
+  fun fold_arr_easy f obj prop =
+    (case Json.lookup obj prop
+       of SOME (Json.Array arr) => fold f arr
+        | SOME Json.Null => I
+        | NONE => I
+        | _ => raise bad_input_exp ("Expected an array",prop))
+
+  fun fold_obj_or_arr_easy (fo,fa) obj prop =
+    (case Json.lookup obj prop
+       of SOME (Json.Array arr) => fold fa arr
+        | SOME (Json.Object obj') =>
+            Json.fold (fn (k,v) => fo (k,v)
+                       handle bad_input_exp (m,l) =>
+                         raise bad_input_exp (m,
+                                prepend_prop (prop^"."^k) l))
+                      obj'
+        | SOME Json.Null => I
+        | NONE => I
+        | _ => raise bad_input_exp ("Expected an object or array",prop))
 
   (* wraps Json.get and converts Json.notfound_exn to bad_input_exp *)
   fun get obj prop =
@@ -107,22 +144,26 @@ struct
        | _ => raise bad_input_exp ("Property \""^prop^"\" not a boolean","")
 end;
 
+structure JsonOutputUtils =
+struct
+  type T = Json.json;
+end
+
 functor InputNTabJSON (
   structure Name : SNAME where type src = string
   structure InputValue : INPUT_JSON
 ) : INPUT_JSON
 = struct
   structure N = Name;
-  open JsonUtils;
+  open JsonInputUtils;
   type data = InputValue.data N.NTab.T;
 
-  val get_value = InputValue.input oo Json.get
-
-  fun entry_list obj =
-        map (fn n => (N.mk n,get_value obj n)) (Json.properties obj)
+  fun map_entry (n,v) = (N.mk n,InputValue.input v)
+      handle InputValue.bad_input_exp (m,l) =>
+        raise bad_input_exp (m,prepend_prop n l)
 
   fun input (Json.Object obj) =
-          fold N.NTab.ins (entry_list obj) N.NTab.empty
+          Json.fold (N.NTab.ins o map_entry) obj N.NTab.empty
     | input Json.Null = N.NTab.empty
     | input _ = raise bad_input_exp ("Expected object","");
 end;
@@ -133,7 +174,7 @@ functor OutputNTabJSON (
 ) : OUTPUT_JSON
 = struct
   structure N = Name;
-  open JsonUtils;
+  open JsonOutputUtils;
   type data = OutputValue.data N.NTab.T;
 
   fun update_value (n,v) = Json.update (N.dest n,OutputValue.output v)
