@@ -105,3 +105,24 @@ struct
        | NONE => dflt
        | _ => raise bad_input_exp ("Property \""^prop^"\" not a boolean","")
 end;
+
+functor InputNTabJSON (
+  structure Name : SNAME where type src = string
+  structure InputValue : INPUT_JSON
+) : INPUT_JSON
+= struct
+  structure N = Name;
+  open JsonUtils;
+  type data = InputValue.data N.NTab.T;
+
+  val get_value = InputValue.input oo Json.get
+
+  fun entry_list obj =
+        map (fn n => (N.mk n,get_value obj n)) (Json.properties obj)
+
+  fun input (Json.Object obj) =
+          fold N.NTab.ins (entry_list obj) N.NTab.empty
+    | input Json.Null = N.NTab.empty
+    | input _ = raise bad_input_exp ("Expected object","");
+end;
+
