@@ -66,18 +66,16 @@ PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
 (* Generic output/input tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
-PolyML.Project.make "io/input_generic.ML";
-PolyML.Project.make "io/output_generic.ML";
-PolyML.Project.make "io/input_xml.ML";
-PolyML.Project.make "io/output_xml.ML";
-PolyML.Project.make "io/input_json.ML";
-PolyML.Project.make "io/output_json.ML";
-PolyML.Project.make "io/input_linrat.ML";
-PolyML.Project.make "io/output_linrat.ML";
+PolyML.Project.make "io/input.ML";
+PolyML.Project.make "io/output.ML";
+PolyML.Project.make "io/json_io.ML";
+PolyML.Project.make "io/xml_io.ML";
+PolyML.Project.make "io/linrat_json.ML";
+PolyML.Project.make "io/linrat_xml.ML";
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 
-Testing.make_test "io/test/linrat-io-test.ML";
+Testing.make_test "io/test/linrat-json-test.ML";
 
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
@@ -86,18 +84,17 @@ PolyML.Project.make "theories/component_data.ML";
 PolyML.Project.make "theories/enum_data.ML";
 
 (* I/O for graphs *)
-PolyML.Project.make "io/input_graph_v2.ML";
-PolyML.Project.make "io/output_graph_v2.ML";
-
-PolyML.Project.make "io/input_graph_annotations.ML";
-PolyML.Project.make "io/output_graph_annotations.ML";
+PolyML.Project.make "io/graph_xml_v2_input.ML";
+PolyML.Project.make "io/graph_xml_v2_output.ML";
+PolyML.Project.make "io/graph_annotations_xml_input.ML";
+PolyML.Project.make "io/graph_annotations_xml_output.ML";
 
 (* Testing *)
 (* *)
 Testing.make_test "theories/test/vertex-test.ML";
-(* These arn't tests, but they are used only by tests. *)
-Testing.make_test "io/input_graph_v1.ML";
-Testing.make_test "io/output_graph_v1.ML";
+(* These aren't tests, but they are used only by tests. *)
+Testing.make_test "io/graph_xml_v1_input.ML";
+Testing.make_test "io/graph_xml_v1_output.ML";
 (* *)
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-graph.ML";
@@ -107,22 +104,23 @@ Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
 PolyML.Project.make "rewriting/rule.ML";
-PolyML.Project.make "io/output_rule.ML";
-PolyML.Project.make "io/input_rule.ML";
+PolyML.Project.make "io/rule_xml_output.ML";
+PolyML.Project.make "io/rule_xml_input.ML";
 
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";
-PolyML.Project.make "io/input_ruleset.ML";
-PolyML.Project.make "io/output_ruleset.ML";
 PolyML.Project.make "theories/ruleset_annotations.ML";
-PolyML.Project.make "io/input_ruleset_annotations.ML";
-PolyML.Project.make "io/output_ruleset_annotations.ML";
+
+PolyML.Project.make "io/ruleset_xml_input.ML";
+PolyML.Project.make "io/ruleset_xml_output.ML";
+PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
+PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
 
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
 
 (* Simple dot output for graphs *)
-PolyML.Project.make "io/output_graph_dot.ML";
+PolyML.Project.make "io/graph_dot_output.ML";
 
 (* Testing *)
 Testing.make_test "theories/test/ruleset-test.ML";

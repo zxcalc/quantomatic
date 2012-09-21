@@ -1,4 +1,5 @@
 signature INPUT_JSON = INPUT where type T = Json.json;
+signature OUTPUT_JSON = OUTPUT where type T = Json.json;
 
 structure JsonUtils =
 struct
@@ -124,5 +125,20 @@ functor InputNTabJSON (
           fold N.NTab.ins (entry_list obj) N.NTab.empty
     | input Json.Null = N.NTab.empty
     | input _ = raise bad_input_exp ("Expected object","");
+end;
+
+functor OutputNTabJSON (
+  structure Name : SNAME where type src = string
+  structure OutputValue : OUTPUT_JSON
+) : OUTPUT_JSON
+= struct
+  structure N = Name;
+  open JsonUtils;
+  type data = OutputValue.data N.NTab.T;
+
+  fun update_value (n,v) = Json.update (N.dest n,OutputValue.output v)
+
+  fun output tab =
+    Json.Object (N.NTab.fold update_value tab Json.empty_obj)
 end;
 
