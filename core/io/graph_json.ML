@@ -277,7 +277,7 @@ functor OutputAnnotatedGraphJSON(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_JSON
         and OutputEdgeData : OUTPUT_JSON
-  sharing type OutputVertexData.data = Graph.VData.data
+  sharing type OutputVertexData.data = Graph.OVData.IData.data
   sharing type OutputEdgeData.data = Graph.EData.data
   structure OutputAnnotation : GRAPH_ANN_OUTPUT_JSON
 )  : OUTPUT_JSON
@@ -296,7 +296,7 @@ functor OutputAnnotatedGraphJSON(
       )
     fun add_vert (v,(G.OVData.WVert,_)) (wvs,nvobj) =
           ((Json.String (V.dest v))::wvs,nvobj)
-      | add_vert (v,(vd,_)) (wvs,nvobj) =
+      | add_vert (v,(G.OVData.NVert vd,_)) (wvs,nvobj) =
           (wvs,update (V.dest v,vert_info v vd) nvobj)
     val (wvs,nvobj) = V.NTab.fold add_vert
                                   (G.get_vertices g)
@@ -361,7 +361,7 @@ functor OutputGraphJSON(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_JSON
         and OutputEdgeData : OUTPUT_JSON
-  sharing type OutputVertexData.data = Graph.VData.data
+  sharing type OutputVertexData.data = Graph.OVData.IData.data
   sharing type OutputEdgeData.data = Graph.EData.data
 )  : OUTPUT_JSON
 = struct
