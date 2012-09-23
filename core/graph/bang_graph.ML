@@ -55,7 +55,12 @@ val add_to_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
 (* does not raise if verts are not in !-box *)
 val remove_from_bbox : B.name -> V.NSet.T -> T -> (V.NSet.T * T)
 
-(* set parent of the given bbox *)
+(* Set parent of the given bbox
+ *
+ * Arg 1: child bbox
+ * Arg 2: parent bbox
+ * Arg 3: graph
+ *)
 (* bbox_bad_parent_exp if fst is not a subset of snd *)
 val set_bbox_parent : B.name -> B.name -> T -> T
 

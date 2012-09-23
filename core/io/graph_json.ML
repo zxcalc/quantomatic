@@ -29,7 +29,7 @@
  * }
  * BBDESC ::=
  * {
- *   "contains": PLAIN_VLIST,
+ *   "contents": PLAIN_VLIST,
  *   "parent": NAME,
  *   "data": BBDATA,
  *   "annotation": ANNDATA
