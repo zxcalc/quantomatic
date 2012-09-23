@@ -49,6 +49,13 @@ struct
     handle Json.notfound_exn prop =>
       raise bad_input_exp ("Missing property \""^prop^"\"","");
 
+  (* wraps Json.get - returns dflt if not found *)
+  fun get_easy dflt obj prop =
+    case Json.lookup obj prop
+      of SOME (Json.Null) => dflt
+       | SOME v => v
+       | NONE => dflt
+
   (* wraps Json.get and demands an array *)
   fun get_array obj prop =
     case get obj prop
