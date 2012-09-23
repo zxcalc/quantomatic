@@ -147,6 +147,18 @@ end;
 structure JsonOutputUtils =
 struct
   type T = Json.json;
+
+  (* Does not write null values *)
+  fun update (_,Json.Null) = I
+    | update d = Json.update d;
+
+  (* Does not write empty values *)
+  fun opt_update (_,Json.Null) = I
+    | opt_update (_,Json.Array []) = I
+    | opt_update (v as (_,Json.Object obj)) = (case Json.properties obj
+                                                 of [] => I
+                                                  | _ => Json.update v)
+    | opt_update d = Json.update d;
 end
 
 functor InputNTabJSON (
@@ -181,5 +193,20 @@ functor OutputNTabJSON (
 
   fun output tab =
     Json.Object (N.NTab.fold update_value tab Json.empty_obj)
+end;
+
+structure InputUnitJSON : INPUT_JSON
+= struct
+  open JsonInputUtils;
+  type data = unit;
+  fun input Json.Null = ()
+    | input _ = raise bad_input_exp ("Unexpected data","");
+end;
+
+structure OutputUnitJSON : OUTPUT_JSON
+= struct
+  open JsonOutputUtils;
+  type data = unit;
+  fun output () = Json.Null;
 end;
 

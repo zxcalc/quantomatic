@@ -30,6 +30,12 @@
  * Caveats of current implementation:
  * - UDATA is not written or parsed
  * - BBDATA and GDATA are not supported by Quantomatic at all
+ *
+ * Note about Input*Data and Output*Data arguments to functors:
+ * Json.Null is treated as the "default" value.  If Output*Data.output returns
+ * Json.Null, nothing is written, and the default vertex or edge data will be
+ * used when reading the file again.  Input*Data.input will never be passed
+ * Json.Null, as this is assumed to mean the default vertex or edge data.
  *)
 
 
@@ -37,7 +43,7 @@ functor InputGraphJSON(
   structure Graph : BANG_GRAPH
         and InputVertexData : INPUT_JSON
         and InputEdgeData : INPUT_JSON
-  sharing type InputVertexData.data = Graph.VData.data
+  sharing type InputVertexData.data = Graph.OVData.IData.data
   sharing type InputEdgeData.data = Graph.EData.data
 )  : INPUT_JSON
 = struct
@@ -51,14 +57,16 @@ functor InputGraphJSON(
 
   fun get_vdata obj propName =
     case Json.lookup obj propName
-      of SOME data => (InputVertexData.input data
+      of SOME Json.Null => def_vdata
+       | SOME data => (G.OVData.NVert (InputVertexData.input data)
                        handle InputVertexData.bad_input_exp (m,l) =>
                          raise bad_input_exp (m,prepend_prop propName l))
        | NONE => def_vdata
 
   fun get_edata obj propName =
     case Json.lookup obj propName
-      of SOME data => (InputEdgeData.input data
+      of SOME Json.Null => def_edata
+       | SOME data => (InputEdgeData.input data
                        handle InputEdgeData.bad_input_exp (m,l) =>
                          raise bad_input_exp (m,prepend_prop propName l))
        | NONE => def_edata
@@ -152,7 +160,7 @@ functor InputGraphJSON(
                 |> get_edges G.Directed obj "dir_edges"
                 |> get_bboxes obj "bang_boxes"
     | input Json.Null = G.empty
-    | input _ = raise bad_input_exp ("Expected object","")
+    | input _ = raise bad_input_exp ("Expected object","");
 end;
 
 functor OutputGraphJSON(
@@ -171,69 +179,65 @@ functor OutputGraphJSON(
   fun get_verts g = let
     fun vert_info vd =
       Json.Object (
-        Json.empty_obj |> Json.update ("data",OutputVertexData.output vd)
+        Json.empty_obj |> update ("data",OutputVertexData.output vd)
       )
-    fun add_vert (v,(G.OVData.WVert,_)) (Json.Array wvs,nvj) =
-          (Json.Array ((Json.String (V.dest v))::wvs),nvj)
-      | add_vert (v,(vd,_)) (wvj,Json.Object nvobj) =
-          (wvj,Json.Object (Json.update (V.dest v,vert_info vd) nvobj))
+    fun add_vert (v,(G.OVData.WVert,_)) (wvs,nvobj) =
+          ((Json.String (V.dest v))::wvs,nvobj)
+      | add_vert (v,(vd,_)) (wvs,nvobj) =
+          (wvs,update (V.dest v,vert_info vd) nvobj)
+    val (wvs,nvobj) = V.NTab.fold add_vert
+                                  (G.get_vertices g)
+                                  ([],Json.empty_obj)
   in
-    V.NTab.fold add_vert
-                (G.get_vertices g)
-                (Json.Array [],Json.Object Json.empty_obj)
+    (Json.Array wvs,Json.Object nvobj)
   end
 
   fun get_edges g = let
     fun edge_info ed s t =
       Json.Object (
-        Json.empty_obj |> Json.update ("src",Json.String (V.dest s))
-                       |> Json.update ("tgt",Json.String (V.dest t))
-                       |> Json.update ("data",OutputEdgeData.output ed)
+        Json.empty_obj |> update ("src",Json.String (V.dest s))
+                       |> update ("tgt",Json.String (V.dest t))
+                       |> update ("data",OutputEdgeData.output ed)
       )
-    fun add_edge (e,((G.Directed,ed),(s,t))) (Json.Object dobj,udj) =
-          (Json.Object (Json.update (E.dest e,edge_info ed s t) dobj),udj)
-      | add_edge (e,((G.UnDirected,ed),(s,t))) (dj,Json.Object udobj) =
-          (dj,Json.Object (Json.update (E.dest e,edge_info ed s t) udobj))
+    fun add_edge (e,((G.Directed,ed),(s,t))) (dobj,udobj) =
+          (update (E.dest e,edge_info ed s t) dobj,udobj)
+      | add_edge (e,((G.UnDirected,ed),(s,t))) (dobj,udobj) =
+          (dobj,update (E.dest e,edge_info ed s t) udobj)
+    val (dobj,udobj) = E.NTab.fold add_edge
+                                   (G.get_edges g)
+                                   (Json.empty_obj,Json.empty_obj)
   in
-    E.NTab.fold add_edge
-                (G.get_edges g)
-                (Json.Object Json.empty_obj,Json.Object Json.empty_obj)
+    (Json.Object dobj,Json.Object udobj)
   end
 
   fun get_bboxes g = let
     fun add_bbox b = let
         val add_parent =
           case G.lookup_bbox_parent g b
-            of SOME bp => Json.update ("parent",Json.String (B.dest bp))
+            of SOME bp => update ("parent",Json.String (B.dest bp))
              | NONE => I
         val jvs = map (fn v => Json.String (V.dest v))
                       (V.NSet.list_of (G.get_bbox_contents g b))
         val obj = Json.empty_obj |> add_parent
-                                 |> Json.update ("contents",Json.Array jvs)
+                                 |> update ("contents",Json.Array jvs)
       in
-        Json.update (B.dest b, Json.Object obj)
+        update (B.dest b, Json.Object obj)
       end
   in
     Json.Object (B.NSet.fold add_bbox (G.get_bboxes g) Json.empty_obj)
   end
 
   fun output g = let
-      val (wverts,nverts) = get_verts g
-      val (dedges,udedges) = get_edges g
-      val bboxes = get_bboxes g
-      fun add (_,Json.Array []) = I
-        | add (v as (_,Json.Object obj)) =
-            (case Json.properties obj
-               of [] => I
-               | _ => Json.update v)
-        | add v = Json.update v
-    in
-      Json.Object
-      (Json.empty_obj |> add ("wire_vertices",wverts)
-                      |> add ("node_vertices",nverts)
-                      |> add ("undir_edges",udedges)
-                      |> add ("dir_edges",dedges)
-                      |> add ("bang_boxes",bboxes))
-    end
+    val (wverts,nverts) = get_verts g
+    val (dedges,udedges) = get_edges g
+    val bboxes = get_bboxes g
+  in
+    Json.Object
+    (Json.empty_obj |> opt_update ("wire_vertices",wverts)
+                    |> opt_update ("node_vertices",nverts)
+                    |> opt_update ("undir_edges",udedges)
+                    |> opt_update ("dir_edges",dedges)
+                    |> opt_update ("bang_boxes",bboxes))
+  end
 end;
 
