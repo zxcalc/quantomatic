@@ -110,6 +110,7 @@ Testing.make_test "io/test/graph-json-test.ML";
 PolyML.Project.make "rewriting/rule.ML";
 PolyML.Project.make "io/rule_xml_output.ML";
 PolyML.Project.make "io/rule_xml_input.ML";
+PolyML.Project.make "io/rule_json.ML";
 
 (* rule sets *)
 PolyML.Project.make "theories/ruleset.ML";
@@ -117,6 +118,7 @@ PolyML.Project.make "theories/ruleset_annotations.ML";
 
 PolyML.Project.make "io/ruleset_xml_input.ML";
 PolyML.Project.make "io/ruleset_xml_output.ML";
+PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
 

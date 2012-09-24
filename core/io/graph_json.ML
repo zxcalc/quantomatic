@@ -84,6 +84,7 @@ end;
 signature GRAPH_ANN_OUTPUT_JSON
 = sig
   type data;
+  val empty_annotation : data;
   val output_vertex_annotation : data -> V.name -> Json.json;
   val output_edge_annotation : data -> E.name -> Json.json;
   val output_bangbox_annotation : data -> B.name -> Json.json;
@@ -94,6 +95,7 @@ structure EmptyGraphAnnotationOutputJson
   : GRAPH_ANN_OUTPUT_JSON where type data = unit
 = struct
   type data = unit;
+  val empty_annotation = ();
   fun output_vertex_annotation _ _ = Json.Null;
   fun output_edge_annotation _ _ = Json.Null;
   fun output_bangbox_annotation _ _ = Json.Null;

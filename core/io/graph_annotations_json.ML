@@ -5,7 +5,6 @@ structure InputGraphStringTableAnnotationsJSON
   structure Ann = GraphStringTableAnnotations;
   
   type data = Ann.T;
-  
   val empty_annotation = Ann.init;
   
   fun add_entry (k,Json.String v) = Symtab.update_new (k,v)
@@ -35,6 +34,7 @@ structure OutputGraphStringTableAnnotationsJSON
   structure Ann = GraphStringTableAnnotations;
   
   type data = Ann.T;
+  val empty_annotation = Ann.init;
   
   fun update_entry (k,v) = Json.update (k,Json.String v)
   fun write_userdata ud =
