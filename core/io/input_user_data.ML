@@ -1,13 +1,13 @@
-functor InputUIDataXML(
-  structure UIData : GRAPH_USER_DATA
+functor InputGraphUserDataXML(
+  structure UserData : GRAPH_USER_DATA
 )  : INPUT_XML
 = struct
   open XML_Parse_Utils; 
 
-  structure UD = UIData;
+  structure UD = UserData;
   
   type T =  XML.tree;  (* XML.tree *)
-  type data = UIData.T;
+  type data = UserData.T;
 
   fun data_to_string _ = "[UserData]";
 

@@ -1,11 +1,11 @@
-functor InputRulesetUIDataXML(
-	structure UIData : GRAPH_USER_DATA
+functor InputRulesetUserDataXML(
+	structure GraphUserData : GRAPH_USER_DATA
 ) : INPUT_XML
 =struct
 
   open XML_Parse_Utils;
 
-  structure UD = UIData;
+  structure UD = GraphUserData;
 
   type T = XML.tree;
   type ud_unit = string Symtab.table
@@ -13,7 +13,7 @@ functor InputRulesetUIDataXML(
 
   fun data_to_string _ = "[RulesetUserData]";
 
-  structure udinput = InputUIDataXML(structure UIData = UIData);
+  structure udinput = InputGraphUserDataXML(structure UserData = GraphUserData);
 
   fun input_entry xml =
     let

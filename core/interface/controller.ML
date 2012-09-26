@@ -292,8 +292,8 @@ struct
   structure ECD = State.Theory.EdgeComponentData;
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
-  structure UIDataOutput = OutputUIDataXML(structure UIData = State.UIData);
-  structure RulesetUIDataOutput = OutputRulesetUIDataXML(structure UIData = State.UIData);
+  structure GraphUserDataOutput = OutputGraphUserDataXML(structure UserData = State.GraphUserData);
+  structure RulesetUserDataOutput = OutputRulesetUserDataXML(structure GraphUserData = State.GraphUserData);
   structure GraphAndUIOutput = OutputWrapXML(
               val tagname = "graph_and_user_data"
               val attrs = []
@@ -302,14 +302,13 @@ struct
               val tagname = "ruleset_and_user_data"
               val attrs = []
               structure Output1 = OutputStructAndUserDataXMLList);
-  structure UIDataInput = InputUIDataXML(structure UIData = State.UIData);
-  structure InputRulesetUIData = InputRulesetUIDataXML(structure UIData =
-        State.UIData);
+  structure GraphUserDataInput = InputGraphUserDataXML(structure UserData = State.GraphUserData);
+  structure InputRulesetUserData = InputRulesetUserDataXML(structure GraphUserData = State.GraphUserData);
 
   val theoryName = State.Theory.theory_name;
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
-  fun get_graph_ud (name:string) (state:State.T) : State.UIData.T = State.get_graph_ud
+  fun get_graph_ud (name:string) (state:State.T) : State.GraphUserData.T = State.get_graph_ud
     state (GraphName.mk name)
 
   fun update_ruleset rset true state =
@@ -325,7 +324,7 @@ struct
   fun load_ruleset reader source replace state =
      ((OkResponse,
        state |> update_ruleset (Input.Ruleset.input (reader source)) replace 
-             |> update_ruleset_ud (InputRulesetUIData.input (reader source)) replace
+             |> update_ruleset_ud (InputRulesetUserData.input (reader source)) replace
        )
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
@@ -413,7 +412,7 @@ struct
         let fun load_graph suggestedName reader data =
                 (let
                    val graph = (Input.Graph.input (reader data))
-                   val ud = UIDataInput.input(reader data)
+                   val ud = GraphUserDataInput.input(reader data)
                    val name = if suggestedName = "" then GraphName.default_name else GraphName.mk suggestedName
                    val (nm,state') = State.add_graph name graph state
                    val state_ =  State.set_graph_ud ud nm state'
@@ -472,7 +471,7 @@ struct
           val graph = get_graph graphName state
           val graphXMLTree = Output.Graph.output graph
           val ud = get_graph_ud graphName state
-          val userDataXMLTree = UIDataOutput.output ud
+          val userDataXMLTree = GraphUserDataOutput.output ud
           val () = XMLWriter.write_to_file fileName
                       (GraphAndUIOutput.output (graphXMLTree, userDataXMLTree))
         in
@@ -669,7 +668,7 @@ fun hilb ([format], graph) =
                 let
                   val ud = State.get_graph_ud state (GraphName.mk graphName)
                 in
-                  PrettyResponse {data = State.UIData.pretty_user_data ud}
+                  PrettyResponse {data = State.GraphUserData.pretty_user_data ud}
                 end
 
             ), state)
@@ -879,7 +878,7 @@ fun hilb ([format], graph) =
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
           val ruleset_tree = (Output.Ruleset.output o State.get_rset) state
-          val uidata_tree = (RulesetUIDataOutput.output o State.get_rset_uidata) state
+          val uidata_tree = (RulesetUserDataOutput.output o State.get_rset_uidata) state
           val () = (XMLWriter.write_to_file fileName)
                       (RulesetAndUIOutput.output (ruleset_tree, uidata_tree))
         in
