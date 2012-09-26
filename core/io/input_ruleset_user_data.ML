@@ -1,5 +1,5 @@
 functor InputRulesetUIDataXML(
-	structure UIData : USER_DATA
+	structure UIData : GRAPH_USER_DATA
 ) : INPUT_XML
 =struct
 

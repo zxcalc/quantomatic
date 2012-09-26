@@ -1,5 +1,5 @@
 functor InputUIDataXML(
-  structure UIData : USER_DATA
+  structure UIData : GRAPH_USER_DATA
 )  : INPUT_XML
 = struct
   open XML_Parse_Utils; 

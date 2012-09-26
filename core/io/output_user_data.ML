@@ -66,7 +66,7 @@ end;
 
 
 functor OutputGraphUserDataXMLList(
-  structure UIData : USER_DATA
+  structure UIData : GRAPH_USER_DATA
 ) : OUTPUT_XML_LIST
 = struct
   structure udvout = OutputElementsUDXMLList(
@@ -96,7 +96,7 @@ functor OutputGraphUserDataXMLList(
 end;
 
 functor OutputUIDataXML(
-  structure UIData : USER_DATA
+  structure UIData : GRAPH_USER_DATA
 ) : OUTPUT_XML 
 = OutputWrapXML(
   val tagname = "user_data"
@@ -109,7 +109,7 @@ functor OutputUIDataXML(
 (* Output UIData attached on rules*)
 
 functor OutputRulesetUIDataXMLList(
-  structure UIData : USER_DATA
+  structure UIData : GRAPH_USER_DATA
 ) : OUTPUT_XML_LIST
 = struct
   structure udout = OutputUIDataXML(structure UIData = UIData);
@@ -140,7 +140,7 @@ functor OutputRulesetUIDataXMLList(
 end;
 
 functor OutputRulesetUIDataXML(
-  structure UIData : USER_DATA
+  structure UIData : GRAPH_USER_DATA
 ) : OUTPUT_XML
 = OutputWrapXML (
   val tagname = "ruleset_user_data"

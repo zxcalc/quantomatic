@@ -3,7 +3,7 @@ signature CONTROLLER_STATE =
 sig
   type T;
   structure Theory : GRAPHICAL_THEORY;
-  structure UIData : USER_DATA;
+  structure UIData : GRAPH_USER_DATA;
   structure MetController : METRICS;
 
   type rewrite = (R.name * Theory.Rule.T) * Theory.Graph.T
@@ -182,7 +182,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   structure Graph = Theory.Graph;
   structure OVData = Graph.OVData;
   structure EData = Graph.EData;
-  structure UIData = UserData(Graph):USER_DATA;
+  structure UIData = GraphUserData(Graph);
   structure MetController = MetricsController(structure Graph = Graph);
 
   exception no_such_graph_exp of GraphName.name;

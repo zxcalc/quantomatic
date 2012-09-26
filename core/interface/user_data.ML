@@ -2,7 +2,7 @@
  * graphs, !-boxes, edges and vertices as a hastable. To see how
  * this interacts with the undo stack for graphs, see controller_graph.ML *)
 
-signature USER_DATA =
+signature GRAPH_USER_DATA =
   sig
     type T;
     structure Graph : BANG_GRAPH;
@@ -51,7 +51,7 @@ signature USER_DATA =
     exception bbbox_already_exists of (B.name * T);
   end;
 
-functor UserData(Graph:BANG_GRAPH):USER_DATA
+functor GraphUserData(Graph:BANG_GRAPH):GRAPH_USER_DATA
 =struct
     structure Graph = Graph;
 
