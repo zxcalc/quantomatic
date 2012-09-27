@@ -18,10 +18,13 @@ sig
   type ud_unit = string Symtab.table
 
   exception no_such_graph_exp of GraphName.name;
+  exception no_such_graph_user_data_exp of (GraphName.name * string);
+  exception no_such_vertex_user_data_exp of (V.name * string);
+  exception no_such_edge_user_data_exp of (E.name * string);
+  exception no_such_bangbox_user_data_exp of (B.name * string);
+  exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_vertex_exp of (V.name * GraphName.name);
   exception no_such_vertex_type_exp of string;
-  exception no_such_vertex_user_data_exp of (V.name * string);
-  exception no_such_rule_user_data_exp of (R.name * string);
   exception no_such_edge_exp of (E.name * GraphName.name);
   exception no_such_edge_type_exp of string;
   exception no_such_bbox_exp of (B.name * GraphName.name);
@@ -32,6 +35,7 @@ sig
   exception bbox_name_exists_exp of (B.name * GraphName.name);
   exception inconsistent_bbox_exp of ((V.name * V.name) * B.name * GraphName.name);
   exception wire_vertex_exp of (string * GraphName.name * V.name);
+  exception rule_name_exists_exp of R.name;
   exception bad_rule_exp of string;
   exception bad_state_exp of string;
   exception out_of_bounds_exp of int;
@@ -47,9 +51,11 @@ sig
   val get_hist : T -> history;
   val get_graphs : T -> Theory.Graph.T GraphName.NTab.T;
   val get_graph : T -> GraphName.name -> Theory.Graph.T;
+  val get_graph_ud : T -> GraphName.name -> GraphUserData.T
   val get_graph_names : T -> GraphName.name list;
   val get_rset_ud : T -> RulesetUserData.T;
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
+  val update_rset_ud : (RulesetUserData.T -> RulesetUserData.T) -> T -> T;
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
      T -> T
@@ -58,10 +64,12 @@ sig
    (Theory.Graph.T GraphName.NTab.T -> Theory.Graph.T GraphName.NTab.T) -> T -> T
 
   val set_rset : Theory.Ruleset.T -> T -> T
+  val set_rset_ud : RulesetUserData.T -> T -> T;
   val set_rewrites : rewrite list GraphName.NTab.T -> T -> T
   val set_hist : history -> T -> T
   val set_graphs : Theory.Graph.T GraphName.NTab.T -> T -> T
   val set_graph : Theory.Graph.T -> GraphName.name -> T -> T
+  val set_graph_ud : GraphUserData.T -> GraphName.name -> T -> T
 
 
   (* history *)
@@ -69,14 +77,13 @@ sig
   val redo : GraphName.name -> T -> T
   val undo_rewrite : GraphName.name -> T -> T
   val redo_rewrite : GraphName.name -> T -> T
-  val push_hist : GraphName.name -> T -> T
   val start_undo_group : GraphName.name -> T -> T (* nothing is pushed on the
   undo stack  *)
   val end_undo_group : GraphName.name -> T -> T (* push_hist actually pushes
   the changes creating a new undo point  *)
   (* printing/showing info (for console) *)
   val get_attached_rewrites : GraphName.name -> T -> rewrite list
-  val list_rules_with_tag : TagName.name -> T -> TagName.name list
+  val list_rules_with_tag : TagName.name -> T -> R.name list
   val list_allrules : T -> R.name list
   val list_tags : T -> TagName.name list
   val list_active_rules : T -> R.name list
@@ -95,6 +102,7 @@ sig
   val delete_tag : TagName.name -> T -> T
   val delete_rules_in_tag : TagName.name -> T -> T
   val delete_rule : R.name -> T -> T
+  val rename_rule : R.name -> R.name -> T -> T
 
   val activate_rules_with_tag : TagName.name -> T -> T
   val activate_rule : R.name -> T -> T
@@ -116,7 +124,7 @@ sig
 
   val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
-  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (string list) * T
+  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (V.name list) * T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
   val rename_bang : B.name -> B.name -> GraphName.name -> T -> T
   val rename_graph : GraphName.name -> GraphName.name -> T -> GraphName.name * T
@@ -136,8 +144,6 @@ sig
   val lookup_rule_ud_property : T -> R.name -> string -> string option
   val set_rule_ud_property : string -> string -> R.name -> T -> T
   val delete_rule_ud_property : string -> R.name -> T -> T
-  (* graphs *)
-  val get_graph_ud : T -> GraphName.name -> GraphUserData.T
   (* Graph userdata *)
   val lookup_graph_ud_property : T -> GraphName.name -> string -> string option
   val set_graph_ud_property : string -> string ->  GraphName.name -> T -> T
@@ -151,7 +157,7 @@ sig
   val set_edge_ud_property : string -> string -> E.name -> GraphName.name -> T -> T
   val delete_edge_ud_property : string -> E.name -> GraphName.name -> T -> T
   (* !-box userdata *)
-  val lookup_bangbox_ud_property : T -> GraphName.name -> B.name -> string option
+  val lookup_bangbox_ud_property : T -> GraphName.name -> B.name -> string -> string option
   val set_bangbox_ud_property : string -> string -> B.name -> GraphName.name -> T -> T
   val delete_bangbox_ud_property : string -> B.name -> GraphName.name -> T -> T
 
@@ -169,7 +175,7 @@ end;
 
 
 (* controls the state of Quantomatic *)
-functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
+functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 = struct
 
 
@@ -265,11 +271,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       met_cont=mt}) = 
     CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,met_cont=(f mt)} 
 
-  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset,set_rset_ud,
+  val (set_graphs,set_rewrites,set_ud,set_hist,set_rset,set_rset_ud,
     set_met_cont) = 
     (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K,
-    update_merge_changes o K, update_rset o K, update_rset_ud o K,
-    update_met_cont o K)
+    update_rset o K, update_rset_ud o K, update_met_cont o K)
 
   fun get_graphs (CState {graphs=g,...}) = g
   fun get_rewrites (CState {rewrites=r,...}) = r
