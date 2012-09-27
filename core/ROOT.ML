@@ -51,6 +51,8 @@ PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 
+PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
+
 (* Metrics *)
 PolyML.Project.make "metrics/metric_type.ML"; (* Utils to handle int tuples *)
 PolyML.Project.make "metrics/metrics/metric.ML"; (* METRIC signature *)
@@ -79,15 +81,12 @@ PolyML.Project.make "theories/component_data.ML";
 (* boilerplate data functors for enumerated datatypes *)
 PolyML.Project.make "theories/enum_data.ML";
 
-(* Storing UI data on graphs, vertices, !-Boxes and edges *)
-PolyML.Project.make "interface/user_data.ML";
-
 (* I/O for graphs *)
-PolyML.Project.make "io/input_user_data.ML";
-PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
-PolyML.Project.make "io/input_ruleset_user_data.ML";
+
+PolyML.Project.make "io/input_graph_annotations.ML";
+PolyML.Project.make "io/output_graph_annotations.ML";
 
 (* Testing *)
 (* *)
@@ -111,6 +110,9 @@ PolyML.Project.make "io/input_rule.ML";
 PolyML.Project.make "theories/ruleset.ML";
 PolyML.Project.make "io/input_ruleset.ML";
 PolyML.Project.make "io/output_ruleset.ML";
+PolyML.Project.make "theories/ruleset_annotations.ML";
+PolyML.Project.make "io/input_ruleset_annotations.ML";
+PolyML.Project.make "io/output_ruleset_annotations.ML";
 
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";

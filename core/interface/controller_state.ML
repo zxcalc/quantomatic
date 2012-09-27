@@ -3,7 +3,9 @@ signature CONTROLLER_STATE =
 sig
   type T;
   structure Theory : GRAPHICAL_THEORY;
-  structure GraphUserData : GRAPH_USER_DATA;
+  structure GraphUserData : GRAPH_STRING_TABLE_ANNOTATIONS;
+  structure RulesetUserData : RULESET_ANNOTATIONS
+  sharing type RulesetUserData.GraphAnnotations.T = GraphUserData.T;
   structure MetController : METRICS;
 
   type rewrite = (R.name * Theory.Rule.T) * Theory.Graph.T
@@ -44,10 +46,9 @@ sig
   val get_rewrites : T -> rewrite list GraphName.NTab.T;
   val get_hist : T -> history;
   val get_graphs : T -> Theory.Graph.T GraphName.NTab.T;
-  val get_ud : T -> GraphUserData.T;
   val get_graph : T -> GraphName.name -> Theory.Graph.T;
   val get_graph_names : T -> GraphName.name list;
-  val get_rset_uidata : T -> (ud_unit * (GraphUserData.T * GraphUserData.T)) R.NTab.T;
+  val get_rset_ud : T -> RulesetUserData.T;
   val update_rset : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
   val update_rewrites :
    (rewrite list GraphName.NTab.T -> rewrite list GraphName.NTab.T) ->
@@ -61,7 +62,6 @@ sig
   val set_hist : history -> T -> T
   val set_graphs : Theory.Graph.T GraphName.NTab.T -> T -> T
   val set_graph : Theory.Graph.T -> GraphName.name -> T -> T
-  val set_ud : GraphUserData.T -> GraphName.name -> T -> T
 
 
   (* history *)
@@ -132,30 +132,28 @@ sig
   val drop_bang : B.name list -> GraphName.name -> T -> T
 
   (* UI Data getters/setters *)
-  (* ... For Graphs *)
-
-  (* get_graph_ud actually returns the UD.T structure, with everything about the
-   * vertices, etc...   ......*)
+  (* rules *)
+  val lookup_rule_ud_property : T -> R.name -> string -> string option
+  val set_rule_ud_property : string -> string -> R.name -> T -> T
+  val delete_rule_ud_property : string -> R.name -> T -> T
+  (* graphs *)
   val get_graph_ud : T -> GraphName.name -> GraphUserData.T
-  val update_graph_user_data : string -> string ->  GraphName.name -> T -> T
-  (* ...... whereas get_graph_user_data returns the data attached to the graph *)
-  val get_graph_user_data : GraphName.name -> T -> string Symtab.table
-  val delete_graph_user_data : string -> GraphName.name -> T -> T
-  (* ... For Vertices *)
-  val update_vertex_user_data : string -> string -> V.name -> GraphName.name -> T -> T
-  val get_vertex_user_data : GraphName.name -> V.name -> T -> (string
-    Symtab.table option)
-  val delete_vertex_user_data : string -> V.name -> GraphName.name -> T -> T
-  (* ... For Edges *)
-  val update_edge_user_data : string -> string -> E.name -> GraphName.name -> T -> T
-  val get_edge_user_data : GraphName.name -> E.name -> T -> (string
-    Symtab.table option)
-  val delete_edge_user_data : string -> E.name -> GraphName.name -> T -> T
-  (* ... For !-Boxes *)
-  val update_bangbox_user_data : string -> string -> B.name -> GraphName.name -> T -> T
-  val get_bangbox_user_data : GraphName.name -> B.name -> T -> (string
-    Symtab.table option)
-  val delete_bangbox_user_data : string -> B.name -> GraphName.name -> T -> T
+  (* Graph userdata *)
+  val lookup_graph_ud_property : T -> GraphName.name -> string -> string option
+  val set_graph_ud_property : string -> string ->  GraphName.name -> T -> T
+  val delete_graph_ud_property : string -> GraphName.name -> T -> T
+  (* Vertex userdata *)
+  val lookup_vertex_ud_property : T -> GraphName.name -> V.name -> string -> string option
+  val set_vertex_ud_property : string -> string -> V.name -> GraphName.name -> T -> T
+  val delete_vertex_ud_property : string -> V.name -> GraphName.name -> T -> T
+  (* Edge userdata *)
+  val lookup_edge_ud_property : T -> GraphName.name -> E.name -> string -> string option
+  val set_edge_ud_property : string -> string -> E.name -> GraphName.name -> T -> T
+  val delete_edge_ud_property : string -> E.name -> GraphName.name -> T -> T
+  (* !-box userdata *)
+  val lookup_bangbox_ud_property : T -> GraphName.name -> B.name -> string option
+  val set_bangbox_ud_property : string -> string -> B.name -> GraphName.name -> T -> T
+  val delete_bangbox_ud_property : string -> B.name -> GraphName.name -> T -> T
 
   (* Functions for metrics *)
   val set_metric : string -> T -> T;
@@ -182,7 +180,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   structure Graph = Theory.Graph;
   structure OVData = Graph.OVData;
   structure EData = Graph.EData;
-  structure GraphUserData = GraphUserData(Graph);
+  structure GraphUserData = GraphStringTableAnnotations;
+  structure RulesetUserData = RulesetStringTableAnnotations;
   structure MetController = MetricsController(structure Graph = Graph);
 
   exception no_such_graph_exp of GraphName.name;
@@ -228,7 +227,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
        merge_changes: bool GraphName.NTab.T, (* whether we create a new undo
        point when the state is modified  *)
        rset : Ruleset.T, (* the known rules *)
-       rset_uidata : (ud_unit * (GraphUserData.T * GraphUserData.T)) R.NTab.T, (* lhs and rhs uidata *)
+       rset_uidata : RulesetUserData.T, (* lhs and rhs uidata *)
        met_cont : MetController.T (* Metrics for graphs *)
   }
 
@@ -257,7 +256,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
     {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
       met_cont=mt}) = 
     CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=(f t),rset_uidata=tu,met_cont=mt} 
-  fun update_rset_uidata f (CState
+  fun update_rset_ud f (CState
     {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,
       met_cont=mt}) = 
     CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=(f tu),met_cont=mt} 
@@ -266,10 +265,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       met_cont=mt}) = 
     CState {graphs=g,rewrites=r,ud=u,hist=h,merge_changes=mg,rset=t,rset_uidata=tu,met_cont=(f mt)} 
 
-  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset,set_rset_uidata,
+  val (set_graphs,set_rewrites,set_ud,set_hist,set_merge_changes,set_rset,set_rset_ud,
     set_met_cont) = 
     (update_graphs o K, update_rewrites o K, update_ud o K,update_hist o K,
-    update_merge_changes o K, update_rset o K, update_rset_uidata o K,
+    update_merge_changes o K, update_rset o K, update_rset_ud o K,
     update_met_cont o K)
 
   fun get_graphs (CState {graphs=g,...}) = g
@@ -278,7 +277,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun get_hist (CState {hist=h,...}) = h
   fun get_merge_changes (CState {merge_changes=mg,...}) = mg
   fun get_rset (CState {rset=t,...}) = t
-  fun get_rset_uidata (CState {rset_uidata=tu,...}) = tu
+  fun get_rset_ud (CState {rset_uidata=tu,...}) = tu
   fun get_met_cont (CState {met_cont=mt,...}) = mt
 
   val init = CState {graphs=GraphName.NTab.empty,
@@ -287,7 +286,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
                          hist=GraphName.NTab.empty,
                          merge_changes=GraphName.NTab.empty,
                          rset=Ruleset.empty,
-                         rset_uidata=R.NTab.empty,
+                         rset_uidata=RulesetUserData.init,
                          met_cont = MetController.init};
 
   (* state accessors *)
@@ -302,11 +301,6 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       (case GraphName.NTab.lookup (get_ud state) name
        of SOME u => u
         | NONE => raise no_such_graph_exp name)
-
-  fun get_rule_ud state name =
-      (case R.NTab.lookup (get_rset_uidata state) name
-      of SOME rud => rud
-      | NONE => (Symtab.empty, (GraphUserData.init, GraphUserData.init)))
 
   (* state mutators *)
   fun push_hist gname tp state = 
@@ -330,8 +324,6 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun set_graph_ud ud' gname state =
       state |> update_ud (GraphName.NTab.update (gname,ud'))
 
-  fun set_rule_ud ud' rulename state =
-      state |> update_rset_uidata (R.NTab.update (rulename, ud'))
   (* ============================================== *)
   (* these functions actually implement commmands *)
 
@@ -372,16 +364,11 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
 
   (* Internal function: takes the state and updates the rset_uidata
    * against the current ruleset: removes dead user data  *)
-  fun update_rset_uidata_against state =
-    let
-      val rulenames = (R.NTab.get_nameset o Ruleset.get_allrules o get_rset) state
-      val ruleuidatanames = (R.NTab.get_nameset o get_rset_uidata) state
-      val diff = R.NSet.remove_set rulenames ruleuidatanames
-      val rset_uidata' = (R.NSet.fold (R.NTab.delete) diff) 
-                                (get_rset_uidata state)
-    in
-      state |> set_rset_uidata rset_uidata'
-    end;
+  fun update_rset_uidata_against state = let
+    val rulenames = (R.NTab.get_nameset o Ruleset.get_allrules o get_rset) state
+  in
+    update_rset_ud (RulesetUserData.cleanup rulenames) state
+  end;
 
   (* basic stuff on rule tags *)
   val list_allrules =
@@ -423,7 +410,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       let val () = assert_rule_exists state oldName
           val () = assert_rule_does_not_exist state newName
       in state |> update_rset (Ruleset.rename_rule oldName newName)
-               |> update_rset_uidata (snd o (R.NTab.rename1 oldName newName)) 
+               |> update_rset_ud (RulesetUserData.rename_rule oldName newName)
       end
 
   (* creates/replaces rule *)
@@ -432,40 +419,16 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         (* build graphs for the LHS and RHS *)
         val lgr = get_graph state lhs
         val rgr = get_graph state rhs
-        val rule = Ruleset.Rule.mk (lgr, rgr)
+        val (rule,(vrn,ern)) = Ruleset.Rule.mk_with_renamings (lgr, rgr)
         val lgr_ud = get_graph_ud state lhs
-        val rgr_ud = get_graph_ud state rhs
-
-        (* Problem: When Rule.mk is called it renames the RHS apart.
-         * Therefore, the names in rhs_ud become obsolete and we need to 
-         * rename them as well. It does not seem to be a good idea to make
-         * Rule.mk return the renamings and it involves a lot changes everywhere
-         * in the code: We rename them by hand *)
-        val lhs_boundary = Graph.get_boundary lgr
-        val ign_vnames =
-            V.NSet.union_merge
-              lhs_boundary
-              (V.NSet.subtract (Graph.get_vnames rgr)
-                                  (Graph.get_vnames lgr))
-        val ign_enames = E.NSet.subtract (Graph.get_enames rgr)
-                          (Graph.get_enames lgr)
-        val vrn = V.mk_renaming ign_vnames
-                      (V.NSet.union_merge ign_vnames
-                        (Graph.get_vnames lgr)) V.NTab.empty
-        val ern = E.mk_renaming ign_enames 
-                    (E.NSet.union_merge ign_enames (Graph.get_enames lgr))
-                    E.NTab.empty
-        (* Now we actually do the renaming *)
-        val (_,newvtab) = (V.NTab.rename vrn (GraphUserData.get_vs_ud rgr_ud)) 
-        val (_,newetab) = (E.NTab.rename ern (GraphUserData.get_es_ud rgr_ud)) 
-        val rgr_ud' = rgr_ud |> GraphUserData.set_v_ud newvtab
-                             |> GraphUserData.set_e_ud newetab
-        (* We also need to take care of the uidata attached to the rule itself *)
-        val rule_ud = fst (get_rule_ud state rule_name)
+        val rgr_ud = GraphUserData.apply_renaming
+                      (vrn,ern,B.Rnm.empty)
+                      (get_graph_ud state rhs)
+        val upd_ud = (RulesetUserData.set_rule_lhs_annotation rule_name lgr_ud)
+                     o (RulesetUserData.set_rule_rhs_annotation rule_name rgr_ud)
       in
         state |> update_rset (Ruleset.update_rule (rule_name, rule))
-              |> update_rset_uidata 
-                  (R.NTab.update (rule_name, (rule_ud, (lgr_ud, rgr_ud'))))
+              |> update_rset_ud upd_ud
       end
       handle Ruleset.Rule.bad_rule_exp _ =>
             raise bad_rule_exp "Boundaries and !-boxes on LHS must match RHS. !-boxes with the same name must bang boundary vertices with the same name."
@@ -527,14 +490,23 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       end
       handle GraphName.NTab.Tab.UNDEF _ => raise no_such_graph_exp oldname)
 
+  fun cleanup_graph_userdata gname newg state = let
+    val vs = Graph.get_vnames newg
+    val es = Graph.get_enames newg
+    val bs = Graph.get_bboxes newg
+    val cleanup = GraphUserData.cleanup (vs,es,bs)
+    val old_ud = get_graph_ud state gname
+  in
+    set_graph_ud (cleanup old_ud) gname state
+  end
+
   fun lift_graph_mutator cmdf gname state =
-      let 
+      let
           val (out,g') = cmdf (get_graph state gname)
-          val ud' = GraphUserData.update_against_graph (get_graph_ud state gname) g'
       in
         (out, state |> push_hist gname UA
                     |> set_graph g' gname
-                    |> set_graph_ud ud' gname)
+                    |> cleanup_graph_userdata gname g')
       end
       handle Graph.no_such_vname_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
@@ -554,11 +526,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
   fun lift_graph_mutator_no_result cmdf gname state =
       let 
           val g' = cmdf (get_graph state gname)
-          val ud' = GraphUserData.update_against_graph (get_graph_ud state gname) g'
       in
         state |> push_hist gname UA
               |> set_graph g' gname
-              |> set_graph_ud ud' gname
+              |> cleanup_graph_userdata gname g'
       end
       handle Graph.no_such_vname_exp (_,vname,_) =>
                raise no_such_vertex_exp (vname,gname)
@@ -656,8 +627,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
       val (out, state') = lift_graph_mutator (rename_vertex_internal old new) graph state
     in
     (* When a vertex is renamed, the ui_data as well *)
-     (out, state' 
-                |> rename_vertex_uidata old out graph)
+     (out, state' |> rename_vertex_uidata old out graph)
     end;
 
   (* Internal semi-generic function used to rename uidata
@@ -870,51 +840,43 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
    * A solution is to store that as ui_data on the vertices, edges, etc...*)
   fun copy_subgraph source target vs state = let
       val _ = map (assert_vertex_exists state source) vs
-      val clip = Graph.delete_subgraph_outside_vset 
+      val clip = Graph.delete_subgraph_outside_vset
                    (V.NSet.of_list vs)
                    (get_graph state source)
-      fun add_v_ud ud n ud' =
+      fun add_v_ud ud n =
         let
-          val v_ud = case (GraphUserData.get_v_ud ud n) of
-            SOME a => a
-            | NONE => Symtab.empty 
+          val v_ud = GraphUserData.get_vertex_annotation ud n
+          val v_ud_with_src = Symtab.update ("copy_of", V.dest n) v_ud
         in
-          ud' |> GraphUserData.update_v_ud (fn _ => v_ud) n
-              |> GraphUserData.update_v_ud (Symtab.update ("copy_of", V.dest n)) n
+          GraphUserData.set_vertex_annotation n v_ud_with_src
         end
-      fun add_e_ud ud n ud' =
+      fun add_e_ud ud n =
         let
-          val e_ud = case (GraphUserData.get_e_ud ud n) of
-            SOME a => a
-            | NONE => Symtab.empty 
+          val e_ud = GraphUserData.get_edge_annotation ud n
+          val e_ud_with_src = Symtab.update ("copy_of", E.dest n) e_ud
         in
-          ud' |> GraphUserData.update_e_ud (fn _ => e_ud) n
-              |> GraphUserData.update_e_ud (Symtab.update ("copy_of", E.dest n)) n
+          GraphUserData.set_edge_annotation n e_ud_with_src
         end
-      fun add_b_ud ud n ud' =
+      fun add_b_ud ud n =
         let
-          val b_ud = case (GraphUserData.get_bb_ud ud n) of
-            SOME a => a
-            | NONE => Symtab.empty 
+          val b_ud = GraphUserData.get_bangbox_annotation ud n
+          val b_ud_with_src = Symtab.update ("copy_of", B.dest n) b_ud
         in
-          ud' |> GraphUserData.update_bb_ud (fn _ => b_ud) n
-              |> GraphUserData.update_bb_ud (Symtab.update ("copy_of", B.dest n)) n
+          GraphUserData.set_bangbox_annotation n b_ud_with_src
         end
       val ud  = get_graph_ud state source
-      val ud' = GraphUserData.init |> fold (add_v_ud ud)
-                      (V.NSet.list_of (Graph.get_vnames clip))
-                            |> fold (add_e_ud ud)
-                      (E.NSet.list_of (Graph.get_enames clip))
-                            |> fold (add_b_ud ud)
-                      (Graph.get_bbox_list clip)
-                            |> GraphUserData.update_g_ud 
-                      (fn _ => (GraphUserData.get_g_ud ud))
-  in state |> set_graph clip target
-           |> set_graph_ud ud' target 
+      val ud' = GraphUserData.init
+           |> fold (add_v_ud ud) (V.NSet.list_of (Graph.get_vnames clip))
+           |> fold (add_e_ud ud) (E.NSet.list_of (Graph.get_enames clip))
+           |> fold (add_b_ud ud) (Graph.get_bbox_list clip)
+           |> GraphUserData.set_graph_annotation (GraphUserData.get_graph_annotation ud)
+  in
+    state |> set_graph clip target
+          |> set_graph_ud ud' target
   end
 
   (* Rename the graph apart, insert it and insert its user data as well*)
-  fun insert_graph sname tname state = 
+  fun insert_graph sname tname state =
       let
         val sarg = get_graph state sname
         val targ = get_graph state tname
@@ -922,137 +884,86 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY)
         (* Rename the ud and insert it on the new graph  *)
         val ud_s = get_graph_ud state sname
         val ud_t = get_graph_ud state tname
-        val (_,newvtab) = (V.NTab.rename vrn (GraphUserData.get_vs_ud ud_s)) 
-        val (_,newetab) = (E.NTab.rename ern (GraphUserData.get_es_ud ud_s)) 
-        val ud' = ud_t |> GraphUserData.set_v_ud newvtab
-                       |> GraphUserData.set_e_ud newetab
-                       |> GraphUserData.set_b_ud (GraphUserData.get_bs_ud ud_s) 
+        val ud_s' = GraphUserData.apply_renaming (vrn,ern,B.Rnm.empty) ud_s
+        val ud' = ud_t |> V.NTab.fold
+                          (fn (k,v) => GraphUserData.set_vertex_annotation k v)
+                          (GraphUserData.get_vertex_annotation_tab ud_s')
+                       |> E.NTab.fold
+                          (fn (k,v) => GraphUserData.set_edge_annotation k v)
+                          (GraphUserData.get_edge_annotation_tab ud_s')
+                       |> B.NTab.fold
+                          (fn (k,v) => GraphUserData.set_bangbox_annotation k v)
+                          (GraphUserData.get_bangbox_annotation_tab ud_s')
       in state |> push_hist tname UA
                |> set_graph (Graph.merge_by_vertices targ source) tname
                |> set_graph_ud ud' tname
       end
 
-  fun graph_of_rule getter pos label state rulename =
+  fun graph_of_rule getter ann_getter label state rulename =
       let
         val rset = get_rset state
         val r = case R.NTab.lookup (Ruleset.get_allrules rset) rulename
-                     of SOME v => v 
+                     of SOME v => v
                     | NONE => raise no_such_rule_exp rulename
         val (name, graphs) = GraphName.NTab.add (GraphName.mk ((R.dest rulename)^"_"^label), getter r) (get_graphs state)
       in
         (name, state
                      |> set_graphs graphs
-                     |> set_graph_ud (pos (get_rule_ud state rulename)) name)
+                     |> set_graph_ud (ann_getter (get_rset_ud state) rulename) name)
       end
 
-  val open_rule_lhs = graph_of_rule Rule.get_lhs (fst o snd) "lhs"
-  val open_rule_rhs = graph_of_rule Rule.get_rhs (snd o snd) "rhs"
+  val open_rule_lhs = graph_of_rule Rule.get_lhs RulesetUserData.get_rule_lhs_annotation "lhs"
+  val open_rule_rhs = graph_of_rule Rule.get_rhs RulesetUserData.get_rule_rhs_annotation "rhs"
 
   (* Set, delete and get the user data  *)
+
+  (* rules *)
+  fun lookup_rule_ud_property state rn prop =
+    let val () = assert_rule_exists state rn in
+      RulesetUserData.lookup_rule_property (get_rset_ud state) rn prop
+    end
+  fun set_rule_ud_property dn ud rn =
+    update_rset_ud (RulesetUserData.set_rule_property rn (dn,ud))
+  fun delete_rule_ud_property dn rn =
+    update_rset_ud (RulesetUserData.remove_rule_property rn dn)
+
   (* On Graphs:  *)
-  fun update_graph_user_data_internal dn ud user_data =
-    let
-      val updater = Symtab.update (dn, ud)
-    in
-      GraphUserData.update_g_ud updater user_data
-    end
-
-  fun update_graph_user_data dn ud = lift_ud_mutator_no_result
-    (update_graph_user_data_internal dn ud)
-
-  fun delete_graph_user_data_internal dn user_data = 
-    let
-      val updater = Symtab.delete dn
-    in
-      GraphUserData.update_g_ud updater user_data
-    end
-
-  fun delete_graph_user_data dn = lift_ud_mutator_no_result
-    (delete_graph_user_data_internal dn)
-
-  fun get_graph_user_data gn state =
-    GraphUserData.get_g_ud (get_graph_ud state gn)
+  fun lookup_graph_ud_property state gn prop =
+    GraphUserData.lookup_graph_property (get_graph_ud state gn) prop
+  fun set_graph_ud_property dn ud = lift_ud_mutator_no_result
+    (GraphUserData.set_graph_property (dn,ud))
+  fun delete_graph_ud_property dn = lift_ud_mutator_no_result
+    (GraphUserData.remove_graph_property dn)
 
   (* On Vertices:  *)
-  fun update_vertex_user_data_internal dn ud vn user_data =
-    let
-      val updater = Symtab.update (dn, ud)
-    in
-      GraphUserData.update_v_ud updater vn user_data
+  fun lookup_vertex_ud_property state gn vn prop =
+    let val () = assert_vertex_exists state gn vn in
+      GraphUserData.lookup_vertex_property (get_graph_ud state gn) vn prop
     end
-
-  fun update_vertex_user_data dn ud vn = lift_ud_mutator_no_result
-    (update_vertex_user_data_internal dn ud vn)
-
-  fun get_vertex_user_data gn vn state =
-    let
-      val () = assert_vertex_exists state gn vn
-    in
-      GraphUserData.get_v_ud (get_graph_ud state gn) vn
-    end
-
-  fun delete_vertex_user_data_internal dn vn user_data =
-    let
-      val updater = Symtab.delete dn
-    in
-      GraphUserData.update_v_ud updater vn user_data
-    end
-  fun delete_vertex_user_data dn vn = lift_ud_mutator_no_result
-    (delete_vertex_user_data_internal dn vn)
+  fun set_vertex_ud_property dn ud vn = lift_ud_mutator_no_result
+    (GraphUserData.set_vertex_property vn (dn,ud))
+  fun delete_vertex_ud_property dn vn = lift_ud_mutator_no_result
+    (GraphUserData.remove_vertex_property vn dn)
 
   (* On Edges:  *)
-  fun update_edge_user_data_internal dn ud en user_data =
-    let
-      val updater = Symtab.update (dn, ud)
-    in
-      GraphUserData.update_e_ud updater en user_data
+  fun lookup_edge_ud_property state gn en prop =
+    let val () = assert_edge_exists state gn en in
+      GraphUserData.lookup_edge_property (get_graph_ud state gn) en prop
     end
-
-  fun update_edge_user_data dn ud en = lift_ud_mutator_no_result
-    (update_edge_user_data_internal dn ud en)
-
-  fun get_edge_user_data gn en state =
-    let
-      val () = assert_edge_exists state gn en
-    in
-      GraphUserData.get_e_ud (get_graph_ud state gn) en
-    end
-
-  fun delete_edge_user_data_internal dn en user_data =
-    let
-      val updater = Symtab.delete_safe dn
-    in
-      GraphUserData.update_e_ud updater en user_data
-    end
-  fun delete_edge_user_data dn en = lift_ud_mutator_no_result
-    (delete_edge_user_data_internal dn en)
+  fun set_edge_ud_property dn ud en = lift_ud_mutator_no_result
+    (GraphUserData.set_edge_property en (dn,ud))
+  fun delete_edge_ud_property dn en = lift_ud_mutator_no_result
+    (GraphUserData.remove_edge_property en dn)
 
   (* On Bang Boxes:  *)
-  fun update_bangbox_user_data_internal dn ud bn user_data =
-    let
-      val updater = Symtab.update (dn, ud)
-    in
-      GraphUserData.update_bb_ud updater bn user_data
+  fun lookup_bangbox_ud_property state gn bn prop =
+    let val () = assert_bbox_exists state gn bn in
+      GraphUserData.lookup_bangbox_property (get_graph_ud state gn) bn prop
     end
-
-  fun update_bangbox_user_data dn ud bn = lift_ud_mutator_no_result
-    (update_bangbox_user_data_internal dn ud bn)
-
-  fun get_bangbox_user_data gn bn state =
-    let
-      val () = assert_bbox_exists state gn bn
-    in
-      GraphUserData.get_bb_ud (get_graph_ud state gn) bn
-    end
-
-  fun delete_bangbox_user_data_internal dn bn user_data =
-    let
-      val updater = Symtab.delete_safe dn
-    in
-      GraphUserData.update_bb_ud updater bn user_data
-    end
-  fun delete_bangbox_user_data dn bn = lift_ud_mutator_no_result
-    (delete_bangbox_user_data_internal dn bn)
+  fun set_bangbox_ud_property dn ud bn = lift_ud_mutator_no_result
+    (GraphUserData.set_bangbox_property bn (dn,ud))
+  fun delete_bangbox_ud_property dn bn = lift_ud_mutator_no_result
+    (GraphUserData.remove_bangbox_property bn dn)
 
   fun start_undo_group gname state =
     state |> update_merge_changes (GraphName.NTab.update (gname,true))

@@ -292,18 +292,18 @@ struct
   structure ECD = State.Theory.EdgeComponentData;
   structure Input = State.Theory.IO_Xml.Input;
   structure Output = State.Theory.IO_Xml.Output;
-  structure GraphUserDataOutput = OutputGraphUserDataXML(structure UserData = State.GraphUserData);
-  structure RulesetUserDataOutput = OutputRulesetUserDataXML(structure GraphUserData = State.GraphUserData);
+  structure GraphUserDataOutput = OutputGraphStringTableAnnotationsXML;
+  structure GraphUserDataInput = InputGraphStringTableAnnotationsXML;
+  structure RulesetUserDataOutput = OutputRulesetStringTableAnnotationsXML;
+  structure RulesetUserDataInput = InputRulesetStringTableAnnotationsXML;
   structure GraphAndUIOutput = OutputWrapXML(
               val tagname = "graph_and_user_data"
               val attrs = []
-              structure Output1 = OutputStructAndUserDataXMLList);
+              structure Output1 = OutputConcatPairXMLList);
   structure RulesetAndUIOutput = OutputWrapXML(
               val tagname = "ruleset_and_user_data"
               val attrs = []
-              structure Output1 = OutputStructAndUserDataXMLList);
-  structure GraphUserDataInput = InputGraphUserDataXML(structure UserData = State.GraphUserData);
-  structure InputRulesetUserData = InputRulesetUserDataXML(structure GraphUserData = State.GraphUserData);
+              structure Output1 = OutputConcatPairXMLList);
 
   val theoryName = State.Theory.theory_name;
 
@@ -317,14 +317,14 @@ struct
        State.set_rset rset state
 
   fun update_ruleset_ud rset_ud true state =
-      State.update_rset_uidata (R.NTab.merge_joint (K true) rset_ud) state 
+      State.update_rset_ud (State.RulesetUserData.merge rset_ud) state
     | update_ruleset_ud rset_ud _ state =
-      State.set_rset_uidata rset_ud state
+      State.set_rset_ud rset_ud state
 
   fun load_ruleset reader source replace state =
      ((OkResponse,
        state |> update_ruleset (Input.Ruleset.input (reader source)) replace 
-             |> update_ruleset_ud (InputRulesetUserData.input (reader source)) replace
+             |> update_ruleset_ud (RulesetUserDataInput.input (reader source)) replace
        )
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
@@ -467,7 +467,7 @@ struct
           (* The user data is attached to the state, so we cannot
            * put it in io_interface. Therefore we build our structures
            * are the very last moment. There should be a better way to do that
-           * as it prevents us form storing uidata on rules...*)
+           * as it prevents us form storing userdata on rules...*)
           val graph = get_graph graphName state
           val graphXMLTree = Output.Graph.output graph
           val ud = get_graph_ud graphName state
@@ -529,15 +529,11 @@ fun hilb ([format], graph) =
                     }
                | GraphUserData { dataName }=>
                     let
-                      val tab = State.get_graph_user_data
-                        (GraphName.mk graphName) state
-                      val data = Symtab.lookup tab dataName
+                      val g = GraphName.mk graphName
                     in
-                      (case data of SOME a => 
-                          DataResponse { data = a }
-                       | NONE => 
-                          raise State.no_such_graph_user_data_exp (GraphName.mk
-                          graphName, dataName))
+                       case State.lookup_graph_ud_property state g dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_graph_user_data_exp (g, dataName)
                     end
                | ListVertices =>
                     StringListResponse {
@@ -582,21 +578,14 @@ fun hilb ([format], graph) =
                               }
                     end
                | VertexUserData { vertexName, dataName } =>
-                let
-                  val tab = (case State.get_vertex_user_data (GraphName.mk
-                              graphName) (V.mk vertexName) state of
-                              SOME u => u
-                              | NONE => raise 
-                                State.no_such_vertex_user_data_exp (V.mk
-                                  vertexName,dataName))
-                  val data = (case Symtab.lookup tab dataName of
-                       SOME a => a
-                       | NONE => 
-                          raise State.no_such_vertex_user_data_exp (V.mk
-                            vertexName, dataName))
-                in
-                      DataResponse { data = data }
-                end
+                    let
+                      val g = GraphName.mk graphName
+                      val v = V.mk vertexName
+                    in
+                       case State.lookup_vertex_ud_property state g v dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_vertex_user_data_exp (v, dataName)
+                    end
                | EdgeData { edgeName, format } =>
                     let
                       val edata = G.get_edge_data graph (E.mk edgeName)
@@ -628,47 +617,33 @@ fun hilb ([format], graph) =
                               }
                     end
                | EdgeUserData { edgeName , dataName} =>
-                let
-                  val tab = (case State.get_edge_user_data (GraphName.mk
-                              graphName) (E.mk edgeName) state of
-                              SOME u => u
-                              | NONE => raise 
-                                State.no_such_edge_user_data_exp (E.mk
-                                  edgeName,dataName))
-                  val data = (case Symtab.lookup tab dataName of
-                       SOME a => a
-                       | NONE => 
-                          raise State.no_such_edge_user_data_exp (E.mk
-                            edgeName, dataName))
-                in
-                      DataResponse { data = data }
-                end
+                    let
+                      val g = GraphName.mk graphName
+                      val e = E.mk edgeName
+                    in
+                       case State.lookup_edge_ud_property state g e dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_edge_user_data_exp (e, dataName)
+                    end
                | BangBoxVertices { bangBoxName } =>
                     StringListResponse {
                       data = (map V.dest (V.NSet.list_of (G.get_bbox_contents graph (B.mk bangBoxName))))
                     }
                | BangBoxUserData { bangBoxName, dataName } =>
-                let
-                  val tab = (case State.get_bangbox_user_data (GraphName.mk
-                              graphName) (B.mk bangBoxName) state of
-                              SOME u => u
-                              | NONE => raise 
-                                State.no_such_bangbox_user_data_exp (B.mk
-                                  bangBoxName,dataName))
-                  val data = (case Symtab.lookup tab dataName of
-                       SOME a => a
-                       | NONE => 
-                          raise State.no_such_bangbox_user_data_exp (B.mk
-                            bangBoxName, dataName))
-                in
-                      DataResponse { data = data }
-                end
+                    let
+                      val g = GraphName.mk graphName
+                      val b = B.mk bangBoxName
+                    in
+                       case State.lookup_bangbox_ud_property state g b dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_bangbox_user_data_exp (b, dataName)
+                    end
 
-               | PrintUserData => 
+               | PrintUserData =>
                 let
                   val ud = State.get_graph_ud state (GraphName.mk graphName)
                 in
-                  PrettyResponse {data = State.GraphUserData.pretty_user_data ud}
+                  PrettyResponse {data = State.GraphUserData.pretty ud}
                 end
 
             ), state)
@@ -704,11 +679,11 @@ fun hilb ([format], graph) =
              State.insert_graph (GraphName.mk sourceGraphName) (GraphName.mk graphName) state)
         | SetGraphUserDataAction {dataName, userData} =>
             (OkResponse,
-              State.update_graph_user_data dataName userData
+              State.set_graph_ud_property dataName userData
               (GraphName.mk graphName) state)
         | DeleteGraphUserDataAction {dataName} =>
             (OkResponse,
-              State.delete_graph_user_data dataName (GraphName.mk graphName)
+              State.delete_graph_ud_property dataName (GraphName.mk graphName)
               state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
@@ -748,10 +723,10 @@ fun hilb ([format], graph) =
                       (ErrorResponse { errorCode = "BADDATA", message = s }, state))
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
-              State.update_vertex_user_data dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
+              State.set_vertex_ud_property dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
         | DeleteVertexUserDataAction { vertexName, dataName } =>
             (OkResponse,
-              State.delete_vertex_user_data dataName (V.mk vertexName) 
+              State.delete_vertex_ud_property dataName (V.mk vertexName) 
                 (GraphName.mk graphName) state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
@@ -788,10 +763,10 @@ fun hilb ([format], graph) =
                       (ErrorResponse { errorCode = "BADFORMAT", message = s }, state))
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
-              State.update_edge_user_data dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
+              State.set_edge_ud_property dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
         | DeleteEdgeUserDataAction { edgeName, dataName } =>
             (OkResponse,
-              State.delete_edge_user_data dataName (E.mk edgeName) 
+              State.delete_edge_ud_property dataName (E.mk edgeName)
                 (GraphName.mk graphName) state)
         | AddBangBoxAction { vertexNames, resultFormat } =>
             let
@@ -854,10 +829,10 @@ fun hilb ([format], graph) =
              State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
-              State.update_bangbox_user_data dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
+              State.set_bangbox_ud_property dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
         | DeleteBangBoxUserDataAction { bangBoxName, dataName } =>
             (OkResponse,
-              State.delete_bangbox_user_data dataName (B.mk bangBoxName) 
+              State.delete_bangbox_ud_property dataName (B.mk bangBoxName) 
                 (GraphName.mk graphName) state)
         )
 
@@ -878,9 +853,9 @@ fun hilb ([format], graph) =
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
           val ruleset_tree = (Output.Ruleset.output o State.get_rset) state
-          val uidata_tree = (RulesetUserDataOutput.output o State.get_rset_uidata) state
+          val ud_tree = (RulesetUserDataOutput.output o State.get_rset_ud) state
           val () = (XMLWriter.write_to_file fileName)
-                      (RulesetAndUIOutput.output (ruleset_tree, uidata_tree))
+                      (RulesetAndUIOutput.output (ruleset_tree, ud_tree))
         in
           (OkResponse, state)
         end
@@ -943,23 +918,16 @@ fun hilb ([format], graph) =
         (OkResponse,
          State.rename_rule (R.mk oldName) (R.mk newName) state)
     | serviceRequest' (RuleUserDataRequest { ruleName, dataName }) state =
-      let
-        val tab = fst (State.get_rule_ud state (R.mk ruleName))
-        val data = (case Symtab.lookup tab dataName of
-          SOME a => a
-          | NONE => 
-              raise State.no_such_rule_user_data_exp (R.mk ruleName, dataName))
-      in
-        (DataResponse { data = data }, state)
-      end
+        let
+          val r = R.mk ruleName
+        in
+           case State.lookup_rule_ud_property state r dataName
+             of SOME data => (DataResponse { data = data },state)
+              | NONE => raise State.no_such_rule_user_data_exp (r, dataName)
+        end
     | serviceRequest' (SetRuleUserDataRequest {ruleName, dataName, userData}) state =
-      let
-        val ud = State.get_rule_ud state (R.mk ruleName)
-        val tab = Symtab.update (dataName, userData) (fst ud) 
-        val state' = State.set_rule_ud (tab, (snd ud)) (R.mk ruleName) state
-      in
-            (OkResponse, state')
-      end
+        (OkResponse,
+         State.set_rule_ud_property dataName userData (R.mk ruleName) state)
     (* Tags *)
     | serviceRequest' (ListTagsRequest) state =
         let val tags = (State.list_tags  state) in

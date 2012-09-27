@@ -115,3 +115,11 @@ functor OutputNTabXMLList (
           (NTab.list_of ntab);
 end;
 
+structure OutputConcatPairXMLList : OUTPUT_XML_LIST
+=struct
+  type T = XML.tree list
+  type data = XML.tree * XML.tree;
+
+  fun output (t1,t2) = [t1]@[t2];
+end;
+
