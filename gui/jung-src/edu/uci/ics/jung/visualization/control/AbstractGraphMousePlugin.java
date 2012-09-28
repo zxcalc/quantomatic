@@ -66,7 +66,7 @@ public abstract class AbstractGraphMousePlugin implements GraphMousePlugin {
 	 * and extended modifiers.  Override for more control.
      */
     public boolean checkModifiers(MouseEvent e) {
-        return ((e.getModifiersEx() | e.getModifiers()) & modifiers) != 0;
+        return((e.getModifiersEx() | e.getModifiers()) & modifiers) == modifiers;
     }
 
     /**
