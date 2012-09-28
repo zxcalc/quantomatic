@@ -20,7 +20,10 @@ struct
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
   (* BasicFormat is the name of a graph or component, and the string value of
    * component data *)
-  datatype resultFormat = BasicFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  datatype resultFormat = BasicFormat
+                        | PrettyFormat
+                        | XmlFormat
+                        | DescriptionFormat;
   datatype componentData = StringCData of string
                          | XmlCData of (XML.tree list)
                          | DescriptionCData of ComponentData.T;
@@ -290,17 +293,18 @@ struct
   structure EData = State.Theory.EData;
   structure VCD = State.Theory.VertexComponentData;
   structure ECD = State.Theory.EdgeComponentData;
-  structure Input = State.Theory.IO_Xml.Input;
-  structure Output = State.Theory.IO_Xml.Output;
-  structure GraphUserDataOutput = OutputGraphStringTableAnnotationsXML;
-  structure GraphUserDataInput = InputGraphStringTableAnnotationsXML;
-  structure RulesetUserDataOutput = OutputRulesetStringTableAnnotationsXML;
-  structure RulesetUserDataInput = InputRulesetStringTableAnnotationsXML;
-  structure GraphAndUIOutput = OutputWrapXML(
+
+  structure InputXML = State.Theory.IO_Xml.Input;
+  structure OutputXML = State.Theory.IO_Xml.Output;
+  structure GraphUserDataOutputXML = OutputGraphStringTableAnnotationsXML;
+  structure GraphUserDataInputXML = InputGraphStringTableAnnotationsXML;
+  structure RulesetUserDataOutputXML = OutputRulesetStringTableAnnotationsXML;
+  structure RulesetUserDataInputXML = InputRulesetStringTableAnnotationsXML;
+  structure GraphAndUIOutputXML = OutputWrapXML(
               val tagname = "graph_and_user_data"
               val attrs = []
               structure Output1 = OutputConcatPairXMLList);
-  structure RulesetAndUIOutput = OutputWrapXML(
+  structure RulesetAndUIOutputXML = OutputWrapXML(
               val tagname = "ruleset_and_user_data"
               val attrs = []
               structure Output1 = OutputConcatPairXMLList);
@@ -323,13 +327,13 @@ struct
 
   fun load_ruleset reader source replace state =
      ((OkResponse,
-       state |> update_ruleset (Input.Ruleset.input (reader source)) replace 
-             |> update_ruleset_ud (RulesetUserDataInput.input (reader source)) replace
+       state |> update_ruleset (InputXML.Ruleset.input (reader source)) replace 
+             |> update_ruleset_ud (RulesetUserDataInputXML.input (reader source)) replace
        )
       handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-           | Input.Ruleset.bad_input_exp (s1,s2) =>
+           | InputXML.Ruleset.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
            | XMLReader.bad_input_exp msg =>
@@ -411,8 +415,8 @@ struct
     | serviceRequest' (LoadGraphRequest { details }) state =
         let fun load_graph suggestedName reader data =
                 (let
-                   val graph = (Input.Graph.input (reader data))
-                   val ud = GraphUserDataInput.input(reader data)
+                   val graph = (InputXML.Graph.input (reader data))
+                   val ud = GraphUserDataInputXML.input(reader data)
                    val name = if suggestedName = "" then GraphName.default_name else GraphName.mk suggestedName
                    val (nm,state') = State.add_graph name graph state
                    val state_ =  State.set_graph_ud ud nm state'
@@ -422,7 +426,7 @@ struct
                  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | Input.Graph.bad_input_exp (s1,s2) => 
+                      | InputXML.Graph.bad_input_exp (s1,s2) => 
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
                       | XMLReader.bad_input_exp msg =>
@@ -441,10 +445,10 @@ struct
               end
           | LoadGraphFromFileRequest { fileName } =>
              (load_graph (OS.Path.file fileName) XMLReader.read_from_file fileName
-              handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+              handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn,...} =>
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read ("^msg^")") }, state)
-                   | IO.Io {name : string, function : string, cause : exn} => 
+                   | IO.Io {name : string, function : string, ...} =>
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
           | LoadGraphFromDataRequest { data, requestedName } =>
@@ -469,20 +473,20 @@ struct
            * are the very last moment. There should be a better way to do that
            * as it prevents us form storing userdata on rules...*)
           val graph = get_graph graphName state
-          val graphXMLTree = Output.Graph.output graph
+          val graphXMLTree = OutputXML.Graph.output graph
           val ud = get_graph_ud graphName state
-          val userDataXMLTree = GraphUserDataOutput.output ud
+          val userDataXMLTree = GraphUserDataOutputXML.output ud
           val () = XMLWriter.write_to_file fileName
-                      (GraphAndUIOutput.output (graphXMLTree, userDataXMLTree))
+                      (GraphAndUIOutputXML.output (graphXMLTree, userDataXMLTree))
         in
           (OkResponse, state)
         end
-        handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse {
                   errorCode = "FILEACCESS",
                   message = ("The file could not be written to ("^msg^")")
                 }, state)
-             | IO.Io {name : string, function : string, cause : exn} => 
+             | IO.Io {name : string, function : string, ...} =>
                (ErrorResponse {
                   errorCode = "FILEACCESS",
                   message = ("The file could not be written to (unknown error in "^function^" of "^name^")")
@@ -499,11 +503,11 @@ struct
     | serviceRequest' (ExportGraphRequest { graphName, format }) state =
         let val graph = get_graph graphName state in
           if format = NativeGraphFormat then
-              let val graph_data = (XMLWriter.write_to_string o Output.Graph.output) graph in
+              let val graph_data = (XMLWriter.write_to_string o OutputXML.Graph.output) graph in
                 (DataResponse { data = graph_data}, state)
               end
           else if format = XmlGraphFormat then
-              (XmlResponse { data = Output.Graph.output graph}, state)
+              (XmlResponse { data = OutputXML.Graph.output graph}, state)
           else if format = PrettyGraphFormat then
               (PrettyResponse { data = G.pretty graph}, state)
           else (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
@@ -691,7 +695,7 @@ fun hilb ([format], graph) =
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = V.dest vn }, state')
-                 | XmlFormat => (XmlResponse { data = Output.Vertex.output v }, state')
+                 | XmlFormat => (XmlResponse { data = OutputXML.Vertex.output v }, state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
                  | DescriptionFormat =>
                      (VertexDescriptionResponse {
@@ -735,7 +739,7 @@ fun hilb ([format], graph) =
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = E.dest en }, state')
-                 | XmlFormat => (XmlResponse { data = Output.Edge.output e }, state')
+                 | XmlFormat => (XmlResponse { data = OutputXML.Edge.output e }, state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
                  | DescriptionFormat => 
                      (EdgeDescriptionResponse {
@@ -784,7 +788,7 @@ fun hilb ([format], graph) =
                                     val bbox  = (nm,verts)
                                   in
                                    (XmlResponse {
-                                      data = Output.BBox.output bbox
+                                      data = OutputXML.BBox.output bbox
                                     }, state'')
                                   end
                  | DescriptionFormat => let
@@ -840,10 +844,10 @@ fun hilb ([format], graph) =
     (* Rulesets *)
     | serviceRequest' (ImportRulesetFromFileRequest { fileName, replace }) state =
        (load_ruleset XMLReader.read_from_file fileName replace state
-        handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, cause : exn} => 
+             | IO.Io {name : string, function : string, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
 
@@ -852,22 +856,22 @@ fun hilb ([format], graph) =
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
-          val ruleset_tree = (Output.Ruleset.output o State.get_rset) state
-          val ud_tree = (RulesetUserDataOutput.output o State.get_rset_ud) state
+          val ruleset_tree = (OutputXML.Ruleset.output o State.get_rset) state
+          val ud_tree = (RulesetUserDataOutputXML.output o State.get_rset_ud) state
           val () = (XMLWriter.write_to_file fileName)
-                      (RulesetAndUIOutput.output (ruleset_tree, ud_tree))
+                      (RulesetAndUIOutputXML.output (ruleset_tree, ud_tree))
         in
           (OkResponse, state)
         end
-        handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be written to ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, cause : exn} => 
+             | IO.Io {name : string, function : string, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
 
     | serviceRequest' (ExportRulesetAsDataRequest) state =
-        let val get_rset_data = XMLWriter.write_to_string o Output.Ruleset.output o State.get_rset in
+        let val get_rset_data = XMLWriter.write_to_string o OutputXML.Ruleset.output o State.get_rset in
           (DataResponse { data = get_rset_data state }, state)
         end
 
@@ -997,7 +1001,7 @@ fun hilb ([format], graph) =
                   }, state)
              | XmlFormat =>
                  (XmlResponse {
-                    data = Output.RewriteList.output rewrites
+                    data = OutputXML.RewriteList.output rewrites
                   }, state)
              | PrettyFormat => (* ??? *)
                  (ErrorResponse {
