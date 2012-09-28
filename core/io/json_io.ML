@@ -149,6 +149,20 @@ struct
        | SOME (Json.Null) => dflt
        | NONE => dflt
        | _ => raise bad_input_exp ("Property \""^prop^"\" not a boolean","")
+
+  
+  fun input_string_table Json.Null = Symtab.empty
+    | input_string_table (Json.Object obj) =
+        let
+          fun add_entry (k,Json.String v) = Symtab.update_new (k,v)
+            | add_entry (k,Json.Int i) = Symtab.update_new (k,Int.toString i)
+            | add_entry (k,Json.Real r) = Symtab.update_new (k,Real.toString r)
+            | add_entry (_,Json.Null) = I
+            | add_entry _ = raise bad_input_exp ("Expected string","")
+        in
+          Json.fold add_entry obj Symtab.empty
+        end
+    | input_string_table _ = raise bad_input_exp ("Expected object","")
 end;
 
 structure JsonOutputUtils =
@@ -166,6 +180,14 @@ struct
                                                  of [] => I
                                                   | _ => Json.update v)
     | opt_update d = Json.update d;
+  
+  fun output_string_table tab = let
+    fun update_entry (k,v) = Json.update (k,Json.String v)
+  in
+    if Symtab.is_empty tab
+    then Json.Null
+    else Json.Object (Symtab.fold update_entry tab Json.empty_obj)
+  end;
 end
 
 functor InputNTabJSON (
