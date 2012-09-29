@@ -23,7 +23,25 @@ functor StringTableAnnotatedGraphicalTheoryIO (
 ) =
 struct
   structure Theory = Theory;
-  structure GraphComponentDataIO = GraphComponentDataIO;
+
+  structure IVDataInputJSON = GraphComponentDataIO.IVDataInputJSON;
+  structure IVDataOutputJSON = GraphComponentDataIO.IVDataOutputJSON;
+  structure VDataOutputJSON : OUTPUT_JSON =
+  struct
+    open JsonOutputUtils;
+    type data = Theory.OVData.data;
+    fun output Theory.OVData.WVert =
+          Json.Object (
+            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
+          )
+      | output (Theory.OVData.NVert d) =
+          Json.Object (
+            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
+                           |> update ("data",IVDataOutputJSON.output d)
+          )
+  end;
+  structure EDataInputJSON = GraphComponentDataIO.EDataInputJSON;
+  structure EDataOutputJSON = GraphComponentDataIO.EDataOutputJSON;
 
   structure RulesetAnnotations = RulesetStringTableAnnotations;
   structure GraphAnnotations = GraphStringTableAnnotations;
@@ -74,7 +92,25 @@ functor GraphicalTheoryIO (
 ) =
 struct
   structure Theory = Theory;
-  structure GraphComponentDataIO = GraphComponentDataIO;
+
+  structure IVDataInputJSON = GraphComponentDataIO.IVDataInputJSON;
+  structure IVDataOutputJSON = GraphComponentDataIO.IVDataOutputJSON;
+  structure VDataOutputJSON : OUTPUT_JSON =
+  struct
+    open JsonOutputUtils;
+    type data = Theory.OVData.data;
+    fun output Theory.OVData.WVert =
+          Json.Object (
+            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
+          )
+      | output (Theory.OVData.NVert d) =
+          Json.Object (
+            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
+                           |> update ("data",IVDataOutputJSON.output d)
+          )
+  end;
+  structure EDataInputJSON = GraphComponentDataIO.EDataInputJSON;
+  structure EDataOutputJSON = GraphComponentDataIO.EDataOutputJSON;
 
   structure InputGraphJSON = InputGraphJSON(
     structure Graph = Theory.Graph

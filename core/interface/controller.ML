@@ -23,13 +23,11 @@ struct
   datatype resultFormat = BasicFormat
                         | PrettyFormat
                         | XmlFormat
+                        | JsonFormat
                         | DescriptionFormat;
   datatype componentData = StringCData of string
                          | XmlCData of (XML.tree list)
                          | DescriptionCData of ComponentData.T;
-  datatype graphData = PrettyGData of Pretty.T
-                     | XmlGData of XML.tree
-                     | DescriptionGData of graphDesc;
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
@@ -137,6 +135,7 @@ struct
                        (* Native format: suitable for saving to a file and loading again *)
        and graphFormat = NativeGraphFormat
                        | XmlGraphFormat
+                       | JsonGraphFormat
                        | PrettyGraphFormat
                        | HilbertSpaceGraphFormat
                        | MathematicaGraphFormat
@@ -251,6 +250,7 @@ struct
                     | DataResponse of { data: string }
                     | PrettyResponse of { data: Pretty.T }
                     | XmlResponse of { data: XML.tree }
+                    | JsonResponse of { data: Json.json }
                     | CountResponse of { count: int }
 
                     | GraphDescriptionResponse of { graph: graphDesc }
@@ -280,7 +280,12 @@ sig
 end;
 
 
-functor Controller(Theory : GRAPHICAL_THEORY) : CONTROLLER =
+functor Controller(
+  structure Theory : GRAPHICAL_THEORY
+  structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
+  sharing type Theory.OVData.IData.data = GraphComponentDataIO.vdata
+  sharing type Theory.EData.data = GraphComponentDataIO.edata
+) : CONTROLLER =
 struct
   structure State = ControllerState(Theory);
   val cur_state = Unsynchronized.ref State.init;
@@ -293,6 +298,11 @@ struct
   structure EData = State.Theory.EData;
   structure VCD = State.Theory.VertexComponentData;
   structure ECD = State.Theory.EdgeComponentData;
+
+  structure TheoryIO = StringTableAnnotatedGraphicalTheoryIO(
+    structure Theory = Theory
+    structure GraphComponentDataIO = GraphComponentDataIO
+  );
 
   structure InputXML = State.Theory.IO_Xml.Input;
   structure OutputXML = State.Theory.IO_Xml.Output;
@@ -314,6 +324,29 @@ struct
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
   fun get_graph_ud (name:string) (state:State.T) : State.GraphUserData.T = State.get_graph_ud
     state (GraphName.mk name)
+  fun get_graph_and_ud (name:string) (state:State.T) = let
+    val gn = (GraphName.mk name)
+  in
+    (State.get_graph state gn,State.get_graph_ud state gn)
+  end
+  fun get_rule_and_ud (name:string) (state:State.T) = let
+    val rn = (R.mk name)
+    val rset = State.get_rset state
+    val rset_ud = State.get_rset_ud state
+  in
+    (Theory.Ruleset.get_rule rset rn,
+     (State.RulesetUserData.get_rule_annotation rset_ud rn,
+      (State.RulesetUserData.get_rule_lhs_annotation rset_ud rn,
+       State.RulesetUserData.get_rule_rhs_annotation rset_ud rn)))
+  end
+  fun get_rule_ud (name:string) (state:State.T) = let
+    val rn = (R.mk name)
+    val rset_ud = State.get_rset_ud state
+  in
+    (State.RulesetUserData.get_rule_annotation rset_ud rn,
+     (State.RulesetUserData.get_rule_lhs_annotation rset_ud rn,
+      State.RulesetUserData.get_rule_rhs_annotation rset_ud rn))
+  end
 
   fun update_ruleset rset true state =
        State.update_rset (Ruleset.merge rset) state
@@ -501,16 +534,21 @@ struct
         (OkResponse, State.kill_graph (GraphName.mk graphName) state)
 
     | serviceRequest' (ExportGraphRequest { graphName, format }) state =
-        let val graph = get_graph graphName state in
-          if format = NativeGraphFormat then
-              let val graph_data = (XMLWriter.write_to_string o OutputXML.Graph.output) graph in
-                (DataResponse { data = graph_data}, state)
-              end
-          else if format = XmlGraphFormat then
-              (XmlResponse { data = OutputXML.Graph.output graph}, state)
-          else if format = PrettyGraphFormat then
-              (PrettyResponse { data = G.pretty graph}, state)
-          else (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+        let
+          val v as (graph,_) = get_graph_and_ud graphName state
+        in
+          case format
+            of NativeGraphFormat =>
+                 let val graph_data = (XMLWriter.write_to_string o OutputXML.Graph.output) graph in
+                   (DataResponse { data = graph_data}, state)
+                 end
+             | XmlGraphFormat =>
+                 (XmlResponse { data = OutputXML.Graph.output graph}, state)
+             | JsonGraphFormat =>
+                 (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
+             | PrettyGraphFormat =>
+                 (PrettyResponse { data = G.pretty graph}, state)
+             | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         end
 (*
 fun hilb ([format], graph) =
@@ -576,6 +614,10 @@ fun hilb ([format], graph) =
                                   data = (XML.Elem (("data",[]),data_xml_list))
                                 }
                               end
+                         | JsonFormat =>
+                              JsonResponse {
+                                data = TheoryIO.VDataOutputJSON.output vdata
+                              }
                          | DescriptionFormat =>
                               ComponentDataResponse {
                                 data = VCD.cdata_of vdata
@@ -615,6 +657,14 @@ fun hilb ([format], graph) =
                                   data = (XML.Elem (("data",[]),data_xml_list))
                                 }
                               end
+                         | JsonFormat =>
+                              JsonResponse {
+                                data = Json.Object (
+                                  Json.update
+                                    ("data",TheoryIO.EDataOutputJSON.output edata)
+                                    Json.empty_obj
+                                )
+                              }
                          | DescriptionFormat =>
                               ComponentDataResponse {
                                 data = ECD.cdata_of edata
@@ -691,11 +741,18 @@ fun hilb ([format], graph) =
               state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
-              val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
+              val gn = GraphName.mk graphName
+              val (v as (vn,_),state') = State.add_vertex vertexType gn state
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = V.dest vn }, state')
                  | XmlFormat => (XmlResponse { data = OutputXML.Vertex.output v }, state')
+                 | JsonFormat =>
+                       (JsonResponse {
+                          data = TheoryIO.OutputGraphJSON.output_vertex
+                                  (get_graph_and_ud graphName state)
+                                  vn
+                        },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
                  | DescriptionFormat =>
                      (VertexDescriptionResponse {
@@ -740,6 +797,12 @@ fun hilb ([format], graph) =
               case resultFormat
                 of BasicFormat => (StringResponse { data = E.dest en }, state')
                  | XmlFormat => (XmlResponse { data = OutputXML.Edge.output e }, state')
+                 | JsonFormat =>
+                       (JsonResponse {
+                          data = TheoryIO.OutputGraphJSON.output_edge
+                                  (get_graph_and_ud graphName state)
+                                  en
+                        },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
                  | DescriptionFormat => 
                      (EdgeDescriptionResponse {
@@ -791,6 +854,12 @@ fun hilb ([format], graph) =
                                       data = OutputXML.BBox.output bbox
                                     }, state'')
                                   end
+                 | JsonFormat =>
+                       (JsonResponse {
+                          data = TheoryIO.OutputGraphJSON.output_bangbox
+                                  (get_graph_and_ud graphName state)
+                                  nm
+                        },state'')
                  | DescriptionFormat => let
                                           val graph = State.get_graph state'' gname
                                           val verts = G.get_bbox_contents graph nm
@@ -1002,6 +1071,11 @@ fun hilb ([format], graph) =
              | XmlFormat =>
                  (XmlResponse {
                     data = OutputXML.RewriteList.output rewrites
+                  }, state)
+             | JsonFormat => (* TODO *)
+                 (ErrorResponse {
+                    errorCode = "NOTIMP",
+                    message = "Not implemented"
                   }, state)
              | PrettyFormat => (* ??? *)
                  (ErrorResponse {

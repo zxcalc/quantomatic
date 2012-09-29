@@ -1128,6 +1128,12 @@ struct
             printDataChunk xml;
             printClose ()
           end
+      | outputResponse (requestId, JsonResponse { data }) =
+          let val xml = Json.string_of data in
+            printOpen #"J" requestId;
+            printDataChunk xml;
+            printClose ()
+          end
       | outputResponse (requestId, CountResponse { count }) =
          (printOpen #"I" requestId;
           printInt count;
