@@ -30,7 +30,7 @@ signature OVERTEX_DATA
 end;
 
 (* *)
-functor OVertexData(D : UNIFIABLE_DATA) 
+functor OVertexData(D : UNIFIABLE_DATA) : OVERTEX_DATA
 = struct
   structure IData = D; 
   
@@ -43,7 +43,7 @@ functor OVertexData(D : UNIFIABLE_DATA)
     | is_internal_data _ = false;
   
   fun apply_to_idata f (NVert x) = NVert (f x)
-    | apply_to_idata f WVert = WVert;
+    | apply_to_idata _ WVert = WVert;
 
   fun idata_of (NVert x) = SOME x
     | idata_of WVert = NONE;
@@ -57,7 +57,7 @@ functor OVertexData(D : UNIFIABLE_DATA)
   
   fun data_eq (n1, n2) = case data_ord (n1, n2) of EQUAL => true | _ => false;
   
-  fun subst_in_data u WVert = WVert
+  fun subst_in_data _ WVert = WVert
     | subst_in_data u (NVert a) = NVert (IData.subst_in_data u a);
   fun pretty_data (WVert) = 
       Pretty.block [Pretty.str "WVert"]

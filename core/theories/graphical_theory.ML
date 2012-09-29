@@ -54,6 +54,7 @@ sig
   sharing type IO_Xml.Input.Graph.data = Graph.T
   sharing type IO_Xml.Input.Rule.data = Rule.T
   sharing type IO_Xml.Input.Ruleset.data = Ruleset.T
+
 end;
 
 

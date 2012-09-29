@@ -170,6 +170,7 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
+PolyML.Project.make "io/graphical_theory_io.ML";
 
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)

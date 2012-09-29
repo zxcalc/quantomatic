@@ -9,17 +9,19 @@ end;
 
 signature DOT_STYLE =
 sig
-  structure Graph : BANG_GRAPH
-  val style_for_ivertex_data : Graph.OVData.IData.data -> string
+  type vdata;
+  val style_for_ivertex_data : vdata -> string
 end
 
 functor OutputGraphDot(
-structure DotStyle : DOT_STYLE
+  structure Graph : BANG_GRAPH
+  structure DotStyle : DOT_STYLE
+  sharing type DotStyle.vdata = Graph.OVData.IData.data
 ) : OUTPUT_DOT =
 struct
-  structure Graph = DotStyle.Graph
-  type T = string
-  type data = Graph.T
+  structure Graph = Graph;
+  type T = string;
+  type data = Graph.T;
   fun node_block graph = let
     val boxtab = Graph.get_bbox_table graph
     fun sty nm = case Graph.get_vertex graph nm
@@ -36,7 +38,7 @@ struct
       (V.NSet.fold_rev f vset
       (Pretty.str "}\n"::list))
   in B.NTab.fold box_f boxtab (V.NSet.fold_rev f (Graph.get_unbboxed graph) [])
-  end
+  end;
   
   fun edge_block graph = let
     fun f nm list = let
@@ -49,12 +51,12 @@ struct
        (Pretty.str "];\n")::list
     end
   in E.NSet.fold_rev f (Graph.get_enames graph) []
-  end
+  end;
   
   fun output graph = Pretty.string_of (Pretty.block (
     [Pretty.str "digraph G {\n"] @
     node_block graph @
     edge_block graph @
     [Pretty.str "}\n"]
-  ))
+  ));
 end
