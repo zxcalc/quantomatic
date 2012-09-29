@@ -442,7 +442,7 @@ functor OutputGraphJSON(
         and OutputEdgeData : OUTPUT_JSON
   sharing type OutputVertexData.data = Graph.OVData.IData.data
   sharing type OutputEdgeData.data = Graph.EData.data
-)  : OUTPUT_JSON
+)  : OUTPUT_GRAPH_JSON
 = struct
   structure SubOutput = OutputAnnotatedGraphJSON(
     structure Graph = Graph
@@ -453,5 +453,8 @@ functor OutputGraphJSON(
   open SubOutput;
   type data = Graph.T;
   fun output g = SubOutput.output (g,());
+  fun output_vertex g = SubOutput.output_vertex (g,());
+  fun output_edge g = SubOutput.output_edge (g,());
+  fun output_bangbox g = SubOutput.output_bangbox (g,());
 end;
 
