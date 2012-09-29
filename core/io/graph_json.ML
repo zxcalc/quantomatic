@@ -43,6 +43,32 @@
  *   of EDATA
  * - a null value is the same as omitting the element
  *
+ * output_vertex, output_edge and output_bangbox produce the following outputs:
+ * VERTEX ::=
+ * {
+ *   "name": NAME,
+ *   "is_wire_vertex": true|false,
+ *   "data": VDATA,
+ *   "annotation": ANNDATA
+ * }
+ * EDGE ::=
+ * {
+ *   "name": NAME,
+ *   "is_directed": true|false,
+ *   "src" : NAME,
+ *   "tgt" : NAME,
+ *   "data": EDATA,
+ *   "annotation": ANNDATA
+ * }
+ * BANGBOX ::=
+ * {
+ *   "name": NAME,
+ *   "contents": PLAIN_VLIST,
+ *   "parent": NAME,
+ *   "data": BBDATA,
+ *   "annotation": ANNDATA
+ * }
+ *
  * Caveats of current implementation:
  * - BBDATA and GDATA are not supported by Quantomatic at all
  *
@@ -275,6 +301,14 @@ functor InputGraphJSON(
   val input = fst o SubInput.input;
 end;
 
+signature OUTPUT_GRAPH_JSON
+= sig
+  include OUTPUT_JSON;
+  val output_vertex : data -> V.name -> T;
+  val output_edge : data -> E.name -> T;
+  val output_bangbox : data -> B.name -> T;
+end;
+
 functor OutputAnnotatedGraphJSON(
   structure Graph : BANG_GRAPH
         and OutputVertexData : OUTPUT_JSON
@@ -282,13 +316,56 @@ functor OutputAnnotatedGraphJSON(
   sharing type OutputVertexData.data = Graph.OVData.IData.data
   sharing type OutputEdgeData.data = Graph.EData.data
   structure OutputAnnotation : GRAPH_ANN_OUTPUT_JSON
-)  : OUTPUT_JSON
+)  : OUTPUT_GRAPH_JSON
 = struct
   structure G = Graph;
   structure OA = OutputAnnotation;
 
   open JsonOutputUtils;
   type data = Graph.T * OutputAnnotation.data;
+
+  fun output_vertex (g,ann) v = let
+    val (is_wv,vd) =
+      case G.get_vertex_data g v
+        of G.OVData.WVert => (true,Json.Null)
+         | G.OVData.NVert d => (false,OutputVertexData.output d);
+  in
+    Json.Object (
+      Json.empty_obj |> update ("name",Json.String (V.dest v))
+                     |> update ("is_wire_vertex",Json.Bool is_wv)
+                     |> update ("data",vd)
+                     |> update ("annotation",OA.output_vertex_annotation ann v)
+    )
+  end;
+
+  fun output_edge (g,ann) e = let
+    val ((dir,ed),(s,t)) = G.get_edge g e
+  in
+    Json.Object (
+      Json.empty_obj |> update ("name",Json.String (E.dest e))
+                     |> update ("is_directed",Json.Bool (dir = G.Directed))
+                     |> update ("src",Json.String (V.dest s))
+                     |> update ("tgt",Json.String (V.dest t))
+                     |> update ("data",OutputEdgeData.output ed)
+                     |> update ("annotation",OA.output_edge_annotation ann e)
+    )
+  end;
+
+  fun output_bangbox (g,ann) b = let
+    val add_parent =
+      case G.lookup_bbox_parent g b
+        of SOME bp => update ("parent",Json.String (B.dest bp))
+         | NONE => I;
+    val jvs = map (fn v => Json.String (V.dest v))
+                  (V.NSet.list_of (G.get_bbox_contents g b))
+  in
+    Json.Object (
+      Json.empty_obj |> update ("name",Json.String (B.dest b))
+                     |> add_parent
+                     |> update ("contents",Json.Array jvs)
+                     |> update ("annotation",OA.output_bangbox_annotation ann b)
+    )
+  end;
 
   fun get_verts (g,ann) = let
     fun vert_info v vd =
