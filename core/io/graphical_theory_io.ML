@@ -72,6 +72,16 @@ struct
     structure OutputAnnotation = OutputRulesetStringTableAnnotationsJSON.RuleAnnOutput
     structure OutputGraph = OutputGraphJSON
   );
+  structure OutputRewriteJSON = OutputAnnotatedRewriteJSON(
+    structure Rule = Theory.Rule
+    structure OutputAnnotation = OutputRulesetStringTableAnnotationsJSON.RuleAnnOutput
+    structure OutputGraph = OutputGraphJSON
+  );
+  structure OutputRewriteListJSON = OutputAnnotatedRewriteListJSON(
+    structure Rule = Theory.Rule
+    structure OutputAnnotation = OutputRulesetStringTableAnnotationsJSON
+    structure OutputRewrite = OutputRewriteJSON
+  );
   structure InputRulesetJSON = InputAnnotatedRulesetJSON(
     structure Ruleset = Theory.Ruleset
     structure InputAnnotation = InputRulesetStringTableAnnotationsJSON
@@ -133,6 +143,13 @@ struct
   structure OutputRuleJSON = OutputRuleJSON(
     structure Rule = Theory.Rule
     structure OutputGraph = OutputGraphJSON
+  );
+  structure OutputRewriteJSON = OutputRewriteJSON(
+    structure Rule = Theory.Rule
+    structure OutputGraph = OutputGraphJSON
+  );
+  structure OutputRewriteListJSON = OutputListJSON(
+    structure OutputValue = OutputRewriteJSON
   );
   structure InputRulesetJSON = InputRulesetJSON(
     structure Ruleset = Theory.Ruleset

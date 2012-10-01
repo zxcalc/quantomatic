@@ -123,6 +123,9 @@ PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
+(* rewrites *)
+PolyML.Project.make "io/rewrite_json.ML";
+
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
 

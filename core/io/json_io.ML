@@ -190,38 +190,30 @@ struct
   end;
 end
 
-functor InputNTabJSON (
-  structure Name : SNAME where type src = string
+functor InputListJSON (
   structure InputValue : INPUT_JSON
 ) : INPUT_JSON
 = struct
-  structure N = Name;
   open JsonInputUtils;
-  type data = InputValue.data N.NTab.T;
+  type data = InputValue.data list;
 
-  fun map_entry (n,v) = (N.mk n,InputValue.input v)
-      handle InputValue.bad_input_exp (m,l) =>
-        raise bad_input_exp (m,prepend_prop n l)
+  fun map_entry v = InputValue.input v
+      handle InputValue.bad_input_exp e =>
+        raise bad_input_exp e
 
-  fun input (Json.Object obj) =
-          Json.fold (N.NTab.ins o map_entry) obj N.NTab.empty
-    | input Json.Null = N.NTab.empty
-    | input _ = raise bad_input_exp ("Expected object","");
+  fun input (Json.Array arr) = map map_entry arr
+    | input Json.Null = []
+    | input _ = raise bad_input_exp ("Expected array","");
 end;
 
-functor OutputNTabJSON (
-  structure Name : SNAME where type src = string
+functor OutputListJSON (
   structure OutputValue : OUTPUT_JSON
 ) : OUTPUT_JSON
 = struct
-  structure N = Name;
   open JsonOutputUtils;
-  type data = OutputValue.data N.NTab.T;
+  type data = OutputValue.data list;
 
-  fun update_value (n,v) = Json.update (N.dest n,OutputValue.output v)
-
-  fun output tab =
-    Json.Object (N.NTab.fold update_value tab Json.empty_obj)
+  fun output arr = Json.Array (map OutputValue.output arr);
 end;
 
 structure InputUnitJSON : INPUT_JSON

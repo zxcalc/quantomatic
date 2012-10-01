@@ -1072,11 +1072,19 @@ fun hilb ([format], graph) =
                  (XmlResponse {
                     data = OutputXML.RewriteList.output rewrites
                   }, state)
-             | JsonFormat => (* TODO *)
-                 (ErrorResponse {
-                    errorCode = "NOTIMP",
-                    message = "Not implemented"
-                  }, state)
+             | JsonFormat =>
+                 let
+                   (* FIXME: the graph user data should be calculated in advance *)
+                   (*        and attached along with the rewrites *)
+                   fun annotate_rw (r,g) = (r,(g,State.GraphUserData.init))
+                   val ann_rws = map annotate_rw rewrites
+                   val rs_ud = State.get_rset_ud state
+                 in
+                   (JsonResponse {
+                      data = TheoryIO.OutputRewriteListJSON.output
+                              (ann_rws,rs_ud)
+                    }, state)
+                 end
              | PrettyFormat => (* ??? *)
                  (ErrorResponse {
                     errorCode = "NOTIMP",
