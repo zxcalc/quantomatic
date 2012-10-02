@@ -79,7 +79,7 @@ public class InteractiveGraphView
 	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
-	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
+	private List<AttachedRewrite> rewriteCache = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
 	private boolean directedEdges = false;
@@ -941,7 +941,7 @@ public class InteractiveGraphView
 				//        really threadsafe?  Probably not.
 
 				attachAllRewrites();
-				List<AttachedRewrite<CoreGraph>> rws = getRewrites();
+				List<AttachedRewrite> rws = getRewrites();
 				int count = 0;
 				int rw = 0;
 				while (rws.size() > 0
@@ -1004,7 +1004,7 @@ public class InteractiveGraphView
 	 * list on console error.
 	 * @return
 	 */
-	public List<AttachedRewrite<CoreGraph>> getRewrites() {
+	public List<AttachedRewrite> getRewrites() {
 		try {
 			rewriteCache = core.getAttachedRewrites(getGraph());
 			return rewriteCache;
@@ -1012,7 +1012,7 @@ public class InteractiveGraphView
 			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 
-		return new ArrayList<AttachedRewrite<CoreGraph>>();
+		return new ArrayList<AttachedRewrite>();
 	}
 
 	public void applyRewrite(int index) {

@@ -434,7 +434,7 @@ public class Core {
 	 * @return
 	 * @throws CoreException
 	 */
-	public Rule<CoreGraph> createRule(String ruleName, CoreGraph lhs,
+	public Rule createRule(String ruleName, CoreGraph lhs,
 			CoreGraph rhs) throws CoreException {
 		assertCoreGraph(lhs);
 		assertCoreGraph(rhs);
@@ -443,18 +443,18 @@ public class Core {
 		if (!this.ruleset.getRules().contains(ruleName)) {
 			this.ruleset.ruleAdded(ruleName, false);
 		}
-		return new Rule<CoreGraph>(ruleName, lhs, rhs);
+		return new Rule(ruleName, lhs, rhs);
 	}
 
-	public Rule<CoreGraph> openRule(String ruleName) throws CoreException {
+	public Rule openRule(String ruleName) throws CoreException {
 		CoreGraph lhs = new CoreGraph(talker.openRuleLhs(ruleName));
 		updateGraph(lhs);
 		CoreGraph rhs = new CoreGraph(talker.openRuleRhs(ruleName));
 		updateGraph(rhs);
-		return new Rule<CoreGraph>(ruleName, lhs, rhs);
+		return new Rule(ruleName, lhs, rhs);
 	}
 
-	public void saveRule(Rule<CoreGraph> rule) throws CoreException {
+	public void saveRule(Rule rule) throws CoreException {
 		if (rule.getCoreName() == null) {
 			throw new IllegalArgumentException("Rule has no name");
 		}
@@ -515,12 +515,12 @@ public class Core {
 		return talker.attachOneRewrite(graph.getCoreName(), names(vertices)) > 0;
 	}
 
-	public List<AttachedRewrite<CoreGraph>> getAttachedRewrites(CoreGraph graph)
+	public List<AttachedRewrite> getAttachedRewrites(CoreGraph graph)
 			throws CoreException {
 		String xml = talker.listAttachedRewrites(graph.getCoreName());
 		AttachedRewriteListFragmentHandler handler =
 				new AttachedRewriteListFragmentHandler(activeTheory, graph);
-		return this.<List<AttachedRewrite<CoreGraph>>>parseXml(xml, handler);
+		return this.<List<AttachedRewrite>>parseXml(xml, handler);
 	}
 
 	public void applyAttachedRewrite(CoreGraph graph, int i)

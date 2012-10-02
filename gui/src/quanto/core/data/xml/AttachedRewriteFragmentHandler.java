@@ -8,7 +8,7 @@ import quanto.core.data.AttachedRewrite;
 import quanto.core.data.CoreGraph;
 
 public class AttachedRewriteFragmentHandler
-extends DefaultFragmentHandler<AttachedRewrite<CoreGraph>> {
+extends DefaultFragmentHandler<AttachedRewrite> {
 	private enum Mode {
 		None,
 		Rewrite,
@@ -33,8 +33,8 @@ extends DefaultFragmentHandler<AttachedRewrite<CoreGraph>> {
 		return mode == Mode.None;
 	}
 
-	public AttachedRewrite<CoreGraph> buildResult() throws SAXException {
-		return new AttachedRewrite<CoreGraph>(
+	public AttachedRewrite buildResult() throws SAXException {
+		return new AttachedRewrite(
 			graph,
 			index,
 			ruleHandler.buildResult(),

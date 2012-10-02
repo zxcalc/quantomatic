@@ -17,14 +17,14 @@ import quanto.core.data.CoreGraph;
  * @author alex
  */
 public class AttachedRewriteListFragmentHandler
-extends DefaultFragmentHandler<List<AttachedRewrite<CoreGraph>>> {
+extends DefaultFragmentHandler<List<AttachedRewrite>> {
 	private enum Mode {
 		None,
 		Rewrites,
 		Rewrite
 	}
 	private Mode mode = Mode.None;
-	private List<AttachedRewrite<CoreGraph>> rewrites = null;
+	private List<AttachedRewrite> rewrites = null;
 	private int unknownElementDepth = 0;
 	private Theory theory;
 	private CoreGraph graph;
@@ -43,7 +43,7 @@ extends DefaultFragmentHandler<List<AttachedRewrite<CoreGraph>>> {
 		} else if (mode == Mode.None) {
 			if (!"rewrites".equals(localName))
 				throw new SAXException("Start of rewrites fragment expected");
-			rewrites = new LinkedList<AttachedRewrite<CoreGraph>>();
+			rewrites = new LinkedList<AttachedRewrite>();
 			mode = Mode.Rewrites;
 		} else if (mode == Mode.Rewrites) {
 			if ("rewrite".equals(localName)) {
@@ -90,7 +90,7 @@ extends DefaultFragmentHandler<List<AttachedRewrite<CoreGraph>>> {
 		return mode == Mode.None;
 	}
 
-	public List<AttachedRewrite<CoreGraph>> buildResult() throws SAXException {
+	public List<AttachedRewrite> buildResult() throws SAXException {
 		return rewrites;
 	}
 	

@@ -15,7 +15,7 @@ import quanto.core.data.Rule;
  *
  * @author alemer
  */
-public class RuleFragmentHandler extends DefaultFragmentHandler<Rule<CoreGraph>>
+public class RuleFragmentHandler extends DefaultFragmentHandler<Rule>
 {
 	private enum Mode {
 		None,
@@ -41,8 +41,8 @@ public class RuleFragmentHandler extends DefaultFragmentHandler<Rule<CoreGraph>>
         return mode == Mode.None;
     }
 
-    public Rule<CoreGraph> buildResult() throws SAXException {
-        return new Rule<CoreGraph>(name, lhs, rhs);
+    public Rule buildResult() throws SAXException {
+        return new Rule(name, lhs, rhs);
     }
 
     @Override
