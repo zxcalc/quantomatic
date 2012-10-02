@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import quanto.core.data.VertexType;
-import quanto.core.xml.TheoryHandler;
+import quanto.core.data.xml.TheoryHandler;
 
 /**
  * A theory description.

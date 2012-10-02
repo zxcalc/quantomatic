@@ -13,7 +13,7 @@ import java.util.prefs.Preferences;
 import javax.swing.event.EventListenerList;
 import org.xml.sax.SAXException;
 import quanto.core.*;
-import quanto.core.xml.TheoryHandler;
+import quanto.core.data.xml.TheoryHandler;
 import quanto.util.FileUtils;
 
 /**

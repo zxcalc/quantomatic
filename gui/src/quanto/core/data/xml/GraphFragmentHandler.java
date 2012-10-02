@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package quanto.core.xml;
+package quanto.core.data.xml;
 
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -19,8 +19,8 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 import quanto.core.data.*;
 import quanto.core.protocol.CoreTalker;
-import quanto.core.xml.EdgeFragmentHandler.EdgeData;
-import quanto.core.xml.*;
+import quanto.core.data.xml.EdgeFragmentHandler.EdgeData;
+import quanto.core.data.xml.*;
 
 /**
  * Provides a nicer interface to the core
