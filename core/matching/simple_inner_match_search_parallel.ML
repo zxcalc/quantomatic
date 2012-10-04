@@ -98,7 +98,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
   (*****************************************)
   
 
-  fun u_circles_in_tgt data ms = let
+  fun u_circles_in_tgt ms = let
     val tgt = MatchState.get_tgt ms
   in fold (fn (s,t,_,_) =>
        if G.is_wire_vertex tgt s andalso V.name_eq (s,t) andalso      (* is a circle *)
@@ -120,7 +120,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
            fun m_circ ct = let
              val ctdata = G.get_vertex_data tgt ct
              val et = (the o E.NSet.tryget_singleton) (G.get_in_edges tgt ct)
-             val _ = Log.logf 4 (fn () => ind lvl "Attempting to match circle ("^
+             val _ = logf data 4 (fn () => ind lvl "Attempting to match circle ("^
                 (V.string_of_name cp)^ ","^(E.string_of_name ep)^") against ("^
                 (V.string_of_name ct)^","^(E.string_of_name et)^")") ()
              val ((etdir,etdata),_) = G.get_edge tgt et
@@ -140,10 +140,18 @@ functor MJB_SimpleInnerMatchSearchParallel(
                       Seq.empty)
            end
         (*BRANCH POINT*)
-         in Seq.maps m_circ (V.NSet.fold Seq.cons (u_circles_in_tgt data ms) Seq.empty)
+         in
+          if (lvl=0) then
+          (
+          Par_Seq.sequential_seq_of (
+          Par_Seq.maps (fn _ => fn a =>
+            Par_Seq.of_sequential_seq data (m_circ a)) (
+          Par_Seq.of_sequential_seq data (V.NSet.fold Seq.cons (u_circles_in_tgt ms) Seq.empty))))
+          else
+          Seq.maps m_circ (V.NSet.fold Seq.cons (u_circles_in_tgt ms) Seq.empty)
          end
        | NONE => (* no circles left to match, return match state *)
-                 (Log.log 2 "== All circles matched"; Seq.single ms)
+                 (log data 2 "== All circles matched"; Seq.single ms)
   end
   val match_circles = match_circles' (Future.new_future_data (SOME "<-Circles")) 0
   
@@ -236,7 +244,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
   end
     
   fun match_pending' data doomedf match_state = let
-    val _ = Log.log 2 "== Starting inner match"
+    val _ = log data 2 "== Starting inner match"
   
     (* main matching loop *)
     fun match_main data lvl ms = let
@@ -268,7 +276,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
              | NONE => Seq.empty
       (*BRANCH POINT*)
       in
-        if (lvl=0) then
+        if (lvl<=1) then
           (
           Par_Seq.sequential_seq_of (
           Par_Seq.maps (fn fd => fn a => 
@@ -441,7 +449,14 @@ functor MJB_SimpleInnerMatchSearchParallel(
                end
            | NONE => Seq.empty
       end
-    in Seq.maps (match_bw data) edges
+    in
+      (*Parallelise at the lower levels*)
+      if (lvl<=1) then
+        Par_Seq.sequential_seq_of(
+        Par_Seq.maps (fn fd => fn a => Par_Seq.of_sequential_seq fd (match_bw fd a)) (
+        Par_Seq.of_sequential_seq data edges))
+      else
+        Seq.maps (match_bw data) edges
     end
   end
   val match_bare_wires = match_bare_wires' (Future.new_future_data (SOME "<-Bare wires")) 0

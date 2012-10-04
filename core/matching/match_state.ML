@@ -487,7 +487,7 @@ functor OGraphMatchState(
     V.NSet.eq (VInjEndo.get_domset (get_vmap ms)) (G.get_vnames (get_pat ms)) andalso
     E.NSet.eq (EInjEndo.get_domset (get_emap ms)) (G.get_enames (get_pat ms)) andalso
     V.NSet.is_empty (get_p_nodeverts ms)
-  
+                
   fun schedule_all ms = let
     val pat = get_pat ms
     val wires = G.get_wire_list pat

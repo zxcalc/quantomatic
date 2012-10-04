@@ -1,7 +1,7 @@
 (* A wrapper for matching concrete graphs against concrete graphs *)
 (* see docs/matching_algo for details *)
 (* This wrapper is very simple, as the InnerMatchSearch does all the work *)
-functor ConcreteMatchSearch(
+functor MJB_ConcreteMatchSearch(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
 ) : MATCH_SEARCH =
 struct
@@ -9,6 +9,10 @@ struct
 
   structure MatchState = InnerMatchSearch.MatchState
   structure G = InnerMatchSearch.G
+  
+  (*For ease of use*)
+  structure Future = MJB_Simple_Future;
+  structure Par_Seq = MJB_Safe_Parallel_Seq;
   
   (* We can't provide any information that the inner match search
    * does not already know *)
@@ -18,9 +22,15 @@ struct
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
   fun do_match ms =
-    Seq.filter MatchState.is_total
-       (Seq.maps InnerMatchSearch.match_bare_wires
-        (InnerMatchSearch.match_pending concrete_doomedf ms))
+    let
+      val data = Future.new_future_data (SOME "<-Concrete wrapper")
+      val sq = InnerMatchSearch.match_pending concrete_doomedf ms in
+    Par_Seq.sequential_seq_of (
+    Par_Seq.filter (fn _ => fn m => MatchState.is_total m)
+       (Par_Seq.maps (fn fd => fn m =>
+        Par_Seq.of_sequential_seq fd (InnerMatchSearch.match_bare_wires m))
+        (Par_Seq.of_sequential_seq data sq)))
+    end
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -36,7 +46,6 @@ struct
     do_match ms
   end
   fun match pat tgt = let
-    val _ = PolyML.print "matching concrete!!";
     val pat' = G.normalise pat
     val tgt' = G.normalise tgt
   in match_normalised pat' tgt' end

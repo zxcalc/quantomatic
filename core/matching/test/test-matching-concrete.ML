@@ -156,8 +156,8 @@ local
             |> G.add_named_edge (E.mk "c") undir_edge b a
             |> G.add_named_edge (E.mk "b") undir_edge b a
             |> G.add_named_edge (E.mk "a") undir_edge d b
-  val x_isom_lhs = g
-
+  val x_isom_lhs = g      
+  
   val g = G.empty;
   val va = V.mk "Va"
   val vb = V.mk "Vb"

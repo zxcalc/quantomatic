@@ -13,12 +13,34 @@ local
   structure Greedy_M = Test_GreedyMatcher;
   structure Inner_M = Test_InnerMatcher;
   structure Inner_BG_M = Test_BGInnerMatcher;
+  structure MatchState = Inner_M.MatchState;
   (*Parallel versions:*)
   structure Inner_Parallel_M = MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_MatchState);
-  structure Concrete_Parallel_M = ConcreteMatchSearch(structure InnerMatchSearch = Inner_Parallel_M);
+  structure Concrete_Parallel_M = MJB_ConcreteMatchSearch(structure InnerMatchSearch = Inner_Parallel_M);
+  structure Inner_BG_Parallel_M =
+  MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
+  structure Greedy_Parallel_M = MJB_GreedyMatchSearchParallel(
+    
+  (*structure InnerMatchSearch = Inner_BG_Parallel_M (*Uses parallel atm*)*)
+    structure InnerMatchSearch = Inner_BG_M;
+    structure BGMatchState = Test_BGMatchState);
+  
   (*Other useful structures:*)
   structure Stopwatch = MJB_Stopwatch; (*For timing things*)
   structure File = MJB_File; (*For writing to files*)
+  structure Future = MJB_Simple_Future;
+  
+  fun infinite() = infinite()
+  (*Wrap a sequential function to make it behave more "fairly"*)
+  fun wrap_sequential sq =
+    fn() =>(
+    let
+      val f1 = Future.future infinite;
+      val f2 = Future.future infinite;
+      val f3 = Future.future infinite
+    in
+      (sq();Future.cancel f1;Future.cancel f2;Future.cancel f3)
+    end)
   
   (*The type of a print function*)
   type print = G.T -> G.T -> Time.time -> unit
@@ -26,13 +48,86 @@ local
   (*Construct a random target graph (no bang boxes) with n vertices.*)
   fun random_target n = add_edges (add_vertices empty (n,n)) Directed (0,n*n)
   fun complete_target n = add_edges (add_vertices empty (n,n)) Directed (n*n,n*n)
+  (*Construct a target graph with the given number of circles.*)
+  fun circles_target n = add_circles empty (n,n)
+  
+  (*Construct a railtrack graph. This is essentially a group of pattern three (rail) graphs joined
+  together, and results in a large number of matches.
+  
+  Note: matching grows unexpectedly quickly! The number of matches can be computed with this formula
+  
+  A(0)= 0; A(K+1) = ((2*K)*A(K)) + 1
+  *)
+  fun railtrack_target n =
+    let
+      fun rails _ _ 0 g = g
+        | rails w1 w2 n g = (*The previous wire vertices to add rail to...*)
+          let
+            (*Add the necessary vertices...*)
+            val w3 = unique_V_name g;
+            val g = add_wire_vertex w3 g;
+            val w4 = unique_V_name g;
+            val g = add_wire_vertex w4 g;
+            val n1 = unique_V_name g;
+            val g = add_node_vertex n1 g;
+            val n2 = unique_V_name g;
+            val g = add_node_vertex n2 g;
+          in
+            (*Add the edges to form the rest of the graph...*)
+            rails w3 w4 (n-1) (
+              g |> add_edge_dir w1 n1
+                |> add_edge_dir n1 w3
+                |> add_edge_dir w2 n2
+                |> add_edge_dir n2 w4
+                |> add_edge_dir n1 n2
+                |> add_edge_dir n2 n1)
+          end
+    in
+      if (n=0) then G.empty else
+        (*Create the first two wire vertices...*)
+        let
+          val g = G.empty;
+          val w1 = unique_V_name g;
+          val g = add_wire_vertex w1 g;
+          val w2 = unique_V_name g;
+          val g = add_wire_vertex w2 g
+        in
+          rails w1 w2 n g
+        end
+    end
   
   (*Other helpful functions*)
   
-  (*Force the evaluation of all the matches, and return as a list*)
+  (*Note: the pattern graph should come first when matching with the greedy
+  algorithm.*)
+  
+  (*Force the evaluation of all the matches, and return the results as a list*)
   fun match_all_concrete g1 g2 = Seq.list_of (Concrete_M.match g1 g2)
   fun match_all_greedy g1 g2 = Seq.list_of (Greedy_M.match g1 g2)
-  fun match_all_parallel_concrete g1 g2 = Seq.list_of (Concrete_Parallel_M.match g1 g2)
+  (*Wrapped version of the sequential algorithm*)
+  fun match_all_concrete_wrapped g1 g2 = (wrap_sequential (fn () => (
+    let val ls = Seq.list_of (Concrete_M.match g1 g2) in
+    PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));() end))) ()
+  fun match_all_greedy_wrapped g1 g2 =
+    (wrap_sequential (fn () => (
+    let val ls = Seq.list_of (Greedy_M.match g1 g2) in
+    PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));() end))) ()
+  (*Parallel version!*)
+  fun match_all_parallel_concrete g1 g2 = let
+    val n = List.length (Seq.list_of (Concrete_Parallel_M.match g1 g2))
+    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+  fun match_all_parallel_greedy g1 g2 = let
+    val n = List.length (Seq.list_of (Greedy_Parallel_M.match g1 g2))
+    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+  
+  (*Force the evaluation of all matching circles only, and return the results as a list*)
+  fun match_all_circles_concrete g1 g2 = Seq.list_of (
+    Seq.filter MatchState.is_total (Inner_M.match_circles (
+    MatchState.init_and_schedule_all (G.normalise g1) (G.normalise g2))))
+  fun match_all_circles_parallel_concrete g1 g2 = Seq.list_of (
+    Seq.filter MatchState.is_total (Inner_Parallel_M.match_circles (
+    MatchState.init_and_schedule_all (G.normalise g1) (G.normalise g2))))
+  
   (*Create a list of numbers between the specified range*)
   fun --- (n1,n2) = if (n1>n2) then --- (n2,n1) else
     if (n1=n2) then [n1] else n1::(---(n1+1,n2))
@@ -87,6 +182,8 @@ in
   for testing purposes*)
   structure MJB_Test_Predfined_Graphs =
   struct
+    (*A graph with a fixed number of circles*)
+    val circle_graph = circles_target 4
     (*Input/output wire vertices:*)
     val W_input = create_vertex "input";
     val W_output1 = create_vertex "output1";
@@ -168,6 +265,36 @@ in
             |> add_node_vertex N_2
             |> add_edge_dir N_1 W_1 (*Edges*)
             |> add_edge_dir W_1 N_2
+            
+    (*The square graph, with the left half surrounded by a bang box*)
+    val pattern_graph2 = concrete_graph1
+            |> add_bbox B_1
+            |> add_vertex_to_bbox B_1 N_1
+            |> add_vertex_to_bbox B_1 N_2
+            
+    (*A "rail". Due to a misunderstanding with what is considereda match, this pattern will match
+    well against rail track like graphs. The rail can be copied and connected together*)
+    val pattern_graph3 =
+      empty |> add_wire_vertex W_1 (*Wire vertices*)
+            |> add_wire_vertex W_2
+            |> add_wire_vertex W_3
+            |> add_wire_vertex W_4
+            |> add_node_vertex N_1 (*Node vertices*)
+            |> add_node_vertex N_2
+            |> add_edge_dir W_1 N_1 (*Edges*)
+            |> add_edge_dir N_1 W_2
+            |> add_edge_dir N_1 N_2
+            |> add_edge_dir N_2 N_1
+            |> add_edge_dir W_3 N_2
+            |> add_edge_dir N_2 W_4
+            |> add_bbox B_1 (*To surround the whole graph*)
+            |> add_vertex_to_bbox B_1 W_1
+            |> add_vertex_to_bbox B_1 W_2
+            |> add_vertex_to_bbox B_1 W_3
+            |> add_vertex_to_bbox B_1 W_4
+            |> add_vertex_to_bbox B_1 N_1
+            |> add_vertex_to_bbox B_1 N_2
+            
   end;
   
   (*A structure contain various print functions:*)
@@ -211,15 +338,26 @@ in
       end
   end;
   
-  (*This structure contains functions designed to test the speed of the
-  concrete matching algorithm. Note that none of these functions are run
+  (*This structure contains functions designed to test the speeds of the
+  various matching algorithms. Note that none of these functions are run
   unless explicitly called, since these are generally time consuming.
   Therefore, they're not run at compile time!*)
-  structure MJB_Test_Concrete_Speed =
+  structure MJB_Test_Matching_Speed =
   struct
     structure Graphs = MJB_Test_Predfined_Graphs;
     structure Printers = MJB_Printers;
     structure File_Aux = Printers.File_Aux;
+    
+    (*Wrap a sequential function to make it behave more "fairly"*)
+  fun wrap_sequential sq =
+    fn() =>(
+    let
+      val f1 = Future.future infinite;
+      val f2 = Future.future infinite;
+      val f3 = Future.future infinite
+    in
+      (sq();Future.cancel f1;Future.cancel f2;Future.cancel f3)
+    end)
     
     (*This function is used to wrap up tests to control the log levels
     inside the matching algorithms and to close the file...
@@ -233,6 +371,8 @@ in
         val inner_BG_Log = (!Inner_BG_M.Log.level_ref);
         val concrete_Parallel_Log = (!Concrete_Parallel_M.Log.level_ref);
         val inner_Parallel_Log = (!Inner_Parallel_M.Log.level_ref);
+        val greedy_Parallel_Log = (!Greedy_Parallel_M.Log.level_ref);
+        val inner_BG_Parallel_Log = (!Inner_BG_Parallel_M.Log.level_ref);
         (*Set the log levels to prevent information being written anywhere*)
         val _ = Concrete_M.Log.level_ref:=(~100000);
         val _ = Greedy_M.Log.level_ref:=(~100000);
@@ -240,6 +380,8 @@ in
         val _ = Inner_BG_M.Log.level_ref:=(~100000);
         val _ = Concrete_Parallel_M.Log.level_ref:=(~100000);
         val _ = Inner_Parallel_M.Log.level_ref:=(~100000);
+        val _ = Greedy_Parallel_M.Log.level_ref:=(~100000);
+        val _ = Inner_BG_Parallel_M.Log.level_ref:=(~100000);
       in
         (
         (*If the flag is true erase the contents of the file*)
@@ -253,6 +395,8 @@ in
         Inner_BG_M.Log.level_ref:=inner_BG_Log;
         Inner_Parallel_M.Log.level_ref:=inner_Parallel_Log;
         Concrete_Parallel_M.Log.level_ref:=concrete_Parallel_Log;
+        Greedy_Parallel_M.Log.level_ref:=greedy_Parallel_Log;
+        Inner_BG_Parallel_M.Log.level_ref:=inner_BG_Parallel_Log;
         ()
         )
       end
@@ -297,51 +441,79 @@ in
     
     (*Testing the square against random target
     graphs produced over a range of vertices...*)
-    fun test_with_square (low,high) repeat =
+    fun test_with_square_concrete (low,high) repeat =
       wrap_test (fn() =>
-      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_concrete)
+      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_concrete_wrapped)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
     graphs produced over a range of vertices...*)
-    fun test_with_square_complete (low,high) repeat =
+    fun test_with_square_concrete_complete (low,high) repeat =
       wrap_test (fn() =>
-      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_concrete)
+      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_concrete_wrapped)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
     graphs produced over a range of vertices
     PARALLEL version*)
-    fun test_with_square_parallel (low,high) repeat =
+    fun test_with_square_concrete_parallel (low,high) repeat =
       wrap_test (fn() =>
       test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_parallel_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
     graphs produced over a range of vertices...*)
-    fun test_with_square_complete_parallel (low,high) repeat =
+    fun test_with_square_concrete_complete_parallel (low,high) repeat =
       wrap_test (fn() =>
       test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_parallel_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Test the parallel and sequential algorithms on the same random graphs!*)
-    fun test_with_square_together (low,high) repeat =
+    fun test_with_square_concrete_together (low,high) repeat =
       wrap_test (fn() =>
-      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer random_target match_all_parallel_concrete match_all_concrete)
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer random_target match_all_parallel_concrete match_all_concrete_wrapped)
       true (*Erase the contents of the result file for each test*)
     
     (*Test the parallel and sequential algorithms together on complete graphs*)
-    fun test_with_square_together_complete (low,high) repeat =
+    fun test_with_square_concrete_together_complete (low,high) repeat =
       wrap_test (fn() =>
-      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer complete_target match_all_parallel_concrete match_all_concrete)
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer complete_target match_all_parallel_concrete match_all_concrete_wrapped)
       true (*Erase the contents of the result file for each test*)
-  end;
-  
-  (*This structure contains functions designed to test the speed
-  of the greedy match algorithm. Again, no functions are run at compile
-  time.*)
-  structure MJB_Test_Greedy_Speed =
-  struct
-    (**)
+      
+    (*Test the parallel and sequential algorithms together
+    for graphs consisting of only circles. The integer range supplied
+    will be used such that only one graph contains that many circles
+    (so the pattern graph is in a sense still fixed)*)
+    fun test_with_circles_concrete_together (low,high) repeat = 
+      wrap_test (fn() =>
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.circle_graph Printers.pair_printer circles_target match_all_circles_parallel_concrete match_all_circles_concrete)
+      true (*Erase the contents of the result file for each test*)
+    
+    (*Test the greedy matching algorithm! Random graphs against the fixed pattern graph*)
+    fun test_with_rail_greedy_together (low,high) bare_wires repeat =
+      wrap_test (fn() =>
+      test_together (range_fixed_repeats (low,high) repeat) (add_bare_wires Graphs.pattern_graph3 (bare_wires,bare_wires)) Printers.pair_printer railtrack_target match_all_parallel_greedy match_all_greedy)
+      true
+      
+    (*Some issues with the correctness of the matching algorithm have been found... This does a few checks...*)
+    fun test_correctness g1 g2 =
+      PolyML.print("Number was " ^ Int.toString(
+      List.length (Seq.list_of (
+      Test_ConcreteMatcher.match g1 g2))))
+      
+    (*REMOVE*)
+    val complete_target = complete_target
+    (*REMOVE*)
+    fun run() = let
+    val _ = Concrete_M.Log.level_ref:=(~100000);
+        val _ = Greedy_M.Log.level_ref:=(~100000);
+        val _ = Inner_M.Log.level_ref:=(~100000);
+        val _ = Inner_BG_M.Log.level_ref:=(~100000);
+        val _ = Concrete_Parallel_M.Log.level_ref:=(~100000);
+        val _ = Inner_Parallel_M.Log.level_ref:=(~100000);
+        val _ = Greedy_Parallel_M.Log.level_ref:=(~100000);
+        val _ = Inner_BG_Parallel_M.Log.level_ref:=(~100000);
+    in
+    test_correctness Graphs.concrete_graph1 (complete_target 4) end
   end;
 end;

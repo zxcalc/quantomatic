@@ -136,14 +136,17 @@ PolyML.Project.make "matching/inner_match_search.ML";
 PolyML.Project.make "matching/match_search.ML";
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching/simple_inner_match_search.ML";
-(*MJB: a parallel version of the simple inner loop for the matching algo*)
+(*MJB: a parallel version of the simple inner loop for the matching algorithm*)
 PolyML.Project.make "matching/simple_inner_match_search_parallel.ML";
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
 PolyML.Project.make "matching/concrete_match_search.ML";
+(*MJB: parallel version of the concrete matching wrapper*)
+PolyML.Project.make "matching/concrete_match_search_parallel.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
-
+(*MJB: a parallel version of the greedy matching algorithm*)
+PolyML.Project.make "matching/greedy_match_search_parallel.ML";
 
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
@@ -234,6 +237,12 @@ PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 Testing.make_test "io/test/load_ruleset-test.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
 Testing.make_test "test/regression-tests.ML";
+
+(*MJB additional tests for the parallel lazy sequence and the compactor*)
+Testing.make_test "../../isaplib/Concurrent/test/test-par_seq.ML";
+(*Order important - share testing tools*)
+Testing.make_test "../../isaplib/Concurrent/test/test-compactor.ML";
+Testing.make_test "../../isaplib/Concurrent/test/test-par_tree.ML";
 
 (* Test to make sure example code for playing with graphs at the ML level 
    are working. *)
