@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import quanto.core.ParseException;
+import quanto.core.Theory;
 
 /**
  *
@@ -62,7 +64,7 @@ public class Rule implements CoreObject {
 		userData.put(k, v);
 	}
 	
-	public void updateFromJson(JsonNode node) throws ParseException {
+	public void updateFromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -76,7 +78,7 @@ public class Rule implements CoreObject {
 		if (lhs != null) {
 			lhs.updateFromJson(lhsNode);
 		} else {
-			lhs = CoreGraph.fromJson(null, lhsNode);
+			lhs = CoreGraph.fromJson(theory, null, lhsNode);
 		}
 		
 		JsonNode rhsNode = node.get("rhs");
@@ -85,7 +87,7 @@ public class Rule implements CoreObject {
 		if (rhs != null) {
 			rhs.updateFromJson(rhsNode);
 		} else {
-			rhs = CoreGraph.fromJson(null, rhsNode);
+			rhs = CoreGraph.fromJson(theory, null, rhsNode);
 		}
 
 		JsonNode annotationNode = node.get("annotation");
@@ -98,7 +100,7 @@ public class Rule implements CoreObject {
 		}
 	}
 	
-	public static Rule fromJson(JsonNode node) throws ParseException {
+	public static Rule fromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -107,14 +109,14 @@ public class Rule implements CoreObject {
 			throw new ParseException("Standalone rule had no name");
 
 		Rule rule = new Rule();
-		rule.updateFromJson(node);
+		rule.updateFromJson(theory, node);
 		return rule;
 	}
 
-	static Rule fromJson(String name, JsonNode desc) throws ParseException {
+	static Rule fromJson(Theory theory, String name, JsonNode desc) throws ParseException {
 		Rule rule = new Rule();
 		rule.name = name;
-		rule.updateFromJson(desc);
+		rule.updateFromJson(theory, desc);
 		return rule;
 	}
 }

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.awt.geom.Point2D;
 import java.util.HashMap;
+import quanto.core.ParseException;
+import quanto.core.Theory;
 
 
 public class Vertex extends GraphElement {
@@ -62,14 +64,14 @@ public class Vertex extends GraphElement {
 		if (data == null)
 			return "";
 		else
-			return data.getStringValue();
+			return data.getDisplayString();
 	}
 
 	public boolean isBoundaryVertex() {
 		return this.vertexType == null;
 	}
 	
-	public void updateFromJson(JsonNode node) throws ParseException {
+	public void updateFromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -81,10 +83,10 @@ public class Vertex extends GraphElement {
 		if (isWvNode == null || !isWvNode.isBoolean())
 			throw new ParseException("Standalone vertex did not have is_wire_vertex");
 		
-		updateFromJson(isWvNode.asBoolean(), node);
+		updateFromJson(theory, isWvNode.asBoolean(), node);
 	}
 	
-	public static Vertex fromJson(JsonNode node) throws ParseException {
+	public static Vertex fromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -93,21 +95,26 @@ public class Vertex extends GraphElement {
 			throw new ParseException("Standalone vertex had no name");
 
 		Vertex vertex = new Vertex(nameNode.textValue());
-		vertex.updateFromJson(node);
+		vertex.updateFromJson(theory, node);
 		
 		return vertex;
 	}
 	
-	void updateFromJson(boolean isWireVertex, JsonNode node) throws ParseException {
+	void updateFromJson(Theory theory, boolean isWireVertex, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
 		if (isWireVertex) {
 			vertexType = null;
+			data = null;
 		} else {
 			JsonNode dataNode = node.get("data");
-			// FIXME: how do we parse the data?
-			// This is somewhat theory-dependent
+			vertexType = theory.getVertexType(dataNode);
+			GraphElementDataType dataType = vertexType.getDataType();
+			if (dataType == null)
+				data = null;
+			else
+				data = dataType.parseData(dataNode);
 		}
 
 		JsonNode annotationNode = node.get("annotation");
@@ -120,9 +127,9 @@ public class Vertex extends GraphElement {
 		}
 	}
 
-	static Vertex fromJson(String name, boolean isWireVertex, JsonNode desc) throws ParseException {
+	static Vertex fromJson(Theory theory, String name, boolean isWireVertex, JsonNode desc) throws ParseException {
 		Vertex vertex = new Vertex(name);
-		vertex.updateFromJson(isWireVertex, desc);
+		vertex.updateFromJson(theory, isWireVertex, desc);
 		return vertex;
 	}
 }

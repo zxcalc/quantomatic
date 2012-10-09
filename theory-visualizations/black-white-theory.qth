@@ -1,19 +1,19 @@
-<theory name="Black/White" implements="ghz_w">
-  <nodetype name="GHZ">
-    <data type="None"></data>
-	<mnemonic key="g"/>
-    <visualization>
-	   <node svgFile="white.svg">
-		</node>
-    </visualization>
-  </nodetype>
-
-  <nodetype name="W">
-    <data type="None"></data>
-	<mnemonic key="w"/>
-    <visualization>
-	 	<node svgFile="black.svg">
-		</node>
-    </visualization>
-  </nodetype>
- </theory>
+{
+	"name": "Black/White",
+	"coreName": "ghz_w",
+	"vertexTypePath": "",
+	"vertexTypes": {
+		"ghz": {
+			"mnemonic": "g",
+			"visualization": {
+				"node": "white.svg"
+			}
+		},
+		"w": {
+			"mnemonic": "w",
+			"visualization": {
+				"node": "black.svg"
+			}
+		}
+	}
+}

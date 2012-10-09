@@ -1,26 +1,19 @@
 package quanto.core;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.event.EventListenerList;
 import org.apache.commons.collections15.CollectionUtils;
 import org.apache.commons.collections15.Transformer;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
 import quanto.core.data.*;
 import quanto.core.protocol.CoreTalker;
-import quanto.core.data.xml.EdgeFragmentHandler.EdgeData;
-import quanto.core.data.xml.*;
 
 /**
  * Provides a nicer interface to the core
@@ -34,27 +27,7 @@ public class Core {
 	private CoreTalker talker;
 	private Theory activeTheory;
 	private Ruleset ruleset;
-
-	private <T> T parseXml(String xml, FragmentHandler<? extends T> handler) throws CoreException {
-		try {
-			InputSource source = new InputSource(new StringReader(xml));
-			XMLReader reader = XMLReaderFactory.createXMLReader();
-			SAXFragmentAdaptor<T> adaptor = new SAXFragmentAdaptor<T>(handler);
-			reader.setContentHandler(adaptor);
-			reader.parse(source);
-			return adaptor.getResult();
-		} catch (SAXParseException ex) {
-			logger.log(Level.SEVERE, "Failed to parse from core", ex);
-			throw new CoreCommunicationException("Could not parse XML from the core", ex);
-		} catch (SAXException ex) {
-			logger.log(Level.SEVERE, "Error when parsing XML", ex);
-			throw new CoreCommunicationException("Failed to parse XML", ex);
-		} catch (IOException ex) {
-			// this should never happen!
-			logger.log(Level.SEVERE, "Error when reading from a String", ex);
-			throw new CoreCommunicationException("Failed to read XML from String", ex);
-		}
-	}
+	private ObjectMapper jsonMapper = new ObjectMapper();
 
 	public Core(CoreTalker talker) throws CoreException {
 		this.talker = talker;
@@ -142,11 +115,11 @@ public class Core {
 	}
 
 	public CoreGraph createEmptyGraph() throws CoreException {
-		return new CoreGraph(talker.loadEmptyGraph());
+		return new CoreGraph(activeTheory, talker.loadEmptyGraph());
 	}
 
 	public CoreGraph loadGraph(File location) throws CoreException, IOException {
-		CoreGraph g = new CoreGraph(talker.loadGraphFromFile(location.getAbsolutePath()));
+		CoreGraph g = new CoreGraph(activeTheory, talker.loadGraphFromFile(location.getAbsolutePath()));
 		updateGraph(g);
 		g.setFileName(location.getAbsolutePath());
 		return g;
@@ -159,9 +132,16 @@ public class Core {
 	}
 
 	public void updateGraph(CoreGraph graph) throws CoreException {
-		String xml = talker.exportGraphAsXml(graph.getCoreName());
-		parseXml(xml, new GraphFragmentHandler(activeTheory, graph));
-		graph.fireStateChanged();
+		try {
+			String json = talker.exportGraphAsJson(graph.getCoreName());
+			JsonNode node = jsonMapper.readValue(json, JsonNode.class);
+			graph.updateFromJson(node);
+			graph.fireStateChanged();
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Failed to parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Failed to parse JSON from core", ex);
+		}
 	}
 
 	public enum RepresentationType {
@@ -243,12 +223,19 @@ public class Core {
 
 	public Vertex addVertex(CoreGraph graph, String vertexType)
 			throws CoreException {
-		assertCoreGraph(graph);
-		String xml = talker.addVertex(graph.getCoreName(), vertexType);
-		Vertex v = this.<Vertex>parseXml(xml, new VertexFragmentHandler(activeTheory));
-		graph.addVertex(v);
-		graph.fireStateChanged();
-		return v;
+		try {
+			assertCoreGraph(graph);
+			String json = talker.addVertex(graph.getCoreName(), vertexType);
+			JsonNode node = jsonMapper.readTree(json);
+			Vertex v = Vertex.fromJson(activeTheory, node);
+			graph.addVertex(v);
+			graph.fireStateChanged();
+			return v;
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		}
 	}
 
 	public Vertex addBoundaryVertex(CoreGraph graph) throws CoreException {
@@ -259,7 +246,7 @@ public class Core {
 			throws CoreException {
 		assertCoreGraph(graph);
 		talker.setVertexData(graph.getCoreName(), v.getCoreName(), angle);
-		v.getData().setValue(angle);
+		v.getData().setString(angle);
 		graph.fireStateChanged();
 	}
 
@@ -275,23 +262,30 @@ public class Core {
 
 	public Edge addEdge(CoreGraph graph, boolean directed, Vertex source, Vertex target)
 			throws CoreException {
-		assertCoreGraph(graph);
-		String xml = talker.addEdge(graph.getCoreName(),
-				"unit",
-				directed,
-				source.getCoreName(),
-				target.getCoreName());
-		EdgeData e = this.<EdgeData>parseXml(xml, new EdgeFragmentHandler());
+		try {
+			assertCoreGraph(graph);
+			String json = talker.addEdge(graph.getCoreName(),
+					"unit",
+					directed,
+					source.getCoreName(),
+					target.getCoreName());
+			JsonNode node = jsonMapper.readTree(json);
+			Edge.EdgeData ed = Edge.fromJson(activeTheory, node);
 
-		if (!source.getCoreName().equals(e.sourceName)) {
-			throw new CoreException("Source name from core did not match what we sent");
+			if (!source.getCoreName().equals(ed.source)) {
+				throw new CoreException("Source name from core did not match what we sent");
+			}
+			if (!target.getCoreName().equals(ed.target)) {
+				throw new CoreException("Target name from core did not match what we sent");
+			}
+			graph.addEdge(ed.edge, source, target);
+			graph.fireStateChanged();
+			return ed.edge;
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
 		}
-		if (!target.getCoreName().equals(e.targetName)) {
-			throw new CoreException("Target name from core did not match what we sent");
-		}
-		graph.addEdge(e.edge, source, target);
-		graph.fireStateChanged();
-		return e.edge;
 	}
 
 	public void deleteEdges(CoreGraph graph, Collection<Edge> edges)
@@ -447,9 +441,9 @@ public class Core {
 	}
 
 	public Rule openRule(String ruleName) throws CoreException {
-		CoreGraph lhs = new CoreGraph(talker.openRuleLhs(ruleName));
+		CoreGraph lhs = new CoreGraph(activeTheory, talker.openRuleLhs(ruleName));
 		updateGraph(lhs);
-		CoreGraph rhs = new CoreGraph(talker.openRuleRhs(ruleName));
+		CoreGraph rhs = new CoreGraph(activeTheory, talker.openRuleRhs(ruleName));
 		updateGraph(rhs);
 		return new Rule(ruleName, lhs, rhs);
 	}
@@ -517,10 +511,24 @@ public class Core {
 
 	public List<AttachedRewrite> getAttachedRewrites(CoreGraph graph)
 			throws CoreException {
-		String xml = talker.listAttachedRewrites(graph.getCoreName());
-		AttachedRewriteListFragmentHandler handler =
-				new AttachedRewriteListFragmentHandler(activeTheory, graph);
-		return this.<List<AttachedRewrite>>parseXml(xml, handler);
+		try {
+			String json = talker.listAttachedRewrites(graph.getCoreName());
+			JsonNode rewritesNode = jsonMapper.readTree(json);
+			if (!rewritesNode.isArray()) {
+				throw new ParseException("Expected array");
+			}
+			List<AttachedRewrite> rws = new ArrayList<AttachedRewrite>(rewritesNode.size());
+			int i = 0;
+			for (JsonNode node : rewritesNode) {
+				rws.add(AttachedRewrite.fromJson(graph, i, node));
+				++i;
+			}
+			return rws;
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		}
 	}
 
 	public void applyAttachedRewrite(CoreGraph graph, int i)

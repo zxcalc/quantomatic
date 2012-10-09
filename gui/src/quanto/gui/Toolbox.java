@@ -164,7 +164,7 @@ public class Toolbox extends JPanel {
 						//Using a trick because highlightSubgraph
 						//does not highlight a subgraph but it's 
 						//graph - subgraph. 
-						CoreGraph subGraph = new CoreGraph();
+						CoreGraph subGraph = new CoreGraph(graph.getTheory());
 						for (Vertex subV : graph.getVertices()) {
 							subGraph.addVertex(subV);
 						}

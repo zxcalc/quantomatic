@@ -15,8 +15,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 
+import quanto.core.data.GraphElementData;
 import quanto.core.data.VertexType;
-import quanto.gui.TexConstants;
+import quanto.core.data.TexConstants;
 
 @SuppressWarnings("serial")
 public class Labeler extends JPanel implements MouseListener, KeyListener, FocusListener {
@@ -24,20 +25,19 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	JLabel label;
 	JTextField textField;
 	JComponent active;
-	String value;
 	ChangeEvent evt;
 	Point idealLocation;
-	VertexType.DataType dataType;
+	GraphElementData data;
 
-	public Labeler(VertexType.DataType dataType, String value) {
+	public Labeler(GraphElementData data) {
 		setLayout(new BorderLayout());
-		this.dataType = dataType;
+		this.data = data;
 		evt = new ChangeEvent(this);
 		label = new JLabel();
 		label.setOpaque(false);
 		setColor(Color.yellow);
 		textField = new JTextField();
-		setText(value);
+		label.setText(data.getDisplayString());
 
 		addMouseListener(this);
 		textField.addKeyListener(this);
@@ -48,21 +48,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	}
 
 	public Labeler(String value) {
-		setLayout(new BorderLayout());
-		this.dataType = VertexType.DataType.String;
-		evt = new ChangeEvent(this);
-		label = new JLabel();
-		label.setOpaque(false);
-		setColor(Color.yellow);
-		textField = new JTextField();
-		setText(value);
-
-		addMouseListener(this);
-		textField.addKeyListener(this);
-		textField.addFocusListener(this);
-		active = label;
-		add(active, BorderLayout.CENTER);
-		refresh();
+		this(new GraphElementData(value));
 	}
 
 	@Override
@@ -78,7 +64,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		idealLocation = p;
 	}
 
-	public void setColor(Color c) {
+	public final void setColor(Color c) {
 		setBackground(c);
 		setBorder(new LineBorder(c, 1));
 	}
@@ -131,18 +117,20 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 		setBounds(new Rectangle(getPreferredSize()));
 		repaint();
 	}
-
-	public String getText() {
-		return value;
+	
+	public void update() {
+		label.setText(data.getDisplayString());
+		textField.setText(data.getEditableString());
+		refresh();
 	}
 
-	public void setText(String text) {
-		value = text;
-		if (dataType == VertexType.DataType.MathExpression) {
-			label.setText(TexConstants.translate(value));
-		} else if (dataType == VertexType.DataType.String) {
-			label.setText(value);
-		}
+	public String getText() {
+		return data.getEditableString();
+	}
+
+	public final void setText(String text) {
+		data.setString(text);
+		label.setText(data.getDisplayString());
 		refresh();
 	}
 

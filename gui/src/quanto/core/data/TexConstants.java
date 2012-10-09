@@ -1,4 +1,4 @@
-package quanto.gui;
+package quanto.core.data;
 
 import java.util.HashMap;
 import java.util.Map;

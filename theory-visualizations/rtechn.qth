@@ -1,23 +1,29 @@
-<theory name="isaplanner_rtechn" implements="isaplanner_rtechn">
-
-  <nodetype name="RT">
-    <data type="String"></data>
-	<mnemonic key="r"/>
-    <visualization>
-	   <node svgFile="red.svg">
-		</node>
-      <label fill="#ff0000"/>
-    </visualization>
-  </nodetype>
-
-  <nodetype name="Gs">
-    <data type="String"></data>
-	<mnemonic key="g"/>
-    <visualization>
-	 	<node svgFile="blue.svg">
-		</node>
-      <label fill="#0000ff"/>
-    </visualization>
-  </nodetype>
-
-</theory>
+{
+	"name": "IsaPlanner Graph Tactics",
+	"coreName": "isaplanner_rtechn",
+	"vertexTypePath": "type",
+	"vertexTypes": {
+		"tactic": {
+			"labelPath": "tactic",
+			"labelDataType": "String",
+			"mnemonic": "t",
+			"visualization": {
+				"node": "red.svg",
+				"label": {
+					"fill": "#ff9696"
+				}
+			}
+		},
+		"goal": {
+			"labelPath": "goal_type",
+			"labelDataType": "String",
+			"mnemonic": "g",
+			"visualization": {
+				"node": "blue.svg",
+				"label": {
+					"fill": "#9696ff"
+				}
+			}
+		}
+	}
+}

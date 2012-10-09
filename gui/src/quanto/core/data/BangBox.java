@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import quanto.core.ParseException;
+import quanto.core.Theory;
 
 
 /**
@@ -28,7 +30,7 @@ public class BangBox extends GraphElement {
 		Collection<String> contents;
 	}
 	
-	public static BangBoxData fromJson(JsonNode node) throws ParseException {
+	public static BangBoxData fromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -37,10 +39,10 @@ public class BangBox extends GraphElement {
 			throw new ParseException("Standalone BangBox had no name");
 
 		BangBox BangBox = new BangBox(nameNode.textValue());
-		return BangBox.updateFromJson(node);
+		return BangBox.updateFromJson(theory, node);
 	}
 	
-	BangBoxData updateFromJson(JsonNode node) throws ParseException {
+	BangBoxData updateFromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -86,8 +88,8 @@ public class BangBox extends GraphElement {
 		return bbd;
 	}
 	
-	static BangBoxData fromJson(String name, JsonNode desc) throws ParseException {
+	static BangBoxData fromJson(Theory theory, String name, JsonNode desc) throws ParseException {
 		BangBox BangBox = new BangBox(name);
-		return BangBox.updateFromJson(desc);
+		return BangBox.updateFromJson(theory, desc);
 	}
 }

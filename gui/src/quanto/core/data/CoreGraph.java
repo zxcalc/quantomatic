@@ -18,19 +18,23 @@ import javax.swing.event.ChangeListener;
 
 import edu.uci.ics.jung.visualization.util.ChangeEventSupport;
 import java.util.Iterator;
+import quanto.core.ParseException;
+import quanto.core.Theory;
 
 public class CoreGraph extends DirectedSparseBangBoxMultigraph<Vertex, Edge, BangBox>
 implements CoreObject, ChangeEventSupport {
 
 	private static final long serialVersionUID = -1519901566511300787L;
-	protected String name;
-	protected final Set<ChangeListener> changeListeners;
+	private Theory theory;
+	private String name;
+	private final Set<ChangeListener> changeListeners;
 	private Map<String, String> userData = new HashMap<String, String>();
 	
 	private String fileName = null; // defined if this graph is backed by a file
 	private boolean saved = true; // true if this graph has been modified since last saved
 
-	public CoreGraph(String name) {
+	public CoreGraph(Theory theory, String name) {
+		this.theory = theory;
 		this.name = name;
 		this.changeListeners = Collections.synchronizedSet(
 				new HashSet<ChangeListener>());
@@ -40,8 +44,12 @@ implements CoreObject, ChangeEventSupport {
 	 * Use this constructor for unnamed graphs. The idea is you
 	 * should do null checks before sending the name to the core.
 	 */
-	public CoreGraph() {
-		this(null);
+	public CoreGraph(Theory theory) {
+		this(theory, null);
+	}
+
+	public Theory getTheory() {
+		return theory;
 	}
 
 	public Map<String,Vertex> getVertexMap() {
@@ -167,10 +175,10 @@ implements CoreObject, ChangeEventSupport {
 				String vname = entry.asText();
 				Vertex v = oldVMap.get(vname);
 				if (v != null) {
-					v.updateFromJson(isWv, MissingNode.getInstance());
+					v.updateFromJson(theory, isWv, MissingNode.getInstance());
 					oldVMap.remove(vname);
 				} else {
-					v = Vertex.fromJson(vname, isWv, MissingNode.getInstance());
+					v = Vertex.fromJson(theory, vname, isWv, MissingNode.getInstance());
 					addVertex(v);
 				}
 				newVMap.put(vname, v);
@@ -182,10 +190,10 @@ implements CoreObject, ChangeEventSupport {
 				String vname = entry.getKey();
 				Vertex v = oldVMap.get(vname);
 				if (v != null) {
-					v.updateFromJson(isWv, entry.getValue());
+					v.updateFromJson(theory, isWv, entry.getValue());
 					oldVMap.remove(vname);
 				} else {
-					v = Vertex.fromJson(vname, isWv, entry.getValue());
+					v = Vertex.fromJson(theory, vname, isWv, entry.getValue());
 					addVertex(v);
 				}
 				newVMap.put(vname, v);
@@ -206,10 +214,14 @@ implements CoreObject, ChangeEventSupport {
 			Edge e = oldEMap.get(entry.getKey());
 			Edge.EdgeData ed;
 			if (e != null) {
-				ed = e.updateFromJson(isDirected, entry.getValue());
+				ed = e.updateFromJson(theory, isDirected, entry.getValue());
+				if (getSource(e) != newVMap.get(ed.source) || getDest(e) != newVMap.get(ed.target)) {
+					removeEdge(e);
+					addEdge(ed.edge, newVMap.get(ed.source), newVMap.get(ed.target));
+				}
 				oldEMap.remove(entry.getKey());
 			} else {
-				ed = Edge.fromJson(entry.getKey(), isDirected, entry.getValue());
+				ed = Edge.fromJson(theory, entry.getKey(), isDirected, entry.getValue());
 				if (!newVMap.containsKey(ed.source))
 					throw new ParseException("Source of edge " + entry.getKey() + " does not exist");
 				if (!newVMap.containsKey(ed.target))
@@ -230,10 +242,10 @@ implements CoreObject, ChangeEventSupport {
 			BangBox bb = oldBBMap.get(entry.getKey());
 			BangBox.BangBoxData bbd;
 			if (bb != null) {
-				bbd = bb.updateFromJson(entry.getValue());
+				bbd = bb.updateFromJson(theory, entry.getValue());
 				oldBBMap.remove(entry.getKey());
 			} else {
-				bbd = BangBox.fromJson(entry.getKey(), entry.getValue());
+				bbd = BangBox.fromJson(theory, entry.getKey(), entry.getValue());
 				addBangBox(bbd.bangBox, Collections.EMPTY_SET);
 			}
 			ArrayList<Vertex> contents = new ArrayList<Vertex>(bbd.contents.size());
@@ -283,8 +295,8 @@ implements CoreObject, ChangeEventSupport {
 		}
 	}
 	
-	public static CoreGraph fromJson(String name, JsonNode node) throws ParseException {
-		CoreGraph graph = new CoreGraph(name);
+	public static CoreGraph fromJson(Theory theory, String name, JsonNode node) throws ParseException {
+		CoreGraph graph = new CoreGraph(theory, name);
 		graph.updateFromJson(node);
 		return graph;
 	}

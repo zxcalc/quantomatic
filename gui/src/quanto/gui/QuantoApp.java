@@ -337,7 +337,7 @@ public class QuantoApp {
 					"Could not open theory file; cannot proceed",
 					ex);
 			System.exit(1);
-		} catch (SAXException ex) {
+		} catch (ParseException ex) {
 			DetailedErrorDialog.showDetailedErrorDialog(null,
 					"Open theory",
 					"Corrupted theory file; cannot proceed",

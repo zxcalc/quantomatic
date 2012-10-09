@@ -356,6 +356,12 @@ class ResponseReader {
         return resp;
     }
 
+    private Response parseJsonResponseBody(String requestId) throws ProtocolException, IOException {
+        Response resp = new Response(Response.MessageType.Json, requestId);
+        resp.setStringData(utf8ToString(readDataBlock()));
+        return resp;
+    }
+
     private Response parseCountResponseBody(String requestId) throws ProtocolException, IOException {
         Response resp = new Response(Response.MessageType.Count, requestId);
         resp.setIntData(readIntToEscape());
@@ -422,6 +428,8 @@ class ResponseReader {
                 resp = parsePrettyResponseBody(requestId);
             else if (code.equals("X"))
                 resp = parseXmlResponseBody(requestId);
+            else if (code.equals("J"))
+                resp = parseJsonResponseBody(requestId);
             else if (code.equals("I"))
                 resp = parseCountResponseBody(requestId);
             else if (code.equals("N"))

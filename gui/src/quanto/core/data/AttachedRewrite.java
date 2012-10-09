@@ -6,6 +6,7 @@
 package quanto.core.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import quanto.core.ParseException;
 
 /**
  *
@@ -55,12 +56,12 @@ public class AttachedRewrite {
 		JsonNode ruleNode = node.get("rule");
 		if (ruleNode == null || ruleNode.isNull())
 			throw new ParseException("No rhs given for rule");
-		Rule rule = Rule.fromJson(ruleNode);
+		Rule rule = Rule.fromJson(graph.getTheory(), ruleNode);
 		
 		JsonNode newGraphNode = node.get("rule");
 		if (newGraphNode == null || newGraphNode.isNull())
 			throw new ParseException("No rhs given for rule");
-		CoreGraph newGraph = CoreGraph.fromJson(null, newGraphNode);
+		CoreGraph newGraph = CoreGraph.fromJson(graph.getTheory(), null, newGraphNode);
 		
 		return new AttachedRewrite(graph, index, rule, newGraph);
 	}

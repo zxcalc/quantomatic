@@ -128,9 +128,8 @@ public class InteractiveGraphView
 						viewer.getGraphLayout().transform(qVertex));
 
 				Labeler labeler;
-				String label;
 				if (qVertex.isBoundaryVertex()) {
-					label = qVertex.getCoreName();
+					String label = qVertex.getCoreName();
 					labeler = components.get(qVertex);
 					if (labeler == null) {
 						labeler = new Labeler(label);
@@ -163,13 +162,14 @@ public class InteractiveGraphView
 								}
 							}
 						});
+					} else {
+						labeler.setText(label);
 					}
 				} else {
-					label = qVertex.getData().getStringValue();
 					// lazily create the labeler
 					labeler = components.get(qVertex);
 					if (labeler == null) {
-						labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
+						labeler = new Labeler(qVertex.getData());
 						components.put(qVertex, labeler);
 						viewer.add(labeler);
 						Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
@@ -189,10 +189,10 @@ public class InteractiveGraphView
 								}
 							}
 						});
+					} else {
+						labeler.update();
 					}
 				}
-
-				labeler.setText(label);
 
 				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),

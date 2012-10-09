@@ -19,6 +19,7 @@ class Response {
         RawData,
         Pretty,
         Xml,
+        Json,
         Count,
         Name,
         NameList,
@@ -163,6 +164,7 @@ class Response {
             case StructuredData: return "S";
             case UserData: return "U";
             case Xml: return "X";
+            case Json: return "J";
             case UnknownRequest: return "Z";
             case UnknownResponse: return stringData;
         }

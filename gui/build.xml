@@ -49,11 +49,15 @@
     <exec executable="make" dir="../core" failonerror="true">
       <arg value="bin" />
     </exec>
+    <mkdir dir="generated/org/lindenb/svg/path"/>
+    <javacc target="lindenb-src/org/lindenb/svg/path/SVGPathParser.jj" javacchome="lib" outputdirectory="generated/org/lindenb/svg/path"/>
   </target>
   <target name="compile" depends="init" description="Compile Quantomatic">
     <javac destdir="${build}" includeantruntime="false">
       <src path="src" />
       <src path="jung-src" />
+      <src path="lindenb-src" />
+      <src path="generated" />
       <classpath refid="quanto.classpath.build" />
     </javac>
     <copy todir="${build}">
@@ -88,6 +92,8 @@
     <javac destdir="${build.debug}" includeantruntime="false" debug="true">
       <src path="src" />
       <src path="jung-src" />
+      <src path="lindenb-src" />
+      <src path="generated" />
       <classpath refid="quanto.classpath.build" />
       <compilerarg value="-Xlint:unchecked" />
       <compilerarg value="-Xlint:deprecation" />
@@ -110,10 +116,9 @@
       <zipfileset src="${lib}/iText-5.0.6.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/collections-generic-4.01.jar" excludes="META-INF/**" />
       <zipfileset src="${lib}/colt-1.2.0.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jackson-annotations-2.0.6.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jackson-core-2.0.6.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/jackson-databind-2.0.6.jar" excludes="META-INF/**" />
-      <zipfileset src="${lib}/svgSiren.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jackson-annotations-2.1.0.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jackson-core-2.1.0.jar" excludes="META-INF/**" />
+      <zipfileset src="${lib}/jackson-databind-2.1.0.jar" excludes="META-INF/**" />
       <fileset dir="${resources}"/>
       <manifest>
         <attribute name="Main-Class" value="quanto.gui.QuantoApp" />

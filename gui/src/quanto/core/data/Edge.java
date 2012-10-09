@@ -3,6 +3,8 @@ package quanto.core.data;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.HashMap;
+import quanto.core.ParseException;
+import quanto.core.Theory;
 
 /**
  * An edge
@@ -32,7 +34,7 @@ public class Edge extends GraphElement {
 		public String target;
 	}
 	
-	public EdgeData updateFromJson(JsonNode node) throws ParseException {
+	public EdgeData updateFromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -44,10 +46,10 @@ public class Edge extends GraphElement {
 		if (dirNode == null || !dirNode.isBoolean())
 			throw new ParseException("Standalone edge had no 'is_directed' property");
 		
-		return updateFromJson(dirNode.asBoolean(), node);
+		return updateFromJson(theory, dirNode.asBoolean(), node);
 	}
 	
-	public static EdgeData fromJson(JsonNode node) throws ParseException {
+	public static EdgeData fromJson(Theory theory, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -60,10 +62,10 @@ public class Edge extends GraphElement {
 			throw new ParseException("Standalone edge had no 'is_directed' property");
 
 		Edge edge = new Edge(nameNode.textValue(), dirNode.asBoolean());
-		return edge.updateFromJson(dirNode.asBoolean(), node);
+		return edge.updateFromJson(theory, dirNode.asBoolean(), node);
 	}
 	
-	EdgeData updateFromJson(boolean isDirected, JsonNode node) throws ParseException {
+	EdgeData updateFromJson(Theory theory, boolean isDirected, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
 
@@ -97,8 +99,8 @@ public class Edge extends GraphElement {
 		return ed;
 	}
 	
-	static EdgeData fromJson(String name, boolean isDirected, JsonNode desc) throws ParseException {
+	static EdgeData fromJson(Theory theory, String name, boolean isDirected, JsonNode desc) throws ParseException {
 		Edge edge = new Edge(name, isDirected);
-		return edge.updateFromJson(isDirected, desc);
+		return edge.updateFromJson(theory, isDirected, desc);
 	}
 }
