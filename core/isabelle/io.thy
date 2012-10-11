@@ -15,8 +15,8 @@ loaded over it. Alternatively, make an xml2 library. *)
  "../../core/io/xml_output_utils.ML"
  "../../core/io/input_generic.ML"
  "../../core/io/output_generic.ML"
- "../../core/io/input_string.ML"
- "../../core/io/output_string.ML"
+ "../../core/io/input_xml.ML"
+ "../../core/io/output_xml.ML"
  "../../core/io/input_linrat.ML"
  "../../core/io/output_linrat.ML"
  "../../core/io/reader.ML"
@@ -28,15 +28,12 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* boilerplate data functors for enumerated datatypes *)
  "../../core/theories/enum_data.ML"
 
-(* Storing UI data on graphs, vertices, !-Boxes and edges *)
- "../../core/interface/user_data.ML"
-
 (* I/O for graphs *)
- "../../core/io/input_user_data.ML"
- "../../core/io/output_user_data.ML"
  "../../core/io/input_graph_v2.ML"
  "../../core/io/output_graph_v2.ML"
- "../../core/io/input_ruleset_user_data.ML"
+
+ "../../core/io/input_graph_annotations.ML"
+ "../../core/io/output_graph_annotations.ML"
 
 (* basic definition of a rewrite rule (as a pair of graphs) *)
  "../../core/rewriting/rule.ML"
@@ -47,6 +44,10 @@ loaded over it. Alternatively, make an xml2 library. *)
  "../../core/theories/ruleset.ML"
  "../../core/io/input_ruleset.ML"
  "../../core/io/output_ruleset.ML"
+ "../../core/theories/ruleset_annotations.ML"
+ "../../core/io/input_ruleset_annotations.ML"
+ "../../core/io/output_ruleset_annotations.ML"
+
 
 (* package all IO stuff into one place *)
  "../../core/io/io_interface.ML"
