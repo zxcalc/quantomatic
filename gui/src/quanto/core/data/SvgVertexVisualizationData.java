@@ -27,10 +27,9 @@ public class SvgVertexVisualizationData implements VertexVisualizationData {
 		this.labelColor = labelColor;
 		shape = doc.getElementShape("boundary");
 		if (shape == null) {
-			Dimension2D dim = doc.getSize();
-			shape = new Rectangle2D.Double(0, 0, dim.getWidth(), dim.getHeight());
+			shape = doc.getBounds();
 		}
-		cachedIcon = doc.createIcon(24, 24);
+		cachedIcon = doc.createIcon();
 	}
 
 	public SVGDocument getSvgDocument() {

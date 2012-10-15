@@ -99,7 +99,9 @@ public class Theory {
 	 */
 	public VertexType getVertexType(JsonNode data) {
 		if (vertexTypePath != null) {
-			JsonNode typeNode = data.get(vertexTypePath);
+			JsonNode typeNode = data;
+			if (vertexTypePath.length() > 0)
+				typeNode = data.get(vertexTypePath);
 			if (typeNode == null || !typeNode.isTextual()) {
 				throw new IllegalArgumentException("Data did not have a type selector at '" + vertexTypePath + "'");
 			}
@@ -345,49 +347,53 @@ public class Theory {
 		boolean resDirIsTheoryParent = resourceDirectory.equals(theoryFile.getParentFile());
 
 		JsonGenerator jg = jf.createGenerator(theoryFile, JsonEncoding.UTF8);
-		jg.writeStartObject();
-		jg.writeObjectField("name", name);
-		jg.writeObjectField("coreName", coreName);
-		if (vertexTypePath != null) {
-			jg.writeObjectField("vertexTypePath", vertexTypePath);
-		}
-		jg.writeFieldName("vertexTypes");
-		jg.writeStartObject();
-		for (VertexType vt : vertexTypes.values()) {
-			jg.writeFieldName(vt.getTypeName());
+		try {
 			jg.writeStartObject();
-			GraphElementDataType dt = vt.getDataType();
-			if (dt != null) {
-				jg.writeObjectField("labelPath", dt.getDataPath());
-				jg.writeObjectField("labelDataType", dt.getTypeName());
+			jg.writeObjectField("name", name);
+			jg.writeObjectField("coreName", coreName);
+			if (vertexTypePath != null) {
+				jg.writeObjectField("vertexTypePath", vertexTypePath);
 			}
-			if (vt.getMnemonic() != null) {
-				jg.writeObjectField("mnemonic", vt.getMnemonic().toString());
-			}
-			jg.writeFieldName("visualization");
+			jg.writeFieldName("vertexTypes");
 			jg.writeStartObject();
-			SvgVertexVisualizationData svgVisData = (SvgVertexVisualizationData) vt.getVisualizationData();
-			SVGDocument svgDoc = svgVisData.getSvgDocument();
-			String svgFileName = encodeString(vt.getTypeName()) + ".svg";
-			File svgFile = new File(resourceDirectory, svgFileName);
-			writeXMLResource(svgDoc.getDocument(), svgFile);
-			if (resDirIsTheoryParent) {
-				jg.writeObjectField("node", svgFileName);
-			} else {
-				jg.writeObjectField("node", svgFile.toURI());
-			}
-			if (svgVisData.getLabelColour() != null) {
-				jg.writeFieldName("label");
+			for (VertexType vt : vertexTypes.values()) {
+				jg.writeFieldName(vt.getTypeName());
 				jg.writeStartObject();
-				Color fill = svgVisData.getLabelColour();
-				jg.writeObjectField("fill", colorToString(fill));
-				jg.writeEndObject(); // label
+				GraphElementDataType dt = vt.getDataType();
+				if (dt != null) {
+					jg.writeObjectField("labelPath", dt.getDataPath());
+					jg.writeObjectField("labelDataType", dt.getTypeName());
+				}
+				if (vt.getMnemonic() != null) {
+					jg.writeObjectField("mnemonic", vt.getMnemonic().toString());
+				}
+				jg.writeFieldName("visualization");
+				jg.writeStartObject();
+				SvgVertexVisualizationData svgVisData = (SvgVertexVisualizationData) vt.getVisualizationData();
+				SVGDocument svgDoc = svgVisData.getSvgDocument();
+				String svgFileName = encodeString(vt.getTypeName()) + ".svg";
+				File svgFile = new File(resourceDirectory, svgFileName);
+				writeXMLResource(svgDoc.getDocument(), svgFile);
+				if (resDirIsTheoryParent) {
+					jg.writeObjectField("node", svgFileName);
+				} else {
+					jg.writeObjectField("node", svgFile.toURI());
+				}
+				if (svgVisData.getLabelColour() != null) {
+					jg.writeFieldName("label");
+					jg.writeStartObject();
+					Color fill = svgVisData.getLabelColour();
+					jg.writeObjectField("fill", colorToString(fill));
+					jg.writeEndObject(); // label
+				}
+				jg.writeEndObject(); // visualization
+				jg.writeEndObject();
 			}
-			jg.writeEndObject(); // visualization
-			jg.writeEndObject();
+			jg.writeEndObject(); // vertexTypes
+			jg.writeEndObject(); // root
+		} finally {
+			jg.close();
 		}
-		jg.writeEndObject(); // vertexTypes
-		jg.writeEndObject(); // root
 	}
 
 	private String encodeString(String str) {

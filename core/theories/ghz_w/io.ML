@@ -21,8 +21,8 @@ structure GHZW_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   struct
     open JsonOutputUtils;
     type data = GHZW_Data.data;
-    fun output GHZW_Data.GHZ  = Json.String "ghz"
-      | output GHZW_Data.W    = Json.String "w"
+    fun output GHZW_Data.GHZ  = Json.String "GHZ"
+      | output GHZW_Data.W    = Json.String "W"
       | output GHZW_Data.TICK = Json.String "tick"
       | output GHZW_Data.ZERO = Json.String "zero"
   end;

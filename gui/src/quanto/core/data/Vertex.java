@@ -101,13 +101,16 @@ public class Vertex extends GraphElement {
 	}
 	
 	void updateFromJson(Theory theory, boolean isWireVertex, JsonNode node) throws ParseException {
-		if (!node.isObject())
-			throw new ParseException("Expected object");
-
 		if (isWireVertex) {
 			vertexType = null;
 			data = null;
+
+			if (!node.isObject())
+				return;
 		} else {
+			if (!node.isObject())
+				throw new ParseException("Expected object");
+
 			JsonNode dataNode = node.get("data");
 			vertexType = theory.getVertexType(dataNode);
 			GraphElementDataType dataType = vertexType.getDataType();

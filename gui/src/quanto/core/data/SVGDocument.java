@@ -85,6 +85,12 @@ public class SVGDocument {
 		testParse();
 	}
 
+	public Icon createIcon() {
+		Dimension2D size = getSize();
+		return createIcon((int)Math.ceil(size.getWidth()),
+				          (int)Math.ceil(size.getHeight()));
+	}
+
 	public Icon createIcon(int width, int height) {
 		try {
 			BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -113,6 +119,30 @@ public class SVGDocument {
 				return new Dimension2D.Double(viewBox.getWidth(), viewBox.getHeight());
 			}
 			return SVGUtils.getSize(svgRoot);
+		} catch (InvalidXMLException ex) {
+			throw new IllegalStateException(ex);
+		}
+	}
+	
+	public Rectangle2D getBounds() {
+		try {
+			Element svgRoot = document.getDocumentElement();
+			Attr viewBoxAttr = svgRoot.getAttributeNode("viewBox");
+			if (viewBoxAttr != null) {
+				String tokens[] = viewBoxAttr.getValue().trim().split("[ \t\n]+");
+				return new Rectangle2D.Double(
+						Double.parseDouble(tokens[0]),
+						Double.parseDouble(tokens[1]),
+						Double.parseDouble(tokens[2]),
+						Double.parseDouble(tokens[3]));
+			} else {
+				Dimension2D dim = SVGUtils.getSize(svgRoot);
+				return new Rectangle2D.Double(
+						0,
+						0,
+						dim.getWidth(),
+						dim.getHeight());
+			}
 		} catch (InvalidXMLException ex) {
 			throw new IllegalStateException(ex);
 		}
@@ -207,16 +237,8 @@ public class SVGDocument {
 			return null;
 		}
 
-		Element svgRoot = document.getDocumentElement();
-		Attr viewBoxAttr = svgRoot.getAttributeNode("viewBox");
 		AffineTransform transform = new AffineTransform();
 		applyAllTransforms(e, transform);
-		if (viewBoxAttr != null) {
-			String tokens[] = viewBoxAttr.getValue().trim().split("[ \t\n]+");
-			transform.concatenate(AffineTransform.getTranslateInstance(
-					-Double.parseDouble(tokens[0]),
-					-Double.parseDouble(tokens[1])));
-		}
 		return transform.createTransformedShape(shape);
 	}
 	

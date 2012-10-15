@@ -3,13 +3,13 @@
 	"coreName": "ghz_w",
 	"vertexTypePath": "",
 	"vertexTypes": {
-		"ghz": {
+		"GHZ": {
 			"mnemonic": "g",
 			"visualization": {
 				"node": "white.svg"
 			}
 		},
-		"w": {
+		"W": {
 			"mnemonic": "w",
 			"visualization": {
 				"node": "black.svg"
