@@ -229,13 +229,13 @@ public class Theory {
 			URL svgURL = new URL(contextUrl, svgNode.asText());
 			svgdoc = new SVGDocument(svgURL);
 		} catch (MalformedURLException e) {
-			throw new ParseException("Malformed URL for SVG file");
+			throw new ParseException("Malformed URL for SVG file", e);
 		} catch (InvalidXMLException e) {
-			throw new ParseException("Malformed SVG file");
+			throw new ParseException("Malformed SVG file", e);
 		} catch (SAXException e) {
-			throw new ParseException("Malformed SVG file");
+			throw new ParseException("Malformed SVG file", e);
 		} catch (IOException e) {
-			throw new ParseException("Could not open SVG file \"" + svgNode.asText() + "\"");
+			throw new ParseException("Could not open SVG file \"" + svgNode.asText() + "\"", e);
 		}
 		JsonNode labelNode = visNode.get("label");
 		Color labelFill = null;
