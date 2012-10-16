@@ -57,15 +57,15 @@ public interface Renderer<V,E> {
 		void labelVertex(RenderContext<V,E> rc, Layout<V,E> layout, V v, String label);
 		Position getPosition();
 		void setPosition(Position position);
-		void setPositioner(Positioner positioner);
-		Positioner getPositioner();
+		void setPositioner(Positioner<V> positioner);
+		Positioner<V> getPositioner();
 		class NOOP implements VertexLabel {
 			public void labelVertex(RenderContext rc, Layout layout, Object v, String label) {}
 			public Position getPosition() { return Position.CNTR; }
 			public void setPosition(Position position) {}
 			public Positioner getPositioner() {
 				return new Positioner() {
-					public Position getPosition(float x, float y, Dimension d) {
+					public Position getPosition(Object v, float x, float y, Dimension d) {
 						return Position.CNTR;
 					}};
 			}
@@ -73,8 +73,8 @@ public interface Renderer<V,E> {
 			}
 		}
 		enum Position { N, NE, E, SE, S, SW, W, NW, CNTR, AUTO }
-	    interface Positioner {
-	    	Position getPosition(float x, float y, Dimension d);
+	    interface Positioner<V> {
+	    	Position getPosition(V vertex, float x, float y, Dimension d);
 	    }
 
 	}

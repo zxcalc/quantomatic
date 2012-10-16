@@ -104,9 +104,9 @@ public class VertexLabelAsShapeRenderer<V,E>
 		return Renderer.VertexLabel.Position.CNTR;
 	}
 
-	public Renderer.VertexLabel.Positioner getPositioner() {
-		return new Positioner() {
-			public Renderer.VertexLabel.Position getPosition(float x, float y, Dimension d) {
+	public Renderer.VertexLabel.Positioner<V> getPositioner() {
+		return new Positioner<V>() {
+			public Renderer.VertexLabel.Position getPosition(V v, float x, float y, Dimension d) {
 				return Renderer.VertexLabel.Position.CNTR;
 			}};
 	}
@@ -115,7 +115,7 @@ public class VertexLabelAsShapeRenderer<V,E>
 		// noop
 	}
 
-	public void setPositioner(Renderer.VertexLabel.Positioner positioner) {
+	public void setPositioner(Renderer.VertexLabel.Positioner<V> positioner) {
 		//noop
 	}
 }
