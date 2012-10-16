@@ -3,9 +3,6 @@ package quanto.core;
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonParser.NumberType;
-import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.awt.Color;
@@ -20,7 +17,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -231,7 +227,7 @@ public class Theory {
 		SVGDocument svgdoc;
 		try {
 			URL svgURL = new URL(contextUrl, svgNode.asText());
-			svgdoc = new SVGDocument(svgURL.toString());
+			svgdoc = new SVGDocument(svgURL);
 		} catch (MalformedURLException e) {
 			throw new ParseException("Malformed URL for SVG file");
 		} catch (InvalidXMLException e) {

@@ -154,13 +154,11 @@ public class SVGRenderer
 			else if(key.equals("transform"))
 				{
 				AffineTransform tr=svgToaffineTransform(value);
-				//tr.concatenate(this.transform);
-				//this.transform=tr;
 				this.transform.concatenate(tr);
 				}
 			else if(key.equals("font-size"))
 				{
-				this.fontSize= Float.parseFloat(value);
+				this.fontSize= (float)castUnit(value);
 				}
 			else if(key.equals("font-family"))
 				{

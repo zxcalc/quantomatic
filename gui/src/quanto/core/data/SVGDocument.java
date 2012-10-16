@@ -14,7 +14,8 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
+import java.io.InputStream;
+import java.net.URL;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.xml.parsers.DocumentBuilder;
@@ -59,7 +60,9 @@ public class SVGDocument {
 			domFactory.setIgnoringComments(true);
 			domFactory.setNamespaceAware(true);
 			domFactory.setValidating(false);
-			domFactory.setNamespaceAware(true);
+			// we turn off external DTD loading, since that slows things right down
+			domFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+			domFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 			return domFactory.newDocumentBuilder();
 		} catch (ParserConfigurationException ex) {
 			throw new Error(ex);
@@ -73,9 +76,14 @@ public class SVGDocument {
 		testParse();
 	}
 
-	public SVGDocument(URI uri) throws SAXException, IOException, InvalidXMLException {
+	public SVGDocument(URL url) throws SAXException, IOException, InvalidXMLException {
 		DocumentBuilder domBuilder = createDocumentBuilder();
-		document = domBuilder.parse(uri.toString());
+		InputStream is = url.openStream();
+		try {
+			document = domBuilder.parse(is, url.toExternalForm());
+		} finally {
+			is.close();
+		}
 		testParse();
 	}
 

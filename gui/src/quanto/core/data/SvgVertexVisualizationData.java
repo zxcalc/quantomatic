@@ -8,7 +8,6 @@ import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
 import javax.swing.Icon;
-import org.lindenb.awt.Dimension2D;
 
 /**
  *

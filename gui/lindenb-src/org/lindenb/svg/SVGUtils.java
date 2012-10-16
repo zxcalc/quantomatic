@@ -4,7 +4,6 @@ import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.PathIterator;
-import java.awt.geom.Rectangle2D;
 
 import java.io.PrintWriter;
 import java.io.StringReader;
