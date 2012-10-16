@@ -12,13 +12,15 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     val to_lower = String.implode o (map Char.toLower) o String.explode
     fun input (Json.String t) =
           (case to_lower t
-             of "h" => RG_InternVData.Hnd
+             of "hadamard" => RG_InternVData.Hnd
+              | "h" => RG_InternVData.Hnd
               | "x" => RG_InternVData.Xnd LinratAngleExpr.zero
               | "z" => RG_InternVData.Znd LinratAngleExpr.zero
               | _   => raise bad_input_exp ("Unknown vertex type "^t,""))
       | input (Json.Object obj) =
           (case to_lower (get_string obj "type")
-             of "h" => RG_InternVData.Hnd
+             of "hadamard" => RG_InternVData.Hnd
+              | "h" => RG_InternVData.Hnd
               | "z" => RG_InternVData.Znd (get_angle obj "angle")
               | "x" => RG_InternVData.Xnd (get_angle obj "angle")
               | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
@@ -39,7 +41,10 @@ structure RG_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
             Json.empty_obj |> update ("type",Json.String "X")
                            |> update ("angle",L.output a)
           )
-      | output RG_InternVData.Hnd = Json.String "H"
+      | output RG_InternVData.Hnd =
+          Json.Object (
+            Json.empty_obj |> update ("type",Json.String "hadamard")
+          )
   end;
   structure EDataInputJSON = InputUnitJSON;
   structure EDataOutputJSON = OutputUnitJSON;

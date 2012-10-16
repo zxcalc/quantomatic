@@ -5,6 +5,7 @@
 package quanto.core.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import quanto.core.ParseException;
 
 /**
@@ -16,6 +17,17 @@ public abstract class GraphElementDataType {
 
 	public GraphElementDataType(String dataPath) {
 		this.dataPath = dataPath;
+	}
+	
+	protected JsonNode findData(JsonNode node) {
+		if (dataPath == null)
+			return MissingNode.getInstance();
+		if (dataPath.length() == 0)
+			return node;
+		for (String fieldName : dataPath.split("\\.")) {
+			node = node.path(fieldName);
+		}
+		return node;
 	}
 
 	public String getDataPath() {
@@ -37,7 +49,7 @@ public abstract class GraphElementDataType {
 
 		@Override
 		public GraphElementData parseData(JsonNode node) throws ParseException {
-			JsonNode strNode = node.findPath(dataPath);
+			JsonNode strNode = findData(node);
 			if (!strNode.isTextual())
 				throw new ParseException("Expected string value");
 			return new GraphElementData(strNode.asText());
@@ -56,7 +68,7 @@ public abstract class GraphElementDataType {
 
 		@Override
 		public GraphElementData parseData(JsonNode node) throws ParseException {
-			JsonNode strNode = node.findPath(dataPath);
+			JsonNode strNode = findData(node);
 			if (!strNode.isTextual())
 				throw new ParseException("Expected string value");
 			return new GraphElementMathsData(strNode.asText());

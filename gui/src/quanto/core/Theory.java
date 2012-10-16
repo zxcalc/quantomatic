@@ -96,9 +96,12 @@ public class Theory {
 	public VertexType getVertexType(JsonNode data) {
 		if (vertexTypePath != null) {
 			JsonNode typeNode = data;
-			if (vertexTypePath.length() > 0)
-				typeNode = data.get(vertexTypePath);
-			if (typeNode == null || !typeNode.isTextual()) {
+			if (vertexTypePath.length() > 0) {
+				for (String fieldName : vertexTypePath.split("\\.")) {
+					typeNode = typeNode.path(fieldName);
+				}
+			}
+			if (!typeNode.isTextual()) {
 				throw new IllegalArgumentException("Data did not have a type selector at '" + vertexTypePath + "'");
 			}
 			String typeName = typeNode.asText();
