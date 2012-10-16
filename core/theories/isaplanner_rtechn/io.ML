@@ -25,9 +25,9 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
           fold_arr_easy goal_name_from_json obj prop StrIntName.NSet.empty;
     fun input (Json.Object obj) =
           (case to_lower (get_string obj "type")
-             of "tactic" => DB_RTechn_VertexData.RTechnNode
+             of "RT" => DB_RTechn_VertexData.RTechnNode
                               (get_string_easy "?" obj "tactic")
-              | "goal" =>
+              | "Gs" =>
                   (DB_RTechn_VertexData.GoalNode
                      (get_string_easy "" obj "goal_type",
                      get_goal_names obj "goal_names")
@@ -42,7 +42,7 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
     type data = RTechn_VertexData.data;
     fun output (DB_RTechn_VertexData.RTechnNode n) =
           Json.Object (
-            Json.empty_obj |> update ("type",Json.String "tactic")
+            Json.empty_obj |> update ("type",Json.String "RT")
                            |> update ("tactic",Json.String n)
           )
       | output (DB_RTechn_VertexData.GoalNode (n,gset)) =
@@ -55,7 +55,7 @@ structure RTechn_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
             val gns = map to_json (StrIntName.NSet.list_of gset)
           in
             Json.Object (
-              Json.empty_obj |> update ("type",Json.String "goal")
+              Json.empty_obj |> update ("type",Json.String "Gs")
                              |> update ("goal_type",Json.String n)
                              |> update ("goal_names",Json.Array gns)
             )

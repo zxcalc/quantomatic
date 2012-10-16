@@ -3,7 +3,7 @@
 	"coreName": "isaplanner_rtechn",
 	"vertexTypePath": "type",
 	"vertexTypes": {
-		"tactic": {
+		"RT": {
 			"labelPath": "tactic",
 			"labelDataType": "String",
 			"mnemonic": "t",
@@ -14,7 +14,7 @@
 				}
 			}
 		},
-		"goal": {
+		"Gs": {
 			"labelPath": "goal_type",
 			"labelDataType": "String",
 			"mnemonic": "g",

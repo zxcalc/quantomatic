@@ -3,19 +3,19 @@
 	"coreName": "red_green_blue",
 	"vertexTypePath": "",
 	"vertexTypes": {
-		"red": {
+		"Red": {
 			"mnemonic": "r",
 			"visualization": {
-				"node": "red.svg",
+				"node": "red.svg"
 			}
 		},
-		"green": {
+		"Green": {
 			"mnemonic": "g",
 			"visualization": {
-				"node": "green.svg",
+				"node": "green.svg"
 			}
 		},
-		"blue": {
+		"Blue": {
 			"mnemonic": "b",
 			"visualization": {
 				"node": "blue.svg"

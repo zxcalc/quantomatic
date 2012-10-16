@@ -20,9 +20,9 @@ structure RGB_ComponentDataIO : GRAPH_COMPONENT_DATA_IO
   struct
     open JsonOutputUtils;
     type data = RGB_VertexData.data;
-    fun output RGB_VertexData.Red = Json.String "red"
-      | output RGB_VertexData.Green = Json.String "green"
-      | output RGB_VertexData.Blue = Json.String "blue"
+    fun output RGB_VertexData.Red = Json.String "Red"
+      | output RGB_VertexData.Green = Json.String "Green"
+      | output RGB_VertexData.Blue = Json.String "Blue"
   end;
   structure EDataInputJSON = InputUnitJSON;
   structure EDataOutputJSON = OutputUnitJSON;
