@@ -750,7 +750,7 @@ fun hilb ([format], graph) =
                  | JsonFormat =>
                        (JsonResponse {
                           data = TheoryIO.OutputGraphJSON.output_vertex
-                                  (get_graph_and_ud graphName state)
+                                  (get_graph_and_ud graphName state')
                                   vn
                         },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
@@ -800,7 +800,7 @@ fun hilb ([format], graph) =
                  | JsonFormat =>
                        (JsonResponse {
                           data = TheoryIO.OutputGraphJSON.output_edge
-                                  (get_graph_and_ud graphName state)
+                                  (get_graph_and_ud graphName state')
                                   en
                         },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
