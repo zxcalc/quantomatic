@@ -225,16 +225,17 @@ PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 
 (* Overall controller for theories *)
-PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+(* PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)
 PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
-
-(* interface protocol/console *)
-PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
+*)
+(* OLD interface protocol/console *)
+(* PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
 PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
 PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
+*)
 PolyML.Project.make "interface/run.ML";
 
 (* Testing *)

@@ -59,7 +59,7 @@ end
 (* GHZ/W *)
 local
 open GHZW_Theory
-structure Controller = GHZW_Controller
+(*structure Controller = GHZW_Controller*)
 structure G = Graph
 structure GIso = BangGraphIso(G)
 in
@@ -93,6 +93,7 @@ val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2" (fn () => let
 
   in writeln "success" end) ();
 
+(*
 val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2 (controller)" (fn () => let
   open Commands;
   val OkResponse = Controller.serviceRequest
@@ -139,6 +140,8 @@ val _ = Testing.test "GHZ/W ruleset rewriting 2: spider" (fn () => let
   val _ = Testing.assert "Count is 1" (count = 1)
 
   in writeln "success" end) ();
+*)
 end
+
 
 val _ = Testing.assert_no_failed_tests();
