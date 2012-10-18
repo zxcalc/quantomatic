@@ -236,6 +236,11 @@ PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 *)
+
+(* new modular controller *)
+PolyML.Project.make "interface/controller_module.ML";
+PolyML.Project.make "interface/cmod_main.ML";
+PolyML.Project.make "interface/controller.ML";
 PolyML.Project.make "interface/run.ML";
 
 (* Testing *)
