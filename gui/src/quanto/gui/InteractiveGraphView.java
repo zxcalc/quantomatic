@@ -860,21 +860,14 @@ public class InteractiveGraphView
 
 		private boolean highlight = false;
 
-		private void attachNextRewrite() {
+		private boolean attachNextRewrite() {
 			try {
-				core.attachOneRewrite(
+				return core.attachOneRewrite(
 						getGraph(),
 						getGraph().getVertices());
 			} catch (CoreException e) {
 				coreErrorDialog("Could not attach the next rewrite", e);
-			}
-		}
-
-		private void attachAllRewrites() {
-			try {
-				core.attachRewrites(getGraph(), getGraph().getVertices());
-			} catch (CoreException e) {
-				coreErrorDialog("Could not attach the next rewrite", e);
+				return false;
 			}
 		}
 
@@ -940,18 +933,14 @@ public class InteractiveGraphView
 				// FIXME: communicating with the core: is this
 				//        really threadsafe?  Probably not.
 
-				attachAllRewrites();
-				List<AttachedRewrite<CoreGraph>> rws = getRewrites();
 				int count = 0;
-				int rw = 0;
-				while (rws.size() > 0
-						&& !Thread.interrupted()) {
-					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
+				while (!Thread.interrupted() && attachNextRewrite()) {
+					List<AttachedRewrite<CoreGraph>> rws = getRewrites();
+					CoreGraph newGraph = rws.get(0).getNewGraph();
+					invokeHighlightSubgraphAndWait(newGraph);
 					sleep(1500);
-					invokeApplyRewriteAndWait(rw);
+					invokeApplyRewriteAndWait(0);
 					++count;
-					attachAllRewrites();
-					rws = getRewrites();
 				}
 
 				fireJobFinished();
