@@ -37,7 +37,7 @@ struct
     fun not_adj_to_boundary v = Graph.fold_adj (fn (_,v',_) => fn a =>
       a andalso (not (Graph.is_boundary_vertex gr v'))) gr v true
     val filt = V.NSet.filter not_adj_to_boundary
-    val (ins,outs) = Graph.get_in_and_out_vnames gr
+    val (ins,outs) = (Graph.get_inputs gr, Graph.get_outputs gr)
     val (ins',outs') = (filt ins, filt outs)
   in if V.NSet.is_empty ins' orelse V.NSet.is_empty outs'
      then Plugs.empty else Plugs.empty |> Plugs.add_many ins' outs'
@@ -53,11 +53,11 @@ struct
   fun rule_matches_concrete_graph r g = let
     val lhs = Theory.Rule.get_lhs r
     val gs = [lhs, g]
-    val names = 
+    (*val names = 
       (fold Graph.add_to_vnames  gs V.NSet.empty,
        fold Graph.add_to_enames  gs E.NSet.empty,
-       fold Graph.add_to_bboxes gs B.NSet.empty)
-    val matches = Theory.RuleMatchSearch.match names r g
+       fold Graph.add_to_bboxes gs B.NSet.empty)*)
+    val matches = Theory.MatchSearch.match lhs g
   in case Seq.pull matches of NONE=>false | _=>true
   end
   
@@ -87,7 +87,7 @@ struct
       else (if ins = total_ins then f gr else I)
               (case first_plug plugs
                  of SOME (p,q) =>
-                      enum_plugs (gr |> Graph.do_plug p q, (* do plug *)
+                      enum_plugs (gr |> Graph.do_plug p q |> Graph.minimise, (* do plug *)
                                   ins-1,
                                   plugs |> Plugs.del_dom p |> Plugs.del_cod q,
                                   plug_count+1)

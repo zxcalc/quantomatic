@@ -63,6 +63,20 @@ public interface BangBoxGraph<V, E, B> extends Graph<V, E> {
 	 */
 	public Collection<V> getBoxedVertices(B bangbox);
 	/**
+	 * Add some vertices to a !-box
+	 *
+	 * @param bangbox The !-box to add it to
+	 * @param vertices The vertices to add
+	 */
+	public void addVerticesToBangBox(B bangbox, Collection<? extends V> vertices);
+	/**
+	 * Remove some vertices from a !-box
+	 *
+	 * @param bangbox The !-box to add it to
+	 * @param vertices The vertices to remove
+	 */
+	public void removeVerticesFromBangBox(B bangbox, Collection<? extends V> vertices);
+	/**
 	 * Changes the contents of a !-box in this graph.
 	 *
 	 * Fails if @p bangbox is not an element of this graph, or
@@ -74,7 +88,7 @@ public interface BangBoxGraph<V, E, B> extends Graph<V, E> {
 	 * @throws IllegalArgumentException  if bangbox or vertices is null, or
 	 *                                   bangbox is not in the graph
 	 */
-	public Collection<V> setBoxedVertices(B bangbox, Collection<? extends V> vertices);
+	public void setBoxedVertices(B bangbox, Collection<? extends V> vertices);
 	/**
 	 * Removes a !-box from this graph.
 	 *

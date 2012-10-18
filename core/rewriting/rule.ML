@@ -28,6 +28,8 @@ signature BASIC_RULE
 
   exception bad_rule_exp of string * Graph.T * Graph.T;
   val mk : (Graph.T * Graph.T) -> T;
+  (* returns the renamings applied to the RHS *)
+  val mk_with_renamings : (Graph.T * Graph.T) -> T * (V.Rnm.T * E.Rnm.T);
     
   (* NOTE/WARNING: these don't touch the automorphism data; they should not 
      be used without reconstructing the automoprhism info. *)
@@ -119,7 +121,7 @@ fun take_orbit auts vset =
 
 fun gen_order_sub g auts vset =
     if V.NSet.is_empty vset then (auts,[])
-    else let val (v,orb,rest) = take_orbit auts vset
+    else let val (v,orb,_) = take_orbit auts vset
              val auts' = fix v auts
              val (auts'',subtr) = gen_order_sub g auts'
                                                 (V.NSet.delete v orb)
@@ -155,7 +157,7 @@ fun gen_order g auts done bound =
                                  ::gen_order g auts'
                                              (V.NSet.add v done) bound' 
                               end
-                  | SOME x => let val (v,orb,rest) = take_orbit auts vset
+                  | SOME x => let val (v,orb,_) = take_orbit auts vset
                                   val auts' = fix v auts
                                   val (auts'',subtr)
                                       = gen_order_sub g auts'
@@ -202,7 +204,7 @@ fun check_rule_consistency lhs rhs =
       (fold (has_same_bangbox) (lhsboundary') true)
    end; 
 
-fun mk (lhs,rhs) = 
+fun mk_with_renamings (lhs,rhs) = 
     let 
       val lhsbndry : V.NSet.T = Graph.get_boundary lhs
     in
@@ -227,7 +229,7 @@ fun mk (lhs,rhs) =
                     (E.NSet.union_merge ignoreenames (Graph.get_enames lhs))
                     E.NTab.empty
         val xrn = X.Rnm.empty;
-        val (rn, rhs') = Graph.rename (xrn,vrn,ern) rhs
+        val ((_,vrn,ern), rhs') = Graph.rename (xrn,vrn,ern) rhs
         val lhsauts = (Seq.list_of oo GraphIso.get) lhs lhs
         val rhsauts = (Seq.list_of oo GraphIso.get) rhs rhs'
         val lhsba = map (fn x => ((  VInjEndo.restrict_dom_to lhsbndry
@@ -250,14 +252,18 @@ fun mk (lhs,rhs) =
                             xs
             in filterorbits xs' (x::os) end
           | filterorbits [] os = os
-      in Rule { lhs = lhs, rhs = rhs',
+      in (Rule { lhs = lhs, rhs = rhs',
                 lhs_aut = lhsauts,
                 selfapps = filterorbits lhsba [],
                 order = gen_order lhs lhsauts
-                                  V.NSet.empty V.NSet.empty } end
+                                  V.NSet.empty V.NSet.empty },
+          (vrn,ern))
+      end
     else
       raise bad_rule_exp ("mk: Left and right hand side boundaries are different", lhs, rhs)
     end;
+
+val mk = fst o mk_with_renamings
 
 (* 
 fun rename_interior_vs xvs (avoidvs, avoides, avoidbs) g = 
@@ -305,7 +311,7 @@ fun symmetric r = mk (get_lhs r, get_rhs r);
    Proof is by observing that bounary nodes can only be matched by
    boundary nodes and the types of the lhs and rhs must be equal to be
    a rule. *)
-fun is_trivial rule = raise ERROR "not implemented"; (* FIXME *)
+fun is_trivial _ = raise ERROR "not implemented"; (* FIXME *)
 (* 
     let val init_renaming = 
         val rhs' = Graph.rename_apart

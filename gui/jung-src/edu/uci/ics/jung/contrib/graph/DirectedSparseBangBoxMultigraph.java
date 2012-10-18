@@ -27,10 +27,6 @@ public class DirectedSparseBangBoxMultigraph<V,E,B>
 		bangBoxes = new HashMap<B, Set<V>>();
 	}
 
-	protected Set<V> getBangBoxContents(B bangbox, Collection<? extends V> vertices) {
-		return new HashSet<V>(vertices);
-	}
-
 	public Collection<B> getBangBoxes() {
 		return Collections.unmodifiableCollection(bangBoxes.keySet());
 	}
@@ -41,15 +37,13 @@ public class DirectedSparseBangBoxMultigraph<V,E,B>
 
 	public boolean addBangBox(B bangbox, Collection<? extends V> vertices) {
 		if (bangbox == null)
-			throw new IllegalArgumentException("bangbox may not be null");
-
+			throw new NullPointerException("bangbox");
 		if (vertices == null)
-			throw new IllegalArgumentException("vertices may not be null");
-
+			throw new NullPointerException("vertices");
 		if (containsBangBox(bangbox))
 			return false;
 
-		bangBoxes.put(bangbox, getBangBoxContents(bangbox, vertices));
+		bangBoxes.put(bangbox, new HashSet<V>(vertices));
 		return true;
 	}
 
@@ -73,19 +67,37 @@ public class DirectedSparseBangBoxMultigraph<V,E,B>
 		return Collections.unmodifiableCollection(bangBoxes.get(bangbox));
 	}
 
-	public Collection<V> setBoxedVertices(B bangbox, Collection<? extends V> vertices) {
+	public void addVerticesToBangBox(B bangbox, Collection<? extends V> vertices) {
 		if (bangbox == null)
-			throw new IllegalArgumentException("bangbox may not be null");
-
+			throw new NullPointerException("bangbox");
 		if (vertices == null)
-			throw new IllegalArgumentException("vertices may not be null");
-
+			throw new NullPointerException("vertices");
 		if (!containsBangBox(bangbox))
 			throw new IllegalArgumentException("bangbox is not in this graph");
 
-		Set<V> oldContents = bangBoxes.get(bangbox);
-		bangBoxes.put(bangbox, getBangBoxContents(bangbox, vertices));
-		return oldContents;
+		bangBoxes.get(bangbox).addAll(vertices);
+	}
+
+	public void removeVerticesFromBangBox(B bangbox, Collection<? extends V> vertices) {
+		if (bangbox == null)
+			throw new NullPointerException("bangbox");
+		if (vertices == null)
+			throw new NullPointerException("vertices");
+		if (!containsBangBox(bangbox))
+			throw new IllegalArgumentException("bangbox is not in this graph");
+
+		bangBoxes.get(bangbox).removeAll(vertices);
+	}
+
+	public void setBoxedVertices(B bangbox, Collection<? extends V> vertices) {
+		if (bangbox == null)
+			throw new NullPointerException("bangbox");
+		if (vertices == null)
+			throw new NullPointerException("vertices");
+		if (!containsBangBox(bangbox))
+			throw new IllegalArgumentException("bangbox is not in this graph");
+
+		bangBoxes.put(bangbox, new HashSet<V>(vertices));
 	}
 
 	@Override

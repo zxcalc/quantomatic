@@ -1,0 +1,8 @@
+# Name of the tex file (without extension)
+$MAIN_JOB = 'manual'
+# What to name the archive/final version pdf
+$DIST_NAME = 'programming-quantomatic'
+# Any non-standard files to copy into the build dir
+$EXTRA_INCLUDES = []
+
+import 'build.rake'

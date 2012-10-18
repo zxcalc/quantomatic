@@ -115,6 +115,30 @@ val _ = Testing.test "GHZ/W ruleset rewriting 1: 2x2 (controller)" (fn () => let
     })
 
   in writeln "success" end) ();
+
+val _ = Testing.test "GHZ/W ruleset rewriting 2: spider" (fn () => let
+  open Commands;
+  val OkResponse = Controller.serviceRequest
+    (ImportRulesetFromFileRequest {
+      fileName = "rulesets/ghz_w/default.rules",
+      replace = true
+    })
+  val StringResponse { data } = Controller.serviceRequest
+    (LoadGraphRequest {
+      details = LoadGraphFromFileRequest {
+                 fileName = "graphs/ghz_w/ghz-spider-simple.graph"
+               }
+    })
+  val graph_name = data
+  val vertex_names = ["Va","Vb"]
+  val CountResponse { count } = Controller.serviceRequest
+    (AttachRewritesRequest {
+       graphName = graph_name,
+       vertexNames = vertex_names
+    })
+  val _ = Testing.assert "Count is 1" (count = 1)
+
+  in writeln "success" end) ();
 end
 
 val _ = Testing.assert_no_failed_tests();

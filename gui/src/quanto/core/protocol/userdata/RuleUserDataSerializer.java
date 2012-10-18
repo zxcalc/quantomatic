@@ -1,11 +1,10 @@
 package quanto.core.protocol.userdata;
 
-import quanto.core.CoreException;
-import quanto.core.protocol.ProtocolManager;
-import quanto.core.protocol.userdata.dataserialization.DataSerializer;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import quanto.core.CoreException;
+import quanto.core.protocol.CoreTalker;
+import quanto.core.protocol.userdata.dataserialization.DataSerializer;
 
 /**
  * User: benjaminfrot
@@ -14,10 +13,10 @@ import java.util.logging.Logger;
 public class RuleUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     private String suffix;
-    private DataSerializer serializer;
+    private DataSerializer<T> serializer;
     private final static Logger logger = Logger.getLogger("quanto.protocol.userdata");
 
-    public RuleUserDataSerializer(ProtocolManager talker, DataSerializer<T> serializer, String suffix) {
+    public RuleUserDataSerializer(CoreTalker talker, DataSerializer<T> serializer, String suffix) {
         super(talker);
         this.suffix = suffix;
         this.serializer = serializer;
@@ -25,22 +24,23 @@ public class RuleUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public void setRuleUserData(String ruleName, T data) {
         String dataString = serializer.toString(data);
-        if (dataString == null)
-            return;
+        if (dataString == null) {
+			return;
+		}
         try {
             talker.setRuleUserData(ruleName, prefix + suffix,dataString);
         } catch (CoreException e) {
             logger.log(Level.WARNING, "Could not set user data " + prefix + suffix + " on " +
-                    "rule " + ruleName);
+                    "rule " + ruleName, e);
         }
     }
 
     public T getRuleUserData(String ruleName) {
         try {
-            return (T) serializer.fromString(talker.ruleUserData(ruleName, prefix + suffix));
+            return serializer.fromString(talker.ruleUserData(ruleName, prefix + suffix));
         } catch (CoreException e) {
             logger.log(Level.WARNING, "Could not get user data " + prefix + suffix + " on " +
-                    " rule " + ruleName);
+                    " rule " + ruleName, e);
             return null;
         }
     }

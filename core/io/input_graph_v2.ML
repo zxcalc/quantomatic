@@ -1,5 +1,4 @@
 (* XMl Parsers for BANG_GRAPH, RG_VERTEX, and RG_EDGE *)
-(* FIXME: structure used is a bit squanky and ineffeccient. *)
 functor InputGraphXML_v2(
   structure Graph : BANG_GRAPH
         and InputVertexData : INPUT_XML
@@ -110,7 +109,7 @@ struct
   open XML_Parse_Utils;
   type T = XML.tree;
   type data = ComponentDataIO.data;
-  fun data_to_string _ = "[data]"; (* FIXME: frop data_to_string? *)
+  fun data_to_string _ = "[data]"; (* FIXME: drop data_to_string? *)
   fun input xml =
       let 
         val children = get_children xml

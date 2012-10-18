@@ -62,10 +62,11 @@ public abstract class AbstractGraphMousePlugin implements GraphMousePlugin {
     /**
      * check the mouse event modifiers against the
      * instance member modifiers. Default implementation
-     * checks equality. Can be overridden to test with a mask
+     * test with a mask, and accepts both normal modifiers
+	 * and extended modifiers.  Override for more control.
      */
     public boolean checkModifiers(MouseEvent e) {
-        return e.getModifiers() == modifiers;
+        return((e.getModifiersEx() | e.getModifiers()) & modifiers) == modifiers;
     }
 
     /**

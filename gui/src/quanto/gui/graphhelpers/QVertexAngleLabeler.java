@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package quanto.gui.graphhelpers;
 
 import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
@@ -19,6 +14,7 @@ import quanto.core.data.Vertex;
  * @author alemer
  */
 public class QVertexAngleLabeler implements VertexLabelRenderer {
+
 	private JLabel dummyLabel = new JLabel();
 	private JLabel realLabel = new JLabel();
 

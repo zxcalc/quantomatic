@@ -2248,6 +2248,7 @@ struct
       val (commandCode,requestId) = readHeader ()
       fun next_loop () = run_in_textstreams' eval
       fun change_loop new_eval = run_in_textstreams' new_eval
+      val th_reg = ControllerRegistry.default
 
     in
       case commandCode
@@ -2263,7 +2264,7 @@ struct
                         of InterfaceResult.NORMAL output =>
                             (outputCmdResult output; next_loop ())
                          | InterfaceResult.CHANGE_THEORY th =>
-                            (case ControllerRegistry.get_eval_func th
+                            (case ControllerRegistry.get_eval_func th_reg th
                                of NONE =>
                                    (outputCmdResult ("!!! Unknown theory \""^th^"\"");
                                     next_loop ())
@@ -2294,7 +2295,7 @@ struct
          | "TS" => (let
                       val theoryName = readToEnd ()
                     in
-                      case (ControllerRegistry.get_eval_func theoryName)
+                      case (ControllerRegistry.get_eval_func th_reg theoryName)
                         of (SOME func) =>
                              (outputOkResponse requestId;
                               change_loop func)
@@ -2304,7 +2305,8 @@ struct
                     end)
 
          | "TL" => (assertAtEnd();
-                    outputStringListResponse requestId (ControllerRegistry.get_theories());
+                    outputStringListResponse requestId
+                      (ControllerRegistry.get_theories th_reg);
                     next_loop())
 
          | code => (outputResponse (Commands.serviceRequestMessage eval

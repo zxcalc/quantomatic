@@ -5,6 +5,8 @@
 package quanto.core.protocol;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
@@ -16,129 +18,57 @@ import quanto.core.CoreTerminatedException;
 import static quanto.core.protocol.Utils.*;
 
 /**
+ * Manages communication with the core.
  *
  * @author alemer
  */
-public class ProtocolManager {
+public class CoreTalker {
 
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
-    public static String quantoCoreExecutable = "quanto-core";
     private RequestWriter writer;
-    private ProtocolReader reader;
-    private Process backend;
+    private ResponseReader reader;
     private int nextRequestId = 1;
 
-    public ProtocolManager() throws CoreException {
+    public CoreTalker() {
+    }
+	
+	public void connect(InputStream input, OutputStream output) throws IOException, ProtocolException {
+		reader = new ResponseReader(input);
+		writer = new RequestWriter(output);
+		
+		reader.waitForReady();
+		logger.log(Level.FINE,
+				"The core is running version {0} of the protocol",
+				reader.getVersion());
+		// FIXME: we should check that the core is running the version we expect
+	}
+	
+	public void disconnect() {
+        try {
+			reader.close();
+			writer.close();
+		} catch (IOException ex) {
+			logger.log(Level.WARNING, "Failed to close communication channels to the core", ex);
+		}
+		writer = null;
+		reader = null;
+	}
+
+    protected CoreCommunicationException writeFailure(IOException e) {
+		logger.log(Level.SEVERE,
+				"Failed to write to core process; last received message was \"{0}\"",
+				reader.getLastMessage());
+		return new CoreCommunicationException(e);
     }
 
-    public void startCore() throws CoreException {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(quantoCoreExecutable, "--protocol");
-
-            pb.redirectErrorStream(false);
-            logger.log(Level.FINEST, "Starting {0}...", quantoCoreExecutable);
-            backend = pb.start();
-            logger.log(Level.FINEST, "{0} started successfully", quantoCoreExecutable);
-
-            new StreamRedirector(backend.getErrorStream(), System.err).start();
-
-            reader = new ProtocolReader(backend.getInputStream());
-            writer = new RequestWriter(backend.getOutputStream());
-        } catch (IOException e) {
-            logger.log(Level.SEVERE,
-                    "Could not execute \"" + quantoCoreExecutable + "\": "
-                    + e.getMessage(),
-                    e);
-            throw new CoreExecutionException(String.format(
-                    "Could not execute \"%1$\": %2$", quantoCoreExecutable,
-                    e.getMessage()), e);
-        }
-
-        try {
-            reader.waitForReady();
-            logger.log(Level.FINE,
-                    "The core is running version {0} of the protocol",
-                    reader.getVersion());
-            // FIXME: we should check that the core is running the version we expect
-        } catch (IOException e) {
-            logger.log(Level.SEVERE,
-                    "The core failed to initiate the protocol correctly",
-                    e);
-            throw new CoreExecutionException(
-                    "The core failed to initiate the protocol correctly",
-                    e);
-        }
-    }
-
-    private CoreCommunicationException writeFailure(Throwable e) {
-        try {
-            logger.log(Level.SEVERE,
-                    "Tried to write to core process, but it has terminated (exit value: {0})",
-                    backend.exitValue());
-            // Not much we can do: throw an exception
-            if (reader.getLastInvalidOutput() != null &&
-                    !reader.getLastInvalidOutput().isEmpty()) {
-                // probably an exception trace
-                return new CoreTerminatedException(
-                        "The core terminated with the following message:\n\n" +
-                        reader.getLastInvalidOutput());
-            } else {
-                return new CoreTerminatedException();
-            }
-        } catch (IllegalThreadStateException ex) {
-            logger.log(Level.SEVERE,
-                    "Failed to write to core process, even though it has not terminated");
-            return new CoreCommunicationException();
-        }
-    }
-
-    private CoreCommunicationException readFailure(Throwable e) {
-        try {
-            logger.log(Level.SEVERE, "Core process terminated with exit value {0}",
-                    backend.exitValue());
+    protected CoreCommunicationException readFailure(IOException e) {
+		if (reader.isClosed()) {
+            logger.log(Level.SEVERE, "Core process disconnected; last received message was \"{0}\"",
+					reader.getLastMessage());
             return new CoreTerminatedException(e);
-        } catch (IllegalThreadStateException ex) {
-            return new CoreCommunicationException(e);
-        }
-    }
-
-    private static class ProcessCleanupThread extends Thread {
-
-        private Process process;
-
-        public ProcessCleanupThread(Process process) {
-            super("Process cleanup thread");
-            this.process = process;
-        }
-
-        @Override
-        public void run() {
-            try {
-                logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
-                sleep(5000);
-            } catch (InterruptedException ex) {
-                logger.log(Level.FINER, "Thread interupted");
-            }
-            logger.log(Level.FINER, "Forcibly terminating the core process");
-            process.destroy();
-        }
-    }
-
-    /**
-     * Quits the core process, and releases associated resources
-     */
-    public void killCore() {
-        if (backend != null) {
-            logger.log(Level.FINEST, "Shutting down the core process");
-            try {
-                reader.close();
-                writer.close();
-                new ProcessCleanupThread(backend).start();
-            } catch (IOException ex) {
-                logger.log(Level.WARNING, "Failed to close communication channels to the core");
-            }
-            backend = null;
+		} else {
+			return new CoreCommunicationException(e);
         }
     }
 
@@ -166,25 +96,6 @@ public class ProtocolManager {
                 throw new ProtocolException("Expected a " + expectedType.toString() + " response, but got a " + resp.getMessageType().toString() + " response");
             }
             return resp;
-        } catch (ProtocolException ex) {
-            try {
-                // try to get the exit value, because that's the only way
-                // to see if it's terminated
-                backend.exitValue();
-                // yes, it exited
-                if (reader.getLastInvalidOutput() != null &&
-                        !reader.getLastInvalidOutput().isEmpty()) {
-                    // probably an exception trace
-                    throw new CoreTerminatedException(
-                            "The core terminated with the following message:\n\n" +
-                            reader.getLastInvalidOutput(), ex);
-                } else {
-                    throw new CoreTerminatedException(ex);
-                }
-            } catch (IllegalThreadStateException ex2) {
-                // no, it didn't exit
-                throw ex;
-            }
         } catch (IOException ex) {
             throw readFailure(ex);
         }
@@ -222,8 +133,8 @@ public class ProtocolManager {
      * @throws CoreException there was a communication error with the core
      */
     public String consoleCommand(String command) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -239,8 +150,8 @@ public class ProtocolManager {
     }
 
     public String[] consoleCommandList() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -254,8 +165,8 @@ public class ProtocolManager {
     }
 
     public String[] consoleHelp(String command) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -275,8 +186,8 @@ public class ProtocolManager {
     }
 
     public void changeTheory(String theory) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -290,8 +201,8 @@ public class ProtocolManager {
     }
 
     public String currentTheory() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -304,8 +215,8 @@ public class ProtocolManager {
     }
 
     public String[] listGraphs() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -323,8 +234,8 @@ public class ProtocolManager {
     }
 
     public String loadEmptyGraph(String suggestedName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -341,8 +252,8 @@ public class ProtocolManager {
     }
 
     public String loadGraphFromFile(String fileName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -357,8 +268,8 @@ public class ProtocolManager {
     }
 
     public String loadGraphFromData(String suggestedName, byte[] data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -374,8 +285,8 @@ public class ProtocolManager {
     }
 
     public String copyGraph(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -390,8 +301,8 @@ public class ProtocolManager {
     }
 
     public void copySubgraphAndOverwrite(String from, String to, Collection<String> vertexNames) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -408,8 +319,8 @@ public class ProtocolManager {
     }
 
     public void saveGraphToFile(String graph, String filename) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -425,8 +336,8 @@ public class ProtocolManager {
     }
 
     public String renameGraph(String from, String to) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -442,8 +353,8 @@ public class ProtocolManager {
     }
 
     public void discardGraph(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -458,8 +369,8 @@ public class ProtocolManager {
     }
 
     public byte[] saveGraphToData(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -483,8 +394,8 @@ public class ProtocolManager {
     }
 
     public String exportGraph(String graph, GraphExportFormat format) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -515,8 +426,8 @@ public class ProtocolManager {
     }
 
     public String exportGraphAsXml(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -532,8 +443,8 @@ public class ProtocolManager {
     }
 
     public String[] listVertices(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -548,8 +459,8 @@ public class ProtocolManager {
     }
 
     public String graphUserData(String graph, String dataName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -565,8 +476,8 @@ public class ProtocolManager {
     }
     
     public String[] listEdges(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -581,8 +492,8 @@ public class ProtocolManager {
     }
 
     public String[] listBangBoxes(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -597,8 +508,8 @@ public class ProtocolManager {
     }
 
     public String vertexDataAsXml(String graph, String vertex) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -615,8 +526,8 @@ public class ProtocolManager {
     }
 
     public String vertexUserData(String graph, String vertex, String dataName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -633,8 +544,8 @@ public class ProtocolManager {
     }
 
     public String edgeDataAsXml(String graph, String edge) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -651,8 +562,8 @@ public class ProtocolManager {
     }
 
     public String edgeUserData(String graph, String edge, String dataName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -669,8 +580,8 @@ public class ProtocolManager {
     }
 
     public String[] bangBoxVertices(String graph, String bangBox) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -686,8 +597,8 @@ public class ProtocolManager {
     }
 
     public String bangBoxUserData(String graph, String bangBox, String dataName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -704,8 +615,8 @@ public class ProtocolManager {
     }
 
     public void undo(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -720,8 +631,8 @@ public class ProtocolManager {
     }
 
     public void redo(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -736,8 +647,8 @@ public class ProtocolManager {
     }
 
     public void undoRewrite(String graph) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -752,8 +663,8 @@ public class ProtocolManager {
      }
 
      public void redoRewrite(String graph) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -768,8 +679,8 @@ public class ProtocolManager {
      }
     
     public void startUndoGroup(String graph) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -784,8 +695,8 @@ public class ProtocolManager {
      }
 
     public void endUndoGroup(String graph) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -800,8 +711,8 @@ public class ProtocolManager {
      }
     
     public void insertGraph(String source, String target) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -817,8 +728,8 @@ public class ProtocolManager {
     }
 
     public void setGraphUserData(String graph, String dataName, String data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -835,8 +746,8 @@ public class ProtocolManager {
     }
     
     public void deleteGraphUserData(String graph, String dataName) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -852,8 +763,8 @@ public class ProtocolManager {
      }
     
     public String addVertex(String graph, String vertexType) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -870,8 +781,8 @@ public class ProtocolManager {
     }
 
     public String[] renameVertex(String graph, String from, String to) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -887,8 +798,8 @@ public class ProtocolManager {
     }
 
     public void deleteVertices(String graph, Collection<String> vertices) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -904,8 +815,8 @@ public class ProtocolManager {
     }
 
     public void setVertexData(String graph, String vertex, String data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -922,8 +833,8 @@ public class ProtocolManager {
     }
 
     public void setVertexUserData(String graph, String vertex, String dataName, String data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -941,8 +852,8 @@ public class ProtocolManager {
     }
 
     public void deleteVertexUserData(String graph, String vertex, String dataName) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -959,8 +870,8 @@ public class ProtocolManager {
      }
     
     public String addEdge(String graph, String edgeType, boolean directed, String sourceVertex, String targetVertex) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -980,8 +891,8 @@ public class ProtocolManager {
     }
 
     public String renameEdge(String graph, String from, String to) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -998,8 +909,8 @@ public class ProtocolManager {
     }
 
     public void deleteEdges(String graph, Collection<String> edges) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1015,8 +926,8 @@ public class ProtocolManager {
     }
 
     public void setEdgeData(String graph, String edge, String data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1033,8 +944,8 @@ public class ProtocolManager {
     }
 
     public void setEdgeUserData(String graph, String edge, String dataName, String data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1052,8 +963,8 @@ public class ProtocolManager {
     }
 
     public void deleteEdgeUserData(String graph, String edge, String dataName) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -1070,8 +981,8 @@ public class ProtocolManager {
      }
     
     public String addBangBox(String graph, Collection<String> vertices) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1088,8 +999,8 @@ public class ProtocolManager {
     }
 
     public void renameBangBox(String graph, String from, String to) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1106,8 +1017,8 @@ public class ProtocolManager {
     }
 
     public void dropBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1123,8 +1034,8 @@ public class ProtocolManager {
     }
 
     public void killBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1140,8 +1051,8 @@ public class ProtocolManager {
     }
 
     public String duplicateBangBox(String graph, String bangBox) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1157,8 +1068,8 @@ public class ProtocolManager {
     }
 
     public String mergeBangBoxes(String graph, Collection<String> bangBoxes) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1174,8 +1085,8 @@ public class ProtocolManager {
     }
 
     public void bangVertices(String graph, String bangBox, Collection<String> vertices) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1192,8 +1103,8 @@ public class ProtocolManager {
     }
 
     public void unbangVertices(String graph, Collection<String> vertices) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1209,8 +1120,8 @@ public class ProtocolManager {
     }
 
     public void setBangBoxUserData(String graph, String bangBox, String dataName, String data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1228,8 +1139,8 @@ public class ProtocolManager {
     }
     
     public void deleteBangBoxUserData(String graph, String bangBox, String dataName) throws CoreException {
-         if (backend == null) {
-             throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+             throw new IllegalStateException("Not connected to the core");
          }
 
          try {
@@ -1246,8 +1157,8 @@ public class ProtocolManager {
      }
 
     public void importRulesetFromFile(String fileName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1262,8 +1173,8 @@ public class ProtocolManager {
     }
 
     public void importRulesetFromData(byte[] data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1278,8 +1189,8 @@ public class ProtocolManager {
     }
 
     public void replaceRulesetFromFile(String fileName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1294,8 +1205,8 @@ public class ProtocolManager {
     }
 
     public void replaceRulesetFromData(byte[] data) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1310,8 +1221,8 @@ public class ProtocolManager {
     }
 
     public void exportRulesetToFile(String fileName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1326,8 +1237,8 @@ public class ProtocolManager {
     }
 
     public byte[] exportRulesetToData() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1341,8 +1252,8 @@ public class ProtocolManager {
     }
 
     public String[] listRules() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1356,8 +1267,8 @@ public class ProtocolManager {
     }
 
     public String[] listActiveRules() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1371,8 +1282,8 @@ public class ProtocolManager {
     }
 
     public String openRuleLhs(String rule) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1387,8 +1298,8 @@ public class ProtocolManager {
     }
 
     public String openRuleRhs(String rule) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1403,8 +1314,8 @@ public class ProtocolManager {
     }
 
     public void setRule(String ruleName, String lhsGraph, String rhsGraph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1421,8 +1332,8 @@ public class ProtocolManager {
     }
 
     public void renameRule(String oldName, String newName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1438,8 +1349,8 @@ public class ProtocolManager {
     }
 
     public void deleteRule(String ruleName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1454,8 +1365,8 @@ public class ProtocolManager {
     }
 
     public void activateRule(String ruleName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1470,8 +1381,8 @@ public class ProtocolManager {
     }
 
     public void deactivateRule(String ruleName) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1486,8 +1397,8 @@ public class ProtocolManager {
     }
 
     public String ruleUserData(String ruleName, String dataName) throws CoreException {
-         if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+         if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1518,8 +1429,8 @@ public class ProtocolManager {
     }
 
     public String[] listTags() throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1533,8 +1444,8 @@ public class ProtocolManager {
     }
 
     public String[] listRulesByTag(String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1549,8 +1460,8 @@ public class ProtocolManager {
     }
 
     public void tagRule(String ruleName, String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1566,8 +1477,8 @@ public class ProtocolManager {
     }
 
     public void untagRule(String ruleName, String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1583,8 +1494,8 @@ public class ProtocolManager {
     }
 
     public void forgetTag(String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1599,8 +1510,8 @@ public class ProtocolManager {
     }
 
     public void deleteRulesByTag(String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1615,8 +1526,8 @@ public class ProtocolManager {
     }
 
     public void activateRulesByTag(String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1631,8 +1542,8 @@ public class ProtocolManager {
     }
 
     public void deactivateRulesByTag(String tag) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1651,8 +1562,8 @@ public class ProtocolManager {
     }
 
     public int attachRewrites(String graph, Collection<String> vertices) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1672,8 +1583,8 @@ public class ProtocolManager {
     }
 
     public int attachOneRewrite(String graph, Collection<String> vertices) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1689,8 +1600,8 @@ public class ProtocolManager {
     }
 
     public void applyAttachedRewrite(String graph, int offset) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1706,8 +1617,8 @@ public class ProtocolManager {
     }
 
     public String listAttachedRewrites(String graph) throws CoreException {
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1724,8 +1635,8 @@ public class ProtocolManager {
 
     public String[] listMetricsNames() throws CoreException {
 
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1739,8 +1650,8 @@ public class ProtocolManager {
     }
         public String[] listMetricsDescs() throws CoreException {
 
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1755,8 +1666,8 @@ public class ProtocolManager {
 
      public String getCurrentMetricNameRequest() throws CoreException {
 
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1770,8 +1681,8 @@ public class ProtocolManager {
     }
     public void setMetricRequest(String metricName) throws CoreException {
 
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1786,8 +1697,8 @@ public class ProtocolManager {
     }
      public void computeMetricRequest(String graphName) throws CoreException {
 
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {
@@ -1803,8 +1714,8 @@ public class ProtocolManager {
 
     public int ordMetricRequest(int[] metric1, int[] metric2) throws CoreException {
 
-        if (backend == null) {
-            throw new IllegalStateException("The core is not running");
+        if (writer == null) {
+            throw new IllegalStateException("Not connected to the core");
         }
 
         try {

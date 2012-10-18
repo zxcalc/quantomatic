@@ -12,17 +12,17 @@ struct
   in if ((outsum = 1 andalso insum = ins) orelse (outsum = 0 andalso insum = (ins - 1))) then 1 else 0
   end
   
-  fun tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.GHZ) (ins, outs) =
+  fun tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.GHZ) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (ghz ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))
-    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.W) (ins, outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.W) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (w (ins,outs))
-    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.TICK) (1,1) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.TICK) (1,1) =
         Tensor.tensor (2,1,1) [0,1,1,0]
-    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.TICK) (ins,outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.TICK) (ins,outs) =
         Tensor.tensorf (2,ins,outs) (K 0)  (* just return a zero tensor if bad dimensions on tick *)
-    | tensor_for_vertex_data (Graph.OVData.IVert GHZW_VertexData.ZERO) (ins,outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.ZERO) (ins,outs) =
         Tensor.tensorf (2,ins,outs) (K 0)  (* always return 0 tensor *)
-    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id dimension 1
+    | tensor_for_vertex_data (Graph.OVData.WVert) _ = Tensor.id dimension 1
 end
 
 (*
@@ -37,11 +37,11 @@ struct
            (fold (curry op+) (Tensor.decompose_index 2 ins j) 0) mod 2 then 1 else 0
   fun green (maxi,maxj) (i,j) = if ((i=0 andalso j=0) orelse (i=maxi andalso j=maxj)) then 1 else 0
   
-  fun tensor_for_vertex_data (Graph.OVData.IVert (RG_VertexData.Znd _)) (ins, outs) =
+  fun tensor_for_vertex_data (Graph.OVData.NVert (RG_VertexData.Znd _)) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (green ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))
-    | tensor_for_vertex_data (Graph.OVData.IVert (RG_VertexData.Xnd _)) (ins, outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert (RG_VertexData.Xnd _)) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (red (ins,outs))
-    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id dimension 1
+    | tensor_for_vertex_data (Graph.OVData.WVert) _ = Tensor.id dimension 1
 end
 *)
 
@@ -67,10 +67,10 @@ struct
   in Tensor.add term1 term2
   end
   
-  fun tensor_for_vertex_data (Graph.OVData.IVert RGB_VertexData.Red) io = gen red_basis io
-    | tensor_for_vertex_data (Graph.OVData.IVert RGB_VertexData.Green) io = gen green_basis io
-    | tensor_for_vertex_data (Graph.OVData.IVert RGB_VertexData.Blue) io = gen blue_basis io
-    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id 2 1
+  fun tensor_for_vertex_data (Graph.OVData.NVert RGB_VertexData.Red) io = gen red_basis io
+    | tensor_for_vertex_data (Graph.OVData.NVert RGB_VertexData.Green) io = gen green_basis io
+    | tensor_for_vertex_data (Graph.OVData.NVert RGB_VertexData.Blue) io = gen blue_basis io
+    | tensor_for_vertex_data (Graph.OVData.WVert) _ = Tensor.id 2 1
 end
 
 
@@ -82,7 +82,7 @@ struct
   val dimension = 2
   
   val green_basis = (Tensor.tensor (2,0,1) [(1,0),(0,0)], Tensor.tensor (2,0,1) [(0,0),(1,0)])
-  val red_basis = (Tensor.tensor (2,0,1) [(1,0),(1,0)], Tensor.tensor (2,0,1) [(0,~1),(0,1)])
+  val red_basis = (Tensor.tensor (2,0,1) [(1,0),(1,0)], Tensor.tensor (2,0,1) [(1,0),(~1,0)])
   
   fun gen (ket1,ket2) (ins, outs) = let
     val one = Tensor.id 2 0
@@ -97,9 +97,9 @@ struct
   
   val zero = LinratAngleExpr.zero
   
-  fun tensor_for_vertex_data (Graph.OVData.IVert (RG_InternVData.Xnd _)) io = gen red_basis io
-    | tensor_for_vertex_data (Graph.OVData.IVert (RG_InternVData.Znd _)) io = gen green_basis io
-    | tensor_for_vertex_data (Graph.OVData.EVert) _ = Tensor.id 2 1
+  fun tensor_for_vertex_data (Graph.OVData.NVert (RG_InternVData.Xnd _)) io = gen red_basis io
+    | tensor_for_vertex_data (Graph.OVData.NVert (RG_InternVData.Znd _)) io = gen green_basis io
+    | tensor_for_vertex_data (Graph.OVData.WVert) _ = Tensor.id 2 1
 end
 
 
@@ -107,9 +107,12 @@ end
 
 structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)
 
-structure RG_Synth = Synthesize(
+structure RG_Synth = TensorSynth(
   structure GraphEnum = RG_Enum
-  structure Metric = WeightedArityMetric(structure Graph = RG_Theory.Graph; val weight_for_data = K 1)
+  structure Metric = WeightedArityMetric(structure Graph = RG_Theory.Graph;
+    fun weight_for_data (Graph.OVData.NVert (RG_InternVData.Xnd _)) = 6
+      | weight_for_data (Graph.OVData.NVert (RG_InternVData.Znd _)) = 5
+      | weight_for_data _ = 4)
   structure TData = RG_TensorData
 )
 
@@ -122,11 +125,11 @@ structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 
 structure GHZW_Metric = WeightedArityMetric(
   structure Graph = GHZW_Theory.Graph
-  fun weight_for_data (Graph.OVData.IVert GHZW_VertexData.ZERO) = 1
+  fun weight_for_data (Graph.OVData.NVert GHZW_VertexData.ZERO) = 1
     | weight_for_data _ = 5
 )
 
-structure GHZW_DefaultSynth = Synthesize(
+structure GHZW_DefaultSynth = TensorSynth(
   structure GraphEnum = GHZW_Enum
   structure Metric = GHZW_Metric
   structure TData = GHZW_TensorData
@@ -138,7 +141,7 @@ structure GHZW_Rws = DefaultRewrites(structure Rule = GHZW_Theory.Rule)
 
 structure RGB_Enum = GraphEnumerator(structure Theory = RGB_Theory)
 
-structure RGB_Synth = Synthesize(
+structure RGB_Synth = TensorSynth(
   structure GraphEnum = RGB_Enum
   structure Metric = WeightedArityMetric(structure Graph = RGB_Theory.Graph; val weight_for_data = K 1)
   structure TData = RGB_TensorData
@@ -150,7 +153,7 @@ structure RGB_Rws = DefaultRewrites(structure Rule = RGB_Theory.Rule)
 
 
 (*
-structure RG_NoPhaseSynth = Synthesize(
+structure RG_NoPhaseSynth = TensorSynth(
   structure GraphEnum = GraphEnumerator(structure Graph = RG_Theory.Graph)
   structure Metric = EdgeComplexityMetric(structure Graph = RG_Theory.Graph)
   structure TData = RG_TensorDataNoPhase

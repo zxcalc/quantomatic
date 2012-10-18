@@ -51,6 +51,8 @@ PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 
+PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
+
 (* Metrics *)
 PolyML.Project.make "metrics/metric_type.ML"; (* Utils to handle int tuples *)
 PolyML.Project.make "metrics/metrics/metric.ML"; (* METRIC signature *)
@@ -66,8 +68,8 @@ PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
 PolyML.Project.make "io/input_generic.ML";
 PolyML.Project.make "io/output_generic.ML";
-PolyML.Project.make "io/input_string.ML";
-PolyML.Project.make "io/output_string.ML";
+PolyML.Project.make "io/input_xml.ML";
+PolyML.Project.make "io/output_xml.ML";
 PolyML.Project.make "io/input_linrat.ML";
 PolyML.Project.make "io/output_linrat.ML";
 PolyML.Project.make "io/reader.ML";
@@ -76,15 +78,15 @@ PolyML.Project.make "io/writer.ML";
 (* component data needs to go before I/O for graphs *)
 PolyML.Project.make "theories/component_data.ML";
 
-(* Storing UI data on graphs, vertices, !-Boxes and edges *)
-PolyML.Project.make "interface/user_data.ML";
+(* boilerplate data functors for enumerated datatypes *)
+PolyML.Project.make "theories/enum_data.ML";
 
 (* I/O for graphs *)
-PolyML.Project.make "io/input_user_data.ML";
-PolyML.Project.make "io/output_user_data.ML";
 PolyML.Project.make "io/input_graph_v2.ML";
 PolyML.Project.make "io/output_graph_v2.ML";
-PolyML.Project.make "io/input_ruleset_user_data.ML";
+
+PolyML.Project.make "io/input_graph_annotations.ML";
+PolyML.Project.make "io/output_graph_annotations.ML";
 
 (* Testing *)
 (* *)
@@ -108,6 +110,9 @@ PolyML.Project.make "io/input_rule.ML";
 PolyML.Project.make "theories/ruleset.ML";
 PolyML.Project.make "io/input_ruleset.ML";
 PolyML.Project.make "io/output_ruleset.ML";
+PolyML.Project.make "theories/ruleset_annotations.ML";
+PolyML.Project.make "io/input_ruleset_annotations.ML";
+PolyML.Project.make "io/output_ruleset_annotations.ML";
 
 (* package all IO stuff into one place *)
 PolyML.Project.make "io/io_interface.ML";
@@ -157,18 +162,6 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 (* construction of everything in a graphical theory from just param *)
 PolyML.Project.make "theories/graphical_theory.ML";
 
-(* Overall controller for theories *)
-PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
-PolyML.Project.make "interface/controller.ML"; (* commands *)
-
-(* interface protocol/console *)
-PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
-PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
-PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
-PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
-PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
-PolyML.Project.make "interface/run.ML";
-
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
 (* These depend on the red-green theory for now *)
@@ -206,11 +199,18 @@ PolyML.Project.make "theories/red_green_blue/graph.ML";
 PolyML.Project.make "theories/red_green_blue/theory.ML";
 PolyML.Project.make "theories/red_green_blue/io.ML";
 
+(* petri specific vertices, graphs, and matching *)
+PolyML.Project.make "theories/petri/vertex.ML";
+PolyML.Project.make "theories/petri/graph.ML";
+PolyML.Project.make "theories/petri/theory.ML";
+PolyML.Project.make "theories/petri/io.ML";
+
 (*  *)
 PolyML.Project.make "theories/isaplanner_rtechn/vertex.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
+
 
 
 PolyML.Project.make "dnets/DNetsLib.ML";
@@ -223,6 +223,20 @@ Testing.make_test "dnets/test.ML";
 
 (* Performance tests for dnets *)
 (*PolyML.Project.make "dnets/perf.ML";*)
+
+(* Overall controller for theories *)
+PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+PolyML.Project.make "interface/controller.ML"; (* commands *)
+PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
+
+(* interface protocol/console *)
+PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
+PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
+PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
+PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
+PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
+PolyML.Project.make "interface/run.ML";
+
 
 (* Testing *)
 (* Testing.make_test "io/test/load_ruleset-test.ML"; *)

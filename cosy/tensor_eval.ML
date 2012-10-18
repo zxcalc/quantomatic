@@ -43,8 +43,8 @@ struct
   fun append_vertex graph vert (i_offsets, o_offsets, verts, tensor) = let
     val (data, (in_edges, out_edges)) = TData.Graph.get_vertex graph vert
     val (num_in, num_out) =
-      case data of TData.Graph.OVData.IVert _ => (E.NSet.cardinality in_edges, E.NSet.cardinality out_edges)
-                 | TData.Graph.OVData.EVert => (1,1)
+      case data of TData.Graph.OVData.NVert _ => (E.NSet.cardinality in_edges, E.NSet.cardinality out_edges)
+                 | TData.Graph.OVData.WVert => (1,1)
     val (current_in, current_out) = (TData.Tensor.lower_index_count tensor, TData.Tensor.upper_index_count tensor)
     val new_tensor = TData.Tensor.product tensor (TData.tensor_for_vertex_data data (num_in, num_out))
     val new_i_offsets = if num_in = 0 then i_offsets

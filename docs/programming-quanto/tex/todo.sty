@@ -1,0 +1,31 @@
+\ProvidesPackage{todo}
+
+\usepackage{color}
+
+% \TODOitem is intended as a placeholder \item for when more things need
+% to be added to a list environment
+\newcommand{\TODOitem}{%
+% for humans
+\typeout{WARNING!!! There is still a TODO left}
+% for the script
+\typeout{unresolved-TODO}
+\color{blue}\item
+}
+% \TODO prints TODO text in the margin, which makes it easy to spot as
+% you scan through a paper, but doesn't allow much text to be entered.
+\newcommand{\TODO}[1]{%
+% for humans
+\typeout{WARNING!!! There is still a TODO left}
+% for the script
+\typeout{unresolved-TODO}
+\marginpar{\textbf{!TODO: }\emph{#1}}
+}
+% \TODOinline prints the TODO text inline, allowing much larger blocks
+% of text to be added.
+\newcommand{\TODOinline}[1]{%
+% for humans
+\typeout{WARNING!!! There is still a TODO left}
+% for the script
+\typeout{unresolved-TODO}
+{\color{blue}\textbf{!TODO: }#1}
+}

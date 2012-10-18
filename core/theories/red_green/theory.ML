@@ -9,8 +9,6 @@ structure EComponentData = EmptyElementComponentData
 );
 structure RG_Theory : GRAPHICAL_THEORY = DB_RG_Theory;
 
-structure RG_Controller = Controller(RG_Theory);
-
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (* terms used within the RG theory. *)
 structure RGHilbTerm = TensorTermFun(

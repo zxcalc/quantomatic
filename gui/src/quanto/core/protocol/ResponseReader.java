@@ -16,28 +16,101 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alex
  */
-public class ProtocolReader {
+class ResponseReader {
     private static final char ESC = '\u001b';
     private final static Logger logger = Logger.getLogger("quanto.core.protocol");
 
     private LoggingInputStream input;
     private String version;
+    private StringBuilder lastMessage = new StringBuilder();
+    private String lastInvalidOutput;
 
-    public ProtocolReader(InputStream input) {
+    public String getLastInvalidOutput() {
+        return lastInvalidOutput;
+    }
+
+	public String getLastMessage() {
+		return lastMessage.toString();
+	}
+
+    public ResponseReader(InputStream input) {
         this.input = new LoggingInputStream(
                 new BufferedInputStream(input), "quanto.core.protocol.stream");
     }
+	
+	public boolean isClosed() {
+		return input == null;
+	}
 
     public void close() throws IOException {
-        input.close();
+		if (!isClosed()) {
+			input.close();
+			input = null;
+		}
     }
+	
+	/**
+	 * Read a character from the stream.
+	 * 
+	 * Guarantees that it is not -1 (will throw IOException in that case).
+	 * @return a character
+	 * @throws IOException 
+	 */
+	private int read() throws IOException {
+		if (isClosed()) {
+			throw new IllegalStateException("Input stream is closed");
+		}
+		int gotCh = input.read();
+		if (gotCh == -1) {
+			input = null;
+			throw new IOException("End of stream reached");
+		}
+		lastMessage.append(gotCh);
+		return gotCh;
+	}
+	
+	/**
+	 * Read into a buffer.
+	 * 
+	 * Guarantees that length is not -1 (will throw IOException in that case).
+	 * @return read count
+	 */
+	private int read(byte[] b) throws IOException {
+		if (isClosed()) {
+			throw new IllegalStateException("Input stream is closed");
+		}
+		int count = input.read(b);
+		if (count == -1) {
+			input = null;
+			throw new IOException("End of stream reached");
+		}
+		lastMessage.append(b);
+		return count;
+	}
+	
+	/**
+	 * Read into a buffer.
+	 * 
+	 * Guarantees that length is not -1 (will throw IOException in that case).
+	 * @return read count
+	 */
+	private int read(byte[] b, int off, int len) throws IOException {
+		if (isClosed()) {
+			throw new IllegalStateException("Input stream is closed");
+		}
+		int count = input.read(b, off, len);
+		if (count == -1) {
+			input = null;
+			throw new IOException("End of stream reached");
+		}
+		lastMessage.append(b);
+		return count;
+	}
 
     private void eatEsc() throws ProtocolException, IOException {
-        int gotCh = input.read();
+        int gotCh = read();
         if (gotCh != ESC) {
-            if (gotCh == -1)
-                throw new ProtocolException("Expected ESC from core, got EOF");
-            else if (Character.isISOControl(gotCh))
+            if (Character.isISOControl(gotCh))
                 throw new ProtocolException("Expected ESC from core, got \\u" + String.format("%1$04x", gotCh));
             else
                 throw new ProtocolException("Expected ESC from core, got " + (char)gotCh);
@@ -45,11 +118,9 @@ public class ProtocolReader {
     }
 
     private void eatChar(char ch) throws ProtocolException, IOException {
-        int gotCh = input.read();
+        int gotCh = read();
         if (gotCh != ch) {
-            if (gotCh == -1)
-                throw new ProtocolException("Expected " + ch + ", got EOF");
-            else if (Character.isISOControl(gotCh))
+            if (Character.isISOControl(gotCh))
                 throw new ProtocolException("Expected " + ch + ", got \\u" + Integer.toHexString(gotCh));
             else
                 throw new ProtocolException("Expected " + ch + ", got " + (char)gotCh);
@@ -69,7 +140,7 @@ public class ProtocolReader {
         byte[] buffer = new byte[length];
         int pos = 0;
         while (pos < buffer.length) {
-            pos += input.read(buffer, pos, buffer.length - pos);
+            pos += read(buffer, pos, buffer.length - pos);
         }
 
         eatEscChar(']');
@@ -79,19 +150,22 @@ public class ProtocolReader {
     // I'm almost tempted to use a List<Byte> - Java makes this
     // painful to do efficiently
     private byte[] readToEscape() throws ProtocolException, IOException {
+		if (isClosed()) {
+			throw new IllegalStateException("Input stream is closed");
+		}
         byte[] result = null;
         byte[] buffer = new byte[50];
         int escPos = -1;
         while (escPos == -1) {
             input.mark(buffer.length + 1);
-            int count = input.read(buffer);
+            int count = read(buffer);
             for (int i = 0; i < count; ++i) {
                 if (buffer[i] == ESC) {
                     byte next;
                     if (i + 1 < count)
                         next = buffer[i + 1];
                     else
-                        next = (byte)input.read();
+                        next = (byte)read();
                     if (next == ESC) {
                         // escaped ESC
                         // shorten the array by one
@@ -117,7 +191,7 @@ public class ProtocolReader {
             }
         }
         input.reset();
-        input.read(buffer, 0, escPos);
+        read(buffer, 0, escPos);
         return result;
     }
 
@@ -151,12 +225,70 @@ public class ProtocolReader {
         return result;
     }
 
+    private void skipToBodyEnd() throws IOException, ProtocolException {
+		if (isClosed()) {
+			throw new IllegalStateException("Input stream is closed");
+		}
+        boolean esc = false;
+        input.mark(2);
+        int ch = read();
+        while (true) {
+            if (esc) {
+                if (ch == '[') {
+                    // data chunk
+                    input.reset();
+                    readDataBlock();
+                    input.mark(2);
+                } else if (ch == '>') {
+                    input.reset();
+                    break;
+                }
+                esc = false;
+                input.mark(2);
+            } else if (ch == ESC) {
+                esc = true;
+            } else {
+                input.mark(2);
+            }
+            ch = read();
+        }
+    }
+
+    private void readAvailableInvalidData() throws IOException {
+		if (isClosed()) {
+			return;
+		}
+		byte[] b = new byte[1024];
+		int count = 0;
+		int avail = input.available();
+		while (avail > 0) {
+			if (avail > b.length)
+				avail = b.length;
+			count = read(b, 0, avail);
+			if (count != -1 && logger.isLoggable(Level.INFO)) {
+				String strVal = new String(b, 0, count);
+				logger.log(Level.INFO, "Discarding data: \"{0}\"",
+						strVal.replace('\u001b', '\u00a4'));
+				lastMessage.append(strVal);
+			}
+			avail = input.available();
+		}
+        lastInvalidOutput = lastMessage.toString();
+    }
+	
+	private void eatMessageOpening() throws IOException, ProtocolException {
+		eatEscChar('<');
+		lastMessage.setLength(0);
+		lastMessage.append(ESC);
+		lastMessage.append('<');
+	}
+
     public void waitForReady() throws IOException, ProtocolException {
         if (version != null)
             return;
 
         try {
-            eatEscChar('<');
+			eatMessageOpening();
             eatChar('V');
             eatEscChar('|');
             version = readStringToEscape();
@@ -260,32 +392,6 @@ public class ProtocolReader {
         return resp;
     }
 
-    private void skipToBodyEnd() throws IOException, ProtocolException {
-        boolean esc = false;
-        input.mark(2);
-        int ch = input.read();
-        while (ch != -1) {
-            if (esc) {
-                if (ch == '[') {
-                    // data chunk
-                    input.reset();
-                    readDataBlock();
-                    input.mark(2);
-                } else if (ch == '>') {
-                    input.reset();
-                    break;
-                }
-                esc = false;
-                input.mark(2);
-            } else if (ch == ESC) {
-                esc = true;
-            } else {
-                input.mark(2);
-            }
-            ch = input.read();
-        }
-    }
-
     private Response parseUnknownResponseBody(String code, String requestId) throws ProtocolException, IOException {
         skipToBodyEnd();
         Response resp = new Response(Response.MessageType.UnknownResponse, requestId);
@@ -296,7 +402,7 @@ public class ProtocolReader {
     public Response parseNextResponse() throws IOException, ProtocolException {
         waitForReady();
         try {
-            eatEscChar('<');
+			eatMessageOpening();
             String code = readAsciiStringToEscape();
             eatEscChar(':');
             String requestId = readStringToEscape();
@@ -335,41 +441,12 @@ public class ProtocolReader {
             return resp;
         } catch (IOException ex) {
             input.writeLog(Level.SEVERE, "Received partial message");
-            consumeStream();
+            readAvailableInvalidData();
             throw ex;
         } catch (ProtocolException ex) {
             input.writeLog(Level.SEVERE, "Received invalid message");
-            consumeStream();
+            readAvailableInvalidData();
             throw ex;
         }
-    }
-    
-    private String lastInvalidOutput;
-
-    private void consumeStream() {
-        StringBuilder output = new StringBuilder();
-        try {
-            byte[] b = new byte[1024];
-            int count = 0;
-            int avail = input.available();
-            while (avail > 0) {
-                if (avail > b.length)
-                    avail = b.length;
-                count = input.read(b, 0, avail);
-                if (count != -1 && logger.isLoggable(Level.INFO)) {
-                    String strVal = new String(b, 0, count);
-                    logger.log(Level.INFO, "Discarding data: \"{0}\"",
-                            strVal.replace('\u001b', '\u00a4'));
-                    output.append(strVal);
-                }
-                avail = input.available();
-            }
-        } catch (IOException ex) {
-        }
-        lastInvalidOutput = output.toString();
-    }
-
-    public String getLastInvalidOutput() {
-        return lastInvalidOutput;
     }
 }
