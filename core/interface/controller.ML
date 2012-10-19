@@ -349,6 +349,13 @@ struct
   in
     (TextIO.closeIn instream ; s)
   end;
+  fun write_to_file file s = let
+    val outstream = TextIO.openOut file
+  in
+    (TextIO.output (outstream, s);
+     TextIO.closeOut outstream)
+  end;
+  fun write_json_to_file file = (write_to_file file) o Json.encode;
 
   fun load_ruleset_xml data replace state = (let
     val xml = XMLReader.read_from_string data
@@ -529,16 +536,10 @@ struct
 
     | serviceRequest' (SaveGraphToFileRequest { graphName, fileName }) state =
        (let
-          (* The user data is attached to the state, so we cannot
-           * put it in io_interface. Therefore we build our structures
-           * are the very last moment. There should be a better way to do that
-           * as it prevents us form storing userdata on rules...*)
           val graph = get_graph graphName state
-          val graphXMLTree = OutputXML.Graph.output graph
           val ud = get_graph_ud graphName state
-          val userDataXMLTree = GraphUserDataOutputXML.output ud
-          val () = XMLWriter.write_to_file fileName
-                      (GraphAndUIOutputXML.output (graphXMLTree, userDataXMLTree))
+          val json = TheoryIO.OutputGraphJSON.output (graph,ud)
+          val _ = write_json_to_file fileName json
         in
           (OkResponse, state)
         end
@@ -567,8 +568,10 @@ struct
         in
           case format
             of NativeGraphFormat =>
-                 let val graph_data = (XMLWriter.write_to_string o OutputXML.Graph.output) graph in
-                   (DataResponse { data = graph_data}, state)
+                 let
+                   val json = TheoryIO.OutputGraphJSON.output v
+                 in
+                   (DataResponse { data = Json.encode json}, state)
                  end
              | XmlGraphFormat =>
                  (XmlResponse { data = OutputXML.Graph.output graph}, state)
@@ -953,10 +956,10 @@ fun hilb ([format], graph) =
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
-          val ruleset_tree = (OutputXML.Ruleset.output o State.get_rset) state
-          val ud_tree = (RulesetUserDataOutputXML.output o State.get_rset_ud) state
-          val () = (XMLWriter.write_to_file fileName)
-                      (RulesetAndUIOutputXML.output (ruleset_tree, ud_tree))
+          val rs = State.get_rset state
+          val ud = State.get_rset_ud state
+          val json = TheoryIO.OutputRulesetJSON.output (rs,ud)
+          val _ = write_json_to_file fileName json
         in
           (OkResponse, state)
         end
@@ -968,8 +971,12 @@ fun hilb ([format], graph) =
                                 message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
 
     | serviceRequest' (ExportRulesetAsDataRequest) state =
-        let val get_rset_data = XMLWriter.write_to_string o OutputXML.Ruleset.output o State.get_rset in
-          (DataResponse { data = get_rset_data state }, state)
+        let
+          val rs = State.get_rset state
+          val ud = State.get_rset_ud state
+          val json = TheoryIO.OutputRulesetJSON.output (rs,ud)
+        in
+          (DataResponse { data = Json.encode json }, state)
         end
 
 
