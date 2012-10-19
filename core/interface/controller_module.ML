@@ -1,4 +1,4 @@
-type cmod_functiontab = ((Json.json -> Json.json) * string) Symtab.table
+type cmod_functiontab = ((Json.json -> string * Json.json) * string) Symtab.table
 
 signature CONTROLLER_MODULE =
 sig
