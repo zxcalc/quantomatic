@@ -1,6 +1,7 @@
+type cmod_functiontab = ((Json.json -> Json.json) * string) Symtab.table
+
 signature CONTROLLER_MODULE =
 sig
   (* a table mapping function name to function * docstring *)
-  type functiontab = ((Json.json -> Json.json) * string) Symtab.table
-  val mk : unit -> functiontab
+  val ftab : cmod_functiontab
 end

@@ -241,6 +241,7 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 PolyML.Project.make "interface/controller_module.ML";
 PolyML.Project.make "interface/cmod_main.ML";
 PolyML.Project.make "interface/controller.ML";
+PolyML.Project.make "interface/controller_registry.ML";
 PolyML.Project.make "interface/run.ML";
 
 (* Testing *)

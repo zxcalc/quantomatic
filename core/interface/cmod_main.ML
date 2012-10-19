@@ -5,7 +5,6 @@ end
 
 functor CModMain(Theory : GRAPHICAL_THEORY) : CMOD_MAIN =
 struct
-  
   val ftab = Symtab.make [
     (* *)
   ]

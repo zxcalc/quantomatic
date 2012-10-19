@@ -1,15 +1,16 @@
+type controller_moduletab = (cmod_functiontab * string) Symtab.table
+
 signature CONTROLLER =
 sig
-  type functiontab = ((Json.json -> Json.json) * string) Symtab.table
-  val mtab : (functiontab * string) Symtab.table
+  structure Theory
+  val mtab : controller_moduletab
 end
 
 
 functor Controller(Theory : GRAPHICAL_THEORY) =
 struct
 
-type functiontab = ((Json.json -> Json.json) * string) Symtab.table
-
+structure Theory = Theory
 structure CModMain = CModMain(Theory)
 
 
