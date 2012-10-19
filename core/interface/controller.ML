@@ -329,24 +329,6 @@ struct
   in
     (State.get_graph state gn,State.get_graph_ud state gn)
   end
-  fun get_rule_and_ud (name:string) (state:State.T) = let
-    val rn = (R.mk name)
-    val rset = State.get_rset state
-    val rset_ud = State.get_rset_ud state
-  in
-    (Theory.Ruleset.get_rule rset rn,
-     (State.RulesetUserData.get_rule_annotation rset_ud rn,
-      (State.RulesetUserData.get_rule_lhs_annotation rset_ud rn,
-       State.RulesetUserData.get_rule_rhs_annotation rset_ud rn)))
-  end
-  fun get_rule_ud (name:string) (state:State.T) = let
-    val rn = (R.mk name)
-    val rset_ud = State.get_rset_ud state
-  in
-    (State.RulesetUserData.get_rule_annotation rset_ud rn,
-     (State.RulesetUserData.get_rule_lhs_annotation rset_ud rn,
-      State.RulesetUserData.get_rule_rhs_annotation rset_ud rn))
-  end
 
   fun update_ruleset rset true state =
        State.update_rset (Ruleset.merge rset) state
@@ -358,23 +340,50 @@ struct
     | update_ruleset_ud rset_ud _ state =
       State.set_rset_ud rset_ud state
 
-  fun load_ruleset reader source replace state =
-     ((OkResponse,
-       state |> update_ruleset (InputXML.Ruleset.input (reader source)) replace 
-             |> update_ruleset_ud (RulesetUserDataInputXML.input (reader source)) replace
-       )
-      handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
+  fun slurp file = let
+    val instream =  TextIO.openIn file
+    fun read str = case TextIO.inputLine instream
+                     of  SOME s => read (str ^ s)
+                      | NONE => str
+    val s = read ""
+  in
+    (TextIO.closeIn instream ; s)
+  end;
+
+  fun load_ruleset_xml data replace state = (let
+    val xml = XMLReader.read_from_string data
+  in
+   (OkResponse,
+     state |> update_ruleset (InputXML.Ruleset.input xml) replace
+           |> update_ruleset_ud (RulesetUserDataInputXML.input xml) replace
+     )
+  end
+  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-           | InputXML.Ruleset.bad_input_exp (s1,s2) =>
+       | InputXML.Ruleset.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-           | XMLReader.bad_input_exp msg =>
+       | XMLReader.bad_input_exp _ =>
              (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state)
-          | _ =>
+                message = ("The file is neither valid XML nor JSON") }, state)
+       | _ =>
              (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory.") }, state))
+                message = ("An error occurred while parse the ruleset") }, state));
+
+  fun load_ruleset data replace state = (let
+    val json = Json.of_string data
+    val (rs,ud) = TheoryIO.InputRulesetJSON.input json
+  in
+   (OkResponse,
+     state |> update_ruleset rs replace
+           |> update_ruleset_ud ud replace
+     )
+  end
+  handle TheoryIO.InputRulesetJSON.bad_input_exp (s1,s2) =>
+             (ErrorResponse { errorCode = "BADDATA",
+                message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
+       | Json.parse_exn _ => load_ruleset_xml data replace state);
 
   fun describe_vertex (n, (nd,_)) =
     { name = V.dest n, vType = VCD.type_of nd,
@@ -446,25 +455,44 @@ struct
         end
 
     | serviceRequest' (LoadGraphRequest { details }) state =
-        let fun load_graph suggestedName reader data =
+        let
+          fun add_graph_to_table suggestedName (graph,ud) = let
+            val name = if suggestedName = ""
+                       then GraphName.default_name
+                       else GraphName.mk suggestedName
+            val (nm,state') = State.add_graph name graph state
+            val state_ =  State.set_graph_ud ud nm state'
+          in
+            (StringResponse { data = GraphName.dest nm },state_)
+          end;
+          fun load_graph_xml suggestedName data =
                 (let
-                   val graph = (InputXML.Graph.input (reader data))
-                   val ud = GraphUserDataInputXML.input(reader data)
-                   val name = if suggestedName = "" then GraphName.default_name else GraphName.mk suggestedName
-                   val (nm,state') = State.add_graph name graph state
-                   val state_ =  State.set_graph_ud ud nm state'
+                   val xml = XMLReader.read_from_string data
+                   val graph = InputXML.Graph.input xml
+                   val ud = GraphUserDataInputXML.input xml
                  in
-                   (StringResponse { data = GraphName.dest nm },state_)
+                   add_graph_to_table suggestedName (graph,ud)
                  end
                  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | InputXML.Graph.bad_input_exp (s1,s2) => 
+                      | InputXML.Graph.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | XMLReader.bad_input_exp msg =>
+                      | XMLReader.bad_input_exp _ =>
                         (ErrorResponse { errorCode = "BADDATA",
-                           message = ("The file is not a valid graph for the active theory ("^msg^")") }, state))
+                           message = ("The file is neither valid JSON nor XML") }, state));
+          fun load_graph suggestedName data =
+            let
+              val json = Json.of_string data
+              val g_and_ud = TheoryIO.InputGraphJSON.input json
+            in
+              add_graph_to_table suggestedName g_and_ud
+            end
+            handle Json.parse_exn _ => load_graph_xml suggestedName data
+                 | TheoryIO.InputGraphJSON.bad_input_exp (s1,s2) =>
+                        (ErrorResponse { errorCode = "BADDATA",
+                           message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state);
         in
           case details of
             LoadEmptyGraphRequest { requestedName } =>
@@ -477,7 +505,7 @@ struct
                 (StringResponse { data = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
-             (load_graph (OS.Path.file fileName) XMLReader.read_from_file fileName
+             (load_graph (OS.Path.file fileName) (slurp fileName)
               handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn,...} =>
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read ("^msg^")") }, state)
@@ -485,7 +513,7 @@ struct
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
           | LoadGraphFromDataRequest { data, requestedName } =>
-             load_graph requestedName XMLReader.read_from_string data
+             load_graph requestedName data
           | CopyGraphRequest { graphName } =>
              let
                 val gname = GraphName.mk graphName
@@ -912,7 +940,7 @@ fun hilb ([format], graph) =
 
     (* Rulesets *)
     | serviceRequest' (ImportRulesetFromFileRequest { fileName, replace }) state =
-       (load_ruleset XMLReader.read_from_file fileName replace state
+       (load_ruleset (slurp fileName) replace state
         handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read ("^msg^")") }, state)
@@ -921,7 +949,7 @@ fun hilb ([format], graph) =
                                 message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
 
     | serviceRequest' (ImportRulesetFromDataRequest { data, replace }) state =
-        load_ruleset XMLReader.read_from_string data replace state
+        load_ruleset data replace state
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
