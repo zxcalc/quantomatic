@@ -238,6 +238,7 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 *)
 
 (* new modular controller *)
+PolyML.Project.make "interface/controller_util.ML";
 PolyML.Project.make "interface/controller_module.ML";
 PolyML.Project.make "interface/cmod_main.ML";
 PolyML.Project.make "interface/controller.ML";
