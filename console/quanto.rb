@@ -5,7 +5,7 @@ require 'json'
 require "readline"
 require "open3"
 
-$debug = true
+$debug = false
 $seq = 0
 $controller = "red_green"
 
@@ -67,19 +67,40 @@ def get_response(qout)
   return [rid, status, JSON.parse_fragment(json_out)]
 end
 
+def run_command(qin,qout,cmd)
+  if cmd == 'version'
+    send_request(qin, '!!', 'version', 'null')
+    version = get_response(qout)[2]
+    puts "Quantomatic v#{version}"
+  elsif cmd =~ /^help ([^:]*)(::(.*))?$/
+    if $3 != nil
+      send_request(qin, '!!', 'help', "{\"module\":\"#{$1}\",\"function\":#{$3}}")
+      puts "#{$1}::#{$3}"
+      puts
+      puts 
+      puts
+    else
+      puts "help for module: #{$1}"
+    end
+  end
+end
+
 Open3.popen3("../core/bin/quanto-core") do |qin, qout, qerr, wait_thr|
-  # qin.sync = true
-  # qout.sync = true
-  # qerr.sync = true
   
   send_request(qin, '!!', 'version', 'null')
-  get_response(qout)
+  version = get_response(qout)[2]
+  puts "Quantomatic v#{version}"
+  
+  loop do
+    begin
+      cmd = Readline.readline('quanto> ')
+      break if cmd == nil
+      run_command(qin,qout,cmd)
+    rescue Interrupt
+      puts "interrupt"
+      break
+    end
+  end
   
   puts "\ndone"
 end
-
-# loop do
-#   s = Readline.readline('quanto> ')
-#   break if s == nil
-#   puts s
-# end
