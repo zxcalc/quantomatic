@@ -42,6 +42,7 @@ fun run_in_textstreams (instream, outstream) = let
 in (
 	    TextIO.output (outstream, "\027<" ^ req ^ "\027," ^ status ^ "\027," ^
 	    	Json.encode json_out ^ "\027>");
+      TextIO.flushOut outstream;
 	    run_in_textstreams (instream, outstream)
 	 )
 end
