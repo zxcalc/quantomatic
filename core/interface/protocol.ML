@@ -31,20 +31,43 @@ let
 in rd ""
 end
 
+fun dispatch rid cmd = 
+  Json.mk_object [
+    ("request_id", Json.Int rid),
+    ("success",    Json.Bool true),
+    ("output",     ControllerRegistry.dispatch cmd)
+  ]
+handle user_exn msg =>
+  Json.mk_object [
+    ("request_id", Json.Int rid),
+    ("success",    Json.Bool false),
+    ("message",    Json.String msg)
+  ]
+
+
 fun run_in_textstreams (instream, outstream) =
+let
   fun protocol_loop src =
   let
     val (json_list, src') = Source.get src
     val json = case json_list of [x] => x | _ =>
       raise protocol_exn "Expected: exactly one JSON object"
-    
-  in (TextIO.print (Json.encode json); protocol_loop src')
+    val rid = arg_int json "request_id"
+    val controller = arg_str json "controller"
+    val module = arg_str json "module"
+    val function = arg_str json "function"
+    val json_input = arg_json json "input"
+    val json_output = dispatch rid ((controller, module, function), json_input)
+  in (TextIO.output (outstream, Json.encode json_output);
+      TextIO.flushOut outstream;
+      protocol_loop src')
   end
 in protocol_loop (Json.json_source instream)
 end
 handle protocol_exn msg => 
-  TextIO.output (outstream,
-    Json.encode (Json.mk_object [("message", Json.String msg)]))
+  (TextIO.output (outstream,
+    Json.encode (Json.mk_object [("message", Json.String msg)]));
+   TextIO.flushOut outstream)
 
 (*fun run_in_textstreams (instream, outstream) = let
   val _   = read_to_esc instream #"<"
