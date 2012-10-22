@@ -1,7 +1,11 @@
 structure ControllerUtil =
 struct
 
+(* got bad input from the protocol, should crash *)
 exception protocol_exn of string
+
+(* got bad input from the user, should report error and carry on *)
+exception user_exn of string
 
 (* {{{ JSON argument helpers *)
 

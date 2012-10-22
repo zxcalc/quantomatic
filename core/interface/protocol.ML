@@ -31,7 +31,22 @@ let
 in rd ""
 end
 
-fun run_in_textstreams (instream, outstream) = let
+fun run_in_textstreams (instream, outstream) =
+  fun protocol_loop src =
+  let
+    val (json_list, src') = Source.get src
+    val json = case json_list of [x] => x | _ =>
+      raise protocol_exn "Expected: exactly one JSON object"
+    
+  in (TextIO.print (Json.encode json); protocol_loop src')
+  end
+in protocol_loop (Json.json_source instream)
+end
+handle protocol_exn msg => 
+  TextIO.output (outstream,
+    Json.encode (Json.mk_object [("message", Json.String msg)]))
+
+(*fun run_in_textstreams (instream, outstream) = let
   val _   = read_to_esc instream #"<"
   val req = read_to_esc instream #","
   val controller = read_to_esc instream #","
@@ -49,6 +64,7 @@ end
 handle protocol_exn msg => 
   TextIO.output (outstream, "\027<-1\027,ERROR\027," ^
   	Json.encode (Json.mk_record [("message", msg)]) ^ "\027>")
+*)
 
 fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
                    of SOME _ => (TextIO.input1 TextIO.stdIn;())

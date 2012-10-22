@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 
-require 'json'
+require 'yajl'
 require "readline"
 require "open3"
 
@@ -10,111 +10,166 @@ $seq = 0
 $controller = "red_green"
 
 # allows JSON entities at top-level besides lists and objects
-def JSON.parse_fragment(str)
-  JSON.parse("[#{str}]")[0]
-end
+# def JSON.parse_fragment(str)
+#   JSON.parse("[#{str}]")[0]
+# end
 
-def JSON.generate_fragment(obj)
-  JSON.generate([obj])[1..-2]
-end
+# def JSON.generate_fragment(obj)
+#   JSON.generate([obj])[1..-2]
+# end
 
-def output_str(s)
-  $stdout.write(s.gsub(/\e/, '[ESC]'))
-end
+# def output_str(s)
+#   $stdout.write(s.gsub(/\e/, '[ESC]'))
+# end
 
-def send_request(qin, modl, fun, json)
-  req = "\e<#{$seq}\e,#{$controller}\e,#{modl}\e,#{fun}\e,#{JSON.generate_fragment(json)}\e>"
+# def send_request(qin, modl, fun, json)
+#   req = "\e<#{$seq}\e,#{$controller}\e,#{modl}\e,#{fun}\e,#{JSON.generate_fragment(json)}\e>"
   
-  if $debug
-    $stdout.write('>> ')
-    output_str(req)
-    puts
+#   if $debug
+#     $stdout.write('>> ')
+#     output_str(req)
+#     puts
+#   end
+  
+#   qin.write req
+#   qin.flush
+#   $seq+=1
+# end
+
+# def read_until_esc(qout, code)
+#   str = ''
+#   loop do
+#     c = qout.readchar.chr
+#     output_str(c) if $debug
+#     if c == "\e"
+#       c = qout.readchar.chr
+#       output_str(c) if $debug
+      
+#       if c == "\e"
+#         str << c # escaped ESC
+#       elsif c == code
+#         return str
+#       else
+#         raise Exception("Expected escape code: [#{code}], got: [#{c}]")
+#       end
+#     else
+#       str << c
+#     end
+#   end
+# end
+
+# def get_response(qout)
+#   $stdout.write('<< ') if $debug
+  
+#   read_until_esc(qout, '<')
+#   rid = read_until_esc(qout, ',')
+#   status = read_until_esc(qout, ',')
+#   json_out = read_until_esc(qout, '>')
+  
+#   puts if $debug
+  
+#   return [rid, status, JSON.parse_fragment(json_out)]
+# end
+
+# def run_command(qin,qout,cmd)
+#   if cmd == 'version'
+#     send_request(qin, '!!', 'version', nil)
+#     version = get_response(qout)[2]
+#     puts "Quantomatic v#{version}"
+#   elsif cmd =~ /^help ([^:]*)(::(.*))?$/
+#     if $3 != nil
+#       send_request(qin, '!!', 'help', {:module=>$1, :function=>$3})
+#       _, status, resp = get_response(qout)
+      
+#       if status == 'OK'
+#         puts "Function: #{$1}::#{$3}\n  #{resp}\n\n"
+#       else
+#         puts "ERROR: #{resp['message']}"
+#       end
+#     else
+#       send_request(qin, '!!', 'help', {:module=>$1})
+#       _, status, resp = get_response(qout)
+      
+#       if status == 'OK'
+#         puts "\nModule: #{$1}\n  #{resp}\n\n"
+#       else
+#         puts "ERROR: #{resp['message']}"
+#       end
+#     end
+#   end
+# end
+
+class QuantoReader
+  
+  def initialize
+    @parser = Yajl::Parser.new
+    @parser.on_parse_complete = method(:parsed_json)
+    @reader_thr = nil
+    @json_stack = []
   end
   
-  qin.write req
-  qin.flush
-  $seq+=1
-end
-
-def read_until_esc(qout, code)
-  str = ''
-  loop do
-    c = qout.readchar.chr
-    output_str(c) if $debug
-    if c == "\e"
-      c = qout.readchar.chr
-      output_str(c) if $debug
-      
-      if c == "\e"
-        str << c # escaped ESC
-      elsif c == code
-        return str
-      else
-        raise Exception("Expected escape code: [#{code}], got: [#{c}]")
+  def start(qout)
+    @reader_thr = Thread.new do
+      loop do
+        c = qout.readchar.chr
+        # puts "[#{c}]"
+        @parser << c
       end
-    else
-      str << c
     end
   end
-end
-
-def get_response(qout)
-  $stdout.write('<< ') if $debug
   
-  read_until_esc(qout, '<')
-  rid = read_until_esc(qout, ',')
-  status = read_until_esc(qout, ',')
-  json_out = read_until_esc(qout, '>')
+  def parsed_json(obj)
+    @json_stack << obj
+  end
   
-  puts if $debug
-  
-  return [rid, status, JSON.parse_fragment(json_out)]
-end
-
-def run_command(qin,qout,cmd)
-  if cmd == 'version'
-    send_request(qin, '!!', 'version', nil)
-    version = get_response(qout)[2]
-    puts "Quantomatic v#{version}"
-  elsif cmd =~ /^help ([^:]*)(::(.*))?$/
-    if $3 != nil
-      send_request(qin, '!!', 'help', {:module=>$1, :function=>$3})
-      _, status, resp = get_response(qout)
-      
-      if status == 'OK'
-        puts "Function: #{$1}::#{$3}\n  #{resp}\n\n"
+  def pull_json
+    json = nil
+    
+    loop do
+      if ! @json_stack.empty?
+        json = @json_stack.pop
+        break
       else
-        puts "ERROR: #{resp['message']}"
-      end
-    else
-      send_request(qin, '!!', 'help', {:module=>$1})
-      _, status, resp = get_response(qout)
-      
-      if status == 'OK'
-        puts "\nModule: #{$1}\n  #{resp}\n\n"
-      else
-        puts "ERROR: #{resp['message']}"
+        sleep 0.01
       end
     end
+    
+    return json
   end
+  
 end
 
 Open3.popen3("../core/bin/quanto-core") do |qin, qout, qerr, wait_thr|
+  puts "starting quanto reader"
+  reader = QuantoReader.new
+  reader.start(qout)
   
-  send_request(qin, '!!', 'version', nil)
-  version = get_response(qout)[2]
-  puts "Quantomatic v#{version}"
+  puts "writing to quanto"
   
-  loop do
-    begin
-      cmd = Readline.readline('quanto> ')
-      break if cmd == nil or cmd == 'exit'
-      run_command(qin,qout,cmd)
-    rescue Interrupt
-      puts "^C"
-      break
-    end
-  end
+  4.times { |i|
+    input = "{\"test\":\"json\",\"here\":#{i}}"
+    qin.write input
+    qin.flush
+    puts "<< #{input}"
+    json = reader.pull_json
+    puts ">> #{json.inspect}"
+  }
+  
+  
+  # send_request(qin, '!!', 'version', nil)
+  # version = get_response(qout)[2]
+  # puts "Quantomatic v#{version}"
+  
+  # loop do
+  #   begin
+  #     cmd = Readline.readline('quanto> ')
+  #     break if cmd == nil or cmd == 'exit'
+  #     run_command(qin,qout,cmd)
+  #   rescue Interrupt
+  #     puts "^C"
+  #     break
+  #   end
+  # end
   
   puts "\ndone"
 end
