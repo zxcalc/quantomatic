@@ -118,11 +118,10 @@ class QuantoCore
   end
 end
 
-$core = QuantoCore.new('../core/bin/quanto-core', 'red_green')
-$core.start
-
-version = $core.call_function('!!', 'version')
-
-puts "Quantomatic v#{version}"
+if $0 == 'irb'
+  $q = QuantoCore.new('../core/bin/quanto-core', 'red_green')
+  $q.start
+  puts "Quantomatic v#{$q.version}"
+end
 
 

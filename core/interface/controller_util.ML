@@ -1,6 +1,50 @@
 structure ControllerUtil =
 struct
 
+(* Fixed set of types to annotate protocol calls. Used to
+   generate bindings. *)
+datatype ptype =
+  list_t of ptype |
+  string_t | int_t | json_t |
+  graphname_t | vertexname_t | edgename_t | bboxname_t | rulename_t |
+  graphdesc_t | ruledesc_t
+
+(* expect single arg or named args *)
+datatype pargs =
+  S of ptype |
+  N of (string * ptype) list
+
+(* TODO: Pretty.T versions *)
+fun string_of_ptype x = case x
+      of list_t x     => "[" ^ string_of_ptype x ^ "]"
+       | string_t     => "string"
+       | int_t        => "int"
+       | json_t       => "json"
+       | graphname_t  => "graphname"
+       | vertexname_t => "vertexname"
+       | edgename_t   => "edgename"
+       | bboxname_t   => "bboxname"
+       | rulename_t   => "rulename"
+       | graphdesc_t  => "graphdesc"
+       | ruledesc_t   => "ruledesc"
+
+fun string_of_pargs (S x) = string_of_ptype x
+  | string_of_pargs (N xs) =
+      "{ " ^
+        String.concatWith ", "
+        (map (fn (k,t) => k ^ ": " ^ string_of_ptype t) xs) ^
+      " }"
+
+type fdesc = {
+  name : string,
+  doc: string,
+  input: pargs,
+  output: pargs
+}
+type ftab = ((Json.json -> Json.json) * fdesc) Symtab.table
+
+fun register (fd : fdesc) f = Symtab.update_new (#name fd, (f,fd))
+
 (* got bad input from the protocol, should crash *)
 exception protocol_exn of string
 
