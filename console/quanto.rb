@@ -7,18 +7,46 @@ require "open3"
 
 $debug = false
 
+class CoreException < Exception
+end
+
+class ControllerModule
+  def initialize(core, name)
+    @name = name
+    @core = core
+  end
+  
+  def help(fn=nil)
+    if fn == nil
+      return @core.call_function('!!', 'help', {:module=>@name})
+    else
+      return @core.call_function('!!', 'help',
+        {:module=>@name, :function=>fn})
+    end
+  end
+  
+  def method_missing(*args)
+    fn = args[0].to_s
+    return @core.call_function(@name, fn, args[1])
+  end
+end
+
 class QuantoCore
   attr_accessor :controller
+  attr_reader :main
   
   def initialize(quanto, controller)
     @seq = 0
     @quanto = quanto
     @controller = controller
-    @parser = Yajl::Parser.new
+    @parser = Yajl::Parser.new(:symbolize_keys=>true)
     @encoder = Yajl::Encoder.new
     @parser.on_parse_complete = method(:parsed_json)
     @reader_thr = nil
     @json_stack = []
+    
+    # modules
+    @main = ControllerModule.new(self, 'Main')
   end
   
   def start
@@ -57,10 +85,17 @@ class QuantoCore
     return json
   end
   
-  def request(modl, function, input=nil)
+  def request(obj)
     # return nil if quanto has not been started
     return nil if @reader_thr == nil
     
+    @encoder.encode(obj, @qin)
+    @seq += 1
+    
+    return self.pull_json
+  end
+  
+  def call_function(modl, function, input=nil)
     obj = {
       :request_id => @seq,
       :controller => @controller,
@@ -69,21 +104,25 @@ class QuantoCore
       :input      => input
     }
     
-    @encoder.encode(obj, @qin)
-    @seq += 1
+    resp = self.request(obj)
     
-    return self.pull_json
+    if resp[:success]
+      return resp[:output]
+    else
+      raise CoreException.new(resp[:message])
+    end
+  end
+  
+  def version
+    self.call_function('!!', 'version')
   end
 end
 
 $core = QuantoCore.new('../core/bin/quanto-core', 'red_green')
 $core.start
 
-version = $core.request('!!', 'version')['output']
+version = $core.call_function('!!', 'version')
 
 puts "Quantomatic v#{version}"
 
-def q(modl, function, input=nil)
-  $core.request(modl, function, input)
-end
 
