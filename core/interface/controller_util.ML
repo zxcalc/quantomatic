@@ -7,7 +7,7 @@ datatype ptype =
   list_t of ptype |
   string_t | int_t | json_t |
   graphname_t | vertexname_t | edgename_t | bboxname_t | rulename_t |
-  graphdesc_t | ruledesc_t
+  graph_t | rule_t
 
 (* expect single arg or named args *)
 datatype pargs =
@@ -25,8 +25,8 @@ fun string_of_ptype x = case x
        | edgename_t   => "edgename"
        | bboxname_t   => "bboxname"
        | rulename_t   => "rulename"
-       | graphdesc_t  => "graphdesc"
-       | ruledesc_t   => "ruledesc"
+       | graph_t  => "graph"
+       | rule_t   => "rule"
 
 fun string_of_pargs (S x) = string_of_ptype x
   | string_of_pargs (N xs) =
