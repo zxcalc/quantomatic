@@ -33,7 +33,7 @@ public class SplitGraphView extends InteractiveView {
 	private JSplitPane splitPane;
 	private volatile boolean saved;
 	// this may become null, if the rule is deleted
-	private Rule<CoreGraph> rule;
+	private Rule rule;
 	// we keep our own copy of this, in case someone else changes the
 	// rule name in Rewrite
 	private Core core;
@@ -83,12 +83,12 @@ public class SplitGraphView extends InteractiveView {
 		}
 	};
 
-	public SplitGraphView(Core core, Rule<CoreGraph> rule)
+	public SplitGraphView(Core core, Rule rule)
 			throws CoreException {
 		this(core, rule, new Dimension(800, 600));
 	}
 
-	public SplitGraphView(Core core, Rule<CoreGraph> rule, Dimension dim)
+	public SplitGraphView(Core core, Rule rule, Dimension dim)
 			throws CoreException {
 		super(rule.getCoreName());
 		this.rule = rule;

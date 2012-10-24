@@ -1,11 +1,32 @@
 
-structure RG_Controller = Controller(RG_Theory);
-structure GHZW_Controller = Controller(GHZW_Theory);
-structure Petri_Controller = Controller(Petri_Theory);
-structure RGB_Controller = Controller(RGB_Theory);
-structure SUBSTR_LINRAT_Controller = Controller(SUBSTR_LINRAT_Theory);
-structure Str_Controller = Controller(Str_Theory);
-structure RTechn_Controller = Controller(RTechn_Theory);
+structure RG_Controller = Controller(
+  structure Theory = RG_Theory
+  structure GraphComponentDataIO = RG_ComponentDataIO
+);
+structure GHZW_Controller = Controller(
+  structure Theory = GHZW_Theory
+  structure GraphComponentDataIO = GHZW_ComponentDataIO
+);
+structure Petri_Controller = Controller(
+  structure Theory = Petri_Theory
+  structure GraphComponentDataIO = Petri_ComponentDataIO
+);
+structure RGB_Controller = Controller(
+  structure Theory = RGB_Theory
+  structure GraphComponentDataIO = RGB_ComponentDataIO
+);
+structure SUBSTR_LINRAT_Controller = Controller(
+  structure Theory = SUBSTR_LINRAT_Theory
+  structure GraphComponentDataIO = SUBSTR_LINRAT_ComponentDataIO
+);
+structure Str_Controller = Controller(
+  structure Theory = Str_Theory
+  structure GraphComponentDataIO = Str_ComponentDataIO
+);
+structure RTechn_Controller = Controller(
+  structure Theory = RTechn_Theory
+  structure GraphComponentDataIO = RTechn_ComponentDataIO
+);
 
 signature CONTROLLER_REGISTRY
 = sig

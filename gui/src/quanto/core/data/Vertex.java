@@ -1,7 +1,11 @@
 package quanto.core.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.awt.geom.Point2D;
-import java.util.Map;
+import java.util.HashMap;
+import quanto.core.ParseException;
+import quanto.core.Theory;
 
 
 public class Vertex extends GraphElement {
@@ -9,7 +13,6 @@ public class Vertex extends GraphElement {
 	// null == boundary
 	protected VertexType vertexType;
 	private Point2D pos;
-	private Map<String, String> user_data;
 	
 	public static Vertex createVertex(String name, VertexType vertexType) {
 		if (vertexType == null) {
@@ -52,21 +55,6 @@ public class Vertex extends GraphElement {
 		return pos;
 	}
 	
-	public void setVertexUserData(Map<String, String> map) {
-		user_data = map;
-	}
-	
-	public void setVertexUserData(String k, String v) {
-		user_data.put(k, v);
-	}
-	
-	public Map<String, String> getVertexUserData() {
-		return user_data;
-	}
-	
-	public String getVertexUserData(String k) {
-		return user_data.get(k);
-	}
 	@Override
 	public String toString() {
 		return getLabel().replace('\\', 'B')+"    ";
@@ -76,11 +64,75 @@ public class Vertex extends GraphElement {
 		if (data == null)
 			return "";
 		else
-			return data.getStringValue();
+			return data.getDisplayString();
 	}
 
 	public boolean isBoundaryVertex() {
 		return this.vertexType == null;
 	}
+	
+	public void updateFromJson(Theory theory, JsonNode node) throws ParseException {
+		if (!node.isObject())
+			throw new ParseException("Expected object");
 
+		JsonNode nameNode = node.get("name");
+		if (nameNode != null && nameNode.isTextual())
+			updateCoreName(nameNode.asText());
+
+		JsonNode isWvNode = node.get("is_wire_vertex");
+		if (isWvNode == null || !isWvNode.isBoolean())
+			throw new ParseException("Standalone vertex did not have is_wire_vertex");
+		
+		updateFromJson(theory, isWvNode.asBoolean(), node);
+	}
+	
+	public static Vertex fromJson(Theory theory, JsonNode node) throws ParseException {
+		if (!node.isObject())
+			throw new ParseException("Expected object");
+
+		JsonNode nameNode = node.get("name");
+		if (nameNode == null || !nameNode.isTextual())
+			throw new ParseException("Standalone vertex had no name");
+
+		Vertex vertex = new Vertex(nameNode.textValue());
+		vertex.updateFromJson(theory, node);
+		
+		return vertex;
+	}
+	
+	void updateFromJson(Theory theory, boolean isWireVertex, JsonNode node) throws ParseException {
+		if (isWireVertex) {
+			vertexType = null;
+			data = null;
+
+			if (!node.isObject())
+				return;
+		} else {
+			if (!node.isObject())
+				throw new ParseException("Expected object");
+
+			JsonNode dataNode = node.get("data");
+			vertexType = theory.getVertexType(dataNode);
+			GraphElementDataType dataType = vertexType.getDataType();
+			if (dataType == null)
+				data = null;
+			else
+				data = dataType.parseData(dataNode);
+		}
+
+		JsonNode annotationNode = node.get("annotation");
+		if (annotationNode != null && annotationNode.isObject()) {
+			ObjectMapper mapper = new ObjectMapper();
+			setUserData(mapper.<HashMap<String,String>>convertValue(
+					annotationNode,
+					mapper.getTypeFactory().constructMapType(
+					HashMap.class, String.class, String.class)));
+		}
+	}
+
+	static Vertex fromJson(Theory theory, String name, boolean isWireVertex, JsonNode desc) throws ParseException {
+		Vertex vertex = new Vertex(name);
+		vertex.updateFromJson(theory, isWireVertex, desc);
+		return vertex;
+	}
 }

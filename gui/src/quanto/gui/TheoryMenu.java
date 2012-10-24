@@ -16,6 +16,7 @@ import javax.swing.JRadioButtonMenuItem;
 import org.xml.sax.SAXException;
 import quanto.core.CoreChangeListener;
 import quanto.core.CoreException;
+import quanto.core.ParseException;
 import quanto.core.Theory;
 import quanto.core.TheoryChangeEvent;
 
@@ -45,10 +46,10 @@ public class TheoryMenu extends JMenu {
 					if (o2 == null) {
 						return 1;
 					}
-					int result = o1.getFriendlyName().compareToIgnoreCase(
-							o2.getFriendlyName());
+					int result = o1.getName().compareToIgnoreCase(
+							o2.getName());
 					if (result == 0) {
-						result = o1.getFriendlyName().compareTo(o2.getFriendlyName());
+						result = o1.getName().compareTo(o2.getName());
 					}
 					return result;
 				}
@@ -140,7 +141,7 @@ public class TheoryMenu extends JMenu {
 		public Theory theory;
 
 		public TheoryMenuItem(Theory theory) {
-			super(theory.getFriendlyName());
+			super(theory.getName());
 			this.theory = theory;
 		}
 	}
@@ -150,7 +151,7 @@ public class TheoryMenu extends JMenu {
 		public Theory theory;
 
 		public TheoryRadioMenuItem(Theory theory) {
-			super(theory.getFriendlyName());
+			super(theory.getName());
 			this.theory = theory;
 		}
 	}
@@ -197,7 +198,7 @@ public class TheoryMenu extends JMenu {
 				manager.getCore().updateCoreTheory(theory);
 			} catch (CoreException ex) {
 				parent.coreErrorDialog(null, "Could not change theory", ex);
-			} catch (SAXException ex) {
+			} catch (ParseException ex) {
 				parent.detailedErrorDialog(null, "Open Theory", "Could not parse theory", ex);
 			} catch (IOException ex) {
 				parent.detailedErrorDialog(null, "Open Theory", "Could not read theory", ex);

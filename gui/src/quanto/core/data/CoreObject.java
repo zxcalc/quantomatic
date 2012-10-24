@@ -6,6 +6,7 @@
 package quanto.core.data;
 
 import java.util.Comparator;
+import java.util.Map;
 
 /**
  *
@@ -14,6 +15,10 @@ import java.util.Comparator;
 public interface CoreObject {
 	public String getCoreName();
 	public void updateCoreName(String name);
+	public Map<String, String> getUserData();
+	public void setUserData(Map<String, String> map);
+	public String getUserDataEntry(String k);
+	public void setUserDataEntry(String k, String v);
 
 	/**
 	 * Comparator for instances of HasName

@@ -28,7 +28,7 @@ public class RewriteViewer extends JFrame {
 
 	private static final long serialVersionUID = 3627522980375030017L;
 	private final InteractiveGraphView vis;
-	protected List<AttachedRewrite<CoreGraph>> rewrites;
+	protected List<AttachedRewrite> rewrites;
 
 	public RewriteViewer(InteractiveGraphView vis) {
 		super("Rewrites for " + vis.getTitle());
@@ -50,7 +50,7 @@ public class RewriteViewer extends JFrame {
 		int index = 0;
 		JButton cancel = new JButton("Cancel");
 		JComponent focusMe = cancel;
-		for (AttachedRewrite<CoreGraph> rw : rewrites) {
+		for (AttachedRewrite rw : rewrites) {
 			JPanel rwPanel = new JPanel();
 			rwPanel.setLayout(new FlowLayout());
 			JLabel ruleName = new JLabel(rw.getRuleName());

@@ -79,7 +79,7 @@ public class InteractiveGraphView
 	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
-	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
+	private List<AttachedRewrite> rewriteCache = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
 	private boolean directedEdges = false;
@@ -128,9 +128,8 @@ public class InteractiveGraphView
 						viewer.getGraphLayout().transform(qVertex));
 
 				Labeler labeler;
-				String label;
 				if (qVertex.isBoundaryVertex()) {
-					label = qVertex.getCoreName();
+					String label = qVertex.getCoreName();
 					labeler = components.get(qVertex);
 					if (labeler == null) {
 						labeler = new Labeler(label);
@@ -163,13 +162,14 @@ public class InteractiveGraphView
 								}
 							}
 						});
+					} else {
+						labeler.setText(label);
 					}
 				} else {
-					label = qVertex.getData().getStringValue();
 					// lazily create the labeler
 					labeler = components.get(qVertex);
 					if (labeler == null) {
-						labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
+						labeler = new Labeler(qVertex.getData());
 						components.put(qVertex, labeler);
 						viewer.add(labeler);
 						Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
@@ -189,10 +189,10 @@ public class InteractiveGraphView
 								}
 							}
 						});
+					} else {
+						labeler.update();
 					}
 				}
-
-				labeler.setText(label);
 
 				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
@@ -935,7 +935,7 @@ public class InteractiveGraphView
 
 				int count = 0;
 				while (!Thread.interrupted() && attachNextRewrite()) {
-					List<AttachedRewrite<CoreGraph>> rws = getRewrites();
+					List<AttachedRewrite> rws = getRewrites();
 					CoreGraph newGraph = rws.get(0).getNewGraph();
 					invokeHighlightSubgraphAndWait(newGraph);
 					sleep(1500);
@@ -993,7 +993,7 @@ public class InteractiveGraphView
 	 * list on console error.
 	 * @return
 	 */
-	public List<AttachedRewrite<CoreGraph>> getRewrites() {
+	public List<AttachedRewrite> getRewrites() {
 		try {
 			rewriteCache = core.getAttachedRewrites(getGraph());
 			return rewriteCache;
@@ -1001,7 +1001,7 @@ public class InteractiveGraphView
 			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 
-		return new ArrayList<AttachedRewrite<CoreGraph>>();
+		return new ArrayList<AttachedRewrite>();
 	}
 
 	public void applyRewrite(int index) {

@@ -13,7 +13,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import quanto.core.CoreCommunicationException;
 import quanto.core.CoreException;
-import quanto.core.CoreExecutionException;
 import quanto.core.CoreTerminatedException;
 import static quanto.core.protocol.Utils.*;
 
@@ -117,8 +116,8 @@ public class CoreTalker {
         return getResponse(Response.MessageType.RawData).getByteData();
     }
 
-    private String getXmlResponse() throws CoreException {
-        return utf8ToString(getResponse(Response.MessageType.Xml).getByteData());
+    private String getJsonResponse() throws CoreException {
+        return getResponse(Response.MessageType.Json).getStringData();
     }
 
     private int getCountResponse() throws CoreException {
@@ -425,7 +424,7 @@ public class CoreTalker {
         return utf8ToString(getRawDataResponse());
     }
 
-    public String exportGraphAsXml(String graph) throws CoreException {
+    public String exportGraphAsJson(String graph) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
@@ -433,13 +432,13 @@ public class CoreTalker {
         try {
             writer.addHeader("GE", generateRequestId());
             writer.addStringArg(graph);
-            writer.addStringArg("xml");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getXmlResponse();
+        return getJsonResponse();
     }
 
     public String[] listVertices(String graph) throws CoreException {
@@ -507,7 +506,7 @@ public class CoreTalker {
         return getNameListResponse();
     }
 
-    public String vertexDataAsXml(String graph, String vertex) throws CoreException {
+    public String vertexDataAsJson(String graph, String vertex) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
@@ -516,13 +515,13 @@ public class CoreTalker {
             writer.addHeader("GVVD", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertex);
-            writer.addStringArg("xml");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getXmlResponse();
+        return getJsonResponse();
     }
 
     public String vertexUserData(String graph, String vertex, String dataName) throws CoreException {
@@ -543,7 +542,7 @@ public class CoreTalker {
         return utf8ToString(getRawDataResponse());
     }
 
-    public String edgeDataAsXml(String graph, String edge) throws CoreException {
+    public String edgeDataAsJson(String graph, String edge) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
@@ -552,13 +551,13 @@ public class CoreTalker {
             writer.addHeader("GVED", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(edge);
-            writer.addStringArg("xml");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getXmlResponse();
+        return getJsonResponse();
     }
 
     public String edgeUserData(String graph, String edge, String dataName) throws CoreException {
@@ -771,13 +770,13 @@ public class CoreTalker {
             writer.addHeader("GMVA", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringArg(vertexType);
-            writer.addStringArg("xml");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
         
-        return getXmlResponse();
+        return getJsonResponse();
     }
 
     public String[] renameVertex(String graph, String from, String to) throws CoreException {
@@ -881,13 +880,13 @@ public class CoreTalker {
             writer.addStringArg(directed ? "d" : "u");
             writer.addStringArg(sourceVertex);
             writer.addStringArg(targetVertex);
-            writer.addStringArg("xml");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getXmlResponse();
+        return getJsonResponse();
     }
 
     public String renameEdge(String graph, String from, String to) throws CoreException {
@@ -1624,13 +1623,13 @@ public class CoreTalker {
         try {
             writer.addHeader("WL", generateRequestId());
             writer.addStringArg(graph);
-            writer.addStringArg("xml");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getXmlResponse();
+        return getJsonResponse();
     }
 
     public String[] listMetricsNames() throws CoreException {

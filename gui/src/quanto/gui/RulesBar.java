@@ -221,7 +221,7 @@ public class RulesBar extends JPanel {
 				}
 
 				try {
-					Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
+					Rule rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
 					rule = RulesBar.this.ruleset.getCore().createRule(name, rule.getRhs(), rule.getLhs());
 					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
 					RulesBar.this.viewPort.getViewManager().addView(spg);
@@ -379,7 +379,7 @@ public class RulesBar extends JPanel {
 				try {
 					CoreGraph lhs = RulesBar.this.ruleset.getCore().createEmptyGraph();
 					CoreGraph rhs = RulesBar.this.ruleset.getCore().createEmptyGraph();
-					Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().createRule(ruleName, lhs, rhs);
+					Rule rule = RulesBar.this.ruleset.getCore().createRule(ruleName, lhs, rhs);
 
 					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
 					RulesBar.this.viewPort.getViewManager().addView(spg);
@@ -481,7 +481,7 @@ public class RulesBar extends JPanel {
 	private void editRule(String rule) {
 
 		try {
-			Rule<CoreGraph> ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
+			Rule ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
 			SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), ruleGraphs);
 			RulesBar.this.viewPort.getViewManager().addView(spg);
 			RulesBar.this.viewPort.attachView(spg);

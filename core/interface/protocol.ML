@@ -159,8 +159,8 @@
  *   StringDataChunk ::= ESC 'N' DataChunk ;
  *   StructuredDataChunk ::= ESC 'S' DataChunk ;
  *   TaggedDataChunk ::= XmlDataChunk | StringDataChunk | StructedDataChunk ;
- *   ObjectResultFormat ::= "name" | "xml" | "pretty" | "native" ;
- *   GraphExportFormat ::= "native" | "xml" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz"
+ *   ObjectResultFormat ::= "name" | "xml" | "json" | "pretty" | "native" ;
+ *   GraphExportFormat ::= "native" | "xml" | "json" | "pretty" | "hilb" | "mathematica" | "matlab" | "tikz"
  *
  *   Argument ::= String | StringList | DataChunk | TaggedDataChunk |
  *                Integer | ObjectResultFormat | GraphExportFormat ;
@@ -356,7 +356,7 @@
  * Args:
  *   GraphName: String
  *   VertexName: String
- *   ComponentDataFormat: "pretty" | "xml"
+ *   ComponentDataFormat: "pretty" | "xml" | "json"
  * Desc: Get the component data attached to a vertex
  * Response: XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHVERTEX | BADFORMAT
@@ -377,7 +377,7 @@
  * Args:
  *   GraphName: String
  *   EdgeName: String
- *   ComponentDataFormat: "pretty" | "xml"
+ *   ComponentDataFormat: "pretty" | "xml" | "json"
  * Desc: Get the component data attached to an edge
  * Response: XmlResponse | PrettyResponse
  * ErrorResponses: NOSUCHGRAPH | NOSUCHEDGE | BADFORMAT
@@ -1128,6 +1128,12 @@ struct
             printDataChunk xml;
             printClose ()
           end
+      | outputResponse (requestId, JsonResponse { data }) =
+          let val json = Json.encode data in
+            printOpen #"J" requestId;
+            printDataChunk json;
+            printClose ()
+          end
       | outputResponse (requestId, CountResponse { count }) =
          (printOpen #"I" requestId;
           printInt count;
@@ -1390,6 +1396,7 @@ struct
                         val format     = case formatName
                                            of "native"      => SOME NativeGraphFormat
                                             | "xml"         => SOME XmlGraphFormat
+                                            | "json"        => SOME JsonGraphFormat
                                             | "pretty"      => SOME PrettyGraphFormat
                                             | "hilb"        => SOME HilbertSpaceGraphFormat
                                             | "mathematica" => SOME MathematicaGraphFormat
@@ -1446,6 +1453,7 @@ struct
                         val vertexName  = readToDelim ()
                         val format = case readToEnd ()
                                        of "xml"    => SOME XmlFormat
+                                        | "json"   => SOME JsonFormat
                                         (*| "native" => SOME DescriptionFormat*)
                                         | "pretty" => SOME PrettyFormat
                                         | _        => NONE
@@ -1485,6 +1493,7 @@ struct
                         val edgeName  = readToDelim ()
                         val format = case readToEnd ()
                                        of "xml"    => SOME XmlFormat
+                                        | "json"   => SOME JsonFormat
                                         (*| "native" => SOME DescriptionFormat*)
                                         | "pretty" => SOME PrettyFormat
                                         | _        => NONE
@@ -1614,6 +1623,7 @@ struct
                         val vertexType = readToDelim ()
                         val format = case readToEnd ()
                                        of "xml"    => SOME XmlFormat
+                                        | "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -1736,6 +1746,7 @@ struct
                         val target = readToDelim ()
                         val format = case readToEnd ()
                                        of "xml"    => SOME XmlFormat
+                                        | "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -1855,6 +1866,7 @@ struct
                         val vertexNames = readListToDelim ()
                         val format = case readToEnd ()
                                        of "xml"    => SOME XmlFormat
+                                        | "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
@@ -2180,6 +2192,7 @@ struct
                         val graphName = readToDelim ()
                         val format = case readToEnd ()
                                        of "xml"    => SOME XmlFormat
+                                        | "json"   => SOME JsonFormat
                                         | "native" => SOME DescriptionFormat
                                         | "pretty" => SOME PrettyFormat
                                         | "name"   => SOME BasicFormat
