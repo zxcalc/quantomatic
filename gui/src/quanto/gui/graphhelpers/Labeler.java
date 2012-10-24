@@ -14,10 +14,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-
 import quanto.core.data.GraphElementData;
-import quanto.core.data.VertexType;
-import quanto.core.data.TexConstants;
 
 @SuppressWarnings("serial")
 public class Labeler extends JPanel implements MouseListener, KeyListener, FocusListener {
@@ -120,7 +117,6 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 	
 	public void update() {
 		label.setText(data.getDisplayString());
-		textField.setText(data.getEditableString());
 		refresh();
 	}
 
@@ -130,8 +126,7 @@ public class Labeler extends JPanel implements MouseListener, KeyListener, Focus
 
 	public final void setText(String text) {
 		data.setString(text);
-		label.setText(data.getDisplayString());
-		refresh();
+		update();
 	}
 
 	public void addChangeListener(ChangeListener l) {
