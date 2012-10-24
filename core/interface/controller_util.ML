@@ -1,3 +1,5 @@
+infix 5 -:
+
 structure ControllerUtil =
 struct
 
@@ -34,6 +36,8 @@ fun string_of_pargs (S x) = string_of_ptype x
         String.concatWith ", "
         (map (fn (k,t) => k ^ ": " ^ string_of_ptype t) xs) ^
       " }"
+
+fun (nm:string) -: (typ:ptype) = (nm, typ)
 
 type fdesc = {
   name : string,
