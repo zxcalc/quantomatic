@@ -20,7 +20,7 @@ PolyML.Project.make "eq_class_tab.ML";
 
 PolyML.Project.make "semiring.ML";
 PolyML.Project.make "tensor.ML";
-PolyML.Project.make "tensor_eval.ML";
+PolyML.Project.make "tensor_equiv.ML";
 
 PolyML.Project.make "fast_graph_enum.ML";
 
