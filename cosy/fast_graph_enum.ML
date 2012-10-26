@@ -7,6 +7,8 @@ sig
   type data
   type generator = (Theory.Graph.VData.data * int * int)
   
+  val default_data : data
+  
   sharing Theory.Graph.SharingOGraph =
           Metric.Graph.SharingOGraph =
           EqClassTab.GraphEntry.Equiv.Graph.SharingOGraph
@@ -29,8 +31,11 @@ struct
   structure Graph = Theory.Graph
 
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
-  type adjmat = generator list * int list * int list * (int list) list (* Ordered Vertices, free inputs, free outputs, list of lists of edges, one vertex at a time *)
+  (* Ordered Vertices, free inputs, free outputs, list of lists of
+     edges, one vertex at a time *)
+  type adjmat = generator list * int list * int list * (int list) list 
   type data = adjmat
+  val default_data = ([],[],[],[])
   
   fun generator_eq ((data1,i1,o1), (data2,i2,o2)) =
     Theory.Graph.VData.data_eq (data1, data2) andalso

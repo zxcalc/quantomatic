@@ -118,9 +118,21 @@ fun synth content_div sz =
 
 end
 
+val rg_data_list = [RG_Theory.OVData.NVert (RG_InternVData.Xnd LinratAngleExpr.zero),
+                   RG_Theory.OVData.NVert (RG_InternVData.Znd LinratAngleExpr.zero)]
 structure RGCosy = CosyUtil(
   structure Enum = RG_Enum
   val data_list = [RG_Theory.OVData.NVert (RG_InternVData.Xnd LinratAngleExpr.zero),
                    RG_Theory.OVData.NVert (RG_InternVData.Znd LinratAngleExpr.zero)]
   val output_dot = RG_OutputGraphDot.output
 )
+
+local
+  open RGCosy
+in
+fun rg_synth content_div sz =
+  output_ruleset content_div
+    (RSBuilder.get_ruleset
+      (Enum.tab_update gens sz
+        (RG_Spiders.eq_class_tab rg_data_list)))
+end
