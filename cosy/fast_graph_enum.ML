@@ -6,8 +6,10 @@ end
 functor FastGraphEnum(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
-  val eq : Theory.Graph.T * Theory.Graph.T -> bool
-  sharing Theory.Graph.SharingOGraph = Metric.Graph.SharingOGraph
+  structure Equiv : GRAPH_EQUIV
+  sharing Theory.Graph.SharingOGraph =
+          Metric.Graph.SharingOGraph =
+          Equiv.Graph.SharingOGraph
 ) : GRAPH_ENUM =
 struct
   
@@ -24,7 +26,7 @@ struct
   structure EqClassTab = EqClassTab(
     structure Theory = Theory
     structure Metric = Metric
-    val eq = eq
+    structure Equiv = Equiv
     type data = data)
   structure GraphEntry = EqClassTab.GraphEntry
 

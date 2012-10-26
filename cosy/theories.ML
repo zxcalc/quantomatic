@@ -104,6 +104,20 @@ end
 
 
 (* FUNCTOR APPLICATIONS *)
+structure RG_Enum = FastGraphEnum(
+  structure Theory = RG_Theory
+  
+  structure Metric = WeightedArityMetric(
+    structure Graph = RG_Theory.Graph
+    fun weight_for_data (Graph.OVData.NVert (RG_InternVData.Xnd _)) = 6
+      | weight_for_data (Graph.OVData.NVert (RG_InternVData.Znd _)) = 5
+      | weight_for_data _ = 4
+  )
+  
+  structure Equiv = TensorEquiv(structure TData = RG_TensorData)
+)
+
+
 
 (*
 structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)

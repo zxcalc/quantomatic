@@ -13,6 +13,9 @@ PolyML.Project.depend_on_files [cosyRootDir^"/../core/ROOT.ML", cosyRootDir^"/RO
 PolyML.Project.make "default_rws.ML";
 PolyML.Project.make "default_gens.ML";
 PolyML.Project.make "metric.ML";
+
+PolyML.Project.make "graph_equiv.ML";
+
 PolyML.Project.make "eq_class_tab.ML";
 
 PolyML.Project.make "semiring.ML";

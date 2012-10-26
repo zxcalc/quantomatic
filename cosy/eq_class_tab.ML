@@ -1,18 +1,22 @@
 signature GRAPH_ENTRY =
 sig
-  structure Graph : BANG_GRAPH
+  structure Equiv : GRAPH_EQUIV
+  
   type T
   type data
-  val update_graph : (Graph.T -> Graph.T) -> T -> T
-  val update_dirty : (bool -> bool) -> T -> T
+  val update_graph : (Equiv.Graph.T -> Equiv.Graph.T) -> T -> T
   val update_data  : (data -> data) -> T -> T
-  val get_graph    : T -> Graph.T
-  val get_dirty    : T -> bool
+  val update_edata : (Equiv.T -> Equiv.T) -> T -> T
+  val update_dirty : (bool -> bool) -> T -> T
+  val get_graph    : T -> Equiv.Graph.T
   val get_data     : T -> data
-  val set_graph    : Graph.T -> T -> T
-  val set_dirty    : bool -> T -> T
+  val get_edata    : T -> Equiv.T
+  val get_dirty    : T -> bool
+  val set_graph    : Equiv.Graph.T -> T -> T
   val set_data     : data -> T -> T
-  val mk : Graph.T * data -> T
+  val set_edata    : Equiv.T -> T -> T
+  val set_dirty    : bool -> T -> T
+  val mk : Equiv.Graph.T * data -> T
 end
 
 signature EQ_CLASS =
@@ -32,25 +36,38 @@ sig
 end
 
 functor EqClass(
-  structure Graph : BANG_GRAPH
+  structure Equiv : GRAPH_EQUIV
   type data
 ) : EQ_CLASS =
 struct
-  structure GraphEntry =
+
+  structure GraphEntry : GRAPH_ENTRY =
   struct
-    structure Graph = Graph
+    structure Equiv = Equiv
     type data = data
-    datatype T = GE of { graph: Graph.T, data: data, dirty: bool }
-    fun update_graph f (GE r) = GE {graph= f(#graph r),dirty= #dirty r,data= #data r}
-    fun update_dirty f (GE r) = GE {graph= #graph r,dirty= f(#dirty r),data= #data r}
-    fun update_data f (GE r)  = GE {graph= #graph r,dirty= #dirty r,data= f(#data r)}
+    datatype T = GE of { graph: Equiv.Graph.T, data: data, edata: Equiv.T, dirty: bool }
+    fun update_graph f (GE r) = GE {graph = f(#graph r), data  = #data r, edata = #edata r, dirty = #dirty r}
+    fun update_data f (GE r) = GE {graph = #graph r, data  = f(#data r), edata = #edata r, dirty = #dirty r}
+    fun update_edata f (GE r) = GE {graph = #graph r, data  = #data r, edata = f(#edata r), dirty = #dirty r}
+    fun update_dirty f (GE r) = GE {graph = #graph r, data  = #data r, edata = #edata r, dirty = f(#dirty r)}
     fun get_graph (GE r) = #graph r
-    fun get_dirty (GE r) = #dirty r
     fun get_data  (GE r) = #data r
-    val set_graph = update_graph o K
-    val set_dirty = update_dirty o K
-    val set_data  = update_data  o K
-    fun mk (gr, d) = GE { graph = gr, data = d, dirty = true }
+    fun get_edata (GE r) = #edata r
+    fun get_dirty (GE r) = #dirty r
+    val set_graph    = update_graph o K
+    val set_data     = update_data  o K
+    val set_edata    = update_edata o K
+    val set_dirty    = update_dirty o K
+    fun mk (gr, d) = let
+      val (gr', ed) = Equiv.compute_equiv_data gr
+    in
+      GE {
+        graph = gr',
+        data = d,
+        edata = ed,
+        dirty = true
+      }
+    end
   end
 
   datatype T = EQCLASS of { rep: GraphEntry.T, congs: GraphEntry.T list, redexes: GraphEntry.T list }
@@ -85,14 +102,16 @@ end
 functor EqClassTab(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
-  val eq : Theory.Graph.T * Theory.Graph.T -> bool
-  sharing Theory.Graph.SharingOGraph = Metric.Graph.SharingOGraph
+  structure Equiv : GRAPH_EQUIV
+  sharing Theory.Graph.SharingOGraph =
+          Metric.Graph.SharingOGraph =
+          Equiv.Graph.SharingOGraph
   type data
 ) : EQ_CLASS_TAB =
 struct
   structure G = Theory.Graph
   structure EqClass = EqClass(
-    structure Graph = G
+    structure Equiv = Equiv
     type data = data)
   structure GraphEntry = EqClass.GraphEntry
   open GraphEntry
@@ -142,7 +161,7 @@ struct
   (* returns (SOME new_class) if graph is equivalent to the representative,
      and NONE otherwise *)
   fun tryadd_to_class cls ge =
-    if eq (get_graph (EqClass.get_rep cls), get_graph ge)
+    if Equiv.eq (get_edata (EqClass.get_rep cls), get_edata ge)
     then SOME (
       case Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge)
       of LESS    => cls |> EqClass.update_redexes (cons ge)
