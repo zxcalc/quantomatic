@@ -1,6 +1,17 @@
 signature GRAPH_ENUM =
 sig
+  structure Theory : GRAPHICAL_THEORY
+  structure Metric : GRAPH_METRIC
+  structure EqClassTab : EQ_CLASS_TAB
+  
   type data
+  type generator = (Theory.Graph.VData.data * int * int)
+  
+  sharing Theory.Graph.SharingOGraph =
+          Metric.Graph.SharingOGraph =
+          EqClassTab.GraphEntry.Equiv.Graph.SharingOGraph
+  
+  val tab_enum : generator list -> int -> EqClassTab.T
 end
 
 functor FastGraphEnum(
@@ -12,7 +23,8 @@ functor FastGraphEnum(
           Equiv.Graph.SharingOGraph
 ) : GRAPH_ENUM =
 struct
-  
+  structure Theory = Theory
+  structure Metric = Metric
   structure Graph = Theory.Graph
 
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
