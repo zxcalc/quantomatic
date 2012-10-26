@@ -1,6 +1,8 @@
 signature GRAPH_ENTRY =
 sig
+  structure Graph : BANG_GRAPH
   structure Equiv : GRAPH_EQUIV
+  sharing Equiv.Graph.SharingOGraph = Graph.SharingOGraph
   
   type T
   type data
@@ -16,7 +18,8 @@ sig
   val set_data     : data -> T -> T
   val set_edata    : Equiv.T -> T -> T
   val set_dirty    : bool -> T -> T
-  val mk : Equiv.Graph.T * data -> T
+  val mk  : Graph.T * data -> T
+  val mk' : (Graph.T * Equiv.T) * data -> T
 end
 
 signature EQ_CLASS =
@@ -35,6 +38,33 @@ sig
   val mk : GraphEntry.T -> T
 end
 
+signature EQ_CLASS_TAB =
+sig
+  type T
+  structure GraphEntry : GRAPH_ENTRY
+  
+  val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
+  val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
+  
+  (* folds over a function which gets args "(graph, rep) is_redex" *)
+  val fold_rule_pairs :
+    (GraphEntry.Graph.T * GraphEntry.Graph.T -> bool -> 'a -> 'a) ->
+    T -> 'a -> 'a
+  
+  val exists_redexes : (GraphEntry.T -> bool) -> T -> bool
+  val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
+  val get_irredexes : T -> GraphEntry.T list
+  val get_redexes : T -> GraphEntry.T list
+  val update_one : GraphEntry.T -> T -> T
+  val update : GraphEntry.T list -> T -> T
+  
+  (* manually add an eqclass. All the elements in the list are
+     assumed redexes *)
+  val add_eq_class : GraphEntry.T * GraphEntry.T list -> T -> T
+  
+  val empty : T
+end
+
 functor EqClass(
   structure Equiv : GRAPH_EQUIV
   type data
@@ -43,6 +73,7 @@ struct
 
   structure GraphEntry : GRAPH_ENTRY =
   struct
+    structure Graph = Equiv.Graph
     structure Equiv = Equiv
     type data = data
     datatype T = GE of { graph: Equiv.Graph.T, data: data, edata: Equiv.T, dirty: bool }
@@ -58,16 +89,16 @@ struct
     val set_data     = update_data  o K
     val set_edata    = update_edata o K
     val set_dirty    = update_dirty o K
-    fun mk (gr, d) = let
-      val (gr', ed) = Equiv.compute_equiv_data gr
-    in
+    
+    fun mk' ((gr, ed), d) =
       GE {
-        graph = gr',
+        graph = gr,
         data = d,
         edata = ed,
         dirty = true
       }
-    end
+    
+    fun mk (gr, d) = mk' (Equiv.compute_equiv_data gr, d)
   end
 
   datatype T = EQCLASS of { rep: GraphEntry.T, congs: GraphEntry.T list, redexes: GraphEntry.T list }
@@ -81,21 +112,6 @@ struct
   val set_congs   = update_congs   o K
   val set_redexes = update_redexes o K  
   fun mk ge = EQCLASS { rep = ge, congs = [], redexes = [] }
-end
-
-signature EQ_CLASS_TAB =
-sig
-  type T
-  structure GraphEntry : GRAPH_ENTRY
-  val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
-  val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
-  val exists_redexes : (GraphEntry.T -> bool) -> T -> bool
-  val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
-  val get_irredexes : T -> GraphEntry.T list
-  val get_redexes : T -> GraphEntry.T list
-  val update_one : GraphEntry.T -> T -> T
-  val update : GraphEntry.T list -> T -> T
-  val empty : T
 end
 
 
@@ -144,7 +160,25 @@ struct
           fold f (EqClass.get_rep class :: EqClass.get_congs class)
         ) classlist
       )
-      
+    
+    fun fold_rule_pairs f =
+      let
+        fun class_fld class x =
+          let
+            val rep = GraphEntry.get_graph (EqClass.get_rep class)
+          in
+            fold
+               (fn redex => f (GraphEntry.get_graph redex, rep) true)
+               (EqClass.get_redexes class)
+            (fold
+               (fn cong => f (GraphEntry.get_graph cong, rep) false)
+               (EqClass.get_congs class) x)
+          end
+      in
+        ClassIndex.fold (fn (_, classlist) =>
+          fold class_fld classlist)
+      end
+    
     fun get_redexes tab = fold_redexes cons tab []
     fun get_irredexes tab = fold_irredexes cons tab []
     val exists_redexes = fold_to_exists fold_redexes
@@ -192,6 +226,10 @@ struct
     end
   
   fun update ge_list tab = fold update_one ge_list tab
+  
+  fun add_eq_class (rep, redexes) =
+    ClassIndex.map_default ((~1,~1), [])
+      (cons (EqClass.mk rep |> EqClass.set_redexes redexes))
   
   val empty = ClassIndex.empty
 end

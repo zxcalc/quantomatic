@@ -4,9 +4,15 @@ sig
   val style_for_ivertex_data : Graph.OVData.IData.data -> string
 end
 
+signature OUTPUT_GRAPH_DOT = 
+sig
+  structure Graph : BANG_GRAPH
+  val output: Graph.T -> string
+end
+
 functor OutputGraphDot(
 structure DotStyle : DOT_STYLE
-) : OUTPUT_DOT =
+) : OUTPUT_GRAPH_DOT =
 struct
   structure Graph = DotStyle.Graph
   type T = string

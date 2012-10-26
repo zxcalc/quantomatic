@@ -11,6 +11,7 @@ sig
           Metric.Graph.SharingOGraph =
           EqClassTab.GraphEntry.Equiv.Graph.SharingOGraph
   
+  val tab_update : generator list -> int -> EqClassTab.T -> EqClassTab.T
   val tab_enum : generator list -> int -> EqClassTab.T
 end
 
@@ -231,10 +232,12 @@ struct
     in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs
     end
 
+  
+  fun tab_update gens max_verts tab =
+    funpow max_verts (tab_add_gens gens)
+    (EqClassTab.update [to_graph_entry ([],[],[],[])] tab) 
+  
   (* Creates a table of graphs up to a certain size *)
   (* tab_enum : generator list -> Int -> EqClassTab *)
-  fun tab_enum gens max_verts =
-    funpow max_verts (tab_add_gens gens)
-    (EqClassTab.update [to_graph_entry ([],[],[],[])] EqClassTab.empty) 
-
+  fun tab_enum gens max_verts = EqClassTab.empty |> tab_update gens max_verts
 end

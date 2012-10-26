@@ -1,10 +1,25 @@
 functor CosyUtil(
   structure Enum : GRAPH_ENUM
+  val data_list : Enum.Theory.Graph.VData.data list
   val output_dot : Enum.Theory.Graph.T -> string
 ) =
 struct
 
+structure Enum = Enum
 structure Theory = Enum.Theory
+structure RSBuilder = RulesetBuilder(
+  structure Theory = Theory
+  structure EqClassTab = Enum.EqClassTab)
+
+fun gen_list max_arity data_list = let
+    fun alist 0 0 = []
+      | alist k 0 = (0,k)::alist (k-1) (k-1)
+      | alist k i = (i,k-i)::alist k (i-1)
+    fun gen d (iw,ow) = (d,iw,ow)
+  in (fold_product (cons oo gen) data_list (alist max_arity max_arity) [])
+  end
+
+val gens = gen_list 3 data_list
 
 fun dot_to_svg (ins,outs) dot = let
   val () = TextIO.output (outs, dot)
@@ -50,11 +65,62 @@ fun clearFloats dom_element =
                   jsffi.exec_js "window|" "clearFloats"
                    [jsffi.arg.reference (DOM.fptr_of_HTMLElement dom_element)]
 
-val content_div = the (DOM.getElementById DOM.document "cosy_content")
-                  handle Option => DOM.HTMLElement "NULL"
+(*val content_div = ref (DOM.HTMLElement "NULL")*)
 
 
 fun run_dot () = Unix.streamsOf (Unix.execute ("/usr/bin/env",["dot", "-Tsvg"]))
 fun close_dot (ins,outs) = (TextIO.closeIn ins; TextIO.closeOut outs)
 
+
+fun output_graph content_div graph = let
+  val c = addContainer content_div "GRAPH" false
+  val io = run_dot ()
+  val _ = addRule io c graph
+  val _ = close_dot io
+in ()
 end
+
+fun output_ruleset content_div rs = let
+  (*val rs_pairs = (TheoryData.get_rs_pairs tdata) rs*)
+  val container = addContainer content_div (Theory.theory_name ^ " Ruleset") false
+  val io = run_dot ()
+  val _ = R.NTab.map_all (addRule io container) (Theory.Ruleset.get_allrules rs)
+  val _ = close_dot io
+in ()
+end
+
+fun output_rule content_div rule = let
+  val c = addContainer content_div "Rule" false
+  val io = run_dot ()
+  val _ = addRule io c (R.mk "*") rule
+  val _ = close_dot io
+in ()
+end
+
+fun output_string content_div string = let
+  val _ = addCodebox content_div string
+in ()
+end
+
+fun output_graph content_div graph = let
+  val c = addContainer content_div "Graph" false
+  val io = run_dot ()
+  val _ = addGraph io c graph
+  val _ = close_dot io
+in ()
+end
+
+fun synth content_div sz =
+  output_ruleset
+    content_div
+    (RSBuilder.get_ruleset (Enum.tab_enum gens sz))
+
+
+end
+
+structure RGCosy = CosyUtil(
+  structure Enum = RG_Enum
+  val data_list = [RG_Theory.OVData.NVert (RG_InternVData.Xnd LinratAngleExpr.zero),
+                   RG_Theory.OVData.NVert (RG_InternVData.Znd LinratAngleExpr.zero)]
+  val output_dot = RG_OutputGraphDot.output
+)

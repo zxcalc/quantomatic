@@ -17,12 +17,14 @@ PolyML.Project.make "metric.ML";
 PolyML.Project.make "graph_equiv.ML";
 
 PolyML.Project.make "eq_class_tab.ML";
+PolyML.Project.make "default_eq_class_tab.ML";
 
 PolyML.Project.make "semiring.ML";
 PolyML.Project.make "tensor.ML";
 PolyML.Project.make "tensor_equiv.ML";
 
 PolyML.Project.make "fast_graph_enum.ML";
+PolyML.Project.make "ruleset_builder.ML";
 
 PolyML.Project.make "theories.ML";
 
