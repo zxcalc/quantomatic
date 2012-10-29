@@ -15,7 +15,7 @@ import java.util.logging.Logger;
  *
  * @author alemer
  */
-public class StreamRedirector extends Thread
+class StreamRedirector extends Thread
 {
     private final static Logger logger = Logger.getLogger("quanto.core.protocol.streamredirector");
     private InputStream from;

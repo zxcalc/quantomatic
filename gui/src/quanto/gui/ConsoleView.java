@@ -19,7 +19,7 @@ import javax.swing.event.CaretListener;
 import javax.swing.text.JTextComponent;
 import quanto.core.CoreException;
 import quanto.core.ParseException;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 
 public class ConsoleView extends InteractiveView {
 
@@ -158,7 +158,7 @@ public class ConsoleView extends InteractiveView {
 		}
 	}
 
-	public ConsoleView(ProtocolManager core) {
+	public ConsoleView(CoreTalker core) {
 		super("console");
 
 		JPanel console = new JPanel(new BorderLayout());

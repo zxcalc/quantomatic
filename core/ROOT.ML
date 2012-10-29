@@ -76,7 +76,6 @@ Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
-
 (*
  * Metrics
  *)
@@ -287,7 +286,6 @@ PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using 
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 PolyML.Project.make "interface/run.ML";
 
-
 (*
  * Top-level testing
  *)
@@ -312,3 +310,4 @@ else
   PolyML.Project.save_project_child_state "heaps/quanto_child.heap");
   
 PolyML.Project.Log.log 2 "done.";
+

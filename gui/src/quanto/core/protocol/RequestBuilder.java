@@ -14,7 +14,7 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alemer
  */
-public class RequestBuilder
+class RequestBuilder
 {
     public static final byte ESC = '\u001b';
     private LinkedList<byte[]> components = new LinkedList<byte[]>();

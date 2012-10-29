@@ -4,7 +4,7 @@ import org.apache.commons.collections15.Transformer;
 
 import quanto.core.data.Vertex;
 import quanto.core.data.VertexType;
-import quanto.gui.TexConstants;
+import quanto.core.data.TexConstants;
 
 /**
  * 
@@ -19,11 +19,7 @@ public class QVertexLabelTransformer implements Transformer<Vertex, String> {
 		if (v.isBoundaryVertex()) {
 			return v.getCoreName();
 		} else if (v.getVertexType().hasData()) {
-			if (v.getVertexType().getDataType() == VertexType.DataType.MathExpression) {
-				return TexConstants.translate(v.getData().getStringValue());
-			} else {
-				return v.getData().getStringValue();
-			}
+			return v.getData().getDisplayString();
 		} else {
 			return null;
 		}

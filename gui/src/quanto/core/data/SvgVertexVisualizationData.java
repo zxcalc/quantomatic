@@ -4,17 +4,9 @@
  */
 package quanto.core.data;
 
-import uk.me.randomguy3.svg.SVGDiagram;
-import uk.me.randomguy3.svg.ShapeElement;
-import uk.me.randomguy3.svg.components.SVGIcon;
 import java.awt.Color;
 import java.awt.Shape;
 import java.awt.geom.Rectangle2D;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.URI;
-import java.net.URL;
 import javax.swing.Icon;
 
 /**
@@ -23,37 +15,28 @@ import javax.swing.Icon;
  */
 public class SvgVertexVisualizationData implements VertexVisualizationData {
 
-	SVGIcon cachedIcon = new SVGIcon();
+	Icon cachedIcon;
 	Color labelColor = null;
 	Rectangle2D lastBoundsForGetShape;
 	Shape shape = null;
-	ShapeElement boundsElement;
-	Rectangle2D diagramBounds;
+	SVGDocument svgDoc;
 
-	public SvgVertexVisualizationData(URI svgdocURI, Color labelColor) {
+	public SvgVertexVisualizationData(SVGDocument doc, Color labelColor) {
+		this.svgDoc = doc;
 		this.labelColor = labelColor;
-		cachedIcon.setSvgURI(svgdocURI);
-		cachedIcon.setScaleToFit(true);
-		cachedIcon.setAntiAlias(true);
-		SVGDiagram dia = cachedIcon.getSvgUniverse().getDiagram(svgdocURI);
-		boundsElement = (ShapeElement)dia.getElement("boundary");
-		diagramBounds = dia.getViewRect();
+		shape = doc.getElementShape("boundary");
+		if (shape == null) {
+			shape = doc.getBounds();
+		}
+		cachedIcon = doc.createIcon();
 	}
 
-	public boolean isAntiAliasingOn()
-	{
-		return cachedIcon.getAntiAlias();
-	}
-
-	public void setAntiAliasingOn(boolean on)
-	{
-		cachedIcon.setAntiAlias(on);
+	public SVGDocument getSvgDocument() {
+		return svgDoc;
 	}
 
 	public Shape getShape() {
-		if (boundsElement == null) 
-			return diagramBounds;
-		return boundsElement.getShape();
+		return shape;
 	}
 
 	public Color getFillColour() {

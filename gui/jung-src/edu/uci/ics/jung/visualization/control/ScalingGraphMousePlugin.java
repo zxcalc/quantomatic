@@ -63,10 +63,6 @@ public class ScalingGraphMousePlugin extends AbstractGraphMousePlugin
     public void setZoomAtMouse(boolean zoomAtMouse) {
         this.zoomAtMouse = zoomAtMouse;
     }
-    
-    public boolean checkModifiers(MouseEvent e) {
-        return e.getModifiers() == modifiers || (e.getModifiers() & modifiers) != 0;
-    }
 
     /**
 	 * zoom the display in or out, depending on the direction of the

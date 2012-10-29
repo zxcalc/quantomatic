@@ -54,6 +54,9 @@ import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import java.util.prefs.Preferences;
+import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import quanto.core.data.AttachedRewrite;
 import quanto.core.Core;
 import quanto.core.protocol.userdata.CopyOfGraphUserDataSerializer;
@@ -69,12 +72,14 @@ public class InteractiveGraphView
 
 	private static final long serialVersionUID = 7196565776978339937L;
 	private static final Logger logger = Logger.getLogger("quanto.gui.InteractiveGraphView");
+	private static Preferences prefsNode;
+	
 	public Map<String, ActionListener> actionMap = new HashMap<String, ActionListener>();
 	private GraphVisualizationViewer viewer;
 	private Core core;
 	private RWMouse graphMouse;
 	private volatile Job rewriter = null;
-	private List<AttachedRewrite<CoreGraph>> rewriteCache = null;
+	private List<AttachedRewrite> rewriteCache = null;
 	private boolean saveEnabled = true;
 	private boolean saveAsEnabled = true;
 	private boolean directedEdges = false;
@@ -83,8 +88,19 @@ public class InteractiveGraphView
 	private QuantoForceLayout forceLayout;
 	private QuantoDotLayout initLayout;
 
+	private JFileChooser graphSaveFileChooser;
+	private JFileChooser pdfSaveFileChooser;
+
 	public boolean viewHasParent() {
 		return this.getParent() != null;
+	}
+
+	public static void setPreferencesNode(Preferences prefsNode) {
+		InteractiveGraphView.prefsNode = prefsNode;
+	}
+
+	public static Preferences getPreferencesNode() {
+		return prefsNode;
 	}
 
 	private class QVertexLabeler implements VertexLabelRenderer {
@@ -111,10 +127,9 @@ public class InteractiveGraphView
 						getMultiLayerTransformer().transform(
 						viewer.getGraphLayout().transform(qVertex));
 
-				Labeler labeler = null;
-				String label = null;
+				Labeler labeler;
 				if (qVertex.isBoundaryVertex()) {
-					label = qVertex.getCoreName();
+					String label = qVertex.getCoreName();
 					labeler = components.get(qVertex);
 					if (labeler == null) {
 						labeler = new Labeler(label);
@@ -130,32 +145,31 @@ public class InteractiveGraphView
 									try {
 										String newN = lab.getText();
 										String oldN = qVertex.getCoreName();
-										cacheVertexPositions();
-										String[] names = core.renameVertex(getGraph(), oldN, newN);
-										if (names.length == 2) {
-											Point2D oldP = verticesCache.get(newN);
-											verticesCache.put(names[1], oldP);
-											verticesCache.remove(newN);
+										String displacedName = core.renameVertex(getGraph(), qVertex, newN);
+										if (verticesCache != null) {
+											if (displacedName != null) {
+												Point2D oldP = verticesCache.get(newN);
+												verticesCache.put(displacedName, oldP);
+												verticesCache.remove(newN);
+											}
+											Point2D oldP = verticesCache.get(oldN);
+											verticesCache.put(newN, oldP);
+											verticesCache.remove(oldN);
 										}
-										Point2D oldP = verticesCache.get(oldN);
-										verticesCache.put(newN, oldP);
-										verticesCache.remove(oldN);
-										Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-												0, 20, viewer.getGraphLayout().getSize().height);
-										updateGraph(rect);
 									} catch (CoreException err) {
 										errorDialog(err.getMessage());
 									}
 								}
 							}
 						});
+					} else {
+						labeler.setText(label);
 					}
 				} else {
-					label = qVertex.getData().getStringValue();
 					// lazily create the labeler
 					labeler = components.get(qVertex);
 					if (labeler == null) {
-						labeler = new Labeler(qVertex.getVertexType().getDataType(), label);
+						labeler = new Labeler(qVertex.getData());
 						components.put(qVertex, labeler);
 						viewer.add(labeler);
 						Color colour = qVertex.getVertexType().getVisualizationData().getLabelColour();
@@ -175,10 +189,10 @@ public class InteractiveGraphView
 								}
 							}
 						});
+					} else {
+						labeler.update();
 					}
 				}
-
-				labeler.setText(label);
 
 				Rectangle rect = new Rectangle(labeler.getPreferredSize());
 				Point loc = new Point((int) (screen.getX() - rect.getCenterX()),
@@ -250,10 +264,8 @@ public class InteractiveGraphView
 					Ys.add(p.getY());
 				}
 				screen.setLocation((Xs.last() - Xs.first()) / 2 + Xs.first(), Ys.first());
-				Labeler labeler = null;
-				String label = null;
-				label = qBb.getCoreName();
-				labeler = components.get(qBb);
+				String label = qBb.getCoreName();
+				Labeler labeler = components.get(qBb);
 				if (labeler == null) {
 					labeler = new Labeler(label);
 					components.put(qBb, labeler);
@@ -512,6 +524,7 @@ public class InteractiveGraphView
 		g.addChangeListener(new ChangeListener() {
 
 			public void stateChanged(ChangeEvent e) {
+				removeOldLabels();
 				if (saveEnabled && isAttached()) {
 					getViewPort().setCommandEnabled(CommandManager.Command.Save,
 							!getGraph().isSaved());
@@ -701,7 +714,7 @@ public class InteractiveGraphView
 			for (Vertex v : graph.getVertices()) {
 				int X = (int) smoothLayout.getDelegate().transform(v).getX();
 				int Y = (int) smoothLayout.getDelegate().transform(v).getY();
-				Point2D old_p = (Point2D) pds.getVertexUserData(graph, v.getCoreName());
+				Point2D old_p = pds.getVertexUserData(graph, v.getCoreName());
 				Point2D new_p = new Point2D.Double(X, Y);
 				if (old_p == null) {
 					pds.setVertexUserData(graph, v.getCoreName(), new_p);
@@ -847,21 +860,14 @@ public class InteractiveGraphView
 
 		private boolean highlight = false;
 
-		private void attachNextRewrite() {
+		private boolean attachNextRewrite() {
 			try {
-				core.attachOneRewrite(
+				return core.attachOneRewrite(
 						getGraph(),
 						getGraph().getVertices());
 			} catch (CoreException e) {
 				coreErrorDialog("Could not attach the next rewrite", e);
-			}
-		}
-
-		private void attachAllRewrites() {
-			try {
-				core.attachRewrites(getGraph(), getGraph().getVertices());
-			} catch (CoreException e) {
-				coreErrorDialog("Could not attach the next rewrite", e);
+				return false;
 			}
 		}
 
@@ -927,18 +933,14 @@ public class InteractiveGraphView
 				// FIXME: communicating with the core: is this
 				//        really threadsafe?  Probably not.
 
-				attachAllRewrites();
-				List<AttachedRewrite<CoreGraph>> rws = getRewrites();
 				int count = 0;
-				int rw = 0;
-				while (rws.size() > 0
-						&& !Thread.interrupted()) {
-					invokeHighlightSubgraphAndWait(rws.get(rw).getNewGraph());
+				while (!Thread.interrupted() && attachNextRewrite()) {
+					List<AttachedRewrite> rws = getRewrites();
+					CoreGraph newGraph = rws.get(0).getNewGraph();
+					invokeHighlightSubgraphAndWait(newGraph);
 					sleep(1500);
-					invokeApplyRewriteAndWait(rw);
+					invokeApplyRewriteAndWait(0);
 					++count;
-					attachAllRewrites();
-					rws = getRewrites();
 				}
 
 				fireJobFinished();
@@ -991,7 +993,7 @@ public class InteractiveGraphView
 	 * list on console error.
 	 * @return
 	 */
-	public List<AttachedRewrite<CoreGraph>> getRewrites() {
+	public List<AttachedRewrite> getRewrites() {
 		try {
 			rewriteCache = core.getAttachedRewrites(getGraph());
 			return rewriteCache;
@@ -999,7 +1001,7 @@ public class InteractiveGraphView
 			coreErrorDialog("Could not obtain the rewrites", e);
 		}
 
-		return new ArrayList<AttachedRewrite<CoreGraph>>();
+		return new ArrayList<AttachedRewrite>();
 	}
 
 	public void applyRewrite(int index) {
@@ -1041,8 +1043,41 @@ public class InteractiveGraphView
 	}
 
 	public void saveGraphAs() {
-		File f = QuantoApp.getInstance().saveFile(this);
-		if (f != null) {
+		if (graphSaveFileChooser == null) {
+			graphSaveFileChooser = new JFileChooser();
+			graphSaveFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+			FileFilter filter = new FileNameExtensionFilter("Quanto graph",
+					"graph", "qgr");
+			graphSaveFileChooser.addChoosableFileFilter(filter);
+			graphSaveFileChooser.setFileFilter(filter);
+			if (prefsNode != null) {
+				String path = prefsNode.get("lastGraphDir", null);
+				if (path != null) {
+					graphSaveFileChooser.setCurrentDirectory(new File(path));
+				}
+			}
+		}
+		String fileName = getGraph().getFileName();
+		if (fileName != null && !fileName.isEmpty()) {
+			graphSaveFileChooser.setSelectedFile(new File(fileName));
+		}
+		
+		int retVal = graphSaveFileChooser.showDialog(this, "Save Graph");
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			File f = graphSaveFileChooser.getSelectedFile();
+			if (f.exists()) {
+				int overwriteAnswer = JOptionPane.showConfirmDialog(
+						this,
+						"Are you sure you want to overwrite \"" + f.getName() + "\"?",
+						"Overwrite file?",
+						JOptionPane.YES_NO_OPTION);
+				if (overwriteAnswer != JOptionPane.YES_OPTION) {
+					return;
+				}
+			}
+			if (f.getParent() != null && prefsNode != null) {
+				prefsNode.put("lastGraphDir", f.getParent());
+			}
 			try {
 				core.saveGraph(getGraph(), f);
 				core.renameGraph(getGraph(), f.getName());
@@ -1071,6 +1106,91 @@ public class InteractiveGraphView
 			}
 		} else {
 			saveGraphAs();
+		}
+	}
+	
+	public void exportToPdf() {
+		try {
+			if (pdfSaveFileChooser == null) {
+				pdfSaveFileChooser = new JFileChooser();
+				pdfSaveFileChooser.setDialogType(JFileChooser.SAVE_DIALOG);
+				FileFilter filter = new FileNameExtensionFilter("PDF Document", "pdf");
+				pdfSaveFileChooser.addChoosableFileFilter(filter);
+				pdfSaveFileChooser.setFileFilter(filter);
+				String fileName = getGraph().getFileName();
+				if (fileName != null && !fileName.isEmpty()) {
+					pdfSaveFileChooser.setCurrentDirectory(new File(fileName).getParentFile());
+				} else if (prefsNode != null) {
+					String path = prefsNode.get("lastPdfDir", null);
+					if (path != null) {
+						pdfSaveFileChooser.setCurrentDirectory(new File(path));
+					}
+				}
+			}
+			int retVal = graphSaveFileChooser.showDialog(this, "Export to PDF");
+			if (retVal == JFileChooser.APPROVE_OPTION) {
+				File f = graphSaveFileChooser.getSelectedFile();
+				if (f.exists()) {
+					int overwriteAnswer = JOptionPane.showConfirmDialog(
+							this,
+							"Are you sure you want to overwrite \"" + f.getName() + "\"?",
+							"Overwrite file?",
+							JOptionPane.YES_NO_OPTION);
+					if (overwriteAnswer != JOptionPane.YES_OPTION) {
+						return;
+					}
+				}
+				if (f.getParent() != null && prefsNode != null) {
+					prefsNode.put("lastPdfDir", f.getParent());
+				}
+				OutputStream file = new FileOutputStream(f);
+				PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(core.getActiveTheory(), getGraph());
+				server.renderToPdf(file);
+				file.close();
+			}
+		} catch (DocumentException ex) {
+			detailedErrorMessage("Could not generate the PDF", ex);
+		} catch (IOException ex) {
+			detailedErrorMessage("Could not save the PDF", ex);
+		}
+	}
+	
+	public static String getLastGraphDirectory() {
+		if (prefsNode != null) {
+			return prefsNode.get("lastGraphDir", null);
+		}
+		return null;
+	}
+	
+	/**
+	 * Presents the user with an "Open Graph" dialog
+	 * 
+	 * The directory will be set to the last directory that was used for
+	 * opening or saving a graph.
+	 *
+	 * @param parent
+	 * @return 
+	 */
+	public static File chooseGraphFile(Component parent) {
+		JFileChooser chooser = new JFileChooser();
+		chooser.setDialogType(JFileChooser.OPEN_DIALOG);
+		FileFilter filter = new FileNameExtensionFilter("Quanto graph",
+				"graph", "qgr");
+		chooser.addChoosableFileFilter(filter);
+		chooser.setFileFilter(filter);
+		String path = getLastGraphDirectory();
+		if (path != null) {
+			chooser.setCurrentDirectory(new File(path));
+		}
+		int retVal = chooser.showDialog(parent, "Open Graph");
+		if (retVal == JFileChooser.APPROVE_OPTION) {
+			File f = chooser.getSelectedFile();
+			if (f.getParent() != null && prefsNode != null) {
+				prefsNode.put("lastGraphDir", f.getParent());
+			}
+			return f;
+		} else {
+			return null;
 		}
 	}
 
@@ -1158,7 +1278,6 @@ public class InteractiveGraphView
 					Set<Vertex> picked = viewer.getPickedVertexState().getPicked();
 					if (!picked.isEmpty()) {
 						core.cutSubgraph(getGraph(), picked);
-						removeOldLabels();
 					}
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not cut selection", ex);
@@ -1258,20 +1377,7 @@ public class InteractiveGraphView
 		actionMap.put(CommandManager.Command.ExportToPdf.toString(), new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				try {
-
-					File outputFile = QuantoApp.getInstance().saveFile(InteractiveGraphView.this);
-					if (outputFile != null) {
-						OutputStream file = new FileOutputStream(outputFile);
-						PdfGraphVisualizationServer server = new PdfGraphVisualizationServer(core.getActiveTheory(), getGraph());
-						server.renderToPdf(file);
-						file.close();
-					}
-				} catch (DocumentException ex) {
-					detailedErrorMessage("Could not generate the PDF", ex);
-				} catch (IOException ex) {
-					detailedErrorMessage("Could not save the PDF", ex);
-				}
+				exportToPdf();
 			}
 		});
 		actionMap.put(CommandManager.Command.SelectMode.toString(), new ActionListener() {
@@ -1367,7 +1473,6 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.dropBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					removeOldLabels();
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not remove !-box", ex);
 				}
@@ -1378,7 +1483,6 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					core.killBangBoxes(getGraph(), viewer.getPickedBangBoxState().getPicked());
-					removeOldLabels();
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not kill !-box", ex);
 				}
@@ -1418,6 +1522,16 @@ public class InteractiveGraphView
 					outputToTextView(core.hilbertSpaceRepresentation(getGraph(), Core.RepresentationType.Mathematica));
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not create Hilbert term", ex);
+				}
+			}
+		});
+		actionMap.put(CommandManager.Command.Refresh.toString(), new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				try {
+					core.updateGraph(getGraph());
+				} catch (CoreException ex) {
+					coreErrorDialog("Could not refresh graph", ex);
 				}
 			}
 		});
@@ -1488,7 +1602,6 @@ public class InteractiveGraphView
 						getGraph(), viewer.getPickedEdgeState().getPicked());
 				core.deleteVertices(
 						getGraph(), viewer.getPickedVertexState().getPicked());
-				removeOldLabels();
 
 			} catch (CoreException err) {
 				coreErrorMessage("Could not delete the vertex", err);

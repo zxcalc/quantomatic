@@ -49,7 +49,7 @@ structure RG_InternVData : RG_UNIFIABLE_DATA
     | match_data ((Xnd a1),(Xnd a2)) m = 
       LinratAngleExpr.match a1 a2 m
     | match_data _ _ = NONE;
-  fun unify_data (x,y) m = 
+  fun unify_data _ _ =
       raise unimplemented_exp "RG_InternVData.unify_data: has not yet been written.";
   fun subst_in_data _ Hnd = Hnd
     | subst_in_data u (Xnd a) = Xnd (LinratAngleExpr.subst u a)

@@ -10,7 +10,7 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alex
  */
-public class Response {
+class Response {
     public enum MessageType {
         Error,
         Ok,
@@ -19,6 +19,7 @@ public class Response {
         RawData,
         Pretty,
         Xml,
+        Json,
         Count,
         Name,
         NameList,
@@ -163,6 +164,7 @@ public class Response {
             case StructuredData: return "S";
             case UserData: return "U";
             case Xml: return "X";
+            case Json: return "J";
             case UnknownRequest: return "Z";
             case UnknownResponse: return stringData;
         }

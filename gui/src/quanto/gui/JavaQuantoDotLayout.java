@@ -1,14 +1,13 @@
 package quanto.gui;
 
 import edu.uci.ics.jung.contrib.algorithms.layout.AKDotLayout;
-import quanto.core.data.Vertex;
-import quanto.core.data.Edge;
-import quanto.core.data.CoreGraph;
 import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-
-import java.awt.Rectangle;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.Edge;
+import quanto.core.data.Vertex;
 
 public class JavaQuantoDotLayout
 		extends AKDotLayout<Vertex, Edge> {

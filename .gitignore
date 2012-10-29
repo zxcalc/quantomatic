@@ -7,12 +7,13 @@
 *.o
 *.log
 .*.swp
-core/bin/quanto-core
+core/bin/quanto-core*
 *.rules_v2
 /gui/build-debug/
 core/local_config.ML
 /gui/.classpath
 /gui/.project
+/gui/generated/
 /gui/nbproject
 /gui/bin/
 *~

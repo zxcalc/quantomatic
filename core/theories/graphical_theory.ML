@@ -1,4 +1,4 @@
-signature GRAPHICAL_THEORY = 
+signature GRAPHICAL_THEORY =
 sig
   val theory_name : string;
 
@@ -6,7 +6,7 @@ sig
   structure OVData : OVERTEX_DATA
   structure EData : UNIFIABLE_DATA
   (* share the same generic graph data subst *)
-  sharing type OVData.subst = EData.subst 
+  sharing type OVData.subst = EData.subst;
 
   (* Graph *)
   structure Graph : BANG_GRAPH;
@@ -65,11 +65,11 @@ functor GraphicalTheory(
   sharing type VComponentData.data = OParam.OVData.data
   structure EComponentData : ELEMENT_COMPONENT_DATA
   sharing type EComponentData.data = OParam.EData.data
-) = 
-struct 
+) : GRAPHICAL_THEORY =
+struct
   val theory_name = Pretty.string_of OParam.pretty_theory_name;
 
-  local 
+  local
     structure BasicBangGraph = BasicBangGraphFun(
       structure Param = OParam
       type data = unit (* no extra inherrited data for graphs *)
@@ -89,7 +89,7 @@ struct
                       structure G = Graph
                       type data = unit
                       val empty_data = ()
-                    )
+                    );
 
   structure GraphSubst = BangGraphSubst(Match);
 

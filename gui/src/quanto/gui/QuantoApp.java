@@ -6,6 +6,8 @@ import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
@@ -17,7 +19,8 @@ import javax.swing.UIManager;
 import org.xml.sax.SAXException;
 import quanto.core.*;
 import quanto.core.data.CoreGraph;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreProcess;
+import quanto.core.protocol.CoreTalker;
 
 /**
  * Singleton class 
@@ -42,9 +45,9 @@ public class QuantoApp {
 	public static final int COMMAND_MASK =
 			isMac ? java.awt.event.InputEvent.META_DOWN_MASK
 			: java.awt.event.InputEvent.CTRL_DOWN_MASK;
-	private static QuantoApp theApp = null;
 	public static boolean useExperimentalLayout = false;
 	private final Preferences globalPrefs;
+	private final CoreProcess coreProcess;
 	private final Core core;
 	private JFileChooser[] fileChooser = {null, null, null};
 	private InteractiveViewManager viewManager;
@@ -130,7 +133,7 @@ public class QuantoApp {
 		}
 	}
 
-	public static class BoolPref extends Pref<Boolean> implements ItemListener {
+	public class BoolPref extends Pref<Boolean> implements ItemListener {
 
 		protected BoolPref(String key, Boolean def) {
 			super(key, def);
@@ -141,14 +144,12 @@ public class QuantoApp {
 		}
 
 		public void itemStateChanged(ItemEvent e) {
-			QuantoApp.getInstance().setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
+			QuantoApp.this.setPreference(this, e.getStateChange() == ItemEvent.SELECTED);
 		}
 	}
 	// Preferences
-	public static final BoolPref NEW_WINDOW_FOR_GRAPHS =
+	public final BoolPref NEW_WINDOW_FOR_GRAPHS =
 			new BoolPref("new_window_for_graphs", false, "Open graphs in a new window");
-	public static final BoolPref SHOW_INTERNAL_NAMES =
-			new BoolPref("show_internal_names", false, "Show internal graph names");
 	public static final StringPref[] LAST_OPEN_DIRS = {new StringPref("last_open_dir", null),
 		new StringPref("last_open_ruleset_dir", null),
 		new StringPref("last_open_theory_dir", null)};
@@ -156,32 +157,14 @@ public class QuantoApp {
 	public static final int DIR_RULESET = 1;
 	public static final int DIR_THEORY = 2;
 
-	public static QuantoApp getInstance() {
-		if (theApp == null) {
-			try {
-				theApp = new QuantoApp();
-			} catch (CoreException ex) {
-				// FATAL!!!
-				logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
-				JOptionPane.showMessageDialog(null,
-						ex.getMessage(),
-						"Could not start core",
-						JOptionPane.ERROR_MESSAGE);
-				System.exit(1);
-			}
-		}
-		return theApp;
-	}
-
-	public static boolean hasInstance() {
-		return !(theApp == null);
-	}
-
 	/**
 	 * main entry point for the GUI application
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		/*
+		 * Setup logging
+		 */
 		if (LOG_PROTOCOL) {
 			// protocol stream
 			Logger protocolLogger = Logger.getLogger("quanto.core.protocol.stream");
@@ -221,8 +204,14 @@ public class QuantoApp {
 			ql.setLevel(Level.ALL);
 		}
 
+		/*
+		 * Find external executables
+		 */
 		logger.log(Level.FINER, "Starting quantomatic");
 		boolean mathematicaMode = false;
+		String coreSocket = null;
+		String coreOverride = null;
+		String dotOverride = null;
 		for (String arg : args) {
 			if (arg.equals("--app-mode")) {
 				String appName = "Quantomatic.app";
@@ -242,26 +231,44 @@ public class QuantoApp {
 				}
 
 				logger.log(Level.FINER, "Invoked as OS X application ({0})", appName);
-				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram =
-						appName + "/Contents/MacOS/dot_static";
-				ProtocolManager.quantoCoreExecutable =
-						appName + "/Contents/MacOS/quanto-core-app";
+				if (dotOverride != null)
+					dotOverride = appName + "/Contents/MacOS/dot_static";
+				if (coreOverride != null)
+					coreOverride = appName + "/Contents/MacOS/quanto-core-app";
 			} else if (arg.equals("--mathematica-mode")) {
 				mathematicaMode = true;
 				logger.log(Level.FINER, "Mathematica mode enabled");
+			} else if (arg.startsWith("--core=")) {
+				coreOverride = arg.substring("--core=".length());
+			} else if (arg.startsWith("--dot=")) {
+				dotOverride = arg.substring("--dot=".length());
+			} else if (arg.startsWith("--core-socket=")) {
+				coreSocket = arg.substring("--core-socket=".length());
 			}
+		}
+		if (coreOverride != null) {
+			CoreProcess.quantoCoreExecutable = coreOverride;
+		}
+		if (dotOverride != null) {
+			edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram = dotOverride;
 		}
 		logger.log(Level.FINE, "Using dot executable: {0}",
 				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram);
 		logger.log(Level.FINE, "Using core executable: {0}",
-				ProtocolManager.quantoCoreExecutable);
+				CoreProcess.quantoCoreExecutable);
 
+		/*
+		 * Try to blend into the system we're running on
+		 */
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {
 			logger.log(Level.WARNING, "Could not set look-and-feel", e);
 		}
 
+		/*
+		 * Mac magic
+		 */
 		if (QuantoApp.isMac && !mathematicaMode) {
 			//System.setProperty("apple.laf.useScreenMenuBar", "true");
 			System.setProperty(
@@ -269,17 +276,42 @@ public class QuantoApp {
 					"Quanto");
 		}
 
-		QuantoApp app = getInstance();
-
-		app.newGraph(true);
-
-		logger.log(Level.FINER, "Finished initialisation");
+		try {
+			QuantoApp app;
+			if (coreSocket != null) {
+				File socket = new File(coreSocket);
+				if (!socket.exists()) {
+					logger.log(Level.SEVERE, "Core socket '{0}' does not exist", coreSocket);
+					System.exit(1);
+				}
+				CoreTalker talker = new CoreTalker();
+				talker.connect(new FileInputStream(socket), new FileOutputStream(socket));
+				app = new QuantoApp(talker);
+			} else {
+				app = new QuantoApp();
+			}
+			app.newGraph(true);
+			logger.log(Level.FINER, "Finished initialisation");
+		} catch (IOException ex) {
+			logger.log(Level.SEVERE, "Failed to connect to core: terminating", ex);
+			System.exit(1);
+		} catch (CoreException ex) {
+			logger.log(Level.SEVERE, "Failed to start core: terminating", ex);
+			JOptionPane.showMessageDialog(null,
+					ex.getMessage(),
+					"Could not start core",
+					JOptionPane.ERROR_MESSAGE);
+			System.exit(1);
+		}
 	}
 
 	public boolean shutdown() {
 		theoryManager.saveState();
 		logger.log(Level.FINER, "Shutting down");
 		if (viewManager.closeAllViews()) {
+			if (coreProcess != null) {
+				coreProcess.killCore();
+			}
 			logger.log(Level.FINER, "Exiting now");
 			System.exit(0);
 		}
@@ -305,7 +337,7 @@ public class QuantoApp {
 					"Could not open theory file; cannot proceed",
 					ex);
 			System.exit(1);
-		} catch (SAXException ex) {
+		} catch (ParseException ex) {
 			DetailedErrorDialog.showDetailedErrorDialog(null,
 					"Open theory",
 					"Corrupted theory file; cannot proceed",
@@ -325,10 +357,22 @@ public class QuantoApp {
 		}
 	}
 
-	private QuantoApp() throws CoreException {
-		globalPrefs = Preferences.userNodeForPackage(this.getClass());
+	public QuantoApp() throws CoreException {
+		this(null);
+	}
 
-		core = new Core();
+	public QuantoApp(CoreTalker talker) throws CoreException {
+		globalPrefs = Preferences.userNodeForPackage(this.getClass());
+		InteractiveGraphView.setPreferencesNode(globalPrefs.node("graphs"));
+
+		if (talker == null) {
+			coreProcess = new CoreProcess();
+			coreProcess.startCore();
+			talker = coreProcess.getTalker();
+		} else {
+			coreProcess = null;
+		}
+		core = new Core(talker);
 		viewManager = new InteractiveViewManager();
 
 		File theoryDir = null;

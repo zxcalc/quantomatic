@@ -4,4 +4,3 @@ structure VComponentData = RGB_OVertexComponentData
 structure EComponentData = EmptyElementComponentData
 ) : GRAPHICAL_THEORY;
 
-structure RGB_Controller = Controller(RGB_Theory);

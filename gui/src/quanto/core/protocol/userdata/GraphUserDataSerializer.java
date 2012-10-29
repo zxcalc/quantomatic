@@ -1,13 +1,12 @@
 package quanto.core.protocol.userdata;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import quanto.core.CoreException;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.CommandException;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 import quanto.core.protocol.userdata.dataserialization.DataSerializer;
-
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * User: benjaminfrot
@@ -15,11 +14,11 @@ import java.util.logging.Logger;
  */
 public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
-    private DataSerializer serializer;
+    private DataSerializer<T> serializer;
     private String suffix;
     private final static Logger logger = Logger.getLogger("quanto.protocol.userdata");
 
-    public GraphUserDataSerializer(ProtocolManager talker, DataSerializer<T> serializer, String suffix) {
+    public GraphUserDataSerializer(CoreTalker talker, DataSerializer<T> serializer, String suffix) {
         super(talker);
         this.serializer = serializer;
         this.suffix = suffix;
@@ -28,7 +27,7 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
     //Graph User Data
     public T getGraphUserData(CoreGraph graph) throws CoreException {
 		try {
-			return (T) serializer.fromString(talker.graphUserData(graph.getCoreName(), prefix + suffix));
+			return serializer.fromString(talker.graphUserData(graph.getCoreName(), prefix + suffix));
 		} catch (CommandException e) {
             if (e.getCode().equals("NOSUCHGRAPHUSERDATA")) {
                 logger.log(Level.FINER,
@@ -43,8 +42,9 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
     }
     public void setGraphUserData(CoreGraph graph, T data) throws CoreException {
         String dataString = serializer.toString(data);
-        if (dataString == null)
-            return;
+        if (dataString == null) {
+			return;
+		}
         try {
             talker.setGraphUserData(graph.getCoreName(), prefix + suffix, dataString);
         } catch (CommandException e) {
@@ -64,7 +64,7 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public T getVertexUserData(CoreGraph graph, String vertexName) throws CoreException {
         try {
-            return (T) serializer.fromString(talker.vertexUserData(graph.getCoreName(), vertexName, prefix + suffix));
+            return serializer.fromString(talker.vertexUserData(graph.getCoreName(), vertexName, prefix + suffix));
         } catch (CommandException e) {
             if (e.getCode().equals("NOSUCHVERTEXUSERDATA")) {
                 logger.log(Level.FINER,
@@ -81,8 +81,9 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public void setVertexUserData(CoreGraph graph, String vertexName, T data) throws CoreException {
         String dataString = serializer.toString(data);
-        if (dataString == null)
-            return;
+        if (dataString == null) {
+			return;
+		}
         try {
             talker.setVertexUserData(graph.getCoreName(), vertexName, prefix + suffix, dataString);
         } catch (CommandException e) {
@@ -103,7 +104,7 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public T getEdgeUserData(CoreGraph graph, String edgeName) throws CoreException {
         try {
-            return (T) serializer.fromString(talker.edgeUserData(graph.getCoreName(), edgeName, prefix + suffix));
+            return serializer.fromString(talker.edgeUserData(graph.getCoreName(), edgeName, prefix + suffix));
         } catch (CommandException e) {
             if (e.getCode().equals("NOSUCHEDGEUSERDATA")) {
                 logger.log(Level.FINER,
@@ -120,8 +121,9 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public void setEdgeUserData(CoreGraph graph, String edgeName, T data) throws CoreException {
         String dataString = serializer.toString(data);
-        if (dataString == null)
-            return;
+        if (dataString == null) {
+			return;
+		}
         try {
             talker.setEdgeUserData(graph.getCoreName(), edgeName, prefix + suffix, dataString);
         } catch (CommandException e) {
@@ -142,7 +144,7 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public T getBangBoxUserData(CoreGraph graph, String bbName) throws CoreException {
         try {
-            return (T) serializer.fromString(talker.bangBoxUserData(graph.getCoreName(), bbName, prefix + suffix));
+            return serializer.fromString(talker.bangBoxUserData(graph.getCoreName(), bbName, prefix + suffix));
         } catch (CommandException e) {
             if (e.getCode().equals("NOSUCHBANGBOXUSERDATA")) {
                 logger.log(Level.FINER,
@@ -159,8 +161,9 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
 
     public void setBangBoxUserData(CoreGraph graph, String bbName, T data) throws CoreException {
         String dataString = serializer.toString(data);
-        if (dataString == null)
-            return;
+        if (dataString == null) {
+			return;
+		}
         try {
             talker.setBangBoxUserData(graph.getCoreName(), bbName, prefix + suffix, dataString);
         } catch (CommandException e) {

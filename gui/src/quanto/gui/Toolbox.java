@@ -6,6 +6,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.geom.Rectangle2D;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -148,14 +150,13 @@ public class Toolbox extends JPanel {
 	private JMenu createSubPopupMenu(final BangBox bangBox, final InteractiveGraphView view) {
 		final CoreGraph graph = view.getGraph();
 		JMenu menu = new JMenu(bangBox.getCoreName());
-		JMenuItem menuItem = null;
 		JMenu subMenu = new JMenu("Bang Vertex...");
 		if (graph.getVertices().size() > 0) {
 			for (final Vertex v : graph.getVertices()) {
 				if (graph.getBoxedVertices(bangBox).contains(v)) {
 					continue;
 				}
-				menuItem = new JMenuItem(v.getCoreName());
+				JMenuItem menuItem = new JMenuItem(v.getCoreName());
 				menuItem.addMouseListener(new MouseListener() {
 
 					@Override
@@ -163,7 +164,7 @@ public class Toolbox extends JPanel {
 						//Using a trick because highlightSubgraph
 						//does not highlight a subgraph but it's 
 						//graph - subgraph. 
-						CoreGraph subGraph = new CoreGraph();
+						CoreGraph subGraph = new CoreGraph(graph.getTheory());
 						for (Vertex subV : graph.getVertices()) {
 							subGraph.addVertex(subV);
 						}
@@ -193,10 +194,7 @@ public class Toolbox extends JPanel {
 						HashSet<Vertex> vertices = new HashSet<Vertex>();
 						vertices.add(v);
 						try {
-							view.cacheVertexPositions();
-							Rectangle2D rect = view.getVisualization().getGraphBounds();
-							core.bangVertices(graph, bangBox.getCoreName(), vertices);
-							view.updateGraph(rect);
+							core.bangVertices(graph, bangBox, vertices);
 						} catch (CoreException ex) {
 							showModalError("Bang Vertex", ex);
 						}
@@ -212,18 +210,12 @@ public class Toolbox extends JPanel {
 				if (b.getCoreName().equals(bangBox.getCoreName())) {
 					continue;
 				}
-				menuItem = new JMenuItem(b.getCoreName());
+				JMenuItem menuItem = new JMenuItem(b.getCoreName());
 				menuItem.addActionListener(new ActionListener() {
 
 					public void actionPerformed(ActionEvent e) {
 						try {
-							HashSet<BangBox> bbs = new HashSet<BangBox>();
-							bbs.add(b);
-							bbs.add(bangBox);
-							view.cacheVertexPositions();
-							Rectangle2D rect = view.getVisualization().getGraphBounds();
-							core.mergeBangBoxes(graph, bbs);
-							view.updateGraph(rect);
+							core.mergeBangBoxes(graph, Arrays.asList(b, bangBox));
 						} catch (CoreException ex) {
 							showModalError("Merge !-Box", ex);
 						}
@@ -233,23 +225,18 @@ public class Toolbox extends JPanel {
 			}
 			menu.add(subMenu);
 		}
-		String label = null;
+		String label;
 		if (graph.getBoxedVertices(bangBox).isEmpty()) {
 			label = "Drop this (empty) !-Box";
 		} else {
 			label = "Drop this !-Box";
 		}
-		menuItem = new JMenuItem(label);
+		JMenuItem menuItem = new JMenuItem(label);
 		menuItem.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
 				try {
-					HashSet<BangBox> bbs = new HashSet<BangBox>();
-					bbs.add(bangBox);
-					view.cacheVertexPositions();
-					Rectangle2D rect = view.getVisualization().getGraphBounds();
-					core.dropBangBoxes(graph, bbs);
-					view.updateGraph(rect);
+					core.dropBangBoxes(graph, Collections.singleton(bangBox));
 				} catch (CoreException ex) {
 					showModalError("Drop!-Box", ex);
 				}
@@ -260,8 +247,7 @@ public class Toolbox extends JPanel {
 	}
 
 	private JPopupMenu createPopupMenu() {
-		CoreGraph graph = null;
-		InteractiveGraphView view = null;
+		InteractiveGraphView view;
 		if (viewPort.getAttachedView() instanceof InteractiveGraphView) {
 			view = (InteractiveGraphView) viewPort.getAttachedView();
 		} else if (viewPort.getAttachedView() instanceof SplitGraphView) {
@@ -273,7 +259,7 @@ public class Toolbox extends JPanel {
 		} else {
 			return null;
 		}
-		graph = view.getGraph();
+		CoreGraph graph = view.getGraph();
 		JPopupMenu menu = new JPopupMenu();
 		if (graph.getBangBoxes().isEmpty()) {
 			JMenuItem menuItem = new JMenuItem("No !-Boxes");

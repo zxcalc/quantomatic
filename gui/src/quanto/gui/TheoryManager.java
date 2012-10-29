@@ -13,8 +13,6 @@ import java.util.prefs.Preferences;
 import javax.swing.event.EventListenerList;
 import org.xml.sax.SAXException;
 import quanto.core.*;
-import quanto.core.xml.TheoryHandler;
-import quanto.util.FileUtils;
 
 /**
  *
@@ -63,10 +61,10 @@ public class TheoryManager {
 				}
 			} catch (CoreException ex) {
 				logger.log(Level.WARNING, "Could not load ruleset for "
-						+ evt.getNewTheory().getFriendlyName() + " theory", ex);
+						+ evt.getNewTheory().getName() + " theory", ex);
 			} catch (IOException ex) {
 				logger.log(Level.WARNING, "Could not load ruleset for "
-						+ evt.getNewTheory().getFriendlyName() + " theory", ex);
+						+ evt.getNewTheory().getName() + " theory", ex);
 			}
 		}
 
@@ -79,10 +77,10 @@ public class TheoryManager {
 				core.saveRuleset(getRulesetFile(evt.getOldTheory()));
 			} catch (CoreException ex) {
 				logger.log(Level.WARNING, "Could not save ruleset for "
-						+ evt.getOldTheory().getFriendlyName() + " theory", ex);
+						+ evt.getOldTheory().getName() + " theory", ex);
 			} catch (IOException ex) {
 				logger.log(Level.WARNING, "Could not save ruleset for "
-						+ evt.getOldTheory().getFriendlyName() + " theory", ex);
+						+ evt.getOldTheory().getName() + " theory", ex);
 			}
 		}
 	};
@@ -136,7 +134,7 @@ public class TheoryManager {
 		return new File(getTheoryDir(theory), theoryFilename);
 	}
 
-	private void saveTheoryCopy(TheoryHandler.Data data, final File theoryDir) {
+	private void saveTheoryCopy(Theory theory, final File theoryDir) {
 		if (theoryDir.isDirectory()) {
 			for (File file : theoryDir.listFiles()) {
 				file.delete();
@@ -150,19 +148,7 @@ public class TheoryManager {
 
 		File theoryFile = new File(theoryDir, theoryFilename);
 		try {
-			TheoryHandler.ResourceHandler resHandler = new TheoryHandler.ResourceHandler() {
-
-				int i = 0;
-
-				public URL getResource(URL original) throws IOException {
-					++i;
-					File resFile = new File(theoryDir,
-							String.format("%d.svg", i));
-					FileUtils.copy(original, resFile);
-					return resFile.toURI().toURL();
-				}
-			};
-			TheoryHandler.write(data, theoryFile, resHandler);
+			theory.write(theoryFile, theoryDir);
 		} catch (IOException ex) {
 			logger.log(Level.WARNING,
 					"Failed to save local copy of theory", ex);
@@ -178,7 +164,7 @@ public class TheoryManager {
 	public void unloadTheory(Theory theory) throws IllegalArgumentException {
 		if (theory == core.getActiveTheory()) {
 			throw new IllegalArgumentException("The "
-					+ theory.getFriendlyName() + " theory is currently active");
+					+ theory.getName() + " theory is currently active");
 		}
 		String id = getId(theory);
 		File theoryDir = getTheoryDir(theory);
@@ -204,11 +190,10 @@ public class TheoryManager {
 	 * @throws SAXException
 	 * @throws IOException 
 	 */
-	public Theory loadTheory(URL url) throws SAXException, IOException, DuplicateTheoryException {
-		TheoryHandler.Data theoryData = TheoryHandler.parse(url);
-		Theory theory = new Theory(theoryData);
+	public Theory loadTheory(URL url) throws ParseException, IOException, DuplicateTheoryException {
+		Theory theory = Theory.fromUrl(url);
 		addTheory(theory);
-		saveTheoryCopy(theoryData, getTheoryDir(theory));
+		saveTheoryCopy(theory, getTheoryDir(theory));
 		return theory;
 	}
 
@@ -223,16 +208,16 @@ public class TheoryManager {
 			core.saveRuleset(getRulesetFile(theory));
 		} catch (CoreException ex) {
 			logger.log(Level.WARNING, "Could not save ruleset for "
-					+ theory.getFriendlyName() + " theory", ex);
+					+ theory.getName() + " theory", ex);
 		} catch (IOException ex) {
 			logger.log(Level.WARNING, "Could not save ruleset for "
-					+ theory.getFriendlyName() + " theory", ex);
+					+ theory.getName() + " theory", ex);
 		}
 	}
 
 	private String getId(Theory theory) {
 		try {
-			return URLEncoder.encode(theory.getFriendlyName(), "US-ASCII");
+			return URLEncoder.encode(theory.getName(), "US-ASCII");
 		} catch (UnsupportedEncodingException ex) {
 			throw new Error(ex);
 		}
@@ -241,7 +226,7 @@ public class TheoryManager {
 	private void addTheory(Theory theory) throws DuplicateTheoryException {
 		String id = getId(theory);
 		if (theorys.containsKey(id)) {
-			throw new DuplicateTheoryException(theory.getFriendlyName());
+			throw new DuplicateTheoryException(theory.getName());
 		}
 		theorys.put(id, theory);
 		fireTheoryAdded(theory);
@@ -260,7 +245,7 @@ public class TheoryManager {
 					logger.log(Level.SEVERE,
 							"Could not find default theory {0}", res);
 				}
-			} catch (SAXException ex) {
+			} catch (ParseException ex) {
 				logger.log(Level.SEVERE,
 						"Default theory " + res + " was not valid",
 						ex);
@@ -283,7 +268,7 @@ public class TheoryManager {
 	private Theory loadSavedTheory(File theoryDir) {
 		try {
 			File theoryFile = new File(theoryDir, theoryFilename);
-			Theory theory = new Theory(TheoryHandler.parse(theoryFile));
+			Theory theory = Theory.fromFile(theoryFile);
 			if (!theoryDir.getName().equals(getId(theory))) {
 				logger.log(Level.SEVERE,
 						"Theory encoding changed from under us: expected "
@@ -291,7 +276,7 @@ public class TheoryManager {
 						new Object[]{
 							getId(theory),
 							theoryDir.getName(),
-							theory.getFriendlyName()
+							theory.getName()
 						});
 				// not much we can do if this fails
 				boolean moved = theoryDir.renameTo(new File(store, getId(theory)));
@@ -301,7 +286,7 @@ public class TheoryManager {
 			}
 			addTheory(theory);
 			return theory;
-		} catch (SAXException ex) {
+		} catch (ParseException ex) {
 			logger.log(Level.SEVERE,
 					"Saved theory (" + theoryDir.getAbsolutePath()
 					+ ") was not valid",
@@ -359,7 +344,7 @@ public class TheoryManager {
 					core.updateCoreTheory(activate);
 				} catch (CoreException ex) {
 					logger.log(Level.SEVERE,
-							"Saved theory (" + activate.getFriendlyName()
+							"Saved theory (" + activate.getName()
 							+ ") was not recognised by the core", ex);
 				}
 			}

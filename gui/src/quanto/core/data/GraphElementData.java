@@ -7,12 +7,20 @@ public class GraphElementData {
 		this.value = value;
 	}
 	
-	public void setValue(String value) {
+	public void setString(String value) {
 		this.value = value;
 	}
 	
-	public String getStringValue() {
+	public String getEditableString() {
 		return value == null ? "" : value;
 	}
+	
+	public String getDisplayString() {
+		return getEditableString();
+	}
 
+	@Override
+	public String toString() {
+		return getEditableString();
+	}
 }
