@@ -13,12 +13,6 @@ sig
   val style_for_ivertex_data : vdata -> string
 end
 
-signature OUTPUT_GRAPH_DOT = 
-sig
-  structure Graph : BANG_GRAPH
-  val output: Graph.T -> string
-end
-
 functor OutputGraphDot(
   structure Graph : BANG_GRAPH
   structure DotStyle : DOT_STYLE

@@ -124,7 +124,7 @@ structure RGCosy = CosyUtil(
   structure Enum = RG_Enum
   val data_list = [RG_Theory.OVData.NVert (RG_InternVData.Xnd LinratAngleExpr.zero),
                    RG_Theory.OVData.NVert (RG_InternVData.Znd LinratAngleExpr.zero)]
-  val output_dot = RG_OutputGraphDot.output
+  val output_dot = RG_GraphicalTheoryIO.OutputGraphDot.output
 )
 
 local
