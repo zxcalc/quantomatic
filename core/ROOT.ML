@@ -105,6 +105,10 @@ PolyML.Project.make "theories/ruleset_annotations.ML";
 (*
  * Input and Output
  *)
+
+(*MJB*)
+PolyML.Project.make "io/simple_file_io.ML";
+ 
 (* Tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
@@ -137,6 +141,10 @@ PolyML.Project.make "io/graph_annotations_json.ML";
 Testing.make_test "io/test/graph-json-test.ML";
 Testing.make_test "io/graph_xml_v1_input.ML";
 Testing.make_test "io/graph_xml_v1_output.ML";
+
+(*MJB*)
+Testing.make_test "graph/test/test-simple-graph-util.ML";
+Testing.make_test "graph/test/test-random-graph-util.ML";
 
 (* Rules *)
 PolyML.Project.make "io/rule_xml_output.ML";
@@ -174,16 +182,25 @@ PolyML.Project.make "matching/inner_match_search.ML";
 PolyML.Project.make "matching/match_search.ML";
 (* simple inner loop for the matching algo *)
 PolyML.Project.make "matching/simple_inner_match_search.ML";
+(*MJB: a parallel version of the simple inner loop for the matching algorithm*)
+PolyML.Project.make "matching/simple_inner_match_search_parallel.ML";
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
 PolyML.Project.make "matching/concrete_match_search.ML";
+(*MJB: parallel version of the concrete matching wrapper*)
+PolyML.Project.make "matching/concrete_match_search_parallel.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
+(*MJB: a parallel version of the greedy matching algorithm*)
+PolyML.Project.make "matching/greedy_match_search_parallel.ML";
 
 Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-matching-concrete.ML";
 Testing.make_test "matching/test/test-matching-greedy.ML";
+
+(*MJB*)
+Testing.make_test "matching/test/test-matching-speed.ML";
 
 
 (*
@@ -254,6 +271,11 @@ PolyML.Project.make "theories/isaplanner_rtechn/graph.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/theory.ML";
 PolyML.Project.make "theories/isaplanner_rtechn/io.ML";
 
+(*MJB additional tests for the parallel lazy sequence and the compactor*)
+Testing.make_test "../../isaplib/Concurrent/test/test-par_seq.ML";
+(*Order important - share testing tools*)
+Testing.make_test "../../isaplib/Concurrent/test/test-compactor.ML";
+Testing.make_test "../../isaplib/Concurrent/test/test-par_tree.ML";
 
 (*
  * Decisions nets
