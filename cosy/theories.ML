@@ -12,15 +12,15 @@ struct
   in if ((outsum = 1 andalso insum = ins) orelse (outsum = 0 andalso insum = (ins - 1))) then 1 else 0
   end
   
-  fun tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.GHZ) (ins, outs) =
+  fun tensor_for_vertex_data (Graph.OVData.NVert GHZW_Data.GHZ) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (ghz ((Tensor.pow 2 outs)-1, (Tensor.pow 2 ins)-1))
-    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.W) (ins, outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_Data.W) (ins, outs) =
         Tensor.tensorf (2,ins,outs) (w (ins,outs))
-    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.TICK) (1,1) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_Data.TICK) (1,1) =
         Tensor.tensor (2,1,1) [0,1,1,0]
-    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.TICK) (ins,outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_Data.TICK) (ins,outs) =
         Tensor.tensorf (2,ins,outs) (K 0)  (* just return a zero tensor if bad dimensions on tick *)
-    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_VertexData.ZERO) (ins,outs) =
+    | tensor_for_vertex_data (Graph.OVData.NVert GHZW_Data.ZERO) (ins,outs) =
         Tensor.tensorf (2,ins,outs) (K 0)  (* always return 0 tensor *)
     | tensor_for_vertex_data (Graph.OVData.WVert) _ = Tensor.id dimension 1
 end
@@ -104,7 +104,27 @@ end
 
 
 (* FUNCTOR APPLICATIONS *)
+structure RG_Enum = FastGraphEnum(
+  structure Theory = RG_Theory
+  
+  structure Metric = WeightedArityMetric(
+    structure Graph = RG_Theory.Graph
+    fun weight_for_data (Graph.OVData.NVert (RG_InternVData.Xnd _)) = 6
+      | weight_for_data (Graph.OVData.NVert (RG_InternVData.Znd _)) = 5
+      | weight_for_data _ = 4
+  )
+  
+  structure Equiv = TensorEquiv(structure TData = RG_TensorData)
+)
 
+structure RG_Spiders = SpiderEqClasses(
+  structure Theory = RG_Theory
+  structure EqClassTab = RG_Enum.EqClassTab
+  val default_data = RG_Enum.default_data
+  val default_edata = NONE
+)
+
+(*
 structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)
 
 structure RG_Synth = TensorSynth(
@@ -125,7 +145,7 @@ structure GHZW_Enum = GraphEnumerator(structure Theory = GHZW_Theory)
 
 structure GHZW_Metric = WeightedArityMetric(
   structure Graph = GHZW_Theory.Graph
-  fun weight_for_data (Graph.OVData.NVert GHZW_VertexData.ZERO) = 1
+  fun weight_for_data (Graph.OVData.NVert GHZW_Data.ZERO) = 1
     | weight_for_data _ = 5
 )
 
@@ -161,9 +181,9 @@ structure RG_NoPhaseSynth = TensorSynth(
 
 structure RG_Gens = DefaultGenerators(structure Graph = RG_Theory.Graph)
 *)
+*)
 
-
-
+(*
 structure TheoryData =
 struct
   type ('graph, 'ruleset, 'synth) T = {
@@ -184,6 +204,7 @@ struct
 end
 
 fun rule_data flhs frhs = (R.NTab.map_all (fn _ => fn r => (flhs r, frhs r) ))
+*)
 
 (*
 val rg_data = {

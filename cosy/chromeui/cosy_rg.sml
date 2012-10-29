@@ -1,12 +1,12 @@
 structure Cosy =
 struct
   structure Theory = RG_Theory
-  structure Synth = RG_Synth
+  structure Enum = RG_FastEnum
   structure RSBuilder = RG_RSBuilder
   structure Tensor = RG_TensorData.Tensor
   
   datatype T =
-   SYNTH of Synth.T | 
+   EQTAB of RG_FastEnum.EqClassTab.T | 
    RS of Theory.Ruleset.T |
    RULE of Theory.Rule.T |
    GRAPH of Theory.Graph.T |

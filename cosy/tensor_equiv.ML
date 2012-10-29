@@ -9,10 +9,12 @@ sig
 end
 
 
-functor TensorEval(
+functor TensorEquiv(
   structure TData : TENSOR_DATA
-) =
+) : GRAPH_EQUIV =
 struct
+  type T = TData.Tensor.T option
+  structure Graph = TData.Graph
   
   (* offset tables assign a vertex name to the rightmost tensor index that connects
      to that name. *)
@@ -68,6 +70,20 @@ struct
                        TData.Tensor.id TData.dimension 0)
   in (boundary_list i_offsets, boundary_list o_offsets,t)
   end
+  
+  fun compute_equiv_data gr = let
+    val (ins,outs,tens) = tensor_for_graph gr
+    val ((scalar,perm_outs,perm_ins),tens') = TData.Tensor.normalise tens
+    val norm_ins = map (fn n => V.mk ("i_"^(Int.toString n))) perm_ins
+    val norm_outs = map (fn n => V.mk ("o_"^(Int.toString n))) perm_outs
+    val gr' = fold2 Graph.rename_vname ins norm_ins (fold2 Graph.rename_vname outs norm_outs gr)
+  in
+    (gr', SOME tens)
+  end
+  
+  fun eq (NONE, _) = false
+    | eq (_, NONE) = false
+    | eq (SOME t1, SOME t2) = TData.Tensor.eq(t1,t2)
 end
 
 
