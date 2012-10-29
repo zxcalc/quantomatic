@@ -3,7 +3,7 @@ package quanto.core.protocol.userdata;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import quanto.core.CoreException;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 import quanto.core.protocol.userdata.dataserialization.DataSerializer;
 
 /**
@@ -16,7 +16,7 @@ public class RuleUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
     private DataSerializer<T> serializer;
     private final static Logger logger = Logger.getLogger("quanto.protocol.userdata");
 
-    public RuleUserDataSerializer(ProtocolManager talker, DataSerializer<T> serializer, String suffix) {
+    public RuleUserDataSerializer(CoreTalker talker, DataSerializer<T> serializer, String suffix) {
         super(talker);
         this.suffix = suffix;
         this.serializer = serializer;

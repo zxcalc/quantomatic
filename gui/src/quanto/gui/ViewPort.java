@@ -220,15 +220,9 @@ public class ViewPort extends JPanel {
 				}
 
 				for (final Map.Entry<String, InteractiveView> ent : views.entrySet()) {
-					JMenuItem item = null;
 					String title = ent.getKey();
 					if (!ent.getValue().isSaved()) {
 						title += "*";
-					}
-					if (ent.getValue() instanceof InteractiveGraphView
-							&& QuantoApp.getInstance().getPreference(
-							QuantoApp.SHOW_INTERNAL_NAMES)) {
-						title += " (" + ((InteractiveGraphView) ent.getValue()).getGraph().getCoreName() + ")";
 					}
 					viewMenu.add(createMenuItem(title, ent.getValue()));
 				}

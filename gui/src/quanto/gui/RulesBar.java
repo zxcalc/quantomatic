@@ -1,5 +1,13 @@
 package quanto.gui;
 
+import quanto.core.CoreException;
+import quanto.core.Ruleset;
+import quanto.core.RulesetChangeListener;
+import quanto.core.data.CoreGraph;
+import quanto.core.data.Rule;
+import quanto.core.protocol.userdata.RulePriorityRuleUserDataSerializer;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,13 +17,6 @@ import java.util.*;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.*;
-import quanto.core.CoreException;
-import quanto.core.Ruleset;
-import quanto.core.RulesetChangeListener;
-import quanto.core.data.CoreGraph;
-import quanto.core.data.Rule;
-import quanto.core.protocol.userdata.RulePriorityRuleUserDataSerializer;
 
 /**
  * Panel displaying a very simple rules interface.
@@ -154,14 +155,14 @@ public class RulesBar extends JPanel {
 			}
 		}
 	};
-	private JList<RuleDescription> listView;
-	private DefaultListModel<RuleDescription> rulesModel;
+	private JList listView;
+	private DefaultListModel rulesModel;
 	private JButton enableButton;
 	private JButton disableButton;
 	private JButton deleteButton;
 	private JButton createRuleButton;
 	private JButton refreshButton;
-	private JComboBox<String> tagsCombo;
+	private JComboBox tagsCombo;
 	private boolean suppressTagComboCallback = false;
 
 	private void showModalError(String message, CoreException ex) {
@@ -220,7 +221,7 @@ public class RulesBar extends JPanel {
 				}
 
 				try {
-					Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
+					Rule rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
 					rule = RulesBar.this.ruleset.getCore().createRule(name, rule.getRhs(), rule.getLhs());
 					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
 					RulesBar.this.viewPort.getViewManager().addView(spg);
@@ -378,7 +379,7 @@ public class RulesBar extends JPanel {
 				try {
 					CoreGraph lhs = RulesBar.this.ruleset.getCore().createEmptyGraph();
 					CoreGraph rhs = RulesBar.this.ruleset.getCore().createEmptyGraph();
-					Rule<CoreGraph> rule = RulesBar.this.ruleset.getCore().createRule(ruleName, lhs, rhs);
+					Rule rule = RulesBar.this.ruleset.getCore().createRule(ruleName, lhs, rhs);
 
 					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
 					RulesBar.this.viewPort.getViewManager().addView(spg);
@@ -420,8 +421,8 @@ public class RulesBar extends JPanel {
 			}
 		};
 
-		rulesModel = new DefaultListModel<RuleDescription>();
-		listView = new JList<RuleDescription>(rulesModel);
+		rulesModel = new DefaultListModel();
+		listView = new JList(rulesModel);
 		listView.setCellRenderer(cellRenderer);
 		listView.addMouseListener(new MouseAdapter() {
 
@@ -442,7 +443,7 @@ public class RulesBar extends JPanel {
 			}
 		});
 		JScrollPane listPane = new JScrollPane(listView);
-		tagsCombo = new JComboBox<String>();
+		tagsCombo = new JComboBox();
 		createMenuButtons();
 
 
@@ -480,7 +481,7 @@ public class RulesBar extends JPanel {
 	private void editRule(String rule) {
 
 		try {
-			Rule<CoreGraph> ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
+			Rule ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
 			SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), ruleGraphs);
 			RulesBar.this.viewPort.getViewManager().addView(spg);
 			RulesBar.this.viewPort.attachView(spg);

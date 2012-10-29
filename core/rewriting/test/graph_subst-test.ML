@@ -85,7 +85,7 @@ val _ = Testing.test "rule1: simple spider" (fn () => let
   val mseq = M.match lhs tgt
   val SOME (ms,_) = Seq.pull mseq
 
-  val result = GSub.do_rewrite tgt lhs ms rhs
+  val result = GSub.do_rewrite ms rhs
   val result' = G.minimise result
   val _ = if GIso.test exp result' then ()
           else (
@@ -156,7 +156,7 @@ val _ = Testing.test "rule2: simple spider with data subst" (fn () => let
   val mseq = M.match lhs tgt
   val SOME (ms,_) = Seq.pull mseq
 
-  val result = GSub.do_rewrite tgt lhs ms rhs
+  val result = GSub.do_rewrite ms rhs
   val result' = G.minimise result
   val _ = if GIso.test exp result' then ()
           else (
@@ -292,7 +292,7 @@ val _ = Testing.test "rule1: spider" (fn () => let
   val mseq = M.match_avoiding_tracking (rhs_vnames,rhs_vnames) lhs tgt
   val SOME (ms,_) = Seq.pull mseq
 
-  val result = GSub.do_rewrite tgt lhs ms rhs
+  val result = GSub.do_rewrite ms rhs
   val result' = G.minimise result
   val _ = if GIso.test exp result' then ()
           else (

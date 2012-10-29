@@ -4,4 +4,3 @@ structure VComponentData = GHZW_OVertexComponentData
 structure EComponentData = EmptyElementComponentData
 ) : GRAPHICAL_THEORY;
 
-structure GHZW_Controller = Controller(GHZW_Theory);

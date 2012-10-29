@@ -16,6 +16,7 @@ struct
         fun change_loop svcReq = run_in_textstreams' (Console.eval_command_string svcReq) (instream,outstream)
         val _ = print ("quanto:> ")
         val input = TextIO.inputLine instream
+        val th_reg = ControllerRegistry.default
      in
         case input
          of NONE => (print "\n"; ())
@@ -24,7 +25,7 @@ struct
               of InterfaceResult.NORMAL output =>
                   (print (output^"\n"); next_loop ())
                | InterfaceResult.CHANGE_THEORY th =>
-                  (case ControllerRegistry.get_eval_func th
+                  (case ControllerRegistry.get_eval_func th_reg th
                      of NONE =>
                          (print ("!!! Unknown theory \""^th^"\"\n");
                           next_loop ())
@@ -39,7 +40,7 @@ struct
     (Console.eval_command_string DummyController.serviceRequest) streams;
 
   fun flushIn () = case TextIO.canInput (TextIO.stdIn, 1)
-                        of SOME n => (TextIO.input1 TextIO.stdIn;())
+                        of SOME _ => (TextIO.input1 TextIO.stdIn;())
                          | NONE => ();
 
   fun run_in_stdio () = (flushIn(); run_in_textstreams (TextIO.stdIn,TextIO.stdOut));

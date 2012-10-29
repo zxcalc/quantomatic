@@ -31,7 +31,7 @@ import edu.uci.ics.jung.visualization.transform.shape.TransformingGraphics;
 public class BasicVertexLabelRenderer<V,E> implements Renderer.VertexLabel<V,E> {
 
 	protected Position position = Position.SE;
-	private Positioner positioner = new OutsidePositioner();
+	private Positioner<V> positioner = new OutsidePositioner<V>();
 	
 	public BasicVertexLabelRenderer() {
 		super();
@@ -97,13 +97,13 @@ public class BasicVertexLabelRenderer<V,E> implements Renderer.VertexLabel<V,E> 
     	}
     	Rectangle2D bounds = shape.getBounds2D();
 
-    	Point p = null;
+    	Point p;
     	if(position == Position.AUTO) {
     		Dimension vvd = rc.getScreenDevice().getSize();
     		if(vvd.width == 0 || vvd.height == 0) {
     			vvd = rc.getScreenDevice().getPreferredSize();
     		}
-    		p = getAnchorPoint(bounds, d, positioner.getPosition(x, y, vvd));
+    		p = getAnchorPoint(bounds, d, positioner.getPosition(v, x, y, vvd));
     	} else {
     		p = getAnchorPoint(bounds, d, position);
     	}
@@ -166,8 +166,8 @@ public class BasicVertexLabelRenderer<V,E> implements Renderer.VertexLabel<V,E> 
     	}
     	
     }
-    public static class InsidePositioner implements Positioner {
-    	public Position getPosition(float x, float y, Dimension d) {
+    public static class InsidePositioner<V> implements Positioner<V> {
+    	public Position getPosition(V v, float x, float y, Dimension d) {
     		int cx = d.width/2;
     		int cy = d.height/2;
     		if(x > cx && y > cy) return Position.NW;
@@ -176,8 +176,8 @@ public class BasicVertexLabelRenderer<V,E> implements Renderer.VertexLabel<V,E> 
     		return Position.SE;
     	}
     }
-    public static class OutsidePositioner implements Positioner {
-    	public Position getPosition(float x, float y, Dimension d) {
+    public static class OutsidePositioner<V> implements Positioner<V> {
+    	public Position getPosition(V v, float x, float y, Dimension d) {
     		int cx = d.width/2;
     		int cy = d.height/2;
     		if(x > cx && y > cy) return Position.SE;
@@ -189,14 +189,14 @@ public class BasicVertexLabelRenderer<V,E> implements Renderer.VertexLabel<V,E> 
 	/**
 	 * @return the positioner
 	 */
-	public Positioner getPositioner() {
+	public Positioner<V> getPositioner() {
 		return positioner;
 	}
 
 	/**
 	 * @param positioner the positioner to set
 	 */
-	public void setPositioner(Positioner positioner) {
+	public void setPositioner(Positioner<V> positioner) {
 		this.positioner = positioner;
 	}
 }

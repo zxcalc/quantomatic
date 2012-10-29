@@ -1,6 +1,6 @@
 package quanto.core.protocol.userdata;
 
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 
 /**
  * User: benjaminfrot
@@ -8,8 +8,8 @@ import quanto.core.protocol.ProtocolManager;
  */
 public class QuantoAppUserDataSerializer<T> {
     protected final String prefix = "quanto-gui:";
-    protected ProtocolManager talker = null;
-    public QuantoAppUserDataSerializer(ProtocolManager talker) {
+    protected CoreTalker talker = null;
+    public QuantoAppUserDataSerializer(CoreTalker talker) {
         this.talker = talker;
     }
 }

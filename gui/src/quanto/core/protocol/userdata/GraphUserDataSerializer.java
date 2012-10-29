@@ -5,7 +5,7 @@ import java.util.logging.Logger;
 import quanto.core.CoreException;
 import quanto.core.data.CoreGraph;
 import quanto.core.protocol.CommandException;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 import quanto.core.protocol.userdata.dataserialization.DataSerializer;
 
 /**
@@ -18,7 +18,7 @@ public class GraphUserDataSerializer<T> extends QuantoAppUserDataSerializer<T> {
     private String suffix;
     private final static Logger logger = Logger.getLogger("quanto.protocol.userdata");
 
-    public GraphUserDataSerializer(ProtocolManager talker, DataSerializer<T> serializer, String suffix) {
+    public GraphUserDataSerializer(CoreTalker talker, DataSerializer<T> serializer, String suffix) {
         super(talker);
         this.serializer = serializer;
         this.suffix = suffix;

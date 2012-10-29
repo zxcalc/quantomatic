@@ -16,7 +16,7 @@ import static quanto.core.protocol.Utils.*;
  *
  * @author alemer
  */
-public class RequestWriter
+class RequestWriter
 {
     private LoggingOutputStream output;
     private boolean inMessage = false;

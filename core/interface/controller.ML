@@ -20,13 +20,14 @@ struct
   type rewriteDesc = { ruleName: string, result: graphDesc, lhs: graphDesc, rhs: graphDesc };
   (* BasicFormat is the name of a graph or component, and the string value of
    * component data *)
-  datatype resultFormat = BasicFormat | PrettyFormat | XmlFormat | DescriptionFormat;
+  datatype resultFormat = BasicFormat
+                        | PrettyFormat
+                        | XmlFormat
+                        | JsonFormat
+                        | DescriptionFormat;
   datatype componentData = StringCData of string
                          | XmlCData of (XML.tree list)
                          | DescriptionCData of ComponentData.T;
-  datatype graphData = PrettyGData of Pretty.T
-                     | XmlGData of XML.tree
-                     | DescriptionGData of graphDesc;
 
                      (* A dummy request does not change the state, and simply produces the given response *)
   datatype request = DummyRequest of { response: response }
@@ -134,6 +135,7 @@ struct
                        (* Native format: suitable for saving to a file and loading again *)
        and graphFormat = NativeGraphFormat
                        | XmlGraphFormat
+                       | JsonGraphFormat
                        | PrettyGraphFormat
                        | HilbertSpaceGraphFormat
                        | MathematicaGraphFormat
@@ -248,6 +250,7 @@ struct
                     | DataResponse of { data: string }
                     | PrettyResponse of { data: Pretty.T }
                     | XmlResponse of { data: XML.tree }
+                    | JsonResponse of { data: Json.json }
                     | CountResponse of { count: int }
 
                     | GraphDescriptionResponse of { graph: graphDesc }
@@ -270,29 +273,6 @@ struct
 end;
 
 
-signature CONTROLLER_REGISTRY
-= sig
-  val register_eval_func : string -> (Commands.request -> Commands.response) -> unit;
-  val get_eval_func : string -> (Commands.request -> Commands.response) option;
-  val get_theories: unit -> string list;
-end;
-
-structure ControllerRegistry : CONTROLLER_REGISTRY
-= struct
-  val eval_funcs = Unsynchronized.ref Symtab.empty;
-
-  fun register_eval_func theory_name func =
-        eval_funcs := Symtab.update_new (theory_name,func) (!eval_funcs)
-        handle Symtab.DUP _ => 
-          raise ERROR ("Cannot register theory: '" ^ theory_name 
-            ^ "'; this theory is already registered.");
-
-  fun get_eval_func name = Symtab.lookup (!eval_funcs) name
-
-  fun get_theories () = Symtab.keys (!eval_funcs)
-end;
-
-
 signature CONTROLLER =
 sig
   val serviceRequest : Commands.request -> Commands.response;
@@ -300,7 +280,12 @@ sig
 end;
 
 
-functor Controller(Theory : GRAPHICAL_THEORY) : CONTROLLER =
+functor Controller(
+  structure Theory : GRAPHICAL_THEORY
+  structure GraphComponentDataIO : GRAPH_COMPONENT_DATA_IO
+  sharing type Theory.OVData.IData.data = GraphComponentDataIO.vdata
+  sharing type Theory.EData.data = GraphComponentDataIO.edata
+) : CONTROLLER =
 struct
   structure State = ControllerState(Theory);
   val cur_state = Unsynchronized.ref State.init;
@@ -313,27 +298,37 @@ struct
   structure EData = State.Theory.EData;
   structure VCD = State.Theory.VertexComponentData;
   structure ECD = State.Theory.EdgeComponentData;
-  structure Input = State.Theory.IO_Xml.Input;
-  structure Output = State.Theory.IO_Xml.Output;
-  structure UIDataOutput = OutputUIDataXML(structure UIData = State.UIData);
-  structure RulesetUIDataOutput = OutputRulesetUIDataXML(structure UIData = State.UIData);
-  structure GraphAndUIOutput = OutputWrapXML(
+
+  structure TheoryIO = StringTableAnnotatedGraphicalTheoryIO(
+    structure Theory = Theory
+    structure GraphComponentDataIO = GraphComponentDataIO
+  );
+
+  structure InputXML = State.Theory.IO_Xml.Input;
+  structure OutputXML = State.Theory.IO_Xml.Output;
+  structure GraphUserDataOutputXML = OutputGraphStringTableAnnotationsXML;
+  structure GraphUserDataInputXML = InputGraphStringTableAnnotationsXML;
+  structure RulesetUserDataOutputXML = OutputRulesetStringTableAnnotationsXML;
+  structure RulesetUserDataInputXML = InputRulesetStringTableAnnotationsXML;
+  structure GraphAndUIOutputXML = OutputWrapXML(
               val tagname = "graph_and_user_data"
               val attrs = []
-              structure Output1 = OutputStructAndUserDataXMLList);
-  structure RulesetAndUIOutput = OutputWrapXML(
+              structure Output1 = OutputConcatPairXMLList);
+  structure RulesetAndUIOutputXML = OutputWrapXML(
               val tagname = "ruleset_and_user_data"
               val attrs = []
-              structure Output1 = OutputStructAndUserDataXMLList);
-  structure UIDataInput = InputUIDataXML(structure UIData = State.UIData);
-  structure InputRulesetUIData = InputRulesetUIDataXML(structure UIData =
-        State.UIData);
+              structure Output1 = OutputConcatPairXMLList);
 
   val theoryName = State.Theory.theory_name;
 
   fun get_graph (name:string) (state:State.T) : G.T = State.get_graph state (GraphName.mk name)
-  fun get_graph_ud (name:string) (state:State.T) : State.UIData.T = State.get_graph_ud
+  fun get_graph_ud (name:string) (state:State.T) : State.GraphUserData.T = State.get_graph_ud
     state (GraphName.mk name)
+  fun get_graph_and_ud (name:string) (state:State.T) = let
+    val gn = (GraphName.mk name)
+  in
+    (State.get_graph state gn,State.get_graph_ud state gn)
+  end
 
   fun update_ruleset rset true state =
        State.update_rset (Ruleset.merge rset) state
@@ -341,27 +336,61 @@ struct
        State.set_rset rset state
 
   fun update_ruleset_ud rset_ud true state =
-      State.update_rset_uidata (R.NTab.merge_joint (K true) rset_ud) state 
+      State.update_rset_ud (State.RulesetUserData.merge rset_ud) state
     | update_ruleset_ud rset_ud _ state =
-      State.set_rset_uidata rset_ud state
+      State.set_rset_ud rset_ud state
 
-  fun load_ruleset reader source replace state =
-     ((OkResponse,
-       state |> update_ruleset (Input.Ruleset.input (reader source)) replace 
-             |> update_ruleset_ud (InputRulesetUIData.input (reader source)) replace
-       )
-      handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
+  fun slurp file = let
+    val instream =  TextIO.openIn file
+    fun read str = case TextIO.inputLine instream
+                     of  SOME s => read (str ^ s)
+                      | NONE => str
+    val s = read ""
+  in
+    (TextIO.closeIn instream ; s)
+  end;
+  fun write_to_file file s = let
+    val outstream = TextIO.openOut file
+  in
+    (TextIO.output (outstream, s);
+     TextIO.closeOut outstream)
+  end;
+  fun write_json_to_file file = (write_to_file file) o Json.encode;
+
+  fun load_ruleset_xml data replace state = (let
+    val xml = XMLReader.read_from_string data
+  in
+   (OkResponse,
+     state |> update_ruleset (InputXML.Ruleset.input xml) replace
+           |> update_ruleset_ud (RulesetUserDataInputXML.input xml) replace
+     )
+  end
+  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-           | Input.Ruleset.bad_input_exp (s1,s2) =>
+       | InputXML.Ruleset.bad_input_exp (s1,s2) =>
              (ErrorResponse { errorCode = "BADDATA",
                 message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
-           | XMLReader.bad_input_exp msg =>
+       | XMLReader.bad_input_exp _ =>
              (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory ("^msg^")") }, state)
-          | _ =>
+                message = ("The file is neither valid XML nor JSON") }, state)
+       | _ =>
              (ErrorResponse { errorCode = "BADDATA",
-                message = ("The file is not a valid ruleset for the active theory.") }, state))
+                message = ("An error occurred while parse the ruleset") }, state));
+
+  fun load_ruleset data replace state = (let
+    val json = Json.of_string data
+    val (rs,ud) = TheoryIO.InputRulesetJSON.input json
+  in
+   (OkResponse,
+     state |> update_ruleset rs replace
+           |> update_ruleset_ud ud replace
+     )
+  end
+  handle TheoryIO.InputRulesetJSON.bad_input_exp (s1,s2) =>
+             (ErrorResponse { errorCode = "BADDATA",
+                message = ("The file is not a valid ruleset for the active theory ("^s1^" at "^s2^")") }, state)
+       | Json.parse_exn _ => load_ruleset_xml data replace state);
 
   fun describe_vertex (n, (nd,_)) =
     { name = V.dest n, vType = VCD.type_of nd,
@@ -433,25 +462,44 @@ struct
         end
 
     | serviceRequest' (LoadGraphRequest { details }) state =
-        let fun load_graph suggestedName reader data =
+        let
+          fun add_graph_to_table suggestedName (graph,ud) = let
+            val name = if suggestedName = ""
+                       then GraphName.default_name
+                       else GraphName.mk suggestedName
+            val (nm,state') = State.add_graph name graph state
+            val state_ =  State.set_graph_ud ud nm state'
+          in
+            (StringResponse { data = GraphName.dest nm },state_)
+          end;
+          fun load_graph_xml suggestedName data =
                 (let
-                   val graph = (Input.Graph.input (reader data))
-                   val ud = UIDataInput.input(reader data)
-                   val name = if suggestedName = "" then GraphName.default_name else GraphName.mk suggestedName
-                   val (nm,state') = State.add_graph name graph state
-                   val state_ =  State.set_graph_ud ud nm state'
+                   val xml = XMLReader.read_from_string data
+                   val graph = InputXML.Graph.input xml
+                   val ud = GraphUserDataInputXML.input xml
                  in
-                   (StringResponse { data = GraphName.dest nm },state_)
+                   add_graph_to_table suggestedName (graph,ud)
                  end
                  handle XML_Parse_Utils.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | Input.Graph.bad_input_exp (s1,s2) => 
+                      | InputXML.Graph.bad_input_exp (s1,s2) =>
                         (ErrorResponse { errorCode = "BADDATA",
                            message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state)
-                      | XMLReader.bad_input_exp msg =>
+                      | XMLReader.bad_input_exp _ =>
                         (ErrorResponse { errorCode = "BADDATA",
-                           message = ("The file is not a valid graph for the active theory ("^msg^")") }, state))
+                           message = ("The file is neither valid JSON nor XML") }, state));
+          fun load_graph suggestedName data =
+            let
+              val json = Json.of_string data
+              val g_and_ud = TheoryIO.InputGraphJSON.input json
+            in
+              add_graph_to_table suggestedName g_and_ud
+            end
+            handle Json.parse_exn _ => load_graph_xml suggestedName data
+                 | TheoryIO.InputGraphJSON.bad_input_exp (s1,s2) =>
+                        (ErrorResponse { errorCode = "BADDATA",
+                           message = ("The file is not a valid graph for the active theory ("^s1^" at "^s2^")") }, state);
         in
           case details of
             LoadEmptyGraphRequest { requestedName } =>
@@ -464,15 +512,15 @@ struct
                 (StringResponse { data = GraphName.dest nm },state')
               end
           | LoadGraphFromFileRequest { fileName } =>
-             (load_graph (OS.Path.file fileName) XMLReader.read_from_file fileName
-              handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+             (load_graph (OS.Path.file fileName) (slurp fileName)
+              handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn,...} =>
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read ("^msg^")") }, state)
-                   | IO.Io {name : string, function : string, cause : exn} => 
+                   | IO.Io {name : string, function : string, ...} =>
                      (ErrorResponse { errorCode = "FILEACCESS",
                                       message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
           | LoadGraphFromDataRequest { data, requestedName } =>
-             load_graph requestedName XMLReader.read_from_string data
+             load_graph requestedName data
           | CopyGraphRequest { graphName } =>
              let
                 val gname = GraphName.mk graphName
@@ -488,25 +536,19 @@ struct
 
     | serviceRequest' (SaveGraphToFileRequest { graphName, fileName }) state =
        (let
-          (* The user data is attached to the state, so we cannot
-           * put it in io_interface. Therefore we build our structures
-           * are the very last moment. There should be a better way to do that
-           * as it prevents us form storing uidata on rules...*)
           val graph = get_graph graphName state
-          val graphXMLTree = Output.Graph.output graph
           val ud = get_graph_ud graphName state
-          val userDataXMLTree = UIDataOutput.output ud
-          val () = XMLWriter.write_to_file fileName
-                      (GraphAndUIOutput.output (graphXMLTree, userDataXMLTree))
+          val json = TheoryIO.OutputGraphJSON.output (graph,ud)
+          val _ = write_json_to_file fileName json
         in
           (OkResponse, state)
         end
-        handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse {
                   errorCode = "FILEACCESS",
                   message = ("The file could not be written to ("^msg^")")
                 }, state)
-             | IO.Io {name : string, function : string, cause : exn} => 
+             | IO.Io {name : string, function : string, ...} =>
                (ErrorResponse {
                   errorCode = "FILEACCESS",
                   message = ("The file could not be written to (unknown error in "^function^" of "^name^")")
@@ -521,16 +563,23 @@ struct
         (OkResponse, State.kill_graph (GraphName.mk graphName) state)
 
     | serviceRequest' (ExportGraphRequest { graphName, format }) state =
-        let val graph = get_graph graphName state in
-          if format = NativeGraphFormat then
-              let val graph_data = (XMLWriter.write_to_string o Output.Graph.output) graph in
-                (DataResponse { data = graph_data}, state)
-              end
-          else if format = XmlGraphFormat then
-              (XmlResponse { data = Output.Graph.output graph}, state)
-          else if format = PrettyGraphFormat then
-              (PrettyResponse { data = G.pretty graph}, state)
-          else (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+        let
+          val v as (graph,_) = get_graph_and_ud graphName state
+        in
+          case format
+            of NativeGraphFormat =>
+                 let
+                   val json = TheoryIO.OutputGraphJSON.output v
+                 in
+                   (DataResponse { data = Json.encode json}, state)
+                 end
+             | XmlGraphFormat =>
+                 (XmlResponse { data = OutputXML.Graph.output graph}, state)
+             | JsonGraphFormat =>
+                 (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
+             | PrettyGraphFormat =>
+                 (PrettyResponse { data = G.pretty graph}, state)
+             | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
         end
 (*
 fun hilb ([format], graph) =
@@ -553,15 +602,11 @@ fun hilb ([format], graph) =
                     }
                | GraphUserData { dataName }=>
                     let
-                      val tab = State.get_graph_user_data
-                        (GraphName.mk graphName) state
-                      val data = Symtab.lookup tab dataName
+                      val g = GraphName.mk graphName
                     in
-                      (case data of SOME a => 
-                          DataResponse { data = a }
-                       | NONE => 
-                          raise State.no_such_graph_user_data_exp (GraphName.mk
-                          graphName, dataName))
+                       case State.lookup_graph_ud_property state g dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_graph_user_data_exp (g, dataName)
                     end
                | ListVertices =>
                     StringListResponse {
@@ -600,27 +645,24 @@ fun hilb ([format], graph) =
                                   data = (XML.Elem (("data",[]),data_xml_list))
                                 }
                               end
+                         | JsonFormat =>
+                              JsonResponse {
+                                data = TheoryIO.VDataOutputJSON.output vdata
+                              }
                          | DescriptionFormat =>
                               ComponentDataResponse {
                                 data = VCD.cdata_of vdata
                               }
                     end
                | VertexUserData { vertexName, dataName } =>
-                let
-                  val tab = (case State.get_vertex_user_data (GraphName.mk
-                              graphName) (V.mk vertexName) state of
-                              SOME u => u
-                              | NONE => raise 
-                                State.no_such_vertex_user_data_exp (V.mk
-                                  vertexName,dataName))
-                  val data = (case Symtab.lookup tab dataName of
-                       SOME a => a
-                       | NONE => 
-                          raise State.no_such_vertex_user_data_exp (V.mk
-                            vertexName, dataName))
-                in
-                      DataResponse { data = data }
-                end
+                    let
+                      val g = GraphName.mk graphName
+                      val v = V.mk vertexName
+                    in
+                       case State.lookup_vertex_ud_property state g v dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_vertex_user_data_exp (v, dataName)
+                    end
                | EdgeData { edgeName, format } =>
                     let
                       val edata = G.get_edge_data graph (E.mk edgeName)
@@ -646,53 +688,47 @@ fun hilb ([format], graph) =
                                   data = (XML.Elem (("data",[]),data_xml_list))
                                 }
                               end
+                         | JsonFormat =>
+                              JsonResponse {
+                                data = Json.Object (
+                                  Json.update
+                                    ("data",TheoryIO.EDataOutputJSON.output edata)
+                                    Json.empty_obj
+                                )
+                              }
                          | DescriptionFormat =>
                               ComponentDataResponse {
                                 data = ECD.cdata_of edata
                               }
                     end
                | EdgeUserData { edgeName , dataName} =>
-                let
-                  val tab = (case State.get_edge_user_data (GraphName.mk
-                              graphName) (E.mk edgeName) state of
-                              SOME u => u
-                              | NONE => raise 
-                                State.no_such_edge_user_data_exp (E.mk
-                                  edgeName,dataName))
-                  val data = (case Symtab.lookup tab dataName of
-                       SOME a => a
-                       | NONE => 
-                          raise State.no_such_edge_user_data_exp (E.mk
-                            edgeName, dataName))
-                in
-                      DataResponse { data = data }
-                end
+                    let
+                      val g = GraphName.mk graphName
+                      val e = E.mk edgeName
+                    in
+                       case State.lookup_edge_ud_property state g e dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_edge_user_data_exp (e, dataName)
+                    end
                | BangBoxVertices { bangBoxName } =>
                     StringListResponse {
                       data = (map V.dest (V.NSet.list_of (G.get_bbox_contents graph (B.mk bangBoxName))))
                     }
                | BangBoxUserData { bangBoxName, dataName } =>
-                let
-                  val tab = (case State.get_bangbox_user_data (GraphName.mk
-                              graphName) (B.mk bangBoxName) state of
-                              SOME u => u
-                              | NONE => raise 
-                                State.no_such_bangbox_user_data_exp (B.mk
-                                  bangBoxName,dataName))
-                  val data = (case Symtab.lookup tab dataName of
-                       SOME a => a
-                       | NONE => 
-                          raise State.no_such_bangbox_user_data_exp (B.mk
-                            bangBoxName, dataName))
-                in
-                      DataResponse { data = data }
-                end
+                    let
+                      val g = GraphName.mk graphName
+                      val b = B.mk bangBoxName
+                    in
+                       case State.lookup_bangbox_ud_property state g b dataName
+                         of SOME data => DataResponse { data = data }
+                          | NONE => raise State.no_such_bangbox_user_data_exp (b, dataName)
+                    end
 
-               | PrintUserData => 
+               | PrintUserData =>
                 let
                   val ud = State.get_graph_ud state (GraphName.mk graphName)
                 in
-                  PrettyResponse {data = State.UIData.pretty_user_data ud}
+                  PrettyResponse {data = State.GraphUserData.pretty ud}
                 end
 
             ), state)
@@ -728,19 +764,26 @@ fun hilb ([format], graph) =
              State.insert_graph (GraphName.mk sourceGraphName) (GraphName.mk graphName) state)
         | SetGraphUserDataAction {dataName, userData} =>
             (OkResponse,
-              State.update_graph_user_data dataName userData
+              State.set_graph_ud_property dataName userData
               (GraphName.mk graphName) state)
         | DeleteGraphUserDataAction {dataName} =>
             (OkResponse,
-              State.delete_graph_user_data dataName (GraphName.mk graphName)
+              State.delete_graph_ud_property dataName (GraphName.mk graphName)
               state)
         | AddVertexAction { vertexType, resultFormat } =>
             let
-              val (v as (vn,_),state') = State.add_vertex vertexType (GraphName.mk graphName) state
+              val gn = GraphName.mk graphName
+              val (v as (vn,_),state') = State.add_vertex vertexType gn state
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = V.dest vn }, state')
-                 | XmlFormat => (XmlResponse { data = Output.Vertex.output v }, state')
+                 | XmlFormat => (XmlResponse { data = OutputXML.Vertex.output v }, state')
+                 | JsonFormat =>
+                       (JsonResponse {
+                          data = TheoryIO.OutputGraphJSON.output_vertex
+                                  (get_graph_and_ud graphName state')
+                                  vn
+                        },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_vert v }, state')
                  | DescriptionFormat =>
                      (VertexDescriptionResponse {
@@ -772,10 +815,10 @@ fun hilb ([format], graph) =
                       (ErrorResponse { errorCode = "BADDATA", message = s }, state))
         | SetVertexUserDataAction { vertexName, dataName, userData } =>
             (OkResponse,
-              State.update_vertex_user_data dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
+              State.set_vertex_ud_property dataName userData (V.mk vertexName) (GraphName.mk graphName) state)
         | DeleteVertexUserDataAction { vertexName, dataName } =>
             (OkResponse,
-              State.delete_vertex_user_data dataName (V.mk vertexName) 
+              State.delete_vertex_ud_property dataName (V.mk vertexName) 
                 (GraphName.mk graphName) state)
         | AddEdgeAction { edgeType, directed, source, target, resultFormat } =>
             let
@@ -784,7 +827,13 @@ fun hilb ([format], graph) =
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = E.dest en }, state')
-                 | XmlFormat => (XmlResponse { data = Output.Edge.output e }, state')
+                 | XmlFormat => (XmlResponse { data = OutputXML.Edge.output e }, state')
+                 | JsonFormat =>
+                       (JsonResponse {
+                          data = TheoryIO.OutputGraphJSON.output_edge
+                                  (get_graph_and_ud graphName state')
+                                  en
+                        },state')
                  | PrettyFormat => (PrettyResponse { data = pretty_edge e }, state')
                  | DescriptionFormat => 
                      (EdgeDescriptionResponse {
@@ -812,10 +861,10 @@ fun hilb ([format], graph) =
                       (ErrorResponse { errorCode = "BADFORMAT", message = s }, state))
         | SetEdgeUserDataAction { edgeName, dataName, userData } =>
             (OkResponse,
-              State.update_edge_user_data dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
+              State.set_edge_ud_property dataName userData (E.mk edgeName) (GraphName.mk graphName) state)
         | DeleteEdgeUserDataAction { edgeName, dataName } =>
             (OkResponse,
-              State.delete_edge_user_data dataName (E.mk edgeName) 
+              State.delete_edge_ud_property dataName (E.mk edgeName)
                 (GraphName.mk graphName) state)
         | AddBangBoxAction { vertexNames, resultFormat } =>
             let
@@ -833,9 +882,15 @@ fun hilb ([format], graph) =
                                     val bbox  = (nm,verts)
                                   in
                                    (XmlResponse {
-                                      data = Output.BBox.output bbox
+                                      data = OutputXML.BBox.output bbox
                                     }, state'')
                                   end
+                 | JsonFormat =>
+                       (JsonResponse {
+                          data = TheoryIO.OutputGraphJSON.output_bangbox
+                                  (get_graph_and_ud graphName state)
+                                  nm
+                        },state'')
                  | DescriptionFormat => let
                                           val graph = State.get_graph state'' gname
                                           val verts = G.get_bbox_contents graph nm
@@ -878,46 +933,50 @@ fun hilb ([format], graph) =
              State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
-              State.update_bangbox_user_data dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
+              State.set_bangbox_ud_property dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
         | DeleteBangBoxUserDataAction { bangBoxName, dataName } =>
             (OkResponse,
-              State.delete_bangbox_user_data dataName (B.mk bangBoxName) 
+              State.delete_bangbox_ud_property dataName (B.mk bangBoxName) 
                 (GraphName.mk graphName) state)
         )
 
 
     (* Rulesets *)
     | serviceRequest' (ImportRulesetFromFileRequest { fileName, replace }) state =
-       (load_ruleset XMLReader.read_from_file fileName replace state
-        handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+       (load_ruleset (slurp fileName) replace state
+        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, cause : exn} => 
+             | IO.Io {name : string, function : string, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be read (unknown error in "^function^" of "^name^")") }, state))
 
     | serviceRequest' (ImportRulesetFromDataRequest { data, replace }) state =
-        load_ruleset XMLReader.read_from_string data replace state
+        load_ruleset data replace state
 
     | serviceRequest' (ExportRulesetToFileRequest { fileName }) state =
        (let
-          val ruleset_tree = (Output.Ruleset.output o State.get_rset) state
-          val uidata_tree = (RulesetUIDataOutput.output o State.get_rset_uidata) state
-          val () = (XMLWriter.write_to_file fileName)
-                      (RulesetAndUIOutput.output (ruleset_tree, uidata_tree))
+          val rs = State.get_rset state
+          val ud = State.get_rset_ud state
+          val json = TheoryIO.OutputRulesetJSON.output (rs,ud)
+          val _ = write_json_to_file fileName json
         in
           (OkResponse, state)
         end
-        handle IO.Io {name : string, function : string, cause as (OS.SysErr (msg:string,_)) : exn} => 
+        handle IO.Io {cause as (OS.SysErr (msg:string,_)) : exn, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be written to ("^msg^")") }, state)
-             | IO.Io {name : string, function : string, cause : exn} => 
+             | IO.Io {name : string, function : string, ...} =>
                (ErrorResponse { errorCode = "FILEACCESS",
                                 message = ("The file could not be written to (unknown error in "^function^" of "^name^")") }, state))
 
     | serviceRequest' (ExportRulesetAsDataRequest) state =
-        let val get_rset_data = XMLWriter.write_to_string o Output.Ruleset.output o State.get_rset in
-          (DataResponse { data = get_rset_data state }, state)
+        let
+          val rs = State.get_rset state
+          val ud = State.get_rset_ud state
+          val json = TheoryIO.OutputRulesetJSON.output (rs,ud)
+        in
+          (DataResponse { data = Json.encode json }, state)
         end
 
 
@@ -967,23 +1026,16 @@ fun hilb ([format], graph) =
         (OkResponse,
          State.rename_rule (R.mk oldName) (R.mk newName) state)
     | serviceRequest' (RuleUserDataRequest { ruleName, dataName }) state =
-      let
-        val tab = fst (State.get_rule_ud state (R.mk ruleName))
-        val data = (case Symtab.lookup tab dataName of
-          SOME a => a
-          | NONE => 
-              raise State.no_such_rule_user_data_exp (R.mk ruleName, dataName))
-      in
-        (DataResponse { data = data }, state)
-      end
+        let
+          val r = R.mk ruleName
+        in
+           case State.lookup_rule_ud_property state r dataName
+             of SOME data => (DataResponse { data = data },state)
+              | NONE => raise State.no_such_rule_user_data_exp (r, dataName)
+        end
     | serviceRequest' (SetRuleUserDataRequest {ruleName, dataName, userData}) state =
-      let
-        val ud = State.get_rule_ud state (R.mk ruleName)
-        val tab = Symtab.update (dataName, userData) (fst ud) 
-        val state' = State.set_rule_ud (tab, (snd ud)) (R.mk ruleName) state
-      in
-            (OkResponse, state')
-      end
+        (OkResponse,
+         State.set_rule_ud_property dataName userData (R.mk ruleName) state)
     (* Tags *)
     | serviceRequest' (ListTagsRequest) state =
         let val tags = (State.list_tags  state) in
@@ -1053,8 +1105,21 @@ fun hilb ([format], graph) =
                   }, state)
              | XmlFormat =>
                  (XmlResponse {
-                    data = Output.RewriteList.output rewrites
+                    data = OutputXML.RewriteList.output rewrites
                   }, state)
+             | JsonFormat =>
+                 let
+                   (* FIXME: the graph user data should be calculated in advance *)
+                   (*        and attached along with the rewrites *)
+                   fun annotate_rw (r,g) = (r,(g,State.GraphUserData.init))
+                   val ann_rws = map annotate_rw rewrites
+                   val rs_ud = State.get_rset_ud state
+                 in
+                   (JsonResponse {
+                      data = TheoryIO.OutputRewriteListJSON.output
+                              (ann_rws,rs_ud)
+                    }, state)
+                 end
              | PrettyFormat => (* ??? *)
                  (ErrorResponse {
                     errorCode = "NOTIMP",
@@ -1264,8 +1329,6 @@ fun hilb ([format], graph) =
                 }
  
            );
-
-  val _ = ControllerRegistry.register_eval_func State.Theory.theory_name serviceRequest;
 end;
 
 structure DummyController : CONTROLLER =

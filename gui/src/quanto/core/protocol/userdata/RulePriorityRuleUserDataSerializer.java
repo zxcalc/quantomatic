@@ -1,6 +1,6 @@
 package quanto.core.protocol.userdata;
 
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 import quanto.core.protocol.userdata.dataserialization.IntegerDataSerializer;
 
 /**
@@ -12,7 +12,7 @@ public class RulePriorityRuleUserDataSerializer extends RuleUserDataSerializer<I
     static String suffix = "priority";
     static IntegerDataSerializer serializer = new IntegerDataSerializer();
 
-    public RulePriorityRuleUserDataSerializer(ProtocolManager talker) {
+    public RulePriorityRuleUserDataSerializer(CoreTalker talker) {
         super(talker, serializer, suffix);
     }
 }

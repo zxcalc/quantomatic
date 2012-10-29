@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import quanto.core.protocol.ProtocolManager;
+import quanto.core.protocol.CoreTalker;
 
 /**
  * Simulates a console interface to the core backend
@@ -25,11 +25,11 @@ public class ConsoleInterface {
 		public void responseReceived(String response);
 	}
 
-	private ProtocolManager core;
+	private CoreTalker core;
 	private ResponseListener responseListener;
 	private Completer completer;
 
-	public ConsoleInterface(ProtocolManager core) {
+	public ConsoleInterface(CoreTalker core) {
 		this.core = core;
 
 		completer = new Completer();
