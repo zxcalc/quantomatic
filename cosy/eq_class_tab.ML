@@ -55,8 +55,8 @@ sig
   val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
   val get_irredexes : T -> GraphEntry.T list
   val get_redexes : T -> GraphEntry.T list
-  val update_one : GraphEntry.T -> T -> T
-  val update : GraphEntry.T list -> T -> T
+  val update_one : GraphEntry.T -> T -> GraphEntry.T option * T
+  val update : GraphEntry.T list -> T -> GraphEntry.T list * T
   
   (* manually add an eqclass. All the elements in the list are
      assumed redexes *)
@@ -217,16 +217,24 @@ struct
   end
   
   fun update_one ge tab =
-    if exists_redexes (has_match ge) tab then tab
+    if exists_redexes (has_match ge) tab then (NONE, tab)
     else let
       val gr = get_graph ge
       val arity = (V.NSet.cardinality (G.get_inputs gr),
                    V.NSet.cardinality (G.get_inputs gr))
-    in tab |> ClassIndex.map_default (arity, []) (find_and_add ge)
+    in (SOME ge , tab |> ClassIndex.map_default (arity, []) (find_and_add ge))
     end
   
-  fun update ge_list tab = fold update_one ge_list tab
-  
+  fun update ge_list tab = let
+    fun update' ge (ges, tab') = let
+       val (newge, tab') = update_one ge tab'
+    in case newge
+        of SOME ge => (ge::ges, tab')
+         | NONE    => (ges, tab') 
+    end 
+  in fold update' ge_list ([],tab)
+  end
+
   fun add_eq_class (rep, redexes) =
     ClassIndex.map_default ((~1,~1), [])
       (cons (EqClass.mk rep |> EqClass.set_redexes redexes))
