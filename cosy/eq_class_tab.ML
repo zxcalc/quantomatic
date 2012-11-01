@@ -50,6 +50,8 @@ sig
   val get_initial_rs    : T -> Theory.Ruleset.T
   val set_initial_rs    : Theory.Ruleset.T -> T -> T
 
+  val get_ruleset : T -> Theory.Ruleset.T
+
   val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   
@@ -130,6 +132,7 @@ functor EqClassTab(
 ) : EQ_CLASS_TAB =
 struct
   structure Theory = Theory
+  structure Ruleset = Theory.Ruleset
   structure G = Theory.Graph
   structure EqClass = EqClass(
     structure Equiv = Equiv
@@ -201,11 +204,51 @@ struct
   end
   
   
+  local
+    
+    fun add_rule nm tag rhs lhs_e rs =
+    let
+      val lhs = GraphEntry.get_graph lhs_e
+      val r = Theory.Rule.mk (lhs, rhs)
+      val (rname, rs) = Theory.Ruleset.add_fresh_rule (R.mk nm, r) rs
+    in rs |> Theory.Ruleset.tag_rule rname (TagName.mk tag)
+    end
+    
+  in
+  
+    fun get_ruleset eqt =
+    let
+      fun add_class class rs =
+        let
+          val rep = GraphEntry.get_graph (EqClass.get_rep class)
+          val add_redex = add_rule "r_0" "redex" rep
+          val add_cong = add_rule "c_0" "cong" rep
+        in
+          fold add_redex (EqClass.get_redexes class)
+          (fold add_cong (EqClass.get_congs class) rs)
+        end
+    in
+      ClassIndex.fold (fn (_, classlist) =>
+        fold add_class classlist) (get_tab eqt) (get_initial_rs eqt)
+    end
+  
+  end
+  
   
   fun has_match tgt pat =
     is_some (Seq.pull (Theory.MatchSearch.match
       (get_graph pat) (get_graph tgt)
     ))
+  
+  fun rs_can_reduce rs tgt =
+  let
+    fun r_matches r_name =
+      is_some (Seq.pull (Theory.MatchSearch.match
+        (Theory.Rule.get_lhs (Ruleset.get_rule rs r_name)) (get_graph tgt)
+      ))
+  in R.NSet.exists r_matches
+     (Theory.Ruleset.get_rules_in_tag rs (TagName.mk "redex"))
+  end
   
   (* returns (SOME new_class) if graph is equivalent to the representative,
      and NONE otherwise *)
@@ -232,11 +275,13 @@ struct
   end
   
   fun update_one ge eqt =
-    if exists_redexes (has_match ge) eqt then (NONE, eqt)
+    if rs_can_reduce (get_initial_rs eqt) ge orelse
+       exists_redexes (has_match ge) eqt
+    then (NONE, eqt)
     else let
       val gr = get_graph ge
       val arity = (V.NSet.cardinality (G.get_inputs gr),
-                   V.NSet.cardinality (G.get_inputs gr))
+                   V.NSet.cardinality (G.get_outputs gr))
     in (
         SOME ge ,
         eqt |> update_tab (ClassIndex.map_default (arity, []) (find_and_add ge))

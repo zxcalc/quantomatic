@@ -10,8 +10,9 @@ sig
   val default_data : data
   
   sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          EqClassTab.GraphEntry.Equiv.Graph.SharingOGraph
+          Metric.Graph.SharingOGraph
+  sharing Theory.Ruleset.Sharing =
+          EqClassTab.Theory.Ruleset.Sharing
   
   val tab_update : generator list -> int -> EqClassTab.T -> EqClassTab.T
   val tab_enum : generator list -> int -> EqClassTab.T

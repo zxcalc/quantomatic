@@ -7,12 +7,13 @@ struct
 
 structure Enum = Enum
 structure Theory = Enum.Theory
+structure Spiders = SpiderRewrites(structure Theory = Theory)
 
 fun gen_list max_arity data_list = let
     fun alist 0 0 = []
       | alist k 0 = (0,k)::alist (k-1) (k-1)
       | alist k i = (i,k-i)::alist k (i-1)
-    fun gen d (iw,ow) = (d,iw,ow)
+    fun gen d (iw,ow) = (Theory.OVData.NVert d,iw,ow)
   in (fold_product (cons oo gen) data_list (alist max_arity max_arity) [])
   end
 
@@ -107,10 +108,16 @@ fun output_graph content_div graph = let
 in ()
 end
 
-(*fun synth content_div sz =
+val initial_rs = Spiders.ruleset_from_vdata data_list
+
+fun synth content_div sz =
+let
+  val eqt = Enum.tab_update gens sz (Enum.EqClassTab.mk initial_rs)
+in
   output_ruleset
     content_div
-    (RSBuilder.get_ruleset (Enum.tab_enum gens sz))*)
+    (Enum.EqClassTab.get_ruleset eqt)
+end
 
 
 end

@@ -13,7 +13,7 @@ functor TensorEquiv(
   structure TData : TENSOR_DATA
 ) : GRAPH_EQUIV =
 struct
-  type T = TData.Tensor.T option
+  type T = TData.Tensor.T
   structure Graph = TData.Graph
   
   (* offset tables assign a vertex name to the rightmost tensor index that connects
@@ -78,12 +78,10 @@ struct
     val norm_outs = map (fn n => V.mk ("o_"^(Int.toString n))) perm_outs
     val gr' = fold2 Graph.rename_vname ins norm_ins (fold2 Graph.rename_vname outs norm_outs gr)
   in
-    (gr', SOME tens)
+    (gr', tens)
   end
   
-  fun eq (NONE, _) = false
-    | eq (_, NONE) = false
-    | eq (SOME t1, SOME t2) = TData.Tensor.eq(t1,t2)
+  val eq = TData.Tensor.eq
 end
 
 

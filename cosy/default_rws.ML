@@ -1,7 +1,14 @@
+signature SPIDER_REWRITES =
+sig
+  structure Theory : GRAPHICAL_THEORY
+  val ruleset_from_vdata : Theory.OVData.IData.data  list -> Theory.Ruleset.T
+end
+
 functor SpiderRewrites (
   structure Theory : GRAPHICAL_THEORY
-) =
+) : SPIDER_REWRITES =
 struct
+  structure Theory = Theory
   structure Ruleset = Theory.Ruleset
   structure Rule = Theory.Rule
   structure Graph = Theory.Graph
