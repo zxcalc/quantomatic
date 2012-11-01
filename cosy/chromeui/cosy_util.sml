@@ -1,15 +1,12 @@
 functor CosyUtil(
   structure Enum : GRAPH_ENUM
-  val data_list : Enum.Theory.Graph.VData.data list
+  val data_list : Enum.Theory.OVData.IData.data list
   val output_dot : Enum.Theory.Graph.T -> string
 ) =
 struct
 
 structure Enum = Enum
 structure Theory = Enum.Theory
-structure RSBuilder = RulesetBuilder(
-  structure Theory = Theory
-  structure EqClassTab = Enum.EqClassTab)
 
 fun gen_list max_arity data_list = let
     fun alist 0 0 = []
@@ -110,24 +107,23 @@ fun output_graph content_div graph = let
 in ()
 end
 
-fun synth content_div sz =
+(*fun synth content_div sz =
   output_ruleset
     content_div
-    (RSBuilder.get_ruleset (Enum.tab_enum gens sz))
+    (RSBuilder.get_ruleset (Enum.tab_enum gens sz))*)
 
 
 end
 
-val rg_data_list = [RG_Theory.OVData.NVert (RG_InternVData.Xnd LinratAngleExpr.zero),
-                   RG_Theory.OVData.NVert (RG_InternVData.Znd LinratAngleExpr.zero)]
+val rg_data_list = [RG_InternVData.Xnd LinratAngleExpr.zero,
+                    RG_InternVData.Znd LinratAngleExpr.zero]
 structure RGCosy = CosyUtil(
   structure Enum = RG_Enum
-  val data_list = [RG_Theory.OVData.NVert (RG_InternVData.Xnd LinratAngleExpr.zero),
-                   RG_Theory.OVData.NVert (RG_InternVData.Znd LinratAngleExpr.zero)]
+  val data_list = rg_data_list
   val output_dot = RG_GraphicalTheoryIO.OutputGraphDot.output
 )
 
-local
+(*local
   open RGCosy
 in
 fun rg_synth content_div sz =
@@ -135,4 +131,4 @@ fun rg_synth content_div sz =
     (RSBuilder.get_ruleset
       (Enum.tab_update gens sz
         (RG_Spiders.eq_class_tab rg_data_list)))
-end
+end*)

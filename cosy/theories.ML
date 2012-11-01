@@ -117,12 +117,7 @@ structure RG_Enum = FastGraphEnum(
   structure Equiv = TensorEquiv(structure TData = RG_TensorData)
 )
 
-structure RG_Spiders = SpiderEqClasses(
-  structure Theory = RG_Theory
-  structure EqClassTab = RG_Enum.EqClassTab
-  val default_data = RG_Enum.default_data
-  val default_edata = NONE
-)
+structure RG_Spiders = SpiderRewrites(structure Theory = RG_Theory)
 
 (*
 structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)

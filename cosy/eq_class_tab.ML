@@ -41,15 +41,22 @@ end
 signature EQ_CLASS_TAB =
 sig
   type T
+  structure Theory : GRAPHICAL_THEORY
   structure GraphEntry : GRAPH_ENTRY
+  sharing GraphEntry.Graph.SharingOGraph = Theory.Graph.SharingOGraph
   
+  
+  val update_initial_rs : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
+  val get_initial_rs    : T -> Theory.Ruleset.T
+  val set_initial_rs    : Theory.Ruleset.T -> T -> T
+
   val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   
   (* folds over a function which gets args "(graph, rep) is_redex" *)
-  val fold_rule_pairs :
+  (*val fold_rule_pairs :
     (GraphEntry.Graph.T * GraphEntry.Graph.T -> bool -> 'a -> 'a) ->
-    T -> 'a -> 'a
+    T -> 'a -> 'a*)
   
   val exists_redexes : (GraphEntry.T -> bool) -> T -> bool
   val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
@@ -58,11 +65,8 @@ sig
   val update_one : GraphEntry.T -> T -> GraphEntry.T option * T
   val update : GraphEntry.T list -> T -> GraphEntry.T list * T
   
-  (* manually add an eqclass. All the elements in the list are
-     assumed redexes *)
-  val add_eq_class : GraphEntry.T * GraphEntry.T list -> T -> T
-  
   val empty : T
+  val mk : Theory.Ruleset.T -> T
 end
 
 functor EqClass(
@@ -125,6 +129,7 @@ functor EqClassTab(
   type data
 ) : EQ_CLASS_TAB =
 struct
+  structure Theory = Theory
   structure G = Theory.Graph
   structure EqClass = EqClass(
     structure Equiv = Equiv
@@ -137,14 +142,24 @@ struct
     val ord = prod_ord int_ord int_ord
   )
   
-  type T = (EqClass.T list) ClassIndex.table
+  datatype T = EQT of {
+    tab : (EqClass.T list) ClassIndex.table,
+    initial_rs : Theory.Ruleset.T
+  }
+  
+  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r}
+  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r)}
+  fun get_tab (EQT r) = #tab r
+  fun get_initial_rs (EQT r) = #initial_rs r
+  val set_tab  = update_tab o K
+  val set_initial_rs = update_initial_rs o K
   
   (* convenience functions for pulling out redexes and irredexes *)
   local
     exception found_exn of unit
-    fun fold_to_exists fldf f tab = 
+    fun fold_to_exists fldf f eqt = 
       fldf (fn x => fn _ =>
-        (if f x then raise found_exn () else false)) tab false
+        (if f x then raise found_exn () else false)) eqt false
       handle found_exn () => true
   in
     fun fold_redexes f =
@@ -152,14 +167,14 @@ struct
         fold (fn class =>
           fold f (EqClass.get_redexes class)
         ) classlist
-      )
+      ) o get_tab
       
     fun fold_irredexes f =
       ClassIndex.fold (fn (_, classlist) =>
         fold (fn class =>
           fold f (EqClass.get_rep class :: EqClass.get_congs class)
         ) classlist
-      )
+      ) o get_tab
     
     fun fold_rule_pairs f =
       let
@@ -176,11 +191,11 @@ struct
           end
       in
         ClassIndex.fold (fn (_, classlist) =>
-          fold class_fld classlist)
+          fold class_fld classlist) o get_tab
       end
     
-    fun get_redexes tab = fold_redexes cons tab []
-    fun get_irredexes tab = fold_irredexes cons tab []
+    fun get_redexes eqt = fold_redexes cons eqt []
+    fun get_irredexes eqt = fold_irredexes cons eqt []
     val exists_redexes = fold_to_exists fold_redexes
     val exists_irredexes = fold_to_exists fold_irredexes
   end
@@ -216,28 +231,28 @@ struct
         | (false, cs) => (EqClass.mk ge :: cs)
   end
   
-  fun update_one ge tab =
-    if exists_redexes (has_match ge) tab then (NONE, tab)
+  fun update_one ge eqt =
+    if exists_redexes (has_match ge) eqt then (NONE, eqt)
     else let
       val gr = get_graph ge
       val arity = (V.NSet.cardinality (G.get_inputs gr),
                    V.NSet.cardinality (G.get_inputs gr))
-    in (SOME ge , tab |> ClassIndex.map_default (arity, []) (find_and_add ge))
+    in (
+        SOME ge ,
+        eqt |> update_tab (ClassIndex.map_default (arity, []) (find_and_add ge))
+       )
     end
   
-  fun update ge_list tab = let
-    fun update' ge (ges, tab') = let
-       val (newge, tab') = update_one ge tab'
+  fun update ge_list eqt = let
+    fun update' ge (ges, eqt') = let
+       val (newge, tab') = update_one ge eqt'
     in case newge
-        of SOME ge => (ge::ges, tab')
-         | NONE    => (ges, tab') 
+        of SOME ge => (ge::ges, eqt')
+         | NONE    => (ges, eqt') 
     end 
-  in fold update' ge_list ([],tab)
+  in fold update' ge_list ([],eqt)
   end
-
-  fun add_eq_class (rep, redexes) =
-    ClassIndex.map_default ((~1,~1), [])
-      (cons (EqClass.mk rep |> EqClass.set_redexes redexes))
   
-  val empty = ClassIndex.empty
+  val empty = EQT {tab=ClassIndex.empty, initial_rs=Theory.Ruleset.empty}
+  fun mk rs = empty |> set_initial_rs rs
 end
