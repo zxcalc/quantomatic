@@ -66,30 +66,6 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* Package all IO stuff into one place *)
  "../../core/io/io_interface.ML"
 
-(* TO HERE *)
-
-
-(* basic definition of a rewrite rule (as a pair of graphs) *)
- "../../core/rewriting/rule.ML"
- "../../core/io/output_rule.ML"
- "../../core/io/input_rule.ML"
-
-(* rule sets *)
- "../../core/theories/ruleset.ML"
- "../../core/io/input_ruleset.ML"
- "../../core/io/output_ruleset.ML"
- "../../core/theories/ruleset_annotations.ML"
- "../../core/io/input_ruleset_annotations.ML"
- "../../core/io/output_ruleset_annotations.ML"
-
-
-(* package all IO stuff into one place *)
- "../../core/io/io_interface.ML"
-
-(* Simple dot output for graphs *)
- "../../core/io/output_graph_dot.ML"
-
-
 (* matching *)
  "../../core/matching/match_state.ML"
  "../../core/matching/bang_graph_match_state.ML"
@@ -105,8 +81,9 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* naive pattern-graph wrapper *)
  "../../core/matching/greedy_match_search.ML"
 
-
-
+(*
+ * Rewriting
+ *)
 
 (* substitution of a matched subgraph for another graph *)
  "../../core/rewriting/graph_subst.ML"
@@ -116,9 +93,23 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* Heuristic derived data structures *)
  "../../core/rewriting/heuristic/distancematrix.ML" (* distance matrix *)
 
+
+
+
+
+
+
+
+
+
+
 (* construction of everything in a graphical theory from just param *)
  "../../core/theories/graphical_theory.ML"
+ "../../core/io/graphical_theory_io.ML"
 
+(*
+ "../../core/io/output_graph_dot.ML"
+*)
 begin
 
 end;
