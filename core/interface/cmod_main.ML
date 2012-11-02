@@ -13,9 +13,9 @@ val ftab = Symtab.empty
 (* test function *)
 val ftab = ftab |> register
 {
-  name = "echo",
-  doc = "Echoes JSON input",
-  input = S json_t,
+  name   = "echo",
+  doc    = "Echoes JSON input",
+  input  = S json_t,
   output = S json_t
 } (fn x => (
   x
@@ -24,9 +24,9 @@ val ftab = ftab |> register
 (* test named args *)
 val ftab = ftab |> register
 {
-  name = "concat",
-  doc = "Concatenates the given arguments",
-  input = N ["arg1" -: string_t, "arg2" -: string_t],
+  name   = "concat",
+  doc    = "Concatenates the given arguments",
+  input  = N ["arg1" -: string_t, "arg2" -: string_t],
   output = S string_t
 } (fn x => (
 
