@@ -14,6 +14,8 @@ object CoreProcess {
 class CoreProcess() {
   import CoreProcess._
   private var backend: Process = null
+  var stdin : Writer = null
+  var stdout : Reader = null
 
   def startCore() { startCore(quantoCoreExecutable) }
   
@@ -24,6 +26,10 @@ class CoreProcess() {
       pb.redirectErrorStream(false)
       logger.log(Level.FINEST, "Starting {0}...", executable)
       backend = pb.start()
+      
+      stdin = new BufferedWriter(new OutputStreamWriter(backend.getOutputStream))
+      stdout = new BufferedReader(new InputStreamReader(backend.getInputStream))
+      
       logger.log(Level.FINEST, "{0} started successfully", executable)
 
       new StreamRedirector(backend.getErrorStream(), System.err).start()
@@ -39,16 +45,18 @@ class CoreProcess() {
     }
   }
   
-  def killCore() {
+  def killCore(wait: Boolean = true) {
     if (backend != null) {
         logger.log(Level.FINEST, "Shutting down the core process");
         actor {
-          try {
-            logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
-            Thread.sleep(5000);
-          } catch {
-            case e: InterruptedException =>
-              logger.log(Level.FINER, "Thread interupted");
+          if (wait) {
+            try {
+              logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
+              Thread.sleep(5000);
+            } catch {
+              case e: InterruptedException =>
+                logger.log(Level.FINER, "Thread interupted");
+            }
           }
           logger.log(Level.FINER, "Forcibly terminating the core process");
           backend.destroy();
@@ -56,10 +64,10 @@ class CoreProcess() {
     }
   }
   
-  def inputStream : InputStream =
-    if (backend!=null) backend.getInputStream()
-    else null
-  def outputStream : OutputStream =
-    if (backend!=null) backend.getOutputStream()
-    else null
+  // def inputStream : InputStream =
+  //   if (backend!=null) backend.getInputStream()
+  //   else null
+  // def outputStream : OutputStream =
+  //   if (backend!=null) backend.getOutputStream()
+  //   else null
 }
