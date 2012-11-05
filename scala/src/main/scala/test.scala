@@ -1,6 +1,5 @@
 import quanto.core._
-import com.codahale.jerkson.Json
-import java.io.ByteArrayInputStream
+
 
 object Test {
   def main(args: Array[String]) = {
@@ -21,9 +20,6 @@ object Test {
     println("done. reading from core...")
     
     //val out = Json.stream[Map[String,Any]](coreProc.stdout)
-    
-    val out = Json.parse[Map[String,Any]](json)
-    
-    println(out)
+    coreProc.killCore(false)
   }
 }
