@@ -41,7 +41,7 @@ handle user_exn msg =>
   Json.mk_object [
     ("request_id", Json.Int rid),
     ("success",    Json.Bool false),
-    ("message",    Json.String msg)
+    ("output",     Json.mk_object[("message", Json.String msg), ("code", Json.Int 0)])
   ]
 
 
@@ -66,7 +66,11 @@ in protocol_loop (Json.json_source instream)
 end
 handle protocol_exn msg => 
   (TextIO.output (outstream,
-    Json.encode (Json.mk_object [("message", Json.String msg)]));
+    Json.encode (Json.mk_object [
+      ("request_id", Json.Int ~1),
+      ("success",    Json.Bool false),
+      ("output",     Json.mk_object [("message", Json.String msg), ("code", Json.Int ~1)])
+    ]));
    TextIO.flushOut outstream)
 
 (*fun run_in_textstreams (instream, outstream) = let
