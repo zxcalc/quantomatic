@@ -41,28 +41,34 @@ end
 signature EQ_CLASS_TAB =
 sig
   type T
+  structure Theory : GRAPHICAL_THEORY
   structure GraphEntry : GRAPH_ENTRY
+  sharing GraphEntry.Graph.SharingOGraph = Theory.Graph.SharingOGraph
   
+  
+  val update_initial_rs : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
+  val get_initial_rs    : T -> Theory.Ruleset.T
+  val set_initial_rs    : Theory.Ruleset.T -> T -> T
+
+  val get_ruleset : T -> Theory.Ruleset.T
+
   val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   
   (* folds over a function which gets args "(graph, rep) is_redex" *)
-  val fold_rule_pairs :
+  (*val fold_rule_pairs :
     (GraphEntry.Graph.T * GraphEntry.Graph.T -> bool -> 'a -> 'a) ->
-    T -> 'a -> 'a
+    T -> 'a -> 'a*)
   
   val exists_redexes : (GraphEntry.T -> bool) -> T -> bool
   val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
   val get_irredexes : T -> GraphEntry.T list
   val get_redexes : T -> GraphEntry.T list
-  val update_one : GraphEntry.T -> T -> T
-  val update : GraphEntry.T list -> T -> T
-  
-  (* manually add an eqclass. All the elements in the list are
-     assumed redexes *)
-  val add_eq_class : GraphEntry.T * GraphEntry.T list -> T -> T
+  val update_one : GraphEntry.T -> T -> GraphEntry.T option * T
+  val update : GraphEntry.T list -> T -> GraphEntry.T list * T
   
   val empty : T
+  val mk : Theory.Ruleset.T -> T
 end
 
 functor EqClass(
@@ -125,6 +131,8 @@ functor EqClassTab(
   type data
 ) : EQ_CLASS_TAB =
 struct
+  structure Theory = Theory
+  structure Ruleset = Theory.Ruleset
   structure G = Theory.Graph
   structure EqClass = EqClass(
     structure Equiv = Equiv
@@ -137,14 +145,30 @@ struct
     val ord = prod_ord int_ord int_ord
   )
   
-  type T = (EqClass.T list) ClassIndex.table
+  datatype T = EQT of {
+    tab : (EqClass.T list) ClassIndex.table,
+    initial_rs : Theory.Ruleset.T
+  }
+  
+  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r}
+  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r)}
+  fun get_tab (EQT r) = #tab r
+  fun get_initial_rs (EQT r) = #initial_rs r
+  val set_tab  = update_tab o K
+  val set_initial_rs = update_initial_rs o K
   
   (* convenience functions for pulling out redexes and irredexes *)
   local
     exception found_exn of unit
+<<<<<<< HEAD
     fun fold_to_exists fldf f tab = (*Looks for the first element where f returned true*)
       fldf (fn x => fn _ => (*After applying the given fold function to the element*)
         (if f x then raise found_exn () else false)) tab false
+=======
+    fun fold_to_exists fldf f eqt = 
+      fldf (fn x => fn _ =>
+        (if f x then raise found_exn () else false)) eqt false
+>>>>>>> 96edfe597a6dee9f68af340ccf9a1881d9b22da9
       handle found_exn () => true
   in
     fun fold_redexes f = (*Apply f to every reducible expression listed in every class!*)
@@ -152,14 +176,14 @@ struct
         fold (fn class =>
           fold f (EqClass.get_redexes class)
         ) classlist
-      )
+      ) o get_tab
       
     fun fold_irredexes f =
       ClassIndex.fold (fn (_, classlist) =>
         fold (fn class => (*Get the minimal representative for a class*)
           fold f (EqClass.get_rep class :: EqClass.get_congs class)
         ) classlist
-      )
+      ) o get_tab
     
     fun fold_rule_pairs f =
       let
@@ -176,9 +200,8 @@ struct
           end
       in
         ClassIndex.fold (fn (_, classlist) =>
-          fold class_fld classlist)
+          fold class_fld classlist) o get_tab
       end
-    
     fun get_redexes tab = fold_redexes cons tab []
     fun get_irredexes tab = fold_irredexes cons tab []
     val exists_redexes = fold_to_exists fold_redexes (*Sees if the passed function
@@ -186,6 +209,36 @@ struct
     val exists_irredexes = fold_to_exists fold_irredexes
   end
   
+
+  local
+    
+    fun add_rule nm tag rhs lhs_e rs =
+    let
+      val lhs = GraphEntry.get_graph lhs_e
+      val r = Theory.Rule.mk (lhs, rhs)
+      val (rname, rs) = Theory.Ruleset.add_fresh_rule (R.mk nm, r) rs
+    in rs |> Theory.Ruleset.tag_rule rname (TagName.mk tag)
+    end
+    
+  in
+  
+    fun get_ruleset eqt =
+    let
+      fun add_class class rs =
+        let
+          val rep = GraphEntry.get_graph (EqClass.get_rep class)
+          val add_redex = add_rule "r_0" "redex" rep
+          val add_cong = add_rule "c_0" "cong" rep
+        in
+          fold add_redex (EqClass.get_redexes class)
+          (fold add_cong (EqClass.get_congs class) rs)
+        end
+    in
+      ClassIndex.fold (fn (_, classlist) =>
+        fold add_class classlist) (get_tab eqt) (get_initial_rs eqt)
+    end
+  
+  end
   
   (*Mathing algorithm is used here as before. is_some effectively just looks
   to see if there is a single match! Note that this only needs the first match,
@@ -195,6 +248,16 @@ struct
     is_some (Seq.pull (Theory.MatchSearch.match
       (get_graph pat) (get_graph tgt)
     ))
+  
+  fun rs_can_reduce rs tgt =
+  let
+    fun r_matches r_name =
+      is_some (Seq.pull (Theory.MatchSearch.match
+        (Theory.Rule.get_lhs (Ruleset.get_rule rs r_name)) (get_graph tgt)
+      ))
+  in R.NSet.exists r_matches
+     (Theory.Ruleset.get_rules_in_tag rs (TagName.mk "redex"))
+  end
   
   (* returns (SOME new_class) if graph is equivalent to the representative,
      and NONE otherwise *)
@@ -220,17 +283,16 @@ struct
   in case fold tryaddf classlist (false, []) (*(false,[]) is the identity*)
        of (true, cs) => cs (*This graph was successfully added to an existing class*)
         | (false, cs) => (EqClass.mk ge :: cs) (*Create a new class, since it is distinct from the rest.*)
-  end
-  (*ge stands for graph entry.
-  Tab is the equivalence class table before the graph is added.*)
-  fun update_one ge tab =
-    (*Check if any graph within the entire table (all graphs within each class are checked)
-    match this one - so are equivalent*)
-    if exists_redexes (has_match ge) tab then tab (*Nothing needs to be added*)
+  end==
+  
+  fun update_one ge eqt =
+    if rs_can_reduce (get_initial_rs eqt) ge orelse
+       exists_redexes (has_match ge) eqt
+    then (NONE, eqt)
     else let
       val gr = get_graph ge (*Get the graph from the graph entry*)
       val arity = (V.NSet.cardinality (G.get_inputs gr),
-                   V.NSet.cardinality (G.get_inputs gr)) (*(inputs,inputs) - seems odd*)
+                   V.NSet.cardinality (G.get_outputs gr)) (*(inputs,inputs) - seems odd*)
     (*Find the appropriate row for this graph in the table, if it exists, and then add it.*)
     (*The arity forms the key. The [] will be used if no entry for the given key exists, in which
     case find_and_add ge [] will be used. Otherwise,
@@ -239,11 +301,16 @@ struct
     end
   
   (*Add multiple graph entries at once*)
-  fun update ge_list tab = fold update_one ge_list tab
+  fun update ge_list eqt = let
+    fun update' ge (ges, eqt') = let
+       val (newge, tab') = update_one ge eqt'
+    in case newge
+        of SOME ge => (ge::ges, eqt')
+         | NONE    => (ges, eqt') 
+    end 
+  in fold update' ge_list ([],eqt)
+  end
   
-  fun add_eq_class (rep, redexes) =
-    ClassIndex.map_default ((~1,~1), []) (*Impossible default - (-1,-1) inputs,outputs*)
-      (cons (EqClass.mk rep |> EqClass.set_redexes redexes)) (*Force the initial reducable expressions*)
-  
-  val empty = ClassIndex.empty
+  val empty = EQT {tab=ClassIndex.empty, initial_rs=Theory.Ruleset.empty}
+  fun mk rs = empty |> set_initial_rs rs
 end

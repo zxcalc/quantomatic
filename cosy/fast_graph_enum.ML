@@ -10,8 +10,9 @@ sig
   val default_data : data
   
   sharing Theory.Graph.SharingOGraph =
-          Metric.Graph.SharingOGraph =
-          EqClassTab.GraphEntry.Equiv.Graph.SharingOGraph
+          Metric.Graph.SharingOGraph
+  sharing Theory.Ruleset.Sharing =
+          EqClassTab.Theory.Ruleset.Sharing
   
   val tab_update : generator list -> int -> EqClassTab.T -> EqClassTab.T
   val tab_enum : generator list -> int -> EqClassTab.T
@@ -35,8 +36,8 @@ struct
   (* Ordered Vertices, free inputs, free outputs, list of lists of
      edges, one vertex at a time *)
   type adjmat = generator list * int list * int list * (int list) list 
-  type data = adjmat
-  val default_data = ([],[],[],[])
+  type data = adjmat * int
+  val default_data = (([],[],[],[]),0)
   
   fun generator_eq ((data1,i1,o1), (data2,i2,o2)) =
     Theory.Graph.VData.data_eq (data1, data2) andalso
@@ -52,14 +53,27 @@ struct
   (****** Utility Functions ******)
 
   fun drop_while _ [] = []
-    | drop_while p (x::xs) = if p x then drop_while p xs else x::xs
+    | drop_while p (x::xs) = 
+      if p x then drop_while p xs 
+      else x::xs
 
   fun keep_drop 0 0 ts = ts
     | keep_drop 0 j (t::ts) = keep_drop 0 (j-1) ts
     | keep_drop i j (t::ts) = t::(keep_drop (i-1) j ts)
 
+  fun filter_max m zs = let
+    fun filter_max' m (x, (n,ys)) = 
+      case (Int.compare (m x, n)) of 
+        LESS => (n,ys)
+      | GREATER => ((m x),x::[])
+      | EQUAL => (n,x::ys) 
+  in snd (List.foldl (filter_max' m) (0,[]) zs)
+  end
+
 
   (****** adjmat functions ******)
+
+  fun adjmat_size (gs,_,_,_) = length gs
 
   fun split_edge [] = ([],[])
     | split_edge xs = let 
@@ -77,7 +91,8 @@ struct
   end
 
   fun from_block_matr [] = []
-    | from_block_matr (es::ess) = (List.revAppend (map hd ess, es)) :: from_block_matr (map tl ess)
+    | from_block_matr (es::ess) = 
+      (List.revAppend (map hd ess, es)) :: from_block_matr (map tl ess)
 
   val order = List.foldl (List.revAppend) []
 
@@ -125,8 +140,8 @@ struct
     | centre (t::ts) = let
       fun centre' x i [] = []
         | centre' x i (t::ts) = take i (drop x t) :: (centre' x (i+2) ts)
-  in centre' ((length t - 1) div 2) 1 (t::ts)
-  end
+    in centre' ((length t - 1) div 2) 1 (t::ts)
+    end
 
   fun edges_canonical [] = true
     | edges_canonical ts = let 
@@ -142,7 +157,7 @@ struct
     in edges_canonical (last_vert vs ess [])
     end
 
-  fun to_graph (vs,is,os,ess) = let
+  fun to_graph_idfree (vs,is,os,ess) = let
     val g0 = Graph.empty
     fun to_graph_vert [] g = ([],g)
       | to_graph_vert ((v,_,_)::vs) g = let
@@ -173,7 +188,16 @@ struct
   in g0
   end
 
-  fun to_graph_entry eg = GraphEntry.mk (to_graph eg, eg)
+  fun add_ident_wire g = let 
+      val (x, g) = g |> Graph.add_vertex (Theory.OVData.WVert);
+      val (y, g) = g |> Graph.add_vertex (Theory.OVData.WVert);
+      val (_, g) = g |> Graph.add_edge (Graph.Directed, Theory.EData.default_data) x y
+  in g
+  end
+
+  fun to_graph (am,i) = funpow i add_ident_wire (to_graph_idfree am)
+
+  fun to_graph_entry ami = GraphEntry.mk (to_graph ami, ami)
 
 
   (****** Building adjmat graphs ******)
@@ -188,6 +212,8 @@ struct
   => 0, 1, 3, (2*3 + 1) = 7, etc...
   Input can be placed in n ways, output can be place in n ways --- wrong number...???
   *)
+ (* adds a specific type of vertex with no edges *)
+  (* add_gen : generator -> adjmat -> adjmat *)
   fun add_gen (v' as (_,inp,out)) (verts, inps, outs, edges) = (v'::verts, inp::inps, out::outs, (List.tabulate ((2 * length (verts) +1), K 0)::edges))
 
   (* adds any possible vertex with no edges *)
@@ -197,65 +223,49 @@ struct
       val gens' = drop_while (fn g => not (generator_eq (g,vert))) gens (*Strip away inappropriate generators*)
     in map (fn v => add_gen v matr) gens' (*Add the applicable generators*)
     end
-  
-  (* returns all possible graphs with one extra edge on the last vertex *)
-  (* add_edge : Theory.Ruleset.T -> adjmat -> adjmat list *)
-  (*fun add_edge rs ([], _, _, _) = []
-    | add_edge rs (verts, inps, outs, edge::edges) = let 
-      fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) then [(i2-1::is2, o2-1::os2, e2+1::es2)] else []
-      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es
-        | add_edge' (i1::[]) (o1::os) (e1::es) = new_edge_here (i1::[]) (o1::os) (e1::es) @ map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
-        | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
-      val all_reds = Theory.Ruleset.get_rules_in_tag rs (TagName.mk "r")
-    in filter (fn (_,_,_,z) => matr_canonical z) (map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge ))
-    end*)
 
-  fun add_edge ([], _, _, _) = [] (*Nothing to add an edge to*)
-    | add_edge (verts, inps, outs, edge::edges) = let (*So long as the input and output are non-zero (>0), add them to the list.*)
-      fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) then [(i2-1::is2, o2-1::os2, e2+1::es2)] else []
-      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es (*Single input output case*)
-        (*Add the input to everything, and then the output...*)
-        | add_edge' (i1::[]) (o1::os) (e1::es) = new_edge_here (i1::[]) (o1::os) (e1::es) @ map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
-        (*Add the ouputs. Note that the input and output are not exhausted. Output is held onto (in fact, nothing seems to happen to it)*)
-        | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
-        (*Generating vertices stay the same. Inputs, outputs and edges all modified*)
-        in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
+  (* adds any possible edge *)
+  (* add_edge : adjmat -> adjmat list *)
+  fun add_edge ([], _, _, _) = []
+    | add_edge (verts, inps, outs, edge::edges) = let 
+      fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) 
+                                                        then [(i2-1::is2, o2-1::os2, e2+1::es2)] else []
+      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es
+        | add_edge' (i1::[]) (o1::os) (e1::es) = new_edge_here (i1::[]) (o1::os) (e1::es) @ 
+                                                map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
+        | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ 
+                                                map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
+    in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
     end
+
 
   (****** Enumeration with EqClassTab ******)
 
-  (* adds new graphs with any possible number of extra edges *)
-  (* tab_add_edges : adjmat list -> EqClassTab -> EqClassTab *)
+  (* recursively adds new graphs to tab by adding one new edge to each irredex *)
+  (* tab_add_edges : [adjmat] -> EqClassTab -> EqClassTab *)
   fun tab_add_edges [] tab = tab
     | tab_add_edges egs tab = let
-      val egs' = maps add_edge egs
-    in tab_add_edges egs' (EqClassTab.update (map to_graph_entry egs') tab)
+      val egs' = maps add_edge egs 
+      val (irreds,tab') = EqClassTab.update (map (fn eg => to_graph_entry (eg,0)) egs') tab
+    in tab_add_edges (map (fst o GraphEntry.get_data) irreds) tab'
     end
-
-  (* Improved
-  fun tab_add_edges [] tab = tab
-  | tab_add_edges egs tab = let
-    val egs' = maps add_edge egs 
-    val (irreds,tab') = EqClassTab.update (map to_graph_entry egs') tab
-  in tab_add_edges irreds tab'
-  end
-  *)
 
   (* adds new graphs with one new vertex and any possible number of extra edges *)
   (* tab_add_gens : generator list -> EqClassTab -> EqClassTab *)
   fun tab_add_gens gens tab = let
-      (*This is where we get every single irreducible graph from the table,
-      and start generating the next set of graphs!!*)
-      val irred_graphs = map (GraphEntry.get_data) (EqClassTab.get_irredexes tab)
-      val graphs = flat (map (add_gens gens) irred_graphs) (*VERY LARGE*)
-    in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs (*Add all possible edges*)
-    end
+    val irred_graphs = filter_max (fn (g,i) => i + adjmat_size g)
+                      (map GraphEntry.get_data (EqClassTab.get_irredexes tab))
+    val (_,tab') = EqClassTab.update (map (fn (am,i) => to_graph_entry (am,i+1)) irred_graphs) tab
+    val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs)
+    val graphs = flat (map (add_gens gens) irred_graphs)
+  in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs
+  end
 
   (*Keep generating all graphs and reducible expressions up to the maximum number of vertices!
   Begins with the supplied table*)
   fun tab_update gens max_verts tab =
     funpow max_verts (tab_add_gens gens)
-    (EqClassTab.update [to_graph_entry ([],[],[],[])] tab) 
+    (snd (EqClassTab.update [to_graph_entry (([],[],[],[]),0)] tab))
   
   (* Creates a table of graphs up to a certain size *)
   (* tab_enum : generator list -> Int -> EqClassTab *)
