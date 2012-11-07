@@ -4,7 +4,7 @@ import org.codehaus.jackson.JsonNode
 
 object Test {
   def main(args: Array[String]) = {
-    val core = new Core("/Users/aleks/git/quanto/quantomatic/core/bin/quanto-core")
+    val core = new Core("../core/bin/quanto-core")
     println("starting core...")
     core.start()
     println("done")
