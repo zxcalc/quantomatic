@@ -142,12 +142,12 @@ struct
   (* convenience functions for pulling out redexes and irredexes *)
   local
     exception found_exn of unit
-    fun fold_to_exists fldf f tab = 
-      fldf (fn x => fn _ =>
+    fun fold_to_exists fldf f tab = (*Looks for the first element where f returned true*)
+      fldf (fn x => fn _ => (*After applying the given fold function to the element*)
         (if f x then raise found_exn () else false)) tab false
       handle found_exn () => true
   in
-    fun fold_redexes f =
+    fun fold_redexes f = (*Apply f to every reducible expression listed in every class!*)
       ClassIndex.fold (fn (_, classlist) =>
         fold (fn class =>
           fold f (EqClass.get_redexes class)
@@ -156,7 +156,7 @@ struct
       
     fun fold_irredexes f =
       ClassIndex.fold (fn (_, classlist) =>
-        fold (fn class =>
+        fold (fn class => (*Get the minimal representative for a class*)
           fold f (EqClass.get_rep class :: EqClass.get_congs class)
         ) classlist
       )
@@ -181,12 +181,16 @@ struct
     
     fun get_redexes tab = fold_redexes cons tab []
     fun get_irredexes tab = fold_irredexes cons tab []
-    val exists_redexes = fold_to_exists fold_redexes
+    val exists_redexes = fold_to_exists fold_redexes (*Sees if the passed function
+    (hidden here) returns true for any graph entry in the whole table*)
     val exists_irredexes = fold_to_exists fold_irredexes
   end
   
   
-  
+  (*Mathing algorithm is used here as before. is_some effectively just looks
+  to see if there is a single match! Note that this only needs the first match,
+  so laziness is very important. In other words, either use a special case
+  in the matching algorithm for the first element, or just use the sequential algorithm!!*)
   fun has_match tgt pat =
     is_some (Seq.pull (Theory.MatchSearch.match
       (get_graph pat) (get_graph tgt)
@@ -204,32 +208,42 @@ struct
                         |> EqClass.set_rep ge
        | EQUAL   => cls |> EqClass.update_congs (cons ge))
     else NONE
-  
+  (*Given a list of equivalence classes, try to add the graph entry to one of them.
+  The equivalence classes are between graphs of only the same input and output arity.*)
   fun find_and_add ge classlist = let
     fun tryaddf cls (cls_found, rest) =
-      if cls_found then (cls_found, cls :: rest)
+      if cls_found then (cls_found, cls :: rest) (*We found the right class,
+      so don't bother adding it to another*)
       else (case tryadd_to_class cls ge
-              of SOME cls' => (true, cls' :: rest)
-               | NONE      => (false, cls :: rest))
-  in case fold tryaddf classlist (false, [])
-       of (true, cs) => cs
-        | (false, cs) => (EqClass.mk ge :: cs)
+              of SOME cls' => (true, cls' :: rest) (*Succeeded, so remember modified version*)
+               | NONE      => (false, cls :: rest)) (*Failed. Remember what we've seen; fold will try the next one*)
+  in case fold tryaddf classlist (false, []) (*(false,[]) is the identity*)
+       of (true, cs) => cs (*This graph was successfully added to an existing class*)
+        | (false, cs) => (EqClass.mk ge :: cs) (*Create a new class, since it is distinct from the rest.*)
   end
-  
+  (*ge stands for graph entry.
+  Tab is the equivalence class table before the graph is added.*)
   fun update_one ge tab =
-    if exists_redexes (has_match ge) tab then tab
+    (*Check if any graph within the entire table (all graphs within each class are checked)
+    match this one - so are equivalent*)
+    if exists_redexes (has_match ge) tab then tab (*Nothing needs to be added*)
     else let
-      val gr = get_graph ge
+      val gr = get_graph ge (*Get the graph from the graph entry*)
       val arity = (V.NSet.cardinality (G.get_inputs gr),
-                   V.NSet.cardinality (G.get_inputs gr))
+                   V.NSet.cardinality (G.get_inputs gr)) (*(inputs,inputs) - seems odd*)
+    (*Find the appropriate row for this graph in the table, if it exists, and then add it.*)
+    (*The arity forms the key. The [] will be used if no entry for the given key exists, in which
+    case find_and_add ge [] will be used. Otherwise,
+    find_and_add ge ls will be used where ls is the associated list. (See table.ML)*)
     in tab |> ClassIndex.map_default (arity, []) (find_and_add ge)
     end
   
+  (*Add multiple graph entries at once*)
   fun update ge_list tab = fold update_one ge_list tab
   
   fun add_eq_class (rep, redexes) =
-    ClassIndex.map_default ((~1,~1), [])
-      (cons (EqClass.mk rep |> EqClass.set_redexes redexes))
+    ClassIndex.map_default ((~1,~1), []) (*Impossible default - (-1,-1) inputs,outputs*)
+      (cons (EqClass.mk rep |> EqClass.set_redexes redexes)) (*Force the initial reducable expressions*)
   
   val empty = ClassIndex.empty
 end

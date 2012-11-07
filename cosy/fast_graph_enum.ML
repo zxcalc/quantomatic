@@ -29,7 +29,8 @@ struct
   structure Theory = Theory
   structure Metric = Metric
   structure Graph = Theory.Graph
-
+  (*Data , input, output
+  Don't need to know about "data" really.*)
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
   (* Ordered Vertices, free inputs, free outputs, list of lists of
      edges, one vertex at a time *)
@@ -39,7 +40,7 @@ struct
   
   fun generator_eq ((data1,i1,o1), (data2,i2,o2)) =
     Theory.Graph.VData.data_eq (data1, data2) andalso
-    (i1,o1) = (i2,o2)
+    (i1,o1) = (i2,o2) (*Generator of graphs is the same*)
   
   structure EqClassTab = EqClassTab(
     structure Theory = Theory
@@ -178,15 +179,23 @@ struct
   (****** Building adjmat graphs ******)
 
   (* adds a specific type of vertex with no edges *)
-  (* add_gen : generator -> adjmat -> adjmat *) 
+  (* add_gen : generator -> adjmat -> adjmat *)
+  (*Adds this generator to the existing list of generators.
+  Adds the desired input to the inputs and the same for the output
+  The last part figures out all possible combinations that this edge could be added.
+  
+  Note: List.tabulate ((2 * length (verts) +1), K 0) returns [0,0,0,0...] Hmm...
+  => 0, 1, 3, (2*3 + 1) = 7, etc...
+  Input can be placed in n ways, output can be place in n ways --- wrong number...???
+  *)
   fun add_gen (v' as (_,inp,out)) (verts, inps, outs, edges) = (v'::verts, inp::inps, out::outs, (List.tabulate ((2 * length (verts) +1), K 0)::edges))
 
   (* adds any possible vertex with no edges *)
   (* add_gens : [generator] -> adjmat -> adjmat list *)
   fun add_gens gens (matr as ([],_,_,_)) = map (fn v => add_gen v matr) gens
     | add_gens gens (matr as (vert::_,_,_,_)) = let
-      val gens' = drop_while (fn g => not (generator_eq (g,vert))) gens
-    in map (fn v => add_gen v matr) gens'
+      val gens' = drop_while (fn g => not (generator_eq (g,vert))) gens (*Strip away inappropriate generators*)
+    in map (fn v => add_gen v matr) gens' (*Add the applicable generators*)
     end
   
   (* returns all possible graphs with one extra edge on the last vertex *)
@@ -201,13 +210,16 @@ struct
     in filter (fn (_,_,_,z) => matr_canonical z) (map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge ))
     end*)
 
-  fun add_edge ([], _, _, _) = []
-    | add_edge (verts, inps, outs, edge::edges) = let 
+  fun add_edge ([], _, _, _) = [] (*Nothing to add an edge to*)
+    | add_edge (verts, inps, outs, edge::edges) = let (*So long as the input and output are non-zero (>0), add them to the list.*)
       fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) then [(i2-1::is2, o2-1::os2, e2+1::es2)] else []
-      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es
+      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es (*Single input output case*)
+        (*Add the input to everything, and then the output...*)
         | add_edge' (i1::[]) (o1::os) (e1::es) = new_edge_here (i1::[]) (o1::os) (e1::es) @ map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
+        (*Add the ouputs. Note that the input and output are not exhausted. Output is held onto (in fact, nothing seems to happen to it)*)
         | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
-    in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
+        (*Generating vertices stay the same. Inputs, outputs and edges all modified*)
+        in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
     end
 
   (****** Enumeration with EqClassTab ******)
@@ -232,12 +244,15 @@ struct
   (* adds new graphs with one new vertex and any possible number of extra edges *)
   (* tab_add_gens : generator list -> EqClassTab -> EqClassTab *)
   fun tab_add_gens gens tab = let
+      (*This is where we get every single irreducible graph from the table,
+      and start generating the next set of graphs!!*)
       val irred_graphs = map (GraphEntry.get_data) (EqClassTab.get_irredexes tab)
-      val graphs = flat (map (add_gens gens) irred_graphs)
-    in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs
+      val graphs = flat (map (add_gens gens) irred_graphs) (*VERY LARGE*)
+    in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs (*Add all possible edges*)
     end
 
-  
+  (*Keep generating all graphs and reducible expressions up to the maximum number of vertices!
+  Begins with the supplied table*)
   fun tab_update gens max_verts tab =
     funpow max_verts (tab_add_gens gens)
     (EqClassTab.update [to_graph_entry ([],[],[],[])] tab) 
