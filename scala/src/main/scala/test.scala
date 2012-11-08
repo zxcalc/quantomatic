@@ -8,41 +8,22 @@ object Test {
     println("starting core...")
     core.start()
     println("done")
-    val jsons = List(
-    """
-    {"request_id":0,
-     "controller":"red_green",
-     "module":"Main",
-     "function":"echo",
-     "input":{"foo":1337}}
-    """,
-    """
-    {"request_id":1,
-     "controller":"red_green",
-     "module":"Main",
-     "function":"concat",
-     "input":{"arg1":"call me ", "arg2":"ishmael"}}
-    """,
-    """
-    {"request_id":2,
-     "controller":"red_green",
-     "module":"Main",
-     "function":"echoo",
-     "input":{"foo":1337}}
-    """)
     
-    for (json <- jsons) {
-      try {
-        println("sending request to core...")
-	    val resp = core.request[JsonNode](json)
-	    println(resp)
-	    println("done.")
-      } catch {
-        case e : CoreError => println("Error: " + e.message)
-      }
+    try {
+      val resp1 : String = core.request(
+          "red_green", "Main", "concat",
+          Map("arg1" -> "foo ", "arg2" -> "bar")
+        )
+      println("req1: " + resp1)
+      
+      val resp2 : String = core.request(
+          "red_green", "Main", "concatto",
+          Map("arg1" -> "foo ", "arg2" -> "bar")
+        )
+      println("req2: " + resp2)
+    } catch {
+      case CoreUserException(msg, _) => println("User error: " + msg)
     }
-    
-    
     
     core.kill()
   }

@@ -1,11 +1,11 @@
 package quanto.core
 
-class CoreException(msg : String = null, cause: Throwable = null)
-extends Exception(msg, cause)
+case class CoreException(message : String = null, cause: Throwable = null)
+extends Exception(message, cause)
 
-class CoreProtocolException(msg : String = null, cause: Throwable = null)
-extends CoreException(msg, cause)
+case class CoreProtocolException(override val message : String = null, override val  cause: Throwable = null)
+extends CoreException(message, cause)
 
-class CoreUserExcepton(msg : String = null, cause: Throwable = null)
-extends CoreException(msg, cause)
+case class CoreUserException(override val message : String, val code: Int)
+extends CoreException(message)
 
