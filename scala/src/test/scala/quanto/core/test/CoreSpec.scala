@@ -7,7 +7,7 @@ import quanto.core._
 class CoreSpec extends FlatSpec {
   var core : Core = _
   
-  "Core" should "start" in {
+  "Core" can "start" in {
     core = new Core("red_green", "../core/bin/quanto-core")
     core.start()
   }
@@ -18,23 +18,23 @@ class CoreSpec extends FlatSpec {
   
   "Core.echo" should "correctly echo an Int" in {
     val req : Int = 12
-    val resp = core.request[Int,Int]("Main", "echo", req)
+    val resp = core.request[Int,Int]("test", "echo", req)
     assert(req === resp)
   }
   
   it should "correctly echo a String" in {
     val req : String = "foo"
-    val resp = core.request[String,String]("Main", "echo", req)
+    val resp = core.request[String,String]("test", "echo", req)
     assert(req === resp)
   }
   
   it should "correctly echo a Map" in {
     val req : Map[String,Int] = Map("foo" -> 12, "bar" -> 4)
-    val resp = core.request[Map[String,Int],Map[String,Int]]("Main", "echo", req)
+    val resp = core.request[Map[String,Int],Map[String,Int]]("test", "echo", req)
     assert(req === resp)
   }
   
-  "Core" should "shutdown" in {
+  "Core" can "shutdown" in {
     core.kill()
   }
 }

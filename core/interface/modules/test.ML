@@ -1,9 +1,9 @@
-signature CMOD_MAIN =
+signature CMOD_TEST =
 sig
   include CONTROLLER_MODULE
 end
 
-functor CModMain(Theory : GRAPHICAL_THEORY) : CMOD_MAIN =
+functor CModTest(Theory : GRAPHICAL_THEORY) : CMOD_TEST =
 struct
 
 open ControllerUtil

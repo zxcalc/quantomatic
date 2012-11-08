@@ -11,10 +11,10 @@ struct
 open ControllerUtil
 
 structure Theory = Theory
-structure CModMain = CModMain(Theory)
+structure CModTest = CModTest(Theory)
 
 val mtab = Symtab.make [
-  ("Main", (CModMain.ftab, "Utility functions"))
+  ("test", (CModTest.ftab, "Utility functions"))
 ]
 
 fun help x = let
