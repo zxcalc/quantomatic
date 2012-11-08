@@ -1,6 +1,7 @@
 package quanto.core
 import org.codehaus.jackson.JsonNode
 import com.codahale.jerkson.Json
+import scala.collection.JavaConversions._
 
 case class CoreRequest[A](
     request_id: Int,
@@ -20,7 +21,7 @@ case class CoreResponse(
 }
 case class CoreError(val message: String, val code: Int)
 
-class Core(executable: String) {
+class Core(var controller: String, executable: String) {
   var rid = 0
   val process = new CoreProcess
   
@@ -29,7 +30,6 @@ class Core(executable: String) {
   def kill() { process.killCore(false) }
   
   def request[S, T : Manifest](
-      controller: String,
       module: String,
       function: String,
       input: S): T =
@@ -46,5 +46,15 @@ class Core(executable: String) {
       else throw new CoreUserException(err.message, err.code)
     }
   }
+  
+  // functions built in to the controller
+  def help(module: String, function: String) : String = 
+    this.request("!!", "help", Map("module"->module,"function"->function))
+    
+  def help(module: String) : String = 
+    this.request("!!", "help", Map("module"->module))
+  
+  def version(): String = this.request("!!", "version", null)
 }
+
 

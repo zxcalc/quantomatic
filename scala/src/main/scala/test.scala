@@ -4,20 +4,21 @@ import org.codehaus.jackson.JsonNode
 
 object Test {
   def main(args: Array[String]) = {
-    val core = new Core("../core/bin/quanto-core")
+    val core = new Core("red_green", "../core/bin/quanto-core")
     println("starting core...")
     core.start()
     println("done")
     
     try {
-      val resp1 : String = core.request(
-          "red_green", "Main", "concat",
+      println("version: " + core.version())
+      val resp1 = core.request[Map[String,String],String](
+          "Main", "concat",
           Map("arg1" -> "foo ", "arg2" -> "bar")
         )
       println("req1: " + resp1)
       
-      val resp2 : String = core.request(
-          "red_green", "Main", "concatto",
+      val resp2 = core.request[Map[String,String],Map[String,String]](
+          "Main", "echo",
           Map("arg1" -> "foo ", "arg2" -> "bar")
         )
       println("req2: " + resp2)

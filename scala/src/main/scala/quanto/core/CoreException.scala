@@ -7,5 +7,5 @@ case class CoreProtocolException(override val message : String = null, override 
 extends CoreException(message, cause)
 
 case class CoreUserException(override val message : String, val code: Int)
-extends CoreException(message)
+extends CoreException(message, null)
 
