@@ -17,11 +17,12 @@ object Test {
         )
       println("req1: " + resp1)
       
+      val req2 = Map("arg1" -> "foo ", "arg2" -> "bar")
       val resp2 = core.request[Map[String,String],Map[String,String]](
-          "Main", "echo",
-          Map("arg1" -> "foo ", "arg2" -> "bar")
+          "Main", "echo", req2
         )
       println("req2: " + resp2)
+      println("equal? " + (req2==resp2))
     } catch {
       case CoreUserException(msg, _) => println("User error: " + msg)
     }
