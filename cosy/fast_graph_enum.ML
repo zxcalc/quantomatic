@@ -16,6 +16,7 @@ sig
   
   val tab_update : generator list -> int -> EqClassTab.T -> EqClassTab.T
   val tab_enum : generator list -> int -> EqClassTab.T
+  val enum : generator list -> int -> Theory.Graph.T list
 end
 
 functor FastGraphEnum(
@@ -36,7 +37,8 @@ struct
      edges, one vertex at a time *)
   type adjmat = generator list * int list * int list * (int list) list 
   type data = adjmat * int
-  val default_data = (([],[],[],[]),0)
+  val empty_graph_rep = (([],[],[],[]),0)
+  val default_data = empty_graph_rep
   
   fun generator_eq ((data1,i1,o1), (data2,i2,o2)) =
     Theory.Graph.VData.data_eq (data1, data2) andalso
@@ -229,6 +231,48 @@ struct
 
 
   (****** Enumeration with EqClassTab ******)
+  
+  local
+    fun fold_save fopt (x::xs) (ys,accum) = (
+      case fopt x accum
+        of SOME accum' => fold_save fopt xs (x::ys, accum')
+         | NONE        => fold_save fopt xs (ys,accum))
+      | fold_save fopt [] (ys,accum) = (ys, accum)
+  in
+    fun fold_graphs gens max_verts fopt initial =
+    let
+      (***)
+      (* add edges in all possible ways *)
+      fun fold_edges_round [] (prev, accum) = (prev, accum)
+        | fold_edges_round egs (prev, accum) =
+      let
+          val egs' = maps add_edge egs
+          val (next,accum') = fold_save (fopt o to_graph_entry) (map (fn eg => (eg,0)) egs') ([],accum)
+      in fold_edges_round (map fst next) (next @ prev,accum')
+      end
+      (***)
+      (* one round of enumeration. (prev, accum) => add one vertex => (next, accum') *)
+      fun fold_graphs_round (prev, accum) =
+      let
+        (* start by adding one bare wire to the output of the previous round *)
+        val (next, accum') = fold_save (fopt o to_graph_entry) (map (fn (am,i) => (am,i+1)) prev) ([], accum)
+        (* only add non-trivial generators to graphs that don't have any bare wires yet *)
+        val prev = map fst (filter (fn (_,i)=> i = 0) prev)
+        val graphs = flat (map (add_gens gens) prev)
+      in fold (fn g => fold_edges_round [g]) graphs (next, accum')
+      end
+      (***)
+    in
+      snd (funpow max_verts fold_graphs_round ([empty_graph_rep], initial))
+    end
+  end
+  
+  fun enum gens max_verts =
+    fold_graphs gens max_verts
+    (fn g => fn gs => SOME (GraphEntry.get_graph g :: gs)) []
+  
+  fun tab_update gens max_verts = fold_graphs gens max_verts EqClassTab.update_one
+  fun tab_enum gens max_verts = tab_update gens max_verts EqClassTab.empty
 
   (* recursively adds new graphs to tab by adding one new edge to each irredex *)
   (* tab_add_edges : [adjmat] -> EqClassTab -> EqClassTab *)
@@ -247,15 +291,15 @@ struct
     val (_,tab') = EqClassTab.update (map (fn (am,i) => to_graph_entry (am,i+1)) irred_graphs) tab
     val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs)
     val graphs = flat (map (add_gens gens) irred_graphs)
-  in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs
+  in List.foldl (fn (g,t) => tab_add_edges [g] t) tab' graphs
   end
 
   
-  fun tab_update gens max_verts tab =
+  (*fun tab_update gens max_verts tab =
     funpow max_verts (tab_add_gens gens)
     (snd (EqClassTab.update [to_graph_entry (([],[],[],[]),0)] tab))
   
   (* Creates a table of graphs up to a certain size *)
   (* tab_enum : generator list -> Int -> EqClassTab *)
-  fun tab_enum gens max_verts = EqClassTab.empty |> tab_update gens max_verts
+  fun tab_enum gens max_verts = EqClassTab.empty |> tab_update gens max_verts*)
 end

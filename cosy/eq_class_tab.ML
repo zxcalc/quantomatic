@@ -64,7 +64,9 @@ sig
   val exists_irredexes : (GraphEntry.T -> bool) -> T -> bool
   val get_irredexes : T -> GraphEntry.T list
   val get_redexes : T -> GraphEntry.T list
-  val update_one : GraphEntry.T -> T -> GraphEntry.T option * T
+  
+  (* add one graph entry to table. Only return the table if it has actually changed. *)
+  val update_one : GraphEntry.T -> T -> T option
   val update : GraphEntry.T list -> T -> GraphEntry.T list * T
   
   val empty : T
@@ -107,17 +109,17 @@ struct
     fun mk (gr, d) = mk' (Equiv.compute_equiv_data gr, d)
   end
 
-  datatype T = EQCLASS of { rep: GraphEntry.T, congs: GraphEntry.T list, redexes: GraphEntry.T list }
-  fun update_rep f (EQCLASS r)     = EQCLASS {rep= f(#rep r),congs= #congs r,redexes= #redexes r}
-  fun update_congs f (EQCLASS r)   = EQCLASS {rep= #rep r,congs= f(#congs r),redexes= #redexes r}
-  fun update_redexes f (EQCLASS r) = EQCLASS {rep= #rep r,congs= #congs r,redexes= f(#redexes r)}
-  fun get_rep     (EQCLASS r) = #rep r
-  fun get_congs   (EQCLASS r) = #congs r
-  fun get_redexes (EQCLASS r) = #redexes r
+  datatype T = EQC of { rep: GraphEntry.T, congs: GraphEntry.T list, redexes: GraphEntry.T list }
+  fun update_rep f (EQC r)     = EQC {rep= f(#rep r),congs= #congs r,redexes= #redexes r}
+  fun update_congs f (EQC r)   = EQC {rep= #rep r,congs= f(#congs r),redexes= #redexes r}
+  fun update_redexes f (EQC r) = EQC {rep= #rep r,congs= #congs r,redexes= f(#redexes r)}
+  fun get_rep     (EQC r) = #rep r
+  fun get_congs   (EQC r) = #congs r
+  fun get_redexes (EQC r) = #redexes r
   val set_rep     = update_rep     o K
   val set_congs   = update_congs   o K
   val set_redexes = update_redexes o K  
-  fun mk ge = EQCLASS { rep = ge, congs = [], redexes = [] }
+  fun mk ge = EQC { rep = ge, congs = [], redexes = [] }
 end
 
 
@@ -275,27 +277,22 @@ struct
   end
   
   fun update_one ge eqt =
-    if rs_can_reduce (get_initial_rs eqt) ge orelse
-       exists_redexes (has_match ge) eqt
-    then (NONE, eqt)
+    if (*rs_can_reduce (get_initial_rs eqt) ge orelse
+       exists_redexes (has_match ge) eqt*) false
+    then NONE
     else let
       val gr = get_graph ge
       val arity = (V.NSet.cardinality (G.get_inputs gr),
                    V.NSet.cardinality (G.get_outputs gr))
-    in (
-        SOME ge ,
-        eqt |> update_tab (ClassIndex.map_default (arity, []) (find_and_add ge))
-       )
+    in SOME (eqt |> update_tab (ClassIndex.map_default (arity, []) (find_and_add ge)))
     end
   
-  fun update ge_list eqt = let
-    fun update' ge (ges, eqt') = let
-       val (newge, tab') = update_one ge eqt'
-    in case newge
-        of SOME ge => (ge::ges, eqt')
-         | NONE    => (ges, eqt') 
-    end 
-  in fold update' ge_list ([],eqt)
+  fun update ge_list eqtab = let
+    fun updatef ge (ges, eqt) =
+      case update_one ge eqt
+        of SOME eqt' => (ge::ges, eqt')
+         | NONE      => (ges, eqt)
+  in fold updatef ge_list ([],eqtab)
   end
   
   val empty = EQT {tab=ClassIndex.empty, initial_rs=Theory.Ruleset.empty}
