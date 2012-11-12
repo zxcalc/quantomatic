@@ -42,8 +42,11 @@ signature EQ_CLASS_TAB =
 sig
   type T
   structure Theory : GRAPHICAL_THEORY
+  structure EqClass : EQ_CLASS
   structure GraphEntry : GRAPH_ENTRY
-  sharing GraphEntry.Graph.SharingOGraph = Theory.Graph.SharingOGraph
+  sharing GraphEntry.Graph.SharingOGraph
+    = Theory.Graph.SharingOGraph
+    = EqClass.GraphEntry.Graph.SharingOGraph
   
   
   val update_initial_rs : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
@@ -51,7 +54,8 @@ sig
   val set_initial_rs    : Theory.Ruleset.T -> T -> T
 
   val get_ruleset : T -> Theory.Ruleset.T
-
+  
+  val fold_eqclasses : (EqClass.T -> 'a -> 'a) -> T -> 'a -> 'a
   val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   val fold_irredexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
   
@@ -167,21 +171,17 @@ struct
         (if f x then raise found_exn () else false)) eqt false
       handle found_exn () => true
   in
-    fun fold_redexes f =
-      ClassIndex.fold (fn (_, classlist) =>
-        fold (fn class =>
-          fold f (EqClass.get_redexes class)
-        ) classlist
+    fun fold_eqclasses f = ClassIndex.fold (fn (_, classlist) =>
+        fold f classlist
       ) o get_tab
+  
+    fun fold_redexes f =
+      fold_eqclasses (fn class => fold f (EqClass.get_redexes class))
       
     fun fold_irredexes f =
-      ClassIndex.fold (fn (_, classlist) =>
-        fold (fn class =>
-          fold f (EqClass.get_rep class :: EqClass.get_congs class)
-        ) classlist
-      ) o get_tab
+      fold_eqclasses (fn class => fold f (EqClass.get_rep class :: EqClass.get_congs class))
     
-    fun fold_rule_pairs f =
+    (*fun fold_rule_pairs f =
       let
         fun class_fld class x =
           let
@@ -197,7 +197,7 @@ struct
       in
         ClassIndex.fold (fn (_, classlist) =>
           fold class_fld classlist) o get_tab
-      end
+      end*)
     
     fun get_redexes eqt = fold_redexes cons eqt []
     fun get_irredexes eqt = fold_irredexes cons eqt []
