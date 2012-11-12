@@ -246,9 +246,9 @@ struct
       fun fold_edges_round [] (prev, accum) = (prev, accum)
         | fold_edges_round egs (prev, accum) =
       let
-          val egs' = maps add_edge egs
-          val (next,accum') = fold_save (fopt o to_graph_entry) (map (fn eg => (eg,0)) egs') ([],accum)
-      in fold_edges_round (map fst next) (next @ prev,accum')
+          val (next,accum') = fold_save (fopt o to_graph_entry) (map (fn eg => (eg,0)) egs) ([],accum)
+          val egs' = maps (add_edge o fst) next
+      in fold_edges_round (egs') (next @ prev,accum')
       end
       (***)
       (* one round of enumeration. (prev, accum) => add one vertex => (next, accum') *)
@@ -276,7 +276,7 @@ struct
 
   (* recursively adds new graphs to tab by adding one new edge to each irredex *)
   (* tab_add_edges : [adjmat] -> EqClassTab -> EqClassTab *)
-  fun tab_add_edges [] tab = tab
+  (*fun tab_add_edges [] tab = tab
     | tab_add_edges egs tab = let
       val egs' = maps add_edge egs 
       val (irreds,tab') = EqClassTab.update (map (fn eg => to_graph_entry (eg,0)) egs') tab
@@ -292,7 +292,7 @@ struct
     val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs)
     val graphs = flat (map (add_gens gens) irred_graphs)
   in List.foldl (fn (g,t) => tab_add_edges [g] t) tab' graphs
-  end
+  end*)
 
   
   (*fun tab_update gens max_verts tab =

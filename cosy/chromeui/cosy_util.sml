@@ -108,6 +108,14 @@ fun output_graph content_div graph = let
 in ()
 end
 
+fun output_graph_list content_div gs = let
+  val c = addContainer content_div "Graph List" false
+  val io = run_dot ()
+  val _ = map (addGraph io c) gs
+  val _ = close_dot io
+in ()
+end
+
 val initial_rs = Spiders.ruleset_from_vdata data_list
 
 fun synth content_div sz =
@@ -119,6 +127,11 @@ in
     (Enum.EqClassTab.get_ruleset eqt)
 end
 
+fun enum content_div sz =
+let
+  val gs = Enum.enum gens sz
+in output_graph_list content_div gs
+end
 
 end
 

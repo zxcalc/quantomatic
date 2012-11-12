@@ -277,8 +277,8 @@ struct
   end
   
   fun update_one ge eqt =
-    if (*rs_can_reduce (get_initial_rs eqt) ge orelse
-       exists_redexes (has_match ge) eqt*) false
+    if rs_can_reduce (get_initial_rs eqt) ge orelse
+       exists_redexes (has_match ge) eqt
     then NONE
     else let
       val gr = get_graph ge
