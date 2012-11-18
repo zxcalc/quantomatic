@@ -1,13 +1,13 @@
 package quanto.data
 
-case class DuplicateVertexNameException(name: String) extends
-Exception("Duplicate vertex name: '" + name +"'")
+case class DuplicateVertexNameException(name: String)
+extends DuplicateNameException("vertex", name)
 
 class Vertex[D](
   val name: String,
   var coord : Tuple2[Float,Float],
   var data: D
-) {
+) extends HasName {
   def x = coord._1
   def x_=(x1 : Float) { coord = (x1, coord._2) }
   def y = coord._2
