@@ -9,27 +9,34 @@ extends HasName
   val verts        = Map[String,Vertex[V]]()
   val edges        = Map[String,Edge[E]]()
   val bboxes       = Map[String,BBox[B]]()
-  val source       = Map[Edge[E],Vertex[V]]()
-  val target       = Map[Edge[E],Vertex[V]]()
-  val inEdges      = Map[Vertex[V],Set[Edge[E]]]()
-  val outEdges     = Map[Vertex[V],Set[Edge[E]]]()
-  val bboxMap      = Map[BBox[B],Set[Vertex[V]]]()
-  val bboxParent   = Map[BBox[B],Option[BBox[B]]]()
-  val bboxChildren = Map[BBox[B],Set[BBox[B]]]()
+  val source       = PFun[Edge[E],Vertex[V]]()
+  val target       = PFun[Edge[E],Vertex[V]]()
+  val bbox         = PFun[Vertex[V],BBox[B]]()
+  val bboxParent   = PFun[BBox[B],BBox[B]]()
+
+  val vertexCoords = Map[Vertex[V],(Float,Float)]()
   
   def addVertex(v: Vertex[V]): GraphChange[G,V,E,B] = {
     if (verts contains v.name)
       throw DuplicateVertexNameException(v.name)
     
     verts += v.name -> v
-    inEdges += v -> Set[Edge[E]]()
-    outEdges += v -> Set[Edge[E]]()
+    vertexCoords += v -> (0.0f,0.0f)
     GraphChangeAddVertex(v)
   }
-  
-  def addVertex(coord: Tuple2[Float,Float]=(0,0), data: V): GraphChange[G,V,E,B] =
-    addVertex(new Vertex(verts fresh, coord, data))
-  
+
+  def addVertex() : GraphChange[G,V,E,B] =
+    addVertex(Vertex[V](verts fresh "v0"))
+
+  def addVertex(data: V): GraphChange[G,V,E,B] =
+    addVertex(Vertex[V](verts fresh "v0", data))
+
+  def moveVertex(v : Vertex[V], coord: (Float,Float)) : GraphChange[G,V,E,B] = {
+    val oldCoord = vertexCoords(v)
+    vertexCoords(v) = coord
+    GraphChangeMoveVertex(v, oldCoord, coord)
+  }
+
   def addEdge(e: Edge[E], s: Vertex[V], t: Vertex[V]) : GraphChange[G,V,E,B] = {
     if (edges contains e.name)
       throw DuplicateEdgeNameException(e.name)
@@ -37,22 +44,21 @@ extends HasName
     edges += e.name -> e
     source += e -> s
     target += e -> t
-    inEdges(t) += e
-    outEdges(s) += e
     GraphChangeAddEdge(e, s, t)
   }
-  
-  def addEdge(data: E, s: Vertex[V], t: Vertex[V]) : GraphChange[G,V,E,B] =
-    addEdge(new Edge(edges fresh, data), s, t)
+
+  def addEdge(s: Vertex[V], t: Vertex[V]) : GraphChange[G,V,E,B] =
+    addEdge(Edge[E](edges fresh "e0"), s, t)
+
+  def addEdge(s: Vertex[V], t: Vertex[V], data: E) : GraphChange[G,V,E,B] =
+    addEdge(Edge(edges fresh "e0", data), s, t)
   
   def addBBox(bbox: BBox[B], parent: Option[BBox[B]] = None) = {
     if (bboxes contains bbox.name)
       throw DuplicateBBoxNameException(bbox.name)
     
     bboxes += bbox.name -> bbox
-    bboxChildren += bbox -> Set[BBox[B]]()
-    bboxParent += bbox -> parent
-    parent map (bboxChildren(_) += bbox)
+    parent map (bboxParent += bbox -> _)
     GraphChangeAddBBox(bbox, parent)
   }
   
@@ -61,21 +67,21 @@ extends HasName
     val t = target(e)
     source -= e
     target -= e
-    outEdges(s) -= e
-    inEdges(t) -= e
     edges -= e.name
     GraphChangeDeleteEdge(e, s, t)
   }
   
   def deleteVertex(v: Vertex[V]) : GraphChange[G,V,E,B] = {
     val deleteIn = GraphChangeSequence(
-        inEdges(v).toSeq map (deleteEdge _))
+        target.inv(v).toSeq map (deleteEdge _))
     val deleteOut = GraphChangeSequence(
-        outEdges(v).toSeq map (deleteEdge _))
-    inEdges -= v
-    outEdges -= v
+        source.inv(v).toSeq map (deleteEdge _))
+    val coord = vertexCoords(v)
     verts -= v.name
+    vertexCoords -= v
+
     GraphChangeSequence(Seq(
+      GraphChangeMoveVertex(v, coord, (0.0f,0.0f)),
       deleteIn, deleteOut,
       GraphChangeDeleteVertex(v)
     ))

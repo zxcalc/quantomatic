@@ -3,9 +3,11 @@ package quanto.data
 import scala.collection.mutable._
 
 // basically a map, but with cached inverse images
-class PFun[A,B] extends Map[A,B] {
+class PFun[A,B](kv: (A,B)*) extends Map[A,B] {
   val f = Map[A,B]()
   val finv = Map[B,Set[A]]()
+
+  kv map (this += _)
   
   def -=(k: A) = {
     val v = f(k)
@@ -35,3 +37,8 @@ class PFun[A,B] extends Map[A,B] {
   
   def iterator = f.iterator
 }
+
+object PFun {
+  def apply[A,B](kv: (A,B)*) : PFun[A,B] = new PFun(kv:_*)
+}
+

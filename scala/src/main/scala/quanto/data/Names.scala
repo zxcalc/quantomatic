@@ -5,11 +5,11 @@ class DuplicateNameException(ty: String, name: String)
 extends Exception("Duplicate " + ty + " name: '" + name + "'")
 
 trait HasName {
-  val name : String
+  def name : String
 }
 
 trait NameAndData[D] extends HasName {
-  var data : D
+  def data : D
 }
 
 trait NameUtil {
@@ -21,17 +21,17 @@ trait NameUtil {
   }
 }
 
-object Names {
-  implicit def setToNameSet(set : Set[String]):NameSet = 
-    new NameSet(set)
-  implicit def mapToNameMap[T](map : Map[String,T]):NameMap[T] =
-    new NameMap(map)
-}
-
 class NameSet(val set: Set[String]) extends NameUtil {
-  def fresh : String = succ (set max)
+  def fresh(default: String = "n0") : String = if (set.isEmpty) default else succ (set max)
 }
 
 class NameMap[T](val map: Map[String,T]) extends NameUtil {
-  def fresh : String = succ (map.keys max)
+  def fresh(default: String = "n0") : String = if (map.isEmpty) default else succ (map.keys max)
+}
+
+object Names {
+  implicit def setToNameSet(set : Set[String]):NameSet =
+    new NameSet(set)
+  implicit def mapToNameMap[T](map : Map[String,T]):NameMap[T] =
+    new NameMap(map)
 }
