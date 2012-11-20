@@ -160,15 +160,10 @@ struct
   (* convenience functions for pulling out redexes and irredexes *)
   local
     exception found_exn of unit
-<<<<<<< HEAD
-    fun fold_to_exists fldf f tab = (*Looks for the first element where f returned true*)
-      fldf (fn x => fn _ => (*After applying the given fold function to the element*)
-        (if f x then raise found_exn () else false)) tab false
-=======
+
     fun fold_to_exists fldf f eqt = 
       fldf (fn x => fn _ =>
         (if f x then raise found_exn () else false)) eqt false
->>>>>>> 96edfe597a6dee9f68af340ccf9a1881d9b22da9
       handle found_exn () => true
   in
     fun fold_redexes f = (*Apply f to every reducible expression listed in every class!*)
@@ -250,7 +245,7 @@ struct
     ))
   
   fun rs_can_reduce rs tgt =
-  let
+  let (*Also uses the matching algorithm!! Also requires only the first element*)
     fun r_matches r_name =
       is_some (Seq.pull (Theory.MatchSearch.match
         (Theory.Rule.get_lhs (Ruleset.get_rule rs r_name)) (get_graph tgt)
@@ -261,15 +256,15 @@ struct
   
   (* returns (SOME new_class) if graph is equivalent to the representative,
      and NONE otherwise *)
-  fun tryadd_to_class cls ge =
+  fun tryadd_to_class cls ge = (*Does not guarantee that they are equival*)
     if Equiv.eq (get_edata (EqClass.get_rep cls), get_edata ge)
     then SOME (
       case Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge)
-      of LESS    => cls |> EqClass.update_redexes (cons ge)
+      of LESS    => cls |> EqClass.update_redexes (cons ge) (*representative stays (minimal)*)
        | GREATER => cls |> EqClass.update_redexes (fn reds => EqClass.get_rep cls :: EqClass.get_congs cls @ reds)
-                        |> EqClass.set_congs []
+                        |> EqClass.set_congs [] (*new graph should be new representative*)
                         |> EqClass.set_rep ge
-       | EQUAL   => cls |> EqClass.update_congs (cons ge))
+       | EQUAL   => cls |> EqClass.update_congs (cons ge)) (*Congs contains equivalent graphs*)
     else NONE
   (*Given a list of equivalence classes, try to add the graph entry to one of them.
   The equivalence classes are between graphs of only the same input and output arity.*)
@@ -283,11 +278,11 @@ struct
   in case fold tryaddf classlist (false, []) (*(false,[]) is the identity*)
        of (true, cs) => cs (*This graph was successfully added to an existing class*)
         | (false, cs) => (EqClass.mk ge :: cs) (*Create a new class, since it is distinct from the rest.*)
-  end==
+  end
   
-  fun update_one ge eqt =
-    if rs_can_reduce (get_initial_rs eqt) ge orelse
-       exists_redexes (has_match ge) eqt
+  fun update_one ge eqt = (*initial_rs includes many common reductions*)
+    if rs_can_reduce (get_initial_rs eqt) ge orelse (*This is where the DNET comes in*)
+       exists_redexes (has_match ge) eqt (*checks all with the same arity and checks matching*)
     then (NONE, eqt)
     else let
       val gr = get_graph ge (*Get the graph from the graph entry*)
@@ -299,16 +294,18 @@ struct
     find_and_add ge ls will be used where ls is the associated list. (See table.ML)*)
     in tab |> ClassIndex.map_default (arity, []) (find_and_add ge)
     end
+  (*Arity works like hashcode - we know only graphs with equivalent arity could belong to the same class*)
   
-  (*Add multiple graph entries at once*)
+  (*Add multiple graph entries at once
+  Note: eqt = equivalence table*)
   fun update ge_list eqt = let
     fun update' ge (ges, eqt') = let
        val (newge, tab') = update_one ge eqt'
     in case newge
-        of SOME ge => (ge::ges, eqt')
+        of SOME ge => (ge::ges, eqt') (*We only add the generators that are identical (could return boolean)*)
          | NONE    => (ges, eqt') 
     end 
-  in fold update' ge_list ([],eqt)
+  in fold update' ge_list ([],eqt) (*BRANCH POINT*)
   end
   
   val empty = EQT {tab=ClassIndex.empty, initial_rs=Theory.Ruleset.empty}

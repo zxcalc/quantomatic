@@ -5,6 +5,9 @@ sig
   structure EqClassTab : EQ_CLASS_TAB
   
   type data
+  (*Corresponds to a single vertex with a certain number of inputs outputs
+  (data relevant to theory,input,output)
+  We stick the generators together to form graphs (all possible)*)
   type generator = (Theory.Graph.VData.data * int * int)
   
   val default_data : data
@@ -35,6 +38,10 @@ struct
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
   (* Ordered Vertices, free inputs, free outputs, list of lists of
      edges, one vertex at a time *)
+  (*generator list
+  inputs left on each generator
+  outputs ...
+  Number of edges connecting source to target (directed - multiple)*)
   type adjmat = generator list * int list * int list * (int list) list 
   type data = adjmat * int
   val default_data = (([],[],[],[]),0)
@@ -214,6 +221,7 @@ struct
   *)
  (* adds a specific type of vertex with no edges *)
   (* add_gen : generator -> adjmat -> adjmat *)
+  (*Add 0s to show no inputs or outputs used on new edge of matrix*)
   fun add_gen (v' as (_,inp,out)) (verts, inps, outs, edges) = (v'::verts, inp::inps, out::outs, (List.tabulate ((2 * length (verts) +1), K 0)::edges))
 
   (* adds any possible vertex with no edges *)
@@ -226,11 +234,13 @@ struct
 
   (* adds any possible edge *)
   (* add_edge : adjmat -> adjmat list *)
-  fun add_edge ([], _, _, _) = []
-    | add_edge (verts, inps, outs, edge::edges) = let 
-      fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) 
+  fun add_edge ([], _, _, _) = [] (*No generators - no nodes to add*)
+    | add_edge (verts, inps, outs, edge::edges) = let
+      (*i2 is the number of inputs for this particular vertex, and e2 is the number of edges*)
+      (*See diagram for lexicographic ordering - we look for non-zero to add to*)
+      fun new_edge_here (i2::is2) (o2::os2) (e2::es2) = if ((i2<>0) andalso (o2<>0)) (*Deduct from the difference in the table*)
                                                         then [(i2-1::is2, o2-1::os2, e2+1::es2)] else []
-      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es
+      fun add_edge' [i1] [o1] es = new_edge_here [i1] [o1] es (*Row of inputs finishes - switch to right column of outputs (going up)*)
         | add_edge' (i1::[]) (o1::os) (e1::es) = new_edge_here (i1::[]) (o1::os) (e1::es) @ 
                                                 map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
         | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ 
@@ -253,18 +263,21 @@ struct
   (* adds new graphs with one new vertex and any possible number of extra edges *)
   (* tab_add_gens : generator list -> EqClassTab -> EqClassTab *)
   fun tab_add_gens gens tab = let
-    val irred_graphs = filter_max (fn (g,i) => i + adjmat_size g)
+    val irred_graphs = filter_max (fn (g,i) => i + adjmat_size g) (*Only add vertices to large ones becuase if we added to a small one we would reproduce another*)
                       (map GraphEntry.get_data (EqClassTab.get_irredexes tab))
+                      (*The call to update here forces matching checks over the entire table*)
+    (*We add one identity wire*)
     val (_,tab') = EqClassTab.update (map (fn (am,i) => to_graph_entry (am,i+1)) irred_graphs) tab
-    val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs)
-    val graphs = flat (map (add_gens gens) irred_graphs)
+    val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs) (*have no identity wires*)
+    (*Each generator has different types/inputs/outputs. Easier to parallelise here*)
+    val graphs = flat (map (add_gens gens) irred_graphs) (*adds 1 vertex and all possible edges to connect it (largest branch)*)
   in List.foldl (fn (g,t) => tab_add_edges [g] t) tab graphs
   end
 
   (*Keep generating all graphs and reducible expressions up to the maximum number of vertices!
   Begins with the supplied table*)
   fun tab_update gens max_verts tab =
-    funpow max_verts (tab_add_gens gens)
+    funpow max_verts (tab_add_gens gens) (*the 0 represents a bare wire - treated independently. Ignores circles*)
     (snd (EqClassTab.update [to_graph_entry (([],[],[],[]),0)] tab))
   
   (* Creates a table of graphs up to a certain size *)
