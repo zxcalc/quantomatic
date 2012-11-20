@@ -6,6 +6,9 @@ functor CosyUtil(
 struct
 
 structure Enum = Enum
+structure EqClassTab = Enum.EqClassTab
+structure EqClass = EqClassTab.EqClass
+structure GraphEntry = EqClass.GraphEntry
 structure Theory = Enum.Theory
 structure Spiders = SpiderRewrites(structure Theory = Theory)
 
@@ -108,9 +111,54 @@ fun output_graph content_div graph = let
 in ()
 end
 
+fun output_graph_list content_div gs = let
+  val c = addContainer content_div "Graph List" false
+  val io = run_dot ()
+  val _ = map (addGraph io c) gs
+  val _ = close_dot io
+in ()
+end
+
+fun output_eqtab content_div eqt sz = let
+  val parent = addContainer content_div
+    (Theory.theory_name ^ " Synth ("^(Int.toString sz)^")") true
+  val details =
+    "SYNTHESIS RESULTS\n"^
+    "-----------------------------------------\n"
+(*    ^
+    "  "^(Int.toString ins)^" inputs\n"^
+    "  "^(Int.toString outs)^" outputs\n"^
+    "  "^(Int.toString verts)^" max vertices\n"^
+    "  "^(Int.toString plugs)^" max pluggings\n"^
+    "-----------------------------------------\n"^
+    "  Found "^(Int.toString num_classes)^" equivalence classes.\n"^
+    "  Average class size: "^(Int.toString ((num_congs + num_redexes) div num_classes))^".\n"^
+    "-----------------------------------------\n"*)
+  val io = run_dot ()
+  val _ = addCodebox parent details
+  fun output_class class i = let
+    val container = addContainer parent ("Class " ^ (Int.toString i)) false
+    val rep = EqClass.get_rep class
+    val _ = addCodebox container (GraphEntry.Equiv.to_string (GraphEntry.get_edata rep))
+    val c_container = addContainer container "Congruences" false
+    val r_container = addContainer container "Reducible Expressions" false
+    val congruences = map GraphEntry.get_graph (EqClass.get_congs class)
+    val redexes = map GraphEntry.get_graph (EqClass.get_redexes class)
+    fun output_graph len c (i, gr) = if i = 100 then (clearFloats c; addCodebox c (Int.toString (len - 100) ^ " more..."))
+                                     else (if i < 100 then addGraph io c gr else c)
+    val _ = addGraph io c_container (GraphEntry.get_graph rep)
+    val _ = map_index (output_graph (length congruences) c_container) congruences
+    val _ = map_index (output_graph (length redexes) r_container) redexes
+  in i+1
+  end
+  val _ = EqClassTab.fold_eqclasses output_class eqt 0
+  val _ = close_dot io
+in ()
+end
+
 val initial_rs = Spiders.ruleset_from_vdata data_list
 
-fun synth content_div sz =
+fun get_rules content_div sz =
 let
   val eqt = Enum.tab_update gens sz (Enum.EqClassTab.mk initial_rs)
 in
@@ -119,6 +167,18 @@ in
     (Enum.EqClassTab.get_ruleset eqt)
 end
 
+fun synth content_div sz =
+let
+  val eqt = Enum.tab_update gens sz (Enum.EqClassTab.mk initial_rs)
+in
+  output_eqtab content_div eqt sz
+end
+
+fun enum content_div sz =
+let
+  val gs = Enum.enum gens sz
+in output_graph_list content_div gs
+end
 
 end
 

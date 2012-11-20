@@ -82,6 +82,7 @@ struct
   end
   
   val eq = TData.Tensor.eq
+  val to_string = TData.Tensor.to_string
 end
 
 
