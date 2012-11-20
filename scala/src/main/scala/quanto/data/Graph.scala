@@ -9,10 +9,10 @@ extends HasName
   val verts        = Map[String,Vertex[V]]()
   val edges        = Map[String,Edge[E]]()
   val bboxes       = Map[String,BBox[B]]()
-  val source       = PFun[Edge[E],Vertex[V]]()
-  val target       = PFun[Edge[E],Vertex[V]]()
-  val bbox         = PFun[Vertex[V],BBox[B]]()
-  val bboxParent   = PFun[BBox[B],BBox[B]]()
+  var source       = PFun[Edge[E],Vertex[V]]()
+  var target       = PFun[Edge[E],Vertex[V]]()
+  var bbox         = PFun[Vertex[V],BBox[B]]()
+  var bboxParent   = PFun[BBox[B],BBox[B]]()
 
   val vertexCoords = Map[Vertex[V],(Float,Float)]()
   

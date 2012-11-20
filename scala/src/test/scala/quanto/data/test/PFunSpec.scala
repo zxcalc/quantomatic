@@ -9,11 +9,11 @@ class PFunSpec extends FlatSpec {
   behavior of "A Partial Function"
   
   it should "initialise" in {
-    f = new PFun[String,Int]()
+    f = PFun[String,Int]()
   }
   
   it should "add some elements" in {
-    f += "a" -> 2
+    f = f + ("a" -> 2)
     f += "b" -> 1
     f += "c" -> 2
   }
