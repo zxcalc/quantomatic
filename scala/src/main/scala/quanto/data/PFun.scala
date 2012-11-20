@@ -1,7 +1,7 @@
 package quanto.data
 
 // basically a map, but with cached inverse images
-class PFun[A,B](f : Map[A,B], finv: Map[B,Set[A]]) {
+class PFun[A,B](f : Map[A,B], finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
   //  def this(kvs: (A,B)*) =
   //    this(
   //      Map(kvs),
