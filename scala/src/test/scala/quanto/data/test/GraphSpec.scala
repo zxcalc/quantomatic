@@ -13,14 +13,18 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     g = new Graph("g")
   }
 
+  var v0 : VName = _
+  var v1 : VName = _
+  var a0 : VName = _
+
   it can "add some vertices" in {
-    given("no parameters")
-    g.addVertex()
+    var (v0,_) = g.addVertex(1)
+    assert(v0 === VName("v0"))
 
-    given("just data")
-    g.addVertex(1)
+    v1 = g.addVertex(2)._1
+    assert(v1 === VName("v1"))
 
-    given("explicit Vertex instance")
-    g.addVertex(Vertex("a0", 2))
+    a0 = g.addVertex(Vertex(VName("a0"), 3))._1
+    assert(a0 === VName("a0"))
   }
 }

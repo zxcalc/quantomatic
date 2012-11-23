@@ -21,40 +21,41 @@ extends GraphChange[G,V,E,B] {
 }
 
 case class GraphChangeMoveVertex[G,V,E,B](
-    v: Vertex[V],
+    vn: VName,
     oldCoord: (Float,Float),
     newCoord: (Float,Float))
 extends GraphChange[G,V,E,B] {
-  def inverse = GraphChangeMoveVertex(v,newCoord,oldCoord)
+  def inverse = GraphChangeMoveVertex(vn,newCoord,oldCoord)
 }
 
 case class GraphChangeAddEdge[G,V,E,B](
     e: Edge[E],
-    s: Vertex[V], t: Vertex[V])
+    sn: VName, tn: VName)
 extends GraphChange[G,V,E,B] {
-  def inverse = GraphChangeDeleteEdge(e, s, t)
+  def inverse = GraphChangeDeleteEdge(e, sn, tn)
 }
 
-case class GraphChangeDeleteEdge[G,V,E,B](e: Edge[E],
-    s: Vertex[V], t: Vertex[V])
+case class GraphChangeDeleteEdge[G,V,E,B](
+    e: Edge[E],
+    sn: VName, tn: VName)
 extends GraphChange[G,V,E,B] {
-  def inverse = GraphChangeAddEdge(e, s, t)
+  def inverse = GraphChangeAddEdge(e, sn, tn)
 }
 
 case class GraphChangeAddBBox[G,V,E,B](
-    bbox: BBox[B], parent: Option[BBox[B]])
+    bbox: BBox[B], parent: Option[BBName])
 extends GraphChange[G,V,E,B] {
   def inverse = GraphChangeDeleteBBox(bbox, parent)
 }
 
 case class GraphChangeDeleteBBox[G,V,E,B](
-    bbox: BBox[B], parent: Option[BBox[B]])
+    bbox: BBox[B], parent: Option[BBName])
 extends GraphChange[G,V,E,B] {
   def inverse = GraphChangeAddBBox(bbox, parent)
 }
 
 case class GraphChangeSetBBox[G,V,E,B](
-    oldBBox : Option[BBox[B]], newBBox: Option[BBox[B]])
+    oldBBox : Option[BBName], newBBox: Option[BBName])
 extends GraphChange[G,V,E,B] {
   def inverse = GraphChangeSetBBox(newBBox, oldBBox)
 }

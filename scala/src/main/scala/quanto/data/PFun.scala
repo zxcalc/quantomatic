@@ -44,6 +44,8 @@ class PFun[A,B](f : Map[A,B], finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
     }
   }
 
+  def dom = f.keys
+
   def iterator = f.iterator
 }
 
