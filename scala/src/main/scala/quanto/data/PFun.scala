@@ -1,14 +1,7 @@
 package quanto.data
 
 // basically a map, but with cached inverse images
-class PFun[A,B](f : Map[A,B], finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
-  //  def this(kvs: (A,B)*) =
-  //    this(
-  //      Map(kvs),
-  //      kvs.foldLeft(Map())(
-  //        (kv: (A,B), m: Map[B,Set[A]]) => m + (m.getOrElse(kv._2, Set()) + kv)
-  //      )
-  //    )
+class PFun[A,B](val f : Map[A,B], val finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
 
   // children have the option to override this to give a default value
   def default(key: A): B =
@@ -21,6 +14,7 @@ class PFun[A,B](f : Map[A,B], finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
       else finv + (v -> (finv(v) - k))
     new PFun[A,B](f - k,finv1)
   }
+
 
   def +(kv: (A,B)) : PFun[A,B] = {
     val finv1 =
@@ -47,6 +41,19 @@ class PFun[A,B](f : Map[A,B], finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
   def dom = f.keys
 
   def iterator = f.iterator
+
+  // PFun inherits equality from its member "f"
+  override def hashCode = f.hashCode()
+
+  override def canEqual(other: Any) = other match {
+    case that: PFun[_,_] => true
+    case _ => false
+  }
+
+  override def equals(other: Any) = other match {
+    case that: PFun[_,_] => (that canEqual this) && (f == that.f)
+    case _ => false
+  }
 }
 
 object PFun {

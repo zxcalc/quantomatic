@@ -13,3 +13,6 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.0.M4" % "test"
 libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.2"
 
 EclipseKeys.withSource := true
+
+scalacOptions ++= Seq("-unchecked", "-deprecation")
+

@@ -1,32 +1,11 @@
 import quanto.core._
-import com.codahale.jerkson.Json
-import org.codehaus.jackson.JsonNode
+import swing._
 
-object Test {
-  def main(args: Array[String]) = {
-    val core = new Core("red_green", "../core/bin/quanto-core")
-    println("starting core...")
-    core.start()
-    println("done")
-    
-    try {
-      println("version: " + core.version())
-      val resp1 = core.request[Map[String,String],String](
-          "Main", "concat",
-          Map("arg1" -> "foo ", "arg2" -> "bar")
-        )
-      println("req1: " + resp1)
-      
-      val req2 = Map("arg1" -> "foo ", "arg2" -> "bar")
-      val resp2 = core.request[Map[String,String],Map[String,String]](
-          "Main", "echo", req2
-        )
-      println("req2: " + resp2)
-      println("equal? " + (req2==resp2))
-    } catch {
-      case CoreUserException(msg, _) => println("User error: " + msg)
+object Test extends SimpleSwingApplication {
+  def top = new MainFrame {
+    title = "Test"
+    contents = new Button {
+      text = "Click Me"
     }
-    
-    core.kill()
   }
 }

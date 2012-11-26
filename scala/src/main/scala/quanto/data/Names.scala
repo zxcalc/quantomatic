@@ -2,8 +2,6 @@ package quanto.data
 import scala.collection._
 import quanto.util.StringNamer
 
-class DuplicateNameException[N <: Name[N]](ty: String, name: N)
-extends Exception("Duplicate " + ty + " name: '" + name + "'")
 
 abstract class Name[N <: Name[N]] extends Ordered[N] {
   def succ: N
@@ -18,6 +16,7 @@ abstract class StrName[N <: StrName[N]] extends Name[N] {
       s.substring(0, s.length - 1) + ((last + 1) toChar)
     else s + "0"
   }
+  override def toString = s
 }
 
 case class GName(s: String) extends StrName[GName] {
@@ -32,6 +31,15 @@ case class EName(s: String) extends StrName[EName] {
 case class BBName(s: String) extends StrName[BBName] {
   def succ = BBName(succStr)
 }
+
+class DuplicateNameException[N <: Name[N]](ty: String, val name: N)
+  extends Exception("Duplicate " + ty + " name: '" + name + "'")
+class DuplicateVertexNameException(override val name: VName)
+  extends DuplicateNameException("vertex", name)
+class DuplicateEdgeNameException(override val name: EName)
+  extends DuplicateNameException("edge", name)
+class DuplicateBBoxNameException(override val name: BBName)
+  extends DuplicateNameException("bang box", name)
 
 trait NameAndData[N <: Name[N], D] {
   val name : N
@@ -58,6 +66,21 @@ object Names {
 
   // A Foo can always be used in place of a FooName, but not vice-versa
   implicit def nameAndDataToName[N <: Name[N],D](nd : NameAndData[N,D]) = nd.name
+
+  // these support general-purpose string-for-name substitution
+  implicit def stringToGName(s: String)  = GName(s)
+  implicit def stringToVName(s: String)  = VName(s)
+  implicit def stringToEName(s: String)  = EName(s)
+  implicit def stringToBBName(s: String) = BBName(s)
+
+  implicit def stringSetToGNameSet(set: Set[String]) = set map (GName(_))
+  implicit def stringSetToVNameSet(set: Set[String]) = set map (VName(_))
+  implicit def stringSetToENameSet(set: Set[String]) = set map (EName(_))
+  implicit def stringSetToBBNameSet(set: Set[String]) = set map (BBName(_))
+
+  // edge creation methods take a pair of vertices
+  implicit def stringPairToVNamePair(t: (String,String)) = (VName(t._1), VName(t._2))
+
 
   implicit val defaultVName = VName("v0")
   implicit val defaultEName = EName("e0")
