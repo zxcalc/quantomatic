@@ -8,7 +8,7 @@ struct
 structure Enum = Enum
 structure EqClassTab = Enum.EqClassTab
 structure EqClass = EqClassTab.EqClass
-structure GraphEntry = EqClass.GraphEntry
+structure GraphEntry = EqClassTab.GraphEntry
 structure Theory = Enum.Theory
 structure Spiders = SpiderRewrites(structure Theory = Theory)
 
@@ -149,12 +149,12 @@ fun output_eqtab content_div eqt sz = let
   val _ = addCodebox parent details
   fun output_class class i = let
     val container = addContainer parent ("Class " ^ (Int.toString i)) false
-    val rep = EqClass.get_rep class
+    val rep = EqClassTab.get_graph_entry eqt (EqClass.get_rep class)
     val _ = addCodebox container (GraphEntry.Equiv.to_string (GraphEntry.get_edata rep))
     val c_container = addContainer container "Congruences" false
     val r_container = addContainer container "Reducible Expressions" false
-    val congruences = map GraphEntry.get_graph (EqClass.get_congs class)
-    val redexes = map GraphEntry.get_graph (EqClass.get_redexes class)
+    val congruences = map (GraphEntry.get_graph o EqClassTab.get_graph_entry eqt) (EqClass.get_congs class)
+    val redexes = map (GraphEntry.get_graph o EqClassTab.get_graph_entry eqt) (EqClass.get_redexes class)
     fun output_graph len c (i, gr) = if i = 100 then (clearFloats c; addCodebox c (Int.toString (len - 100) ^ " more..."))
                                      else (if i < 100 then addGraph io c gr else c)
     val _ = addGraph io c_container (GraphEntry.get_graph rep)
