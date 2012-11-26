@@ -12,15 +12,26 @@ structure GraphEntry = EqClass.GraphEntry
 structure Theory = Enum.Theory
 structure Spiders = SpiderRewrites(structure Theory = Theory)
 
-fun gen_list max_arity data_list = let
+(*fun gen_list max_arity data_list = let
     fun alist 0 0 = []
       | alist k 0 = (0,k)::alist (k-1) (k-1)
       | alist k i = (i,k-i)::alist k (i-1)
     fun gen d (iw,ow) = (Theory.OVData.NVert d,iw,ow)
   in (fold_product (cons oo gen) data_list (alist max_arity max_arity) [])
-  end
+  end*)
 
-val gens = gen_list 3 data_list
+
+val gens = let
+  fun gens_for d = [
+    (Theory.OVData.NVert d,1,2),
+    (Theory.OVData.NVert d,2,1),
+    (Theory.OVData.NVert d,2,0),
+    (Theory.OVData.NVert d,0,2),
+    (Theory.OVData.NVert d,1,0),
+    (Theory.OVData.NVert d,0,1)
+  ]
+in maps gens_for data_list
+end
 
 fun dot_to_svg (ins,outs) dot = let
   val () = TextIO.output (outs, dot)
