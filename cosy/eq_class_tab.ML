@@ -72,9 +72,6 @@ sig
   val get_irredexes : T -> GraphEntry.T list
   val get_redexes : T -> GraphEntry.T list
   
-  (* commits all new additions (those marked with `dirty' flag), checking them
-     against each-other, and adding them to the global dnet *)
-  val commit : T -> T
   
   (* add one graph entry to table. Only return the table if it has actually changed. *)
   val update_one : GraphEntry.T -> T -> T option
@@ -190,6 +187,9 @@ struct
   
   fun get_graph_entry eqt g =
     GraphName.NTab.get (get_graph_tab eqt) g
+    
+  fun set_as_redex gn eqt =
+    eqt |> update_dnet (DNet.add_graph (gn, GE.get_graph (get_graph_entry eqt gn)))
 
   
   (* convenience functions for pulling out redexes and irredexes *)
@@ -285,37 +285,12 @@ struct
      and NONE otherwise *)
   
   
-  fun find_and_add eqt gn classlist = let
+(*  fun find_and_add eqt gn = let
     val ge = GraphName.NTab.get (get_graph_tab eqt) gn
-    
-    fun tryadd_to_class cls = let
-      val cls_ge = GraphName.NTab.get (get_graph_tab eqt) (EqClass.get_rep cls)
-    in
-      if Equiv.eq (GE.get_edata cls_ge, GE.get_edata ge)
-      then SOME (
-        case Metric.ord_graph (GE.get_graph cls_ge, GE.get_graph ge)
-        of LESS    => cls |> EqClass.update_redexes (cons gn)
-         | GREATER => cls |> EqClass.update_redexes (fn reds => EqClass.get_rep cls :: EqClass.get_congs cls @ reds)
-                          |> EqClass.set_congs []
-                          |> EqClass.set_rep gn
-         | EQUAL   => cls |> EqClass.update_congs (cons gn))
-      else NONE
-    end
-    
-    fun tryaddf cls (cls_found, rest) =
-      if cls_found then (cls_found, cls :: rest)
-      else (case tryadd_to_class cls
-              of SOME cls' => (true, cls' :: rest)
-               | NONE      => (false, cls :: rest))
-      
-  in case fold tryaddf classlist (false, [])
-       of (true, cs) => cs
-        | (false, cs) => (EqClass.mk gn :: cs)
-  end
+
+  *)
   
-  val commit = I
-  
-  fun update_one ge eqt =
+  (*fun update_one ge eqt =
     if (*rs_can_reduce (get_initial_rs eqt) ge orelse
        exists_redexes (has_match ge) eqt*) false
     then NONE
@@ -329,6 +304,64 @@ struct
       update_tab (ClassIndex.map_default (arity, [])
         (find_and_add eqt gn)
       ))
+    end*)
+  
+  fun has_match_in_dnet eqt tgt = let
+    fun has_match pat_n = let
+      val pat = get_graph_entry eqt pat_n
+    in is_some (Seq.pull (Theory.MatchSearch.match
+         (GE.get_graph pat) (GE.get_graph tgt)
+       ))
+    end
+  in GraphName.NSet.exists has_match
+      (DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt))
+  end
+  
+  fun update_one ge eqt =
+    if has_match_in_dnet eqt ge then NONE
+    else let
+      val (gn, gt) = get_graph_tab eqt |> GraphName.NTab.add (GraphName.mk "g0", ge)
+      val eqt' = eqt |> set_graph_tab gt
+      val gr = GE.get_graph ge
+      val arity = (V.NSet.cardinality (G.get_inputs gr),
+                   V.NSet.cardinality (G.get_outputs gr))
+      val classlist = case ClassIndex.lookup (get_tab eqt) arity
+                      of SOME cs => cs | NONE => []
+      
+      fun tryadd_to_class cls eqt = let
+        val cls_ge = GraphName.NTab.get (get_graph_tab eqt) (EqClass.get_rep cls)
+      in
+        if Equiv.eq (GE.get_edata cls_ge, GE.get_edata ge)
+        then
+        SOME (
+          case Metric.ord_graph (GE.get_graph cls_ge, GE.get_graph ge)
+          of LESS    => (cls |> EqClass.update_redexes (cons gn), eqt |> set_as_redex gn)
+           | GREATER =>
+              let
+                val new_reds = EqClass.get_rep cls :: EqClass.get_congs cls
+              in (cls |> EqClass.update_redexes (fn reds => new_reds @ reds)
+                      |> EqClass.set_congs []
+                      |> EqClass.set_rep gn,
+                  fold set_as_redex new_reds eqt)
+              end
+           | EQUAL   => (cls |> EqClass.update_congs (cons gn), eqt)
+        )
+        else NONE
+      end
+      
+      fun tryaddf cls (found, rest, eqt) =
+        if found then (true, cls :: rest, eqt)
+        else case tryadd_to_class cls eqt
+               of SOME (cls', eqt') => (true, cls' :: rest, eqt')
+                | NONE => (false, cls :: rest, eqt)
+      
+      val (found, classlist', eqt') = fold tryaddf classlist (false, [], eqt')
+    in
+      SOME (
+        eqt' |> update_tab (ClassIndex.update (arity,
+                  if found then classlist'
+                  else EqClass.mk gn :: classlist'))
+      )
     end
   
   fun update ge_list eqtab = let
