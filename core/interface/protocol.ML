@@ -1129,7 +1129,7 @@ struct
             printClose ()
           end
       | outputResponse (requestId, JsonResponse { data }) =
-          let val json = Json.string_of data in
+          let val json = Json.encode data in
             printOpen #"J" requestId;
             printDataChunk json;
             printClose ()

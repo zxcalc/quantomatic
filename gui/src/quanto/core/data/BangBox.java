@@ -82,7 +82,7 @@ public class BangBox extends GraphElement {
 					mapper.getTypeFactory().constructCollectionType(
 					Collection.class, String.class));
 		} else {
-			bbd.contents = Collections.EMPTY_LIST;
+			bbd.contents = Collections.emptySet();
 		}
 		
 		return bbd;

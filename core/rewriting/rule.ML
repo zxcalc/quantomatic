@@ -62,9 +62,6 @@ signature BASIC_RULE
   (* swaps lhs and rhs *)
   val symmetric : T -> T
   
-  (* rule is a trivial identity : lhs matches rhs *)
-  val is_trivial : T -> bool
-  
   (* extra cached meta-data *)
   datatype 'a tree = Tree of ('a * 'a tree list);
   datatype constr   =   Constrained
@@ -306,21 +303,6 @@ fun get_lhs_deledges r =
 
 (* swap lhs and rhs of a rule *)
 fun symmetric r = mk (get_lhs r, get_rhs r);
-
-(* a rule is trivially true if the left and right hand sides match.
-   Proof is by observing that bounary nodes can only be matched by
-   boundary nodes and the types of the lhs and rhs must be equal to be
-   a rule. *)
-fun is_trivial _ = raise ERROR "not implemented"; (* FIXME *)
-(* 
-    let val init_renaming = 
-        val rhs' = Graph.rename_apart
-    in
-    (case Seq.pull (MatchSearch.match (get_lhs rule) (get_rhs rule) 
-                                     V.NTab.empty)
-      of NONE => false
-       | _ => true);
-*)
 
 (*  *)
 (* TODO: add renaming for extra stuff (not lhs and rhs) *)

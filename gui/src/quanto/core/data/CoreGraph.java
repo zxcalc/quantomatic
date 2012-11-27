@@ -246,7 +246,7 @@ implements CoreObject, ChangeEventSupport {
 				oldBBMap.remove(entry.getKey());
 			} else {
 				bbd = BangBox.fromJson(theory, entry.getKey(), entry.getValue());
-				addBangBox(bbd.bangBox, Collections.EMPTY_SET);
+				addBangBox(bbd.bangBox, Collections.<Vertex>emptySet());
 			}
 			ArrayList<Vertex> contents = new ArrayList<Vertex>(bbd.contents.size());
 			for (String item : bbd.contents) {

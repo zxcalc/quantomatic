@@ -12,6 +12,7 @@ uses
  "../../core/graph/ograph.ML"
  "../../core/graph/bang_graph.ML" (* bang box graphs *)
  "../../core/graph/bang_graph_iso.ML" (* isomorphism between !graphs *)
+ "../../core/graph/graph_annotations.ML" (* graph annotations *)
 
 (* Metrics *)
  "../../core/metrics/metric_type.ML" (* Utils to handle int tuples *)
@@ -20,8 +21,18 @@ uses
  "../../core/metrics/metrics/weighted_arity_metric.ML"
  "../../core/metrics/metrics/sets_cardinals_metric.ML"
  "../../core/metrics/metrics.ML" (* Metrics on graphs *)
-(*  *)
 
+(*
+ * Rules
+ *)
+ "../../core/rewriting/rule.ML"
+
+
+(*
+ * Rulesets
+ *)
+ "../../core/theories/ruleset.ML"
+ "../../core/theories/ruleset_annotations.ML"
 begin
 
 end;
