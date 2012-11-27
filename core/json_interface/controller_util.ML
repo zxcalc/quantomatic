@@ -1,6 +1,6 @@
 infix 5 -:
 
-structure ControllerUtil =
+structure JsonControllerUtil =
 struct
 
 (* Fixed set of types to annotate protocol calls. Used to

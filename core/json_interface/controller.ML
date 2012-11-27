@@ -1,14 +1,14 @@
-signature CONTROLLER =
+signature JSON_CONTROLLER =
 sig
   structure Theory : GRAPHICAL_THEORY
   val dispatch : (string * string) * Json.json -> Json.json
 end
 
 
-functor Controller(Theory : GRAPHICAL_THEORY) =
+functor JsonController(Theory : GRAPHICAL_THEORY) =
 struct
 
-open ControllerUtil
+open JsonControllerUtil
 
 structure Theory = Theory
 structure CModTest = CModTest(Theory)

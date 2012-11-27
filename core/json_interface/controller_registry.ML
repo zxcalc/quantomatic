@@ -1,4 +1,4 @@
-signature CONTROLLER_REGISTRY =
+signature JSON_CONTROLLER_REGISTRY =
 sig
   (*
     dispatch takes:
@@ -9,12 +9,12 @@ sig
   val dispatch : (string * string * string) * Json.json -> Json.json
 end
 
-structure ControllerRegistry =
+structure JsonControllerRegistry : JSON_CONTROLLER_REGISTRY =
 struct
 
-open ControllerUtil
+open JsonControllerUtil
 
-structure RG_Controller = Controller(RG_Theory)
+structure RG_Controller = JsonController(RG_Theory)
 
 val ctab = Symtab.make [
  (RG_Controller.Theory.theory_name, RG_Controller.dispatch)

@@ -1,13 +1,13 @@
-signature CONTROLLER_PROTOCOL =
+signature JSON_CONTROLLER_PROTOCOL =
 sig
   val run_in_textstreams : TextIO.instream * TextIO.outstream -> unit 
   val run_in_stdio : unit -> unit
 end
 
-structure ControllerProtocol =
+structure JsonControllerProtocol =
 struct
 
-open ControllerUtil
+open JsonControllerUtil
 
 (* {{{ Input helpers *)
 
@@ -35,7 +35,7 @@ fun dispatch rid cmd =
   Json.mk_object [
     ("request_id", Json.Int rid),
     ("success",    Json.Bool true),
-    ("output",     ControllerRegistry.dispatch cmd)
+    ("output",     JsonControllerRegistry.dispatch cmd)
   ]
 handle user_exn msg =>
   Json.mk_object [

@@ -6,7 +6,7 @@ end
 functor CModTest(Theory : GRAPHICAL_THEORY) : CMOD_TEST =
 struct
 
-open ControllerUtil
+open JsonControllerUtil
   
 val ftab = Symtab.empty
 
