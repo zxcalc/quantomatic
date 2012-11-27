@@ -2,6 +2,7 @@ functor CosyUtil(
   structure Enum : GRAPH_ENUM
   val data_list : Enum.Theory.OVData.IData.data list
   val output_dot : Enum.Theory.Graph.T -> string
+  val initial_rs : Enum.Theory.Ruleset.T
 ) =
 struct
 
@@ -10,7 +11,6 @@ structure EqClassTab = Enum.EqClassTab
 structure EqClass = EqClassTab.EqClass
 structure GraphEntry = EqClassTab.GraphEntry
 structure Theory = Enum.Theory
-structure Spiders = SpiderRewrites(structure Theory = Theory)
 
 (*fun gen_list max_arity data_list = let
     fun alist 0 0 = []
@@ -130,9 +130,11 @@ fun output_graph_list content_div gs = let
 in ()
 end
 
-fun output_eqtab content_div eqt sz = let
+fun output_eqtab content_div eqt (max_v,max_p,max_m,max_n) = let
   val parent = addContainer content_div
-    (Theory.theory_name ^ " Synth ("^(Int.toString sz)^")") true
+    (Theory.theory_name ^ " Synth " ^
+      "(" ^ Int.toString max_v ^ "," ^ Int.toString max_p ^ "," ^
+            Int.toString max_m ^ "," ^ Int.toString max_n ^ ")") true
   val details =
     "SYNTHESIS RESULTS\n"^
     "-----------------------------------------\n"
@@ -169,8 +171,6 @@ fun output_eqtab content_div eqt sz = let
 in ()
 end
 
-val initial_rs = Spiders.ruleset_from_vdata data_list
-
 fun get_rules content_div sz =
 let
   val eqt = Enum.tab_update gens sz (Enum.EqClassTab.mk initial_rs)
@@ -201,7 +201,17 @@ structure RGCosy = CosyUtil(
   structure Enum = RG_Enum
   val data_list = rg_data_list
   val output_dot = RG_GraphicalTheoryIO.OutputGraphDot.output
+  val initial_rs = RG_Spiders.frob_and_special_rules data_list
 )
+
+val ghzw_data_list = [GHZW_Data.GHZ, GHZW_Data.W]
+structure GHZWCosy = CosyUtil(
+  structure Enum = GHZW_Enum
+  val data_list = ghzw_data_list
+  val output_dot = GHZW_GraphicalTheoryIO.OutputGraphDot.output
+  val initial_rs = GHZW_Spiders.frob_rules data_list
+)
+
 
 (*local
   open RGCosy

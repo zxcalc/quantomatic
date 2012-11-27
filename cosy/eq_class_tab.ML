@@ -384,8 +384,22 @@ struct
   
   
   fun mk rs = let
-    val eqt = empty |> set_initial_rs rs
-    val init_reds = Ruleset.get_rules_in_tag rs (TagName.mk "redex")
-  in eqt
+    val initial_redexes = Ruleset.get_rules_in_tag rs (TagName.mk "redex")
+    fun add_rule rn eqt = let
+      val ge = GE.mk' ((Theory.Rule.get_lhs (Ruleset.get_rule rs rn), NONE), default_data)
+      val (gn, tab) = (get_graph_tab eqt) |> GraphName.NTab.add (GraphName.mk "r0", ge)
+    in eqt |> set_graph_tab tab |> set_as_redex gn
+    end
+  in R.NSet.fold add_rule initial_redexes (empty |> set_initial_rs rs)
   end
 end
+
+
+
+
+
+
+
+
+
+

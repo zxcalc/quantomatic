@@ -1,7 +1,8 @@
 signature SPIDER_REWRITES =
 sig
   structure Theory : GRAPHICAL_THEORY
-  val ruleset_from_vdata : Theory.OVData.IData.data  list -> Theory.Ruleset.T
+  val frob_rules : Theory.OVData.IData.data  list -> Theory.Ruleset.T
+  val frob_and_special_rules : Theory.OVData.IData.data  list -> Theory.Ruleset.T
 end
 
 functor SpiderRewrites (
@@ -47,13 +48,20 @@ struct
 
   val t_redex = TagName.mk "redex"
 
-  fun add_rules d rs =
+  fun add_frob_and_special d rs =
   let
     val (fr, rs) = Ruleset.add_fresh_rule (R.mk "fr_0", frob d) rs
     val (sp, rs) = Ruleset.add_fresh_rule (R.mk "sp_0", special d) rs
   in rs |> Ruleset.tag_rule fr t_redex
         |> Ruleset.tag_rule sp t_redex
   end
+  
+  fun add_frob d rs =
+  let
+    val (fr, rs) = Ruleset.add_fresh_rule (R.mk "fr_0", frob d) rs
+  in rs |> Ruleset.tag_rule fr t_redex
+  end
 
-  fun ruleset_from_vdata ds = fold add_rules ds Ruleset.empty
+  fun frob_rules ds = fold add_frob ds Ruleset.empty
+  fun frob_and_special_rules ds = fold add_frob_and_special ds Ruleset.empty
 end
