@@ -8,18 +8,18 @@ sig
   type data
   val update_graph : (Graph.T -> Graph.T) -> T -> T
   val update_data  : (data -> data) -> T -> T
-  val update_edata : (Equiv.T -> Equiv.T) -> T -> T
+  val update_edata : (Equiv.T option -> Equiv.T option) -> T -> T
   val update_dirty : (bool -> bool) -> T -> T
   val get_graph    : T -> Graph.T
   val get_data     : T -> data
-  val get_edata    : T -> Equiv.T
+  val get_edata    : T -> Equiv.T option
   val get_dirty    : T -> bool
   val set_graph    : Graph.T -> T -> T
   val set_data     : data -> T -> T
-  val set_edata    : Equiv.T -> T -> T
+  val set_edata    : Equiv.T option -> T -> T
   val set_dirty    : bool -> T -> T
   val mk  : Graph.T * data -> T
-  val mk' : (Graph.T * Equiv.T) * data -> T
+  val mk' : (Graph.T * Equiv.T option) * data -> T
 end
 
 signature EQ_CLASS =
@@ -89,7 +89,9 @@ struct
   structure Graph = Equiv.Graph
   structure Equiv = Equiv
   type data = data
-  datatype T = GE of { graph: Graph.T, data: data, edata: Equiv.T, dirty: bool }
+  
+  exception stub_data_access of unit
+  datatype T = GE of { graph: Graph.T, data: data, edata: Equiv.T option, dirty: bool }
   fun update_graph f (GE r) = GE {graph = f(#graph r), data  = #data r, edata = #edata r, dirty = #dirty r}
   fun update_data f (GE r) = GE {graph = #graph r, data  = f(#data r), edata = #edata r, dirty = #dirty r}
   fun update_edata f (GE r) = GE {graph = #graph r, data  = #data r, edata = f(#edata r), dirty = #dirty r}
@@ -111,7 +113,10 @@ struct
       dirty = true
     }
   
-  fun mk (gr, d) = mk' (Equiv.compute_equiv_data gr, d)
+  fun mk (gr, d) = let
+    val (gr' ,ed) = Equiv.compute_equiv_data gr
+  in mk' ((gr', SOME ed), d)
+  end
 end
 
 structure EqClass =
@@ -138,6 +143,7 @@ functor EqClassTab(
           Metric.Graph.SharingOGraph =
           Equiv.Graph.SharingOGraph
   type data
+  val default_data : data
 ) : EQ_CLASS_TAB =
 struct
   structure Theory = Theory
@@ -330,8 +336,12 @@ struct
       
       fun tryadd_to_class cls eqt = let
         val cls_ge = GraphName.NTab.get (get_graph_tab eqt) (EqClass.get_rep cls)
+        val inclass =
+          case (GE.get_edata cls_ge, GE.get_edata ge)
+            of (SOME d1, SOME d2) => Equiv.eq (d1, d2)
+             | _ => false
       in
-        if Equiv.eq (GE.get_edata cls_ge, GE.get_edata ge)
+        if inclass
         then
         SOME (
           case Metric.ord_graph (GE.get_graph cls_ge, GE.get_graph ge)
@@ -373,5 +383,9 @@ struct
   end
   
   
-  fun mk rs = empty |> set_initial_rs rs
+  fun mk rs = let
+    val eqt = empty |> set_initial_rs rs
+    val init_reds = Ruleset.get_rules_in_tag rs (TagName.mk "redex")
+  in eqt
+  end
 end

@@ -48,7 +48,8 @@ struct
     structure Theory = Theory
     structure Metric = Metric
     structure Equiv = Equiv
-    type data = data)
+    type data = data
+    val default_data = default_data)
   structure GraphEntry = EqClassTab.GraphEntry
 
   (****** Utility Functions ******)
