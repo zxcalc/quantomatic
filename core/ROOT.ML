@@ -238,13 +238,13 @@ PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
 *)
 
 (* new modular controller *)
-PolyML.Project.make "interface/controller_util.ML";
-PolyML.Project.make "interface/controller_module.ML";
-PolyML.Project.make "interface/modules/test.ML";
-PolyML.Project.make "interface/controller.ML";
-PolyML.Project.make "interface/controller_registry.ML";
-PolyML.Project.make "interface/protocol.ML";
-PolyML.Project.make "interface/run.ML";
+PolyML.Project.make "json_interface/controller_util.ML";
+PolyML.Project.make "json_interface/controller_module.ML";
+PolyML.Project.make "json_interface/modules/test.ML";
+PolyML.Project.make "json_interface/controller.ML";
+PolyML.Project.make "json_interface/controller_registry.ML";
+PolyML.Project.make "json_interface/protocol.ML";
+PolyML.Project.make "json_interface/run.ML";
 
 (* Testing *)
 Testing.make_test "io/test/load_ruleset-test.ML";
