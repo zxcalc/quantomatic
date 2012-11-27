@@ -275,17 +275,17 @@ Testing.make_test "dnets/test.ML";
  * Controller / Interface
  *)
 (* Overall controller for theories *)
-(* PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
+PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)
 PolyML.Project.make "interface/controller_registry.ML"; (* theory lists *)
-*)
+
 (* OLD interface protocol/console *)
-(* PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
+ PolyML.Project.make "interface/console_commands.ML"; (* console commands and help *)
 PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
 PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
-*)
+
 
 (* new modular controller *)
 PolyML.Project.make "json_interface/controller_util.ML";
