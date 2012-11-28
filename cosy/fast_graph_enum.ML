@@ -74,10 +74,26 @@ struct
   in snd (List.foldl (filter_max' m) (0,[]) zs)
   end
 
+  val sum = List.foldr (fn (x,y) => x+y) 0
+
 
   (****** adjmat functions ******)
 
-  fun adjmat_size (gs,_,_,_) = length gs
+  (* Number of: vertices, total inputs, total outputs *)
+  fun adjmat_total_arities (gs,_,_,_) = let
+    val m = sum (map (fn (_,i,_) => i) gs)
+    val n = sum (map (fn (_,_,j) => j) gs)
+  in (m, n)
+  end
+
+  (* Number of: vertices, total inputs, total outputs *)
+  fun adjmat_arity (g as (gs,_,_,edges)) = let
+    val p = sum (map sum edges)
+    val (m,n) = adjmat_total_arities g
+  in (m-p, n-p)
+  end
+
+
 
   fun split_edge [] = ([],[])
     | split_edge xs = let 
@@ -212,11 +228,22 @@ struct
 
   (* adds any possible vertex with no edges *)
   (* add_gens : [generator] -> adjmat -> adjmat list *)
-  fun add_gens gens (matr as ([],_,_,_)) = map (fn v => add_gen v matr) gens
-    | add_gens gens (matr as (vert::_,_,_,_)) = let
-      val gens' = drop_while (fn g => not (generator_eq (g,vert))) gens
-    in map (fn v => add_gen v matr) gens'
+  local
+    fun is_small (max_p,max_m,max_n) graph (_,gm,gn) = let
+        val (m,n) = adjmat_total_arities graph
+      in (m+gm-max_p < max_m) andalso (n+gn-max_p < max_n)
+      end
+  in
+    fun add_gens (max_p,max_m,max_n) gens (matr as ([],_,_,_)) = let
+        val gens = filter (is_small (max_p,max_m,max_n) matr) gens
+      in map (fn v => add_gen v matr) gens
+      end
+      | add_gens (max_p,max_m,max_n) gens (matr as (vert::_,_,_,_)) = let
+        val gens = drop_while (fn g => not (generator_eq (g,vert))) gens
+        val gens = filter (is_small (max_p,max_m,max_n) matr) gens
+    in map (fn v => add_gen v matr) gens
     end
+  end
   
   (* adds any possible edge *)
   (* add_edge : adjmat -> adjmat list *)
@@ -229,23 +256,24 @@ struct
                                                 map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
         | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ 
                                                 map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
-    in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
-    end
+  in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
+  end
 
 
   (****** Enumeration with EqClassTab ******)
   
-  local
-    fun fold_save fopt (x::xs) (ys,accum) = (
-      case fopt x accum
-        of SOME accum' => fold_save fopt xs (x::ys, accum')
-         | NONE        => fold_save fopt xs (ys,accum))
+  
+    fun fold_graphs gens (max_v,max_p,max_m,max_n) fopt initial = let
+    fun fold_save fopt (x::xs) (ys,accum) = 
+        if ((fn (m,n) => m <= max_m andalso n <= max_n) (adjmat_arity x))
+        then case fopt x accum
+            of SOME accum' =>  fold_save fopt xs (x::ys, accum')
+             | NONE        => fold_save fopt xs (ys,accum)
+        else case fopt x accum
+            of SOME accum' =>  fold_save fopt xs (x::ys, accum)
+             | NONE        => fold_save fopt xs (ys,accum)
       | fold_save fopt [] (ys,accum) = (ys, accum)
-  in
-    fun fold_graphs gens (max_v,max_p,max_m,max_n) fopt initial =
-    let
-      (***)
-      (* add edges in all possible ways *)
+        (* add edges in all possible ways *)
       fun fold_edges_round [] (next, accum) = (next, accum)
         | fold_edges_round egs (next, accum) =
       let
@@ -262,14 +290,13 @@ struct
           fold_save (fopt o to_graph_entry) (map (fn (am,i) => (am,i+1)) prev) ([], accum)
         (* only add non-trivial generators to graphs that don't have any bare wires yet *)
         val prev = map fst (filter (fn (_,i)=> i = 0) prev)
-        val graphs = flat (map (add_gens gens) prev)
+        val graphs = flat (map (add_gens (max_p,max_m,max_n) gens) prev)
       in fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')
       end
       (***)
     in
       snd (funpow max_v fold_graphs_round ([empty_graph_rep], initial))
     end
-  end
   
   fun enum gens max_size =
     fold_graphs gens max_size
