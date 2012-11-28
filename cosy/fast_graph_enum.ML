@@ -262,41 +262,39 @@ struct
 
   (****** Enumeration with EqClassTab ******)
   
-  
-    fun fold_graphs gens (max_v,max_p,max_m,max_n) fopt initial = let
+  (* TODO: replace fopt with (f, filt) *)
+  fun fold_graphs gens (max_v,max_p,max_m,max_n) fopt initial = let
     fun fold_save fopt (x::xs) (ys,accum) = 
-        if ((fn (m,n) => m <= max_m andalso n <= max_n) (adjmat_arity x))
-        then case fopt x accum
-            of SOME accum' =>  fold_save fopt xs (x::ys, accum')
-             | NONE        => fold_save fopt xs (ys,accum)
-        else case fopt x accum
-            of SOME accum' =>  fold_save fopt xs (x::ys, accum)
-             | NONE        => fold_save fopt xs (ys,accum)
+          (if (fn (m,n) => (m + snd x) <= max_m andalso (n + snd x) <= max_n) (adjmat_arity (fst x))
+           then case fopt (to_graph_entry x) accum
+                  of SOME accum' =>  fold_save fopt xs (x::ys, accum')
+                   | NONE        => fold_save fopt xs (ys,accum)
+           else fold_save fopt xs (x::ys, accum))
       | fold_save fopt [] (ys,accum) = (ys, accum)
-        (* add edges in all possible ways *)
-      fun fold_edges_round [] (next, accum) = (next, accum)
-        | fold_edges_round egs (next, accum) =
-      let
-          val (next',accum') = fold_save (fopt o to_graph_entry) (map (fn eg => (eg,0)) egs) ([],accum)
-          val egs' = maps (add_edge o fst) next'
-      in fold_edges_round (egs') (next' @ next, accum')
-      end
-      (***)
-      (* one round of enumeration. (prev, accum) => add one vertex => (next, accum') *)
-      fun fold_graphs_round (prev, accum) =
-      let
-        (* start by adding one bare wire to the output of the previous round *)
-        val (prev_with_bare, accum') =
-          fold_save (fopt o to_graph_entry) (map (fn (am,i) => (am,i+1)) prev) ([], accum)
-        (* only add non-trivial generators to graphs that don't have any bare wires yet *)
-        val prev = map fst (filter (fn (_,i)=> i = 0) prev)
-        val graphs = flat (map (add_gens (max_p,max_m,max_n) gens) prev)
-      in fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')
-      end
-      (***)
-    in
-      snd (funpow max_v fold_graphs_round ([empty_graph_rep], initial))
+      (* add edges in all possible ways *)
+    fun fold_edges_round [] (next, accum) = (next, accum)
+      | fold_edges_round egs (next, accum) =
+    let
+        val (next',accum') = fold_save fopt (map (fn eg => (eg,0)) egs) ([],accum)
+        val egs' = maps (add_edge o fst) next'
+    in fold_edges_round (egs') (next' @ next, accum')
     end
+    (***)
+    (* one round of enumeration. (prev, accum) => add one vertex => (next, accum') *)
+    fun fold_graphs_round (prev, accum) =
+    let
+      (* start by adding one bare wire to the output of the previous round *)
+      val (prev_with_bare, accum') =
+        fold_save fopt (map (fn (am,i) => (am,i+1)) prev) ([], accum)
+      (* only add non-trivial generators to graphs that don't have any bare wires yet *)
+      val prev = map fst (filter (fn (_,i)=> i = 0) prev)
+      val graphs = flat (map (add_gens (max_p,max_m,max_n) gens) prev)
+    in fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')
+    end
+    (***)
+  in
+    snd (funpow max_v fold_graphs_round ([empty_graph_rep], initial))
+  end
   
   fun enum gens max_size =
     fold_graphs gens max_size
