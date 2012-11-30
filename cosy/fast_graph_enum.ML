@@ -93,6 +93,9 @@ struct
   in (m-p, n-p)
   end
 
+  (* Number of: vertices, total inputs, total outputs *)
+  fun adjmat_pluggings (g as (_,_,_,edges)) = sum (map sum edges)
+
 
 
   fun split_edge [] = ([],[])
@@ -222,27 +225,24 @@ struct
 
   (****** Building adjmat graphs ******)
 
- (* adds a specific type of vertex with no edges *)
+  (* adds a specific type of vertex with no edges *)
   (* add_gen : generator -> adjmat -> adjmat *) 
   fun add_gen (v' as (_,inp,out)) (verts, inps, outs, edges) = (v'::verts, inp::inps, out::outs, (List.tabulate ((2 * length (verts) +1), K 0)::edges))
 
   (* adds any possible vertex with no edges *)
   (* add_gens : [generator] -> adjmat -> adjmat list *)
-  local
-    fun is_small (max_p,max_m,max_n) graph (_,gm,gn) = let
-        val (m,n) = adjmat_total_arities graph
-      in (m+gm-max_p < max_m) andalso (n+gn-max_p < max_n)
-      end
-  in
-    fun add_gens (max_p,max_m,max_n) gens (matr as ([],_,_,_)) = let
-        val gens = filter (is_small (max_p,max_m,max_n) matr) gens
-      in map (fn v => add_gen v matr) gens
-      end
-      | add_gens (max_p,max_m,max_n) gens (matr as (vert::_,_,_,_)) = let
-        val gens = drop_while (fn g => not (generator_eq (g,vert))) gens
-        val gens = filter (is_small (max_p,max_m,max_n) matr) gens
+  fun add_gens (max_p,max_m,max_n) gens (matr as ([],_,_,_)) = let
+      val gens = filter (fn (_,m,n) => m <= max_m + max_p andalso n <= max_n + max_p) gens
     in map (fn v => add_gen v matr) gens
     end
+    | add_gens (max_p,max_m,max_n) gens (matr as (vert::_,_,_,_)) = let
+      fun is_small (_,gm,gn) = let
+        val (m,n) = adjmat_total_arities matr
+      in (m+gm <= max_m + max_p) andalso (n+gn <= max_n + max_p)
+      end
+      val gens = drop_while (fn g => not (generator_eq (g,vert))) gens
+      val gens = filter is_small gens
+  in map (fn v => add_gen v matr) gens
   end
   
   (* adds any possible edge *)
@@ -276,7 +276,8 @@ struct
       | fold_edges_round egs (next, accum) =
     let
         val (next',accum') = fold_save fopt (map (fn eg => (eg,0)) egs) ([],accum)
-        val egs' = maps (add_edge o fst) next'
+        val egs' = filter (fn (g,_) => (adjmat_pluggings g) < max_p) next'
+        val egs' = maps (add_edge o fst) egs'
     in fold_edges_round (egs') (next' @ next, accum')
     end
     (***)
@@ -285,7 +286,7 @@ struct
     let
       (* start by adding one bare wire to the output of the previous round *)
       val (prev_with_bare, accum') =
-        fold_save fopt (map (fn (am,i) => (am,i+1)) prev) ([], accum)
+        fold_save fopt (map (fn (am,i) => (am,i+1)) (filter (fn (am,i) => (fst (adjmat_arity am) + i < max_m ) andalso (snd (adjmat_arity am) + i < max_n )) prev)) ([], accum)
       (* only add non-trivial generators to graphs that don't have any bare wires yet *)
       val prev = map fst (filter (fn (_,i)=> i = 0) prev)
       val graphs = flat (map (add_gens (max_p,max_m,max_n) gens) prev)
