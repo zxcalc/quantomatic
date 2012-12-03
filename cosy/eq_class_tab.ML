@@ -166,19 +166,38 @@ struct
   (* convenience functions for pulling out redexes and irredexes *)
   local
     exception found_exn of unit
-
+    (*fldf = fold function.
+      eqt = equivalence class table
+      f = the filter function
+      false is the identity. Note that this function basically ignores the
+      second argument (fold f [1,2,3] = f 1 (fold f [2,3]) ignores later result!
+      And just raises an exception to stop instead.
+      
+      This might affect futures, and is pretty unnecessary.*)
     fun fold_to_exists fldf f eqt = 
       fldf (fn x => fn _ =>
         (if f x then raise found_exn () else false)) eqt false
       handle found_exn () => true
   in
+    (*Applies a given function over every list of classes (so all hashed arities)
+    Class index to fold I think just combines all of the results into a list...
+    Note: second argument is the equivalence class table*)
     fun fold_eqclasses f = ClassIndex.fold (fn (_, classlist) => (*Apply f to every reducible expression listed in every class!*)
         fold f classlist
       ) o get_tab
   
+    (*Given a function f to apply between elements during the fold
+    (i.e: fold f [1,2,3] = f 1 (fold f [2,3])
+                         = f 1 (f 2 (fold f [3]))
+                         = f 1 (f 2 (f 3 id)) maybe
+      apply it to the list of reducible expressions within each equivalence class.
+      Second argument is the equivalence class table itself!*)
     fun fold_redexes f =
       fold_eqclasses (fn class => fold f (EqClass.get_redexes class))
-      
+    (*Similar to fold_redexes to an extent. It will get the class representative,
+    and then all other members of the equivalence class of the same side, and return those.
+    Anything larger than both the congruences and the representative can be reduced to the
+    representative by a rewrite rule.*)
     fun fold_irredexes f =
       fold_eqclasses (fn class => fold f (EqClass.get_rep class :: EqClass.get_congs class))
     
@@ -200,9 +219,17 @@ struct
           fold class_fld classlist) o get_tab
       end*)
     
+    (*Return all of the reducible expressions.
+    cons is exactly what you think it is
+    eqt = the equivalence class table*)
     fun get_redexes eqt = fold_redexes cons eqt []
+    (*Return all of the irreducible expressions*)
     fun get_irredexes eqt = fold_irredexes cons eqt []
+    (*Checks to see if there exists some reducible expression under which the
+    given function (that needs to be passed in as the first argument here!)
+    returns true on.*)
     val exists_redexes = fold_to_exists fold_redexes
+    (*Similar to exists_redexes, but for irreducible graphs*)
     val exists_irredexes = fold_to_exists fold_irredexes
   end
   
@@ -246,10 +273,20 @@ struct
       (get_graph pat) (get_graph tgt)
     ))
   
+  (*rs = a rule set. tgt = the existing graph.
+  This checks all the left hand sides of all known rules. A rule is of the form
+  L -> R where L can be rewritten to R I think. Hence, if L is spotted as a subgraph (match)
+  within a graph G, its ocurrence within G can be replaced by R. Assuming all kept rules
+  reduce graphs in "size", then if such a rule with a match exists, this graph can be
+  considered reducible to a smaller graph. If all smaller graphs were already evaluated,
+  this returning true means we can effectively ignore this graph, since we already
+  know we can rewrite it.*)
   fun rs_can_reduce rs tgt =
   let (*Also uses the matching algorithm!! Also requires only the first element*)
-    fun r_matches r_name =
+    fun r_matches r_name = (*r_matches  = rule matches*)
       is_some (Seq.pull (Theory.MatchSearch.match
+        (*Left hand side of a rule is some L -> R
+        L exists within G. Hence, the left hand sides form pattern graphs.*)
         (Theory.Rule.get_lhs (Ruleset.get_rule rs r_name)) (get_graph tgt)
       ))
   in R.NSet.exists r_matches
@@ -258,8 +295,27 @@ struct
   
   (* returns (SOME new_class) if graph is equivalent to the representative,
      and NONE otherwise *)
-  fun tryadd_to_class cls ge = (*Does not guarantee that they are equival*)
-    if Equiv.eq (get_edata (EqClass.get_rep cls), get_edata ge)
+  (*
+  cls = equivalence class to try and add the graph too
+  ge = graph entry to be added
+  
+  Checks first that the graph and the minimal graph are equivalent by the equivalence metric.
+  If so, it sees by the ordering metric whether this graph is any smaller or not.
+  The Congruences are remembered explicity to derive all of the cycle rewrite rules.
+  Hence, if it is the same size, then it is added to the set of congruences.
+  
+  If C and C' are in the set of congruences, then rewrite rules exist such that
+  C -> C' and C' -> C
+  
+  If G is in the equivalence class but not minimal, then rewrite rules exist such that
+  for all C in the set of congruences, and R the representive,
+  G -> R and G -> C
+  
+  Returns: NONE     - to indicate it couldn't be added
+           SOME cls - to indicate it was added, and cls is the modified class
+  *)
+  fun tryadd_to_class cls ge = (*Does not guarantee that they are equivalent*)
+    if Equiv.eq (get_edata (EqClass.get_rep cls), get_edata ge) (*Equivalence metric*)
     then SOME (
       case Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge)
       of LESS    => cls |> EqClass.update_redexes (cons ge) (*representative stays (minimal)*)
@@ -269,9 +325,20 @@ struct
        | EQUAL   => cls |> EqClass.update_congs (cons ge)) (*Congs contains equivalent graphs*)
     else NONE
   (*Given a list of equivalence classes, try to add the graph entry to one of them.
-  The equivalence classes are between graphs of only the same input and output arity.*)
+  The equivalence classes are between graphs of only the same input and output arity
+  by this point.
+  The arity is a form of hashing. Not all graphs with the same input/output arity will
+  lie in the same equivalence class!!
+  
+  So classlist is a list of classes that have the correct arity (feasible)
+  
+  Returns: a new list of classes. If the graph entry (ge) did not fit into any class,
+           then this constructs a new class. It has appropriate arity of course,
+           and so can remain hashed this way and be returned with the rest of this list.
+  *)
   fun find_and_add ge classlist = let
-    fun tryaddf cls (cls_found, rest) =
+    fun tryaddf cls (cls_found, rest) = (*If we found the result, return immediately
+    Seems a little inefficient - could just stop the fold.*)
       if cls_found then (cls_found, cls :: rest) (*We found the right class,
       so don't bother adding it to another*)
       else (case tryadd_to_class cls ge
@@ -281,25 +348,47 @@ struct
        of (true, cs) => cs (*This graph was successfully added to an existing class*)
         | (false, cs) => (EqClass.mk ge :: cs) (*Create a new class, since it is distinct from the rest.*)
   end
-
+  (*Initial rs include initial rewrite rules I think. These are necessary to derive the rest?*)
   fun update_one ge eqt = (*initial_rs includes many common reductions*)
-    if rs_can_reduce (get_initial_rs eqt) ge orelse (*This is where the DNET comes in*)
-       exists_redexes (has_match ge) eqt (*checks all with the same arity and checks matching*)
-    then NONE
-    else let
+    (*Firstly, see if it exists in the equivalence table already...*)
+    if rs_can_reduce (get_initial_rs eqt) ge orelse (*This is where the DNET comes in
+       See if the LHS of any existing rule within the rule set (rule set can reduce) appears in the graph. That would
+       mean that the ocurrence of the LHS in the graph can be replaced by the RHS, and assuming
+       this reduces the size of the graph, that indicates we can reduce it to a graph we're already
+       found.*)
+       exists_redexes (has_match ge) eqt (*checks all with the same arity and checks matching
+       Hence, this specifically checks to see if, for all reducible expressions, whether or not
+       a reducible expression in the equivalence class table exists within the existing graph.
+       If so, it again means this graph can be reduced. This is sort of redundant if the DNET
+       using rs_can_reduce already has all the rewrite rules from with the equivalence class
+       table, but while the table is formed this is not the case, so the above check is worth while.
+       Also, it seems odd that we check ALL graphs, since the paper suggests you need only
+       check graphs in the same equivalence class...
+       
+       Is it bad that the irreducible graphs are not looked for? No - if you found the irreducible
+       graph within your graph, what do you plan to do with it anyway...*)
+    then NONE (*No need to add this*)
+    else let (*Add this to the equivalence class*)
       val gr = get_graph ge (*Get the graph from the graph entry*)
-      val arity = (V.NSet.cardinality (G.get_inputs gr),
+      val arity = (V.NSet.cardinality (G.get_inputs gr), (*For hashing*)
                    V.NSet.cardinality (G.get_outputs gr))
     (*Find the appropriate row for this graph in the table, if it exists, and then add it.*)
     (*The arity forms the key. The [] will be used if no entry for the given key exists, in which
     case find_and_add ge [] will be used. Otherwise,
-    find_and_add ge ls will be used where ls is the associated list. (See table.ML)*)
+    find_and_add ge ls will be used where ls is the associated list. (See table.ML)
+    Hence, if the arity fails to exist then we add a new row in the physical table,
+    and a new equivalence class. If the arity does exist, then we will add
+    the graph entry either to an existing equivalence class with that arity, or create
+    a new class with the same arity.*)
     in SOME (eqt |> update_tab (ClassIndex.map_default (arity, []) (find_and_add ge)))
     end
   (*Arity works like hashcode - we know only graphs with equivalent arity could belong to the same class*)
   
   (*Add multiple graph entries at once
-  Note: eqt = equivalence table*)
+  Note: eqt = equivalence table
+  
+  See update one for details. It does all the work. The fold
+  just remembers the equivalence table as it is formed.*)
   fun update ge_list eqtab = let
     fun updatef ge (ges, eqt) =
       case update_one ge eqt
@@ -308,6 +397,51 @@ struct
   in fold updatef ge_list ([],eqtab) (*BRANCH POINT*)
   end
   
+  (*Initially empty equivalence table, with no rule set.*)
   val empty = EQT {tab=ClassIndex.empty, initial_rs=Theory.Ruleset.empty}
   fun mk rs = empty |> set_initial_rs rs
+  
+  (*
+  IMPORTANT:
+  Unsurprisingly, it is the equivalence metric which determines whether or not
+  two graphs belong in the same equivalence class. You would think this is where most
+  of the work is done (and I had believed this was where the matching was important, but alas
+  I was wrong). The equivalence checking is done typically with tensors and their contraction
+  to other forms. I know nothing about this at the moment... Maybe I will find out more
+  from the recommended book?
+  
+  Apparently, this is "fast" so perhaps it is not even NP Complete? Hopefully, it will not
+  turn out to take up the significant use of the CPU time, since I will be focussing
+  on parallelising across the matching. I can probably parallelise across this too though.
+  
+  Whenever a graph (entry) is added to the equivalence table, it first:
+  1. Goes through the DNET with its existing set of rules (currently using a default, so not really
+  active but you should assume it will be)
+  2. Next, with every reducible graph in the table, see if any match (are subgraphs of) the graph
+  being added. If so, ignore it. This runs the matching algorithm MANY times if
+  there are many reducible expressions (graphs)
+  3. Finally, try adding the graph to each equivalence class. The Equiv metric will identify
+  when the right class has been found, and then the ordering metric will trigger the appropriate
+  update. Apparently this is fast, and there won't be many classes to try with hashing anyway.
+  
+  So, certainly parallelising across 1 and 2 is a good idea. In the merging of equivalence
+  tables, the number of reducible expressions will be initially very small. Hence, at first
+  there will be many tables all of which are very fine grained, and later there will be few
+  which offer very coarse grain concurrency. Hence, a dynamic model to adjust for the times
+  taken is EXTREMELY useful (WOOO!). With such a model, I can just parallelise straight across.
+  
+  Note that the tree might have trouble with this. Initially, it will build up huge numbers
+  of tables it needs to merge at once. However, it does so by considering nodes in order.
+  It would be wise to supply all the small tables first, and then the larger ones later,
+  so the formation of the nodes it would parallelise across is relevant.
+  
+  An alternative is just to set off a new compactor on each row. This is less risky in the sense
+  of accidentally eating a whole row above and struggling to climb down in time exponentially
+  as the grain becomes coarser (don't want to wind up eating the whole tree at every step)
+  
+  In fact, it might even be worth adding a guard against this, to prevent the whole
+  tree being consumed at each step. Otherwise, only one core will ever be allowed to run...
+  
+  See project journal for suggestions
+  *)
 end

@@ -27,3 +27,5 @@ PolyML.Project.make "synthesize.ML";
 PolyML.Project.make "ruleset_builder.ML";
 
 PolyML.Project.make "theories.ML"; *)
+
+PolyML.Project.ensure_at_latest_heap ();

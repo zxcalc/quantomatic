@@ -219,9 +219,8 @@ struct
   
   Note: List.tabulate ((2 * length (verts) +1), K 0) returns [0,0,0,0...] Hmm...
   => 0, 1, 3, (2*3 + 1) = 7, etc...
-  Input can be placed in n ways, output can be place in n ways --- wrong number...???
   *)
- (* adds a specific type of vertex with no edges *)
+  (* adds a specific type of vertex with no edges *)
   (* add_gen : generator -> adjmat -> adjmat *)
   (*Add 0s to show no inputs or outputs used on new edge of matrix*)
   fun add_gen (v' as (_,inp,out)) (verts, inps, outs, edges) = (v'::verts, inp::inps, out::outs, (List.tabulate ((2 * length (verts) +1), K 0)::edges))
@@ -279,7 +278,7 @@ struct
         val (next, accum') = fold_save (fopt o to_graph_entry) (map (fn (am,i) => (am,i+1)) prev) ([], accum)
         (* only add non-trivial generators to graphs that don't have any bare wires yet *)
         val prev = map fst (filter (fn (_,i)=> i = 0) prev)
-        val graphs = flat (map (add_gens gens) prev)
+        val graphs = flat (map (add_gens gens) prev) (*BRANCH POINT*)
       in fold (fn g => fold_edges_round [g]) graphs (next, accum')
       end
       (***)
@@ -314,7 +313,7 @@ struct
     val (_,tab') = EqClassTab.update (map (fn (am,i) => to_graph_entry (am,i+1)) irred_graphs) tab
     val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs) (*have no identity wires*)
     (*Each generator has different types/inputs/outputs. Easier to parallelise here*)
-    val graphs = flat (map (add_gens gens) irred_graphs) (*adds 1 vertex and all possible edges to connect it (largest branch)*)
+    val graphs = flat (map (add_gens gens) irred_graphs) (*adds 1 vertex and all possible edges to connect it to (largest branch)*)
   in List.foldl (fn (g,t) => tab_add_edges [g] t) tab' graphs
   end*)
 
