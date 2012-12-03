@@ -6,36 +6,35 @@ sig
   
   type T
   type data
-  val update_graph : (Equiv.Graph.T -> Equiv.Graph.T) -> T -> T
+  val update_graph : (Graph.T -> Graph.T) -> T -> T
   val update_data  : (data -> data) -> T -> T
-  val update_edata : (Equiv.T -> Equiv.T) -> T -> T
+  val update_edata : (Equiv.T option -> Equiv.T option) -> T -> T
   val update_dirty : (bool -> bool) -> T -> T
-  val get_graph    : T -> Equiv.Graph.T
+  val get_graph    : T -> Graph.T
   val get_data     : T -> data
-  val get_edata    : T -> Equiv.T
+  val get_edata    : T -> Equiv.T option
   val get_dirty    : T -> bool
-  val set_graph    : Equiv.Graph.T -> T -> T
+  val set_graph    : Graph.T -> T -> T
   val set_data     : data -> T -> T
-  val set_edata    : Equiv.T -> T -> T
+  val set_edata    : Equiv.T option -> T -> T
   val set_dirty    : bool -> T -> T
   val mk  : Graph.T * data -> T
-  val mk' : (Graph.T * Equiv.T) * data -> T
+  val mk' : (Graph.T * Equiv.T option) * data -> T
 end
 
 signature EQ_CLASS =
 sig
   type T
-  structure GraphEntry : GRAPH_ENTRY
-  val update_rep     : (GraphEntry.T -> GraphEntry.T) -> T -> T
-  val update_congs   : (GraphEntry.T list -> GraphEntry.T list) -> T -> T
-  val update_redexes : (GraphEntry.T list -> GraphEntry.T list) -> T -> T
-  val get_rep        : T -> GraphEntry.T
-  val get_congs      : T -> GraphEntry.T list
-  val get_redexes    : T -> GraphEntry.T list
-  val set_rep        : GraphEntry.T -> T -> T
-  val set_congs      : GraphEntry.T list -> T -> T
-  val set_redexes    : GraphEntry.T list -> T -> T
-  val mk : GraphEntry.T -> T
+  val update_rep     : (GraphName.name -> GraphName.name) -> T -> T
+  val update_congs   : (GraphName.name list -> GraphName.name list) -> T -> T
+  val update_redexes : (GraphName.name list -> GraphName.name list) -> T -> T
+  val get_rep        : T -> GraphName.name
+  val get_congs      : T -> GraphName.name list
+  val get_redexes    : T -> GraphName.name list
+  val set_rep        : GraphName.name -> T -> T
+  val set_congs      : GraphName.name list -> T -> T
+  val set_redexes    : GraphName.name list -> T -> T
+  val mk : GraphName.name -> T
 end
 
 signature EQ_CLASS_TAB =
@@ -44,9 +43,10 @@ sig
   structure Theory : GRAPHICAL_THEORY
   structure EqClass : EQ_CLASS
   structure GraphEntry : GRAPH_ENTRY
+  structure DNet : TOP_DNET
   sharing GraphEntry.Graph.SharingOGraph
     = Theory.Graph.SharingOGraph
-    = EqClass.GraphEntry.Graph.SharingOGraph
+    = DNet.G.SharingOGraph
   
   
   val update_initial_rs : (Theory.Ruleset.T -> Theory.Ruleset.T) -> T -> T
@@ -54,6 +54,9 @@ sig
   val set_initial_rs    : Theory.Ruleset.T -> T -> T
 
   val get_ruleset : T -> Theory.Ruleset.T
+  
+  val get_graph_entry : T -> GraphName.name -> GraphEntry.T
+  val get_graph_tab : T -> GraphEntry.T GraphName.NTab.T
   
   val fold_eqclasses : (EqClass.T -> 'a -> 'a) -> T -> 'a -> 'a
   val fold_redexes : (GraphEntry.T -> 'a -> 'a) -> T -> 'a -> 'a
@@ -69,6 +72,7 @@ sig
   val get_irredexes : T -> GraphEntry.T list
   val get_redexes : T -> GraphEntry.T list
   
+  
   (* add one graph entry to table. Only return the table if it has actually changed. *)
   val update_one : GraphEntry.T -> T -> T option
   val update : GraphEntry.T list -> T -> GraphEntry.T list * T
@@ -77,43 +81,47 @@ sig
   val mk : Theory.Ruleset.T -> T
 end
 
-functor EqClass(
+functor GraphEntry(
   structure Equiv : GRAPH_EQUIV
   type data
-) : EQ_CLASS =
+) : GRAPH_ENTRY =
 struct
-
-  structure GraphEntry : GRAPH_ENTRY =
-  struct
-    structure Graph = Equiv.Graph
-    structure Equiv = Equiv
-    type data = data
-    datatype T = GE of { graph: Equiv.Graph.T, data: data, edata: Equiv.T, dirty: bool }
-    fun update_graph f (GE r) = GE {graph = f(#graph r), data  = #data r, edata = #edata r, dirty = #dirty r}
-    fun update_data f (GE r) = GE {graph = #graph r, data  = f(#data r), edata = #edata r, dirty = #dirty r}
-    fun update_edata f (GE r) = GE {graph = #graph r, data  = #data r, edata = f(#edata r), dirty = #dirty r}
-    fun update_dirty f (GE r) = GE {graph = #graph r, data  = #data r, edata = #edata r, dirty = f(#dirty r)}
-    fun get_graph (GE r) = #graph r
-    fun get_data  (GE r) = #data r
-    fun get_edata (GE r) = #edata r
-    fun get_dirty (GE r) = #dirty r
-    val set_graph    = update_graph o K
-    val set_data     = update_data  o K
-    val set_edata    = update_edata o K
-    val set_dirty    = update_dirty o K
-    
-    fun mk' ((gr, ed), d) =
-      GE {
-        graph = gr,
-        data = d,
-        edata = ed,
-        dirty = true
-      }
-    
-    fun mk (gr, d) = mk' (Equiv.compute_equiv_data gr, d)
+  structure Graph = Equiv.Graph
+  structure Equiv = Equiv
+  type data = data
+  
+  exception stub_data_access of unit
+  datatype T = GE of { graph: Graph.T, data: data, edata: Equiv.T option, dirty: bool }
+  fun update_graph f (GE r) = GE {graph = f(#graph r), data  = #data r, edata = #edata r, dirty = #dirty r}
+  fun update_data f (GE r) = GE {graph = #graph r, data  = f(#data r), edata = #edata r, dirty = #dirty r}
+  fun update_edata f (GE r) = GE {graph = #graph r, data  = #data r, edata = f(#edata r), dirty = #dirty r}
+  fun update_dirty f (GE r) = GE {graph = #graph r, data  = #data r, edata = #edata r, dirty = f(#dirty r)}
+  fun get_graph (GE r) = #graph r
+  fun get_data  (GE r) = #data r
+  fun get_edata (GE r) = #edata r
+  fun get_dirty (GE r) = #dirty r
+  val set_graph    = update_graph o K
+  val set_data     = update_data  o K
+  val set_edata    = update_edata o K
+  val set_dirty    = update_dirty o K
+  
+  fun mk' ((gr, ed), d) =
+    GE {
+      graph = gr,
+      data = d,
+      edata = ed,
+      dirty = true
+    }
+  
+  fun mk (gr, d) = let
+    val (gr' ,ed) = Equiv.compute_equiv_data gr
+  in mk' ((gr', SOME ed), d)
   end
+end
 
-  datatype T = EQC of { rep: GraphEntry.T, congs: GraphEntry.T list, redexes: GraphEntry.T list }
+structure EqClass =
+struct
+  datatype T = EQC of { rep: GraphName.name, congs: GraphName.name list, redexes: GraphName.name list }
   fun update_rep f (EQC r)     = EQC {rep= f(#rep r),congs= #congs r,redexes= #redexes r}
   fun update_congs f (EQC r)   = EQC {rep= #rep r,congs= f(#congs r),redexes= #redexes r}
   fun update_redexes f (EQC r) = EQC {rep= #rep r,congs= #congs r,redexes= f(#redexes r)}
@@ -123,7 +131,7 @@ struct
   val set_rep     = update_rep     o K
   val set_congs   = update_congs   o K
   val set_redexes = update_redexes o K  
-  fun mk ge = EQC { rep = ge, congs = [], redexes = [] }
+  fun mk g = EQC { rep = g, congs = [], redexes = [] }
 end
 
 
@@ -135,16 +143,18 @@ functor EqClassTab(
           Metric.Graph.SharingOGraph =
           Equiv.Graph.SharingOGraph
   type data
+  val default_data : data
 ) : EQ_CLASS_TAB =
 struct
   structure Theory = Theory
   structure Ruleset = Theory.Ruleset
+  structure EqClass = EqClass
   structure G = Theory.Graph
-  structure EqClass = EqClass(
+  structure GraphEntry = GraphEntry(
     structure Equiv = Equiv
     type data = data)
-  structure GraphEntry = EqClass.GraphEntry
-  open GraphEntry
+  structure GE = GraphEntry
+  structure DNet = Top_DNet(G)
   
   structure ClassIndex = Table(
     type key = int * int
@@ -153,15 +163,40 @@ struct
   
   datatype T = EQT of {
     tab : (EqClass.T list) ClassIndex.table,
-    initial_rs : Theory.Ruleset.T
+    initial_rs : Theory.Ruleset.T,
+    dnet : DNet.T,
+    graph_tab : GE.T GraphName.NTab.T
   }
   
-  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r}
-  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r)}
-  fun get_tab (EQT r) = #tab r
-  fun get_initial_rs (EQT r) = #initial_rs r
-  val set_tab  = update_tab o K
-  val set_initial_rs = update_initial_rs o K
+  val empty = EQT {
+    tab=ClassIndex.empty,
+    initial_rs=Theory.Ruleset.empty,
+    dnet=DNet.empty,
+    graph_tab=GraphName.NTab.empty
+  }
+  
+  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r}
+  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r}
+  fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r}
+  fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r)}
+
+  fun get_tab         (EQT r) = #tab r
+  fun get_initial_rs  (EQT r) = #initial_rs r
+  fun get_dnet        (EQT r) = #dnet r
+  fun get_graph_tab   (EQT r) = #graph_tab r
+
+  val set_tab            = update_tab         o K
+  val set_initial_rs     = update_initial_rs  o K
+  val set_dnet           = update_dnet        o K
+  val set_graph_tab      = update_graph_tab   o K
+
+  
+  fun get_graph_entry eqt g =
+    GraphName.NTab.get (get_graph_tab eqt) g
+    
+  fun set_as_redex gn eqt =
+    eqt |> update_dnet (DNet.add_graph (gn, GE.get_graph (get_graph_entry eqt gn)))
+
   
   (* convenience functions for pulling out redexes and irredexes *)
   local
@@ -185,21 +220,26 @@ struct
     fun fold_eqclasses f = ClassIndex.fold (fn (_, classlist) => (*Apply f to every reducible expression listed in every class!*)
         fold f classlist
       ) o get_tab
-  
     (*Given a function f to apply between elements during the fold
     (i.e: fold f [1,2,3] = f 1 (fold f [2,3])
                          = f 1 (f 2 (fold f [3]))
                          = f 1 (f 2 (f 3 id)) maybe
-      apply it to the list of reducible expressions within each equivalence class.
-      Second argument is the equivalence class table itself!*)
-    fun fold_redexes f =
-      fold_eqclasses (fn class => fold f (EqClass.get_redexes class))
+    apply it to the list of reducible expressions within each equivalence class.
+    Second argument is the equivalence class table itself!*)
+    fun fold_redexes f eqt =
+      fold_eqclasses (fn class =>
+        fold (fn gn => f (GraphName.NTab.get (get_graph_tab eqt) gn))
+             (EqClass.get_redexes class)
+      ) eqt
     (*Similar to fold_redexes to an extent. It will get the class representative,
     and then all other members of the equivalence class of the same side, and return those.
     Anything larger than both the congruences and the representative can be reduced to the
     representative by a rewrite rule.*)
-    fun fold_irredexes f =
-      fold_eqclasses (fn class => fold f (EqClass.get_rep class :: EqClass.get_congs class))
+    fun fold_irredexes f eqt =
+      fold_eqclasses (fn class =>
+        fold (fn gn => f (GraphName.NTab.get (get_graph_tab eqt) gn))
+             (EqClass.get_rep class :: EqClass.get_congs class)
+      ) eqt
     
     (*fun fold_rule_pairs f =
       let
@@ -233,42 +273,38 @@ struct
     val exists_irredexes = fold_to_exists fold_irredexes
   end
   
-
-  local
-    
-    fun add_rule nm tag rhs lhs_e rs =
+  fun get_ruleset eqt =
+  let
+    fun add_rule nm tag rhs lhs_n rs =
     let
-      val lhs = GraphEntry.get_graph lhs_e
+      val lhs = GE.get_graph (GraphName.NTab.get (get_graph_tab eqt) lhs_n)
       val r = Theory.Rule.mk (lhs, rhs)
       val (rname, rs) = Theory.Ruleset.add_fresh_rule (R.mk nm, r) rs
     in rs |> Theory.Ruleset.tag_rule rname (TagName.mk tag)
     end
     
+    fun add_class class rs =
+      let
+        val rep = GE.get_graph (GraphName.NTab.get (get_graph_tab eqt) (EqClass.get_rep class))
+        val add_redex = add_rule "r_0" "redex" rep
+        val add_cong = add_rule "c_0" "cong" rep
+      in
+        fold add_redex (EqClass.get_redexes class)
+        (fold add_cong (EqClass.get_congs class) rs)
+      end
   in
-  
-    fun get_ruleset eqt =
-    let
-      fun add_class class rs =
-        let
-          val rep = GraphEntry.get_graph (EqClass.get_rep class)
-          val add_redex = add_rule "r_0" "redex" rep
-          val add_cong = add_rule "c_0" "cong" rep
-        in
-          fold add_redex (EqClass.get_redexes class)
-          (fold add_cong (EqClass.get_congs class) rs)
-        end
-    in
-      ClassIndex.fold (fn (_, classlist) =>
-        fold add_class classlist) (get_tab eqt) (get_initial_rs eqt)
-    end
-  
+    ClassIndex.fold (fn (_, classlist) =>
+      fold add_class classlist) (get_tab eqt) (get_initial_rs eqt)
   end
-  
   (*Mathing algorithm is used here as before. is_some effectively just looks
   to see if there is a single match! Note that this only needs the first match,
   so laziness is very important. In other words, either use a special case
   in the matching algorithm for the first element, or just use the sequential algorithm!!*)
   fun has_match tgt pat =
+  (*Mathing algorithm is used here as before. is_some effectively just looks
+  to see if there is a single match! Note that this only needs the first match,
+  so laziness is very important. In other words, either use a special case
+  in the matching algorithm for the first element, or just use the sequential algorithm!!*)
     is_some (Seq.pull (Theory.MatchSearch.match
       (get_graph pat) (get_graph tgt)
     ))
@@ -291,87 +327,125 @@ struct
       ))
   in R.NSet.exists r_matches
      (Theory.Ruleset.get_rules_in_tag rs (TagName.mk "redex"))
-  end
+  end*)
   
   (* returns (SOME new_class) if graph is equivalent to the representative,
      and NONE otherwise *)
-  (*
-  cls = equivalence class to try and add the graph too
-  ge = graph entry to be added
-  
-  Checks first that the graph and the minimal graph are equivalent by the equivalence metric.
-  If so, it sees by the ordering metric whether this graph is any smaller or not.
-  The Congruences are remembered explicity to derive all of the cycle rewrite rules.
-  Hence, if it is the same size, then it is added to the set of congruences.
-  
-  If C and C' are in the set of congruences, then rewrite rules exist such that
-  C -> C' and C' -> C
-  
-  If G is in the equivalence class but not minimal, then rewrite rules exist such that
-  for all C in the set of congruences, and R the representive,
-  G -> R and G -> C
-  
-  Returns: NONE     - to indicate it couldn't be added
-           SOME cls - to indicate it was added, and cls is the modified class
+     
+(*  fun find_and_add eqt gn = let
+    val ge = GraphName.NTab.get (get_graph_tab eqt) gn
+
   *)
-  fun tryadd_to_class cls ge = (*Does not guarantee that they are equivalent*)
-    if Equiv.eq (get_edata (EqClass.get_rep cls), get_edata ge) (*Equivalence metric*)
-    then SOME (
-      case Metric.ord_graph (get_graph (EqClass.get_rep cls), get_graph ge)
-      of LESS    => cls |> EqClass.update_redexes (cons ge) (*representative stays (minimal)*)
-       | GREATER => cls |> EqClass.update_redexes (fn reds => EqClass.get_rep cls :: EqClass.get_congs cls @ reds)
-                        |> EqClass.set_congs [] (*new graph should be new representative*)
-                        |> EqClass.set_rep ge
-       | EQUAL   => cls |> EqClass.update_congs (cons ge)) (*Congs contains equivalent graphs*)
-    else NONE
-  (*Given a list of equivalence classes, try to add the graph entry to one of them.
-  The equivalence classes are between graphs of only the same input and output arity
-  by this point.
-  The arity is a form of hashing. Not all graphs with the same input/output arity will
-  lie in the same equivalence class!!
   
-  So classlist is a list of classes that have the correct arity (feasible)
+  (*fun update_one ge eqt =
+    if (*rs_can_reduce (get_initial_rs eqt) ge orelse
+       exists_redexes (has_match ge) eqt*) false
+    then NONE
+    else let
+      val (gn, gt) = get_graph_tab eqt |> GraphName.NTab.add (GraphName.mk "g0", ge)
+      val eqt = eqt |> set_graph_tab gt
+      val gr = GE.get_graph ge
+      val arity = (V.NSet.cardinality (G.get_inputs gr),
+                   V.NSet.cardinality (G.get_outputs gr))
+    in SOME (eqt |>
+      update_tab (ClassIndex.map_default (arity, [])
+        (find_and_add eqt gn)
+      ))
+    end*)
   
-  Returns: a new list of classes. If the graph entry (ge) did not fit into any class,
-           then this constructs a new class. It has appropriate arity of course,
-           and so can remain hashed this way and be returned with the rest of this list.
-  *)
-  fun find_and_add ge classlist = let
-    fun tryaddf cls (cls_found, rest) = (*If we found the result, return immediately
-    Seems a little inefficient - could just stop the fold.*)
-      if cls_found then (cls_found, cls :: rest) (*We found the right class,
-      so don't bother adding it to another*)
-      else (case tryadd_to_class cls ge
-              of SOME cls' => (true, cls' :: rest) (*Succeeded, so remember modified version*)
-               | NONE      => (false, cls :: rest)) (*Failed. Remember what we've seen; fold will try the next one*)
-  in case fold tryaddf classlist (false, []) (*(false,[]) is the identity*)
-       of (true, cs) => cs (*This graph was successfully added to an existing class*)
-        | (false, cs) => (EqClass.mk ge :: cs) (*Create a new class, since it is distinct from the rest.*)
-  end
-  (*Initial rs include initial rewrite rules I think. These are necessary to derive the rest?*)
-  fun update_one ge eqt = (*initial_rs includes many common reductions*)
+  fun has_match_in_dnet eqt tgt = let
+     (*checks all with the same arity and checks matching
+     Hence, this specifically checks to see if, for all reducible expressions, whether or not
+     a reducible expression in the equivalence class table exists within the existing graph.
+     If so, it again means this graph can be reduced. This is sort of redundant if the DNET
+     using rs_can_reduce already has all the rewrite rules from with the equivalence class
+     table, but while the table is formed this is not the case, so the above check is worth while.
+     Also, it seems odd that we check ALL graphs, since the paper suggests you need only
+     check graphs in the same equivalence class...
+     
+     Is it bad that the irreducible graphs are not looked for? No - if you found the irreducible
+     graph within your graph, what do you plan to do with it anyway...*)
+    fun has_match pat_n = let
+      val pat = get_graph_entry eqt pat_n
+    in is_some (Seq.pull (Theory.MatchSearch.match
+         (GE.get_graph pat) (GE.get_graph tgt)
+       ))
+    end
     (*Firstly, see if it exists in the equivalence table already...*)
-    if rs_can_reduce (get_initial_rs eqt) ge orelse (*This is where the DNET comes in
-       See if the LHS of any existing rule within the rule set (rule set can reduce) appears in the graph. That would
-       mean that the ocurrence of the LHS in the graph can be replaced by the RHS, and assuming
-       this reduces the size of the graph, that indicates we can reduce it to a graph we're already
-       found.*)
-       exists_redexes (has_match ge) eqt (*checks all with the same arity and checks matching
-       Hence, this specifically checks to see if, for all reducible expressions, whether or not
-       a reducible expression in the equivalence class table exists within the existing graph.
-       If so, it again means this graph can be reduced. This is sort of redundant if the DNET
-       using rs_can_reduce already has all the rewrite rules from with the equivalence class
-       table, but while the table is formed this is not the case, so the above check is worth while.
-       Also, it seems odd that we check ALL graphs, since the paper suggests you need only
-       check graphs in the same equivalence class...
-       
-       Is it bad that the irreducible graphs are not looked for? No - if you found the irreducible
-       graph within your graph, what do you plan to do with it anyway...*)
-    then NONE (*No need to add this*)
+  in GraphName.NSet.exists has_match
+      (DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt))
+  end
+  
+  fun update_one ge eqt =
+    (*This is where the DNET comes in
+    See if the LHS of any existing rule within the rule set (rule set can reduce) appears in the graph. That would
+    mean that the ocurrence of the LHS in the graph can be replaced by the RHS, and assuming
+    this reduces the size of the graph, that indicates we can reduce it to a graph we're already
+    found.*)
+    if has_match_in_dnet eqt ge then NONE (*No need to add this*)
     else let (*Add this to the equivalence class*)
-      val gr = get_graph ge (*Get the graph from the graph entry*)
+      val (gn, gt) = get_graph_tab eqt |> GraphName.NTab.add (GraphName.mk "g0", ge)
+      val eqt' = eqt |> set_graph_tab gt
+      val gr = GE.get_graph ge (*Get the graph from the graph entry*)
       val arity = (V.NSet.cardinality (G.get_inputs gr), (*For hashing*)
                    V.NSet.cardinality (G.get_outputs gr))
+      val classlist = case ClassIndex.lookup (get_tab eqt) arity
+                      of SOME cs => cs | NONE => []
+      (*
+      cls = equivalence class to try and add the graph too
+      ge = graph entry to be added
+      
+      Checks first that the graph and the minimal graph are equivalent by the equivalence metric.
+      If so, it sees by the ordering metric whether this graph is any smaller or not.
+      The Congruences are remembered explicity to derive all of the cycle rewrite rules.
+      Hence, if it is the same size, then it is added to the set of congruences.
+      
+      If C and C' are in the set of congruences, then rewrite rules exist such that
+      C -> C' and C' -> C
+      
+      If G is in the equivalence class but not minimal, then rewrite rules exist such that
+      for all C in the set of congruences, and R the representive,
+      G -> R and G -> C
+      
+      Returns: NONE     - to indicate it couldn't be added
+               SOME cls - to indicate it was added, and cls is the modified class
+      *)
+      fun tryadd_to_class cls eqt = let (*Does not guarantee that they are equivalent*)
+        val cls_ge = GraphName.NTab.get (get_graph_tab eqt) (EqClass.get_rep cls)
+        val inclass = (*Create a new class, since it is distinct from the rest.*)
+          case (GE.get_edata cls_ge, GE.get_edata ge)
+            (*Equivalence metric*)
+            of (SOME d1, SOME d2) => Equiv.eq (d1, d2) (*Succeeded, so remember modified version*)
+             | _ => false (*Create a new class, since it is distinct from the rest.*)
+      in
+        if inclass
+        then
+        SOME (
+          case Metric.ord_graph (GE.get_graph cls_ge, GE.get_graph ge)
+          (*representative stays (minimal)*)
+          of LESS    => (cls |> EqClass.update_redexes (cons gn), eqt |> set_as_redex gn)
+           | GREATER =>
+              let
+                val new_reds = EqClass.get_rep cls :: EqClass.get_congs cls
+              in (cls |> EqClass.update_redexes (fn reds => new_reds @ reds)
+                      |> EqClass.set_congs [] (*new graph should be new representative*)
+                      |> EqClass.set_rep gn,
+                  fold set_as_redex new_reds eqt)
+              end
+              (*Congs contains equivalent graphs*)
+           | EQUAL   => (cls |> EqClass.update_congs (cons gn), eqt)
+        )
+        else NONE
+      end
+      
+      fun tryaddf cls (found, rest, eqt) =
+        if found then (true, cls :: rest, eqt)
+        else case tryadd_to_class cls eqt
+               of SOME (cls', eqt') => (true, cls' :: rest, eqt')
+                | NONE => (false, cls :: rest, eqt)
+      
+      val (found, classlist', eqt') = fold tryaddf classlist (false, [], eqt')
+    in
     (*Find the appropriate row for this graph in the table, if it exists, and then add it.*)
     (*The arity forms the key. The [] will be used if no entry for the given key exists, in which
     case find_and_add ge [] will be used. Otherwise,
@@ -380,7 +454,11 @@ struct
     and a new equivalence class. If the arity does exist, then we will add
     the graph entry either to an existing equivalence class with that arity, or create
     a new class with the same arity.*)
-    in SOME (eqt |> update_tab (ClassIndex.map_default (arity, []) (find_and_add ge)))
+      SOME (
+        eqt' |> update_tab (ClassIndex.update (arity,
+                  if found then classlist'
+                  else EqClass.mk gn :: classlist'))
+      )
     end
   (*Arity works like hashcode - we know only graphs with equivalent arity could belong to the same class*)
   
@@ -396,10 +474,6 @@ struct
          | NONE      => (ges, eqt)
   in fold updatef ge_list ([],eqtab) (*BRANCH POINT*)
   end
-  
-  (*Initially empty equivalence table, with no rule set.*)
-  val empty = EQT {tab=ClassIndex.empty, initial_rs=Theory.Ruleset.empty}
-  fun mk rs = empty |> set_initial_rs rs
   
   (*
   IMPORTANT:
@@ -444,4 +518,23 @@ struct
   
   See project journal for suggestions
   *)
+  fun mk rs = let
+    val initial_redexes = Ruleset.get_rules_in_tag rs (TagName.mk "redex")
+    fun add_rule rn eqt = let
+      val ge = GE.mk' ((Theory.Rule.get_lhs (Ruleset.get_rule rs rn), NONE), default_data)
+      val (gn, tab) = (get_graph_tab eqt) |> GraphName.NTab.add (GraphName.mk "r0", ge)
+    in eqt |> set_graph_tab tab |> set_as_redex gn
+    end (*initial_rs includes many common reductions*)
+  in R.NSet.fold add_rule initial_redexes (empty |> set_initial_rs rs)
+  end
 end
+
+
+
+
+
+
+
+
+
+

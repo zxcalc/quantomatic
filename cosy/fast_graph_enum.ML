@@ -11,15 +11,16 @@ sig
   type generator = (Theory.Graph.VData.data * int * int)
   
   val default_data : data
+  type size_param = int * int * int * int
   
   sharing Theory.Graph.SharingOGraph =
           Metric.Graph.SharingOGraph
   sharing Theory.Ruleset.Sharing =
           EqClassTab.Theory.Ruleset.Sharing
   
-  val tab_update : generator list -> int -> EqClassTab.T -> EqClassTab.T
-  val tab_enum : generator list -> int -> EqClassTab.T
-  val enum : generator list -> int -> Theory.Graph.T list
+  val tab_update : generator list -> size_param -> EqClassTab.T -> EqClassTab.T
+  val tab_enum : generator list -> size_param -> EqClassTab.T
+  val enum : generator list -> size_param -> Theory.Graph.T list
 end
 
 functor FastGraphEnum(
@@ -34,8 +35,7 @@ struct
   structure Theory = Theory
   structure Metric = Metric
   structure Graph = Theory.Graph
-  (*Data , input, output
-  Don't need to know about "data" really.*)
+  type size_param = int * int * int * int
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
   (* Ordered Vertices, free inputs, free outputs, list of lists of
      edges, one vertex at a time *)
@@ -56,7 +56,8 @@ struct
     structure Theory = Theory
     structure Metric = Metric
     structure Equiv = Equiv
-    type data = data)
+    type data = data
+    val default_data = default_data)
   structure GraphEntry = EqClassTab.GraphEntry
 
   (****** Utility Functions ******)
@@ -79,10 +80,29 @@ struct
   in snd (List.foldl (filter_max' m) (0,[]) zs)
   end
 
+  val sum = List.foldr (fn (x,y) => x+y) 0
+
 
   (****** adjmat functions ******)
 
-  fun adjmat_size (gs,_,_,_) = length gs
+  (* Number of: vertices, total inputs, total outputs *)
+  fun adjmat_total_arities (gs,_,_,_) = let
+    val m = sum (map (fn (_,i,_) => i) gs)
+    val n = sum (map (fn (_,_,j) => j) gs)
+  in (m, n)
+  end
+
+  (* Number of: vertices, total inputs, total outputs *)
+  fun adjmat_arity (g as (gs,_,_,edges)) = let
+    val p = sum (map sum edges)
+    val (m,n) = adjmat_total_arities g
+  in (m-p, n-p)
+  end
+
+  (* Number of: vertices, total inputs, total outputs *)
+  fun adjmat_pluggings (g as (_,_,_,edges)) = sum (map sum edges)
+
+
 
   fun split_edge [] = ([],[])
     | split_edge xs = let 
@@ -210,9 +230,7 @@ struct
 
 
   (****** Building adjmat graphs ******)
-
-  (* adds a specific type of vertex with no edges *)
-  (* add_gen : generator -> adjmat -> adjmat *)
+  
   (*Adds this generator to the existing list of generators.
   Adds the desired input to the inputs and the same for the output
   The last part figures out all possible combinations that this edge could be added.
@@ -227,12 +245,20 @@ struct
 
   (* adds any possible vertex with no edges *)
   (* add_gens : [generator] -> adjmat -> adjmat list *)
-  fun add_gens gens (matr as ([],_,_,_)) = map (fn v => add_gen v matr) gens
-    | add_gens gens (matr as (vert::_,_,_,_)) = let
-      val gens' = drop_while (fn g => not (generator_eq (g,vert))) gens (*Strip away inappropriate generators*)
-    in map (fn v => add_gen v matr) gens' (*Add the applicable generators*)
+  fun add_gens (max_p,max_m,max_n) gens (matr as ([],_,_,_)) = let
+      val gens = filter (fn (_,m,n) => m <= max_m + max_p andalso n <= max_n + max_p) gens
+    in map (fn v => add_gen v matr) gens
     end
-
+    | add_gens (max_p,max_m,max_n) gens (matr as (vert::_,_,_,_)) = let
+      fun is_small (_,gm,gn) = let
+        val (m,n) = adjmat_total_arities matr
+      in (m+gm <= max_m + max_p) andalso (n+gn <= max_n + max_p)
+      end
+      (*Strip away inappropriate generators*)
+      val gens = drop_while (fn g => not (generator_eq (g,vert))) gens
+      val gens = filter is_small gens
+  in map (fn v => add_gen v matr) gens (*Add the applicable generators*)
+  end
   (* adds any possible edge *)
   (* add_edge : adjmat -> adjmat list *)
   fun add_edge ([], _, _, _) = [] (*No generators - no nodes to add*)
@@ -246,53 +272,53 @@ struct
                                                 map (fn (x,y,z) => (x,o1::y,0::z)) (if (e1=0) then add_edge' [i1] os es else [] )
         | add_edge' (i1::is) (o1::os) (e1::es) = new_edge_here (i1::is) (o1::os) (e1::es) @ 
                                                 map (fn (x,y,z) => (i1::x,y,0::z)) (if (e1=0) then add_edge' is (o1::os) es else [] )
-    in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
-    end
+  in map (fn (x,y,z) => (verts,rev x,y,z::edges)) (add_edge' (rev inps) outs edge)
+  end
 
 
   (****** Enumeration with EqClassTab ******)
   
-  local
-    fun fold_save fopt (x::xs) (ys,accum) = (
-      case fopt x accum
-        of SOME accum' => fold_save fopt xs (x::ys, accum')
-         | NONE        => fold_save fopt xs (ys,accum))
+  (* TODO: replace fopt with (f, filt) *)
+  fun fold_graphs gens (max_v,max_p,max_m,max_n) fopt initial = let
+    fun fold_save fopt (x::xs) (ys,accum) = 
+          (if (fn (m,n) => (m + snd x) <= max_m andalso (n + snd x) <= max_n) (adjmat_arity (fst x))
+           then case fopt (to_graph_entry x) accum
+                  of SOME accum' =>  fold_save fopt xs (x::ys, accum')
+                   | NONE        => fold_save fopt xs (ys,accum)
+           else fold_save fopt xs (x::ys, accum))
       | fold_save fopt [] (ys,accum) = (ys, accum)
-  in
-    fun fold_graphs gens max_verts fopt initial =
-    let
-      (***)
       (* add edges in all possible ways *)
-      fun fold_edges_round [] (prev, accum) = (prev, accum)
-        | fold_edges_round egs (prev, accum) =
-      let
-          val (next,accum') = fold_save (fopt o to_graph_entry) (map (fn eg => (eg,0)) egs) ([],accum)
-          val egs' = maps (add_edge o fst) next
-      in fold_edges_round (egs') (next @ prev,accum')
-      end
-      (***)
-      (* one round of enumeration. (prev, accum) => add one vertex => (next, accum') *)
-      fun fold_graphs_round (prev, accum) =
-      let
-        (* start by adding one bare wire to the output of the previous round *)
-        val (next, accum') = fold_save (fopt o to_graph_entry) (map (fn (am,i) => (am,i+1)) prev) ([], accum)
-        (* only add non-trivial generators to graphs that don't have any bare wires yet *)
-        val prev = map fst (filter (fn (_,i)=> i = 0) prev)
-        val graphs = flat (map (add_gens gens) prev) (*BRANCH POINT*)
-      in fold (fn g => fold_edges_round [g]) graphs (next, accum')
-      end
-      (***)
-    in
-      snd (funpow max_verts fold_graphs_round ([empty_graph_rep], initial))
+    fun fold_edges_round [] (next, accum) = (next, accum)
+      | fold_edges_round egs (next, accum) =
+    let
+        val (next',accum') = fold_save fopt (map (fn eg => (eg,0)) egs) ([],accum)
+        val egs' = filter (fn (g,_) => (adjmat_pluggings g) < max_p) next'
+        val egs' = maps (add_edge o fst) egs'
+    in fold_edges_round (egs') (next' @ next, accum')
     end
+    (***)
+    (* one round of enumeration. (prev, accum) => add one vertex => (next, accum') *)
+    fun fold_graphs_round (prev, accum) =
+    let
+      (* start by adding one bare wire to the output of the previous round *)
+      val (prev_with_bare, accum') =
+        fold_save fopt (map (fn (am,i) => (am,i+1)) (filter (fn (am,i) => (fst (adjmat_arity am) + i < max_m ) andalso (snd (adjmat_arity am) + i < max_n )) prev)) ([], accum)
+      (* only add non-trivial generators to graphs that don't have any bare wires yet *)
+      val prev = map fst (filter (fn (_,i)=> i = 0) prev)
+      val graphs = flat (map (add_gens (max_p,max_m,max_n) gens) prev) (*BRANCH POINT*)
+    in fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')
+    end
+    (***)
+  in
+    snd (funpow max_v fold_graphs_round ([empty_graph_rep], initial))
   end
   
-  fun enum gens max_verts =
-    fold_graphs gens max_verts
+  fun enum gens max_size =
+    fold_graphs gens max_size
     (fn g => fn gs => SOME (GraphEntry.get_graph g :: gs)) []
   
-  fun tab_update gens max_verts = fold_graphs gens max_verts EqClassTab.update_one
-  fun tab_enum gens max_verts = tab_update gens max_verts EqClassTab.empty
+  fun tab_update gens max_size = fold_graphs gens max_size EqClassTab.update_one
+  fun tab_enum gens max_size = tab_update gens max_size EqClassTab.empty
 
   (* recursively adds new graphs to tab by adding one new edge to each irredex *)
   (* tab_add_edges : [adjmat] -> EqClassTab -> EqClassTab *)

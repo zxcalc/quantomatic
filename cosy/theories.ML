@@ -119,6 +119,23 @@ structure RG_Enum = FastGraphEnum(
 
 structure RG_Spiders = SpiderRewrites(structure Theory = RG_Theory)
 
+
+structure GHZW_Enum = FastGraphEnum(
+  structure Theory = GHZW_Theory
+  
+  structure Metric = WeightedArityMetric(
+    structure Graph = GHZW_Theory.Graph
+    fun weight_for_data (Graph.OVData.NVert (GHZW_Data.GHZ)) = 6
+      | weight_for_data (Graph.OVData.NVert (GHZW_Data.W)) = 5
+      | weight_for_data _ = 4
+  )
+  
+  structure Equiv = TensorEquiv(structure TData = GHZW_TensorData)
+)
+
+structure GHZW_Spiders = SpiderRewrites(structure Theory = GHZW_Theory)
+
+
 (*
 structure RG_Enum = GraphEnumerator(structure Theory = RG_Theory)
 

@@ -22,6 +22,9 @@ PolyML.Project.make "fast_graph_enum.ML";
 
 PolyML.Project.make "theories.ML";
 
+
+
+
 (*PolyML.Project.make "enumerate.ML";
 PolyML.Project.make "synthesize.ML";
 PolyML.Project.make "ruleset_builder.ML";

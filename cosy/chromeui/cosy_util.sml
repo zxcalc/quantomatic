@@ -2,25 +2,36 @@ functor CosyUtil(
   structure Enum : GRAPH_ENUM
   val data_list : Enum.Theory.OVData.IData.data list
   val output_dot : Enum.Theory.Graph.T -> string
+  val initial_rs : Enum.Theory.Ruleset.T
 ) =
 struct
 
 structure Enum = Enum
 structure EqClassTab = Enum.EqClassTab
 structure EqClass = EqClassTab.EqClass
-structure GraphEntry = EqClass.GraphEntry
+structure GraphEntry = EqClassTab.GraphEntry
 structure Theory = Enum.Theory
-structure Spiders = SpiderRewrites(structure Theory = Theory)
 
-fun gen_list max_arity data_list = let
+(*fun gen_list max_arity data_list = let
     fun alist 0 0 = []
       | alist k 0 = (0,k)::alist (k-1) (k-1)
       | alist k i = (i,k-i)::alist k (i-1)
     fun gen d (iw,ow) = (Theory.OVData.NVert d,iw,ow)
   in (fold_product (cons oo gen) data_list (alist max_arity max_arity) [])
-  end
+  end*)
 
-val gens = gen_list 3 data_list
+
+val gens = let
+  fun gens_for d = [
+    (Theory.OVData.NVert d,1,2),
+    (Theory.OVData.NVert d,2,1),
+    (Theory.OVData.NVert d,2,0),
+    (Theory.OVData.NVert d,0,2),
+    (Theory.OVData.NVert d,1,0),
+    (Theory.OVData.NVert d,0,1)
+  ]
+in maps gens_for data_list
+end
 
 fun dot_to_svg (ins,outs) dot = let
   val () = TextIO.output (outs, dot)
@@ -119,9 +130,11 @@ fun output_graph_list content_div gs = let
 in ()
 end
 
-fun output_eqtab content_div eqt sz = let
+fun output_eqtab content_div eqt (max_v,max_p,max_m,max_n) = let
   val parent = addContainer content_div
-    (Theory.theory_name ^ " Synth ("^(Int.toString sz)^")") true
+    (Theory.theory_name ^ " Synth " ^
+      "(" ^ Int.toString max_v ^ "," ^ Int.toString max_p ^ "," ^
+            Int.toString max_m ^ "," ^ Int.toString max_n ^ ")") true
   val details =
     "SYNTHESIS RESULTS\n"^
     "-----------------------------------------\n"
@@ -138,12 +151,14 @@ fun output_eqtab content_div eqt sz = let
   val _ = addCodebox parent details
   fun output_class class i = let
     val container = addContainer parent ("Class " ^ (Int.toString i)) false
-    val rep = EqClass.get_rep class
-    val _ = addCodebox container (GraphEntry.Equiv.to_string (GraphEntry.get_edata rep))
+    val rep = EqClassTab.get_graph_entry eqt (EqClass.get_rep class)
+    val _ = case GraphEntry.get_edata rep
+              of SOME d => addCodebox container (GraphEntry.Equiv.to_string d)
+               | NONE   => addCodebox container ("No Equiv data")
     val c_container = addContainer container "Congruences" false
     val r_container = addContainer container "Reducible Expressions" false
-    val congruences = map GraphEntry.get_graph (EqClass.get_congs class)
-    val redexes = map GraphEntry.get_graph (EqClass.get_redexes class)
+    val congruences = map (GraphEntry.get_graph o EqClassTab.get_graph_entry eqt) (EqClass.get_congs class)
+    val redexes = map (GraphEntry.get_graph o EqClassTab.get_graph_entry eqt) (EqClass.get_redexes class)
     fun output_graph len c (i, gr) = if i = 100 then (clearFloats c; addCodebox c (Int.toString (len - 100) ^ " more..."))
                                      else (if i < 100 then addGraph io c gr else c)
     val _ = addGraph io c_container (GraphEntry.get_graph rep)
@@ -155,8 +170,6 @@ fun output_eqtab content_div eqt sz = let
   val _ = close_dot io
 in ()
 end
-
-val initial_rs = Spiders.ruleset_from_vdata data_list
 
 fun get_rules content_div sz =
 let
@@ -188,7 +201,17 @@ structure RGCosy = CosyUtil(
   structure Enum = RG_Enum
   val data_list = rg_data_list
   val output_dot = RG_GraphicalTheoryIO.OutputGraphDot.output
+  val initial_rs = RG_Spiders.frob_and_special_rules data_list
 )
+
+val ghzw_data_list = [GHZW_Data.GHZ, GHZW_Data.W]
+structure GHZWCosy = CosyUtil(
+  structure Enum = GHZW_Enum
+  val data_list = ghzw_data_list
+  val output_dot = GHZW_GraphicalTheoryIO.OutputGraphDot.output
+  val initial_rs = GHZW_Spiders.frob_rules data_list
+)
+
 
 (*local
   open RGCosy

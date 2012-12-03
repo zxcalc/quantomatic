@@ -78,7 +78,7 @@ struct
     val norm_outs = map (fn n => V.mk ("o_"^(Int.toString n))) perm_outs
     val gr' = fold2 Graph.rename_vname ins norm_ins (fold2 Graph.rename_vname outs norm_outs gr)
   in
-    (gr', tens)
+    (gr', tens')
   end
   
   val eq = TData.Tensor.eq
