@@ -1,7 +1,11 @@
 package quanto.data
 
+import collection.immutable.TreeSet
+
 // basically a map, but with cached inverse images
-class PFun[A,B](val f : Map[A,B], val finv: Map[B,Set[A]]) extends Iterable[(A,B)] {
+class PFun[A,B]
+  (val f : Map[A,B], val finv: Map[B,TreeSet[A]])
+  (implicit keyOrd: Ordering[A]) extends Iterable[(A,B)] {
 
   // children have the option to override this to give a default value
   def default(key: A): B =
@@ -22,7 +26,7 @@ class PFun[A,B](val f : Map[A,B], val finv: Map[B,Set[A]]) extends Iterable[(A,B
         case Some(oldV) => if (finv(oldV).size == 1) finv - oldV
                            else finv + (oldV -> (finv(oldV) - kv._1))
         case None => finv
-      }) + (kv._2 -> (finv.getOrElse(kv._2, Set()) + kv._1))
+      }) + (kv._2 -> (finv.getOrElse(kv._2, TreeSet[A]()) + kv._1))
     new PFun(f + kv,finv1)
   }
 
@@ -57,7 +61,7 @@ class PFun[A,B](val f : Map[A,B], val finv: Map[B,Set[A]]) extends Iterable[(A,B
 }
 
 object PFun {
-  def apply[A,B](kvs: (A,B)*) : PFun[A,B] = {
+  def apply[A,B](kvs: (A,B)*)(implicit keyOrd: Ordering[A]) : PFun[A,B] = {
     kvs.foldLeft(new PFun[A,B](Map(),Map())){ (pf: PFun[A,B], kv: (A,B)) => pf + kv }
   }
 }
