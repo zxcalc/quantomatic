@@ -12,6 +12,7 @@ object GraphEditor extends SimpleSwingApplication {
     addVertex ("w0", WireV((0, 1.5)))
     newEdge   ((), ("n0", "n1"))
     newEdge   ((), ("n0", "n1"))
+    newEdge   ((), ("n1", "n0"))
     newEdge   ((), ("n1", "w0"))
   )
   def top = new MainFrame {
