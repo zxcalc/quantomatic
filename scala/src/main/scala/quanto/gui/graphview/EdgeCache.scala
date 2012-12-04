@@ -84,16 +84,16 @@ extends Iterable[(EName,ECache)] {
             iter.next()
           }
 
-          val (ah1, ah2, ah3) =
-            (if (edges contains e) (tp._1, tp._2, inAngle) else (sp._1, sp._2, outAngle)) match {
-              case (x,y,a) => (
-                trans toScreen ((x + ArrowheadLength * cos(a - ArrowheadAngle),
-                  y + ArrowheadLength * sin(a - ArrowheadAngle))),
-                trans toScreen (x,y),
-                trans toScreen ((x + ArrowheadLength * cos(a + ArrowheadAngle),
-                  y + ArrowheadLength * sin(a + ArrowheadAngle)))
-                )
-            }
+          val (ah1, ah2, ah3) = {
+            val (x,y,a) = if (edges contains e) (tp._1, tp._2, inAngle) else (sp._1, sp._2, outAngle)
+            (
+              trans toScreen (x + ArrowheadLength * cos(a - ArrowheadAngle),
+                              y + ArrowheadLength * sin(a - ArrowheadAngle)),
+              trans toScreen (x,y),
+              trans toScreen (x + ArrowheadLength * cos(a + ArrowheadAngle),
+                              y + ArrowheadLength * sin(a + ArrowheadAngle))
+            )
+          }
 
           p.moveTo(ah1._1, ah1._2)
           p.lineTo(ah2._1, ah2._2)

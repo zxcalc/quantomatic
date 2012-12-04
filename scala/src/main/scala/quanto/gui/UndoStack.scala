@@ -12,13 +12,7 @@ class UndoStack {
   var redoStack = List[(String, List[()=>Any])]()
 
   def start(aName: String) {
-    if (commitDepth == 0) {
-      if (redoMode)
-        actionName =
-          undoStack.headOption.getOrElse(
-            throw new UndoStackException("starting a redo action with empty undo stack"))._1
-      else actionName = aName
-    }
+    if (commitDepth == 0) actionName = aName
     commitDepth += 1
   }
 
@@ -53,11 +47,17 @@ class UndoStack {
 
   def undo() {
     undoStack match {
-      case (_, fs) :: s =>
+      case (n, fs) :: s =>
         redoMode = true
+
+        // Any recursive undo registrations are nested under a single redo action, with the same name
+        // as the undo.
+        this.start(n)
         fs foreach (f => f())
-        undoStack = s
+        this.commit()
+
         redoMode = false
+        undoStack = s
       case _ =>
     }
   }

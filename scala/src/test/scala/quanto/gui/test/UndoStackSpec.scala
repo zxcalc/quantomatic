@@ -39,32 +39,37 @@ class UndoStackSpec extends FlatSpec {
     undoStack.undo()
   }
 
-  var stateVar = 3
+  // some mutable state
+  var stateVar = 3.0
+
+  // Two actions that do not commute, for testing that actions get applied in the
+  // correct order.
   private def multBy2() {
-    stateVar *= 2
+    stateVar *= 2.0
     undoStack.register("Multiply by 2") { divBy2() }
   }
 
-  private def divBy2() {
-    stateVar /= 2
-    undoStack.register("Divide by 2") { multBy2() }
-  }
-
   private def add5() {
-    stateVar += 5
+    stateVar += 5.0
     undoStack.register("Add 5") { subtract5() }
   }
 
+  // ...and their associated inverses
+  private def divBy2() {
+    stateVar /= 2.0
+    undoStack.register("Divide by 2") { multBy2() }
+  }
+
   private def subtract5() {
-    stateVar -= 5
+    stateVar -= 5.0
     undoStack.register("Subtract 5") { add5() }
   }
 
   it should "correctly revert the state" in {
     multBy2()
-    assert(stateVar === 6)
+    assert(stateVar === 6.0)
     undoStack.undo()
-    assert(stateVar === 3)
+    assert(stateVar === 3.0)
   }
 
   it should "have registered a redo with the same name" in {
@@ -73,7 +78,7 @@ class UndoStackSpec extends FlatSpec {
 
   it should "reapply the change on redo" in {
     undoStack.redo()
-    assert(stateVar === 6)
+    assert(stateVar === 6.0)
   }
 
   it can "cope with multiple undos and redos" in {
@@ -81,30 +86,52 @@ class UndoStackSpec extends FlatSpec {
     undoStack = new UndoStack
 
     multBy2()
-    assert(stateVar === 6)
+    assert(stateVar === 6.0)
     assert(undoStack.undoActionName === Some("Multiply by 2"))
     assert(undoStack.redoActionName === None)
 
     subtract5()
-    assert(stateVar === 1)
+    assert(stateVar === 1.0)
     assert(undoStack.undoActionName === Some("Subtract 5"))
     assert(undoStack.redoActionName === None)
 
     undoStack.undo()
-    assert(stateVar === 6)
+    assert(stateVar === 6.0)
     assert(undoStack.undoActionName === Some("Multiply by 2"))
     assert(undoStack.redoActionName === Some("Subtract 5"))
 
     undoStack.undo()
-    assert(stateVar === 3)
+    assert(stateVar === 3.0)
     assert(undoStack.undoActionName === None)
     assert(undoStack.redoActionName === Some("Multiply by 2"))
 
     undoStack.redo()
-
-
-    multBy2()
-
+    assert(stateVar === 6.0)
+    assert(undoStack.undoActionName === Some("Multiply by 2"))
+    assert(undoStack.redoActionName === Some("Subtract 5"))
   }
 
+  it should "clear the redo stack when a change is made" in {
+    add5()
+    assert(undoStack.redoActionName === None)
+  }
+
+  it can "handle nested undo registration" in {
+    stateVar = 3
+
+    undoStack.start("Parent action")
+    add5()
+    multBy2()
+    undoStack.commit()
+
+    assert(stateVar === 16.0)
+    assert(undoStack.undoActionName === Some("Parent action"))
+    undoStack.undo()
+
+    println(undoStack.redoStack)
+
+    assert(stateVar === 3.0)
+    undoStack.redo()
+    assert(stateVar === 16.0)
+  }
 }
