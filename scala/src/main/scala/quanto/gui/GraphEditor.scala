@@ -6,7 +6,7 @@ import quanto.data.Names._
 
 
 object GraphEditor extends SimpleSwingApplication {
-  val graph = (Graph[Unit,VData,Unit,Unit]("g0",())
+  val initialGraph = (Graph[Unit,VData,Unit,Unit]("g0",())
     addVertex ("n0", NodeV((0, 0)))
     addVertex ("n1", NodeV((1, 1)))
     addVertex ("w0", WireV((0, 1.5)))
@@ -17,7 +17,10 @@ object GraphEditor extends SimpleSwingApplication {
   )
   def top = new MainFrame {
     title = "Quanto Graph Editor"
-    contents = new GraphView(graph)
+    contents = new GraphView {
+      graph = initialGraph
+      editMode = GraphView.ReadWrite
+    }
     size = new Dimension(500,500)
   }
 }
