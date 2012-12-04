@@ -22,8 +22,8 @@ class GraphView extends Panel {
 
   private var edgeCache: EdgeCache = _
 
-  var drawGrid = true
-  var snapToGrid = true
+  var drawGrid = false
+  var snapToGrid = false
   var gridMajor = 1.0
   var gridSubs = 4
 
@@ -60,7 +60,7 @@ class GraphView extends Panel {
   val selectedEdges = collection.mutable.Set[EName]()
   val selectedBBoxes = collection.mutable.Set[BBName]()
 
-  private def drawGrid(g: Graphics2D) {
+  private def drawGridLines(g: Graphics2D) {
     val origin = trans toScreen (0,0)
     val minor = (trans scaleToScreen gridMajor) / gridSubs.toDouble
 
@@ -77,15 +77,15 @@ class GraphView extends Panel {
 
     for (j <- 1 to iterations) {
       g.setColor(if (j % gridSubs == 0) MajorColor else MinorColor)
-      val ydown = (origin._2 + j * minor).toInt
-      val yup = (origin._2 - j * minor).toInt
-      val xleft = (origin._1 - j * minor).toInt
-      val xright = (origin._1 + j * minor).toInt
+      val y1 = (origin._2 + j * minor).toInt
+      val y2 = (origin._2 - j * minor).toInt
+      val x1 = (origin._1 - j * minor).toInt
+      val x2 = (origin._1 + j * minor).toInt
 
-      g.drawLine(xleft, 0, xleft, bounds.height)
-      g.drawLine(xright, 0, xright, bounds.height)
-      g.drawLine(0, yup, bounds.width, yup)
-      g.drawLine(0, ydown, bounds.width, ydown)
+      g.drawLine(x1, 0, x1, bounds.height)
+      g.drawLine(x2, 0, x2, bounds.height)
+      g.drawLine(0, y2, bounds.width, y2)
+      g.drawLine(0, y1, bounds.width, y1)
 
     }
   }
@@ -96,7 +96,7 @@ class GraphView extends Panel {
 
     g.setColor(Color.WHITE)
     g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    if (drawGrid) drawGrid(g)
+    if (drawGrid) drawGridLines(g)
 
     edgeCache.compute()
 
