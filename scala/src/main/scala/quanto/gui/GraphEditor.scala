@@ -1,8 +1,9 @@
 package quanto.gui
 
+import graphview._
 import swing._
 import quanto.data._
-import quanto.data.Names._
+import Names._
 
 
 object GraphEditor extends SimpleSwingApplication {
