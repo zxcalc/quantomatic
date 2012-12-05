@@ -21,8 +21,6 @@ import quanto.data.VName
 class GraphView extends Panel {
   import GraphView._
 
-  private var edgeCache: EdgeCache = _
-
   var drawGrid = false
   var snapToGrid = false
   var gridMajor = 1.0
@@ -41,21 +39,16 @@ class GraphView extends Panel {
 
   editMode = ReadOnly
 
-  private var _trans = new Transformer()
-  def trans = _trans
-  def trans_=(newTrans: Transformer) {
-    _trans = newTrans
-    edgeCache = new EdgeCache(graph, trans)
-  }
+  var graph: Graph[Unit,VData,Unit,Unit] = Graph(defaultGName, ())
+  var trans = new Transformer
 
-  private var _graph: Graph[Unit,VData,Unit,Unit] = _
-  def graph = _graph
-  def graph_=(newGraph: Graph[Unit,VData,Unit,Unit]) {
-    _graph = newGraph
-    edgeCache = new EdgeCache(graph, trans)
-  }
+  private lazy val vertexDisplay: VertexDisplayData = new VertexDisplayData(graph, trans)
+  private lazy val edgeDisplay: EdgeDisplayData = new EdgeDisplayData(graph, trans, vertexDisplay)
 
-  graph = Graph(defaultGName, ())
+  def invalidate() {
+    vertexDisplay.clear()
+    edgeDisplay.clear()
+  }
 
   val selectedVerts = collection.mutable.Set[VName]()
   val selectedEdges = collection.mutable.Set[EName]()
@@ -99,9 +92,10 @@ class GraphView extends Panel {
     g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
     if (drawGrid) drawGridLines(g)
 
-    edgeCache.compute()
+    vertexDisplay.compute()
+    edgeDisplay.compute()
 
-    for ((e, ECache(p,_)) <- edgeCache) {
+    for ((e, EDisplay(p,_)) <- edgeDisplay) {
       if (selectedEdges contains e) {
         g.setColor(Color.BLUE)
         g.setStroke(new BasicStroke(2))
@@ -115,28 +109,20 @@ class GraphView extends Panel {
 
     g.setStroke(new BasicStroke(1))
 
-    val trNodeRadius = trans scaleToScreen NodeRadius
-    val trWireWidth = 0.707 * (trans scaleToScreen WireRadius)
-
-    for ((_,data) <- graph.verts) {
-      val (x,y) = trans toScreen data.coord
-
-      val (shape,fill) = data match {
-        case NodeV(_) => (new Ellipse2D.Double(
-          x - trNodeRadius, y - trNodeRadius,
-          2.0 * trNodeRadius, 2.0 * trNodeRadius), Color.GREEN)
-        case WireV(_) => (new Rectangle2D.Double(
-          x - trWireWidth, y - trWireWidth,
-          2.0 * trWireWidth, 2.0 * trWireWidth), Color.GRAY)
-      }
-
-      g.setColor(fill)
+    for ((v, VDisplay(shape,color)) <- vertexDisplay) {
+      g.setColor(color)
       g.fill(shape)
 
-      g.setColor(Color.BLACK)
+      if (selectedVerts contains v) {
+        g.setColor(Color.BLUE)
+        g.setStroke(new BasicStroke(2))
+      } else {
+        g.setColor(Color.BLACK)
+        g.setStroke(new BasicStroke(1))
+      }
+
       g.draw(shape)
     }
-
   }
 
   reactions += {
@@ -148,9 +134,9 @@ class GraphView extends Panel {
         selectedBBoxes.clear()
       }
 
-      edgeCache.compute()
+      edgeDisplay.compute()
 
-      edgeCache find { case (_,c) => c.pointHit(pt) } map (selectedEdges += _._1)
+      edgeDisplay find { case (_,c) => c.pointHit(pt) } map (selectedEdges += _._1)
 
       this.repaint()
 

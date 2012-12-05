@@ -8,36 +8,19 @@ import quanto.data.EName
 import quanto.data.NodeV
 import quanto.data.WireV
 
-case class ECache(path: Path2D.Double, lines: List[Line2D.Double]) {
+case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double]) {
   def pointHit(pt: Point2D) = {
     lines exists (_.ptSegDistSq(pt) < GraphView.EdgeSelectionRadius*GraphView.EdgeSelectionRadius)
   }
 }
 
-class EdgeCache(graph: Graph[Unit,VData,Unit,Unit], trans: Transformer)
-extends Iterable[(EName,ECache)] {
-  private val cache = collection.mutable.Map[EName, ECache]()
+class EdgeDisplayData(
+  var graph: Graph[Unit,VData,Unit,Unit],
+  var trans: Transformer,
+  vertexDisplay: VertexDisplayData)
+extends Iterable[(EName,EDisplay)] {
+  private val cache = collection.mutable.Map[EName, EDisplay]()
   import GraphView._
-
-  private def contactPoint(vd: VData, angle: Double): (Double,Double) = {
-    vd match {
-      case NodeV(c) => (c._1 + NodeRadius * cos(angle), c._2 + NodeRadius * sin(angle))
-      case WireV(c) => {
-        val chop = 0.707 * WireRadius
-        var rad = 0d
-
-        if (abs(WireRadius * cos(angle)) > chop) {
-          rad = chop / cos(angle)
-        } else if (abs(WireRadius * cos(angle)) > chop) {
-          rad = chop / sin(angle)
-        } else {
-          rad = WireRadius
-        }
-
-        (c._1 + rad * cos(angle), c._2 + rad * sin(angle))
-      }
-    }
-  }
 
   def compute() {
     for ((v1,sd) <- graph.verts; (v2,td) <- graph.verts if v1 <= v2) {
@@ -47,22 +30,22 @@ extends Iterable[(EName,ECache)] {
 
       if (numEdges != 0) {
         val inc = Pi * (0.666 / (numEdges + 1))
-        val angle = if (v1 == v2) 0.25 * Pi else atan2(td.coord._2 - sd.coord._2, td.coord._1 - sd.coord._1)
+        lazy val angle = if (v1 == v2) 0.25 * Pi else atan2(td.coord._2 - sd.coord._2, td.coord._1 - sd.coord._1)
         val angleFlip = if (v1 == v2) 0.5 * Pi else Pi
         var i = 1
 
         // first do reverse edges, then do edges
 
 
-        for (e <- rEdges.iterator ++ edges.iterator if cache.get(e) == None) {
+        for (e <- rEdges.iterator ++ edges.iterator if !cache.contains(e)) {
           val shift = (0.333 * Pi) - (inc * i)
           val outAngle = angle - shift
           val inAngle = angle + angleFlip + shift
 
           if (v1 == v2) println("angles: " + inAngle + ", " + outAngle)
 
-          val sp = contactPoint(sd, outAngle)
-          val tp = contactPoint(td, inAngle)
+          val sp = vertexDisplay.contactPoint(v1,outAngle)
+          val tp = vertexDisplay.contactPoint(v2,inAngle)
 
           val p = new Path2D.Double()
 
@@ -130,7 +113,7 @@ extends Iterable[(EName,ECache)] {
           p.lineTo(ah2._1, ah2._2)
           p.lineTo(ah3._1, ah3._2)
 
-          cache(e) = ECache(p, lines)
+          cache(e) = EDisplay(p, lines)
 
           i += 1
         }
@@ -139,6 +122,7 @@ extends Iterable[(EName,ECache)] {
   }
 
   def apply(en: EName) = cache(en)
+  def clear() { cache.clear() }
   def iterator = cache.iterator
   def setDirty(en: EName) = cache -= en
 }
