@@ -4,6 +4,7 @@ import quanto.data._
 import quanto.gui._
 import quanto.data.Names._
 import swing._
+import event.Key.Modifier
 import event.MouseMoved
 import event.MousePressed
 import event.MouseReleased
@@ -139,12 +140,17 @@ class GraphView extends Panel {
   }
 
   reactions += {
-    case MousePressed(_, pt, modifiers, _, _) => println("pressed at: " + pt)
+    case MousePressed(_, pt, modifiers, _, _) =>
     case MouseReleased(_, pt, modifiers, _, _) =>
-      selectedEdges.clear()
+      if ((modifiers & Modifier.Shift) != Modifier.Shift) {
+        selectedVerts.clear()
+        selectedEdges.clear()
+        selectedBBoxes.clear()
+      }
+
       edgeCache.compute()
 
-      edgeCache find { case (_,c) => c.edgeHit(pt) } map (selectedEdges += _._1)
+      edgeCache find { case (_,c) => c.pointHit(pt) } map (selectedEdges += _._1)
 
       this.repaint()
 

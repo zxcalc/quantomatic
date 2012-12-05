@@ -9,7 +9,7 @@ import quanto.data.NodeV
 import quanto.data.WireV
 
 case class ECache(path: Path2D.Double, lines: List[Line2D.Double]) {
-  def edgeHit(pt: Point2D) = {
+  def pointHit(pt: Point2D) = {
     lines exists (_.ptSegDistSq(pt) < GraphView.EdgeSelectionRadius*GraphView.EdgeSelectionRadius)
   }
 }
