@@ -15,6 +15,9 @@ object GraphEditor extends SimpleSwingApplication {
     newEdge   ((), ("n0", "n1"))
     newEdge   ((), ("n1", "n0"))
     newEdge   ((), ("n1", "w0"))
+    newEdge   ((), ("n1", "n1"))
+    //newEdge   ((), ("n1", "n1"))
+    //newEdge   ((), ("n1", "n1"))
   )
   def top = new MainFrame {
     title = "Quanto Graph Editor"
