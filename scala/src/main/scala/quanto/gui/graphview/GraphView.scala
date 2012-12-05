@@ -140,14 +140,14 @@ class GraphView extends Panel {
 
   reactions += {
     case MousePressed(_, pt, modifiers, _, _) => println("pressed at: " + pt)
-    case MouseReleased(_, pt, modifiers, _, _) => {
+    case MouseReleased(_, pt, modifiers, _, _) =>
+      selectedEdges.clear()
       edgeCache.compute()
-      for ((e, ECache(_,lines)) <- edgeCache)
-        if (lines exists (_.ptLineDistSq(pt) < EdgeSelectionRadius*EdgeSelectionRadius))
-          selectedEdges += e
+
+      edgeCache find { case (_,c) => c.edgeHit(pt) } map (selectedEdges += _._1)
 
       this.repaint()
-    }
+
     case MouseMoved(_, pt, _) => //println("moved through: " + pt)
   }
 }
