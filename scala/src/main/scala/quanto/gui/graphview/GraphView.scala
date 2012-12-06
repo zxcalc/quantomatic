@@ -5,9 +5,7 @@ import quanto.gui._
 import quanto.data.Names._
 import swing._
 import event.Key.Modifier
-import event.MouseMoved
-import event.MousePressed
-import event.MouseReleased
+import event.{MouseDragged, MouseMoved, MousePressed, MouseReleased}
 import java.awt.{BasicStroke, Color, RenderingHints}
 import java.awt.geom._
 import math._
@@ -20,6 +18,8 @@ import quanto.data.VName
 
 class GraphView extends Panel {
   import GraphView._
+
+  private var mouseState: MouseState = SelectTool()
 
   var drawGrid = false
   var snapToGrid = false
@@ -124,32 +124,65 @@ class GraphView extends Panel {
 
       g.draw(shape)
     }
+
+    g.setStroke(new BasicStroke(1))
+
+    mouseState match {
+      case box: SelectionBox =>
+        g.setColor(new Color(0.5f,0.5f,1f,0.1f))
+        g.fill(box.rect2d)
+        g.setColor(new Color(0.5f,0.5f,1f,0.4f))
+        g.draw(box.rect2d)
+      case _=>
+    }
   }
 
-  var dragVertex: VName = null
-
   reactions += {
+
     case MousePressed(_, pt, modifiers, _, _) =>
-    case MouseReleased(_, pt, modifiers, _, _) =>
-      if ((modifiers & Modifier.Shift) != Modifier.Shift) {
-        selectedVerts.clear()
-        selectedEdges.clear()
-        selectedBBoxes.clear()
+      mouseState match {
+        case SelectTool() =>
+          mouseState = SelectionBox(pt, pt)
+        case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
-      vertexDisplay.compute()
-      edgeDisplay.compute()
+    case MouseDragged(_, pt, _) =>
+      mouseState match {
+        case SelectTool() => // do nothing
+        case SelectionBox(start,_) =>
+          mouseState = SelectionBox(start, pt)
+          repaint()
+        case state => throw new InvalidMouseStateException("MouseMoved", state)
+      }
 
-      var selectionUpdated = false
-      vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+    case MouseReleased(_, pt, modifiers, _, _) =>
+      mouseState match {
+        case SelectionBox(start,_) =>
+          if ((modifiers & Modifier.Shift) != Modifier.Shift) {
+            selectedVerts.clear()
+            selectedEdges.clear()
+            selectedBBoxes.clear()
+          }
 
-      if (!selectionUpdated)
-        edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
-      // TODO: bbox selection
+          vertexDisplay.compute()
+          edgeDisplay.compute()
 
-      this.repaint()
+          if (pt.getX == start.getX && pt.getY == start.getY) {
+            var selectionUpdated = false
+            vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
 
-    case MouseMoved(_, pt, _) => //println("moved through: " + pt)
+            if (!selectionUpdated)
+              edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+            // TODO: bbox selection
+          }
+
+          mouseState = SelectTool()
+          repaint()
+
+        case state => throw new InvalidMouseStateException("MouseReleased", state)
+      }
+
+
   }
 }
 

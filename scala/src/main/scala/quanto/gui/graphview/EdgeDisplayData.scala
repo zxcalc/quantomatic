@@ -35,14 +35,10 @@ extends Iterable[(EName,EDisplay)] {
         var i = 1
 
         // first do reverse edges, then do edges
-
-
         for (e <- rEdges.iterator ++ edges.iterator if !cache.contains(e)) {
           val shift = (0.333 * Pi) - (inc * i)
           val outAngle = angle - shift
           val inAngle = angle + angleFlip + shift
-
-          if (v1 == v2) println("angles: " + inAngle + ", " + outAngle)
 
           val sp = vertexDisplay.contactPoint(v1,outAngle)
           val tp = vertexDisplay.contactPoint(v2,inAngle)
@@ -56,14 +52,14 @@ extends Iterable[(EName,EDisplay)] {
             val arcStart = atan2(sp._2 - center._2, sp._1 - center._1)
             val arcEnd = atan2(tp._2 - center._2, tp._1 - center._1)
 
+            println((arcStart / Pi,arcEnd / Pi))
+
             val trCenter = trans toScreen center
             val trRad = trans scaleToScreen (curveRadius)
             val rect = new Rectangle2D.Double(trCenter._1 - trRad, trCenter._2 - trRad, 2.0 * trRad, 2.0 * trRad)
 
-            println("center: " + trCenter + ", rad: " + trRad)
-
             new Arc2D.Double(rect,
-                             toDegrees(0), toDegrees(2*Pi),
+                             toDegrees(arcStart), toDegrees(2 * Pi - abs(arcEnd - arcStart)),
                              Arc2D.OPEN)
           } else {
             val (dx,dy) = (tp._1 - sp._1, tp._2 - sp._2)
