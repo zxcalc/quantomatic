@@ -25,6 +25,7 @@ class GraphView extends Panel {
   var snapToGrid = false
   var gridMajor = 1.0
   var gridSubs = 4
+  var undoStack = null
 
   private var _editMode: Int = _
   def editMode = _editMode
@@ -125,6 +126,8 @@ class GraphView extends Panel {
     }
   }
 
+  var dragVertex: VName = null
+
   reactions += {
     case MousePressed(_, pt, modifiers, _, _) =>
     case MouseReleased(_, pt, modifiers, _, _) =>
@@ -134,9 +137,15 @@ class GraphView extends Panel {
         selectedBBoxes.clear()
       }
 
+      vertexDisplay.compute()
       edgeDisplay.compute()
 
-      edgeDisplay find { case (_,c) => c.pointHit(pt) } map (selectedEdges += _._1)
+      var selectionUpdated = false
+      vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+
+      if (!selectionUpdated)
+        edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+      // TODO: bbox selection
 
       this.repaint()
 

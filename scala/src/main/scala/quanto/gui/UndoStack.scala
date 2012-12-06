@@ -39,6 +39,16 @@ class UndoStack {
     }
   }
 
+  def cancel() {
+    commitDepth -= 1
+
+    if (commitDepth < 0) throw new UndoStackException("no active undo action")
+    else if (commitDepth == 0) {
+      actionName = null
+      tempStack = List[()=>Any]()
+    }
+  }
+
   def register(aName: String)(f: =>Any) {
     start(aName)
     this += f

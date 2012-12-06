@@ -134,4 +134,18 @@ class UndoStackSpec extends FlatSpec {
     undoStack.redo()
     assert(stateVar === 16.0)
   }
+
+  it can "cancel undo registration in progress" in {
+    stateVar = 3.0
+    multBy2()
+
+    assert(stateVar === 6.0)
+    undoStack.start("Cancel me")
+    add5()
+    subtract5()
+    // oh, we didn't actually do anything, so cancel:
+    undoStack.cancel()
+    assert(stateVar === 6.0)
+    assert(undoStack.undoActionName === Some("Multiply by 2"))
+  }
 }
