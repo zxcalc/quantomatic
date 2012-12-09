@@ -245,7 +245,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
     
   fun match_pending' data doomedf match_state = let
     val _ = log data 2 "== Starting inner match"
-  
+    val _ = TextIO.print("Starting inner match");
     (* main matching loop *)
     fun match_main data lvl ms = let
       val _ = logf data 3 (fn () => ind lvl "== Entering main loop") ()
@@ -274,6 +274,8 @@ functor MJB_SimpleInnerMatchSearchParallel(
                 match_main data (lvl+1) (ms' |> MatchState.set_match_subst subst
                                         |> add_vertex_to_match data lvl (nv, tnv))
              | NONE => Seq.empty
+        val _ = TextIO.print (if (lvl<=1) then "About to parallelise\n" else "")
+        val _ = TextIO.print (if (lvl>1) then "Level was " ^ Int.toString(lvl) else "")
       (*BRANCH POINT*)
       in
         if (lvl<=1) then
@@ -281,9 +283,23 @@ functor MJB_SimpleInnerMatchSearchParallel(
           Par_Seq.sequential_seq_of (
           Par_Seq.maps (fn fd => fn a => 
             Par_Seq.of_sequential_seq data (m_nodevert fd a)) (
-          Par_Seq.of_sequential_seq data (V.NSet.fold Seq.cons unm_nv_tgt Seq.empty))))
+          Par_Seq.of_sequential_seq data (
+            let
+              val _ = PolyML.print("Folding!");
+              val res = V.NSet.fold Seq.cons unm_nv_tgt Seq.empty;
+              val _ = PolyML.print("Done folding")
+            in
+              res
+            end))))
         else
-          Seq.maps (m_nodevert data) (V.NSet.fold Seq.cons unm_nv_tgt Seq.empty)
+          Seq.maps (m_nodevert data) (
+            let
+              val _ = PolyML.print("Folding!");
+              val res = V.NSet.fold Seq.cons unm_nv_tgt Seq.empty;
+              val _ = PolyML.print("Done folding")
+            in
+              res
+            end)
       end
       
       (* match all scheduled wires in the neighbourhood of the given node-vertex *)

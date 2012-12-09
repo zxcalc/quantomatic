@@ -36,7 +36,6 @@ struct
     do_match ms
   end
   fun match pat tgt = let
-    val _ = PolyML.print "matching concrete!!";
     val pat' = G.normalise pat
     val tgt' = G.normalise tgt
   in match_normalised pat' tgt' end

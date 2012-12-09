@@ -33,14 +33,21 @@ local
   fun infinite() = infinite()
   (*Wrap a sequential function to make it behave more "fairly"*)
   fun wrap_sequential sq =
-    fn() =>(
-    let
-      val f1 = Future.future infinite;
-      val f2 = Future.future infinite;
-      val f3 = Future.future infinite
-    in
-      (sq();Future.cancel f1;Future.cancel f2;Future.cancel f3)
-    end)
+        fn() =>(
+        let
+          val num_cores = Thread.numProcessors();
+          fun gen_futures 0 = []
+            | gen_futures n = let
+                val f = Future.future infinite
+              in
+                f::(gen_futures (n-1))
+              end;
+          val to_cancel = gen_futures (num_cores-1);
+          fun cancel_all [] = ()
+            | cancel_all (f::fs) = (Future.cancel f;cancel_all fs)
+        in
+          (sq();cancel_all to_cancel;())
+        end)
   
   (*The type of a print function*)
   type print = G.T -> G.T -> Time.time -> unit
@@ -107,18 +114,19 @@ local
   (*Wrapped version of the sequential algorithm*)
   fun match_all_concrete_wrapped g1 g2 = (wrap_sequential (fn () => (
     let val ls = Seq.list_of (Concrete_M.match g1 g2) in
-    PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));() end))) ()
+    (*PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));*)() end))) ()
   fun match_all_greedy_wrapped g1 g2 =
     (wrap_sequential (fn () => (
     let val ls = Seq.list_of (Greedy_M.match g1 g2) in
-    PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));() end))) ()
+    (*PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));*)() end))) ()
   (*Parallel version!*)
   fun match_all_parallel_concrete g1 g2 = let
+    val _ = PolyML.print("About to start matching algorithm...");
     val n = List.length (Seq.list_of (Concrete_Parallel_M.match g1 g2))
-    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
   fun match_all_parallel_greedy g1 g2 = let
     val n = List.length (Seq.list_of (Greedy_Parallel_M.match g1 g2))
-    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
   
   (*Force the evaluation of all matching circles only, and return the results as a list*)
   fun match_all_circles_concrete g1 g2 = Seq.list_of (
@@ -349,15 +357,6 @@ in
     structure File_Aux = Printers.File_Aux;
     
     (*Wrap a sequential function to make it behave more "fairly"*)
-  fun wrap_sequential sq =
-    fn() =>(
-    let
-      val f1 = Future.future infinite;
-      val f2 = Future.future infinite;
-      val f3 = Future.future infinite
-    in
-      (sq();Future.cancel f1;Future.cancel f2;Future.cancel f3)
-    end)
     
     (*This function is used to wrap up tests to control the log levels
     inside the matching algorithms and to close the file...
@@ -428,12 +427,16 @@ in
         if (n=0) then test_together ps g p gen match_algo1 match_algo2 else
         let
           val g2 = gen vn;
+          val _ = PolyML.print("Testing parallel algorithm");
           val sw = Stopwatch.start Stopwatch.new; (*Start timing*)
           val _ = match_algo1 g g2;
           val t1 = fst (Stopwatch.stop sw);
+          val _ = PolyML.print("Finished parallel algorithm");
+          val _ = PolyML.print("Testing sequential algorithm");
           val sw = Stopwatch.start Stopwatch.new; (*Start timing*)
           val _ = match_algo2 g g2;
           val t2 = fst (Stopwatch.stop sw);
+          val _ = PolyML.print("Finished sequential algorithm");
           val _ = p g g2 t1 t2
         in
           if (n=1) then test_together ps g p gen match_algo1 match_algo2 else test_together ((vn,n-1)::ps) g p gen match_algo1 match_algo2
@@ -443,14 +446,14 @@ in
     graphs produced over a range of vertices...*)
     fun test_with_square_concrete (low,high) repeat =
       wrap_test (fn() =>
-      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_concrete_wrapped)
+      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
     graphs produced over a range of vertices...*)
     fun test_with_square_concrete_complete (low,high) repeat =
       wrap_test (fn() =>
-      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_concrete_wrapped)
+      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
@@ -461,7 +464,7 @@ in
       test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_parallel_concrete)
       true (*Erase the contents of the result file for each test*)
     
-    (*Testing the square against random target
+    (*Testing the square against complete target
     graphs produced over a range of vertices...*)
     fun test_with_square_concrete_complete_parallel (low,high) repeat =
       wrap_test (fn() =>
@@ -471,13 +474,13 @@ in
     (*Test the parallel and sequential algorithms on the same random graphs!*)
     fun test_with_square_concrete_together (low,high) repeat =
       wrap_test (fn() =>
-      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer random_target match_all_parallel_concrete match_all_concrete_wrapped)
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer random_target match_all_parallel_concrete match_all_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Test the parallel and sequential algorithms together on complete graphs*)
     fun test_with_square_concrete_together_complete (low,high) repeat =
       wrap_test (fn() =>
-      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer complete_target match_all_parallel_concrete match_all_concrete_wrapped)
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer complete_target match_all_parallel_concrete match_all_concrete)
       true (*Erase the contents of the result file for each test*)
       
     (*Test the parallel and sequential algorithms together
