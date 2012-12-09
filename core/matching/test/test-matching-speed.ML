@@ -115,10 +115,10 @@ local
   (*Parallel version!*)
   fun match_all_parallel_concrete g1 g2 = let
     val n = List.length (Seq.list_of (Concrete_Parallel_M.match g1 g2))
-    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
   fun match_all_parallel_greedy g1 g2 = let
     val n = List.length (Seq.list_of (Greedy_Parallel_M.match g1 g2))
-    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
   
   (*Force the evaluation of all matching circles only, and return the results as a list*)
   fun match_all_circles_concrete g1 g2 = Seq.list_of (
@@ -428,12 +428,16 @@ in
         if (n=0) then test_together ps g p gen match_algo1 match_algo2 else
         let
           val g2 = gen vn;
+          val _ = PolyML.print("Running parallel algorithm");
           val sw = Stopwatch.start Stopwatch.new; (*Start timing*)
           val _ = match_algo1 g g2;
           val t1 = fst (Stopwatch.stop sw);
+          val _ = PolyML.print("Finished parallel algorithm");
+          val _ = PolyML.print("Running sequential algorithm");
           val sw = Stopwatch.start Stopwatch.new; (*Start timing*)
           val _ = match_algo2 g g2;
           val t2 = fst (Stopwatch.stop sw);
+          val _ = PolyML.print("Finished sequential algorithm");
           val _ = p g g2 t1 t2
         in
           if (n=1) then test_together ps g p gen match_algo1 match_algo2 else test_together ((vn,n-1)::ps) g p gen match_algo1 match_algo2
@@ -443,14 +447,14 @@ in
     graphs produced over a range of vertices...*)
     fun test_with_square_concrete (low,high) repeat =
       wrap_test (fn() =>
-      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_concrete_wrapped)
+      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer random_target match_all_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
     graphs produced over a range of vertices...*)
     fun test_with_square_concrete_complete (low,high) repeat =
       wrap_test (fn() =>
-      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_concrete_wrapped)
+      test_against_generic (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.numbers_printer complete_target match_all_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Testing the square against random target
@@ -471,13 +475,13 @@ in
     (*Test the parallel and sequential algorithms on the same random graphs!*)
     fun test_with_square_concrete_together (low,high) repeat =
       wrap_test (fn() =>
-      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer random_target match_all_parallel_concrete match_all_concrete_wrapped)
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer random_target match_all_parallel_concrete match_all_concrete)
       true (*Erase the contents of the result file for each test*)
     
     (*Test the parallel and sequential algorithms together on complete graphs*)
     fun test_with_square_concrete_together_complete (low,high) repeat =
       wrap_test (fn() =>
-      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer complete_target match_all_parallel_concrete match_all_concrete_wrapped)
+      test_together (range_fixed_repeats (low,high) repeat) Graphs.concrete_graph1 Printers.pair_printer complete_target match_all_parallel_concrete match_all_concrete)
       true (*Erase the contents of the result file for each test*)
       
     (*Test the parallel and sequential algorithms together
@@ -501,6 +505,8 @@ in
       List.length (Seq.list_of (
       Test_ConcreteMatcher.match g1 g2))))
       
+    (*REMOVE*)
+    fun test hardness = test_with_square_concrete_together_complete (hardness,hardness) 1
     (*REMOVE*)
     val complete_target = complete_target
     (*REMOVE*)
