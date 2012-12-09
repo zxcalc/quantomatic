@@ -18,9 +18,13 @@ struct
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
   fun do_match ms =
-    Seq.filter MatchState.is_total
-       (Seq.maps InnerMatchSearch.match_bare_wires
-        (InnerMatchSearch.match_pending concrete_doomedf ms))
+    let (*val _ = PolyML.print("Filtering!")*)
+        val res = Seq.maps InnerMatchSearch.match_bare_wires
+        (InnerMatchSearch.match_pending concrete_doomedf ms);
+        (*val n = List.length (Seq.list_of res);
+        val _ = PolyML.print("Found: " ^ (Int.toString(n)) ^ " matches before filtering");*)
+    in
+    Seq.filter MatchState.is_total res end
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of

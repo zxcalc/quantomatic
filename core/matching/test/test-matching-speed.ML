@@ -427,12 +427,12 @@ in
         if (n=0) then test_together ps g p gen match_algo1 match_algo2 else
         let
           val g2 = gen vn;
-          val _ = PolyML.print("Testing parallel algorithm");
+          val _ = PolyML.print("Running parallel algorithm");
           val sw = Stopwatch.start Stopwatch.new; (*Start timing*)
           val _ = match_algo1 g g2;
           val t1 = fst (Stopwatch.stop sw);
           val _ = PolyML.print("Finished parallel algorithm");
-          val _ = PolyML.print("Testing sequential algorithm");
+          val _ = PolyML.print("Running sequential algorithm");
           val sw = Stopwatch.start Stopwatch.new; (*Start timing*)
           val _ = match_algo2 g g2;
           val t2 = fst (Stopwatch.stop sw);
@@ -504,6 +504,8 @@ in
       List.length (Seq.list_of (
       Test_ConcreteMatcher.match g1 g2))))
       
+    (*REMOVE*)
+    fun test hardness = test_with_square_concrete_together_complete (hardness,hardness) 1
     (*REMOVE*)
     val complete_target = complete_target
     (*REMOVE*)
