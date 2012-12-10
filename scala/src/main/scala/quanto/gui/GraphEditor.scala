@@ -2,6 +2,7 @@ package quanto.gui
 
 import graphview._
 import swing._
+import event.{UIElementResized, UIElementMoved}
 import quanto.data._
 import Names._
 
@@ -35,18 +36,23 @@ object GraphEditor extends SimpleSwingApplication {
 //    //newEdge   ((), ("n1", "n1"))
 //  )
 
-  val graphView = new GraphView {
+  val GraphView_ = new GraphView {
     graph = randomGraph
     drawGrid = true
     dynamicResize = true
     editMode = GraphView.ReadWrite
   }
 
-  val scrollPane = new ScrollPane(graphView)
+  val ScrollPane_ = new ScrollPane(GraphView_)
 
   def top = new MainFrame {
     title = "Quanto Graph Editor"
-    contents = scrollPane
+    contents = ScrollPane_
     size = new Dimension(500,500)
+
+    listenTo(ScrollPane_)
+    reactions += {
+      case UIElementResized(ScrollPane_) => GraphView_.repaint()
+    }
   }
 }

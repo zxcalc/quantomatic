@@ -30,6 +30,11 @@ with VertexDisplayData
   var gridSubs = 4
   var undoStack = null
 
+  // gets called when the component is first painted
+  lazy val init = {
+    resizeViewToFit()
+  }
+
   private var _editMode: Int = _
   def editMode = _editMode
   def editMode_=(em: Int) {
@@ -108,21 +113,27 @@ with VertexDisplayData
     val (w,h) = (bottomRight._1 - topLeft._1,
                  bottomRight._2 - topLeft._2)
 
-    trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
-    preferredSize = new Dimension(w.toInt, h.toInt)
+    val changed = (topLeft._1 != 0) || (topLeft._2 != 0) ||
+                  (preferredSize.width != w) || (preferredSize.height != h)
 
-    invalidateGraph()
-    revalidate()
-//    val newVRect = new java.awt.Rectangle(
-//      (vRect.getX-topLeft._1).toInt, (vRect.getY-topLeft._2).toInt,
-//      vRect.getWidth.toInt, vRect.getHeight.toInt)
-//    peer.scrollRectToVisible(newVRect)
-
+    if (changed) {
+      trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
+      preferredSize = new Dimension(w.toInt, h.toInt)
+      invalidateGraph()
+      revalidate()
+    }
   }
 
-  override def paint(g: Graphics2D) {
-    super.paint(g)
+  override def repaint() {
+    if (dynamicResize) resizeViewToFit()
+    super.repaint()
+  }
+
+  override def paintComponent(g: Graphics2D) {
+    super.paintComponent(g)
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+
+    init
 
     g.setColor(Color.WHITE)
     g.fillRect(0, 0, bounds.width, bounds.height)
@@ -219,7 +230,6 @@ with VertexDisplayData
           repaint()
         case DragVertex(start, prev) =>
           shiftVerts(selectedVerts, prev, pt)
-          resizeViewToFit()
           repaint()
           mouseState = DragVertex(start, pt)
         case state => throw new InvalidMouseStateException("MouseMoved", state)
