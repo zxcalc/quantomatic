@@ -11,7 +11,7 @@ extends Exception("Got unexpected mouse state: " + state + ", when: " + when)
 
 case class SelectTool() extends MouseState
 case class SelectionBox(start: Point, end: Point) extends MouseState {
-  def rect2d = {
+  def rect = {
     new Rectangle2D.Double(
       min(start.getX, end.getX),
       min(start.getY, end.getY),

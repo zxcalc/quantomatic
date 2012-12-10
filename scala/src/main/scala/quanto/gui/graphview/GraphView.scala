@@ -5,18 +5,18 @@ import quanto.gui._
 import quanto.data.Names._
 import swing._
 import event.Key.Modifier
-import event.{MouseDragged, MouseMoved, MousePressed, MouseReleased}
+import event.{MouseDragged, MousePressed, MouseReleased}
 import java.awt.{BasicStroke, Color, RenderingHints}
-import java.awt.geom._
 import math._
 import quanto.data.EName
 import quanto.data.BBName
-import quanto.data.NodeV
-import quanto.data.WireV
 import quanto.data.VName
 
 
-class GraphView extends Panel {
+class GraphView extends Panel
+with EdgeDisplayData
+with VertexDisplayData
+{
   import GraphView._
 
   private var mouseState: MouseState = SelectTool()
@@ -43,12 +43,9 @@ class GraphView extends Panel {
   var graph: Graph[Unit,VData,Unit,Unit] = Graph(defaultGName, ())
   var trans = new Transformer
 
-  private lazy val vertexDisplay: VertexDisplayData = new VertexDisplayData(graph, trans)
-  private lazy val edgeDisplay: EdgeDisplayData = new EdgeDisplayData(graph, trans, vertexDisplay)
-
   def invalidate() {
-    vertexDisplay.clear()
-    edgeDisplay.clear()
+    invalidateAllVerts()
+    invalidateAllEdges()
   }
 
   val selectedVerts = collection.mutable.Set[VName]()
@@ -93,8 +90,8 @@ class GraphView extends Panel {
     g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
     if (drawGrid) drawGridLines(g)
 
-    vertexDisplay.compute()
-    edgeDisplay.compute()
+    computeVertexDisplay()
+    computeEdgeDisplay()
 
     for ((e, EDisplay(p,_)) <- edgeDisplay) {
       if (selectedEdges contains e) {
@@ -130,10 +127,19 @@ class GraphView extends Panel {
     mouseState match {
       case box: SelectionBox =>
         g.setColor(new Color(0.5f,0.5f,1f,0.1f))
-        g.fill(box.rect2d)
+        g.fill(box.rect)
         g.setColor(new Color(0.5f,0.5f,1f,0.4f))
-        g.draw(box.rect2d)
+        g.draw(box.rect)
       case _=>
+    }
+  }
+
+  private def shiftVerts(vs: Traversable[VName], p1: Point, p2: Point) {
+    val (dx,dy) = (trans scaleFromScreen (p2.getX - p1.getX), trans scaleFromScreen (p2.getY - p1.getY))
+    graph = vs.foldLeft(graph) { (g,v) =>
+      invalidateVertex(v)
+      graph.adjacentEdges(v) foreach (invalidateEdge)
+      g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
     }
   }
 
@@ -142,7 +148,28 @@ class GraphView extends Panel {
     case MousePressed(_, pt, modifiers, _, _) =>
       mouseState match {
         case SelectTool() =>
-          mouseState = SelectionBox(pt, pt)
+          val vertexHit = vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          val mouseDownOnSelectedVert = vertexHit exists (selectedVerts.contains(_))
+
+          // clear the selection if the shift key isn't pressed and the vertex clicked isn't already selected
+          if (!mouseDownOnSelectedVert &&
+              (modifiers & Modifier.Shift) != Modifier.Shift)
+          {
+            selectedVerts.clear()
+            selectedEdges.clear()
+            selectedBBoxes.clear()
+          }
+
+          vertexHit match {
+            case Some(v) =>
+              selectedVerts += v // make sure v is selected, if it wasn't before
+              mouseState = DragVertex(pt,pt)
+            case None =>
+              mouseState = SelectionBox(pt, pt)
+          }
+
+          repaint()
+
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
@@ -152,36 +179,40 @@ class GraphView extends Panel {
         case SelectionBox(start,_) =>
           mouseState = SelectionBox(start, pt)
           repaint()
+        case DragVertex(start, prev) =>
+          shiftVerts(selectedVerts, prev, pt)
+          repaint()
+          mouseState = DragVertex(start, pt)
         case state => throw new InvalidMouseStateException("MouseMoved", state)
       }
 
     case MouseReleased(_, pt, modifiers, _, _) =>
       mouseState match {
         case SelectionBox(start,_) =>
-          if ((modifiers & Modifier.Shift) != Modifier.Shift) {
-            selectedVerts.clear()
-            selectedEdges.clear()
-            selectedBBoxes.clear()
-          }
-
-          vertexDisplay.compute()
-          edgeDisplay.compute()
+          computeVertexDisplay()
+          computeEdgeDisplay()
 
           if (pt.getX == start.getX && pt.getY == start.getY) {
             var selectionUpdated = false
-            vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+            vertexDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedVerts += x._1 }
 
             if (!selectionUpdated)
-              edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+              edgeDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedEdges += x._1 }
             // TODO: bbox selection
+          } else {
+            // box selection only affects vertices
+            val r = mouseState.asInstanceOf[SelectionBox].rect
+            vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
           }
 
           mouseState = SelectTool()
           repaint()
 
+        case DragVertex(start, end) =>
+          mouseState = SelectTool()
+
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
-
 
   }
 }

@@ -29,6 +29,11 @@ class Graph[G,V,E,B](
     new Graph(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
   }
 
+  // convenience methods
+  def inEdges(vn: VName) = target.inv(vn)
+  def outEdges(vn: VName) = source.inv(vn)
+  def adjacentEdges(vn: VName) = source.inv(vn) union target.inv(vn)
+
   def addVertex(vn: VName, data: V) = {
     if (verts contains vn)
       throw new DuplicateVertexNameException(vn)

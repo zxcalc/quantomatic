@@ -14,15 +14,16 @@ case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double]) {
   }
 }
 
-class EdgeDisplayData(
-  var graph: Graph[Unit,VData,Unit,Unit],
-  var trans: Transformer,
-  vertexDisplay: VertexDisplayData)
-extends Iterable[(EName,EDisplay)] {
-  private val cache = collection.mutable.Map[EName, EDisplay]()
+trait EdgeDisplayData {
+  def graph: Graph[Unit,VData,Unit,Unit]
+  def trans: Transformer
+  protected def vertexDisplay: collection.Map[VName, VDisplay]
+  protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double)
+
+  protected val edgeDisplay = collection.mutable.Map[EName, EDisplay]()
   import GraphView._
 
-  def compute() {
+  protected def computeEdgeDisplay() {
     for ((v1,sd) <- graph.verts; (v2,td) <- graph.verts if v1 <= v2) {
       val edges = graph.source.inv(v1) intersect graph.target.inv(v2)
       val rEdges = if (v1 == v2) Set[EName]() else graph.target.inv(v1) intersect graph.source.inv(v2)
@@ -35,13 +36,13 @@ extends Iterable[(EName,EDisplay)] {
         var i = 1
 
         // first do reverse edges, then do edges
-        for (e <- rEdges.iterator ++ edges.iterator if !cache.contains(e)) {
+        for (e <- rEdges.iterator ++ edges.iterator if !edgeDisplay.contains(e)) {
           val shift = (0.333 * Pi) - (inc * i)
           val outAngle = angle - shift
           val inAngle = angle + angleFlip + shift
 
-          val sp = vertexDisplay.contactPoint(v1,outAngle)
-          val tp = vertexDisplay.contactPoint(v2,inAngle)
+          val sp = vertexContactPoint(v1,outAngle)
+          val tp = vertexContactPoint(v2,inAngle)
 
           val p = new Path2D.Double()
 
@@ -51,8 +52,6 @@ extends Iterable[(EName,EDisplay)] {
             val curveRadius = sqrt(dx*dx + dy*dy)
             val arcStart = atan2(sp._2 - center._2, sp._1 - center._1)
             val arcEnd = atan2(tp._2 - center._2, tp._1 - center._1)
-
-            println((arcStart / Pi,arcEnd / Pi))
 
             val trCenter = trans toScreen center
             val trRad = trans scaleToScreen (curveRadius)
@@ -109,7 +108,7 @@ extends Iterable[(EName,EDisplay)] {
           p.lineTo(ah2._1, ah2._2)
           p.lineTo(ah3._1, ah3._2)
 
-          cache(e) = EDisplay(p, lines)
+          edgeDisplay(e) = EDisplay(p, lines)
 
           i += 1
         }
@@ -117,8 +116,6 @@ extends Iterable[(EName,EDisplay)] {
     }
   }
 
-  def apply(en: EName) = cache(en)
-  def clear() { cache.clear() }
-  def iterator = cache.iterator
-  def setDirty(en: EName) = cache -= en
+  def invalidateAllEdges() { edgeDisplay.clear() }
+  def invalidateEdge(en: EName) = edgeDisplay -= en
 }

@@ -7,23 +7,22 @@ import quanto.data._
 import quanto.gui._
 
 case class VDisplay(shape: Shape, color: Color) {
-  def pointHit(pt: Point2D) = {
-    shape.contains(pt)
-  }
+  def pointHit(pt: Point2D) = shape.contains(pt)
+  def rectHit(r: Rectangle2D) = shape.intersects(r)
 }
 
-class VertexDisplayData (
-  var graph: Graph[Unit,VData,Unit,Unit],
-  var trans: Transformer)
-extends Iterable[(VName,VDisplay)] {
-  private val cache = collection.mutable.Map[VName,VDisplay]()
+trait VertexDisplayData {
+  def graph: Graph[Unit,VData,Unit,Unit]
+  def trans: Transformer
+
+  protected val vertexDisplay = collection.mutable.Map[VName,VDisplay]()
 
   // returns the contact point at the given angle, in graph coordinates
-  def contactPoint(vn: VName, angle: Double): (Double,Double) = {
+  protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double) = {
     // TODO: replace this with proper boundary detection
     val c = graph.verts(vn).coord
 
-    cache(vn).shape match {
+    vertexDisplay(vn).shape match {
       case _: Ellipse2D => (c._1 + GraphView.NodeRadius * cos(angle), c._2 + GraphView.NodeRadius * sin(angle))
       case _: Rectangle2D => {
         val chop = 0.707 * GraphView.WireRadius
@@ -42,14 +41,14 @@ extends Iterable[(VName,VDisplay)] {
     }
   }
 
-  def compute() {
+  protected def computeVertexDisplay() {
     val trNodeRadius = trans scaleToScreen GraphView.NodeRadius
     val trWireWidth = 0.707 * (trans scaleToScreen GraphView.WireRadius)
 
-    for ((v,data) <- graph.verts if !cache.contains(v)) {
+    for ((v,data) <- graph.verts if !vertexDisplay.contains(v)) {
       val (x,y) = trans toScreen data.coord
 
-      cache(v) = data match {
+      vertexDisplay(v) = data match {
         case NodeV(_) =>
           VDisplay(
             new Ellipse2D.Double(
@@ -66,8 +65,6 @@ extends Iterable[(VName,VDisplay)] {
     }
   }
 
-  def apply(n: VName) = cache(n)
-  def clear() { cache.clear() }
-  def iterator = cache.iterator
-  def setDirty(n: VName) = cache -= n
+  def invalidateAllVerts() { vertexDisplay.clear() }
+  def invalidateVertex(n: VName) = vertexDisplay -= n
 }
