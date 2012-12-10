@@ -24,20 +24,19 @@ trait VertexDisplayData {
 
     vertexDisplay(vn).shape match {
       case _: Ellipse2D => (c._1 + GraphView.NodeRadius * cos(angle), c._2 + GraphView.NodeRadius * sin(angle))
-      case _: Rectangle2D => {
+      case _: Rectangle2D =>
         val chop = 0.707 * GraphView.WireRadius
         var rad = 0d
 
         if (abs(GraphView.WireRadius * cos(angle)) > chop) {
-          rad = chop / cos(angle)
+          rad = abs(chop / cos(angle))
         } else if (abs(GraphView.WireRadius * cos(angle)) > chop) {
-          rad = chop / sin(angle)
+          rad = abs(chop / sin(angle))
         } else {
           rad = GraphView.WireRadius
         }
 
         (c._1 + rad * cos(angle), c._2 + rad * sin(angle))
-      }
     }
   }
 

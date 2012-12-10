@@ -11,9 +11,11 @@ import math._
 import quanto.data.EName
 import quanto.data.BBName
 import quanto.data.VName
+import swing.Rectangle
 
 
 class GraphView extends Panel
+with Scrollable
 with EdgeDisplayData
 with VertexDisplayData
 {
@@ -23,6 +25,7 @@ with VertexDisplayData
 
   var drawGrid = false
   var snapToGrid = false
+  var dynamicResize = false
   var gridMajor = 1.0
   var gridSubs = 4
   var undoStack = null
@@ -43,7 +46,7 @@ with VertexDisplayData
   var graph: Graph[Unit,VData,Unit,Unit] = Graph(defaultGName, ())
   var trans = new Transformer
 
-  def invalidate() {
+  def invalidateGraph() {
     invalidateAllVerts()
     invalidateAllEdges()
   }
@@ -65,7 +68,7 @@ with VertexDisplayData
 
     g.setColor(AxisColor)
     g.drawLine(origin._1.toInt, 0, origin._1.toInt, bounds.height)
-    g.drawLine(0, origin._2.toInt, bounds.width, origin._1.toInt)
+    g.drawLine(0, origin._2.toInt, bounds.width, origin._2.toInt)
 
     for (j <- 1 to iterations) {
       g.setColor(if (j % gridSubs == 0) MajorColor else MinorColor)
@@ -82,12 +85,47 @@ with VertexDisplayData
     }
   }
 
+  def resizeViewToFit() {
+    // top left and bottom right of bounds, in screen coordinates
+    val graphTopLeft = graph.verts.foldLeft(0.0,0.0) { (c,v) =>
+      (min(c._1, v._2.coord._1), max(c._2, v._2.coord._2))
+    } match {case (x,y) => trans toScreen (x - 1.0, y + 1.0)}
+
+    val graphBottomRight = graph.verts.foldLeft((0.0,0.0)) { (c,v) =>
+      (max(c._1, v._2.coord._1), min(c._2, v._2.coord._2))
+    } match {case (x,y) => trans toScreen (x + 1.0, y - 1.0)}
+
+    // default bounds, based on the current position of the origin and the size of the visible region
+    val vRect = peer.getVisibleRect
+    val defaultTopLeft = (trans.origin._1 - (vRect.getWidth/2.0), trans.origin._2 - (vRect.getHeight/2.0))
+    val defaultBottomRight = (trans.origin._1 + (vRect.getWidth/2.0), trans.origin._2 + (vRect.getHeight/2.0))
+
+    val topLeft =     (min(graphTopLeft._1, defaultTopLeft._1),
+                       min(graphTopLeft._2, defaultTopLeft._2))
+    val bottomRight = (max(graphBottomRight._1, defaultBottomRight._1),
+                       max(graphBottomRight._2, defaultBottomRight._2))
+
+    val (w,h) = (bottomRight._1 - topLeft._1,
+                 bottomRight._2 - topLeft._2)
+
+    trans.origin = (trans.origin._1 - topLeft._1, trans.origin._2 - topLeft._2)
+    preferredSize = new Dimension(w.toInt, h.toInt)
+
+    invalidateGraph()
+    revalidate()
+//    val newVRect = new java.awt.Rectangle(
+//      (vRect.getX-topLeft._1).toInt, (vRect.getY-topLeft._2).toInt,
+//      vRect.getWidth.toInt, vRect.getHeight.toInt)
+//    peer.scrollRectToVisible(newVRect)
+
+  }
+
   override def paint(g: Graphics2D) {
     super.paint(g)
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
     g.setColor(Color.WHITE)
-    g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    g.fillRect(0, 0, bounds.width, bounds.height)
     if (drawGrid) drawGridLines(g)
 
     computeVertexDisplay()
@@ -181,6 +219,7 @@ with VertexDisplayData
           repaint()
         case DragVertex(start, prev) =>
           shiftVerts(selectedVerts, prev, pt)
+          resizeViewToFit()
           repaint()
           mouseState = DragVertex(start, pt)
         case state => throw new InvalidMouseStateException("MouseMoved", state)
@@ -215,6 +254,15 @@ with VertexDisplayData
       }
 
   }
+
+  // scrollable method data
+  def preferredViewportSize: Dimension = preferredSize
+
+  def tracksViewportHeight: Boolean = false
+  def tracksViewportWidth: Boolean = false
+
+  def blockIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 10
+  def unitIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 10
 }
 
 object GraphView {
