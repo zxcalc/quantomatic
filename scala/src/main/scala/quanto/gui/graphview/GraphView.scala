@@ -28,7 +28,7 @@ with VertexDisplayData
   var dynamicResize = false
   var gridMajor = 1.0
   var gridSubs = 4
-  var undoStack = null
+  var undoStack: Option[UndoStack] = None
 
   // gets called when the component is first painted
   lazy val init = {

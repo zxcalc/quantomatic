@@ -36,19 +36,37 @@ object GraphEditor extends SimpleSwingApplication {
 //    //newEdge   ((), ("n1", "n1"))
 //  )
 
+  val UndoStack_ = new UndoStack
+
   val GraphView_ = new GraphView {
     graph = randomGraph
     drawGrid = true
     dynamicResize = true
+    undoStack = Some(UndoStack_)
     editMode = GraphView.ReadWrite
   }
 
   val ScrollPane_ = new ScrollPane(GraphView_)
 
+  val FileMenu_ = new Menu("File") {}
+
+  val EditMenu_ = new Menu("Edit") {
+    contents += new MenuItem(Action("Undo") {
+      UndoStack_.undo()
+    })
+    contents += new MenuItem(Action("Redo") {
+      UndoStack_.redo()
+    })
+  }
+
   def top = new MainFrame {
     title = "Quanto Graph Editor"
     contents = ScrollPane_
     size = new Dimension(500,500)
+
+    menuBar = new MenuBar {
+      contents += (FileMenu_, EditMenu_)
+    }
 
     listenTo(ScrollPane_)
     reactions += {
