@@ -2,16 +2,22 @@ package quanto.gui
 
 import graphview._
 import swing._
-import event.{UIElementResized, UIElementMoved}
+import event.{Key, UIElementResized, UIElementMoved}
 import quanto.data._
 import Names._
+import javax.swing.KeyStroke
+import com.sun.xml.internal.messaging.saaj.util.RejectDoctypeSaxFilter
+import java.awt.event.KeyEvent
 
 
 object GraphEditor extends SimpleSwingApplication {
+  val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
+
+  // populate with a random graph, for testing
   val nverts = 4
   val nedges = 10
   val rand = new util.Random
-  var randomGraph = Graph[Unit,VData,Unit,Unit]("g0",())
+  var randomGraph = new Graph[Unit,VData,Unit,Unit]("g0",())
   for (i <- 1 to nverts) {
     val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
     randomGraph = randomGraph.newVertex(NodeV(p))
@@ -23,19 +29,7 @@ object GraphEditor extends SimpleSwingApplication {
     randomGraph = randomGraph.newEdge((), (s,t))
   }
 
-//  var initialGraph = (Graph[Unit,VData,Unit,Unit]("g0",())
-//    addVertex ("n0", NodeV((0, 0)))
-//    addVertex ("n1", NodeV((1, 1)))
-//    addVertex ("w0", WireV((0, 1.5)))
-//    newEdge   ((), ("n0", "n1"))
-//    newEdge   ((), ("n0", "n1"))
-//    newEdge   ((), ("n1", "n0"))
-//    newEdge   ((), ("n1", "w0"))
-//    newEdge   ((), ("n1", "n1"))
-//    //newEdge   ((), ("n1", "n1"))
-//    //newEdge   ((), ("n1", "n1"))
-//  )
-
+  // GUI components
   val UndoStack_ = new UndoStack
 
   val GraphView_ = new GraphView {
@@ -48,15 +42,42 @@ object GraphEditor extends SimpleSwingApplication {
 
   val ScrollPane_ = new ScrollPane(GraphView_)
 
-  val FileMenu_ = new Menu("File") {}
+
+  // Actions associated with main menu
+  val UndoAction_ = new Action("Undo") with Reactor {
+    accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
+    def apply() { UndoStack_.undo() }
+
+    def update() {
+      enabled = UndoStack_.canUndo
+      title = "Undo " + UndoStack_.undoActionName.getOrElse("")
+    }
+
+    listenTo(UndoStack_)
+    reactions += { case _: UndoEvent => update() }; update()
+  }
+
+  val RedoAction_ = new Action("Redo") with Reactor {
+    accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
+    def apply() { UndoStack_.redo() }
+
+    def update() {
+      enabled = UndoStack_.canRedo
+      title = "Redo " + UndoStack_.redoActionName.getOrElse("")
+    }
+
+    listenTo(UndoStack_)
+    reactions += { case _: UndoEvent => update() }; update()
+  }
+
+  // Main menu
+
+  val FileMenu_ = new Menu("File") { mnemonic = Key.F }
 
   val EditMenu_ = new Menu("Edit") {
-    contents += new MenuItem(Action("Undo") {
-      UndoStack_.undo()
-    })
-    contents += new MenuItem(Action("Redo") {
-      UndoStack_.redo()
-    })
+    mnemonic = Key.E
+    contents += new MenuItem(UndoAction_) { mnemonic = Key.U }
+    contents += new MenuItem(RedoAction_) { mnemonic = Key.R }
   }
 
   def top = new MainFrame {

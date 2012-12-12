@@ -1,8 +1,17 @@
 package quanto.gui
 
+import swing.Publisher
+import swing.event.Event
+
+abstract class UndoEvent extends Event
+case class UndoStackChanged() extends UndoEvent
+case class UndoRegistered(name: String) extends UndoEvent
+case class UndoPerformed(name: String) extends UndoEvent
+case class RedoPerformed(name: String) extends UndoEvent
+
 class UndoStackException(msg: String) extends Exception(msg)
 
-class UndoStack {
+class UndoStack extends Publisher {
   private var redoMode = false
 
   var commitDepth = 0
@@ -33,6 +42,8 @@ class UndoStack {
         undoStack = (actionName, tempStack) :: undoStack
         redoStack = List[(String, List[()=>Any])]()
       }
+
+      publish(UndoRegistered(actionName))
 
       actionName = null
       tempStack = List[()=>Any]()
@@ -68,15 +79,17 @@ class UndoStack {
 
         redoMode = false
         undoStack = s
+        publish(UndoPerformed(n))
       case _ =>
     }
   }
 
   def redo() {
     redoStack match {
-      case (_, fs) :: s =>
+      case (n, fs) :: s =>
         fs foreach (f => f())
         redoStack = s
+        publish(RedoPerformed(n))
       case _ =>
     }
   }

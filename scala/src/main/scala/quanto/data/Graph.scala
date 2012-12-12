@@ -5,17 +5,16 @@ import Names._
 class SafeDeleteException[N <: Name[N]](name: Name[N], reason: String) extends
 Exception("Unable to safely delete " + name + ", because " + reason)
 
-class Graph[G,V,E,B](
-  val name: GName,
-  val data: G,
-  val verts: Map[VName,V]             = Map(),
-  val edges: Map[EName,E]             = Map(),
-  val source: PFun[EName,VName]       = PFun(),
-  val target: PFun[EName,VName]       = PFun(),
-  val bboxes: Map[BBName,B]           = Map(),
-  val inBBox: PFun[VName,BBName]      = PFun(),
-  val bboxParent: PFun[BBName,BBName] = PFun())
-{
+trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
+  def name: GName
+  def data: G
+  def verts: Map[VName,V]
+  def edges: Map[EName,E]
+  def source: PFun[EName,VName]
+  def target: PFun[EName,VName]
+  def bboxes: Map[BBName,B]
+  def inBBox: PFun[VName,BBName]
+  def bboxParent: PFun[BBName,BBName]
 
   def copy(name: GName                     = this.name,
            data: G                         = this.data,
@@ -25,9 +24,7 @@ class Graph[G,V,E,B](
            target: PFun[EName,VName]       = this.target,
            bboxes: Map[BBName,B]           = this.bboxes,
            inBBox: PFun[VName,BBName]      = this.inBBox,
-           bboxParent: PFun[BBName,BBName] = this.bboxParent): Graph[G,V,E,B] = {
-    new Graph(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
-  }
+           bboxParent: PFun[BBName,BBName] = this.bboxParent): This
 
   // convenience methods
   def inEdges(vn: VName) = target.inv(vn)
@@ -125,19 +122,30 @@ class Graph[G,V,E,B](
   }
 }
 
-object Graph {
-  def apply[G,V,E,B](
-    name: GName,
-    data: G                         = (),
-    verts: Map[VName,V]             = Map[VName,V](),
-    edges: Map[EName,E]             = Map[EName,E](),
-    source: PFun[EName,VName]       = PFun[EName,VName](),
-    target: PFun[EName,VName]       = PFun[EName,VName](),
-    bboxes: Map[BBName,B]           = Map[BBName,B](),
-    inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
-    bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]()): Graph[G,V,E,B] =
-  new Graph(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
+class Graph[G,V,E,B](val name: GName,
+                     val data: G,
+                     val verts: Map[VName,V]             = Map[VName,V](),
+                     val edges: Map[EName,E]             = Map[EName,E](),
+                     val source: PFun[EName,VName]       = PFun[EName,VName](),
+                     val target: PFun[EName,VName]       = PFun[EName,VName](),
+                     val bboxes: Map[BBName,B]           = Map[BBName,B](),
+                     val inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
+                     val bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
+extends GraphLike[G,V,E,B,Graph[G,V,E,B]]
+{
+  def copy(name: GName                     = this.name,
+           data: G                         = this.data,
+           verts: Map[VName,V]             = this.verts,
+           edges: Map[EName,E]             = this.edges,
+           source: PFun[EName,VName]       = this.source,
+           target: PFun[EName,VName]       = this.target,
+           bboxes: Map[BBName,B]           = this.bboxes,
+           inBBox: PFun[VName,BBName]      = this.inBBox,
+           bboxParent: PFun[BBName,BBName] = this.bboxParent): Graph[G,V,E,B] =
+    new Graph(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
+}
 
+object Graph {
   // name can be ignored on methods that return a graph and a name
-  implicit def graphAndNameToGraph[G,V,E,B, N <: Name[N]](t: (Graph[G,V,E,B],Name[N])) = t._1
+  implicit def graphAndNameToGraph[G,V,E,B, N <: Name[N]](t: (Graph[G,V,E,B], Name[N])) : Graph[G,V,E,B] = t._1
 }

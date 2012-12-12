@@ -11,7 +11,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   var g : Graph[Unit,VData,Boolean,Unit] = _
   
   it can "initialize" in {
-    g = Graph("g0", ())
+    g = new Graph("g0", ())
   }
 
   var v0 : VName = _
@@ -70,7 +70,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   it can "be constructed in block form" in {
     // implicit conversions are used to make strings into names, where
     // necessary.
-    val g1 = (Graph[Unit,VData,Boolean,Unit]("g1",())
+    val g1 = (new Graph[Unit,VData,Boolean,Unit]("g1",())
       addVertex ("v0", NodeV())
       addVertex ("v1", WireV())
       addVertex ("v2", NodeV())

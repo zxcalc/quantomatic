@@ -21,14 +21,13 @@ with VertexDisplayData
 {
   import GraphView._
 
-  private var mouseState: MouseState = SelectTool()
+  var mouseState: MouseState = SelectTool()
 
   var drawGrid = false
   var snapToGrid = false
   var dynamicResize = false
   var gridMajor = 1.0
   var gridSubs = 4
-  var undoStack: Option[UndoStack] = None
 
   // gets called when the component is first painted
   lazy val init = {
@@ -48,17 +47,31 @@ with VertexDisplayData
 
   editMode = ReadOnly
 
-  var graph: Graph[Unit,VData,Unit,Unit] = Graph(defaultGName, ())
+  var graph: Graph[Unit,VData,Unit,Unit] = new Graph(defaultGName, ())
   var trans = new Transformer
+
+  var selectedVerts = Set[VName]()
+  var selectedEdges = Set[EName]()
+  var selectedBBoxes = Set[BBName]()
+
+
+  private var _undoStack: Option[UndoStack] = None
+  def undoStack = _undoStack
+  def undoStack_=(s: Option[UndoStack]) {
+    undoStack map (deafTo(_))
+    s map (listenTo(_))
+    _undoStack = s
+  }
+
+  reactions += {
+    case UndoPerformed(_) => repaint()
+    case RedoPerformed(_) => repaint()
+  }
 
   def invalidateGraph() {
     invalidateAllVerts()
     invalidateAllEdges()
   }
-
-  val selectedVerts = collection.mutable.Set[VName]()
-  val selectedEdges = collection.mutable.Set[EName]()
-  val selectedBBoxes = collection.mutable.Set[BBName]()
 
   private def drawGridLines(g: Graphics2D) {
     val origin = trans toScreen (0,0)
@@ -183,13 +196,20 @@ with VertexDisplayData
     }
   }
 
-  private def shiftVerts(vs: Traversable[VName], p1: Point, p2: Point) {
+  // just shift vertices
+  private def shiftVertsVolatile(vs: Traversable[VName], p1: Point, p2: Point) {
     val (dx,dy) = (trans scaleFromScreen (p2.getX - p1.getX), trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       invalidateVertex(v)
       graph.adjacentEdges(v) foreach (invalidateEdge)
       g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
     }
+  }
+
+  // shift vertices and register undo
+  private def shiftVerts(vs: Traversable[VName], p1: Point, p2: Point) {
+    shiftVertsVolatile(vs, p1, p2)
+    undoStack map (_.register("Move Vertices") { shiftVerts(vs, p2, p1) })
   }
 
   reactions += {
@@ -204,9 +224,9 @@ with VertexDisplayData
           if (!mouseDownOnSelectedVert &&
               (modifiers & Modifier.Shift) != Modifier.Shift)
           {
-            selectedVerts.clear()
-            selectedEdges.clear()
-            selectedBBoxes.clear()
+            selectedVerts = Set()
+            selectedEdges = Set()
+            selectedBBoxes = Set()
           }
 
           vertexHit match {
@@ -229,7 +249,7 @@ with VertexDisplayData
           mouseState = SelectionBox(start, pt)
           repaint()
         case DragVertex(start, prev) =>
-          shiftVerts(selectedVerts, prev, pt)
+          shiftVertsVolatile(selectedVerts, prev, pt)
           repaint()
           mouseState = DragVertex(start, pt)
         case state => throw new InvalidMouseStateException("MouseMoved", state)
@@ -258,6 +278,12 @@ with VertexDisplayData
           repaint()
 
         case DragVertex(start, end) =>
+          if (start.getX != end.getX || start.getY != end.getY) {
+            // we don't call shiftVerts directly, because the vertices have already moved
+            val verts = selectedVerts
+            undoStack map (_.register("Move Vertices") { shiftVerts(verts, end, start) })
+          }
+
           mouseState = SelectTool()
 
         case state => throw new InvalidMouseStateException("MouseReleased", state)
@@ -265,7 +291,7 @@ with VertexDisplayData
 
   }
 
-  // scrollable method data
+  // scrollable trait data
   def preferredViewportSize: Dimension = preferredSize
 
   def tracksViewportHeight: Boolean = false
