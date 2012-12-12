@@ -85,7 +85,20 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     println(g1.toString)
   }
 
-  it can "move some vertices" in {
-    //..
+  behavior of "A QGraph"
+
+  var qg : QGraph = _
+  it can "be constructed in block form" in {
+    val g1 = (QGraph()
+      addVertex ("v0", NodeV())
+      addVertex ("v1", WireV())
+      addVertex ("v2", NodeV())
+      addEdge   ("e0", (), "v0" -> "v0")
+      addEdge   ("e1", (), "v0" -> "v1")
+      addEdge   ("e2", (), "v1" -> "v2")
+      newEdge   ((), "v0" -> "v1")
+      addBBox   ("bb0", (), Set("v0", "v1"))
+      addBBox   ("bb1", (), Set("v2"), parent = Some("bb0"))
+      )
   }
 }

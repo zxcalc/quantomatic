@@ -17,7 +17,7 @@ object GraphEditor extends SimpleSwingApplication {
   val nverts = 4
   val nedges = 10
   val rand = new util.Random
-  var randomGraph = new Graph[Unit,VData,Unit,Unit]("g0",())
+  var randomGraph = QGraph()
   for (i <- 1 to nverts) {
     val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
     randomGraph = randomGraph.newVertex(NodeV(p))

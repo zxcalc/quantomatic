@@ -47,7 +47,7 @@ with VertexDisplayData
 
   editMode = ReadOnly
 
-  var graph: Graph[Unit,VData,Unit,Unit] = new Graph(defaultGName, ())
+  var graph = new QGraph(defaultGName)
   var trans = new Transformer
 
   var selectedVerts = Set[VName]()
