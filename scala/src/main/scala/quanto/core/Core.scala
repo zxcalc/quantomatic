@@ -12,13 +12,13 @@ class Core(var controller: String, executable: String) {
   
   def request(module: String, function: String, input: Json): Json =
   {
-    JsonObject(Map(
+    JsonObject(
       "request_id" -> rid,
       "controller" -> controller,
       "module"     -> module,
       "function"   -> function,
       "input"      -> input
-    )).writeTo(process.stdin)
+    ).writeTo(process.stdin)
 
     process.stdin.flush()
 
@@ -39,10 +39,10 @@ class Core(var controller: String, executable: String) {
   
   // functions built in to the controller
   def help(module: String, function: String) : String = 
-    this.request("!!", "help", JsonObject(Map("module"->module,"function"->function)))
+    this.request("!!", "help", JsonObject("module"->module,"function"->function))
     
   def help(module: String) : String = 
-    this.request("!!", "help", JsonObject(Map("module"->module)))
+    this.request("!!", "help", JsonObject("module"->module))
   
   def version(): String = this.request("!!", "version", JsonNull())
 }

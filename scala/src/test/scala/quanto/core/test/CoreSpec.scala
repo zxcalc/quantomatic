@@ -30,7 +30,7 @@ class CoreSpec extends FlatSpec {
   }
   
   it should "correctly echo a Map" in {
-    val req = JsonObject(Map("foo" -> 12, "bar" -> 4))
+    val req = JsonObject("foo" -> 12, "bar" -> 4)
     val resp = core.request("test", "echo", req)
     assert(req === resp)
   }

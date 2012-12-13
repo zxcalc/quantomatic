@@ -51,6 +51,8 @@ with Iterable[(String,Json)]
   override def toString() = jsonString
 }
 
+object JsonObject { def apply(kv: (String,Json)*): JsonObject = JsonObject(Map(kv: _*)) }
+
 case class JsonArray(v: Vector[Json] = Vector[Json]()) extends Json
 with Iterable[Json]
 {
@@ -64,6 +66,8 @@ with Iterable[Json]
 
   override def toString() = jsonString
 }
+
+object JsonArray { def apply(v: Json*): JsonArray = JsonArray(Vector(v: _*)) }
 
 case class JsonNull() extends Json {
   val v = null
@@ -152,8 +156,11 @@ object JsonConversions {
   implicit def doubleToJson(x: Double): JsonDouble = JsonDouble(x)
   implicit def jsonToDouble(j: Json): Double = j.asInstanceOf[JsonDouble].v
 
-//  implicit def nullToJson(x: Null): JsonNull = JsonNull()
-//  implicit def jsonToNull(j: Json): Null = j.asInstanceOf[JsonNull].v
+  // tuple implicit conversions, useful for JsonObject(k -> v, ...) construction
+  implicit def stringStringToStringJson(t: (String,String)) = (t._1, JsonString(t._2))
+  implicit def stringBoolToStringJson(t: (String,Boolean)) = (t._1, JsonBool(t._2))
+  implicit def stringIntToStringJson(t: (String,Int)) = (t._1, JsonInt(t._2))
+  implicit def stringDoubleToStringJson(t: (String,Double)) = (t._1, JsonDouble(t._2))
 }
 
 
