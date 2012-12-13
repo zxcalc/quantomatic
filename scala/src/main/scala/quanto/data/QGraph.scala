@@ -1,31 +1,34 @@
 package quanto.data
 
+import org.codehaus.jackson._
 
-class QGraph(val name: GName,
-             val verts: Map[VName,VData]         = Map[VName,VData](),
-             val edges: Map[EName,Unit]          = Map[EName,Unit](),
-             val source: PFun[EName,VName]       = PFun[EName,VName](),
-             val target: PFun[EName,VName]       = PFun[EName,VName](),
-             val bboxes: Map[BBName,Unit]        = Map[BBName,Unit](),
-             val inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
-             val bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
-extends GraphLike[Unit,VData,Unit,Unit,QGraph]
+class QGraphJsonException(message: String, cause: Throwable = null)
+extends Exception(message, cause)
+
+case class QGraph(
+  name: GName                     = Names.defaultGName,
+  data: Unit                      = (),
+  verts: Map[VName,VData]         = Map[VName,VData](),
+  edges: Map[EName,EData]         = Map[EName,EData](),
+  source: PFun[EName,VName]       = PFun[EName,VName](),
+  target: PFun[EName,VName]       = PFun[EName,VName](),
+  bboxes: Map[BBName,Unit]        = Map[BBName,Unit](),
+  inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
+  bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
+extends GraphLike[Unit,VData,EData,Unit,QGraph]
 {
-  val data = ()
-  def copy(name: GName                     = this.name,
-           data: Unit                      = this.data,
-           verts: Map[VName,VData]         = this.verts,
-           edges: Map[EName,Unit]          = this.edges,
-           source: PFun[EName,VName]       = this.source,
-           target: PFun[EName,VName]       = this.target,
-           bboxes: Map[BBName,Unit]        = this.bboxes,
-           inBBox: PFun[VName,BBName]      = this.inBBox,
-           bboxParent: PFun[BBName,BBName] = this.bboxParent): QGraph =
-    new QGraph(name,verts,edges,source,target,bboxes,inBBox,bboxParent)
+  protected val factory = new QGraph(_,_,_,_,_,_,_,_,_)
 }
 
 object QGraph {
-  def apply(name: GName = Names.defaultGName) = new QGraph(name = name)
-  // name can be ignored on methods that return a graph and a name
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (QGraph, Name[N])) : QGraph = t._1
+
+  def apply(json: JsonNode) = {
+    try {
+      if (!json.isObject) throw new QGraphJsonException("Expected: JSON object")
+      val wireVerts = json.get("verts") match {case null => None; case v => Some(v)}
+    } catch {
+      case e: GraphException => throw new QGraphJsonException("Error when updating graph", e)
+    }
+  }
 }

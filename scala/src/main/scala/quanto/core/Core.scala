@@ -1,25 +1,6 @@
 package quanto.core
-import org.codehaus.jackson.JsonNode
-import com.codahale.jerkson.Json
-import scala.collection.JavaConversions._
-
-case class CoreRequest[A](
-    request_id: Int,
-    controller: String,
-    module: String,
-    function: String,
-    input: A)
-
-case class CoreResponse(
-    request_id: Int,
-    success: Boolean,
-    output: JsonNode)
-{
-  // parsing as 'A' done after the fact, and only when success = true,
-  // otherwise, output is parsed as CoreUserException
-  def output[A](implicit mf: Manifest[A]): A = Json.parse[A](output)
-}
-case class CoreError(val message: String, val code: Int)
+import quanto.util._
+import quanto.util.JsonConversions._
 
 class Core(var controller: String, executable: String) {
   var rid = 0
@@ -29,32 +10,41 @@ class Core(var controller: String, executable: String) {
   def stop() { process.killCore(true) }
   def kill() { process.killCore(false) }
   
-  def request[S, T : Manifest](
-      module: String,
-      function: String,
-      input: S): T =
+  def request(module: String, function: String, input: Json): Json =
   {
-    val json = Json.generate(CoreRequest(rid, controller, module, function, input))
-    process.stdin.write(json, 0, json.length)
+    JsonObject(Map(
+      "request_id" -> rid,
+      "controller" -> controller,
+      "module"     -> module,
+      "function"   -> function,
+      "input"      -> input
+    )).writeTo(process.stdin)
+
     process.stdin.flush()
-    val resp = Json.parse[CoreResponse](process.stdout)
-    if (resp.success) resp.output[T]
-    else {
-      val err = resp.output[CoreError]
-      if (err.code == -1)
-        throw new CoreProtocolException(err.message)
-      else throw new CoreUserException(err.message, err.code)
+
+    Json.parse(process.stdout) match {
+      case JsonObject(map) =>
+        try {
+          if (map("success")) map("output")
+          else throw (
+            if (map("code") == -1) new CoreProtocolException(map("message"))
+            else new CoreUserException(map("message"), map("code")))
+        } catch {
+          case e: NoSuchElementException =>
+            throw new CoreProtocolException(e.toString + " for JSON: " + JsonObject(map).toString)
+        }
+      case _ => throw new CoreProtocolException("Expected JSON object as core response")
     }
   }
   
   // functions built in to the controller
   def help(module: String, function: String) : String = 
-    this.request("!!", "help", Map("module"->module,"function"->function))
+    this.request("!!", "help", JsonObject(Map("module"->module,"function"->function)))
     
   def help(module: String) : String = 
-    this.request("!!", "help", Map("module"->module))
+    this.request("!!", "help", JsonObject(Map("module"->module)))
   
-  def version(): String = this.request("!!", "version", null)
+  def version(): String = this.request("!!", "version", JsonNull())
 }
 
 

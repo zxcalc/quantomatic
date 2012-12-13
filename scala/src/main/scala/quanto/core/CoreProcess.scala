@@ -21,7 +21,7 @@ class CoreProcess() {
   
   def startCore(executable : String) {
     try {
-      val pb = new ProcessBuilder(executable)
+      val pb = new ProcessBuilder(executable, "--json-protocol")
 
       pb.redirectErrorStream(false)
       logger.log(Level.FINEST, "Starting {0}...", executable)

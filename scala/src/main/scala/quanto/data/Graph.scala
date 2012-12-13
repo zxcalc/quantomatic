@@ -2,8 +2,15 @@ package quanto.data
 
 import Names._
 
-class SafeDeleteException[N <: Name[N]](name: Name[N], reason: String) extends
+trait GraphException extends Exception
+
+class SafeDeleteVertexException(name: VName, reason: String) extends
 Exception("Unable to safely delete " + name + ", because " + reason)
+with GraphException
+
+class DanglingEdgeException(edge: EName, endPoint: VName) extends
+Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
+with GraphException
 
 trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def name: GName
@@ -16,6 +23,10 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def inBBox: PFun[VName,BBName]
   def bboxParent: PFun[BBName,BBName]
 
+  protected def factory :
+    ((GName,G,Map[VName,V],Map[EName,E],PFun[EName,VName],PFun[EName,VName],
+     Map[BBName,B],PFun[VName,BBName],PFun[BBName,BBName])=> This)
+
   def copy(name: GName                     = this.name,
            data: G                         = this.data,
            verts: Map[VName,V]             = this.verts,
@@ -24,7 +35,8 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
            target: PFun[EName,VName]       = this.target,
            bboxes: Map[BBName,B]           = this.bboxes,
            inBBox: PFun[VName,BBName]      = this.inBBox,
-           bboxParent: PFun[BBName,BBName] = this.bboxParent): This
+           bboxParent: PFun[BBName,BBName] = this.bboxParent): This =
+    factory(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
 
   // convenience methods
   def inEdges(vn: VName) = target.inv(vn)
@@ -33,7 +45,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
 
   def addVertex(vn: VName, data: V) = {
     if (verts contains vn)
-      throw new DuplicateVertexNameException(vn)
+      throw new DuplicateVertexNameException(vn) with GraphException
 
     copy(verts = verts + (vn -> data))
   }
@@ -45,7 +57,11 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
 
   def addEdge(en: EName, data: E, vns: (VName, VName)) = {
     if (edges contains en)
-      throw new DuplicateEdgeNameException(en)
+      throw new DuplicateEdgeNameException(en) with GraphException
+    if (!verts.contains(vns._1))
+      throw new DanglingEdgeException(en, vns._1)
+    if (!verts.contains(vns._1))
+      throw new DanglingEdgeException(en, vns._2)
 
     copy(
       edges = edges + (en -> data),
@@ -61,7 +77,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   
   def addBBox(bbn: BBName, data: B, contents: Set[VName] = Set[VName](), parent: Option[BBName] = None) = {
     if (bboxes contains bbn)
-      throw new DuplicateBBoxNameException(bbn)
+      throw new DuplicateBBoxNameException(bbn) with GraphException
 
     val bboxParent1 = parent match {
       case Some(p) => bboxParent + (bbn -> p)
@@ -91,7 +107,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def safeDeleteVertex(vn: VName) = {
     if ((source.inv(vn).isEmpty) && (target.inv(vn).isEmpty))
       copy(verts = verts - vn, inBBox = inBBox - vn)
-    else throw new SafeDeleteException(vn, "vertex has adjancent edges")
+    else throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
   }
 
   def deleteVertex(vn: VName) = {
@@ -122,27 +138,19 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   }
 }
 
-class Graph[G,V,E,B](val name: GName,
-                     val data: G,
-                     val verts: Map[VName,V]             = Map[VName,V](),
-                     val edges: Map[EName,E]             = Map[EName,E](),
-                     val source: PFun[EName,VName]       = PFun[EName,VName](),
-                     val target: PFun[EName,VName]       = PFun[EName,VName](),
-                     val bboxes: Map[BBName,B]           = Map[BBName,B](),
-                     val inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
-                     val bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
-extends GraphLike[G,V,E,B,Graph[G,V,E,B]]
+class Graph[G,V,E,B](
+  val name: GName,
+  val data: G,
+  val verts: Map[VName,V]             = Map[VName,V](),
+  val edges: Map[EName,E]             = Map[EName,E](),
+  val source: PFun[EName,VName]       = PFun[EName,VName](),
+  val target: PFun[EName,VName]       = PFun[EName,VName](),
+  val bboxes: Map[BBName,B]           = Map[BBName,B](),
+  val inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
+  val bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]()
+) extends GraphLike[G,V,E,B,Graph[G,V,E,B]]
 {
-  def copy(name: GName                     = this.name,
-           data: G                         = this.data,
-           verts: Map[VName,V]             = this.verts,
-           edges: Map[EName,E]             = this.edges,
-           source: PFun[EName,VName]       = this.source,
-           target: PFun[EName,VName]       = this.target,
-           bboxes: Map[BBName,B]           = this.bboxes,
-           inBBox: PFun[VName,BBName]      = this.inBBox,
-           bboxParent: PFun[BBName,BBName] = this.bboxParent): Graph[G,V,E,B] =
-    new Graph(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
+  protected val factory = new Graph[G,V,E,B](_,_,_,_,_,_,_,_,_)
 }
 
 object Graph {

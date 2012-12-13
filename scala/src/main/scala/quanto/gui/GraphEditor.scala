@@ -26,7 +26,7 @@ object GraphEditor extends SimpleSwingApplication {
   for(j <- 1 to nedges) {
     val s = varray(rand.nextInt(varray.size))
     val t = varray(rand.nextInt(varray.size))
-    randomGraph = randomGraph.newEdge((), (s,t))
+    randomGraph = randomGraph.newEdge(DirEdge(), (s,t))
   }
 
   // GUI components

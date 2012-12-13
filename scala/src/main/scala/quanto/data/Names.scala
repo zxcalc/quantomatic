@@ -41,10 +41,6 @@ class DuplicateEdgeNameException(override val name: EName)
 class DuplicateBBoxNameException(override val name: BBName)
   extends DuplicateNameException("bang box", name)
 
-trait NameAndData[N <: Name[N], D] {
-  val name : N
-  val data : D
-}
 
 object Names {
   class NameSet[N <: Name[N]](val set: Set[N]) {
@@ -63,9 +59,6 @@ object Names {
     new NameSet(set)
   implicit def mapToNameMap[N <: Name[N], T](map : Map[N,T]):NameMap[N,T] =
     new NameMap(map)
-
-  // A Foo can always be used in place of a FooName, but not vice-versa
-  implicit def nameAndDataToName[N <: Name[N],D](nd : NameAndData[N,D]) = nd.name
 
   // these support general-purpose string-for-name substitution
   implicit def stringToGName(s: String)  = GName(s)
