@@ -297,8 +297,8 @@ with VertexDisplayData
   def tracksViewportHeight: Boolean = false
   def tracksViewportWidth: Boolean = false
 
-  def blockIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 10
-  def unitIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 10
+  def blockIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 50
+  def unitIncrement(visibleRect: Rectangle, orientation: Orientation.Value, direction: Int): Int = 50
 }
 
 object GraphView {
