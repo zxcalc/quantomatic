@@ -2,7 +2,8 @@ package quanto.core
 
 import java.io._
 import java.util.logging._
-import scala.actors.Actor._
+import actors.Actor._
+import quanto.util.json.Json
 
 import quanto.util.StreamRedirector
 
@@ -14,8 +15,8 @@ object CoreProcess {
 class CoreProcess() {
   import CoreProcess._
   private var backend: Process = null
-  var stdin : Writer = null
-  var stdout : Reader = null
+  var stdin : Json.Output = null
+  var stdout : Json.Input = null
 
   def startCore() { startCore(quantoCoreExecutable) }
   
@@ -27,17 +28,17 @@ class CoreProcess() {
       logger.log(Level.FINEST, "Starting {0}...", executable)
       backend = pb.start()
       
-      stdin = new BufferedWriter(new OutputStreamWriter(backend.getOutputStream))
-      stdout = new BufferedReader(new InputStreamReader(backend.getInputStream))
+      stdin = new Json.Output(new BufferedWriter(new OutputStreamWriter(backend.getOutputStream)))
+      stdout = new Json.Input(new BufferedReader(new InputStreamReader(backend.getInputStream)))
       
       logger.log(Level.FINEST, "{0} started successfully", executable)
 
-      new StreamRedirector(backend.getErrorStream(), System.err).start()
+      new StreamRedirector(backend.getErrorStream, System.err).start()
     } catch {
       case e : IOException => {
         logger.log(Level.SEVERE,
           "Could not execute \"" + executable + "\": "
-            + e.getMessage(), e);
+            + e.getMessage(), e)
         throw new CoreProtocolException(String.format(
                     "Could not execute \"%1$\": %2$", executable,
                     e.getMessage()), e)
