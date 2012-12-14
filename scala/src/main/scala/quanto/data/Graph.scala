@@ -13,7 +13,6 @@ Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
 with GraphException
 
 trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
-  def name: GName
   def data: G
   def verts: Map[VName,V]
   def edges: Map[EName,E]
@@ -24,11 +23,10 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def bboxParent: PFun[BBName,BBName]
 
   protected def factory :
-    ((GName,G,Map[VName,V],Map[EName,E],PFun[EName,VName],PFun[EName,VName],
+    ((G,Map[VName,V],Map[EName,E],PFun[EName,VName],PFun[EName,VName],
      Map[BBName,B],PFun[VName,BBName],PFun[BBName,BBName])=> This)
 
-  def copy(name: GName                     = this.name,
-           data: G                         = this.data,
+  def copy(data: G                         = this.data,
            verts: Map[VName,V]             = this.verts,
            edges: Map[EName,E]             = this.edges,
            source: PFun[EName,VName]       = this.source,
@@ -36,7 +34,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
            bboxes: Map[BBName,B]           = this.bboxes,
            inBBox: PFun[VName,BBName]      = this.inBBox,
            bboxParent: PFun[BBName,BBName] = this.bboxParent): This =
-    factory(name,data,verts,edges,source,target,bboxes,inBBox,bboxParent)
+    factory(data,verts,edges,source,target,bboxes,inBBox,bboxParent)
 
   // convenience methods
   def inEdges(vn: VName) = target.inv(vn)
@@ -124,13 +122,13 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def updateBBData(bbn: BBName)(f: B => B)  = copy(bboxes = bboxes + (bbn -> f(bboxes(bbn))))
 
   override def toString = {
-    """%s::%s {
+    """%s {
       |  verts: %s,
       |  edges: %s,
       |  bboxes: %s,
       |  nesting: %s
       |}""".stripMargin.format(
-      name, data, verts,
+      data, verts,
       edges.map(kv => kv._1 -> "(%s => %s)::%s".format(source(kv._1), target(kv._1), kv._2)),
       bboxes.map(kv => kv._1 -> "%s::%s".format(inBBox.inv(kv._1), kv._2)),
       bboxParent.map(kv => "%s < %s".format(kv._1, kv._2))
@@ -139,7 +137,6 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
 }
 
 class Graph[G,V,E,B](
-  val name: GName,
   val data: G,
   val verts: Map[VName,V]             = Map[VName,V](),
   val edges: Map[EName,E]             = Map[EName,E](),
@@ -150,7 +147,7 @@ class Graph[G,V,E,B](
   val bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]()
 ) extends GraphLike[G,V,E,B,Graph[G,V,E,B]]
 {
-  protected val factory = new Graph[G,V,E,B](_,_,_,_,_,_,_,_,_)
+  protected val factory = new Graph[G,V,E,B](_,_,_,_,_,_,_,_)
 }
 
 object Graph {

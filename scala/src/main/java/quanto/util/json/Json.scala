@@ -1,8 +1,9 @@
-package quanto.util
+package quanto.util.json
 
 import org.codehaus.jackson.{JsonParser,JsonGenerator,JsonFactory,JsonEncoding,JsonToken}
-import java.io.StringWriter
-import scala.Some
+
+class JsonException(message: String, cause: Throwable = null)
+  extends Exception(message, cause)
 
 sealed abstract class Json {
   def writeToGenerator(gen: JsonGenerator)
@@ -26,9 +27,33 @@ sealed abstract class Json {
   }
 
   protected def jsonString = {
-    val sw = new StringWriter
+    val sw = new java.io.StringWriter
     writeTo(sw)
     sw.toString
+  }
+
+  // Value accessors. throw JsonException if the cast fails. These are not type-safe, so better to
+  // use match-case where applicable.
+  def boolValue: Boolean = this match {
+    case JsonBool(b) => b
+    case _ => throw new JsonException("Expected: JsonBool, got: " + this.getClass)
+  }
+
+  def intValue: Int = this match {
+    case JsonInt(i) => i
+    case _ => throw new JsonException("Expected: JsonInt, got: " + this.getClass)
+  }
+
+  // note that integers are treated as a sub-type of doubles. This is the expected behaviour 99% of the time.
+  def doubleValue: Double = this match {
+    case JsonDouble(d) => d
+    case JsonInt(i) => i.toDouble
+    case _ => throw new JsonException("Expected: JsonDouble or JsonInt, got: " + this.getClass)
+  }
+
+  def stringValue: String = this match {
+    case JsonString(s) => s
+    case _ => throw new JsonException("Expected: JsonString, got: " + this.getClass)
   }
 
   override def toString = jsonString
@@ -46,6 +71,10 @@ with Iterable[(String,Json)]
       json.writeToGenerator(gen)
     }
     gen.writeEndObject()
+  }
+  def apply(k: String) = v.get(k) match {
+    case Some(x) => x
+    case None    => throw new JsonException("Key not found: " + k)
   }
 
   override def toString() = jsonString
@@ -89,10 +118,6 @@ case class JsonDouble(v: Double) extends Json {
 case class JsonBool(v: Boolean) extends Json {
   def writeToGenerator(gen: JsonGenerator) { gen.writeBoolean(v) }
 }
-
-
-class JsonException(msg: String)
-extends Exception(msg)
 
 object Json {
   lazy protected val factory = new JsonFactory()
@@ -141,26 +166,26 @@ object Json {
 
     nextJson.get
   }
-}
 
-object JsonConversions {
+  // implicit conversions to simplify working with JSON trees
   implicit def stringToJson(x: String): JsonString = JsonString(x)
-  implicit def jsonToString(j: Json): String = j.asInstanceOf[JsonString].v
-
   implicit def boolToJson(x: Boolean): JsonBool = JsonBool(x)
-  implicit def jsonToBool(j: Json): Boolean = j.asInstanceOf[JsonBool].v
-
   implicit def intToJson(x: Int): JsonInt = JsonInt(x)
-  implicit def jsonToInt(j: Json): Int = j.asInstanceOf[JsonInt].v
-
   implicit def doubleToJson(x: Double): JsonDouble = JsonDouble(x)
-  implicit def jsonToDouble(j: Json): Double = j.asInstanceOf[JsonDouble].v
 
   // tuple implicit conversions, useful for JsonObject(k -> v, ...) construction
   implicit def stringStringToStringJson(t: (String,String)) = (t._1, JsonString(t._2))
   implicit def stringBoolToStringJson(t: (String,Boolean)) = (t._1, JsonBool(t._2))
   implicit def stringIntToStringJson(t: (String,Int)) = (t._1, JsonInt(t._2))
   implicit def stringDoubleToStringJson(t: (String,Double)) = (t._1, JsonDouble(t._2))
+}
+
+// these are not active by default, as they are not type-safe
+object JsonValues {
+  implicit def jsonToBool(j: Json): Boolean = j.boolValue
+  implicit def jsonToInt(j: Json): Int = j.intValue
+  implicit def jsonToDouble(j: Json): Double = j.doubleValue
+  implicit def jsonToString(j: Json): String = j.stringValue
 }
 
 

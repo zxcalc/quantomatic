@@ -2,8 +2,7 @@ package quanto.core.test
 
 import org.scalatest._
 import quanto.core._
-import quanto.util._
-import quanto.util.JsonConversions._
+import quanto.util.json._
 
 class CoreSpec extends FlatSpec {
   var core : Core = _

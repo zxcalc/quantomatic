@@ -1,6 +1,6 @@
 package quanto.core
-import quanto.util._
-import quanto.util.JsonConversions._
+import quanto.util.json._
+import JsonValues._
 
 class Core(var controller: String, executable: String) {
   var rid = 0
