@@ -2,16 +2,18 @@ package quanto.util.json
 
 import org.codehaus.jackson.{JsonParser,JsonGenerator,JsonFactory,JsonEncoding,JsonToken}
 
-abstract class JsonException(message: String)
-  extends Exception(message)
+abstract class JsonException(message: String, cause: Throwable = null)
+  extends Exception(message, cause)
 
 // thrown if the user tries to access some part of the tree incorrectly (i.e. with a bad key, index, or type)
-class JsonAccessException(message: String)
+class JsonAccessException(message: String, val json: Json)
   extends JsonException(message)
 
 // thrown if a problem is encountered while parsing the JSON
-class JsonParseException(message: String)
-  extends JsonException(message)
+class JsonParseException(message: String, cause: org.codehaus.jackson.JsonParseException = null)
+  extends JsonException(
+    message + (if (cause != null) ": " + cause.getMessage else ""),
+    cause)
 
 sealed abstract class Json {
   def writeTo(out: Json.Output)
@@ -40,40 +42,30 @@ sealed abstract class Json {
     sw.toString
   }
 
-  // Convenience coercions for objects and arrays. These are not type-safe, so better to
-  // use match-case if they might fail.
-  def asObject = this match {
-    case x: JsonObject => x
-    case _ => throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass)
-  }
+  // Convenience accessors for subtypes. These are overridden to not throw exceptions, where appropriate.
+  def apply(index: Int): Json =
+    throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
-  def asArray = this match {
-    case x: JsonArray => x
-    case _ => throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass)
-  }
+  def apply(key: String): Json =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
-  // Value accessors. throw JsonException if the cast fails.
-  def boolValue: Boolean = this match {
-    case JsonBool(b) => b
-    case _ => throw new JsonAccessException("Expected: JsonBool, got: " + this.getClass)
-  }
+  def asObject: JsonObject =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
-  def intValue: Int = this match {
-    case JsonInt(i) => i
-    case _ => throw new JsonAccessException("Expected: JsonInt, got: " + this.getClass)
-  }
+  def asArray: JsonArray =
+    throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
-  // note that integers are treated as a sub-type of doubles. This is the expected behaviour 99% of the time.
-  def doubleValue: Double = this match {
-    case JsonDouble(d) => d
-    case JsonInt(i) => i.toDouble
-    case _ => throw new JsonAccessException("Expected: JsonDouble or JsonInt, got: " + this.getClass)
-  }
+  def boolValue: Boolean =
+    throw new JsonAccessException("Expected: JsonBool, got: " + this.getClass, this)
 
-  def stringValue: String = this match {
-    case JsonString(s) => s
-    case _ => throw new JsonAccessException("Expected: JsonString, got: " + this.getClass)
-  }
+  def intValue: Int =
+    throw new JsonAccessException("Expected: JsonInt, got: " + this.getClass, this)
+
+  def doubleValue: Double =
+    throw new JsonAccessException("Expected: JsonDouble or JsonInt, got: " + this.getClass, this)
+
+  def stringValue: String =
+    throw new JsonAccessException("Expected: JsonString, got: " + this.getClass, this)
 
   override def toString = jsonString
 }
@@ -91,9 +83,11 @@ with Iterable[(String,Json)]
     }
     out.g.writeEndObject()
   }
-  def apply(key: String) = v.get(key) match {
+
+  override def asObject = this
+  override def apply(key: String) = v.get(key) match {
     case Some(x) => x
-    case None    => throw new JsonAccessException("Key not found: " + key)
+    case None    => throw new JsonAccessException("Key not found: " + key, this)
   }
 
   override def toString() = jsonString
@@ -112,10 +106,11 @@ with Iterable[Json]
     out.g.writeEndArray()
   }
 
-  def apply(index: Int) =
+  override def asArray = this
+  override def apply(index: Int) =
     try { v(index) }
     catch { case _: IndexOutOfBoundsException =>
-              throw new JsonAccessException("Index: " + index + " out of bounds") }
+              throw new JsonAccessException("Index: " + index + " out of bounds", this) }
 
   override def toString() = jsonString
 }
@@ -128,18 +123,24 @@ case class JsonNull() extends Json {
 }
 
 case class JsonString(v: String) extends Json {
+  override def stringValue = v
   def writeTo(out: Json.Output) { out.g.writeString(v) }
 }
 
 case class JsonInt(v: Int) extends Json {
+  override def intValue = v
+  // note that integers are treated as a sub-type of doubles. This is the expected behaviour 99% of the time.
+  override def doubleValue = v.toDouble
   def writeTo(out: Json.Output) { out.g.writeNumber(v) }
 }
 
 case class JsonDouble(v: Double) extends Json {
+  override def doubleValue = v
   def writeTo(out: Json.Output) { out.g.writeNumber(v) }
 }
 
 case class JsonBool(v: Boolean) extends Json {
+  override def boolValue = v
   def writeTo(out: Json.Output) { out.g.writeBoolean(v) }
 }
 
@@ -149,10 +150,25 @@ object Json {
   class Input(val p: JsonParser) {
     p.enable(JsonParser.Feature.AUTO_CLOSE_SOURCE)
 
-    def this(s: String) = this(factory.createJsonParser(s))
-    def this(f: java.io.File) =         this(factory.createJsonParser(f))
-    def this(in: java.io.InputStream) = this(factory.createJsonParser(in))
-    def this(in: java.io.Reader) =      this(factory.createJsonParser(in))
+    def this(s: String) =
+      this(try { factory.createJsonParser(s) } catch {
+        case e: org.codehaus.jackson.JsonParseException =>
+          throw new JsonParseException("Error initialising parser", e) })
+
+    def this(f: java.io.File) =
+      this(try { factory.createJsonParser(f) } catch {
+        case e: org.codehaus.jackson.JsonParseException =>
+          throw new JsonParseException("Error initialising parser", e) })
+
+    def this(in: java.io.InputStream) =
+      this(try { factory.createJsonParser(in) } catch {
+        case e: org.codehaus.jackson.JsonParseException =>
+          throw new JsonParseException("Error initialising parser", e) })
+
+    def this(in: java.io.Reader) =
+      this(try { factory.createJsonParser(in) } catch {
+        case e: org.codehaus.jackson.JsonParseException =>
+          throw new JsonParseException("Error initialising parser", e) })
 
     def close() { p.close() }
   }
@@ -183,20 +199,25 @@ object Json {
 
     var nextJson: Option[Json] = None
     while (!stack.isEmpty) {
-      nextJson = p.nextToken() match {
-        case JsonToken.START_ARRAY => stack.push((JsonArray(),None)); None
-        case JsonToken.START_OBJECT => stack.push((JsonObject(),None)); None
-        case JsonToken.FIELD_NAME => stack.push((stack.pop()._1, Some(p.getText))); None
-        case JsonToken.NOT_AVAILABLE => throw new JsonParseException("Next token not available")
-        case JsonToken.VALUE_EMBEDDED_OBJECT => throw new JsonParseException("Embedded objects not supported")
-        case JsonToken.END_ARRAY => Some(stack.pop()._1)
-        case JsonToken.END_OBJECT => Some(stack.pop()._1)
-        case JsonToken.VALUE_FALSE => Some(JsonBool(false))
-        case JsonToken.VALUE_TRUE => Some(JsonBool(true))
-        case JsonToken.VALUE_NULL => Some(JsonNull())
-        case JsonToken.VALUE_NUMBER_FLOAT => Some(JsonDouble(p.getValueAsDouble))
-        case JsonToken.VALUE_NUMBER_INT => Some(JsonInt(p.getValueAsInt))
-        case JsonToken.VALUE_STRING => Some(JsonString(p.getText))
+      try {
+        nextJson = p.nextToken() match {
+          case JsonToken.START_ARRAY => stack.push((JsonArray(),None)); None
+          case JsonToken.START_OBJECT => stack.push((JsonObject(),None)); None
+          case JsonToken.FIELD_NAME => stack.push((stack.pop()._1, Some(p.getText))); None
+          case JsonToken.NOT_AVAILABLE => throw new JsonParseException("Next token not available")
+          case JsonToken.VALUE_EMBEDDED_OBJECT => throw new JsonParseException("Embedded objects not supported")
+          case JsonToken.END_ARRAY => Some(stack.pop()._1)
+          case JsonToken.END_OBJECT => Some(stack.pop()._1)
+          case JsonToken.VALUE_FALSE => Some(JsonBool(false))
+          case JsonToken.VALUE_TRUE => Some(JsonBool(true))
+          case JsonToken.VALUE_NULL => Some(JsonNull())
+          case JsonToken.VALUE_NUMBER_FLOAT => Some(JsonDouble(p.getValueAsDouble))
+          case JsonToken.VALUE_NUMBER_INT => Some(JsonInt(p.getValueAsInt))
+          case JsonToken.VALUE_STRING => Some(JsonString(p.getText))
+        }
+      } catch {
+        case e: org.codehaus.jackson.JsonParseException =>
+          throw new JsonParseException("Error while parsing", e)
       }
 
 

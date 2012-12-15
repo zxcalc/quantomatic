@@ -46,6 +46,20 @@ class JsonSpec extends FlatSpec {
     assert(obj.isInstanceOf[JsonObject])
   }
 
+  it should "throw JsonParseException for bad JSON" in {
+    intercept[JsonParseException] { Json.parse("{]") }
+    intercept[JsonParseException] { Json.parse("{\"too many colons\" :: 12}") }
+    intercept[JsonParseException] { Json.parse("{\"incomplete\":") }
+    intercept[JsonParseException] { Json.parse("{key: \"is unquoted\"}") }
+  }
+
+  it should "throw JsonParseException if toplevel is not object or array" in {
+    assert(Json.parse("{\"foo\":\"bar\"}").isInstanceOf[JsonObject])
+    assert(Json.parse("[12]").isInstanceOf[JsonArray])
+    intercept[JsonParseException] { Json.parse("\"foo\"") }
+    intercept[JsonParseException] { Json.parse("12") }
+  }
+
 
   behavior of "Json tree"
 
@@ -76,8 +90,8 @@ class JsonSpec extends FlatSpec {
         assert(arr(0).stringValue === "l")
         assert(arr(1).stringValue === "i")
 
-        val obj2 = arr(2).asObject
-        assert(obj2("s").stringValue === "t")
+        // short-form coercion via overloaded apply() method
+        assert(arr(2)("s").stringValue === "t")
       case _ => fail("expected: JsonObject")
     }
   }
@@ -91,6 +105,24 @@ class JsonSpec extends FlatSpec {
     intercept[JsonAccessException] {
       obj("foo").stringValue
     }
+
+    val arr = result("bar")  // okay, since result is an object
+    intercept[JsonAccessException] {
+      result(2) // not okay to treat object as an array
+    }
+    intercept[JsonAccessException] {
+      arr("foo") // or array as object
+    }
+  }
+
+  it should "throw JsonAccessException for bad keys or indices" in {
+    val obj = result.asObject
+
+    intercept[JsonAccessException] { obj("bad_key") }
+
+    val arr = obj("bar").asArray
+
+    intercept[JsonAccessException] { arr(1000) }
   }
 
 

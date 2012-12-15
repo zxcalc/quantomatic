@@ -1,6 +1,6 @@
 package quanto.data
 
-import org.codehaus.jackson._
+import quanto.util.json._
 
 class QGraphJsonException(message: String, cause: Throwable = null)
 extends Exception(message, cause)
@@ -21,4 +21,8 @@ extends GraphLike[Unit,VData,EData,Unit,QGraph]
 
 object QGraph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (QGraph, Name[N])) : QGraph = t._1
+
+  def apply(json: Json): QGraph = {
+    QGraph()
+  }
 }
