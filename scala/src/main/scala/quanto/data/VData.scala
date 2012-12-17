@@ -2,10 +2,7 @@ package quanto.data
 
 import quanto.util.json._
 
-abstract class VData {
-  def data: JsonObject
-  def annotation: JsonObject
-
+abstract class VData extends GraphElementData {
   def coord: (Double, Double) = annotation.get("coord") match {
     case Some(JsonArray(Vector(x,y))) => (x.doubleValue, y.doubleValue)
     case _ => (0,0)

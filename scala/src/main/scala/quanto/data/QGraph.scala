@@ -7,15 +7,15 @@ class QGraphJsonException(message: String, cause: Throwable = null)
 extends Exception(message, cause)
 
 case class QGraph(
-  data: Unit                      = (),
+  data: GData                     = GData(),
   verts: Map[VName,VData]         = Map[VName,VData](),
   edges: Map[EName,EData]         = Map[EName,EData](),
   source: PFun[EName,VName]       = PFun[EName,VName](),
   target: PFun[EName,VName]       = PFun[EName,VName](),
-  bboxes: Map[BBName,Unit]        = Map[BBName,Unit](),
+  bboxes: Map[BBName,BBData]      = Map[BBName,BBData](),
   inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
   bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
-extends GraphLike[Unit,VData,EData,Unit,QGraph]
+extends GraphLike[GData,VData,EData,BBData,QGraph]
 {
   protected val factory = new QGraph(_,_,_,_,_,_,_,_)
 }
@@ -57,6 +57,8 @@ object QGraph {
       val annotation = e._2.getOrElse("annotation", JsonObject()).asObject
       g.addEdge(e._1, UndirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
     }
+
+
 
     graph
   }

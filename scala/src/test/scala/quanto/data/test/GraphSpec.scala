@@ -98,13 +98,15 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       addEdge   ("e1", DirEdge(), "v0" -> "v1")
       addEdge   ("e2", DirEdge(), "v1" -> "v2")
       newEdge   (DirEdge(), "v0" -> "v1")
-      addBBox   ("bb0", (), Set("v0", "v1"))
-      addBBox   ("bb1", (), Set("v2"), parent = Some("bb0"))
+      addBBox   ("bb0", BBData(), Set("v0", "v1"))
+      addBBox   ("bb1", BBData(), Set("v2"), parent = Some("bb0"))
       )
   }
 
+  var jsonGraph: QGraph = _
+
   it can "be constructed from JSON" in {
-    val g1 = QGraph(Json.parse(
+    jsonGraph = QGraph(Json.parse(
       """
         |{
         |  "wire_vertices": ["w0", "w1", "w2"],
@@ -112,8 +114,19 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
         |  "dir_edges": {
         |    "e0": {"src": "w0", "tgt": "w1"},
         |    "e1": {"src": "w1", "tgt": "w2"}
+        |  },
+        |  "undir_edges": {
+        |    "e2": {"src": "n0", "tgt": "n1"}
         |  }
         |}
       """.stripMargin))
+  }
+
+  it should "be the expected graph" in {
+    assert(jsonGraph.verts("w0").isInstanceOf[WireV])
+    assert(jsonGraph.verts("w1").isInstanceOf[WireV])
+    assert(jsonGraph.verts("w2").isInstanceOf[WireV])
+    assert(jsonGraph.source("e0") === VName("w0"))
+    assert(jsonGraph.target("e0") === VName("w1"))
   }
 }
