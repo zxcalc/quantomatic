@@ -48,13 +48,13 @@ trait VertexDisplayData {
       val (x,y) = trans toScreen data.coord
 
       vertexDisplay(v) = data match {
-        case NodeV(_) =>
+        case _: NodeV =>
           VDisplay(
             new Ellipse2D.Double(
               x - trNodeRadius, y - trNodeRadius,
               2.0 * trNodeRadius, 2.0 * trNodeRadius),
             Color.GREEN)
-        case WireV(_) =>
+        case _: WireV =>
           VDisplay(
             new Rectangle2D.Double(
               x - trWireWidth, y - trWireWidth,

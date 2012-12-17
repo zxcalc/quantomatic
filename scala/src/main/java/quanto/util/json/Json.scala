@@ -49,6 +49,12 @@ sealed abstract class Json {
   def apply(key: String): Json =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
+  def get(key: String): Option[Json] =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+
+  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+
   def asObject: JsonObject =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
@@ -73,8 +79,10 @@ sealed abstract class Json {
 case class JsonObject(v: Map[String,Json] = Map[String,Json]()) extends Json
 with Iterable[(String,Json)]
 {
-  def +(kv:(String,Json)) = v + kv
+  def +(kv:(String,Json)) = JsonObject(v + kv)
   def iterator = v.iterator
+  def keysIterator = v.keysIterator
+  def valuesIterator = v.valuesIterator
   def writeTo(out: Json.Output) {
     out.g.writeStartObject()
     for ((k,json) <- v) {
@@ -89,6 +97,8 @@ with Iterable[(String,Json)]
     case Some(x) => x
     case None    => throw new JsonAccessException("Key not found: " + key, this)
   }
+  override def get(key: String) = v.get(key)
+  override def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
 
   override def toString() = jsonString
 }

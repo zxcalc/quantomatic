@@ -1,13 +1,35 @@
 package quanto.data
 
+import quanto.util.json._
+
 abstract class VData {
-  def coord: (Double, Double)
+  def data: JsonObject
+  def annotation: JsonObject
+
+  def coord: (Double, Double) = annotation.get("coord") match {
+    case Some(JsonArray(Vector(x,y))) => (x.doubleValue, y.doubleValue)
+    case _ => (0,0)
+  }
+
   def withCoord(c: (Double,Double)): VData
 }
 
-case class NodeV(coord: (Double,Double)=(0,0)) extends VData {
-  def withCoord(c: (Double,Double)) = copy(coord=c)
+case class NodeV(data: JsonObject, annotation: JsonObject) extends VData {
+  def withCoord(c: (Double,Double)) =
+    copy(annotation = annotation + ("coord" -> JsonArray(JsonDouble(c._1), JsonDouble(c._2))))
 }
-case class WireV(coord: (Double,Double)=(0,0)) extends VData {
-  def withCoord(c: (Double,Double)) = copy(coord=c)
+
+object NodeV {
+  def apply(): NodeV = NodeV(JsonObject(),JsonObject())
+  def apply(coord: (Double,Double)): NodeV = NodeV().withCoord(coord)
+}
+
+case class WireV(data: JsonObject, annotation: JsonObject) extends VData {
+  def withCoord(c: (Double,Double)) =
+    copy(annotation = annotation + ("coord" -> JsonArray(JsonDouble(c._1), JsonDouble(c._2))))
+}
+
+object WireV {
+  def apply(): WireV = WireV(JsonObject(),JsonObject())
+  def apply(coord: (Double,Double)): WireV = WireV().withCoord(coord)
 }

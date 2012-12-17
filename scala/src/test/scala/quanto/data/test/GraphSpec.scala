@@ -3,6 +3,7 @@ package quanto.data.test
 import org.scalatest._
 import quanto.data._
 import quanto.data.Names._
+import quanto.util.json.Json
 
 
 class GraphSpec extends FlatSpec with GivenWhenThen {
@@ -100,5 +101,19 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       addBBox   ("bb0", (), Set("v0", "v1"))
       addBBox   ("bb1", (), Set("v2"), parent = Some("bb0"))
       )
+  }
+
+  it can "be constructed from JSON" in {
+    val g1 = QGraph(Json.parse(
+      """
+        |{
+        |  "wire_vertices": ["w0", "w1", "w2"],
+        |  "node_vertices": ["n0", "n1"],
+        |  "dir_edges": {
+        |    "e0": {"src": "w0", "tgt": "w1"},
+        |    "e1": {"src": "w1", "tgt": "w2"}
+        |  }
+        |}
+      """.stripMargin))
   }
 }
