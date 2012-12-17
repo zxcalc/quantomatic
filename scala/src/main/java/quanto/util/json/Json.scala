@@ -48,12 +48,12 @@ sealed abstract class Json {
 
   def apply(key: String): Json =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
-
-  def get(key: String): Option[Json] =
-    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
-
-  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
-    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+//
+//  def get(key: String): Option[Json] =
+//    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+//
+//  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
+//    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
   def asObject: JsonObject =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
@@ -97,8 +97,8 @@ with Iterable[(String,Json)]
     case Some(x) => x
     case None    => throw new JsonAccessException("Key not found: " + key, this)
   }
-  override def get(key: String) = v.get(key)
-  override def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
+  def get(key: String) = v.get(key)
+  def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
 
   override def toString() = jsonString
 }
@@ -262,6 +262,11 @@ object JsonValues {
   implicit def jsonToInt(j: Json): Int = j.intValue
   implicit def jsonToDouble(j: Json): Double = j.doubleValue
   implicit def jsonToString(j: Json): String = j.stringValue
+
+  implicit def jsonToObject(j: Json): JsonObject = j.asObject
+  implicit def jsonToArray(j: Json): JsonArray = j.asArray
+  implicit def optJsonToObject(j: Option[Json]): JsonObject = j.getOrElse(JsonObject()).asObject
+  implicit def optJsonToArray(j: Option[Json]): JsonArray = j.getOrElse(JsonArray()).asArray
 }
 
 

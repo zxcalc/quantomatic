@@ -3,7 +3,8 @@ package quanto.data.test
 import org.scalatest._
 import quanto.data._
 import quanto.data.Names._
-import quanto.util.json.Json
+import quanto.util.json._
+
 
 
 class GraphSpec extends FlatSpec with GivenWhenThen {

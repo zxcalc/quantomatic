@@ -2,6 +2,7 @@ package quanto.data
 
 import Names._
 import quanto.util.json._
+import JsonValues._
 
 class QGraphJsonException(message: String, cause: Throwable = null)
 extends Exception(message, cause)
@@ -31,35 +32,37 @@ object QGraph {
     case None => Iterator.empty
   }
 
-  def apply(json: Json): QGraph = {
-    var graph = QGraph()
+  def apply(json: Json): QGraph =
+    Function.chain[QGraph](Seq(
 
-    graph = objectLikeIterator(json get "wire_vertices").foldLeft(graph) { (g, v) =>
-      val data = v._2.getOrElse("data", JsonObject()).asObject
-      val annotation = v._2.getOrElse("annotation", JsonObject()).asObject
-      g.addVertex(v._1, WireV(data, annotation))
-    }
+      objectLikeIterator(json get "wire_vertices").foldLeft(_) { (g,v) =>
+        val data = v._2.getOrElse("data", JsonObject()).asObject
+        val annotation = v._2.getOrElse("annotation", JsonObject()).asObject
+        g.addVertex(v._1, WireV(data, annotation))
+      },
 
-    graph = objectLikeIterator(json get "node_vertices").foldLeft(graph) { (g, v) =>
-      val data = v._2.getOrElse("data", JsonObject()).asObject
-      val annotation = v._2.getOrElse("annotation", JsonObject()).asObject
-      g.addVertex(v._1, NodeV(data, annotation))
-    }
+      objectLikeIterator(json get "node_vertices").foldLeft(_) { (g,v) =>
+        val data = v._2.getOrElse("data", JsonObject()).asObject
+        val annotation = v._2.getOrElse("annotation", JsonObject()).asObject
+        g.addVertex(v._1, NodeV(data, annotation))
+      },
 
-    graph = objectLikeIterator(json get "dir_edges").foldLeft(graph) { (g,e) =>
-      val data = e._2.getOrElse("data", JsonObject()).asObject
-      val annotation = e._2.getOrElse("annotation", JsonObject()).asObject
-      g.addEdge(e._1, DirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
-    }
+      objectLikeIterator(json get "dir_edges").foldLeft(_) { (g,e) =>
+        val data = e._2.getOrElse("data", JsonObject()).asObject
+        val annotation = e._2.getOrElse("annotation", JsonObject()).asObject
+        g.addEdge(e._1, DirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
+      },
 
-    graph = objectLikeIterator(json get "undir_edges").foldLeft(graph) { (g,e) =>
-      val data = e._2.getOrElse("data", JsonObject()).asObject
-      val annotation = e._2.getOrElse("annotation", JsonObject()).asObject
-      g.addEdge(e._1, UndirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
-    }
+      objectLikeIterator(json get "undir_edges").foldLeft(_) { (g,e) =>
+        val data = e._2.get("data")
+        val annotation = e._2.get("annotation")
+        g.addEdge(e._1, UndirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
+      },
 
+      objectLikeIterator(json get "bang_boxes").foldLeft(_) { case (g,(bbName,bbData)) =>
+        val contains: JsonArray = bbData.get("contains")
+        g.addBBox(bbName, BBData(bbData.get("data"), bbData.get("annotation")))
+      }
 
-
-    graph
-  }
+    ))(QGraph())
 }
