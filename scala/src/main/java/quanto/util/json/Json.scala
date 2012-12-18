@@ -42,27 +42,60 @@ sealed abstract class Json {
     sw.toString
   }
 
-  def asObject: JsonObject =
-    throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
+  // permissive coercions for arrays and objects
 
-  def asArray: JsonArray =
-    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+  // treat string lists like {"a":{}, "b":{}, ...} and null like {}
+  def asObject: JsonObject = this match {
+    case obj: JsonObject => obj
+    case JsonArray(x)    => x.foldLeft(JsonObject()) { (o,k) => o + (k.stringValue -> JsonObject()) }
+    case JsonNull()      => JsonObject()
+    case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
+  }
+
+  // treat objects like string lists of their keys and null like []
+  def asArray: JsonArray = this match {
+    case arr: JsonArray  => arr
+    case JsonObject(x)   => JsonArray(Vector() ++ x.keys.map(JsonString(_)))
+    case JsonNull()      => JsonArray()
+    case other           => throw new JsonAccessException("Expected: JsonObject, JsonArray, or JsonNull", other)
+  }
 
   // Convenience accessors for collections. These are overridden to not throw exceptions, where appropriate.
-  def apply(index: Int): Json =
-    throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
+  def apply(index: Int): Json = get(index) match {
+    case Some(x) => x
+    case None    => throw new JsonAccessException("Index: " + index + " out of bounds", this)
+  }
 
-  def apply(key: String): Json =
-    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+  def apply(key: String) = get(key) match {
+    case Some(x) => x
+    case None    => throw new JsonAccessException("Key not found: " + key, this)
+  }
+
+  def get(index: Int): Option[Json] =
+    throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
   def get(key: String): Option[Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
-  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
-    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+  def getOrElse[B1 >: Json](index: Int, default: => B1): B1 =
+    get(index) match { case Some(v) => v; case None => default }
 
-  def getOptArray(key: String) = getOrElse(key, JsonArray()).asArray
-  def getOptObject(key: String) = getOrElse(key, JsonObject()).asObject
+  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
+    get(key) match { case Some(v) => v; case None => default }
+
+
+  //def ?(index: Int)     = getOrElse(index, JsonNull())
+  //def ?@(index: Int)    = getOrElse(index, JsonNull()).asArray
+  //def ?#(index: Int)    = getOrElse(index, JsonNull()).asObject
+
+
+  // optional child notation
+  def ?(key: String)    = getOrElse(key, JsonNull())
+
+  // shorthand coercions for optional arrays and objects
+  def ?@(key: String)   = getOrElse(key, JsonNull()).asArray
+  def ?#(key: String)   = getOrElse(key, JsonNull()).asObject
+
 
   def mapValue: Map[String,Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
@@ -101,14 +134,8 @@ with Iterable[(String,Json)]
     out.g.writeEndObject()
   }
 
-  override def apply(key: String) = v.get(key) match {
-    case Some(x) => x
-    case None    => throw new JsonAccessException("Key not found: " + key, this)
-  }
   override def get(key: String) = v.get(key)
   override def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
-
-  override def asObject = this
   override def mapValue = v
   override def toString() = jsonString
 }
@@ -126,12 +153,10 @@ with Iterable[Json]
     out.g.writeEndArray()
   }
 
-  override def asArray = this
   override def vectorValue = v
-  override def apply(index: Int) =
-    try { v(index) }
-    catch { case _: IndexOutOfBoundsException =>
-              throw new JsonAccessException("Index: " + index + " out of bounds", this) }
+  override def get(index: Int) =
+    try   { Some(v(index)) }
+    catch { case _: IndexOutOfBoundsException => None }
 
   override def toString() = jsonString
 }
@@ -141,6 +166,7 @@ object JsonArray { def apply(v: Json*): JsonArray = JsonArray(Vector(v: _*)) }
 case class JsonNull() extends Json {
   val v = null
   def writeTo(out: Json.Output) { out.g.writeNull() }
+  override def get(key: String): Option[Json] = None
 }
 
 case class JsonString(v: String) extends Json {

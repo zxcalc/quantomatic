@@ -96,9 +96,15 @@ class JsonSpec extends FlatSpec {
     }
   }
 
+  it can "be accessed using optional fields" in {
+    assert((result ? "foo") === result("foo"))
+    assert((result ? "bar")(0) === result("bar")(0))
+    assert((result ? "bar")(1) === result("bar")(1))
+    assert((result ? "bar")(2) === result("bar")(2))
+  }
+
   it should "throw JsonAccessException for bad coercions" in {
     intercept[JsonAccessException] { result.boolValue }
-    intercept[JsonAccessException] { result.asArray }
 
     val obj = result.asObject
 
