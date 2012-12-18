@@ -118,6 +118,11 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
         |  },
         |  "undir_edges": {
         |    "e2": {"src": "n0", "tgt": "n1"}
+        |  },
+        |  "bang_boxes": {
+        |    "bb0": {"contents": ["n0", "n1", "w0"]},
+        |    "bb1": {"contents": ["n0", "n1"], "parent": "bb0"},
+        |    "bb2": {}
         |  }
         |}
       """.stripMargin))

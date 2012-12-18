@@ -42,23 +42,32 @@ sealed abstract class Json {
     sw.toString
   }
 
-  // Convenience accessors for subtypes. These are overridden to not throw exceptions, where appropriate.
+  def asObject: JsonObject =
+    throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
+
+  def asArray: JsonArray =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+
+  // Convenience accessors for collections. These are overridden to not throw exceptions, where appropriate.
   def apply(index: Int): Json =
     throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
   def apply(key: String): Json =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
-//
-//  def get(key: String): Option[Json] =
-//    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
-//
-//  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
-//    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
-  def asObject: JsonObject =
+  def get(key: String): Option[Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
-  def asArray: JsonArray =
+  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+
+  def getOptArray(key: String) = getOrElse(key, JsonArray()).asArray
+  def getOptObject(key: String) = getOrElse(key, JsonObject()).asObject
+
+  def mapValue: Map[String,Json] =
+    throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
+
+  def vectorValue: Vector[Json] =
     throw new JsonAccessException("Expected: JsonArray, got: " + this.getClass, this)
 
   def boolValue: Boolean =
@@ -92,14 +101,15 @@ with Iterable[(String,Json)]
     out.g.writeEndObject()
   }
 
-  override def asObject = this
   override def apply(key: String) = v.get(key) match {
     case Some(x) => x
     case None    => throw new JsonAccessException("Key not found: " + key, this)
   }
-  def get(key: String) = v.get(key)
-  def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
+  override def get(key: String) = v.get(key)
+  override def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
 
+  override def asObject = this
+  override def mapValue = v
   override def toString() = jsonString
 }
 
@@ -117,6 +127,7 @@ with Iterable[Json]
   }
 
   override def asArray = this
+  override def vectorValue = v
   override def apply(index: Int) =
     try { v(index) }
     catch { case _: IndexOutOfBoundsException =>
@@ -262,11 +273,8 @@ object JsonValues {
   implicit def jsonToInt(j: Json): Int = j.intValue
   implicit def jsonToDouble(j: Json): Double = j.doubleValue
   implicit def jsonToString(j: Json): String = j.stringValue
-
-  implicit def jsonToObject(j: Json): JsonObject = j.asObject
-  implicit def jsonToArray(j: Json): JsonArray = j.asArray
-  implicit def optJsonToObject(j: Option[Json]): JsonObject = j.getOrElse(JsonObject()).asObject
-  implicit def optJsonToArray(j: Option[Json]): JsonArray = j.getOrElse(JsonArray()).asArray
+  implicit def jsonToMap(j: Json): Map[String,Json] = j.mapValue
+  implicit def jsonToVector(j: Json): Vector[Json] = j.vectorValue
 }
 
 
