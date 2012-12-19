@@ -37,9 +37,9 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
     factory(data,verts,edges,source,target,bboxes,inBBox,bboxParent)
 
   // convenience methods
-  def inEdges(vn: VName) = target.inv(vn)
-  def outEdges(vn: VName) = source.inv(vn)
-  def adjacentEdges(vn: VName) = source.inv(vn) union target.inv(vn)
+  def inEdges(vn: VName) = target.codf(vn)
+  def outEdges(vn: VName) = source.codf(vn)
+  def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
 
   def addVertex(vn: VName, data: V) = {
     if (verts contains vn)
@@ -93,25 +93,29 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
     val bbn = bboxes.fresh
     (addBBox(bbn, data, contents, parent), bbn)
   }
+
+  def deleteBBox(bb: BBName) = {
+    copy()
+  }
   
   def deleteEdge(en: EName) = {
     copy(
       edges = edges - en,
-      source = source - en,
-      target = target - en
+      source = source.unmapDom(en),
+      target = target.unmapDom(en)
     )
   }
 
   def safeDeleteVertex(vn: VName) = {
-    if ((source.inv(vn).isEmpty) && (target.inv(vn).isEmpty))
-      copy(verts = verts - vn, inBBox = inBBox - vn)
+    if ((source.codf(vn).isEmpty) && (target.codf(vn).isEmpty))
+      copy(verts = verts - vn, inBBox = inBBox.unmapDom(vn))
     else throw new SafeDeleteVertexException(vn, "vertex has adjancent edges")
   }
 
   def deleteVertex(vn: VName) = {
     var g = this
-    for (e <- source.inv(vn)) g = g.deleteEdge(e)
-    for (e <- target.inv(vn)) g = g.deleteEdge(e)
+    for (e <- source.codf(vn)) g = g.deleteEdge(e)
+    for (e <- target.codf(vn)) g = g.deleteEdge(e)
     g.copy(verts = verts - vn)
   }
 
@@ -130,7 +134,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
       |}""".stripMargin.format(
       data, verts,
       edges.map(kv => kv._1 -> "(%s => %s)::%s".format(source(kv._1), target(kv._1), kv._2)),
-      bboxes.map(kv => kv._1 -> "%s::%s".format(inBBox.inv(kv._1), kv._2)),
+      bboxes.map(kv => kv._1 -> "%s::%s".format(inBBox.codf(kv._1), kv._2)),
       bboxParent.map(kv => "%s < %s".format(kv._1, kv._2))
     )
   }

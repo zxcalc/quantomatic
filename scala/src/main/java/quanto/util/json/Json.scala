@@ -84,17 +84,12 @@ sealed abstract class Json {
     get(key) match { case Some(v) => v; case None => default }
 
 
-  //def ?(index: Int)     = getOrElse(index, JsonNull())
-  //def ?@(index: Int)    = getOrElse(index, JsonNull()).asArray
-  //def ?#(index: Int)    = getOrElse(index, JsonNull()).asObject
-
-
   // optional child notation
   def ?(key: String)    = getOrElse(key, JsonNull())
 
   // shorthand coercions for optional arrays and objects
-  def ?@(key: String)   = getOrElse(key, JsonNull()).asArray
-  def ?#(key: String)   = getOrElse(key, JsonNull()).asObject
+  def ?@(key: String)   = (this ? key).asArray
+  def ?#(key: String)   = (this ? key).asObject
 
 
   def mapValue: Map[String,Json] =

@@ -56,9 +56,9 @@ object QGraph {
       (json ?# "bang_boxes").foldLeft(_) { (g,bb) =>
         val data = bb._2 ?# "data"
         val annotation = bb._2 ?# "annotation"
-        val contents = (bb._2 ?@ "contains") map { VName(_) }
+        val contains = (bb._2 ?@ "contains") map { VName(_) }
         val parent = bb._2.get("parent") map { BBName(_) }
-        g.addBBox(bb._1, BBData(data, annotation), contents.toSet, parent)
+        g.addBBox(bb._1, BBData(data, annotation), contains.toSet, parent)
       }
 
     ))({

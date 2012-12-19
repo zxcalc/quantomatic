@@ -102,6 +102,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       addBBox   ("bb0", BBData(), Set("v0", "v1"))
       addBBox   ("bb1", BBData(), Set("v2"), parent = Some("bb0"))
       )
+
+    assert(g1.inBBox.codf("bb0") === Set(VName("v0"), VName("v1")))
   }
 
   var jsonGraph: QGraph = _
@@ -111,7 +113,10 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       """
         |{
         |  "wire_vertices": ["w0", "w1", "w2"],
-        |  "node_vertices": ["n0", "n1"],
+        |  "node_vertices": {
+        |    "n0":{"annotation": {"coord": [1,2]}},
+        |    "n1":{}
+        |  },
         |  "dir_edges": {
         |    "e0": {"src": "w0", "tgt": "w1"},
         |    "e1": {"src": "w1", "tgt": "w2"}
@@ -120,8 +125,8 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
         |    "e2": {"src": "n0", "tgt": "n1"}
         |  },
         |  "bang_boxes": {
-        |    "bb0": {"contents": ["n0", "n1", "w0"]},
-        |    "bb1": {"contents": ["n0", "n1"], "parent": "bb0"},
+        |    "bb0": {"contains": ["w0", "n0", "n1"]},
+        |    "bb1": {"contains": ["n0", "n1"], "parent": "bb0"},
         |    "bb2": {}
         |  }
         |}
@@ -132,7 +137,19 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(jsonGraph.verts("w0").isInstanceOf[WireV])
     assert(jsonGraph.verts("w1").isInstanceOf[WireV])
     assert(jsonGraph.verts("w2").isInstanceOf[WireV])
+    assert(jsonGraph.verts("n0").isInstanceOf[NodeV])
+    assert(jsonGraph.verts("n1").isInstanceOf[NodeV])
+    assert(jsonGraph.verts("n0").coord === (1.0, 2.0))
+    assert(jsonGraph.verts("n1").coord === (0.0, 0.0))
+    assert(jsonGraph.edges("e0").directed === true)
+    assert(jsonGraph.edges("e1").directed === true)
+    assert(jsonGraph.edges("e2").directed === false)
     assert(jsonGraph.source("e0") === VName("w0"))
     assert(jsonGraph.target("e0") === VName("w1"))
+    assert(jsonGraph.source("e1") === VName("w1"))
+    assert(jsonGraph.target("e1") === VName("w2"))
+    assert(jsonGraph.source("e2") === VName("n0"))
+    assert(jsonGraph.target("e2") === VName("n1"))
+    assert(jsonGraph.inBBox.codf("bb0") === Set(VName("n0"), VName("n1"), VName("w0")))
   }
 }

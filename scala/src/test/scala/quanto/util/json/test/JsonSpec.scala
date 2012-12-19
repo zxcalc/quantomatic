@@ -103,6 +103,12 @@ class JsonSpec extends FlatSpec {
     assert((result ? "bar")(2) === result("bar")(2))
   }
 
+  it should "return null, empty array, or empty object for missing optional fields" in {
+    assert((result ? "missing") === JsonNull())
+    assert((result ?@ "missing") === JsonArray())
+    assert((result ?# "missing") === JsonObject())
+  }
+
   it should "throw JsonAccessException for bad coercions" in {
     intercept[JsonAccessException] { result.boolValue }
 

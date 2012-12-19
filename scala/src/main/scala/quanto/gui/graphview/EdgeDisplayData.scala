@@ -25,8 +25,8 @@ trait EdgeDisplayData {
 
   protected def computeEdgeDisplay() {
     for ((v1,sd) <- graph.verts; (v2,td) <- graph.verts if v1 <= v2) {
-      val edges = graph.source.inv(v1) intersect graph.target.inv(v2)
-      val rEdges = if (v1 == v2) Set[EName]() else graph.target.inv(v1) intersect graph.source.inv(v2)
+      val edges = graph.source.codf(v1) intersect graph.target.codf(v2)
+      val rEdges = if (v1 == v2) Set[EName]() else graph.target.codf(v1) intersect graph.source.codf(v2)
       val numEdges = edges.size + rEdges.size
 
       if (numEdges != 0) {
