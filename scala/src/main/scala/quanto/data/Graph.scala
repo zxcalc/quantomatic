@@ -19,12 +19,12 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def source: PFun[EName,VName]
   def target: PFun[EName,VName]
   def bboxes: Map[BBName,B]
-  def inBBox: PFun[VName,BBName]
+  def inBBox: BinRel[VName,BBName]
   def bboxParent: PFun[BBName,BBName]
 
   protected def factory :
     ((G,Map[VName,V],Map[EName,E],PFun[EName,VName],PFun[EName,VName],
-     Map[BBName,B],PFun[VName,BBName],PFun[BBName,BBName])=> This)
+     Map[BBName,B],BinRel[VName,BBName],PFun[BBName,BBName])=> This)
 
   def copy(data: G                         = this.data,
            verts: Map[VName,V]             = this.verts,
@@ -32,7 +32,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
            source: PFun[EName,VName]       = this.source,
            target: PFun[EName,VName]       = this.target,
            bboxes: Map[BBName,B]           = this.bboxes,
-           inBBox: PFun[VName,BBName]      = this.inBBox,
+           inBBox: BinRel[VName,BBName]      = this.inBBox,
            bboxParent: PFun[BBName,BBName] = this.bboxParent): This =
     factory(data,verts,edges,source,target,bboxes,inBBox,bboxParent)
 
@@ -147,7 +147,7 @@ class Graph[G,V,E,B](
   val source: PFun[EName,VName]       = PFun[EName,VName](),
   val target: PFun[EName,VName]       = PFun[EName,VName](),
   val bboxes: Map[BBName,B]           = Map[BBName,B](),
-  val inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
+  val inBBox: BinRel[VName,BBName]    = BinRel[VName,BBName](),
   val bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]()
 ) extends GraphLike[G,V,E,B,Graph[G,V,E,B]]
 {

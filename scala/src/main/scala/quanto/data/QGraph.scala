@@ -14,7 +14,7 @@ case class QGraph(
   source: PFun[EName,VName]       = PFun[EName,VName](),
   target: PFun[EName,VName]       = PFun[EName,VName](),
   bboxes: Map[BBName,BBData]      = Map[BBName,BBData](),
-  inBBox: PFun[VName,BBName]      = PFun[VName,BBName](),
+  inBBox: BinRel[VName,BBName]    = BinRel[VName,BBName](),
   bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
 extends GraphLike[GData,VData,EData,BBData,QGraph]
 {
