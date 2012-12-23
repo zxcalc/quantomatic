@@ -7,6 +7,70 @@ functor MJB_SimpleInnerMatchSearchParallel(
   local
   (*For all of the future calls that I need!*)
   open MJB_Simple_Future;
+  
+  (*This is an implementation using difference lists!! This
+  results in faster append O(1). Laziness is not useful here, since the list
+  of child nodes must have been formulated by the function already.*)
+  structure Difference_List =
+  struct
+    (*The type of the difference list*)
+    datatype 'a DList = DList of ('a list -> 'a list)
+    
+    (*Has a pointer to the first cell and the last one
+    Stores the size of list to avoid having to destroy lists during append*)
+    type 'a difference_list = 'a DList
+    
+    (*Create a new empty linked list*)
+    val empty = DList (fn x => x)
+    
+    (*Attach an element to the front of a difference list*)
+    fun cons x (DList f) = DList (fn ls => x::(f ls))
+    
+    (*Attach an element to the end of the list*)
+    fun snoc (DList f) x = DList (fn ls => (f (x::ls)))
+    
+    (*Append one list to another. Both lists should be considered
+    modified and so not used individually again!*)
+    fun append (DList f) (DList g) = DList (f o g)
+    
+    (*Convert the contents of the difference list to a regular list*)
+    fun list_of (DList f) = f []
+    
+    (*Convert from a list of values to a difference list with the same values*)
+    fun of_list [] = empty
+      | of_list (x::xs) = cons x (of_list xs)
+        
+    (*Some local correctness tests*)
+    val _ = let
+      val ls = empty;
+      val _ = if ([]=(list_of ls)) then () else
+              raise ERROR "Difference list failure with empty";
+      val ls = cons 1 ls;
+      val _ = if ([1]=(list_of ls)) then () else
+              raise ERROR "Difference list failure with singleton";
+      val ls = cons 2 ls;
+      val _ = if ([2,1]=(list_of ls)) then () else
+              raise ERROR "Difference list failure with two";
+      val ls2 = cons 4 (cons 3 empty);
+      (*Remember that appending breaks the old lists*)
+      val new_ls = append ls ls2
+      val _ = if ([2,1,4,3]=(list_of new_ls)) then () else
+              raise ERROR "Difference list failure with append";
+              (*
+      fun myfunc 1 = [Par_Tree.Leaf 1,Par_Tree.Node 2,Par_Tree.Leaf 2,Par_Tree.Node 2,Par_Tree.Leaf 3]
+        | myfunc 2 = [Par_Tree.Node 3,Par_Tree.Node 3]
+        | myfunc _ = [];
+      val result = Seq.list_of (Par_Tree.compute_tree par_tree (Par_Tree.Node 1) myfunc);
+      val _ = if (result=[1,2,3]) then () else
+              raise ERROR "Par_Tree: failed empty node 4";*)
+      val res_ls = append (append (append (cons 1 empty) (append empty (append empty empty))) (append (cons 2 empty) (append empty (append empty empty)))) (cons 3 empty)
+      val _ = if ([1,2,3]=(list_of res_ls)) then () else
+              raise ERROR "Difference list failure with append 2";
+      in () end
+      
+    
+  end
+  
   in
   
   structure Log : LOG = Log(val init_level = 0);
@@ -19,6 +83,9 @@ functor MJB_SimpleInnerMatchSearchParallel(
   (*For ease of use*)
   structure Future = MJB_Simple_Future;
   structure Par_Seq = MJB_Safe_Parallel_Seq;
+  structure Par_Tree = MJB_Par_Tree;
+  structure Compactor = MJB_Compactor;
+  structure Stopwatch = MJB_Stopwatch;
   
   (*Log the future data*)
   fun log_future_data data lvl =
@@ -141,13 +208,6 @@ functor MJB_SimpleInnerMatchSearchParallel(
            end
         (*BRANCH POINT*)
          in
-          if (lvl=0) then
-          (
-          Par_Seq.sequential_seq_of (
-          Par_Seq.maps (fn _ => fn a =>
-            Par_Seq.of_sequential_seq data (m_circ a)) (
-          Par_Seq.of_sequential_seq data (V.NSet.fold Seq.cons (u_circles_in_tgt ms) Seq.empty))))
-          else
           Seq.maps m_circ (V.NSet.fold Seq.cons (u_circles_in_tgt ms) Seq.empty)
          end
        | NONE => (* no circles left to match, return match state *)
@@ -162,6 +222,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
   
   
   (*Analysis tools...*)
+  
   val tryadd_wire_c = Unsynchronized.ref 0;
   val match_and_schedule_new_c = Unsynchronized.ref 0;
   val match_main_c = Unsynchronized.ref 0;
@@ -172,7 +233,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
   (* Try to recursively add wire to matching, starting with the given head
      vertex and edge. Return NONE on failure. *)
   fun tryadd_wire data lvl ms (vp,ep) (vt,et) = let
-    val _ = (tryadd_wire_c := (!tryadd_wire_c) + 1; ());
+    (*val _ = (tryadd_wire_c := (!tryadd_wire_c) + 1; ());*)
     (* val _ = PolyML.print("Within tryadd_wire"); *)
     val _ = logf data 4 (fn () => ind lvl "Attempting to match ("^
                        (V.string_of_name vp)^ ","^(E.string_of_name ep)^
@@ -254,132 +315,301 @@ functor MJB_SimpleInnerMatchSearchParallel(
                (log_match_fail_e2 data lvl "EData mismatch" ep et; NONE)
   end
   
-  fun match_pending' data doomedf match_state = let
-    val _ = (match_pending_c := (!match_pending_c) + 1; ());
-    (*val _ = PolyML.print("Within match pending");*)
-    val _ = log data 2 "== Starting inner match"
+  (*
+  PARALLELISATION DETAILS
   
-    (* main matching loop *)
-    fun match_main data lvl ms = let
-      val _ = (match_main_c := (!match_main_c) + 1; ());
-      (*val _ = PolyML.print("Within match_main");*)
-      val _ = logf data 3 (fn () => ind lvl "== Entering main loop") ()
-      val _ = log_graph data 4 "Pattern" (MatchState.get_pat ms)
-      val _ = log_graph data 4 "Target" (MatchState.get_tgt ms)
-      val _ = log_vset data 4 "U" (MatchState.get_u_nodeverts ms)
-      val _ = log_vset data 4 "P" (MatchState.get_p_nodeverts ms)
-      val _ = log_vset data 4 "Ps" (MatchState.get_ps_nodeverts ms)
-      val _ = log_vmap data 4 "M" (MatchState.get_vmap ms)
+  The two functions which can be parallelised across in their application are
+  m_nodevert and match_nhd
+  
+  Note in particular that match_nhd is quite hard to separate, since it can recur on itself...
+  
+  Hence, the appropriate indexer for theses functions is:
+  *)
+  
+  datatype node_functions =
+        (*Requires the future data, the depth, the pattern vertex, the target vertex*)
+        Match_Node_Vertex of MatchState.T * Future.future_data * int * V.name * V.name
+        (*Requires the future data, the depth, and the pattern vertex*)
+      | Match_Neighbourhood of MatchState.T * Future.future_data * int * V.name
+        (*Try mapping across the *)
+      | Map_Try_Add_Wire of MatchState.T * Future.future_data * int * V.name * V.name * E.name * E.name
+        (*A dummy node to act as the root*)
+      | Root of MatchState.T
       
-      (* remove nv from u_nodeverts, and schedule at all sites where it matches *)
-      fun match_and_schedule_new data nv = let
-        val _ = (match_and_schedule_new_c := (!match_and_schedule_new_c) + 1; ());
+  (*Apply the tryadd_wire algorithm across the list of edges...*)
+  fun map_tryadd_wire ms data lvl nvp nvt ep et = case tryadd_wire data lvl ms (nvp,ep) (nvt,et)
+             of SOME ms' => [Par_Tree.Node (Match_Neighbourhood (ms',data,lvl,nvp))]
+              | NONE => []
+      
+  (*Counters for the histogram (showing the coarseness of nodes)*)
+  val c1_10 = Unsynchronized.ref 0;
+  val c10_100 = Unsynchronized.ref 0;
+  val c100_1000 = Unsynchronized.ref 0;
+  val c1000_10000 = Unsynchronized.ref 0;
+  val c10000_100000 = Unsynchronized.ref 0;
+  val c100000_1000000 = Unsynchronized.ref 0;
+  val c1000000_ = Unsynchronized.ref 0;
+  
+  fun match_pending' data doomedf match_state = let
+    (*val _ = (match_pending_c := (!match_pending_c) + 1; ());*)
+    (*val _ = PolyML.print("Within match pending");*)
+    val _ = log data 2 "== Starting inner match";
+    
+    (**************************************************************************************)
+    (*Match and schedule new calls:*)
+    (*Try to identify all of the possible vertices that nv in the pattern graph could map to
+    in the target graph*)
+    (**************************************************************************************)
+    fun match_and_schedule_new data lvl nv ms =
+      let
+        (*val _ = (match_and_schedule_new_c := (!match_and_schedule_new_c) + 1; ());*)
         (*val _ = PolyML.print("Within match_and_schedule_new");*)
         val _ = logf data 3 (fn () => ind lvl
               "== Next unmatched: "^(V.string_of_name nv)) ()
         val ms' = ms |> MatchState.update_u_nodeverts  (V.NSet.delete nv)
-                     |> MatchState.update_p_nodeverts  (V.NSet.add nv)
-                     |> MatchState.update_ps_nodeverts (V.NSet.add nv)
+                       |> MatchState.update_p_nodeverts  (V.NSet.add nv)
+                       |> MatchState.update_ps_nodeverts (V.NSet.add nv)
         val unm_nv_tgt = V.NSet.subtract
           (G.get_node_vertices (MatchState.get_tgt ms'))
           (VInjEndo.get_codset (MatchState.get_vmap ms'))
-        val nv_data = G.get_vertex_data (MatchState.get_pat ms') nv
-        fun m_nodevert data tnv =
-          case G.VData.match_data (nv_data, G.get_vertex_data (MatchState.get_tgt ms') tnv)
-                                  (MatchState.get_match_subst ms)
-            of SOME subst =>
-                match_main data (lvl+1) (ms' |> MatchState.set_match_subst subst
-                                        |> add_vertex_to_match data lvl (nv, tnv))
-             | NONE => Seq.empty
-      (*BRANCH POINT*)
+        (*Another cons...*)
+        fun cons x xs = x::xs;
       in
-        if (lvl<=1) then
-          (
-          Par_Seq.sequential_seq_of (
-          Par_Seq.maps (fn fd => fn a => 
-            Par_Seq.of_sequential_seq data (m_nodevert fd a)) (
-          Par_Seq.of_sequential_seq data (V.NSet.fold Seq.cons unm_nv_tgt Seq.empty))))
-        else
-          Seq.maps (m_nodevert data) (V.NSet.fold Seq.cons unm_nv_tgt Seq.empty)
+        (*Create a new node ready to call m_nodevert*)
+        List.map (fn tnv => Par_Tree.Node (Match_Node_Vertex (ms',data,lvl,nv,tnv)))
+          (V.NSet.fold cons unm_nv_tgt [])
       end
-      
-      (* match all scheduled wires in the neighbourhood of the given node-vertex *)
-      fun match_nhd data lvl ms nvp = let
-        val _ = (match_nhd_c := (!match_nhd_c) + 1; ());
-        (*val _ = PolyML.print("Within match_nhd");*)
-        val _ = logf data 3 (fn () => ind lvl
-              "== Matching nhd of "^(V.string_of_name nvp)) ()
-        val nvt = VInjEndo.domf (MatchState.get_vmap ms) nvp
-        val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms)
-            
-        fun edge_sched e = V.NSet.contains (MatchState.get_u_wireverts ms)
-                                           (G.edge_get_other_vertex pat e nvp)
-        
-        (* next wire in pattern that needs to be matched *)
-        val (_,(ins,outs)) = G.get_vertex pat nvp
-        val next_ep = E.NSet.get_exists edge_sched (E.NSet.union_merge ins outs)
-        
-        (* unmatched edges in target graph *)
-        val (_,(ins,outs)) = G.get_vertex tgt nvt
-        val unm_tgt = E.NSet.filter (not o (EInjEndo.cod_contains (MatchState.get_emap ms)))
-                                    (E.NSet.union_merge ins outs)
-      in case next_ep
-           of SOME ep =>
-           (*BRANCH POINT - THIS IS NOT LAZY*)
-               E.NSet.fold (fn et => (
-                 let (*val _ = PolyML.print("Calling tryadd_wire from match_nhd") *) in
-                 case tryadd_wire data lvl ms (nvp,ep) (nvt,et)
-                   of SOME ms' => Seq.append (match_nhd data (lvl+1) ms' nvp)
-                    | NONE     => I
-               end)) unm_tgt Seq.empty
-            | NONE =>
-                match_main data (lvl+1) (* remove from partially matched if unm_tgt is empty *)
-                        (ms |> (if E.NSet.is_empty unm_tgt
-                                then MatchState.update_p_nodeverts (V.NSet.delete nvp)
-                                else I))
-      end
-      
-      
-      (* continue matching from the given partially-matched node-vertex *)
-      fun continue_matching_from data nvp =
-        let 
-          (*val _ = PolyML.print("Within continue_matching_from");*)
-          val _ = (continue_matching_from_c := (!continue_matching_from_c) + 1; ());
-        in
-        if doomedf ms nvp
-        then (log_match_fail_v1 data lvl "Doomed" nvp; Seq.empty)
-        else match_nhd data lvl
-              (ms |> MatchState.update_ps_nodeverts (V.NSet.delete nvp))
-              nvp end
     
-    (* process next node-vertex in schedule *)  
-    in case V.NSet.get_min (MatchState.get_ps_nodeverts ms)        (* if there are partially matched node-verts scheduled, *)
-         of SOME ps => continue_matching_from data ps                   (* traverse from there... *)
-          | NONE => (
-              case V.NSet.get_min (MatchState.get_u_nodeverts ms)  (* otherwise find a new unmatched vertex and match/schedule *)
-                of SOME un => match_and_schedule_new data un
-                 | NONE => (log data 3 (ind lvl "== Inner matching complete");
-                     Seq.single ms)) (* nothing left to do *)
-    end (* match_main *)
-  
+    (****************************************)
+    (*This is a controlling matching loop...*)
+    (****************************************)
+    fun match_main data lvl ms =
+      let
+        (*val _ = (match_main_c := (!match_main_c) + 1; ());*)
+        (*val _ = PolyML.print("Within match_main");*)
+        val _ = logf data 3 (fn () => ind lvl "== Entering main loop") ()
+        val _ = log_graph data 4 "Pattern" (MatchState.get_pat ms)
+        val _ = log_graph data 4 "Target" (MatchState.get_tgt ms)
+        val _ = log_vset data 4 "U" (MatchState.get_u_nodeverts ms)
+        val _ = log_vset data 4 "P" (MatchState.get_p_nodeverts ms)
+        val _ = log_vset data 4 "Ps" (MatchState.get_ps_nodeverts ms)
+        val _ = log_vmap data 4 "M" (MatchState.get_vmap ms)
+        (* continue matching from the given partially-matched node-vertex *)
+        fun continue_matching_from data nvp =
+          let
+            (*val _ = (continue_matching_from_c:=(!continue_matching_from_c)+1;());*)
+          in
+          if doomedf ms nvp
+          then (log_match_fail_v1 data lvl "Doomed" nvp; [])
+          else 
+            let
+              val ms' = ms |> MatchState.update_ps_nodeverts (V.NSet.delete nvp)
+            in
+              [Par_Tree.Node (Match_Neighbourhood (ms',data,lvl,nvp))] (*match_nhd data lvl nvp ms'*)
+            end end
+      in
+        (* process next node-vertex in schedule *)  
+        case V.NSet.get_min (MatchState.get_ps_nodeverts ms)        (* if there are partially matched node-verts scheduled, *)
+           of SOME ps => continue_matching_from data ps                   (* traverse from there... *)
+            | NONE =>
+                case V.NSet.get_min (MatchState.get_u_nodeverts ms)  (* otherwise find a new unmatched vertex and match/schedule *)
+                  of SOME un => match_and_schedule_new data lvl un ms
+                   | NONE => (log data 3 (ind lvl "== Inner matching complete");
+                       [Par_Tree.Leaf ms]) (* nothing left to do *)
+      end
+          
+    (*****************************************************************************************)
+    (*One of the node functions. Assuming nvp has been matched to a vertex in the target graph,
+    try to match its neighbourhood*)
+    (*****************************************************************************************)
+    and match_nhd data lvl nvp ms =
+      let
+        val _ = logf data 3 (fn () => ind lvl
+                "== Matching nhd of "^(V.string_of_name nvp)) ();
+        (*val _ = (match_nhd_c:=(!match_nhd_c)+1;());*)
+        (*Get the target vertex that the supplied pattern vertex was mapped to*)
+        val nvt = VInjEndo.domf (MatchState.get_vmap ms) nvp;
+        (*Retrieve the pattern and target graphs*)
+        val (pat, tgt) = (MatchState.get_pat ms, MatchState.get_tgt ms);
+        (*Returns true if an edge exists to an unmatched wire vertex. NONE otherwise*)
+        fun edge_sched e = V.NSet.contains (MatchState.get_u_wireverts ms)
+                                            (G.edge_get_other_vertex pat e nvp);
+        (*Get the input and output edges for the vertex in the pattern graph*)
+        val (_,(ins,outs)) = G.get_vertex pat nvp;
+        (*Return an unmatched edge in the pattern graph coming from nvp*)
+        val next_ep = E.NSet.get_exists edge_sched (E.NSet.union_merge ins outs);
+        (*Return the input and output edges of the vertex nvp was mapped to*)
+        val (_,(ins,outs)) = G.get_vertex tgt nvt
+        (*Return all of the unmatched edges from the vertex in the target graph*)
+        val unm_tgt = E.NSet.filter (not o (EInjEndo.cod_contains (MatchState.get_emap ms)))
+                                      (E.NSet.union_merge ins outs)
+        fun cons x xs = x::xs;                              
+        (*All the unmatched edges in the target graph as a list*)
+        val unm_tgt_list = E.NSet.fold cons unm_tgt [];
+      in
+        case next_ep (*There is an edge to match in the pattern graph*)
+          of SOME ep => ((*PolyML.print("Trying wires..");*)(*map_tryadd_wire ep unm_tgt_list*)
+          map (fn et => Par_Tree.Node (Map_Try_Add_Wire (ms,data,lvl,nvp,nvt,ep,et))) unm_tgt_list)
+           | NONE => (
+              (*PolyML.print("Going to match_main");*)
+              match_main data (lvl+1) (* remove from partially matched if unm_tgt is empty *)
+                      (ms |> (if E.NSet.is_empty unm_tgt
+                              then MatchState.update_p_nodeverts (V.NSet.delete nvp)
+                              else I)))
+      end
+    
+    (*********************************************************************************)
+    (*Given a node vertex nv in the pattern graph and a vertex in the target graph tnv,
+    see if they will match*)
+    (*********************************************************************************)
+    fun m_nodevert data lvl nv tnv ms =
+      let
+        val nv_data = G.get_vertex_data (MatchState.get_pat ms) nv
+      in
+        case G.VData.match_data (nv_data, G.get_vertex_data (MatchState.get_tgt ms) tnv)
+                                (MatchState.get_match_subst ms) (*Probably could use ms'*)
+          of SOME subst =>
+              (*Must continue from here until children are produced...*)
+              match_main data (lvl+1) (ms |> MatchState.set_match_subst subst
+                                          |> add_vertex_to_match data lvl (nv, tnv))
+           | NONE => []
+      end
+    
+    (*The dummy root node*)
+    fun root ms = Par_Tree.Node (Root ms);
+    
+    val max = 1000000;
+    val max_coarse = 10;
+    val increase_coarse = 6;
+    val start_coarse = 4;
+    
+    (*The function which can apply itself to the different nodes...*)
+    fun apply_to_node node = case node of
+        Root ms => let
+          val _ = c1_10:= 0;
+          val _ = c10_100:= 0;
+          val _ = c100_1000 := 0;
+          val _ = c1000_10000 := 0;
+          val _ = c10000_100000 := 0;
+          val _ = c100000_1000000 := 0;
+          val _ = c1000000_ :=0;
+          val _ = PolyML.print("Max coarseness: " ^ (Int.toString(max_coarse)));
+          val _ = PolyML.print("Increase coarseness: " ^ (Int.toString(increase_coarse)));
+          val _ = PolyML.print("Start coarseness: " ^ (Int.toString(start_coarse)));
+        in
+          match_main data 0 ms
+        end
+      | Match_Node_Vertex (ms,data,lvl,nv,tnv) =>
+        (*let
+          val sw = Stopwatch.start Stopwatch.new;
+          val ans = m_nodevert data lvl nv tnv ms;
+          val t = Time.toMicroseconds(Stopwatch.check sw);
+          val _ = if (t>max) then (
+          PolyML.print("Match_Node_Vertex took: " ^ (LargeInt.toString(t)));()) else ();
+        in
+          ans
+        end*)
+        m_nodevert data lvl nv tnv ms
+      | Match_Neighbourhood (ms,data,lvl,nvp) =>
+        (*let
+          val sw = Stopwatch.start Stopwatch.new;
+          val ans = match_nhd data lvl nvp ms;
+          val t = Time.toMicroseconds(Stopwatch.check sw);
+          val _ = if (t>max) then (
+          PolyML.print("Match_Neighbourhood took: " ^ (LargeInt.toString(t)));()) else ();
+        in
+          ans           
+        end*)
+        match_nhd data lvl nvp ms
+      | Map_Try_Add_Wire (ms,data,lvl,nvp,nvt,ep,et) =>
+        (*let
+          val sw = Stopwatch.start Stopwatch.new;
+          val ans = map_tryadd_wire ms data lvl nvp nvt ep et;
+          val t = Time.toMicroseconds(Stopwatch.check sw);
+          val _ = if (t>max) then (
+          PolyML.print("Map_Try_Add_Wire took: " ^ (LargeInt.toString(t)));()) else ();
+        in
+          ans
+        end*)
+        map_tryadd_wire ms data lvl nvp nvt ep et
+      
+    (*A heuristic to make the apply_to_node function more coarse*)
+    fun apply_to_node_coarse 0 node = Difference_List.of_list (apply_to_node node)
+      | apply_to_node_coarse n node = 
+        let
+          val res = apply_to_node node;
+          fun map_apply [] = Difference_List.empty
+            | map_apply ((Par_Tree.Leaf l)::ns) = Difference_List.cons (Par_Tree.Leaf l) (map_apply ns)
+            | map_apply ((Par_Tree.Node nd)::ns) = Difference_List.append (apply_to_node_coarse (n-1) nd) (map_apply ns)
+        in
+          map_apply res
+        end
+    (*
+    fun apply r c n =
+      let val _ = if ((!c)>=(!r)*24) then
+                  (c:=0;if ((!r)<=10) then r:=(!r)+1 else ();()) else (c:=(!c+1))
+      in Difference_List.list_of (apply_to_node_coarse (!r) n) end
+    *)
+    (*
+    fun apply n = Difference_List.list_of (apply_to_node_coarse 8 n)*)
+    (*The parallel tree to use!*)
+    (*82426724 on 30 vertices. Best so far!*)
+    
+    fun apply r c n =
+      let val _ = if ((!c)>=(!r)*24) then
+                  (c:=0;if ((!r)<=max_coarse) then r:=(!r)+increase_coarse else ();()) else (c:=(!c+1))
+      in
+        let
+          val sw = Stopwatch.start Stopwatch.new;
+          val ans = Difference_List.list_of (apply_to_node_coarse (!r) n)
+          val t = Time.toMicroseconds(Stopwatch.check sw);
+          val _ = if (t<=10) then (c1_10:=(!c1_10+1)) else ();
+          val _ = if (t>10 andalso t<=100) then (c10_100:=(!c10_100+1)) else ();
+          val _ = if (t>100 andalso t<=1000) then (c100_1000:=(!c100_1000+1)) else ();
+          val _ = if (t>1000 andalso t<=10000) then (c1000_10000:=(!c1000_10000+1)) else ();
+          val _ = if (t>10000 andalso t<=100000) then (c10000_100000:=(!c10000_100000+1)) else ();
+          val _ = if (t>100000 andalso t<=1000000) then (c100000_1000000:=(!c100000_1000000+1)) else ();
+          val _ = if (t>1000000) then (c1000000_:=(!c1000000_+1)) else ();
+          (*PolyML.print("Time of node was: " ^ (LargeInt.toString(t)));*)
+        in
+          ans
+        end
+        (*Difference_List.list_of (apply_to_node_coarse (!r) n)*)
+      end
+    val par_tree = Par_Tree.new data;
+    val compactor = Compactor.new_dynamic (Time.fromMicroseconds 5000);
+    val compactor = Compactor.set_estimated_number compactor (SOME 1);
+    val compactor = Compactor.prime compactor (SOME 3) false;
+    val compactor = Compactor.do_not_prime compactor;
+    val par_tree = Par_Tree.set_compactor par_tree compactor;
+    val par_tree = Par_Tree.set_order_matters par_tree false;
   (* match all circles, then enter main matching routine *)
   (*BRANCH POINT*)
   in (*(TextIO.print("In");Par_Seq.sequential_seq_of (
     Par_Seq.maps (fn fd => fn x => Par_Seq.of_sequential_seq fd (match_main fd 0 x)) (
     Par_Seq.of_sequential_seq data (match_circles' data 0 match_state))))*)
-    Seq.maps (match_main data 0) (match_circles match_state)
+    Seq.flat (Seq.map (fn ms => Par_Tree.compute_tree par_tree (root ms) (apply (Unsynchronized.ref start_coarse) (Unsynchronized.ref 0))) (match_circles match_state))
   end
   
   fun match_pending doomedf match_state =
     let
       val res = match_pending' (Future.new_future_data (SOME "<-Main match")) doomedf match_state;
-      val _ = Seq.list_of res;
+      val res = Seq.list_of res; (*Force evaluation!*)
+      val res = Seq.of_list res;
+      val _ = PolyML.print("1-10: " ^ (Int.toString((!c1_10))));
+      val _ = PolyML.print("10-100: " ^ (Int.toString((!c10_100))));
+      val _ = PolyML.print("100-1000: " ^ (Int.toString((!c100_1000))));
+      val _ = PolyML.print("1000-10000: " ^ (Int.toString((!c1000_10000))));
+      val _ = PolyML.print("10000-100000: " ^ (Int.toString((!c10000_100000))));
+      val _ = PolyML.print("100000-1000000: " ^ (Int.toString((!c100000_1000000))));
+      val _ = PolyML.print("1000000+: " ^ (Int.toString((!c1000000_))));
+      (*val _ = Seq.list_of res;
       val _ = PolyML.print("tryadd_wire called " ^ (Int.toString(!tryadd_wire_c)) ^ " times");
       val _ = PolyML.print("match_and_schedule_new called " ^ (Int.toString(!match_and_schedule_new_c)) ^ " times");
       val _ = PolyML.print("match_main called " ^ (Int.toString(!match_main_c)) ^ " times");
       val _ = PolyML.print("continue_matching_from called " ^ (Int.toString(!continue_matching_from_c)) ^ " times");
       val _ = PolyML.print("match_pending called " ^ (Int.toString(!match_pending_c)) ^ " times");
-      val _ = PolyML.print("match_nhd called " ^ (Int.toString(!match_nhd_c)) ^ " times")
+      val _ = PolyML.print("match_nhd called " ^ (Int.toString(!match_nhd_c)) ^ " times")*)
     in
       res
     end

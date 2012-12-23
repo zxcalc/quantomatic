@@ -121,7 +121,6 @@ local
     (*PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));*)() end))) ()
   (*Parallel version!*)
   fun match_all_parallel_concrete g1 g2 = let
-    val _ = PolyML.print("About to start matching algorithm...");
     val n = List.length (Seq.list_of (Concrete_Parallel_M.match g1 g2))
     in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
   fun match_all_parallel_greedy g1 g2 = let
@@ -506,6 +505,7 @@ in
       
     (*REMOVE*)
     fun test hardness = test_with_square_concrete_together_complete (hardness,hardness) 1
+    fun test_parallel hardness = test_with_square_concrete_complete_parallel (hardness,hardness) 1
     (*REMOVE*)
     val complete_target = complete_target
     (*REMOVE*)
