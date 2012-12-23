@@ -30,6 +30,7 @@ struct
   structure Future = MJB_Simple_Future;
   structure Par_Seq = MJB_Safe_Parallel_Seq;
   structure Par_Tree = MJB_Par_Tree;
+  structure Stopwatch = MJB_Stopwatch;
   
   (*
   PARALLELISATION DETAILS:
@@ -215,7 +216,6 @@ struct
   end
   
   (*These are the functions used within the nodes of the tree*)
-  
   datatype node_functions = Choose_Next_BBox of Future.future_data
                           | Match_Loop of Future.future_data
   
@@ -231,19 +231,47 @@ struct
   fun choose_next_bbox data ms =
     case get_next_bbox (BGMatchState.get_pat ms) of
         NONE => (*Leaves here!*)
-                List.map (fn ms' => Par_Tree.Leaf ms') (
-                Seq.list_of (finish_match data ms)) (*Computed at the moment*)
+                let
+                  val sw = Stopwatch.start Stopwatch.new;
+                  val res = List.map (fn ms' => Par_Tree.Leaf ms') (
+                            Seq.list_of (finish_match data ms)) (*Computed at the moment*)
+                  val sw = Time.toMicroseconds (Stopwatch.check sw);
+                  val _ = PolyML.print("Finishing the match took " ^ (LargeInt.toString(sw)));
+                in
+                  res
+                end
       | SOME b => (*Exactly two children nodes*)
+                (Par_Tree.Node (BGMatchState.schedule_new_concrete (expand_pat_bbox data b ms),Match_Loop data))::
+                (choose_next_bbox data (kill_pat_bbox data b ms))
+                (*
                 [(*Kill the bbox*)
                  Par_Tree.Node (kill_pat_bbox data b ms,Choose_Next_BBox data),
                  (*Copy the bbox*)
                  Par_Tree.Node (BGMatchState.schedule_new_concrete (expand_pat_bbox data b ms),Match_Loop data)
-                ]
+                ]*)
   
   (*The function which is actually applied to the above nodes*)
   fun apply_to_node (ms,ms_func) = case ms_func of
-      (Match_Loop fd) => match_loop fd ms
-    | (Choose_Next_BBox fd) => choose_next_bbox fd ms
+      (Match_Loop fd) =>
+        let
+          val sw = Stopwatch.start Stopwatch.new;
+          val res = match_loop fd ms;
+          val t = Time.toMicroseconds(Stopwatch.check sw);
+          val _ = PolyML.print("Match_Loop took: " ^ (LargeInt.toString(t)));
+        in
+          res
+        end
+        (*match_loop fd ms*)
+    | (Choose_Next_BBox fd) =>
+        let
+          val sw = Stopwatch.start Stopwatch.new;
+          val res = choose_next_bbox fd ms;
+          val t = Time.toMicroseconds(Stopwatch.check sw);
+          val _ = PolyML.print("Choose_Next_BBox took: " ^ (LargeInt.toString(t)));
+        in
+          res
+        end
+        (*choose_next_bbox fd ms*)
 
   fun match_normalised_avoiding_tracking (avoid,track) pat tgt = let
     val data = (Future.new_future_data (SOME "match_norm"));
@@ -254,7 +282,7 @@ struct
     val ms = BGMatchState.init_and_schedule_concrete pat tgt
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track
-    val _ = PolyML.print("starting -1");
+    (*val _ = PolyML.print("starting -1");*)
     (*The parallel tree to use*)
     val par_tree = Par_Tree.new data;
     (*The root node*)
@@ -266,7 +294,7 @@ struct
   fun match_avoiding_tracking at pat tgt = let
     val pat' = G.normalise pat
     val tgt' = G.normalise tgt
-    val _ = PolyML.print("starting 0");
+    (*val _ = PolyML.print("starting 0");*)
   in match_normalised_avoiding_tracking at pat' tgt' end
 
   fun match_subgraph_normalised_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
@@ -281,7 +309,7 @@ struct
     val ms = BGMatchState.init_subgraph_and_schedule_concrete pat tgt tgt_verts
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track
-    val _ = PolyML.print("starting 1");
+    (*val _ = PolyML.print("starting 1");*)
     (*The parallel tree to use*)
     val par_tree = Par_Tree.new data;
     (*The root node*)
@@ -293,23 +321,23 @@ struct
   fun match_subgraph_avoiding_tracking at pat tgt = let
     val pat' = G.normalise pat
     val tgt' = G.normalise tgt
-    val _ = PolyML.print("starting 2");
+    (*val _ = PolyML.print("starting 2");*)
   in match_subgraph_normalised_avoiding_tracking at pat' tgt' end
 
   val match = let
-    val _ = PolyML.print("starting 3");in
+    (*val _ = PolyML.print("starting 3");*)in
     match_avoiding_tracking (V.NSet.empty, V.NSet.empty)
     end
   val match_subgraph = let
-    val _ = PolyML.print("starting 4");in
+    (*val _ = PolyML.print("starting 4");*)in
     match_subgraph_avoiding_tracking (V.NSet.empty, V.NSet.empty)
     end
   val match_normalised = let
-    val _ = PolyML.print("starting 5");in
+    (*val _ = PolyML.print("starting 5");*)in
     match_normalised_avoiding_tracking (V.NSet.empty, V.NSet.empty)
     end
   val match_subgraph_normalised = let
-    val _ = PolyML.print("starting 6");in
+    (*val _ = PolyML.print("starting 6");*)in
     match_subgraph_normalised_avoiding_tracking (V.NSet.empty, V.NSet.empty)
     end
 

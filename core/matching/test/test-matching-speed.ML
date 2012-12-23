@@ -125,7 +125,7 @@ local
     in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
   fun match_all_parallel_greedy g1 g2 = let
     val n = List.length (Seq.list_of (Greedy_Parallel_M.match g1 g2))
-    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
+    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
   
   (*Force the evaluation of all matching circles only, and return the results as a list*)
   fun match_all_circles_concrete g1 g2 = Seq.list_of (
@@ -491,10 +491,16 @@ in
       test_together (range_fixed_repeats (low,high) repeat) Graphs.circle_graph Printers.pair_printer circles_target match_all_circles_parallel_concrete match_all_circles_concrete)
       true (*Erase the contents of the result file for each test*)
     
-    (*Test the greedy matching algorithm! Random graphs against the fixed pattern graph*)
+    (*Test the greedy matching algorithm! Uses the rail graph*)
     fun test_with_rail_greedy_together (low,high) bare_wires repeat =
       wrap_test (fn() =>
       test_together (range_fixed_repeats (low,high) repeat) (add_bare_wires Graphs.pattern_graph3 (bare_wires,bare_wires)) Printers.pair_printer railtrack_target match_all_parallel_greedy match_all_greedy)
+      true
+      
+    (*Test the greedy matching algorithm on its own, with the rail graph*)
+    fun test_with_rail_greedy (low,high) bare_wires repeat =
+      wrap_test (fn () =>
+      test_against_generic (range_fixed_repeats (low,high) repeat) (add_bare_wires Graphs.pattern_graph3 (bare_wires,bare_wires)) Printers.numbers_printer railtrack_target match_all_parallel_greedy)
       true
       
     (*Some issues with the correctness of the matching algorithm have been found... This does a few checks...*)
@@ -506,6 +512,10 @@ in
     (*REMOVE*)
     fun test hardness = test_with_square_concrete_together_complete (hardness,hardness) 1
     fun test_parallel hardness = test_with_square_concrete_complete_parallel (hardness,hardness) 1
+    (*REMOVE*)
+    fun test_greedy_together (low,high) bare_wires = test_with_rail_greedy_together (low,high) bare_wires 1
+    fun test_greedy hardness bare_wires = test_with_rail_greedy (hardness,hardness) bare_wires 1
+    
     (*REMOVE*)
     val complete_target = complete_target
     (*REMOVE*)

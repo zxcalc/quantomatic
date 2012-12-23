@@ -8,70 +8,6 @@ functor MJB_SimpleInnerMatchSearchParallel(
   local
   (*For all of the future calls that I need!*)
   open MJB_Simple_Future;
-  
-  (*This is an implementation using difference lists!! This
-  results in faster append O(1). Laziness is not useful here, since the list
-  of child nodes must have been formulated by the function already.*)
-  structure Difference_List =
-  struct
-    (*The type of the difference list*)
-    datatype 'a DList = DList of ('a list -> 'a list)
-    
-    (*Has a pointer to the first cell and the last one
-    Stores the size of list to avoid having to destroy lists during append*)
-    type 'a difference_list = 'a DList
-    
-    (*Create a new empty linked list*)
-    val empty = DList (fn x => x)
-    
-    (*Attach an element to the front of a difference list*)
-    fun cons x (DList f) = DList (fn ls => x::(f ls))
-    
-    (*Attach an element to the end of the list*)
-    fun snoc (DList f) x = DList (fn ls => (f (x::ls)))
-    
-    (*Append one list to another. Both lists should be considered
-    modified and so not used individually again!*)
-    fun append (DList f) (DList g) = DList (f o g)
-    
-    (*Convert the contents of the difference list to a regular list*)
-    fun list_of (DList f) = f []
-    
-    (*Convert from a list of values to a difference list with the same values*)
-    fun of_list [] = empty
-      | of_list (x::xs) = cons x (of_list xs)
-        
-    (*Some local correctness tests*)
-    val _ = let
-      val ls = empty;
-      val _ = if ([]=(list_of ls)) then () else
-              raise ERROR "Difference list failure with empty";
-      val ls = cons 1 ls;
-      val _ = if ([1]=(list_of ls)) then () else
-              raise ERROR "Difference list failure with singleton";
-      val ls = cons 2 ls;
-      val _ = if ([2,1]=(list_of ls)) then () else
-              raise ERROR "Difference list failure with two";
-      val ls2 = cons 4 (cons 3 empty);
-      (*Remember that appending breaks the old lists*)
-      val new_ls = append ls ls2
-      val _ = if ([2,1,4,3]=(list_of new_ls)) then () else
-              raise ERROR "Difference list failure with append";
-              (*
-      fun myfunc 1 = [Par_Tree.Leaf 1,Par_Tree.Node 2,Par_Tree.Leaf 2,Par_Tree.Node 2,Par_Tree.Leaf 3]
-        | myfunc 2 = [Par_Tree.Node 3,Par_Tree.Node 3]
-        | myfunc _ = [];
-      val result = Seq.list_of (Par_Tree.compute_tree par_tree (Par_Tree.Node 1) myfunc);
-      val _ = if (result=[1,2,3]) then () else
-              raise ERROR "Par_Tree: failed empty node 4";*)
-      val res_ls = append (append (append (cons 1 empty) (append empty (append empty empty))) (append (cons 2 empty) (append empty (append empty empty)))) (cons 3 empty)
-      val _ = if ([1,2,3]=(list_of res_ls)) then () else
-              raise ERROR "Difference list failure with append 2";
-      in () end
-      
-    
-  end
-  
   in
   
   structure Log : LOG = Log(val init_level = 0);
@@ -223,14 +159,14 @@ functor MJB_SimpleInnerMatchSearchParallel(
   
   
   (*Analysis tools...*)
-  
+  (*
   val tryadd_wire_c = Unsynchronized.ref 0;
   val match_and_schedule_new_c = Unsynchronized.ref 0;
   val match_main_c = Unsynchronized.ref 0;
   val continue_matching_from_c = Unsynchronized.ref 0;
   val match_pending_c = Unsynchronized.ref 0;
   val match_nhd_c = Unsynchronized.ref 0;
-  
+  *)
   (* Try to recursively add wire to matching, starting with the given head
      vertex and edge. Return NONE on failure. *)
   fun tryadd_wire data lvl ms (vp,ep) (vt,et) = let
@@ -343,6 +279,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
               | NONE => []
       
   (*Counters for the histogram (showing the coarseness of nodes)*)
+  (*
   val c1_10 = Unsynchronized.ref 0;
   val c10_100 = Unsynchronized.ref 0;
   val c100_1000 = Unsynchronized.ref 0;
@@ -350,7 +287,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
   val c10000_100000 = Unsynchronized.ref 0;
   val c100000_1000000 = Unsynchronized.ref 0;
   val c1000000_ = Unsynchronized.ref 0;
-  
+  *)
   fun match_pending' data doomedf match_state = let
     (*val _ = (match_pending_c := (!match_pending_c) + 1; ());*)
     (*val _ = PolyML.print("Within match pending");*)
@@ -479,7 +416,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
     (*The dummy root node*)
     fun root ms = Par_Tree.Node (Root ms);
     
-    val max = 1000000;
+    (*val max = 1000000;*)
     val max_coarse = 50;
     val increase_coarse = 6;
     val start_coarse = 4;
@@ -534,18 +471,6 @@ functor MJB_SimpleInnerMatchSearchParallel(
           ans
         end*)
         map_tryadd_wire ms data lvl nvp nvt ep et
-      
-    (*A heuristic to make the apply_to_node function more coarse*)
-    fun apply_to_node_coarse 0 node = Difference_List.of_list (apply_to_node node)
-      | apply_to_node_coarse n node = 
-        let
-          val res = apply_to_node node;
-          fun map_apply [] = Difference_List.empty
-            | map_apply ((Par_Tree.Leaf l)::ns) = Difference_List.cons (Par_Tree.Leaf l) (map_apply ns)
-            | map_apply ((Par_Tree.Node nd)::ns) = Difference_List.append (apply_to_node_coarse (n-1) nd) (map_apply ns)
-        in
-          map_apply res
-        end
     (*
     fun apply r c n =
       let val _ = if ((!c)>=(!r)*24) then
@@ -556,9 +481,9 @@ functor MJB_SimpleInnerMatchSearchParallel(
     fun apply n = Difference_List.list_of (apply_to_node_coarse 8 n)*)
     (*The parallel tree to use!*)
     (*82426724 on 30 vertices. Best so far!*)
-    
+    val num_cores = Thread.numProcessors();
     fun apply r c n =
-      let val _ = if ((!c)>=(!r)*24) then
+      let val _ = if ((!c)>=(!r)*num_cores) then
                   (c:=0;if ((!r)<=max_coarse) then r:=(!r)+increase_coarse else ();()) else (c:=(!c+1))
       in
         (*let
@@ -576,8 +501,8 @@ functor MJB_SimpleInnerMatchSearchParallel(
         in
           ans
         end*)
-        Difference_List.list_of (apply_to_node_coarse (!r) n)
-      end
+        (Par_Tree.recur_node_function apply_to_node ((!r)+1)) n
+      end;
     val par_tree = Par_Tree.new data;
     val compactor = Compactor.new_dynamic (Time.fromMicroseconds 5000);
     val compactor = Compactor.set_estimated_number compactor (SOME 1);
