@@ -1,3 +1,4 @@
+(*THIS IS A TEST*)
 (* The inner matching loop *)
 (* see docs/matching_algo for details *)
 functor MJB_SimpleInnerMatchSearchParallel(
