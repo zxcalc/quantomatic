@@ -507,6 +507,7 @@ in
       
     (*REMOVE*)
     fun test hardness = test_with_square_concrete_together_complete (hardness,hardness) 1
+    fun test_parallel hardness = test_with_square_concrete_complete_parallel (hardness,hardness) 1
     (*REMOVE*)
     val complete_target = complete_target
     (*REMOVE*)

@@ -84,6 +84,7 @@ functor MJB_SimpleInnerMatchSearchParallel(
   structure Future = MJB_Simple_Future;
   structure Par_Seq = MJB_Safe_Parallel_Seq;
   structure Par_Tree = MJB_Par_Tree;
+  structure Compactor = MJB_Compactor;
   
   (*Log the future data*)
   fun log_future_data data lvl =
@@ -484,6 +485,12 @@ functor MJB_SimpleInnerMatchSearchParallel(
     
     (*The parallel tree to use!*)
     val par_tree = Par_Tree.new data;
+    (*
+    val compactor = Compactor.new_dynamic (Time.fromMicroseconds 100000);
+    val compactor = Compactor.set_estimated_number compactor (SOME 5);
+    val compactor = Compactor.prime compactor (SOME 3) false;
+    val par_tree = Par_Tree.set_compactor par_tree compactor;
+    val par_tree = Par_Tree.set_order_matters par_tree true;*)
   (* match all circles, then enter main matching routine *)
   (*BRANCH POINT*)
   in (*(TextIO.print("In");Par_Seq.sequential_seq_of (
