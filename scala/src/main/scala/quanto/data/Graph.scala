@@ -12,6 +12,8 @@ class DanglingEdgeException(edge: EName, endPoint: VName) extends
 Exception("Edge: " + edge + " has no endpoint: " + endPoint + " in graph")
 with GraphException
 
+case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName], predV: Set[VName])
+
 trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def data: G
   def verts: Map[VName,V]
@@ -32,7 +34,7 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
            source: PFun[EName,VName]       = this.source,
            target: PFun[EName,VName]       = this.target,
            bboxes: Map[BBName,B]           = this.bboxes,
-           inBBox: BinRel[VName,BBName]      = this.inBBox,
+           inBBox: BinRel[VName,BBName]    = this.inBBox,
            bboxParent: PFun[BBName,BBName] = this.bboxParent): This =
     factory(data,verts,edges,source,target,bboxes,inBBox,bboxParent)
 
@@ -137,6 +139,61 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
       bboxes.map(kv => kv._1 -> "%s::%s".format(inBBox.codf(kv._1), kv._2)),
       bboxParent.map(kv => "%s < %s".format(kv._1, kv._2))
     )
+  }
+
+  private def dftSuccessors[T](fromV: VName, predV: Set[VName], exploredV: Set[VName], exploredE: Set[EName])(base: T)
+                     (f: (T, EName, GraphSearchContext) => T): (T, Set[VName], Set[EName]) =
+  {
+    val nextEs = outEdges(fromV).filter(!exploredE.contains(_))
+
+    if (!nextEs.isEmpty) {
+      val e = nextEs.min
+      val nextV = target(e)
+      val context = GraphSearchContext(exploredV, exploredE, predV)
+      val (base1, exploredV1, exploredE1) =
+        dftSuccessors(nextV, predV + fromV, exploredV + nextV, exploredE + e)(f(base, e, context))(f)
+      dftSuccessors(fromV, predV, exploredV1, exploredE1)(base1)(f)
+    } else {
+      (base, exploredV, exploredE)
+    }
+  }
+
+  private def dftComponents[T](exploredV: Set[VName], exploredE: Set[EName])(base: T)
+                              (f: (T, EName, GraphSearchContext) => T) : T =
+  {
+    val nextVs = verts.keySet.filter(!exploredV.contains(_))
+
+    if (!nextVs.isEmpty) {
+      val v = nextVs.min
+      val (base1, exploredV1, exploredE1) = dftSuccessors(v, Set[VName](), exploredV + v, exploredE)(base)(f)
+      dftComponents[T](exploredV1, exploredE1)(base1)(f)
+    } else {
+      base
+    }
+  }
+
+  def dft[T](base: T)(f: (T, EName, GraphSearchContext) => T): T =
+    dftComponents(Set[VName](), Set[EName]())(base)(f)
+
+  def dagCopy: This = {
+    // make a copy with no edges
+    val noEdges = copy(
+      edges  = Map[EName,E](),
+      source = PFun[EName,VName](),
+      target = PFun[EName,VName]()
+    )
+
+    dft(noEdges) { (graph, e, context) =>
+      val s = source(e)
+      val t = target(e)
+
+      if (s == t) graph // throw away self-loops
+      else {
+        // reverse back-edges to break cycles
+        graph.addEdge(e, edges(e),
+          if (!context.predV.contains(t)) (s,t) else (t,s))
+      }
+    }
   }
 }
 

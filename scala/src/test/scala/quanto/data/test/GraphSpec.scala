@@ -152,4 +152,31 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(jsonGraph.target("e2") === VName("n1"))
     assert(jsonGraph.inBBox.codf("bb0") === Set(VName("n0"), VName("n1"), VName("w0")))
   }
+
+  behavior of "Depth-first traversal"
+
+  val dftGraph = QGraph(Json.parse(
+    """
+      |{
+      |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
+      |  "dir_edges": {
+      |    "e0": {"src": "n0", "tgt": "n1"},
+      |    "e1": {"src": "n2", "tgt": "n0"},
+      |    "e2": {"src": "n1", "tgt": "n2"},
+      |    "e3": {"src": "n0", "tgt": "n3"},
+      |    "e4": {"src": "n4", "tgt": "n5"},
+      |    "e5": {"src": "n5", "tgt": "n5"}
+      |  }
+      |}
+    """.stripMargin))
+
+  it should "traverse all edges" in {
+    val eSet = dftGraph.dft(Set[EName]()) { (es, e, _) => es + e }
+    assert(eSet === Set[EName]("e0", "e1", "e2", "e3", "e4", "e5"))
+  }
+
+  it should "traverse edges in the correct order" in {
+    val eList = dftGraph.dft(List[EName]()) { (es, e, _) => e :: es }.reverse
+    assert(eList === List[EName]("e0", "e2", "e1", "e3", "e4", "e5"))
+  }
 }
