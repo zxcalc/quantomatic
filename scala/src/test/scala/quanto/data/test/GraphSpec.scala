@@ -67,12 +67,19 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     }
   }
 
+  it should "be equal to its copy" in {
+    val g1 = g.copy()
+    assert(g1 === g)
+  }
+
   behavior of "Another graph"
+
+  var otherG : Graph[Unit,VData,Boolean,Unit] = _
 
   it can "be constructed in block form" in {
     // implicit conversions are used to make strings into names, where
     // necessary.
-    val g1 = (new Graph[Unit,VData,Boolean,Unit](())
+    otherG = (new Graph[Unit,VData,Boolean,Unit](())
       addVertex ("v0", NodeV())
       addVertex ("v1", WireV())
       addVertex ("v2", NodeV())
@@ -84,7 +91,11 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       addBBox   ("bb1", (), Set("v2"), parent = Some("bb0"))
     )
 
-    println(g1.toString)
+    println(otherG.toString)
+  }
+
+  it should "not be equal to the first graph" in {
+    assert(g != otherG)
   }
 
   behavior of "A QGraph"
@@ -106,31 +117,38 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(g1.inBBox.codf("bb0") === Set(VName("v0"), VName("v1")))
   }
 
+  val jsonString =
+    """
+      |{
+      |  "wire_vertices": ["w0", "w1", "w2"],
+      |  "node_vertices": {
+      |    "n0":{"annotation": {"coord": [1,2]}},
+      |    "n1":{}
+      |  },
+      |  "dir_edges": {
+      |    "e0": {"src": "w0", "tgt": "w1"},
+      |    "e1": {"src": "w1", "tgt": "w2"}
+      |  },
+      |  "undir_edges": {
+      |    "e2": {"src": "n0", "tgt": "n1"}
+      |  },
+      |  "bang_boxes": {
+      |    "bb0": {"contains": ["w0", "n0", "n1"]},
+      |    "bb1": {"contains": ["n0", "n1"], "parent": "bb0"},
+      |    "bb2": {}
+      |  }
+      |}
+    """.stripMargin
+
   var jsonGraph: QGraph = _
 
   it can "be constructed from JSON" in {
-    jsonGraph = QGraph(Json.parse(
-      """
-        |{
-        |  "wire_vertices": ["w0", "w1", "w2"],
-        |  "node_vertices": {
-        |    "n0":{"annotation": {"coord": [1,2]}},
-        |    "n1":{}
-        |  },
-        |  "dir_edges": {
-        |    "e0": {"src": "w0", "tgt": "w1"},
-        |    "e1": {"src": "w1", "tgt": "w2"}
-        |  },
-        |  "undir_edges": {
-        |    "e2": {"src": "n0", "tgt": "n1"}
-        |  },
-        |  "bang_boxes": {
-        |    "bb0": {"contains": ["w0", "n0", "n1"]},
-        |    "bb1": {"contains": ["n0", "n1"], "parent": "bb0"},
-        |    "bb2": {}
-        |  }
-        |}
-      """.stripMargin))
+    jsonGraph = QGraph(Json.parse(jsonString))
+  }
+
+  it should "be equal to a graph from the same JSON" in {
+    val jsonGraph1 = QGraph(Json.parse(jsonString))
+    assert(jsonGraph === jsonGraph1)
   }
 
   it should "be the expected graph" in {
@@ -178,5 +196,23 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   it should "traverse edges in the correct order" in {
     val eList = dftGraph.dft(List[EName]()) { (es, e, _) => e :: es }.reverse
     assert(eList === List[EName]("e0", "e2", "e1", "e3", "e4", "e5"))
+  }
+
+  val dagGraph = QGraph(Json.parse(
+    """
+      |{
+      |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
+      |  "dir_edges": {
+      |    "e0": {"src": "n0", "tgt": "n1"},
+      |    "e1": {"tgt": "n2", "src": "n0"},
+      |    "e2": {"src": "n1", "tgt": "n2"},
+      |    "e3": {"src": "n0", "tgt": "n3"},
+      |    "e4": {"src": "n4", "tgt": "n5"}
+      |  }
+      |}
+    """.stripMargin))
+
+  it should "translate into a dag correctly" in {
+    assert(dftGraph.dagCopy === dagGraph)
   }
 }

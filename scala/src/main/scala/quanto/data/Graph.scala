@@ -14,7 +14,7 @@ with GraphException
 
 case class GraphSearchContext(exploredV: Set[VName], exploredE: Set[EName], predV: Set[VName])
 
-trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
+abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def data: G
   def verts: Map[VName,V]
   def edges: Map[EName,E]
@@ -23,6 +23,32 @@ trait GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def bboxes: Map[BBName,B]
   def inBBox: BinRel[VName,BBName]
   def bboxParent: PFun[BBName,BBName]
+
+  override def hashCode = {
+    var h = data.hashCode
+    h = 41 * h + verts.hashCode
+    h = 41 * h + edges.hashCode
+    h = 41 * h + source.hashCode
+    h = 41 * h + target.hashCode
+    h = 41 * h + bboxes.hashCode
+    h = 41 * h + inBBox.hashCode
+    h = 41 * h + bboxParent.hashCode
+    h
+  }
+
+  def canEqual(other: Any) = other.isInstanceOf[GraphLike[_,_,_,_,_]]
+  override def equals(other: Any) = other match {
+    case that: GraphLike[_,_,_,_,_] => (that canEqual this) &&
+      verts == that.verts &&
+      edges == that.edges &&
+      source == that.source &&
+      target == that.target &&
+      bboxes == that.bboxes &&
+      inBBox == that.inBBox &&
+      bboxParent == that.bboxParent
+    case _ => false
+  }
+
 
   protected def factory :
     ((G,Map[VName,V],Map[EName,E],PFun[EName,VName],PFun[EName,VName],
