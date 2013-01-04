@@ -20,7 +20,7 @@ trait ConstraintSolver {
 
   private var freshVar = 0
 
-  class IntVar(name: String, min: Int, max: Int)
+  protected class IntVar(name: String, min: Int, max: Int)
     extends JaCoP.core.IntVar(store, name, min, max) {
     def this(min: Int, max: Int) = {
       this("_$" + freshVar, min, max)
@@ -104,7 +104,7 @@ trait ConstraintSolver {
     def #>=(that: Int) = new XgteqC(this, that)
   }
 
-  object IntVar {
+  protected object IntVar {
     def apply(name: String, min: Int, max: Int) = new IntVar(name, min, max)
     def apply(name: String) = new IntVar(name)
     def apply(min: Int, max: Int) = new IntVar(min, max)
@@ -112,7 +112,7 @@ trait ConstraintSolver {
   }
 
 
-  def satisfy(vars: Array[IntVar]): Boolean = {
+  protected def satisfy(vars: Array[IntVar]): Boolean = {
     imposeAllConstraints()
     val label = new DepthFirstSearch[IntVar]
     val select = new SimpleSelect(vars, new SmallestDomain, new IndomainMin)
@@ -120,5 +120,15 @@ trait ConstraintSolver {
 
     if (timeOutValue > 0) label.setTimeOut(timeOutValue)
     label.labeling(store, select)
+  }
+
+  protected def minimize(vars: Array[IntVar], cost: IntVar): Boolean = {
+    imposeAllConstraints()
+    val label = new DepthFirstSearch[IntVar]
+    val select = new SimpleSelect(vars, new SmallestDomain, new IndomainMin)
+    label.setPrintInfo(false)
+
+    if (timeOutValue > 0) label.setTimeOut(timeOutValue)
+    label.labeling(store, select, cost)
   }
 }
