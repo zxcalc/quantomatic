@@ -111,21 +111,26 @@ trait ConstraintSolver {
     def apply() = new IntVar()
   }
 
+  protected def sum(vars: TraversableOnce[IntVar]): IntVar = {
+    val fresh = new IntVar()
+    constraints += new Sum(vars.toArray[JaCoP.core.IntVar], fresh)
+    fresh
+  }
 
-  protected def satisfy(vars: Array[IntVar]): Boolean = {
+  protected def satisfy(vars: TraversableOnce[IntVar]): Boolean = {
     imposeAllConstraints()
     val label = new DepthFirstSearch[IntVar]
-    val select = new SimpleSelect(vars, new SmallestDomain, new IndomainMin)
+    val select = new SimpleSelect(vars.toArray, new SmallestDomain, new IndomainMin)
     label.setPrintInfo(false)
 
     if (timeOutValue > 0) label.setTimeOut(timeOutValue)
     label.labeling(store, select)
   }
 
-  protected def minimize(vars: Array[IntVar], cost: IntVar): Boolean = {
+  protected def minimize(vars: TraversableOnce[IntVar], cost: IntVar): Boolean = {
     imposeAllConstraints()
     val label = new DepthFirstSearch[IntVar]
-    val select = new SimpleSelect(vars, new SmallestDomain, new IndomainMin)
+    val select = new SimpleSelect(vars.toArray, new SmallestDomain, new IndomainMin)
     label.setPrintInfo(false)
 
     if (timeOutValue > 0) label.setTimeOut(timeOutValue)
