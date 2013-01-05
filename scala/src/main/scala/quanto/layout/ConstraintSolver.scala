@@ -135,8 +135,8 @@ trait ConstraintSolver {
   protected def minimize(vars: TraversableOnce[IntVar], cost: IntVar): Boolean = {
     imposeAllConstraints()
 
-    val credits = 8
-    val backtracks = 3
+    val credits = MaxInt
+    val backtracks = 4
     val maxDepth = 1000
     val credit = new CreditCalculator[IntVar](credits,backtracks,maxDepth)
 

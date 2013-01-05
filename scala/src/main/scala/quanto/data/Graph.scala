@@ -71,6 +71,9 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   // convenience methods
   def inEdges(vn: VName) = target.codf(vn)
   def outEdges(vn: VName) = source.codf(vn)
+  def predVerts(vn: VName) = inEdges(vn).map(source(_))
+  def succVerts(vn: VName) = outEdges(vn).map(target(_))
+
   def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
 
   def addVertex(vn: VName, data: V) = {

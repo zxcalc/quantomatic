@@ -6,29 +6,33 @@ import quanto.util.json.Json
 class LayoutSpec extends FlatSpec {
   behavior of "Dynadag layout"
 
-  var dagLayout: RankLayout = _
+  var rankLayout: RankLayout = _
 
   it should "initialise" in {
-    dagLayout = new RankLayout
+    rankLayout = new RankLayout
   }
 
-  val randomGraph = QGraph.random(40,80)
+  var randomGraph: QGraph = _
 
   it should "layout a graph" in {
-    dagLayout.layout(randomGraph)
+    randomGraph = rankLayout.layout(QGraph.random(40,80))
   }
 
   it should "yield ranks for all verts" in {
-    for ((v,_) <- randomGraph.vdata) {
-      println("rank(" + v + ") = " + dagLayout.rank(v))
+    randomGraph.verts.foreach(v => rankLayout.rank(v))
+
+    val totalDist = randomGraph.edges.foldLeft(0) { (x, e) =>
+      x + (rankLayout.rank(randomGraph.target(e)) - rankLayout.rank(randomGraph.source(e)))
     }
+
+    println("average distance: " + (totalDist.toDouble / randomGraph.edges.size))
   }
 
   it should "provide a strict ranking for associated dag" in {
     val dag = randomGraph.dagCopy
 
     for ((e,_) <- dag.edata) {
-      assert(dagLayout.rank(dag.source(e)) < dagLayout.rank(dag.target(e)))
+      assert(rankLayout.rank(dag.source(e)) < rankLayout.rank(dag.target(e)))
     }
   }
 }

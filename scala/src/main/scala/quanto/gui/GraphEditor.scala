@@ -15,9 +15,10 @@ object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
   // populate with a random graph, for testing
-  var randomGraph = QGraph.random(20,40)
+  var randomGraph = QGraph.random(15,20)
   val layoutEngine = new RankLayout
-  randomGraph = layoutEngine.layout(randomGraph)
+  layoutEngine.layout(randomGraph)
+  randomGraph = layoutEngine.modelGraph
 
   // GUI components
   val UndoStack_ = new UndoStack
@@ -73,7 +74,7 @@ object GraphEditor extends SimpleSwingApplication {
   def top = new MainFrame {
     title = "Quanto Graph Editor"
     contents = ScrollPane_
-    size = new Dimension(500,500)
+    size = new Dimension(800,800)
 
     menuBar = new MenuBar {
       contents += (FileMenu_, EditMenu_)
