@@ -8,7 +8,7 @@ import JaCoP.search._
 
 trait ConstraintSolver {
   var timeOutValue = 0
-  private val store = new Store
+  private var store = new Store
   val constraints = new collection.mutable.ListBuffer[Constraint]
   val MinInt = IntDomain.MinInt
   val MaxInt = IntDomain.MaxInt
@@ -19,6 +19,11 @@ trait ConstraintSolver {
   }
 
   private var freshVar = 0
+
+  protected def resetSolver() {
+    store = new Store
+    constraints.clear()
+  }
 
   protected class IntVar(name: String, min: Int, max: Int)
     extends JaCoP.core.IntVar(store, name, min, max) {
@@ -129,11 +134,20 @@ trait ConstraintSolver {
 
   protected def minimize(vars: TraversableOnce[IntVar], cost: IntVar): Boolean = {
     imposeAllConstraints()
-    val label = new DepthFirstSearch[IntVar]
-    val select = new SimpleSelect(vars.toArray, new SmallestDomain, new IndomainMin)
-    label.setPrintInfo(false)
 
-    if (timeOutValue > 0) label.setTimeOut(timeOutValue)
-    label.labeling(store, select, cost)
+    val credits = 8
+    val backtracks = 3
+    val maxDepth = 1000
+    val credit = new CreditCalculator[IntVar](credits,backtracks,maxDepth)
+
+    val search = new DepthFirstSearch[IntVar]
+    search.setConsistencyListener(credit)
+    search.setExitChildListener(credit)
+    search.setTimeOutListener(credit)
+    val select = new SimpleSelect(vars.toArray, new SmallestDomain, new IndomainMin)
+    search.setPrintInfo(false)
+
+    if (timeOutValue > 0) search.setTimeOut(timeOutValue)
+    search.labeling(store, select, cost)
   }
 }

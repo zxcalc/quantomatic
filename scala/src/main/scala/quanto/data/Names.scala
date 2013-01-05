@@ -3,34 +3,41 @@ import scala.collection._
 import quanto.util.StringNamer
 
 
-abstract class Name[N <: Name[N]] extends Ordered[N] {
-  def succ: N
+abstract class Name[This <: Name[This]] extends Ordered[This] {
+  def succ: This
 }
 
-abstract class StrName[N <: StrName[N]] extends Name[N] {
+
+abstract class StrName[This <: StrName[This]] extends Name[This] {
   val s: String
-  def compare(that: N) = s compare that.s
-  def succStr : String = {
-    val last = s.charAt(s.length - 1)
-    if ('0' <= last && last < '9')
-      s.substring(0, s.length - 1) + ((last + 1) toChar)
-    else s + "0"
+  protected val mk: String => This
+
+  val (prefix, suffix) = {
+    var intIndex = s.length
+    while (intIndex > 0 && s.charAt(intIndex - 1) >= '0' && s.charAt(intIndex - 1) <= '9') intIndex -= 1
+
+    // preserve leading zeros
+    while (intIndex < s.length - 1 && s.charAt(intIndex) == '0') intIndex += 1
+
+    (
+      s.substring(0, intIndex),
+      if (intIndex == s.length) -1 else s.substring(intIndex, s.length).toInt
+    )
   }
+
+  def compare(that: This) = if (prefix < that.prefix) -1
+                            else if (prefix > that.prefix) 1
+                            else suffix compare that.suffix
+
+  def succ: This = mk(prefix + (suffix + 1))
+
   override def toString = s
 }
 
-case class GName(s: String) extends StrName[GName] {
-  def succ = GName(succStr)
-}
-case class VName(s: String) extends StrName[VName] {
-  def succ = VName(succStr)
-}
-case class EName(s: String) extends StrName[EName] {
-  def succ = EName(succStr)
-}
-case class BBName(s: String) extends StrName[BBName] {
-  def succ = BBName(succStr)
-}
+case class GName(s: String) extends StrName[GName] { protected val mk = GName(_) }
+case class VName(s: String) extends StrName[VName] { protected val mk = VName(_) }
+case class EName(s: String) extends StrName[EName] { protected val mk = EName(_) }
+case class BBName(s: String) extends StrName[BBName] { protected val mk = BBName(_) }
 
 class DuplicateNameException[N <: Name[N]](ty: String, val name: N)
   extends Exception("Duplicate " + ty + " name: '" + name + "'")

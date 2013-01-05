@@ -2,32 +2,22 @@ package quanto.gui
 
 import graphview._
 import swing._
-import event.{Key, UIElementResized, UIElementMoved}
+import event.{Key, UIElementResized}
 import quanto.data._
+import quanto.layout._
 import Names._
 import javax.swing.KeyStroke
-import com.sun.xml.internal.messaging.saaj.util.RejectDoctypeSaxFilter
 import java.awt.event.KeyEvent
+
 
 
 object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
   // populate with a random graph, for testing
-  val nverts = 4
-  val nedges = 10
-  val rand = new util.Random
-  var randomGraph = QGraph()
-  for (i <- 1 to nverts) {
-    val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
-    randomGraph = randomGraph.newVertex(NodeV(p))
-  }
-  val varray = randomGraph.verts.keys.toArray
-  for(j <- 1 to nedges) {
-    val s = varray(rand.nextInt(varray.size))
-    val t = varray(rand.nextInt(varray.size))
-    randomGraph = randomGraph.newEdge(DirEdge(), (s,t))
-  }
+  var randomGraph = QGraph.random(20,40)
+  val layoutEngine = new RankLayout
+  randomGraph = layoutEngine.layout(randomGraph)
 
   // GUI components
   val UndoStack_ = new UndoStack

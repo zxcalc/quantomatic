@@ -48,9 +48,9 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   }
 
   it should "contain 2 vertices, edges, and bboxes" in {
-    assert(g.verts.size === 2)
-    assert(g.edges.size === 2)
-    assert(g.bboxes.size === 2)
+    assert(g.vdata.size === 2)
+    assert(g.edata.size === 2)
+    assert(g.bbdata.size === 2)
   }
 
   it should "throw dulicate name exceptions" in {
@@ -152,16 +152,16 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   }
 
   it should "be the expected graph" in {
-    assert(jsonGraph.verts("w0").isInstanceOf[WireV])
-    assert(jsonGraph.verts("w1").isInstanceOf[WireV])
-    assert(jsonGraph.verts("w2").isInstanceOf[WireV])
-    assert(jsonGraph.verts("n0").isInstanceOf[NodeV])
-    assert(jsonGraph.verts("n1").isInstanceOf[NodeV])
-    assert(jsonGraph.verts("n0").coord === (1.0, 2.0))
-    assert(jsonGraph.verts("n1").coord === (0.0, 0.0))
-    assert(jsonGraph.edges("e0").directed === true)
-    assert(jsonGraph.edges("e1").directed === true)
-    assert(jsonGraph.edges("e2").directed === false)
+    assert(jsonGraph.vdata("w0").isInstanceOf[WireV])
+    assert(jsonGraph.vdata("w1").isInstanceOf[WireV])
+    assert(jsonGraph.vdata("w2").isInstanceOf[WireV])
+    assert(jsonGraph.vdata("n0").isInstanceOf[NodeV])
+    assert(jsonGraph.vdata("n1").isInstanceOf[NodeV])
+    assert(jsonGraph.vdata("n0").coord === (1.0, 2.0))
+    assert(jsonGraph.vdata("n1").coord === (0.0, 0.0))
+    assert(jsonGraph.edata("e0").directed === true)
+    assert(jsonGraph.edata("e1").directed === true)
+    assert(jsonGraph.edata("e2").directed === false)
     assert(jsonGraph.source("e0") === VName("w0"))
     assert(jsonGraph.target("e0") === VName("w1"))
     assert(jsonGraph.source("e1") === VName("w1"))
@@ -193,10 +193,12 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(eSet === Set[EName]("e0", "e1", "e2", "e3", "e4", "e5"))
   }
 
-  it should "traverse edges in the correct order" in {
-    val eList = dftGraph.dft(List[EName]()) { (es, e, _) => e :: es }.reverse
-    assert(eList === List[EName]("e0", "e2", "e1", "e3", "e4", "e5"))
-  }
+//  it should "traverse edges in the correct order" in {
+//    val eList = dftGraph.dft(List[EName]()) { (es, e, _) => e :: es }.reverse
+//    assert(eList === List[EName]("e0", "e2", "e1", "e3", "e4", "e5"))
+//  }
+
+  behavior of "Dag copy"
 
   val dagGraph = QGraph(Json.parse(
     """
@@ -214,5 +216,22 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   it should "translate into a dag correctly" in {
     assert(dftGraph.dagCopy === dagGraph)
+  }
+
+  it should "leave dags unchanged" in {
+    val dag = QGraph.randomDag(50,50)
+    assert(dag.dagCopy === dag)
+  }
+
+  def traverseFrom(graph: QGraph, v: VName, seen: Set[VName]) {
+    if (seen contains v) fail("directed cycle detected")
+    for (e <- graph.outEdges(v)) traverseFrom(graph, graph.target(e), seen + v)
+  }
+
+  it should "contain no directed cycles" in {
+    val graph = QGraph.random(100,100)
+    val dag = graph.dagCopy
+
+    for ((v,_) <- graph.vdata) traverseFrom(dag, v, Set[VName]())
   }
 }

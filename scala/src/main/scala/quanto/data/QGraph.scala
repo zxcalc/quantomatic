@@ -2,6 +2,7 @@ package quanto.data
 
 import Names._
 import quanto.util.json._
+import math.{max,min,sqrt}
 import JsonValues._
 
 class QGraphJsonException(message: String, cause: Throwable = null)
@@ -9,11 +10,11 @@ extends Exception(message, cause)
 
 case class QGraph(
   data: GData                     = GData(),
-  verts: Map[VName,VData]         = Map[VName,VData](),
-  edges: Map[EName,EData]         = Map[EName,EData](),
+  vdata: Map[VName,VData]         = Map[VName,VData](),
+  edata: Map[EName,EData]         = Map[EName,EData](),
   source: PFun[EName,VName]       = PFun[EName,VName](),
   target: PFun[EName,VName]       = PFun[EName,VName](),
-  bboxes: Map[BBName,BBData]      = Map[BBName,BBData](),
+  bbdata: Map[BBName,BBData]      = Map[BBName,BBData](),
   inBBox: BinRel[VName,BBName]    = BinRel[VName,BBName](),
   bboxParent: PFun[BBName,BBName] = PFun[BBName,BBName]())
 extends GraphLike[GData,VData,EData,BBData,QGraph]
@@ -66,4 +67,45 @@ object QGraph {
       val annotation = json ?# "annotation"
       QGraph(GData(data, annotation))
     })
+
+  def random(nverts: Int, nedges: Int) = {
+    val rand = new util.Random
+    var randomGraph = QGraph()
+    for (i <- 1 to nverts) {
+      val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
+      randomGraph = randomGraph.newVertex(NodeV(p))
+    }
+    val varray = randomGraph.vdata.keys.toArray
+    for(j <- 1 to nedges) {
+      val s = varray(rand.nextInt(varray.size))
+      val t = varray(rand.nextInt(varray.size))
+      randomGraph = randomGraph.newEdge(DirEdge(), (s,t))
+    }
+
+    randomGraph
+  }
+
+  def randomDag(nverts: Int, nedges: Int) = {
+    val rand = new util.Random
+    var randomGraph = QGraph()
+    for (i <- 1 to nverts) {
+      val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
+      randomGraph = randomGraph.newVertex(NodeV(p))
+    }
+    val varray = randomGraph.vdata.keys.toArray
+
+    // must have at least two verts to add edges since no self-loops allowed
+    if (nverts > 1)
+      for(j <- 1 to nedges) {
+        val x = rand.nextInt(varray.size)
+        val y = rand.nextInt(varray.size - 1)
+        val s = varray(x)
+        val t = varray(if (y >= x) y+1 else y)
+        randomGraph = randomGraph.newEdge(DirEdge(),
+          if (s <= t) (s,t) else (t,s)
+        )
+      }
+
+    randomGraph
+  }
 }

@@ -20,7 +20,7 @@ trait VertexDisplayData {
   // returns the contact point at the given angle, in graph coordinates
   protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double) = {
     // TODO: replace this with proper boundary detection
-    val c = graph.verts(vn).coord
+    val c = graph.vdata(vn).coord
 
     vertexDisplay(vn).shape match {
       case _: Ellipse2D => (c._1 + GraphView.NodeRadius * cos(angle), c._2 + GraphView.NodeRadius * sin(angle))
@@ -44,7 +44,7 @@ trait VertexDisplayData {
     val trNodeRadius = trans scaleToScreen GraphView.NodeRadius
     val trWireWidth = 0.707 * (trans scaleToScreen GraphView.WireRadius)
 
-    for ((v,data) <- graph.verts if !vertexDisplay.contains(v)) {
+    for ((v,data) <- graph.vdata if !vertexDisplay.contains(v)) {
       val (x,y) = trans toScreen data.coord
 
       vertexDisplay(v) = data match {

@@ -105,11 +105,11 @@ with VertexDisplayData
 
   def resizeViewToFit() {
     // top left and bottom right of bounds, in screen coordinates
-    val graphTopLeft = graph.verts.foldLeft(0.0,0.0) { (c,v) =>
+    val graphTopLeft = graph.vdata.foldLeft(0.0,0.0) { (c,v) =>
       (min(c._1, v._2.coord._1), max(c._2, v._2.coord._2))
     } match {case (x,y) => trans toScreen (x - 1.0, y + 1.0)}
 
-    val graphBottomRight = graph.verts.foldLeft((0.0,0.0)) { (c,v) =>
+    val graphBottomRight = graph.vdata.foldLeft((0.0,0.0)) { (c,v) =>
       (max(c._1, v._2.coord._1), min(c._2, v._2.coord._2))
     } match {case (x,y) => trans toScreen (x + 1.0, y - 1.0)}
 
