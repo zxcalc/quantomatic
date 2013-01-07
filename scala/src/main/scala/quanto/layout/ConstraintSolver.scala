@@ -95,6 +95,14 @@ trait ConstraintSolver {
       fresh
     }
 
+    def distanceTo(that: JaCoP.core.IntVar) = {
+      val fresh = new IntVar()
+      constraints += new Distance(this, that, fresh)
+      fresh
+    }
+
+    def abs = distanceTo(IntVar.const(0))
+
     def #=(that: JaCoP.core.IntVar) = new XeqY(this, that)
     def #=(that: Int) = new XeqC(this, that)
     def #!=(that: JaCoP.core.IntVar) = new XneqY(this, that)
@@ -114,6 +122,7 @@ trait ConstraintSolver {
     def apply(name: String) = new IntVar(name)
     def apply(min: Int, max: Int) = new IntVar(min, max)
     def apply() = new IntVar()
+    def const(i: Int) = new IntVar(i,i)
   }
 
   protected def sum(vars: TraversableOnce[IntVar]): IntVar = {
@@ -136,15 +145,15 @@ trait ConstraintSolver {
     imposeAllConstraints()
 
     val credits = MaxInt
-    val backtracks = 4
-    val maxDepth = 1000
+    val backtracks = 400
+    val maxDepth = 2000
     val credit = new CreditCalculator[IntVar](credits,backtracks,maxDepth)
 
     val search = new DepthFirstSearch[IntVar]
     search.setConsistencyListener(credit)
     search.setExitChildListener(credit)
     search.setTimeOutListener(credit)
-    val select = new SimpleSelect(vars.toArray, new SmallestDomain, new IndomainMin)
+    val select = new SimpleSelect(vars.toArray, new SmallestDomain, new IndomainMedian)
     search.setPrintInfo(false)
 
     if (timeOutValue > 0) search.setTimeOut(timeOutValue)

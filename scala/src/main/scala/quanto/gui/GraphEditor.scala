@@ -15,7 +15,7 @@ object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
   // populate with a random graph, for testing
-  var randomGraph = QGraph.random(15,20)
+  var randomGraph = QGraph.random(5,10)
   val layoutEngine = new RankLayout
   layoutEngine.layout(randomGraph)
   randomGraph = layoutEngine.modelGraph
