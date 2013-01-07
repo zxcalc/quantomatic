@@ -270,6 +270,21 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
       }
     }
   }
+
+  def simpleCopy: This = {
+    var g = copy(
+      edata  = Map[EName,E](),
+      source = PFun[EName,VName](),
+      target = PFun[EName,VName]()
+    )
+    for (v <- verts; w <- verts) {
+      outEdges(v).find(target(_) == w) match {
+        case Some(e) => g = g.addEdge(e, edata(e), (v,w))
+      }
+    }
+
+    g
+  }
 }
 
 class Graph[G,V,E,B](

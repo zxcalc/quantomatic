@@ -23,25 +23,51 @@ class RankLayout extends GraphLayout with ConstraintSolver {
   def maxRank: Int = rankMap.cod.max
   def maxRankSize: Int = rankMap.codf.values.map(_.size).max
 
-//  private def distMap(v: VName, direction: Int,
-//                      mp: Map[VName, Int]=Map(v->0),
-//                      prev: Set[VName]=Set(),
-//                      dist: Int=1): Map[VName, Int] = {
-//    val next = if (direction == -1) prev.map(modelGraph.predVerts(_)).reduce(_ ++ _)
-//               else prev.map(modelGraph.succVerts(_)).reduce(_ ++ _)
-//    distMap(v, direction, next.foldLeft(mp) { (m,v) => m + (v -> dist) }, next, dist + 1)
-//  }
-//
-//  private def edgeRankCost(e: EName) = {
-//    val predMap = distMap(modelGraph.source(e), -1)
-//    val succMap = distMap(modelGraph.target(e), 1)
-//    modelGraph.edges.fold(0) { (w, e) =>
-//      w + ((predMap.get(modelGraph.source(e)), succMap.get(modelGraph.target(e))) match {
-//        case (Some(d1), Some(d2)) => 1 + d1 + d2 - minLength(e)
-//        case _ => 0
-//      })
-//    }
-//  }
+  private def distMap(v: VName, direction: Int,
+                      mp: Map[VName, Int]=Map(v->0),
+                      prev: Set[VName]=Set(),
+                      dist: Int=1): Map[VName, Int] = {
+    val next = if (direction == -1) prev.map(modelGraph.predVerts(_)).reduce(_ ++ _)
+               else prev.map(modelGraph.succVerts(_)).reduce(_ ++ _)
+    distMap(v, direction, next.foldLeft(mp) { (m,v) => m + (v -> dist) }, next, dist + 1)
+  }
+
+  private def edgeRankCost(e: EName) = {
+    val predMap = distMap(modelGraph.source(e), -1)
+    val succMap = distMap(modelGraph.target(e), 1)
+    modelGraph.edges.foldLeft(0) { (w, e) =>
+      w + ((predMap.get(modelGraph.source(e)), succMap.get(modelGraph.target(e))) match {
+        case (Some(d1), Some(d2)) => 1 + d1 + d2 - minLength(e)
+        case _ => 0
+      })
+    }
+  }
+
+  private def feasibleTree(): QGraph = {
+    val sources = modelGraph.verts.filter(v => modelGraph.inEdges(v).isEmpty)
+    val sinks =   modelGraph.verts.filter(v => modelGraph.inEdges(v).isEmpty)
+    val mids =    modelGraph.verts.filter(v => !modelGraph.inEdges(v).isEmpty && !modelGraph.outEdges(v).isEmpty)
+
+    val net = new NetworkBuilder
+    var nodeMap = Map[VName,simplex.Node]()
+    nodeMap = sources.foldLeft(nodeMap) { (m,v) => m + (v -> net.addNode(v.toString,sinks.size)) }
+    nodeMap = sinks.foldLeft(nodeMap) { (m,v) => m + (v -> net.addNode(v.toString,-sources.size)) }
+    nodeMap = mids.foldLeft(nodeMap) { (m,v) => m + (v -> net.addNode(v.toString,0)) }
+
+    val arc = modelGraph.edges.fold(Map[EName,IntVar]()) { (m,e) =>
+      val ev = IntVar("flow_" + e, 0, MaxInt)
+      net.addArc(nodeMap(modelGraph.source(e)), nodeMap(modelGraph.target(e)), ev)
+      m + (e -> ev)
+    }
+
+    val cost = IntVar()
+    net.setCostVariable(cost)
+
+    constraints += new NetworkFlow(net)
+    minimize(arc.values, cost)
+
+    modelGraph
+  }
 
   private def orderByMedians(iteration: Int) {
     val (rseq, offset) = if (iteration % 2 == 0) (1 to maxRank, -1) else ((maxRank-1) to 0, 1)
@@ -108,80 +134,79 @@ class RankLayout extends GraphLayout with ConstraintSolver {
       constraints += { rankVars(modelGraph.target(e)) #>= (rankVars(modelGraph.source(e)) + minLength(graph, e)) }
     }
 
-//    val net = new NetworkBuilder
-//    val nodeMap = modelGraph.verts.fold(Map[VName,simplex.Node]) { (m,v) => m + (v -> net.addNode(v,0)) }
+
+    val tree = feasibleTree()
 
 
 
-    minimize(rankVars.values, sum(weights))
-    rankMap = rankVars.foldLeft(PFun[VName,Int]()) { case (pf, (k,vr)) => pf + (k -> vr.value) }
+//    posMap = Map[VName,Int]()
+//    for (vset <- rankMap.codf.values; (v,i) <- vset.view.zipWithIndex) { posMap += v -> i }
+//
+//    // update model graph to include virtual vertices at intermediate ranks
+//    for (e <- modelGraph.edges) {
+//      val vChain = (for (i <- (rankMap(modelGraph.source(e)) + 1) to (rankMap(modelGraph.target(e)) - 1)) yield {
+//        val (g,v) = modelGraph.newVertex(WireV())
+//        modelGraph = g
+//        rankMap += v -> i
+//        v
+//      }) :+ modelGraph.target(e)
+//
+//      if (vChain.size > 1) {
+//        var prev = modelGraph.source(e)
+//        modelGraph = modelGraph.deleteEdge(e)
+//        for (v <- vChain) {
+//          modelGraph = modelGraph.newEdge(DirEdge(), (prev, v))
+//          prev = v
+//        }
+//      }
+//    }
+//
+//    // order vertices in ranks to minimise crossings
+//    for (i <- 1 to crossingIterations) orderByMedians(i)
+//    for (i <- 1 to crossingIterations) orderByCrossings(i)
+//
+//    var xVars = Map[VName,IntVar]()
+//
+//    var vertPush = Set[IntVar]()
+//
+//    for ((r,vs) <- rankMap.codf) {
+//      val maxX = (maxNodeSep * vs.size) / 2
+//      val minX = -maxX
+//      val vArray = Array.ofDim[VName](vs.size)
+//      vs.foreach {v =>
+//        vArray(posMap(v)) = v
+//        xVars += v -> IntVar("x_" + v, minX, maxX)
+//      }
+//
+//      for (i <- 1 to (vArray.size - 1)) {
+//        val dist = xVars(vArray(i)) - xVars(vArray(i-1))
+//        constraints += { dist #>= minNodeSep }
+//        constraints += { dist #<= maxNodeSep }
+//        vertPush += dist
+//       }
+//    }
+//
+//    val edgePull = modelGraph.edges.map {e =>
+//      xVars(modelGraph.source(e)) distanceTo xVars(modelGraph.target(e))
+//    }
+//
+//    minimize(xVars.values, sum(edgePull) - sum(vertPush))
+//
+//    val xCoords = xVars.mapValues(v => v.value.toDouble / precision)
+//
+//    val mRank = maxRank
+//
+//    modelGraph = modelGraph.vdata.foldLeft(modelGraph) { case (gr,(v,_)) =>
+//      gr.updateVData(v) { _ withCoord
+//        (xCoords(v), (-0.5 * mRank) + rank(v).toDouble)
+//      }
+//    }
+//
+//    graph.vdata.foldLeft(graph) { case (gr, (v,_)) =>
+//      gr.updateVData(v) { _ withCoord modelGraph.vdata(v).coord }
+//    }
 
-    posMap = Map[VName,Int]()
-    for (vset <- rankMap.codf.values; (v,i) <- vset.view.zipWithIndex) { posMap += v -> i }
-
-    // update model graph to include virtual vertices at intermediate ranks
-    for (e <- modelGraph.edges) {
-      val vChain = (for (i <- (rankMap(modelGraph.source(e)) + 1) to (rankMap(modelGraph.target(e)) - 1)) yield {
-        val (g,v) = modelGraph.newVertex(WireV())
-        modelGraph = g
-        rankMap += v -> i
-        v
-      }) :+ modelGraph.target(e)
-
-      if (vChain.size > 1) {
-        var prev = modelGraph.source(e)
-        modelGraph = modelGraph.deleteEdge(e)
-        for (v <- vChain) {
-          modelGraph = modelGraph.newEdge(DirEdge(), (prev, v))
-          prev = v
-        }
-      }
-    }
-
-    // order vertices in ranks to minimise crossings
-    for (i <- 1 to crossingIterations) orderByMedians(i)
-    for (i <- 1 to crossingIterations) orderByCrossings(i)
-
-    var xVars = Map[VName,IntVar]()
-
-    var vertPush = Set[IntVar]()
-
-    for ((r,vs) <- rankMap.codf) {
-      val maxX = (maxNodeSep * vs.size) / 2
-      val minX = -maxX
-      val vArray = Array.ofDim[VName](vs.size)
-      vs.foreach {v =>
-        vArray(posMap(v)) = v
-        xVars += v -> IntVar("x_" + v, minX, maxX)
-      }
-
-      for (i <- 1 to (vArray.size - 1)) {
-        val dist = xVars(vArray(i)) - xVars(vArray(i-1))
-        constraints += { dist #>= minNodeSep }
-        constraints += { dist #<= maxNodeSep }
-        vertPush += dist
-       }
-    }
-
-    val edgePull = modelGraph.edges.map {e =>
-      xVars(modelGraph.source(e)) distanceTo xVars(modelGraph.target(e))
-    }
-
-    minimize(xVars.values, sum(edgePull) - sum(vertPush))
-
-    val xCoords = xVars.mapValues(v => v.value.toDouble / precision)
-
-    val mRank = maxRank
-
-    modelGraph = modelGraph.vdata.foldLeft(modelGraph) { case (gr,(v,_)) =>
-      gr.updateVData(v) { _ withCoord
-        (xCoords(v), (-0.5 * mRank) + rank(v).toDouble)
-      }
-    }
-
-    graph.vdata.foldLeft(graph) { case (gr, (v,_)) =>
-      gr.updateVData(v) { _ withCoord modelGraph.vdata(v).coord }
-    }
+    graph
   }
 
 }
