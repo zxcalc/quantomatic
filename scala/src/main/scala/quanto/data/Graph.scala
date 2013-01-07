@@ -73,6 +73,7 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
   def outEdges(vn: VName) = source.codf(vn)
   def predVerts(vn: VName) = inEdges(vn).map(source(_))
   def succVerts(vn: VName) = outEdges(vn).map(target(_))
+  def contents(bbn: BBName) = inBBox.codf(bbn)
 
   def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
 
@@ -280,6 +281,7 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
     for (v <- verts; w <- verts) {
       outEdges(v).find(target(_) == w) match {
         case Some(e) => g = g.addEdge(e, edata(e), (v,w))
+        case None => ()
       }
     }
 

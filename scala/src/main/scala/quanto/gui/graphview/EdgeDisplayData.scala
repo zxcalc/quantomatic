@@ -14,11 +14,11 @@ case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double]) {
   }
 }
 
-trait EdgeDisplayData {
+trait EdgeDisplayData { self: VertexDisplayData =>
   def graph: QGraph
   def trans: Transformer
-  protected def vertexDisplay: collection.Map[VName, VDisplay]
-  protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double)
+  //protected def vertexDisplay: collection.Map[VName, VDisplay]
+  //protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double)
 
   protected val edgeDisplay = collection.mutable.Map[EName, EDisplay]()
   import GraphView._

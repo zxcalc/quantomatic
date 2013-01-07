@@ -1,10 +1,10 @@
 import org.scalatest._
 import quanto.data.{DirEdge, NodeV, QGraph}
-import quanto.layout.RankLayout
+import quanto.layout.{DotLayout, RankLayout}
 import quanto.util.json.Json
 
 class LayoutSpec extends FlatSpec {
-  behavior of "Dynadag layout"
+  behavior of "Rank layout"
 
   var rankLayout: RankLayout = _
 
@@ -15,7 +15,7 @@ class LayoutSpec extends FlatSpec {
   var randomGraph: QGraph = _
 
   it should "layout a graph" in {
-    randomGraph = rankLayout.layout(QGraph.random(40,80))
+    randomGraph = rankLayout.layout(QGraph.random(4,8))
   }
 
   it should "yield ranks for all verts" in {
@@ -34,5 +34,16 @@ class LayoutSpec extends FlatSpec {
     for ((e,_) <- dag.edata) {
       assert(rankLayout.rank(dag.source(e)) < rankLayout.rank(dag.target(e)))
     }
+  }
+
+  behavior of "Dot layout"
+
+  val dotLayout = new DotLayout
+
+  var dotGraph: QGraph = QGraph.random(10,20)
+
+  it should "lay out a graph" in {
+    dotGraph = dotLayout.layout(dotGraph)
+    println(dotLayout.dotString)
   }
 }

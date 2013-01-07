@@ -7,11 +7,6 @@ import quanto.util.json.Json
 
 import quanto.util.StreamRedirector
 
-object CoreProcess {
-  val logger = Logger.getLogger("quanto.core");
-  var quantoCoreExecutable = "quanto-core";
-}
-
 class CoreProcess() {
   import CoreProcess._
   private var backend: Process = null
@@ -63,6 +58,11 @@ class CoreProcess() {
           backend.destroy();
         }
     }
+  }
+
+  object CoreProcess {
+    val logger = Logger.getLogger("quanto.core");
+    var quantoCoreExecutable = "quanto-core";
   }
   
   // def inputStream : InputStream =
