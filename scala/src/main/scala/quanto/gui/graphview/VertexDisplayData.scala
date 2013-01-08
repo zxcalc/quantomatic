@@ -64,6 +64,29 @@ trait VertexDisplayData {
     }
   }
 
+  protected def boundsForVertexSet(vset: Set[VName]) = {
+    var init = false
+    var ulx,uly,lrx,lry = 0.0
+
+    vset.foreach { v =>
+      val rect = vertexDisplay(v).shape.getBounds()
+      if (init) {
+        ulx = min(ulx, rect.getX)
+        uly = min(uly, rect.getY)
+        lrx = max(lrx, rect.getMaxX)
+        lry = max(lry, rect.getMaxY)
+      } else {
+        ulx = rect.getX
+        uly = rect.getY
+        lrx = rect.getMaxX
+        lry = rect.getMaxY
+        init = true
+      }
+    }
+    
+    new Rectangle2D.Double(ulx, uly, lrx - ulx, lry - uly)
+  }
+
   def invalidateAllVerts() { vertexDisplay.clear() }
   def invalidateVertex(n: VName) = vertexDisplay -= n
 }

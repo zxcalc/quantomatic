@@ -28,7 +28,7 @@ class DotLayout extends GraphLayout {
     graph.edata.foreach { case (e,d) =>
       sb ++= "  %d %s %d\n".format(
         vid(graph.source(e)),
-        if (d.directed) "->" else "--",
+        if (d.isDirected) "->" else "--",
         vid(graph.target(e)))
     }
 
@@ -36,7 +36,7 @@ class DotLayout extends GraphLayout {
 
     graph.bbdata.foreach { case(bb,d) =>
       sb ++= "  subgraph \"cluster_" + i + "\" { \n"
-      graph.contents(bb).foreach { v => sb ++= "    " + v + "\n" }
+      graph.contents(bb).foreach { v => sb ++= "    " + vid(v) + "\n" }
       sb ++= "  }\n"
       i += 1
     }
@@ -67,8 +67,6 @@ class DotLayout extends GraphLayout {
         case _ => ()
       }
     }
-
-    println(coordMap)
 
     graph.verts.foldLeft(graph) { (g, v) => g.updateVData(v) { d =>
       d.withCoord(coordMap(vid(v)))

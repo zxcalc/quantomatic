@@ -15,10 +15,11 @@ object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
   // populate with a random graph, for testing
-  var randomGraph = QGraph.random(20,40)
+  var randomGraph = QGraph.random(20,40, 3)
   val layoutEngine = new DotLayout
 
   randomGraph = layoutEngine.layout(randomGraph)
+  println(layoutEngine.dotString)
 
   // GUI components
   val UndoStack_ = new UndoStack

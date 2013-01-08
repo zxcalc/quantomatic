@@ -25,8 +25,9 @@ extends GraphLike[GData,VData,EData,BBData,QGraph]
 object QGraph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (QGraph, Name[N])) : QGraph = t._1
 
+  def fromJson(s: String): QGraph = fromJson(Json.parse(s))
 
-  def apply(json: Json): QGraph =
+  def fromJson(json: Json): QGraph =
     Function.chain[QGraph](Seq(
 
       (json ?# "wire_vertices").foldLeft(_) { (g,v) =>
@@ -68,18 +69,45 @@ object QGraph {
       QGraph(GData(data, annotation))
     })
 
-  def random(nverts: Int, nedges: Int) = {
+  def toJson(graph: QGraph): Json = {
+    val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))
+    { case ((mw,mn), (v,d)) =>
+      val entry = v.toString -> d.json
+      if (d.isWireVertex) (mw + entry, mn) else (mw, mn + entry)
+    }
+
+    val (dirEdges, undirEdges) = graph.edata.foldLeft((JsonObject(), JsonObject()))
+    { case ((md,mu), (e,d)) =>
+      val entry = e.toString -> (d.json + ("source" -> graph.source(e), "target" -> graph.target(e)))
+      if (d.isDirected) (md + entry, mu) else (md, mu + entry)
+    }
+
+    JsonNull()
+  }
+
+  def random(nverts: Int, nedges: Int, nbboxes: Int = 0) = {
     val rand = new util.Random
     var randomGraph = QGraph()
     for (i <- 1 to nverts) {
       val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
       randomGraph = randomGraph.newVertex(NodeV(p))
     }
-    val varray = randomGraph.vdata.keys.toArray
-    for(j <- 1 to nedges) {
-      val s = varray(rand.nextInt(varray.size))
-      val t = varray(rand.nextInt(varray.size))
-      randomGraph = randomGraph.newEdge(DirEdge(), (s,t))
+
+    if (nverts != 0) {
+      val varray = randomGraph.vdata.keys.toArray
+      for(j <- 1 to nedges) {
+        val s = varray(rand.nextInt(varray.size))
+        val t = varray(rand.nextInt(varray.size))
+        randomGraph = randomGraph.newEdge(DirEdge(), (s,t))
+      }
+
+      for (i <- 1 to nbboxes) {
+        val randomVSet = (1 to (sqrt(nverts).toInt)).foldLeft(Set[VName]()) { (s,_) =>
+          s + varray(rand.nextInt(varray.size))
+        }
+
+        randomGraph = randomGraph.newBBox(BBData(), randomVSet, None)
+      }
     }
 
     randomGraph

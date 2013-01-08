@@ -143,11 +143,11 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   var jsonGraph: QGraph = _
 
   it can "be constructed from JSON" in {
-    jsonGraph = QGraph(Json.parse(jsonString))
+    jsonGraph = QGraph.fromJson(jsonString)
   }
 
   it should "be equal to a graph from the same JSON" in {
-    val jsonGraph1 = QGraph(Json.parse(jsonString))
+    val jsonGraph1 = QGraph.fromJson(jsonString)
     assert(jsonGraph === jsonGraph1)
   }
 
@@ -159,9 +159,9 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     assert(jsonGraph.vdata("n1").isInstanceOf[NodeV])
     assert(jsonGraph.vdata("n0").coord === (1.0, 2.0))
     assert(jsonGraph.vdata("n1").coord === (0.0, 0.0))
-    assert(jsonGraph.edata("e0").directed === true)
-    assert(jsonGraph.edata("e1").directed === true)
-    assert(jsonGraph.edata("e2").directed === false)
+    assert(jsonGraph.edata("e0").isDirected === true)
+    assert(jsonGraph.edata("e1").isDirected === true)
+    assert(jsonGraph.edata("e2").isDirected === false)
     assert(jsonGraph.source("e0") === VName("w0"))
     assert(jsonGraph.target("e0") === VName("w1"))
     assert(jsonGraph.source("e1") === VName("w1"))
@@ -173,7 +173,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   behavior of "Depth-first traversal"
 
-  val dftGraph = QGraph(Json.parse(
+  val dftGraph = QGraph.fromJson(
     """
       |{
       |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
@@ -186,7 +186,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |    "e5": {"src": "n5", "tgt": "n5"}
       |  }
       |}
-    """.stripMargin))
+    """.stripMargin)
 
   it should "traverse all edges" in {
     val eSet = dftGraph.dft(Set[EName]()) { (es, e, _) => es + e }
@@ -200,7 +200,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   behavior of "Dag copy"
 
-  val dagGraph = QGraph(Json.parse(
+  val dagGraph = QGraph.fromJson(
     """
       |{
       |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
@@ -212,7 +212,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |    "e4": {"src": "n4", "tgt": "n5"}
       |  }
       |}
-    """.stripMargin))
+    """.stripMargin)
 
   it should "translate into a dag correctly" in {
     assert(dftGraph.dagCopy === dagGraph)

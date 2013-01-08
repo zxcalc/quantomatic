@@ -9,10 +9,12 @@ abstract class VData(val coord: (Double, Double)) extends GraphElementData {
           case Some(json) => throw new JsonAccessException("Expected: array with 2 elements", json)
           case None => (0,0) })
   def withCoord(c: (Double,Double)): VData
+  def isWireVertex: Boolean
 }
 
 case class NodeV(data: JsonObject, annotation: JsonObject) extends VData(data, annotation)
 {
+  def isWireVertex = false
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(JsonDouble(c._1), JsonDouble(c._2))))
 }
@@ -23,6 +25,7 @@ object NodeV {
 }
 
 case class WireV(data: JsonObject, annotation: JsonObject) extends VData(data,annotation) {
+  def isWireVertex = true
   def withCoord(c: (Double,Double)) =
     copy(annotation = annotation + ("coord" -> JsonArray(JsonDouble(c._1), JsonDouble(c._2))))
 }

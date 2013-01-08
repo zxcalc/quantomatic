@@ -15,9 +15,10 @@ import swing.Rectangle
 
 
 class GraphView extends Panel
-with Scrollable
-with EdgeDisplayData
-with VertexDisplayData
+  with Scrollable
+  with EdgeDisplayData
+  with VertexDisplayData
+  with BBoxDisplayData
 {
   import GraphView._
 
@@ -154,6 +155,17 @@ with VertexDisplayData
 
     computeVertexDisplay()
     computeEdgeDisplay()
+    computeBBoxDisplay()
+
+    g.setStroke(new BasicStroke(1))
+
+
+    for ((bb, BBDisplay(rect)) <- bboxDisplay) {
+      g.setColor(new Color(0.5f,0.5f,0.5f,0.2f))
+      g.fill(rect)
+      g.setColor(new Color(0.5f,0.5f,0.5f,0.7f))
+      g.draw(rect)
+    }
 
     for ((e, EDisplay(p,_)) <- edgeDisplay) {
       if (selectedEdges contains e) {
@@ -260,6 +272,7 @@ with VertexDisplayData
         case SelectionBox(start,_) =>
           computeVertexDisplay()
           computeEdgeDisplay()
+          computeBBoxDisplay()
 
           if (pt.getX == start.getX && pt.getY == start.getY) {
             var selectionUpdated = false
