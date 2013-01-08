@@ -38,7 +38,10 @@ sealed abstract class Json {
 
   protected def jsonString = {
     val sw = new java.io.StringWriter
-    writeTo(sw)
+    val jsonOut = new Json.Output(sw)
+    jsonOut.prettyPrint = true
+    writeTo(jsonOut)
+    jsonOut.close()
     sw.toString
   }
 
@@ -91,6 +94,8 @@ sealed abstract class Json {
   def ?@(key: String)   = (this ? key).asArray
   def ?#(key: String)   = (this ? key).asObject
 
+  // convention: returns false for non-null value types
+  def isEmpty: Boolean
 
   def mapValue: Map[String,Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
@@ -129,10 +134,14 @@ with Iterable[(String,Json)]
     out.g.writeEndObject()
   }
 
+  def noEmpty = JsonObject(v.filter(!_._2.isEmpty))
+
   override def get(key: String) = v.get(key)
   override def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
   override def mapValue = v
   override def toString() = jsonString
+
+  def asObjectOrKeyArray = if (forall(_._2.isEmpty)) this.asArray else this
 }
 
 object JsonObject { def apply(kv: (String,Json)*): JsonObject = JsonObject(Map(kv: _*)) }
@@ -162,11 +171,13 @@ case class JsonNull() extends Json {
   val v = null
   def writeTo(out: Json.Output) { out.g.writeNull() }
   override def get(key: String): Option[Json] = None
+  def isEmpty = true
 }
 
 case class JsonString(v: String) extends Json {
   override def stringValue = v
   def writeTo(out: Json.Output) { out.g.writeString(v) }
+  def isEmpty = false
 }
 
 case class JsonInt(v: Int) extends Json {
@@ -174,16 +185,19 @@ case class JsonInt(v: Int) extends Json {
   // note that integers are treated as a sub-type of doubles. This is the expected behaviour 99% of the time.
   override def doubleValue = v.toDouble
   def writeTo(out: Json.Output) { out.g.writeNumber(v) }
+  def isEmpty = false
 }
 
 case class JsonDouble(v: Double) extends Json {
   override def doubleValue = v
   def writeTo(out: Json.Output) { out.g.writeNumber(v) }
+  def isEmpty = false
 }
 
 case class JsonBool(v: Boolean) extends Json {
   override def boolValue = v
   def writeTo(out: Json.Output) { out.g.writeBoolean(v) }
+  def isEmpty = false
 }
 
 object Json {
@@ -221,6 +235,14 @@ object Json {
     def this(out: java.io.OutputStream) = this(factory.createJsonGenerator(out, JsonEncoding.UTF8))
     def this(out: java.io.Writer) =       this(factory.createJsonGenerator(out))
     def this(f: java.io.File) =           this(factory.createJsonGenerator(f, JsonEncoding.UTF8))
+
+    private var _pp = false
+    def prettyPrint_=(b: Boolean) {
+      _pp = b
+      if (_pp) g.useDefaultPrettyPrinter() else g.setPrettyPrinter(null)
+    }
+
+    def prettyPrint = _pp
 
     def flush() { g.flush() }
     def close() { g.close() }

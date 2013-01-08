@@ -133,12 +133,24 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |    "e2": {"src": "n0", "tgt": "n1"}
       |  },
       |  "bang_boxes": {
-      |    "bb0": {"contains": ["w0", "n0", "n1"]},
+      |    "bb0": {"contains": ["n0", "n1", "w0"]},
       |    "bb1": {"contains": ["n0", "n1"], "parent": "bb0"},
       |    "bb2": {}
       |  }
       |}
     """.stripMargin
+
+  val jsonGraphShouldBe = (QGraph()
+    addVertex("w0", WireV()) addVertex("w1", WireV()) addVertex("w2", WireV())
+    addVertex("n0", NodeV(data=JsonObject(),annotation=JsonObject("coord"->JsonArray(1,2))))
+    addVertex("n1", NodeV())
+    addEdge("e0", DirEdge(), "w0" -> "w1")
+    addEdge("e1", DirEdge(), "w1" -> "w2")
+    addEdge("e2", UndirEdge(), "n0" -> "n1")
+    addBBox("bb0", BBData(), Set[VName]("w0", "n0", "n1"))
+    addBBox("bb1", BBData(), Set[VName]("n0", "n1"), parent=Some(BBName("bb0")))
+    addBBox("bb2", BBData())
+  )
 
   var jsonGraph: QGraph = _
 
@@ -152,23 +164,18 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   }
 
   it should "be the expected graph" in {
-    assert(jsonGraph.vdata("w0").isInstanceOf[WireV])
-    assert(jsonGraph.vdata("w1").isInstanceOf[WireV])
-    assert(jsonGraph.vdata("w2").isInstanceOf[WireV])
-    assert(jsonGraph.vdata("n0").isInstanceOf[NodeV])
-    assert(jsonGraph.vdata("n1").isInstanceOf[NodeV])
-    assert(jsonGraph.vdata("n0").coord === (1.0, 2.0))
-    assert(jsonGraph.vdata("n1").coord === (0.0, 0.0))
-    assert(jsonGraph.edata("e0").isDirected === true)
-    assert(jsonGraph.edata("e1").isDirected === true)
-    assert(jsonGraph.edata("e2").isDirected === false)
-    assert(jsonGraph.source("e0") === VName("w0"))
-    assert(jsonGraph.target("e0") === VName("w1"))
-    assert(jsonGraph.source("e1") === VName("w1"))
-    assert(jsonGraph.target("e1") === VName("w2"))
-    assert(jsonGraph.source("e2") === VName("n0"))
-    assert(jsonGraph.target("e2") === VName("n1"))
-    assert(jsonGraph.inBBox.codf("bb0") === Set(VName("n0"), VName("n1"), VName("w0")))
+    assert(jsonGraphShouldBe === jsonGraph)
+  }
+
+  // note this test is sensitive to having "normalised" JSON input, e.g. arrays that represent name sets are
+  // alphabetised.
+  it should "save to the correct json" in {
+    val json = QGraph.toJson(jsonGraph)
+    assert(json === Json.parse(jsonString))
+  }
+
+  it should "save then load to the same graph" in {
+    assert(jsonGraphShouldBe === QGraph.fromJson(QGraph.toJson(jsonGraphShouldBe)))
   }
 
   behavior of "Depth-first traversal"

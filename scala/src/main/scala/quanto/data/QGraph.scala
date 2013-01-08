@@ -2,7 +2,7 @@ package quanto.data
 
 import Names._
 import quanto.util.json._
-import math.{max,min,sqrt}
+import math.sqrt
 import JsonValues._
 
 class QGraphJsonException(message: String, cause: Throwable = null)
@@ -71,24 +71,38 @@ object QGraph {
 
   def toJson(graph: QGraph): Json = {
     val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))
-    { case ((objw,objn), (v,d)) =>
+    { case ((objW,objN), (v,d)) =>
       val entry = v.toString -> d.json
-      if (d.isWireVertex) (objw + entry, objn) else (objw, objn + entry)
+      if (d.isWireVertex) (objW + entry, objN) else (objW, objN + entry)
     }
 
     val (dirEdges, undirEdges) = graph.edata.foldLeft((JsonObject(), JsonObject()))
-    { case ((objd,obju), (e,d)) =>
-      val entry = e.toString -> (d.json + ("source" -> graph.source(e).toString, "target" -> graph.target(e).toString))
-      if (d.isDirected) (objd + entry, obju) else (objd, obju + entry)
+    { case ((objD,objU), (e,d)) =>
+      val entry = e.toString -> (d.json + ("src" -> graph.source(e).toString, "tgt" -> graph.target(e).toString))
+      if (d.isDirected) (objD + entry, objU) else (objD, objU + entry)
     }
 
     val bangBoxes = graph.bbdata.foldLeft(JsonObject()) { case (obj, (bb, d)) =>
-      obj + (bb.toString -> (
-        d.json + ("contents" -> graph.contents(bb).foldLeft(JsonArray()){ (a, v) => a :+ v.toString })
-      ))
+      obj + (bb.toString ->
+        JsonObject(
+          "contains"   -> graph.contents(bb).foldLeft(JsonArray()){ (a, v) => a :+ v.toString },
+          "parent"     -> (graph.bboxParent.get(bb) match {
+                             case Some(p) => JsonString(p.toString)
+                             case None    => JsonNull() }),
+          "data"       -> d.data,
+          "annotation" -> d.annotation
+        ).noEmpty)
     }
 
-    JsonNull()
+    JsonObject(
+      "wire_vertices" -> wireVertices.asObjectOrKeyArray,
+      "node_vertices" -> nodeVertices.asObjectOrKeyArray,
+      "dir_edges"     -> dirEdges,
+      "undir_edges"   -> undirEdges,
+      "bang_boxes"    -> bangBoxes,
+      "data"          -> graph.data.data,
+      "annotation"    -> graph.data.annotation
+    ).noEmpty
   }
 
   def random(nverts: Int, nedges: Int, nbboxes: Int = 0) = {
