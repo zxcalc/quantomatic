@@ -71,15 +71,21 @@ object QGraph {
 
   def toJson(graph: QGraph): Json = {
     val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))
-    { case ((mw,mn), (v,d)) =>
+    { case ((objw,objn), (v,d)) =>
       val entry = v.toString -> d.json
-      if (d.isWireVertex) (mw + entry, mn) else (mw, mn + entry)
+      if (d.isWireVertex) (objw + entry, objn) else (objw, objn + entry)
     }
 
     val (dirEdges, undirEdges) = graph.edata.foldLeft((JsonObject(), JsonObject()))
-    { case ((md,mu), (e,d)) =>
-      val entry = e.toString -> (d.json + ("source" -> graph.source(e), "target" -> graph.target(e)))
-      if (d.isDirected) (md + entry, mu) else (md, mu + entry)
+    { case ((objd,obju), (e,d)) =>
+      val entry = e.toString -> (d.json + ("source" -> graph.source(e).toString, "target" -> graph.target(e).toString))
+      if (d.isDirected) (objd + entry, obju) else (objd, obju + entry)
+    }
+
+    val bangBoxes = graph.bbdata.foldLeft(JsonObject()) { case (obj, (bb, d)) =>
+      obj + (bb.toString -> (
+        d.json + ("contents" -> graph.contents(bb).foldLeft(JsonArray()){ (a, v) => a :+ v.toString })
+      ))
     }
 
     JsonNull()

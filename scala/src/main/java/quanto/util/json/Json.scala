@@ -116,7 +116,7 @@ sealed abstract class Json {
 case class JsonObject(v: Map[String,Json] = Map[String,Json]()) extends Json
 with Iterable[(String,Json)]
 {
-  def +(kv:(String,Json)) = JsonObject(v + kv)
+  def +(kv:(String,Json)*) = JsonObject(kv.foldLeft(v){ _ + _ })
   def iterator = v.iterator
   def keysIterator = v.keysIterator
   def valuesIterator = v.valuesIterator
@@ -140,7 +140,7 @@ object JsonObject { def apply(kv: (String,Json)*): JsonObject = JsonObject(Map(k
 case class JsonArray(v: Vector[Json] = Vector[Json]()) extends Json
 with Iterable[Json]
 {
-  def :+(x:Json) = v :+ x
+  def :+(x:Json*) = JsonArray(x.foldLeft(v){ _ :+ _ })
   def iterator = v.iterator
   def writeTo(out: Json.Output) {
     out.g.writeStartArray()
