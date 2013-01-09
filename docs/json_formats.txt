@@ -1,0 +1,169 @@
+JSON File Formats
+
+The following are the JSON file formats currently (or shortly to be) supported by the upcoming stable (2.0) release.
+
+Formats are given in pseudo-BNF, with a few extra terminals:
+
+JSON            -- arbitrary JSON
+JSON_*          -- arbitrary JSON of the given type (OBJECT, ARRAY, STRING, INT, FLOAT,
+                   BOOL, NULL)
+LETTER          -- a single letter, as a JSON string
+COLOR           -- a JSON array of 4 floats between 0 and 1, defining red, green, blue, and alpha
+*_NAME          -- a JSON string, interpreted as the appropriate kind of name
+*_NAMESET       -- a JSON array of names, with the understanding that ordering and
+                   duplicates will be ignored.
+
+Many objects contain two special fields called "data" and "annotation". The first is theory-dependent and carries meaningful data for the semantics of a graph. While these can vary by theory, vertex and edge data should always at contain a field called "type".
+
+In the "annotation" field, arbitrary extra data can be stored. This field optional and is always a JSON object. The main quantomatic tools use common annotations (e.g. "coord") without namespacing. However, if there is a high chance of clobberage, Java-style namespaces are encouraged:
+
+{
+  "annotation": {"org.footool.weight": 12}
+}
+
+The core should never modify annotation data or make any assumptions about its format.
+
+Most fields are optional, if reasonable defaults can be found (e.g. empty object, empty list, or null). If a "data" field is empty, default data is assumed. If an "annotation" field is empty, an empty record is assumed. For simplicity, both are assumed to be JSON objects. This shouldn't be particularly restrictive, and saves a bit of boilerplate.
+
+
+========================
+GRAPHS
+========================
+
+File extension: .qgraph
+
+
+
+GRAPH ::=
+{
+  "wire_vertices": VERTEX_LIST,
+  "node_vertices": VERTEX_LIST,
+  "dir_edges": EDGE_LIST,
+  "undir_edges": EDGE_LIST,
+  "bang_boxes": BBOX_LIST,
+  "data": JSON_OBJECT,
+  "annotation": JSON_OBJECT
+}
+
+VERTEX_LIST ::= VERTEX_NAMESET | { VERTEX_NAME : VDESC (, VERTEX_NAME : VDESC)* } | {}
+EDGE_LIST   ::= { EDGE_NAME : EDESC (, EDGE_NAME : EDESC)* } | {}
+BBOX_LIST   ::= { BBOX_NAME : BBDESC (, BBOX_NAME : BBDESC)* } | {}
+VDESC ::=
+{
+  "data" : JSON_OBJECT,
+  "annotation" : JSON_OBJECT
+}
+EDESC ::=
+{
+  "src" : VERTEX_NAME,
+  "tgt" : VERTEX_NAME,
+  "data" : JSON_OBJECT,
+  "annotation" : JSON_OBJECT
+}
+BBDESC ::=
+{
+  "contents" : VERTEX_NAMESET,
+  "parent" : BBOX_NAME,
+  "data" : JSON_OBJECT,
+  "annotation" : JSON_OBJECT
+}
+
+
+
+========================
+RULESETS
+========================
+
+File extension: .qruleset
+
+A ruleset is a collection of rules, with some tagging. Rules are never saved and loaded by themselves, but protocol functions may use single rules as input or output.
+
+
+RULE ::=
+{
+  "lhs" : GRAPH,
+  "rhs" : GRAPH,
+  "annotation" : JSON_OBJECT
+}
+
+RULESET ::=
+{
+  "rules" : RULE_LIST,
+  "active_rules" : RULE_NAME_LIST,
+  "tags" : TAG_LIST
+  "annotation" : JSON_OBJECT
+}
+RULE_LIST ::= { RULE_NAME : RULE (, RULE_NAME : RULE)* } | {}
+TAG_LIST  ::= { TAG_NAME : RULE_NAMESET (, TAG_NAME : RULE_NAMESET)* } | {}
+
+
+
+========================
+THEORIES
+========================
+
+File extension: .qtheory
+
+Theory files are not saved/loaded by the core, but are designed to give front-end tools information about how to select a certain theory in the core, and how to display/edit data associated with graph components.
+
+THEORY ::=
+{
+    "name": JSON_STRING,
+    "core_name": JSON_STRING,
+    "vertex_types": { VTYPE : VTYPE_DESC (, VTYPE: VTYPE_DESC)* } | {},
+    "edge_types": { ETYPE : ETYPE_DESC (, ETYPE: ETYPE_DESC)* } | {},
+    "default_vertex_data": JSON_OBJECT,
+    "default_edge_data": JSON_OBJECT
+}
+
+VTYPE ::= JSON_STRING
+ETYPE ::= JSON_STRING
+
+VTYPE_DESC ::=
+{
+  "value": VALUE_DESC,
+  "style": {
+    "shape": "circle" | "rectangle" | "custom",
+    "custom_shape_path": JSON_STRING,
+    "stroke_color": COLOR,
+    "fill_color": COLOR,
+    "label" : {
+      "position": "inside" | "center" | "below",
+      "fg_color": COLOR,
+      "bg_color": COLOR
+    }
+  }
+}
+
+ETYPE_DESC ::=
+{
+  "value": VALUE_DESC,
+  "style": {
+    "stroke_color": COLOR,
+    "stroke_width": JSON_INT,
+    "label" : {
+      "position": "center" | "auto",
+      "fg_color": COLOR,
+      "bg_color": COLOR
+    }
+  }
+}
+
+VALUE_DESC ::=
+{
+  "path": JSON_STRING,
+  "type": "string" | "long_string" | "enum",
+  "enum_options": JSON_LIST,
+  "latex_constants": JSON_BOOL,
+  "default": JSON_STRING,
+  "validate_with_core": JSON_BOOL
+}
+
+
+
+
+
+
+
+
+
