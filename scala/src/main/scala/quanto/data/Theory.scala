@@ -13,7 +13,7 @@ case class Theory(
 object Theory {
 
 
-  case class ValueDesc(path: String, typ: Symbol, enumOptions: Set[String])
+  case class ValueDesc(path: String, typ: Symbol, enumOptions: List[String])
   object ValueDesc {
     def fromJson(json: Json): ValueDesc =
       ValueDesc(
@@ -24,7 +24,7 @@ object Theory {
           case "enum" => 'enum
           case _ => throw new JsonParseException("Expected \"string\", \"long_string\", or \"enum\"")
         },
-        enumOptions = (json ?@ "enum_options").foldLeft(Set[String]()) { _ + _.stringValue }
+        enumOptions = (json ?@ "enum_options").foldRight(List[String]()) { _.stringValue :: _ }
       )
   }
 
