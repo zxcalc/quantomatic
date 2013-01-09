@@ -1,6 +1,8 @@
 package quanto.util.json
 
-import org.codehaus.jackson.{JsonParser,JsonGenerator,JsonFactory,JsonEncoding,JsonToken}
+import com.fasterxml.jackson
+import jackson.core.{JsonParser,JsonGenerator,JsonFactory,JsonEncoding,JsonToken}
+import jackson.core.{JsonParseException => JacksonParseException}
 
 abstract class JsonException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
@@ -10,7 +12,7 @@ class JsonAccessException(message: String, val json: Json)
   extends JsonException(message)
 
 // thrown if a problem is encountered while parsing the JSON
-class JsonParseException(message: String, cause: org.codehaus.jackson.JsonParseException = null)
+class JsonParseException(message: String, cause: JacksonParseException = null)
   extends JsonException(
     message + (if (cause != null) ": " + cause.getMessage else ""),
     cause)
@@ -86,6 +88,11 @@ sealed abstract class Json {
   def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
     get(key) match { case Some(v) => v; case None => default }
 
+
+  // required child notation
+  def /(key: String)    = this(key)
+  def /@(key: String)   = this(key).asArray
+  def /#(key: String)   = this(key).asObject
 
   // optional child notation
   def ?(key: String)    = getOrElse(key, JsonNull())
@@ -208,22 +215,22 @@ object Json {
 
     def this(s: String) =
       this(try { factory.createJsonParser(s) } catch {
-        case e: org.codehaus.jackson.JsonParseException =>
+        case e: JacksonParseException =>
           throw new JsonParseException("Error initialising parser", e) })
 
     def this(f: java.io.File) =
       this(try { factory.createJsonParser(f) } catch {
-        case e: org.codehaus.jackson.JsonParseException =>
+        case e: JacksonParseException =>
           throw new JsonParseException("Error initialising parser", e) })
 
     def this(in: java.io.InputStream) =
       this(try { factory.createJsonParser(in) } catch {
-        case e: org.codehaus.jackson.JsonParseException =>
+        case e: JacksonParseException =>
           throw new JsonParseException("Error initialising parser", e) })
 
     def this(in: java.io.Reader) =
       this(try { factory.createJsonParser(in) } catch {
-        case e: org.codehaus.jackson.JsonParseException =>
+        case e: JacksonParseException =>
           throw new JsonParseException("Error initialising parser", e) })
 
     def close() { p.close() }
@@ -280,7 +287,7 @@ object Json {
           case JsonToken.VALUE_STRING => Some(JsonString(p.getText))
         }
       } catch {
-        case e: org.codehaus.jackson.JsonParseException =>
+        case e: JacksonParseException =>
           throw new JsonParseException("Error while parsing", e)
       }
 
