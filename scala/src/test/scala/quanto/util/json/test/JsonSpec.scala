@@ -137,5 +137,14 @@ class JsonSpec extends FlatSpec {
     intercept[JsonAccessException] { arr(1000) }
   }
 
+  behavior of "Json path"
+
+  it should "parse from string" in {
+    val p = JsonPath("$.foo.bar[12].baz")
+    assert(p === new JsonPath(List(
+      JsonPath.Field("foo"), JsonPath.Field("bar"), JsonPath.Index(12), JsonPath.Field("baz")
+    )))
+  }
+
 
 }

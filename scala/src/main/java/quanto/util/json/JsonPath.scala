@@ -1,6 +1,10 @@
 package quanto.util.json
 
-class JsonPath(val components: List[JsonPath.Component]) {
+import util.parsing.combinator._
+
+class JsonPathParseException(msg: String) extends Exception(msg)
+
+case class JsonPath(components: List[JsonPath.Component]) {
   import JsonPath._
 
   override def toString =
@@ -28,20 +32,24 @@ class JsonPath(val components: List[JsonPath.Component]) {
 
 object JsonPath {
   sealed abstract class Component
-  case class Field(f: String) extends Component {
-    override def toString = f
-  }
-  case class Index(i: Int) extends Component {
-    override def toString = "[" + i + "]"
+  case class Field(f: String) extends Component
+  case class Index(i: Int) extends Component
+
+  private object JsonPathParser extends RegexParsers {
+    // tokens
+    val PField = """\.([^.\[\]]+)""".r
+    val PIndex = """\[([0-9]+)\]""".r
+
+    // grammar
+    def field = PField ^^ { case PField(f) => Field(f) }
+    def index = PIndex ^^ { case PIndex(i) => Index(i.toInt) }
+    def expr  = "$" ~> rep(field | index )
+
+    def apply(s: String) = parseAll(expr, s) match {
+      case Success(r, _) => r
+      case failure: NoSuccess => throw new JsonPathParseException(failure.msg)
+    }
   }
 
-  private val PFieldAndIndex = "([^.]+)\\[([0-9]+)\\]".r
-  private val PIndex = "\\[([0-9]+)\\]".r
-
-  def apply(path: String): JsonPath = new JsonPath(
-    path.split('.').foldRight(List[Component]()) {
-      case (PFieldAndIndex(f,i), list) => Field(f) :: Index(i.toInt) :: list
-      case (PIndex(i), list) => Index(i.toInt) :: list
-      case (f, list) => Field(f) :: list
-    })
+  def apply(path: String): JsonPath = new JsonPath(JsonPathParser(path))
 }
