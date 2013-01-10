@@ -31,6 +31,7 @@ struct
   structure Par_Seq = MJB_Safe_Parallel_Seq;
   structure Par_Tree = MJB_Par_Tree;
   structure Stopwatch = MJB_Stopwatch;
+  structure Compactor = MJB_Compactor;
   
   (*
   PARALLELISATION DETAILS:
@@ -216,22 +217,25 @@ struct
   end
   
   (*These are the functions used within the nodes of the tree*)
-  datatype node_functions = Choose_Next_BBox of Future.future_data
-                          | Match_Loop of Future.future_data
+  (*REMOVE - the integer is for additional information...
+  Currently, the number of times the bang box has been expanded*)
+  datatype node_functions = Choose_Next_BBox of Future.future_data * int
+                          | Match_Loop of Future.future_data * int
   
   (*Apply the inner match algorithm*)
-  fun match_loop data ms =
+  fun match_loop data ms number_expansions =
     (*Produce the next nodes in the tree!*)
-    List.map (fn ms' => Par_Tree.Node (ms',Choose_Next_BBox data)) (
+    List.map (fn ms' => Par_Tree.Node (ms',Choose_Next_BBox (data,number_expansions))) (
     Seq.list_of (
     Seq.map BGMatchState.kill_impossible_bboxes (
     InnerMatchSearch.match_pending doomedf ms)))
   
   (*Kill or expand the pattern bang box*)
-  fun choose_next_bbox data ms =
+  (*REMOVE number_expansions*)
+  fun choose_next_bbox data ms number_expansions =
     case get_next_bbox (BGMatchState.get_pat ms) of
         NONE => (*Leaves here!*)
-                let
+                (*let
                   val sw = Stopwatch.start Stopwatch.new;
                   val res = List.map (fn ms' => Par_Tree.Leaf ms') (
                             Seq.list_of (finish_match data ms)) (*Computed at the moment*)
@@ -239,40 +243,107 @@ struct
                   val _ = PolyML.print("Finishing the match took " ^ (LargeInt.toString(sw)));
                 in
                   res
-                end
+                end*)
+                List.map (fn ms' => Par_Tree.Leaf ms') (Seq.list_of (finish_match data ms))
       | SOME b => (*Exactly two children nodes*)
-                (Par_Tree.Node (BGMatchState.schedule_new_concrete (expand_pat_bbox data b ms),Match_Loop data))::
-                (choose_next_bbox data (kill_pat_bbox data b ms))
+                (Par_Tree.Node (BGMatchState.schedule_new_concrete (expand_pat_bbox data b ms),Match_Loop (data,number_expansions+1)))::
+                (choose_next_bbox data (kill_pat_bbox data b ms) (number_expansions-1))
                 (*
                 [(*Kill the bbox*)
-                 Par_Tree.Node (kill_pat_bbox data b ms,Choose_Next_BBox data),
+                 Par_Tree.Node (kill_pat_bbox data b ms,Choose_Next_BBox (data,number_expansions-1)),
                  (*Copy the bbox*)
-                 Par_Tree.Node (BGMatchState.schedule_new_concrete (expand_pat_bbox data b ms),Match_Loop data)
+                 Par_Tree.Node (BGMatchState.schedule_new_concrete (expand_pat_bbox data b ms),Match_Loop (data,number_expansions))
                 ]*)
   
   (*The function which is actually applied to the above nodes*)
   fun apply_to_node (ms,ms_func) = case ms_func of
-      (Match_Loop fd) =>
+      (Match_Loop (fd,number_expansions)) =>
         let
           val sw = Stopwatch.start Stopwatch.new;
-          val res = match_loop fd ms;
+          val res = match_loop fd ms number_expansions;
           val t = Time.toMicroseconds(Stopwatch.check sw);
-          val _ = PolyML.print("Match_Loop took: " ^ (LargeInt.toString(t)));
+          val _ = if (t>100000) then
+                  if ((List.length res)>=0) then
+                  (
+                  PolyML.print("Match_Loop took: " ^ (LargeInt.toString(t)));
+                  PolyML.print("Match_Loop had this many expansions: " ^ (LargeInt.toString(number_expansions)));
+                  PolyML.print("Match_Loop had this many children: " ^ (LargeInt.toString(List.length res)));
+                  if (t>100000) then (PolyML.print("******" ^ (LargeInt.toString(Time.toMilliseconds(Time.now()))) ^ "*****");()) else ();
+                  ())
+                  else ()
+                  else ();
         in
           res
         end
-        (*match_loop fd ms*)
-    | (Choose_Next_BBox fd) =>
+        (*match_loop fd ms number_expansions*)
+    | (Choose_Next_BBox (fd,number_expansions)) =>
         let
           val sw = Stopwatch.start Stopwatch.new;
-          val res = choose_next_bbox fd ms;
+          val res = choose_next_bbox fd ms number_expansions;
           val t = Time.toMicroseconds(Stopwatch.check sw);
-          val _ = PolyML.print("Choose_Next_BBox took: " ^ (LargeInt.toString(t)));
+          val _ = if (t>100000) then
+                  if ((List.length res)>=0) then
+                  (
+                  PolyML.print("Choose_Next_BBox took: " ^ (LargeInt.toString(t)));
+                  PolyML.print("Choose_Next_BBox had this many expansions: " ^ (LargeInt.toString(number_expansions)));
+                  PolyML.print("Choose_Next_BBox had this many children " ^ (LargeInt.toString(List.length res)));
+                  if (t>100000) then (PolyML.print("*****" ^ (LargeInt.toString(Time.toMilliseconds(Time.now()))) ^ "******");()) else ();
+                  ())
+                  else ()
+                  else ();
         in
           res
         end
-        (*choose_next_bbox fd ms*)
-
+        (*choose_next_bbox fd ms number_expansions*)
+  
+  (*val max = 1000000;*)
+  val max_coarse = 50;
+  val increase_coarse = 6;
+  val start_coarse = 4;
+  
+  (*This defines the parallel tree used by the algorithm
+  Desires the message to be passed into the future data,
+  if any, and the root node*)
+  fun run_par_tree m root =
+    let
+      val num_cores = Thread.numProcessors();
+      fun apply r c n =
+        let val _ = if ((!c)>=(!r)*num_cores) then
+                    (c:=0;if ((!r)<=max_coarse) then r:=(!r)+increase_coarse else ();()) else (c:=(!c+1))
+        in
+          (*let
+            val sw = Stopwatch.start Stopwatch.new;
+            val ans = Difference_List.list_of (apply_to_node_coarse (!r) n)
+            val t = Time.toMicroseconds(Stopwatch.check sw);
+            val _ = if (t<=10) then (c1_10:=(!c1_10+1)) else ();
+            val _ = if (t>10 andalso t<=100) then (c10_100:=(!c10_100+1)) else ();
+            val _ = if (t>100 andalso t<=1000) then (c100_1000:=(!c100_1000+1)) else ();
+            val _ = if (t>1000 andalso t<=10000) then (c1000_10000:=(!c1000_10000+1)) else ();
+            val _ = if (t>10000 andalso t<=100000) then (c10000_100000:=(!c10000_100000+1)) else ();
+            val _ = if (t>100000 andalso t<=1000000) then (c100000_1000000:=(!c100000_1000000+1)) else ();
+            val _ = if (t>1000000) then (c1000000_:=(!c1000000_+1)) else ();
+            (*PolyML.print("Time of node was: " ^ (LargeInt.toString(t)));*)
+          in
+            ans
+          end*)
+          (Par_Tree.recur_node_function apply_to_node ((!r)+1)) n
+        end;
+      val data = (Future.new_future_data m);
+      val par_tree = Par_Tree.new data;
+      (*Set the compactor parameters*)
+      val compactor = Compactor.new_dynamic (Time.fromMicroseconds 200000);
+      val compactor = Compactor.set_estimated_number compactor (SOME 1);
+      val compactor = Compactor.prime compactor (SOME 3) false;
+      val compactor = Compactor.do_not_prime compactor;
+      (*Set the parallel tree parameters*)
+      val par_tree = Par_Tree.set_compactor par_tree compactor;
+      val par_tree = Par_Tree.set_order_matters par_tree false;
+      val par_tree = Par_Tree.set_no_groups par_tree (SOME (num_cores * 40));
+    in
+      Par_Tree.compute_tree par_tree root (apply (Unsynchronized.ref start_coarse) (Unsynchronized.ref 0))
+    end
+    (*Par_Tree.compute_tree (Par_Tree.new (Future.new_future_data m)) root apply_to_node*)
+  
   fun match_normalised_avoiding_tracking (avoid,track) pat tgt = let
     val data = (Future.new_future_data (SOME "match_norm"));
     val _ = log_graph data 3 "GreedyMatchSearch: normalised pattern" pat
@@ -283,13 +354,11 @@ struct
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track
     (*val _ = PolyML.print("starting -1");*)
-    (*The parallel tree to use*)
-    val par_tree = Par_Tree.new data;
     (*The root node*)
-    val root = Par_Tree.Node (ms,Match_Loop data);
+    val root = Par_Tree.Node (ms,Match_Loop (data,1));
   in
     (*Run the parallel tree! Returns the sequence of matches*)
-    Par_Tree.compute_tree par_tree root apply_to_node
+    run_par_tree (SOME "match_norm") root
   end
   fun match_avoiding_tracking at pat tgt = let
     val pat' = G.normalise pat
@@ -310,13 +379,11 @@ struct
               |> BGMatchState.set_pat_avoids avoid
               |> BGMatchState.set_pat_tracked track
     (*val _ = PolyML.print("starting 1");*)
-    (*The parallel tree to use*)
-    val par_tree = Par_Tree.new data;
     (*The root node*)
-    val root = Par_Tree.Node (ms,Match_Loop data);
+    val root = Par_Tree.Node (ms,Match_Loop (data,1));
   in
     (*Run the parallel tree! Returns the sequence of matches*)
-    Par_Tree.compute_tree par_tree root apply_to_node
+    run_par_tree (SOME "match_sub_norm") root
   end
   fun match_subgraph_avoiding_tracking at pat tgt = let
     val pat' = G.normalise pat

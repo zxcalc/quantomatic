@@ -200,6 +200,13 @@ Testing.make_test "matching/test/test-matching-concrete.ML";
 Testing.make_test "matching/test/test-matching-greedy.ML";
 
 (*MJB*)
+
+Testing.make_test "matching/test/test-matching-setup-parallel.ML";
+Testing.make_test "matching/test/test-bang-match-state-parallel.ML";
+Testing.make_test "matching/test/test-matching-concrete-parallel.ML";
+Testing.make_test "matching/test/test-matching-greedy-parallel.ML";
+
+(*MJB*)
 Testing.make_test "matching/test/test-matching-speed.ML";
 
 
