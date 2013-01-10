@@ -1,3 +1,6 @@
+package quanto.util.json.test
+
+
 import org.scalatest.FlatSpec
 import quanto.util.json._
 
@@ -144,6 +147,38 @@ class JsonSpec extends FlatSpec {
     assert(p === new JsonPath(List(
       JsonPath.Field("foo"), JsonPath.Field("bar"), JsonPath.Index(12), JsonPath.Field("baz")
     )))
+  }
+
+  val pathTest = Json.parse(
+    """
+      |{
+      |  "a": {"b": [1, { "c": 2 }] },
+      |  "c": 4
+      |}
+    """.stripMargin)
+
+  val pathTestSet = Json.parse(
+    """
+      |{
+      |  "a": {"b": [1, { "c": 6 }] },
+      |  "c": 4
+      |}
+    """.stripMargin)
+
+  it should "get the correct element" in {
+    assert(pathTest.getPath("$.c") === JsonInt(4))
+    assert(pathTest.getPath(JsonPath("$.a.b")) === Json.parse("[1, { \"c\": 2 }]"))
+    assert(pathTest.getPath("$.a.b[0]") === JsonInt(1))
+    assert(pathTest.getPath("$.a.b[1].c") === JsonInt(2))
+  }
+
+  it should "set the correct element" in {
+    assert(pathTest.setPath("$.a.b[1].c", JsonInt(6)) === pathTestSet)
+  }
+
+  it should "update the correct element" in {
+    val upd = pathTest.updatePath("$.a.b[1].c") { x => JsonInt(x.intValue * 3) }
+    assert(upd === pathTestSet)
   }
 
 

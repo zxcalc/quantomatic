@@ -102,6 +102,10 @@ sealed abstract class Json {
   def setPath(path: JsonPath, to: Json): Json = path.set(this, to)
   def updatePath(path: JsonPath)(f: Json => Json): Json = path.update(this)(f)
 
+  def getPath(s: String): Json = getPath(JsonPath(s))
+  def setPath(s: String, to: Json): Json = setPath(JsonPath(s), to)
+  def updatePath(s: String)(f: Json => Json): Json = updatePath(JsonPath(s))(f)
+
   // convention: returns false for non-null value types
   def isEmpty: Boolean
 
