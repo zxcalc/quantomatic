@@ -7,19 +7,28 @@ Formats are given in pseudo-BNF, with a few extra terminals:
 JSON            -- arbitrary JSON
 JSON_*          -- arbitrary JSON of the given type (OBJECT, ARRAY, STRING, INT, FLOAT,
                    BOOL, NULL)
+JSON_PATH       -- a JSON string, interpreted as a JSONPath expression
 LETTER          -- a single letter, as a JSON string
 COLOR           -- a JSON array of 4 floats between 0 and 1, defining red, green, blue, and alpha
 *_NAME          -- a JSON string, interpreted as the appropriate kind of name
 *_NAMESET       -- a JSON array of names, with the understanding that ordering and
                    duplicates will be ignored.
 
+JSONPath expressions are used to select an aribitrary child of a JSON collection. They always start with a dollar sign, and work pretty much as you would expect. Examples:
+
+$.foo.bar.baz     # field selection
+$[2][1]           # array indices
+$.foo[12].bar     # mixed
+
+For more info see http://goessner.net/articles/JsonPath/. Currently, clients are only expected to support "." and "[#]", but this may be extended later.
+
 Many objects contain two special fields called "data" and "annotation". The first is theory-dependent and carries meaningful data for the semantics of a graph. While these can vary by theory, vertex and edge data should always at contain a field called "type".
 
 In the "annotation" field, arbitrary extra data can be stored. This field optional and is always a JSON object. The main quantomatic tools use common annotations (e.g. "coord") without namespacing. However, if there is a high chance of clobberage, Java-style namespaces are encouraged:
 
-{
-  "annotation": {"org.footool.weight": 12}
-}
+{ "annotation": {"org.footool.weight": 12} }
+
+or { "annotation": {"org.footool": {"weight": 12, "minlength":2}} }
 
 The core should never modify annotation data or make any assumptions about its format.
 
@@ -151,7 +160,7 @@ ETYPE_DESC ::=
 
 VALUE_DESC ::=
 {
-  "path": JSON_STRING,
+  "path": JSON_PATH,
   "type": "string" | "long_string" | "enum",
   "enum_options": JSON_LIST,
   "latex_constants": JSON_BOOL,
