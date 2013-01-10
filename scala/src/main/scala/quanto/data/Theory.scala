@@ -17,12 +17,12 @@ object Theory {
   object ValueDesc {
     def fromJson(json: Json): ValueDesc =
       ValueDesc(
-        path = json / "path",
+        path = (json / "path"),
         typ  = (json / "type").stringValue match {
           case "string" => 'string
           case "long_string" => 'longString
           case "enum" => 'enum
-          case _ => throw new JsonParseException("Expected \"string\", \"long_string\", or \"enum\"")
+          case s => throw new JsonParseException("Expected \"string\", \"long_string\", or \"enum\", got: " + s)
         },
         enumOptions = (json ?@ "enum_options").foldRight(List[String]()) { _.stringValue :: _ }
       )
@@ -31,7 +31,7 @@ object Theory {
   def fromJson(s: String): Theory = fromJson(Json.parse(s))
   def fromJson(json: Json): Theory =
     Theory(
-      name = json / "name",
-      coreName = json / "core_name"
+      name = (json / "name"),
+      coreName = (json / "core_name")
     )
 }

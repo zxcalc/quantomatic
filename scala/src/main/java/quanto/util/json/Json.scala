@@ -101,6 +101,11 @@ sealed abstract class Json {
   def ?@(key: String)   = (this ? key).asArray
   def ?#(key: String)   = (this ? key).asObject
 
+  // JsonPath methods
+  def getPath(path: JsonPath): Json = path.get(this)
+  def setPath(path: JsonPath, to: Json): Json = path.set(this, to)
+  def updatePath(path: JsonPath)(f: Json => Json): Json = path.update(this)(f)
+
   // convention: returns false for non-null value types
   def isEmpty: Boolean
 
