@@ -2,7 +2,7 @@ package quanto.util.json
 
 import util.parsing.combinator._
 
-class JsonPathParseException(msg: String) extends Exception(msg)
+class JsonPathParseException(msg: String) extends JsonParseException(msg)
 
 case class JsonPath(components: List[JsonPath.Component]) {
   import JsonPath._

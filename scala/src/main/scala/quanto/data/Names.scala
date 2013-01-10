@@ -81,6 +81,11 @@ object Names {
   // edge creation methods take a pair of vertices
   implicit def stringPairToVNamePair(t: (String,String)) = (VName(t._1), VName(t._2))
 
+  // these can be used to save names into JSON without conversion
+  implicit def gNameToJsonString(n: GName) = quanto.util.json.JsonString(n.toString)
+  implicit def vNameToJsonString(n: VName) = quanto.util.json.JsonString(n.toString)
+  implicit def eNameToJsonString(n: EName) = quanto.util.json.JsonString(n.toString)
+  implicit def bbNameToJsonString(n: BBName) = quanto.util.json.JsonString(n.toString)
 
   implicit val defaultVName = VName("v0")
   implicit val defaultEName = EName("e0")

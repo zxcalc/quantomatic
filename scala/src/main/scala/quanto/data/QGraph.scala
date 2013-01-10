@@ -85,7 +85,7 @@ object QGraph {
     val bangBoxes = graph.bbdata.foldLeft(JsonObject()) { case (obj, (bb, d)) =>
       obj + (bb.toString ->
         JsonObject(
-          "contains"   -> graph.contents(bb).foldLeft(JsonArray()){ (a, v) => a :+ v.toString },
+          "contains"   -> JsonArray(graph.contents(bb)),
           "parent"     -> (graph.bboxParent.get(bb) match {
                              case Some(p) => JsonString(p.toString)
                              case None    => JsonNull() }),

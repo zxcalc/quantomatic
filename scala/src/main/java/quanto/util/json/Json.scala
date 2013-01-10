@@ -82,22 +82,18 @@ sealed abstract class Json {
   def get(key: String): Option[Json] =
     throw new JsonAccessException("Expected: JsonObject, got: " + this.getClass, this)
 
-  def getOrElse[B1 >: Json](index: Int, default: => B1): B1 =
-    get(index) match { case Some(v) => v; case None => default }
-
-  def getOrElse[B1 >: Json](key: String, default: => B1): B1 =
+  def getOrElse(key: String, default: => Json): Json =
     get(key) match { case Some(v) => v; case None => default }
 
 
-  // required child notation
+  // 'slash' notation for required children
   def /(key: String)    = this(key)
-  def /@(key: String)   = this(key).asArray
-  def /#(key: String)   = this(key).asObject
 
   // optional child notation
   def ?(key: String)    = getOrElse(key, JsonNull())
 
-  // shorthand coercions for optional arrays and objects
+  // shorthand coercions for optional arrays and objects. The will return an empty collection of the appropriate
+  // type if the given field is missing.
   def ?@(key: String)   = (this ? key).asArray
   def ?#(key: String)   = (this ? key).asObject
 
@@ -124,6 +120,8 @@ sealed abstract class Json {
   def doubleValue: Double =
     throw new JsonAccessException("Expected: JsonDouble or JsonInt, got: " + this.getClass, this)
 
+  def floatValue = doubleValue.toFloat
+
   def stringValue: String =
     throw new JsonAccessException("Expected: JsonString, got: " + this.getClass, this)
 
@@ -149,7 +147,7 @@ with Iterable[(String,Json)]
   def noEmpty = JsonObject(v.filter(!_._2.isEmpty))
 
   override def get(key: String) = v.get(key)
-  override def getOrElse[B1 >: Json](key: String, default: => B1) = v.getOrElse[B1](key,default)
+  override def getOrElse(key: String, default: => Json) = v.getOrElse[Json](key,default)
   override def mapValue = v
   override def toString() = jsonString
 
@@ -177,7 +175,10 @@ with Iterable[Json]
   override def toString() = jsonString
 }
 
-object JsonArray { def apply(v: Json*): JsonArray = JsonArray(Vector(v: _*)) }
+object JsonArray {
+  def apply(v: Json*): JsonArray = JsonArray(Vector(v: _*))
+  def apply[T <% Json](c: TraversableOnce[T]): JsonArray = c.foldLeft(JsonArray()){ (a, v) => a :+ v }
+}
 
 case class JsonNull() extends Json {
   val v = null
@@ -210,6 +211,20 @@ case class JsonBool(v: Boolean) extends Json {
   override def boolValue = v
   def writeTo(out: Json.Output) { out.g.writeBoolean(v) }
   def isEmpty = false
+}
+
+
+
+trait JsonEnumConversions { self: Enumeration =>
+  implicit def fromJson(s: Json) =
+    try { withName(s.stringValue) }
+    catch { case _: NoSuchElementException =>
+      val exp = new StringBuilder
+      values.map("\"" + _ + "\"").addString(exp, ", ")
+      throw new JsonParseException("Expected " + exp + ", got: " + s)
+    }
+
+  implicit def toJson(t: Value) = JsonString(t.toString)
 }
 
 object Json {
@@ -314,12 +329,11 @@ object Json {
   implicit def boolToJson(x: Boolean): JsonBool = JsonBool(x)
   implicit def intToJson(x: Int): JsonInt = JsonInt(x)
   implicit def doubleToJson(x: Double): JsonDouble = JsonDouble(x)
+  implicit def floatToJson(x: Float): JsonDouble = JsonDouble(x.toDouble)
 
   // tuple implicit conversions, useful for JsonObject(k -> v, ...) construction
-  implicit def stringStringToStringJson(t: (String,String)) = (t._1, JsonString(t._2))
-  implicit def stringBoolToStringJson(t: (String,Boolean)) = (t._1, JsonBool(t._2))
-  implicit def stringIntToStringJson(t: (String,Int)) = (t._1, JsonInt(t._2))
-  implicit def stringDoubleToStringJson(t: (String,Double)) = (t._1, JsonDouble(t._2))
+  implicit def stringXToStringJson[T <% Json](t: (String,T)): (String,Json) = (t._1, t._2:Json)
+  implicit def traversableOnceToJson[T <% Json](c: TraversableOnce[T]): JsonArray = JsonArray(c)
 }
 
 // these are not active by default, as they are not type-safe
@@ -327,6 +341,7 @@ object JsonValues {
   implicit def jsonToBool(j: Json): Boolean = j.boolValue
   implicit def jsonToInt(j: Json): Int = j.intValue
   implicit def jsonToDouble(j: Json): Double = j.doubleValue
+  implicit def jsonToFloat(j: Json): Double = j.floatValue
   implicit def jsonToString(j: Json): String = j.stringValue
   implicit def jsonToMap(j: Json): Map[String,Json] = j.mapValue
   implicit def jsonToVector(j: Json): Vector[Json] = j.vectorValue
