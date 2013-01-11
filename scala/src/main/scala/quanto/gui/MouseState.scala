@@ -1,4 +1,4 @@
-package quanto.gui.graphview
+package quanto.gui
 
 import java.awt.Point
 import java.awt.geom.Rectangle2D

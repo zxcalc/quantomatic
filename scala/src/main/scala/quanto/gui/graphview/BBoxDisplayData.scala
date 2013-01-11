@@ -12,7 +12,7 @@ case class BBDisplay(rect: Rectangle2D) {
 trait BBoxDisplayData { self: VertexDisplayData =>
   def graph: QGraph
   def trans: Transformer
-  protected val bboxDisplay = collection.mutable.Map[BBName,BBDisplay]()
+  val bboxDisplay = collection.mutable.Map[BBName,BBDisplay]()
 
   protected def computeBBoxDisplay() {
     var globalBounds = boundsForVertexSet(graph.verts)

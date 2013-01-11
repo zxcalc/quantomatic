@@ -20,7 +20,7 @@ trait EdgeDisplayData { self: VertexDisplayData =>
   //protected def vertexDisplay: collection.Map[VName, VDisplay]
   //protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double)
 
-  protected val edgeDisplay = collection.mutable.Map[EName, EDisplay]()
+  val edgeDisplay = collection.mutable.Map[EName, EDisplay]()
   import GraphView._
 
   protected def computeEdgeDisplay() {

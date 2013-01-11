@@ -15,7 +15,7 @@ trait VertexDisplayData {
   def graph: QGraph
   def trans: Transformer
 
-  protected val vertexDisplay = collection.mutable.Map[VName,VDisplay]()
+  val vertexDisplay = collection.mutable.Map[VName,VDisplay]()
 
   // returns the contact point at the given angle, in graph coordinates
   protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double) = {

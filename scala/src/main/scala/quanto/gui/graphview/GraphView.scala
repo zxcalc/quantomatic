@@ -4,14 +4,13 @@ import quanto.data._
 import quanto.gui._
 import quanto.data.Names._
 import swing._
-import event.Key.Modifier
-import event.{MouseDragged, MousePressed, MouseReleased}
 import java.awt.{BasicStroke, Color, RenderingHints}
 import math._
 import quanto.data.EName
 import quanto.data.BBName
 import quanto.data.VName
 import swing.Rectangle
+import java.awt.geom.Rectangle2D
 
 
 class GraphView extends Panel
@@ -22,31 +21,24 @@ class GraphView extends Panel
 {
   import GraphView._
 
-  var mouseState: MouseState = SelectTool()
-
   var drawGrid = false
   var snapToGrid = false
   var dynamicResize = false
   var gridMajor = 1.0
   var gridSubs = 4
 
+  var selectionBox: Option[Rectangle2D] = None
+
   // gets called when the component is first painted
   lazy val init = {
     resizeViewToFit()
   }
 
-  private var _editMode: Int = _
-  def editMode = _editMode
-  def editMode_=(em: Int) {
-    _editMode = em
-    em match {
-      case ReadWrite => listenTo(mouse.clicks, mouse.moves)
-      case CosmeticEdits => listenTo(mouse.clicks, mouse.moves)
-      case ReadOnly => deafTo(mouse.clicks, mouse.moves)
-    }
+  def computeDisplayData() {
+    computeVertexDisplay()
+    computeEdgeDisplay()
+    computeBBoxDisplay()
   }
-
-  editMode = ReadOnly
 
   var graph = new QGraph()
   var trans = new Transformer
@@ -54,20 +46,6 @@ class GraphView extends Panel
   var selectedVerts = Set[VName]()
   var selectedEdges = Set[EName]()
   var selectedBBoxes = Set[BBName]()
-
-
-  private var _undoStack: Option[UndoStack] = None
-  def undoStack = _undoStack
-  def undoStack_=(s: Option[UndoStack]) {
-    undoStack map (deafTo(_))
-    s map (listenTo(_))
-    _undoStack = s
-  }
-
-  reactions += {
-    case UndoPerformed(_) => repaint()
-    case RedoPerformed(_) => repaint()
-  }
 
   def invalidateGraph() {
     invalidateAllVerts()
@@ -153,9 +131,7 @@ class GraphView extends Panel
     g.fillRect(0, 0, bounds.width, bounds.height)
     if (drawGrid) drawGridLines(g)
 
-    computeVertexDisplay()
-    computeEdgeDisplay()
-    computeBBoxDisplay()
+    computeDisplayData()
 
     g.setStroke(new BasicStroke(1))
 
@@ -198,110 +174,22 @@ class GraphView extends Panel
 
     g.setStroke(new BasicStroke(1))
 
-    mouseState match {
-      case box: SelectionBox =>
-        g.setColor(new Color(0.5f,0.5f,1f,0.1f))
-        g.fill(box.rect)
-        g.setColor(new Color(0.5f,0.5f,1f,0.4f))
-        g.draw(box.rect)
-      case _=>
+    selectionBox.map { rect =>
+      g.setColor(new Color(0.5f,0.5f,1f,0.1f))
+      g.fill(rect)
+      g.setColor(new Color(0.5f,0.5f,1f,0.4f))
+      g.draw(rect)
     }
   }
 
-  // just shift vertices
-  private def shiftVertsVolatile(vs: Traversable[VName], p1: Point, p2: Point) {
+
+  def shiftVerts(vs: TraversableOnce[VName], p1: Point, p2: Point) {
     val (dx,dy) = (trans scaleFromScreen (p2.getX - p1.getX), trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       invalidateVertex(v)
       graph.adjacentEdges(v) foreach (invalidateEdge)
       g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
     }
-  }
-
-  // shift vertices and register undo
-  private def shiftVerts(vs: Traversable[VName], p1: Point, p2: Point) {
-    shiftVertsVolatile(vs, p1, p2)
-    undoStack map (_.register("Move Vertices") { shiftVerts(vs, p2, p1) })
-  }
-
-  reactions += {
-
-    case MousePressed(_, pt, modifiers, _, _) =>
-      mouseState match {
-        case SelectTool() =>
-          val vertexHit = vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
-          val mouseDownOnSelectedVert = vertexHit exists (selectedVerts.contains(_))
-
-          // clear the selection if the shift key isn't pressed and the vertex clicked isn't already selected
-          if (!mouseDownOnSelectedVert &&
-              (modifiers & Modifier.Shift) != Modifier.Shift)
-          {
-            selectedVerts = Set()
-            selectedEdges = Set()
-            selectedBBoxes = Set()
-          }
-
-          vertexHit match {
-            case Some(v) =>
-              selectedVerts += v // make sure v is selected, if it wasn't before
-              mouseState = DragVertex(pt,pt)
-            case None =>
-              mouseState = SelectionBox(pt, pt)
-          }
-
-          repaint()
-
-        case state => throw new InvalidMouseStateException("MousePressed", state)
-      }
-
-    case MouseDragged(_, pt, _) =>
-      mouseState match {
-        case SelectTool() => // do nothing
-        case SelectionBox(start,_) =>
-          mouseState = SelectionBox(start, pt)
-          repaint()
-        case DragVertex(start, prev) =>
-          shiftVertsVolatile(selectedVerts, prev, pt)
-          repaint()
-          mouseState = DragVertex(start, pt)
-        case state => throw new InvalidMouseStateException("MouseMoved", state)
-      }
-
-    case MouseReleased(_, pt, modifiers, _, _) =>
-      mouseState match {
-        case SelectionBox(start,_) =>
-          computeVertexDisplay()
-          computeEdgeDisplay()
-          computeBBoxDisplay()
-
-          if (pt.getX == start.getX && pt.getY == start.getY) {
-            var selectionUpdated = false
-            vertexDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedVerts += x._1 }
-
-            if (!selectionUpdated)
-              edgeDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedEdges += x._1 }
-            // TODO: bbox selection
-          } else {
-            // box selection only affects vertices
-            val r = mouseState.asInstanceOf[SelectionBox].rect
-            vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
-          }
-
-          mouseState = SelectTool()
-          repaint()
-
-        case DragVertex(start, end) =>
-          if (start.getX != end.getX || start.getY != end.getY) {
-            // we don't call shiftVerts directly, because the vertices have already moved
-            val verts = selectedVerts
-            undoStack map (_.register("Move Vertices") { shiftVerts(verts, end, start) })
-          }
-
-          mouseState = SelectTool()
-
-        case state => throw new InvalidMouseStateException("MouseReleased", state)
-      }
-
   }
 
   // scrollable trait data
