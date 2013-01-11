@@ -199,4 +199,23 @@ object Theory {
     "default_vertex_data" -> thy.defaultVertexData,
     "default_edge_data" -> thy.defaultEdgeData
   ).noEmpty
+
+
+  def defaultTheory = Theory(
+    name = "String theory",
+    coreName = "string_theory",
+    vertexTypes = Map(
+      "string" -> VertexDesc(
+        value = ValueDesc(
+          path = JsonPath("$.value"),
+          typ = ValueType.String
+        ),
+        style = VertexStyleDesc(
+          shape = VertexShape.Rectangle,
+          labelPosition = VertexLabelPosition.Inside
+        )
+      )
+    ),
+    defaultVertexData = JsonObject("type"->"string", "value"->"")
+  )
 }

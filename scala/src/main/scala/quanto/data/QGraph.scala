@@ -25,21 +25,18 @@ extends GraphLike[GData,VData,EData,BBData,QGraph]
 object QGraph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (QGraph, Name[N])) : QGraph = t._1
 
-  def fromJson(s: String): QGraph = fromJson(Json.parse(s))
+  def fromJson(s: String, thy: Theory): QGraph = fromJson(Json.parse(s), thy)
+  def fromJson(s: String): QGraph = fromJson(Json.parse(s), Theory.defaultTheory)
 
-  def fromJson(json: Json): QGraph =
+  def fromJson(json: Json, thy: Theory = Theory.defaultTheory): QGraph =
     Function.chain[QGraph](Seq(
 
       (json ?# "wire_vertices").foldLeft(_) { (g,v) =>
-        val data = v._2 ?# "data"
-        val annotation = v._2 ?# "annotation"
-        g.addVertex(v._1, WireV(data, annotation))
+        g.addVertex(v._1, WireV.fromJson(v._2, thy))
       },
 
       (json ?# "node_vertices").foldLeft(_) { (g,v) =>
-        val data = v._2 ?# "data"
-        val annotation = v._2 ?# "annotation"
-        g.addVertex(v._1, NodeV(data, annotation))
+        g.addVertex(v._1, NodeV.fromJson(v._2, thy))
       },
 
       (json ?# "dir_edges").foldLeft(_) { (g,e) =>
@@ -69,7 +66,7 @@ object QGraph {
       QGraph(GData(data, annotation))
     })
 
-  def toJson(graph: QGraph): Json = {
+  def toJson(graph: QGraph, thy: Theory = Theory.defaultTheory): Json = {
     val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))
     { case ((objW,objN), (v,d)) =>
       val entry = v.toString -> d.json
