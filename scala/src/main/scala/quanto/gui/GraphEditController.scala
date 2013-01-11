@@ -9,12 +9,12 @@ import quanto.data._
 class GraphEditController(view: GraphView) extends Reactor {
   var mouseState: MouseState = SelectTool()
 
-  private var _undoStack: Option[UndoStack] = None
+  private var _undoStack: UndoStack = new UndoStack
   def undoStack = _undoStack
-  def undoStack_=(s: Option[UndoStack]) {
-    undoStack map (deafTo(_))
-    s map (listenTo(_))
+  def undoStack_=(s: UndoStack) {
+    deafTo(_undoStack)
     _undoStack = s
+    listenTo(_undoStack)
   }
 
   reactions += {
@@ -25,7 +25,7 @@ class GraphEditController(view: GraphView) extends Reactor {
   // shift vertices and register undo
   private def shiftVerts(vs: TraversableOnce[VName], p1: Point, p2: Point) {
     view.shiftVerts(vs, p1, p2)
-    undoStack map (_.register("Move Vertices") { shiftVerts(vs, p2, p1) })
+    undoStack.register("Move Vertices") { shiftVerts(vs, p2, p1) }
   }
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
@@ -92,7 +92,7 @@ class GraphEditController(view: GraphView) extends Reactor {
           } else {
             // box selection only affects vertices
             val r = mouseState.asInstanceOf[SelectionBox].rect
-            vertexDisplay filter (_._2.rectHit(r)) foreach { view.selectedVerts += _._1 }
+            view.vertexDisplay filter (_._2.rectHit(r)) foreach { view.selectedVerts += _._1 }
           }
 
           mouseState = SelectTool()
@@ -103,7 +103,7 @@ class GraphEditController(view: GraphView) extends Reactor {
           if (start.getX != end.getX || start.getY != end.getY) {
             // we don't call shiftVerts directly, because the vertices have already moved
             val verts = view.selectedVerts
-            undoStack map (_.register("Move Vertices") { shiftVerts(verts, end, start) })
+            undoStack.register("Move Vertices") { view.shiftVerts(verts, end, start) }
           }
 
           mouseState = SelectTool()

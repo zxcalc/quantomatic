@@ -22,16 +22,14 @@ object GraphEditor extends SimpleSwingApplication {
   println(layoutEngine.dotString)
 
   // GUI components
-  val UndoStack_ = new UndoStack
-
   val GraphView_ = new GraphView {
     graph = randomGraph
     drawGrid = true
     dynamicResize = true
-    undoStack = Some(UndoStack_)
-    editMode = GraphView.ReadWrite
   }
 
+  val GraphEditController_ = new GraphEditController(GraphView_)
+  val UndoStack_ = GraphEditController_.undoStack
   val ScrollPane_ = new ScrollPane(GraphView_)
 
 
