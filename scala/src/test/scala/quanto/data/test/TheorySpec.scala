@@ -65,68 +65,99 @@ class TheorySpec extends FlatSpec {
   val thyJson = Json.parse(
     """
       |{
-      |  "name": "Test Theory",
-      |  "core_name": "test_theory",
-      |  "vertex_types": {
-      |
-      |    "red": {
-      |      "value": {
-      |        "path": "$.angle.pretty",
-      |        "type": "string",
-      |        "default": "0",
-      |        "latex_constants": true,
-      |        "validate_with_core": true
+      |  "name" : "Test Theory",
+      |  "core_name" : "test_theory",
+      |  "vertex_types" : {
+      |    "red" : {
+      |      "value" : {
+      |        "path" : "$.angle.pretty",
+      |        "validate_with_core" : true,
+      |        "latex_constants" : true,
+      |        "type" : "string"
       |      },
-      |      "style": {
-      |        "shape": "circle",
-      |        "stroke_color": [0.0,0.0,0.0],
-      |        "fill_color": [1.0,0.0,0.0],
-      |        "label": {
-      |          "position": "below",
-      |          "fg_color": [0.0,0.0,0.0]
+      |      "style" : {
+      |        "label" : {
+      |          "position" : "below",
+      |          "fg_color" : [ 0.0, 0.0, 0.0 ]
+      |        },
+      |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+      |        "fill_color" : [ 1.0, 0.0, 0.0 ],
+      |        "shape" : "circle"
+      |      },
+      |      "default_data" : {
+      |        "type" : "red",
+      |        "angle" : {
+      |          "pretty" : "0"
       |        }
       |      }
       |    },
-      |
-      |    "green": {
-      |      "value": {
-      |        "path": "$.angle.pretty",
-      |        "type": "string",
-      |        "default": "0",
-      |        "latex_constants": true,
-      |        "validate_with_core": true
+      |    "green" : {
+      |      "value" : {
+      |        "path" : "$.angle.pretty",
+      |        "validate_with_core" : true,
+      |        "latex_constants" : true,
+      |        "type" : "string"
       |      },
-      |      "style": {
-      |        "shape": "circle",
-      |        "stroke_color": [0.0,0.0,0.0],
-      |        "fill_color": [0.0,1.0,0.0],
-      |        "label": {
-      |          "position": "below",
-      |          "fg_color": [0.0,0.0,0.0]
+      |      "style" : {
+      |        "label" : {
+      |          "position" : "below",
+      |          "fg_color" : [ 0.0, 0.0, 0.0 ]
+      |        },
+      |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+      |        "fill_color" : [ 0.0, 1.0, 0.0 ],
+      |        "shape" : "circle"
+      |      },
+      |      "default_data" : {
+      |        "type" : "green",
+      |        "angle" : {
+      |          "pretty" : "0"
       |        }
       |      }
       |    },
-      |
-      |    "hadamard": {
-      |      "value": {
-      |        "path": "$",
-      |        "type": "empty",
-      |        "default": "",
-      |        "latex_constants": false,
-      |        "validate_with_core": false
+      |    "hadamard" : {
+      |      "value" : {
+      |        "path" : "$",
+      |        "validate_with_core" : false,
+      |        "latex_constants" : false,
+      |        "type" : "empty"
       |      },
-      |      "style": {
-      |        "shape": "rectangle",
-      |        "stroke_color": [0.0,0.0,0.0],
-      |        "fill_color": [1.0,1.0,0.0],
-      |        "label": {
-      |          "position": "center",
-      |          "fg_color": [0.0,0.0,0.0]
-      |        }
+      |      "style" : {
+      |        "label" : {
+      |          "position" : "center",
+      |          "fg_color" : [ 0.0, 0.0, 0.0 ]
+      |        },
+      |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+      |        "fill_color" : [ 1.0, 1.0, 0.0 ],
+      |        "shape" : "rectangle"
+      |      },
+      |      "default_data" : {
+      |        "type" : "hadamard"
       |      }
       |    }
-      |
-      |  }
+      |  },
+      |  "edge_types" : {
+      |    "plain" : {
+      |      "value" : {
+      |        "path" : "$",
+      |        "validate_with_core" : false,
+      |        "latex_constants" : false,
+      |        "type" : "empty"
+      |      },
+      |      "style" : {
+      |        "stroke_color" : [ 0.0, 0.0, 0.0 ],
+      |        "stroke_width" : 1,
+      |        "label" : {
+      |          "position" : "auto",
+      |          "fg_color" : [ 0.0, 0.0, 0.0 ]
+      |        }
+      |      },
+      |      "default_data" : {
+      |        "type" : "plain"
+      |      }
+      |    }
+      |  },
+      |  "default_vertex_type" : "red",
+      |  "default_edge_type" : "plain"
       |}
     """.stripMargin)
 
