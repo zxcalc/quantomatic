@@ -5,8 +5,9 @@ import quanto.util.json._
 import math.sqrt
 import JsonValues._
 
-class QGraphJsonException(message: String, cause: Throwable = null)
-extends Exception(message, cause)
+class QGraphLoadException(message: String, cause: Throwable = null)
+extends JsonParseException(message, cause)
+
 
 case class QGraph(
   data: GData                     = GData(),
@@ -68,9 +69,9 @@ object QGraph {
 
   def toJson(graph: QGraph, thy: Theory = Theory.defaultTheory): Json = {
     val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))
-    { case ((objW,objN), (v,d)) =>
-      val entry = v.toString -> d.json
-      if (d.isWireVertex) (objW + entry, objN) else (objW, objN + entry)
+    {
+      case ((objW,objN), (v,w: WireV)) => (objW + (v.toString -> WireV.toJson(w, thy)), objN)
+      case ((objW,objN), (v,n: NodeV)) => (objW, objN + (v.toString -> NodeV.toJson(n, thy)))
     }
 
     val (dirEdges, undirEdges) = graph.edata.foldLeft((JsonObject(), JsonObject()))

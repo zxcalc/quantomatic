@@ -122,7 +122,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |{
       |  "wire_vertices": ["w0", "w1", "w2"],
       |  "node_vertices": {
-      |    "n0":{"annotation": {"coord": [1,2]}},
+      |    "n0":{"annotation": {"coord": [1.0,2.0]}},
       |    "n1":{}
       |  },
       |  "dir_edges": {

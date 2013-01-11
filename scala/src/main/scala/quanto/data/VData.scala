@@ -18,7 +18,7 @@ object VData {
 
 case class NodeV(
   coord: (Double,Double) = (0.0,0.0),
-  typ: String = "",
+  typ: String = Theory.defaultTheory.defaultVertexType,
   value: String = "",
   data: JsonObject = JsonObject(),
   annotation: JsonObject = JsonObject()) extends VData
@@ -34,15 +34,27 @@ object NodeV {
     val annotation = json ?# "annotation"
     val coord = VData.getCoord(annotation)
     val typ = (data / "type").stringValue
+    if (!thy.vertexTypes.keySet.contains(typ)) throw new QGraphLoadException("Unrecognized vertex type: " + typ)
     val value = data.getPath(thy.vertexTypes(typ).value.path).stringValue
 
     NodeV(coord, typ, value, data, annotation)
   }
 
-  def toJson(n: NodeV, thy: Theory = Theory.defaultTheory) = JsonObject(
-    "data" -> (n.data.setPath(thy.vertexTypes(n.typ).value.path, n.value)),
-    "annotation" -> (n.annotation + ("coord" -> JsonArray(JsonDouble(n.coord._1), JsonDouble(n.coord._2))))
-  )
+
+  def toJson(n: NodeV, thy: Theory = Theory.defaultTheory) = {
+    val data =
+      if (n.data == thy.defaultVertexData) JsonNull()
+      else n.data.setPath(thy.vertexTypes(n.typ).value.path, n.value)
+
+    val annotation =
+      if (n.coord == (0.0,0.0)) n.annotation
+      else n.annotation + ("coord" -> JsonArray(JsonDouble(n.coord._1), JsonDouble(n.coord._2)))
+
+    JsonObject(
+      "data" -> data,
+      "annotation" -> annotation
+    ).noEmpty
+  }
 }
 
 case class WireV(
@@ -63,8 +75,13 @@ object WireV {
     WireV(coord, data, annotation)
   }
 
-  def toJson(n: WireV , thy: Theory = Theory.defaultTheory) = JsonObject(
-    "data" -> n.data,
-    "annotation" -> (n.annotation + ("coord" -> JsonArray(JsonDouble(n.coord._1), JsonDouble(n.coord._2))))
-  )
+  def toJson(n: WireV , thy: Theory = Theory.defaultTheory) = {
+    val annotation =
+      if (n.coord == (0.0,0.0)) n.annotation
+      else n.annotation + ("coord" -> JsonArray(JsonDouble(n.coord._1), JsonDouble(n.coord._2)))
+    JsonObject(
+      "data" -> n.data,
+      "annotation" -> annotation
+    ).noEmpty
+  }
 }

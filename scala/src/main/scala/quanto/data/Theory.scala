@@ -7,12 +7,14 @@ import java.awt.{Color, Shape}
 case class Theory(
   name: String,
   coreName: String,
-  vertexTypes: Map[String, Theory.VertexDesc] = Map(),
-  edgeTypes: Map[String, Theory.EdgeDesc] = Map(),
-  defaultVertexData: JsonObject = JsonObject(),
-  defaultEdgeData: JsonObject = JsonObject()
-)
-
+  vertexTypes: Map[String, Theory.VertexDesc],
+  edgeTypes: Map[String, Theory.EdgeDesc] = Map("plain" -> Theory.plainEdgeDesc),
+  defaultVertexType: String,
+  defaultEdgeType: String = "plain")
+{
+  def defaultVertexData = vertexTypes(defaultVertexType).defaultData
+  def defaultEdgeData = vertexTypes(defaultEdgeType).defaultData
+}
 
 
 object Theory {
@@ -60,7 +62,6 @@ object Theory {
     path: JsonPath = JsonPath("$"),
     typ: ValueType = ValueType.Empty,
     enumOptions: List[String] = List[String](),
-    default: String = "",
     latexConstants: Boolean = false,
     validateWithCore: Boolean = false
   )
@@ -70,7 +71,6 @@ object Theory {
         path = JsonPath(json / "path"),
         typ  = json / "type",
         enumOptions = (json ?@ "enum_options").toList.map(_.stringValue),
-        default = json / "default",
         latexConstants = json.getOrElse("latex_constants", false),
         validateWithCore = json.getOrElse("validate_with_core", false)
       )
@@ -80,7 +80,6 @@ object Theory {
         "path" -> v.path.toString,
         "type" -> v.typ,
         "enum_options" -> v.enumOptions,
-        "default" -> v.default,
         "latex_constants" -> v.latexConstants,
         "validate_with_core" -> v.validateWithCore
       ).noEmpty
@@ -152,54 +151,66 @@ object Theory {
 
   case class VertexDesc(
     value: ValueDesc,
-    style: VertexStyleDesc
+    style: VertexStyleDesc,
+    defaultData: JsonObject
   )
   object VertexDesc {
     implicit def fromJson(json: Json) = VertexDesc(
       value = json / "value",
-      style = json / "style"
+      style = json / "style",
+      defaultData = json /# "default_data"
     )
     implicit def toJson(v: VertexDesc) = JsonObject(
       "value" -> v.value,
-      "style" -> v.style
+      "style" -> v.style,
+      "default_data" -> v.defaultData
     )
   }
 
   case class EdgeDesc(
     value: ValueDesc,
-    style: VertexStyleDesc
+    style: EdgeStyleDesc,
+    defaultData: JsonObject
   )
   object EdgeDesc {
     implicit def fromJson(json: Json) = EdgeDesc(
       value = (json / "value"),
-      style = (json / "style")
+      style = (json / "style"),
+      defaultData = (json /# "default_data")
     )
     implicit def toJson(v: EdgeDesc) = JsonObject(
       "value" -> v.value,
-      "style" -> v.style
+      "style" -> v.style,
+      "default_data" -> v.defaultData
     )
   }
 
   def fromJson(s: String): Theory = fromJson(Json.parse(s))
-  def fromJson(json: Json): Theory =
+  def fromJson(json: Json): Theory = {
     Theory(
       name = (json / "name"),
       coreName = (json / "core_name"),
-      vertexTypes = (json ?# "vertex_types").mapValues(x => x:VertexDesc),
-      edgeTypes = (json ?# "edge_types").mapValues(x => x:EdgeDesc),
-      defaultVertexData = (json ?# "default_vertex_data"),
-      defaultEdgeData = (json ?# "default_edge_data")
+      vertexTypes = (json /# "vertex_types").mapValues(x => x:VertexDesc),
+      edgeTypes = (json /# "edge_types").mapValues(x => x:EdgeDesc),
+      defaultVertexType = (json / "default_vertex_type"),
+      defaultEdgeType = (json / "default_edge_type")
     )
+  }
 
   def toJson(thy: Theory): Json = JsonObject(
     "name" -> thy.name,
     "core_name" -> thy.coreName,
     "vertex_types" -> JsonObject(thy.vertexTypes.mapValues(x => x:Json)),
     "edge_types" -> JsonObject(thy.edgeTypes.mapValues(x => x:Json)),
-    "default_vertex_data" -> thy.defaultVertexData,
-    "default_edge_data" -> thy.defaultEdgeData
+    "default_vertex_type" -> thy.defaultVertexType,
+    "default_edge_type" -> thy.defaultEdgeType
   ).noEmpty
 
+  def plainEdgeDesc = EdgeDesc(
+    value = ValueDesc(typ = ValueType.Empty),
+    style = EdgeStyleDesc(),
+    defaultData = JsonObject("type" -> "plain")
+  )
 
   def defaultTheory = Theory(
     name = "String theory",
@@ -213,9 +224,10 @@ object Theory {
         style = VertexStyleDesc(
           shape = VertexShape.Rectangle,
           labelPosition = VertexLabelPosition.Inside
-        )
+        ),
+        defaultData = JsonObject("type" -> "string", "value" -> "")
       )
     ),
-    defaultVertexData = JsonObject("type"->"string", "value"->"")
+    defaultVertexType = "string"
   )
 }

@@ -12,10 +12,11 @@ class JsonAccessException(message: String, val json: Json)
   extends JsonException(message)
 
 // thrown if a problem is encountered while parsing the JSON
-class JsonParseException(message: String, cause: JacksonParseException = null)
+class JsonParseException(message: String, cause: Throwable = null)
   extends JsonException(
     message + (if (cause != null) ": " + cause.getMessage else ""),
     cause)
+
 
 sealed abstract class Json {
   def writeTo(out: Json.Output)
@@ -88,6 +89,8 @@ sealed abstract class Json {
 
   // 'slash' notation for required children
   def /(key: String)    = this(key)
+  def /#(key: String)   = this(key).asObject
+  def /@(key: String)   = this(key).asArray
 
   // optional child notation
   def ?(key: String)    = getOrElse(key, JsonNull())

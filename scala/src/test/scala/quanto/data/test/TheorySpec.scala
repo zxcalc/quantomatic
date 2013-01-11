@@ -11,7 +11,6 @@ class TheorySpec extends FlatSpec {
   val rgValueDesc = Theory.ValueDesc(
     path = JsonPath("$.angle.pretty"),
     typ = Theory.ValueType.String,
-    default = "0",
     latexConstants = true,
     validateWithCore = true
   )
@@ -19,7 +18,6 @@ class TheorySpec extends FlatSpec {
   val hValueDesc = Theory.ValueDesc(
     path = JsonPath("$"),
     typ = Theory.ValueType.Empty,
-    default = "",
     latexConstants = false,
     validateWithCore = false
   )
@@ -47,17 +45,21 @@ class TheorySpec extends FlatSpec {
     vertexTypes = Map(
       "red" -> Theory.VertexDesc(
         value = rgValueDesc,
-        style = rStyleDesc
+        style = rStyleDesc,
+        defaultData = JsonObject("type"->"red", "angle" -> JsonObject("pretty"->"0"))
       ),
       "green" -> Theory.VertexDesc(
         value = rgValueDesc,
-        style = gStyleDesc
+        style = gStyleDesc,
+        defaultData = JsonObject("type"->"green", "angle" -> JsonObject("pretty"->"0"))
       ),
       "hadamard" -> Theory.VertexDesc(
         value = hValueDesc,
-        style = hStyleDesc
+        style = hStyleDesc,
+        defaultData = JsonObject("type"->"hadamard")
       )
-    )
+    ),
+    defaultVertexType = "red"
   )
 
   val thyJson = Json.parse(
