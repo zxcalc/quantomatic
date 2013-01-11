@@ -6,18 +6,19 @@ import swing.event._
 import Key.Modifier
 import quanto.data._
 
-class GraphEditController(view: GraphView) extends Reactor {
+class GraphEditController(view: GraphView) {
   var mouseState: MouseState = SelectTool()
 
   private var _undoStack: UndoStack = new UndoStack
+  view.listenTo(_undoStack)
   def undoStack = _undoStack
   def undoStack_=(s: UndoStack) {
-    deafTo(_undoStack)
+    view.deafTo(_undoStack)
     _undoStack = s
-    listenTo(_undoStack)
+    view.listenTo(_undoStack)
   }
 
-  reactions += {
+  view.reactions += {
     case UndoPerformed(_) => view.repaint()
     case RedoPerformed(_) => view.repaint()
   }
@@ -103,7 +104,7 @@ class GraphEditController(view: GraphView) extends Reactor {
           if (start.getX != end.getX || start.getY != end.getY) {
             // we don't call shiftVerts directly, because the vertices have already moved
             val verts = view.selectedVerts
-            undoStack.register("Move Vertices") { view.shiftVerts(verts, end, start) }
+            undoStack.register("Move Vertices") { shiftVerts(verts, end, start) }
           }
 
           mouseState = SelectTool()
