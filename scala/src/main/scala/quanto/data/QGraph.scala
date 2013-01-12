@@ -27,9 +27,9 @@ object QGraph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (QGraph, Name[N])) : QGraph = t._1
 
   def fromJson(s: String, thy: Theory): QGraph = fromJson(Json.parse(s), thy)
-  def fromJson(s: String): QGraph = fromJson(Json.parse(s), Theory.defaultTheory)
+  def fromJson(s: String): QGraph = fromJson(Json.parse(s), Theory.DefaultTheory)
 
-  def fromJson(json: Json, thy: Theory = Theory.defaultTheory): QGraph =
+  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): QGraph =
     Function.chain[QGraph](Seq(
 
       (json ?# "wire_vertices").foldLeft(_) { (g,v) =>
@@ -41,14 +41,14 @@ object QGraph {
       },
 
       (json ?# "dir_edges").foldLeft(_) { (g,e) =>
-        val data = e._2 ?# "data"
+        val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
         val annotation = e._2 ?# "annotation"
         g.addEdge(e._1, DirEdge(data, annotation),
           (e._2("src").stringValue, e._2("tgt").stringValue))
       },
 
       (json ?# "undir_edges").foldLeft(_) { (g,e) =>
-        val data = e._2 ?# "data"
+        val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
         val annotation = e._2 ?# "annotation"
         g.addEdge(e._1, UndirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
       },
@@ -67,16 +67,16 @@ object QGraph {
       QGraph(GData(data, annotation))
     })
 
-  def toJson(graph: QGraph, thy: Theory = Theory.defaultTheory): Json = {
+  def toJson(graph: QGraph, thy: Theory = Theory.DefaultTheory): Json = {
     val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))
     {
-      case ((objW,objN), (v,w: WireV)) => (objW + (v.toString -> WireV.toJson(w, thy)), objN)
-      case ((objW,objN), (v,n: NodeV)) => (objW, objN + (v.toString -> NodeV.toJson(n, thy)))
+      case ((objW,objN), (v,w: WireV)) => (objW + (v.toString -> w.toJson), objN)
+      case ((objW,objN), (v,n: NodeV)) => (objW, objN + (v.toString -> n.toJson))
     }
 
     val (dirEdges, undirEdges) = graph.edata.foldLeft((JsonObject(), JsonObject()))
     { case ((objD,objU), (e,d)) =>
-      val entry = e.toString -> (d.json + ("src" -> graph.source(e).toString, "tgt" -> graph.target(e).toString))
+      val entry = e.toString -> (d.toJson + ("src" -> graph.source(e).toString, "tgt" -> graph.target(e).toString))
       if (d.isDirected) (objD + entry, objU) else (objD, objU + entry)
     }
 

@@ -13,7 +13,8 @@ case class Theory(
   defaultEdgeType: String = "plain")
 {
   def defaultVertexData = vertexTypes(defaultVertexType).defaultData
-  def defaultEdgeData = vertexTypes(defaultEdgeType).defaultData
+  def defaultEdgeData = edgeTypes(defaultEdgeType).defaultData
+  override def toString = coreName
 }
 
 
@@ -212,7 +213,7 @@ object Theory {
     defaultData = JsonObject("type" -> "plain")
   )
 
-  def defaultTheory = Theory(
+  val DefaultTheory = Theory(
     name = "String theory",
     coreName = "string_theory",
     vertexTypes = Map(

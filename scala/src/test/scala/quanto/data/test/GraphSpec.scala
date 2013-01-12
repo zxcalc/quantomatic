@@ -142,7 +142,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   val jsonGraphShouldBe = (QGraph()
     addVertex("w0", WireV()) addVertex("w1", WireV()) addVertex("w2", WireV())
-    addVertex("n0", NodeV(data=JsonObject(),annotation=JsonObject("coord"->JsonArray(1,2))))
+    addVertex("n0", NodeV(coord=(1.0,2.0)))
     addVertex("n1", NodeV())
     addEdge("e0", DirEdge(), "w0" -> "w1")
     addEdge("e1", DirEdge(), "w1" -> "w2")

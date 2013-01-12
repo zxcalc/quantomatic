@@ -3,4 +3,8 @@ package quanto.data
 import quanto.util.json.JsonObject
 
 
-case class BBData(data: JsonObject = JsonObject(), annotation: JsonObject = JsonObject()) extends GraphElementData
+case class BBData(
+  data: JsonObject = JsonObject(),
+  annotation: JsonObject = JsonObject(),
+  theory: Theory = Theory.DefaultTheory
+) extends GraphElementData

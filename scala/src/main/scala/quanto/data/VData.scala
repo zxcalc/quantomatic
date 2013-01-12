@@ -3,8 +3,14 @@ package quanto.data
 import quanto.util.json._
 
 abstract class VData extends GraphElementData {
-  def coord: (Double, Double)
+  def coord: (Double, Double) = annotation.get("coord") match {
+    case Some(JsonArray(Vector(x,y))) => (x.doubleValue, y.doubleValue)
+    case Some(otherJson) => throw new JsonAccessException("Expected: array with 2 elements", otherJson)
+    case None => (0,0)
+  }
+
   def withCoord(c: (Double,Double)): VData
+
   def isWireVertex: Boolean
 }
 
@@ -17,71 +23,54 @@ object VData {
 }
 
 case class NodeV(
-  coord: (Double,Double) = (0.0,0.0),
-  typ: String = Theory.defaultTheory.defaultVertexType,
-  value: String = "",
-  data: JsonObject = JsonObject(),
-  annotation: JsonObject = JsonObject()) extends VData
+  data: JsonObject = Theory.DefaultTheory.defaultVertexData,
+  annotation: JsonObject = JsonObject(),
+  theory: Theory = Theory.DefaultTheory) extends VData
 {
+  def typ = (data / "type").stringValue
+  def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
+
+  def withCoord(c: (Double,Double)) =
+    copy(annotation = (annotation + ("coord" -> JsonArray(c._1, c._2))))
+  def withValue(s: String) =
+    copy(data = data.setPath(theory.vertexTypes(typ).value.path, s).asObject)
+
   def isWireVertex = false
-  def withCoord(c: (Double,Double)) = copy(coord = c)
-  def withValue(s: String) = copy(value = s)
+
+  override def toJson = JsonObject(
+    "data" -> (if (data == theory.vertexTypes(typ).defaultData) JsonNull() else data),
+    "annotation" -> annotation).noEmpty
 }
 
 object NodeV {
-  def fromJson(json: Json, thy: Theory = Theory.defaultTheory): NodeV = {
+  def apply(coord: (Double,Double)): NodeV = NodeV(annotation = JsonObject("coord" -> JsonArray(coord._1,coord._2)))
+
+  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): NodeV = {
     val data = json.getOrElse("data", thy.defaultVertexData).asObject
     val annotation = json ?# "annotation"
-    val coord = VData.getCoord(annotation)
+
+    VData.getCoord(annotation)
     val typ = (data / "type").stringValue
     if (!thy.vertexTypes.keySet.contains(typ)) throw new QGraphLoadException("Unrecognized vertex type: " + typ)
-    val value = data.getPath(thy.vertexTypes(typ).value.path).stringValue
+    data.getPath(thy.vertexTypes(typ).value.path).stringValue
 
-    NodeV(coord, typ, value, data, annotation)
-  }
-
-
-  def toJson(n: NodeV, thy: Theory = Theory.defaultTheory) = {
-    val data =
-      if (n.data == thy.defaultVertexData) JsonNull()
-      else n.data.setPath(thy.vertexTypes(n.typ).value.path, n.value)
-
-    val annotation =
-      if (n.coord == (0.0,0.0)) n.annotation
-      else n.annotation + ("coord" -> JsonArray(JsonDouble(n.coord._1), JsonDouble(n.coord._2)))
-
-    JsonObject(
-      "data" -> data,
-      "annotation" -> annotation
-    ).noEmpty
+    NodeV(data, annotation, thy)
   }
 }
 
 case class WireV(
-  coord: (Double, Double) = (0.0,0.0),
   data: JsonObject = JsonObject(),
-  annotation: JsonObject = JsonObject()) extends VData
+  annotation: JsonObject = JsonObject(),
+  theory: Theory = Theory.DefaultTheory) extends VData
 {
   def isWireVertex = true
-  def withCoord(c: (Double,Double)) = copy(coord = c)
+  def withCoord(c: (Double,Double)) =
+    copy(annotation = (annotation + ("coord" -> JsonArray(c._1, c._2))))
 }
 
 object WireV {
-  def fromJson(json: Json, thy: Theory = Theory.defaultTheory): WireV = {
-    val data = json ?# "data"
-    val annotation = json ?# "annotation"
-    val coord = VData.getCoord(annotation)
+  def apply(c: (Double,Double)): WireV = WireV(annotation = JsonObject("coord" -> JsonArray(c._1,c._2)))
 
-    WireV(coord, data, annotation)
-  }
-
-  def toJson(n: WireV , thy: Theory = Theory.defaultTheory) = {
-    val annotation =
-      if (n.coord == (0.0,0.0)) n.annotation
-      else n.annotation + ("coord" -> JsonArray(JsonDouble(n.coord._1), JsonDouble(n.coord._2)))
-    JsonObject(
-      "data" -> n.data,
-      "annotation" -> annotation
-    ).noEmpty
-  }
+  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): WireV =
+    WireV(json ?# "data", json ?# "annotation", thy)
 }
