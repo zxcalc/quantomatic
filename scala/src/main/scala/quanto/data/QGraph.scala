@@ -6,7 +6,7 @@ import math.sqrt
 import JsonValues._
 
 class QGraphLoadException(message: String, cause: Throwable = null)
-extends JsonParseException(message, cause)
+extends Exception(message, cause)
 
 
 case class QGraph(
@@ -26,10 +26,14 @@ extends GraphLike[GData,VData,EData,BBData,QGraph]
 object QGraph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (QGraph, Name[N])) : QGraph = t._1
 
-  def fromJson(s: String, thy: Theory): QGraph = fromJson(Json.parse(s), thy)
-  def fromJson(s: String): QGraph = fromJson(Json.parse(s), Theory.DefaultTheory)
+  def fromJson(s: String, thy: Theory): QGraph =
+    try   { fromJson(Json.parse(s)) }
+    catch { case e:JsonParseException => throw new QGraphLoadException("Error parsing JSON", e) }
 
-  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): QGraph =
+
+  def fromJson(s: String): QGraph = fromJson(s, Theory.DefaultTheory)
+
+  def fromJson(json: Json, thy: Theory = Theory.DefaultTheory): QGraph = try {
     Function.chain[QGraph](Seq(
 
       (json ?# "wire_vertices").foldLeft(_) { (g,v) =>
@@ -66,6 +70,9 @@ object QGraph {
       val annotation = json ?# "annotation"
       QGraph(GData(data, annotation))
     })
+  } catch {
+    case e: JsonAccessException => throw new QGraphLoadException("Error reading JSON", e)
+  }
 
   def toJson(graph: QGraph, thy: Theory = Theory.DefaultTheory): Json = {
     val (wireVertices, nodeVertices) = graph.vdata.foldLeft((JsonObject(), JsonObject()))

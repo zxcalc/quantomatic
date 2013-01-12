@@ -4,11 +4,14 @@ import quanto.util.json._
 import JsonValues._
 import java.awt.{Color, Shape}
 
+class TheoryLoadException(message: String, cause: Throwable = null)
+  extends Exception(message, cause)
+
 case class Theory(
   name: String,
   coreName: String,
   vertexTypes: Map[String, Theory.VertexDesc],
-  edgeTypes: Map[String, Theory.EdgeDesc] = Map("plain" -> Theory.plainEdgeDesc),
+  edgeTypes: Map[String, Theory.EdgeDesc] = Map("plain" -> Theory.PlainEdgeDesc),
   defaultVertexType: String,
   defaultEdgeType: String = "plain")
 {
@@ -186,16 +189,39 @@ object Theory {
     )
   }
 
-  def fromJson(s: String): Theory = fromJson(Json.parse(s))
+  def fromJson(s: String): Theory =
+    try   { fromJson(Json.parse(s)) }
+    catch { case e:JsonParseException => throw new TheoryLoadException("Error parsing JSON", e) }
+
   def fromJson(json: Json): Theory = {
-    Theory(
-      name = (json / "name"),
-      coreName = (json / "core_name"),
-      vertexTypes = (json /# "vertex_types").mapValues(x => x:VertexDesc),
-      edgeTypes = (json /# "edge_types").mapValues(x => x:EdgeDesc),
-      defaultVertexType = (json / "default_vertex_type"),
-      defaultEdgeType = (json / "default_edge_type")
-    )
+    try {
+      val name = (json / "name").stringValue
+      val coreName = (json / "core_name").stringValue
+      val vertexTypes = (json /# "vertex_types").mapValues(x => x:VertexDesc)
+      val defaultVertexType = (json / "default_vertex_type")
+      if (!vertexTypes.contains(defaultVertexType))
+        throw new TheoryLoadException("Default vertex type: " + defaultVertexType + " not in list.")
+
+      val edgeTypes = json.get("edge_types") match {
+        case Some(et) => et.asObject.mapValues(x => x:EdgeDesc)
+        case None => Map("plain"->PlainEdgeDesc)
+      }
+      val defaultEdgeType = json.getOrElse("default_edge_type", "plain").stringValue
+
+      if (!edgeTypes.contains(defaultEdgeType))
+        throw new TheoryLoadException("Default edge type: " + defaultEdgeType + " not in list.")
+
+      Theory(
+        name,
+        coreName,
+        vertexTypes,
+        edgeTypes,
+        defaultVertexType,
+        defaultEdgeType
+      )
+    } catch {
+      case e: JsonAccessException => throw new TheoryLoadException("Error reading JSON", e)
+    }
   }
 
   def toJson(thy: Theory): Json = JsonObject(
@@ -207,7 +233,7 @@ object Theory {
     "default_edge_type" -> thy.defaultEdgeType
   ).noEmpty
 
-  def plainEdgeDesc = EdgeDesc(
+  val PlainEdgeDesc = EdgeDesc(
     value = ValueDesc(typ = ValueType.Empty),
     style = EdgeStyleDesc(),
     defaultData = JsonObject("type" -> "plain")
