@@ -51,7 +51,7 @@ object NodeV {
 
     VData.getCoord(annotation)
     val typ = (data / "type").stringValue
-    if (!thy.vertexTypes.keySet.contains(typ)) throw new QGraphLoadException("Unrecognized vertex type: " + typ)
+    if (!thy.vertexTypes.keySet.contains(typ)) throw new GraphLoadException("Unrecognized vertex type: " + typ)
     data.getPath(thy.vertexTypes(typ).value.path).stringValue
 
     NodeV(data, annotation, thy)

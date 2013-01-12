@@ -15,7 +15,7 @@ case class EDisplay(path: Path2D.Double, lines: List[Line2D.Double]) {
 }
 
 trait EdgeDisplayData { self: VertexDisplayData =>
-  def graph: QGraph
+  def graph: Graph
   def trans: Transformer
   //protected def vertexDisplay: collection.Map[VName, VDisplay]
   //protected def vertexContactPoint(vn: VName, angle: Double): (Double,Double)

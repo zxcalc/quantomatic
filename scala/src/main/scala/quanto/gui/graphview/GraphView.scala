@@ -40,7 +40,7 @@ class GraphView extends Panel
     computeBBoxDisplay()
   }
 
-  var graph = new QGraph()
+  var graph = new Graph()
   var trans = new Transformer
 
   var selectedVerts = Set[VName]()

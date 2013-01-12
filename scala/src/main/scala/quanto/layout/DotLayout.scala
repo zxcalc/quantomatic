@@ -11,7 +11,7 @@ class DotLayout extends GraphLayout {
   var dotIn: BufferedReader = _
   var dotOut: BufferedWriter = _
 
-  private def generateDot(graph: QGraph) = {
+  private def generateDot(graph: Graph) = {
     val sb = new StringBuilder
 
     var vid = Map[VName,Int]()
@@ -46,7 +46,7 @@ class DotLayout extends GraphLayout {
     (vid,sb.toString)
   }
 
-  def layout(graph: QGraph) = {
+  def layout(graph: Graph) = {
     val (vid,dotStr) = generateDot(graph)
     dotString = dotStr
     var xMax = 0.0

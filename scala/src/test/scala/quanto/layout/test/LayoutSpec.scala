@@ -1,5 +1,5 @@
 import org.scalatest._
-import quanto.data.{DirEdge, NodeV, QGraph}
+import quanto.data.{DirEdge, NodeV, Graph}
 import quanto.layout.{DotLayout, RankLayout}
 import quanto.util.json.Json
 
@@ -12,10 +12,10 @@ class LayoutSpec extends FlatSpec {
     rankLayout = new RankLayout
   }
 
-  var randomGraph: QGraph = _
+  var randomGraph: Graph = _
 
   it should "layout a graph" in {
-    randomGraph = rankLayout.layout(QGraph.random(4,8))
+    randomGraph = rankLayout.layout(Graph.random(4,8))
   }
 
   it should "yield ranks for all verts" in {
@@ -40,7 +40,7 @@ class LayoutSpec extends FlatSpec {
 
   val dotLayout = new DotLayout
 
-  var dotGraph: QGraph = QGraph.random(10,20)
+  var dotGraph: Graph = Graph.random(10,20)
 
   it should "lay out a graph" in {
     dotGraph = dotLayout.layout(dotGraph)

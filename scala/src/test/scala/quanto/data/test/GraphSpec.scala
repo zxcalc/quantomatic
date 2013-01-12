@@ -10,10 +10,10 @@ import quanto.util.json._
 class GraphSpec extends FlatSpec with GivenWhenThen {
   behavior of "A graph"
   
-  var g : Graph[Unit,VData,Boolean,Unit] = _
+  var g : Graph = _
   
   it can "initialize" in {
-    g = new Graph(())
+    g = new Graph()
   }
 
   var v0 : VName = _
@@ -32,18 +32,18 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   }
 
   it should "get fresh names for newEdge" in {
-    g.newEdge(true, v0 -> v1) match {case (g1,e) => g = g1; e0 = e}
+    g.newEdge(DirEdge(), v0 -> v1) match {case (g1,e) => g = g1; e0 = e}
     assert(e0 === EName("e0"))
 
-    g.newEdge(false, v1 -> v1) match {case (g1,e) => g = g1; e1 = e}
+    g.newEdge(DirEdge(), v1 -> v1) match {case (g1,e) => g = g1; e1 = e}
     assert(e1 === EName("e1"))
   }
 
   it should "get fresh names for newBBox" in {
-    g.newBBox(()) match {case (g1,b) => g = g1; bb0 = b}
+    g.newBBox(BBData()) match {case (g1,b) => g = g1; bb0 = b}
     assert(bb0 === BBName("bb0"))
 
-    g.newBBox((), Set(v0), Some(bb0)) match {case (g1,b) => g = g1; bb1 = b}
+    g.newBBox(BBData(), Set(v0), Some(bb0)) match {case (g1,b) => g = g1; bb1 = b}
     assert(bb1 === BBName("bb1"))
   }
 
@@ -59,11 +59,11 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     }
 
     intercept[DuplicateEdgeNameException] {
-      g.addEdge("e0", false, "v0" -> "v1")
+      g.addEdge("e0", DirEdge(), "v0" -> "v1")
     }
 
     intercept[DuplicateBBoxNameException] {
-      g.addBBox("bb0", ())
+      g.addBBox("bb0", BBData())
     }
   }
 
@@ -74,21 +74,21 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   behavior of "Another graph"
 
-  var otherG : Graph[Unit,VData,Boolean,Unit] = _
+  var otherG : Graph = _
 
   it can "be constructed in block form" in {
     // implicit conversions are used to make strings into names, where
     // necessary.
-    otherG = (new Graph[Unit,VData,Boolean,Unit](())
+    otherG = (new Graph()
       addVertex ("v0", NodeV())
       addVertex ("v1", WireV())
       addVertex ("v2", NodeV())
-      addEdge   ("e0", true, "v0" -> "v0")
-      addEdge   ("e1", true, "v0" -> "v1")
-      addEdge   ("e2", true, "v1" -> "v2")
-      newEdge   (true, "v0" -> "v1")
-      addBBox   ("bb0", (), Set("v0", "v1"))
-      addBBox   ("bb1", (), Set("v2"), parent = Some("bb0"))
+      addEdge   ("e0", DirEdge(), "v0" -> "v0")
+      addEdge   ("e1", UndirEdge(), "v0" -> "v1")
+      addEdge   ("e2", DirEdge(), "v1" -> "v2")
+      newEdge   (DirEdge(), "v0" -> "v1") // fresh name is returned, but dropped by implicit conversion
+      addBBox   ("bb0", BBData(), Set("v0", "v1"))
+      addBBox   ("bb1", BBData(), Set("v2"), parent = Some("bb0"))
     )
 
     println(otherG.toString)
@@ -96,25 +96,6 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   it should "not be equal to the first graph" in {
     assert(g != otherG)
-  }
-
-  behavior of "A QGraph"
-
-  var qg : QGraph = _
-  it can "be constructed in block form" in {
-    val g1 = (QGraph()
-      addVertex ("v0", NodeV())
-      addVertex ("v1", WireV())
-      addVertex ("v2", NodeV())
-      addEdge   ("e0", DirEdge(), "v0" -> "v0")
-      addEdge   ("e1", DirEdge(), "v0" -> "v1")
-      addEdge   ("e2", DirEdge(), "v1" -> "v2")
-      newEdge   (DirEdge(), "v0" -> "v1")
-      addBBox   ("bb0", BBData(), Set("v0", "v1"))
-      addBBox   ("bb1", BBData(), Set("v2"), parent = Some("bb0"))
-      )
-
-    assert(g1.inBBox.codf("bb0") === Set(VName("v0"), VName("v1")))
   }
 
   val jsonString =
@@ -140,7 +121,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
       |}
     """.stripMargin
 
-  val jsonGraphShouldBe = (QGraph()
+  val jsonGraphShouldBe = (Graph()
     addVertex("w0", WireV()) addVertex("w1", WireV()) addVertex("w2", WireV())
     addVertex("n0", NodeV(coord=(1.0,2.0)))
     addVertex("n1", NodeV())
@@ -152,14 +133,14 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
     addBBox("bb2", BBData())
   )
 
-  var jsonGraph: QGraph = _
+  var jsonGraph: Graph = _
 
   it can "be constructed from JSON" in {
-    jsonGraph = QGraph.fromJson(jsonString)
+    jsonGraph = Graph.fromJson(jsonString)
   }
 
   it should "be equal to a graph from the same JSON" in {
-    val jsonGraph1 = QGraph.fromJson(jsonString)
+    val jsonGraph1 = Graph.fromJson(jsonString)
     assert(jsonGraph === jsonGraph1)
   }
 
@@ -170,17 +151,17 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   // note this test is sensitive to having "normalised" JSON input, e.g. arrays that represent name sets are
   // alphabetised.
   it should "save to the correct json" in {
-    val json = QGraph.toJson(jsonGraph)
+    val json = Graph.toJson(jsonGraph)
     assert(json === Json.parse(jsonString))
   }
 
   it should "save then load to the same graph" in {
-    assert(jsonGraphShouldBe === QGraph.fromJson(QGraph.toJson(jsonGraphShouldBe)))
+    assert(jsonGraphShouldBe === Graph.fromJson(Graph.toJson(jsonGraphShouldBe)))
   }
 
   behavior of "Depth-first traversal"
 
-  val dftGraph = QGraph.fromJson(
+  val dftGraph = Graph.fromJson(
     """
       |{
       |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
@@ -207,7 +188,7 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
 
   behavior of "Dag copy"
 
-  val dagGraph = QGraph.fromJson(
+  val dagGraph = Graph.fromJson(
     """
       |{
       |  "node_vertices": ["n0", "n1", "n2", "n3", "n4", "n5"],
@@ -226,17 +207,17 @@ class GraphSpec extends FlatSpec with GivenWhenThen {
   }
 
   it should "leave dags unchanged" in {
-    val dag = QGraph.randomDag(50,50)
+    val dag = Graph.randomDag(50,50)
     assert(dag.dagCopy === dag)
   }
 
-  def traverseFrom(graph: QGraph, v: VName, seen: Set[VName]) {
+  def traverseFrom(graph: Graph, v: VName, seen: Set[VName]) {
     if (seen contains v) fail("directed cycle detected")
     for (e <- graph.outEdges(v)) traverseFrom(graph, graph.target(e), seen + v)
   }
 
   it should "contain no directed cycles" in {
-    val graph = QGraph.random(100,100)
+    val graph = Graph.random(100,100)
     val dag = graph.dagCopy
 
     for ((v,_) <- graph.vdata) traverseFrom(dag, v, Set[VName]())

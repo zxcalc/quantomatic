@@ -9,10 +9,10 @@ class RankLayout extends GraphLayout with ConstraintSolver {
 
   private var rankMap = PFun[VName, Int]()
   private var posMap = Map[VName,Int]()
-  var modelGraph = QGraph()
+  var modelGraph = Graph()
 
-  def weight(graph: QGraph, e: EName) = 1
-  def minLength(graph: QGraph, e: EName) = 1
+  def weight(graph: Graph, e: EName) = 1
+  def minLength(graph: Graph, e: EName) = 1
 
   def rank(v: VName): Int = rankMap(v)
   def pos(v: VName): Int = posMap(v)
@@ -65,7 +65,7 @@ class RankLayout extends GraphLayout with ConstraintSolver {
     }
   }
 
-  def layout(graph: QGraph): QGraph = {
+  def layout(graph: Graph): Graph = {
     modelGraph = graph.dagCopy
 
     // assign ranks to minimise edge length

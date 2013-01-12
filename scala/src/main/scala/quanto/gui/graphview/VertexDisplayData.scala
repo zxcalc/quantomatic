@@ -12,7 +12,7 @@ case class VDisplay(shape: Shape, color: Color) {
 }
 
 trait VertexDisplayData {
-  def graph: QGraph
+  def graph: Graph
   def trans: Transformer
 
   val vertexDisplay = collection.mutable.Map[VName,VDisplay]()

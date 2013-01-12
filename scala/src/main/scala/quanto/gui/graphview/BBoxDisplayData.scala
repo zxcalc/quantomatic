@@ -10,7 +10,7 @@ case class BBDisplay(rect: Rectangle2D) {
 }
 
 trait BBoxDisplayData { self: VertexDisplayData =>
-  def graph: QGraph
+  def graph: Graph
   def trans: Transformer
   val bboxDisplay = collection.mutable.Map[BBName,BBDisplay]()
 
