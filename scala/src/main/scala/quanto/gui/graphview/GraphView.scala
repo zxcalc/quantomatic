@@ -4,13 +4,11 @@ import quanto.data._
 import quanto.gui._
 import quanto.data.Names._
 import swing._
-import java.awt.{BasicStroke, Color, RenderingHints}
+import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
-import quanto.data.EName
-import quanto.data.BBName
-import quanto.data.VName
-import swing.Rectangle
 import java.awt.geom.Rectangle2D
+import scala.List
+import quanto.data.Theory.VertexLabelPosition
 
 
 class GraphView extends Panel
@@ -157,7 +155,7 @@ class GraphView extends Panel
 
     g.setStroke(new BasicStroke(1))
 
-    for ((v, VDisplay(shape,color)) <- vertexDisplay) {
+    for ((v, VDisplay(shape,color,label)) <- vertexDisplay) {
       g.setColor(color)
       g.fill(shape)
 
@@ -170,6 +168,12 @@ class GraphView extends Panel
       }
 
       g.draw(shape)
+
+      label.map { case LabelDisplay(text,bounds,baseline) =>
+        g.setColor(Color.BLACK)
+        g.setFont(VertexLabelFont)
+        g.drawString(text, bounds.getMinX.toFloat, baseline.toFloat)
+      }
     }
 
     g.setStroke(new BasicStroke(1))
@@ -208,10 +212,8 @@ object GraphView {
   final val ArrowheadLength = 0.1
   final val ArrowheadAngle = 0.25 * Pi
   final val EdgeSelectionRadius = 3.0
-
-  final val ReadOnly = 0
-  final val CosmeticEdits = 1
-  final val ReadWrite = 2
+  final val VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, 12)
+  final val EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, 10)
 
   final val AxisColor = new Color(0.8f,0.8f,0.9f)
   final val MajorColor = new Color(0.85f,0.85f,1.0f)

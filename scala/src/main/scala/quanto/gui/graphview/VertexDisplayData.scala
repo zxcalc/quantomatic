@@ -1,19 +1,30 @@
 package quanto.gui.graphview
 
 import java.awt.geom.{Rectangle2D, Ellipse2D, Point2D}
-import java.awt.{Color, Shape}
+import java.awt.{FontMetrics, Color, Shape}
 import math._
 import quanto.data._
 import quanto.gui._
 
-case class VDisplay(shape: Shape, color: Color) {
+case class LabelDisplay(text: String, bounds: Rectangle2D, baseline: Double)
+
+object LabelDisplay {
+  def apply(t: String, p: (Double,Double), fm: FontMetrics): LabelDisplay = {
+    val (x,y) = p
+    val arr = t.toCharArray
+    val h = fm.getHeight.toDouble
+    val w = max(fm.charsWidth(arr, 0, arr.size).toDouble, h)
+    val bds = new Rectangle2D.Double(x - (w/2), y - (h/2), w, h)
+    LabelDisplay(t, bds, bds.getMaxY - fm.getDescent)
+  }
+}
+
+case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplay]) {
   def pointHit(pt: Point2D) = shape.contains(pt)
   def rectHit(r: Rectangle2D) = shape.intersects(r)
 }
 
-trait VertexDisplayData {
-  def graph: Graph
-  def trans: Transformer
+trait VertexDisplayData { self: GraphView =>
 
   val vertexDisplay = collection.mutable.Map[VName,VDisplay]()
 
@@ -24,16 +35,17 @@ trait VertexDisplayData {
 
     vertexDisplay(vn).shape match {
       case _: Ellipse2D => (c._1 + GraphView.NodeRadius * cos(angle), c._2 + GraphView.NodeRadius * sin(angle))
-      case _: Rectangle2D =>
-        val chop = 0.707 * GraphView.WireRadius
-        var rad = 0d
+      case r: Rectangle2D =>
+        val chopX = (trans scaleFromScreen r.getWidth) / 2 + 0.01
+        val chopY = (trans scaleFromScreen r.getHeight) / 2 + 0.01
+        val tryRad = max(chopX, chopY)
 
-        if (abs(GraphView.WireRadius * cos(angle)) > chop) {
-          rad = abs(chop / cos(angle))
-        } else if (abs(GraphView.WireRadius * cos(angle)) > chop) {
-          rad = abs(chop / sin(angle))
+        val rad = if (abs(tryRad * cos(angle)) > chopX) {
+          abs(chopX / cos(angle))
+        } else if (abs(tryRad * sin(angle)) > chopY) {
+          abs(chopY / sin(angle))
         } else {
-          rad = GraphView.WireRadius
+          tryRad
         }
 
         (c._1 + rad * cos(angle), c._2 + rad * sin(angle))
@@ -41,25 +53,42 @@ trait VertexDisplayData {
   }
 
   protected def computeVertexDisplay() {
-    val trNodeRadius = trans scaleToScreen GraphView.NodeRadius
     val trWireWidth = 0.707 * (trans scaleToScreen GraphView.WireRadius)
 
     for ((v,data) <- graph.vdata if !vertexDisplay.contains(v)) {
       val (x,y) = trans toScreen data.coord
 
       vertexDisplay(v) = data match {
-        case _: NodeV =>
-          VDisplay(
-            new Ellipse2D.Double(
-              x - trNodeRadius, y - trNodeRadius,
-              2.0 * trNodeRadius, 2.0 * trNodeRadius),
-            Color.GREEN)
+        case nodeData : NodeV =>
+          val style = nodeData.typeInfo.style
+          val text = nodeData.typeInfo.value.typ match {
+            case Theory.ValueType.String => nodeData.value
+            case _ => ""
+          }
+
+          val fm = peer.getGraphics.getFontMetrics(GraphView.VertexLabelFont)
+          val labelDisplay = LabelDisplay(text, (x,y), fm)
+
+          val shape = style.shape match {
+            case Theory.VertexShape.Rectangle =>
+              new Rectangle2D.Double(
+                labelDisplay.bounds.getMinX - 5.0, labelDisplay.bounds.getMinY - 3.0,
+                labelDisplay.bounds.getWidth + 10.0, labelDisplay.bounds.getHeight + 6.0)
+            case Theory.VertexShape.Circle =>
+              // TODO: fix ellipse case
+              new Ellipse2D.Double(
+                labelDisplay.bounds.getMinX - 3.0, labelDisplay.bounds.getMinY - 3.0,
+                labelDisplay.bounds.getWidth + 6.0, labelDisplay.bounds.getHeight + 6.0)
+            case _ => throw new Exception("Shape not supported yet")
+          }
+
+          VDisplay(shape, style.fillColor, Some(labelDisplay))
         case _: WireV =>
           VDisplay(
             new Rectangle2D.Double(
               x - trWireWidth, y - trWireWidth,
               2.0 * trWireWidth, 2.0 * trWireWidth),
-            Color.GRAY)
+            Color.GRAY,None)
       }
     }
   }
@@ -69,7 +98,7 @@ trait VertexDisplayData {
     var ulx,uly,lrx,lry = 0.0
 
     vset.foreach { v =>
-      val rect = vertexDisplay(v).shape.getBounds()
+      val rect = vertexDisplay(v).shape.getBounds
       if (init) {
         ulx = min(ulx, rect.getX)
         uly = min(uly, rect.getY)

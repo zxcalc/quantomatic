@@ -29,6 +29,7 @@ case class NodeV(
 {
   def typ = (data / "type").stringValue
   def value = (data.getPath(theory.vertexTypes(typ).value.path)).stringValue
+  def typeInfo = theory.vertexTypes(typ)
 
   def withCoord(c: (Double,Double)) =
     copy(annotation = (annotation + ("coord" -> JsonArray(c._1, c._2))))
