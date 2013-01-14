@@ -6,20 +6,7 @@ import math._
 import quanto.data._
 import quanto.gui._
 
-case class LabelDisplay(text: String, bounds: Rectangle2D, baseline: Double)
-
-object LabelDisplay {
-  def apply(t: String, p: (Double,Double), fm: FontMetrics): LabelDisplay = {
-    val (x,y) = p
-    val arr = t.toCharArray
-    val h = fm.getHeight.toDouble
-    val w = max(fm.charsWidth(arr, 0, arr.size).toDouble, h)
-    val bds = new Rectangle2D.Double(x - (w/2), y - (h/2), w, h)
-    LabelDisplay(t, bds, bds.getMaxY - fm.getDescent)
-  }
-}
-
-case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplay]) {
+case class VDisplay(shape: Shape, color: Color, label: Option[LabelDisplayData]) {
   def pointHit(pt: Point2D) = shape.contains(pt)
   def rectHit(r: Rectangle2D) = shape.intersects(r)
 }
@@ -59,15 +46,18 @@ trait VertexDisplayData { self: GraphView =>
       val (x,y) = trans toScreen data.coord
 
       vertexDisplay(v) = data match {
-        case nodeData : NodeV =>
-          val style = nodeData.typeInfo.style
-          val text = nodeData.typeInfo.value.typ match {
-            case Theory.ValueType.String => nodeData.value
+        case vertexData : NodeV =>
+          val style = vertexData.typeInfo.style
+          val text = vertexData.typeInfo.value.typ match {
+            case Theory.ValueType.String => vertexData.value
             case _ => ""
           }
 
           val fm = peer.getGraphics.getFontMetrics(GraphView.VertexLabelFont)
-          val labelDisplay = LabelDisplay(text, (x,y), fm)
+          val labelDisplay = LabelDisplayData(
+            text, (x,y), fm,
+            vertexData.typeInfo.style.labelForegroundColor,
+            vertexData.typeInfo.style.labelBackgroundColor)
 
           val shape = style.shape match {
             case Theory.VertexShape.Rectangle =>

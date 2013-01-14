@@ -7,8 +7,6 @@ import swing._
 import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
 import java.awt.geom.Rectangle2D
-import scala.List
-import quanto.data.Theory.VertexLabelPosition
 
 
 class GraphView extends Panel
@@ -76,7 +74,6 @@ class GraphView extends Panel
       g.drawLine(x2, 0, x2, bounds.height)
       g.drawLine(0, y2, bounds.width, y2)
       g.drawLine(0, y1, bounds.width, y1)
-
     }
   }
 
@@ -141,7 +138,7 @@ class GraphView extends Panel
       g.draw(rect)
     }
 
-    for ((e, EDisplay(p,_)) <- edgeDisplay) {
+    for ((e, ed) <- edgeDisplay) {
       if (selectedEdges contains e) {
         g.setColor(Color.BLUE)
         g.setStroke(new BasicStroke(2))
@@ -150,7 +147,19 @@ class GraphView extends Panel
         g.setStroke(new BasicStroke(1))
       }
 
-      g.draw(p)
+      g.draw(ed.path)
+
+      ed.label map { ld =>
+        ld.backgroundColor.map { bg =>
+          g.setColor(bg)
+          g.fill(new Rectangle2D.Double(
+            ld.bounds.getMinX - 3.0, ld.bounds.getMinY - 3.0,
+            ld.bounds.getWidth + 6.0, ld.bounds.getHeight + 6.0))
+        }
+        g.setColor(ld.foregroundColor)
+        g.setFont(EdgeLabelFont)
+        g.drawString(ld.text, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
+      }
     }
 
     g.setStroke(new BasicStroke(1))
@@ -169,10 +178,16 @@ class GraphView extends Panel
 
       g.draw(shape)
 
-      label.map { case LabelDisplay(text,bounds,baseline) =>
-        g.setColor(Color.BLACK)
+      label.map { ld =>
+        ld.backgroundColor.map { bg =>
+          g.setColor(bg)
+          g.fill(new Rectangle2D.Double(
+            ld.bounds.getMinX - 3.0, ld.bounds.getMinY - 3.0,
+            ld.bounds.getWidth + 6.0, ld.bounds.getHeight + 6.0))
+        }
+        g.setColor(ld.foregroundColor)
         g.setFont(VertexLabelFont)
-        g.drawString(text, bounds.getMinX.toFloat, baseline.toFloat)
+        g.drawString(ld.text, ld.bounds.getMinX.toFloat, ld.baseline.toFloat)
       }
     }
 

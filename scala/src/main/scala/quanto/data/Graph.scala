@@ -27,7 +27,7 @@ object Graph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (Graph, Name[N])) : Graph = t._1
 
   def fromJson(s: String, thy: Theory): Graph =
-    try   { fromJson(Json.parse(s)) }
+    try   { fromJson(Json.parse(s), thy) }
     catch { case e:JsonParseException => throw new GraphLoadException("Error parsing JSON", e) }
 
 
@@ -47,14 +47,14 @@ object Graph {
       (json ?# "dir_edges").foldLeft(_) { (g,e) =>
         val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
         val annotation = e._2 ?# "annotation"
-        g.addEdge(e._1, DirEdge(data, annotation),
+        g.addEdge(e._1, DirEdge(data, annotation, thy),
           (e._2("src").stringValue, e._2("tgt").stringValue))
       },
 
       (json ?# "undir_edges").foldLeft(_) { (g,e) =>
         val data = e._2.getOrElse("data", thy.defaultEdgeData).asObject
         val annotation = e._2 ?# "annotation"
-        g.addEdge(e._1, UndirEdge(data, annotation), (e._2("src").stringValue, e._2("tgt").stringValue))
+        g.addEdge(e._1, UndirEdge(data, annotation, thy), (e._2("src").stringValue, e._2("tgt").stringValue))
       },
 
       (json ?# "bang_boxes").foldLeft(_) { (g,bb) =>
@@ -68,7 +68,7 @@ object Graph {
     ))({
       val data = json ?# "data"
       val annotation = json ?# "annotation"
-      Graph(GData(data, annotation))
+      Graph(GData(data, annotation, thy))
     })
   } catch {
     case e: JsonAccessException => throw new GraphLoadException("Error reading JSON", e)

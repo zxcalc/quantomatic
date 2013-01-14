@@ -42,7 +42,8 @@ object GraphEditor extends SimpleSwingApplication {
         ),
         style = Theory.EdgeStyleDesc(
           labelPosition = Theory.EdgeLabelPosition.Center,
-          labelForegroundColor = Color.BLUE
+          labelForegroundColor = Color.BLUE,
+          labelBackgroundColor = Some(new Color(0.8f,0.8f,1.0f,0.7f))
         ),
         defaultData = JsonObject("type"->"string","value"->"")
       )
