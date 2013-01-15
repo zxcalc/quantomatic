@@ -9,6 +9,9 @@ import math._
 import java.awt.geom.{Line2D, Rectangle2D}
 
 
+// a visual overlay for edge drawing
+case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
+
 class GraphView extends Panel
   with Scrollable
   with EdgeDisplayData
@@ -24,7 +27,7 @@ class GraphView extends Panel
   var gridSubs = 4
 
   var selectionBox: Option[Rectangle2D] = None
-  var edgeOverlay: Option[(VName,Point)] = None
+  var edgeOverlay: Option[EdgeOverlay] = None
 
   // gets called when the component is first painted
   lazy val init = {
@@ -201,21 +204,35 @@ class GraphView extends Panel
       g.draw(rect)
     }
 
-    edgeOverlay.map { case (startV, pt) =>
+    edgeOverlay.map { case EdgeOverlay(pt, startV, endVOpt) =>
       g.setColor(EdgeOverlayColor)
       g.setStroke(new BasicStroke(2))
       g.draw(vertexDisplay(startV).shape)
 
-      val vCenter = (
+      val srcCenter = (
         vertexDisplay(startV).shape.getBounds.getCenterX,
         vertexDisplay(startV).shape.getBounds.getCenterY)
-      val endPt = (pt.getX, pt.getY)
-      val (dx, dy) = (endPt._1 - vCenter._1, endPt._2 - vCenter._2)
-      if (abs(dx) > 0.1 || abs(dy) > 0.1) {
-        val startPt = trans toScreen vertexContactPoint(startV, atan2(-dy,dx))
-        //println(pt)
-        g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
+
+      val (startPt, endPt) = endVOpt match {
+        case Some(endV) =>
+          g.draw(vertexDisplay(endV).shape)
+          val tgtCenter = (
+            vertexDisplay(endV).shape.getBounds.getCenterX,
+            vertexDisplay(endV).shape.getBounds.getCenterY)
+          val (dx, dy) = (tgtCenter._1 - srcCenter._1, tgtCenter._2 - srcCenter._2)
+          val angle = atan2(-dy,dx)
+          (
+            trans toScreen vertexContactPoint(startV, angle),
+            trans toScreen vertexContactPoint(endV, angle + Pi)
+          )
+        case None =>
+          val endPt = (pt.getX, pt.getY)
+          val (dx, dy) = (endPt._1 - srcCenter._1, endPt._2 - srcCenter._2)
+          (trans toScreen vertexContactPoint(startV, atan2(-dy,dx)),endPt)
       }
+
+      if (Some(startV) != endVOpt)
+        g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
     }
   }
 

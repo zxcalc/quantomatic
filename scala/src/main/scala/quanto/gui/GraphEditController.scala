@@ -84,7 +84,7 @@ class GraphEditController(view: GraphView) {
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { startV =>
             mouseState = DragEdge(directed, startV)
-            view.edgeOverlay = Some((startV, pt))
+            view.edgeOverlay = Some(EdgeOverlay(pt, src = startV, tgt = Some(startV)))
             view.repaint()
           }
         case state => throw new InvalidMouseStateException("MousePressed", state)
@@ -105,7 +105,8 @@ class GraphEditController(view: GraphView) {
           view.repaint()
           mouseState = DragVertex(start, pt)
         case DragEdge(directed, startV) =>
-          view.edgeOverlay = Some((startV, pt))
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          view.edgeOverlay = Some(EdgeOverlay(pt, startV, vertexHit))
           view.repaint()
       }
 
@@ -145,7 +146,7 @@ class GraphEditController(view: GraphView) {
         case DragEdge(directed, startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { endV =>
-
+            // TODO: add edge here
           }
           mouseState = AddEdgeTool(directed)
           view.edgeOverlay = None
