@@ -6,10 +6,16 @@ import event.{Key, UIElementResized}
 import quanto.data._
 import quanto.layout._
 import Names._
-import javax.swing.KeyStroke
+import javax.swing.{JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.{JsonObject, JsonPath}
 import java.awt.Color
+
+class ToolBar extends Component with SequentialContainer.Wrapper {
+  override lazy val peer: JToolBar = new JToolBar
+  def add( action: Action ) { peer.add( action.peer )}
+  def add( component: Component ) { peer.add( component.peer )}
+}
 
 
 object GraphEditor extends SimpleSwingApplication {
@@ -76,66 +82,79 @@ object GraphEditor extends SimpleSwingApplication {
   //println(layoutEngine.dotString)
 
   // GUI components
-  val GraphView_ = new GraphView {
+  val MainGraphView = new GraphView {
     graph = theGraph
     drawGrid = true
     dynamicResize = true
   }
 
-  val GraphEditController_ = new GraphEditController(GraphView_)
-  val UndoStack_ = GraphEditController_.undoStack
-  val ScrollPane_ = new ScrollPane(GraphView_)
+  val graphEditController = new GraphEditController(MainGraphView)
+
+  val MainUndoStack = graphEditController.undoStack
+  val GraphViewScrollPane = new ScrollPane(MainGraphView)
+
+  val SelectButton = new Button("Select")
+  val AddVertexButton = new Button("Add Vertex")
+  val AddEdgeButton = new Button("Add Edge")
+
+  val MainToolBar = new ToolBar {
+    contents += (SelectButton, AddVertexButton, AddEdgeButton)
+  }
 
 
   // Actions associated with main menu
-  val UndoAction_ = new Action("Undo") with Reactor {
+  val UndoAction = new Action("Undo") with Reactor {
     accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
-    def apply() { UndoStack_.undo() }
+    def apply() { MainUndoStack.undo() }
 
     def update() {
-      enabled = UndoStack_.canUndo
-      title = "Undo " + UndoStack_.undoActionName.getOrElse("")
+      enabled = MainUndoStack.canUndo
+      title = "Undo " + MainUndoStack.undoActionName.getOrElse("")
     }
 
-    listenTo(UndoStack_)
+    listenTo(MainUndoStack)
     reactions += { case _: UndoEvent => update() }; update()
   }
 
-  val RedoAction_ = new Action("Redo") with Reactor {
+  val RedoAction = new Action("Redo") with Reactor {
     accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
-    def apply() { UndoStack_.redo() }
+    def apply() { MainUndoStack.redo() }
 
     def update() {
-      enabled = UndoStack_.canRedo
-      title = "Redo " + UndoStack_.redoActionName.getOrElse("")
+      enabled = MainUndoStack.canRedo
+      title = "Redo " + MainUndoStack.redoActionName.getOrElse("")
     }
 
-    listenTo(UndoStack_)
+    listenTo(MainUndoStack)
     reactions += { case _: UndoEvent => update() }; update()
   }
 
   // Main menu
 
-  val FileMenu_ = new Menu("File") { mnemonic = Key.F }
+  val FileMenu = new Menu("File") { mnemonic = Key.F }
 
-  val EditMenu_ = new Menu("Edit") {
+  val EditMenu = new Menu("Edit") {
     mnemonic = Key.E
-    contents += new MenuItem(UndoAction_) { mnemonic = Key.U }
-    contents += new MenuItem(RedoAction_) { mnemonic = Key.R }
+    contents += new MenuItem(UndoAction) { mnemonic = Key.U }
+    contents += new MenuItem(RedoAction) { mnemonic = Key.R }
   }
 
   def top = new MainFrame {
     title = "Quanto Graph Editor"
-    contents = ScrollPane_
+    contents = new BorderPanel {
+      add(MainToolBar, BorderPanel.Position.North)
+      add(GraphViewScrollPane, BorderPanel.Position.Center)
+    }
+
     size = new Dimension(800,800)
 
     menuBar = new MenuBar {
-      contents += (FileMenu_, EditMenu_)
+      contents += (FileMenu, EditMenu)
     }
 
-    listenTo(ScrollPane_)
+    listenTo(GraphViewScrollPane)
     reactions += {
-      case UIElementResized(ScrollPane_) => GraphView_.repaint()
+      case UIElementResized(GraphViewScrollPane) => MainGraphView.repaint()
     }
   }
 }
