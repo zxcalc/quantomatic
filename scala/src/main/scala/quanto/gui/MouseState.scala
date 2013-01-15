@@ -3,6 +3,7 @@ package quanto.gui
 import java.awt.Point
 import java.awt.geom.Rectangle2D
 import math.{min,abs}
+import quanto.data._
 
 sealed abstract class MouseState
 
@@ -21,3 +22,7 @@ case class SelectionBox(start: Point, end: Point) extends MouseState {
   }
 }
 case class DragVertex(start: Point, end: Point) extends MouseState
+
+case class AddVertexTool() extends MouseState
+case class AddEdgeTool(directed: Boolean) extends MouseState
+case class DragEdge(directed: Boolean, startVertex: VName) extends MouseState

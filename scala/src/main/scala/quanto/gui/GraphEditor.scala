@@ -2,13 +2,13 @@ package quanto.gui
 
 import graphview._
 import swing._
-import event.{Key, UIElementResized}
+import event.{ButtonClicked, Key, UIElementResized}
 import quanto.data._
 import quanto.layout._
 import Names._
 import javax.swing.{ImageIcon, JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
-import quanto.util.json.{JsonObject, JsonPath}
+import quanto.util.json.{Json, JsonObject, JsonPath}
 import java.awt.Color
 
 class ToolBar extends Component with SequentialContainer.Wrapper {
@@ -24,39 +24,9 @@ object GraphEditor extends SimpleSwingApplication {
   // populate with a random graph, for testing
   //var theGraph = Graph.random(10,15,0)
 
-  val StringVETheory = Theory(
-    name = "String vertex/edge theory",
-    coreName = "string_ve_theory",
-    vertexTypes = Map(
-      "string" -> Theory.VertexDesc(
-        value = Theory.ValueDesc(
-          path = JsonPath("$.value"),
-          typ = Theory.ValueType.String
-        ),
-        style = Theory.VertexStyleDesc(
-          shape = Theory.VertexShape.Rectangle,
-          labelPosition = Theory.VertexLabelPosition.Inside
-        ),
-        defaultData = JsonObject("type"->"string","value"->"")
-      )
-    ),
-    edgeTypes = Map(
-      "string" -> Theory.EdgeDesc(
-        value = Theory.ValueDesc(
-          path = JsonPath("$.value"),
-          typ = Theory.ValueType.String
-        ),
-        style = Theory.EdgeStyleDesc(
-          labelPosition = Theory.EdgeLabelPosition.Center,
-          labelForegroundColor = Color.BLUE,
-          labelBackgroundColor = Some(new Color(0.8f,0.8f,1.0f,0.7f))
-        ),
-        defaultData = JsonObject("type"->"string","value"->"")
-      )
-    ),
-    defaultVertexType = "string",
-    defaultEdgeType = "string"
-  )
+  println("loading theory " + GraphEditor.getClass.getResource("string_ve.qtheory"))
+  val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("string_ve.qtheory"))
+  val StringVETheory = Theory.fromJson(Json.parse(thyFile))
 
   var theGraph = Graph.fromJson(
     """
@@ -93,17 +63,24 @@ object GraphEditor extends SimpleSwingApplication {
   val MainUndoStack = graphEditController.undoStack
   val GraphViewScrollPane = new ScrollPane(MainGraphView)
 
-  val SelectButton = new Button() {
+  trait ToolButton { var tool: MouseState = SelectTool() }
+
+  val SelectButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
+    tool = SelectTool()
   }
 
-  val AddVertexButton = new Button() {
+  val AddVertexButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse.png"), "Add Vertex")
+    tool = AddVertexTool()
   }
 
-  val AddEdgeButton = new Button() {
+  val AddEdgeButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
+    tool = AddEdgeTool(directed = true)
   }
+
+  val GraphToolGroup = new ButtonGroup(SelectButton, AddVertexButton, AddEdgeButton)
 
   val MainToolBar = new ToolBar {
     contents += (SelectButton, AddVertexButton, AddEdgeButton)
@@ -161,8 +138,10 @@ object GraphEditor extends SimpleSwingApplication {
     }
 
     listenTo(GraphViewScrollPane)
+    GraphToolGroup.buttons.foreach(listenTo(_))
     reactions += {
       case UIElementResized(GraphViewScrollPane) => MainGraphView.repaint()
+      case ButtonClicked(t: ToolButton) => graphEditController.mouseState = t.tool
     }
   }
 }

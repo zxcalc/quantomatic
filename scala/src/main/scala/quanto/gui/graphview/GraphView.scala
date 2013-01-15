@@ -6,7 +6,7 @@ import quanto.data.Names._
 import swing._
 import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
-import java.awt.geom.Rectangle2D
+import java.awt.geom.{Line2D, Rectangle2D}
 
 
 class GraphView extends Panel
@@ -24,6 +24,7 @@ class GraphView extends Panel
   var gridSubs = 4
 
   var selectionBox: Option[Rectangle2D] = None
+  var edgeOverlay: Option[(VName,Point)] = None
 
   // gets called when the component is first painted
   lazy val init = {
@@ -199,6 +200,23 @@ class GraphView extends Panel
       g.setColor(new Color(0.5f,0.5f,1f,0.4f))
       g.draw(rect)
     }
+
+    edgeOverlay.map { case (startV, pt) =>
+      g.setColor(EdgeOverlayColor)
+      g.setStroke(new BasicStroke(2))
+      g.draw(vertexDisplay(startV).shape)
+
+      val vCenter = (
+        vertexDisplay(startV).shape.getBounds.getCenterX,
+        vertexDisplay(startV).shape.getBounds.getCenterY)
+      val endPt = (pt.getX, pt.getY)
+      val (dx, dy) = (endPt._1 - vCenter._1, endPt._2 - vCenter._2)
+      if (abs(dx) > 0.1 || abs(dy) > 0.1) {
+        val startPt = trans toScreen vertexContactPoint(startV, atan2(-dy,dx))
+        //println(pt)
+        g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
+      }
+    }
   }
 
   // scrollable trait data
@@ -223,5 +241,6 @@ object GraphView {
   final val AxisColor = new Color(0.8f,0.8f,0.9f)
   final val MajorColor = new Color(0.85f,0.85f,1.0f)
   final val MinorColor = new Color(0.9f,0.9f,1.0f)
+  final val EdgeOverlayColor = new Color(0.7f, 0.0f, 0.7f, 1.0f)
 }
 

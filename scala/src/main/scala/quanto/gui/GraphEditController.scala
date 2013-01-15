@@ -79,12 +79,22 @@ class GraphEditController(view: GraphView) {
 
           view.repaint()
 
+        case AddVertexTool() => // do nothing
+        case AddEdgeTool(directed) =>
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          vertexHit map { startV =>
+            mouseState = DragEdge(directed, startV)
+            view.edgeOverlay = Some((startV, pt))
+            view.repaint()
+          }
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
     case MouseDragged(_, pt, _) =>
       mouseState match {
-        case SelectTool() => // do nothing
+        case SelectTool() =>    // do nothing
+        case AddVertexTool() => // do nothing
+        case AddEdgeTool(_) =>   // do nothing
         case SelectionBox(start,_) =>
           val box = SelectionBox(start, pt)
           mouseState = box
@@ -94,11 +104,14 @@ class GraphEditController(view: GraphView) {
           shiftVertsNoRegister(selectedVerts, prev, pt)
           view.repaint()
           mouseState = DragVertex(start, pt)
-        case state => throw new InvalidMouseStateException("MouseMoved", state)
+        case DragEdge(directed, startV) =>
+          view.edgeOverlay = Some((startV, pt))
+          view.repaint()
       }
 
     case MouseReleased(_, pt, modifiers, _, _) =>
       mouseState match {
+        case AddEdgeTool(_) => // do nothing
         case SelectionBox(start,_) =>
           view.computeDisplayData()
 
@@ -128,6 +141,15 @@ class GraphEditController(view: GraphView) {
 
           mouseState = SelectTool()
 
+        case AddVertexTool() =>
+        case DragEdge(directed, startV) =>
+          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+          vertexHit map { endV =>
+
+          }
+          mouseState = AddEdgeTool(directed)
+          view.edgeOverlay = None
+          view.repaint()
         case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 
