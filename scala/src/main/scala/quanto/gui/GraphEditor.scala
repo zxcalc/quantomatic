@@ -6,7 +6,7 @@ import event.{Key, UIElementResized}
 import quanto.data._
 import quanto.layout._
 import Names._
-import javax.swing.{JToolBar, KeyStroke}
+import javax.swing.{ImageIcon, JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.{JsonObject, JsonPath}
 import java.awt.Color
@@ -93,12 +93,17 @@ object GraphEditor extends SimpleSwingApplication {
   val MainUndoStack = graphEditController.undoStack
   val GraphViewScrollPane = new ScrollPane(MainGraphView)
 
-  val SelectButton = new Button("Select")
+  val SelectButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
+  }
 
-  println(GraphEditor.getClass.getResource("select-rectangular.png"))
+  val AddVertexButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-ellipse.png"), "Add Vertex")
+  }
 
-  val AddVertexButton = new Button("Add Vertex")
-  val AddEdgeButton = new Button("Add Edge")
+  val AddEdgeButton = new Button() {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
+  }
 
   val MainToolBar = new ToolBar {
     contents += (SelectButton, AddVertexButton, AddEdgeButton)
