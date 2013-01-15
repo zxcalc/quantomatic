@@ -94,6 +94,9 @@ object GraphEditor extends SimpleSwingApplication {
   val GraphViewScrollPane = new ScrollPane(MainGraphView)
 
   val SelectButton = new Button("Select")
+
+  println(GraphEditor.getClass.getResource("select-rectangular.png"))
+
   val AddVertexButton = new Button("Add Vertex")
   val AddEdgeButton = new Button("Add Edge")
 

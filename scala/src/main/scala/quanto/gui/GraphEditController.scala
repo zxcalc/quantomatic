@@ -9,6 +9,16 @@ import quanto.data._
 class GraphEditController(view: GraphView) {
   var mouseState: MouseState = SelectTool()
 
+  // wire up the view's internal state
+  def graph = view.graph
+  def graph_=(g: Graph) { view.graph = g }
+  def selectedVerts = view.selectedVerts
+  def selectedVerts_=(s: Set[VName]) { view.selectedVerts = s }
+  def selectedEdges = view.selectedEdges
+  def selectedEdges_=(s: Set[EName]) { view.selectedEdges = s }
+  def selectedBBoxes = view.selectedBBoxes
+  def selectedBBoxes_=(s: Set[BBName]) { view.selectedBBoxes = s }
+
   private var _undoStack: UndoStack = new UndoStack
   view.listenTo(_undoStack)
   def undoStack = _undoStack
@@ -25,9 +35,9 @@ class GraphEditController(view: GraphView) {
 
   def shiftVertsNoRegister(vs: TraversableOnce[VName], p1: Point, p2: Point) {
     val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
-    view.graph = vs.foldLeft(view.graph) { (g,v) =>
+    graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
-      view.graph.adjacentEdges(v) foreach (view.invalidateEdge(_))
+      graph.adjacentEdges(v) foreach (view.invalidateEdge(_))
       g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
     }
   }
@@ -52,14 +62,14 @@ class GraphEditController(view: GraphView) {
           if (!mouseDownOnSelectedVert &&
             (modifiers & Modifier.Shift) != Modifier.Shift)
           {
-            view.selectedVerts = Set()
-            view.selectedEdges = Set()
-            view.selectedBBoxes = Set()
+            selectedVerts = Set()
+            selectedEdges = Set()
+            selectedBBoxes = Set()
           }
 
           vertexHit match {
             case Some(v) =>
-              view.selectedVerts += v // make sure v is selected, if it wasn't before
+              selectedVerts += v // make sure v is selected, if it wasn't before
               mouseState = DragVertex(pt,pt)
             case None =>
               val box = SelectionBox(pt, pt)
@@ -81,7 +91,7 @@ class GraphEditController(view: GraphView) {
           view.selectionBox = Some(box.rect)
           view.repaint()
         case DragVertex(start, prev) =>
-          shiftVertsNoRegister(view.selectedVerts, prev, pt)
+          shiftVertsNoRegister(selectedVerts, prev, pt)
           view.repaint()
           mouseState = DragVertex(start, pt)
         case state => throw new InvalidMouseStateException("MouseMoved", state)
@@ -94,15 +104,15 @@ class GraphEditController(view: GraphView) {
 
           if (pt.getX == start.getX && pt.getY == start.getY) {
             var selectionUpdated = false
-            view.vertexDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; view.selectedVerts += x._1 }
+            view.vertexDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedVerts += x._1 }
 
             if (!selectionUpdated)
-              view.edgeDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; view.selectedEdges += x._1 }
+              view.edgeDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedEdges += x._1 }
             // TODO: bbox selection
           } else {
             // box selection only affects vertices
             val r = mouseState.asInstanceOf[SelectionBox].rect
-            view.vertexDisplay filter (_._2.rectHit(r)) foreach { view.selectedVerts += _._1 }
+            view.vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
           }
 
           mouseState = SelectTool()
@@ -112,7 +122,7 @@ class GraphEditController(view: GraphView) {
         case DragVertex(start, end) =>
           if (start.getX != end.getX || start.getY != end.getY) {
             // we don't call shiftVerts directly, because the vertices have already moved
-            val verts = view.selectedVerts
+            val verts = selectedVerts
             undoStack.register("Move Vertices") { shiftVerts(verts, end, start) }
           }
 
