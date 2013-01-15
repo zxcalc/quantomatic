@@ -191,6 +191,8 @@ case class JsonNull() extends Json {
   val v = null
   def writeTo(out: Json.Output) { out.g.writeNull() }
   override def get(key: String): Option[Json] = None
+  override def asObject = JsonObject()
+  override def asArray = JsonArray()
   def isEmpty = true
 }
 

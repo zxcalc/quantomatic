@@ -14,18 +14,27 @@ case class JsonPath(components: List[JsonPath.Component]) {
     }
 
   private def _get(json: Json, comps: List[Component]): Json = comps match {
-    case (Field(f) :: cs) => _get(json.asObject(f), cs)
-    case (Index(i) :: cs) => _get(json.asArray(i), cs)
+    case (Field(f) :: cs) => json.get(f) match { case Some(j) => _get(j, cs); case None => JsonNull() }
+    case (Index(i) :: cs) => json.get(i) match { case Some(j) => _get(j, cs); case None => JsonNull() }
     case _ => json
   }
 
   private def _update(json: Json, comps: List[Component], fn: Json => Json): Json = comps match {
-    case (Field(f) :: cs) => JsonObject(json.mapValue + (f -> _update(json.asObject(f), cs, fn)))
-    case (Index(i) :: cs) => JsonArray(json.vectorValue.updated(i, _update(json.asArray(i), cs, fn)))
+    case (Field(f) :: cs) =>
+      val map = json.asObject.mapValue
+      JsonObject(map + (f -> _update(map.getOrElse(f, JsonNull()), cs, fn)))
+    case (Index(i) :: cs) =>
+      val vect = json.asArray.vectorValue.padTo(i+1, JsonNull())
+      JsonArray(vect.updated(i, _update(vect(i), cs, fn)))
     case _ => fn(json)
   }
 
+  // returns the Json object associated with the given path. If an undefined field is encountered,
+  // null is returned. An exception is thrown if a json element of the wrong type is in the way.
   def get(json: Json) = _get(json, components)
+
+  // sets or updates Json. If the path doesn't exist, it will try to create it by adding new fields and creating or
+  // padding arrays to the appropriate size. An exception is thrown if a json element of the wrong type is in the way.
   def set(json: Json, x: Json): Json = _update(json, components, (_ => x))
   def update(json: Json)(fn: Json => Json): Json = _update(json, components, fn)
 }

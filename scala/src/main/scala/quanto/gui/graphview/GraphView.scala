@@ -201,16 +201,6 @@ class GraphView extends Panel
     }
   }
 
-
-  def shiftVerts(vs: TraversableOnce[VName], p1: Point, p2: Point) {
-    val (dx,dy) = (trans scaleFromScreen (p2.getX - p1.getX), trans scaleFromScreen (p2.getY - p1.getY))
-    graph = vs.foldLeft(graph) { (g,v) =>
-      invalidateVertex(v)
-      graph.adjacentEdges(v) foreach (invalidateEdge)
-      g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
-    }
-  }
-
   // scrollable trait data
   def preferredViewportSize: Dimension = preferredSize
 

@@ -23,9 +23,18 @@ class GraphEditController(view: GraphView) {
     case RedoPerformed(_) => view.repaint()
   }
 
+  def shiftVertsNoRegister(vs: TraversableOnce[VName], p1: Point, p2: Point) {
+    val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
+    view.graph = vs.foldLeft(view.graph) { (g,v) =>
+      view.invalidateVertex(v)
+      view.graph.adjacentEdges(v) foreach (view.invalidateEdge(_))
+      g.updateVData(v) { d => d.withCoord (d.coord._1 + dx, d.coord._2 - dy) }
+    }
+  }
+
   // shift vertices and register undo
   private def shiftVerts(vs: TraversableOnce[VName], p1: Point, p2: Point) {
-    view.shiftVerts(vs, p1, p2)
+    shiftVertsNoRegister(vs, p1, p2)
     undoStack.register("Move Vertices") { shiftVerts(vs, p2, p1) }
   }
 
@@ -72,7 +81,7 @@ class GraphEditController(view: GraphView) {
           view.selectionBox = Some(box.rect)
           view.repaint()
         case DragVertex(start, prev) =>
-          view.shiftVerts(view.selectedVerts, prev, pt)
+          shiftVertsNoRegister(view.selectedVerts, prev, pt)
           view.repaint()
           mouseState = DragVertex(start, pt)
         case state => throw new InvalidMouseStateException("MouseMoved", state)
