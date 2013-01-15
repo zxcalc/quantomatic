@@ -79,6 +79,8 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
 
   def adjacentEdges(vn: VName) = source.codf(vn) union target.codf(vn)
 
+  def edgesBetween(v1: VName, v2: VName) = adjacentEdges(v1) intersect adjacentEdges(v2)
+
   def addVertex(vn: VName, data: V) = {
     if (vdata contains vn)
       throw new DuplicateVertexNameException(vn) with GraphException

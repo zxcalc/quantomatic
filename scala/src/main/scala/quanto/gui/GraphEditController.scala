@@ -5,20 +5,12 @@ import swing._
 import swing.event._
 import Key.Modifier
 import quanto.data._
+import Names._
 
 class GraphEditController(view: GraphView) {
   var mouseState: MouseState = SelectTool()
 
-  // wire up the view's internal state
-  def graph = view.graph
-  def graph_=(g: Graph) { view.graph = g }
-  def selectedVerts = view.selectedVerts
-  def selectedVerts_=(s: Set[VName]) { view.selectedVerts = s }
-  def selectedEdges = view.selectedEdges
-  def selectedEdges_=(s: Set[EName]) { view.selectedEdges = s }
-  def selectedBBoxes = view.selectedBBoxes
-  def selectedBBoxes_=(s: Set[BBName]) { view.selectedBBoxes = s }
-
+  // listen to undo stack
   private var _undoStack: UndoStack = new UndoStack
   view.listenTo(_undoStack)
   def undoStack = _undoStack
@@ -33,7 +25,21 @@ class GraphEditController(view: GraphView) {
     case RedoPerformed(_) => view.repaint()
   }
 
-  def shiftVertsNoRegister(vs: TraversableOnce[VName], p1: Point, p2: Point) {
+  // wire up the view's internal state
+  def graph = view.graph
+  def graph_=(g: Graph) { view.graph = g }
+  def selectedVerts = view.selectedVerts
+  def selectedVerts_=(s: Set[VName]) { view.selectedVerts = s }
+  def selectedEdges = view.selectedEdges
+  def selectedEdges_=(s: Set[EName]) { view.selectedEdges = s }
+  def selectedBBoxes = view.selectedBBoxes
+  def selectedBBoxes_=(s: Set[BBName]) { view.selectedBBoxes = s }
+  def theory = graph.data.theory
+
+
+  // controller actions.
+
+  private def shiftVertsNoRegister(vs: TraversableOnce[VName], p1: Point, p2: Point) {
     val (dx,dy) = (view.trans scaleFromScreen (p2.getX - p1.getX), view.trans scaleFromScreen (p2.getY - p1.getY))
     graph = vs.foldLeft(graph) { (g,v) =>
       view.invalidateVertex(v)
@@ -48,8 +54,21 @@ class GraphEditController(view: GraphView) {
     undoStack.register("Move Vertices") { shiftVerts(vs, p2, p1) }
   }
 
-  view.listenTo(view.mouse.clicks, view.mouse.moves)
+  private def addEdge(e: EName, d: EData, vs: (VName, VName)) {
+    graph = graph.addEdge(e, d, vs)
+    graph.edgesBetween(vs._1, vs._2).foreach(view.invalidateEdge(_))
+    undoStack.register("Add Edge") { deleteEdge(e) }
+  }
 
+  private def deleteEdge(e: EName) {
+    val d = graph.edata(e)
+    val vs = (graph.source(e), graph.target(e))
+    graph.deleteEdge(e)
+    graph.edgesBetween(vs._1, vs._2).foreach(view.invalidateEdge(_))
+    undoStack.register("Delete Edge") { addEdge(e, d, vs) }
+  }
+
+  view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
 
     case MousePressed(_, pt, modifiers, _, _) =>
@@ -146,7 +165,9 @@ class GraphEditController(view: GraphView) {
         case DragEdge(directed, startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { endV =>
-            // TODO: add edge here
+            val defaultData = if (directed) DirEdge.fromJson(theory.defaultEdgeData, theory)
+                          else UndirEdge.fromJson(theory.defaultEdgeData, theory)
+            addEdge(graph.edges.fresh, defaultData, (startV, endV))
           }
           mouseState = AddEdgeTool(directed)
           view.edgeOverlay = None
