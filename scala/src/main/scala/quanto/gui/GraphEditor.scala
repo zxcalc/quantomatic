@@ -10,6 +10,7 @@ import javax.swing.{ImageIcon, JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.{Json, JsonObject, JsonPath}
 import java.awt.Color
+import javax.swing.border.EmptyBorder
 
 class ToolBar extends Component with SequentialContainer.Wrapper {
   override lazy val peer: JToolBar = new JToolBar
@@ -116,6 +117,20 @@ object GraphEditor extends SimpleSwingApplication {
     reactions += { case _: UndoEvent => update() }; update()
   }
 
+  // Bottom panel
+  val BottomPanel = new GridPanel(2,1) {
+    vGap = 3
+    border = new EmptyBorder(3,3,3,3)
+    contents += new GridPanel(1,5) {
+      contents += new Label("Vertex Type:  ") { xAlignment = Alignment.Right }
+      contents += new ComboBox(Seq("<wire>", "string"))
+      contents += new Label("Edge Type:  ") { xAlignment = Alignment.Right }
+      contents += new ComboBox(Seq("string"))
+      contents += new CheckBox("directed") { selected = true }
+    }
+    contents += new TextField()
+  }
+
   // Main menu
 
   val FileMenu = new Menu("File") { mnemonic = Key.F }
@@ -131,6 +146,7 @@ object GraphEditor extends SimpleSwingApplication {
     contents = new BorderPanel {
       add(MainToolBar, BorderPanel.Position.North)
       add(GraphViewScrollPane, BorderPanel.Position.Center)
+      add(BottomPanel, BorderPanel.Position.South)
     }
 
     size = new Dimension(800,800)
