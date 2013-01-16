@@ -210,6 +210,11 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
 
+(* string vertex/edge graphs *)
+PolyML.Project.make "theories/string_ve/graph.ML";
+PolyML.Project.make "theories/string_ve/theory.ML";
+
+
 (* red-green specific vertices, graphs and matching *)
 (* graph-derived expressions for R-G graphs *)
 PolyML.Project.make "expressions/alg.ML"; (* algebraic expression utils *)

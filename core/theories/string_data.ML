@@ -45,7 +45,7 @@ end;
 
 
 (*  *)
-structure Str_ComponentData_Param
+structure StringData_ComponentData_Param
 : ELEMENT_COMPONENT_DATA_PARAM where type data = StringData.data
 = struct 
   type data = StringData.data;
@@ -57,3 +57,6 @@ structure Str_ComponentData_Param
     | default_data n = raise unknown_type_exp n;
   fun update f x = x;
 end;
+
+structure StringData_ComponentData = ElementComponentData(
+  StringData_ComponentData_Param)

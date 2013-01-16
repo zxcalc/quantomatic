@@ -67,4 +67,4 @@ structure RTechn_OVertexComponentData =
   ElementComponentData(RTechn_OVertexComponentData_Param);
 
 structure RTechn_EdgeComponentData = 
-  ElementComponentData(Str_ComponentData_Param);
+  ElementComponentData(StringData_ComponentData_Param);

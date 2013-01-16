@@ -128,7 +128,7 @@ end;
 
 
 (*  *)
-structure Str_ComponentData_Param
+structure StringData_ComponentData_Param
 : ELEMENT_COMPONENT_DATA_PARAM where type data = StringData.data
 = struct 
   type data = StringData.data;
