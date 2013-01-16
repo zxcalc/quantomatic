@@ -126,6 +126,8 @@ Testing.make_test "io/test/linrat-json-test.ML";
 PolyML.Project.make "theories/component_data.ML";
 (* boilerplate data functors for enumerated datatypes *)
 PolyML.Project.make "theories/enum_data.ML";
+(* data for strings *)
+PolyML.Project.make "theories/string_data.ML";
 Testing.make_test "theories/test/vertex-test.ML";
 
 (* Graphs *)
