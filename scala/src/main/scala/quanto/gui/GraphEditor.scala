@@ -56,6 +56,7 @@ object GraphEditor extends SimpleSwingApplication {
     graph = theGraph
     drawGrid = true
     dynamicResize = true
+    focusable = true
   }
 
   val graphEditController = new GraphEditController(MainGraphView)
@@ -67,6 +68,7 @@ object GraphEditor extends SimpleSwingApplication {
 
   val SelectButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("select-rectangular.png"), "Select")
+    selected = true
     tool = SelectTool()
   }
 

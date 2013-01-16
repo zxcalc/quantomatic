@@ -4,6 +4,7 @@ import quanto.data._
 import quanto.gui._
 import quanto.data.Names._
 import swing._
+import event.FocusEvent
 import java.awt.{Font => AWTFont, BasicStroke, RenderingHints, Color}
 import math._
 import java.awt.geom.{Line2D, Rectangle2D}
@@ -28,10 +29,16 @@ class GraphView extends Panel
 
   var selectionBox: Option[Rectangle2D] = None
   var edgeOverlay: Option[EdgeOverlay] = None
+  focusable = false
 
   // gets called when the component is first painted
   lazy val init = {
     resizeViewToFit()
+  }
+
+  listenTo(this)
+  reactions += {
+    case _: FocusEvent => repaint()
   }
 
   def computeDisplayData() {
@@ -129,6 +136,11 @@ class GraphView extends Panel
     g.setColor(Color.WHITE)
     g.fillRect(0, 0, bounds.width, bounds.height)
     if (drawGrid) drawGridLines(g)
+
+    if (hasFocus) {
+      g.setColor(Color.BLUE)
+      g.drawRect(0,0, bounds.width, bounds.height)
+    }
 
     computeDisplayData()
 
@@ -235,6 +247,7 @@ class GraphView extends Panel
         g.draw(new Line2D.Double(startPt._1, startPt._2, endPt._1, endPt._2))
     }
   }
+
 
   // scrollable trait data
   def preferredViewportSize: Dimension = preferredSize

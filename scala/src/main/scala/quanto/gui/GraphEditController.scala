@@ -56,22 +56,55 @@ class GraphEditController(view: GraphView) {
 
   private def addEdge(e: EName, d: EData, vs: (VName, VName)) {
     graph = graph.addEdge(e, d, vs)
-    graph.edgesBetween(vs._1, vs._2).foreach(view.invalidateEdge(_))
+    graph.edgesBetween(vs._1, vs._2).foreach { view.invalidateEdge(_) }
     undoStack.register("Add Edge") { deleteEdge(e) }
   }
 
   private def deleteEdge(e: EName) {
     val d = graph.edata(e)
     val vs = (graph.source(e), graph.target(e))
-    graph.deleteEdge(e)
+    val selected = if (selectedEdges.contains(e)) {
+      selectedEdges -= e; true
+    } else false
+
     graph.edgesBetween(vs._1, vs._2).foreach(view.invalidateEdge(_))
-    undoStack.register("Delete Edge") { addEdge(e, d, vs) }
+    graph = graph.deleteEdge(e)
+
+    undoStack.register("Delete Edge") {
+      addEdge(e, d, vs)
+      if (selected) selectedEdges += e
+    }
   }
+
+  private def addVertex(v: VName, d: VData) {
+    graph = graph.addVertex(v, d)
+    undoStack.register("Add Vertex") { deleteVertex(v) }
+  }
+
+  private def deleteVertex(v: VName) {
+    undoStack.start("Delete Vertex")
+    graph.adjacentEdges(v).foreach { deleteEdge(_) }
+
+    val d = graph.vdata(v)
+    view.invalidateVertex(v)
+    val selected = if (selectedVerts.contains(v)) {
+      selectedVerts -= v; true
+    } else false
+
+    graph = graph.deleteVertex(v)
+
+    undoStack += {
+      addVertex(v, d)
+      if (selected) selectedVerts += v
+    }
+    undoStack.commit()
+  }
+
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
-
     case MousePressed(_, pt, modifiers, _, _) =>
+      view.requestFocus()
       mouseState match {
         case SelectTool() =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
@@ -162,11 +195,15 @@ class GraphEditController(view: GraphView) {
           mouseState = SelectTool()
 
         case AddVertexTool() =>
+          val c = view.trans fromScreen (pt.getX, pt.getY)
+          val vertexData = NodeV.fromJson(theory.defaultVertexData, theory).withCoord(c)
+          addVertex(graph.verts.fresh, vertexData)
+          view.repaint()
         case DragEdge(directed, startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { endV =>
             val defaultData = if (directed) DirEdge.fromJson(theory.defaultEdgeData, theory)
-                          else UndirEdge.fromJson(theory.defaultEdgeData, theory)
+                              else UndirEdge.fromJson(theory.defaultEdgeData, theory)
             addEdge(graph.edges.fresh, defaultData, (startV, endV))
           }
           mouseState = AddEdgeTool(directed)
@@ -176,5 +213,16 @@ class GraphEditController(view: GraphView) {
       }
 
   }
-
+  
+  view.listenTo(view.keys)
+  view.reactions += {
+    case KeyPressed(_, Key.Delete, _, _) =>
+      if (!selectedVerts.isEmpty || !selectedEdges.isEmpty) {
+        undoStack.start("Delete Vertices/Edges")
+        selectedVerts.foreach { deleteVertex(_) }
+        selectedEdges.foreach { deleteEdge(_) }
+        undoStack.commit()
+        view.repaint()
+      }
+  }
 }
