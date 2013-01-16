@@ -60,7 +60,23 @@ object GraphEditor extends SimpleSwingApplication {
     focusable = true
   }
 
-  val graphEditController = new GraphEditController(MainGraphView)
+  val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
+  val VertexTypeSelect = new ComboBox("<wire>" +: StringVETheory.vertexTypes.keys.toSeq) { enabled = false }
+  val EdgeTypeLabel    = new Label("Edge Type:  ") { xAlignment = Alignment.Right; enabled = false }
+  val EdgeTypeSelect   = new ComboBox(StringVETheory.edgeTypes.keys.toSeq) { enabled = false }
+  val EdgeDirected     = new CheckBox("directed") { selected = true; enabled = false }
+
+  // Bottom panel
+  object BottomPanel extends GridPanel(1,5) {
+    contents += (VertexTypeLabel, VertexTypeSelect)
+    contents += (EdgeTypeLabel, EdgeTypeSelect, EdgeDirected)
+  }
+
+  val graphEditController = new GraphEditController(MainGraphView) {
+    vertexTypeSelect     = VertexTypeSelect
+    edgeTypeSelect       = EdgeTypeSelect
+    edgeDirectedCheckBox = EdgeDirected
+  }
 
   val MainUndoStack = graphEditController.undoStack
   val GraphViewScrollPane = new ScrollPane(MainGraphView)
@@ -80,7 +96,7 @@ object GraphEditor extends SimpleSwingApplication {
 
   val AddEdgeButton = new ToggleButton() with ToolButton {
     icon = new ImageIcon(GraphEditor.getClass.getResource("draw-path.png"), "Add Edge")
-    tool = AddEdgeTool(directed = true)
+    tool = AddEdgeTool()
   }
 
   val GraphToolGroup = new ButtonGroup(SelectButton, AddVertexButton, AddEdgeButton)
@@ -117,20 +133,6 @@ object GraphEditor extends SimpleSwingApplication {
     reactions += { case _: UndoEvent => update() }; update()
   }
 
-  // Bottom panel
-  val BottomPanel = new GridPanel(2,1) {
-    vGap = 3
-    border = new EmptyBorder(3,3,3,3)
-    contents += new GridPanel(1,5) {
-      contents += new Label("Vertex Type:  ") { xAlignment = Alignment.Right }
-      contents += new ComboBox(Seq("<wire>", "string"))
-      contents += new Label("Edge Type:  ") { xAlignment = Alignment.Right }
-      contents += new ComboBox(Seq("string"))
-      contents += new CheckBox("directed") { selected = true }
-    }
-    contents += new TextField()
-  }
-
   // Main menu
 
   val FileMenu = new Menu("File") { mnemonic = Key.F }
@@ -159,7 +161,29 @@ object GraphEditor extends SimpleSwingApplication {
     GraphToolGroup.buttons.foreach(listenTo(_))
     reactions += {
       case UIElementResized(GraphViewScrollPane) => MainGraphView.repaint()
-      case ButtonClicked(t: ToolButton) => graphEditController.mouseState = t.tool
+      case ButtonClicked(t: ToolButton) =>
+        graphEditController.mouseState = t.tool
+        t.tool match {
+          case SelectTool() =>
+            VertexTypeLabel.enabled = false
+            VertexTypeSelect.enabled = false
+            EdgeTypeLabel.enabled = false
+            EdgeTypeSelect.enabled = false
+            EdgeDirected.enabled = false
+          case AddVertexTool() =>
+            VertexTypeLabel.enabled = true
+            VertexTypeSelect.enabled = true
+            EdgeTypeLabel.enabled = false
+            EdgeTypeSelect.enabled = false
+            EdgeDirected.enabled = false
+          case AddEdgeTool() =>
+            VertexTypeLabel.enabled = false
+            VertexTypeSelect.enabled = false
+            EdgeTypeLabel.enabled = true
+            EdgeTypeSelect.enabled = true
+            EdgeDirected.enabled = true
+          case _ =>
+        }
     }
   }
 }

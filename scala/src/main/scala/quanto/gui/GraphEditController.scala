@@ -10,6 +10,14 @@ import Names._
 class GraphEditController(view: GraphView) {
   var mouseState: MouseState = SelectTool()
 
+  // GUI component connections
+  var vertexTypeLabel : Option[Label] = None
+  var vertexTypeSelect : ComboBox[String] = _
+  var edgeTypeLabel: Option[Label] = None
+  var edgeTypeSelect : ComboBox[String] = _
+  var edgeDirectedCheckBox : CheckBox = _
+  var dataField : TextField = _
+
   // listen to undo stack
   private var _undoStack: UndoStack = new UndoStack
   view.listenTo(_undoStack)
@@ -100,42 +108,84 @@ class GraphEditController(view: GraphView) {
     undoStack.commit()
   }
 
+  private def setEdgeValue(e: EName, str: String) {
+    val data = graph.edata(e)
+    val oldVal = data.value
+    graph = graph.updateEData(e) { _ => data.withValue(str) }
+    graph.edgesBetween(graph.source(e), graph.target(e)).foreach { view.invalidateEdge(_) }
+    undoStack.register("Set Edge Data") { setEdgeValue(e, oldVal) }
+  }
+
+  private def setVertexValue(v: VName, str: String) {
+    graph.vdata(v) match {
+      case data: NodeV =>
+        val oldVal = data.value
+        graph = graph.updateVData(v) { _ => data.withValue(str) }
+        view.invalidateVertex(v)
+        graph.adjacentEdges(v).foreach { view.invalidateEdge(_) }
+        undoStack.register("Set Vertex Data") { setVertexValue(v, oldVal) }
+      case _ =>
+    }
+  }
 
   view.listenTo(view.mouse.clicks, view.mouse.moves)
   view.reactions += {
-    case MousePressed(_, pt, modifiers, _, _) =>
+    case MousePressed(_, pt, modifiers, clicks, _) =>
       view.requestFocus()
       mouseState match {
         case SelectTool() =>
-          val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
-          val mouseDownOnSelectedVert = vertexHit exists (view.selectedVerts.contains(_))
+          if (clicks == 2) {
+            val vertexHit = view.vertexDisplay find { case (v, disp) =>
+              disp.pointHit(pt) && !graph.vdata(v).isWireVertex
+            } map { _._1 }
 
-          // clear the selection if the shift key isn't pressed and the vertex clicked isn't already selected
-          if (!mouseDownOnSelectedVert &&
-            (modifiers & Modifier.Shift) != Modifier.Shift)
-          {
-            selectedVerts = Set()
-            selectedEdges = Set()
-            selectedBBoxes = Set()
+            vertexHit.map{v => (v,graph.vdata(v))} match {
+              case Some((v, data: NodeV)) =>
+                Dialog.showInput(
+                  title = "Vertex data",
+                  message = "Vertex data",
+                  initial = data.value).map { newVal => setVertexValue(v, newVal) }
+              case _ =>
+                val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
+                edgeHit.map { e =>
+                  val data = graph.edata(e)
+                  Dialog.showInput(
+                    title = "Edge data",
+                    message = "Edge data",
+                    initial = data.value).map { newVal => setEdgeValue(e, newVal) }
+                  view.repaint()
+                }
+            }
+          } else {
+            val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
+            val mouseDownOnSelectedVert = vertexHit exists (view.selectedVerts.contains(_))
+
+            // clear the selection if the shift key isn't pressed and the vertex clicked isn't already selected
+            if (!mouseDownOnSelectedVert &&
+              (modifiers & Modifier.Shift) != Modifier.Shift)
+            {
+              selectedVerts = Set()
+              selectedEdges = Set()
+              selectedBBoxes = Set()
+            }
+
+            vertexHit match {
+              case Some(v) =>
+                selectedVerts += v // make sure v is selected, if it wasn't before
+                mouseState = DragVertex(pt,pt)
+              case None =>
+                val box = SelectionBox(pt, pt)
+                mouseState = box
+                view.selectionBox = Some(box.rect)
+            }
+
+            view.repaint()
           }
-
-          vertexHit match {
-            case Some(v) =>
-              selectedVerts += v // make sure v is selected, if it wasn't before
-              mouseState = DragVertex(pt,pt)
-            case None =>
-              val box = SelectionBox(pt, pt)
-              mouseState = box
-              view.selectionBox = Some(box.rect)
-          }
-
-          view.repaint()
-
         case AddVertexTool() => // do nothing
-        case AddEdgeTool(directed) =>
+        case AddEdgeTool() =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { startV =>
-            mouseState = DragEdge(directed, startV)
+            mouseState = DragEdge(startV)
             view.edgeOverlay = Some(EdgeOverlay(pt, src = startV, tgt = Some(startV)))
             view.repaint()
           }
@@ -146,7 +196,7 @@ class GraphEditController(view: GraphView) {
       mouseState match {
         case SelectTool() =>    // do nothing
         case AddVertexTool() => // do nothing
-        case AddEdgeTool(_) =>   // do nothing
+        case AddEdgeTool() =>   // do nothing
         case SelectionBox(start,_) =>
           val box = SelectionBox(start, pt)
           mouseState = box
@@ -156,7 +206,7 @@ class GraphEditController(view: GraphView) {
           shiftVertsNoRegister(selectedVerts, prev, pt)
           view.repaint()
           mouseState = DragVertex(start, pt)
-        case DragEdge(directed, startV) =>
+        case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           view.edgeOverlay = Some(EdgeOverlay(pt, startV, vertexHit))
           view.repaint()
@@ -164,16 +214,17 @@ class GraphEditController(view: GraphView) {
 
     case MouseReleased(_, pt, modifiers, _, _) =>
       mouseState match {
-        case AddEdgeTool(_) => // do nothing
+        case SelectTool()  => // do nothing
+        case AddEdgeTool() => // do nothing
         case SelectionBox(start,_) =>
           view.computeDisplayData()
 
           if (pt.getX == start.getX && pt.getY == start.getY) {
             var selectionUpdated = false
-            view.vertexDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedVerts += x._1 }
+            view.vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
 
             if (!selectionUpdated)
-              view.edgeDisplay find (_._2.pointHit(pt)) foreach { x => selectionUpdated = true; selectedEdges += x._1 }
+              view.edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
             // TODO: bbox selection
           } else {
             // box selection only affects vertices
@@ -195,21 +246,26 @@ class GraphEditController(view: GraphView) {
           mouseState = SelectTool()
 
         case AddVertexTool() =>
-          val c = view.trans fromScreen (pt.getX, pt.getY)
-          val vertexData = NodeV.fromJson(theory.defaultVertexData, theory).withCoord(c)
-          addVertex(graph.verts.fresh, vertexData)
+          val coord = view.trans fromScreen (pt.getX, pt.getY)
+
+          val vertexData = vertexTypeSelect.selection.item match {
+            case "<wire>" => WireV(theory = theory)
+            case typ      => NodeV.fromJson(theory.vertexTypes(typ).defaultData, theory).withCoord(coord)
+          }
+
+          addVertex(graph.verts.fresh, vertexData.withCoord(coord))
           view.repaint()
-        case DragEdge(directed, startV) =>
+        case DragEdge(startV) =>
           val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
           vertexHit map { endV =>
-            val defaultData = if (directed) DirEdge.fromJson(theory.defaultEdgeData, theory)
+            val defaultData = if (edgeDirectedCheckBox.selected) DirEdge.fromJson(theory.defaultEdgeData, theory)
                               else UndirEdge.fromJson(theory.defaultEdgeData, theory)
             addEdge(graph.edges.fresh, defaultData, (startV, endV))
           }
-          mouseState = AddEdgeTool(directed)
+          mouseState = AddEdgeTool()
           view.edgeOverlay = None
           view.repaint()
-        case state => throw new InvalidMouseStateException("MouseReleased", state)
+        //case state => throw new InvalidMouseStateException("MouseReleased", state)
       }
 
   }

@@ -24,5 +24,5 @@ case class SelectionBox(start: Point, end: Point) extends MouseState {
 case class DragVertex(start: Point, end: Point) extends MouseState
 
 case class AddVertexTool() extends MouseState
-case class AddEdgeTool(directed: Boolean) extends MouseState
-case class DragEdge(directed: Boolean, startVertex: VName) extends MouseState
+case class AddEdgeTool() extends MouseState
+case class DragEdge(startVertex: VName) extends MouseState
