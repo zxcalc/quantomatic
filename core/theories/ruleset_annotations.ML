@@ -175,6 +175,8 @@ sig
   val remove_rule_property : R.name -> string -> T -> T;
 end;
 
+signature RULESET_JSON_OBJECT_ANNOTATIONS = RULESET_ANNOTATIONS where type data = Json.jobj
+
 structure RulesetStringTableAnnotations : RULESET_STRING_TABLE_ANNOTATIONS =
 struct
   structure Ann = RulesetAnnotations(
@@ -191,4 +193,8 @@ struct
   val remove_ruleset_property = Ann.update_ruleset_annotation o Symtab.delete;
   fun remove_rule_property r = (Ann.update_rule_annotation r) o Symtab.delete;
 end;
+
+structure RulesetJsonObjectAnnotations : RULESET_JSON_OBJECT_ANNOTATIONS = RulesetAnnotations(
+  structure GraphAnnotations = GraphJsonObjectAnnotations
+)
 

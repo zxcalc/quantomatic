@@ -30,6 +30,15 @@ structure InputGraphStringTableAnnotationsJSON
   open InputAnn;
 end;
 
+structure InputGraphJsonObjectAnnotationsJSON
+  : GRAPH_ANN_INPUT_JSON where type data = GraphJsonObjectAnnotations.T
+= InputGraphAnnotationsJSON(
+  structure Annotations = GraphJsonObjectAnnotations
+  fun json_to_annotation Json.Null = Json.empty_obj
+    | json_to_annotation (Json.Object obj) = obj
+    | json_to_annotation _ = raise JsonInputUtils.bad_input_exp ("Expected object","")
+)
+
 functor OutputGraphAnnotationsJSON(
   structure Annotations : GRAPH_ANNOTATIONS
   val annotation_to_json : Annotations.data -> Json.json
@@ -62,4 +71,11 @@ structure OutputGraphStringTableAnnotationsJSON
   );
   open OutputAnn;
 end;
+
+structure OutputGraphJsonObjectAnnotationsJSON
+  : GRAPH_ANN_OUTPUT_JSON where type data = GraphJsonObjectAnnotations.T
+= OutputGraphAnnotationsJSON(
+  structure Annotations = GraphJsonObjectAnnotations
+  fun annotation_to_json obj = Json.Object obj
+)
 

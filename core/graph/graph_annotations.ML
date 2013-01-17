@@ -244,6 +244,9 @@ sig
   val remove_bangbox_property : B.name -> string -> T -> T;
 end;
 
+signature GRAPH_JSON_OBJECT_ANNOTATIONS =
+  GRAPH_ANNOTATIONS where type data = Json.jobj
+
 structure GraphStringTableAnnotations : GRAPH_STRING_TABLE_ANNOTATIONS =
 struct
   fun pretty_symtab tab = let
@@ -274,5 +277,11 @@ struct
   fun remove_edge_property e = (Ann.update_edge_annotation e) o Symtab.delete;
   fun remove_bangbox_property b = (Ann.update_bangbox_annotation b) o Symtab.delete;
 end;
+
+structure GraphJsonObjectAnnotations : GRAPH_JSON_OBJECT_ANNOTATIONS = GraphAnnotations(
+  type data = Json.jobj
+  val data_init = Json.empty_obj
+  fun data_pretty obj = Json.pretty (Json.Object obj)
+)
 
 
