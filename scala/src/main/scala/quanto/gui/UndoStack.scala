@@ -4,7 +4,7 @@ import swing.Publisher
 import swing.event.Event
 
 abstract class UndoEvent extends Event
-case class UndoStackChanged() extends UndoEvent
+case class UndoStackCleared() extends UndoEvent
 case class UndoRegistered(name: String) extends UndoEvent
 case class UndoPerformed(name: String) extends UndoEvent
 case class RedoPerformed(name: String) extends UndoEvent
@@ -14,11 +14,20 @@ class UndoStackException(msg: String) extends Exception(msg)
 class UndoStack extends Publisher {
   private var redoMode = false
 
-  var commitDepth = 0
+  var commitDepth: Int = 0
   var tempStack = List[()=>Any]()
-  var actionName: String = _
+  var actionName: String = null
   var undoStack = List[(String, List[()=>Any])]()
   var redoStack = List[(String, List[()=>Any])]()
+
+  def clear() {
+    commitDepth = 0
+    tempStack = List[()=>Any]()
+    actionName = null
+    undoStack = List[(String, List[()=>Any])]()
+    redoStack = List[(String, List[()=>Any])]()
+    publish(UndoStackCleared())
+  }
 
   def start(aName: String) {
     if (commitDepth == 0) actionName = aName

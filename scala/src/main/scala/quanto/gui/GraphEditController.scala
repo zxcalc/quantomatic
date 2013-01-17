@@ -272,7 +272,7 @@ class GraphEditController(view: GraphView) {
   
   view.listenTo(view.keys)
   view.reactions += {
-    case KeyPressed(_, Key.Delete, _, _) =>
+    case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
       if (!selectedVerts.isEmpty || !selectedEdges.isEmpty) {
         undoStack.start("Delete Vertices/Edges")
         selectedVerts.foreach { deleteVertex(_) }

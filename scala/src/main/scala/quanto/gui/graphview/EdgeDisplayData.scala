@@ -91,22 +91,25 @@ trait EdgeDisplayData { self: GraphView with VertexDisplayData =>
             iter.next()
           }
 
-          val (ah1, ah2, ah3) = {
-            val (x,y,a) = if (edges contains e) (tp._1, tp._2, inAngle) else (sp._1, sp._2, outAngle)
-            (
-              trans toScreen (x + ArrowheadLength * cos(a - ArrowheadAngle),
-                              y + ArrowheadLength * sin(a - ArrowheadAngle)),
-              trans toScreen (x,y),
-              trans toScreen (x + ArrowheadLength * cos(a + ArrowheadAngle),
-                              y + ArrowheadLength * sin(a + ArrowheadAngle))
-            )
-          }
-
-          p.moveTo(ah1._1, ah1._2)
-          p.lineTo(ah2._1, ah2._2)
-          p.lineTo(ah3._1, ah3._2)
-
           val edgeData = graph.edata(e)
+
+          if (edgeData.isDirected) {
+            val (ah1, ah2, ah3) = {
+              val (x,y,a) = if (edges contains e) (tp._1, tp._2, inAngle) else (sp._1, sp._2, outAngle)
+              (
+                trans toScreen (x + ArrowheadLength * cos(a - ArrowheadAngle),
+                                y + ArrowheadLength * sin(a - ArrowheadAngle)),
+                trans toScreen (x,y),
+                trans toScreen (x + ArrowheadLength * cos(a + ArrowheadAngle),
+                                y + ArrowheadLength * sin(a + ArrowheadAngle))
+              )
+            }
+
+
+            p.moveTo(ah1._1, ah1._2)
+            p.lineTo(ah2._1, ah2._2)
+            p.lineTo(ah3._1, ah3._2)
+          }
 
           val labelDisplay = edgeData.typeInfo.value.typ match {
             case Theory.ValueType.String =>

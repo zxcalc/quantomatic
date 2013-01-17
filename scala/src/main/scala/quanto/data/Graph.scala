@@ -26,6 +26,8 @@ case class Graph(
 object Graph {
   implicit def qGraphAndNameToQGraph[N <: Name[N]](t: (Graph, Name[N])) : Graph = t._1
 
+  def apply(theory: Theory): Graph = Graph(data = GData(theory = theory))
+
   def fromJson(s: String, thy: Theory): Graph =
     try   { fromJson(Json.parse(s), thy) }
     catch { case e:JsonParseException => throw new GraphLoadException("Error parsing JSON", e) }

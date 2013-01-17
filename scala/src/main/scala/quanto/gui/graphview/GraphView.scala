@@ -13,7 +13,7 @@ import java.awt.geom.{Line2D, Rectangle2D}
 // a visual overlay for edge drawing
 case class EdgeOverlay(pt: Point, src: VName, tgt: Option[VName])
 
-class GraphView extends Panel
+class GraphView(val theory: Theory) extends Panel
   with Scrollable
   with EdgeDisplayData
   with VertexDisplayData
@@ -47,7 +47,7 @@ class GraphView extends Panel
     computeBBoxDisplay()
   }
 
-  var graph = new Graph()
+  var graph = Graph(theory)
   var trans = new Transformer
 
   var selectedVerts = Set[VName]()
@@ -57,6 +57,9 @@ class GraphView extends Panel
   def invalidateGraph() {
     invalidateAllVerts()
     invalidateAllEdges()
+    selectedVerts = Set[VName]()
+    selectedEdges = Set[EName]()
+    selectedBBoxes = Set[BBName]()
   }
 
   private def drawGridLines(g: Graphics2D) {
@@ -262,8 +265,8 @@ class GraphView extends Panel
 object GraphView {
   final val NodeRadius = 0.16
   final val WireRadius = 0.1
-  final val ArrowheadLength = 0.1
-  final val ArrowheadAngle = 0.25 * Pi
+  final val ArrowheadLength = 0.15
+  final val ArrowheadAngle = 0.2 * Pi
   final val EdgeSelectionRadius = 3.0
   final val VertexLabelFont = new Font("Dialog", AWTFont.PLAIN, 12)
   final val EdgeLabelFont = new Font("Dialog", AWTFont.PLAIN, 10)

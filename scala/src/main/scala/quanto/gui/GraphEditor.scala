@@ -2,7 +2,7 @@ package quanto.gui
 
 import graphview._
 import swing._
-import event.{ButtonClicked, Key, UIElementResized}
+import event.{ButtonClicked, Key, UIElementResized,Event}
 import quanto.data._
 import quanto.layout._
 import Names._
@@ -22,43 +22,19 @@ class ToolBar extends Component with SequentialContainer.Wrapper {
 object GraphEditor extends SimpleSwingApplication {
   val CommandMask = java.awt.Toolkit.getDefaultToolkit.getMenuShortcutKeyMask
 
-  // populate with a random graph, for testing
-  //var theGraph = Graph.random(10,15,0)
-
   println("loading theory " + GraphEditor.getClass.getResource("string_ve.qtheory"))
   val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("string_ve.qtheory"))
   val StringVETheory = Theory.fromJson(Json.parse(thyFile))
 
-  var theGraph = Graph.fromJson(
-    """
-      |{
-      |  "node_vertices": {
-      |    "a": {"data": {"type": "string", "value": "some long string"}},
-      |    "b": {"data": {"type": "string", "value": "foo"}},
-      |    "c": {"data": {"type": "string", "value": "bar"}},
-      |    "d": {"data": {"type": "string", "value": "baz"}}
-      |  },
-      |  "dir_edges": {
-      |    "e0": {"src":"b", "tgt":"a", "data": {"type": "string", "value": "here"}},
-      |    "e0p": {"src":"b", "tgt":"a", "data": {"type": "string", "value": "there"}},
-      |    "e1": {"src":"a", "tgt":"d"},
-      |    "e2": {"src":"b", "tgt":"d"},
-      |    "e3": {"src":"c", "tgt":"b"}
-      |  }
-      |}
-    """.stripMargin, StringVETheory)
-  val layoutEngine = new DotLayout
-
-  theGraph = layoutEngine.layout(theGraph)
-  //println(layoutEngine.dotString)
-
   // GUI components
-  val MainGraphView = new GraphView {
-    graph = theGraph
+  val graphView = new GraphView(StringVETheory) {
     drawGrid = true
     dynamicResize = true
     focusable = true
   }
+
+  val graphDocument = new GraphDocument(graphView)
+
 
   val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val VertexTypeSelect = new ComboBox("<wire>" +: StringVETheory.vertexTypes.keys.toSeq) { enabled = false }
@@ -72,14 +48,14 @@ object GraphEditor extends SimpleSwingApplication {
     contents += (EdgeTypeLabel, EdgeTypeSelect, EdgeDirected)
   }
 
-  val graphEditController = new GraphEditController(MainGraphView) {
+  val graphEditController = new GraphEditController(graphView) {
+    undoStack            = graphDocument.undoStack
     vertexTypeSelect     = VertexTypeSelect
     edgeTypeSelect       = EdgeTypeSelect
     edgeDirectedCheckBox = EdgeDirected
   }
 
-  val MainUndoStack = graphEditController.undoStack
-  val GraphViewScrollPane = new ScrollPane(MainGraphView)
+  val GraphViewScrollPane = new ScrollPane(graphView)
 
   trait ToolButton { var tool: MouseState = SelectTool() }
 
@@ -105,46 +81,90 @@ object GraphEditor extends SimpleSwingApplication {
     contents += (SelectButton, AddVertexButton, AddEdgeButton)
   }
 
-
-  // Actions associated with main menu
-  val UndoAction = new Action("Undo") with Reactor {
-    accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
-    def apply() { MainUndoStack.undo() }
-
-    def update() {
-      enabled = MainUndoStack.canUndo
-      title = "Undo " + MainUndoStack.undoActionName.getOrElse("")
-    }
-
-    listenTo(MainUndoStack)
-    reactions += { case _: UndoEvent => update() }; update()
-  }
-
-  val RedoAction = new Action("Redo") with Reactor {
-    accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
-    def apply() { MainUndoStack.redo() }
-
-    def update() {
-      enabled = MainUndoStack.canRedo
-      title = "Redo " + MainUndoStack.redoActionName.getOrElse("")
-    }
-
-    listenTo(MainUndoStack)
-    reactions += { case _: UndoEvent => update() }; update()
-  }
-
   // Main menu
 
-  val FileMenu = new Menu("File") { mnemonic = Key.F }
+  val FileMenu = new Menu("File") { menu =>
+    mnemonic = Key.F
+
+    val NewAction = new Action("New") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.N }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_N, CommandMask))
+      def apply() {
+        if (graphDocument.promptUnsaved()) graphDocument.newGraph()
+      }
+    }
+
+    val OpenAction = new Action("Open...") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.O }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_O, CommandMask))
+      def apply() { graphDocument.showOpenDialog() }
+
+      val SaveAction = new Action("Save") {
+        menu.contents += new MenuItem(this) { mnemonic = Key.S }
+        accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask))
+        enabled = false
+        def apply() {
+          graphDocument.file match {
+            case Some(_) => graphDocument.saveGraph()
+            case None    => graphDocument.showSaveAsDialog()
+          }
+        }
+
+        listenTo(graphDocument)
+        reactions += { case GraphChanged(_) | GraphSaved(_) =>
+          enabled = graphDocument.unsavedChanges
+        }
+      }
+
+      val SaveAsAction = new Action("Save As...") {
+        menu.contents += new MenuItem(this) { mnemonic = Key.A }
+        accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_S, CommandMask | Key.Modifier.Shift))
+        def apply() { graphDocument.showSaveAsDialog() }
+      }
+    }
+
+    val QuitAction = new Action("Quit") {
+      menu.contents += new MenuItem(this) { mnemonic = Key.Q }
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Q, CommandMask))
+      def apply() {
+        if (graphDocument.promptUnsaved()) sys.exit(0)
+      }
+    }
+  }
 
   val EditMenu = new Menu("Edit") {
     mnemonic = Key.E
+
+    val UndoAction = new Action("Undo") with Reactor {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask))
+      enabled = false
+      def apply() { graphDocument.undoStack.undo() }
+
+      listenTo(graphDocument.undoStack)
+      reactions += { case _: UndoEvent =>
+        enabled = graphDocument.undoStack.canUndo
+        title   = "Undo " + graphDocument.undoStack.undoActionName.getOrElse("")
+      }
+    }
+
+    val RedoAction = new Action("Redo") with Reactor {
+      accelerator = Some(KeyStroke.getKeyStroke(KeyEvent.VK_Z, CommandMask | Key.Modifier.Shift))
+      enabled = false
+      def apply() { graphDocument.undoStack.redo() }
+
+      listenTo(graphDocument.undoStack)
+      reactions += { case _: UndoEvent =>
+        enabled = graphDocument.undoStack.canRedo
+        title = "Redo " + graphDocument.undoStack.redoActionName.getOrElse("")
+      }
+    }
+
     contents += new MenuItem(UndoAction) { mnemonic = Key.U }
     contents += new MenuItem(RedoAction) { mnemonic = Key.R }
   }
 
   def top = new MainFrame {
-    title = "Quanto Graph Editor"
+    title = "QGraph Editor - " + graphDocument.titleDescription
     contents = new BorderPanel {
       add(MainToolBar, BorderPanel.Position.North)
       add(GraphViewScrollPane, BorderPanel.Position.Center)
@@ -157,10 +177,10 @@ object GraphEditor extends SimpleSwingApplication {
       contents += (FileMenu, EditMenu)
     }
 
-    listenTo(GraphViewScrollPane)
+    listenTo(GraphViewScrollPane, graphDocument)
     GraphToolGroup.buttons.foreach(listenTo(_))
     reactions += {
-      case UIElementResized(GraphViewScrollPane) => MainGraphView.repaint()
+      case UIElementResized(GraphViewScrollPane) => graphView.repaint()
       case ButtonClicked(t: ToolButton) =>
         graphEditController.mouseState = t.tool
         t.tool match {
@@ -184,6 +204,8 @@ object GraphEditor extends SimpleSwingApplication {
             EdgeDirected.enabled = true
           case _ =>
         }
+      case GraphChanged(_)|GraphSaved(_) =>
+        title = "QGraph Editor - " + graphDocument.titleDescription
     }
   }
 }
