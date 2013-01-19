@@ -2,6 +2,12 @@ theory QuantoCore
 imports Main io
 uses
 
+(* string vertex/edge graphs *)
+ "../../core/theories/string_ve/graph.ML"
+ "../../core/theories/string_ve/theory.ML"
+ "../../core/theories/string_ve/io.ML"
+
+
 (* more expression code; this time expresions derived from graphs, 
    e.g. for interaction with Mathematica/Maple/etc. *)
 (* These depend on the red-green theory for now *)
@@ -52,10 +58,21 @@ uses
  "../../core/theories/isaplanner_rtechn/theory.ML"
  "../../core/theories/isaplanner_rtechn/io.ML"
 
+(*
+ * Decisions nets
+ *)
+ "../../core/dnets/DNetsLib.ML"
+ "../../core/dnets/Literal.ML"
+ "../../core/dnets/Contour.ML"
+ "../../core/dnets/ContourList.ML"
+ "../../core/dnets/TopDNet.ML"
+
 (* Overall controller for theories *)
  "../../core/interface/controller_state.ML" (* control state for quanto *)
  "../../core/interface/controller.ML" (* commands *)
  "../../core/interface/controller_registry.ML" (* theory lists *)
+(* "../../core/interface/run.ML" *)
+
 
 (* interface protocol/console *)
  "../../core/interface/console_commands.ML" (* console commands and help *)
@@ -63,7 +80,17 @@ uses
  "../../core/interface/console.ML" (* generic protocol using commands *)
  "../../core/interface/console_interface.ML" (* generic protocol using commands *)
  "../../core/interface/protocol.ML" (* protocol for tools *)
- "../../core/interface/run.ML" 
+
+(* new modular controller *)
+ "../../core/json_interface/controller_util.ML"
+ "../../core/json_interface/controller_module.ML"
+ "../../core/json_interface/modules/test.ML"
+ "../../core/json_interface/controller.ML"
+ "../../core/json_interface/controller_registry.ML"
+ "../../core/json_interface/protocol.ML"
+ "../../core/json_interface/run.ML"
+
+
 
 
 
