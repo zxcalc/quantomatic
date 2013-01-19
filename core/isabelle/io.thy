@@ -36,6 +36,9 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* boilerplate data functors for enumerated datatypes *)
  "../../core/theories/enum_data.ML"
 
+(* data for strings *)
+ "../../core/theories/string_data.ML"
+
 (* Graphs *)
  "../../core/io/graph_xml_v2_input.ML"
  "../../core/io/graph_xml_v2_output.ML"
