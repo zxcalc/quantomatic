@@ -4,7 +4,7 @@ structure MJB_Test_InnerMatcher_Parallel =
 structure MJB_Test_BGInnerMatcher_Parallel =
   MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
 structure MJB_Test_ConcreteMatcher_Parallel =
-  MJB_ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher);
+  MJB_ConcreteMatchSearch(structure InnerMatchSearch = MJB_Test_InnerMatcher_Parallel);
 structure MJB_Test_GreedyMatcher_Parallel =
   MJB_GreedyMatchSearchParallel(
     structure InnerMatchSearch = Test_BGInnerMatcher

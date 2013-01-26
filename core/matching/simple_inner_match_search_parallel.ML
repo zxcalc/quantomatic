@@ -644,13 +644,15 @@ functor MJB_SimpleInnerMatchSearchParallel(
       end
     in
       (*Parallelise at the lower levels*)
+      (*
       if (lvl<=1) then
         Par_Seq.sequential_seq_of(
         Par_Seq.maps (fn fd => fn a => Par_Seq.of_sequential_seq fd (match_bw fd a)) (
         Par_Seq.of_sequential_seq data edges))
-      else
+      else*)
         Seq.maps (match_bw data) edges
-    end
+        end
+    (*end*)
   end
   val match_bare_wires = match_bare_wires' (Future.new_future_data (SOME "<-Bare wires")) 0
   

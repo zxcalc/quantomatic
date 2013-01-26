@@ -258,7 +258,7 @@ struct
   (*The function which is actually applied to the above nodes*)
   fun apply_to_node (ms,ms_func) = case ms_func of
       (Match_Loop (fd,number_expansions)) =>
-        let
+        (*let
           val sw = Stopwatch.start Stopwatch.new;
           val res = match_loop fd ms number_expansions;
           val t = Time.toMicroseconds(Stopwatch.check sw);
@@ -274,10 +274,10 @@ struct
                   else ();
         in
           res
-        end
-        (*match_loop fd ms number_expansions*)
+        end*)
+        match_loop fd ms number_expansions
     | (Choose_Next_BBox (fd,number_expansions)) =>
-        let
+        (*let
           val sw = Stopwatch.start Stopwatch.new;
           val res = choose_next_bbox fd ms number_expansions;
           val t = Time.toMicroseconds(Stopwatch.check sw);
@@ -293,8 +293,8 @@ struct
                   else ();
         in
           res
-        end
-        (*choose_next_bbox fd ms number_expansions*)
+        end*)
+        choose_next_bbox fd ms number_expansions
   
   (*val max = 1000000;*)
   val max_coarse = 50;

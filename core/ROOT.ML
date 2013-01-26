@@ -283,6 +283,8 @@ Testing.make_test "../../isaplib/Concurrent/test/test-par_seq.ML";
 (*Order important - share testing tools*)
 Testing.make_test "../../isaplib/Concurrent/test/test-compactor.ML";
 Testing.make_test "../../isaplib/Concurrent/test/test-par_tree.ML";
+(*MJB futures tests - not really a test actually...*)
+Testing.make_test "../../isaplib/Concurrent/test/futures_memory_test.ML";
 
 (*
  * Decisions nets

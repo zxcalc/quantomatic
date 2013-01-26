@@ -105,27 +105,34 @@ local
   
   (*Other helpful functions*)
   
+  (*Pull elements from a sequence, but allow them to be throw away*)
+  fun pull_all sq = case (Seq.pull sq) of
+      NONE => ()
+    | SOME (x,sq) => pull_all sq
+  
   (*Note: the pattern graph should come first when matching with the greedy
   algorithm.*)
   
   (*Force the evaluation of all the matches, and return the results as a list*)
-  fun match_all_concrete g1 g2 = Seq.list_of (Concrete_M.match g1 g2)
-  fun match_all_greedy g1 g2 = Seq.list_of (Greedy_M.match g1 g2)
+  fun match_all_concrete g1 g2 = pull_all (Concrete_M.match g1 g2)
+  fun match_all_greedy g1 g2 = pull_all (Greedy_M.match g1 g2)
   (*Wrapped version of the sequential algorithm*)
   fun match_all_concrete_wrapped g1 g2 = (wrap_sequential (fn () => (
-    let val ls = Seq.list_of (Concrete_M.match g1 g2) in
+    let val ls = pull_all (Concrete_M.match g1 g2) in
     (*PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));*)() end))) ()
   fun match_all_greedy_wrapped g1 g2 =
     (wrap_sequential (fn () => (
-    let val ls = Seq.list_of (Greedy_M.match g1 g2) in
+    let val ls = pull_all (Greedy_M.match g1 g2) in
     (*PolyML.print ("Seq Contained: " ^ Int.toString(List.length ls));*)() end))) ()
   (*Parallel version!*)
-  fun match_all_parallel_concrete g1 g2 = let
+  fun match_all_parallel_concrete g1 g2 = (*let
     val n = List.length (Seq.list_of (Concrete_Parallel_M.match g1 g2))
-    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end
-  fun match_all_parallel_greedy g1 g2 = let
+    in ((*PolyML.print("Par Contained " ^ Int.toString(n));*)()) end*)
+    pull_all (Concrete_Parallel_M.match g1 g2)
+  fun match_all_parallel_greedy g1 g2 = (*let
     val n = List.length (Seq.list_of (Greedy_Parallel_M.match g1 g2))
-    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end
+    in (PolyML.print("Par Contained " ^ Int.toString(n));()) end*)
+    pull_all (Greedy_Parallel_M.match g1 g2)
   
   (*Force the evaluation of all matching circles only, and return the results as a list*)
   fun match_all_circles_concrete g1 g2 = Seq.list_of (

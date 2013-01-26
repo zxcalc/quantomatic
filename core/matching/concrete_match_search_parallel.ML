@@ -23,13 +23,18 @@ struct
    * incomplete matches (as we have nothing left to add to the pattern) *)
   fun do_match ms =
     let
+      (*
       val data = Future.new_future_data (SOME "<-Concrete wrapper")
       val sq = InnerMatchSearch.match_pending concrete_doomedf ms in
     Par_Seq.sequential_seq_of (
     Par_Seq.filter (fn _ => fn m => MatchState.is_total m)
        (Par_Seq.maps (fn fd => fn m =>
         Par_Seq.of_sequential_seq fd (InnerMatchSearch.match_bare_wires m))
-        (Par_Seq.of_sequential_seq data sq)))
+        (Par_Seq.of_sequential_seq data sq)))*)
+        val res = Seq.maps InnerMatchSearch.match_bare_wires
+        (InnerMatchSearch.match_pending concrete_doomedf ms);
+    in
+      Seq.filter MatchState.is_total res
     end
 
   fun log_p pretty_f lvl name =
