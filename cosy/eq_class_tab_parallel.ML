@@ -17,75 +17,11 @@ this is still true (?). Presumably it is correct to say that two graphs are equi
 
 *)
 
-
-(*Signatures...*)
-signature GRAPH_ENTRY =
-sig
-  (*A graph entry appears to be a graph equipped with its own equivalence method*)
-  structure Graph : BANG_GRAPH
-  (*Graphs are represented essentially with integer values. There equivalence may exist regardless
-  of the ability of graphs to match one another. You should use the DNET*)
-  structure Equiv : GRAPH_EQUIV
-  sharing Equiv.Graph.SharingOGraph = Graph.SharingOGraph
-  
-  type T
-  type data
-  (*Graph related stuff. get_graph in particular returns the underlying graph*)
-  val update_graph : (Graph.T -> Graph.T) -> T -> T
-  val update_data  : (data -> data) -> T -> T
-  val update_edata : (Equiv.T option -> Equiv.T option) -> T -> T
-  val update_dirty : (bool -> bool) -> T -> T
-  val get_graph    : T -> Graph.T
-  val get_data     : T -> data
-  val get_edata    : T -> Equiv.T option
-  val get_dirty    : T -> bool
-  val set_graph    : Graph.T -> T -> T
-  val set_data     : data -> T -> T
-  val set_edata    : Equiv.T option -> T -> T
-  val set_dirty    : bool -> T -> T
-  val mk  : Graph.T * data -> T
-  val mk' : (Graph.T * Equiv.T option) * data -> T
-end
-
-(*This is the type of a single equivalence class. Each equivalence class has:
-REPRESENTATIVE : LIST OF CONGRUENCIES : LIST OF REDUCIBLE EXPRESSIONS
-Graphs are held in this class by name only.
-*)
-signature EQ_CLASS =
-sig
-  type T
-  (*Change the representative for a particular equivalence class. A representative is a smallest graph
-  (by some metric) in its equivalence class*)
-  val update_rep     : (GraphName.name -> GraphName.name) -> T -> T
-  (*Change the congruencies for a particular equivalence class. These are elements
-  all equal in size to the minimal class*)
-  val update_congs   : (GraphName.name list -> GraphName.name list) -> T -> T
-  (*Change the reducible expressions in an equivalence class. These are essentially graphs in the same
-  equivalence class as another graph which is smaller than them. Hence, they can be reduced in size to the smaller graph*)
-  val update_redexes : (GraphName.name list -> GraphName.name list) -> T -> T
-  (*Return the representative for a particular equivalence class*)
-  val get_rep        : T -> GraphName.name
-  (*Return all of the congruencies for a particular equivalence class. (This is disjoint from the representatives
-  at the moment, so it may be empty)*)
-  val get_congs      : T -> GraphName.name list
-  (*Return all of the reducible expressions in the equivalence class*)
-  val get_redexes    : T -> GraphName.name list
-  (*Set the representative for a new equivalence class (new being this one)*)
-  val set_rep        : GraphName.name -> T -> T
-  (*Set the congruencies for a new equivalence class*)
-  val set_congs      : GraphName.name list -> T -> T
-  (*Set the reducible expressions for a new equivalence class*)
-  val set_redexes    : GraphName.name list -> T -> T
-  (*Make a new equivalence class, with the supplied graph name as the representative.
-  Congruencies will be [] as will redex*)
-  val mk : GraphName.name -> T
-end
-
 (*The entire equivalence class table
 Each equivalence class table has its own DNET and its own table of equivalence classes
 (which uses a hash by arity I think for efficiency)
 It can also have its own initial rule set*)
-signature EQ_CLASS_TAB =
+signature MJB_EQ_CLASS_TAB =
 sig
   type T
   structure Theory : GRAPHICAL_THEORY
@@ -138,74 +74,17 @@ sig
   list was caught by the DNET*)
   val update : GraphEntry.T list -> T -> GraphEntry.T list * T
   
+  (*Check for a match in the DNET of this equivalence class table*)
+  val has_match_in_dnet : T -> GraphEntry.T -> bool
+  
   (*Create a new empty equivalence class table!*)
   val empty : T
   (*Make an equivalence class table with the initial rule set*)
   val mk : Theory.Ruleset.T -> T
 end
 
-(*Not really sure how this works in detail. It's a graph with an equivalence metric - I think. Hopefully all that's important.*)
-functor GraphEntry(
-  structure Equiv : GRAPH_EQUIV
-  type data
-) : GRAPH_ENTRY =
-struct
-  structure Graph = Equiv.Graph
-  structure Equiv = Equiv
-  type data = data
-  
-  exception stub_data_access of unit
-  datatype T = GE of { graph: Graph.T, data: data, edata: Equiv.T option, dirty: bool }
-  fun update_graph f (GE r) = GE {graph = f(#graph r), data  = #data r, edata = #edata r, dirty = #dirty r}
-  fun update_data f (GE r) = GE {graph = #graph r, data  = f(#data r), edata = #edata r, dirty = #dirty r}
-  fun update_edata f (GE r) = GE {graph = #graph r, data  = #data r, edata = f(#edata r), dirty = #dirty r}
-  fun update_dirty f (GE r) = GE {graph = #graph r, data  = #data r, edata = #edata r, dirty = f(#dirty r)}
-  fun get_graph (GE r) = #graph r
-  fun get_data  (GE r) = #data r
-  fun get_edata (GE r) = #edata r
-  fun get_dirty (GE r) = #dirty r
-  val set_graph    = update_graph o K
-  val set_data     = update_data  o K
-  val set_edata    = update_edata o K
-  val set_dirty    = update_dirty o K
-  (*Not sure what dirty is supposed to mean...*)
-  fun mk' ((gr, ed), d) =
-    GE {
-      graph = gr,
-      data = d,
-      edata = ed,
-      dirty = true
-    }
-  
-  fun mk (gr, d) = let
-    val (gr' ,ed) = Equiv.compute_equiv_data gr
-  in mk' ((gr', SOME ed), d)
-  end
-end
-
-(*Implementation of a single equivalence class! This is not so hard to understand*)
-structure EqClass =
-struct
-  datatype T = EQC of { rep: GraphName.name, congs: GraphName.name list, redexes: GraphName.name list }
-  (*Updates apply the supplied function to what already exists, and sets the value to be whatever the function
-  returns. In each case, everything else is kept the same. I think records are ugly for this but anyway...*)
-  fun update_rep f (EQC r)     = EQC {rep= f(#rep r),congs= #congs r,redexes= #redexes r}
-  fun update_congs f (EQC r)   = EQC {rep= #rep r,congs= f(#congs r),redexes= #redexes r}
-  fun update_redexes f (EQC r) = EQC {rep= #rep r,congs= #congs r,redexes= f(#redexes r)}
-  (*Written on a tin*)
-  fun get_rep     (EQC r) = #rep r
-  fun get_congs   (EQC r) = #congs r
-  fun get_redexes (EQC r) = #redexes r
-  (*K ignores its argument. Hence, the functions return whatever they were given*)
-  val set_rep     = update_rep     o K
-  val set_congs   = update_congs   o K
-  val set_redexes = update_redexes o K
-  (*Create a new class with the given representative*)
-  fun mk g = EQC { rep = g, congs = [], redexes = [] }
-end
-
 (*The equivalence class table itself! WOOO!*)
-functor EqClassTab(
+functor MJB_EqClassTab(
   structure Theory : GRAPHICAL_THEORY
   (*This will tell the EqTab whether one graph is larger, smaller or equal to another graph in size.
   Don't worry about how the metric actually works - you don't need to know (tensors?)*)
@@ -222,7 +101,7 @@ functor EqClassTab(
           Equiv.Graph.SharingOGraph
   type data
   val default_data : data
-) : EQ_CLASS_TAB =
+) : MJB_EQ_CLASS_TAB =
 struct
   (*Set lots of stuff*)
   structure Theory = Theory

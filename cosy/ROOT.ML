@@ -22,7 +22,12 @@ PolyML.Project.make "fast_graph_enum.ML";
 
 PolyML.Project.make "theories.ML";
 
+(*MJB*)
+PolyML.Project.make "eq_class_tab_parallel.ML";
+PolyML.Project.make "fast_graph_enum_parallel.ML";
 
+(*MJB*)
+Testing.make_test "tests/fast_graph_enum_performance_tests.ML";
 
 
 (*PolyML.Project.make "enumerate.ML";
