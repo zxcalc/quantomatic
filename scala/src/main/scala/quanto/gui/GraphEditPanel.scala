@@ -19,6 +19,9 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
   def graph = graphDocument.graph
   def graph_=(g: Graph) { graphDocument.graph = g }
 
+  // alias for graph_=, used in java code
+  def setGraph(g: Graph) { graph_=(g) }
+
 
   val VertexTypeLabel  = new Label("Vertex Type:  ") { xAlignment = Alignment.Right; enabled = false }
   val VertexTypeSelect = new ComboBox("<wire>" +: theory.vertexTypes.keys.toSeq) { enabled = false }
