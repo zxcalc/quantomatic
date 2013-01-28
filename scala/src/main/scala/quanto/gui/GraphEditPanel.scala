@@ -5,6 +5,7 @@ import quanto.data._
 import swing._
 import swing.event._
 import javax.swing.ImageIcon
+import quanto.util.swing.ToolBar
 
 class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends BorderPanel {
   // GUI components

@@ -1,22 +1,13 @@
 package quanto.gui
 
-import graphview._
-import swing._
-import event.{ButtonClicked, Key, UIElementResized,Event}
-import quanto.data._
-import quanto.layout._
-import Names._
-import javax.swing.{ImageIcon, JToolBar, KeyStroke}
-import java.awt.event.KeyEvent
-import quanto.util.json.{Json, JsonObject, JsonPath}
-import java.awt.Color
-import javax.swing.border.EmptyBorder
 
-class ToolBar extends Component with SequentialContainer.Wrapper {
-  override lazy val peer: JToolBar = new JToolBar
-  def add( action: Action ) { peer.add( action.peer )}
-  def add( component: Component ) { peer.add( component.peer )}
-}
+import swing._
+import event.Key
+import quanto.data._
+import javax.swing.{JToolBar, KeyStroke}
+import java.awt.event.KeyEvent
+import quanto.util.json.Json
+
 
 
 object GraphEditor extends SimpleSwingApplication {
@@ -26,7 +17,7 @@ object GraphEditor extends SimpleSwingApplication {
   val thyFile = new Json.Input(GraphEditor.getClass.getResourceAsStream("string_ve.qtheory"))
   val StringVETheory = Theory.fromJson(Json.parse(thyFile))
 
-  val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = true)
+  val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
   val graphDocument = graphEditPanel.graphDocument
 
   // Main menu
