@@ -7,8 +7,19 @@ import Key.Modifier
 import quanto.data._
 import Names._
 
-class GraphEditController(view: GraphView) {
-  var mouseState: MouseState = SelectTool()
+class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
+  private var _mouseState: MouseState = SelectTool()
+  def mouseState = _mouseState
+
+  def mouseState_=(s: MouseState) {
+    if (readOnly) s match {
+      case AddVertexTool() | AddEdgeTool() | DragEdge(_) =>
+        throw new InvalidMouseStateException("readOnly == true", s)
+      case _ =>
+    }
+
+    _mouseState = s
+  }
 
   // GUI component connections
   var vertexTypeLabel : Option[Label] = None
@@ -135,26 +146,28 @@ class GraphEditController(view: GraphView) {
       mouseState match {
         case SelectTool() =>
           if (clicks == 2) {
-            val vertexHit = view.vertexDisplay find { case (v, disp) =>
-              disp.pointHit(pt) && !graph.vdata(v).isWireVertex
-            } map { _._1 }
+            if (!readOnly) {
+              val vertexHit = view.vertexDisplay find { case (v, disp) =>
+                disp.pointHit(pt) && !graph.vdata(v).isWireVertex
+              } map { _._1 }
 
-            vertexHit.map{v => (v,graph.vdata(v))} match {
-              case Some((v, data: NodeV)) =>
-                Dialog.showInput(
-                  title = "Vertex data",
-                  message = "Vertex data",
-                  initial = data.value).map { newVal => setVertexValue(v, newVal) }
-              case _ =>
-                val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
-                edgeHit.map { e =>
-                  val data = graph.edata(e)
+              vertexHit.map{v => (v,graph.vdata(v))} match {
+                case Some((v, data: NodeV)) =>
                   Dialog.showInput(
-                    title = "Edge data",
-                    message = "Edge data",
-                    initial = data.value).map { newVal => setEdgeValue(e, newVal) }
-                  view.repaint()
-                }
+                    title = "Vertex data",
+                    message = "Vertex data",
+                    initial = data.value).map { newVal => setVertexValue(v, newVal) }
+                case _ =>
+                  val edgeHit = view.edgeDisplay find { _._2.pointHit(pt) } map { _._1 }
+                  edgeHit.map { e =>
+                    val data = graph.edata(e)
+                    Dialog.showInput(
+                      title = "Edge data",
+                      message = "Edge data",
+                      initial = data.value).map { newVal => setEdgeValue(e, newVal) }
+                    view.repaint()
+                  }
+              }
             }
           } else {
             val vertexHit = view.vertexDisplay find { _._2.pointHit(pt) } map { _._1 }
@@ -273,7 +286,7 @@ class GraphEditController(view: GraphView) {
   view.listenTo(view.keys)
   view.reactions += {
     case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
-      if (!selectedVerts.isEmpty || !selectedEdges.isEmpty) {
+      if (!readOnly && (!selectedVerts.isEmpty || !selectedEdges.isEmpty)) {
         undoStack.start("Delete Vertices/Edges")
         selectedVerts.foreach { deleteVertex(_) }
         selectedEdges.foreach { deleteEdge(_) }

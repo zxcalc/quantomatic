@@ -19,6 +19,17 @@ class GraphDocument(view: GraphView) extends Publisher {
   private var storedGraph: Graph = Graph(view.theory)
   def unsavedChanges = storedGraph != view.graph
 
+  def graph = view.graph
+  def graph_=(g: Graph) {
+    undoStack.clear()
+    storedGraph = g
+    view.graph = g
+    view.invalidateGraph()
+    view.repaint()
+
+    publish(GraphChanged(this))
+  }
+
   def titleDescription =
     file.map(f => f.getName).getOrElse("untitled") + (if (unsavedChanges) "*" else "")
 
@@ -48,15 +59,10 @@ class GraphDocument(view: GraphView) extends Publisher {
   def loadGraph(f: File) {
     try {
       val json = Json.parse(f)
-      val graph = Graph.fromJson(json, view.theory)
+      val g = Graph.fromJson(json, view.theory)
 
       file = Some(f)
-      storedGraph = graph
-      view.graph = graph
-      view.invalidateGraph()
-      view.repaint()
-
-      publish(GraphChanged(this))
+      graph_=(g)
     } catch {
       case _: JsonParseException => error("load", "mal-formed JSON")
       case _: GraphLoadException => error("load", "invalid graph")
@@ -82,11 +88,7 @@ class GraphDocument(view: GraphView) extends Publisher {
 
   def newGraph() {
     file = None
-    storedGraph = Graph(view.theory)
-    view.graph = storedGraph
-    view.invalidateGraph()
-    view.repaint()
-    publish(GraphChanged(this))
+    graph_=(Graph(view.theory))
   }
 
   def showSaveAsDialog() {
