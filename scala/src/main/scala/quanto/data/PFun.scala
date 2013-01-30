@@ -4,9 +4,9 @@ import collection.immutable.TreeSet
 
 // basically a map, but with cached inverse images
 class PFun[A,B]
-  (f : Map[A,B], finv: Map[B,TreeSet[A]])
-  (implicit keyOrd: Ordering[A])
-extends BinRel[A,B] with scala.collection.Map[A,B] with scala.collection.MapLike[A,B,PFun[A,B]] {
+(f : Map[A,B], finv: Map[B,TreeSet[A]])
+(implicit keyOrd: Ordering[A])
+  extends BinRel[A,B] {
 
   def domf = f.mapValues(Set(_))
 
@@ -50,7 +50,7 @@ extends BinRel[A,B] with scala.collection.Map[A,B] with scala.collection.MapLike
     )
   }
 
-  def -(k:B) = unmapDom(k)
+  def -(k: A) = unmapDom(k)
 
   def iterator = f.iterator
 
@@ -67,17 +67,17 @@ extends BinRel[A,B] with scala.collection.Map[A,B] with scala.collection.MapLike
   }
 
   // PFun inherits equality from its member "f"
-//  override def hashCode = f.hashCode()
-//
-//  override def canEqual(other: Any) = other match {
-//    case that: PFun[_,_] => true
-//    case _ => false
-//  }
-//
-//  override def equals(other: Any) = other match {
-//    case that: PFun[_,_] => (that canEqual this) && (this.toMap == that.toMap)
-//    case _ => false
-//  }
+  //  override def hashCode = f.hashCode()
+  //
+  //  override def canEqual(other: Any) = other match {
+  //    case that: PFun[_,_] => true
+  //    case _ => false
+  //  }
+  //
+  //  override def equals(other: Any) = other match {
+  //    case that: PFun[_,_] => (that canEqual this) && (this.toMap == that.toMap)
+  //    case _ => false
+  //  }
 }
 
 object PFun {
@@ -85,4 +85,3 @@ object PFun {
     kvs.foldLeft(new PFun[A,B](Map(),Map())){ (pf: PFun[A,B], kv: (A,B)) => pf + kv }
   }
 }
-
