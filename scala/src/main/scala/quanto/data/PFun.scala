@@ -6,7 +6,7 @@ import collection.immutable.TreeSet
 class PFun[A,B]
   (f : Map[A,B], finv: Map[B,TreeSet[A]])
   (implicit keyOrd: Ordering[A])
-extends BinRel[A,B] {
+extends BinRel[A,B] with scala.collection.Map[A,B] with scala.collection.MapLike[A,B,PFun[A,B]] {
 
   def domf = f.mapValues(Set(_))
 
@@ -22,7 +22,7 @@ extends BinRel[A,B] {
     new PFun(f + kv,finv1)
   }
 
-  def -(kv: (A, B)) : PFun[A,B] = f.get(kv._1) match {
+  def unmap(kv: (A, B)) = f.get(kv._1) match {
     case Some(v) if v == kv._2 =>
       val domSet = finv(v)
       new PFun[A,B](
@@ -49,6 +49,8 @@ extends BinRel[A,B] {
       finv - v
     )
   }
+
+  def -(k:B) = unmapDom(k)
 
   def iterator = f.iterator
 

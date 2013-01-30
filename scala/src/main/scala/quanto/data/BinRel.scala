@@ -33,7 +33,7 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
    * @return New relation containing the same elements as the 
    * current one except '''kv'''
    */
-  def -(kv: (A,B)): BinRel[A,B]
+  def unmap(kv: (A,B)): BinRel[A,B]
 
   /**
    * Remove all relation pairs '''(d,_)'''
@@ -128,7 +128,7 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
     )
   }
 
-  def -(kv: (A,B)) = {
+  def unmap(kv: (A,B)) = {
     new MapPairBinRel[A,B](
       domMap.get(kv._1) match {
         case Some(xs) if xs.size == 1 => domMap - kv._1
@@ -144,8 +144,8 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
     )
   }
 
-  def unmapDom(d: A) = domf(d).foldLeft(this) { (rel,c) => rel - (d -> c) }
-  def unmapCod(c: B) = codf(c).foldLeft(this) { (rel,d) => rel - (d -> c) }
+  def unmapDom(d: A) = domf(d).foldLeft(this) { (rel,c) => rel unmap (d, c) }
+  def unmapCod(c: B) = codf(c).foldLeft(this) { (rel,d) => rel unmap (d, c) }
 
   /**
    * 

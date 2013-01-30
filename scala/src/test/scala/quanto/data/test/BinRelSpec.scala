@@ -60,13 +60,13 @@ class BinRelSpec extends FlatSpec {
   }
 
   it can "remove elements" in {
-    val rel2 = rel - ("a" -> 2) - ("c" -> 2)
+    val rel2 = rel unmap ("a", 2) unmap ("c", 2)
     assert(rel2 === BinRel("a" -> 4, "b" -> 3))
   }
 
   it should "remain unchanged when removing pairs not in relation" in {
-    val rel2 = rel - ("d" -> 4)
-    val rel3 = rel - ("a" -> 7)
+    val rel2 = rel unmap ("d", 4)
+    val rel3 = rel unmap ("a", 7)
     assert(rel2 === rel)
     assert(rel3 === rel)
   }
