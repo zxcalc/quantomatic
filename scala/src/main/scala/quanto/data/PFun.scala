@@ -22,7 +22,7 @@ extends BinRel[A,B] {
     new PFun(f + kv,finv1)
   }
 
-  def -(kv: (A, B)) = f.get(kv._1) match {
+  def -(kv: (A, B)) : PFun[A,B] = f.get(kv._1) match {
     case Some(v) if v == kv._2 =>
       val domSet = finv(v)
       new PFun[A,B](
