@@ -65,7 +65,7 @@ class RankLayout extends GraphLayout with ConstraintSolver {
     }
   }
 
-  def layout(graph: Graph): Graph = {
+  def compute() {
     modelGraph = graph.dagCopy
 
     // assign ranks to minimise edge length
@@ -134,9 +134,7 @@ class RankLayout extends GraphLayout with ConstraintSolver {
           )}
     }
 
-    graph.vdata.foldLeft(graph) { case (gr, (v,_)) =>
-      gr.updateVData(v) { _ withCoord modelGraph.vdata(v).coord }
-    }
+    graph.verts.foreach { v => setCoord(v, modelGraph.vdata(v).coord) }
   }
 
 }

@@ -1,7 +1,8 @@
 import org.scalatest._
-import quanto.data.{DirEdge, NodeV, Graph}
+import quanto.data._
 import quanto.layout.{DotLayout, RankLayout}
-import quanto.util.json.Json
+
+import quanto.util.QuadTree
 
 class LayoutSpec extends FlatSpec {
   behavior of "Rank layout"
@@ -45,5 +46,24 @@ class LayoutSpec extends FlatSpec {
   it should "lay out a graph" in {
     dotGraph = dotLayout.layout(dotGraph)
     println(dotLayout.dotString)
+  }
+
+  behavior of "Quad tree"
+
+  var qTree : QuadTree[VName] = _
+
+  it should "initialise with a set of vertices" in {
+    val mp = randomGraph.vdata.mapValues(_.coord)
+    qTree = QuadTree(mp)
+  }
+
+  it should "visit every vertex" in {
+    var vs = randomGraph.verts
+    qTree.visit { v =>
+      assert(vs contains v)
+      vs -= v
+      false
+    }
+    assert(vs.isEmpty)
   }
 }
