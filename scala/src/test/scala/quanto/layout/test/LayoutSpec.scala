@@ -53,17 +53,15 @@ class LayoutSpec extends FlatSpec {
   var qTree : QuadTree[VName] = _
 
   it should "initialise with a set of vertices" in {
-    val mp = randomGraph.vdata.mapValues(_.coord)
-    qTree = QuadTree(mp)
+    qTree = QuadTree(randomGraph.vdata.toSeq.map{case (v,d) => (d.coord, v)})
   }
 
   it should "visit every vertex" in {
     var vs = randomGraph.verts
-    qTree.visit { v =>
+    qTree.visit { tr => tr.value.map { v =>
       assert(vs contains v)
       vs -= v
-      false
-    }
+    }; false }
     assert(vs.isEmpty)
   }
 }
