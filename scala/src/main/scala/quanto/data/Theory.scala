@@ -4,9 +4,22 @@ import quanto.util.json._
 import JsonValues._
 import java.awt.{Color, Shape}
 
+/**
+ * Exception thrown when theory cannot be created for some reason
+ *
+ * @author Aleks Kissinger
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/Theory.scala Source code]]
+ */
 class TheoryLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
 
+/**
+ * A class which represents a theory
+ *
+ * @author Aleks Kissinger
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/integration/docs/json_formats.txt json_formats.txt]]
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/Theory.scala Source code]]
+ */
 case class Theory(
   name: String,
   coreName: String,
@@ -21,6 +34,14 @@ case class Theory(
 }
 
 
+/**
+ * Companion object for the Theory class. Contains useful methods for 
+ * converting a Theory to/from JSON object
+ *
+ * @author Aleks Kissinger
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/integration/docs/json_formats.txt json_formats.txt]]
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/Theory.scala Source code]]
+ */
 object Theory {
   private implicit def jsonToColor(json: Json) = json match {
     case JsonArray(Vector(r,g,b,a)) => new Color(r.floatValue,g.floatValue,b.floatValue,a.floatValue)
@@ -189,10 +210,18 @@ object Theory {
     )
   }
 
+  /** 
+   * Same as '''fromJson(json : Json)''', but tries to parse a string to a Json object first 
+   * @throws TheoryLoadException
+   */
   def fromJson(s: String): Theory =
     try   { fromJson(Json.parse(s)) }
     catch { case e:JsonParseException => throw new TheoryLoadException("Error parsing JSON", e) }
 
+  /**
+   * Create a theory instance from a Json object
+   * @throws TheoryLoadException 
+   */
   def fromJson(json: Json): Theory = {
     try {
       val name = (json / "name").stringValue
@@ -224,6 +253,7 @@ object Theory {
     }
   }
 
+  /** Convert the theory to a JSON object  */
   def toJson(thy: Theory): Json = JsonObject(
     "name" -> thy.name,
     "core_name" -> thy.coreName,

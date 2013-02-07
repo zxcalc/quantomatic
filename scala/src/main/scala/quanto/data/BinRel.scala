@@ -10,6 +10,7 @@ import collection.immutable.TreeSet
  * @tparam B type of the codomain
  *
  * @author Aleks Kissinger 
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/BinRel.scala Source code]]
  */
 trait BinRel[A,B] extends Iterable[(A,B)] {
   /** Domain function - assigns a set to each element of the domain */
@@ -113,6 +114,7 @@ trait BinRel[A,B] extends Iterable[(A,B)] {
  * set of elements of type '''A''' which are in relation with it
  *
  * @author Aleks Kissinger
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/BinRel.scala Source code]]
  */
 class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
   (implicit domOrd: Ordering[A], codOrd: Ordering[B])
@@ -147,15 +149,20 @@ class MapPairBinRel[A,B](domMap: Map[A,TreeSet[B]], codMap: Map[B,TreeSet[A]])
   def unmapDom(d: A) = domf(d).foldLeft(this) { (rel,c) => rel unmap (d, c) }
   def unmapCod(c: B) = codf(c).foldLeft(this) { (rel,d) => rel unmap (d, c) }
 
-  /**
-   * 
-   */
+  /** Returns an iterator over pairs '''(a,b)''' of the relation */
   def iterator = domMap.foldLeft(Iterator[(A,B)]()) { case (iter, (domElement, codSet)) =>
     iter ++ (Iterator.continually(domElement) zip codSet.iterator)
   }
 }
 
+/**
+ * Companion object for the BinRel trait
+ *
+ * @author Aleks Kissinger
+ * @see [[https://github.com/Quantomatic/quantomatic/blob/scala-frontend/scala/src/main/scala/quanto/data/BinRel.scala Source code]]
+ */
 object BinRel {
+  /** Construct a binary relation from a sequence of pairs '''(a,b)''' */
   def apply[A,B](kvs: (A,B)*)(implicit domOrd: Ordering[A], codOrd: Ordering[B]) : BinRel[A,B] = {
     kvs.foldLeft(new MapPairBinRel[A,B](Map(),Map())(domOrd,codOrd)){ (rel, kv) => rel + kv }
   }
