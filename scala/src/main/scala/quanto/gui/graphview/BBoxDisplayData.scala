@@ -39,4 +39,7 @@ trait BBoxDisplayData { self: VertexDisplayData =>
       bboxDisplay += bbox -> BBDisplay(rect)
     }
   }
+
+  def invalidateAllBBoxes() { bboxDisplay.clear() }
+  def invalidateBBox(bbname: BBName) = bboxDisplay -= bbname
 }

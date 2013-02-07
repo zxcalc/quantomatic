@@ -13,7 +13,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   def mouseState_=(s: MouseState) {
     if (readOnly) s match {
-      case AddVertexTool() | AddEdgeTool() | DragEdge(_) =>
+      case AddVertexTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_)=>
         throw new InvalidMouseStateException("readOnly == true", s)
       case _ =>
     }
@@ -95,6 +95,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     }
   }
 
+
   private def addVertex(v: VName, d: VData) {
     graph = graph.addVertex(v, d)
     undoStack.register("Add Vertex") { deleteVertex(v) }
@@ -117,6 +118,24 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
       if (selected) selectedVerts += v
     }
     undoStack.commit()
+  }
+
+  private def addBBox(bbname: BBName, d: BBData, contents: Set[VName]) {
+    graph = graph.addBBox(bbname, d, contents)
+    undoStack.register("Add Bang Box") {deleteBBox(bbname)}
+  }
+
+  private def deleteBBox(bbname: BBName) {
+    val data = graph.bbdata(bbname)
+    val contents = graph.contents(bbname)
+    // TODO bang box selection
+
+    view.invalidateBBox(bbname)
+    graph = graph.deleteBBox(bbname)
+
+    undoStack.register("Delete Bang Box") {
+      addBBox(bbname, data, contents)
+    }
   }
 
   private def setEdgeValue(e: EName, str: String) {
@@ -202,19 +221,30 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
             view.edgeOverlay = Some(EdgeOverlay(pt, src = startV, tgt = Some(startV)))
             view.repaint()
           }
+        case AddBangBoxTool() => 
+          val box = BangSelectionBox(pt, pt)
+          mouseState = box
+          view.selectionBox = Some(box.rect)
+          
         case state => throw new InvalidMouseStateException("MousePressed", state)
       }
 
     case MouseDragged(_, pt, _) =>
       mouseState match {
-        case SelectTool() =>    // do nothing
-        case AddVertexTool() => // do nothing
-        case AddEdgeTool() =>   // do nothing
+        case SelectTool() =>      // do nothing
+        case AddVertexTool() =>   // do nothing
+        case AddEdgeTool() =>     // do nothing
+        case AddBangBoxTool() =>  // do nothing
         case SelectionBox(start,_) =>
           val box = SelectionBox(start, pt)
           mouseState = box
           view.selectionBox = Some(box.rect)
           view.repaint()
+        case BangSelectionBox(start,_) =>
+          val box = BangSelectionBox(start, pt)
+          mouseState = box
+          view.selectionBox = Some(box.rect)
+          view.repaint() 
         case DragVertex(start, prev) =>
           shiftVertsNoRegister(selectedVerts, prev, pt)
           view.repaint()
@@ -227,8 +257,9 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
     case MouseReleased(_, pt, modifiers, _, _) =>
       mouseState match {
-        case SelectTool()  => // do nothing
-        case AddEdgeTool() => // do nothing
+        case SelectTool()  =>     // do nothing
+        case AddEdgeTool() =>     // do nothing
+        case AddBangBoxTool () => // do nothing
         case SelectionBox(start,_) =>
           view.computeDisplayData()
 
@@ -246,6 +277,32 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
           }
 
           mouseState = SelectTool()
+          view.selectionBox = None
+          view.repaint()
+        
+        case BangSelectionBox(start, _) =>
+          view.computeDisplayData()
+
+          if (pt.getX == start.getX && pt.getY == start.getY) {
+            var selectionUpdated = false
+            view.vertexDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedVerts += x._1 }
+
+            if (!selectionUpdated)
+              view.edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+          } else {
+            // box selection only affects vertices
+            val r = mouseState.asInstanceOf[BangSelectionBox].rect
+            view.vertexDisplay filter (_._2.rectHit(r)) foreach { selectedVerts += _._1 }
+          }
+
+          val bangBoxData = BBData(theory = theory) // fix this, first two parameters are left to default
+          addBBox(graph.bboxes.fresh, bangBoxData, selectedVerts)
+
+          selectedVerts = Set()
+          selectedEdges = Set()
+          selectedBBoxes = Set()
+
+          mouseState = AddBangBoxTool()
           view.selectionBox = None
           view.repaint()
 

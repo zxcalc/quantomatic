@@ -28,6 +28,7 @@ class GraphView(val theory: Theory) extends Panel
   var gridSubs = 4
 
   var selectionBox: Option[Rectangle2D] = None
+  //var bangBoxList: List[Rectangle2D] = Nil
   var edgeOverlay: Option[EdgeOverlay] = None
   focusable = false
 

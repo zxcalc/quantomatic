@@ -62,10 +62,18 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
     tool = AddEdgeTool()
   }
 
-  val GraphToolGroup = new ButtonGroup(SelectButton, AddVertexButton, AddEdgeButton)
+  val AddBangBoxButton = new ToggleButton() with ToolButton {
+    icon = new ImageIcon(GraphEditor.getClass.getResource("draw-bang.png"), "Add Bang Box")
+    tool = AddBangBoxTool()
+  }
+
+  val GraphToolGroup = new ButtonGroup(SelectButton, 
+                                       AddVertexButton, 
+                                       AddEdgeButton,
+                                       AddBangBoxButton)
 
   val MainToolBar = new ToolBar {
-    contents += (SelectButton, AddVertexButton, AddEdgeButton)
+    contents += (SelectButton, AddVertexButton, AddEdgeButton, AddBangBoxButton)
   }
 
 
@@ -102,6 +110,12 @@ class GraphEditPanel(theory: Theory, val readOnly: Boolean = false) extends Bord
           EdgeTypeLabel.enabled = true
           EdgeTypeSelect.enabled = true
           EdgeDirected.enabled = true
+        case AddBangBoxTool() =>
+          VertexTypeLabel.enabled = false
+          VertexTypeSelect.enabled = false
+          EdgeTypeLabel.enabled = false
+          EdgeTypeSelect.enabled = false
+          EdgeDirected.enabled = false
         case _ =>
       }
   }
