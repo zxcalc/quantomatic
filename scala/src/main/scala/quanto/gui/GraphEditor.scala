@@ -7,7 +7,7 @@ import quanto.data._
 import javax.swing.{JToolBar, KeyStroke}
 import java.awt.event.KeyEvent
 import quanto.util.json.Json
-
+import quanto.layout.ForceLayout
 
 
 object GraphEditor extends SimpleSwingApplication {

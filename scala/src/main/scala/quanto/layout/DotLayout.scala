@@ -46,7 +46,7 @@ class DotLayout extends GraphLayout {
     (vid,sb.toString)
   }
 
-  def layout(graph: Graph) = {
+  protected def compute() {
     val (vid,dotStr) = generateDot(graph)
     dotString = dotStr
     var xMax = 0.0
@@ -68,8 +68,6 @@ class DotLayout extends GraphLayout {
       }
     }
 
-    graph.verts.foldLeft(graph) { (g, v) => g.updateVData(v) { d =>
-      d.withCoord(coordMap(vid(v)))
-    }}
+    vid.foreach { case (v,id) => setCoord(v, coordMap(id)) }
   }
 }
