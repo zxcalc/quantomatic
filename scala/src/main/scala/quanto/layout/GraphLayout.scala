@@ -15,13 +15,21 @@ abstract class GraphLayout {
   // override to compute layout data
   protected def compute()
 
-  def layout(g: Graph): Graph = {
+  def initialize(g: Graph) {
     _graph = g
     _coords.clear()
     graph.vdata.foreach { case (v,d) => _coords(v) = d.coord }
+  }
 
+  def updateGraph() {
+    _graph = _coords.foldLeft(graph) { case(g,(v,c)) => g.updateVData(v) { _.withCoord(c) } }
+  }
+
+  def layout(g: Graph): Graph = {
+    initialize(g)
     compute()
+    updateGraph()
 
-    _coords.foldLeft(graph) { case(g,(v,c)) => g.updateVData(v) { _.withCoord(c) } }
+    graph
   }
 }

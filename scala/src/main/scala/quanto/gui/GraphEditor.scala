@@ -20,9 +20,6 @@ object GraphEditor extends SimpleSwingApplication {
   val graphEditPanel = new GraphEditPanel(StringVETheory, readOnly = false)
   val graphDocument = graphEditPanel.graphDocument
 
-  val gr = Graph.random(10,15,0)
-  graphDocument.graph = (new ForceLayout).layout(gr)
-
   // Main menu
 
   val FileMenu = new Menu("File") { menu =>
