@@ -5,11 +5,11 @@ import quanto.data._
 
 /**
  * Force-directed layout algorithm. Parts are based on:
- *   1. force.js from the D3 javascript library (see d3js.org)
- *   2. "Scalable, Versatile and Simple Constrained Graph Layout", Dwyer 2009
- *   3. "Efficient and High Quality Force-Directed Graph Drawing", Hu 2006
+ *   [1] force.js from the D3 javascript library (see d3js.org)
+ *   [2] "Scalable, Versatile and Simple Constrained Graph Layout", Dwyer 2009
+ *   [3] "Efficient and High Quality Force-Directed Graph Drawing", Hu 2006
  */
-class ForceLayout extends GraphLayout {
+class ForceLayout extends GraphLayout with Constraints {
   // repulsive force between vertices
   var charge = 5.0
 
@@ -158,6 +158,7 @@ class ForceLayout extends GraphLayout {
     }
 
     relax()
+    projectConstraints()
   }
 
   def compute() {
