@@ -22,7 +22,7 @@ object LayoutTest extends SimpleSwingApplication {
 
   var run = 0
 
-  val timer = new javax.swing.Timer(250, new ActionListener {
+  val timer = new javax.swing.Timer(10, new ActionListener {
     def actionPerformed(e: ActionEvent) {
 
       layout.step()
@@ -31,16 +31,15 @@ object LayoutTest extends SimpleSwingApplication {
       graphView.invalidateGraph()
       graphView.repaint()
 
-      if (layout.prevEnergy < layout.energy) {
-        print("+")
-      } else if (layout.prevEnergy > layout.energy) {
-        print("-")
-      } else {
-        print("=")
-      }
-
-      run += 1
-      if (run % 80 == 0) println()
+//      if (layout.prevEnergy < layout.energy) {
+//        print("+")
+//      } else if (layout.prevEnergy > layout.energy) {
+//        print("-")
+//      } else {
+//        print("=")
+//      }
+//      run += 1
+//      if (run % 80 == 0) println()
     }
   })
 

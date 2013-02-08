@@ -3,7 +3,12 @@ package quanto.layout
 import quanto.util._
 import quanto.data._
 
-
+/**
+ * Force-directed layout algorithm. Parts are based on:
+ *   1. force.js from the D3 javascript library (see d3js.org)
+ *   2. "Scalable, Versatile and Simple Constrained Graph Layout", Dwyer 2009
+ *   3. "Efficient and High Quality Force-Directed Graph Drawing", Hu 2006
+ */
 class ForceLayout extends GraphLayout {
   // repulsive force between vertices
   var charge = 5.0
@@ -23,13 +28,27 @@ class ForceLayout extends GraphLayout {
   // used in Verlet integration
   var friction = 0.9
 
-  // step size. recomputed on-the-fly using trust-region heuristic
-  var alpha: Double = 0.1
+  // initial step size
+  var alpha0: Double = 0.1
 
+  // increase or decrease step size by this amount
+  var alphaAdjust = 0.9
 
-  // used for re-computing step size
-  var prevEnergy: Double = 0.0
-  var energy: Double = 0.0
+  // maximum iterations
+  var maxIterations = 1000
+
+  // step size alpha is re-computed on the fly using trust region heuristic
+  var alpha: Double = _
+  var prevEnergy: Double = _
+  var energy: Double = _
+  var progress: Int = _
+
+  override def initialize(g: Graph) {
+    super.initialize(g)
+    alpha = alpha0
+    prevEnergy = 0.0
+    energy = 0.0
+  }
 
   // compute the equivalent point charge for every region of space in the quad tree
   def computeCharges(tr: QuadTree[(Option[VName],Double)]): QuadTree[(Option[VName],Double)] = tr match {
@@ -127,12 +146,25 @@ class ForceLayout extends GraphLayout {
   }
 
   def step() {
-    alpha *= 0.99
+    if (energy < prevEnergy) {
+      progress += 1
+      if (progress >= 5) {
+        progress = 0
+        alpha /= alphaAdjust
+      }
+    } else {
+      progress = 0
+      alpha *= alphaAdjust
+    }
+
     relax()
   }
 
   def compute() {
-    alpha = 1.0
-    while (alpha > 0.005) step()
+    var iteration = 0
+    while (alpha > 0.005 && iteration < maxIterations) {
+      step()
+      iteration += 1
+    }
   }
 }
