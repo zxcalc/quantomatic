@@ -13,7 +13,7 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
   def mouseState_=(s: MouseState) {
     if (readOnly) s match {
-      case AddVertexTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_)=>
+      case AddVertexTool() | AddEdgeTool() | AddBangBoxTool() | DragEdge(_) | BangSelectionBox(_,_) =>
         throw new InvalidMouseStateException("readOnly == true", s)
       case _ =>
     }
@@ -104,6 +104,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private def deleteVertex(v: VName) {
     undoStack.start("Delete Vertex")
     graph.adjacentEdges(v).foreach { deleteEdge(_) }
+    // update bang boxes containing the vertex
+    //removeVertexBangBoxes(v)  
 
     val d = graph.vdata(v)
     view.invalidateVertex(v)
@@ -119,6 +121,10 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     }
     undoStack.commit()
   }
+
+  //private def removeVertexBangBoxes(vname: VName) {
+  //  graph.inBBox.unmapDom(vname)
+  //}
 
   private def addBBox(bbname: BBName, d: BBData, contents: Set[VName]) {
     graph = graph.addBBox(bbname, d, contents)
@@ -269,6 +275,10 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
 
             if (!selectionUpdated)
               view.edgeDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedEdges += x._1 }
+
+            if (!selectionUpdated)
+              view.bboxDisplay find (_._2.pointHit(pt)) map { x => selectionUpdated = true; selectedBBoxes += x._1 }
+
             // TODO: bbox selection
           } else {
             // box selection only affects vertices
@@ -343,10 +353,11 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   view.listenTo(view.keys)
   view.reactions += {
     case KeyPressed(_, (Key.Delete | Key.BackSpace), _, _) =>
-      if (!readOnly && (!selectedVerts.isEmpty || !selectedEdges.isEmpty)) {
-        undoStack.start("Delete Vertices/Edges")
+      if (!readOnly && (!selectedVerts.isEmpty || !selectedEdges.isEmpty || !selectedBBoxes.isEmpty)) {
+        undoStack.start("Delete Vertices/Edges/BBoxes")
         selectedVerts.foreach { deleteVertex(_) }
         selectedEdges.foreach { deleteEdge(_) }
+        selectedBBoxes.foreach { deleteBBox(_)}
         undoStack.commit()
         view.repaint()
       }

@@ -47,21 +47,27 @@ class PFun[A,B]
     case None => this
   }
 
-  def unmapDom(k: A) = {
-    val v = f(k)
-    val domSet = finv(v)
-    new PFun[A,B](
-      f - k,
-      if (domSet.size == 1) finv - v else finv + (v -> (domSet - k))
-    )
+  def unmapDom(k: A) :PFun[A,B] = {
+    f.get(k) match {
+      case None => this // do nothing
+      case Some(v) =>
+        val domSet = finv(v)
+        new PFun[A,B](
+          f - k,
+          if (domSet.size == 1) finv - v else finv + (v -> (domSet - k))
+        )
+    }
   }
 
-  def unmapCod(v: B) = {
-    val domSet = finv(v)
-    new PFun[A,B](
-      domSet.foldLeft(f) { _ - _ },
-      finv - v
-    )
+  def unmapCod(v: B) :PFun[A,B] = {
+    finv.get(v) match {
+      case None => this // do nothing
+      case Some(domSet) =>
+        new PFun[A,B](
+          domSet.foldLeft(f) { _ - _ },
+          finv - v
+        )
+    }
   }
 
   /** Same as '''unmapDom''' */
