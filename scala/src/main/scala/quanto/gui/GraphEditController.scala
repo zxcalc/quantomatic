@@ -105,7 +105,9 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     undoStack.start("Delete Vertex")
     graph.adjacentEdges(v).foreach { deleteEdge(_) }
     // update bang boxes containing the vertex
-    //removeVertexBangBoxes(v)  
+    graph.inBBox.domf(v).foreach { bbname =>
+      if (graph.inBBox.codf(bbname).size == 1) deleteBBox(bbname)
+    }
 
     val d = graph.vdata(v)
     view.invalidateVertex(v)
@@ -122,10 +124,6 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     undoStack.commit()
   }
 
-  //private def removeVertexBangBoxes(vname: VName) {
-  //  graph.inBBox.unmapDom(vname)
-  //}
-
   private def addBBox(bbname: BBName, d: BBData, contents: Set[VName]) {
     graph = graph.addBBox(bbname, d, contents)
     undoStack.register("Add Bang Box") {deleteBBox(bbname)}
@@ -134,7 +132,6 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private def deleteBBox(bbname: BBName) {
     val data = graph.bbdata(bbname)
     val contents = graph.contents(bbname)
-    // TODO bang box selection
 
     view.invalidateBBox(bbname)
     graph = graph.deleteBBox(bbname)
