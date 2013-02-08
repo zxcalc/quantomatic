@@ -1,6 +1,7 @@
 package quanto.gui
 
 import quanto.layout._
+import quanto.layout.constraint._
 import quanto.data._
 import graphview.GraphView
 import swing._
@@ -16,16 +17,12 @@ object LayoutTest extends SimpleSwingApplication {
     focusable = true
   }
 
-  graphView.graph = Graph.random(5,10,0)
+  graphView.graph = Graph.random(10,20, 4)
 
-  val layout = new ForceLayout
+  val layout = new ForceLayout with Ranking
+
   layout.initialize(graphView.graph)
   layout.alpha = 0.5
-
-  val dag = layout.graph.dagCopy
-  for (e <- dag.edges) {
-    layout.constraints += { (distance from (dag.source(e)) to (dag.target(e)) along (0,1)) <=> 1.0 }
-  }
 
   var run = 0
 

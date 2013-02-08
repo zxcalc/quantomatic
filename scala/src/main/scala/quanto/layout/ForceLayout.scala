@@ -14,7 +14,7 @@ class ForceLayout extends GraphLayout with Constraints {
   var charge = 5.0
 
   // spring strength on edges
-  var strength = 1.0
+  var strength = 1.5
 
   // preferred length of edge
   var edgeLength = 0.5
@@ -158,7 +158,7 @@ class ForceLayout extends GraphLayout with Constraints {
     }
 
     relax()
-    projectConstraints()
+    if (alpha <= 0.1) projectConstraints()
   }
 
   def compute() {
