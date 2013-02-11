@@ -10,7 +10,7 @@ class ConstraintException(msg: String) extends Exception(msg)
  */
 trait Constraints extends GraphLayout {
   var constraintIterations = 10
-  val constraints = collection.mutable.ListBuffer[Constraint]()
+  val constraints = new ConstraintSeq
 
   def projectConstraints() {
     for (_ <- 1 to constraintIterations; c <- constraints) {
@@ -39,6 +39,15 @@ trait Constraints extends GraphLayout {
       }
     }
   }
+}
+
+class ConstraintSeq extends Iterable[Constraint] {
+  private val cs = collection.mutable.ListBuffer[() => Iterable[Constraint]]()
+  def clear() { cs.clear() }
+  def +=(c: Constraint) { cs += (() => Seq(c)) }
+  def ++=(cf: => Iterable[Constraint]) { cs += (() => cf) }
+
+  def iterator = cs.iterator.map(x => x().iterator).foldLeft(Iterator[Constraint]())(_ ++ _)
 }
 
 case class Constraint(v1: VName, v2: VName, direction: Option[(Double,Double)], length: Double, order: Int)

@@ -158,7 +158,7 @@ class ForceLayout extends GraphLayout with Constraints {
     }
 
     relax()
-    if (alpha <= 0.1) projectConstraints()
+    if (alpha <= 0.05) projectConstraints()
   }
 
   def compute() {
