@@ -17,7 +17,11 @@ object LayoutTest extends SimpleSwingApplication {
     focusable = true
   }
 
-  graphView.graph = Graph.random(10,15, 3)
+  graphView.graph = (Graph()
+      addVertex
+    )
+
+  //Graph.random(10,5,1)
 
   val layout = new ForceLayout with Ranking with Clusters
 

@@ -15,7 +15,7 @@ trait Clusters extends Constraints {
   import Constraint.distance
 
   var clusters = ListBuffer[Set[VName]]()
-  var clusterPadding = 0.5
+  var clusterPadding = 1.0
   var clusterRadiusPerVertex = 2.0
 
   override def initialize(g: Graph) {

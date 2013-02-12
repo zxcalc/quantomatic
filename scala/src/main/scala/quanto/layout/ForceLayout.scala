@@ -11,10 +11,10 @@ import quanto.data._
  */
 class ForceLayout extends GraphLayout with Constraints {
   // repulsive force between vertices
-  var charge = 5.0
+  var charge = 3.0
 
   // spring strength on edges
-  var strength = 1.5
+  var strength = 1.0
 
   // preferred length of edge
   var edgeLength = 0.5
@@ -29,7 +29,7 @@ class ForceLayout extends GraphLayout with Constraints {
   var friction = 0.9
 
   // initial step size
-  var alpha0: Double = 0.1
+  var alpha0: Double = 1.0
 
   // increase or decrease step size by this amount
   var alphaAdjust = 0.9
@@ -158,7 +158,7 @@ class ForceLayout extends GraphLayout with Constraints {
     }
 
     relax()
-    if (alpha <= 0.05) projectConstraints()
+    if (alpha <= 0.1) projectConstraints()
   }
 
   def compute() {

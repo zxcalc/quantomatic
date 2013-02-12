@@ -16,27 +16,34 @@ trait Constraints extends GraphLayout {
     for (_ <- 1 to constraintIterations; c <- constraints) {
       val (p1,p2) = (coord(c.v1), coord(c.v2))
 
-      val (length, direction) = c.direction match {
+      val ((dx,dy), direction) = c.direction match {
         case Some(dir) =>
           val (dx,dy) = ((p2._1 - p1._1) * dir._1, (p2._2 - p1._2) * dir._2)
-          val len = math.sqrt(dx*dx + dy*dy)
-          (len, dir)
+          //val len = math.sqrt(dx*dx + dy*dy)
+          ((dx,dy), dir)
         case None =>
           val (dx,dy) = (p2._1 - p1._1, p2._2 - p1._2)
           val len = math.sqrt(dx*dx + dy*dy)
-          (len, if (len != 0) (dx/len, dy/len) else (1.0,0.0))
+          ((dx,dy), if (len != 0) (dx/len, dy/len) else (1.0,0.0))
       }
 
-      if ((c.order ==  0 && length != c.length) ||
-          (c.order == -1 && length >  c.length) ||
-          (c.order ==  1 && length <  c.length))
-      {
-        val offset = (c.length - length) / 2
-        val shift = (direction._1 * offset, direction._2 * offset)
+      val ideal = (direction._1 * c.length, direction._2 * c.length)
 
-        setCoord(c.v1, (p1._1 - shift._1, p1._2 - shift._2))
-        setCoord(c.v2, (p2._1 + shift._1, p2._2 + shift._2))
-      }
+      val shiftX =
+        if ((c.order ==  0 && dx != ideal._1) ||
+            (c.order == -1 && dx >  ideal._1) ||
+            (c.order ==  1 && dx <  ideal._1))
+        dx - ideal._1
+        else 0
+      val shiftY =
+        if ((c.order ==  0 && dy != ideal._2) ||
+            (c.order == -1 && dy >  ideal._2) ||
+            (c.order ==  1 && dy <  ideal._2))
+        dy - ideal._2
+        else 0
+
+      setCoord(c.v1, (p1._1 + (0.5 * shiftX), p1._2 + (0.5 * shiftY)))
+      setCoord(c.v2, (p2._1 - (0.5 * shiftX), p2._2 - (0.5 * shiftY)))
     }
   }
 }
