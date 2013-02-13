@@ -11,10 +11,10 @@ import quanto.data._
  */
 class ForceLayout extends GraphLayout with Constraints {
   // repulsive force between vertices
-  var charge = 3.0
+  var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 0.5 else 3.0)
 
   // spring strength on edges
-  var strength = 1.0
+  var strength = 2.0
 
   // preferred length of edge
   var edgeLength = 0.5
@@ -73,6 +73,17 @@ class ForceLayout extends GraphLayout with Constraints {
 
   // take an unconstrained step in the direction of steepest descent in energy
   def relax() {
+    if (energy < prevEnergy) {
+      progress += 1
+      if (progress >= 5) {
+        progress = 0
+        alpha /= alphaAdjust
+      }
+    } else {
+      progress = 0
+      alpha *= alphaAdjust
+    }
+
     prevEnergy = energy
     energy = 0
 
@@ -103,7 +114,7 @@ class ForceLayout extends GraphLayout with Constraints {
     }
 
     // compute charges
-    val quad = computeCharges(QuadTree(graph.verts.toSeq.map { v => (coord(v), (Some(v),charge)) }))
+    val quad = computeCharges(QuadTree(graph.verts.toSeq.map { v => (coord(v), (Some(v),charge(v))) }))
 
     // apply charge forces
     for (v <- graph.verts) {
@@ -119,7 +130,7 @@ class ForceLayout extends GraphLayout with Constraints {
             else {
               // if the Barnes-Hut criterion is satisfied, act with the total charge of this region
               if ((nd.x2 - nd.x1) / math.sqrt(d2) < theta) {
-                energy += (charge + nodeCharge) / d2
+                energy += (charge(v) + nodeCharge) / d2
                 val k = alpha * nodeCharge / d2
                 p = (p._1 - dx*k, p._2 - dy*k)
                 true
@@ -127,8 +138,8 @@ class ForceLayout extends GraphLayout with Constraints {
                 // if !B-H, but there is a (different) vertex here, act with the point charge
                 optV match {
                   case Some(v1) if v1 != v =>
-                    energy += 2.0 * charge / d2
-                    val k = alpha * charge / d2
+                    energy += (charge(v) + charge(v1)) / d2
+                    val k = alpha * charge(v1) / d2
                     p = (p._1 - dx*k, p._2 - dy*k)
                   case _ =>
                 }
@@ -146,17 +157,6 @@ class ForceLayout extends GraphLayout with Constraints {
   }
 
   def step() {
-    if (energy < prevEnergy) {
-      progress += 1
-      if (progress >= 5) {
-        progress = 0
-        alpha /= alphaAdjust
-      }
-    } else {
-      progress = 0
-      alpha *= alphaAdjust
-    }
-
     relax()
     if (alpha <= 0.1) projectConstraints()
   }

@@ -15,11 +15,14 @@ trait Clusters extends Constraints {
   import Constraint.distance
 
   var clusters = ListBuffer[Set[VName]]()
-  var clusterPadding = 1.0
+  var clusterPadding = 0.1
   var clusterRadiusPerVertex = 2.0
 
   override def initialize(g: Graph) {
     super.initialize(g)
+    constraints.nextLayer()
+    println("Clusters at layer " + constraints.currentLayer)
+
     g.bboxes.foreach(bb => clusters += g.contents(bb))
 
     constraints ++= {
@@ -48,7 +51,7 @@ trait Clusters extends Constraints {
           cons += { (distance from v1 to v2) <= clusterRadiusPerVertex * clusterSize }
 
         val verts = coordTree.query(lb._1, lb._2, ub._1, ub._2)
-        for (v <- verts) {
+        for (v <- verts; if !cluster.contains(v)) {
           val vc = coord(v)
           // work out the most efficient shift
           val xShift = if (vc._1 >= lb._1 && vc._1 <= ub._1) {
@@ -75,7 +78,7 @@ trait Clusters extends Constraints {
                 else (-(v1c._2 - vc._2 + yShift), (0.0,-1.0))
               }
 
-              cons += { (distance from v to v1 along dir) >= len }
+              cons += { (distance from v to v1 along dir weighted (1.0, cluster.size.toDouble)) >= len }
             }
           }
         }

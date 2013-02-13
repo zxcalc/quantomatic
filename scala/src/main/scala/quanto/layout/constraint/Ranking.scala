@@ -12,6 +12,8 @@ trait Ranking extends Constraints {
 
   override def initialize(g: Graph) {
     super.initialize(g)
+    constraints.nextLayer()
+    println("Ranking at layer " + constraints.currentLayer)
 
     val dag = g.dagCopy
     for (e <- dag.edges)

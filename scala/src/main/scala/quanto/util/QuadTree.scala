@@ -19,14 +19,14 @@ sealed abstract class QuadTree[A] {
   // visit each node/leaf with 'f', recursing until f returns true or a leaf is encountered
   def visit(f : QuadTree[A] => Boolean)
 
+  private def intervalOverlap(s1: Double, t1: Double, s2: Double, t2: Double) =
+    if (s1 <= s2) t1 >= s2 else t2 >= s1
+
   // query the tree, returning all values in regions with the given bound
   def query(xLower: Double, yLower: Double, xUpper: Double, yUpper: Double): Iterable[A] = {
     val result = collection.mutable.ListBuffer[A]()
     visit { tr =>
-      val overlap = (
-        ((tr.x1 >= xLower && tr.x1 <= xUpper) || (tr.x2 >= xLower && tr.x2 <= xUpper)) &&
-        ((tr.y1 >= yLower && tr.y1 <= yUpper) || (tr.y2 >= yLower && tr.y2 <= yUpper)))
-      if (overlap) {
+      if (intervalOverlap(tr.x1,tr.x2,xLower,xUpper) && intervalOverlap(tr.y1,tr.y2,yLower,yUpper)) {
         tr.value.map(v => result += v)
         false // recurse
       } else {

@@ -21,6 +21,11 @@ case class Graph(
   extends GraphLike[GData,VData,EData,BBData,Graph]
 {
   protected val factory = new Graph(_,_,_,_,_,_,_,_)
+
+  def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
+  def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
+  def inputs  = verts.filter(isInput(_))
+  def outputs = verts.filter(isOutput(_))
 }
 
 object Graph {
