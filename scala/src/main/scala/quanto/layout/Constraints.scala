@@ -9,6 +9,8 @@ class ConstraintException(msg: String) extends Exception(msg)
  *   [1] "Scalable, Versatile and Simple Constrained Graph Layout", Dwyer 2009
  */
 trait Constraints extends GraphLayout {
+  def alpha: Double // cooling factor for soft constraints
+
   var constraintIterations = 10
   val constraints = new ConstraintSeq
 
@@ -27,7 +29,7 @@ trait Constraints extends GraphLayout {
       for ((constraint,layer) <- constraints; if layer <= maxLayer) {
         val (p1,p2) = (coord(constraint.v1), coord(constraint.v2))
 
-        val (shiftX, shiftY) = constraint.direction match {
+        val shift = constraint.direction match {
           case Some(dir) =>
             val (dx,dy) = ((p2._1 - p1._1) * dir._1, (p2._2 - p1._2) * dir._2)
             val ideal = (dir._1 * constraint.length, dir._2 * constraint.length)
@@ -57,6 +59,8 @@ trait Constraints extends GraphLayout {
               (dir._1 * (length - constraint.length), dir._2 * (length - constraint.length))
             else (0.0,0.0)
         }
+
+        val (shiftX, shiftY) = shift match { case (x,y) => if (constraint.soft) (x * alpha, y * alpha) else (x,y) }
 
         if (shiftX != 0.0 || shiftY != 0.0) {
           feasible = false
@@ -97,7 +101,7 @@ class ConstraintSeq extends Iterable[(Constraint,Int)] {
   def iterator = cs.iterator.map(x => x()).foldLeft(Iterator[(Constraint,Int)]())(_ ++ _)
 }
 
-case class Constraint(v1: VName, v2: VName, direction: Option[(Double,Double)], length: Double, w1: Double, w2: Double, order: Int) {
+case class Constraint(v1: VName, v2: VName, direction: Option[(Double,Double)], length: Double, w1: Double, w2: Double, order: Int, soft: Boolean) {
   lazy val mv1 = if (w1 + w2 != 0.0) w2 / (w1 + w2) else 0.5
   lazy val mv2 = 1.0 - mv1
 }
@@ -115,9 +119,13 @@ object Constraint {
         (x / length, y / length)
     }
 
-    def <= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,-1)
-    def ===(len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,0)
-    def >= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,1)
+    def <= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,-1,soft=false)
+    def ===(len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,0,soft=false)
+    def >= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,1,soft=false)
+
+    def ~<= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,-1,soft=true)
+    def ~==(len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,0,soft=true)
+    def ~>= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,1,soft=true)
   }
 
   object distance {

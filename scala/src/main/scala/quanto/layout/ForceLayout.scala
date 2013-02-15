@@ -11,7 +11,7 @@ import quanto.data._
  */
 class ForceLayout extends GraphLayout with Constraints {
   // repulsive force between vertices
-  var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 1.0 else 6.0)
+  var charge: VName => Double = (v => if (graph.vdata(v).isWireVertex) 1.0 else 4.0)
 
   // spring strength on edges
   var strength = 3.0
@@ -158,7 +158,7 @@ class ForceLayout extends GraphLayout with Constraints {
 
   def step() {
     relax()
-    if (alpha <= 0.05) projectConstraints()
+    projectConstraints()
   }
 
   def compute() {

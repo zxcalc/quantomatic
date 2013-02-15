@@ -15,14 +15,22 @@ trait VerticalBoundary extends Constraints {
       val it = bnd.iterator
       var v1 = it.next()
       for (v2 <- it) {
-        constraints += { (distance from v1 to v2 along (0.0,1.0)) === 0.0 }
+        if (g.isBBoxed(v1) || g.isBBoxed(v2))
+          constraints += { (distance from v1 to v2 along (0.0,1.0)) ~== 0.0 }
+        else
+          constraints += { (distance from v1 to v2 along (0.0,1.0)) === 0.0 }
+
         v1 = v2
       }
     }
 
     g.edges.foreach { e =>
-      if (g.isInput(g.source(e)) || g.isOutput(g.target(e))) {
-        constraints += { (distance from g.source(e) to g.target(e) along (1.0,0.0)) === 0.0 }
+      val (s,t) = (g.source(e), g.target(e))
+      if (g.isInput(s) || g.isOutput(t)) {
+        if (g.isBBoxed(s) || g.isBBoxed(t))
+          constraints += { (distance from s to t along (1.0,0.0)) ~== 0.0 }
+        else
+          constraints += { (distance from s to t along (1.0,0.0)) === 0.0 }
       }
     }
   }
