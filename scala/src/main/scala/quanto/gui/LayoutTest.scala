@@ -36,7 +36,7 @@ object LayoutTest extends SimpleSwingApplication {
     addEdge   ("e5", DirEdge(), "b1" -> "v1")
     addEdge   ("e6", DirEdge(), "v2" -> "b2")
     addEdge   ("e7", DirEdge(), "v3" -> "b3")
-    addBBox   ("bb0", BBData(), Set("b0","b1"))
+    addBBox   ("bb0", BBData(), Set("b0","b3"))
   )
 
   //Graph.random(10,5,1)
@@ -48,7 +48,7 @@ object LayoutTest extends SimpleSwingApplication {
   var run = 0
   var constraints = false
 
-  val timer = new javax.swing.Timer(250, new ActionListener {
+  val timer = new javax.swing.Timer(50, new ActionListener {
     def actionPerformed(e: ActionEvent) {
 
       if (constraints) layout.projectConstraints()

@@ -27,31 +27,36 @@ trait Constraints extends GraphLayout {
       for ((constraint,layer) <- constraints; if layer <= maxLayer) {
         val (p1,p2) = (coord(constraint.v1), coord(constraint.v2))
 
-        val ((dx,dy), direction) = constraint.direction match {
+        val (shiftX, shiftY) = constraint.direction match {
           case Some(dir) =>
             val (dx,dy) = ((p2._1 - p1._1) * dir._1, (p2._2 - p1._2) * dir._2)
-            //val len = math.sqrt(dx*dx + dy*dy)
-            ((dx,dy), dir)
+            val ideal = (dir._1 * constraint.length, dir._2 * constraint.length)
+
+            (
+              if ((constraint.order ==  0 && dx != ideal._1) ||
+                  (constraint.order == -1 && dx >  ideal._1) ||
+                  (constraint.order ==  1 && dx <  ideal._1))
+                dx - ideal._1
+              else 0,
+
+              if ((constraint.order ==  0 && dy != ideal._2) ||
+                  (constraint.order == -1 && dy >  ideal._2) ||
+                  (constraint.order ==  1 && dy <  ideal._2))
+                dy - ideal._2
+              else 0
+            )
+
           case None =>
             val (dx,dy) = (p2._1 - p1._1, p2._2 - p1._2)
-            val len = math.sqrt(dx*dx + dy*dy)
-            ((dx,dy), if (len != 0) (dx/len, dy/len) else (1.0,0.0))
+            val length = math.sqrt(dx*dx + dy*dy)
+            val dir = if (length != 0) (dx/length, dy/length) else (1.0,0.0)
+
+            if ((constraint.order ==  0 && length != constraint.length) ||
+                (constraint.order == -1 && length >  constraint.length) ||
+                (constraint.order ==  1 && length <  constraint.length))
+              (dir._1 * (length - constraint.length), dir._2 * (length - constraint.length))
+            else (0.0,0.0)
         }
-
-        val ideal = (direction._1 * constraint.length, direction._2 * constraint.length)
-
-        val shiftX =
-          if ((constraint.order ==  0 && dx != ideal._1) ||
-            (constraint.order == -1 && dx >  ideal._1) ||
-            (constraint.order ==  1 && dx <  ideal._1))
-            dx - ideal._1
-          else 0
-        val shiftY =
-          if ((constraint.order ==  0 && dy != ideal._2) ||
-            (constraint.order == -1 && dy >  ideal._2) ||
-            (constraint.order ==  1 && dy <  ideal._2))
-            dy - ideal._2
-          else 0
 
         if (shiftX != 0.0 || shiftY != 0.0) {
           feasible = false
