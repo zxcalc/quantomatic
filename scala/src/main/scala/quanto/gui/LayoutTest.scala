@@ -36,10 +36,11 @@ object LayoutTest extends SimpleSwingApplication {
     addEdge   ("e5", DirEdge(), "b1" -> "v1")
     addEdge   ("e6", DirEdge(), "v2" -> "b2")
     addEdge   ("e7", DirEdge(), "v3" -> "b3")
-    addBBox   ("bb0", BBData(), Set("b0","b3"))
+    addBBox   ("bb0", BBData(), Set("b0","b1","b2","b3"))
+    addBBox   ("bb1", BBData(), Set("b0","v3"))
   )
 
-  //Graph.random(10,5,1)
+//  graphView.graph = Graph.random(20,20,1)
 
   val layout = new ForceLayout with Clusters with Ranking with VerticalBoundary
   layout.alpha0 = 0.2
@@ -51,8 +52,7 @@ object LayoutTest extends SimpleSwingApplication {
   val timer = new javax.swing.Timer(50, new ActionListener {
     def actionPerformed(e: ActionEvent) {
 
-      if (constraints) layout.projectConstraints()
-      else layout.relax()
+      layout.step()
 
       constraints = !constraints
 

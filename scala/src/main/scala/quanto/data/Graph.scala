@@ -4,6 +4,7 @@ import Names._
 import quanto.util.json._
 import math.sqrt
 import JsonValues._
+import collection.mutable.ArrayBuffer
 
 class GraphLoadException(message: String, cause: Throwable = null)
   extends Exception(message, cause)
@@ -24,6 +25,7 @@ case class Graph(
 
   def isInput (v: VName): Boolean = vdata(v).isWireVertex && inEdges(v).isEmpty && outEdges(v).size == 1
   def isOutput(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).isEmpty && inEdges(v).size == 1
+  def isInternal(v: VName): Boolean = vdata(v).isWireVertex && outEdges(v).size == 1 && inEdges(v).size == 1
   def inputs  = verts.filter(isInput(_))
   def outputs = verts.filter(isOutput(_))
 }
@@ -122,16 +124,25 @@ object Graph {
     var randomGraph = Graph()
     for (i <- 1 to nverts) {
       val p = (rand.nextDouble * 6.0 - 3.0, rand.nextDouble * 6.0 - 3.0)
-      randomGraph = randomGraph.newVertex(NodeV(p))
+      if (rand.nextBoolean) randomGraph = randomGraph.newVertex(NodeV(p))
+      else randomGraph = randomGraph.newVertex(WireV(p))
     }
 
     if (nverts != 0) {
-      val varray = randomGraph.vdata.keys.toArray
-      for(j <- 1 to nedges) {
-        val s = varray(rand.nextInt(varray.size))
-        val t = varray(rand.nextInt(varray.size))
+      val sources = new ArrayBuffer[VName](randomGraph.vdata.keys.size)
+      val targets = new ArrayBuffer[VName](randomGraph.vdata.keys.size)
+      randomGraph.vdata.keys.foreach{k => sources += k; targets += k}
+      for(j <- 1 to nedges if (!sources.isEmpty && !targets.isEmpty)) {
+        val (si,ti) = (rand.nextInt(sources.size), rand.nextInt(targets.size))
+        val s = sources(si)
+        val t = targets(ti)
+        if (randomGraph.vdata(s).isWireVertex) sources -= s
+        if (randomGraph.vdata(t).isWireVertex) targets -= t
+
         randomGraph = randomGraph.newEdge(DirEdge(), (s,t))
       }
+
+      val varray = randomGraph.vdata.keys.toArray
 
       for (i <- 1 to nbboxes) {
         val randomVSet = (1 to (sqrt(nverts).toInt)).foldLeft(Set[VName]()) { (s,_) =>
