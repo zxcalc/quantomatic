@@ -90,7 +90,7 @@ PolyML.Project.make "io/graph_json.ML";
 PolyML.Project.make "io/graph_annotations_json.ML";
 PolyML.Project.make "io/graph_dot_output.ML";
 
-Testing.make_test "graph/test/test-graph-setup.ML";
+Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "graph/test/test-graph.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
