@@ -40,6 +40,15 @@ PolyML.Project.optional_make "local_config.ML";
 (*                         Compile quantomatic code                        *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 
+(* 
+ * Utility Code
+ *)
+
+(* IO Utils *)
+PolyML.Project.make "io/input.ML";
+PolyML.Project.make "io/output.ML";
+PolyML.Project.make "io/json_io.ML";
+
 (*
  * Names
  *)
@@ -54,7 +63,11 @@ PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_angle_expr.ML";
 
+(* I/O *)
+PolyML.Project.make "io/linrat_json.ML";
+
 Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
+Testing.make_test "io/test/linrat-json-test.ML";
 
 
 (*
@@ -72,11 +85,18 @@ PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
 
+(* I/O *)
+PolyML.Project.make "io/graph_json.ML";
+PolyML.Project.make "io/graph_annotations_json.ML";
+PolyML.Project.make "io/graph_dot_output.ML";
+
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-graph.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 Testing.make_test "graph/test/test-bang-graph-iso.ML";
+
+Testing.make_test "io/test/graph-json-test.ML";
 
 
 (*
@@ -94,6 +114,10 @@ PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
  * Rules
  *)
 PolyML.Project.make "rewriting/rule.ML";
+
+(* I/O *)
+PolyML.Project.make "io/rule_json.ML";
+
 Testing.make_test "rewriting/test/rule-test.ML";
 
 
@@ -101,69 +125,13 @@ Testing.make_test "rewriting/test/rule-test.ML";
  * Rulesets
  *)
 PolyML.Project.make "theories/ruleset.ML";
-Testing.make_test "theories/test/ruleset-test.ML";
 PolyML.Project.make "theories/ruleset_annotations.ML";
 
-
-(*
- * Input and Output
- *)
-(* Tools *)
-PolyML.Project.make "io/xml_parse_utils.ML";
-PolyML.Project.make "io/xml_output_utils.ML";
-PolyML.Project.make "io/input.ML";
-PolyML.Project.make "io/output.ML";
-PolyML.Project.make "io/json_io.ML";
-PolyML.Project.make "io/xml_io.ML";
-PolyML.Project.make "io/reader.ML";
-PolyML.Project.make "io/writer.ML";
-
-(* Expressions *)
-PolyML.Project.make "io/linrat_json.ML";
-PolyML.Project.make "io/linrat_xml.ML";
-Testing.make_test "io/test/linrat-json-test.ML";
-
-(* Graph Component Data *)
-(* component data is a bit of a hack, and has I/O interdependencies *)
-PolyML.Project.make "theories/component_data.ML";
-(* boilerplate data functors for enumerated datatypes *)
-PolyML.Project.make "theories/enum_data.ML";
-Testing.make_test "theories/test/vertex-test.ML";
-
-(* Graphs *)
-PolyML.Project.make "io/graph_xml_v2_input.ML";
-PolyML.Project.make "io/graph_xml_v2_output.ML";
-PolyML.Project.make "io/graph_json.ML";
-PolyML.Project.make "io/graph_annotations_xml_input.ML";
-PolyML.Project.make "io/graph_annotations_xml_output.ML";
-PolyML.Project.make "io/graph_annotations_json.ML";
-Testing.make_test "io/test/graph-json-test.ML";
-Testing.make_test "io/graph_xml_v1_input.ML";
-Testing.make_test "io/graph_xml_v1_output.ML";
-
-(* Rules *)
-PolyML.Project.make "io/rule_xml_output.ML";
-PolyML.Project.make "io/rule_xml_input.ML";
-PolyML.Project.make "io/rule_json.ML";
-
-(* Rulesets *)
-PolyML.Project.make "io/ruleset_xml_input.ML";
-PolyML.Project.make "io/ruleset_xml_output.ML";
+(* I/O *)
 PolyML.Project.make "io/ruleset_json.ML";
-PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
-PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
-(* Lists of rewrites *)
-PolyML.Project.make "io/rewrite_json.ML";
-
-(* Simple dot output for graphs *)
-PolyML.Project.make "io/graph_dot_output.ML";
-
-(* Package all IO stuff into one place *)
-PolyML.Project.make "io/io_interface.ML";
-Testing.make_test "io/test/graph_io-test.ML";
-Testing.make_test "io/test/load_ruleset-test.ML";
+Testing.make_test "theories/test/ruleset-test.ML";
 
 
 (*
@@ -190,23 +158,66 @@ Testing.make_test "matching/test/test-matching-greedy.ML";
 
 
 (*
+ * Deprecated XML I/O stuff
+ *)
+PolyML.Project.make "io/xml_parse_utils.ML";
+PolyML.Project.make "io/xml_output_utils.ML";
+PolyML.Project.make "io/xml_io.ML";
+PolyML.Project.make "io/reader.ML";
+PolyML.Project.make "io/writer.ML";
+
+PolyML.Project.make "io/linrat_xml.ML";
+
+(* Graph Component Data *)
+(* component data is a bit of a hack, and has I/O interdependencies *)
+PolyML.Project.make "theories/component_data.ML";
+(* boilerplate data functors for enumerated datatypes *)
+PolyML.Project.make "theories/enum_data.ML";
+Testing.make_test "theories/test/vertex-test.ML";
+
+PolyML.Project.make "io/graph_xml_v2_input.ML";
+PolyML.Project.make "io/graph_xml_v2_output.ML";
+PolyML.Project.make "io/graph_annotations_xml_input.ML";
+PolyML.Project.make "io/graph_annotations_xml_output.ML";
+PolyML.Project.make "io/rule_xml_output.ML";
+PolyML.Project.make "io/rule_xml_input.ML";
+PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
+PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
+PolyML.Project.make "io/ruleset_xml_input.ML";
+PolyML.Project.make "io/ruleset_xml_output.ML";
+
+PolyML.Project.make "io/io_interface_xml.ML";
+
+Testing.make_test "io/graph_xml_v1_input.ML";
+Testing.make_test "io/graph_xml_v1_output.ML";
+Testing.make_test "io/test/test_io_interface_xml-setup.ML";
+Testing.make_test "io/test/load_ruleset-test.ML";
+
+
+(*
  * Rewriting
  *)
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
-Testing.make_test "rewriting/test/graph_subst-test.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriter.ML";
-Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
+
+(* I/O *)
+PolyML.Project.make "io/rewrite_json.ML";
+
+Testing.make_test "rewriting/test/graph_subst-test.ML";
+(* NB: currently relies on XML I/O stuff *)
+Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 
 
 (*
  * Theories
  *)
 (* construction of everything in a graphical theory from just param *)
+(* NB: currently relies on XML I/O stuff *)
 PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
 
