@@ -97,10 +97,10 @@ functor InputUseChildXML(In : INPUT_XML) : INPUT_XML
   type data = In.data;
   exception bad_input_exp of string*string;
   open XML;
-  fun input (Text _) = raise bad_input_exp ("Can't get unique child of text","")
-    | input (Elem ((elem, attr),[child])) = ((In.input child)
+  fun input (Elem ((elem, _),[child])) = ((In.input child)
       handle bad_input_exp (s,p) => raise bad_input_exp (s,elem^"/"^p))
-    | input (Elem ((elem, attr),_)) = raise bad_input_exp ("<"^elem^"> does not have unique child","");
+    | input (Elem ((elem, _),_)) = raise bad_input_exp ("<"^elem^"> does not have unique child","")
+    | input _ = raise bad_input_exp ("Expected element","");
 end;
 
 
