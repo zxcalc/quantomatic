@@ -168,6 +168,50 @@ val _ = Testing.test "rule7: isom_rule rewrites subgraph" (fn () => let
   val _ = Seq.list_of rseq;
   in writeln "success" end) ();
 
-val _ = Testing.assert_no_failed_tests();
-val _ = "UNIT TESTS FOR ruleset rewriting PASSED!";
-end;
+
+(* lhs *)
+  val b0 = V.mk "b0"
+  val z0 = V.mk "z0"
+  val x0 = V.mk "x0"
+  val bb0 = B.mk "bb0"
+  val lhs = G.empty
+    |> G.add_named_vertex b0 bvert
+    |> G.add_named_vertex z0 (mkZ zero_angle)
+    |> G.add_named_bbox bb0
+    |> G.doadd_to_bbox bb0 (V.NSet.of_list [b0])
+    |> G.doadd_edge dir_edge z0 b0
+  
+  val _ = G.print lhs;
+  (* rhs *)
+  val rhs = G.empty
+    |> G.add_named_vertex b0 bvert
+    |> G.add_named_vertex z0 (mkZ zero_angle)
+    |> G.add_named_vertex x0 (mkX zero_angle)
+    |> G.add_named_bbox bb0
+    |> G.doadd_to_bbox bb0 (V.NSet.of_list [b0,x0])
+    |> G.doadd_edge dir_edge z0 x0
+    |> G.doadd_edge dir_edge x0 b0
+  
+  val _ = G.print rhs;
+  val rule = Rule.mk (lhs,rhs);
+  (* tgt graph *)
+  val tgt = lhs
+
+  val _ = Testing.test "rule with interior node in bbox on RHS" (fn () => let
+  val (r', m1) = list_of_rule_matches rule tgt;
+  val _ = Rule.print r';
+  val _ = RulesetRewriter.print_match (hd m1);
+  val (_,g) = RulesetRewriter.rewrite r' (hd m1);
+  val _ = G.print g;
+
+  in writeln "success" end) ();
+  
+  
+  val _ = Testing.assert_no_failed_tests();
+  val _ = "UNIT TESTS FOR ruleset rewriting PASSED!";
+end
+
+
+
+
+
