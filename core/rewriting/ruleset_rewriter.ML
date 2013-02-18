@@ -157,7 +157,7 @@ struct
         val (_,r) = Rule.rename rnms r;
         val lhs = G.normalise (Rule.get_lhs r);
         val rhs = G.normalise (Rule.get_rhs r);
-        val avoid = G.get_vnames rhs;
+        val avoid = V.NSet.union_merge (G.get_vnames g_norm) (G.get_vnames rhs);
         val track = G.get_boundary rhs;
       in (r,MatchSearch.match_normalised_avoiding_tracking (avoid,track) lhs g_norm) end;
 

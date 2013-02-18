@@ -4,7 +4,7 @@ functor SimpleInnerMatchSearch(
     structure MatchState : OGRAPH_MATCH_STATE
 ) : INNER_MATCH_SEARCH
 = struct
-  structure Log : LOG = Log(val init_level = 5);
+  structure Log : LOG = Log(val init_level = 0);
 
   structure G = MatchState.G
   structure MatchState = MatchState

@@ -16,6 +16,7 @@ structure IO = Test_IO_Interface_v2;
 structure RulesetRewriter = Test_RulesetRewriter;
 structure Ruleset = Test_Ruleset;
 structure GraphSubst = Test_BangGraphSubst;
+structure MatchSearch = Test_GreedyMatcher;
 val ruleset = "../../test/rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
               |> IO.Input.Ruleset.input;
@@ -169,40 +170,75 @@ val _ = Testing.test "rule7: isom_rule rewrites subgraph" (fn () => let
   in writeln "success" end) ();
 
 
-(* lhs *)
-  val b0 = V.mk "b0"
-  val z0 = V.mk "z0"
-  val x0 = V.mk "x0"
-  val bb0 = B.mk "bb0"
-  val lhs = G.empty
-    |> G.add_named_vertex b0 bvert
-    |> G.add_named_vertex z0 (mkZ zero_angle)
-    |> G.add_named_bbox bb0
-    |> G.doadd_to_bbox bb0 (V.NSet.of_list [b0])
-    |> G.doadd_edge dir_edge z0 b0
+  val Ba = B.mk "Ba"
   
-  val _ = G.print lhs;
+  val Va = V.mk "Va"
+  val Vb = V.mk "Vb"
+  val Vc = V.mk "Vc"
+  val Vd = V.mk "Vd"
+  val Vf = V.mk "Vf"
+  
+  val Vx = V.mk "Vx"
+  val Vy = V.mk "Vy"
+
+(* lhs *)
+  
+  
+  val lhs = G.empty
+    |> G.add_named_vertex Va bvert
+    |> G.add_named_vertex Vc (mkZ zero_angle)
+    |> G.add_named_bbox Ba
+    |> G.doadd_to_bbox Ba (V.NSet.of_list [Va])
+    |> G.doadd_edge dir_edge Vc Va
+  
+  val _ = Pretty.writeln (Pretty.str "interior node bbox rule")
+  (*val _ = G.print lhs;*)
   (* rhs *)
   val rhs = G.empty
-    |> G.add_named_vertex b0 bvert
-    |> G.add_named_vertex z0 (mkZ zero_angle)
-    |> G.add_named_vertex x0 (mkX zero_angle)
-    |> G.add_named_bbox bb0
-    |> G.doadd_to_bbox bb0 (V.NSet.of_list [b0,x0])
-    |> G.doadd_edge dir_edge z0 x0
-    |> G.doadd_edge dir_edge x0 b0
+    |> G.add_named_vertex Va bvert
+    |> G.add_named_vertex Vf (mkX zero_angle)
+    |> G.add_named_vertex Vd (mkH)
+    |> G.add_named_bbox Ba
+    |> G.doadd_to_bbox Ba (V.NSet.of_list [Va,Vd])
+    |> G.doadd_edge dir_edge Vf Vd
+    |> G.doadd_edge dir_edge Vd Va
+    
+  (*val rhs = G.empty
+    |> G.add_named_vertex Va bvert
+    |> G.add_named_vertex Vf (mkX zero_angle)
+    |> G.add_named_vertex Vd (mkH)
+    |> G.add_named_bbox Ba
+    |> G.doadd_to_bbox Ba (V.NSet.of_list [Va,Vd])
+    |> G.doadd_edge dir_edge Vf Vd
+    |> G.doadd_edge dir_edge Vd Va*)
   
-  val _ = G.print rhs;
+  (*val _ = G.print rhs;*)
   val rule = Rule.mk (lhs,rhs);
+  
+  val _ = Pretty.writeln (Pretty.str "*** rule (before freshening):")
+  val _ = Rule.print rule;
+  
   (* tgt graph *)
-  val tgt = lhs
+  val tgt = G.empty
+    |> G.add_named_vertex Va bvert
+    |> G.add_named_vertex Vb (mkZ zero_angle)
+    |> G.doadd_edge dir_edge Vb Va
 
   val _ = Testing.test "rule with interior node in bbox on RHS" (fn () => let
   val (r', m1) = list_of_rule_matches rule tgt;
+  
+  val _ = Pretty.writeln (Pretty.str "*** rule (after freshening):")
   val _ = Rule.print r';
-  val _ = RulesetRewriter.print_match (hd m1);
-  val (_,g) = RulesetRewriter.rewrite r' (hd m1);
-  val _ = G.print g;
+  
+  val _ = Pretty.writeln (Pretty.str "*** match state:")
+  val match = hd m1
+  val _ = RulesetRewriter.print_match match
+  (*val rhs' = (MatchSearch.BGMatchState.replay_pat_bbox_ops match (Rule.get_rhs r'))*)
+  
+  (*exception die_exp of unit
+  val _ = raise die_exp ()*)
+  (*val (_,g) = RulesetRewriter.rewrite r' (hd m1);
+  val _ = G.print g;*)
 
   in writeln "success" end) ();
   

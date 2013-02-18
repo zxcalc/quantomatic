@@ -16,7 +16,7 @@ functor GreedyMatchSearch(
 ) : BG_MATCH_SEARCH =
 struct
 
-  structure Log : LOG = Log(val init_level = 5);
+  structure Log : LOG = Log(val init_level = 0);
 
   structure BGMatchState = BGMatchState
   structure BG = BGMatchState.BG
