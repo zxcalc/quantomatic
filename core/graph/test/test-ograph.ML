@@ -1,6 +1,6 @@
 (* Test wire functions *)
 local
-  open Test_MkG
+  open Test_RG_MkG
   val b1 = V.mk "b1"
   val b2 = V.mk "b2"
   val b3 = V.mk "b3"
@@ -216,7 +216,7 @@ end; (* ends local namespace used for testing *)
 
 (* Test plugging functions *)
 local
-  open Test_MkG;
+  open Test_RG_MkG;
 
   val x1 = V.mk "x1"
   val x2 = V.mk "x2"
@@ -499,7 +499,7 @@ end; (* ends local namespace used for testing *)
 
 (* Test subgraph functions *)
 local
-  open Test_MkG;
+  open Test_RG_MkG;
 
   val x1 = V.mk "x1"
   val x2 = V.mk "x2"

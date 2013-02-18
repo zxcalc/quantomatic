@@ -1,5 +1,5 @@
 local (* Test matching with concrete graphs *)
-  open Test_MkG
+  open Test_RG_MkG
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
 
@@ -49,7 +49,7 @@ end
 
 
 local (* Test matching with disjoint !-boxes *)
-  open Test_MkG
+  open Test_RG_MkG
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
 
@@ -227,7 +227,7 @@ end
 
 
 local (* Test matching with nested/overlapping !-boxes *)
-  open Test_MkG
+  open Test_RG_MkG
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
 

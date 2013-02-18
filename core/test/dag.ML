@@ -1,5 +1,5 @@
 
-structure Graff = Test_Graph;
+structure Graff = Test_RG_Graph;
 
 val g = Graff.empty
 local

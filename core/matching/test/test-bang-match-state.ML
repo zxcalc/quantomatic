@@ -1,5 +1,5 @@
 local (* Test matching with concrete graphs *)
-  open Test_MkG
+  open Test_RG_MkG
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher
   structure MS = Test_BGMatchState

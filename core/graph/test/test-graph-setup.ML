@@ -1,7 +1,7 @@
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
 (*  node vertex data for red-green vertex (i.e. before Graph Vertex 
     rather than OGraph VData.) *)
-signature TEST_UNIFIABLE_DATA =    
+signature TEST_RG_UNIFIABLE_DATA =    
 sig
   datatype qnd = Xnd of LinratAngleExpr.T (* Red: defined using H of Z *) 
                | Znd of LinratAngleExpr.T (* Green *)
@@ -13,7 +13,7 @@ sig
 end;
 
 (* reg-green vertex data *)
-structure Test_InternVData : TEST_UNIFIABLE_DATA
+structure Test_RG_InternVData : TEST_RG_UNIFIABLE_DATA
 = struct
   exception unimplemented_exp of string;
 
@@ -70,16 +70,16 @@ structure Test_InternVData : TEST_UNIFIABLE_DATA
 end;
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *) 
-structure Test_GraphParam
+structure Test_RG_GraphParam
 : GRAPH_PARAM
 = struct
 
-  structure VData = Test_InternVData;
+  structure VData = Test_RG_InternVData;
 
   (* edges have unit data, and are ignored as we use Vertex subst type *)
   structure EData = 
     IgnoredUnifiableData(structure D = UnitData 
-                         structure S = Test_InternVData 
+                         structure S = Test_RG_InternVData 
                          val default_data = ());
   
   (* vertex, and vertex data variable dependencies *)
@@ -97,7 +97,7 @@ structure Test_GraphParam
   exception unknown_type_exp of string;
 
   fun subst_xname_in_vdata n1 n2 d =
-      Test_InternVData.map_to_angle 
+      Test_RG_InternVData.map_to_angle 
         (untryify (LinratAngleExpr.try_rename1 n1 n2)) d 
       handle tryify_failed () => 
         raise X.Rnm.invalid_renaming_exp "subst_xname_in_vdata";
@@ -114,12 +114,12 @@ structure Test_GraphParam
 
   fun rename_xname n1 n2 vdep = 
       (case VDep.try_rename1_cod n1 n2 vdep of NONE => 
-         raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_xname"
+         raise V.Rnm.invalid_renaming_exp "Test_RG_GraphParam.rename_xname"
        | SOME x => x);
 
   fun rename_vname n1 n2 vdep = 
       (case VDep.try_rename1_dom n1 n2 vdep of NONE => 
-         raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_vname"
+         raise V.Rnm.invalid_renaming_exp "Test_RG_GraphParam.rename_vname"
        | SOME x => x);
 
   fun rename_ename _ _ vdep = vdep;
@@ -152,19 +152,19 @@ structure Test_GraphParam
   val empty = VDep.empty;
 
   fun add_vertex vd vn vdep = 
-      (case Test_InternVData.angle_of_data vd of NONE => vdep
+      (case Test_RG_InternVData.angle_of_data vd of NONE => vdep
           | SOME angle => VDep.add_to_dom vn (LinratAngleExpr.get_vars angle) vdep);
   fun add_edge _ _ vdep = vdep;
 
   fun delete_vname vn vdep = VDep.del_dom vn vdep;
   fun delete_ename _ vdep = vdep;
 
-  fun vertex_type_name (Test_InternVData.Xnd _) = "X"
-    | vertex_type_name (Test_InternVData.Znd _) = "Z"
-    | vertex_type_name (Test_InternVData.Hnd) = "hadamard"
-  fun vertex_default_data "X" = (Test_InternVData.Xnd LinratAngleExpr.zero)
-    | vertex_default_data "Z" = (Test_InternVData.Znd LinratAngleExpr.zero)
-    | vertex_default_data "hadamard" = (Test_InternVData.Hnd)
+  fun vertex_type_name (Test_RG_InternVData.Xnd _) = "X"
+    | vertex_type_name (Test_RG_InternVData.Znd _) = "Z"
+    | vertex_type_name (Test_RG_InternVData.Hnd) = "hadamard"
+  fun vertex_default_data "X" = (Test_RG_InternVData.Xnd LinratAngleExpr.zero)
+    | vertex_default_data "Z" = (Test_RG_InternVData.Znd LinratAngleExpr.zero)
+    | vertex_default_data "hadamard" = (Test_RG_InternVData.Hnd)
     | vertex_default_data s = raise unknown_type_exp s
   fun edge_type_name () = "unit"
   fun edge_default_data "unit" = ()
@@ -218,32 +218,29 @@ structure Test_GraphParam
 end;
 
 
-structure Test_OVData = OVertexData(Test_InternVData);
-structure Test_OGraphParam = OGraphParam(
-  structure Param = Test_GraphParam 
-        and OVData = Test_OVData);
+structure Test_RG_OVData = OVertexData(Test_RG_InternVData);
 
 (* Basic structure for testing graphs later... *)
-structure DB_Test_Graph 
+structure Test_RG_Graph : BANG_GRAPH
 = struct 
   structure BasicBangGraph = BasicBangGraphFun(
-    structure Param = Test_OGraphParam
+    structure Param = OGraphParam(
+      structure Param = Test_RG_GraphParam 
+      and OVData = Test_RG_OVData
+    );
     type data = unit (* no extra inherrited data for graphs *)
     val empty_data = ());
   structure BBGraph = BangGraphTools(BasicBangGraph);
   open BBGraph;
 end;
 
-structure Test_Graph : BANG_GRAPH = DB_Test_Graph;
-
-
 (* ML utility code for building test graphs *)
-structure Test_MkG = 
+structure Test_RG_MkG = 
 struct
-  structure IVData = Test_InternVData;
-  structure G = Test_Graph;
-  structure OVData = Test_Graph.OVData;
-  structure GIso = BangGraphIso(Test_Graph);
+  structure IVData = Test_RG_InternVData;
+  structure G = Test_RG_Graph;
+  structure OVData = Test_RG_Graph.OVData;
+  structure GIso = BangGraphIso(Test_RG_Graph);
 
   val bvert = OVData.WVert;
   val parse_angle = LinratAngleExpr.parse;
@@ -266,9 +263,9 @@ struct
        | SOME x => x
 end;
 
-structure Test_BBox_Util =
+structure Test_RG_BBox_Util =
 struct
-  open Test_MkG
+  open Test_RG_MkG
   fun num_bboxes g = B.NSet.cardinality (G.get_bboxes g)
   
   fun assert_n_bboxes g n () =

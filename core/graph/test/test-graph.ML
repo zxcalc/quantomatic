@@ -1,7 +1,7 @@
 (* test some basic graph constructions *)
 local
 
-open Test_MkG;
+open Test_RG_MkG;
 
 (* a simple graph, and some basic manipulations *)
 val g = G.empty;
@@ -114,7 +114,7 @@ end
 
 (* Basic test for internal variable dependency management. *)
 local 
-  open Test_MkG;
+  open Test_RG_MkG;
   
   val _ = let 
   (* create the graph *)

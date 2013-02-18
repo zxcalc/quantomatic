@@ -1,6 +1,6 @@
 
 local
-  open Test_MkG
+  open Test_RG_MkG
   open Test_MatchUtil
   structure M = Test_ConcreteMatcher
   
@@ -59,7 +59,7 @@ end
 
 
 local
-  open Test_MkG
+  open Test_RG_MkG
   open Test_MatchUtil
   structure M = Test_ConcreteMatcher
   
@@ -92,7 +92,7 @@ in
 end
 
 local
-  open Test_MkG
+  open Test_RG_MkG
   open Test_MatchUtil
   structure M = Test_ConcreteMatcher
   
@@ -203,7 +203,7 @@ end
 
 
 local
-  open Test_MkG
+  open Test_RG_MkG
   open Test_MatchUtil
   structure M = Test_ConcreteMatcher
 
@@ -268,7 +268,7 @@ in
 end
 
 local
-  open Test_MkG
+  open Test_RG_MkG
   open Test_MatchUtil
   structure M = Test_ConcreteMatcher
 

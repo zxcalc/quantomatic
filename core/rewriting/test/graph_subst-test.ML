@@ -8,7 +8,7 @@ structure Test_BangGraphSubst : GRAPH_SUBST = DB_Test_BangGraphSubst;
 Test_BangGraphSubst.Log.level_ref := 4;
 
 local
-open Test_MkG;
+open Test_RG_MkG;
 structure M = Test_ConcreteMatcher;
 structure MS = Test_MatchState;
 structure GSub = Test_OGraphSubst;
@@ -176,7 +176,7 @@ end
 
 (* !-box rewriting *)
 local
-open Test_MkG;
+open Test_RG_MkG;
 structure M = Test_GreedyMatcher;
 structure MS = Test_BGMatchState;
 structure GSub = Test_BangGraphSubst;

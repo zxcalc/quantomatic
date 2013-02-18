@@ -1,12 +1,12 @@
 (* cd "test/dbg/2011-08-13-matvey-rewrite/"; *)
 
-open Test_MkG;
-structure Rule = Test_Rule;
-structure Ruleset = Test_Ruleset;
+open Test_RG_MkG;
+structure Rule = Test_RG_Rule;
+structure Ruleset = Test_RG_Ruleset;
 structure IO = Test_IO_Interface_v2;
-structure RulesetRewriter = Test_RulesetRewriter;
+structure RulesetRewriter = Test_RG_RulesetRewriter;
 structure Match = RulesetRewriter.Match;
-structure Ruleset = Test_Ruleset;
+structure Ruleset = Test_RG_Ruleset;
 structure MatchSearch = Test_SimpleMatchSearch;
 structure GraphSubst = Test_GraphSubst;
 

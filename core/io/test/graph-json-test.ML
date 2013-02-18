@@ -2,20 +2,20 @@ structure Test_VertexDataInputJSON : INPUT_JSON =
 struct
   open JsonInputUtils;
   structure L = InputLinratJSON;
-  type data = Test_InternVData.data;
+  type data = Test_RG_InternVData.data;
   val get_angle = L.input oo (get_easy Json.Null)
   val to_lower = String.implode o (map Char.toLower) o String.explode
   fun input (Json.String t) =
         (case to_lower t
-           of "h" => Test_InternVData.Hnd
-            | "x" => Test_InternVData.Xnd LinratAngleExpr.zero
-            | "z" => Test_InternVData.Znd LinratAngleExpr.zero
+           of "h" => Test_RG_InternVData.Hnd
+            | "x" => Test_RG_InternVData.Xnd LinratAngleExpr.zero
+            | "z" => Test_RG_InternVData.Znd LinratAngleExpr.zero
             | _   => raise bad_input_exp ("Unknown vertex type "^t,""))
     | input (Json.Object obj) =
         (case to_lower (get_string obj "type")
-           of "h" => Test_InternVData.Hnd
-            | "z" => Test_InternVData.Znd (get_angle obj "angle")
-            | "x" => Test_InternVData.Xnd (get_angle obj "angle")
+           of "h" => Test_RG_InternVData.Hnd
+            | "z" => Test_RG_InternVData.Znd (get_angle obj "angle")
+            | "x" => Test_RG_InternVData.Xnd (get_angle obj "angle")
             | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
     | input _ = raise bad_input_exp ("Expected object","");
 end;
@@ -24,40 +24,40 @@ structure Test_VertexDataOutputJSON : OUTPUT_JSON =
 struct
   open JsonOutputUtils;
   structure L = OutputLinratJSON;
-  type data = Test_InternVData.data;
-  fun output (Test_InternVData.Znd a) =
+  type data = Test_RG_InternVData.data;
+  fun output (Test_RG_InternVData.Znd a) =
         Json.Object (
           Json.empty_obj |> Json.update ("type",Json.String "Z")
                          |> Json.update ("angle",L.output a)
         )
-    | output (Test_InternVData.Xnd a) =
+    | output (Test_RG_InternVData.Xnd a) =
         Json.Object (
           Json.empty_obj |> Json.update ("type",Json.String "X")
                          |> Json.update ("angle",L.output a)
         )
-    | output Test_InternVData.Hnd = Json.String "H"
+    | output Test_RG_InternVData.Hnd = Json.String "H"
 end;
 
-structure Test_GraphInputJSON : INPUT_JSON =
+structure Test_RG_GraphInputJSON : INPUT_JSON =
   InputGraphJSON(
-    structure Graph = Test_Graph
+    structure Graph = Test_RG_Graph
     structure InputVertexData = Test_VertexDataInputJSON
     structure InputEdgeData = InputUnitJSON
   );
 
-structure Test_GraphOutputJSON : OUTPUT_JSON =
+structure Test_RG_GraphOutputJSON : OUTPUT_JSON =
   OutputGraphJSON(
-    structure Graph = Test_Graph
+    structure Graph = Test_RG_Graph
     structure OutputVertexData = Test_VertexDataOutputJSON
     structure OutputEdgeData = OutputUnitJSON
   );
 
 local
-  open Test_MkG;
+  open Test_RG_MkG;
   structure L = LinratAngleExpr;
   structure C = LinratAngleExpr.Coeff;
-  structure GIn = Test_GraphInputJSON;
-  structure GOut = Test_GraphOutputJSON;
+  structure GIn = Test_RG_GraphInputJSON;
+  structure GOut = Test_RG_GraphOutputJSON;
   val w1 = V.mk "w1"
   val w2 = V.mk "w2"
   val n1 = V.mk "n1"

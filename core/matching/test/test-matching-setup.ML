@@ -1,12 +1,12 @@
 structure Test_MatchState =
   OGraphMatchState(
-    structure G = Test_MkG.G
+    structure G = Test_RG_MkG.G
     type data = unit
     val empty_data = ()
   );
 structure Test_BGMatchState =
   BangGraphMatchState(
-    structure G = Test_MkG.G
+    structure G = Test_RG_MkG.G
     type data = unit
     val empty_data = ()
   );
@@ -42,7 +42,7 @@ end;
 
 structure Test_BGMatchUtil =
 struct
-  structure G = Test_MkG.G
+  structure G = Test_RG_MkG.G
 
   fun assert_n_match n mseq () = let
     val mlist = Seq.list_of mseq

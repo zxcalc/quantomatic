@@ -12,20 +12,20 @@
 (* test IO construction *)
 structure Test_IO_Interface_v1 = struct
   structure Input = struct
-    structure InputVertexData = InputTestVertexDataXML_v1(Test_Graph.OVData)
-    structure InputEdgeData = InputNoEdgeDataXML_v1(Test_Graph.EData)
+    structure InputVertexData = InputTestVertexDataXML_v1(Test_RG_Graph.OVData)
+    structure InputEdgeData = InputNoEdgeDataXML_v1(Test_RG_Graph.EData)
 
     structure Graph = InputGraphXML_v1(
-      structure Graph = Test_Ruleset.Rule.Graph
+      structure Graph = Test_RG_Ruleset.Rule.Graph
       structure InputVertexData = InputVertexData
       structure InputEdgeData = InputEdgeData);
 
     structure Rule = InputRuleXML(
-        structure Rule = Test_Ruleset.Rule
+        structure Rule = Test_RG_Ruleset.Rule
         structure InputGraph = Graph);
 
     structure Ruleset = InputRulesetXML(
-      structure Ruleset = Test_Ruleset
+      structure Ruleset = Test_RG_Ruleset
       structure InputRule = Rule
       structure InputRuleName = InputRuleNameXML
       structure InputTagName = InputTagNameXML);
@@ -33,7 +33,7 @@ structure Test_IO_Interface_v1 = struct
 end; (* DB_Test_IO_Interface_v1 *)
 
 structure DB_Test_IO_Interface_v2 = IO_Interface_Xml(
-  structure Ruleset = Test_Ruleset
+  structure Ruleset = Test_RG_Ruleset
   structure VertexData = Test_OVertexComponentData;
   structure EdgeData = EmptyElementComponentData;
 );

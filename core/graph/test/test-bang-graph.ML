@@ -1,6 +1,6 @@
 (* Test basic !-box methods *)
 local
-  open Test_BBox_Util;
+  open Test_RG_BBox_Util;
 
   val ge = G.empty
   val _ = Testing.test "G.get_bboxes - empty"
@@ -1101,7 +1101,7 @@ end; (* ends local namespace used for testing *)
 
 (* testing wire functions with !-boxes *)
 local
-  open Test_BBox_Util;
+  open Test_RG_BBox_Util;
   
   val in1 = V.mk "in1"
   val in2 = V.mk "in2"
@@ -1323,7 +1323,7 @@ end; (* ends local namespace used for testing *)
 (* testing nested !-boxes *)
 
 local
-  open Test_BBox_Util;
+  open Test_RG_BBox_Util;
   
   val g = G.empty
   (* balanced tree of depth 3 *)

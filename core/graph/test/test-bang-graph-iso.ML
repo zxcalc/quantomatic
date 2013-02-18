@@ -1,5 +1,5 @@
 local
-  open Test_BBox_Util
+  open Test_RG_BBox_Util
 
   val g1 = G.empty
   val (n_a_1, g1) = g1 |> G.add_vertex (mkZ zero_angle);

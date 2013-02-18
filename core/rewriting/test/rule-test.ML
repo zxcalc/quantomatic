@@ -1,9 +1,8 @@
-structure DB_Test_Rule = Rule(Test_Graph);
-structure Test_Rule : RULE = DB_Test_Rule;
+structure Test_RG_Rule : RULE = Rule(Test_RG_Graph);
 
 local
-open Test_MkG;
-structure Rule = Test_Rule;
+open Test_RG_MkG;
+structure Rule = Test_RG_Rule;
 
 val b1 = V.mk "b1"
 val b2 = V.mk "b2"

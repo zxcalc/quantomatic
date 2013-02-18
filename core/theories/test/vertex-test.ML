@@ -4,9 +4,9 @@
 
 (*  *)
 structure Test_VertexComponentData_Param
-: ELEMENT_COMPONENT_DATA_PARAM where type data = Test_InternVData.data
+: ELEMENT_COMPONENT_DATA_PARAM where type data = Test_RG_InternVData.data
 = struct 
-  structure VData = Test_InternVData;
+  structure VData = Test_RG_InternVData;
   type data = VData.data;
   exception unknown_type_exp of string;
   exception unexpected_data_exp;
@@ -39,6 +39,6 @@ end;
 
 structure Test_OVertexComponentData_Param = OVertexComponentData_Param(
   structure VertexDataParam = Test_VertexComponentData_Param
-  structure OVData = Test_OVData);
+  structure OVData = Test_RG_OVData);
 structure Test_OVertexComponentData = ElementComponentData(Test_OVertexComponentData_Param);
 
