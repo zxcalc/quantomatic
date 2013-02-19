@@ -1,9 +1,18 @@
-functor DefaultRewrites (
-  structure Rule : RULE
-) =
+signature SPIDER_REWRITES =
+sig
+  structure Theory : GRAPHICAL_THEORY
+  val frob_rules : Theory.OVData.IData.data  list -> Theory.Ruleset.T
+  val frob_and_special_rules : Theory.OVData.IData.data  list -> Theory.Ruleset.T
+end
+
+functor SpiderRewrites (
+  structure Theory : GRAPHICAL_THEORY
+) : SPIDER_REWRITES =
 struct
-  structure Rule = Rule
-  structure Graph = Rule.Graph
+  structure Theory = Theory
+  structure Ruleset = Theory.Ruleset
+  structure Rule = Theory.Rule
+  structure Graph = Theory.Graph
   
   val edge = (Graph.Directed, Graph.EData.default_data)
 
@@ -37,4 +46,22 @@ struct
   in Rule.mk (lhs,rhs)
   end
 
+  val t_redex = TagName.mk "redex"
+
+  fun add_frob_and_special d rs =
+  let
+    val (fr, rs) = Ruleset.add_fresh_rule (R.mk "fr_0", frob d) rs
+    val (sp, rs) = Ruleset.add_fresh_rule (R.mk "sp_0", special d) rs
+  in rs |> Ruleset.tag_rule fr t_redex
+        |> Ruleset.tag_rule sp t_redex
+  end
+  
+  fun add_frob d rs =
+  let
+    val (fr, rs) = Ruleset.add_fresh_rule (R.mk "fr_0", frob d) rs
+  in rs |> Ruleset.tag_rule fr t_redex
+  end
+
+  fun frob_rules ds = fold add_frob ds Ruleset.empty
+  fun frob_and_special_rules ds = fold add_frob_and_special ds Ruleset.empty
 end
