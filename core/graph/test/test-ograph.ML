@@ -218,7 +218,7 @@ functor OGraph_Interface_Tests(
                 writeln "Got"; G.print g_norm;
                 raise ERROR "Minimise gave incorrect graph")
         end) ();
-  in val _ = () end;
+  in val _ = Testing.assert_no_failed_tests() end;
 
 
   local (* plugging *)
@@ -228,12 +228,8 @@ functor OGraph_Interface_Tests(
                     |> add_vunit1 "n4"
                     |> add_wv "in1"
                     |> add_wv "in2"
-                    |> add_wv "in3"
-                    |> add_wv "in4"
                     |> add_wv "out1"
                     |> add_wv "out2"
-                    |> add_wv "out3"
-                    |> add_wv "out4"
                     |> add_wv "w1"
                     |> add_wv "w2"
                     |> add_wv "w3"
@@ -243,19 +239,19 @@ functor OGraph_Interface_Tests(
                     |> add_wv "bnd3"
                     |> add_wv "bnd4"
                     |> add_dir_eunit1 "e1" "in1" "n1"
-                    |> add_dir_eunit1 "e2" "in2" "n2"
+                    |> add_dir_eunit2 "e2" "in2" "n2"
                     |> add_dir_eunit1 "e3" "n1" "out1"
-                    |> add_dir_eunit1 "e4" "n3" "out3"
+                    |> add_dir_eunit2 "e4" "n3" "out2"
                     |> add_dir_eunit1 "e5" "n1" "w1"
                     |> add_dir_eunit1 "e6" "w1" "n1"
                     |> add_undir_eunit1 "f1" "bnd1" "n1"
-                    |> add_undir_eunit1 "f2" "bnd2" "n2"
+                    |> add_undir_eunit2 "f2" "bnd2" "n2"
                     |> add_undir_eunit1 "f3" "n3" "bnd3"
-                    |> add_undir_eunit1 "f4" "n1" "bnd4"
+                    |> add_undir_eunit2 "f4" "n1" "bnd4"
                     |> add_undir_eunit1 "f5" "n2" "w2"
                     |> add_undir_eunit1 "f6" "n2" "w2"
-                    |> add_undir_eunit1 "f7" "n3" "w3"
-                    |> add_undir_eunit1 "f8" "w3" "n3";
+                    |> add_undir_eunit2 "f7" "n3" "w3"
+                    |> add_undir_eunit2 "f8" "w3" "n3";
     fun test_pluggable n1 n2 g =
       Testing.test ("G.are_pluggable ("^n1^","^n2^")")
         (fn () => Testing.assert (n1^" and "^n2^" are pluggable")
@@ -265,14 +261,20 @@ functor OGraph_Interface_Tests(
         (fn () => Testing.assert (n1^" and "^n2^" are not pluggable")
                     (not (G.are_pluggable g (V.mk n1) (V.mk n2)))) ();
 
+    (* FIXME: w4 is an isolated point; should this be pluggable? *)
     val _ = test_pluggable "in1" "out1" g;
-    val _ = test_pluggable "in2" "out3" g;
+    val _ = test_pluggable "in2" "out2" g;
+    val _ = test_not_pluggable "in1" "out2" g;
+    val _ = test_not_pluggable "in2" "out1" g;
     val _ = test_not_pluggable "in1" "in2" g;
     val _ = test_not_pluggable "in1" "w1" g;
-    val _ = test_not_pluggable "w1" "out3" g;
-    val _ = test_pluggable "bnd1" "bnd2" g;
+    val _ = test_not_pluggable "w1" "out2" g;
     val _ = test_pluggable "bnd1" "bnd3" g;
-    val _ = test_pluggable "bnd4" "bnd3" g;
+    val _ = test_pluggable "bnd4" "bnd2" g;
+    val _ = test_not_pluggable "bnd1" "bnd2" g;
+    val _ = test_not_pluggable "bnd1" "bnd4" g;
+    val _ = test_not_pluggable "bnd4" "bnd3" g;
+    val _ = test_not_pluggable "bnd3" "bnd2" g;
     val _ = test_not_pluggable "bnd1" "w2" g;
     val _ = test_not_pluggable "bnd1" "w3" g;
     val _ = test_not_pluggable "bnd1" "w1" g;
@@ -310,12 +312,13 @@ functor OGraph_Interface_Tests(
              | NONE   => ()) ();
 
     val _ = test_dir_plugging "in1" "out1" g
-    val _ = test_dir_plugging "in2" "out3" g
-    val _ = test_undir_plugging "bnd1" "bnd2" g
+    val _ = test_dir_plugging "in2" "out2" g
     val _ = test_undir_plugging "bnd1" "bnd3" g
-    val _ = test_undir_plugging "bnd4" "bnd3" g
+    val _ = test_undir_plugging "bnd4" "bnd2" g
     val _ = test_no_plugging "in1" "in2" g
+    val _ = test_no_plugging "in1" "out2" g
     val _ = test_no_plugging "out1" "w1" g
+    val _ = test_no_plugging "bnd1" "bnd2" g
     val _ = test_no_plugging "bnd1" "w1" g
 
     fun test_dir_plug inv outv g =
@@ -342,73 +345,71 @@ functor OGraph_Interface_Tests(
           end) ();
 
     val _ = test_dir_plug "in1" "out1" g;
-    val _ = test_dir_plug "in2" "out3" g;
-    val _ = test_undir_plug "bnd1" "bnd2" g;
+    val _ = test_dir_plug "in2" "out2" g;
     val _ = test_undir_plug "bnd1" "bnd3" g;
-    val _ = test_undir_plug "bnd4" "bnd3" g;
+    val _ = test_undir_plug "bnd4" "bnd2" g;
 
-  val _ = Testing.test "G.plug_and_minimise (in1,out1)"
-          (fn () =>
-          let
-            val in1 = V.mk "in1"
-            val out1 = V.mk "out1"
-            val ((s,t,wvs,es),g') = G.plug_and_minimise in1 out1 g
-          in
-             (Testing.assert "correct vertex names"
-                (V.NSet.eq (V.NSet.single (V.mk "n1"))
-                           (V.NSet.of_list [s,t]));
-              Testing.assert "no wire verts"
-                (V.NSet.is_empty wvs);
-              case E.NSet.tryget_singleton es
-                of SOME e =>
-                     (case G.get_edge g' e
-                       of ((G.Directed,_),_) => ()
-                        | _ => raise ERROR "Wrong directedness")
-                 | NONE => raise ERROR "Wrong edge count"
-             )
-          end
-          ) ()
-  val _ = Testing.test "G.plug_and_minimise (out3,in2)"
-          (fn () =>
-          let
-            val out3 = V.mk "out3"
-            val in2 = V.mk "in2"
-            val ((s,t,wvs,es),g') = G.plug_and_minimise out3 in2 g
-          in
-             (Testing.assert "correct vertex names"
-                (V.NSet.eq (V.NSet.of_list (map V.mk ["n2","n3"]))
-                           (V.NSet.of_list [s,t]));
-              Testing.assert "no wire verts"
-                (V.NSet.is_empty wvs);
-              case E.NSet.tryget_singleton es
-                of SOME e =>
-                     (case G.get_edge g' e
-                        of ((G.Directed,_),_) => ()
-                         | _ => raise ERROR "Wrong directedness")
-                 | NONE => raise ERROR "Wrong edge count"
-             )
-          end
-          ) ()
+    val _ = Testing.test "G.plug_and_minimise (in1,out1)"
+            (fn () =>
+            let
+              val in1 = V.mk "in1"
+              val out1 = V.mk "out1"
+              val ((s,t,wvs,es),g') = G.plug_and_minimise in1 out1 g
+            in
+               (Testing.assert "correct vertex names"
+                  (V.NSet.eq (V.NSet.single (V.mk "n1"))
+                             (V.NSet.of_list [s,t]));
+                Testing.assert "no wire verts"
+                  (V.NSet.is_empty wvs);
+                case E.NSet.tryget_singleton es
+                  of SOME e =>
+                       (case G.get_edge g' e
+                         of ((G.Directed,_),_) => ()
+                          | _ => raise ERROR "Wrong directedness")
+                   | NONE => raise ERROR "Wrong edge count"
+               )
+            end
+            ) ();
+    val _ = Testing.test "G.plug_and_minimise (out2,in2)"
+            (fn () =>
+            let
+              val out2 = V.mk "out2"
+              val in2 = V.mk "in2"
+              val ((s,t,wvs,es),g') = G.plug_and_minimise out2 in2 g
+            in
+               (Testing.assert "correct vertex names"
+                  (V.NSet.eq (V.NSet.of_list (map V.mk ["n2","n3"]))
+                             (V.NSet.of_list [s,t]));
+                Testing.assert "no wire verts"
+                  (V.NSet.is_empty wvs);
+                case E.NSet.tryget_singleton es
+                  of SOME e =>
+                       (case G.get_edge g' e
+                          of ((G.Directed,_),_) => ()
+                           | _ => raise ERROR "Wrong directedness")
+                   | NONE => raise ERROR "Wrong edge count"
+               )
+            end
+            ) ();
 
-  val _ = Testing.test "G.plug_and_normalise (in1,out1)"
-          (fn () =>
-          let
-            val in1 = V.mk "in1"
-            val out1 = V.mk "out1"
-            val ((s,t,wvs,es),_) = G.plug_and_normalise in1 out1 g
-          in
-             (Testing.assert "correct vertex names"
-                (V.NSet.eq (V.NSet.single (V.mk "n1"))
-                           (V.NSet.of_list [s,t]));
-              Testing.assert "2 wire verts"
-                (V.NSet.cardinality wvs = 2);
-              Testing.assert "2 edges"
-                (E.NSet.cardinality es = 3)
-             )
-          end
-          ) ()
-
-  in val _ = () end;
+    val _ = Testing.test "G.plug_and_normalise (in1,out1)"
+            (fn () =>
+            let
+              val in1 = V.mk "in1"
+              val out1 = V.mk "out1"
+              val ((s,t,wvs,es),_) = G.plug_and_normalise in1 out1 g
+            in
+               (Testing.assert "correct vertex names"
+                  (V.NSet.eq (V.NSet.single (V.mk "n1"))
+                             (V.NSet.of_list [s,t]));
+                Testing.assert "2 wire verts"
+                  (V.NSet.cardinality wvs = 2);
+                Testing.assert "2 edges"
+                  (E.NSet.cardinality es = 3)
+               )
+            end
+            ) ();
+  in val _ = Testing.assert_no_failed_tests() end;
 
 
   local (* subgraphs *)
@@ -473,7 +474,7 @@ functor OGraph_Interface_Tests(
             val _ = Testing.assert "subgraph was as expected"
                       (G.exact_eq g exp_subgraph)
           in () end) ();
-  in val _ = () end;
+  in val _ = Testing.assert_no_failed_tests() end;
 
 end;
 
