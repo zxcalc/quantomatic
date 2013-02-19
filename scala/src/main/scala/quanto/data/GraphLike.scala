@@ -131,6 +131,15 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
     )
   }
 
+  /** Replace the contents of a bang box with new ones */
+  def updateBBoxContents(bbn: BBName, newContents: Set[VName]) = {
+    var rel = inBBox.unmapCod(bbn)
+    newContents.foreach {v => 
+      rel += (v,bbn)
+    }
+    copy( inBBox = rel )
+  }
+
   def newBBox(data: B, contents: Set[VName] = Set[VName](), parent: Option[BBName] = None) = {
     val bbn = bbdata.fresh
     (addBBox(bbn, data, contents, parent), bbn)

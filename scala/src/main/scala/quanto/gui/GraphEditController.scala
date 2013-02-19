@@ -104,7 +104,8 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
   private def deleteVertex(v: VName) {
     undoStack.start("Delete Vertex")
     graph.adjacentEdges(v).foreach { deleteEdge(_) }
-    // update bang boxes containing the vertex
+    val BBoxCover = graph.inBBox.domf(v)
+    /* update bang boxes containing the vertex */
     graph.inBBox.domf(v).foreach { bbname =>
       if (graph.inBBox.codf(bbname).size == 1) deleteBBox(bbname)
     }
@@ -120,6 +121,10 @@ class GraphEditController(view: GraphView, val readOnly: Boolean = false) {
     undoStack += {
       addVertex(v, d)
       if (selected) selectedVerts += v
+      /* put it back in bboxes if it was before */
+      BBoxCover.foreach { bbname =>
+        graph = graph.updateBBoxContents(bbname, graph.inBBox.codf(bbname) + v)
+      }
     }
     undoStack.commit()
   }
