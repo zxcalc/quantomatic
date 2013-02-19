@@ -162,9 +162,9 @@ abstract class GraphLike[G,V,E,B,This<:GraphLike[G,V,E,B,This]] {
     var g = this
     for (e <- source.codf(vn)) g = g.deleteEdge(e)
     for (e <- target.codf(vn)) g = g.deleteEdge(e)
-    inBBox.domf(vn).foreach { bbname =>
-      if (inBBox.codf(bbname).size == 1) g = g.deleteBBox(bbname)
-      else g = g.copy( inBBox = inBBox.unmap(vn, bbname))
+    g.inBBox.domf(vn).foreach { bbname =>
+      if (g.inBBox.codf(bbname).size == 1) g = g.deleteBBox(bbname)
+      else g = g.copy( inBBox = g.inBBox.unmap(vn, bbname))
     }
     g.copy(vdata = vdata - vn)
   }
