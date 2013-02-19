@@ -233,7 +233,7 @@ val _ = Testing.test "rule7: isom_rule rewrites subgraph" (fn () => let
   val _ = Pretty.writeln (Pretty.str "*** match state:")
   val match = hd m1
   val _ = RulesetRewriter.print_match match
-  (*val rhs' = (MatchSearch.BGMatchState.replay_pat_bbox_ops match (Rule.get_rhs r'))*)
+  val rhs' = (MatchSearch.BGMatchState.replay_pat_bbox_ops match (Rule.get_rhs r'))
   
   (*exception die_exp of unit
   val _ = raise die_exp ()*)

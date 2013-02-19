@@ -705,7 +705,11 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   fun copy_or_expand MK_BBOX bn ((vrn,ern,brn),g) =
     let
       val bbox_vs = get_bbox_contents g bn;
+      val _ = TextIO.print " === about to make copy\n"
+      val _ = print g
+      val _ = V.Rnm.print vrn
       val ((vrn',ern'),g') = copy_subgraph bbox_vs ((vrn, ern),g);
+      val _ = TextIO.print " === copy done\n"
       val (g', new_bn_opt, brn') =
         if MK_BBOX then
           let val (new_bn_opt,brn') = B.Rnm.rename1 bn brn

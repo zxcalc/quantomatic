@@ -254,9 +254,15 @@ functor BangGraphMatchState(
     | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
         val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
         val vrn = V.Rnm.mk V.NSet.empty v_avoid vmap
+        val _ = TextIO.print ">>>>> replaying: BBCopy on \n"
+        val _ = G.print g
+        val _ = TextIO.print "\n>>>>> with renamer: \n"
+        val _ = V.Rnm.print vrn
         val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
         val brn = B.Rnm.mk B.NSet.empty (BG.get_bboxes g) bmap
+        val _ = TextIO.print "\n>>>>> performing expand\n"
         val (_,g') = BG.expand1_bbox bbox ((vrn,ern,brn),g)
+        val _ = TextIO.print "\n>>>>> BBCopy done\n"
       in g' end
 
   fun replay_pat_bbox_ops ms = let
