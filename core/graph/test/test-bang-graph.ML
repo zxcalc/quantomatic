@@ -1,3 +1,13 @@
+local
+  (* start by testing that things in the OGRAPH interface still work *)
+  structure OGraph_Interface_Tests_Bang_Graph = OGraph_Interface_Tests(Test_Bang_Graph);
+
+  open Test_Bang_Graph_Tools;
+in
+  val _ = ()
+end;
+
+
 (* Test basic !-box methods *)
 local
   open Test_RG_BBox_Util;

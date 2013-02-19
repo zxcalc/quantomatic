@@ -333,7 +333,22 @@ structure Test_GraphParam : GRAPH_PARAM
   end;
 end;
 
-structure Test_Graph : BANG_GRAPH
+structure Test_Graph : GRAPH
+= GraphFun(BasicGraphFun(
+    structure Param = Test_GraphParam;
+    type data = string (* A string, I guess? Why not? *)
+    val empty_data = ""));
+
+structure Test_OGraph : OGRAPH
+= OGraphFun(BasicOGraphFun(
+    structure Param = OGraphParam(
+      structure Param = Test_GraphParam 
+      and OVData = OVertexData(Test_Graph_VData)
+    );
+    type data = string (* A string, I guess? Why not? *)
+    val empty_data = ""));
+
+structure Test_Bang_Graph : BANG_GRAPH
 = struct 
   structure BasicBangGraph = BasicBangGraphFun(
     structure Param = OGraphParam(
@@ -346,7 +361,7 @@ structure Test_Graph : BANG_GRAPH
   open BBGraph;
 end;
 
-structure Test_Graph_IO =
+structure Test_Bang_Graph_IO =
 struct
   structure ComponentDataIO (* : GRAPH_COMPONENT_DATA_IO *)
   = struct
@@ -499,64 +514,180 @@ struct
     end;
   end;
   structure InputGraphJSON = InputGraphJSON(
-    structure Graph = Test_Graph
+    structure Graph = Test_Bang_Graph
     structure InputVertexData = ComponentDataIO.IVDataInputJSON
     structure InputEdgeData = ComponentDataIO.EDataInputJSON
   );
   structure OutputGraphJSON = OutputGraphJSON(
-    structure Graph = Test_Graph
+    structure Graph = Test_Bang_Graph
     structure OutputVertexData = ComponentDataIO.IVDataOutputJSON
     structure OutputEdgeData = ComponentDataIO.EDataOutputJSON
   );
   structure OutputGraphDot = OutputGraphDot(
-    structure Graph = Test_Graph
+    structure Graph = Test_Bang_Graph
     structure DotStyle = ComponentDataIO.DotStyle
   );
 end;
 
 
-(* Some helpful tools for creating graphs *)
-structure Test_Graph_Tools =
-struct
+functor Test_Graph_Tools(
+  structure G : GRAPH where type EData.data = Test_Graph_Data.edata
+  val vert : Test_Graph_Data.vdata -> G.VData.data
+  val unwrap_vert : G.VData.data -> Test_Graph_Data.vdata
+)
+= struct
+  structure G    = G;
   structure Data = Test_Graph_Data;
-  structure G = Test_Graph;
-  structure GIso = BangGraphIso(G);
+  structure GIso = GraphIsoFun(structure Graph = G);
   structure Expr = LinratAngleExpr;
-  structure GJsonInput = Test_Graph_IO.InputGraphJSON;
-  structure GJsonOutput = Test_Graph_IO.OutputGraphJSON;
-  structure GDotOutput = Test_Graph_IO.OutputGraphDot;
+
+  val vert = vert;
+  val unwrap_vert = unwrap_vert;
+
+  val vunit1     = vert Data.VUnit1;
+  val vunit2     = vert Data.VUnit2;
+  fun vexpr1   a = vert (Data.VExpr1 (Expr.parse a));
+  val vexpr1_a   = vert o Data.VExpr1;
+  fun vexpr2   a = vert (Data.VExpr2 (Expr.parse a));
+  val vexpr2_a   = vert o Data.VExpr2;
+  fun vstring1 s = vert (Data.VString1 s);
+  fun vstring2 s = vert (Data.VString2 s);
+
+  val eunit1     = Data.EUnit1;
+  val eunit2     = Data.EUnit2;
+  fun eexpr1   a = (Data.EExpr1 (Expr.parse a));
+  val eexpr1_a   = Data.EExpr1;
+  fun eexpr2   a = (Data.EExpr2 (Expr.parse a));
+  val eexpr2_a   = Data.EExpr2;
+  fun estring1 s = (Data.EString1 s);
+  fun estring2 s = (Data.EString2 s);
 
   (* creating stuff *)
+  fun add_vunit1   n   = G.add_named_vertex (V.mk n) vunit1;
+  fun add_vunit2   n   = G.add_named_vertex (V.mk n) vunit2;
+  fun add_vexpr1   n a = G.add_named_vertex (V.mk n) (vexpr1 a);
+  fun add_vexpr1_a n a = G.add_named_vertex (V.mk n) (vexpr1_a a);
+  fun add_vexpr2   n a = G.add_named_vertex (V.mk n) (vexpr2 a);
+  fun add_vexpr2_a n a = G.add_named_vertex (V.mk n) (vexpr2_a a);
+  fun add_vstring1 n s = G.add_named_vertex (V.mk n) (vstring1 s);
+  fun add_vstring2 n s = G.add_named_vertex (V.mk n) (vstring2 s);
+
+  fun add_dir_eunit1 n s t =
+        G.add_named_edge (E.mk n) (G.Directed,eunit1) (V.mk s) (V.mk t);
+  fun add_dir_eunit2 n s t =
+        G.add_named_edge (E.mk n) (G.Directed,eunit2) (V.mk s) (V.mk t);
+  fun add_dir_eexpr1 n a s t =
+        G.add_named_edge (E.mk n) (G.Directed,(eexpr1 a)) (V.mk s) (V.mk t);
+  fun add_dir_eexpr1_a n a s t =
+        G.add_named_edge (E.mk n) (G.Directed,(eexpr1_a a)) (V.mk s) (V.mk t);
+  fun add_dir_eexpr2 n a s t =
+        G.add_named_edge (E.mk n) (G.Directed,(eexpr2 a)) (V.mk s) (V.mk t);
+  fun add_dir_eexpr2_a n a s t =
+        G.add_named_edge (E.mk n) (G.Directed,(eexpr2_a a)) (V.mk s) (V.mk t);
+  fun add_dir_estring1 n str s t =
+        G.add_named_edge (E.mk n) (G.Directed,(estring1 str)) (V.mk s) (V.mk t);
+  fun add_dir_estring2 n str s t =
+        G.add_named_edge (E.mk n) (G.Directed,(estring2 str)) (V.mk s) (V.mk t);
+
+  fun add_undir_eunit1 n s t =
+        G.add_named_edge (E.mk n) (G.UnDirected,Data.EUnit1) (V.mk s) (V.mk t);
+  fun add_undir_eunit2 n s t =
+        G.add_named_edge (E.mk n) (G.UnDirected,Data.EUnit2) (V.mk s) (V.mk t);
+  fun add_undir_eexpr1 n s t a =
+        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr1 (Expr.parse a))) (V.mk s) (V.mk t);
+  fun add_undir_eexpr1_a n s t a =
+        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr1 a)) (V.mk s) (V.mk t);
+  fun add_undir_eexpr2 n s t a =
+        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr2 (Expr.parse a))) (V.mk s) (V.mk t);
+  fun add_undir_eexpr2_a n s t a =
+        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr2 a)) (V.mk s) (V.mk t);
+  fun add_undir_estring1 n str s t =
+        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString1 str)) (V.mk s) (V.mk t);
+  fun add_undir_estring2 n str s t =
+        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString2 str)) (V.mk s) (V.mk t);
+
+  (* testing stuff *)
+  fun assert_vnames exp_vs actual_vset =
+    let
+      val exp_vset = V.NSet.of_list (map V.mk exp_vs);
+      val pretty_set = Pretty.string_of o V.NSet.pretty
+    in
+      if V.NSet.eq exp_vset actual_vset
+      then ()
+      else raise ERROR ("assert_vnames: expected "^(pretty_set exp_vset)^
+                        " but got "^(pretty_set actual_vset))
+    end;
+  fun assert_enames exp_es actual_eset =
+    let
+      val exp_ens = E.NSet.of_list (map E.mk exp_es);
+      val pretty_set = Pretty.string_of o E.NSet.pretty
+    in
+      if E.NSet.eq exp_ens actual_eset
+      then ()
+      else raise ERROR ("assert_enames: expected "^(pretty_set exp_ens)^
+                        " but got "^(pretty_set actual_eset))
+    end;
+  fun assert_xnames exp_vs actual_vset =
+    let
+      val exp_vset = X.NSet.of_list (map X.mk exp_vs);
+      val pretty_set = Pretty.string_of o X.NSet.pretty
+    in
+      if X.NSet.eq exp_vset actual_vset
+      then ()
+      else raise ERROR ("assert_xnames: expected "^(pretty_set exp_vset)^
+                        " but got "^(pretty_set actual_vset))
+    end;
+  fun assert_none _ NONE = ()
+    | assert_none name (SOME _) = raise ERROR (name^" is not NONE");
+end;
+
+
+(* Some helpful tools for creating string graphs *)
+functor Test_OGraph_Tools(
+  G : OGRAPH where type EData.data = Test_Graph_Data.edata
+              and type OVData.IData.data = Test_Graph_Data.vdata
+)
+= struct
+  structure OG = G;
+
+  fun unwrap_nv G.OVData.WVert = raise ERROR "wire vertex"
+    | unwrap_nv (G.OVData.NVert vd) = vd;
+  val nv = G.OVData.NVert;
   fun add_wv n = G.add_named_vertex (V.mk n) G.OVData.WVert
 
+  structure GraphTools = Test_Graph_Tools(
+    structure G  = G
+    val vert = nv
+    val unwrap_vert = unwrap_nv
+  );
+  open GraphTools;
+
+  structure G = OG;
+end;
+
+
+(* Some helpful tools for creating graphs *)
+structure Test_Bang_Graph_Tools =
+struct
+  structure G = Test_Bang_Graph;
+
+  fun unwrap_nv G.OVData.WVert = raise ERROR "wire vertex"
+    | unwrap_nv (G.OVData.NVert vd) = vd;
   val nv = G.OVData.NVert;
+  fun add_wv n = G.add_named_vertex (V.mk n) G.OVData.WVert
 
-  fun add_vunit1   n   = G.add_named_vertex (V.mk n) (nv Data.VUnit1);
-  fun add_vunit2   n   = G.add_named_vertex (V.mk n) (nv Data.VUnit2);
-  fun add_vexpr1   n a = G.add_named_vertex (V.mk n) (nv (Data.VExpr1 (Expr.parse a)));
-  fun add_vexpr1_a n a = G.add_named_vertex (V.mk n) (nv (Data.VExpr1 a));
-  fun add_vexpr2   n a = G.add_named_vertex (V.mk n) (nv (Data.VExpr2 (Expr.parse a)));
-  fun add_vexpr2_a n a = G.add_named_vertex (V.mk n) (nv (Data.VExpr2 a));
-  fun add_vstring1 n s = G.add_named_vertex (V.mk n) (nv (Data.VString1 s));
-  fun add_vstring2 n s = G.add_named_vertex (V.mk n) (nv (Data.VString2 s));
+  structure GraphTools = Test_Graph_Tools(
+    structure G  = G
+    val vert = nv
+    val unwrap_vert = unwrap_nv
+  );
+  open GraphTools;
 
-  fun add_dir_eunit1   n   = G.add_named_edge (E.mk n) (G.Directed,Data.EUnit1);
-  fun add_dir_eunit2   n   = G.add_named_edge (E.mk n) (G.Directed,Data.EUnit2);
-  fun add_dir_eexpr1   n a = G.add_named_edge (E.mk n) (G.Directed,(Data.EExpr1 (Expr.parse a)));
-  fun add_dir_eexpr1_a n a = G.add_named_edge (E.mk n) (G.Directed,(Data.EExpr1 a));
-  fun add_dir_eexpr2   n a = G.add_named_edge (E.mk n) (G.Directed,(Data.EExpr2 (Expr.parse a)));
-  fun add_dir_eexpr2_a n a = G.add_named_edge (E.mk n) (G.Directed,(Data.EExpr2 a));
-  fun add_dir_estring1 n s = G.add_named_edge (E.mk n) (G.Directed,(Data.EString1 s));
-  fun add_dir_estring2 n s = G.add_named_edge (E.mk n) (G.Directed,(Data.EString2 s));
-
-  fun add_undir_eunit1   n   = G.add_named_edge (E.mk n) (G.UnDirected,Data.EUnit1);
-  fun add_undir_eunit2   n   = G.add_named_edge (E.mk n) (G.UnDirected,Data.EUnit2);
-  fun add_undir_eexpr1   n a = G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr1 (Expr.parse a)));
-  fun add_undir_eexpr1_a n a = G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr1 a));
-  fun add_undir_eexpr2   n a = G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr2 (Expr.parse a)));
-  fun add_undir_eexpr2_a n a = G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr2 a));
-  fun add_undir_estring1 n s = G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString1 s));
-  fun add_undir_estring2 n s = G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString2 s));
+  structure G = Test_Bang_Graph;
+  structure GIso = BangGraphIso(G);
+  structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON;
+  structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON;
+  structure GDotOutput = Test_Bang_Graph_IO.OutputGraphDot;
 
   local
     fun write_to_file file s = let
@@ -574,8 +705,6 @@ struct
     val print_json_graph       = Pretty.writeln o Json.pretty o GJsonOutput.output;
   end;
 
-
-  (* testing stuff *)
   fun num_bboxes g = B.NSet.cardinality (G.get_bboxes g)
   
   fun assert_n_bboxes g n () =

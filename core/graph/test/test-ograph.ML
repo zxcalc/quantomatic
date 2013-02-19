@@ -1,3 +1,23 @@
+functor OGraph_Interface_Tests(
+  G : OGRAPH where type EData.data = Test_Graph_Data.edata
+              and type OVData.IData.data = Test_Graph_Data.vdata
+)
+= struct
+  structure Tools = Test_OGraph_Tools(G);
+
+  (* start by testing that things in the GRAPH interface still work *)
+  structure Graph_Interface_Tests_OGraph = Graph_Interface_Tests(
+    structure G = Tools.G
+    val vert = Tools.nv
+    val unwrap_vert = Tools.unwrap_nv
+  );
+
+  open Tools;
+end;
+
+structure OGraph_Interface_Tests_Basic = OGraph_Interface_Tests(Test_OGraph);
+
+
 (* Test wire functions *)
 local
   open Test_RG_MkG
