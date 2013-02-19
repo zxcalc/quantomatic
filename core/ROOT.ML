@@ -35,7 +35,7 @@ PolyML.Project.optional_make "local_config.ML";
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
-(*                         Compile quantomatic code                        *)
+(*                         Compile quantomatic core                        *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 
 (*
@@ -279,9 +279,33 @@ Testing.make_test "dnets/test.ML";
 (*PolyML.Project.make "dnets/perf.ML";*)
 
 
-(*
- * Controller / Interface
- *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+(*                          Compile quantocosy                             *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+
+
+(* Include cosy *)
+val rootDir = OS.FileSys.getDir();
+OS.FileSys.chDir (rootDir ^ "/../cosy/");
+use "ROOT.ML";
+OS.FileSys.chDir rootDir;
+
+print_depth 3;
+
+PolyML.Project.Log.level_ref := 4;
+PolyML.Project.depend_on_files
+  [
+   rootDir ^ "/../cosy/ROOT.ML",
+   rootDir ^ "/ROOT.ML"
+  ];
+
+
+
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+(*                          Compile the controller                         *)
+(* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+
+
 (* Overall controller for theories *)
 PolyML.Project.make "interface/controller_state.ML"; (* control state for quanto *)
 PolyML.Project.make "interface/controller.ML"; (* commands *)

@@ -1,4 +1,4 @@
-val cosyRootDir = OS.FileSys.getDir();
+(*val cosyRootDir = OS.FileSys.getDir();
 (OS.FileSys.chDir (cosyRootDir ^ "/../core/"); 
 use "ROOT.ML"; 
 OS.FileSys.chDir cosyRootDir);
@@ -7,8 +7,9 @@ OS.FileSys.chDir cosyRootDir);
 val cosyRootDir = OS.FileSys.getDir();
 
 print_depth 3;
-PolyML.Project.depend_on_files [cosyRootDir^"/../core/ROOT.ML", cosyRootDir^"/ROOT.ML"];
+PolyML.Project.depend_on_files [cosyRootDir^"/../core/ROOT.ML", cosyRootDir^"/ROOT.ML"];*)
 
+val cosyRootDir = OS.FileSys.getDir();
 
 PolyML.Project.make "default_gens.ML";
 PolyML.Project.make "metric.ML";
