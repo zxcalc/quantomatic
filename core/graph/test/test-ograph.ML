@@ -13,496 +13,392 @@ functor OGraph_Interface_Tests(
   );
 
   open Tools;
-end;
-
-structure OGraph_Interface_Tests_Basic = OGraph_Interface_Tests(Test_OGraph);
 
 
-(* Test wire functions *)
-local
-  open Test_RG_MkG
-  val b1 = V.mk "b1"
-  val b2 = V.mk "b2"
-  val b3 = V.mk "b3"
-  val b4 = V.mk "b4"
-  val b5 = V.mk "b5"
-  val b6 = V.mk "b6"
-  val b7 = V.mk "b7"
-  val b8 = V.mk "b8"
-  val b9 = V.mk "b9"
-  val b10 = V.mk "b10"
-  val b11 = V.mk "b11"
-  val b12 = V.mk "b12"
-  val b13 = V.mk "b13"
-  val c1 = V.mk "c1"
-  val c2 = V.mk "c2"
-  val c3 = V.mk "c3"
-  val r1 = V.mk "r1"
-  val r2 = V.mk "r2"
-  val r3 = V.mk "r3"
+  local (* wires *)
+    val g = G.empty |> add_wv "w1"
+                    |> add_wv "w2"
+                    |> add_wv "w3"
+                    |> add_wv "w4"
+                    |> add_wv "w5"
+                    |> add_wv "w6"
+                    |> add_wv "w7"
+                    |> add_wv "w8"
+                    |> add_wv "c1"
+                    |> add_wv "c2"
+                    |> add_wv "c3"
+                    |> add_vunit1 "n1"
+                    |> add_vunit1 "n2"
+                    |> add_vunit1 "n3"
+                    |> add_dir_eunit1 "e1" "n1" "w1"
+                    |> add_dir_eunit1 "e2" "w1" "w2"
+                    |> add_dir_eunit1 "e3" "w2" "n2"
+                    |> add_dir_eunit1 "e4" "n2" "w3"
+                    |> add_dir_eunit1 "e5" "w3" "w4"
+                    |> add_dir_eunit1 "e6" "n2" "n3"
+                    |> add_dir_eunit1 "e7" "n3" "w5"
+                    |> add_dir_eunit1 "e8" "w5" "n3"
+                    |> add_dir_eunit1 "ce1" "c1" "c2"
+                    |> add_dir_eunit1 "ce2" "c2" "c1"
+                    |> add_dir_eunit1 "ce3" "c3" "c3"
+                    |> add_undir_eunit1 "f1" "n2" "w6"
+                    |> add_undir_eunit1 "f2" "w6" "n3"
+                    |> add_undir_eunit1 "f3" "n2" "w7"
+                    |> add_undir_eunit1 "f4" "n3" "w7"
+                    |> add_undir_eunit1 "f5" "w8" "n2"
+                    |> add_undir_eunit1 "f6" "w8" "n3";
+    val g_raw = g;
 
-  val g = G.empty
-  val g = g |> G.add_named_vertex b1 bvert
-            |> G.add_named_vertex b2 bvert
-            |> G.add_named_vertex b3 bvert
-            |> G.add_named_vertex b4 bvert
-            |> G.add_named_vertex b5 bvert
-            |> G.add_named_vertex b6 bvert
-            |> G.add_named_vertex b7 bvert
-            |> G.add_named_vertex b8 bvert
-            |> G.add_named_vertex c1 bvert
-            |> G.add_named_vertex c2 bvert
-            |> G.add_named_vertex c3 bvert
-            |> G.add_named_vertex r1 (mkX zero_angle)
-            |> G.add_named_vertex r2 (mkX zero_angle)
-            |> G.add_named_vertex r3 (mkX zero_angle)
-  val (e1,g)  = g|> G.add_edge dir_edge r1 b1
-  val (e2,g)  = g|> G.add_edge dir_edge b1 b2
-  val (e3,g)  = g|> G.add_edge dir_edge b2 r2
-  val (e4,g)  = g|> G.add_edge dir_edge r2 b3
-  val (e5,g)  = g|> G.add_edge dir_edge b3 b4
-  val (e6,g)  = g|> G.add_edge dir_edge r2 r3
-  val (e7,g)  = g|> G.add_edge dir_edge r3 b5
-  val (e8,g)  = g|> G.add_edge dir_edge b5 r3
-  val (e9,g)  = g|> G.add_edge dir_edge c1 c2
-  val (e10,g) = g|> G.add_edge dir_edge c2 c1
-  val (e11,g) = g|> G.add_edge dir_edge c3 c3
-  
-  val (e12,g) = g|> G.add_edge undir_edge r2 b6
-  val (e13,g) = g|> G.add_edge undir_edge b6 r3
-  val (e14,g) = g|> G.add_edge undir_edge r2 b7
-  val (e15,g) = g|> G.add_edge undir_edge r3 b7
-  val (e16,g) = g|> G.add_edge undir_edge b8 r2
-  val (e17,g) = g|> G.add_edge undir_edge b8 r3
-  val g_raw = g
+    fun wire v1 v2 vs es =
+          (V.mk v1, V.mk v2, V.NSet.of_list (map V.mk vs),
+                             E.NSet.of_list (map E.mk es));
+    val exp_wire_e1 = wire "n1" "n2" ["w1","w2"] ["e1","e2","e3"];
+    val exp_wire_e2 = exp_wire_e1;
+    val exp_wire_e3 = exp_wire_e1;
+    val exp_wire_e4 = wire "n2" "w4" ["w3"] ["e4","e5"];
+    val exp_wire_e5 = exp_wire_e4;
+    val exp_wire_e6 = wire "n2" "n3" [] ["e6"];
+    val exp_wire_e7 = wire "n3" "n3" ["w5"] ["e7","e8"];
+    val exp_wire_e8 = exp_wire_e7;
+    (* this circle wire is special, as either vertex could be
+     * considered the endpoint *)
+    val exp_wire_ce1_a = wire "c1" "c1" ["c2"] ["ce1","ce2"];
+    val exp_wire_ce1_b = wire "c2" "c2" ["c1"] ["ce1","ce2"];
+    val exp_wire_ce2_a = exp_wire_ce1_a;
+    val exp_wire_ce2_b = exp_wire_ce1_b;
+    val exp_wire_ce3 = wire "c3" "c3" [] ["ce3"];
+    val exp_wire_f1 = wire "n2" "n3" ["w6"] ["f1","f2"];
+    val exp_wire_f2 = exp_wire_f1;
+    val exp_wire_f3 = wire "n2" "n3" ["w7"] ["f3","f4"];
+    val exp_wire_f4 = exp_wire_f3;
+    val exp_wire_f5 = wire "n2" "n3" ["w8"] ["f5","f6"];
+    val exp_wire_f6 = exp_wire_f5;
 
-  val g = G.empty
-  val g = g |> G.add_named_vertex b4 bvert
-            |> G.add_named_vertex c1 bvert
-            |> G.add_named_vertex c3 bvert
-            |> G.add_named_vertex r1 (mkX zero_angle)
-            |> G.add_named_vertex r2 (mkX zero_angle)
-            |> G.add_named_vertex r3 (mkX zero_angle)
-            |> G.doadd_edge dir_edge r1 r2
-            |> G.doadd_edge dir_edge r2 b4
-            |> G.doadd_edge dir_edge r2 r3
-            |> G.doadd_edge dir_edge r3 r3
-            |> G.doadd_edge dir_edge c1 c1
-            |> G.doadd_edge dir_edge c3 c3
-            |> G.doadd_edge undir_edge r2 r3
-            |> G.doadd_edge undir_edge r2 r3
-            |> G.doadd_edge undir_edge r2 r3
-  val g_min = g
+    fun test_wire_for_edge exp_wire en =
+    let
+      fun check_wire () =
+        if G.wire_eq exp_wire (G.get_wire_containing_edge g_raw (E.mk en))
+        then ()
+        else raise ERROR ("Incorrect wire returned for edge "^en)
+    in
+      Testing.test ("Wire for edge "^en) check_wire ()
+    end
 
-  val g = G.empty
-  val g = g |> G.add_named_vertex b1 bvert
-            |> G.add_named_vertex b2 bvert
-            |> G.add_named_vertex b3 bvert
-            |> G.add_named_vertex b4 bvert
-            |> G.add_named_vertex b5 bvert
-            |> G.add_named_vertex b6 bvert
-            |> G.add_named_vertex b7 bvert
-            |> G.add_named_vertex b8 bvert
-            |> G.add_named_vertex b9 bvert
-            |> G.add_named_vertex b10 bvert
-            |> G.add_named_vertex b11 bvert
-            |> G.add_named_vertex b12 bvert
-            |> G.add_named_vertex b13 bvert
-            |> G.add_named_vertex c1 bvert
-            |> G.add_named_vertex c3 bvert
-            |> G.add_named_vertex r1 (mkX zero_angle)
-            |> G.add_named_vertex r2 (mkX zero_angle)
-            |> G.add_named_vertex r3 (mkX zero_angle)
-            |> G.doadd_edge dir_edge r1 b1
-            |> G.doadd_edge dir_edge b1 b2
-            |> G.doadd_edge dir_edge b2 r2
-            |> G.doadd_edge dir_edge r2 b4
-            |> G.doadd_edge dir_edge r2 b3
-            |> G.doadd_edge dir_edge b3 b5
-            |> G.doadd_edge dir_edge b5 r3
-            |> G.doadd_edge dir_edge r3 b6
-            |> G.doadd_edge dir_edge b6 b7
-            |> G.doadd_edge dir_edge b7 r3
-            |> G.doadd_edge dir_edge c1 c1
-            |> G.doadd_edge dir_edge c3 c3
-            |> G.doadd_edge undir_edge r2 b8
-            |> G.doadd_edge undir_edge b8 b9
-            |> G.doadd_edge undir_edge b9 r3
-            |> G.doadd_edge undir_edge r2 b10
-            |> G.doadd_edge undir_edge b10 b11
-            |> G.doadd_edge undir_edge b11 r3
-            |> G.doadd_edge undir_edge r2 b12
-            |> G.doadd_edge undir_edge b12 b13
-            |> G.doadd_edge undir_edge b13 r3
-  val g_norm = g
-  
-  val wire1 = G.get_wire_containing_edge g_raw e2
-  val wire2 = G.get_wire_containing_edge g_raw e5
-  val wire3 = G.get_wire_containing_edge g_raw e6
-  val wire4 = G.get_wire_containing_edge g_raw e7
-  val wire5 = G.get_wire_containing_edge g_raw e9
-  val wire5' = G.get_wire_containing_edge g_raw e10
-  val wire6 = G.get_wire_containing_edge g_raw e11
-  val wire7 = G.get_wire_containing_edge g_raw e12
-  val wire8 = G.get_wire_containing_edge g_raw e14
-  val wire8' = G.get_wire_containing_edge g_raw e15
-  val wire9 = G.get_wire_containing_edge g_raw e16
-  val wire9' = G.get_wire_containing_edge g_raw e17
-  val _ = G.print g_raw
-  
-  val wires     = sort G.wire_ord [wire1,wire2,wire3,wire4,wire5,wire6,wire7,wire8,wire9]
-  val wires'    = sort G.wire_ord (G.get_wire_list g_raw)
-  
-  val _ = (Pretty.writeln o Pretty.str) "wires: "
-  val _ = map (Pretty.writeln o G.pretty_wire) wires
-  val _ = (Pretty.writeln o Pretty.str) "wires': "
-  val _ = map (Pretty.writeln o G.pretty_wire) wires'
-  
-  
-  fun c_wire_lists (w::ws) (w'::ws') =
-    if G.wire_eq w w' then c_wire_lists ws ws'
-    else raise ERROR ("wire lists differ EXPECTED: "^Pretty.string_of (G.pretty_wire w)^
-                      "  GOT: "^Pretty.string_of (G.pretty_wire w'))
-    | c_wire_lists [] [] = ()
-    | c_wire_lists _ _   = raise ERROR "failed, wire lists of different lengths"
-  
-  val _ = Testing.test "G.get_wire_containing_edge - interior wire"
-  (fn () => if G.wire_eq (r1, r2, V.NSet.of_list [b1, b2], E.NSet.of_list [e1, e2, e3]) wire1 then I
-            else raise ERROR "interior wire incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - boundary wire"
-  (fn () => if G.wire_eq (r2, b4, V.NSet.of_list [b3], E.NSet.of_list [e4, e5]) wire2 then I
-            else raise ERROR "boundary wire incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - no interior wvs"
-  (fn () => if G.wire_eq (r2, r3, V.NSet.empty, E.NSet.of_list [e6]) wire3 then I
-            else raise ERROR "no interior wvs incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - self loop"
-  (fn () => if G.wire_eq (r3, r3, V.NSet.of_list [b5], E.NSet.of_list [e7, e8]) wire4 then I
-            else raise ERROR "self loop incorrect") ()
-  (* c1 has the minimal end, so it should be chosen as the endpoint *)
-  val _ = Testing.test "G.get_wire_containing_edge - circle1"
-  (fn () => if (G.wire_eq (c1, c1, V.NSet.of_list [c2], E.NSet.of_list [e9,e10]) wire5)
-            then I
-            else raise ERROR ("circle1 incorrect: " ^ (Pretty.string_of o G.pretty_wire) wire5)) ()
-  val _ = Testing.test "G.get_wire_containing_edge - circle1 (other edge)"
-  (fn () => if (G.wire_eq (c1, c1, V.NSet.of_list [c2], E.NSet.of_list [e9,e10]) wire5')
-            then I
-            else raise ERROR ("circle1 (other edge) incorrect: " ^ (Pretty.string_of o G.pretty_wire) wire5')) ()
-  val _ = Testing.test "G.get_wire_containing_edge - circle2"
-  (fn () => if G.wire_eq (c3, c3, V.NSet.empty, E.NSet.of_list [e11]) wire6 then I
-            else raise ERROR "circle2 incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - undirected"
-  (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b6], E.NSet.of_list [e12,e13]) wire7 then I
-            else raise ERROR "undirected incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - undirected 2"
-  (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b7], E.NSet.of_list [e14,e15]) wire8 then I
-            else raise ERROR "undirected 2 incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - undirected 2'"
-  (fn () => if G.wire_eq wire8 wire8' then I
-            else raise ERROR "undirected 2' incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - undirected 3"
-  (fn () => if G.wire_eq (r2, r3, V.NSet.of_list [b8], E.NSet.of_list [e16,e17]) wire9 then I
-            else raise ERROR "undirected 3 incorrect") ()
-  val _ = Testing.test "G.get_wire_containing_edge - undirected 3'"
-  (fn () => if G.wire_eq wire9 wire9' then I
-            else raise ERROR "undirected 3' incorrect") ()
-  val _ = Testing.test "G.get_wire_list"
-  (fn () => c_wire_lists wires wires') ()
-  val _ = Testing.test "G.minimise"
-    (fn () =>
-      let
-        val g_min' = G.minimise g_raw
-      in
-        if GIso.test g_min' g_min then ()
-        else (writeln "Expected"; G.print g_min;
-              writeln "Got"; G.print g_min';
-              raise ERROR "Minimise gave incorrect graph")
-      end) ()
-  val _ = Testing.test "G.normalise"
-    (fn () =>
-      let
-        val g_norm' = G.normalise g_raw
-      in
-        if GIso.test g_norm' g_norm then ()
-        else (writeln "Expected"; G.print g_norm;
-              writeln "Got"; G.print g_norm';
-              raise ERROR "Normalise gave incorrect graph")
-      end) ()
-
-in
-  val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR WIRE FUNCTIONS PASSED!"
-end; (* ends local namespace used for testing *)
+    val _ = test_wire_for_edge exp_wire_e1 "e1";
+    val _ = test_wire_for_edge exp_wire_e2 "e2";
+    val _ = test_wire_for_edge exp_wire_e3 "e3";
+    val _ = test_wire_for_edge exp_wire_e4 "e4";
+    val _ = test_wire_for_edge exp_wire_e5 "e5";
+    val _ = test_wire_for_edge exp_wire_e6 "e6";
+    val _ = test_wire_for_edge exp_wire_e7 "e7";
+    val _ = test_wire_for_edge exp_wire_e8 "e8";
+    val _ = Testing.test "Wire for edge ce1"
+      (fn () =>
+        if G.wire_eq exp_wire_ce1_a (G.get_wire_containing_edge g_raw (E.mk "ce1"))
+        then ()
+        else
+          if G.wire_eq exp_wire_ce1_b (G.get_wire_containing_edge g_raw (E.mk "ce1"))
+          then ()
+          else raise ERROR "Incorrect wire returned for edge ce1"
+      ) ();
+    val _ = Testing.test "Wire for edge ce2"
+      (fn () =>
+        if G.wire_eq exp_wire_ce2_a (G.get_wire_containing_edge g_raw (E.mk "ce2"))
+        then ()
+        else
+          if G.wire_eq exp_wire_ce2_b (G.get_wire_containing_edge g_raw (E.mk "ce2"))
+          then ()
+          else raise ERROR "Incorrect wire returned for edge ce2"
+      ) ();
+    val _ = test_wire_for_edge exp_wire_ce3 "ce3";
+    val _ = test_wire_for_edge exp_wire_f1 "f1";
+    val _ = test_wire_for_edge exp_wire_f2 "f2";
+    val _ = test_wire_for_edge exp_wire_f3 "f3";
+    val _ = test_wire_for_edge exp_wire_f4 "f4";
+    val _ = test_wire_for_edge exp_wire_f5 "f5";
+    val _ = test_wire_for_edge exp_wire_f6 "f6";
 
 
-(* Test plugging functions *)
-local
-  open Test_RG_MkG;
+    val _ = Testing.test "G.get_wire_list"
+      (fn () =>
+        let
+          val exp_wire_list = [exp_wire_e1,exp_wire_e4,exp_wire_e6,exp_wire_e7,
+                               exp_wire_ce3,exp_wire_f1,exp_wire_f3,exp_wire_f5,
+                               (G.get_wire_containing_edge g_raw (E.mk "ce1"))];
+          val real_wire_list = G.get_wire_list g_raw;
+          fun c_wire_lists (w::ws) (w'::ws') =
+            if G.wire_eq w w' then c_wire_lists ws ws'
+            else raise ERROR ("wire lists differ EXPECTED: "^Pretty.string_of (G.pretty_wire w)^
+                              "  GOT: "^Pretty.string_of (G.pretty_wire w'))
+            | c_wire_lists [] [] = ()
+            | c_wire_lists _ _   = raise ERROR "failed, wire lists of different lengths"
+        in
+          c_wire_lists (sort G.wire_ord exp_wire_list)
+                       (sort G.wire_ord real_wire_list)
+        end) ();
 
-  val x1 = V.mk "x1"
-  val x2 = V.mk "x2"
-  val x3 = V.mk "x3"
-  val x4 = V.mk "x4"
-  val in1 = V.mk "in1"
-  val in2 = V.mk "in2"
-  val in3 = V.mk "in3"
-  val in4 = V.mk "in4"
-  val out1 = V.mk "out1"
-  val out2 = V.mk "out2"
-  val out3 = V.mk "out3"
-  val out4 = V.mk "out4"
-  val wv1 = V.mk "wv1"
-  val wv2 = V.mk "wv2"
-  val wv3 = V.mk "wv3"
-  val wv4 = V.mk "wv4"
-  val b1 = V.mk "b1"
-  val b2 = V.mk "b2"
-  val b3 = V.mk "b3"
-  val b4 = V.mk "b4"
 
-  val g = G.empty;
-  val g = g |> G.add_named_vertex x1 (mkX zero_angle)
-            |> G.add_named_vertex x2 (mkX zero_angle)
-            |> G.add_named_vertex x3 (mkX zero_angle)
-            |> G.add_named_vertex x4 (mkX zero_angle)
 
-            |> G.add_named_vertex in1 bvert
-            |> G.add_named_vertex in2 bvert
-            |> G.add_named_vertex in3 bvert
-            |> G.add_named_vertex in4 bvert
+    val g = G.empty |> add_wv "w4"
+                    |> add_wv "c1"
+                    |> add_wv "c3"
+                    |> add_vunit1 "n1"
+                    |> add_vunit1 "n2"
+                    |> add_vunit1 "n3"
+                    |> add_dir_eunit1 "e1" "n1" "n2"
+                    |> add_dir_eunit1 "e4" "n2" "w4"
+                    |> add_dir_eunit1 "e6" "n2" "n3"
+                    |> add_dir_eunit1 "e7" "n3" "n3"
+                    |> add_dir_eunit1 "ce1" "c1" "c1"
+                    |> add_dir_eunit1 "ce3" "c3" "c3"
+                    |> add_undir_eunit1 "f1" "n2" "n3"
+                    |> add_undir_eunit1 "f3" "n2" "n3"
+                    |> add_undir_eunit1 "f5" "n2" "n3";
+    val g_exp_min = g;
 
-            |> G.add_named_vertex out1 bvert
-            |> G.add_named_vertex out2 bvert
-            |> G.add_named_vertex out3 bvert
-            |> G.add_named_vertex out4 bvert
+    val _ = Testing.test "G.minimise"
+      (fn () =>
+        let
+          val g_min = G.minimise g_raw
+        in
+          if GIso.test g_min g_exp_min then ()
+          else (writeln "Expected"; G.print g_exp_min;
+                writeln "Got"; G.print g_min;
+                raise ERROR "Minimise gave incorrect graph")
+        end) ();
 
-            |> G.add_named_vertex wv1 bvert
-            |> G.add_named_vertex wv2 bvert
-            |> G.add_named_vertex wv3 bvert
-            |> G.add_named_vertex wv4 bvert
+    val g = G.empty |> add_wv "w1"
+                    |> add_wv "w2"
+                    |> add_wv "w4"
+                    |> add_wv "w5"
+                    |> add_wv "w6"
+                    |> add_wv "w7"
+                    |> add_wv "w8"
+                    |> add_wv "w9"
+                    |> add_wv "w10"
+                    |> add_wv "w11"
+                    |> add_wv "w12"
+                    |> add_wv "w13"
+                    |> add_wv "w14"
+                    |> add_wv "c1"
+                    |> add_wv "c3"
+                    |> add_vunit1 "n1"
+                    |> add_vunit1 "n2"
+                    |> add_vunit1 "n3"
+                    |> add_dir_eunit1 "e1" "n1" "w1"
+                    |> add_dir_eunit1 "e2" "w1" "w2"
+                    |> add_dir_eunit1 "e3" "w2" "n2"
+                    |> add_dir_eunit1 "e4" "n2" "w4"
+                    |> add_dir_eunit1 "e6a" "n2" "w9"
+                    |> add_dir_eunit1 "e6b" "w9" "w10"
+                    |> add_dir_eunit1 "e6c" "w10" "n3"
+                    |> add_dir_eunit1 "e7" "n3" "w5"
+                    |> add_dir_eunit1 "e8a" "w5" "w11"
+                    |> add_dir_eunit1 "e8b" "w11" "n3"
+                    |> add_dir_eunit1 "ce1" "c1" "c1"
+                    |> add_dir_eunit1 "ce3" "c3" "c3"
+                    |> add_undir_eunit1 "f1" "n2" "w6"
+                    |> add_undir_eunit1 "f2a" "w6" "w12"
+                    |> add_undir_eunit1 "f2b" "w12" "n3"
+                    |> add_undir_eunit1 "f3" "n2" "w7"
+                    |> add_undir_eunit1 "f4a" "w7" "w13"
+                    |> add_undir_eunit1 "f4b" "n3" "w13"
+                    |> add_undir_eunit1 "f5" "w8" "n2"
+                    |> add_undir_eunit1 "f6a" "w8" "w14"
+                    |> add_undir_eunit1 "f6b" "w14" "n3";
+    val g_exp_norm = g;
 
-            |> G.add_named_vertex b1 bvert
-            |> G.add_named_vertex b2 bvert
-            |> G.add_named_vertex b3 bvert
-            |> G.add_named_vertex b4 bvert
+    val _ = Testing.test "G.normalise"
+      (fn () =>
+        let
+          val g_norm = G.normalise g_raw
+        in
+          if GIso.test g_norm g_exp_norm then ()
+          else (writeln "Expected"; G.print g_exp_norm;
+                writeln "Got"; G.print g_norm;
+                raise ERROR "Minimise gave incorrect graph")
+        end) ();
+  in val _ = () end;
 
-            |> G.doadd_edge dir_edge in1 x1
-            |> G.doadd_edge dir_edge in2 x2
-            |> G.doadd_edge dir_edge x1 out1
-            |> G.doadd_edge dir_edge x3 out3
-            |> G.doadd_edge dir_edge x1 wv1
-            |> G.doadd_edge dir_edge wv1 x1
 
-            |> G.doadd_edge undir_edge b1 x1
-            |> G.doadd_edge undir_edge b2 x2
-            |> G.doadd_edge undir_edge x3 b3
-            |> G.doadd_edge undir_edge x1 b4
-            |> G.doadd_edge undir_edge x2 wv2
-            |> G.doadd_edge undir_edge x2 wv2
-            |> G.doadd_edge undir_edge x3 wv3
-            |> G.doadd_edge undir_edge wv3 x3
+  local (* plugging *)
+    val g = G.empty |> add_vunit1 "n1"
+                    |> add_vunit1 "n2"
+                    |> add_vunit1 "n3"
+                    |> add_vunit1 "n4"
+                    |> add_wv "in1"
+                    |> add_wv "in2"
+                    |> add_wv "in3"
+                    |> add_wv "in4"
+                    |> add_wv "out1"
+                    |> add_wv "out2"
+                    |> add_wv "out3"
+                    |> add_wv "out4"
+                    |> add_wv "w1"
+                    |> add_wv "w2"
+                    |> add_wv "w3"
+                    |> add_wv "w4"
+                    |> add_wv "bnd1"
+                    |> add_wv "bnd2"
+                    |> add_wv "bnd3"
+                    |> add_wv "bnd4"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+                    |> add_dir_eunit1 "e2" "in2" "n2"
+                    |> add_dir_eunit1 "e3" "n1" "out1"
+                    |> add_dir_eunit1 "e4" "n3" "out3"
+                    |> add_dir_eunit1 "e5" "n1" "w1"
+                    |> add_dir_eunit1 "e6" "w1" "n1"
+                    |> add_undir_eunit1 "f1" "bnd1" "n1"
+                    |> add_undir_eunit1 "f2" "bnd2" "n2"
+                    |> add_undir_eunit1 "f3" "n3" "bnd3"
+                    |> add_undir_eunit1 "f4" "n1" "bnd4"
+                    |> add_undir_eunit1 "f5" "n2" "w2"
+                    |> add_undir_eunit1 "f6" "n2" "w2"
+                    |> add_undir_eunit1 "f7" "n3" "w3"
+                    |> add_undir_eunit1 "f8" "w3" "n3";
+    fun test_pluggable n1 n2 g =
+      Testing.test ("G.are_pluggable ("^n1^","^n2^")")
+        (fn () => Testing.assert (n1^" and "^n2^" are pluggable")
+                    (G.are_pluggable g (V.mk n1) (V.mk n2))) ();
+    fun test_not_pluggable n1 n2 g =
+      Testing.test ("G.are_pluggable ("^n1^","^n2^")")
+        (fn () => Testing.assert (n1^" and "^n2^" are not pluggable")
+                    (not (G.are_pluggable g (V.mk n1) (V.mk n2)))) ();
 
-  val _ = Testing.test "G.are_pluggable (1)"
-          (fn () => Testing.assert "pluggable"
-                    (G.are_pluggable g in1 out1)) ()
-  val _ = Testing.test "G.are_pluggable (2)"
-          (fn () => Testing.assert "pluggable"
-                    (G.are_pluggable g in2 out3)) ()
-  val _ = Testing.test "G.are_pluggable (3)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g in1 in2))) ()
-  val _ = Testing.test "G.are_pluggable (4)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g in1 wv1))) ()
-  val _ = Testing.test "G.are_pluggable (5)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g wv1 out3))) ()
-  val _ = Testing.test "G.are_pluggable (6)"
-          (fn () => Testing.assert "pluggable"
-                    (G.are_pluggable g b1 b2)) ()
-  val _ = Testing.test "G.are_pluggable (7)"
-          (fn () => Testing.assert "pluggable"
-                    (G.are_pluggable g b1 b3)) ()
-  val _ = Testing.test "G.are_pluggable (8)"
-          (fn () => Testing.assert "pluggable"
-                    (G.are_pluggable g b4 b3)) ()
-  val _ = Testing.test "G.are_pluggable (9)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g b1 wv2))) ()
-  val _ = Testing.test "G.are_pluggable (10)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g b1 wv3))) ()
-  val _ = Testing.test "G.are_pluggable (10)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g b1 wv1))) ()
-  val _ = Testing.test "G.are_pluggable (11)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g b3 wv2))) ()
-  val _ = Testing.test "G.are_pluggable (12)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g in1 b3))) ()
-  val _ = Testing.test "G.are_pluggable (13)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g b3 in1))) ()
-  val _ = Testing.test "G.are_pluggable (14)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g out1 b3))) ()
-  val _ = Testing.test "G.are_pluggable (15)"
-          (fn () => Testing.assert "not pluggable"
-                    (not (G.are_pluggable g b3 out1))) ()
+    val _ = test_pluggable "in1" "out1" g;
+    val _ = test_pluggable "in2" "out3" g;
+    val _ = test_not_pluggable "in1" "in2" g;
+    val _ = test_not_pluggable "in1" "w1" g;
+    val _ = test_not_pluggable "w1" "out3" g;
+    val _ = test_pluggable "bnd1" "bnd2" g;
+    val _ = test_pluggable "bnd1" "bnd3" g;
+    val _ = test_pluggable "bnd4" "bnd3" g;
+    val _ = test_not_pluggable "bnd1" "w2" g;
+    val _ = test_not_pluggable "bnd1" "w3" g;
+    val _ = test_not_pluggable "bnd1" "w1" g;
+    val _ = test_not_pluggable "bnd3" "w2" g;
+    val _ = test_not_pluggable "in1" "bnd3" g;
+    val _ = test_not_pluggable "bnd3" "in1" g;
+    val _ = test_not_pluggable "out1" "bnd3" g;
+    val _ = test_not_pluggable "bnd3" "out1" g;
 
-  val _ = Testing.test "G.get_plugging (1)"
+    fun test_dir_plugging inv outv g =
+      Testing.test ("G.get_plugging ("^inv^","^outv^")")
           (fn () =>
-          case G.get_plugging g in1 out1 of
-               SOME ((G.Directed,_),(v1,v2)) =>
+          case G.get_plugging g (V.mk inv) (V.mk outv)
+            of SOME ((G.Directed,_),(v1,v2)) =>
                  Testing.assert "correct vertex names"
-                    ((V.name_eq (v1,out1)) andalso
-                     (V.name_eq (v2,in1)))
+                    ((V.name_eq (v1,V.mk outv)) andalso
+                     (V.name_eq (v2,V.mk inv)))
              | SOME _ => raise ERROR "Wrong directedness"
-             | NONE   => raise ERROR "No plugging found") ()
-  val _ = Testing.test "G.get_plugging (2)"
+             | NONE   => raise ERROR "No plugging found") ();
+    fun test_undir_plugging b1 b2 g =
+      Testing.test ("G.get_plugging ("^b1^","^b2^")")
           (fn () =>
-          case G.get_plugging g out3 in2 of
-               SOME ((G.Directed,_),(v1,v2)) =>
+          case G.get_plugging g (V.mk b1) (V.mk b2)
+            of SOME ((G.UnDirected,_),(v1,v2)) =>
                  Testing.assert "correct vertex names"
-                    ((V.name_eq (v1,out3)) andalso
-                     (V.name_eq (v2,in2)))
-             | SOME _ => raise ERROR "Wrong directedness"
-             | NONE   => raise ERROR "No plugging found") ()
-  val _ = Testing.test "G.get_plugging (3)"
-          (fn () =>
-          case G.get_plugging g b1 b2 of
-               SOME ((G.UnDirected,_),(v1,v2)) =>
-                 Testing.assert "correct vertex names"
-                    (V.NSet.eq (V.NSet.of_list [b1,b2])
+                    (V.NSet.eq (V.NSet.of_list (map V.mk [b1,b2]))
                                (V.NSet.of_list [v1,v2]))
              | SOME _ => raise ERROR "Wrong directedness"
-             | NONE   => raise ERROR "No plugging found") ()
-  val _ = Testing.test "G.get_plugging (4)"
+             | NONE   => raise ERROR "No plugging found") ();
+    fun test_no_plugging b1 b2 g =
+      Testing.test ("G.get_plugging ("^b1^","^b2^")")
           (fn () =>
-          case G.get_plugging g b1 b3 of
-               SOME ((G.UnDirected,_),(v1,v2)) =>
-                 Testing.assert "correct vertex names"
-                    (V.NSet.eq (V.NSet.of_list [b1,b3])
-                               (V.NSet.of_list [v1,v2]))
-             | SOME _ => raise ERROR "Wrong directedness"
-             | NONE   => raise ERROR "No plugging found") ()
-  val _ = Testing.test "G.get_plugging (5)"
-          (fn () =>
-          case G.get_plugging g b4 b3 of
-               SOME ((G.UnDirected,_),(v1,v2)) =>
-                 Testing.assert "correct vertex names"
-                    (V.NSet.eq (V.NSet.of_list [b4,b3])
-                               (V.NSet.of_list [v1,v2]))
-             | SOME _ => raise ERROR "Wrong directedness"
-             | NONE   => raise ERROR "No plugging found") ()
+          case G.get_plugging g (V.mk b1) (V.mk b2)
+            of SOME _ => raise ERROR "Unexpected plugging found"
+             | NONE   => ()) ();
 
-  val _ = Testing.test "G.plug (1)"
-          (fn () =>
-          let
-            val (e,g') = G.plug in1 out1 g
-          in
-            case G.get_edge g' e of
-                 ((G.Directed,_),(v1,v2)) =>
-                   Testing.assert "correct vertex names"
-                      ((V.name_eq (v1,out1)) andalso
-                       (V.name_eq (v2,in1)))
-               | _ => raise ERROR "Wrong directedness"
-          end) ()
-  val _ = Testing.test "G.plug (2)"
-          (fn () =>
-          let
-            val (e,g') = G.plug out3 in2 g
-          in
-            case G.get_edge g' e of
-                 ((G.Directed,_),(v1,v2)) =>
-                   Testing.assert "correct vertex names"
-                      ((V.name_eq (v1,out3)) andalso
-                       (V.name_eq (v2,in2)))
-               | _ => raise ERROR "Wrong directedness"
-          end) ()
-  val _ = Testing.test "G.plug (3)"
-          (fn () =>
-          let
-            val (e,g') = G.plug b1 b2 g
-          in
-            case G.get_edge g' e of
-                 ((G.UnDirected,_),(v1,v2)) =>
-                   Testing.assert "correct vertex names"
-                      (V.NSet.eq (V.NSet.of_list [b1,b2])
-                                 (V.NSet.of_list [v1,v2]))
-               | _ => raise ERROR "Wrong directedness"
-          end) ()
-  val _ = Testing.test "G.plug (4)"
-          (fn () =>
-          let
-            val (e,g') = G.plug b1 b3 g
-          in
-            case G.get_edge g' e of
-                 ((G.UnDirected,_),(v1,v2)) =>
-                   Testing.assert "correct vertex names"
-                      (V.NSet.eq (V.NSet.of_list [b1,b3])
-                                 (V.NSet.of_list [v1,v2]))
-               | _ => raise ERROR "Wrong directedness"
-          end) ()
-  val _ = Testing.test "G.plug (5)"
-          (fn () =>
-          let
-            val (e,g') = G.plug b4 b3 g
-          in
-            case G.get_edge g' e of
-                 ((G.UnDirected,_),(v1,v2)) =>
-                   Testing.assert "correct vertex names"
-                      (V.NSet.eq (V.NSet.of_list [b4,b3])
-                                 (V.NSet.of_list [v1,v2]))
-               | _ => raise ERROR "Wrong directedness"
-          end) ()
+    val _ = test_dir_plugging "in1" "out1" g
+    val _ = test_dir_plugging "in2" "out3" g
+    val _ = test_undir_plugging "bnd1" "bnd2" g
+    val _ = test_undir_plugging "bnd1" "bnd3" g
+    val _ = test_undir_plugging "bnd4" "bnd3" g
+    val _ = test_no_plugging "in1" "in2" g
+    val _ = test_no_plugging "out1" "w1" g
+    val _ = test_no_plugging "bnd1" "w1" g
 
-  val _ = Testing.test "G.plug_and_minimise (1)"
+    fun test_dir_plug inv outv g =
+      Testing.test ("G.plug ("^inv^","^outv^")")
+          (fn () =>
+          let val (e,g') = G.plug (V.mk inv) (V.mk outv) g in
+            case G.get_edge g' e
+              of ((G.Directed,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      ((V.name_eq (v1,V.mk outv)) andalso
+                       (V.name_eq (v2,V.mk inv)))
+               | _ => raise ERROR "Wrong directedness"
+          end) ();
+    fun test_undir_plug b1 b2 g =
+      Testing.test ("G.plug ("^b1^","^b2^")")
+          (fn () =>
+          let val (e,g') = G.plug (V.mk b1) (V.mk b2) g in
+            case G.get_edge g' e
+              of ((G.UnDirected,_),(v1,v2)) =>
+                   Testing.assert "correct vertex names"
+                      (V.NSet.eq (V.NSet.of_list (map V.mk [b1,b2]))
+                                 (V.NSet.of_list [v1,v2]))
+               | _ => raise ERROR "Wrong directedness"
+          end) ();
+
+    val _ = test_dir_plug "in1" "out1" g;
+    val _ = test_dir_plug "in2" "out3" g;
+    val _ = test_undir_plug "bnd1" "bnd2" g;
+    val _ = test_undir_plug "bnd1" "bnd3" g;
+    val _ = test_undir_plug "bnd4" "bnd3" g;
+
+  val _ = Testing.test "G.plug_and_minimise (in1,out1)"
           (fn () =>
           let
+            val in1 = V.mk "in1"
+            val out1 = V.mk "out1"
             val ((s,t,wvs,es),g') = G.plug_and_minimise in1 out1 g
           in
              (Testing.assert "correct vertex names"
-                (V.NSet.eq (V.NSet.single x1)
+                (V.NSet.eq (V.NSet.single (V.mk "n1"))
                            (V.NSet.of_list [s,t]));
               Testing.assert "no wire verts"
                 (V.NSet.is_empty wvs);
-              case E.NSet.tryget_singleton es of
-                   SOME e =>
-                     (case G.get_edge g' e of
-                          ((G.Directed,_),_) => ()
+              case E.NSet.tryget_singleton es
+                of SOME e =>
+                     (case G.get_edge g' e
+                       of ((G.Directed,_),_) => ()
                         | _ => raise ERROR "Wrong directedness")
                  | NONE => raise ERROR "Wrong edge count"
              )
           end
           ) ()
-  val _ = Testing.test "G.plug_and_minimise (2)"
+  val _ = Testing.test "G.plug_and_minimise (out3,in2)"
           (fn () =>
           let
+            val out3 = V.mk "out3"
+            val in2 = V.mk "in2"
             val ((s,t,wvs,es),g') = G.plug_and_minimise out3 in2 g
           in
              (Testing.assert "correct vertex names"
-                (V.NSet.eq (V.NSet.of_list [x2,x3])
+                (V.NSet.eq (V.NSet.of_list (map V.mk ["n2","n3"]))
                            (V.NSet.of_list [s,t]));
               Testing.assert "no wire verts"
                 (V.NSet.is_empty wvs);
-              case E.NSet.tryget_singleton es of
-                   SOME e =>
-                     (case G.get_edge g' e of
-                          ((G.Directed,_),_) => ()
-                        | _ => raise ERROR "Wrong directedness")
+              case E.NSet.tryget_singleton es
+                of SOME e =>
+                     (case G.get_edge g' e
+                        of ((G.Directed,_),_) => ()
+                         | _ => raise ERROR "Wrong directedness")
                  | NONE => raise ERROR "Wrong edge count"
              )
           end
           ) ()
 
-  val _ = Testing.test "G.plug_and_normalise (1)"
+  val _ = Testing.test "G.plug_and_normalise (in1,out1)"
           (fn () =>
           let
+            val in1 = V.mk "in1"
+            val out1 = V.mk "out1"
             val ((s,t,wvs,es),_) = G.plug_and_normalise in1 out1 g
           in
              (Testing.assert "correct vertex names"
-                (V.NSet.eq (V.NSet.single x1)
+                (V.NSet.eq (V.NSet.single (V.mk "n1"))
                            (V.NSet.of_list [s,t]));
               Testing.assert "2 wire verts"
                 (V.NSet.cardinality wvs = 2);
@@ -511,122 +407,77 @@ local
              )
           end
           ) ()
-in
-  val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR PLUGGING PASSED!"
-end; (* ends local namespace used for testing *)
+
+  in val _ = () end;
 
 
-(* Test subgraph functions *)
+  local (* subgraphs *)
+    val g = G.empty |> add_vunit1 "n1"
+                    |> add_vunit1 "n2"
+                    |> add_vunit1 "n3"
+                    |> add_wv "w1"
+                    |> add_wv "w2"
+                    |> add_wv "w3"
+                    |> add_wv "w4"
+                    |> add_wv "w5"
+                    |> add_wv "w6"
+                    |> add_wv "w7"
+                    |> add_wv "w8"
+                    |> add_wv "w9"
+                    |> add_wv "w10"
+                    |> add_wv "w11"
+                    |> add_wv "w12"
+                    |> add_wv "w13"
+                    |> add_dir_eunit1 "c1" "w1" "w1"
+                    |> add_dir_eunit1 "bw1" "w2" "w3"
+                    |> add_dir_eunit1 "e1" "n1" "w4"
+                    |> add_dir_eunit1 "e2" "w4" "w5"
+                    |> add_dir_eunit1 "e3" "w5" "n1"
+                    |> add_dir_eunit1 "e4" "n2" "w9"
+                    |> add_dir_eunit1 "e5" "w9" "w10"
+                    |> add_dir_eunit1 "e6" "w10" "n3"
+                    |> add_undir_eunit1 "f1" "w6" "n2"
+                    |> add_undir_eunit1 "f2" "n2" "w7"
+                    |> add_undir_eunit1 "f3" "w7" "w8"
+                    |> add_undir_eunit1 "f4" "w8" "n3"
+                      (* these will be connected to later *)
+                    |> add_undir_eunit1 "g1" "n3" "w12"
+                    |> add_dir_eunit1 "g2" "n3" "w13"
+                    |> add_dir_eunit1 "g3" "n2" "w11";
+    val exp_subgraph = g;
+
+    val retain = V.NSet.of_list (map V.mk ["n1","n2","n3","w1","w2","w3"]);
+
+    val g = g |> add_vunit1 "n4"
+              |> add_vunit1 "n5"
+              |> add_wv "w14"
+              |> add_wv "w15"
+              |> add_wv "w16"
+              |> add_wv "w17"
+              |> add_wv "w18"
+              |> add_wv "w19"
+              |> add_wv "w20"
+              |> add_dir_eunit1 "c2" "w14" "w14"
+              |> add_dir_eunit1 "bw2" "w15" "w16"
+              |> add_undir_eunit1 "g4" "w12" "w17"
+              |> add_undir_eunit1 "g5" "w17" "n4"
+              |> add_dir_eunit1 "g6" "w13" "w18"
+              |> add_dir_eunit1 "g7" "w18" "n4"
+              |> add_undir_eunit1 "f5" "n4" "w19"
+              |> add_dir_eunit1 "g8" "w11" "w20"
+              |> add_dir_eunit1 "g9" "w20" "n5";
+    val full_graph = g;
+
+    val _ = Testing.test "get_open_subgraph" (fn () => let
+            val g = G.get_open_subgraph retain full_graph
+            val _ = Testing.assert "subgraph was as expected"
+                      (G.exact_eq g exp_subgraph)
+          in () end) ();
+  in val _ = () end;
+
+end;
+
 local
-  open Test_RG_MkG;
-
-  val x1 = V.mk "x1"
-  val x2 = V.mk "x2"
-  val x3 = V.mk "x3"
-  val x4 = V.mk "x4"
-  val x5 = V.mk "x5"
-  val wv1 = V.mk "wv1"
-  val wv2 = V.mk "wv2"
-  val wv3 = V.mk "wv3"
-  val wv4 = V.mk "wv4"
-  val wv5 = V.mk "wv5"
-  val wv6 = V.mk "wv6"
-  val wv7 = V.mk "wv7"
-  val wv8 = V.mk "wv8"
-  val wv9 = V.mk "wv9"
-  val wv10 = V.mk "wv10"
-  val wv11 = V.mk "wv11"
-  val wv12 = V.mk "wv12"
-  val wv13 = V.mk "wv13"
-  val wv14 = V.mk "wv14"
-  val wv15 = V.mk "wv15"
-  val wv16 = V.mk "wv16"
-  val wv17 = V.mk "wv17"
-  val wv18 = V.mk "wv18"
-  val wv19 = V.mk "wv19"
-  val wv20 = V.mk "wv20"
-
-  val g = G.empty;
-  val g = g |> G.add_named_vertex x1 (mkX zero_angle)
-            |> G.add_named_vertex x2 (mkX zero_angle)
-            |> G.add_named_vertex x3 (mkX zero_angle)
-
-            |> G.add_named_vertex wv1 bvert
-            |> G.add_named_vertex wv2 bvert
-            |> G.add_named_vertex wv3 bvert
-            |> G.add_named_vertex wv4 bvert
-            |> G.add_named_vertex wv5 bvert
-            |> G.add_named_vertex wv6 bvert
-            |> G.add_named_vertex wv7 bvert
-            |> G.add_named_vertex wv8 bvert
-            |> G.add_named_vertex wv9 bvert
-            |> G.add_named_vertex wv10 bvert
-            |> G.add_named_vertex wv11 bvert
-            |> G.add_named_vertex wv12 bvert
-            |> G.add_named_vertex wv13 bvert
-
-            (* circle *)
-            |> G.doadd_edge dir_edge   wv1 wv1
-            (* bare wire *)
-            |> G.doadd_edge undir_edge wv2 wv3
-            (* main graph *)
-            |> G.doadd_edge dir_edge   x1  wv4
-            |> G.doadd_edge dir_edge   wv4 wv5
-            |> G.doadd_edge dir_edge   wv5 x1
-            |> G.doadd_edge undir_edge wv6 x2
-            |> G.doadd_edge undir_edge x2  wv7
-            |> G.doadd_edge undir_edge wv7 wv8
-            |> G.doadd_edge undir_edge wv8 x3
-            |> G.doadd_edge dir_edge   x2  wv9
-            |> G.doadd_edge dir_edge   wv9 wv10
-            |> G.doadd_edge dir_edge   wv10 x3
-
-            (* these will be connected to later *)
-            |> G.doadd_edge undir_edge x3   wv12
-            |> G.doadd_edge dir_edge   x3   wv13
-            |> G.doadd_edge dir_edge   x2   wv11
-  val exp_subgraph = g
-
-  val retain = V.NSet.of_list [x1,x2,x3,wv1,wv2,wv3]
-
-  val g = g |> G.add_named_vertex x4 (mkX zero_angle)
-            |> G.add_named_vertex x5 (mkX zero_angle)
-
-            |> G.add_named_vertex wv14 bvert
-            |> G.add_named_vertex wv15 bvert
-            |> G.add_named_vertex wv16 bvert
-            |> G.add_named_vertex wv17 bvert
-            |> G.add_named_vertex wv18 bvert
-            |> G.add_named_vertex wv19 bvert
-            |> G.add_named_vertex wv20 bvert
-
-            (* circle *)
-            |> G.doadd_edge undir_edge wv14 wv14
-            (* bare wire *)
-            |> G.doadd_edge dir_edge   wv15 wv16
-            (* main graph *)
-            |> G.doadd_edge undir_edge wv12 wv17
-            |> G.doadd_edge undir_edge wv17 x4
-            |> G.doadd_edge dir_edge   wv13 wv18
-            |> G.doadd_edge dir_edge   wv18 x4
-            |> G.doadd_edge undir_edge x4   wv19
-            |> G.doadd_edge dir_edge   wv11 wv20
-            |> G.doadd_edge dir_edge   wv20 x5
-  val full_graph = g
-
-in
-  val _ = Testing.test "get_open_subgraph" (fn () => let
-    val g = G.get_open_subgraph retain full_graph
-    val _ = writeln "Subgraph was:"
-    val _ = G.print g
-    val _ = Testing.assert "subgraph was as expected"
-              (G.exact_eq g exp_subgraph)
-  in writeln "success" end
-  ) ()
-
-  val _ = Testing.assert_no_failed_tests();
-  val _ = writeln "UNIT TESTS FOR SUBGRAPHS PASSED!"
-end; (* ends local namespace used for testing *)
-
+  structure OG_Tests = OGraph_Interface_Tests(Test_OGraph);
+in val _ = () end;
 

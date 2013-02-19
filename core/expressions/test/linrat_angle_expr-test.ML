@@ -112,5 +112,4 @@ in
           (a + b,(a_v,c_v),b + c);
 
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR LinratAngleExpr PASSED!";
 end;

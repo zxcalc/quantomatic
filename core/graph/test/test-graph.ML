@@ -259,10 +259,12 @@ functor Graph_Interface_Tests(
   val _ = Testing.assert_no_failed_tests();
 end;
 
-structure Graph_Interface_Tests_Basic = Graph_Interface_Tests(
-  structure G = Test_Graph
-  val vert = I
-  val unwrap_vert = I
-);
+local
+  structure G_Tests = Graph_Interface_Tests(
+    structure G = Test_Graph
+    val vert = I
+    val unwrap_vert = I
+  )
+in val _ = () end;
 
 
