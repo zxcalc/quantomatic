@@ -336,8 +336,8 @@ end;
 structure Test_Graph : GRAPH
 = GraphFun(BasicGraphFun(
     structure Param = Test_GraphParam;
-    type data = string (* A string, I guess? Why not? *)
-    val empty_data = ""));
+    type data = unit
+    val empty_data = ()));
 
 structure Test_OGraph : OGRAPH
 = OGraphFun(BasicOGraphFun(
@@ -345,8 +345,8 @@ structure Test_OGraph : OGRAPH
       structure Param = Test_GraphParam 
       and OVData = OVertexData(Test_Graph_VData)
     );
-    type data = string (* A string, I guess? Why not? *)
-    val empty_data = ""));
+    type data = unit
+    val empty_data = ()));
 
 structure Test_Bang_Graph : BANG_GRAPH
 = struct 
@@ -355,8 +355,8 @@ structure Test_Bang_Graph : BANG_GRAPH
       structure Param = Test_GraphParam 
       and OVData = OVertexData(Test_Graph_VData)
     );
-    type data = string (* A string, I guess? Why not? *)
-    val empty_data = "");
+    type data = unit
+    val empty_data = ());
   structure BBGraph = BangGraphTools(BasicBangGraph);
   open BBGraph;
 end;
@@ -576,13 +576,13 @@ functor Test_Graph_Tools(
         G.add_named_edge (E.mk n) (G.Directed,eunit1) (V.mk s) (V.mk t);
   fun add_dir_eunit2 n s t =
         G.add_named_edge (E.mk n) (G.Directed,eunit2) (V.mk s) (V.mk t);
-  fun add_dir_eexpr1 n a s t =
+  fun add_dir_eexpr1 n s t a =
         G.add_named_edge (E.mk n) (G.Directed,(eexpr1 a)) (V.mk s) (V.mk t);
-  fun add_dir_eexpr1_a n a s t =
+  fun add_dir_eexpr1_a n s t a =
         G.add_named_edge (E.mk n) (G.Directed,(eexpr1_a a)) (V.mk s) (V.mk t);
-  fun add_dir_eexpr2 n a s t =
+  fun add_dir_eexpr2 n s t a =
         G.add_named_edge (E.mk n) (G.Directed,(eexpr2 a)) (V.mk s) (V.mk t);
-  fun add_dir_eexpr2_a n a s t =
+  fun add_dir_eexpr2_a n s t a =
         G.add_named_edge (E.mk n) (G.Directed,(eexpr2_a a)) (V.mk s) (V.mk t);
   fun add_dir_estring1 n str s t =
         G.add_named_edge (E.mk n) (G.Directed,(estring1 str)) (V.mk s) (V.mk t);
@@ -607,6 +607,9 @@ functor Test_Graph_Tools(
         G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString2 str)) (V.mk s) (V.mk t);
 
   (* testing stuff *)
+  fun dir_eq G.Directed G.Directed = true
+    | dir_eq G.UnDirected G.UnDirected = true
+    | dir_eq _ _ = false;
   fun assert_vnames exp_vs actual_vset =
     let
       val exp_vset = V.NSet.of_list (map V.mk exp_vs);
@@ -637,6 +640,38 @@ functor Test_Graph_Tools(
       else raise ERROR ("assert_xnames: expected "^(pretty_set exp_vset)^
                         " but got "^(pretty_set actual_vset))
     end;
+  fun assert_vertices exp_vs actual_vtab =
+    let
+      val _ = assert_vnames (map fst exp_vs) (V.NTab.get_nameset actual_vtab)
+      fun check_verts ((vn,(vd,(ins,outs)))::vs) =
+        let
+          val (vd',(ins',outs')) = V.NTab.get actual_vtab (V.mk vn);
+          val _ = Testing.assert ("same data for "^vn)
+                    (G.VData.data_eq (vd,vd'));
+          val _ = Testing.assert ("same ins for "^vn)
+                    (E.NSet.eq ins' (E.NSet.of_list (map E.mk ins)))
+          val _ = Testing.assert ("same outs for "^vn)
+                    (E.NSet.eq outs' (E.NSet.of_list (map E.mk outs)))
+        in check_verts vs end
+        | check_verts [] = ();
+    in check_verts exp_vs end;
+  fun assert_edges exp_es actual_etab =
+    let
+      val _ = assert_enames (map fst exp_es) (E.NTab.get_nameset actual_etab)
+      fun check_edges ((en,((dir,ed),(src,tgt)))::es) =
+        let
+          val ((dir',ed'),(src',tgt')) = E.NTab.get actual_etab (E.mk en);
+          val _ = Testing.assert ("same dir for "^en)
+                    (dir_eq dir dir');
+          val _ = Testing.assert ("same data for "^en)
+                    (G.EData.data_eq (ed,ed'));
+          val _ = Testing.assert ("same source for "^en)
+                    (V.name_eq ((V.mk src),src'));
+          val _ = Testing.assert ("same target for "^en)
+                    (V.name_eq ((V.mk tgt),tgt'));
+        in check_edges es end
+        | check_edges [] = ();
+    in check_edges exp_es end;
   fun assert_none _ NONE = ()
     | assert_none name (SOME _) = raise ERROR (name^" is not NONE");
 end;
