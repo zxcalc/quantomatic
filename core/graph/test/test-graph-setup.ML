@@ -674,6 +674,12 @@ functor Test_Graph_Tools(
     in check_edges exp_es end;
   fun assert_none _ NONE = ()
     | assert_none name (SOME _) = raise ERROR (name^" is not NONE");
+
+  (* FIXME: move into Testing in isaplib *)
+  fun test_force s f v =
+    case Testing.test s f v of
+         NONE => raise Testing.failed_tests_exp (!Testing.tests_failed_ref)
+       | SOME x => x
 end;
 
 
@@ -723,6 +729,16 @@ struct
   structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON;
   structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON;
   structure GDotOutput = Test_Bang_Graph_IO.OutputGraphDot;
+
+  fun add_empty_bbox n = G.add_named_bbox (B.mk n);
+  fun add_bbox n [] = add_empty_bbox n
+    | add_bbox n vs =
+        let
+          val bn = B.mk n
+          val vset = V.NSet.of_list (map V.mk vs)
+        in
+          (G.doadd_to_bbox bn vset) o (G.add_named_bbox bn)
+        end;
 
   local
     fun write_to_file file s = let

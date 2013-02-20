@@ -93,10 +93,10 @@ PolyML.Project.make "io/graph_dot_output.ML";
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-graph.ML";
 Testing.make_test "graph/test/test-ograph.ML";
-Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
+Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "io/test/graph-json-test.ML";
 
 
