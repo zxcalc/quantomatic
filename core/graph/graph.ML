@@ -54,12 +54,6 @@ val add_named_edge
     : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
 val swap_edge_dir : E.name -> T -> T
 
-(* low level restructuring of graph *)
-val update_vertex_enames : ((E.NSet.T * E.NSet.T) -> (E.NSet.T * E.NSet.T))
-                          -> V.name -> T -> T 
-val update_edge_vnames : ((V.name * V.name) -> (V.name * V.name))
-                       -> E.name -> T -> T 
-
 (* get vertex and edge names *)
 val get_vnames : T -> V.NSet.T
 val get_enames : T -> E.NSet.T
@@ -205,13 +199,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 
   val set_vertex_data = update_vertex_data o K;
   val set_edge_data = update_edge_data o K;
-  
-  
-  (* change structure of graph *)
-  fun update_vertex_enames f n g = 
-      update_vertices (V.NTab.map_entry (fn (nd,ios) => (nd,f ios)) n) g;
-  fun update_edge_vnames f en g = 
-      update_edges (E.NTab.map_entry (fn (e,fromto) => (e,f fromto)) en) g;
   
   
   (* implicit args: nd g *)
