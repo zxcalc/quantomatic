@@ -64,10 +64,6 @@ val update_edge_vnames : ((V.name * V.name) -> (V.name * V.name))
 val get_vnames : T -> V.NSet.T
 val get_enames : T -> E.NSet.T
 
-(* add graph names to name sets *)
-val add_to_vnames : T -> V.NSet.T -> V.NSet.T
-val add_to_enames : T -> E.NSet.T -> E.NSet.T
-
 (* *)
 val has_vname : T -> V.name -> bool;
 val has_ename : T -> E.name -> bool;
@@ -189,9 +185,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   val get_vnames = V.NTab.get_nameset o get_vertices;
   val get_enames = E.NTab.get_nameset o get_edges;
   
-  val add_to_vnames = V.NSet.union_merge o get_vnames;
-  val add_to_enames = E.NSet.union_merge o get_enames;
-
   (* implicit: g n *)
   val lookup_vertex = V.NTab.lookup o get_vertices
   val lookup_edge = E.NTab.lookup o get_edges

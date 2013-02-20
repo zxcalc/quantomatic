@@ -7,10 +7,13 @@ val sp = GHZW_Theory.IO_Xml.Input.Graph.input (XMLReader.read_from_string sp_xml
 fun rule_matches_graph r g = let
     val lhs = GHZW_Theory.Ruleset.Rule.get_lhs r
     val gs = [lhs, g]
+    fun add_to_vnames = V.NSet.union_merge o GHZW_Theory.Graph.get_vnames;
+    fun add_to_enames = E.NSet.union_merge o GHZW_Theory.Graph.get_enames;
+    fun add_to_bboxes = B.NSet.union_merge o GHZW_Theory.Graph.get_bboxes;
     val names = 
-        (fold GHZW_Theory.Graph.add_to_vnames  gs GHZW_Theory.Graph.Vertex.NSet.empty,
-         fold GHZW_Theory.Graph.add_to_enames  gs GHZW_Theory.Graph.Edge.NSet.empty,
-         fold GHZW_Theory.Graph.add_to_bboxes gs GHZW_Theory.Graph.BBox.NSet.empty)
+        (fold add_to_vnames  gs GHZW_Theory.Graph.Vertex.NSet.empty,
+         fold add_to_enames  gs GHZW_Theory.Graph.Edge.NSet.empty,
+         fold add_to_bboxes gs GHZW_Theory.Graph.BBox.NSet.empty)
 val matches = GHZW_Theory.RuleMatchSearch.match names r g
 in case Seq.pull matches of NONE=>false | _=>true
 end
