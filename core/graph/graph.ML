@@ -518,6 +518,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         val e2s = get_edges g2
         val v1s = get_vertices g1
         val v2s = get_vertices g2
+        fun dir_eq Directed Directed = true
+          | dir_eq UnDirected UnDirected = true
+          | dir_eq _ _ = false;
       in
         (* check same vertex names *)
         (V.NSet.eq (V.NTab.get_nameset v1s)
@@ -535,12 +538,13 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
            v1s) andalso 
         (* now check same edge data *)
         (E.NTab.forall (* note that we dont re-check structure *)
-           (fn (e,((_,ed),_)) =>
+           (fn (e,((dir,ed),_)) =>
                (* from above, we know we have same edge names: could use get *)
                case E.NTab.lookup e2s e of 
                  NONE => false
                (* now check have same edge data *)
-               | SOME ((_,ed2),_) => EData.data_eq (ed,ed2))
+               | SOME ((dir2,ed2),_) => (EData.data_eq (ed,ed2)) andalso
+                                        (dir_eq dir dir2))
            e1s)
       end;
   
