@@ -188,7 +188,11 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   fun edge_get_other_vertex g e v = let
     val (_,(s,t)) = get_edge g e
-  in if V.name_eq(s,v) then t else s
+  in
+    if V.name_eq(s,v) then t
+    else
+      if V.name_eq(t,v) then s
+      else raise no_such_vname_exp ("edge_get_other_vertex",v,g)
   end
   
   val get_in_edges  = (fst o snd) oo get_vertex
