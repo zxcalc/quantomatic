@@ -441,21 +441,21 @@ struct
       val to_lower = String.implode o (map Char.toLower) o String.explode
       fun input (Json.String t) =
             (case to_lower t
-               of "vunit1" => EUnit1
-                | "vunit2" => EUnit2
-                | "vexpr1" => EExpr1 LinratAngleExpr.zero
-                | "vexpr2" => EExpr2 LinratAngleExpr.zero
-                | "vstring1" => EString1 ""
-                | "vstring2" => EString2 ""
+               of "eunit1" => EUnit1
+                | "eunit2" => EUnit2
+                | "eexpr1" => EExpr1 LinratAngleExpr.zero
+                | "eexpr2" => EExpr2 LinratAngleExpr.zero
+                | "estring1" => EString1 ""
+                | "estring2" => EString2 ""
                 | _   => raise bad_input_exp ("Unknown vertex type "^t,""))
         | input (Json.Object obj) =
             (case to_lower (get_string obj "type")
-               of "vunit1" => EUnit1
-                | "vunit2" => EUnit2
-                | "vexpr1" => EExpr1 (get_angle obj "angle")
-                | "vexpr2" => EExpr2 (get_angle obj "angle")
-                | "vstring1" => EString1 (get_string_easy "" obj "data")
-                | "vstring2" => EString2 (get_string_easy "" obj "data")
+               of "eunit1" => EUnit1
+                | "eunit2" => EUnit2
+                | "eexpr1" => EExpr1 (get_angle obj "angle")
+                | "eexpr2" => EExpr2 (get_angle obj "angle")
+                | "estring1" => EString1 (get_string_easy "" obj "data")
+                | "estring2" => EString2 (get_string_easy "" obj "data")
                 | t   => raise bad_input_exp ("Unknown vertex type "^t,"type"))
         | input _ = raise bad_input_exp ("Expected object","");
     end;
@@ -730,15 +730,19 @@ struct
   structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON;
   structure GDotOutput = Test_Bang_Graph_IO.OutputGraphDot;
 
-  fun add_empty_bbox n = G.add_named_bbox (B.mk n);
-  fun add_bbox n [] = add_empty_bbox n
-    | add_bbox n vs =
+  fun add_to_bbox _ [] = I
+    | add_to_bbox n vs =
         let
           val bn = B.mk n
           val vset = V.NSet.of_list (map V.mk vs)
         in
-          (G.doadd_to_bbox bn vset) o (G.add_named_bbox bn)
+          G.doadd_to_bbox bn vset
         end;
+  fun add_bbox n vs = (add_to_bbox n vs) o (G.add_named_bbox (B.mk n));
+  fun add_child_bbox n parent vs =
+          (G.set_bbox_parent (B.mk n) (B.mk parent)) o
+          (add_to_bbox n vs) o
+          (G.add_named_bbox (B.mk n))
 
   local
     fun write_to_file file s = let

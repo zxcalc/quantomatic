@@ -1303,7 +1303,6 @@ local
     val unbalanced = balanced |> G.set_bbox_parent b2 b1
 
     val unbalanced_norm = G.normalise unbalanced
-    val _ = G.print unbalanced_norm
     
     val _ = Testing.test "G.bbox_has_parent" (fn() =>
       Testing.assert "b2 has a parent" (G.bbox_has_parent unbalanced b2)) ()
@@ -1334,8 +1333,6 @@ local
         val new_bboxes = B.NSet.subtract (G.get_bboxes g) (G.get_bboxes oldg)
         val b2' = (the o B.NSet.tryget_singleton) (B.NSet.delete b1' new_bboxes)
       in
-        G.print oldg;
-        G.print g;
         Testing.assert "b1' looks right"
           (V.NSet.cardinality (G.get_bbox_contents g b1) =
            V.NSet.cardinality (G.get_bbox_contents g b1'));
@@ -1350,7 +1347,6 @@ local
         val (b2',g) = G.fresh_copy1_bbox b2 oldg
         val _ = Testing.assert "3 !-boxes" (B.NSet.cardinality (G.get_bboxes g) = 3)
       in
-        G.print g;
         Testing.assert "b2' looks right"
           (V.NSet.cardinality (G.get_bbox_contents g b2) =
            V.NSet.cardinality (G.get_bbox_contents g b2'))
