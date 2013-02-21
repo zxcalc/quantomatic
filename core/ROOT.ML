@@ -118,7 +118,6 @@ PolyML.Project.make "rewriting/rule.ML";
 (* I/O *)
 PolyML.Project.make "io/rule_json.ML";
 
-Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "rewriting/test/rule-test.ML";
 
 
@@ -132,6 +131,7 @@ PolyML.Project.make "theories/ruleset_annotations.ML";
 PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
+Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "theories/test/ruleset-test.ML";
 
 

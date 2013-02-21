@@ -88,7 +88,7 @@ end;
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=--=-=-=-==-=-=-=-=-=-=-=-=-=- *) 
-functor Rule(Graph : BANG_GRAPH)
+functor Rule(Graph : BANG_GRAPH) : RULE
 = struct
 
 structure Graph = Graph;
@@ -182,24 +182,114 @@ datatype T = Rule of { lhs : Graph.T,
 
 exception bad_rule_exp of string * Graph.T * Graph.T;
 
+  structure G = Graph;
+
+  type boundary = {
+    inputs : G.EData.data V.NTab.T,
+    outputs : G.EData.data V.NTab.T,
+    undir_bounds : G.EData.data V.NTab.T,
+    isolated : V.NSet.T
+  };
+
+  fun find_graph_boundary g =
+  let
+    fun build_boundary (_,((G.OVData.NVert _),_)) recd = recd
+      | build_boundary (vn,(G.OVData.WVert,(ins,outs)))
+                       (recd as { inputs = inp,
+                                  outputs = outp,
+                                  undir_bounds = undir,
+                                  isolated = isol}) =
+          if E.NSet.is_empty ins
+          then
+            case E.NSet.tryget_singleton outs
+              of SOME e =>
+                  (case G.get_edge g e
+                     of ((G.Directed,ed),_) =>
+                          { inputs = V.NTab.ins (vn,ed) inp,
+                            outputs = outp,
+                            undir_bounds = undir,
+                            isolated = isol }
+                      | ((G.UnDirected,ed),_) =>
+                          { inputs = inp,
+                            outputs = outp,
+                            undir_bounds = V.NTab.ins (vn,ed) undir,
+                            isolated = isol })
+               | NONE =>
+                   if E.NSet.is_empty outs then
+                    { inputs = inp, outputs = outp,
+                      undir_bounds = undir, isolated = V.NSet.add vn isol }
+                   else
+                     recd
+          else
+            if E.NSet.is_empty outs
+            then
+              case E.NSet.tryget_singleton ins
+                of SOME e =>
+                  (case G.get_edge g e
+                     of ((G.Directed,ed),_) =>
+                          { inputs = inp,
+                            outputs = V.NTab.ins (vn,ed) outp,
+                            undir_bounds = undir,
+                            isolated = isol }
+                      | ((G.UnDirected,ed),_) =>
+                          { inputs = inp,
+                            outputs = outp,
+                            undir_bounds = V.NTab.ins (vn,ed) undir,
+                            isolated = isol })
+                 | NONE => recd
+            else recd;
+  in
+    V.NTab.fold build_boundary (G.get_vertices g)
+      {
+        inputs = V.NTab.empty,
+        outputs = V.NTab.empty,
+        undir_bounds = V.NTab.empty,
+        isolated = V.NSet.empty
+      }
+  end;
+
 (* Internal function that makes sure that:
   *   - Boundary names are the same
   *   - !-Boxes names are the same
   *   -Check if !-boxes in LHS bang the same boundary vertices as in
   *   RHS *)
-fun check_rule_consistency lhs rhs = 
+fun check_rule_consistency lhs rhs =
     let
-      val lhsboundary = Graph.get_boundary lhs 
-      val rhsboundary = Graph.get_boundary rhs
-      val lhsboundary' = filter (Graph.is_bboxed lhs) (V.NSet.list_of lhsboundary)
-      fun has_same_bangbox vn b = b andalso
-          (Graph.is_bboxed rhs vn)   andalso
+      val lhs_bnd = find_graph_boundary lhs
+      val rhs_bnd = find_graph_boundary rhs
+
+      (* ideally, a more efficient version of this would be in NAME_TAB *)
+      fun vtab_eq data_eq tab1 tab2 =
+        let
+          fun cmp_tab2 (nm,d) sofar =
+            sofar andalso data_eq (d,(V.NTab.get tab2 nm))
+        in
+          V.NSet.eq (V.NTab.get_nameset tab1) (V.NTab.get_nameset tab2)
+          andalso
+          V.NTab.fold cmp_tab2 tab1 true
+        end;
+
+      fun test_all test_fn =
+        (test_fn (V.NTab.get_nameset (#inputs lhs_bnd))
+                 (V.NTab.get_nameset (#inputs rhs_bnd))) andalso
+        (test_fn (V.NTab.get_nameset (#outputs lhs_bnd))
+                 (V.NTab.get_nameset (#outputs rhs_bnd))) andalso
+        (test_fn (V.NTab.get_nameset (#undir_bounds lhs_bnd))
+                 (V.NTab.get_nameset (#undir_bounds rhs_bnd))) andalso
+        (test_fn (#isolated lhs_bnd) (#isolated rhs_bnd));
+      fun has_same_bangbox vn sofar = sofar andalso
            B.NSet.eq (Graph.get_bboxes_of lhs vn) (Graph.get_bboxes_of rhs vn)
+      fun compare_bboxes lvs _ =
+        (V.NSet.fold (has_same_bangbox) lvs true)
     in
-      (V.NSet.eq lhsboundary rhsboundary) andalso
+      (V.NSet.is_empty (#isolated lhs_bnd)) andalso
+      (V.NSet.is_empty (#isolated rhs_bnd)) andalso
+      (vtab_eq G.EData.data_eq (#inputs lhs_bnd) (#inputs rhs_bnd)) andalso
+      (vtab_eq G.EData.data_eq (#outputs lhs_bnd) (#outputs rhs_bnd)) andalso
+      (vtab_eq G.EData.data_eq (#undir_bounds lhs_bnd) (#undir_bounds rhs_bnd)) andalso
       (B.NSet.eq (Graph.get_bboxes lhs) (Graph.get_bboxes rhs)) andalso
-      (fold (has_same_bangbox) (lhsboundary') true)
-   end; 
+      test_all compare_bboxes
+   end;
 
 fun mk_with_renamings (lhs,rhs) = 
     let 
@@ -281,9 +371,6 @@ fun update_lhs f (Rule rep) =
     Rule { lhs = f (#lhs rep), rhs = #rhs rep, lhs_aut = #lhs_aut rep, selfapps = #selfapps rep, order = #order rep };
 fun update_rhs f (Rule rep) = 
     Rule { lhs = #lhs rep, rhs = f (#rhs rep), lhs_aut = #lhs_aut rep, selfapps = #selfapps rep, order = #order rep };
-
-val set_lhs = update_lhs o K;
-val set_rhs = update_rhs o K;
 
 (* THINK: cache this info? *)
 (* 

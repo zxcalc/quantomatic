@@ -275,3 +275,5 @@ struct
       "got: " ^ Int.toString (num_bboxes g))
 end
 
+structure Test_RG_Rule = Rule(Test_RG_Graph);
+
