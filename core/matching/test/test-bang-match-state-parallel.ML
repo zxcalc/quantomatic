@@ -1,7 +1,7 @@
 local (* Test matching with concrete graphs *)
   open Test_MkG
   open Test_BGMatchUtil
-  structure M = MJB_Test_GreedyMatcher_Parallel
+  structure M = Test_GreedyMatcherParallel
   structure MS = Test_BGMatchState
 
   val v1 = V.mk "v1"

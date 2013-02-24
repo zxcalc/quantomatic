@@ -1,13 +1,13 @@
 (*THIS IS A TEST*)
 (* The inner matching loop *)
 (* see docs/matching_algo for details *)
-functor MJB_SimpleInnerMatchSearchParallel(
+functor SimpleInnerMatchSearchParallel(
     structure MatchState : OGRAPH_MATCH_STATE
 ) : INNER_MATCH_SEARCH
 = struct
   local
   (*For all of the future calls that I need!*)
-  open MJB_Simple_Future;
+  open Future_Wrapper;
   in
   
   structure Log : LOG = Log(val init_level = 0);
@@ -18,11 +18,9 @@ functor MJB_SimpleInnerMatchSearchParallel(
   exception InnerMatchError of string
   
   (*For ease of use*)
-  structure Future = MJB_Simple_Future;
-  structure Par_Seq = MJB_Safe_Parallel_Seq;
-  structure Par_Tree = MJB_Par_Tree;
-  structure Compactor = MJB_Compactor;
-  structure Stopwatch = MJB_Stopwatch;
+  structure Future = Future_Wrapper;
+  structure Par_Seq = Safe_Parallel_Seq;
+  structure Par_Tree = Parallel_Tree;
   
   (*Log the future data*)
   fun log_future_data data lvl =

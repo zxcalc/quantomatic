@@ -1,6 +1,6 @@
 (*This structure contains a number of functions to simplify dealing with graphs.
 It abstracts away from some of the additional data within the graph.*)
-structure MJB_Simple_Graph_Util =
+structure SimpleGraphUtil =
 struct
   local open Test_BBox_Util; in
   
