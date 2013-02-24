@@ -16,12 +16,13 @@ OS.FileSys.chDir rootDir;
 
 print_depth 3;
 
-PolyML.Project.Log.level_ref := 4;
+PolyML.Project.Log.level_ref := 3;
 PolyML.Project.depend_on_files
   [
    rootDir ^ "/../../isaplib/ROOT.ML",
    rootDir ^ "/ROOT.ML"
   ];
+
 
 
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)

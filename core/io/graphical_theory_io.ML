@@ -115,7 +115,7 @@ struct
           )
       | output (Theory.OVData.NVert d) =
           Json.Object (
-            Json.empty_obj |> update ("is_wire_vertex",Json.Bool true)
+            Json.empty_obj |> update ("is_wire_vertex",Json.Bool false)
                            |> update ("data",IVDataOutputJSON.output d)
           )
   end;

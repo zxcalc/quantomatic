@@ -219,7 +219,14 @@ in
 end
 
 
-local (* Test matching with disjoint !-boxes *)
+local (* Test bbox expansion on self-loops *)
+
+in
+
+end
+
+
+local (* Test matching with nested/overlapping !-boxes *)
   open Test_MkG
   open Test_BGMatchUtil
   structure M = Test_GreedyMatcher

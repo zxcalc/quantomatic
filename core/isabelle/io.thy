@@ -1,4 +1,4 @@
-theory io 
+theory io  
 imports Main graph 
 uses
 
@@ -13,48 +13,58 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* Generic output/input tools *)
  "../../core/io/xml_parse_utils.ML"
  "../../core/io/xml_output_utils.ML"
- "../../core/io/input_generic.ML"
- "../../core/io/output_generic.ML"
+ "../../core/io/input.ML"
+ "../../core/io/output.ML"
+ "../../core/io/json_io.ML"
+ "../../core/io/xml_io.ML"
+(*
  "../../core/io/input_xml.ML"
  "../../core/io/output_xml.ML"
  "../../core/io/input_linrat.ML"
- "../../core/io/output_linrat.ML"
+ "../../core/io/output_linrat.ML" *)
  "../../core/io/reader.ML"
  "../../core/io/writer.ML"
 
-(* component data needs to go before I/O for graphs *)
+(* Expressions *)
+ "../../core/io/linrat_json.ML"
+ "../../core/io/linrat_xml.ML"
+
+(* Graph Component Data *)
+(* component data is a bit of a hack, and has I/O interdependencies *)
  "../../core/theories/component_data.ML"
 
 (* boilerplate data functors for enumerated datatypes *)
  "../../core/theories/enum_data.ML"
 
-(* I/O for graphs *)
- "../../core/io/input_graph_v2.ML"
- "../../core/io/output_graph_v2.ML"
+(* Graphs *)
+ "../../core/io/graph_xml_v2_input.ML"
+ "../../core/io/graph_xml_v2_output.ML"
+ "../../core/io/graph_json.ML"
+ "../../core/io/graph_annotations_xml_input.ML"
+ "../../core/io/graph_annotations_xml_output.ML"
+ "../../core/io/graph_annotations_json.ML"
 
- "../../core/io/input_graph_annotations.ML"
- "../../core/io/output_graph_annotations.ML"
+(* Rules *)
+ "../../core/io/rule_xml_output.ML"
+ "../../core/io/rule_xml_input.ML"
+ "../../core/io/rule_json.ML"
 
-(* basic definition of a rewrite rule (as a pair of graphs) *)
- "../../core/rewriting/rule.ML"
- "../../core/io/output_rule.ML"
- "../../core/io/input_rule.ML"
+(* Rulesets *)
+ "../../core/io/ruleset_xml_input.ML"
+ "../../core/io/ruleset_xml_output.ML"
+ "../../core/io/ruleset_json.ML"
+ "../../core/io/ruleset_annotations_xml_input.ML"
+ "../../core/io/ruleset_annotations_xml_output.ML"
+ "../../core/io/ruleset_annotations_json.ML"
 
-(* rule sets *)
- "../../core/theories/ruleset.ML"
- "../../core/io/input_ruleset.ML"
- "../../core/io/output_ruleset.ML"
- "../../core/theories/ruleset_annotations.ML"
- "../../core/io/input_ruleset_annotations.ML"
- "../../core/io/output_ruleset_annotations.ML"
-
-
-(* package all IO stuff into one place *)
- "../../core/io/io_interface.ML"
+(* Lists of rewrites *)
+ "../../core/io/rewrite_json.ML"
 
 (* Simple dot output for graphs *)
- "../../core/io/output_graph_dot.ML"
+ "../../core/io/graph_dot_output.ML"
 
+(* Package all IO stuff into one place *)
+ "../../core/io/io_interface.ML"
 
 (* matching *)
  "../../core/matching/match_state.ML"
@@ -71,8 +81,9 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* naive pattern-graph wrapper *)
  "../../core/matching/greedy_match_search.ML"
 
-
-
+(*
+ * Rewriting
+ *)
 
 (* substitution of a matched subgraph for another graph *)
  "../../core/rewriting/graph_subst.ML"
@@ -82,9 +93,23 @@ loaded over it. Alternatively, make an xml2 library. *)
 (* Heuristic derived data structures *)
  "../../core/rewriting/heuristic/distancematrix.ML" (* distance matrix *)
 
+
+
+
+
+
+
+
+
+
+
 (* construction of everything in a graphical theory from just param *)
  "../../core/theories/graphical_theory.ML"
+ "../../core/io/graphical_theory_io.ML"
 
+(*
+ "../../core/io/output_graph_dot.ML"
+*)
 begin
 
 end;

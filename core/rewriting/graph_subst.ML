@@ -30,7 +30,7 @@ signature GRAPH_SUBST
   val rewrite : match (* match of lhs *)
              -> graph (* replace with this rhs (not inst yet, but with
                          same boundary names as match pattern) *)
-             -> (graph*graph) (* new rhs, as it is named/expanded in result graph *)
+             -> (graph*graph) (* new lhs->rhs, as it is named/expanded in result graph *)
                 * graph (* new, rewritten graph *)
 
 end;
@@ -147,7 +147,7 @@ functor BangGraphSubst(MatchState : BANG_GRAPH_MATCH_STATE)
 
   structure Log = OGS.Log;
 
-  fun rewrite m = (OGS.rewrite m) o (MatchState.replay_pat_bbox_ops m)
+  fun rewrite m rhs = OGS.rewrite m (MatchState.replay_pat_bbox_ops m rhs)
 
   val do_rewrite = snd oo rewrite;
 

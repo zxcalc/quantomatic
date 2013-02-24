@@ -68,7 +68,6 @@ public class QuantoAutoLayout extends AbstractLayout<Vertex, Edge> {
 		return false;
 	}
 
-	@Override
 	public void initialize() {
 		if (!isWorkToDo()) {
 			return;
