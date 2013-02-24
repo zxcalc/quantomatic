@@ -335,11 +335,13 @@ Testing.make_test "example_code/ROOT.ML";
 PolyML.Project.Log.log 2 "checking if heap is newer than edits...";
 
 if PolyML.Project.heap_is_newer_than_edits "heaps/quanto_child.heap"
-then PolyML.Project.Log.log 2 "NO"
+then (PolyML.Project.Log.log 2 "NO";
+  (*Ensure at the latest heap anyway...(The above does not always work...)*)
+  PolyML.Project.ensure_at_latest_heap ())
 else 
  (PolyML.Project.Log.log 2 "YES...building child heap...";
   PolyML.Project.ensure_at_latest_heap ();
   PolyML.Project.save_project_child_state "heaps/quanto_child.heap");
-  
+
 PolyML.Project.Log.log 2 "done.";
 

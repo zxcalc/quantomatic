@@ -14,7 +14,6 @@ POLYML_HOME=$(shell ../tools/findpoly.sh)
 POLYML=$(POLYML_HOME)/bin/poly -H 200
 POLYML_LIB=$(POLYML_HOME)/lib
 
-
 ################################
 # dynamic variables checked on call to make. 
 ################################
