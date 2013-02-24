@@ -25,7 +25,7 @@ structure XML_Output_Utils : XML_OUTPUT_UTILS
   fun wrap_int_simple name i = wrap_text_simple name (Int.toString i);
 
   fun output_symtab_entries tab = let
-    fun output_entry (k, s) = Elem (("entry", [("name", k)]), [CData s])
+    fun output_entry (k, s) = Elem (("entry", [("name", k)]), [Text s])
   in
     map output_entry (Symtab.dest tab)
   end;
