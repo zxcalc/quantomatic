@@ -34,7 +34,7 @@ THE_BIN=quanto-core
 ################################
 default: bin
 
-$(QUANTO_HEAP):  $(ML_SRC_FILES) 
+$(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
 	echo 'use "make_heap.ML";' | $(POLYML)
 	@echo "Built polyml heap: $(QUANTO_HEAP)"
 
