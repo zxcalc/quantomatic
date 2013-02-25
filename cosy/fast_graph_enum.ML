@@ -35,6 +35,8 @@ struct
   structure Theory = Theory
   structure Metric = Metric
   structure Graph = Theory.Graph
+  (*A finer way to specify the size of the output. The four integers have this format:
+  max number of: (vertices, inputs, outputs, edges)*)
   type size_param = int * int * int * int
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
   (* Ordered Vertices, free inputs, free outputs, list of lists of
@@ -322,33 +324,4 @@ struct
 
   (* recursively adds new graphs to tab by adding one new edge to each irredex *)
   (* tab_add_edges : [adjmat] -> EqClassTab -> EqClassTab *)
-  (*fun tab_add_edges [] tab = tab
-    | tab_add_edges egs tab = let
-      val egs' = maps add_edge egs 
-      val (irreds,tab') = EqClassTab.update (map (fn eg => to_graph_entry (eg,0)) egs') tab
-    in tab_add_edges (map (fst o GraphEntry.get_data) irreds) tab'
-    end
-
-  (* adds new graphs with one new vertex and any possible number of extra edges *)
-  (* tab_add_gens : generator list -> EqClassTab -> EqClassTab *)
-  fun tab_add_gens gens tab = let
-    val irred_graphs = filter_max (fn (g,i) => i + adjmat_size g) (*Only add vertices to large ones becuase if we added to a small one we would reproduce another*)
-                      (map GraphEntry.get_data (EqClassTab.get_irredexes tab))
-                      (*The call to update here forces matching checks over the entire table*)
-    (*We add one identity wire*)
-    val (_,tab') = EqClassTab.update (map (fn (am,i) => to_graph_entry (am,i+1)) irred_graphs) tab
-    val irred_graphs = map fst (filter (fn (g,i) => i=0) irred_graphs) (*have no identity wires*)
-    (*Each generator has different types/inputs/outputs. Easier to parallelise here*)
-    val graphs = flat (map (add_gens gens) irred_graphs) (*adds 1 vertex and all possible edges to connect it to (largest branch)*)
-  in List.foldl (fn (g,t) => tab_add_edges [g] t) tab' graphs
-  end*)
-
-  
-  (*fun tab_update gens max_verts tab =
-    funpow max_verts (tab_add_gens gens)
-    (snd (EqClassTab.update [to_graph_entry (([],[],[],[]),0)] tab))
-  
-  (* Creates a table of graphs up to a certain size *)
-  (* tab_enum : generator list -> Int -> EqClassTab *)
-  fun tab_enum gens max_verts = EqClassTab.empty |> tab_update gens max_verts*)
 end

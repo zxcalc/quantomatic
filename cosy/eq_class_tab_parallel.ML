@@ -21,7 +21,7 @@ this is still true (?). Presumably it is correct to say that two graphs are equi
 Each equivalence class table has its own DNET and its own table of equivalence classes
 (which uses a hash by arity I think for efficiency)
 It can also have its own initial rule set*)
-signature MJB_EQ_CLASS_TAB =
+signature PARALLEL_EQ_CLASS_TAB =
 sig
   type T
   structure Theory : GRAPHICAL_THEORY
@@ -84,7 +84,7 @@ sig
 end
 
 (*The equivalence class table itself! WOOO!*)
-functor MJB_EqClassTab(
+functor ParallelEqClassTab(
   structure Theory : GRAPHICAL_THEORY
   (*This will tell the EqTab whether one graph is larger, smaller or equal to another graph in size.
   Don't worry about how the metric actually works - you don't need to know (tensors?)*)
@@ -101,7 +101,7 @@ functor MJB_EqClassTab(
           Equiv.Graph.SharingOGraph
   type data
   val default_data : data
-) : MJB_EQ_CLASS_TAB =
+) : PARALLEL_EQ_CLASS_TAB =
 struct
   (*Set lots of stuff*)
   structure Theory = Theory

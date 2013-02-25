@@ -1,4 +1,4 @@
-functor MJB_FastGraphEnum(
+functor ParallelFastGraphEnum(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
   structure Equiv : GRAPH_EQUIV
@@ -11,9 +11,8 @@ struct
   structure Metric = Metric
   structure Graph = Theory.Graph
   (*Import all of the parallel structures*)
-  structure Par_Seq = MJB_Safe_Parallel_Seq;
-  structure Compactor = MJB_Compactor;
-  structure Future = MJB_Simple_Future;
+  structure Par_Seq = Safe_Parallel_Seq;
+  structure Future = Future_Wrapper;
   
   type size_param = int * int * int * int
   type generator = (Theory.Graph.VData.data * int * int) (* generators (data + arities) *)
@@ -32,7 +31,7 @@ struct
     Theory.Graph.VData.data_eq (data1, data2) andalso
     (i1,o1) = (i2,o2) (*Generator of graphs is the same*)
   
-  structure EqClassTab = MJB_EqClassTab(
+  structure EqClassTab = ParallelEqClassTab(
     structure Theory = Theory
     structure Metric = Metric
     structure Equiv = Equiv
@@ -350,7 +349,7 @@ struct
             res_list
           end
         (*Keeping merging until only one equivalence class table remains...*)
-        fun merge_list_all [] = raise ERROR "No equivalence class table";
+        fun merge_list_all [] = raise ERROR "No equivalence class table"
           | merge_list_all [x] = x
           | merge_list_all xs = merge_list_all (merge_list_once xs);
         (*Perform the merge!*)
