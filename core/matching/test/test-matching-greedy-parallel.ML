@@ -1,7 +1,7 @@
 local (* Test matching with concrete graphs *)
   open Test_MkG
   open Test_BGMatchUtil
-  structure M = MJB_Test_GreedyMatcher_Parallel
+  structure M = Test_GreedyMatcherParallel
 
   val c1 = V.mk "c1"
   val in1 = V.mk "in1"
@@ -51,7 +51,7 @@ end
 local (* Test matching with disjoint !-boxes *)
   open Test_MkG
   open Test_BGMatchUtil
-  structure M = MJB_Test_GreedyMatcher_Parallel
+  structure M = Test_GreedyMatcherParallel
 
   val c1 = V.mk "c1"
   val c2 = V.mk "c2"
@@ -222,7 +222,7 @@ end
 local (* Test matching with disjoint !-boxes *)
   open Test_MkG
   open Test_BGMatchUtil
-  structure M = MJB_Test_GreedyMatcher_Parallel
+  structure M = Test_GreedyMatcherParallel
 
   val lvl0 = V.mk "l0"
   val lvl1a = V.mk "l1-a"

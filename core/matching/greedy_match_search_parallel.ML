@@ -7,7 +7,7 @@
  * graph, and then picks an arbitrary top-level !-box and tries
  * both expanding it and killing it.
  *)
-functor MJB_GreedyMatchSearchParallel(
+functor GreedyMatchSearchParallel(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
     (* This arg is required to make typing work sanely. *)
     (* It must be the same structure as the one in InnerMatchSearch *)
@@ -17,7 +17,7 @@ functor MJB_GreedyMatchSearchParallel(
 struct
   local
   (*For all of the future calls that I need!*)
-  open MJB_Simple_Future;
+  open Future_Wrapper;
   in
   structure Log : LOG = Log(val init_level = 0);
 
@@ -27,11 +27,9 @@ struct
   structure G = InnerMatchSearch.G
   
   (*For ease of use*)
-  structure Future = MJB_Simple_Future;
-  structure Par_Seq = MJB_Safe_Parallel_Seq;
-  structure Par_Tree = MJB_Par_Tree;
-  structure Stopwatch = MJB_Stopwatch;
-  structure Compactor = MJB_Compactor;
+  structure Future = Future_Wrapper;
+  structure Par_Seq = Safe_Parallel_Seq;
+  structure Par_Tree = Parallel_Tree;
   
   (*
   PARALLELISATION DETAILS:

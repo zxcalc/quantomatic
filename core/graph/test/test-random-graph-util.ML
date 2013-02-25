@@ -3,7 +3,7 @@
 This uses the random number generator inside isabelle: basics/library.ML
 This random number generator uses references, so multiple instances of
 Random_Graph should not be run at the same time.*)
-signature MJB_RANDOM_GRAPH =
+signature RANDOM_GRAPH_GENERATOR =
 sig
   type T (*The type of the graph structure usually*)
   type dir_or_undir (*Directed or undirected for edges*)
@@ -106,10 +106,10 @@ end;
 
 (*A structure for generating "random" graphs for testing purposes.
 Not opaque so that you can use existing graphs.*)
-structure MJB_Random_Graph : MJB_RANDOM_GRAPH =
+structure RandomGraphGenerator : RANDOM_GRAPH_GENERATOR =
 struct
 
-  local open Test_BBox_Util; open MJB_Simple_Graph_Util; in
+  local open Test_BBox_Util; open SimpleGraphUtil; in
   
   (***********************************************************)
   (***************************Types***************************)
@@ -384,12 +384,12 @@ end;
 (*These functions are here to test the random-graph generator.
 Since the graphs are generated at random, it is more
 what is created that is of interest...*)
-structure MJB_Test_Random_Graph =
+structure Test_RandomGraphGenerator =
 struct
   local
   open Test_BBox_Util;
-  open MJB_Random_Graph;
-  open MJB_Simple_Graph_Util;
+  open RandomGraphGenerator;
+  open SimpleGraphUtil;
   (*Return the number of node vertices in the graph*)
   fun vertex_count g = V.NSet.cardinality (G.get_node_vertices g)
   in

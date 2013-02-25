@@ -1,7 +1,7 @@
 (* A wrapper for matching concrete graphs against concrete graphs *)
 (* see docs/matching_algo for details *)
 (* This wrapper is very simple, as the InnerMatchSearch does all the work *)
-functor MJB_ConcreteMatchSearch(
+functor ConcreteMatchSearchParallel(
     structure InnerMatchSearch : INNER_MATCH_SEARCH
 ) : MATCH_SEARCH =
 struct
@@ -11,8 +11,8 @@ struct
   structure G = InnerMatchSearch.G
   
   (*For ease of use*)
-  structure Future = MJB_Simple_Future;
-  structure Par_Seq = MJB_Safe_Parallel_Seq;
+  structure Future = Future_Wrapper;
+  structure Par_Seq = Safe_Parallel_Seq;
   
   (* We can't provide any information that the inner match search
    * does not already know *)

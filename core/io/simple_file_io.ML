@@ -1,6 +1,6 @@
 (*This signature provides easy access to reading
 and writing to a file*)
-signature MJB_FILE =
+signature SIMPLE_FILE_IO =
 sig
 	exception FileNotForReading of string (*Thrown if the wrong file is used in a function*)
 	exception FileNotForWriting of string (*The string is the path name in full*)
@@ -29,7 +29,7 @@ sig
 end;
 
 (*A simple implementation. This is NOT thread safe*)
-structure MJB_File :> MJB_FILE =
+structure SimpleFileIO :> SIMPLE_FILE_IO =
 struct
 	exception FileNotForReading of string (*Thrown if the wrong file is used in a function*)
 	exception FileNotForWriting of string (*The string is the path name in full*)

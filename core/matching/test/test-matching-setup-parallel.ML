@@ -1,12 +1,12 @@
 
-structure MJB_Test_InnerMatcher_Parallel =
-  MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_MatchState);
-structure MJB_Test_BGInnerMatcher_Parallel =
-  MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
-structure MJB_Test_ConcreteMatcher_Parallel =
-  MJB_ConcreteMatchSearch(structure InnerMatchSearch = MJB_Test_InnerMatcher_Parallel);
-structure MJB_Test_GreedyMatcher_Parallel =
-  MJB_GreedyMatchSearchParallel(
+structure Test_InnerMatcherParallel =
+  SimpleInnerMatchSearchParallel(structure MatchState = Test_MatchState);
+structure Test_BGInnerMatcherParallel =
+  SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
+structure Test_ConcreteMatcherParallel =
+  ConcreteMatchSearchParallel(structure InnerMatchSearch = Test_InnerMatcherParallel);
+structure Test_GreedyMatcherParallel =
+  GreedyMatchSearchParallel(
     structure InnerMatchSearch = Test_BGInnerMatcher
     structure BGMatchState = Test_BGMatchState
   );

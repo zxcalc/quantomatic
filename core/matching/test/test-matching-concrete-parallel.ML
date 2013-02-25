@@ -2,7 +2,7 @@
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = MJB_Test_ConcreteMatcher_Parallel
+  structure M = Test_ConcreteMatcherParallel
   
   val g = G.empty
   val b1 = V.mk "b1"
@@ -61,7 +61,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = MJB_Test_ConcreteMatcher_Parallel
+  structure M = Test_ConcreteMatcherParallel
   
   val g = G.empty
   val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
@@ -94,7 +94,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = MJB_Test_ConcreteMatcher_Parallel
+  structure M = Test_ConcreteMatcherParallel
   
   val g = G.empty
   val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
@@ -205,7 +205,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = MJB_Test_ConcreteMatcher_Parallel
+  structure M = Test_ConcreteMatcherParallel
 
   val g = G.empty
   val x1 = V.mk "x1"
@@ -270,7 +270,7 @@ end
 local
   open Test_MkG
   open Test_MatchUtil
-  structure M = MJB_Test_ConcreteMatcher_Parallel
+  structure M = Test_ConcreteMatcherParallel
 
   val g = G.empty
   val b1 = V.mk "b1"

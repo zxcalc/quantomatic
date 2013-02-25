@@ -4,10 +4,10 @@ as well as the greedy algorithm which supports bang box expansion.*)
 
 local
   (*Files needed for sanity*)
-  open MJB_Random_Graph;
+  open RandomGraphGenerator;
   open Test_BBox_Util;
   open Test_BGMatchUtil;
-  open MJB_Simple_Graph_Util;
+  open SimpleGraphUtil;
   (*The original structures:*)
   structure Concrete_M = Test_ConcreteMatcher;
   structure Greedy_M = Test_GreedyMatcher;
@@ -15,20 +15,19 @@ local
   structure Inner_BG_M = Test_BGInnerMatcher;
   structure MatchState = Inner_M.MatchState;
   (*Parallel versions:*)
-  structure Inner_Parallel_M = MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_MatchState);
-  structure Concrete_Parallel_M = MJB_ConcreteMatchSearch(structure InnerMatchSearch = Inner_Parallel_M);
+  structure Inner_Parallel_M = SimpleInnerMatchSearchParallel(structure MatchState = Test_MatchState);
+  structure Concrete_Parallel_M = ConcreteMatchSearchParallel(structure InnerMatchSearch = Inner_Parallel_M);
   structure Inner_BG_Parallel_M =
-  MJB_SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
-  structure Greedy_Parallel_M = MJB_GreedyMatchSearchParallel(
+  SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
+  structure Greedy_Parallel_M = GreedyMatchSearchParallel(
     
   (*structure InnerMatchSearch = Inner_BG_Parallel_M (*Uses parallel atm*)*)
     structure InnerMatchSearch = Inner_BG_M;
     structure BGMatchState = Test_BGMatchState);
   
   (*Other useful structures:*)
-  structure Stopwatch = MJB_Stopwatch; (*For timing things*)
-  structure File = MJB_File; (*For writing to files*)
-  structure Future = MJB_Simple_Future;
+  structure File = SimpleFileIO; (*For writing to files*)
+  structure Future = Future_Wrapper;
   
   fun infinite() = infinite()
   (*Wrap a sequential function to make it behave more "fairly"*)
@@ -155,7 +154,7 @@ local
 in
   (*A structure containing the functions for dealing with the file.
   Not thread safe!*)
-  structure MJB_Test_Matching_Speed_File =
+  structure Test_MatchingSpeedFile =
   struct
     exception ERROR of string
     (*The default file to use*)
@@ -194,7 +193,7 @@ in
 
   (*This structure contains predefined (not random) graphs
   for testing purposes*)
-  structure MJB_Test_Predfined_Graphs =
+  structure Test_MatchingSpeedPredfinedGraphs =
   struct
     (*A graph with a fixed number of circles*)
     val circle_graph = circles_target 4
@@ -312,9 +311,9 @@ in
   end;
   
   (*A structure contain various print functions:*)
-  structure MJB_Printers =
+  structure Test_MatchingSpeedPrinters =
   struct
-    structure File_Aux = MJB_Test_Matching_Speed_File;
+    structure File_Aux = Test_MatchingSpeedFile;
     (*This printer will print the following:
     
     Time taken (ns)
@@ -356,11 +355,11 @@ in
   various matching algorithms. Note that none of these functions are run
   unless explicitly called, since these are generally time consuming.
   Therefore, they're not run at compile time!*)
-  structure MJB_Test_Matching_Speed =
+  structure Test_MatchingSpeed =
   struct
-    structure Graphs = MJB_Test_Predfined_Graphs;
-    structure Printers = MJB_Printers;
-    structure File_Aux = Printers.File_Aux;
+    structure Graphs = Test_MatchingSpeedPredfinedGraphs;
+    structure Printers = Test_MatchingSpeedPrinters;
+    structure File_Aux = Test_MatchingSpeedPrinters.File_Aux;
     
     (*Wrap a sequential function to make it behave more "fairly"*)
     
