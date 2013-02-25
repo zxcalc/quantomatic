@@ -94,7 +94,7 @@ structure GHZWCosy = CosyUtil(
 )
 
 (*Run the algorithm!!! Please...*)
-structure MJB_Fast_Graph_Enum_Tests =
+structure Test_FastGraphEnumSpeed =
 struct
   (*max number of: (vertices, inputs, outputs, edges)*)
   val limits = (2,2,2,2)
