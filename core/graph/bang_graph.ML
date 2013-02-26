@@ -508,16 +508,15 @@ functor BasicBangGraphFun(
           Pretty.block
             [Pretty.str "  ", (* indent *)
              Pretty.chunks
-               ((if B.NSet.is_empty (get_bboxes g) then []
-                 else [Pretty.block
+               ([Pretty.block
                          [Pretty.str "Bang-Boxes: ",
-                          B.NSet.pretty (get_empty_bboxes g)],
+                          B.NSet.pretty (get_bboxes g)],
                        Pretty.block
-                         [Pretty.str "Bang-Box relation: ",
+                         [Pretty.str "BB relation: ",
                           BVBRel.pretty (get_bbox_rel g)],
                        Pretty.block
-                         [Pretty.str "Bang-Box parent relation: ",
-                          BMap.pretty (get_bbox_parent_rel g)]])
+                         [Pretty.str "BB parents: ",
+                          BMap.pretty (get_bbox_parent_rel g)]]
                 @ [G.pretty g])],
           Pretty.str "}"
         ];

@@ -155,6 +155,7 @@ functor BangGraphMatchState(
     }
   );
   open OGMS;
+  
 
   (* override data things from OGraphMatchState *)
   type data = data2
@@ -175,6 +176,22 @@ functor BangGraphMatchState(
 
   val get_warnings = get_warnings_of_bdata o OGMS.get_data;
   val add_warning = OGMS.update_data o add_warning_of_bdata;
+  
+  fun pretty ms = let
+    fun pretty_vset prefix vs =
+      if V.NSet.is_empty vs then []
+      else [Pretty.block [
+              Pretty.str (prefix^": "),
+              V.NSet.pretty vs
+           ]]
+  in Pretty.chunks(
+    [Pretty.str "BangGraphMatchState{",OGMS.pretty ms] @
+    (pretty_vset "Pattern avoids" (get_pat_avoids ms)) @
+    (pretty_vset "Pattern tracked" (get_pat_tracked ms)) @
+    [Pretty.str "}"])
+  end
+
+  val print = Pretty.writeln o pretty
 
   fun schedule_concrete new_vs new_es ms = let
     val pat = get_pat ms
@@ -237,9 +254,15 @@ functor BangGraphMatchState(
     | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
         val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
         val vrn = V.Rnm.mk V.NSet.empty v_avoid vmap
+        (*val _ = TextIO.print ">>>>> replaying: BBCopy on \n"*)
+        (*val _ = G.print g*)
+        (*val _ = TextIO.print "\n>>>>> with renamer: \n"*)
+        (*val _ = V.Rnm.print vrn*)
         val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
         val brn = B.Rnm.mk B.NSet.empty (BG.get_bboxes g) bmap
+        (*val _ = TextIO.print "\n>>>>> performing expand\n"*)
         val (_,g') = BG.expand1_bbox bbox ((vrn,ern,brn),g)
+        (*val _ = TextIO.print "\n>>>>> BBCopy done\n"*)
       in g' end
 
   fun replay_pat_bbox_ops ms = let

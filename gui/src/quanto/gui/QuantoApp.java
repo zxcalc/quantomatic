@@ -31,7 +31,7 @@ public class QuantoApp {
 
 	private static final boolean LOG_PROTOCOL = false;
 	private static final boolean LOG_JUNG = false;
-	private static final boolean LOG_QUANTO = false;
+	private static final boolean LOG_QUANTO = true;
 	private final static Logger logger =
 			Logger.getLogger("quanto.gui");
 	// isMac is used for CTRL vs META shortcuts, etc

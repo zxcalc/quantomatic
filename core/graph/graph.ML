@@ -709,13 +709,16 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
             in
               fold_adj (* for each connected edge *)
                 (fn (inctyp,v2,(e, dir_and_data)) =>
-                 fn (r_g as ((vrn,_), _)) =>
+                 fn (r_g as ((vrn,_), g'')) =>
                     (* has the other end of the edge already been added? *)
                     if V.NSet.contains vset v2 then 
                       (case V.Rnm.lookup vrn v2 of 
                            NONE => r_g
                          (* add edges to any other adjacent stuff that has already been copied *)
-                         | SOME v2' => copy1edge inctyp (e, dir_and_data) v' v2' r_g)
+                         | SOME v2' =>
+                             if (has_vname g'' v2')
+                             then copy1edge inctyp (e, dir_and_data) v' v2' r_g
+                             else r_g)
                      else (* if outside of vset, copy edge to vertex outside *)
                         copy1edge inctyp (e, dir_and_data) v' v2 r_g
                 ) g' v ((vrn',ern),g')

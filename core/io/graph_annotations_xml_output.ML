@@ -21,7 +21,7 @@ structure OutputGraphStringTableAnnotationsXML : OUTPUT_XML
   open XML;
   open XML_Output_Utils;
 
-  fun output_symtab_entry (k, s) = Elem (("entry", [("name", k)]), [CData s]);
+  fun output_symtab_entry (k, s) = Elem (("entry", [("name", k)]), [Text s]);
   fun output_symtab tab = map output_symtab_entry (Symtab.dest tab);
 
   fun output_graph_user_data ud =
