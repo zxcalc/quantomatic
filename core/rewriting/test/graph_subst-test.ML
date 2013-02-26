@@ -1,11 +1,13 @@
 (* FIXME: remove *)
 structure DB_Test_OGraphSubst = OGraphSubst(Test_MatchState);
 structure Test_OGraphSubst : GRAPH_SUBST = DB_Test_OGraphSubst;
-Test_OGraphSubst.Log.level_ref := 4;
+(* set to 4 for really detailed messages *)
+(* Test_OGraphSubst.Log.level_ref := 2; *)
 
 structure DB_Test_BangGraphSubst = BangGraphSubst(Test_BGMatchState);
 structure Test_BangGraphSubst : GRAPH_SUBST = DB_Test_BangGraphSubst;
-Test_BangGraphSubst.Log.level_ref := 4;
+(* set to 4 for really detailed messages *)
+(* Test_BangGraphSubst.Log.level_ref := 2; *)
 
 local
 open Test_RG_MkG;

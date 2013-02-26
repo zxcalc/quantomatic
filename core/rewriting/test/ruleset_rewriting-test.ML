@@ -6,7 +6,7 @@ structure DB_Test_RG_RulesetRewriter = RulesetRewriter(
 );
 structure Test_RG_RulesetRewriter : RULESET_REWRITER = DB_Test_RG_RulesetRewriter;
 (* set to 4 for really detailed messages *)
-Test_RG_RulesetRewriter.Log.level_ref := 2;
+(* Test_RG_RulesetRewriter.Log.level_ref := 2; *)
 
 local
 open Test_RG_MkG;

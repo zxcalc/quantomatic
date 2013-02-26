@@ -22,10 +22,12 @@ structure Test_GreedyMatcher =
     structure BGMatchState = Test_BGMatchState
   );
 (* set to 4 for really detailed messages *)
+(*
 Test_InnerMatcher.Log.level_ref := 2;
 Test_BGInnerMatcher.Log.level_ref := 2;
 Test_ConcreteMatcher.Log.level_ref := 2;
 Test_GreedyMatcher.Log.level_ref := 2;
+*)
 
 structure Test_MatchUtil =
 struct
