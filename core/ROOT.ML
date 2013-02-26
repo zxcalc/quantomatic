@@ -131,7 +131,6 @@ PolyML.Project.make "theories/ruleset_annotations.ML";
 PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
-Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "theories/test/ruleset-test.ML";
 
 
@@ -152,6 +151,7 @@ PolyML.Project.make "matching/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
 
+Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-matching-concrete.ML";

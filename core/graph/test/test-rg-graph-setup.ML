@@ -276,4 +276,5 @@ struct
 end
 
 structure Test_RG_Rule = Rule(Test_RG_Graph);
+structure Test_RG_Ruleset = Ruleset(Test_RG_Rule);
 
