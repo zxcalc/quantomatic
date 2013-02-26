@@ -13,14 +13,14 @@ PRG="$(basename "$0")"
 function choosefrom ()
 {
   local RESULT=""
-  local FILE=""
+  local DIR=""
 
-  for FILE in "$@"
+  for DIR in "$@"
   do
-    [ -z "$RESULT" -a -e "$FILE" ] && RESULT="$FILE"
+    [ -z "$RESULT" -a -d "$DIR" -a -x "$DIR/bin/poly" ] && RESULT="$DIR"
   done
 
-  [ -z "$RESULT" ] && RESULT="$FILE"
+  [ -z "$RESULT" ] && RESULT="$DIR"
   echo "$RESULT"
 }
 
