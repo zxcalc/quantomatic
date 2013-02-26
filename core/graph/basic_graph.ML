@@ -201,18 +201,12 @@ fun update_param f (Graph rep) =
             param = f(#param rep), data = #data rep };
 val set_vertices = update_vertices o K;
 val set_edges = update_edges o K;
-val set_param = update_param o K;
 
 fun get_vertices (Graph rep) = #vertices rep;
 fun get_edges (Graph rep) = #edges rep;
 fun get_param (Graph rep) = #param rep;
 
 fun get_xnames g = Param.get_xnames (get_param g);
-
-val get_vertex_list = V.NTab.list_of o get_vertices;
-val get_edge_list = E.NTab.list_of o get_edges;
-val get_vertex_nset = V.NTab.get_nameset o get_vertices;
-val get_edge_nset = E.NTab.get_nameset o get_edges;
 
 (* implicit: g n *)
 val lookup_vertex = V.NTab.lookup o get_vertices
@@ -243,19 +237,6 @@ fun update_vertex_data f n g =
       g |> update_vertices (V.NTab.map_entry (fn (_,ios) => (d2,ios)) n)
         |> update_param (Param.replace_vertex d2 n)
     end;
-fun update_vertex_ins f n = 
-    update_vertices (V.NTab.map_entry 
-                       (fn (nd,(ins,outs)) => (nd,(f ins, outs))) n);
-fun update_vertex_outs f n = 
-    update_vertices (V.NTab.map_entry 
-                       (fn (nd,(ins,outs)) => (nd,(ins, f outs))) n);
-fun update_edge f n g = 
-    let val e = get_edge g n 
-        val e2 as ((bd,d2),fromto) = f e
-    in
-      g |> update_edges (E.NTab.map_entry (fn _ => e2) n)
-        |> update_param (Param.replace_edge d2 n)
-    end;
 fun update_edge_data f n g = 
     let val ((bd,d),fromto) = get_edge g n 
         val d2 = f d
@@ -263,9 +244,6 @@ fun update_edge_data f n g =
       g |> update_edges (E.NTab.map_entry (fn _ => ((bd,d2),fromto)) n)
         |> update_param (Param.replace_edge d2 n)
     end;
-(*     update_edge (fn ((bd,d),fromto) => ((bd,f d),fromto)); *)
-fun update_edge_dir_or_undir f = 
-    update_edge (fn ((bd,d),fromto) => ((f bd,d),fromto));
 
 (* adding a vertex gives back unique name for it and the new graph *)
 fun add_vertex_named_like n nd g =
@@ -278,9 +256,8 @@ fun add_vertex_named_like n nd g =
 
 (* implicit args: g n *)
 val has_vname = V.NTab.contains_name o get_vertices;
-val has_ename = E.NTab.contains_name o get_edges;
 
-fun add_edge_named_like en (e as (bd,d)) n1 n2 g = 
+fun add_edge_named_like en (e as (_,d)) n1 n2 g = 
     let 
       (* make sure the vertices exist *) 
       val _ = if has_vname g n1 then
@@ -308,7 +285,7 @@ fun add_edge_named_like en (e as (bd,d)) n1 n2 g =
 fun delete_edge en g = 
     let 
       val edges = get_edges g
-      val (ed,(fromvn,tovn)) =
+      val (_,(fromvn,tovn)) =
           case E.NTab.lookup edges en of 
             NONE => raise no_such_ename_exp ("delete_edge", en, g)
           | SOME x => x;
@@ -333,7 +310,7 @@ fun delete_edge en g =
 fun delete_vertex n g = 
     let 
       val vertices = get_vertices g
-      val (nd,(ins,outs)) =
+      val (_,(ins,outs)) =
           case V.NTab.lookup vertices n of 
             NONE => raise no_such_vname_exp ("delete_vertex", n, g)
           | SOME x => x;
@@ -445,13 +422,10 @@ fun rename_ename en1 en2 g =
     (* no_such_ename_exp ("rename_vname", en1, g) *)
 
 
-fun pretty_edge_dir_or_undir Directed = Pretty.str "dir"
-  | pretty_edge_dir_or_undir UnDirected = Pretty.str "bidir";
-
 fun pretty_edge_connector Directed = Pretty.str "->"
   | pretty_edge_connector UnDirected = Pretty.str "--";
 
-fun pretty_theory_name g = Param.pretty_theory_name;
+fun pretty_theory_name _ = Param.pretty_theory_name;
 
 (* pretty printing *)
 fun pretty g = 

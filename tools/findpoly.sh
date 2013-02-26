@@ -37,8 +37,8 @@ fi
 POLYML_HOME=$(choosefrom \
   "$POLYML_HOME" \
   "$CONTRIB_POLY_DIR" \
-  "$POLYML_IN_PATH" \
   "$LOCAL_POLY_DIR" \
+  "$POLYML_IN_PATH" \
   "/usr/local/polyml" \
   "/usr/share/polyml" \
   "/opt/polyml" \

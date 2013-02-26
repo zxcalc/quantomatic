@@ -137,11 +137,6 @@ end;
 (* TODO: make this have a signature & fit into GRAPH_PARAM signature. *)
 functor NoInternalDataGraphParam(type vdata type edata) = 
 struct 
-  type T = unit;
-  
-  fun get_xnames () = X.NSet.empty;
-  val empty = ();
-
   (* INTERNAL NAME DEPENDENCIES *)
   (* internal name data *)
   type T = unit;
@@ -152,22 +147,22 @@ struct
   
   (* empty name-dependency information *)
   val empty = ();
-  fun get_xnames d = X.NSet.empty;
-  fun subst_xname_in_vdata n1 n2 d = d
-  fun subst_xname_in_edata n1 n2 d = d 
-  fun add_vertex vd vn vdep = vdep;
-  fun add_edge ed en vdep = vdep;
-  fun of_vertex vd vn = empty;
-  fun of_edge en ed = empty;
-  fun delete_vname vn vdep = vdep;
-  fun delete_ename en vdep = vdep;
-  fun rename_xname n1 n2 d = d;
-  fun rename_vname n1 n2 d = d;
-  fun rename_ename n1 n2 d = d;
-  fun replace_vertex vd vn vdep = vdep; 
-  fun replace_edge ed en vdep = vdep;
-  fun dep_vnames_of_xname () n = V.NSet.empty;
-  fun dep_enames_of_xname () n = E.NSet.empty; 
+  fun get_xnames _ = X.NSet.empty;
+  fun subst_xname_in_vdata _ _ d = d
+  fun subst_xname_in_edata _ _ d = d 
+  fun add_vertex _ _ vdep = vdep;
+  fun add_edge _ _ vdep = vdep;
+  fun of_vertex _ _ = empty;
+  fun of_edge _ _ = empty;
+  fun delete_vname _ vdep = vdep;
+  fun delete_ename _ vdep = vdep;
+  fun rename_xname _ _ d = d;
+  fun rename_vname _ _ d = d;
+  fun rename_ename _ _ d = d;
+  fun replace_vertex _ _ vdep = vdep; 
+  fun replace_edge _ _ vdep = vdep;
+  fun dep_vnames_of_xname () _ = V.NSet.empty;
+  fun dep_enames_of_xname () _ = E.NSet.empty; 
   
   (* rename internal names in the dependency structure *)
   (* RENAMING *)

@@ -14,9 +14,6 @@ OS.FileSys.chDir (rootDir ^ "/../../isaplib/");
 use "ROOT.ML";
 OS.FileSys.chDir rootDir;
 
-print_depth 3;
-
-PolyML.Project.Log.level_ref := 3;
 PolyML.Project.depend_on_files
   [
    rootDir ^ "/../../isaplib/ROOT.ML",
@@ -29,8 +26,12 @@ PolyML.Project.depend_on_files
 (*                              Local setup                                *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 
-(** For debugging, turn on debug flag: **)
-(* PolyML.Compiler.debug := true; *)
+(** Useful settings for debugging:   **)
+
+(* PolyML.Compiler.debug := true;     *)
+(* PolyML.Project.Log.level_ref := 4; *)
+(* Testing.Log.level_ref := 3;        *)
+(* print_depth 5                      *)
 
 PolyML.Project.optional_make "local_config.ML";
 
