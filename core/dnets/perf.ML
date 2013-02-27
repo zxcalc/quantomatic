@@ -1,6 +1,6 @@
 
   open Test_RG_MkG
-  open Test_MatchUtil
+  open Test_RG_MatchUtil
 
   
   structure LIB = TDNet_Library

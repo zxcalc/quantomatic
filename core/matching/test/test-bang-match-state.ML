@@ -1,8 +1,8 @@
 local (* Test matching with concrete graphs *)
   open Test_RG_MkG
-  open Test_BGMatchUtil
-  structure M = Test_GreedyMatcher
-  structure MS = Test_BGMatchState
+  open Test_RG_BGMatchUtil
+  structure M = Test_RG_GreedyMatcher
+  structure MS = Test_RG_BGMatchState
 
   val v1 = V.mk "v1"
   val v2 = V.mk "v2"

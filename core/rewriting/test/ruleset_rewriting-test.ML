@@ -1,7 +1,7 @@
 (* test construction of Ruleset *)
 structure DB_Test_RG_RulesetRewriter = RulesetRewriter(
   structure Ruleset = Test_RG_Ruleset;
-  structure MatchSearch = Test_GreedyMatcher;
+  structure MatchSearch = Test_RG_GreedyMatcher;
   structure GraphSubst = Test_BangGraphSubst;
 );
 structure Test_RG_RulesetRewriter : RULESET_REWRITER = DB_Test_RG_RulesetRewriter;
@@ -16,7 +16,7 @@ structure IO = Test_IO_Interface_v2;
 structure RulesetRewriter = Test_RG_RulesetRewriter;
 structure Ruleset = Test_RG_Ruleset;
 structure GraphSubst = Test_BangGraphSubst;
-structure MatchSearch = Test_GreedyMatcher;
+structure MatchSearch = Test_RG_GreedyMatcher;
 val ruleset = "../../test/rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
               |> IO.Input.Ruleset.input;

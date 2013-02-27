@@ -1,7 +1,7 @@
 local (* Test matching with concrete graphs *)
   open Test_RG_MkG
-  open Test_BGMatchUtil
-  structure M = Test_GreedyMatcher
+  open Test_RG_BGMatchUtil
+  structure M = Test_RG_GreedyMatcher
 
   val c1 = V.mk "c1"
   val in1 = V.mk "in1"
@@ -50,8 +50,8 @@ end
 
 local (* Test matching with disjoint !-boxes *)
   open Test_RG_MkG
-  open Test_BGMatchUtil
-  structure M = Test_GreedyMatcher
+  open Test_RG_BGMatchUtil
+  structure M = Test_RG_GreedyMatcher
 
   val c1 = V.mk "c1"
   val c2 = V.mk "c2"
@@ -228,8 +228,8 @@ end
 
 local (* Test matching with nested/overlapping !-boxes *)
   open Test_RG_MkG
-  open Test_BGMatchUtil
-  structure M = Test_GreedyMatcher
+  open Test_RG_BGMatchUtil
+  structure M = Test_RG_GreedyMatcher
 
   val lvl0 = V.mk "l0"
   val lvl1a = V.mk "l1-a"
@@ -292,7 +292,7 @@ local (* Test matching with nested/overlapping !-boxes *)
   val tree_2_1_1 = g
 
   fun assert_n_warnings n ms = let
-    val ws = Test_BGMatchState.get_warnings ms
+    val ws = Test_RG_BGMatchState.get_warnings ms
   in
     Testing.assert ((Int.toString n)^" warnings") (length ws = n)
   end

@@ -1,8 +1,8 @@
 
 local
   open Test_RG_MkG
-  open Test_MatchUtil
-  structure M = Test_ConcreteMatcher
+  open Test_RG_MatchUtil
+  structure M = Test_RG_ConcreteMatcher
   
   val g = G.empty
   val b1 = V.mk "b1"
@@ -60,8 +60,8 @@ end
 
 local
   open Test_RG_MkG
-  open Test_MatchUtil
-  structure M = Test_ConcreteMatcher
+  open Test_RG_MatchUtil
+  structure M = Test_RG_ConcreteMatcher
   
   val g = G.empty
   val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
@@ -93,8 +93,8 @@ end
 
 local
   open Test_RG_MkG
-  open Test_MatchUtil
-  structure M = Test_ConcreteMatcher
+  open Test_RG_MatchUtil
+  structure M = Test_RG_ConcreteMatcher
   
   val g = G.empty
   val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
@@ -204,8 +204,8 @@ end
 
 local
   open Test_RG_MkG
-  open Test_MatchUtil
-  structure M = Test_ConcreteMatcher
+  open Test_RG_MatchUtil
+  structure M = Test_RG_ConcreteMatcher
 
   val g = G.empty
   val x1 = V.mk "x1"
@@ -269,8 +269,8 @@ end
 
 local
   open Test_RG_MkG
-  open Test_MatchUtil
-  structure M = Test_ConcreteMatcher
+  open Test_RG_MatchUtil
+  structure M = Test_RG_ConcreteMatcher
 
   val g = G.empty
   val b1 = V.mk "b1"

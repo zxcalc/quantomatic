@@ -1,18 +1,18 @@
 (* FIXME: remove *)
-structure DB_Test_OGraphSubst = OGraphSubst(Test_MatchState);
+structure DB_Test_OGraphSubst = OGraphSubst(Test_RG_MatchState);
 structure Test_OGraphSubst : GRAPH_SUBST = DB_Test_OGraphSubst;
 (* set to 4 for really detailed messages *)
 (* Test_OGraphSubst.Log.level_ref := 2; *)
 
-structure DB_Test_BangGraphSubst = BangGraphSubst(Test_BGMatchState);
+structure DB_Test_BangGraphSubst = BangGraphSubst(Test_RG_BGMatchState);
 structure Test_BangGraphSubst : GRAPH_SUBST = DB_Test_BangGraphSubst;
 (* set to 4 for really detailed messages *)
 (* Test_BangGraphSubst.Log.level_ref := 2; *)
 
 local
 open Test_RG_MkG;
-structure M = Test_ConcreteMatcher;
-structure MS = Test_MatchState;
+structure M = Test_RG_ConcreteMatcher;
+structure MS = Test_RG_MatchState;
 structure GSub = Test_OGraphSubst;
 
 (* some useful names *)
@@ -179,8 +179,8 @@ end
 (* !-box rewriting *)
 local
 open Test_RG_MkG;
-structure M = Test_GreedyMatcher;
-structure MS = Test_BGMatchState;
+structure M = Test_RG_GreedyMatcher;
+structure MS = Test_RG_BGMatchState;
 structure GSub = Test_BangGraphSubst;
 
 (* some useful names *)
