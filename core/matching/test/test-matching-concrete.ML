@@ -1,35 +1,26 @@
 
+(* TODO: tests for different edge data *)
+
 local
-  open Test_RG_MkG
-  open Test_RG_MatchUtil
-  structure M = Test_RG_ConcreteMatcher
+  open Test_Match_Tools;
+  structure M = Test_ConcreteMatcher;
   
-  val g = G.empty
-  val b1 = V.mk "b1"
-  val b2 = V.mk "b2"
-  val g = g |> G.add_named_vertex b1 bvert
-            |> G.add_named_vertex b2 bvert
-            |> G.add_named_edge (E.mk "e1") dir_edge b1 b2
-  val bare_wire = g
+  val bare_wire =
+        G.empty |> add_wv "in1"
+                |> add_wv "out1"
+                |> add_dir_eunit1 "e1" "in1" "out1";
   
-  val g = G.empty
-  val b3 = V.mk "b3"
-  val b4 = V.mk "b4"
-  val b5 = V.mk "b5"
-  val b6 = V.mk "b6"
-  val g = g |> G.add_named_vertex b3 bvert
-            |> G.add_named_vertex b4 bvert
-            |> G.add_named_edge (E.mk "e2") dir_edge b3 b4
-            |> G.add_named_vertex b5 bvert
-            |> G.add_named_vertex b6 bvert
-            |> G.add_named_edge (E.mk "e3") dir_edge b5 b6
-  val two_bare_wires = g
+  val two_bare_wires =
+        G.empty |> add_wv "in1"
+                |> add_wv "out1"
+                |> add_dir_eunit1 "e1" "in1" "out1"
+                |> add_wv "in2"
+                |> add_wv "out2"
+                |> add_dir_eunit1 "e2" "in2" "out2";
   
-  val g = G.empty
-  val b7 = V.mk "b7"
-  val g = g |> G.add_named_vertex b7 bvert
-            |> G.add_named_edge (E.mk "e3") dir_edge b7 b7
-  val circle = g
+  val circle =
+        G.empty |> add_wv "c1"
+                |> add_dir_eunit1 "e1" "c1" "c1";
   
   val mseq = M.match bare_wire G.empty
   val _ = Testing.test "M.match - empty target" (assert_n_match 0 mseq) ()
@@ -54,190 +45,129 @@ local
   val _ = Testing.test "M.match - 2 wires --> circle"  (assert_n_match 1 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR CONCRETE MATCHING OF BARE WIRES PASSED!"
 end
 
 
 local
-  open Test_RG_MkG
-  open Test_RG_MatchUtil
-  structure M = Test_RG_ConcreteMatcher
+  open Test_Match_Tools;
+  structure M = Test_ConcreteMatcher;
   
-  val g = G.empty
-  val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
-  val one_x = g
+  val single_v = G.empty |> add_vunit1 "v1";
+  val double_v = G.empty |> add_vunit1 "vA"
+                         |> add_vunit1 "vB";
   
-  val g = G.empty
-  val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
-            |> G.add_named_vertex (V.mk "x2") (mkX zero_angle)
-  val two_x = g
+  val mseq = M.match single_v G.empty
+  val _ = Testing.test "M.match - one vert --> empty" (assert_n_match 0 mseq) ()
   
-  val mseq = M.match one_x G.empty
-  val _ = Testing.test "M.match - one x --> empty" (assert_n_match 0 mseq) ()
+  val mseq = M.match single_v single_v
+  val _ = Testing.test "M.match - one vert --> one vert" (assert_n_match 1 mseq) ()
   
-  val mseq = M.match one_x one_x
-  val _ = Testing.test "M.match - one x --> one x" (assert_n_match 1 mseq) ()
+  val mseq = M.match single_v double_v
+  val _ = Testing.test "M.match - one vert --> two vert" (assert_n_match 2 mseq) ()
   
-  val mseq = M.match one_x two_x
-  val _ = Testing.test "M.match - one x --> two x" (assert_n_match 2 mseq) ()
+  val mseq = M.match double_v single_v
+  val _ = Testing.test "M.match - two vert --> one vert" (assert_n_match 0 mseq) ()
   
-  val mseq = M.match two_x one_x
-  val _ = Testing.test "M.match - two x --> one x" (assert_n_match 0 mseq) ()
-  
-  val mseq = M.match two_x two_x
-  val _ = Testing.test "M.match - two x --> two x" (assert_n_match 2 mseq) ()
+  val mseq = M.match double_v double_v
+  val _ = Testing.test "M.match - two vert --> two vert" (assert_n_match 2 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR CONCRETE MATCHING OF ISOLATED NODE-VERTICES PASSED!"
 end
 
 local
-  open Test_RG_MkG
-  open Test_RG_MatchUtil
-  structure M = Test_RG_ConcreteMatcher
+  open Test_Match_Tools;
+  structure M = Test_ConcreteMatcher;
   
-  val g = G.empty
-  val g = g |> G.add_named_vertex (V.mk "x1") (mkX zero_angle)
-  val one_x = g
+  val single_v = G.empty |> add_vunit1 "v1";
   
-  val g = G.empty
-  val x2 = V.mk "x2"
-  val x3 = V.mk "x3"
-  val g = g |> G.add_named_vertex x2 (mkX zero_angle)
-            |> G.add_named_vertex x3 (mkX zero_angle)
-            |> G.add_named_edge (E.mk "e1") dir_edge x2 x3
-  val x_to_x = g
-  
-  val g = g |> G.add_named_edge (E.mk "e2") dir_edge x3 x2
-  val x_x_loop = g
-  
-  val g = G.empty
-  val x4 = V.mk "x4"
-  val b1 = V.mk "b1"
-  val g = g |> G.add_named_vertex x4 (mkX zero_angle)
-            |> G.add_named_vertex b1 bvert
-            |> G.add_named_edge (E.mk "e3") dir_edge x4 b1
-  val x_to_b = g
-  
-  val g = G.empty
-  val b2 = V.mk "b2"
-  val x5 = V.mk "x5"
-  val g = g |> G.add_named_vertex b2 bvert
-            |> G.add_named_vertex x5 (mkX zero_angle)
-            |> G.add_named_edge (E.mk "e4") dir_edge b2 x5
-  val b_to_x = g
-  
-  val b3 = V.mk "b3"
-  val b4 = V.mk "b4"
-  val g = g |> G.add_named_vertex b3 bvert
-            |> G.add_named_vertex b4 bvert
-            |> G.add_named_edge (E.mk "e5") dir_edge b3 b4
-  val b_to_x_plus_bw = g
-  
-  val g = x_to_x
-  val b5 = V.mk "b5"
-  val b6 = V.mk "b6"
-  val g = g |> G.add_named_vertex b5 bvert
-            |> G.add_named_vertex b6 bvert
-            |> G.add_named_edge (E.mk "e6") dir_edge b5 x2
-            |> G.add_named_edge (E.mk "e7") dir_edge x3 b6
-  val b_x_x_b = g
+  val barbell = G.empty |> add_vunit1 "v1"
+                        |> add_vunit1 "v2"
+                        |> add_dir_eunit1 "e1" "v1" "v2";
 
-  val g = G.empty
-  val a = V.mk "a"
-  val b = V.mk "b"
-  val c = V.mk "c"
-  val d = V.mk "d"
-  val g = g |> G.add_named_vertex d bvert
-            |> G.add_named_vertex c bvert
-            |> G.add_named_vertex b (mkX zero_angle)
-            |> G.add_named_vertex a (mkX zero_angle)
-            |> G.add_named_edge (E.mk "d") undir_edge a c
-            |> G.add_named_edge (E.mk "c") undir_edge b a
-            |> G.add_named_edge (E.mk "b") undir_edge b a
-            |> G.add_named_edge (E.mk "a") undir_edge d b
-  val x_isom_lhs = g
+  val loop = barbell |> add_dir_eunit1 "e2" "v2" "v1";
+  
+  val out_v = G.empty |> add_vunit1 "v1"
+                      |> add_wv "out1"
+                      |> add_dir_eunit1 "e1" "v1" "out1";
 
-  val g = G.empty;
-  val va = V.mk "Va"
-  val vb = V.mk "Vb"
-  val vc = V.mk "Vc"
-  val vd = V.mk "Vd"
-  val g = g |> G.add_named_vertex vd bvert
-            |> G.add_named_vertex vc (mkX zero_angle)
-            |> G.add_named_vertex vb (mkX zero_angle)
-            |> G.add_named_vertex va bvert
-            |> G.add_named_edge (E.mk "Ed") undir_edge vc vd
-            |> G.add_named_edge (E.mk "Ec") undir_edge vb vc
-            |> G.add_named_edge (E.mk "Eb") undir_edge vb vc
-            |> G.add_named_edge (E.mk "Ea") undir_edge va vb
-  val x_isom_lhs_2 = g
+  val in_v = G.empty |> add_vunit1 "v1"
+                     |> add_wv "in1"
+                     |> add_dir_eunit1 "e1" "in1" "v1";
   
-  val mseq = M.match G.empty one_x
-  val _ = Testing.test "M.match - empty --> one x" (assert_n_match 1 mseq) ()
+  val in_v_and_wire = in_v |> add_wv "in2"
+                           |> add_wv "out2"
+                           |> add_dir_eunit1 "bw" "in2" "out2";
+
+  val line = barbell |> add_wv "in1"
+                     |> add_wv "out1"
+                     |> add_dir_eunit1 "e2" "in1" "v1"
+                     |> add_dir_eunit1 "e3" "v2" "out1";
+
+  val isom_lhs = G.empty |> add_vunit1 "a"
+                         |> add_vunit1 "b"
+                         |> add_wv "c"
+                         |> add_wv "d"
+                         |> add_undir_eunit1 "a" "d" "b"
+                         |> add_undir_eunit1 "b" "b" "a"
+                         |> add_undir_eunit1 "c" "b" "a"
+                         |> add_undir_eunit1 "d" "a" "c"
+
+  val isom_lhs_2 = G.empty |> add_wv "Va"
+                           |> add_vunit1 "Vb"
+                           |> add_vunit1 "Vc"
+                           |> add_wv "Vd"
+                           |> add_undir_eunit1 "Ea" "Va" "Vb"
+                           |> add_undir_eunit1 "Eb" "Vb" "Vc"
+                           |> add_undir_eunit1 "Ec" "Vb" "Vc"
+                           |> add_undir_eunit1 "Ed" "Vc" "Vd";
   
-  val mseq = M.match one_x x_to_x
-  val _ = Testing.test "M.match - one x --> x to x" (assert_n_match 0 mseq) ()
+  val mseq = M.match G.empty single_v
+  val _ = Testing.test "M.match - empty --> one vert" (assert_n_match 1 mseq) ()
   
-  val mseq = M.match x_to_x x_to_x
-  val _ = Testing.test "M.match - x to x --> x to x" (assert_n_match 1 mseq) ()
+  val mseq = M.match single_v barbell
+  val _ = Testing.test "M.match - one vert --> v to v" (assert_n_match 0 mseq) ()
   
-  val mseq = M.match x_to_b x_to_x
-  val _ = Testing.test "M.match - x to b --> x to x" (assert_n_match 1 mseq) ()
+  val mseq = M.match barbell barbell
+  val _ = Testing.test "M.match - v to v --> v to v" (assert_n_match 1 mseq) ()
   
-  val mseq = M.match b_to_x x_to_x
-  val _ = Testing.test "M.match - b to x --> x to x" (assert_n_match 1 mseq) ()
+  val mseq = M.match out_v barbell
+  val _ = Testing.test "M.match - v to w --> v to v" (assert_n_match 1 mseq) ()
   
-  val mseq = M.match b_to_x_plus_bw x_to_x
-  val _ = Testing.test "M.match - b to x + bare wire --> x to x" (assert_n_match 1 mseq) ()
+  val mseq = M.match in_v barbell
+  val _ = Testing.test "M.match - w to v --> v to v" (assert_n_match 1 mseq) ()
   
-  val mseq = M.match b_x_x_b x_x_loop
-  val _ = Testing.test "M.match - b to x to x to b --> x x loop" (assert_n_match 2 mseq) ()
+  val mseq = M.match in_v_and_wire barbell
+  val _ = Testing.test "M.match - w to v + bare wire --> v to v" (assert_n_match 1 mseq) ()
   
-  val mseq = M.match x_isom_lhs x_isom_lhs_2
-  val _ = Testing.test "M.match - x isom --> x isom" (assert_n_match 4 mseq) ()
+  val mseq = M.match line loop
+  val _ = Testing.test "M.match - line --> loop" (assert_n_match 2 mseq) ()
+  
+  val mseq = M.match isom_lhs isom_lhs_2
+  val _ = Testing.test "M.match - isom --> isom" (assert_n_match 4 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR CONCRETE MATCHING PASSED!"
 end
 
 
 local
-  open Test_RG_MkG
-  open Test_RG_MatchUtil
-  structure M = Test_RG_ConcreteMatcher
+  open Test_Match_Tools;
+  structure M = Test_ConcreteMatcher;
 
-  val g = G.empty
-  val x1 = V.mk "x1"
-  val x2 = V.mk "x2"
-  val g = g |> G.add_named_vertex x1 (mkX (LinratAngleExpr.parse "a"))
-            |> G.add_named_vertex x2 (mkX (LinratAngleExpr.parse "b"))
-            |> G.add_named_edge (E.mk "e1") dir_edge x1 x2
-  val diff_angles = g
-  
-  val g = G.empty
-  val x3 = V.mk "x3"
-  val x4 = V.mk "x4"
-  val g = g |> G.add_named_vertex x3 (mkX (LinratAngleExpr.parse "a"))
-            |> G.add_named_vertex x4 (mkX (LinratAngleExpr.parse "a"))
-            |> G.add_named_edge (E.mk "e2") dir_edge x3 x4
-  val same_angles = g
-  
-  val g = G.empty
-  val x5 = V.mk "x5"
-  val x6 = V.mk "x6"
-  val g = g |> G.add_named_vertex x5 (mkX (LinratAngleExpr.parse "2"))
-            |> G.add_named_vertex x6 (mkX (LinratAngleExpr.parse "1"))
-            |> G.add_named_edge (E.mk "e6") dir_edge x5 x6
-  val diff_const = g
-  
-  val g = G.empty
-  val x7 = V.mk "x7"
-  val x8 = V.mk "x8"
-  val g = g |> G.add_named_vertex x7 (mkX (LinratAngleExpr.parse "2"))
-            |> G.add_named_vertex x8 (mkX (LinratAngleExpr.parse "2"))
-            |> G.add_named_edge (E.mk "e7") dir_edge x7 x8
-  val same_const = g
+  val diff_angles = G.empty |> add_vexpr1 "x1" "a"
+                            |> add_vexpr1 "x2" "b"
+                            |> add_dir_eunit1 "e1" "x1" "x2";
+
+  val same_angles = G.empty |> add_vexpr1 "x1" "a"
+                            |> add_vexpr1 "x2" "a"
+                            |> add_dir_eunit1 "e1" "x1" "x2";
+
+  val diff_const = G.empty |> add_vexpr1 "x1" "2"
+                           |> add_vexpr1 "x2" "1"
+                           |> add_dir_eunit1 "e1" "x1" "x2";
+
+  val same_const = G.empty |> add_vexpr1 "x1" "2"
+                           |> add_vexpr1 "x2" "2"
+                           |> add_dir_eunit1 "e1" "x1" "x2";
 
   val mseq = M.match diff_angles diff_angles
   val _ = Testing.test "M.match - diff angles --> diff angles" (assert_n_match 1 mseq) ()
@@ -268,24 +198,14 @@ in
 end
 
 local
-  open Test_RG_MkG
-  open Test_RG_MatchUtil
-  structure M = Test_RG_ConcreteMatcher
+  open Test_Match_Tools;
+  structure M = Test_ConcreteMatcher;
 
-  val g = G.empty
-  val b1 = V.mk "b1"
-  val g = g |> G.add_named_vertex b1 bvert
-            |> G.add_named_edge (E.mk "e1") dir_edge b1 b1
-  val circle = g
-  
-  val g = G.empty
-  val b2 = V.mk "b2"
-  val b3 = V.mk "b3"
-  val g = g |> G.add_named_vertex b2 bvert
-            |> G.add_named_edge (E.mk "e2") dir_edge b2 b2
-            |> G.add_named_vertex b3 bvert
-            |> G.add_named_edge (E.mk "e3") dir_edge b3 b3
-  val two_circles = g
+  val circle = G.empty |> add_wv "c1"
+                       |> add_dir_eunit1 "e1" "c1" "c1";
+
+  val two_circles = circle |> add_wv "c2"
+                           |> add_dir_eunit1 "e2" "c2" "c2";
   
   val mseq = M.match circle G.empty
   val _ = Testing.test "M.match - circle --> empty"  (assert_n_match 0 mseq) ()

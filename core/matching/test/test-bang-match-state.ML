@@ -1,31 +1,19 @@
-local (* Test matching with concrete graphs *)
-  open Test_RG_MkG
-  open Test_RG_BGMatchUtil
-  structure M = Test_RG_GreedyMatcher
-  structure MS = Test_RG_BGMatchState
+local (* Test match state functionality *)
+  open Test_Bang_Match_Tools
+  structure M = Test_GreedyMatcher
 
-  val v1 = V.mk "v1"
-  val v2 = V.mk "v2"
-  val v3 = V.mk "v3"
-  val v4 = V.mk "v4"
-  val b0 = B.mk "B0"
-  val b1 = B.mk "B1"
-
-  val g = G.empty
-  val g = g |> G.add_named_vertex v1 bvert
-            |> G.add_named_vertex v2 (mkX zero_angle)
-            |> G.add_named_vertex v3 bvert
-            |> G.add_named_edge (E.mk "e1") dir_edge v1 v2
-            |> G.add_named_edge (E.mk "e2") dir_edge v2 v3
-            |> G.add_named_bbox b0
-            |> G.add_named_bbox b1
-            |> G.doadd_to_bbox b0 (V.NSet.single v1)
-            |> G.doadd_to_bbox b1 (V.NSet.single v3)
+  val g = G.empty |> add_wv "v1"
+                  |> add_vunit1 "v2"
+                  |> add_wv "v3"
+                  |> add_dir_eunit1 "e1" "v1" "v2"
+                  |> add_dir_eunit1 "e2" "v2" "v3"
+                  |> add_bbox "B0" ["v1"]
+                  |> add_bbox "B1" ["v3"]
   val spider_pat = g
 
-  val g = g |> G.add_named_vertex v4 (mkZ zero_angle)
-            |> G.doadd_to_bbox b0 (V.NSet.single v4)
-            |> G.doadd_to_bbox b1 (V.NSet.single v4)
+  val g = g |> add_vunit2 "v4"
+            |> add_to_bbox "B0" ["v4"]
+            |> add_to_bbox "B1" ["v4"]
   val spider_pat_plus_v4 = g
 
   val _ = Testing.test "Original graphs coherent"
@@ -33,13 +21,13 @@ local (* Test matching with concrete graphs *)
 
   val ms = MS.init spider_pat G.empty
             |> MS.set_pat_avoids (G.get_vnames spider_pat_plus_v4)
-            |> MS.set_pat_tracked (V.NSet.of_list [v1,v3])
+            |> MS.set_pat_tracked (V.NSet.of_list (map V.mk ["v1","v3"]))
 
-  val ms = ms |> MS.expand_pat_bbox b0
-              |> MS.expand_pat_bbox b0
-              |> MS.kill_pat_bbox b0
-              |> MS.expand_pat_bbox b1
-              |> MS.kill_pat_bbox b1
+  val ms = ms |> MS.expand_pat_bbox (B.mk "B0")
+              |> MS.expand_pat_bbox (B.mk "B0")
+              |> MS.kill_pat_bbox (B.mk "B0")
+              |> MS.expand_pat_bbox (B.mk "B1")
+              |> MS.kill_pat_bbox (B.mk "B1")
   val pat = MS.get_pat ms
 
   val _ = Testing.test "Correct number of inputs in pat"

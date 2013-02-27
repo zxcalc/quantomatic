@@ -152,7 +152,6 @@ PolyML.Project.make "matching/concrete_match_search.ML";
 PolyML.Project.make "matching/greedy_match_search.ML";
 
 Testing.make_test "matching/test/test-matching-setup.ML";
-Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-matching-concrete.ML";
 Testing.make_test "matching/test/test-matching-greedy.ML";
@@ -174,6 +173,7 @@ PolyML.Project.make "io/linrat_xml.ML";
 PolyML.Project.make "theories/component_data.ML";
 (* boilerplate data functors for enumerated datatypes *)
 PolyML.Project.make "theories/enum_data.ML";
+Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "theories/test/vertex-test.ML";
 
 PolyML.Project.make "io/graph_xml_v2_input.ML";
