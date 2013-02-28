@@ -66,7 +66,7 @@ echobin:
 
 # startup an ML shell using the quanto heap
 ml-shell: $(QUANTO_HEAP)
-	./bin/polyml-quanto
+	@./bin/polyml-quanto
 
 run: ml-shell
 
