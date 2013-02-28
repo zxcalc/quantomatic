@@ -173,8 +173,6 @@ PolyML.Project.make "io/linrat_xml.ML";
 PolyML.Project.make "theories/component_data.ML";
 (* boilerplate data functors for enumerated datatypes *)
 PolyML.Project.make "theories/enum_data.ML";
-Testing.make_test "graph/test/test-rg-graph-setup.ML";
-Testing.make_test "theories/test/vertex-test.ML";
 
 PolyML.Project.make "io/graph_xml_v2_input.ML";
 PolyML.Project.make "io/graph_xml_v2_output.ML";
@@ -188,11 +186,6 @@ PolyML.Project.make "io/ruleset_xml_input.ML";
 PolyML.Project.make "io/ruleset_xml_output.ML";
 
 PolyML.Project.make "io/io_interface_xml.ML";
-
-Testing.make_test "io/graph_xml_v1_input.ML";
-Testing.make_test "io/graph_xml_v1_output.ML";
-Testing.make_test "io/test/test_io_interface_xml-setup.ML";
-Testing.make_test "io/test/load_ruleset-test.ML";
 
 
 (*
@@ -209,6 +202,7 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
 
+Testing.make_test "graph/test/test-rg-graph-setup.ML";
 Testing.make_test "rewriting/test/graph_subst-test.ML";
 (* NB: currently relies on XML I/O stuff *)
 Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
