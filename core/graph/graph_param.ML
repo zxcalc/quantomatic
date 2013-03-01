@@ -104,7 +104,7 @@ signature GRAPH_PARAM
 
   (* RENAMINGS  *)
   (* rename internal var names in T *)
-(*  structure CRnmX : COMPOUND_RENAMING 
+  structure CRnmX : COMPOUND_RENAMING 
     where type renaming = X.Rnm.T
     sharing type CRnmX.obj = T
   (* rename vertex and edge names in T *)
@@ -113,7 +113,7 @@ signature GRAPH_PARAM
     sharing type CRnmV.obj = T
   structure CRnmE : COMPOUND_RENAMING 
     where type renaming = E.Rnm.T
-    sharing type CRnmE.obj = T *)
+    sharing type CRnmE.obj = T
   
   (* rename internal names in Vertex Data *)
   (* structure VDataCRnmX : COMPOUND_RENAMING
