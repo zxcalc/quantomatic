@@ -30,11 +30,15 @@ Test_ConcreteMatcher.Log.level_ref := 2;
 Test_GreedyMatcher.Log.level_ref := 2;
 *)
 
-structure Test_Match_Tools =
+functor Test_Match_Tools(
+  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                           and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
 struct
-  structure GTools = Test_OGraph_Tools(Test_OGraph);
+  structure GTools = Test_OGraph_Tools(Matcher.G);
   open GTools;
-  structure MS = Test_MatchState;
+  structure M = Matcher;
+  structure MS = M.MatchState;
 
   fun assert_n_match n mseq () = let
     val mlist = Seq.list_of mseq
@@ -44,34 +48,21 @@ struct
        (List.map MS.print mlist;
         raise ERROR ("expected " ^ Int.toString n ^
                      " matching(s), got " ^ Int.toString nm))
-  end
+  end;
+
+  fun find_n_matches n (pat,tgt) =
+    assert_n_match n (M.match pat tgt) ();
 end;
 
-structure Test_Bang_Match_Tools =
+functor Test_Bang_Match_Tools(
+  BGMatcher : BG_MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                                and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
 struct
-  structure GTools = Test_Bang_Graph_Tools;
-  open GTools;
-  structure MS = Test_BGMatchState;
-
-  fun assert_n_match n mseq () = let
-    val mlist = Seq.list_of mseq
-    val nm = length mlist
-  in if nm = n then I
-     else
-       (List.map MS.print mlist;
-        raise ERROR ("expected " ^ Int.toString n ^
-                     " matching(s), got " ^ Int.toString nm))
-  end
-
-  local
-    structure Rule = Rule(G);
-  in
-    fun assert_boundary_coherent (g1,g2) = let
-      (* easiest just to try to make a rule out of it *)
-      val _ = Rule.mk (g1,g2)
-    in
-      (g1,g2)
-    end
-  end
+  structure MTools = Test_Match_Tools(BGMatcher);
+  open MTools;
+  open Test_Bang_Graph_Tools;
+  structure M = BGMatcher;
+  structure MS = M.BGMatchState;
 end;
 

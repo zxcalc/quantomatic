@@ -1,6 +1,6 @@
 local (* Test matching with concrete graphs *)
-  open Test_Bang_Match_Tools
-  structure M = Test_GreedyMatcher
+  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
+  open Tools;
 
   val pat = G.empty
              (* circle *)
@@ -36,8 +36,8 @@ end
 
 
 local (* Test matching with disjoint !-boxes *)
-  open Test_Bang_Match_Tools
-  structure M = Test_GreedyMatcher
+  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
+  open Tools;
 
   val circles_pat = G.empty
          (* circle in a !-box *)
@@ -176,8 +176,8 @@ end
 
 
 local (* Test bbox expansion on self-loops *)
-  open Test_Bang_Match_Tools
-  structure M = Test_GreedyMatcher
+  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
+  open Tools;
 
   (* TODO *)
 in
@@ -186,8 +186,8 @@ end
 
 
 local (* Test matching with nested/overlapping !-boxes *)
-  open Test_Bang_Match_Tools
-  structure M = Test_GreedyMatcher
+  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
+  open Tools;
 
   val balanced_tree_pat = G.empty
       |> add_vunit1 "l0"

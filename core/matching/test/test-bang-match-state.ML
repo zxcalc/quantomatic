@@ -1,6 +1,17 @@
 local (* Test match state functionality *)
-  open Test_Bang_Match_Tools
-  structure M = Test_GreedyMatcher
+  open Test_Bang_Graph_Tools;
+  structure MS = Test_BGMatchState;
+
+  local
+    structure Rule = Rule(G);
+  in
+    fun assert_boundary_coherent (g1,g2) = let
+      (* easiest just to try to make a rule out of it *)
+      val _ = Rule.mk (g1,g2)
+    in
+      (g1,g2)
+    end
+  end
 
   val g = G.empty |> add_wv "v1"
                   |> add_vunit1 "v2"
@@ -44,6 +55,5 @@ local (* Test match state functionality *)
           assert_boundary_coherent (pat,rhs)
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR !-BOX MATCH STATE UTILS PASSED!"
 end
 

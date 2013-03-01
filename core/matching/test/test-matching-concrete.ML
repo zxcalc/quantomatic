@@ -1,9 +1,72 @@
 
-(* TODO: tests for different edge data *)
+local (* circle-matching tests *)
+  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+  open Tools;
+
+  val circle1 = G.empty
+      |> add_wv "c1"
+      |> add_dir_eunit1 "e1" "c1" "c1";
+
+  val circle2 = G.empty
+      |> add_wv "c1"
+      |> add_dir_eunit2 "e1" "c1" "c1";
+
+  val two_1circles = circle1
+      |> add_wv "c2"
+      |> add_dir_eunit1 "e2" "c2" "c2";
+
+  val two_different_circles = circle1
+      |> add_wv "c2"
+      |> add_dir_eunit2 "e2" "c2" "c2";
+
+  val circle_expr1a = G.empty
+      |> add_wv "c1"
+      |> add_dir_eexpr1 "e1" "c1" "c1" "a";
+
+  val circle_expr1pi = G.empty
+      |> add_wv "c2"
+      |> add_dir_eexpr1 "e2" "c2" "c2" "\\pi";
+
+  val circle_expr2pi = G.empty
+      |> add_wv "c3"
+      |> add_dir_eexpr2 "e3" "c3" "c3" "\\pi";
+  
+  val _ = Testing.test "M.match - circle (eunit1) --> empty"
+                       (find_n_matches 0) (circle1,G.empty);
+  val _ = Testing.test "M.match - circle (eunit1) --> circle (eunit1)"
+                       (find_n_matches 1) (circle1,circle1);
+  val _ = Testing.test "M.match - circle (eunit1) --> circle (eunit2)"
+                       (find_n_matches 0) (circle1,circle2);
+  val _ = Testing.test "M.match - circle (eunit1) --> two circles (eunit1)"
+                       (find_n_matches 2) (circle1,two_1circles);
+  val _ = Testing.test "M.match - circle (eunit1) --> two circles (eunit1/2)"
+                       (find_n_matches 1) (circle1,two_different_circles);
+  val _ = Testing.test "M.match - two circles (eunit1) --> two circles (eunit1)"
+                       (find_n_matches 2) (two_1circles,two_1circles);
+  val _ = Testing.test "M.match - two circles (eunit1) --> two circles (eunit1/2)"
+                       (find_n_matches 0) (two_1circles,two_different_circles);
+  val _ = Testing.test "M.match - two circles (eunit1/2) --> two circles (eunit1)"
+                       (find_n_matches 1) (two_different_circles,two_different_circles);
+  val _ = Testing.test "M.match - circle (eexpr1:a) --> circle (eexpr1:pi)"
+                       (find_n_matches 1) (circle_expr1a,circle_expr1pi);
+  val _ = Testing.test "M.match - circle (eexpr1:a) --> circle (eexpr2:pi)"
+                       (find_n_matches 0) (circle_expr1a,circle_expr2pi);
+  val _ = Testing.test "M.match - circle (eexpr1:pi) --> circle (eexpr1:a)"
+                       (find_n_matches 0) (circle_expr1pi,circle_expr1a);
+in
+  val _ = Testing.assert_no_failed_tests();
+end
+
+local (* bare-wire matching tests *)
+  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+  open Tools;
+in
+  val _ = Testing.assert_no_failed_tests();
+end
 
 local
-  open Test_Match_Tools;
-  structure M = Test_ConcreteMatcher;
+  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+  open Tools;
   
   val bare_wire =
         G.empty |> add_wv "in1"
@@ -49,8 +112,8 @@ end
 
 
 local
-  open Test_Match_Tools;
-  structure M = Test_ConcreteMatcher;
+  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+  open Tools;
   
   val single_v = G.empty |> add_vunit1 "v1";
   val double_v = G.empty |> add_vunit1 "vA"
@@ -75,8 +138,8 @@ in
 end
 
 local
-  open Test_Match_Tools;
-  structure M = Test_ConcreteMatcher;
+  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+  open Tools;
   
   val single_v = G.empty |> add_vunit1 "v1";
   
@@ -150,8 +213,8 @@ end
 
 
 local
-  open Test_Match_Tools;
-  structure M = Test_ConcreteMatcher;
+  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+  open Tools;
 
   val diff_angles = G.empty |> add_vexpr1 "x1" "a"
                             |> add_vexpr1 "x2" "b"
@@ -194,32 +257,5 @@ local
   val _ = Testing.test "M.match - same angles --> same const" (assert_n_match 1 mseq) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR CONCRETE MATCHING WITH ANGLES PASSED!"
-end
-
-local
-  open Test_Match_Tools;
-  structure M = Test_ConcreteMatcher;
-
-  val circle = G.empty |> add_wv "c1"
-                       |> add_dir_eunit1 "e1" "c1" "c1";
-
-  val two_circles = circle |> add_wv "c2"
-                           |> add_dir_eunit1 "e2" "c2" "c2";
-  
-  val mseq = M.match circle G.empty
-  val _ = Testing.test "M.match - circle --> empty"  (assert_n_match 0 mseq) ()
-  
-  val mseq = M.match circle circle
-  val _ = Testing.test "M.match - circle --> circle" (assert_n_match 1 mseq) ()
-  
-  val mseq = M.match circle two_circles
-  val _ = Testing.test "M.match - circle --> two circles" (assert_n_match 2 mseq) ()
-  
-  val mseq = M.match two_circles two_circles
-  val _ = Testing.test "M.match - two circles --> two circles" (assert_n_match 2 mseq) ()
-in
-  val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR CONCRETE MATCHING OF CIRCLES PASSED!"
 end
 

@@ -686,7 +686,7 @@ end;
 (* Some helpful tools for creating string graphs *)
 functor Test_OGraph_Tools(
   G : OGRAPH where type EData.data = Test_Graph_Data.edata
-              and type OVData.IData.data = Test_Graph_Data.vdata
+               and type OVData.IData.data = Test_Graph_Data.vdata
 )
 = struct
   structure OG = G;
