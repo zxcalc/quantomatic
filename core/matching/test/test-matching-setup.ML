@@ -43,7 +43,7 @@ struct
   fun assert_n_match n mseq () = let
     val mlist = Seq.list_of mseq
     val nm = length mlist
-  in if nm = n then I
+  in if nm = n then mlist
      else
        (List.map MS.print mlist;
         raise ERROR ("expected " ^ Int.toString n ^
@@ -64,5 +64,11 @@ struct
   open Test_Bang_Graph_Tools;
   structure M = BGMatcher;
   structure MS = M.BGMatchState;
+
+  fun assert_n_warnings n ms = let
+    val ws = MS.get_warnings ms
+  in
+    Testing.assert ((Int.toString n)^" warnings") (length ws = n)
+  end
 end;
 

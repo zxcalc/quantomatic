@@ -1,8 +1,17 @@
-
-local (* circle-matching tests *)
-  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
+(*
+ * Tests matching of string graphs against string graphs
+ *)
+functor String_Graph_Matching_Tests(
+  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                           and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
+struct
+  structure Tools = Test_Match_Tools(Matcher);
   open Tools;
 
+  (*
+   * Circle matching tests
+   *)
   val circle1 = G.empty
       |> add_wv "c1"
       |> add_dir_eunit1 "e1" "c1" "c1";
@@ -10,6 +19,10 @@ local (* circle-matching tests *)
   val circle2 = G.empty
       |> add_wv "c1"
       |> add_dir_eunit2 "e1" "c1" "c1";
+
+  val undir_circle1 = G.empty
+      |> add_wv "c1"
+      |> add_undir_eunit1 "e1" "c1" "c1";
 
   val two_1circles = circle1
       |> add_wv "c2"
@@ -39,7 +52,7 @@ local (* circle-matching tests *)
       |> add_wv "c3"
       |> add_dir_eexpr2 "e3" "c3" "c3" "\\pi";
   
-  val bare_wire = G.empty
+  val bare_wire1 = G.empty
       |> add_wv "in1"
       |> add_wv "out1"
       |> add_dir_eunit1 "e1" "in1" "out1";
@@ -52,14 +65,16 @@ local (* circle-matching tests *)
                        (find_n_matches 0) (circle1,G.empty);
   val _ = Testing.test "match: empty --> circle (eunit1)"
                        (find_n_matches 1) (G.empty,circle1);
+
   val _ = Testing.test "match: circle (eunit1) --> bare wire (eunit1)"
-                       (find_n_matches 0) (circle1,bare_wire);
+                       (find_n_matches 0) (circle1,bare_wire1);
   val _ = Testing.test "match: circle (eunit1) --> loop (vunit1,eunit1)"
                        (find_n_matches 0) (circle1,loop);
   val _ = Testing.test "match: circle (eunit1) --> circle (eunit1)"
                        (find_n_matches 1) (circle1,circle1);
   val _ = Testing.test "match: circle (eunit1) --> circle (eunit2)"
                        (find_n_matches 0) (circle1,circle2);
+
   val _ = Testing.test "match: circle (eunit1) --> two circles (eunit1)"
                        (find_n_matches 2) (circle1,two_1circles);
   val _ = Testing.test "match: circle (eunit1) --> two circles (eunit1/2)"
@@ -71,6 +86,7 @@ local (* circle-matching tests *)
   val _ = Testing.test "match: two circles (eunit1/2) --> two circles (eunit1)"
                        (find_n_matches 1)
                        (two_different_circles,two_different_circles);
+
   val _ = Testing.test "match: circle (eexpr1:a) --> circle (eexpr1:pi)"
                        (find_n_matches 1) (circle_expr1a,circle_expr1pi);
   val _ = Testing.test "match: circle (eexpr1:a) --> circle (eexpr2:pi)"
@@ -80,25 +96,31 @@ local (* circle-matching tests *)
   val _ = Testing.test "match: two circles (a,2a) --> two circles (pi,2pi)"
                        (find_n_matches 1)
                        (two_circles_expr1_a_2a,two_circles_expr1_pi_2pi);
-in
-  val _ = Testing.assert_no_failed_tests();
-end
 
-local (* bare-wire matching tests *)
-  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
-  open Tools;
-  
-  val bare_wire = G.empty
+  val _ = Testing.test "match: undir circle --> undir circle"
+                       (find_n_matches 1)
+                       (undir_circle1,undir_circle1);
+  val _ = Testing.test "match: dir circle --> undir circle"
+                       (find_n_matches 0)
+                       (circle1,undir_circle1);
+  val _ = Testing.test "match: undir circle --> dir circle"
+                       (find_n_matches 0)
+                       (undir_circle1,circle1);
+
+  (*
+   * Bare wire matching tests
+   *)
+  val undir_bare_wire1 = G.empty
       |> add_wv "in1"
       |> add_wv "out1"
-      |> add_dir_eunit1 "e1" "in1" "out1";
+      |> add_undir_eunit1 "e1" "in1" "out1";
   
   val bare_wire2 = G.empty
       |> add_wv "in1"
       |> add_wv "out1"
       |> add_dir_eunit2 "e1" "in1" "out1";
   
-  val two_bare_wires = bare_wire
+  val two_bare_wires = bare_wire1
       |> add_wv "in2"
       |> add_wv "out2"
       |> add_dir_eunit1 "e2" "in2" "out2";
@@ -116,14 +138,15 @@ local (* bare-wire matching tests *)
       |> add_wv "out2"
       |> add_dir_eunit2 "e2" "in2" "out2";
   
-  val circle = G.empty
-      |> add_wv "c1"
-      |> add_dir_eunit1 "e1" "c1" "c1";
-  
   val barbell = G.empty
       |> add_vunit1 "v1"
       |> add_vunit1 "v2"
       |> add_dir_eunit1 "e1" "v1" "v2";
+  
+  val undir_barbell = G.empty
+      |> add_vunit1 "v1"
+      |> add_vunit1 "v2"
+      |> add_undir_eunit1 "e1" "v1" "v2";
   
   val bare_wire_expr1a = G.empty
       |> add_wv "in1"
@@ -158,24 +181,24 @@ local (* bare-wire matching tests *)
       |> add_dir_eexpr1 "e2" "x2" "x1" "\\pi";
   
   val _ = Testing.test "match: bare wire (eunit1) --> empty"
-                       (find_n_matches 0) (bare_wire,G.empty);
+                       (find_n_matches 0) (bare_wire1,G.empty);
   val _ = Testing.test "match: empty --> bare wire (eunit1)"
-                       (find_n_matches 1) (G.empty,bare_wire);
+                       (find_n_matches 1) (G.empty,bare_wire1);
 
   val _ = Testing.test "match: bare wire (eunit1) --> bare wire (eunit1)"
-                       (find_n_matches 1) (bare_wire,bare_wire);
+                       (find_n_matches 1) (bare_wire1,bare_wire1);
   val _ = Testing.test "match: bare wire (eunit1) --> bare wire (eunit2)"
-                       (find_n_matches 0) (bare_wire,bare_wire2);
+                       (find_n_matches 0) (bare_wire1,bare_wire2);
 
   val _ = Testing.test "match: bare wire (eunit1) --> 2 bare wires (eunit1)"
-                       (find_n_matches 2) (bare_wire,two_bare_wires);
+                       (find_n_matches 2) (bare_wire1,two_bare_wires);
   val _ = Testing.test "match: bare wire (eunit1) --> 2 bare wires (eunit1/2)"
-                       (find_n_matches 1) (bare_wire,two_diff_bare_wires);
+                       (find_n_matches 1) (bare_wire1,two_diff_bare_wires);
 
   val _ = Testing.test "match: 2 bare wires (eunit1) --> bare wire (eunit1)"
-                       (find_n_matches 2) (two_bare_wires,bare_wire);
+                       (find_n_matches 2) (two_bare_wires,bare_wire1);
   val _ = Testing.test "match: 2 bare wires (eunit1/2) --> bare wire (eunit1)"
-                       (find_n_matches 0) (two_diff_bare_wires,bare_wire);
+                       (find_n_matches 0) (two_diff_bare_wires,bare_wire1);
   val _ = Testing.test "match: 2 bare wires (eunit1) --> 2 bare wires (eunit1)"
                        (find_n_matches 6) (two_bare_wires,two_bare_wires);
   val _ = Testing.test "match: 2 bare wires (eunit1/2) --> 2 bare wires (eunit1/2)"
@@ -183,16 +206,16 @@ local (* bare-wire matching tests *)
 
   (* for circles, there should be as many matches as there are cyclic permutations *) 
   val _ = Testing.test "match: bare wire (eunit1) --> circle (eunit1)"
-                       (find_n_matches 1) (bare_wire,circle);
+                       (find_n_matches 1) (bare_wire1,circle1);
   val _ = Testing.test "match: bare wire (eunit2) --> circle (eunit1)"
-                       (find_n_matches 0) (bare_wire2,circle);
+                       (find_n_matches 0) (bare_wire2,circle1);
   val _ = Testing.test "match: 2 bare wires (eunit1) --> circle (eunit1)"
-                       (find_n_matches 1) (two_bare_wires,circle);
+                       (find_n_matches 1) (two_bare_wires,circle1);
   val _ = Testing.test "match: 3 bare wires (eunit1) --> circle (eunit1)"
-                       (find_n_matches 2) (three_bare_wires,circle);
+                       (find_n_matches 2) (three_bare_wires,circle1);
 
   val _ = Testing.test "match: bare wire (eunit1) --> barbell (eunit1)"
-                       (find_n_matches 1) (bare_wire,barbell);
+                       (find_n_matches 1) (bare_wire1,barbell);
   val _ = Testing.test "match: bare wire (eunit2) --> barbell (eunit1)"
                        (find_n_matches 0) (bare_wire2,barbell);
   val _ = Testing.test "match: 2 bare wires (eunit1) --> barbell (eunit1)"
@@ -213,14 +236,23 @@ local (* bare-wire matching tests *)
   val _ = Testing.test "match: 2 bare wires (a,2a) --> 2 circles (1/2pi,pi)"
                        (find_n_matches 1)
                        (two_bare_wires_expr1_a_2a,two_circles_expr1_hpi_pi);
-in
-  val _ = Testing.assert_no_failed_tests();
-end
+
+  val _ = Testing.test "match: undir bare wire (eunit1) --> undir bare wire (eunit1)"
+                       (find_n_matches 2)
+                       (undir_bare_wire1,undir_bare_wire1);
+  val _ = Testing.test "match: dir bare wire (eunit1) --> undir bare wire (eunit1)"
+                       (find_n_matches 0)
+                       (bare_wire1,undir_bare_wire1);
+  val _ = Testing.test "match: undir bare wire (eunit1) --> dir bare wire (eunit1)"
+                       (find_n_matches 0)
+                       (undir_bare_wire1,bare_wire1);
+  val _ = Testing.test "match: undir bare wire (eunit1) --> undir barbell (eunit1)"
+                       (find_n_matches 2) (undir_bare_wire1,undir_barbell);
 
 
-local (* basic node-vertex matching *)
-  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
-  open Tools;
+  (*
+   * Matching node-vertices against other node-vertices
+   *)
   
   val single_v = G.empty
       |> add_vunit1 "v1";
@@ -230,7 +262,7 @@ local (* basic node-vertex matching *)
   val v1_v2 = G.empty
       |> add_vunit1 "vA"
       |> add_vunit2 "v1";
-
+  
   val v_expr1_a = G.empty
       |> add_vexpr1 "v1" "a";
   val v_expr1_a_2a = G.empty
@@ -260,7 +292,7 @@ local (* basic node-vertex matching *)
                        (find_n_matches 0) (double_v,single_v);
   val _ = Testing.test "match: 2 * vunit1 --> 2 * vunit1"
                        (find_n_matches 2) (double_v,double_v);
-
+  
   val _ = Testing.test "match: vexpr1:a --> vexpr1:a"
                        (find_n_matches 1) (v_expr1_a,v_expr1_a);
   val _ = Testing.test "match: vexpr1:a --> vexpr1:b"
@@ -275,117 +307,112 @@ local (* basic node-vertex matching *)
                        (find_n_matches 2) (v_expr1_a,v_expr1_hpi_pi);
   val _ = Testing.test "match: vexpr1:a, vexpr1:2a --> vexpr1:1/2pi, vexpr1:pi"
                        (find_n_matches 1) (v_expr1_a_2a,v_expr1_hpi_pi);
-in
-  val _ = Testing.assert_no_failed_tests();
-end
 
 
-local (* edge-ordered node-vertex matching *)
-  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
-  open Tools;
-
-  val diff_angles = G.empty
-      |> add_vexpr1 "x1" "a"
-      |> add_vexpr1 "x2" "b"
-      |> add_dir_eunit1 "e1" "x1" "x2";
-
-  val same_angles = G.empty
-      |> add_vexpr1 "x1" "a"
-      |> add_vexpr1 "x2" "a"
-      |> add_dir_eunit1 "e1" "x1" "x2";
-
-  val diff_const = G.empty
-      |> add_vexpr1 "x1" "1/2"
-      |> add_vexpr1 "x2" "1"
-      |> add_dir_eunit1 "e1" "x1" "x2";
-
-  val same_const = G.empty
-      |> add_vexpr1 "x1" "1"
-      |> add_vexpr1 "x2" "1"
-      |> add_dir_eunit1 "e1" "x1" "x2";
-
-  val _ = Testing.test "match: vexpr1:a,b --> vexpr1:a,b"
-                       (find_n_matches 1) (diff_angles,diff_angles);
-  val _ = Testing.test "match: vexpr1:a,b --> vexpr1:a,a"
-                       (find_n_matches 1) (diff_angles,same_angles);
-  val _ = Testing.test "match: vexpr1:a,b --> vexpr1:1/2,1"
-                       (find_n_matches 1) (diff_angles,diff_const);
-  val _ = Testing.test "match: vexpr1:a,b --> vexpr1:1,1"
-                       (find_n_matches 1) (diff_angles,same_const);
-
-  val _ = Testing.test "match: vexpr1:1,1/2 --> vexpr1:a,b"
-                       (find_n_matches 0) (diff_const,diff_angles);
-
-  val _ = Testing.test "match: vexpr1:a,a --> vexpr1:a,b"
-                       (find_n_matches 0) (same_angles,diff_angles);
-  val _ = Testing.test "match: vexpr1:a,a --> vexpr1:1/2,1"
-                       (find_n_matches 0) (same_angles,diff_const);
-  val _ = Testing.test "match: vexpr1:a,a --> vexpr1:1,1"
-                       (find_n_matches 1) (same_angles,same_const);
-in
-  val _ = Testing.assert_no_failed_tests();
-end
-
-(* TODO: clean up remaining tests and add more
- * - undirected edge tests
- * - edge-with-data tests (non-bare-wire and non-circle)
- *)
-
-local (* misc test? *)
-  structure Tools = Test_Match_Tools(Test_ConcreteMatcher);
-  open Tools;
-  
-  val single_v = G.empty
-      |> add_vunit1 "v1";
-  
-  val barbell = G.empty
+  (*
+   * Edge-direction matching
+   *)
+  val dir_barbell_1_2 = G.empty
       |> add_vunit1 "v1"
-      |> add_vunit1 "v2"
+      |> add_vunit2 "v2"
       |> add_dir_eunit1 "e1" "v1" "v2";
+  val dir_barbell_2_1 = G.empty
+      |> add_vunit1 "v1"
+      |> add_vunit2 "v2"
+      |> add_dir_eunit1 "e1" "v2" "v1";
+  val undir_barbell_1_2 = G.empty
+      |> add_vunit1 "v1"
+      |> add_vunit2 "v2"
+      |> add_undir_eunit1 "e1" "v1" "v2";
+  val undir_barbell_2_1 = G.empty
+      |> add_vunit1 "v1"
+      |> add_vunit2 "v2"
+      |> add_undir_eunit1 "e1" "v2" "v1";
 
-  val loop = barbell
-      |> add_dir_eunit1 "e2" "v2" "v1";
+  val _ = Testing.test "match: 1->2 --> 1->2"
+                       (find_n_matches 1)
+                       (dir_barbell_1_2,dir_barbell_1_2);
+  val _ = Testing.test "match: 1->2 --> 2->1"
+                       (find_n_matches 0)
+                       (dir_barbell_1_2,dir_barbell_2_1);
+  val _ = Testing.test "match: 1->2 --> 1-2"
+                       (find_n_matches 0)
+                       (dir_barbell_1_2,undir_barbell_1_2);
+  val _ = Testing.test "match: 1-2 --> 1-2"
+                       (find_n_matches 1)
+                       (undir_barbell_1_2,undir_barbell_1_2);
+  val _ = Testing.test "match: 1-2 --> 2-1"
+                       (find_n_matches 1)
+                       (undir_barbell_1_2,undir_barbell_2_1);
+  val _ = Testing.test "match: 1-2 --> 1->2"
+                       (find_n_matches 0)
+                       (undir_barbell_1_2,dir_barbell_1_2);
+
+
+  (*
+   * Edge data matching
+   *)
+  val barbell_sum_data = G.empty
+      |> add_vexpr1 "v1" "a"
+      |> add_vexpr2 "v2" "b"
+      |> add_dir_eexpr1 "e1" "v1" "v2" "a+b";
+  val barbell_good_data_1 = G.empty
+      |> add_vexpr1 "v1" "c"
+      |> add_vexpr2 "v2" "b"
+      |> add_dir_eexpr1 "e1" "v1" "v2" "b+c";
+  val barbell_good_data_2 = G.empty
+      |> add_vexpr1 "v1" "1/4pi"
+      |> add_vexpr2 "v2" "1/2pi"
+      |> add_dir_eexpr1 "e1" "v1" "v2" "3/4pi";
+  val barbell_bad_data_1 = G.empty
+      |> add_vexpr1 "v1" "a"
+      |> add_vexpr2 "v2" "a"
+      |> add_dir_eexpr1 "e1" "v1" "v2" "a";
+  val barbell_bad_data_2 = G.empty
+      |> add_vexpr1 "v1" "1/4pi"
+      |> add_vexpr2 "v2" "1/3pi"
+      |> add_dir_eexpr1 "e1" "v1" "v2" "1/2pi";
+
+  val _ = Testing.test "match: barbell sum --> barbell sum"
+                       (find_n_matches 1)
+                       (barbell_sum_data,barbell_sum_data);
+  val _ = Testing.test "match: barbell sum --> barbell good data 1"
+                       (find_n_matches 1)
+                       (barbell_sum_data,barbell_good_data_1);
+  val _ = Testing.test "match: barbell sum --> barbell good data 2"
+                       (find_n_matches 1)
+                       (barbell_sum_data,barbell_good_data_2);
+  val _ = Testing.test "match: barbell sum --> barbell bad data 1"
+                       (find_n_matches 0)
+                       (barbell_sum_data,barbell_bad_data_1);
+  val _ = Testing.test "match: barbell sum --> barbell bad data 2"
+                       (find_n_matches 0)
+                       (barbell_sum_data,barbell_bad_data_2);
+
+  (*
+   * Partial wire matches
+   *)
   
   val out_v = G.empty
       |> add_vunit1 "v1"
       |> add_wv "out1"
       |> add_dir_eunit1 "e1" "v1" "out1";
-
   val in_v = G.empty
       |> add_vunit1 "v1"
       |> add_wv "in1"
       |> add_dir_eunit1 "e1" "in1" "v1";
-  
   val in_v_and_wire = in_v
       |> add_wv "in2"
       |> add_wv "out2"
       |> add_dir_eunit1 "bw" "in2" "out2";
-
-  val line = barbell
+  
+  val barbell_loop = barbell
+      |> add_dir_eunit1 "e2" "v2" "v1";
+  val barbell_line = barbell
       |> add_wv "in1"
       |> add_wv "out1"
       |> add_dir_eunit1 "e2" "in1" "v1"
       |> add_dir_eunit1 "e3" "v2" "out1";
-
-  val isom_lhs = G.empty
-      |> add_vunit1 "a"
-      |> add_vunit1 "b"
-      |> add_wv "c"
-      |> add_wv "d"
-      |> add_undir_eunit1 "a" "d" "b"
-      |> add_undir_eunit1 "b" "b" "a"
-      |> add_undir_eunit1 "c" "b" "a"
-      |> add_undir_eunit1 "d" "a" "c";
-
-  val isom_lhs_2 = G.empty
-      |> add_wv "Va"
-      |> add_vunit1 "Vb"
-      |> add_vunit1 "Vc"
-      |> add_wv "Vd"
-      |> add_undir_eunit1 "Ea" "Va" "Vb"
-      |> add_undir_eunit1 "Eb" "Vb" "Vc"
-      |> add_undir_eunit1 "Ec" "Vb" "Vc"
-      |> add_undir_eunit1 "Ed" "Vc" "Vd";
   
   val _ = Testing.test "match: one vert --> barbell"
                        (find_n_matches 0) (single_v,barbell);
@@ -399,11 +426,11 @@ local (* misc test? *)
                        (find_n_matches 1) (in_v,barbell);
   val _ = Testing.test "match: v with input and bare wire --> barbell"
                        (find_n_matches 1) (in_v_and_wire,barbell);
-  val _ = Testing.test "match: line --> loop"
-                       (find_n_matches 2) (line,loop);
-  val _ = Testing.test "match: isom --> isom"
-                       (find_n_matches 4) (isom_lhs,isom_lhs_2);
-in
+  val _ = Testing.test "match: barbell line --> barbell loop"
+                       (find_n_matches 2) (barbell_line,barbell_loop);
+
   val _ = Testing.assert_no_failed_tests();
-end
+end;
+
+structure Concrete_Matcher_Tests = String_Graph_Matching_Tests(Test_ConcreteMatcher);
 

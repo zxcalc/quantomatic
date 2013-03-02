@@ -1,44 +1,20 @@
-local (* Test matching with concrete graphs *)
+(*
+ * Tests matching of !-graphs against string graphs
+ *)
+functor Bang_Graph_Matching_Tests(
+  Matcher : BG_MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                              and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
+struct
+  (* test matching with concrete graphs *)
+  structure SG_Matcher_Tests = String_Graph_Matching_Tests(Matcher);
+
   structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
   open Tools;
 
-  val pat = G.empty
-             (* circle *)
-          |> add_wv "cv"
-          |> add_dir_eunit1 "ce" "cv" "cv"
-             (* bare wire *)
-          |> add_wv "bw-in"
-          |> add_wv "bw-out"
-          |> add_dir_eunit1 "bw" "bw-in" "bw-out"
-             (* nv with two boundaries *)
-          |> add_wv "in"
-          |> add_vunit1 "nv"
-          |> add_wv "out"
-          |> add_dir_eunit1 "i" "in" "nv"
-          |> add_dir_eunit1 "o" "nv" "out";
-
-  val tgt = G.empty
-             (* circle *)
-          |> add_wv "cv"
-          |> add_dir_eunit1 "ce" "cv" "cv"
-             (* nv to nv to nv *)
-          |> add_vunit1 "nv1"
-          |> add_vunit1 "nv2"
-          |> add_vunit1 "nv3"
-          |> add_dir_eunit1 "e1" "nv1" "nv2"
-          |> add_dir_eunit1 "e2" "nv2" "nv3";
-
-  val _ = Testing.test "M.match - pat --> tgt"
-          (fn () => assert_n_match 2 (M.match pat tgt) ()) ()
-in
-  val _ = Testing.assert_no_failed_tests();
-end
-
-
-local (* Test matching with disjoint !-boxes *)
-  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
-  open Tools;
-
+  (*
+   * Disjoint !-boxes
+   *)
   val circles_pat = G.empty
          (* circle in a !-box *)
       |> add_wv "cv"
@@ -121,73 +97,50 @@ local (* Test matching with disjoint !-boxes *)
       |> add_undir_eunit1 "e3" "c" "s3";
 
   val _ = Testing.test "M.match - circles pattern --> empty"
-          (fn () => assert_n_match 1 (M.match circles_pat G.empty) ()) ()
-
+                       (find_n_matches 1) (circles_pat,G.empty);
   val _ = Testing.test "M.match - circles pattern --> one circle"
-          (fn () => assert_n_match 2 (M.match circles_pat one_circle) ()) ()
-
+                       (find_n_matches 2) (circles_pat,one_circle);
   val _ = Testing.test "M.match - circles pattern --> two circles"
-          (fn () => assert_n_match 5 (M.match circles_pat two_circles) ()) ()
-
+                       (find_n_matches 5) (circles_pat,two_circles);
   val _ = Testing.test "M.match - circles pattern --> three circles"
-          (fn () => assert_n_match 16 (M.match circles_pat three_circles) ()) ()
-
+                       (find_n_matches 16) (circles_pat,three_circles);
   val _ = Testing.test "M.match - circles+wire pattern --> one circle"
-          (fn () => assert_n_match 1 (M.match circle_wire_pat one_circle) ()) ()
-
+                       (find_n_matches 1) (circle_wire_pat,one_circle);
   val _ = Testing.test "M.match - circles+wire pattern --> two circles"
-          (fn () => assert_n_match 3 (M.match circle_wire_pat two_circles) ()) ()
-
+                       (find_n_matches 3) (circle_wire_pat,two_circles);
   val _ = Testing.test "M.match - v any ins or outs pattern --> one circle"
-          (fn () => assert_n_match 0 (M.match v_any_ins_outs_pat one_circle) ()) ()
-
+                       (find_n_matches 0) (v_any_ins_outs_pat,one_circle);
   val _ = Testing.test "M.match - v any ins or outs pattern --> single vertex"
-          (fn () => assert_n_match 1 (M.match v_any_ins_outs_pat single_v) ()) ()
-
+                       (find_n_matches 1) (v_any_ins_outs_pat,single_v);
   val _ = Testing.test "M.match - v any ins or outs pattern --> v->1"
-          (fn () => assert_n_match 1 (M.match v_any_ins_outs_pat v_out) ()) ()
-
+                       (find_n_matches 1) (v_any_ins_outs_pat,v_out);
   val _ = Testing.test "M.match - v any ins or outs pattern --> 2->v->1"
-          (fn () => assert_n_match 2 (M.match v_any_ins_outs_pat in_in_v_out) ()) ()
-
+                       (find_n_matches 2) (v_any_ins_outs_pat,in_in_v_out);
   val _ = Testing.test "M.match - v any ins or outs pattern --> v->v"
-          (fn () => assert_n_match 2 (M.match v_any_ins_outs_pat v_to_v) ()) ()
-
+                       (find_n_matches 2) (v_any_ins_outs_pat,v_to_v);
   val _ = Testing.test "M.match - v any ins or outs pattern --> v with loop"
-          (fn () => assert_n_match 1 (M.match v_any_ins_outs_pat loop) ()) ()
-
+                       (find_n_matches 1) (v_any_ins_outs_pat,loop);
   val _ = Testing.test "M.match - star pattern --> lonely spoke"
-          (fn () => assert_n_match 0 (M.match star_pat lonely_spoke) ()) ()
-
+                       (find_n_matches 0) (star_pat,lonely_spoke);
   val _ = Testing.test "M.match - star pattern --> zero-spoke star"
-          (fn () => assert_n_match 1 (M.match star_pat star_zero) ()) ()
-
+                       (find_n_matches 1) (star_pat,star_zero);
   val _ = Testing.test "M.match - star pattern --> one-spoke star"
-          (fn () => assert_n_match 1 (M.match star_pat star_one) ()) ()
-
+                       (find_n_matches 1) (star_pat,star_one);
   val _ = Testing.test "M.match - star pattern --> two-spoke star"
-          (fn () => assert_n_match 2 (M.match star_pat star_two) ()) ()
-
+                       (find_n_matches 2) (star_pat,star_two);
   val _ = Testing.test "M.match - star pattern --> three-spoke star"
-          (fn () => assert_n_match 6 (M.match star_pat star_three) ()) ()
-in
-  val _ = Testing.assert_no_failed_tests();
-end
+                       (find_n_matches 6) (star_pat,star_three);
 
 
-local (* Test bbox expansion on self-loops *)
-  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
-  open Tools;
-
+  (*
+   * Expansion on self-loops
+   *)
   (* TODO *)
-in
-
-end
 
 
-local (* Test matching with nested/overlapping !-boxes *)
-  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
-  open Tools;
+  (*
+   * Nested/overlapping !-boxes
+   *)
 
   val balanced_tree_pat = G.empty
       |> add_vunit1 "l0"
@@ -232,31 +185,23 @@ local (* Test matching with nested/overlapping !-boxes *)
       |> add_vunit2 "l2-b"
       |> add_dir_eunit1 "e22" "l1-b" "l2-b";
 
-  fun assert_n_warnings n ms = let
-    val ws = MS.get_warnings ms
-  in
-    Testing.assert ((Int.toString n)^" warnings") (length ws = n)
-  end
-
   val _ = Testing.test "M.match - balanced tree --> tree {}"
-          (fn () => let val mseq = M.match balanced_tree_pat min_tree in
-          assert_n_match 1 mseq ();
-          assert_n_warnings 1 (Seq.hd mseq) end) ()
-
+          ((assert_n_warnings 1) o List.hd o (find_n_matches 1))
+          (balanced_tree_pat,min_tree);
   val _ = Testing.test "M.match - arbitrary tree --> tree {}"
-          (fn () => assert_n_match 1 (M.match arbitrary_tree_pat min_tree) ()) ()
-
+                       (find_n_matches 1) (arbitrary_tree_pat,min_tree);
   val _ = Testing.test "M.match - balanced tree --> tree {1}"
-          (fn () => assert_n_match 1 (M.match balanced_tree_pat tree_1) ()) ()
-
+                       (find_n_matches 1) (balanced_tree_pat,tree_1);
   val _ = Testing.test "M.match - arbitrary tree --> tree {1}"
-          (fn () => assert_n_match 1 (M.match arbitrary_tree_pat tree_1) ()) ()
-
+                       (find_n_matches 1) (arbitrary_tree_pat,tree_1);
   val _ = Testing.test "M.match - balanced tree --> tree {2}"
-          (fn () => assert_n_match 2 (M.match balanced_tree_pat tree_2) ()) ()
-
+                       (find_n_matches 2) (balanced_tree_pat,tree_2);
   val _ = Testing.test "M.match - arbitrary tree --> tree {2}"
-          (fn () => assert_n_match 2 (M.match arbitrary_tree_pat tree_2) ()) ()
-in
+                       (find_n_matches 2) (arbitrary_tree_pat,tree_2);
+
+
   val _ = Testing.assert_no_failed_tests();
-end
+end;
+
+structure Greedy_Matcher_Tests = Bang_Graph_Matching_Tests(Test_GreedyMatcher);
+
