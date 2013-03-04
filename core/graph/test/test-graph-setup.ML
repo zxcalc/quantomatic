@@ -219,22 +219,22 @@ structure Test_GraphParam : GRAPH_PARAM
   fun rename_xname n1 n2 (vdep,edep) = 
         case VDep.try_rename1_cod n1 n2 vdep
           of NONE       => 
-               raise V.Rnm.invalid_renaming_exp "Test_RG_GraphParam.rename_xname"
+               raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_xname"
            | SOME vdep' =>
                (case EDep.try_rename1_cod n1 n2 edep
                   of NONE       =>
-                       raise E.Rnm.invalid_renaming_exp "Test_RG_GraphParam.rename_xname"
+                       raise E.Rnm.invalid_renaming_exp "Test_GraphParam.rename_xname"
                    | SOME edep' => (vdep',edep'));
   fun rename_vname n1 n2 (vdep,edep) = 
         case VDep.try_rename1_dom n1 n2 vdep
           of SOME vdep' => (vdep',edep)
            | NONE       =>
-               raise V.Rnm.invalid_renaming_exp "Test_RG_GraphParam.rename_vname";
+               raise V.Rnm.invalid_renaming_exp "Test_GraphParam.rename_vname";
   fun rename_ename n1 n2 (vdep,edep) =
         case EDep.try_rename1_dom n1 n2 edep
           of SOME edep' => (vdep,edep')
            | NONE       => 
-               raise E.Rnm.invalid_renaming_exp "Test_RG_GraphParam.rename_ename";
+               raise E.Rnm.invalid_renaming_exp "Test_GraphParam.rename_ename";
 
   (* rename names in T *)
 
