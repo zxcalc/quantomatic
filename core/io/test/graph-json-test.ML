@@ -19,6 +19,7 @@ local
                   |> add_vexpr2 "n3" "0"
                   |> add_vexpr1_a "n4" expr_1
                   |> add_vexpr2_a "n5" expr_2
+                  |> add_vexpr2 "n6" "a+\\pi"
                   |> add_dir_eunit1 "e1" "w1" "n1"
                   |> add_undir_eunit2 "e2" "n3" "n4"
                   |> add_dir_eexpr1_a "e3" "n5" "n5" expr_3
@@ -33,7 +34,8 @@ local
       "\"n2\":{\"data\":{\"type\":\"VExpr1\",\"angle\":null}},"^
       "\"n3\":{\"data\":{\"type\":\"VExpr2\"}},"^
       "\"n4\":{\"data\":{\"type\":\"VExpr1\",\"angle\":"^expr_1_json^"}},"^
-      "\"n5\":{\"data\":{\"type\":\"VExpr2\",\"angle\":"^expr_2_json^"}}"^
+      "\"n5\":{\"data\":{\"type\":\"VExpr2\",\"angle\":"^expr_2_json^"}},"^
+      "\"n6\":{\"data\":{\"type\":\"VExpr2\",\"angle\":\"a+\\\\pi\"}}"^
     "},"^
     "\"dir_edges\":{"^
       "\"e1\":{\"src\":\"w1\",\"tgt\":\"n1\",\"data\":\"EUnit1\"},"^
@@ -49,7 +51,10 @@ local
     "}"^
   "}";
   fun test_parse (json_str,exp_expr) = let
-    val e = GIn.input (Json.of_string json_str)
+    val j = Json.of_string json_str
+            handle Json.parse_exn m =>
+              (writeln "Bad JSON:"; writeln json_str; raise Json.parse_exn m)
+    val e = GIn.input j
   in
     if G.exact_eq exp_expr e
     then ()

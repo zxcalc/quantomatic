@@ -1,7 +1,7 @@
 {
   "wire_vertices" : ["in1","in2","out1","out2"],
   "node_vertices" : {
-		      "x1":{"data":"vexpr1","angle":"a + b"}
+		      "x1":{"data":{"type":"vexpr1","angle":"a + b"}}
 		    },
   "dir_edges"     : {
 		      "e1": { "src" : "in1", "tgt" : "x1" },
