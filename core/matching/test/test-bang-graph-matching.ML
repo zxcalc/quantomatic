@@ -9,7 +9,7 @@ struct
   (* test matching with concrete graphs *)
   structure SG_Matcher_Tests = String_Graph_Matching_Tests(Matcher);
 
-  structure Tools = Test_Bang_Match_Tools(Test_GreedyMatcher);
+  structure Tools = Test_Bang_Match_Tools(Matcher);
   open Tools;
 
   (*

@@ -1,5 +1,6 @@
 local (* Test match state functionality *)
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
   structure MS = Test_BGMatchState;
 
   local

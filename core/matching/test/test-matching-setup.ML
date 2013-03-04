@@ -61,7 +61,8 @@ functor Test_Bang_Match_Tools(
 struct
   structure MTools = Test_Match_Tools(BGMatcher);
   open MTools;
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(BGMatcher.BG);
+  open Tools;
   structure M = BGMatcher;
   structure MS = M.BGMatchState;
 

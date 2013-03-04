@@ -708,23 +708,26 @@ end;
 
 
 (* Some helpful tools for creating graphs *)
-structure Test_Bang_Graph_Tools =
-struct
-  structure G = Test_Bang_Graph;
+functor Test_Bang_Graph_Tools(
+  G : BANG_GRAPH where type EData.data = Test_Graph_Data.edata
+               and type OVData.IData.data = Test_Graph_Data.vdata
+)
+= struct
+  structure BG = G;
 
-  fun unwrap_nv G.OVData.WVert = raise ERROR "wire vertex"
-    | unwrap_nv (G.OVData.NVert vd) = vd;
-  val nv = G.OVData.NVert;
-  fun add_wv n = G.add_named_vertex (V.mk n) G.OVData.WVert
+  fun unwrap_nv BG.OVData.WVert = raise ERROR "wire vertex"
+    | unwrap_nv (BG.OVData.NVert vd) = vd;
+  val nv = BG.OVData.NVert;
+  fun add_wv n = BG.add_named_vertex (V.mk n) BG.OVData.WVert
 
   structure GraphTools = Test_Graph_Tools(
-    structure G  = G
+    structure G  = BG
     val vert = nv
     val unwrap_vert = unwrap_nv
   );
   open GraphTools;
 
-  structure G = Test_Bang_Graph;
+  structure G = BG;
   structure GIso = BangGraphIso(G);
   structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON;
   structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON;

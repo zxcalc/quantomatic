@@ -1,6 +1,7 @@
 
 local
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
   structure L = LinratAngleExpr;
   structure C = LinratAngleExpr.Coeff;
   structure GIn = GJsonInput;
@@ -24,7 +25,7 @@ local
                   |> add_bbox "b1" ["w1","n1","n2"]
                   |> add_child_bbox "b2" "b1" ["w1","n1"]
                   |> add_bbox "b3" [];
-  val g_json =
+  val g_json_1 =
   "{"^
     "\"wire_vertices\":[\"w1\",\"w2\"],"^
     "\"node_vertices\":{"^
@@ -78,10 +79,10 @@ in
   val _ = Testing.test "Graph I/O: reparse empty"
             test_reparse G.empty;
 
-  val _ = Testing.test "Graph I/O: parse example graph"
-            test_parse (g_json,g);
+  val _ = Testing.test "Graph I/O: parse example graph 1"
+            test_parse (g_json_1,g);
 
-  val _ = Testing.test "Graph I/O: reparse example graph"
+  val _ = Testing.test "Graph I/O: reparse example graph 1"
             test_reparse g;
 
   val _ = Testing.assert_no_failed_tests();

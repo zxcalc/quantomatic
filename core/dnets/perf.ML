@@ -1,5 +1,6 @@
 local
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
 
   
   structure LIB = TDNet_Library

@@ -1,7 +1,8 @@
 structure Test_Rule = Rule(Test_Bang_Graph);
 
 local
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
   structure Rule = Test_Rule;
 
   fun test_mk_bad_rule (lhs,rhs) =

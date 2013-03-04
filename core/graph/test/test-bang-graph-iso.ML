@@ -1,5 +1,6 @@
 local
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
 
   val g1 = G.empty |> add_vunit1 "v1"
                    |> add_vunit2 "v2"

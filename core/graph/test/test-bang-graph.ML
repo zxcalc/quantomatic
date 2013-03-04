@@ -1,7 +1,8 @@
 local
   (* start by testing that things in the OGRAPH interface still work *)
   structure OGraph_Interface_Tests_Bang_Graph = OGraph_Interface_Tests(Test_Bang_Graph);
-  open Test_Bang_Graph_Tools;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
 
   val [x1,x2,x3,x4] = map V.mk ["x1","x2","x3","x4"];
   val v2 = V.mk "v2";
