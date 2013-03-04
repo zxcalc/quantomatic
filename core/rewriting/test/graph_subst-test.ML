@@ -1,19 +1,16 @@
-(* FIXME: remove *)
-structure DB_Test_OGraphSubst = OGraphSubst(Test_RG_MatchState);
-structure Test_OGraphSubst : GRAPH_SUBST = DB_Test_OGraphSubst;
+structure Test_OGraphSubst : GRAPH_SUBST = OGraphSubst(Test_MatchState);
+structure Test_BangGraphSubst : GRAPH_SUBST = BangGraphSubst(Test_BGMatchState);
 (* set to 4 for really detailed messages *)
 (* Test_OGraphSubst.Log.level_ref := 2; *)
-
-structure DB_Test_BangGraphSubst = BangGraphSubst(Test_RG_BGMatchState);
-structure Test_BangGraphSubst : GRAPH_SUBST = DB_Test_BangGraphSubst;
-(* set to 4 for really detailed messages *)
 (* Test_BangGraphSubst.Log.level_ref := 2; *)
 
 local
+structure Test_RG_OGraphSubst : GRAPH_SUBST = OGraphSubst(Test_RG_MatchState);
+structure Test_RG_BangGraphSubst : GRAPH_SUBST = BangGraphSubst(Test_RG_BGMatchState);
 open Test_RG_MkG;
 structure M = Test_RG_ConcreteMatcher;
 structure MS = Test_RG_MatchState;
-structure GSub = Test_OGraphSubst;
+structure GSub = Test_RG_OGraphSubst;
 
 (* some useful names *)
 val in1 = V.mk "in1"
@@ -178,10 +175,12 @@ end
 
 (* !-box rewriting *)
 local
+structure Test_RG_OGraphSubst : GRAPH_SUBST = OGraphSubst(Test_RG_MatchState);
+structure Test_RG_BangGraphSubst : GRAPH_SUBST = BangGraphSubst(Test_RG_BGMatchState);
 open Test_RG_MkG;
 structure M = Test_RG_GreedyMatcher;
 structure MS = Test_RG_BGMatchState;
-structure GSub = Test_BangGraphSubst;
+structure GSub = Test_RG_BangGraphSubst;
 
 (* some useful names *)
 val in1 = V.mk "in1"

@@ -1,21 +1,17 @@
-(* test construction of Ruleset *)
-structure DB_Test_RG_RulesetRewriter = RulesetRewriter(
+local
+structure Test_RG_BangGraphSubst : GRAPH_SUBST = BangGraphSubst(Test_RG_BGMatchState);
+structure Test_RG_RulesetRewriter : RULESET_REWRITER = RulesetRewriter(
   structure Ruleset = Test_RG_Ruleset;
   structure MatchSearch = Test_RG_GreedyMatcher;
-  structure GraphSubst = Test_BangGraphSubst;
+  structure GraphSubst = Test_RG_BangGraphSubst;
 );
-structure Test_RG_RulesetRewriter : RULESET_REWRITER = DB_Test_RG_RulesetRewriter;
-(* set to 4 for really detailed messages *)
-(* Test_RG_RulesetRewriter.Log.level_ref := 2; *)
-
-local
 open Test_RG_MkG;
 structure Rule = Test_RG_Rule;
 structure Ruleset = Test_RG_Ruleset;
 structure IO = Test_IO_Interface_v2;
 structure RulesetRewriter = Test_RG_RulesetRewriter;
 structure Ruleset = Test_RG_Ruleset;
-structure GraphSubst = Test_BangGraphSubst;
+structure GraphSubst = Test_RG_BangGraphSubst;
 structure MatchSearch = Test_RG_GreedyMatcher;
 val ruleset = "../../test/rulesets/basic_v2.rules" 
               |> XMLReader.read_from_file
