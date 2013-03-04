@@ -276,7 +276,7 @@ PolyML.Project.make "dnets/TopDNet.ML";
 Testing.make_test "dnets/test.ML"; 
 
 (* Performance tests for dnets *)
-(*PolyML.Project.make "dnets/perf.ML";*)
+(* Testing.make_test "dnets/perf.ML"; *)
 
 
 (*

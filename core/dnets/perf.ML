@@ -1,6 +1,5 @@
-
-  open Test_RG_MkG
-  open Test_RG_MatchUtil
+local
+  open Test_Bang_Graph_Tools;
 
   
   structure LIB = TDNet_Library
@@ -9,6 +8,11 @@
   structure C = CL.C
   structure L = C.L
 
+  fun one_of xs =
+  let val max = length xs in
+    nth xs (random_range 0 (max-1))
+  end;
+
   (*val timestamp = Time.toString (Time.now())
   val out = TextIO.openOut ("output"^timestamp^".txt")*)
 
@@ -16,9 +20,9 @@
   val data_std_alg = TextIO.openAppend ("data_std_alg.txt")
   val data_ext_alg = TextIO.openAppend ("data_ext_alg.txt")
 
-  val k1 = (mkX zero_angle)
-  val k2 = (mkX (LinratAngleExpr.parse "1"))
-  val k3 = (mkX (LinratAngleExpr.parse "a"))
+  val k1 = (vexpr1 "0")
+  val k2 = (vexpr1 "1")
+  val k3 = (vexpr1 "a")
 
   val iterations = 100
   val pattern_params = {kinds = k1 :: k2 :: k3 :: [],
@@ -77,7 +81,7 @@
           val n_minus = LIB.rm_element (V.name_eq) node1 n
           val node2 = one_of n_minus
         in
-          g |> G.add_named_edge e dir_edge node1 node2
+          g |> G.add_named_edge e (G.Directed,eunit1) node1 node2
         end
     | add_edges g n (e::es) =
         let
@@ -85,7 +89,7 @@
           val n_minus = LIB.rm_element (V.name_eq) node1 n
           val node2 = one_of n_minus
         in
-          add_edges (g |> G.add_named_edge e dir_edge node1 node2) n es
+          add_edges (g |> G.add_named_edge e (G.Directed,eunit1) node1 node2) n es
         end  
 
 
@@ -147,8 +151,8 @@
       val g = g |> G.add_named_vertex bound b
       val edge = E.mk("b_e" ^ string_of_int(i))
       val dice = random_range 1 2
-      val g = if (dice=1) then g |> G.add_named_edge edge dir_edge node bound
-                else g |> G.add_named_edge edge dir_edge bound node
+      val g = if (dice=1) then g |> G.add_named_edge edge (G.Directed,eunit1) node bound
+                else g |> G.add_named_edge edge (G.Directed,eunit1) bound node
     in
       if (i=1) then g else add_boundaries (i-1) g nodes
     end
@@ -204,7 +208,8 @@
     | sum (n::[]) = n
     | sum (n::ns) = n + sum ns
 
-  fun get_pretty (g::[]) = (Pretty.str_of(G.pretty g))
+  fun get_pretty []      = ""
+    | get_pretty (g::[]) = (Pretty.str_of(G.pretty g))
     | get_pretty (g::gs) = (Pretty.str_of(G.pretty g)) ^ " \n " ^ (get_pretty gs)
 
 
@@ -398,6 +403,7 @@
   fun iterate_simul [] [] = 0
     | iterate_simul (i::[]) (v::[]) = (simul i v) + (iterate_simul [] [])
     | iterate_simul (i::is) (v::vs) = (simul i v) + (iterate_simul is vs)
+    | iterate_simul _ _ = raise ERROR "unequal length lists"
 
 
 
@@ -409,4 +415,5 @@
   val _ = TextIO.closeOut data_no_alg
   val _ = TextIO.closeOut data_std_alg
   val _ = TextIO.closeOut data_ext_alg
+in val _ = (); end;
 
