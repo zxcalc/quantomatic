@@ -279,12 +279,12 @@ struct
   end
 
   (*The default compactor used within the parallel code*)
-  fun default_compactor() =Compactor.do_not_prime ( (* Compactor.prime ( *)
+  fun default_compactor() =(*Compactor.do_not_prime ( *)  Compactor.prime ( 
     Compactor.set_estimated_number (
     Compactor.new_dynamic (
-      Time.fromMicroseconds 2000)) (*Time to aim for*)
-      (SOME 1))(* ) (*Initial estimate*)
-      (SOME 15) false; (*Prime length + do/don't go static*)*)
+      Time.fromMicroseconds 20000)) (*Time to aim for*)
+      (SOME 1))(* ) (*Initial estimate*) *)
+      (SOME 15) false; (*Prime length + do/don't go static*)
   
   (****** Enumeration with EqClassTab ******)
   
@@ -298,7 +298,8 @@ struct
         (*Would like to check that this is where communication with the equivalence
         class table is really happening - in other words that the list of graphs
         is large enough...*)
-        val _ = PolyML.print("Processing " ^ (Int.toString(List.length xs)) ^ " graphs next.");
+        val _ = PolyML.print("Processing " ^ (Int.toString(List.length xs)) ^ " graphs next. Using " ^ 
+          (Int.toString (Multithreading.max_threads_value())) ^ " threads.");
         (*Firstly, split the incoming graphs into two halves - those which are too large to be added
         to the equivalence class table, and those which might be added to the equivalence class table...*)
         fun size_check (inputs,outputs) bare_wires =
@@ -313,8 +314,8 @@ struct
         (*Now filter the list of incoming graphs for those which might be added later, and those
         which certainly won't be...*)
         val (to_try_adding,not_to_add) = split_filter perform_size_check xs ([],[]);
-        val _ = PolyML.print("Performed size check");
-        val _ = PolyML.print("Will try adding " ^ (Int.toString (List.length to_try_adding)));
+        (*val _ = PolyML.print("Performed size check");
+        val _ = PolyML.print("Will try adding " ^ (Int.toString (List.length to_try_adding)));*)
         (*to_try_adding contains all of the graphs that need to attempt being added to the equivalence
         class table!!!!*)
         
@@ -335,7 +336,9 @@ struct
         val par_seq = Par_Seq.of_sequential_seq fd groups; (*Sticking to the default*)
         (*Pump elements through the DNET in parallel*)
         val _ = PolyML.print("Pumping through DNET...");
-        val res_list = flat (Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq));
+        val res_list = Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq);
+        val _ = PolyML.print("Through DNET");
+        val res_list = flat res_list
         fun remove_filters [] = []
           | remove_filters (NONE::xs) = remove_filters xs
           | remove_filters ((SOME x)::xs) = x::(remove_filters xs);
@@ -343,7 +346,7 @@ struct
         the equivalence class's original DNET (so graphs were not added to modify the DNET
         during this check*)
         val passed_through_DNET = remove_filters res_list;
-        val _ = PolyML.print("Pumped through DNET. Got " ^ (Int.toString(List.length passed_through_DNET)));
+        (*val _ = PolyML.print("Pumped through DNET. Got " ^ (Int.toString(List.length passed_through_DNET)));*)
         (*Now, all graphs within "passed_through_DNET" need to be added to the equivalence
         class table, as unless they reduce to each other, they will be added...*)
         val add_to_eq_tab = fopt; (*For emphasis*)
@@ -361,7 +364,7 @@ struct
         (*All should have been added successfully from this list*)
         (*val _ = PolyML.print("Created all of the new equivalence class tables before merging...");*)
         val eq_tab_list = map the res_list;
-        val _ = PolyML.print("I have " ^ (Int.toString (List.length eq_tab_list)) ^ " equivalence class tables");
+        (*val _ = PolyML.print("I have " ^ (Int.toString (List.length eq_tab_list)) ^ " equivalence class tables");*)
         (*The merge function itself...*)
         fun merge x y = fmerge x y (*Uses the merge function within the equivalence class table to make sure that this is efficient*)
         (*Now eq_tab list contains all of the equivalence classes that need to be merged! Now I have to perform

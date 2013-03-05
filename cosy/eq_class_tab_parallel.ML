@@ -297,15 +297,19 @@ struct
   g_set is the set of match candidates that should be considered*)
   fun has_match_in_dnet' eqt tgt graph_name_set = let
     (*val _ = PolyML.print("Check DNET");*)
-     (*Check to see if the pattern graph (with the specified name) matches the supplied graph*)
+    (*Check to see if the pattern graph (with the specified name) matches the supplied graph*)
     fun has_match pat_n = let
-      val pat = get_graph_entry eqt pat_n
+      val pat = get_graph_entry eqt pat_n;
+      val sw = Stopwatch.start Stopwatch.new;
+      (*val _ = PolyML.print("Beginning match search in DNET");*)
       (*Only need to check for a single match here! Parallelising is overkill as the first
       graph entry is found almost entirely sequentially*)
       val ans = is_some (Seq.pull (Theory.MatchSearch.match
                    (GE.get_graph pat) (GE.get_graph tgt)
                  ))
-      (*val _ = PolyML.print("Done check in DNET");*)
+      (*Time it!*)
+      val t = Time.toMicroseconds (Stopwatch.check sw)
+      val _ = if (t>1000000) then (PolyML.print("Done check in DNET. Took " ^ (LargeInt.toString(t)) ^ " microseconds");()) else ();
     in
       ans
     end
