@@ -19,40 +19,45 @@ local
     expected : string
   };
 
-  fun test ((lhs:G.T,rhs:G.T),(tgt:G.T,exp:G.T)) =
-  let
-    (* sanity-check the rule *)
-    val _ = Test_Rule.mk (lhs,rhs)
-    val rhs_vnames = G.get_vnames rhs
-    val mseq = M.match_avoiding_tracking (rhs_vnames,rhs_vnames) lhs tgt
-    val ms = case Seq.pull mseq
-               of SOME (ms,_) => ms
-                | NONE => raise ERROR "No matches!"
-    val result = GSub.do_rewrite ms rhs
-    val result_min = G.minimise result
-    val exp_min = G.minimise exp
-  in
-    if GIso.test exp_min result_min
-    then result
-    else (
-      writeln "Result (minimised):";
-      G.print result_min;
-      writeln "Expected (minimised):";
-      G.print exp_min;
-      raise ERROR "Got wrong rewrite result"
-    )
-  end;
-
   fun test_f ({ name = nm,
-                lhs = lhs,
-                rhs = rhs,
-                target = tgt,
-                expected = exp }:test_data) =
+                lhs = lhs_f,
+                rhs = rhs_f,
+                target = tgt_f,
+                expected = exp_f }:test_data) =
   let
-    val _ = ()
+    fun test () =
+    let
+      val lhs = load_graph lhs_f
+      val rhs = load_graph rhs_f
+      val tgt = load_graph tgt_f
+      val exp = load_graph exp_f
+      (* sanity-check the rule *)
+      val _ = Test_Rule.mk (lhs,rhs)
+      val rhs_vnames = G.get_vnames rhs
+      val mseq = M.match_avoiding_tracking (rhs_vnames,rhs_vnames) lhs tgt
+      val ms = case Seq.pull mseq
+                 of SOME (ms,_) => ms
+                  | NONE => raise ERROR "No matches!"
+      val result = GSub.do_rewrite ms rhs
+      val result_min = G.minimise result
+      val exp_min = G.minimise exp
+    in
+      if GIso.test exp_min result_min
+      then result
+      else (
+        save_dot_graph result_min (tgt_f^".result.dot");
+        save_dot_graph exp_min (exp_f^".dot");
+        writeln "Result (minimised):";
+        writeln ("  (written to "^tgt_f^".result.dot)");
+        G.print result_min;
+        writeln "Expected (minimised):";
+        writeln ("  (written to "^exp_f^".dot)");
+        G.print exp_min;
+        raise ERROR "Got wrong rewrite result"
+      )
+    end
   in
-    Testing.test nm test ((load_graph lhs,load_graph rhs),
-                          (load_graph tgt,load_graph exp))
+    Testing.test nm test ()
   end;
 
   fun run_tests [] = Testing.assert_no_failed_tests()
