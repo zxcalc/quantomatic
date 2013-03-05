@@ -74,6 +74,13 @@ sig
   list was caught by the DNET*)
   val update : GraphEntry.T list -> T -> GraphEntry.T list * T
   
+  (*These functions mimic update_one and update, but they perform a hard add, in that the DNET is not first checked before
+  adding the graphs. You should only use this if you are certain that the graph will pass through the DNET already*)
+  val hard_update_one : GraphEntry.T -> T -> T option
+  
+  (*Apply a hard update to many graphs in a row*)
+  val hard_update : GraphEntry.T list -> T -> GraphEntry.T list * T
+  
   (*Check for a match in the DNET of this equivalence class table*)
   val has_match_in_dnet : T -> GraphEntry.T -> bool
   
@@ -81,6 +88,25 @@ sig
   val empty : T
   (*Make an equivalence class table with the initial rule set*)
   val mk : Theory.Ruleset.T -> T
+  
+  (*For the parallel version of the equivalence class table, we have some additional methods...*)
+  
+  (*State that all of the graphs in the equivalence class table can be declared as old.
+  This means that the set of new graphs held by the table will now be thrown away!*)
+  val clean : T -> T
+  
+  (*Performs the dnet check between only new graphs*)
+  val has_match_in_dnet_with_new : T -> GraphEntry.T -> bool
+  
+  (*Whenever graphs are added to the equivalence class table (in any way), they are added as new graphs
+  Calling the merge function between two equivalence class tables will cause all of the new graphs, and only the new graphs,
+  in one table to be added to the other. I think it is safe to bypass the DNET at this point...
+  
+  The list of graph entries are those entries that were added from the first table to those in the second table
+  
+  Note that graphs remain new after the merge*)
+  val merge : T -> T -> GraphEntry.T list *T
+  
 end
 
 (*The equivalence class table itself! WOOO!*)
@@ -128,7 +154,8 @@ struct
     tab : (EqClass.T list) ClassIndex.table, (*Holds the equivalence classes, hashed by input output arity *)
     initial_rs : Theory.Ruleset.T, (*Holds an initial rule set. Not sure why this is held separately, but there you go...*)
     dnet : DNet.T, (*The DNET. This decides if a graph should be added to the table or not*)
-    graph_tab : GE.T GraphName.NTab.T (*The table holding all of the graph entries. Points from graph entries to their internal names*)
+    graph_tab : GE.T GraphName.NTab.T, (*The table holding all of the graph entries. Points from graph entries to their internal names*)
+    new_graphs : GraphName.NSet.T (*A set of the graphs which are considered "newly" added*)
   }
   
   (*A new empty equivalence class table*)
@@ -136,24 +163,31 @@ struct
     tab=ClassIndex.empty,
     initial_rs=Theory.Ruleset.empty,
     dnet=DNet.empty,
-    graph_tab=GraphName.NTab.empty
+    graph_tab=GraphName.NTab.empty,
+    new_graphs=GraphName.NSet.empty
   }
   
   (*Dealing with the record structure. So many lines...*)
-  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r}
-  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r}
-  fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r}
-  fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r)}
+  fun update_tab f (EQT r) = EQT {tab=f(#tab r),initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r,new_graphs= #new_graphs r}
+  fun update_initial_rs f (EQT r) = EQT {tab= #tab r,initial_rs=f(#initial_rs r),dnet= #dnet r,graph_tab= #graph_tab r,new_graphs= #new_graphs r}
+  fun update_dnet f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet=f(#dnet r),graph_tab= #graph_tab r,new_graphs= #new_graphs r}
+  fun update_graph_tab f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab=f(#graph_tab r),new_graphs= #new_graphs r}
+  fun update_new_graphs f (EQT r) = EQT {tab= #tab r,initial_rs= #initial_rs r,dnet= #dnet r,graph_tab= #graph_tab r,new_graphs=f(#new_graphs r)}
 
   fun get_tab         (EQT r) = #tab r
   fun get_initial_rs  (EQT r) = #initial_rs r
   fun get_dnet        (EQT r) = #dnet r
   fun get_graph_tab   (EQT r) = #graph_tab r
+  fun get_new_graphs  (EQT r) = #new_graphs r
 
   val set_tab            = update_tab         o K
   val set_initial_rs     = update_initial_rs  o K
   val set_dnet           = update_dnet        o K
   val set_graph_tab      = update_graph_tab   o K
+  val set_new_graphs     = update_new_graphs  o K
+  
+  (*Add a "new" graph to the set of new graphs*)
+  fun add_new_graph eqt g = update_new_graphs (GraphName.NSet.add g) eqt
 
   (*Find the graph entry g in this equivalence class table eqt
   Returns the graph name that corresponds...*)
@@ -259,28 +293,59 @@ struct
   end
   
   (*Check to see whether the supplied target graph (tgt is a Graph Entry) matches a
-  reducible expression already found within the DNET.*)
-  fun has_match_in_dnet eqt tgt = let
+  reducible expression already found within the DNET.
+  g_set is the set of match candidates that should be considered*)
+  fun has_match_in_dnet' eqt tgt graph_name_set = let
+    (*val _ = PolyML.print("Check DNET");*)
      (*Check to see if the pattern graph (with the specified name) matches the supplied graph*)
     fun has_match pat_n = let
       val pat = get_graph_entry eqt pat_n
       (*Only need to check for a single match here! Parallelising is overkill as the first
       graph entry is found almost entirely sequentially*)
-    in is_some (Seq.pull (Theory.MatchSearch.match
-         (GE.get_graph pat) (GE.get_graph tgt)
-       ))
+      val ans = is_some (Seq.pull (Theory.MatchSearch.match
+                   (GE.get_graph pat) (GE.get_graph tgt)
+                 ))
+      (*val _ = PolyML.print("Done check in DNET");*)
+    in
+      ans
     end
+    (*val _ = PolyML.print("Checking for match");*)
+    val ans = GraphName.NSet.exists has_match graph_name_set;
+    (*val _ = PolyML.print("Finished checking for match");*)
     (*Use the DNET to determine which graphs could potentially match the supplied graph.
     Then, for each pattern graph returned by the DNET, see if it actually does match the supplied graph*)
-  in GraphName.NSet.exists has_match
-      (DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt))
+  in
+    ans
+  end
+  (*Check against all of the graphs in the DNET whether or not the target graph tgt has a match*)
+  fun has_match_in_dnet eqt tgt = let
+    (*val _ = PolyML.print("Retrieving candidates");*)
+    val ans = DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt);
+    (*val _ = PolyML.print("Got candidates")*)
+  in
+    has_match_in_dnet' eqt tgt ans
+  end
+  (*Check only against newly added graphs with the DNET. Note that the DNET is still required to return
+  all of the possible candidates, but then the matching algorithms is only computed against some of the new versions of these graphs*)
+  fun has_match_in_dnet_with_new eqt tgt = let
+    (*Return all of the candidates*)
+    (*val _ = PolyML.print("Retrieving candidates+");*)
+    val all_candidates = DNet.get_match_candidates (get_dnet eqt) (GE.get_graph tgt);
+    (*val _ = PolyML.print("Got candidates+");*)
+    (*Filter function for removing the old graphs*)
+    fun is_new_graph graph_name = GraphName.NSet.contains (get_new_graphs eqt) graph_name;
+    (*All of the new graphs that were match candidates*)
+    val new_only = GraphName.NSet.filter is_new_graph all_candidates
+  in
+    has_match_in_dnet' eqt tgt new_only
   end
   
   (*Add a single graph entry to the equivalence class table. If it changes the table, SOME eqt is returned. Otherwise,
-  NONE is returned.*)
-  fun update_one ge eqt =
+  NONE is returned.
+  The hard flag indicates whether or not the DNET should be checked (true meaning the DNET should not be checked)*)
+  fun update_one' ge eqt hard=
     (*Sees if the supplied graph should be added to the class or not.*)
-    if has_match_in_dnet eqt ge then NONE (*No need to add this- can't derive anything interesting*)
+    if ((not hard) andalso (has_match_in_dnet eqt ge)) then NONE (*No need to add this- can't derive anything interesting*)
     else let (*Add this to the equivalence class*)
       (*gn is the corresponding name assigned to the graph (which will be a unique derivation
       from g0) and gt is the new table.*)
@@ -358,11 +423,11 @@ struct
       val (found, classlist', eqt') = fold tryaddf classlist (false, [], eqt')
     in
       (*The new equivalence class table!*)
-      SOME (
+      SOME (add_new_graph ( (*Ensure this graph is marked as new!*)
         eqt' |> update_tab (ClassIndex.update (arity,
                   if found then classlist' (*classlist' will have the graph already added*)
                   (*Forms a new graph! Make gn the representative, and add it to the list of classes*)
-                  else EqClass.mk gn :: classlist'))
+                  else EqClass.mk gn :: classlist'))) gn
       )
     end
   (*Arity works like hashcode - we know only graphs with equivalent arity could belong to the same class*)
@@ -371,10 +436,11 @@ struct
   Note: eqt = equivalence table
   
   See update one for details. It does all the work. The fold
-  just remembers the equivalence table as it is formed.*)
-  fun update ge_list eqtab = let
+  just remembers the equivalence table as it is formed.
+  The final boolean flag only indicates whether or not this is a hard update*)
+  fun update' ge_list eqtab hard = let
     fun updatef ge (ges, eqt) = (*update fold*)
-      case update_one ge eqt
+      case update_one' ge eqt hard
         (*This was added to the equivalence class table, so use the new table and add this graph to the list of added graphs*)
         of SOME eqt' => (ge::ges, eqt')
         (*Not added, so forget this graph entry*)
@@ -382,6 +448,11 @@ struct
   (*Add them all. [] says no graphs have been successfully added yet.*)
   in fold updatef ge_list ([],eqtab)
   end
+  
+  fun update ge_list eqtab = update' ge_list eqtab false
+  fun update_one ge eqt = update_one' ge eqt false
+  fun hard_update ge_list eqtab = update' ge_list eqtab true
+  fun hard_update_one ge eqt = update_one' ge eqt true
   
   (*
   Make a new equivalence class table, which will include in all of the reducible expressions from the given rule set,
@@ -403,6 +474,25 @@ struct
     end
     (*Add everything*)
   in R.NSet.fold add_rule initial_redexes (empty |> set_initial_rs rs)
+  end
+  
+  (*Declare all of the new graphs as officially old*)
+  fun clean eqt = set_new_graphs GraphName.NSet.empty eqt
+  
+  (*Merge two equivalence class tables together!*)
+  fun merge eqt1 eqt2 = let
+    (*Firstly, retrieve all of the new graphs from table 1*)
+    val new_gns = GraphName.NSet.list_of (get_new_graphs eqt1);
+    (*Retrieve the actual graph entries...*)
+    val new_ges = map (fn gn => get_graph_entry eqt1 gn) new_gns;
+    (*Now pass them all through the DNET of the second table, against the new graphs only*)
+    (*It is possible here to form an equivalence class table with only the old graphs, and then check bidirectionally the DNETS
+    in both of the old equivalence class tables if that is necessary. However, it isn't clear to me how to remove a graph
+    from the equivalence class table though...*)
+    val new_ges_through = new_ges(*filter (fn ge => not (has_match_in_dnet_with_new eqt2 ge)) new_ges;*)
+  in
+    (*Now perform a hard add with all of the new graphs from the first table...*)
+    hard_update new_ges_through eqt2
   end
 end
 

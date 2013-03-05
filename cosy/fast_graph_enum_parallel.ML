@@ -1,3 +1,27 @@
+signature PARALLEL_GRAPH_ENUM =
+sig
+  structure Theory : GRAPHICAL_THEORY
+  structure Metric : GRAPH_METRIC
+  structure EqClassTab : EQ_CLASS_TAB
+  
+  type data
+  (*Corresponds to a single vertex with a certain number of inputs outputs
+  (data relevant to theory,input,output)
+  We stick the generators together to form graphs (all possible)*)
+  type generator = (Theory.Graph.VData.data * int * int)
+  
+  val default_data : data
+  type size_param = int * int * int * int
+  
+  sharing Theory.Graph.SharingOGraph =
+          Metric.Graph.SharingOGraph
+  sharing Theory.Ruleset.Sharing =
+          EqClassTab.Theory.Ruleset.Sharing
+  
+  val tab_update : generator list -> size_param -> EqClassTab.T -> EqClassTab.T
+  val tab_enum : generator list -> size_param -> EqClassTab.T
+end
+
 functor ParallelFastGraphEnum(
   structure Theory : GRAPHICAL_THEORY
   structure Metric : GRAPH_METRIC
@@ -5,7 +29,7 @@ functor ParallelFastGraphEnum(
   sharing Theory.Graph.SharingOGraph =
           Metric.Graph.SharingOGraph =
           Equiv.Graph.SharingOGraph
-) : GRAPH_ENUM =
+) : PARALLEL_GRAPH_ENUM =
 struct
   structure Theory = Theory
   structure Metric = Metric
@@ -255,20 +279,22 @@ struct
   end
 
   (*The default compactor used within the parallel code*)
-  val default_compactor = Compactor.prime (
+  fun default_compactor() =Compactor.do_not_prime ( (* Compactor.prime ( *)
     Compactor.set_estimated_number (
     Compactor.new_dynamic (
-      Time.fromMicroseconds 20000)) (*Time to aim for*)
-      (SOME 1)) (*Initial estimate*)
-      (SOME 15) false; (*Prime length + do/don't go static*)
+      Time.fromMicroseconds 2000)) (*Time to aim for*)
+      (SOME 1))(* ) (*Initial estimate*)
+      (SOME 15) false; (*Prime length + do/don't go static*)*)
   
   (****** Enumeration with EqClassTab ******)
   
   (* TODO: replace fopt with (f, filt)
   At the moment "opt" is EqClassTab.update_one*)
-  fun fold_graphs gens (max_v,max_p,max_m,max_n) (fopt,filt) initial = let
+  fun fold_graphs gens (max_v,max_p,max_m,max_n) (fopt,filt,fclean,fmerge) initial = let
     fun save (fopt,filt) xs eq_tab =
       let
+        (*Firstly, declare the original equivalence class table as clean (This is O(1) at the moment)*)
+        val eq_tab = fclean eq_tab;
         (*Would like to check that this is where communication with the equivalence
         class table is really happening - in other words that the list of graphs
         is large enough...*)
@@ -287,6 +313,8 @@ struct
         (*Now filter the list of incoming graphs for those which might be added later, and those
         which certainly won't be...*)
         val (to_try_adding,not_to_add) = split_filter perform_size_check xs ([],[]);
+        val _ = PolyML.print("Performed size check");
+        val _ = PolyML.print("Will try adding " ^ (Int.toString (List.length to_try_adding)));
         (*to_try_adding contains all of the graphs that need to attempt being added to the equivalence
         class table!!!!*)
         
@@ -297,22 +325,25 @@ struct
         table according to its existing DNET...*)
         
         fun check_graph_against_DNET x = filt eq_tab (to_graph_entry x)
+        (*val _ = PolyML.print("Performing filtering...");*)
         (*Filter through all of the graphs*)
-        val compactor = default_compactor;
+        val compactor = default_compactor();
         fun to_filter x = if (check_graph_against_DNET x) then NONE else SOME x;
         (*Group the tasks...*)
         val groups = Compactor.compact_map_list compactor to_filter to_try_adding;
         val fd = Future.new_future_data (SOME "Passing new graphs throught the DNET");
         val par_seq = Par_Seq.of_sequential_seq fd groups; (*Sticking to the default*)
-        
         (*Pump elements through the DNET in parallel*)
+        val _ = PolyML.print("Pumping through DNET...");
         val res_list = flat (Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq));
-        fun remove_filters ((NONE)::xs) = remove_filters xs
+        fun remove_filters [] = []
+          | remove_filters (NONE::xs) = remove_filters xs
           | remove_filters ((SOME x)::xs) = x::(remove_filters xs);
         (*passed through DNET now contains all of the graphs which passed through
         the equivalence class's original DNET (so graphs were not added to modify the DNET
         during this check*)
         val passed_through_DNET = remove_filters res_list;
+        val _ = PolyML.print("Pumped through DNET. Got " ^ (Int.toString(List.length passed_through_DNET)));
         (*Now, all graphs within "passed_through_DNET" need to be added to the equivalence
         class table, as unless they reduce to each other, they will be added...*)
         val add_to_eq_tab = fopt; (*For emphasis*)
@@ -320,15 +351,19 @@ struct
         In theory this is quick since I know they pass the DNET by this point. Hence, parallelisation here
         is probably unnecessary...*)
         fun add_to_own_eq_tab eq_tab x = add_to_eq_tab (to_graph_entry x) eq_tab;
-        val compactor = default_compactor;
+        val compactor = default_compactor();
         val groups = Compactor.compact_map_list compactor (add_to_own_eq_tab eq_tab) passed_through_DNET;
         val fd = Future.new_future_data (SOME "Forming unique equivalence class tables");
         val par_seq = Par_Seq.of_sequential_seq fd groups; (*Sticking to default*)
+        val _ = PolyML.print("Constructing unique tables");
         val res_list = flat (Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq));
+        val _ = PolyML.print("Done constructing unique tables");
         (*All should have been added successfully from this list*)
+        (*val _ = PolyML.print("Created all of the new equivalence class tables before merging...");*)
         val eq_tab_list = map the res_list;
+        val _ = PolyML.print("I have " ^ (Int.toString (List.length eq_tab_list)) ^ " equivalence class tables");
         (*The merge function itself...*)
-        fun merge x y = x (*TODO: IMPLEMENT*)
+        fun merge x y = fmerge x y (*Uses the merge function within the equivalence class table to make sure that this is efficient*)
         (*Now eq_tab list contains all of the equivalence classes that need to be merged! Now I have to perform
         the merging in parallel...*)
         (*Take a list and form the functions ready to merge all pairs...*)
@@ -340,7 +375,7 @@ struct
           let
             val pairs = merge_partition xs;
             (*Choose the compactor etc...*)
-            val compactor = default_compactor;
+            val compactor = default_compactor();
             val groups = Compactor.compact_map_list compactor (fn f => f()) pairs;
             val fd = Future.new_future_data (SOME "Merging pairs of equivalence class tables");
             val par_seq = Par_Seq.of_sequential_seq fd groups;
@@ -349,11 +384,13 @@ struct
             res_list
           end
         (*Keeping merging until only one equivalence class table remains...*)
-        fun merge_list_all [] = raise ERROR "No equivalence class table"
+        fun merge_list_all [] = eq_tab (*Nothing was actually added...*)
           | merge_list_all [x] = x
           | merge_list_all xs = merge_list_all (merge_list_once xs);
         (*Perform the merge!*)
+        val _ = PolyML.print("Performing merge");
         val new_eq_tab = merge_list_all eq_tab_list;
+        val _ = PolyML.print("Performed entire merge");
         (*SANITY CHECK*)
         (*
         fun add_all_to_tab [] (succeeded,eq_tab) = (succeeded,eq_tab)
@@ -396,7 +433,7 @@ struct
       val prev = map fst (filter (fn (_,i)=> i = 0) prev)
       (*Hoping this is where most of the work is at the moment...*)
       (*Set the compactor to use*)
-      val compactor = default_compactor;
+      val compactor = default_compactor();
       val fd = Future.new_future_data (SOME "Enumerating next graphs");
       (*Create the compacted elements...*)
       val groups = Compactor.compact_map_list compactor (add_gens (max_p,max_m,max_n) gens) prev;
@@ -413,12 +450,11 @@ struct
     snd (funpow max_v fold_graphs_round ([empty_graph_rep], initial))
   end
   
-  fun enum gens max_size =
-    fold_graphs gens max_size
-    (*Really not very sure of how this works...*)
-    ((fn g => fn gs => SOME (GraphEntry.get_graph g :: gs)),fn _ => fn _ => false) []
   (*This repeatedly adds graphs to the equivalence class table, but one at a time...*)
-  fun tab_update gens max_size = fold_graphs gens max_size (EqClassTab.update_one,EqClassTab.has_match_in_dnet)
+  fun tab_update gens max_size = fold_graphs gens max_size (EqClassTab.hard_update_one, (*Add a single graph to the equivalence class table*)
+    EqClassTab.has_match_in_dnet, (*Check to see if a match in the dnet exists*)
+    EqClassTab.clean, (*Declare that a round of modifications to the equivalence class table has been completed*)
+    fn eqt1 => fn eqt2 => snd (EqClassTab.merge eqt1 eqt2)) (*Merge two equivalence class tables*)
   (*Enumerate the equivalence class table up to graphs with the specified
   maximum size (which specifies the maximum number of inputs, outputs, vertices
   and the maximum number of pluggings
