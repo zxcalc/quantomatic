@@ -1,3 +1,5 @@
+PolyML.print_depth 0;
+
 use "test/protocol/core-tester.ML";
 use "test/protocol/test-utils.ML";
 

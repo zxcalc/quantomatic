@@ -15,9 +15,10 @@ struct
 
   fun unordered_eq' [] [] = true
     | unordered_eq' (x::xs) ys =
-        case (find_and_remove x ys)
-          of NONE => false
-           | SOME zs => unordered_eq' xs zs;
+        (case (find_and_remove x ys)
+           of NONE => false
+            | SOME zs => unordered_eq' xs zs)
+    | unordered_eq' _ _ = false;
 
   fun unordered_eq xs ys =
         (List.length xs) = (List.length ys) andalso (unordered_eq' xs ys)
