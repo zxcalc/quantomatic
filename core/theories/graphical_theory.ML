@@ -25,16 +25,6 @@ sig
   structure Match : OGRAPH_MATCH_STATE
   sharing Match.G.SharingOGraph = Graph.SharingOGraph;
 
-  (* Substitutions for graphs, replacing one component with another *)
-  structure GraphSubst : GRAPH_SUBST
-  sharing type GraphSubst.Sharing.match = Match.T
-  sharing type GraphSubst.Sharing.graph = Graph.T
-
-  (* Matching algorithm *)
-  structure MatchSearch : MATCH_SEARCH
-  sharing MatchSearch.Sharing.MatchState = Match.Sharing
-  sharing MatchSearch.Sharing.G = Graph.SharingOGraph
-
   (* Sets of rules and matching for those sets *)
   structure RulesetRewriter : RULESET_REWRITER
   sharing RulesetRewriter.Sharing.Ruleset = Ruleset.Sharing 
@@ -91,8 +81,6 @@ struct
                       val empty_data = ()
                     );
 
-  structure GraphSubst = BangGraphSubst(Match);
-
   structure InnerMatchSearch = SimpleInnerMatchSearch(structure MatchState = Match);
   structure MatchSearch = GreedyMatchSearch(
     structure InnerMatchSearch = InnerMatchSearch;
@@ -101,8 +89,10 @@ struct
 
   structure RulesetRewriter = RulesetRewriter(
     structure Ruleset = Ruleset;
-    structure MatchSearch = MatchSearch;
-    structure GraphSubst = GraphSubst;
+    structure Rewriter = BangGraphRewriter(
+      structure Rule = Ruleset.BangGraphRule;
+      structure Matcher = MatchSearch;
+    );
   );
 
   structure VertexComponentData = VComponentData;
