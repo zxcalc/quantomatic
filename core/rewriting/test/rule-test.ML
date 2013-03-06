@@ -1,9 +1,9 @@
-structure Test_Rule = Rule(Test_Bang_Graph);
+structure Test_BG_Rule = BangGraphRule(Test_Bang_Graph);
 
 local
   structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
   open Tools;
-  structure Rule = Test_Rule;
+  structure Rule = Test_BG_Rule;
 
   fun test_mk_bad_rule (lhs,rhs) =
      (Rule.mk (lhs,rhs);

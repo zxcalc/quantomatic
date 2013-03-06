@@ -32,7 +32,7 @@ local
       val tgt = load_graph tgt_f
       val exp = load_graph exp_f
       (* sanity-check the rule *)
-      val _ = Test_Rule.mk (lhs,rhs)
+      val _ = Test_BG_Rule.mk (lhs,rhs)
       val rhs_vnames = G.get_vnames rhs
       val mseq = M.match_avoiding_tracking (rhs_vnames,rhs_vnames) lhs tgt
       val ms = case Seq.pull mseq

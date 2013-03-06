@@ -81,9 +81,9 @@ struct
   structure EData = Graph.EData; 
   structure OVData = Graph.OVData;
   
-  structure Rule = Rule(Graph);
+  structure Rule = BangGraphRule(Graph);
 
-  structure Ruleset = Ruleset(Rule);
+  structure Ruleset = BangGraphRuleset(Rule);
 
   structure Match = BangGraphMatchState(
                       structure G = Graph

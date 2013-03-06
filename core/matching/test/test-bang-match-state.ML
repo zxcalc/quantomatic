@@ -4,7 +4,7 @@ local (* Test match state functionality *)
   structure MS = Test_BGMatchState;
 
   local
-    structure Rule = Rule(G);
+    structure Rule = BangGraphRule(G);
   in
     fun assert_boundary_coherent (g1,g2) = let
       (* easiest just to try to make a rule out of it *)

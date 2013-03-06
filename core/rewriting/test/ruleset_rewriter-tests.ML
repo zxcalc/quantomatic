@@ -1,5 +1,5 @@
 structure Test_RulesetRewriter : RULESET_REWRITER = RulesetRewriter(
-  structure Ruleset = Test_Ruleset;
+  structure Ruleset = Test_BG_Ruleset;
   structure MatchSearch = Test_GreedyMatcher;
   structure GraphSubst = Test_BangGraphSubst;
 );
@@ -38,7 +38,7 @@ local (* low-level rewriting functions *)
         handle e => raise graph_load_exn (tgt_f,e);
       val exp = Tools.load_graph exp_f
         handle e => raise graph_load_exn (exp_f,e);
-      val rule = Test_Rule.mk (lhs,rhs)
+      val rule = Test_BG_Rule.mk (lhs,rhs)
       val rw_seq =
         case subg
           of SOME vs => Test_RulesetRewriter.rule_rewrites_within

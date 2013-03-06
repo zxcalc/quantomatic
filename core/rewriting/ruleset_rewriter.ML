@@ -116,11 +116,11 @@ end;
 
 (* *)
 functor RulesetRewriter(
-  structure Ruleset : RULESET
+  structure Ruleset : BANG_GRAPH_RULESET
   structure MatchSearch : BG_MATCH_SEARCH
   sharing MatchSearch.Sharing.G = Ruleset.Rule.Sharing.Graph
   structure GraphSubst : GRAPH_SUBST
-  sharing type GraphSubst.graph = Ruleset.Rule.Graph.T
+  sharing type GraphSubst.graph = Ruleset.BangGraphRule.BangGraph.T
   sharing type GraphSubst.match = MatchSearch.MatchState.T
 ) : RULESET_REWRITER =
 struct
@@ -128,13 +128,13 @@ struct
 
   structure MatchState = MatchSearch.BGMatchState;
   structure Ruleset = Ruleset;
-  structure Rule = Ruleset.Rule;
+  structure Rule = Ruleset.BangGraphRule;
   type match = MatchState.T
   (* *)
   structure MatchSearch = MatchSearch;
   structure GraphSubst = GraphSubst;
 
-  structure G = Rule.Graph;
+  structure G = Rule.BangGraph;
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -154,7 +154,7 @@ struct
         val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g_norm),
                     V.Rnm.mk_from_avoids (G.get_vnames g_norm),
                     E.Rnm.empty, B.Rnm.empty)
-        val (_,r) = Rule.rename rnms r;
+        val (_,r) = Rule.rename4 rnms r;
         val lhs = G.normalise (Rule.get_lhs r);
         val rhs = G.normalise (Rule.get_rhs r);
         val avoid = V.NSet.union_merge (G.get_vnames g_norm) (G.get_vnames rhs);
@@ -172,7 +172,7 @@ struct
         val rnms = (X.Rnm.mk_from_avoids (G.get_xnames g_norm),
                     V.Rnm.mk_from_avoids (G.get_vnames g_norm),
                     E.Rnm.empty, B.Rnm.empty)
-        val (_,r) = Rule.rename rnms r;
+        val (_,r) = Rule.rename4 rnms r;
         val lhs = G.normalise (Rule.get_lhs r);
         val rhs = G.normalise (Rule.get_rhs r);
         val avoid = V.NSet.union_merge (G.get_vnames rhs) (G.get_vnames g_norm);

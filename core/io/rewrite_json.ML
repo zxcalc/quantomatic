@@ -19,7 +19,7 @@
  *)
 
 functor OutputAnnotatedRewriteJSON(
-  structure Rule : BASIC_RULE
+  structure Rule : RULE
   structure OutputAnnotation : RULE_ANN_OUTPUT_JSON
   structure OutputGraph : OUTPUT_JSON where type data = (Rule.Graph.T * OutputAnnotation.GraphAnnOutput.data)
 ) : OUTPUT_JSON
@@ -52,7 +52,7 @@ functor OutputAnnotatedRewriteJSON(
 end;
 
 functor OutputRewriteJSON(
-  structure Rule : BASIC_RULE
+  structure Rule : RULE
   structure OutputGraph : OUTPUT_JSON
   sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_JSON
@@ -77,7 +77,7 @@ functor OutputRewriteJSON(
 end;
 
 functor OutputAnnotatedRewriteListJSON(
-  structure Rule : BASIC_RULE
+  structure Rule : RULE
   structure OutputAnnotation : RULESET_ANN_OUTPUT_JSON
   structure OutputRewrite : OUTPUT_JSON
     where type data = ((R.name * Rule.T) * OutputAnnotation.RuleAnnOutput.data)

@@ -8,7 +8,7 @@ end
 (* *)
 signature RULESET =
 sig
-  structure Rule : BASIC_RULE;
+  structure Rule : RULE;
 
   type T (* a set of named rules, which can be taged, and which have 
             an active subset *)
@@ -60,6 +60,13 @@ sig
 
   val delete_rules_in_tag : TagName.name -> T -> T
 
+end; (* signature *)
+
+signature BANG_GRAPH_RULESET =
+sig
+  include RULESET;
+  structure BangGraphRule : BANG_GRAPH_RULE;
+  sharing BangGraphRule.Sharing = Rule.Sharing;
 end; (* signature *)
 
 
@@ -218,5 +225,12 @@ struct
       rset |> R.NSet.fold delete_rule (get_rules_in_tag rset tagname);
 
 end; (* functor Ruleset *)
+
+functor BangGraphRuleset(Rule : BANG_GRAPH_RULE) : BANG_GRAPH_RULESET =
+struct
+  structure BangGraphRule = Rule;
+  structure RS = Ruleset(Rule);
+  open RS;
+end;
 
 
