@@ -193,6 +193,7 @@ PolyML.Project.make "io/io_interface_xml.ML";
  *)
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
+PolyML.Project.make "rewriting/rewriter.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriter.ML";
 
@@ -202,7 +203,7 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 (* I/O *)
 PolyML.Project.make "io/rewrite_json.ML";
 
-Testing.make_test "rewriting/test/graph_subst-test.ML";
+Testing.make_test "rewriting/test/rewriter-test.ML";
 Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 
 

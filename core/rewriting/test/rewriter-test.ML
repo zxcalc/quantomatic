@@ -1,15 +1,14 @@
-structure Test_RulesetRewriter : RULESET_REWRITER = RulesetRewriter(
-  structure Ruleset = Test_BG_Ruleset;
-  structure MatchSearch = Test_GreedyMatcher;
-  structure GraphSubst = BangGraphSubst(Test_GreedyMatcher.BGMatchState);
+structure Test_BangGraphRewriter = BangGraphRewriter(
+  structure Rule = Test_BG_Rule
+  structure Matcher = Test_GreedyMatcher
 );
 (* set to 4 for really detailed messages *)
-(* Test_RulesetRewriter.Log.level_ref := 2; *)
+(* Test_BangGraphRewriter.Log.level_ref := 2; *)
 
-local (* low-level rewriting functions *)
+local
   structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
-  structure G = Tools.G;
-  structure GIso = Tools.GIso;
+  open Tools;
+  structure RW = Test_BangGraphRewriter;
 
   type test_data = {
     name     : string,
@@ -41,14 +40,14 @@ local (* low-level rewriting functions *)
       val rule = Test_BG_Rule.mk (lhs,rhs)
       val rw_seq =
         case subg
-          of SOME vs => Test_RulesetRewriter.rule_rewrites_within
+          of SOME vs => RW.find_rewrites_in_subgraph
+                          rule
+                          tgt
                           (V.NSet.of_list (map V.mk vs))
+           | NONE    => RW.find_rewrites
                           rule
                           tgt
-           | NONE    => Test_RulesetRewriter.rule_rewrites
-                          rule
-                          tgt
-      val ((rule',result),rw_seq') =
+      val ((_,result),rw_seq') =
         case Seq.pull rw_seq
           of SOME x => x
            | NONE => raise ERROR "No matches!"
@@ -58,8 +57,8 @@ local (* low-level rewriting functions *)
       if GIso.test exp result
       then result
       else (
-        Tools.save_dot_graph result (tgt_f^".result.dot");
-        Tools.save_dot_graph exp (exp_f^".dot");
+        save_dot_graph result (tgt_f^".result.dot");
+        save_dot_graph exp (exp_f^".dot");
         writeln "Result (minimised):";
         writeln ("  (written to "^tgt_f^".result.dot)");
         G.print result;
