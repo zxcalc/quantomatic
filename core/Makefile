@@ -53,9 +53,17 @@ bin/$(THE_BIN): bin/$(THE_BIN).o
 	../tools/polylinkcmd.sh bin/$(THE_BIN) bin/$(THE_BIN).o
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
+bin/qconvert.o: $(QUANTO_HEAP)
+	echo 'use "convert-files.ML";' | $(POLYML)
+
+# make the core object without dumping the heap
+bin/qconvert: bin/qconvert.o
+	../tools/polylinkcmd.sh bin/qconvert bin/qconvert.o
+	@echo "Success! made binary: bin/qconvert"
+
 #	export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
 
-bin: bin/$(THE_BIN)
+bin: bin/$(THE_BIN) bin/qconvert
 
 echobin:
 	@echo export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
