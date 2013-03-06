@@ -1071,8 +1071,8 @@ struct
     fun printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as true, data, userData }) = (
           printEsc #"E";
           printEdgeDesc' desc;
-          printEsc #"e");
-    fun printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as false, data, userData }) = (
+          printEsc #"e")
+      | printEdgeDesc (desc as { name, eType, sourceName, targetName, directed as false, data, userData }) = (
           printEsc #"F";
           printEdgeDesc' desc;
           printEsc #"f");
@@ -2116,15 +2116,6 @@ struct
                         oldName = readToDelim(),
                         newName = readToEnd()
                       }
-         | "RRR"  =>  let
-                        val oldName = readToDelim ()
-                        val newName = readToEnd ()
-                      in
-                        RenameRuleRequest {
-                          oldName = oldName,
-                          newName = oldName
-                        }
-                      end
 
          | "RTL"  => (assertAtEnd (); ListTagsRequest)
 

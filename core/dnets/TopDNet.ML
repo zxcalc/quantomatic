@@ -56,10 +56,13 @@ struct
 
     (* Getters for a tree *)
     fun get_contour(Node{contour=contour, children = children}) = contour
+      | get_contour _ = raise ERROR "Not a contour"
 
     fun get_children(Node{contour=contour, children=children}) = children
+      | get_children _ = raise ERROR "Not a contour"
 
     fun get_graph(Leaf{graph=graph}) = graph
+      | get_graph _ = raise ERROR "Not a graph"
 
 
 
@@ -74,14 +77,16 @@ struct
     (* This function checks if a contour c is equivalent with the contour stored in a Node *)
     fun equiv(Node{contour=contour, children=children}, c) =
        if C.equiv(contour,c) then true else false
+      | equiv _ = false
 
     (* This function retrieves a node x from a contour list cl, given that x is contained in cl*)
     (* PRECONDITION: x is contained in cl *)
-    fun get_equiv_node(x,c::[]) = c
+    fun get_equiv_node(_,c::[]) = c
       | get_equiv_node(x,c::cl) = 
           if is_node(c)
           then if equiv(c,x) then c else get_equiv_node(x,cl)
           else get_equiv_node(x,cl)
+      | get_equiv_node(_,[]) = raise ERROR "empty contour list"
   
     (* This function retrieves a list of literals not equiv to x from a contour list cl, given that x is contained in cl*)
     (* PRECONDITION: x is contained in cl *)
@@ -90,6 +95,7 @@ struct
           if is_node(c)
           then if equiv(c,x) then cl else c::get_equiv_remaining(x,cl)
           else c::get_equiv_remaining(x,cl)
+      | get_equiv_remaining(_,[]) = raise ERROR "empty contour list"
 
 
 
@@ -127,10 +133,13 @@ struct
                 in
                   Node{contour=contour, children = (add_cl_to_dnet n cs gn)::children}
                 end
+      | add_cl_to_dnet _ [] _ = raise ERROR "Empty contour list"
+      | add_cl_to_dnet _ _ _ = raise ERROR "Not a contour"
 
   (* This function add a list of contour lists cls together with the list of graph named gns to the tree *)
   fun add_cl_list_to_dnet d (cl::[]) (gn::[]) = add_cl_to_dnet d cl gn
     | add_cl_list_to_dnet d (cl::cll) (gn::gns) = add_cl_list_to_dnet (add_cl_to_dnet d cl gn) cll gns
+    | add_cl_list_to_dnet d _ _ = raise ERROR "Contour and graph list lengths differ"
 
 	(* This function builds a tree given a set of pattern graphs tab *)
 	fun mk(tab) =
@@ -359,6 +368,7 @@ struct
   (* PRECONDITION: g is contained in gl*)
   fun remove_eq_graph(g,gl::[]) = []
     | remove_eq_graph(g,gl::gls) = if graphname_eq(g,gl) then gls else gl::remove_eq_graph(g,gls) 
+    | remove_eq_graph(_,[]) = raise ERROR "Empty graph list"
 
   (* This function checks if a graph g is contained in the graph list gl*)
   fun find_eq_graph(g,[]) = false

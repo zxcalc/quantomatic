@@ -792,10 +792,16 @@ fun hilb ([format], graph) =
             end
         | RenameVertexAction { oldName, newName } =>
           let
-            val (vlist, state') = State.rename_vertex (V.mk oldName) (V.mk newName) 
-                                (GraphName.mk graphName) state
+            val ((new,freshN), state') =
+              State.rename_vertex (V.mk oldName)
+                                  (V.mk newName) 
+                                  (GraphName.mk graphName)
+                                  state
+            val outlist = case freshN
+                            of SOME n => [V.dest new,V.dest n]
+                             | NONE   => [V.dest new];
           in
-            (StringListResponse {data = map V.dest vlist}, state')
+            (StringListResponse {data = outlist}, state')
           end
         | DeleteVerticesAction { vertexNames } =>
             (OkResponse,
