@@ -777,7 +777,11 @@ public class InteractiveGraphView
 						viewer.getGraphLayout().setLocation(v, p);
 						viewer.getGraphLayout().lock(v, true);
 					} else {
-						viewer.shift(rewriteRect, v, new Point2D.Double(0, 20 * count));
+						if (rewriteRect.getCenterX() <= 10 || rewriteRect.getCenterX() <= 10)
+							viewer.getGraphLayout().setLocation(v, new Point2D.Double(20 * (1 + count), 20 * (1 + count)));
+						else
+							viewer.shift(rewriteRect, v, new Point2D.Double(20 * (1 + count), 20 * (1 + count)));
+						
 						setVertexPositionData(v);
 						count++;
 					}
