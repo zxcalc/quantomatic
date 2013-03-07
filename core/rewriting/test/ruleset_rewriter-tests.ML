@@ -113,6 +113,20 @@ in
       rhs = "graphs/red-spider-1-rhs.graph",
       target = "graphs/red-spider-1-tgt.graph",
       expected = "graphs/red-spider-1-expected.graph"
+    },
+    { name = "bare wire rewrite",
+      subgraph = NONE,
+      lhs = "graphs/bare-wire-rule-1-lhs.graph",
+      rhs = "graphs/bare-wire-rule-1-rhs.graph",
+      target = "graphs/bare-wire-rule-1-target.graph",
+      expected = "graphs/bare-wire-rule-1-expected.graph"
+    },
+    { name = "bare wire rewrite (subgraph)",
+      subgraph = SOME ["m","p"],
+      lhs = "graphs/bare-wire-rule-1-lhs.graph",
+      rhs = "graphs/bare-wire-rule-1-rhs.graph",
+      target = "graphs/bare-wire-rule-1-target.graph",
+      expected = "graphs/bare-wire-rule-1-expected.graph"
     }
     (* TODO: more tests:
      *  - clashing vertex and edge names

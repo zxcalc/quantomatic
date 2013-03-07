@@ -76,8 +76,11 @@ functor OGraphSubst(MatchState : OGRAPH_MATCH_STATE)
       val interior = V.NSet.fold (V.NSet.delete o vmapf)
                                  shared_boundary
                                  matched
-      (* h is g with LHS cut out *)
-      val h = g |> V.NSet.fold G.delete_vertex interior
+      val interior_edges = EInjEndo.get_codset (MatchState.get_emap m);
+      (* h is g with LHS cut out; note that we need to delete edges explicitly,
+         in case of bare wire matches *)
+      val h = g |> E.NSet.fold G.delete_edge interior_edges
+                |> V.NSet.fold G.delete_vertex interior
                    (* apply the data substitution to what remains *)
                 |> subst_data;
       val _ = log_graph 4 "OGraphSubst.rewrite: pattern graph" pat
