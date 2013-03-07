@@ -113,7 +113,7 @@ signature GRAPH_PARAM
     sharing type CRnmV.obj = T
   structure CRnmE : COMPOUND_RENAMING 
     where type renaming = E.Rnm.T
-    sharing type CRnmE.obj = T 
+    sharing type CRnmE.obj = T
   
   (* rename internal names in Vertex Data *)
   (* structure VDataCRnmX : COMPOUND_RENAMING

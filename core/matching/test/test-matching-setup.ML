@@ -1,76 +1,75 @@
 structure Test_MatchState =
   OGraphMatchState(
-    structure G = Test_MkG.G
-    type data = unit
-    val empty_data = ()
-  );
-structure Test_BGMatchState =
-  BangGraphMatchState(
-    structure G = Test_MkG.G
+    structure G = Test_OGraph
     type data = unit
     val empty_data = ()
   );
 structure Test_InnerMatcher =
   SimpleInnerMatchSearch(structure MatchState = Test_MatchState);
-structure Test_BGInnerMatcher =
-  SimpleInnerMatchSearch(structure MatchState = Test_BGMatchState);
 structure Test_ConcreteMatcher =
   ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher);
+
+structure Test_BGMatchState =
+  BangGraphMatchState(
+    structure G = Test_Bang_Graph
+    type data = unit
+    val empty_data = ()
+  );
+structure Test_BGInnerMatcher =
+  SimpleInnerMatchSearch(structure MatchState = Test_BGMatchState);
 structure Test_GreedyMatcher =
   GreedyMatchSearch(
     structure InnerMatchSearch = Test_BGInnerMatcher
     structure BGMatchState = Test_BGMatchState
   );
 (* set to 4 for really detailed messages *)
+(*
 Test_InnerMatcher.Log.level_ref := 2;
 Test_BGInnerMatcher.Log.level_ref := 2;
 Test_ConcreteMatcher.Log.level_ref := 2;
 Test_GreedyMatcher.Log.level_ref := 2;
+*)
 
-structure Test_MatchUtil =
+functor Test_Match_Tools(
+  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                           and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
 struct
+  structure GTools = Test_OGraph_Tools(Matcher.G);
+  open GTools;
+  structure M = Matcher;
+  structure MS = M.MatchState;
+
   fun assert_n_match n mseq () = let
     val mlist = Seq.list_of mseq
     val nm = length mlist
-  in if nm = n then I
+  in if nm = n then mlist
      else
-       (List.map Test_MatchState.print mlist;
+       (List.map MS.print mlist;
         raise ERROR ("expected " ^ Int.toString n ^
                      " matching(s), got " ^ Int.toString nm))
-  end
+  end;
+
+  fun find_n_matches n (pat,tgt) =
+    assert_n_match n (M.match pat tgt) ();
 end;
 
-structure Test_BGMatchUtil =
+functor Test_Bang_Match_Tools(
+  BGMatcher : BG_MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                                and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
 struct
-  structure G = Test_MkG.G
+  structure MTools = Test_Match_Tools(BGMatcher);
+  open MTools;
+  structure Tools = Test_Bang_Graph_Tools(BGMatcher.BG);
+  open Tools;
+  structure M = BGMatcher;
+  structure MS = M.BGMatchState;
 
-  fun assert_n_match n mseq () = let
-    val mlist = Seq.list_of mseq
-    val nm = length mlist
-  in if nm = n then I
-     else
-       (List.map Test_BGMatchState.print mlist;
-        raise ERROR ("expected " ^ Int.toString n ^
-                     " matching(s), got " ^ Int.toString nm))
-  end
-
-  fun assert_boundary_coherent (g1,g2) = let
-    val _ = if B.NSet.eq (G.get_bboxes g1) (G.get_bboxes g2) then ()
-            else raise ERROR "Differing !-boxes!"
-    val _ = if V.NSet.eq (G.get_inputs g1) (G.get_inputs g2) then ()
-            else raise ERROR "Differing inputs!"
-    val _ = if V.NSet.eq (G.get_outputs g1) (G.get_outputs g2) then ()
-            else raise ERROR "Differing outputs!"
-    val _ = V.NSet.fold (fn v => fn _ =>
-              if B.NSet.eq (G.get_bboxes_of g1 v) (G.get_bboxes_of g2 v) then ()
-              else raise ERROR ((V.string_of_name v)^" has differing !-boxes")
-              ) (G.get_inputs g1) ()
-    val _ = V.NSet.fold (fn v => fn _ =>
-              if B.NSet.eq (G.get_bboxes_of g1 v) (G.get_bboxes_of g2 v) then ()
-              else raise ERROR ((V.string_of_name v)^" has differing !-boxes")
-              ) (G.get_outputs g1) ()
+  fun assert_n_warnings n ms = let
+    val ws = MS.get_warnings ms
   in
-    (g1,g2)
+    Testing.assert ((Int.toString n)^" warnings") (length ws = n)
   end
 end;
 

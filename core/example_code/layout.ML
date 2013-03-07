@@ -1,7 +1,4 @@
 
-
-PolyML.Project.make "../layout/ograph_layout.ML";
-
 local 
   structure Theory = Str_Theory;
   open Theory;
@@ -22,9 +19,9 @@ in
       OGraphPreLayout.add_to_next_vlist g (V.NSet.list_of next_vs) (seen_vs,V.NSet.empty); 
   
   (* test laying out the graph *)
-  val _ = Str_Theory.Graph.print g;
+  (* val _ = Str_Theory.Graph.print g; *)
   val layouts = OGraphPreLayout.layout_graph g;
-  val _ = map OGraphPreLayout.print_layout layouts;
+  (* val _ = map OGraphPreLayout.print_layout layouts; *)
   
   (* one box for each disconnected component *)
   val boxes = map OGraphPreLayout.box_of_layout layouts;

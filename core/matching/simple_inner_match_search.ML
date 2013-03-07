@@ -85,8 +85,10 @@ functor SimpleInnerMatchSearch(
                 (V.string_of_name ct)^","^(E.string_of_name et)^")") ()
              val ((etdir,etdata),_) = G.get_edge tgt et
            in case (epdir = etdir,
-                    perhaps_apply [G.VData.match_data (cpdata,ctdata),
-                                   G.EData.match_data (epdata,etdata)] subst)
+                    Option.composePartial
+                      (G.VData.match_data (cpdata,ctdata),
+                       G.EData.match_data (epdata,etdata))
+                      subst)
                 of (true, SOME subst') =>
                       match_circles' (lvl+1)
                           (ms |> MatchState.update_u_circles (V.NSet.delete cp)
@@ -364,9 +366,11 @@ functor SimpleInnerMatchSearch(
         val (tgt_sdata,tgt_tdata) = (G.get_vertex_data tgt' tgt_s, G.get_vertex_data tgt' tgt_t)
         
         (* match data for edge, source, and target *)
-        val fmatch_d = perhaps_apply [G.EData.match_data (bw_data, et_data),
-                                      G.VData.match_data (bw_sdata, tgt_sdata),
-                                      G.VData.match_data (bw_tdata, tgt_tdata)]
+        val fmatch_d = Option.composePartial
+                          (G.EData.match_data (bw_data, et_data),
+                           Option.composePartial
+                              (G.VData.match_data (bw_sdata, tgt_sdata),
+                               G.VData.match_data (bw_tdata, tgt_tdata)));
         fun add_bw new_subst = let
           val ms' = ms |> MatchState.set_tgt tgt' (* save the new, edge-homeo equivalent target *)
                        |> MatchState.set_full_tgt fulltgt'

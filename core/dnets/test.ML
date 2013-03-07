@@ -1,6 +1,6 @@
 local
-  open Test_MkG
-  open Test_MatchUtil
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
 
   
   structure TD = Top_DNet(G)
@@ -10,9 +10,9 @@ local
 
 
   val b = L.boundary;
-  val k1 = (mkX zero_angle)
-  val k2 = (mkX (LinratAngleExpr.parse "1"))
-  val k3 = (mkX (LinratAngleExpr.parse "a"))
+  val k1 = (vexpr1 "0")
+  val k2 = (vexpr1 "1")
+  val k3 = (vexpr1 "a")
 
 
 
@@ -39,10 +39,10 @@ local
                           |> G.add_named_vertex p1_v3 k2
                           |> G.add_named_vertex p1_v4 k1
                           |> G.add_named_vertex p1_v5 k2
-                          |> G.add_named_edge p1_e1 dir_edge p1_v1 p1_v2
-                          |> G.add_named_edge p1_e2 dir_edge p1_v1 p1_v3
-                          |> G.add_named_edge p1_e3 dir_edge p1_v2 p1_v3
-                          |> G.add_named_edge p1_e4 dir_edge p1_v5 p1_v4 
+                          |> G.add_named_edge p1_e1 (G.Directed,eunit1) p1_v1 p1_v2
+                          |> G.add_named_edge p1_e2 (G.Directed,eunit1) p1_v1 p1_v3
+                          |> G.add_named_edge p1_e3 (G.Directed,eunit1) p1_v2 p1_v3
+                          |> G.add_named_edge p1_e4 (G.Directed,eunit1) p1_v5 p1_v4 
 
   val (bb1,pattern1) = pattern1 |> G.add_bbox
   val pattern1 = pattern1 |> G.doadd_to_bbox bb1 (V.NSet.single p1_v5)
@@ -65,10 +65,10 @@ local
                           |> G.add_named_vertex p2_v2 k2
                           |> G.add_named_vertex p2_v3 k2
                           |> G.add_named_vertex p2_v4 k1
-                          |> G.add_named_edge p2_e1 dir_edge p2_v1 p2_v2
-                          |> G.add_named_edge p2_e2 dir_edge p2_v1 p2_v3
-                          |> G.add_named_edge p2_e3 dir_edge p2_v1 p2_v4
-                          |> G.add_named_edge p2_e4 dir_edge p2_v4 p2_v3
+                          |> G.add_named_edge p2_e1 (G.Directed,eunit1) p2_v1 p2_v2
+                          |> G.add_named_edge p2_e2 (G.Directed,eunit1) p2_v1 p2_v3
+                          |> G.add_named_edge p2_e3 (G.Directed,eunit1) p2_v1 p2_v4
+                          |> G.add_named_edge p2_e4 (G.Directed,eunit1) p2_v4 p2_v3
 
   val (bb2,pattern2) = pattern2 |> G.add_bbox
   val (bb3,pattern2) = pattern2 |> G.add_bbox
@@ -92,10 +92,10 @@ local
                           |> G.add_named_vertex p3_v2 k1
                           |> G.add_named_vertex p3_v3 k2
                           |> G.add_named_vertex p3_v4 k2
-                          |> G.add_named_edge p3_e1 dir_edge p3_v1 p3_v2
-                          |> G.add_named_edge p3_e2 dir_edge p3_v1 p3_v3
-                          |> G.add_named_edge p3_e3 dir_edge p3_v2 p3_v3
-                          |> G.add_named_edge p3_e4 dir_edge p3_v3 p3_v4
+                          |> G.add_named_edge p3_e1 (G.Directed,eunit1) p3_v1 p3_v2
+                          |> G.add_named_edge p3_e2 (G.Directed,eunit1) p3_v1 p3_v3
+                          |> G.add_named_edge p3_e3 (G.Directed,eunit1) p3_v2 p3_v3
+                          |> G.add_named_edge p3_e4 (G.Directed,eunit1) p3_v3 p3_v4
 
 
   val pattern4 = G.empty
@@ -114,10 +114,10 @@ local
                           |> G.add_named_vertex p4_v2 k1
                           |> G.add_named_vertex p4_v3 k2
                           |> G.add_named_vertex p4_v4 b
-                          |> G.add_named_edge p4_e1 dir_edge p4_v1 p4_v2
-                          |> G.add_named_edge p4_e2 dir_edge p4_v1 p4_v3
-                          |> G.add_named_edge p4_e3 dir_edge p4_v2 p4_v3
-                          |> G.add_named_edge p4_e4 dir_edge p4_v3 p4_v4
+                          |> G.add_named_edge p4_e1 (G.Directed,eunit1) p4_v1 p4_v2
+                          |> G.add_named_edge p4_e2 (G.Directed,eunit1) p4_v1 p4_v3
+                          |> G.add_named_edge p4_e3 (G.Directed,eunit1) p4_v2 p4_v3
+                          |> G.add_named_edge p4_e4 (G.Directed,eunit1) p4_v3 p4_v4
 
 
 
@@ -137,9 +137,9 @@ local
                           |> G.add_named_vertex p5_v2 b
                           |> G.add_named_vertex p5_v3 b
                           |> G.add_named_vertex p5_v4 k1
-                          |> G.add_named_edge p5_e1 dir_edge p5_v1 p5_v2
-                          |> G.add_named_edge p5_e2 dir_edge p5_v3 p5_v1
-                          |> G.add_named_edge p5_e3 dir_edge p5_v4 p5_v1
+                          |> G.add_named_edge p5_e1 (G.Directed,eunit1) p5_v1 p5_v2
+                          |> G.add_named_edge p5_e2 (G.Directed,eunit1) p5_v3 p5_v1
+                          |> G.add_named_edge p5_e3 (G.Directed,eunit1) p5_v4 p5_v1
 
 
   val pattern6 = G.empty
@@ -158,9 +158,9 @@ local
                           |> G.add_named_vertex p6_v2 b
                           |> G.add_named_vertex p6_v3 k1
                           |> G.add_named_vertex p6_v4 k1
-                          |> G.add_named_edge p6_e1 dir_edge p6_v1 p6_v2
-                          |> G.add_named_edge p6_e2 dir_edge p6_v1 p6_v3
-                          |> G.add_named_edge p6_e3 dir_edge p6_v3 p6_v4
+                          |> G.add_named_edge p6_e1 (G.Directed,eunit1) p6_v1 p6_v2
+                          |> G.add_named_edge p6_e2 (G.Directed,eunit1) p6_v1 p6_v3
+                          |> G.add_named_edge p6_e3 (G.Directed,eunit1) p6_v3 p6_v4
 
 
 
@@ -182,11 +182,11 @@ local
                           |> G.add_named_vertex p7_v2 k1
                           |> G.add_named_vertex p7_v3 k1
                           |> G.add_named_vertex p7_v4 k1
-                          |> G.add_named_edge p7_e1 dir_edge p7_v1 p7_v2
-                          |> G.add_named_edge p7_e2 dir_edge p7_v2 p7_v1
-                          |> G.add_named_edge p7_e3 dir_edge p7_v1 p7_v3
-                          |> G.add_named_edge p7_e4 dir_edge p7_v2 p7_v4
-                          |> G.add_named_edge p7_e5 dir_edge p7_v3 p7_v4
+                          |> G.add_named_edge p7_e1 (G.Directed,eunit1) p7_v1 p7_v2
+                          |> G.add_named_edge p7_e2 (G.Directed,eunit1) p7_v2 p7_v1
+                          |> G.add_named_edge p7_e3 (G.Directed,eunit1) p7_v1 p7_v3
+                          |> G.add_named_edge p7_e4 (G.Directed,eunit1) p7_v2 p7_v4
+                          |> G.add_named_edge p7_e5 (G.Directed,eunit1) p7_v3 p7_v4
 
 
 
@@ -284,7 +284,7 @@ local
   val lit_b = L.build((V.mk "b"), k2, L.mult_none, 1, L.mult_none, 0, L.mult_none)
   val lit_c = L.build((V.mk "c"), k1, L.mult_star, 0, L.mult_none, 1, L.mult_none)
   val lit_d =  L.build((V.mk "d"), k1, L.mult_none, 1, L.mult_none, 1, L.mult_star)
-  val lit_e = L.build((V.mk "e"), bvert, L.mult_none, 1, L.mult_none, 0, L.mult_none)
+  val lit_e = L.build((V.mk "e"), G.OVData.WVert, L.mult_none, 1, L.mult_none, 0, L.mult_none)
   val lit_f = L.build((V.mk "f"), k2, L.mult_star, 1, L.mult_none, 0, L.mult_none)
 
   val cont_a = lit_b :: lit_a :: []
@@ -525,7 +525,7 @@ local
   val pattern_1 = lit_1 :: lit_2 :: lit_3 :: lit_2 :: []
   val lit_4 =  L.build((V.mk "d"), k1, L.mult_none, 1, L.mult_none, 1, L.mult_star)
   val pattern_2 = lit_2 :: lit_4 :: lit_2 :: []
-  val lit_5 = L.build((V.mk "e"), bvert, L.mult_none, 1, L.mult_none, 0, L.mult_none)
+  val lit_5 = L.build((V.mk "e"), G.OVData.WVert, L.mult_none, 1, L.mult_none, 0, L.mult_none)
   val lit_6 = L.build((V.mk "f"), k2, L.mult_star, 1, L.mult_none, 0, L.mult_none)
   val pattern_3 = lit_5 :: lit_6 :: []
 
@@ -796,9 +796,9 @@ local
   val target2 = target2 |> G.add_named_vertex t2_v1 k1
                         |> G.add_named_vertex t2_v2 k2
                         |> G.add_named_vertex t2_v3 k2
-                        |> G.add_named_edge t2_e1 dir_edge t2_v1 t2_v2
-                        |> G.add_named_edge t2_e2 dir_edge t2_v1 t2_v3
-                        |> G.add_named_edge t2_e3 dir_edge t2_v2 t2_v3
+                        |> G.add_named_edge t2_e1 (G.Directed,eunit1) t2_v1 t2_v2
+                        |> G.add_named_edge t2_e2 (G.Directed,eunit1) t2_v1 t2_v3
+                        |> G.add_named_edge t2_e3 (G.Directed,eunit1) t2_v2 t2_v3
 
   val t2_cl = CL.mk target2
   val t2_c1_1 = nth t2_cl 0
@@ -841,13 +841,13 @@ local
                         |> G.add_named_vertex t4_v2 k2
                         |> G.add_named_vertex t4_v3 k2
                         |> G.add_named_vertex t4_v4 k1
-                        |> G.add_named_edge t4_e1a dir_edge t4_v1a t4_v2
-                        |> G.add_named_edge t4_e2a dir_edge t4_v1a t4_v3
-                        |> G.add_named_edge t4_e3a dir_edge t4_v1a t4_v4
-                        |> G.add_named_edge t4_e1b dir_edge t4_v1b t4_v2
-                        |> G.add_named_edge t4_e2b dir_edge t4_v1b t4_v3
-                        |> G.add_named_edge t4_e3b dir_edge t4_v1b t4_v4
-                        |> G.add_named_edge t4_e4 dir_edge t4_v4 t4_v3
+                        |> G.add_named_edge t4_e1a (G.Directed,eunit1) t4_v1a t4_v2
+                        |> G.add_named_edge t4_e2a (G.Directed,eunit1) t4_v1a t4_v3
+                        |> G.add_named_edge t4_e3a (G.Directed,eunit1) t4_v1a t4_v4
+                        |> G.add_named_edge t4_e1b (G.Directed,eunit1) t4_v1b t4_v2
+                        |> G.add_named_edge t4_e2b (G.Directed,eunit1) t4_v1b t4_v3
+                        |> G.add_named_edge t4_e3b (G.Directed,eunit1) t4_v1b t4_v4
+                        |> G.add_named_edge t4_e4 (G.Directed,eunit1) t4_v4 t4_v3
 
   val t4_cl = CL.mk target4
   val t4_c1_1 = nth t4_cl 0
@@ -881,11 +881,11 @@ local
                         |> G.add_named_vertex t5_v3 k2
                         |> G.add_named_vertex t5_v4 k3
                         |> G.add_named_vertex t5_v5 k2
-                        |> G.add_named_edge t5_e1 dir_edge t5_v1 t5_v2
-                        |> G.add_named_edge t5_e2 dir_edge t5_v1 t5_v3
-                        |> G.add_named_edge t5_e3 dir_edge t5_v2 t5_v3
-                        |> G.add_named_edge t5_e4 dir_edge t5_v3 t5_v4
-                        |> G.add_named_edge t5_e5 dir_edge t5_v4 t5_v5
+                        |> G.add_named_edge t5_e1 (G.Directed,eunit1) t5_v1 t5_v2
+                        |> G.add_named_edge t5_e2 (G.Directed,eunit1) t5_v1 t5_v3
+                        |> G.add_named_edge t5_e3 (G.Directed,eunit1) t5_v2 t5_v3
+                        |> G.add_named_edge t5_e4 (G.Directed,eunit1) t5_v3 t5_v4
+                        |> G.add_named_edge t5_e5 (G.Directed,eunit1) t5_v4 t5_v5
 
   val t5_cl = CL.mk target5
   val t5_c1_1 = nth t5_cl 0
@@ -918,10 +918,10 @@ local
                         |> G.add_named_vertex t6_v2 k1
                         |> G.add_named_vertex t6_v3 k2
                         |> G.add_named_vertex t6_v4 k2
-                        |> G.add_named_edge t6_e1 dir_edge t6_v1 t6_v2
-                        |> G.add_named_edge t6_e2 dir_edge t6_v1 t6_v3
-                        |> G.add_named_edge t6_e3 dir_edge t6_v2 t6_v3
-                        |> G.add_named_edge t6_e4 dir_edge t6_v3 t6_v4
+                        |> G.add_named_edge t6_e1 (G.Directed,eunit1) t6_v1 t6_v2
+                        |> G.add_named_edge t6_e2 (G.Directed,eunit1) t6_v1 t6_v3
+                        |> G.add_named_edge t6_e3 (G.Directed,eunit1) t6_v2 t6_v3
+                        |> G.add_named_edge t6_e4 (G.Directed,eunit1) t6_v3 t6_v4
 
   val t6_cl = CL.mk target6
   val t6_c1_1 = nth t6_cl 0
@@ -947,9 +947,9 @@ local
   val target7 = target7 |> G.add_named_vertex t7_v1 k2
                         |> G.add_named_vertex t7_v2 k1
                         |> G.add_named_vertex t7_v3 k1
-                        |> G.add_named_edge t7_e1 dir_edge t7_v1 t7_v2
-                        |> G.add_named_edge t7_e2 dir_edge t7_v3 t7_v1
-                        |> G.add_named_edge t7_e3 dir_edge t7_v2 t7_v1
+                        |> G.add_named_edge t7_e1 (G.Directed,eunit1) t7_v1 t7_v2
+                        |> G.add_named_edge t7_e2 (G.Directed,eunit1) t7_v3 t7_v1
+                        |> G.add_named_edge t7_e3 (G.Directed,eunit1) t7_v2 t7_v1
 
   val t7_cl = CL.mk target7
   val t7_c1_1 = nth t7_cl 0
@@ -978,10 +978,10 @@ local
                         |> G.add_named_vertex t8_v3 k1
                         |> G.add_named_vertex t8_v4 k2
                         |> G.add_named_vertex t8_v5 k1
-                        |> G.add_named_edge t8_e1 dir_edge t8_v1 t8_v2
-                        |> G.add_named_edge t8_e2 dir_edge t8_v1 t8_v3
-                        |> G.add_named_edge t8_e3 dir_edge t8_v2 t8_v4
-                        |> G.add_named_edge t8_e4 dir_edge t8_v3 t8_v5
+                        |> G.add_named_edge t8_e1 (G.Directed,eunit1) t8_v1 t8_v2
+                        |> G.add_named_edge t8_e2 (G.Directed,eunit1) t8_v1 t8_v3
+                        |> G.add_named_edge t8_e3 (G.Directed,eunit1) t8_v2 t8_v4
+                        |> G.add_named_edge t8_e4 (G.Directed,eunit1) t8_v3 t8_v5
 
   val t8_cl = CL.mk target8
   val t8_c1_1 = nth t8_cl 0
@@ -1016,12 +1016,12 @@ local
                         |> G.add_named_vertex t9_v3 k1
                         |> G.add_named_vertex t9_v4 k1
                         |> G.add_named_vertex t9_v5 k1
-                        |> G.add_named_edge t9_e1 dir_edge t9_v1 t9_v2
-                        |> G.add_named_edge t9_e2 dir_edge t9_v1 t9_v3
-                        |> G.add_named_edge t9_e3 dir_edge t9_v3 t9_v1
-                        |> G.add_named_edge t9_e4 dir_edge t9_v2 t9_v4
-                        |> G.add_named_edge t9_e5 dir_edge t9_v2 t9_v5
-                        |> G.add_named_edge t9_e6 dir_edge t9_v5 t9_v4
+                        |> G.add_named_edge t9_e1 (G.Directed,eunit1) t9_v1 t9_v2
+                        |> G.add_named_edge t9_e2 (G.Directed,eunit1) t9_v1 t9_v3
+                        |> G.add_named_edge t9_e3 (G.Directed,eunit1) t9_v3 t9_v1
+                        |> G.add_named_edge t9_e4 (G.Directed,eunit1) t9_v2 t9_v4
+                        |> G.add_named_edge t9_e5 (G.Directed,eunit1) t9_v2 t9_v5
+                        |> G.add_named_edge t9_e6 (G.Directed,eunit1) t9_v5 t9_v4
 
   val t9_cl = CL.mk target9
   val t9_c1_1 = nth t9_cl 0

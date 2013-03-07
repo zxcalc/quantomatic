@@ -153,6 +153,7 @@ struct
       val () = (case ch
                   of SOME #"\u001b" => TextIO.output ((!logStream),"\u00a4")
                    | SOME c => TextIO.output ((!logStream),String.str c)
+                   | NONE => ()
                )
     in ch end;
   fun inputN (stream,0) = ""

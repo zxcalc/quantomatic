@@ -416,11 +416,12 @@ functor BasicOGraphFun(
   end
 
   fun delete_edge en g = 
-      let val (_,(fromv,tov)) = E.NTab.get (get_edges g) en in
-        g |> G.delete_edge en
-          |> update_point_kind_from_del_edge fromv
-          |> update_point_kind_from_del_edge tov
-      end;
+    case E.NTab.lookup (get_edges g) en
+      of SOME (_,(src,tgt)) =>
+           g |> G.delete_edge en
+             |> update_point_kind_from_del_edge src
+             |> update_point_kind_from_del_edge tgt
+       | NONE => raise no_such_ename_exp ("delete_edge",en,g);
 
   (* vname = suggested name *)
   (* rename all occurances of old name (1st arg) with new name (2nd arg) 

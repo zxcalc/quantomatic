@@ -71,8 +71,8 @@ val delete_edge : E.name -> T -> T
 val delete_vertex : V.name -> T -> T
 
 (* replace all occurances of old name (1st arg) with new name (2nd arg) *)
-(*  2nd name must not already exist and 1st must already exist, 
-    else an exception is raised *)
+(*  2nd name must not already exist, else an exception is raised *)
+(* Fine for 1st not to exist (in which case NOOP) *)
 val rename_xname : X.name -> X.name -> T -> T 
 val rename_vname : V.name -> V.name -> T -> T 
 val rename_ename : E.name -> E.name -> T -> T 
@@ -333,9 +333,6 @@ exception rename_do_nothing_exp of unit;
 fun rename_xname n1 n2 g =
     let 
       val param = get_param g;
-      (* val _ = if X.NSet.contains (Param.get_xnames param) n2 then 
-                raise xname_already_exists_exp (n2,g)
-              else (); *)
       val vnames_to_update = Param.dep_vnames_of_xname param n1 
       val enames_to_update = Param.dep_enames_of_xname param n1
     in 

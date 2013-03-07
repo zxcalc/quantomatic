@@ -40,14 +40,10 @@ $(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
 
 heap: $(QUANTO_HEAP)
 
-standard-tests: $(QUANTO_HEAP)
-	echo 'use "TEST.ML";' | $(POLYML)
-	@echo ""
-
 protocol-tests: bin/$(THE_BIN)
 	echo 'use "PROTOCOLTEST.ML";' | $(POLYML) --core "bin/$(THE_BIN)" --log "protocol-tests.log"
 
-test check: standard-tests protocol-tests
+test check: protocol-tests
 
 bin/$(THE_BIN).o: $(QUANTO_HEAP)
 	echo 'use "make_bin.ML";' | $(POLYML)
@@ -57,9 +53,17 @@ bin/$(THE_BIN): bin/$(THE_BIN).o
 	../tools/polylinkcmd.sh bin/$(THE_BIN) bin/$(THE_BIN).o
 	@echo "Success! made binary: bin/$(THE_BIN)"
 
+bin/qconvert.o: $(QUANTO_HEAP)
+	echo 'use "convert-files.ML";' | $(POLYML)
+
+# make the core object without dumping the heap
+bin/qconvert: bin/qconvert.o
+	../tools/polylinkcmd.sh bin/qconvert bin/qconvert.o
+	@echo "Success! made binary: bin/qconvert"
+
 #	export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
 
-bin: bin/$(THE_BIN)
+bin: bin/$(THE_BIN) bin/qconvert
 
 echobin:
 	@echo export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml

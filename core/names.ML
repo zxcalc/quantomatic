@@ -46,6 +46,9 @@ signature QUANTO_NAME
   structure VXBRel : NAME_BINREL
   sharing VXBRel.Dom.Sharing = V.Sharing;
   sharing VXBRel.Cod.Sharing = X.Sharing;
+  structure EXBRel : NAME_BINREL
+  sharing EXBRel.Dom.Sharing = E.Sharing;
+  sharing EXBRel.Cod.Sharing = X.Sharing;
 
   (* Tags to identify sets of rules *)
   structure TagName : SSTR_NAME;  
@@ -86,6 +89,7 @@ structure QuantoNames :> QUANTO_NAME
 
   (* Bijections between vertex names and Expression Names *)
   structure VXBRel = SStrBRel;
+  structure EXBRel = SStrBRel;
   structure BVBRel = SStrBRel;
   
   (* Ruleset *)

@@ -124,7 +124,7 @@ sig
 
   val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
-  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (V.name list) * T
+  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (V.name*(V.name option)) * T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
   val rename_bang : B.name -> B.name -> GraphName.name -> T -> T
   val rename_graph : GraphName.name -> GraphName.name -> T -> GraphName.name * T
@@ -597,7 +597,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     lift_graph_mutator_no_result (fold Graph.delete_edge es)
 
   fun rename_vertex_internal old new graph =
-    ([new],graph |> Graph.rename_vname old new)
+    ((new,NONE),graph |> Graph.rename_vname old new)
     handle Graph.vname_already_exists_exp _ =>
       (* Rename apart the old vertex *)
       let
@@ -605,12 +605,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
          * to generate a fresh name, but how?*)
         val ((frshN,_),_) = add_vertex_internal "edge-point" graph
       in
-        ([new,frshN],graph |> Graph.rename_vname new (frshN)
+        ((new,SOME frshN),graph |> Graph.rename_vname new (frshN)
                            |> Graph.rename_vname old new)
       end;
  
   (* There was no conflict *) 
-  fun rename_vertex_uidata old (new::[]) graphName state =
+  fun rename_vertex_uidata old (new,NONE) graphName state =
     let
       val ud = get_graph_ud state graphName
     in
@@ -618,7 +618,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     end
     (* We had a conflict, therefore we have a freshName for 
      * the node vertex that we need to rename as well *)
-    | rename_vertex_uidata old (new::fresh::[]) graphName state =
+    | rename_vertex_uidata old (new,SOME fresh) graphName state =
     let
       val ud = get_graph_ud state graphName
       val ud' = ud |> GraphUserData.rename_vertex new fresh

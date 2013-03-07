@@ -59,7 +59,7 @@ structure RG_InternVData : RG_UNIFIABLE_DATA
   val print_subst = Pretty.writeln o pretty_subst;
 
   fun map_to_angle f (Xnd angle) = (Xnd (f angle))
-    | map_to_angle f (Znd angle) = (Xnd (f angle))
+    | map_to_angle f (Znd angle) = (Znd (f angle))
     | map_to_angle _ x = x;
 
   fun angle_of_data (Xnd angle) = SOME angle

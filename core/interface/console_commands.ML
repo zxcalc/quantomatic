@@ -403,10 +403,10 @@ structure ConsoleCommands : CONSOLE_COMMANDS
 
     ("apply_rewrite",
      ("GRAPH N", "Apply the Nth rewrite attached to GRAPH",
-      (fn [graph,nstr] => case Int.fromString nstr of
-                            SOME i => (Commands.ApplyAttachedRewriteRequest {
-                                      graphName = graph, index = i })
-                          | NONE => bad_args_req
+      (fn [graph,nstr] => (case Int.fromString nstr of
+                             SOME i => (Commands.ApplyAttachedRewriteRequest {
+                                       graphName = graph, index = i })
+                           | NONE => bad_args_req)
         | _         => bad_args_req))),
 
     ("print_theory_name",
