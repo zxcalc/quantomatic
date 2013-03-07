@@ -203,9 +203,7 @@ PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix 
 PolyML.Project.make "io/rewrite_json.ML";
 
 Testing.make_test "rewriting/test/graph_subst-test.ML";
-(* TODO: convert to new test graph format *)
-(*       delaying; intend to replace graph_subst with rewriter *)
-(* Testing.make_test "rewriting/test/ruleset_rewriting-test.ML"; *)
+Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 
 
 (*
