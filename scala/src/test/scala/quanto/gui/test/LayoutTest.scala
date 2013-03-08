@@ -1,5 +1,6 @@
-package quanto.gui
+package quanto.gui.test
 
+import quanto.gui._
 import quanto.layout._
 import quanto.layout.constraint._
 import quanto.data._
@@ -11,7 +12,6 @@ import java.awt.event.{ActionEvent, ActionListener}
 
 
 object LayoutTest extends SimpleSwingApplication {
-  import Constraint._
 
   val graphView = new GraphView(Theory.DefaultTheory) {
     drawGrid = true
@@ -36,7 +36,6 @@ object LayoutTest extends SimpleSwingApplication {
     addEdge   ("e5", DirEdge(), "b1" -> "v1")
     addEdge   ("e6", DirEdge(), "v2" -> "b2")
     addEdge   ("e7", DirEdge(), "v3" -> "b3")
-    addBBox   ("bb0", BBData(), Set("b0","b1","b2","b3"))
     addBBox   ("bb1", BBData(), Set("b0","v3"))
   )
 
