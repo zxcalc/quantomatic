@@ -481,9 +481,19 @@ public class RulesBar extends JPanel {
 	private void editRule(String rule) {
 
 		try {
+			InteractiveViewManager vm = RulesBar.this.viewPort.getViewManager();
+			for (Map.Entry<String,InteractiveView> e : vm.getViews().entrySet()) {
+				if (e.getValue() instanceof SplitGraphView) {
+					SplitGraphView sgv = (SplitGraphView)e.getValue();
+					if (sgv.getRule().getCoreName().equals(rule)) {
+						RulesBar.this.viewPort.attachView(sgv);
+						return;
+					}
+				}
+			}
 			Rule ruleGraphs = RulesBar.this.ruleset.getCore().openRule(rule);
 			SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), ruleGraphs);
-			RulesBar.this.viewPort.getViewManager().addView(spg);
+			vm.addView(spg);
 			RulesBar.this.viewPort.attachView(spg);
 		} catch (CoreException ex) {
 			showModalError("Cannot open the rule \"" + rule + "\"", ex);
