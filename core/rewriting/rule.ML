@@ -281,6 +281,11 @@ fun check_rule_consistency lhs rhs =
            B.NSet.eq (Graph.get_bboxes_of lhs vn) (Graph.get_bboxes_of rhs vn)
       fun compare_bboxes lvs _ =
         (V.NSet.fold (has_same_bangbox) lvs true)
+      fun check_bb_parent bbox sofar = sofar andalso
+        case (Graph.lookup_bbox_parent lhs bbox,Graph.lookup_bbox_parent rhs bbox)
+          of (NONE,NONE) => true
+           | (SOME bl,SOME br) => B.name_eq (bl,br)
+           | _ => false
     in
       (V.NSet.is_empty (#isolated lhs_bnd)) andalso
       (V.NSet.is_empty (#isolated rhs_bnd)) andalso
@@ -288,6 +293,7 @@ fun check_rule_consistency lhs rhs =
       (vtab_eq G.EData.data_eq (#outputs lhs_bnd) (#outputs rhs_bnd)) andalso
       (vtab_eq G.EData.data_eq (#undir_bounds lhs_bnd) (#undir_bounds rhs_bnd)) andalso
       (B.NSet.eq (Graph.get_bboxes lhs) (Graph.get_bboxes rhs)) andalso
+      (B.NSet.fold check_bb_parent (Graph.get_bboxes lhs) true) andalso
       test_all compare_bboxes
    end;
 
