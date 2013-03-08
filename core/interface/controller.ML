@@ -876,8 +876,9 @@ fun hilb ([format], graph) =
             let
               val gname = (GraphName.mk graphName)
               val (nm,state') = State.add_bang gname state
-              val state'' = if vertexNames = [] then state' else
-                               State.bang_vertices nm (map V.mk vertexNames) gname state'
+              val (_,state'') = if vertexNames = []
+                                then (V.NSet.empty,state')
+                                else State.bang_vertices nm (map V.mk vertexNames) gname state'
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = B.dest nm }, state'')
@@ -894,7 +895,7 @@ fun hilb ([format], graph) =
                  | JsonFormat =>
                        (JsonResponse {
                           data = TheoryIO.OutputGraphJSON.output_bangbox
-                                  (get_graph_and_ud graphName state)
+                                  (get_graph_and_ud graphName state'')
                                   nm
                         },state'')
                  | DescriptionFormat => let
@@ -925,18 +926,30 @@ fun hilb ([format], graph) =
               (StringResponse { data = B.dest nm }, state')
             end
         | BangVerticesAction { bangBoxName, vertexNames } =>
-            (* FIXME: return a description of the !-box *)
-            (* Some extra verts may have been added *)
-            (OkResponse,
-             State.bang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
+            let val (vset,state') =
+              State.bang_vertices (B.mk bangBoxName)
+                                  (map V.mk vertexNames)
+                                  (GraphName.mk graphName)
+                                  state
+            in
+              (StringListResponse { data = map V.dest (V.NSet.list_of vset) },
+              state')
+            end
         | CompletelyUnbangVerticesAction { vertexNames } =>
+            (* FIXME: return a description of the !-boxes *)
+            (* Some extra verts may have been removed *)
             (OkResponse,
              State.completely_unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
         | UnbangVerticesAction { bangBoxName, vertexNames } =>
-            (* FIXME: return a description of the !-box *)
-            (* Some extra verts may have been removed *)
-            (OkResponse,
-             State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
+            let val (vset,state') =
+              State.unbang_vertices (B.mk bangBoxName)
+                                    (map V.mk vertexNames)
+                                    (GraphName.mk graphName)
+                                    state
+            in
+              (StringListResponse { data = map V.dest (V.NSet.list_of vset) },
+              state')
+            end
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
               State.set_bangbox_ud_property dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)

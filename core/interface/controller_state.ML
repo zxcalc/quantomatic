@@ -131,10 +131,10 @@ sig
   val delete_vertices : V.name list -> GraphName.name -> T -> T
   val delete_edges : E.name list -> GraphName.name -> T -> T
 
-  val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
+  val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> (V.NSet.T*T)
   val kill_bang : B.name list -> GraphName.name -> T -> T
   val completely_unbang_vertices : V.name list -> GraphName.name -> T -> T
-  val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
+  val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> (V.NSet.T*T)
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
   val drop_bang : B.name list -> GraphName.name -> T -> T
@@ -809,7 +809,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
       in
-        lift_graph_mutator_no_result (Graph.doadd_to_bbox box vset) gname state
+        lift_graph_mutator (Graph.add_to_bbox box vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
@@ -829,9 +829,8 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         val _ = assert_bbox_exists state gname box
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
-        val mutator = Graph.doremove_from_bbox box vset
       in
-        lift_graph_mutator_no_result mutator gname state
+        lift_graph_mutator (Graph.remove_from_bbox box vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
