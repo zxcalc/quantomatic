@@ -1346,6 +1346,11 @@ fun hilb ([format], graph) =
                   errorCode = "NOTANINT",
                   message = (s^" could not be parsed as an integer")
                 }
+           | State.duplicate_name_exp () =>
+                ErrorResponse {
+                  errorCode = "DUPLICATENAME",
+                  message = "Duplicate names in arguments"
+                }
  
            );
 end;
