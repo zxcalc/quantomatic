@@ -2,7 +2,7 @@ package quanto.util
 
 sealed abstract class TreeLink[A]
 case class NodeLink[A](input: Option[A], outputs: Seq[A]) extends TreeLink[A]
-case class WireLink[A](parent: A, shift: Int) extends TreeLink[A]
+case class WireLink[A](dest: A, shift: Int) extends TreeLink[A]
 
 class TreeSeqFormatException(msg: String) extends Exception(msg)
 
@@ -16,41 +16,47 @@ abstract class TreeSeq[A] {
   def children(a: A): Seq[A]
 
 
-  def flatten: List[(List[TreeLink[A]], A)] =
-    toSeq.reverse.foldLeft(List[(List[TreeLink[A]], A)]()) { (rows, a) =>
+  def flatten: Seq[(Seq[TreeLink[A]], A)] =
+    (toSeq.foldLeft(Seq[(Seq[TreeLink[A]], A)]()) { (rows, a) =>
       val node = NodeLink(parent(a), children(a))
-      val prev = rows match { case ((p,_)::_) => p; case _ => List[TreeLink[A]]() }
+      val prev = if (rows.isEmpty) Seq[TreeLink[A]]()
+                 else rows.last._1
 
       var inserted = false
       val shift = node.input.size - node.outputs.size
 
-      val current = prev.reverse.foldLeft(List[TreeLink[A]]()) { (cols, col) =>
+      val current = prev.foldLeft(Seq[TreeLink[A]]()) { (cols, col) =>
         col match {
-          case (WireLink(p1, shift1)) =>
-            if (inserted) WireLink(p1, shift1 + shift) :: cols
+          case (WireLink(dest, shift1)) =>
+            if (inserted) cols :+ WireLink(dest, shift1 + shift)
             else {
-              if (node.input.exists(p => p1 == p)) {
+              if (dest == a) {
                 inserted = true
-                node :: cols
+                cols :+ node
               } else {
-                WireLink(p1, shift1) :: cols
+                cols :+ WireLink(dest, shift1)
               }
             }
           case (NodeLink(_, outs)) =>
-            outs.reverse.foldLeft(cols) { (outCols, out) =>
-              if (inserted) WireLink(out, shift) :: outCols
+            outs.foldLeft(cols) { (outCols, out) =>
+              if (inserted) outCols :+ WireLink(out, shift)
               else {
-                if (node.input.exists(p => out == p)) {
+                if (out == a) {
                   inserted = true
-                  node :: outCols
+                  outCols :+ node
                 } else {
-                  WireLink(out, 0) :: outCols
+                  outCols :+ WireLink(out, 0)
                 }
               }
             }
         }
       }
 
-      (current, a) :: rows
-    }
+      rows :+ (if (!inserted) {
+        if (node.input.isEmpty) current :+ node
+        else throw new TreeSeqFormatException("Node '" + a.toString + "' occurs before its parent")
+      } else {
+        current
+      }, a)
+    })
 }
