@@ -181,56 +181,91 @@ public class RulesBar extends JPanel {
 	}
 
 	private JPopupMenu createRuleContextualMenu() {
-		final String ruleName = ((RuleDescription) listView.getSelectedValue()).rulename;
+		Object[] objDescs = listView.getSelectedValues();
+		final RuleDescription[] descs = new RuleDescription[objDescs.length];
+		for (int i = 0; i < objDescs.length; ++i) {
+			descs[i] = (RuleDescription)objDescs[i];
+		}
 		JPopupMenu popupMenu = new JPopupMenu();
-		JMenuItem menuItem = new JMenuItem("Edit rule");
+		JMenuItem menuItem;
+		
+		if (descs.length == 1) {
+			menuItem = new JMenuItem("Edit rule");
+			popupMenu.add(menuItem);
+			menuItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					editRule(descs[0].rulename);
+				}
+			});
+
+			menuItem = new JMenuItem("Rename rule");
+			popupMenu.add(menuItem);
+			menuItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					renameRule(descs[0].rulename);
+				}
+			});
+		}
+
+		menuItem = new JMenuItem((descs.length == 1) ? "Delete rule" : "Delete rules");
 		popupMenu.add(menuItem);
 		menuItem.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				editRule(ruleName);
-			}
-		});
-
-		menuItem = new JMenuItem("Rename rule");
-		popupMenu.add(menuItem);
-		menuItem.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				renameRule(ruleName);
-			}
-		});
-
-		menuItem = new JMenuItem("Delete rule");
-		popupMenu.add(menuItem);
-		menuItem.addActionListener(new ActionListener() {
-
 			public void actionPerformed(ActionEvent e) {
 				deleteSelectedRules();
 			}
 		});
-
-		menuItem = new JMenuItem("New Rule by Reverse");
-		popupMenu.add(menuItem);
-		menuItem.addActionListener(new ActionListener() {
-
-			public void actionPerformed(ActionEvent e) {
-				String name = JOptionPane.showInputDialog(RulesBar.this, "Rule name:", ruleName + "-rev");
-				if (name == null) {
-					return;
+		
+		int enabledCount = 0;
+		int disabledCount = 0;
+		for (RuleDescription desc : descs) {
+			if (desc.active)
+				++enabledCount;
+			else
+				++disabledCount;
+		}
+		if (disabledCount > 0) {
+			menuItem = new JMenuItem((descs.length == 1) ? "Enable rule" : "Enable rules");
+			popupMenu.add(menuItem);
+			menuItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					enableSelectedRules();
 				}
-
-				try {
-					Rule rule = RulesBar.this.ruleset.getCore().openRule(ruleName);
-					rule = RulesBar.this.ruleset.getCore().createRule(name, rule.getRhs(), rule.getLhs());
-					SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
-					RulesBar.this.viewPort.getViewManager().addView(spg);
-					RulesBar.this.viewPort.attachView(spg);
-				} catch (CoreException ex) {
-					showModalError("Could not create a new rule.", ex);
+			});
+		}
+		if (enabledCount > 0) {
+			menuItem = new JMenuItem((descs.length == 1) ? "Disable rule" : "Disable rules");
+			popupMenu.add(menuItem);
+			menuItem.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					disableSelectedRules();
 				}
-			}
-		});
+			});
+		}
+
+		if (descs.length == 1) {
+			menuItem = new JMenuItem("New Rule by Reverse");
+			popupMenu.add(menuItem);
+			menuItem.addActionListener(new ActionListener() {
+
+				public void actionPerformed(ActionEvent e) {
+					String name = JOptionPane.showInputDialog(RulesBar.this, "Rule name:",
+							descs[0].rulename + "-rev");
+					if (name == null) {
+						return;
+					}
+
+					try {
+						Rule rule = RulesBar.this.ruleset.getCore().openRule(descs[0].rulename);
+						rule = RulesBar.this.ruleset.getCore().createRule(name, rule.getRhs(), rule.getLhs());
+						SplitGraphView spg = new SplitGraphView(RulesBar.this.ruleset.getCore(), rule);
+						RulesBar.this.viewPort.getViewManager().addView(spg);
+						RulesBar.this.viewPort.attachView(spg);
+					} catch (CoreException ex) {
+						showModalError("Could not create a new rule.", ex);
+					}
+				}
+			});
+		}
 
 		JMenu subMenu = new JMenu("Add tag");
 		try {
@@ -238,10 +273,11 @@ public class RulesBar extends JPanel {
 			for (String tag : allTags) {
 				menuItem = new JMenuItem(tag);
 				menuItem.addActionListener(new ActionListener() {
-
 					public void actionPerformed(ActionEvent e) {
 						try {
-							ruleset.tagRule(ruleName, e.getActionCommand());
+							for (RuleDescription desc : descs) {
+								ruleset.tagRule(desc.rulename, e.getActionCommand());
+							}
 						} catch (CoreException ex) {
 							showModalError("Could not tag the rule.", ex);
 						}
@@ -262,7 +298,9 @@ public class RulesBar extends JPanel {
 				}
 
 				try {
-					ruleset.tagRule(ruleName, tag);
+					for (RuleDescription desc : descs) {
+						ruleset.tagRule(desc.rulename, tag);
+					}
 				} catch (CoreException ex) {
 					showModalError("Could not tag the rule.", ex);
 				}
@@ -272,7 +310,10 @@ public class RulesBar extends JPanel {
 		popupMenu.add(subMenu);
 
 		try {
-			ArrayList<String> tags = ruleset.getRuleTags(((RuleDescription) listView.getSelectedValue()).rulename);
+			HashSet<String> tags = new HashSet<String>();
+			for (RuleDescription desc : descs) {
+				tags.addAll(ruleset.getRuleTags(desc.rulename));
+			}
 			if (!tags.isEmpty()) {
 				subMenu = new JMenu("Remove tag");
 				for (String tag : tags) {
@@ -281,7 +322,9 @@ public class RulesBar extends JPanel {
 
 						public void actionPerformed(ActionEvent e) {
 							try {
-								ruleset.untagRule(ruleName, e.getActionCommand());
+								for (RuleDescription desc : descs) {
+									ruleset.untagRule(desc.rulename, e.getActionCommand());
+								}
 							} catch (CoreException ex) {
 								showModalError("Could not load tags for the rule \""
 										+ listView.getSelectedValue().toString()
@@ -311,41 +354,47 @@ public class RulesBar extends JPanel {
 			return null;
 		}
 	}
+	
+	private void enableSelectedRules() {
+		try {
+			Object[] descs = listView.getSelectedValues();
+			List<String> ruleNames = new LinkedList<String>();
+			for (Object d : descs) {
+				ruleNames.add(((RuleDescription) d).rulename);
+			}
+			ruleset.activateRules(ruleNames);
+		} catch (CoreException ex) {
+			showModalError("Could not enable the rules.", ex);
+		}
+	}
+	
+	private void disableSelectedRules() {
+		try {
+			Object[] descs = listView.getSelectedValues();
+			List<String> ruleNames = new LinkedList<String>();
+			for (Object d : descs) {
+				ruleNames.add(((RuleDescription) d).rulename);
+			}
+			ruleset.deactivateRules(ruleNames);
+		} catch (CoreException ex) {
+			showModalError("Could not disable the rules.", ex);
+		}
+	}
 
 	private void createMenuButtons() {
 		enableButton = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/ComputeAdd16.gif", "Enable"));
 		enableButton.setToolTipText("Enable selected rules");
 		enableButton.addActionListener(new ActionListener() {
-
 			public void actionPerformed(ActionEvent e) {
-				try {
-					Object[] descs = listView.getSelectedValues();
-					List<String> ruleNames = new LinkedList<String>();
-					for (Object d : descs) {
-						ruleNames.add(((RuleDescription) d).rulename);
-					}
-					ruleset.activateRules(ruleNames);
-				} catch (CoreException ex) {
-					showModalError("Could not enable the rules.", ex);
-				}
+				enableSelectedRules();
 			}
 		});
 
 		disableButton = new JButton(createImageIcon("/toolbarButtonGraphics/quanto/ComputeRemove16.gif", "Disable"));
 		disableButton.setToolTipText("Disable selected rules");
 		disableButton.addActionListener(new ActionListener() {
-
 			public void actionPerformed(ActionEvent e) {
-				try {
-					Object[] descs = listView.getSelectedValues();
-					List<String> ruleNames = new LinkedList<String>();
-					for (Object d : descs) {
-						ruleNames.add(((RuleDescription) d).rulename);
-					}
-					ruleset.deactivateRules(ruleNames);
-				} catch (CoreException ex) {
-					showModalError("Could not disable the rules.", ex);
-				}
+				disableSelectedRules();
 			}
 		});
 
