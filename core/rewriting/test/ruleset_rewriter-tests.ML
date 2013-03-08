@@ -127,7 +127,6 @@ in
       rhs = "graphs/bare-wire-rule-1-rhs.graph",
       target = "graphs/bare-wire-rule-1-target.graph",
       expected = "graphs/bare-wire-rule-1-expected.graph"
-    (* Currently broken
     },
     { name = "bare wire rewrite with some initially clashing names",
       subgraph = NONE,
@@ -142,7 +141,6 @@ in
       rhs = "graphs/bare-wire-rule-2-rhs.graph",
       target = "graphs/bare-wire-rule-2-target.graph",
       expected = "graphs/bare-wire-rule-2-expected.graph"
-    *)
     }
     (* TODO: more tests:
      *  - clashing vertex and edge names
