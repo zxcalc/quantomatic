@@ -2,7 +2,6 @@ package quanto.core
 
 import java.io._
 import java.util.logging._
-import actors.Actor._
 import quanto.util.json.Json
 
 import quanto.util.StreamRedirector
@@ -41,22 +40,26 @@ class CoreProcess() {
     }
   }
   
-  def killCore(wait: Boolean = true) {
+  def killCore(waitForExit: Boolean = true) {
     if (backend != null) {
         logger.log(Level.FINEST, "Shutting down the core process");
-        actor {
-          if (wait) {
-            try {
-              logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
-              Thread.sleep(5000);
-            } catch {
-              case e: InterruptedException =>
-                logger.log(Level.FINER, "Thread interupted");
+        val killThread = new Thread() {
+          override def run() {
+            if (waitForExit) {
+              try {
+                logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
+                Thread.sleep(5000);
+              } catch {
+                case e: InterruptedException =>
+                  logger.log(Level.FINER, "Thread interupted");
+              }
             }
+            logger.log(Level.FINER, "Forcibly terminating the core process");
+            backend.destroy();
           }
-          logger.log(Level.FINER, "Forcibly terminating the core process");
-          backend.destroy();
         }
+        
+        killThread.start()
     }
   }
 

@@ -108,6 +108,14 @@ case class Constraint(v1: VName, v2: VName, direction: Option[(Double,Double)], 
 
 
 object Constraint {
+  object distance {
+    def from(v1: VName) = new DistanceFromExpr(v1)
+  }
+  
+  class DistanceFromExpr(v1: VName) {
+    def to(v2: VName) = DistanceExpr(v1,v2)
+  }
+  
   case class DistanceExpr(v1: VName, v2: VName, direction: Option[(Double,Double)] = None, w1: Double = 1.0, w2: Double = 1.0) {
     def along(dir: (Double,Double)) = copy(direction = Some(dir))
     def weighted(w: (Double,Double)) = copy(w1 = w._1, w2 = w._2)
@@ -124,11 +132,7 @@ object Constraint {
     def >= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,1,soft=false)
 
     def ~<= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,-1,soft=true)
-    def ~==(len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,0,soft=true)
+    def ~== (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,0,soft=true)
     def ~>= (len: Double) = Constraint(v1,v2,normalizedDir,len,w1,w2,1,soft=true)
-  }
-
-  object distance {
-    def from(v1: VName) = new AnyRef { def to(v2: VName) = DistanceExpr(v1,v2) }
   }
 }
