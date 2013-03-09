@@ -14,5 +14,7 @@ public class CopyOfGraphUserDataSerializer extends GraphUserDataSerializer<Strin
 
     public CopyOfGraphUserDataSerializer(CoreTalker talker) {
         super(talker, serializer, suffix);
+		// copy_of is special
+		prefix = "";
     }
 }

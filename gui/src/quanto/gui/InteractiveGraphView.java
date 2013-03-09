@@ -1309,8 +1309,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
-					Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-							0, 20, viewer.getGraphLayout().getSize().height);
+					Rectangle2D rect = viewer.getGraphBounds();
 					core.paste(getGraph());
 					/* 
 					 * FIXME: maybe, this is not the right place? 
