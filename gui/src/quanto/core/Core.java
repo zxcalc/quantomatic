@@ -200,11 +200,13 @@ public class Core {
 	public void undoRewrite(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.undoRewrite(graph.getCoreName());
+		updateGraph(graph);
 	}
 
 	public void redoRewrite(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.redoRewrite(graph.getCoreName());
+		updateGraph(graph);
 	}
 
 	public void startUndoGroup(CoreGraph graph) throws CoreException {
@@ -550,7 +552,16 @@ public class Core {
 
 	public void applyAttachedRewrite(CoreGraph graph, int i)
 			throws CoreException {
-		talker.applyAttachedRewrite(graph.getCoreName(), i);
+		try {
+			String json = talker.applyAttachedRewrite(graph.getCoreName(), i);
+			JsonNode node = jsonMapper.readValue(json, JsonNode.class);
+			graph.updateFromJson(node);
+			graph.fireStateChanged();
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Failed to parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Failed to parse JSON from core", ex);
+		}
 	}
 
 	/**

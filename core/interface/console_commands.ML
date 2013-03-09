@@ -405,7 +405,8 @@ structure ConsoleCommands : CONSOLE_COMMANDS
      ("GRAPH N", "Apply the Nth rewrite attached to GRAPH",
       (fn [graph,nstr] => (case Int.fromString nstr of
                              SOME i => (Commands.ApplyAttachedRewriteRequest {
-                                       graphName = graph, index = i })
+                                       graphName = graph, index = i, format =
+                                       Commands.PrettyGraphFormat })
                            | NONE => bad_args_req)
         | _         => bad_args_req))),
 

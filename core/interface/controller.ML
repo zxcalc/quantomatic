@@ -108,7 +108,7 @@ struct
                    | AttachRewritesRequest of { graphName: string, vertexNames: string list }
                    | AttachOneRewriteRequest of { graphName: string, vertexNames: string list }
                    | ListAttachedRewritesRequest of { graphName: string, format: resultFormat }
-                   | ApplyAttachedRewriteRequest of { graphName: string, index: int }
+                   | ApplyAttachedRewriteRequest of { graphName: string, index: int, format: graphFormat }
 
                    (*** Metrics related commands ***)
                    | ListMetricsNamesRequest
@@ -450,6 +450,26 @@ struct
                     EData.pretty_data e
                    ]
 
+  fun output_graph graphName format state =
+  let
+    val v as (graph,_) = get_graph_and_ud graphName state
+  in
+    case format
+      of NativeGraphFormat =>
+           let
+             val json = TheoryIO.OutputGraphJSON.output v
+           in
+             (DataResponse { data = Json.encode json}, state)
+           end
+       | XmlGraphFormat =>
+           (XmlResponse { data = OutputXML.Graph.output graph}, state)
+       | JsonGraphFormat =>
+           (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
+       | PrettyGraphFormat =>
+           (PrettyResponse { data = G.pretty graph}, state)
+       | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+  end
+
 
   fun serviceRequest' (DummyRequest { response }) (state:State.T) = (response, state)
 
@@ -563,24 +583,7 @@ struct
         (OkResponse, State.kill_graph (GraphName.mk graphName) state)
 
     | serviceRequest' (ExportGraphRequest { graphName, format }) state =
-        let
-          val v as (graph,_) = get_graph_and_ud graphName state
-        in
-          case format
-            of NativeGraphFormat =>
-                 let
-                   val json = TheoryIO.OutputGraphJSON.output v
-                 in
-                   (DataResponse { data = Json.encode json}, state)
-                 end
-             | XmlGraphFormat =>
-                 (XmlResponse { data = OutputXML.Graph.output graph}, state)
-             | JsonGraphFormat =>
-                 (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
-             | PrettyGraphFormat =>
-                 (PrettyResponse { data = G.pretty graph}, state)
-             | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
-        end
+        output_graph graphName format state
 (*
 fun hilb ([format], graph) =
     (DATA (Pretty.string_of (
@@ -1150,9 +1153,12 @@ fun hilb ([format], graph) =
                   }, state)
         end
 
-    | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
-        (OkResponse,
-         State.apply_rewrite (GraphName.mk graphName) index state)
+    | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int, format }) state =
+        let
+          val state' = State.apply_rewrite (GraphName.mk graphName) index state
+        in
+          output_graph graphName format state'
+        end
     | serviceRequest' ListMetricsNamesRequest state =
       (StringListResponse { data = State.get_names_metrics state }, state)
     | serviceRequest' ListMetricsDescsRequest state =

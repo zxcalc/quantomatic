@@ -6,6 +6,12 @@
 package quanto.core.data;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import quanto.core.ParseException;
 
 /**
@@ -49,6 +55,20 @@ public class AttachedRewrite {
 		return newGraph;
 	}
 	
+	public Collection<Vertex> getRemovedVertices() {
+		Set<String> newVNames = getNewGraph().getVertexMap().keySet();
+		Map<String,Vertex> vmap = getGraph().getVertexMap();
+		Set<String> hlVNames = new HashSet<String>(vmap.keySet());
+		hlVNames.removeAll(newVNames);
+		List<Vertex> newVerts = new ArrayList<Vertex>(hlVNames.size());
+		for (String vname : hlVNames) {
+			Vertex v = vmap.get(vname);
+			if (v != null)
+				newVerts.add(v);
+		}
+		return newVerts;
+	}
+	
 	public static AttachedRewrite fromJson(CoreGraph graph, int index, JsonNode node) throws ParseException {
 		if (!node.isObject())
 			throw new ParseException("Expected object");
@@ -58,7 +78,7 @@ public class AttachedRewrite {
 			throw new ParseException("No rhs given for rule");
 		Rule rule = Rule.fromJson(graph.getTheory(), ruleNode);
 		
-		JsonNode newGraphNode = node.get("rule");
+		JsonNode newGraphNode = node.get("rewritten_graph");
 		if (newGraphNode == null || newGraphNode.isNull())
 			throw new ParseException("No rhs given for rule");
 		CoreGraph newGraph = CoreGraph.fromJson(graph.getTheory(), null, newGraphNode);

@@ -1598,7 +1598,7 @@ public class CoreTalker {
         return getCountResponse();
     }
 
-    public void applyAttachedRewrite(String graph, int offset) throws CoreException {
+    public String applyAttachedRewrite(String graph, int offset) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
@@ -1607,12 +1607,13 @@ public class CoreTalker {
             writer.addHeader("WW", generateRequestId());
             writer.addStringArg(graph);
             writer.addIntArg(offset);
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        getOkResponse();
+        return getJsonResponse();
     }
 
     public String listAttachedRewrites(String graph) throws CoreException {
