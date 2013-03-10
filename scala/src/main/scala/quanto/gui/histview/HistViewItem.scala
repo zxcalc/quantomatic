@@ -1,26 +1,29 @@
 package quanto.gui.histview
 
 import swing._
-import java.awt.{Font => AWTFont, BasicStroke, Color, RenderingHints}
-import quanto.util._
+import java.awt.{BasicStroke, Color, RenderingHints}
+import quanto.util.TreeSeq._
 import java.awt.geom.{Ellipse2D, Path2D, Line2D, Rectangle2D}
 
-class HistViewItem[A](decorate: Seq[TreeLink[A]], item: A, selected: Boolean,
-                      fm: java.awt.FontMetrics) extends Component {
-
-  val cellHeight = fm.getHeight + 15.0
-  val baseLine = fm.getHeight + 5.0
-  preferredSize = new Dimension(250,cellHeight.toInt)
-  val xIncrement = 15.0
+class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
+                      sz: Dimension) extends Component {
+  import HistView.xIncrement
+  preferredSize = sz
+  val cellHeight = preferredSize.getHeight
+  val cellWidth = preferredSize.getWidth
+  val baseLine = cellHeight - 10.0
   val circleRadius = 5.0
 
   override def paintComponent(g: Graphics2D) {
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
     if (selected) {
-      val rect = new Rectangle2D.Double(1.0,1.0,248.0,cellHeight-2.0)
-      g.setColor(new Color(0.7f,0.7f,0.9f))
+      val rect = new Rectangle2D.Double(1.0,1.0,cellWidth-2.0,cellHeight-2.0)
+      g.setColor(new Color(0.7f,0.8f,0.95f))
       g.fill(rect)
+      g.setStroke(new BasicStroke(1))
+      g.setColor(new Color(0.4f,0.4f,0.6f))
+      g.draw(rect)
     }
 
     var topIndex = 1
@@ -72,12 +75,13 @@ class HistViewItem[A](decorate: Seq[TreeLink[A]], item: A, selected: Boolean,
 
         // draw the node
         g.fill(new Ellipse2D.Double(topX - circleRadius, centerY - circleRadius, circleRadius * 2.0, circleRadius * 2.0))
-      case SpaceLink(collapseBottom, collapseTop) =>
+      case WhiteSpace(collapseBottom, collapseTop) =>
         if (!collapseBottom) bottomIndex += 1
         if (!collapseTop) topIndex += 1
     }
 
-    val leftX = textIndex * xIncrement + 8.0
+    //val leftX = textIndex * xIncrement
+    val leftX = (decorationWidth(decorate) + 1) * xIncrement
 
     g.setStroke(new BasicStroke(1))
     g.setFont(HistView.ItemFont)

@@ -19,6 +19,8 @@ object HistViewTest extends SimpleSwingApplication {
 //  tree = tree :+ ("eighth", Some("fourth"))
 //  tree = tree :+ ("ninth", Some("fourth"))
 
+  //val str = "some really long string name "
+
   var tree = new SimpleTreeSeq[Int]()
   val rand = new java.util.Random()
   tree :+= (0, None)
