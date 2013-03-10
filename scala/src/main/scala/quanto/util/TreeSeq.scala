@@ -2,7 +2,11 @@ package quanto.util
 
 sealed abstract class TreeLink[A]
 case class NodeLink[A](input: Option[A], outputs: Seq[A]) extends TreeLink[A]
-case class WireLink[A](dest: A, shift: Int) extends TreeLink[A]
+case class WireLink[A](dest: A) extends TreeLink[A]
+
+// placeholder for whitespace. if collapse is false, the space propagates to the next rank. if it is true, it
+// disappears at the next rank.
+case class SpaceLink[A](collapseBottom: Boolean, collapseTop: Boolean) extends TreeLink[A]
 
 class TreeSeqFormatException(msg: String) extends Exception(msg)
 
@@ -23,34 +27,46 @@ abstract class TreeSeq[A] {
                  else rows.last._1
 
       var inserted = false
-      val shift = node.input.size - node.outputs.size
+      var pad = Seq[TreeLink[A]]()
 
-      val current = prev.foldLeft(Seq[TreeLink[A]]()) { (cols, col) =>
+      // traverse the previous decoration list from left to right and construct the current decoration list
+      val current = prev.foldLeft(Seq[TreeLink[A]]()) { (cols,col) =>
         col match {
-          case (WireLink(dest, shift1)) =>
-            if (inserted) cols :+ WireLink(dest, shift1 + shift)
+          case (WireLink(dest)) =>
+            if (inserted) cols :+ WireLink(dest)
             else {
               if (dest == a) {
                 inserted = true
-                cols :+ node
+                //println("pad size = " + pad.size)
+                (cols :+ node) ++ pad
               } else {
-                cols :+ WireLink(dest, shift1)
+                cols :+ WireLink(dest)
               }
             }
           case (NodeLink(_, outs)) =>
-            outs.foldLeft(cols) { (outCols, out) =>
-              if (inserted) outCols :+ WireLink(out, shift)
+            if (outs.isEmpty) {
+              pad :+=  SpaceLink[A](collapseBottom = false, collapseTop = true)
+              cols :+ SpaceLink[A](collapseBottom = true, collapseTop = false)
+            }
+            else outs.foldLeft(cols) { (outCols,out) =>
+              if (inserted) outCols :+ WireLink(out)
               else {
                 if (out == a) {
                   inserted = true
-                  outCols :+ node
+                  //println("pad size = " + pad.size)
+                  (outCols :+ node) ++ pad
                 } else {
-                  outCols :+ WireLink(out, 0)
+                  outCols :+ WireLink(out)
                 }
               }
             }
+          case SpaceLink(false,_) =>
+            pad :+=  SpaceLink[A](collapseBottom = false, collapseTop = true)
+            cols :+ SpaceLink[A](collapseBottom = true, collapseTop = false)
+          case SpaceLink(true,_) => cols
         }
       }
+
 
       rows :+ (if (!inserted) {
         if (node.input.isEmpty) current :+ node
