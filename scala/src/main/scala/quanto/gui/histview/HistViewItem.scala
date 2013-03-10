@@ -80,8 +80,8 @@ class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
         if (!collapseTop) topIndex += 1
     }
 
-    //val leftX = textIndex * xIncrement
-    val leftX = (decorationWidth(decorate) + 1) * xIncrement
+    val leftX = textIndex * xIncrement
+    //val leftX = (decorationWidth(decorate) + 1) * xIncrement
 
     g.setStroke(new BasicStroke(1))
     g.setFont(HistView.ItemFont)
