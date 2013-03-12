@@ -1,8 +1,9 @@
 package quanto.gui.test
 
 import swing._
-import quanto.gui.histview.HistView
+import quanto.gui.histview.{HistNode, HistView}
 import quanto.util.test.SimpleTreeSeq
+import java.awt.Color
 
 
 object HistViewTest extends SimpleSwingApplication {
@@ -21,13 +22,31 @@ object HistViewTest extends SimpleSwingApplication {
 
   //val str = "some really long string name "
 
-  var tree = new SimpleTreeSeq[Int]()
-  val rand = new java.util.Random()
-  tree :+= (0, None)
-  for (i <- 1 to 200) {
-    val parent = math.max(0, i - 1 - rand.nextInt(6))
-    tree :+= (i, Some(parent))
+  case class IntNode(i: Int) extends HistNode {
+    def label = i.toString
+    def color = if (i % 4 == 0) Color.RED else Color.WHITE
   }
+
+  case class StringNode(s: String) extends HistNode {
+    def label = s.toString
+    def color = if (s == "*") Color.WHITE else Color.BLACK
+  }
+
+//  var tree = new SimpleTreeSeq[IntNode]()
+//  val rand = new java.util.Random()
+//  tree :+= (IntNode(0), None)
+//  for (i <- 1 to 200) {
+//    val parent = math.max(0, i - 1 - rand.nextInt(6))
+//    tree :+= (IntNode(i), Some(IntNode(parent)))
+//  }
+
+  var tree = new SimpleTreeSeq[StringNode]()
+  tree :+= (StringNode("rule1"), None)
+  tree :+= (StringNode("rule2"), Some(StringNode("rule1")))
+  tree :+= (StringNode("rule3"), Some(StringNode("rule2")))
+  tree :+= (StringNode("*"), Some(StringNode("rule3")))
+  tree :+= (StringNode("rule4"), Some(StringNode("rule2")))
+tree :+= (StringNode("*"), Some(StringNode("rule4")))
 
   println("tree built")
 

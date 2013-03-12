@@ -5,7 +5,7 @@ import java.awt.{BasicStroke, Color, RenderingHints}
 import quanto.util.TreeSeq._
 import java.awt.geom.{Ellipse2D, Path2D, Line2D, Rectangle2D}
 
-class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
+class HistViewItem[A <: HistNode](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
                       sz: Dimension) extends Component {
   import HistView.xIncrement
   preferredSize = sz
@@ -41,7 +41,8 @@ class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
         val p = new Path2D.Double()
         p.moveTo(topX,-1.0)
         p.lineTo(topX,4.0)
-        p.lineTo(bottomX,cellHeight-4.0)
+        p.curveTo(topX,12.0,bottomX,cellHeight-12.0,bottomX,cellHeight-4.0)
+        //p.lineTo(bottomX,cellHeight-4.0)
         p.lineTo(bottomX,cellHeight + 1.0)
 
         g.draw(p)
@@ -64,7 +65,8 @@ class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
 
           val p = new Path2D.Double()
           p.moveTo(topX,centerY)
-          p.lineTo(bottomX,cellHeight-4.0)
+          //p.lineTo(bottomX,cellHeight-4.0)
+          p.curveTo(topX,centerY,bottomX,cellHeight-8.0,bottomX,cellHeight-4.0)
           p.lineTo(bottomX,cellHeight + 1.0)
 
           g.draw(p)
@@ -74,7 +76,12 @@ class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
         textIndex = math.max(topIndex,bottomIndex)
 
         // draw the node
-        g.fill(new Ellipse2D.Double(topX - circleRadius, centerY - circleRadius, circleRadius * 2.0, circleRadius * 2.0))
+        val circle = new Ellipse2D.Double(topX - circleRadius, centerY - circleRadius, circleRadius * 2.0, circleRadius * 2.0)
+
+        g.setColor(item.color)
+        g.fill(circle)
+        g.setColor(Color.BLACK)
+        g.draw(circle)
       case WhiteSpace(collapseBottom, collapseTop) =>
         if (!collapseBottom) bottomIndex += 1
         if (!collapseTop) topIndex += 1
@@ -85,6 +92,6 @@ class HistViewItem[A](decorate: Seq[Decoration[A]], item: A, selected: Boolean,
 
     g.setStroke(new BasicStroke(1))
     g.setFont(HistView.ItemFont)
-    g.drawString(item.toString, leftX.toInt, baseLine.toInt)
+    g.drawString(item.label, leftX.toInt, baseLine.toInt)
   }
 }

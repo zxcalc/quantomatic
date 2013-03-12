@@ -12,6 +12,9 @@ abstract class TreeSeq[A] {
   def parent(a: A): Option[A]
   def children(a: A): Seq[A]
 
+  private def padding(size: Int) =
+    Seq.fill[WhiteSpace[A]](size) { WhiteSpace[A](collapseBottom = false, collapseTop = true) }
+
   def flatten: Seq[(Seq[Decoration[A]], A)] =
     (toSeq.foldLeft(Seq[(Seq[Decoration[A]], A)]()) { (rows, a) =>
       val node = NodeLink(parent(a), children(a))
@@ -19,7 +22,7 @@ abstract class TreeSeq[A] {
                  else rows.last._1
 
       var inserted = false
-      var pad = Seq[Decoration[A]]()
+      var pad = 0
 
       // traverse the previous decoration list from left to right and construct the current decoration list
       val current = prev.foldLeft(Seq[Decoration[A]]()) { (cols,col) =>
@@ -30,14 +33,14 @@ abstract class TreeSeq[A] {
               if (dest == a) {
                 inserted = true
                 //println("pad size = " + pad.size)
-                (cols :+ node) ++ pad
+                (cols :+ node) ++ padding(if (node.outputs.size < 2) pad else pad - node.outputs.size)
               } else {
                 cols :+ WireLink(dest)
               }
             }
           case (NodeLink(_, outs)) =>
             if (outs.isEmpty) {
-              pad :+=  WhiteSpace[A](collapseBottom = false, collapseTop = true)
+              pad += 1
               cols :+ WhiteSpace[A](collapseBottom = true, collapseTop = false)
             }
             else outs.foldLeft(cols) { (outCols,out) =>
@@ -46,14 +49,14 @@ abstract class TreeSeq[A] {
                 if (out == a) {
                   inserted = true
                   //println("pad size = " + pad.size)
-                  (outCols :+ node) ++ pad
+                  (outCols :+ node) ++ padding(if (node.outputs.size < 2) pad else pad - node.outputs.size)
                 } else {
                   outCols :+ WireLink(out)
                 }
               }
             }
           case WhiteSpace(false,_) =>
-            pad :+=  WhiteSpace[A](collapseBottom = false, collapseTop = true)
+            pad += 1
             cols :+ WhiteSpace[A](collapseBottom = true, collapseTop = false)
           case WhiteSpace(true,_) => cols
         }

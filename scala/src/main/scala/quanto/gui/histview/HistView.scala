@@ -5,7 +5,7 @@ import quanto.util._
 import java.awt.{Font => AWTFont,FontMetrics,Graphics}
 
 
-class HistView[A](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.Decoration[A]],A)](data.flatten) {
+class HistView[A <: HistNode](data: TreeSeq[A]) extends ListView[(Seq[TreeSeq.Decoration[A]],A)](data.flatten) {
   var itemWidth = -1
   def computeItemWidth() {
     val gr = peer.getGraphics
