@@ -2,7 +2,10 @@
 It abstracts away from some of the additional data within the graph.*)
 structure SimpleGraphUtil =
 struct
-  local open Test_BBox_Util; in
+  local 
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
+  (*open Test_BBox_Util;*) in
   
   (*Construct a new empty graph.*)
   val empty = G.empty
@@ -57,7 +60,8 @@ struct
   (*Get the list of names of only the node vertices*)
   fun get_list_node_vertex_names g = V.NSet.list_of (get_node_vertex_names g)
   (*Add a node vertex with a given name to the graph*)
-  fun add_node_vertex n g = G.add_named_vertex n (mkX zero_angle) g
+  (*fun add_node_vertex n g = G.add_named_vertex n (mkX zero_angle) g*)
+  fun add_node_vertex n g = G.add_named_vertex n vunit1 g
   (*Test to see if a vertex is a node vertex*)
   fun is_node_vertex n g = G.is_node_vertex g n
   (*Return the number of node vertices in the graph*)
@@ -72,7 +76,7 @@ struct
   (*Get the list of names of only the wire vertices*)
   fun get_list_wire_vertex_names g = V.NSet.list_of (get_wire_vertex_names g)
   (*Add a wire vertex with a given name to the graph*)
-  fun add_wire_vertex w g = G.add_named_vertex w bvert g
+  fun add_wire_vertex w g = G.add_named_vertex w BG.OVData.WVert g
   (*Test to see if a vertex is a wire vertex*)
   fun is_wire_vertex n g = G.is_wire_vertex g n
   (*Return the number of wire vertices in the graph*)
@@ -107,9 +111,9 @@ struct
       dir_or_undir=G.Directed
     end
   (*Add a directed edge to the graph between two vertices*)
-  fun add_edge_dir src tgt g = G.doadd_edge dir_edge src tgt g
+  fun add_edge_dir src tgt g = G.doadd_edge (G.Directed,eunit1) src tgt g
   (*Add an undirected edge to the graph between two vertices*)
-  fun add_edge_undir src tgt g = G.doadd_edge undir_edge src tgt g
+  fun add_edge_undir src tgt g = G.doadd_edge (G.UnDirected,eunit1) src tgt g
   (*Get the edge name of the edge between the two vertices.
   Returns NONE if no edge exists. If it is directed it will respect the direction
   passed. If it is undirected it will be returned regardless of the order

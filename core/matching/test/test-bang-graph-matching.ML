@@ -204,4 +204,5 @@ struct
 end;
 
 structure Greedy_Matcher_Tests = Bang_Graph_Matching_Tests(Test_GreedyMatcher);
+structure Greedy_Matcher_Tests_Parallel = Bang_Graph_Matching_Tests(Test_GreedyMatcherParallel);
 

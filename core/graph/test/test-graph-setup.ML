@@ -349,7 +349,7 @@ structure Test_OGraph : OGRAPH
     val empty_data = ()));
 
 structure Test_Bang_Graph : BANG_GRAPH
-= struct 
+= struct
   structure BasicBangGraph = BasicBangGraphFun(
     structure Param = OGraphParam(
       structure Param = Test_GraphParam 

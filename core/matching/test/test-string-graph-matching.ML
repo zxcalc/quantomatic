@@ -65,16 +65,16 @@ struct
                        (find_n_matches 0) (circle1,G.empty);
   val _ = Testing.test "match: empty --> circle (eunit1)"
                        (find_n_matches 1) (G.empty,circle1);
-
+  
   val _ = Testing.test "match: circle (eunit1) --> bare wire (eunit1)"
                        (find_n_matches 0) (circle1,bare_wire1);
   val _ = Testing.test "match: circle (eunit1) --> loop (vunit1,eunit1)"
                        (find_n_matches 0) (circle1,loop);
+  
   val _ = Testing.test "match: circle (eunit1) --> circle (eunit1)"
                        (find_n_matches 1) (circle1,circle1);
   val _ = Testing.test "match: circle (eunit1) --> circle (eunit2)"
                        (find_n_matches 0) (circle1,circle2);
-
   val _ = Testing.test "match: circle (eunit1) --> two circles (eunit1)"
                        (find_n_matches 2) (circle1,two_1circles);
   val _ = Testing.test "match: circle (eunit1) --> two circles (eunit1/2)"
@@ -106,7 +106,7 @@ struct
   val _ = Testing.test "match: undir circle --> dir circle"
                        (find_n_matches 0)
                        (undir_circle1,circle1);
-
+  
   (*
    * Bare wire matching tests
    *)
@@ -277,7 +277,6 @@ struct
       |> add_vexpr1 "v2" "\\pi";
   val v_expr2_a = G.empty
       |> add_vexpr2 "v1" "a";
-  
   val _ = Testing.test "match: vunit1 --> empty"
                        (find_n_matches 0) (single_v,G.empty);
   val _ = Testing.test "match: empty --> vunit1"
@@ -428,9 +427,9 @@ struct
                        (find_n_matches 1) (in_v_and_wire,barbell);
   val _ = Testing.test "match: barbell line --> barbell loop"
                        (find_n_matches 2) (barbell_line,barbell_loop);
-
   val _ = Testing.assert_no_failed_tests();
 end;
 
-structure Concrete_Matcher_Tests = String_Graph_Matching_Tests(Test_ConcreteMatcher);
+(*structure Concrete_Matcher_Tests = String_Graph_Matching_Tests(Test_ConcreteMatcher);*)
+structure Concrete_Matcher_Tests_Parallel = String_Graph_Matching_Tests(Test_ConcreteMatcherParallel);
 

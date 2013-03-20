@@ -148,8 +148,21 @@ PolyML.Project.make "matching/simple_inner_match_search.ML";
 PolyML.Project.make "matching/concrete_match_search.ML";
 (* naive pattern-graph wrapper *)
 PolyML.Project.make "matching/greedy_match_search.ML";
+(*
+ * Parallel Matching
+ *)
+(*MJB: a parallel version of the simple inner loop for the matching algorithm*)
+PolyML.Project.make "matching/simple_inner_match_search_parallel.ML";
+(*MJB: parallel version of the concrete matching wrapper*)
+PolyML.Project.make "matching/concrete_match_search_parallel.ML";
+(*MJB: a parallel version of the greedy matching algorithm*)
+PolyML.Project.make "matching/greedy_match_search_parallel.ML";
 
 Testing.make_test "matching/test/test-matching-setup.ML";
+(*Parallel setup*)
+Testing.make_test "matching/test/test-matching-setup-parallel.ML";
+
+(*Tests modified to test both versions*)
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
 Testing.make_test "matching/test/test-bang-graph-matching.ML";
@@ -181,68 +194,24 @@ PolyML.Project.make "io/graph_xml_v2_input.ML";
 PolyML.Project.make "io/graph_xml_v2_output.ML";
 PolyML.Project.make "io/graph_annotations_xml_input.ML";
 PolyML.Project.make "io/graph_annotations_xml_output.ML";
-<<<<<<< HEAD
 PolyML.Project.make "io/graph_annotations_json.ML";
-Testing.make_test "io/test/graph-json-test.ML";
-Testing.make_test "io/graph_xml_v1_input.ML";
-Testing.make_test "io/graph_xml_v1_output.ML";
 
 (*MJB*)
 Testing.make_test "graph/test/test-simple-graph-util.ML";
 Testing.make_test "graph/test/test-random-graph-util.ML";
 
-(* Rules *)
-PolyML.Project.make "io/rule_xml_output.ML";
-PolyML.Project.make "io/rule_xml_input.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
-PolyML.Project.make "io/ruleset_annotations_json.ML";
-
-(* Lists of rewrites *)
-PolyML.Project.make "io/rewrite_json.ML";
 
 (* Simple dot output for graphs *)
 PolyML.Project.make "io/graph_dot_output.ML";
 
-(* Package all IO stuff into one place *)
-PolyML.Project.make "io/io_interface.ML";
-Testing.make_test "io/test/graph_io-test.ML";
-Testing.make_test "io/test/load_ruleset-test.ML";
-
-
-(*
- * Matching
- *)
-PolyML.Project.make "matching/match_state.ML";
-PolyML.Project.make "matching/bang_graph_match_state.ML";
-(* signature for inner (concrete) matching *)
-PolyML.Project.make "matching/inner_match_search.ML";
-(* signature for outer (e.g. !-box) matching *)
-PolyML.Project.make "matching/match_search.ML";
-(* simple inner loop for the matching algo *)
-PolyML.Project.make "matching/simple_inner_match_search.ML";
-(*MJB: a parallel version of the simple inner loop for the matching algorithm*)
-PolyML.Project.make "matching/simple_inner_match_search_parallel.ML";
-(* wrappers for inner_match_search *)
-(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
-PolyML.Project.make "matching/concrete_match_search.ML";
-(*MJB: parallel version of the concrete matching wrapper*)
-PolyML.Project.make "matching/concrete_match_search_parallel.ML";
-(* naive pattern-graph wrapper *)
-PolyML.Project.make "matching/greedy_match_search.ML";
-(*MJB: a parallel version of the greedy matching algorithm*)
-PolyML.Project.make "matching/greedy_match_search_parallel.ML";
 PolyML.Project.make "io/ruleset_xml_input.ML";
 PolyML.Project.make "io/ruleset_xml_output.ML";
+PolyML.Project.make "io/rule_xml_output.ML";
+PolyML.Project.make "io/rule_xml_input.ML";
 
 PolyML.Project.make "io/io_interface_xml.ML";
-
-(*MJB*)
-
-Testing.make_test "matching/test/test-matching-setup-parallel.ML";
-Testing.make_test "matching/test/test-bang-match-state-parallel.ML";
-Testing.make_test "matching/test/test-matching-concrete-parallel.ML";
-Testing.make_test "matching/test/test-matching-greedy-parallel.ML";
 
 (*MJB*)
 Testing.make_test "matching/test/test-matching-speed.ML";
