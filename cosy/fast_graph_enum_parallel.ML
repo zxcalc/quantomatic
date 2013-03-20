@@ -293,7 +293,7 @@ struct
   fun fold_graphs gens (max_v,max_p,max_m,max_n) (fopt,filt,fclean,fmerge) initial = let
     fun save (fopt,filt) xs eq_tab =
       let
-        val disable = true;
+        val disable = false;
         (*Firstly, declare the original equivalence class table as clean (This is O(1) at the moment)*)
         val eq_tab = fclean eq_tab;
         (*Would like to check that this is where communication with the equivalence

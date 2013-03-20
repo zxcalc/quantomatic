@@ -237,4 +237,22 @@ struct
   fun run_on limits = RGCosy.output_eqtab (RGCosy.Enum.tab_enum RGCosy.gens limits) limits;
   fun run_parallel_on limits = ParallelRGCosy.output_eqtab (ParallelRGCosy.Enum.tab_enum ParallelRGCosy.gens limits) limits;
   
+  (*Time the sequential algorithm*)
+  fun time_on limits = let
+    val sw = Stopwatch.start Stopwatch.new;
+    val _ = run_on limits;
+    val t = Time.toMicroseconds (Stopwatch.check sw);
+    in
+      PolyML.print("Time taken was " ^ (LargeInt.toString(t)))
+    end
+  
+  (*Time the parallel algorithm*)
+  fun time_parallel_on limits = let
+    val sw = Stopwatch.start Stopwatch.new;
+    val _ = run_parallel_on limits;
+    val t = Time.toMicroseconds (Stopwatch.check sw);
+    in
+      PolyML.print("Time taken was " ^ (LargeInt.toString(t)))
+    end
+  
 end;
