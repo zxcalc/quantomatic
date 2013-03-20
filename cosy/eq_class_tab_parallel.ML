@@ -309,7 +309,7 @@ struct
                  ))
       (*Time it!*)
       val t = Time.toMicroseconds (Stopwatch.check sw)
-      val _ = if (t>1000000) then (PolyML.print("Done check in DNET. Took " ^ (LargeInt.toString(t)) ^ " microseconds");()) else ();
+      (*val _ = if (t>1000000) then (PolyML.print("Done check in DNET. Took " ^ (LargeInt.toString(t)) ^ " microseconds");()) else ();*)
     in
       ans
     end

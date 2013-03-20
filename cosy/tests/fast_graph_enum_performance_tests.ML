@@ -218,6 +218,17 @@ structure ParallelGHZWCosy = ParallelCosyUtil(
 (*structure Test_FastGraphEnumSpeed =*)
 structure F =
 struct
+  fun setup() =
+    let
+      val _ = PolyML.timing true;
+      val _ = PolyML.profiling 2;
+    in () end
+  fun teardown() =
+    let
+      val _ = PolyML.profiling 0;
+      val _ = PolyML.timing false;
+    in () end
+  
   (*max number of: (vertices, inputs, outputs, edges)*)
   val limits = (3,3,3,3)
   (*Run the enumerator for some amount of time...*)

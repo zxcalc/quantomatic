@@ -293,13 +293,14 @@ struct
   fun fold_graphs gens (max_v,max_p,max_m,max_n) (fopt,filt,fclean,fmerge) initial = let
     fun save (fopt,filt) xs eq_tab =
       let
+        val disable = true;
         (*Firstly, declare the original equivalence class table as clean (This is O(1) at the moment)*)
         val eq_tab = fclean eq_tab;
         (*Would like to check that this is where communication with the equivalence
         class table is really happening - in other words that the list of graphs
         is large enough...*)
-        val _ = PolyML.print("Processing " ^ (Int.toString(List.length xs)) ^ " graphs next. Using " ^ 
-          (Int.toString (Multithreading.max_threads_value())) ^ " threads.");
+        val _ = if (disable) then () else (PolyML.print("Processing " ^ (Int.toString(List.length xs)) ^ " graphs next. Using " ^ 
+          (Int.toString (Multithreading.max_threads_value())) ^ " threads.");())
         (*Firstly, split the incoming graphs into two halves - those which are too large to be added
         to the equivalence class table, and those which might be added to the equivalence class table...*)
         fun size_check (inputs,outputs) bare_wires =
@@ -335,9 +336,9 @@ struct
         val fd = Future.new_future_data (SOME "Passing new graphs throught the DNET");
         val par_seq = Par_Seq.of_sequential_seq fd groups; (*Sticking to the default*)
         (*Pump elements through the DNET in parallel*)
-        val _ = PolyML.print("Pumping through DNET...");
+        val _ = if (disable) then () else (PolyML.print("Pumping through DNET...");())
         val res_list = Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq);
-        val _ = PolyML.print("Through DNET");
+        val _ = if (disable) then () else (PolyML.print("Through DNET");())
         val res_list = flat res_list
         fun remove_filters [] = []
           | remove_filters (NONE::xs) = remove_filters xs
@@ -358,9 +359,9 @@ struct
         val groups = Compactor.compact_map_list compactor (add_to_own_eq_tab eq_tab) passed_through_DNET;
         val fd = Future.new_future_data (SOME "Forming unique equivalence class tables");
         val par_seq = Par_Seq.of_sequential_seq fd groups; (*Sticking to default*)
-        val _ = PolyML.print("Constructing unique tables");
+        val _ = if (disable) then () else (PolyML.print("Constructing unique tables");())
         val res_list = flat (Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq));
-        val _ = PolyML.print("Done constructing unique tables");
+        val _ = if (disable) then () else (PolyML.print("Done constructing unique tables");())
         (*All should have been added successfully from this list*)
         (*val _ = PolyML.print("Created all of the new equivalence class tables before merging...");*)
         val eq_tab_list = map the res_list;
@@ -391,9 +392,9 @@ struct
           | merge_list_all [x] = x
           | merge_list_all xs = merge_list_all (merge_list_once xs);
         (*Perform the merge!*)
-        val _ = PolyML.print("Performing merge");
+        val _ = if (disable) then () else (PolyML.print("Performing merge");())
         val new_eq_tab = merge_list_all eq_tab_list;
-        val _ = PolyML.print("Performed entire merge");
+        val _ = if (disable) then () else (PolyML.print("Performed entire merge");())
         (*SANITY CHECK*)
         (*
         fun add_all_to_tab [] (succeeded,eq_tab) = (succeeded,eq_tab)
