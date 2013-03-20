@@ -304,9 +304,9 @@ struct
   if any, and the root node*)
   fun run_par_tree m root =
     let
-      val num_cores = Thread.numProcessors();
+      val num_threads = Multithreading.max_threads_value();
       fun apply r c n =
-        let val _ = if ((!c)>=(!r)*num_cores) then
+        let val _ = if ((!c)>=(!r)*num_threads) then
                     (c:=0;if ((!r)<=max_coarse) then r:=(!r)+increase_coarse else ();()) else (c:=(!c+1))
         in
           (*let
@@ -336,9 +336,19 @@ struct
       (*Set the parallel tree parameters*)
       val par_tree = Par_Tree.set_compactor par_tree compactor;
       val par_tree = Par_Tree.set_order_matters par_tree false;
-      val par_tree = Par_Tree.set_no_groups par_tree (SOME (num_cores * 40));
+      val par_tree = Par_Tree.set_no_groups par_tree (SOME (num_threads * 40));
+      (*Very simple form of the tree*)
+      (*
+      val par_tree = Par_Tree.set_order_matters par_tree false;
+      val par_tree = Par_Tree.set_node_limit par_tree (SOME 4000);
+      *)
     in
+      
       Par_Tree.compute_tree par_tree root (apply (Unsynchronized.ref start_coarse) (Unsynchronized.ref 0))
+      
+      (*
+      Par_Tree.compute_tree par_tree root (Par_Tree.recur_node_function apply_to_node 4)
+      *)
     end
     (*Par_Tree.compute_tree (Par_Tree.new (Future.new_future_data m)) root apply_to_node*)
   

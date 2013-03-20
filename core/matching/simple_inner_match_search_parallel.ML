@@ -479,9 +479,9 @@ functor SimpleInnerMatchSearchParallel(
     fun apply n = Difference_List.list_of (apply_to_node_coarse 8 n)*)
     (*The parallel tree to use!*)
     (*82426724 on 30 vertices. Best so far!*)
-    val num_cores = Thread.numProcessors();
+    val num_threads = Multithreading.max_threads_value();
     fun apply r c n =
-      let val _ = if ((!c)>=(!r)*num_cores) then
+      let val _ = if ((!c)>=(!r)*num_threads) then
                   (c:=0;if ((!r)<=max_coarse) then r:=(!r)+increase_coarse else ();()) else (c:=(!c+1))
       in
         (*let
