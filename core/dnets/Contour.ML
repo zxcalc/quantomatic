@@ -59,8 +59,9 @@ struct
 
  
   (* This function gets the first node in a contour *)
-  fun get_first_literal(l::[]) = l
-    | get_first_literal(l::literals) = l
+  fun get_first_literal [] = raise ERROR "Contour is empty"
+    | get_first_literal (l::[]) = l
+    | get_first_literal (l::literals) = l
 
   (* This function returns a contout containing only the literal with multiplicity equal to None *)
   fun get_contour_mult_none([]) = empty
@@ -264,7 +265,9 @@ struct
   fun target_function(g) =
       let
         val vnames = G.get_unbboxed(g)
-        val v::vlist = V.NSet.list_of(vnames)        
+        val v = case V.NSet.get_local_bot vnames
+                  of SOME v => v
+                   | NONE => raise ERROR "No unboxed verts"
         val lit = L.mk g v
         val contour = rebuild_literals(g,[],lit::[])
       in
@@ -314,6 +317,8 @@ struct
       if L.match(l,c) then 
         if(L.is_kind_mult_star(c)) then c::cs else cs 
       else c::remove_matching_literal_in_contour_according_to_mult(l,cs)  
+    | remove_matching_literal_in_contour_according_to_mult(l,[]) = 
+      raise ERROR "Empty contour"
 
   (* This function subtracts c2 from c1, c1-c2, given that c2 is contained in c1 *)
   (* PRECONDITION: c2 is contained in c1 *)

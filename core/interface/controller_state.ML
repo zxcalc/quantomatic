@@ -42,6 +42,7 @@ sig
   exception unsupported_metric_exp of string;
   exception no_such_metric_exp of string;
   exception not_an_int_exp of string;
+  exception duplicate_name_exp of unit;
 
   val init : T (* initial empty state, no graphs *)
 
@@ -124,17 +125,17 @@ sig
 
   val update_vertex_data : (Theory.OVData.data -> Theory.OVData.data) -> V.name -> GraphName.name -> T -> T
   val update_edge_data : (Theory.EData.data -> Theory.EData.data) -> E.name -> GraphName.name -> T -> T
-  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (V.name list) * T
+  val rename_vertex : V.name -> V.name -> GraphName.name -> T -> (V.name*(V.name option)) * T
   val rename_edge : E.name -> E.name -> GraphName.name -> T -> T
   val rename_bang : B.name -> B.name -> GraphName.name -> T -> T
   val rename_graph : GraphName.name -> GraphName.name -> T -> GraphName.name * T
   val delete_vertices : V.name list -> GraphName.name -> T -> T
   val delete_edges : E.name list -> GraphName.name -> T -> T
 
-  val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
+  val bang_vertices : B.name -> V.name list -> GraphName.name -> T -> (V.NSet.T*T)
   val kill_bang : B.name list -> GraphName.name -> T -> T
   val completely_unbang_vertices : V.name list -> GraphName.name -> T -> T
-  val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> T
+  val unbang_vertices : B.name -> V.name list -> GraphName.name -> T -> (V.NSet.T*T)
   val merge_bang : B.name list -> GraphName.name -> T -> B.name * T
   val duplicate_bang : B.name -> GraphName.name -> T -> B.name * T
   val drop_bang : B.name list -> GraphName.name -> T -> T
@@ -215,6 +216,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   exception unsupported_metric_exp of string;
   exception no_such_metric_exp of string;
   exception not_an_int_exp of string;
+  exception duplicate_name_exp of unit;
   type rewrite = (R.name * Rule.T) * Graph.T (* rule, and graph to be rewritten to *)
   type vertex =  (OVData.data * (E.NSet.T * E.NSet.T));
   type edge = ((Graph.dir_or_undir * EData.data) * (V.name * V.name));
@@ -597,7 +599,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     lift_graph_mutator_no_result (fold Graph.delete_edge es)
 
   fun rename_vertex_internal old new graph =
-    ([new],graph |> Graph.rename_vname old new)
+    ((new,NONE),graph |> Graph.rename_vname old new)
     handle Graph.vname_already_exists_exp _ =>
       (* Rename apart the old vertex *)
       let
@@ -605,12 +607,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
          * to generate a fresh name, but how?*)
         val ((frshN,_),_) = add_vertex_internal "edge-point" graph
       in
-        ([new,frshN],graph |> Graph.rename_vname new (frshN)
+        ((new,SOME frshN),graph |> Graph.rename_vname new (frshN)
                            |> Graph.rename_vname old new)
       end;
  
   (* There was no conflict *) 
-  fun rename_vertex_uidata old (new::[]) graphName state =
+  fun rename_vertex_uidata old (new,NONE) graphName state =
     let
       val ud = get_graph_ud state graphName
     in
@@ -618,7 +620,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
     end
     (* We had a conflict, therefore we have a freshName for 
      * the node vertex that we need to rename as well *)
-    | rename_vertex_uidata old (new::fresh::[]) graphName state =
+    | rename_vertex_uidata old (new,SOME fresh) graphName state =
     let
       val ud = get_graph_ud state graphName
       val ud' = ud |> GraphUserData.rename_vertex new fresh
@@ -737,6 +739,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
   local
       fun attach_with attacher gname vs state =
           (let val vset = fold V.NSet.ins_fresh vs V.NSet.empty
+                          handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
                val graph = get_graph state gname
                val rws = (Seq.list_of (attacher (get_rset state) graph vset))
            in
@@ -794,8 +797,12 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       end
 
   fun merge_bang bs gname state =
-      let val _ = map (assert_bbox_exists state gname) bs in
-        lift_graph_mutator (Graph.merge_bboxes (B.NSet.of_list bs)) gname state
+      let
+        val _ = map (assert_bbox_exists state gname) bs
+        val bset = B.NSet.of_list bs
+                   handle B.NSet.duplicate_exp _ => raise duplicate_name_exp ()
+      in
+        lift_graph_mutator (Graph.merge_bboxes bset) gname state
       end
 
   fun duplicate_bang bb gname state =
@@ -808,8 +815,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         val _ = assert_bbox_exists state gname box
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
+                   handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
       in
-        lift_graph_mutator_no_result (Graph.doadd_to_bbox box vset) gname state
+        lift_graph_mutator (Graph.add_to_bbox box vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
@@ -818,6 +826,7 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
       let
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
+                   handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
       in
         lift_graph_mutator_no_result (Graph.remove_from_all_bboxes vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
@@ -829,9 +838,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         val _ = assert_bbox_exists state gname box
         val _ = map (assert_vertex_exists state gname) verts
         val vset = V.NSet.of_list verts
-        val mutator = Graph.doremove_from_bbox box vset
+                   handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
       in
-        lift_graph_mutator_no_result mutator gname state
+        lift_graph_mutator (Graph.remove_from_bbox box vset) gname state
         handle Graph.bbox_not_open_exp (vs,b,_)
              => raise inconsistent_bbox_exp (vs,b,gname)
       end
@@ -845,8 +854,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
    * A solution is to store that as ui_data on the vertices, edges, etc...*)
   fun copy_subgraph source target vs state = let
       val _ = map (assert_vertex_exists state source) vs
+      val vset = V.NSet.of_list vs
+                 handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
       val clip = Graph.delete_subgraph_outside_vset
-                   (V.NSet.of_list vs)
+                   vset
                    (get_graph state source)
       fun add_v_ud ud n =
         let

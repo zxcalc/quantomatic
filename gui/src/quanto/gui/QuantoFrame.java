@@ -199,7 +199,7 @@ public class QuantoFrame extends JFrame implements ViewPortHost {
 		splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
 		splitPane.setLeftComponent(sidebar);
 		splitPane.setRightComponent(viewPort);
-		splitPane.setDividerLocation(150);
+		splitPane.setDividerLocation(256);
 		splitPane.setDividerSize(10);
 		splitPane.setUI(new BasicSplitPaneUI());
 		splitPane.setBackground(Color.DARK_GRAY);

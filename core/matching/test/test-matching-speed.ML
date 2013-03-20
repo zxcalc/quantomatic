@@ -5,17 +5,23 @@ as well as the greedy algorithm which supports bang box expansion.*)
 local
   (*Files needed for sanity*)
   open RandomGraphGenerator;
-  open Test_BBox_Util;
-  open Test_BGMatchUtil;
+  (*  open Test_BBox_Util; *)
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
+  (*open Test_BGMatchUtil;*)
   open SimpleGraphUtil;
   (*The original structures:*)
-  structure Concrete_M = Test_ConcreteMatcher;
+  structure Speed_Test_InnerMatcher =
+  SimpleInnerMatchSearch(structure MatchState = Test_BGMatchState);
+  structure Speed_Test_ConcreteMatcher =
+  ConcreteMatchSearch(structure InnerMatchSearch = Speed_Test_InnerMatcher);
+  structure Concrete_M = Speed_Test_ConcreteMatcher;
   structure Greedy_M = Test_GreedyMatcher;
-  structure Inner_M = Test_InnerMatcher;
+  structure Inner_M = Speed_Test_InnerMatcher;
   structure Inner_BG_M = Test_BGInnerMatcher;
-  structure MatchState = Inner_M.MatchState;
+  structure MatchState = Test_BGMatchState;
   (*Parallel versions:*)
-  structure Inner_Parallel_M = SimpleInnerMatchSearchParallel(structure MatchState = Test_MatchState);
+  structure Inner_Parallel_M = SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
   structure Concrete_Parallel_M = ConcreteMatchSearchParallel(structure InnerMatchSearch = Inner_Parallel_M);
   structure Inner_BG_Parallel_M =
   SimpleInnerMatchSearchParallel(structure MatchState = Test_BGMatchState);
@@ -136,10 +142,10 @@ local
   (*Force the evaluation of all matching circles only, and return the results as a list*)
   fun match_all_circles_concrete g1 g2 = Seq.list_of (
     Seq.filter MatchState.is_total (Inner_M.match_circles (
-    MatchState.init_and_schedule_all (G.normalise g1) (G.normalise g2))))
+    MatchState.init_and_schedule_all (MatchState.G.normalise g1) (MatchState.G.normalise g2))))
   fun match_all_circles_parallel_concrete g1 g2 = Seq.list_of (
     Seq.filter MatchState.is_total (Inner_Parallel_M.match_circles (
-    MatchState.init_and_schedule_all (G.normalise g1) (G.normalise g2))))
+    MatchState.init_and_schedule_all (MatchState.G.normalise g1) (MatchState.G.normalise g2))))
   
   (*Create a list of numbers between the specified range*)
   fun --- (n1,n2) = if (n1>n2) then --- (n2,n1) else
@@ -513,7 +519,7 @@ in
     fun test_correctness g1 g2 =
       PolyML.print("Number was " ^ Int.toString(
       List.length (Seq.list_of (
-      Test_ConcreteMatcher.match g1 g2))))
+      Concrete_M.match g1 g2))))
       
     (*REMOVE*)
     fun test hardness = test_with_square_concrete_together_complete (hardness,hardness) 1

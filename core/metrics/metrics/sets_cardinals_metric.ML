@@ -27,6 +27,7 @@ struct
   end 
 
   fun internal_ord (SOME a, SOME b) = ord (a,b)
+    | internal_ord _ = NONE
   val ord_graph = internal_ord o (apfst compute) o (apsnd compute)
   val metric_record = MR {desc = desc, 
                           compute = MT.to_foreign_type o compute,

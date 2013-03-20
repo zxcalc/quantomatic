@@ -114,9 +114,9 @@ functor GraphIsoFun(
          (* some other helper stuff *)
          val (gd,(gin,gout)) = Graph.get_vertex g vng
          val (hd,(hin,hout)) = Graph.get_vertex h vnh
-         fun esrc n x = let val (_,(f,t)) = Graph.get_edge x n
+         fun esrc n x = let val (_,(f,_)) = Graph.get_edge x n
                    in f end;
-         fun esnk n x = let val (_,(f,t)) = Graph.get_edge x n
+         fun esnk n x = let val (_,(_,t)) = Graph.get_edge x n
                    in t end;
       in if true (*VData.data_eq (gd,hd)*)
          then case (E.NSet.is_empty gin,

@@ -1,27 +1,22 @@
 local
-  open Test_BBox_Util
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
 
-  val g1 = G.empty
-  val (n_a_1, g1) = g1 |> G.add_vertex (mkZ zero_angle);
-  val (n_b_1, g1) = g1 |> G.add_vertex mkH;
-  val (_, g1) = g1 |> G.add_edge undir_edge n_a_1 n_b_1;
-  val (_, g1) = g1 |> G.add_edge undir_edge n_a_1 n_b_1;
+  val g1 = G.empty |> add_vunit1 "v1"
+                   |> add_vunit2 "v2"
+                   |> add_undir_eunit1 "e1" "v1" "v2"
+                   |> add_undir_eunit1 "e2" "v1" "v2";
 
-  val g2 = G.empty
-  val (n_a_2, g2) = g2 |> G.add_vertex mkH;
-  val (n_b_2, g2) = g2 |> G.add_vertex (mkZ zero_angle);
-  val (_, g2) = g2 |> G.add_edge undir_edge n_a_2 n_b_2;
-  val (_, g2) = g2 |> G.add_edge undir_edge n_a_2 n_b_2;
+  val g2 = G.empty |> add_vunit2 "v1"
+                   |> add_vunit1 "v2"
+                   |> add_undir_eunit1 "e1" "v2" "v1"
+                   |> add_undir_eunit1 "e2" "v2" "v1";
 
-  val g3 = g1
-  val (_, g3) = g3 |> G.add_bbox;
-  val (b1_3, g3) = g3 |> G.add_bbox;
-  val g3 = g3 |> G.doadd_to_bbox b1_3 (V.NSet.single n_a_1);
+  val g3 = g1 |> add_bbox "b1" []
+              |> add_bbox "b2" ["v1"];
 
-  val g4 = g2
-  val (b0_4, g4) = g4 |> G.add_bbox;
-  val (_, g4) = g4 |> G.add_bbox;
-  val g4 = g4 |> G.doadd_to_bbox b0_4 (V.NSet.single n_b_2);
+  val g4 = g2 |> add_bbox "b0" []
+              |> add_bbox "b1" ["v2"];
 
   fun seq_count sq =
         (case Seq.pull sq of
@@ -59,6 +54,5 @@ local
           (fn () => assert_iso_count 2 (GIso.get g3 g4)) ()
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR !-GRAPH ISOS PASSED!"
 end
 

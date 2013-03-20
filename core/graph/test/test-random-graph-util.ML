@@ -109,14 +109,16 @@ Not opaque so that you can use existing graphs.*)
 structure RandomGraphGenerator : RANDOM_GRAPH_GENERATOR =
 struct
 
-  local open Test_BBox_Util; open SimpleGraphUtil; in
+  local structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
+  open SimpleGraphUtil; in
   
   (***********************************************************)
   (***************************Types***************************)
   (***********************************************************)
-
-  type T = Test_MkG.G.T (*Use the test graphs for simplicity*)
-  type dir_or_undir = Test_MkG.G.dir_or_undir
+  
+  type T = Tools.G.T (*Use the test graphs for simplicity*)
+  type dir_or_undir = Tools.G.dir_or_undir
   
   (***********************************************************)
   (********************Auxiliary Functions********************)
@@ -387,7 +389,8 @@ what is created that is of interest...*)
 structure Test_RandomGraphGenerator =
 struct
   local
-  open Test_BBox_Util;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
   open RandomGraphGenerator;
   open SimpleGraphUtil;
   (*Return the number of node vertices in the graph*)

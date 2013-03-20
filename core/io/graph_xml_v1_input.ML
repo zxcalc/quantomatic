@@ -91,7 +91,7 @@ end (* structure InputXML *)
 
 (* ------------------------------------------------------- *)
 functor InputTestVertexDataXML_v1(
-  OVData : OVERTEX_DATA where type IData.data = Test_InternVData.data
+  OVData : OVERTEX_DATA where type IData.data = RG_InternVData.data
 ) : INPUT_XML
 = struct
   open XML_Parse_Utils; 
@@ -139,15 +139,15 @@ functor InputTestVertexDataXML_v1(
           val col = (String.map Char.toLower o get_unique_child_text 
                      o get_unique_elem "colour") children
       in 
-        if (col = "h") then Test_InternVData.Hnd
+        if (col = "h") then RG_InternVData.Hnd
         else
           let 
             val angle = 
                 case lookup_unique_elem "angleexpr" children of NONE => LinratAngleExpr.zero
                    | SOME a => input_angleexpr a
           in
-            if (col = "green") then Test_InternVData.Znd angle
-            else if (col = "red") then Test_InternVData.Xnd angle
+            if (col = "green") then RG_InternVData.Znd angle
+            else if (col = "red") then RG_InternVData.Xnd angle
             else raise bad_input_exp ("Unknown colour : "^col^".","")
           end
       end;

@@ -175,11 +175,11 @@ struct
         val (_,r) = Rule.rename rnms r;
         val lhs = G.normalise (Rule.get_lhs r);
         val rhs = G.normalise (Rule.get_rhs r);
-        val avoid = G.get_vnames rhs;
+        val avoid = V.NSet.union_merge (G.get_vnames rhs) (G.get_vnames g_norm);
         val track = G.get_boundary rhs;
       in (r,
           MatchSearch.match_subgraph_normalised_avoiding_tracking
-            (avoid,track) lhs g vset) end;
+            (avoid,track) lhs g_norm vset) end;
   
   (* instantiate rule with a match *)
   fun instantiate_rule m r = 

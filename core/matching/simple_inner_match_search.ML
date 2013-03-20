@@ -85,8 +85,10 @@ functor SimpleInnerMatchSearch(
                 (V.string_of_name ct)^","^(E.string_of_name et)^")") ()
              val ((etdir,etdata),_) = G.get_edge tgt et
            in case (epdir = etdir,
-                    perhaps_apply [G.VData.match_data (cpdata,ctdata),
-                                   G.EData.match_data (epdata,etdata)] subst)
+                    Option.composePartial
+                      (G.VData.match_data (cpdata,ctdata),
+                       G.EData.match_data (epdata,etdata))
+                      subst)
                 of (true, SOME subst') =>
                       match_circles' (lvl+1)
                           (ms |> MatchState.update_u_circles (V.NSet.delete cp)
@@ -295,36 +297,48 @@ functor SimpleInnerMatchSearch(
   (* grow the single, given edge into:
       - a circle consisting of two edges for circles,
       - otherwise a chain of three edges, return the middle edge *)
-  fun grow_edge g h e = let
-    val (dd, (s,t)) = G.get_edge h e
+  fun grow_tgt_edge ms e = let
+    val tgt = MatchState.get_tgt ms
+    val full_tgt = MatchState.get_full_tgt ms
+    (* hackish way to avoid renaming issues: make sure new vnames
+     * are not in pattern *)
+    val patvs = G.get_vnames (MatchState.get_pat ms)
+    val avoidvs = V.NSet.union_merge patvs (G.get_vnames full_tgt);
+    val (vn1,avoidvs') = V.NSet.add_new (V.default_name) avoidvs;
+    val (dd, (s,t)) = G.get_edge full_tgt e
   in if V.name_eq (s,t) then
       let
-        val h = h |> G.delete_edge e
-        val (b1,h) = h |> G.add_vertex G.OVData.WVert
-        val (e1,h) = h |> G.add_edge dd s b1
-        val (mid_e, h) = h |> G.add_edge dd b1 t
-        (* now repeat on g *)
-        val g = g |> G.delete_edge e
-                  |> G.add_named_vertex b1 G.OVData.WVert
-                  |> G.add_named_edge e1 dd s b1
-                  |> G.add_named_edge mid_e dd b1 t
-      in ((b1,mid_e,t),g,h)
+        val full_tgt = full_tgt |> G.delete_edge e
+                                |> G.add_named_vertex vn1 G.OVData.WVert
+        val (e1,full_tgt)     = full_tgt |> G.add_edge dd s vn1
+        val (mid_e, full_tgt) = full_tgt |> G.add_edge dd vn1 t
+        (* now repeat on tgt *)
+        val tgt = tgt |> G.delete_edge e
+                      |> G.add_named_vertex vn1 G.OVData.WVert
+                      |> G.add_named_edge e1 dd s vn1
+                      |> G.add_named_edge mid_e dd vn1 t
+      in ((vn1,mid_e,t),
+          ms |> MatchState.set_tgt tgt
+             |> MatchState.set_full_tgt full_tgt)
       end
     else
       let 
-        val h = h |> G.delete_edge e
-        val (b1,h) = h |> G.add_vertex G.OVData.WVert
-        val (b2,h) = h |> G.add_vertex G.OVData.WVert
-        val (e1,h) = h |> G.add_edge dd s b1
-        val (mid_e,h) = h |> G.add_edge dd b1 b2
-        val (e2,h) = h |> G.add_edge dd b2 t
-        val g = g |> G.delete_edge e
-                  |> G.add_named_vertex b1 G.OVData.WVert
-                  |> G.add_named_vertex b2 G.OVData.WVert
-                  |> G.add_named_edge e1 dd s b1
-                  |> G.add_named_edge mid_e dd b1 b2
-                  |> G.add_named_edge e2 dd b2 t
-      in ((b1,mid_e,b2),g,h)
+        val (vn2,_) = V.NSet.add_new (V.default_name) avoidvs';
+        val full_tgt = full_tgt |> G.delete_edge e
+                                |> G.add_named_vertex vn1 G.OVData.WVert
+                                |> G.add_named_vertex vn2 G.OVData.WVert
+        val (e1,full_tgt)    = full_tgt |> G.add_edge dd s vn1
+        val (mid_e,full_tgt) = full_tgt |> G.add_edge dd vn1 vn2
+        val (e2,full_tgt)    = full_tgt |> G.add_edge dd vn2 t
+        val tgt = tgt |> G.delete_edge e
+                      |> G.add_named_vertex vn1 G.OVData.WVert
+                      |> G.add_named_vertex vn2 G.OVData.WVert
+                      |> G.add_named_edge e1 dd s vn1
+                      |> G.add_named_edge mid_e dd vn1 vn2
+                      |> G.add_named_edge e2 dd vn2 t
+      in ((vn1,mid_e,vn2),
+          ms |> MatchState.set_tgt tgt
+             |> MatchState.set_full_tgt full_tgt)
       end
   end
   
@@ -358,27 +372,27 @@ functor SimpleInnerMatchSearch(
         (G.get_enames tgt) Seq.empty
       fun match_bw e = let
         (* grow edge and grab relevant data *)
-        val fulltgt = MatchState.get_full_tgt ms
-        val ((s,mid_e,t), tgt', fulltgt') = grow_edge tgt fulltgt e
-        val ((_, et_data), (tgt_s,tgt_t)) = G.get_edge tgt' mid_e
-        val (tgt_sdata,tgt_tdata) = (G.get_vertex_data tgt' tgt_s, G.get_vertex_data tgt' tgt_t)
+        val ((s,mid_e,t), ms') = grow_tgt_edge ms e
+        val tgt' = MatchState.get_tgt ms'
+        val et_data = G.get_edge_data tgt' mid_e
+        val (tgt_sdata,tgt_tdata) = (G.get_vertex_data tgt' s, G.get_vertex_data tgt' t)
         
         (* match data for edge, source, and target *)
-        val fmatch_d = perhaps_apply [G.EData.match_data (bw_data, et_data),
-                                      G.VData.match_data (bw_sdata, tgt_sdata),
-                                      G.VData.match_data (bw_tdata, tgt_tdata)]
+        val fmatch_d = Option.composePartial
+                          (G.EData.match_data (bw_data, et_data),
+                           Option.composePartial
+                              (G.VData.match_data (bw_sdata, tgt_sdata),
+                               G.VData.match_data (bw_tdata, tgt_tdata)));
         fun add_bw new_subst = let
-          val ms' = ms |> MatchState.set_tgt tgt' (* save the new, edge-homeo equivalent target *)
-                       |> MatchState.set_full_tgt fulltgt'
-                       |> MatchState.set_match_subst new_subst
-                       |> MatchState.update_u_bare_wires (E.NSet.delete bw)
+          val ms' = ms' |> MatchState.set_match_subst new_subst
+                        |> MatchState.update_u_bare_wires (E.NSet.delete bw)
         in (fn (es,et) =>
              ms' |> add_vertex_to_match lvl (bw_s,es)
                  |> add_edge_to_match lvl (bw,bw_t) (mid_e,et)
            )
         end
       in
-        case fmatch_d (MatchState.get_match_subst ms)
+        case fmatch_d (MatchState.get_match_subst ms')
           of SOME new_subst =>
                let val add_bw' = add_bw new_subst in
                   case bw_dir
