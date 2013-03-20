@@ -988,13 +988,13 @@ public class CoreTalker {
             writer.addHeader("GMBA", generateRequestId());
             writer.addStringArg(graph);
             writer.addStringListArg(vertices != null ? vertices : Collections.<String>emptyList());
-            writer.addStringArg("name");
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        return getNameResponse();
+        return getJsonResponse();
     }
 
     public void renameBangBox(String graph, String from, String to) throws CoreException {
@@ -1083,7 +1083,7 @@ public class CoreTalker {
         return getNameResponse();
     }
 
-    public void bangVertices(String graph, String bangBox, Collection<String> vertices) throws CoreException {
+    public String[] bangVertices(String graph, String bangBox, Collection<String> vertices) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
@@ -1098,7 +1098,7 @@ public class CoreTalker {
             throw writeFailure(ex);
         }
 
-        getOkResponse();
+        return getNameListResponse();
     }
 
     public void unbangVertices(String graph, Collection<String> vertices) throws CoreException {
@@ -1598,7 +1598,7 @@ public class CoreTalker {
         return getCountResponse();
     }
 
-    public void applyAttachedRewrite(String graph, int offset) throws CoreException {
+    public String applyAttachedRewrite(String graph, int offset) throws CoreException {
         if (writer == null) {
             throw new IllegalStateException("Not connected to the core");
         }
@@ -1607,12 +1607,13 @@ public class CoreTalker {
             writer.addHeader("WW", generateRequestId());
             writer.addStringArg(graph);
             writer.addIntArg(offset);
+            writer.addStringArg("json");
             writer.closeMessage();
         } catch (IOException ex) {
             throw writeFailure(ex);
         }
 
-        getOkResponse();
+        return getJsonResponse();
     }
 
     public String listAttachedRewrites(String graph) throws CoreException {

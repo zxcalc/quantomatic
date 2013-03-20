@@ -1,31 +1,27 @@
-#!/usr/bin/env bash
-HERE=$(dirname $0)
-POLYML_HOME=$(${HERE}/../../tools/findpoly.sh)
-THE_POLY_HEAP=${HERE}/../heaps/quanto.polyml-heap
-ML_LOAD_HEAP_CMD="  PolyML.SaveState.loadState \"${THE_POLY_HEAP}\";"; 
+#!/usr/bin/env sh
 
-if [ "$POLYML_HOME" == "" ]
-then echo "Can not find PolyML ($$POLYML_HOME was empty)"; exit 0; 
-else echo "Using PolyML: $POLYML_HOME";
+HERE="`dirname $0`"
+POLYML_HOME="`${HERE}/../../tools/findpoly.sh`"
+PRE_USE="${HERE}/../load_heap.ML"
+
+if [ "$POLYML_HOME" == "" ]; then
+    echo 'Can not find PolyML ($POLYML_HOME was empty)'
+    exit 0
+else
+    echo "Using PolyML from $POLYML_HOME"
 fi
-
-echo "About to start running ML with:"
-echo "  ${ML_LOAD_HEAP_CMD}";
 
 if which rlwrap > /dev/null 2>/dev/null
 then 
-  echo "Using line editor: rlwrap";
-#  (echo "${ML_LOAD_HEAP_CMD}"; rlwrap) | ;
-  rlwrap ${POLYML_HOME}/bin/poly "$@";
+  echo "Using rlwrap"
+  rlwrap ${POLYML_HOME}/bin/poly --use "${PRE_USE}" "$@"
+elif [ "$EMACS" != "t" ] && which ledit > /dev/null 2>/dev/null
+then
+  echo "Using ledit"
+  ledit ${POLYML_HOME}/bin/poly --use "${PRE_USE}" "$@"
 else
-  if [ "$EMACS" != "t" ]
-  then
-    LEDIT=`which ledit || which cat`;
-  else
-    LEDIT=`which cat`;
-  fi
-  echo "Using line editor: ${LEDIT}";
-  (echo "${ML_LOAD_HEAP_CMD}"; ${LEDIT}) | ${POLYML_HOME}/bin/poly "$@";
+  echo "No line editor found; using raw Poly/ML"
+  ${POLYML_HOME}/bin/poly --use "${PRE_USE}" "$@"
 fi
 
 

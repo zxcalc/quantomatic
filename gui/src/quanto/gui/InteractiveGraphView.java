@@ -51,6 +51,7 @@ import edu.uci.ics.jung.visualization.renderers.VertexLabelRenderer;
 import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import java.awt.geom.AffineTransform;
 import java.io.OutputStream;
+import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -760,16 +761,18 @@ public class InteractiveGraphView
 
 	public void updateGraph(Rectangle2D rewriteRect) throws CoreException {
 		core.updateGraph(getGraph());
+		relayoutGraph(rewriteRect);
+	}
+
+	public void relayoutGraph(Rectangle2D rewriteRect) throws CoreException {
 		int count = 0;
 		for (Vertex v : getGraph().getVertices()) {
 			if (verticesCache.get(v.getCoreName()) != null) {
 				PositionGraphUserDataSerializer pds = new PositionGraphUserDataSerializer(core.getTalker());
 				Point2D p = (Point2D) pds.getVertexUserData(getGraph(), v.getCoreName());
-				if (p != null) {
-					viewer.getGraphLayout().setLocation(v, p);
-				} else {
-					viewer.getGraphLayout().setLocation(v, verticesCache.get(v.getCoreName()));
-				}
+				if (p == null) p = verticesCache.get(v.getCoreName());
+				
+				viewer.getGraphLayout().setLocation(v, p);
 				viewer.getGraphLayout().lock(v, true);
 			} else {
 				if (rewriteRect != null) {
@@ -779,10 +782,16 @@ public class InteractiveGraphView
 						viewer.getGraphLayout().setLocation(v, p);
 						viewer.getGraphLayout().lock(v, true);
 					} else {
-						viewer.shift(rewriteRect, v, new Point2D.Double(0, 20 * count));
+						if (rewriteRect.getCenterX() <= 10 || rewriteRect.getCenterX() <= 10)
+							viewer.getGraphLayout().setLocation(v, new Point2D.Double(20 * (1 + count), 20 * (1 + count)));
+						else
+							viewer.shift(rewriteRect, v, new Point2D.Double(20 * (1 + count), 20 * (1 + count)));
+						
 						setVertexPositionData(v);
 						count++;
 					}
+				} else {
+					// ... log here
 				}
 			}
 		}
@@ -813,11 +822,15 @@ public class InteractiveGraphView
 		viewer.repaint();
 	}
 
-	public void highlightSubgraph(CoreGraph g) {
+	public void highlightSubgraph(Collection<Vertex> vs) {
 		clearHighlight();
-		highlighter = new SubgraphHighlighter(g);
+		highlighter = new SubgraphHighlighter(vs);
 		viewer.addPostRenderPaintable(highlighter);
 		viewer.update();
+	}
+
+	public void highlightRewrite(AttachedRewrite rw) {
+		highlightSubgraph(rw.getRemovedVertices());
 	}
 
 	public void startRewriting() {
@@ -871,14 +884,14 @@ public class InteractiveGraphView
 			}
 		}
 
-		private void invokeHighlightSubgraphAndWait(CoreGraph subgraph)
+		private void invokeHighlightRewriteAndWait(AttachedRewrite rw)
 				throws InterruptedException {
 			highlight = true;
-			final CoreGraph fSubGraph = subgraph;
+			final AttachedRewrite fRw = rw;
 			invokeAndWait(new Runnable() {
 
 				public void run() {
-					highlightSubgraph(fSubGraph);
+					highlightRewrite(fRw);
 				}
 			});
 		}
@@ -936,8 +949,7 @@ public class InteractiveGraphView
 				int count = 0;
 				while (!Thread.interrupted() && attachNextRewrite()) {
 					List<AttachedRewrite> rws = getRewrites();
-					CoreGraph newGraph = rws.get(0).getNewGraph();
-					invokeHighlightSubgraphAndWait(newGraph);
+					invokeHighlightRewriteAndWait(rws.get(0));
 					sleep(1500);
 					invokeApplyRewriteAndWait(0);
 					++count;
@@ -958,8 +970,8 @@ public class InteractiveGraphView
 
 		Collection<Vertex> verts;
 
-		public SubgraphHighlighter(CoreGraph g) {
-			verts = getGraph().getSubgraphVertices(g);
+		public SubgraphHighlighter(Collection<Vertex> vs) {
+			verts = vs;
 		}
 
 		public void paint(Graphics g) {
@@ -1007,21 +1019,18 @@ public class InteractiveGraphView
 	public void applyRewrite(int index) {
 		Rectangle2D rewriteRect = new Rectangle2D.Double();
 		try {
-			if (rewriteCache != null && rewriteCache.size() > index) {
-				viewer.setCoreGraph(rewriteCache.get(index).getGraph());
-				List<Vertex> sub = getGraph().getSubgraphVertices(
-						(CoreGraph) rewriteCache.get(index).getNewGraph());
-				if (sub.size() > 0) {
-					rewriteRect = viewer.getSubgraphBounds(sub);
-					if (sub.size() == 1) {
-						smoothLayout.setOrigin(rewriteRect.getCenterX(), rewriteRect.getCenterY());
-					}
+			AttachedRewrite rw = rewriteCache.get(index);
+			viewer.setCoreGraph(rw.getGraph());
+			Collection<Vertex> removed = rw.getRemovedVertices();
+			if (removed.size() > 0) {
+				rewriteRect = viewer.getSubgraphBounds(removed);
+				if (removed.size() == 1) {
+					smoothLayout.setOrigin(rewriteRect.getCenterX(), rewriteRect.getCenterY());
 				}
 			}
-			core.applyAttachedRewrite(getGraph(), index);
 			cacheVertexPositions();
-			getGraph().updateGraph(rewriteCache.get(index).getNewGraph());
-			updateGraph(rewriteRect);
+			core.applyAttachedRewrite(getGraph(), index);
+			relayoutGraph(rewriteRect);
 			smoothLayout.setOrigin(0, 0);
 		} catch (CoreException e) {
 			coreErrorDialog("Could not apply the rewrite", e);
@@ -1224,7 +1233,7 @@ public class InteractiveGraphView
 					cacheVertexPositions();
 					Rectangle2D rect = viewer.getGraphBounds();
 					core.undo(getGraph());
-					updateGraph(rect);
+					relayoutGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not undo", ex);
 				}
@@ -1235,10 +1244,9 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
-					Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-							0, 20, viewer.getGraphLayout().getSize().height);
+					Rectangle2D rect = viewer.getGraphBounds();
 					core.redo(getGraph());
-					updateGraph(rect);
+					relayoutGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not redo", ex);
 				}
@@ -1251,7 +1259,7 @@ public class InteractiveGraphView
 					cacheVertexPositions();
 					Rectangle2D rect = viewer.getGraphBounds();
 					core.undoRewrite(getGraph());
-					updateGraph(rect);
+					relayoutGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not undo", ex);
 				}
@@ -1262,10 +1270,9 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
-					Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-							0, 20, viewer.getGraphLayout().getSize().height);
+					Rectangle2D rect = viewer.getGraphBounds();
 					core.redoRewrite(getGraph());
-					updateGraph(rect);
+					relayoutGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not redo", ex);
 				}
@@ -1302,8 +1309,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
-					Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-							0, 20, viewer.getGraphLayout().getSize().height);
+					Rectangle2D rect = viewer.getGraphBounds();
 					core.paste(getGraph());
 					/* 
 					 * FIXME: maybe, this is not the right place? 
@@ -1440,7 +1446,7 @@ public class InteractiveGraphView
 					cacheVertexPositions();
 					Rectangle2D rect = viewer.getGraphBounds();
 					core.fastNormalise(getGraph());
-					updateGraph(rect);
+					relayoutGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not normalise graph", ex);
 				}
@@ -1461,8 +1467,9 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
+					Rectangle2D rect = viewer.getGraphBounds();
 					core.removeVerticesFromBangBoxes(getGraph(), viewer.getPickedVertexState().getPicked());
-					updateGraph(null);
+					relayoutGraph(rect);
 				} catch (CoreException ex) {
 					coreErrorDialog("Could not remove vertices from !-box", ex);
 				}
@@ -1493,8 +1500,7 @@ public class InteractiveGraphView
 			public void actionPerformed(ActionEvent e) {
 				try {
 					cacheVertexPositions();
-					Rectangle2D rect = new Rectangle2D.Double(viewer.getGraphLayout().getSize().width,
-							0, 20, viewer.getGraphLayout().getSize().height);
+					Rectangle2D rect = viewer.getGraphBounds();
 					if (viewer.getPickedBangBoxState().getPicked().size() == 1) {
 						core.duplicateBangBox(getGraph(), (BangBox) viewer.getPickedBangBoxState().getPicked().toArray()[0]);
 					}

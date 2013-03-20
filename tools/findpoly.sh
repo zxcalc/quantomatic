@@ -13,14 +13,14 @@ PRG="$(basename "$0")"
 function choosefrom ()
 {
   local RESULT=""
-  local FILE=""
+  local DIR=""
 
-  for FILE in "$@"
+  for DIR in "$@"
   do
-    [ -z "$RESULT" -a -e "$FILE" ] && RESULT="$FILE"
+    [ -z "$RESULT" -a -d "$DIR" -a -x "$DIR/bin/poly" ] && RESULT="$DIR"
   done
 
-  [ -z "$RESULT" ] && RESULT="$FILE"
+  [ -z "$RESULT" ] && RESULT="$DIR"
   echo "$RESULT"
 }
 
@@ -37,8 +37,8 @@ fi
 POLYML_HOME=$(choosefrom \
   "$POLYML_HOME" \
   "$CONTRIB_POLY_DIR" \
-  "$POLYML_IN_PATH" \
   "$LOCAL_POLY_DIR" \
+  "$POLYML_IN_PATH" \
   "/usr/local/polyml" \
   "/usr/share/polyml" \
   "/opt/polyml" \

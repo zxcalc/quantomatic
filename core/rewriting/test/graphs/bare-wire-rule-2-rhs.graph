@@ -1,0 +1,9 @@
+{
+  "wire_vertices" : ["Ve","Vf"],
+  "node_vertices" : ["Va"],
+  "dir_edges" :
+    {
+      "Ea" : { "src" : "Vf", "tgt" : "Va" },
+      "Eb" : { "src" : "Va", "tgt" : "Ve" }
+    }
+}

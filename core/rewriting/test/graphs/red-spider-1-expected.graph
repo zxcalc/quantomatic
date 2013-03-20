@@ -1,0 +1,38 @@
+{
+    "wire_vertices": [
+        "Vm",
+        "Vl"
+    ],
+    "node_vertices": {
+        "Vc": {
+            "data": {
+                "type": "VExpr2",
+                "angle": {
+                    "pretty": "0"
+                }
+            }
+        },
+        "Vy": {
+            "data": {
+                "type": "VExpr1",
+                "angle": {
+                    "pretty": "0"
+                }
+            }
+        }
+    },
+    "dir_edges": {
+        "Ea": {
+            "src": "Vl",
+            "tgt": "Vc"
+        },
+        "Ec": {
+            "src": "Vc",
+            "tgt": "Vy"
+        },
+        "Eu": {
+            "src": "Vm",
+            "tgt": "Vy"
+        }
+    }
+}

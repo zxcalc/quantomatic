@@ -25,9 +25,9 @@ public class BangBox extends GraphElement {
 	
 	public static class BangBoxData
 	{
-		BangBox bangBox;
-		String parent;
-		Collection<String> contents;
+		public BangBox bangBox;
+		public String parent;
+		public Collection<String> contents;
 	}
 	
 	public static BangBoxData fromJson(Theory theory, JsonNode node) throws ParseException {

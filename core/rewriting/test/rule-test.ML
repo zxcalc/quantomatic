@@ -1,77 +1,164 @@
-structure DB_Test_Rule = Rule(Test_Graph);
-structure Test_Rule : RULE = DB_Test_Rule;
+structure Test_Rule = Rule(Test_Bang_Graph);
 
 local
-open Test_MkG;
-structure Rule = Test_Rule;
+  structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
+  open Tools;
+  structure Rule = Test_Rule;
 
-val b1 = V.mk "b1"
-val b2 = V.mk "b2"
-val x1 = V.mk "x1"
-val x2 = V.mk "x2"
-val z1 = V.mk "z1"
-val z2 = V.mk "z2"
+  fun test_mk_bad_rule (lhs,rhs) =
+     (Rule.mk (lhs,rhs);
+      writeln "LHS:";
+      G.print lhs;
+      writeln "RHS:";
+      G.print rhs;
+      raise ERROR "Bad rule accepted")
+     handle (Rule.bad_rule_exp _) => ();
 
-fun test_mk_bad_rule (lhs,rhs) = 
-   (Rule.mk (lhs,rhs);
-    writeln "LHS:";
-    G.print lhs;
-    writeln "RHS:";
-    G.print rhs;
-    raise ERROR "Bad rule accepted")
-   handle (Rule.bad_rule_exp _) => ();
+  val _ = Testing.test "empty graphs" Rule.mk (G.empty,G.empty);
 
-
-val _ = Testing.test "empty graphs" Rule.mk (G.empty,G.empty);
-
-
-val g = G.empty;
-val g = g |> G.add_named_vertex z1 (mkZ zero_angle)
-val single_z = g;
-val g = G.empty;
-val g = g |> G.add_named_vertex z1 (mkZ zero_angle)
-          |> G.add_named_vertex x1 (mkX zero_angle)
-          |> G.doadd_edge dir_edge z1 x1;
-val z_x = g;
-val _ = Testing.test "empty boundaries" Rule.mk (single_z,z_x);
+  val lhs = G.empty |> add_vunit1 "z1";
+  val rhs = G.empty |> add_vunit1 "z1"
+                    |> add_vunit2 "x1"
+                    |> add_dir_eunit1 "e1" "z1" "x1";
+  val _ = Testing.test "empty boundaries" Rule.mk (lhs,rhs);
 
 
-val g = G.empty;
-val g = g |> G.add_named_vertex b1 bvert
-          |> G.add_named_vertex z1 (mkZ zero_angle)
-          |> G.doadd_edge dir_edge b1 z1;
-val z_counit = g;
-val g = G.empty;
-val g = g |> G.add_named_vertex b1 bvert
-          |> G.add_named_vertex x1 (mkX zero_angle)
-          |> G.doadd_edge dir_edge b1 x1;
-val x_counit = g;
-val _ = Testing.test "one input, no outputs" Rule.mk (z_counit,x_counit);
+  val lhs = G.empty |> add_wv "in1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "in1" "n1";
+  val rhs = G.empty |> add_wv "in1"
+                    |> add_vunit2 "n1"
+                    |> add_dir_eunit1 "e1" "in1" "n1";
+  val _ = Testing.test "one input, no outputs" Rule.mk (lhs,rhs);
+
+  val lhs = G.empty |> add_wv "in1"
+                    |> add_wv "out1"
+                    |> add_wv "out2"
+                    |> add_vunit1 "n1"
+                    |> add_vunit2 "n2"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+                    |> add_dir_eunit1 "e2" "n1" "out1"
+                    |> add_dir_eunit1 "e3" "n2" "out2";
+  val rhs = G.empty |> add_wv "in1"
+                    |> add_wv "out1"
+                    |> add_wv "out2"
+                    |> add_vunit2 "n1"
+                    |> add_vunit2 "n2"
+                    |> add_dir_eunit1 "e1" "in1" "n1"
+                    |> add_dir_eunit1 "e2" "n2" "out1"
+                    |> add_dir_eunit1 "e3" "n2" "out2";
+  val _ = Testing.test "one input, two outputs" Rule.mk (lhs,rhs);
+
+  val lhs = G.empty |> add_wv "in1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "in1" "n1";
+  val rhs = G.empty |> add_wv "in1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit2 "e1" "in1" "n1";
+  val _ = Testing.test "differing input types" test_mk_bad_rule (lhs,rhs);
+
+  val lhs = G.empty |> add_wv "out1"
+                    |> add_wv "out2"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "n1" "out1"
+                    |> add_dir_eunit2 "e2" "n1" "out2";
+  val rhs = G.empty |> add_wv "out1"
+                    |> add_wv "out2"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit2 "e1" "n1" "out1"
+                    |> add_dir_eunit1 "e2" "n1" "out2";
+  val _ = Testing.test "differing output types" test_mk_bad_rule (lhs,rhs);
+
+  val lhs = G.empty |> add_wv "bnd1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "bnd1" "n1";
+  val rhs = G.empty |> add_wv "bnd1"
+                    |> add_vunit1 "n1"
+                    |> add_dir_eunit1 "e1" "n1" "bnd1";
+  val _ = Testing.test "differing boundary directions" test_mk_bad_rule (lhs,rhs);
 
 
+  val lhs = G.empty |> add_wv "bnd1"
+                    |> add_wv "bnd2"
+                    |> add_vunit1 "n1"
+                    |> add_vunit1 "n2"
+                    |> add_vunit2 "n3"
+                    |> add_vunit2 "n4"
+                    |> add_undir_eunit1 "e1" "n3" "n1"
+                    |> add_undir_eunit1 "e2" "bnd1" "n1"
+                    |> add_undir_eunit1 "e3" "bnd2" "n1"
+                    |> add_undir_eunit1 "e4" "n2" "n4"
+  val rhs = G.empty |> add_wv "bnd1"
+                    |> add_wv "bnd2"
+                    |> add_vunit1 "n1"
+                    |> add_vunit2 "n2"
+                    |> add_undir_eunit1 "e1" "n1" "bnd1"
+                    |> add_undir_eunit1 "e2" "bnd2" "n2";
+  val _ = Testing.test "two undirected boundaries" Rule.mk (lhs,rhs);
 
-val g = G.empty;
-val g = g |> G.add_named_vertex b1 bvert
-          |> G.add_named_vertex b2 bvert
-          |> G.add_named_vertex x1 (mkX zero_angle)
-          |> G.add_named_vertex x2 (mkX zero_angle)
-          |> G.add_named_vertex z1 (mkZ zero_angle)
-          |> G.add_named_vertex z2 (mkZ zero_angle)
-          |> G.doadd_edge undir_edge z1 x1
-          |> G.doadd_edge undir_edge b1 x1
-          |> G.doadd_edge undir_edge b2 x1
-          |> G.doadd_edge undir_edge x2 z2;
-val two_undir_bounds = g;
-val g = G.empty;
-val g = g |> G.add_named_vertex b1 bvert
-          |> G.add_named_vertex z1 (mkZ zero_angle)
-          |> G.add_named_vertex z2 (mkZ zero_angle)
-          |> G.doadd_edge undir_edge b1 z1
-val one_undir_bound = g;
-val _ = Testing.test "incoherent boundaries"
-    test_mk_bad_rule (two_undir_bounds,one_undir_bound);
+  val lhs = G.empty |> add_wv "bnd1"
+                    |> add_wv "bnd2"
+                    |> add_vunit1 "n1"
+                    |> add_undir_eunit1 "e1" "n1" "bnd1"
+                    |> add_undir_eunit1 "e2" "bnd2" "n1";
+  val rhs = G.empty |> add_wv "bnd1"
+                    |> add_vunit1 "n1"
+                    |> add_undir_eunit1 "e1" "n1" "bnd1";
+  val _ = Testing.test "differing numbers of undirected boundaries"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val lhs = G.empty |> add_wv "bnd1"
+                    |> add_vunit1 "n1"
+                    |> add_undir_eunit2 "e1" "n1" "bnd1"
+  val rhs = G.empty |> add_wv "bnd1"
+                    |> add_vunit1 "n1"
+                    |> add_undir_eunit1 "e1" "n1" "bnd1";
+  val _ = Testing.test "differing types of undirected boundaries"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val g = G.empty
+        |> add_wv "in1"
+        |> add_wv "in2"
+        |> add_wv "out1"
+        |> add_wv "out2"
+        |> add_vunit1 "n1"
+        |> add_dir_eunit1 "e1" "in1" "n1"
+        |> add_dir_eunit1 "e2" "in2" "n1"
+        |> add_dir_eunit1 "e3" "n1" "out1"
+        |> add_dir_eunit1 "e4" "n1" "out2";
+
+  val lhs = g
+          |> add_bbox "b1" []
+          |> add_bbox "b2" ["in1","in2"]
+          |> add_child_bbox "b3" "b2" ["in1"];
+  val rhs = lhs;
+  val _ = Testing.test "same bboxes" Rule.mk (lhs,rhs);
+
+  val lhs = g
+          |> add_bbox "b1" [];
+  val rhs = g
+          |> add_bbox "b2" [];
+  val _ = Testing.test "differing !-box names"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val lhs = g
+          |> add_bbox "b1" ["in1"];
+  val rhs = g
+          |> add_bbox "b1" ["in2"];
+  val _ = Testing.test "differing !-box contents"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val lhs = g
+          |> add_bbox "b1" []
+          |> add_bbox "b2" ["in1","in2"]
+          |> add_child_bbox "b3" "b2" ["in1"];
+  val rhs = g
+          |> add_bbox "b1" []
+          |> add_bbox "b2" ["in1","in2"]
+          |> add_bbox "b3" ["in1"];
+  val _ = Testing.test "differing !-box parents"
+                       test_mk_bad_rule (lhs,rhs);
 
 in
   val _ = Testing.assert_no_failed_tests();
-  val _ = "UNIT TESTS FOR rule PASSED!";
 end;

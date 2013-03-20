@@ -54,19 +54,9 @@ val add_named_edge
     : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
 val swap_edge_dir : E.name -> T -> T
 
-(* low level restructuring of graph *)
-val update_vertex_enames : ((E.NSet.T * E.NSet.T) -> (E.NSet.T * E.NSet.T))
-                          -> V.name -> T -> T 
-val update_edge_vnames : ((V.name * V.name) -> (V.name * V.name))
-                       -> E.name -> T -> T 
-
 (* get vertex and edge names *)
 val get_vnames : T -> V.NSet.T
 val get_enames : T -> E.NSet.T
-
-(* add graph names to name sets *)
-val add_to_vnames : T -> V.NSet.T -> V.NSet.T
-val add_to_enames : T -> E.NSet.T -> E.NSet.T
 
 (* *)
 val has_vname : T -> V.name -> bool;
@@ -189,9 +179,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   val get_vnames = V.NTab.get_nameset o get_vertices;
   val get_enames = E.NTab.get_nameset o get_edges;
   
-  val add_to_vnames = V.NSet.union_merge o get_vnames;
-  val add_to_enames = E.NSet.union_merge o get_enames;
-
   (* implicit: g n *)
   val lookup_vertex = V.NTab.lookup o get_vertices
   val lookup_edge = E.NTab.lookup o get_edges
@@ -201,7 +188,11 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
   
   fun edge_get_other_vertex g e v = let
     val (_,(s,t)) = get_edge g e
-  in if V.name_eq(s,v) then t else s
+  in
+    if V.name_eq(s,v) then t
+    else
+      if V.name_eq(t,v) then s
+      else raise no_such_vname_exp ("edge_get_other_vertex",v,g)
   end
   
   val get_in_edges  = (fst o snd) oo get_vertex
@@ -212,13 +203,6 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
 
   val set_vertex_data = update_vertex_data o K;
   val set_edge_data = update_edge_data o K;
-  
-  
-  (* change structure of graph *)
-  fun update_vertex_enames f n g = 
-      update_vertices (V.NTab.map_entry (fn (nd,ios) => (nd,f ios)) n) g;
-  fun update_edge_vnames f en g = 
-      update_edges (E.NTab.map_entry (fn (e,fromto) => (e,f fromto)) en) g;
   
   
   (* implicit args: nd g *)
@@ -391,16 +375,24 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         val (ern2,g4) = EdgeCRnm.rename ern g3
       in ((xrn2,vrn2,ern2),g4) end;
   
-  (* rename g2 apart from g1 *)
-  fun rename_apart g1 g2 = 
-      let 
-        val xrn = X.Rnm.mk_from_avoids 
-            (X.NSet.union_merge (get_xnames g1) (get_xnames g2))
-        val vrn = V.Rnm.mk_from_avoids 
-            (V.NSet.union_merge (get_vnames g1) (get_vnames g2))
-        val ern = E.Rnm.mk_from_avoids 
-            (E.NSet.union_merge (get_enames g1) (get_enames g2))
-      in rename (xrn,vrn,ern) g2 end;   
+  fun rename_apart from g =
+      let
+        val bad_xs = get_xnames from
+        val bad_vs = get_vnames from
+        val bad_es = get_enames from
+        val g_xs = get_xnames g
+        val g_vs = get_vnames g
+        val g_es = get_enames g
+        val xrn = X.Rnm.mk (X.NSet.subtract g_xs bad_xs)
+                           (X.NSet.union_merge g_xs bad_xs)
+                           X.NTab.empty
+        val vrn = V.Rnm.mk (V.NSet.subtract g_vs bad_vs)
+                           (V.NSet.union_merge g_vs bad_vs)
+                           V.NTab.empty
+        val ern = E.Rnm.mk (E.NSet.subtract g_es bad_es)
+                           (E.NSet.union_merge g_es bad_es)
+                           E.NTab.empty
+      in rename (xrn,vrn,ern) g end;
 
   datatype incidence_type = Incoming | Outgoing | SelfLoop;
 
@@ -534,6 +526,9 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         val e2s = get_edges g2
         val v1s = get_vertices g1
         val v2s = get_vertices g2
+        fun dir_eq Directed Directed = true
+          | dir_eq UnDirected UnDirected = true
+          | dir_eq _ _ = false;
       in
         (* check same vertex names *)
         (V.NSet.eq (V.NTab.get_nameset v1s)
@@ -551,12 +546,13 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
            v1s) andalso 
         (* now check same edge data *)
         (E.NTab.forall (* note that we dont re-check structure *)
-           (fn (e,((_,ed),_)) =>
+           (fn (e,((dir,ed),_)) =>
                (* from above, we know we have same edge names: could use get *)
                case E.NTab.lookup e2s e of 
                  NONE => false
                (* now check have same edge data *)
-               | SOME ((_,ed2),_) => EData.data_eq (ed,ed2))
+               | SOME ((dir2,ed2),_) => (EData.data_eq (ed,ed2)) andalso
+                                        (dir_eq dir dir2))
            e1s)
       end;
   

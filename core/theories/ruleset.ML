@@ -66,7 +66,7 @@ end; (* signature *)
 (* a Ruleset is map from rule names to rule, 
    a subset of active rulenames, and a binary relation between rulenames 
    and tagnames. *)
-functor Ruleset(Rule : RULE) =
+functor Ruleset(Rule : RULE) : RULESET =
 struct
   
   structure Rule = Rule;

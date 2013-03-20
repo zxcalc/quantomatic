@@ -14,9 +14,6 @@ OS.FileSys.chDir (rootDir ^ "/../../isaplib/");
 use "ROOT.ML";
 OS.FileSys.chDir rootDir;
 
-print_depth 3;
-
-PolyML.Project.Log.level_ref := 3;
 PolyML.Project.depend_on_files
   [
    rootDir ^ "/../../isaplib/ROOT.ML",
@@ -29,8 +26,12 @@ PolyML.Project.depend_on_files
 (*                              Local setup                                *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 
-(** For debugging, turn on debug flag: **)
-(* PolyML.Compiler.debug := true; *)
+(** Useful settings for debugging:   **)
+
+(* PolyML.Compiler.debug := true;     *)
+(* PolyML.Project.Log.level_ref := 4; *)
+(* Testing.Log.level_ref := 3;        *)
+(* print_depth 5                      *)
 
 PolyML.Project.optional_make "local_config.ML";
 
@@ -38,6 +39,15 @@ PolyML.Project.optional_make "local_config.ML";
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
 (*                         Compile quantomatic code                        *)
 (* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- *)
+
+(* 
+ * Utility Code
+ *)
+
+(* IO Utils *)
+PolyML.Project.make "io/input.ML";
+PolyML.Project.make "io/output.ML";
+PolyML.Project.make "io/json_io.ML";
 
 (*
  * Names
@@ -53,7 +63,11 @@ PolyML.Project.make "expressions/coeff.ML";
 PolyML.Project.make "expressions/expr.ML"; 
 PolyML.Project.make "expressions/linrat_angle_expr.ML";
 
+(* I/O *)
+PolyML.Project.make "io/linrat_json.ML";
+
 Testing.make_test "expressions/test/linrat_angle_expr-test.ML";
+Testing.make_test "io/test/linrat-json-test.ML";
 
 
 (*
@@ -71,12 +85,18 @@ PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
 
+(* I/O *)
+PolyML.Project.make "io/graph_json.ML";
+PolyML.Project.make "io/graph_annotations_json.ML";
+PolyML.Project.make "io/graph_dot_output.ML";
+
 Testing.make_test "graph/test/test-graph-setup.ML";
 Testing.make_test "graph/test/test-graph.ML";
 Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
+Testing.make_test "io/test/graph-json-test.ML";
 (*
  * Metrics
  *)
@@ -92,6 +112,10 @@ PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
  * Rules
  *)
 PolyML.Project.make "rewriting/rule.ML";
+
+(* I/O *)
+PolyML.Project.make "io/rule_json.ML";
+
 Testing.make_test "rewriting/test/rule-test.ML";
 
 
@@ -99,12 +123,40 @@ Testing.make_test "rewriting/test/rule-test.ML";
  * Rulesets
  *)
 PolyML.Project.make "theories/ruleset.ML";
-Testing.make_test "theories/test/ruleset-test.ML";
 PolyML.Project.make "theories/ruleset_annotations.ML";
+
+(* I/O *)
+PolyML.Project.make "io/ruleset_json.ML";
+PolyML.Project.make "io/ruleset_annotations_json.ML";
+
+Testing.make_test "theories/test/ruleset-test.ML";
 
 
 (*
- * Input and Output
+ * Matching
+ *)
+PolyML.Project.make "matching/match_state.ML";
+PolyML.Project.make "matching/bang_graph_match_state.ML";
+(* signature for inner (concrete) matching *)
+PolyML.Project.make "matching/inner_match_search.ML";
+(* signature for outer (e.g. !-box) matching *)
+PolyML.Project.make "matching/match_search.ML";
+(* simple inner loop for the matching algo *)
+PolyML.Project.make "matching/simple_inner_match_search.ML";
+(* wrappers for inner_match_search *)
+(* pattern-free wrapper (concrete graphs onto concrete graphs) *)
+PolyML.Project.make "matching/concrete_match_search.ML";
+(* naive pattern-graph wrapper *)
+PolyML.Project.make "matching/greedy_match_search.ML";
+
+Testing.make_test "matching/test/test-matching-setup.ML";
+Testing.make_test "matching/test/test-bang-match-state.ML";
+Testing.make_test "matching/test/test-string-graph-matching.ML";
+Testing.make_test "matching/test/test-bang-graph-matching.ML";
+
+
+(*
+ * Deprecated XML I/O stuff
  *)
 
 (*MJB*)
@@ -113,31 +165,23 @@ PolyML.Project.make "io/simple_file_io.ML";
 (* Tools *)
 PolyML.Project.make "io/xml_parse_utils.ML";
 PolyML.Project.make "io/xml_output_utils.ML";
-PolyML.Project.make "io/input.ML";
-PolyML.Project.make "io/output.ML";
-PolyML.Project.make "io/json_io.ML";
 PolyML.Project.make "io/xml_io.ML";
 PolyML.Project.make "io/reader.ML";
 PolyML.Project.make "io/writer.ML";
 
-(* Expressions *)
-PolyML.Project.make "io/linrat_json.ML";
 PolyML.Project.make "io/linrat_xml.ML";
-Testing.make_test "io/test/linrat-json-test.ML";
 
 (* Graph Component Data *)
 (* component data is a bit of a hack, and has I/O interdependencies *)
 PolyML.Project.make "theories/component_data.ML";
 (* boilerplate data functors for enumerated datatypes *)
 PolyML.Project.make "theories/enum_data.ML";
-Testing.make_test "theories/test/vertex-test.ML";
 
-(* Graphs *)
 PolyML.Project.make "io/graph_xml_v2_input.ML";
 PolyML.Project.make "io/graph_xml_v2_output.ML";
-PolyML.Project.make "io/graph_json.ML";
 PolyML.Project.make "io/graph_annotations_xml_input.ML";
 PolyML.Project.make "io/graph_annotations_xml_output.ML";
+<<<<<<< HEAD
 PolyML.Project.make "io/graph_annotations_json.ML";
 Testing.make_test "io/test/graph-json-test.ML";
 Testing.make_test "io/graph_xml_v1_input.ML";
@@ -150,12 +194,6 @@ Testing.make_test "graph/test/test-random-graph-util.ML";
 (* Rules *)
 PolyML.Project.make "io/rule_xml_output.ML";
 PolyML.Project.make "io/rule_xml_input.ML";
-PolyML.Project.make "io/rule_json.ML";
-
-(* Rulesets *)
-PolyML.Project.make "io/ruleset_xml_input.ML";
-PolyML.Project.make "io/ruleset_xml_output.ML";
-PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_input.ML";
 PolyML.Project.make "io/ruleset_annotations_xml_output.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
@@ -194,11 +232,10 @@ PolyML.Project.make "matching/concrete_match_search_parallel.ML";
 PolyML.Project.make "matching/greedy_match_search.ML";
 (*MJB: a parallel version of the greedy matching algorithm*)
 PolyML.Project.make "matching/greedy_match_search_parallel.ML";
+PolyML.Project.make "io/ruleset_xml_input.ML";
+PolyML.Project.make "io/ruleset_xml_output.ML";
 
-Testing.make_test "matching/test/test-matching-setup.ML";
-Testing.make_test "matching/test/test-bang-match-state.ML";
-Testing.make_test "matching/test/test-matching-concrete.ML";
-Testing.make_test "matching/test/test-matching-greedy.ML";
+PolyML.Project.make "io/io_interface_xml.ML";
 
 (*MJB*)
 
@@ -216,19 +253,24 @@ Testing.make_test "matching/test/test-matching-speed.ML";
  *)
 (* substitution of a matched subgraph for another graph *)
 PolyML.Project.make "rewriting/graph_subst.ML";
-Testing.make_test "rewriting/test/graph_subst-test.ML";
 (* substitution used to provide rewriting with rulesets *)
 PolyML.Project.make "rewriting/ruleset_rewriter.ML";
-Testing.make_test "rewriting/test/ruleset_rewriting-test.ML";
 
 (* Heuristic derived data structures *)
 PolyML.Project.make "rewriting/heuristic/distancematrix.ML"; (* distance matrix *)
+
+(* I/O *)
+PolyML.Project.make "io/rewrite_json.ML";
+
+Testing.make_test "rewriting/test/graph_subst-test.ML";
+Testing.make_test "rewriting/test/ruleset_rewriter-tests.ML";
 
 
 (*
  * Theories
  *)
 (* construction of everything in a graphical theory from just param *)
+(* NB: currently relies on XML I/O stuff *)
 PolyML.Project.make "theories/graphical_theory.ML";
 PolyML.Project.make "io/graphical_theory_io.ML";
 
@@ -299,7 +341,7 @@ PolyML.Project.make "dnets/TopDNet.ML";
 Testing.make_test "dnets/test.ML"; 
 
 (* Performance tests for dnets *)
-(*PolyML.Project.make "dnets/perf.ML";*)
+(* Testing.make_test "dnets/perf.ML"; *)
 
 
 (*

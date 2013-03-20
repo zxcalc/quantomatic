@@ -54,11 +54,6 @@ public class Vertex extends GraphElement {
 	public Point2D getPosition(){
 		return pos;
 	}
-	
-	@Override
-	public String toString() {
-		return getLabel().replace('\\', 'B')+"    ";
-	}
 
 	public String getLabel() {
 		if (data == null)

@@ -78,21 +78,6 @@ implements CoreObject, ChangeEventSupport {
 		}
 		return bbs;
 	}
-	
-	public List<Vertex> getSubgraphVertices(CoreGraph graph) {
-		List<Vertex> verts = new ArrayList<Vertex>();
-		synchronized (this) {
-			Map<String,Vertex> vmap = getVertexMap();
-			//Vertices which are not in the new graph
-			//Will be highlighted
-			for (Vertex v : getVertices()) {
-				if (graph.getVertexMap().get(v.getCoreName()) == null){
-					verts.add(v);
-				}
-			}
-		}
-		return verts;
-	}
 
 	public String getCoreName() {
 		return name;

@@ -115,8 +115,6 @@ struct
   in match_normalised_avoiding_tracking at pat' tgt' end
 
   fun match_subgraph_normalised_avoiding_tracking (avoid,track) pat tgt tgt_verts = let
-    val pat = G.normalise pat
-    val tgt = G.normalise tgt
     val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid

@@ -5,7 +5,9 @@ let
   fun vertexType (_,t,_) = t
   fun vertexData (_,_,d) = d
   fun eq a b = a = b
+  exception none_exp of unit;
   fun the (SOME x) = x
+    | the NONE     = raise none_exp ();
   val exampleGraphVertices = [("a","X",SOME "\\alpha"),
                               ("b","X",SOME "0"),
                               ("c","Z",SOME "\\pi"),

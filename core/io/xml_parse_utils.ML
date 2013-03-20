@@ -54,7 +54,6 @@ open XML;
 exception bad_input_exp of string*string;
 	  		     
 val tolower = String.map Char.toLower
-val toupper = String.map Char.toUpper
 
 fun is_text (Text _) = true | is_text _ = false;
 fun is_elem (Elem _) = true | is_elem _ = false;
