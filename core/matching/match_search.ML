@@ -4,6 +4,7 @@ signature MATCH_SEARCH_SHARING =
 sig
   structure G : OGRAPH_SHARING
   structure MatchState : OGRAPH_MATCH_STATE_SHARING
+  sharing G = MatchState.G
 end
 
 signature MATCH_SEARCH =
