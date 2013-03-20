@@ -464,7 +464,8 @@ struct
       val par_seq = flat (Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq));
       (*This is the list of graphs to be added to the equivalence class table*)
       val graphs = flat par_seq;
-    in fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')
+    in (*fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')*)
+    fold_edges_round graphs (prev_with_bare, accum')
     end
     (***)
   in
