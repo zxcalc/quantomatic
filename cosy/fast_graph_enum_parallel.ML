@@ -293,7 +293,7 @@ struct
   fun fold_graphs gens (max_v,max_p,max_m,max_n) (fopt,filt,fclean,fmerge) initial = let
     fun save (fopt,filt) xs eq_tab =
       let
-        val disable = true;
+        val disable = false;
         (*Firstly, declare the original equivalence class table as clean (This is O(1) at the moment)*)
         val eq_tab = fclean eq_tab;
         (*Would like to check that this is where communication with the equivalence
@@ -464,7 +464,8 @@ struct
       val par_seq = flat (Par_Seq.list_of (Par_Seq.map (fn _ => fn f => f()) par_seq));
       (*This is the list of graphs to be added to the equivalence class table*)
       val graphs = flat par_seq;
-    in fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')
+    in (*fold (fn g => fold_edges_round [g]) graphs (prev_with_bare, accum')*)
+      fold_edges_round graphs (prev_with_bare, accum')
     end
     (***)
   in
