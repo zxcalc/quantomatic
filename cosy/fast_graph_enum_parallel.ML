@@ -409,9 +409,13 @@ struct
         (were_added @ not_to_add,new_eq_tab)
       end
       (* add edges in all possible ways *)
+    (*This has been modified to not worry about the filtering during the additions
+    to the equivalence class table. Now all of the edges are added
+    at once, and then passed into the table at the same time!*)
     fun fold_edges_round [] (next, accum) = (next, accum)
       | fold_edges_round egs (next, accum) =
     let
+        (*
         (*next' includes all of the irreducible graphs and some other graphs which are
         too large at the moment, but that you might want to add in the future...
         0 would appear to be the number of bare wires*)
@@ -422,7 +426,21 @@ struct
         to them, and possibly some graphs which were never added to the equivalence class table,
         but might be added in the future...*)
         val egs' = maps (add_edge o fst) egs'
-    in fold_edges_round (egs') (next' @ next, accum')
+        *)
+        fun addAllEdges [] old_egs = old_egs
+          | addAllEdges egs old_egs = let
+            val new_egs = map (fn eg => (eg,0)) egs;
+            (*The filter below should ensure that this will terminate!!!*)
+            val new_egs = filter (fn (g,_) => (adjmat_pluggings g) < max_p) new_egs;
+            val new_egs = maps (add_edge o fst) new_egs
+          in
+            addAllEdges new_egs (new_egs@old_egs)
+          end;
+        val all_egs = addAllEdges egs egs;
+        (*Now add everything!!*)
+        val (next',accum') = save (fopt,filt) (map (fn eg => (eg,0)) all_egs) accum
+    in (*fold_edges_round (egs') (next' @ next, accum')*)
+      (next' @ next, accum')
     end
     (***)
     (* one round of enumeration. (prev, accum) => add one vertex => (next, accum')
