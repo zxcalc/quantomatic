@@ -14,6 +14,11 @@ uses
  "../../core/graph/bang_graph_iso.ML" (* isomorphism between !graphs *)
  "../../core/graph/graph_annotations.ML" (* graph annotations *)
 
+(* I/O *)
+ "../../core/io/graph_json.ML"
+ "../../core/io/graph_annotations_json.ML"
+ "../../core/io/graph_dot_output.ML"
+
 (* Metrics *)
  "../../core/metrics/metric_type.ML" (* Utils to handle int tuples *)
  "../../core/metrics/metrics/metric.ML" (* METRIC signature *)
@@ -26,13 +31,19 @@ uses
  * Rules
  *)
  "../../core/rewriting/rule.ML"
-
+ (* I/O *)
+ "../../core/io/rule_json.ML"
 
 (*
  * Rulesets
  *)
  "../../core/theories/ruleset.ML"
  "../../core/theories/ruleset_annotations.ML"
+
+(* I/O *)
+ "../../core/io/ruleset_json.ML"
+ "../../core/io/ruleset_annotations_json.ML"
+
 begin
 
 end;

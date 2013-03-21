@@ -8,14 +8,10 @@ uses
  "../../core/theories/string_ve/io.ML"
 
 
-(* more expression code; this time expresions derived from graphs, 
-   e.g. for interaction with Mathematica/Maple/etc. *)
-(* These depend on the red-green theory for now *)
+(* red-green specific vertices, graphs and matching *)
+(* graph-derived expressions for R-G graphs *)
  "../../core/expressions/alg.ML" (* algebraic expression utils *)
  "../../core/expressions/hilb.ML" (* hilbert space stuff *)
-
-
-(* red-green specific vertices, graphs and matching *)
  "../../core/theories/red_green/vertex.ML"
  "../../core/theories/red_green/graph.ML"
  "../../core/theories/red_green/theory.ML"
@@ -71,10 +67,10 @@ uses
  "../../core/interface/controller_state.ML" (* control state for quanto *)
  "../../core/interface/controller.ML" (* commands *)
  "../../core/interface/controller_registry.ML" (* theory lists *)
-(* "../../core/interface/run.ML" *)
 
 
-(* interface protocol/console *)
+
+(* OLD interface protocol/console *)
  "../../core/interface/console_commands.ML" (* console commands and help *)
  "../../core/interface/console_lexer.ML" (* lexer for quanto console *)
  "../../core/interface/console.ML" (* generic protocol using commands *)
@@ -89,13 +85,6 @@ uses
  "../../core/json_interface/controller_registry.ML"
  "../../core/json_interface/protocol.ML"
  "../../core/json_interface/run.ML"
-
-
-
-
-
-
-
 
 begin
 
