@@ -11,6 +11,48 @@ struct
 
 open JsonControllerUtil
 
+(*
+fun dispatch (("!!", function), json_input) = 
+      (case function
+         of "help"    => help json_input
+          | "version" => Json.String "2.01"
+          | _         => raise user_exn ("Function not found: !!." ^ function))
+*)
+
+
+fun system "help" x =
+    let
+      val controller = arg_str x "controller"
+      val module = arg_str x "module"
+      val opt_function = optarg_str x "function"
+      val mtab = case Symtab.lookup JsonControllerRegistry.ctab controller of SOME x => x
+                      | NONE => raise user_exn ("Controller not found: " ^ controller)
+      val modl = case Symtab.lookup mtab module of SOME x => x
+                      | NONE => raise user_exn ("Module not found: " ^ module)
+    in
+      case opt_function of NONE => Json.String (snd modl)
+         | SOME function => (
+             let
+               val fd = snd (case Symtab.lookup (fst modl) function of SOME x => x
+                             | NONE => raise user_exn ("Function not found: " ^ module ^ "." ^ function))
+             in Json.String (
+                  module ^ "." ^ #name fd ^ ": " ^
+                  string_of_pargs (#input fd) ^ " -> " ^
+                  string_of_pargs (#output fd) ^ "\n  " ^
+                  #doc fd
+                )
+             end)
+    end
+  | system "kill" x =
+      let
+        val job = arg_int x "job"
+      in Json.mk_object [
+        ("message", Json.String ("Job " ^ Int.toString job ^ "killed.")),
+        ("job", Json.Int job)
+      ]
+      end
+  | system "version" _ = Json.String "2.1"
+  | system _ _ = raise user_exn ("Unrecognized system function. (options: help, kill, version)")
 
 fun dispatch json = let
   val rid = arg_int json "request_id"
@@ -22,7 +64,10 @@ in
   Json.mk_object [
     ("request_id", Json.Int rid),
     ("success",    Json.Bool true),
-    ("output",     JsonControllerRegistry.dispatch ((controller,module,function),json_input))
+    ("output",     if controller = "!!" then
+                     (case module of "system" => system function json_input
+                                   | _ => raise user_exn "Module for !! controller must be 'system'.")
+                   else JsonControllerRegistry.dispatch ((controller,module,function),json_input))
   ]
   handle user_exn msg =>
   Json.mk_object [

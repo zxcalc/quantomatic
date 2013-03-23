@@ -9,12 +9,12 @@ class Core(var controller: String, executable: String) {
   def start() { process.startCore(executable) }
   def stop() { process.killCore(true) }
   def kill() { process.killCore(false) }
-  
-  def request(module: String, function: String, input: Json): Json =
+
+  def request(module: String, function: String, input: Json, ctrl: String = controller): Json =
   {
     JsonObject(
       "request_id" -> rid,
-      "controller" -> controller,
+      "controller" -> ctrl,
       "module"     -> module,
       "function"   -> function,
       "input"      -> input
@@ -25,10 +25,11 @@ class Core(var controller: String, executable: String) {
     Json.parse(process.stdout) match {
       case JsonObject(map) =>
         try {
-          if (map("success")) map("output")
+          val output = map("output")
+          if (map("success")) output
           else throw (
-            if (map("code") == -1) new CoreProtocolException(map("message"))
-            else new CoreUserException(map("message"), map("code")))
+            if (output("code") == -1) new CoreProtocolException(output("message"))
+            else new CoreUserException(output("message"), output("code")))
         } catch {
           case e: NoSuchElementException =>
             throw new CoreProtocolException(e.toString + " for JSON: " + JsonObject(map).toString)
@@ -39,12 +40,12 @@ class Core(var controller: String, executable: String) {
   
   // functions built in to the controller
   def help(module: String, function: String) : String = 
-    this.request("!!", "help", JsonObject("module"->module,"function"->function))
+    this.request("system", "help", JsonObject("module"->module,"function"->function), "!!")
     
   def help(module: String) : String = 
-    this.request("!!", "help", JsonObject("module"->module))
+    this.request("sytem", "help", JsonObject("module"->module), "!!")
   
-  def version(): String = this.request("!!", "version", JsonNull())
+  def version(): String = this.request("system", "version", JsonNull(), "!!")
 }
 
 

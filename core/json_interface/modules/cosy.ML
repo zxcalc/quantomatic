@@ -1,19 +1,24 @@
-signature CMOD_TEST =
+signature CMOD_COSY =
 sig
   include CONTROLLER_MODULE
 end
 
-functor CModTest(Theory : GRAPHICAL_THEORY) : CMOD_TEST =
+functor CModCosy(Theory : GRAPHICAL_THEORY) : CMOD_COSY =
 struct
-
 open JsonControllerUtil
-  
+
+(*structure *)
+
+(* internal state *)
+(*val result_table = Unsynchronized.ref *)
+
+
 val ftab = Symtab.empty
 
 (* test function *)
 val ftab = ftab |> register
 {
-  name   = "echo",
+  name   = "synth",
   doc    = "Echoes JSON input",
   input  = S json_t,
   output = S json_t
@@ -34,22 +39,6 @@ let
   val s1 = arg_str x "arg1"
   val s2 = arg_str x "arg2"
 in Json.String (s1 ^ s2)
-end  
-  
-))
-
-(* for testing job cancellation *)
-val ftab = ftab |> register
-{
-  name   = "diverge",
-  doc    = "Run until cancelled",
-  input  = N [],
-  output = S string_t
-} (fn x => (
-
-let
-  fun loop () = loop ()
-in (loop (); Json.Null)
 end  
   
 ))

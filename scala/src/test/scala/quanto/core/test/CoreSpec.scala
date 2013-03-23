@@ -13,7 +13,7 @@ class CoreSpec extends FlatSpec {
   }
   
   it should "return correct version" in {
-    assert(core.version() === "2.01")
+    assert(core.version() === "2.1")
   }
   
   "Core.echo" should "correctly echo an Int" in {

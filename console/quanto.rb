@@ -10,26 +10,26 @@ $debug = false
 class CoreException < Exception
 end
 
-class ControllerModule
-  def initialize(core, name)
-    @name = name
-    @core = core
-  end
+# class ControllerModule
+#   def initialize(core, name)
+#     @name = name
+#     @core = core
+#   end
   
-  def help(fn=nil)
-    if fn == nil
-      return @core.call_function('!!', 'help', {:module=>@name})
-    else
-      return @core.call_function('!!', 'help',
-        {:module=>@name, :function=>fn})
-    end
-  end
+#   def help(fn=nil)
+#     if fn == nil
+#       return @core.call_function('!!', 'help', {:controller=>@core.controller,:module=>@name})
+#     else
+#       return @core.call_function('!!', 'help',
+#         {:controller=>@core.controller,:module=>@name, :function=>fn})
+#     end
+#   end
   
-  def method_missing(*args)
-    fn = args[0].to_s
-    return @core.call_function(@name, fn, args[1])
-  end
-end
+#   def method_missing(*args)
+#     fn = args[0].to_s
+#     return @core.call_function(@name, fn, args[1])
+#   end
+# end
 
 class QuantoCore
   attr_accessor :controller
@@ -43,10 +43,10 @@ class QuantoCore
     @encoder = Yajl::Encoder.new
     @parser.on_parse_complete = method(:parsed_json)
     @reader_thr = nil
-    @json_stack = []
+    @handlers = {}
     
     # modules
-    @main = ControllerModule.new(self, 'Main')
+    # @main = ControllerModule.new(self, 'Main')
   end
   
   def start
@@ -66,24 +66,31 @@ class QuantoCore
     @qerr.close
   end
   
-  def parsed_json(obj)
-    @json_stack << obj
+  def parsed_json(resp)
+    if resp[:success]
+      rid = resp[:request_id]
+      f = @handlers[rid]
+      @handlers.delete(rid)
+      f.call(resp[:output])
+    else
+      raise CoreException.new(resp[:message])
+    end
   end
   
-  def pull_json
-    json = nil
+  # def pull_json
+  #   json = nil
     
-    loop do
-      if ! @json_stack.empty?
-        json = @json_stack.pop
-        break
-      else
-        sleep 0.01
-      end
-    end
+  #   loop do
+  #     if ! @json_stack.empty?
+  #       json = @json_stack.pop
+  #       break
+  #     else
+  #       sleep 0.01
+  #     end
+  #   end
     
-    return json
-  end
+  #   return json
+  # end
   
   def request(obj)
     # return nil if quanto has not been started
@@ -92,10 +99,10 @@ class QuantoCore
     @encoder.encode(obj, @qin)
     @seq += 1
     
-    return self.pull_json
+    return (@seq - 1)
   end
   
-  def call_function(modl, function, input=nil)
+  def call_function(modl, function, input, &handler)
     obj = {
       :request_id => @seq,
       :controller => @controller,
@@ -104,13 +111,8 @@ class QuantoCore
       :input      => input
     }
     
-    resp = self.request(obj)
-    
-    if resp[:success]
-      return resp[:output]
-    else
-      raise CoreException.new(resp[:message])
-    end
+    @handlers[:request_id] = handler
+    self.request(obj)
   end
   
   def version

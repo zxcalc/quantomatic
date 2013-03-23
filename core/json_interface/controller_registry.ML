@@ -4,12 +4,12 @@ sig
     dispatch takes:
        ((controller, module, function), JSON input)
     and returns:
-       (status, JSON output)
+       JSON output
   *)
   val dispatch : (string * string * string) * Json.json -> Json.json
 end
 
-structure JsonControllerRegistry : JSON_CONTROLLER_REGISTRY =
+structure JsonControllerRegistry (*: JSON_CONTROLLER_REGISTRY*) =
 struct
 
 open JsonControllerUtil
@@ -17,13 +17,18 @@ open JsonControllerUtil
 structure RG_Controller = JsonController(RG_Theory)
 
 val ctab = Symtab.make [
- (RG_Controller.Theory.theory_name, RG_Controller.dispatch)
+ (RG_Controller.Theory.theory_name, RG_Controller.mtab)
 ]
 
 fun dispatch ((controller, module, function), json_input) =
-  case Symtab.lookup ctab controller
-    of SOME cdisp => cdisp ((module, function), json_input)
-     | NONE => raise user_exn ("Controller not found: " ^ controller)
+let
+  val mtab = case Symtab.lookup ctab controller of SOME x => x
+                | NONE => raise user_exn ("Controller not found: " ^ controller)
+  val modl = case Symtab.lookup mtab module of SOME x => x
+             | NONE => raise user_exn ("Module not found: " ^ module)
+  val func = case Symtab.lookup (fst modl) function of SOME x => x
+             | NONE => raise user_exn ("Function not found: " ^ module ^ "." ^ function)
+in (fst func) json_input
+end
 
-    
 end

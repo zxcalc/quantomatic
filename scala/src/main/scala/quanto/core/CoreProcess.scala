@@ -6,7 +6,7 @@ import quanto.util.json.Json
 
 import quanto.util.StreamRedirector
 
-class CoreProcess() {
+class CoreProcess(parallel: Boolean = false) {
   import CoreProcess._
   private var backend: Process = null
   var stdin : Json.Output = null
@@ -16,7 +16,9 @@ class CoreProcess() {
   
   def startCore(executable : String) {
     try {
-      val pb = new ProcessBuilder(executable, "--json-protocol")
+      val pb = new ProcessBuilder(
+        executable,
+        if (parallel) "--par-json-protocol" else "--json-protocol")
 
       pb.redirectErrorStream(false)
       logger.log(Level.FINEST, "Starting {0}...", executable)
@@ -51,7 +53,7 @@ class CoreProcess() {
                 Thread.sleep(5000);
               } catch {
                 case e: InterruptedException =>
-                  logger.log(Level.FINER, "Thread interupted");
+                  logger.log(Level.FINER, "Thread interrupted");
               }
             }
             logger.log(Level.FINER, "Forcibly terminating the core process");
