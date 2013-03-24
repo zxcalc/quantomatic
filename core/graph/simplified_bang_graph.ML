@@ -1,4 +1,4 @@
-functor BangGraph(structure Param: OGRAPH_PARAM) =
+functor BangGraph(structure Param: OGRAPH_PARAM) : OGRAPH =
 struct
 
 structure Param = Param
@@ -48,8 +48,13 @@ exception no_such_vname_exp of string * V.name * T
 exception no_such_vnames_exp of string * V.NSet.T * T
 exception vname_already_exists_exp of V.name * T
 
+exception bad_graph_merge_exp of T * T * T
+
 exception no_such_ename_exp of string * E.name * T
 exception ename_already_exists_exp of E.name * T
+
+exception no_such_bbname_exp of string * B.name * T
+exception bbname_already_exists_exp of B.name * T
 
 exception not_an_endpoint_exp of string * E.name * V.name
 
@@ -57,10 +62,12 @@ exception wire_vertex_exp of string * T * V.name
 exception wire_exp of string * T * Wire
 
 (*********************************)
-(*********** ACCESSORS ***********)
+(******** BASIC ACCESSORS ********)
 (*********************************)
 
-(* these may be automatically regenerated, so avoid making manual changes *)
+(* Note that it is possible to break a graph by calling these updaters, so they should
+ * all be private. Also note that these functions are automatically generated, so avoid
+ * making changes *)
 
 fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
 fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
@@ -80,6 +87,7 @@ fun get_bbox_rel        (BG r) = #bbox_rel r
 fun get_bbox_parent_map (BG r) = #bbox_parent_map r
 fun get_param           (BG r) = #param r
 
+(*
 val set_vdata              = update_vdata           o K
 val set_edata              = update_edata           o K
 val set_source             = update_source          o K
@@ -88,18 +96,39 @@ val set_bboxes             = update_bboxes          o K
 val set_bbox_rel           = update_bbox_rel        o K
 val set_bbox_parent_map    = update_bbox_parent_map o K
 val set_param              = update_param           o K
+*)
 
 
 (*********************************)
 (******* DERIVED ACCESSORS *******)
 (*********************************)
 
+(* any graph updaters below should produce valid !-graphs (or fail with
+ * exception/NONE) *)
+
+(* note a graph is empty iff it has no vertices or bboxes *)
+fun is_empty g = V.NTab.is_element_empty (get_vdata g) andalso B.NSet.is_empty (get_bboxes g)
+
 fun get_vertices g = V.NTab.get_nameset (get_vdata g)
 fun get_edges g = E.NTab.get_nameset (get_edata g)
 
-(* getting stuff from graphs (exception if not there) *)
+
+val num_vertices = V.NSet.cardinality o get_vertices
+val num_edges = E.NSet.cardinality o get_edges
+val num_bboxes = B.NSet.cardinality o get_bboxes
+
+
 fun get_edge_source g = EVMap.domf (get_source g)
 fun get_edge_target g = EVMap.domf (get_target g)
+
+fun get_vertex_data g = V.NTab.get (get_vdata g)
+fun get_edge_dir_and_data g = E.NTab.get (get_edata g)
+fun get_edge_dir g e  = #1 (get_edge_dir_and_data g e)
+fun get_edge_data g e = #2 (get_edge_dir_and_data g e)
+fun is_dir_edge g e = (get_edge_dir g e) = Directed
+
+fun set_vertex_data d v = update_vdata (V.NTab.update (v,d))
+fun set_edge_data d e = update_edata (E.NTab.map_entry (fn (dir,_) => (dir,d)) e)
 
 
 (* given an edge and vertex, get the other end *)
@@ -110,7 +139,9 @@ in if V.name_eq (v1, s) then t
    else raise not_an_endpoint_exp ("edge_get_other_vertex",e,v1)
 end
 
-(* note this ignore direction *)
+(* Convenience functions for adjacent edges *)
+
+(* note these ignore direction *)
 fun get_in_edges g = EVMap.codf (get_target g)
 fun get_out_edges g = EVMap.codf (get_source g)
 
@@ -118,13 +149,39 @@ fun get_adj_edges g v =
   E.NSet.union_merge (EVMap.codf (get_source g) v)
                      (EVMap.codf (get_target g) v)
 
-fun get_vertex_data g = V.NTab.get (get_vdata g)
-fun get_edge_dir_and_data g = E.NTab.get (get_edata g)
-fun get_edge_dir g e  = #1 (get_edge_dir_and_data g e)
-fun get_edge_data g e = #2 (get_edge_dir_and_data g e)
+fun get_in_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_in_edges g
+fun get_out_dir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Directed) o get_out_edges g
+fun get_adj_undir_edges g = E.NSet.filter (fn e => get_edge_dir g e = Undirected) o get_adj_edges g
 
-fun set_vertex_data d v = update_vdata (V.NTab.update (v,d))
-fun set_edge_data d e = update_edata (E.NTab.map_entry (fn (dir,_) => (dir,d)) e)
+fun is_self_loop g e = V.name_eq (get_edge_source g e, get_edge_target g e)
+fun get_self_loops g v = E.NSet.filter (is_self_loop g) (get_adj_edges g v)
+
+fun get_dir_self_loops g v =
+  E.NSet.filter (fn e => is_self_loop g e andalso is_dir_edge g e)
+                (get_adj_edges g v)
+fun get_undir_self_loops g v =
+  E.NSet.filter (fn e => is_self_loop g e andalso not (is_dir_edge g e))
+                (get_adj_edges g v)
+
+
+(* set the arity. note that (undir) self-loops are counted twice *)
+fun get_arity g v = let
+  fun card f = E.NSet.cardinality (f g v)
+in Arity.zero |> Arity.set_in (card get_in_edges)
+              |> Arity.set_out (card get_out_edges)
+              |> Arity.set_undir (card get_adj_undir_edges + card get_adj_undir_edges)
+end
+
+fun adj_edge_classes g v = (
+  get_in_dir_edges g v,
+  get_out_dir_edges g v,
+  get_adj_undir_edges g v
+)
+
+fun get_adj_vertices g v = E.NSet.fold
+  (fn e => let val v1 = edge_get_other_vertex g e v
+           in if V.name_eq(v,v1) then I else V.NSet.add v1
+           end) (get_adj_edges g v) V.NSet.empty
 
 fun get_vertices_in_bbox g = BVBRel.domf (get_bbox_rel g)
 fun get_bboxes_containing_vertex g = BVBRel.codf (get_bbox_rel g)
@@ -132,18 +189,7 @@ fun get_bbox_parent_opt g = BMap.lookup_domf (get_bbox_parent_map g)
 
 fun contains_vertex g = V.NSet.contains (get_vertices g)
 fun contains_edge g   = E.NSet.contains (get_edges g)
-
-fun add_named_vertex v d g =
-  if (contains_vertex g v) then raise vname_already_exists_exp (v,g)
-  else g |> update_vdata (V.NTab.update (v,d))
-  
-fun add_vertex d g = let
-  val fresh_name = V.NSet.new (get_vertices g) V.default_name
-in (fresh_name, add_named_vertex fresh_name d g)
-end
-
-fun doadd_vertex d g = snd (add_vertex d g)
-
+fun contains_bbox g   = B.NSet.contains (get_bboxes g)
 
 fun add_named_edge e (dir,d) s t g =
   if (contains_edge g e) then raise ename_already_exists_exp (e,g)
@@ -168,11 +214,59 @@ fun delete_edge e g =
   g |> update_edata (E.NTab.delete e)
     |> update_source (EVMap.surj_del_dom e)
     |> update_target (EVMap.surj_del_dom e)
+
+fun add_named_vertex v d g =
+  if (contains_vertex g v) then raise vname_already_exists_exp (v,g)
+  else g |> update_vdata (V.NTab.update (v,d))
+  
+fun add_vertex d g = let
+  val fresh_name = V.NSet.new (get_vertices g) V.default_name
+in (fresh_name, add_named_vertex fresh_name d g)
+end
+
+fun doadd_vertex d g = snd (add_vertex d g)
     
 fun delete_vertex v g =
   g |> update_vdata (V.NTab.delete v)
     |> E.NSet.fold delete_edge (get_adj_edges g v)
     |> update_bbox_rel (BVBRel.del_cod v)
+
+fun add_named_bbox bb g =
+  if (contains_bbox g bb) then raise bbname_already_exists_exp (bb,g)
+  else g |> update_bboxes (B.NSet.add bb)
+
+fun add_bbox g = let
+  val fresh_name = B.NSet.new (get_bboxes g) B.default_name
+in (fresh_name, add_named_bbox fresh_name g)
+end
+  
+fun doadd_bbox g = snd (add_bbox g)
+
+fun delete_bbox bb g =
+  g |> update_bboxes (B.NSet.delete bb)
+    |> update_bbox_rel (BVBRel.del_dom bb)
+    |> update_bbox_parent_map (BMap.surj_del_dom bb)
+    |> update_bbox_parent_map (BMap.del_cod bb)
+
+fun add_vertices_to_bbox vset bb g =
+  if (contains_bbox g bb) then g |> update_bbox_rel (BVBRel.add_to_dom bb vset)
+  else raise no_such_bbname_exp ("add_vertices_to_bbox", bb, g)
+  
+fun add_vertex_to_bbox v = add_vertices_to_bbox (V.NSet.single v)
+
+fun remove_vertices_from_bbox vset bb g =
+  if (contains_bbox g bb) then g |> update_bbox_rel (BVBRel.del_from_dom bb vset)
+  else raise no_such_bbname_exp ("remove_vertices_from_bbox", bb, g)
+  
+fun remove_vertex_from_bbox v = remove_vertices_from_bbox (V.NSet.single v)
+
+fun set_bbox_parent_opt bb bbp_opt g =
+  if (contains_bbox g bb) then (case bbp_opt
+      of SOME bbp =>
+        if (contains_bbox g bbp) then g |> update_bbox_parent_map (BMap.add_to_dom bb bbp)
+        else raise no_such_bbname_exp ("set_bbox_parent_opt", bbp, g)
+       | NONE => g |> update_bbox_parent_map (BMap.surj_del_dom bb))
+  else raise no_such_bbname_exp ("set_bbox_parent_opt", bb, g)
 
 
 fun swap_edge_dir e g = let
@@ -182,20 +276,11 @@ in g |> delete_edge e |> add_named_edge e dd t s
 end
 
 
-(************************************)
-(******* DEPRECATED ACCESSORS *******)
-(************************************)
+(*************************************)
+(*** OPERATIONS ON MULTIPLE GRAPHS ***)
+(*************************************)
 
-
-(*********************************)
-(******* GLOBAL PROPERTIES *******)
-(*********************************)
-
-(* a graph is empty if it has no vertices or bboxes *)
-fun is_empty g = V.NTab.is_element_empty (get_vdata g) andalso B.NSet.is_empty (get_bboxes g)
-
-(* TODO: rename to 'eq' taking uncurried arguments *)
-fun exact_eq g1 g2 =
+fun is_subgraph g1 g2 =
 let 
   val e1s = get_edges g1
   val e2s = get_edges g2
@@ -204,13 +289,13 @@ let
   val bb1s = get_bboxes g1
   val bb2s = get_bboxes g2
 in
-  (* check same vertex names *)
-  (V.NSet.eq v1s v2s) andalso
-  (* check same edge names *)
-  (E.NSet.eq e1s e2s) andalso
-  (* check same bbox names *)
-  (B.NSet.eq bb1s bb2s) andalso
-  (* check same vertex data TODO: same bboxes *)
+  (* check vertex names *)
+  (V.NSet.sub_set v1s v2s) andalso
+  (* check edge names *)
+  (E.NSet.sub_set e1s e2s) andalso
+  (* check bbox names *)
+  (B.NSet.sub_set bb1s bb2s) andalso
+  (* check same vertex data *)
   (V.NTab.forall (fn (n,d1) => OVData.data_eq (d1, get_vertex_data g2 n)) (get_vdata g1)) andalso 
   (* check same edge data, and source and target maps agree *)
   (E.NTab.forall (fn (n,(dir1,d1)) => 
@@ -223,7 +308,7 @@ in
     end) (get_edata g1)) andalso
   (* check bbox containment and parents agree *)
   (B.NSet.forall (fn bb =>
-    V.NSet.eq (get_vertices_in_bbox g1 bb) (get_vertices_in_bbox g2 bb) andalso
+    V.NSet.sub_set (get_vertices_in_bbox g1 bb) (get_vertices_in_bbox g2 bb) andalso
     (case (get_bbox_parent_opt g1 bb, get_bbox_parent_opt g2 bb)
        of (SOME p1, SOME p2) => B.name_eq (p1,p2)
         | (NONE,NONE) => true
@@ -231,5 +316,90 @@ in
   ) (get_bboxes g1))
 end
 
+(* should be equivalent to (is_subgraph g1 g2 andalso is_subgraph g2 g1) *)
+fun exact_eq g1 g2 =
+  (num_vertices g1 = num_vertices g2) andalso
+  (num_edges g1 = num_edges g2) andalso
+  (num_bboxes g1 = num_bboxes g2) andalso
+  is_subgraph g1 g2
+  
+
+fun is_intersection sub g1 g2 = let
+  val vi = V.NSet.intersect (get_vertices g1) (get_vertices g2)
+  val ei = E.NSet.intersect (get_edges g1) (get_edges g2)
+  val bbi = B.NSet.intersect (get_bboxes g1) (get_bboxes g2)
+in (V.NSet.eq (get_vertices sub) vi) andalso
+   (E.NSet.eq (get_edges sub) ei) andalso
+   (B.NSet.eq (get_bboxes sub) bbi) andalso
+   (is_subgraph sub g1) andalso
+   (is_subgraph sub g2)
+end
+
+
+fun merge_by_subgraph sub g1 g2 =
+  (* Note that without checking disjointness, one of the add_... functions below will likely
+     throw an exception. However, this extra work will produce better errors. *)
+  if not (is_intersection sub g1 g2) then raise bad_graph_merge_exp (sub,g1,g2)
+  else sub (* start with common graph *)
+  (* add new verts from g1 and g2 *)
+  |> V.NSet.fold (fn v =>
+      add_named_vertex v (get_vertex_data g1 v))
+     (V.NSet.subtract (get_vertices g1) (get_vertices sub))
+  |> V.NSet.fold (fn v =>
+      add_named_vertex v (get_vertex_data g2 v))
+     (V.NSet.subtract (get_vertices g2) (get_vertices sub))
+  (* add new edges from g1 and g2 *)
+  |> E.NSet.fold (fn e =>
+      add_named_edge e
+        (get_edge_dir_and_data g1 e)
+        (get_edge_source g1 e)
+        (get_edge_target g1 e))
+     (E.NSet.subtract (get_edges g1) (get_edges sub))
+  |> E.NSet.fold (fn e =>
+      add_named_edge e
+        (get_edge_dir_and_data g2 e)
+        (get_edge_source g2 e)
+        (get_edge_target g2 e))
+     (E.NSet.subtract (get_edges g2) (get_edges sub))
+  (* add new bboxes from g1 and g2 *)
+  |> B.NSet.fold (fn bb => add_named_bbox bb)
+     (B.NSet.subtract (get_bboxes g1) (get_bboxes sub))
+  |> B.NSet.fold (fn bb => add_named_bbox bb)
+     (B.NSet.subtract (get_bboxes g2) (get_bboxes sub))
+  (* bboxes contained in the intersection may contain more vertices in g1 and g2 than just
+   * those in sub, so update containment (and parents) for all bboxes *)
+  |> B.NSet.fold (fn bb =>
+      add_vertices_to_bbox (get_vertices_in_bbox g1 bb) bb o
+      set_bbox_parent_opt bb (get_bbox_parent_opt g1 bb))
+     (get_bboxes g1)
+  |> B.NSet.fold (fn bb =>
+      add_vertices_to_bbox (get_vertices_in_bbox g2 bb) bb o
+      set_bbox_parent_opt bb (get_bbox_parent_opt g2 bb))
+     (get_bboxes g2)
+
+(* currently, this will fail on bad_graph_merge_exp if any vertices are contained
+ * in bboxes. This can be handled by adding common bboxes containing common verts
+ * to the subgraph. *)
+fun merge_by_vertices g1 g2 = let
+  val common_verts = V.NSet.intersect (get_vertices g1) (get_vertices g2)
+  val common_graph = V.NSet.fold
+                       (fn v => add_named_vertex v (get_vertex_data g1 v))
+                       common_verts empty
+in merge_by_subgraph common_graph g1 g2
+end
+
+(*fun merge_by_vertices g1 g2 =
+  if not (E.NSet.is_empty (E.NSet.intersect (get_edges g1) (get_edges g2)))
+  then raise bad_graph_merge_exp ("edge names not disjoint",g1,g2)
+  else *)
+
+
+
+
+
+
+(************************************)
+(******* DEPRECATED FUNCTIONS *******)
+(************************************)
 
 end

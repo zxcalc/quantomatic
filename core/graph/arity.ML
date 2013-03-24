@@ -41,6 +41,10 @@ sig
   val update_in : (int -> int) -> T -> T
   val update_out : (int -> int) -> T -> T
   val update_undir : (int -> int) -> T -> T
+  
+  val set_in : int -> T -> T
+  val set_out : int -> T -> T
+  val set_undir : int -> T -> T
 
   val rep_of : T -> {no_in : int, (* number of incoming edges *)
              no_out : int, (* number of outgoig edges *)
@@ -82,6 +86,10 @@ struct
   fun update_undir f (Arity rep) = 
       Arity { no_in = #no_in rep, no_out = #no_out rep, 
               no_undir = f(#no_undir rep) };
+
+  val set_in = update_in o K
+  val set_out = update_out o K
+  val set_undir = update_undir o K
 
   (* *)  
   fun add (Arity rep1) (Arity rep2) = 

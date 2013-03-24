@@ -8,6 +8,8 @@ sig
 type T (* an open graph *)
 type Wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 
+val empty : T
+
 (*********************************)
 (********** EXCEPTIONS ***********)
 (*********************************)
@@ -24,10 +26,14 @@ exception vname_already_exists_exp of V.name * T
 exception no_such_ename_exp of string * E.name * T
 exception ename_already_exists_exp of E.name * T
 
-exception not_an_endpoint_exp of E.name * V.name
+exception bbname_already_exists_exp of B.name * T
 
-exception wire_vertex_exp of (string * T * V.name)
-exception wire_exp of (string * T * Wire)
+exception bad_graph_merge_exp of T * T * T
+
+exception not_an_endpoint_exp of string * E.name * V.name
+
+exception wire_vertex_exp of string * T * V.name
+exception wire_exp of string * T * Wire
 
 
 (*******************************)
@@ -50,8 +56,22 @@ val get_edge_target : T -> E.name -> V.name
 (* given an edge and vertex, get the other end *)
 val edge_get_other_vertex : T -> E.name -> V.name -> V.name
 
+(* ignorant to direction *)
 val get_in_edges  : T -> V.name -> E.NSet.T
 val get_out_edges : T -> V.name -> E.NSet.T
+val get_adj_edges : T -> V.name -> E.NSet.T
+
+(* filters by direction *)
+val get_in_dir_edges : T -> V.name -> E.NSet.T
+val get_out_dir_edges : T -> V.name -> E.NSet.T
+val get_adj_undir_edges : T -> V.name -> E.NSet.T
+
+(* get all adjacent vertices (not including the given one) *)
+val get_adj_vertices : T -> V.name -> V.NSet.T
+
+(* get incoming, outgoing, undirected edges adjacent to vertex *)
+val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
+
 
 val get_vertex_data : T -> V.name -> OVData.data
 val get_edge_data : T -> E.name -> EData.data
@@ -65,6 +85,7 @@ val set_edge_data : EData.data -> E.name -> T -> T
 (*val apply_data_subst : Param.subst -> T -> T*)
 
 (* check if two graphs are exactly the same (names, data, and structure) *)
+val is_subgraph : T -> T -> bool
 val exact_eq : T -> T -> bool
 
 (* adding a vertex gives back unique name for it and the new graph *)
@@ -87,23 +108,24 @@ val delete_vertex : V.name -> T -> T
 val swap_edge_dir : E.name -> T -> T
 
 
-(* renaming *)
-val try_rename1_xname : X.name -> X.name -> T -> T option
-val try_rename1_vname : V.name -> V.name -> T -> T option
-val try_rename1_ename : E.name -> E.name -> T -> T option
+val is_intersection : T -> T -> T -> bool
 
-val rename : (X.renaming * V.renaming * E.renaming) -> T 
-    -> (X.renaming * V.renaming * E.renaming) * T 
-(* rename the 2nd graph to avoid all names in the first one *)
-val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T 
+(* merge two graphs on a subgraph, which must be their intersection *)
+val merge_by_subgraph : T -> T -> T -> T
 
 (* merge two graphs which have distinct egdes by shared vertices:
    vertices with same name are kept only once, edges must be
    distinct. *)
 val merge_by_vertices : T -> T -> T
 
+val get_arity : T -> V.name -> Arity.T
+val get_self_loops : T -> V.name -> E.NSet.T
+
+(*
+
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
+
 
 
 (* edges between two vertices *)
@@ -121,49 +143,17 @@ val dir_edges_between : T -> V.name -> V.name
 (* get adjacent vertices to some vertex *)
 val adj_vnames : T -> V.name -> V.NSet.T
     
-(* get incoming, outgoing, undirected edges adjacent to vertex *)
-val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
-
-datatype incidence_type = Incoming | Outgoing | SelfLoop;
-(* Fold over the incident edges.
- *
- * Each incident edge will feature exactly once, as an
- * incoming edge, an outgoing edge or a self-loop.
- *
- * In addition to the edge information and the incidence
- * type, the vertex on other other end will be given.
- * In the case of self-loops, this will be the same as
- * the vertex originally passed.
- *
- * The folding order is undefined.
- *)
-val fold_adj : (incidence_type * V.name * (E.name * (dir_or_undir * EData.data))
-                -> 'a -> 'a)
-      -> T -> V.name -> 'a -> 'a
-
-(* the vertices connected to the given set, but outside it *) 
-val incident_vertices : T -> V.NSet.T -> V.NSet.T
-
-val get_self_loops : T -> V.name -> EData.data E.NTab.T
-
-val in_enames : T -> V.name -> E.NSet.T
-val out_enames : T -> V.name -> E.NSet.T
-val pred_vnames : T -> V.name -> V.NSet.T
-val succ_vnames : T -> V.name -> V.NSet.T
-
-val get_arity : T -> V.name -> Arity.T
-
-(*(* depth-first traversal *)
-val dft : (E.name -> 'a -> 'a) -> T -> 'a -> 'a
-val dft_with_roots : (E.name -> 'a -> 'a) -> T -> 'a -> ('a * V.NSet.T)
-
-(* directed acyclic graphs *)
-val convert_to_dag : T -> T
-val spanning_dag : T -> T
-val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
-val get_dag_ranks : T -> V.name list list*)
 
 
+(* renaming *)
+val try_rename1_xname : X.name -> X.name -> T -> T option
+val try_rename1_vname : V.name -> V.name -> T -> T option
+val try_rename1_ename : E.name -> E.name -> T -> T option
+
+val rename : (X.renaming * V.renaming * E.renaming) -> T 
+    -> (X.renaming * V.renaming * E.renaming) * T 
+(* rename the 2nd graph to avoid all names in the first one *)
+val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T 
 
 
 (*******************************)
@@ -342,12 +332,51 @@ val minimise : T -> T
  *)
 val get_open_subgraph : V.NSet.T -> T -> T
 
-
+*)
 
 
 (************************)
 (****** DEPRECATED ******)
 (************************)
+
+(*datatype incidence_type = Incoming | Outgoing | SelfLoop;
+(* Fold over the incident edges.
+ *
+ * Each incident edge will feature exactly once, as an
+ * incoming edge, an outgoing edge or a self-loop.
+ *
+ * In addition to the edge information and the incidence
+ * type, the vertex on other other end will be given.
+ * In the case of self-loops, this will be the same as
+ * the vertex originally passed.
+ *
+ * The folding order is undefined.
+ *)
+val fold_adj : (incidence_type * V.name * (E.name * (dir_or_undir * EData.data))
+                -> 'a -> 'a)
+      -> T -> V.name -> 'a -> 'a
+
+(* the vertices connected to the given set, but outside it *) 
+val incident_vertices : T -> V.NSet.T -> V.NSet.T
+
+val get_self_loops : T -> V.name -> EData.data E.NTab.T
+
+val in_enames : T -> V.name -> E.NSet.T
+val out_enames : T -> V.name -> E.NSet.T
+val pred_vnames : T -> V.name -> V.NSet.T
+val succ_vnames : T -> V.name -> V.NSet.T
+
+val get_arity : T -> V.name -> Arity.T*)
+
+(*(* depth-first traversal *)
+val dft : (E.name -> 'a -> 'a) -> T -> 'a -> 'a
+val dft_with_roots : (E.name -> 'a -> 'a) -> T -> 'a -> ('a * V.NSet.T)
+
+(* directed acyclic graphs *)
+val convert_to_dag : T -> T
+val spanning_dag : T -> T
+val spanning_tree : T -> T (* another spanning tree, using DAG traversal *)
+val get_dag_ranks : T -> V.name list list*)
 
 (*
 (* get vertex and edge names *)
