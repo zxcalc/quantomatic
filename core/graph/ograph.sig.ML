@@ -6,6 +6,28 @@ signature OGRAPH =
 sig
 
 type T (* an open graph *)
+type Wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
+
+(*********************************)
+(********** EXCEPTIONS ***********)
+(*********************************)
+
+exception bug_exp of string
+
+exception no_such_xname_exp of string * X.name * T
+exception xname_already_exists_exp of X.name * T
+
+exception no_such_vname_exp of string * V.name * T
+exception no_such_vnames_exp of string * V.NSet.T * T
+exception vname_already_exists_exp of V.name * T
+
+exception no_such_ename_exp of string * E.name * T
+exception ename_already_exists_exp of E.name * T
+
+exception not_an_endpoint_exp of E.name * V.name
+
+exception wire_vertex_exp of (string * T * V.name)
+exception wire_exp of (string * T * Wire)
 
 
 (*******************************)
@@ -20,10 +42,6 @@ sharing EData = Param.EData
 
 (* graph is empty *)
 val is_empty : T -> bool
-
-(* lookup stuff from graphs (return NONE if no entry) *)
-val lookup_vertex : T -> V.name -> (OVData.data * (E.NSet.T * E.NSet.T)) option
-val lookup_edge : T -> E.name -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
 
 (* getting stuff from graphs (exception if not there) *)
 val get_edge_source : T -> E.name -> V.name
@@ -62,13 +80,6 @@ val add_named_edge
     : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
 val swap_edge_dir : E.name -> T -> T
 
-(* get vertex and edge names *)
-val get_vnames : T -> V.NSet.T
-val get_enames : T -> E.NSet.T
-
-(* *)
-val has_vname : T -> V.name -> bool;
-val has_ename : T -> E.name -> bool;
 
 (* renaming *)
 val try_rename1_xname : X.name -> X.name -> T -> T option
@@ -88,15 +99,6 @@ val merge_by_vertices : T -> T -> T
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
 
-(* getting graph internal representation... *)
-val get_vertex_list : T -> (V.name * (OVData.data 
-                   * (E.NSet.T (* edges coming into this vertex *)
-                      * E.NSet.T))) (* edges leaving this vertex *)
-                    list;
-val get_edge_list : T -> (E.name * ((dir_or_undir * EData.data)
-                   * (V.name (* from this vertex *)
-                      * V.name))) (* to this vertex *)
-                    list
 
 (* edges between two vertices *)
 val has_edges_between : T -> V.name -> V.name -> bool
@@ -157,11 +159,11 @@ val get_dag_ranks : T -> V.name list list*)
 
 
 
+
 (*******************************)
 (********* OPEN GRAPHS *********)
 (*******************************)
 
-exception wire_vertex_exp of (string * T * V.name);
 
 (* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
@@ -174,19 +176,15 @@ val add_to_boundary : V.name -> T -> T
 val del_from_boundary : V.name -> T -> T
 val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
 
-(* get_plugging is copied further down, with the other plugging functions *)
-
-(* *** END OF COPIED SIGNATURE *** *)
 
 (* Given selection set of vertices, make subgraph: 
    all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
-type Wire = V.name * V.name * V.NSet.T * E.NSet.T;
 
 (*** functions useful when dealing ignorantly with undirected edges ***)
 
-exception wire_exp of (string * T * Wire);
+
 
 (* Given a wire vertex and an edge, give the other connected edge, if it
    exists. In the case of a wire-vertex with a single, given self-loop,
@@ -337,5 +335,37 @@ val minimise : T -> T
  * This will NOT WORK if the graph is not normalised.
  *)
 val get_open_subgraph : V.NSet.T -> T -> T
+
+
+
+
+(************************)
+(****** DEPRECATED ******)
+(************************)
+
+(*
+(* get vertex and edge names *)
+val get_vnames : T -> V.NSet.T
+val get_enames : T -> E.NSet.T
+
+(* *)
+val has_vname : T -> V.name -> bool
+val has_ename : T -> E.name -> bool
+
+(* lookup stuff from graphs (return NONE if no entry) *)
+val lookup_vertex : T -> V.name -> (OVData.data * (E.NSet.T * E.NSet.T)) option
+val lookup_edge : T -> E.name -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
+
+
+(* getting graph internal representation... *)
+val get_vertex_list : T -> (V.name * (OVData.data 
+                   * (E.NSet.T (* edges coming into this vertex *)
+                      * E.NSet.T))) (* edges leaving this vertex *)
+                    list;
+val get_edge_list : T -> (E.name * ((dir_or_undir * EData.data)
+                   * (V.name (* from this vertex *)
+                      * V.name))) (* to this vertex *)
+                    list
+*)
 
 end

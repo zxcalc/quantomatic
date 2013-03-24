@@ -19,6 +19,9 @@ datatype T = BG of {
   param : Param.T
 }
 
+type Wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
+
+(* empty bang graph *)
 val empty : T = BG {
   vdata  = V.NTab.empty,
   edata  = E.NTab.empty,
@@ -48,7 +51,10 @@ exception vname_already_exists_exp of V.name * T
 exception no_such_ename_exp of string * E.name * T
 exception ename_already_exists_exp of E.name * T
 
-exception not_an_endpoint_exp of E.name * V.name
+exception not_an_endpoint_exp of string * E.name * V.name
+
+exception wire_vertex_exp of string * T * V.name
+exception wire_exp of string * T * Wire
 
 (*********************************)
 (*********** ACCESSORS ***********)
@@ -92,8 +98,8 @@ fun get_vertices g = V.NTab.get_nameset (get_vdata g)
 fun get_edges g = E.NTab.get_nameset (get_edata g)
 
 (* getting stuff from graphs (exception if not there) *)
-fun get_edge_source g e = EVMap.domf (get_source g) e
-fun get_edge_target g e = EVMap.domf (get_target g) e
+fun get_edge_source g = EVMap.domf (get_source g)
+fun get_edge_target g = EVMap.domf (get_target g)
 
 
 (* given an edge and vertex, get the other end *)
@@ -101,7 +107,7 @@ fun edge_get_other_vertex g e v1 = let
   val (s,t) = (get_edge_source g e, get_edge_target g e)
 in if V.name_eq (v1, s) then t
    else if V.name_eq(v1, t) then s
-   else raise not_an_endpoint_exp (e,v1)
+   else raise not_an_endpoint_exp ("edge_get_other_vertex",e,v1)
 end
 
 fun get_in_edges g = EVMap.codf (get_target g)
@@ -118,6 +124,42 @@ fun set_edge_data d e = update_edata (E.NTab.map_entry (fn (dir,_) => (dir,d)) e
 fun get_vertices_in_bbox g = BVBRel.domf (get_bbox_rel g)
 fun get_bboxes_containing_vertex g = BVBRel.codf (get_bbox_rel g)
 fun get_bbox_parent_opt g = BMap.lookup_domf (get_bbox_parent_map g)
+
+
+fun contains_vertex g = V.NSet.contains (get_vertices g)
+fun contains_edge g   = E.NSet.contains (get_edges g)
+
+fun add_named_vertex v d g =
+  if (contains_vertex g v) then raise vname_already_exists_exp (v,g)
+  else g |> update_vdata (V.NTab.update (v,d))
+  
+fun add_vertex d g = let
+  val fresh_name = V.NSet.new (get_vertices g) V.default_name
+in (fresh_name, add_named_vertex fresh_name d g)
+end
+
+fun doadd_vertex d g = snd (add_vertex d g)
+
+
+fun add_named_edge e (dir,d) s t g =
+  if (contains_edge g e) then raise ename_already_exists_exp (e,g)
+  else
+    let
+      val missing = V.NSet.filter (fn v => not (contains_vertex g v)) (V.NSet.of_list [s,t])
+    in if V.NSet.is_empty missing then
+         g |> update_edata (E.NTab.update (e,(dir,d)))
+           |> update_source (EVMap.add_to_dom e s)
+           |> update_target (EVMap.add_to_dom e t)
+       else raise no_such_vnames_exp ("add_named_edge", missing, g)
+    end
+
+fun add_edge dd s t g = let
+  val fresh_name = E.NSet.new (get_edges g) E.default_name
+in (fresh_name, add_named_edge fresh_name dd s t g)
+end
+  
+fun doadd_edge dd s t g = snd (add_edge dd s t g)
+
 
 
 
