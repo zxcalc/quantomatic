@@ -32,6 +32,10 @@ signature QUANTO_NAME
   structure EInjEndo : NAME_INJENDO
     sharing EInjEndo.Dom.Sharing = E.Sharing
 
+  structure EVMap : NAME_MAP
+    sharing EVMap.Dom.Sharing = E.Sharing
+    sharing EVMap.Cod.Sharing = V.Sharing
+
   structure BMap : NAME_MAP
     sharing BMap.Dom.Sharing = B.Sharing
     sharing BMap.Cod.Sharing = B.Sharing
@@ -83,6 +87,8 @@ structure QuantoNames :> QUANTO_NAME
   
   structure EMap = SStrMap;
   structure EInjEndo = SStrInjEndo;
+  
+  structure EVMap = SStrMap;
   
   structure BMap = SStrMap;
   structure BInjEndo = SStrInjEndo;

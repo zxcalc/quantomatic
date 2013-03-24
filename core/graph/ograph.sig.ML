@@ -1,3 +1,7 @@
+(* each edge is either directed or undirected. Undirected edges are stored the same as
+ * directed edges, but may be matched in either direction. *)
+datatype dir_or_undir = Directed | Undirected
+
 signature OGRAPH =
 sig
 
@@ -14,12 +18,8 @@ structure Param : OGRAPH_PARAM
 sharing OVData = Param.OVData
 sharing EData = Param.EData
 
-(* each edge is either directed, or bi-directed: this is the family of graphs
-   with these edges in both directions. *)
-datatype dir_or_undir = Directed | UnDirected
-
 (* graph is empty *)
-val is_empty : T -> bool 
+val is_empty : T -> bool
 
 (* lookup stuff from graphs (return NONE if no entry) *)
 val lookup_vertex : T -> V.name -> (OVData.data * (E.NSet.T * E.NSet.T)) option
@@ -43,7 +43,8 @@ val set_vertex_data : OVData.data -> V.name -> T -> T
 val set_edge_data : EData.data -> E.name -> T -> T
 (* val set_edge_dir_or_undir : dir_or_undir -> E.name -> T -> T *)
 
-val apply_data_subst : Param.subst -> T -> T
+(* TODO *)
+(*val apply_data_subst : Param.subst -> T -> T*)
 
 (* check if two graphs are exactly the same (names, data, and structure) *)
 val exact_eq : T -> T -> bool
