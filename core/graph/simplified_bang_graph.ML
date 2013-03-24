@@ -110,8 +110,13 @@ in if V.name_eq (v1, s) then t
    else raise not_an_endpoint_exp ("edge_get_other_vertex",e,v1)
 end
 
+(* note this ignore direction *)
 fun get_in_edges g = EVMap.codf (get_target g)
 fun get_out_edges g = EVMap.codf (get_source g)
+
+fun get_adj_edges g v =
+  E.NSet.union_merge (EVMap.codf (get_source g) v)
+                     (EVMap.codf (get_target g) v)
 
 fun get_vertex_data g = V.NTab.get (get_vdata g)
 fun get_edge_dir_and_data g = E.NTab.get (get_edata g)
@@ -124,7 +129,6 @@ fun set_edge_data d e = update_edata (E.NTab.map_entry (fn (dir,_) => (dir,d)) e
 fun get_vertices_in_bbox g = BVBRel.domf (get_bbox_rel g)
 fun get_bboxes_containing_vertex g = BVBRel.codf (get_bbox_rel g)
 fun get_bbox_parent_opt g = BMap.lookup_domf (get_bbox_parent_map g)
-
 
 fun contains_vertex g = V.NSet.contains (get_vertices g)
 fun contains_edge g   = E.NSet.contains (get_edges g)
@@ -160,7 +164,22 @@ end
   
 fun doadd_edge dd s t g = snd (add_edge dd s t g)
 
+fun delete_edge e g =
+  g |> update_edata (E.NTab.delete e)
+    |> update_source (EVMap.surj_del_dom e)
+    |> update_target (EVMap.surj_del_dom e)
+    
+fun delete_vertex v g =
+  g |> update_vdata (V.NTab.delete v)
+    |> E.NSet.fold delete_edge (get_adj_edges g v)
+    |> update_bbox_rel (BVBRel.del_cod v)
 
+
+fun swap_edge_dir e g = let
+  val (s,t) = (get_edge_source g e, get_edge_target g e)
+  val dd = (get_edge_dir_and_data g e)
+in g |> delete_edge e |> add_named_edge e dd t s
+end
 
 
 (************************************)

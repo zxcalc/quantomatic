@@ -78,6 +78,12 @@ val add_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> E.name * T
 val doadd_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> T
 val add_named_edge 
     : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
+
+
+(* delete raises an exception if there is no such edge/vertex *)
+val delete_edge : E.name -> T -> T
+val delete_vertex : V.name -> T -> T
+
 val swap_edge_dir : E.name -> T -> T
 
 
