@@ -75,7 +75,17 @@ Testing.make_test "io/test/linrat-json-test.ML";
  *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
 PolyML.Project.make "graph/graph_param.ML";
-PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
+
+PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
+PolyML.Project.make "graph/ograph_param.ML";
+
+PolyML.Project.make "graph/ograph.sig.ML";
+
+PolyML.Project.make "graph/simplified_bang_graph.ML";
+
+PolyML.Project.make "stub_run.ML";
+
+(*PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
 PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
 PolyML.Project.make "graph/graph_iso.ML"; (* isomorphism between graphs *)
 PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
@@ -300,7 +310,7 @@ PolyML.Project.make "interface/run.ML";
 Testing.make_test "test/regression-tests.ML";
 (* Metrics tests depend on Str_Theory *)
 Testing.make_test "metrics/test/test.ML";
-Testing.make_test "example_code/ROOT.ML";
+Testing.make_test "example_code/ROOT.ML";*)
 
 
 
