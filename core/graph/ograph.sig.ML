@@ -121,6 +121,10 @@ val merge_by_vertices : T -> T -> T
 val get_arity : T -> V.name -> Arity.T
 val get_self_loops : T -> V.name -> E.NSet.T
 
+val try_rename1_xname : X.name -> X.name -> T -> T option
+(*val try_rename1_vname : V.name -> V.name -> T -> T option
+val try_rename1_ename : E.name -> E.name -> T -> T option*)
+
 (*
 
 (* remove the first graph from the second, assumes first is a subgraph *)
@@ -146,9 +150,7 @@ val adj_vnames : T -> V.name -> V.NSet.T
 
 
 (* renaming *)
-val try_rename1_xname : X.name -> X.name -> T -> T option
-val try_rename1_vname : V.name -> V.name -> T -> T option
-val try_rename1_ename : E.name -> E.name -> T -> T option
+
 
 val rename : (X.renaming * V.renaming * E.renaming) -> T 
     -> (X.renaming * V.renaming * E.renaming) * T 

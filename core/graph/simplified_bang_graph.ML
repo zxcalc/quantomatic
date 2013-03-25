@@ -394,7 +394,108 @@ end
   else *)
 
 
+(************************************)
+(************* RENAMING *************)
+(************************************)
 
+(* TODO : improve these functions for graph-at-once renaming *)
+
+exception rename_do_nothing_exp of unit;
+
+(* implicit args: n1 n2 g; raises X.Rnm. *)
+(* renames internal variable name n1 to n2 (assuming n2 is fresh in this graph)
+   Updates the name in the param data as well as in each vertex and edge data in
+   which the name occurs. *)
+fun rename_xname n1 n2 g =
+let 
+  val param = get_param g
+  val vnames_to_update = Param.dep_vnames_of_xname param n1 
+  val enames_to_update = Param.dep_enames_of_xname param n1
+in 
+  g |> update_param (Param.rename_xname n1 n2)
+    |> update_vdata (V.NSet.fold
+        (V.NTab.map_entry (Param.subst_xname_in_vdata n1 n2)) 
+        vnames_to_update)
+    |> update_edata (E.NSet.fold
+        (E.NTab.map_entry (fn (dir,d) => (dir,Param.subst_xname_in_edata n1 n2 d))) 
+        enames_to_update)
+end handle X.Rnm.invalid_renaming_exp _ => 
+    raise xname_already_exists_exp (n2,g)
+
+
+fun try_rename1_xname n1 n2 g = SOME (rename_xname n1 n2 g)
+  handle xname_already_exists_exp _ => NONE
+
+(* V.name = suggested name *)
+(* rename all occurances of old name (1st arg) with new name (2nd arg) 
+   n2 must not exist already, n1 must exist *)
+(*fun rename_vname n1 n2 g = 
+    let 
+      val vertices = (get_vertices g)
+      (* gets vertex for n1, makes ure it exists *)
+      val (nd,(ins,outs)) = case V.NTab.lookup vertices n1 
+                             of NONE => raise rename_do_nothing_exp ()
+                              | SOME x => x;
+
+      (* update the vertex entry for n1, we make sure that n2 doesn't already exist *)
+      val vertices2 = 
+          case (vertices |> V.NTab.delete n1
+                         (* raises exception if n2 already exsists *)
+                         |> V.NTab.try_ins (n2,(nd,(ins,outs))))
+           of NONE => raise vname_already_exists_exp (n2,g)
+            | SOME vertices2 => vertices2;
+
+      (* update any edges to use the new name n1 instead of n1, using ins and outs lists *)
+      val edges2 = 
+          (get_edges g)
+            |> E.NSet.fold (E.NTab.map_entry (fn (e,(from,_)) => 
+                                                       (e,(from,n2)))) ins
+            |> E.NSet.fold (E.NTab.map_entry (fn (e,(_,tos)) => 
+                                                       (e,(n2,tos)))) outs;
+
+      (* give back new graph *)
+    in g |> set_vertices vertices2
+         |> set_edges edges2
+         |> update_param (Param.rename_vname n1 n2)
+    end handle rename_do_nothing_exp () => g;
+    (* raise no_such_vname_exp ("rename_vname", n1, g) *)
+
+fun rename_ename en1 en2 g = 
+    let 
+      val edges = (get_edges g)
+      (* gets edge for n1, makes ure it exists *)
+      val (e,(from_n,to_n)) = case E.NTab.lookup edges en1
+                           of NONE => raise rename_do_nothing_exp ()
+                            | SOME x => x;
+
+      (* update the edge entry for n1, we make sure that n2 doesn't 
+         already exist *)
+      val edges2 = 
+          case (edges |> E.NTab.delete en1
+                      |> E.NTab.try_ins (en2,(e,(from_n,to_n))))
+           of NONE => raise ename_already_exists_exp (en2,g)
+            | SOME edges2 => edges2;
+
+      (* update any edges to use the new name n1 instead of n1, using 
+         ins and outs lists *)
+      val vertices2 = 
+          (get_vertices g)
+            |> V.NTab.map_entry (fn (n,(ins,outs)) => 
+                                   let val outs2 = outs |> E.NSet.delete en1
+                                                        |> E.NSet.ins_fresh en2
+                                   in (n,(ins,outs2)) end) from_n
+            |> V.NTab.map_entry (fn (n,(ins,outs)) =>
+                                   let val ins2 = ins |> E.NSet.delete en1
+                                                      |> E.NSet.ins_fresh en2
+                                   in (n,(ins2,outs)) end) to_n;
+
+    (* return new graph *)
+    in g |> set_vertices vertices2
+         |> set_edges edges2
+         |> update_param (Param.rename_ename en1 en2)
+    end handle rename_do_nothing_exp () => g;
+    (* no_such_ename_exp ("rename_vname", en1, g) *)
+*)
 
 
 
