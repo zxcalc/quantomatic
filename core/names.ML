@@ -126,6 +126,11 @@ structure EVFn = NameFunction(structure Dom = E; structure Cod = V)
 structure BVRl = NameRelation(structure Dom = B; structure Cod = V)
 structure BBFn = NameFunction(structure Dom = B; structure Cod = B)
 
+structure VInj = NameInjection(structure Dom = V; structure Cod = V)
+structure EInj = NameInjection(structure Dom = E; structure Cod = E)
+structure BInj = NameInjection(structure Dom = B; structure Cod = B)
+structure XInj = NameInjection(structure Dom = X; structure Cod = X)
+
 structure VXRl = NameRelation(structure Dom = V; structure Cod = X)
 structure EXRl = NameRelation(structure Dom = E; structure Cod = X)
  
