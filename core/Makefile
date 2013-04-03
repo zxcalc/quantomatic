@@ -11,66 +11,50 @@ ISAPLIB_SOURCES=../../isaplib
 
 # polyml executable
 POLYML_HOME=$(shell ../tools/findpoly.sh)
-POLYML=$(POLYML_HOME)/bin/poly -H 200
-POLYML_LIB=$(POLYML_HOME)/lib
+POLYML=$(POLYML_HOME)/bin/poly
+POLYFLAGS=-H 200
 
 
 ################################
 # dynamic variables checked on call to make. 
 ################################
-ML_SRC_FILES = $(shell find . | grep ".ML$$" | grep -v "test/protocol/" | grep -v "PROTOCOLTEST.ML$$")
+ML_SRC_FILES = $(shell find . | grep ".ML$$" | grep -v "test/protocol/" | grep -v "test/PROTOCOLTEST.ML$$" | grep -v "toplevel/")
 ISAP_ML_SRC_FILES = $(ISAPLIB_SOURCES)/Makefile $(shell find $(ISAPLIB_SOURCES)/* | grep ".ML$$")
 
 ################################
-# HEAP files defined in make_heap.ML, make_bin.ML
+# Fixed file locations
 ################################
 # quanto heap file
-QUANTO_HEAP=heaps/quanto.polyml-heap
+QUANTO_HEAP=heaps/quanto.heap
 # binary file to produce
-THE_BIN=quanto-core
+CORE_BIN=bin/quanto-core
+ALL_BINS=$(CORE_BIN) bin/quanto-xml-to-json
 
 ################################
-# Targets: 
+# Targets:
 ################################
-default: bin
+default: all
 
-$(QUANTO_HEAP):  $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
-	echo 'use "make_heap.ML";' | $(POLYML)
-	@echo "Built polyml heap: $(QUANTO_HEAP)"
+$(QUANTO_HEAP): $(ML_SRC_FILES) $(ISAP_ML_SRC_FILES)
+	@mkdir -p heaps
+	POLYFLAGS="$(POLYFLAGS)" ../tools/poly-build-heap -p -o $@ ROOT.ML
 
 heap: $(QUANTO_HEAP)
 
-protocol-tests: bin/$(THE_BIN)
-	echo 'use "PROTOCOLTEST.ML";' | $(POLYML) --core "bin/$(THE_BIN)" --log "protocol-tests.log"
+bin/%: toplevel/%.ML $(QUANTO_HEAP)
+	@mkdir -p bin
+	POLYFLAGS="$(POLYFLAGS)" ../tools/polyc -l$(QUANTO_HEAP) -o $@ $<
+
+all: $(ALL_BINS)
+
+protocol-tests: $(CORE_BIN)
+	$(POLYML) $(POLYFLAGS) -q --use "test/PROTOCOLTEST.ML" --core "$(CORE_BIN)" --log "test/protocol-tests.log"
 
 test check: protocol-tests
 
-bin/$(THE_BIN).o: $(QUANTO_HEAP)
-	echo 'use "make_bin.ML";' | $(POLYML)
-
-# make the core object without dumping the heap
-bin/$(THE_BIN): bin/$(THE_BIN).o
-	../tools/polylinkcmd.sh bin/$(THE_BIN) bin/$(THE_BIN).o
-	@echo "Success! made binary: bin/$(THE_BIN)"
-
-bin/qconvert.o: $(QUANTO_HEAP)
-	echo 'use "convert-files.ML";' | $(POLYML)
-
-# make the core object without dumping the heap
-bin/qconvert: bin/qconvert.o
-	../tools/polylinkcmd.sh bin/qconvert bin/qconvert.o
-	@echo "Success! made binary: bin/qconvert"
-
-#	export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
-
-bin: bin/$(THE_BIN) bin/qconvert
-
-echobin:
-	@echo export LD_RUN_PATH="${POLYML_LIB}:${LD_RUN_PATH}" && cc -o bin/$(THE_BIN) bin/$(THE_BIN).o -L${POLYML_LIB} -lpolymain -lpolyml
-
 # startup an ML shell using the quanto heap
 ml-shell: $(QUANTO_HEAP)
-	@./bin/polyml-quanto
+	@../tools/polyml-toplevel -l $<
 
 run: ml-shell
 
@@ -79,7 +63,7 @@ localclean:
 	rm -f heaps/*.polyml-heap
 	rm -f bin/*.o
 	find . -type d -name .polysave | xargs rm -rf
-	rm -f bin/$(THE_BIN)
+	rm -f $(ALL_BINS)
 
 clean: localclean
 	$(MAKE) -C $(ISAPLIB_SOURCES) clean

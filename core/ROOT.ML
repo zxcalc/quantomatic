@@ -291,7 +291,6 @@ PolyML.Project.make "interface/console_lexer.ML"; (* lexer for quanto console *)
 PolyML.Project.make "interface/console.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/console_interface.ML"; (* generic protocol using commands *)
 PolyML.Project.make "interface/protocol.ML"; (* protocol for tools *)
-PolyML.Project.make "interface/run.ML";
 
 
 (*
