@@ -119,9 +119,11 @@ cat >> "$BUILDFILE" <<- EOF
 	         | _ =>
 	           (TextIO.print ("Exception raised when usiing file \"${FILE}\"\n");
 	            OS.Process.exit OS.Process.failure);
+	fun trap f () = (PolyML.exception_trace f; OS.Process.exit OS.Process.success)
+	                handle _ => OS.Process.exit OS.Process.failure;
 	PolyML.shareCommonData ${MAIN};
 	PolyML.fullGC();
-	PolyML.export("${PROG}", ${MAIN});
+	PolyML.export("${PROG}", trap ${MAIN});
 	val _ = OS.Process.exit OS.Process.success;
 	EOF
 ${POLY} -q $POLYFLAGS --use "$BUILDFILE"
