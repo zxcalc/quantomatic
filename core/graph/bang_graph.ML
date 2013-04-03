@@ -235,7 +235,7 @@ structure BBoxCRnm : COMPOUND_RENAMING
 where type obj = T and type renaming = B.Rnm.T
 
 val rename_apart_incl_bboxes : T -> T ->
-  (V.renaming * E.renaming * B.renaming) * T
+  (X.renaming * V.renaming * E.renaming * B.renaming) * T
 
 end;
 
@@ -753,20 +753,37 @@ functor BangGraphTools(G : BASIC_BANG_GRAPH)
   end);
 
   (*  *)
-  fun rename_incl_bboxes (vrn,ern,brn) g =
+  fun rename_incl_bboxes (xrn,vrn,ern,brn) g =
       let
-        val (vrn2,g') = VertexCRnm.rename vrn g
-        val (ern2,g'') = EdgeCRnm.rename ern g'
-        val (brn2,g''') = BBoxCRnm.rename brn g''
-      in ((vrn2,ern2,brn2),g''') end;
+        val (xrn2,g') = CRnmX.rename xrn g
+        val (vrn2,g'') = VertexCRnm.rename vrn g'
+        val (ern2,g''') = EdgeCRnm.rename ern g''
+        val (brn2,g'''') = BBoxCRnm.rename brn g'''
+      in ((xrn2,vrn2,ern2,brn2),g'''') end;
 
-  (* rename g2 apart from g1 *)
-  fun rename_apart_incl_bboxes g1 g2 =
+  fun rename_apart_incl_bboxes from g =
       let
-        val vrn = V.Rnm.mk_from_avoids (get_vnames g1)
-        val ern = E.Rnm.mk_from_avoids (get_enames g1)
-        val brn = B.Rnm.mk_from_avoids (get_bboxes g1)
-      in rename_incl_bboxes (vrn,ern,brn) g2 end;
+        val bad_xs = get_xnames from
+        val bad_vs = get_vnames from
+        val bad_es = get_enames from
+        val bad_bs = get_bboxes from
+        val g_xs = get_xnames g
+        val g_vs = get_vnames g
+        val g_es = get_enames g
+        val g_bs = get_bboxes g
+        val xrn = X.Rnm.mk (X.NSet.subtract g_xs bad_xs)
+                           (X.NSet.union_merge g_xs bad_xs)
+                           X.NTab.empty
+        val vrn = V.Rnm.mk (V.NSet.subtract g_vs bad_vs)
+                           (V.NSet.union_merge g_vs bad_vs)
+                           V.NTab.empty
+        val ern = E.Rnm.mk (E.NSet.subtract g_es bad_es)
+                           (E.NSet.union_merge g_es bad_es)
+                           E.NTab.empty
+        val brn = B.Rnm.mk (B.NSet.subtract g_bs bad_bs)
+                           (B.NSet.union_merge g_bs bad_bs)
+                           B.NTab.empty
+      in rename_incl_bboxes (xrn,vrn,ern,brn) g end;
 
   (* override OGraph functions *)
   (* Merge g1 into g2.

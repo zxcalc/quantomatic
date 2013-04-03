@@ -161,15 +161,7 @@ public class Toolbox extends JPanel {
 
 					@Override
 					public void mouseEntered(MouseEvent e) {
-						//Using a trick because highlightSubgraph
-						//does not highlight a subgraph but it's 
-						//graph - subgraph. 
-						CoreGraph subGraph = new CoreGraph(graph.getTheory());
-						for (Vertex subV : graph.getVertices()) {
-							subGraph.addVertex(subV);
-						}
-						subGraph.removeVertex(v);
-						view.highlightSubgraph(subGraph);
+						view.highlightSubgraph(Collections.singleton(v));
 					}
 
 					@Override

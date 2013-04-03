@@ -13,6 +13,7 @@ import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
@@ -274,6 +275,35 @@ public class QuantoApp {
 			System.setProperty(
 					"com.apple.mrj.application.apple.menu.about.name",
 					"Quanto");
+		}
+		
+		boolean no_dot = false;
+		try {
+			Process testDotProc = Runtime.getRuntime().exec(new String[] {
+				edu.uci.ics.jung.contrib.algorithms.layout.AbstractDotLayout.dotProgram,
+				"-V"
+			});
+			int result = testDotProc.waitFor();
+			if (result != 0) {
+				no_dot = true;
+			}
+		} catch (InterruptedException ex) {
+			logger.log(Level.WARNING, "Interrupted while waiting for dot", ex);
+		} catch (IOException ex) {
+			logger.log(Level.WARNING, "Error running dot", ex);
+			no_dot = true;
+		}
+		if (no_dot) {
+			String message;
+			if (dotOverride == null)
+				message = "Could not find the 'dot' executable; please make " +
+						"sure GraphViz is installed, and 'dot' is in your PATH.";
+			else
+				message = "Could not run '" + dotOverride + "'";
+			JOptionPane.showMessageDialog(null,
+					message,
+					"'dot' not found",
+					JOptionPane.ERROR_MESSAGE);
 		}
 
 		try {

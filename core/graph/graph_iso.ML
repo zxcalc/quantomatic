@@ -39,7 +39,8 @@ functor GraphIsoFun(
   type subst = Param.subst;
   type T = (VInjEndo.T * EInjEndo.T * subst);
   
-  structure Sharing = struct
+  structure Sharing =
+  struct
     type subst = subst
     type T = T
     type graph = graph;
@@ -79,14 +80,14 @@ functor GraphIsoFun(
                 (v |> VInjEndo.add (otherend n1 g) (otherend n2 h),
                  e |> EInjEndo.add n1 n2,
                  u |> match_edge_both_ways d1 d2,
-                 Seq.append t  (* push matching of the target vertex of
-                                  this edge onto the matching queue *)
+                 Seq.append t  (* push match of the target vertex of
+                                  this edge onto the match queue *)
                    (Seq.single (otherend n1 g,
                                 otherend n2 h)),
                  g |> Graph.delete_edge n1,
                  h |> Graph.delete_edge n2)
-                 handle VInjEndo.add_exp(_,_,_) => NONE
-                      | Param.match_exp _              => NONE
+                 handle VInjEndo.add_exp _ => NONE
+                      | Param.match_exp _ => NONE
              end)
           (E.NSet.seq_of hs))
     end
@@ -95,8 +96,7 @@ functor GraphIsoFun(
       (* Nothing to match; start matching new connectivity component *)
       NONE                => let
          val gbot = the (V.NSet.get_local_bot (Graph.get_vnames g))
-         (* TODO: what was this doing here???
-            val hmin = V.NSet.get_min (Graph.get_vnames h) *)
+         (* TODO: ??? val hmin = V.NSet.get_min (Graph.get_vnames h) *)
          fun maketuple n = (v,e,u,Seq.single (gbot,n),g,h);
       in Seq.map maketuple (V.NSet.seq_of (Graph.get_vnames h)) end 
       (* Something to match; return lazy list of all possible next steps *)
@@ -145,8 +145,8 @@ functor GraphIsoFun(
                                             Vertex has already been successfully
                                             matched; skip. *)
                => get_isomorphisms_match_next (v,e,u,t',g,h)
-    ) handle VInjEndo.add_exp(_,_,_) => Seq.empty
-           | Param.match_exp _              => Seq.empty
+    ) handle VInjEndo.add_exp _ => Seq.empty
+           | Param.match_exp _  => Seq.empty
   
   (* v,e are working copies of the isomorphism to be constructed;
      t is the queue of vertex pairs in the source and target graph to be

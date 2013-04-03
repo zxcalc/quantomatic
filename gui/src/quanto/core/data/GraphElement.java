@@ -54,4 +54,9 @@ public class GraphElement implements CoreObject, Comparable<GraphElement> {
 	public void setUserDataEntry(String k, String v) {
 		userData.put(k, v);
 	}
+
+	@Override
+	public String toString() {
+		return coreName == null ? "<unnamed>" : coreName;
+	}
 }

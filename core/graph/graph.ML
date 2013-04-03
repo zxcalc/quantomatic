@@ -375,16 +375,24 @@ functor GraphToolsFun(BasicGraph : BASIC_GRAPH)
         val (ern2,g4) = EdgeCRnm.rename ern g3
       in ((xrn2,vrn2,ern2),g4) end;
   
-  (* rename g2 apart from g1 *)
-  fun rename_apart g1 g2 = 
-      let 
-        val xrn = X.Rnm.mk_from_avoids 
-            (X.NSet.union_merge (get_xnames g1) (get_xnames g2))
-        val vrn = V.Rnm.mk_from_avoids 
-            (V.NSet.union_merge (get_vnames g1) (get_vnames g2))
-        val ern = E.Rnm.mk_from_avoids 
-            (E.NSet.union_merge (get_enames g1) (get_enames g2))
-      in rename (xrn,vrn,ern) g2 end;   
+  fun rename_apart from g =
+      let
+        val bad_xs = get_xnames from
+        val bad_vs = get_vnames from
+        val bad_es = get_enames from
+        val g_xs = get_xnames g
+        val g_vs = get_vnames g
+        val g_es = get_enames g
+        val xrn = X.Rnm.mk (X.NSet.subtract g_xs bad_xs)
+                           (X.NSet.union_merge g_xs bad_xs)
+                           X.NTab.empty
+        val vrn = V.Rnm.mk (V.NSet.subtract g_vs bad_vs)
+                           (V.NSet.union_merge g_vs bad_vs)
+                           V.NTab.empty
+        val ern = E.Rnm.mk (E.NSet.subtract g_es bad_es)
+                           (E.NSet.union_merge g_es bad_es)
+                           E.NTab.empty
+      in rename (xrn,vrn,ern) g end;
 
   datatype incidence_type = Incoming | Outgoing | SelfLoop;
 

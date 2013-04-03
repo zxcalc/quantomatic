@@ -943,7 +943,8 @@
  * Code: "WW"
  * Args:
  *   GraphName: String
- *   Index ::= Integer ;
+ *   Index: Integer
+ *   Format: ObjectResultFormat
  * Desc: Applies one of the attached rewrites to a graph.
  * Response: OkResponse
  * ErrorResponses: NOSUCHGRAPH | BADSTATE | OUTOFRANGE
@@ -2206,12 +2207,28 @@ struct
 
          | "WW"   =>  let
                         val graphName = readToDelim ()
-                        val index = readInt #">"
+                        val index = readInt #";"
+                        val format = case readToEnd ()
+                                       of "native"      => SOME NativeGraphFormat
+                                        | "xml"         => SOME XmlGraphFormat
+                                        | "json"        => SOME JsonGraphFormat
+                                        | "pretty"      => SOME PrettyGraphFormat
+                                        | _             => NONE
                       in
-                        ApplyAttachedRewriteRequest {
-                          graphName = graphName,
-                          index = index
-                        }
+                        case format
+                          of (SOME f) =>
+                                ApplyAttachedRewriteRequest {
+                                  graphName = graphName,
+                                  index = index,
+                                  format = f
+                                }
+                           | NONE =>
+                                DummyRequest { response =
+                                  ErrorResponse {
+                                    errorCode = "BADFORMAT",
+                                    message = "Unknown format requested"
+                                  }
+                                }
                       end
 
          | "MNL" => (assertAtEnd (); ListMetricsNamesRequest)

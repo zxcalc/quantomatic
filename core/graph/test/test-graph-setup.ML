@@ -680,6 +680,13 @@ functor Test_Graph_Tools(
     case Testing.test s f v of
          NONE => raise Testing.failed_tests_exp (!Testing.tests_failed_ref)
        | SOME x => x
+
+  fun assert_iso_graph msg exp actual =
+    if GIso.test exp actual
+    then actual
+    else (writeln "Expected:"; G.print exp;
+          writeln "Got:"; G.print actual;
+          raise Testing.assertion_failed_exp msg);
 end;
 
 
@@ -704,6 +711,9 @@ functor Test_OGraph_Tools(
   open GraphTools;
 
   structure G = OG;
+
+  fun assert_iso_graph_up_to_wires msg exp actual =
+    assert_iso_graph msg (G.minimise exp) (G.minimise actual);
 end;
 
 
@@ -770,5 +780,15 @@ functor Test_Bang_Graph_Tools(
     then () else raise ERROR(
       "expected: " ^ Int.toString n ^ " bboxes, "^
       "got: " ^ Int.toString (num_bboxes g))
+
+  fun assert_iso_graph msg exp actual =
+    if GIso.test exp actual
+    then actual
+    else (writeln "Expected:"; G.print exp;
+          writeln "Got:"; G.print actual;
+          raise Testing.assertion_failed_exp msg);
+
+  fun assert_iso_graph_up_to_wires msg exp actual =
+    assert_iso_graph msg (G.minimise exp) (G.minimise actual);
 end;
 

@@ -1,9 +1,9 @@
-structure Test_Rule = Rule(Test_Bang_Graph);
+structure Test_BG_Rule = BangGraphRule(Test_Bang_Graph);
 
 local
   structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
   open Tools;
-  structure Rule = Test_Rule;
+  structure Rule = Test_BG_Rule;
 
   fun test_mk_bad_rule (lhs,rhs) =
      (Rule.mk (lhs,rhs);
@@ -114,6 +114,49 @@ local
                     |> add_vunit1 "n1"
                     |> add_undir_eunit1 "e1" "n1" "bnd1";
   val _ = Testing.test "differing types of undirected boundaries"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val g = G.empty
+        |> add_wv "in1"
+        |> add_wv "in2"
+        |> add_wv "out1"
+        |> add_wv "out2"
+        |> add_vunit1 "n1"
+        |> add_dir_eunit1 "e1" "in1" "n1"
+        |> add_dir_eunit1 "e2" "in2" "n1"
+        |> add_dir_eunit1 "e3" "n1" "out1"
+        |> add_dir_eunit1 "e4" "n1" "out2";
+
+  val lhs = g
+          |> add_bbox "b1" []
+          |> add_bbox "b2" ["in1","in2"]
+          |> add_child_bbox "b3" "b2" ["in1"];
+  val rhs = lhs;
+  val _ = Testing.test "same bboxes" Rule.mk (lhs,rhs);
+
+  val lhs = g
+          |> add_bbox "b1" [];
+  val rhs = g
+          |> add_bbox "b2" [];
+  val _ = Testing.test "differing !-box names"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val lhs = g
+          |> add_bbox "b1" ["in1"];
+  val rhs = g
+          |> add_bbox "b1" ["in2"];
+  val _ = Testing.test "differing !-box contents"
+                       test_mk_bad_rule (lhs,rhs);
+
+  val lhs = g
+          |> add_bbox "b1" []
+          |> add_bbox "b2" ["in1","in2"]
+          |> add_child_bbox "b3" "b2" ["in1"];
+  val rhs = g
+          |> add_bbox "b1" []
+          |> add_bbox "b2" ["in1","in2"]
+          |> add_bbox "b3" ["in1"];
+  val _ = Testing.test "differing !-box parents"
                        test_mk_bad_rule (lhs,rhs);
 
 in

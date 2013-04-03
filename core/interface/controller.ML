@@ -108,7 +108,7 @@ struct
                    | AttachRewritesRequest of { graphName: string, vertexNames: string list }
                    | AttachOneRewriteRequest of { graphName: string, vertexNames: string list }
                    | ListAttachedRewritesRequest of { graphName: string, format: resultFormat }
-                   | ApplyAttachedRewriteRequest of { graphName: string, index: int }
+                   | ApplyAttachedRewriteRequest of { graphName: string, index: int, format: graphFormat }
 
                    (*** Metrics related commands ***)
                    | ListMetricsNamesRequest
@@ -450,6 +450,26 @@ struct
                     EData.pretty_data e
                    ]
 
+  fun output_graph graphName format state =
+  let
+    val v as (graph,_) = get_graph_and_ud graphName state
+  in
+    case format
+      of NativeGraphFormat =>
+           let
+             val json = TheoryIO.OutputGraphJSON.output v
+           in
+             (DataResponse { data = Json.encode json}, state)
+           end
+       | XmlGraphFormat =>
+           (XmlResponse { data = OutputXML.Graph.output graph}, state)
+       | JsonGraphFormat =>
+           (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
+       | PrettyGraphFormat =>
+           (PrettyResponse { data = G.pretty graph}, state)
+       | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
+  end
+
 
   fun serviceRequest' (DummyRequest { response }) (state:State.T) = (response, state)
 
@@ -563,24 +583,7 @@ struct
         (OkResponse, State.kill_graph (GraphName.mk graphName) state)
 
     | serviceRequest' (ExportGraphRequest { graphName, format }) state =
-        let
-          val v as (graph,_) = get_graph_and_ud graphName state
-        in
-          case format
-            of NativeGraphFormat =>
-                 let
-                   val json = TheoryIO.OutputGraphJSON.output v
-                 in
-                   (DataResponse { data = Json.encode json}, state)
-                 end
-             | XmlGraphFormat =>
-                 (XmlResponse { data = OutputXML.Graph.output graph}, state)
-             | JsonGraphFormat =>
-                 (JsonResponse { data = TheoryIO.OutputGraphJSON.output v}, state)
-             | PrettyGraphFormat =>
-                 (PrettyResponse { data = G.pretty graph}, state)
-             | _ => (ErrorResponse { errorCode = "NOTIMP", message = "Not implemented" }, state)
-        end
+        output_graph graphName format state
 (*
 fun hilb ([format], graph) =
     (DATA (Pretty.string_of (
@@ -876,8 +879,9 @@ fun hilb ([format], graph) =
             let
               val gname = (GraphName.mk graphName)
               val (nm,state') = State.add_bang gname state
-              val state'' = if vertexNames = [] then state' else
-                               State.bang_vertices nm (map V.mk vertexNames) gname state'
+              val (_,state'') = if vertexNames = []
+                                then (V.NSet.empty,state')
+                                else State.bang_vertices nm (map V.mk vertexNames) gname state'
             in
               case resultFormat
                 of BasicFormat => (StringResponse { data = B.dest nm }, state'')
@@ -894,7 +898,7 @@ fun hilb ([format], graph) =
                  | JsonFormat =>
                        (JsonResponse {
                           data = TheoryIO.OutputGraphJSON.output_bangbox
-                                  (get_graph_and_ud graphName state)
+                                  (get_graph_and_ud graphName state'')
                                   nm
                         },state'')
                  | DescriptionFormat => let
@@ -925,18 +929,30 @@ fun hilb ([format], graph) =
               (StringResponse { data = B.dest nm }, state')
             end
         | BangVerticesAction { bangBoxName, vertexNames } =>
-            (* FIXME: return a description of the !-box *)
-            (* Some extra verts may have been added *)
-            (OkResponse,
-             State.bang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
+            let val (vset,state') =
+              State.bang_vertices (B.mk bangBoxName)
+                                  (map V.mk vertexNames)
+                                  (GraphName.mk graphName)
+                                  state
+            in
+              (StringListResponse { data = map V.dest (V.NSet.list_of vset) },
+              state')
+            end
         | CompletelyUnbangVerticesAction { vertexNames } =>
+            (* FIXME: return a description of the !-boxes *)
+            (* Some extra verts may have been removed *)
             (OkResponse,
              State.completely_unbang_vertices (map V.mk vertexNames) (GraphName.mk graphName) state)
         | UnbangVerticesAction { bangBoxName, vertexNames } =>
-            (* FIXME: return a description of the !-box *)
-            (* Some extra verts may have been removed *)
-            (OkResponse,
-             State.unbang_vertices (B.mk bangBoxName) (map V.mk vertexNames) (GraphName.mk graphName) state)
+            let val (vset,state') =
+              State.unbang_vertices (B.mk bangBoxName)
+                                    (map V.mk vertexNames)
+                                    (GraphName.mk graphName)
+                                    state
+            in
+              (StringListResponse { data = map V.dest (V.NSet.list_of vset) },
+              state')
+            end
         | SetBangBoxUserDataAction { bangBoxName, dataName, userData } =>
             (OkResponse,
               State.set_bangbox_ud_property dataName userData (B.mk bangBoxName) (GraphName.mk graphName) state)
@@ -1137,9 +1153,12 @@ fun hilb ([format], graph) =
                   }, state)
         end
 
-    | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int }) state =
-        (OkResponse,
-         State.apply_rewrite (GraphName.mk graphName) index state)
+    | serviceRequest' (ApplyAttachedRewriteRequest { graphName, index: int, format }) state =
+        let
+          val state' = State.apply_rewrite (GraphName.mk graphName) index state
+        in
+          output_graph graphName format state'
+        end
     | serviceRequest' ListMetricsNamesRequest state =
       (StringListResponse { data = State.get_names_metrics state }, state)
     | serviceRequest' ListMetricsDescsRequest state =
@@ -1332,6 +1351,11 @@ fun hilb ([format], graph) =
                 ErrorResponse {
                   errorCode = "NOTANINT",
                   message = (s^" could not be parsed as an integer")
+                }
+           | State.duplicate_name_exp () =>
+                ErrorResponse {
+                  errorCode = "DUPLICATENAME",
+                  message = "Duplicate names in arguments"
                 }
  
            );

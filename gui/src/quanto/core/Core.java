@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -199,11 +200,13 @@ public class Core {
 	public void undoRewrite(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.undoRewrite(graph.getCoreName());
+		updateGraph(graph);
 	}
 
 	public void redoRewrite(CoreGraph graph) throws CoreException {
 		assertCoreGraph(graph);
 		talker.redoRewrite(graph.getCoreName());
+		updateGraph(graph);
 	}
 
 	public void startUndoGroup(CoreGraph graph) throws CoreException {
@@ -297,35 +300,51 @@ public class Core {
 		}
 		graph.fireStateChanged();
 	}
+	
+	private Collection<Vertex> lookupVertices(CoreGraph graph, Collection<String> vnames) {
+		List<Vertex> verts = new ArrayList<Vertex>(vnames.size());
+		for (Vertex v : graph.getVertices()) {
+			if (vnames.contains(v.getCoreName()))
+				verts.add(v);
+		}
+		return verts;
+	}
 
 	public BangBox addBangBox(CoreGraph graph, Collection<Vertex> vertices)
 			throws CoreException {
-		assertCoreGraph(graph);
-		BangBox bb = new BangBox(talker.addBangBox(graph.getCoreName(), names(vertices)));
-		graph.addBangBox(bb, vertices);
-		graph.fireStateChanged();
-		return bb;
+		try {
+			assertCoreGraph(graph);
+			String bbdesc = talker.addBangBox(graph.getCoreName(), names(vertices));
+			JsonNode bbjson = jsonMapper.readTree(bbdesc);
+			BangBox.BangBoxData bbdata = BangBox.fromJson(graph.getTheory(), bbjson);
+			graph.addBangBox(bbdata.bangBox, lookupVertices(graph, bbdata.contents));
+			graph.fireStateChanged();
+			return bbdata.bangBox;
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Could not parse JSON from core", ex);
+		}
 	}
 
-	public void bangVertices(CoreGraph graph, BangBox bangBox, Collection<Vertex> vertices)
+	public Collection<Vertex> bangVertices(CoreGraph graph, BangBox bangBox, Collection<Vertex> vertices)
 			throws CoreException {
 		assertCoreGraph(graph);
 		if (!graph.containsBangBox(bangBox)) {
 			throw new IllegalStateException("The graph does not contain that !-box");
 		}
-		talker.bangVertices(graph.getCoreName(), bangBox.getCoreName(), names(vertices));
-		graph.addVerticesToBangBox(bangBox, vertices);
+		String[] vnames = talker.bangVertices(graph.getCoreName(), bangBox.getCoreName(), names(vertices));
+		Collection<Vertex> vs = lookupVertices(graph, Arrays.asList(vnames));
+		graph.addVerticesToBangBox(bangBox, vs);
 		graph.fireStateChanged();
+		return vs;
 	}
 
 	public void removeVerticesFromBangBoxes(CoreGraph graph,
 			Collection<Vertex> vertices) throws CoreException {
 		assertCoreGraph(graph);
 		talker.unbangVertices(graph.getCoreName(), names(vertices));
-		for (BangBox bb: graph.getBangBoxes()) {
-			graph.removeVerticesFromBangBox(bb, vertices);
-		}
-		graph.fireStateChanged();
+		updateGraph(graph);
 	}
 
 	public void dropBangBoxes(CoreGraph graph, Collection<BangBox> bboxen)
@@ -533,7 +552,16 @@ public class Core {
 
 	public void applyAttachedRewrite(CoreGraph graph, int i)
 			throws CoreException {
-		talker.applyAttachedRewrite(graph.getCoreName(), i);
+		try {
+			String json = talker.applyAttachedRewrite(graph.getCoreName(), i);
+			JsonNode node = jsonMapper.readValue(json, JsonNode.class);
+			graph.updateFromJson(node);
+			graph.fireStateChanged();
+		} catch (IOException ex) {
+			throw new CoreCommunicationException("Failed to parse JSON from core", ex);
+		} catch (ParseException ex) {
+			throw new CoreCommunicationException("Failed to parse JSON from core", ex);
+		}
 	}
 
 	/**

@@ -83,6 +83,10 @@ public class SplitGraphView extends InteractiveView {
 		}
 	};
 
+	public Rule getRule() {
+		return rule;
+	}
+
 	public SplitGraphView(Core core, Rule rule)
 			throws CoreException {
 		this(core, rule, new Dimension(800, 600));
