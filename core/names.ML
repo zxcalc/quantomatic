@@ -113,4 +113,21 @@ in
 (* Put Quanto names into the top-level along with the appropriate 
    constraints. *)
 open QuantoNames;
+
+(* new unified-mapping structures *)
+structure VTab = NameTable(structure Dom = V)
+structure ETab = NameTable(structure Dom = E)
+structure BTab = NameTable(structure Dom = B)
+structure XTab = NameTable(structure Dom = X)
+structure RTab = NameTable(structure Dom = R)
+structure TTab = NameTable(structure Dom = T)
+
+structure EVFn = NameFunction(structure Dom = E; structure Cod = V)
+structure BVRl = NameRelation(structure Dom = B; structure Cod = V)
+structure BBFn = NameFunction(structure Dom = B; structure Cod = B)
+
+structure VXRl = NameRelation(structure Dom = V; structure Cod = X)
+structure EXRl = NameRelation(structure Dom = E; structure Cod = X)
+ 
+
 end;
