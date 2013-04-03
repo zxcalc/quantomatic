@@ -25,6 +25,11 @@ sig
   structure Match : OGRAPH_MATCH_STATE
   sharing Match.G.SharingOGraph = Graph.SharingOGraph;
 
+  (* Matching algorithm *)
+  structure MatchSearch : MATCH_SEARCH
+  sharing MatchSearch.Sharing.MatchState = Match.Sharing
+  sharing MatchSearch.Sharing.G = Graph.SharingOGraph
+
   (* Sets of rules and matching for those sets *)
   structure RulesetRewriter : RULESET_REWRITER
   sharing RulesetRewriter.Sharing.Ruleset = Ruleset.Sharing 
