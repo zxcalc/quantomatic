@@ -62,8 +62,7 @@ functor SimpleInnerMatchSearch(
     val tgt = MatchState.get_tgt ms
   in fold (fn (s,t,_,_) =>
        if G.is_wire_vertex tgt s andalso V.name_eq (s,t) andalso      (* is a circle *)
-       not (VInjEndo.cod_contains (MatchState.get_vmap ms) s) andalso (* not matched *)
-       not (VInjEndo.cod_contains (MatchState.get_vmap ms) s)         (* in target *)
+       not (VInjEndo.cod_contains (MatchState.get_vmap ms) s)         (* not matched *)
        then V.NSet.add s else I) (G.get_wire_list tgt) V.NSet.empty
   end
 
