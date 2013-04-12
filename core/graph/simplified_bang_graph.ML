@@ -426,6 +426,16 @@ end handle X.Rnm.invalid_renaming_exp _ =>
 fun try_rename1_xname n1 n2 g = SOME (rename_xname n1 n2 g)
   handle xname_already_exists_exp _ => NONE
 
+(*(* rename vertices using injective map *)
+fun rename_vertices inj g = let
+  val rnm = VInj.inverse_of inj
+  val prm = V.NSet.fold (fn v => Param.rename_vname v (VInj.get inj v))
+                        (VInj.get_dom_set inj) (get_param g)
+in
+  g |> set_param prm
+    |> update_vdata (fn m => VTab.compose (inj,m))
+end*)
+
 (* V.name = suggested name *)
 (* rename all occurances of old name (1st arg) with new name (2nd arg) 
    n2 must not exist already, n1 must exist *)
