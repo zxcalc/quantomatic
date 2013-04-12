@@ -41,14 +41,11 @@ signature BANG_GRAPH_MATCH_STATE
   val get_warnings : T -> Warning list
   val add_warning  : Warning -> T -> T
 
-  (* initialise MatchState and schedule all concrete vertices in pattern
-   * to be matched
-   * args: pattern graph, target graph *)
-  val init_and_schedule_concrete : G.T -> G.T -> T
-  val init_subgraph_and_schedule_concrete : G.T -> G.T -> V.NSet.T -> T
   (* schedules all the concrete vertices that have not been seen before
    *)
   val schedule_new_concrete : T -> T
+  (* schedules all the concrete vertices in the pattern *)
+  val schedule_concrete_pat : T -> T
 
   val expand_pat_bbox : B.name -> T -> T
   val kill_pat_bbox : B.name -> T -> T
@@ -229,18 +226,6 @@ functor BangGraphMatchState(
        |> extend_ps_nodeverts to_sched
   end
 
-  (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
-   * normalised *)
-  fun init_and_schedule_concrete pat tgt =
-    schedule_concrete (G.get_vnames pat) (G.get_enames pat) (init pat tgt)
-
-  (* NB: undefined behaviour if !-boxes not open subgraphs or graphs not
-   * normalised *)
-  fun init_subgraph_and_schedule_concrete pat tgt tgt_verts =
-    schedule_concrete (G.get_vnames pat)
-                      (G.get_enames pat)
-                      (init_subgraph pat tgt tgt_verts)
-
   fun schedule_new_concrete ms = let
     val new_vs = V.NSet.subtract (G.get_vnames (get_pat ms))
                                  (VInjEndo.get_domset (get_vmap ms))
@@ -248,6 +233,12 @@ functor BangGraphMatchState(
                                  (EInjEndo.get_domset (get_emap ms))
   in
     schedule_concrete new_vs new_es ms
+  end
+  fun schedule_concrete_pat ms = let
+    val vs = G.get_vnames (get_pat ms)
+    val es = G.get_enames (get_pat ms)
+  in
+    schedule_concrete vs es ms
   end
 
   fun replay_bbox_op _ (BBKill b) g = BG.kill_bbox b g

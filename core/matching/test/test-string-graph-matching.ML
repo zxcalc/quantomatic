@@ -249,7 +249,6 @@ struct
   val _ = Testing.test "match: undir bare wire (eunit1) --> undir barbell (eunit1)"
                        (find_n_correct_matches 2) (undir_bare_wire1,undir_barbell);
 
-
   (*
    * Matching node-vertices against other node-vertices
    *)

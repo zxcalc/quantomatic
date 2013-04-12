@@ -81,6 +81,9 @@ val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
    all incident edges to selection are removed; Like copy in a graphics program *)
 val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 
+(* Split an edge into two edges, connected by a wire-vertex *)
+val split_edge : E.name -> T -> (E.name * V.name * E.name) * T
+
 type Wire = V.name * V.name * V.NSet.T * E.NSet.T;
 
 (*** functions useful when dealing ignorantly with undirected edges ***)
@@ -662,6 +665,16 @@ functor OGraphFun(G : BASIC_OGRAPH)
            let val edges = E.NSet.union_merge in_e out_e in
              E.NSet.tryget_singleton (E.NSet.delete e edges)
            end
+  end
+  
+  fun split_edge e g = let
+    val (dd, (s,t)) = get_edge g e
+    val g' = delete_edge e g
+    val (vn,g') = add_vertex OVData.WVert g'
+    val (e1,g') = add_edge dd s vn g'
+    val (e2,g') = add_edge dd vn t g'
+  in
+    ((e1,vn,e2),g')
   end
   
   (* the edge-set is unique to a particular wire *)

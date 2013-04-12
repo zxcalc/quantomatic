@@ -103,9 +103,11 @@ struct
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
     val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
-    val ms = BGMatchState.init_and_schedule_concrete pat tgt
-              |> BGMatchState.set_pat_avoids avoid
-              |> BGMatchState.set_pat_tracked track
+    val ms = BGMatchState.init pat tgt
+           |> BGMatchState.set_pat_avoids avoid
+           |> BGMatchState.set_pat_tracked track
+           |> BGMatchState.schedule_concrete_pat
+           |> BGMatchState.schedule_all_tgt
   in
     match_loop ms
   end
@@ -120,9 +122,11 @@ struct
     val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
     val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
     val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
-    val ms = BGMatchState.init_subgraph_and_schedule_concrete pat tgt tgt_verts
-              |> BGMatchState.set_pat_avoids avoid
-              |> BGMatchState.set_pat_tracked track
+    val ms = BGMatchState.init pat tgt
+           |> BGMatchState.set_pat_avoids avoid
+           |> BGMatchState.set_pat_tracked track
+           |> BGMatchState.schedule_concrete_pat
+           |> BGMatchState.schedule_tgt_subgraph tgt_verts
   in
     match_loop ms
   end

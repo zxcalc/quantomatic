@@ -131,7 +131,7 @@ struct
 
   fun sg_rewrite_at m rhs =
     let
-      val g = MatchState.get_full_tgt m
+      val g = MatchState.get_tgt m
       val pat = MatchState.get_pat m
       val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
       val shared_boundary = G.get_boundary pat;

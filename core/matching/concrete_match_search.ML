@@ -18,7 +18,7 @@ struct
   (* We just put everything in the match state, and for each match
    * provided by the inner loop, we match the bare wires, and discard any
    * incomplete matches (as we have nothing left to add to the pattern) *)
-  fun do_match ms = 
+  fun do_match ms =
     Seq.filter MatchState.is_total
        (Seq.maps InnerMatchSearch.match_bare_wires
         (InnerMatchSearch.match_pending concrete_doomedf ms))
@@ -45,7 +45,7 @@ struct
     val _ = log_graph 3 "ConcreteMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "ConcreteMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "ConcreteMatchSearch: target vertices" tgt_verts
-    val ms = MatchState.init_subgraph_and_schedule_all pat tgt tgt_verts
+    val ms = MatchState.init_and_schedule_for_subgraph pat tgt tgt_verts
   in
     do_match ms
   end

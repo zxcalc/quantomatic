@@ -43,7 +43,7 @@ struct
   fun assert_match_correct orig_pat orig_tgt m = let
     val pat = MS.get_pat m
     val tgt = MS.get_tgt m
-    val full_tgt = MS.get_full_tgt m
+    val tgt_verts = MS.get_tgt_verts m
     val vmap = MS.get_vmap m
     val vmapf = VInjEndo.domf vmap
     val emap = MS.get_emap m
@@ -51,11 +51,9 @@ struct
     val subst = MS.get_match_subst m
 
     val _ = assert_iso_graph_up_to_wires "Pattern correct" orig_pat pat
-    val _ = assert_iso_graph_up_to_wires "Target correct" orig_tgt full_tgt
-    val _ = Testing.assert "tgt subgraph of full_tgt"
-        (* FIXME: check properly; put subgraph test in graph.ML? *)
-        (*        should also be full *)
-        (V.NSet.sub_set (G.get_vnames tgt) (G.get_vnames full_tgt))
+    val _ = assert_iso_graph_up_to_wires "Target correct" orig_tgt tgt
+    val _ = Testing.assert "T subset of tgt verts"
+        (V.NSet.sub_set tgt_verts (G.get_vnames tgt))
     val _ = Testing.assert "vmap total"
         (V.NSet.eq (G.get_vnames pat) (VInjEndo.get_domset vmap))
     val _ = Testing.assert "emap total"
@@ -64,6 +62,9 @@ struct
         (V.NSet.sub_set (VInjEndo.get_codset vmap) (G.get_vnames tgt))
     val _ = Testing.assert "emap image in tgt"
         (E.NSet.sub_set (EInjEndo.get_codset emap) (G.get_enames tgt))
+    val _ = Testing.assert "T does not intersect cod vmap"
+        (V.NSet.is_empty (V.NSet.intersect tgt_verts
+                                           (VInjEndo.get_codset vmap)))
 
     fun assert_edge_coherent e = let
       val ((dir,_),(s,t)) = G.get_edge pat e
