@@ -97,6 +97,7 @@ signature GRAPH_PARAM
 
   val replace_vertex : VData.data -> V.name -> T -> T
   val replace_edge : EData.data -> E.name -> T -> T
+  
 
   (* CONSIDER: move to unifiable data? *)
   val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;

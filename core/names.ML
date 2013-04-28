@@ -123,7 +123,7 @@ structure RTab = NameTable(structure Dom = R)
 structure TTab = NameTable(structure Dom = T)
 
 structure EVFn = NameFunction(structure Dom = E; structure Cod = V)
-structure BVRl = NameRelation(structure Dom = B; structure Cod = V)
+structure BVRel = NameRelation(structure Dom = B; structure Cod = V)
 structure BBFn = NameFunction(structure Dom = B; structure Cod = B)
 
 structure VSub = NameSubstitution(structure Name = V)
@@ -131,8 +131,8 @@ structure ESub = NameSubstitution(structure Name = E)
 structure BSub = NameSubstitution(structure Name = B)
 structure XSub = NameSubstitution(structure Name = X)
 
-structure VXRl = NameRelation(structure Dom = V; structure Cod = X)
-structure EXRl = NameRelation(structure Dom = E; structure Cod = X)
+structure VXRel = NameRelation(structure Dom = V; structure Cod = X)
+structure EXRel = NameRelation(structure Dom = E; structure Cod = X)
  
 
 end;

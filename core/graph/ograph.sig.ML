@@ -6,7 +6,7 @@ signature OGRAPH =
 sig
 
 type T (* an open graph *)
-type Wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
+type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 
 val empty : T
 
@@ -33,8 +33,9 @@ exception bad_graph_merge_exp of T * T * T
 exception not_an_endpoint_exp of string * E.name * V.name
 
 exception wire_vertex_exp of string * T * V.name
-exception wire_exp of string * T * Wire
+exception wire_exp of string * T * wire
 
+exception plugging_exp of T * V.name * V.name
 
 (*******************************)
 (*********** GRAPHS ************)
@@ -81,6 +82,12 @@ val set_vertex_data : OVData.data -> V.name -> T -> T
 val set_edge_data : EData.data -> E.name -> T -> T
 (* val set_edge_dir_or_undir : dir_or_undir -> E.name -> T -> T *)
 
+val is_wire_vertex    : T -> V.name -> bool
+val is_node_vertex    : T -> V.name -> bool
+val get_wire_vertices : T -> V.NSet.T
+val get_node_vertices : T -> V.NSet.T
+
+
 (* TODO *)
 (*val apply_data_subst : Param.subst -> T -> T*)
 
@@ -122,66 +129,45 @@ val get_arity : T -> V.name -> Arity.T
 val get_self_loops : T -> V.name -> E.NSet.T
 
 val try_rename1_xname : X.name -> X.name -> T -> T option
-(*val try_rename1_vname : V.name -> V.name -> T -> T option
-val try_rename1_ename : E.name -> E.name -> T -> T option*)
+val try_rename1_vname : V.name -> V.name -> T -> T option
+val try_rename1_ename : E.name -> E.name -> T -> T option
 
-(*
+
 
 (* remove the first graph from the second, assumes first is a subgraph *)
 val delete_subgraph : T -> T -> T
 
-
-
 (* edges between two vertices *)
 val has_edges_between : T -> V.name -> V.name -> bool
-val enames_between : T -> V.name -> V.name -> E.NSet.T
-val edges_between : T -> V.name -> V.name 
-      -> (dir_or_undir * EData.data) E.NTab.T (* in either dir *)
-val dir_enames_between : T -> V.name -> V.name 
-      -> E.NSet.T (* from fst to snd vertex *) 
-         * E.NSet.T (* from snd to fst vertex *) 
+val edges_between : T -> V.name -> V.name -> E.NSet.T
+
 val dir_edges_between : T -> V.name -> V.name 
-      -> (dir_or_undir * EData.data) E.NTab.T (* from fst to snd vertex *) 
-         * (dir_or_undir * EData.data) E.NTab.T (* from snd to fst vertex *) 
-
-(* get adjacent vertices to some vertex *)
-val adj_vnames : T -> V.name -> V.NSet.T
-    
+        -> E.NSet.T (* from fst to snd vertex *) 
+         * E.NSet.T (* from snd to fst vertex *)   
 
 
-(* renaming *)
+
+(*
+(* TODO: renaming *)
 
 
 val rename : (X.renaming * V.renaming * E.renaming) -> T 
     -> (X.renaming * V.renaming * E.renaming) * T 
 (* rename the 2nd graph to avoid all names in the first one *)
 val rename_apart : T -> T -> (X.renaming * V.renaming * E.renaming) * T 
+*)
 
 
 (*******************************)
 (********* OPEN GRAPHS *********)
 (*******************************)
 
-
-(* boundaries represent end of a half-edge.  *)
 val get_boundary : T -> V.NSet.T
-val get_inputs : T -> V.NSet.T
-val get_outputs : T -> V.NSet.T
-val is_boundary : T -> V.name -> bool
-
-(* internal: don't presurve well-formedness *)
-val add_to_boundary : V.name -> T -> T
-val del_from_boundary : V.name -> T -> T
-val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
-
-
-(* Given selection set of vertices, make subgraph: 
-   all incident edges to selection are removed; Like copy in a graphics program *)
-val delete_subgraph_outside_vset : V.NSet.T -> T -> T
-
-
-(*** functions useful when dealing ignorantly with undirected edges ***)
-
+val get_inputs   : T -> V.NSet.T
+val get_outputs  : T -> V.NSet.T
+val is_boundary  : T -> V.name -> bool
+val is_input     : T -> V.name -> bool
+val is_output    : T -> V.name -> bool
 
 
 (* Given a wire vertex and an edge, give the other connected edge, if it
@@ -190,114 +176,29 @@ val delete_subgraph_outside_vset : V.NSet.T -> T -> T
 val wv_get_other_edge : T -> V.name -> E.name -> E.name option
 
 (* Wire equality; assumes the wires are in the same graph *)
-val wire_eq : Wire -> Wire -> bool
+val wire_eq : wire -> wire -> bool
 (* An arbitrary total order on wires; assumes the wires are in the same graph *)
-val wire_ord : Wire * Wire -> order
+val wire_ord : wire * wire -> order
 
-val pretty_wire : Wire -> Pretty.T
+val pretty_wire : wire -> Pretty.T
+
 
 (* Deletes a wire, except for the end-points.
  *
  * Note that deleting a boundary wire, a bare wire or a circle
  * will leave an isolated wire-vertex behind.
  *)
-val delete_wire : Wire -> T -> T
-
-(* raises wire_exp if the wire is not coherent *)
-val assert_wire_coherent : T -> Wire -> Wire
-
-(* Returns true if minimising the wire would have no effect *)
-val is_wire_minimal : T -> Wire -> bool
-(* Removes any unnecessary wire vertices from a wire
- *
- * Raises an exception if the wire is not coherent.
- *
- * Returns the new wire and the new graph
- *)
-val minimise_wire : Wire -> T -> Wire * T
-(* Same as minimise_wire, but does not give you the wire back *)
-val do_minimise_wire : Wire -> T -> T
-
-(* Returns true if normalising the wire would have no effect *)
-val is_wire_normalised : T -> Wire -> bool
-(* Ensures that there are exactly two wire-vertices on the wire if
- * it is an internal wire (one between two node-vertices), and
- * minimises the wire otherwise.
- *
- * Raises an exception if the wire is not coherent.
- *
- * Returns the new wire and the new graph
- *)
-val normalise_wire : Wire -> T -> Wire * T
-(* Same as normalise_wire, but does not give you the wire back *)
-val do_normalise_wire : Wire -> T -> T
+val delete_wire : wire -> T -> T
 
 (* Return the endpoints, intermediate wire-vertices, and edges of the wire containing the given
    edge. The first endpoint is the one closest to the source of the edge. *)
-val get_wire_containing_edge : T -> E.name -> Wire
+val get_wire_containing_edge : T -> E.name -> wire
 
 (* Return a list of all the wires in the graph that contain any of the given edges *)
-val get_wires_for_edges : T -> E.NSet.T -> Wire list
+val get_wires_for_edges : T -> E.NSet.T -> wire list
 
 (* Return a list of all the wires in the graph *)
-val get_wire_list : T -> Wire list
-
-val is_input_vertex : T -> V.name -> bool
-val is_output_vertex : T -> V.name -> bool
-val is_boundary_vertex : T -> V.name -> bool
-
-val is_wire_vertex    : T -> V.name -> bool
-val is_node_vertex    : T -> V.name -> bool
-val get_wire_vertices : T -> V.NSet.T
-val get_node_vertices : T -> V.NSet.T
-
-exception plugging_exp of (T*V.name*V.name);
-
-(* True if and only if one of the given vertices is
- * an input and one an output with the same edge data *)
-val are_pluggable : T -> V.name -> V.name -> bool
-(* Get an edge that can join two boundary vertices, if
- * there is such an edge.
- *
- * This will return NONE exactly when are_verts_pluggable
- * returns false
- *)
-(* copied from BASIC_BANG_GRAPH *)
-val get_plugging : T -> V.name -> V.name
-  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
-(* Plug two boundary vertices together.
- *
- * Raises plugging_exp if the vertices are not pluggable.
- *
- * Returns the name of the created edge.
- *)
-val plug : V.name -> V.name -> T -> (E.name * T)
-(* Exactly like plug, but does not return the edge name. *)
-val do_plug : V.name -> V.name -> T -> T
-(* Plug two boundary vertices together and minimises the
- * plugged wire (so all unnecessary wire vertices will be
- * removed).
- *
- * Raises plugging_exp if the vertices are not pluggable.
- *
- * Returns the new wire
- *)
-val plug_and_minimise : V.name -> V.name -> T -> (Wire * T)
-(* Exactly like plug_and_minimise, but does not return the wire. *)
-val do_plug_and_minimise : V.name -> V.name -> T -> T
-(* Plug two boundary vertices together and normalises the
- * plugged wire.
- *
- * Raises plugging_exp if the vertices are not pluggable.
- *
- * Returns the new wire
- *)
-val plug_and_normalise : V.name -> V.name -> T -> (Wire * T)
-(* Exactly like plug_and_normalise, but does not return the wire. *)
-val do_plug_and_normalise : V.name -> V.name -> T -> T
-
-(* TODO: ? *)
-(*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
+val get_wire_list : T -> wire list
 
 (* Return a graph that has exactly two edge points
  * on every wire between two node-vertices, and no
@@ -319,6 +220,53 @@ val normalise : T -> T
  *)
 val minimise : T -> T
 
+
+val get_plugging : T -> V.name -> V.name
+  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
+
+(* True if and only if one of the given vertices is
+ * an input and one an output with the same edge data *)
+val are_pluggable : T -> V.name -> V.name -> bool
+(* Get an edge that can join two boundary vertices, if
+ * there is such an edge.
+ *
+ * This will return NONE exactly when are_verts_pluggable
+ * returns false
+ *)
+(* copied from BASIC_BANG_GRAPH *)
+
+(* Plug two boundary vertices together.
+ *
+ * Raises plugging_exp if the vertices are not pluggable.
+ *
+ * Returns the name of the created edge.
+ *)
+val plug : V.name -> V.name -> T -> (E.name * T)
+(* Exactly like plug, but does not return the edge name. *)
+val do_plug : V.name -> V.name -> T -> T
+
+(* Plug two boundary vertices together and minimises the
+ * plugged wire (so all unnecessary wire vertices will be
+ * removed).
+ *
+ * Raises plugging_exp if the vertices are not pluggable.
+ *
+ * Returns the new wire
+ *)
+val plug_and_minimise : V.name -> V.name -> T -> (wire * T)
+(* Exactly like plug_and_minimise, but does not return the wire. *)
+val do_plug_and_minimise : V.name -> V.name -> T -> T
+(* Plug two boundary vertices together and normalises the
+ * plugged wire.
+ *
+ * Raises plugging_exp if the vertices are not pluggable.
+ *
+ * Returns the new wire
+ *)
+val plug_and_normalise : V.name -> V.name -> T -> (wire * T)
+(* Exactly like plug_and_normalise, but does not return the wire. *)
+val do_plug_and_normalise : V.name -> V.name -> T -> T
+
 (* Returns the minimal subgraph containing the given node vertices,
  * with wires preserved.
  *
@@ -333,6 +281,10 @@ val minimise : T -> T
  * This will NOT WORK if the graph is not normalised.
  *)
 val get_open_subgraph : V.NSet.T -> T -> T
+
+(*
+(* TODO: ? *)
+(*val fold_adj_wire_vertices : (V.name * E.name -> 'a -> 'a) -> T -> V.name -> E.name V.NTab.T*)
 
 *)
 
@@ -403,6 +355,74 @@ val get_edge_list : T -> (E.name * ((dir_or_undir * EData.data)
                    * (V.name (* from this vertex *)
                       * V.name))) (* to this vertex *)
                     list
+                    
+val enames_between : T -> V.name -> V.name -> E.NSet.T
+
+CHANGED SIG: val edges_between : T -> V.name -> V.name -> (dir_or_undir * EData.data) E.NTab.T (* in either dir *)
+
+
+val dir_enames_between : T -> V.name -> V.name 
+      -> E.NSet.T (* from fst to snd vertex *) 
+         * E.NSet.T (* from snd to fst vertex *)
+         
+CHANGED SIG: val dir_edges_between : T -> V.name -> V.name 
+      -> (dir_or_undir * EData.data) E.NTab.T (* from fst to snd vertex *) 
+         * (dir_or_undir * EData.data) E.NTab.T (* from snd to fst vertex *) 
+
+
+(* get adjacent vertices to some vertex *)
+val adj_vnames : T -> V.name -> V.NSet.T
+
+(* internal: don't preserve well-formedness *)
+val add_to_boundary : V.name -> T -> T
+val del_from_boundary : V.name -> T -> T
+val update_boundary : (V.NSet.T -> V.NSet.T) -> T -> T
+
+
+TODO: move this into controller_state (the only place it is used)
+(* Given selection set of vertices, make subgraph: 
+   all incident edges to selection are removed; Like copy in a graphics program *)
+val delete_subgraph_outside_vset : V.NSet.T -> T -> T
+
+*** Now called is_input, is_output, is_boundary
+
+val is_input_vertex : T -> V.name -> bool
+val is_output_vertex : T -> V.name -> bool
+val is_boundary_vertex : T -> V.name -> bool
+
+
+*** These are now all private functions
+
+(* raises wire_exp if the wire is not coherent *)
+val assert_wire_coherent : T -> wire -> wire
+
+(* Returns true if minimising the wire would have no effect *)
+val is_wire_minimal : T -> wire -> bool
+
+(* Removes any unnecessary wire vertices from a wire
+ *
+ * Raises an exception if the wire is not coherent.
+ *
+ * Returns the new wire and the new graph
+ *)
+val minimise_wire : wire -> T -> wire * T
+(* Same as minimise_wire, but does not give you the wire back *)
+val do_minimise_wire : wire -> T -> T
+
+(* Returns true if normalising the wire would have no effect *)
+val is_wire_normalised : T -> wire -> bool
+(* Ensures that there are exactly two wire-vertices on the wire if
+ * it is an internal wire (one between two node-vertices), and
+ * minimises the wire otherwise.
+ *
+ * Raises an exception if the wire is not coherent.
+ *
+ * Returns the new wire and the new graph
+ *)
+val normalise_wire : wire -> T -> wire * T
+(* Same as normalise_wire, but does not give you the wire back *)
+val do_normalise_wire : wire -> T -> T
+
 *)
 
 end
