@@ -15,6 +15,9 @@
   <property name="resources" location="resources"/>
   <property environment="env" />
 
+  <!-- Java version we are compatible with -->
+  <property name="ant.build.javac.source" value="1.6"/>
+
 
   <!-- classpath we use for building, just all the JARs in ${lib} -->
   <path id="quanto.classpath.build">
