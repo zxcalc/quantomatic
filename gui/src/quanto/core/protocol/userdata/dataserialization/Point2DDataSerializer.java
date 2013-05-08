@@ -13,7 +13,6 @@ public class Point2DDataSerializer implements DataSerializer<Point2D> {
 
     private final static Logger logger = Logger.getLogger("quanto.protocol.userdata.dataserialization");
 
-    @Override
     public Point2D fromString(String data) {
 
 	    StringTokenizer tk = new java.util.StringTokenizer(data, ":");
@@ -24,7 +23,6 @@ public class Point2DDataSerializer implements DataSerializer<Point2D> {
 		return p;
     }
 
-    @Override
     public String toString(Point2D data) {
         try {
 			int X = (int) data.getX();

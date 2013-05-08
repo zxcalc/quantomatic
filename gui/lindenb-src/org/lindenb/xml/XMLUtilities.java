@@ -531,7 +531,6 @@ implements Iterator<Element>
 	protected abstract boolean accept(Element e);
 	protected abstract Node firstChild();
 	
-	@Override
 	public boolean hasNext()
 		{
 		if(_hasNextCalled)
@@ -543,7 +542,7 @@ implements Iterator<Element>
 			{
 			return false;
 			}
-		Node c=null;
+		Node c;
 		if(_first)
 			{
 			c= firstChild();
@@ -574,7 +573,7 @@ implements Iterator<Element>
 			return true;
 			}
 		}
-	@Override
+
 	public Element next()
 		{
 		if(!_hasNextCalled) hasNext();
@@ -582,7 +581,7 @@ implements Iterator<Element>
 		_hasNextCalled=false;
 		return _next;
 		}
-	@Override
+
 	public void remove()
 		{
 		throw new UnsupportedOperationException();
@@ -634,7 +633,6 @@ private static class ForEach1
 		this.tagName=tagName;
 		}
 	
-	@Override
 	public Iterator<Element> iterator()
 		{
 		return new Iter();
