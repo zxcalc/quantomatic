@@ -43,7 +43,7 @@ heap: $(QUANTO_HEAP)
 
 bin/%: toplevel/%.ML $(QUANTO_HEAP)
 	@mkdir -p bin
-	POLYFLAGS="$(POLYFLAGS)" ../tools/polyc -l$(QUANTO_HEAP) -o $@ $<
+	POLYFLAGS="$(POLYFLAGS)" ../tools/polyc -l $(QUANTO_HEAP) -o $@ $<
 
 all: $(ALL_BINS)
 
