@@ -11,14 +11,14 @@ struct
 
 open JsonControllerUtil
 
-(*
-fun dispatch (("!!", function), json_input) = 
-      (case function
-         of "help"    => help json_input
-          | "version" => Json.String "2.01"
-          | _         => raise user_exn ("Function not found: !!." ^ function))
-*)
+structure JobTable = NameTable(structure Dom = IntName)
 
+fun json_error rid code msg =
+  Json.mk_object [
+    ("request_id", Json.Int rid),
+    ("success",    Json.Bool false),
+    ("output",     Json.mk_object[("message", Json.String msg), ("code", Json.Int code)])
+  ]
 
 fun system "help" x =
     let
@@ -54,8 +54,7 @@ fun system "help" x =
   | system "version" _ = Json.String "2.1"
   | system _ _ = raise user_exn ("Unrecognized system function. (options: help, kill, version)")
 
-fun dispatch json = let
-  val rid = arg_int json "request_id"
+fun dispatch rid json = let
   val controller = arg_str json "controller"
   val module = arg_str json "module"
   val function = arg_str json "function"
@@ -69,12 +68,7 @@ in
                                    | _ => raise user_exn "Module for !! controller must be 'system'.")
                    else JsonControllerRegistry.dispatch ((controller,module,function),json_input))
   ]
-  handle user_exn msg =>
-  Json.mk_object [
-    ("request_id", Json.Int rid),
-    ("success",    Json.Bool false),
-    ("output",     Json.mk_object[("message", Json.String msg), ("code", Json.Int 0)])
-  ]
+  handle user_exn msg => json_error rid 0 msg
 end
 
 
@@ -85,7 +79,8 @@ let
     val (json_list, src') = Source.get src
     val json = case json_list of [x] => x | _ =>
       raise protocol_exn "Expected: exactly one JSON object"
-    val json_output = dispatch json
+    val rid = arg_int json "request_id"
+    val json_output = dispatch rid json
   in (TextIO.output (outstream, Json.encode json_output);
       TextIO.flushOut outstream;
       protocol_loop src')
@@ -104,21 +99,46 @@ handle protocol_exn msg =>
 
 fun parallel_run_in_textstreams (instream, outstream) =
 let
-  val output_buffer: (Json.json list) Synchronized.var = Synchronized.var "output_buffer" []
-  fun push_output json = Synchronized.change output_buffer (cons json)
-  fun output_loop () =
-  let
-    fun flush_all buf =
-      (fold_rev (fn json => fn () => TextIO.output (outstream, Json.encode json)) buf (); [])
-  in (Synchronized.change output_buffer flush_all; TextIO.flushOut outstream; output_loop ())
-  end
+  val output_buffer: (Json.json list) Unsynchronized.ref = Unsynchronized.ref []
+  val output_lock = Mutex.mutex ()
+  val has_output = ConditionVar.conditionVar ()
+  val job_table: ((Json.json Future.future) JobTable.T) Synchronized.var =
+    Synchronized.var "job_table" JobTable.empty
+  fun push_output json = (
+    Mutex.lock output_lock;
+    output_buffer := (json :: !output_buffer);
+    ConditionVar.broadcast has_output;
+    Mutex.unlock output_lock
+  )
+  fun flush_all buf = fold_rev (fn json => fn () => TextIO.output (outstream, Json.encode json)) buf ()
+  fun output_loop () = (
+    Mutex.lock output_lock;
+    ConditionVar.wait (has_output, output_lock);
+    flush_all (!output_buffer);
+    output_buffer := [];
+    Mutex.unlock output_lock;
+    TextIO.flushOut outstream;
+    output_loop ()
+  )
 
   fun input_loop src =
   let
     val (json_list, src') = Source.get src
     val json = case json_list of [x] => x | _ =>
       raise protocol_exn "Expected: exactly one JSON object"
-  in (Future.fork (fn () => push_output (dispatch json)); input_loop src')
+    val rid = arg_int json "request_id"
+    val _ = Synchronized.change job_table (fn tab =>
+      if IntName.NSet.contains (JobTable.get_dom_set tab) rid
+      then (push_output (json_error rid 0 "Duplicate request ID"); tab)
+      else
+        let val worker = Future.fork (fn () => dispatch rid json)
+        in Future.fork (fn () => (
+              push_output (Future.join worker); (* TODO: display some output if my worker is interrupted *)
+              Synchronized.change job_table (JobTable.delete rid)
+           ));
+           JobTable.add (rid,worker) tab
+        end)
+  in input_loop src'
   end
 in (Future.fork output_loop; input_loop (Json.json_source instream))
 end
