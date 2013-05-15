@@ -368,20 +368,24 @@ functor OutputAnnotatedGraphJSON(
   end;
 
   fun get_verts (g,ann) = let
-    fun vert_info v vd =
+    fun nv_info v vd =
       Json.Object (
         Json.empty_obj |> update ("data",OutputVertexData.output vd)
                        |> update ("annotation",OA.output_vertex_annotation ann v)
       )
-    fun add_vert (v,(G.OVData.WVert,_)) (wvs,nvobj) =
-          ((Json.String (V.dest v))::wvs,nvobj)
-      | add_vert (v,(G.OVData.NVert vd,_)) (wvs,nvobj) =
-          (wvs,update (V.dest v,vert_info v vd) nvobj)
-    val (wvs,nvobj) = V.NTab.fold add_vert
+    fun wv_info v =
+      Json.Object (
+        Json.empty_obj |> update ("annotation",OA.output_vertex_annotation ann v)
+      )
+    fun add_vert (v,(G.OVData.WVert,_)) (wvobj,nvobj) =
+          (update (V.dest v,wv_info v) wvobj,nvobj)
+      | add_vert (v,(G.OVData.NVert vd,_)) (wvobj,nvobj) =
+          (wvobj,update (V.dest v,nv_info v vd) nvobj)
+    val (wvobj,nvobj) = V.NTab.fold add_vert
                                   (G.get_vertices g)
-                                  ([],Json.empty_obj)
+                                  (Json.empty_obj,Json.empty_obj)
   in
-    (Json.Array wvs,Json.Object nvobj)
+    (Json.Object wvobj,Json.Object nvobj)
   end
 
   fun get_edges (g,ann) = let
