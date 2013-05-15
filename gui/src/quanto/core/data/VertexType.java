@@ -55,4 +55,9 @@ public class VertexType {
 	public void setDataType(GraphElementDataType dataType) {
 		this.dataType = dataType;
 	}
+
+	@Override
+	public String toString() {
+		return typeName;
+	}
 }
