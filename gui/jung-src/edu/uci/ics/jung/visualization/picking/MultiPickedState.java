@@ -90,5 +90,13 @@ public class MultiPickedState<T> extends AbstractPickedState<T> implements Picke
         List<T> list = new ArrayList<T>(picked);
         return (T[])list.toArray();
     }
+
+    public void restrict(Collection<T> vs) {
+        ArrayList<T> unpicks = new ArrayList<T>(picked);
+        unpicks.removeAll(vs);
+        for(T v : unpicks) {
+            pick(v, false);
+        }
+    }
     
 }

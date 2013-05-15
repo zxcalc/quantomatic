@@ -356,6 +356,9 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
         if Graph.has_vname graph vname then ()
         else raise Graph.no_such_vname_exp ("ASSERT", vname, graph);
 
+  fun assert_vertices_exist state gname vs =
+        fold (fn v => fn () => assert_vertex_exists state gname v) vs ();
+
   fun assert_edge_exists state gname ename =
         if Graph.has_ename (get_graph state gname) ename then ()
         else raise no_such_edge_exp (ename, gname);
@@ -738,9 +741,10 @@ functor ControllerState(GraphicalTheory : GRAPHICAL_THEORY) : CONTROLLER_STATE
 
   local
       fun attach_with attacher gname vs state =
-          (let val vset = fold V.NSet.ins_fresh vs V.NSet.empty
+          (let val graph = get_graph state gname
+               val _ = assert_vertices_exist state gname vs
+               val vset = fold V.NSet.ins_fresh vs V.NSet.empty
                           handle V.NSet.duplicate_exp _ => raise duplicate_name_exp ()
-               val graph = get_graph state gname
                val rws = (Seq.list_of (attacher (get_rset state) graph vset))
            in
                (length rws,
