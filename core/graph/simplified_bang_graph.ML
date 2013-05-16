@@ -1,4 +1,4 @@
-functor BangGraph(structure Param: OGRAPH_PARAM) : OGRAPH =
+functor BangGraph(structure Param: OGRAPH_PARAM) : BANG_GRAPH =
 struct
 
 structure Param = Param
@@ -63,6 +63,12 @@ exception wire_exp of string * T * wire
 
 exception plugging_exp of T * V.name * V.name
 
+(* !-graph exceptions *)
+exception bbox_not_open_exp of (V.name * V.name) * B.name * T
+exception bbox_already_exists_exp of B.name * T
+exception no_such_bbox_exp of string * B.name * T
+exception bbox_bad_parent_exp of B.name * B.name * T
+
 (*********************************)
 (******** BASIC ACCESSORS ********)
 (*********************************)
@@ -112,6 +118,11 @@ fun is_empty g = VTab.is_empty (get_vdata g) andalso B.NSet.is_empty (get_bboxes
 
 fun get_vertices g = VTab.get_dom_set (get_vdata g)
 fun get_edges g = ETab.get_dom_set (get_edata g)
+(* get_bboxes is an accessor fn *)
+
+fun has_vertex g = V.NSet.contains (get_vertices g)
+fun has_edge g   = E.NSet.contains (get_edges g)
+fun has_bbox g   = B.NSet.contains (get_bboxes g)
 
 fun is_wire_vertex g v = case VTab.get (get_vdata g) v of OVData.WVert => true | _ => false
 fun is_node_vertex g v = not (is_wire_vertex g v)
@@ -196,17 +207,25 @@ fun get_adj_vertices g v = E.NSet.fold
 fun get_vertices_in_bbox g = BVRel.img (get_bbox_rel g)
 fun get_bboxes_containing_vertex g = BVRel.inv_img (get_bbox_rel g)
 fun get_bbox_parent_opt g = BBFn.get_opt (get_bbox_parent_map g)
+fun get_bbox_children g = BBFn.inv_img (get_bbox_parent_map g)
+fun bbox_has_parent g bb = B.NSet.contains (BBFn.get_dom_set (get_bbox_parent_map g)) bb
 
-fun contains_vertex g = V.NSet.contains (get_vertices g)
-fun contains_edge g   = E.NSet.contains (get_edges g)
-fun contains_bbox g   = B.NSet.contains (get_bboxes g)
+fun get_bboxed g = BVRel.get_cod_set (get_bbox_rel g)
+fun get_unbboxed g = V.NSet.subtract (get_vertices g) (get_bboxed g)
+fun get_empty_bboxes g = B.NSet.subtract (get_bboxes g) (BVRel.get_dom_set (get_bbox_rel g))
+
+fun is_bboxed g v = if has_vertex g v
+  then V.NSet.contains (BVRel.get_cod_set (get_bbox_rel g)) v
+  else raise no_such_vname_exp ("is_bboxed", v, g)
+
+
 
 (* TODO: should this throw an exception if invalid graph? *)
 fun add_named_edge e (dir,d) s t g =
-  if (contains_edge g e) then raise ename_already_exists_exp (e,g)
+  if (has_edge g e) then raise ename_already_exists_exp (e,g)
   else
     let
-      val missing = V.NSet.filter (fn v => not (contains_vertex g v)) (V.NSet.of_list [s,t])
+      val missing = V.NSet.filter (fn v => not (has_vertex g v)) (V.NSet.of_list [s,t])
     in if V.NSet.is_empty missing then
          g |> update_edata (ETab.add (e,(dir,d)))
            |> update_source (EVFn.add (e, s))
@@ -219,7 +238,7 @@ fun add_edge dd s t g = let
 in (fresh_name, add_named_edge fresh_name dd s t g)
 end
   
-fun doadd_edge dd s t g = snd (add_edge dd s t g)
+fun add_edge_anon dd s t g = snd (add_edge dd s t g)
 
 fun delete_edge e g =
   g |> update_edata (ETab.delete e)
@@ -228,7 +247,7 @@ fun delete_edge e g =
     |> update_param (Param.delete_ename e)
 
 fun add_named_vertex v d g =
-  if (contains_vertex g v) then raise vname_already_exists_exp (v,g)
+  if (has_vertex g v) then raise vname_already_exists_exp (v,g)
   else g |> update_vdata (VTab.add (v,d))
          |> update_param (Param.add_vertex d v)
   
@@ -237,7 +256,7 @@ fun add_vertex d g = let
 in (fresh_name, add_named_vertex fresh_name d g)
 end
 
-fun doadd_vertex d g = snd (add_vertex d g)
+fun add_vertex_anon d g = snd (add_vertex d g)
     
 fun delete_vertex v g =
   g |> update_vdata (VTab.delete v)
@@ -246,7 +265,7 @@ fun delete_vertex v g =
     |> update_param (Param.delete_vname v)
 
 fun add_named_bbox bb g =
-  if (contains_bbox g bb) then raise bbname_already_exists_exp (bb,g)
+  if (has_bbox g bb) then raise bbname_already_exists_exp (bb,g)
   else g |> update_bboxes (B.NSet.add bb)
 
 fun add_bbox g = let
@@ -254,7 +273,7 @@ fun add_bbox g = let
 in (fresh_name, add_named_bbox fresh_name g)
 end
   
-fun doadd_bbox g = snd (add_bbox g)
+fun add_bbox_anon g = snd (add_bbox g)
 
 fun delete_bbox bb g =
   g |> update_bboxes (B.NSet.delete bb)
@@ -263,21 +282,21 @@ fun delete_bbox bb g =
     |> update_bbox_parent_map (BBFn.inv_delete bb)
 
 fun add_vertex_to_bbox bb v g =
-  if (contains_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
+  if (has_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
   else raise no_such_bbname_exp ("add_vertex_to_bbox", bb, g)
 
 fun add_vertices_to_bbox bb = V.NSet.fold (add_vertex_to_bbox bb)
 
 fun remove_vertex_from_bbox bb v g =
-  if (contains_bbox g bb) then g |> update_bbox_rel (BVRel.unmap (bb, v))
+  if (has_bbox g bb) then g |> update_bbox_rel (BVRel.unmap (bb, v))
   else raise no_such_bbname_exp ("remove_vertex_from_bbox", bb, g)
   
 fun remove_vertices_from_bbox bb = V.NSet.fold (remove_vertex_from_bbox bb)
 
 fun set_bbox_parent_opt bb bbp_opt g =
-  if (contains_bbox g bb) then (case bbp_opt
+  if (has_bbox g bb) then (case bbp_opt
       of SOME bbp =>
-        if (contains_bbox g bbp) then g |> update_bbox_parent_map (BBFn.set (bb, bbp))
+        if (has_bbox g bbp) then g |> update_bbox_parent_map (BBFn.set (bb, bbp))
         else raise no_such_bbname_exp ("set_bbox_parent_opt", bbp, g)
        | NONE => g |> update_bbox_parent_map (BBFn.delete bb))
   else raise no_such_bbname_exp ("set_bbox_parent_opt", bb, g)
@@ -482,6 +501,20 @@ end
 
 fun rename_ename n1 n2 g = rename_edges (ESub.empty |> ESub.add (n1,n2)) g
 fun try_rename1_ename n1 n2 g = SOME (rename_ename n1 n2 g)
+  handle Map.duplicate_exp () => NONE
+
+fun rename_bboxes sub g = let
+  (* this will fail with duplicate_exp if the renaming is bad *)
+  val rnm = BSub.extend_to (get_bboxes g) sub
+  val rnmi = BSub.inverse_of rnm
+in
+  g |> update_bboxes (BSub.img_of_set rnm)
+    |> update_bbox_rel (fn m => BVRel.compose (m, rnmi))
+    |> update_bbox_parent_map (fn m => BBFn.compose3 (rnm, m, rnmi))
+end
+
+fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
+fun try_rename1_bbox n1 n2 g = SOME (rename_bbox n1 n2 g)
   handle Map.duplicate_exp () => NONE
 
 fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)
@@ -697,7 +730,7 @@ val do_plug_and_normalise = snd ooo plug_and_normalise
  * FIXME: use that to provide a general version of
  *        get_open_subgraph?
  *)
-fun find_open_subgraph vset g = let
+(*fun find_open_subgraph vset g = let
   fun add_edge_source e = V.NSet.add (get_edge_source g e)
   fun add_edge_target e = V.NSet.add (get_edge_target g e)
   fun absorb v vset =
@@ -707,17 +740,83 @@ fun find_open_subgraph vset g = let
            |> E.NSet.fold add_edge_target (get_out_edges g v)
 in
   V.NSet.fold absorb vset vset
+end*)
+
+fun find_open_subgraph g vset = let
+  fun add_if_wv v = if is_wire_vertex g v then V.NSet.add v else I
+  fun add_incoming_wire e = let
+    val (s,_,wvs,_) = get_wire_containing_edge g e
+  in
+    (add_if_wv s) o V.NSet.union_merge wvs
+  end
+  fun add_outgoing_wire e = let
+    val (_,t,wvs,_) = get_wire_containing_edge g e
+  in
+    (add_if_wv t) o V.NSet.union_merge wvs
+  end
+  fun absorb v = let
+    val (ins,outs) = (get_in_edges g v, get_out_edges g v)
+  in
+     (E.NSet.fold add_incoming_wire ins)
+     o (E.NSet.fold add_outgoing_wire outs)
+  end
+in
+  V.NSet.fold absorb vset vset
 end
 
-fun get_open_subgraph vset g = let
-  val retained = find_open_subgraph vset g
+fun get_open_subgraph g vset = let
+  val retained = find_open_subgraph g vset
   val removed = V.NSet.subtract (get_vertices g) retained
 in
   V.NSet.fold delete_vertex removed g
 end
 
+
 (************************************)
-(******* DEPRECATED FUNCTIONS *******)
+(********** BBOX FUNCTIONS **********)
 (************************************)
+
+fun add_to_bbox b vs g =
+  if not (B.NSet.contains (get_bboxes g) b) then
+    raise no_such_bbox_exp ("add_to_bbox",b,g)
+  else if not (V.NSet.sub_set vs (get_vertices g)) then
+    raise no_such_vnames_exp ("add_to_bbox",vs,g)
+  else
+    let
+      val to_add = find_open_subgraph g vs
+    in
+      (to_add, g |> add_vertices_to_bbox b to_add)
+    end
+
+val add_to_bbox_anon = snd ooo add_to_bbox
+
+fun remove_from_bbox b vs g =
+  if not (B.NSet.contains (get_bboxes g) b) then
+    raise no_such_bbox_exp ("remove_from_bbox",b,g)
+  else
+    let
+      val old_bvs = get_vertices_in_bbox g b
+      val new_bvs = find_open_subgraph g (V.NSet.subtract old_bvs vs)
+      val remove_bvs = V.NSet.subtract old_bvs new_bvs
+    in
+      (remove_bvs, g |> remove_vertices_from_bbox b remove_bvs)
+    end
+
+val remove_from_bbox_anon = snd ooo remove_from_bbox
+
+fun kill_bbox bb g =
+  if not (has_bbox g bb) then raise no_such_bbox_exp ("kill_bbox",bb,g)
+  else
+    let
+      val g' = B.NSet.fold kill_bbox (get_bbox_children g bb) g
+      val bbox_vs = get_vertices_in_bbox g' bb
+    in
+      g' |> V.NSet.fold delete_vertex bbox_vs
+         |> delete_bbox bb
+    end
+
+fun drop_bbox bn g =
+  if not (has_bbox g bn) then raise no_such_bbox_exp ("drop_bbox",bn,g)
+  else g |> delete_bbox bn
 
 end

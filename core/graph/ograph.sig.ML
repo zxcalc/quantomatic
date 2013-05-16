@@ -50,6 +50,10 @@ sharing EData = Param.EData
 (* graph is empty *)
 val is_empty : T -> bool
 
+(* containment checks *)
+val has_vertex : T -> V.name -> bool
+val has_edge : T -> E.name -> bool
+
 (* getting stuff from graphs (exception if not there) *)
 val get_edge_source : T -> E.name -> V.name
 val get_edge_target : T -> E.name -> V.name
@@ -97,13 +101,13 @@ val exact_eq : T -> T -> bool
 
 (* adding a vertex gives back unique name for it and the new graph *)
 val add_vertex : OVData.data -> T -> V.name * T 
-val doadd_vertex : OVData.data -> T -> T
+val add_vertex_anon : OVData.data -> T -> T
 (* raises vname_already_exists_exp on clash *)
 val add_named_vertex : V.name -> OVData.data -> T -> T  
 
 (* V.names must already exist, else raises: no_such_vname_exp *)
 val add_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> E.name * T
-val doadd_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> T
+val add_edge_anon : dir_or_undir * EData.data -> V.name -> V.name -> T -> T
 val add_named_edge 
     : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
 
@@ -128,6 +132,7 @@ val merge_by_vertices : T -> T -> T
 val get_arity : T -> V.name -> Arity.T
 val get_self_loops : T -> V.name -> E.NSet.T
 
+(* TODO: change this names to *_vertex, *_edge, etc *)
 val try_rename1_xname : X.name -> X.name -> T -> T option
 val try_rename1_vname : V.name -> V.name -> T -> T option
 val try_rename1_ename : E.name -> E.name -> T -> T option
@@ -278,9 +283,9 @@ val do_plug_and_normalise : V.name -> V.name -> T -> T
  * renamed vertices) and to be normal, providing the input graph was
  * normal.
  *
- * This will NOT WORK if the graph is not normalised.
+ * Implementations may assume the input graph is normalised.
  *)
-val get_open_subgraph : V.NSet.T -> T -> T
+val get_open_subgraph : T -> V.NSet.T -> T
 
 (*
 (* TODO: ? *)

@@ -80,7 +80,7 @@ PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
 PolyML.Project.make "graph/ograph_param.ML";
 
 PolyML.Project.make "graph/ograph.sig.ML";
-
+PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/simplified_bang_graph.ML";
 
 PolyML.Project.make "stub_run.ML";
