@@ -44,20 +44,20 @@ class CoreProcess(parallel: Boolean = false) {
   
   def killCore(waitForExit: Boolean = true) {
     if (backend != null) {
-        logger.log(Level.FINEST, "Shutting down the core process");
+        logger.log(Level.FINEST, "Shutting down the core process")
         val killThread = new Thread() {
           override def run() {
             if (waitForExit) {
               try {
-                logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit");
-                Thread.sleep(5000);
+                logger.log(Level.FINER, "Waiting for 5 seconds for the core to exit")
+                Thread.sleep(5000)
               } catch {
                 case e: InterruptedException =>
-                  logger.log(Level.FINER, "Thread interrupted");
+                  logger.log(Level.FINER, "Thread interrupted")
               }
             }
-            logger.log(Level.FINER, "Forcibly terminating the core process");
-            backend.destroy();
+            logger.log(Level.FINER, "Forcibly terminating the core process")
+            backend.destroy()
           }
         }
         

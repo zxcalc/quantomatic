@@ -105,7 +105,9 @@ let
   val job_table: ((Json.json Future.future) JobTable.T) Synchronized.var =
     Synchronized.var "job_table" JobTable.empty
   fun push_output json = (
+    TextIO.output(outstream,"push_output: waiting for lock\n");
     Mutex.lock output_lock;
+    TextIO.output(outstream,"push_output: obtained lock\n");
     output_buffer := (json :: !output_buffer);
     ConditionVar.broadcast has_output;
     Mutex.unlock output_lock
@@ -140,7 +142,11 @@ let
         end)
   in input_loop src'
   end
-in (Future.fork output_loop; input_loop (Json.json_source instream))
+in (
+    Future.fork output_loop;
+    push_output (Json.mk_object [("request_id", Json.Int ~1)]);
+    input_loop (Json.json_source instream)
+   )
 end
 handle protocol_exn msg => 
   (TextIO.output (outstream,
