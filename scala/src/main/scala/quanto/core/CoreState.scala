@@ -14,7 +14,6 @@ abstract class CoreRequest extends CoreMessage {
   def decode(resp: Json): Any
 }
 
-
 class CoreState(executable: String) extends Actor with ActorLogging {
   val coreProcess = new CoreProcess(parallel = true)
   var reader: ActorRef = _
