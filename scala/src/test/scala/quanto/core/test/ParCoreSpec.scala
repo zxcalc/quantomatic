@@ -4,11 +4,13 @@ import akka.actor._
 import akka.pattern.ask
 import quanto.core._
 import scala.concurrent._
+import duration._
 import ExecutionContext.Implicits.global
 
 class ParCoreSpec extends FlatSpec {
   val sys = ActorSystem("Quanto-Test")
   val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")
+  implicit val timeout = new akka.util.Timeout(5 seconds)
 
   def testReq(rid: Int) = new SimpleRequest(
     s"""
@@ -21,9 +23,12 @@ class ParCoreSpec extends FlatSpec {
     """.stripMargin)
 
   "CoreState actor" should "accept some requests" in {
-    core ! testReq(0)
-    core ! testReq(1)
+    val f1 = core ? testReq(0)
+    f1 foreach { json => println(json) }
   }
 
-  //sys.shutdown()
+  it should "stop" in {
+    Thread.sleep(500)
+    core ! StopCore
+  }
 }

@@ -1,12 +1,19 @@
 package quanto.gui
 
 import swing._
-import event.{TableUpdated, Key, KeyPressed}
+import event.{Key, KeyPressed}
 import java.awt.{Font => AWTFont, Color}
 import javax.swing.border.LineBorder
-import apple.laf.JRSUIConstants.AlignmentVertical
+import akka.actor._
+import akka.pattern.ask
+import scala.concurrent._
+import duration._
+import quanto.core._
+import quanto.util.json._
+import akka.util.Timeout
+import ExecutionContext.Implicits.global
 
-sealed abstract class CoreOutputItem
+sealed abstract class CoreOutputItem { def rid: Int }
 case class Waiting(rid: Int) extends CoreOutputItem {
   override def toString = "waiting for request " + rid + "..."
 }
@@ -19,15 +26,18 @@ case class Output(rid: Int, output: String) extends CoreOutputItem {
 }
 
 object JsonConsole extends SimpleSwingApplication {
+  val sys = ActorSystem("QuantoConsole")
+  val core = sys.actorOf(Props { new CoreState("../core/bin/quanto-core") }, "core_state")
+  implicit val timeout = Timeout(1.day)
 
-//  object OutputModel {
-//
-//    case class Cell(row: Int, column: Int) {
-//      override def toString = "foo"
-//    }
-//    val cells = Array.ofDim[Cell](3,1)
-//    for (i <- 0 until 3) cells(i)(0) = Cell(i,0)
-//  }
+  def appendResult(out: CoreOutputItem) {
+    JsonOutput.listData = JsonOutput.listData.map {
+      case Waiting(requestId) => if (requestId == out.rid) out
+                                 else Waiting(requestId)
+      case x => x
+    }
+    JsonOutput.repaint()
+  }
 
   val JsonOutput = new ListView[CoreOutputItem] {
     renderer = new ListView.Renderer[CoreOutputItem] {
@@ -70,6 +80,21 @@ object JsonConsole extends SimpleSwingApplication {
       case KeyPressed(_, Key.Enter, mods, _) =>
         if ((mods & Key.Modifier.Shift) == Key.Modifier.Shift) {
           JsonOutput.listData = Waiting(rid) +: JsonOutput.listData
+
+          try {
+            val json = Json.parse(input.text)
+            val req = SimpleRequest(json.setPath("$.request_id", rid).toString)
+            val future = core ? req
+            future.foreach { case resp : Json => Swing.onEDT {
+              val out = if ((resp /"success").boolValue)
+                        Output((resp / "request_id").intValue, resp.toString)
+                        else ErrorMessage((resp / "request_id").intValue, resp.toString)
+              appendResult(out)
+            }}
+          } catch {
+            case e : JsonParseException => appendResult(ErrorMessage(rid, "Parse error"))
+          }
+
           JsonOutput.repaint()
           rid += 1
         }
@@ -77,15 +102,7 @@ object JsonConsole extends SimpleSwingApplication {
     listenTo(keys)
   }
 
-  val json =
-    """
-      |{
-      |  "request_id": 1,
-      |  "test": "one",
-      |  "foo": "two"
-      |}""".stripMargin
-
-  JsonOutput.listData = List(Waiting(2), ErrorMessage(1, json), Output(0, json))
+  JsonOutput.listData = List()
 
 //  val JsonOutput = new GridBagPanel {
 //    val bp = new BorderPanel {

@@ -4,6 +4,7 @@ import akka.actor._
 import quanto.util.json._
 
 case object StartCore
+case object StopCore
 case object CoreInitialized
 case class CoreResponse(requestId: Int, resp: Json)
 case class UnhandledRequest(requestId: Int, reason: String)
@@ -65,15 +66,18 @@ class CoreState(executable: String) extends Actor with ActorLogging {
 
   def receive = {
     case req : CoreRequest =>
-      log.info("Request: " + req)
+      //log.info("Request: " + req)
       listeners += req.requestId -> (sender, req)
       writer ! req
     case CoreResponse(rid, resp) =>
-      log.info("Response: " + resp)
+      //log.info("Response: " + resp)
       listeners.get(rid) match {
         case Some((listener, req)) => listener ! req.decode(resp)
         case None => log.warning("Orphaned response for request_id: " + rid)
       }
+    case StopCore =>
+      log.info("shutting down")
+      coreProcess.killCore(false)
     case x => log.warning("Unexpected message: " + x)
   }
 }
@@ -89,6 +93,8 @@ class CoreReader(process: CoreProcess) extends Actor {
 
 class CoreWriter(process: CoreProcess) extends Actor {
   def receive = {
-    case req : CoreRequest => req.json.writeTo(process.stdin)
+    case req : CoreRequest =>
+      req.json.writeTo(process.stdin)
+      process.stdin.flush()
   }
 }
