@@ -133,7 +133,7 @@ val get_arity : T -> V.name -> Arity.T
 val get_self_loops : T -> V.name -> E.NSet.T
 
 (* TODO: change this names to *_vertex, *_edge, etc *)
-val try_rename1_xname : X.name -> X.name -> T -> T option
+(*val try_rename1_xname : X.name -> X.name -> T -> T option*)
 val try_rename1_vname : V.name -> V.name -> T -> T option
 val try_rename1_ename : E.name -> E.name -> T -> T option
 

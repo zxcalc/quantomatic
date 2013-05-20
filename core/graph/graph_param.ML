@@ -89,23 +89,28 @@ signature GRAPH_PARAM
   val dep_enames_of_xname : T -> X.name -> E.NSet.T 
 
   (* raises X.Rnm. *)
-  val rename_xname : X.name -> X.name -> T -> T
+  (*val rename_xname : X.name -> X.name -> T -> T*)
   (* raises V.Rnm. *)
   val rename_vname : V.name -> V.name -> T -> T
   (* raises E.Rnm. *)
-  val rename_ename : E.name -> E.name -> T -> T 
+  val rename_ename : E.name -> E.name -> T -> T
+  
+  (* new structure-at-once renamers *)
+  (*val rename_xs : XSub.T -> T -> T*)
+  val rename_vertices : VSub.T -> T -> T
+  val rename_edges : ESub.T -> T -> T
 
   val replace_vertex : VData.data -> V.name -> T -> T
   val replace_edge : EData.data -> E.name -> T -> T
   
 
   (* CONSIDER: move to unifiable data? *)
-  val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;
-  val subst_xname_in_edata : X.name -> X.name -> EData.data -> EData.data;
+  (*val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;
+  val subst_xname_in_edata : X.name -> X.name -> EData.data -> EData.data;*)
 
   (* RENAMINGS  *)
   (* rename internal var names in T *)
-  structure CRnmX : COMPOUND_RENAMING 
+  (*structure CRnmX : COMPOUND_RENAMING 
     where type renaming = X.Rnm.T
     sharing type CRnmX.obj = T
   (* rename vertex and edge names in T *)
@@ -114,7 +119,7 @@ signature GRAPH_PARAM
     sharing type CRnmV.obj = T
   structure CRnmE : COMPOUND_RENAMING 
     where type renaming = E.Rnm.T
-    sharing type CRnmE.obj = T
+    sharing type CRnmE.obj = T*)
   
   (* rename internal names in Vertex Data *)
   (* structure VDataCRnmX : COMPOUND_RENAMING
@@ -160,6 +165,9 @@ struct
   fun rename_xname _ _ d = d;
   fun rename_vname _ _ d = d;
   fun rename_ename _ _ d = d;
+  fun rename_xs _ = I;
+  fun rename_vertices _ = I;
+  fun rename_edges _ = I;
   fun replace_vertex _ _ vdep = vdep; 
   fun replace_edge _ _ vdep = vdep;
   fun dep_vnames_of_xname () _ = V.NSet.empty;
@@ -175,13 +183,13 @@ struct
   = EmptyCompoundRenamingFun(structure Nm = X type obj = edata); *)
     
   (* [dummy] Rename vertex-names in the dependency data *)
-  structure CRnmV : COMPOUND_RENAMING
+  (*structure CRnmV : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = V type obj = T);
   (* [dummy] Rename edge-names in the dependency data *)
   structure CRnmE : COMPOUND_RENAMING
   = EmptyCompoundRenamingFun(structure Nm = E type obj = T);
   (* [dummy] Rename internal names in T *)
   structure CRnmX : COMPOUND_RENAMING
-  = EmptyCompoundRenamingFun(structure Nm = X type obj = T);
+  = EmptyCompoundRenamingFun(structure Nm = X type obj = T);*)
 
 end;

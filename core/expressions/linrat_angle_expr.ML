@@ -207,7 +207,9 @@ struct
   (* 
     val match : T -> T -> T X.NTab.T -> T X.NTab.T option;
     ASSUMES : pat and tgt may have common variables, but they will be 
-    kept apart in the matching representation: we store everything in pairs: the tgt part and the expr part. Expression substitutions are thus a pair of expressions.  
+    kept apart in the matching representation: we store everything in pairs:
+    the tgt part and the expr part. Expression substitutions are thus a pair
+    of expressions.  
   *)
   datatype match = Match of 
     (T     (* holds the tgt part of the expr *) 
@@ -283,7 +285,8 @@ struct
 
   (* use a substitution to replace all variables that have been matched to 
      expressions. 
-     ASSUMES: variables names in pat which created the match were disjoint from those in expr (pat variables will be introduced!);
+     ASSUMES: variables names in pat which created the match were disjoint from those
+     in expr (pat variables will be introduced!);
   *)
   fun subst (Match mtab) expr = 
       let 

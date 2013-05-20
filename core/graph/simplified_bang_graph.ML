@@ -68,6 +68,7 @@ exception bbox_not_open_exp of (V.name * V.name) * B.name * T
 exception bbox_already_exists_exp of B.name * T
 exception no_such_bbox_exp of string * B.name * T
 exception bbox_bad_parent_exp of B.name * B.name * T
+exception merge_bbox_exp of string
 
 (*********************************)
 (******** BASIC ACCESSORS ********)
@@ -436,15 +437,22 @@ fun delete_subgraph sg g =
 (************* RENAMING *************)
 (************************************)
 
-(* TODO : improve these functions for graph-at-once renaming *)
+(* note that even though graph/vert/edge names can be done graph-at-once,
+ * the renaming in Param will fail for cross-namings, e.g. x->y,y->x *)
 
 exception rename_do_nothing_exp of unit;
+
+
+(*
+  * DEPRECATED. renaming of x-names should be done by a (theory-level)
+  * substitution operation
+  *)
 
 (* implicit args: n1 n2 g; raises X.Rnm. *)
 (* renames internal variable name n1 to n2 (assuming n2 is fresh in this graph)
    Updates the name in the param data as well as in each vertex and edge data in
    which the name occurs. *)
-fun rename_xname n1 n2 g =
+(*fun rename_xname n1 n2 g =
 let 
   val param = get_param g
   val vnames_to_update = Param.dep_vnames_of_xname param n1 
@@ -462,7 +470,7 @@ end handle X.Rnm.invalid_renaming_exp _ =>
 
 
 fun try_rename1_xname n1 n2 g = SOME (rename_xname n1 n2 g)
-  handle xname_already_exists_exp _ => NONE
+  handle xname_already_exists_exp _ => NONE*)
 
 (* rename vertices using the given substitution *)
 fun rename_vertices sub g = let
@@ -516,6 +524,30 @@ end
 fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
 fun try_rename1_bbox n1 n2 g = SOME (rename_bbox n1 n2 g)
   handle Map.duplicate_exp () => NONE
+
+fun rename_graph (vsub,esub,bsub) g = let
+  val prm  = V.NSet.fold (fn v => Param.rename_vname v (VSub.get vsub v))
+                         (VSub.get_dom_set vsub) (get_param g)
+  val prm' = E.NSet.fold (fn e => Param.rename_ename e (ESub.get esub e))
+                         (ESub.get_dom_set esub) (get_param g)
+  (* extend_to will fail with duplicate_exp if the renaming is bad *)
+  val vrnm  = VSub.extend_to (get_vertices g) vsub
+  val vrnmi = VSub.inverse_of vrnm
+  val ernm  = ESub.extend_to (get_edges g) esub
+  val ernmi = ESub.inverse_of ernm
+  val brnm  = BSub.extend_to (get_bboxes g) bsub
+  val brnmi = BSub.inverse_of brnm
+in
+  g |> set_param prm'
+    |> update_vdata    (fn m => VTab.compose (m,vrnmi))
+    |> update_edata    (fn m => ETab.compose (m,ernmi))
+    |> update_source   (fn m => EVFn.compose3 (vrnm,m,ernmi))
+    |> update_target   (fn m => EVFn.compose3 (vrnm,m,ernmi))
+    |> update_bboxes   (BSub.img_of_set brnm)
+    |> update_bbox_rel (fn m => BVRel.compose3 (vrnm, m, brnmi))
+    |> update_bbox_parent_map (fn m => BBFn.compose3 (brnm, m, brnmi))
+end
+
 
 fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)
 fun has_edges_between g v1 v2 = E.NSet.is_empty (edges_between g v1 v2)
@@ -818,5 +850,15 @@ fun kill_bbox bb g =
 fun drop_bbox bn g =
   if not (has_bbox g bn) then raise no_such_bbox_exp ("drop_bbox",bn,g)
   else g |> delete_bbox bn
+
+fun merge_bboxes bnset g =
+  (case B.NSet.pull_local_top bnset of
+     NONE => raise merge_bbox_exp "given empty bbox name set"
+   | SOME (bn,bnset2) =>
+     (bn, B.NSet.fold
+          (fn bn2 => fn g2 =>
+               g2 |> add_to_bbox_anon bn (get_vertices_in_bbox g2 bn2)
+                  |> delete_bbox bn2)
+          bnset2 g))
 
 end
