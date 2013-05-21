@@ -45,14 +45,16 @@ functor OGraphParam(
   val dep_vnames_of_xname = Param.dep_vnames_of_xname;
   val dep_enames_of_xname = Param.dep_enames_of_xname;
   
-  (*val subst_xname_in_vdata = 
+  val subst_xname_in_vdata = 
       OVData.apply_to_idata oo Param.subst_xname_in_vdata;
-  val subst_xname_in_edata = Param.subst_xname_in_edata;*)
+  val subst_xname_in_edata = Param.subst_xname_in_edata;
+  val subst_xs_in_vdata = OVData.apply_to_idata o Param.subst_xs_in_vdata;
+  val subst_xs_in_edata = Param.subst_xs_in_edata;
   
-  (*val rename_xname = Param.rename_xname;*)
+  val rename_xname = Param.rename_xname;
   val rename_vname = Param.rename_vname;
   val rename_ename = Param.rename_ename;
-  (*val rename_xs = Param.rename_xs*)
+  val rename_xs = Param.rename_xs
   val rename_vertices = Param.rename_vertices
   val rename_edges = Param.rename_edges
   

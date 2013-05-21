@@ -443,45 +443,38 @@ fun delete_subgraph sg g =
 exception rename_do_nothing_exp of unit;
 
 
-(*
-  * DEPRECATED. renaming of x-names should be done by a (theory-level)
-  * substitution operation
-  *)
 
 (* implicit args: n1 n2 g; raises X.Rnm. *)
 (* renames internal variable name n1 to n2 (assuming n2 is fresh in this graph)
    Updates the name in the param data as well as in each vertex and edge data in
    which the name occurs. *)
-(*fun rename_xname n1 n2 g =
-let 
-  val param = get_param g
-  val vnames_to_update = Param.dep_vnames_of_xname param n1 
-  val enames_to_update = Param.dep_enames_of_xname param n1
-in 
-  g |> update_param (Param.rename_xname n1 n2)
+fun rename_xs sub g = let
+  (* calling extend_to will force this to be a valid renaming *)
+  val rnm = XSub.extend_to (Param.get_xnames (get_param g)) sub
+in
+  g |> update_param (Param.rename_xs rnm)
     |> update_vdata (V.NSet.fold
-        (VTab.map_entry (Param.subst_xname_in_vdata n1 n2)) 
-        vnames_to_update)
+        (VTab.map_entry (Param.subst_xs_in_vdata rnm))
+                        (get_vertices g))
     |> update_edata (E.NSet.fold
-        (ETab.map_entry (fn (dir,d) => (dir,Param.subst_xname_in_edata n1 n2 d))) 
-        enames_to_update)
-end handle X.Rnm.invalid_renaming_exp _ => 
-    raise xname_already_exists_exp (n2,g)
+        (ETab.map_entry (fn (dir,data) => (dir, Param.subst_xs_in_edata rnm data)))
+                        (get_edges g))
+end
+
+
+fun rename_xname n1 n2 g = rename_xs (XSub.empty |> XSub.add (n1,n2)) g
 
 
 fun try_rename1_xname n1 n2 g = SOME (rename_xname n1 n2 g)
-  handle xname_already_exists_exp _ => NONE*)
+  handle xname_already_exists_exp _ => NONE
 
 (* rename vertices using the given substitution *)
 fun rename_vertices sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
   val rnm = VSub.extend_to (get_vertices g) sub
   val rnmi = VSub.inverse_of rnm
-  (* note param still uses old-style (single) renamers *)
-  val prm = V.NSet.fold (fn v => Param.rename_vname v (VSub.get sub v))
-                        (VSub.get_dom_set sub) (get_param g)
 in
-  g |> set_param prm
+  g |> update_param    (Param.rename_vertices sub)
     |> update_vdata    (fn m => VTab.compose (m,rnmi))
     |> update_source   (fn m => EVFn.compose (rnm,m))
     |> update_target   (fn m => EVFn.compose (rnm,m))
@@ -497,11 +490,8 @@ fun rename_edges sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
   val rnm = ESub.extend_to (get_edges g) sub
   val rnmi = ESub.inverse_of rnm
-  (* note param still uses old-style (single) renamers *)
-  val prm = E.NSet.fold (fn e => Param.rename_ename e (ESub.get sub e))
-                        (ESub.get_dom_set sub) (get_param g)
 in
-  g |> set_param prm
+  g |> update_param  (Param.rename_edges sub)
     |> update_edata  (fn m => ETab.compose (m,rnmi))
     |> update_source (fn m => EVFn.compose (m,rnmi))
     |> update_target (fn m => EVFn.compose (m,rnmi))
@@ -526,11 +516,6 @@ fun try_rename1_bbox n1 n2 g = SOME (rename_bbox n1 n2 g)
   handle Map.duplicate_exp () => NONE
 
 fun rename_graph (vsub,esub,bsub) g = let
-  val prm  = V.NSet.fold (fn v => Param.rename_vname v (VSub.get vsub v))
-                         (VSub.get_dom_set vsub) (get_param g)
-  val prm' = E.NSet.fold (fn e => Param.rename_ename e (ESub.get esub e))
-                         (ESub.get_dom_set esub) (get_param g)
-  (* extend_to will fail with duplicate_exp if the renaming is bad *)
   val vrnm  = VSub.extend_to (get_vertices g) vsub
   val vrnmi = VSub.inverse_of vrnm
   val ernm  = ESub.extend_to (get_edges g) esub
@@ -538,7 +523,7 @@ fun rename_graph (vsub,esub,bsub) g = let
   val brnm  = BSub.extend_to (get_bboxes g) bsub
   val brnmi = BSub.inverse_of brnm
 in
-  g |> set_param prm'
+  g |> update_param    (Param.rename_vertices vsub o Param.rename_edges esub)
     |> update_vdata    (fn m => VTab.compose (m,vrnmi))
     |> update_edata    (fn m => ETab.compose (m,ernmi))
     |> update_source   (fn m => EVFn.compose3 (vrnm,m,ernmi))

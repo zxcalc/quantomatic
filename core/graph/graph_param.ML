@@ -89,14 +89,14 @@ signature GRAPH_PARAM
   val dep_enames_of_xname : T -> X.name -> E.NSet.T 
 
   (* raises X.Rnm. *)
-  (*val rename_xname : X.name -> X.name -> T -> T*)
+  val rename_xname : X.name -> X.name -> T -> T
   (* raises V.Rnm. *)
   val rename_vname : V.name -> V.name -> T -> T
   (* raises E.Rnm. *)
   val rename_ename : E.name -> E.name -> T -> T
   
   (* new structure-at-once renamers *)
-  (*val rename_xs : XSub.T -> T -> T*)
+  val rename_xs : XSub.T -> T -> T
   val rename_vertices : VSub.T -> T -> T
   val rename_edges : ESub.T -> T -> T
 
@@ -105,9 +105,12 @@ signature GRAPH_PARAM
   
 
   (* CONSIDER: move to unifiable data? *)
-  (*val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;
-  val subst_xname_in_edata : X.name -> X.name -> EData.data -> EData.data;*)
-
+  val subst_xname_in_vdata : X.name -> X.name -> VData.data -> VData.data;
+  val subst_xname_in_edata : X.name -> X.name -> EData.data -> EData.data;
+  
+  val subst_xs_in_vdata : XSub.T -> VData.data -> VData.data;
+  val subst_xs_in_edata : XSub.T -> EData.data -> EData.data;
+  
   (* RENAMINGS  *)
   (* rename internal var names in T *)
   (*structure CRnmX : COMPOUND_RENAMING 
