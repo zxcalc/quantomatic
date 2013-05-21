@@ -8,9 +8,9 @@ import quanto.util.StreamRedirector
 
 class CoreProcess(parallel: Boolean = false) {
   import CoreProcess._
-  private var backend: Process = null
-  var stdin : Json.Output = null
-  var stdout : Json.Input = null
+  private var backend: Process = _
+  var stdin : Json.Output = _
+  var stdout : Json.Input = _
 
   def startCore() { startCore(quantoCoreExecutable) }
   

@@ -24,7 +24,6 @@ class CoreState(executable: String) extends Actor with ActorLogging {
   var reader: ActorRef = _
   var writer: ActorRef = _
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
-
   coreProcess.startCore(executable)
   reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
   writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
