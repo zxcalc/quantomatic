@@ -14,7 +14,7 @@ datatype T = BG of {
   
   bboxes   : B.NSet.T,
   bbox_rel : BVRel.T,
-  bbox_parent_map : BBFn.T,
+  bbox_child_rel : BBRel.T,
   
   param : Param.T
 }
@@ -30,7 +30,7 @@ val empty : T = BG {
   
   bboxes   = B.NSet.empty,
   bbox_rel = BVRel.empty,
-  bbox_parent_map = BBFn.empty,
+  bbox_child_rel = BBRel.empty,
 
   param = Param.empty
 }
@@ -78,32 +78,35 @@ exception merge_bbox_exp of string
  * all be private. Also note that these functions are automatically generated, so avoid
  * making changes *)
 
-fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
-fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
-fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
-fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
-fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param= #param r}
-fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_parent_map= #bbox_parent_map r,param= #param r}
-fun update_bbox_parent_map f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map=f(#bbox_parent_map r),param= #param r}
-fun update_param f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_parent_map= #bbox_parent_map r,param=f(#param r)}
+fun update_vdata f (BG r)  = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
+fun update_edata f (BG r)  = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
+fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
+fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
+fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
+fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r,param= #param r}
+fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r),param= #param r}
+fun update_param f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param=f(#param r)}
 
-fun get_vdata           (BG r) = #vdata r
-fun get_edata           (BG r) = #edata r
-fun get_source          (BG r) = #source r
-fun get_target          (BG r) = #target r
-fun get_bboxes          (BG r) = #bboxes r
-fun get_bbox_rel        (BG r) = #bbox_rel r
-fun get_bbox_parent_map (BG r) = #bbox_parent_map r
-fun get_param           (BG r) = #param r
+fun get_vdata          (BG r) = #vdata r
+fun get_edata          (BG r) = #edata r
+fun get_source         (BG r) = #source r
+fun get_target         (BG r) = #target r
+fun get_bboxes         (BG r) = #bboxes r
+fun get_bbox_rel       (BG r) = #bbox_rel r
+fun get_bbox_child_rel (BG r) = #bbox_child_rel r
+fun get_param          (BG r) = #param r
 
-val set_vdata              = update_vdata           o K
-val set_edata              = update_edata           o K
-val set_source             = update_source          o K
-val set_target             = update_target          o K
-val set_bboxes             = update_bboxes          o K
-val set_bbox_rel           = update_bbox_rel        o K
-val set_bbox_parent_map    = update_bbox_parent_map o K
-val set_param              = update_param           o K
+val set_vdata             = update_vdata          o K
+val set_edata             = update_edata          o K
+val set_source            = update_source         o K
+val set_target            = update_target         o K
+val set_bboxes            = update_bboxes         o K
+val set_bbox_rel          = update_bbox_rel       o K
+val set_bbox_child_rel    = update_bbox_child_rel o K
+val set_param             = update_param          o K
+
+
+
 
 
 
@@ -207,9 +210,10 @@ fun get_adj_vertices g v = E.NSet.fold
 
 fun get_vertices_in_bbox g = BVRel.img (get_bbox_rel g)
 fun get_bboxes_containing_vertex g = BVRel.inv_img (get_bbox_rel g)
-fun get_bbox_parent_opt g = BBFn.get_opt (get_bbox_parent_map g)
-fun get_bbox_children g = BBFn.inv_img (get_bbox_parent_map g)
-fun bbox_has_parent g bb = B.NSet.contains (BBFn.get_dom_set (get_bbox_parent_map g)) bb
+fun get_bbox_parents g = BBRel.inv_img (get_bbox_child_rel g)
+fun get_bbox_children g = BBRel.img (get_bbox_child_rel g)
+fun bbox_has_parents g bb = BBRel.cod_contains (get_bbox_child_rel g) bb
+fun bbox_has_children g bb = BBRel.dom_contains (get_bbox_child_rel g) bb
 
 fun get_bboxed g = BVRel.get_cod_set (get_bbox_rel g)
 fun get_unbboxed g = V.NSet.subtract (get_vertices g) (get_bboxed g)
@@ -279,8 +283,8 @@ fun add_bbox_anon g = snd (add_bbox g)
 fun delete_bbox bb g =
   g |> update_bboxes (B.NSet.delete bb)
     |> update_bbox_rel (BVRel.delete bb)
-    |> update_bbox_parent_map (BBFn.delete bb)
-    |> update_bbox_parent_map (BBFn.inv_delete bb)
+    |> update_bbox_child_rel (BBRel.delete bb)
+    |> update_bbox_child_rel (BBRel.inv_delete bb)
 
 fun add_vertex_to_bbox bb v g =
   if (has_bbox g bb) then g |> update_bbox_rel (BVRel.add (bb, v))
@@ -294,14 +298,33 @@ fun remove_vertex_from_bbox bb v g =
   
 fun remove_vertices_from_bbox bb = V.NSet.fold (remove_vertex_from_bbox bb)
 
-fun set_bbox_parent_opt bb bbp_opt g =
-  if (has_bbox g bb) then (case bbp_opt
-      of SOME bbp =>
-        if (has_bbox g bbp) then g |> update_bbox_parent_map (BBFn.set (bb, bbp))
-        else raise no_such_bbname_exp ("set_bbox_parent_opt", bbp, g)
-       | NONE => g |> update_bbox_parent_map (BBFn.delete bb))
-  else raise no_such_bbname_exp ("set_bbox_parent_opt", bb, g)
+(* TODO: replaced with add/remove functions *)
 
+(*fun add_bbox_parent bb bbp g =
+  if not has_bbox g bb then raise no_such_bbname_exp ("set_bbox_parent", bb, g)
+  else if not has_bbox g bbp then raise no_such_bbname_exp ("set_bbox_parent", bbp, g)
+  else g |> update_bbox_child_rel (BBRel.add (bbp, bb))*)
+
+fun add_child_to_bbox' bb bb_child g =
+  if not (has_bbox g bb_child) then raise no_such_bbname_exp ("add_child_to_bbox'", bb_child, g)
+  else g |> update_bbox_child_rel (BBRel.add (bb, bb_child))
+
+fun add_child_to_bbox bb bb_child g =
+  if not (has_bbox g bb) then raise no_such_bbname_exp ("add_child_to_bbox", bb, g)
+  else add_child_to_bbox' bb bb_child g
+
+fun add_children_to_bbox bb bb_children g =
+  if not (has_bbox g bb) then raise no_such_bbname_exp ("add_children_to_bbox", bb, g)
+  else B.NSet.fold (add_child_to_bbox' bb) bb_children g
+
+fun remove_child_from_bbox bb bb_child g =
+  if not (has_bbox g bb) then raise no_such_bbname_exp ("remove_child_from_bbox", bb, g)
+  else if not (has_bbox g bb_child) then raise no_such_bbname_exp ("remove_child_from_bbox", bb_child, g)
+  else g |> update_bbox_child_rel (BBRel.unmap (bb, bb_child))
+
+fun clear_bbox_children bb g = 
+  if not (has_bbox g bb) then raise no_such_bbname_exp ("clear_bbox_children", bb, g)
+  else g |> update_bbox_child_rel (BBRel.delete bb)
 
 fun swap_edge_dir e g = let
   val (s,t) = (get_edge_source g e, get_edge_target g e)
@@ -340,13 +363,10 @@ in
        V.name_eq (get_edge_source g1 n, get_edge_source g2 n) andalso
        V.name_eq (get_edge_target g1 n, get_edge_target g2 n)
     end) (get_edata g1)) andalso
-  (* check bbox containment and parents agree *)
+  (* check bbox containment and children agree *)
   (B.NSet.forall (fn bb =>
     V.NSet.sub_set (get_vertices_in_bbox g1 bb) (get_vertices_in_bbox g2 bb) andalso
-    (case (get_bbox_parent_opt g1 bb, get_bbox_parent_opt g2 bb)
-       of (SOME p1, SOME p2) => B.name_eq (p1,p2)
-        | (NONE,NONE) => true
-        | _ => false)
+    B.NSet.eq (get_bbox_children g1 bb) (get_bbox_children g2 bb)
   ) (get_bboxes g1))
 end
 
@@ -404,11 +424,11 @@ fun merge_by_subgraph sub g1 g2 =
    * those in sub, so update containment (and parents) for all bboxes *)
   |> B.NSet.fold (fn bb =>
       add_vertices_to_bbox bb (get_vertices_in_bbox g1 bb) o
-      set_bbox_parent_opt bb (get_bbox_parent_opt g1 bb))
+      add_children_to_bbox bb (get_bbox_children g1 bb))
      (get_bboxes g1)
   |> B.NSet.fold (fn bb =>
       add_vertices_to_bbox bb (get_vertices_in_bbox g2 bb) o
-      set_bbox_parent_opt bb (get_bbox_parent_opt g2 bb))
+      add_children_to_bbox bb (get_bbox_children g2 bb))
      (get_bboxes g2)
 
 (* currently, this will fail on bad_graph_merge_exp if any vertices are contained
@@ -440,7 +460,7 @@ fun delete_subgraph sg g =
 (* note that even though graph/vert/edge names can be done graph-at-once,
  * the renaming in Param will fail for cross-namings, e.g. x->y,y->x *)
 
-exception rename_do_nothing_exp of unit;
+(*exception rename_do_nothing_exp of unit*)
 
 
 
@@ -508,7 +528,7 @@ fun rename_bboxes sub g = let
 in
   g |> update_bboxes (BSub.img_of_set rnm)
     |> update_bbox_rel (fn m => BVRel.compose (m, rnmi))
-    |> update_bbox_parent_map (fn m => BBFn.compose3 (rnm, m, rnmi))
+    |> update_bbox_child_rel (fn m => BBRel.compose3 (rnm, m, rnmi))
 end
 
 fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
@@ -530,7 +550,7 @@ in
     |> update_target   (fn m => EVFn.compose3 (vrnm,m,ernmi))
     |> update_bboxes   (BSub.img_of_set brnm)
     |> update_bbox_rel (fn m => BVRel.compose3 (vrnm, m, brnmi))
-    |> update_bbox_parent_map (fn m => BBFn.compose3 (brnm, m, brnmi))
+    |> update_bbox_child_rel (fn m => BBRel.compose3 (brnm, m, brnmi))
 end
 
 

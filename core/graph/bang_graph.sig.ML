@@ -14,7 +14,7 @@ sig
   (* Does not contain empty !-boxes (or unboxed vertices) *)
   val get_bbox_rel : T -> BVRel.T
   (* Return the "parent" function for nested bang-boxes *)
-  val get_bbox_parent_map : T -> BBFn.T
+  (*val get_bbox_parent_map : T -> BBFn.T*)
   
   (* all vertices that are in at least one !-box *)
   val get_bboxed : T -> V.NSet.T
@@ -61,13 +61,18 @@ sig
   
   (* Set parent of the first bbox to be the second bbox, or clears
    * when the second arg is NONE. *)
-  val set_bbox_parent_opt : B.name -> B.name option -> T -> T
-  val get_bbox_parent_opt : T -> B.name -> B.name option
+  (*val set_bbox_parent_opt : B.name -> B.name option -> T -> T*)
   
+  (* raises no_such_bbox_exn if parent or children not in graph *)
+  val add_children_to_bbox : B.name -> B.NSet.T -> T -> T
+  
+  val get_bbox_parents : T -> B.name -> B.NSet.T
   val get_bbox_children : T -> B.name -> B.NSet.T
   
-  (* returns true if bbox has parent *)
-  val bbox_has_parent : T -> B.name -> bool
+  (* returns true if bbox has parent(s) *)
+  val bbox_has_parents : T -> B.name -> bool
+
+  val bbox_has_children : T -> B.name -> bool
   
   (* we don't copy updaters/setters for internal structures,
    * since using these can lead to an inconsistent state *)
