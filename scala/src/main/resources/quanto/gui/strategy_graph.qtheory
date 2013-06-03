@@ -4,7 +4,7 @@
   "vertex_types" : {
     "RT" : {
       "value" : {
-        "path" : "$.name",
+        "path" : "$.rt_name",
         "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
@@ -19,7 +19,7 @@
         "shape" : "rectangle"
       },
       "default_data" : {
-        "name" : "id",
+        "rt_name" : "id",
         "appf" : {"type" : "Identity"},
         "type" : "RT"
       }
@@ -28,7 +28,7 @@
   "edge_types" : {
     "GT" : {
       "value" : {
-        "path" : "$.name",
+        "path" : "$.gtyp_name",
         "validate_with_core" : false,
         "latex_constants" : false,
         "type" : "string"
@@ -42,7 +42,7 @@
           "bg_color" : [ 0.8, 0.8, 1.0, 0.7 ]
         }
       },
-      "default_data" : {"name" : "t", "type" : "GT"}
+      "default_data" : {"gtyp_name" : "t", "type" : "GT"}
     }
   },
   "default_vertex_type" : "RT",
