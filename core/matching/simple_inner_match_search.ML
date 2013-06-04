@@ -86,8 +86,8 @@ functor SimpleInnerMatchSearch(
              val ((etdir,etdata),_) = G.get_edge tgt et
            in case (epdir = etdir,
                     Option.composePartial
-                      (G.VData.match_data (cpdata,ctdata),
-                       G.EData.match_data (epdata,etdata))
+                      (G.Param.try_match_vertex cpdata ctdata,
+                       G.Param.try_match_edge epdata etdata)
                       subst)
                 of (true, SOME subst') =>
                       match_circles' (lvl+1)
@@ -130,7 +130,7 @@ functor SimpleInnerMatchSearch(
     in if dir_p = dir_t andalso (            (* directedness must match and... *)
             dir_p = G.UnDirected orelse      (* undirected or... *)
             (pat_inedge = tgt_inedge))       (* directions match *)
-       then G.EData.match_data (data_p,data_t) (MatchState.get_match_subst ms)
+       then G.Param.try_match_edge data_p data_t (MatchState.get_match_subst ms)
        else NONE
     end
   in
@@ -157,8 +157,8 @@ functor SimpleInnerMatchSearch(
                                   new_vp new_vt;
                 NONE)
         else
-          case G.VData.match_data (G.get_vertex_data pat new_vp,
-                                   G.get_vertex_data tgt new_vt)
+          case G.Param.try_match_vertex (G.get_vertex_data pat new_vp)
+                                   (G.get_vertex_data tgt new_vt)
                                   e_subst
             of SOME v_subst =>
               (* since data matched, new_vp is a node- or wire-vertex iff new_vt is *)
@@ -223,7 +223,7 @@ functor SimpleInnerMatchSearch(
           (VInjEndo.get_codset (MatchState.get_vmap ms'))
         val nv_data = G.get_vertex_data (MatchState.get_pat ms') nv
         fun m_nodevert tnv =
-          case G.VData.match_data (nv_data, G.get_vertex_data (MatchState.get_tgt ms') tnv)
+          case G.Param.try_match_vertex nv_data (G.get_vertex_data (MatchState.get_tgt ms') tnv)
                                   (MatchState.get_match_subst ms)
             of SOME subst =>
                 match_main (lvl+1) (ms' |> MatchState.set_match_subst subst
@@ -379,10 +379,10 @@ functor SimpleInnerMatchSearch(
         
         (* match data for edge, source, and target *)
         val fmatch_d = Option.composePartial
-                          (G.EData.match_data (bw_data, et_data),
+                          (G.Param.try_match_edge bw_data et_data,
                            Option.composePartial
-                              (G.VData.match_data (bw_sdata, tgt_sdata),
-                               G.VData.match_data (bw_tdata, tgt_tdata)));
+                              (G.Param.try_match_vertex bw_sdata tgt_sdata,
+                               G.Param.try_match_vertex bw_tdata tgt_tdata));
         fun add_bw new_subst = let
           val ms' = ms' |> MatchState.set_match_subst new_subst
                         |> MatchState.update_u_bare_wires (E.NSet.delete bw)

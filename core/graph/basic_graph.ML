@@ -6,7 +6,6 @@ signature BASIC_GRAPH_SHARING =
 sig
 structure EData : UNIFIABLE_DATA_SHARING;
 structure VData : UNIFIABLE_DATA_SHARING;
-sharing type EData.subst = VData.subst; 
 structure Param : GRAPH_PARAM_SHARING;
 sharing Param.VData = VData;
 sharing Param.EData = EData;

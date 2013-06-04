@@ -5,8 +5,6 @@ sig
   (* vertices and edges of a graph *)
   structure OVData : OVERTEX_DATA
   structure EData : UNIFIABLE_DATA
-  (* share the same generic graph data subst *)
-  sharing type OVData.subst = EData.subst;
 
   (* Graph *)
   structure Graph : BANG_GRAPH;
