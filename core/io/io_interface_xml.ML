@@ -33,7 +33,7 @@ end;
 
 (* Given Ruleset, IO for vertices and edges, construct all IO interface *)
 functor IO_Interface_Xml(
-  structure Ruleset : RULESET
+  structure Ruleset : BANG_GRAPH_RULESET
 
   structure VertexData : ELEMENT_COMPONENT_DATA 
         and EdgeData : ELEMENT_COMPONENT_DATA 
@@ -44,7 +44,7 @@ functor IO_Interface_Xml(
   structure Input = struct
 
     structure Graph = InputGraphXML_v2(
-      structure Graph = Ruleset.Rule.Graph
+      structure Graph = Ruleset.BangGraphRule.BangGraph
       structure InputVertexData = InputTypedDataXML(VertexData)
       structure InputEdgeData = InputTypedDataXML(EdgeData));
 
@@ -64,20 +64,20 @@ functor IO_Interface_Xml(
   structure Output = struct
 
     structure Graph = OutputGraphXML_v2(
-      structure Graph = Ruleset.Rule.Graph
+      structure Graph = Ruleset.BangGraphRule.BangGraph
       structure OutputVertexData = OutputTypedDataXML(VertexData)
       structure OutputEdgeData = OutputTypedDataXML(EdgeData));
 
     structure Vertex = OutputVertexXML_v2(
-      structure Graph = Ruleset.Rule.Graph
+      structure Graph = Ruleset.BangGraphRule.BangGraph
       structure OutputVertexData = OutputTypedDataXML(VertexData));
 
     structure Edge = OutputEdgeXML_v2(
-      structure Graph = Ruleset.Rule.Graph
+      structure Graph = Ruleset.BangGraphRule.BangGraph
       structure OutputEdgeData = OutputTypedDataXML(EdgeData));
 
     structure BBox = OutputBBoxXML_v2(
-      structure Graph = Ruleset.Rule.Graph);
+      structure Graph = Ruleset.BangGraphRule.BangGraph);
 
     structure Rule = OutputRuleXML(
         structure Rule = Ruleset.Rule

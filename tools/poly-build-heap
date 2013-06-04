@@ -1,0 +1,83 @@
+#!/bin/bash
+
+PRG="$(basename "$0")"
+
+usage () {
+  echo "usage: ${PRG} <file>"
+  echo "  where <file> is the SML file to be used."
+
+  echo "OPTIONS"
+  echo "-h --help           print this message"
+  echo "-p --project        set if <file> uses PolyML.Project"
+  echo "-o --output <heap>  set the name of the generated heap to <heap>"
+}
+
+while true
+do
+    case "$1" in
+    -h|--help)
+      usage
+      exit 0
+    ;;
+    -o|--output)
+      HEAP="$2"
+      shift 2
+    ;;
+    -p|--project)
+      PROJECT=1
+      shift 1
+    ;;
+    --)
+      shift
+      break
+    ;;
+    *)
+      break
+    ;;
+    esac
+done
+
+if [[ $# != 1 ]]
+then
+  usage >&2
+  exit 1
+fi
+
+TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
+POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"
+if [ "$POLYML_HOME" == "" ]; then
+  echo 'Cannot find Poly/ML (try setting $POLYML_HOME)'
+  exit 1
+fi
+POLY="$POLYML_HOME/bin/poly"
+
+FILE="$1"
+if [[ $HEAP == "" ]]; then HEAP="${FILE%%.*}.heap"; fi
+PROJECT_MAGIC=""
+if [[ $PROJECT ]]; then
+  PROJECT_MAGIC="PolyML.Project.ensure_at_latest_heap ();"
+fi
+
+if [ "$TMPDIR" == "" ]; then
+  BUILDFILE="$(mktemp --tmpdir tmp.XXXXXXXXXX.ML)"
+else
+  BUILDFILE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
+fi
+
+cat > "$BUILDFILE" <<- EOF
+val _ = PolyML.Compiler.printDepth := 0;
+val _ = PolyML.exception_trace (fn () => PolyML.use "${FILE}")
+    handle IO.Io {name="${FILE}",cause=(OS.SysErr (msg,_)),...} =>
+           (TextIO.print ("Could not open file \"${FILE}\": "^msg^"\n");
+            OS.Process.exit OS.Process.failure)
+         | _ => OS.Process.exit OS.Process.failure;
+${PROJECT_MAGIC}
+PolyML.fullGC ();
+PolyML.SaveState.saveState "${HEAP}";
+val _ = OS.Process.exit OS.Process.success;
+EOF
+${POLY} -q $POLYFLAGS --use "$BUILDFILE"
+POLYEXIT=$?
+rm -f "$BUILDFILE"
+exit $POLYEXIT
+

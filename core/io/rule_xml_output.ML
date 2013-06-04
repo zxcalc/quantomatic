@@ -1,6 +1,6 @@
 (* ------------------------------------------------------- *)
 functor OutputRulePartsXMLList (
-	structure Rule : BASIC_RULE
+	structure Rule : RULE
 	structure OutputGraph : OUTPUT_XML
 	sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_XML_LIST
@@ -17,7 +17,7 @@ functor OutputRulePartsXMLList (
 end;
 
 functor OutputRuleXML (
-	structure Rule : BASIC_RULE
+	structure Rule : RULE
 	structure OutputGraph : OUTPUT_XML
 	sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_XML
@@ -32,7 +32,7 @@ functor OutputRuleXML (
 
 (* This matches the format of OutputRulesetDescXMLList in output_ruleset.ML *)
 functor OutputNamedRuleXML (
-	structure Rule : BASIC_RULE
+	structure Rule : RULE
 	structure OutputGraph : OUTPUT_XML
 	sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_XML
@@ -61,7 +61,7 @@ end;
 (* -------------------------------------------------------- *)
 
 functor OutputRewriteXML (
-	structure Rule : BASIC_RULE
+	structure Rule : RULE
 	structure OutputGraph : OUTPUT_XML
   sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_XML
