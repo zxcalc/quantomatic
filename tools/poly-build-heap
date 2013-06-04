@@ -2,10 +2,6 @@
 
 PRG="$(basename "$0")"
 
-OPTS=`getopt -o hpo: --long help,project,ouptut: -n "${PRG}" -- "$@"`
-if [ $? != 0 ] ; then echo "error when parsing command line options ..." >&2 ; exit 1 ; fi
-eval set -- "$OPTS"
-
 usage () {
   echo "usage: ${PRG} <file>"
   echo "  where <file> is the SML file to be used."
@@ -36,8 +32,7 @@ do
       break
     ;;
     *)
-      echo "Internal error!"
-      exit 1
+      break
     ;;
     esac
 done

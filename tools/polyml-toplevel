@@ -2,10 +2,6 @@
 
 PRG="$(basename "$0")"
 
-OPTS=`getopt -o hl:w: --long help,load:,wrapper: -n "${PRG}" -- "$@"`
-if [ $? != 0 ] ; then echo "error when parsing command line options ..." >&2 ; exit 1 ; fi
-eval set -- "$OPTS"
-
 usage () {
 	echo "usage: ${PRG} [opts] [-- [polyopts]]"
 	echo "Runs an interactive Poly/ML session, wrapped in rlwrap or similar"
@@ -36,8 +32,7 @@ do
 			break
 		;;
 		*)
-			echo "Internal error!"
-			exit 1
+			break
 		;;
 	esac
 done
