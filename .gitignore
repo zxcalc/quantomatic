@@ -7,6 +7,7 @@
 *.log
 .*.swp
 /core/bin
+/core/heaps
 *.rules_v2
 /gui/build-debug/
 /core/local_config.ML
