@@ -83,7 +83,12 @@ case "$(uname -s 2>/dev/null)" in
 		;;
 esac
 
-BUILDFILE="$(mktemp --tmpdir tmp.XXXXXXXXXX.ML)"
+if [ "$TMPDIR" == "" ]; then
+  BUILDFILE="$(mktemp --tmpdir tmp.XXXXXXXXXX.ML)"
+else
+  BUILDFILE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
+fi
+
 echo "val _ = PolyML.Compiler.printDepth := 0;" > "$BUILDFILE"
 
 if [[ $HEAP != "" ]]; then
