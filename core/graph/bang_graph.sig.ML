@@ -91,6 +91,15 @@ sig
   val drop_bbox : B.name -> T -> T
   
   val merge_bboxes : B.NSet.T -> T -> B.name * T
+
+  val expand_bbox : B.name -> (VSub.T * ESub.T * BSub.T) * T
+                           -> (VSub.T * ESub.T * BSub.T) * T
+
+  val copy_bbox : B.name -> (VSub.T * ESub.T * BSub.T) * T
+                         -> (VSub.T * ESub.T * BSub.T) * T
+  
+  (*val fresh_copy_bbox : B.name -> T -> (B.name * T)
+  val fresh_copy_bbox_anon : B.name -> T -> T*)
   
   (*
 
