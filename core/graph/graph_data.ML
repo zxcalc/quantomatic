@@ -9,16 +9,20 @@ sig
    * variables. The match_xxx functions update a psubst or return NONE if
    * no match is possible. *)
   val empty_psubst : psubst
-  val match_node_vertex : nvdata * nvdata -> psubst -> psubst option
-  val match_edge : edata * edata -> psubst -> psubst option
+  val match_nvdata : nvdata * nvdata -> psubst -> psubst option
+  val match_edata : edata * edata -> psubst -> psubst option
+
+  (* equality for data. used for subgraph and graph equality *)
+  val nvdata_eq : nvdata * nvdata -> bool
+  val edata_eq : edata * edata -> bool
 
   (* For cases where node/edge data cannot be unified greedily (or uniquely),
    * this is called just before the match is finalised. One match will be
    * produced for each subst returned. In the case where this hook isn't
-   * needed, like type subst = psubst, and "solve_psubst = Seq.single". *)
+   * needed, let "type subst = psubst", and "solve_psubst = Seq.single". *)
   val solve_psubst : psubst -> subst Seq.seq
 
   (* Apply substitutions to data. *)
-  val subst_in_node_vertex : subst -> nvdata -> nvdata
-  val subst_in_edge : subst -> edata -> edata
+  val subst_in_nvdata : subst -> nvdata -> nvdata
+  val subst_in_edata : subst -> edata -> edata
 end

@@ -7,6 +7,8 @@ sig
 
 type T (* an open graph *)
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
+structure Data : GRAPH_DATA
+datatype vdata = NVert of Data.nvdata | WVert
 
 val empty : T
 
@@ -41,12 +43,6 @@ exception plugging_exp of T * V.name * V.name
 (*********** GRAPHS ************)
 (*******************************)
 
-structure OVData : OVERTEX_DATA
-structure EData : UNIFIABLE_DATA
-structure Param : OGRAPH_PARAM
-sharing OVData = Param.OVData
-sharing EData = Param.EData
-
 (* graph is empty *)
 val is_empty : T -> bool
 
@@ -78,12 +74,12 @@ val get_adj_vertices : T -> V.name -> V.NSet.T
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
 
-val get_vertex_data : T -> V.name -> OVData.data
-val get_edge_data : T -> E.name -> EData.data
+val get_vertex_data : T -> V.name -> vdata
+val get_edge_data : T -> E.name -> Data.edata
 
 (* setting data *)
-val set_vertex_data : OVData.data -> V.name -> T -> T
-val set_edge_data : EData.data -> E.name -> T -> T
+val set_vertex_data : vdata -> V.name -> T -> T
+val set_edge_data : Data.edata -> E.name -> T -> T
 (* val set_edge_dir_or_undir : dir_or_undir -> E.name -> T -> T *)
 
 val is_wire_vertex    : T -> V.name -> bool
@@ -100,16 +96,16 @@ val is_subgraph : T -> T -> bool
 val exact_eq : T -> T -> bool
 
 (* adding a vertex gives back unique name for it and the new graph *)
-val add_vertex : OVData.data -> T -> V.name * T 
-val add_vertex_anon : OVData.data -> T -> T
+val add_vertex : vdata -> T -> V.name * T 
+val add_vertex_anon : vdata -> T -> T
 (* raises vname_already_exists_exp on clash *)
-val add_named_vertex : V.name -> OVData.data -> T -> T  
+val add_named_vertex : V.name -> vdata -> T -> T  
 
 (* V.names must already exist, else raises: no_such_vname_exp *)
-val add_edge : dir_or_undir * EData.data -> V.name -> V.name -> T -> E.name * T
-val add_edge_anon : dir_or_undir * EData.data -> V.name -> V.name -> T -> T
+val add_edge : dir_or_undir * Data.edata -> V.name -> V.name -> T -> E.name * T
+val add_edge_anon : dir_or_undir * Data.edata -> V.name -> V.name -> T -> T
 val add_named_edge 
-    : E.name -> dir_or_undir * EData.data -> V.name -> V.name -> T -> T (* can raise *)
+    : E.name -> dir_or_undir * Data.edata -> V.name -> V.name -> T -> T (* can raise *)
 
 
 (* delete raises an exception if there is no such edge/vertex *)
@@ -227,7 +223,7 @@ val minimise : T -> T
 
 
 val get_plugging : T -> V.name -> V.name
-  -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
+  -> ((dir_or_undir * Data.edata) * (V.name * V.name)) option
 
 (* True if and only if one of the given vertices is
  * an input and one an output with the same edge data *)
@@ -311,14 +307,14 @@ val get_open_subgraph : T -> V.NSet.T -> T
  *
  * The folding order is undefined.
  *)
-val fold_adj : (incidence_type * V.name * (E.name * (dir_or_undir * EData.data))
+val fold_adj : (incidence_type * V.name * (E.name * (dir_or_undir * Data.edata))
                 -> 'a -> 'a)
       -> T -> V.name -> 'a -> 'a
 
 (* the vertices connected to the given set, but outside it *) 
 val incident_vertices : T -> V.NSet.T -> V.NSet.T
 
-val get_self_loops : T -> V.name -> EData.data E.NTab.T
+val get_self_loops : T -> V.name -> Data.edata E.NTab.T
 
 val in_enames : T -> V.name -> E.NSet.T
 val out_enames : T -> V.name -> E.NSet.T
@@ -347,23 +343,23 @@ val has_vname : T -> V.name -> bool
 val has_ename : T -> E.name -> bool
 
 (* lookup stuff from graphs (return NONE if no entry) *)
-val lookup_vertex : T -> V.name -> (OVData.data * (E.NSet.T * E.NSet.T)) option
-val lookup_edge : T -> E.name -> ((dir_or_undir * EData.data) * (V.name * V.name)) option
+val lookup_vertex : T -> V.name -> (vdata * (E.NSet.T * E.NSet.T)) option
+val lookup_edge : T -> E.name -> ((dir_or_undir * Data.edata) * (V.name * V.name)) option
 
 
 (* getting graph internal representation... *)
-val get_vertex_list : T -> (V.name * (OVData.data 
+val get_vertex_list : T -> (V.name * (vdata 
                    * (E.NSet.T (* edges coming into this vertex *)
                       * E.NSet.T))) (* edges leaving this vertex *)
                     list;
-val get_edge_list : T -> (E.name * ((dir_or_undir * EData.data)
+val get_edge_list : T -> (E.name * ((dir_or_undir * Data.edata)
                    * (V.name (* from this vertex *)
                       * V.name))) (* to this vertex *)
                     list
                     
 val enames_between : T -> V.name -> V.name -> E.NSet.T
 
-CHANGED SIG: val edges_between : T -> V.name -> V.name -> (dir_or_undir * EData.data) E.NTab.T (* in either dir *)
+CHANGED SIG: val edges_between : T -> V.name -> V.name -> (dir_or_undir * Data.edata) E.NTab.T (* in either dir *)
 
 
 val dir_enames_between : T -> V.name -> V.name 
@@ -371,8 +367,8 @@ val dir_enames_between : T -> V.name -> V.name
          * E.NSet.T (* from snd to fst vertex *)
          
 CHANGED SIG: val dir_edges_between : T -> V.name -> V.name 
-      -> (dir_or_undir * EData.data) E.NTab.T (* from fst to snd vertex *) 
-         * (dir_or_undir * EData.data) E.NTab.T (* from snd to fst vertex *) 
+      -> (dir_or_undir * Data.edata) E.NTab.T (* from fst to snd vertex *) 
+         * (dir_or_undir * Data.edata) E.NTab.T (* from snd to fst vertex *) 
 
 
 (* get adjacent vertices to some vertex *)

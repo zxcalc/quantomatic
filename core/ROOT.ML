@@ -74,11 +74,12 @@ Testing.make_test "io/test/linrat-json-test.ML";
  * Graphs
  *)
 PolyML.Project.make "graph/arity.ML"; (* arity of vertices (in,out,undir) *)
-PolyML.Project.make "graph/graph_param.ML";
+(*PolyML.Project.make "graph/graph_param.ML";*)
 
-PolyML.Project.make "graph/overtex.ML"; (* open graphs *)
-PolyML.Project.make "graph/ograph_param.ML";
+(*PolyML.Project.make "graph/overtex.ML";*) (* open graphs *)
+(*PolyML.Project.make "graph/ograph_param.ML";*)
 
+PolyML.Project.make "graph/graph_data.ML";
 PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/simplified_bang_graph.ML";

@@ -1,22 +1,23 @@
-functor BangGraph(structure Param: OGRAPH_PARAM) : BANG_GRAPH =
+functor BangGraph(structure Data: GRAPH_DATA) : BANG_GRAPH =
 struct
 
-structure Param = Param
-structure OVData = Param.OVData
-structure EData = Param.EData
+structure Data = Data
+datatype vdata = NVert of Data.nvdata | WVert
+
+fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
+  | vdata_eq (WVert, WVert) = true
+  | vdata_eq _ = false
 
 (* main bang-graph datatype *)
 datatype T = BG of {
-  vdata  : OVData.data VTab.T, 
-  edata  : (dir_or_undir * EData.data) ETab.T,
+  vdata  : vdata VTab.T, 
+  edata  : (dir_or_undir * Data.edata) ETab.T,
   source : EVFn.T,
   target : EVFn.T,
   
   bboxes   : B.NSet.T,
   bbox_rel : BVRel.T,
-  bbox_child_rel : BBRel.T,
-  
-  param : Param.T
+  bbox_child_rel : BBRel.T
 }
 
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
@@ -30,9 +31,7 @@ val empty : T = BG {
   
   bboxes   = B.NSet.empty,
   bbox_rel = BVRel.empty,
-  bbox_child_rel = BBRel.empty,
-
-  param = Param.empty
+  bbox_child_rel = BBRel.empty
 }
 
 (*********************************)
@@ -78,14 +77,13 @@ exception merge_bbox_exp of string
  * all be private. Also note that these functions are automatically generated, so avoid
  * making changes *)
 
-fun update_vdata f (BG r)  = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
-fun update_edata f (BG r)  = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
-fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
-fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
-fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param= #param r}
-fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r,param= #param r}
-fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r),param= #param r}
-fun update_param f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r,param=f(#param r)}
+fun update_vdata f (BG r) = BG {vdata=f(#vdata r),edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_edata f (BG r) = BG {vdata= #vdata r,edata=f(#edata r),source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_source f (BG r) = BG {vdata= #vdata r,edata= #edata r,source=f(#source r),target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_target f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target=f(#target r),bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_bboxes f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes=f(#bboxes r),bbox_rel= #bbox_rel r,bbox_child_rel= #bbox_child_rel r}
+fun update_bbox_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel=f(#bbox_rel r),bbox_child_rel= #bbox_child_rel r}
+fun update_bbox_child_rel f (BG r) = BG {vdata= #vdata r,edata= #edata r,source= #source r,target= #target r,bboxes= #bboxes r,bbox_rel= #bbox_rel r,bbox_child_rel=f(#bbox_child_rel r)}
 
 fun get_vdata          (BG r) = #vdata r
 fun get_edata          (BG r) = #edata r
@@ -94,7 +92,6 @@ fun get_target         (BG r) = #target r
 fun get_bboxes         (BG r) = #bboxes r
 fun get_bbox_rel       (BG r) = #bbox_rel r
 fun get_bbox_child_rel (BG r) = #bbox_child_rel r
-fun get_param          (BG r) = #param r
 
 val set_vdata             = update_vdata          o K
 val set_edata             = update_edata          o K
@@ -103,12 +100,6 @@ val set_target            = update_target         o K
 val set_bboxes            = update_bboxes         o K
 val set_bbox_rel          = update_bbox_rel       o K
 val set_bbox_child_rel    = update_bbox_child_rel o K
-val set_param             = update_param          o K
-
-
-
-
-
 
 (*********************************)
 (******* DERIVED ACCESSORS *******)
@@ -128,7 +119,7 @@ fun has_vertex g = V.NSet.contains (get_vertices g)
 fun has_edge g   = E.NSet.contains (get_edges g)
 fun has_bbox g   = B.NSet.contains (get_bboxes g)
 
-fun is_wire_vertex g v = case VTab.get (get_vdata g) v of OVData.WVert => true | _ => false
+fun is_wire_vertex g v = case VTab.get (get_vdata g) v of WVert => true | _ => false
 fun is_node_vertex g v = not (is_wire_vertex g v)
 fun get_wire_vertices g = V.NSet.filter (is_wire_vertex g) (get_vertices g)
 fun get_node_vertices g = V.NSet.filter (is_node_vertex g) (get_vertices g)
@@ -149,11 +140,9 @@ fun is_dir_edge g e = (get_edge_dir g e) = Directed
 
 fun set_vertex_data d v g =
   g |> update_vdata (VTab.set (v,d))
-    |> update_param (Param.replace_vertex d v)
 
 fun set_edge_data d e g =
   g |> update_edata (ETab.map_entry (fn (dir,_) => (dir,d)) e)
-    |> update_param (Param.replace_edge d e)
 
 
 (* given an edge and vertex, get the other end *)
@@ -249,12 +238,10 @@ fun delete_edge e g =
   g |> update_edata (ETab.delete e)
     |> update_source (EVFn.delete e)
     |> update_target (EVFn.delete e)
-    |> update_param (Param.delete_ename e)
 
 fun add_named_vertex v d g =
   if (has_vertex g v) then raise vname_already_exists_exp (v,g)
   else g |> update_vdata (VTab.add (v,d))
-         |> update_param (Param.add_vertex d v)
   
 fun add_vertex d g = let
   val fresh_name = V.NSet.new (get_vertices g) V.default_name
@@ -267,7 +254,6 @@ fun delete_vertex v g =
   g |> update_vdata (VTab.delete v)
     |> E.NSet.fold delete_edge (get_adj_edges g v)
     |> update_bbox_rel (BVRel.inv_delete v)
-    |> update_param (Param.delete_vname v)
 
 fun add_named_bbox bb g =
   if (has_bbox g bb) then raise bbname_already_exists_exp (bb,g)
@@ -353,13 +339,13 @@ in
   (* check bbox names *)
   (B.NSet.sub_set bb1s bb2s) andalso
   (* check same vertex data *)
-  (VTab.forall (fn (n,d1) => OVData.data_eq (d1, get_vertex_data g2 n)) (get_vdata g1)) andalso 
+  (VTab.forall (fn (n,d1) => vdata_eq (d1, get_vertex_data g2 n)) (get_vdata g1)) andalso 
   (* check same edge data, and source and target maps agree *)
   (ETab.forall (fn (n,(dir1,d1)) => 
     let
       val (dir2, d2) = get_edge_dir_and_data g2 n
     in dir1 = dir2 andalso
-       EData.data_eq (d1, d2) andalso
+       Data.edata_eq (d1, d2) andalso
        V.name_eq (get_edge_source g1 n, get_edge_source g2 n) andalso
        V.name_eq (get_edge_target g1 n, get_edge_target g2 n)
     end) (get_edata g1)) andalso
@@ -457,36 +443,9 @@ fun delete_subgraph sg g =
 (************* RENAMING *************)
 (************************************)
 
-(* note that even though graph/vert/edge names can be done graph-at-once,
- * the renaming in Param will fail for cross-namings, e.g. x->y,y->x *)
-
 (*exception rename_do_nothing_exp of unit*)
 
 
-
-(* implicit args: n1 n2 g; raises X.Rnm. *)
-(* renames internal variable name n1 to n2 (assuming n2 is fresh in this graph)
-   Updates the name in the param data as well as in each vertex and edge data in
-   which the name occurs. *)
-fun rename_xs sub g = let
-  (* calling extend_to will force this to be a valid renaming *)
-  val rnm = XSub.extend_to (Param.get_xnames (get_param g)) sub
-in
-  g |> update_param (Param.rename_xs rnm)
-    |> update_vdata (V.NSet.fold
-        (VTab.map_entry (Param.subst_xs_in_vdata rnm))
-                        (get_vertices g))
-    |> update_edata (E.NSet.fold
-        (ETab.map_entry (fn (dir,data) => (dir, Param.subst_xs_in_edata rnm data)))
-                        (get_edges g))
-end
-
-
-fun rename_xname n1 n2 g = rename_xs (XSub.empty |> XSub.add (n1,n2)) g
-
-
-fun try_rename1_xname n1 n2 g = SOME (rename_xname n1 n2 g)
-  handle xname_already_exists_exp _ => NONE
 
 (* rename vertices using the given substitution *)
 fun rename_vertices sub g = let
@@ -494,8 +453,7 @@ fun rename_vertices sub g = let
   val rnm = VSub.extend_to (get_vertices g) sub
   val rnmi = VSub.inverse_of rnm
 in
-  g |> update_param    (Param.rename_vertices sub)
-    |> update_vdata    (fn m => VTab.compose (m,rnmi))
+  g |> update_vdata    (fn m => VTab.compose (m,rnmi))
     |> update_source   (fn m => EVFn.compose (rnm,m))
     |> update_target   (fn m => EVFn.compose (rnm,m))
     |> update_bbox_rel (fn m => BVRel.compose (rnm,m))
@@ -511,8 +469,7 @@ fun rename_edges sub g = let
   val rnm = ESub.extend_to (get_edges g) sub
   val rnmi = ESub.inverse_of rnm
 in
-  g |> update_param  (Param.rename_edges sub)
-    |> update_edata  (fn m => ETab.compose (m,rnmi))
+  g |> update_edata  (fn m => ETab.compose (m,rnmi))
     |> update_source (fn m => EVFn.compose (m,rnmi))
     |> update_target (fn m => EVFn.compose (m,rnmi))
 end
@@ -543,8 +500,7 @@ fun rename_graph (vsub,esub,bsub) g = let
   val brnm  = BSub.extend_to (get_bboxes g) bsub
   val brnmi = BSub.inverse_of brnm
 in
-  g |> update_param    (Param.rename_vertices vsub o Param.rename_edges esub)
-    |> update_vdata    (fn m => VTab.compose (m,vrnmi))
+  g |> update_vdata    (fn m => VTab.compose (m,vrnmi))
     |> update_edata    (fn m => ETab.compose (m,ernmi))
     |> update_source   (fn m => EVFn.compose3 (vrnm,m,ernmi))
     |> update_target   (fn m => EVFn.compose3 (vrnm,m,ernmi))
@@ -654,7 +610,7 @@ in
     in
       if (dir_or_undir <> dou')
       then raise wire_exp ("Directedness of edges differs",g,w)
-      else if not (EData.data_eq (data,data'))
+      else if not (Data.edata_eq (data,data'))
       then raise wire_exp ("Data of edges differs",g,w)
       else w 
     end) es w
@@ -693,8 +649,8 @@ fun normalise_wire' (wire as (s,t,_,es)) g =
     let
       val dir_and_data = get_edge_dir_and_data g ((the o E.NSet.get_local_bot) es)
       val g      = g |> delete_wire wire
-      val (b1,g) = g |> add_vertex OVData.WVert
-      val (b2,g) = g |> add_vertex OVData.WVert
+      val (b1,g) = g |> add_vertex WVert
+      val (b2,g) = g |> add_vertex WVert
       val (e1,g) = g |> add_edge dir_and_data s b1
       val (e2,g) = g |> add_edge dir_and_data b1 b2
       val (e3,g) = g |> add_edge dir_and_data b2 t
@@ -723,11 +679,11 @@ fun get_plugging g v1 v2 =
     of (SOME e1,SOME e2) =>
           (case (get_edge_dir_and_data g e1,get_edge_dir_and_data g e2)
              of ((Undirected,d1),(Undirected,d2)) =>
-                 if EData.data_eq (d1,d2)
+                 if Data.edata_eq (d1,d2)
                  then SOME ((Undirected,d1),(v1,v2))
                  else NONE
              | ((Directed,d1),(Directed,d2)) =>
-                 if not (EData.data_eq (d1,d2))
+                 if not (Data.edata_eq (d1,d2))
                  then NONE
                  else if is_input g v1 andalso is_output g v2
                  then SOME ((Directed,d1),(v2,v1))
