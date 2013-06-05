@@ -2,12 +2,23 @@
  * directed edges, but may be matched in either direction. *)
 datatype dir_or_undir = Directed | Undirected
 
+signature OGRAPH_SHARING =
+sig
+  type T
+  structure Data : GRAPH_DATA
+end
+
 signature OGRAPH =
 sig
 
 type T (* an open graph *)
-type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 structure Data : GRAPH_DATA
+
+structure Sharing : OGRAPH_SHARING
+sharing type Sharing.T = T
+sharing Sharing.Data = Data
+
+type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 datatype vdata = NVert of Data.nvdata | WVert
 
 val empty : T

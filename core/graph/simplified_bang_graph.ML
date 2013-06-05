@@ -20,6 +20,12 @@ datatype T = BG of {
   bbox_child_rel : BBRel.T
 }
 
+structure Sharing =
+struct
+  type T = T
+  structure Data = Data
+end
+
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 
 (* empty bang graph *)

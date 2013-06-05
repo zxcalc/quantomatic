@@ -84,7 +84,7 @@ PolyML.Project.make "graph/ograph.sig.ML";
 PolyML.Project.make "graph/bang_graph.sig.ML";
 PolyML.Project.make "graph/simplified_bang_graph.ML";
 
-PolyML.Project.make "stub_run.ML";
+
 
 (*PolyML.Project.make "graph/basic_graph.ML"; (* basic graphs, just the data *)
 PolyML.Project.make "graph/graph.ML"; (* graphs with interesting functions *)
@@ -95,10 +95,12 @@ PolyML.Project.make "graph/ograph.ML";
 PolyML.Project.make "graph/bang_graph.ML"; (* bang box graphs *)
 PolyML.Project.make "graph/bang_graph_iso.ML"; (* isomorphism between !graphs *)
 PolyML.Project.make "graph/graph_annotations.ML"; (* graph annotations *)
+*)
 
 (* I/O *)
-PolyML.Project.make "io/graph_json.ML";
-PolyML.Project.make "io/graph_annotations_json.ML";
+(*PolyML.Project.make "io/graph_json.ML";*)
+
+(*PolyML.Project.make "io/graph_annotations_json.ML";
 PolyML.Project.make "io/graph_dot_output.ML";
 
 Testing.make_test "graph/test/test-graph-setup.ML";
@@ -107,12 +109,15 @@ Testing.make_test "graph/test/test-ograph.ML";
 Testing.make_test "graph/test/test-bang-graph.ML";
 Testing.make_test "graph/test/test-bang-graph-iso.ML";
 
-Testing.make_test "io/test/graph-json-test.ML";
+Testing.make_test "io/test/graph-json-test.ML";*)
 
+
+PolyML.Project.make "stub_run.ML";
 
 (*
  * Metrics
  *)
+(*
 PolyML.Project.make "metrics/metric_type.ML"; (* Utils to handle int tuples *)
 PolyML.Project.make "metrics/metrics/metric.ML"; (* METRIC signature *)
 PolyML.Project.make "metrics/metrics/edge_complexity_metric.ML";
