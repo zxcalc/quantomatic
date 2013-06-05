@@ -45,11 +45,10 @@ if [ "$POLYML_HOME" == "" ]; then
 fi
 POLY="$POLYML_HOME/bin/poly"
 
-if [ "$TMPDIR" == "" ]; then
-  PRE_USE="$(mktemp --tmpdir tmp.XXXXXXXXXX.ML)"
-else
-  PRE_USE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
+if [ -z "$TMPDIR" ]; then
+  TMPDIR="/tmp"
 fi
+PRE_USE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
 
 echo "val _ = PolyML.Compiler.printDepth := 0;" > "$PRE_USE"
 if [[ $HEAP != "" ]]; then
