@@ -81,10 +81,10 @@ struct
 
   structure Rule = Rule;
   structure Graph = Rule.BangGraph;
-  type match = Matcher.BGMatchState.T;
+  type match = Matcher.MatchState.T;
 
   structure G = Graph;
-  structure MatchState = Matcher.BGMatchState;
+  structure MatchState = Matcher.MatchState;
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -117,7 +117,7 @@ struct
         val lhs = Rule.get_lhs rule;
       in
         (rule,
-         Matcher.match_normalised_avoiding_tracking avd_trk lhs graph)
+         Matcher.match_normalised avd_trk lhs graph)
       end;
 
   fun find_matches_in_subgraph r g vset =
@@ -126,7 +126,7 @@ struct
         val lhs = Rule.get_lhs rule;
       in
         (rule,
-         Matcher.match_subgraph_normalised_avoiding_tracking avd_trk lhs graph vset)
+         Matcher.match_subgraph_normalised avd_trk lhs graph vset)
       end;
 
   fun sg_rewrite_at m rhs =
@@ -215,7 +215,7 @@ struct
     Seq.map (rewrite_at r') mseq
   end
 
-  val print_match = Matcher.BGMatchState.print;
-  val pretty_match = Matcher.BGMatchState.pretty;
+  val print_match = Matcher.MatchState.print;
+  val pretty_match = Matcher.MatchState.pretty;
 end;
 

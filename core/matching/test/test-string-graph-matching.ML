@@ -1,13 +1,11 @@
 (*
  * Tests matching of string graphs against string graphs
  *)
-functor String_Graph_Matching_Tests(
-  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
-                           and type G.OVData.IData.data = Test_Graph_Data.vdata
-) =
+functor String_Graph_Matching_Tests(Tester : MATCH_TESTER) =
 struct
-  structure Tools = Test_Match_Tools(Matcher);
+  structure Tools = Test_Match_Checking_Tools(Tester.MatchState);
   open Tools;
+  open Tester;
 
   (*
    * Circle matching tests
@@ -431,5 +429,6 @@ struct
   val _ = Testing.assert_no_failed_tests();
 end;
 
-structure Concrete_Matcher_Tests = String_Graph_Matching_Tests(Test_ConcreteMatcher);
+structure Concrete_Matcher_Tests =
+  String_Graph_Matching_Tests(Test_Match_Tools(Test_ConcreteMatcher));
 

@@ -6,10 +6,11 @@ functor Bang_Graph_Matching_Tests(
                               and type G.OVData.IData.data = Test_Graph_Data.vdata
 ) =
 struct
-  (* test matching with concrete graphs *)
-  structure SG_Matcher_Tests = String_Graph_Matching_Tests(Matcher);
-
   structure Tools = Test_Bang_Match_Tools(Matcher);
+
+  (* test matching with concrete graphs *)
+  structure SG_Matcher_Tests = String_Graph_Matching_Tests(Tools);
+
   open Tools;
 
   (*

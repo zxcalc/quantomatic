@@ -30,15 +30,15 @@ Test_ConcreteMatcher.Log.level_ref := 2;
 Test_GreedyMatcher.Log.level_ref := 2;
 *)
 
-functor Test_Match_Tools(
-  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+functor Test_Match_Checking_Tools(
+  MatchState : OGRAPH_MATCH_STATE where type G.EData.data = Test_Graph_Data.edata
                            and type G.OVData.IData.data = Test_Graph_Data.vdata
 ) =
 struct
-  structure GTools = Test_OGraph_Tools(Matcher.G);
+  structure MatchState = MatchState;
+  structure GTools = Test_OGraph_Tools(MatchState.G);
   open GTools;
-  structure M = Matcher;
-  structure MS = M.MatchState;
+  structure MS = MatchState;
 
   fun assert_match_correct orig_pat orig_tgt m = let
     val pat = MS.get_pat m
@@ -148,6 +148,27 @@ struct
           raise ERROR ("expected " ^ Int.toString n ^
                        " matching(s), got " ^ Int.toString nm))
   end;
+end;
+
+signature MATCH_TESTER =
+sig
+  structure MatchState : OGRAPH_MATCH_STATE
+      where type G.EData.data = Test_Graph_Data.edata
+        and type G.OVData.IData.data = Test_Graph_Data.vdata
+  val find_n_matches : int -> (MatchState.G.T * MatchState.G.T)
+                    -> MatchState.T list;
+  val find_n_correct_matches : int -> (MatchState.G.T * MatchState.G.T)
+                            -> MatchState.T list;
+end;
+
+functor Test_Match_Tools(
+  Matcher : MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
+                           and type G.OVData.IData.data = Test_Graph_Data.vdata
+) =
+struct
+  structure MSTools = Test_Match_Checking_Tools(Matcher.MatchState);
+  open MSTools;
+  structure M = Matcher;
 
   fun find_n_matches n (pat,tgt) =
     assert_n_match n (M.match pat tgt) ();
@@ -162,12 +183,12 @@ functor Test_Bang_Match_Tools(
                                 and type G.OVData.IData.data = Test_Graph_Data.vdata
 ) =
 struct
-  structure MTools = Test_Match_Tools(BGMatcher);
-  open MTools;
-  structure Tools = Test_Bang_Graph_Tools(BGMatcher.BG);
-  open Tools;
+  structure MSTools = Test_Match_Checking_Tools(BGMatcher.MatchState);
+  open MSTools;
+  structure BGTools = Test_Bang_Graph_Tools(BGMatcher.G);
+  open BGTools;
   structure M = BGMatcher;
-  structure MS = M.BGMatchState;
+  structure MS = M.MatchState;
 
   fun assert_n_warnings n ms = let
     val ws = MS.get_warnings ms
@@ -178,11 +199,14 @@ struct
   fun assert_match_correct orig_pat orig_tgt m = let
     val full_pat = MS.replay_pat_bbox_ops m orig_pat
   in
-    MTools.assert_match_correct full_pat orig_tgt m
+    MSTools.assert_match_correct full_pat orig_tgt m
   end;
+
+  fun find_n_matches n (pat,tgt) =
+    assert_n_match n (M.match (V.NSet.empty,V.NSet.empty) pat tgt) ();
 
   fun find_n_correct_matches n (pat,tgt) =
     map (assert_match_correct pat tgt)
-    (assert_n_match n (M.match pat tgt) ());
+    (assert_n_match n (M.match (V.NSet.empty,V.NSet.empty) pat tgt) ());
 end;
 

@@ -41,15 +41,16 @@ end
 
 signature BG_MATCH_SEARCH =
 sig
-  include MATCH_SEARCH;
-  structure BG : BANG_GRAPH;
-  structure BGMatchState : BANG_GRAPH_MATCH_STATE;
-  sharing G.SharingOGraph = BG.SharingOGraph;
-  sharing BGMatchState.G.SharingOGraph = G.SharingOGraph;
-  sharing MatchState.Sharing = BGMatchState.Sharing
+  structure Log : LOG;
+
+  structure G : BANG_GRAPH;
+  structure MatchState : BANG_GRAPH_MATCH_STATE;
+  structure Sharing : MATCH_SEARCH_SHARING
+    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.MatchState = MatchState.Sharing
   
   (* Searches for matches *)
-  val match_avoiding_tracking
+  val match
      : (V.NSet.T *          (* names to avoid *)
         V.NSet.T)           (* names to track *)
     -> G.T                  (* pattern graph *)
@@ -57,7 +58,7 @@ sig
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
   (* Searches for matches *)
-  val match_subgraph_avoiding_tracking
+  val match_subgraph
      : (V.NSet.T *          (* names to avoid *)
         V.NSet.T)           (* names to track *)
     -> G.T                  (* pattern graph *)
@@ -66,7 +67,7 @@ sig
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
   (* Searches for matches *)
-  val match_normalised_avoiding_tracking
+  val match_normalised
      : (V.NSet.T *          (* names to avoid *)
         V.NSet.T)           (* names to track *)
     -> G.T                  (* pattern graph (normalised) *)
@@ -74,7 +75,7 @@ sig
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
   (* Searches for matches *)
-  val match_subgraph_normalised_avoiding_tracking
+  val match_subgraph_normalised
      : (V.NSet.T *          (* names to avoid *)
         V.NSet.T)           (* names to track *)
     -> G.T                  (* pattern graph (normalised) *)

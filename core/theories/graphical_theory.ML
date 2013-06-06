@@ -20,11 +20,11 @@ sig
   sharing Ruleset.Sharing.Rule = Rule.Sharing 
 
   (* A matching between two graphs *)
-  structure Match : OGRAPH_MATCH_STATE
+  structure Match : BANG_GRAPH_MATCH_STATE
   sharing Match.G.SharingOGraph = Graph.SharingOGraph;
 
   (* Matching algorithm *)
-  structure MatchSearch : MATCH_SEARCH
+  structure MatchSearch : BG_MATCH_SEARCH
   sharing MatchSearch.Sharing.MatchState = Match.Sharing
   sharing MatchSearch.Sharing.G = Graph.SharingOGraph
 
