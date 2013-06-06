@@ -6,7 +6,7 @@ scalaVersion := "2.10.0"
 
 scalacOptions ++= Seq("-feature", "-language:implicitConversions")
 
-seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
+//seq(com.github.retronym.SbtOneJar.oneJarSettings: _*)
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
  

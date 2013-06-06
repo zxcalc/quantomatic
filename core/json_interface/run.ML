@@ -25,4 +25,4 @@ in
   else
     ConsoleInterface.run_in_stdio ();
   OS.Process.exit OS.Process.success
-end;
+end

@@ -1,63 +1,99 @@
 package quanto.core
 
 import akka.actor._
-import quanto.util.json.Json
+import quanto.util.json._
 
-abstract class CoreMessage
-case object StartCore extends CoreMessage
-case object CoreInitialized extends CoreMessage
-case class CoreResponse(requestId: Int, resp: Json) extends CoreMessage
-case class UnhandledRequest(requestId: Int, reason: String) extends CoreMessage
-abstract class CoreRequest extends CoreMessage {
+case object StartCore
+case object StopCore
+case object CoreInitialized
+case class CoreResponse(requestId: Int, resp: Json)
+case class UnhandledRequest(requestId: Int, reason: String)
+abstract class CoreRequest {
   def requestId: Int
   def json : Json
   def decode(resp: Json): Any
 }
-
+case class SimpleRequest(jsonString: String) extends CoreRequest {
+  val json = Json.parse(jsonString)
+  def requestId = (json / "request_id").intValue
+  def decode(resp: Json): Json = resp
+}
 
 class CoreState(executable: String) extends Actor with ActorLogging {
   val coreProcess = new CoreProcess(parallel = true)
   var reader: ActorRef = _
   var writer: ActorRef = _
   val listeners = collection.mutable.Map[Int, (ActorRef,CoreRequest)]()
+  coreProcess.startCore(executable)
+  reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
+  writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
 
-  val coreDown: Receive = {
-    case StartCore =>
-      coreProcess.startCore(executable)
-      reader = context.actorOf(Props[CoreReader], name = "core_reader")
-      writer = context.actorOf(Props[CoreWriter], name = "core_writer")
-      context.become(coreWaitForInit)
-    case req : CoreRequest =>
-      sender ! UnhandledRequest(req.requestId, "Core down")
-    case x => log.warning("Unexpected message: " + x + " in state coreDown.")
-  }
+  log.info("fired up")
 
-  val coreWaitForInit: Receive = {
-    case CoreInitialized => context.become(coreRunning)
-    case req : CoreRequest =>
-      sender ! UnhandledRequest(req.requestId, "Core initializing")
-    case x => log.warning("Unexpected message: " + x + " in state coreWaitForInit.")
-  }
+//  val coreDown: Receive = {
+//    case StartCore =>
+//      coreProcess.startCore(executable)
+//      reader = context.actorOf(Props { new CoreReader(coreProcess) }, name = "core_reader")
+//      writer = context.actorOf(Props { new CoreWriter(coreProcess) }, name = "core_writer")
+//      context.become(coreRunning)
+//    case req : CoreRequest =>
+//      sender ! UnhandledRequest(req.requestId, "Core down")
+//      log.warning("Unhandled request: " + req + " in state coreDown.")
+//    case x => log.warning("Unexpected message: " + x + " in state coreDown.")
+//  }
 
-  val coreRunning: Receive = {
+//  val coreWaitForInit: Receive = {
+//    case CoreInitialized => context.become(coreRunning)
+//    case req : CoreRequest =>
+//      sender ! UnhandledRequest(req.requestId, "Core initializing")
+//    case x => log.warning("Unexpected message: " + x + " in state coreWaitForInit.")
+//  }
+
+//  val coreRunning: Receive = {
+//    case req : CoreRequest =>
+//      log.info("Request: " + req)
+//      listeners += req.requestId -> (sender, req)
+//      writer ! req
+//    case CoreResponse(rid, resp) =>
+//      log.info("Response: " + resp)
+//      listeners.get(rid) match {
+//        case Some((listener, req)) => listener ! req.decode(resp)
+//        case None => log.warning("Orphaned response for request_id: " + rid)
+//      }
+//    case x => log.warning("Unexpected message: " + x + " in state coreRunning.")
+//  }
+
+  def receive = {
     case req : CoreRequest =>
+      //log.info("Request: " + req)
       listeners += req.requestId -> (sender, req)
       writer ! req
     case CoreResponse(rid, resp) =>
+      //log.info("Response: " + resp)
       listeners.get(rid) match {
         case Some((listener, req)) => listener ! req.decode(resp)
         case None => log.warning("Orphaned response for request_id: " + rid)
       }
-    case x => log.warning("Unexpected message: " + x + " in state coreRunning.")
+    case StopCore =>
+      log.info("shutting down")
+      coreProcess.killCore(false)
+    case x => log.warning("Unexpected message: " + x)
   }
-
-  def receive = coreDown
 }
 
 class CoreReader(process: CoreProcess) extends Actor {
-  def receive = ???
+  while (true) {
+    val json = Json.parse(process.stdout)
+    context.parent ! CoreResponse((json / "request_id").intValue, json)
+  }
+
+  def receive = PartialFunction.empty
 }
 
 class CoreWriter(process: CoreProcess) extends Actor {
-  def receive = ???
+  def receive = {
+    case req : CoreRequest =>
+      req.json.writeTo(process.stdin)
+      process.stdin.flush()
+  }
 }

@@ -14,6 +14,7 @@ OS.FileSys.chDir (rootDir ^ "/../../isaplib/");
 use "ROOT.ML";
 OS.FileSys.chDir rootDir;
 
+(*PolyML.Project.Log.level_ref := 4;*)
 PolyML.Project.depend_on_files
   [
    rootDir ^ "/../../isaplib/ROOT.ML",
