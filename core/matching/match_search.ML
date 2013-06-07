@@ -45,40 +45,35 @@ sig
 
   structure G : BANG_GRAPH;
   structure MatchState : BANG_GRAPH_MATCH_STATE;
+  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH;
   structure Sharing : MATCH_SEARCH_SHARING
     sharing Sharing.G = G.SharingOGraph
     sharing Sharing.MatchState = MatchState.Sharing
+    sharing G.SharingOGraph = BBoxOperableGraph.G.SharingOGraph
+    sharing MatchState.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
   
   (* Searches for matches *)
   val match
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph *)
+     : BBoxOperableGraph.T       (* pattern graph + operator *)
     -> G.T                  (* target graph *)
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
   (* Searches for matches *)
   val match_subgraph
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph *)
+     : BBoxOperableGraph.T       (* pattern graph + operator *)
     -> G.T                  (* target graph *)
     -> V.NSet.T             (* target subgraph verts *)
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
   (* Searches for matches *)
   val match_normalised
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph (normalised) *)
+     : BBoxOperableGraph.T       (* pattern graph + operator *)
     -> G.T                  (* target graph (normalised) *)
     -> MatchState.T Seq.seq (* (lazy) list of matches *)
   
   (* Searches for matches *)
   val match_subgraph_normalised
-     : (V.NSet.T *          (* names to avoid *)
-        V.NSet.T)           (* names to track *)
-    -> G.T                  (* pattern graph (normalised) *)
+     : BBoxOperableGraph.T       (* pattern graph + operator *)
     -> G.T                  (* target graph (normalised) *)
     -> V.NSet.T             (* target subgraph verts *)
     -> MatchState.T Seq.seq (* (lazy) list of matches *)

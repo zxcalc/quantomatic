@@ -1,7 +1,7 @@
-local (* Test match state functionality *)
+local (* Test  functionality *)
   structure Tools = Test_Bang_Graph_Tools(Test_Bang_Graph);
   open Tools;
-  structure MS = Test_BGMatchState;
+  structure BBOp = Test_BBoxOperableGraph;
 
   local
     structure Rule = BangGraphRule(G);
@@ -31,29 +31,31 @@ local (* Test match state functionality *)
   val _ = Testing.test "Original graphs coherent"
           assert_boundary_coherent (spider_pat,spider_pat_plus_v4)
 
-  val ms = MS.init spider_pat G.empty
-            |> MS.set_pat_avoids (G.get_vnames spider_pat_plus_v4)
-            |> MS.set_pat_tracked (V.NSet.of_list (map V.mk ["v1","v3"]))
+  val bbop = BBOp.init spider_pat
+                       (G.get_vnames spider_pat_plus_v4)
+                       (V.NSet.of_list (map V.mk ["v1","v3"]))
 
-  val ms = ms |> MS.expand_pat_bbox (B.mk "B0")
-              |> MS.expand_pat_bbox (B.mk "B0")
-              |> MS.kill_pat_bbox (B.mk "B0")
-              |> MS.expand_pat_bbox (B.mk "B1")
-              |> MS.kill_pat_bbox (B.mk "B1")
-  val pat = MS.get_pat ms
+  val bbop = bbop |> BBOp.expand_bbox (B.mk "B0")
+                  |> BBOp.expand_bbox (B.mk "B0")
+                  |> BBOp.kill_bbox (B.mk "B0")
+                  |> BBOp.expand_bbox (B.mk "B1")
+                  |> BBOp.kill_bbox (B.mk "B1")
+  val new_g = BBOp.get_current_graph bbop
 
-  val _ = Testing.test "Correct number of inputs in pat"
-          (fn _ => V.NSet.cardinality (G.get_inputs pat) = 2) ()
-  val _ = Testing.test "Correct number of outputs in pat"
-          (fn _ => V.NSet.cardinality (G.get_outputs pat) = 1) ()
+  val _ = Testing.test "Correct number of inputs in successor graph"
+          (fn _ => V.NSet.cardinality (G.get_inputs new_g) = 2) ()
+  val _ = Testing.test "Correct number of outputs in successor graph"
+          (fn _ => V.NSet.cardinality (G.get_outputs new_g) = 1) ()
 
   val _ = Testing.test "Replay works on original graph"
-            (MS.replay_pat_bbox_ops ms) spider_pat
-  val SOME rhs = Testing.test "Replay works on boundary-coherent graph"
-            (MS.replay_pat_bbox_ops ms) spider_pat_plus_v4
+            (BBOp.replay_bbox_ops bbop) spider_pat
+  val rhs = Testing.test "Replay works on boundary-coherent graph"
+            (BBOp.replay_bbox_ops bbop) spider_pat_plus_v4
 
-  val _ = Testing.test "Expanded graphs coherent"
-          assert_boundary_coherent (pat,rhs)
+  val _ = case rhs
+            of SOME g => Testing.test "Expanded graphs coherent"
+                         assert_boundary_coherent (new_g,g)
+             | NONE => NONE
 in
   val _ = Testing.assert_no_failed_tests();
 end

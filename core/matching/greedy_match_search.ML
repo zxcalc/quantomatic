@@ -20,6 +20,7 @@ struct
 
   structure MatchState = BGMatchState
   structure G = BGMatchState.BG
+  structure BBoxOperableGraph = BGMatchState.BBoxOperableGraph;
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -96,42 +97,34 @@ struct
         (InnerMatchSearch.match_pending doomedf ms'))
   end
 
-  fun match_normalised (avoid,track) pat tgt = let
+  fun match_normalised oper tgt = let
+    val pat = BBoxOperableGraph.get_current_graph oper
     val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
-    val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
-    val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
     val ms = MatchState.init pat tgt
-           |> MatchState.set_pat_avoids avoid
-           |> MatchState.set_pat_tracked track
+           |> MatchState.set_bbox_oper oper
            |> MatchState.schedule_concrete_pat
            |> MatchState.schedule_all_tgt
   in
     match_loop ms
   end
-  fun match at pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
-  in match_normalised at pat' tgt' end
+  fun match oper tgt =
+    match_normalised (BBoxOperableGraph.normalise oper) (G.normalise tgt)
 
-  fun match_subgraph_normalised (avoid,track) pat tgt tgt_verts = let
+  fun match_subgraph_normalised oper tgt tgt_verts = let
+    val pat = BBoxOperableGraph.get_current_graph oper
     val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
-    val _ = log_v_nset 3 "GreedyMatchSearch: avoids" avoid
-    val _ = log_v_nset 3 "GreedyMatchSearch: tracked" track
     val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
     val ms = MatchState.init pat tgt
-           |> MatchState.set_pat_avoids avoid
-           |> MatchState.set_pat_tracked track
+           |> MatchState.set_bbox_oper oper
            |> MatchState.schedule_concrete_pat
            |> MatchState.schedule_tgt_subgraph tgt_verts
   in
     match_loop ms
   end
-  fun match_subgraph at pat tgt = let
-    val pat' = G.normalise pat
-    val tgt' = G.normalise tgt
-  in match_subgraph_normalised at pat' tgt' end
+  fun match_subgraph oper tgt =
+    match_subgraph_normalised (BBoxOperableGraph.normalise oper) (G.normalise tgt)
 
   structure Sharing =
   struct

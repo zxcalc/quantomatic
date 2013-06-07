@@ -1,13 +1,25 @@
 (* The match state for graph matching with !-graphs *)
 (* see docs/matching_algo for details *)
 
+(* The type-sharing struct for OGRAPH_MATCH_STATE *)
+signature BANG_GRAPH_MATCH_STATE_SHARING
+= sig
+  include OGRAPH_MATCH_STATE_SHARING
+  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH_SHARING
+    sharing G = BBoxOperableGraph.G
+end
+
 (* The match state for pattern graph matching *)
 signature BANG_GRAPH_MATCH_STATE
 = sig
   include OGRAPH_MATCH_STATE;
   (* NB: there is no BANG_GRAPH_SHARING signature *)
   structure BG : BANG_GRAPH;
-  sharing G.SharingOGraph = BG.SharingOGraph;
+  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH
+  structure BGSharing : BANG_GRAPH_MATCH_STATE_SHARING
+    sharing BGSharing = Sharing
+    sharing BG.SharingOGraph = BGSharing.G
+    sharing BBoxOperableGraph.Sharing = BGSharing.BBoxOperableGraph
 
   (* Issues encountered during matching *)
   datatype Warning = (* A !-box with no node-vertices was killed to stop
@@ -16,23 +28,9 @@ signature BANG_GRAPH_MATCH_STATE
                       *)
                      WildBBoxKilled of B.name;
 
-  (* Vertex names to avoid when copying bboxes in pat
-   *
-   * (see replay_pat_bbox_ops)
-   *)
-  val get_pat_avoids    : T -> V.NSet.T
-  val update_pat_avoids : (V.NSet.T -> V.NSet.T) -> T -> T
-  val set_pat_avoids    : V.NSet.T -> T -> T
-
-  (* Vertex names to keep track of when copying bboxes in pat
-   *
-   * Typically the boundary of the graph.
-   *
-   * (see replay_pat_bbox_ops)
-   *)
-  val get_pat_tracked    : T -> V.NSet.T
-  val update_pat_tracked : (V.NSet.T -> V.NSet.T) -> T -> T
-  val set_pat_tracked    : V.NSet.T -> T -> T
+  val get_bbox_oper : T -> BBoxOperableGraph.T;
+  val update_bbox_oper : (BBoxOperableGraph.T -> BBoxOperableGraph.T) -> T -> T;
+  val set_bbox_oper : BBoxOperableGraph.T -> T -> T;
 
   (* Issues encountered during matching.
    *
@@ -52,47 +50,26 @@ signature BANG_GRAPH_MATCH_STATE
 
   (* Kills any !-boxes that are adjacent to a completely-matched vertex *)
   val kill_impossible_bboxes : T -> T
-
-  (* Replays the pattern graph's !-box operations on another graph.
-   *
-   * The graph that they will be replayed on must have exactly the same
-   * !-box structure (including names) as the pattern graph for this to
-   * work.  The vertices in pat_tracked should also be in both graphs,
-   * and be contained in exactly the same !-boxes in both graphs.  This
-   * function will then ensure that the same names are given to copies
-   * of those vertices as in the pattern graph.
-   *
-   * It is also required that any vertex names in the graph were part
-   * of pat_avoids, otherwise a name clash could occur.
-   *)
-  val replay_pat_bbox_ops : T -> G.T -> G.T
 end
 
 (* type-coerced version of MatchState for pattern graphs *)
 functor BangGraphMatchState(
   structure G : BANG_GRAPH
+  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH
+  sharing G.SharingOGraph = BBoxOperableGraph.G.SharingOGraph;
   type data
   val empty_data : data
 ) : BANG_GRAPH_MATCH_STATE
 = struct
   type data2 = data
 
-  datatype BBoxOp = BBKill of B.name
-                  | BBCopy of {
-                      bbox : B.name,
-                      vmap : V.name V.NTab.T,
-                      bmap : B.name B.NTab.T
-                    };
+  structure BBoxOperableGraph = BBoxOperableGraph;
 
   datatype Warning = WildBBoxKilled of B.name;
 
   type bdata = {
-    (* names context for fresh names when copying bboxes in pat *)
-    pat_avoids   : V.NSet.T,
-    (* names context for fresh names when copying bboxes in pat *)
-    pat_tracked  : V.NSet.T,
     (* !-box operation sequence *)
-    pat_bbox_ops : BBoxOp list,
+    bbox_oper    : BBoxOperableGraph.T,
     (* Issues encountered during matching *)
     warnings     : Warning list,
     (* type-extensibility *)
@@ -100,41 +77,19 @@ functor BangGraphMatchState(
   };
   fun get_data_of_bdata (bdata:bdata) : data = #data bdata;
   fun update_data_of_bdata f (bdata:bdata) = {
-    pat_avoids   = #pat_avoids bdata,
-    pat_tracked  = #pat_tracked bdata,
-    pat_bbox_ops = #pat_bbox_ops bdata,
+    bbox_oper    = #bbox_oper bdata,
     warnings     = #warnings bdata,
     data         = f (#data bdata)
   };
-  fun get_pat_avoids_of_bdata (bdata:bdata) = #pat_avoids bdata
-  fun update_pat_avoids_of_bdata f (bdata:bdata) = {
-    pat_avoids   = f (#pat_avoids bdata),
-    pat_tracked  = #pat_tracked bdata,
-    pat_bbox_ops = #pat_bbox_ops bdata,
-    warnings     = #warnings bdata,
-    data         = #data bdata
-  };
-  fun get_pat_tracked_of_bdata (bdata:bdata) = #pat_tracked bdata
-  fun update_pat_tracked_of_bdata f (bdata:bdata) = {
-    pat_avoids   = #pat_avoids bdata,
-    pat_tracked  = f (#pat_tracked bdata),
-    pat_bbox_ops = #pat_bbox_ops bdata,
-    warnings     = #warnings bdata,
-    data         = #data bdata
-  };
-  fun get_pat_bbox_ops_of_bdata (bdata:bdata) = #pat_bbox_ops bdata
-  fun update_pat_bbox_ops_of_bdata f (bdata:bdata) = {
-    pat_avoids   = #pat_avoids bdata,
-    pat_tracked  = #pat_tracked bdata,
-    pat_bbox_ops = f (#pat_bbox_ops bdata),
+  fun get_bbox_oper_of_bdata (bdata:bdata) = #bbox_oper bdata
+  fun set_bbox_oper_of_bdata oper (bdata:bdata) = {
+    bbox_oper    = oper,
     warnings     = #warnings bdata,
     data         = #data bdata
   };
   fun get_warnings_of_bdata (bdata:bdata) = #warnings bdata
   fun add_warning_of_bdata w (bdata:bdata) = {
-    pat_avoids   = #pat_avoids bdata,
-    pat_tracked  = #pat_tracked bdata,
-    pat_bbox_ops = #pat_bbox_ops bdata,
+    bbox_oper    = #bbox_oper bdata,
     warnings     = w::(#warnings bdata),
     data         = #data bdata
   };
@@ -144,15 +99,12 @@ functor BangGraphMatchState(
     structure G = G
     type data = bdata
     val empty_data = {
-      pat_avoids   = V.NSet.empty,
-      pat_tracked   = V.NSet.empty,
-      pat_bbox_ops = [],
+      bbox_oper    = BBoxOperableGraph.empty,
       warnings     = [],
       data         = empty_data
     }
   );
   open OGMS;
-  
 
   (* override data things from OGraphMatchState *)
   type data = data2
@@ -160,16 +112,16 @@ functor BangGraphMatchState(
   val update_data = OGMS.update_data o update_data_of_bdata;
 
   (* new getters/setters *)
-  val get_pat_avoids = get_pat_avoids_of_bdata o OGMS.get_data;
-  val update_pat_avoids = OGMS.update_data o update_pat_avoids_of_bdata;
-  val set_pat_avoids = update_pat_avoids o K;
-
-  val get_pat_tracked = get_pat_tracked_of_bdata o OGMS.get_data;
-  val update_pat_tracked = OGMS.update_data o update_pat_tracked_of_bdata;
-  val set_pat_tracked = update_pat_tracked o K;
-
-  val get_pat_bbox_ops = get_pat_bbox_ops_of_bdata o OGMS.get_data;
-  val update_pat_bbox_ops = OGMS.update_data o update_pat_bbox_ops_of_bdata;
+  val get_bbox_oper = get_bbox_oper_of_bdata o OGMS.get_data;
+  fun set_bbox_oper new_oper ms =
+    ms |> OGMS.set_pat (BBoxOperableGraph.get_current_graph new_oper)
+       |> OGMS.update_data (set_bbox_oper_of_bdata new_oper);
+  fun update_bbox_oper f ms = let
+    val old_oper = get_bbox_oper ms
+    val new_oper = f old_oper
+  in
+    set_bbox_oper new_oper ms
+  end;
 
   val get_warnings = get_warnings_of_bdata o OGMS.get_data;
   val add_warning = OGMS.update_data o add_warning_of_bdata;
@@ -182,10 +134,9 @@ functor BangGraphMatchState(
               V.NSet.pretty vs
            ]]
   in Pretty.chunks(
-    [Pretty.str "BangGraphMatchState{",OGMS.pretty ms] @
-    (pretty_vset "Pattern avoids" (get_pat_avoids ms)) @
-    (pretty_vset "Pattern tracked" (get_pat_tracked ms)) @
-    [Pretty.str "}"])
+    [Pretty.str "BangGraphMatchState{",
+     OGMS.pretty ms,
+     Pretty.str "}"])
   end
 
   val print = Pretty.writeln o pretty
@@ -241,63 +192,8 @@ functor BangGraphMatchState(
     schedule_concrete vs es ms
   end
 
-  fun replay_bbox_op _ (BBKill b) g = BG.kill_bbox b g
-    | replay_bbox_op v_avoid (BBCopy {bbox,vmap,bmap}) g = let
-        val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
-        val vrn = V.Rnm.mk V.NSet.empty v_avoid vmap
-        (*val _ = TextIO.print ">>>>> replaying: BBCopy on \n"*)
-        (*val _ = G.print g*)
-        (*val _ = TextIO.print "\n>>>>> with renamer: \n"*)
-        (*val _ = V.Rnm.print vrn*)
-        val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
-        val brn = B.Rnm.mk B.NSet.empty (BG.get_bboxes g) bmap
-        (*val _ = TextIO.print "\n>>>>> performing expand\n"*)
-        val (_,g') = BG.expand1_bbox bbox ((vrn,ern,brn),g)
-        (*val _ = TextIO.print "\n>>>>> BBCopy done\n"*)
-      in g' end
-
-  fun replay_pat_bbox_ops ms = let
-    val bbops   = get_pat_bbox_ops ms
-    val avoids' = get_pat_avoids ms
-    val pat     = get_pat ms
-    val avoids  = avoids' |> V.NSet.union_merge (BG.get_vnames pat)
-  in
-    fold_rev (replay_bbox_op avoids) bbops
-  end
-
-  fun expand_pat_bbox b ms = let
-    val g = get_pat ms
-    val v_avoid = get_pat_avoids ms
-    val v_avoid = v_avoid |> V.NSet.union_merge (BG.get_vnames g)
-    val vrn = V.Rnm.mk_from_avoids v_avoid
-    val ern = E.Rnm.mk_from_avoids (BG.get_enames g)
-    val brn = B.Rnm.mk_from_avoids (BG.get_bboxes g)
-    val ((vrn',_,brn'),g') = BG.expand1_bbox b ((vrn,ern,brn),g)
-    val vmap = V.Rnm.get_nmap vrn'
-    val tracked = get_pat_tracked ms
-    (* only keep track of the names of the vertices we care about *)
-    val vmap' = V.NSet.fold (fn v =>
-        case V.NTab.lookup vmap v of
-             NONE => (fn x => x)
-           | SOME v' => V.NTab.ins (v,v')) tracked V.NTab.empty
-    val bbop = BBCopy {
-        bbox = b,
-        vmap = vmap',
-        bmap = B.Rnm.get_nmap brn'
-      }
-  in
-    ms |> set_pat g'
-       |> update_pat_bbox_ops (cons bbop)
-       |> update_pat_tracked (V.NTab.fold (V.NSet.add o snd) vmap')
-  end
-
-  fun kill_pat_bbox b ms = let
-    val pat' = BG.kill_bbox b (get_pat ms)
-  in
-    ms |> set_pat pat'
-       |> update_pat_bbox_ops (cons (BBKill b))
-    handle BG.no_such_bbox_exp _ => ms
-  end
+  val expand_pat_bbox = update_bbox_oper o BBoxOperableGraph.expand_bbox
+  val kill_pat_bbox = update_bbox_oper o BBoxOperableGraph.kill_bbox
 
   fun kill_bboxes_adj_to_complete_nvs ms = let
     val pat = get_pat ms
@@ -344,5 +240,17 @@ functor BangGraphMatchState(
 
   val kill_impossible_bboxes = kill_wild_bboxes
                              o kill_bboxes_adj_to_complete_nvs
+
+  structure Sharing =
+  struct
+    type T = T;
+    structure G = BG.SharingOGraph;
+  end;
+
+  structure BGSharing =
+  struct
+    open Sharing;
+    structure BBoxOperableGraph = BBoxOperableGraph.Sharing;
+  end;
 end
 

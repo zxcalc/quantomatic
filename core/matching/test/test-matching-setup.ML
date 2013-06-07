@@ -9,9 +9,13 @@ structure Test_InnerMatcher =
 structure Test_ConcreteMatcher =
   ConcreteMatchSearch(structure InnerMatchSearch = Test_InnerMatcher);
 
+structure Test_BBoxOperableGraph =
+  ReplayableBBoxOperableGraph(Test_Bang_Graph);
+
 structure Test_BGMatchState =
   BangGraphMatchState(
     structure G = Test_Bang_Graph
+    structure BBoxOperableGraph = Test_BBoxOperableGraph
     type data = unit
     val empty_data = ()
   );
@@ -179,8 +183,11 @@ struct
 end;
 
 functor Test_Bang_Match_Tools(
-  BGMatcher : BG_MATCH_SEARCH where type G.EData.data = Test_Graph_Data.edata
-                                and type G.OVData.IData.data = Test_Graph_Data.vdata
+  BGMatcher : BG_MATCH_SEARCH
+    where type G.EData.data = Test_Graph_Data.edata
+      and type G.OVData.IData.data = Test_Graph_Data.vdata
+      and type MatchState.BBoxOperableGraph.T = Test_BBoxOperableGraph.T
+      and type MatchState.BBoxOperableGraph.G.T = Test_BBoxOperableGraph.G.T
 ) =
 struct
   structure MSTools = Test_Match_Checking_Tools(BGMatcher.MatchState);
@@ -197,16 +204,22 @@ struct
   end
 
   fun assert_match_correct orig_pat orig_tgt m = let
-    val full_pat = MS.replay_pat_bbox_ops m orig_pat
+    val bbox_oper = MS.get_bbox_oper m
+    val full_pat = Test_BBoxOperableGraph.replay_bbox_ops bbox_oper orig_pat
   in
     MSTools.assert_match_correct full_pat orig_tgt m
   end;
 
-  fun find_n_matches n (pat,tgt) =
-    assert_n_match n (M.match (V.NSet.empty,V.NSet.empty) pat tgt) ();
+  fun find_n_matches n (pat,tgt) = let
+    val oper = Test_BBoxOperableGraph.init pat V.NSet.empty V.NSet.empty
+  in
+    assert_n_match n (M.match oper tgt) ()
+  end;
 
-  fun find_n_correct_matches n (pat,tgt) =
+  fun find_n_correct_matches n (pat,tgt) = let
+    val oper = Test_BBoxOperableGraph.init pat V.NSet.empty V.NSet.empty
+  in
     map (assert_match_correct pat tgt)
-    (assert_n_match n (M.match (V.NSet.empty,V.NSet.empty) pat tgt) ());
+    (assert_n_match n (M.match oper tgt) ())
+  end;
 end;
-
