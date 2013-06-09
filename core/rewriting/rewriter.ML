@@ -76,17 +76,17 @@ functor BangGraphRewriter(
   structure Matcher : BG_MATCH_SEARCH
   structure BBoxOperableGraph : REPLAYABLE_BBOX_OPERABLE_GRAPH
   sharing Matcher.Sharing.G = Rule.Sharing.Graph
-  sharing Matcher.MatchState.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
+  sharing Matcher.Match.BBoxOperableGraph.Sharing = BBoxOperableGraph.Sharing
 ) : REWRITER =
 struct
   structure Log : LOG = Log(val init_level = 0)
 
   structure Rule = Rule;
   structure Graph = Rule.BangGraph;
-  type match = Matcher.MatchState.T;
+  type match = Matcher.Match.T;
 
   structure G = Graph;
-  structure MatchState = Matcher.MatchState;
+  structure Match = Matcher.Match;
   structure BBOp = BBoxOperableGraph;
 
   fun log_p pretty_f lvl name =
@@ -136,18 +136,19 @@ struct
 
   fun sg_rewrite_at m rhs =
     let
-      val g = MatchState.get_tgt m
-      val pat = MatchState.get_pat m
-      val subst_data = G.apply_data_subst (MatchState.get_match_subst m)
+      val g = Match.get_tgt m
+      val pat_oper = Match.get_pat m
+      val pat = BBoxOperableGraph.get_current_graph pat_oper
+      val subst_data = G.apply_data_subst (Match.get_subst m)
       val shared_boundary = G.get_boundary pat;
-      val vmap = MatchState.get_vmap m
+      val vmap = Match.get_vmap m
       val vmapf = VInjEndo.domf vmap
       val matched = VInjEndo.get_codset vmap;
           (* remove the matched part *)
       val interior = V.NSet.fold (V.NSet.delete o vmapf)
                                  shared_boundary
                                  matched
-      val interior_edges = EInjEndo.get_codset (MatchState.get_emap m);
+      val interior_edges = EInjEndo.get_codset (Match.get_emap m);
       (* h is g with LHS cut out; note that we need to delete edges explicitly,
          in case of bare wire matches *)
       val h = g |> E.NSet.fold G.delete_edge interior_edges
@@ -202,7 +203,7 @@ struct
 
   fun rewrite_at rule m = let
     val rhs = Rule.get_rhs rule
-    val oper = MatchState.get_bbox_oper m
+    val oper = Match.get_pat m
     val sg_rhs = BBOp.replay_bbox_ops oper rhs
     val (final_rule,g') = sg_rewrite_at m sg_rhs
   in
@@ -221,7 +222,7 @@ struct
     Seq.map (rewrite_at r') mseq
   end
 
-  val print_match = Matcher.MatchState.print;
-  val pretty_match = Matcher.MatchState.pretty;
+  val print_match = Matcher.Match.print;
+  val pretty_match = Matcher.Match.pretty;
 end;
 

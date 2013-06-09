@@ -1,7 +1,7 @@
 (* The inner matching loop *)
 (* see docs/matching_algo for details *)
 functor SimpleInnerMatchSearch(
-    structure MatchState : OGRAPH_MATCH_STATE
+    MatchState : OGRAPH_MATCH_STATE
 ) : INNER_MATCH_SEARCH
 = struct
   structure Log : LOG = Log(val init_level = 0);

@@ -20,12 +20,12 @@ sig
   sharing Ruleset.Sharing.Rule = Rule.Sharing 
 
   (* A matching between two graphs *)
-  structure Match : BANG_GRAPH_MATCH_STATE
+  structure Match : BANG_GRAPH_MATCH
   sharing Match.G.SharingOGraph = Graph.SharingOGraph;
 
   (* Matching algorithm *)
   structure MatchSearch : BG_MATCH_SEARCH
-  sharing MatchSearch.Sharing.MatchState = Match.Sharing
+  sharing MatchSearch.Sharing.Match = Match.Sharing
   sharing MatchSearch.Sharing.G = Graph.SharingOGraph
 
   (* Sets of rules and matching for those sets *)
@@ -79,18 +79,8 @@ struct
   structure Ruleset = BangGraphRuleset(Rule);
 
   structure BBoxOperableGraph = ReplayableBBoxOperableGraph(Graph);
-  structure Match = BangGraphMatchState(
-                      structure G = Graph
-                      structure BBoxOperableGraph = BBoxOperableGraph
-                      type data = unit
-                      val empty_data = ()
-                    );
-
-  structure InnerMatchSearch = SimpleInnerMatchSearch(structure MatchState = Match);
-  structure MatchSearch = GreedyMatchSearch(
-    structure InnerMatchSearch = InnerMatchSearch;
-    structure BGMatchState = Match;
-  );
+  structure MatchSearch = GreedyMatchSearch(BBoxOperableGraph);
+  structure Match = MatchSearch.Match;
 
   structure RulesetRewriter = RulesetRewriter(
     structure Ruleset = Ruleset;

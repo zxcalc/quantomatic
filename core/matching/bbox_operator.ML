@@ -24,6 +24,9 @@ sig
   val get_current_graph : T -> G.T;
 
   val empty : T;
+
+  val print : T -> unit;
+  val pretty : T -> Pretty.T;
 end;
 
 (* This is an operator that records the !-box operations that are performed
@@ -162,6 +165,22 @@ struct
   in
     fold_rev (replay_bbox_op avoids) bbops
   end;
+
+  fun pretty oper =
+    Pretty.chunks [
+      Pretty.str "ReplayableBBoxOperableGraph {",
+      Pretty.block [
+        Pretty.str "  ", (* indent *)
+        Pretty.chunks [
+          Pretty.block [
+            Pretty.str "Current Graph: ",
+            G.pretty (get_current_graph oper)
+          ]
+        ]
+      ],
+      Pretty.str "}"
+    ];
+  val print = Pretty.writeln o pretty;
 
   structure Sharing =
   struct

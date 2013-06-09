@@ -5,8 +5,8 @@ functor Bang_Graph_Matching_Tests(
   Matcher : BG_MATCH_SEARCH
     where type G.EData.data = Test_Graph_Data.edata
       and type G.OVData.IData.data = Test_Graph_Data.vdata
-      and type MatchState.BBoxOperableGraph.T = Test_BBoxOperableGraph.T
-      and type MatchState.BBoxOperableGraph.G.T = Test_BBoxOperableGraph.G.T
+      and type Match.BBoxOperableGraph.T = Test_BBoxOperableGraph.T
+      and type Match.BBoxOperableGraph.G.T = Test_BBoxOperableGraph.G.T
 ) =
 struct
   structure Tools = Test_Bang_Match_Tools(Matcher);
@@ -190,7 +190,7 @@ struct
       |> add_dir_eunit1 "e22" "l1-b" "l2-b";
 
   val _ = Testing.test "M.match - balanced tree --> tree {}"
-          ((assert_n_warnings 1) o List.hd o (find_n_correct_matches 1))
+          ((assert_n_wild_bboxes 1) o List.hd o (find_n_correct_matches 1))
           (balanced_tree_pat,min_tree);
   val _ = Testing.test "M.match - arbitrary tree --> tree {}"
                        (find_n_correct_matches 1) (arbitrary_tree_pat,min_tree);

@@ -3,8 +3,8 @@
  *)
 functor String_Graph_Matching_Tests(Tester : MATCH_TESTER) =
 struct
-  structure Tools = Test_Match_Checking_Tools(Tester.MatchState);
-  open Tools;
+  structure GTools = Test_OGraph_Tools(Tester.G);
+  open GTools;
   open Tester;
 
   (*

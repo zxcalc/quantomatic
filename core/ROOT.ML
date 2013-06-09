@@ -138,6 +138,8 @@ Testing.make_test "theories/test/ruleset-test.ML";
  * Matching
  *)
 PolyML.Project.make "matching/bbox_operator.ML";
+PolyML.Project.make "matching/match.ML";
+PolyML.Project.make "matching/bg_match.ML";
 PolyML.Project.make "matching/match_state.ML";
 PolyML.Project.make "matching/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)

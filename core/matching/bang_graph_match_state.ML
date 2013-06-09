@@ -21,23 +21,13 @@ signature BANG_GRAPH_MATCH_STATE
     sharing BG.SharingOGraph = BGSharing.G
     sharing BBoxOperableGraph.Sharing = BGSharing.BBoxOperableGraph
 
-  (* Issues encountered during matching *)
-  datatype Warning = (* A !-box with no node-vertices was killed to stop
-                      * it running wild; matching will therefore be
-                      * incomplete
-                      *)
-                     WildBBoxKilled of B.name;
-
   val get_bbox_oper : T -> BBoxOperableGraph.T;
   val update_bbox_oper : (BBoxOperableGraph.T -> BBoxOperableGraph.T) -> T -> T;
   val set_bbox_oper : BBoxOperableGraph.T -> T -> T;
 
-  (* Issues encountered during matching.
-   *
-   * (see Warning datatype)
-   *)
-  val get_warnings : T -> Warning list
-  val add_warning  : Warning -> T -> T
+  (* Wild !-boxes that were killed *)
+  val get_wild_bboxes : T -> B.NSet.T
+  val add_wild_bbox   : B.name -> T -> T
 
   (* schedules all the concrete vertices that have not been seen before
    *)
@@ -54,15 +44,14 @@ end
 
 (* type-coerced version of MatchState for pattern graphs *)
 functor BangGraphMatchState(
-  structure G : BANG_GRAPH
   structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH
-  sharing G.SharingOGraph = BBoxOperableGraph.G.SharingOGraph;
   type data
   val empty_data : data
 ) : BANG_GRAPH_MATCH_STATE
 = struct
   type data2 = data
 
+  structure G = BBoxOperableGraph.G;
   structure BBoxOperableGraph = BBoxOperableGraph;
 
   datatype Warning = WildBBoxKilled of B.name;
@@ -71,26 +60,26 @@ functor BangGraphMatchState(
     (* !-box operation sequence *)
     bbox_oper    : BBoxOperableGraph.T,
     (* Issues encountered during matching *)
-    warnings     : Warning list,
+    wild_bboxes  : B.NSet.T,
     (* type-extensibility *)
     data         : data
   };
   fun get_data_of_bdata (bdata:bdata) : data = #data bdata;
   fun update_data_of_bdata f (bdata:bdata) = {
     bbox_oper    = #bbox_oper bdata,
-    warnings     = #warnings bdata,
+    wild_bboxes     = #wild_bboxes bdata,
     data         = f (#data bdata)
   };
   fun get_bbox_oper_of_bdata (bdata:bdata) = #bbox_oper bdata
   fun set_bbox_oper_of_bdata oper (bdata:bdata) = {
     bbox_oper    = oper,
-    warnings     = #warnings bdata,
+    wild_bboxes     = #wild_bboxes bdata,
     data         = #data bdata
   };
-  fun get_warnings_of_bdata (bdata:bdata) = #warnings bdata
-  fun add_warning_of_bdata w (bdata:bdata) = {
+  fun get_wild_bboxes_of_bdata (bdata:bdata) = #wild_bboxes bdata
+  fun add_wild_bbox_of_bdata b (bdata:bdata) = {
     bbox_oper    = #bbox_oper bdata,
-    warnings     = w::(#warnings bdata),
+    wild_bboxes  = B.NSet.add b (#wild_bboxes bdata),
     data         = #data bdata
   };
 
@@ -100,7 +89,7 @@ functor BangGraphMatchState(
     type data = bdata
     val empty_data = {
       bbox_oper    = BBoxOperableGraph.empty,
-      warnings     = [],
+      wild_bboxes  = B.NSet.empty,
       data         = empty_data
     }
   );
@@ -123,8 +112,8 @@ functor BangGraphMatchState(
     set_bbox_oper new_oper ms
   end;
 
-  val get_warnings = get_warnings_of_bdata o OGMS.get_data;
-  val add_warning = OGMS.update_data o add_warning_of_bdata;
+  val get_wild_bboxes = get_wild_bboxes_of_bdata o OGMS.get_data;
+  val add_wild_bbox = OGMS.update_data o add_wild_bbox_of_bdata;
   
   fun pretty ms = let
     fun pretty_vset prefix vs =
@@ -228,7 +217,7 @@ functor BangGraphMatchState(
       V.NSet.forall (is_end_of_bare_wire g) (BG.get_bbox_contents g bbox)
     fun kill_pat_bbox' bbox ms =
       ms |> kill_pat_bbox bbox
-         |> add_warning (WildBBoxKilled bbox)
+         |> add_wild_bbox bbox
     fun kill_if_wild bbox ms =
       (if is_wild (get_pat ms) bbox
        then kill_pat_bbox' bbox ms

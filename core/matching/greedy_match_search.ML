@@ -8,19 +8,21 @@
  * both expanding it and killing it.
  *)
 functor GreedyMatchSearch(
-    structure InnerMatchSearch : INNER_MATCH_SEARCH
-    (* This arg is required to make typing work sanely. *)
-    (* It must be the same structure as the one in InnerMatchSearch *)
-    structure BGMatchState : BANG_GRAPH_MATCH_STATE
-    sharing InnerMatchSearch.MatchState.Sharing = BGMatchState.Sharing
+  BBoxOperableGraph : BBOX_OPERABLE_GRAPH
 ) : BG_MATCH_SEARCH =
 struct
 
   structure Log : LOG = Log(val init_level = 0);
 
-  structure MatchState = BGMatchState
-  structure G = BGMatchState.BG
-  structure BBoxOperableGraph = BGMatchState.BBoxOperableGraph;
+  structure BBoxOperableGraph = BBoxOperableGraph;
+  structure G = BBoxOperableGraph.G;
+  structure MatchState = BangGraphMatchState(
+    structure BBoxOperableGraph = BBoxOperableGraph
+    type data = unit
+    val empty_data = ()
+  );
+  structure InnerMatchSearch = SimpleInnerMatchSearch(MatchState);
+  structure Match = BangGraphMatch(BBoxOperableGraph);
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -93,9 +95,20 @@ struct
          | SOME b => kill_and_expand b ms
   in
     Seq.maps choose_next_bbox
-    (Seq.map MatchState.kill_impossible_bboxes
+      (Seq.map MatchState.kill_impossible_bboxes
         (InnerMatchSearch.match_pending doomedf ms'))
   end
+
+  fun match_from_ms ms =
+    Match.mk (MatchState.get_bbox_oper ms)
+             (MatchState.get_tgt ms)
+             (MatchState.get_vmap ms)
+             (MatchState.get_emap ms)
+             (BInjEndo.empty)
+             (MatchState.get_match_subst ms)
+             (MatchState.get_wild_bboxes ms)
+
+  fun find_matches ms = Seq.map match_from_ms (match_loop ms);
 
   fun match_normalised oper tgt = let
     val pat = BBoxOperableGraph.get_current_graph oper
@@ -106,7 +119,7 @@ struct
            |> MatchState.schedule_concrete_pat
            |> MatchState.schedule_all_tgt
   in
-    match_loop ms
+    find_matches ms
   end
   fun match oper tgt =
     match_normalised (BBoxOperableGraph.normalise oper) (G.normalise tgt)
@@ -121,7 +134,7 @@ struct
            |> MatchState.schedule_concrete_pat
            |> MatchState.schedule_tgt_subgraph tgt_verts
   in
-    match_loop ms
+    find_matches ms
   end
   fun match_subgraph oper tgt =
     match_subgraph_normalised (BBoxOperableGraph.normalise oper) (G.normalise tgt)
@@ -129,6 +142,6 @@ struct
   structure Sharing =
   struct
     structure G = G.SharingOGraph
-    structure MatchState = MatchState.Sharing
+    structure Match = Match.Sharing
   end
 end
