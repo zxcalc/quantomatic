@@ -10,8 +10,6 @@ signature GRAPH_PARAM_SHARING
   structure EData : UNIFIABLE_DATA_SHARING
   type T
   type subst 
-  sharing type subst = VData.subst
-  sharing type subst = EData.subst
 end;
 
 

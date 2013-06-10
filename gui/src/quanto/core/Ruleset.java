@@ -116,6 +116,7 @@ public class Ruleset {
                 set.add(ruleName);
                 tags.put(tag, set);
             } else {
+                ensureTagLoaded(tag);
                 tags.get(tag).add(ruleName);
             }
             fireRulesTagged(tag, Collections.singleton(ruleName), newTag);
@@ -129,6 +130,7 @@ public class Ruleset {
         if (tags == null || tags.containsKey(tag)) {
             core.getTalker().untagRule(ruleName, tag);
             if (tags != null) {
+                ensureTagLoaded(tag);
                 tags.get(tag).remove(ruleName);
                 if (tags.get(tag).isEmpty()) {
                     tags.remove(tag);
@@ -164,6 +166,7 @@ public class Ruleset {
 	}
 
 	public void activateRulesByTag(String tag) throws CoreException {
+            ensureTagLoaded(tag);
         Collection<String> changedRules = tags.get(tag);
 		core.getTalker().activateRulesByTag(tag);
         Map<String,Boolean> updated = new HashMap<String, Boolean>(changedRules.size());
@@ -175,6 +178,7 @@ public class Ruleset {
 	}
 
 	public void deactivateRulesByTag(String tag) throws CoreException {
+            ensureTagLoaded(tag);
         Collection<String> changedRules = tags.get(tag);
 		core.getTalker().deactivateRulesByTag(tag);
         Map<String,Boolean> updated = new HashMap<String, Boolean>(changedRules.size());
@@ -186,6 +190,7 @@ public class Ruleset {
 	}
 
 	public void deleteRulesByTag(String tag) throws CoreException {
+            ensureTagLoaded(tag);
         Collection<String> removedRules = tags.get(tag);
 	    core.getTalker().deleteRulesByTag(tag);
         tags.remove(tag);
@@ -236,7 +241,9 @@ public class Ruleset {
          rules.remove(rule);
          Iterator<Set<String>> it = tags.values().iterator();
          while (it.hasNext()) {
-             it.next().remove(rule);
+             Set<String> tagRules = it.next();
+             if (tagRules != null)
+                tagRules.remove(rule);
          }
 	     fireRulesRemoved(Collections.singleton(rule));
 	}
@@ -288,8 +295,10 @@ public class Ruleset {
         Iterator<Set<String>> it = tags.values().iterator();
         while (it.hasNext()) {
             Set<String> tagRules = it.next();
-            tagRules.remove(oldName);
-            tagRules.add(newName);
+            if (tagRules != null) {
+                tagRules.remove(oldName);
+                tagRules.add(newName);
+            }
         }
         fireRulesRenamed(Collections.singletonMap(oldName, newName));
     }

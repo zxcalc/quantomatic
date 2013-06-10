@@ -2,62 +2,6 @@
 
 PRG="$(basename "$0")"
 
-# OPTS=`getopt -o hto:m:l: --long help,top-level,ouptut:,main:,load: -n "${PRG}" -- "$@"`
-# if [ $? != 0 ] ; then echo "error when parsing command line options ..." >&2 ; exit 1 ; fi
-# eval set -- "$OPTS"
-
-# usage () {
-# 	echo "usage: ${PRG} <file>"
-# 	echo "  where <file> is the SML file to be used."
-# 	echo
-# 	echo "OPTIONS"
-# 	echo "-h --help        print this message"
-# 	echo "-m --main m      use the ML function 'm' as main-function"
-# 	echo "-o --output b    set the name of the generated binary to 'b'"
-# 	echo "-t --top-level   build custom top-level"
-# 	echo "-l --load <heap> load <heap> before using <file>"
-# }
-
-# while true
-# do
-# 	case "$1" in
-# 		-h|--help)
-# 			usage
-# 			exit 0
-# 		;;
-# 		-o|--output)
-# 			PROG="$2"
-# 			shift 2
-# 		;;
-# 		-m|--main)
-# 			MAIN="$2"
-# 			shift 2
-# 		;;
-# 		-t|--top-level)
-# 			TOP=1
-# 			shift 1
-# 		;;
-# 		-l|--load)
-# 			HEAP="$2"
-# 			shift 2
-# 		;;
-# 		--)
-# 			shift
-# 			break
-# 		;;
-# 		*)
-# 			echo "Internal error!"
-# 			exit 1
-# 		;;
-# 	esac
-# done
-
-# if [[ $# != 1 ]]
-# then
-# 	usage >&2
-# 	exit 1
-# fi
-
 usage () {
 	echo "usage: ${PRG} <file>"
 	echo "  where <file> is the SML file to be used."
@@ -72,7 +16,7 @@ usage () {
 
 while getopts "htm:o:l:" opt
 do
-	case $opt in
+	case "$opt" in
 		h)
 			usage
 			exit 0
@@ -89,14 +33,26 @@ do
 		l)
 			HEAP="$OPTARG"
 		;;
-    \?)
-      usage >&2
-      exit 1
-    ;;
-  esac
+		\?)
+			usage >&2
+			exit 1
+		;;
+	esac
 done
 shift $((OPTIND-1))
 
+if [[ $# < 1 ]]
+then
+  echo "No SML file given" >&2
+  usage >&2
+  exit 1
+elif [[ $# > 1 ]]
+then
+  echo "Too many file arguments" >&2
+  usage >&2
+  exit 1
+fi
+FILE="$1"
 
 TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
 POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"
@@ -107,7 +63,6 @@ fi
 POLY="$POLYML_HOME/bin/poly"
 POLYML_LIB="$POLYML_HOME/lib"
 
-FILE="$1"
 NAME="${FILE%%.*}"
 if [[ $PROG == "" ]]; then PROG=$NAME; fi
 if [[ $TOP ]]
@@ -128,11 +83,10 @@ case "$(uname -s 2>/dev/null)" in
 		;;
 esac
 
-if [ "$TMPDIR" == "" ]; then
-  BUILDFILE="$(mktemp --tmpdir tmp.XXXXXXXXXX.ML)"
-else
-  BUILDFILE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
+if [ -z "$TMPDIR" ]; then
+  TMPDIR="/tmp"
 fi
+BUILDFILE="$(mktemp $TMPDIR/tmp.XXXXXXXXXX.ML)"
 
 echo "val _ = PolyML.Compiler.printDepth := 0;" > "$BUILDFILE"
 
@@ -164,9 +118,11 @@ cat >> "$BUILDFILE" <<- EOF
 	         | _ =>
 	           (TextIO.print ("Exception raised when usiing file \"${FILE}\"\n");
 	            OS.Process.exit OS.Process.failure);
+	fun trap f () = (PolyML.exception_trace f; OS.Process.exit OS.Process.success)
+	                handle _ => OS.Process.exit OS.Process.failure;
 	PolyML.shareCommonData ${MAIN};
 	PolyML.fullGC();
-	PolyML.export("${PROG}", ${MAIN});
+	PolyML.export("${PROG}", trap ${MAIN});
 	val _ = OS.Process.exit OS.Process.success;
 	EOF
 ${POLY} -q $POLYFLAGS --use "$BUILDFILE"

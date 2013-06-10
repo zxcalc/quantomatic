@@ -159,26 +159,21 @@ public class Toolbox extends JPanel {
 				JMenuItem menuItem = new JMenuItem(v.getCoreName());
 				menuItem.addMouseListener(new MouseListener() {
 
-					@Override
 					public void mouseEntered(MouseEvent e) {
 						view.highlightSubgraph(Collections.singleton(v));
 					}
 
-					@Override
 					public void mouseExited(MouseEvent e) {
 						view.clearHighlight();
 					}
 
-					public void mouseClicked(MouseEvent arg0) {
-					}
+					public void mouseClicked(MouseEvent arg0) {}
 
-					@Override
 					public void mousePressed(MouseEvent arg0) {
 						view.clearHighlight();
 					}
 
-					public void mouseReleased(MouseEvent arg0) {
-					}
+					public void mouseReleased(MouseEvent arg0) {}
 				});
 				menuItem.addActionListener(new ActionListener() {
 
