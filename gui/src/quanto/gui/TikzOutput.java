@@ -18,7 +18,10 @@ public class TikzOutput {
 			String col;
 			for (Vertex v : graph.getVertices()) {
 				p = layout.transform(v);
-				col = v.getVertexType().toString().toLowerCase();
+                                if (v.getVertexType() != null)
+                                    col = v.getVertexType().toString().toLowerCase();
+                                else
+                                    col = "wire";
 				tikz.append("\\node [").append(col).append(" vertex] ").append("(").append(v.getCoreName()).append(") ").append("at (").append(Double.toString(Math.floor(p.getX()) / 40.0)).append(",").append(Double.toString(Math.floor(p.getY()) / -40.0)).append(") {};\n");
 			}
 
@@ -39,7 +42,10 @@ public class TikzOutput {
 			}
 
 			for (Vertex v : graph.getVertices()) {
-				col = v.getVertexType().toString().toLowerCase();
+                                if (v.getVertexType() != null)
+                                    col = v.getVertexType().toString().toLowerCase();
+                                else
+                                    col = "wire";
 				if (!v.getLabel().equals("0")) {
 					tikz.append("\\node [").append(col).append(" angle] at (").append(v.getCoreName()).append(") {$").append(v.getLabel()).append("$};\n");
 				}

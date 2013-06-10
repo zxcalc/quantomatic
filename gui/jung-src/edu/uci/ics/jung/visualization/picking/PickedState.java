@@ -11,6 +11,7 @@
 package edu.uci.ics.jung.visualization.picking;
 
 import java.awt.ItemSelectable;
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -42,5 +43,11 @@ public interface PickedState<T> extends PickedInfo<T>, ItemSelectable {
      * Returns <code>true</code> if <code>v</code> is currently "picked".
      */
     boolean isPicked(T v);
+    
+    /**
+     * Clears all "picked" elements not in the given set
+     * @param vs 
+     */
+    void restrict(Collection<T> vs);
 
 }

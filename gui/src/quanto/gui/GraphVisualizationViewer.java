@@ -60,7 +60,7 @@ public class GraphVisualizationViewer
 		if (!(layout.getGraph() instanceof CoreGraph)) {
 			throw new IllegalArgumentException("Only QuantoGraphs are supported");
 		}
-		this.graph = (CoreGraph) layout.getGraph();
+                setCoreGraph((CoreGraph) layout.getGraph());
 		layout.initialize();
 		setBackground(Color.white);
 
@@ -144,13 +144,24 @@ public class GraphVisualizationViewer
 		mt.setToIdentity();
 		setPreferredSize(calculateGraphSize());
 	}
+        
+        private ChangeListener graphChangeListener = new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                pickedVertexState.restrict(graph.getVertices());
+                pickedEdgeState.restrict(graph.getEdges());
+            }
+        };
 
 	public CoreGraph getGraph() {
 		return graph;
 	}
 
 	public void setCoreGraph(CoreGraph g) {
+                if (this.graph != null)
+                    this.graph.removeChangeListener(graphChangeListener);
 		this.graph = g;
+                if (this.graph != null)
+                    this.graph.addChangeListener(graphChangeListener);
 	}
 
 	/**

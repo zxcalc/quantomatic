@@ -5,8 +5,6 @@ sig
   (* vertices and edges of a graph *)
   structure OVData : OVERTEX_DATA
   structure EData : UNIFIABLE_DATA
-  (* share the same generic graph data subst *)
-  sharing type OVData.subst = EData.subst;
 
   (* Graph *)
   structure Graph : BANG_GRAPH;
@@ -29,6 +27,12 @@ sig
   structure MatchSearch : MATCH_SEARCH
   sharing MatchSearch.Sharing.MatchState = Match.Sharing
   sharing MatchSearch.Sharing.G = Graph.SharingOGraph
+
+  (* Sets of rules and matching for those sets *)
+  structure Rewriter : REWRITER
+  sharing Rewriter.Rule.Sharing = Rule.Sharing
+  sharing Rewriter.Graph.SharingOGraph = Graph.SharingOGraph
+  sharing type Rewriter.match = Match.T;
 
   (* Sets of rules and matching for those sets *)
   structure RulesetRewriter : RULESET_REWRITER
@@ -92,12 +96,14 @@ struct
     structure BGMatchState = Match;
   );
 
+  structure Rewriter = BangGraphRewriter(
+    structure Rule = Ruleset.BangGraphRule;
+    structure Matcher = MatchSearch;
+  );
+
   structure RulesetRewriter = RulesetRewriter(
     structure Ruleset = Ruleset;
-    structure Rewriter = BangGraphRewriter(
-      structure Rule = Ruleset.BangGraphRule;
-      structure Matcher = MatchSearch;
-    );
+    structure Rewriter = Rewriter;
   );
 
   structure VertexComponentData = VComponentData;
