@@ -61,8 +61,8 @@ uses
 (*
  * Rewriting
  *)
-
-(* substitution of a matched subgraph for another graph *)
+(* substitution of a matched subgraph for another graph (used to be graphsubst with some
+    extra stuff from ruleset_rewriter) *)
  "../../core/rewriting/rewriter.ML"
 (* substitution used to provide rewriting with rulesets *)
  "../../core/rewriting/ruleset_rewriter.ML" 
