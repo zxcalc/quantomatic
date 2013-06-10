@@ -16,12 +16,12 @@ struct
 
   structure BBoxOperableGraph = BBoxOperableGraph;
   structure G = BBoxOperableGraph.G;
+  structure InnerMatchState = OGraphMatchState(G);
   structure MatchState = BangGraphMatchState(
+    structure InnerMatchState = InnerMatchState
     structure BBoxOperableGraph = BBoxOperableGraph
-    type data = unit
-    val empty_data = ()
   );
-  structure InnerMatchSearch = SimpleInnerMatchSearch(MatchState);
+  structure InnerMatchSearch = SimpleInnerMatchSearch(InnerMatchState);
   structure Match = BangGraphMatch(BBoxOperableGraph);
 
   fun log_p pretty_f lvl name =
@@ -32,9 +32,9 @@ struct
 
   (* TODO: it is probably worth optimising this some more *)
   fun doomedf ms pv = let
-    val pat = MatchState.get_pat ms
-    val tgt = MatchState.get_tgt ms
-    val tv = VInjEndo.domf (MatchState.get_vmap ms) pv
+    val pat = InnerMatchState.get_pat ms
+    val tgt = InnerMatchState.get_tgt ms
+    val tv = VInjEndo.domf (InnerMatchState.get_vmap ms) pv
     val parity = G.get_arity pat pv
     val tarity = G.get_arity tgt tv
     fun has_bbox es = let
@@ -65,9 +65,24 @@ struct
   fun get_next_bbox g =
     B.NSet.get_exists (not o (G.bbox_has_parent g)) (G.get_bboxes g)
 
+  val is_total = InnerMatchState.is_total o MatchState.get_inner_state;
+  val get_current_pat = InnerMatchState.get_pat o MatchState.get_inner_state;
+  fun match_bare_wires ms = let
+    val ims = MatchState.get_inner_state ms
+  in
+    Seq.map (fn ims => MatchState.set_inner_state ims ms)
+            (InnerMatchSearch.match_bare_wires ims)
+  end;
+  fun match_pending ms = let
+    val ims = MatchState.get_inner_state ms
+  in
+    Seq.map (fn ims => MatchState.set_inner_state ims ms)
+            (InnerMatchSearch.match_pending doomedf ims)
+  end;
+
   fun finish_match ms =
-      Seq.filter MatchState.is_total
-        (InnerMatchSearch.match_bare_wires ms)
+      Seq.filter is_total
+        (match_bare_wires ms)
 
   fun kill_pat_bbox b ms = let
     val _ = Log.logf 2 (fn () => "Killing !-box "^(B.string_of_name b)) ()
@@ -90,54 +105,55 @@ struct
                  (Seq.maps do_copy (Seq.single ms))
     end
     and choose_next_bbox ms =
-      case get_next_bbox (MatchState.get_pat ms) of
+      case get_next_bbox (get_current_pat ms) of
            NONE => finish_match ms
          | SOME b => kill_and_expand b ms
   in
     Seq.maps choose_next_bbox
       (Seq.map MatchState.kill_impossible_bboxes
-        (InnerMatchSearch.match_pending doomedf ms'))
+        (match_pending ms'))
   end
 
-  fun match_from_ms ms =
-    Match.mk (MatchState.get_bbox_oper ms)
-             (MatchState.get_tgt ms)
-             (MatchState.get_vmap ms)
-             (MatchState.get_emap ms)
+  fun match_from_ms ms = let
+    val ims = MatchState.get_inner_state ms
+  in
+    Match.mk (MatchState.get_pat ms)
+             (InnerMatchState.get_tgt ims)
+             (InnerMatchState.get_vmap ims)
+             (InnerMatchState.get_emap ims)
              (BInjEndo.empty)
-             (MatchState.get_match_subst ms)
+             (InnerMatchState.get_match_subst ims)
              (MatchState.get_wild_bboxes ms)
+  end;
 
   fun find_matches ms = Seq.map match_from_ms (match_loop ms);
 
-  fun match_normalised oper tgt = let
-    val pat = BBoxOperableGraph.get_current_graph oper
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
+  fun match_normalised pat tgt = let
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern"
+                        (BBoxOperableGraph.get_current_graph pat)
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val ms = MatchState.init pat tgt
-           |> MatchState.set_bbox_oper oper
            |> MatchState.schedule_concrete_pat
-           |> MatchState.schedule_all_tgt
+           |> MatchState.update_inner_state (InnerMatchState.schedule_all_tgt)
   in
     find_matches ms
   end
-  fun match oper tgt =
-    match_normalised (BBoxOperableGraph.normalise oper) (G.normalise tgt)
+  fun match pat tgt =
+    match_normalised (BBoxOperableGraph.normalise pat) (G.normalise tgt)
 
-  fun match_subgraph_normalised oper tgt tgt_verts = let
-    val pat = BBoxOperableGraph.get_current_graph oper
-    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern" pat
+  fun match_subgraph_normalised pat tgt tgt_verts = let
+    val _ = log_graph 3 "GreedyMatchSearch: normalised pattern"
+                        (BBoxOperableGraph.get_current_graph pat)
     val _ = log_graph 3 "GreedyMatchSearch: normalised target" tgt
     val _ = log_v_nset 4 "GreedyMatchSearch: target vertices" tgt_verts
     val ms = MatchState.init pat tgt
-           |> MatchState.set_bbox_oper oper
            |> MatchState.schedule_concrete_pat
-           |> MatchState.schedule_tgt_subgraph tgt_verts
+           |> MatchState.update_inner_state (InnerMatchState.schedule_tgt_subgraph tgt_verts)
   in
     find_matches ms
   end
-  fun match_subgraph oper tgt =
-    match_subgraph_normalised (BBoxOperableGraph.normalise oper) (G.normalise tgt)
+  fun match_subgraph pat tgt =
+    match_subgraph_normalised (BBoxOperableGraph.normalise pat) (G.normalise tgt)
 
   structure Sharing =
   struct

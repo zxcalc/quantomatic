@@ -128,25 +128,11 @@ signature OGRAPH_MATCH_STATE
 
   val pretty : T -> Pretty.T
   val print : T -> unit
-
-  (* extra data for match state, for extending the datatype cos ML can't do
-  it properly from the outside; this is basically a form of record
-  extensibility, allowing hidden types, but will doing the lazy
-  extension of data -- allows OOP style extension of signature/structure
-  by refining data. *)
-  type data
-  val get_data : T -> data;
-  val update_data : (data -> data) -> T -> T
 end
 
-functor OGraphMatchState(
-  structure G : OGRAPH
-  type data (* additional data *)
-  val empty_data : data
-) : OGRAPH_MATCH_STATE
+functor OGraphMatchState(G : OGRAPH) : OGRAPH_MATCH_STATE
 = struct
   structure G = G
-  type data = data
   
   datatype T = MatchState of {
     (* pattern and target graphs *)
@@ -166,8 +152,7 @@ functor OGraphMatchState(
     (* partially matched node-vertices, scheduled for re-matching *)
     ps_nodeverts : V.NSet.T,
     tgt_verts    : V.NSet.T,
-    match_subst  : G.Param.subst,
-    data         : data
+    match_subst  : G.Param.subst
   }
   
   val empty = MatchState {
@@ -182,8 +167,7 @@ functor OGraphMatchState(
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
     tgt_verts    = V.NSet.empty,
-    match_subst  = G.Param.empty_subst,
-    data         = empty_data
+    match_subst  = G.Param.empty_subst
   }
 
   fun init pat tgt = MatchState {
@@ -198,8 +182,7 @@ functor OGraphMatchState(
     p_nodeverts  = V.NSet.empty,
     ps_nodeverts = V.NSet.empty,
     tgt_verts    = V.NSet.empty,
-    match_subst  = G.Param.empty_subst,
-    data         = empty_data
+    match_subst  = G.Param.empty_subst
   }
   
   (* getters and setters *)
@@ -216,8 +199,7 @@ functor OGraphMatchState(
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_tgt f (MatchState r) = MatchState {
@@ -232,8 +214,7 @@ functor OGraphMatchState(
     u_bare_wires = #u_bare_wires r,
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_vmap f (MatchState r) = MatchState {
@@ -248,8 +229,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_emap f (MatchState r) = MatchState {
@@ -264,8 +244,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_u_circles f (MatchState r) = MatchState {
@@ -280,8 +259,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_u_nodeverts f (MatchState r) = MatchState {
@@ -296,8 +274,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_u_wireverts f (MatchState r) = MatchState {
@@ -312,8 +289,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_u_bare_wires f (MatchState r) = MatchState {
@@ -328,8 +304,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_p_nodeverts f (MatchState r) = MatchState {
@@ -344,8 +319,7 @@ functor OGraphMatchState(
     p_nodeverts  = f(#p_nodeverts r),
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_ps_nodeverts f (MatchState r) = MatchState {
@@ -360,8 +334,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = f(#ps_nodeverts r),
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_tgt_verts f (MatchState r) = MatchState {
@@ -376,8 +349,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = f(#tgt_verts r),
-    match_subst  = #match_subst r,
-    data         = #data r
+    match_subst  = #match_subst r
   }
 
   fun update_match_subst f (MatchState r) = MatchState {
@@ -392,8 +364,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = f(#match_subst r),
-    data         = #data r
+    match_subst  = f(#match_subst r)
   }
 
   fun update_data f (MatchState r) = MatchState {
@@ -408,8 +379,7 @@ functor OGraphMatchState(
     p_nodeverts  = #p_nodeverts r,
     ps_nodeverts = #ps_nodeverts r,
     tgt_verts    = #tgt_verts r,
-    match_subst  = #match_subst r,
-    data         = f(#data r)
+    match_subst  = #match_subst r
   }
 
   fun get_pat          (MatchState r) = #pat r
@@ -424,7 +394,6 @@ functor OGraphMatchState(
   fun get_ps_nodeverts (MatchState r) = #ps_nodeverts r
   fun get_tgt_verts    (MatchState r) = #tgt_verts r
   fun get_match_subst  (MatchState r) = #match_subst r
-  fun get_data         (MatchState r) = #data r
 
   val set_pat             = update_pat          o K
   val set_tgt             = update_tgt          o K

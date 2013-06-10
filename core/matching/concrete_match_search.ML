@@ -7,11 +7,7 @@ struct
   structure Log : LOG = Log(val init_level = 0);
 
   structure G = G;
-  structure MatchState = OGraphMatchState(
-    structure G = G
-    type data = unit
-    val empty_data = ()
-  );
+  structure MatchState = OGraphMatchState(G);
   structure InnerMatchSearch = SimpleInnerMatchSearch(MatchState);
   structure Match = OGraphMatch(G);
   

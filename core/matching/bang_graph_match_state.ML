@@ -4,26 +4,34 @@
 (* The type-sharing struct for OGRAPH_MATCH_STATE *)
 signature BANG_GRAPH_MATCH_STATE_SHARING
 = sig
-  include OGRAPH_MATCH_STATE_SHARING
+  structure G : OGRAPH_SHARING
   structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH_SHARING
     sharing G = BBoxOperableGraph.G
+  type T;
 end
 
 (* The match state for pattern graph matching *)
 signature BANG_GRAPH_MATCH_STATE
 = sig
-  include OGRAPH_MATCH_STATE;
-  (* NB: there is no BANG_GRAPH_SHARING signature *)
-  structure BG : BANG_GRAPH;
-  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH
-  structure BGSharing : BANG_GRAPH_MATCH_STATE_SHARING
-    sharing BGSharing = Sharing
-    sharing BG.SharingOGraph = BGSharing.G
-    sharing BBoxOperableGraph.Sharing = BGSharing.BBoxOperableGraph
+  type T;
 
-  val get_bbox_oper : T -> BBoxOperableGraph.T;
-  val update_bbox_oper : (BBoxOperableGraph.T -> BBoxOperableGraph.T) -> T -> T;
-  val set_bbox_oper : BBoxOperableGraph.T -> T -> T;
+  (* NB: there is no BANG_GRAPH_SHARING signature *)
+  structure G : BANG_GRAPH;
+  structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH
+  structure InnerMatchState : OGRAPH_MATCH_STATE;
+  structure Sharing : BANG_GRAPH_MATCH_STATE_SHARING
+    sharing type Sharing.T = T
+    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.BBoxOperableGraph = BBoxOperableGraph.Sharing
+    sharing Sharing.G = InnerMatchState.Sharing.G
+
+  val get_pat : T -> BBoxOperableGraph.T;
+  val update_pat : (BBoxOperableGraph.T -> BBoxOperableGraph.T) -> T -> T;
+  val set_pat : BBoxOperableGraph.T -> T -> T;
+
+  val get_inner_state : T -> InnerMatchState.T;
+  val update_inner_state : (InnerMatchState.T -> InnerMatchState.T) -> T -> T;
+  val set_inner_state : InnerMatchState.T -> T -> T;
 
   (* Wild !-boxes that were killed *)
   val get_wild_bboxes : T -> B.NSet.T
@@ -40,103 +48,92 @@ signature BANG_GRAPH_MATCH_STATE
 
   (* Kills any !-boxes that are adjacent to a completely-matched vertex *)
   val kill_impossible_bboxes : T -> T
+
+  val init : BBoxOperableGraph.T -> G.T -> T;
 end
 
 (* type-coerced version of MatchState for pattern graphs *)
 functor BangGraphMatchState(
+  structure InnerMatchState : OGRAPH_MATCH_STATE;
   structure BBoxOperableGraph : BBOX_OPERABLE_GRAPH
-  type data
-  val empty_data : data
+  sharing InnerMatchState.Sharing.G = BBoxOperableGraph.Sharing.G
 ) : BANG_GRAPH_MATCH_STATE
 = struct
-  type data2 = data
-
   structure G = BBoxOperableGraph.G;
   structure BBoxOperableGraph = BBoxOperableGraph;
+  structure InnerMatchState = InnerMatchState;
 
-  datatype Warning = WildBBoxKilled of B.name;
+  (* shorthand *)
+  structure Oper = BBoxOperableGraph;
+  structure Inner = InnerMatchState;
 
-  type bdata = {
-    (* !-box operation sequence *)
-    bbox_oper    : BBoxOperableGraph.T,
-    (* Issues encountered during matching *)
+  datatype T = MatchState of {
+    pat          : BBoxOperableGraph.T,
     wild_bboxes  : B.NSet.T,
-    (* type-extensibility *)
-    data         : data
-  };
-  fun get_data_of_bdata (bdata:bdata) : data = #data bdata;
-  fun update_data_of_bdata f (bdata:bdata) = {
-    bbox_oper    = #bbox_oper bdata,
-    wild_bboxes     = #wild_bboxes bdata,
-    data         = f (#data bdata)
-  };
-  fun get_bbox_oper_of_bdata (bdata:bdata) = #bbox_oper bdata
-  fun set_bbox_oper_of_bdata oper (bdata:bdata) = {
-    bbox_oper    = oper,
-    wild_bboxes     = #wild_bboxes bdata,
-    data         = #data bdata
-  };
-  fun get_wild_bboxes_of_bdata (bdata:bdata) = #wild_bboxes bdata
-  fun add_wild_bbox_of_bdata b (bdata:bdata) = {
-    bbox_oper    = #bbox_oper bdata,
-    wild_bboxes  = B.NSet.add b (#wild_bboxes bdata),
-    data         = #data bdata
+    inner_state  : InnerMatchState.T
   };
 
-  structure BG = G;
-  structure OGMS = OGraphMatchState(
-    structure G = G
-    type data = bdata
-    val empty_data = {
-      bbox_oper    = BBoxOperableGraph.empty,
-      wild_bboxes  = B.NSet.empty,
-      data         = empty_data
-    }
-  );
-  open OGMS;
+  fun init pat tgt = MatchState {
+    pat = pat,
+    wild_bboxes = B.NSet.empty,
+    inner_state = Inner.init (Oper.get_current_graph pat) tgt
+  };
 
-  (* override data things from OGraphMatchState *)
-  type data = data2
-  val get_data = get_data_of_bdata o OGMS.get_data;
-  val update_data = OGMS.update_data o update_data_of_bdata;
+  fun get_inner_state (MatchState state) = #inner_state state;
+  fun update_inner_state f (MatchState state) = MatchState {
+    pat          = #pat state,
+    wild_bboxes  = #wild_bboxes state,
+    inner_state  = f (#inner_state state)
+  };
+  val set_inner_state = update_inner_state o K;
 
-  (* new getters/setters *)
-  val get_bbox_oper = get_bbox_oper_of_bdata o OGMS.get_data;
-  fun set_bbox_oper new_oper ms =
-    ms |> OGMS.set_pat (BBoxOperableGraph.get_current_graph new_oper)
-       |> OGMS.update_data (set_bbox_oper_of_bdata new_oper);
-  fun update_bbox_oper f ms = let
-    val old_oper = get_bbox_oper ms
-    val new_oper = f old_oper
+  fun get_pat (MatchState state) = #pat state;
+  fun update_pat f (MatchState state) = let
+    val oper = f (#pat state)
+    val pat = Oper.get_current_graph oper
   in
-    set_bbox_oper new_oper ms
+    MatchState {
+      pat          = oper,
+      wild_bboxes  = #wild_bboxes state,
+      inner_state  = Inner.set_pat pat (#inner_state state)
+    }
   end;
+  val set_pat = update_pat o K;
 
-  val get_wild_bboxes = get_wild_bboxes_of_bdata o OGMS.get_data;
-  val add_wild_bbox = OGMS.update_data o add_wild_bbox_of_bdata;
-  
+  fun get_wild_bboxes (MatchState state) = #wild_bboxes state
+  fun add_wild_bbox b (MatchState state) = MatchState {
+    pat          = #pat state,
+    wild_bboxes  = B.NSet.add b (#wild_bboxes state),
+    inner_state  = #inner_state state
+  };
+
   fun pretty ms = let
-    fun pretty_vset prefix vs =
-      if V.NSet.is_empty vs then []
+    fun pretty_bset prefix bs =
+      if B.NSet.is_empty bs then []
       else [Pretty.block [
               Pretty.str (prefix^": "),
-              V.NSet.pretty vs
+              B.NSet.pretty bs
            ]]
   in Pretty.chunks(
     [Pretty.str "BangGraphMatchState{",
-     OGMS.pretty ms,
-     Pretty.str "}"])
-  end
+     Pretty.block [
+       Pretty.str ("bbox_oper: "),
+       Oper.pretty (get_pat ms)
+     ],
+     Inner.pretty (get_inner_state ms)]
+    @ (pretty_bset "wild !-boxes" (get_wild_bboxes ms))
+    @ [Pretty.str "}"])
+  end;
+  val print = Pretty.writeln o pretty;
 
-  val print = Pretty.writeln o pretty
-
-  fun schedule_concrete new_vs new_es ms = let
-    val pat = get_pat ms
+  fun schedule_concrete new_vs new_es bms = let
+    val ms = get_inner_state bms
+    val pat = Inner.get_pat ms
 
     val touched = G.incident_vertices pat new_vs
-    val to_sched = V.NSet.intersect (get_p_nodeverts ms) touched
+    val to_sched = V.NSet.intersect (Inner.get_p_nodeverts ms) touched
 
-    val unbboxed = V.NSet.subtract new_vs (BG.get_bboxed pat)
+    val unbboxed = V.NSet.subtract new_vs (G.get_bboxed pat)
     val wires = G.get_wires_for_edges pat new_es
     fun delete_wvs_in_wire (s,t,wv,_) set =
       set |> V.NSet.remove_set wv
@@ -159,43 +156,49 @@ functor BangGraphMatchState(
     val circle_wvs = fold (fn (s,_,_,_) => fn set => set |> V.NSet.add s) circles V.NSet.empty
     val bare_wire_es = fold (fn (_,_,_,es) => E.NSet.add ((the o E.NSet.get_min) es)) bare_wires E.NSet.empty  
   in
-    ms |> extend_u_circles circle_wvs
-       |> extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
-       |> extend_u_wireverts (V.NSet.intersect unbboxed wvs)
-       |> extend_u_bare_wires bare_wire_es
-       |> extend_ps_nodeverts to_sched
+    set_inner_state
+    (ms |> Inner.extend_u_circles circle_wvs
+        |> Inner.extend_u_nodeverts (V.NSet.intersect unbboxed nvs)
+        |> Inner.extend_u_wireverts (V.NSet.intersect unbboxed wvs)
+        |> Inner.extend_u_bare_wires bare_wire_es
+        |> Inner.extend_ps_nodeverts to_sched)
+    bms
   end
 
-  fun schedule_new_concrete ms = let
-    val new_vs = V.NSet.subtract (G.get_vnames (get_pat ms))
-                                 (VInjEndo.get_domset (get_vmap ms))
-    val new_es = E.NSet.subtract (G.get_enames (get_pat ms))
-                                 (EInjEndo.get_domset (get_emap ms))
+  fun schedule_new_concrete bms = let
+    val ms = get_inner_state bms
+    val pat = Inner.get_pat ms
+    val new_vs = V.NSet.subtract (G.get_vnames pat)
+                                 (VInjEndo.get_domset (Inner.get_vmap ms))
+    val new_es = E.NSet.subtract (G.get_enames pat)
+                                 (EInjEndo.get_domset (Inner.get_emap ms))
   in
-    schedule_concrete new_vs new_es ms
+    schedule_concrete new_vs new_es bms
   end
-  fun schedule_concrete_pat ms = let
-    val vs = G.get_vnames (get_pat ms)
-    val es = G.get_enames (get_pat ms)
+  fun schedule_concrete_pat bms = let
+    val pat = Inner.get_pat (get_inner_state bms)
+    val vs = G.get_vnames pat
+    val es = G.get_enames pat
   in
-    schedule_concrete vs es ms
+    schedule_concrete vs es bms
   end
 
-  val expand_pat_bbox = update_bbox_oper o BBoxOperableGraph.expand_bbox
-  val kill_pat_bbox = update_bbox_oper o BBoxOperableGraph.kill_bbox
+  val expand_pat_bbox = update_pat o BBoxOperableGraph.expand_bbox
+  val kill_pat_bbox = update_pat o BBoxOperableGraph.kill_bbox
 
-  fun kill_bboxes_adj_to_complete_nvs ms = let
-    val pat = get_pat ms
-    val complete = get_complete_nodeverts ms
+  fun kill_bboxes_adj_to_complete_nvs bms = let
+    val ms = get_inner_state bms
+    val pat = Inner.get_pat ms
+    val complete = Inner.get_complete_nodeverts ms
     val touched = G.incident_vertices pat complete
-    fun kill_all_bboxes v ms = let
-      val pat = get_pat ms
+    fun kill_all_bboxes v bms = let
+      val pat = Inner.get_pat (get_inner_state bms)
     in
-      B.NSet.fold kill_pat_bbox (BG.get_bboxes_of pat v) ms
-      handle G.no_such_vname_exp _ => ms
+      B.NSet.fold kill_pat_bbox (G.get_bboxes_of pat v) bms
+      handle G.no_such_vname_exp _ => bms
     end
   in
-    V.NSet.fold kill_all_bboxes touched ms
+    V.NSet.fold kill_all_bboxes touched bms
   end
 
   fun kill_wild_bboxes ms = let
@@ -214,17 +217,18 @@ functor BangGraphMatchState(
         else
           false
     fun is_wild g bbox =
-      V.NSet.forall (is_end_of_bare_wire g) (BG.get_bbox_contents g bbox)
+      V.NSet.forall (is_end_of_bare_wire g) (G.get_bbox_contents g bbox)
     fun kill_pat_bbox' bbox ms =
       ms |> kill_pat_bbox bbox
          |> add_wild_bbox bbox
     fun kill_if_wild bbox ms =
-      (if is_wild (get_pat ms) bbox
+      (if is_wild (Inner.get_pat (get_inner_state ms)) bbox
        then kill_pat_bbox' bbox ms
        else ms)
-      handle BG.no_such_bbox_exp _ => ms
+      handle G.no_such_bbox_exp _ => ms
+    val pat = Inner.get_pat (get_inner_state ms)
   in
-    B.NSet.fold kill_if_wild (BG.get_bboxes (get_pat ms)) ms
+    B.NSet.fold kill_if_wild (G.get_bboxes pat) ms
   end
 
   val kill_impossible_bboxes = kill_wild_bboxes
@@ -233,12 +237,7 @@ functor BangGraphMatchState(
   structure Sharing =
   struct
     type T = T;
-    structure G = BG.SharingOGraph;
-  end;
-
-  structure BGSharing =
-  struct
-    open Sharing;
+    structure G = G.SharingOGraph;
     structure BBoxOperableGraph = BBoxOperableGraph.Sharing;
   end;
 end
