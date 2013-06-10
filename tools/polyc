@@ -7,51 +7,52 @@ usage () {
 	echo "  where <file> is the SML file to be used."
 	echo
 	echo "OPTIONS"
-	echo "-h --help        print this message"
-	echo "-m --main m      use the ML function 'm' as main-function"
-	echo "-o --output b    set the name of the generated binary to 'b'"
-	echo "-t --top-level   build custom top-level"
-	echo "-l --load <heap> load <heap> before using <file>"
+	echo "-h          print this message"
+	echo "-m m        use the ML function 'm' as main-function"
+	echo "-o b        set the name of the generated binary to 'b'"
+	echo "-t          build custom top-level"
+	echo "-l <heap>   load <heap> before using <file>"
 }
 
-while true
+while getopts "htm:o:l:" opt
 do
-	case "$1" in
-		-h|--help)
+	case "$opt" in
+		h)
 			usage
 			exit 0
 		;;
-		-o|--output)
-			PROG="$2"
-			shift 2
+		o)
+			PROG="$OPTARG"
 		;;
-		-m|--main)
-			MAIN="$2"
-			shift 2
+		m)
+			MAIN="$OPTARG"
 		;;
-		-t|--top-level)
+		t)
 			TOP=1
-			shift 1
 		;;
-		-l|--load)
-			HEAP="$2"
-			shift 2
+		l)
+			HEAP="$OPTARG"
 		;;
-		--)
-			shift
-			break
-		;;
-		*)
-			break
+		\?)
+			usage >&2
+			exit 1
 		;;
 	esac
 done
+shift $((OPTIND-1))
 
-if [[ $# != 1 ]]
+if [[ $# < 1 ]]
 then
-	usage >&2
-	exit 1
+  echo "No SML file given" >&2
+  usage >&2
+  exit 1
+elif [[ $# > 1 ]]
+then
+  echo "Too many file arguments" >&2
+  usage >&2
+  exit 1
 fi
+FILE="$1"
 
 TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
 POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"
@@ -62,7 +63,6 @@ fi
 POLY="$POLYML_HOME/bin/poly"
 POLYML_LIB="$POLYML_HOME/lib"
 
-FILE="$1"
 NAME="${FILE%%.*}"
 if [[ $PROG == "" ]]; then PROG=$NAME; fi
 if [[ $TOP ]]

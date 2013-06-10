@@ -7,35 +7,31 @@ usage () {
 	echo "Runs an interactive Poly/ML session, wrapped in rlwrap or similar"
 	echo
 	echo "OPTIONS"
-	echo "  -h --help              print this message"
-	echo "  -l --load <heap>       load the initial state store in <heap>"
-	echo "  -w --wrapper <wrapper> use the wrapper <wrapper>"
+	echo "  -h             print this message"
+	echo "  -l <heap>      load the initial state store in <heap>"
+	echo "  -w <wrapper>   use the wrapper <wrapper>"
 }
 
-while true
+while getopts "hl:w:" opt
 do
-	case "$1" in
-		-h|--help)
+	case "$opt" in
+		h)
 			usage
 			exit 0
 		;;
-		-l|--load)
-			HEAP="$2"
-			shift 2
+		l)
+			HEAP="$OPTARG"
 		;;
-		-w|--wrapper)
-			WRAPPER="$2"
-			shift 2
+		w)
+			WRAPPER="$OPTARG"
 		;;
-		--)
-			shift
-			break
-		;;
-		*)
-			break
+		\?)
+			usage >&2
+			exit 1
 		;;
 	esac
 done
+shift $((OPTIND-1))
 
 TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
 POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"

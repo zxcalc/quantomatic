@@ -7,41 +7,44 @@ usage () {
   echo "  where <file> is the SML file to be used."
 
   echo "OPTIONS"
-  echo "-h --help           print this message"
-  echo "-p --project        set if <file> uses PolyML.Project"
-  echo "-o --output <heap>  set the name of the generated heap to <heap>"
+  echo "-h         print this message"
+  echo "-p         set if <file> uses PolyML.Project"
+  echo "-o <heap>  set the name of the generated heap to <heap>"
 }
 
-while true
+while getopts "hpo:" opt
 do
-    case "$1" in
-    -h|--help)
+    case "$opt" in
+    h)
       usage
       exit 0
     ;;
-    -o|--output)
-      HEAP="$2"
-      shift 2
+    o)
+      HEAP="$OPTARG"
     ;;
-    -p|--project)
+    p)
       PROJECT=1
-      shift 1
     ;;
-    --)
-      shift
-      break
-    ;;
-    *)
-      break
+    \?)
+      usage >&2
+      exit 1
     ;;
     esac
 done
+shift $((OPTIND-1))
 
-if [[ $# != 1 ]]
+if [[ $# < 1 ]]
 then
+  echo "No SML file given" >&2
+  usage >&2
+  exit 1
+elif [[ $# > 1 ]]
+then
+  echo "Too many file arguments" >&2
   usage >&2
   exit 1
 fi
+FILE="$1"
 
 TOOLS_DIR="$(cd "$(dirname $0)"; pwd)";
 POLYML_HOME="$($TOOLS_DIR/findpoly.sh)"
@@ -51,7 +54,6 @@ if [ "$POLYML_HOME" == "" ]; then
 fi
 POLY="$POLYML_HOME/bin/poly"
 
-FILE="$1"
 if [[ $HEAP == "" ]]; then HEAP="${FILE%%.*}.heap"; fi
 PROJECT_MAGIC=""
 if [[ $PROJECT ]]; then
