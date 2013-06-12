@@ -1,16 +1,63 @@
-(* The inner matching loop *)
+(* A piece-by-piece matcher for use by other matching code *)
 (* see docs/matching_algo for details *)
-functor SimpleInnerMatchSearch(
+signature PROGRESSIVE_MATCH_SEARCH_SHARING =
+sig
+  structure G : OGRAPH_SHARING
+  structure MatchState : OGRAPH_MATCH_STATE_SHARING
+    sharing MatchState.G = G
+end
+
+signature PROGRESSIVE_MATCH_SEARCH =
+sig
+  structure Log : LOG;
+
+  structure G : OGRAPH
+  structure MatchState : OGRAPH_MATCH_STATE
+
+  (* Match all queued unmatched circles and node vertices, and extend the
+   * matchings of any scheduled partially-matched node vertices as much as
+   * possible using queued unmatched wire vertices.
+   *
+   * Returns a lazy list of updated match states.
+   *
+   * The first argument is a "doomed" function, which should return
+   * true if it is known that matching for the given vertex will
+   * ultimately fail.  The second argument is the name of a
+   * partially-matched vertex in the pattern graph.
+   *
+   * Note that this will _not_ match bare wires.
+   *)
+  val match_pending : (MatchState.T -> V.name -> bool)
+                      -> MatchState.T
+                      -> MatchState.T Seq.seq
+
+  (* Match all the bare wires in u_bare_wires, expanding edge points where
+   * necessary. *)
+  val match_bare_wires : MatchState.T -> MatchState.T Seq.seq
+  
+  (* Match all circles.
+   *
+   * Note that match_pending will do this anyway.
+   *)
+  val match_circles : MatchState.T -> MatchState.T Seq.seq
+
+
+  (*** Uncomment for debug ***)
+  (*val u_circles_in_tgt : MatchState.T -> V.NSet.T*)
+
+  structure Sharing : PROGRESSIVE_MATCH_SEARCH_SHARING
+    sharing Sharing.G = G.SharingOGraph
+    sharing Sharing.MatchState = MatchState.Sharing
+end
+
+functor ProgressiveMatchSearch(
     MatchState : OGRAPH_MATCH_STATE
-) : INNER_MATCH_SEARCH
+) : PROGRESSIVE_MATCH_SEARCH
 = struct
   structure Log : LOG = Log(val init_level = 0);
 
   structure G = MatchState.G
   structure MatchState = MatchState
-  
-  exception InnerMatchError of string
-
 
   fun log_p pretty_f lvl name =
     Log.logf lvl (fn g => Pretty.string_of
@@ -333,7 +380,7 @@ functor SimpleInnerMatchSearch(
                case V.NSet.get_min (MatchState.get_u_nodeverts ms)
                  of SOME next_v => match_and_schedule_new next_v
                   | NONE =>
-                      (Log.log 3 (ind lvl "== Inner matching complete");
+                      (Log.log 3 (ind lvl "== All scheduled vertices matched");
                        Seq.single ms)
              )
     end (* match_main *)

@@ -141,12 +141,10 @@ PolyML.Project.make "matching/bbox_operator.ML";
 PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/bg_match.ML";
 PolyML.Project.make "matching/match_state.ML";
-(* signature for inner (concrete) matching *)
-PolyML.Project.make "matching/inner_match_search.ML";
+(* piece-by-piece matching utility *)
+PolyML.Project.make "matching/progressive_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
 PolyML.Project.make "matching/match_search.ML";
-(* simple inner loop for the matching algo *)
-PolyML.Project.make "matching/simple_inner_match_search.ML";
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
 PolyML.Project.make "matching/concrete_match_search.ML";

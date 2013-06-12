@@ -8,7 +8,7 @@ struct
 
   structure G = G;
   structure MatchState = OGraphMatchState(G);
-  structure InnerMatchSearch = SimpleInnerMatchSearch(MatchState);
+  structure InnerMatchSearch = ProgressiveMatchSearch(MatchState);
   structure Match = OGraphMatch(G);
   
   (* We can't provide any information that the inner match search

@@ -17,7 +17,7 @@ struct
   structure BBoxOperableGraph = BBoxOperableGraph;
   structure G = BBoxOperableGraph.G;
   structure InnerMatchState = OGraphMatchState(G);
-  structure InnerMatchSearch = SimpleInnerMatchSearch(InnerMatchState);
+  structure InnerMatchSearch = ProgressiveMatchSearch(InnerMatchState);
   structure Match = BangGraphMatch(BBoxOperableGraph);
 
   datatype State = MatchState of {
