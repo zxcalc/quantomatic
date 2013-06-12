@@ -141,7 +141,6 @@ PolyML.Project.make "matching/bbox_operator.ML";
 PolyML.Project.make "matching/match.ML";
 PolyML.Project.make "matching/bg_match.ML";
 PolyML.Project.make "matching/match_state.ML";
-PolyML.Project.make "matching/bang_graph_match_state.ML";
 (* signature for inner (concrete) matching *)
 PolyML.Project.make "matching/inner_match_search.ML";
 (* signature for outer (e.g. !-box) matching *)
