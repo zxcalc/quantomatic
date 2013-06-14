@@ -86,47 +86,47 @@
 
 signature GRAPH_ANN_INPUT_JSON
 = sig
-  exception bad_input_exp of string*string;
-  type data;
-  val empty_annotation : data;
-  val input_vertex_annotation : V.name -> Json.json -> data -> data;
-  val input_edge_annotation : E.name -> Json.json -> data -> data;
-  val input_bangbox_annotation : B.name -> Json.json -> data -> data;
-  val input_graph_annotation : Json.json -> data -> data;
-end;
+  exception bad_input_exp of string * string
+  type data
+  val empty_annotation : data
+  val input_vertex_annotation : V.name -> Json.json -> data -> data
+  val input_edge_annotation : E.name -> Json.json -> data -> data
+  val input_bangbox_annotation : B.name -> Json.json -> data -> data
+  val input_graph_annotation : Json.json -> data -> data
+end
 
 structure EmptyGraphAnnotationInputJson
   : GRAPH_ANN_INPUT_JSON where type data = unit
 = struct
-  exception bad_input_exp of string*string;
-  type data = unit;
-  val empty_annotation = ();
-  fun input_vertex_annotation _ _ = I;
-  fun input_edge_annotation _ _ = I;
-  fun input_bangbox_annotation _ _ = I;
-  fun input_graph_annotation _ = I;
-end;
+  exception bad_input_exp of string * string
+  type data = unit
+  val empty_annotation = ()
+  fun input_vertex_annotation _ _ = I
+  fun input_edge_annotation _ _ = I
+  fun input_bangbox_annotation _ _ = I
+  fun input_graph_annotation _ = I
+end
 
 signature GRAPH_ANN_OUTPUT_JSON
 = sig
-  type data;
-  val empty_annotation : data;
-  val output_vertex_annotation : data -> V.name -> Json.json;
-  val output_edge_annotation : data -> E.name -> Json.json;
-  val output_bangbox_annotation : data -> B.name -> Json.json;
-  val output_graph_annotation : data -> Json.json;
-end;
+  type data
+  val empty_annotation : data
+  val output_vertex_annotation : data -> V.name -> Json.json
+  val output_edge_annotation : data -> E.name -> Json.json
+  val output_bangbox_annotation : data -> B.name -> Json.json
+  val output_graph_annotation : data -> Json.json
+end
 
 structure EmptyGraphAnnotationOutputJson
   : GRAPH_ANN_OUTPUT_JSON where type data = unit
 = struct
-  type data = unit;
-  val empty_annotation = ();
-  fun output_vertex_annotation _ _ = Json.Null;
-  fun output_edge_annotation _ _ = Json.Null;
-  fun output_bangbox_annotation _ _ = Json.Null;
-  fun output_graph_annotation _ = Json.Null;
-end;
+  type data = unit
+  val empty_annotation = ()
+  fun output_vertex_annotation _ _ = Json.Null
+  fun output_edge_annotation _ _ = Json.Null
+  fun output_bangbox_annotation _ _ = Json.Null
+  fun output_graph_annotation _ = Json.Null
+end
 
 
 functor InputAnnotatedGraphJSON(
@@ -138,11 +138,11 @@ functor InputAnnotatedGraphJSON(
   structure InputAnnotation : GRAPH_ANN_INPUT_JSON
 )  : INPUT_JSON
 = struct
-  structure G = Graph;
-  structure IA = InputAnnotation;
+  structure G = Graph
+  structure IA = InputAnnotation
 
-  open JsonInputUtils;
-  type data = Graph.T * InputAnnotation.data;
+  open JsonInputUtils
+  type data = Graph.T * InputAnnotation.data
 
   val def_vdata = G.OVData.NVert G.OVData.IData.default_data
   val def_edata = G.EData.default_data
@@ -279,8 +279,8 @@ functor InputAnnotatedGraphJSON(
             |> get_bboxes obj "bang_boxes"
             |> get_ann obj "annotation"
     | input Json.Null = (G.empty,IA.empty_annotation)
-    | input _ = raise bad_input_exp ("Expected object","");
-end;
+    | input _ = raise bad_input_exp ("Expected object","")
+end
 
 functor InputGraphJSON(
   structure Graph : BANG_GRAPH
@@ -295,19 +295,19 @@ functor InputGraphJSON(
     structure InputVertexData = InputVertexData
     structure InputEdgeData = InputEdgeData
     structure InputAnnotation = EmptyGraphAnnotationInputJson
-  );
-  open SubInput;
-  type data = Graph.T;
-  val input = fst o SubInput.input;
-end;
+  )
+  open SubInput
+  type data = Graph.T
+  val input = fst o SubInput.input
+end
 
 signature OUTPUT_GRAPH_JSON
 = sig
-  include OUTPUT_JSON;
-  val output_vertex : data -> V.name -> T;
-  val output_edge : data -> E.name -> T;
-  val output_bangbox : data -> B.name -> T;
-end;
+  include OUTPUT_JSON
+  val output_vertex : data -> V.name -> T
+  val output_edge : data -> E.name -> T
+  val output_bangbox : data -> B.name -> T
+end
 
 functor OutputAnnotatedGraphJSON(
   structure Graph : BANG_GRAPH
@@ -318,17 +318,17 @@ functor OutputAnnotatedGraphJSON(
   structure OutputAnnotation : GRAPH_ANN_OUTPUT_JSON
 )  : OUTPUT_GRAPH_JSON
 = struct
-  structure G = Graph;
-  structure OA = OutputAnnotation;
+  structure G = Graph
+  structure OA = OutputAnnotation
 
-  open JsonOutputUtils;
-  type data = Graph.T * OutputAnnotation.data;
+  open JsonOutputUtils
+  type data = Graph.T * OutputAnnotation.data
 
   fun output_vertex (g,ann) v = let
     val (is_wv,vd) =
       case G.get_vertex_data g v
         of G.OVData.WVert => (true,Json.Null)
-         | G.OVData.NVert d => (false,OutputVertexData.output d);
+         | G.OVData.NVert d => (false,OutputVertexData.output d)
   in
     Json.Object (
       Json.empty_obj |> update ("name",Json.String (V.dest v))
@@ -336,7 +336,7 @@ functor OutputAnnotatedGraphJSON(
                      |> update ("data",vd)
                      |> update ("annotation",OA.output_vertex_annotation ann v)
     )
-  end;
+  end
 
   fun output_edge (g,ann) e = let
     val ((dir,ed),(s,t)) = G.get_edge g e
@@ -349,13 +349,13 @@ functor OutputAnnotatedGraphJSON(
                      |> update ("data",OutputEdgeData.output ed)
                      |> update ("annotation",OA.output_edge_annotation ann e)
     )
-  end;
+  end
 
   fun output_bangbox (g,ann) b = let
     val add_parent =
       case G.lookup_bbox_parent g b
         of SOME bp => update ("parent",Json.String (B.dest bp))
-         | NONE => I;
+         | NONE => I
     val jvs = map (fn v => Json.String (V.dest v))
                   (V.NSet.list_of (G.get_bbox_contents g b))
   in
@@ -365,7 +365,7 @@ functor OutputAnnotatedGraphJSON(
                      |> update ("contents",Json.Array jvs)
                      |> update ("annotation",OA.output_bangbox_annotation ann b)
     )
-  end;
+  end
 
   fun get_verts (g,ann) = let
     fun nv_info v vd =
@@ -438,7 +438,7 @@ functor OutputAnnotatedGraphJSON(
                     |> opt_update ("bang_boxes",bboxes)
                     |> update ("annotation",OA.output_graph_annotation ann))
   end
-end;
+end
 
 functor OutputGraphJSON(
   structure Graph : BANG_GRAPH
@@ -453,12 +453,12 @@ functor OutputGraphJSON(
     structure OutputVertexData = OutputVertexData
     structure OutputEdgeData = OutputEdgeData
     structure OutputAnnotation = EmptyGraphAnnotationOutputJson
-  );
-  open SubOutput;
-  type data = Graph.T;
-  fun output g = SubOutput.output (g,());
-  fun output_vertex g = SubOutput.output_vertex (g,());
-  fun output_edge g = SubOutput.output_edge (g,());
-  fun output_bangbox g = SubOutput.output_bangbox (g,());
-end;
+  )
+  open SubOutput
+  type data = Graph.T
+  fun output g = SubOutput.output (g,())
+  fun output_vertex g = SubOutput.output_vertex (g,())
+  fun output_edge g = SubOutput.output_edge (g,())
+  fun output_bangbox g = SubOutput.output_bangbox (g,())
+end
 
