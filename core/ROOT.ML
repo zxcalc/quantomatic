@@ -124,13 +124,13 @@ PolyML.Project.make "metrics/metrics/edge_complexity_metric.ML";
 PolyML.Project.make "metrics/metrics/weighted_arity_metric.ML";
 PolyML.Project.make "metrics/metrics/sets_cardinals_metric.ML";
 PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
-
+*)
 
 (*
  * Rules
  *)
-PolyML.Project.make "rewriting/rule.ML";
-
+(*PolyML.Project.make "rewriting/rule.ML";*)
+(*
 (* I/O *)
 PolyML.Project.make "io/rule_json.ML";
 

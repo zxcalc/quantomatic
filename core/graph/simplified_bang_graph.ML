@@ -522,7 +522,7 @@ fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
 fun try_rename1_bbox n1 n2 g = SOME (rename_bbox n1 n2 g)
   handle Map.duplicate_exp () => NONE
 
-fun rename_graph (vsub,esub,bsub) g = let
+fun rename_bang_graph (vsub,esub,bsub) g = let
   val vrnm  = VSub.extend_to (get_vertices g) vsub
   val vrnmi = VSub.inverse_of vrnm
   val ernm  = ESub.extend_to (get_edges g) esub
@@ -530,13 +530,16 @@ fun rename_graph (vsub,esub,bsub) g = let
   val brnm  = BSub.extend_to (get_bboxes g) bsub
   val brnmi = BSub.inverse_of brnm
 in
-  g |> update_vdata    (fn m => VTab.compose (m,vrnmi))
-    |> update_edata    (fn m => ETab.compose (m,ernmi))
-    |> update_source   (fn m => EVFn.compose3 (vrnm,m,ernmi))
-    |> update_target   (fn m => EVFn.compose3 (vrnm,m,ernmi))
-    |> update_bboxes   (BSub.img_of_set brnm)
-    |> update_bbox_rel (fn m => BVRel.compose3 (vrnm, m, brnmi))
-    |> update_bbox_child_rel (fn m => BBRel.compose3 (brnm, m, brnmi))
+  (
+    (vrnm,ernm,brnm),
+    g |> update_vdata    (fn m => VTab.compose (m,vrnmi))
+      |> update_edata    (fn m => ETab.compose (m,ernmi))
+      |> update_source   (fn m => EVFn.compose3 (vrnm,m,ernmi))
+      |> update_target   (fn m => EVFn.compose3 (vrnm,m,ernmi))
+      |> update_bboxes   (BSub.img_of_set brnm)
+      |> update_bbox_rel (fn m => BVRel.compose3 (vrnm, m, brnmi))
+      |> update_bbox_child_rel (fn m => BBRel.compose3 (brnm, m, brnmi))
+  )
 end
 
 
@@ -896,6 +899,26 @@ in ((vsub',esub',bsub'),
       |> add_children_to_bbox new_bb new_children
       |> add_vertices_to_bbox new_bb new_vertices)
 end
+
+
+fun pretty g =
+      Pretty.chunks
+        [ Pretty.str "BangGraph{",
+          Pretty.block
+            [Pretty.str "  ", (* indent *)
+             Pretty.chunks
+               ([Pretty.block
+                         [Pretty.str "Bang-Boxes: ",
+                          B.NSet.pretty (get_bboxes g)],
+                       Pretty.block
+                         [Pretty.str "BB relation: ",
+                          BVRel.pretty (get_bbox_rel g)],
+                       Pretty.block
+                         [Pretty.str "BB parents: ",
+                          BBRel.pretty (get_bbox_child_rel g)]]
+                @ [(**)])],
+          Pretty.str "}"
+        ];
 
 end
 
