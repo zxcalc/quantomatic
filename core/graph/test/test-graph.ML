@@ -113,13 +113,12 @@ functor Graph_Interface_Tests(
     val v_b = V.mk "b";
 
     val g = G.add_named_vertex v_a vunit1 G.empty;
-    val _ = assert_vertices g [("a",(vunit1,([],[])))] (G.get_vertices g);
+    val _ = assert_vertices g [("a",(vunit1,([],[])))];
     val _ = assert_enames [] (G.get_edges g);
 
     val g' = G.add_named_vertex v_b vunit2 g;
     val _ = assert_vertices g'
-              [("a",(vunit1,([],[]))),("b",(vunit2,([],[])))]
-              (G.get_vertices g');
+              [("a",(vunit1,([],[]))),("b",(vunit2,([],[])))];
     val _ = assert_enames [] (G.get_edges g');
 
     val (vn, g'') = G.add_vertex vunit1 g';
@@ -128,8 +127,7 @@ functor Graph_Interface_Tests(
     val _ = assert_vertices g''
               [("a",(vunit1,([],[]))),
                ("b",(vunit2,([],[]))),
-               (V.string_of_name vn,(vunit1,([],[])))]
-              (G.get_vertices g'');
+               (V.string_of_name vn,(vunit1,([],[])))];
     val _ = assert_enames [] (G.get_edges g'');
     in () end) ();
 
@@ -162,29 +160,25 @@ functor Graph_Interface_Tests(
               (Testing.assert "correct vname in exp (3)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val g' = G.add_named_edge ee (Directed,eunit1) va va g;
-    val _ = assert_edges g' [("e",((Directed,eunit1),("a","a")))] (G.get_edges g');
-    val _ = assert_vertices g' [("a",(vunit1,(["e"],["e"])))] (G.get_vertices g');
+    val _ = assert_edges g' [("e",((Directed,eunit1),("a","a")))];
+    val _ = assert_vertices g' [("a",(vunit1,(["e"],["e"])))];
 
     val g = g |> add_vunit2 "b";
 
     val g' = G.add_named_edge ee (Directed,eunit1) va vb g;
     val _ = assert_edges g'
-              [("e",((Directed,eunit1),("a","b")))]
-              (G.get_edges g');
+              [("e",((Directed,eunit1),("a","b")))];
     val _ = assert_vertices g'
               [("a",(vunit1,([],["e"]))),
-               ("b",(vunit2,(["e"],[])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e"],[])))];
 
     val g'' = G.add_named_edge ef (Undirected,eunit2) vb va g';
     val _ = assert_edges g''
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g'');
+               ("f",((Undirected,eunit2),("b","a")))];
     val _ = assert_vertices g''
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,(["e"],["f"])))];
 
     val (en,g''') = G.add_edge (Directed,eunit2) vb vb g'';
     val _ = Testing.assert "correct name (4) (new)"
@@ -192,13 +186,11 @@ functor Graph_Interface_Tests(
     val _ = assert_edges g'''
               [("e",((Directed,eunit1),("a","b"))),
                ("f",((Undirected,eunit2),("b","a"))),
-               (E.string_of_name en,((Directed,eunit2),("b","b")))]
-              (G.get_edges g''');
+               (E.string_of_name en,((Directed,eunit2),("b","b")))];
     val enstr = E.string_of_name en;
     val _ = assert_vertices g'''
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e",enstr],["f",enstr])))]
-              (G.get_vertices g''');
+               ("b",(vunit2,(["e",enstr],["f",enstr])))];
     in () end) ();
 
 
@@ -216,11 +208,9 @@ functor Graph_Interface_Tests(
     val g' = G.delete_edge (E.mk "e") g;
     val _ = assert_vertices g'
               [("a",(vunit1,([],[]))),
-               ("b",(vunit2,(["f"],["f"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["f"],["f"])))];
     val _ = assert_edges g'
-              [("f",((Directed,eunit2),("b","b")))]
-              (G.get_edges g');
+              [("f",((Directed,eunit2),("b","b")))];
     in () end) ();
 
 
@@ -236,18 +226,16 @@ functor Graph_Interface_Tests(
                     |> add_dir_eunit2 "f" "b" "b";
 
     val g' = G.delete_vertex (V.mk "a") g;
-    val _ = assert_vertices g' [("b",(vunit2,(["f"],["f"])))]
-              (G.get_vertices g');
-    val _ = assert_edges g' [("f",((Directed,eunit2),("b","b")))]
-              (G.get_edges g');
+    val _ = assert_vertices g' [("b",(vunit2,(["f"],["f"])))];
+    val _ = assert_edges g' [("f",((Directed,eunit2),("b","b")))];
 
     val g' = G.delete_vertex (V.mk "b") g;
-    val _ = assert_vertices g' [("a",(vunit1,([],[])))] (G.get_vertices g');
-    val _ = assert_edges g' [] (G.get_edges g');
+    val _ = assert_vertices g' [("a",(vunit1,([],[])))];
+    val _ = assert_edges g' [];
 
     val g' = G.delete_vertex (V.mk "a") g';
-    val _ = assert_vertices g' [] (G.get_vertices g');
-    val _ = assert_edges g' [] (G.get_edges g');
+    val _ = assert_vertices g' [];
+    val _ = assert_edges g' [];
     in () end) ();
 
 
@@ -274,22 +262,18 @@ functor Graph_Interface_Tests(
     val g' = G.update_vertex_data swap_vd (V.mk "a") g;
     val _ = assert_vertices g'
               [("a",(vunit2,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g'
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g');
+               ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.update_vertex_data swap_vd (V.mk "b") g';
     val _ = assert_vertices g''
               [("a",(vunit2,(["f"],["e"]))),
-               ("b",(vunit1,(["e"],["f"])))]
-              (G.get_vertices g'');
+               ("b",(vunit1,(["e"],["f"])))];
     val _ = assert_edges g''
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g'');
+               ("f",((Undirected,eunit2),("b","a")))];
     in () end) ();
 
 
@@ -314,22 +298,18 @@ functor Graph_Interface_Tests(
     val g' = G.update_edge_data swap_ed (E.mk "e") g;
     val _ = assert_vertices g'
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g'
               [("e",((Directed,eunit2),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g');
+               ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.update_edge_data swap_ed (E.mk "f") g';
     val _ = assert_vertices g''
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g''
               [("e",((Directed,eunit2),("a","b"))),
-               ("f",((Undirected,eunit1),("b","a")))]
-              (G.get_edges g'');
+               ("f",((Undirected,eunit1),("b","a")))];
     in () end) ();
 
 
@@ -559,22 +539,18 @@ functor Graph_Interface_Tests(
     val g' = G.set_vertex_data vunit2 (V.mk "a") g;
     val _ = assert_vertices g'
               [("a",(vunit2,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g'
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g');
+               ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.set_vertex_data vunit2 (V.mk "b") g';
     val _ = assert_vertices g''
               [("a",(vunit2,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g''
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g'');
+               ("f",((Undirected,eunit2),("b","a")))];
     in () end) ();
 
 
@@ -594,22 +570,18 @@ functor Graph_Interface_Tests(
     val g' = G.set_edge_data eunit2 (E.mk "e") g;
     val _ = assert_vertices g'
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g'
               [("e",((Directed,eunit2),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g');
+               ("f",((Undirected,eunit2),("b","a")))];
 
     val g'' = G.set_edge_data eunit2 (E.mk "f") g';
     val _ = assert_vertices g''
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,(["e"],["f"])))];
     val _ = assert_edges g''
               [("e",((Directed,eunit2),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g'');
+               ("f",((Undirected,eunit2),("b","a")))];
     in () end) ();
 
 
@@ -666,16 +638,14 @@ functor Graph_Interface_Tests(
 
   val _ = Testing.test "G.add_vertex" (fn () => let 
     val (vn,g) = G.add_vertex vunit1 G.empty;
-    val _ = assert_vertices g [(V.string_of_name vn,(vunit1,([],[])))]
-                            (G.get_vertices g);
-    val _ = assert_edges g [] (G.get_edges g);
+    val _ = assert_vertices g [(V.string_of_name vn,(vunit1,([],[])))];
+    val _ = assert_edges g [];
 
     val (vn',g') = G.add_vertex vunit2 g;
     val _ = Testing.assert "new name" (not (V.name_eq (vn,vn')));
     val _ = assert_vertices g' [(V.string_of_name vn,(vunit1,([],[]))),
-                                (V.string_of_name vn',(vunit2,([],[])))]
-                            (G.get_vertices g');
-    val _ = assert_edges g' [] (G.get_edges g');
+                                (V.string_of_name vn',(vunit2,([],[])))];
+    val _ = assert_edges g' [];
     in () end) ();
 
   (* doadd_vertex is difficult to test... *)
@@ -688,14 +658,13 @@ functor Graph_Interface_Tests(
     val v_b = V.mk "b";
 
     val g = G.add_named_vertex v_a vunit1 G.empty;
-    val _ = assert_vertices g [("a",(vunit1,([],[])))] (G.get_vertices g);
-    val _ = assert_edges g [] (G.get_edges g);
+    val _ = assert_vertices g [("a",(vunit1,([],[])))];
+    val _ = assert_edges g [];
 
     val g' = G.add_named_vertex v_b vunit2 g;
     val _ = assert_vertices g' [("a",(vunit1,([],[]))),
-                             ("b",(vunit2,([],[])))]
-                            (G.get_vertices g');
-    val _ = assert_edges g' [] (G.get_edges g');
+                             ("b",(vunit2,([],[])))];
+    val _ = assert_edges g' [];
 
     val _ = (G.add_named_vertex v_a vunit1 g';
             raise ERROR "G.add_named_vertex did not raise exception")
@@ -733,33 +702,27 @@ functor Graph_Interface_Tests(
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val (en,g') = G.add_edge (Directed,eunit1) va va g;
     val enstr = E.string_of_name en;
-    val _ = assert_edges g' [(enstr,((Directed,eunit1),("a","a")))]
-                         (G.get_edges g');
-    val _ = assert_vertices g' [("a",(vunit1,([enstr],[enstr])))]
-                            (G.get_vertices g');
+    val _ = assert_edges g' [(enstr,((Directed,eunit1),("a","a")))];
+    val _ = assert_vertices g' [("a",(vunit1,([enstr],[enstr])))];
 
     val g = g |> add_vunit2 "b";
 
     val (en,g') = G.add_edge (Directed,eunit1) va vb g;
     val enstr = E.string_of_name en;
     val _ = assert_edges g'
-              [(enstr,((Directed,eunit1),("a","b")))]
-              (G.get_edges g');
+              [(enstr,((Directed,eunit1),("a","b")))];
     val _ = assert_vertices g'
               [("a",(vunit1,([],[enstr]))),
-               ("b",(vunit2,([enstr],[])))]
-              (G.get_vertices g');
+               ("b",(vunit2,([enstr],[])))];
 
     val (en',g'') = G.add_edge (Undirected,eunit2) vb va g';
     val enstr' = E.string_of_name en';
     val _ = assert_edges g''
               [(enstr,((Directed,eunit1),("a","b"))),
-               (enstr',((Undirected,eunit2),("b","a")))]
-              (G.get_edges g'');
+               (enstr',((Undirected,eunit2),("b","a")))];
     val _ = assert_vertices g''
               [("a",(vunit1,([enstr'],[enstr]))),
-               ("b",(vunit2,([enstr],[enstr'])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,([enstr],[enstr'])))];
     in () end) ();
 
 
@@ -790,29 +753,25 @@ functor Graph_Interface_Tests(
               (Testing.assert "correct vname in exp (3)" (V.name_eq (vn,vb));
                Testing.assert "correct graph in exp (3)" (G.exact_eq g g'));
     val g' = G.add_named_edge ee (Directed,eunit1) va va g;
-    val _ = assert_edges g' [("e",((Directed,eunit1),("a","a")))] (G.get_edges g');
-    val _ = assert_vertices g' [("a",(vunit1,(["e"],["e"])))] (G.get_vertices g');
+    val _ = assert_edges g' [("e",((Directed,eunit1),("a","a")))];
+    val _ = assert_vertices g' [("a",(vunit1,(["e"],["e"])))];
 
     val g = g |> add_vunit2 "b";
 
     val g' = G.add_named_edge ee (Directed,eunit1) va vb g;
     val _ = assert_edges g'
-              [("e",((Directed,eunit1),("a","b")))]
-              (G.get_edges g');
+              [("e",((Directed,eunit1),("a","b")))];
     val _ = assert_vertices g'
               [("a",(vunit1,([],["e"]))),
-               ("b",(vunit2,(["e"],[])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e"],[])))];
 
     val g'' = G.add_named_edge ef (Undirected,eunit2) vb va g';
     val _ = assert_edges g''
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g'');
+               ("f",((Undirected,eunit2),("b","a")))];
     val _ = assert_vertices g''
               [("a",(vunit1,(["f"],["e"]))),
-               ("b",(vunit2,(["e"],["f"])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,(["e"],["f"])))];
 
     val _ = (G.add_named_edge ee (Directed,eunit1) va vb g'';
              raise ERROR "G.add_named_edge did not raise exception (4)")
@@ -840,22 +799,18 @@ functor Graph_Interface_Tests(
     val g' = G.swap_edge_dir (E.mk "e") g;
     val _ = assert_vertices g'
               [("a",(vunit1,(["e","f"],[]))),
-               ("b",(vunit2,([],["e","f"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,([],["e","f"])))];
     val _ = assert_edges g'
               [("e",((Directed,eunit1),("b","a"))),
-               ("f",((Undirected,eunit2),("b","a")))]
-              (G.get_edges g');
+               ("f",((Undirected,eunit2),("b","a")))];
 
     val g' = G.swap_edge_dir (E.mk "f") g;
     val _ = assert_vertices g'
               [("a",(vunit1,([],["e","f"]))),
-               ("b",(vunit2,(["e","f"],[])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e","f"],[])))];
     val _ = assert_edges g'
               [("e",((Directed,eunit1),("a","b"))),
-               ("f",((Undirected,eunit2),("a","b")))]
-              (G.get_edges g');
+               ("f",((Undirected,eunit2),("a","b")))];
     in () end) ();
 
 
@@ -936,12 +891,10 @@ functor Graph_Interface_Tests(
        | SOME g' =>
            (assert_vertices g'
                       [("c",(vunit1,([],["e"]))),
-                       ("b",(vunit2,(["e","f"],["f"])))]
-                      (G.get_vertices g');
+                       ("b",(vunit2,(["e","f"],["f"])))];
             assert_edges g'
                       [("e",((Undirected,eunit1),("c","b"))),
-                       ("f",((Directed,eunit2),("b","b")))]
-                      (G.get_edges g');
+                       ("f",((Directed,eunit2),("b","b")))];
             g');
 
     val _ =
@@ -950,12 +903,10 @@ functor Graph_Interface_Tests(
        | SOME g'' =>
            (assert_vertices g''
                       [("c",(vunit1,([],["e"]))),
-                       ("a",(vunit2,(["e","f"],["f"])))]
-                      (G.get_vertices g'');
+                       ("a",(vunit2,(["e","f"],["f"])))];
             assert_edges g''
                       [("e",((Undirected,eunit1),("c","a"))),
-                       ("f",((Directed,eunit2),("a","a")))]
-                      (G.get_edges g''));
+                       ("f",((Directed,eunit2),("a","a")))]);
 
     val g = G.empty |> add_vexpr1 "a" "2\\pi + w"
                     |> add_vexpr1 "b" "2/3*x"
@@ -969,12 +920,10 @@ functor Graph_Interface_Tests(
     val _ = assert_vertices g'
               [("a",(vexpr1 "2\\pi + w",([],["e"]))),
                ("d",(vexpr1 "2/3*x",(["e"],["f"]))),
-               ("c",(vexpr2 "3w - v",(["f"],[])))]
-              (G.get_vertices g');
+               ("c",(vexpr2 "3w - v",(["f"],[])))];
     val _ = assert_edges g'
               [("e",((Directed,eexpr1 "v + y"),("a","d"))),
-               ("f",((Undirected,eexpr2 "y + z"),("d","c")))]
-              (G.get_edges g');
+               ("f",((Undirected,eexpr2 "y + z"),("d","c")))];
     in () end) ();
 
 
@@ -999,12 +948,10 @@ functor Graph_Interface_Tests(
        | SOME g' => g';
     val _ = assert_vertices g'
               [("a",(vunit1,([],["e"]))),
-               ("b",(vunit2,(["e","d"],["d"])))]
-              (G.get_vertices g');
+               ("b",(vunit2,(["e","d"],["d"])))];
     val _ = assert_edges g'
               [("e",((Undirected,eunit1),("a","b"))),
-               ("d",((Directed,eunit2),("b","b")))]
-              (G.get_edges g');
+               ("d",((Directed,eunit2),("b","b")))];
 
     val g'' =
     case G.try_rename1_ename (E.mk "e") (E.mk "f") g'
@@ -1012,12 +959,10 @@ functor Graph_Interface_Tests(
        | SOME g' => g';
     val _ = assert_vertices g''
               [("a",(vunit1,([],["f"]))),
-               ("b",(vunit2,(["f","d"],["d"])))]
-              (G.get_vertices g'');
+               ("b",(vunit2,(["f","d"],["d"])))];
     val _ = assert_edges g''
               [("f",((Undirected,eunit1),("a","b"))),
-               ("d",((Directed,eunit2),("b","b")))]
-              (G.get_edges g'');
+               ("d",((Directed,eunit2),("b","b")))];
 
     val g = G.empty |> add_vexpr1 "a" "2\\pi + w"
                     |> add_vexpr1 "b" "2/3*x"
@@ -1031,12 +976,10 @@ functor Graph_Interface_Tests(
     val _ = assert_vertices g'
               [("a",(vexpr1 "2\\pi + w",([],["d"]))),
                ("b",(vexpr1 "2/3*x",(["d"],["f"]))),
-               ("c",(vexpr2 "3w - v",(["f"],[])))]
-              (G.get_vertices g');
+               ("c",(vexpr2 "3w - v",(["f"],[])))];
     val _ = assert_edges g'
               [("d",((Directed,eexpr1 "v + y"),("a","b"))),
-               ("f",((Undirected,eexpr2 "y + z"),("b","c")))]
-              (G.get_edges g');
+               ("f",((Undirected,eexpr2 "y + z"),("b","c")))];
     in () end) ();
 
 

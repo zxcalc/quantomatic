@@ -388,8 +388,9 @@ functor Test_OGraph_Tools(
       else raise ERROR ("assert_xnames: expected "^(pretty_set exp_vset)^
                         " but got "^(pretty_set actual_vset))
     end*)
-  fun assert_vertices g exp_vs actual_vset =
+  fun assert_vertices g exp_vs =
     let
+      val actual_vset = G.get_vertices g
       val _ = assert_vnames (map fst exp_vs) actual_vset
       fun check_verts ((vn,(vd,(ins,outs)))::vs) =
         let
@@ -405,8 +406,9 @@ functor Test_OGraph_Tools(
         in check_verts vs end
         | check_verts [] = ()
     in check_verts exp_vs end
-  fun assert_edges g exp_es actual_eset =
+  fun assert_edges g exp_es =
     let
+      val actual_eset = G.get_edges g
       val _ = assert_enames (map fst exp_es) actual_eset
       fun check_edges ((en,((dir,ed),(src,tgt)))::es) =
         let
