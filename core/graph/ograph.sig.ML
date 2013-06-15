@@ -1,6 +1,9 @@
 (* each edge is either directed or undirected. Undirected edges are stored the same as
  * directed edges, but may be matched in either direction. *)
 datatype dir_or_undir = Directed | Undirected
+fun dir_eq Directed Directed = true
+    | dir_eq Undirected Undirected = true
+    | dir_eq _ _ = false
 
 signature OGRAPH_SHARING =
 sig
@@ -20,6 +23,7 @@ sharing Sharing.Data = Data
 
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 datatype vdata = NVert of Data.nvdata | WVert
+val vdata_eq : vdata * vdata -> bool
 
 val empty : T
 

@@ -1,6 +1,6 @@
 (* Graph structures for testing *)
 
-structure Test_Graph_Data : GRAPH_DATA =
+structure Test_Graph_Data =
 struct
   datatype nvdata = VUnit1
                   | VUnit2
@@ -262,21 +262,18 @@ struct
     structure DotStyle = ComponentDataIO.DotStyle
   )
 end
-(*
 
-functor Test_Graph_Tools(
-  structure G : GRAPH where type EData.data = Test_Graph_Data.edata
-  val vert : Test_Graph_Data.vdata -> G.VData.data
-  val unwrap_vert : G.VData.data -> Test_Graph_Data.vdata
-)
+
+structure Test_OGraph_Tools
 = struct
-  structure G    = G
+  structure G    = Test_OGraph
   structure Data = Test_Graph_Data
-  structure GIso = GraphIsoFun(structure Graph = G)
+  (*structure GIso = GraphIsoFun(structure Graph = G)*)
   structure Expr = LinratAngleExpr
 
-  val vert = vert
-  val unwrap_vert = unwrap_vert
+  val vert = G.NVert
+  fun unwrap_vert G.WVert = raise ERROR "wire vertex"
+    | unwrap_vert (G.NVert vd) = vd
 
   val vunit1     = vert Data.VUnit1
   val vunit2     = vert Data.VUnit2
@@ -307,43 +304,40 @@ functor Test_Graph_Tools(
   fun add_vstring2 n s = G.add_named_vertex (V.mk n) (vstring2 s)
 
   fun add_dir_eunit1 n s t =
-        G.add_named_edge (E.mk n) (G.Directed,eunit1) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,eunit1) (V.mk s) (V.mk t)
   fun add_dir_eunit2 n s t =
-        G.add_named_edge (E.mk n) (G.Directed,eunit2) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,eunit2) (V.mk s) (V.mk t)
   fun add_dir_eexpr1 n s t a =
-        G.add_named_edge (E.mk n) (G.Directed,(eexpr1 a)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,(eexpr1 a)) (V.mk s) (V.mk t)
   fun add_dir_eexpr1_a n s t a =
-        G.add_named_edge (E.mk n) (G.Directed,(eexpr1_a a)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,(eexpr1_a a)) (V.mk s) (V.mk t)
   fun add_dir_eexpr2 n s t a =
-        G.add_named_edge (E.mk n) (G.Directed,(eexpr2 a)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,(eexpr2 a)) (V.mk s) (V.mk t)
   fun add_dir_eexpr2_a n s t a =
-        G.add_named_edge (E.mk n) (G.Directed,(eexpr2_a a)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,(eexpr2_a a)) (V.mk s) (V.mk t)
   fun add_dir_estring1 n str s t =
-        G.add_named_edge (E.mk n) (G.Directed,(estring1 str)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,(estring1 str)) (V.mk s) (V.mk t)
   fun add_dir_estring2 n str s t =
-        G.add_named_edge (E.mk n) (G.Directed,(estring2 str)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Directed,(estring2 str)) (V.mk s) (V.mk t)
 
   fun add_undir_eunit1 n s t =
-        G.add_named_edge (E.mk n) (G.UnDirected,Data.EUnit1) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,Data.EUnit1) (V.mk s) (V.mk t)
   fun add_undir_eunit2 n s t =
-        G.add_named_edge (E.mk n) (G.UnDirected,Data.EUnit2) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,Data.EUnit2) (V.mk s) (V.mk t)
   fun add_undir_eexpr1 n s t a =
-        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr1 (Expr.parse a))) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,(Data.EExpr1 (Expr.parse a))) (V.mk s) (V.mk t)
   fun add_undir_eexpr1_a n s t a =
-        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr1 a)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,(Data.EExpr1 a)) (V.mk s) (V.mk t)
   fun add_undir_eexpr2 n s t a =
-        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr2 (Expr.parse a))) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,(Data.EExpr2 (Expr.parse a))) (V.mk s) (V.mk t)
   fun add_undir_eexpr2_a n s t a =
-        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EExpr2 a)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,(Data.EExpr2 a)) (V.mk s) (V.mk t)
   fun add_undir_estring1 n str s t =
-        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString1 str)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,(Data.EString1 str)) (V.mk s) (V.mk t)
   fun add_undir_estring2 n str s t =
-        G.add_named_edge (E.mk n) (G.UnDirected,(Data.EString2 str)) (V.mk s) (V.mk t)
+        G.add_named_edge (E.mk n) (Undirected,(Data.EString2 str)) (V.mk s) (V.mk t)
 
   (* testing stuff *)
-  fun dir_eq G.Directed G.Directed = true
-    | dir_eq G.UnDirected G.UnDirected = true
-    | dir_eq _ _ = false
   fun assert_vnames exp_vs actual_vset =
     let
       val exp_vset = V.NSet.of_list (map V.mk exp_vs)
@@ -364,7 +358,7 @@ functor Test_Graph_Tools(
       else raise ERROR ("assert_enames: expected "^(pretty_set exp_ens)^
                         " but got "^(pretty_set actual_eset))
     end
-  fun assert_xnames exp_vs actual_vset =
+  (*fun assert_xnames exp_vs actual_vset =
     let
       val exp_vset = X.NSet.of_list (map X.mk exp_vs)
       val pretty_set = Pretty.string_of o X.NSet.pretty
@@ -373,7 +367,7 @@ functor Test_Graph_Tools(
       then ()
       else raise ERROR ("assert_xnames: expected "^(pretty_set exp_vset)^
                         " but got "^(pretty_set actual_vset))
-    end
+    end*)
   fun assert_vertices exp_vs actual_vtab =
     let
       val _ = assert_vnames (map fst exp_vs) (V.NTab.get_nameset actual_vtab)
@@ -381,7 +375,7 @@ functor Test_Graph_Tools(
         let
           val (vd',(ins',outs')) = V.NTab.get actual_vtab (V.mk vn)
           val _ = Testing.assert ("same data for "^vn)
-                    (G.VData.data_eq (vd,vd'))
+                    (G.vdata_eq (vd,vd'))
           val _ = Testing.assert ("same ins for "^vn)
                     (E.NSet.eq ins' (E.NSet.of_list (map E.mk ins)))
           val _ = Testing.assert ("same outs for "^vn)
@@ -398,7 +392,7 @@ functor Test_Graph_Tools(
           val _ = Testing.assert ("same dir for "^en)
                     (dir_eq dir dir')
           val _ = Testing.assert ("same data for "^en)
-                    (G.EData.data_eq (ed,ed'))
+                    (G.Data.edata_eq (ed,ed'))
           val _ = Testing.assert ("same source for "^en)
                     (V.name_eq ((V.mk src),src'))
           val _ = Testing.assert ("same target for "^en)
@@ -415,15 +409,16 @@ functor Test_Graph_Tools(
          NONE => raise Testing.failed_tests_exp (!Testing.tests_failed_ref)
        | SOME x => x
 
-  fun assert_iso_graph msg exp actual =
+  (* TODO: re-introduce tests requiring iso checks *)
+  (*fun assert_iso_graph msg exp actual =
     if GIso.test exp actual
     then actual
     else (writeln "Expected:" G.print exp
           writeln "Got:" G.print actual
-          raise Testing.assertion_failed_exp msg)
+          raise Testing.assertion_failed_exp msg)*)
 end
 
-
+(*
 (* Some helpful tools for creating string graphs *)
 functor Test_OGraph_Tools(
   G : OGRAPH where type EData.data = Test_Graph_Data.edata
@@ -449,27 +444,19 @@ functor Test_OGraph_Tools(
   fun assert_iso_graph_up_to_wires msg exp actual =
     assert_iso_graph msg (G.minimise exp) (G.minimise actual)
 end
-
+*)
 
 (* Some helpful tools for creating graphs *)
-functor Test_Bang_Graph_Tools(
-  G : BANG_GRAPH where type EData.data = Test_Graph_Data.edata
-               and type OVData.IData.data = Test_Graph_Data.vdata
-)
+(*functor Test_Bang_Graph_Tools
 = struct
-  structure BG = G
+  structure BG = Test_Bang_Graph
 
   fun unwrap_nv BG.OVData.WVert = raise ERROR "wire vertex"
     | unwrap_nv (BG.OVData.NVert vd) = vd
   val nv = BG.OVData.NVert
   fun add_wv n = BG.add_named_vertex (V.mk n) BG.OVData.WVert
 
-  structure GraphTools = Test_Graph_Tools(
-    structure G  = BG
-    val vert = nv
-    val unwrap_vert = unwrap_nv
-  )
-  open GraphTools
+  open Test_Graph_Tools
 
   structure G = BG
   structure GIso = BangGraphIso(G)
@@ -515,7 +502,7 @@ functor Test_Bang_Graph_Tools(
       "expected: " ^ Int.toString n ^ " bboxes, "^
       "got: " ^ Int.toString (num_bboxes g))
 
-  fun assert_iso_graph msg exp actual =
+  (*fun assert_iso_graph msg exp actual =
     if GIso.test exp actual
     then actual
     else (writeln "Expected:" G.print exp
@@ -523,6 +510,6 @@ functor Test_Bang_Graph_Tools(
           raise Testing.assertion_failed_exp msg)
 
   fun assert_iso_graph_up_to_wires msg exp actual =
-    assert_iso_graph msg (G.minimise exp) (G.minimise actual)
+    assert_iso_graph msg (G.minimise exp) (G.minimise actual)*)
 end
 *)
