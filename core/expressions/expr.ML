@@ -7,6 +7,8 @@
       Pretty.writeln (X.pretty_name obj));
 *)
 
+(* TODO: eq and match should be in uncurried form by default *)
+
 structure AlgFormat =
 struct
 exception not_supported_exp
