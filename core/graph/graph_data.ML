@@ -16,6 +16,10 @@ sig
   val nvdata_eq : nvdata * nvdata -> bool
   val edata_eq : edata * edata -> bool
 
+  (* default vertex and edge data *)
+  val default_nvdata : nvdata
+  val default_edata : edata
+
   (* For cases where node/edge data cannot be unified greedily (or uniquely),
    * this is called just before the match is finalised. One match will be
    * produced for each subst returned. In the case where this hook isn't

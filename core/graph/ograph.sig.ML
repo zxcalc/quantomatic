@@ -87,6 +87,8 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
 val get_vertex_data : T -> V.name -> vdata
 val get_edge_data : T -> E.name -> Data.edata
+val get_edge_dir : T -> E.name -> dir_or_undir
+val get_edge_dir_and_data : T -> E.name -> dir_or_undir * Data.edata
 
 (* setting data *)
 val set_vertex_data : vdata -> V.name -> T -> T
@@ -95,8 +97,11 @@ val set_edge_data : Data.edata -> E.name -> T -> T
 
 val is_wire_vertex    : T -> V.name -> bool
 val is_node_vertex    : T -> V.name -> bool
+val get_vertices      : T -> V.NSet.T
 val get_wire_vertices : T -> V.NSet.T
 val get_node_vertices : T -> V.NSet.T
+
+val get_edges         : T -> E.NSet.T
 
 
 (* TODO *)
