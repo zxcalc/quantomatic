@@ -23,7 +23,9 @@ sharing Sharing.Data = Data
 
 type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, representing a wire *)
 datatype vdata = NVert of Data.nvdata | WVert
+type edata = Data.edata
 val vdata_eq : vdata * vdata -> bool
+val edata_eq : edata * edata -> bool (* alias for Data.edata_eq *)
 
 val empty : T
 
@@ -31,13 +33,9 @@ val empty : T
 (********** EXCEPTIONS ***********)
 (*********************************)
 
-exception bug_exp of string
-
-exception no_such_xname_exp of string * X.name * T
-exception xname_already_exists_exp of X.name * T
-
+(*exception bug_exp of string*)
 exception no_such_vname_exp of string * V.name * T
-exception no_such_vnames_exp of string * V.NSet.T * T
+(*exception no_such_vnames_exp of string * V.NSet.T * T*)
 exception vname_already_exists_exp of V.name * T
 
 exception no_such_ename_exp of string * E.name * T
@@ -47,7 +45,7 @@ exception bbname_already_exists_exp of B.name * T
 
 exception bad_graph_merge_exp of T * T * T
 
-exception not_an_endpoint_exp of string * E.name * V.name
+exception not_an_endpoint_exp of string * E.name * V.name * T
 
 exception wire_vertex_exp of string * T * V.name
 exception wire_exp of string * T * wire
@@ -90,14 +88,19 @@ val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
 
 val get_vertex_data : T -> V.name -> vdata
-val get_edge_data : T -> E.name -> Data.edata
+val get_edge_data : T -> E.name -> edata
 val get_edge_dir : T -> E.name -> dir_or_undir
-val get_edge_dir_and_data : T -> E.name -> dir_or_undir * Data.edata
+val get_edge_dir_and_data : T -> E.name -> dir_or_undir * edata
 
 (* setting data *)
 val set_vertex_data : vdata -> V.name -> T -> T
-val set_edge_data : Data.edata -> E.name -> T -> T
-(* val set_edge_dir_or_undir : dir_or_undir -> E.name -> T -> T *)
+val set_edge_data   : edata -> E.name -> T -> T
+val set_edge_dir    : dir_or_undir -> E.name -> T -> T
+
+(* updating data *)
+val update_vertex_data : (vdata -> vdata) -> V.name -> T -> T
+val update_edge_data   : (edata -> edata) -> E.name -> T -> T
+val update_edge_dir    : (dir_or_undir -> dir_or_undir) -> E.name -> T -> T
 
 val is_wire_vertex    : T -> V.name -> bool
 val is_node_vertex    : T -> V.name -> bool

@@ -90,6 +90,24 @@ struct
   val print_subst = Pretty.writeln o pretty_subst
 end
 
+(*
+ * These signatures define ographs/bang-graphs whose Data sub-structure
+ * is the one given above. This allows alternative implementations of
+ * graphs to be tested with the same set of test functors.
+ *)
+
+signature TEST_OGRAPH = OGRAPH
+    where type Data.nvdata = Test_Graph_Data.nvdata
+      and type Data.edata  = Test_Graph_Data.edata
+      and type Data.psubst = Test_Graph_Data.psubst
+      and type Data.subst  = Test_Graph_Data.subst
+
+signature TEST_BANG_GRAPH = BANG_GRAPH
+    where type Data.nvdata = Test_Graph_Data.nvdata
+      and type Data.edata  = Test_Graph_Data.edata
+      and type Data.psubst = Test_Graph_Data.psubst
+      and type Data.subst  = Test_Graph_Data.subst
+
 structure Test_Bang_Graph = BangGraph(structure Data = Test_Graph_Data)
 structure Test_OGraph = Test_Bang_Graph : OGRAPH
 
@@ -264,9 +282,11 @@ struct
 end
 
 
-structure Test_OGraph_Tools
+functor Test_OGraph_Tools(
+  structure G : TEST_OGRAPH
+)
 = struct
-  structure G    = Test_OGraph
+  structure G    = G
   structure Data = Test_Graph_Data
   (*structure GIso = GraphIsoFun(structure Graph = G)*)
   structure Expr = LinratAngleExpr
@@ -368,12 +388,14 @@ structure Test_OGraph_Tools
       else raise ERROR ("assert_xnames: expected "^(pretty_set exp_vset)^
                         " but got "^(pretty_set actual_vset))
     end*)
-  fun assert_vertices exp_vs actual_vtab =
+  fun assert_vertices g exp_vs actual_vset =
     let
-      val _ = assert_vnames (map fst exp_vs) (V.NTab.get_nameset actual_vtab)
+      val _ = assert_vnames (map fst exp_vs) actual_vset
       fun check_verts ((vn,(vd,(ins,outs)))::vs) =
         let
-          val (vd',(ins',outs')) = V.NTab.get actual_vtab (V.mk vn)
+          val (vd',(ins',outs')) = (G.get_vertex_data g (V.mk vn),
+                                    (G.get_in_edges g (V.mk vn),
+                                     G.get_out_edges g (V.mk vn)))
           val _ = Testing.assert ("same data for "^vn)
                     (G.vdata_eq (vd,vd'))
           val _ = Testing.assert ("same ins for "^vn)
@@ -383,12 +405,14 @@ structure Test_OGraph_Tools
         in check_verts vs end
         | check_verts [] = ()
     in check_verts exp_vs end
-  fun assert_edges exp_es actual_etab =
+  fun assert_edges g exp_es actual_eset =
     let
-      val _ = assert_enames (map fst exp_es) (E.NTab.get_nameset actual_etab)
+      val _ = assert_enames (map fst exp_es) actual_eset
       fun check_edges ((en,((dir,ed),(src,tgt)))::es) =
         let
-          val ((dir',ed'),(src',tgt')) = E.NTab.get actual_etab (E.mk en)
+          val ((dir',ed'),(src',tgt')) = (G.get_edge_dir_and_data g (E.mk en),
+                                          (G.get_edge_source g (E.mk en),
+                                           G.get_edge_target g (E.mk en)))
           val _ = Testing.assert ("same dir for "^en)
                     (dir_eq dir dir')
           val _ = Testing.assert ("same data for "^en)
@@ -447,19 +471,22 @@ end
 *)
 
 (* Some helpful tools for creating graphs *)
-(*functor Test_Bang_Graph_Tools
-= struct
-  structure BG = Test_Bang_Graph
+functor Test_Bang_Graph_Tools(
+  structure BG : TEST_BANG_GRAPH
+) =
+struct
+  structure BG = BG
 
-  fun unwrap_nv BG.OVData.WVert = raise ERROR "wire vertex"
-    | unwrap_nv (BG.OVData.NVert vd) = vd
-  val nv = BG.OVData.NVert
-  fun add_wv n = BG.add_named_vertex (V.mk n) BG.OVData.WVert
+  (*fun unwrap_nv BG.WVert = raise ERROR "wire vertex"
+    | unwrap_nv (BG.NVert vd) = vd
+  val nv = BG.NVert*)
+  fun add_wv n = BG.add_named_vertex (V.mk n) BG.WVert
 
-  open Test_Graph_Tools
+  structure Test_OG_Tools = Test_OGraph_Tools(structure G = BG)
+  open Test_OG_Tools
 
   structure G = BG
-  structure GIso = BangGraphIso(G)
+  (*structure GIso = BangGraphIso(G)*)
   structure GJsonInput = Test_Bang_Graph_IO.InputGraphJSON
   structure GJsonOutput = Test_Bang_Graph_IO.OutputGraphJSON
   structure GDotOutput = Test_Bang_Graph_IO.OutputGraphDot
@@ -470,19 +497,19 @@ end
           val bn = B.mk n
           val vset = V.NSet.of_list (map V.mk vs)
         in
-          G.doadd_to_bbox bn vset
+          G.add_to_bbox_anon bn vset
         end
-  fun add_bbox n vs = (add_to_bbox n vs) o (G.add_named_bbox (B.mk n))
+  fun add_bbox n vs = add_to_bbox n vs o G.add_named_bbox (B.mk n)
   fun add_child_bbox n parent vs =
-          (G.set_bbox_parent (B.mk n) (B.mk parent)) o
-          (add_to_bbox n vs) o
-          (G.add_named_bbox (B.mk n))
+          G.add_child_to_bbox (B.mk parent) (B.mk n) o
+          add_to_bbox n vs o
+          G.add_named_bbox (B.mk n)
 
   local
     fun write_to_file file s = let
       val outstream = TextIO.openOut file
     in
-      (TextIO.output (outstream, s)
+      (TextIO.output (outstream, s);
        TextIO.closeOut outstream)
     end
   in
@@ -512,4 +539,4 @@ end
   fun assert_iso_graph_up_to_wires msg exp actual =
     assert_iso_graph msg (G.minimise exp) (G.minimise actual)*)
 end
-*)
+
