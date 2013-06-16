@@ -11,6 +11,10 @@ fun vdata_eq (NVert nv1, NVert nv2) = Data.nvdata_eq (nv1,nv2)
 
 val edata_eq = Data.edata_eq
 
+fun pretty_vdata (NVert n) = Pretty.block[Pretty.str "N{", Data.pretty_nvdata n, Pretty.str "}"]
+  | pretty_vdata (WVert)   = Pretty.str "W{}"
+val pretty_edata = Data.pretty_edata
+
 (* main bang-graph datatype *)
 datatype T = BG of {
   vdata  : vdata VTab.T, 
@@ -480,7 +484,7 @@ fun delete_subgraph sg g =
 (* rename vertices using the given substitution *)
 fun rename_vertices sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
-  val rnm = VSub.extend_to (get_vertices g) sub
+  val rnm = VSub.extend_fixed (get_vertices g) sub
   val rnmi = VSub.inverse_of rnm
 in
   g |> update_vdata    (fn m => VTab.compose (m,rnmi))
@@ -489,14 +493,14 @@ in
     |> update_bbox_rel (fn m => BVRel.compose (rnm,m))
 end
 
-fun rename_vname n1 n2 g = rename_vertices (VSub.empty |> VSub.add (n1,n2)) g
+(*fun rename_vname n1 n2 g = rename_vertices (VSub.empty |> VSub.add (n1,n2)) g
 fun try_rename1_vname n1 n2 g = SOME (rename_vname n1 n2 g)
-  handle Map.duplicate_exp () => NONE
+  handle Map.duplicate_exp () => NONE*)
 
 (* rename edges using the given substitution *)
 fun rename_edges sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
-  val rnm = ESub.extend_to (get_edges g) sub
+  val rnm = ESub.extend_fixed (get_edges g) sub
   val rnmi = ESub.inverse_of rnm
 in
   g |> update_edata  (fn m => ETab.compose (m,rnmi))
@@ -504,13 +508,13 @@ in
     |> update_target (fn m => EVFn.compose (m,rnmi))
 end
 
-fun rename_ename n1 n2 g = rename_edges (ESub.empty |> ESub.add (n1,n2)) g
+(*fun rename_ename n1 n2 g = rename_edges (ESub.empty |> ESub.add (n1,n2)) g
 fun try_rename1_ename n1 n2 g = SOME (rename_ename n1 n2 g)
-  handle Map.duplicate_exp () => NONE
+  handle Map.duplicate_exp () => NONE*)
 
 fun rename_bboxes sub g = let
   (* this will fail with duplicate_exp if the renaming is bad *)
-  val rnm = BSub.extend_to (get_bboxes g) sub
+  val rnm = BSub.extend_fixed (get_bboxes g) sub
   val rnmi = BSub.inverse_of rnm
 in
   g |> update_bboxes (BSub.img_of_set rnm)
@@ -518,16 +522,16 @@ in
     |> update_bbox_child_rel (fn m => BBRel.compose3 (rnm, m, rnmi))
 end
 
-fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
+(*fun rename_bbox n1 n2 g = rename_bboxes (BSub.empty |> BSub.add (n1,n2)) g
 fun try_rename1_bbox n1 n2 g = SOME (rename_bbox n1 n2 g)
-  handle Map.duplicate_exp () => NONE
+  handle Map.duplicate_exp () => NONE*)
 
 fun rename_bang_graph (vsub,esub,bsub) g = let
-  val vrnm  = VSub.extend_to (get_vertices g) vsub
+  val vrnm  = VSub.extend_fixed (get_vertices g) vsub
   val vrnmi = VSub.inverse_of vrnm
-  val ernm  = ESub.extend_to (get_edges g) esub
+  val ernm  = ESub.extend_fixed (get_edges g) esub
   val ernmi = ESub.inverse_of ernm
-  val brnm  = BSub.extend_to (get_bboxes g) bsub
+  val brnm  = BSub.extend_fixed (get_bboxes g) bsub
   val brnmi = BSub.inverse_of brnm
 in
   (
@@ -541,6 +545,8 @@ in
       |> update_bbox_child_rel (fn m => BBRel.compose3 (brnm, m, brnmi))
   )
 end
+
+val rename_bang_graph_anon = snd oo rename_bang_graph
 
 
 fun edges_between g v1 v2 = E.NSet.intersect (get_adj_edges g v1) (get_adj_edges g v2)
@@ -900,25 +906,33 @@ in ((vsub',esub',bsub'),
       |> add_vertices_to_bbox new_bb new_vertices)
 end
 
+fun pretty_edge_desc g e =
+  Pretty.block[E.pretty_name e,
+               Pretty.str "[",
+               V.pretty_name (get_edge_source g e),
+               Pretty.str (case get_edge_dir g e of Directed => " -> " | Undirected => "--"),
+               V.pretty_name (get_edge_target g e),
+               Pretty.str "]"
+              ]
+
 
 fun pretty g =
-      Pretty.chunks
-        [ Pretty.str "BangGraph{",
-          Pretty.block
-            [Pretty.str "  ", (* indent *)
-             Pretty.chunks
-               ([Pretty.block
-                         [Pretty.str "Bang-Boxes: ",
-                          B.NSet.pretty (get_bboxes g)],
-                       Pretty.block
-                         [Pretty.str "BB relation: ",
-                          BVRel.pretty (get_bbox_rel g)],
-                       Pretty.block
-                         [Pretty.str "BB parents: ",
-                          BBRel.pretty (get_bbox_child_rel g)]]
-                @ [(**)])],
-          Pretty.str "}"
-        ];
+  Pretty.chunks
+    [ Pretty.str "BangGraph{",
+      Pretty.block [Pretty.str "  ", (* indent *)
+         Pretty.chunks ([
+          Pretty.block [Pretty.str "Node-vertices: ", V.NSet.pretty (get_node_vertices g)],
+          Pretty.block [Pretty.str "Wire-vertices: ", V.NSet.pretty (get_wire_vertices g)],
+          Pretty.block [Pretty.str "Vertex data: ", VTab.pretty pretty_vdata (get_vdata g)],
+          Pretty.block [Pretty.str "Edges: ", Map.pretty "" (pretty_edge_desc g) (pretty_edata o snd) (get_edata g)],
+          Pretty.block [Pretty.str "Bang-boxes: ", B.NSet.pretty (get_bboxes g)],
+          Pretty.block [Pretty.str "BB contains: ", BVRel.pretty (get_bbox_rel g)],
+          Pretty.block [Pretty.str "BB children: ", BBRel.pretty (get_bbox_child_rel g)]]
+         )],
+      Pretty.str "}"
+    ]
+
+val print = Pretty.writeln o pretty
 
 end
 

@@ -870,8 +870,8 @@ functor Graph_Interface_Tests(
   in () end) ();
 
 
-
-  val _ = Testing.test "G.try_rename1_vname" (fn () => let 
+  (* try_rename1_X functions are now deprecated *)
+  (*val _ = Testing.test "G.try_rename1_vname" (fn () => let 
     val _ = Testing.assert "G.try_rename1_vname makes no changes (1)"
               (G.is_empty (the (G.try_rename1_vname (V.mk "a") (V.mk "b")
                                                     G.empty)));
@@ -982,7 +982,7 @@ functor Graph_Interface_Tests(
                ("f",((Undirected,eexpr2 "y + z"),("b","c")))];
     in () end) ();
 
-
+*)
 
 
   (* TODO: finish tests for GRAPH signature *)

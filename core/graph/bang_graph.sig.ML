@@ -84,8 +84,6 @@ sig
   (* no_such_vname_exp if vertex does not exist *)
   val get_bboxes_containing_vertex : T -> V.name -> B.NSet.T
   
-  val try_rename1_bbox : B.name -> B.name -> T -> T option
-  
   (* no_such_bbox_exp *)
   val kill_bbox : B.name -> T -> T
   (* no_such_bbox_exp *)
@@ -102,6 +100,7 @@ sig
   
   val rename_bang_graph : (VSub.T * ESub.T * BSub.T) -> T ->
                           (VSub.T * ESub.T * BSub.T) * T
+  val rename_bang_graph_anon : (VSub.T * ESub.T * BSub.T) -> T -> T
 
   (*val fresh_copy_bbox : B.name -> T -> (B.name * T)
   val fresh_copy_bbox_anon : B.name -> T -> T*)

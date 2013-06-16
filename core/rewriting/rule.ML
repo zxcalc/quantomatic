@@ -72,8 +72,9 @@ sig
   val get_lhs : T -> Graph.T
   val get_rhs : T -> Graph.T
   
-  val get_vnames : T -> V.NSet.T
-  val get_enames : T -> E.NSet.T
+  val get_vertices : T -> V.NSet.T
+  val get_edges : T -> E.NSet.T
+  val get_bboxes : T -> B.NSet.T
 
   (* swaps lhs and rhs *)
   val symmetric : T -> T
@@ -82,11 +83,10 @@ sig
   val pretty : T -> Pretty.T
   val print : T -> unit
 
-  (*val rename_bang_graph_rule : (VSub.T * ESub.T * BSub.T) -> T ->
+  val rename_bang_graph_rule : (VSub.T * ESub.T * BSub.T) -> T ->
                                (VSub.T * ESub.T * BSub.T) * T
 
-  val try_rename1_bbox : B.name -> B.name -> T -> T option*)
-  val get_bnames : T -> B.NSet.T
+  (*val try_rename1_bbox : B.name -> B.name -> T -> T option*)
 end
 
 
@@ -194,12 +194,12 @@ fun mk_with_renamings (lhs,rhs) =
       val rhs_int = V.NSet.subtract (Graph.get_vertices rhs) bnd
       (* rename rhs; sharing bvertex names with lhs,
          all else must be distinct, but do minimal amount of renaming *)
-      val vrn = VSub.empty |> VSub.extend_to bnd
+      val vrn = VSub.empty |> VSub.extend_fixed bnd
                            |> VSub.avoid_set_in_cod lhs_int
                            |> VSub.extend_fresh rhs_int
       val ern = ESub.empty |> ESub.avoid_set_in_cod (Graph.get_edges lhs)
                            |> ESub.extend_fresh (Graph.get_edges rhs)
-      val brn = BSub.empty |> BSub.extend_to (Graph.get_bboxes lhs)
+      val brn = BSub.empty |> BSub.extend_fixed (Graph.get_bboxes lhs)
       
       val ((vrn,ern,_), rhs') = Graph.rename_bang_graph (vrn,ern,brn) rhs
     in (Rule { lhs = lhs, rhs = rhs', boundary_vertices = bnd },
@@ -235,7 +235,7 @@ fun get_bboxes rule =
       (Graph.get_bboxes (get_lhs rule))
       (Graph.get_bboxes (get_rhs rule))
 
-
+(*
 fun try_rename1_vname n1 n2 rule =
     (SOME
       (rule |> (update_lhs (untryify (Graph.try_rename1_vname n1 n2)))
@@ -252,25 +252,17 @@ fun try_rename1_bbox n1 n2 rule =
     (SOME
       (rule |> (update_lhs (untryify (Graph.try_rename1_bbox n1 n2)))
             |> (update_rhs (untryify (Graph.try_rename1_bbox n1 n2)))))
-    handle tryify_failed () => NONE
+    handle tryify_failed () => NONE*)
 
-
-(* rename *)
-fun rename (xrn,vrn,ern) rule =
-    let
-      val (xrn,rule) = XCRnm.rename xrn rule
-      val (vrn,rule) = VertexCRnm.rename vrn rule
-      val (ern,rule) = EdgeCRnm.rename ern rule
-    in
-      ((xrn,vrn,ern), rule)
-    end
-fun rename4 (xrn,vrn,ern,brn) rule =
-    let
-      val ((xrn,vrn,ern),rule) = rename (xrn,vrn,ern) rule
-      val (brn,rule) = BBoxCRnm.rename brn rule
-    in
-      ((xrn,vrn,ern,brn), rule)
-    end
+fun rename_bang_graph_rule (vsub,esub,bsub) rule = let
+  val vrnm = vsub |> VSub.extend_fixed (get_vertices rule)
+  val ernm = esub |> ESub.extend_fixed (get_edges rule)
+  val brnm = bsub |> BSub.extend_fixed (get_bboxes rule)
+in ((vrnm,ernm,brnm),
+    rule |> update_lhs (Graph.rename_bang_graph_anon (vrnm,ernm,brnm))
+         |> update_rhs (Graph.rename_bang_graph_anon (vrnm,ernm,brnm))
+         |> update_boundary_vertices (VSub.img_of_set vrnm))
+end
 
 fun pretty (Rule rep) =
     Pretty.chunks

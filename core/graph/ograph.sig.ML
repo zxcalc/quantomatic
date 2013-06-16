@@ -25,8 +25,11 @@ type wire = V.name * V.name * V.NSet.T * E.NSet.T (* a chain of edges, represent
 datatype vdata = NVert of Data.nvdata | WVert
 type edata = Data.edata
 val vdata_eq : vdata * vdata -> bool
-val edata_eq : edata * edata -> bool (* alias for Data.edata_eq *)
-
+val edata_eq : edata * edata -> bool (* should be an alias for Data.edata_eq *)
+val pretty_vdata : vdata -> Pretty.T
+val pretty_edata : edata -> Pretty.T (* should be an alias for Data.pretty_edata *) 
+val pretty : T -> Pretty.T
+val print : T -> unit
 val empty : T
 
 (*********************************)
@@ -150,12 +153,6 @@ val merge_by_vertices : T -> T -> T
 
 val get_arity : T -> V.name -> Arity.T
 val get_self_loops : T -> V.name -> E.NSet.T
-
-(* TODO: change this names to *_vertex, *_edge, etc *)
-(*val try_rename1_xname : X.name -> X.name -> T -> T option*)
-val try_rename1_vname : V.name -> V.name -> T -> T option
-val try_rename1_ename : E.name -> E.name -> T -> T option
-
 
 
 (* remove the first graph from the second, assumes first is a subgraph *)

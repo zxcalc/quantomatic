@@ -129,7 +129,7 @@ PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
 (*
  * Rules
  *)
-(*PolyML.Project.make "rewriting/rule.ML";*)
+PolyML.Project.make "rewriting/rule.ML";
 (*
 (* I/O *)
 PolyML.Project.make "io/rule_json.ML";

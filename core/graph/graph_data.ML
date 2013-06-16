@@ -6,9 +6,13 @@ sig
   type edata   (* edge data *)
 
   (* A partial substitution contains a collection of constraints on pattern
-   * variables. The match_xxx functions update a psubst or return NONE if
+   * variables. It is initialised by passing in a table containing node/edge
+   * data from the target graph. This can be used e.g. to ensure that names
+   * introduced in the pattern are fresh. *)
+  val init_psubst : nvdata VTab.T * edata ETab.T -> psubst
+
+  (* The match_xxx functions update a psubst or return NONE if
    * no match is possible. *)
-  val empty_psubst : psubst
   val match_nvdata : nvdata * nvdata -> psubst -> psubst option
   val match_edata : edata * edata -> psubst -> psubst option
 
