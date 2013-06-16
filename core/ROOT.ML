@@ -130,7 +130,7 @@ PolyML.Project.make "metrics/metrics.ML"; (* Metrics on graphs *)
  * Rules
  *)
 PolyML.Project.make "rewriting/rule.ML";
-(*
+
 (* I/O *)
 PolyML.Project.make "io/rule_json.ML";
 
@@ -143,36 +143,36 @@ Testing.make_test "rewriting/test/rule-test.ML";
 PolyML.Project.make "theories/ruleset.ML";
 PolyML.Project.make "theories/ruleset_annotations.ML";
 
-(* I/O *)
+(* Ruleset I/O *)
 PolyML.Project.make "io/ruleset_json.ML";
 PolyML.Project.make "io/ruleset_annotations_json.ML";
 
-Testing.make_test "theories/test/ruleset-test.ML";
+(*Testing.make_test "theories/test/ruleset-test.ML";*)
 
 
 (*
  * Matching
  *)
 PolyML.Project.make "matching/match_state.ML";
-PolyML.Project.make "matching/bang_graph_match_state.ML";
+(*PolyML.Project.make "matching/bang_graph_match_state.ML";*)
 (* signature for inner (concrete) matching *)
-PolyML.Project.make "matching/inner_match_search.ML";
+(*PolyML.Project.make "matching/inner_match_search.ML";*)
 (* signature for outer (e.g. !-box) matching *)
-PolyML.Project.make "matching/match_search.ML";
+(*PolyML.Project.make "matching/match_search.ML";*)
 (* simple inner loop for the matching algo *)
-PolyML.Project.make "matching/simple_inner_match_search.ML";
+(*PolyML.Project.make "matching/simple_inner_match_search.ML";*)
 (* wrappers for inner_match_search *)
 (* pattern-free wrapper (concrete graphs onto concrete graphs) *)
-PolyML.Project.make "matching/concrete_match_search.ML";
+(*PolyML.Project.make "matching/concrete_match_search.ML";*)
 (* naive pattern-graph wrapper *)
-PolyML.Project.make "matching/greedy_match_search.ML";
+(*PolyML.Project.make "matching/greedy_match_search.ML";*)
 
-Testing.make_test "matching/test/test-matching-setup.ML";
+(*Testing.make_test "matching/test/test-matching-setup.ML";
 Testing.make_test "matching/test/test-bang-match-state.ML";
 Testing.make_test "matching/test/test-string-graph-matching.ML";
-Testing.make_test "matching/test/test-bang-graph-matching.ML";
+Testing.make_test "matching/test/test-bang-graph-matching.ML";*)
 
-
+(*
 (*
  * Deprecated XML I/O stuff
  *)

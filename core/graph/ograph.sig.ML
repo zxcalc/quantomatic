@@ -90,6 +90,9 @@ val get_adj_vertices : T -> V.name -> V.NSet.T
 val adj_edge_classes: T -> V.name -> (E.NSet.T*E.NSet.T*E.NSet.T)
 
 
+val get_nvdata_tab : T -> Data.nvdata VTab.T
+val get_edata_tab : T -> Data.edata ETab.T
+
 val get_vertex_data : T -> V.name -> vdata
 val get_edge_data : T -> E.name -> edata
 val get_edge_dir : T -> E.name -> dir_or_undir

@@ -12,59 +12,20 @@ sig
   structure Graph : OGRAPH_SHARING
   type T
 end
-(*
+
 signature OGRAPH_RULE =
 sig
   type T
   structure Graph : OGRAPH
 
   structure Sharing : OGRAPH_RULE_SHARING
-  sharing Sharing.Graph = Graph.SharingOGraph
-  sharing type Sharing.T = T
-
-  exception bad_rule_exp of string * Graph.T * Graph.T;
-  val mk : (Graph.T * Graph.T) -> T;
-  (* returns the renamings applied to the RHS *)
-  val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T);
-  
-  val try_rename1_ename : E.name -> E.name -> T -> T option
-  val try_rename1_vname : V.name -> V.name -> T -> T option
-
-  val rename_ograph_rule : (V.Rnm.T * E.Rnm.T) -> T -> (V.Rnm.T * E.Rnm.T) * T
-
-  (* generate a boundary graph, including bboxes? *)
-  val get_boundary_vertices : T -> V.NSet.T
-
-  val get_lhs : T -> Graph.T
-  val get_rhs : T -> Graph.T
-  
-  val get_vnames : T -> V.NSet.T
-  val get_enames : T -> E.NSet.T
-
-  (* swaps lhs and rhs *)
-  val symmetric : T -> T
-  
-  (* for pretty printing *)
-  val pretty : T -> Pretty.T
-  val print : T -> unit
-end*)
-
-signature BANG_GRAPH_RULE =
-sig
-  type T
-  structure Graph : BANG_GRAPH
-
-  structure Sharing : OGRAPH_RULE_SHARING
   sharing Sharing.Graph = Graph.Sharing
   sharing type Sharing.T = T
 
-  exception bad_rule_exp of string * Graph.T * Graph.T;
-  val mk : (Graph.T * Graph.T) -> T;
+  exception bad_rule_exp of string * Graph.T * Graph.T
+  val mk : (Graph.T * Graph.T) -> T
   (* returns the renamings applied to the RHS *)
-  val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T);
-  
-  (*val try_rename1_ename : E.name -> E.name -> T -> T option
-  val try_rename1_vname : V.name -> V.name -> T -> T option*)
+  val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)
 
   (* generate a boundary graph, including bboxes? *)
   val get_boundary_vertices : T -> V.NSet.T
@@ -83,10 +44,45 @@ sig
   val pretty : T -> Pretty.T
   val print : T -> unit
 
+  val rename_ograph_rule : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
+end
+
+signature BANG_GRAPH_RULE =
+sig
+  (* extends OGRAPH_RULE *)
+  type T
+  structure Graph : BANG_GRAPH
+
+  structure Sharing : OGRAPH_RULE_SHARING
+  sharing Sharing.Graph = Graph.Sharing
+  sharing type Sharing.T = T
+
+  exception bad_rule_exp of string * Graph.T * Graph.T
+  val mk : (Graph.T * Graph.T) -> T
+  (* returns the renamings applied to the RHS *)
+  val mk_with_renamings : (Graph.T * Graph.T) -> T * (VSub.T * ESub.T)
+
+  (* generate a boundary graph, including bboxes? *)
+  val get_boundary_vertices : T -> V.NSet.T
+
+  val get_lhs : T -> Graph.T
+  val get_rhs : T -> Graph.T
+  
+  val get_vertices : T -> V.NSet.T
+  val get_edges : T -> E.NSet.T
+  val get_bboxes : T -> B.NSet.T
+
+  (* swaps lhs and rhs *)
+  val symmetric : T -> T
+  
+  (* for pretty printing *)
+  val pretty : T -> Pretty.T
+  val print : T -> unit
+
+  val rename_ograph_rule : (VSub.T * ESub.T) -> T -> (VSub.T * ESub.T) * T
+
   val rename_bang_graph_rule : (VSub.T * ESub.T * BSub.T) -> T ->
                                (VSub.T * ESub.T * BSub.T) * T
-
-  (*val try_rename1_bbox : B.name -> B.name -> T -> T option*)
 end
 
 
@@ -98,9 +94,9 @@ structure Graph = Graph
 
 datatype T = Rule of { lhs : Graph.T,
                        rhs : Graph.T,
-                       boundary_vertices : V.NSet.T };
+                       boundary_vertices : V.NSet.T }
 
-exception bad_rule_exp of string * Graph.T * Graph.T;
+exception bad_rule_exp of string * Graph.T * Graph.T
 
 type boundary = {
   input_tab : Graph.edata VTab.T,
@@ -185,7 +181,7 @@ fun get_rule_bounds lhs rhs =
       then boundary_vs
       else
         raise bad_rule_exp ("get_rule_bounds: Left and right hand side boundaries are different", lhs, rhs)
-   end;
+   end
 
 fun mk_with_renamings (lhs,rhs) =
     let
@@ -262,6 +258,11 @@ in ((vrnm,ernm,brnm),
     rule |> update_lhs (Graph.rename_bang_graph_anon (vrnm,ernm,brnm))
          |> update_rhs (Graph.rename_bang_graph_anon (vrnm,ernm,brnm))
          |> update_boundary_vertices (VSub.img_of_set vrnm))
+end
+
+fun rename_ograph_rule (vsub,esub) rule = let
+  val ((vrnm,ernm,_),rule') = rename_bang_graph_rule (vsub,esub,BSub.empty) rule
+in ((vrnm,ernm),rule')
 end
 
 fun pretty (Rule rep) =

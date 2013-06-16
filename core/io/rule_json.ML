@@ -57,7 +57,7 @@ structure EmptyRuleAnnotationOutputJson
 end;
 
 functor InputAnnotatedRuleJSON(
-  structure Rule : RULE
+  structure Rule : OGRAPH_RULE
   structure InputAnnotation : RULE_ANN_INPUT_JSON
   structure InputGraph : INPUT_JSON where type data = (Rule.Graph.T * InputAnnotation.GraphAnnInput.data)
 ) : INPUT_JSON
@@ -92,7 +92,7 @@ functor InputAnnotatedRuleJSON(
 end;
 
 functor InputRuleJSON(
-  structure Rule : RULE
+  structure Rule : OGRAPH_RULE
   structure InputGraph : INPUT_JSON
   sharing type InputGraph.data = Rule.Graph.T
 ) : INPUT_JSON
@@ -117,7 +117,7 @@ functor InputRuleJSON(
 end;
 
 functor OutputAnnotatedRuleJSON(
-  structure Rule : RULE
+  structure Rule : OGRAPH_RULE
   structure OutputAnnotation : RULE_ANN_OUTPUT_JSON
   structure OutputGraph : OUTPUT_JSON where type data = (Rule.Graph.T * OutputAnnotation.GraphAnnOutput.data)
 ) : OUTPUT_JSON
@@ -143,7 +143,7 @@ functor OutputAnnotatedRuleJSON(
 end;
 
 functor OutputRuleJSON(
-  structure Rule : RULE
+  structure Rule : OGRAPH_RULE
   structure OutputGraph : OUTPUT_JSON
   sharing type OutputGraph.data = Rule.Graph.T
 ) : OUTPUT_JSON

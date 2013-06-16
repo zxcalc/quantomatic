@@ -145,6 +145,9 @@ fun get_edge_target g e = EVFn.get (get_target g) e
   handle Map.no_such_elem_exp () =>
     raise no_such_ename_exp ("get_edge_target", e, g)
 
+fun get_nvdata_tab g = VTab.fold (fn (k,v) => case v of NVert nv => VTab.add (k, nv) | _ => I) (get_vdata g) VTab.empty
+fun get_edata_tab  g = ETab.fold (fn (k,v) => ETab.add (k, snd v)) (get_edata g) ETab.empty
+
 fun get_vertex_data g v = VTab.get (get_vdata g) v
   handle Map.no_such_elem_exp () =>
     raise no_such_vname_exp ("get_vertex_data", v, g)

@@ -1,14 +1,14 @@
 (* sharing types for Rulesets *)
 signature RULESET_SHARING =
 sig
-  structure Rule : RULE_SHARING
+  structure Rule : OGRAPH_RULE_SHARING
   type T
 end
 
 (* *)
 signature RULESET =
 sig
-  structure Rule : RULE;
+  structure Rule : OGRAPH_RULE;
 
   type T (* a set of named rules, which can be taged, and which have 
             an active subset *)
@@ -73,7 +73,7 @@ end; (* signature *)
 (* a Ruleset is map from rule names to rule, 
    a subset of active rulenames, and a binary relation between rulenames 
    and tagnames. *)
-functor Ruleset(Rule : RULE) : RULESET =
+functor Ruleset(Rule : OGRAPH_RULE) : RULESET =
 struct
   
   structure Rule = Rule;
